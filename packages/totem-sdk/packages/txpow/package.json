@@ -22,11 +22,12 @@
   },
   "files": [
     "dist",
+    "src/wasm/miner.wasm",
     "README.md",
     "LICENSE"
   ],
   "dependencies": {
-    "@totemsdk/core": "workspace:^1.0.9"
+    "@totemsdk/core": "workspace:*"
   },
   "peerDependencies": {
     "@noble/hashes": "^2.0.0"

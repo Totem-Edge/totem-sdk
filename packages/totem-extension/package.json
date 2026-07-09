@@ -30,10 +30,11 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@totem/sdk": "file:../totem-sdk",
-    "@totemsdk/realtime": "file:../totem-sdk/packages/realtime",
-    "@totemsdk/root-identity": "file:../totem-sdk/packages/root-identity",
-    "@totemsdk/txpow": "file:../totem-sdk/packages/txpow",
+    "@noble/hashes": "^1.8.0",
+    "@totemsdk/core": "^1.1.0",
+    "@totemsdk/realtime": "^0.1.9",
+    "@totemsdk/root-identity": "^1.0.7",
+    "@totemsdk/txpow": "^0.1.5",
     "bip39": "^3.1.0",
     "buffer": "^6.0.3",
     "clsx": "^2.1.0",
@@ -78,12 +79,10 @@
       "<rootDir>/test/setup.ts"
     ],
     "moduleNameMapper": {
-      "^@totem/sdk$": "<rootDir>/../totem-sdk/packages/core/src/index.ts",
-      "^../../../../totem-sdk/packages/core/src/(.*)$": "<rootDir>/../totem-sdk/packages/core/src/$1",
-      "^../../totem-sdk/packages/core/src/(.*)$": "<rootDir>/../totem-sdk/packages/core/src/$1"
+      "^@/(.*)$": "<rootDir>/src/$1"
     },
     "transformIgnorePatterns": [
-      "node_modules/(?!@totem)"
+      "node_modules/(?!@totemsdk)"
     ],
     "testPathIgnorePatterns": [
       "/node_modules/",

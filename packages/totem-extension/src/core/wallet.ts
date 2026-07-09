@@ -18,10 +18,10 @@ import { sha3_256 } from '@noble/hashes/sha3';
 import { mnemonicToSeed, generateMnemonic, validateMnemonic, cleanMnemonic } from '../wallet/mnemonic';
 import { makeProjectApiCall } from './api/base';
 import { AxiaRpcClient } from './api/AxiaRpcClient';
-import { RootIdentityWallet } from '../../../totem-sdk/packages/root-identity/src/RootIdentityWallet';
-import type { OwnershipProof } from '../../../totem-sdk/packages/root-identity/src/types';
-import { scriptFromWotsPk } from '../../../totem-sdk/packages/core/src/script';
-import { scriptToAddress } from '../../../totem-sdk/packages/core/src/derive';
+import { RootIdentityWallet } from '@totemsdk/root-identity';
+import type { OwnershipProof } from '@totemsdk/root-identity';
+import { scriptFromWotsPk } from '@totemsdk/core';
+import { scriptToAddress } from '@totemsdk/core';
 import {
   TreeKey,
   TreeKeyNode,
@@ -30,7 +30,7 @@ import {
   createUnifiedChildTreeKey,
   createUnifiedChildTreeKeyAsync,
   deriveUnifiedAddressPublicKey,
-} from '../../../totem-sdk/packages/core/src/treekey';
+} from '@totemsdk/core';
 import { parentChildSigCache } from './stores/ParentChildSigCache';
 import { mxToHex } from './utils/minima-base32';
 import { WalletInitEvent, WalletInitEventCallback, createInitEvent } from './wallet/events';

@@ -22,18 +22,17 @@ import { coinSelectionService, CoinSelectionError } from '../core/transaction/Co
 import { formatMinimaAmount, MINIMA_DECIMALS, TOTEM_CHAIN_ID } from '../constants';
 import { sha3_256 } from '@noble/hashes/sha3';
 import { parseTxInputs } from '../core/transaction/txParser';
-import { setWasmUrl } from '../../../totem-sdk/packages/txpow/src/mine-wasm';
+import { setWasmUrl } from '@totemsdk/txpow';
 import { validateSignData, computeManifestBlobHash, normalizeAddrToHex as normalizeSignAddr } from '../core/signing/signDataValidator';
 import { buildTransaction, type BuildTransactionParams, type SpendableCoinInput, type CoinProofData, parseDecimalToBaseUnits, extractAmountBytesFromCoinProof, extractCoinDataFromCoinProof } from '../core/transaction/MinimaTransactionBuilder';
 import { mxToHex, hexToMx } from '../core/utils/minima-base32';
 import { connectedSitesStore } from '../core/stores/ConnectedSitesStore';
 import { ChallengeBuilder, type VerifyChallenge } from '../core/verify/ChallengeBuilder';
-import { serializeTreeSignature, getRootPublicKey, type TreeSignature } from '../../../totem-sdk/packages/core/src/treekey';
-import { serializeMMRProof } from '../../../totem-sdk/packages/core/src/mmr';
-import { startAnnouncementSubscription } from '../core/announcements/wsSubscriber';
-import { scriptFromWotsPk } from '../../../totem-sdk/packages/core/src/script';
-import { scriptToAddress } from '../../../totem-sdk/packages/core/src/derive';
-import { makeMinimaAddress } from '../../../totem-sdk/packages/core/src/minima32';
+import { serializeTreeSignature, getRootPublicKey, type TreeSignature } from '@totemsdk/core';
+import { serializeMMRProof } from '@totemsdk/core';
+import { scriptFromWotsPk } from '@totemsdk/core';
+import { scriptToAddress } from '@totemsdk/core';
+import { makeMinimaAddress } from '@totemsdk/core';
 import { TxSendLogger, TxSignLogger, generateTxCorrelationId } from '../core/transaction/TxLogger';
 import { quotaTracker } from '../core/api/QuotaTracker';
 

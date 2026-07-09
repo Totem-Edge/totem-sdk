@@ -20,8 +20,8 @@
  *   - SignatureProofHex: { leafPubkey, signature, mmrProof } as hex strings
  */
 
-import type { SignatureProof } from '../../../../totem-sdk/packages/core/src/treekey';
-import { serializeMMRProof, deserializeMMRProof } from '../../../../totem-sdk/packages/core/src/mmr';
+import type { SignatureProof } from '@totemsdk/core';
+import { serializeMMRProof, deserializeMMRProof } from '@totemsdk/core';
 
 const STORAGE_KEY = 'totem_parent_child_sig_cache';
 

@@ -17,12 +17,7 @@
     "jsx": "react-jsx",
     "types": ["chrome", "jest", "node"],
     "paths": {
-      "@totem-sdk/core": ["../totem-sdk/packages/core/src"],
-      "@totem-sdk/core/*": ["../totem-sdk/packages/core/src/*"],
-      "@totemsdk/core": ["../totem-sdk/packages/core/src"],
-      "@totemsdk/core/*": ["../totem-sdk/packages/core/src/*"],
-      "@totemsdk/root-identity": ["../totem-sdk/packages/root-identity/src"],
-      "@totemsdk/root-identity/*": ["../totem-sdk/packages/root-identity/src/*"]
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src/**/*"],

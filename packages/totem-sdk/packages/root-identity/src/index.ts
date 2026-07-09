@@ -18,4 +18,5 @@
  */
 
 export { UnifiedIdentityWallet, MAX_CHILD_COUNT } from './UnifiedIdentityWallet.js';
+export { UnifiedIdentityWallet as RootIdentityWallet } from './UnifiedIdentityWallet.js';
 export type { WotsProof, OwnershipProof } from './types.js';

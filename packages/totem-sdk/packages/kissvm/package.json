@@ -23,7 +23,7 @@
     "LICENSE"
   ],
   "dependencies": {
-    "@totemsdk/core": "workspace:^1.0.9"
+    "@totemsdk/core": "workspace:*"
   },
   "devDependencies": {
     "@types/jest": "^29.0.0",

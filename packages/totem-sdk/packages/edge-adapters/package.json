@@ -36,14 +36,30 @@
     "@totemsdk/root-identity": "workspace:*"
   },
   "peerDependenciesMeta": {
-    "@totemsdk/agent-policy": { "optional": true },
-    "@totemsdk/chain-provider": { "optional": true },
-    "@totemsdk/identity": { "optional": true },
-    "@totemsdk/manifest": { "optional": true },
-    "@totemsdk/omnia-router": { "optional": true },
-    "@totemsdk/proof": { "optional": true },
-    "@totemsdk/lookup-client": { "optional": true },
-    "@totemsdk/root-identity": { "optional": true }
+    "@totemsdk/agent-policy": {
+      "optional": true
+    },
+    "@totemsdk/chain-provider": {
+      "optional": true
+    },
+    "@totemsdk/identity": {
+      "optional": true
+    },
+    "@totemsdk/manifest": {
+      "optional": true
+    },
+    "@totemsdk/omnia-router": {
+      "optional": true
+    },
+    "@totemsdk/proof": {
+      "optional": true
+    },
+    "@totemsdk/lookup-client": {
+      "optional": true
+    },
+    "@totemsdk/root-identity": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@totemsdk/agent-policy": "workspace:*",

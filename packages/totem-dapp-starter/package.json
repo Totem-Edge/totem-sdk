@@ -12,10 +12,10 @@
     "test": "node --test server/auth-verify.test.js"
   },
   "dependencies": {
-    "@totem/observability": "workspace:*",
-    "@totemsdk/core": "workspace:*",
-    "@totemsdk/proof-integritas": "workspace:*",
-    "@totemsdk/root-identity": "workspace:*",
+    "@totem/observability": "^0.1.0",
+    "@totemsdk/core": "^1.1.0",
+    "@totemsdk/proof-integritas": "^0.1.1",
+    "@totemsdk/root-identity": "^1.0.7",
     "dotenv": "^16.4.5",
     "express": "^4.18.2",
     "redis": "^5.12.1"

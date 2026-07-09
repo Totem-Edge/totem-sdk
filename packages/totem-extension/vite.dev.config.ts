@@ -74,8 +74,6 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
-      '@totem-sdk/core': path.resolve(__dirname, '../totem-sdk/packages/core/src'),
-      '@totemsdk/realtime': path.resolve(__dirname, '../totem-sdk/packages/realtime/src'),
     },
   },
   

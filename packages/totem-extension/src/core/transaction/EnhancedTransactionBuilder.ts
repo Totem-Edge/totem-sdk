@@ -56,7 +56,7 @@ import {
   writeSignature,
   type SignatureProof as StreamableSignatureProof,
   type MMRProof as StreamableMMRProof
-} from '../../../../totem-sdk/packages/core/src/Streamable';
+} from '@totemsdk/core';
 
 const MINIMA_DECIMALS = 44;
 const ZERO_HASH = new Uint8Array(32);

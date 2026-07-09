@@ -16,7 +16,7 @@ import {
   convertStringToSeed,
   generateWordList,
   phraseToSeed
-} from '../../../totem-sdk/packages/core/src/bip39';
+} from '@totemsdk/core';
 
 /**
  * Generate a new 24-word mnemonic phrase

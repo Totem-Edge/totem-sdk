@@ -3,7 +3,7 @@ import {
   deserializeTreeSignature, 
   verifyTreeSignature, 
   type TreeSignature 
-} from '../../../../totem-sdk/packages/core/src/treekey';
+} from '@totemsdk/core';
 import { parseChallenge, digestChallenge, type VerifyChallenge } from './ChallengeBuilder';
 
 export interface VerificationResult {

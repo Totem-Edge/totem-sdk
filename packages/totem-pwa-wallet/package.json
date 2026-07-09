@@ -12,9 +12,9 @@
   },
   "dependencies": {
     "@noble/hashes": "^1.8.0",
-    "@totemsdk/core": "workspace:*",
-    "@totemsdk/realtime": "workspace:*",
-    "@totemsdk/root-identity": "workspace:*",
+    "@totemsdk/core": "^1.1.0",
+    "@totemsdk/realtime": "^0.1.9",
+    "@totemsdk/root-identity": "^1.0.7",
     "idb": "^8.0.0",
     "qrcode": "^1.5.4",
     "react": "^18.3.1",

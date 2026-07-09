@@ -23,8 +23,8 @@
     "LICENSE"
   ],
   "dependencies": {
-    "@totemsdk/core": "workspace:^1.1.0",
-    "@totemsdk/txpow": "workspace:^0.1.3",
+    "@totemsdk/core": "workspace:*",
+    "@totemsdk/txpow": "workspace:*",
     "node-fetch": "^2.6.9",
     "ws": "^8.13.0"
   },

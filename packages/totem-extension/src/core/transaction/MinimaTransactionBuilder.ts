@@ -11,7 +11,7 @@ import {
   concat as streamableConcat,
   hexToBytes as streamableHexToBytes,
   bytesToHex as streamableBytesToHex,
-} from '../../../../totem-sdk/packages/core/src/Streamable';
+} from '@totemsdk/core';
 
 const BUILD_VERSION = 'v2025.06.28.FIX12-mx-address-support';
 const BUILD_TIMESTAMP = '1735406100';
@@ -1491,8 +1491,8 @@ export interface WotsSignatureDataLegacy {
 }
 
 // Import SDK types and functions for MMR serialization (CONSOLIDATION 2026-01-18)
-import type { MMRProof, MMRProofChunk } from '../../../../totem-sdk/packages/core/src/mmr';
-import { serializeMMRProof as serializeMMRProofSDK } from '../../../../totem-sdk/packages/core/src/mmr';
+import type { MMRProof, MMRProofChunk } from '@totemsdk/core';
+import { serializeMMRProof as serializeMMRProofSDK } from '@totemsdk/core';
 
 /**
  * TreeKey-based SignatureProof data for Minima-compatible transactions

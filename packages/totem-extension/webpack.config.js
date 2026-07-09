@@ -112,11 +112,6 @@ const sharedConfig = {
     },
     alias: {
       '@': path.resolve(__dirname, './src'),
-      '@totem-sdk/core': path.resolve(__dirname, '../totem-sdk/packages/core/src'),
-      '@totemsdk/core': path.resolve(__dirname, '../totem-sdk/packages/core/src'),
-      '@totemsdk/root-identity': path.resolve(__dirname, '../totem-sdk/packages/root-identity/src'),
-      '@totemsdk/txpow': path.resolve(__dirname, '../totem-sdk/packages/txpow/src'),
-      '@totemsdk/realtime': path.resolve(__dirname, '../totem-sdk/packages/realtime/dist')
     },
     fallback: {
       "buffer": require.resolve("buffer"),
@@ -219,7 +214,7 @@ const uiConfig = {
         { from: 'src/approval/prove-ownership.html', to: 'prove-ownership.html' },
         { from: 'scanner.html', to: 'scanner.html' },
         // WASM mining engine — fetched by the service worker via chrome.runtime.getURL
-        { from: '../totem-sdk/packages/txpow/src/wasm/miner.wasm', to: 'miner.wasm' }
+        { from: 'node_modules/@totemsdk/txpow/src/wasm/miner.wasm', to: 'miner.wasm' }
         // SECURITY: dev-popup.html deliberately excluded from production build
         // It contains hardcoded test mnemonics for development only
         // Production uses CSPRNG via bip39.generateMnemonic(256) in background service

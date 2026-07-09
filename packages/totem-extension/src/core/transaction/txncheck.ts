@@ -3,9 +3,9 @@ import {
   TreeSignature, 
   SignatureProof,
   getRootPublicKey
-} from '../../../../totem-sdk/packages/core/src/treekey';
-import { deserializeMMRProof } from '../../../../totem-sdk/packages/core/src/mmr';
-import { convertMinimaAddress } from '../../../../totem-sdk/packages/core/src/mx';
+} from '@totemsdk/core';
+import { deserializeMMRProof } from '@totemsdk/core';
+import { convertMinimaAddress } from '@totemsdk/core';
 
 /**
  * Client-side TxnCheck Simulator (Preflight Validation)
