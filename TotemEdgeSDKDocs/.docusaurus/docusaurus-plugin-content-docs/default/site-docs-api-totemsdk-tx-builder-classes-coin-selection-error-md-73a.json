@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-tx-builder/classes/CoinSelectionError",
+  "title": "CoinSelectionError",
+  "description": "@totemsdk/tx-builder",
+  "source": "@site/docs/api/totemsdk-tx-builder/classes/CoinSelectionError.md",
+  "sourceDirName": "api/totemsdk-tx-builder/classes",
+  "slug": "/api/totemsdk-tx-builder/classes/CoinSelectionError",
+  "permalink": "/api/totemsdk-tx-builder/classes/CoinSelectionError",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "UnavailableReason",
+    "permalink": "/api/totemsdk-wots-lease/type-aliases/UnavailableReason"
+  },
+  "next": {
+    "title": "CoinSelectionService",
+    "permalink": "/api/totemsdk-tx-builder/classes/CoinSelectionService"
+  }
+}

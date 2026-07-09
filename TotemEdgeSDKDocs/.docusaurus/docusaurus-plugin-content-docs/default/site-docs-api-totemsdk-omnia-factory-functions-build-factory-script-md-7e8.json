@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-factory/functions/buildFactoryScript",
+  "title": "buildFactoryScript",
+  "description": "@totemsdk/omnia-factory",
+  "source": "@site/docs/api/totemsdk-omnia-factory/functions/buildFactoryScript.md",
+  "sourceDirName": "api/totemsdk-omnia-factory/functions",
+  "slug": "/api/totemsdk-omnia-factory/functions/buildFactoryScript",
+  "permalink": "/api/totemsdk-omnia-factory/functions/buildFactoryScript",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "buildDisputePayload",
+    "permalink": "/api/totemsdk-omnia-factory/functions/buildDisputePayload"
+  },
+  "next": {
+    "title": "closeFactory",
+    "permalink": "/api/totemsdk-omnia-factory/functions/closeFactory"
+  }
+}

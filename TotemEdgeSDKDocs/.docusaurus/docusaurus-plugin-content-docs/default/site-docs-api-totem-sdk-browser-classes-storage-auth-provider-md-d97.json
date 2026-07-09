@@ -1,0 +1,23 @@
+{
+  "id": "api/totem-sdk-browser/classes/StorageAuthProvider",
+  "title": "StorageAuthProvider",
+  "description": "@totem/sdk-browser",
+  "source": "@site/docs/api/totem-sdk-browser/classes/StorageAuthProvider.md",
+  "sourceDirName": "api/totem-sdk-browser/classes",
+  "slug": "/api/totem-sdk-browser/classes/StorageAuthProvider",
+  "permalink": "/api/totem-sdk-browser/classes/StorageAuthProvider",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "PageVisibilityLifecycleAdapter",
+    "permalink": "/api/totem-sdk-browser/classes/PageVisibilityLifecycleAdapter"
+  },
+  "next": {
+    "title": "createAuthedHttpClient",
+    "permalink": "/api/totem-sdk-browser/functions/createAuthedHttpClient"
+  }
+}

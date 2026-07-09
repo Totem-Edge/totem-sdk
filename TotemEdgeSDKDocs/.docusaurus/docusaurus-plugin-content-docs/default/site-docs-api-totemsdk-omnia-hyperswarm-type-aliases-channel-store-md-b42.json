@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-hyperswarm/type-aliases/ChannelStore",
+  "title": "ChannelStore",
+  "description": "@totemsdk/omnia-hyperswarm",
+  "source": "@site/docs/api/totemsdk-omnia-hyperswarm/type-aliases/ChannelStore.md",
+  "sourceDirName": "api/totemsdk-omnia-hyperswarm/type-aliases",
+  "slug": "/api/totemsdk-omnia-hyperswarm/type-aliases/ChannelStore",
+  "permalink": "/api/totemsdk-omnia-hyperswarm/type-aliases/ChannelStore",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "OmniaSwarmConfig",
+    "permalink": "/api/totemsdk-omnia-hyperswarm/interfaces/OmniaSwarmConfig"
+  },
+  "next": {
+    "title": "MinimalChainProvider",
+    "permalink": "/api/totemsdk-omnia-hyperswarm/type-aliases/MinimalChainProvider"
+  }
+}

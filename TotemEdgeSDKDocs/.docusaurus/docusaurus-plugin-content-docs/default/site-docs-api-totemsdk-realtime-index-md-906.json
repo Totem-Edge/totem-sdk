@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-realtime/index",
+  "title": "index",
+  "description": "@totemsdk/realtime",
+  "source": "@site/docs/api/totemsdk-realtime/index.md",
+  "sourceDirName": "api/totemsdk-realtime",
+  "slug": "/api/totemsdk-realtime/",
+  "permalink": "/api/totemsdk-realtime/",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "createBalanceStreamManager",
+    "permalink": "/api/totemsdk-realtime/functions/createBalanceStreamManager"
+  },
+  "next": {
+    "title": "BalanceCacheConfig",
+    "permalink": "/api/totemsdk-realtime/interfaces/BalanceCacheConfig"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-tx-builder/interfaces/SpendableCoin",
+  "title": "SpendableCoin",
+  "description": "@totemsdk/tx-builder",
+  "source": "@site/docs/api/totemsdk-tx-builder/interfaces/SpendableCoin.md",
+  "sourceDirName": "api/totemsdk-tx-builder/interfaces",
+  "slug": "/api/totemsdk-tx-builder/interfaces/SpendableCoin",
+  "permalink": "/api/totemsdk-tx-builder/interfaces/SpendableCoin",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "PendingMultisigTransaction",
+    "permalink": "/api/totemsdk-tx-builder/interfaces/PendingMultisigTransaction"
+  },
+  "next": {
+    "title": "SendMode",
+    "permalink": "/api/totemsdk-tx-builder/type-aliases/SendMode"
+  }
+}

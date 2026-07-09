@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-txpow/variables/TX_POW_MIN_DIFFICULTY",
+  "title": "TX_POW_MIN_DIFFICULTY",
+  "description": "@totemsdk/txpow",
+  "source": "@site/docs/api/totemsdk-txpow/variables/TX_POW_MIN_DIFFICULTY.md",
+  "sourceDirName": "api/totemsdk-txpow/variables",
+  "slug": "/api/totemsdk-txpow/variables/TX_POW_MIN_DIFFICULTY",
+  "permalink": "/api/totemsdk-txpow/variables/TX_POW_MIN_DIFFICULTY",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "MAX_HASH",
+    "permalink": "/api/totemsdk-txpow/variables/MAX_HASH"
+  },
+  "next": {
+    "title": "ZERO_HASH",
+    "permalink": "/api/totemsdk-txpow/variables/ZERO_HASH"
+  }
+}

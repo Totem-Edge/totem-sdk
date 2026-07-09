@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-router/index",
+  "title": "index",
+  "description": "@totemsdk/omnia-router",
+  "source": "@site/docs/api/totemsdk-omnia-router/index.md",
+  "sourceDirName": "api/totemsdk-omnia-router",
+  "slug": "/api/totemsdk-omnia-router/",
+  "permalink": "/api/totemsdk-omnia-router/",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "removeChannel",
+    "permalink": "/api/totemsdk-omnia-router/functions/removeChannel"
+  },
+  "next": {
+    "title": "ChannelGraph",
+    "permalink": "/api/totemsdk-omnia-router/interfaces/ChannelGraph"
+  }
+}

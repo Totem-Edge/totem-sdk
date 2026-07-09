@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/functions/omniaDraftToMinimaBytes",
+  "title": "omniaDraftToMinimaBytes",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/functions/omniaDraftToMinimaBytes.md",
+  "sourceDirName": "api/totemsdk-omnia/functions",
+  "slug": "/api/totemsdk-omnia/functions/omniaDraftToMinimaBytes",
+  "permalink": "/api/totemsdk-omnia/functions/omniaDraftToMinimaBytes",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "normalizeScript",
+    "permalink": "/api/totemsdk-omnia/functions/normalizeScript"
+  },
+  "next": {
+    "title": "proposeSettlement",
+    "permalink": "/api/totemsdk-omnia/functions/proposeSettlement"
+  }
+}

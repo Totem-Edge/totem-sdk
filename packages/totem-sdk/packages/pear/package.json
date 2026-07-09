@@ -1,0 +1,117 @@
+{
+  "name": "@totemsdk/pear",
+  "version": "0.1.2",
+  "description": "Bare/Pear runtime integration harness for @totemsdk — storage, networking, lifecycle, and Hyperdrive adapters for Pear apps",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.js"
+    },
+    "./storage": {
+      "types": "./dist/storage/index.d.ts",
+      "require": "./dist/storage/index.js",
+      "import": "./dist/storage/index.js"
+    },
+    "./network": {
+      "types": "./dist/network/index.d.ts",
+      "require": "./dist/network/index.js",
+      "import": "./dist/network/index.js"
+    },
+    "./lifecycle": {
+      "types": "./dist/lifecycle.d.ts",
+      "require": "./dist/lifecycle.js",
+      "import": "./dist/lifecycle.js"
+    },
+    "./hyperdrive": {
+      "types": "./dist/hyperdrive.d.ts",
+      "require": "./dist/hyperdrive.js",
+      "import": "./dist/hyperdrive.js"
+    }
+  },
+  "dependencies": {
+    "@totemsdk/stream-transport": "workspace:*"
+  },
+  "scripts": {
+    "build": "tsc",
+    "prepare": "tsc",
+    "clean": "rm -rf dist",
+    "test": "jest --passWithNoTests",
+    "test:bare": "node --input-type=module < src/__tests__/bare/run-bare.mjs"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "peerDependencies": {
+    "hyperswarm": ">=4.0.0",
+    "hyperbee": ">=2.0.0",
+    "hypercore": ">=10.0.0",
+    "hyperdrive": ">=2.0.0",
+    "corestore": ">=6.0.0",
+    "bare-http1": ">=3.0.0",
+    "bare-fs": ">=2.0.0"
+  },
+  "peerDependenciesMeta": {
+    "hyperswarm": {
+      "optional": true
+    },
+    "hyperbee": {
+      "optional": true
+    },
+    "hypercore": {
+      "optional": true
+    },
+    "hyperdrive": {
+      "optional": true
+    },
+    "corestore": {
+      "optional": true
+    },
+    "bare-http1": {
+      "optional": true
+    },
+    "bare-fs": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/jest": "^29.0.0",
+    "@types/node": "^20.0.0",
+    "jest": "^29.0.0",
+    "ts-jest": "^29.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "author": "Totem SDK",
+  "homepage": "https://totemsdk.com",
+  "bugs": {
+    "url": "https://github.com/MrGheek/axia-totem/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MrGheek/axia-totem.git",
+    "directory": "packages/totem-sdk/packages/pear"
+  },
+  "keywords": [
+    "totem",
+    "totemsdk",
+    "minima",
+    "blockchain",
+    "quantum-resistant",
+    "wots",
+    "kissvm",
+    "utxo",
+    "pear",
+    "bare"
+  ]
+}

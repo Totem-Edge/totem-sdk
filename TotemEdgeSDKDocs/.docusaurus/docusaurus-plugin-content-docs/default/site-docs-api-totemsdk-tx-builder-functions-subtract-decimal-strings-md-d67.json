@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-tx-builder/functions/subtractDecimalStrings",
+  "title": "subtractDecimalStrings",
+  "description": "@totemsdk/tx-builder",
+  "source": "@site/docs/api/totemsdk-tx-builder/functions/subtractDecimalStrings.md",
+  "sourceDirName": "api/totemsdk-tx-builder/functions",
+  "slug": "/api/totemsdk-tx-builder/functions/subtractDecimalStrings",
+  "permalink": "/api/totemsdk-tx-builder/functions/subtractDecimalStrings",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "parseDecimalToBigInt",
+    "permalink": "/api/totemsdk-tx-builder/functions/parseDecimalToBigInt"
+  },
+  "next": {
+    "title": "index",
+    "permalink": "/api/totemsdk-tx-builder/"
+  }
+}

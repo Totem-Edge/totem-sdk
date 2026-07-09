@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-factory/interfaces/FactoryDisputePayload",
+  "title": "FactoryDisputePayload",
+  "description": "@totemsdk/omnia-factory",
+  "source": "@site/docs/api/totemsdk-omnia-factory/interfaces/FactoryDisputePayload.md",
+  "sourceDirName": "api/totemsdk-omnia-factory/interfaces",
+  "slug": "/api/totemsdk-omnia-factory/interfaces/FactoryDisputePayload",
+  "permalink": "/api/totemsdk-omnia-factory/interfaces/FactoryDisputePayload",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "ChannelFactory",
+    "permalink": "/api/totemsdk-omnia-factory/interfaces/ChannelFactory"
+  },
+  "next": {
+    "title": "FactoryLeaseOps",
+    "permalink": "/api/totemsdk-omnia-factory/interfaces/FactoryLeaseOps"
+  }
+}

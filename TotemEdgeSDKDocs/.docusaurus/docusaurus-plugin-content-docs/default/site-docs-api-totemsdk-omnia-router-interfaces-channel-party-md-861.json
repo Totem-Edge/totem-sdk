@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-router/interfaces/ChannelParty",
+  "title": "ChannelParty",
+  "description": "@totemsdk/omnia-router",
+  "source": "@site/docs/api/totemsdk-omnia-router/interfaces/ChannelParty.md",
+  "sourceDirName": "api/totemsdk-omnia-router/interfaces",
+  "slug": "/api/totemsdk-omnia-router/interfaces/ChannelParty",
+  "permalink": "/api/totemsdk-omnia-router/interfaces/ChannelParty",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "ChannelOps",
+    "permalink": "/api/totemsdk-omnia-router/interfaces/ChannelOps"
+  },
+  "next": {
+    "title": "ChannelSigner",
+    "permalink": "/api/totemsdk-omnia-router/interfaces/ChannelSigner"
+  }
+}

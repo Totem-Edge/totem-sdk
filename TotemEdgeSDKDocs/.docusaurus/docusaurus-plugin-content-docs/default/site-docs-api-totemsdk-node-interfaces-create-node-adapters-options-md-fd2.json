@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/CreateNodeAdaptersOptions",
+  "title": "CreateNodeAdaptersOptions",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/CreateNodeAdaptersOptions.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/CreateNodeAdaptersOptions",
+  "permalink": "/api/totemsdk-node/interfaces/CreateNodeAdaptersOptions",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "ConfigProvider",
+    "permalink": "/api/totemsdk-node/interfaces/ConfigProvider"
+  },
+  "next": {
+    "title": "CreateServerAdaptersOptions",
+    "permalink": "/api/totemsdk-node/interfaces/CreateServerAdaptersOptions"
+  }
+}

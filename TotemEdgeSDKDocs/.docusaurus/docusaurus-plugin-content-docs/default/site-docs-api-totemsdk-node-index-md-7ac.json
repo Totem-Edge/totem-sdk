@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/index",
+  "title": "index",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/index.md",
+  "sourceDirName": "api/totemsdk-node",
+  "slug": "/api/totemsdk-node/",
+  "permalink": "/api/totemsdk-node/",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "writeMiniString",
+    "permalink": "/api/totemsdk-node/functions/writeMiniString"
+  },
+  "next": {
+    "title": "AdapterRegistry",
+    "permalink": "/api/totemsdk-node/interfaces/AdapterRegistry"
+  }
+}

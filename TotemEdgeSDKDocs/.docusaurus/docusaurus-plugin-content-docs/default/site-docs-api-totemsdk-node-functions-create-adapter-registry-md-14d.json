@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/createAdapterRegistry",
+  "title": "createAdapterRegistry",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/createAdapterRegistry.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/createAdapterRegistry",
+  "permalink": "/api/totemsdk-node/functions/createAdapterRegistry",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "convertWordListToSeed",
+    "permalink": "/api/totemsdk-node/functions/convertWordListToSeed"
+  },
+  "next": {
+    "title": "createAuthedNodeHttpClient",
+    "permalink": "/api/totemsdk-node/functions/createAuthedNodeHttpClient"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-pear/interfaces/BareKVStoreOptions",
+  "title": "BareKVStoreOptions",
+  "description": "@totemsdk/pear",
+  "source": "@site/docs/api/totemsdk-pear/interfaces/BareKVStoreOptions.md",
+  "sourceDirName": "api/totemsdk-pear/interfaces",
+  "slug": "/api/totemsdk-pear/interfaces/BareKVStoreOptions",
+  "permalink": "/api/totemsdk-pear/interfaces/BareKVStoreOptions",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "BareFileStoreOptions",
+    "permalink": "/api/totemsdk-pear/interfaces/BareFileStoreOptions"
+  },
+  "next": {
+    "title": "FetchInit",
+    "permalink": "/api/totemsdk-pear/interfaces/FetchInit"
+  }
+}

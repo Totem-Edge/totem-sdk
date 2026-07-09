@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-lookup-protocol/type-aliases/MessageType",
+  "title": "MessageType",
+  "description": "@totemsdk/lookup-protocol",
+  "source": "@site/docs/api/totemsdk-lookup-protocol/type-aliases/MessageType.md",
+  "sourceDirName": "api/totemsdk-lookup-protocol/type-aliases",
+  "slug": "/api/totemsdk-lookup-protocol/type-aliases/MessageType",
+  "permalink": "/api/totemsdk-lookup-protocol/type-aliases/MessageType",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "LookupMessage",
+    "permalink": "/api/totemsdk-lookup-protocol/type-aliases/LookupMessage"
+  },
+  "next": {
+    "title": "PROTOCOL_VERSION",
+    "permalink": "/api/totemsdk-lookup-protocol/variables/PROTOCOL_VERSION"
+  }
+}

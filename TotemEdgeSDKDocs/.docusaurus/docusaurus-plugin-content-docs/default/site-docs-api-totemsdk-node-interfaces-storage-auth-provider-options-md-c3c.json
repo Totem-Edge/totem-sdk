@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/StorageAuthProviderOptions",
+  "title": "StorageAuthProviderOptions",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/StorageAuthProviderOptions.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/StorageAuthProviderOptions",
+  "permalink": "/api/totemsdk-node/interfaces/StorageAuthProviderOptions",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "StorageAdapter",
+    "permalink": "/api/totemsdk-node/interfaces/StorageAdapter"
+  },
+  "next": {
+    "title": "StoredLease",
+    "permalink": "/api/totemsdk-node/interfaces/StoredLease"
+  }
+}

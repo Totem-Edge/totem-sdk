@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/TotemSendTransactionResponse",
+  "title": "TotemSendTransactionResponse",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/TotemSendTransactionResponse.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/TotemSendTransactionResponse",
+  "permalink": "/api/totemsdk-core/interfaces/TotemSendTransactionResponse",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TotemSendTransactionRequest",
+    "permalink": "/api/totemsdk-core/interfaces/TotemSendTransactionRequest"
+  },
+  "next": {
+    "title": "TransactionBuildResult",
+    "permalink": "/api/totemsdk-core/interfaces/TransactionBuildResult"
+  }
+}

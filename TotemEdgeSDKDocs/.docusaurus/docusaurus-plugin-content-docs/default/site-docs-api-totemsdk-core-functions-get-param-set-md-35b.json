@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/getParamSet",
+  "title": "getParamSet",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/getParamSet.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/getParamSet",
+  "permalink": "/api/totemsdk-core/functions/getParamSet",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "generateWordList",
+    "permalink": "/api/totemsdk-core/functions/generateWordList"
+  },
+  "next": {
+    "title": "getPerAddressPublicKey",
+    "permalink": "/api/totemsdk-core/functions/getPerAddressPublicKey"
+  }
+}

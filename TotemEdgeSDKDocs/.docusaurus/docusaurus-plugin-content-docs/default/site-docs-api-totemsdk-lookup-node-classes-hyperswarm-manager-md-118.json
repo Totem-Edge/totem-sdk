@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-lookup-node/classes/HyperswarmManager",
+  "title": "HyperswarmManager",
+  "description": "@totemsdk/lookup-node",
+  "source": "@site/docs/api/totemsdk-lookup-node/classes/HyperswarmManager.md",
+  "sourceDirName": "api/totemsdk-lookup-node/classes",
+  "slug": "/api/totemsdk-lookup-node/classes/HyperswarmManager",
+  "permalink": "/api/totemsdk-lookup-node/classes/HyperswarmManager",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "AppRegistry",
+    "permalink": "/api/totemsdk-lookup-node/classes/AppRegistry"
+  },
+  "next": {
+    "title": "HyperswarmTransport",
+    "permalink": "/api/totemsdk-lookup-node/classes/HyperswarmTransport"
+  }
+}

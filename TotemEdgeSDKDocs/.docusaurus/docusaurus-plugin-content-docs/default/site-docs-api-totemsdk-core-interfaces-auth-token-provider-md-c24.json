@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/AuthTokenProvider",
+  "title": "AuthTokenProvider",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/AuthTokenProvider.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/AuthTokenProvider",
+  "permalink": "/api/totemsdk-core/interfaces/AuthTokenProvider",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "AdapterRegistry",
+    "permalink": "/api/totemsdk-core/interfaces/AdapterRegistry"
+  },
+  "next": {
+    "title": "CancellationToken",
+    "permalink": "/api/totemsdk-core/interfaces/CancellationToken"
+  }
+}

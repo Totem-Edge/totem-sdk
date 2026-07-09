@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/parseDecimalToMiniNumber",
+  "title": "parseDecimalToMiniNumber",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/parseDecimalToMiniNumber.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/parseDecimalToMiniNumber",
+  "permalink": "/api/totemsdk-node/functions/parseDecimalToMiniNumber",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "normalizeHex",
+    "permalink": "/api/totemsdk-node/functions/normalizeHex"
+  },
+  "next": {
+    "title": "parseMMRProofFromHex",
+    "permalink": "/api/totemsdk-node/functions/parseMMRProofFromHex"
+  }
+}

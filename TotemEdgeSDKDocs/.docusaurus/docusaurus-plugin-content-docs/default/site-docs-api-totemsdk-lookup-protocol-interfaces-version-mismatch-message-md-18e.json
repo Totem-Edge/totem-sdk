@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-lookup-protocol/interfaces/VersionMismatchMessage",
+  "title": "VersionMismatchMessage",
+  "description": "@totemsdk/lookup-protocol",
+  "source": "@site/docs/api/totemsdk-lookup-protocol/interfaces/VersionMismatchMessage.md",
+  "sourceDirName": "api/totemsdk-lookup-protocol/interfaces",
+  "slug": "/api/totemsdk-lookup-protocol/interfaces/VersionMismatchMessage",
+  "permalink": "/api/totemsdk-lookup-protocol/interfaces/VersionMismatchMessage",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "VersionCheckResult",
+    "permalink": "/api/totemsdk-lookup-protocol/interfaces/VersionCheckResult"
+  },
+  "next": {
+    "title": "WatchRegisterMessage",
+    "permalink": "/api/totemsdk-lookup-protocol/interfaces/WatchRegisterMessage"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-connect/interfaces/TotemBroadcastHexRequest",
+  "title": "TotemBroadcastHexRequest",
+  "description": "@totemsdk/connect",
+  "source": "@site/docs/api/totemsdk-connect/interfaces/TotemBroadcastHexRequest.md",
+  "sourceDirName": "api/totemsdk-connect/interfaces",
+  "slug": "/api/totemsdk-connect/interfaces/TotemBroadcastHexRequest",
+  "permalink": "/api/totemsdk-connect/interfaces/TotemBroadcastHexRequest",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TotemBroadcastHexErrorResponse",
+    "permalink": "/api/totemsdk-connect/interfaces/TotemBroadcastHexErrorResponse"
+  },
+  "next": {
+    "title": "TotemBroadcastHexSuccessResponse",
+    "permalink": "/api/totemsdk-connect/interfaces/TotemBroadcastHexSuccessResponse"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "appName": "totem-edge-android",
+  "minimaNodeUrl": "http://localhost:9005",
+  "axiaApiKey": "axia_YOUR_KEY_HERE",
+  "localPubkeyHex": "YOUR_32_BYTE_HEX_PUBLIC_KEY"
+}

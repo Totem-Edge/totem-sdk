@@ -1,0 +1,23 @@
+{
+  "id": "api/totem-sdk-browser/interfaces/FetchHttpClientOptions",
+  "title": "FetchHttpClientOptions",
+  "description": "@totem/sdk-browser",
+  "source": "@site/docs/api/totem-sdk-browser/interfaces/FetchHttpClientOptions.md",
+  "sourceDirName": "api/totem-sdk-browser/interfaces",
+  "slug": "/api/totem-sdk-browser/interfaces/FetchHttpClientOptions",
+  "permalink": "/api/totem-sdk-browser/interfaces/FetchHttpClientOptions",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "CreateBrowserAdaptersOptions",
+    "permalink": "/api/totem-sdk-browser/interfaces/CreateBrowserAdaptersOptions"
+  },
+  "next": {
+    "title": "LocalStorageAdapterOptions",
+    "permalink": "/api/totem-sdk-browser/interfaces/LocalStorageAdapterOptions"
+  }
+}

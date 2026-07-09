@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-txpow/variables/MAIN_NET_CHAIN_ID",
+  "title": "MAIN_NET_CHAIN_ID",
+  "description": "@totemsdk/txpow",
+  "source": "@site/docs/api/totemsdk-txpow/variables/MAIN_NET_CHAIN_ID.md",
+  "sourceDirName": "api/totemsdk-txpow/variables",
+  "slug": "/api/totemsdk-txpow/variables/MAIN_NET_CHAIN_ID",
+  "permalink": "/api/totemsdk-txpow/variables/MAIN_NET_CHAIN_ID",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "CASCADE_LEVELS",
+    "permalink": "/api/totemsdk-txpow/variables/CASCADE_LEVELS"
+  },
+  "next": {
+    "title": "MAX_HASH",
+    "permalink": "/api/totemsdk-txpow/variables/MAX_HASH"
+  }
+}

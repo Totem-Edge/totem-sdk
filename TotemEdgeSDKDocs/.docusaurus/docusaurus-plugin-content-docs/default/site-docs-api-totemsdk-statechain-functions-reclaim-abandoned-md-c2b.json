@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-statechain/functions/reclaimAbandoned",
+  "title": "reclaimAbandoned",
+  "description": "@totemsdk/statechain",
+  "source": "@site/docs/api/totemsdk-statechain/functions/reclaimAbandoned.md",
+  "sourceDirName": "api/totemsdk-statechain/functions",
+  "slug": "/api/totemsdk-statechain/functions/reclaimAbandoned",
+  "permalink": "/api/totemsdk-statechain/functions/reclaimAbandoned",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "createStateChain",
+    "permalink": "/api/totemsdk-statechain/functions/createStateChain"
+  },
+  "next": {
+    "title": "scriptAddress",
+    "permalink": "/api/totemsdk-statechain/functions/scriptAddress"
+  }
+}

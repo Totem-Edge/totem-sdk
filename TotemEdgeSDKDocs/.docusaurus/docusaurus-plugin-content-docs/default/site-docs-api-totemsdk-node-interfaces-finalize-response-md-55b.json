@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/FinalizeResponse",
+  "title": "FinalizeResponse",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/FinalizeResponse.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/FinalizeResponse",
+  "permalink": "/api/totemsdk-node/interfaces/FinalizeResponse",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "FinalizeRequest",
+    "permalink": "/api/totemsdk-node/interfaces/FinalizeRequest"
+  },
+  "next": {
+    "title": "FlatMMRProofChunk",
+    "permalink": "/api/totemsdk-node/interfaces/FlatMMRProofChunk"
+  }
+}

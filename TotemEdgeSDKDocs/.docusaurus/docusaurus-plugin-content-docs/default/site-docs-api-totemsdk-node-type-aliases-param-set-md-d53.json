@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/type-aliases/ParamSet",
+  "title": "ParamSet",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/type-aliases/ParamSet.md",
+  "sourceDirName": "api/totemsdk-node/type-aliases",
+  "slug": "/api/totemsdk-node/type-aliases/ParamSet",
+  "permalink": "/api/totemsdk-node/type-aliases/ParamSet",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "LeaseStatus",
+    "permalink": "/api/totemsdk-node/type-aliases/LeaseStatus"
+  },
+  "next": {
+    "title": "PrepareArgs",
+    "permalink": "/api/totemsdk-node/type-aliases/PrepareArgs"
+  }
+}

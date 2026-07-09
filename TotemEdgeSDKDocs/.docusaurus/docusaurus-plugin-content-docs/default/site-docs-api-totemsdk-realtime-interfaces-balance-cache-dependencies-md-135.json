@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-realtime/interfaces/BalanceCacheDependencies",
+  "title": "BalanceCacheDependencies",
+  "description": "@totemsdk/realtime",
+  "source": "@site/docs/api/totemsdk-realtime/interfaces/BalanceCacheDependencies.md",
+  "sourceDirName": "api/totemsdk-realtime/interfaces",
+  "slug": "/api/totemsdk-realtime/interfaces/BalanceCacheDependencies",
+  "permalink": "/api/totemsdk-realtime/interfaces/BalanceCacheDependencies",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "BalanceCacheConfig",
+    "permalink": "/api/totemsdk-realtime/interfaces/BalanceCacheConfig"
+  },
+  "next": {
+    "title": "BalanceStreamConfig",
+    "permalink": "/api/totemsdk-realtime/interfaces/BalanceStreamConfig"
+  }
+}

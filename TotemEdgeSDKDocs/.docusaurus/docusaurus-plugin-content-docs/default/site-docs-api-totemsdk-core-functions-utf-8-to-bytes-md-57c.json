@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/utf8ToBytes",
+  "title": "utf8ToBytes",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/utf8ToBytes.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/utf8ToBytes",
+  "permalink": "/api/totemsdk-core/functions/utf8ToBytes",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "u32be",
+    "permalink": "/api/totemsdk-core/functions/u32be"
+  },
+  "next": {
+    "title": "validateChallenge",
+    "permalink": "/api/totemsdk-core/functions/validateChallenge"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-connect/functions/omniaGetRoute",
+  "title": "omniaGetRoute",
+  "description": "@totemsdk/connect",
+  "source": "@site/docs/api/totemsdk-connect/functions/omniaGetRoute.md",
+  "sourceDirName": "api/totemsdk-connect/functions",
+  "slug": "/api/totemsdk-connect/functions/omniaGetRoute",
+  "permalink": "/api/totemsdk-connect/functions/omniaGetRoute",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "omniaGetChannels",
+    "permalink": "/api/totemsdk-connect/functions/omniaGetChannels"
+  },
+  "next": {
+    "title": "omniaGetSwapRate",
+    "permalink": "/api/totemsdk-connect/functions/omniaGetSwapRate"
+  }
+}

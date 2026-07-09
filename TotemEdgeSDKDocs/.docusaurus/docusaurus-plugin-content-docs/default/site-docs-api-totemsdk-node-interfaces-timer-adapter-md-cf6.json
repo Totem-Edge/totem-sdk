@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/TimerAdapter",
+  "title": "TimerAdapter",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/TimerAdapter.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/TimerAdapter",
+  "permalink": "/api/totemsdk-node/interfaces/TimerAdapter",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "SyncResult",
+    "permalink": "/api/totemsdk-node/interfaces/SyncResult"
+  },
+  "next": {
+    "title": "TotemSendTransactionRequest",
+    "permalink": "/api/totemsdk-node/interfaces/TotemSendTransactionRequest"
+  }
+}

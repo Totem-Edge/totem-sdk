@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/functions/createChannel",
+  "title": "createChannel",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/functions/createChannel.md",
+  "sourceDirName": "api/totemsdk-omnia/functions",
+  "slug": "/api/totemsdk-omnia/functions/createChannel",
+  "permalink": "/api/totemsdk-omnia/functions/createChannel",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "computeTxDraftDigest",
+    "permalink": "/api/totemsdk-omnia/functions/computeTxDraftDigest"
+  },
+  "next": {
+    "title": "deserializeTxDraft",
+    "permalink": "/api/totemsdk-omnia/functions/deserializeTxDraft"
+  }
+}

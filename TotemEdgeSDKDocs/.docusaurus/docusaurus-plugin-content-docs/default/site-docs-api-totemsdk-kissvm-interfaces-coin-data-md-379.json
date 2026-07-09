@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-kissvm/interfaces/CoinData",
+  "title": "CoinData",
+  "description": "@totemsdk/kissvm",
+  "source": "@site/docs/api/totemsdk-kissvm/interfaces/CoinData.md",
+  "sourceDirName": "api/totemsdk-kissvm/interfaces",
+  "slug": "/api/totemsdk-kissvm/interfaces/CoinData",
+  "permalink": "/api/totemsdk-kissvm/interfaces/CoinData",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "index",
+    "permalink": "/api/totemsdk-kissvm/"
+  },
+  "next": {
+    "title": "EvalResult",
+    "permalink": "/api/totemsdk-kissvm/interfaces/EvalResult"
+  }
+}

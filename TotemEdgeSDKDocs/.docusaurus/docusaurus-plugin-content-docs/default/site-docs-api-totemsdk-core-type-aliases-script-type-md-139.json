@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/type-aliases/ScriptType",
+  "title": "ScriptType",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/type-aliases/ScriptType.md",
+  "sourceDirName": "api/totemsdk-core/type-aliases",
+  "slug": "/api/totemsdk-core/type-aliases/ScriptType",
+  "permalink": "/api/totemsdk-core/type-aliases/ScriptType",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "ProgressCallback",
+    "permalink": "/api/totemsdk-core/type-aliases/ProgressCallback"
+  },
+  "next": {
+    "title": "StateVariableType",
+    "permalink": "/api/totemsdk-core/type-aliases/StateVariableType"
+  }
+}

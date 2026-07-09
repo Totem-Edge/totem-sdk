@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/HierarchicalWitnessBundle",
+  "title": "HierarchicalWitnessBundle",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/HierarchicalWitnessBundle.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/HierarchicalWitnessBundle",
+  "permalink": "/api/totemsdk-core/interfaces/HierarchicalWitnessBundle",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "FlatMMRProofChunk",
+    "permalink": "/api/totemsdk-core/interfaces/FlatMMRProofChunk"
+  },
+  "next": {
+    "title": "HttpClient",
+    "permalink": "/api/totemsdk-core/interfaces/HttpClient"
+  }
+}

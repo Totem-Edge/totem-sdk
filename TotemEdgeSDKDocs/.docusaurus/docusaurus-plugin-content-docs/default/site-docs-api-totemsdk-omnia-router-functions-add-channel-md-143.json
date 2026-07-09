@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-router/functions/addChannel",
+  "title": "addChannel",
+  "description": "@totemsdk/omnia-router",
+  "source": "@site/docs/api/totemsdk-omnia-router/functions/addChannel.md",
+  "sourceDirName": "api/totemsdk-omnia-router/functions",
+  "slug": "/api/totemsdk-omnia-router/functions/addChannel",
+  "permalink": "/api/totemsdk-omnia-router/functions/addChannel",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "FactoryStatus",
+    "permalink": "/api/totemsdk-omnia-factory/type-aliases/FactoryStatus"
+  },
+  "next": {
+    "title": "announceSwap",
+    "permalink": "/api/totemsdk-omnia-router/functions/announceSwap"
+  }
+}

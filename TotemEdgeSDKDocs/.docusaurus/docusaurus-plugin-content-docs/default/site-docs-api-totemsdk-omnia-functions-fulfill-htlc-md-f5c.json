@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/functions/fulfillHTLC",
+  "title": "fulfillHTLC",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/functions/fulfillHTLC.md",
+  "sourceDirName": "api/totemsdk-omnia/functions",
+  "slug": "/api/totemsdk-omnia/functions/fulfillHTLC",
+  "permalink": "/api/totemsdk-omnia/functions/fulfillHTLC",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "flatSigningIndex",
+    "permalink": "/api/totemsdk-omnia/functions/flatSigningIndex"
+  },
+  "next": {
+    "title": "getChannelReceipt",
+    "permalink": "/api/totemsdk-omnia/functions/getChannelReceipt"
+  }
+}

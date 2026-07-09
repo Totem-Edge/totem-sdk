@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/classes/LeaseStore",
+  "title": "LeaseStore",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/classes/LeaseStore.md",
+  "sourceDirName": "api/totemsdk-node/classes",
+  "slug": "/api/totemsdk-node/classes/LeaseStore",
+  "permalink": "/api/totemsdk-node/classes/LeaseStore",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "LeaseMonitor",
+    "permalink": "/api/totemsdk-node/classes/LeaseMonitor"
+  },
+  "next": {
+    "title": "MASTHelper",
+    "permalink": "/api/totemsdk-node/classes/MASTHelper"
+  }
+}

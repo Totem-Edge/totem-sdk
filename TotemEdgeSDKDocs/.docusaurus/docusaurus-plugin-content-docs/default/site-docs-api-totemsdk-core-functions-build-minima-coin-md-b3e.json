@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/buildMinimaCoin",
+  "title": "buildMinimaCoin",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/buildMinimaCoin.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/buildMinimaCoin",
+  "permalink": "/api/totemsdk-core/functions/buildMinimaCoin",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "bigIntToByteArray",
+    "permalink": "/api/totemsdk-core/functions/bigIntToByteArray"
+  },
+  "next": {
+    "title": "buildScriptProofFromDescriptor",
+    "permalink": "/api/totemsdk-core/functions/buildScriptProofFromDescriptor"
+  }
+}

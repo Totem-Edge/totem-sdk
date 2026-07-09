@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/variables/serializeRealMMRProof",
+  "title": "serializeRealMMRProof",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/variables/serializeRealMMRProof.md",
+  "sourceDirName": "api/totemsdk-node/variables",
+  "slug": "/api/totemsdk-node/variables/serializeRealMMRProof",
+  "permalink": "/api/totemsdk-node/variables/serializeRealMMRProof",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "makeMinimaAddress",
+    "permalink": "/api/totemsdk-node/variables/makeMinimaAddress"
+  },
+  "next": {
+    "title": "u16be",
+    "permalink": "/api/totemsdk-node/variables/u16be"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-realtime/interfaces/WebSocketMessage",
+  "title": "WebSocketMessage",
+  "description": "@totemsdk/realtime",
+  "source": "@site/docs/api/totemsdk-realtime/interfaces/WebSocketMessage.md",
+  "sourceDirName": "api/totemsdk-realtime/interfaces",
+  "slug": "/api/totemsdk-realtime/interfaces/WebSocketMessage",
+  "permalink": "/api/totemsdk-realtime/interfaces/WebSocketMessage",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TxConfirmationEvent",
+    "permalink": "/api/totemsdk-realtime/interfaces/TxConfirmationEvent"
+  },
+  "next": {
+    "title": "WebSocketTokenResponse",
+    "permalink": "/api/totemsdk-realtime/interfaces/WebSocketTokenResponse"
+  }
+}

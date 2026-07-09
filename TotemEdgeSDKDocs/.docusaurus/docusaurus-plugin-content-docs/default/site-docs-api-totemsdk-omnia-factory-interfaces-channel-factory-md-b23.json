@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-factory/interfaces/ChannelFactory",
+  "title": "ChannelFactory",
+  "description": "@totemsdk/omnia-factory",
+  "source": "@site/docs/api/totemsdk-omnia-factory/interfaces/ChannelFactory.md",
+  "sourceDirName": "api/totemsdk-omnia-factory/interfaces",
+  "slug": "/api/totemsdk-omnia-factory/interfaces/ChannelFactory",
+  "permalink": "/api/totemsdk-omnia-factory/interfaces/ChannelFactory",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "index",
+    "permalink": "/api/totemsdk-omnia-factory/"
+  },
+  "next": {
+    "title": "FactoryDisputePayload",
+    "permalink": "/api/totemsdk-omnia-factory/interfaces/FactoryDisputePayload"
+  }
+}

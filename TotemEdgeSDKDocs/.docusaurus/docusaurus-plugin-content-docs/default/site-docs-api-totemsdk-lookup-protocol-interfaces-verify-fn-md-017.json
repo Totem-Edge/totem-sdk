@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-lookup-protocol/interfaces/VerifyFn",
+  "title": "VerifyFn",
+  "description": "@totemsdk/lookup-protocol",
+  "source": "@site/docs/api/totemsdk-lookup-protocol/interfaces/VerifyFn.md",
+  "sourceDirName": "api/totemsdk-lookup-protocol/interfaces",
+  "slug": "/api/totemsdk-lookup-protocol/interfaces/VerifyFn",
+  "permalink": "/api/totemsdk-lookup-protocol/interfaces/VerifyFn",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TrustRecordMessage",
+    "permalink": "/api/totemsdk-lookup-protocol/interfaces/TrustRecordMessage"
+  },
+  "next": {
+    "title": "VersionCheckResult",
+    "permalink": "/api/totemsdk-lookup-protocol/interfaces/VersionCheckResult"
+  }
+}

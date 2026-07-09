@@ -1,0 +1,82 @@
+{
+  "name": "@totemsdk/root-identity",
+  "version": "1.0.7",
+  "description": "Single root identity controlling up to 64 on-chain addresses — all cryptographically linked via full independent 3-level TreeKeys",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "bare": "./dist/index.js",
+      "browser": "./dist/index.js",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "prepare": "tsc",
+    "clean": "rm -rf dist",
+    "pretest": "cd ../core && npm run build",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --passWithNoTests"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "peerDependencies": {
+    "@noble/hashes": "^2.0.0",
+    "@totemsdk/core": ">=1.0.1"
+  },
+  "peerDependenciesMeta": {
+    "@noble/hashes": {
+      "optional": false
+    },
+    "@totemsdk/core": {
+      "optional": false
+    }
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "bare": ">=1.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@noble/hashes": "^2.2.0",
+    "@totemsdk/core": "workspace:*",
+    "@types/jest": "^29.0.0",
+    "@types/node": "^20.0.0",
+    "jest": "^29.0.0",
+    "ts-jest": "^29.0.0",
+    "typescript": "^5.0.0"
+  },
+  "keywords": [
+    "totem",
+    "totemsdk",
+    "minima",
+    "blockchain",
+    "quantum-resistant",
+    "wots",
+    "kissvm",
+    "utxo",
+    "identity",
+    "did",
+    "chain-of-custody",
+    "dao-attestation",
+    "kyc"
+  ],
+  "author": "Totem SDK",
+  "license": "MIT",
+  "homepage": "https://totemsdk.com",
+  "bugs": {
+    "url": "https://github.com/MrGheek/axia-totem/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MrGheek/axia-totem.git",
+    "directory": "packages/totem-sdk/packages/root-identity"
+  }
+}

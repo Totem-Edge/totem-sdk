@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-factory/interfaces/OmniaChannel",
+  "title": "OmniaChannel",
+  "description": "@totemsdk/omnia-factory",
+  "source": "@site/docs/api/totemsdk-omnia-factory/interfaces/OmniaChannel.md",
+  "sourceDirName": "api/totemsdk-omnia-factory/interfaces",
+  "slug": "/api/totemsdk-omnia-factory/interfaces/OmniaChannel",
+  "permalink": "/api/totemsdk-omnia-factory/interfaces/OmniaChannel",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "FactorySettlementPayload",
+    "permalink": "/api/totemsdk-omnia-factory/interfaces/FactorySettlementPayload"
+  },
+  "next": {
+    "title": "WotsLeaseBundle",
+    "permalink": "/api/totemsdk-omnia-factory/interfaces/WotsLeaseBundle"
+  }
+}

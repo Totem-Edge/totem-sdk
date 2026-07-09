@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-kissvm/functions/simulateSpend",
+  "title": "simulateSpend",
+  "description": "@totemsdk/kissvm",
+  "source": "@site/docs/api/totemsdk-kissvm/functions/simulateSpend.md",
+  "sourceDirName": "api/totemsdk-kissvm/functions",
+  "slug": "/api/totemsdk-kissvm/functions/simulateSpend",
+  "permalink": "/api/totemsdk-kissvm/functions/simulateSpend",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "sigdig",
+    "permalink": "/api/totemsdk-kissvm/functions/sigdig"
+  },
+  "next": {
+    "title": "index",
+    "permalink": "/api/totemsdk-kissvm/"
+  }
+}

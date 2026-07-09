@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/simpleTotemSendRequest",
+  "title": "simpleTotemSendRequest",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/simpleTotemSendRequest.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/simpleTotemSendRequest",
+  "permalink": "/api/totemsdk-core/functions/simpleTotemSendRequest",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "serializeTreeSignature",
+    "permalink": "/api/totemsdk-core/functions/serializeTreeSignature"
+  },
+  "next": {
+    "title": "toWinternitzDigits",
+    "permalink": "/api/totemsdk-core/functions/toWinternitzDigits"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/interfaces/PaymentIntent",
+  "title": "PaymentIntent",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/interfaces/PaymentIntent.md",
+  "sourceDirName": "api/totemsdk-omnia/interfaces",
+  "slug": "/api/totemsdk-omnia/interfaces/PaymentIntent",
+  "permalink": "/api/totemsdk-omnia/interfaces/PaymentIntent",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "OmniaTxDraft",
+    "permalink": "/api/totemsdk-omnia/interfaces/OmniaTxDraft"
+  },
+  "next": {
+    "title": "SettlementPayload",
+    "permalink": "/api/totemsdk-omnia/interfaces/SettlementPayload"
+  }
+}

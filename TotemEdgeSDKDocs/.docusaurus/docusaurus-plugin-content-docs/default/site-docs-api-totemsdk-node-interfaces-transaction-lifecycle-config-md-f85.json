@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/TransactionLifecycleConfig",
+  "title": "TransactionLifecycleConfig",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/TransactionLifecycleConfig.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/TransactionLifecycleConfig",
+  "permalink": "/api/totemsdk-node/interfaces/TransactionLifecycleConfig",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TransactionError",
+    "permalink": "/api/totemsdk-node/interfaces/TransactionError"
+  },
+  "next": {
+    "title": "TransactionMetadata",
+    "permalink": "/api/totemsdk-node/interfaces/TransactionMetadata"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "id": "guides/channel-factory-wallet",
+  "title": "Channel Factory Wallet",
+  "description": "Group N-of-N factory channels with policy-defined roles, virtual channel limits, and emergency-close rules.",
+  "source": "@site/docs/guides/channel-factory-wallet.md",
+  "sourceDirName": "guides",
+  "slug": "/guides/channel-factory-wallet",
+  "permalink": "/guides/channel-factory-wallet",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "id": "channel-factory-wallet",
+    "title": "Channel Factory Wallet",
+    "sidebar_label": "Channel Factory Wallet",
+    "description": "Group N-of-N factory channels with policy-defined roles, virtual channel limits, and emergency-close rules."
+  },
+  "sidebar": "guidesSidebar",
+  "previous": {
+    "title": "Omnia Pocket",
+    "permalink": "/guides/omnia-pocket"
+  },
+  "next": {
+    "title": "Omnia Router Node",
+    "permalink": "/guides/omnia-router-node"
+  }
+}

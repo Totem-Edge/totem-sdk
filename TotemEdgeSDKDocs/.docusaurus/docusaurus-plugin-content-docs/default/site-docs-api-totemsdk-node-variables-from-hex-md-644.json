@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/variables/fromHex",
+  "title": "fromHex",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/variables/fromHex.md",
+  "sourceDirName": "api/totemsdk-node/variables",
+  "slug": "/api/totemsdk-node/variables/fromHex",
+  "permalink": "/api/totemsdk-node/variables/fromHex",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "encodeMx",
+    "permalink": "/api/totemsdk-node/variables/encodeMx"
+  },
+  "next": {
+    "title": "h",
+    "permalink": "/api/totemsdk-node/variables/h"
+  }
+}

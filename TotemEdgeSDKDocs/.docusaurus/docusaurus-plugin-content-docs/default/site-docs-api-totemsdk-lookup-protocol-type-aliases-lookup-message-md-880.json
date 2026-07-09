@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-lookup-protocol/type-aliases/LookupMessage",
+  "title": "LookupMessage",
+  "description": "@totemsdk/lookup-protocol",
+  "source": "@site/docs/api/totemsdk-lookup-protocol/type-aliases/LookupMessage.md",
+  "sourceDirName": "api/totemsdk-lookup-protocol/type-aliases",
+  "slug": "/api/totemsdk-lookup-protocol/type-aliases/LookupMessage",
+  "permalink": "/api/totemsdk-lookup-protocol/type-aliases/LookupMessage",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "WatchRemoveMessage",
+    "permalink": "/api/totemsdk-lookup-protocol/interfaces/WatchRemoveMessage"
+  },
+  "next": {
+    "title": "MessageType",
+    "permalink": "/api/totemsdk-lookup-protocol/type-aliases/MessageType"
+  }
+}

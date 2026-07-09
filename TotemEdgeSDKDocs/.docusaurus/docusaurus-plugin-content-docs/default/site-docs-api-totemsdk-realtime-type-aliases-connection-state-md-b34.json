@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-realtime/type-aliases/ConnectionState",
+  "title": "ConnectionState",
+  "description": "@totemsdk/realtime",
+  "source": "@site/docs/api/totemsdk-realtime/type-aliases/ConnectionState.md",
+  "sourceDirName": "api/totemsdk-realtime/type-aliases",
+  "slug": "/api/totemsdk-realtime/type-aliases/ConnectionState",
+  "permalink": "/api/totemsdk-realtime/type-aliases/ConnectionState",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "WebSocketTokenResponse",
+    "permalink": "/api/totemsdk-realtime/interfaces/WebSocketTokenResponse"
+  },
+  "next": {
+    "title": "BareFileStore",
+    "permalink": "/api/totemsdk-pear/classes/BareFileStore"
+  }
+}

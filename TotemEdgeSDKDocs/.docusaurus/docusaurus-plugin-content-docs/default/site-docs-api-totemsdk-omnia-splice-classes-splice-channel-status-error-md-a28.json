@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-splice/classes/SpliceChannelStatusError",
+  "title": "SpliceChannelStatusError",
+  "description": "@totemsdk/omnia-splice",
+  "source": "@site/docs/api/totemsdk-omnia-splice/classes/SpliceChannelStatusError.md",
+  "sourceDirName": "api/totemsdk-omnia-splice/classes",
+  "slug": "/api/totemsdk-omnia-splice/classes/SpliceChannelStatusError",
+  "permalink": "/api/totemsdk-omnia-splice/classes/SpliceChannelStatusError",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "SpliceBalanceConservationError",
+    "permalink": "/api/totemsdk-omnia-splice/classes/SpliceBalanceConservationError"
+  },
+  "next": {
+    "title": "SpliceError",
+    "permalink": "/api/totemsdk-omnia-splice/classes/SpliceError"
+  }
+}

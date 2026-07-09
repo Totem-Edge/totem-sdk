@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-connect/functions/agentProposePayment",
+  "title": "agentProposePayment",
+  "description": "@totemsdk/connect",
+  "source": "@site/docs/api/totemsdk-connect/functions/agentProposePayment.md",
+  "sourceDirName": "api/totemsdk-connect/functions",
+  "slug": "/api/totemsdk-connect/functions/agentProposePayment",
+  "permalink": "/api/totemsdk-connect/functions/agentProposePayment",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "agentExplainTransaction",
+    "permalink": "/api/totemsdk-connect/functions/agentExplainTransaction"
+  },
+  "next": {
+    "title": "broadcastHex",
+    "permalink": "/api/totemsdk-connect/functions/broadcastHex"
+  }
+}

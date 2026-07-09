@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-chain-provider/interfaces/Coin",
+  "title": "Coin",
+  "description": "@totemsdk/chain-provider",
+  "source": "@site/docs/api/totemsdk-chain-provider/interfaces/Coin.md",
+  "sourceDirName": "api/totemsdk-chain-provider/interfaces",
+  "slug": "/api/totemsdk-chain-provider/interfaces/Coin",
+  "permalink": "/api/totemsdk-chain-provider/interfaces/Coin",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "ChainTip",
+    "permalink": "/api/totemsdk-chain-provider/interfaces/ChainTip"
+  },
+  "next": {
+    "title": "CoinsQuery",
+    "permalink": "/api/totemsdk-chain-provider/interfaces/CoinsQuery"
+  }
+}

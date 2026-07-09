@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-tx-builder/functions/parseDecimalToBigInt",
+  "title": "parseDecimalToBigInt",
+  "description": "@totemsdk/tx-builder",
+  "source": "@site/docs/api/totemsdk-tx-builder/functions/parseDecimalToBigInt.md",
+  "sourceDirName": "api/totemsdk-tx-builder/functions",
+  "slug": "/api/totemsdk-tx-builder/functions/parseDecimalToBigInt",
+  "permalink": "/api/totemsdk-tx-builder/functions/parseDecimalToBigInt",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "isPositive",
+    "permalink": "/api/totemsdk-tx-builder/functions/isPositive"
+  },
+  "next": {
+    "title": "subtractDecimalStrings",
+    "permalink": "/api/totemsdk-tx-builder/functions/subtractDecimalStrings"
+  }
+}

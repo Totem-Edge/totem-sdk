@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/derivePKdigest",
+  "title": "derivePKdigest",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/derivePKdigest.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/derivePKdigest",
+  "permalink": "/api/totemsdk-node/functions/derivePKdigest",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "deriveChildTreeSeedJava",
+    "permalink": "/api/totemsdk-node/functions/deriveChildTreeSeedJava"
+  },
+  "next": {
+    "title": "derivePerAddressSeed",
+    "permalink": "/api/totemsdk-node/functions/derivePerAddressSeed"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/classes/SlowCashHelper",
+  "title": "SlowCashHelper",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/classes/SlowCashHelper.md",
+  "sourceDirName": "api/totemsdk-node/classes",
+  "slug": "/api/totemsdk-node/classes/SlowCashHelper",
+  "permalink": "/api/totemsdk-node/classes/SlowCashHelper",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "NoopMetrics",
+    "permalink": "/api/totemsdk-node/classes/NoopMetrics"
+  },
+  "next": {
+    "title": "StatefulGameHelper",
+    "permalink": "/api/totemsdk-node/classes/StatefulGameHelper"
+  }
+}

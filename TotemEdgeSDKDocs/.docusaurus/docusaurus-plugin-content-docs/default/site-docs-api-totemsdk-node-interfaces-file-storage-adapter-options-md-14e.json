@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/FileStorageAdapterOptions",
+  "title": "FileStorageAdapterOptions",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/FileStorageAdapterOptions.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/FileStorageAdapterOptions",
+  "permalink": "/api/totemsdk-node/interfaces/FileStorageAdapterOptions",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "ExternalSignature",
+    "permalink": "/api/totemsdk-node/interfaces/ExternalSignature"
+  },
+  "next": {
+    "title": "FinalizeRequest",
+    "permalink": "/api/totemsdk-node/interfaces/FinalizeRequest"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-connect/interfaces/TotemVerifyResponse",
+  "title": "TotemVerifyResponse",
+  "description": "@totemsdk/connect",
+  "source": "@site/docs/api/totemsdk-connect/interfaces/TotemVerifyResponse.md",
+  "sourceDirName": "api/totemsdk-connect/interfaces",
+  "slug": "/api/totemsdk-connect/interfaces/TotemVerifyResponse",
+  "permalink": "/api/totemsdk-connect/interfaces/TotemVerifyResponse",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TotemVerifyRequest",
+    "permalink": "/api/totemsdk-connect/interfaces/TotemVerifyRequest"
+  },
+  "next": {
+    "title": "TransactionPlan",
+    "permalink": "/api/totemsdk-connect/interfaces/TransactionPlan"
+  }
+}

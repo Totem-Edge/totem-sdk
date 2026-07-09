@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/classes/LeaseMonitor",
+  "title": "LeaseMonitor",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/classes/LeaseMonitor.md",
+  "sourceDirName": "api/totemsdk-node/classes",
+  "slug": "/api/totemsdk-node/classes/LeaseMonitor",
+  "permalink": "/api/totemsdk-node/classes/LeaseMonitor",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "InMemoryAuthProvider",
+    "permalink": "/api/totemsdk-node/classes/InMemoryAuthProvider"
+  },
+  "next": {
+    "title": "LeaseStore",
+    "permalink": "/api/totemsdk-node/classes/LeaseStore"
+  }
+}

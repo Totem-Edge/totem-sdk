@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/functions/normalizeScript",
+  "title": "normalizeScript",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/functions/normalizeScript.md",
+  "sourceDirName": "api/totemsdk-omnia/functions",
+  "slug": "/api/totemsdk-omnia/functions/normalizeScript",
+  "permalink": "/api/totemsdk-omnia/functions/normalizeScript",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "markChannelClosing",
+    "permalink": "/api/totemsdk-omnia/functions/markChannelClosing"
+  },
+  "next": {
+    "title": "omniaDraftToMinimaBytes",
+    "permalink": "/api/totemsdk-omnia/functions/omniaDraftToMinimaBytes"
+  }
+}

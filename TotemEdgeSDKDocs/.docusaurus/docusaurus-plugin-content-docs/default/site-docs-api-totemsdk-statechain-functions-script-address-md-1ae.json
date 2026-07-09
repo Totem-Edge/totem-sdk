@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-statechain/functions/scriptAddress",
+  "title": "scriptAddress",
+  "description": "@totemsdk/statechain",
+  "source": "@site/docs/api/totemsdk-statechain/functions/scriptAddress.md",
+  "sourceDirName": "api/totemsdk-statechain/functions",
+  "slug": "/api/totemsdk-statechain/functions/scriptAddress",
+  "permalink": "/api/totemsdk-statechain/functions/scriptAddress",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "reclaimAbandoned",
+    "permalink": "/api/totemsdk-statechain/functions/reclaimAbandoned"
+  },
+  "next": {
+    "title": "transferOwnership",
+    "permalink": "/api/totemsdk-statechain/functions/transferOwnership"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-router/functions/announceSwap",
+  "title": "announceSwap",
+  "description": "@totemsdk/omnia-router",
+  "source": "@site/docs/api/totemsdk-omnia-router/functions/announceSwap.md",
+  "sourceDirName": "api/totemsdk-omnia-router/functions",
+  "slug": "/api/totemsdk-omnia-router/functions/announceSwap",
+  "permalink": "/api/totemsdk-omnia-router/functions/announceSwap",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "addChannel",
+    "permalink": "/api/totemsdk-omnia-router/functions/addChannel"
+  },
+  "next": {
+    "title": "applyRate",
+    "permalink": "/api/totemsdk-omnia-router/functions/applyRate"
+  }
+}

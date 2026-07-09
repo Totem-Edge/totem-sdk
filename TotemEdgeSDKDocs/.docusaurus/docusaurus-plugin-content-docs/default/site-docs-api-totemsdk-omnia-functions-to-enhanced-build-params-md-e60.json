@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/functions/toEnhancedBuildParams",
+  "title": "toEnhancedBuildParams",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/functions/toEnhancedBuildParams.md",
+  "sourceDirName": "api/totemsdk-omnia/functions",
+  "slug": "/api/totemsdk-omnia/functions/toEnhancedBuildParams",
+  "permalink": "/api/totemsdk-omnia/functions/toEnhancedBuildParams",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "timeoutHTLC",
+    "permalink": "/api/totemsdk-omnia/functions/timeoutHTLC"
+  },
+  "next": {
+    "title": "updateState",
+    "permalink": "/api/totemsdk-omnia/functions/updateState"
+  }
+}

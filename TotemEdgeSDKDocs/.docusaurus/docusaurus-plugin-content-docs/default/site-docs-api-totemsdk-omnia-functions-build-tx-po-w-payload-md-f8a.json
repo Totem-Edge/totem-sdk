@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/functions/buildTxPoWPayload",
+  "title": "buildTxPoWPayload",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/functions/buildTxPoWPayload.md",
+  "sourceDirName": "api/totemsdk-omnia/functions",
+  "slug": "/api/totemsdk-omnia/functions/buildTxPoWPayload",
+  "permalink": "/api/totemsdk-omnia/functions/buildTxPoWPayload",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "buildSettlementTx",
+    "permalink": "/api/totemsdk-omnia/functions/buildSettlementTx"
+  },
+  "next": {
+    "title": "buildUpdateTx",
+    "permalink": "/api/totemsdk-omnia/functions/buildUpdateTx"
+  }
+}

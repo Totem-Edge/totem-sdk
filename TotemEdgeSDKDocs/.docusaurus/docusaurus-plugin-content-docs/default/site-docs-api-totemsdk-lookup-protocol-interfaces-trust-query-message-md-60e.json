@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-lookup-protocol/interfaces/TrustQueryMessage",
+  "title": "TrustQueryMessage",
+  "description": "@totemsdk/lookup-protocol",
+  "source": "@site/docs/api/totemsdk-lookup-protocol/interfaces/TrustQueryMessage.md",
+  "sourceDirName": "api/totemsdk-lookup-protocol/interfaces",
+  "slug": "/api/totemsdk-lookup-protocol/interfaces/TrustQueryMessage",
+  "permalink": "/api/totemsdk-lookup-protocol/interfaces/TrustQueryMessage",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "SignFn",
+    "permalink": "/api/totemsdk-lookup-protocol/interfaces/SignFn"
+  },
+  "next": {
+    "title": "TrustRecordMessage",
+    "permalink": "/api/totemsdk-lookup-protocol/interfaces/TrustRecordMessage"
+  }
+}

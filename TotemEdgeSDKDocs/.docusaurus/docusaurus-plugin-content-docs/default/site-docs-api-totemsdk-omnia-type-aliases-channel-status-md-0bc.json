@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/type-aliases/ChannelStatus",
+  "title": "ChannelStatus",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/type-aliases/ChannelStatus.md",
+  "sourceDirName": "api/totemsdk-omnia/type-aliases",
+  "slug": "/api/totemsdk-omnia/type-aliases/ChannelStatus",
+  "permalink": "/api/totemsdk-omnia/type-aliases/ChannelStatus",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "CapacityWarning",
+    "permalink": "/api/totemsdk-omnia/type-aliases/CapacityWarning"
+  },
+  "next": {
+    "title": "partyId",
+    "permalink": "/api/totemsdk-omnia/type-aliases/partyId"
+  }
+}

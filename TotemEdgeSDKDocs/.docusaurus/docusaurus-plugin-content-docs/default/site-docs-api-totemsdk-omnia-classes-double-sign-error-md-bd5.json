@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/classes/DoubleSignError",
+  "title": "DoubleSignError",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/classes/DoubleSignError.md",
+  "sourceDirName": "api/totemsdk-omnia/classes",
+  "slug": "/api/totemsdk-omnia/classes/DoubleSignError",
+  "permalink": "/api/totemsdk-omnia/classes/DoubleSignError",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "ChannelStatusError",
+    "permalink": "/api/totemsdk-omnia/classes/ChannelStatusError"
+  },
+  "next": {
+    "title": "SequenceError",
+    "permalink": "/api/totemsdk-omnia/classes/SequenceError"
+  }
+}

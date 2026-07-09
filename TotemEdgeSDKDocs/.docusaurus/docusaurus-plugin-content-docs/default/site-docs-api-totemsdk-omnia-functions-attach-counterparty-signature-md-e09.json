@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/functions/attachCounterpartySignature",
+  "title": "attachCounterpartySignature",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/functions/attachCounterpartySignature.md",
+  "sourceDirName": "api/totemsdk-omnia/functions",
+  "slug": "/api/totemsdk-omnia/functions/attachCounterpartySignature",
+  "permalink": "/api/totemsdk-omnia/functions/attachCounterpartySignature",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "assessCapacity",
+    "permalink": "/api/totemsdk-omnia/functions/assessCapacity"
+  },
+  "next": {
+    "title": "buildAndHashEltooScript",
+    "permalink": "/api/totemsdk-omnia/functions/buildAndHashEltooScript"
+  }
+}

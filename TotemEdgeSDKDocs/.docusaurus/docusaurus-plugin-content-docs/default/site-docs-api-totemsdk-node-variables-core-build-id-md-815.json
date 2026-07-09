@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/variables/CORE_BUILD_ID",
+  "title": "CORE_BUILD_ID",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/variables/CORE_BUILD_ID.md",
+  "sourceDirName": "api/totemsdk-node/variables",
+  "slug": "/api/totemsdk-node/variables/CORE_BUILD_ID",
+  "permalink": "/api/totemsdk-node/variables/CORE_BUILD_ID",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "WotsSignature",
+    "permalink": "/api/totemsdk-node/type-aliases/WotsSignature"
+  },
+  "next": {
+    "title": "CORE_VERSION",
+    "permalink": "/api/totemsdk-node/variables/CORE_VERSION"
+  }
+}

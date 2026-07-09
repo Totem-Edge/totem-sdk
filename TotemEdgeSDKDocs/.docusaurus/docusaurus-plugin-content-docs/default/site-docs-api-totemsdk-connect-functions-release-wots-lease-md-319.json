@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-connect/functions/releaseWotsLease",
+  "title": "releaseWotsLease",
+  "description": "@totemsdk/connect",
+  "source": "@site/docs/api/totemsdk-connect/functions/releaseWotsLease.md",
+  "sourceDirName": "api/totemsdk-connect/functions",
+  "slug": "/api/totemsdk-connect/functions/releaseWotsLease",
+  "permalink": "/api/totemsdk-connect/functions/releaseWotsLease",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "payPaymentRequest",
+    "permalink": "/api/totemsdk-connect/functions/payPaymentRequest"
+  },
+  "next": {
+    "title": "reserveWotsLease",
+    "permalink": "/api/totemsdk-connect/functions/reserveWotsLease"
+  }
+}

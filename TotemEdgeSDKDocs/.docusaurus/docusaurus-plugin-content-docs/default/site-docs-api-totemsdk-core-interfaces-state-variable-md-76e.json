@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/StateVariable",
+  "title": "StateVariable",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/StateVariable.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/StateVariable",
+  "permalink": "/api/totemsdk-core/interfaces/StateVariable",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "StateValue",
+    "permalink": "/api/totemsdk-core/interfaces/StateValue"
+  },
+  "next": {
+    "title": "StorageAdapter",
+    "permalink": "/api/totemsdk-core/interfaces/StorageAdapter"
+  }
+}

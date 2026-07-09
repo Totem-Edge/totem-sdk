@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-lookup-protocol/interfaces/ProofResponseMessage",
+  "title": "ProofResponseMessage",
+  "description": "@totemsdk/lookup-protocol",
+  "source": "@site/docs/api/totemsdk-lookup-protocol/interfaces/ProofResponseMessage.md",
+  "sourceDirName": "api/totemsdk-lookup-protocol/interfaces",
+  "slug": "/api/totemsdk-lookup-protocol/interfaces/ProofResponseMessage",
+  "permalink": "/api/totemsdk-lookup-protocol/interfaces/ProofResponseMessage",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "PongMessage",
+    "permalink": "/api/totemsdk-lookup-protocol/interfaces/PongMessage"
+  },
+  "next": {
+    "title": "SignFn",
+    "permalink": "/api/totemsdk-lookup-protocol/interfaces/SignFn"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-kissvm/interfaces/OutputData",
+  "title": "OutputData",
+  "description": "@totemsdk/kissvm",
+  "source": "@site/docs/api/totemsdk-kissvm/interfaces/OutputData.md",
+  "sourceDirName": "api/totemsdk-kissvm/interfaces",
+  "slug": "/api/totemsdk-kissvm/interfaces/OutputData",
+  "permalink": "/api/totemsdk-kissvm/interfaces/OutputData",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "EvalResult",
+    "permalink": "/api/totemsdk-kissvm/interfaces/EvalResult"
+  },
+  "next": {
+    "title": "ScriptWitness",
+    "permalink": "/api/totemsdk-kissvm/interfaces/ScriptWitness"
+  }
+}

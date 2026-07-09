@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/wotsKeypairFromSeed",
+  "title": "wotsKeypairFromSeed",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/wotsKeypairFromSeed.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/wotsKeypairFromSeed",
+  "permalink": "/api/totemsdk-core/functions/wotsKeypairFromSeed",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "wotsAddressFromKeypair",
+    "permalink": "/api/totemsdk-core/functions/wotsAddressFromKeypair"
+  },
+  "next": {
+    "title": "wotsPkFromSig",
+    "permalink": "/api/totemsdk-core/functions/wotsPkFromSig"
+  }
+}

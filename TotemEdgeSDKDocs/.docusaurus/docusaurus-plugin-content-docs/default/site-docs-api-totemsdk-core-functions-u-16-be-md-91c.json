@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/u16be",
+  "title": "u16be",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/u16be.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/u16be",
+  "permalink": "/api/totemsdk-core/functions/u16be",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "toWinternitzDigits",
+    "permalink": "/api/totemsdk-core/functions/toWinternitzDigits"
+  },
+  "next": {
+    "title": "u32be",
+    "permalink": "/api/totemsdk-core/functions/u32be"
+  }
+}

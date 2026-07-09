@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/createMMRDataParentNode",
+  "title": "createMMRDataParentNode",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/createMMRDataParentNode.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/createMMRDataParentNode",
+  "permalink": "/api/totemsdk-core/functions/createMMRDataParentNode",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "createMMRDataLeafNode",
+    "permalink": "/api/totemsdk-core/functions/createMMRDataLeafNode"
+  },
+  "next": {
+    "title": "createMMREntryNumber",
+    "permalink": "/api/totemsdk-core/functions/createMMREntryNumber"
+  }
+}

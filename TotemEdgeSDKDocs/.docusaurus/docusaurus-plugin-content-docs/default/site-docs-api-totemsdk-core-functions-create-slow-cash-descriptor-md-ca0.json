@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/createSlowCashDescriptor",
+  "title": "createSlowCashDescriptor",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/createSlowCashDescriptor.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/createSlowCashDescriptor",
+  "permalink": "/api/totemsdk-core/functions/createSlowCashDescriptor",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "createSignedByDescriptor",
+    "permalink": "/api/totemsdk-core/functions/createSignedByDescriptor"
+  },
+  "next": {
+    "title": "createTimelockDescriptor",
+    "permalink": "/api/totemsdk-core/functions/createTimelockDescriptor"
+  }
+}

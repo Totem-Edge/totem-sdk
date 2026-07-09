@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/functions/flatSigningIndex",
+  "title": "flatSigningIndex",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/functions/flatSigningIndex.md",
+  "sourceDirName": "api/totemsdk-omnia/functions",
+  "slug": "/api/totemsdk-omnia/functions/flatSigningIndex",
+  "permalink": "/api/totemsdk-omnia/functions/flatSigningIndex",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "executeIntent",
+    "permalink": "/api/totemsdk-omnia/functions/executeIntent"
+  },
+  "next": {
+    "title": "fulfillHTLC",
+    "permalink": "/api/totemsdk-omnia/functions/fulfillHTLC"
+  }
+}

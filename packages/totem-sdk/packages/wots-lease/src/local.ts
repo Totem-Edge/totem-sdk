@@ -1,0 +1,196 @@
+/**
+ * LocalLeaseProvider — Layer 1: local durable ledger.
+ *
+ * Single-device, no network coordination.
+ * All WOTS safety guaranteed by the local WotsWatermarkStore + LeaseJournal.
+ */
+
+import type { StorageAdapter, LoggerAdapter } from '@totemsdk/core';
+import { NoopLogger } from '@totemsdk/core';
+import { LeaseStore, type StoredLease } from '@totemsdk/core';
+import type {
+  WotsLeaseProvider,
+  ReserveParams,
+  LeaseReservation,
+  LeaseCertificate,
+  LocalWatermark,
+  SyncResult,
+  SigningIndices,
+} from './types.js';
+import { WotsWatermarkStore, flatIndex } from './watermark.js';
+import { LeaseJournal } from './journal.js';
+import { LeaseNotFoundError, DeviceRangeViolationError } from './errors.js';
+
+function randomId(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
+
+export class LocalLeaseProvider implements WotsLeaseProvider {
+  private readonly watermark: WotsWatermarkStore;
+  private readonly leaseStore: LeaseStore;
+  private readonly journal: LeaseJournal;
+  private _initialized = false;
+  private readonly deviceId: string;
+  /** In-memory map: reservationId → treeId (lost on restart; watermark survives). */
+  private readonly _treeIdByReservation = new Map<string, string>();
+
+  constructor(
+    storage: StorageAdapter,
+    private readonly logger: LoggerAdapter = new NoopLogger(),
+    deviceId = 'local',
+  ) {
+    this.watermark = new WotsWatermarkStore(storage, logger);
+    this.leaseStore = new LeaseStore(storage, logger);
+    this.journal = new LeaseJournal(storage, logger);
+    this.deviceId = deviceId;
+  }
+
+  async initialize(): Promise<void> {
+    if (this._initialized) return;
+    await this.watermark.initialize();
+    await this.leaseStore.initialize();
+    await this.journal.initialize();
+    await this.recoverExpiredReservations();
+    this._initialized = true;
+  }
+
+  private async recoverExpiredReservations(): Promise<void> {
+    const now = Date.now();
+    for (const lease of this.leaseStore.getAll()) {
+      if (lease.status === 'active' && lease.expiresAt < now) {
+        const treeId = this._treeIdByReservation.get(lease.leaseId) ?? 'default';
+        await this.watermark.markUnavailable(treeId, lease.indices, 'reserved-expired');
+        await this.leaseStore.updateStatus(lease.leaseId, 'expired');
+        await this.journal.append({
+          treeId,
+          branchId: 'default',
+          wotsIndex: flatIndex(lease.indices),
+          indices: lease.indices,
+          status: 'reserved-expired',
+          timestamp: now,
+          deviceId: this.deviceId,
+        });
+      }
+    }
+  }
+
+  async reserveKeyUse(params: ReserveParams): Promise<LeaseReservation> {
+    if (!this._initialized) await this.initialize();
+    const treeId = params.treeId;
+    const ttlMs = params.ttlMs ?? 120_000;
+
+    const indices = this.watermark.getNextIndices(treeId);
+
+    if (params.deviceId) {
+      const range = this.getDeviceRange(params.deviceId);
+      if (range && (indices.addressIndex < range.start || indices.addressIndex > range.end)) {
+        throw new DeviceRangeViolationError(indices.addressIndex, range.start, range.end);
+      }
+    }
+
+    const reservationId = randomId();
+    const expiresAt = Date.now() + ttlMs;
+
+    const lease: StoredLease = {
+      leaseId: reservationId,
+      leaseToken: reservationId,
+      indices,
+      expiresAt,
+      status: 'active',
+      createdAt: Date.now(),
+      leaseTTL: ttlMs,
+    };
+    await this.leaseStore.save(lease);
+
+    // Track treeId in memory so commit/burn can reference the right watermark tree
+    this._treeIdByReservation.set(reservationId, treeId);
+
+    await this.journal.append({
+      treeId,
+      branchId: params.branchId ?? 'default',
+      wotsIndex: flatIndex(indices),
+      indices,
+      status: 'reserved',
+      payloadHash: params.payloadHash,
+      timestamp: Date.now(),
+      deviceId: params.deviceId ?? this.deviceId,
+    });
+
+    return { reservationId, indices, expiresAt };
+  }
+
+  async commitKeyUse(reservationId: string, txId: string): Promise<void> {
+    if (!this._initialized) await this.initialize();
+    const lease = this.leaseStore.get(reservationId);
+    if (!lease) throw new LeaseNotFoundError(reservationId);
+
+    const treeId = this._treeIdByReservation.get(reservationId) ?? 'default';
+    const indices: SigningIndices = lease.indices;
+    await this.watermark.markUnavailable(treeId, indices, 'committed');
+    await this.leaseStore.updateStatus(reservationId, 'finalized');
+    this._treeIdByReservation.delete(reservationId);
+
+    await this.journal.append({
+      treeId,
+      branchId: 'default',
+      wotsIndex: flatIndex(indices),
+      indices,
+      status: 'committed',
+      txId,
+      timestamp: Date.now(),
+      deviceId: this.deviceId,
+    });
+  }
+
+  async burnReservation(reservationId: string, reason: string): Promise<void> {
+    if (!this._initialized) await this.initialize();
+    const lease = this.leaseStore.get(reservationId);
+    if (!lease) throw new LeaseNotFoundError(reservationId);
+
+    const treeId = this._treeIdByReservation.get(reservationId) ?? 'default';
+    const indices: SigningIndices = lease.indices;
+    await this.watermark.markUnavailable(treeId, indices, 'burned');
+    await this.leaseStore.updateStatus(reservationId, 'cancelled');
+    this._treeIdByReservation.delete(reservationId);
+
+    this.logger.warn(`[LocalLeaseProvider] Burning reservation ${reservationId}: ${reason}`);
+    await this.journal.append({
+      treeId,
+      branchId: 'default',
+      wotsIndex: flatIndex(indices),
+      indices,
+      status: 'burned',
+      timestamp: Date.now(),
+      deviceId: this.deviceId,
+    });
+  }
+
+  async getLocalWatermark(treeId: string): Promise<LocalWatermark> {
+    if (!this._initialized) await this.initialize();
+    return this.watermark.getLocalWatermark(treeId);
+  }
+
+  async publishWatermark(_treeId: string): Promise<void> {
+    // Layer 1: no-op
+  }
+
+  async syncLeaseJournal(): Promise<SyncResult> {
+    // Layer 1: no-op
+    return { synced: true, conflicts: [] };
+  }
+
+  async verifyLeaseCertificate(cert?: LeaseCertificate): Promise<boolean> {
+    if (cert === undefined) return true;
+    return false;
+  }
+
+  private getDeviceRange(deviceId: string): { start: number; end: number } | null {
+    const match = deviceId.match(/^device-?(\d+)$/i);
+    if (!match) return null;
+    const slot = parseInt(match[1], 10);
+    return { start: slot * 8, end: slot * 8 + 7 };
+  }
+}

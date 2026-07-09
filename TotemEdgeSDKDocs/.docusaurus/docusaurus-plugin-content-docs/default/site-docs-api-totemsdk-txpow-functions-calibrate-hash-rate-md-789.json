@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-txpow/functions/calibrateHashRate",
+  "title": "calibrateHashRate",
+  "description": "@totemsdk/txpow",
+  "source": "@site/docs/api/totemsdk-txpow/functions/calibrateHashRate.md",
+  "sourceDirName": "api/totemsdk-txpow/functions",
+  "slug": "/api/totemsdk-txpow/functions/calibrateHashRate",
+  "permalink": "/api/totemsdk-txpow/functions/calibrateHashRate",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "PROTOCOL_VERSION",
+    "permalink": "/api/totemsdk-lookup-protocol/variables/PROTOCOL_VERSION"
+  },
+  "next": {
+    "title": "computeTxPoWId",
+    "permalink": "/api/totemsdk-txpow/functions/computeTxPoWId"
+  }
+}

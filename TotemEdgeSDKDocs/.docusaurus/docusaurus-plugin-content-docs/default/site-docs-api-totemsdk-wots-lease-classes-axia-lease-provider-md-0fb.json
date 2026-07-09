@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-wots-lease/classes/AxiaLeaseProvider",
+  "title": "AxiaLeaseProvider",
+  "description": "@totemsdk/wots-lease",
+  "source": "@site/docs/api/totemsdk-wots-lease/classes/AxiaLeaseProvider.md",
+  "sourceDirName": "api/totemsdk-wots-lease/classes",
+  "slug": "/api/totemsdk-wots-lease/classes/AxiaLeaseProvider",
+  "permalink": "/api/totemsdk-wots-lease/classes/AxiaLeaseProvider",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "ZERO_HASH",
+    "permalink": "/api/totemsdk-txpow/variables/ZERO_HASH"
+  },
+  "next": {
+    "title": "DeviceRangeViolationError",
+    "permalink": "/api/totemsdk-wots-lease/classes/DeviceRangeViolationError"
+  }
+}

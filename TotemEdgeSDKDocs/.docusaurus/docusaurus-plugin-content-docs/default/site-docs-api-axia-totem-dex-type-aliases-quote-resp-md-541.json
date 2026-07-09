@@ -1,0 +1,23 @@
+{
+  "id": "api/axia-totem-dex/type-aliases/QuoteResp",
+  "title": "QuoteResp",
+  "description": "@axia/totem-dex",
+  "source": "@site/docs/api/axia-totem-dex/type-aliases/QuoteResp.md",
+  "sourceDirName": "api/axia-totem-dex/type-aliases",
+  "slug": "/api/axia-totem-dex/type-aliases/QuoteResp",
+  "permalink": "/api/axia-totem-dex/type-aliases/QuoteResp",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "QuoteReq",
+    "permalink": "/api/axia-totem-dex/type-aliases/QuoteReq"
+  },
+  "next": {
+    "title": "@totem/observability",
+    "permalink": "/api/totem-observability/"
+  }
+}

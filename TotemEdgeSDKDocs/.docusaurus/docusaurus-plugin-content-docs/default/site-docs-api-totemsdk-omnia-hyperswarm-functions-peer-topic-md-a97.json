@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-hyperswarm/functions/peerTopic",
+  "title": "peerTopic",
+  "description": "@totemsdk/omnia-hyperswarm",
+  "source": "@site/docs/api/totemsdk-omnia-hyperswarm/functions/peerTopic.md",
+  "sourceDirName": "api/totemsdk-omnia-hyperswarm/functions",
+  "slug": "/api/totemsdk-omnia-hyperswarm/functions/peerTopic",
+  "permalink": "/api/totemsdk-omnia-hyperswarm/functions/peerTopic",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "encodeOmniaMessage",
+    "permalink": "/api/totemsdk-omnia-hyperswarm/functions/encodeOmniaMessage"
+  },
+  "next": {
+    "title": "index",
+    "permalink": "/api/totemsdk-omnia-hyperswarm/"
+  }
+}

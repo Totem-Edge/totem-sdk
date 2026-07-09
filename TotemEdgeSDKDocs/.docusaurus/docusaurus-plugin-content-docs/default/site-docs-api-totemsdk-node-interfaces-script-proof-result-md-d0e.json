@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/ScriptProofResult",
+  "title": "ScriptProofResult",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/ScriptProofResult.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/ScriptProofResult",
+  "permalink": "/api/totemsdk-node/interfaces/ScriptProofResult",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "ScriptDescriptor",
+    "permalink": "/api/totemsdk-node/interfaces/ScriptDescriptor"
+  },
+  "next": {
+    "title": "SignRequest",
+    "permalink": "/api/totemsdk-node/interfaces/SignRequest"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-chain-provider/classes/PureMinimaRpcProvider",
+  "title": "PureMinimaRpcProvider",
+  "description": "@totemsdk/chain-provider",
+  "source": "@site/docs/api/totemsdk-chain-provider/classes/PureMinimaRpcProvider.md",
+  "sourceDirName": "api/totemsdk-chain-provider/classes",
+  "slug": "/api/totemsdk-chain-provider/classes/PureMinimaRpcProvider",
+  "permalink": "/api/totemsdk-chain-provider/classes/PureMinimaRpcProvider",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "LookupNodeProvider",
+    "permalink": "/api/totemsdk-chain-provider/classes/LookupNodeProvider"
+  },
+  "next": {
+    "title": "index",
+    "permalink": "/api/totemsdk-chain-provider/"
+  }
+}

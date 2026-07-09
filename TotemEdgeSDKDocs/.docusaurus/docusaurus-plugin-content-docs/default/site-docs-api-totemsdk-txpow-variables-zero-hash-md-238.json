@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-txpow/variables/ZERO_HASH",
+  "title": "ZERO_HASH",
+  "description": "@totemsdk/txpow",
+  "source": "@site/docs/api/totemsdk-txpow/variables/ZERO_HASH.md",
+  "sourceDirName": "api/totemsdk-txpow/variables",
+  "slug": "/api/totemsdk-txpow/variables/ZERO_HASH",
+  "permalink": "/api/totemsdk-txpow/variables/ZERO_HASH",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TX_POW_MIN_DIFFICULTY",
+    "permalink": "/api/totemsdk-txpow/variables/TX_POW_MIN_DIFFICULTY"
+  },
+  "next": {
+    "title": "AxiaLeaseProvider",
+    "permalink": "/api/totemsdk-wots-lease/classes/AxiaLeaseProvider"
+  }
+}

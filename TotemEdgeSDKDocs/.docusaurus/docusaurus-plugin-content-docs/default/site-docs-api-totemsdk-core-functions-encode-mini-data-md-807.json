@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/encodeMiniData",
+  "title": "encodeMiniData",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/encodeMiniData.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/encodeMiniData",
+  "permalink": "/api/totemsdk-core/functions/encodeMiniData",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "deserializeTreeSignature",
+    "permalink": "/api/totemsdk-core/functions/deserializeTreeSignature"
+  },
+  "next": {
+    "title": "encodeMiniNumber",
+    "permalink": "/api/totemsdk-core/functions/encodeMiniNumber"
+  }
+}

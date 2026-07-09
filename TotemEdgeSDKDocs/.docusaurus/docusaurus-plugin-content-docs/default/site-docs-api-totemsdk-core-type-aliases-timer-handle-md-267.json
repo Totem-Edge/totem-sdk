@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/type-aliases/TimerHandle",
+  "title": "TimerHandle",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/type-aliases/TimerHandle.md",
+  "sourceDirName": "api/totemsdk-core/type-aliases",
+  "slug": "/api/totemsdk-core/type-aliases/TimerHandle",
+  "permalink": "/api/totemsdk-core/type-aliases/TimerHandle",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "StateVariableType",
+    "permalink": "/api/totemsdk-core/type-aliases/StateVariableType"
+  },
+  "next": {
+    "title": "TotemTransactionErrorCode",
+    "permalink": "/api/totemsdk-core/type-aliases/TotemTransactionErrorCode"
+  }
+}

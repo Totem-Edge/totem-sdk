@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/classes/ChannelStatusError",
+  "title": "ChannelStatusError",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/classes/ChannelStatusError.md",
+  "sourceDirName": "api/totemsdk-omnia/classes",
+  "slug": "/api/totemsdk-omnia/classes/ChannelStatusError",
+  "permalink": "/api/totemsdk-omnia/classes/ChannelStatusError",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "ChannelCapacityError",
+    "permalink": "/api/totemsdk-omnia/classes/ChannelCapacityError"
+  },
+  "next": {
+    "title": "DoubleSignError",
+    "permalink": "/api/totemsdk-omnia/classes/DoubleSignError"
+  }
+}

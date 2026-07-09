@@ -1,0 +1,74 @@
+{
+  "paramSet": "v1-dev",
+  "w": 8,
+  "L": 89,
+  "seed": "a679ff50c2037469c211e250ae4fad1e012859107fd34fe7f58d2bf1503067bf",
+  "sk_samples": [
+    {
+      "index": 0,
+      "elements": [
+        "e82d9366965ccaceca3ae2ed9fd96c66c8aa0b96f9c722fda6042b52ff8ddbd8",
+        "9ce09ae0fe62478abb8ead348c1fa6a566a7338b44721184d64bf4a5cb2d7175"
+      ]
+    },
+    {
+      "index": 1,
+      "elements": [
+        "ca3b2218c6f207bb5da17b806a1fc3784336b9a1f0148c142c2400bc2faaecc5",
+        "1971fa0b8e2d4d9df22b2f4fa669b595a1d0cc010337623e206e6fdbed205f17"
+      ]
+    }
+  ],
+  "chain_tops": [
+    {
+      "element": 0,
+      "sk": "e82d9366965ccace...",
+      "top": "32632289a9e752a07bf46389f58541a9dbb7621364abf9cd41057199d6642c42"
+    },
+    {
+      "element": 1,
+      "sk": "9ce09ae0fe62478a...",
+      "top": "646003f654113e50ae66c3a8b1ce6a2df59eeeb14b5463e104a3eefb02dbfcc9"
+    },
+    {
+      "element": 2,
+      "sk": "77c5a6e38d5acda1...",
+      "top": "b4cff52175271f95c4a1ab45fd30d2b422b42e71efda72fb47c44e3254d80374"
+    },
+    {
+      "element": 3,
+      "sk": "574e2c6aad701d5f...",
+      "top": "678e760f1e9d6484ef5f31e3a9cf4465cdcbf0bfa450c7d930fcfca96a8de249"
+    }
+  ],
+  "pk_elements": [
+    {
+      "index": 0,
+      "value": "32632289a9e752a07bf46389f58541a9dbb7621364abf9cd41057199d6642c42"
+    },
+    {
+      "index": 1,
+      "value": "646003f654113e50ae66c3a8b1ce6a2df59eeeb14b5463e104a3eefb02dbfcc9"
+    },
+    {
+      "index": 2,
+      "value": "b4cff52175271f95c4a1ab45fd30d2b422b42e71efda72fb47c44e3254d80374"
+    },
+    {
+      "index": 3,
+      "value": "678e760f1e9d6484ef5f31e3a9cf4465cdcbf0bfa450c7d930fcfca96a8de249"
+    }
+  ],
+  "pkdigest": "4c9ba0f68ebafaae75af5d24068176b2a4f4aee8f729f43a1265a1cb12a59f1b",
+  "signature": {
+    "message": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    "index": 0,
+    "elements": [
+      "b8b83b69be786c5b...",
+      "646003f654113e50...",
+      "ebb65ef612565e31...",
+      "4fa134e2e9dac718..."
+    ],
+    "full_length": 89
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-router/functions/removeChannel",
+  "title": "removeChannel",
+  "description": "@totemsdk/omnia-router",
+  "source": "@site/docs/api/totemsdk-omnia-router/functions/removeChannel.md",
+  "sourceDirName": "api/totemsdk-omnia-router/functions",
+  "slug": "/api/totemsdk-omnia-router/functions/removeChannel",
+  "permalink": "/api/totemsdk-omnia-router/functions/removeChannel",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "parseRateToScaled",
+    "permalink": "/api/totemsdk-omnia-router/functions/parseRateToScaled"
+  },
+  "next": {
+    "title": "index",
+    "permalink": "/api/totemsdk-omnia-router/"
+  }
+}

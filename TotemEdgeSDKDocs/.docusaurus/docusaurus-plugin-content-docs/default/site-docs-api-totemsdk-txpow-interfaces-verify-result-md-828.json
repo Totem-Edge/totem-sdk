@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-txpow/interfaces/VerifyResult",
+  "title": "VerifyResult",
+  "description": "@totemsdk/txpow",
+  "source": "@site/docs/api/totemsdk-txpow/interfaces/VerifyResult.md",
+  "sourceDirName": "api/totemsdk-txpow/interfaces",
+  "slug": "/api/totemsdk-txpow/interfaces/VerifyResult",
+  "permalink": "/api/totemsdk-txpow/interfaces/VerifyResult",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TxPowParams",
+    "permalink": "/api/totemsdk-txpow/interfaces/TxPowParams"
+  },
+  "next": {
+    "title": "TxPoWOptions",
+    "permalink": "/api/totemsdk-txpow/type-aliases/TxPoWOptions"
+  }
+}

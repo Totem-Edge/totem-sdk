@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-lookup-protocol/interfaces/SignFn",
+  "title": "SignFn",
+  "description": "@totemsdk/lookup-protocol",
+  "source": "@site/docs/api/totemsdk-lookup-protocol/interfaces/SignFn.md",
+  "sourceDirName": "api/totemsdk-lookup-protocol/interfaces",
+  "slug": "/api/totemsdk-lookup-protocol/interfaces/SignFn",
+  "permalink": "/api/totemsdk-lookup-protocol/interfaces/SignFn",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "ProofResponseMessage",
+    "permalink": "/api/totemsdk-lookup-protocol/interfaces/ProofResponseMessage"
+  },
+  "next": {
+    "title": "TrustQueryMessage",
+    "permalink": "/api/totemsdk-lookup-protocol/interfaces/TrustQueryMessage"
+  }
+}

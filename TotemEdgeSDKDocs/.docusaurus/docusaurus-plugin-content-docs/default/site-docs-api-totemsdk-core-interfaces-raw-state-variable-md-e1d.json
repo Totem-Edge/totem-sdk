@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/RawStateVariable",
+  "title": "RawStateVariable",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/RawStateVariable.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/RawStateVariable",
+  "permalink": "/api/totemsdk-core/interfaces/RawStateVariable",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "PrepareResult",
+    "permalink": "/api/totemsdk-core/interfaces/PrepareResult"
+  },
+  "next": {
+    "title": "ScriptCatalogEntry",
+    "permalink": "/api/totemsdk-core/interfaces/ScriptCatalogEntry"
+  }
+}

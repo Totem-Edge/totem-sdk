@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-chain-provider/classes/LookupNodeProvider",
+  "title": "LookupNodeProvider",
+  "description": "@totemsdk/chain-provider",
+  "source": "@site/docs/api/totemsdk-chain-provider/classes/LookupNodeProvider.md",
+  "sourceDirName": "api/totemsdk-chain-provider/classes",
+  "slug": "/api/totemsdk-chain-provider/classes/LookupNodeProvider",
+  "permalink": "/api/totemsdk-chain-provider/classes/LookupNodeProvider",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "LookupNodeNotImplementedError",
+    "permalink": "/api/totemsdk-chain-provider/classes/LookupNodeNotImplementedError"
+  },
+  "next": {
+    "title": "PureMinimaRpcProvider",
+    "permalink": "/api/totemsdk-chain-provider/classes/PureMinimaRpcProvider"
+  }
+}

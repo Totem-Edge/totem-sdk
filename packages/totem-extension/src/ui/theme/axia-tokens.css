@@ -1,0 +1,241 @@
+/**
+ * AXIA BRUTALIST DESIGN SYSTEM
+ * Totem Wallet Extension - Design Tokens
+ * 
+ * Principles:
+ * - Flat, geometric, brutalist aesthetic
+ * - Zero border-radius
+ * - Hard geometric shadows only
+ * - UPPERCASE headings with letter spacing
+ * - 8px spacing scale (multiples of 8)
+ * - High contrast
+ */
+
+:root {
+  /* ========================================
+     BRAND COLORS - Axia Identity
+     ======================================== */
+  --axia-white: #ffffff;
+  --axia-aqua: #00D9B5;
+  --axia-slate: #475569;
+  --axia-charcoal: #1e293b;
+  --axia-black: #0f172a;
+  
+  /* ========================================
+     SEMANTIC COLORS - Application States
+     ======================================== */
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --color-info: #3b82f6;
+  
+  /* ========================================
+     BACKGROUND LAYERS
+     ======================================== */
+  --bg-base: var(--axia-black);         /* Main background */
+  --bg-elevated: var(--axia-charcoal);  /* Cards, panels */
+  --bg-overlay: #1e293b;                /* Modals, overlays */
+  --bg-subtle: #334155;                 /* Hover states */
+  
+  /* ========================================
+     TEXT HIERARCHY
+     ======================================== */
+  --text-primary: var(--axia-white);    /* Headings, primary content */
+  --text-secondary: #cbd5e1;            /* Body text, descriptions */
+  --text-muted: #94a3b8;                /* Labels, hints */
+  --text-disabled: #64748b;             /* Disabled states */
+  
+  /* ========================================
+     BORDERS & DIVIDERS
+     ======================================== */
+  --border-default: var(--axia-slate);
+  --border-subtle: #334155;
+  --border-strong: #64748b;
+  --border-accent: var(--axia-aqua);
+  
+  /* ========================================
+     SPACING SCALE (8px base unit)
+     ======================================== */
+  --space-1: 8px;    /* 1 unit */
+  --space-2: 16px;   /* 2 units */
+  --space-3: 24px;   /* 3 units */
+  --space-4: 32px;   /* 4 units */
+  --space-5: 40px;   /* 5 units */
+  --space-6: 48px;   /* 6 units */
+  
+  /* Half units for micro-spacing */
+  --space-half: 4px;
+  --space-1-5: 12px;
+  --space-2-5: 20px;
+  
+  /* ========================================
+     TYPOGRAPHY SCALE
+     ======================================== */
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  --font-family-mono: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+  
+  /* Font sizes */
+  --text-2xs: 10px;
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-base: 14px;
+  --text-lg: 16px;
+  --text-xl: 18px;
+  --text-2xl: 24px;
+  --text-3xl: 32px;
+  
+  /* Font weights */
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  
+  /* Letter spacing for UPPERCASE text */
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.05em;
+  --tracking-wider: 0.1em;
+  
+  /* ========================================
+     GEOMETRIC SHADOWS (Brutalist)
+     ======================================== */
+  --shadow-sm: 2px 2px 0 rgba(0, 0, 0, 0.2);
+  --shadow-md: 4px 4px 0 rgba(0, 0, 0, 0.2);
+  --shadow-lg: 6px 6px 0 rgba(0, 0, 0, 0.2);
+  --shadow-xl: 8px 8px 0 rgba(0, 0, 0, 0.2);
+  
+  /* Colored shadows for accent */
+  --shadow-aqua: 4px 4px 0 rgba(0, 217, 181, 0.3);
+  
+  /* ========================================
+     BORDER RADIUS (ALWAYS ZERO)
+     ======================================== */
+  --radius: 0px;
+  
+  /* ========================================
+     Z-INDEX LAYERS
+     ======================================== */
+  --z-base: 0;
+  --z-elevated: 10;
+  --z-sticky: 100;
+  --z-overlay: 1000;
+  --z-modal: 2000;
+  --z-toast: 3000;
+  
+  /* ========================================
+     TRANSITIONS
+     ======================================== */
+  --transition-fast: 150ms ease;
+  --transition-base: 250ms ease;
+  --transition-slow: 350ms ease;
+  
+  /* ========================================
+     VIEWPORT CONSTRAINTS (Extension popup)
+     ======================================== */
+  --viewport-firefox: 380px;    /* Narrowest */
+  --viewport-chrome: 360px;
+  --viewport-safari: 420px;
+  --viewport-compact: 340px;    /* Stress test */
+  
+  --viewport-height-min: 520px;
+  --viewport-height-max: 620px;
+}
+
+/* ========================================
+   GLOBAL RESETS
+   ======================================== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  border-radius: var(--radius); /* Always 0 */
+}
+
+html {
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-family);
+  font-size: var(--text-base);
+  font-weight: var(--weight-normal);
+  color: var(--text-primary);
+  background: var(--bg-base);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: auto;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+}
+
+/* Production-only viewport constraints (applied per browser) */
+body.production-firefox {
+  width: var(--viewport-firefox);
+  min-height: var(--viewport-height-min);
+  max-height: var(--viewport-height-max);
+}
+
+body.production-chrome {
+  width: var(--viewport-chrome);
+  min-height: var(--viewport-height-min);
+  max-height: var(--viewport-height-max);
+}
+
+body.production-safari {
+  width: var(--viewport-safari);
+  min-height: var(--viewport-height-min);
+  max-height: var(--viewport-height-max);
+}
+
+body.production-compact {
+  width: var(--viewport-compact);
+  min-height: var(--viewport-height-min);
+  max-height: var(--viewport-height-max);
+}
+
+/* ========================================
+   FOCUS RING - WCAG 2.1 Compliance
+   ======================================== */
+:focus-visible {
+  outline: 2px solid var(--axia-aqua);
+  outline-offset: 2px;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--axia-aqua);
+  outline-offset: 2px;
+}
+
+/* ========================================
+   CUSTOM CSS VARIABLES FOR LEGACY SUPPORT
+   ======================================== */
+:root {
+  /* Map legacy variables to new tokens */
+  --bg: var(--bg-base);
+  --panel: var(--bg-elevated);
+  --text: var(--text-primary);
+  --muted: var(--text-muted);
+  --accent: var(--axia-aqua);
+}
+
+/* ========================================
+   ANIMATIONS
+   ======================================== */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}

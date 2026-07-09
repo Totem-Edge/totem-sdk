@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-pureminima-rpc/interfaces/TxnOutputParams",
+  "title": "TxnOutputParams",
+  "description": "@totemsdk/pureminima-rpc",
+  "source": "@site/docs/api/totemsdk-pureminima-rpc/interfaces/TxnOutputParams.md",
+  "sourceDirName": "api/totemsdk-pureminima-rpc/interfaces",
+  "slug": "/api/totemsdk-pureminima-rpc/interfaces/TxnOutputParams",
+  "permalink": "/api/totemsdk-pureminima-rpc/interfaces/TxnOutputParams",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TxnMineParams",
+    "permalink": "/api/totemsdk-pureminima-rpc/interfaces/TxnMineParams"
+  },
+  "next": {
+    "title": "TxnPostParams",
+    "permalink": "/api/totemsdk-pureminima-rpc/interfaces/TxnPostParams"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-splice/type-aliases/WotsSignature",
+  "title": "WotsSignature",
+  "description": "@totemsdk/omnia-splice",
+  "source": "@site/docs/api/totemsdk-omnia-splice/type-aliases/WotsSignature.md",
+  "sourceDirName": "api/totemsdk-omnia-splice/type-aliases",
+  "slug": "/api/totemsdk-omnia-splice/type-aliases/WotsSignature",
+  "permalink": "/api/totemsdk-omnia-splice/type-aliases/WotsSignature",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "SplicedChannel",
+    "permalink": "/api/totemsdk-omnia-splice/type-aliases/SplicedChannel"
+  },
+  "next": {
+    "title": "OmniaFrameParser",
+    "permalink": "/api/totemsdk-omnia-hyperswarm/classes/OmniaFrameParser"
+  }
+}

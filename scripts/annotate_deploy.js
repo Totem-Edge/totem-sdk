@@ -1,0 +1,4 @@
+import fetch from 'node-fetch';
+const GRAFANA_URL=process.env.GRAFANA_URL;const GRAFANA_API_KEY=process.env.GRAFANA_API_KEY;const TEXT=process.env.TEXT||'Deployment';
+const TAGS=(process.env.TAGS||'deploy,axia').split(',');if(!GRAFANA_URL||!GRAFANA_API_KEY){console.error('Missing GRAFANA_URL or GRAFANA_API_KEY');process.exit(1);}
+const payload={time:Date.now(),tags:TAGS,text:TEXT};fetch(`${GRAFANA_URL.replace(/\/$/,'')}/api/annotations`,{method:'POST',headers:{'Authorization':`Bearer ${GRAFANA_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(async res=>{if(!res.ok){console.error('Annotation failed',res.status,await res.text());process.exit(2);}else{console.log('Annotation created');}});

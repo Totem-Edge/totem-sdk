@@ -1,0 +1,20 @@
+{
+  "name": "dashboard-generator",
+  "version": "1.0.0",
+  "description": "Multi-tenant dashboard generator for Axia Telemetry",
+  "main": "dashboard-generator.js",
+  "scripts": {
+    "build": "tsc dashboard-generator.ts",
+    "generate": "node dashboard-generator.js generate",
+    "validate": "node dashboard-generator.js validate"
+  },
+  "dependencies": {
+    "commander": "^11.1.0",
+    "date-fns": "^2.30.0",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.8.9",
+    "typescript": "^5.2.2"
+  }
+}

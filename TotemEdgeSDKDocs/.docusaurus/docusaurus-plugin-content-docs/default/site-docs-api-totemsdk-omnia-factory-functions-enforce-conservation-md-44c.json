@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-factory/functions/enforceConservation",
+  "title": "enforceConservation",
+  "description": "@totemsdk/omnia-factory",
+  "source": "@site/docs/api/totemsdk-omnia-factory/functions/enforceConservation.md",
+  "sourceDirName": "api/totemsdk-omnia-factory/functions",
+  "slug": "/api/totemsdk-omnia-factory/functions/enforceConservation",
+  "permalink": "/api/totemsdk-omnia-factory/functions/enforceConservation",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "createFactory",
+    "permalink": "/api/totemsdk-omnia-factory/functions/createFactory"
+  },
+  "next": {
+    "title": "normalizeScript",
+    "permalink": "/api/totemsdk-omnia-factory/functions/normalizeScript"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-wots-lease/functions/fromFlatIndex",
+  "title": "fromFlatIndex",
+  "description": "@totemsdk/wots-lease",
+  "source": "@site/docs/api/totemsdk-wots-lease/functions/fromFlatIndex.md",
+  "sourceDirName": "api/totemsdk-wots-lease/functions",
+  "slug": "/api/totemsdk-wots-lease/functions/fromFlatIndex",
+  "permalink": "/api/totemsdk-wots-lease/functions/fromFlatIndex",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "flatIndex",
+    "permalink": "/api/totemsdk-wots-lease/functions/flatIndex"
+  },
+  "next": {
+    "title": "index",
+    "permalink": "/api/totemsdk-wots-lease/"
+  }
+}

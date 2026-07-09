@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-factory/interfaces/FactoryLogEntry",
+  "title": "FactoryLogEntry",
+  "description": "@totemsdk/omnia-factory",
+  "source": "@site/docs/api/totemsdk-omnia-factory/interfaces/FactoryLogEntry.md",
+  "sourceDirName": "api/totemsdk-omnia-factory/interfaces",
+  "slug": "/api/totemsdk-omnia-factory/interfaces/FactoryLogEntry",
+  "permalink": "/api/totemsdk-omnia-factory/interfaces/FactoryLogEntry",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "FactoryLeaseOps",
+    "permalink": "/api/totemsdk-omnia-factory/interfaces/FactoryLeaseOps"
+  },
+  "next": {
+    "title": "FactoryParticipant",
+    "permalink": "/api/totemsdk-omnia-factory/interfaces/FactoryParticipant"
+  }
+}

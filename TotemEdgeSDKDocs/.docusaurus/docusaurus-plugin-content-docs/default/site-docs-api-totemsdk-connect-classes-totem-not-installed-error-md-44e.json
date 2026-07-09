@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-connect/classes/TotemNotInstalledError",
+  "title": "TotemNotInstalledError",
+  "description": "@totemsdk/connect",
+  "source": "@site/docs/api/totemsdk-connect/classes/TotemNotInstalledError.md",
+  "sourceDirName": "api/totemsdk-connect/classes",
+  "slug": "/api/totemsdk-connect/classes/TotemNotInstalledError",
+  "permalink": "/api/totemsdk-connect/classes/TotemNotInstalledError",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TotemConnectionError",
+    "permalink": "/api/totemsdk-connect/classes/TotemConnectionError"
+  },
+  "next": {
+    "title": "agentCreateReceipt",
+    "permalink": "/api/totemsdk-connect/functions/agentCreateReceipt"
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "name": "@totemsdk/tx-builder",
+  "version": "0.1.6",
+  "description": "Transaction builder for Minima blockchain — coin selection, multisig, and WOTS signing",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc && rm -rf dist/__tests__ dist/tx-builder dist/core",
+    "prepare": "tsc && rm -rf dist/__tests__ dist/tx-builder dist/core",
+    "prepack": "rm -rf dist/__tests__ dist/tx-builder dist/core",
+    "clean": "rm -rf dist",
+    "test": "echo 'no tests' && exit 0"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "@noble/hashes": "^2.2.0"
+  },
+  "peerDependencies": {
+    "@totemsdk/core": "workspace:*"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "author": "Totem SDK",
+  "homepage": "https://totemsdk.com",
+  "bugs": {
+    "url": "https://github.com/MrGheek/axia-totem/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MrGheek/axia-totem.git",
+    "directory": "packages/totem-sdk/packages/tx-builder"
+  },
+  "keywords": [
+    "totem",
+    "totemsdk",
+    "minima",
+    "blockchain",
+    "quantum-resistant",
+    "wots",
+    "kissvm",
+    "utxo"
+  ]
+}

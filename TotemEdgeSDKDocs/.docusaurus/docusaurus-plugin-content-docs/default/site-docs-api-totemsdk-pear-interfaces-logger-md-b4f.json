@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-pear/interfaces/Logger",
+  "title": "Logger",
+  "description": "@totemsdk/pear",
+  "source": "@site/docs/api/totemsdk-pear/interfaces/Logger.md",
+  "sourceDirName": "api/totemsdk-pear/interfaces",
+  "slug": "/api/totemsdk-pear/interfaces/Logger",
+  "permalink": "/api/totemsdk-pear/interfaces/Logger",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "KVStore",
+    "permalink": "/api/totemsdk-pear/interfaces/KVStore"
+  },
+  "next": {
+    "title": "PearApp",
+    "permalink": "/api/totemsdk-pear/interfaces/PearApp"
+  }
+}

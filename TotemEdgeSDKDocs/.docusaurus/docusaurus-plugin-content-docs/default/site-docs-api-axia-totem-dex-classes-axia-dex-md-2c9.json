@@ -1,0 +1,23 @@
+{
+  "id": "api/axia-totem-dex/classes/AxiaDex",
+  "title": "AxiaDex",
+  "description": "@axia/totem-dex",
+  "source": "@site/docs/api/axia-totem-dex/classes/AxiaDex.md",
+  "sourceDirName": "api/axia-totem-dex/classes",
+  "slug": "/api/axia-totem-dex/classes/AxiaDex",
+  "permalink": "/api/axia-totem-dex/classes/AxiaDex",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "StorageAuthProviderOptions",
+    "permalink": "/api/totem-sdk-browser/interfaces/StorageAuthProviderOptions"
+  },
+  "next": {
+    "title": "index",
+    "permalink": "/api/axia-totem-dex/"
+  }
+}

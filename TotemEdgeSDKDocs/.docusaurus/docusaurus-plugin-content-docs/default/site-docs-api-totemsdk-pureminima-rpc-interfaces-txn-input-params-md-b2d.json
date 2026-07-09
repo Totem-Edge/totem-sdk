@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-pureminima-rpc/interfaces/TxnInputParams",
+  "title": "TxnInputParams",
+  "description": "@totemsdk/pureminima-rpc",
+  "source": "@site/docs/api/totemsdk-pureminima-rpc/interfaces/TxnInputParams.md",
+  "sourceDirName": "api/totemsdk-pureminima-rpc/interfaces",
+  "slug": "/api/totemsdk-pureminima-rpc/interfaces/TxnInputParams",
+  "permalink": "/api/totemsdk-pureminima-rpc/interfaces/TxnInputParams",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TxnCheckResult",
+    "permalink": "/api/totemsdk-pureminima-rpc/interfaces/TxnCheckResult"
+  },
+  "next": {
+    "title": "TxnListResult",
+    "permalink": "/api/totemsdk-pureminima-rpc/interfaces/TxnListResult"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/axia-totem-dex/type-aliases/DexConfig",
+  "title": "DexConfig",
+  "description": "@axia/totem-dex",
+  "source": "@site/docs/api/axia-totem-dex/type-aliases/DexConfig.md",
+  "sourceDirName": "api/axia-totem-dex/type-aliases",
+  "slug": "/api/axia-totem-dex/type-aliases/DexConfig",
+  "permalink": "/api/axia-totem-dex/type-aliases/DexConfig",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "index",
+    "permalink": "/api/axia-totem-dex/"
+  },
+  "next": {
+    "title": "QuoteReq",
+    "permalink": "/api/axia-totem-dex/type-aliases/QuoteReq"
+  }
+}

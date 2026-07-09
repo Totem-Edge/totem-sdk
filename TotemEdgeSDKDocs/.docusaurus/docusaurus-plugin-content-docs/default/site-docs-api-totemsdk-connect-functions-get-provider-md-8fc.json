@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-connect/functions/getProvider",
+  "title": "getProvider",
+  "description": "@totemsdk/connect",
+  "source": "@site/docs/api/totemsdk-connect/functions/getProvider.md",
+  "sourceDirName": "api/totemsdk-connect/functions",
+  "slug": "/api/totemsdk-connect/functions/getProvider",
+  "permalink": "/api/totemsdk-connect/functions/getProvider",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "getCoins",
+    "permalink": "/api/totemsdk-connect/functions/getCoins"
+  },
+  "next": {
+    "title": "getProviderStatus",
+    "permalink": "/api/totemsdk-connect/functions/getProviderStatus"
+  }
+}

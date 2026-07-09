@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-splice/functions/quiesceChannel",
+  "title": "quiesceChannel",
+  "description": "@totemsdk/omnia-splice",
+  "source": "@site/docs/api/totemsdk-omnia-splice/functions/quiesceChannel.md",
+  "sourceDirName": "api/totemsdk-omnia-splice/functions",
+  "slug": "/api/totemsdk-omnia-splice/functions/quiesceChannel",
+  "permalink": "/api/totemsdk-omnia-splice/functions/quiesceChannel",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "proposeSpliceOut",
+    "permalink": "/api/totemsdk-omnia-splice/functions/proposeSpliceOut"
+  },
+  "next": {
+    "title": "spliceDraftToMinimaBytes",
+    "permalink": "/api/totemsdk-omnia-splice/functions/spliceDraftToMinimaBytes"
+  }
+}

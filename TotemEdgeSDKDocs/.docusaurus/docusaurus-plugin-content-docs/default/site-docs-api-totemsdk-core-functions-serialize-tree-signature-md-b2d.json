@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/serializeTreeSignature",
+  "title": "serializeTreeSignature",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/serializeTreeSignature.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/serializeTreeSignature",
+  "permalink": "/api/totemsdk-core/functions/serializeTreeSignature",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "serializeTransaction",
+    "permalink": "/api/totemsdk-core/functions/serializeTransaction"
+  },
+  "next": {
+    "title": "simpleTotemSendRequest",
+    "permalink": "/api/totemsdk-core/functions/simpleTotemSendRequest"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "@totem-examples/node-wallet",
+  "version": "1.0.0",
+  "description": "Example Node.js wallet using Totem SDK",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "demo:create": "tsx src/demo-create-wallet.ts",
+    "demo:balance": "tsx src/demo-check-balance.ts",
+    "demo:lease": "tsx src/demo-lease-lifecycle.ts"
+  },
+  "dependencies": {
+    "@totemsdk/core": "workspace:*",
+    "@totemsdk/server": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-connect/interfaces/TotemCapabilities",
+  "title": "TotemCapabilities",
+  "description": "@totemsdk/connect",
+  "source": "@site/docs/api/totemsdk-connect/interfaces/TotemCapabilities.md",
+  "sourceDirName": "api/totemsdk-connect/interfaces",
+  "slug": "/api/totemsdk-connect/interfaces/TotemCapabilities",
+  "permalink": "/api/totemsdk-connect/interfaces/TotemCapabilities",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TotemBroadcastTxPoWResponse",
+    "permalink": "/api/totemsdk-connect/interfaces/TotemBroadcastTxPoWResponse"
+  },
+  "next": {
+    "title": "TotemConnectRequest",
+    "permalink": "/api/totemsdk-connect/interfaces/TotemConnectRequest"
+  }
+}

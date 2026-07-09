@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/TransactionServiceConfig",
+  "title": "TransactionServiceConfig",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/TransactionServiceConfig.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/TransactionServiceConfig",
+  "permalink": "/api/totemsdk-core/interfaces/TransactionServiceConfig",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TransactionScope",
+    "permalink": "/api/totemsdk-core/interfaces/TransactionScope"
+  },
+  "next": {
+    "title": "TreeSignature",
+    "permalink": "/api/totemsdk-core/interfaces/TreeSignature"
+  }
+}

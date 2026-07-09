@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-splice/functions/spliceDraftToMinimaBytes",
+  "title": "spliceDraftToMinimaBytes",
+  "description": "@totemsdk/omnia-splice",
+  "source": "@site/docs/api/totemsdk-omnia-splice/functions/spliceDraftToMinimaBytes.md",
+  "sourceDirName": "api/totemsdk-omnia-splice/functions",
+  "slug": "/api/totemsdk-omnia-splice/functions/spliceDraftToMinimaBytes",
+  "permalink": "/api/totemsdk-omnia-splice/functions/spliceDraftToMinimaBytes",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "quiesceChannel",
+    "permalink": "/api/totemsdk-omnia-splice/functions/quiesceChannel"
+  },
+  "next": {
+    "title": "index",
+    "permalink": "/api/totemsdk-omnia-splice/"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totem-sdk-browser/classes/InMemoryAuthProvider",
+  "title": "InMemoryAuthProvider",
+  "description": "@totem/sdk-browser",
+  "source": "@site/docs/api/totem-sdk-browser/classes/InMemoryAuthProvider.md",
+  "sourceDirName": "api/totem-sdk-browser/classes",
+  "slug": "/api/totem-sdk-browser/classes/InMemoryAuthProvider",
+  "permalink": "/api/totem-sdk-browser/classes/InMemoryAuthProvider",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "FetchHttpClient",
+    "permalink": "/api/totem-sdk-browser/classes/FetchHttpClient"
+  },
+  "next": {
+    "title": "InMemoryStorageAdapter",
+    "permalink": "/api/totem-sdk-browser/classes/InMemoryStorageAdapter"
+  }
+}

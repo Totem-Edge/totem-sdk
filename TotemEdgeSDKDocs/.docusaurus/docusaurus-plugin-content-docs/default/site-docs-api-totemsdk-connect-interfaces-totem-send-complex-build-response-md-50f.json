@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-connect/interfaces/TotemSendComplexBuildResponse",
+  "title": "TotemSendComplexBuildResponse",
+  "description": "@totemsdk/connect",
+  "source": "@site/docs/api/totemsdk-connect/interfaces/TotemSendComplexBuildResponse.md",
+  "sourceDirName": "api/totemsdk-connect/interfaces",
+  "slug": "/api/totemsdk-connect/interfaces/TotemSendComplexBuildResponse",
+  "permalink": "/api/totemsdk-connect/interfaces/TotemSendComplexBuildResponse",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TotemRevokeTxPermissionResponse",
+    "permalink": "/api/totemsdk-connect/interfaces/TotemRevokeTxPermissionResponse"
+  },
+  "next": {
+    "title": "TotemSendComplexErrorResponse",
+    "permalink": "/api/totemsdk-connect/interfaces/TotemSendComplexErrorResponse"
+  }
+}

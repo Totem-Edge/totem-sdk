@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/scriptFromWotsPk",
+  "title": "scriptFromWotsPk",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/scriptFromWotsPk.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/scriptFromWotsPk",
+  "permalink": "/api/totemsdk-core/functions/scriptFromWotsPk",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "prfChainSeed",
+    "permalink": "/api/totemsdk-core/functions/prfChainSeed"
+  },
+  "next": {
+    "title": "scriptToAddress",
+    "permalink": "/api/totemsdk-core/functions/scriptToAddress"
+  }
+}

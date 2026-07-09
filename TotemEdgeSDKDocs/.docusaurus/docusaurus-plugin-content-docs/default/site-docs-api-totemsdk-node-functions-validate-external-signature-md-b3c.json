@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/validateExternalSignature",
+  "title": "validateExternalSignature",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/validateExternalSignature.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/validateExternalSignature",
+  "permalink": "/api/totemsdk-node/functions/validateExternalSignature",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "validateChallenge",
+    "permalink": "/api/totemsdk-node/functions/validateChallenge"
+  },
+  "next": {
+    "title": "validatePhrase",
+    "permalink": "/api/totemsdk-node/functions/validatePhrase"
+  }
+}

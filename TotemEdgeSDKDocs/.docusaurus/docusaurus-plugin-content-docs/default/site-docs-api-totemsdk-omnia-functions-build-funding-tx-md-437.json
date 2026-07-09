@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/functions/buildFundingTx",
+  "title": "buildFundingTx",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/functions/buildFundingTx.md",
+  "sourceDirName": "api/totemsdk-omnia/functions",
+  "slug": "/api/totemsdk-omnia/functions/buildFundingTx",
+  "permalink": "/api/totemsdk-omnia/functions/buildFundingTx",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "buildEltooScript",
+    "permalink": "/api/totemsdk-omnia/functions/buildEltooScript"
+  },
+  "next": {
+    "title": "buildSettlementTx",
+    "permalink": "/api/totemsdk-omnia/functions/buildSettlementTx"
+  }
+}

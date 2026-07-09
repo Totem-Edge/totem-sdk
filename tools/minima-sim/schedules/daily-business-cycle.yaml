@@ -1,0 +1,34 @@
+timezone: "America/New_York"
+rampSeconds: 180  # 3-minute default ramp between scenarios
+loop: true
+
+entries:
+  # Early morning: stable performance
+  - at: "06:00"
+    scenario: "scenarios/us-east-stable.yaml"
+    rampSeconds: 120
+
+  # Business hours start: increase load and some errors
+  - at: "09:00" 
+    scenario: "scenarios/example.yaml"
+    rampSeconds: 300
+
+  # Lunch hour: peak stress with MEG slowdown
+  - at: "12:00"
+    scenario: "scenarios/meg-slow.yaml"
+    rampSeconds: 240
+
+  # Afternoon: recovery to stable
+  - at: "15:00"
+    scenario: "scenarios/us-east-stable.yaml"
+    rampSeconds: 180
+
+  # After hours: occasional chaos testing
+  - at: "18:00"
+    scenario: "scenarios/chaos-flapping.yaml"
+    rampSeconds: 60
+
+  # Night: return to stable
+  - at: "23:00"
+    scenario: "scenarios/us-east-stable.yaml"
+    rampSeconds: 120

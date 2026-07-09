@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/classes/WatermarkExhaustedError",
+  "title": "WatermarkExhaustedError",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/classes/WatermarkExhaustedError.md",
+  "sourceDirName": "api/totemsdk-core/classes",
+  "slug": "/api/totemsdk-core/classes/WatermarkExhaustedError",
+  "permalink": "/api/totemsdk-core/classes/WatermarkExhaustedError",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "VaultHelper",
+    "permalink": "/api/totemsdk-core/classes/VaultHelper"
+  },
+  "next": {
+    "title": "WatermarkStore",
+    "permalink": "/api/totemsdk-core/classes/WatermarkStore"
+  }
+}

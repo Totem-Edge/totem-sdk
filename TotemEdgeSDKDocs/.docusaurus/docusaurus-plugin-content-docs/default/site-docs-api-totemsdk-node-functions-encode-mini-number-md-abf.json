@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/encodeMiniNumber",
+  "title": "encodeMiniNumber",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/encodeMiniNumber.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/encodeMiniNumber",
+  "permalink": "/api/totemsdk-node/functions/encodeMiniNumber",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "encodeMiniData",
+    "permalink": "/api/totemsdk-node/functions/encodeMiniData"
+  },
+  "next": {
+    "title": "encodeMiniString",
+    "permalink": "/api/totemsdk-node/functions/encodeMiniString"
+  }
+}

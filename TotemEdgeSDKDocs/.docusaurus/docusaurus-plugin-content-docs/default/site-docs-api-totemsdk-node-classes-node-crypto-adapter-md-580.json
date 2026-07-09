@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/classes/NodeCryptoAdapter",
+  "title": "NodeCryptoAdapter",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/classes/NodeCryptoAdapter.md",
+  "sourceDirName": "api/totemsdk-node/classes",
+  "slug": "/api/totemsdk-node/classes/NodeCryptoAdapter",
+  "permalink": "/api/totemsdk-node/classes/NodeCryptoAdapter",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "NodeConfigProvider",
+    "permalink": "/api/totemsdk-node/classes/NodeConfigProvider"
+  },
+  "next": {
+    "title": "NodeHttpClient",
+    "permalink": "/api/totemsdk-node/classes/NodeHttpClient"
+  }
+}

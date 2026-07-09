@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Clear Extension Storage</title>
+</head>
+<body>
+  <h1>Clear Totem Extension Storage</h1>
+  <button id="clearBtn">Clear Storage</button>
+  <pre id="output"></pre>
+  
+  <script>
+    document.getElementById('clearBtn').addEventListener('click', async () => {
+      const output = document.getElementById('output');
+      try {
+        // Clear all chrome.storage.local
+        await chrome.storage.local.clear();
+        output.textContent = 'Storage cleared! Please reload the extension.';
+        
+        // Show what was in storage before clearing
+        const allData = await chrome.storage.local.get(null);
+        output.textContent += '\n\nPrevious storage contents:\n' + JSON.stringify(allData, null, 2);
+      } catch (error) {
+        output.textContent = 'Error: ' + error.message;
+      }
+    });
+    
+    // Show current storage on load
+    (async () => {
+      const output = document.getElementById('output');
+      const allData = await chrome.storage.local.get(null);
+      output.textContent = 'Current storage:\n' + JSON.stringify(allData, null, 2);
+    })();
+  </script>
+</body>
+</html>

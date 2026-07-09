@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-connect/interfaces/TotemOmniaGetRouteRequest",
+  "title": "TotemOmniaGetRouteRequest",
+  "description": "@totemsdk/connect",
+  "source": "@site/docs/api/totemsdk-connect/interfaces/TotemOmniaGetRouteRequest.md",
+  "sourceDirName": "api/totemsdk-connect/interfaces",
+  "slug": "/api/totemsdk-connect/interfaces/TotemOmniaGetRouteRequest",
+  "permalink": "/api/totemsdk-connect/interfaces/TotemOmniaGetRouteRequest",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TotemOmniaGetChannelsResponse",
+    "permalink": "/api/totemsdk-connect/interfaces/TotemOmniaGetChannelsResponse"
+  },
+  "next": {
+    "title": "TotemOmniaGetRouteResponse",
+    "permalink": "/api/totemsdk-connect/interfaces/TotemOmniaGetRouteResponse"
+  }
+}

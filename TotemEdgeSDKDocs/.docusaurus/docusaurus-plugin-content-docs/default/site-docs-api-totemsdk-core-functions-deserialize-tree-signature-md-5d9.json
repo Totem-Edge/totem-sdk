@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/deserializeTreeSignature",
+  "title": "deserializeTreeSignature",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/deserializeTreeSignature.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/deserializeTreeSignature",
+  "permalink": "/api/totemsdk-core/functions/deserializeTreeSignature",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "derivePerAddressSeed",
+    "permalink": "/api/totemsdk-core/functions/derivePerAddressSeed"
+  },
+  "next": {
+    "title": "encodeMiniData",
+    "permalink": "/api/totemsdk-core/functions/encodeMiniData"
+  }
+}

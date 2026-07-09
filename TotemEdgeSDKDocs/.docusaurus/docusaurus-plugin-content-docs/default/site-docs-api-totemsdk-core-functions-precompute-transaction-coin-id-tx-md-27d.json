@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/precomputeTransactionCoinIDTx",
+  "title": "precomputeTransactionCoinIDTx",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/precomputeTransactionCoinIDTx.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/precomputeTransactionCoinIDTx",
+  "permalink": "/api/totemsdk-core/functions/precomputeTransactionCoinIDTx",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "precomputeTransactionCoinID",
+    "permalink": "/api/totemsdk-core/functions/precomputeTransactionCoinID"
+  },
+  "next": {
+    "title": "prepareLease",
+    "permalink": "/api/totemsdk-core/functions/prepareLease"
+  }
+}

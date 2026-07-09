@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-connect/interfaces/TotemGetTransactionStatusRequest",
+  "title": "TotemGetTransactionStatusRequest",
+  "description": "@totemsdk/connect",
+  "source": "@site/docs/api/totemsdk-connect/interfaces/TotemGetTransactionStatusRequest.md",
+  "sourceDirName": "api/totemsdk-connect/interfaces",
+  "slug": "/api/totemsdk-connect/interfaces/TotemGetTransactionStatusRequest",
+  "permalink": "/api/totemsdk-connect/interfaces/TotemGetTransactionStatusRequest",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TotemGetReceiptResponse",
+    "permalink": "/api/totemsdk-connect/interfaces/TotemGetReceiptResponse"
+  },
+  "next": {
+    "title": "TotemGetTransactionStatusResponse",
+    "permalink": "/api/totemsdk-connect/interfaces/TotemGetTransactionStatusResponse"
+  }
+}

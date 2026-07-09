@@ -1,0 +1,79 @@
+{
+  "name": "@totemsdk/edge",
+  "version": "0.1.2",
+  "description": "Unified developer-facing runtime for Totem Edge — composes identity, manifest, wallet/payment/proof/lookup/policy capabilities via injected ports",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "prepare": "tsc",
+    "clean": "rm -rf dist",
+    "test": "jest --passWithNoTests"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "@totemsdk/core": "workspace:*",
+    "@totemsdk/manifest": "workspace:*",
+    "@totemsdk/identity": "workspace:*",
+    "@totemsdk/agent-policy": "workspace:*"
+  },
+  "peerDependencies": {
+    "@noble/hashes": "^2.0.0",
+    "@totemsdk/connect": "workspace:*"
+  },
+  "peerDependenciesMeta": {
+    "@noble/hashes": {
+      "optional": false
+    },
+    "@totemsdk/connect": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@noble/hashes": "^2.2.0",
+    "@totemsdk/connect": "workspace:*",
+    "@types/jest": "^29.0.0",
+    "@types/node": "^20.0.0",
+    "jest": "^29.0.0",
+    "ts-jest": "^29.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "author": "Totem SDK",
+  "homepage": "https://totemsdk.com",
+  "bugs": {
+    "url": "https://github.com/MrGheek/axia-totem/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MrGheek/axia-totem.git",
+    "directory": "packages/totem-sdk/packages/edge"
+  },
+  "keywords": [
+    "totem",
+    "totemsdk",
+    "minima",
+    "blockchain",
+    "quantum-resistant",
+    "wots",
+    "kissvm",
+    "utxo"
+  ]
+}

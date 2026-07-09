@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/LeaseMonitorConfig",
+  "title": "LeaseMonitorConfig",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/LeaseMonitorConfig.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/LeaseMonitorConfig",
+  "permalink": "/api/totemsdk-node/interfaces/LeaseMonitorConfig",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "LeaseExpiryEvent",
+    "permalink": "/api/totemsdk-node/interfaces/LeaseExpiryEvent"
+  },
+  "next": {
+    "title": "LeaseStoreConfig",
+    "permalink": "/api/totemsdk-node/interfaces/LeaseStoreConfig"
+  }
+}

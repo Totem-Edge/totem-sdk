@@ -1,0 +1,23 @@
+{
+  "id": "api/totem-sdk-browser/index",
+  "title": "index",
+  "description": "@totem/sdk-browser",
+  "source": "@site/docs/api/totem-sdk-browser/index.md",
+  "sourceDirName": "api/totem-sdk-browser",
+  "slug": "/api/totem-sdk-browser/",
+  "permalink": "/api/totem-sdk-browser/",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "isSubtleCryptoAvailable",
+    "permalink": "/api/totem-sdk-browser/functions/isSubtleCryptoAvailable"
+  },
+  "next": {
+    "title": "BrowserConfigOptions",
+    "permalink": "/api/totem-sdk-browser/interfaces/BrowserConfigOptions"
+  }
+}

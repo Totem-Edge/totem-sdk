@@ -1,0 +1,23 @@
+{
+  "id": "api/totem-sdk-browser/functions/createConfigFromEnv",
+  "title": "createConfigFromEnv",
+  "description": "@totem/sdk-browser",
+  "source": "@site/docs/api/totem-sdk-browser/functions/createConfigFromEnv.md",
+  "sourceDirName": "api/totem-sdk-browser/functions",
+  "slug": "/api/totem-sdk-browser/functions/createConfigFromEnv",
+  "permalink": "/api/totem-sdk-browser/functions/createConfigFromEnv",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "createChromeExtensionAdapters",
+    "permalink": "/api/totem-sdk-browser/functions/createChromeExtensionAdapters"
+  },
+  "next": {
+    "title": "createLifecycleAdapter",
+    "permalink": "/api/totem-sdk-browser/functions/createLifecycleAdapter"
+  }
+}

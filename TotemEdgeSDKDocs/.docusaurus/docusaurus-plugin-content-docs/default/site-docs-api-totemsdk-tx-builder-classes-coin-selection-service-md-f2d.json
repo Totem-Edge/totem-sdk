@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-tx-builder/classes/CoinSelectionService",
+  "title": "CoinSelectionService",
+  "description": "@totemsdk/tx-builder",
+  "source": "@site/docs/api/totemsdk-tx-builder/classes/CoinSelectionService.md",
+  "sourceDirName": "api/totemsdk-tx-builder/classes",
+  "slug": "/api/totemsdk-tx-builder/classes/CoinSelectionService",
+  "permalink": "/api/totemsdk-tx-builder/classes/CoinSelectionService",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "CoinSelectionError",
+    "permalink": "/api/totemsdk-tx-builder/classes/CoinSelectionError"
+  },
+  "next": {
+    "title": "MultisigManager",
+    "permalink": "/api/totemsdk-tx-builder/classes/MultisigManager"
+  }
+}

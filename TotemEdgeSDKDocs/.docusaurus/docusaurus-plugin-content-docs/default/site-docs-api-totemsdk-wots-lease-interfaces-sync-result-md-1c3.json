@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-wots-lease/interfaces/SyncResult",
+  "title": "SyncResult",
+  "description": "@totemsdk/wots-lease",
+  "source": "@site/docs/api/totemsdk-wots-lease/interfaces/SyncResult.md",
+  "sourceDirName": "api/totemsdk-wots-lease/interfaces",
+  "slug": "/api/totemsdk-wots-lease/interfaces/SyncResult",
+  "permalink": "/api/totemsdk-wots-lease/interfaces/SyncResult",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "SigningIndices",
+    "permalink": "/api/totemsdk-wots-lease/interfaces/SigningIndices"
+  },
+  "next": {
+    "title": "TreeWatermark",
+    "permalink": "/api/totemsdk-wots-lease/interfaces/TreeWatermark"
+  }
+}

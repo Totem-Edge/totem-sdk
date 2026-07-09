@@ -1,0 +1,53 @@
+{
+  "description": "LeaseStore expected behavior fixtures based on legacy Totem Wallet implementation",
+  "version": "1.0.0",
+  "scenarios": [
+    {
+      "name": "store_and_retrieve",
+      "input": {
+        "operation": "save",
+        "lease": {
+          "leaseId": "test-lease-1",
+          "leaseToken": "token-123",
+          "indices": { "addressIndex": 0, "l1": 0, "l2": 0 },
+          "status": "active",
+          "createdAt": 1000000,
+          "expiresAt": 2000000,
+          "leaseTTL": 1000000
+        }
+      },
+      "expectedOutput": {
+        "stored": true,
+        "retrievable": true,
+        "matchesInput": true
+      }
+    },
+    {
+      "name": "status_update_finalized",
+      "input": {
+        "operation": "updateStatus",
+        "leaseId": "test-lease-1",
+        "newStatus": "finalized"
+      },
+      "expectedOutput": {
+        "updated": true,
+        "finalStatus": "finalized"
+      }
+    },
+    {
+      "name": "cleanup_expired",
+      "input": {
+        "operation": "cleanupExpired",
+        "leases": [
+          { "leaseId": "expired-1", "status": "active", "expiresAt": -1 },
+          { "leaseId": "valid-1", "status": "active", "expiresAt": 9999999999999 }
+        ]
+      },
+      "expectedOutput": {
+        "expiredCount": 1,
+        "expiredIds": ["expired-1"],
+        "validIds": ["valid-1"]
+      }
+    }
+  ]
+}

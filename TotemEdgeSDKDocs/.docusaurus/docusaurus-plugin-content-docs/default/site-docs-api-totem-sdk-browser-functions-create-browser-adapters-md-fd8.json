@@ -1,0 +1,23 @@
+{
+  "id": "api/totem-sdk-browser/functions/createBrowserAdapters",
+  "title": "createBrowserAdapters",
+  "description": "@totem/sdk-browser",
+  "source": "@site/docs/api/totem-sdk-browser/functions/createBrowserAdapters.md",
+  "sourceDirName": "api/totem-sdk-browser/functions",
+  "slug": "/api/totem-sdk-browser/functions/createBrowserAdapters",
+  "permalink": "/api/totem-sdk-browser/functions/createBrowserAdapters",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "createAuthedHttpClient",
+    "permalink": "/api/totem-sdk-browser/functions/createAuthedHttpClient"
+  },
+  "next": {
+    "title": "createChromeExtensionAdapters",
+    "permalink": "/api/totem-sdk-browser/functions/createChromeExtensionAdapters"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-tx-builder/interfaces/MultisigConfig",
+  "title": "MultisigConfig",
+  "description": "@totemsdk/tx-builder",
+  "source": "@site/docs/api/totemsdk-tx-builder/interfaces/MultisigConfig.md",
+  "sourceDirName": "api/totemsdk-tx-builder/interfaces",
+  "slug": "/api/totemsdk-tx-builder/interfaces/MultisigConfig",
+  "permalink": "/api/totemsdk-tx-builder/interfaces/MultisigConfig",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "KeyValueStorage",
+    "permalink": "/api/totemsdk-tx-builder/interfaces/KeyValueStorage"
+  },
+  "next": {
+    "title": "MultisigExportData",
+    "permalink": "/api/totemsdk-tx-builder/interfaces/MultisigExportData"
+  }
+}

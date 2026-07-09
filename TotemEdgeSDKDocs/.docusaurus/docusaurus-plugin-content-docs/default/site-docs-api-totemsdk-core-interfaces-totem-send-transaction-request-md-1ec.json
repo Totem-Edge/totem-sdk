@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/TotemSendTransactionRequest",
+  "title": "TotemSendTransactionRequest",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/TotemSendTransactionRequest.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/TotemSendTransactionRequest",
+  "permalink": "/api/totemsdk-core/interfaces/TotemSendTransactionRequest",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TimerAdapter",
+    "permalink": "/api/totemsdk-core/interfaces/TimerAdapter"
+  },
+  "next": {
+    "title": "TotemSendTransactionResponse",
+    "permalink": "/api/totemsdk-core/interfaces/TotemSendTransactionResponse"
+  }
+}

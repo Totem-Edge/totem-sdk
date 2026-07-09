@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/CryptoAdapter",
+  "title": "CryptoAdapter",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/CryptoAdapter.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/CryptoAdapter",
+  "permalink": "/api/totemsdk-core/interfaces/CryptoAdapter",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "ConfigProvider",
+    "permalink": "/api/totemsdk-core/interfaces/ConfigProvider"
+  },
+  "next": {
+    "title": "DAppContractCallParams",
+    "permalink": "/api/totemsdk-core/interfaces/DAppContractCallParams"
+  }
+}

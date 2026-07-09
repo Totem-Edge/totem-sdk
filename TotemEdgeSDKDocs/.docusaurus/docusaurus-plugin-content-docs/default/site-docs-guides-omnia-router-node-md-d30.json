@@ -1,0 +1,28 @@
+{
+  "id": "guides/omnia-router-node",
+  "title": "Omnia Router Node",
+  "description": "Liquidity and payment-routing node with policy-controlled accepted routes, fee floors, and cross-token swap rules.",
+  "source": "@site/docs/guides/omnia-router-node.md",
+  "sourceDirName": "guides",
+  "slug": "/guides/omnia-router-node",
+  "permalink": "/guides/omnia-router-node",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "id": "omnia-router-node",
+    "title": "Omnia Router Node",
+    "sidebar_label": "Omnia Router Node",
+    "description": "Liquidity and payment-routing node with policy-controlled accepted routes, fee floors, and cross-token swap rules."
+  },
+  "sidebar": "guidesSidebar",
+  "previous": {
+    "title": "Channel Factory Wallet",
+    "permalink": "/guides/channel-factory-wallet"
+  },
+  "next": {
+    "title": "Totem Community Node",
+    "permalink": "/guides/totem-community-node"
+  }
+}

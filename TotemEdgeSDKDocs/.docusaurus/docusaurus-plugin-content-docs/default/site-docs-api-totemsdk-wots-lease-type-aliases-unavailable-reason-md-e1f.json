@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-wots-lease/type-aliases/UnavailableReason",
+  "title": "UnavailableReason",
+  "description": "@totemsdk/wots-lease",
+  "source": "@site/docs/api/totemsdk-wots-lease/type-aliases/UnavailableReason.md",
+  "sourceDirName": "api/totemsdk-wots-lease/type-aliases",
+  "slug": "/api/totemsdk-wots-lease/type-aliases/UnavailableReason",
+  "permalink": "/api/totemsdk-wots-lease/type-aliases/UnavailableReason",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "LeaseStatus",
+    "permalink": "/api/totemsdk-wots-lease/type-aliases/LeaseStatus"
+  },
+  "next": {
+    "title": "CoinSelectionError",
+    "permalink": "/api/totemsdk-tx-builder/classes/CoinSelectionError"
+  }
+}

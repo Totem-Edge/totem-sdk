@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/DAppTimelockParams",
+  "title": "DAppTimelockParams",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/DAppTimelockParams.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/DAppTimelockParams",
+  "permalink": "/api/totemsdk-core/interfaces/DAppTimelockParams",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "DAppSwapParams",
+    "permalink": "/api/totemsdk-core/interfaces/DAppSwapParams"
+  },
+  "next": {
+    "title": "DAppTransactionInput",
+    "permalink": "/api/totemsdk-core/interfaces/DAppTransactionInput"
+  }
+}

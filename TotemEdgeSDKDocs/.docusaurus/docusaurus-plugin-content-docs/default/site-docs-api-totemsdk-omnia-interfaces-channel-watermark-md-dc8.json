@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/interfaces/ChannelWatermark",
+  "title": "ChannelWatermark",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/interfaces/ChannelWatermark.md",
+  "sourceDirName": "api/totemsdk-omnia/interfaces",
+  "slug": "/api/totemsdk-omnia/interfaces/ChannelWatermark",
+  "permalink": "/api/totemsdk-omnia/interfaces/ChannelWatermark",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "ChannelSigner",
+    "permalink": "/api/totemsdk-omnia/interfaces/ChannelSigner"
+  },
+  "next": {
+    "title": "CreateChannelParams",
+    "permalink": "/api/totemsdk-omnia/interfaces/CreateChannelParams"
+  }
+}

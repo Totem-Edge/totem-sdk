@@ -1,0 +1,37 @@
+# Deploy Totem Edge SDK Docs on a Fresh Replit Project
+
+This folder contains a fully self-contained static build of the Totem Edge SDK documentation site.
+No monorepo dependencies, TypeScript sources, or workspace packages are needed on the destination —
+only the pre-built `build/` directory and `server.js` are required at runtime.
+
+## Three steps to serve on Replit
+
+1. `npm install`        — installs Docusaurus, TypeDoc, and all build tooling (see package.json).
+                          Only `serve-handler` is needed at *runtime*; the rest are build-time only.
+2. `node server.js`     — starts the HTTP server on $PORT (Replit sets this automatically)
+3. Done.               — open the Webview tab to see the docs
+
+> **Tip:** If you only want to *serve* an already-built `build/` folder (no rebuild needed),
+> you can run `npm install --production` to install just `serve-handler`, then `node server.js`.
+
+## Changing the domain
+
+All site identity (name, url, baseUrl, tagline, analytics IDs) lives in `site.config.json`
+at the root of the TotemEdgeSDKDocs source folder. Moving to a new domain is a one-file change —
+edit `site.config.json`, re-run `pnpm run docs:build`, and re-deploy.
+
+## Rebuilding
+
+Rebuilding requires the full Axia monorepo (for TypeDoc source access):
+
+```bash
+# From the monorepo root:
+pnpm run docs       # generate static files (llms.txt, docs-manifest.json)
+pnpm run docs:build # full Docusaurus production build → build/
+# The resulting TotemEdgeSDKDocs/build/ folder is what you copy here.
+```
+
+## Keeping llms.txt current
+
+`static/llms.txt`, `static/llms-full.txt`, and `static/docs-manifest.json` are regenerated on
+every `pnpm run docs`. Copy the updated files alongside `build/` when deploying a new version.

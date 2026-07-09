@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-pear/interfaces/FetchInit",
+  "title": "FetchInit",
+  "description": "@totemsdk/pear",
+  "source": "@site/docs/api/totemsdk-pear/interfaces/FetchInit.md",
+  "sourceDirName": "api/totemsdk-pear/interfaces",
+  "slug": "/api/totemsdk-pear/interfaces/FetchInit",
+  "permalink": "/api/totemsdk-pear/interfaces/FetchInit",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "BareKVStoreOptions",
+    "permalink": "/api/totemsdk-pear/interfaces/BareKVStoreOptions"
+  },
+  "next": {
+    "title": "FetchResponse",
+    "permalink": "/api/totemsdk-pear/interfaces/FetchResponse"
+  }
+}

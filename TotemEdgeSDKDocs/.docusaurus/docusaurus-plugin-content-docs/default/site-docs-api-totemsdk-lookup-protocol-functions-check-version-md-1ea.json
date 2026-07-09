@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-lookup-protocol/functions/checkVersion",
+  "title": "checkVersion",
+  "description": "@totemsdk/lookup-protocol",
+  "source": "@site/docs/api/totemsdk-lookup-protocol/functions/checkVersion.md",
+  "sourceDirName": "api/totemsdk-lookup-protocol/functions",
+  "slug": "/api/totemsdk-lookup-protocol/functions/checkVersion",
+  "permalink": "/api/totemsdk-lookup-protocol/functions/checkVersion",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "FramingError",
+    "permalink": "/api/totemsdk-lookup-protocol/classes/FramingError"
+  },
+  "next": {
+    "title": "decodeMessage",
+    "permalink": "/api/totemsdk-lookup-protocol/functions/decodeMessage"
+  }
+}

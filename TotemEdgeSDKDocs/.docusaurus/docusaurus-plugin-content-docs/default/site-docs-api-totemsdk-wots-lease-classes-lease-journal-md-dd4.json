@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-wots-lease/classes/LeaseJournal",
+  "title": "LeaseJournal",
+  "description": "@totemsdk/wots-lease",
+  "source": "@site/docs/api/totemsdk-wots-lease/classes/LeaseJournal.md",
+  "sourceDirName": "api/totemsdk-wots-lease/classes",
+  "slug": "/api/totemsdk-wots-lease/classes/LeaseJournal",
+  "permalink": "/api/totemsdk-wots-lease/classes/LeaseJournal",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "HybridLeaseProvider",
+    "permalink": "/api/totemsdk-wots-lease/classes/HybridLeaseProvider"
+  },
+  "next": {
+    "title": "LeaseNotFoundError",
+    "permalink": "/api/totemsdk-wots-lease/classes/LeaseNotFoundError"
+  }
+}

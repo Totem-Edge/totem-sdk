@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/serializeMMRProof",
+  "title": "serializeMMRProof",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/serializeMMRProof.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/serializeMMRProof",
+  "permalink": "/api/totemsdk-core/functions/serializeMMRProof",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "serializeMMREntryNumber",
+    "permalink": "/api/totemsdk-core/functions/serializeMMREntryNumber"
+  },
+  "next": {
+    "title": "serializeMMRProofChunk",
+    "permalink": "/api/totemsdk-core/functions/serializeMMRProofChunk"
+  }
+}

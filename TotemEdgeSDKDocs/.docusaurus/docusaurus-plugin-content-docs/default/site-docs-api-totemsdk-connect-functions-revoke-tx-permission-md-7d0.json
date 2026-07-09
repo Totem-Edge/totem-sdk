@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-connect/functions/revokeTxPermission",
+  "title": "revokeTxPermission",
+  "description": "@totemsdk/connect",
+  "source": "@site/docs/api/totemsdk-connect/functions/revokeTxPermission.md",
+  "sourceDirName": "api/totemsdk-connect/functions",
+  "slug": "/api/totemsdk-connect/functions/revokeTxPermission",
+  "permalink": "/api/totemsdk-connect/functions/revokeTxPermission",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "reserveWotsLease",
+    "permalink": "/api/totemsdk-connect/functions/reserveWotsLease"
+  },
+  "next": {
+    "title": "sendComplex",
+    "permalink": "/api/totemsdk-connect/functions/sendComplex"
+  }
+}

@@ -1,0 +1,22 @@
+name: "us-east-rpc-stable"
+region: "us-east"
+nodeType: "rpc"
+healthScore: 98
+responseShape: "ok"
+rules:
+  - match: "status"
+    baseLatencyMs: 25
+    jitterMs: 5
+    errorRate: 0.001
+  - match: "balance"
+    baseLatencyMs: 35
+    jitterMs: 10
+    errorRate: 0.002
+  - match: "send"
+    baseLatencyMs: 200
+    jitterMs: 50
+    errorRate: 0.01
+  - match: "*"
+    baseLatencyMs: 50
+    jitterMs: 15
+    errorRate: 0.005

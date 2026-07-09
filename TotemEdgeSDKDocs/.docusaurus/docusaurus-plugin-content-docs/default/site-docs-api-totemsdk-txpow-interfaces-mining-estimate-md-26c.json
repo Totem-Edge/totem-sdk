@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-txpow/interfaces/MiningEstimate",
+  "title": "MiningEstimate",
+  "description": "@totemsdk/txpow",
+  "source": "@site/docs/api/totemsdk-txpow/interfaces/MiningEstimate.md",
+  "sourceDirName": "api/totemsdk-txpow/interfaces",
+  "slug": "/api/totemsdk-txpow/interfaces/MiningEstimate",
+  "permalink": "/api/totemsdk-txpow/interfaces/MiningEstimate",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "MineResult",
+    "permalink": "/api/totemsdk-txpow/interfaces/MineResult"
+  },
+  "next": {
+    "title": "TxBodyOptions",
+    "permalink": "/api/totemsdk-txpow/interfaces/TxBodyOptions"
+  }
+}

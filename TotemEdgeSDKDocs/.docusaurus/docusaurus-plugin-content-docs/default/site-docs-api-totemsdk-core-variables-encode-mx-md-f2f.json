@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/variables/encodeMx",
+  "title": "encodeMx",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/variables/encodeMx.md",
+  "sourceDirName": "api/totemsdk-core/variables",
+  "slug": "/api/totemsdk-core/variables/encodeMx",
+  "permalink": "/api/totemsdk-core/variables/encodeMx",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "deserializeMMRProof",
+    "permalink": "/api/totemsdk-core/variables/deserializeMMRProof"
+  },
+  "next": {
+    "title": "h",
+    "permalink": "/api/totemsdk-core/variables/h"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/F",
+  "title": "F",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/F.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/F",
+  "permalink": "/api/totemsdk-core/functions/F",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "WatermarkStore",
+    "permalink": "/api/totemsdk-core/classes/WatermarkStore"
+  },
+  "next": {
+    "title": "addressToRoot",
+    "permalink": "/api/totemsdk-core/functions/addressToRoot"
+  }
+}

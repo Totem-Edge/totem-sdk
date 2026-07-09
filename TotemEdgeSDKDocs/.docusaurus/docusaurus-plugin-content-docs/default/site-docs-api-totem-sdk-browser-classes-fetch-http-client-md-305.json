@@ -1,0 +1,23 @@
+{
+  "id": "api/totem-sdk-browser/classes/FetchHttpClient",
+  "title": "FetchHttpClient",
+  "description": "@totem/sdk-browser",
+  "source": "@site/docs/api/totem-sdk-browser/classes/FetchHttpClient.md",
+  "sourceDirName": "api/totem-sdk-browser/classes",
+  "slug": "/api/totem-sdk-browser/classes/FetchHttpClient",
+  "permalink": "/api/totem-sdk-browser/classes/FetchHttpClient",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "DefaultTimerAdapter",
+    "permalink": "/api/totem-sdk-browser/classes/DefaultTimerAdapter"
+  },
+  "next": {
+    "title": "InMemoryAuthProvider",
+    "permalink": "/api/totem-sdk-browser/classes/InMemoryAuthProvider"
+  }
+}

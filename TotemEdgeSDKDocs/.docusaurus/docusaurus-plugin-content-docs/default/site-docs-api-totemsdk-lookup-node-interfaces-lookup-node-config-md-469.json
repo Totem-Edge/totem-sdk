@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-lookup-node/interfaces/LookupNodeConfig",
+  "title": "LookupNodeConfig",
+  "description": "@totemsdk/lookup-node",
+  "source": "@site/docs/api/totemsdk-lookup-node/interfaces/LookupNodeConfig.md",
+  "sourceDirName": "api/totemsdk-lookup-node/interfaces",
+  "slug": "/api/totemsdk-lookup-node/interfaces/LookupNodeConfig",
+  "permalink": "/api/totemsdk-lookup-node/interfaces/LookupNodeConfig",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "LeaseConfig",
+    "permalink": "/api/totemsdk-lookup-node/interfaces/LeaseConfig"
+  },
+  "next": {
+    "title": "MegaMMRConfig",
+    "permalink": "/api/totemsdk-lookup-node/interfaces/MegaMMRConfig"
+  }
+}

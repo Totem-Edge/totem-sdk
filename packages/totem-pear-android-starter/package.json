@@ -1,0 +1,31 @@
+{
+  "name": "totem-pear-android-starter",
+  "version": "0.1.0",
+  "description": "Quickstart scaffold wiring @totemsdk/pear adapters into @totemsdk/edge for a mobile Pear app, including Omnia L2 payment channels",
+  "type": "module",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "pear": "pear run --dev ."
+  },
+  "dependencies": {
+    "@totemsdk/edge": "^0.1.2",
+    "@totemsdk/omnia": "^0.1.5",
+    "@totemsdk/omnia-hyperswarm": "^0.2.2",
+    "@totemsdk/pear": "^0.1.2",
+    "@totemsdk/pureminima-rpc": "^0.1.3",
+    "@noble/hashes": "^2.2.0"
+  },
+  "peerDependencies": {
+    "hyperbee": ">=2.0.0",
+    "hypercore": ">=10.0.0"
+  },
+  "peerDependenciesMeta": {
+    "hyperbee": { "optional": true },
+    "hypercore": { "optional": true }
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "MIT"
+}

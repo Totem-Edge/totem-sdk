@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/variables/STATETYPE_HEX",
+  "title": "STATETYPE_HEX",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/variables/STATETYPE_HEX.md",
+  "sourceDirName": "api/totemsdk-node/variables",
+  "slug": "/api/totemsdk-node/variables/STATETYPE_HEX",
+  "permalink": "/api/totemsdk-node/variables/STATETYPE_HEX",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "STATETYPE_BOOL",
+    "permalink": "/api/totemsdk-node/variables/STATETYPE_BOOL"
+  },
+  "next": {
+    "title": "STATETYPE_NUMBER",
+    "permalink": "/api/totemsdk-node/variables/STATETYPE_NUMBER"
+  }
+}

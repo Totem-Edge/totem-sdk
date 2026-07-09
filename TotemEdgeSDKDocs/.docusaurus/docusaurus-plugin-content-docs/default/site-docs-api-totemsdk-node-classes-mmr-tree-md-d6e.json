@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/classes/MMRTree",
+  "title": "MMRTree",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/classes/MMRTree.md",
+  "sourceDirName": "api/totemsdk-node/classes",
+  "slug": "/api/totemsdk-node/classes/MMRTree",
+  "permalink": "/api/totemsdk-node/classes/MMRTree",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "MASTHelper",
+    "permalink": "/api/totemsdk-node/classes/MASTHelper"
+  },
+  "next": {
+    "title": "MemoryStorageAdapter",
+    "permalink": "/api/totemsdk-node/classes/MemoryStorageAdapter"
+  }
+}

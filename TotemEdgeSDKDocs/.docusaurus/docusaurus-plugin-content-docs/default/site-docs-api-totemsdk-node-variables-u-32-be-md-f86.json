@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/variables/u32be",
+  "title": "u32be",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/variables/u32be.md",
+  "sourceDirName": "api/totemsdk-node/variables",
+  "slug": "/api/totemsdk-node/variables/u32be",
+  "permalink": "/api/totemsdk-node/variables/u32be",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "u16be",
+    "permalink": "/api/totemsdk-node/variables/u16be"
+  },
+  "next": {
+    "title": "RootIdentityWallet",
+    "permalink": "/api/totemsdk-root-identity/classes/RootIdentityWallet"
+  }
+}

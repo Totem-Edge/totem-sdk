@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/functions/executeIntent",
+  "title": "executeIntent",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/functions/executeIntent.md",
+  "sourceDirName": "api/totemsdk-omnia/functions",
+  "slug": "/api/totemsdk-omnia/functions/executeIntent",
+  "permalink": "/api/totemsdk-omnia/functions/executeIntent",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "enforceUpdateGuards",
+    "permalink": "/api/totemsdk-omnia/functions/enforceUpdateGuards"
+  },
+  "next": {
+    "title": "flatSigningIndex",
+    "permalink": "/api/totemsdk-omnia/functions/flatSigningIndex"
+  }
+}

@@ -1,0 +1,33 @@
+name: "meg-primary-slow"
+region: "eu-central"
+nodeType: "meg"
+healthScore: 75
+responseShape: "degraded"
+rules:
+  - match: "status"
+    baseLatencyMs: 200
+    jitterMs: 100
+    errorRate: 0.05
+  - match: "balance"
+    baseLatencyMs: 400
+    jitterMs: 200
+    errorRate: 0.08
+  - match: "send"
+    baseLatencyMs: 800
+    jitterMs: 400
+    errorRate: 0.12
+  - match: "*"
+    baseLatencyMs: 300
+    jitterMs: 150
+    errorRate: 0.06
+timeline:
+  - atSec: 60
+    set:
+      forMatch: "*"
+      baseLatencyMs: 500
+      errorRate: 0.15
+  - atSec: 180
+    set:
+      forMatch: "status"
+      failure: "timeout"
+      errorRate: 0.3

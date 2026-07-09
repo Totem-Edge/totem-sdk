@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-kissvm/functions/parseScript",
+  "title": "parseScript",
+  "description": "@totemsdk/kissvm",
+  "source": "@site/docs/api/totemsdk-kissvm/functions/parseScript.md",
+  "sourceDirName": "api/totemsdk-kissvm/functions",
+  "slug": "/api/totemsdk-kissvm/functions/parseScript",
+  "permalink": "/api/totemsdk-kissvm/functions/parseScript",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "evaluateScript",
+    "permalink": "/api/totemsdk-kissvm/functions/evaluateScript"
+  },
+  "next": {
+    "title": "sigdig",
+    "permalink": "/api/totemsdk-kissvm/functions/sigdig"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/deriveChainSeedJava",
+  "title": "deriveChainSeedJava",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/deriveChainSeedJava.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/deriveChainSeedJava",
+  "permalink": "/api/totemsdk-core/functions/deriveChainSeedJava",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "deriveAddressPublicKey",
+    "permalink": "/api/totemsdk-core/functions/deriveAddressPublicKey"
+  },
+  "next": {
+    "title": "deriveChildTreeSeedJava",
+    "permalink": "/api/totemsdk-core/functions/deriveChildTreeSeedJava"
+  }
+}

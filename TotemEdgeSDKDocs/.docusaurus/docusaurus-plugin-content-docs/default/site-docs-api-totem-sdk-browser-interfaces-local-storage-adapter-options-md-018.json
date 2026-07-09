@@ -1,0 +1,23 @@
+{
+  "id": "api/totem-sdk-browser/interfaces/LocalStorageAdapterOptions",
+  "title": "LocalStorageAdapterOptions",
+  "description": "@totem/sdk-browser",
+  "source": "@site/docs/api/totem-sdk-browser/interfaces/LocalStorageAdapterOptions.md",
+  "sourceDirName": "api/totem-sdk-browser/interfaces",
+  "slug": "/api/totem-sdk-browser/interfaces/LocalStorageAdapterOptions",
+  "permalink": "/api/totem-sdk-browser/interfaces/LocalStorageAdapterOptions",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "FetchHttpClientOptions",
+    "permalink": "/api/totem-sdk-browser/interfaces/FetchHttpClientOptions"
+  },
+  "next": {
+    "title": "StorageAuthProviderOptions",
+    "permalink": "/api/totem-sdk-browser/interfaces/StorageAuthProviderOptions"
+  }
+}

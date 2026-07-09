@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/createServerAdapters",
+  "title": "createServerAdapters",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/createServerAdapters.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/createServerAdapters",
+  "permalink": "/api/totemsdk-node/functions/createServerAdapters",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "createPerAddressTreeKeyAsync",
+    "permalink": "/api/totemsdk-node/functions/createPerAddressTreeKeyAsync"
+  },
+  "next": {
+    "title": "createSignedByDescriptor",
+    "permalink": "/api/totemsdk-node/functions/createSignedByDescriptor"
+  }
+}

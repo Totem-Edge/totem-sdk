@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/utf8ToBytes",
+  "title": "utf8ToBytes",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/utf8ToBytes.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/utf8ToBytes",
+  "permalink": "/api/totemsdk-node/functions/utf8ToBytes",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "toWinternitzDigits",
+    "permalink": "/api/totemsdk-node/functions/toWinternitzDigits"
+  },
+  "next": {
+    "title": "validateChallenge",
+    "permalink": "/api/totemsdk-node/functions/validateChallenge"
+  }
+}

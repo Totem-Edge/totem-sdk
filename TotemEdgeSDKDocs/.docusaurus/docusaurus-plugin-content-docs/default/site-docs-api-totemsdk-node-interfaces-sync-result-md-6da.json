@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/SyncResult",
+  "title": "SyncResult",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/SyncResult.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/SyncResult",
+  "permalink": "/api/totemsdk-node/interfaces/SyncResult",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "StoredLease",
+    "permalink": "/api/totemsdk-node/interfaces/StoredLease"
+  },
+  "next": {
+    "title": "TimerAdapter",
+    "permalink": "/api/totemsdk-node/interfaces/TimerAdapter"
+  }
+}

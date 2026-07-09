@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-hyperswarm/functions/encodeOmniaMessage",
+  "title": "encodeOmniaMessage",
+  "description": "@totemsdk/omnia-hyperswarm",
+  "source": "@site/docs/api/totemsdk-omnia-hyperswarm/functions/encodeOmniaMessage.md",
+  "sourceDirName": "api/totemsdk-omnia-hyperswarm/functions",
+  "slug": "/api/totemsdk-omnia-hyperswarm/functions/encodeOmniaMessage",
+  "permalink": "/api/totemsdk-omnia-hyperswarm/functions/encodeOmniaMessage",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "createOmniaSwarmFromInstance",
+    "permalink": "/api/totemsdk-omnia-hyperswarm/functions/createOmniaSwarmFromInstance"
+  },
+  "next": {
+    "title": "peerTopic",
+    "permalink": "/api/totemsdk-omnia-hyperswarm/functions/peerTopic"
+  }
+}

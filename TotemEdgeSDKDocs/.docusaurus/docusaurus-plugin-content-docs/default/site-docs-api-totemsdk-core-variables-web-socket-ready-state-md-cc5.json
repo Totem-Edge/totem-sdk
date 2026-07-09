@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/variables/WebSocketReadyState",
+  "title": "WebSocketReadyState",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/variables/WebSocketReadyState.md",
+  "sourceDirName": "api/totemsdk-core/variables",
+  "slug": "/api/totemsdk-core/variables/WebSocketReadyState",
+  "permalink": "/api/totemsdk-core/variables/WebSocketReadyState",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "WOTS_V2_SPEC",
+    "permalink": "/api/totemsdk-core/variables/WOTS_V2_SPEC"
+  },
+  "next": {
+    "title": "convertMinimaAddress",
+    "permalink": "/api/totemsdk-core/variables/convertMinimaAddress"
+  }
+}

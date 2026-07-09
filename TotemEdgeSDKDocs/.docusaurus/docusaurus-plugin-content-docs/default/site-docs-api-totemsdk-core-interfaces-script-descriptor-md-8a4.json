@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/ScriptDescriptor",
+  "title": "ScriptDescriptor",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/ScriptDescriptor.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/ScriptDescriptor",
+  "permalink": "/api/totemsdk-core/interfaces/ScriptDescriptor",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "ScriptCatalogEntry",
+    "permalink": "/api/totemsdk-core/interfaces/ScriptCatalogEntry"
+  },
+  "next": {
+    "title": "ScriptProofResult",
+    "permalink": "/api/totemsdk-core/interfaces/ScriptProofResult"
+  }
+}

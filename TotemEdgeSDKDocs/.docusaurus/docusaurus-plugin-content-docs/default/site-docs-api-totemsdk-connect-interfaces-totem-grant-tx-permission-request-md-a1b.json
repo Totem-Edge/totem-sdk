@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-connect/interfaces/TotemGrantTxPermissionRequest",
+  "title": "TotemGrantTxPermissionRequest",
+  "description": "@totemsdk/connect",
+  "source": "@site/docs/api/totemsdk-connect/interfaces/TotemGrantTxPermissionRequest.md",
+  "sourceDirName": "api/totemsdk-connect/interfaces",
+  "slug": "/api/totemsdk-connect/interfaces/TotemGrantTxPermissionRequest",
+  "permalink": "/api/totemsdk-connect/interfaces/TotemGrantTxPermissionRequest",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TotemGetWotsStatusResponse",
+    "permalink": "/api/totemsdk-connect/interfaces/TotemGetWotsStatusResponse"
+  },
+  "next": {
+    "title": "TotemGrantTxPermissionResponse",
+    "permalink": "/api/totemsdk-connect/interfaces/TotemGrantTxPermissionResponse"
+  }
+}

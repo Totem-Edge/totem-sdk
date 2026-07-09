@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-pear/interfaces/PearAppConfig",
+  "title": "PearAppConfig",
+  "description": "@totemsdk/pear",
+  "source": "@site/docs/api/totemsdk-pear/interfaces/PearAppConfig.md",
+  "sourceDirName": "api/totemsdk-pear/interfaces",
+  "slug": "/api/totemsdk-pear/interfaces/PearAppConfig",
+  "permalink": "/api/totemsdk-pear/interfaces/PearAppConfig",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "PearApp",
+    "permalink": "/api/totemsdk-pear/interfaces/PearApp"
+  },
+  "next": {
+    "title": "RemoteDriveOptions",
+    "permalink": "/api/totemsdk-pear/interfaces/RemoteDriveOptions"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/derivePerAddressSeed",
+  "title": "derivePerAddressSeed",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/derivePerAddressSeed.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/derivePerAddressSeed",
+  "permalink": "/api/totemsdk-core/functions/derivePerAddressSeed",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "derivePKdigest",
+    "permalink": "/api/totemsdk-core/functions/derivePKdigest"
+  },
+  "next": {
+    "title": "deserializeTreeSignature",
+    "permalink": "/api/totemsdk-core/functions/deserializeTreeSignature"
+  }
+}

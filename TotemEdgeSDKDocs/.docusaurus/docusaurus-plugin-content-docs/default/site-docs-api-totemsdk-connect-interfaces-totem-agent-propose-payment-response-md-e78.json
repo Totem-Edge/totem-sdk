@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-connect/interfaces/TotemAgentProposePaymentResponse",
+  "title": "TotemAgentProposePaymentResponse",
+  "description": "@totemsdk/connect",
+  "source": "@site/docs/api/totemsdk-connect/interfaces/TotemAgentProposePaymentResponse.md",
+  "sourceDirName": "api/totemsdk-connect/interfaces",
+  "slug": "/api/totemsdk-connect/interfaces/TotemAgentProposePaymentResponse",
+  "permalink": "/api/totemsdk-connect/interfaces/TotemAgentProposePaymentResponse",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TotemAgentProposePaymentRequest",
+    "permalink": "/api/totemsdk-connect/interfaces/TotemAgentProposePaymentRequest"
+  },
+  "next": {
+    "title": "TotemBroadcastHexErrorResponse",
+    "permalink": "/api/totemsdk-connect/interfaces/TotemBroadcastHexErrorResponse"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/classes/MinimaClient",
+  "title": "MinimaClient",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/classes/MinimaClient.md",
+  "sourceDirName": "api/totemsdk-node/classes",
+  "slug": "/api/totemsdk-node/classes/MinimaClient",
+  "permalink": "/api/totemsdk-node/classes/MinimaClient",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "MemoryStorageAdapter",
+    "permalink": "/api/totemsdk-node/classes/MemoryStorageAdapter"
+  },
+  "next": {
+    "title": "MinimaProvider",
+    "permalink": "/api/totemsdk-node/classes/MinimaProvider"
+  }
+}

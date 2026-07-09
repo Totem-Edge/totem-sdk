@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-pureminima-rpc/interfaces/TxnPostParams",
+  "title": "TxnPostParams",
+  "description": "@totemsdk/pureminima-rpc",
+  "source": "@site/docs/api/totemsdk-pureminima-rpc/interfaces/TxnPostParams.md",
+  "sourceDirName": "api/totemsdk-pureminima-rpc/interfaces",
+  "slug": "/api/totemsdk-pureminima-rpc/interfaces/TxnPostParams",
+  "permalink": "/api/totemsdk-pureminima-rpc/interfaces/TxnPostParams",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TxnOutputParams",
+    "permalink": "/api/totemsdk-pureminima-rpc/interfaces/TxnOutputParams"
+  },
+  "next": {
+    "title": "TxnPostResult",
+    "permalink": "/api/totemsdk-pureminima-rpc/interfaces/TxnPostResult"
+  }
+}

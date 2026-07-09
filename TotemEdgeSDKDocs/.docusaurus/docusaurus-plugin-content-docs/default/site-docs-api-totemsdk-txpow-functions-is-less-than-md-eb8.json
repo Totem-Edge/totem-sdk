@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-txpow/functions/isLessThan",
+  "title": "isLessThan",
+  "description": "@totemsdk/txpow",
+  "source": "@site/docs/api/totemsdk-txpow/functions/isLessThan.md",
+  "sourceDirName": "api/totemsdk-txpow/functions",
+  "slug": "/api/totemsdk-txpow/functions/isLessThan",
+  "permalink": "/api/totemsdk-txpow/functions/isLessThan",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "fetchTxPowTarget",
+    "permalink": "/api/totemsdk-txpow/functions/fetchTxPowTarget"
+  },
+  "next": {
+    "title": "mineTxPoW",
+    "permalink": "/api/totemsdk-txpow/functions/mineTxPoW"
+  }
+}

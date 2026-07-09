@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/classes/InMemoryAuthProvider",
+  "title": "InMemoryAuthProvider",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/classes/InMemoryAuthProvider.md",
+  "sourceDirName": "api/totemsdk-node/classes",
+  "slug": "/api/totemsdk-node/classes/InMemoryAuthProvider",
+  "permalink": "/api/totemsdk-node/classes/InMemoryAuthProvider",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "HTLCHelper",
+    "permalink": "/api/totemsdk-node/classes/HTLCHelper"
+  },
+  "next": {
+    "title": "LeaseMonitor",
+    "permalink": "/api/totemsdk-node/classes/LeaseMonitor"
+  }
+}

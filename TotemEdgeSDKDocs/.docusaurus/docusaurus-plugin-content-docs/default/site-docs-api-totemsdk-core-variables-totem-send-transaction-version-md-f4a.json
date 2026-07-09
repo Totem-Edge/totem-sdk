@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/variables/TOTEM_SEND_TRANSACTION_VERSION",
+  "title": "TOTEM_SEND_TRANSACTION_VERSION",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/variables/TOTEM_SEND_TRANSACTION_VERSION.md",
+  "sourceDirName": "api/totemsdk-core/variables",
+  "slug": "/api/totemsdk-core/variables/TOTEM_SEND_TRANSACTION_VERSION",
+  "permalink": "/api/totemsdk-core/variables/TOTEM_SEND_TRANSACTION_VERSION",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "STATETYPE_STRING",
+    "permalink": "/api/totemsdk-core/variables/STATETYPE_STRING"
+  },
+  "next": {
+    "title": "WORD_LIST",
+    "permalink": "/api/totemsdk-core/variables/WORD_LIST"
+  }
+}

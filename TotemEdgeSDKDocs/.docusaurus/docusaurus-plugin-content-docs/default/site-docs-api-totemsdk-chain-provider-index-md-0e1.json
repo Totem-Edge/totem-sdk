@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-chain-provider/index",
+  "title": "index",
+  "description": "@totemsdk/chain-provider",
+  "source": "@site/docs/api/totemsdk-chain-provider/index.md",
+  "sourceDirName": "api/totemsdk-chain-provider",
+  "slug": "/api/totemsdk-chain-provider/",
+  "permalink": "/api/totemsdk-chain-provider/",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "PureMinimaRpcProvider",
+    "permalink": "/api/totemsdk-chain-provider/classes/PureMinimaRpcProvider"
+  },
+  "next": {
+    "title": "BroadcastResult",
+    "permalink": "/api/totemsdk-chain-provider/interfaces/BroadcastResult"
+  }
+}

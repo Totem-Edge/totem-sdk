@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/VerifyOutExpectation",
+  "title": "VerifyOutExpectation",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/VerifyOutExpectation.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/VerifyOutExpectation",
+  "permalink": "/api/totemsdk-node/interfaces/VerifyOutExpectation",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "VerificationResult",
+    "permalink": "/api/totemsdk-node/interfaces/VerificationResult"
+  },
+  "next": {
+    "title": "WatermarkState",
+    "permalink": "/api/totemsdk-node/interfaces/WatermarkState"
+  }
+}

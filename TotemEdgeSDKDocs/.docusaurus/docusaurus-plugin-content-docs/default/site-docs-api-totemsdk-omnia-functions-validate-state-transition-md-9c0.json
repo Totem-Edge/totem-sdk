@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/functions/validateStateTransition",
+  "title": "validateStateTransition",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/functions/validateStateTransition.md",
+  "sourceDirName": "api/totemsdk-omnia/functions",
+  "slug": "/api/totemsdk-omnia/functions/validateStateTransition",
+  "permalink": "/api/totemsdk-omnia/functions/validateStateTransition",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "updateState",
+    "permalink": "/api/totemsdk-omnia/functions/updateState"
+  },
+  "next": {
+    "title": "verifyState",
+    "permalink": "/api/totemsdk-omnia/functions/verifyState"
+  }
+}

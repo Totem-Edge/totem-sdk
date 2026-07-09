@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-wots-lease/interfaces/WotsLeaseProvider",
+  "title": "WotsLeaseProvider",
+  "description": "@totemsdk/wots-lease",
+  "source": "@site/docs/api/totemsdk-wots-lease/interfaces/WotsLeaseProvider.md",
+  "sourceDirName": "api/totemsdk-wots-lease/interfaces",
+  "slug": "/api/totemsdk-wots-lease/interfaces/WotsLeaseProvider",
+  "permalink": "/api/totemsdk-wots-lease/interfaces/WotsLeaseProvider",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TreeWatermark",
+    "permalink": "/api/totemsdk-wots-lease/interfaces/TreeWatermark"
+  },
+  "next": {
+    "title": "WotsWatermarkState",
+    "permalink": "/api/totemsdk-wots-lease/interfaces/WotsWatermarkState"
+  }
+}

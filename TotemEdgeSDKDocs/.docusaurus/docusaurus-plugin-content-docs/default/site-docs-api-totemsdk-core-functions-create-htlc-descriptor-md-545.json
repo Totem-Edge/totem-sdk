@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/createHTLCDescriptor",
+  "title": "createHTLCDescriptor",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/createHTLCDescriptor.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/createHTLCDescriptor",
+  "permalink": "/api/totemsdk-core/functions/createHTLCDescriptor",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "createFlashCashDescriptor",
+    "permalink": "/api/totemsdk-core/functions/createFlashCashDescriptor"
+  },
+  "next": {
+    "title": "createMASTDescriptor",
+    "permalink": "/api/totemsdk-core/functions/createMASTDescriptor"
+  }
+}

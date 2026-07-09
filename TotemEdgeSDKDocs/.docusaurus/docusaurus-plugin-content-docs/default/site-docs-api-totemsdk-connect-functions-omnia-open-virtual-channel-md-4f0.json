@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-connect/functions/omniaOpenVirtualChannel",
+  "title": "omniaOpenVirtualChannel",
+  "description": "@totemsdk/connect",
+  "source": "@site/docs/api/totemsdk-connect/functions/omniaOpenVirtualChannel.md",
+  "sourceDirName": "api/totemsdk-connect/functions",
+  "slug": "/api/totemsdk-connect/functions/omniaOpenVirtualChannel",
+  "permalink": "/api/totemsdk-connect/functions/omniaOpenVirtualChannel",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "omniaOpenChannel",
+    "permalink": "/api/totemsdk-connect/functions/omniaOpenChannel"
+  },
+  "next": {
+    "title": "omniaPay",
+    "permalink": "/api/totemsdk-connect/functions/omniaPay"
+  }
+}

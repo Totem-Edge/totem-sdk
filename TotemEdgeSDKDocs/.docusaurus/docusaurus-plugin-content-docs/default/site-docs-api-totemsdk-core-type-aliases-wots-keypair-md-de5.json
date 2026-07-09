@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/type-aliases/WotsKeypair",
+  "title": "WotsKeypair",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/type-aliases/WotsKeypair.md",
+  "sourceDirName": "api/totemsdk-core/type-aliases",
+  "slug": "/api/totemsdk-core/type-aliases/WotsKeypair",
+  "permalink": "/api/totemsdk-core/type-aliases/WotsKeypair",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "WebSocketEventMap",
+    "permalink": "/api/totemsdk-core/type-aliases/WebSocketEventMap"
+  },
+  "next": {
+    "title": "WotsSignature",
+    "permalink": "/api/totemsdk-core/type-aliases/WotsSignature"
+  }
+}

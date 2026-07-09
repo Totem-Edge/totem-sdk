@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/classes/MMRTree",
+  "title": "MMRTree",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/classes/MMRTree.md",
+  "sourceDirName": "api/totemsdk-core/classes",
+  "slug": "/api/totemsdk-core/classes/MMRTree",
+  "permalink": "/api/totemsdk-core/classes/MMRTree",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "MASTHelper",
+    "permalink": "/api/totemsdk-core/classes/MASTHelper"
+  },
+  "next": {
+    "title": "NoopLifecycleAdapter",
+    "permalink": "/api/totemsdk-core/classes/NoopLifecycleAdapter"
+  }
+}

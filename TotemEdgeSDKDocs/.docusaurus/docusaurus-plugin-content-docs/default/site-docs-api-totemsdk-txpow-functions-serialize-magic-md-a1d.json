@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-txpow/functions/serializeMagic",
+  "title": "serializeMagic",
+  "description": "@totemsdk/txpow",
+  "source": "@site/docs/api/totemsdk-txpow/functions/serializeMagic.md",
+  "sourceDirName": "api/totemsdk-txpow/functions",
+  "slug": "/api/totemsdk-txpow/functions/serializeMagic",
+  "permalink": "/api/totemsdk-txpow/functions/serializeMagic",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "mineTxPoW",
+    "permalink": "/api/totemsdk-txpow/functions/mineTxPoW"
+  },
+  "next": {
+    "title": "serializeTxBody",
+    "permalink": "/api/totemsdk-txpow/functions/serializeTxBody"
+  }
+}

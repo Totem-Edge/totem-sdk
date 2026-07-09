@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/variables/deserializeMMRProof",
+  "title": "deserializeMMRProof",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/variables/deserializeMMRProof.md",
+  "sourceDirName": "api/totemsdk-core/variables",
+  "slug": "/api/totemsdk-core/variables/deserializeMMRProof",
+  "permalink": "/api/totemsdk-core/variables/deserializeMMRProof",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "decodeMx",
+    "permalink": "/api/totemsdk-core/variables/decodeMx"
+  },
+  "next": {
+    "title": "encodeMx",
+    "permalink": "/api/totemsdk-core/variables/encodeMx"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/serializeMMRProofChunk",
+  "title": "serializeMMRProofChunk",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/serializeMMRProofChunk.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/serializeMMRProofChunk",
+  "permalink": "/api/totemsdk-core/functions/serializeMMRProofChunk",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "serializeMMRProof",
+    "permalink": "/api/totemsdk-core/functions/serializeMMRProof"
+  },
+  "next": {
+    "title": "serializeMiniData",
+    "permalink": "/api/totemsdk-core/functions/serializeMiniData"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/FinalizeRequest",
+  "title": "FinalizeRequest",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/FinalizeRequest.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/FinalizeRequest",
+  "permalink": "/api/totemsdk-core/interfaces/FinalizeRequest",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "ExternalSignature",
+    "permalink": "/api/totemsdk-core/interfaces/ExternalSignature"
+  },
+  "next": {
+    "title": "FinalizeResponse",
+    "permalink": "/api/totemsdk-core/interfaces/FinalizeResponse"
+  }
+}

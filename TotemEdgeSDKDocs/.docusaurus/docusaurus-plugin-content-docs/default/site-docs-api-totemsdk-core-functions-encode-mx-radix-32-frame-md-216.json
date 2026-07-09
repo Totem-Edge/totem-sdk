@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/encodeMxRadix32Frame",
+  "title": "encodeMxRadix32Frame",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/encodeMxRadix32Frame.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/encodeMxRadix32Frame",
+  "permalink": "/api/totemsdk-core/functions/encodeMxRadix32Frame",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "encodeMiniString",
+    "permalink": "/api/totemsdk-core/functions/encodeMiniString"
+  },
+  "next": {
+    "title": "encodeStateValue",
+    "permalink": "/api/totemsdk-core/functions/encodeStateValue"
+  }
+}

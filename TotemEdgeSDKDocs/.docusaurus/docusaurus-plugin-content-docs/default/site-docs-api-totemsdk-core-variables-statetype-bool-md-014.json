@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/variables/STATETYPE_BOOL",
+  "title": "STATETYPE_BOOL",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/variables/STATETYPE_BOOL.md",
+  "sourceDirName": "api/totemsdk-core/variables",
+  "slug": "/api/totemsdk-core/variables/STATETYPE_BOOL",
+  "permalink": "/api/totemsdk-core/variables/STATETYPE_BOOL",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "MINIMA_CONSTANTS",
+    "permalink": "/api/totemsdk-core/variables/MINIMA_CONSTANTS"
+  },
+  "next": {
+    "title": "STATETYPE_HEX",
+    "permalink": "/api/totemsdk-core/variables/STATETYPE_HEX"
+  }
+}

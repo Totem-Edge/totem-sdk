@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/variables/F",
+  "title": "F",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/variables/F.md",
+  "sourceDirName": "api/totemsdk-node/variables",
+  "slug": "/api/totemsdk-node/variables/F",
+  "permalink": "/api/totemsdk-node/variables/F",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "DEFAULT_LEVELS",
+    "permalink": "/api/totemsdk-node/variables/DEFAULT_LEVELS"
+  },
+  "next": {
+    "title": "MINIMA_CONSTANTS",
+    "permalink": "/api/totemsdk-node/variables/MINIMA_CONSTANTS"
+  }
+}

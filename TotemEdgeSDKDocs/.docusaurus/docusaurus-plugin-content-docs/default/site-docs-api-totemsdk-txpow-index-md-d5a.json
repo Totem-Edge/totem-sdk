@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-txpow/index",
+  "title": "index",
+  "description": "@totemsdk/txpow",
+  "source": "@site/docs/api/totemsdk-txpow/index.md",
+  "sourceDirName": "api/totemsdk-txpow",
+  "slug": "/api/totemsdk-txpow/",
+  "permalink": "/api/totemsdk-txpow/",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "verifyTxPoWWork",
+    "permalink": "/api/totemsdk-txpow/functions/verifyTxPoWWork"
+  },
+  "next": {
+    "title": "MineOptions",
+    "permalink": "/api/totemsdk-txpow/interfaces/MineOptions"
+  }
+}

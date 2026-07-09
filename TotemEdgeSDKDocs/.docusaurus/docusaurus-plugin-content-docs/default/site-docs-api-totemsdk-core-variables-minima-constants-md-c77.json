@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/variables/MINIMA_CONSTANTS",
+  "title": "MINIMA_CONSTANTS",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/variables/MINIMA_CONSTANTS.md",
+  "sourceDirName": "api/totemsdk-core/variables",
+  "slug": "/api/totemsdk-core/variables/MINIMA_CONSTANTS",
+  "permalink": "/api/totemsdk-core/variables/MINIMA_CONSTANTS",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "DEFAULT_LEVELS",
+    "permalink": "/api/totemsdk-core/variables/DEFAULT_LEVELS"
+  },
+  "next": {
+    "title": "STATETYPE_BOOL",
+    "permalink": "/api/totemsdk-core/variables/STATETYPE_BOOL"
+  }
+}

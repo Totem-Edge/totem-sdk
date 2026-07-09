@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/precomputeTransactionCoinID",
+  "title": "precomputeTransactionCoinID",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/precomputeTransactionCoinID.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/precomputeTransactionCoinID",
+  "permalink": "/api/totemsdk-core/functions/precomputeTransactionCoinID",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "phraseToSeed",
+    "permalink": "/api/totemsdk-core/functions/phraseToSeed"
+  },
+  "next": {
+    "title": "precomputeTransactionCoinIDTx",
+    "permalink": "/api/totemsdk-core/functions/precomputeTransactionCoinIDTx"
+  }
+}

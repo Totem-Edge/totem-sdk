@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-factory/functions/openVirtualChannel",
+  "title": "openVirtualChannel",
+  "description": "@totemsdk/omnia-factory",
+  "source": "@site/docs/api/totemsdk-omnia-factory/functions/openVirtualChannel.md",
+  "sourceDirName": "api/totemsdk-omnia-factory/functions",
+  "slug": "/api/totemsdk-omnia-factory/functions/openVirtualChannel",
+  "permalink": "/api/totemsdk-omnia-factory/functions/openVirtualChannel",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "normalizeScript",
+    "permalink": "/api/totemsdk-omnia-factory/functions/normalizeScript"
+  },
+  "next": {
+    "title": "reallocate",
+    "permalink": "/api/totemsdk-omnia-factory/functions/reallocate"
+  }
+}

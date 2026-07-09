@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Totem Wallet - Dev UI</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+        color: #fff;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 20px;
+      }
+      
+      .dev-header {
+        width: 100%;
+        max-width: 1400px;
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 2px solid #FF6B35;
+        margin-bottom: 30px;
+        border-radius: 0;
+      }
+      
+      .dev-header h1 {
+        font-size: 24px;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: #FF6B35;
+        margin-bottom: 10px;
+      }
+      
+      .dev-header p {
+        color: #888;
+        font-size: 14px;
+      }
+      
+      .viewport-controls {
+        width: 100%;
+        max-width: 1400px;
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+      }
+      
+      .viewport-btn {
+        padding: 12px 24px;
+        background: #fff;
+        color: #1a1a1a;
+        border: 3px solid #1a1a1a;
+        font-weight: 700;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 12px;
+        letter-spacing: 1px;
+      }
+      
+      .viewport-btn:hover {
+        background: #FF6B35;
+        color: #fff;
+        border-color: #FF6B35;
+        transform: translateY(-2px);
+      }
+      
+      .viewport-btn.active {
+        background: #475569;
+        color: #fff;
+        border-color: #475569;
+      }
+      
+      .extension-frame {
+        background: #fff;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        border: 3px solid #1a1a1a;
+        transition: all 0.3s ease;
+      }
+      
+      .extension-frame.chrome {
+        width: 400px;
+        height: 600px;
+      }
+      
+      .extension-frame.firefox {
+        width: 380px;
+        height: 580px;
+      }
+      
+      .extension-frame.safari {
+        width: 420px;
+        height: 620px;
+      }
+      
+      .extension-frame iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+        display: block;
+      }
+      
+      .frame-label {
+        position: absolute;
+        top: -30px;
+        left: 0;
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #FF6B35;
+      }
+      
+      .frame-container {
+        position: relative;
+        margin-top: 40px;
+      }
+      
+      .info-panel {
+        width: 100%;
+        max-width: 1400px;
+        margin-top: 30px;
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 2px solid #475569;
+      }
+      
+      .info-panel h3 {
+        font-size: 14px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 10px;
+        color: #FF6B35;
+      }
+      
+      .info-panel ul {
+        list-style: none;
+        padding-left: 0;
+      }
+      
+      .info-panel li {
+        font-size: 13px;
+        color: #aaa;
+        margin-bottom: 8px;
+        padding-left: 15px;
+        position: relative;
+      }
+      
+      .info-panel li:before {
+        content: "▸";
+        position: absolute;
+        left: 0;
+        color: #FF6B35;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="dev-header">
+      <h1>🔥 Totem Wallet - Dev UI</h1>
+      <p>Hot-reload enabled • Design iteration mode • Mock Chrome APIs active</p>
+    </div>
+    
+    <div class="viewport-controls">
+      <button class="viewport-btn active" onclick="setViewport('chrome')">
+        Chrome (400×600)
+      </button>
+      <button class="viewport-btn" onclick="setViewport('firefox')">
+        Firefox (380×580)
+      </button>
+      <button class="viewport-btn" onclick="setViewport('safari')">
+        Safari (420×620)
+      </button>
+    </div>
+    
+    <div class="frame-container">
+      <div class="frame-label" id="frameLabel">Chrome Viewport</div>
+      <div class="extension-frame chrome" id="extensionFrame">
+        <iframe src="/src/ui/popup/index.html" id="popupIframe"></iframe>
+      </div>
+    </div>
+    
+    <div class="info-panel">
+      <h3>Design System</h3>
+      <ul>
+        <li><strong>Aesthetic:</strong> Flat Brutalist • Monochrome with neon accents</li>
+        <li><strong>Colors:</strong> White (#FFFFFF) • Burnt Neon Orange (#FF6B35) • Slate Gray (#475569)</li>
+        <li><strong>Typography:</strong> Bold, uppercase headings • High contrast • Sharp edges</li>
+        <li><strong>Components:</strong> Hard borders • No shadows • Solid color blocks</li>
+      </ul>
+    </div>
+    
+    <script>
+      function setViewport(type) {
+        const frame = document.getElementById('extensionFrame');
+        const label = document.getElementById('frameLabel');
+        const buttons = document.querySelectorAll('.viewport-btn');
+        
+        // Update button states
+        buttons.forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+        
+        // Update frame class
+        frame.className = 'extension-frame ' + type;
+        
+        // Update label
+        const dimensions = {
+          chrome: 'Chrome Viewport (400×600)',
+          firefox: 'Firefox Viewport (380×580)',
+          safari: 'Safari Viewport (420×620)'
+        };
+        label.textContent = dimensions[type];
+      }
+    </script>
+  </body>
+</html>

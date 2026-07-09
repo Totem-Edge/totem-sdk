@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-router/functions/buildCrossTokenRequest",
+  "title": "buildCrossTokenRequest",
+  "description": "@totemsdk/omnia-router",
+  "source": "@site/docs/api/totemsdk-omnia-router/functions/buildCrossTokenRequest.md",
+  "sourceDirName": "api/totemsdk-omnia-router/functions",
+  "slug": "/api/totemsdk-omnia-router/functions/buildCrossTokenRequest",
+  "permalink": "/api/totemsdk-omnia-router/functions/buildCrossTokenRequest",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "applyRate",
+    "permalink": "/api/totemsdk-omnia-router/functions/applyRate"
+  },
+  "next": {
+    "title": "buildPaymentRequest",
+    "permalink": "/api/totemsdk-omnia-router/functions/buildPaymentRequest"
+  }
+}

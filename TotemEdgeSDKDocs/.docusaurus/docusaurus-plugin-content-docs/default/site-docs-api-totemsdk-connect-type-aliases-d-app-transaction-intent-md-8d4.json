@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-connect/type-aliases/DAppTransactionIntent",
+  "title": "DAppTransactionIntent",
+  "description": "@totemsdk/connect",
+  "source": "@site/docs/api/totemsdk-connect/type-aliases/DAppTransactionIntent.md",
+  "sourceDirName": "api/totemsdk-connect/type-aliases",
+  "slug": "/api/totemsdk-connect/type-aliases/DAppTransactionIntent",
+  "permalink": "/api/totemsdk-connect/type-aliases/DAppTransactionIntent",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TransactionPlan",
+    "permalink": "/api/totemsdk-connect/interfaces/TransactionPlan"
+  },
+  "next": {
+    "title": "ScriptType",
+    "permalink": "/api/totemsdk-connect/type-aliases/ScriptType"
+  }
+}

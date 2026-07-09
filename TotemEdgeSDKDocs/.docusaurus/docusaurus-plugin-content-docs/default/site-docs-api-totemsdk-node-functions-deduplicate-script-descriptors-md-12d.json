@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/deduplicateScriptDescriptors",
+  "title": "deduplicateScriptDescriptors",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/deduplicateScriptDescriptors.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/deduplicateScriptDescriptors",
+  "permalink": "/api/totemsdk-node/functions/deduplicateScriptDescriptors",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "decodeMxRadix32Frame",
+    "permalink": "/api/totemsdk-node/functions/decodeMxRadix32Frame"
+  },
+  "next": {
+    "title": "deriveAddressFromPublicKey",
+    "permalink": "/api/totemsdk-node/functions/deriveAddressFromPublicKey"
+  }
+}

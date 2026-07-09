@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-connect/functions/getTxPermissions",
+  "title": "getTxPermissions",
+  "description": "@totemsdk/connect",
+  "source": "@site/docs/api/totemsdk-connect/functions/getTxPermissions.md",
+  "sourceDirName": "api/totemsdk-connect/functions",
+  "slug": "/api/totemsdk-connect/functions/getTxPermissions",
+  "permalink": "/api/totemsdk-connect/functions/getTxPermissions",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "getTransactionStatus",
+    "permalink": "/api/totemsdk-connect/functions/getTransactionStatus"
+  },
+  "next": {
+    "title": "getWotsStatus",
+    "permalink": "/api/totemsdk-connect/functions/getWotsStatus"
+  }
+}

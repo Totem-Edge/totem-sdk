@@ -1,0 +1,39 @@
+name: "chaos-flapping-node"
+region: "ap-south"
+nodeType: "rpc"
+healthScore: 50
+responseShape: "flaky"
+rules:
+  - match: "*"
+    baseLatencyMs: 100
+    jitterMs: 50
+    errorRate: 0.1
+    failure: "http500"
+timeline:
+  - atSec: 30
+    set:
+      forMatch: "*"
+      enabled: false
+  - atSec: 60
+    set:
+      forMatch: "*"
+      enabled: true
+      errorRate: 0.2
+      failure: "timeout"
+  - atSec: 90
+    set:
+      forMatch: "*"
+      baseLatencyMs: 50
+      errorRate: 0.05
+      failure: "none"
+  - atSec: 120
+    set:
+      forMatch: "*"
+      failure: "malformed"
+      errorRate: 0.3
+  - atSec: 150
+    set:
+      forMatch: "*"
+      baseLatencyMs: 80
+      errorRate: 0.02
+      failure: "none"

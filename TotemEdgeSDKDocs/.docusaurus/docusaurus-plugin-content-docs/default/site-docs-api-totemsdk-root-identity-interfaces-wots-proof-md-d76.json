@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-root-identity/interfaces/WotsProof",
+  "title": "WotsProof",
+  "description": "@totemsdk/root-identity",
+  "source": "@site/docs/api/totemsdk-root-identity/interfaces/WotsProof.md",
+  "sourceDirName": "api/totemsdk-root-identity/interfaces",
+  "slug": "/api/totemsdk-root-identity/interfaces/WotsProof",
+  "permalink": "/api/totemsdk-root-identity/interfaces/WotsProof",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "OwnershipProof",
+    "permalink": "/api/totemsdk-root-identity/interfaces/OwnershipProof"
+  },
+  "next": {
+    "title": "MAX_CHILD_COUNT",
+    "permalink": "/api/totemsdk-root-identity/variables/MAX_CHILD_COUNT"
+  }
+}

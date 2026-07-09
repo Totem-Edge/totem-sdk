@@ -1,0 +1,28 @@
+{
+  "name": "@totem/observability",
+  "version": "0.1.0",
+  "description": "Drop-in observability for Totem-based dApps: trace propagation, connect-funnel events, batched telemetry to telemetry.axia.to",
+  "type": "module",
+  "main": "src/index.js",
+  "module": "src/index.js",
+  "types": "src/index.d.ts",
+  "exports": {
+    ".": "./src/index.js",
+    "./node": "./src/node.js",
+    "./react": "./src/react.js"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "test": "echo \"no tests yet\""
+  },
+  "keywords": [
+    "totem",
+    "axia",
+    "observability",
+    "telemetry",
+    "tracing"
+  ],
+  "license": "MIT"
+}

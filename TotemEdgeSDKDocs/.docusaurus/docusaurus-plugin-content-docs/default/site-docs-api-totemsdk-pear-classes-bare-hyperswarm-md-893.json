@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-pear/classes/BareHyperswarm",
+  "title": "BareHyperswarm",
+  "description": "@totemsdk/pear",
+  "source": "@site/docs/api/totemsdk-pear/classes/BareHyperswarm.md",
+  "sourceDirName": "api/totemsdk-pear/classes",
+  "slug": "/api/totemsdk-pear/classes/BareHyperswarm",
+  "permalink": "/api/totemsdk-pear/classes/BareHyperswarm",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "BareHyperdriveAdapter",
+    "permalink": "/api/totemsdk-pear/classes/BareHyperdriveAdapter"
+  },
+  "next": {
+    "title": "BareKVStore",
+    "permalink": "/api/totemsdk-pear/classes/BareKVStore"
+  }
+}

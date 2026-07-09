@@ -1,0 +1,103 @@
+{
+  "name": "@totemsdk/connect",
+  "version": "2.1.0",
+  "description": "Client-side SDK for connecting to the Totem wallet browser extension — includes Totem Edge capability layer",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "prepare": "tsc",
+    "clean": "rm -rf dist",
+    "test": "tsc --noEmit"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "@totemsdk/omnia": ">=0.1.1",
+    "@totemsdk/omnia-router": ">=0.1.1",
+    "@totemsdk/omnia-factory": ">=0.1.2",
+    "@totemsdk/omnia-splice": ">=0.1.1",
+    "@totemsdk/statechain": ">=0.1.1",
+    "@totemsdk/kissvm": ">=0.1.1",
+    "@totemsdk/pear": ">=0.1.0",
+    "@totemsdk/wots-lease": ">=0.1.1",
+    "@totemsdk/txpow": ">=0.1.0",
+    "@totemsdk/chain-provider": ">=0.1.1",
+    "@totemsdk/lookup-client": ">=0.1.1"
+  },
+  "peerDependenciesMeta": {
+    "@totemsdk/omnia": {
+      "optional": true
+    },
+    "@totemsdk/omnia-router": {
+      "optional": true
+    },
+    "@totemsdk/omnia-factory": {
+      "optional": true
+    },
+    "@totemsdk/omnia-splice": {
+      "optional": true
+    },
+    "@totemsdk/statechain": {
+      "optional": true
+    },
+    "@totemsdk/kissvm": {
+      "optional": true
+    },
+    "@totemsdk/pear": {
+      "optional": true
+    },
+    "@totemsdk/wots-lease": {
+      "optional": true
+    },
+    "@totemsdk/txpow": {
+      "optional": true
+    },
+    "@totemsdk/chain-provider": {
+      "optional": true
+    },
+    "@totemsdk/lookup-client": {
+      "optional": true
+    }
+  },
+  "license": "MIT",
+  "author": "Totem SDK",
+  "homepage": "https://totemsdk.com",
+  "bugs": {
+    "url": "https://github.com/MrGheek/axia-totem/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MrGheek/axia-totem.git",
+    "directory": "packages/totem-sdk/packages/connect"
+  },
+  "keywords": [
+    "totem",
+    "totemsdk",
+    "minima",
+    "blockchain",
+    "quantum-resistant",
+    "wots",
+    "kissvm",
+    "utxo"
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-realtime/interfaces/TxConfirmationEvent",
+  "title": "TxConfirmationEvent",
+  "description": "@totemsdk/realtime",
+  "source": "@site/docs/api/totemsdk-realtime/interfaces/TxConfirmationEvent.md",
+  "sourceDirName": "api/totemsdk-realtime/interfaces",
+  "slug": "/api/totemsdk-realtime/interfaces/TxConfirmationEvent",
+  "permalink": "/api/totemsdk-realtime/interfaces/TxConfirmationEvent",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "MegBalanceStreamDependencies",
+    "permalink": "/api/totemsdk-realtime/interfaces/MegBalanceStreamDependencies"
+  },
+  "next": {
+    "title": "WebSocketMessage",
+    "permalink": "/api/totemsdk-realtime/interfaces/WebSocketMessage"
+  }
+}

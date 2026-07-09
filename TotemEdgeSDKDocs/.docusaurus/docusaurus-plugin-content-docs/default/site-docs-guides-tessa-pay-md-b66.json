@@ -1,0 +1,24 @@
+{
+  "id": "guides/tessa-pay",
+  "title": "TESSA Pay",
+  "description": "Edge-native merchant POS with policy-controlled payments and auto-approve rules on Minima.",
+  "source": "@site/docs/guides/tessa-pay.md",
+  "sourceDirName": "guides",
+  "slug": "/guides/tessa-pay",
+  "permalink": "/guides/tessa-pay",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "id": "tessa-pay",
+    "title": "TESSA Pay",
+    "sidebar_label": "TESSA Pay",
+    "description": "Edge-native merchant POS with policy-controlled payments and auto-approve rules on Minima."
+  },
+  "sidebar": "guidesSidebar",
+  "next": {
+    "title": "Totem Personal Node",
+    "permalink": "/guides/totem-personal-node"
+  }
+}

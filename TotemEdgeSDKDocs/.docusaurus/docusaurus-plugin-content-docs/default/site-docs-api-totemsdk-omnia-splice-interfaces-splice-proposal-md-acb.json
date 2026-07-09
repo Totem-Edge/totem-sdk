@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-splice/interfaces/SpliceProposal",
+  "title": "SpliceProposal",
+  "description": "@totemsdk/omnia-splice",
+  "source": "@site/docs/api/totemsdk-omnia-splice/interfaces/SpliceProposal.md",
+  "sourceDirName": "api/totemsdk-omnia-splice/interfaces",
+  "slug": "/api/totemsdk-omnia-splice/interfaces/SpliceProposal",
+  "permalink": "/api/totemsdk-omnia-splice/interfaces/SpliceProposal",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "SpliceParams",
+    "permalink": "/api/totemsdk-omnia-splice/interfaces/SpliceParams"
+  },
+  "next": {
+    "title": "SpliceSigningIndices",
+    "permalink": "/api/totemsdk-omnia-splice/interfaces/SpliceSigningIndices"
+  }
+}

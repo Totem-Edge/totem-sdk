@@ -1,0 +1,101 @@
+{
+  "description": "Golden test vectors for WOTS v2-spec signature validation",
+  "version": "1.0.0",
+  "paramSet": "v2-spec",
+  "vectors": [
+    {
+      "name": "Zero seed, zero digest",
+      "seed": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "digest": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "indices": { "l1": 0, "l2": 0, "l3": 0 },
+      "expectedSignatureLength": 34,
+      "expectedTotalBytes": 3264
+    },
+    {
+      "name": "Sequential seed, max digest",
+      "seed": "0x000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "digest": "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "indices": { "l1": 10, "l2": 20, "l3": 30 },
+      "expectedSignatureLength": 34,
+      "expectedTotalBytes": 3264
+    },
+    {
+      "name": "Max seed, sequential digest",
+      "seed": "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "digest": "0x000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "indices": { "l1": 63, "l2": 63, "l3": 63 },
+      "expectedSignatureLength": 34,
+      "expectedTotalBytes": 3264
+    },
+    {
+      "name": "Typical transaction digest",
+      "seed": "0xabcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+      "digest": "0x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0",
+      "indices": { "l1": 15, "l2": 30, "l3": 45 },
+      "expectedSignatureLength": 34,
+      "expectedTotalBytes": 3264
+    }
+  ],
+  "precision": {
+    "description": "44-decimal precision test vectors for Minima amounts",
+    "decimals": 44,
+    "scale": "100000000000000000000000000000000000000000000",
+    "testCases": [
+      {
+        "name": "Zero",
+        "displayAmount": "0",
+        "baseUnits": "0"
+      },
+      {
+        "name": "One MINIMA",
+        "displayAmount": "1",
+        "baseUnits": "100000000000000000000000000000000000000000000"
+      },
+      {
+        "name": "Half MINIMA",
+        "displayAmount": "0.5",
+        "baseUnits": "50000000000000000000000000000000000000000000"
+      },
+      {
+        "name": "5.25 MINIMA",
+        "displayAmount": "5.25",
+        "baseUnits": "525000000000000000000000000000000000000000000"
+      },
+      {
+        "name": "Maximum precision (1 base unit)",
+        "displayAmount": "0.00000000000000000000000000000000000000000001",
+        "baseUnits": "1"
+      },
+      {
+        "name": "Large amount (1 million)",
+        "displayAmount": "1000000",
+        "baseUnits": "100000000000000000000000000000000000000000000000000"
+      }
+    ]
+  },
+  "transactionFlow": {
+    "description": "End-to-end transaction flow test vector",
+    "rootPublicKey": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "seed": "0x4242424242424242424242424242424242424242424242424242424242424242",
+    "prepare": {
+      "to": "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "amount": "10000000000000000000000000000000000000000000000",
+      "tokenId": "0x00"
+    },
+    "expectedPrepareResponse": {
+      "digestTx": "32-byte hex",
+      "leaseToken": "JWT token string",
+      "leaseTTL": 3600
+    },
+    "expectedSignature": {
+      "witnessBundle": {
+        "l1ProofLength": 34,
+        "l2ProofLength": 34,
+        "l3ProofLength": 34,
+        "elementSize": 32
+      },
+      "signedHexFormat": "0x[digest][l1Proof][l2Proof][l3Proof]",
+      "totalLength": 6594
+    }
+  }
+}

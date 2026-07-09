@@ -1,0 +1,21 @@
+{
+  "name": "minima-node-sim",
+  "private": true,
+  "scripts": {
+    "dev": "ts-node src/index.ts",
+    "start": "node dist/index.js",
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@fastify/formbody": "^8.0.2",
+    "fastify": "^4.26.2",
+    "fastify-plugin": "^4.5.1",
+    "nanoid": "^5.0.7",
+    "prom-client": "^15.1.1",
+    "yaml": "^2.4.5"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-statechain/functions/verifyStateChain",
+  "title": "verifyStateChain",
+  "description": "@totemsdk/statechain",
+  "source": "@site/docs/api/totemsdk-statechain/functions/verifyStateChain.md",
+  "sourceDirName": "api/totemsdk-statechain/functions",
+  "slug": "/api/totemsdk-statechain/functions/verifyStateChain",
+  "permalink": "/api/totemsdk-statechain/functions/verifyStateChain",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "transferOwnership",
+    "permalink": "/api/totemsdk-statechain/functions/transferOwnership"
+  },
+  "next": {
+    "title": "index",
+    "permalink": "/api/totemsdk-statechain/"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-chain-provider/interfaces/MMRProof",
+  "title": "MMRProof",
+  "description": "@totemsdk/chain-provider",
+  "source": "@site/docs/api/totemsdk-chain-provider/interfaces/MMRProof.md",
+  "sourceDirName": "api/totemsdk-chain-provider/interfaces",
+  "slug": "/api/totemsdk-chain-provider/interfaces/MMRProof",
+  "permalink": "/api/totemsdk-chain-provider/interfaces/MMRProof",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "HostedProviderConfig",
+    "permalink": "/api/totemsdk-chain-provider/interfaces/HostedProviderConfig"
+  },
+  "next": {
+    "title": "TokenInfo",
+    "permalink": "/api/totemsdk-chain-provider/interfaces/TokenInfo"
+  }
+}

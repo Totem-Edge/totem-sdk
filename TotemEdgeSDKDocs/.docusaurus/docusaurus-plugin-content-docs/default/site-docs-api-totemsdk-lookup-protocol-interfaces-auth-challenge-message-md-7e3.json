@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-lookup-protocol/interfaces/AuthChallengeMessage",
+  "title": "AuthChallengeMessage",
+  "description": "@totemsdk/lookup-protocol",
+  "source": "@site/docs/api/totemsdk-lookup-protocol/interfaces/AuthChallengeMessage.md",
+  "sourceDirName": "api/totemsdk-lookup-protocol/interfaces",
+  "slug": "/api/totemsdk-lookup-protocol/interfaces/AuthChallengeMessage",
+  "permalink": "/api/totemsdk-lookup-protocol/interfaces/AuthChallengeMessage",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "AppResultMessage",
+    "permalink": "/api/totemsdk-lookup-protocol/interfaces/AppResultMessage"
+  },
+  "next": {
+    "title": "AuthResponseMessage",
+    "permalink": "/api/totemsdk-lookup-protocol/interfaces/AuthResponseMessage"
+  }
+}

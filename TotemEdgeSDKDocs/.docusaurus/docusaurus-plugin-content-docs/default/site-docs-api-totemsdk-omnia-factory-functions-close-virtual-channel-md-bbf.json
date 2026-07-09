@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-factory/functions/closeVirtualChannel",
+  "title": "closeVirtualChannel",
+  "description": "@totemsdk/omnia-factory",
+  "source": "@site/docs/api/totemsdk-omnia-factory/functions/closeVirtualChannel.md",
+  "sourceDirName": "api/totemsdk-omnia-factory/functions",
+  "slug": "/api/totemsdk-omnia-factory/functions/closeVirtualChannel",
+  "permalink": "/api/totemsdk-omnia-factory/functions/closeVirtualChannel",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "closeFactory",
+    "permalink": "/api/totemsdk-omnia-factory/functions/closeFactory"
+  },
+  "next": {
+    "title": "computeFactoryStateCommitment",
+    "permalink": "/api/totemsdk-omnia-factory/functions/computeFactoryStateCommitment"
+  }
+}

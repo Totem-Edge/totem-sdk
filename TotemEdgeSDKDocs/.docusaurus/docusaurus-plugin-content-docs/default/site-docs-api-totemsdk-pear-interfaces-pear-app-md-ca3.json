@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-pear/interfaces/PearApp",
+  "title": "PearApp",
+  "description": "@totemsdk/pear",
+  "source": "@site/docs/api/totemsdk-pear/interfaces/PearApp.md",
+  "sourceDirName": "api/totemsdk-pear/interfaces",
+  "slug": "/api/totemsdk-pear/interfaces/PearApp",
+  "permalink": "/api/totemsdk-pear/interfaces/PearApp",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "Logger",
+    "permalink": "/api/totemsdk-pear/interfaces/Logger"
+  },
+  "next": {
+    "title": "PearAppConfig",
+    "permalink": "/api/totemsdk-pear/interfaces/PearAppConfig"
+  }
+}

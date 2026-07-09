@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/serializeMiniNumber",
+  "title": "serializeMiniNumber",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/serializeMiniNumber.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/serializeMiniNumber",
+  "permalink": "/api/totemsdk-node/functions/serializeMiniNumber",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "serializeMiniData",
+    "permalink": "/api/totemsdk-node/functions/serializeMiniData"
+  },
+  "next": {
+    "title": "serializeMiniNumberONE",
+    "permalink": "/api/totemsdk-node/functions/serializeMiniNumberONE"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/bytesToUtf8",
+  "title": "bytesToUtf8",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/bytesToUtf8.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/bytesToUtf8",
+  "permalink": "/api/totemsdk-node/functions/bytesToUtf8",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "bytesToHex",
+    "permalink": "/api/totemsdk-node/functions/bytesToHex"
+  },
+  "next": {
+    "title": "calculateProofRoot",
+    "permalink": "/api/totemsdk-node/functions/calculateProofRoot"
+  }
+}

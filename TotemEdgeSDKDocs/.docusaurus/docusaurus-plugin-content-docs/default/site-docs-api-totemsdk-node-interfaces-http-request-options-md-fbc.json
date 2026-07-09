@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/HttpRequestOptions",
+  "title": "HttpRequestOptions",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/HttpRequestOptions.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/HttpRequestOptions",
+  "permalink": "/api/totemsdk-node/interfaces/HttpRequestOptions",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "HttpClient",
+    "permalink": "/api/totemsdk-node/interfaces/HttpClient"
+  },
+  "next": {
+    "title": "HttpResponse",
+    "permalink": "/api/totemsdk-node/interfaces/HttpResponse"
+  }
+}

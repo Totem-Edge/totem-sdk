@@ -1,0 +1,28 @@
+{
+  "id": "guides/totem-community-node",
+  "title": "Totem Community Node",
+  "description": "Finance infrastructure for cooperatives, schools, and markets with policy templates for merchant limits, relay permissions, and child-account rules.",
+  "source": "@site/docs/guides/totem-community-node.md",
+  "sourceDirName": "guides",
+  "slug": "/guides/totem-community-node",
+  "permalink": "/guides/totem-community-node",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "id": "totem-community-node",
+    "title": "Totem Community Node",
+    "sidebar_label": "Totem Community Node",
+    "description": "Finance infrastructure for cooperatives, schools, and markets with policy templates for merchant limits, relay permissions, and child-account rules."
+  },
+  "sidebar": "guidesSidebar",
+  "previous": {
+    "title": "Omnia Router Node",
+    "permalink": "/guides/omnia-router-node"
+  },
+  "next": {
+    "title": "MachinePay Edge",
+    "permalink": "/guides/machinepay-edge"
+  }
+}

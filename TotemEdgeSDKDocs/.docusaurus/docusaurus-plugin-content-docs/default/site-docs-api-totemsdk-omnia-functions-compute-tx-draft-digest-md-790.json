@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/functions/computeTxDraftDigest",
+  "title": "computeTxDraftDigest",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/functions/computeTxDraftDigest.md",
+  "sourceDirName": "api/totemsdk-omnia/functions",
+  "slug": "/api/totemsdk-omnia/functions/computeTxDraftDigest",
+  "permalink": "/api/totemsdk-omnia/functions/computeTxDraftDigest",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "computeStateCommitment",
+    "permalink": "/api/totemsdk-omnia/functions/computeStateCommitment"
+  },
+  "next": {
+    "title": "createChannel",
+    "permalink": "/api/totemsdk-omnia/functions/createChannel"
+  }
+}

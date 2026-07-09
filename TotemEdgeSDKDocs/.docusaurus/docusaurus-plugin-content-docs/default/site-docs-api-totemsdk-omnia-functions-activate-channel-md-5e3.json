@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/functions/activateChannel",
+  "title": "activateChannel",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/functions/activateChannel.md",
+  "sourceDirName": "api/totemsdk-omnia/functions",
+  "slug": "/api/totemsdk-omnia/functions/activateChannel",
+  "permalink": "/api/totemsdk-omnia/functions/activateChannel",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "acceptChannel",
+    "permalink": "/api/totemsdk-omnia/functions/acceptChannel"
+  },
+  "next": {
+    "title": "addHTLC",
+    "permalink": "/api/totemsdk-omnia/functions/addHTLC"
+  }
+}

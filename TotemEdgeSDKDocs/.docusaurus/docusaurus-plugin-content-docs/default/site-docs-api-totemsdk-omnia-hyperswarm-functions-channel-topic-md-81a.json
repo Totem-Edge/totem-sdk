@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-hyperswarm/functions/channelTopic",
+  "title": "channelTopic",
+  "description": "@totemsdk/omnia-hyperswarm",
+  "source": "@site/docs/api/totemsdk-omnia-hyperswarm/functions/channelTopic.md",
+  "sourceDirName": "api/totemsdk-omnia-hyperswarm/functions",
+  "slug": "/api/totemsdk-omnia-hyperswarm/functions/channelTopic",
+  "permalink": "/api/totemsdk-omnia-hyperswarm/functions/channelTopic",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "broadcastTopic",
+    "permalink": "/api/totemsdk-omnia-hyperswarm/functions/broadcastTopic"
+  },
+  "next": {
+    "title": "createMockStreamPair",
+    "permalink": "/api/totemsdk-omnia-hyperswarm/functions/createMockStreamPair"
+  }
+}

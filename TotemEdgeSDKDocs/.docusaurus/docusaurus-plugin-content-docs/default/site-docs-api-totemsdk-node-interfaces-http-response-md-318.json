@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/HttpResponse",
+  "title": "HttpResponse",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/HttpResponse.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/HttpResponse",
+  "permalink": "/api/totemsdk-node/interfaces/HttpResponse",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "HttpRequestOptions",
+    "permalink": "/api/totemsdk-node/interfaces/HttpRequestOptions"
+  },
+  "next": {
+    "title": "JavaMMRData",
+    "permalink": "/api/totemsdk-node/interfaces/JavaMMRData"
+  }
+}

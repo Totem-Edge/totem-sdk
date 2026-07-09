@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/createMMREntryNumber",
+  "title": "createMMREntryNumber",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/createMMREntryNumber.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/createMMREntryNumber",
+  "permalink": "/api/totemsdk-core/functions/createMMREntryNumber",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "createMMRDataParentNode",
+    "permalink": "/api/totemsdk-core/functions/createMMRDataParentNode"
+  },
+  "next": {
+    "title": "createMofNMultisigDescriptor",
+    "permalink": "/api/totemsdk-core/functions/createMofNMultisigDescriptor"
+  }
+}

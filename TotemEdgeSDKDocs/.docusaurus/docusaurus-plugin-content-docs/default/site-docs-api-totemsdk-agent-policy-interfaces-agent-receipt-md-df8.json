@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-agent-policy/interfaces/AgentReceipt",
+  "title": "AgentReceipt",
+  "description": "@totemsdk/agent-policy",
+  "source": "@site/docs/api/totemsdk-agent-policy/interfaces/AgentReceipt.md",
+  "sourceDirName": "api/totemsdk-agent-policy/interfaces",
+  "slug": "/api/totemsdk-agent-policy/interfaces/AgentReceipt",
+  "permalink": "/api/totemsdk-agent-policy/interfaces/AgentReceipt",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "AgentProposal",
+    "permalink": "/api/totemsdk-agent-policy/interfaces/AgentProposal"
+  },
+  "next": {
+    "title": "PaymentIntent",
+    "permalink": "/api/totemsdk-agent-policy/interfaces/PaymentIntent"
+  }
+}

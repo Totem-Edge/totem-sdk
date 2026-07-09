@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/FinalizeRequest",
+  "title": "FinalizeRequest",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/FinalizeRequest.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/FinalizeRequest",
+  "permalink": "/api/totemsdk-node/interfaces/FinalizeRequest",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "FileStorageAdapterOptions",
+    "permalink": "/api/totemsdk-node/interfaces/FileStorageAdapterOptions"
+  },
+  "next": {
+    "title": "FinalizeResponse",
+    "permalink": "/api/totemsdk-node/interfaces/FinalizeResponse"
+  }
+}

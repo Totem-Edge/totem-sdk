@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-tx-builder/type-aliases/SendMode",
+  "title": "SendMode",
+  "description": "@totemsdk/tx-builder",
+  "source": "@site/docs/api/totemsdk-tx-builder/type-aliases/SendMode.md",
+  "sourceDirName": "api/totemsdk-tx-builder/type-aliases",
+  "slug": "/api/totemsdk-tx-builder/type-aliases/SendMode",
+  "permalink": "/api/totemsdk-tx-builder/type-aliases/SendMode",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "SpendableCoin",
+    "permalink": "/api/totemsdk-tx-builder/interfaces/SpendableCoin"
+  },
+  "next": {
+    "title": "KissvmLimitError",
+    "permalink": "/api/totemsdk-kissvm/classes/KissvmLimitError"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/classes/WatermarkStore",
+  "title": "WatermarkStore",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/classes/WatermarkStore.md",
+  "sourceDirName": "api/totemsdk-node/classes",
+  "slug": "/api/totemsdk-node/classes/WatermarkStore",
+  "permalink": "/api/totemsdk-node/classes/WatermarkStore",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "WatermarkExhaustedError",
+    "permalink": "/api/totemsdk-node/classes/WatermarkExhaustedError"
+  },
+  "next": {
+    "title": "addressToRoot",
+    "permalink": "/api/totemsdk-node/functions/addressToRoot"
+  }
+}

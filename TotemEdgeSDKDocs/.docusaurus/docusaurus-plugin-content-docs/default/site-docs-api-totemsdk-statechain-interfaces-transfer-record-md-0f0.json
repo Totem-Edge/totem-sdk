@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-statechain/interfaces/TransferRecord",
+  "title": "TransferRecord",
+  "description": "@totemsdk/statechain",
+  "source": "@site/docs/api/totemsdk-statechain/interfaces/TransferRecord.md",
+  "sourceDirName": "api/totemsdk-statechain/interfaces",
+  "slug": "/api/totemsdk-statechain/interfaces/TransferRecord",
+  "permalink": "/api/totemsdk-statechain/interfaces/TransferRecord",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "StatechainOwner",
+    "permalink": "/api/totemsdk-statechain/interfaces/StatechainOwner"
+  },
+  "next": {
+    "title": "VerifyOptions",
+    "permalink": "/api/totemsdk-statechain/interfaces/VerifyOptions"
+  }
+}

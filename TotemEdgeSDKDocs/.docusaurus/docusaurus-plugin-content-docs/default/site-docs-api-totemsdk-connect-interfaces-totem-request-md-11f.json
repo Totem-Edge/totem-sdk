@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-connect/interfaces/TotemRequest",
+  "title": "TotemRequest",
+  "description": "@totemsdk/connect",
+  "source": "@site/docs/api/totemsdk-connect/interfaces/TotemRequest.md",
+  "sourceDirName": "api/totemsdk-connect/interfaces",
+  "slug": "/api/totemsdk-connect/interfaces/TotemRequest",
+  "permalink": "/api/totemsdk-connect/interfaces/TotemRequest",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TotemReleaseWotsLeaseResponse",
+    "permalink": "/api/totemsdk-connect/interfaces/TotemReleaseWotsLeaseResponse"
+  },
+  "next": {
+    "title": "TotemReserveWotsLeaseRequest",
+    "permalink": "/api/totemsdk-connect/interfaces/TotemReserveWotsLeaseRequest"
+  }
+}

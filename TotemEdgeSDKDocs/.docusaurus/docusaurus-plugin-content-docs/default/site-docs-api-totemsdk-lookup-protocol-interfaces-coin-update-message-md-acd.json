@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-lookup-protocol/interfaces/CoinUpdateMessage",
+  "title": "CoinUpdateMessage",
+  "description": "@totemsdk/lookup-protocol",
+  "source": "@site/docs/api/totemsdk-lookup-protocol/interfaces/CoinUpdateMessage.md",
+  "sourceDirName": "api/totemsdk-lookup-protocol/interfaces",
+  "slug": "/api/totemsdk-lookup-protocol/interfaces/CoinUpdateMessage",
+  "permalink": "/api/totemsdk-lookup-protocol/interfaces/CoinUpdateMessage",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "BroadcastTxPoWMessage",
+    "permalink": "/api/totemsdk-lookup-protocol/interfaces/BroadcastTxPoWMessage"
+  },
+  "next": {
+    "title": "ErrorMessage",
+    "permalink": "/api/totemsdk-lookup-protocol/interfaces/ErrorMessage"
+  }
+}

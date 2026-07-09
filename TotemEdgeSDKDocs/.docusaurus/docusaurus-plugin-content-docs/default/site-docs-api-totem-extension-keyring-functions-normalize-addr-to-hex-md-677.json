@@ -1,0 +1,23 @@
+{
+  "id": "api/totem-extension-keyring/functions/normalizeAddrToHex",
+  "title": "normalizeAddrToHex",
+  "description": "totem-extension/keyring",
+  "source": "@site/docs/api/totem-extension-keyring/functions/normalizeAddrToHex.md",
+  "sourceDirName": "api/totem-extension-keyring/functions",
+  "slug": "/api/totem-extension-keyring/functions/normalizeAddrToHex",
+  "permalink": "/api/totem-extension-keyring/functions/normalizeAddrToHex",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "computeManifestBlobHash",
+    "permalink": "/api/totem-extension-keyring/functions/computeManifestBlobHash"
+  },
+  "next": {
+    "title": "index",
+    "permalink": "/api/totem-extension-keyring/"
+  }
+}

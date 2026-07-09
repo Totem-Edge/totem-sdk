@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-pureminima-rpc/interfaces/MegaMMRInfo",
+  "title": "MegaMMRInfo",
+  "description": "@totemsdk/pureminima-rpc",
+  "source": "@site/docs/api/totemsdk-pureminima-rpc/interfaces/MegaMMRInfo.md",
+  "sourceDirName": "api/totemsdk-pureminima-rpc/interfaces",
+  "slug": "/api/totemsdk-pureminima-rpc/interfaces/MegaMMRInfo",
+  "permalink": "/api/totemsdk-pureminima-rpc/interfaces/MegaMMRInfo",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "MMRProof",
+    "permalink": "/api/totemsdk-pureminima-rpc/interfaces/MMRProof"
+  },
+  "next": {
+    "title": "MinimaEnvelope",
+    "permalink": "/api/totemsdk-pureminima-rpc/interfaces/MinimaEnvelope"
+  }
+}

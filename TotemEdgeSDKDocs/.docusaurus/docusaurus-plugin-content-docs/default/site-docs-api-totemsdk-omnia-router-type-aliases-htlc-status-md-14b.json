@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-router/type-aliases/HTLCStatus",
+  "title": "HTLCStatus",
+  "description": "@totemsdk/omnia-router",
+  "source": "@site/docs/api/totemsdk-omnia-router/type-aliases/HTLCStatus.md",
+  "sourceDirName": "api/totemsdk-omnia-router/type-aliases",
+  "slug": "/api/totemsdk-omnia-router/type-aliases/HTLCStatus",
+  "permalink": "/api/totemsdk-omnia-router/type-aliases/HTLCStatus",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "SwapHop",
+    "permalink": "/api/totemsdk-omnia-router/interfaces/SwapHop"
+  },
+  "next": {
+    "title": "LeaseProvider",
+    "permalink": "/api/totemsdk-omnia-router/type-aliases/LeaseProvider"
+  }
+}

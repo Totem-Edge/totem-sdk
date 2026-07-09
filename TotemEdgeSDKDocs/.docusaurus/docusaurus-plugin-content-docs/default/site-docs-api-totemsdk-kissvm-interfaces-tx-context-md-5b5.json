@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-kissvm/interfaces/TxContext",
+  "title": "TxContext",
+  "description": "@totemsdk/kissvm",
+  "source": "@site/docs/api/totemsdk-kissvm/interfaces/TxContext.md",
+  "sourceDirName": "api/totemsdk-kissvm/interfaces",
+  "slug": "/api/totemsdk-kissvm/interfaces/TxContext",
+  "permalink": "/api/totemsdk-kissvm/interfaces/TxContext",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "ScriptWitness",
+    "permalink": "/api/totemsdk-kissvm/interfaces/ScriptWitness"
+  },
+  "next": {
+    "title": "WitnessInput",
+    "permalink": "/api/totemsdk-kissvm/interfaces/WitnessInput"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/JavaMMREntryNumber",
+  "title": "JavaMMREntryNumber",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/JavaMMREntryNumber.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/JavaMMREntryNumber",
+  "permalink": "/api/totemsdk-node/interfaces/JavaMMREntryNumber",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "JavaMMREntry",
+    "permalink": "/api/totemsdk-node/interfaces/JavaMMREntry"
+  },
+  "next": {
+    "title": "KeyGenProgress",
+    "permalink": "/api/totemsdk-node/interfaces/KeyGenProgress"
+  }
+}

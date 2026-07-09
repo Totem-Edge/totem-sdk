@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/deriveAddressFromPublicKey",
+  "title": "deriveAddressFromPublicKey",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/deriveAddressFromPublicKey.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/deriveAddressFromPublicKey",
+  "permalink": "/api/totemsdk-core/functions/deriveAddressFromPublicKey",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "deduplicateScriptDescriptors",
+    "permalink": "/api/totemsdk-core/functions/deduplicateScriptDescriptors"
+  },
+  "next": {
+    "title": "deriveAddressPublicKey",
+    "permalink": "/api/totemsdk-core/functions/deriveAddressPublicKey"
+  }
+}

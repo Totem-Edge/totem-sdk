@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/CreateServerAdaptersOptions",
+  "title": "CreateServerAdaptersOptions",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/CreateServerAdaptersOptions.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/CreateServerAdaptersOptions",
+  "permalink": "/api/totemsdk-node/interfaces/CreateServerAdaptersOptions",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "CreateNodeAdaptersOptions",
+    "permalink": "/api/totemsdk-node/interfaces/CreateNodeAdaptersOptions"
+  },
+  "next": {
+    "title": "CryptoAdapter",
+    "permalink": "/api/totemsdk-node/interfaces/CryptoAdapter"
+  }
+}

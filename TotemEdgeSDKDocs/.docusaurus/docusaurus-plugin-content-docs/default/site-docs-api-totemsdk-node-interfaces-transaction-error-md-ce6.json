@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/TransactionError",
+  "title": "TransactionError",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/TransactionError.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/TransactionError",
+  "permalink": "/api/totemsdk-node/interfaces/TransactionError",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TransactionBuildResult",
+    "permalink": "/api/totemsdk-node/interfaces/TransactionBuildResult"
+  },
+  "next": {
+    "title": "TransactionLifecycleConfig",
+    "permalink": "/api/totemsdk-node/interfaces/TransactionLifecycleConfig"
+  }
+}

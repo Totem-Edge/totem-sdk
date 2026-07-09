@@ -1,0 +1,28 @@
+{
+  "id": "concepts/wots-key-management",
+  "title": "WOTS Key Management",
+  "description": "How the Totem SDK manages quantum-resistant one-time signing keys across addresses.",
+  "source": "@site/docs/concepts/wots-key-management.md",
+  "sourceDirName": "concepts",
+  "slug": "/concepts/wots-key-management",
+  "permalink": "/concepts/wots-key-management",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "id": "wots-key-management",
+    "title": "WOTS Key Management",
+    "sidebar_label": "WOTS Key Management",
+    "description": "How the Totem SDK manages quantum-resistant one-time signing keys across addresses."
+  },
+  "sidebar": "conceptsSidebar",
+  "previous": {
+    "title": "Agent Policy (QVAC)",
+    "permalink": "/concepts/agent-policy-overview"
+  },
+  "next": {
+    "title": "Omnia Channels",
+    "permalink": "/concepts/omnia-channels"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/DAppMultisigParams",
+  "title": "DAppMultisigParams",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/DAppMultisigParams.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/DAppMultisigParams",
+  "permalink": "/api/totemsdk-node/interfaces/DAppMultisigParams",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "DAppLiquidityParams",
+    "permalink": "/api/totemsdk-node/interfaces/DAppLiquidityParams"
+  },
+  "next": {
+    "title": "DAppStateVariable",
+    "permalink": "/api/totemsdk-node/interfaces/DAppStateVariable"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totem-sdk-browser/classes/LocalStorageAdapter",
+  "title": "LocalStorageAdapter",
+  "description": "@totem/sdk-browser",
+  "source": "@site/docs/api/totem-sdk-browser/classes/LocalStorageAdapter.md",
+  "sourceDirName": "api/totem-sdk-browser/classes",
+  "slug": "/api/totem-sdk-browser/classes/LocalStorageAdapter",
+  "permalink": "/api/totem-sdk-browser/classes/LocalStorageAdapter",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "InMemoryStorageAdapter",
+    "permalink": "/api/totem-sdk-browser/classes/InMemoryStorageAdapter"
+  },
+  "next": {
+    "title": "NoopLogger",
+    "permalink": "/api/totem-sdk-browser/classes/NoopLogger"
+  }
+}

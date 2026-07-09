@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/functions/getChannelReceipt",
+  "title": "getChannelReceipt",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/functions/getChannelReceipt.md",
+  "sourceDirName": "api/totemsdk-omnia/functions",
+  "slug": "/api/totemsdk-omnia/functions/getChannelReceipt",
+  "permalink": "/api/totemsdk-omnia/functions/getChannelReceipt",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "fulfillHTLC",
+    "permalink": "/api/totemsdk-omnia/functions/fulfillHTLC"
+  },
+  "next": {
+    "title": "markChannelClosed",
+    "permalink": "/api/totemsdk-omnia/functions/markChannelClosed"
+  }
+}

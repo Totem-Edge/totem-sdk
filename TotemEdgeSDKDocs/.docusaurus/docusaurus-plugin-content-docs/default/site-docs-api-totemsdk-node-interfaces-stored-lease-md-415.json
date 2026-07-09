@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/StoredLease",
+  "title": "StoredLease",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/StoredLease.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/StoredLease",
+  "permalink": "/api/totemsdk-node/interfaces/StoredLease",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "StorageAuthProviderOptions",
+    "permalink": "/api/totemsdk-node/interfaces/StorageAuthProviderOptions"
+  },
+  "next": {
+    "title": "SyncResult",
+    "permalink": "/api/totemsdk-node/interfaces/SyncResult"
+  }
+}

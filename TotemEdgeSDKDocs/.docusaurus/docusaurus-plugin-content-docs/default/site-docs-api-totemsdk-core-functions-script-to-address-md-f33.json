@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/scriptToAddress",
+  "title": "scriptToAddress",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/scriptToAddress.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/scriptToAddress",
+  "permalink": "/api/totemsdk-core/functions/scriptToAddress",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "scriptFromWotsPk",
+    "permalink": "/api/totemsdk-core/functions/scriptFromWotsPk"
+  },
+  "next": {
+    "title": "serializeCoin",
+    "permalink": "/api/totemsdk-core/functions/serializeCoin"
+  }
+}

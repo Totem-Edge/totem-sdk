@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-splice/classes/SpliceMissingPartyError",
+  "title": "SpliceMissingPartyError",
+  "description": "@totemsdk/omnia-splice",
+  "source": "@site/docs/api/totemsdk-omnia-splice/classes/SpliceMissingPartyError.md",
+  "sourceDirName": "api/totemsdk-omnia-splice/classes",
+  "slug": "/api/totemsdk-omnia-splice/classes/SpliceMissingPartyError",
+  "permalink": "/api/totemsdk-omnia-splice/classes/SpliceMissingPartyError",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "SpliceInsufficientFundsError",
+    "permalink": "/api/totemsdk-omnia-splice/classes/SpliceInsufficientFundsError"
+  },
+  "next": {
+    "title": "SpliceSignatureMismatchError",
+    "permalink": "/api/totemsdk-omnia-splice/classes/SpliceSignatureMismatchError"
+  }
+}

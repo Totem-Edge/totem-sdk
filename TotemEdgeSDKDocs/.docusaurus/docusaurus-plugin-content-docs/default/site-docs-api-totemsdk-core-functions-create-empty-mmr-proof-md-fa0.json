@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/createEmptyMMRProof",
+  "title": "createEmptyMMRProof",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/createEmptyMMRProof.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/createEmptyMMRProof",
+  "permalink": "/api/totemsdk-core/functions/createEmptyMMRProof",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "createDefaultTransaction",
+    "permalink": "/api/totemsdk-core/functions/createDefaultTransaction"
+  },
+  "next": {
+    "title": "createExchangeDescriptor",
+    "permalink": "/api/totemsdk-core/functions/createExchangeDescriptor"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-connect/type-aliases/TotemGetProviderStatusResponse",
+  "title": "TotemGetProviderStatusResponse",
+  "description": "@totemsdk/connect",
+  "source": "@site/docs/api/totemsdk-connect/type-aliases/TotemGetProviderStatusResponse.md",
+  "sourceDirName": "api/totemsdk-connect/type-aliases",
+  "slug": "/api/totemsdk-connect/type-aliases/TotemGetProviderStatusResponse",
+  "permalink": "/api/totemsdk-connect/type-aliases/TotemGetProviderStatusResponse",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TotemGetCoinsResponse",
+    "permalink": "/api/totemsdk-connect/type-aliases/TotemGetCoinsResponse"
+  },
+  "next": {
+    "title": "TotemGetTxPermissionsResponse",
+    "permalink": "/api/totemsdk-connect/type-aliases/TotemGetTxPermissionsResponse"
+  }
+}

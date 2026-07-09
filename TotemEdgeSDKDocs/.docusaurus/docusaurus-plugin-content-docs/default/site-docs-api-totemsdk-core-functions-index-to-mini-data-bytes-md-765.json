@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/indexToMiniDataBytes",
+  "title": "indexToMiniDataBytes",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/indexToMiniDataBytes.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/indexToMiniDataBytes",
+  "permalink": "/api/totemsdk-core/functions/indexToMiniDataBytes",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "hexToMx",
+    "permalink": "/api/totemsdk-core/functions/hexToMx"
+  },
+  "next": {
+    "title": "javaHashAllObjects",
+    "permalink": "/api/totemsdk-core/functions/javaHashAllObjects"
+  }
+}

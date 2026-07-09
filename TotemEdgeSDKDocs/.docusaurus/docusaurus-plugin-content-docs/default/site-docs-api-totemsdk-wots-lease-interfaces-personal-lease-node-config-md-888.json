@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-wots-lease/interfaces/PersonalLeaseNodeConfig",
+  "title": "PersonalLeaseNodeConfig",
+  "description": "@totemsdk/wots-lease",
+  "source": "@site/docs/api/totemsdk-wots-lease/interfaces/PersonalLeaseNodeConfig.md",
+  "sourceDirName": "api/totemsdk-wots-lease/interfaces",
+  "slug": "/api/totemsdk-wots-lease/interfaces/PersonalLeaseNodeConfig",
+  "permalink": "/api/totemsdk-wots-lease/interfaces/PersonalLeaseNodeConfig",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "LocalWatermark",
+    "permalink": "/api/totemsdk-wots-lease/interfaces/LocalWatermark"
+  },
+  "next": {
+    "title": "ReserveParams",
+    "permalink": "/api/totemsdk-wots-lease/interfaces/ReserveParams"
+  }
+}

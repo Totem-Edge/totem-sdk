@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-hyperswarm/interfaces/OmniaSwarmConfig",
+  "title": "OmniaSwarmConfig",
+  "description": "@totemsdk/omnia-hyperswarm",
+  "source": "@site/docs/api/totemsdk-omnia-hyperswarm/interfaces/OmniaSwarmConfig.md",
+  "sourceDirName": "api/totemsdk-omnia-hyperswarm/interfaces",
+  "slug": "/api/totemsdk-omnia-hyperswarm/interfaces/OmniaSwarmConfig",
+  "permalink": "/api/totemsdk-omnia-hyperswarm/interfaces/OmniaSwarmConfig",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "OmniaSwarm",
+    "permalink": "/api/totemsdk-omnia-hyperswarm/interfaces/OmniaSwarm"
+  },
+  "next": {
+    "title": "ChannelStore",
+    "permalink": "/api/totemsdk-omnia-hyperswarm/type-aliases/ChannelStore"
+  }
+}

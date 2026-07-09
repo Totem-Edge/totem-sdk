@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/MMRProofChunk",
+  "title": "MMRProofChunk",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/MMRProofChunk.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/MMRProofChunk",
+  "permalink": "/api/totemsdk-core/interfaces/MMRProofChunk",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "MMRProof",
+    "permalink": "/api/totemsdk-core/interfaces/MMRProof"
+  },
+  "next": {
+    "title": "MetricsAdapter",
+    "permalink": "/api/totemsdk-core/interfaces/MetricsAdapter"
+  }
+}

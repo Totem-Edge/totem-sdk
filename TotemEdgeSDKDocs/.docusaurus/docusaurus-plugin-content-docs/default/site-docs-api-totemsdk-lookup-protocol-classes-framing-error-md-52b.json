@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-lookup-protocol/classes/FramingError",
+  "title": "FramingError",
+  "description": "@totemsdk/lookup-protocol",
+  "source": "@site/docs/api/totemsdk-lookup-protocol/classes/FramingError.md",
+  "sourceDirName": "api/totemsdk-lookup-protocol/classes",
+  "slug": "/api/totemsdk-lookup-protocol/classes/FramingError",
+  "permalink": "/api/totemsdk-lookup-protocol/classes/FramingError",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TrustRow",
+    "permalink": "/api/totemsdk-lookup-node/interfaces/TrustRow"
+  },
+  "next": {
+    "title": "checkVersion",
+    "permalink": "/api/totemsdk-lookup-protocol/functions/checkVersion"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/classes/TreeKeyNode",
+  "title": "TreeKeyNode",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/classes/TreeKeyNode.md",
+  "sourceDirName": "api/totemsdk-node/classes",
+  "slug": "/api/totemsdk-node/classes/TreeKeyNode",
+  "permalink": "/api/totemsdk-node/classes/TreeKeyNode",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TreeKey",
+    "permalink": "/api/totemsdk-node/classes/TreeKey"
+  },
+  "next": {
+    "title": "VaultHelper",
+    "permalink": "/api/totemsdk-node/classes/VaultHelper"
+  }
+}

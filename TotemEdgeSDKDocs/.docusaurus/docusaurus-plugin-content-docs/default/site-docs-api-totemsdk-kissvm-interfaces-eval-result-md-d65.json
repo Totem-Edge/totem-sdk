@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-kissvm/interfaces/EvalResult",
+  "title": "EvalResult",
+  "description": "@totemsdk/kissvm",
+  "source": "@site/docs/api/totemsdk-kissvm/interfaces/EvalResult.md",
+  "sourceDirName": "api/totemsdk-kissvm/interfaces",
+  "slug": "/api/totemsdk-kissvm/interfaces/EvalResult",
+  "permalink": "/api/totemsdk-kissvm/interfaces/EvalResult",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "CoinData",
+    "permalink": "/api/totemsdk-kissvm/interfaces/CoinData"
+  },
+  "next": {
+    "title": "OutputData",
+    "permalink": "/api/totemsdk-kissvm/interfaces/OutputData"
+  }
+}

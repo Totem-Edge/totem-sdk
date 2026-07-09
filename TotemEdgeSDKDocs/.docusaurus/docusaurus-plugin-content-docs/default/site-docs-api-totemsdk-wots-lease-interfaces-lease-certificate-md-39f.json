@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-wots-lease/interfaces/LeaseCertificate",
+  "title": "LeaseCertificate",
+  "description": "@totemsdk/wots-lease",
+  "source": "@site/docs/api/totemsdk-wots-lease/interfaces/LeaseCertificate.md",
+  "sourceDirName": "api/totemsdk-wots-lease/interfaces",
+  "slug": "/api/totemsdk-wots-lease/interfaces/LeaseCertificate",
+  "permalink": "/api/totemsdk-wots-lease/interfaces/LeaseCertificate",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "JournalEntry",
+    "permalink": "/api/totemsdk-wots-lease/interfaces/JournalEntry"
+  },
+  "next": {
+    "title": "LeaseReservation",
+    "permalink": "/api/totemsdk-wots-lease/interfaces/LeaseReservation"
+  }
+}

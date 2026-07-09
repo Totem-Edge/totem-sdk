@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-lookup-protocol/index",
+  "title": "index",
+  "description": "@totemsdk/lookup-protocol",
+  "source": "@site/docs/api/totemsdk-lookup-protocol/index.md",
+  "sourceDirName": "api/totemsdk-lookup-protocol",
+  "slug": "/api/totemsdk-lookup-protocol/",
+  "permalink": "/api/totemsdk-lookup-protocol/",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "verifyMessageAuth",
+    "permalink": "/api/totemsdk-lookup-protocol/functions/verifyMessageAuth"
+  },
+  "next": {
+    "title": "AgentAnnounceMessage",
+    "permalink": "/api/totemsdk-lookup-protocol/interfaces/AgentAnnounceMessage"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/MMRProof",
+  "title": "MMRProof",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/MMRProof.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/MMRProof",
+  "permalink": "/api/totemsdk-core/interfaces/MMRProof",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "MMREntry",
+    "permalink": "/api/totemsdk-core/interfaces/MMREntry"
+  },
+  "next": {
+    "title": "MMRProofChunk",
+    "permalink": "/api/totemsdk-core/interfaces/MMRProofChunk"
+  }
+}

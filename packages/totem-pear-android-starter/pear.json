@@ -1,0 +1,9 @@
+{
+  "name": "totem-edge-android",
+  "type": "terminal",
+  "channel": "stable",
+  "links": [],
+  "flags": {
+    "android": true
+  }
+}

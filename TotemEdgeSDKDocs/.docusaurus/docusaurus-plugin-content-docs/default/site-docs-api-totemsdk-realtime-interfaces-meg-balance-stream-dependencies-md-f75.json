@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-realtime/interfaces/MegBalanceStreamDependencies",
+  "title": "MegBalanceStreamDependencies",
+  "description": "@totemsdk/realtime",
+  "source": "@site/docs/api/totemsdk-realtime/interfaces/MegBalanceStreamDependencies.md",
+  "sourceDirName": "api/totemsdk-realtime/interfaces",
+  "slug": "/api/totemsdk-realtime/interfaces/MegBalanceStreamDependencies",
+  "permalink": "/api/totemsdk-realtime/interfaces/MegBalanceStreamDependencies",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "CachedBalance",
+    "permalink": "/api/totemsdk-realtime/interfaces/CachedBalance"
+  },
+  "next": {
+    "title": "TxConfirmationEvent",
+    "permalink": "/api/totemsdk-realtime/interfaces/TxConfirmationEvent"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/createFlashCashDescriptor",
+  "title": "createFlashCashDescriptor",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/createFlashCashDescriptor.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/createFlashCashDescriptor",
+  "permalink": "/api/totemsdk-node/functions/createFlashCashDescriptor",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "createExchangeDescriptor",
+    "permalink": "/api/totemsdk-node/functions/createExchangeDescriptor"
+  },
+  "next": {
+    "title": "createHTLCDescriptor",
+    "permalink": "/api/totemsdk-node/functions/createHTLCDescriptor"
+  }
+}

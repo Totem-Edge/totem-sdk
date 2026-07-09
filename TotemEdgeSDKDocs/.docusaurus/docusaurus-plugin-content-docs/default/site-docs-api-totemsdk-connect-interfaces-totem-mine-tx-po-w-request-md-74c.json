@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-connect/interfaces/TotemMineTxPoWRequest",
+  "title": "TotemMineTxPoWRequest",
+  "description": "@totemsdk/connect",
+  "source": "@site/docs/api/totemsdk-connect/interfaces/TotemMineTxPoWRequest.md",
+  "sourceDirName": "api/totemsdk-connect/interfaces",
+  "slug": "/api/totemsdk-connect/interfaces/TotemMineTxPoWRequest",
+  "permalink": "/api/totemsdk-connect/interfaces/TotemMineTxPoWRequest",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TotemKissvmValidateResponse",
+    "permalink": "/api/totemsdk-connect/interfaces/TotemKissvmValidateResponse"
+  },
+  "next": {
+    "title": "TotemMineTxPoWResponse",
+    "permalink": "/api/totemsdk-connect/interfaces/TotemMineTxPoWResponse"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/AdapterRegistry",
+  "title": "AdapterRegistry",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/AdapterRegistry.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/AdapterRegistry",
+  "permalink": "/api/totemsdk-node/interfaces/AdapterRegistry",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "index",
+    "permalink": "/api/totemsdk-node/"
+  },
+  "next": {
+    "title": "AuthTokenProvider",
+    "permalink": "/api/totemsdk-node/interfaces/AuthTokenProvider"
+  }
+}

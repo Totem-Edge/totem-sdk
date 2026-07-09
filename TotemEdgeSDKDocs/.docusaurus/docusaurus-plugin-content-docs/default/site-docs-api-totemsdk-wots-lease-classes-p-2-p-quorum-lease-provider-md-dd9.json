@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-wots-lease/classes/P2PQuorumLeaseProvider",
+  "title": "P2PQuorumLeaseProvider",
+  "description": "@totemsdk/wots-lease",
+  "source": "@site/docs/api/totemsdk-wots-lease/classes/P2PQuorumLeaseProvider.md",
+  "sourceDirName": "api/totemsdk-wots-lease/classes",
+  "slug": "/api/totemsdk-wots-lease/classes/P2PQuorumLeaseProvider",
+  "permalink": "/api/totemsdk-wots-lease/classes/P2PQuorumLeaseProvider",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "OnchainWatermarkProvider",
+    "permalink": "/api/totemsdk-wots-lease/classes/OnchainWatermarkProvider"
+  },
+  "next": {
+    "title": "P2PQuorumNotImplementedError",
+    "permalink": "/api/totemsdk-wots-lease/classes/P2PQuorumNotImplementedError"
+  }
+}

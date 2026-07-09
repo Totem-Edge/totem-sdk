@@ -1,0 +1,28 @@
+{
+  "id": "guides/kissvm-studio",
+  "title": "KISSVM Studio",
+  "description": "Local developer IDE for writing and simulating KISSVM scripts with a policy safety linter.",
+  "source": "@site/docs/guides/kissvm-studio.md",
+  "sourceDirName": "guides",
+  "slug": "/guides/kissvm-studio",
+  "permalink": "/guides/kissvm-studio",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "id": "kissvm-studio",
+    "title": "KISSVM Studio",
+    "sidebar_label": "KISSVM Studio",
+    "description": "Local developer IDE for writing and simulating KISSVM scripts with a policy safety linter."
+  },
+  "sidebar": "guidesSidebar",
+  "previous": {
+    "title": "Totem Personal Node",
+    "permalink": "/guides/totem-personal-node"
+  },
+  "next": {
+    "title": "Statechain Pass",
+    "permalink": "/guides/statechain-pass"
+  }
+}

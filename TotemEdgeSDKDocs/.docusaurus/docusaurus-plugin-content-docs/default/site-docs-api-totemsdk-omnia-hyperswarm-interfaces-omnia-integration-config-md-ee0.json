@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-hyperswarm/interfaces/OmniaIntegrationConfig",
+  "title": "OmniaIntegrationConfig",
+  "description": "@totemsdk/omnia-hyperswarm",
+  "source": "@site/docs/api/totemsdk-omnia-hyperswarm/interfaces/OmniaIntegrationConfig.md",
+  "sourceDirName": "api/totemsdk-omnia-hyperswarm/interfaces",
+  "slug": "/api/totemsdk-omnia-hyperswarm/interfaces/OmniaIntegrationConfig",
+  "permalink": "/api/totemsdk-omnia-hyperswarm/interfaces/OmniaIntegrationConfig",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "IDuplexStream",
+    "permalink": "/api/totemsdk-omnia-hyperswarm/interfaces/IDuplexStream"
+  },
+  "next": {
+    "title": "OmniaMessage",
+    "permalink": "/api/totemsdk-omnia-hyperswarm/interfaces/OmniaMessage"
+  }
+}

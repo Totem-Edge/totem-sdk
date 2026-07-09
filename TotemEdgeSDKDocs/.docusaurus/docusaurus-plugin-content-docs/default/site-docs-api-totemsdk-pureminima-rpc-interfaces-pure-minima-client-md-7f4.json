@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-pureminima-rpc/interfaces/PureMinimaClient",
+  "title": "PureMinimaClient",
+  "description": "@totemsdk/pureminima-rpc",
+  "source": "@site/docs/api/totemsdk-pureminima-rpc/interfaces/PureMinimaClient.md",
+  "sourceDirName": "api/totemsdk-pureminima-rpc/interfaces",
+  "slug": "/api/totemsdk-pureminima-rpc/interfaces/PureMinimaClient",
+  "permalink": "/api/totemsdk-pureminima-rpc/interfaces/PureMinimaClient",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "NodeStatus",
+    "permalink": "/api/totemsdk-pureminima-rpc/interfaces/NodeStatus"
+  },
+  "next": {
+    "title": "PureMinimaConfig",
+    "permalink": "/api/totemsdk-pureminima-rpc/interfaces/PureMinimaConfig"
+  }
+}

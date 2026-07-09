@@ -1,0 +1,131 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minima-sim-eu-1
+  labels: { app: minima-sim, region: eu-west, nodeType: rpc }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: minima-sim, instance: eu-1 } }
+  template:
+    metadata:
+      labels: { app: minima-sim, instance: eu-1, region: eu-west, nodeType: rpc }
+    spec:
+      containers:
+      - name: sim
+        image: ghcr.io/yourorg/minima-sim:latest
+        ports: [{ containerPort: 9005, name: http }]
+        env:
+        - { name: PORT, value: "9005" }
+        - { name: SIM_SCENARIO, value: "/scenarios/eu-west-bursty.yaml" }
+        volumeMounts:
+        - { name: scenarios, mountPath: /scenarios }
+      volumes:
+      - name: scenarios
+        configMap:
+          name: minima-sim-scenarios
+---
+apiVersion: v1
+kind: Service
+metadata: { name: minima-sim-eu-1 }
+spec:
+  selector: { app: minima-sim, instance: eu-1 }
+  ports: [{ name: http, port: 80, targetPort: 9005 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minima-sim-us-1
+  labels: { app: minima-sim, region: us-east, nodeType: rpc }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: minima-sim, instance: us-1 } }
+  template:
+    metadata:
+      labels: { app: minima-sim, instance: us-1, region: us-east, nodeType: rpc }
+    spec:
+      containers:
+      - name: sim
+        image: ghcr.io/yourorg/minima-sim:latest
+        ports: [{ containerPort: 9006, name: http }]
+        env:
+        - { name: PORT, value: "9006" }
+        - { name: SIM_SCENARIO, value: "/scenarios/us-east-stable.yaml" }
+        volumeMounts:
+        - { name: scenarios, mountPath: /scenarios }
+      volumes:
+      - name: scenarios
+        configMap:
+          name: minima-sim-scenarios
+---
+apiVersion: v1
+kind: Service
+metadata: { name: minima-sim-us-1 }
+spec:
+  selector: { app: minima-sim, instance: us-1 }
+  ports: [{ name: http, port: 80, targetPort: 9006 }]
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: minima-sim-scenarios
+data:
+  eu-west-bursty.yaml: |
+    name: "eu-west-rpc-bursty"
+    region: "eu-west"
+    nodeType: "rpc"
+    healthScore: 100
+    responseShape: "flaky"
+    rules:
+      - match: "status"
+        baseLatencyMs: 40
+        jitterMs: 20
+        errorRate: 0.01
+      - match: "send"
+        baseLatencyMs: 120
+        jitterMs: 60
+        errorRate: 0.05
+      - match: "*"
+        baseLatencyMs: 80
+        jitterMs: 40
+        errorRate: 0.02
+    timeline:
+      - atSec: 120
+        set:
+          forMatch: "*"
+          baseLatencyMs: 300
+          jitterMs: 120
+          errorRate: 0.08
+      - atSec: 240
+        set:
+          forMatch: "status"
+          errorRate: 0.2
+          failure: "http500"
+      - atSec: 300
+        set:
+          forMatch: "*"
+          baseLatencyMs: 80
+          jitterMs: 30
+          errorRate: 0.01
+  us-east-stable.yaml: |
+    name: "us-east-rpc-stable"
+    region: "us-east"
+    nodeType: "rpc"
+    healthScore: 98
+    responseShape: "ok"
+    rules:
+      - match: "status"
+        baseLatencyMs: 25
+        jitterMs: 5
+        errorRate: 0.001
+      - match: "balance"
+        baseLatencyMs: 35
+        jitterMs: 10
+        errorRate: 0.002
+      - match: "send"
+        baseLatencyMs: 200
+        jitterMs: 50
+        errorRate: 0.01
+      - match: "*"
+        baseLatencyMs: 50
+        jitterMs: 15
+        errorRate: 0.005

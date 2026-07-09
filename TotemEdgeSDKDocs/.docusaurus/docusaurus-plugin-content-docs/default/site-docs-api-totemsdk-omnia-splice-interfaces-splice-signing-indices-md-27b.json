@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-splice/interfaces/SpliceSigningIndices",
+  "title": "SpliceSigningIndices",
+  "description": "@totemsdk/omnia-splice",
+  "source": "@site/docs/api/totemsdk-omnia-splice/interfaces/SpliceSigningIndices.md",
+  "sourceDirName": "api/totemsdk-omnia-splice/interfaces",
+  "slug": "/api/totemsdk-omnia-splice/interfaces/SpliceSigningIndices",
+  "permalink": "/api/totemsdk-omnia-splice/interfaces/SpliceSigningIndices",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "SpliceProposal",
+    "permalink": "/api/totemsdk-omnia-splice/interfaces/SpliceProposal"
+  },
+  "next": {
+    "title": "SpliceTxDraft",
+    "permalink": "/api/totemsdk-omnia-splice/interfaces/SpliceTxDraft"
+  }
+}

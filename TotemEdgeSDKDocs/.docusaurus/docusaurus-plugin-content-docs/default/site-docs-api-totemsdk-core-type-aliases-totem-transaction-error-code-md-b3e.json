@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/type-aliases/TotemTransactionErrorCode",
+  "title": "TotemTransactionErrorCode",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/type-aliases/TotemTransactionErrorCode.md",
+  "sourceDirName": "api/totemsdk-core/type-aliases",
+  "slug": "/api/totemsdk-core/type-aliases/TotemTransactionErrorCode",
+  "permalink": "/api/totemsdk-core/type-aliases/TotemTransactionErrorCode",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TimerHandle",
+    "permalink": "/api/totemsdk-core/type-aliases/TimerHandle"
+  },
+  "next": {
+    "title": "WebSocketEventMap",
+    "permalink": "/api/totemsdk-core/type-aliases/WebSocketEventMap"
+  }
+}

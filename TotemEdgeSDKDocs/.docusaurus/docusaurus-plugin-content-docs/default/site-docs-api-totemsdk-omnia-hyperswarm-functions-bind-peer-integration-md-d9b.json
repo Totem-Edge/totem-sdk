@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-hyperswarm/functions/bindPeerIntegration",
+  "title": "bindPeerIntegration",
+  "description": "@totemsdk/omnia-hyperswarm",
+  "source": "@site/docs/api/totemsdk-omnia-hyperswarm/functions/bindPeerIntegration.md",
+  "sourceDirName": "api/totemsdk-omnia-hyperswarm/functions",
+  "slug": "/api/totemsdk-omnia-hyperswarm/functions/bindPeerIntegration",
+  "permalink": "/api/totemsdk-omnia-hyperswarm/functions/bindPeerIntegration",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "OmniaSwarmImpl",
+    "permalink": "/api/totemsdk-omnia-hyperswarm/classes/OmniaSwarmImpl"
+  },
+  "next": {
+    "title": "broadcastTopic",
+    "permalink": "/api/totemsdk-omnia-hyperswarm/functions/broadcastTopic"
+  }
+}

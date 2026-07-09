@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-lookup-protocol/interfaces/AgentResultMessage",
+  "title": "AgentResultMessage",
+  "description": "@totemsdk/lookup-protocol",
+  "source": "@site/docs/api/totemsdk-lookup-protocol/interfaces/AgentResultMessage.md",
+  "sourceDirName": "api/totemsdk-lookup-protocol/interfaces",
+  "slug": "/api/totemsdk-lookup-protocol/interfaces/AgentResultMessage",
+  "permalink": "/api/totemsdk-lookup-protocol/interfaces/AgentResultMessage",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "AgentQueryMessage",
+    "permalink": "/api/totemsdk-lookup-protocol/interfaces/AgentQueryMessage"
+  },
+  "next": {
+    "title": "AppAnnounceMessage",
+    "permalink": "/api/totemsdk-lookup-protocol/interfaces/AppAnnounceMessage"
+  }
+}

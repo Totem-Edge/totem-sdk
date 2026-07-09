@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-pear/functions/defaultSwarmConfig",
+  "title": "defaultSwarmConfig",
+  "description": "@totemsdk/pear",
+  "source": "@site/docs/api/totemsdk-pear/functions/defaultSwarmConfig.md",
+  "sourceDirName": "api/totemsdk-pear/functions",
+  "slug": "/api/totemsdk-pear/functions/defaultSwarmConfig",
+  "permalink": "/api/totemsdk-pear/functions/defaultSwarmConfig",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "createPearApp",
+    "permalink": "/api/totemsdk-pear/functions/createPearApp"
+  },
+  "next": {
+    "title": "loadConfig",
+    "permalink": "/api/totemsdk-pear/functions/loadConfig"
+  }
+}

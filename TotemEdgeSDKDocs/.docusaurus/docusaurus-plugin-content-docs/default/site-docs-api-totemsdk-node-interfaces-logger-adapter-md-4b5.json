@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/LoggerAdapter",
+  "title": "LoggerAdapter",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/LoggerAdapter.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/LoggerAdapter",
+  "permalink": "/api/totemsdk-node/interfaces/LoggerAdapter",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "LifecycleAdapter",
+    "permalink": "/api/totemsdk-node/interfaces/LifecycleAdapter"
+  },
+  "next": {
+    "title": "MMRData",
+    "permalink": "/api/totemsdk-node/interfaces/MMRData"
+  }
+}

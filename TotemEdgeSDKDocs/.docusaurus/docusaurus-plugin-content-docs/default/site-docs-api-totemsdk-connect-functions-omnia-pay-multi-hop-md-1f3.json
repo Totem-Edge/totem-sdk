@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-connect/functions/omniaPayMultiHop",
+  "title": "omniaPayMultiHop",
+  "description": "@totemsdk/connect",
+  "source": "@site/docs/api/totemsdk-connect/functions/omniaPayMultiHop.md",
+  "sourceDirName": "api/totemsdk-connect/functions",
+  "slug": "/api/totemsdk-connect/functions/omniaPayMultiHop",
+  "permalink": "/api/totemsdk-connect/functions/omniaPayMultiHop",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "omniaPay",
+    "permalink": "/api/totemsdk-connect/functions/omniaPay"
+  },
+  "next": {
+    "title": "omniaSettle",
+    "permalink": "/api/totemsdk-connect/functions/omniaSettle"
+  }
+}

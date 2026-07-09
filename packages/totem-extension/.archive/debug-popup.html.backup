@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Totem Debug</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #1a1a1a;
+      color: white;
+      font-family: monospace;
+    }
+    .status { color: #4ade80; margin: 10px 0; }
+    .error { color: #f87171; }
+  </style>
+</head>
+<body>
+  <h1>🔍 Totem Debug Panel</h1>
+  <div class="status">✓ HTML Loaded</div>
+  <div class="status" id="js-status">⏳ JavaScript Loading...</div>
+  <div class="status" id="chrome-status">⏳ Chrome API...</div>
+  <div id="root" style="margin-top: 20px; padding: 20px; background: #2a2a2a;">
+    <div>Root div exists</div>
+  </div>
+
+  <script>
+    // Mock Chrome Extension API - MUST run first
+    window.chrome = {
+      runtime: {
+        id: 'totem-dev-extension-id',
+        sendMessage: function(message, callback) {
+          console.log('[Mock Chrome] sendMessage:', message);
+          setTimeout(() => {
+            callback && callback({ result: { ok: true } });
+          }, 100);
+        }
+      },
+      storage: {
+        local: {
+          get: function(keys, callback) {
+            console.log('[Mock Chrome] storage.get:', keys);
+            callback && callback({});
+          },
+          set: function(items, callback) {
+            console.log('[Mock Chrome] storage.set:', items);
+            callback && callback();
+          }
+        }
+      }
+    };
+    window.browser = window.chrome;
+    console.log('[Totem Debug] Mock Chrome API initialized');
+
+    console.log('[Totem Debug] Script running');
+    document.getElementById('js-status').innerHTML = '✓ JavaScript Working';
+    
+    // Check Chrome API
+    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id) {
+      document.getElementById('chrome-status').innerHTML = '✓ Chrome API: ' + chrome.runtime.id;
+      console.log('[Totem Debug] Chrome API OK:', chrome.runtime.id);
+    } else {
+      document.getElementById('chrome-status').innerHTML = '✗ Chrome API Missing';
+      document.getElementById('chrome-status').className = 'error';
+      console.error('[Totem Debug] Chrome API not found');
+    }
+
+    // Try to load React app info
+    setTimeout(() => {
+      const info = document.createElement('div');
+      info.className = 'status';
+      info.innerHTML = '📦 Ready to load React app';
+      document.body.appendChild(info);
+    }, 500);
+  </script>
+</body>
+</html>

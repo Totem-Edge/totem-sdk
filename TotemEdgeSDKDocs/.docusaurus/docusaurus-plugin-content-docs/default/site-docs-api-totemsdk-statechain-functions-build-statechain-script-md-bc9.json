@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-statechain/functions/buildStatechainScript",
+  "title": "buildStatechainScript",
+  "description": "@totemsdk/statechain",
+  "source": "@site/docs/api/totemsdk-statechain/functions/buildStatechainScript.md",
+  "sourceDirName": "api/totemsdk-statechain/functions",
+  "slug": "/api/totemsdk-statechain/functions/buildStatechainScript",
+  "permalink": "/api/totemsdk-statechain/functions/buildStatechainScript",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "Value",
+    "permalink": "/api/totemsdk-kissvm/type-aliases/Value"
+  },
+  "next": {
+    "title": "claimOwnership",
+    "permalink": "/api/totemsdk-statechain/functions/claimOwnership"
+  }
+}

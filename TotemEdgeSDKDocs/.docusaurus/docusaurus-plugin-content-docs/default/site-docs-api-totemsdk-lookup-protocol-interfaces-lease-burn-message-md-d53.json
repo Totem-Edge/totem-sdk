@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-lookup-protocol/interfaces/LeaseBurnMessage",
+  "title": "LeaseBurnMessage",
+  "description": "@totemsdk/lookup-protocol",
+  "source": "@site/docs/api/totemsdk-lookup-protocol/interfaces/LeaseBurnMessage.md",
+  "sourceDirName": "api/totemsdk-lookup-protocol/interfaces",
+  "slug": "/api/totemsdk-lookup-protocol/interfaces/LeaseBurnMessage",
+  "permalink": "/api/totemsdk-lookup-protocol/interfaces/LeaseBurnMessage",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "HelloMessage",
+    "permalink": "/api/totemsdk-lookup-protocol/interfaces/HelloMessage"
+  },
+  "next": {
+    "title": "LeaseCommitMessage",
+    "permalink": "/api/totemsdk-lookup-protocol/interfaces/LeaseCommitMessage"
+  }
+}

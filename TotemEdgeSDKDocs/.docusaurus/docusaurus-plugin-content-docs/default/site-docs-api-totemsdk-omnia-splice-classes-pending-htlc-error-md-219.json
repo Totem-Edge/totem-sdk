@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-splice/classes/PendingHTLCError",
+  "title": "PendingHTLCError",
+  "description": "@totemsdk/omnia-splice",
+  "source": "@site/docs/api/totemsdk-omnia-splice/classes/PendingHTLCError.md",
+  "sourceDirName": "api/totemsdk-omnia-splice/classes",
+  "slug": "/api/totemsdk-omnia-splice/classes/PendingHTLCError",
+  "permalink": "/api/totemsdk-omnia-splice/classes/PendingHTLCError",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "LeaseProvider",
+    "permalink": "/api/totemsdk-omnia-router/type-aliases/LeaseProvider"
+  },
+  "next": {
+    "title": "SpliceBalanceConservationError",
+    "permalink": "/api/totemsdk-omnia-splice/classes/SpliceBalanceConservationError"
+  }
+}

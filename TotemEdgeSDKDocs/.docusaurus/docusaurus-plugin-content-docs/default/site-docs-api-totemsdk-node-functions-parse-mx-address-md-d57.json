@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/parseMxAddress",
+  "title": "parseMxAddress",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/parseMxAddress.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/parseMxAddress",
+  "permalink": "/api/totemsdk-node/functions/parseMxAddress",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "parseMMRProofFromHex",
+    "permalink": "/api/totemsdk-node/functions/parseMMRProofFromHex"
+  },
+  "next": {
+    "title": "phraseToSeed",
+    "permalink": "/api/totemsdk-node/functions/phraseToSeed"
+  }
+}

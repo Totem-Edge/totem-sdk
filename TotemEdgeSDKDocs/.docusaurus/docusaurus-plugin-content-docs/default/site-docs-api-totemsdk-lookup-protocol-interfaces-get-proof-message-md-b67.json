@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-lookup-protocol/interfaces/GetProofMessage",
+  "title": "GetProofMessage",
+  "description": "@totemsdk/lookup-protocol",
+  "source": "@site/docs/api/totemsdk-lookup-protocol/interfaces/GetProofMessage.md",
+  "sourceDirName": "api/totemsdk-lookup-protocol/interfaces",
+  "slug": "/api/totemsdk-lookup-protocol/interfaces/GetProofMessage",
+  "permalink": "/api/totemsdk-lookup-protocol/interfaces/GetProofMessage",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "GetCoinsMessage",
+    "permalink": "/api/totemsdk-lookup-protocol/interfaces/GetCoinsMessage"
+  },
+  "next": {
+    "title": "GetTipMessage",
+    "permalink": "/api/totemsdk-lookup-protocol/interfaces/GetTipMessage"
+  }
+}

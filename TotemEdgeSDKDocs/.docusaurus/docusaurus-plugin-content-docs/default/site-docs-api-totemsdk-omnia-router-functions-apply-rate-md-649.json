@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-router/functions/applyRate",
+  "title": "applyRate",
+  "description": "@totemsdk/omnia-router",
+  "source": "@site/docs/api/totemsdk-omnia-router/functions/applyRate.md",
+  "sourceDirName": "api/totemsdk-omnia-router/functions",
+  "slug": "/api/totemsdk-omnia-router/functions/applyRate",
+  "permalink": "/api/totemsdk-omnia-router/functions/applyRate",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "announceSwap",
+    "permalink": "/api/totemsdk-omnia-router/functions/announceSwap"
+  },
+  "next": {
+    "title": "buildCrossTokenRequest",
+    "permalink": "/api/totemsdk-omnia-router/functions/buildCrossTokenRequest"
+  }
+}

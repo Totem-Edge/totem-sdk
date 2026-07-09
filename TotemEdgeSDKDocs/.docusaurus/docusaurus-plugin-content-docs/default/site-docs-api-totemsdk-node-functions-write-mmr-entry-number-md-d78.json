@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/writeMMREntryNumber",
+  "title": "writeMMREntryNumber",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/writeMMREntryNumber.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/writeMMREntryNumber",
+  "permalink": "/api/totemsdk-node/functions/writeMMREntryNumber",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "writeHashToStream",
+    "permalink": "/api/totemsdk-node/functions/writeHashToStream"
+  },
+  "next": {
+    "title": "writeMiniByte",
+    "permalink": "/api/totemsdk-node/functions/writeMiniByte"
+  }
+}

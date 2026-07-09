@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Totem Extension Demo</title>
+    <link rel="stylesheet" href="./dist/styles.css">
+    <style>
+        body { 
+            margin: 20px; 
+            background: #0b1220; 
+            color: white; 
+            font-family: system-ui, sans-serif; 
+        }
+        .demo-section { 
+            max-width: 800px; 
+            margin: 0 auto 40px; 
+            padding: 20px; 
+            background: rgba(255,255,255,0.05); 
+            border: 1px solid rgba(255,255,255,0.1); 
+            border-radius: 8px; 
+        }
+        .extension-preview { 
+            width: 380px; 
+            height: 600px; 
+            border: 2px solid #333; 
+            border-radius: 12px; 
+            overflow: hidden; 
+            background: #0b1220; 
+        }
+        iframe { 
+            width: 100%; 
+            height: 100%; 
+            border: none; 
+        }
+        h1, h2 { color: #10b981; }
+        ul { margin-left: 20px; }
+        .feature { margin-bottom: 8px; }
+        .highlight { color: #34d399; }
+        
+        /* Tab Styles */
+        .tab-container {
+            margin-top: 20px;
+        }
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-bottom: none;
+            color: #888;
+            transition: all 0.3s ease;
+        }
+        .tab:hover {
+            background: rgba(255,255,255,0.1);
+            color: #ccc;
+        }
+        .tab.active {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            border-color: #10b981;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Testing Section Styles */
+        .test-section {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+        .test-button {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px 10px 5px 0;
+            transition: background 0.3s ease;
+        }
+        .test-button:hover {
+            background: #059669;
+        }
+        .test-button:disabled {
+            background: #374151;
+            color: #6b7280;
+            cursor: not-allowed;
+        }
+        .status {
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        .status.success {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            border: 1px solid #10b981;
+        }
+        .status.error {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border: 1px solid #ef4444;
+        }
+        .status.info {
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+            border: 1px solid #3b82f6;
+        }
+        .json-output {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-section">
+        <h1><img src="icons/logo.png" style="width: 32px; height: 32px; vertical-align: middle; margin-right: 8px; border-radius: 4px;" alt="Totem"> Totem Browser Extension</h1>
+        <p>A complete cryptographic wallet extension for the Minima blockchain, implementing WOTS signatures (w=8 parameter, 90-element signatures) with hierarchical tree key management.</p>
+        
+        <div class="tab-container">
+            <div class="tabs">
+                <div class="tab active" onclick="showTab('overview')">Overview</div>
+                <div class="tab" onclick="showTab('test')">Test Extension</div>
+            </div>
+            
+            <div id="overview" class="tab-content active">
+                <h2>Key Features</h2>
+        <ul>
+            <li class="feature"><span class="highlight">WOTS Cryptography:</span> Quantum-resistant signatures (w=8 parameter) with 3-level hierarchical trees</li>
+            <li class="feature"><span class="highlight">Secure Keystore:</span> PBKDF2 + AES-GCM encryption with password protection</li>
+            <li class="feature"><span class="highlight">BIP39 Support:</span> Standard mnemonic seed phrase generation and import</li>
+            <li class="feature"><span class="highlight">Transaction Approval:</span> Complete transaction review with decoded inputs/outputs</li>
+            <li class="feature"><span class="highlight">Witness Building:</span> Automatic cryptographic proof generation for blockchain submission</li>
+            <li class="feature"><span class="highlight">Network Integration:</span> MEG Wallet and Axia API connectivity</li>
+        </ul>
+
+        <h2>Transaction Approval Flow</h2>
+        <ul>
+            <li class="feature">Decode transaction inputs and outputs with address validation</li>
+            <li class="feature">Display burn fees and network costs clearly</li>
+            <li class="feature">Show complete JSON witness data for transparency</li>
+            <li class="feature">Secure leaf reservation with mutex protection</li>
+            <li class="feature">Generate cryptographic proofs and submit to blockchain</li>
+        </ul>
+
+        <h2>Technical Implementation</h2>
+        <ul>
+            <li class="feature"><span class="highlight">TypeScript:</span> Fully typed codebase with comprehensive error handling</li>
+            <li class="feature"><span class="highlight">React UI:</span> Modern popup interface with dark theme</li>
+            <li class="feature"><span class="highlight">Webpack Build:</span> Optimized extension bundling with multiple entry points</li>
+            <li class="feature"><span class="highlight">Chrome Extension API:</span> Background scripts, content scripts, and popup integration</li>
+            <li class="feature"><span class="highlight">Provider API:</span> Standard wallet methods for dApp integration</li>
+        </ul>
+
+        <h2>Extension Components</h2>
+        <div style="margin: 20px 0;">
+            <div class="extension-preview">
+                <div style="padding: 20px; text-align: center;">
+                    <h3>Totem Extension</h3>
+                    <img src="icons/logo.png" style="width: 64px; height: 64px; margin: 10px auto; display: block; border-radius: 8px;" alt="Totem Logo">
+                    <p>✅ popup.js (425 KB) - Main wallet interface with animated logo</p>
+                    <p>✅ notify.js (189 KB) - Transaction approval dialog</p>
+                    <p>✅ background.js (32.5 KB) - Service worker</p>
+                    <p>✅ content-script.js (1.8 KB) - Page injection</p>
+                    <p>✅ manifest.json - Extension configuration with logo icons</p>
+                    <p>✅ icons/ - Green mask logo in multiple sizes (16px, 48px, 128px)</p>
+                    
+                    <div style="margin-top: 30px; padding: 15px; background: rgba(59, 130, 246, 0.1); border-radius: 8px;">
+                        <h4>🎯 Ready for Installation</h4>
+                        <p>Load the <code>dist/</code> folder as an unpacked extension in Chrome to test the complete Totem experience.</p>
+                    </div>
+
+                    <div style="margin-top: 20px; padding: 15px; background: rgba(34, 197, 94, 0.1); border-radius: 8px;">
+                        <h4>✅ Successfully Built</h4>
+                        <p>All TypeScript compilation errors resolved and extension ready for deployment.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+            </div>
+
+            <div id="test" class="tab-content">
+                <h2>Interactive Extension Testing</h2>
+                <p>Test the Totem extension directly in your browser. Make sure you have loaded the extension first!</p>
+                
+                <div class="test-section">
+                    <h3>Extension Detection</h3>
+                    <button class="test-button" onclick="testExtensionDetection()">Check Extension</button>
+                    <div id="detection-status"></div>
+                </div>
+
+                <div class="test-section">
+                    <h3>Wallet Connection</h3>
+                    <button class="test-button" onclick="connectWallet()">Connect Wallet</button>
+                    <button class="test-button" onclick="getAccounts()">Get Accounts</button>
+                    <div id="wallet-status"></div>
+                    <div id="accounts-output" class="json-output" style="display:none;"></div>
+                </div>
+
+                <div class="test-section">
+                    <h3>Verify & Query</h3>
+                    <button class="test-button" onclick="getChainId()">Verify Ownership</button>
+                    <button class="test-button" onclick="getUtxos()">Get UTXOs</button>
+                    <div id="chain-status"></div>
+                    <div id="chain-output" class="json-output" style="display:none;"></div>
+                </div>
+
+                <div class="test-section">
+                    <h3>Transaction Testing</h3>
+                    <button class="test-button" onclick="sendTestTx()">Send Test Transaction</button>
+                    <div id="tx-status"></div>
+                    <div id="tx-output" class="json-output" style="display:none;"></div>
+                </div>
+
+                <div class="test-section">
+                    <h3>Installation Guide</h3>
+                    <div class="status info">
+                        <strong>To test the extension:</strong><br>
+                        1. Open Chrome and go to chrome://extensions/<br>
+                        2. Enable "Developer mode" (toggle in top right)<br>
+                        3. Click "Load unpacked" and select the dist/ folder<br>
+                        4. The extension should appear in your browser toolbar<br>
+                        5. Return to this page and use the test buttons above
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tab switching functionality
+        function showTab(tabName) {
+            // Hide all tabs
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach(content => content.classList.remove('active'));
+            
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // Extension detection and testing functions
+        let totemWallet = null;
+
+        async function testExtensionDetection() {
+            const statusDiv = document.getElementById('detection-status');
+            
+            if (typeof window.totem !== 'undefined') {
+                statusDiv.innerHTML = '<div class="status success">✅ Totem extension detected!</div>';
+                totemWallet = window.totem;
+            } else {
+                statusDiv.innerHTML = '<div class="status error">❌ Totem extension not found. Please install and reload.</div>';
+            }
+        }
+
+        let connectedAddress = null;
+
+        async function connectWallet() {
+            const statusDiv = document.getElementById('wallet-status');
+            
+            if (!totemWallet) {
+                statusDiv.innerHTML = '<div class="status error">Extension not detected. Run detection test first.</div>';
+                return;
+            }
+
+            try {
+                statusDiv.innerHTML = '<div class="status info">Connecting to wallet...</div>';
+                const result = await totemWallet.request({ method: 'TOTEM_CONNECT' });
+                connectedAddress = result.address;
+                statusDiv.innerHTML = '<div class="status success">✅ Connected to ' + result.address + ' (index ' + result.addressIndex + ')</div>';
+                
+                document.getElementById('accounts-output').style.display = 'block';
+                document.getElementById('accounts-output').textContent = JSON.stringify(result, null, 2);
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="status error">❌ Connection failed: ${error.message}</div>`;
+            }
+        }
+
+        async function getAccounts() {
+            const statusDiv = document.getElementById('wallet-status');
+            const outputDiv = document.getElementById('accounts-output');
+            
+            if (!totemWallet) {
+                statusDiv.innerHTML = '<div class="status error">Extension not detected.</div>';
+                return;
+            }
+
+            try {
+                const result = await totemWallet.request({ method: 'TOTEM_GET_ACCOUNTS' });
+                outputDiv.style.display = 'block';
+                outputDiv.textContent = JSON.stringify(result, null, 2);
+                statusDiv.innerHTML = '<div class="status success">✅ Accounts retrieved</div>';
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="status error">❌ Failed: ${error.message}</div>`;
+            }
+        }
+
+        async function getChainId() {
+            const statusDiv = document.getElementById('chain-status');
+            const outputDiv = document.getElementById('chain-output');
+            
+            if (!totemWallet) {
+                statusDiv.innerHTML = '<div class="status error">Extension not detected.</div>';
+                return;
+            }
+
+            try {
+                const result = await totemWallet.request({ method: 'TOTEM_VERIFY', params: { challenge: { statement: 'Demo verification' } } });
+                outputDiv.style.display = 'block';
+                outputDiv.textContent = JSON.stringify(result, null, 2);
+                statusDiv.innerHTML = '<div class="status success">✅ Verification complete</div>';
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="status error">❌ Failed: ${error.message}</div>`;
+            }
+        }
+
+        async function getUtxos() {
+            const statusDiv = document.getElementById('chain-status');
+            const outputDiv = document.getElementById('chain-output');
+            
+            if (!totemWallet) {
+                statusDiv.innerHTML = '<div class="status error">Extension not detected.</div>';
+                return;
+            }
+
+            try {
+                if (!connectedAddress) {
+                    statusDiv.innerHTML = '<div class="status error">Connect wallet first.</div>';
+                    return;
+                }
+                const utxos = await totemWallet.getCoins({ address: connectedAddress });
+                outputDiv.style.display = 'block';
+                outputDiv.textContent = JSON.stringify(utxos, null, 2);
+                statusDiv.innerHTML = '<div class="status success">✅ UTXOs retrieved</div>';
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="status error">❌ Failed: ${error.message}</div>`;
+            }
+        }
+
+        async function sendTestTx() {
+            const statusDiv = document.getElementById('tx-status');
+            const outputDiv = document.getElementById('tx-output');
+            
+            if (!totemWallet) {
+                statusDiv.innerHTML = '<div class="status error">Extension not detected.</div>';
+                return;
+            }
+
+            try {
+                statusDiv.innerHTML = '<div class="status info">Preparing test transaction...</div>';
+                
+                const result = await totemWallet.request({
+                    method: 'TOTEM_SEND_TRANSACTION',
+                    params: {
+                        origin: window.location.origin,
+                        request: {
+                            version: 1,
+                            outputs: [{ address: '0x742d35Cc6844C4532B1dcf98A05fdb77D87bF71e', amount: '1.0' }]
+                        }
+                    }
+                });
+                outputDiv.style.display = 'block';
+                outputDiv.textContent = JSON.stringify(result, null, 2);
+                statusDiv.innerHTML = '<div class="status success">✅ Transaction sent! Check extension popup for approval.</div>';
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="status error">❌ Failed: ${error.message}</div>`;
+            }
+        }
+
+        // Initialize on load
+        window.addEventListener('load', function() {
+            console.log('Totem Extension Demo loaded');
+            console.log('Extension built successfully with:');
+            console.log('- WOTS signature implementation (w=8 parameter)');
+            console.log('- Hierarchical key management');
+            console.log('- Transaction approval dialog');
+            console.log('- Encrypted keystore with PBKDF2+AES-GCM');
+            console.log('- React UI components with TypeScript');
+            
+            // Auto-detect extension on page load
+            setTimeout(testExtensionDetection, 1000);
+        });
+    </script>
+</body>
+</html>

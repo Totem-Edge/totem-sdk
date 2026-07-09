@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/LeaseWotsIndices",
+  "title": "LeaseWotsIndices",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/LeaseWotsIndices.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/LeaseWotsIndices",
+  "permalink": "/api/totemsdk-node/interfaces/LeaseWotsIndices",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "LeaseStoreConfig",
+    "permalink": "/api/totemsdk-node/interfaces/LeaseStoreConfig"
+  },
+  "next": {
+    "title": "LegacyMMRProof",
+    "permalink": "/api/totemsdk-node/interfaces/LegacyMMRProof"
+  }
+}

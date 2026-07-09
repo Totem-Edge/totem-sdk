@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-tx-builder/interfaces/EnhancedBuildParams",
+  "title": "EnhancedBuildParams",
+  "description": "@totemsdk/tx-builder",
+  "source": "@site/docs/api/totemsdk-tx-builder/interfaces/EnhancedBuildParams.md",
+  "sourceDirName": "api/totemsdk-tx-builder/interfaces",
+  "slug": "/api/totemsdk-tx-builder/interfaces/EnhancedBuildParams",
+  "permalink": "/api/totemsdk-tx-builder/interfaces/EnhancedBuildParams",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "CoinSelectionResult",
+    "permalink": "/api/totemsdk-tx-builder/interfaces/CoinSelectionResult"
+  },
+  "next": {
+    "title": "EnhancedCoinInput",
+    "permalink": "/api/totemsdk-tx-builder/interfaces/EnhancedCoinInput"
+  }
+}

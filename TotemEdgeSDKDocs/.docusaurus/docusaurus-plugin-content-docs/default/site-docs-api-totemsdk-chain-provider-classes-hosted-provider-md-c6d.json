@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-chain-provider/classes/HostedProvider",
+  "title": "HostedProvider",
+  "description": "@totemsdk/chain-provider",
+  "source": "@site/docs/api/totemsdk-chain-provider/classes/HostedProvider.md",
+  "sourceDirName": "api/totemsdk-chain-provider/classes",
+  "slug": "/api/totemsdk-chain-provider/classes/HostedProvider",
+  "permalink": "/api/totemsdk-chain-provider/classes/HostedProvider",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "CompositeProvider",
+    "permalink": "/api/totemsdk-chain-provider/classes/CompositeProvider"
+  },
+  "next": {
+    "title": "LookupNodeNotImplementedError",
+    "permalink": "/api/totemsdk-chain-provider/classes/LookupNodeNotImplementedError"
+  }
+}

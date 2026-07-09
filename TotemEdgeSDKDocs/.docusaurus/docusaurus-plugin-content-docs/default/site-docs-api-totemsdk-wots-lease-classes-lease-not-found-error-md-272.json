@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-wots-lease/classes/LeaseNotFoundError",
+  "title": "LeaseNotFoundError",
+  "description": "@totemsdk/wots-lease",
+  "source": "@site/docs/api/totemsdk-wots-lease/classes/LeaseNotFoundError.md",
+  "sourceDirName": "api/totemsdk-wots-lease/classes",
+  "slug": "/api/totemsdk-wots-lease/classes/LeaseNotFoundError",
+  "permalink": "/api/totemsdk-wots-lease/classes/LeaseNotFoundError",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "LeaseJournal",
+    "permalink": "/api/totemsdk-wots-lease/classes/LeaseJournal"
+  },
+  "next": {
+    "title": "LocalLeaseProvider",
+    "permalink": "/api/totemsdk-wots-lease/classes/LocalLeaseProvider"
+  }
+}

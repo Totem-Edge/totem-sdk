@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/classes/TransactionLifecycle",
+  "title": "TransactionLifecycle",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/classes/TransactionLifecycle.md",
+  "sourceDirName": "api/totemsdk-core/classes",
+  "slug": "/api/totemsdk-core/classes/TransactionLifecycle",
+  "permalink": "/api/totemsdk-core/classes/TransactionLifecycle",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TimelockHelper",
+    "permalink": "/api/totemsdk-core/classes/TimelockHelper"
+  },
+  "next": {
+    "title": "TransactionLifecycleError",
+    "permalink": "/api/totemsdk-core/classes/TransactionLifecycleError"
+  }
+}

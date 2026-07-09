@@ -1,0 +1,23 @@
+{
+  "id": "api/totem-sdk-browser/classes/BrowserConfigProvider",
+  "title": "BrowserConfigProvider",
+  "description": "@totem/sdk-browser",
+  "source": "@site/docs/api/totem-sdk-browser/classes/BrowserConfigProvider.md",
+  "sourceDirName": "api/totem-sdk-browser/classes",
+  "slug": "/api/totem-sdk-browser/classes/BrowserConfigProvider",
+  "permalink": "/api/totem-sdk-browser/classes/BrowserConfigProvider",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "WebhookEntry",
+    "permalink": "/api/totemsdk-pureminima-rpc/interfaces/WebhookEntry"
+  },
+  "next": {
+    "title": "BrowserCryptoAdapter",
+    "permalink": "/api/totem-sdk-browser/classes/BrowserCryptoAdapter"
+  }
+}

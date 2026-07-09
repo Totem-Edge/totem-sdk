@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-hyperswarm/index",
+  "title": "index",
+  "description": "@totemsdk/omnia-hyperswarm",
+  "source": "@site/docs/api/totemsdk-omnia-hyperswarm/index.md",
+  "sourceDirName": "api/totemsdk-omnia-hyperswarm",
+  "slug": "/api/totemsdk-omnia-hyperswarm/",
+  "permalink": "/api/totemsdk-omnia-hyperswarm/",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "peerTopic",
+    "permalink": "/api/totemsdk-omnia-hyperswarm/functions/peerTopic"
+  },
+  "next": {
+    "title": "IDuplexStream",
+    "permalink": "/api/totemsdk-omnia-hyperswarm/interfaces/IDuplexStream"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-chain-provider/classes/LookupNodeNotImplementedError",
+  "title": "LookupNodeNotImplementedError",
+  "description": "@totemsdk/chain-provider",
+  "source": "@site/docs/api/totemsdk-chain-provider/classes/LookupNodeNotImplementedError.md",
+  "sourceDirName": "api/totemsdk-chain-provider/classes",
+  "slug": "/api/totemsdk-chain-provider/classes/LookupNodeNotImplementedError",
+  "permalink": "/api/totemsdk-chain-provider/classes/LookupNodeNotImplementedError",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "HostedProvider",
+    "permalink": "/api/totemsdk-chain-provider/classes/HostedProvider"
+  },
+  "next": {
+    "title": "LookupNodeProvider",
+    "permalink": "/api/totemsdk-chain-provider/classes/LookupNodeProvider"
+  }
+}

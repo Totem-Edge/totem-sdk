@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-statechain/index",
+  "title": "index",
+  "description": "@totemsdk/statechain",
+  "source": "@site/docs/api/totemsdk-statechain/index.md",
+  "sourceDirName": "api/totemsdk-statechain",
+  "slug": "/api/totemsdk-statechain/",
+  "permalink": "/api/totemsdk-statechain/",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "verifyStateChain",
+    "permalink": "/api/totemsdk-statechain/functions/verifyStateChain"
+  },
+  "next": {
+    "title": "AbandonedProof",
+    "permalink": "/api/totemsdk-statechain/interfaces/AbandonedProof"
+  }
+}

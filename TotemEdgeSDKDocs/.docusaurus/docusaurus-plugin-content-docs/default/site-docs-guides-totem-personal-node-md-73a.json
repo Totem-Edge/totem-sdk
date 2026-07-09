@@ -1,0 +1,28 @@
+{
+  "id": "guides/totem-personal-node",
+  "title": "Totem Personal Node",
+  "description": "Always-on personal node for multi-device coordination with shared WOTS lease strategy.",
+  "source": "@site/docs/guides/totem-personal-node.md",
+  "sourceDirName": "guides",
+  "slug": "/guides/totem-personal-node",
+  "permalink": "/guides/totem-personal-node",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "id": "totem-personal-node",
+    "title": "Totem Personal Node",
+    "sidebar_label": "Totem Personal Node",
+    "description": "Always-on personal node for multi-device coordination with shared WOTS lease strategy."
+  },
+  "sidebar": "guidesSidebar",
+  "previous": {
+    "title": "TESSA Pay",
+    "permalink": "/guides/tessa-pay"
+  },
+  "next": {
+    "title": "KISSVM Studio",
+    "permalink": "/guides/kissvm-studio"
+  }
+}

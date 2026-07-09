@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-connect/interfaces/TotemOmniaSpliceInRequest",
+  "title": "TotemOmniaSpliceInRequest",
+  "description": "@totemsdk/connect",
+  "source": "@site/docs/api/totemsdk-connect/interfaces/TotemOmniaSpliceInRequest.md",
+  "sourceDirName": "api/totemsdk-connect/interfaces",
+  "slug": "/api/totemsdk-connect/interfaces/TotemOmniaSpliceInRequest",
+  "permalink": "/api/totemsdk-connect/interfaces/TotemOmniaSpliceInRequest",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TotemOmniaSettleResponse",
+    "permalink": "/api/totemsdk-connect/interfaces/TotemOmniaSettleResponse"
+  },
+  "next": {
+    "title": "TotemOmniaSpliceInResponse",
+    "permalink": "/api/totemsdk-connect/interfaces/TotemOmniaSpliceInResponse"
+  }
+}

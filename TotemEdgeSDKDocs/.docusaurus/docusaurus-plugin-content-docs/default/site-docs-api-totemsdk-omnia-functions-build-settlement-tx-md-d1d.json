@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/functions/buildSettlementTx",
+  "title": "buildSettlementTx",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/functions/buildSettlementTx.md",
+  "sourceDirName": "api/totemsdk-omnia/functions",
+  "slug": "/api/totemsdk-omnia/functions/buildSettlementTx",
+  "permalink": "/api/totemsdk-omnia/functions/buildSettlementTx",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "buildFundingTx",
+    "permalink": "/api/totemsdk-omnia/functions/buildFundingTx"
+  },
+  "next": {
+    "title": "buildTxPoWPayload",
+    "permalink": "/api/totemsdk-omnia/functions/buildTxPoWPayload"
+  }
+}

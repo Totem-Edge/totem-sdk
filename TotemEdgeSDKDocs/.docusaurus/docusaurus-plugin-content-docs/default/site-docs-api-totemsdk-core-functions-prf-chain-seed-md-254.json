@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/prfChainSeed",
+  "title": "prfChainSeed",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/prfChainSeed.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/prfChainSeed",
+  "permalink": "/api/totemsdk-core/functions/prfChainSeed",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "prepareLease",
+    "permalink": "/api/totemsdk-core/functions/prepareLease"
+  },
+  "next": {
+    "title": "scriptFromWotsPk",
+    "permalink": "/api/totemsdk-core/functions/scriptFromWotsPk"
+  }
+}

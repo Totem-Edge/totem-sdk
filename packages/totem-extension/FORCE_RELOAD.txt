@@ -1,0 +1,142 @@
+🚨 FORCE RELOAD INSTRUCTIONS - Follow EXACTLY 🚨
+
+The error you're seeing is Chrome's cached version. Here's the nuclear option:
+
+═══════════════════════════════════════════════════════════════
+STEP 1: VERIFY BUILD TIMESTAMP
+═══════════════════════════════════════════════════════════════
+
+Run this command to confirm you have the latest build:
+
+  cd packages/totem-extension && stat -c '%y' dist/background.js
+
+You should see a timestamp from the last few minutes.
+If it's older, rebuild first:
+
+  rm -rf dist && NODE_ENV=production npm run build
+
+═══════════════════════════════════════════════════════════════
+STEP 2: COMPLETELY KILL CHROME
+═══════════════════════════════════════════════════════════════
+
+Don't just close windows - KILL the process:
+
+Linux/Mac:
+  killall chrome
+  killall google-chrome
+  killall chromium
+
+Windows (PowerShell):
+  Get-Process chrome | Stop-Process -Force
+
+═══════════════════════════════════════════════════════════════
+STEP 3: DELETE CHROME EXTENSION CACHE (Nuclear Option)
+═══════════════════════════════════════════════════════════════
+
+Find and delete Chrome's extension cache directory:
+
+Linux:
+  rm -rf ~/.config/google-chrome/Default/Extensions/
+  rm -rf ~/.cache/google-chrome/
+
+Mac:
+  rm -rf ~/Library/Application\ Support/Google/Chrome/Default/Extensions/
+  rm -rf ~/Library/Caches/Google/Chrome/
+
+Windows:
+  del /s /q "%LOCALAPPDATA%\Google\Chrome\User Data\Default\Extensions\"
+  del /s /q "%LOCALAPPDATA%\Google\Chrome\User Data\Default\Cache\"
+
+⚠️  WARNING: This will remove ALL your extensions. You'll need to reinstall them.
+
+═══════════════════════════════════════════════════════════════
+STEP 4: RESTART CHROME FRESH
+═══════════════════════════════════════════════════════════════
+
+1. Wait 10 seconds after killing Chrome
+2. Start Chrome fresh
+3. Go to chrome://extensions/
+
+═══════════════════════════════════════════════════════════════
+STEP 5: LOAD EXTENSION
+═══════════════════════════════════════════════════════════════
+
+1. Enable "Developer mode" (top-right toggle)
+2. Click "Load unpacked"
+3. Select: packages/totem-extension/dist
+4. Click "Select Folder"
+
+═══════════════════════════════════════════════════════════════
+STEP 6: VERIFY
+═══════════════════════════════════════════════════════════════
+
+1. Click "Details" on Totem extension
+2. Under "Inspect views" click "service worker"
+3. Check console - you should see:
+
+   ✅ [Bootstrap] messages
+   ✅ [StartupRecovery] messages
+   ✅ NO "document is not defined" error
+   ✅ NO "Module parse failed" error
+
+═══════════════════════════════════════════════════════════════
+ALTERNATIVE: USE INCOGNITO MODE (Quick Test)
+═══════════════════════════════════════════════════════════════
+
+If you just want to test without killing everything:
+
+1. Open Chrome Incognito window
+2. Go to chrome://extensions/
+3. Enable "Developer mode"
+4. Find Totem extension
+5. Enable "Allow in incognito"
+6. Test in incognito window
+
+Incognito doesn't use cached extension code, so this will load fresh.
+
+═══════════════════════════════════════════════════════════════
+VERIFICATION CHECKLIST
+═══════════════════════════════════════════════════════════════
+
+Run these commands to verify your build is correct:
+
+cd packages/totem-extension/dist
+
+# 1. Check build timestamp (should be recent)
+ls -lh background.js
+
+# 2. Verify no TypeScript syntax
+grep -c "import type" *.js || echo "✓ Clean (exit code 1 is good here)"
+
+# 3. Check file sizes match expected
+# background.js should be ~328KB
+# popup.js should be ~576KB
+ls -lh background.js popup.js
+
+All good? Then the issue is 100% Chrome cache.
+
+═══════════════════════════════════════════════════════════════
+EXPECTED CONSOLE OUTPUT (After successful load)
+═══════════════════════════════════════════════════════════════
+
+You should see exactly what you showed me, but WITHOUT the error:
+
+  🚀 Initializing Totem bootstrap...
+  [AxiaRpcClient] Bootstrap config loaded: Object
+  ✅ Using override config (Designer mode or cached)
+  [SecurityValidator] 🔒 Validating bootstrap configuration...
+  [SecurityValidator] ✅ Bootstrap RPC endpoint validated: rpc.axia.to
+  [SecurityValidator] ✅ Bootstrap configuration validated and cached
+  ✅ Bootstrap initialized: Object
+  [StartupRecovery] Beginning service worker rehydration...
+  [StartupRecovery] ⊘ No watermark found (wallet may not be initialized)
+  [StartupRecovery] Rehydrated 0 leases from storage
+  [StartupRecovery] ✓ No active leases to recover
+  [StartupRecovery] ✅ Recovery complete: Object
+  
+  ✅ THEN NOTHING ELSE - No errors!
+
+═══════════════════════════════════════════════════════════════
+
+If you STILL see errors after all this, send me the FULL console output
+and I'll investigate deeper. But 99% sure this is just cache.

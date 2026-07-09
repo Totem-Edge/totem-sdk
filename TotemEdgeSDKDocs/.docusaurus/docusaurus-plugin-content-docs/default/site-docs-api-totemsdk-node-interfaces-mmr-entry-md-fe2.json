@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/MMREntry",
+  "title": "MMREntry",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/MMREntry.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/MMREntry",
+  "permalink": "/api/totemsdk-node/interfaces/MMREntry",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "MMRData",
+    "permalink": "/api/totemsdk-node/interfaces/MMRData"
+  },
+  "next": {
+    "title": "MMRProof",
+    "permalink": "/api/totemsdk-node/interfaces/MMRProof"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-pear/interfaces/BareFileStoreOptions",
+  "title": "BareFileStoreOptions",
+  "description": "@totemsdk/pear",
+  "source": "@site/docs/api/totemsdk-pear/interfaces/BareFileStoreOptions.md",
+  "sourceDirName": "api/totemsdk-pear/interfaces",
+  "slug": "/api/totemsdk-pear/interfaces/BareFileStoreOptions",
+  "permalink": "/api/totemsdk-pear/interfaces/BareFileStoreOptions",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "AppConfig",
+    "permalink": "/api/totemsdk-pear/interfaces/AppConfig"
+  },
+  "next": {
+    "title": "BareKVStoreOptions",
+    "permalink": "/api/totemsdk-pear/interfaces/BareKVStoreOptions"
+  }
+}

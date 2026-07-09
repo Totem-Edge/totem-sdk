@@ -1,0 +1,23 @@
+{
+  "id": "api/totem-sdk-browser/classes/ConsoleLogger",
+  "title": "ConsoleLogger",
+  "description": "@totem/sdk-browser",
+  "source": "@site/docs/api/totem-sdk-browser/classes/ConsoleLogger.md",
+  "sourceDirName": "api/totem-sdk-browser/classes",
+  "slug": "/api/totem-sdk-browser/classes/ConsoleLogger",
+  "permalink": "/api/totem-sdk-browser/classes/ConsoleLogger",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "ChromeStorageAdapter",
+    "permalink": "/api/totem-sdk-browser/classes/ChromeStorageAdapter"
+  },
+  "next": {
+    "title": "DefaultTimerAdapter",
+    "permalink": "/api/totem-sdk-browser/classes/DefaultTimerAdapter"
+  }
+}

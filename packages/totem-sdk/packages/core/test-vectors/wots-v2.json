@@ -1,0 +1,74 @@
+{
+  "paramSet": "v2-spec",
+  "w": 256,
+  "L": 34,
+  "seed": "a679ff50c2037469c211e250ae4fad1e012859107fd34fe7f58d2bf1503067bf",
+  "sk_samples": [
+    {
+      "index": 0,
+      "elements": [
+        "e82d9366965ccaceca3ae2ed9fd96c66c8aa0b96f9c722fda6042b52ff8ddbd8",
+        "9ce09ae0fe62478abb8ead348c1fa6a566a7338b44721184d64bf4a5cb2d7175"
+      ]
+    },
+    {
+      "index": 1,
+      "elements": [
+        "ca3b2218c6f207bb5da17b806a1fc3784336b9a1f0148c142c2400bc2faaecc5",
+        "1971fa0b8e2d4d9df22b2f4fa669b595a1d0cc010337623e206e6fdbed205f17"
+      ]
+    }
+  ],
+  "chain_tops": [
+    {
+      "element": 0,
+      "sk": "e82d9366965ccace...",
+      "top": "a6f26379c0aa59cbb9bde5280abbf4e986d7400a2b5a72ae10d0ce428d834e02"
+    },
+    {
+      "element": 1,
+      "sk": "9ce09ae0fe62478a...",
+      "top": "c91591de56163dd75fcb08226af6eb5e0382e29b1121a6adf4b4b20372a0a3a2"
+    },
+    {
+      "element": 2,
+      "sk": "77c5a6e38d5acda1...",
+      "top": "976f23d70e78bf42206994f9182e7af2b9d984a30ce1f0ce7192ba81f4487892"
+    },
+    {
+      "element": 3,
+      "sk": "574e2c6aad701d5f...",
+      "top": "4d46ccb78730a06322e869d7878981fdde1ceef234c0e2f75555c37fd4910922"
+    }
+  ],
+  "pk_elements": [
+    {
+      "index": 0,
+      "value": "a6f26379c0aa59cbb9bde5280abbf4e986d7400a2b5a72ae10d0ce428d834e02"
+    },
+    {
+      "index": 1,
+      "value": "c91591de56163dd75fcb08226af6eb5e0382e29b1121a6adf4b4b20372a0a3a2"
+    },
+    {
+      "index": 2,
+      "value": "976f23d70e78bf42206994f9182e7af2b9d984a30ce1f0ce7192ba81f4487892"
+    },
+    {
+      "index": 3,
+      "value": "4d46ccb78730a06322e869d7878981fdde1ceef234c0e2f75555c37fd4910922"
+    }
+  ],
+  "pkdigest": "0b8b579962da42bb55398ffe358957eb53cbc266e8d7664f2377f691ff5cff54",
+  "signature": {
+    "message": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    "index": 0,
+    "elements": [
+      "6b65d84c98b4382b...",
+      "d40167c54db4ad6b...",
+      "166f99f7c5df156f...",
+      "58779e5eaceb9a0a..."
+    ],
+    "full_length": 34
+  }
+}

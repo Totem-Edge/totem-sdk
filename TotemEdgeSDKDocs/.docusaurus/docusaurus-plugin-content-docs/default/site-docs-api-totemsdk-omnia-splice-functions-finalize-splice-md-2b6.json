@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-splice/functions/finalizeSplice",
+  "title": "finalizeSplice",
+  "description": "@totemsdk/omnia-splice",
+  "source": "@site/docs/api/totemsdk-omnia-splice/functions/finalizeSplice.md",
+  "sourceDirName": "api/totemsdk-omnia-splice/functions",
+  "slug": "/api/totemsdk-omnia-splice/functions/finalizeSplice",
+  "permalink": "/api/totemsdk-omnia-splice/functions/finalizeSplice",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "computeSpliceTxDigest",
+    "permalink": "/api/totemsdk-omnia-splice/functions/computeSpliceTxDigest"
+  },
+  "next": {
+    "title": "proposeSpliceIn",
+    "permalink": "/api/totemsdk-omnia-splice/functions/proposeSpliceIn"
+  }
+}

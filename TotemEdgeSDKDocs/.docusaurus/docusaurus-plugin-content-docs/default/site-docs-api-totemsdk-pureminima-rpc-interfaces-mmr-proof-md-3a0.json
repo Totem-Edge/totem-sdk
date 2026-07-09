@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-pureminima-rpc/interfaces/MMRProof",
+  "title": "MMRProof",
+  "description": "@totemsdk/pureminima-rpc",
+  "source": "@site/docs/api/totemsdk-pureminima-rpc/interfaces/MMRProof.md",
+  "sourceDirName": "api/totemsdk-pureminima-rpc/interfaces",
+  "slug": "/api/totemsdk-pureminima-rpc/interfaces/MMRProof",
+  "permalink": "/api/totemsdk-pureminima-rpc/interfaces/MMRProof",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "HistoryQuery",
+    "permalink": "/api/totemsdk-pureminima-rpc/interfaces/HistoryQuery"
+  },
+  "next": {
+    "title": "MegaMMRInfo",
+    "permalink": "/api/totemsdk-pureminima-rpc/interfaces/MegaMMRInfo"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/computeScriptAddress",
+  "title": "computeScriptAddress",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/computeScriptAddress.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/computeScriptAddress",
+  "permalink": "/api/totemsdk-node/functions/computeScriptAddress",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "cleanSeedPhrase",
+    "permalink": "/api/totemsdk-node/functions/cleanSeedPhrase"
+  },
+  "next": {
+    "title": "computeTransactionDigest",
+    "permalink": "/api/totemsdk-node/functions/computeTransactionDigest"
+  }
+}

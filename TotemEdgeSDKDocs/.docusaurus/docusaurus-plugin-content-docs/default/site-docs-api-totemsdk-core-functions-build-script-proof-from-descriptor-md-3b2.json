@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/buildScriptProofFromDescriptor",
+  "title": "buildScriptProofFromDescriptor",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/buildScriptProofFromDescriptor.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/buildScriptProofFromDescriptor",
+  "permalink": "/api/totemsdk-core/functions/buildScriptProofFromDescriptor",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "buildMinimaCoin",
+    "permalink": "/api/totemsdk-core/functions/buildMinimaCoin"
+  },
+  "next": {
+    "title": "bytesToHex",
+    "permalink": "/api/totemsdk-core/functions/bytesToHex"
+  }
+}

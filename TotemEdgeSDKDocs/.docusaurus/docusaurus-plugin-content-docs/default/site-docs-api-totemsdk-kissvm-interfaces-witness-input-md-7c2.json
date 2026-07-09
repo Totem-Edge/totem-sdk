@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-kissvm/interfaces/WitnessInput",
+  "title": "WitnessInput",
+  "description": "@totemsdk/kissvm",
+  "source": "@site/docs/api/totemsdk-kissvm/interfaces/WitnessInput.md",
+  "sourceDirName": "api/totemsdk-kissvm/interfaces",
+  "slug": "/api/totemsdk-kissvm/interfaces/WitnessInput",
+  "permalink": "/api/totemsdk-kissvm/interfaces/WitnessInput",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TxContext",
+    "permalink": "/api/totemsdk-kissvm/interfaces/TxContext"
+  },
+  "next": {
+    "title": "ASTNode",
+    "permalink": "/api/totemsdk-kissvm/type-aliases/ASTNode"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/WebSocketClient",
+  "title": "WebSocketClient",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/WebSocketClient.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/WebSocketClient",
+  "permalink": "/api/totemsdk-core/interfaces/WebSocketClient",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "WatermarkSyncFunction",
+    "permalink": "/api/totemsdk-core/interfaces/WatermarkSyncFunction"
+  },
+  "next": {
+    "title": "WebSocketCloseEvent",
+    "permalink": "/api/totemsdk-core/interfaces/WebSocketCloseEvent"
+  }
+}

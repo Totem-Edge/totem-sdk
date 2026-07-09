@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-pureminima-rpc/interfaces/SendParams",
+  "title": "SendParams",
+  "description": "@totemsdk/pureminima-rpc",
+  "source": "@site/docs/api/totemsdk-pureminima-rpc/interfaces/SendParams.md",
+  "sourceDirName": "api/totemsdk-pureminima-rpc/interfaces",
+  "slug": "/api/totemsdk-pureminima-rpc/interfaces/SendParams",
+  "permalink": "/api/totemsdk-pureminima-rpc/interfaces/SendParams",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "PureMinimaConfig",
+    "permalink": "/api/totemsdk-pureminima-rpc/interfaces/PureMinimaConfig"
+  },
+  "next": {
+    "title": "TokenInfo",
+    "permalink": "/api/totemsdk-pureminima-rpc/interfaces/TokenInfo"
+  }
+}

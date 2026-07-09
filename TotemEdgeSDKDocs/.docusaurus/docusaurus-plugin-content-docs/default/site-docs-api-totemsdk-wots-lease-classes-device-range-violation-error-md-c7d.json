@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-wots-lease/classes/DeviceRangeViolationError",
+  "title": "DeviceRangeViolationError",
+  "description": "@totemsdk/wots-lease",
+  "source": "@site/docs/api/totemsdk-wots-lease/classes/DeviceRangeViolationError.md",
+  "sourceDirName": "api/totemsdk-wots-lease/classes",
+  "slug": "/api/totemsdk-wots-lease/classes/DeviceRangeViolationError",
+  "permalink": "/api/totemsdk-wots-lease/classes/DeviceRangeViolationError",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "AxiaLeaseProvider",
+    "permalink": "/api/totemsdk-wots-lease/classes/AxiaLeaseProvider"
+  },
+  "next": {
+    "title": "HybridLeaseProvider",
+    "permalink": "/api/totemsdk-wots-lease/classes/HybridLeaseProvider"
+  }
+}

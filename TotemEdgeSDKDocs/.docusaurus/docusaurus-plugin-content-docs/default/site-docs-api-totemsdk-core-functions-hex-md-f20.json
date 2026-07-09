@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/hex",
+  "title": "hex",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/hex.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/hex",
+  "permalink": "/api/totemsdk-core/functions/hex",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "hashObject",
+    "permalink": "/api/totemsdk-core/functions/hashObject"
+  },
+  "next": {
+    "title": "hexToBytes",
+    "permalink": "/api/totemsdk-core/functions/hexToBytes"
+  }
+}

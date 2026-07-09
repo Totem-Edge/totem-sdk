@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/StateValue",
+  "title": "StateValue",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/StateValue.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/StateValue",
+  "permalink": "/api/totemsdk-core/interfaces/StateValue",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "SpendableCoinInput",
+    "permalink": "/api/totemsdk-core/interfaces/SpendableCoinInput"
+  },
+  "next": {
+    "title": "StateVariable",
+    "permalink": "/api/totemsdk-core/interfaces/StateVariable"
+  }
+}

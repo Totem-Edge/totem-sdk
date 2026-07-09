@@ -1,0 +1,28 @@
+{
+  "id": "guides/omnia-pocket",
+  "title": "Omnia Pocket",
+  "description": "Mobile/Pear off-chain payment-channel wallet with policy guards on channel size, auto-pay limits, and settlement triggers.",
+  "source": "@site/docs/guides/omnia-pocket.md",
+  "sourceDirName": "guides",
+  "slug": "/guides/omnia-pocket",
+  "permalink": "/guides/omnia-pocket",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "id": "omnia-pocket",
+    "title": "Omnia Pocket",
+    "sidebar_label": "Omnia Pocket",
+    "description": "Mobile/Pear off-chain payment-channel wallet with policy guards on channel size, auto-pay limits, and settlement triggers."
+  },
+  "sidebar": "guidesSidebar",
+  "previous": {
+    "title": "Statechain Pass",
+    "permalink": "/guides/statechain-pass"
+  },
+  "next": {
+    "title": "Channel Factory Wallet",
+    "permalink": "/guides/channel-factory-wallet"
+  }
+}

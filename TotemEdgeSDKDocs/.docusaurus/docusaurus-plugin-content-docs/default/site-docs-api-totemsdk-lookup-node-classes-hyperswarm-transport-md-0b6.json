@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-lookup-node/classes/HyperswarmTransport",
+  "title": "HyperswarmTransport",
+  "description": "@totemsdk/lookup-node",
+  "source": "@site/docs/api/totemsdk-lookup-node/classes/HyperswarmTransport.md",
+  "sourceDirName": "api/totemsdk-lookup-node/classes",
+  "slug": "/api/totemsdk-lookup-node/classes/HyperswarmTransport",
+  "permalink": "/api/totemsdk-lookup-node/classes/HyperswarmTransport",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "HyperswarmManager",
+    "permalink": "/api/totemsdk-lookup-node/classes/HyperswarmManager"
+  },
+  "next": {
+    "title": "LeaseCoordinator",
+    "permalink": "/api/totemsdk-lookup-node/classes/LeaseCoordinator"
+  }
+}

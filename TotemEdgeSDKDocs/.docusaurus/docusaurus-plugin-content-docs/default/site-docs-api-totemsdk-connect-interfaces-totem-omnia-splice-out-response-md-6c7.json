@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-connect/interfaces/TotemOmniaSpliceOutResponse",
+  "title": "TotemOmniaSpliceOutResponse",
+  "description": "@totemsdk/connect",
+  "source": "@site/docs/api/totemsdk-connect/interfaces/TotemOmniaSpliceOutResponse.md",
+  "sourceDirName": "api/totemsdk-connect/interfaces",
+  "slug": "/api/totemsdk-connect/interfaces/TotemOmniaSpliceOutResponse",
+  "permalink": "/api/totemsdk-connect/interfaces/TotemOmniaSpliceOutResponse",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TotemOmniaSpliceOutRequest",
+    "permalink": "/api/totemsdk-connect/interfaces/TotemOmniaSpliceOutRequest"
+  },
+  "next": {
+    "title": "TotemPayPaymentRequestRequest",
+    "permalink": "/api/totemsdk-connect/interfaces/TotemPayPaymentRequestRequest"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/classes/TreeKey",
+  "title": "TreeKey",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/classes/TreeKey.md",
+  "sourceDirName": "api/totemsdk-node/classes",
+  "slug": "/api/totemsdk-node/classes/TreeKey",
+  "permalink": "/api/totemsdk-node/classes/TreeKey",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TransactionService",
+    "permalink": "/api/totemsdk-node/classes/TransactionService"
+  },
+  "next": {
+    "title": "TreeKeyNode",
+    "permalink": "/api/totemsdk-node/classes/TreeKeyNode"
+  }
+}

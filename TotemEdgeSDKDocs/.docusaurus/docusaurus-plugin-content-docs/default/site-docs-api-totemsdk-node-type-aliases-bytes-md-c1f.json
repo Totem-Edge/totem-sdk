@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/type-aliases/Bytes",
+  "title": "Bytes",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/type-aliases/Bytes.md",
+  "sourceDirName": "api/totemsdk-node/type-aliases",
+  "slug": "/api/totemsdk-node/type-aliases/Bytes",
+  "permalink": "/api/totemsdk-node/type-aliases/Bytes",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "BinaryData",
+    "permalink": "/api/totemsdk-node/type-aliases/BinaryData"
+  },
+  "next": {
+    "title": "DAppTransactionIntent",
+    "permalink": "/api/totemsdk-node/type-aliases/DAppTransactionIntent"
+  }
+}

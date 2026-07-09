@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-pear/type-aliases/Unsubscribe",
+  "title": "Unsubscribe",
+  "description": "@totemsdk/pear",
+  "source": "@site/docs/api/totemsdk-pear/type-aliases/Unsubscribe.md",
+  "sourceDirName": "api/totemsdk-pear/type-aliases",
+  "slug": "/api/totemsdk-pear/type-aliases/Unsubscribe",
+  "permalink": "/api/totemsdk-pear/type-aliases/Unsubscribe",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "ExitCallback",
+    "permalink": "/api/totemsdk-pear/type-aliases/ExitCallback"
+  },
+  "next": {
+    "title": "PureMinimaRpcError",
+    "permalink": "/api/totemsdk-pureminima-rpc/classes/PureMinimaRpcError"
+  }
+}

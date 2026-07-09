@@ -1,0 +1,94 @@
+import { createMqttCommandHandler } from '../command-handler.js';
+import { createEdgeRuntime, createCapabilitySet } from '@totemsdk/edge';
+import type { MqttClientPort, MqttMessage } from '../client-port.js';
+import type { MqttCommandExecutor } from '../types.js';
+
+function makeMockClient() {
+  const published: Array<{ topic: string; payload: string | Uint8Array }> = [];
+  const client: MqttClientPort = {
+    async subscribe(topic) { return { topic, async unsubscribe() {} }; },
+    async publish(topic, payload) { published.push({ topic, payload }); },
+    onMessage() { return () => {}; },
+  };
+  return { client, published };
+}
+
+const makeMsg = (command: string): MqttMessage => ({
+  topic: 'totem/gw/commands',
+  payload: JSON.stringify({ commandId: 'cmd-1', command, requestedBy: 'agent-x' }),
+  receivedAt: Date.now(),
+});
+
+describe('command-handler.test — policy deny + executor approve', () => {
+  it('rejects command when policy denies', async () => {
+    const { client, published } = makeMockClient();
+    const runtime = createEdgeRuntime({
+      deviceId: 'cmd-test',
+      capabilities: createCapabilitySet([]),
+      ports: {
+        policy: {
+          async check() { return { ok: true, data: { allowed: false, reason: 'Not permitted' } }; },
+        },
+      },
+    });
+    const handler = createMqttCommandHandler({ runtime, client });
+    const result = await handler.handleCommand(makeMsg('reboot'));
+    expect(result.ok).toBe(false);
+    expect(result.errorCode).toBe('MQTT_POLICY_REJECTED');
+    expect(published.some((p) => p.payload.toString().includes('rejected'))).toBe(true);
+  });
+
+  it('executes command via injected executor when policy approves', async () => {
+    const { client, published } = makeMockClient();
+    let executorCalled = false;
+    const executor: MqttCommandExecutor = {
+      async execute() {
+        executorCalled = true;
+        return { ok: true, data: { output: 'done' } };
+      },
+    };
+    const runtime = createEdgeRuntime({
+      deviceId: 'cmd-test2',
+      capabilities: createCapabilitySet([]),
+      ports: {
+        policy: {
+          async check() { return { ok: true, data: { allowed: true } }; },
+        },
+      },
+    });
+    const handler = createMqttCommandHandler({ runtime, client, executor });
+    const result = await handler.handleCommand(makeMsg('ping'));
+    expect(result.ok).toBe(true);
+    expect(executorCalled).toBe(true);
+    expect(published.some((p) => p.payload.toString().includes('executed'))).toBe(true);
+  });
+
+  it('returns no-executor error when no executor is injected', async () => {
+    const { client } = makeMockClient();
+    const runtime = createEdgeRuntime({
+      deviceId: 'cmd-test3',
+      capabilities: createCapabilitySet([]),
+      ports: {},
+    });
+    const handler = createMqttCommandHandler({ runtime, client });
+    const result = await handler.handleCommand(makeMsg('ping'));
+    expect(result.ok).toBe(false);
+    expect(result.errorCode).toBe('NO_EXECUTOR');
+  });
+
+  it('handles malformed JSON payload gracefully', async () => {
+    const { client } = makeMockClient();
+    const runtime = createEdgeRuntime({
+      deviceId: 'cmd-test4',
+      capabilities: createCapabilitySet([]),
+      ports: {},
+    });
+    const handler = createMqttCommandHandler({ runtime, client });
+    const result = await handler.handleCommand({
+      topic: 'totem/gw/commands',
+      payload: 'not-json',
+      receivedAt: Date.now(),
+    });
+    expect(result.ok).toBe(false);
+  });
+});

@@ -1,0 +1,23 @@
+{
+  "id": "api/totem-sdk-browser/functions/isSubtleCryptoAvailable",
+  "title": "isSubtleCryptoAvailable",
+  "description": "@totem/sdk-browser",
+  "source": "@site/docs/api/totem-sdk-browser/functions/isSubtleCryptoAvailable.md",
+  "sourceDirName": "api/totem-sdk-browser/functions",
+  "slug": "/api/totem-sdk-browser/functions/isSubtleCryptoAvailable",
+  "permalink": "/api/totem-sdk-browser/functions/isSubtleCryptoAvailable",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "createLifecycleAdapter",
+    "permalink": "/api/totem-sdk-browser/functions/createLifecycleAdapter"
+  },
+  "next": {
+    "title": "index",
+    "permalink": "/api/totem-sdk-browser/"
+  }
+}

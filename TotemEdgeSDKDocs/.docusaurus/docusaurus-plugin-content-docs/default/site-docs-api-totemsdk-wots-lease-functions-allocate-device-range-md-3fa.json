@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-wots-lease/functions/allocateDeviceRange",
+  "title": "allocateDeviceRange",
+  "description": "@totemsdk/wots-lease",
+  "source": "@site/docs/api/totemsdk-wots-lease/functions/allocateDeviceRange.md",
+  "sourceDirName": "api/totemsdk-wots-lease/functions",
+  "slug": "/api/totemsdk-wots-lease/functions/allocateDeviceRange",
+  "permalink": "/api/totemsdk-wots-lease/functions/allocateDeviceRange",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "WotsWatermarkStore",
+    "permalink": "/api/totemsdk-wots-lease/classes/WotsWatermarkStore"
+  },
+  "next": {
+    "title": "deviceSlotForAddressIndex",
+    "permalink": "/api/totemsdk-wots-lease/functions/deviceSlotForAddressIndex"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/interfaces/SignedChannelState",
+  "title": "SignedChannelState",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/interfaces/SignedChannelState.md",
+  "sourceDirName": "api/totemsdk-omnia/interfaces",
+  "slug": "/api/totemsdk-omnia/interfaces/SignedChannelState",
+  "permalink": "/api/totemsdk-omnia/interfaces/SignedChannelState",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "SettlementPayload",
+    "permalink": "/api/totemsdk-omnia/interfaces/SettlementPayload"
+  },
+  "next": {
+    "title": "StateValue",
+    "permalink": "/api/totemsdk-omnia/interfaces/StateValue"
+  }
+}

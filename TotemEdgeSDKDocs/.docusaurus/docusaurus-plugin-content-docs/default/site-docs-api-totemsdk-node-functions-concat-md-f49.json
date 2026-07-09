@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/concat",
+  "title": "concat",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/concat.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/concat",
+  "permalink": "/api/totemsdk-node/functions/concat",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "computeTransactionDigest",
+    "permalink": "/api/totemsdk-node/functions/computeTransactionDigest"
+  },
+  "next": {
+    "title": "concatBytes",
+    "permalink": "/api/totemsdk-node/functions/concatBytes"
+  }
+}

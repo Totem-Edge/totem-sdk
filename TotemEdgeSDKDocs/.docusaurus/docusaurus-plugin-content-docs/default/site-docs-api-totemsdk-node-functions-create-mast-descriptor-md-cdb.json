@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/createMASTDescriptor",
+  "title": "createMASTDescriptor",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/createMASTDescriptor.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/createMASTDescriptor",
+  "permalink": "/api/totemsdk-node/functions/createMASTDescriptor",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "createHTLCDescriptor",
+    "permalink": "/api/totemsdk-node/functions/createHTLCDescriptor"
+  },
+  "next": {
+    "title": "createMMRDataLeafNode",
+    "permalink": "/api/totemsdk-node/functions/createMMRDataLeafNode"
+  }
+}

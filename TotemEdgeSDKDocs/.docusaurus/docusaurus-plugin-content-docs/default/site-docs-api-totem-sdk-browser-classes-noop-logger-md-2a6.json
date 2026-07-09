@@ -1,0 +1,23 @@
+{
+  "id": "api/totem-sdk-browser/classes/NoopLogger",
+  "title": "NoopLogger",
+  "description": "@totem/sdk-browser",
+  "source": "@site/docs/api/totem-sdk-browser/classes/NoopLogger.md",
+  "sourceDirName": "api/totem-sdk-browser/classes",
+  "slug": "/api/totem-sdk-browser/classes/NoopLogger",
+  "permalink": "/api/totem-sdk-browser/classes/NoopLogger",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "LocalStorageAdapter",
+    "permalink": "/api/totem-sdk-browser/classes/LocalStorageAdapter"
+  },
+  "next": {
+    "title": "NoopMetrics",
+    "permalink": "/api/totem-sdk-browser/classes/NoopMetrics"
+  }
+}

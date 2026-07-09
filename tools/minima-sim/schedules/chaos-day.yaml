@@ -1,0 +1,28 @@
+timezone: "UTC"
+rampSeconds: 60   # Quick transitions for chaos day
+loop: true
+
+entries:
+  # Rapid cycling through all failure modes
+  - at: "00:00"
+    scenario: "scenarios/us-east-stable.yaml"
+    
+  - at: "04:00"
+    scenario: "scenarios/chaos-flapping.yaml"
+    rampSeconds: 30
+    
+  - at: "08:00"
+    scenario: "scenarios/meg-slow.yaml"
+    rampSeconds: 45
+    
+  - at: "12:00"
+    scenario: "scenarios/example.yaml"
+    rampSeconds: 90
+    
+  - at: "16:00"
+    scenario: "scenarios/chaos-flapping.yaml"
+    rampSeconds: 30
+    
+  - at: "20:00"
+    scenario: "scenarios/us-east-stable.yaml"
+    rampSeconds: 120

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/variables/DEFAULT_KEYS_PER_LEVEL",
+  "title": "DEFAULT_KEYS_PER_LEVEL",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/variables/DEFAULT_KEYS_PER_LEVEL.md",
+  "sourceDirName": "api/totemsdk-core/variables",
+  "slug": "/api/totemsdk-core/variables/DEFAULT_KEYS_PER_LEVEL",
+  "permalink": "/api/totemsdk-core/variables/DEFAULT_KEYS_PER_LEVEL",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "CORE_VERSION",
+    "permalink": "/api/totemsdk-core/variables/CORE_VERSION"
+  },
+  "next": {
+    "title": "DEFAULT_LEVELS",
+    "permalink": "/api/totemsdk-core/variables/DEFAULT_LEVELS"
+  }
+}

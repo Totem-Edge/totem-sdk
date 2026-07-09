@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-txpow/functions/computeTxPoWId",
+  "title": "computeTxPoWId",
+  "description": "@totemsdk/txpow",
+  "source": "@site/docs/api/totemsdk-txpow/functions/computeTxPoWId.md",
+  "sourceDirName": "api/totemsdk-txpow/functions",
+  "slug": "/api/totemsdk-txpow/functions/computeTxPoWId",
+  "permalink": "/api/totemsdk-txpow/functions/computeTxPoWId",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "calibrateHashRate",
+    "permalink": "/api/totemsdk-txpow/functions/calibrateHashRate"
+  },
+  "next": {
+    "title": "estimateMiningCost",
+    "permalink": "/api/totemsdk-txpow/functions/estimateMiningCost"
+  }
+}

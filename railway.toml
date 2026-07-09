@@ -1,0 +1,18 @@
+# Root-level Railway config for the axia-api service.
+#
+# In Railway UI:
+#   - axia-api service:       Root Directory = / (repo root)
+#   - agent-runtime service:  Root Directory = services/agent-runtime
+#
+# The Dockerfile at packages/axia-api/Dockerfile handles monorepo
+# workspace:* dependency resolution via pnpm from the repo root.
+#
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "packages/axia-api/Dockerfile"
+
+[deploy]
+healthcheckPath = "/info"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10

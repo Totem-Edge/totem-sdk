@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/LifecycleAdapter",
+  "title": "LifecycleAdapter",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/LifecycleAdapter.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/LifecycleAdapter",
+  "permalink": "/api/totemsdk-core/interfaces/LifecycleAdapter",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "LegacyMMRProof",
+    "permalink": "/api/totemsdk-core/interfaces/LegacyMMRProof"
+  },
+  "next": {
+    "title": "LoggerAdapter",
+    "permalink": "/api/totemsdk-core/interfaces/LoggerAdapter"
+  }
+}

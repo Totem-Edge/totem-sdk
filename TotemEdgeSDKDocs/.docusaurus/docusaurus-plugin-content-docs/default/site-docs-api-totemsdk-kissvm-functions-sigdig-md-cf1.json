@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-kissvm/functions/sigdig",
+  "title": "sigdig",
+  "description": "@totemsdk/kissvm",
+  "source": "@site/docs/api/totemsdk-kissvm/functions/sigdig.md",
+  "sourceDirName": "api/totemsdk-kissvm/functions",
+  "slug": "/api/totemsdk-kissvm/functions/sigdig",
+  "permalink": "/api/totemsdk-kissvm/functions/sigdig",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "parseScript",
+    "permalink": "/api/totemsdk-kissvm/functions/parseScript"
+  },
+  "next": {
+    "title": "simulateSpend",
+    "permalink": "/api/totemsdk-kissvm/functions/simulateSpend"
+  }
+}

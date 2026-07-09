@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/classes/MinimaWallet",
+  "title": "MinimaWallet",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/classes/MinimaWallet.md",
+  "sourceDirName": "api/totemsdk-node/classes",
+  "slug": "/api/totemsdk-node/classes/MinimaWallet",
+  "permalink": "/api/totemsdk-node/classes/MinimaWallet",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "MinimaProvider",
+    "permalink": "/api/totemsdk-node/classes/MinimaProvider"
+  },
+  "next": {
+    "title": "NodeConfigProvider",
+    "permalink": "/api/totemsdk-node/classes/NodeConfigProvider"
+  }
+}

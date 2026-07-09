@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/type-aliases/PrepareResp",
+  "title": "PrepareResp",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/type-aliases/PrepareResp.md",
+  "sourceDirName": "api/totemsdk-core/type-aliases",
+  "slug": "/api/totemsdk-core/type-aliases/PrepareResp",
+  "permalink": "/api/totemsdk-core/type-aliases/PrepareResp",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "PrepareArgs",
+    "permalink": "/api/totemsdk-core/type-aliases/PrepareArgs"
+  },
+  "next": {
+    "title": "ProgressCallback",
+    "permalink": "/api/totemsdk-core/type-aliases/ProgressCallback"
+  }
+}

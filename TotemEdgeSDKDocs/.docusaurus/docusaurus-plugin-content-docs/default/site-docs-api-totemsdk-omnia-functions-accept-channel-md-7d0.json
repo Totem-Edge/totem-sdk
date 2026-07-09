@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/functions/acceptChannel",
+  "title": "acceptChannel",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/functions/acceptChannel.md",
+  "sourceDirName": "api/totemsdk-omnia/functions",
+  "slug": "/api/totemsdk-omnia/functions/acceptChannel",
+  "permalink": "/api/totemsdk-omnia/functions/acceptChannel",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "SigningIndexMonotonicityError",
+    "permalink": "/api/totemsdk-omnia/classes/SigningIndexMonotonicityError"
+  },
+  "next": {
+    "title": "activateChannel",
+    "permalink": "/api/totemsdk-omnia/functions/activateChannel"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/validateSendTransactionRequest",
+  "title": "validateSendTransactionRequest",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/validateSendTransactionRequest.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/validateSendTransactionRequest",
+  "permalink": "/api/totemsdk-node/functions/validateSendTransactionRequest",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "validatePhrase",
+    "permalink": "/api/totemsdk-node/functions/validatePhrase"
+  },
+  "next": {
+    "title": "verifyMMRProof",
+    "permalink": "/api/totemsdk-node/functions/verifyMMRProof"
+  }
+}

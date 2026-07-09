@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/functions/assessCapacity",
+  "title": "assessCapacity",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/functions/assessCapacity.md",
+  "sourceDirName": "api/totemsdk-omnia/functions",
+  "slug": "/api/totemsdk-omnia/functions/assessCapacity",
+  "permalink": "/api/totemsdk-omnia/functions/assessCapacity",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "addHTLC",
+    "permalink": "/api/totemsdk-omnia/functions/addHTLC"
+  },
+  "next": {
+    "title": "attachCounterpartySignature",
+    "permalink": "/api/totemsdk-omnia/functions/attachCounterpartySignature"
+  }
+}

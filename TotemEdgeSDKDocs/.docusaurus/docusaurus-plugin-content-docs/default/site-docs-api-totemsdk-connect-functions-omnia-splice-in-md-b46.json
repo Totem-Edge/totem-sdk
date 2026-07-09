@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-connect/functions/omniaSpliceIn",
+  "title": "omniaSpliceIn",
+  "description": "@totemsdk/connect",
+  "source": "@site/docs/api/totemsdk-connect/functions/omniaSpliceIn.md",
+  "sourceDirName": "api/totemsdk-connect/functions",
+  "slug": "/api/totemsdk-connect/functions/omniaSpliceIn",
+  "permalink": "/api/totemsdk-connect/functions/omniaSpliceIn",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "omniaSettle",
+    "permalink": "/api/totemsdk-connect/functions/omniaSettle"
+  },
+  "next": {
+    "title": "omniaSpliceOut",
+    "permalink": "/api/totemsdk-connect/functions/omniaSpliceOut"
+  }
+}

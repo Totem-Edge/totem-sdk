@@ -1,0 +1,87 @@
+{
+  "description": "AxiaRpcClient expected behavior fixtures based on legacy Totem Wallet implementation",
+  "version": "1.0.0",
+  "scenarios": [
+    {
+      "name": "successful_rpc_call",
+      "input": {
+        "operation": "call",
+        "method": "getBalance",
+        "params": { "address": "Mx12345" },
+        "httpResponse": {
+          "status": 200,
+          "data": { "jsonrpc": "2.0", "id": 1, "result": { "confirmed": "1000" } }
+        }
+      },
+      "expectedOutput": {
+        "success": true,
+        "hasResult": true
+      }
+    },
+    {
+      "name": "retry_on_500",
+      "input": {
+        "operation": "call",
+        "method": "getBalance",
+        "params": {},
+        "httpResponses": [
+          { "status": 500, "data": null },
+          { "status": 200, "data": { "jsonrpc": "2.0", "id": 1, "result": {} } }
+        ]
+      },
+      "expectedOutput": {
+        "success": true,
+        "retries": 1
+      }
+    },
+    {
+      "name": "quota_exceeded_error",
+      "input": {
+        "operation": "call",
+        "method": "getBalance",
+        "params": {},
+        "httpResponse": {
+          "status": 429,
+          "headers": { "retry-after": "60" },
+          "data": { "jsonrpc": "2.0", "id": 1, "error": { "code": -32005, "message": "Rate limit exceeded" } }
+        }
+      },
+      "expectedOutput": {
+        "success": false,
+        "errorType": "QuotaExceededError"
+      }
+    },
+    {
+      "name": "network_error_retry",
+      "input": {
+        "operation": "call",
+        "method": "getBalance",
+        "params": {},
+        "throwsNetworkError": true
+      },
+      "expectedOutput": {
+        "success": false,
+        "errorType": "NetworkError",
+        "retriesAttempted": 3
+      }
+    },
+    {
+      "name": "parse_quota_headers",
+      "input": {
+        "operation": "parseHeaders",
+        "headers": {
+          "x-quota-limit-daily": "10000",
+          "x-quota-remaining-daily": "9500",
+          "x-quota-limit-monthly": "300000",
+          "x-quota-remaining-monthly": "285000"
+        }
+      },
+      "expectedOutput": {
+        "dailyLimit": 10000,
+        "dailyRemaining": 9500,
+        "monthlyLimit": 300000,
+        "monthlyRemaining": 285000
+      }
+    }
+  ]
+}

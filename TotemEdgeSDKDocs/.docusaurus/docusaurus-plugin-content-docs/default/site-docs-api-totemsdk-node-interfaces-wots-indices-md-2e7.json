@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/WotsIndices",
+  "title": "WotsIndices",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/WotsIndices.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/WotsIndices",
+  "permalink": "/api/totemsdk-node/interfaces/WotsIndices",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "WitnessBundle",
+    "permalink": "/api/totemsdk-node/interfaces/WitnessBundle"
+  },
+  "next": {
+    "title": "WotsSigningDependencies",
+    "permalink": "/api/totemsdk-node/interfaces/WotsSigningDependencies"
+  }
+}

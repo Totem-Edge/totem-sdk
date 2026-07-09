@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-factory/type-aliases/FactoryStatus",
+  "title": "FactoryStatus",
+  "description": "@totemsdk/omnia-factory",
+  "source": "@site/docs/api/totemsdk-omnia-factory/type-aliases/FactoryStatus.md",
+  "sourceDirName": "api/totemsdk-omnia-factory/type-aliases",
+  "slug": "/api/totemsdk-omnia-factory/type-aliases/FactoryStatus",
+  "permalink": "/api/totemsdk-omnia-factory/type-aliases/FactoryStatus",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "FactorySignature",
+    "permalink": "/api/totemsdk-omnia-factory/type-aliases/FactorySignature"
+  },
+  "next": {
+    "title": "addChannel",
+    "permalink": "/api/totemsdk-omnia-router/functions/addChannel"
+  }
+}

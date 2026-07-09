@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-tx-builder/interfaces/EnhancedCoinInput",
+  "title": "EnhancedCoinInput",
+  "description": "@totemsdk/tx-builder",
+  "source": "@site/docs/api/totemsdk-tx-builder/interfaces/EnhancedCoinInput.md",
+  "sourceDirName": "api/totemsdk-tx-builder/interfaces",
+  "slug": "/api/totemsdk-tx-builder/interfaces/EnhancedCoinInput",
+  "permalink": "/api/totemsdk-tx-builder/interfaces/EnhancedCoinInput",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "EnhancedBuildParams",
+    "permalink": "/api/totemsdk-tx-builder/interfaces/EnhancedBuildParams"
+  },
+  "next": {
+    "title": "EnhancedCoinOutput",
+    "permalink": "/api/totemsdk-tx-builder/interfaces/EnhancedCoinOutput"
+  }
+}

@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Totem Wallet</title>
+    <style>
+        body {
+            width: 350px;
+            height: 500px;
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .subtitle {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        
+        .wallet-section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .wallet-address {
+            font-size: 12px;
+            word-break: break-all;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+        
+        .button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px 0;
+            transition: all 0.3s;
+        }
+        
+        .button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+        
+        .button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .primary-button {
+            background: #4CAF50;
+        }
+        
+        .primary-button:hover {
+            background: #45a049;
+        }
+        
+        .danger-button {
+            background: #f44336;
+        }
+        
+        .danger-button:hover {
+            background: #da190b;
+        }
+        
+        .status {
+            font-size: 12px;
+            margin: 10px 0;
+            padding: 8px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        
+        .status.connected {
+            background: rgba(76, 175, 80, 0.3);
+        }
+        
+        .status.disconnected {
+            background: rgba(244, 67, 54, 0.3);
+        }
+        
+        .usage-stats {
+            font-size: 12px;
+            margin-top: 10px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        input {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            margin: 10px 0;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+        }
+        
+        .error {
+            background: rgba(244, 67, 54, 0.3);
+            color: white;
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-size: 12px;
+        }
+        
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 25px;
+            border-radius: 12px;
+            max-width: 300px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        #diagnostics-panel {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">Totem</div>
+            <div class="subtitle">Minima Blockchain Wallet</div>
+        </div>
+        
+        <!-- Setup screen for new users -->
+        <div id="setup-screen">
+            <div class="wallet-section">
+                <h3>Welcome to Totem</h3>
+                <p>Create a new wallet to get started with Minima blockchain.</p>
+                <input type="password" id="setup-password" placeholder="Create password (min 8 chars)">
+                <input type="password" id="setup-confirm" placeholder="Confirm password">
+                <button class="button primary-button" id="create-wallet">Create Wallet</button>
+                <div id="setup-error" class="error hidden"></div>
+            </div>
+        </div>
+        
+        <!-- Unlock screen for existing users -->
+        <div id="unlock-screen" class="hidden">
+            <div class="wallet-section">
+                <h3>Unlock Wallet</h3>
+                <p>Enter your password to access your wallet.</p>
+                <input type="password" id="unlock-password" placeholder="Enter password">
+                <button class="button primary-button" id="unlock-wallet">Unlock</button>
+                <div id="unlock-error" class="error hidden"></div>
+            </div>
+        </div>
+        
+        <!-- Main wallet interface -->
+        <div id="wallet-screen" class="hidden">
+            <div class="wallet-section">
+                <h3>Your Wallet</h3>
+                <div>Address:</div>
+                <div class="wallet-address" id="wallet-address">Loading...</div>
+                
+                <div class="status" id="connection-status">
+                    <span id="status-text">Checking connection...</span>
+                </div>
+                
+                <div class="usage-stats" id="usage-stats"></div>
+            </div>
+            
+            <!-- Developer Diagnostics Panel -->
+            <div class="wallet-section" id="diagnostics-panel">
+                <h4 style="margin-top: 0;">Developer Diagnostics</h4>
+                <div style="font-size: 11px; opacity: 0.9;">
+                    <div style="margin-bottom: 8px;">
+                        <strong>Current ParamSet:</strong> <span id="param-set" style="color: #4CAF50;">v2-spec</span>
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                        <strong>Next v2 Index:</strong> <span id="next-index">0</span>
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                        <strong>Last 3 v2 Addresses:</strong>
+                        <div id="recent-addresses" style="margin-top: 4px; font-family: monospace; font-size: 10px;"></div>
+                    </div>
+                    <div id="v1-badge" class="hidden" style="background: rgba(255, 152, 0, 0.3); padding: 8px; border-radius: 4px; margin-top: 10px;">
+                        ⚠️ <strong>Legacy v1 keys detected</strong> (read-only)
+                    </div>
+                </div>
+            </div>
+            
+            <div class="wallet-section">
+                <button class="button" id="view-utxos">View UTXOs</button>
+                <button class="button" id="toggle-diagnostics">Toggle Diagnostics</button>
+                <button class="button danger-button" id="lock-wallet">Lock Wallet</button>
+            </div>
+        </div>
+        
+        <!-- Upgrade Modal -->
+        <div id="upgrade-modal" class="modal hidden">
+            <div class="modal-content">
+                <h3 style="margin-top: 0;">🎉 Totem Upgraded!</h3>
+                <p style="font-size: 14px; line-height: 1.5;">
+                    Totem has been upgraded to mainnet-compatible signatures (WOTS w=256).
+                </p>
+                <p style="font-size: 14px; line-height: 1.5;">
+                    New addresses use the improved key format for better performance and security.
+                    Legacy dev addresses remain visible but are not used for new transactions.
+                </p>
+                <button class="button primary-button" id="close-modal" style="width: 100%;">Got it!</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="dist/popup.js"></script>
+</body>
+</html>

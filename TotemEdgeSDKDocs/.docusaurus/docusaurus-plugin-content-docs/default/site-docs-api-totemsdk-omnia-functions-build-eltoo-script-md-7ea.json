@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/functions/buildEltooScript",
+  "title": "buildEltooScript",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/functions/buildEltooScript.md",
+  "sourceDirName": "api/totemsdk-omnia/functions",
+  "slug": "/api/totemsdk-omnia/functions/buildEltooScript",
+  "permalink": "/api/totemsdk-omnia/functions/buildEltooScript",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "buildDisputePayload",
+    "permalink": "/api/totemsdk-omnia/functions/buildDisputePayload"
+  },
+  "next": {
+    "title": "buildFundingTx",
+    "permalink": "/api/totemsdk-omnia/functions/buildFundingTx"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/createMultisigDescriptor",
+  "title": "createMultisigDescriptor",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/createMultisigDescriptor.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/createMultisigDescriptor",
+  "permalink": "/api/totemsdk-node/functions/createMultisigDescriptor",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "createMofNMultisigDescriptor",
+    "permalink": "/api/totemsdk-node/functions/createMofNMultisigDescriptor"
+  },
+  "next": {
+    "title": "createNodeAdapters",
+    "permalink": "/api/totemsdk-node/functions/createNodeAdapters"
+  }
+}

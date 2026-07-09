@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/KeyGenProgress",
+  "title": "KeyGenProgress",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/KeyGenProgress.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/KeyGenProgress",
+  "permalink": "/api/totemsdk-node/interfaces/KeyGenProgress",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "JavaMMREntryNumber",
+    "permalink": "/api/totemsdk-node/interfaces/JavaMMREntryNumber"
+  },
+  "next": {
+    "title": "LeaseExpiryEvent",
+    "permalink": "/api/totemsdk-node/interfaces/LeaseExpiryEvent"
+  }
+}

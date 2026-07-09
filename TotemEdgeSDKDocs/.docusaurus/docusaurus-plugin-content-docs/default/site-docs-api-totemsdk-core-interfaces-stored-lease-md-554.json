@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/StoredLease",
+  "title": "StoredLease",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/StoredLease.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/StoredLease",
+  "permalink": "/api/totemsdk-core/interfaces/StoredLease",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "StorageAdapter",
+    "permalink": "/api/totemsdk-core/interfaces/StorageAdapter"
+  },
+  "next": {
+    "title": "SyncResult",
+    "permalink": "/api/totemsdk-core/interfaces/SyncResult"
+  }
+}

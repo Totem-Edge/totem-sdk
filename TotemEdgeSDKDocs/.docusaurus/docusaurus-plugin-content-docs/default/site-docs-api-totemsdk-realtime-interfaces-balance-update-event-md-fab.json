@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-realtime/interfaces/BalanceUpdateEvent",
+  "title": "BalanceUpdateEvent",
+  "description": "@totemsdk/realtime",
+  "source": "@site/docs/api/totemsdk-realtime/interfaces/BalanceUpdateEvent.md",
+  "sourceDirName": "api/totemsdk-realtime/interfaces",
+  "slug": "/api/totemsdk-realtime/interfaces/BalanceUpdateEvent",
+  "permalink": "/api/totemsdk-realtime/interfaces/BalanceUpdateEvent",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "BalanceStreamListener",
+    "permalink": "/api/totemsdk-realtime/interfaces/BalanceStreamListener"
+  },
+  "next": {
+    "title": "CachedBalance",
+    "permalink": "/api/totemsdk-realtime/interfaces/CachedBalance"
+  }
+}

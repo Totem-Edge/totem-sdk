@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/variables/serializeRealMMRProof",
+  "title": "serializeRealMMRProof",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/variables/serializeRealMMRProof.md",
+  "sourceDirName": "api/totemsdk-core/variables",
+  "slug": "/api/totemsdk-core/variables/serializeRealMMRProof",
+  "permalink": "/api/totemsdk-core/variables/serializeRealMMRProof",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "makeMinimaAddress",
+    "permalink": "/api/totemsdk-core/variables/makeMinimaAddress"
+  },
+  "next": {
+    "title": "TotemConnectionError",
+    "permalink": "/api/totemsdk-connect/classes/TotemConnectionError"
+  }
+}

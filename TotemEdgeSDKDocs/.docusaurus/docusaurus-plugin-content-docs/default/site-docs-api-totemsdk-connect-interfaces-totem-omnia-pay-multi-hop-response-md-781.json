@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-connect/interfaces/TotemOmniaPayMultiHopResponse",
+  "title": "TotemOmniaPayMultiHopResponse",
+  "description": "@totemsdk/connect",
+  "source": "@site/docs/api/totemsdk-connect/interfaces/TotemOmniaPayMultiHopResponse.md",
+  "sourceDirName": "api/totemsdk-connect/interfaces",
+  "slug": "/api/totemsdk-connect/interfaces/TotemOmniaPayMultiHopResponse",
+  "permalink": "/api/totemsdk-connect/interfaces/TotemOmniaPayMultiHopResponse",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TotemOmniaPayMultiHopRequest",
+    "permalink": "/api/totemsdk-connect/interfaces/TotemOmniaPayMultiHopRequest"
+  },
+  "next": {
+    "title": "TotemOmniaPayRequest",
+    "permalink": "/api/totemsdk-connect/interfaces/TotemOmniaPayRequest"
+  }
+}

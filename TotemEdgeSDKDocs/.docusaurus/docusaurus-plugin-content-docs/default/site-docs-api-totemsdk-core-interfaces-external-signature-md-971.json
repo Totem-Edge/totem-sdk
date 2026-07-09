@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/ExternalSignature",
+  "title": "ExternalSignature",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/ExternalSignature.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/ExternalSignature",
+  "permalink": "/api/totemsdk-core/interfaces/ExternalSignature",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "DAppTransactionOutput",
+    "permalink": "/api/totemsdk-core/interfaces/DAppTransactionOutput"
+  },
+  "next": {
+    "title": "FinalizeRequest",
+    "permalink": "/api/totemsdk-core/interfaces/FinalizeRequest"
+  }
+}

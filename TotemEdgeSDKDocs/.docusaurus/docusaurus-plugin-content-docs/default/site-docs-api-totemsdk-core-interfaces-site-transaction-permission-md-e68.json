@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/SiteTransactionPermission",
+  "title": "SiteTransactionPermission",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/SiteTransactionPermission.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/SiteTransactionPermission",
+  "permalink": "/api/totemsdk-core/interfaces/SiteTransactionPermission",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "SignatureProof",
+    "permalink": "/api/totemsdk-core/interfaces/SignatureProof"
+  },
+  "next": {
+    "title": "SpendableCoinInput",
+    "permalink": "/api/totemsdk-core/interfaces/SpendableCoinInput"
+  }
+}

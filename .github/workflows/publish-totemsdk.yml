@@ -1,0 +1,181 @@
+name: Publish @totemsdk packages
+
+on:
+  push:
+    tags:
+      - 'totemsdk/core-v*'
+      - 'totemsdk/connect-v*'
+      - 'totemsdk/tx-builder-v*'
+      - 'totemsdk/node-v*'
+      - 'totemsdk/realtime-v*'
+      - 'totemsdk/root-identity-v*'
+
+jobs:
+  publish:
+    name: Publish ${{ matrix.npm_name }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write   # retained for future provenance use (currently unused — private repo)
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - pkg: core
+            dir: packages/totem-sdk/packages/core
+            npm_name: '@totemsdk/core'
+          - pkg: connect
+            dir: packages/totem-sdk/packages/connect
+            npm_name: '@totemsdk/connect'
+          - pkg: tx-builder
+            dir: packages/totem-sdk/packages/tx-builder
+            npm_name: '@totemsdk/tx-builder'
+          - pkg: node
+            dir: packages/totem-sdk/packages/node
+            npm_name: '@totemsdk/node'
+          - pkg: realtime
+            dir: packages/totem-sdk/packages/realtime
+            npm_name: '@totemsdk/realtime'
+          - pkg: root-identity
+            dir: packages/totem-sdk/packages/root-identity
+            npm_name: '@totemsdk/root-identity'
+
+    steps:
+      # ── Gate: only proceed when the pushed tag targets this package ───────────
+      # NOTE: The matrix context is not available in job-level `if:` expressions,
+      # so we gate here at step level instead.
+      # Tag format: totemsdk/<pkg>-v<semver>  e.g. totemsdk/core-v1.2.3
+      - name: Check tag matches this package
+        id: gate
+        run: |
+          PREFIX="totemsdk/${{ matrix.pkg }}-v"
+          if [[ "$GITHUB_REF_NAME" == ${PREFIX}* ]]; then
+            echo "proceed=true" >> "$GITHUB_OUTPUT"
+            echo "✅ Tag '$GITHUB_REF_NAME' matches prefix '$PREFIX'"
+          else
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
+            echo "ℹ️  Tag '$GITHUB_REF_NAME' does not match '$PREFIX' — this job is a no-op."
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.proceed == 'true'
+
+      - uses: pnpm/action-setup@v3
+        if: steps.gate.outputs.proceed == 'true'
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        if: steps.gate.outputs.proceed == 'true'
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        if: steps.gate.outputs.proceed == 'true'
+        run: pnpm install --frozen-lockfile
+        working-directory: packages/totem-sdk
+
+      # ── Pre-build @totemsdk/core so dependent packages can resolve its types ──
+      - name: Build @totemsdk/core (workspace dependency)
+        if: steps.gate.outputs.proceed == 'true' && matrix.pkg != 'core'
+        run: npm run build
+        working-directory: packages/totem-sdk/packages/core
+
+      # ── Extract version from tag ──────────────────────────────────────────────
+      - name: Extract version from tag
+        id: meta
+        if: steps.gate.outputs.proceed == 'true'
+        run: |
+          TAG="${GITHUB_REF_NAME}"          # e.g. totemsdk/core-v1.2.3
+          SLUG="${TAG#totemsdk/}"           # e.g. core-v1.2.3
+          VERSION="${SLUG##*-v}"            # e.g. 1.2.3
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      # ── Verify package.json version matches the tag ───────────────────────────
+      - name: Verify package.json version matches tag
+        if: steps.gate.outputs.proceed == 'true'
+        run: |
+          ACTUAL=$(node -p "require('./${{ matrix.dir }}/package.json').version")
+          EXPECTED="${{ steps.meta.outputs.version }}"
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "Version mismatch: package.json has $ACTUAL but tag says $EXPECTED"
+            exit 1
+          fi
+          echo "✅ ${{ matrix.npm_name }}@$ACTUAL confirmed"
+
+      # ── Build ─────────────────────────────────────────────────────────────────
+      - name: Build ${{ matrix.npm_name }}
+        if: steps.gate.outputs.proceed == 'true'
+        run: npm run build
+        working-directory: ${{ matrix.dir }}
+
+      # ── Test ──────────────────────────────────────────────────────────────────
+      - name: Test ${{ matrix.npm_name }}
+        if: steps.gate.outputs.proceed == 'true'
+        run: npm test
+        working-directory: ${{ matrix.dir }}
+
+      # ── Publish ───────────────────────────────────────────────────────────────
+      # Use `pnpm publish` (not `npm publish`) so that workspace:* ranges in
+      # dependencies/peerDependencies are replaced with resolved semver
+      # versions before the tarball is packed and uploaded to the registry.
+      - name: Publish ${{ matrix.npm_name }}@${{ steps.meta.outputs.version }}
+        if: steps.gate.outputs.proceed == 'true'
+        run: pnpm publish --access public --no-git-checks --ignore-scripts
+        working-directory: ${{ matrix.dir }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  # ── Rebuild & deploy TotemEdgeSDKDocs ──────────────────────────────────────
+  # Runs only after ALL publish matrix jobs complete successfully.
+  # A failed publish will prevent this job from running, so the docs site
+  # is never updated with a stale or partial release.
+  #
+  # Required GitHub Actions secrets:
+  #   CLOUDFLARE_API_TOKEN  — Cloudflare API token with Pages:Edit permission
+  #                           (create at dash.cloudflare.com → My Profile → API Tokens)
+  #   CLOUDFLARE_ACCOUNT_ID — Cloudflare account ID
+  #                           (visible in dash.cloudflare.com → Workers & Pages sidebar)
+  deploy-docs:
+    name: Deploy TotemEdgeSDKDocs
+    runs-on: ubuntu-latest
+    needs: [publish]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # TotemEdgeSDKDocs is a standalone npm project (has its own package-lock.json)
+      # and is NOT part of the pnpm monorepo, so we use npm here deliberately.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: TotemEdgeSDKDocs/package-lock.json
+
+      - name: Install TotemEdgeSDKDocs dependencies
+        run: npm install
+        working-directory: TotemEdgeSDKDocs
+
+      # generate: runs TypeDoc over all SDK source packages in the monorepo,
+      # then build: produces the static Docusaurus site in TotemEdgeSDKDocs/build/
+      - name: Generate API reference and build docs site
+        run: npm run build:deploy
+        working-directory: TotemEdgeSDKDocs
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          # CLOUDFLARE_API_TOKEN — Pages:Edit permission required
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          # CLOUDFLARE_ACCOUNT_ID — found in Cloudflare dashboard sidebar
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # Must match the Pages project name in the Cloudflare dashboard
+          projectName: totem-edge-sdk-docs
+          directory: TotemEdgeSDKDocs/build
+          # branch: main forces a production deployment (not a Pages preview branch).
+          # Without this, a tag-triggered run would deploy as a preview URL only.
+          branch: main
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}

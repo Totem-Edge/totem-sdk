@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/ParsedMiniNumber",
+  "title": "ParsedMiniNumber",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/ParsedMiniNumber.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/ParsedMiniNumber",
+  "permalink": "/api/totemsdk-node/interfaces/ParsedMiniNumber",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "NodeHttpClientOptions",
+    "permalink": "/api/totemsdk-node/interfaces/NodeHttpClientOptions"
+  },
+  "next": {
+    "title": "PrepareRequest",
+    "permalink": "/api/totemsdk-node/interfaces/PrepareRequest"
+  }
+}

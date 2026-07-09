@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/finalizeLease",
+  "title": "finalizeLease",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/finalizeLease.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/finalizeLease",
+  "permalink": "/api/totemsdk-node/functions/finalizeLease",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "encodeStateValue",
+    "permalink": "/api/totemsdk-node/functions/encodeStateValue"
+  },
+  "next": {
+    "title": "flatIndexFromLanes",
+    "permalink": "/api/totemsdk-node/functions/flatIndexFromLanes"
+  }
+}

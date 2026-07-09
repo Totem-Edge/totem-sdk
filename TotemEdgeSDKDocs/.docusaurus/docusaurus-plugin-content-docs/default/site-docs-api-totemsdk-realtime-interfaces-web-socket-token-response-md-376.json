@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-realtime/interfaces/WebSocketTokenResponse",
+  "title": "WebSocketTokenResponse",
+  "description": "@totemsdk/realtime",
+  "source": "@site/docs/api/totemsdk-realtime/interfaces/WebSocketTokenResponse.md",
+  "sourceDirName": "api/totemsdk-realtime/interfaces",
+  "slug": "/api/totemsdk-realtime/interfaces/WebSocketTokenResponse",
+  "permalink": "/api/totemsdk-realtime/interfaces/WebSocketTokenResponse",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "WebSocketMessage",
+    "permalink": "/api/totemsdk-realtime/interfaces/WebSocketMessage"
+  },
+  "next": {
+    "title": "ConnectionState",
+    "permalink": "/api/totemsdk-realtime/type-aliases/ConnectionState"
+  }
+}

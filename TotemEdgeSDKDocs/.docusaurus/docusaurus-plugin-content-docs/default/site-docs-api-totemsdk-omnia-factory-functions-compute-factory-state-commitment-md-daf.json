@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-factory/functions/computeFactoryStateCommitment",
+  "title": "computeFactoryStateCommitment",
+  "description": "@totemsdk/omnia-factory",
+  "source": "@site/docs/api/totemsdk-omnia-factory/functions/computeFactoryStateCommitment.md",
+  "sourceDirName": "api/totemsdk-omnia-factory/functions",
+  "slug": "/api/totemsdk-omnia-factory/functions/computeFactoryStateCommitment",
+  "permalink": "/api/totemsdk-omnia-factory/functions/computeFactoryStateCommitment",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "closeVirtualChannel",
+    "permalink": "/api/totemsdk-omnia-factory/functions/closeVirtualChannel"
+  },
+  "next": {
+    "title": "createFactory",
+    "permalink": "/api/totemsdk-omnia-factory/functions/createFactory"
+  }
+}

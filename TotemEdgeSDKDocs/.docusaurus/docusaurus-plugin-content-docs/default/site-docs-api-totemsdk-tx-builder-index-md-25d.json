@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-tx-builder/index",
+  "title": "index",
+  "description": "@totemsdk/tx-builder",
+  "source": "@site/docs/api/totemsdk-tx-builder/index.md",
+  "sourceDirName": "api/totemsdk-tx-builder",
+  "slug": "/api/totemsdk-tx-builder/",
+  "permalink": "/api/totemsdk-tx-builder/",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "subtractDecimalStrings",
+    "permalink": "/api/totemsdk-tx-builder/functions/subtractDecimalStrings"
+  },
+  "next": {
+    "title": "CoinFetcher",
+    "permalink": "/api/totemsdk-tx-builder/interfaces/CoinFetcher"
+  }
+}

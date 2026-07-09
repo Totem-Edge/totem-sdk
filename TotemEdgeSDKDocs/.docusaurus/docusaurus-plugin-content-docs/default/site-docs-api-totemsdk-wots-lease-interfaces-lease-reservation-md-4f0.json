@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-wots-lease/interfaces/LeaseReservation",
+  "title": "LeaseReservation",
+  "description": "@totemsdk/wots-lease",
+  "source": "@site/docs/api/totemsdk-wots-lease/interfaces/LeaseReservation.md",
+  "sourceDirName": "api/totemsdk-wots-lease/interfaces",
+  "slug": "/api/totemsdk-wots-lease/interfaces/LeaseReservation",
+  "permalink": "/api/totemsdk-wots-lease/interfaces/LeaseReservation",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "LeaseCertificate",
+    "permalink": "/api/totemsdk-wots-lease/interfaces/LeaseCertificate"
+  },
+  "next": {
+    "title": "LocalWatermark",
+    "permalink": "/api/totemsdk-wots-lease/interfaces/LocalWatermark"
+  }
+}

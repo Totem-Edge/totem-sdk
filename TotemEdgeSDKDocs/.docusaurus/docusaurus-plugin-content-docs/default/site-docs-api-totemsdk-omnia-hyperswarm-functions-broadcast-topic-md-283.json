@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-hyperswarm/functions/broadcastTopic",
+  "title": "broadcastTopic",
+  "description": "@totemsdk/omnia-hyperswarm",
+  "source": "@site/docs/api/totemsdk-omnia-hyperswarm/functions/broadcastTopic.md",
+  "sourceDirName": "api/totemsdk-omnia-hyperswarm/functions",
+  "slug": "/api/totemsdk-omnia-hyperswarm/functions/broadcastTopic",
+  "permalink": "/api/totemsdk-omnia-hyperswarm/functions/broadcastTopic",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "bindPeerIntegration",
+    "permalink": "/api/totemsdk-omnia-hyperswarm/functions/bindPeerIntegration"
+  },
+  "next": {
+    "title": "channelTopic",
+    "permalink": "/api/totemsdk-omnia-hyperswarm/functions/channelTopic"
+  }
+}

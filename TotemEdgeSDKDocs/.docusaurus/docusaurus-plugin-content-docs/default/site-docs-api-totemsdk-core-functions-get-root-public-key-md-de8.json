@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/getRootPublicKey",
+  "title": "getRootPublicKey",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/getRootPublicKey.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/getRootPublicKey",
+  "permalink": "/api/totemsdk-core/functions/getRootPublicKey",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "getPerAddressPublicKey",
+    "permalink": "/api/totemsdk-core/functions/getPerAddressPublicKey"
+  },
+  "next": {
+    "title": "hashAllObjects",
+    "permalink": "/api/totemsdk-core/functions/hashAllObjects"
+  }
+}

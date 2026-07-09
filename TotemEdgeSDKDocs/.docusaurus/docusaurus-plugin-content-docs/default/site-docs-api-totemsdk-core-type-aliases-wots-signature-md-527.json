@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/type-aliases/WotsSignature",
+  "title": "WotsSignature",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/type-aliases/WotsSignature.md",
+  "sourceDirName": "api/totemsdk-core/type-aliases",
+  "slug": "/api/totemsdk-core/type-aliases/WotsSignature",
+  "permalink": "/api/totemsdk-core/type-aliases/WotsSignature",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "WotsKeypair",
+    "permalink": "/api/totemsdk-core/type-aliases/WotsKeypair"
+  },
+  "next": {
+    "title": "CORE_BUILD_ID",
+    "permalink": "/api/totemsdk-core/variables/CORE_BUILD_ID"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/fromHex",
+  "title": "fromHex",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/fromHex.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/fromHex",
+  "permalink": "/api/totemsdk-core/functions/fromHex",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "flatIndexFromLanes",
+    "permalink": "/api/totemsdk-core/functions/flatIndexFromLanes"
+  },
+  "next": {
+    "title": "generateSeedPhrase",
+    "permalink": "/api/totemsdk-core/functions/generateSeedPhrase"
+  }
+}

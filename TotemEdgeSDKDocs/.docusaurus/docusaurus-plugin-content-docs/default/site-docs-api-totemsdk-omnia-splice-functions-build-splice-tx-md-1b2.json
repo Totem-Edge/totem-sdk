@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-splice/functions/buildSpliceTx",
+  "title": "buildSpliceTx",
+  "description": "@totemsdk/omnia-splice",
+  "source": "@site/docs/api/totemsdk-omnia-splice/functions/buildSpliceTx.md",
+  "sourceDirName": "api/totemsdk-omnia-splice/functions",
+  "slug": "/api/totemsdk-omnia-splice/functions/buildSpliceTx",
+  "permalink": "/api/totemsdk-omnia-splice/functions/buildSpliceTx",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "acceptSplice",
+    "permalink": "/api/totemsdk-omnia-splice/functions/acceptSplice"
+  },
+  "next": {
+    "title": "computeSpliceTxDigest",
+    "permalink": "/api/totemsdk-omnia-splice/functions/computeSpliceTxDigest"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/bytesToHex",
+  "title": "bytesToHex",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/bytesToHex.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/bytesToHex",
+  "permalink": "/api/totemsdk-core/functions/bytesToHex",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "buildScriptProofFromDescriptor",
+    "permalink": "/api/totemsdk-core/functions/buildScriptProofFromDescriptor"
+  },
+  "next": {
+    "title": "bytesToUtf8",
+    "permalink": "/api/totemsdk-core/functions/bytesToUtf8"
+  }
+}

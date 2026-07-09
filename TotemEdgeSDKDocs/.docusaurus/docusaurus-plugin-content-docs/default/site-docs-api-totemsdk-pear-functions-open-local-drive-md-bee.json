@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-pear/functions/openLocalDrive",
+  "title": "openLocalDrive",
+  "description": "@totemsdk/pear",
+  "source": "@site/docs/api/totemsdk-pear/functions/openLocalDrive.md",
+  "sourceDirName": "api/totemsdk-pear/functions",
+  "slug": "/api/totemsdk-pear/functions/openLocalDrive",
+  "permalink": "/api/totemsdk-pear/functions/openLocalDrive",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "onExit",
+    "permalink": "/api/totemsdk-pear/functions/onExit"
+  },
+  "next": {
+    "title": "openRemoteDrive",
+    "permalink": "/api/totemsdk-pear/functions/openRemoteDrive"
+  }
+}

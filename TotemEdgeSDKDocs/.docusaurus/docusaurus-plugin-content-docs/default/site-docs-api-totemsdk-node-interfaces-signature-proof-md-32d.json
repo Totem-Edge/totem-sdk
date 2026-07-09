@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/SignatureProof",
+  "title": "SignatureProof",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/SignatureProof.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/SignatureProof",
+  "permalink": "/api/totemsdk-node/interfaces/SignatureProof",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "SignResult",
+    "permalink": "/api/totemsdk-node/interfaces/SignResult"
+  },
+  "next": {
+    "title": "SiteTransactionPermission",
+    "permalink": "/api/totemsdk-node/interfaces/SiteTransactionPermission"
+  }
+}

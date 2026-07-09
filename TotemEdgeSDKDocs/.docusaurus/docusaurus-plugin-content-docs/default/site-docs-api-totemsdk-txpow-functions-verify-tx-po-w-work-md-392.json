@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-txpow/functions/verifyTxPoWWork",
+  "title": "verifyTxPoWWork",
+  "description": "@totemsdk/txpow",
+  "source": "@site/docs/api/totemsdk-txpow/functions/verifyTxPoWWork.md",
+  "sourceDirName": "api/totemsdk-txpow/functions",
+  "slug": "/api/totemsdk-txpow/functions/verifyTxPoWWork",
+  "permalink": "/api/totemsdk-txpow/functions/verifyTxPoWWork",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "verifyProofOfWork",
+    "permalink": "/api/totemsdk-txpow/functions/verifyProofOfWork"
+  },
+  "next": {
+    "title": "index",
+    "permalink": "/api/totemsdk-txpow/"
+  }
+}

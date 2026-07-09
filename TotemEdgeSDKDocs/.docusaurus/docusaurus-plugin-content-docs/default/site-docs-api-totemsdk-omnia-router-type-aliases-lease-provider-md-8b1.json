@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-router/type-aliases/LeaseProvider",
+  "title": "LeaseProvider",
+  "description": "@totemsdk/omnia-router",
+  "source": "@site/docs/api/totemsdk-omnia-router/type-aliases/LeaseProvider.md",
+  "sourceDirName": "api/totemsdk-omnia-router/type-aliases",
+  "slug": "/api/totemsdk-omnia-router/type-aliases/LeaseProvider",
+  "permalink": "/api/totemsdk-omnia-router/type-aliases/LeaseProvider",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "HTLCStatus",
+    "permalink": "/api/totemsdk-omnia-router/type-aliases/HTLCStatus"
+  },
+  "next": {
+    "title": "PendingHTLCError",
+    "permalink": "/api/totemsdk-omnia-splice/classes/PendingHTLCError"
+  }
+}

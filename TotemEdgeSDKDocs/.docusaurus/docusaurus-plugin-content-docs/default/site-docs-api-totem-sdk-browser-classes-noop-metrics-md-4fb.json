@@ -1,0 +1,23 @@
+{
+  "id": "api/totem-sdk-browser/classes/NoopMetrics",
+  "title": "NoopMetrics",
+  "description": "@totem/sdk-browser",
+  "source": "@site/docs/api/totem-sdk-browser/classes/NoopMetrics.md",
+  "sourceDirName": "api/totem-sdk-browser/classes",
+  "slug": "/api/totem-sdk-browser/classes/NoopMetrics",
+  "permalink": "/api/totem-sdk-browser/classes/NoopMetrics",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "NoopLogger",
+    "permalink": "/api/totem-sdk-browser/classes/NoopLogger"
+  },
+  "next": {
+    "title": "PageVisibilityLifecycleAdapter",
+    "permalink": "/api/totem-sdk-browser/classes/PageVisibilityLifecycleAdapter"
+  }
+}

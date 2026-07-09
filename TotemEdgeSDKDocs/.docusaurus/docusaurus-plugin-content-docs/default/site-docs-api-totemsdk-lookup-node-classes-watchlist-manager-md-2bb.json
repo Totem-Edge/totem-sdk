@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-lookup-node/classes/WatchlistManager",
+  "title": "WatchlistManager",
+  "description": "@totemsdk/lookup-node",
+  "source": "@site/docs/api/totemsdk-lookup-node/classes/WatchlistManager.md",
+  "sourceDirName": "api/totemsdk-lookup-node/classes",
+  "slug": "/api/totemsdk-lookup-node/classes/WatchlistManager",
+  "permalink": "/api/totemsdk-lookup-node/classes/WatchlistManager",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TxPoWRelay",
+    "permalink": "/api/totemsdk-lookup-node/classes/TxPoWRelay"
+  },
+  "next": {
+    "title": "createLookupNode",
+    "permalink": "/api/totemsdk-lookup-node/functions/createLookupNode"
+  }
+}

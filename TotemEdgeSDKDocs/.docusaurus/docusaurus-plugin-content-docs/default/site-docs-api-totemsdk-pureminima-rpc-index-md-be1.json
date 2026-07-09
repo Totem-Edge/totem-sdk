@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-pureminima-rpc/index",
+  "title": "index",
+  "description": "@totemsdk/pureminima-rpc",
+  "source": "@site/docs/api/totemsdk-pureminima-rpc/index.md",
+  "sourceDirName": "api/totemsdk-pureminima-rpc",
+  "slug": "/api/totemsdk-pureminima-rpc/",
+  "permalink": "/api/totemsdk-pureminima-rpc/",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "postCommand",
+    "permalink": "/api/totemsdk-pureminima-rpc/functions/postCommand"
+  },
+  "next": {
+    "title": "AddressInfo",
+    "permalink": "/api/totemsdk-pureminima-rpc/interfaces/AddressInfo"
+  }
+}

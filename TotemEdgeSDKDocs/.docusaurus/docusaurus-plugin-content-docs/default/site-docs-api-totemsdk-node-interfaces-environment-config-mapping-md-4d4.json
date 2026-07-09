@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/EnvironmentConfigMapping",
+  "title": "EnvironmentConfigMapping",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/EnvironmentConfigMapping.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/EnvironmentConfigMapping",
+  "permalink": "/api/totemsdk-node/interfaces/EnvironmentConfigMapping",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "DAppTransactionOutput",
+    "permalink": "/api/totemsdk-node/interfaces/DAppTransactionOutput"
+  },
+  "next": {
+    "title": "ExternalSignature",
+    "permalink": "/api/totemsdk-node/interfaces/ExternalSignature"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/flatIndexFromLanes",
+  "title": "flatIndexFromLanes",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/flatIndexFromLanes.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/flatIndexFromLanes",
+  "permalink": "/api/totemsdk-node/functions/flatIndexFromLanes",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "finalizeLease",
+    "permalink": "/api/totemsdk-node/functions/finalizeLease"
+  },
+  "next": {
+    "title": "generateSeedPhrase",
+    "permalink": "/api/totemsdk-node/functions/generateSeedPhrase"
+  }
+}

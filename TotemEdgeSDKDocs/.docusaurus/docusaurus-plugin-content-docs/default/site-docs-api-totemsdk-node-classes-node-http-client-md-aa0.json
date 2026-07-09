@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/classes/NodeHttpClient",
+  "title": "NodeHttpClient",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/classes/NodeHttpClient.md",
+  "sourceDirName": "api/totemsdk-node/classes",
+  "slug": "/api/totemsdk-node/classes/NodeHttpClient",
+  "permalink": "/api/totemsdk-node/classes/NodeHttpClient",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "NodeCryptoAdapter",
+    "permalink": "/api/totemsdk-node/classes/NodeCryptoAdapter"
+  },
+  "next": {
+    "title": "NodeWebSocketFactory",
+    "permalink": "/api/totemsdk-node/classes/NodeWebSocketFactory"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/aggregateSignatures",
+  "title": "aggregateSignatures",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/aggregateSignatures.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/aggregateSignatures",
+  "permalink": "/api/totemsdk-node/functions/aggregateSignatures",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "addressToRoot",
+    "permalink": "/api/totemsdk-node/functions/addressToRoot"
+  },
+  "next": {
+    "title": "assert32",
+    "permalink": "/api/totemsdk-node/functions/assert32"
+  }
+}

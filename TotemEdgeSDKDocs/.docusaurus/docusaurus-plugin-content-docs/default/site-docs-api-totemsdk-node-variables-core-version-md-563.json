@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/variables/CORE_VERSION",
+  "title": "CORE_VERSION",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/variables/CORE_VERSION.md",
+  "sourceDirName": "api/totemsdk-node/variables",
+  "slug": "/api/totemsdk-node/variables/CORE_VERSION",
+  "permalink": "/api/totemsdk-node/variables/CORE_VERSION",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "CORE_BUILD_ID",
+    "permalink": "/api/totemsdk-node/variables/CORE_BUILD_ID"
+  },
+  "next": {
+    "title": "DEFAULT_KEYS_PER_LEVEL",
+    "permalink": "/api/totemsdk-node/variables/DEFAULT_KEYS_PER_LEVEL"
+  }
+}

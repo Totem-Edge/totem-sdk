@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-pear/index",
+  "title": "index",
+  "description": "@totemsdk/pear",
+  "source": "@site/docs/api/totemsdk-pear/index.md",
+  "sourceDirName": "api/totemsdk-pear",
+  "slug": "/api/totemsdk-pear/",
+  "permalink": "/api/totemsdk-pear/",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "runExitHandlers",
+    "permalink": "/api/totemsdk-pear/functions/runExitHandlers"
+  },
+  "next": {
+    "title": "AppConfig",
+    "permalink": "/api/totemsdk-pear/interfaces/AppConfig"
+  }
+}

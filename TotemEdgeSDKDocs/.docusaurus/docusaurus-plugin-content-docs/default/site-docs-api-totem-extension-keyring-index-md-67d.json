@@ -1,0 +1,23 @@
+{
+  "id": "api/totem-extension-keyring/index",
+  "title": "index",
+  "description": "totem-extension/keyring",
+  "source": "@site/docs/api/totem-extension-keyring/index.md",
+  "sourceDirName": "api/totem-extension-keyring",
+  "slug": "/api/totem-extension-keyring/",
+  "permalink": "/api/totem-extension-keyring/",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "normalizeAddrToHex",
+    "permalink": "/api/totem-extension-keyring/functions/normalizeAddrToHex"
+  },
+  "next": {
+    "title": "SignDataManifest",
+    "permalink": "/api/totem-extension-keyring/type-aliases/SignDataManifest"
+  }
+}

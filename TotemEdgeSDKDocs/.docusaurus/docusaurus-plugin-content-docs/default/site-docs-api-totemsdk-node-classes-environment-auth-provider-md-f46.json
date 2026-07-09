@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/classes/EnvironmentAuthProvider",
+  "title": "EnvironmentAuthProvider",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/classes/EnvironmentAuthProvider.md",
+  "sourceDirName": "api/totemsdk-node/classes",
+  "slug": "/api/totemsdk-node/classes/EnvironmentAuthProvider",
+  "permalink": "/api/totemsdk-node/classes/EnvironmentAuthProvider",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "DefaultTimerAdapter",
+    "permalink": "/api/totemsdk-node/classes/DefaultTimerAdapter"
+  },
+  "next": {
+    "title": "ExchangeHelper",
+    "permalink": "/api/totemsdk-node/classes/ExchangeHelper"
+  }
+}

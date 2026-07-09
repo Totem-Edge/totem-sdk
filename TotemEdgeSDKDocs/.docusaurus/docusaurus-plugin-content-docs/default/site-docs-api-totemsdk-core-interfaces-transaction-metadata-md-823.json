@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/TransactionMetadata",
+  "title": "TransactionMetadata",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/TransactionMetadata.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/TransactionMetadata",
+  "permalink": "/api/totemsdk-core/interfaces/TransactionMetadata",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TransactionLifecycleConfig",
+    "permalink": "/api/totemsdk-core/interfaces/TransactionLifecycleConfig"
+  },
+  "next": {
+    "title": "TransactionReceipt",
+    "permalink": "/api/totemsdk-core/interfaces/TransactionReceipt"
+  }
+}

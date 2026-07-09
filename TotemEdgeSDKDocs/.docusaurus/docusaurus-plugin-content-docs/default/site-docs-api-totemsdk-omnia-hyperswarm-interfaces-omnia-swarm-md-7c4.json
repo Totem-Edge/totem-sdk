@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-hyperswarm/interfaces/OmniaSwarm",
+  "title": "OmniaSwarm",
+  "description": "@totemsdk/omnia-hyperswarm",
+  "source": "@site/docs/api/totemsdk-omnia-hyperswarm/interfaces/OmniaSwarm.md",
+  "sourceDirName": "api/totemsdk-omnia-hyperswarm/interfaces",
+  "slug": "/api/totemsdk-omnia-hyperswarm/interfaces/OmniaSwarm",
+  "permalink": "/api/totemsdk-omnia-hyperswarm/interfaces/OmniaSwarm",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "OmniaPeer",
+    "permalink": "/api/totemsdk-omnia-hyperswarm/interfaces/OmniaPeer"
+  },
+  "next": {
+    "title": "OmniaSwarmConfig",
+    "permalink": "/api/totemsdk-omnia-hyperswarm/interfaces/OmniaSwarmConfig"
+  }
+}

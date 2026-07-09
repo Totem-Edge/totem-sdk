@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/PrepareResponse",
+  "title": "PrepareResponse",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/PrepareResponse.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/PrepareResponse",
+  "permalink": "/api/totemsdk-node/interfaces/PrepareResponse",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "PrepareRequest",
+    "permalink": "/api/totemsdk-node/interfaces/PrepareRequest"
+  },
+  "next": {
+    "title": "PrepareResult",
+    "permalink": "/api/totemsdk-node/interfaces/PrepareResult"
+  }
+}

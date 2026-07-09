@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/SignResult",
+  "title": "SignResult",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/SignResult.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/SignResult",
+  "permalink": "/api/totemsdk-node/interfaces/SignResult",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "SignRequest",
+    "permalink": "/api/totemsdk-node/interfaces/SignRequest"
+  },
+  "next": {
+    "title": "SignatureProof",
+    "permalink": "/api/totemsdk-node/interfaces/SignatureProof"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-wots-lease/classes/WatermarkMonotonicityError",
+  "title": "WatermarkMonotonicityError",
+  "description": "@totemsdk/wots-lease",
+  "source": "@site/docs/api/totemsdk-wots-lease/classes/WatermarkMonotonicityError.md",
+  "sourceDirName": "api/totemsdk-wots-lease/classes",
+  "slug": "/api/totemsdk-wots-lease/classes/WatermarkMonotonicityError",
+  "permalink": "/api/totemsdk-wots-lease/classes/WatermarkMonotonicityError",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "WatermarkExhaustedError",
+    "permalink": "/api/totemsdk-wots-lease/classes/WatermarkExhaustedError"
+  },
+  "next": {
+    "title": "WotsWatermarkStore",
+    "permalink": "/api/totemsdk-wots-lease/classes/WotsWatermarkStore"
+  }
+}

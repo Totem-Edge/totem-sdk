@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-pear/functions/createPearApp",
+  "title": "createPearApp",
+  "description": "@totemsdk/pear",
+  "source": "@site/docs/api/totemsdk-pear/functions/createPearApp.md",
+  "sourceDirName": "api/totemsdk-pear/functions",
+  "slug": "/api/totemsdk-pear/functions/createPearApp",
+  "permalink": "/api/totemsdk-pear/functions/createPearApp",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "createLogger",
+    "permalink": "/api/totemsdk-pear/functions/createLogger"
+  },
+  "next": {
+    "title": "defaultSwarmConfig",
+    "permalink": "/api/totemsdk-pear/functions/defaultSwarmConfig"
+  }
+}

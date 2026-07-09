@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/variables/WOTS_MINIMA",
+  "title": "WOTS_MINIMA",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/variables/WOTS_MINIMA.md",
+  "sourceDirName": "api/totemsdk-node/variables",
+  "slug": "/api/totemsdk-node/variables/WOTS_MINIMA",
+  "permalink": "/api/totemsdk-node/variables/WOTS_MINIMA",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "WORD_LIST",
+    "permalink": "/api/totemsdk-node/variables/WORD_LIST"
+  },
+  "next": {
+    "title": "WOTS_V1_DEV",
+    "permalink": "/api/totemsdk-node/variables/WOTS_V1_DEV"
+  }
+}

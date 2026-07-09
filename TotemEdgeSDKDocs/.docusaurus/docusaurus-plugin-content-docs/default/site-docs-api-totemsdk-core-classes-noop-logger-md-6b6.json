@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/classes/NoopLogger",
+  "title": "NoopLogger",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/classes/NoopLogger.md",
+  "sourceDirName": "api/totemsdk-core/classes",
+  "slug": "/api/totemsdk-core/classes/NoopLogger",
+  "permalink": "/api/totemsdk-core/classes/NoopLogger",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "NoopLifecycleAdapter",
+    "permalink": "/api/totemsdk-core/classes/NoopLifecycleAdapter"
+  },
+  "next": {
+    "title": "NoopMetrics",
+    "permalink": "/api/totemsdk-core/classes/NoopMetrics"
+  }
+}

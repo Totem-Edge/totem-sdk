@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-hyperswarm/functions/createOmniaIntegration",
+  "title": "createOmniaIntegration",
+  "description": "@totemsdk/omnia-hyperswarm",
+  "source": "@site/docs/api/totemsdk-omnia-hyperswarm/functions/createOmniaIntegration.md",
+  "sourceDirName": "api/totemsdk-omnia-hyperswarm/functions",
+  "slug": "/api/totemsdk-omnia-hyperswarm/functions/createOmniaIntegration",
+  "permalink": "/api/totemsdk-omnia-hyperswarm/functions/createOmniaIntegration",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "createMockStreamPair",
+    "permalink": "/api/totemsdk-omnia-hyperswarm/functions/createMockStreamPair"
+  },
+  "next": {
+    "title": "createOmniaSwarm",
+    "permalink": "/api/totemsdk-omnia-hyperswarm/functions/createOmniaSwarm"
+  }
+}

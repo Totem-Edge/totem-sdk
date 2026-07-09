@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/wotsVerify",
+  "title": "wotsVerify",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/wotsVerify.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/wotsVerify",
+  "permalink": "/api/totemsdk-node/functions/wotsVerify",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "wotsSignLegacy",
+    "permalink": "/api/totemsdk-node/functions/wotsSignLegacy"
+  },
+  "next": {
+    "title": "wotsVerifyDigest",
+    "permalink": "/api/totemsdk-node/functions/wotsVerifyDigest"
+  }
+}

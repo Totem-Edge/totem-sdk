@@ -1,0 +1,27 @@
+{
+  "id": "api/totem-observability/index",
+  "title": "@totem/observability",
+  "description": "Unified Loki/Prometheus/Tempo observability for dApps and axia-api",
+  "source": "@site/docs/api/totem-observability/index.md",
+  "sourceDirName": "api/totem-observability",
+  "slug": "/api/totem-observability/",
+  "permalink": "/api/totem-observability/",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "@totem/observability",
+    "sidebar_label": "@totem/observability",
+    "description": "Unified Loki/Prometheus/Tempo observability for dApps and axia-api"
+  },
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "QuoteResp",
+    "permalink": "/api/axia-totem-dex/type-aliases/QuoteResp"
+  },
+  "next": {
+    "title": "computeManifestBlobHash",
+    "permalink": "/api/totem-extension-keyring/functions/computeManifestBlobHash"
+  }
+}

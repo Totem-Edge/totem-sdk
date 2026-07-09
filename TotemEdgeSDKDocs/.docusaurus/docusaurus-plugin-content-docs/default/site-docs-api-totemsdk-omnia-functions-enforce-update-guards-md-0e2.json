@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/functions/enforceUpdateGuards",
+  "title": "enforceUpdateGuards",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/functions/enforceUpdateGuards.md",
+  "sourceDirName": "api/totemsdk-omnia/functions",
+  "slug": "/api/totemsdk-omnia/functions/enforceUpdateGuards",
+  "permalink": "/api/totemsdk-omnia/functions/enforceUpdateGuards",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "deserializeTxDraft",
+    "permalink": "/api/totemsdk-omnia/functions/deserializeTxDraft"
+  },
+  "next": {
+    "title": "executeIntent",
+    "permalink": "/api/totemsdk-omnia/functions/executeIntent"
+  }
+}

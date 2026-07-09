@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-txpow/interfaces/TxHeaderOptions",
+  "title": "TxHeaderOptions",
+  "description": "@totemsdk/txpow",
+  "source": "@site/docs/api/totemsdk-txpow/interfaces/TxHeaderOptions.md",
+  "sourceDirName": "api/totemsdk-txpow/interfaces",
+  "slug": "/api/totemsdk-txpow/interfaces/TxHeaderOptions",
+  "permalink": "/api/totemsdk-txpow/interfaces/TxHeaderOptions",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TxBodyOptions",
+    "permalink": "/api/totemsdk-txpow/interfaces/TxBodyOptions"
+  },
+  "next": {
+    "title": "TxPowParams",
+    "permalink": "/api/totemsdk-txpow/interfaces/TxPowParams"
+  }
+}

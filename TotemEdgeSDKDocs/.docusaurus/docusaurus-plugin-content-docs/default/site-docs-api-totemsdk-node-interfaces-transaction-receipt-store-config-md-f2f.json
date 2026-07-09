@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/TransactionReceiptStoreConfig",
+  "title": "TransactionReceiptStoreConfig",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/TransactionReceiptStoreConfig.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/TransactionReceiptStoreConfig",
+  "permalink": "/api/totemsdk-node/interfaces/TransactionReceiptStoreConfig",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TransactionReceipt",
+    "permalink": "/api/totemsdk-node/interfaces/TransactionReceipt"
+  },
+  "next": {
+    "title": "TransactionRoundState",
+    "permalink": "/api/totemsdk-node/interfaces/TransactionRoundState"
+  }
+}

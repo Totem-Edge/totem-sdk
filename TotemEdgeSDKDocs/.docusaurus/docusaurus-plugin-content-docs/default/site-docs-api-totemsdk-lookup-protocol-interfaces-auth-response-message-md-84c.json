@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-lookup-protocol/interfaces/AuthResponseMessage",
+  "title": "AuthResponseMessage",
+  "description": "@totemsdk/lookup-protocol",
+  "source": "@site/docs/api/totemsdk-lookup-protocol/interfaces/AuthResponseMessage.md",
+  "sourceDirName": "api/totemsdk-lookup-protocol/interfaces",
+  "slug": "/api/totemsdk-lookup-protocol/interfaces/AuthResponseMessage",
+  "permalink": "/api/totemsdk-lookup-protocol/interfaces/AuthResponseMessage",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "AuthChallengeMessage",
+    "permalink": "/api/totemsdk-lookup-protocol/interfaces/AuthChallengeMessage"
+  },
+  "next": {
+    "title": "BroadcastTxPoWMessage",
+    "permalink": "/api/totemsdk-lookup-protocol/interfaces/BroadcastTxPoWMessage"
+  }
+}

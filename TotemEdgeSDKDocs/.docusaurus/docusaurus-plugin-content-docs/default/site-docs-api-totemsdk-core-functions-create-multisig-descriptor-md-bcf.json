@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/createMultisigDescriptor",
+  "title": "createMultisigDescriptor",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/createMultisigDescriptor.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/createMultisigDescriptor",
+  "permalink": "/api/totemsdk-core/functions/createMultisigDescriptor",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "createMofNMultisigDescriptor",
+    "permalink": "/api/totemsdk-core/functions/createMofNMultisigDescriptor"
+  },
+  "next": {
+    "title": "createPerAddressTreeKey",
+    "permalink": "/api/totemsdk-core/functions/createPerAddressTreeKey"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/functions/buildAndHashEltooScript",
+  "title": "buildAndHashEltooScript",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/functions/buildAndHashEltooScript.md",
+  "sourceDirName": "api/totemsdk-omnia/functions",
+  "slug": "/api/totemsdk-omnia/functions/buildAndHashEltooScript",
+  "permalink": "/api/totemsdk-omnia/functions/buildAndHashEltooScript",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "attachCounterpartySignature",
+    "permalink": "/api/totemsdk-omnia/functions/attachCounterpartySignature"
+  },
+  "next": {
+    "title": "buildDisputePayload",
+    "permalink": "/api/totemsdk-omnia/functions/buildDisputePayload"
+  }
+}

@@ -1,0 +1,9 @@
+import fs from 'fs';import fetch from 'node-fetch';
+const PROM_URL=process.env.PROM_URL||'http://localhost:9090';const OUT=process.env.OUT_FILE||`usage_${new Date().toISOString().slice(0,10)}.csv`;
+const S3_BUCKET=process.env.S3_BUCKET||'';const S3_PREFIX=process.env.S3_PREFIX||'axia-usage/';const DATE=process.env.DATE||'';
+const baseQuery='sum by (project_id,unit) (increase(axia_credits_consumed_total[24h]))';async function queryProm(expr,time=null){const params=new URLSearchParams({query:expr});
+let endpoint='/api/v1/query';if(time)params.set('time',String(time));const res=await fetch(`${PROM_URL}${endpoint}?${params.toString()}`);if(!res.ok)throw new Error(`Prom error ${res.status}`);
+const j=await res.json();if(j.status!=='success')throw new Error('Prom query failed');return j.data.result;}
+function toEpoch(dateStr){return Math.floor(new Date(dateStr).getTime()/1000);} (async()=>{let ts=null;if(DATE)ts=toEpoch(new Date(Date.parse(DATE)).toISOString().slice(0,10)+'T00:00:00Z');
+const rows=await queryProm(baseQuery,ts);const csv=['project_id,unit,value'];for(const r of rows){const pid=r.metric.project_id||'unknown';const unit=r.metric.unit||'request';const val=r.value[1];csv.push(`${pid},${unit},${val}`);}fs.writeFileSync(OUT,csv.join('\n'));
+console.log('Wrote',OUT);if(S3_BUCKET){try{const {S3Client,PutObjectCommand}=await import('@aws-sdk/client-s3');const s3=new S3Client({});const Key=`${S3_PREFIX}${OUT}`;const Body=fs.readFileSync(OUT);await s3.send(new PutObjectCommand({Bucket:S3_BUCKET,Key,Body}));console.log('Uploaded to s3://'+S3_BUCKET+'/'+Key);}catch(e){console.error('S3 upload failed',e);process.exit(2);}}})().catch(e=>{console.error(e);process.exit(1);});

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/classes/ConsoleLogger",
+  "title": "ConsoleLogger",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/classes/ConsoleLogger.md",
+  "sourceDirName": "api/totemsdk-core/classes",
+  "slug": "/api/totemsdk-core/classes/ConsoleLogger",
+  "permalink": "/api/totemsdk-core/classes/ConsoleLogger",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "Package Index",
+    "permalink": "/api/"
+  },
+  "next": {
+    "title": "DefaultTimerAdapter",
+    "permalink": "/api/totemsdk-core/classes/DefaultTimerAdapter"
+  }
+}

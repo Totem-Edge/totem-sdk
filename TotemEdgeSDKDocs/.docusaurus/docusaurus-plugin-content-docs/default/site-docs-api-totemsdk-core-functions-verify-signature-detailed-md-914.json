@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/verifySignatureDetailed",
+  "title": "verifySignatureDetailed",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/verifySignatureDetailed.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/verifySignatureDetailed",
+  "permalink": "/api/totemsdk-core/functions/verifySignatureDetailed",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "verifySignature",
+    "permalink": "/api/totemsdk-core/functions/verifySignature"
+  },
+  "next": {
+    "title": "verifyTreeSignature",
+    "permalink": "/api/totemsdk-core/functions/verifyTreeSignature"
+  }
+}

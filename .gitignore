@@ -1,0 +1,9 @@
+attached_assets/
+node_modules/
+dist/
+.env
+*.log
+test-results/
+
+# Large test vector files
+packages/totem-sdk/packages/core/test-vectors/java-parity/*.jar

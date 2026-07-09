@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/mxToHex",
+  "title": "mxToHex",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/mxToHex.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/mxToHex",
+  "permalink": "/api/totemsdk-core/functions/mxToHex",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "mmrRootFromSingleLeaf",
+    "permalink": "/api/totemsdk-core/functions/mmrRootFromSingleLeaf"
+  },
+  "next": {
+    "title": "normalizeHex",
+    "permalink": "/api/totemsdk-core/functions/normalizeHex"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-connect/interfaces/TotemPayPaymentRequestRequest",
+  "title": "TotemPayPaymentRequestRequest",
+  "description": "@totemsdk/connect",
+  "source": "@site/docs/api/totemsdk-connect/interfaces/TotemPayPaymentRequestRequest.md",
+  "sourceDirName": "api/totemsdk-connect/interfaces",
+  "slug": "/api/totemsdk-connect/interfaces/TotemPayPaymentRequestRequest",
+  "permalink": "/api/totemsdk-connect/interfaces/TotemPayPaymentRequestRequest",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TotemOmniaSpliceOutResponse",
+    "permalink": "/api/totemsdk-connect/interfaces/TotemOmniaSpliceOutResponse"
+  },
+  "next": {
+    "title": "TotemPayPaymentRequestResponse",
+    "permalink": "/api/totemsdk-connect/interfaces/TotemPayPaymentRequestResponse"
+  }
+}

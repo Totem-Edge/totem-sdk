@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/MinimaTransaction",
+  "title": "MinimaTransaction",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/MinimaTransaction.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/MinimaTransaction",
+  "permalink": "/api/totemsdk-core/interfaces/MinimaTransaction",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "MinimaToken",
+    "permalink": "/api/totemsdk-core/interfaces/MinimaToken"
+  },
+  "next": {
+    "title": "ParsedMiniNumber",
+    "permalink": "/api/totemsdk-core/interfaces/ParsedMiniNumber"
+  }
+}

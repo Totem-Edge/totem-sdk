@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-connect/interfaces/InputCoinProof",
+  "title": "InputCoinProof",
+  "description": "@totemsdk/connect",
+  "source": "@site/docs/api/totemsdk-connect/interfaces/InputCoinProof.md",
+  "sourceDirName": "api/totemsdk-connect/interfaces",
+  "slug": "/api/totemsdk-connect/interfaces/InputCoinProof",
+  "permalink": "/api/totemsdk-connect/interfaces/InputCoinProof",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "EnhancedBuildParams",
+    "permalink": "/api/totemsdk-connect/interfaces/EnhancedBuildParams"
+  },
+  "next": {
+    "title": "InputScriptDescriptor",
+    "permalink": "/api/totemsdk-connect/interfaces/InputScriptDescriptor"
+  }
+}

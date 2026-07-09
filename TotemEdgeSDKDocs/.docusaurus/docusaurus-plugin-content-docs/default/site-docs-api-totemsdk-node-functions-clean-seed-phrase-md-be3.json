@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/cleanSeedPhrase",
+  "title": "cleanSeedPhrase",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/cleanSeedPhrase.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/cleanSeedPhrase",
+  "permalink": "/api/totemsdk-node/functions/cleanSeedPhrase",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "calculateProofRoot",
+    "permalink": "/api/totemsdk-node/functions/calculateProofRoot"
+  },
+  "next": {
+    "title": "computeScriptAddress",
+    "permalink": "/api/totemsdk-node/functions/computeScriptAddress"
+  }
+}

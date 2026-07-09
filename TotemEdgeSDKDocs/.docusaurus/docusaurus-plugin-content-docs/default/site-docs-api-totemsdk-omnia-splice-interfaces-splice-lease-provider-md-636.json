@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-splice/interfaces/SpliceLeaseProvider",
+  "title": "SpliceLeaseProvider",
+  "description": "@totemsdk/omnia-splice",
+  "source": "@site/docs/api/totemsdk-omnia-splice/interfaces/SpliceLeaseProvider.md",
+  "sourceDirName": "api/totemsdk-omnia-splice/interfaces",
+  "slug": "/api/totemsdk-omnia-splice/interfaces/SpliceLeaseProvider",
+  "permalink": "/api/totemsdk-omnia-splice/interfaces/SpliceLeaseProvider",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "SpliceAcceptance",
+    "permalink": "/api/totemsdk-omnia-splice/interfaces/SpliceAcceptance"
+  },
+  "next": {
+    "title": "SpliceParams",
+    "permalink": "/api/totemsdk-omnia-splice/interfaces/SpliceParams"
+  }
+}

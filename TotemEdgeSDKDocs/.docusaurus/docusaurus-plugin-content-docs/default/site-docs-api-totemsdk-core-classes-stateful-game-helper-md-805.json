@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/classes/StatefulGameHelper",
+  "title": "StatefulGameHelper",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/classes/StatefulGameHelper.md",
+  "sourceDirName": "api/totemsdk-core/classes",
+  "slug": "/api/totemsdk-core/classes/StatefulGameHelper",
+  "permalink": "/api/totemsdk-core/classes/StatefulGameHelper",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "SlowCashHelper",
+    "permalink": "/api/totemsdk-core/classes/SlowCashHelper"
+  },
+  "next": {
+    "title": "TimelockHelper",
+    "permalink": "/api/totemsdk-core/classes/TimelockHelper"
+  }
+}

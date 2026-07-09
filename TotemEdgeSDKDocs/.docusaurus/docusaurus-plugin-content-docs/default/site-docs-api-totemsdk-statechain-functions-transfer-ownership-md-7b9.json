@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-statechain/functions/transferOwnership",
+  "title": "transferOwnership",
+  "description": "@totemsdk/statechain",
+  "source": "@site/docs/api/totemsdk-statechain/functions/transferOwnership.md",
+  "sourceDirName": "api/totemsdk-statechain/functions",
+  "slug": "/api/totemsdk-statechain/functions/transferOwnership",
+  "permalink": "/api/totemsdk-statechain/functions/transferOwnership",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "scriptAddress",
+    "permalink": "/api/totemsdk-statechain/functions/scriptAddress"
+  },
+  "next": {
+    "title": "verifyStateChain",
+    "permalink": "/api/totemsdk-statechain/functions/verifyStateChain"
+  }
+}

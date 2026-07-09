@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-kissvm/classes/KissvmRuntimeError",
+  "title": "KissvmRuntimeError",
+  "description": "@totemsdk/kissvm",
+  "source": "@site/docs/api/totemsdk-kissvm/classes/KissvmRuntimeError.md",
+  "sourceDirName": "api/totemsdk-kissvm/classes",
+  "slug": "/api/totemsdk-kissvm/classes/KissvmRuntimeError",
+  "permalink": "/api/totemsdk-kissvm/classes/KissvmRuntimeError",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "KissvmLimitError",
+    "permalink": "/api/totemsdk-kissvm/classes/KissvmLimitError"
+  },
+  "next": {
+    "title": "buildWitness",
+    "permalink": "/api/totemsdk-kissvm/functions/buildWitness"
+  }
+}

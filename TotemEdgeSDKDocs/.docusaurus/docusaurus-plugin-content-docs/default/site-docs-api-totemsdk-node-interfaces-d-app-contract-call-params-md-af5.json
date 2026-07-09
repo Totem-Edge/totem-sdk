@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/DAppContractCallParams",
+  "title": "DAppContractCallParams",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/DAppContractCallParams.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/DAppContractCallParams",
+  "permalink": "/api/totemsdk-node/interfaces/DAppContractCallParams",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "CryptoAdapter",
+    "permalink": "/api/totemsdk-node/interfaces/CryptoAdapter"
+  },
+  "next": {
+    "title": "DAppHtlcParams",
+    "permalink": "/api/totemsdk-node/interfaces/DAppHtlcParams"
+  }
+}

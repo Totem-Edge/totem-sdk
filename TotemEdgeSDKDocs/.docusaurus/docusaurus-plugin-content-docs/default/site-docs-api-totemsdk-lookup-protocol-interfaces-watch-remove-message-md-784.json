@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-lookup-protocol/interfaces/WatchRemoveMessage",
+  "title": "WatchRemoveMessage",
+  "description": "@totemsdk/lookup-protocol",
+  "source": "@site/docs/api/totemsdk-lookup-protocol/interfaces/WatchRemoveMessage.md",
+  "sourceDirName": "api/totemsdk-lookup-protocol/interfaces",
+  "slug": "/api/totemsdk-lookup-protocol/interfaces/WatchRemoveMessage",
+  "permalink": "/api/totemsdk-lookup-protocol/interfaces/WatchRemoveMessage",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "WatchRegisterMessage",
+    "permalink": "/api/totemsdk-lookup-protocol/interfaces/WatchRegisterMessage"
+  },
+  "next": {
+    "title": "LookupMessage",
+    "permalink": "/api/totemsdk-lookup-protocol/type-aliases/LookupMessage"
+  }
+}

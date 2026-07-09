@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/functions/timeoutHTLC",
+  "title": "timeoutHTLC",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/functions/timeoutHTLC.md",
+  "sourceDirName": "api/totemsdk-omnia/functions",
+  "slug": "/api/totemsdk-omnia/functions/timeoutHTLC",
+  "permalink": "/api/totemsdk-omnia/functions/timeoutHTLC",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "signTxDraft",
+    "permalink": "/api/totemsdk-omnia/functions/signTxDraft"
+  },
+  "next": {
+    "title": "toEnhancedBuildParams",
+    "permalink": "/api/totemsdk-omnia/functions/toEnhancedBuildParams"
+  }
+}

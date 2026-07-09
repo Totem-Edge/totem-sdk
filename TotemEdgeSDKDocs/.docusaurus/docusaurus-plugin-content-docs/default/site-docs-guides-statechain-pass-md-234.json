@@ -1,0 +1,28 @@
+{
+  "id": "guides/statechain-pass",
+  "title": "Statechain Pass",
+  "description": "Transferable off-chain ownership of tickets, vouchers, and access rights with policy-enforced provenance.",
+  "source": "@site/docs/guides/statechain-pass.md",
+  "sourceDirName": "guides",
+  "slug": "/guides/statechain-pass",
+  "permalink": "/guides/statechain-pass",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "id": "statechain-pass",
+    "title": "Statechain Pass",
+    "sidebar_label": "Statechain Pass",
+    "description": "Transferable off-chain ownership of tickets, vouchers, and access rights with policy-enforced provenance."
+  },
+  "sidebar": "guidesSidebar",
+  "previous": {
+    "title": "KISSVM Studio",
+    "permalink": "/guides/kissvm-studio"
+  },
+  "next": {
+    "title": "Omnia Pocket",
+    "permalink": "/guides/omnia-pocket"
+  }
+}

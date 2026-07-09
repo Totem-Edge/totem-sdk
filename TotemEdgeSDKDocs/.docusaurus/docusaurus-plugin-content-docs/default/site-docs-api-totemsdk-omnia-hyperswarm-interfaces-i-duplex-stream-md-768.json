@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-hyperswarm/interfaces/IDuplexStream",
+  "title": "IDuplexStream",
+  "description": "@totemsdk/omnia-hyperswarm",
+  "source": "@site/docs/api/totemsdk-omnia-hyperswarm/interfaces/IDuplexStream.md",
+  "sourceDirName": "api/totemsdk-omnia-hyperswarm/interfaces",
+  "slug": "/api/totemsdk-omnia-hyperswarm/interfaces/IDuplexStream",
+  "permalink": "/api/totemsdk-omnia-hyperswarm/interfaces/IDuplexStream",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "index",
+    "permalink": "/api/totemsdk-omnia-hyperswarm/"
+  },
+  "next": {
+    "title": "OmniaIntegrationConfig",
+    "permalink": "/api/totemsdk-omnia-hyperswarm/interfaces/OmniaIntegrationConfig"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-kissvm/functions/evaluateScript",
+  "title": "evaluateScript",
+  "description": "@totemsdk/kissvm",
+  "source": "@site/docs/api/totemsdk-kissvm/functions/evaluateScript.md",
+  "sourceDirName": "api/totemsdk-kissvm/functions",
+  "slug": "/api/totemsdk-kissvm/functions/evaluateScript",
+  "permalink": "/api/totemsdk-kissvm/functions/evaluateScript",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "buildWitness",
+    "permalink": "/api/totemsdk-kissvm/functions/buildWitness"
+  },
+  "next": {
+    "title": "parseScript",
+    "permalink": "/api/totemsdk-kissvm/functions/parseScript"
+  }
+}

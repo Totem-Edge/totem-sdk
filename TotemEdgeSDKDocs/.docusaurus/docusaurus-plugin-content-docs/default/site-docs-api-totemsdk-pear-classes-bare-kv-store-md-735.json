@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-pear/classes/BareKVStore",
+  "title": "BareKVStore",
+  "description": "@totemsdk/pear",
+  "source": "@site/docs/api/totemsdk-pear/classes/BareKVStore.md",
+  "sourceDirName": "api/totemsdk-pear/classes",
+  "slug": "/api/totemsdk-pear/classes/BareKVStore",
+  "permalink": "/api/totemsdk-pear/classes/BareKVStore",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "BareHyperswarm",
+    "permalink": "/api/totemsdk-pear/classes/BareHyperswarm"
+  },
+  "next": {
+    "title": "bareFetch",
+    "permalink": "/api/totemsdk-pear/functions/bareFetch"
+  }
+}

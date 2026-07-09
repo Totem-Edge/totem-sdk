@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/classes/StatefulGameHelper",
+  "title": "StatefulGameHelper",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/classes/StatefulGameHelper.md",
+  "sourceDirName": "api/totemsdk-node/classes",
+  "slug": "/api/totemsdk-node/classes/StatefulGameHelper",
+  "permalink": "/api/totemsdk-node/classes/StatefulGameHelper",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "SlowCashHelper",
+    "permalink": "/api/totemsdk-node/classes/SlowCashHelper"
+  },
+  "next": {
+    "title": "StorageAuthProvider",
+    "permalink": "/api/totemsdk-node/classes/StorageAuthProvider"
+  }
+}

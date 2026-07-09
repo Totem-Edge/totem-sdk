@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/WatermarkState",
+  "title": "WatermarkState",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/WatermarkState.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/WatermarkState",
+  "permalink": "/api/totemsdk-core/interfaces/WatermarkState",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "VerifyOutExpectation",
+    "permalink": "/api/totemsdk-core/interfaces/VerifyOutExpectation"
+  },
+  "next": {
+    "title": "WatermarkStoreConfig",
+    "permalink": "/api/totemsdk-core/interfaces/WatermarkStoreConfig"
+  }
+}

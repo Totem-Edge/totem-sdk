@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-wots-lease/classes/OnchainWatermarkNotImplementedError",
+  "title": "OnchainWatermarkNotImplementedError",
+  "description": "@totemsdk/wots-lease",
+  "source": "@site/docs/api/totemsdk-wots-lease/classes/OnchainWatermarkNotImplementedError.md",
+  "sourceDirName": "api/totemsdk-wots-lease/classes",
+  "slug": "/api/totemsdk-wots-lease/classes/OnchainWatermarkNotImplementedError",
+  "permalink": "/api/totemsdk-wots-lease/classes/OnchainWatermarkNotImplementedError",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "LocalLeaseProvider",
+    "permalink": "/api/totemsdk-wots-lease/classes/LocalLeaseProvider"
+  },
+  "next": {
+    "title": "OnchainWatermarkProvider",
+    "permalink": "/api/totemsdk-wots-lease/classes/OnchainWatermarkProvider"
+  }
+}

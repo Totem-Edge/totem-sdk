@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/createTimelockDescriptor",
+  "title": "createTimelockDescriptor",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/createTimelockDescriptor.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/createTimelockDescriptor",
+  "permalink": "/api/totemsdk-core/functions/createTimelockDescriptor",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "createSlowCashDescriptor",
+    "permalink": "/api/totemsdk-core/functions/createSlowCashDescriptor"
+  },
+  "next": {
+    "title": "decodeMxRadix32Frame",
+    "permalink": "/api/totemsdk-core/functions/decodeMxRadix32Frame"
+  }
+}

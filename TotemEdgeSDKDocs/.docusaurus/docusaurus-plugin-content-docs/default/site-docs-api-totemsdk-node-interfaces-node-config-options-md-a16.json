@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/NodeConfigOptions",
+  "title": "NodeConfigOptions",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/NodeConfigOptions.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/NodeConfigOptions",
+  "permalink": "/api/totemsdk-node/interfaces/NodeConfigOptions",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "MinimaTransaction",
+    "permalink": "/api/totemsdk-node/interfaces/MinimaTransaction"
+  },
+  "next": {
+    "title": "NodeHttpClientOptions",
+    "permalink": "/api/totemsdk-node/interfaces/NodeHttpClientOptions"
+  }
+}

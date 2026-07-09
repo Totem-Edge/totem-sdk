@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-hyperswarm/type-aliases/WotsLeaseProviderLike",
+  "title": "WotsLeaseProviderLike",
+  "description": "@totemsdk/omnia-hyperswarm",
+  "source": "@site/docs/api/totemsdk-omnia-hyperswarm/type-aliases/WotsLeaseProviderLike.md",
+  "sourceDirName": "api/totemsdk-omnia-hyperswarm/type-aliases",
+  "slug": "/api/totemsdk-omnia-hyperswarm/type-aliases/WotsLeaseProviderLike",
+  "permalink": "/api/totemsdk-omnia-hyperswarm/type-aliases/WotsLeaseProviderLike",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "Unsubscribe",
+    "permalink": "/api/totemsdk-omnia-hyperswarm/type-aliases/Unsubscribe"
+  },
+  "next": {
+    "title": "FrameParser",
+    "permalink": "/api/totemsdk-lookup-client/classes/FrameParser"
+  }
+}

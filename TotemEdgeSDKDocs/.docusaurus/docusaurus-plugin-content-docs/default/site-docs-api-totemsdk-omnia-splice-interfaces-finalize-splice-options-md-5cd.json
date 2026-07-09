@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-splice/interfaces/FinalizeSpliceOptions",
+  "title": "FinalizeSpliceOptions",
+  "description": "@totemsdk/omnia-splice",
+  "source": "@site/docs/api/totemsdk-omnia-splice/interfaces/FinalizeSpliceOptions.md",
+  "sourceDirName": "api/totemsdk-omnia-splice/interfaces",
+  "slug": "/api/totemsdk-omnia-splice/interfaces/FinalizeSpliceOptions",
+  "permalink": "/api/totemsdk-omnia-splice/interfaces/FinalizeSpliceOptions",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "index",
+    "permalink": "/api/totemsdk-omnia-splice/"
+  },
+  "next": {
+    "title": "QuiesceOptions",
+    "permalink": "/api/totemsdk-omnia-splice/interfaces/QuiesceOptions"
+  }
+}

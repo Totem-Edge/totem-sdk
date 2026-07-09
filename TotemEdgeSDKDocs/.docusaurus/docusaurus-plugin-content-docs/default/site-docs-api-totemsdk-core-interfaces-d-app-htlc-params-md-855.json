@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/DAppHtlcParams",
+  "title": "DAppHtlcParams",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/DAppHtlcParams.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/DAppHtlcParams",
+  "permalink": "/api/totemsdk-core/interfaces/DAppHtlcParams",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "DAppContractCallParams",
+    "permalink": "/api/totemsdk-core/interfaces/DAppContractCallParams"
+  },
+  "next": {
+    "title": "DAppLiquidityParams",
+    "permalink": "/api/totemsdk-core/interfaces/DAppLiquidityParams"
+  }
+}

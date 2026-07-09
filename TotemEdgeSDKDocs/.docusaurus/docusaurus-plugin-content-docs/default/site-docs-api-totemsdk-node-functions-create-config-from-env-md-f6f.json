@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/createConfigFromEnv",
+  "title": "createConfigFromEnv",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/createConfigFromEnv.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/createConfigFromEnv",
+  "permalink": "/api/totemsdk-node/functions/createConfigFromEnv",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "createChallenge",
+    "permalink": "/api/totemsdk-node/functions/createChallenge"
+  },
+  "next": {
+    "title": "createDefaultTransaction",
+    "permalink": "/api/totemsdk-node/functions/createDefaultTransaction"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/ExternalSignature",
+  "title": "ExternalSignature",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/ExternalSignature.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/ExternalSignature",
+  "permalink": "/api/totemsdk-node/interfaces/ExternalSignature",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "EnvironmentConfigMapping",
+    "permalink": "/api/totemsdk-node/interfaces/EnvironmentConfigMapping"
+  },
+  "next": {
+    "title": "FileStorageAdapterOptions",
+    "permalink": "/api/totemsdk-node/interfaces/FileStorageAdapterOptions"
+  }
+}

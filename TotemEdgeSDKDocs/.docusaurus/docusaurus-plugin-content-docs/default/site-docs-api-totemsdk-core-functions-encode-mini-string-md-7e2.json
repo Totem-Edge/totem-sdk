@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/encodeMiniString",
+  "title": "encodeMiniString",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/encodeMiniString.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/encodeMiniString",
+  "permalink": "/api/totemsdk-core/functions/encodeMiniString",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "encodeMiniNumber",
+    "permalink": "/api/totemsdk-core/functions/encodeMiniNumber"
+  },
+  "next": {
+    "title": "encodeMxRadix32Frame",
+    "permalink": "/api/totemsdk-core/functions/encodeMxRadix32Frame"
+  }
+}

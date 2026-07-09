@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/variables/CAPACITY_WARNING_APPROACHING",
+  "title": "CAPACITY_WARNING_APPROACHING",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/variables/CAPACITY_WARNING_APPROACHING.md",
+  "sourceDirName": "api/totemsdk-omnia/variables",
+  "slug": "/api/totemsdk-omnia/variables/CAPACITY_WARNING_APPROACHING",
+  "permalink": "/api/totemsdk-omnia/variables/CAPACITY_WARNING_APPROACHING",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "CAPACITY_NEAR_EXHAUSTION",
+    "permalink": "/api/totemsdk-omnia/variables/CAPACITY_NEAR_EXHAUSTION"
+  },
+  "next": {
+    "title": "CAPACITY_WARNING_CRITICAL",
+    "permalink": "/api/totemsdk-omnia/variables/CAPACITY_WARNING_CRITICAL"
+  }
+}

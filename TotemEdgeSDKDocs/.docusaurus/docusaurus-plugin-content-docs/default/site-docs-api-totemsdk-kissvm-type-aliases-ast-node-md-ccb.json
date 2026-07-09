@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-kissvm/type-aliases/ASTNode",
+  "title": "ASTNode",
+  "description": "@totemsdk/kissvm",
+  "source": "@site/docs/api/totemsdk-kissvm/type-aliases/ASTNode.md",
+  "sourceDirName": "api/totemsdk-kissvm/type-aliases",
+  "slug": "/api/totemsdk-kissvm/type-aliases/ASTNode",
+  "permalink": "/api/totemsdk-kissvm/type-aliases/ASTNode",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "WitnessInput",
+    "permalink": "/api/totemsdk-kissvm/interfaces/WitnessInput"
+  },
+  "next": {
+    "title": "Value",
+    "permalink": "/api/totemsdk-kissvm/type-aliases/Value"
+  }
+}

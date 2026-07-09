@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-connect/interfaces/TotemGetCoinsSuccessResponse",
+  "title": "TotemGetCoinsSuccessResponse",
+  "description": "@totemsdk/connect",
+  "source": "@site/docs/api/totemsdk-connect/interfaces/TotemGetCoinsSuccessResponse.md",
+  "sourceDirName": "api/totemsdk-connect/interfaces",
+  "slug": "/api/totemsdk-connect/interfaces/TotemGetCoinsSuccessResponse",
+  "permalink": "/api/totemsdk-connect/interfaces/TotemGetCoinsSuccessResponse",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TotemGetCoinsRequest",
+    "permalink": "/api/totemsdk-connect/interfaces/TotemGetCoinsRequest"
+  },
+  "next": {
+    "title": "TotemGetProviderStatusRequest",
+    "permalink": "/api/totemsdk-connect/interfaces/TotemGetProviderStatusRequest"
+  }
+}

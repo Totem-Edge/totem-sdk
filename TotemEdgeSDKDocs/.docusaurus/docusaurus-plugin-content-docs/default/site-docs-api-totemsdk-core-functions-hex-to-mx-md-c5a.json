@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/hexToMx",
+  "title": "hexToMx",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/hexToMx.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/hexToMx",
+  "permalink": "/api/totemsdk-core/functions/hexToMx",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "hexToBytes",
+    "permalink": "/api/totemsdk-core/functions/hexToBytes"
+  },
+  "next": {
+    "title": "indexToMiniDataBytes",
+    "permalink": "/api/totemsdk-core/functions/indexToMiniDataBytes"
+  }
+}

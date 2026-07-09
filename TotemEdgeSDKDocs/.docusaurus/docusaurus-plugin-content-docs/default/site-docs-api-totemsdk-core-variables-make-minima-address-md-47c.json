@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/variables/makeMinimaAddress",
+  "title": "makeMinimaAddress",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/variables/makeMinimaAddress.md",
+  "sourceDirName": "api/totemsdk-core/variables",
+  "slug": "/api/totemsdk-core/variables/makeMinimaAddress",
+  "permalink": "/api/totemsdk-core/variables/makeMinimaAddress",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "h",
+    "permalink": "/api/totemsdk-core/variables/h"
+  },
+  "next": {
+    "title": "serializeRealMMRProof",
+    "permalink": "/api/totemsdk-core/variables/serializeRealMMRProof"
+  }
+}

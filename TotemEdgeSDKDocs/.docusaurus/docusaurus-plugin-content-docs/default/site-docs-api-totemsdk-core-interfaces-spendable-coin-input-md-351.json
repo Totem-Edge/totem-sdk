@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/SpendableCoinInput",
+  "title": "SpendableCoinInput",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/SpendableCoinInput.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/SpendableCoinInput",
+  "permalink": "/api/totemsdk-core/interfaces/SpendableCoinInput",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "SiteTransactionPermission",
+    "permalink": "/api/totemsdk-core/interfaces/SiteTransactionPermission"
+  },
+  "next": {
+    "title": "StateValue",
+    "permalink": "/api/totemsdk-core/interfaces/StateValue"
+  }
+}

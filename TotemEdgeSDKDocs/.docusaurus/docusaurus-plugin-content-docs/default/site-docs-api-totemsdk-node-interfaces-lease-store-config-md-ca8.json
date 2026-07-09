@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/LeaseStoreConfig",
+  "title": "LeaseStoreConfig",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/LeaseStoreConfig.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/LeaseStoreConfig",
+  "permalink": "/api/totemsdk-node/interfaces/LeaseStoreConfig",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "LeaseMonitorConfig",
+    "permalink": "/api/totemsdk-node/interfaces/LeaseMonitorConfig"
+  },
+  "next": {
+    "title": "LeaseWotsIndices",
+    "permalink": "/api/totemsdk-node/interfaces/LeaseWotsIndices"
+  }
+}

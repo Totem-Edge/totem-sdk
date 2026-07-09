@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/createDefaultTransaction",
+  "title": "createDefaultTransaction",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/createDefaultTransaction.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/createDefaultTransaction",
+  "permalink": "/api/totemsdk-node/functions/createDefaultTransaction",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "createConfigFromEnv",
+    "permalink": "/api/totemsdk-node/functions/createConfigFromEnv"
+  },
+  "next": {
+    "title": "createEmptyMMRProof",
+    "permalink": "/api/totemsdk-node/functions/createEmptyMMRProof"
+  }
+}

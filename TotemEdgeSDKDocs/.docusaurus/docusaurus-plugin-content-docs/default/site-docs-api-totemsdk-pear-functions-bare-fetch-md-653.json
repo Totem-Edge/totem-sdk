@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-pear/functions/bareFetch",
+  "title": "bareFetch",
+  "description": "@totemsdk/pear",
+  "source": "@site/docs/api/totemsdk-pear/functions/bareFetch.md",
+  "sourceDirName": "api/totemsdk-pear/functions",
+  "slug": "/api/totemsdk-pear/functions/bareFetch",
+  "permalink": "/api/totemsdk-pear/functions/bareFetch",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "BareKVStore",
+    "permalink": "/api/totemsdk-pear/classes/BareKVStore"
+  },
+  "next": {
+    "title": "createLogger",
+    "permalink": "/api/totemsdk-pear/functions/createLogger"
+  }
+}

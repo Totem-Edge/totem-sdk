@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/functions/markChannelClosing",
+  "title": "markChannelClosing",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/functions/markChannelClosing.md",
+  "sourceDirName": "api/totemsdk-omnia/functions",
+  "slug": "/api/totemsdk-omnia/functions/markChannelClosing",
+  "permalink": "/api/totemsdk-omnia/functions/markChannelClosing",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "markChannelClosed",
+    "permalink": "/api/totemsdk-omnia/functions/markChannelClosed"
+  },
+  "next": {
+    "title": "normalizeScript",
+    "permalink": "/api/totemsdk-omnia/functions/normalizeScript"
+  }
+}

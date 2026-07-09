@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-txpow/interfaces/MineOptions",
+  "title": "MineOptions",
+  "description": "@totemsdk/txpow",
+  "source": "@site/docs/api/totemsdk-txpow/interfaces/MineOptions.md",
+  "sourceDirName": "api/totemsdk-txpow/interfaces",
+  "slug": "/api/totemsdk-txpow/interfaces/MineOptions",
+  "permalink": "/api/totemsdk-txpow/interfaces/MineOptions",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "index",
+    "permalink": "/api/totemsdk-txpow/"
+  },
+  "next": {
+    "title": "MineResult",
+    "permalink": "/api/totemsdk-txpow/interfaces/MineResult"
+  }
+}

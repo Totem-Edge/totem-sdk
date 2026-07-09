@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-wots-lease/interfaces/DeviceKeyRange",
+  "title": "DeviceKeyRange",
+  "description": "@totemsdk/wots-lease",
+  "source": "@site/docs/api/totemsdk-wots-lease/interfaces/DeviceKeyRange.md",
+  "sourceDirName": "api/totemsdk-wots-lease/interfaces",
+  "slug": "/api/totemsdk-wots-lease/interfaces/DeviceKeyRange",
+  "permalink": "/api/totemsdk-wots-lease/interfaces/DeviceKeyRange",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "ConflictRecord",
+    "permalink": "/api/totemsdk-wots-lease/interfaces/ConflictRecord"
+  },
+  "next": {
+    "title": "HybridLeaseProviderConfig",
+    "permalink": "/api/totemsdk-wots-lease/interfaces/HybridLeaseProviderConfig"
+  }
+}

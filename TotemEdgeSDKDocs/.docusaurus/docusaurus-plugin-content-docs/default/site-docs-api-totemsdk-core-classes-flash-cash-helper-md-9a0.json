@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/classes/FlashCashHelper",
+  "title": "FlashCashHelper",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/classes/FlashCashHelper.md",
+  "sourceDirName": "api/totemsdk-core/classes",
+  "slug": "/api/totemsdk-core/classes/FlashCashHelper",
+  "permalink": "/api/totemsdk-core/classes/FlashCashHelper",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "ExchangeHelper",
+    "permalink": "/api/totemsdk-core/classes/ExchangeHelper"
+  },
+  "next": {
+    "title": "HTLCHelper",
+    "permalink": "/api/totemsdk-core/classes/HTLCHelper"
+  }
+}

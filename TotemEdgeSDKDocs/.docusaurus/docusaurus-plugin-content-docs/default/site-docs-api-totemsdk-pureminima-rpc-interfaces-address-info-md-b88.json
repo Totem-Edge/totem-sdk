@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-pureminima-rpc/interfaces/AddressInfo",
+  "title": "AddressInfo",
+  "description": "@totemsdk/pureminima-rpc",
+  "source": "@site/docs/api/totemsdk-pureminima-rpc/interfaces/AddressInfo.md",
+  "sourceDirName": "api/totemsdk-pureminima-rpc/interfaces",
+  "slug": "/api/totemsdk-pureminima-rpc/interfaces/AddressInfo",
+  "permalink": "/api/totemsdk-pureminima-rpc/interfaces/AddressInfo",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "index",
+    "permalink": "/api/totemsdk-pureminima-rpc/"
+  },
+  "next": {
+    "title": "Balance",
+    "permalink": "/api/totemsdk-pureminima-rpc/interfaces/Balance"
+  }
+}

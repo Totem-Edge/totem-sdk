@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-factory/functions/acceptFactory",
+  "title": "acceptFactory",
+  "description": "@totemsdk/omnia-factory",
+  "source": "@site/docs/api/totemsdk-omnia-factory/functions/acceptFactory.md",
+  "sourceDirName": "api/totemsdk-omnia-factory/functions",
+  "slug": "/api/totemsdk-omnia-factory/functions/acceptFactory",
+  "permalink": "/api/totemsdk-omnia-factory/functions/acceptFactory",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "WOTS_CAPACITY_TOTAL",
+    "permalink": "/api/totemsdk-omnia/variables/WOTS_CAPACITY_TOTAL"
+  },
+  "next": {
+    "title": "buildAndHashFactoryScript",
+    "permalink": "/api/totemsdk-omnia-factory/functions/buildAndHashFactoryScript"
+  }
+}

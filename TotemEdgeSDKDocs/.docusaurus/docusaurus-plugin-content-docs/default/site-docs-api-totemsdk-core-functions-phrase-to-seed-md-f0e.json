@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/phraseToSeed",
+  "title": "phraseToSeed",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/phraseToSeed.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/phraseToSeed",
+  "permalink": "/api/totemsdk-core/functions/phraseToSeed",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "parseMxAddress",
+    "permalink": "/api/totemsdk-core/functions/parseMxAddress"
+  },
+  "next": {
+    "title": "precomputeTransactionCoinID",
+    "permalink": "/api/totemsdk-core/functions/precomputeTransactionCoinID"
+  }
+}

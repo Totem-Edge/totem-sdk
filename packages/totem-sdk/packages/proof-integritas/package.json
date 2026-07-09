@@ -1,0 +1,77 @@
+{
+  "name": "@totemsdk/proof-integritas",
+  "version": "0.1.1",
+  "description": "Integritas v2 proof provider adapter for @totemsdk/proof — hash stamping, checking, and on-chain verification on Minima",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "prepare": "tsc",
+    "clean": "rm -rf dist",
+    "test": "jest --passWithNoTests"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "@totemsdk/proof": "workspace:*"
+  },
+  "peerDependencies": {
+    "@noble/hashes": "^2.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@noble/hashes": {
+      "optional": false
+    }
+  },
+  "devDependencies": {
+    "@noble/hashes": "^2.2.0",
+    "@types/jest": "^29.0.0",
+    "@types/node": "^20.0.0",
+    "jest": "^29.0.0",
+    "ts-jest": "^29.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "author": "Totem SDK",
+  "homepage": "https://totemsdk.com",
+  "bugs": {
+    "url": "https://github.com/MrGheek/axia-totem/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MrGheek/axia-totem.git",
+    "directory": "packages/totem-sdk/packages/proof-integritas"
+  },
+  "keywords": [
+    "totem",
+    "totemsdk",
+    "minima",
+    "blockchain",
+    "quantum-resistant",
+    "wots",
+    "kissvm",
+    "utxo",
+    "integritas",
+    "proof",
+    "hash-stamp",
+    "anchoring",
+    "verification",
+    "on-chain"
+  ]
+}

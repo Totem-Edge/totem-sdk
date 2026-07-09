@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-pear/interfaces/RemoteDriveOptions",
+  "title": "RemoteDriveOptions",
+  "description": "@totemsdk/pear",
+  "source": "@site/docs/api/totemsdk-pear/interfaces/RemoteDriveOptions.md",
+  "sourceDirName": "api/totemsdk-pear/interfaces",
+  "slug": "/api/totemsdk-pear/interfaces/RemoteDriveOptions",
+  "permalink": "/api/totemsdk-pear/interfaces/RemoteDriveOptions",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "PearAppConfig",
+    "permalink": "/api/totemsdk-pear/interfaces/PearAppConfig"
+  },
+  "next": {
+    "title": "SignedManifest",
+    "permalink": "/api/totemsdk-pear/interfaces/SignedManifest"
+  }
+}

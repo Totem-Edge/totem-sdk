@@ -1,0 +1,23 @@
+{
+  "id": "api/totem-sdk-browser/classes/BrowserCryptoAdapter",
+  "title": "BrowserCryptoAdapter",
+  "description": "@totem/sdk-browser",
+  "source": "@site/docs/api/totem-sdk-browser/classes/BrowserCryptoAdapter.md",
+  "sourceDirName": "api/totem-sdk-browser/classes",
+  "slug": "/api/totem-sdk-browser/classes/BrowserCryptoAdapter",
+  "permalink": "/api/totem-sdk-browser/classes/BrowserCryptoAdapter",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "BrowserConfigProvider",
+    "permalink": "/api/totem-sdk-browser/classes/BrowserConfigProvider"
+  },
+  "next": {
+    "title": "BrowserWebSocketFactory",
+    "permalink": "/api/totem-sdk-browser/classes/BrowserWebSocketFactory"
+  }
+}

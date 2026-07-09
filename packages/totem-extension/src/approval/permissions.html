@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Totem - Permission Request</title>
+    <style>
+        :root {
+            --bg-base: #000;
+            --bg-subtle: #1a1a1a;
+            --bg-elevated: #111;
+            --text-primary: #fff;
+            --text-muted: #888;
+            --accent: #00D9B5;
+            --accent-muted: rgba(0, 217, 181, 0.1);
+            --border-default: #333;
+            --border-subtle: #222;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --risk-high: #ef4444;
+            --risk-medium: #f59e0b;
+            --risk-low: #22c55e;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding: 16px;
+            padding-bottom: 80px;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            background: var(--bg-base);
+            color: var(--text-primary);
+            width: 100%;
+            min-height: 100vh;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-default);
+        }
+
+        .header-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--bg-subtle);
+            border: 2px solid var(--error);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .header-title {
+            font-size: 13px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin: 0 0 4px 0;
+        }
+
+        .header-subtitle {
+            color: var(--text-muted);
+            font-size: 10px;
+            margin: 0;
+        }
+
+        .authority-warning {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--error);
+            padding: 10px 12px;
+            margin-bottom: 12px;
+            font-size: 10px;
+            color: var(--error);
+            line-height: 1.5;
+        }
+
+        .origin-box {
+            background: var(--accent-muted);
+            border: 1px solid var(--accent);
+            padding: 10px;
+            margin-bottom: 12px;
+        }
+
+        .label {
+            color: var(--text-muted);
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        .origin-value {
+            color: var(--accent);
+            font-size: 12px;
+            word-break: break-all;
+        }
+
+        .section-title {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin: 12px 0 6px 0;
+        }
+
+        .intent-table {
+            border: 1px solid var(--border-default);
+            margin-bottom: 12px;
+        }
+
+        .intent-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 8px;
+            align-items: start;
+            padding: 8px 10px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .intent-row:last-child {
+            border-bottom: none;
+        }
+
+        .intent-name {
+            font-size: 11px;
+            font-weight: bold;
+            color: var(--text-primary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+        }
+
+        .intent-desc {
+            font-size: 10px;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .risk-badge {
+            font-size: 9px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 2px 6px;
+            border: 1px solid;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .risk-high  { color: var(--risk-high);   border-color: var(--risk-high); }
+        .risk-medium { color: var(--risk-medium); border-color: var(--risk-medium); }
+        .risk-low   { color: var(--risk-low);     border-color: var(--risk-low); }
+
+        .meta-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-subtle);
+            font-size: 11px;
+        }
+
+        .meta-label { color: var(--text-muted); }
+        .meta-value { color: var(--text-primary); }
+
+        .token-limits {
+            border: 1px solid var(--border-default);
+            margin-bottom: 12px;
+        }
+
+        .token-limit-row {
+            padding: 8px 10px;
+            border-bottom: 1px solid var(--border-subtle);
+            font-size: 10px;
+        }
+
+        .token-limit-row:last-child { border-bottom: none; }
+
+        .token-limit-header {
+            font-weight: bold;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .token-limit-detail { color: var(--text-muted); }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+            position: fixed;
+            bottom: 16px;
+            left: 16px;
+            right: 16px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px;
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            border: none;
+        }
+
+        .reject-btn {
+            border: 2px solid var(--text-primary);
+            background: transparent;
+            color: var(--text-primary);
+        }
+
+        .approve-btn {
+            border: 2px solid var(--error);
+            background: var(--error);
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-icon">🔐</div>
+        <div>
+            <h1 class="header-title">PERMISSION REQUEST</h1>
+            <p class="header-subtitle">A site is requesting ongoing transaction authority</p>
+        </div>
+    </div>
+
+    <div class="authority-warning">
+        ⚠️ Granting this permission gives the site ongoing authority to initiate the
+        listed operations until the permission expires — without asking you each time.
+        Only approve sites you fully trust.
+    </div>
+
+    <div class="origin-box">
+        <div class="label">REQUESTING SITE</div>
+        <div class="origin-value" id="origin">Loading...</div>
+    </div>
+
+    <div class="section-title">REQUESTED PERMISSIONS</div>
+    <div class="intent-table" id="intent-table">Loading...</div>
+
+    <div class="meta-row">
+        <span class="meta-label">Permission expires</span>
+        <span class="meta-value" id="expiry">30 days</span>
+    </div>
+
+    <div id="token-limits-section" style="display:none;">
+        <div class="section-title">SPENDING LIMITS</div>
+        <div class="token-limits" id="token-limits"></div>
+    </div>
+
+    <div class="actions">
+        <button class="reject-btn" id="reject-btn">DENY</button>
+        <button class="approve-btn" id="approve-btn">APPROVE</button>
+    </div>
+
+    <script>
+        const INTENT_META = {
+            send:              { desc: 'Initiate MINIMA token sends without asking each time', risk: 'medium' },
+            token_send:        { desc: 'Initiate custom token sends without asking each time', risk: 'medium' },
+            utxo_read:         { desc: 'Read your spendable coin (UTXO) list for transaction building', risk: 'low' },
+            swap:              { desc: 'Initiate token swap transactions on your behalf', risk: 'high' },
+            liquidity_add:     { desc: 'Add liquidity to AMM pools using your funds', risk: 'high' },
+            liquidity_remove:  { desc: 'Remove liquidity from AMM pools and receive funds', risk: 'high' },
+            contract_call:     { desc: 'Execute MAST smart contract calls spending your coins', risk: 'high' },
+            multisig:          { desc: 'Participate in multi-party signature transactions', risk: 'high' },
+            timelock:          { desc: 'Create time-locked transactions spending your coins', risk: 'high' },
+            htlc:              { desc: 'Create Hash Time-Locked Contract transactions (atomic swaps)', risk: 'high' },
+            custom:            { desc: 'Execute arbitrary custom transactions with your key', risk: 'high' },
+            complex_send:      { desc: 'Build and send complex multi-input/output transactions', risk: 'high' },
+            sign_data:         { desc: 'Produce cryptographic WOTS signatures with your private key', risk: 'high' },
+            broadcast_tx:      { desc: 'Submit pre-built transactions directly to the Minima network', risk: 'high' },
+        };
+
+        let pendingData = null;
+        let currentWindowId = null;
+
+        chrome.windows.getCurrent((win) => { currentWindowId = win.id; });
+
+        chrome.runtime.sendMessage({ method: 'permissions:getPending', id: Date.now().toString() }, (response) => {
+            if (!response || !response.result) {
+                document.body.innerHTML = '<div style="padding:32px;color:#888;font-family:monospace;font-size:12px;">No pending permission request found.</div>';
+                return;
+            }
+            pendingData = response.result;
+            render(pendingData);
+        });
+
+        function render(data) {
+            document.getElementById('origin').textContent = data.origin;
+
+            const expiry = data.expiresInDays || 30;
+            document.getElementById('expiry').textContent = expiry + ' day' + (expiry !== 1 ? 's' : '');
+
+            const tableEl = document.getElementById('intent-table');
+            const intents = Array.isArray(data.allowedIntents) ? data.allowedIntents : [];
+            if (intents.length === 0) {
+                tableEl.innerHTML = '<div style="padding:12px;color:#888;font-size:11px;">No intents requested.</div>';
+            } else {
+                tableEl.innerHTML = intents.map(intent => {
+                    const meta = INTENT_META[intent] || { desc: 'Custom transaction capability', risk: 'high' };
+                    const riskLabel = meta.risk === 'high' ? 'HIGH' : meta.risk === 'medium' ? 'MED' : 'LOW';
+                    return `
+                        <div class="intent-row">
+                            <div>
+                                <div class="intent-name">${escHtml(intent)}</div>
+                                <div class="intent-desc">${escHtml(meta.desc)}</div>
+                            </div>
+                            <div class="risk-badge risk-${meta.risk}">${riskLabel}</div>
+                        </div>`;
+                }).join('');
+            }
+
+            const limits = Array.isArray(data.tokenLimits) ? data.tokenLimits : [];
+            if (limits.length > 0) {
+                document.getElementById('token-limits-section').style.display = 'block';
+                document.getElementById('token-limits').innerHTML = limits.map(lim => `
+                    <div class="token-limit-row">
+                        <div class="token-limit-header">${escHtml(lim.tokenSymbol || lim.tokenId)}</div>
+                        <div class="token-limit-detail">Max per tx: ${escHtml(lim.maxAmountPerTx)} &nbsp;|&nbsp; Max daily: ${escHtml(lim.maxDailyAmount)}</div>
+                    </div>`
+                ).join('');
+            }
+        }
+
+        function escHtml(str) {
+            return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        document.getElementById('approve-btn').addEventListener('click', () => {
+            chrome.runtime.sendMessage({ type: 'permissions-approval', approved: true, windowId: currentWindowId });
+            window.close();
+        });
+
+        document.getElementById('reject-btn').addEventListener('click', () => {
+            chrome.runtime.sendMessage({ type: 'permissions-approval', approved: false, windowId: currentWindowId });
+            window.close();
+        });
+    </script>
+</body>
+</html>

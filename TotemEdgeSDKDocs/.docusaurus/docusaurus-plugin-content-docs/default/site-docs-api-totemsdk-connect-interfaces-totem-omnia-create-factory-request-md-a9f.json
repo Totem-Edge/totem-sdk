@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-connect/interfaces/TotemOmniaCreateFactoryRequest",
+  "title": "TotemOmniaCreateFactoryRequest",
+  "description": "@totemsdk/connect",
+  "source": "@site/docs/api/totemsdk-connect/interfaces/TotemOmniaCreateFactoryRequest.md",
+  "sourceDirName": "api/totemsdk-connect/interfaces",
+  "slug": "/api/totemsdk-connect/interfaces/TotemOmniaCreateFactoryRequest",
+  "permalink": "/api/totemsdk-connect/interfaces/TotemOmniaCreateFactoryRequest",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TotemOmniaCloseFactoryResponse",
+    "permalink": "/api/totemsdk-connect/interfaces/TotemOmniaCloseFactoryResponse"
+  },
+  "next": {
+    "title": "TotemOmniaCreateFactoryResponse",
+    "permalink": "/api/totemsdk-connect/interfaces/TotemOmniaCreateFactoryResponse"
+  }
+}

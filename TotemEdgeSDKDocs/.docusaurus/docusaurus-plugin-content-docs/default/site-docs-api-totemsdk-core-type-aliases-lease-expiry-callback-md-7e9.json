@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/type-aliases/LeaseExpiryCallback",
+  "title": "LeaseExpiryCallback",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/type-aliases/LeaseExpiryCallback.md",
+  "sourceDirName": "api/totemsdk-core/type-aliases",
+  "slug": "/api/totemsdk-core/type-aliases/LeaseExpiryCallback",
+  "permalink": "/api/totemsdk-core/type-aliases/LeaseExpiryCallback",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "DAppTransactionIntent",
+    "permalink": "/api/totemsdk-core/type-aliases/DAppTransactionIntent"
+  },
+  "next": {
+    "title": "LeaseStatus",
+    "permalink": "/api/totemsdk-core/type-aliases/LeaseStatus"
+  }
+}

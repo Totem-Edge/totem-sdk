@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/variables/STATETYPE_STRING",
+  "title": "STATETYPE_STRING",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/variables/STATETYPE_STRING.md",
+  "sourceDirName": "api/totemsdk-core/variables",
+  "slug": "/api/totemsdk-core/variables/STATETYPE_STRING",
+  "permalink": "/api/totemsdk-core/variables/STATETYPE_STRING",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "STATETYPE_NUMBER",
+    "permalink": "/api/totemsdk-core/variables/STATETYPE_NUMBER"
+  },
+  "next": {
+    "title": "TOTEM_SEND_TRANSACTION_VERSION",
+    "permalink": "/api/totemsdk-core/variables/TOTEM_SEND_TRANSACTION_VERSION"
+  }
+}

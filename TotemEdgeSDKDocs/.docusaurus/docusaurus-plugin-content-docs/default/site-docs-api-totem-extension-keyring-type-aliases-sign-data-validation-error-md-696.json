@@ -1,0 +1,23 @@
+{
+  "id": "api/totem-extension-keyring/type-aliases/SignDataValidationError",
+  "title": "SignDataValidationError",
+  "description": "totem-extension/keyring",
+  "source": "@site/docs/api/totem-extension-keyring/type-aliases/SignDataValidationError.md",
+  "sourceDirName": "api/totem-extension-keyring/type-aliases",
+  "slug": "/api/totem-extension-keyring/type-aliases/SignDataValidationError",
+  "permalink": "/api/totem-extension-keyring/type-aliases/SignDataValidationError",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "SignDataManifestInput",
+    "permalink": "/api/totem-extension-keyring/type-aliases/SignDataManifestInput"
+  },
+  "next": {
+    "title": "SignDataValidationOk",
+    "permalink": "/api/totem-extension-keyring/type-aliases/SignDataValidationOk"
+  }
+}

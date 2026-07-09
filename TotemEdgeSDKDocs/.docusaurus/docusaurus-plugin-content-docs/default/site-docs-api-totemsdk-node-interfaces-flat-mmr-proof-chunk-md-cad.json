@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/FlatMMRProofChunk",
+  "title": "FlatMMRProofChunk",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/FlatMMRProofChunk.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/FlatMMRProofChunk",
+  "permalink": "/api/totemsdk-node/interfaces/FlatMMRProofChunk",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "FinalizeResponse",
+    "permalink": "/api/totemsdk-node/interfaces/FinalizeResponse"
+  },
+  "next": {
+    "title": "HierarchicalWitnessBundle",
+    "permalink": "/api/totemsdk-node/interfaces/HierarchicalWitnessBundle"
+  }
+}

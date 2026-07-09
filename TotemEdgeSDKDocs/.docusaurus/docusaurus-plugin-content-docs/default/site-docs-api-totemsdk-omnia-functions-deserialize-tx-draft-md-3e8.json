@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/functions/deserializeTxDraft",
+  "title": "deserializeTxDraft",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/functions/deserializeTxDraft.md",
+  "sourceDirName": "api/totemsdk-omnia/functions",
+  "slug": "/api/totemsdk-omnia/functions/deserializeTxDraft",
+  "permalink": "/api/totemsdk-omnia/functions/deserializeTxDraft",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "createChannel",
+    "permalink": "/api/totemsdk-omnia/functions/createChannel"
+  },
+  "next": {
+    "title": "enforceUpdateGuards",
+    "permalink": "/api/totemsdk-omnia/functions/enforceUpdateGuards"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/createExchangeDescriptor",
+  "title": "createExchangeDescriptor",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/createExchangeDescriptor.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/createExchangeDescriptor",
+  "permalink": "/api/totemsdk-node/functions/createExchangeDescriptor",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "createEmptyMMRProof",
+    "permalink": "/api/totemsdk-node/functions/createEmptyMMRProof"
+  },
+  "next": {
+    "title": "createFlashCashDescriptor",
+    "permalink": "/api/totemsdk-node/functions/createFlashCashDescriptor"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-statechain/interfaces/SEClient",
+  "title": "SEClient",
+  "description": "@totemsdk/statechain",
+  "source": "@site/docs/api/totemsdk-statechain/interfaces/SEClient.md",
+  "sourceDirName": "api/totemsdk-statechain/interfaces",
+  "slug": "/api/totemsdk-statechain/interfaces/SEClient",
+  "permalink": "/api/totemsdk-statechain/interfaces/SEClient",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "ClaimPayload",
+    "permalink": "/api/totemsdk-statechain/interfaces/ClaimPayload"
+  },
+  "next": {
+    "title": "StateChain",
+    "permalink": "/api/totemsdk-statechain/interfaces/StateChain"
+  }
+}

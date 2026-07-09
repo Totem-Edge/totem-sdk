@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-statechain/interfaces/ClaimPayload",
+  "title": "ClaimPayload",
+  "description": "@totemsdk/statechain",
+  "source": "@site/docs/api/totemsdk-statechain/interfaces/ClaimPayload.md",
+  "sourceDirName": "api/totemsdk-statechain/interfaces",
+  "slug": "/api/totemsdk-statechain/interfaces/ClaimPayload",
+  "permalink": "/api/totemsdk-statechain/interfaces/ClaimPayload",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "AbandonedProof",
+    "permalink": "/api/totemsdk-statechain/interfaces/AbandonedProof"
+  },
+  "next": {
+    "title": "SEClient",
+    "permalink": "/api/totemsdk-statechain/interfaces/SEClient"
+  }
+}

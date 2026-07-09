@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",
+    "lib": ["ES2020"],
+    "outDir": "./dist",
+    "rootDir": "./",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": true,
+    "declarationMap": true,
+    "resolveJsonModule": true,
+    "moduleResolution": "node",
+    "baseUrl": ".",
+    "paths": {
+      "@totemsdk/core": ["../core/src/index"],
+      "@totemsdk/realtime": ["../realtime/src/index"],
+      "@totem/sdk-client": ["../client/src/index"],
+      "@totemsdk/identity": ["../identity/src/index"],
+      "@totemsdk/edge": ["../edge/src/index"],
+      "@totemsdk/manifest": ["../manifest/src/index"],
+      "@totemsdk/agent-policy": ["../agent-policy/src/index"],
+      "@totemsdk/connect": ["../connect/src/index"]
+    }
+  },
+  "include": ["src/**/*", "test/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

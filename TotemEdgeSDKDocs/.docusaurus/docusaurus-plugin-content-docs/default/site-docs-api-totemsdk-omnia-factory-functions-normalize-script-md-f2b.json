@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-factory/functions/normalizeScript",
+  "title": "normalizeScript",
+  "description": "@totemsdk/omnia-factory",
+  "source": "@site/docs/api/totemsdk-omnia-factory/functions/normalizeScript.md",
+  "sourceDirName": "api/totemsdk-omnia-factory/functions",
+  "slug": "/api/totemsdk-omnia-factory/functions/normalizeScript",
+  "permalink": "/api/totemsdk-omnia-factory/functions/normalizeScript",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "enforceConservation",
+    "permalink": "/api/totemsdk-omnia-factory/functions/enforceConservation"
+  },
+  "next": {
+    "title": "openVirtualChannel",
+    "permalink": "/api/totemsdk-omnia-factory/functions/openVirtualChannel"
+  }
+}

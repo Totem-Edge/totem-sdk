@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/variables/h",
+  "title": "h",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/variables/h.md",
+  "sourceDirName": "api/totemsdk-node/variables",
+  "slug": "/api/totemsdk-node/variables/h",
+  "permalink": "/api/totemsdk-node/variables/h",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "fromHex",
+    "permalink": "/api/totemsdk-node/variables/fromHex"
+  },
+  "next": {
+    "title": "hex",
+    "permalink": "/api/totemsdk-node/variables/hex"
+  }
+}

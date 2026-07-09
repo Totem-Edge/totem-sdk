@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-lookup-protocol/interfaces/GetTokenMessage",
+  "title": "GetTokenMessage",
+  "description": "@totemsdk/lookup-protocol",
+  "source": "@site/docs/api/totemsdk-lookup-protocol/interfaces/GetTokenMessage.md",
+  "sourceDirName": "api/totemsdk-lookup-protocol/interfaces",
+  "slug": "/api/totemsdk-lookup-protocol/interfaces/GetTokenMessage",
+  "permalink": "/api/totemsdk-lookup-protocol/interfaces/GetTokenMessage",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "GetTipMessage",
+    "permalink": "/api/totemsdk-lookup-protocol/interfaces/GetTipMessage"
+  },
+  "next": {
+    "title": "HelloMessage",
+    "permalink": "/api/totemsdk-lookup-protocol/interfaces/HelloMessage"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-tx-builder/interfaces/KeyValueStorage",
+  "title": "KeyValueStorage",
+  "description": "@totemsdk/tx-builder",
+  "source": "@site/docs/api/totemsdk-tx-builder/interfaces/KeyValueStorage.md",
+  "sourceDirName": "api/totemsdk-tx-builder/interfaces",
+  "slug": "/api/totemsdk-tx-builder/interfaces/KeyValueStorage",
+  "permalink": "/api/totemsdk-tx-builder/interfaces/KeyValueStorage",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "EnhancedCoinOutput",
+    "permalink": "/api/totemsdk-tx-builder/interfaces/EnhancedCoinOutput"
+  },
+  "next": {
+    "title": "MultisigConfig",
+    "permalink": "/api/totemsdk-tx-builder/interfaces/MultisigConfig"
+  }
+}

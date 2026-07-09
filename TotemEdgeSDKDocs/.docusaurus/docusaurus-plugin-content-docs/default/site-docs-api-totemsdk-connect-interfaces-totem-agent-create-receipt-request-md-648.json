@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-connect/interfaces/TotemAgentCreateReceiptRequest",
+  "title": "TotemAgentCreateReceiptRequest",
+  "description": "@totemsdk/connect",
+  "source": "@site/docs/api/totemsdk-connect/interfaces/TotemAgentCreateReceiptRequest.md",
+  "sourceDirName": "api/totemsdk-connect/interfaces",
+  "slug": "/api/totemsdk-connect/interfaces/TotemAgentCreateReceiptRequest",
+  "permalink": "/api/totemsdk-connect/interfaces/TotemAgentCreateReceiptRequest",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TokenSpendingLimit",
+    "permalink": "/api/totemsdk-connect/interfaces/TokenSpendingLimit"
+  },
+  "next": {
+    "title": "TotemAgentCreateReceiptResponse",
+    "permalink": "/api/totemsdk-connect/interfaces/TotemAgentCreateReceiptResponse"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-wots-lease/index",
+  "title": "index",
+  "description": "@totemsdk/wots-lease",
+  "source": "@site/docs/api/totemsdk-wots-lease/index.md",
+  "sourceDirName": "api/totemsdk-wots-lease",
+  "slug": "/api/totemsdk-wots-lease/",
+  "permalink": "/api/totemsdk-wots-lease/",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "fromFlatIndex",
+    "permalink": "/api/totemsdk-wots-lease/functions/fromFlatIndex"
+  },
+  "next": {
+    "title": "AxiaLeaseProviderConfig",
+    "permalink": "/api/totemsdk-wots-lease/interfaces/AxiaLeaseProviderConfig"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-lookup-protocol/interfaces/GetCoinsMessage",
+  "title": "GetCoinsMessage",
+  "description": "@totemsdk/lookup-protocol",
+  "source": "@site/docs/api/totemsdk-lookup-protocol/interfaces/GetCoinsMessage.md",
+  "sourceDirName": "api/totemsdk-lookup-protocol/interfaces",
+  "slug": "/api/totemsdk-lookup-protocol/interfaces/GetCoinsMessage",
+  "permalink": "/api/totemsdk-lookup-protocol/interfaces/GetCoinsMessage",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "GetCoinMessage",
+    "permalink": "/api/totemsdk-lookup-protocol/interfaces/GetCoinMessage"
+  },
+  "next": {
+    "title": "GetProofMessage",
+    "permalink": "/api/totemsdk-lookup-protocol/interfaces/GetProofMessage"
+  }
+}

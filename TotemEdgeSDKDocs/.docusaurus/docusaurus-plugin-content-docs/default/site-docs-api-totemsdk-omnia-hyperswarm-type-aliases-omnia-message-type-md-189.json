@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-hyperswarm/type-aliases/OmniaMessageType",
+  "title": "OmniaMessageType",
+  "description": "@totemsdk/omnia-hyperswarm",
+  "source": "@site/docs/api/totemsdk-omnia-hyperswarm/type-aliases/OmniaMessageType.md",
+  "sourceDirName": "api/totemsdk-omnia-hyperswarm/type-aliases",
+  "slug": "/api/totemsdk-omnia-hyperswarm/type-aliases/OmniaMessageType",
+  "permalink": "/api/totemsdk-omnia-hyperswarm/type-aliases/OmniaMessageType",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "MinimalChainProvider",
+    "permalink": "/api/totemsdk-omnia-hyperswarm/type-aliases/MinimalChainProvider"
+  },
+  "next": {
+    "title": "Unsubscribe",
+    "permalink": "/api/totemsdk-omnia-hyperswarm/type-aliases/Unsubscribe"
+  }
+}

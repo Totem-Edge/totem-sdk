@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-lookup-client/index",
+  "title": "index",
+  "description": "@totemsdk/lookup-client",
+  "source": "@site/docs/api/totemsdk-lookup-client/index.md",
+  "sourceDirName": "api/totemsdk-lookup-client",
+  "slug": "/api/totemsdk-lookup-client/",
+  "permalink": "/api/totemsdk-lookup-client/",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "createInMemoryPair",
+    "permalink": "/api/totemsdk-lookup-client/functions/createInMemoryPair"
+  },
+  "next": {
+    "title": "CoinUpdateEvent",
+    "permalink": "/api/totemsdk-lookup-client/interfaces/CoinUpdateEvent"
+  }
+}

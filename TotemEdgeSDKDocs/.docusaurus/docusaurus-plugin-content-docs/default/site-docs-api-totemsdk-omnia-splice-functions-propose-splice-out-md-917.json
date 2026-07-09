@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-splice/functions/proposeSpliceOut",
+  "title": "proposeSpliceOut",
+  "description": "@totemsdk/omnia-splice",
+  "source": "@site/docs/api/totemsdk-omnia-splice/functions/proposeSpliceOut.md",
+  "sourceDirName": "api/totemsdk-omnia-splice/functions",
+  "slug": "/api/totemsdk-omnia-splice/functions/proposeSpliceOut",
+  "permalink": "/api/totemsdk-omnia-splice/functions/proposeSpliceOut",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "proposeSpliceIn",
+    "permalink": "/api/totemsdk-omnia-splice/functions/proposeSpliceIn"
+  },
+  "next": {
+    "title": "quiesceChannel",
+    "permalink": "/api/totemsdk-omnia-splice/functions/quiesceChannel"
+  }
+}

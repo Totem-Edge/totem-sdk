@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Totem - Transaction Approval</title>
+    <style>
+        :root {
+            --bg-base: #000;
+            --bg-subtle: #1a1a1a;
+            --bg-elevated: #111;
+            --text-primary: #fff;
+            --text-muted: #888;
+            --accent: #00D9B5;
+            --accent-muted: rgba(0, 217, 181, 0.1);
+            --border-default: #333;
+            --border-subtle: #222;
+            --warning: #f59e0b;
+            --error: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 16px;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            background: var(--bg-base);
+            color: var(--text-primary);
+            width: 100%;
+            min-height: 100vh;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-default);
+        }
+
+        .header-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--bg-subtle);
+            border: 2px solid var(--text-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .header-title {
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin: 0 0 4px 0;
+        }
+
+        .header-subtitle {
+            color: var(--text-muted);
+            font-size: 11px;
+            margin: 0;
+        }
+
+        .origin-box {
+            background: var(--accent-muted);
+            border: 1px solid var(--accent);
+            padding: 10px;
+            margin-bottom: 16px;
+        }
+
+        .label {
+            color: var(--text-muted);
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        .origin-value {
+            color: var(--accent);
+            font-size: 12px;
+            word-break: break-all;
+        }
+
+        .amount-box {
+            background: var(--bg-elevated);
+            border: 2px solid var(--text-primary);
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .amount-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .amount-token {
+            font-size: 14px;
+            color: var(--accent);
+        }
+
+        .token-id {
+            color: var(--text-muted);
+            font-size: 10px;
+            word-break: break-all;
+            margin-top: 4px;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .detail-label {
+            color: var(--text-muted);
+            font-size: 11px;
+        }
+
+        .detail-value {
+            color: var(--text-primary);
+            font-size: 11px;
+            text-align: right;
+            max-width: 200px;
+            word-break: break-all;
+        }
+
+        .intent-badge {
+            text-transform: uppercase;
+            background: var(--bg-subtle);
+            padding: 2px 8px;
+            border: 1px solid var(--border-default);
+            font-size: 11px;
+        }
+
+        .address-box {
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .address-value {
+            font-family: monospace;
+            color: var(--text-primary);
+            font-size: 11px;
+            word-break: break-all;
+            background: var(--bg-elevated);
+            padding: 8px;
+            border: 1px solid var(--border-default);
+            margin-top: 6px;
+        }
+
+        .warning-box {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid var(--warning);
+            padding: 10px;
+            margin: 16px 0;
+            font-size: 10px;
+            color: var(--warning);
+        }
+
+        .error-box {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--error);
+            padding: 10px;
+            margin: 16px 0;
+            font-size: 10px;
+            color: var(--error);
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+            position: fixed;
+            bottom: 16px;
+            left: 16px;
+            right: 16px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px;
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            border: none;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .reject-btn {
+            border: 2px solid var(--text-primary);
+            background: transparent;
+            color: var(--text-primary);
+        }
+
+        .approve-btn {
+            border: 2px solid var(--accent);
+            background: var(--accent);
+            color: #000;
+        }
+
+        .loading {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-icon">💸</div>
+        <div>
+            <h1 class="header-title">SEND TRANSACTION</h1>
+            <p class="header-subtitle">Review and approve this transaction</p>
+        </div>
+    </div>
+
+    <div class="origin-box">
+        <div class="label">REQUESTING SITE</div>
+        <div class="origin-value" id="origin">Loading...</div>
+    </div>
+
+    <div class="amount-box">
+        <div class="label">AMOUNT</div>
+        <div class="amount-value">
+            <span id="amount">0</span> <span class="amount-token" id="token-name">MINIMA</span>
+        </div>
+        <div class="token-id" id="token-id-display" style="display: none;">
+            Token ID: <span id="token-id"></span>
+        </div>
+    </div>
+
+    <div class="detail-row">
+        <span class="detail-label">Intent</span>
+        <div style="text-align:right;">
+            <span class="intent-badge" id="intent-label">SEND</span>
+            <div id="intent-caption" style="font-size:9px;color:var(--text-muted);margin-top:4px;max-width:200px;line-height:1.3;"></div>
+        </div>
+    </div>
+
+    <div class="address-box">
+        <div class="label">RECIPIENT ADDRESS</div>
+        <div class="address-value" id="to-address">Loading...</div>
+    </div>
+
+    <div class="detail-row">
+        <span class="detail-label">Network Fee</span>
+        <span class="detail-value" style="color: var(--text-muted); font-style: italic;">Estimated at broadcast</span>
+    </div>
+
+    <div class="warning-box">
+        ⚠️ This transaction will consume a one-time WOTS signature from your wallet
+    </div>
+
+    <div id="validation-status"></div>
+
+    <div class="actions">
+        <button class="reject-btn" id="reject-btn">REJECT</button>
+        <button class="approve-btn" id="approve-btn">APPROVE</button>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const toAddress = urlParams.get('to') || 'Unknown';
+        const amount = urlParams.get('amount') || '0';
+        const origin = urlParams.get('origin') || 'Unknown Site';
+        const tokenId = urlParams.get('tokenId') || '0x00';
+        const intent = urlParams.get('intent') || 'send';
+
+        function formatAmount(amt) {
+            const num = parseFloat(amt);
+            if (isNaN(num)) return amt;
+            if (num === 0) return '0';
+            if (num < 0.0001) return num.toExponential(4);
+            if (num >= 1000000) return num.toLocaleString(undefined, { maximumFractionDigits: 2 });
+            return num.toLocaleString(undefined, { maximumFractionDigits: 8 });
+        }
+
+        function truncateAddress(addr) {
+            if (addr.length <= 20) return addr;
+            return addr.slice(0, 12) + '...' + addr.slice(-8);
+        }
+
+        function getTokenName(tid) {
+            if (tid === '0x00' || !tid) return 'MINIMA';
+            return truncateAddress(tid);
+        }
+
+        const INTENT_WARNINGS = {
+            send:             { label: 'Token Send',            risk: 'medium', text: 'This will send tokens from your wallet to the recipient. Transactions on Minima are irreversible.' },
+            token_send:       { label: 'Custom Token Send',     risk: 'medium', text: 'This will send a custom token from your wallet to the recipient. Transactions on Minima are irreversible.' },
+            swap:             { label: 'Token Swap',            risk: 'high',   text: 'This will swap your tokens via a DEX. The swap rate is determined by the current pool price and cannot be undone.' },
+            liquidity_add:    { label: 'Add Liquidity',         risk: 'high',   text: 'Your funds will be locked into a liquidity pool. You can withdraw later but may receive a different token ratio.' },
+            liquidity_remove: { label: 'Remove Liquidity',      risk: 'high',   text: 'This will remove your liquidity from the pool and return tokens to your wallet. The amounts may differ from what you deposited.' },
+            contract_call:    { label: 'Smart Contract',        risk: 'high',   text: 'This executes a custom MAST smart contract. It will spend your coins according to rules defined in the contract script.' },
+            multisig:         { label: 'Multisig',              risk: 'high',   text: 'This participates in a multi-party transaction requiring multiple signatures. Ensure you trust all other signing parties.' },
+            timelock:         { label: 'Timelock',              risk: 'high',   text: 'Your coins will be locked until a future block height or timestamp. They cannot be spent until the timelock expires.' },
+            htlc:             { label: 'Atomic Swap (HTLC)',    risk: 'high',   text: 'This creates a Hash Time-Locked Contract for an atomic swap. If not claimed in time, funds return to you automatically.' },
+            complex_send:     { label: 'Complex Send',          risk: 'high',   text: 'This transaction has multiple inputs or outputs. Carefully verify the amounts and addresses before approving.' },
+            sign_data:        { label: 'Sign Data',             risk: 'signing', text: 'This uses your private WOTS key to produce a cryptographic signature. No funds move, but the signature proves your identity.' },
+            broadcast_tx:     { label: 'Broadcast Transaction', risk: 'signing', text: 'This submits a pre-built raw transaction to the Minima network. Ensure you fully trust the site that constructed it.' },
+            custom:           { label: 'Custom Transaction',    risk: 'high',   text: 'This is a custom transaction type. Review all details carefully — you are approving an operation the requesting site defined.' },
+        };
+
+        function getIntentWarning(intentKey) {
+            return INTENT_WARNINGS[intentKey] || { label: intentKey, risk: 'high', text: 'This transaction cannot be undone. Verify all details before approving.' };
+        }
+
+        const iw0 = getIntentWarning(intent);
+        document.getElementById('origin').textContent = origin;
+        document.getElementById('to-address').textContent = toAddress;
+        document.getElementById('amount').textContent = formatAmount(amount);
+        document.getElementById('intent-label').textContent = iw0.label.toUpperCase();
+        document.getElementById('intent-caption').textContent = iw0.text;
+
+        const tokenName = getTokenName(tokenId);
+        document.getElementById('token-name').textContent = tokenName;
+
+        if (tokenId !== '0x00' && tokenId) {
+            document.getElementById('token-id-display').style.display = 'block';
+            document.getElementById('token-id').textContent = tokenId;
+        }
+
+        let isValid = true;
+        let hasBalance = true;
+
+        function updateUI() {
+            const approveBtn = document.getElementById('approve-btn');
+            const statusDiv = document.getElementById('validation-status');
+            const iw = getIntentWarning(intent);
+
+            if (!isValid) {
+                statusDiv.innerHTML = '<div class="error-box">❌ Invalid recipient address</div>';
+                approveBtn.disabled = true;
+            } else if (!hasBalance) {
+                statusDiv.innerHTML = '<div class="error-box">❌ Insufficient balance for this transaction</div>';
+                approveBtn.disabled = true;
+            } else if (iw.risk === 'signing') {
+                statusDiv.innerHTML = `<div class="error-box">🔴 SIGNING OPERATION — ${escHtml(iw.text)}</div>`;
+                approveBtn.disabled = false;
+            } else if (iw.risk === 'high') {
+                statusDiv.innerHTML = `<div class="error-box">🔴 HIGH RISK — ${escHtml(iw.text)}</div>`;
+                approveBtn.disabled = false;
+            } else {
+                statusDiv.innerHTML = `<div class="warning-box">⚠️ ${escHtml(iw.text)}</div>`;
+                approveBtn.disabled = false;
+            }
+        }
+
+        function escHtml(str) {
+            return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        chrome.runtime.sendMessage({
+            method: 'validateAddress',
+            params: [toAddress],
+            id: Date.now().toString()
+        }, (response) => {
+            if (response && response.result) {
+                isValid = response.result.ok || response.result.response?.valid;
+                updateUI();
+            }
+        });
+
+        chrome.runtime.sendMessage({
+            method: 'getDefaultReceiveAddress',
+            id: Date.now().toString()
+        }, (addressResponse) => {
+            if (addressResponse && addressResponse.result) {
+                const userAddress = addressResponse.result.address;
+                
+                chrome.runtime.sendMessage({
+                    method: 'getBalance',
+                    params: [userAddress],
+                    id: Date.now().toString()
+                }, (balanceResponse) => {
+                    if (balanceResponse && balanceResponse.result) {
+                        const balance = parseFloat(balanceResponse.result.confirmed || '0');
+                        const txAmount = parseFloat(amount);
+                        hasBalance = balance >= (txAmount + 0.001);
+                        updateUI();
+                    }
+                });
+            }
+        });
+
+        let currentWindowId = null;
+        chrome.windows.getCurrent((win) => {
+            currentWindowId = win.id;
+        });
+
+        document.getElementById('approve-btn').addEventListener('click', () => {
+            if (!isValid || !hasBalance) return;
+            
+            chrome.runtime.sendMessage({
+                type: 'tx-approval',
+                approved: true,
+                windowId: currentWindowId
+            });
+            window.close();
+        });
+
+        document.getElementById('reject-btn').addEventListener('click', () => {
+            chrome.runtime.sendMessage({
+                type: 'tx-approval',
+                approved: false,
+                windowId: currentWindowId
+            });
+            window.close();
+        });
+    </script>
+</body>
+</html>

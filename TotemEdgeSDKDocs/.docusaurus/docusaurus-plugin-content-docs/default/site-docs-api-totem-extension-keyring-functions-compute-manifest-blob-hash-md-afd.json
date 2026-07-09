@@ -1,0 +1,23 @@
+{
+  "id": "api/totem-extension-keyring/functions/computeManifestBlobHash",
+  "title": "computeManifestBlobHash",
+  "description": "totem-extension/keyring",
+  "source": "@site/docs/api/totem-extension-keyring/functions/computeManifestBlobHash.md",
+  "sourceDirName": "api/totem-extension-keyring/functions",
+  "slug": "/api/totem-extension-keyring/functions/computeManifestBlobHash",
+  "permalink": "/api/totem-extension-keyring/functions/computeManifestBlobHash",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "@totem/observability",
+    "permalink": "/api/totem-observability/"
+  },
+  "next": {
+    "title": "normalizeAddrToHex",
+    "permalink": "/api/totem-extension-keyring/functions/normalizeAddrToHex"
+  }
+}

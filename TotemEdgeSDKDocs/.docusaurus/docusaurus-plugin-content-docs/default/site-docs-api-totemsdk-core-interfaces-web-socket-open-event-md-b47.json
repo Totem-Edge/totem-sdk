@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/WebSocketOpenEvent",
+  "title": "WebSocketOpenEvent",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/WebSocketOpenEvent.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/WebSocketOpenEvent",
+  "permalink": "/api/totemsdk-core/interfaces/WebSocketOpenEvent",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "WebSocketMessageEvent",
+    "permalink": "/api/totemsdk-core/interfaces/WebSocketMessageEvent"
+  },
+  "next": {
+    "title": "WitnessBundle",
+    "permalink": "/api/totemsdk-core/interfaces/WitnessBundle"
+  }
+}

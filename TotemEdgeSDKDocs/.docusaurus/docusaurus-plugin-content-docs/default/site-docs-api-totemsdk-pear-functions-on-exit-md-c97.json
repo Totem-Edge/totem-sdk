@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-pear/functions/onExit",
+  "title": "onExit",
+  "description": "@totemsdk/pear",
+  "source": "@site/docs/api/totemsdk-pear/functions/onExit.md",
+  "sourceDirName": "api/totemsdk-pear/functions",
+  "slug": "/api/totemsdk-pear/functions/onExit",
+  "permalink": "/api/totemsdk-pear/functions/onExit",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "loadManifest",
+    "permalink": "/api/totemsdk-pear/functions/loadManifest"
+  },
+  "next": {
+    "title": "openLocalDrive",
+    "permalink": "/api/totemsdk-pear/functions/openLocalDrive"
+  }
+}

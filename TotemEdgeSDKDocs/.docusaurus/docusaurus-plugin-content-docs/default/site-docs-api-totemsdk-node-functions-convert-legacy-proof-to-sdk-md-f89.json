@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/convertLegacyProofToSDK",
+  "title": "convertLegacyProofToSDK",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/convertLegacyProofToSDK.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/convertLegacyProofToSDK",
+  "permalink": "/api/totemsdk-node/functions/convertLegacyProofToSDK",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "convertFlatChunkToSDK",
+    "permalink": "/api/totemsdk-node/functions/convertFlatChunkToSDK"
+  },
+  "next": {
+    "title": "convertStringToSeed",
+    "permalink": "/api/totemsdk-node/functions/convertStringToSeed"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/generateSeedPhrase",
+  "title": "generateSeedPhrase",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/generateSeedPhrase.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/generateSeedPhrase",
+  "permalink": "/api/totemsdk-node/functions/generateSeedPhrase",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "flatIndexFromLanes",
+    "permalink": "/api/totemsdk-node/functions/flatIndexFromLanes"
+  },
+  "next": {
+    "title": "generateWordList",
+    "permalink": "/api/totemsdk-node/functions/generateWordList"
+  }
+}

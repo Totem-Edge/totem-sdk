@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-splice/type-aliases/SpliceType",
+  "title": "SpliceType",
+  "description": "@totemsdk/omnia-splice",
+  "source": "@site/docs/api/totemsdk-omnia-splice/type-aliases/SpliceType.md",
+  "sourceDirName": "api/totemsdk-omnia-splice/type-aliases",
+  "slug": "/api/totemsdk-omnia-splice/type-aliases/SpliceType",
+  "permalink": "/api/totemsdk-omnia-splice/type-aliases/SpliceType",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "QuiescedChannel",
+    "permalink": "/api/totemsdk-omnia-splice/type-aliases/QuiescedChannel"
+  },
+  "next": {
+    "title": "SplicedChannel",
+    "permalink": "/api/totemsdk-omnia-splice/type-aliases/SplicedChannel"
+  }
+}

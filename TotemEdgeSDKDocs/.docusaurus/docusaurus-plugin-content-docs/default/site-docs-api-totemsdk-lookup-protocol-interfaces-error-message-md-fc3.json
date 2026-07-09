@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-lookup-protocol/interfaces/ErrorMessage",
+  "title": "ErrorMessage",
+  "description": "@totemsdk/lookup-protocol",
+  "source": "@site/docs/api/totemsdk-lookup-protocol/interfaces/ErrorMessage.md",
+  "sourceDirName": "api/totemsdk-lookup-protocol/interfaces",
+  "slug": "/api/totemsdk-lookup-protocol/interfaces/ErrorMessage",
+  "permalink": "/api/totemsdk-lookup-protocol/interfaces/ErrorMessage",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "CoinUpdateMessage",
+    "permalink": "/api/totemsdk-lookup-protocol/interfaces/CoinUpdateMessage"
+  },
+  "next": {
+    "title": "GetCoinMessage",
+    "permalink": "/api/totemsdk-lookup-protocol/interfaces/GetCoinMessage"
+  }
+}

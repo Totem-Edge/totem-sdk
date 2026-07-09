@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/MetricsAdapter",
+  "title": "MetricsAdapter",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/MetricsAdapter.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/MetricsAdapter",
+  "permalink": "/api/totemsdk-core/interfaces/MetricsAdapter",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "MMRProofChunk",
+    "permalink": "/api/totemsdk-core/interfaces/MMRProofChunk"
+  },
+  "next": {
+    "title": "MinimaCoin",
+    "permalink": "/api/totemsdk-core/interfaces/MinimaCoin"
+  }
+}

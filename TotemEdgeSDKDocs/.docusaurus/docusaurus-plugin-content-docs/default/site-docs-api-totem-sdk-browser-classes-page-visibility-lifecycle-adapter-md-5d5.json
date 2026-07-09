@@ -1,0 +1,23 @@
+{
+  "id": "api/totem-sdk-browser/classes/PageVisibilityLifecycleAdapter",
+  "title": "PageVisibilityLifecycleAdapter",
+  "description": "@totem/sdk-browser",
+  "source": "@site/docs/api/totem-sdk-browser/classes/PageVisibilityLifecycleAdapter.md",
+  "sourceDirName": "api/totem-sdk-browser/classes",
+  "slug": "/api/totem-sdk-browser/classes/PageVisibilityLifecycleAdapter",
+  "permalink": "/api/totem-sdk-browser/classes/PageVisibilityLifecycleAdapter",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "NoopMetrics",
+    "permalink": "/api/totem-sdk-browser/classes/NoopMetrics"
+  },
+  "next": {
+    "title": "StorageAuthProvider",
+    "permalink": "/api/totem-sdk-browser/classes/StorageAuthProvider"
+  }
+}

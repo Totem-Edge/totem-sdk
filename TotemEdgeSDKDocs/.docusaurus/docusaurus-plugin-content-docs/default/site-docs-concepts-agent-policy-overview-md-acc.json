@@ -1,0 +1,24 @@
+{
+  "id": "concepts/agent-policy-overview",
+  "title": "Agent Policy Overview",
+  "description": "How the QVAC → agent-policy → Totem → Minima execution model works, and why it makes the SDK AI-ready without giving up key control.",
+  "source": "@site/docs/concepts/agent-policy-overview.md",
+  "sourceDirName": "concepts",
+  "slug": "/concepts/agent-policy-overview",
+  "permalink": "/concepts/agent-policy-overview",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "id": "agent-policy-overview",
+    "title": "Agent Policy Overview",
+    "sidebar_label": "Agent Policy (QVAC)",
+    "description": "How the QVAC → agent-policy → Totem → Minima execution model works, and why it makes the SDK AI-ready without giving up key control."
+  },
+  "sidebar": "conceptsSidebar",
+  "next": {
+    "title": "WOTS Key Management",
+    "permalink": "/concepts/wots-key-management"
+  }
+}

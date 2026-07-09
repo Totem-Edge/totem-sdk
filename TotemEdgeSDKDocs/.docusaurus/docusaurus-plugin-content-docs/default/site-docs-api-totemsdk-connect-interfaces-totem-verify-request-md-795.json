@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-connect/interfaces/TotemVerifyRequest",
+  "title": "TotemVerifyRequest",
+  "description": "@totemsdk/connect",
+  "source": "@site/docs/api/totemsdk-connect/interfaces/TotemVerifyRequest.md",
+  "sourceDirName": "api/totemsdk-connect/interfaces",
+  "slug": "/api/totemsdk-connect/interfaces/TotemVerifyRequest",
+  "permalink": "/api/totemsdk-connect/interfaces/TotemVerifyRequest",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TotemStatechainVerifyResponse",
+    "permalink": "/api/totemsdk-connect/interfaces/TotemStatechainVerifyResponse"
+  },
+  "next": {
+    "title": "TotemVerifyResponse",
+    "permalink": "/api/totemsdk-connect/interfaces/TotemVerifyResponse"
+  }
+}

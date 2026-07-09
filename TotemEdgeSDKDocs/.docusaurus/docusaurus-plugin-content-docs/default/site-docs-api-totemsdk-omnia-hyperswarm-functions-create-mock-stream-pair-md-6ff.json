@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-hyperswarm/functions/createMockStreamPair",
+  "title": "createMockStreamPair",
+  "description": "@totemsdk/omnia-hyperswarm",
+  "source": "@site/docs/api/totemsdk-omnia-hyperswarm/functions/createMockStreamPair.md",
+  "sourceDirName": "api/totemsdk-omnia-hyperswarm/functions",
+  "slug": "/api/totemsdk-omnia-hyperswarm/functions/createMockStreamPair",
+  "permalink": "/api/totemsdk-omnia-hyperswarm/functions/createMockStreamPair",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "channelTopic",
+    "permalink": "/api/totemsdk-omnia-hyperswarm/functions/channelTopic"
+  },
+  "next": {
+    "title": "createOmniaIntegration",
+    "permalink": "/api/totemsdk-omnia-hyperswarm/functions/createOmniaIntegration"
+  }
+}

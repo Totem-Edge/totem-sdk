@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-connect/interfaces/ResponseScriptDescriptor",
+  "title": "ResponseScriptDescriptor",
+  "description": "@totemsdk/connect",
+  "source": "@site/docs/api/totemsdk-connect/interfaces/ResponseScriptDescriptor.md",
+  "sourceDirName": "api/totemsdk-connect/interfaces",
+  "slug": "/api/totemsdk-connect/interfaces/ResponseScriptDescriptor",
+  "permalink": "/api/totemsdk-connect/interfaces/ResponseScriptDescriptor",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "OmniaChannelSummary",
+    "permalink": "/api/totemsdk-connect/interfaces/OmniaChannelSummary"
+  },
+  "next": {
+    "title": "Route",
+    "permalink": "/api/totemsdk-connect/interfaces/Route"
+  }
+}

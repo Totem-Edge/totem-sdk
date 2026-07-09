@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-pear/functions/runExitHandlers",
+  "title": "runExitHandlers",
+  "description": "@totemsdk/pear",
+  "source": "@site/docs/api/totemsdk-pear/functions/runExitHandlers.md",
+  "sourceDirName": "api/totemsdk-pear/functions",
+  "slug": "/api/totemsdk-pear/functions/runExitHandlers",
+  "permalink": "/api/totemsdk-pear/functions/runExitHandlers",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "openRemoteDrive",
+    "permalink": "/api/totemsdk-pear/functions/openRemoteDrive"
+  },
+  "next": {
+    "title": "index",
+    "permalink": "/api/totemsdk-pear/"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-router/functions/executeCrossTokenPayment",
+  "title": "executeCrossTokenPayment",
+  "description": "@totemsdk/omnia-router",
+  "source": "@site/docs/api/totemsdk-omnia-router/functions/executeCrossTokenPayment.md",
+  "sourceDirName": "api/totemsdk-omnia-router/functions",
+  "slug": "/api/totemsdk-omnia-router/functions/executeCrossTokenPayment",
+  "permalink": "/api/totemsdk-omnia-router/functions/executeCrossTokenPayment",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "createChannelGraph",
+    "permalink": "/api/totemsdk-omnia-router/functions/createChannelGraph"
+  },
+  "next": {
+    "title": "executeMultiHopPayment",
+    "permalink": "/api/totemsdk-omnia-router/functions/executeMultiHopPayment"
+  }
+}

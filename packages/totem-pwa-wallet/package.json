@@ -1,0 +1,34 @@
+{
+  "name": "totem-pwa-wallet",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Self-custodial Totem PWA wallet — installable, cross-origin embeddable via provider.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build && vite build --config vite.provider.config.ts",
+    "build:app": "tsc && vite build",
+    "build:provider": "vite build --config vite.provider.config.ts",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@noble/hashes": "^1.8.0",
+    "@totemsdk/core": "workspace:*",
+    "@totemsdk/realtime": "workspace:*",
+    "@totemsdk/root-identity": "workspace:*",
+    "idb": "^8.0.0",
+    "qrcode": "^1.5.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.30.0"
+  },
+  "devDependencies": {
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.4.5",
+    "vite": "^5.4.20",
+    "vite-plugin-pwa": "^0.21.1",
+    "workbox-window": "^7.3.0"
+  }
+}

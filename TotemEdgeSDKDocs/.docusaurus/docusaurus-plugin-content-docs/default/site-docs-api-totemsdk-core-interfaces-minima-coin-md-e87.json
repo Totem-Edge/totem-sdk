@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/MinimaCoin",
+  "title": "MinimaCoin",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/MinimaCoin.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/MinimaCoin",
+  "permalink": "/api/totemsdk-core/interfaces/MinimaCoin",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "MetricsAdapter",
+    "permalink": "/api/totemsdk-core/interfaces/MetricsAdapter"
+  },
+  "next": {
+    "title": "MinimaToken",
+    "permalink": "/api/totemsdk-core/interfaces/MinimaToken"
+  }
+}

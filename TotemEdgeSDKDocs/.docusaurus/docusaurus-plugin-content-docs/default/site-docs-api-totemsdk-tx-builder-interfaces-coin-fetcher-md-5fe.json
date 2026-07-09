@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-tx-builder/interfaces/CoinFetcher",
+  "title": "CoinFetcher",
+  "description": "@totemsdk/tx-builder",
+  "source": "@site/docs/api/totemsdk-tx-builder/interfaces/CoinFetcher.md",
+  "sourceDirName": "api/totemsdk-tx-builder/interfaces",
+  "slug": "/api/totemsdk-tx-builder/interfaces/CoinFetcher",
+  "permalink": "/api/totemsdk-tx-builder/interfaces/CoinFetcher",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "index",
+    "permalink": "/api/totemsdk-tx-builder/"
+  },
+  "next": {
+    "title": "CoinSelectionOptions",
+    "permalink": "/api/totemsdk-tx-builder/interfaces/CoinSelectionOptions"
+  }
+}

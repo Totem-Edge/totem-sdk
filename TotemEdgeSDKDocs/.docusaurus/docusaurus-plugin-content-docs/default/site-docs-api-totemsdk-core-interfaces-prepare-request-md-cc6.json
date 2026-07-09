@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/PrepareRequest",
+  "title": "PrepareRequest",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/PrepareRequest.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/PrepareRequest",
+  "permalink": "/api/totemsdk-core/interfaces/PrepareRequest",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "ParsedMiniNumber",
+    "permalink": "/api/totemsdk-core/interfaces/ParsedMiniNumber"
+  },
+  "next": {
+    "title": "PrepareResponse",
+    "permalink": "/api/totemsdk-core/interfaces/PrepareResponse"
+  }
+}

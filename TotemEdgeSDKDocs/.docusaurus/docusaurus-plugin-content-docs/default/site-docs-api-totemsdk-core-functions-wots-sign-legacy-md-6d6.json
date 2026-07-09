@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/wotsSignLegacy",
+  "title": "wotsSignLegacy",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/wotsSignLegacy.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/wotsSignLegacy",
+  "permalink": "/api/totemsdk-core/functions/wotsSignLegacy",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "wotsSign",
+    "permalink": "/api/totemsdk-core/functions/wotsSign"
+  },
+  "next": {
+    "title": "wotsVerify",
+    "permalink": "/api/totemsdk-core/functions/wotsVerify"
+  }
+}

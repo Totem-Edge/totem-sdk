@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/classes/SigningIndexMonotonicityError",
+  "title": "SigningIndexMonotonicityError",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/classes/SigningIndexMonotonicityError.md",
+  "sourceDirName": "api/totemsdk-omnia/classes",
+  "slug": "/api/totemsdk-omnia/classes/SigningIndexMonotonicityError",
+  "permalink": "/api/totemsdk-omnia/classes/SigningIndexMonotonicityError",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "SequenceError",
+    "permalink": "/api/totemsdk-omnia/classes/SequenceError"
+  },
+  "next": {
+    "title": "acceptChannel",
+    "permalink": "/api/totemsdk-omnia/functions/acceptChannel"
+  }
+}

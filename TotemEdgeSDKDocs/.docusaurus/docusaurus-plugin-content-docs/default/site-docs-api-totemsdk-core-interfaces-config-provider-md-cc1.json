@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/ConfigProvider",
+  "title": "ConfigProvider",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/ConfigProvider.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/ConfigProvider",
+  "permalink": "/api/totemsdk-core/interfaces/ConfigProvider",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "CoinProofData",
+    "permalink": "/api/totemsdk-core/interfaces/CoinProofData"
+  },
+  "next": {
+    "title": "CryptoAdapter",
+    "permalink": "/api/totemsdk-core/interfaces/CryptoAdapter"
+  }
+}

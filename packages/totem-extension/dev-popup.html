@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Totem Wallet</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      /* Allow vertical scrolling for onboarding flow */
+      min-height: 100vh;
+    }
+    
+    #root {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+  </style>
+</head>
+<body class="dark">
+  <!-- Mock Chrome Extension API - MUST load before React -->
+  <script type="module" src="./src/dev/mock-chrome.ts"></script>
+
+  <div id="root"></div>
+  <script type="module" src="./src/ui/popup/main.tsx"></script>
+</body>
+</html>

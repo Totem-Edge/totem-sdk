@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/convertStringToSeed",
+  "title": "convertStringToSeed",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/convertStringToSeed.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/convertStringToSeed",
+  "permalink": "/api/totemsdk-node/functions/convertStringToSeed",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "convertLegacyProofToSDK",
+    "permalink": "/api/totemsdk-node/functions/convertLegacyProofToSDK"
+  },
+  "next": {
+    "title": "convertWordListToSeed",
+    "permalink": "/api/totemsdk-node/functions/convertWordListToSeed"
+  }
+}

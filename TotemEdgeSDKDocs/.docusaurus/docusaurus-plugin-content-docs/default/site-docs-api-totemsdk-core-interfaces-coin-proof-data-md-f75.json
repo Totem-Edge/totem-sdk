@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/CoinProofData",
+  "title": "CoinProofData",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/CoinProofData.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/CoinProofData",
+  "permalink": "/api/totemsdk-core/interfaces/CoinProofData",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "CancellationTokenSource",
+    "permalink": "/api/totemsdk-core/interfaces/CancellationTokenSource"
+  },
+  "next": {
+    "title": "ConfigProvider",
+    "permalink": "/api/totemsdk-core/interfaces/ConfigProvider"
+  }
+}

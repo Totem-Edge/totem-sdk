@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-wots-lease/interfaces/HybridLeaseProviderConfig",
+  "title": "HybridLeaseProviderConfig",
+  "description": "@totemsdk/wots-lease",
+  "source": "@site/docs/api/totemsdk-wots-lease/interfaces/HybridLeaseProviderConfig.md",
+  "sourceDirName": "api/totemsdk-wots-lease/interfaces",
+  "slug": "/api/totemsdk-wots-lease/interfaces/HybridLeaseProviderConfig",
+  "permalink": "/api/totemsdk-wots-lease/interfaces/HybridLeaseProviderConfig",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "DeviceKeyRange",
+    "permalink": "/api/totemsdk-wots-lease/interfaces/DeviceKeyRange"
+  },
+  "next": {
+    "title": "JournalEntry",
+    "permalink": "/api/totemsdk-wots-lease/interfaces/JournalEntry"
+  }
+}

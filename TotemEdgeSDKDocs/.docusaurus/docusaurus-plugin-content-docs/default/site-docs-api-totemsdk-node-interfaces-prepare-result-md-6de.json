@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/PrepareResult",
+  "title": "PrepareResult",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/PrepareResult.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/PrepareResult",
+  "permalink": "/api/totemsdk-node/interfaces/PrepareResult",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "PrepareResponse",
+    "permalink": "/api/totemsdk-node/interfaces/PrepareResponse"
+  },
+  "next": {
+    "title": "RawStateVariable",
+    "permalink": "/api/totemsdk-node/interfaces/RawStateVariable"
+  }
+}

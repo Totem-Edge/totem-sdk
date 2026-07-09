@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/WebSocketCloseEvent",
+  "title": "WebSocketCloseEvent",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/WebSocketCloseEvent.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/WebSocketCloseEvent",
+  "permalink": "/api/totemsdk-core/interfaces/WebSocketCloseEvent",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "WebSocketClient",
+    "permalink": "/api/totemsdk-core/interfaces/WebSocketClient"
+  },
+  "next": {
+    "title": "WebSocketErrorEvent",
+    "permalink": "/api/totemsdk-core/interfaces/WebSocketErrorEvent"
+  }
+}

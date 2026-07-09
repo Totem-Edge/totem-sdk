@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/HttpClient",
+  "title": "HttpClient",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/HttpClient.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/HttpClient",
+  "permalink": "/api/totemsdk-core/interfaces/HttpClient",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "HierarchicalWitnessBundle",
+    "permalink": "/api/totemsdk-core/interfaces/HierarchicalWitnessBundle"
+  },
+  "next": {
+    "title": "HttpRequestOptions",
+    "permalink": "/api/totemsdk-core/interfaces/HttpRequestOptions"
+  }
+}

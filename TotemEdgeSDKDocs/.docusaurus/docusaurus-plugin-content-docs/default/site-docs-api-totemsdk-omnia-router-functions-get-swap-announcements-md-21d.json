@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-router/functions/getSwapAnnouncements",
+  "title": "getSwapAnnouncements",
+  "description": "@totemsdk/omnia-router",
+  "source": "@site/docs/api/totemsdk-omnia-router/functions/getSwapAnnouncements.md",
+  "sourceDirName": "api/totemsdk-omnia-router/functions",
+  "slug": "/api/totemsdk-omnia-router/functions/getSwapAnnouncements",
+  "permalink": "/api/totemsdk-omnia-router/functions/getSwapAnnouncements",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "findRoute",
+    "permalink": "/api/totemsdk-omnia-router/functions/findRoute"
+  },
+  "next": {
+    "title": "parseRateToScaled",
+    "permalink": "/api/totemsdk-omnia-router/functions/parseRateToScaled"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-factory/interfaces/FactoryLeaseOps",
+  "title": "FactoryLeaseOps",
+  "description": "@totemsdk/omnia-factory",
+  "source": "@site/docs/api/totemsdk-omnia-factory/interfaces/FactoryLeaseOps.md",
+  "sourceDirName": "api/totemsdk-omnia-factory/interfaces",
+  "slug": "/api/totemsdk-omnia-factory/interfaces/FactoryLeaseOps",
+  "permalink": "/api/totemsdk-omnia-factory/interfaces/FactoryLeaseOps",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "FactoryDisputePayload",
+    "permalink": "/api/totemsdk-omnia-factory/interfaces/FactoryDisputePayload"
+  },
+  "next": {
+    "title": "FactoryLogEntry",
+    "permalink": "/api/totemsdk-omnia-factory/interfaces/FactoryLogEntry"
+  }
+}

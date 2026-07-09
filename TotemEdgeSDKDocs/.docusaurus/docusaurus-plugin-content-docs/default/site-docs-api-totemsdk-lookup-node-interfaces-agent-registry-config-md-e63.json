@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-lookup-node/interfaces/AgentRegistryConfig",
+  "title": "AgentRegistryConfig",
+  "description": "@totemsdk/lookup-node",
+  "source": "@site/docs/api/totemsdk-lookup-node/interfaces/AgentRegistryConfig.md",
+  "sourceDirName": "api/totemsdk-lookup-node/interfaces",
+  "slug": "/api/totemsdk-lookup-node/interfaces/AgentRegistryConfig",
+  "permalink": "/api/totemsdk-lookup-node/interfaces/AgentRegistryConfig",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "index",
+    "permalink": "/api/totemsdk-lookup-node/"
+  },
+  "next": {
+    "title": "AgentRow",
+    "permalink": "/api/totemsdk-lookup-node/interfaces/AgentRow"
+  }
+}

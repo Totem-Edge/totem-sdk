@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/encodeStateValue",
+  "title": "encodeStateValue",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/encodeStateValue.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/encodeStateValue",
+  "permalink": "/api/totemsdk-core/functions/encodeStateValue",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "encodeMxRadix32Frame",
+    "permalink": "/api/totemsdk-core/functions/encodeMxRadix32Frame"
+  },
+  "next": {
+    "title": "finalizeLease",
+    "permalink": "/api/totemsdk-core/functions/finalizeLease"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/verifySignature",
+  "title": "verifySignature",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/verifySignature.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/verifySignature",
+  "permalink": "/api/totemsdk-core/functions/verifySignature",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "verifyMMRProof",
+    "permalink": "/api/totemsdk-core/functions/verifyMMRProof"
+  },
+  "next": {
+    "title": "verifySignatureDetailed",
+    "permalink": "/api/totemsdk-core/functions/verifySignatureDetailed"
+  }
+}

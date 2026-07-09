@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-pear/interfaces/ITransport",
+  "title": "ITransport",
+  "description": "@totemsdk/pear",
+  "source": "@site/docs/api/totemsdk-pear/interfaces/ITransport.md",
+  "sourceDirName": "api/totemsdk-pear/interfaces",
+  "slug": "/api/totemsdk-pear/interfaces/ITransport",
+  "permalink": "/api/totemsdk-pear/interfaces/ITransport",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "HyperdriveAdapter",
+    "permalink": "/api/totemsdk-pear/interfaces/HyperdriveAdapter"
+  },
+  "next": {
+    "title": "KVStore",
+    "permalink": "/api/totemsdk-pear/interfaces/KVStore"
+  }
+}

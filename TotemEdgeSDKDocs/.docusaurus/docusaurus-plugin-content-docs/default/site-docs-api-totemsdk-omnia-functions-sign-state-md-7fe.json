@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/functions/signState",
+  "title": "signState",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/functions/signState.md",
+  "sourceDirName": "api/totemsdk-omnia/functions",
+  "slug": "/api/totemsdk-omnia/functions/signState",
+  "permalink": "/api/totemsdk-omnia/functions/signState",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "serializeTxDraft",
+    "permalink": "/api/totemsdk-omnia/functions/serializeTxDraft"
+  },
+  "next": {
+    "title": "signTxDraft",
+    "permalink": "/api/totemsdk-omnia/functions/signTxDraft"
+  }
+}

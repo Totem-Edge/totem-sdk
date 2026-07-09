@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-factory/type-aliases/FactorySignature",
+  "title": "FactorySignature",
+  "description": "@totemsdk/omnia-factory",
+  "source": "@site/docs/api/totemsdk-omnia-factory/type-aliases/FactorySignature.md",
+  "sourceDirName": "api/totemsdk-omnia-factory/type-aliases",
+  "slug": "/api/totemsdk-omnia-factory/type-aliases/FactorySignature",
+  "permalink": "/api/totemsdk-omnia-factory/type-aliases/FactorySignature",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "WotsLeaseBundle",
+    "permalink": "/api/totemsdk-omnia-factory/interfaces/WotsLeaseBundle"
+  },
+  "next": {
+    "title": "FactoryStatus",
+    "permalink": "/api/totemsdk-omnia-factory/type-aliases/FactoryStatus"
+  }
+}

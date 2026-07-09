@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-router/functions/executeMultiHopPayment",
+  "title": "executeMultiHopPayment",
+  "description": "@totemsdk/omnia-router",
+  "source": "@site/docs/api/totemsdk-omnia-router/functions/executeMultiHopPayment.md",
+  "sourceDirName": "api/totemsdk-omnia-router/functions",
+  "slug": "/api/totemsdk-omnia-router/functions/executeMultiHopPayment",
+  "permalink": "/api/totemsdk-omnia-router/functions/executeMultiHopPayment",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "executeCrossTokenPayment",
+    "permalink": "/api/totemsdk-omnia-router/functions/executeCrossTokenPayment"
+  },
+  "next": {
+    "title": "findCrossTokenRoute",
+    "permalink": "/api/totemsdk-omnia-router/functions/findCrossTokenRoute"
+  }
+}

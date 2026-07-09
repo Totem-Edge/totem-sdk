@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-txpow/functions/serializeTxHeader",
+  "title": "serializeTxHeader",
+  "description": "@totemsdk/txpow",
+  "source": "@site/docs/api/totemsdk-txpow/functions/serializeTxHeader.md",
+  "sourceDirName": "api/totemsdk-txpow/functions",
+  "slug": "/api/totemsdk-txpow/functions/serializeTxHeader",
+  "permalink": "/api/totemsdk-txpow/functions/serializeTxHeader",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "serializeTxBody",
+    "permalink": "/api/totemsdk-txpow/functions/serializeTxBody"
+  },
+  "next": {
+    "title": "serializeTxPoW",
+    "permalink": "/api/totemsdk-txpow/functions/serializeTxPoW"
+  }
+}

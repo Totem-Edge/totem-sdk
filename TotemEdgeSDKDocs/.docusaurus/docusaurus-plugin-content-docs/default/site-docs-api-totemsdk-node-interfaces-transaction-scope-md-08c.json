@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/TransactionScope",
+  "title": "TransactionScope",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/TransactionScope.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/TransactionScope",
+  "permalink": "/api/totemsdk-node/interfaces/TransactionScope",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TransactionRoundState",
+    "permalink": "/api/totemsdk-node/interfaces/TransactionRoundState"
+  },
+  "next": {
+    "title": "TransactionServiceConfig",
+    "permalink": "/api/totemsdk-node/interfaces/TransactionServiceConfig"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-factory/interfaces/FactoryParticipant",
+  "title": "FactoryParticipant",
+  "description": "@totemsdk/omnia-factory",
+  "source": "@site/docs/api/totemsdk-omnia-factory/interfaces/FactoryParticipant.md",
+  "sourceDirName": "api/totemsdk-omnia-factory/interfaces",
+  "slug": "/api/totemsdk-omnia-factory/interfaces/FactoryParticipant",
+  "permalink": "/api/totemsdk-omnia-factory/interfaces/FactoryParticipant",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "FactoryLogEntry",
+    "permalink": "/api/totemsdk-omnia-factory/interfaces/FactoryLogEntry"
+  },
+  "next": {
+    "title": "FactorySettlementPayload",
+    "permalink": "/api/totemsdk-omnia-factory/interfaces/FactorySettlementPayload"
+  }
+}

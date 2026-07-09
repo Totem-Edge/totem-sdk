@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/WotsSigningDependencies",
+  "title": "WotsSigningDependencies",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/WotsSigningDependencies.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/WotsSigningDependencies",
+  "permalink": "/api/totemsdk-core/interfaces/WotsSigningDependencies",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "WotsIndices",
+    "permalink": "/api/totemsdk-core/interfaces/WotsIndices"
+  },
+  "next": {
+    "title": "BinaryData",
+    "permalink": "/api/totemsdk-core/type-aliases/BinaryData"
+  }
+}

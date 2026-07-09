@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/type-aliases/BinaryData",
+  "title": "BinaryData",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/type-aliases/BinaryData.md",
+  "sourceDirName": "api/totemsdk-core/type-aliases",
+  "slug": "/api/totemsdk-core/type-aliases/BinaryData",
+  "permalink": "/api/totemsdk-core/type-aliases/BinaryData",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "WotsSigningDependencies",
+    "permalink": "/api/totemsdk-core/interfaces/WotsSigningDependencies"
+  },
+  "next": {
+    "title": "Bytes",
+    "permalink": "/api/totemsdk-core/type-aliases/Bytes"
+  }
+}

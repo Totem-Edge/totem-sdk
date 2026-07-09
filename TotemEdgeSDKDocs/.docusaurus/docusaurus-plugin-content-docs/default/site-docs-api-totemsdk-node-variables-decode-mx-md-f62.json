@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/variables/decodeMx",
+  "title": "decodeMx",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/variables/decodeMx.md",
+  "sourceDirName": "api/totemsdk-node/variables",
+  "slug": "/api/totemsdk-node/variables/decodeMx",
+  "permalink": "/api/totemsdk-node/variables/decodeMx",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "convertMinimaAddress",
+    "permalink": "/api/totemsdk-node/variables/convertMinimaAddress"
+  },
+  "next": {
+    "title": "deserializeMMRProof",
+    "permalink": "/api/totemsdk-node/variables/deserializeMMRProof"
+  }
+}

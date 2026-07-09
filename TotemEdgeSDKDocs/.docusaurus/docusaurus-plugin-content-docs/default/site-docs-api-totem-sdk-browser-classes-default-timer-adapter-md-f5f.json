@@ -1,0 +1,23 @@
+{
+  "id": "api/totem-sdk-browser/classes/DefaultTimerAdapter",
+  "title": "DefaultTimerAdapter",
+  "description": "@totem/sdk-browser",
+  "source": "@site/docs/api/totem-sdk-browser/classes/DefaultTimerAdapter.md",
+  "sourceDirName": "api/totem-sdk-browser/classes",
+  "slug": "/api/totem-sdk-browser/classes/DefaultTimerAdapter",
+  "permalink": "/api/totem-sdk-browser/classes/DefaultTimerAdapter",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "ConsoleLogger",
+    "permalink": "/api/totem-sdk-browser/classes/ConsoleLogger"
+  },
+  "next": {
+    "title": "FetchHttpClient",
+    "permalink": "/api/totem-sdk-browser/classes/FetchHttpClient"
+  }
+}

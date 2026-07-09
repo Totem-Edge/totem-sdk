@@ -1,0 +1,81 @@
+{
+  "name": "@totemsdk/statechain",
+  "version": "0.1.6",
+  "description": "Mercury-protocol state chain for Minima — privacy-preserving off-chain UTXO custody transfer with blind SE co-signatures",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "prepare": "tsc",
+    "clean": "rm -rf dist",
+    "test": "node ../../node_modules/jest/bin/jest.js --config jest.config.cjs --passWithNoTests"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "@noble/hashes": "^2.2.0",
+    "@totemsdk/core": "workspace:*",
+    "@totemsdk/wots-lease": "workspace:*",
+    "@totemsdk/tx-builder": "workspace:*",
+    "@totemsdk/txpow": "workspace:*",
+    "@totemsdk/chain-provider": "workspace:*"
+  },
+  "peerDependencies": {
+    "@noble/hashes": "^2.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@noble/hashes": {
+      "optional": false
+    }
+  },
+  "devDependencies": {
+    "@types/jest": "^29.0.0",
+    "@types/node": "^20.0.0",
+    "jest": "^29.0.0",
+    "ts-jest": "^29.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "author": "Totem SDK",
+  "homepage": "https://totemsdk.com",
+  "bugs": {
+    "url": "https://github.com/MrGheek/axia-totem/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MrGheek/axia-totem.git",
+    "directory": "packages/totem-sdk/packages/statechain"
+  },
+  "keywords": [
+    "totem",
+    "totemsdk",
+    "minima",
+    "blockchain",
+    "quantum-resistant",
+    "wots",
+    "kissvm",
+    "utxo",
+    "statechain",
+    "mercury",
+    "blind-signature",
+    "privacy",
+    "custody-transfer",
+    "off-chain"
+  ]
+}

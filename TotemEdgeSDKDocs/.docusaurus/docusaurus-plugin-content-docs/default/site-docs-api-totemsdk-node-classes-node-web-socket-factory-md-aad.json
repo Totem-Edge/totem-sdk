@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/classes/NodeWebSocketFactory",
+  "title": "NodeWebSocketFactory",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/classes/NodeWebSocketFactory.md",
+  "sourceDirName": "api/totemsdk-node/classes",
+  "slug": "/api/totemsdk-node/classes/NodeWebSocketFactory",
+  "permalink": "/api/totemsdk-node/classes/NodeWebSocketFactory",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "NodeHttpClient",
+    "permalink": "/api/totemsdk-node/classes/NodeHttpClient"
+  },
+  "next": {
+    "title": "NoopLifecycleAdapter",
+    "permalink": "/api/totemsdk-node/classes/NoopLifecycleAdapter"
+  }
+}

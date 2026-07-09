@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/functions/resetChannelWatermarks",
+  "title": "resetChannelWatermarks",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/functions/resetChannelWatermarks.md",
+  "sourceDirName": "api/totemsdk-omnia/functions",
+  "slug": "/api/totemsdk-omnia/functions/resetChannelWatermarks",
+  "permalink": "/api/totemsdk-omnia/functions/resetChannelWatermarks",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "proposeSettlement",
+    "permalink": "/api/totemsdk-omnia/functions/proposeSettlement"
+  },
+  "next": {
+    "title": "scriptAddress",
+    "permalink": "/api/totemsdk-omnia/functions/scriptAddress"
+  }
+}

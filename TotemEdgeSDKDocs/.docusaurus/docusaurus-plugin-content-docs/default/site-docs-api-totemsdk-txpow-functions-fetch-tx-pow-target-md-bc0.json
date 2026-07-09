@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-txpow/functions/fetchTxPowTarget",
+  "title": "fetchTxPowTarget",
+  "description": "@totemsdk/txpow",
+  "source": "@site/docs/api/totemsdk-txpow/functions/fetchTxPowTarget.md",
+  "sourceDirName": "api/totemsdk-txpow/functions",
+  "slug": "/api/totemsdk-txpow/functions/fetchTxPowTarget",
+  "permalink": "/api/totemsdk-txpow/functions/fetchTxPowTarget",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "estimateMiningCost",
+    "permalink": "/api/totemsdk-txpow/functions/estimateMiningCost"
+  },
+  "next": {
+    "title": "isLessThan",
+    "permalink": "/api/totemsdk-txpow/functions/isLessThan"
+  }
+}

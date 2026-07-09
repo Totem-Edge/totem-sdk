@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-pear/interfaces/SignedManifest",
+  "title": "SignedManifest",
+  "description": "@totemsdk/pear",
+  "source": "@site/docs/api/totemsdk-pear/interfaces/SignedManifest.md",
+  "sourceDirName": "api/totemsdk-pear/interfaces",
+  "slug": "/api/totemsdk-pear/interfaces/SignedManifest",
+  "permalink": "/api/totemsdk-pear/interfaces/SignedManifest",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "RemoteDriveOptions",
+    "permalink": "/api/totemsdk-pear/interfaces/RemoteDriveOptions"
+  },
+  "next": {
+    "title": "SwarmConfig",
+    "permalink": "/api/totemsdk-pear/interfaces/SwarmConfig"
+  }
+}

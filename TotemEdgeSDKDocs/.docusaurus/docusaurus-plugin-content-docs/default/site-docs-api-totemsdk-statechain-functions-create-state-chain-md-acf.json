@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-statechain/functions/createStateChain",
+  "title": "createStateChain",
+  "description": "@totemsdk/statechain",
+  "source": "@site/docs/api/totemsdk-statechain/functions/createStateChain.md",
+  "sourceDirName": "api/totemsdk-statechain/functions",
+  "slug": "/api/totemsdk-statechain/functions/createStateChain",
+  "permalink": "/api/totemsdk-statechain/functions/createStateChain",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "claimOwnership",
+    "permalink": "/api/totemsdk-statechain/functions/claimOwnership"
+  },
+  "next": {
+    "title": "reclaimAbandoned",
+    "permalink": "/api/totemsdk-statechain/functions/reclaimAbandoned"
+  }
+}

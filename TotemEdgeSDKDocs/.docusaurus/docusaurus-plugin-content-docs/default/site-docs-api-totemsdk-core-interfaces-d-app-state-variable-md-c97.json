@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/DAppStateVariable",
+  "title": "DAppStateVariable",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/DAppStateVariable.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/DAppStateVariable",
+  "permalink": "/api/totemsdk-core/interfaces/DAppStateVariable",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "DAppMultisigParams",
+    "permalink": "/api/totemsdk-core/interfaces/DAppMultisigParams"
+  },
+  "next": {
+    "title": "DAppSwapParams",
+    "permalink": "/api/totemsdk-core/interfaces/DAppSwapParams"
+  }
+}

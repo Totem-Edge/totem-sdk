@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/classes/NoopMetrics",
+  "title": "NoopMetrics",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/classes/NoopMetrics.md",
+  "sourceDirName": "api/totemsdk-core/classes",
+  "slug": "/api/totemsdk-core/classes/NoopMetrics",
+  "permalink": "/api/totemsdk-core/classes/NoopMetrics",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "NoopLogger",
+    "permalink": "/api/totemsdk-core/classes/NoopLogger"
+  },
+  "next": {
+    "title": "SlowCashHelper",
+    "permalink": "/api/totemsdk-core/classes/SlowCashHelper"
+  }
+}

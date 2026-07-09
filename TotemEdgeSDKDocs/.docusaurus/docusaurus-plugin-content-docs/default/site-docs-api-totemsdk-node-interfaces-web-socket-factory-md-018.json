@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/WebSocketFactory",
+  "title": "WebSocketFactory",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/WebSocketFactory.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/WebSocketFactory",
+  "permalink": "/api/totemsdk-node/interfaces/WebSocketFactory",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "WebSocketErrorEvent",
+    "permalink": "/api/totemsdk-node/interfaces/WebSocketErrorEvent"
+  },
+  "next": {
+    "title": "WebSocketFactoryOptions",
+    "permalink": "/api/totemsdk-node/interfaces/WebSocketFactoryOptions"
+  }
+}

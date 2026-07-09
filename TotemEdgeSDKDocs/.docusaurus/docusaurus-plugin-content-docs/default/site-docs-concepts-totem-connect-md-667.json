@@ -1,0 +1,24 @@
+{
+  "id": "concepts/totem-connect",
+  "title": "Totem Connect (dApp Provider)",
+  "description": "How dApps connect to the Totem wallet extension using @totemsdk/connect.",
+  "source": "@site/docs/concepts/totem-connect.md",
+  "sourceDirName": "concepts",
+  "slug": "/concepts/totem-connect",
+  "permalink": "/concepts/totem-connect",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "id": "totem-connect",
+    "title": "Totem Connect (dApp Provider)",
+    "sidebar_label": "Totem Connect",
+    "description": "How dApps connect to the Totem wallet extension using @totemsdk/connect."
+  },
+  "sidebar": "conceptsSidebar",
+  "previous": {
+    "title": "Omnia Channels",
+    "permalink": "/concepts/omnia-channels"
+  }
+}

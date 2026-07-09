@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-wots-lease/interfaces/ConflictRecord",
+  "title": "ConflictRecord",
+  "description": "@totemsdk/wots-lease",
+  "source": "@site/docs/api/totemsdk-wots-lease/interfaces/ConflictRecord.md",
+  "sourceDirName": "api/totemsdk-wots-lease/interfaces",
+  "slug": "/api/totemsdk-wots-lease/interfaces/ConflictRecord",
+  "permalink": "/api/totemsdk-wots-lease/interfaces/ConflictRecord",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "AxiaLeaseProviderConfig",
+    "permalink": "/api/totemsdk-wots-lease/interfaces/AxiaLeaseProviderConfig"
+  },
+  "next": {
+    "title": "DeviceKeyRange",
+    "permalink": "/api/totemsdk-wots-lease/interfaces/DeviceKeyRange"
+  }
+}

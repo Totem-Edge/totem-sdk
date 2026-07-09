@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/functions/computeStateCommitment",
+  "title": "computeStateCommitment",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/functions/computeStateCommitment.md",
+  "sourceDirName": "api/totemsdk-omnia/functions",
+  "slug": "/api/totemsdk-omnia/functions/computeStateCommitment",
+  "permalink": "/api/totemsdk-omnia/functions/computeStateCommitment",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "buildUpdateTx",
+    "permalink": "/api/totemsdk-omnia/functions/buildUpdateTx"
+  },
+  "next": {
+    "title": "computeTxDraftDigest",
+    "permalink": "/api/totemsdk-omnia/functions/computeTxDraftDigest"
+  }
+}

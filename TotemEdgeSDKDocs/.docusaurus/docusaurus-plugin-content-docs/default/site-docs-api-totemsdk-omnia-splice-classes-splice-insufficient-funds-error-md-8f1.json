@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-splice/classes/SpliceInsufficientFundsError",
+  "title": "SpliceInsufficientFundsError",
+  "description": "@totemsdk/omnia-splice",
+  "source": "@site/docs/api/totemsdk-omnia-splice/classes/SpliceInsufficientFundsError.md",
+  "sourceDirName": "api/totemsdk-omnia-splice/classes",
+  "slug": "/api/totemsdk-omnia-splice/classes/SpliceInsufficientFundsError",
+  "permalink": "/api/totemsdk-omnia-splice/classes/SpliceInsufficientFundsError",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "SpliceError",
+    "permalink": "/api/totemsdk-omnia-splice/classes/SpliceError"
+  },
+  "next": {
+    "title": "SpliceMissingPartyError",
+    "permalink": "/api/totemsdk-omnia-splice/classes/SpliceMissingPartyError"
+  }
+}

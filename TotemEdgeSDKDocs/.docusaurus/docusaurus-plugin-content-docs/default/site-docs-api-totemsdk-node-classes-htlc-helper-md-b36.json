@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/classes/HTLCHelper",
+  "title": "HTLCHelper",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/classes/HTLCHelper.md",
+  "sourceDirName": "api/totemsdk-node/classes",
+  "slug": "/api/totemsdk-node/classes/HTLCHelper",
+  "permalink": "/api/totemsdk-node/classes/HTLCHelper",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "FlashCashHelper",
+    "permalink": "/api/totemsdk-node/classes/FlashCashHelper"
+  },
+  "next": {
+    "title": "InMemoryAuthProvider",
+    "permalink": "/api/totemsdk-node/classes/InMemoryAuthProvider"
+  }
+}

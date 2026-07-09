@@ -1,0 +1,23 @@
+{
+  "id": "api/totem-sdk-browser/classes/InMemoryStorageAdapter",
+  "title": "InMemoryStorageAdapter",
+  "description": "@totem/sdk-browser",
+  "source": "@site/docs/api/totem-sdk-browser/classes/InMemoryStorageAdapter.md",
+  "sourceDirName": "api/totem-sdk-browser/classes",
+  "slug": "/api/totem-sdk-browser/classes/InMemoryStorageAdapter",
+  "permalink": "/api/totem-sdk-browser/classes/InMemoryStorageAdapter",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "InMemoryAuthProvider",
+    "permalink": "/api/totem-sdk-browser/classes/InMemoryAuthProvider"
+  },
+  "next": {
+    "title": "LocalStorageAdapter",
+    "permalink": "/api/totem-sdk-browser/classes/LocalStorageAdapter"
+  }
+}

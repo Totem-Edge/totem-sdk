@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-tx-builder/functions/bigIntToDecimalString",
+  "title": "bigIntToDecimalString",
+  "description": "@totemsdk/tx-builder",
+  "source": "@site/docs/api/totemsdk-tx-builder/functions/bigIntToDecimalString.md",
+  "sourceDirName": "api/totemsdk-tx-builder/functions",
+  "slug": "/api/totemsdk-tx-builder/functions/bigIntToDecimalString",
+  "permalink": "/api/totemsdk-tx-builder/functions/bigIntToDecimalString",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "addDecimalStrings",
+    "permalink": "/api/totemsdk-tx-builder/functions/addDecimalStrings"
+  },
+  "next": {
+    "title": "compareDecimal",
+    "permalink": "/api/totemsdk-tx-builder/functions/compareDecimal"
+  }
+}

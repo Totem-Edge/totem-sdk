@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/classes/NoopLifecycleAdapter",
+  "title": "NoopLifecycleAdapter",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/classes/NoopLifecycleAdapter.md",
+  "sourceDirName": "api/totemsdk-node/classes",
+  "slug": "/api/totemsdk-node/classes/NoopLifecycleAdapter",
+  "permalink": "/api/totemsdk-node/classes/NoopLifecycleAdapter",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "NodeWebSocketFactory",
+    "permalink": "/api/totemsdk-node/classes/NodeWebSocketFactory"
+  },
+  "next": {
+    "title": "NoopLogger",
+    "permalink": "/api/totemsdk-node/classes/NoopLogger"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-router/functions/buildPaymentRequest",
+  "title": "buildPaymentRequest",
+  "description": "@totemsdk/omnia-router",
+  "source": "@site/docs/api/totemsdk-omnia-router/functions/buildPaymentRequest.md",
+  "sourceDirName": "api/totemsdk-omnia-router/functions",
+  "slug": "/api/totemsdk-omnia-router/functions/buildPaymentRequest",
+  "permalink": "/api/totemsdk-omnia-router/functions/buildPaymentRequest",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "buildCrossTokenRequest",
+    "permalink": "/api/totemsdk-omnia-router/functions/buildCrossTokenRequest"
+  },
+  "next": {
+    "title": "cancelPayment",
+    "permalink": "/api/totemsdk-omnia-router/functions/cancelPayment"
+  }
+}

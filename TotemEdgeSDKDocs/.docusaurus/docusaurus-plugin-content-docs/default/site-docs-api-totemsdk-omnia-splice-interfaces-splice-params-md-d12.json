@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-splice/interfaces/SpliceParams",
+  "title": "SpliceParams",
+  "description": "@totemsdk/omnia-splice",
+  "source": "@site/docs/api/totemsdk-omnia-splice/interfaces/SpliceParams.md",
+  "sourceDirName": "api/totemsdk-omnia-splice/interfaces",
+  "slug": "/api/totemsdk-omnia-splice/interfaces/SpliceParams",
+  "permalink": "/api/totemsdk-omnia-splice/interfaces/SpliceParams",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "SpliceLeaseProvider",
+    "permalink": "/api/totemsdk-omnia-splice/interfaces/SpliceLeaseProvider"
+  },
+  "next": {
+    "title": "SpliceProposal",
+    "permalink": "/api/totemsdk-omnia-splice/interfaces/SpliceProposal"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-wots-lease/interfaces/SigningIndices",
+  "title": "SigningIndices",
+  "description": "@totemsdk/wots-lease",
+  "source": "@site/docs/api/totemsdk-wots-lease/interfaces/SigningIndices.md",
+  "sourceDirName": "api/totemsdk-wots-lease/interfaces",
+  "slug": "/api/totemsdk-wots-lease/interfaces/SigningIndices",
+  "permalink": "/api/totemsdk-wots-lease/interfaces/SigningIndices",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "ReserveParams",
+    "permalink": "/api/totemsdk-wots-lease/interfaces/ReserveParams"
+  },
+  "next": {
+    "title": "SyncResult",
+    "permalink": "/api/totemsdk-wots-lease/interfaces/SyncResult"
+  }
+}

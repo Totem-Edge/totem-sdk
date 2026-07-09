@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-root-identity/classes/RootIdentityWallet",
+  "title": "RootIdentityWallet",
+  "description": "@totemsdk/root-identity",
+  "source": "@site/docs/api/totemsdk-root-identity/classes/RootIdentityWallet.md",
+  "sourceDirName": "api/totemsdk-root-identity/classes",
+  "slug": "/api/totemsdk-root-identity/classes/RootIdentityWallet",
+  "permalink": "/api/totemsdk-root-identity/classes/RootIdentityWallet",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "u32be",
+    "permalink": "/api/totemsdk-node/variables/u32be"
+  },
+  "next": {
+    "title": "index",
+    "permalink": "/api/totemsdk-root-identity/"
+  }
+}

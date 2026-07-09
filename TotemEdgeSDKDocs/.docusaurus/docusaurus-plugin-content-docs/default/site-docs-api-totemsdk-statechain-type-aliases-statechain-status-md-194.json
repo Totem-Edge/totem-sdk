@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-statechain/type-aliases/StatechainStatus",
+  "title": "StatechainStatus",
+  "description": "@totemsdk/statechain",
+  "source": "@site/docs/api/totemsdk-statechain/type-aliases/StatechainStatus.md",
+  "sourceDirName": "api/totemsdk-statechain/type-aliases",
+  "slug": "/api/totemsdk-statechain/type-aliases/StatechainStatus",
+  "permalink": "/api/totemsdk-statechain/type-aliases/StatechainStatus",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "VerifyResult",
+    "permalink": "/api/totemsdk-statechain/interfaces/VerifyResult"
+  },
+  "next": {
+    "title": "RECLAIM_TIMELOCK",
+    "permalink": "/api/totemsdk-statechain/variables/RECLAIM_TIMELOCK"
+  }
+}

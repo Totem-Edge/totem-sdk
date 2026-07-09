@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-kissvm/classes/KissvmLimitError",
+  "title": "KissvmLimitError",
+  "description": "@totemsdk/kissvm",
+  "source": "@site/docs/api/totemsdk-kissvm/classes/KissvmLimitError.md",
+  "sourceDirName": "api/totemsdk-kissvm/classes",
+  "slug": "/api/totemsdk-kissvm/classes/KissvmLimitError",
+  "permalink": "/api/totemsdk-kissvm/classes/KissvmLimitError",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "SendMode",
+    "permalink": "/api/totemsdk-tx-builder/type-aliases/SendMode"
+  },
+  "next": {
+    "title": "KissvmRuntimeError",
+    "permalink": "/api/totemsdk-kissvm/classes/KissvmRuntimeError"
+  }
+}

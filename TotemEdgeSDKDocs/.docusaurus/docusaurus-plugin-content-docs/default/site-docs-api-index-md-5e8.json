@@ -1,0 +1,23 @@
+{
+  "id": "api/index",
+  "title": "API Reference",
+  "description": "Auto-generated API reference for all @totemsdk/* packages.",
+  "source": "@site/docs/api/index.md",
+  "sourceDirName": "api",
+  "slug": "/api/",
+  "permalink": "/api/",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "API Reference",
+    "sidebar_label": "Package Index",
+    "description": "Auto-generated API reference for all @totemsdk/* packages."
+  },
+  "sidebar": "apiSidebar",
+  "next": {
+    "title": "ConsoleLogger",
+    "permalink": "/api/totemsdk-core/classes/ConsoleLogger"
+  }
+}

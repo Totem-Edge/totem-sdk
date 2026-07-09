@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/LeaseExpiryEvent",
+  "title": "LeaseExpiryEvent",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/LeaseExpiryEvent.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/LeaseExpiryEvent",
+  "permalink": "/api/totemsdk-node/interfaces/LeaseExpiryEvent",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "KeyGenProgress",
+    "permalink": "/api/totemsdk-node/interfaces/KeyGenProgress"
+  },
+  "next": {
+    "title": "LeaseMonitorConfig",
+    "permalink": "/api/totemsdk-node/interfaces/LeaseMonitorConfig"
+  }
+}

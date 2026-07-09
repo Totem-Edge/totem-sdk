@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-statechain/interfaces/AbandonedProof",
+  "title": "AbandonedProof",
+  "description": "@totemsdk/statechain",
+  "source": "@site/docs/api/totemsdk-statechain/interfaces/AbandonedProof.md",
+  "sourceDirName": "api/totemsdk-statechain/interfaces",
+  "slug": "/api/totemsdk-statechain/interfaces/AbandonedProof",
+  "permalink": "/api/totemsdk-statechain/interfaces/AbandonedProof",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "index",
+    "permalink": "/api/totemsdk-statechain/"
+  },
+  "next": {
+    "title": "ClaimPayload",
+    "permalink": "/api/totemsdk-statechain/interfaces/ClaimPayload"
+  }
+}

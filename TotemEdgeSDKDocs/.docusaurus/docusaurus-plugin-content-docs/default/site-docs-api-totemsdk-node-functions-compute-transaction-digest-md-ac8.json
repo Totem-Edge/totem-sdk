@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/computeTransactionDigest",
+  "title": "computeTransactionDigest",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/computeTransactionDigest.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/computeTransactionDigest",
+  "permalink": "/api/totemsdk-node/functions/computeTransactionDigest",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "computeScriptAddress",
+    "permalink": "/api/totemsdk-node/functions/computeScriptAddress"
+  },
+  "next": {
+    "title": "concat",
+    "permalink": "/api/totemsdk-node/functions/concat"
+  }
+}

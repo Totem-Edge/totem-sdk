@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/classes/DefaultTimerAdapter",
+  "title": "DefaultTimerAdapter",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/classes/DefaultTimerAdapter.md",
+  "sourceDirName": "api/totemsdk-node/classes",
+  "slug": "/api/totemsdk-node/classes/DefaultTimerAdapter",
+  "permalink": "/api/totemsdk-node/classes/DefaultTimerAdapter",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "ConsoleLogger",
+    "permalink": "/api/totemsdk-node/classes/ConsoleLogger"
+  },
+  "next": {
+    "title": "EnvironmentAuthProvider",
+    "permalink": "/api/totemsdk-node/classes/EnvironmentAuthProvider"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-pear/type-aliases/ExitCallback",
+  "title": "ExitCallback",
+  "description": "@totemsdk/pear",
+  "source": "@site/docs/api/totemsdk-pear/type-aliases/ExitCallback.md",
+  "sourceDirName": "api/totemsdk-pear/type-aliases",
+  "slug": "/api/totemsdk-pear/type-aliases/ExitCallback",
+  "permalink": "/api/totemsdk-pear/type-aliases/ExitCallback",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "SwarmConnectOptions",
+    "permalink": "/api/totemsdk-pear/interfaces/SwarmConnectOptions"
+  },
+  "next": {
+    "title": "Unsubscribe",
+    "permalink": "/api/totemsdk-pear/type-aliases/Unsubscribe"
+  }
+}

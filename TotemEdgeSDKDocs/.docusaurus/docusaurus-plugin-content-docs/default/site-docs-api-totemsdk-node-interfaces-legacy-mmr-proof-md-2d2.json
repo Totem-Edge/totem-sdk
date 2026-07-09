@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/LegacyMMRProof",
+  "title": "LegacyMMRProof",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/LegacyMMRProof.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/LegacyMMRProof",
+  "permalink": "/api/totemsdk-node/interfaces/LegacyMMRProof",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "LeaseWotsIndices",
+    "permalink": "/api/totemsdk-node/interfaces/LeaseWotsIndices"
+  },
+  "next": {
+    "title": "LifecycleAdapter",
+    "permalink": "/api/totemsdk-node/interfaces/LifecycleAdapter"
+  }
+}

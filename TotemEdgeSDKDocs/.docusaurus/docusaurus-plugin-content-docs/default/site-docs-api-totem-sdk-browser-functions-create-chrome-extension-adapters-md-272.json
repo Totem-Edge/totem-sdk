@@ -1,0 +1,23 @@
+{
+  "id": "api/totem-sdk-browser/functions/createChromeExtensionAdapters",
+  "title": "createChromeExtensionAdapters",
+  "description": "@totem/sdk-browser",
+  "source": "@site/docs/api/totem-sdk-browser/functions/createChromeExtensionAdapters.md",
+  "sourceDirName": "api/totem-sdk-browser/functions",
+  "slug": "/api/totem-sdk-browser/functions/createChromeExtensionAdapters",
+  "permalink": "/api/totem-sdk-browser/functions/createChromeExtensionAdapters",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "createBrowserAdapters",
+    "permalink": "/api/totem-sdk-browser/functions/createBrowserAdapters"
+  },
+  "next": {
+    "title": "createConfigFromEnv",
+    "permalink": "/api/totem-sdk-browser/functions/createConfigFromEnv"
+  }
+}

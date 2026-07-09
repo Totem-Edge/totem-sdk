@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/type-aliases/WebSocketEventMap",
+  "title": "WebSocketEventMap",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/type-aliases/WebSocketEventMap.md",
+  "sourceDirName": "api/totemsdk-core/type-aliases",
+  "slug": "/api/totemsdk-core/type-aliases/WebSocketEventMap",
+  "permalink": "/api/totemsdk-core/type-aliases/WebSocketEventMap",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TotemTransactionErrorCode",
+    "permalink": "/api/totemsdk-core/type-aliases/TotemTransactionErrorCode"
+  },
+  "next": {
+    "title": "WotsKeypair",
+    "permalink": "/api/totemsdk-core/type-aliases/WotsKeypair"
+  }
+}

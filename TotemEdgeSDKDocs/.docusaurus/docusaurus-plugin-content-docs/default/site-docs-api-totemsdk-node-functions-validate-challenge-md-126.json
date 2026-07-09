@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/validateChallenge",
+  "title": "validateChallenge",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/validateChallenge.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/validateChallenge",
+  "permalink": "/api/totemsdk-node/functions/validateChallenge",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "utf8ToBytes",
+    "permalink": "/api/totemsdk-node/functions/utf8ToBytes"
+  },
+  "next": {
+    "title": "validateExternalSignature",
+    "permalink": "/api/totemsdk-node/functions/validateExternalSignature"
+  }
+}

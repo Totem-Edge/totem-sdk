@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-lookup-node/classes/SqliteStorageAdapter",
+  "title": "SqliteStorageAdapter",
+  "description": "@totemsdk/lookup-node",
+  "source": "@site/docs/api/totemsdk-lookup-node/classes/SqliteStorageAdapter.md",
+  "sourceDirName": "api/totemsdk-lookup-node/classes",
+  "slug": "/api/totemsdk-lookup-node/classes/SqliteStorageAdapter",
+  "permalink": "/api/totemsdk-lookup-node/classes/SqliteStorageAdapter",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "LookupNode",
+    "permalink": "/api/totemsdk-lookup-node/classes/LookupNode"
+  },
+  "next": {
+    "title": "SqliteStore",
+    "permalink": "/api/totemsdk-lookup-node/classes/SqliteStore"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/variables/WORD_LIST",
+  "title": "WORD_LIST",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/variables/WORD_LIST.md",
+  "sourceDirName": "api/totemsdk-core/variables",
+  "slug": "/api/totemsdk-core/variables/WORD_LIST",
+  "permalink": "/api/totemsdk-core/variables/WORD_LIST",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TOTEM_SEND_TRANSACTION_VERSION",
+    "permalink": "/api/totemsdk-core/variables/TOTEM_SEND_TRANSACTION_VERSION"
+  },
+  "next": {
+    "title": "WOTS_MINIMA",
+    "permalink": "/api/totemsdk-core/variables/WOTS_MINIMA"
+  }
+}

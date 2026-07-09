@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/classes/FileStorageAdapter",
+  "title": "FileStorageAdapter",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/classes/FileStorageAdapter.md",
+  "sourceDirName": "api/totemsdk-node/classes",
+  "slug": "/api/totemsdk-node/classes/FileStorageAdapter",
+  "permalink": "/api/totemsdk-node/classes/FileStorageAdapter",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "ExchangeHelper",
+    "permalink": "/api/totemsdk-node/classes/ExchangeHelper"
+  },
+  "next": {
+    "title": "FlashCashHelper",
+    "permalink": "/api/totemsdk-node/classes/FlashCashHelper"
+  }
+}

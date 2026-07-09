@@ -1,0 +1,23 @@
+{
+  "id": "api/totem-sdk-browser/classes/ChromeStorageAdapter",
+  "title": "ChromeStorageAdapter",
+  "description": "@totem/sdk-browser",
+  "source": "@site/docs/api/totem-sdk-browser/classes/ChromeStorageAdapter.md",
+  "sourceDirName": "api/totem-sdk-browser/classes",
+  "slug": "/api/totem-sdk-browser/classes/ChromeStorageAdapter",
+  "permalink": "/api/totem-sdk-browser/classes/ChromeStorageAdapter",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "ChromeExtensionLifecycleAdapter",
+    "permalink": "/api/totem-sdk-browser/classes/ChromeExtensionLifecycleAdapter"
+  },
+  "next": {
+    "title": "ConsoleLogger",
+    "permalink": "/api/totem-sdk-browser/classes/ConsoleLogger"
+  }
+}

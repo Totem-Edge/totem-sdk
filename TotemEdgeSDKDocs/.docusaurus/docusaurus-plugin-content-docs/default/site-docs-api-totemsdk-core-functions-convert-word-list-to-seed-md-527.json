@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/convertWordListToSeed",
+  "title": "convertWordListToSeed",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/convertWordListToSeed.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/convertWordListToSeed",
+  "permalink": "/api/totemsdk-core/functions/convertWordListToSeed",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "convertStringToSeed",
+    "permalink": "/api/totemsdk-core/functions/convertStringToSeed"
+  },
+  "next": {
+    "title": "createAdapterRegistry",
+    "permalink": "/api/totemsdk-core/functions/createAdapterRegistry"
+  }
+}

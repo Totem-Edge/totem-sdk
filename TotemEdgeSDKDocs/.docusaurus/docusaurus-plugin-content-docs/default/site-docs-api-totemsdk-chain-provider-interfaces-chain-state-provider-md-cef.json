@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-chain-provider/interfaces/ChainStateProvider",
+  "title": "ChainStateProvider",
+  "description": "@totemsdk/chain-provider",
+  "source": "@site/docs/api/totemsdk-chain-provider/interfaces/ChainStateProvider.md",
+  "sourceDirName": "api/totemsdk-chain-provider/interfaces",
+  "slug": "/api/totemsdk-chain-provider/interfaces/ChainStateProvider",
+  "permalink": "/api/totemsdk-chain-provider/interfaces/ChainStateProvider",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "BroadcastResult",
+    "permalink": "/api/totemsdk-chain-provider/interfaces/BroadcastResult"
+  },
+  "next": {
+    "title": "ChainTip",
+    "permalink": "/api/totemsdk-chain-provider/interfaces/ChainTip"
+  }
+}

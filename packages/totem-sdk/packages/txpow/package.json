@@ -1,0 +1,74 @@
+{
+  "name": "@totemsdk/txpow",
+  "version": "0.1.5",
+  "description": "TxPoW envelope serialization and proof-of-work mining for the Minima protocol",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "postbuild": "node -e \"const fs=require('fs'),p=require('path');const src=p.join(__dirname,'src','wasm','miner.wasm');const dst=p.join(__dirname,'dist','wasm','miner.wasm');if(fs.existsSync(src)){fs.mkdirSync(p.dirname(dst),{recursive:true});fs.copyFileSync(src,dst);console.log('[@totemsdk/txpow] miner.wasm → dist/wasm/')}else{console.log('[@totemsdk/txpow] Note: miner.wasm not compiled — JS fallback only. Run npm run build:wasm with Emscripten to enable WASM acceleration.')}\"",
+    "compile:wasm": "node scripts/compile-wasm.js",
+    "build:wasm": "npm run compile:wasm && npm run build",
+    "prepare": "tsc",
+    "clean": "rm -rf dist",
+    "test": "jest --passWithNoTests"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "@totemsdk/core": "workspace:^1.0.9"
+  },
+  "peerDependencies": {
+    "@noble/hashes": "^2.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@noble/hashes": {
+      "optional": false
+    }
+  },
+  "devDependencies": {
+    "@noble/hashes": "^2.2.0",
+    "@types/jest": "^29.0.0",
+    "@types/node": "^20.0.0",
+    "jest": "^29.0.0",
+    "ts-jest": "^29.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "author": "Totem SDK",
+  "homepage": "https://totemsdk.com",
+  "bugs": {
+    "url": "https://github.com/MrGheek/axia-totem/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MrGheek/axia-totem.git",
+    "directory": "packages/totem-sdk/packages/txpow"
+  },
+  "keywords": [
+    "totem",
+    "totemsdk",
+    "minima",
+    "blockchain",
+    "quantum-resistant",
+    "wots",
+    "kissvm",
+    "utxo"
+  ]
+}

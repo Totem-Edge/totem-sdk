@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-splice/interfaces/SpliceTxOutput",
+  "title": "SpliceTxOutput",
+  "description": "@totemsdk/omnia-splice",
+  "source": "@site/docs/api/totemsdk-omnia-splice/interfaces/SpliceTxOutput.md",
+  "sourceDirName": "api/totemsdk-omnia-splice/interfaces",
+  "slug": "/api/totemsdk-omnia-splice/interfaces/SpliceTxOutput",
+  "permalink": "/api/totemsdk-omnia-splice/interfaces/SpliceTxOutput",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "SpliceTxInput",
+    "permalink": "/api/totemsdk-omnia-splice/interfaces/SpliceTxInput"
+  },
+  "next": {
+    "title": "QuiescedChannel",
+    "permalink": "/api/totemsdk-omnia-splice/type-aliases/QuiescedChannel"
+  }
+}

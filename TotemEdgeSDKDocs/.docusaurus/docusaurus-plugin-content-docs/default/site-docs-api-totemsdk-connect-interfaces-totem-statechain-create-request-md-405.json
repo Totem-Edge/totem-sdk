@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-connect/interfaces/TotemStatechainCreateRequest",
+  "title": "TotemStatechainCreateRequest",
+  "description": "@totemsdk/connect",
+  "source": "@site/docs/api/totemsdk-connect/interfaces/TotemStatechainCreateRequest.md",
+  "sourceDirName": "api/totemsdk-connect/interfaces",
+  "slug": "/api/totemsdk-connect/interfaces/TotemStatechainCreateRequest",
+  "permalink": "/api/totemsdk-connect/interfaces/TotemStatechainCreateRequest",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TotemStatechainClaimResponse",
+    "permalink": "/api/totemsdk-connect/interfaces/TotemStatechainClaimResponse"
+  },
+  "next": {
+    "title": "TotemStatechainCreateResponse",
+    "permalink": "/api/totemsdk-connect/interfaces/TotemStatechainCreateResponse"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/type-aliases/DAppTransactionIntent",
+  "title": "DAppTransactionIntent",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/type-aliases/DAppTransactionIntent.md",
+  "sourceDirName": "api/totemsdk-node/type-aliases",
+  "slug": "/api/totemsdk-node/type-aliases/DAppTransactionIntent",
+  "permalink": "/api/totemsdk-node/type-aliases/DAppTransactionIntent",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "Bytes",
+    "permalink": "/api/totemsdk-node/type-aliases/Bytes"
+  },
+  "next": {
+    "title": "LeaseExpiryCallback",
+    "permalink": "/api/totemsdk-node/type-aliases/LeaseExpiryCallback"
+  }
+}

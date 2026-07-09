@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-pear/interfaces/SwarmConnectOptions",
+  "title": "SwarmConnectOptions",
+  "description": "@totemsdk/pear",
+  "source": "@site/docs/api/totemsdk-pear/interfaces/SwarmConnectOptions.md",
+  "sourceDirName": "api/totemsdk-pear/interfaces",
+  "slug": "/api/totemsdk-pear/interfaces/SwarmConnectOptions",
+  "permalink": "/api/totemsdk-pear/interfaces/SwarmConnectOptions",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "SwarmConfig",
+    "permalink": "/api/totemsdk-pear/interfaces/SwarmConfig"
+  },
+  "next": {
+    "title": "ExitCallback",
+    "permalink": "/api/totemsdk-pear/type-aliases/ExitCallback"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-txpow/variables/CASCADE_LEVELS",
+  "title": "CASCADE_LEVELS",
+  "description": "@totemsdk/txpow",
+  "source": "@site/docs/api/totemsdk-txpow/variables/CASCADE_LEVELS.md",
+  "sourceDirName": "api/totemsdk-txpow/variables",
+  "slug": "/api/totemsdk-txpow/variables/CASCADE_LEVELS",
+  "permalink": "/api/totemsdk-txpow/variables/CASCADE_LEVELS",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TxPoWOptions",
+    "permalink": "/api/totemsdk-txpow/type-aliases/TxPoWOptions"
+  },
+  "next": {
+    "title": "MAIN_NET_CHAIN_ID",
+    "permalink": "/api/totemsdk-txpow/variables/MAIN_NET_CHAIN_ID"
+  }
+}

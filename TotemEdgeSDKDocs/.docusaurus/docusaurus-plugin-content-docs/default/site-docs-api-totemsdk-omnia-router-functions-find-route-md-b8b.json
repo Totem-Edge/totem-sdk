@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-router/functions/findRoute",
+  "title": "findRoute",
+  "description": "@totemsdk/omnia-router",
+  "source": "@site/docs/api/totemsdk-omnia-router/functions/findRoute.md",
+  "sourceDirName": "api/totemsdk-omnia-router/functions",
+  "slug": "/api/totemsdk-omnia-router/functions/findRoute",
+  "permalink": "/api/totemsdk-omnia-router/functions/findRoute",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "findCrossTokenRoute",
+    "permalink": "/api/totemsdk-omnia-router/functions/findCrossTokenRoute"
+  },
+  "next": {
+    "title": "getSwapAnnouncements",
+    "permalink": "/api/totemsdk-omnia-router/functions/getSwapAnnouncements"
+  }
+}

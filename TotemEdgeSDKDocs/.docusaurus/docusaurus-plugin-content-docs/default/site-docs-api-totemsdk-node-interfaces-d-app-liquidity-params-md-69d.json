@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/DAppLiquidityParams",
+  "title": "DAppLiquidityParams",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/DAppLiquidityParams.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/DAppLiquidityParams",
+  "permalink": "/api/totemsdk-node/interfaces/DAppLiquidityParams",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "DAppHtlcParams",
+    "permalink": "/api/totemsdk-node/interfaces/DAppHtlcParams"
+  },
+  "next": {
+    "title": "DAppMultisigParams",
+    "permalink": "/api/totemsdk-node/interfaces/DAppMultisigParams"
+  }
+}

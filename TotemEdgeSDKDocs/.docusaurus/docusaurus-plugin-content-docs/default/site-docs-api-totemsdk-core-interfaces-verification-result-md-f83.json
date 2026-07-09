@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/VerificationResult",
+  "title": "VerificationResult",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/VerificationResult.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/VerificationResult",
+  "permalink": "/api/totemsdk-core/interfaces/VerificationResult",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TreeSignature",
+    "permalink": "/api/totemsdk-core/interfaces/TreeSignature"
+  },
+  "next": {
+    "title": "VerifyOutExpectation",
+    "permalink": "/api/totemsdk-core/interfaces/VerifyOutExpectation"
+  }
+}

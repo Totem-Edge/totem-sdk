@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/interfaces/SettlementPayload",
+  "title": "SettlementPayload",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/interfaces/SettlementPayload.md",
+  "sourceDirName": "api/totemsdk-omnia/interfaces",
+  "slug": "/api/totemsdk-omnia/interfaces/SettlementPayload",
+  "permalink": "/api/totemsdk-omnia/interfaces/SettlementPayload",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "PaymentIntent",
+    "permalink": "/api/totemsdk-omnia/interfaces/PaymentIntent"
+  },
+  "next": {
+    "title": "SignedChannelState",
+    "permalink": "/api/totemsdk-omnia/interfaces/SignedChannelState"
+  }
+}

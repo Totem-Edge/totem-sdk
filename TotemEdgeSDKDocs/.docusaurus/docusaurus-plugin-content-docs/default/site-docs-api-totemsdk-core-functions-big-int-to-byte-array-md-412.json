@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/bigIntToByteArray",
+  "title": "bigIntToByteArray",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/bigIntToByteArray.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/bigIntToByteArray",
+  "permalink": "/api/totemsdk-core/functions/bigIntToByteArray",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "baseWWithChecksum",
+    "permalink": "/api/totemsdk-core/functions/baseWWithChecksum"
+  },
+  "next": {
+    "title": "buildMinimaCoin",
+    "permalink": "/api/totemsdk-core/functions/buildMinimaCoin"
+  }
+}

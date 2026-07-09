@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-agent-policy/interfaces/PaymentIntent",
+  "title": "PaymentIntent",
+  "description": "@totemsdk/agent-policy",
+  "source": "@site/docs/api/totemsdk-agent-policy/interfaces/PaymentIntent.md",
+  "sourceDirName": "api/totemsdk-agent-policy/interfaces",
+  "slug": "/api/totemsdk-agent-policy/interfaces/PaymentIntent",
+  "permalink": "/api/totemsdk-agent-policy/interfaces/PaymentIntent",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "AgentReceipt",
+    "permalink": "/api/totemsdk-agent-policy/interfaces/AgentReceipt"
+  },
+  "next": {
+    "title": "BalanceConservationError",
+    "permalink": "/api/totemsdk-omnia/classes/BalanceConservationError"
+  }
+}

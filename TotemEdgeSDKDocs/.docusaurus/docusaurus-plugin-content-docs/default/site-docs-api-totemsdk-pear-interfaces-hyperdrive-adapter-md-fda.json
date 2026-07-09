@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-pear/interfaces/HyperdriveAdapter",
+  "title": "HyperdriveAdapter",
+  "description": "@totemsdk/pear",
+  "source": "@site/docs/api/totemsdk-pear/interfaces/HyperdriveAdapter.md",
+  "sourceDirName": "api/totemsdk-pear/interfaces",
+  "slug": "/api/totemsdk-pear/interfaces/HyperdriveAdapter",
+  "permalink": "/api/totemsdk-pear/interfaces/HyperdriveAdapter",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "HypebeeLike",
+    "permalink": "/api/totemsdk-pear/interfaces/HypebeeLike"
+  },
+  "next": {
+    "title": "ITransport",
+    "permalink": "/api/totemsdk-pear/interfaces/ITransport"
+  }
+}

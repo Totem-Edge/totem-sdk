@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-wots-lease/type-aliases/LeaseStatus",
+  "title": "LeaseStatus",
+  "description": "@totemsdk/wots-lease",
+  "source": "@site/docs/api/totemsdk-wots-lease/type-aliases/LeaseStatus.md",
+  "sourceDirName": "api/totemsdk-wots-lease/type-aliases",
+  "slug": "/api/totemsdk-wots-lease/type-aliases/LeaseStatus",
+  "permalink": "/api/totemsdk-wots-lease/type-aliases/LeaseStatus",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "WotsWatermarkState",
+    "permalink": "/api/totemsdk-wots-lease/interfaces/WotsWatermarkState"
+  },
+  "next": {
+    "title": "UnavailableReason",
+    "permalink": "/api/totemsdk-wots-lease/type-aliases/UnavailableReason"
+  }
+}

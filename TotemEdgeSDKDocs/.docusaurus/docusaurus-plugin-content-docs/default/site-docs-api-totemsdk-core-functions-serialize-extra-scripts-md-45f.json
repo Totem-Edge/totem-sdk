@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/serializeExtraScripts",
+  "title": "serializeExtraScripts",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/serializeExtraScripts.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/serializeExtraScripts",
+  "permalink": "/api/totemsdk-core/functions/serializeExtraScripts",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "serializeCoin",
+    "permalink": "/api/totemsdk-core/functions/serializeCoin"
+  },
+  "next": {
+    "title": "serializeMMRData",
+    "permalink": "/api/totemsdk-core/functions/serializeMMRData"
+  }
+}

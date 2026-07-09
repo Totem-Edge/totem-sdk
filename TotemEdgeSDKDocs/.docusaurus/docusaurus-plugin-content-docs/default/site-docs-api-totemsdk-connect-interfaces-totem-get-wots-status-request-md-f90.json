@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-connect/interfaces/TotemGetWotsStatusRequest",
+  "title": "TotemGetWotsStatusRequest",
+  "description": "@totemsdk/connect",
+  "source": "@site/docs/api/totemsdk-connect/interfaces/TotemGetWotsStatusRequest.md",
+  "sourceDirName": "api/totemsdk-connect/interfaces",
+  "slug": "/api/totemsdk-connect/interfaces/TotemGetWotsStatusRequest",
+  "permalink": "/api/totemsdk-connect/interfaces/TotemGetWotsStatusRequest",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TotemGetTxPermissionsRequest",
+    "permalink": "/api/totemsdk-connect/interfaces/TotemGetTxPermissionsRequest"
+  },
+  "next": {
+    "title": "TotemGetWotsStatusResponse",
+    "permalink": "/api/totemsdk-connect/interfaces/TotemGetWotsStatusResponse"
+  }
+}

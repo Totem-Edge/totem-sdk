@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-realtime/functions/createBalanceStreamManager",
+  "title": "createBalanceStreamManager",
+  "description": "@totemsdk/realtime",
+  "source": "@site/docs/api/totemsdk-realtime/functions/createBalanceStreamManager.md",
+  "sourceDirName": "api/totemsdk-realtime/functions",
+  "slug": "/api/totemsdk-realtime/functions/createBalanceStreamManager",
+  "permalink": "/api/totemsdk-realtime/functions/createBalanceStreamManager",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "MegBalanceStreamManager",
+    "permalink": "/api/totemsdk-realtime/classes/MegBalanceStreamManager"
+  },
+  "next": {
+    "title": "index",
+    "permalink": "/api/totemsdk-realtime/"
+  }
+}

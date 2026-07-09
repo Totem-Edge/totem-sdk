@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/serializeCoin",
+  "title": "serializeCoin",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/serializeCoin.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/serializeCoin",
+  "permalink": "/api/totemsdk-node/functions/serializeCoin",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "scriptToAddress",
+    "permalink": "/api/totemsdk-node/functions/scriptToAddress"
+  },
+  "next": {
+    "title": "serializeExtraScripts",
+    "permalink": "/api/totemsdk-node/functions/serializeExtraScripts"
+  }
+}

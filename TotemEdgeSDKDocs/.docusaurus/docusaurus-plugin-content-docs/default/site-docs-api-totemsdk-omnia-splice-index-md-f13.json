@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-splice/index",
+  "title": "index",
+  "description": "@totemsdk/omnia-splice",
+  "source": "@site/docs/api/totemsdk-omnia-splice/index.md",
+  "sourceDirName": "api/totemsdk-omnia-splice",
+  "slug": "/api/totemsdk-omnia-splice/",
+  "permalink": "/api/totemsdk-omnia-splice/",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "spliceDraftToMinimaBytes",
+    "permalink": "/api/totemsdk-omnia-splice/functions/spliceDraftToMinimaBytes"
+  },
+  "next": {
+    "title": "FinalizeSpliceOptions",
+    "permalink": "/api/totemsdk-omnia-splice/interfaces/FinalizeSpliceOptions"
+  }
+}

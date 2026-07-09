@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Totem Test</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #FFFFFF;
+      color: #475569;
+      width: 380px;
+      height: 580px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header {
+      background: #FF6B35;
+      color: white;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+      text-align: center;
+    }
+
+    .logo {
+      width: 80px;
+      height: 80px;
+      background: #475569;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 8px 8px 0 0 rgba(0, 0, 0, 0.1);
+    }
+
+    .logo-text {
+      color: white;
+      font-size: 32px;
+      font-weight: 700;
+    }
+
+    .message {
+      font-size: 18px;
+      font-weight: 600;
+      color: #475569;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .status {
+      font-size: 14px;
+      color: #64748b;
+      margin-bottom: 24px;
+    }
+
+    .button {
+      background: #FF6B35;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      cursor: pointer;
+      box-shadow: 4px 4px 0 0 rgba(0, 0, 0, 0.1);
+      transition: all 0.2s;
+    }
+
+    .button:hover {
+      background: #e55a2b;
+      box-shadow: 6px 6px 0 0 rgba(0, 0, 0, 0.15);
+    }
+
+    .button:active {
+      box-shadow: 2px 2px 0 0 rgba(0, 0, 0, 0.1);
+      transform: translate(2px, 2px);
+    }
+
+    .footer {
+      background: #f8fafc;
+      padding: 12px;
+      text-align: center;
+      font-size: 11px;
+      color: #94a3b8;
+      border-top: 2px solid #e2e8f0;
+    }
+
+    .pulse {
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Totem</h1>
+  </div>
+
+  <div class="content">
+    <div class="logo pulse">
+      <div class="logo-text">T</div>
+    </div>
+    <div class="message">Pipeline Test</div>
+    <div class="status">✓ Dev server connected</div>
+    <div class="status">✓ Iframe loading works</div>
+    <div class="status">✓ Styles applied</div>
+    <button class="button" onclick="testClick()">Test Click</button>
+  </div>
+
+  <div class="footer">
+    Totem Wallet • Minima Network • v0.1.0
+  </div>
+
+  <script>
+    console.log('[Totem Test] Page loaded successfully');
+    
+    function testClick() {
+      alert('✓ JavaScript working!\n✓ Event handlers functional\n✓ Pipeline verified');
+      console.log('[Totem Test] Button clicked - all systems operational');
+    }
+
+    // Log viewport info
+    console.log('[Totem Test] Viewport:', {
+      width: window.innerWidth,
+      height: window.innerHeight,
+      ratio: window.devicePixelRatio
+    });
+  </script>
+</body>
+</html>

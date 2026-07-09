@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/functions/updateState",
+  "title": "updateState",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/functions/updateState.md",
+  "sourceDirName": "api/totemsdk-omnia/functions",
+  "slug": "/api/totemsdk-omnia/functions/updateState",
+  "permalink": "/api/totemsdk-omnia/functions/updateState",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "toEnhancedBuildParams",
+    "permalink": "/api/totemsdk-omnia/functions/toEnhancedBuildParams"
+  },
+  "next": {
+    "title": "validateStateTransition",
+    "permalink": "/api/totemsdk-omnia/functions/validateStateTransition"
+  }
+}

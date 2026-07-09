@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-splice/interfaces/QuiesceOptions",
+  "title": "QuiesceOptions",
+  "description": "@totemsdk/omnia-splice",
+  "source": "@site/docs/api/totemsdk-omnia-splice/interfaces/QuiesceOptions.md",
+  "sourceDirName": "api/totemsdk-omnia-splice/interfaces",
+  "slug": "/api/totemsdk-omnia-splice/interfaces/QuiesceOptions",
+  "permalink": "/api/totemsdk-omnia-splice/interfaces/QuiesceOptions",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "FinalizeSpliceOptions",
+    "permalink": "/api/totemsdk-omnia-splice/interfaces/FinalizeSpliceOptions"
+  },
+  "next": {
+    "title": "SpliceAcceptance",
+    "permalink": "/api/totemsdk-omnia-splice/interfaces/SpliceAcceptance"
+  }
+}

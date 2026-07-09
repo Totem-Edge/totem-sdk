@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/TransactionReceipt",
+  "title": "TransactionReceipt",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/TransactionReceipt.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/TransactionReceipt",
+  "permalink": "/api/totemsdk-core/interfaces/TransactionReceipt",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TransactionMetadata",
+    "permalink": "/api/totemsdk-core/interfaces/TransactionMetadata"
+  },
+  "next": {
+    "title": "TransactionReceiptStoreConfig",
+    "permalink": "/api/totemsdk-core/interfaces/TransactionReceiptStoreConfig"
+  }
+}

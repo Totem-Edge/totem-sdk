@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-kissvm/type-aliases/Value",
+  "title": "Value",
+  "description": "@totemsdk/kissvm",
+  "source": "@site/docs/api/totemsdk-kissvm/type-aliases/Value.md",
+  "sourceDirName": "api/totemsdk-kissvm/type-aliases",
+  "slug": "/api/totemsdk-kissvm/type-aliases/Value",
+  "permalink": "/api/totemsdk-kissvm/type-aliases/Value",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "ASTNode",
+    "permalink": "/api/totemsdk-kissvm/type-aliases/ASTNode"
+  },
+  "next": {
+    "title": "buildStatechainScript",
+    "permalink": "/api/totemsdk-statechain/functions/buildStatechainScript"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/deriveChildTreeSeedJava",
+  "title": "deriveChildTreeSeedJava",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/deriveChildTreeSeedJava.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/deriveChildTreeSeedJava",
+  "permalink": "/api/totemsdk-node/functions/deriveChildTreeSeedJava",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "deriveChainSeedJava",
+    "permalink": "/api/totemsdk-node/functions/deriveChainSeedJava"
+  },
+  "next": {
+    "title": "derivePKdigest",
+    "permalink": "/api/totemsdk-node/functions/derivePKdigest"
+  }
+}

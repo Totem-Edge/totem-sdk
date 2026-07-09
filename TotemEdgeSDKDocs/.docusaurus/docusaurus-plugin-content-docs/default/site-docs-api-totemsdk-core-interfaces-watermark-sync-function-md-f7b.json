@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/WatermarkSyncFunction",
+  "title": "WatermarkSyncFunction",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/WatermarkSyncFunction.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/WatermarkSyncFunction",
+  "permalink": "/api/totemsdk-core/interfaces/WatermarkSyncFunction",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "WatermarkStoreConfig",
+    "permalink": "/api/totemsdk-core/interfaces/WatermarkStoreConfig"
+  },
+  "next": {
+    "title": "WebSocketClient",
+    "permalink": "/api/totemsdk-core/interfaces/WebSocketClient"
+  }
+}

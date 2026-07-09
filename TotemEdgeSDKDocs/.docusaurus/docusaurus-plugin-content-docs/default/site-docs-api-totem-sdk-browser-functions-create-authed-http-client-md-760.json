@@ -1,0 +1,23 @@
+{
+  "id": "api/totem-sdk-browser/functions/createAuthedHttpClient",
+  "title": "createAuthedHttpClient",
+  "description": "@totem/sdk-browser",
+  "source": "@site/docs/api/totem-sdk-browser/functions/createAuthedHttpClient.md",
+  "sourceDirName": "api/totem-sdk-browser/functions",
+  "slug": "/api/totem-sdk-browser/functions/createAuthedHttpClient",
+  "permalink": "/api/totem-sdk-browser/functions/createAuthedHttpClient",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "StorageAuthProvider",
+    "permalink": "/api/totem-sdk-browser/classes/StorageAuthProvider"
+  },
+  "next": {
+    "title": "createBrowserAdapters",
+    "permalink": "/api/totem-sdk-browser/functions/createBrowserAdapters"
+  }
+}

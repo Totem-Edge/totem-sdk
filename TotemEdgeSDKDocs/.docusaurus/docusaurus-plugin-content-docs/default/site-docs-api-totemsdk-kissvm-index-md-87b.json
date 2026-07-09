@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-kissvm/index",
+  "title": "index",
+  "description": "@totemsdk/kissvm",
+  "source": "@site/docs/api/totemsdk-kissvm/index.md",
+  "sourceDirName": "api/totemsdk-kissvm",
+  "slug": "/api/totemsdk-kissvm/",
+  "permalink": "/api/totemsdk-kissvm/",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "simulateSpend",
+    "permalink": "/api/totemsdk-kissvm/functions/simulateSpend"
+  },
+  "next": {
+    "title": "CoinData",
+    "permalink": "/api/totemsdk-kissvm/interfaces/CoinData"
+  }
+}

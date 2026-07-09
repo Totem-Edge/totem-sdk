@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/interfaces/CreateChannelParams",
+  "title": "CreateChannelParams",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/interfaces/CreateChannelParams.md",
+  "sourceDirName": "api/totemsdk-omnia/interfaces",
+  "slug": "/api/totemsdk-omnia/interfaces/CreateChannelParams",
+  "permalink": "/api/totemsdk-omnia/interfaces/CreateChannelParams",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "ChannelWatermark",
+    "permalink": "/api/totemsdk-omnia/interfaces/ChannelWatermark"
+  },
+  "next": {
+    "title": "DisputePayload",
+    "permalink": "/api/totemsdk-omnia/interfaces/DisputePayload"
+  }
+}

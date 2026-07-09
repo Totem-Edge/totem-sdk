@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-statechain/interfaces/StatechainOwner",
+  "title": "StatechainOwner",
+  "description": "@totemsdk/statechain",
+  "source": "@site/docs/api/totemsdk-statechain/interfaces/StatechainOwner.md",
+  "sourceDirName": "api/totemsdk-statechain/interfaces",
+  "slug": "/api/totemsdk-statechain/interfaces/StatechainOwner",
+  "permalink": "/api/totemsdk-statechain/interfaces/StatechainOwner",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "StatechainLeaseProvider",
+    "permalink": "/api/totemsdk-statechain/interfaces/StatechainLeaseProvider"
+  },
+  "next": {
+    "title": "TransferRecord",
+    "permalink": "/api/totemsdk-statechain/interfaces/TransferRecord"
+  }
+}

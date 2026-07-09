@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-statechain/variables/RECLAIM_TIMELOCK",
+  "title": "RECLAIM_TIMELOCK",
+  "description": "@totemsdk/statechain",
+  "source": "@site/docs/api/totemsdk-statechain/variables/RECLAIM_TIMELOCK.md",
+  "sourceDirName": "api/totemsdk-statechain/variables",
+  "slug": "/api/totemsdk-statechain/variables/RECLAIM_TIMELOCK",
+  "permalink": "/api/totemsdk-statechain/variables/RECLAIM_TIMELOCK",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "StatechainStatus",
+    "permalink": "/api/totemsdk-statechain/type-aliases/StatechainStatus"
+  },
+  "next": {
+    "title": "CompositeProvider",
+    "permalink": "/api/totemsdk-chain-provider/classes/CompositeProvider"
+  }
+}

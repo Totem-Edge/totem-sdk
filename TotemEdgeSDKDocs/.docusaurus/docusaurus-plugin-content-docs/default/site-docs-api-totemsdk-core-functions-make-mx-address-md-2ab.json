@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/makeMxAddress",
+  "title": "makeMxAddress",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/makeMxAddress.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/makeMxAddress",
+  "permalink": "/api/totemsdk-core/functions/makeMxAddress",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "javaHashAllObjects",
+    "permalink": "/api/totemsdk-core/functions/javaHashAllObjects"
+  },
+  "next": {
+    "title": "mmrLeafExact",
+    "permalink": "/api/totemsdk-core/functions/mmrLeafExact"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-splice/interfaces/SpliceTxInput",
+  "title": "SpliceTxInput",
+  "description": "@totemsdk/omnia-splice",
+  "source": "@site/docs/api/totemsdk-omnia-splice/interfaces/SpliceTxInput.md",
+  "sourceDirName": "api/totemsdk-omnia-splice/interfaces",
+  "slug": "/api/totemsdk-omnia-splice/interfaces/SpliceTxInput",
+  "permalink": "/api/totemsdk-omnia-splice/interfaces/SpliceTxInput",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "SpliceTxDraft",
+    "permalink": "/api/totemsdk-omnia-splice/interfaces/SpliceTxDraft"
+  },
+  "next": {
+    "title": "SpliceTxOutput",
+    "permalink": "/api/totemsdk-omnia-splice/interfaces/SpliceTxOutput"
+  }
+}

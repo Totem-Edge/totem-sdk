@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/serializeMMRData",
+  "title": "serializeMMRData",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/serializeMMRData.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/serializeMMRData",
+  "permalink": "/api/totemsdk-node/functions/serializeMMRData",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "serializeExtraScripts",
+    "permalink": "/api/totemsdk-node/functions/serializeExtraScripts"
+  },
+  "next": {
+    "title": "serializeMMREntry",
+    "permalink": "/api/totemsdk-node/functions/serializeMMREntry"
+  }
+}

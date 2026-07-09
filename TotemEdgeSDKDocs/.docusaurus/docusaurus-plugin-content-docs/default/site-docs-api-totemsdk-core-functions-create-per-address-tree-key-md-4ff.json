@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/createPerAddressTreeKey",
+  "title": "createPerAddressTreeKey",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/createPerAddressTreeKey.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/createPerAddressTreeKey",
+  "permalink": "/api/totemsdk-core/functions/createPerAddressTreeKey",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "createMultisigDescriptor",
+    "permalink": "/api/totemsdk-core/functions/createMultisigDescriptor"
+  },
+  "next": {
+    "title": "createPerAddressTreeKeyAsync",
+    "permalink": "/api/totemsdk-core/functions/createPerAddressTreeKeyAsync"
+  }
+}

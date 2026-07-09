@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-wots-lease/interfaces/ReserveParams",
+  "title": "ReserveParams",
+  "description": "@totemsdk/wots-lease",
+  "source": "@site/docs/api/totemsdk-wots-lease/interfaces/ReserveParams.md",
+  "sourceDirName": "api/totemsdk-wots-lease/interfaces",
+  "slug": "/api/totemsdk-wots-lease/interfaces/ReserveParams",
+  "permalink": "/api/totemsdk-wots-lease/interfaces/ReserveParams",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "PersonalLeaseNodeConfig",
+    "permalink": "/api/totemsdk-wots-lease/interfaces/PersonalLeaseNodeConfig"
+  },
+  "next": {
+    "title": "SigningIndices",
+    "permalink": "/api/totemsdk-wots-lease/interfaces/SigningIndices"
+  }
+}

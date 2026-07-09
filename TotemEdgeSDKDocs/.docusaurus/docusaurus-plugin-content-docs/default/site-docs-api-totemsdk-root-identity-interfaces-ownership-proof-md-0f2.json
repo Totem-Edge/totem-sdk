@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-root-identity/interfaces/OwnershipProof",
+  "title": "OwnershipProof",
+  "description": "@totemsdk/root-identity",
+  "source": "@site/docs/api/totemsdk-root-identity/interfaces/OwnershipProof.md",
+  "sourceDirName": "api/totemsdk-root-identity/interfaces",
+  "slug": "/api/totemsdk-root-identity/interfaces/OwnershipProof",
+  "permalink": "/api/totemsdk-root-identity/interfaces/OwnershipProof",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "index",
+    "permalink": "/api/totemsdk-root-identity/"
+  },
+  "next": {
+    "title": "WotsProof",
+    "permalink": "/api/totemsdk-root-identity/interfaces/WotsProof"
+  }
+}

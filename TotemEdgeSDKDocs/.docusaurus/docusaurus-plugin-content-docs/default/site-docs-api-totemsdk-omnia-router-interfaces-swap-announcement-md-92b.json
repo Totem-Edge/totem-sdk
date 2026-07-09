@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-router/interfaces/SwapAnnouncement",
+  "title": "SwapAnnouncement",
+  "description": "@totemsdk/omnia-router",
+  "source": "@site/docs/api/totemsdk-omnia-router/interfaces/SwapAnnouncement.md",
+  "sourceDirName": "api/totemsdk-omnia-router/interfaces",
+  "slug": "/api/totemsdk-omnia-router/interfaces/SwapAnnouncement",
+  "permalink": "/api/totemsdk-omnia-router/interfaces/SwapAnnouncement",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "RoutingHop",
+    "permalink": "/api/totemsdk-omnia-router/interfaces/RoutingHop"
+  },
+  "next": {
+    "title": "SwapHop",
+    "permalink": "/api/totemsdk-omnia-router/interfaces/SwapHop"
+  }
+}

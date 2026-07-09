@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/classes/HTLCHelper",
+  "title": "HTLCHelper",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/classes/HTLCHelper.md",
+  "sourceDirName": "api/totemsdk-core/classes",
+  "slug": "/api/totemsdk-core/classes/HTLCHelper",
+  "permalink": "/api/totemsdk-core/classes/HTLCHelper",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "FlashCashHelper",
+    "permalink": "/api/totemsdk-core/classes/FlashCashHelper"
+  },
+  "next": {
+    "title": "LeaseMonitor",
+    "permalink": "/api/totemsdk-core/classes/LeaseMonitor"
+  }
+}

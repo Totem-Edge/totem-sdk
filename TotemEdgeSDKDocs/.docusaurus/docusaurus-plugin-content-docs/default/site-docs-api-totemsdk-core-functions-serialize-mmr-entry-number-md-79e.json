@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/serializeMMREntryNumber",
+  "title": "serializeMMREntryNumber",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/serializeMMREntryNumber.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/serializeMMREntryNumber",
+  "permalink": "/api/totemsdk-core/functions/serializeMMREntryNumber",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "serializeMMREntry",
+    "permalink": "/api/totemsdk-core/functions/serializeMMREntry"
+  },
+  "next": {
+    "title": "serializeMMRProof",
+    "permalink": "/api/totemsdk-core/functions/serializeMMRProof"
+  }
+}

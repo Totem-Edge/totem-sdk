@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/functions/verifyState",
+  "title": "verifyState",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/functions/verifyState.md",
+  "sourceDirName": "api/totemsdk-omnia/functions",
+  "slug": "/api/totemsdk-omnia/functions/verifyState",
+  "permalink": "/api/totemsdk-omnia/functions/verifyState",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "validateStateTransition",
+    "permalink": "/api/totemsdk-omnia/functions/validateStateTransition"
+  },
+  "next": {
+    "title": "verifyStateSignature",
+    "permalink": "/api/totemsdk-omnia/functions/verifyStateSignature"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-factory/functions/createFactory",
+  "title": "createFactory",
+  "description": "@totemsdk/omnia-factory",
+  "source": "@site/docs/api/totemsdk-omnia-factory/functions/createFactory.md",
+  "sourceDirName": "api/totemsdk-omnia-factory/functions",
+  "slug": "/api/totemsdk-omnia-factory/functions/createFactory",
+  "permalink": "/api/totemsdk-omnia-factory/functions/createFactory",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "computeFactoryStateCommitment",
+    "permalink": "/api/totemsdk-omnia-factory/functions/computeFactoryStateCommitment"
+  },
+  "next": {
+    "title": "enforceConservation",
+    "permalink": "/api/totemsdk-omnia-factory/functions/enforceConservation"
+  }
+}

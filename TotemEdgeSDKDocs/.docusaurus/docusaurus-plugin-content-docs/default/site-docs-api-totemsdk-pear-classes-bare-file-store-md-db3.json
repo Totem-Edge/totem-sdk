@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-pear/classes/BareFileStore",
+  "title": "BareFileStore",
+  "description": "@totemsdk/pear",
+  "source": "@site/docs/api/totemsdk-pear/classes/BareFileStore.md",
+  "sourceDirName": "api/totemsdk-pear/classes",
+  "slug": "/api/totemsdk-pear/classes/BareFileStore",
+  "permalink": "/api/totemsdk-pear/classes/BareFileStore",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "ConnectionState",
+    "permalink": "/api/totemsdk-realtime/type-aliases/ConnectionState"
+  },
+  "next": {
+    "title": "BareHyperdriveAdapter",
+    "permalink": "/api/totemsdk-pear/classes/BareHyperdriveAdapter"
+  }
+}

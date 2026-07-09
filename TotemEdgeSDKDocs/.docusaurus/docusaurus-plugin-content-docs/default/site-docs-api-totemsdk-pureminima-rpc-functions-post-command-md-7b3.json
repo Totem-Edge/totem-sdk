@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-pureminima-rpc/functions/postCommand",
+  "title": "postCommand",
+  "description": "@totemsdk/pureminima-rpc",
+  "source": "@site/docs/api/totemsdk-pureminima-rpc/functions/postCommand.md",
+  "sourceDirName": "api/totemsdk-pureminima-rpc/functions",
+  "slug": "/api/totemsdk-pureminima-rpc/functions/postCommand",
+  "permalink": "/api/totemsdk-pureminima-rpc/functions/postCommand",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "createPureMinimaClient",
+    "permalink": "/api/totemsdk-pureminima-rpc/functions/createPureMinimaClient"
+  },
+  "next": {
+    "title": "index",
+    "permalink": "/api/totemsdk-pureminima-rpc/"
+  }
+}

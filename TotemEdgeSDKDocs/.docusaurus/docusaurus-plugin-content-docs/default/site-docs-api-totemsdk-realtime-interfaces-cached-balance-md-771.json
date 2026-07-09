@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-realtime/interfaces/CachedBalance",
+  "title": "CachedBalance",
+  "description": "@totemsdk/realtime",
+  "source": "@site/docs/api/totemsdk-realtime/interfaces/CachedBalance.md",
+  "sourceDirName": "api/totemsdk-realtime/interfaces",
+  "slug": "/api/totemsdk-realtime/interfaces/CachedBalance",
+  "permalink": "/api/totemsdk-realtime/interfaces/CachedBalance",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "BalanceUpdateEvent",
+    "permalink": "/api/totemsdk-realtime/interfaces/BalanceUpdateEvent"
+  },
+  "next": {
+    "title": "MegBalanceStreamDependencies",
+    "permalink": "/api/totemsdk-realtime/interfaces/MegBalanceStreamDependencies"
+  }
+}

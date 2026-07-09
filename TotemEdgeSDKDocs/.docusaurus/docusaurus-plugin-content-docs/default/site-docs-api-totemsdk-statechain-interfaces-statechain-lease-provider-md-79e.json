@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-statechain/interfaces/StatechainLeaseProvider",
+  "title": "StatechainLeaseProvider",
+  "description": "@totemsdk/statechain",
+  "source": "@site/docs/api/totemsdk-statechain/interfaces/StatechainLeaseProvider.md",
+  "sourceDirName": "api/totemsdk-statechain/interfaces",
+  "slug": "/api/totemsdk-statechain/interfaces/StatechainLeaseProvider",
+  "permalink": "/api/totemsdk-statechain/interfaces/StatechainLeaseProvider",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "StatechainLeaseOps",
+    "permalink": "/api/totemsdk-statechain/interfaces/StatechainLeaseOps"
+  },
+  "next": {
+    "title": "StatechainOwner",
+    "permalink": "/api/totemsdk-statechain/interfaces/StatechainOwner"
+  }
+}

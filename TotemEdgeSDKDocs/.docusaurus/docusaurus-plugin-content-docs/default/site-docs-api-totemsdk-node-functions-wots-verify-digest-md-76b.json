@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/wotsVerifyDigest",
+  "title": "wotsVerifyDigest",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/wotsVerifyDigest.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/wotsVerifyDigest",
+  "permalink": "/api/totemsdk-node/functions/wotsVerifyDigest",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "wotsVerify",
+    "permalink": "/api/totemsdk-node/functions/wotsVerify"
+  },
+  "next": {
+    "title": "writeHashToStream",
+    "permalink": "/api/totemsdk-node/functions/writeHashToStream"
+  }
+}

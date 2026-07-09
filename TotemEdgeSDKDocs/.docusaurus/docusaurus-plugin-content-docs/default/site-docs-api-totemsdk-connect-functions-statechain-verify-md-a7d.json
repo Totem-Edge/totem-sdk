@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-connect/functions/statechainVerify",
+  "title": "statechainVerify",
+  "description": "@totemsdk/connect",
+  "source": "@site/docs/api/totemsdk-connect/functions/statechainVerify.md",
+  "sourceDirName": "api/totemsdk-connect/functions",
+  "slug": "/api/totemsdk-connect/functions/statechainVerify",
+  "permalink": "/api/totemsdk-connect/functions/statechainVerify",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "statechainTransfer",
+    "permalink": "/api/totemsdk-connect/functions/statechainTransfer"
+  },
+  "next": {
+    "title": "verify",
+    "permalink": "/api/totemsdk-connect/functions/verify"
+  }
+}

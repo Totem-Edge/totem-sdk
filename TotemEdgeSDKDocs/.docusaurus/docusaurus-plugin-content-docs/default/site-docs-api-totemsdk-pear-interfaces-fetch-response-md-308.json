@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-pear/interfaces/FetchResponse",
+  "title": "FetchResponse",
+  "description": "@totemsdk/pear",
+  "source": "@site/docs/api/totemsdk-pear/interfaces/FetchResponse.md",
+  "sourceDirName": "api/totemsdk-pear/interfaces",
+  "slug": "/api/totemsdk-pear/interfaces/FetchResponse",
+  "permalink": "/api/totemsdk-pear/interfaces/FetchResponse",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "FetchInit",
+    "permalink": "/api/totemsdk-pear/interfaces/FetchInit"
+  },
+  "next": {
+    "title": "FsLike",
+    "permalink": "/api/totemsdk-pear/interfaces/FsLike"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-hyperswarm/interfaces/OmniaMessage",
+  "title": "OmniaMessage",
+  "description": "@totemsdk/omnia-hyperswarm",
+  "source": "@site/docs/api/totemsdk-omnia-hyperswarm/interfaces/OmniaMessage.md",
+  "sourceDirName": "api/totemsdk-omnia-hyperswarm/interfaces",
+  "slug": "/api/totemsdk-omnia-hyperswarm/interfaces/OmniaMessage",
+  "permalink": "/api/totemsdk-omnia-hyperswarm/interfaces/OmniaMessage",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "OmniaIntegrationConfig",
+    "permalink": "/api/totemsdk-omnia-hyperswarm/interfaces/OmniaIntegrationConfig"
+  },
+  "next": {
+    "title": "OmniaPeer",
+    "permalink": "/api/totemsdk-omnia-hyperswarm/interfaces/OmniaPeer"
+  }
+}

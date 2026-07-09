@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/interfaces/TxInputDraft",
+  "title": "TxInputDraft",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/interfaces/TxInputDraft.md",
+  "sourceDirName": "api/totemsdk-omnia/interfaces",
+  "slug": "/api/totemsdk-omnia/interfaces/TxInputDraft",
+  "permalink": "/api/totemsdk-omnia/interfaces/TxInputDraft",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "StateValue",
+    "permalink": "/api/totemsdk-omnia/interfaces/StateValue"
+  },
+  "next": {
+    "title": "TxOutputDraft",
+    "permalink": "/api/totemsdk-omnia/interfaces/TxOutputDraft"
+  }
+}

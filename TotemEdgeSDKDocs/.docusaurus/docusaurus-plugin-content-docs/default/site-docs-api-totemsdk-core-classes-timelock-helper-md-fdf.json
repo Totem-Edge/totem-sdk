@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/classes/TimelockHelper",
+  "title": "TimelockHelper",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/classes/TimelockHelper.md",
+  "sourceDirName": "api/totemsdk-core/classes",
+  "slug": "/api/totemsdk-core/classes/TimelockHelper",
+  "permalink": "/api/totemsdk-core/classes/TimelockHelper",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "StatefulGameHelper",
+    "permalink": "/api/totemsdk-core/classes/StatefulGameHelper"
+  },
+  "next": {
+    "title": "TransactionLifecycle",
+    "permalink": "/api/totemsdk-core/classes/TransactionLifecycle"
+  }
+}

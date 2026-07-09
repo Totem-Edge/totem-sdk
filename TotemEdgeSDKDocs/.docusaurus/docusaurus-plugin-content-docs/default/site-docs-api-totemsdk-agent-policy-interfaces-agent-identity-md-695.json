@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-agent-policy/interfaces/AgentIdentity",
+  "title": "AgentIdentity",
+  "description": "@totemsdk/agent-policy",
+  "source": "@site/docs/api/totemsdk-agent-policy/interfaces/AgentIdentity.md",
+  "sourceDirName": "api/totemsdk-agent-policy/interfaces",
+  "slug": "/api/totemsdk-agent-policy/interfaces/AgentIdentity",
+  "permalink": "/api/totemsdk-agent-policy/interfaces/AgentIdentity",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "index",
+    "permalink": "/api/totemsdk-agent-policy/"
+  },
+  "next": {
+    "title": "AgentPolicy",
+    "permalink": "/api/totemsdk-agent-policy/interfaces/AgentPolicy"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/variables/hex",
+  "title": "hex",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/variables/hex.md",
+  "sourceDirName": "api/totemsdk-node/variables",
+  "slug": "/api/totemsdk-node/variables/hex",
+  "permalink": "/api/totemsdk-node/variables/hex",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "h",
+    "permalink": "/api/totemsdk-node/variables/h"
+  },
+  "next": {
+    "title": "makeMinimaAddress",
+    "permalink": "/api/totemsdk-node/variables/makeMinimaAddress"
+  }
+}

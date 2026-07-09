@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/createSignedByDescriptor",
+  "title": "createSignedByDescriptor",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/createSignedByDescriptor.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/createSignedByDescriptor",
+  "permalink": "/api/totemsdk-core/functions/createSignedByDescriptor",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "createPerAddressTreeKeyAsync",
+    "permalink": "/api/totemsdk-core/functions/createPerAddressTreeKeyAsync"
+  },
+  "next": {
+    "title": "createSlowCashDescriptor",
+    "permalink": "/api/totemsdk-core/functions/createSlowCashDescriptor"
+  }
+}

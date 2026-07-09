@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": false,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": false,
+    "noEmit": false,
+    "declaration": true,
+    "outDir": "./dist",
+    "jsx": "react-jsx",
+    "types": ["chrome", "jest", "node"],
+    "paths": {
+      "@totem-sdk/core": ["../totem-sdk/packages/core/src"],
+      "@totem-sdk/core/*": ["../totem-sdk/packages/core/src/*"],
+      "@totemsdk/core": ["../totem-sdk/packages/core/src"],
+      "@totemsdk/core/*": ["../totem-sdk/packages/core/src/*"],
+      "@totemsdk/root-identity": ["../totem-sdk/packages/root-identity/src"],
+      "@totemsdk/root-identity/*": ["../totem-sdk/packages/root-identity/src/*"]
+    }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["test/**/*", "node_modules", "dist"]
+}

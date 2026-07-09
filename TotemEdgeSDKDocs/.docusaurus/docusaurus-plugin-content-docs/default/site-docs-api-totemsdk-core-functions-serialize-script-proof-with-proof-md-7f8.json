@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/serializeScriptProofWithProof",
+  "title": "serializeScriptProofWithProof",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/serializeScriptProofWithProof.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/serializeScriptProofWithProof",
+  "permalink": "/api/totemsdk-core/functions/serializeScriptProofWithProof",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "serializeMiniNumberZERO",
+    "permalink": "/api/totemsdk-core/functions/serializeMiniNumberZERO"
+  },
+  "next": {
+    "title": "serializeStateVariables",
+    "permalink": "/api/totemsdk-core/functions/serializeStateVariables"
+  }
+}

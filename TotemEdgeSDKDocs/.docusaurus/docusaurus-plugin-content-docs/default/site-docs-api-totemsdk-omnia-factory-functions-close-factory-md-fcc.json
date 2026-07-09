@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-factory/functions/closeFactory",
+  "title": "closeFactory",
+  "description": "@totemsdk/omnia-factory",
+  "source": "@site/docs/api/totemsdk-omnia-factory/functions/closeFactory.md",
+  "sourceDirName": "api/totemsdk-omnia-factory/functions",
+  "slug": "/api/totemsdk-omnia-factory/functions/closeFactory",
+  "permalink": "/api/totemsdk-omnia-factory/functions/closeFactory",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "buildFactoryScript",
+    "permalink": "/api/totemsdk-omnia-factory/functions/buildFactoryScript"
+  },
+  "next": {
+    "title": "closeVirtualChannel",
+    "permalink": "/api/totemsdk-omnia-factory/functions/closeVirtualChannel"
+  }
+}

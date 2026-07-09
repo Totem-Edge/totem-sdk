@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/type-aliases/partyId",
+  "title": "partyId",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/type-aliases/partyId.md",
+  "sourceDirName": "api/totemsdk-omnia/type-aliases",
+  "slug": "/api/totemsdk-omnia/type-aliases/partyId",
+  "permalink": "/api/totemsdk-omnia/type-aliases/partyId",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "ChannelStatus",
+    "permalink": "/api/totemsdk-omnia/type-aliases/ChannelStatus"
+  },
+  "next": {
+    "title": "CAPACITY_NEAR_EXHAUSTION",
+    "permalink": "/api/totemsdk-omnia/variables/CAPACITY_NEAR_EXHAUSTION"
+  }
+}

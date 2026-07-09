@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-lookup-protocol/functions/messageDigest",
+  "title": "messageDigest",
+  "description": "@totemsdk/lookup-protocol",
+  "source": "@site/docs/api/totemsdk-lookup-protocol/functions/messageDigest.md",
+  "sourceDirName": "api/totemsdk-lookup-protocol/functions",
+  "slug": "/api/totemsdk-lookup-protocol/functions/messageDigest",
+  "permalink": "/api/totemsdk-lookup-protocol/functions/messageDigest",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "encodeMessage",
+    "permalink": "/api/totemsdk-lookup-protocol/functions/encodeMessage"
+  },
+  "next": {
+    "title": "peekFrameLength",
+    "permalink": "/api/totemsdk-lookup-protocol/functions/peekFrameLength"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/variables/WOTS_CAPACITY_TOTAL",
+  "title": "WOTS_CAPACITY_TOTAL",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/variables/WOTS_CAPACITY_TOTAL.md",
+  "sourceDirName": "api/totemsdk-omnia/variables",
+  "slug": "/api/totemsdk-omnia/variables/WOTS_CAPACITY_TOTAL",
+  "permalink": "/api/totemsdk-omnia/variables/WOTS_CAPACITY_TOTAL",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "COINID_ELTOO",
+    "permalink": "/api/totemsdk-omnia/variables/COINID_ELTOO"
+  },
+  "next": {
+    "title": "acceptFactory",
+    "permalink": "/api/totemsdk-omnia-factory/functions/acceptFactory"
+  }
+}

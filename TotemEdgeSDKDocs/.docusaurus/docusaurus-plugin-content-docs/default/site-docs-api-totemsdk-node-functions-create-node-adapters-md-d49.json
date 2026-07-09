@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/createNodeAdapters",
+  "title": "createNodeAdapters",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/createNodeAdapters.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/createNodeAdapters",
+  "permalink": "/api/totemsdk-node/functions/createNodeAdapters",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "createMultisigDescriptor",
+    "permalink": "/api/totemsdk-node/functions/createMultisigDescriptor"
+  },
+  "next": {
+    "title": "createPerAddressTreeKey",
+    "permalink": "/api/totemsdk-node/functions/createPerAddressTreeKey"
+  }
+}

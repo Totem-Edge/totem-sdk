@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/classes/TransactionLifecycleError",
+  "title": "TransactionLifecycleError",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/classes/TransactionLifecycleError.md",
+  "sourceDirName": "api/totemsdk-core/classes",
+  "slug": "/api/totemsdk-core/classes/TransactionLifecycleError",
+  "permalink": "/api/totemsdk-core/classes/TransactionLifecycleError",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TransactionLifecycle",
+    "permalink": "/api/totemsdk-core/classes/TransactionLifecycle"
+  },
+  "next": {
+    "title": "TransactionReceiptStore",
+    "permalink": "/api/totemsdk-core/classes/TransactionReceiptStore"
+  }
+}

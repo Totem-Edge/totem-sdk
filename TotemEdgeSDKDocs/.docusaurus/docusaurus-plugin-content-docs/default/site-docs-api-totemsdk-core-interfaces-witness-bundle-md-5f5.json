@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/WitnessBundle",
+  "title": "WitnessBundle",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/WitnessBundle.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/WitnessBundle",
+  "permalink": "/api/totemsdk-core/interfaces/WitnessBundle",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "WebSocketOpenEvent",
+    "permalink": "/api/totemsdk-core/interfaces/WebSocketOpenEvent"
+  },
+  "next": {
+    "title": "WotsIndices",
+    "permalink": "/api/totemsdk-core/interfaces/WotsIndices"
+  }
+}

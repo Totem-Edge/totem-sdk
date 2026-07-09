@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-lookup-protocol/interfaces/AppResultMessage",
+  "title": "AppResultMessage",
+  "description": "@totemsdk/lookup-protocol",
+  "source": "@site/docs/api/totemsdk-lookup-protocol/interfaces/AppResultMessage.md",
+  "sourceDirName": "api/totemsdk-lookup-protocol/interfaces",
+  "slug": "/api/totemsdk-lookup-protocol/interfaces/AppResultMessage",
+  "permalink": "/api/totemsdk-lookup-protocol/interfaces/AppResultMessage",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "AppQueryMessage",
+    "permalink": "/api/totemsdk-lookup-protocol/interfaces/AppQueryMessage"
+  },
+  "next": {
+    "title": "AuthChallengeMessage",
+    "permalink": "/api/totemsdk-lookup-protocol/interfaces/AuthChallengeMessage"
+  }
+}

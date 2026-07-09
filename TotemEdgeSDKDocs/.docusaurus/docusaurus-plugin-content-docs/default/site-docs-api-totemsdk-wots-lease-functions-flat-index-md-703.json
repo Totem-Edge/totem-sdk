@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-wots-lease/functions/flatIndex",
+  "title": "flatIndex",
+  "description": "@totemsdk/wots-lease",
+  "source": "@site/docs/api/totemsdk-wots-lease/functions/flatIndex.md",
+  "sourceDirName": "api/totemsdk-wots-lease/functions",
+  "slug": "/api/totemsdk-wots-lease/functions/flatIndex",
+  "permalink": "/api/totemsdk-wots-lease/functions/flatIndex",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "deviceSlotForAddressIndex",
+    "permalink": "/api/totemsdk-wots-lease/functions/deviceSlotForAddressIndex"
+  },
+  "next": {
+    "title": "fromFlatIndex",
+    "permalink": "/api/totemsdk-wots-lease/functions/fromFlatIndex"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/serializeMiniNumberZERO",
+  "title": "serializeMiniNumberZERO",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/serializeMiniNumberZERO.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/serializeMiniNumberZERO",
+  "permalink": "/api/totemsdk-node/functions/serializeMiniNumberZERO",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "serializeMiniNumberONE",
+    "permalink": "/api/totemsdk-node/functions/serializeMiniNumberONE"
+  },
+  "next": {
+    "title": "serializeScriptProofWithProof",
+    "permalink": "/api/totemsdk-node/functions/serializeScriptProofWithProof"
+  }
+}

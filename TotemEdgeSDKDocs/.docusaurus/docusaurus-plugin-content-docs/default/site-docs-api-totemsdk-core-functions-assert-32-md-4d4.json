@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/assert32",
+  "title": "assert32",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/assert32.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/assert32",
+  "permalink": "/api/totemsdk-core/functions/assert32",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "aggregateSignatures",
+    "permalink": "/api/totemsdk-core/functions/aggregateSignatures"
+  },
+  "next": {
+    "title": "baseWWithChecksum",
+    "permalink": "/api/totemsdk-core/functions/baseWWithChecksum"
+  }
+}

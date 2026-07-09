@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-connect/functions/signTransaction",
+  "title": "signTransaction",
+  "description": "@totemsdk/connect",
+  "source": "@site/docs/api/totemsdk-connect/functions/signTransaction.md",
+  "sourceDirName": "api/totemsdk-connect/functions",
+  "slug": "/api/totemsdk-connect/functions/signTransaction",
+  "permalink": "/api/totemsdk-connect/functions/signTransaction",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "signData",
+    "permalink": "/api/totemsdk-connect/functions/signData"
+  },
+  "next": {
+    "title": "statechainClaim",
+    "permalink": "/api/totemsdk-connect/functions/statechainClaim"
+  }
+}

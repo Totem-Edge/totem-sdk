@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/type-aliases/StateVariableType",
+  "title": "StateVariableType",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/type-aliases/StateVariableType.md",
+  "sourceDirName": "api/totemsdk-core/type-aliases",
+  "slug": "/api/totemsdk-core/type-aliases/StateVariableType",
+  "permalink": "/api/totemsdk-core/type-aliases/StateVariableType",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "ScriptType",
+    "permalink": "/api/totemsdk-core/type-aliases/ScriptType"
+  },
+  "next": {
+    "title": "TimerHandle",
+    "permalink": "/api/totemsdk-core/type-aliases/TimerHandle"
+  }
+}

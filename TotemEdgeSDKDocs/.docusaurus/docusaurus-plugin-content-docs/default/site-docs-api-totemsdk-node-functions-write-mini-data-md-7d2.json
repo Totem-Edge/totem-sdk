@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/writeMiniData",
+  "title": "writeMiniData",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/writeMiniData.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/writeMiniData",
+  "permalink": "/api/totemsdk-node/functions/writeMiniData",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "writeMiniByte",
+    "permalink": "/api/totemsdk-node/functions/writeMiniByte"
+  },
+  "next": {
+    "title": "writeMiniNumber",
+    "permalink": "/api/totemsdk-node/functions/writeMiniNumber"
+  }
+}

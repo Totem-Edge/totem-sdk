@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/type-aliases/CapacityWarning",
+  "title": "CapacityWarning",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/type-aliases/CapacityWarning.md",
+  "sourceDirName": "api/totemsdk-omnia/type-aliases",
+  "slug": "/api/totemsdk-omnia/type-aliases/CapacityWarning",
+  "permalink": "/api/totemsdk-omnia/type-aliases/CapacityWarning",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "VerifyStateOptions",
+    "permalink": "/api/totemsdk-omnia/interfaces/VerifyStateOptions"
+  },
+  "next": {
+    "title": "ChannelStatus",
+    "permalink": "/api/totemsdk-omnia/type-aliases/ChannelStatus"
+  }
+}

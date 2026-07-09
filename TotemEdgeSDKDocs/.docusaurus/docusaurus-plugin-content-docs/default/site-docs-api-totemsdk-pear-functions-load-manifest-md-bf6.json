@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-pear/functions/loadManifest",
+  "title": "loadManifest",
+  "description": "@totemsdk/pear",
+  "source": "@site/docs/api/totemsdk-pear/functions/loadManifest.md",
+  "sourceDirName": "api/totemsdk-pear/functions",
+  "slug": "/api/totemsdk-pear/functions/loadManifest",
+  "permalink": "/api/totemsdk-pear/functions/loadManifest",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "loadConfig",
+    "permalink": "/api/totemsdk-pear/functions/loadConfig"
+  },
+  "next": {
+    "title": "onExit",
+    "permalink": "/api/totemsdk-pear/functions/onExit"
+  }
+}

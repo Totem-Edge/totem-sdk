@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/functions/buildUpdateTx",
+  "title": "buildUpdateTx",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/functions/buildUpdateTx.md",
+  "sourceDirName": "api/totemsdk-omnia/functions",
+  "slug": "/api/totemsdk-omnia/functions/buildUpdateTx",
+  "permalink": "/api/totemsdk-omnia/functions/buildUpdateTx",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "buildTxPoWPayload",
+    "permalink": "/api/totemsdk-omnia/functions/buildTxPoWPayload"
+  },
+  "next": {
+    "title": "computeStateCommitment",
+    "permalink": "/api/totemsdk-omnia/functions/computeStateCommitment"
+  }
+}

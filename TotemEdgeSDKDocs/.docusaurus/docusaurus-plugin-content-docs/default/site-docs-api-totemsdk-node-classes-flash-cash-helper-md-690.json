@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/classes/FlashCashHelper",
+  "title": "FlashCashHelper",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/classes/FlashCashHelper.md",
+  "sourceDirName": "api/totemsdk-node/classes",
+  "slug": "/api/totemsdk-node/classes/FlashCashHelper",
+  "permalink": "/api/totemsdk-node/classes/FlashCashHelper",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "FileStorageAdapter",
+    "permalink": "/api/totemsdk-node/classes/FileStorageAdapter"
+  },
+  "next": {
+    "title": "HTLCHelper",
+    "permalink": "/api/totemsdk-node/classes/HTLCHelper"
+  }
+}

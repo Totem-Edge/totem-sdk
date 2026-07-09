@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-lookup-node/interfaces/HyperswarmManagerConfig",
+  "title": "HyperswarmManagerConfig",
+  "description": "@totemsdk/lookup-node",
+  "source": "@site/docs/api/totemsdk-lookup-node/interfaces/HyperswarmManagerConfig.md",
+  "sourceDirName": "api/totemsdk-lookup-node/interfaces",
+  "slug": "/api/totemsdk-lookup-node/interfaces/HyperswarmManagerConfig",
+  "permalink": "/api/totemsdk-lookup-node/interfaces/HyperswarmManagerConfig",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "AppRow",
+    "permalink": "/api/totemsdk-lookup-node/interfaces/AppRow"
+  },
+  "next": {
+    "title": "ITransport",
+    "permalink": "/api/totemsdk-lookup-node/interfaces/ITransport"
+  }
+}

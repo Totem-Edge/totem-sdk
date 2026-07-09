@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-connect/functions/statechainTransfer",
+  "title": "statechainTransfer",
+  "description": "@totemsdk/connect",
+  "source": "@site/docs/api/totemsdk-connect/functions/statechainTransfer.md",
+  "sourceDirName": "api/totemsdk-connect/functions",
+  "slug": "/api/totemsdk-connect/functions/statechainTransfer",
+  "permalink": "/api/totemsdk-connect/functions/statechainTransfer",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "statechainCreate",
+    "permalink": "/api/totemsdk-connect/functions/statechainCreate"
+  },
+  "next": {
+    "title": "statechainVerify",
+    "permalink": "/api/totemsdk-connect/functions/statechainVerify"
+  }
+}

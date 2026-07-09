@@ -1,0 +1,23 @@
+{
+  "id": "api/totem-extension-keyring/type-aliases/SignDataValidationOk",
+  "title": "SignDataValidationOk",
+  "description": "totem-extension/keyring",
+  "source": "@site/docs/api/totem-extension-keyring/type-aliases/SignDataValidationOk.md",
+  "sourceDirName": "api/totem-extension-keyring/type-aliases",
+  "slug": "/api/totem-extension-keyring/type-aliases/SignDataValidationOk",
+  "permalink": "/api/totem-extension-keyring/type-aliases/SignDataValidationOk",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "SignDataValidationError",
+    "permalink": "/api/totem-extension-keyring/type-aliases/SignDataValidationError"
+  },
+  "next": {
+    "title": "SignDataValidationResult",
+    "permalink": "/api/totem-extension-keyring/type-aliases/SignDataValidationResult"
+  }
+}

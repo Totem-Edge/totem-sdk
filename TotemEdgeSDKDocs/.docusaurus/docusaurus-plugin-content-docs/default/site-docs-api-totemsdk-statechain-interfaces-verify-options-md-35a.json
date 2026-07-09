@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-statechain/interfaces/VerifyOptions",
+  "title": "VerifyOptions",
+  "description": "@totemsdk/statechain",
+  "source": "@site/docs/api/totemsdk-statechain/interfaces/VerifyOptions.md",
+  "sourceDirName": "api/totemsdk-statechain/interfaces",
+  "slug": "/api/totemsdk-statechain/interfaces/VerifyOptions",
+  "permalink": "/api/totemsdk-statechain/interfaces/VerifyOptions",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TransferRecord",
+    "permalink": "/api/totemsdk-statechain/interfaces/TransferRecord"
+  },
+  "next": {
+    "title": "VerifyResult",
+    "permalink": "/api/totemsdk-statechain/interfaces/VerifyResult"
+  }
+}

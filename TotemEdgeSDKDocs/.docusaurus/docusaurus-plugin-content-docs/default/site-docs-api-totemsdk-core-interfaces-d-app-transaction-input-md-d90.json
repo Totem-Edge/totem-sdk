@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/DAppTransactionInput",
+  "title": "DAppTransactionInput",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/DAppTransactionInput.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/DAppTransactionInput",
+  "permalink": "/api/totemsdk-core/interfaces/DAppTransactionInput",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "DAppTimelockParams",
+    "permalink": "/api/totemsdk-core/interfaces/DAppTimelockParams"
+  },
+  "next": {
+    "title": "DAppTransactionOutput",
+    "permalink": "/api/totemsdk-core/interfaces/DAppTransactionOutput"
+  }
+}

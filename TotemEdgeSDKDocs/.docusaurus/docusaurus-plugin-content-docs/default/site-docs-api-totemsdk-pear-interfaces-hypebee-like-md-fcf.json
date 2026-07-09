@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-pear/interfaces/HypebeeLike",
+  "title": "HypebeeLike",
+  "description": "@totemsdk/pear",
+  "source": "@site/docs/api/totemsdk-pear/interfaces/HypebeeLike.md",
+  "sourceDirName": "api/totemsdk-pear/interfaces",
+  "slug": "/api/totemsdk-pear/interfaces/HypebeeLike",
+  "permalink": "/api/totemsdk-pear/interfaces/HypebeeLike",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "FsLike",
+    "permalink": "/api/totemsdk-pear/interfaces/FsLike"
+  },
+  "next": {
+    "title": "HyperdriveAdapter",
+    "permalink": "/api/totemsdk-pear/interfaces/HyperdriveAdapter"
+  }
+}

@@ -1,0 +1,27 @@
+timezone: "Europe/London"
+rampSeconds: 300  # 5-minute default ramps
+loop: true
+
+entries:
+  # Night: stable performance
+  - at: "02:00"
+    scenario: "scenarios/us-east-stable.yaml"
+
+  # EU morning: gradual ramp up
+  - at: "08:00"
+    scenario: "scenarios/example.yaml"
+    rampSeconds: 450  # 7.5 minute ramp
+
+  # EU peak hours: stress testing
+  - at: "14:00"
+    scenario: "scenarios/meg-slow.yaml"
+    rampSeconds: 600  # 10 minute ramp for severe degradation
+
+  # EU evening: flapping chaos
+  - at: "19:00"
+    scenario: "scenarios/chaos-flapping.yaml"
+    rampSeconds: 180
+
+  # Late night: back to stable
+  - at: "22:00"
+    scenario: "scenarios/us-east-stable.yaml"

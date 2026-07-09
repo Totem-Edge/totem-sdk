@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/wotsPublicKeyFromSeed",
+  "title": "wotsPublicKeyFromSeed",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/wotsPublicKeyFromSeed.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/wotsPublicKeyFromSeed",
+  "permalink": "/api/totemsdk-node/functions/wotsPublicKeyFromSeed",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "wotsPkFromSig",
+    "permalink": "/api/totemsdk-node/functions/wotsPkFromSig"
+  },
+  "next": {
+    "title": "wotsSign",
+    "permalink": "/api/totemsdk-node/functions/wotsSign"
+  }
+}

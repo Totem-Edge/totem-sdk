@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/interfaces/UpdateStateResult",
+  "title": "UpdateStateResult",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/interfaces/UpdateStateResult.md",
+  "sourceDirName": "api/totemsdk-omnia/interfaces",
+  "slug": "/api/totemsdk-omnia/interfaces/UpdateStateResult",
+  "permalink": "/api/totemsdk-omnia/interfaces/UpdateStateResult",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "UpdateDelta",
+    "permalink": "/api/totemsdk-omnia/interfaces/UpdateDelta"
+  },
+  "next": {
+    "title": "VerifyStateOptions",
+    "permalink": "/api/totemsdk-omnia/interfaces/VerifyStateOptions"
+  }
+}

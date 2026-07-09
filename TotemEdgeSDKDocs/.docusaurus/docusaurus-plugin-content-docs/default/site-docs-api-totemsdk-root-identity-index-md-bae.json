@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-root-identity/index",
+  "title": "index",
+  "description": "@totemsdk/root-identity",
+  "source": "@site/docs/api/totemsdk-root-identity/index.md",
+  "sourceDirName": "api/totemsdk-root-identity",
+  "slug": "/api/totemsdk-root-identity/",
+  "permalink": "/api/totemsdk-root-identity/",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "RootIdentityWallet",
+    "permalink": "/api/totemsdk-root-identity/classes/RootIdentityWallet"
+  },
+  "next": {
+    "title": "OwnershipProof",
+    "permalink": "/api/totemsdk-root-identity/interfaces/OwnershipProof"
+  }
+}

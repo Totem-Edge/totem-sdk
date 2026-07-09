@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/index",
+  "title": "index",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/index.md",
+  "sourceDirName": "api/totemsdk-omnia",
+  "slug": "/api/totemsdk-omnia/",
+  "permalink": "/api/totemsdk-omnia/",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "verifyStateSignature",
+    "permalink": "/api/totemsdk-omnia/functions/verifyStateSignature"
+  },
+  "next": {
+    "title": "AddHTLCParams",
+    "permalink": "/api/totemsdk-omnia/interfaces/AddHTLCParams"
+  }
+}

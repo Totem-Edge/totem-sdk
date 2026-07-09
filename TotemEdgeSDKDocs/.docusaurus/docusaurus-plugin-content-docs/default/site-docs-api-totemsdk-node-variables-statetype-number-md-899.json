@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/variables/STATETYPE_NUMBER",
+  "title": "STATETYPE_NUMBER",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/variables/STATETYPE_NUMBER.md",
+  "sourceDirName": "api/totemsdk-node/variables",
+  "slug": "/api/totemsdk-node/variables/STATETYPE_NUMBER",
+  "permalink": "/api/totemsdk-node/variables/STATETYPE_NUMBER",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "STATETYPE_HEX",
+    "permalink": "/api/totemsdk-node/variables/STATETYPE_HEX"
+  },
+  "next": {
+    "title": "STATETYPE_STRING",
+    "permalink": "/api/totemsdk-node/variables/STATETYPE_STRING"
+  }
+}

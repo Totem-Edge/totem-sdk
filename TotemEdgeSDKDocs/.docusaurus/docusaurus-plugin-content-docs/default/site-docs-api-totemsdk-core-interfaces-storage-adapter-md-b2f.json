@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/StorageAdapter",
+  "title": "StorageAdapter",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/StorageAdapter.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/StorageAdapter",
+  "permalink": "/api/totemsdk-core/interfaces/StorageAdapter",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "StateVariable",
+    "permalink": "/api/totemsdk-core/interfaces/StateVariable"
+  },
+  "next": {
+    "title": "StoredLease",
+    "permalink": "/api/totemsdk-core/interfaces/StoredLease"
+  }
+}

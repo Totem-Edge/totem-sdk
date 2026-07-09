@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-lookup-protocol/interfaces/HelloMessage",
+  "title": "HelloMessage",
+  "description": "@totemsdk/lookup-protocol",
+  "source": "@site/docs/api/totemsdk-lookup-protocol/interfaces/HelloMessage.md",
+  "sourceDirName": "api/totemsdk-lookup-protocol/interfaces",
+  "slug": "/api/totemsdk-lookup-protocol/interfaces/HelloMessage",
+  "permalink": "/api/totemsdk-lookup-protocol/interfaces/HelloMessage",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "GetTokenMessage",
+    "permalink": "/api/totemsdk-lookup-protocol/interfaces/GetTokenMessage"
+  },
+  "next": {
+    "title": "LeaseBurnMessage",
+    "permalink": "/api/totemsdk-lookup-protocol/interfaces/LeaseBurnMessage"
+  }
+}

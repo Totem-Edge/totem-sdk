@@ -1,0 +1,23 @@
+{
+  "id": "api/totem-sdk-browser/interfaces/StorageAuthProviderOptions",
+  "title": "StorageAuthProviderOptions",
+  "description": "@totem/sdk-browser",
+  "source": "@site/docs/api/totem-sdk-browser/interfaces/StorageAuthProviderOptions.md",
+  "sourceDirName": "api/totem-sdk-browser/interfaces",
+  "slug": "/api/totem-sdk-browser/interfaces/StorageAuthProviderOptions",
+  "permalink": "/api/totem-sdk-browser/interfaces/StorageAuthProviderOptions",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "LocalStorageAdapterOptions",
+    "permalink": "/api/totem-sdk-browser/interfaces/LocalStorageAdapterOptions"
+  },
+  "next": {
+    "title": "AxiaDex",
+    "permalink": "/api/axia-totem-dex/classes/AxiaDex"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-factory/interfaces/WotsLeaseBundle",
+  "title": "WotsLeaseBundle",
+  "description": "@totemsdk/omnia-factory",
+  "source": "@site/docs/api/totemsdk-omnia-factory/interfaces/WotsLeaseBundle.md",
+  "sourceDirName": "api/totemsdk-omnia-factory/interfaces",
+  "slug": "/api/totemsdk-omnia-factory/interfaces/WotsLeaseBundle",
+  "permalink": "/api/totemsdk-omnia-factory/interfaces/WotsLeaseBundle",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "OmniaChannel",
+    "permalink": "/api/totemsdk-omnia-factory/interfaces/OmniaChannel"
+  },
+  "next": {
+    "title": "FactorySignature",
+    "permalink": "/api/totemsdk-omnia-factory/type-aliases/FactorySignature"
+  }
+}

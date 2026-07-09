@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-pureminima-rpc/interfaces/TxnSignParams",
+  "title": "TxnSignParams",
+  "description": "@totemsdk/pureminima-rpc",
+  "source": "@site/docs/api/totemsdk-pureminima-rpc/interfaces/TxnSignParams.md",
+  "sourceDirName": "api/totemsdk-pureminima-rpc/interfaces",
+  "slug": "/api/totemsdk-pureminima-rpc/interfaces/TxnSignParams",
+  "permalink": "/api/totemsdk-pureminima-rpc/interfaces/TxnSignParams",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TxnScriptParams",
+    "permalink": "/api/totemsdk-pureminima-rpc/interfaces/TxnScriptParams"
+  },
+  "next": {
+    "title": "TxnStateParams",
+    "permalink": "/api/totemsdk-pureminima-rpc/interfaces/TxnStateParams"
+  }
+}

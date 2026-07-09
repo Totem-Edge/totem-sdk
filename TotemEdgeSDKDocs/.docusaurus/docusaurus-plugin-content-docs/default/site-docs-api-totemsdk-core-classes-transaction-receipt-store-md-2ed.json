@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/classes/TransactionReceiptStore",
+  "title": "TransactionReceiptStore",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/classes/TransactionReceiptStore.md",
+  "sourceDirName": "api/totemsdk-core/classes",
+  "slug": "/api/totemsdk-core/classes/TransactionReceiptStore",
+  "permalink": "/api/totemsdk-core/classes/TransactionReceiptStore",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TransactionLifecycleError",
+    "permalink": "/api/totemsdk-core/classes/TransactionLifecycleError"
+  },
+  "next": {
+    "title": "TransactionService",
+    "permalink": "/api/totemsdk-core/classes/TransactionService"
+  }
+}

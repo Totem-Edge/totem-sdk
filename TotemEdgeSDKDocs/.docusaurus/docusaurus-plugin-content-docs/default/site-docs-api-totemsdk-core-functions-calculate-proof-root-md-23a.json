@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/calculateProofRoot",
+  "title": "calculateProofRoot",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/calculateProofRoot.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/calculateProofRoot",
+  "permalink": "/api/totemsdk-core/functions/calculateProofRoot",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "bytesToUtf8",
+    "permalink": "/api/totemsdk-core/functions/bytesToUtf8"
+  },
+  "next": {
+    "title": "cleanSeedPhrase",
+    "permalink": "/api/totemsdk-core/functions/cleanSeedPhrase"
+  }
+}

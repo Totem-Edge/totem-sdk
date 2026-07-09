@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/TreeSignature",
+  "title": "TreeSignature",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/TreeSignature.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/TreeSignature",
+  "permalink": "/api/totemsdk-node/interfaces/TreeSignature",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TransactionServiceConfig",
+    "permalink": "/api/totemsdk-node/interfaces/TransactionServiceConfig"
+  },
+  "next": {
+    "title": "VerificationResult",
+    "permalink": "/api/totemsdk-node/interfaces/VerificationResult"
+  }
+}

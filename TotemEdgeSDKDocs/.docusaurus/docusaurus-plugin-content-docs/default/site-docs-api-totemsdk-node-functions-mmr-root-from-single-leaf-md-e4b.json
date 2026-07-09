@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/mmrRootFromSingleLeaf",
+  "title": "mmrRootFromSingleLeaf",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/mmrRootFromSingleLeaf.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/mmrRootFromSingleLeaf",
+  "permalink": "/api/totemsdk-node/functions/mmrRootFromSingleLeaf",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "mmrLeafExact",
+    "permalink": "/api/totemsdk-node/functions/mmrLeafExact"
+  },
+  "next": {
+    "title": "mxToHex",
+    "permalink": "/api/totemsdk-node/functions/mxToHex"
+  }
+}

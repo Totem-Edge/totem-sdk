@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-chain-provider/classes/CompositeProvider",
+  "title": "CompositeProvider",
+  "description": "@totemsdk/chain-provider",
+  "source": "@site/docs/api/totemsdk-chain-provider/classes/CompositeProvider.md",
+  "sourceDirName": "api/totemsdk-chain-provider/classes",
+  "slug": "/api/totemsdk-chain-provider/classes/CompositeProvider",
+  "permalink": "/api/totemsdk-chain-provider/classes/CompositeProvider",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "RECLAIM_TIMELOCK",
+    "permalink": "/api/totemsdk-statechain/variables/RECLAIM_TIMELOCK"
+  },
+  "next": {
+    "title": "HostedProvider",
+    "permalink": "/api/totemsdk-chain-provider/classes/HostedProvider"
+  }
+}

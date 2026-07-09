@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-tx-builder/interfaces/MultisigExportData",
+  "title": "MultisigExportData",
+  "description": "@totemsdk/tx-builder",
+  "source": "@site/docs/api/totemsdk-tx-builder/interfaces/MultisigExportData.md",
+  "sourceDirName": "api/totemsdk-tx-builder/interfaces",
+  "slug": "/api/totemsdk-tx-builder/interfaces/MultisigExportData",
+  "permalink": "/api/totemsdk-tx-builder/interfaces/MultisigExportData",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "MultisigConfig",
+    "permalink": "/api/totemsdk-tx-builder/interfaces/MultisigConfig"
+  },
+  "next": {
+    "title": "PendingMultisigTransaction",
+    "permalink": "/api/totemsdk-tx-builder/interfaces/PendingMultisigTransaction"
+  }
+}

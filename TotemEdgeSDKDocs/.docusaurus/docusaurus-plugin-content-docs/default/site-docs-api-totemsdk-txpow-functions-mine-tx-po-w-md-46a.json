@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-txpow/functions/mineTxPoW",
+  "title": "mineTxPoW",
+  "description": "@totemsdk/txpow",
+  "source": "@site/docs/api/totemsdk-txpow/functions/mineTxPoW.md",
+  "sourceDirName": "api/totemsdk-txpow/functions",
+  "slug": "/api/totemsdk-txpow/functions/mineTxPoW",
+  "permalink": "/api/totemsdk-txpow/functions/mineTxPoW",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "isLessThan",
+    "permalink": "/api/totemsdk-txpow/functions/isLessThan"
+  },
+  "next": {
+    "title": "serializeMagic",
+    "permalink": "/api/totemsdk-txpow/functions/serializeMagic"
+  }
+}

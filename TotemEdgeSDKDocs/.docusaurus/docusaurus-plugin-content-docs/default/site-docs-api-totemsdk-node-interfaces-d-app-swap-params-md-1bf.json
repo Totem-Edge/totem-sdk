@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/DAppSwapParams",
+  "title": "DAppSwapParams",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/DAppSwapParams.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/DAppSwapParams",
+  "permalink": "/api/totemsdk-node/interfaces/DAppSwapParams",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "DAppStateVariable",
+    "permalink": "/api/totemsdk-node/interfaces/DAppStateVariable"
+  },
+  "next": {
+    "title": "DAppTimelockParams",
+    "permalink": "/api/totemsdk-node/interfaces/DAppTimelockParams"
+  }
+}

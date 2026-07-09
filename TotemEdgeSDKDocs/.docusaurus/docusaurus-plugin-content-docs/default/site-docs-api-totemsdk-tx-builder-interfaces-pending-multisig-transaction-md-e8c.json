@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-tx-builder/interfaces/PendingMultisigTransaction",
+  "title": "PendingMultisigTransaction",
+  "description": "@totemsdk/tx-builder",
+  "source": "@site/docs/api/totemsdk-tx-builder/interfaces/PendingMultisigTransaction.md",
+  "sourceDirName": "api/totemsdk-tx-builder/interfaces",
+  "slug": "/api/totemsdk-tx-builder/interfaces/PendingMultisigTransaction",
+  "permalink": "/api/totemsdk-tx-builder/interfaces/PendingMultisigTransaction",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "MultisigExportData",
+    "permalink": "/api/totemsdk-tx-builder/interfaces/MultisigExportData"
+  },
+  "next": {
+    "title": "SpendableCoin",
+    "permalink": "/api/totemsdk-tx-builder/interfaces/SpendableCoin"
+  }
+}

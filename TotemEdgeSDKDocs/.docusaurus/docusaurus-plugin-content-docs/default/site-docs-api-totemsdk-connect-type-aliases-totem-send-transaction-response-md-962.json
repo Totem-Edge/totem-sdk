@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-connect/type-aliases/TotemSendTransactionResponse",
+  "title": "TotemSendTransactionResponse",
+  "description": "@totemsdk/connect",
+  "source": "@site/docs/api/totemsdk-connect/type-aliases/TotemSendTransactionResponse.md",
+  "sourceDirName": "api/totemsdk-connect/type-aliases",
+  "slug": "/api/totemsdk-connect/type-aliases/TotemSendTransactionResponse",
+  "permalink": "/api/totemsdk-connect/type-aliases/TotemSendTransactionResponse",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TotemSendComplexResponse",
+    "permalink": "/api/totemsdk-connect/type-aliases/TotemSendComplexResponse"
+  },
+  "next": {
+    "title": "TotemSignDataResponse",
+    "permalink": "/api/totemsdk-connect/type-aliases/TotemSignDataResponse"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/addressToRoot",
+  "title": "addressToRoot",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/addressToRoot.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/addressToRoot",
+  "permalink": "/api/totemsdk-core/functions/addressToRoot",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "F",
+    "permalink": "/api/totemsdk-core/functions/F"
+  },
+  "next": {
+    "title": "aggregateSignatures",
+    "permalink": "/api/totemsdk-core/functions/aggregateSignatures"
+  }
+}

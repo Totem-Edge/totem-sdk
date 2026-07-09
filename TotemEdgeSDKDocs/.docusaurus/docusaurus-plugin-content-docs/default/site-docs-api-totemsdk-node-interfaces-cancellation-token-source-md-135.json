@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/CancellationTokenSource",
+  "title": "CancellationTokenSource",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/CancellationTokenSource.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/CancellationTokenSource",
+  "permalink": "/api/totemsdk-node/interfaces/CancellationTokenSource",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "CancellationToken",
+    "permalink": "/api/totemsdk-node/interfaces/CancellationToken"
+  },
+  "next": {
+    "title": "CoinProofData",
+    "permalink": "/api/totemsdk-node/interfaces/CoinProofData"
+  }
+}

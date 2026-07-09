@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-txpow/type-aliases/TxPoWOptions",
+  "title": "TxPoWOptions",
+  "description": "@totemsdk/txpow",
+  "source": "@site/docs/api/totemsdk-txpow/type-aliases/TxPoWOptions.md",
+  "sourceDirName": "api/totemsdk-txpow/type-aliases",
+  "slug": "/api/totemsdk-txpow/type-aliases/TxPoWOptions",
+  "permalink": "/api/totemsdk-txpow/type-aliases/TxPoWOptions",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "VerifyResult",
+    "permalink": "/api/totemsdk-txpow/interfaces/VerifyResult"
+  },
+  "next": {
+    "title": "CASCADE_LEVELS",
+    "permalink": "/api/totemsdk-txpow/variables/CASCADE_LEVELS"
+  }
+}

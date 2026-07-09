@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-tx-builder/functions/addDecimalStrings",
+  "title": "addDecimalStrings",
+  "description": "@totemsdk/tx-builder",
+  "source": "@site/docs/api/totemsdk-tx-builder/functions/addDecimalStrings.md",
+  "sourceDirName": "api/totemsdk-tx-builder/functions",
+  "slug": "/api/totemsdk-tx-builder/functions/addDecimalStrings",
+  "permalink": "/api/totemsdk-tx-builder/functions/addDecimalStrings",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "MultisigManager",
+    "permalink": "/api/totemsdk-tx-builder/classes/MultisigManager"
+  },
+  "next": {
+    "title": "bigIntToDecimalString",
+    "permalink": "/api/totemsdk-tx-builder/functions/bigIntToDecimalString"
+  }
+}

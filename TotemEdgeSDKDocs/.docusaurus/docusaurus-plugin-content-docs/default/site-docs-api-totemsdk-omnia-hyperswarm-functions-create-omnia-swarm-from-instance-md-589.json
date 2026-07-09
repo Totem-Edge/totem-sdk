@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-hyperswarm/functions/createOmniaSwarmFromInstance",
+  "title": "createOmniaSwarmFromInstance",
+  "description": "@totemsdk/omnia-hyperswarm",
+  "source": "@site/docs/api/totemsdk-omnia-hyperswarm/functions/createOmniaSwarmFromInstance.md",
+  "sourceDirName": "api/totemsdk-omnia-hyperswarm/functions",
+  "slug": "/api/totemsdk-omnia-hyperswarm/functions/createOmniaSwarmFromInstance",
+  "permalink": "/api/totemsdk-omnia-hyperswarm/functions/createOmniaSwarmFromInstance",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "createOmniaSwarm",
+    "permalink": "/api/totemsdk-omnia-hyperswarm/functions/createOmniaSwarm"
+  },
+  "next": {
+    "title": "encodeOmniaMessage",
+    "permalink": "/api/totemsdk-omnia-hyperswarm/functions/encodeOmniaMessage"
+  }
+}

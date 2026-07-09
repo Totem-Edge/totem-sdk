@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/WebSocketErrorEvent",
+  "title": "WebSocketErrorEvent",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/WebSocketErrorEvent.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/WebSocketErrorEvent",
+  "permalink": "/api/totemsdk-core/interfaces/WebSocketErrorEvent",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "WebSocketCloseEvent",
+    "permalink": "/api/totemsdk-core/interfaces/WebSocketCloseEvent"
+  },
+  "next": {
+    "title": "WebSocketFactory",
+    "permalink": "/api/totemsdk-core/interfaces/WebSocketFactory"
+  }
+}

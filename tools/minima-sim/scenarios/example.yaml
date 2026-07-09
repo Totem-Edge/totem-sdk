@@ -1,0 +1,36 @@
+name: "eu-west-rpc-bursty"
+region: "eu-west"
+nodeType: "rpc"
+healthScore: 100
+responseShape: "flaky"
+rules:
+  - match: "status"
+    baseLatencyMs: 40
+    jitterMs: 20
+    errorRate: 0.01
+  - match: "send"
+    baseLatencyMs: 120
+    jitterMs: 60
+    errorRate: 0.05
+  - match: "*"
+    baseLatencyMs: 80
+    jitterMs: 40
+    errorRate: 0.02
+timeline:
+  - atSec: 120
+    set:
+      forMatch: "*"
+      baseLatencyMs: 300
+      jitterMs: 120
+      errorRate: 0.08
+  - atSec: 240
+    set:
+      forMatch: "status"
+      errorRate: 0.2
+      failure: "http500"
+  - atSec: 300
+    set:
+      forMatch: "*"
+      baseLatencyMs: 80
+      jitterMs: 30
+      errorRate: 0.01

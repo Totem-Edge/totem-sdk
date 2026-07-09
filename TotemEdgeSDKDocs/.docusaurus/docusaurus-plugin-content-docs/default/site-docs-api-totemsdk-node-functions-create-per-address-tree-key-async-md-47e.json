@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/createPerAddressTreeKeyAsync",
+  "title": "createPerAddressTreeKeyAsync",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/createPerAddressTreeKeyAsync.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/createPerAddressTreeKeyAsync",
+  "permalink": "/api/totemsdk-node/functions/createPerAddressTreeKeyAsync",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "createPerAddressTreeKey",
+    "permalink": "/api/totemsdk-node/functions/createPerAddressTreeKey"
+  },
+  "next": {
+    "title": "createServerAdapters",
+    "permalink": "/api/totemsdk-node/functions/createServerAdapters"
+  }
+}

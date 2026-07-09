@@ -1,0 +1,28 @@
+{
+  "id": "concepts/omnia-channels",
+  "title": "Omnia Payment Channels",
+  "description": "How Omnia Layer 2 eltoo channels work in the Totem SDK.",
+  "source": "@site/docs/concepts/omnia-channels.md",
+  "sourceDirName": "concepts",
+  "slug": "/concepts/omnia-channels",
+  "permalink": "/concepts/omnia-channels",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "id": "omnia-channels",
+    "title": "Omnia Payment Channels",
+    "sidebar_label": "Omnia Channels",
+    "description": "How Omnia Layer 2 eltoo channels work in the Totem SDK."
+  },
+  "sidebar": "conceptsSidebar",
+  "previous": {
+    "title": "WOTS Key Management",
+    "permalink": "/concepts/wots-key-management"
+  },
+  "next": {
+    "title": "Totem Connect",
+    "permalink": "/concepts/totem-connect"
+  }
+}

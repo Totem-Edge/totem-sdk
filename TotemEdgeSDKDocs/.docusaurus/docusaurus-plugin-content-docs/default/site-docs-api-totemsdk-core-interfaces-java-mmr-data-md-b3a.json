@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/JavaMMRData",
+  "title": "JavaMMRData",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/JavaMMRData.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/JavaMMRData",
+  "permalink": "/api/totemsdk-core/interfaces/JavaMMRData",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "HttpResponse",
+    "permalink": "/api/totemsdk-core/interfaces/HttpResponse"
+  },
+  "next": {
+    "title": "JavaMMREntry",
+    "permalink": "/api/totemsdk-core/interfaces/JavaMMREntry"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/classes/MemoryStorageAdapter",
+  "title": "MemoryStorageAdapter",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/classes/MemoryStorageAdapter.md",
+  "sourceDirName": "api/totemsdk-node/classes",
+  "slug": "/api/totemsdk-node/classes/MemoryStorageAdapter",
+  "permalink": "/api/totemsdk-node/classes/MemoryStorageAdapter",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "MMRTree",
+    "permalink": "/api/totemsdk-node/classes/MMRTree"
+  },
+  "next": {
+    "title": "MinimaClient",
+    "permalink": "/api/totemsdk-node/classes/MinimaClient"
+  }
+}

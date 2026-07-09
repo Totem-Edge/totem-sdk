@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-kissvm/functions/buildWitness",
+  "title": "buildWitness",
+  "description": "@totemsdk/kissvm",
+  "source": "@site/docs/api/totemsdk-kissvm/functions/buildWitness.md",
+  "sourceDirName": "api/totemsdk-kissvm/functions",
+  "slug": "/api/totemsdk-kissvm/functions/buildWitness",
+  "permalink": "/api/totemsdk-kissvm/functions/buildWitness",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "KissvmRuntimeError",
+    "permalink": "/api/totemsdk-kissvm/classes/KissvmRuntimeError"
+  },
+  "next": {
+    "title": "evaluateScript",
+    "permalink": "/api/totemsdk-kissvm/functions/evaluateScript"
+  }
+}

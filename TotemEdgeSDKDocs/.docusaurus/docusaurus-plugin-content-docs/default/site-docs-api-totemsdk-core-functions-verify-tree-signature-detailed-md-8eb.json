@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/verifyTreeSignatureDetailed",
+  "title": "verifyTreeSignatureDetailed",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/verifyTreeSignatureDetailed.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/verifyTreeSignatureDetailed",
+  "permalink": "/api/totemsdk-core/functions/verifyTreeSignatureDetailed",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "verifyTreeSignature",
+    "permalink": "/api/totemsdk-core/functions/verifyTreeSignature"
+  },
+  "next": {
+    "title": "wotsAddressFromKeypair",
+    "permalink": "/api/totemsdk-core/functions/wotsAddressFromKeypair"
+  }
+}

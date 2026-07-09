@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-connect/functions/omniaOpenChannel",
+  "title": "omniaOpenChannel",
+  "description": "@totemsdk/connect",
+  "source": "@site/docs/api/totemsdk-connect/functions/omniaOpenChannel.md",
+  "sourceDirName": "api/totemsdk-connect/functions",
+  "slug": "/api/totemsdk-connect/functions/omniaOpenChannel",
+  "permalink": "/api/totemsdk-connect/functions/omniaOpenChannel",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "omniaGetSwapRate",
+    "permalink": "/api/totemsdk-connect/functions/omniaGetSwapRate"
+  },
+  "next": {
+    "title": "omniaOpenVirtualChannel",
+    "permalink": "/api/totemsdk-connect/functions/omniaOpenVirtualChannel"
+  }
+}

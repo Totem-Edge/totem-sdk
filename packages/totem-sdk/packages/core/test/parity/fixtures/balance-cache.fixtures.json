@@ -1,0 +1,70 @@
+{
+  "description": "BalanceCache expected behavior fixtures based on legacy Totem Wallet implementation",
+  "version": "1.0.0",
+  "scenarios": [
+    {
+      "name": "store_and_retrieve",
+      "input": {
+        "operation": "set",
+        "address": "Mx12345",
+        "balance": {
+          "confirmed": "1000000",
+          "unconfirmed": "0",
+          "tokens": [],
+          "timestamp": 1000000000
+        }
+      },
+      "expectedOutput": {
+        "stored": true,
+        "retrievable": true
+      }
+    },
+    {
+      "name": "expiry_after_max_age",
+      "input": {
+        "operation": "get",
+        "address": "MxExpired",
+        "cachedTimestamp": 1000000000,
+        "currentTime": 2000000000,
+        "maxCacheAge": 86400000
+      },
+      "expectedOutput": {
+        "value": null,
+        "reason": "expired"
+      }
+    },
+    {
+      "name": "in_memory_cache_first",
+      "input": {
+        "operation": "get",
+        "address": "MxCached",
+        "inMemory": true
+      },
+      "expectedOutput": {
+        "source": "memory",
+        "storageCalled": false
+      }
+    },
+    {
+      "name": "cleanup_removes_expired",
+      "input": {
+        "operation": "cleanup",
+        "addresses": ["MxValid", "MxExpired1", "MxExpired2"],
+        "expiredCount": 2
+      },
+      "expectedOutput": {
+        "removed": 2
+      }
+    },
+    {
+      "name": "clear_removes_all",
+      "input": {
+        "operation": "clear"
+      },
+      "expectedOutput": {
+        "inMemoryCleared": true,
+        "storageCleared": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-splice/interfaces/SpliceAcceptance",
+  "title": "SpliceAcceptance",
+  "description": "@totemsdk/omnia-splice",
+  "source": "@site/docs/api/totemsdk-omnia-splice/interfaces/SpliceAcceptance.md",
+  "sourceDirName": "api/totemsdk-omnia-splice/interfaces",
+  "slug": "/api/totemsdk-omnia-splice/interfaces/SpliceAcceptance",
+  "permalink": "/api/totemsdk-omnia-splice/interfaces/SpliceAcceptance",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "QuiesceOptions",
+    "permalink": "/api/totemsdk-omnia-splice/interfaces/QuiesceOptions"
+  },
+  "next": {
+    "title": "SpliceLeaseProvider",
+    "permalink": "/api/totemsdk-omnia-splice/interfaces/SpliceLeaseProvider"
+  }
+}

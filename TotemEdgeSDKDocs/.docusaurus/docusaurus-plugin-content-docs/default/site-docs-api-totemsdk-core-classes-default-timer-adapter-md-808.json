@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/classes/DefaultTimerAdapter",
+  "title": "DefaultTimerAdapter",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/classes/DefaultTimerAdapter.md",
+  "sourceDirName": "api/totemsdk-core/classes",
+  "slug": "/api/totemsdk-core/classes/DefaultTimerAdapter",
+  "permalink": "/api/totemsdk-core/classes/DefaultTimerAdapter",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "ConsoleLogger",
+    "permalink": "/api/totemsdk-core/classes/ConsoleLogger"
+  },
+  "next": {
+    "title": "ExchangeHelper",
+    "permalink": "/api/totemsdk-core/classes/ExchangeHelper"
+  }
+}

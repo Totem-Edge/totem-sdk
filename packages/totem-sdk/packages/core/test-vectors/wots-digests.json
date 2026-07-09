@@ -1,0 +1,19 @@
+{
+  "seed": "0x1111111111111111111111111111111111111111111111111111111111111111",
+  "index": 0,
+  "v1": {
+    "paramSet": "v1-dev",
+    "w": 8,
+    "L": 89,
+    "ctx": "MM|wots|sk|v1",
+    "pkDigest": "0xbbf0e9689b92b2e8b2fc30e5306a74c0db233cf60d8bc208e2e05db92b6213fe"
+  },
+  "v2": {
+    "paramSet": "v2-spec",
+    "w": 256,
+    "L": 34,
+    "ctx": "MM|wots|sk|v2",
+    "pkDigest": "0xbd7357f1d89b1f411cea6a0994e93b3730960803d6a2e0fc9dd671dd4a1c09f8"
+  },
+  "note": "PKdigests should be different due to domain separation"
+}

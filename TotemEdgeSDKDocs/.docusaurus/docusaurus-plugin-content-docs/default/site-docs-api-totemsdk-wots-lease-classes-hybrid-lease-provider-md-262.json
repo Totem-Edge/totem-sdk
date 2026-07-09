@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-wots-lease/classes/HybridLeaseProvider",
+  "title": "HybridLeaseProvider",
+  "description": "@totemsdk/wots-lease",
+  "source": "@site/docs/api/totemsdk-wots-lease/classes/HybridLeaseProvider.md",
+  "sourceDirName": "api/totemsdk-wots-lease/classes",
+  "slug": "/api/totemsdk-wots-lease/classes/HybridLeaseProvider",
+  "permalink": "/api/totemsdk-wots-lease/classes/HybridLeaseProvider",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "DeviceRangeViolationError",
+    "permalink": "/api/totemsdk-wots-lease/classes/DeviceRangeViolationError"
+  },
+  "next": {
+    "title": "LeaseJournal",
+    "permalink": "/api/totemsdk-wots-lease/classes/LeaseJournal"
+  }
+}

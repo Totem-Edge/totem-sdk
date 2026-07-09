@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/functions/verifyMMRProof",
+  "title": "verifyMMRProof",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/functions/verifyMMRProof.md",
+  "sourceDirName": "api/totemsdk-core/functions",
+  "slug": "/api/totemsdk-core/functions/verifyMMRProof",
+  "permalink": "/api/totemsdk-core/functions/verifyMMRProof",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "validateSendTransactionRequest",
+    "permalink": "/api/totemsdk-core/functions/validateSendTransactionRequest"
+  },
+  "next": {
+    "title": "verifySignature",
+    "permalink": "/api/totemsdk-core/functions/verifySignature"
+  }
+}

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Extension Load</title>
+</head>
+<body>
+    <h2>Chrome Extension Test</h2>
+    <p>To test the extension:</p>
+    <ol>
+        <li>Open Chrome and go to chrome://extensions/</li>
+        <li>Enable "Developer mode" (top right)</li>
+        <li>Click "Load unpacked"</li>
+        <li>Select the folder: packages/totem-extension/dist</li>
+        <li>Click the extension icon in toolbar</li>
+    </ol>
+    
+    <h3>Current dist folder files (as of Sep 6 21:36):</h3>
+    <ul>
+        <li>background.js - 160KB ✓</li>
+        <li>popup.js - 1.6MB ✓</li>
+        <li>content-script.js - 676B ✓</li>
+        <li>index.html - with script tag ✓</li>
+        <li>manifest.json ✓</li>
+    </ul>
+    
+    <h3>What should happen:</h3>
+    <p>The extension popup should show the Totem wallet interface after the background script responds with {result: {ok: true}} to the ui:isInitialized message.</p>
+</body>
+</html>

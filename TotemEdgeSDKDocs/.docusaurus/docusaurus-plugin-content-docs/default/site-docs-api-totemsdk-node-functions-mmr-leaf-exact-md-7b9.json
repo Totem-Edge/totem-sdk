@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/mmrLeafExact",
+  "title": "mmrLeafExact",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/mmrLeafExact.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/mmrLeafExact",
+  "permalink": "/api/totemsdk-node/functions/mmrLeafExact",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "makeMxAddress",
+    "permalink": "/api/totemsdk-node/functions/makeMxAddress"
+  },
+  "next": {
+    "title": "mmrRootFromSingleLeaf",
+    "permalink": "/api/totemsdk-node/functions/mmrRootFromSingleLeaf"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/wotsAddressFromKeypair",
+  "title": "wotsAddressFromKeypair",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/wotsAddressFromKeypair.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/wotsAddressFromKeypair",
+  "permalink": "/api/totemsdk-node/functions/wotsAddressFromKeypair",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "verifyTreeSignatureDetailed",
+    "permalink": "/api/totemsdk-node/functions/verifyTreeSignatureDetailed"
+  },
+  "next": {
+    "title": "wotsKeypairFromSeed",
+    "permalink": "/api/totemsdk-node/functions/wotsKeypairFromSeed"
+  }
+}

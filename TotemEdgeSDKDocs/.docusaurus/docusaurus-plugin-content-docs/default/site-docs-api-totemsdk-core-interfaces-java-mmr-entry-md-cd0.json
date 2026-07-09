@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-core/interfaces/JavaMMREntry",
+  "title": "JavaMMREntry",
+  "description": "@totemsdk/core",
+  "source": "@site/docs/api/totemsdk-core/interfaces/JavaMMREntry.md",
+  "sourceDirName": "api/totemsdk-core/interfaces",
+  "slug": "/api/totemsdk-core/interfaces/JavaMMREntry",
+  "permalink": "/api/totemsdk-core/interfaces/JavaMMREntry",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "JavaMMRData",
+    "permalink": "/api/totemsdk-core/interfaces/JavaMMRData"
+  },
+  "next": {
+    "title": "JavaMMREntryNumber",
+    "permalink": "/api/totemsdk-core/interfaces/JavaMMREntryNumber"
+  }
+}

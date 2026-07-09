@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-connect/interfaces/KissvmWitness",
+  "title": "KissvmWitness",
+  "description": "@totemsdk/connect",
+  "source": "@site/docs/api/totemsdk-connect/interfaces/KissvmWitness.md",
+  "sourceDirName": "api/totemsdk-connect/interfaces",
+  "slug": "/api/totemsdk-connect/interfaces/KissvmWitness",
+  "permalink": "/api/totemsdk-connect/interfaces/KissvmWitness",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "KissvmTxContext",
+    "permalink": "/api/totemsdk-connect/interfaces/KissvmTxContext"
+  },
+  "next": {
+    "title": "OmniaChannelSummary",
+    "permalink": "/api/totemsdk-connect/interfaces/OmniaChannelSummary"
+  }
+}

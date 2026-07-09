@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-pear/interfaces/AppConfig",
+  "title": "AppConfig",
+  "description": "@totemsdk/pear",
+  "source": "@site/docs/api/totemsdk-pear/interfaces/AppConfig.md",
+  "sourceDirName": "api/totemsdk-pear/interfaces",
+  "slug": "/api/totemsdk-pear/interfaces/AppConfig",
+  "permalink": "/api/totemsdk-pear/interfaces/AppConfig",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "index",
+    "permalink": "/api/totemsdk-pear/"
+  },
+  "next": {
+    "title": "BareFileStoreOptions",
+    "permalink": "/api/totemsdk-pear/interfaces/BareFileStoreOptions"
+  }
+}

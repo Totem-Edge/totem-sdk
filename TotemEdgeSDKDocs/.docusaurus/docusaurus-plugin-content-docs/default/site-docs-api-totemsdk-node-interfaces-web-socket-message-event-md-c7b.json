@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/WebSocketMessageEvent",
+  "title": "WebSocketMessageEvent",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/WebSocketMessageEvent.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/WebSocketMessageEvent",
+  "permalink": "/api/totemsdk-node/interfaces/WebSocketMessageEvent",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "WebSocketFactoryOptions",
+    "permalink": "/api/totemsdk-node/interfaces/WebSocketFactoryOptions"
+  },
+  "next": {
+    "title": "WebSocketOpenEvent",
+    "permalink": "/api/totemsdk-node/interfaces/WebSocketOpenEvent"
+  }
+}

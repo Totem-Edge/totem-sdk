@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-lookup-protocol/interfaces/LeaseWatermarkMessage",
+  "title": "LeaseWatermarkMessage",
+  "description": "@totemsdk/lookup-protocol",
+  "source": "@site/docs/api/totemsdk-lookup-protocol/interfaces/LeaseWatermarkMessage.md",
+  "sourceDirName": "api/totemsdk-lookup-protocol/interfaces",
+  "slug": "/api/totemsdk-lookup-protocol/interfaces/LeaseWatermarkMessage",
+  "permalink": "/api/totemsdk-lookup-protocol/interfaces/LeaseWatermarkMessage",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "LeaseReserveMessage",
+    "permalink": "/api/totemsdk-lookup-protocol/interfaces/LeaseReserveMessage"
+  },
+  "next": {
+    "title": "PingMessage",
+    "permalink": "/api/totemsdk-lookup-protocol/interfaces/PingMessage"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totem-sdk-browser/interfaces/ChromeStorageAdapterOptions",
+  "title": "ChromeStorageAdapterOptions",
+  "description": "@totem/sdk-browser",
+  "source": "@site/docs/api/totem-sdk-browser/interfaces/ChromeStorageAdapterOptions.md",
+  "sourceDirName": "api/totem-sdk-browser/interfaces",
+  "slug": "/api/totem-sdk-browser/interfaces/ChromeStorageAdapterOptions",
+  "permalink": "/api/totem-sdk-browser/interfaces/ChromeStorageAdapterOptions",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "BrowserConfigOptions",
+    "permalink": "/api/totem-sdk-browser/interfaces/BrowserConfigOptions"
+  },
+  "next": {
+    "title": "CreateBrowserAdaptersOptions",
+    "permalink": "/api/totem-sdk-browser/interfaces/CreateBrowserAdaptersOptions"
+  }
+}

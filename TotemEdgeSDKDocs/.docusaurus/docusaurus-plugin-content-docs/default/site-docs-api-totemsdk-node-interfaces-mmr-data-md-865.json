@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/interfaces/MMRData",
+  "title": "MMRData",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/interfaces/MMRData.md",
+  "sourceDirName": "api/totemsdk-node/interfaces",
+  "slug": "/api/totemsdk-node/interfaces/MMRData",
+  "permalink": "/api/totemsdk-node/interfaces/MMRData",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "LoggerAdapter",
+    "permalink": "/api/totemsdk-node/interfaces/LoggerAdapter"
+  },
+  "next": {
+    "title": "MMREntry",
+    "permalink": "/api/totemsdk-node/interfaces/MMREntry"
+  }
+}

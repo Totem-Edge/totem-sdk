@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia-router/functions/parseRateToScaled",
+  "title": "parseRateToScaled",
+  "description": "@totemsdk/omnia-router",
+  "source": "@site/docs/api/totemsdk-omnia-router/functions/parseRateToScaled.md",
+  "sourceDirName": "api/totemsdk-omnia-router/functions",
+  "slug": "/api/totemsdk-omnia-router/functions/parseRateToScaled",
+  "permalink": "/api/totemsdk-omnia-router/functions/parseRateToScaled",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "getSwapAnnouncements",
+    "permalink": "/api/totemsdk-omnia-router/functions/getSwapAnnouncements"
+  },
+  "next": {
+    "title": "removeChannel",
+    "permalink": "/api/totemsdk-omnia-router/functions/removeChannel"
+  }
+}

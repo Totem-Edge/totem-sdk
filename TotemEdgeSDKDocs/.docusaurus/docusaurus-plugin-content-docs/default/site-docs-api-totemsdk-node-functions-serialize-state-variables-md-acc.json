@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/serializeStateVariables",
+  "title": "serializeStateVariables",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/serializeStateVariables.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/serializeStateVariables",
+  "permalink": "/api/totemsdk-node/functions/serializeStateVariables",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "serializeScriptProofWithProof",
+    "permalink": "/api/totemsdk-node/functions/serializeScriptProofWithProof"
+  },
+  "next": {
+    "title": "serializeTransaction",
+    "permalink": "/api/totemsdk-node/functions/serializeTransaction"
+  }
+}

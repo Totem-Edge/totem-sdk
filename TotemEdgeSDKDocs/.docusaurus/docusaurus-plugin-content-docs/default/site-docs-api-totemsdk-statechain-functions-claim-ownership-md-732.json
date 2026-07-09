@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-statechain/functions/claimOwnership",
+  "title": "claimOwnership",
+  "description": "@totemsdk/statechain",
+  "source": "@site/docs/api/totemsdk-statechain/functions/claimOwnership.md",
+  "sourceDirName": "api/totemsdk-statechain/functions",
+  "slug": "/api/totemsdk-statechain/functions/claimOwnership",
+  "permalink": "/api/totemsdk-statechain/functions/claimOwnership",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "buildStatechainScript",
+    "permalink": "/api/totemsdk-statechain/functions/buildStatechainScript"
+  },
+  "next": {
+    "title": "createStateChain",
+    "permalink": "/api/totemsdk-statechain/functions/createStateChain"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-txpow/interfaces/TxBodyOptions",
+  "title": "TxBodyOptions",
+  "description": "@totemsdk/txpow",
+  "source": "@site/docs/api/totemsdk-txpow/interfaces/TxBodyOptions.md",
+  "sourceDirName": "api/totemsdk-txpow/interfaces",
+  "slug": "/api/totemsdk-txpow/interfaces/TxBodyOptions",
+  "permalink": "/api/totemsdk-txpow/interfaces/TxBodyOptions",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "MiningEstimate",
+    "permalink": "/api/totemsdk-txpow/interfaces/MiningEstimate"
+  },
+  "next": {
+    "title": "TxHeaderOptions",
+    "permalink": "/api/totemsdk-txpow/interfaces/TxHeaderOptions"
+  }
+}

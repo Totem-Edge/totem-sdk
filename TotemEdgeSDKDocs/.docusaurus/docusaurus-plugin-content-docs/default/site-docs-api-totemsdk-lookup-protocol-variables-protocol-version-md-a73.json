@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-lookup-protocol/variables/PROTOCOL_VERSION",
+  "title": "PROTOCOL_VERSION",
+  "description": "@totemsdk/lookup-protocol",
+  "source": "@site/docs/api/totemsdk-lookup-protocol/variables/PROTOCOL_VERSION.md",
+  "sourceDirName": "api/totemsdk-lookup-protocol/variables",
+  "slug": "/api/totemsdk-lookup-protocol/variables/PROTOCOL_VERSION",
+  "permalink": "/api/totemsdk-lookup-protocol/variables/PROTOCOL_VERSION",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "MessageType",
+    "permalink": "/api/totemsdk-lookup-protocol/type-aliases/MessageType"
+  },
+  "next": {
+    "title": "calibrateHashRate",
+    "permalink": "/api/totemsdk-txpow/functions/calibrateHashRate"
+  }
+}

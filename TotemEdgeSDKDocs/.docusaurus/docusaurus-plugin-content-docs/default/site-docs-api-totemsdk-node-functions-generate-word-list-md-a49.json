@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-node/functions/generateWordList",
+  "title": "generateWordList",
+  "description": "@totemsdk/node",
+  "source": "@site/docs/api/totemsdk-node/functions/generateWordList.md",
+  "sourceDirName": "api/totemsdk-node/functions",
+  "slug": "/api/totemsdk-node/functions/generateWordList",
+  "permalink": "/api/totemsdk-node/functions/generateWordList",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "generateSeedPhrase",
+    "permalink": "/api/totemsdk-node/functions/generateSeedPhrase"
+  },
+  "next": {
+    "title": "getParamSet",
+    "permalink": "/api/totemsdk-node/functions/getParamSet"
+  }
+}

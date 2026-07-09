@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-root-identity/variables/MAX_CHILD_COUNT",
+  "title": "MAX_CHILD_COUNT",
+  "description": "@totemsdk/root-identity",
+  "source": "@site/docs/api/totemsdk-root-identity/variables/MAX_CHILD_COUNT.md",
+  "sourceDirName": "api/totemsdk-root-identity/variables",
+  "slug": "/api/totemsdk-root-identity/variables/MAX_CHILD_COUNT",
+  "permalink": "/api/totemsdk-root-identity/variables/MAX_CHILD_COUNT",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "WotsProof",
+    "permalink": "/api/totemsdk-root-identity/interfaces/WotsProof"
+  },
+  "next": {
+    "title": "index",
+    "permalink": "/api/totemsdk-agent-policy/"
+  }
+}

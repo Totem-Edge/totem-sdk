@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-realtime/classes/BalanceCache",
+  "title": "BalanceCache",
+  "description": "@totemsdk/realtime",
+  "source": "@site/docs/api/totemsdk-realtime/classes/BalanceCache.md",
+  "sourceDirName": "api/totemsdk-realtime/classes",
+  "slug": "/api/totemsdk-realtime/classes/BalanceCache",
+  "permalink": "/api/totemsdk-realtime/classes/BalanceCache",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "TokenSearchQuery",
+    "permalink": "/api/totemsdk-chain-provider/interfaces/TokenSearchQuery"
+  },
+  "next": {
+    "title": "MegBalanceStreamManager",
+    "permalink": "/api/totemsdk-realtime/classes/MegBalanceStreamManager"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-chain-provider/interfaces/HostedProviderConfig",
+  "title": "HostedProviderConfig",
+  "description": "@totemsdk/chain-provider",
+  "source": "@site/docs/api/totemsdk-chain-provider/interfaces/HostedProviderConfig.md",
+  "sourceDirName": "api/totemsdk-chain-provider/interfaces",
+  "slug": "/api/totemsdk-chain-provider/interfaces/HostedProviderConfig",
+  "permalink": "/api/totemsdk-chain-provider/interfaces/HostedProviderConfig",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "CoinsQuery",
+    "permalink": "/api/totemsdk-chain-provider/interfaces/CoinsQuery"
+  },
+  "next": {
+    "title": "MMRProof",
+    "permalink": "/api/totemsdk-chain-provider/interfaces/MMRProof"
+  }
+}

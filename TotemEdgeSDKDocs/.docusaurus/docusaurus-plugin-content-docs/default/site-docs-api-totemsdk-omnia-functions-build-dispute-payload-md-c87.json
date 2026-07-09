@@ -1,0 +1,23 @@
+{
+  "id": "api/totemsdk-omnia/functions/buildDisputePayload",
+  "title": "buildDisputePayload",
+  "description": "@totemsdk/omnia",
+  "source": "@site/docs/api/totemsdk-omnia/functions/buildDisputePayload.md",
+  "sourceDirName": "api/totemsdk-omnia/functions",
+  "slug": "/api/totemsdk-omnia/functions/buildDisputePayload",
+  "permalink": "/api/totemsdk-omnia/functions/buildDisputePayload",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "apiSidebar",
+  "previous": {
+    "title": "buildAndHashEltooScript",
+    "permalink": "/api/totemsdk-omnia/functions/buildAndHashEltooScript"
+  },
+  "next": {
+    "title": "buildEltooScript",
+    "permalink": "/api/totemsdk-omnia/functions/buildEltooScript"
+  }
+}
