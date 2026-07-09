@@ -3,31 +3,20 @@
   "version": "1.0.0",
   "description": "Official Totem blockchain SDK for multi-platform development",
   "private": true,
-  "workspaces": [
-    "packages/*",
-    "examples/*"
-  ],
   "scripts": {
     "build": "npm run build:core && npm run build:txpow && npm run build:server && npm run build:root-identity",
-    "build:core": "npm run build --workspace=@totemsdk/core",
-    "build:txpow": "npm run build --workspace=@totemsdk/txpow",
-    "build:server": "npm run build --workspace=@totemsdk/server",
-    "build:root-identity": "npm run build --workspace=@totemsdk/root-identity",
-    "test": "npm run test --workspaces",
-    "clean": "npm run clean --workspaces",
+    "build:core": "cd packages/core && npm run build",
+    "build:txpow": "cd packages/txpow && npm run build",
+    "build:server": "cd packages/server && npm run build",
+    "build:root-identity": "cd packages/root-identity && npm run build",
+    "test": "cd packages/core && npm test && cd ../txpow && npm test",
+    "clean": "for d in packages/*/; do (cd \"$d\" && npm run clean); done",
     "smoke-test": "node scripts/smoke-test-imports.mjs",
     "prepack": "node scripts/smoke-test-imports.mjs",
     "docs": "typedoc",
     "validate:meta": "node scripts/validate-pkg-meta.mjs"
   },
-  "keywords": [
-    "totem",
-    "minima",
-    "blockchain",
-    "wots",
-    "cryptography",
-    "sdk"
-  ],
+  "keywords": ["totem", "minima", "blockchain", "wots", "cryptography", "sdk"],
   "author": "Totem",
   "license": "MIT",
   "devDependencies": {

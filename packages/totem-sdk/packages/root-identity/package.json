@@ -46,7 +46,7 @@
   },
   "devDependencies": {
     "@noble/hashes": "^2.2.0",
-    "@totemsdk/core": "workspace:*",
+    "@totemsdk/core": "^1.1.0",
     "@types/jest": "^29.0.0",
     "@types/node": "^20.0.0",
     "jest": "^29.0.0",

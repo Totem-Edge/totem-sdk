@@ -23,10 +23,10 @@
     "LICENSE"
   ],
   "dependencies": {
-    "@totemsdk/core": "workspace:*",
-    "@totemsdk/lookup-protocol": "workspace:*",
-    "@totemsdk/chain-provider": "workspace:*",
-    "@totemsdk/stream-transport": "workspace:*"
+    "@totemsdk/core": "^1.1.0",
+    "@totemsdk/lookup-protocol": "^0.1.3",
+    "@totemsdk/chain-provider": "^0.1.4",
+    "@totemsdk/stream-transport": "^0.1.0"
   },
   "devDependencies": {
     "@noble/hashes": "^2.2.0",

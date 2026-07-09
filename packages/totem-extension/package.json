@@ -30,11 +30,11 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@noble/hashes": "^1.8.0",
+    "@noble/hashes": "^2.0.0",
     "@totemsdk/core": "^1.1.0",
     "@totemsdk/realtime": "^0.1.9",
     "@totemsdk/root-identity": "^1.0.7",
-    "@totemsdk/txpow": "^0.1.5",
+    "@totemsdk/txpow": "^0.1.6",
     "bip39": "^3.1.0",
     "buffer": "^6.0.3",
     "clsx": "^2.1.0",

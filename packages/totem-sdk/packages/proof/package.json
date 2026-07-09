@@ -23,9 +23,9 @@
     "LICENSE"
   ],
   "dependencies": {
-    "@totemsdk/core": "workspace:*",
-    "@totemsdk/manifest": "workspace:*",
-    "@totemsdk/identity": "workspace:*"
+    "@totemsdk/core": "^1.1.0",
+    "@totemsdk/manifest": "^0.1.2",
+    "@totemsdk/identity": "^0.1.2"
   },
   "peerDependencies": {
     "@noble/hashes": "^2.0.0"

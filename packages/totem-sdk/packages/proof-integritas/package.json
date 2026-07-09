@@ -23,7 +23,7 @@
     "LICENSE"
   ],
   "dependencies": {
-    "@totemsdk/proof": "workspace:*"
+    "@totemsdk/proof": "^0.1.1"
   },
   "peerDependencies": {
     "@noble/hashes": "^2.0.0"

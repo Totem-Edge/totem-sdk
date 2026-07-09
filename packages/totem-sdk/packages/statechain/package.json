@@ -24,11 +24,11 @@
   ],
   "dependencies": {
     "@noble/hashes": "^2.2.0",
-    "@totemsdk/core": "workspace:*",
-    "@totemsdk/wots-lease": "workspace:*",
-    "@totemsdk/tx-builder": "workspace:*",
-    "@totemsdk/txpow": "workspace:*",
-    "@totemsdk/chain-provider": "workspace:*"
+    "@totemsdk/core": "^1.1.0",
+    "@totemsdk/wots-lease": "^0.1.3",
+    "@totemsdk/tx-builder": "^0.1.6",
+    "@totemsdk/txpow": "^0.1.5",
+    "@totemsdk/chain-provider": "^0.1.4"
   },
   "peerDependencies": {
     "@noble/hashes": "^2.0.0"

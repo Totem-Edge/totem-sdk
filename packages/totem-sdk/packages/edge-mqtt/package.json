@@ -23,13 +23,13 @@
     "LICENSE"
   ],
   "dependencies": {
-    "@totemsdk/core": "workspace:*",
-    "@totemsdk/manifest": "workspace:*",
-    "@totemsdk/identity": "workspace:*",
-    "@totemsdk/edge": "workspace:*",
-    "@totemsdk/proof": "workspace:*",
-    "@totemsdk/agent-policy": "workspace:*",
-    "@totemsdk/pubsub-transport": "workspace:*"
+    "@totemsdk/core": "^1.1.0",
+    "@totemsdk/manifest": "^0.1.2",
+    "@totemsdk/identity": "^0.1.2",
+    "@totemsdk/edge": "^0.1.2",
+    "@totemsdk/proof": "^0.1.1",
+    "@totemsdk/agent-policy": "^0.1.3",
+    "@totemsdk/pubsub-transport": "^0.1.0"
   },
   "peerDependencies": {
     "@noble/hashes": "^2.0.0"

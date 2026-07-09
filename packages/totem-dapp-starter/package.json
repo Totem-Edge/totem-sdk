@@ -12,7 +12,7 @@
     "test": "node --test server/auth-verify.test.js"
   },
   "dependencies": {
-    "@totem/observability": "^0.1.0",
+    "@totemsdk/observability": "^0.1.0",
     "@totemsdk/core": "^1.1.0",
     "@totemsdk/proof-integritas": "^0.1.1",
     "@totemsdk/root-identity": "^1.0.7",

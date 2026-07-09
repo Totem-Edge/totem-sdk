@@ -32,7 +32,7 @@
     }
   },
   "dependencies": {
-    "@totemsdk/stream-transport": "workspace:*"
+    "@totemsdk/stream-transport": "^0.1.0"
   },
   "scripts": {
     "build": "tsc",

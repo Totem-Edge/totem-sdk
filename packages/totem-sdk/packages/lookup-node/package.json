@@ -24,12 +24,12 @@
     "LICENSE"
   ],
   "dependencies": {
-    "@totemsdk/core": "workspace:*",
-    "@totemsdk/lookup-protocol": "workspace:*",
-    "@totemsdk/chain-provider": "workspace:*",
-    "@totemsdk/pureminima-rpc": "workspace:*",
-    "@totemsdk/wots-lease": "workspace:*",
-    "@totemsdk/txpow": "workspace:*",
+    "@totemsdk/core": "^1.1.0",
+    "@totemsdk/lookup-protocol": "^0.1.3",
+    "@totemsdk/chain-provider": "^0.1.4",
+    "@totemsdk/pureminima-rpc": "^0.1.3",
+    "@totemsdk/wots-lease": "^0.1.3",
+    "@totemsdk/txpow": "^0.1.5",
     "better-sqlite3": "^12.2.0"
   },
   "devDependencies": {

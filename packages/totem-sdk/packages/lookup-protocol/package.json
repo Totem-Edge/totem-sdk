@@ -23,7 +23,7 @@
     "LICENSE"
   ],
   "dependencies": {
-    "@totemsdk/core": "workspace:*"
+    "@totemsdk/core": "^1.1.0"
   },
   "devDependencies": {
     "@noble/hashes": "^2.2.0",
