@@ -1,0 +1,54 @@
+name: Build Totem Extension
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/totem-extension/**'
+      - '.github/workflows/build-extension.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: packages/totem-extension/package-lock.json
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: packages/totem-extension
+
+      - name: Build extension
+        run: npm run build
+        working-directory: packages/totem-extension
+
+      - name: Package extension as zip
+        run: |
+          cd packages/totem-extension
+          TIMESTAMP=$(date -u +%Y%m%d-%H%M%S)
+          ZIPNAME="totem-extension-build-${TIMESTAMP}.zip"
+          cd dist && zip -r "../../../${ZIPNAME}" .
+          echo "ZIPNAME=${ZIPNAME}" >> $GITHUB_ENV
+
+      - name: Upload extension artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: totem-extension
+          path: totem-extension-build-*.zip
+          retention-days: 90
+
+      - name: Create release and upload
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/extension-v')
+        with:
+          files: totem-extension-build-*.zip
+          generate_release_notes: true

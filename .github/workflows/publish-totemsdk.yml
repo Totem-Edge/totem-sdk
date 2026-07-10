@@ -9,6 +9,8 @@ on:
       - 'totemsdk/node-v*'
       - 'totemsdk/realtime-v*'
       - 'totemsdk/root-identity-v*'
+      - 'totemsdk/omnia-vtxo-v*'
+      - 'totemsdk/observability-v*'
 
 jobs:
   publish:
@@ -40,6 +42,12 @@ jobs:
           - pkg: root-identity
             dir: packages/totem-sdk/packages/root-identity
             npm_name: '@totemsdk/root-identity'
+          - pkg: omnia-vtxo
+            dir: packages/totem-sdk/packages/omnia-vtxo
+            npm_name: '@totemsdk/omnia-vtxo'
+          - pkg: observability
+            dir: packages/observability
+            npm_name: '@totemsdk/observability'
 
     steps:
       # ── Gate: only proceed when the pushed tag targets this package ───────────
@@ -61,22 +69,17 @@ jobs:
       - uses: actions/checkout@v4
         if: steps.gate.outputs.proceed == 'true'
 
-      - uses: pnpm/action-setup@v3
-        if: steps.gate.outputs.proceed == 'true'
-        with:
-          version: 10
-
       - uses: actions/setup-node@v4
         if: steps.gate.outputs.proceed == 'true'
         with:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
-          cache: 'pnpm'
+          cache: 'npm'
 
       - name: Install dependencies
         if: steps.gate.outputs.proceed == 'true'
-        run: pnpm install --frozen-lockfile
-        working-directory: packages/totem-sdk
+        run: npm install
+        working-directory: ${{ matrix.dir }}
 
       # ── Pre-build @totemsdk/core so dependent packages can resolve its types ──
       - name: Build @totemsdk/core (workspace dependency)
@@ -119,12 +122,9 @@ jobs:
         working-directory: ${{ matrix.dir }}
 
       # ── Publish ───────────────────────────────────────────────────────────────
-      # Use `pnpm publish` (not `npm publish`) so that workspace:* ranges in
-      # dependencies/peerDependencies are replaced with resolved semver
-      # versions before the tarball is packed and uploaded to the registry.
       - name: Publish ${{ matrix.npm_name }}@${{ steps.meta.outputs.version }}
         if: steps.gate.outputs.proceed == 'true'
-        run: pnpm publish --access public --no-git-checks --ignore-scripts
+        run: npm publish --access public
         working-directory: ${{ matrix.dir }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
