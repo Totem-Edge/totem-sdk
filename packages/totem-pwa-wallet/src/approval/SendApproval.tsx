@@ -15,16 +15,24 @@ import { track } from '../core/observability';
 
 /**
  * Derive the caller origin from a trusted source.
- * document.referrer is set by the browser when a popup/tab is opened from a
- * page and cannot be spoofed via URL query-param manipulation.  The ?origin=
- * param is used only as a fallback for the redirect flow (where the browser
- * clears the referrer on full-page navigation).
+ * - For protocol-handler (native app) calls: use the ?origin= param directly
+ *   (the protocol handler page validates the returnUrl before forwarding)
+ * - For web dApps: document.referrer is set by the browser when a popup/tab
+ *   is opened from a page and cannot be spoofed via URL query-param manipulation.
+ *   The ?origin= param is used only as a fallback for the redirect flow (where
+ *   the browser clears the referrer on full-page navigation).
  */
 function trustedCallerOrigin(): string {
+  const params = new URLSearchParams(window.location.search);
+  const source = params.get('source');
+  if (source === 'protocol-handler') {
+    const fromParam = params.get('origin');
+    return fromParam ? decodeURIComponent(fromParam) : 'native-app://unknown';
+  }
   if (document.referrer) {
     try { return new URL(document.referrer).origin; } catch { /* malformed */ }
   }
-  const fromParam = new URL(window.location.href).searchParams.get('origin');
+  const fromParam = params.get('origin');
   return fromParam ? decodeURIComponent(fromParam) : 'Unknown dApp';
 }
 
@@ -36,13 +44,28 @@ function getParams() {
     amount: url.searchParams.get('amount') ?? '0',
     tokenId: url.searchParams.get('tokenId') ?? '0x00',
     reqId: url.searchParams.get('reqId') ?? '',
+    mode: url.searchParams.get('mode') ?? 'submit',
   };
 }
 
 function isPopup(): boolean { return window.opener !== null; }
 
+function isCustomScheme(url: string): boolean {
+  try { return !['https:', 'http:'].includes(new URL(url).protocol); } catch { return true; }
+}
+
 function sendResult(result: unknown, error?: string, reqId?: string) {
   const payload = { type: 'totem_response', reqId, result, error };
+  const url = new URL(window.location.href);
+  const returnUrl = url.searchParams.get('returnUrl');
+
+  if (returnUrl && isCustomScheme(returnUrl)) {
+    const ret = new URL(returnUrl);
+    ret.searchParams.set('totem_result', btoa(JSON.stringify(error ? { error } : result)));
+    if (reqId) ret.searchParams.set('totem_reqid', reqId);
+    window.location.href = ret.toString();
+    return;
+  }
 
   if (reqId) {
     try {
@@ -55,15 +78,11 @@ function sendResult(result: unknown, error?: string, reqId?: string) {
   if (isPopup()) {
     window.opener?.postMessage(payload, '*');
     setTimeout(() => window.close(), 100);
-  } else {
-    const url = new URL(window.location.href);
-    const returnUrl = url.searchParams.get('returnUrl');
-    if (returnUrl) {
-      const ret = new URL(returnUrl);
-      ret.searchParams.set('totem_result', btoa(JSON.stringify(error ? { error } : result)));
-      if (reqId) ret.searchParams.set('totem_reqid', reqId);
-      window.location.href = ret.toString();
-    }
+  } else if (returnUrl) {
+    const ret = new URL(returnUrl);
+    ret.searchParams.set('totem_result', btoa(JSON.stringify(error ? { error } : result)));
+    if (reqId) ret.searchParams.set('totem_reqid', reqId);
+    window.location.href = ret.toString();
   }
 }
 
@@ -73,7 +92,7 @@ export function SendApproval() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
-  const { origin, to, amount, tokenId, reqId } = getParams();
+  const { origin, to, amount, tokenId, reqId, mode } = getParams();
 
   useEffect(() => {
     if (!WalletManager.isUnlocked()) setStep('password');
@@ -149,6 +168,35 @@ export function SendApproval() {
       // Persist parent-child sig proofs so next sign is fast
       await WalletManager.flushSigCache();
 
+      if (mode === 'build') {
+        // Build mode — return unsigned hex + plan without broadcasting
+        sendResult({
+          success: true,
+          mode: 'build',
+          unsignedHex: txnRowHex,
+          digestTx: '',
+          plan: {
+            inputs: selected.map(c => ({ coinId: c.coinid, amount: c.amount, tokenId: c.tokenid, address: c.address })),
+            outputs: [{ address: to, amount, tokenId }],
+            change: { address: account.address, amount: changeAmount, tokenId },
+            fee: null,
+          },
+          inputCoinProofs: coinProofHexes.map((h, i) => ({
+            coinId: selected[i].coinid,
+            amount: selected[i].amount,
+            tokenId: selected[i].tokenid,
+            address: selected[i].address,
+            proof: null,
+          })),
+          scriptDescriptors: [],
+          chainId: '',
+          blobHash: '',
+          detectedIntent: 'send',
+          scriptTypes: ['signedby'],
+        }, undefined, reqId);
+        return;
+      }
+
       setStatusMsg('Broadcasting…');
       track('send:broadcast', { identityHash: session.identityHash });
       const result = await finalizeLease(
@@ -156,7 +204,11 @@ export function SendApproval() {
         session.identityHash,
       );
       track('send:success', { identityHash: session.identityHash });
-      sendResult({ txid: result.txid ?? txId, ok: true }, undefined, reqId);
+      sendResult({
+        success: true,
+        txpowid: result.txid ?? txId,
+        status: 'submitted',
+      }, undefined, reqId);
     } catch (e) {
       sendResult(undefined, String(e), reqId);
     }

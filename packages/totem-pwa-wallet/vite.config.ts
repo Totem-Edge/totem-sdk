@@ -83,6 +83,7 @@ export default defineConfig({
         connect: resolve(__dirname, 'approval/connect.html'),
         verify: resolve(__dirname, 'approval/verify.html'),
         send: resolve(__dirname, 'approval/send.html'),
+        'protocol-handler': resolve(__dirname, 'approval/protocol-handler.html'),
       },
     },
   },

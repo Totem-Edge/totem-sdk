@@ -8,16 +8,28 @@ import { VaultStore } from '../stores/VaultStore';
 
 /**
  * Derive the caller origin from a trusted source.
- * document.referrer is set by the browser when a popup/tab is opened from a
- * page and cannot be spoofed via URL query-param manipulation.  The ?origin=
- * param is used only as a fallback for the redirect flow (where the browser
- * clears the referrer on full-page navigation).
+ * - For protocol-handler (native app) calls: use the ?origin= param directly
+ *   (the protocol handler page validates the returnUrl before forwarding)
+ * - For web dApps: document.referrer is set by the browser when a popup/tab
+ *   is opened from a page and cannot be spoofed via URL query-param manipulation.
+ *   The ?origin= param is used only as a fallback for the redirect flow (where
+ *   the browser clears the referrer on full-page navigation).
  */
 function trustedCallerOrigin(): string {
+  const params = new URLSearchParams(window.location.search);
+  const source = params.get('source');
+
+  // Native app calls via protocol handler — trust the origin param
+  if (source === 'protocol-handler') {
+    const fromParam = params.get('origin');
+    return fromParam ? decodeURIComponent(fromParam) : 'native-app://unknown';
+  }
+
+  // Web dApp calls — prefer document.referrer (browser-set, unspoofable)
   if (document.referrer) {
     try { return new URL(document.referrer).origin; } catch { /* malformed */ }
   }
-  const fromParam = new URL(window.location.href).searchParams.get('origin');
+  const fromParam = params.get('origin');
   return fromParam ? decodeURIComponent(fromParam) : 'Unknown dApp';
 }
 
@@ -33,8 +45,23 @@ function isPopup(): boolean {
   return window.opener !== null;
 }
 
+function isCustomScheme(url: string): boolean {
+  try { return !['https:', 'http:'].includes(new URL(url).protocol); } catch { return true; }
+}
+
 function sendResult(result: unknown, error?: string, reqId?: string) {
   const payload = { type: 'totem_response', reqId, result, error };
+  const url = new URL(window.location.href);
+  const returnUrl = url.searchParams.get('returnUrl');
+
+  // Custom scheme (native app callback) — redirect directly, no postMessage/BC
+  if (returnUrl && isCustomScheme(returnUrl)) {
+    const ret = new URL(returnUrl);
+    ret.searchParams.set('totem_result', btoa(JSON.stringify(error ? { error } : result)));
+    if (reqId) ret.searchParams.set('totem_reqid', reqId);
+    window.location.href = ret.toString();
+    return;
+  }
 
   // BroadcastChannel — delivers result to the dApp page when opened as a new
   // tab on mobile (where window.opener may be null cross-origin).
@@ -42,7 +69,6 @@ function sendResult(result: unknown, error?: string, reqId?: string) {
     try {
       const bc = new BroadcastChannel(`totem_response_${reqId}`);
       bc.postMessage(payload);
-      // Close after a tick so the message is flushed before the tab closes.
       setTimeout(() => bc.close(), 200);
     } catch { /* BroadcastChannel not supported */ }
   }
@@ -50,15 +76,11 @@ function sendResult(result: unknown, error?: string, reqId?: string) {
   if (isPopup()) {
     window.opener?.postMessage(payload, '*');
     setTimeout(() => window.close(), 100);
-  } else {
-    const url = new URL(window.location.href);
-    const returnUrl = url.searchParams.get('returnUrl');
-    if (returnUrl) {
-      const ret = new URL(returnUrl);
-      ret.searchParams.set('totem_result', btoa(JSON.stringify(error ? { error } : result)));
-      if (reqId) ret.searchParams.set('totem_reqid', reqId);
-      window.location.href = ret.toString();
-    }
+  } else if (returnUrl) {
+    const ret = new URL(returnUrl);
+    ret.searchParams.set('totem_result', btoa(JSON.stringify(error ? { error } : result)));
+    if (reqId) ret.searchParams.set('totem_reqid', reqId);
+    window.location.href = ret.toString();
   }
 }
 
@@ -107,6 +129,7 @@ export function ConnectApproval() {
       address: account.address,
       addressIndex: account.index,
       publicKey: account.publicKey,
+      isReconnect: false,
     }, undefined, reqId);
   }
 

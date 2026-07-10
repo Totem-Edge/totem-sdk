@@ -11,6 +11,18 @@ export { loadConfigFromEnv } from './config';
 export type { StatechainRecord } from './db';
 export type { TimelockAlert } from './timelockMonitor';
 export { migrateStatechainTables } from './db';
+export {
+  insertStatechainRecord,
+  getStatechainRecord,
+  updateStatechainOwner,
+  updateStatechainStatus,
+  insertRevocation,
+  isRevoked,
+  issueNonce,
+  consumeNonce,
+  logSignEvent,
+  getApproachingTimelockChains,
+} from './db';
 export { createSeRouter } from './router';
 export { createTimelockMonitor } from './timelockMonitor';
 export {

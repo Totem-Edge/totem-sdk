@@ -22,7 +22,7 @@ import {
 } from '@totemsdk/core';
 import { VaultStore, type AccountRecord } from '../stores/VaultStore';
 import { SigCacheStore } from '../stores/SigCacheStore';
-import { computeIdentityHash } from './api';
+import { computeIdentityHash, fetchWatermark } from './api';
 import { toHex } from './utils';
 
 export interface SessionState {
@@ -285,6 +285,27 @@ export const WalletManager = {
   },
 
   async hasWallet(): Promise<boolean> { return VaultStore.hasWallet(); },
+
+  // ── Periodic watermark sync ────────────────────────────────────────────
+
+  _watermarkInterval: ReturnType<typeof setInterval> | null = null,
+
+  startWatermarkSync(intervalMs = 60000): void {
+    this.stopWatermarkSync();
+    this._watermarkInterval = setInterval(async () => {
+      if (!_session) return;
+      try {
+        await fetchWatermark(_session.rootPublicKey, _session.identityHash);
+      } catch { /* non-fatal — will retry next interval */ }
+    }, intervalMs);
+  },
+
+  stopWatermarkSync(): void {
+    if (this._watermarkInterval) {
+      clearInterval(this._watermarkInterval);
+      this._watermarkInterval = null;
+    }
+  },
 
   async resetWallet(): Promise<void> {
     WalletManager.lock();

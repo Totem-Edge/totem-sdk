@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/omnia",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Omnia eltoo payment channel state machine — transport-agnostic, WOTS-safe, HTLC-ready",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

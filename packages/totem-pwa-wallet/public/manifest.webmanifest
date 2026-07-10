@@ -36,5 +36,11 @@
       "url": "/receive",
       "description": "Receive Minima tokens"
     }
+  ],
+  "protocol_handlers": [
+    {
+      "protocol": "web+totem",
+      "url": "/protocol-handler?request=%s"
+    }
   ]
 }

@@ -97,6 +97,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     await WalletManager.unlock(password);
     const s = WalletManager.getSession();
     setSession(s);
+    WalletManager.startWatermarkSync();
     track('session.unlocked', { identityHash: s?.identityHash });
     const confirmed = await WalletManager.isBackupConfirmed();
 
@@ -112,6 +113,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   const lock = useCallback(() => {
     track('session.locked');
+    WalletManager.stopWatermarkSync();
     WalletManager.lock();
     setSession(null);
     preExpiredRoute.current = null;

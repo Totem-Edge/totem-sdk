@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/se-server",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Self-hostable Statechain Entity (SE) server — Mercury-protocol co-signer packaged as a standalone Express app",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

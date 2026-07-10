@@ -9,16 +9,24 @@ import { fromHex } from '../core/utils';
 
 /**
  * Derive the caller origin from a trusted source.
- * document.referrer is set by the browser when a popup/tab is opened from a
- * page and cannot be spoofed via URL query-param manipulation.  The ?origin=
- * param is used only as a fallback for the redirect flow (where the browser
- * clears the referrer on full-page navigation).
+ * - For protocol-handler (native app) calls: use the ?origin= param directly
+ *   (the protocol handler page validates the returnUrl before forwarding)
+ * - For web dApps: document.referrer is set by the browser when a popup/tab
+ *   is opened from a page and cannot be spoofed via URL query-param manipulation.
+ *   The ?origin= param is used only as a fallback for the redirect flow (where
+ *   the browser clears the referrer on full-page navigation).
  */
 function trustedCallerOrigin(): string {
+  const params = new URLSearchParams(window.location.search);
+  const source = params.get('source');
+  if (source === 'protocol-handler') {
+    const fromParam = params.get('origin');
+    return fromParam ? decodeURIComponent(fromParam) : 'native-app://unknown';
+  }
   if (document.referrer) {
     try { return new URL(document.referrer).origin; } catch { /* malformed */ }
   }
-  const fromParam = new URL(window.location.href).searchParams.get('origin');
+  const fromParam = params.get('origin');
   return fromParam ? decodeURIComponent(fromParam) : 'Unknown dApp';
 }
 
@@ -39,8 +47,22 @@ function getParams() {
 
 function isPopup(): boolean { return window.opener !== null; }
 
+function isCustomScheme(url: string): boolean {
+  try { return !['https:', 'http:'].includes(new URL(url).protocol); } catch { return true; }
+}
+
 function sendResult(result: unknown, error?: string, reqId?: string) {
   const payload = { type: 'totem_response', reqId, result, error };
+  const url = new URL(window.location.href);
+  const returnUrl = url.searchParams.get('returnUrl');
+
+  if (returnUrl && isCustomScheme(returnUrl)) {
+    const ret = new URL(returnUrl);
+    ret.searchParams.set('totem_result', btoa(JSON.stringify(error ? { error } : result)));
+    if (reqId) ret.searchParams.set('totem_reqid', reqId);
+    window.location.href = ret.toString();
+    return;
+  }
 
   if (reqId) {
     try {
@@ -53,15 +75,11 @@ function sendResult(result: unknown, error?: string, reqId?: string) {
   if (isPopup()) {
     window.opener?.postMessage(payload, '*');
     setTimeout(() => window.close(), 100);
-  } else {
-    const url = new URL(window.location.href);
-    const returnUrl = url.searchParams.get('returnUrl');
-    if (returnUrl) {
-      const ret = new URL(returnUrl);
-      ret.searchParams.set('totem_result', btoa(JSON.stringify(error ? { error } : result)));
-      if (reqId) ret.searchParams.set('totem_reqid', reqId);
-      window.location.href = ret.toString();
-    }
+  } else if (returnUrl) {
+    const ret = new URL(returnUrl);
+    ret.searchParams.set('totem_result', btoa(JSON.stringify(error ? { error } : result)));
+    if (reqId) ret.searchParams.set('totem_reqid', reqId);
+    window.location.href = ret.toString();
   }
 }
 
@@ -111,18 +129,27 @@ export function VerifyApproval() {
       const signature = await signAndSerialize(treeKey, sigBytes);
 
       if (isVerifyMode) {
-        // TOTEM_VERIFY — return the full proof shape expected by the dApp starter
-        // { address, signature, publicKey, message }
         const account = WalletManager.getActiveAccount();
         sendResult({
+          verified: true,
+          verificationId: `verify_${Date.now()}`,
           address:   account?.address   ?? '',
           publicKey: account?.publicKey ?? '',
           signature,
           message,
+          expiresAt: Date.now() + 3600000,
         }, undefined, reqId);
       } else {
-        // TOTEM_SIGN_DATA / TOTEM_PROVE_OWNERSHIP — legacy shape
-        sendResult({ signature, digestTx, blobHash }, undefined, reqId);
+        const account = WalletManager.getActiveAccount();
+        sendResult({
+          success: true,
+          signedHex: signature,
+          signatures: [{ signature, digestTx, blobHash }],
+          signerAddress: account?.address ?? '',
+          signerIndex: account?.index ?? 0,
+          inputsSigned: [0],
+          status: 'signed',
+        }, undefined, reqId);
       }
     } catch (e) {
       sendResult(undefined, String(e), reqId);
