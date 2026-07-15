@@ -50,7 +50,7 @@
   },
   "devDependencies": {
     "@docusaurus/module-type-aliases": "3.7.0",
-    "@docusaurus/types": "3.7.0",
+    "@docusaurus/types": "3.10.2",
     "typedoc": "^0.28.0",
     "typedoc-plugin-markdown": "^4.11.0",
     "typescript": "^5.0.0"
