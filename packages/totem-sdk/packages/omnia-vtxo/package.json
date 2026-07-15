@@ -23,7 +23,7 @@
     "LICENSE"
   ],
   "dependencies": {
-    "@noble/hashes": "^1.8.0"
+    "@noble/hashes": "^2.2.0"
   },
   "peerDependencies": {
     "@noble/hashes": "^1.0.0"

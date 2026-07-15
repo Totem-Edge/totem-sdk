@@ -27,7 +27,7 @@
     "LICENSE"
   ],
   "dependencies": {
-    "@noble/hashes": "^1.3.3",
+    "@noble/hashes": "^2.2.0",
     "@totemsdk/core": "^1.1.0",
     "express": "^5.0.0",
     "pg": "^8.11.3",
