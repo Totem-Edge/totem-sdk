@@ -9,7 +9,7 @@ A developer guide for integrating Totem wallet authentication and signature veri
 ### Installation
 
 ```bash
-npm install @totem/sdk-core @noble/hashes
+pnpm install @totemsdk/core @noble/hashes
 ```
 
 > **Requirement:** Node.js >= 16.0.0
@@ -24,7 +24,7 @@ import {
   createChallenge,
   validateChallenge,
   normalizeHex
-} from '@totem/sdk-core';
+} from '@totemsdk/core';
 ```
 
 ---
@@ -46,7 +46,7 @@ Not:
 The SDK provides `normalizeHex()` for defensive hex handling — it strips the `0x` prefix if present and returns the lowercase hex string:
 
 ```typescript
-import { normalizeHex } from '@totem/sdk-core';
+import { normalizeHex } from '@totemsdk/core';
 
 normalizeHex('0x2A09D9D9523D...');
 // → "2a09d9d9523d..."
@@ -109,7 +109,7 @@ import {
   verifySignatureDetailed,
   createChallenge,
   validateChallenge
-} from '@totem/sdk-core';
+} from '@totemsdk/core';
 
 // Challenge endpoint
 app.get('/api/auth/challenge', (req, res) => {
@@ -248,7 +248,7 @@ if (!result.valid) {
 Low-level tree signature verification with error reporting. Most integrators should use `verifySignatureDetailed` instead — this function is for advanced use cases where you already have the raw public key bytes, pre-computed data digest, and deserialized `TreeSignature` object. **For TOTEM_VERIFY proofs (v4.1+), always prefer `verifySignatureDetailed(address, message, signature, publicKey)`** — it covers the address↔publicKey binding and the WOTS check in a single call, which is the contract the Totem extension and starter dApp now rely on.
 
 ```typescript
-import { verifyTreeSignatureDetailed } from '@totem/sdk-core';
+import { verifyTreeSignatureDetailed } from '@totemsdk/core';
 
 const result = verifyTreeSignatureDetailed(pubkeyBytes, digestBytes, treeSignature);
 ```
@@ -383,14 +383,14 @@ The package ships with `test-vectors.json` containing pre-computed WOTS signatur
 ### Location
 
 ```
-@totem/sdk-core/test-vectors.json
+@totemsdk/core/test-vectors.json
 ```
 
 ### Using Test Vectors
 
 ```typescript
-import vectors from '@totem/sdk-core/test-vectors.json';
-import { wotsVerify } from '@totem/sdk-core';
+import vectors from '@totemsdk/core/test-vectors.json';
+import { wotsVerify } from '@totemsdk/core';
 import { sha3_256 } from '@noble/hashes/sha3';
 
 for (const vector of vectors.vectors) {
@@ -453,7 +453,7 @@ Each test vector contains:
 The SDK uses `@noble/hashes` for SHA3-256 hashing. It is listed as a peer dependency, so you must install it alongside the SDK:
 
 ```bash
-npm install @totem/sdk-core @noble/hashes
+pnpm install @totemsdk/core @noble/hashes
 ```
 
 ---
@@ -562,7 +562,7 @@ const proof = await provider.request({
 // one-liner shown in Section 3.
 ```
 
-Send `signature`, `publicKey`, and `statement` to your backend and verify using `verifySignatureDetailed()` from `@totem/sdk-core` (see Section 3).
+Send `signature`, `publicKey`, and `statement` to your backend and verify using `verifySignatureDetailed()` from `@totemsdk/core` (see Section 3).
 
 > **Connect + Verify are one atomic step.** Call `TOTEM_VERIFY` immediately and automatically after `TOTEM_CONNECT` resolves, with no intermediate UI between them. Users expect to be signed in the moment they pick their address.
 
@@ -934,7 +934,7 @@ class TotemIntegration {
     this.connected = true;
     this.verified = true;
     // Send proof.signature + proof.publicKey + statement to your backend
-    // and verify with verifySignatureDetailed() from @totem/sdk-core
+    // and verify with verifySignatureDetailed() from @totemsdk/core
     return proof;
   }
 

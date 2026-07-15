@@ -1,0 +1,94 @@
+syntax = "proto3";
+
+package totem.agent.policy.v1;
+
+import "google/protobuf/struct.proto";
+
+// ---------------------------------------------------------------------------
+// PaymentIntent — the action an agent wants the wallet to take.
+// Agents produce intents; they do not execute them.
+// ---------------------------------------------------------------------------
+
+enum IntentType {
+  INTENT_TYPE_UNSPECIFIED = 0;
+  INTENT_TYPE_PAYMENT = 1;
+  INTENT_TYPE_CHANNEL_UPDATE = 2;
+  INTENT_TYPE_SETTLEMENT = 3;
+  INTENT_TYPE_LOOKUP = 4;
+  INTENT_TYPE_RECEIPT = 5;
+}
+
+enum RiskLevel {
+  RISK_LEVEL_UNSPECIFIED = 0;
+  RISK_LEVEL_LOW = 1;
+  RISK_LEVEL_MEDIUM = 2;
+  RISK_LEVEL_HIGH = 3;
+}
+
+message PaymentIntent {
+  IntentType type = 1;
+  string amount = 2;
+  string token_id = 3;
+  string recipient = 4;
+  string reason = 5;
+  RiskLevel risk = 6;
+  google.protobuf.Struct metadata = 7;
+}
+
+// ---------------------------------------------------------------------------
+// AgentProposal — a concrete proposal from an agent, wrapping a PaymentIntent.
+// The wallet evaluates this against an AgentPolicy before signing anything.
+// ---------------------------------------------------------------------------
+
+message AgentProposal {
+  string id = 1;
+  string agent_id = 2;
+  PaymentIntent intent = 3;
+  string explanation = 4;
+  double confidence = 5;
+  int64 created_at = 6;
+}
+
+// ---------------------------------------------------------------------------
+// AgentReceipt — result returned to the agent after Totem has processed the intent.
+// ---------------------------------------------------------------------------
+
+enum ReceiptStatus {
+  RECEIPT_STATUS_UNSPECIFIED = 0;
+  RECEIPT_STATUS_APPROVED = 1;
+  RECEIPT_STATUS_REJECTED = 2;
+  RECEIPT_STATUS_PENDING_USER = 3;
+}
+
+message AgentReceipt {
+  string proposal_id = 1;
+  ReceiptStatus status = 2;
+  string txpow_id = 3;
+  string channel_state = 4;
+  string rejection_reason = 5;
+  int64 settled_at = 6;
+}
+
+// ---------------------------------------------------------------------------
+// AgentIdentity — minimal agent identity for lookup-node registration and
+// capability advertisement. Contains NO private keys.
+// ---------------------------------------------------------------------------
+
+message AgentIdentity {
+  string agent_id = 1;
+  string address = 2;
+  repeated string capabilities = 3;
+}
+
+// ---------------------------------------------------------------------------
+// AgentPolicyConfig — serializable policy configuration.
+// The behavioral AgentPolicy interface (canAutoApprove / requiresUserApproval)
+// remains a TypeScript-only interface and is NOT represented here.
+// ---------------------------------------------------------------------------
+
+message AgentPolicyConfig {
+  string agent_id = 1;
+  repeated IntentType allowed_intents = 2;
+  map<string, string> limits = 3;
+  int64 expires_at = 4;
+}

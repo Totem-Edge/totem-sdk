@@ -1,0 +1,74 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    versioning-strategy: increase
+    labels:
+      - "dependencies"
+      - "security"
+    reviewers:
+      - "totem-sdk/core-maintainers"
+
+  - package-ecosystem: "npm"
+    directory: "/packages/totem-sdk"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    versioning-strategy: increase
+    labels:
+      - "dependencies"
+      - "security"
+    reviewers:
+      - "totem-sdk/core-maintainers"
+
+  - package-ecosystem: "npm"
+    directory: "/packages/totem-extension"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+    labels:
+      - "dependencies"
+    reviewers:
+      - "totem-sdk/wallet-maintainers"
+
+  - package-ecosystem: "npm"
+    directory: "/packages/totem-pwa-wallet"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+    labels:
+      - "dependencies"
+    reviewers:
+      - "totem-sdk/wallet-maintainers"
+
+  - package-ecosystem: "npm"
+    directory: "/TotemEdgeSDKDocs"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+    labels:
+      - "dependencies"
+    reviewers:
+      - "totem-sdk/infra-maintainers"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels:
+      - "dependencies"
+      - "ci"
+    reviewers:
+      - "totem-sdk/infra-maintainers"

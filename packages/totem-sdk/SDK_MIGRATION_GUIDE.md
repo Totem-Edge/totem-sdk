@@ -1,11 +1,11 @@
 # Totem SDK Migration Guide
 
 **Date:** 2026-02-16
-**Affects:** `@totem/sdk-core`, `@totem/sdk-tx-builder` (new), `@totem/sdk-connect`
+**Affects:** `@totemsdk/core`, `@totem/sdk-tx-builder` (new), `@totem/sdk-connect`
 
 This guide covers:
 1. **Breaking changes** to `@totem/sdk-connect` types (aligned to TOTEM_CONNECT.md v3.0.0, formerly TOTEM_CONNECT_SPEC v2.1.1)
-2. Non-breaking function renames in `@totem/sdk-core` (old names still work as deprecated aliases)
+2. Non-breaking function renames in `@totemsdk/core` (old names still work as deprecated aliases)
 3. New subpackages (`@totem/sdk-tx-builder`, new connect helper functions)
 
 ---
@@ -41,7 +41,7 @@ await provider.request({ method: 'TOTEM_CONNECT', params: { origin: window.locat
 
 **Request:** `{ message: string }` → `{ origin, challenge?: { statement?, nonce?, expiryMs? } }`
 
-**Response:** `{ verified, verificationId, address, message, signature, publicKey, expiresAt, sessionToken?, sessionExpiresAt? }`. As of v4.1 the proof signs from the connected spend address (no reserved auth-key slot), so `deriveAddressFromPublicKey(publicKey) === address` and backends verify with the high-level one-liner `verifySignatureDetailed(address, message, signature, publicKey)` from `@totem/sdk-core`. The previous `authKeyIndex` and `digestHex` fields have been removed.
+**Response:** `{ verified, verificationId, address, message, signature, publicKey, expiresAt, sessionToken?, sessionExpiresAt? }`. As of v4.1 the proof signs from the connected spend address (no reserved auth-key slot), so `deriveAddressFromPublicKey(publicKey) === address` and backends verify with the high-level one-liner `verifySignatureDetailed(address, message, signature, publicKey)` from `@totemsdk/core`. The previous `authKeyIndex` and `digestHex` fields have been removed.
 
 ### `TOTEM_GET_ACCOUNTS` Response Changed
 
@@ -121,7 +121,7 @@ if (result.success) {
 
 ---
 
-## Non-Breaking Changes — `@totem/sdk-core` Renames
+## Non-Breaking Changes — `@totemsdk/core` Renames
 
 All renamed functions retain their original names as `@deprecated` aliases. Your existing code will continue to compile and work correctly.
 
@@ -140,25 +140,25 @@ These functions handle conversion between raw bytes, hex strings, and Mx-format 
 | `makeMinimaAddress(hex)` | `hexToMx(hex)` | Convert hex string to Mx address | `string` (e.g. `MxG0...`) |
 | `convertMinimaAddress(mx)` | `mxToHex(mx)` | Convert Mx address to hex string | `string` (uppercase hex) |
 
-**Import path:** `@totem/sdk-core` barrel export, or directly from `minima32.ts` / `mx.ts`
+**Import path:** `@totemsdk/core` barrel export, or directly from `minima32.ts` / `mx.ts`
 
 **Example migration:**
 
 ```typescript
 // Before
-import { encodeMx, decodeMx } from '@totem/sdk-core';
+import { encodeMx, decodeMx } from '@totemsdk/core';
 const address = encodeMx(rootBytes);
 const bytes = decodeMx(address);
 
 // After
-import { makeMxAddress, parseMxAddress } from '@totem/sdk-core';
+import { makeMxAddress, parseMxAddress } from '@totemsdk/core';
 const address = makeMxAddress(rootBytes);
 const bytes = parseMxAddress(address);
 ```
 
 ---
 
-### MMR Proof Serialization (`mmr.ts`)
+### MMR Proof Serialization (`mmr.js`)
 
 | Old Name | New Name | Description | Input | Return Type |
 |----------|----------|-------------|-------|-------------|
@@ -169,11 +169,11 @@ const bytes = parseMxAddress(address);
 
 ```typescript
 // Before
-import { deserializeMMRProof } from '@totem/sdk-core';
+import { deserializeMMRProof } from '@totemsdk/core';
 const { proof, blockTime } = deserializeMMRProof(proofBytes);
 
 // After
-import { parseMMRProofFromHex } from '@totem/sdk-core';
+import { parseMMRProofFromHex } from '@totemsdk/core';
 const { proof, blockTime } = parseMMRProofFromHex(proofBytes);
 ```
 
@@ -215,17 +215,17 @@ The SDK exports `parseMMRProofFromHex` from two different modules with **differe
 
 | Module | Input Type | Use Case |
 |--------|-----------|----------|
-| `mmr.ts` | `Uint8Array` (raw bytes) | Low-level MMR proof parsing from binary data |
+| `mmr.js` | `Uint8Array` (raw bytes) | Low-level MMR proof parsing from binary data |
 | `witness-serializer.ts` | `string` (hex string) | Parsing MMR proofs embedded in witness hex data |
 
-The barrel export (`@totem/sdk-core`) exposes the `mmr.ts` version (takes `Uint8Array`). If you need the hex-string version, import directly:
+The barrel export (`@totemsdk/core`) exposes the `mmr.js` version (takes `Uint8Array`). If you need the hex-string version, import directly:
 
 ```typescript
 // Barrel export — takes Uint8Array
-import { parseMMRProofFromHex } from '@totem/sdk-core';
+import { parseMMRProofFromHex } from '@totemsdk/core';
 
 // Direct import — takes hex string
-import { parseMMRProofFromHex } from '@totem/sdk-core/scripts/witness-serializer';
+import { parseMMRProofFromHex } from '@totemsdk/core/scripts/witness-serializer';
 ```
 
 ---
@@ -306,11 +306,11 @@ console.log(result.unsignedHex, result.blobHash);
 
 | What You Need | Import From |
 |--------------|-------------|
-| Address encoding/decoding | `@totem/sdk-core` (`makeMxAddress`, `parseMxAddress`, `hexToMx`, `mxToHex`) |
-| Wallet address derivation | `@totem/sdk-core` (`scriptToAddress`, `scriptFromWotsPk`) |
-| MMR proof operations | `@totem/sdk-core` (`serializeMMRProof`, `parseMMRProofFromHex`) |
-| Script proof / witness building | `@totem/sdk-core` (`computeScriptAddress`, `serializeStateVariables`) |
-| Transaction serialization | `@totem/sdk-core` (`writeMiniNumber` / `encodeMiniNumber`, etc.) |
+| Address encoding/decoding | `@totemsdk/core` (`makeMxAddress`, `parseMxAddress`, `hexToMx`, `mxToHex`) |
+| Wallet address derivation | `@totemsdk/core` (`scriptToAddress`, `scriptFromWotsPk`) |
+| MMR proof operations | `@totemsdk/core` (`serializeMMRProof`, `parseMMRProofFromHex`) |
+| Script proof / witness building | `@totemsdk/core` (`computeScriptAddress`, `serializeStateVariables`) |
+| Transaction serialization | `@totemsdk/core` (`writeMiniNumber` / `encodeMiniNumber`, etc.) |
 | Coin selection | `@totem/sdk-tx-builder` (`CoinSelectionService`) |
 | Multisig coordination | `@totem/sdk-tx-builder` (`MultisigManager`) |
 | DApp provider API | `@totem/sdk-connect` (`connect`, `verify`, `getAccounts`, `sendTransaction`, `getCoins`, `sendComplex`, `signData`, `broadcastHex`) |

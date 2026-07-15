@@ -1,13 +1,13 @@
 # @totemsdk — Totem SDK for Minima
 
-The official TypeScript SDK for building on the [Minima](https://minima.global) blockchain. 22 packages covering everything from quantum-resistant signatures to payment channels, smart contracts, and AI agent integration.
+The official TypeScript SDK for building on the [Minima](https://minima.global) blockchain. 35 packages covering everything from quantum-resistant signatures to payment channels, smart contracts, and AI agent integration.
 
 ## Where to start
 
 | I want to… | Start here |
 |-----------|------------|
 | Build a browser dApp that connects to the Totem wallet | [`@totemsdk/connect`](packages/connect) |
-| Run a server-side wallet, bot, or agent | [`@totemsdk/node`](packages/node) |
+| Use the cryptographic primitives directly | [`@totemsdk/core`](packages/core) |
 | Run my own chain indexer / self-sovereign infrastructure | [`@totemsdk/lookup-node`](packages/lookup-node) |
 | Build payment channels and multi-hop routing | [`@totemsdk/omnia`](packages/omnia) + the omnia suite |
 | Understand quantum-safe key management | [`@totemsdk/wots-lease`](packages/wots-lease) |
@@ -18,30 +18,43 @@ The official TypeScript SDK for building on the [Minima](https://minima.global) 
 
 | Package | Version | Description |
 |---------|---------|-------------|
-| [`@totemsdk/core`](packages/core) | 1.0.6 | The cryptographic engine — WOTS, TreeKey, BIP39, MMR, serialization |
+| [`@totemsdk/core`](packages/core) | 1.1.0 | The cryptographic engine — WOTS, TreeKey, BIP39, MMR, serialization |
 | [`@totemsdk/connect`](packages/connect) | 2.0.1 | The dApp gateway — everything a web app needs to talk to the Totem extension |
-| [`@totemsdk/node`](packages/node) | 1.0.4 | Core SDK wired for Node.js — server-side wallet operations |
-| [`@totemsdk/chain-provider`](packages/chain-provider) | 0.1.1 | Unified abstraction over all chain data sources |
-| [`@totemsdk/pureminima-rpc`](packages/pureminima-rpc) | 0.1.1 | Direct RPC to a self-hosted PureMinima node — works in every JS runtime |
-| [`@totemsdk/realtime`](packages/realtime) | 0.1.3 | Live balance streaming with WebSocket and HTTP fallback |
+| [`@totemsdk/chain-provider`](packages/chain-provider) | 0.1.4 | Unified abstraction over all chain data sources |
+| [`@totemsdk/pureminima-rpc`](packages/pureminima-rpc) | 0.1.3 | Direct RPC to a self-hosted PureMinima node — works in every JS runtime |
+| [`@totemsdk/realtime`](packages/realtime) | 0.1.9 | Live balance streaming with WebSocket and HTTP fallback |
 | [`@totemsdk/lookup-protocol`](packages/lookup-protocol) | 0.1.1 | Wire protocol spec for the P2P lookup network |
 | [`@totemsdk/lookup-client`](packages/lookup-client) | 0.1.1 | Connect to your personal lookup node from any app |
 | [`@totemsdk/lookup-node`](packages/lookup-node) | 0.1.1 | Run your own always-on personal lookup node |
-| [`@totemsdk/wots-lease`](packages/wots-lease) | 0.1.1 | WOTS key safety — prevents catastrophic signature slot reuse |
-| [`@totemsdk/txpow`](packages/txpow) | 0.1.0 | TxPoW — Minima's spam-prevention proof-of-work on every transaction |
-| [`@totemsdk/tx-builder`](packages/tx-builder) | 0.1.2 | Construct Minima transactions in pure TypeScript |
+| [`@totemsdk/wots-lease`](packages/wots-lease) | 0.1.3 | WOTS key safety — prevents catastrophic signature slot reuse |
+| [`@totemsdk/txpow`](packages/txpow) | 0.1.6 | TxPoW — Minima's spam-prevention proof-of-work on every transaction |
+| [`@totemsdk/tx-builder`](packages/tx-builder) | 0.1.6 | Construct Minima transactions in pure TypeScript |
 | [`@totemsdk/kissvm`](packages/kissvm) | 0.1.1 | Minima's smart contract language — in pure TypeScript |
-| [`@totemsdk/omnia`](packages/omnia) | 0.1.1 | Eltoo payment channels — the heart of Totem's payment network |
+| [`@totemsdk/omnia`](packages/omnia) | 0.1.5 | Eltoo payment channels — the heart of Totem's payment network |
 | [`@totemsdk/omnia-factory`](packages/omnia-factory) | 0.1.2 | Scale payment channels — N-of-N funded factory channels |
 | [`@totemsdk/omnia-router`](packages/omnia-router) | 0.1.1 | Multi-hop payments and cross-token swaps across the channel network |
-| [`@totemsdk/omnia-splice`](packages/omnia-splice) | 0.1.1 | Resize channels without closing them |
-| [`@totemsdk/omnia-hyperswarm`](packages/omnia-hyperswarm) | 0.1.1 | P2P transport for Omnia channels — no central relay server |
-| [`@totemsdk/root-identity`](packages/root-identity) | 1.0.3 | One seed → up to 64 blockchain addresses, all cryptographically provable |
+| [`@totemsdk/omnia-splice`](packages/omnia-splice) | 0.1.5 | Resize channels without closing them |
+| [`@totemsdk/omnia-vtxo`](packages/omnia-vtxo) | 0.1.1 | VTXO management for Omnia channels |
+| [`@totemsdk/root-identity`](packages/root-identity) | 1.0.7 | One seed → up to 64 blockchain addresses, all cryptographically provable |
 | [`@totemsdk/statechain`](packages/statechain) | 0.1.1 | Off-chain UTXO ownership transfer using the Mercury protocol |
 | [`@totemsdk/agent-policy`](packages/agent-policy) | 0.1.1 | The interface seam between human wallets and AI agents |
-| [`@totemsdk/pear`](packages/pear) | 0.1.0 | Run Totem SDK apps inside Holepunch's Pear/Bare runtime |
+| [`@totemsdk/pear`](packages/pear) | 0.1.2 | Run Totem SDK apps inside Holepunch's Pear/Bare runtime |
+| [`@totemsdk/edge`](packages/edge) | 0.1.2 | Edge computing runtime for IoT and mobile devices |
+| [`@totemsdk/edge-adapters`](packages/edge-adapters) | 0.1.1 | Adapter interfaces for edge environments |
+| [`@totemsdk/edge-mqtt`](packages/edge-mqtt) | 0.1.1 | MQTT transport for edge devices |
+| [`@totemsdk/identity`](packages/identity) | 0.1.1 | Identity management and verification |
+| [`@totemsdk/manifest`](packages/manifest) | 0.1.1 | Manifest handling for Pear apps |
+| [`@totemsdk/proof`](packages/proof) | 0.1.1 | Proof generation and verification |
+| [`@totemsdk/proof-integritas`](packages/proof-integritas) | 0.1.1 | Integritas proof-of-existence system |
+| [`@totemsdk/proofgraph`](packages/proofgraph) | 0.1.1 | Proof graph construction |
+| [`@totemsdk/pubsub-transport`](packages/pubsub-transport) | 0.1.1 | PubSub transport layer |
+| [`@totemsdk/se-server`](packages/se-server) | 0.1.2 | Statechain Entity server |
+| [`@totemsdk/server`](packages/server) | 0.1.1 | Server utilities |
+| [`@totemsdk/stream-transport`](packages/stream-transport) | 0.1.1 | Stream transport layer |
+| [`@totemsdk/wallet-adapter`](packages/wallet-adapter) | 0.1.1 | Wallet adapter interfaces |
+| [`@totemsdk/sdk-tests`](packages/sdk-tests) | 0.1.1 | Integration tests for the SDK |
 
-> **Legacy packages** — `browser` and `client` were created in November 2025 for the v1.x architecture. They have not been updated for the v2.x per-address TreeKey system. Use the packages above for all new projects.
+> **Note:** The `@totemsdk/node` and `@totemsdk/omnia-hyperswarm` packages referenced in older documentation are not included in this repository. Use the packages listed above for all new projects.
 
 ---
 

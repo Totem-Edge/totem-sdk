@@ -1,5 +1,7 @@
 # Totem Transaction Workflows
 
+> **Note:** This document describes the intended design and architecture for the Totem Agent. Some details may differ from the current implementation. For the authoritative specification, see [TOTEM_WALLET_SPEC.md](../../TOTEM_WALLET_SPEC.md) and [LEASE_WATERMARK_SPEC.md](../../LEASE_WATERMARK_SPEC.md).
+
 ## Overview
 Totem implements a three-step WOTS signing workflow with Axia API integration:
 1. **Prepare** - Request lease from Axia API
@@ -40,17 +42,17 @@ Approval Popup
 [If Approved]
 Background Worker
  │ Step 1: TransactionService.prepare({to, amount, tokenId}, rootPublicKey)
- │   → POST /wots/hardened/prepare
- │   ← {l1, l2, l3, leaseToken, digestTx, txId, leaseTTL}
+ │   → POST /v1/wots-hardened/prepare
+ │   ← {addressIndex, l1, l2, leaseToken, digestTx, txId, leaseTTL}
  ↓
 Background Worker
- │ Step 2: TransactionService.sign({l1, l2, l3, digestTx}, seed)
- │   → Client-side WOTS signing (w=8, L=34)
+ │ Step 2: TransactionService.sign({addressIndex, l1, l2, digestTx}, seed)
+ │   → Client-side WOTS signing (w=8, L=34, 1,088-byte signature)
  │   ← {witnessBundle, signedHex}
  ↓
 Background Worker
  │ Step 3: TransactionService.finalize({leaseToken, signedHex})
- │   → POST /wots/hardened/finalize
+ │   → POST /v1/wots-hardened/finalize
  │   ← {ok: true, leaseId, txpowid}
  ↓
 Background Worker
@@ -68,7 +70,7 @@ Popup UI
 **Flow Diagram**:
 ```
 Dapp
- │ window.minima.request({method: 'minima_sendTransaction', params: [txData]})
+ │ window.totem.request({method: 'TOTEM_SEND_TRANSACTION', params: [txData]})
  ↓
 Content Script
  │ Forwards to background via chrome.runtime.sendMessage
@@ -104,50 +106,51 @@ Dapp
 ```
 Root Seed (256-bit)
  │
- ├─ L1 (64 addresses) - Top-level tree
- │   └─ Each L1 has 64 L2 children
- │       └─ Each L2 has 64 L3 children
- │
-Total: 64³ = 262,144 signatures per root
+ ├─ Address 0 (TreeKey with 64 L1 × 64 L2 = 4,096 signatures)
+ ├─ Address 1 (TreeKey with 4,096 signatures)
+ │   ...
+ └─ Address 63 (TreeKey with 4,096 signatures)
+
+Total: 64 addresses × 4,096 = 262,144 signatures per wallet
 ```
 
 ### Signature Generation (Client-Side)
 ```typescript
 // From TransactionService.sign()
 
-1. Get indices from Axia API (l1, l2, l3)
-2. Import WOTS SDK
-3. Derive parameter set (minima: w=8, L=34)
-4. Sign digest at all 3 levels:
-   - wotsSign(seed, l1, digestTx, paramSet) → 34 x 32 bytes
-   - wotsSign(seed, l2, digestTx, paramSet) → 34 x 32 bytes
-   - wotsSign(seed, l3, digestTx, paramSet) → 34 x 32 bytes
-5. Convert to hex array format (34 elements per level)
-6. Bundle into WitnessBundle {l1, l2, l3, signatures}
-7. Serialize to signedHex (concatenated proofs)
+1. Get indices from Axia API (addressIndex, l1, l2)
+2. Derive per-address TreeKey from seed
+3. Convert (l1, l2) to flat uses counter: uses = l1 * 64 + l2
+4. treeKey.setUses(uses)
+5. treeKey.sign(digestTx) → produces 3 SignatureProof entries:
+   - Proof 0: Root → L1 (root signs L1 child's public key)
+   - Proof 1: L1 → L2 (L1 signs L2 child's public key)
+   - Proof 2: L2 → DATA (L2 leaf signs transaction digest)
+6. Each proof: 1,088-byte WOTS signature (34 chains × 32 bytes)
+7. Serialize to signedHex (Minima wire format)
 ```
 
 ### Lease System
 **Purpose**: Prevent WOTS key reuse (one-time signatures)
 
 **Lifecycle**:
-1. **Request**: `POST /wots/hardened/prepare`
-   - Input: `{txId, rootPublicKey, to, amount, tokenId}`
-   - Output: `{l1, l2, l3, leaseToken (JWT), digestTx, leaseTTL}`
+1. **Request**: `POST /v1/wots-hardened/prepare`
+   - Input: `{txId, rootPublicKey, addressIndex}`
+   - Output: `{addressIndex, l1, l2, leaseToken (JWT), digestTx, leaseTTL}`
 
 2. **Sign**: Client-side only (no network call)
-   - Uses leased indices l1/l2/l3
+   - Uses leased indices (addressIndex, l1, l2)
    - Never signs same indices twice
 
-3. **Consume**: `POST /wots/hardened/finalize`
+3. **Consume**: `POST /v1/wots-hardened/finalize`
    - Input: `{leaseToken, signedHex}`
    - Marks lease as consumed on server
    - Broadcasts transaction to Minima network
 
 **Lease Expiry**:
-- TTL: 5 minutes (300 seconds)
-- After expiry: Lease is revoked, indices can be reused
-- If signing takes >5min: Finalize will fail, must restart
+- TTL: 20-60 seconds (server default 20s, max 60s)
+- After expiry: Lease is marked EXPIRED, indices are PERMANENTLY consumed (never reused)
+- If signing takes too long: Finalize will fail, must restart with new lease
 
 ## Error States & Handling
 

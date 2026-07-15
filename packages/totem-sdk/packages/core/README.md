@@ -99,7 +99,6 @@ This package is a TypeScript port of core Minima Java cryptographic and data str
 ## See also
 
 - [`@totemsdk/connect`](https://www.npmjs.com/package/@totemsdk/connect) — dApp gateway built on top of core
-- [`@totemsdk/node`](https://www.npmjs.com/package/@totemsdk/node) — core wired for Node.js server-side use
 - [`@totemsdk/wots-lease`](https://www.npmjs.com/package/@totemsdk/wots-lease) — cloud-coordinated WOTS key safety
 - [`@totemsdk/tx-builder`](https://www.npmjs.com/package/@totemsdk/tx-builder) — full transaction construction
 - [`@totemsdk/root-identity`](https://www.npmjs.com/package/@totemsdk/root-identity) — multi-address identity from one seed

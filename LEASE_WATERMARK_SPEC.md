@@ -1093,7 +1093,7 @@ if ('l3' in lease.indices) {
 ### Server Types
 
 ```typescript
-// leaseStore-postgres.ts
+// Server-side lease row (PostgreSQL)
 // NOTE: DB columns l1/l2/l3 map to wire (API) fields addressIndex/l1/l2
 type LeaseRow = {
   id: string;
@@ -1112,7 +1112,7 @@ type LeaseRow = {
   posted_txpowid: string | null;
 };
 
-// token.ts
+// Server-side JWT lease token claims
 type PlanClaims = {
   lease_id: string;
   root_pubkey: string;
@@ -1229,9 +1229,9 @@ interface HierarchicalWitnessBundle {
 
 | Component | File Path |
 |-----------|-----------|
-| Server lease allocation (PostgreSQL) | `packages/axia-api/src/wots/leaseStore-postgres.ts` |
-| Server API routes (prepare/finalize) | `packages/axia-api/src/wots/hardenedRoutes.ts` |
-| Server lease token (JWT) | `packages/axia-api/src/wots/token.ts` |
+| Server lease allocation (PostgreSQL) | *Server-side component — not in this repository* |
+| Server API routes (prepare/finalize) | *Server-side component — not in this repository* |
+| Server lease token (JWT) | *Server-side component — not in this repository* |
 | SDK TransactionService | `packages/totem-sdk/packages/core/src/tx/TransactionService.ts` |
 | SDK TransactionLifecycle | `packages/totem-sdk/packages/core/src/tx/TransactionLifecycle.ts` |
 | Extension LeaseStore | `packages/totem-extension/src/core/stores/LeaseStore.ts` |
@@ -1242,4 +1242,3 @@ interface HierarchicalWitnessBundle {
 | Extension Watermark Sync | `packages/totem-extension/src/core/sync/watermark.ts` |
 | Extension Lease Monitor | `packages/totem-extension/src/core/monitoring/lease.ts` |
 | Extension MultisigManager | `packages/totem-extension/src/core/transaction/services/MultisigManager.ts` |
-| SDK Demo: Lease Lifecycle | `packages/totem-sdk/examples/node-wallet/src/demo-lease-lifecycle.ts` |

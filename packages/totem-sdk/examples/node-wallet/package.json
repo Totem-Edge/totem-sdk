@@ -2,6 +2,26 @@
   "name": "@totem-examples/node-wallet",
   "version": "1.0.0",
   "description": "Example Node.js wallet using Totem SDK",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/totem-sdk/totem-sdk.git",
+    "directory": "packages/totem-sdk/examples/node-wallet"
+  },
+  "bugs": {
+    "url": "https://github.com/totem-sdk/totem-sdk/issues"
+  },
+  "homepage": "https://totem.ing",
+  "author": "Totem SDK",
+  "license": "MIT",
+  "keywords": [
+    "totem",
+    "totemsdk",
+    "minima",
+    "blockchain",
+    "example",
+    "nodejs",
+    "wallet"
+  ],
   "main": "dist/index.js",
   "type": "module",
   "scripts": {

@@ -1514,7 +1514,7 @@ Ownership proofs are **self-contained cryptographic artifacts** — no Minima no
 The package has zero Node.js built-in dependencies. All crypto is pure `Uint8Array` and `@noble/hashes` — the same primitives available natively in Bare/Pear, browsers, and modern runtimes.
 
 ```bash
-npm install @totemsdk/root-identity
+pnpm install @totemsdk/root-identity
 ```
 
 ```javascript
@@ -1861,7 +1861,7 @@ Coin Selection → Lease Request → CoinProof Fetch → Build Transaction
 | Coin Selection | `CoinSelectionService` | `packages/totem-extension/src/core/transaction/CoinSelectionService.ts` |
 | Lease Management | `LeaseStore` | `packages/totem-extension/src/core/stores/LeaseStore.ts` |
 | Transaction Build | `MinimaTransactionBuilder` | `packages/totem-extension/src/core/transaction/MinimaTransactionBuilder.ts` |
-| Signing | Per-address TreeKey + WOTS | `packages/totem-extension/src/core/wallet.ts`, `packages/totem-sdk/packages/core/src/treekey.ts` |
+| Signing | Per-address TreeKey + WOTS | `packages/totem-extension/src/core/wallet.ts`, `packages/totem-sdk/packages/core/src/treekey.js` |
 | Serialization | `Streamable.ts` | `packages/totem-sdk/packages/core/src/Streamable.ts` |
 | Watermark Tracking | `WatermarkStore` | `packages/totem-extension/src/core/stores/WatermarkStore.ts` |
 
@@ -3161,8 +3161,8 @@ All paths are relative to the monorepo root.
 | Coin selection | `packages/totem-extension/src/core/transaction/CoinSelectionService.ts` |
 | Transaction service | `packages/totem-extension/src/core/transaction/service.ts` |
 | Wallet & TreeKey management | `packages/totem-extension/src/core/wallet.ts` |
-| TreeKey implementation | `packages/totem-sdk/packages/core/src/treekey.ts` |
-| WOTS implementation | `packages/totem-sdk/packages/core/src/wots.ts` |
+| TreeKey implementation | `packages/totem-sdk/packages/core/src/treekey.js` |
+| WOTS implementation | `packages/totem-sdk/packages/core/src/wots.js` |
 | Serialization (Streamable) | `packages/totem-sdk/packages/core/src/Streamable.ts` |
 | Watermark store | `packages/totem-extension/src/core/stores/WatermarkStore.ts` |
 | Lease store | `packages/totem-extension/src/core/stores/LeaseStore.ts` |

@@ -3,6 +3,27 @@
   "version": "1.0.0",
   "private": true,
   "description": "Self-custodial Totem PWA wallet — installable, cross-origin embeddable via provider.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/totem-sdk/totem-sdk.git",
+    "directory": "packages/totem-pwa-wallet"
+  },
+  "bugs": {
+    "url": "https://github.com/totem-sdk/totem-sdk/issues"
+  },
+  "homepage": "https://totem.ing",
+  "author": "Totem SDK",
+  "license": "MIT",
+  "keywords": [
+    "totem",
+    "totemsdk",
+    "minima",
+    "blockchain",
+    "quantum-resistant",
+    "wots",
+    "wallet",
+    "pwa"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build && vite build --config vite.provider.config.ts",

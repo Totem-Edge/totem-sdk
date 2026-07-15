@@ -16,10 +16,32 @@
     "docs": "typedoc",
     "validate:meta": "node scripts/validate-pkg-meta.mjs"
   },
-  "keywords": ["totem", "minima", "blockchain", "wots", "cryptography", "sdk"],
-  "author": "Totem",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/totem-sdk/totem-sdk.git",
+    "directory": "packages/totem-sdk"
+  },
+  "bugs": {
+    "url": "https://github.com/totem-sdk/totem-sdk/issues"
+  },
+  "homepage": "https://totem.ing",
+  "keywords": [
+    "totem",
+    "totemsdk",
+    "minima",
+    "blockchain",
+    "quantum-resistant",
+    "wots",
+    "cryptography",
+    "sdk"
+  ],
+  "author": "Totem SDK",
   "license": "MIT",
   "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^20.19.43",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.4.11",
     "typedoc": "^0.25.0",
     "typescript": "^5.0.0"
   }

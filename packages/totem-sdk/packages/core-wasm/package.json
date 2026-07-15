@@ -1,0 +1,55 @@
+{
+  "name": "@totemsdk/core-wasm",
+  "version": "0.1.0",
+  "description": "Quantum-resistant WOTS+ cryptographic engine compiled to WASM — Rust core for @totemsdk/core",
+  "main": "pkg-node/totemsdk_core_wasm.js",
+  "types": "pkg/totemsdk_core_wasm.d.ts",
+  "exports": {
+    ".": {
+      "types": "./pkg/totemsdk_core_wasm.d.ts",
+      "require": "./pkg-node/totemsdk_core_wasm.js",
+      "import": "./pkg/totemsdk_core_wasm.js",
+      "default": "./pkg-node/totemsdk_core_wasm.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "wasm-pack build --target bundler --out-dir pkg && wasm-pack build --target nodejs --out-dir pkg-node",
+    "build:bundler": "wasm-pack build --target bundler --out-dir pkg",
+    "build:node": "wasm-pack build --target nodejs --out-dir pkg-node",
+    "test": "wasm-pack test --node",
+    "clean": "rm -rf pkg pkg-node target"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MrGheek/totem-sdk.git",
+    "directory": "packages/totem-sdk/packages/core-wasm"
+  },
+  "bugs": {
+    "url": "https://github.com/MrGheek/totem-sdk/issues"
+  },
+  "homepage": "https://totem.ing",
+  "author": "Totem SDK",
+  "license": "MIT",
+  "keywords": [
+    "totem",
+    "totemsdk",
+    "minima",
+    "blockchain",
+    "quantum-resistant",
+    "wots",
+    "kissvm",
+    "utxo",
+    "cryptography",
+    "wasm",
+    "rust",
+    "webassembly"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}

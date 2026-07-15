@@ -59,7 +59,7 @@ For the full API contract, see **[docs/TOTEM_CONNECT.md](docs/TOTEM_CONNECT.md)*
 
 ```bash
 # Install dependencies
-npm install
+pnpm install
 
 # Start development build with hot reload
 npm run dev

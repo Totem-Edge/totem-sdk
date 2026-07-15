@@ -579,9 +579,9 @@ Real-time notification system for wallet-wide announcements.
 | File | Purpose |
 |------|---------|
 | `params.ts` | WOTS parameter set definitions |
-| `wots.ts` | Core WOTS implementation (sign, verify, key derivation) |
-| `treekey.ts` | TreeKey/TreeKeyNode hierarchical key structure, `derivePerAddressSeed()`, `createPerAddressTreeKey()` |
-| `mmr.ts` | Merkle Mountain Range implementation |
+| `wots.js` | Core WOTS implementation (sign, verify, key derivation) |
+| `treekey.js` | TreeKey/TreeKeyNode hierarchical key structure, `derivePerAddressSeed()`, `createPerAddressTreeKey()` |
+| `mmr.js` | Merkle Mountain Range implementation |
 | `Streamable.ts` | **Canonical** byte-exact serialization primitives |
 | `javaStreamables.ts` | Number-based wrappers for backward compatibility |
 | `minimaWireSerializer.ts` | High-level witness bundle serialization |
@@ -621,17 +621,9 @@ Real-time notification system for wallet-wide announcements.
 | `hooks/useAnnouncements.ts` | Announcement subscription hook |
 | `assets/MinimaLogo.tsx` | Base64-encoded Minima logo component |
 
-### Java Reference Files (`attached_assets/`)
+### Java Reference Files
 
-| File | Purpose |
-|------|---------|
-| `WinternitzOTSignature_bouncycastle.java` | WOTS signing/verification (BouncyCastle) |
-| `TreeKey_*.java` | TreeKey hierarchical signature structure |
-| `TreeKeyNode_*.java` | TreeKeyNode with WOTS keys and MMR |
-| `SignatureProof_*.java` | SignatureProof structure |
-| `Signature_*.java` | Container for multiple SignatureProofs |
-| `Witness_*.java` | Transaction witness with signatures and MMR proofs |
-| `Wallet_*.java` | Per-address TreeKey wallet implementation |
+> **Note:** Java reference files are not included in this repository. They are maintained separately as part of the Minima core codebase.
 
 ---
 

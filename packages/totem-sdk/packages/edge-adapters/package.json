@@ -22,17 +22,14 @@
     "README.md",
     "LICENSE"
   ],
-  "dependencies": {
-    "@totemsdk/edge": "^0.1.2"
-  },
   "peerDependencies": {
     "@totemsdk/agent-policy": "^0.1.3",
     "@totemsdk/chain-provider": "^0.1.4",
     "@totemsdk/identity": "^0.1.2",
+    "@totemsdk/lookup-client": "^0.1.4",
     "@totemsdk/manifest": "^0.1.2",
     "@totemsdk/omnia-router": "^0.1.4",
     "@totemsdk/proof": "^0.1.1",
-    "@totemsdk/lookup-client": "^0.1.4",
     "@totemsdk/root-identity": "^1.0.7"
   },
   "peerDependenciesMeta": {
@@ -64,11 +61,12 @@
   "devDependencies": {
     "@totemsdk/agent-policy": "^0.1.3",
     "@totemsdk/chain-provider": "^0.1.4",
+    "@totemsdk/edge": "^0.1.3",
     "@totemsdk/identity": "^0.1.2",
+    "@totemsdk/lookup-client": "^0.1.5",
     "@totemsdk/manifest": "^0.1.2",
     "@totemsdk/omnia-router": "^0.1.4",
     "@totemsdk/proof": "^0.1.1",
-    "@totemsdk/lookup-client": "^0.1.4",
     "@totemsdk/root-identity": "^1.0.7",
     "@types/jest": "^29.0.0",
     "@types/node": "^20.0.0",
@@ -84,17 +82,26 @@
   },
   "license": "MIT",
   "author": "Totem SDK",
-  "homepage": "https://totemsdk.com",
+  "homepage": "https://totem.ing",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/MrGheek/axia-totem.git",
+    "url": "git+https://github.com/MrGheek/totem-sdk.git",
     "directory": "packages/totem-sdk/packages/edge-adapters"
   },
   "keywords": [
     "totem",
     "totemsdk",
+    "minima",
+    "blockchain",
+    "quantum-resistant",
+    "wots",
+    "kissvm",
+    "utxo",
     "edge",
     "adapters",
     "ports"
-  ]
+  ],
+  "bugs": {
+    "url": "https://github.com/MrGheek/totem-sdk/issues"
+  }
 }

@@ -1,0 +1,15 @@
+* text=auto eol=lf
+
+*.wasm binary
+*.jar binary
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+
+pnpm-lock.yaml -diff
+package-lock.json -diff

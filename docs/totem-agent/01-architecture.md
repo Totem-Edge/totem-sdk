@@ -1,7 +1,9 @@
 # Totem Extension Architecture
 
+> **Note:** This document describes the intended design and architecture for the Totem Agent. Some details may differ from the current implementation. For the authoritative specification, see [TOTEM_WALLET_SPEC.md](../../TOTEM_WALLET_SPEC.md) and [LEASE_WATERMARK_SPEC.md](../../LEASE_WATERMARK_SPEC.md).
+
 ## Overview
-Totem is a quantum-resistant browser wallet extension for the Minima blockchain, implementing WOTS (Winternitz One-Time Signatures) with w=8 parameter for 90-element signatures. Built as a Chrome Manifest V3 extension with cross-browser compatibility for Firefox and Safari.
+Totem is a quantum-resistant browser wallet extension for the Minima blockchain, implementing WOTS (Winternitz One-Time Signatures) with w=8 parameter (L=34 chains, 1,088-byte signatures). Built as a Chrome Manifest V3 extension with cross-browser compatibility for Firefox and Safari.
 
 ## Core Components
 
@@ -36,12 +38,12 @@ Totem is a quantum-resistant browser wallet extension for the Minima blockchain,
 - 'GET_RPC_ENDPOINT' → Get Axia RPC endpoint (supports PQ-TLS toggle)
 ```
 
-### 2. Content Script (`src/content/index.ts`)
-**Role**: Inject `window.minima` provider API into web pages
+### 2. Content Script (`src/content-script.ts`)
+**Role**: Inject `window.totem` provider API into web pages
 
 **Message Flow**:
 ```
-Dapp (window.minima.request)
+Dapp (window.totem.request)
   ↓ postMessage
 Content Script (window listener)
   ↓ chrome.runtime.sendMessage
@@ -54,11 +56,13 @@ Dapp (receives result)
 
 **Provider API**:
 ```javascript
-window.minima = {
-  isMinimask: true,
+window.totem = {
+  isTotem: true,
   request: ({ method, params }) => Promise,
-  enable: () => Promise, // Legacy
-  send: (method, params) => Promise // Legacy
+  on: (eventName, callback) => void,
+  removeListener: (eventName, callback) => void,
+  enable: () => Promise, // Legacy alias for TOTEM_CONNECT
+  disconnect: () => Promise
 }
 ```
 
@@ -97,40 +101,39 @@ class WalletManager {
 
 **Key Features**:
 - **Hierarchical WOTS**: Derives 64 addresses from single root seed
-- **Encryption**: PBKDF2 (600k iterations) + AES-GCM for seed storage
+- **Encryption**: PBKDF2 (100,000 iterations) + AES-GCM for seed storage
 - **Auto-lock**: Clears session keys on lock
 - **View Modes**: 
   - `global` - Show all 64 addresses aggregated
   - `filtered` - Show single address balance
 
 ### 5. WOTS Implementation
-**Location**: `@totem-sdk/core` package
+**Location**: `@totemsdk/core` package
 
 **Tree Structure**:
 ```
 Root Seed (256-bit)
-  ↓ SHA3-256 per index
-64 Address Seeds
-  ↓ WOTS w=8 keygen
-64 Public Keys
-  ↓ SHA3-256
-64 Minima Addresses (0x...)
+  ↓ derivePerAddressSeed(baseSeed, addressIndex)
+64 Address Seeds (one per address)
+  ↓ TreeKey (depth=3, 64 keys/level)
+Per-address TreeKey with 4,096 signing slots
+  ↓ MMR root → script → Mx address
+64 Minima Addresses (Mx...)
 ```
 
 **Signature Process**:
-1. Request lease from Axia API (`/v1/{projectId}`)
-2. Derive private key for specific address index
-3. Sign transaction with WOTS (90 elements)
+1. Request lease from Axia API (`POST /v1/wots-hardened/prepare`)
+2. Derive per-address TreeKey from seed
+3. Sign transaction with WOTS (3-proof chain: Root→L1→L2→DATA, 34 chains × 32 bytes = 1,088 bytes)
 4. Attach signature + witness to transaction
-5. Broadcast to Minima network
+5. Finalize via Axia API (`POST /v1/wots-hardened/finalize`) for broadcast to Minima network
 
-### 6. Quota Management (`src/core/quota/manager.ts`)
-**Role**: Track Axia API credit usage
+### 6. Quota Management
+**Role**: Track Axia API credit usage via response headers
 
 **Features**:
 - Method-specific credit weights
-- Daily/monthly quota tracking
-- Visual indicator in UI (`QuotaIndicator` component)
+- Daily/monthly quota tracking via `X-Quota-*` response headers
 - Persists usage in `chrome.storage.local`
 
 ### 7. Bootstrap Configuration (`src/core/config/bootstrap.ts`)
@@ -156,10 +159,10 @@ Root Seed (256-bit)
 ### Transaction Signing Flow
 ```
 Dapp
- │ minima.request({ method: 'minima_sendTransaction', params: [tx] })
+ │ totem.request({ method: 'TOTEM_SEND_TRANSACTION', params: [tx] })
  ↓
 Content Script
- │ chrome.runtime.sendMessage({ method: 'minima_sendTransaction', params: [tx] })
+ │ chrome.runtime.sendMessage({ method: 'TOTEM_SEND_TRANSACTION', params: [tx] })
  ↓
 Background Worker
  │ 1. Validate transaction
@@ -169,26 +172,27 @@ Popup UI (Approval Screen)
  │ User clicks "Approve"
  ↓
 Background Worker
- │ 3. walletManager.requestLease(tx)
- │    → POST /v1/{projectId} { method: 'lease:request' }
- ↓
-Axia API
- │ Returns { txid, lease_token (JWT) }
+ │ 3. Prepare lease from Axia API
+ │    → POST /v1/wots-hardened/prepare
+ │    ← { addressIndex, l1, l2, leaseToken (JWT), digestTx, leaseTTL }
  ↓
 Background Worker
- │ 4. walletManager.signTransaction({ txid, lease_token, tx })
- │    → Derives WOTS private key
- │    → Generates 90-element signature
+ │ 4. Sign with WOTS (client-side only)
+ │    → Derives per-address TreeKey from seed
+ │    → setUses(l1*64 + l2) + sign(digestTx)
+ │    → Produces 3-proof chain (Root→L1→L2→DATA)
+ │    → 1,088-byte WOTS signature (34 chains × 32 bytes)
  ↓
 Background Worker
- │ 5. walletManager.finalizeTransaction({ txid, signature, witness })
- │    → POST /v1/{projectId} { method: 'txn:submit', txid, sig, wit }
+ │ 5. Finalize via Axia API
+ │    → POST /v1/wots-hardened/finalize
+ │    ← { ok: true, leaseId, txpowid }
  ↓
 Axia API → Minima Network
  │ Transaction broadcast
  ↓
 Dapp
- │ Receives { txid, status: 'pending' }
+ │ Receives { success: true, txpowid }
 ```
 
 ### Wallet Unlock Flow

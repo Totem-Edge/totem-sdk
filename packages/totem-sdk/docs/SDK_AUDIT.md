@@ -31,7 +31,7 @@
 
 ## Current Package Structure
 
-### Root Package: `@totem/sdk` (v2.1.0)
+### Root Package: `@totemsdk/core` (v2.1.0)
 - **Location:** `packages/totem-sdk/`
 - **Type:** Private workspace root (not published)
 - **Workspaces:** `packages/*`, `examples/*`
@@ -40,7 +40,7 @@
 
 | Package | Version | Description | Status |
 |---------|---------|-------------|--------|
-| `@totem/sdk-core` | 2.2.0 | WOTS cryptography, MMR, TreeKey, verify API, serialization (ESM) | **Active, production-tested** |
+| `@totemsdk/core` | 2.2.0 | WOTS cryptography, MMR, TreeKey, verify API, serialization (ESM) | **Active, production-tested** |
 | `@totem/sdk-node` | 2.0.1 | Node.js MinimaWallet with full TreeKey parity | **Active** |
 | `@totem/connect` | 2.1.0 | Client-side dApp SDK (WalletDiscovery / totem:announce wrappers) | **Active** |
 | `@totemsdk/node` | 1.0.7 | Node.js MinimaWallet with full TreeKey parity | **Active** |
@@ -59,7 +59,7 @@ These packages were created during the initial SDK buildout and have **not** bee
 | Package | Reason |
 |---------|--------|
 | `@totem/sdk-react-native` | Was an empty shell (no source code), removed Feb 2026 |
-| Legacy `src/` root | Contained placeholder `script.ts`, `crypto/wots.ts`, `crypto/minimaTrees.ts` from pre-monorepo era, removed Feb 2026 |
+| Legacy `src/` root | Contained placeholder `script.ts`, `crypto/wots.js`, `crypto/minimaTrees.ts` from pre-monorepo era, removed Feb 2026 |
 | `@totem/sdk-browser` | Legacy v1.0 browser adapters (LocalStorage, chrome.storage, fetch, WebSocket) — superseded by `@totemsdk/connect` and the Totem extension; removed May 2026 |
 | `@totem/sdk-client` | Legacy v1.0 AxiaRpcClient using relative `../../core/src` imports and original REST patterns — superseded by current `@totemsdk/*` architecture; removed May 2026 |
 
@@ -67,13 +67,13 @@ These packages were created during the initial SDK buildout and have **not** bee
 
 ## Active Package Details
 
-### `@totem/sdk-core` (v2.1.0)
+### `@totemsdk/core` (v2.1.0)
 
 | Module | File | Production Ready | Notes |
 |--------|------|------------------|-------|
-| WOTS Signatures | `wots.ts` | ✅ Yes | Extensive test vectors, Java parity |
-| MMR | `mmr.ts` | ✅ Yes | Oracle tests, golden tests |
-| TreeKey | `treekey.ts` | ✅ Yes | Per-address architecture, depth=3 |
+| WOTS Signatures | `wots.js` | ✅ Yes | Extensive test vectors, Java parity |
+| MMR | `mmr.js` | ✅ Yes | Oracle tests, golden tests |
+| TreeKey | `treekey.js` | ✅ Yes | Per-address architecture, depth=3 |
 | Serialization | `Streamable.ts` | ✅ Yes | Canonical Java wire format |
 | Verification API | `verify.ts` | ✅ Yes | `verifySignature`, `deriveAddressFromPublicKey`, replay protection |
 | Base32 | `base32.ts` | ✅ Yes | Minima-compatible Mx encoding |
@@ -145,7 +145,7 @@ These gaps mean the SDK is suitable for **signing** and **verification** workflo
 
 | Pattern | Hits | Resolution |
 |---------|------|------------|
-| `window.minima` | 0 | Fixed in browser-dapp example (→ `@totem/connect`) |
+| `window.totem` | 0 | Fixed in browser-dapp example (→ `@totem/connect`) |
 | `@axia/sdk-core` | 0 | Clean — no references found |
 | `js-sha3` | 2 (test scripts) | `gen_wots_pkdigest_vectors.cjs` and `length.test.ts` — these are standalone test utilities, not production code |
 | `flatIndexFromLanes` | Present in lease modules | Correct — this is a lease utility, not the deprecated flat signing architecture |

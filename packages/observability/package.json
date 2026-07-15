@@ -17,9 +17,19 @@
   "scripts": {
     "test": "echo \"no tests yet\""
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/totem-sdk/totem-sdk.git",
+    "directory": "packages/observability"
+  },
+  "bugs": {
+    "url": "https://github.com/totem-sdk/totem-sdk/issues"
+  },
+  "homepage": "https://totem.ing",
+  "author": "Totem SDK",
   "keywords": [
     "totem",
-    "axia",
+    "totemsdk",
     "observability",
     "telemetry",
     "tracing"

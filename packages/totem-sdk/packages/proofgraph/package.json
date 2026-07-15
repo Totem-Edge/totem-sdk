@@ -52,13 +52,13 @@
   },
   "license": "MIT",
   "author": "Totem SDK",
-  "homepage": "https://totemsdk.com",
+  "homepage": "https://totem.ing",
   "bugs": {
-    "url": "https://github.com/MrGheek/axia-totem/issues"
+    "url": "https://github.com/MrGheek/totem-sdk/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/MrGheek/axia-totem.git",
+    "url": "git+https://github.com/MrGheek/totem-sdk.git",
     "directory": "packages/totem-sdk/packages/proofgraph"
   },
   "keywords": [

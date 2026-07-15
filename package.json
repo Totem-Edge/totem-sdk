@@ -2,7 +2,30 @@
   "name": "totem-sdk",
   "version": "1.0.0",
   "private": true,
-  "description": "Totem SDK monorepo — cryptographic primitives, browser extension, PWA wallet, and dApp starter",
+  "description": "Totem SDK monorepo — quantum-resistant decentralized computing platform for the Minima network",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/totem-sdk/totem-sdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/totem-sdk/totem-sdk/issues"
+  },
+  "homepage": "https://totem.ing",
+  "author": "Totem SDK",
+  "license": "MIT",
+  "keywords": [
+    "totem",
+    "totemsdk",
+    "minima",
+    "blockchain",
+    "quantum-resistant",
+    "wots",
+    "kissvm",
+    "utxo",
+    "payment-channels",
+    "edge-computing",
+    "cryptography"
+  ],
   "scripts": {
     "build:sdk": "cd packages/totem-sdk && npm run build",
     "build:extension": "cd packages/totem-extension && npm run build",

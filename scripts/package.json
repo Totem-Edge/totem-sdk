@@ -1,7 +1,26 @@
 {
   "name": "dashboard-generator",
   "version": "1.0.0",
-  "description": "Multi-tenant dashboard generator for Axia Telemetry",
+  "private": true,
+  "description": "Multi-tenant dashboard generator for Totem Telemetry",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/totem-sdk/totem-sdk.git",
+    "directory": "scripts"
+  },
+  "bugs": {
+    "url": "https://github.com/totem-sdk/totem-sdk/issues"
+  },
+  "homepage": "https://totem.ing",
+  "author": "Totem SDK",
+  "license": "MIT",
+  "keywords": [
+    "totem",
+    "totemsdk",
+    "dashboard",
+    "telemetry",
+    "grafana"
+  ],
   "main": "dashboard-generator.js",
   "scripts": {
     "build": "tsc dashboard-generator.ts",

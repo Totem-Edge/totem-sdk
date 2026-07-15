@@ -56,14 +56,14 @@ const EXTRA_KEYWORDS = {
 
 const SHARED_META = {
   author: 'Totem SDK',
-  homepage: 'https://totemsdk.com',
-  bugs: { url: 'https://github.com/MrGheek/axia-totem/issues' },
+  homepage: 'https://totem.ing',
+  bugs: { url: 'https://github.com/MrGheek/totem-sdk/issues' },
 };
 
 function repoFor(pkgDir) {
   return {
     type: 'git',
-    url: 'git+https://github.com/MrGheek/axia-totem.git',
+    url: 'git+https://github.com/MrGheek/totem-sdk.git',
     directory: `packages/totem-sdk/packages/${pkgDir}`,
   };
 }

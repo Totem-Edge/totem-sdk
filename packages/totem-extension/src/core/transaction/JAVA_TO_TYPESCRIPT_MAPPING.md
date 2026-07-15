@@ -1,6 +1,8 @@
 # Minima Java to Totem TypeScript Mapping
 
-This document maps each Minima Java source file in `attached_assets/` to its corresponding Totem TypeScript implementation.
+This document maps each Minima Java source file to its corresponding Totem TypeScript implementation.
+
+> **Note:** Java reference files are not included in this repository. They are maintained separately as part of the Minima core codebase at [github.com/spartacusrex-minima/minima-core](https://github.com/spartacusrex-minima/minima-core).
 
 **Last Updated:** 2026-01-21
 
@@ -21,12 +23,12 @@ This document maps each Minima Java source file in `attached_assets/` to its cor
 
 | Java File | TypeScript File | Status | Notes |
 |-----------|-----------------|--------|-------|
-| `Winternitz_*.java` | `packages/totem-sdk/packages/core/src/wots.ts` | ✅ Full | GMSSRandom PRNG, 34-chain signatures, BouncyCastle-compatible |
-| `TreeKey_*.java` | `packages/totem-sdk/packages/core/src/treekey.ts` | ✅ Full | 3-level hierarchy (64×64×64), parent-child caching |
-| `TreeKeyNode_*.java` | `packages/totem-sdk/packages/core/src/treekey.ts` | ✅ Full | Embedded in TreeKey, childCache for performance |
-| `GMSSRandom_bouncycastle.java` | `packages/totem-sdk/packages/core/src/wots.ts` | ✅ Full | `gmssRandom()` function, byte-exact with BouncyCastle |
-| `WinternitzOTSignature_bouncycastle.java` | `packages/totem-sdk/packages/core/src/wots.ts` | ✅ Full | Reference for signing algorithm |
-| `WinternitzOTSVerify_bouncycastle.java` | `packages/totem-sdk/packages/core/src/wots.ts` | ✅ Full | Reference for verification algorithm |
+| `Winternitz_*.java` | `packages/totem-sdk/packages/core/src/wots.js` | ✅ Full | GMSSRandom PRNG, 34-chain signatures, BouncyCastle-compatible |
+| `TreeKey_*.java` | `packages/totem-sdk/packages/core/src/treekey.js` | ✅ Full | 3-level hierarchy (64×64×64), parent-child caching |
+| `TreeKeyNode_*.java` | `packages/totem-sdk/packages/core/src/treekey.js` | ✅ Full | Embedded in TreeKey, childCache for performance |
+| `GMSSRandom_bouncycastle.java` | `packages/totem-sdk/packages/core/src/wots.js` | ✅ Full | `gmssRandom()` function, byte-exact with BouncyCastle |
+| `WinternitzOTSignature_bouncycastle.java` | `packages/totem-sdk/packages/core/src/wots.js` | ✅ Full | Reference for signing algorithm |
+| `WinternitzOTSVerify_bouncycastle.java` | `packages/totem-sdk/packages/core/src/wots.js` | ✅ Full | Reference for verification algorithm |
 
 ---
 
@@ -108,7 +110,7 @@ This document maps each Minima Java source file in `attached_assets/` to its cor
 
 | Java File | TypeScript File | Status | Notes |
 |-----------|-----------------|--------|-------|
-| `sign_*.java` | `packages/totem-sdk/packages/core/src/treekey.ts` | ✅ Full | `setUses()` + `sign()` (3-proof chain matching Java TreeKey.sign()) |
+| `sign_*.java` | `packages/totem-sdk/packages/core/src/treekey.js` | ✅ Full | `setUses()` + `sign()` (3-proof chain matching Java TreeKey.sign()) |
 | `verify_*.java` | `packages/totem-extension/src/core/verify/verifySignature.ts` | ✅ Full | Signature verification |
 | `txncheck_*.java` | `packages/totem-extension/src/core/transaction/txncheck.ts` | ✅ Full | Transaction validation |
 | `txnexport_*.java` | `packages/totem-sdk/packages/core/src/minimaWireSerializer.ts` | ✅ Full | Export = serialization |
@@ -139,7 +141,7 @@ This document maps each Minima Java source file in `attached_assets/` to its cor
 
 | Java File | TypeScript File | Status | Notes |
 |-----------|-----------------|--------|-------|
-| `Crypto_*.java` | `packages/totem-sdk/packages/core/src/wots.ts`, `packages/totem-sdk/packages/core/src/javaStreamables.ts` | ✅ Full | SHA3-256 via @noble/hashes, used throughout serialization |
+| `Crypto_*.java` | `packages/totem-sdk/packages/core/src/wots.js`, `packages/totem-sdk/packages/core/src/javaStreamables.ts` | ✅ Full | SHA3-256 via @noble/hashes, used throughout serialization |
 
 ---
 
@@ -173,8 +175,8 @@ This document maps each Minima Java source file in `attached_assets/` to its cor
 
 | File | Purpose |
 |------|---------|
-| `packages/totem-sdk/packages/core/src/wots.ts` | WOTS signatures, GMSSRandom, Winternitz |
-| `packages/totem-sdk/packages/core/src/treekey.ts` | TreeKey hierarchy, signing methods |
+| `packages/totem-sdk/packages/core/src/wots.js` | WOTS signatures, GMSSRandom, Winternitz |
+| `packages/totem-sdk/packages/core/src/treekey.js` | TreeKey hierarchy, signing methods |
 | `packages/totem-sdk/packages/core/src/mmr.ts` | MMR tree construction and proofs |
 | `packages/totem-sdk/packages/core/src/minimaWireSerializer.ts` | All Streamable serialization |
 | `packages/totem-sdk/packages/core/src/javaStreamables.ts` | Java-compatible type definitions |

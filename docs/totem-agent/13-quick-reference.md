@@ -1,5 +1,7 @@
 # Totem Agent - Quick Reference
 
+> **Note:** This document describes the intended design and architecture for the Totem Agent. Some details may differ from the current implementation. For the authoritative specification, see [TOTEM_WALLET_SPEC.md](../../TOTEM_WALLET_SPEC.md) and [LEASE_WATERMARK_SPEC.md](../../LEASE_WATERMARK_SPEC.md).
+
 ## Common Commands
 
 ### Development Server
@@ -158,7 +160,7 @@ height: 620px;
 ### 3-Step Flow
 ```typescript
 // 1. Prepare (Axia API)
-const { l1, l2, l3, leaseToken, digestTx } = await TransactionService.prepare({
+const { addressIndex, l1, l2, leaseToken, digestTx } = await TransactionService.prepare({
   to: '0x1234...5678',
   amount: '100.00',
   tokenId: '0x00'
@@ -166,8 +168,8 @@ const { l1, l2, l3, leaseToken, digestTx } = await TransactionService.prepare({
 
 // 2. Sign (Client-side)
 const { signedHex } = await TransactionService.sign({
-  l1, l2, l3, digestTx
-}, seed, 'v2-spec');
+  addressIndex, l1, l2, digestTx
+}, seed);
 
 // 3. Finalize (Axia API)
 const { txpowid } = await TransactionService.finalize({
@@ -176,31 +178,24 @@ const { txpowid } = await TransactionService.finalize({
 });
 ```
 
-### Hierarchical Tree
+### Per-Address TreeKey Architecture
 ```
 Root Seed
- ├─ L1 (64 keys)
- │   ├─ L2 (64 keys per L1)
- │   │   └─ L3 (64 keys per L2)
- │   └─ ... (64 L2 trees)
- └─ ... (64 L1 keys)
+ ├─ Address 0 → TreeKey (64 L1 × 64 L2 = 4,096 signatures)
+ ├─ Address 1 → TreeKey (4,096 signatures)
+ │   ...
+ └─ Address 63 → TreeKey (4,096 signatures)
 
-Total: 64³ = 262,144 signatures
+Total: 64 × 4,096 = 262,144 signatures per wallet
 ```
 
-### Parameter Sets
+### Parameter Set
 ```typescript
-// v2-spec (default)
-w = 256
-L = 34
-signature size = 34 * 32 = 1,088 bytes
-signing time = 50-300ms
-
-// w16-spec (legacy, faster)
-w = 16
-L = 67
-signature size = 67 * 32 = 2,144 bytes
-signing time = 30-150ms
+// WOTS_MINIMA (the only parameter set)
+w = 8          // 8 bits per digit
+L = 34         // 32 message + 2 checksum chains
+n = 256        // SHA3-256 hash output
+signature size = 34 × 32 = 1,088 bytes
 ```
 
 ### Security Checklist

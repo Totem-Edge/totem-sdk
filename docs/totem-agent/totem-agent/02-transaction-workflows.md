@@ -41,10 +41,10 @@ Approval Popup
 Background Worker
  │ Step 1: TransactionService.prepare({to, amount, tokenId}, rootPublicKey)
  │   → POST /wots/hardened/prepare
- │   ← {l1, l2, l3, leaseToken, digestTx, txId, leaseTTL}
+ │   ← {addressIndex, l1, l2, leaseToken, digestTx, txId, leaseTTL}
  ↓
 Background Worker
- │ Step 2: TransactionService.sign({l1, l2, l3, digestTx}, seed)
+ │ Step 2: TransactionService.sign({addressIndex, l1, l2, digestTx}, seed)
  │   → Client-side WOTS signing (w=8, L=34)
  │   ← {witnessBundle, signedHex}
  ↓
@@ -68,7 +68,7 @@ Popup UI
 **Flow Diagram**:
 ```
 Dapp
- │ window.minima.request({method: 'minima_sendTransaction', params: [txData]})
+ │ window.totem.request({method: 'TOTEM_SEND_TRANSACTION', params: [txData]})
  ↓
 Content Script
  │ Forwards to background via chrome.runtime.sendMessage
@@ -115,7 +115,7 @@ Total: 64³ = 262,144 signatures per root
 ```typescript
 // From TransactionService.sign()
 
-1. Get indices from Axia API (l1, l2, l3)
+1. Get indices from Axia API (addressIndex, l1, l2)
 2. Import WOTS SDK
 3. Derive parameter set (minima: w=8, L=34)
 4. Sign digest at all 3 levels:
@@ -123,7 +123,7 @@ Total: 64³ = 262,144 signatures per root
    - wotsSign(seed, l2, digestTx, paramSet) → 34 x 32 bytes
    - wotsSign(seed, l3, digestTx, paramSet) → 34 x 32 bytes
 5. Convert to hex array format (34 elements per level)
-6. Bundle into WitnessBundle {l1, l2, l3, signatures}
+6. Bundle into WitnessBundle {addressIndex, l1, l2, signatures}
 7. Serialize to signedHex (concatenated proofs)
 ```
 
@@ -133,7 +133,7 @@ Total: 64³ = 262,144 signatures per root
 **Lifecycle**:
 1. **Request**: `POST /wots/hardened/prepare`
    - Input: `{txId, rootPublicKey, to, amount, tokenId}`
-   - Output: `{l1, l2, l3, leaseToken (JWT), digestTx, leaseTTL}`
+   - Output: `{addressIndex, l1, l2, leaseToken (JWT), digestTx, leaseTTL}`
 
 2. **Sign**: Client-side only (no network call)
    - Uses leased indices l1/l2/l3

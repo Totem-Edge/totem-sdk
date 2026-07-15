@@ -6,7 +6,7 @@ The Totem Extension integrates with three primary systems:
 2. **Axia API** - RPC proxy, WOTS lease management, quota tracking
 3. **Minima Network** - Direct blockchain queries (read-only)
 
-## Totem SDK (@totem/sdk)
+## Totem SDK (@totemsdk/core)
 
 ### Package Structure
 ```
@@ -26,8 +26,8 @@ packages/totem-sdk/
 
 #### 1. WOTS Signing
 ```typescript
-import { wotsSign, fromHex, toHex } from '@totem/sdk/core/wots';
-import { WOTS_V2_SPEC } from '@totem/sdk/core/params';
+import { wotsSign, fromHex, toHex } from '@totemsdk/core/wots';
+import { WOTS_V2_SPEC } from '@totemsdk/core/params';
 
 // Sign a 32-byte message digest
 const seed = new Uint8Array(32); // Your root seed
@@ -40,7 +40,7 @@ const signature = wotsSign(seed, index, messageDigest, WOTS_V2_SPEC);
 
 #### 2. WOTS Public Key Generation
 ```typescript
-import { wotsPubKey } from '@totem/sdk/core/wots';
+import { wotsPubKey } from '@totemsdk/core/wots';
 
 // Generate public key for a given index
 const publicKey = wotsPubKey(seed, index, WOTS_V2_SPEC);
@@ -52,7 +52,7 @@ const address = sha3_256(publicKey);
 
 #### 3. Parameter Sets
 ```typescript
-import { getParamSet, WOTS_V2_SPEC, WOTS_W16_SPEC } from '@totem/sdk/core/params';
+import { getParamSet, WOTS_V2_SPEC, WOTS_W16_SPEC } from '@totemsdk/core/params';
 
 // v2-spec (default for Totem)
 // - w = 256 (Winternitz parameter)
@@ -145,7 +145,7 @@ const l3Sig = wotsSign(seed, 57, digest, paramSet);
 **Use Case in Totem**: Proving a WOTS public key belongs to a user's key tree without exposing sibling keys.
 
 ```typescript
-import { MMRTree, MMRProof } from '@totem/sdk/core/mmr';
+import { MMRTree, MMRProof } from '@totemsdk/core/mmr';
 
 // Build MMR from list of public keys
 const pubKeys = [pk0, pk1, pk2, ..., pk63]; // L3 tree (64 keys)
@@ -607,7 +607,7 @@ await quotaManager.updateFromHeaders(mockResponse.headers);
 ### Lazy Loading
 ```typescript
 // Don't import full SDK until signing is needed
-const { wotsSign } = await import('@totem/sdk/core/wots');
+const { wotsSign } = await import('@totemsdk/core/wots');
 ```
 
 ### Background Sync

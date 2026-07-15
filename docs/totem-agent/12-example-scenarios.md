@@ -1,5 +1,7 @@
 # Totem Agent - Example Scenarios
 
+> **Note:** This document describes the intended design and architecture for the Totem Agent. Some details may differ from the current implementation. For the authoritative specification, see [TOTEM_WALLET_SPEC.md](../../TOTEM_WALLET_SPEC.md) and [LEASE_WATERMARK_SPEC.md](../../LEASE_WATERMARK_SPEC.md).
+
 This document demonstrates Totem Agent's capabilities through real-world examples.
 
 ## Scenario 1: Design a Brutalist Component

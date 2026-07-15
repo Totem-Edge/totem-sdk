@@ -37,11 +37,11 @@ Totem is a quantum-resistant browser wallet extension for the Minima blockchain,
 ```
 
 ### 2. Content Script (`src/content/index.ts`)
-**Role**: Inject `window.minima` provider API into web pages
+**Role**: Inject `window.totem` provider API into web pages
 
 **Message Flow**:
 ```
-Dapp (window.minima.request)
+Dapp (window.totem.request)
   ↓ postMessage
 Content Script (window listener)
   ↓ chrome.runtime.sendMessage
@@ -54,7 +54,7 @@ Dapp (receives result)
 
 **Provider API**:
 ```javascript
-window.minima = {
+window.totem = {
   isMinimask: true,
   request: ({ method, params }) => Promise,
   enable: () => Promise, // Legacy
@@ -104,7 +104,7 @@ class WalletManager {
   - `filtered` - Show single address balance
 
 ### 5. WOTS Implementation
-**Location**: `@totem-sdk/core` package
+**Location**: `@totemsdk/core` package
 
 **Tree Structure**:
 ```
@@ -156,10 +156,10 @@ Root Seed (256-bit)
 ### Transaction Signing Flow
 ```
 Dapp
- │ minima.request({ method: 'minima_sendTransaction', params: [tx] })
+ │ totem.request({ method: 'TOTEM_SEND_TRANSACTION', params: [tx] })
  ↓
 Content Script
- │ chrome.runtime.sendMessage({ method: 'minima_sendTransaction', params: [tx] })
+ │ chrome.runtime.sendMessage({ method: 'TOTEM_SEND_TRANSACTION', params: [tx] })
  ↓
 Background Worker
  │ 1. Validate transaction
@@ -277,7 +277,7 @@ Popup UI
 ### Core Libraries
 - `@noble/hashes` - SHA3-256 for WOTS
 - `bip39` - Mnemonic generation/validation
-- `@totem-sdk/core` - WOTS implementation, MMR trees
+- `@totemsdk/core` - WOTS implementation, MMR trees
 
 ### UI Libraries
 - `react` - Popup UI framework

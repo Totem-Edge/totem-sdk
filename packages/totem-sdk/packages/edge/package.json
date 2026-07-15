@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/edge",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Unified developer-facing runtime for Totem Edge — composes identity, manifest, wallet/payment/proof/lookup/policy capabilities via injected ports",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -57,13 +57,13 @@
   },
   "license": "MIT",
   "author": "Totem SDK",
-  "homepage": "https://totemsdk.com",
+  "homepage": "https://totem.ing",
   "bugs": {
-    "url": "https://github.com/MrGheek/axia-totem/issues"
+    "url": "https://github.com/MrGheek/totem-sdk/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/MrGheek/axia-totem.git",
+    "url": "git+https://github.com/MrGheek/totem-sdk.git",
     "directory": "packages/totem-sdk/packages/edge"
   },
   "keywords": [

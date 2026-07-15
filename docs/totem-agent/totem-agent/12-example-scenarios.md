@@ -400,7 +400,7 @@ User fills form → Click "Send"
   ↓
 [Pending] TransactionService.prepare()
   → POST /wots/hardened/prepare
-  ← {l1, l2, l3, leaseToken, digestTx}
+  ← {addressIndex, l1, l2, leaseToken, digestTx}
   ↓
 [Signing] TransactionService.sign()
   → Client-side WOTS (50-300ms)
@@ -561,7 +561,7 @@ Lease tokens expire after **5 minutes** (300 seconds). If signing takes longer, 
 // 1. Measure signing time
 console.time('wots-sign');
 const { signedHex } = await TransactionService.sign({
-  l1, l2, l3, digestTx
+  addressIndex, l1, l2, digestTx
 }, seed, 'v2-spec');
 console.timeEnd('wots-sign');
 // Expected: 50-300ms on modern devices
@@ -574,10 +574,10 @@ console.timeEnd('wots-sign');
 ```typescript
 // sign-worker.ts
 self.addEventListener('message', async (event) => {
-  const { seed, l1, l2, l3, digestTx, paramSet } = event.data;
+  const { seed, addressIndex, l1, l2, digestTx, paramSet } = event.data;
   
   // Import WOTS SDK in worker
-  const { wotsSign } = await import('@totem/sdk/core/wots');
+  const { wotsSign } = await import('@totemsdk/core/wots');
   
   // Sign in background thread (non-blocking)
   const signature = wotsSign(seed, l1, digestTx, paramSet);
@@ -587,7 +587,7 @@ self.addEventListener('message', async (event) => {
 
 // main thread
 const worker = new Worker('sign-worker.js');
-worker.postMessage({ seed, l1, l2, l3, digestTx, paramSet });
+worker.postMessage({ seed, addressIndex, l1, l2, digestTx, paramSet });
 
 worker.addEventListener('message', (event) => {
   const { signature } = event.data;

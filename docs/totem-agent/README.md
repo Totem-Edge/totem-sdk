@@ -176,12 +176,12 @@ packages/totem-extension/
 // Read: 02-transaction-workflows.md, 03-sdk-integration.md
 
 // Step 1: Prepare (Axia API)
-const { l1, l2, l3, leaseToken, digestTx } = 
+const { addressIndex, l1, l2, leaseToken, digestTx } = 
   await TransactionService.prepare({ to, amount }, rootPubKey);
 
 // Step 2: Sign (Client-side WOTS)
 const { signedHex } = 
-  await TransactionService.sign({ l1, l2, l3, digestTx }, seed);
+  await TransactionService.sign({ addressIndex, l1, l2, digestTx }, seed);
 
 // Step 3: Finalize (Axia API)
 const { txpowid } = 
@@ -238,7 +238,7 @@ When asking Totem Agent for help:
 ### Message Flow
 ```
 Dapp Page
-  ↓ window.minima.request()
+  ↓ window.totem.request()
 Content Script
   ↓ chrome.runtime.sendMessage()
 Background Worker

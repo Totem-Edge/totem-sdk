@@ -23,6 +23,27 @@
     "hyperbee": { "optional": true },
     "hypercore": { "optional": true }
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/totem-sdk/totem-sdk.git",
+    "directory": "packages/totem-pear-android-starter"
+  },
+  "bugs": {
+    "url": "https://github.com/totem-sdk/totem-sdk/issues"
+  },
+  "homepage": "https://totem.ing",
+  "author": "Totem SDK",
+  "keywords": [
+    "totem",
+    "totemsdk",
+    "minima",
+    "blockchain",
+    "pear",
+    "android",
+    "mobile",
+    "omnia",
+    "payment-channels"
+  ],
   "engines": {
     "node": ">=18.0.0"
   },

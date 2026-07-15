@@ -50,7 +50,7 @@ decentralized application on the Minima network without any boilerplate.
 
 ```bash
 # Clone the starter directly
-git clone https://github.com/axia-to/totem-dapp-starter my-dapp
+git clone https://github.com/MrGheek/totem-sdk my-dapp
 cd my-dapp
 
 # Or scaffold via CLI
@@ -61,7 +61,7 @@ cd my-dapp
 ### 2. Install dependencies
 
 ```bash
-npm install
+pnpm install
 ```
 
 ### 3. Configure your environment
@@ -261,7 +261,7 @@ Before deploying this starter to production, address the following:
 
 | Item | Status | Action required |
 |------|--------|-----------------|
-| WOTS signature verification | **Implemented** | `/api/auth/verify` calls `@totem/sdk-core`'s `verifySignatureDetailed(address, message, signature, publicKey)` one-liner, which re-derives the Minima address from `publicKey`, parses the WOTS `TreeSignature`, and verifies it against `sha3_256(message)`. v4.1 signs from the connected spend address, so the address↔publicKey binding check inside the helper holds for every valid proof. |
+| WOTS signature verification | **Implemented** | `/api/auth/verify` calls `@totemsdk/core`'s `verifySignatureDetailed(address, message, signature, publicKey)` one-liner, which re-derives the Minima address from `publicKey`, parses the WOTS `TreeSignature`, and verifies it against `sha3_256(message)`. v4.1 signs from the connected spend address, so the address↔publicKey binding check inside the helper holds for every valid proof. |
 | HTTPS | Required | The Totem provider API only works on HTTPS origins. Use TLS in production (Cloudflare, nginx, etc.). |
 | Session issuance | **Included** | `POST /api/auth/verify` mints a 24-hour HMAC-SHA256 session token and sets an HttpOnly cookie. `GET /api/auth/session` and `POST /api/auth/refresh` allow the client to skip TOTEM_VERIFY on subsequent connects. Set `SESSION_SECRET` in `.env`. |
 | Session secret | **Action required** | Set `SESSION_SECRET` in `.env` to a 32+ byte random secret. Without it, tokens are re-keyed on every server restart. |
@@ -275,7 +275,7 @@ Before deploying this starter to production, address the following:
 
 - [x] `TOTEM_VERIFY` is called only when no valid session exists (session-gated)
 - [x] `TOTEM_VERIFY` (v4.1) signs from the connected spend address — `deriveAddress(publicKey) === address` holds
-- [x] Server verifies proofs with `@totem/sdk-core`'s `verifySignatureDetailed(address, message, signature, publicKey)` one-liner
+- [x] Server verifies proofs with `@totemsdk/core`'s `verifySignatureDetailed(address, message, signature, publicKey)` one-liner
 - [x] API key is server-side only — never in `fetch()` from the browser
 - [x] `accountsChanged` listener resets UI on disconnect
 - [x] Balance comes from Axia API, not wallet events

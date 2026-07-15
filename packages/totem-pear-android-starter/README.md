@@ -2,7 +2,7 @@
 
 Quickstart scaffold: `@totemsdk/pear` adapters wired into `@totemsdk/edge` for a mobile Pear app, with Omnia L2 payment channels.
 
-**Full guide:** [`docs/developers/sdk/edge-android-quickstart`](https://github.com/MrGheek/axia-totem/blob/main/packages/docs-site/docs/developers/sdk/edge-android-quickstart.md)
+**Full guide:** [`docs/developers/sdk/edge-android-quickstart`](https://github.com/MrGheek/totem-sdk/blob/main/packages/docs-site/docs/developers/sdk/edge-android-quickstart.md)
 
 ## Quick start
 

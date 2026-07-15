@@ -390,7 +390,7 @@ export type TimerHandle = number | NodeJS.Timeout;
 
 ## 5. Core Module Specifications
 
-### 5.1 Lease Module (`@totem/sdk-core/lease`)
+### 5.1 Lease Module (`@totemsdk/core/lease`)
 
 #### LeaseStore
 ```typescript
@@ -515,7 +515,7 @@ export class LeaseMonitor {
 }
 ```
 
-### 5.2 Transaction Module (`@totem/sdk-core/tx`)
+### 5.2 Transaction Module (`@totemsdk/core/tx`)
 
 ```typescript
 export interface PrepareRequest {
@@ -740,7 +740,7 @@ describe('Initialization Parity', () => {
 
 ## 9. Backward Compatibility
 
-- Existing `@totem/sdk-core` exports remain unchanged
+- Existing `@totemsdk/core` exports remain unchanged
 - New modules added as additional exports
 - Existing `lease-client.ts` functions deprecated but maintained
 - Version bump to 2.0.0 with migration guide

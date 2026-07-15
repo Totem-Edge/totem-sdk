@@ -2,7 +2,27 @@
   "name": "@totem/sdk-tests",
   "version": "1.0.0",
   "private": true,
-  "description": "Cross-package parity tests for Totem SDK",
+  "description": "Cross-package parity and chaos tests for Totem SDK",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/totem-sdk/totem-sdk.git",
+    "directory": "packages/totem-sdk/packages/sdk-tests"
+  },
+  "bugs": {
+    "url": "https://github.com/totem-sdk/totem-sdk/issues"
+  },
+  "homepage": "https://totem.ing",
+  "author": "Totem SDK",
+  "license": "MIT",
+  "keywords": [
+    "totem",
+    "totemsdk",
+    "minima",
+    "blockchain",
+    "testing",
+    "parity",
+    "chaos"
+  ],
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {

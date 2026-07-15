@@ -1,6 +1,9 @@
 /**
  * @module @totemsdk/core
- * Core cryptographic primitives, adapters, and utilities for Minima blockchain
+ * Core cryptographic primitives, adapters, and utilities for Minima blockchain.
+ *
+ * Cryptographic primitives are backed by Rust/WASM (@totemsdk/core-wasm).
+ * Legacy JS implementations are available at @totemsdk/core/legacy.
  */
 
 // Version information for bundle duplication detection
@@ -60,96 +63,93 @@ export {
 // Canonical WotsIndices type (use from tx/types)
 export type { WotsIndices } from './tx/index.js';
 
-// Utilities first (canonical concatBytes source)
-export * from './utils.js';
+// ---------------------------------------------------------------------------
+// Cryptographic primitives — backed by Rust/WASM (@totemsdk/core-wasm)
+// ---------------------------------------------------------------------------
 
-// WOTS Signatures - wots.concatBytes is intentionally shadowed by utils.concatBytes above
+// Utilities
+export { bytesToHex, hexToBytes, concatBytes } from './wasm-sync.js';
+
+// SHA3-256
+export { sha3_256 } from './wasm-sync.js';
+
+// WOTS Signatures
 export {
-  F,
-  hex,
-  fromHex,
-  u16be,
-  u32be,
-  assert32,
-  h,
-  prfChainSeed,
-  toWinternitzDigits,
-  baseWWithChecksum,
+  expandPrivateKey,
+  hashChain,
   derivePKdigest,
-  wotsKeypairFromSeed,
+  deriveFullPublicKey,
   wotsSign,
-  wotsSignLegacy,
-  wotsPkFromSig,
   wotsVerify,
   wotsVerifyDigest,
+  wotsPkFromSig,
   wotsPublicKeyFromSeed,
-  type WotsKeypair,
-  type WotsSignature,
-} from './wots.js';
+  wotsKeypairFromSeed,
+} from './wasm-sync.js';
 
-// WOTS Params (from params.ts, imported by wots.ts)
+// WOTS Params (from params.ts — constants, no crypto)
 export * from './params.js';
 
-// Java-Compatible Serialization Helpers (for Minima-compatible seed derivation)
+// Java-Compatible Serialization
 export {
-  serializeMiniNumber,
-  serializeMiniData,
-  hashAllObjects,
   deriveChainSeedJava,
-  deriveChildTreeSeedJava,
-  hashObject,
-  serializeMiniNumberZERO,
-  serializeMiniNumberONE,
-  writeHashToStream,
-  javaHashAllObjects,
-  // Per-address key derivation (Minima Wallet.java compatible) - kept for migration detection
-  indexToMiniDataBytes,
   derivePerAddressSeed,
-  // Unified hierarchical key derivation (2026-06)
   deriveRootPrivSeed,
-  deriveUnifiedChildSeed,
-  // MMREntryNumber and MMREntry serialization (2026-01-18)
-  createMMREntryNumber,
-  serializeMMREntryNumber,
-  serializeMMRData,
-  serializeMMREntry,
+  writeMiniNumber,
+  writeMiniData,
+  writeMiniString,
   precomputeTransactionCoinID,
-  type MMREntryNumber as JavaMMREntryNumber,
-  type MMRData as JavaMMRData,
-  type MMREntry as JavaMMREntry,
-} from './javaStreamables.js';
+} from './wasm-sync.js';
 
-// TreeKey/TreeKeyNode - Hierarchical WOTS key tree matching Minima's TreeKey.java
+// TreeKey/TreeKeyNode — WASM-backed
 export {
-  TreeKey,
-  type KeyGenProgress,
-  type ProgressCallback,
-  TreeKeyNode,
-  verifyTreeSignature,
-  serializeTreeSignature,
-  deserializeTreeSignature,
-  getRootPublicKey,
-  DEFAULT_KEYS_PER_LEVEL,
-  DEFAULT_LEVELS,
-  type SignatureProof,
-  type TreeSignature,
-  // Unified hierarchical TreeKey factories (2026-06)
   createUnifiedChildTreeKey,
-  createUnifiedChildTreeKeyAsync,
   createUnifiedRootTreeKey,
   deriveUnifiedAddressPublicKey,
-  // @deprecated — migrate to createUnifiedChildTreeKey
-  createPerAddressTreeKey,
-  createPerAddressTreeKeyAsync,
-} from './treekey.js';
+  verifyTreeSignature,
+  mmrRootFromPublicKeys,
+  verifyMMRProof,
+} from './wasm-sync.js';
+
+// BIP39 Seed Phrase Handling
+export {
+  phraseToSeed,
+  generateWordList,
+  validatePhrase,
+  cleanSeedPhrase,
+} from './wasm-sync.js';
+
+// Address Derivation
+export {
+  makeMxAddress,
+  parseMxAddress,
+  wotsAddressFromKeypair,
+} from './wasm-sync.js';
+
+// Transaction Serialization & Digest
+export {
+  serializeTransaction,
+  computeTransactionDigest,
+} from './wasm-sync.js';
+
+// Verification
+export {
+  timingSafeEqual,
+  createChallenge,
+  validateChallenge,
+} from './wasm-sync.js';
+
+// ---------------------------------------------------------------------------
+// TypeScript-only modules (no crypto — keep as-is)
+// ---------------------------------------------------------------------------
 
 // Script helpers (for address derivation)
-export { scriptFromWotsPk, wotsAddressFromKeypair } from './script.js';
+export { scriptFromWotsPk } from './script.js';
 
-// Base32 Encoding (Minima-compatible)
-export * from './minima32.js';
+// Base32 Encoding (Minima-compatible) — re-export from WASM
+export { makeMxAddress as encodeMx, parseMxAddress as decodeMx } from './wasm-sync.js';
 
-// Merkle Mountain Range (original)
+// Merkle Mountain Range (original JS — types and helpers)
 export * from './mmr.js';
 
 // Script Types, Witness Serializer, Contract Helpers
@@ -158,19 +158,15 @@ export * from './scripts/index.js';
 // Address Derivation (original)
 export { scriptToAddress, addressToRoot } from './derive.js';
 
-// BIP39 Seed Phrase Handling (Minima-compatible, NOT standard BIP39)
+// BIP39 — re-export word list and legacy helpers from JS
 export {
   WORD_LIST,
-  cleanSeedPhrase,
-  validatePhrase,
   convertStringToSeed,
   convertWordListToSeed,
-  phraseToSeed,
-  generateWordList,
   generateSeedPhrase,
 } from './bip39.js';
 
-// Transaction Serialization & Digest (Java-compatible, extension parity)
+// Transaction types (from JS)
 export {
   type MinimaTransaction,
   type MinimaCoin,
@@ -183,9 +179,6 @@ export {
   type TransactionBuildResult,
   parseDecimalToMiniNumber,
   serializeCoin,
-  serializeTransaction,
-  computeTransactionDigest,
-  precomputeTransactionCoinID as precomputeTransactionCoinIDTx,
   createDefaultTransaction,
   buildMinimaCoin,
 } from './transaction.js';
@@ -197,10 +190,60 @@ export {
   verifyTreeSignatureDetailed,
   deriveAddressFromPublicKey,
   normalizeHex,
-  createChallenge,
-  validateChallenge,
   type VerificationResult,
 } from './verify.js';
+
+// Streamable primitives (low-level serialization building blocks)
+export {
+  writeMiniByte,
+  writeMMREntryNumber,
+  concat,
+  bigIntToByteArray,
+  type Bytes,
+} from './Streamable.js';
+
+// Java-Compatible Serialization Helpers (non-crypto)
+export {
+  serializeMiniNumber,
+  serializeMiniData,
+  hashAllObjects,
+  deriveChildTreeSeedJava,
+  hashObject,
+  serializeMiniNumberZERO,
+  serializeMiniNumberONE,
+  writeHashToStream,
+  javaHashAllObjects,
+  indexToMiniDataBytes,
+  deriveUnifiedChildSeed,
+  createMMREntryNumber,
+  serializeMMREntryNumber,
+  serializeMMRData,
+  serializeMMREntry,
+  type MMREntryNumber as JavaMMREntryNumber,
+  type MMRData as JavaMMRData,
+  type MMREntry as JavaMMREntry,
+} from './javaStreamables.js';
+
+// TreeKey/TreeKeyNode — JS types and helpers
+export {
+  TreeKey,
+  TreeKeyNode,
+  serializeTreeSignature,
+  deserializeTreeSignature,
+  getRootPublicKey,
+  DEFAULT_KEYS_PER_LEVEL,
+  DEFAULT_LEVELS,
+  createUnifiedChildTreeKeyAsync,
+  createPerAddressTreeKey,
+  createPerAddressTreeKeyAsync,
+  type KeyGenProgress,
+  type ProgressCallback,
+  type SignatureProof,
+  type TreeSignature,
+} from './treekey.js';
+
+// WOTS legacy types
+export type { WotsKeypair, WotsSignature } from './wots.js';
 
 // Constants
 export const MINIMA_CONSTANTS = {
@@ -211,17 +254,3 @@ export const MINIMA_CONSTANTS = {
   ADDRESS_PREFIX: 'Mx',
   NETWORK_ID: 1
 } as const;
-
-// Streamable primitives (low-level serialization building blocks)
-export {
-  writeMiniNumber,
-  writeMiniData,
-  writeMiniByte,
-  writeMMREntryNumber,
-  concat,
-  hexToBytes,
-  bytesToHex,
-  bigIntToByteArray,
-  writeMiniString,
-  type Bytes,
-} from './Streamable.js';

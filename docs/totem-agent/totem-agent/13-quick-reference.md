@@ -158,7 +158,7 @@ height: 620px;
 ### 3-Step Flow
 ```typescript
 // 1. Prepare (Axia API)
-const { l1, l2, l3, leaseToken, digestTx } = await TransactionService.prepare({
+const { addressIndex, l1, l2, leaseToken, digestTx } = await TransactionService.prepare({
   to: '0x1234...5678',
   amount: '100.00',
   tokenId: '0x00'
@@ -166,7 +166,7 @@ const { l1, l2, l3, leaseToken, digestTx } = await TransactionService.prepare({
 
 // 2. Sign (Client-side)
 const { signedHex } = await TransactionService.sign({
-  l1, l2, l3, digestTx
+  addressIndex, l1, l2, digestTx
 }, seed, 'v2-spec');
 
 // 3. Finalize (Axia API)
@@ -392,7 +392,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 ```typescript
 // Don't import SDK until needed
 const signTransaction = async () => {
-  const { wotsSign } = await import('@totem/sdk/core/wots');
+  const { wotsSign } = await import('@totemsdk/core/wots');
   // ...
 };
 ```

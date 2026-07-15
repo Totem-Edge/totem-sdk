@@ -74,5 +74,31 @@ export function createLookupPortAdapter(client: LookupClient): EdgeLookupPort {
         return { ok: false, error: err instanceof Error ? err.message : String(err) };
       }
     },
+
+    async query(params): Promise<EdgeOperationResult<{ results: Array<{ id: string; manifest: Uint8Array; nodeId: string }> }>> {
+      try {
+        if (params.kind === 'app') {
+          const apps = await client.queryApps({
+            category: params.category,
+            authorAddress: params.authorAddress,
+            minVersion: params.minVersion,
+            freeOnly: params.freeOnly,
+            limit: params.limit,
+          });
+          return { ok: true, data: { results: apps.map((a: { appId: string; manifest: Uint8Array; nodeId: string }) => ({ id: a.appId, manifest: a.manifest, nodeId: a.nodeId })) } };
+        } else {
+          const agents = await client.queryAgents({
+            capabilityName: params.capabilityName,
+            tags: params.tags,
+            maxPricePerCall: params.maxPricePerCall,
+            maxLatencyMs: params.maxLatencyMs,
+            limit: params.limit,
+          });
+          return { ok: true, data: { results: agents.map((a: { capabilityId: string; manifest: Uint8Array; nodeId: string }) => ({ id: a.capabilityId, manifest: a.manifest, nodeId: a.nodeId })) } };
+        }
+      } catch (err) {
+        return { ok: false, error: err instanceof Error ? err.message : String(err) };
+      }
+    },
   };
 }

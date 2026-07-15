@@ -1,73 +1,57 @@
 # Totem SDK Integration Patterns
 
+> **Note:** This document describes the intended design and architecture for the Totem Agent. Some details may differ from the current implementation. For the authoritative specification, see [TOTEM_WALLET_SPEC.md](../../TOTEM_WALLET_SPEC.md) and [LEASE_WATERMARK_SPEC.md](../../LEASE_WATERMARK_SPEC.md).
+
 ## Overview
 The Totem Extension integrates with three primary systems:
 1. **Totem SDK** - Client-side WOTS cryptography
 2. **Axia API** - RPC proxy, WOTS lease management, quota tracking
 3. **Minima Network** - Direct blockchain queries (read-only)
 
-## Totem SDK (@totem/sdk)
+## Totem SDK (@totemsdk/core)
 
 ### Package Structure
 ```
-packages/totem-sdk/
-├── packages/core/
-│   ├── src/
-│   │   ├── wots/      # WOTS signing algorithms
-│   │   ├── params/    # Parameter sets (v2-spec, etc.)
-│   │   ├── mmr/       # Merkle Mountain Range trees
-│   │   └── utils/     # SHA3-256, byte manipulation
-│   └── package.json
-├── README.md
+packages/totem-sdk/packages/core/
+├── src/
+│   ├── wots.js          # WOTS signing algorithms
+│   ├── treekey.js       # TreeKey/TreeKeyNode hierarchical keys
+│   ├── mmr.js           # Merkle Mountain Range trees
+│   ├── params.ts        # Parameter sets (WOTS_MINIMA)
+│   ├── Streamable.ts    # Byte-exact serialization
+│   ├── bip39.ts         # BIP39 seed phrase handling
+│   └── ...
 └── package.json
 ```
 
 ### Core Functions
 
-#### 1. WOTS Signing
+#### 1. WOTS Signing (via TreeKey)
 ```typescript
-import { wotsSign, fromHex, toHex } from '@totem/sdk/core/wots';
-import { WOTS_V2_SPEC } from '@totem/sdk/core/params';
+import { TreeKey, wotsSign, wotsVerify } from '@totemsdk/core';
 
-// Sign a 32-byte message digest
-const seed = new Uint8Array(32); // Your root seed
-const index = 42;               // Key index (L1, L2, or L3)
-const messageDigest = fromHex('0x1234...'); // 32 bytes
+// Create a per-address TreeKey from seed
+const addressSeed = derivePerAddressSeed(baseSeed, addressIndex);
+const treeKey = new TreeKey(addressSeed, 64, 3);
 
-const signature = wotsSign(seed, index, messageDigest, WOTS_V2_SPEC);
-// Returns: Uint8Array of length L * 32 (34 * 32 = 1,088 bytes for v2-spec)
+// Sign using specific indices
+const uses = l1 * 64 + l2;
+treeKey.setUses(uses);
+const signature = treeKey.sign(digestBytes);
+// Returns 3 SignatureProof entries (Root→L1→L2→DATA)
+// Each proof contains a 1,088-byte WOTS signature (34 chains × 32 bytes)
 ```
 
-#### 2. WOTS Public Key Generation
+#### 2. Parameter Sets
 ```typescript
-import { wotsPubKey } from '@totem/sdk/core/wots';
+import { WOTS_MINIMA } from '@totemsdk/core';
 
-// Generate public key for a given index
-const publicKey = wotsPubKey(seed, index, WOTS_V2_SPEC);
-// Returns: Uint8Array of length L * 32 (1,088 bytes)
-
-// Hash to get compact address (32 bytes)
-const address = sha3_256(publicKey);
-```
-
-#### 3. Parameter Sets
-```typescript
-import { getParamSet, WOTS_V2_SPEC, WOTS_W16_SPEC } from '@totem/sdk/core/params';
-
-// v2-spec (default for Totem)
-// - w = 256 (Winternitz parameter)
-// - L = 34 (signature length)
+// WOTS_MINIMA (the only parameter set)
+// - w = 8 (Winternitz parameter, 8 bits per digit)
+// - L = 34 (signature chains: 32 message + 2 checksum)
+// - n = 256 (SHA3-256 hash output)
+// - Signature size: 34 × 32 = 1,088 bytes
 // - Security: 128-bit post-quantum
-const v2 = WOTS_V2_SPEC;
-
-// w16-spec (legacy, smaller signatures)
-// - w = 16
-// - L = 67
-// - Security: 128-bit post-quantum
-const w16 = WOTS_W16_SPEC;
-
-// Get by name
-const paramSet = getParamSet('v2-spec');
 ```
 
 ### WOTS Cryptography Concepts
@@ -86,11 +70,11 @@ const paramSet = getParamSet('v2-spec');
 2. Public Key Generation:
    PK = [pk[0], pk[1], ..., pk[L-1]]
    where pk[i] = hash^(w-1)(sk[i])
-   (apply SHA3 w-1 times)
+   (apply SHA3 w-1 = 255 times for w=8)
 
 3. Signing:
    For message digest M:
-   - Split M into L chunks of log2(w) bits each
+   - Split M into L chunks of log2(w) = 8 bits each
    - For each chunk m[i]:
      SIG[i] = hash^(w - 1 - m[i])(sk[i])
 
@@ -101,41 +85,29 @@ const paramSet = getParamSet('v2-spec');
 
 **Key Property**: Each private key can sign ONLY ONE message safely. Reusing a key leaks information that can forge signatures.
 
-#### Hierarchical WOTS (L1/L2/L3)
+#### Per-Address TreeKey Architecture
 To enable multiple signatures from one root seed:
 
 ```
 Root Seed (256-bit)
  │
- ├─ L1 Tree (64 keys) - Signs L2 tree roots
- │   │
- │   ├─ L2-0 Tree (64 keys) - Signs L3 tree roots
- │   │   │
- │   │   ├─ L3-0 Tree (64 keys) - Signs transactions
- │   │   ├─ L3-1 Tree (64 keys)
- │   │   └─ ... (64 total L3 trees)
- │   │
- │   ├─ L2-1 Tree (64 keys)
- │   └─ ... (64 total L2 trees)
- │
- ├─ L1-1 Tree
- └─ ... (64 total L1 keys)
+ ├─ Address 0 → TreeKey (64 L1 × 64 L2 = 4,096 signatures)
+ ├─ Address 1 → TreeKey (4,096 signatures)
+ │   ...
+ └─ Address 63 → TreeKey (4,096 signatures)
 
-Total capacity: 64 (L1) × 64 (L2) × 64 (L3) = 262,144 signatures
+Total capacity: 64 addresses × 4,096 = 262,144 signatures
 ```
 
 **Usage Example**:
 ```typescript
-// Transaction #12,345 uses:
-// L1 = 2 (third L1 key)
-// L2 = 35 (36th L2 key under L1=2)
-// L3 = 57 (58th L3 key under L2=35)
-
-const l1Sig = wotsSign(seed, 2, digest, paramSet);
-const l2Sig = wotsSign(seed, 35, digest, paramSet);
-const l3Sig = wotsSign(seed, 57, digest, paramSet);
-
-// All three signatures are bundled and submitted together
+// Transaction uses address 2, L1 index 35, L2 index 57
+const addressSeed = derivePerAddressSeed(baseSeed, 2);
+const treeKey = new TreeKey(addressSeed, 64, 3);
+const uses = 35 * 64 + 57;  // flat index
+treeKey.setUses(uses);
+const signature = treeKey.sign(digestBytes);
+// Produces 3 SignatureProof entries (Root→L1→L2→DATA)
 ```
 
 ### MMR (Merkle Mountain Range) Trees

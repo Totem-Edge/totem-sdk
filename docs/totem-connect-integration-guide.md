@@ -41,11 +41,8 @@ window.dispatchEvent(new CustomEvent(TOTEM_REQUEST_ANNOUNCE));
 ### 2. Connect to the Wallet
 
 ```javascript
-async function connectWallet() {
-  const totem = await waitForTotem();
-  
-  // Request connection - this prompts the user to approve
-  const response = await totem.request({
+async function connectWallet(provider) {
+  const response = await provider.request({
     method: 'TOTEM_CONNECT',
     params: {
       origin: window.location.origin
@@ -53,49 +50,13 @@ async function connectWallet() {
   });
   
   if (response.connected) {
-    // Already connected or just approved
     console.log('Connected address:', response.address);
     console.log('Address index:', response.addressIndex);
+    console.log('Public key:', response.publicKey);
     return response;
   }
   
-  if (response.requiresApproval) {
-    // User needs to select an account
-    // The wallet popup will display available accounts
-    // User selects one and approves
-    console.log('Available accounts:', response.accounts);
-    
-    // After user approves in popup, call TOTEM_CONNECT_APPROVE
-    // with the selected addressIndex
-  }
-  
-  return response;
-}
-```
-
-### 3. Approve Connection (if required)
-
-When a first-time connection requires user approval, call `TOTEM_CONNECT_APPROVE` with the user's selected account:
-
-```javascript
-async function approveConnection(addressIndex) {
-  const totem = await waitForTotem();
-  
-  const response = await totem.request({
-    method: 'TOTEM_CONNECT_APPROVE',
-    params: {
-      origin: window.location.origin,
-      addressIndex: addressIndex
-    }
-  });
-  
-  if (response.connected) {
-    console.log('Connection approved!');
-    console.log('Address:', response.address);
-    return response;
-  }
-  
-  throw new Error('Connection approval failed');
+  throw new Error('Connection failed');
 }
 ```
 
@@ -106,10 +67,8 @@ Verify that a user owns the connected wallet by requesting a signed challenge me
 ### Request Verification
 
 ```javascript
-async function verifyWalletOwnership(customStatement) {
-  const totem = await waitForTotem();
-  
-  const response = await totem.request({
+async function verifyWalletOwnership(provider, customStatement) {
+  const response = await provider.request({
     method: 'TOTEM_VERIFY',
     params: {
       origin: window.location.origin,
@@ -126,9 +85,7 @@ async function verifyWalletOwnership(customStatement) {
       address: response.address,
       message: response.message,
       signature: response.signature,
-      publicKey: response.publicKey,
-      expiresAt: response.expiresAt,
-      verificationId: response.verificationId
+      publicKey: response.publicKey
     };
   }
   
@@ -141,12 +98,10 @@ async function verifyWalletOwnership(customStatement) {
 ```javascript
 {
   verified: true,
-  verificationId: "verify_abc123...",
   address: "MxG0...",                    // User's Minima address
   message: "https://your-app.com wants you to sign in...",
   signature: "0x...",                    // WOTS signature (hex)
-  publicKey: "0x...",                    // Spend address's root public key (hex)
-  expiresAt: 1704067200000               // Expiry timestamp (ms)
+  publicKey: "0x..."                     // Spend address's root public key (hex)
 }
 ```
 
@@ -219,9 +174,6 @@ Resources:
           document.getElementById('verifyBtn').disabled = false;
           document.getElementById('sendBtn').disabled = false;
           document.getElementById('connectBtn').textContent = 'Reconnect';
-        } else if (response.requiresApproval) {
-          document.getElementById('status').textContent = 
-            'Please select an account in the Totem popup...';
         }
       } catch (err) {
         document.getElementById('status').textContent = `Error: ${err.message}`;
@@ -231,7 +183,7 @@ Resources:
     // Verify button
     document.getElementById('verifyBtn').onclick = async () => {
       try {
-        const totem = await waitForTotem();
+        const totem = getProvider();
         const response = await totem.request({
           method: 'TOTEM_VERIFY',
           params: {
@@ -277,7 +229,7 @@ Resources:
       }
       
       try {
-        const totem = await waitForTotem();
+        const totem = getProvider();
         const response = await totem.request({
           method: 'TOTEM_SEND_TRANSACTION',
           params: {
@@ -298,9 +250,6 @@ Resources:
         if (response.success) {
           document.getElementById('status').textContent = 
             `Sent! TX: ${response.txpowid}`;
-        } else if (response.requiresApproval) {
-          document.getElementById('status').textContent = 
-            'Please approve the transaction in Totem...';
         } else {
           document.getElementById('status').textContent = 
             `Error: ${response.error}`;
@@ -311,13 +260,15 @@ Resources:
     };
     
     // Check if already installed
-    waitForTotem().then(() => {
-      document.getElementById('status').textContent = 'Totem wallet detected!';
-    }).catch(() => {
-      document.getElementById('status').textContent = 
-        'Totem wallet not detected. Please install the extension.';
-      document.getElementById('connectBtn').disabled = true;
-    });
+    setTimeout(() => {
+      if (provider) {
+        document.getElementById('status').textContent = 'Totem wallet detected!';
+      } else {
+        document.getElementById('status').textContent = 
+          'Totem wallet not detected. Please install the extension.';
+        document.getElementById('connectBtn').disabled = true;
+      }
+    }, 300);
   </script>
 </body>
 </html>
@@ -332,16 +283,14 @@ To send transactions, your dApp must first connect and be granted spending permi
 ### Request Transaction
 
 ```javascript
-async function sendTransaction(to, amount, tokenId = null) {
-  const totem = await waitForTotem();
-  
-  const response = await totem.request({
+async function sendTransaction(provider, to, amount, tokenId = null) {
+  const response = await provider.request({
     method: 'TOTEM_SEND_TRANSACTION',
     params: {
       origin: window.location.origin,
       request: {
         version: 1,
-        intent: tokenId ? 'token_send' : 'send',
+        intent: 'send',
         outputs: [{
           address: to,
           amount: amount,
@@ -357,12 +306,6 @@ async function sendTransaction(to, amount, tokenId = null) {
     return response;
   }
   
-  if (response.requiresApproval) {
-    // User needs to grant spending permission first
-    // The wallet will prompt them to approve
-    console.log('User approval required');
-  }
-  
   throw new Error(response.error || 'Transaction failed');
 }
 ```
@@ -372,16 +315,10 @@ async function sendTransaction(to, amount, tokenId = null) {
 ```typescript
 interface TransactionRequest {
   version: 1;
-  intent: 'send' | 'token_send' | 'swap' | 'contract_call' | 'custom';
+  intent: 'send' | 'swap' | 'contract_call' | 'custom';
   outputs: TransactionOutput[];
-  inputs?: TransactionInput[];
   burn?: string;
   memo?: string;
-  metadata?: {
-    appName?: string;
-    description?: string;
-    iconUrl?: string;
-  };
 }
 
 interface TransactionOutput {
@@ -400,9 +337,7 @@ interface TransactionResponse {
   txpowid?: string;
   status?: 'pending' | 'submitted' | 'confirmed' | 'rejected';
   error?: string;
-  errorCode?: 'INVALID_REQUEST' | 'PERMISSION_DENIED' | 'INSUFFICIENT_FUNDS' | 
-              'USER_REJECTED' | 'BUILD_FAILED' | 'TIMEOUT';
-  requiresApproval?: boolean;
+  errorCode?: 'INVALID_REQUEST';
 }
 ```
 
@@ -411,12 +346,6 @@ interface TransactionResponse {
 | Code | Description |
 |------|-------------|
 | `INVALID_REQUEST` | Request validation failed |
-| `SITE_NOT_CONNECTED` | Call TOTEM_CONNECT first |
-| `PERMISSION_DENIED` | Spending permission not granted or exceeded limits |
-| `INSUFFICIENT_FUNDS` | Not enough balance for transaction |
-| `USER_REJECTED` | User rejected the transaction |
-| `BUILD_FAILED` | Transaction construction failed |
-| `TIMEOUT` | Request timed out |
 
 ## API Reference
 
@@ -425,7 +354,6 @@ interface TransactionResponse {
 | Method | Description |
 |--------|-------------|
 | `TOTEM_CONNECT` | Initiate wallet connection |
-| `TOTEM_CONNECT_APPROVE` | Approve connection with selected address |
 | `TOTEM_VERIFY` | Request signed verification message |
 | `TOTEM_SEND_TRANSACTION` | Request transaction signature and broadcast |
 
@@ -436,15 +364,8 @@ interface ConnectResponse {
   connected: boolean;
   address?: string;           // Minima address (if connected)
   addressIndex?: number;      // Account index
+  publicKey?: string;         // Public key (if connected)
   isReconnect?: boolean;      // true if previously connected
-  requiresApproval?: boolean; // true if user must select account
-  accounts?: Account[];       // Available accounts (if approval required)
-}
-
-interface Account {
-  index: number;
-  address: string;
-  balance: string;
 }
 ```
 
@@ -453,12 +374,10 @@ interface Account {
 ```typescript
 interface VerifyResponse {
   verified: boolean;
-  verificationId: string;
   address: string;
   message: string;            // The full challenge message
   signature: string;          // WOTS signature (hex)
   publicKey: string;          // WOTS public key (hex)
-  expiresAt: number;          // Expiry timestamp (ms)
 }
 ```
 
@@ -511,8 +430,6 @@ async function verifySignature(verificationData) {
   return { valid: true, address };
 }
 ```
-
-> **Migrating from v4.0:** drop the `authKeyIndex === 63` guard, drop the manual `verifyTreeSignatureDetailed` + `deserializeTreeSignature` plumbing, and call `verifySignatureDetailed(address, message, signature, publicKey)` instead. The proof now signs from the spend address, so the address↔publicKey binding check inside the helper passes for every valid proof.
 
 ## Security Considerations
 
@@ -589,5 +506,5 @@ These features will be documented here when available.
 ## Support
 
 For additional support or to report issues:
-- GitHub: https://github.com/axia-minima/totem
-- Documentation: https://docs.axia.to/totem-connect
+- GitHub: https://github.com/MrGheek/totem-sdk
+- Documentation: https://totem.ing

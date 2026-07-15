@@ -23,7 +23,6 @@
   },
   "files": [
     "dist",
-    "scripts",
     "README.md",
     "LICENSE"
   ],
@@ -52,10 +51,24 @@
     "totem",
     "totemsdk",
     "minima",
+    "blockchain",
+    "quantum-resistant",
+    "wots",
+    "kissvm",
+    "utxo",
     "statechain",
     "mercury",
     "blind-signature",
     "se",
     "self-hosted"
-  ]
+  ],
+  "homepage": "https://totem.ing",
+  "bugs": {
+    "url": "https://github.com/MrGheek/totem-sdk/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MrGheek/totem-sdk.git",
+    "directory": "packages/totem-sdk/packages/se-server"
+  }
 }

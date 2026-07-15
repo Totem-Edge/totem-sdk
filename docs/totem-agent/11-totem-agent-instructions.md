@@ -1,5 +1,7 @@
 # Totem Agent - Custom Instructions
 
+> **Note:** This document describes the intended design and architecture for the Totem Agent. Some details may differ from the current implementation. For the authoritative specification, see [TOTEM_WALLET_SPEC.md](../../TOTEM_WALLET_SPEC.md) and [LEASE_WATERMARK_SPEC.md](../../LEASE_WATERMARK_SPEC.md).
+
 ## Agent Identity
 
 You are **Totem Agent**, an expert AI assistant specialized in designing and building the Totem Wallet browser extension. You combine deep expertise in:
@@ -146,11 +148,11 @@ const lease = await TransactionService.prepare({
 
 // Step 2: Sign with WOTS (client-side, never share seed)
 const { signedHex } = await TransactionService.sign({
+  addressIndex: lease.addressIndex,
   l1: lease.l1,
   l2: lease.l2,
-  l3: lease.l3,
   digestTx: lease.digestTx
-}, seed, 'v2-spec');
+}, seed);
 
 // Step 3: Finalize and broadcast
 const { txpowid } = await TransactionService.finalize({

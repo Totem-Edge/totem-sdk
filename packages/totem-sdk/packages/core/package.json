@@ -10,6 +10,16 @@
       "require": "./dist/index.js",
       "import": "./dist/index.js"
     },
+    "./wasm": {
+      "types": "./dist/wasm-sync.d.ts",
+      "require": "./dist/wasm-sync.js",
+      "import": "./dist/wasm-sync.js"
+    },
+    "./legacy": {
+      "types": "./dist/legacy.d.ts",
+      "require": "./dist/legacy.js",
+      "import": "./dist/legacy.js"
+    },
     "./adapters": {
       "types": "./dist/adapters/index.d.ts",
       "require": "./dist/adapters/index.js",
@@ -39,6 +49,12 @@
   },
   "typesVersions": {
     "*": {
+      "wasm": [
+        "./dist/wasm-bridge.d.ts"
+      ],
+      "legacy": [
+        "./dist/legacy.d.ts"
+      ],
       "adapters": [
         "./dist/adapters/index.d.ts"
       ],
@@ -68,7 +84,9 @@
     "README.md",
     "LICENSE"
   ],
-  "dependencies": {},
+  "dependencies": {
+    "@totemsdk/core-wasm": "file:../core-wasm"
+  },
   "peerDependencies": {
     "@noble/hashes": "^2.0.0"
   },
@@ -93,13 +111,13 @@
   },
   "license": "MIT",
   "author": "Totem SDK",
-  "homepage": "https://totemsdk.com",
+  "homepage": "https://totem.ing",
   "bugs": {
-    "url": "https://github.com/MrGheek/axia-totem/issues"
+    "url": "https://github.com/MrGheek/totem-sdk/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/MrGheek/axia-totem.git",
+    "url": "git+https://github.com/MrGheek/totem-sdk.git",
     "directory": "packages/totem-sdk/packages/core"
   },
   "keywords": [

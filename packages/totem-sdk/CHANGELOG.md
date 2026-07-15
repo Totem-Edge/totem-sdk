@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **`HierarchicalWitnessBundle` now a first-class export**
-  - Exported from `@totem/sdk-core/tx` and the root `@totem/sdk-core` barrel
+  - Exported from `@totemsdk/core/tx` and the root `@totemsdk/core` barrel
   - Replaces the deprecated flat `WitnessBundle` type; `WitnessBundle` alias retained for backward compatibility
 
 - **Private project support in `AxiaRpcClient`**
@@ -48,7 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **ESM-First Module System**
-  - Migrated `@totem/sdk-core` to ESM (`"type": "module"`, `"module": "nodenext"` in tsconfig)
+  - Migrated `@totemsdk/core` to ESM (`"type": "module"`, `"module": "nodenext"` in tsconfig)
   - All relative imports now use `.js` extensions for ESM compatibility
   - Removed invalid CJS `require` entries from package.json exports map
   - Vite and other modern bundlers now resolve the SDK without workarounds
@@ -73,7 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **WOTS Test Vectors**
   - Generated test vectors in `packages/totem-sdk/packages/core/test-vectors.json`
   - 2 passing + 1 intentionally-failing case for integrator validation
-  - Exportable via `@totem/sdk-core/test-vectors.json` package export
+  - Exportable via `@totemsdk/core/test-vectors.json` package export
 
 - **Integration Guide Documentation**
   - Comprehensive guide at `packages/totem-sdk/packages/core/docs/INTEGRATION_GUIDE.md`
@@ -89,7 +89,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Unified Crypto Dependency**
-  - Replaced `js-sha3` with `@noble/hashes/sha3` across all source files (`mmr.ts`, `minima32.ts`, and pre-compiled `.js` counterparts)
+  - Replaced `js-sha3` with `@noble/hashes/sha3` across all source files (`mmr.js`, `minima32.ts`, and pre-compiled `.js` counterparts)
   - `@noble/hashes` is now a `peerDependency` (>=1.3.0) in both `sdk-core` and `sdk-node`, giving consumers control over their version
   - Single crypto dependency tree reduces bundle size and eliminates version conflicts
 

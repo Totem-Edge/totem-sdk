@@ -62,8 +62,8 @@ Stores which signature indices have been used to prevent catastrophic key reuse.
 | Column | Content | Why it's stored |
 |---|---|---|
 | root_pubkey | Your WOTS root public key | Identifies which key tree the lease belongs to |
-| l1, l2, l3 | Signature index coordinates | Tracks exactly which one-time signature was consumed |
-| status | LEASED / SIGNED / USED / EXPIRED | Prevents double-signing |
+| addressIndex, l1, l2 | Signature index coordinates | Tracks exactly which one-time signature was consumed |
+| status | LEASED / USED / EXPIRED / CANCELLED | Prevents double-signing |
 
 **Retention:** Permanent. This is a safety requirement, not a choice.
 

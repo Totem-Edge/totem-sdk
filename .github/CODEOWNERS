@@ -1,0 +1,51 @@
+# Cryptographic core — requires 2 maintainer reviews
+packages/totem-sdk/packages/core/          @totem-sdk/core-maintainers
+packages/totem-sdk/packages/wots-lease/    @totem-sdk/core-maintainers
+packages/totem-sdk/packages/txpow/         @totem-sdk/core-maintainers
+packages/totem-sdk/packages/tx-builder/    @totem-sdk/core-maintainers
+
+# Payment network
+packages/totem-sdk/packages/omnia/         @totem-sdk/omnia-maintainers
+packages/totem-sdk/packages/omnia-factory/ @totem-sdk/omnia-maintainers
+packages/totem-sdk/packages/omnia-router/  @totem-sdk/omnia-maintainers
+packages/totem-sdk/packages/omnia-splice/  @totem-sdk/omnia-maintainers
+packages/totem-sdk/packages/omnia-vtxo/    @totem-sdk/omnia-maintainers
+
+# Statechain
+packages/totem-sdk/packages/statechain/    @totem-sdk/statechain-maintainers
+packages/totem-sdk/packages/se-server/     @totem-sdk/statechain-maintainers
+
+# Edge computing
+packages/totem-sdk/packages/edge/          @totem-sdk/edge-maintainers
+packages/totem-sdk/packages/edge-adapters/ @totem-sdk/edge-maintainers
+packages/totem-sdk/packages/edge-mqtt/     @totem-sdk/edge-maintainers
+
+# Sovereignty stack
+packages/totem-sdk/packages/lookup-client/  @totem-sdk/lookup-maintainers
+packages/totem-sdk/packages/lookup-node/    @totem-sdk/lookup-maintainers
+packages/totem-sdk/packages/lookup-protocol/ @totem-sdk/lookup-maintainers
+packages/totem-sdk/packages/chain-provider/ @totem-sdk/lookup-maintainers
+packages/totem-sdk/packages/pureminima-rpc/ @totem-sdk/lookup-maintainers
+
+# Identity & claims
+packages/totem-sdk/packages/identity/       @totem-sdk/identity-maintainers
+packages/totem-sdk/packages/root-identity/  @totem-sdk/identity-maintainers
+packages/totem-sdk/packages/manifest/       @totem-sdk/identity-maintainers
+packages/totem-sdk/packages/proof/          @totem-sdk/identity-maintainers
+packages/totem-sdk/packages/proof-integritas/ @totem-sdk/identity-maintainers
+packages/totem-sdk/packages/proofgraph/     @totem-sdk/identity-maintainers
+packages/totem-sdk/packages/provider-bond/  @totem-sdk/identity-maintainers
+packages/totem-sdk/packages/liquidity-bond/ @totem-sdk/identity-maintainers
+
+# Wallet & dApp
+packages/totem-extension/                   @totem-sdk/wallet-maintainers
+packages/totem-pwa-wallet/                  @totem-sdk/wallet-maintainers
+packages/totem-sdk/packages/connect/        @totem-sdk/wallet-maintainers
+packages/totem-sdk/packages/wallet-adapter/ @totem-sdk/wallet-maintainers
+
+# Security policy
+SECURITY.md                                 @totem-sdk/core-maintainers
+docs/security/                              @totem-sdk/core-maintainers
+
+# CI/CD
+.github/workflows/                          @totem-sdk/infra-maintainers

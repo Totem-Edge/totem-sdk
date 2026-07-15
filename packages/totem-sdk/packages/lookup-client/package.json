@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/lookup-client",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Hyperswarm client for Totem lookup nodes — chain queries, real-time coin updates, and TxPoW broadcast without a local chain DB",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -44,13 +44,13 @@
   },
   "license": "MIT",
   "author": "Totem SDK",
-  "homepage": "https://totemsdk.com",
+  "homepage": "https://totem.ing",
   "bugs": {
-    "url": "https://github.com/MrGheek/axia-totem/issues"
+    "url": "https://github.com/MrGheek/totem-sdk/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/MrGheek/axia-totem.git",
+    "url": "git+https://github.com/MrGheek/totem-sdk.git",
     "directory": "packages/totem-sdk/packages/lookup-client"
   },
   "keywords": [

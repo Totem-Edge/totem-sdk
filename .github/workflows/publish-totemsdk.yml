@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'totemsdk/core-v*'
+      - 'totemsdk/core-wasm-v*'
       - 'totemsdk/connect-v*'
       - 'totemsdk/tx-builder-v*'
       - 'totemsdk/node-v*'
@@ -27,6 +28,16 @@ jobs:
           - pkg: core
             dir: packages/totem-sdk/packages/core
             npm_name: '@totemsdk/core'
+            needs_wasm: true
+          - pkg: core-wasm
+            dir: packages/totem-sdk/packages/core-wasm
+            npm_name: '@totemsdk/core-wasm'
+            needs_wasm: false
+            build_cmd: |
+              curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+              rustup target add wasm32-unknown-unknown
+              wasm-pack build --target bundler --out-dir pkg
+              wasm-pack build --target nodejs --out-dir pkg-node
           - pkg: connect
             dir: packages/totem-sdk/packages/connect
             npm_name: '@totemsdk/connect'
@@ -80,6 +91,25 @@ jobs:
         if: steps.gate.outputs.proceed == 'true'
         run: npm install
         working-directory: ${{ matrix.dir }}
+
+      # ── Pre-build @totemsdk/core-wasm (Rust → WASM) for core publish ──
+      - name: Install Rust toolchain
+        if: steps.gate.outputs.proceed == 'true' && matrix.pkg == 'core'
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          targets: wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        if: steps.gate.outputs.proceed == 'true' && matrix.pkg == 'core'
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: Build @totemsdk/core-wasm
+        if: steps.gate.outputs.proceed == 'true' && matrix.pkg == 'core'
+        run: |
+          cd packages/totem-sdk/packages/core-wasm
+          wasm-pack build --target bundler --out-dir pkg
+          wasm-pack build --target nodejs --out-dir pkg-node
 
       # ── Pre-build @totemsdk/core so dependent packages can resolve its types ──
       - name: Build @totemsdk/core (workspace dependency)

@@ -7,3 +7,6 @@ test-results/
 
 # Large test vector files
 packages/totem-sdk/packages/core/test-vectors/java-parity/*.jar
+target/
+pkg/
+pkg-node/
