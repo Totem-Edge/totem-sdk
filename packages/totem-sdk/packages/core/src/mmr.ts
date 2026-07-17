@@ -1,6 +1,6 @@
 // packages/totem-sdk/packages/core/src/mmr.ts
 // Full MMR implementation matching Minima's MMR.java, MMRData.java, and TreeKeyNode.java
-import { sha3_256 as nobleSha3 } from '@noble/hashes/sha3.js';
+import { sha3_256 as nobleSha3 } from './wasm-sync.js';
 import { serializeMiniNumber, serializeMiniData, writeHashToStream, javaHashAllObjects } from "./javaStreamables.js";
 
 // Import canonical wire serialization from Streamable.ts (single source of truth)

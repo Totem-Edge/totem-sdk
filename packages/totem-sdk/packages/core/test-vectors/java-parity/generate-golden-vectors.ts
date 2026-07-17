@@ -12,7 +12,7 @@ import {
   hex, fromHex, derivePKdigest, deriveFullPublicKey, 
   GMSSRandom, expandPrivateKey, F, hashChain 
 } from '../../src/wots';
-import { sha3_256 } from '@noble/hashes/sha3.js';
+import { sha3_256 } from '@totemsdk/core';
 import { 
   serializeMiniNumber, serializeMiniData, javaHashAllObjects, 
   deriveChainSeedJava, hashObject 

@@ -1,4 +1,4 @@
-import { sha3_256 } from '@noble/hashes/sha3.js';
+import { sha3_256 } from '@totemsdk/core';
 import { TreeKey, serializeTreeSignature, verifyTreeSignature, deserializeTreeSignature, DEFAULT_KEYS_PER_LEVEL, DEFAULT_LEVELS } from '../src/treekey.js';
 import { scriptFromWotsPk } from '../src/script.js';
 import { scriptToAddress } from '../src/derive.js';

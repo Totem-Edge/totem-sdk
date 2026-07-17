@@ -1,6 +1,5 @@
 import { cleanSeedPhrase, convertStringToSeed, phraseToSeed, validatePhrase } from '../src/bip39';
-import { sha3_256 } from '@noble/hashes/sha3.js';
-import { bytesToHex } from '@noble/hashes/utils.js';
+import { sha3_256, bytesToHex } from '@totemsdk/core';
 
 describe('BIP39 Parity with Minima BIP39.java', () => {
   

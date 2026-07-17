@@ -4,8 +4,7 @@ module.exports = {
   testMatch: ['**/src/**/*.test.ts', '**/src/__tests__/**/*.test.ts'],
   moduleFileExtensions: ['ts', 'js'],
   transformIgnorePatterns: [
-    'node_modules/\\.pnpm/(?!@noble)',
-    'node_modules/(?!\\.pnpm|@noble)',
+    'node_modules/',
   ],
   transform: {
     '^.+\\.ts$': ['ts-jest', {
@@ -21,7 +20,6 @@ module.exports = {
           '@totemsdk/manifest': ['../manifest/src/index.ts'],
           '@totemsdk/identity': ['../identity/src/index.ts'],
           '@totemsdk/proof': ['../proof/src/index.ts'],
-          '@noble/hashes/*': ['node_modules/@noble/hashes/*'],
         },
       },
     }],
@@ -38,7 +36,6 @@ module.exports = {
     '^@totemsdk/manifest$': '<rootDir>/../manifest/src/index.ts',
     '^@totemsdk/identity$': '<rootDir>/../identity/src/index.ts',
     '^@totemsdk/proof$': '<rootDir>/../proof/src/index.ts',
-    '^@noble/hashes/(.*)$': '<rootDir>/node_modules/@noble/hashes/$1',
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
 };

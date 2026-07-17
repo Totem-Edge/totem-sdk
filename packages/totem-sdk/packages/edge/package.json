@@ -29,19 +29,14 @@
     "@totemsdk/agent-policy": "^0.1.3"
   },
   "peerDependencies": {
-    "@noble/hashes": "^2.0.0",
     "@totemsdk/connect": "^2.1.0"
   },
   "peerDependenciesMeta": {
-    "@noble/hashes": {
-      "optional": false
-    },
     "@totemsdk/connect": {
       "optional": true
     }
   },
   "devDependencies": {
-    "@noble/hashes": "^2.2.0",
     "@totemsdk/connect": "^2.1.0",
     "@types/jest": "^29.0.0",
     "@types/node": "^20.0.0",

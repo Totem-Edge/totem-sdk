@@ -28,16 +28,7 @@
     "@totemsdk/manifest": "^0.1.2",
     "@totemsdk/proof": "^0.1.1"
   },
-  "peerDependencies": {
-    "@noble/hashes": "^2.0.0"
-  },
-  "peerDependenciesMeta": {
-    "@noble/hashes": {
-      "optional": false
-    }
-  },
   "devDependencies": {
-    "@noble/hashes": "^2.2.0",
     "@types/jest": "^29.5.14",
     "@types/node": "^20.19.43",
     "jest": "^29.7.0",

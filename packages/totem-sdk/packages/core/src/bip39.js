@@ -21,7 +21,7 @@ exports.convertWordListToSeed = convertWordListToSeed;
 exports.phraseToSeed = phraseToSeed;
 exports.generateWordList = generateWordList;
 exports.generateSeedPhrase = generateSeedPhrase;
-const sha3_1 = require("@noble/hashes/sha3");
+const sha3_1 = require("@totemsdk/core");
 /**
  * Official BIP39 English word list (2048 words)
  * From https://github.com/bitcoin/bips/blob/master/bip-0039/english.txt

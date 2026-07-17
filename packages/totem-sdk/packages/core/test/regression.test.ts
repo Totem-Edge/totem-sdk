@@ -11,7 +11,7 @@
  * it means the implementation is no longer compatible with Minima.
  */
 
-import { sha3_256 } from '@noble/hashes/sha3.js';
+import { sha3_256 } from '@totemsdk/core';
 import { cleanSeedPhrase, convertStringToSeed } from '../src/bip39';
 import { 
   serializeMiniNumber, 

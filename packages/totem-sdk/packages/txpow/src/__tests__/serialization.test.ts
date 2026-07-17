@@ -9,7 +9,7 @@
  * for the same inputs before the extension's private copies are deleted (Task #130).
  */
 
-import { sha3_256 } from '@noble/hashes/sha3.js';
+import { sha3_256 } from '@totemsdk/core';
 import {
   serializeTxHeader,
   serializeTxBody,

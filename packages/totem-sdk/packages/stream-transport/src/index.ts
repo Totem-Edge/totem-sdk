@@ -428,7 +428,7 @@ export async function createWebSocketTransport(
 
 // ── Topic helpers (shared with OmniaSwarmImpl and LookupClient) ───────────────
 
-import { sha3_256 } from '@noble/hashes/sha3';
+import { sha3_256 } from '@totemsdk/core';
 
 function topicBuffer(namespace: string, key: string): Buffer {
   return Buffer.from(sha3_256(`${namespace}:${key}`));

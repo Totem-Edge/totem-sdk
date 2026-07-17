@@ -4,35 +4,26 @@
  * Tracks accumulated usage (string precision). Settles via runtime.ports.payment
  * when settle(recipient) is called. The settle step is explicit — callers decide
  * when to trigger payment (e.g. on limit breach, on scheduled interval, on demand).
+ *
+ * Fixed-point arithmetic delegated to Rust/WASM (10^8 scale).
  */
 
 import { createEdgeReceipt } from '@totemsdk/edge';
 import type { EdgeReceipt, EdgeOperationResult } from '@totemsdk/edge';
 import type { MqttUsageMeterConfig, MqttUsageMeter, MqttUsageEvent } from './types.js';
-
-// Fixed-point arithmetic using 10^8 scale (Minima max 8 decimal places).
-const _SCALE = 100_000_000n;
-function _toScaled(s: string): bigint {
-  const [i, f = ''] = s.split('.');
-  return BigInt(i || '0') * _SCALE + BigInt(f.padEnd(8, '0').slice(0, 8));
-}
-function _fromScaled(n: bigint): string {
-  if (n === 0n) return '0';
-  const frac = (n % _SCALE).toString().padStart(8, '0').replace(/0+$/, '');
-  return frac ? `${n / _SCALE}.${frac}` : `${n / _SCALE}`;
-}
+import { toScaled, fromScaled } from './wasm-sync.js';
 
 export function createMqttUsageMeter(config: MqttUsageMeterConfig): MqttUsageMeter {
   let unpaidScaled = 0n;
 
   return {
     async recordUsage(event: MqttUsageEvent): Promise<EdgeOperationResult> {
-      unpaidScaled += _toScaled(event.quantity);
-      return { ok: true, data: { unpaidUsage: _fromScaled(unpaidScaled), event } };
+      unpaidScaled += BigInt(toScaled(event.quantity));
+      return { ok: true, data: { unpaidUsage: fromScaled(unpaidScaled.toString()), event } };
     },
 
     getUnpaidUsage(): string {
-      return _fromScaled(unpaidScaled);
+      return fromScaled(unpaidScaled.toString());
     },
 
     resetUsage(): void {
@@ -51,7 +42,7 @@ export function createMqttUsageMeter(config: MqttUsageMeterConfig): MqttUsageMet
           topic: event.topic,
           pricePerUnit: config.pricePerUnit,
           tokenId: config.tokenId,
-          unpaidUsage: _fromScaled(unpaidScaled),
+          unpaidUsage: fromScaled(unpaidScaled.toString()),
           ...(event.metadata ?? {}),
         },
         issuedAt: event.createdAt,
@@ -66,7 +57,7 @@ export function createMqttUsageMeter(config: MqttUsageMeterConfig): MqttUsageMet
       if (unpaidScaled <= 0n) {
         return { ok: true, data: { settled: '0' } };
       }
-      const unpaidUsage = _fromScaled(unpaidScaled);
+      const unpaidUsage = fromScaled(unpaidScaled.toString());
       const result = await payment.pay({
         recipient,
         amount: unpaidUsage,

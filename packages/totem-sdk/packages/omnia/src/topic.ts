@@ -7,7 +7,7 @@
  * Wire format: SHA3-256('omnia:' + channelId)
  */
 
-import { sha3_256 } from '@noble/hashes/sha3.js';
+import { sha3_256 } from '@totemsdk/core';
 
 /**
  * Derive the 32-byte Hyperswarm topic Buffer for a given channel ID.

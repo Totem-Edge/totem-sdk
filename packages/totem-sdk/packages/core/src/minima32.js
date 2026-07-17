@@ -48,7 +48,7 @@ function decodeMxRadix32Frame(mx) {
     return bigIntToBytes(x);
 }
 // Import SHA3 for checksum calculation
-const sha3_1 = require("@noble/hashes/sha3");
+const sha3_1 = require("@totemsdk/core");
 /** Encode raw 32 bytes to Mx address with frame and checksum */
 function encodeMx(root32) {
     if (root32.length !== 32) {

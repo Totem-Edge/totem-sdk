@@ -32,7 +32,7 @@ export {
   IntentType,
   RiskLevel,
   ReceiptStatus,
-} from './generated/agent_policy.js';
+} from './generated/totem/agent/policy/v1/agent_policy.js';
 
 export type {
   PaymentIntent as ProtoPaymentIntent,
@@ -40,4 +40,4 @@ export type {
   AgentReceipt as ProtoAgentReceipt,
   AgentIdentity as ProtoAgentIdentity,
   AgentPolicyConfig,
-} from './generated/agent_policy.js';
+} from './generated/totem/agent/policy/v1/agent_policy.js';

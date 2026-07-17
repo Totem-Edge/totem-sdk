@@ -5,6 +5,9 @@ export { parseScript } from './parser.js';
 export { KissvmLimitError, KissvmRuntimeError } from './errors.js';
 export { sigdig } from './eval.js';
 
+// WASM bridge (Rust-backed evaluator and parser)
+export { evaluateScriptWasm, parseScriptWasm } from './wasm-sync.js';
+
 export type {
   Value,
   EvalResult,

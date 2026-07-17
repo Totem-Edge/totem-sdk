@@ -37,7 +37,7 @@ Auto-generated from JSDoc/TypeScript sources via TypeDoc. Run `npm run generate`
 | [`@totemsdk/txpow`](totemsdk-txpow/index.md) | TxPoW proof-of-work mining, serialization, and verification |
 | [`@totemsdk/wots-lease`](totemsdk-wots-lease/index.md) | WOTS key-use coordination — canonical v3 watermark and lease safety layers |
 | [`@totemsdk/tx-builder`](totemsdk-tx-builder/index.md) | Transaction builder — coin selection, multisig, and WOTS signing |
-| [`@totemsdk/kissvm`](totemsdk-kissvm/index.md) | KISSVM script lexer, parser, AST, and evaluator |
+| [`@totemsdk/kissvm`](totemsdk-kissvm/index.md) | KISSVM v1 evaluator — Rust/WASM engine with TypeScript fallback |
 | [`@totemsdk/statechain`](totemsdk-statechain/index.md) | Mercury-protocol state chain — off-chain UTXO custody transfer |
 | [`@totemsdk/se-server`](totemsdk-se-server/index.md) | Self-hostable Statechain Entity server — blind co-signer |
 | [`@totemsdk/chain-provider`](totemsdk-chain-provider/index.md) | Unified chain data provider — hosted, RPC, and P2P lookup backends |

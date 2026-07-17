@@ -26,13 +26,9 @@
     "LICENSE"
   ],
   "peerDependencies": {
-    "@noble/hashes": "^2.0.0",
     "@totemsdk/core": ">=1.0.1"
   },
   "peerDependenciesMeta": {
-    "@noble/hashes": {
-      "optional": false
-    },
     "@totemsdk/core": {
       "optional": false
     }
@@ -45,7 +41,6 @@
     "access": "public"
   },
   "devDependencies": {
-    "@noble/hashes": "^2.2.0",
     "@totemsdk/core": "^1.1.0",
     "@types/jest": "^29.0.0",
     "@types/node": "^20.0.0",

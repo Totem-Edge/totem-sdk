@@ -9,7 +9,7 @@
  *   - Fallback path: malformed hex, too-short input, unparseable structure
  */
 
-import { sha3_256 } from '@noble/hashes/sha3.js';
+import { sha3_256 } from '@totemsdk/core';
 import { writeMiniNumber, writeHashToStream, concat } from '@totemsdk/core';
 import {
   serializeTxBody,

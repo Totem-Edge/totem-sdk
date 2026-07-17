@@ -4,30 +4,12 @@
  * Tracks accumulated unpaid usage internally via recordUsage(), or delegates
  * to config.getUsage() when linked to an external MqttUsageMeter.
  *
- * Does NOT probe the payment port with a zero-amount transaction.
- * Payment settlement is the responsibility of the caller — the gate enforces
- * a local threshold comparison only.
- *
- * Modes:
- *   'block'    — return MQTT_CREDIT_EXCEEDED error when limit exceeded.
- *   'warn'     — allow publish but include a warning in the result.
- *   'shutdown' — block AND publish a shutdown notice to shutdownTopic.
+ * Fixed-point arithmetic delegated to Rust/WASM (10^8 scale).
  */
 
 import type { EdgeOperationResult } from '@totemsdk/edge';
 import type { MqttCreditGateConfig, MqttCreditGate, MqttCreditDecision, MqttPublishOptions } from './types.js';
-
-// Fixed-point arithmetic using 10^8 scale (Minima max 8 decimal places).
-const _SCALE = 100_000_000n;
-function _toScaled(s: string): bigint {
-  const [i, f = ''] = s.split('.');
-  return BigInt(i || '0') * _SCALE + BigInt(f.padEnd(8, '0').slice(0, 8));
-}
-function _fromScaled(n: bigint): string {
-  if (n === 0n) return '0';
-  const frac = (n % _SCALE).toString().padStart(8, '0').replace(/0+$/, '');
-  return frac ? `${n / _SCALE}.${frac}` : `${n / _SCALE}`;
-}
+import { toScaled, fromScaled } from './wasm-sync.js';
 
 export function createMqttCreditGate(config: MqttCreditGateConfig): MqttCreditGate {
   let internalUnpaidScaled = 0n;
@@ -36,17 +18,17 @@ export function createMqttCreditGate(config: MqttCreditGateConfig): MqttCreditGa
   const mode = config.mode ?? 'block';
 
   function currentUnpaid(): string {
-    return config.getUsage ? config.getUsage() : _fromScaled(internalUnpaidScaled);
+    return config.getUsage ? config.getUsage() : fromScaled(internalUnpaidScaled.toString());
   }
 
   function isOverLimit(): boolean {
     if (unpaidLimit === null) return false;
-    return _toScaled(currentUnpaid()) > _toScaled(unpaidLimit);
+    return BigInt(toScaled(currentUnpaid())) > BigInt(toScaled(unpaidLimit));
   }
 
   return {
     recordUsage(quantity: string): void {
-      internalUnpaidScaled += _toScaled(quantity);
+      internalUnpaidScaled += BigInt(toScaled(quantity));
     },
 
     getUnpaidUsage(): string {

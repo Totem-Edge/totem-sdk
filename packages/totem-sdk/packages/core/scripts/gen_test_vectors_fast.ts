@@ -1,4 +1,4 @@
-import { sha3_256 } from '@noble/hashes/sha3.js';
+import { sha3_256 } from '@totemsdk/core';
 import { wotsSign, wotsVerify, derivePKdigest, deriveFullPublicKey, wotsVerifyDigest } from '../src/wots.js';
 import { getParamSet } from '../src/params.js';
 

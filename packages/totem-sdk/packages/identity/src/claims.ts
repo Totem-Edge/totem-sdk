@@ -4,7 +4,7 @@
  * Claim IDs are deterministic: SHA3-256 of claim fields + canonical payload hash.
  */
 
-import { sha3_256 } from '@noble/hashes/sha3.js';
+import { sha3_256 } from '@totemsdk/core';
 import { canonicalJson, toHex } from './canonical.js';
 import type { IdentityClaim, IdentityClaimType } from './types.js';
 

@@ -30,7 +30,7 @@
  *   writeMiniData(mTxnDifficulty)   — [0x00,0x00,0x00,len,  ...len bytes]  4+len bytes
  */
 
-import { sha3_256 } from '@noble/hashes/sha3.js';
+import { sha3_256 } from '@totemsdk/core';
 import { isLessThan } from './mine.js';
 import { computeTxPoWId } from './serialization.js';
 import { TX_POW_MIN_DIFFICULTY } from './constants.js';

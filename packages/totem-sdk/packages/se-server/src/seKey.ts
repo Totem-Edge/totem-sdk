@@ -1,6 +1,5 @@
 import crypto from 'crypto';
-import { sha3_256 } from '@noble/hashes/sha3';
-import { bytesToHex } from '@noble/hashes/utils';
+import { sha3_256, bytesToHex } from '@totemsdk/core';
 
 let _coreModule: any = null;
 

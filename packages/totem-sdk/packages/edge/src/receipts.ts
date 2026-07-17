@@ -8,7 +8,7 @@
  * verifyEdgeReceipt always returns a structured EdgeOperationResult, never a bare boolean.
  */
 
-import { sha3_256 } from '@noble/hashes/sha3.js';
+import { sha3_256 } from '@totemsdk/core';
 import { canonicalJson, toHex } from './canonical.js';
 import type { EdgeReceipt, EdgeOperationResult } from './types.js';
 

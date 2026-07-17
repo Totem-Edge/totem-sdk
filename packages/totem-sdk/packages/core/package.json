@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/core",
-  "version": "1.1.0",
-  "description": "Core cryptographic primitives for Totem SDK",
+  "version": "1.2.1",
+  "description": "Core cryptographic primitives for Totem SDK — backed by Rust/WASM",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -50,7 +50,7 @@
   "typesVersions": {
     "*": {
       "wasm": [
-        "./dist/wasm-bridge.d.ts"
+        "./dist/wasm-sync.d.ts"
       ],
       "legacy": [
         "./dist/legacy.d.ts"
@@ -85,21 +85,12 @@
     "LICENSE"
   ],
   "dependencies": {
-    "@totemsdk/core-wasm": "file:../core-wasm"
-  },
-  "peerDependencies": {
-    "@noble/hashes": "^2.0.0"
-  },
-  "peerDependenciesMeta": {
-    "@noble/hashes": {
-      "optional": false
-    }
+    "@totemsdk/core-wasm": "^0.1.0"
   },
   "engines": {
     "node": ">=16.0.0"
   },
   "devDependencies": {
-    "@noble/hashes": "^2.2.0",
     "@types/jest": "^29.0.0",
     "@types/node": "^20.0.0",
     "jest": "^29.0.0",

@@ -11,7 +11,7 @@
  *          — node.createdAt and graph.metadata excluded from graphId (time-variant / mutable)
  */
 
-import { sha3_256 } from '@noble/hashes/sha3.js';
+import { sha3_256 } from '@totemsdk/core';
 import type { ProofGraphNode, ProofGraphEdge } from './types.js';
 
 export function toHex(bytes: Uint8Array): string {

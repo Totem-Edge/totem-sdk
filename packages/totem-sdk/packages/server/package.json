@@ -28,14 +28,6 @@
     "node-fetch": "^2.6.9",
     "ws": "^8.13.0"
   },
-  "peerDependencies": {
-    "@noble/hashes": "^2.0.0"
-  },
-  "peerDependenciesMeta": {
-    "@noble/hashes": {
-      "optional": false
-    }
-  },
   "devDependencies": {
     "@types/jest": "^29.0.0",
     "@types/node": "^20.0.0",

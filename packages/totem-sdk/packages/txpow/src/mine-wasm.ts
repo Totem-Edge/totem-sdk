@@ -18,7 +18,7 @@
  *   npm run build                  (postbuild copies miner.wasm → dist/wasm/)
  *
  * ── WASM module interface (miner.wat) ──
- *   import env.sha3_256(headerPtr, headerLen, outPtr)  ← host provides via @noble/hashes
+ *   import env.sha3_256(headerPtr, headerLen, outPtr)  ← host provides via @totemsdk/core
  *   export mine(headerPtr, headerLen, nonceOffset, nonceLen,
  *               targetPtr, startNonce, chunkSize) → i32
  *   export memory
@@ -26,7 +26,7 @@
  * mine() returns the found nonce, or -1 (0xFFFFFFFF) if no nonce found in chunk.
  */
 
-import { sha3_256 as nobleSha3_256 } from '@noble/hashes/sha3.js';
+import { sha3_256 as nobleSha3_256 } from '@totemsdk/core';
 
 /** Byte offset in WASM linear memory where the hash output is written. */
 const HASH_OUT_OFFSET = 0;
@@ -92,7 +92,7 @@ let _instance: WebAssembly.Instance | null = null;
 let _memory: WebAssembly.Memory | null = null;
 let _loadAttempted = false;
 
-/** Build the WebAssembly import object, wiring sha3_256 from @noble/hashes. */
+/** Build the WebAssembly import object, wiring sha3_256 from @totemsdk/core. */
 function buildImports(): WebAssembly.Imports {
   return {
     env: {

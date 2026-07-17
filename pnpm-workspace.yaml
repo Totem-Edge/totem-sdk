@@ -4,3 +4,6 @@ packages:
 allowBuilds:
   esbuild: set this to true or false
   sharp: set this to true or false
+minimumReleaseAgeExclude:
+  - '@totemsdk/core-wasm@0.1.0'
+  - '@totemsdk/core@1.2.0'

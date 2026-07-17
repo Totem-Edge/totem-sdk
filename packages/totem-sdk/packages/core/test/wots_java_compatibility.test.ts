@@ -21,7 +21,7 @@ import { derivePKdigest, toWinternitzDigits, expandPrivateKey, GMSSRandom } from
 import { WOTS_MINIMA, getParamSet } from '../dist/params';
 import { scriptFromWotsPk } from '../dist/script';
 import { scriptToAddress } from '../dist/derive';
-import { sha3_256 } from '@noble/hashes/sha3.js';
+import { sha3_256 } from '@totemsdk/core';
 
 const hex = (u: Uint8Array) => Buffer.from(u).toString('hex');
 const fromHex = (h: string) => Uint8Array.from(Buffer.from(h, 'hex'));

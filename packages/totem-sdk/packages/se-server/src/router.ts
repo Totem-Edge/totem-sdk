@@ -1,7 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
-import { sha3_256 } from '@noble/hashes/sha3';
-import { bytesToHex } from '@noble/hashes/utils';
+import { sha3_256, bytesToHex } from '@totemsdk/core';
 import { z } from 'zod';
 import { Pool } from 'pg';
 import {

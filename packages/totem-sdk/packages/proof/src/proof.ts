@@ -8,7 +8,7 @@
  * verifyProof: combined check returning ProofVerifyResult.
  */
 
-import { sha3_256 } from '@noble/hashes/sha3.js';
+import { sha3_256 } from '@totemsdk/core';
 import {
   wotsSign,
   wotsKeypairFromSeed,

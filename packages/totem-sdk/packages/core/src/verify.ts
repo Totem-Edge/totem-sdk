@@ -1,4 +1,4 @@
-import { sha3_256 } from '@noble/hashes/sha3.js';
+import { sha3_256 } from './wasm-sync.js';
 import { verifyTreeSignature, deserializeTreeSignature } from './treekey.js';
 import { scriptToAddress, addressToRoot } from './derive.js';
 import { scriptFromWotsPk } from './script.js';

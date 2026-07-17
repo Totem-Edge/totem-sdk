@@ -7,7 +7,7 @@
  * - PKdigest is deterministic and consistent
  */
 import { describe, it, expect } from 'vitest';
-import { sha3_256 } from '@noble/hashes/sha3.js';
+import { sha3_256 } from '@totemsdk/core';
 import { wotsKeypairFromSeed, derivePKdigest, expandPrivateKey, GMSSRandom } from '../dist/wots';
 import { WOTS_V1_DEV, WOTS_V2_SPEC, WOTS_MINIMA, getParamSet } from '../dist/params';
 

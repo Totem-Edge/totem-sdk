@@ -22,7 +22,7 @@
  */
 
 import { createHash } from 'node:crypto';
-import { F, fromHex, wotsVerifyDigest } from '@totemsdk/core';
+import { sha3_256, hexToBytes, wotsVerifyDigest } from '@totemsdk/core';
 import { KissvmLimitError, KissvmRuntimeError, ReturnSignal } from './errors.js';
 import { LIMITS, VMState, MastBranch, UserFunction } from './vm.js';
 import { parseScript } from './parser.js';
@@ -349,14 +349,14 @@ function evalExpr(node: ASTNode, vm: VMState): Value {
         return false;
       }
       for (const [pkHex, sig] of vm.witness.signatures) {
-        try { if (wotsVerifyDigest(sig, vm.txCtx.txDigest, fromHex(pkHex))) return true; } catch { /**/ }
+        try { if (wotsVerifyDigest(sig, vm.txCtx.txDigest, hexToBytes(pkHex))) return true; } catch { /**/ }
       }
       return false;
     }
     case 'HASH': {
       const val   = evalExpr(node.expr, vm);
       const bytes = toBytes(val);
-      const out   = node.fn === 'SHA2' ? sha2(bytes) : F(bytes);
+      const out   = node.fn === 'SHA2' ? sha2(bytes) : sha3_256(bytes);
       const hex   = '0x' + bytesToHex(out);
       checkStringSize(hex);
       return hex;
@@ -517,7 +517,7 @@ function verifySignedBy(pkVal: string, vm: VMState): boolean {
     return false;
   }
   try {
-    const ok = wotsVerifyDigest(sig, vm.txCtx.txDigest, fromHex(stripped));
+    const ok = wotsVerifyDigest(sig, vm.txCtx.txDigest, hexToBytes(stripped));
     vm.addTrace(`SIGNEDBY(${stripped.slice(0, 10)}…) → ${ok}`);
     return ok;
   } catch {
@@ -623,7 +623,7 @@ function executeSubScript(script: string, parentVm: VMState): boolean {
 // ─── PROOF — Merkle-conditioned policy verification ───────────────────────────
 
 /**
- * PROOF(scriptHash, policyRoot, proof)
+ * PROOsha3_256(scriptHash, policyRoot, proof)
  *
  * Semantics:
  *  1. scriptHash must be present in txCtx.mastBranches (spender revealed it).
@@ -663,13 +663,13 @@ function evalProof(
   // Step 2a: empty proof — only valid for trivial single-leaf tree (root == leaf)
   if (proofHex.length === 0) {
     const ok = normHash === normRoot;
-    vm.addTrace(`PROOF(${normHash.slice(0, 12)}…) empty-proof, trivial=${ok}`);
+    vm.addTrace(`PROOsha3_256(${normHash.slice(0, 12)}…) empty-proof, trivial=${ok}`);
     return ok;
   }
 
   // Step 2b: non-empty proof — verify Merkle inclusion path
   const ok = verifyMerkleProof(normHash, normRoot, proofHex);
-  vm.addTrace(`PROOF(${normHash.slice(0, 12)}…, root=${normRoot.slice(0, 12)}…) merkle=${ok}`);
+  vm.addTrace(`PROOsha3_256(${normHash.slice(0, 12)}…, root=${normRoot.slice(0, 12)}…) merkle=${ok}`);
   return ok;
 }
 
@@ -683,8 +683,8 @@ function evalProof(
 function verifyMerkleProof(leafHex: string, rootHex: string, proofHex: string): boolean {
   try {
     const leafPure = leafHex.startsWith('0x') ? leafHex.slice(2) : leafHex;
-    let current   = fromHex(leafPure);
-    const proofBytes = fromHex(proofHex);
+    let current   = hexToBytes(leafPure);
+    const proofBytes = hexToBytes(proofHex);
     const SIBLING = 32;
     for (let off = 0; off + SIBLING <= proofBytes.length; off += SIBLING) {
       const sibling = proofBytes.slice(off, off + SIBLING);
@@ -695,7 +695,7 @@ function verifyMerkleProof(leafHex: string, rootHex: string, proofHex: string): 
       const pair = new Uint8Array(64);
       pair.set(lo,  0);
       pair.set(hi, 32);
-      current = F(pair);
+      current = sha3_256(pair);
     }
     const computedRoot = '0x' + bytesToHex(current);
     return normalizeHex(computedRoot) === normalizeHex(rootHex);
@@ -818,13 +818,13 @@ function normalizeHex(s: string): string {
 function toBytes(v: Value): Uint8Array {
   if (v instanceof Uint8Array) return v;
   if (typeof v === 'string') {
-    if (v.startsWith('0x') || v.startsWith('0X')) return fromHex(v.slice(2));
+    if (v.startsWith('0x') || v.startsWith('0X')) return hexToBytes(v.slice(2));
     return new TextEncoder().encode(v);
   }
   if (typeof v === 'bigint') {
     let hex = (v < 0n ? -v : v).toString(16);
     if (hex.length % 2) hex = '0' + hex;
-    return fromHex(hex);
+    return hexToBytes(hex);
   }
   if (typeof v === 'boolean') return new Uint8Array([v ? 1 : 0]);
   return new Uint8Array(0);
@@ -841,7 +841,7 @@ function bytesToHex(bytes: Uint8Array): string {
 
 function computeScriptHash(script: string): string {
   const bytes = new TextEncoder().encode(script.trim().toUpperCase());
-  return '0x' + bytesToHex(F(bytes));
+  return '0x' + bytesToHex(sha3_256(bytes));
 }
 
 function checkStringSize(s: string): void {

@@ -11,7 +11,7 @@
  * verify function.
  */
 
-import { sha3_256 } from '@noble/hashes/sha3.js';
+import { sha3_256 } from '@totemsdk/core';
 import type { LookupMessage } from './messages.js';
 
 export interface SignFn {

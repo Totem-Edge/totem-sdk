@@ -9,7 +9,7 @@
  * Default structure: 3 levels x 64 keys = 64^3 = 262,144 one-time signatures
  */
 
-import { sha3_256 } from '@noble/hashes/sha3.js';
+import { sha3_256 } from './wasm-sync.js';
 import { deriveChainSeedJava, hashObject, serializeMiniNumber, serializeMiniData, deriveRootPrivSeed, deriveUnifiedChildSeed, derivePerAddressSeed } from './javaStreamables.js';
 import { derivePKdigest, deriveFullPublicKey, wotsSign, wotsVerifyDigest, hex } from './wots.js';
 import { getParamSet } from './params.js';

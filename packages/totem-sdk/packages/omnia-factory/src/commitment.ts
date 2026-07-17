@@ -1,4 +1,4 @@
-import { sha3_256 } from '@noble/hashes/sha3.js';
+import { sha3_256 } from '@totemsdk/core';
 
 /**
  * Compute the canonical 32-byte state commitment for N-of-N factory signing.

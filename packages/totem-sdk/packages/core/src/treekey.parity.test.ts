@@ -11,7 +11,7 @@
  */
 
 // Jest globals (describe, it, expect) are available in test environment
-import { sha3_256 } from '@noble/hashes/sha3.js';
+import { sha3_256 } from '@totemsdk/core';
 import {
   serializeMiniNumber,
   serializeMiniData,

@@ -40,7 +40,7 @@ export function decodeMxRadix32Frame(mx: string): Uint8Array {
   return bigIntToBytes(x);
 }
 
-import { sha3_256 as nobleSha3 } from '@noble/hashes/sha3.js';
+import { sha3_256 as nobleSha3 } from './wasm-sync.js';
 
 /** Encode raw 32 bytes to Mx address with frame and checksum */
 export function makeMxAddress(root32: Uint8Array): string {

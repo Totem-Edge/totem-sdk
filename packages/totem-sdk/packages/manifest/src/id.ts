@@ -11,7 +11,7 @@
  *   EdgeServiceManifest → "edge-service" + operatorAddress + serviceType + name
  */
 
-import { sha3_256 } from '@noble/hashes/sha3.js';
+import { sha3_256 } from '@totemsdk/core';
 import type { Manifest } from './types.js';
 
 function bytesToHex(b: Uint8Array): string {

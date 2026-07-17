@@ -13,7 +13,8 @@
     }
   },
   "files": [
-    "dist",
+    "pkg/",
+    "pkg-node/",
     "README.md",
     "LICENSE"
   ],

@@ -22,11 +22,7 @@ export default {
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
   // @totemsdk/core resolves to its pre-built ESM dist (via the exports field).
-  // @noble/* also ships ESM — both are excluded from the ignore pattern so
-  // jest-runtime can load them as native ESM modules.
-  // Only @totemsdk/* packages need special handling; @noble/* is native ESM
-  // and must NOT be in the exception list (it must be loaded natively, not
-  // re-processed by ts-jest which has no .js transform defined).
+  // Only @totemsdk/* packages need special handling.
   transformIgnorePatterns: [
     'node_modules/',
   ],

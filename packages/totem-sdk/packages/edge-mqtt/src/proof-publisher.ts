@@ -12,7 +12,7 @@
 
 import { createProof } from '@totemsdk/proof';
 import { canonicalJson, toHex, computeMqttEventId } from './canonical.js';
-import { sha3_256 } from '@noble/hashes/sha3.js';
+import { sha3_256 } from '@totemsdk/core';
 import type { MqttMessage } from './client-port.js';
 import type {
   MqttProofPublisherConfig,

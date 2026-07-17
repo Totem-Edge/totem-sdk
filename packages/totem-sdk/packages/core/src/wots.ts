@@ -13,7 +13,7 @@
  * Source: org.bouncycastle.pqc.crypto.gmss.util.{WinternitzOTSignature, WinternitzOTSVerify, GMSSRandom}
  */
 
-import { sha3_256 } from '@noble/hashes/sha3.js';
+import { sha3_256 } from './wasm-sync.js';
 import { getParamSet, ParamSet } from "./params.js";
 import { deriveChainSeedJava } from "./javaStreamables.js";
 import type { LoggerAdapter } from "./adapters/index.js";

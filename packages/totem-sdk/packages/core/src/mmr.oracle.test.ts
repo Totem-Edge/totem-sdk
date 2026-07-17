@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { mmrRootFromSingleLeaf } from "./mmr";
-import { bytesToHex } from "@noble/hashes/utils.js";
+import { bytesToHex } from "@totemsdk/core";
 
 const enc = (s: string) => new TextEncoder().encode(s);
 

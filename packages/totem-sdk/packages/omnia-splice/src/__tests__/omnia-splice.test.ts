@@ -1,4 +1,4 @@
-import { sha3_256 } from '@noble/hashes/sha3.js';
+import { sha3_256 } from '@totemsdk/core';
 import { MAX_HASH } from '@totemsdk/txpow';
 import type { OmniaChannel, ChannelSigner } from '@totemsdk/omnia';
 import { _resetChannelWatermarks, COINID_ELTOO } from '@totemsdk/omnia';

@@ -14,9 +14,12 @@
  * for use with the EnhancedTransactionBuilder.
  */
 
-import { sha3_256 } from '@noble/hashes/sha3.js';
-import { sha256 } from '@noble/hashes/sha2.js';
-import { randomBytes } from '@noble/hashes/utils.js';
+import { sha3_256 } from '../wasm-sync.js';
+import { createHash, randomBytes } from 'node:crypto';
+
+function sha256(data: Uint8Array): Uint8Array {
+  return new Uint8Array(createHash('sha256').update(data).digest());
+}
 import type {
   ScriptDescriptor,
   StateValue,

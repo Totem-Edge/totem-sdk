@@ -265,6 +265,9 @@ importers:
 
   packages/totem-sdk/packages/agent-policy:
     dependencies:
+      '@protobuf-ts/runtime':
+        specifier: ^2.11.1
+        version: 2.11.1
       '@totemsdk/core':
         specifier: ^1.1.0
         version: 1.1.0(@noble/hashes@2.2.0)
@@ -297,9 +300,6 @@ importers:
         specifier: ^0.1.3
         version: 0.1.3
     devDependencies:
-      '@noble/hashes':
-        specifier: ^2.2.0
-        version: 2.2.0
       '@types/jest':
         specifier: ^29.0.0
         version: 29.5.14
@@ -359,12 +359,9 @@ importers:
   packages/totem-sdk/packages/core:
     dependencies:
       '@totemsdk/core-wasm':
-        specifier: file:../core-wasm
-        version: link:../core-wasm
+        specifier: ^0.1.0
+        version: 0.1.0
     devDependencies:
-      '@noble/hashes':
-        specifier: ^2.2.0
-        version: 2.2.0
       '@types/jest':
         specifier: ^29.0.0
         version: 29.5.14
@@ -398,9 +395,6 @@ importers:
         specifier: ^0.1.2
         version: 0.1.2(@noble/hashes@2.2.0)
     devDependencies:
-      '@noble/hashes':
-        specifier: ^2.2.0
-        version: 2.2.0
       '@totemsdk/connect':
         specifier: ^2.1.0
         version: 2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.1.4(@noble/hashes@2.2.0))(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0))
@@ -448,7 +442,7 @@ importers:
         version: 0.1.1(@noble/hashes@2.2.0)
       '@totemsdk/root-identity':
         specifier: ^1.0.7
-        version: 1.0.7(@noble/hashes@2.2.0)(@totemsdk/core@1.1.0(@noble/hashes@2.2.0))
+        version: 1.0.7(@noble/hashes@2.2.0)(@totemsdk/core@1.2.0(@noble/hashes@2.2.0))
       '@types/jest':
         specifier: ^29.0.0
         version: 29.5.14
@@ -489,9 +483,6 @@ importers:
         specifier: ^0.1.0
         version: 0.1.0
     devDependencies:
-      '@noble/hashes':
-        specifier: ^2.2.0
-        version: 2.2.0
       '@types/jest':
         specifier: ^29.0.0
         version: 29.5.14
@@ -517,9 +508,6 @@ importers:
         specifier: ^0.1.2
         version: 0.1.2(@noble/hashes@2.2.0)
     devDependencies:
-      '@noble/hashes':
-        specifier: ^2.2.0
-        version: 2.2.0
       '@totemsdk/root-identity':
         specifier: ^1.0.7
         version: 1.0.7(@noble/hashes@2.2.0)(@totemsdk/core@1.1.0(@noble/hashes@2.2.0))
@@ -542,8 +530,8 @@ importers:
   packages/totem-sdk/packages/kissvm:
     dependencies:
       '@totemsdk/core':
-        specifier: ^1.1.0
-        version: 1.1.0(@noble/hashes@2.2.0)
+        specifier: ^1.2.0
+        version: 1.2.0(@noble/hashes@2.2.0)
     devDependencies:
       '@types/jest':
         specifier: ^29.0.0
@@ -576,9 +564,6 @@ importers:
         specifier: ^0.1.1
         version: 0.1.1(@noble/hashes@2.2.0)
     devDependencies:
-      '@noble/hashes':
-        specifier: ^2.2.0
-        version: 2.2.0
       '@types/jest':
         specifier: ^29.5.14
         version: 29.5.14
@@ -610,9 +595,6 @@ importers:
         specifier: ^0.1.0
         version: 0.1.0(@noble/hashes@2.2.0)(hyperswarm@4.17.0)
     devDependencies:
-      '@noble/hashes':
-        specifier: ^2.2.0
-        version: 2.2.0
       '@types/jest':
         specifier: ^29.0.0
         version: 29.5.14
@@ -678,9 +660,6 @@ importers:
         specifier: ^1.1.0
         version: 1.1.0(@noble/hashes@2.2.0)
     devDependencies:
-      '@noble/hashes':
-        specifier: ^2.2.0
-        version: 2.2.0
       '@types/jest':
         specifier: ^29.0.0
         version: 29.5.14
@@ -703,9 +682,6 @@ importers:
         specifier: ^1.1.0
         version: 1.1.0(@noble/hashes@2.2.0)
     devDependencies:
-      '@noble/hashes':
-        specifier: ^2.2.0
-        version: 2.2.0
       '@types/jest':
         specifier: ^29.0.0
         version: 29.5.14
@@ -749,9 +725,6 @@ importers:
         specifier: ^0.1.3
         version: 0.1.3(@noble/hashes@2.2.0)
     devDependencies:
-      '@noble/hashes':
-        specifier: ^2.2.0
-        version: 2.2.0
       '@types/jest':
         specifier: ^29.0.0
         version: 29.5.14
@@ -789,9 +762,6 @@ importers:
         specifier: ^0.1.3
         version: 0.1.3(@noble/hashes@2.2.0)
     devDependencies:
-      '@noble/hashes':
-        specifier: ^2.2.0
-        version: 2.2.0
       '@types/jest':
         specifier: ^29.0.0
         version: 29.5.14
@@ -835,9 +805,6 @@ importers:
 
   packages/totem-sdk/packages/omnia-splice:
     dependencies:
-      '@noble/hashes':
-        specifier: ^2.2.0
-        version: 2.2.0
       '@totemsdk/core':
         specifier: ^1.1.0
         version: 1.1.0(@noble/hashes@2.2.0)
@@ -871,10 +838,6 @@ importers:
         version: 5.9.3
 
   packages/totem-sdk/packages/omnia-vtxo:
-    dependencies:
-      '@noble/hashes':
-        specifier: ^1.8.0
-        version: 1.8.0
     devDependencies:
       '@types/jest':
         specifier: ^29.0.0
@@ -947,9 +910,6 @@ importers:
         specifier: ^0.1.2
         version: 0.1.2(@noble/hashes@2.2.0)
     devDependencies:
-      '@noble/hashes':
-        specifier: ^2.2.0
-        version: 2.2.0
       '@types/jest':
         specifier: ^29.0.0
         version: 29.5.14
@@ -972,9 +932,6 @@ importers:
         specifier: ^0.1.1
         version: 0.1.1(@noble/hashes@2.2.0)
     devDependencies:
-      '@noble/hashes':
-        specifier: ^2.2.0
-        version: 2.2.0
       '@types/jest':
         specifier: ^29.0.0
         version: 29.5.14
@@ -1006,9 +963,6 @@ importers:
         specifier: ^0.1.1
         version: 0.1.1(@noble/hashes@2.2.0)
     devDependencies:
-      '@noble/hashes':
-        specifier: ^2.2.0
-        version: 2.2.0
       '@types/jest':
         specifier: ^29.0.0
         version: 29.5.14
@@ -1040,9 +994,6 @@ importers:
         specifier: ^0.1.1
         version: 0.1.1(@noble/hashes@2.2.0)
     devDependencies:
-      '@noble/hashes':
-        specifier: ^2.2.0
-        version: 2.2.0
       '@types/jest':
         specifier: ^29.5.14
         version: 29.5.14
@@ -1110,9 +1061,6 @@ importers:
 
   packages/totem-sdk/packages/root-identity:
     devDependencies:
-      '@noble/hashes':
-        specifier: ^2.2.0
-        version: 2.2.0
       '@totemsdk/core':
         specifier: ^1.1.0
         version: 1.1.0(@noble/hashes@2.2.0)
@@ -1139,10 +1087,10 @@ importers:
         version: link:../core
       '@totemsdk/realtime':
         specifier: file:../realtime
-        version: link:../realtime
+        version: file:packages/totem-sdk/packages/realtime(@noble/hashes@2.2.0)(typescript@5.9.3)
       '@totemsdk/txpow':
         specifier: file:../txpow
-        version: link:../txpow
+        version: file:packages/totem-sdk/packages/txpow(@noble/hashes@2.2.0)
     devDependencies:
       '@types/jest':
         specifier: ^29.5.12
@@ -1162,12 +1110,9 @@ importers:
 
   packages/totem-sdk/packages/se-server:
     dependencies:
-      '@noble/hashes':
-        specifier: ^1.3.3
-        version: 1.8.0
       '@totemsdk/core':
         specifier: ^1.1.0
-        version: 1.1.0(@noble/hashes@1.8.0)
+        version: 1.1.0(@noble/hashes@2.2.0)
       express:
         specifier: ^5.0.0
         version: 5.2.1
@@ -1193,9 +1138,6 @@ importers:
 
   packages/totem-sdk/packages/server:
     dependencies:
-      '@noble/hashes':
-        specifier: ^2.0.0
-        version: 2.2.0
       '@totemsdk/core':
         specifier: ^1.1.0
         version: 1.1.0(@noble/hashes@2.2.0)
@@ -1233,9 +1175,6 @@ importers:
 
   packages/totem-sdk/packages/statechain:
     dependencies:
-      '@noble/hashes':
-        specifier: ^2.2.0
-        version: 2.2.0
       '@totemsdk/chain-provider':
         specifier: ^0.1.4
         version: 0.1.4(@noble/hashes@2.2.0)
@@ -1270,9 +1209,6 @@ importers:
 
   packages/totem-sdk/packages/stream-transport:
     dependencies:
-      '@noble/hashes':
-        specifier: ^2.2.0
-        version: 2.2.0
       hyperswarm:
         specifier: '>=4.0.0'
         version: 4.17.0(bare-url@2.4.5)
@@ -1295,9 +1231,6 @@ importers:
 
   packages/totem-sdk/packages/tx-builder:
     dependencies:
-      '@noble/hashes':
-        specifier: ^2.2.0
-        version: 2.2.0
       '@totemsdk/core':
         specifier: ^1.1.0
         version: 1.1.0(@noble/hashes@2.2.0)
@@ -1308,9 +1241,6 @@ importers:
         specifier: ^1.1.0
         version: 1.1.0(@noble/hashes@2.2.0)
     devDependencies:
-      '@noble/hashes':
-        specifier: ^2.2.0
-        version: 2.2.0
       '@types/jest':
         specifier: ^29.0.0
         version: 29.5.14
@@ -1349,9 +1279,6 @@ importers:
         specifier: ^0.1.3
         version: 0.1.3(@noble/hashes@2.2.0)
     devDependencies:
-      '@noble/hashes':
-        specifier: ^2.2.0
-        version: 2.2.0
       '@types/jest':
         specifier: ^29.0.0
         version: 29.5.14
@@ -2718,6 +2645,9 @@ packages:
       '@totemsdk/wots-lease':
         optional: true
 
+  '@totemsdk/core-wasm@0.1.0':
+    resolution: {integrity: sha512-gw3DE1WJF7uI0W4RUr6BiS+2WHf16dlvF613XvSTKXLtUpPq8rcAkrAoYE3mZAvCVKS6lQetZrdKdBB+vhfLvw==}
+
   '@totemsdk/core@1.0.10':
     resolution: {integrity: sha512-CF8/2KIkUDN8ZoOgSDysS50NzNMABGShmZWQpPJnbBlyJ0OYewCvYfMU+iIGtX+QWLxoQIoAglfGHgSYC7DUfQ==}
     engines: {node: '>=16.0.0'}
@@ -2732,6 +2662,12 @@ packages:
 
   '@totemsdk/core@1.1.0':
     resolution: {integrity: sha512-5t94lbV52a0vAlVpHqiYMBN9toBeHVmIgsPtqi2udsQdvoagLOQaAu2buL6mBGoi7FYxfnwCKXO7tLFqzkfTLA==}
+    engines: {node: '>=16.0.0'}
+    peerDependencies:
+      '@noble/hashes': ^2.0.0
+
+  '@totemsdk/core@1.2.0':
+    resolution: {integrity: sha512-AKJyxZ1mJ34pAypSK80itgCqv8FqLkXIi8//ayTOiz8BkTjm8dJWIqk/Obz+3lzHygl8Qlh4Gj7lhV3hhStWaA==}
     engines: {node: '>=16.0.0'}
     peerDependencies:
       '@noble/hashes': ^2.0.0
@@ -2871,6 +2807,11 @@ packages:
     peerDependencies:
       typescript: '>=5.0.0'
 
+  '@totemsdk/realtime@file:packages/totem-sdk/packages/realtime':
+    resolution: {directory: packages/totem-sdk/packages/realtime, type: directory}
+    peerDependencies:
+      typescript: '>=5.0.0'
+
   '@totemsdk/root-identity@1.0.7':
     resolution: {integrity: sha512-2UBR6YihEytyihoOo45I41tsFCKW6TpSGgubKMyEha5vbrhTp4BWfWjXCZ8YaU5gCgYDKnPphXhicgAhlldqoQ==}
     engines: {bare: '>=1.0.0', node: '>=16.0.0'}
@@ -2917,6 +2858,10 @@ packages:
     engines: {node: '>=16.0.0'}
     peerDependencies:
       '@noble/hashes': ^2.0.0
+
+  '@totemsdk/txpow@file:packages/totem-sdk/packages/txpow':
+    resolution: {directory: packages/totem-sdk/packages/txpow, type: directory}
+    engines: {node: '>=16.0.0'}
 
   '@totemsdk/wots-lease@0.1.3':
     resolution: {integrity: sha512-NMsmk5YGRf20u52fLwVZ9LP7jJLvOE2PK44VqybnlvSZhWbJjdW2LywbEcDZkB9qYsbmhAi42m/nFil5MthMfw==}
@@ -8123,6 +8068,8 @@ snapshots:
       '@totemsdk/txpow': 0.1.6(@noble/hashes@2.2.0)
       '@totemsdk/wots-lease': 0.1.3(@noble/hashes@2.2.0)
 
+  '@totemsdk/core-wasm@0.1.0': {}
+
   '@totemsdk/core@1.0.10(@noble/hashes@2.2.0)':
     dependencies:
       '@noble/hashes': 2.2.0
@@ -8139,6 +8086,16 @@ snapshots:
     dependencies:
       '@noble/hashes': 2.2.0
 
+  '@totemsdk/core@1.2.0(@noble/hashes@1.8.0)':
+    dependencies:
+      '@noble/hashes': 1.8.0
+      '@totemsdk/core-wasm': 0.1.0
+
+  '@totemsdk/core@1.2.0(@noble/hashes@2.2.0)':
+    dependencies:
+      '@noble/hashes': 2.2.0
+      '@totemsdk/core-wasm': 0.1.0
+
   '@totemsdk/edge@0.1.2(@noble/hashes@2.2.0)':
     dependencies:
       '@noble/hashes': 2.2.0
@@ -8151,7 +8108,7 @@ snapshots:
     dependencies:
       '@noble/hashes': 2.2.0
       '@totemsdk/agent-policy': 0.1.3(@noble/hashes@2.2.0)
-      '@totemsdk/core': 1.1.0(@noble/hashes@2.2.0)
+      '@totemsdk/core': 1.2.0(@noble/hashes@2.2.0)
       '@totemsdk/identity': 0.1.2(@noble/hashes@2.2.0)
       '@totemsdk/manifest': 0.1.2(@noble/hashes@2.2.0)
     optionalDependencies:
@@ -8165,14 +8122,14 @@ snapshots:
 
   '@totemsdk/kissvm@0.1.4(@noble/hashes@2.2.0)':
     dependencies:
-      '@totemsdk/core': 1.1.0(@noble/hashes@2.2.0)
+      '@totemsdk/core': 1.2.0(@noble/hashes@2.2.0)
     transitivePeerDependencies:
       - '@noble/hashes'
 
   '@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))':
     dependencies:
       '@totemsdk/chain-provider': 0.1.4(@noble/hashes@2.2.0)
-      '@totemsdk/core': 1.1.0(@noble/hashes@2.2.0)
+      '@totemsdk/core': 1.2.0(@noble/hashes@2.2.0)
       '@totemsdk/lookup-protocol': 0.1.3(@noble/hashes@2.2.0)
       '@totemsdk/stream-transport': 0.1.0(@noble/hashes@2.2.0)(hyperswarm@4.17.0)
     transitivePeerDependencies:
@@ -8234,10 +8191,10 @@ snapshots:
       '@noble/hashes': 2.2.0
       '@totemsdk/agent-policy': 0.1.3(@noble/hashes@2.2.0)
       '@totemsdk/chain-provider': 0.1.4(@noble/hashes@2.2.0)
-      '@totemsdk/core': 1.1.0(@noble/hashes@2.2.0)
+      '@totemsdk/core': 1.2.0(@noble/hashes@2.2.0)
       '@totemsdk/lookup-protocol': 0.1.3(@noble/hashes@2.2.0)
       '@totemsdk/stream-transport': 0.1.0(@noble/hashes@2.2.0)(hyperswarm@4.17.0)
-      '@totemsdk/tx-builder': 0.1.6(@totemsdk/core@1.1.0(@noble/hashes@2.2.0))
+      '@totemsdk/tx-builder': 0.1.6(@totemsdk/core@1.2.0(@noble/hashes@2.2.0))
       '@totemsdk/txpow': 0.1.6(@noble/hashes@2.2.0)
       '@totemsdk/wots-lease': 0.1.3(@noble/hashes@2.2.0)
     transitivePeerDependencies:
@@ -8271,14 +8228,21 @@ snapshots:
 
   '@totemsdk/realtime@0.1.9(@noble/hashes@1.8.0)(typescript@5.9.3)':
     dependencies:
-      '@totemsdk/core': 1.1.0(@noble/hashes@1.8.0)
+      '@totemsdk/core': 1.2.0(@noble/hashes@1.8.0)
       typescript: 5.9.3
     transitivePeerDependencies:
       - '@noble/hashes'
 
   '@totemsdk/realtime@0.1.9(@noble/hashes@2.2.0)(typescript@5.9.3)':
     dependencies:
-      '@totemsdk/core': 1.1.0(@noble/hashes@2.2.0)
+      '@totemsdk/core': 1.2.0(@noble/hashes@2.2.0)
+      typescript: 5.9.3
+    transitivePeerDependencies:
+      - '@noble/hashes'
+
+  '@totemsdk/realtime@file:packages/totem-sdk/packages/realtime(@noble/hashes@2.2.0)(typescript@5.9.3)':
+    dependencies:
+      '@totemsdk/core': 1.2.0(@noble/hashes@2.2.0)
       typescript: 5.9.3
     transitivePeerDependencies:
       - '@noble/hashes'
@@ -8292,6 +8256,11 @@ snapshots:
     dependencies:
       '@noble/hashes': 2.2.0
       '@totemsdk/core': 1.1.0(@noble/hashes@2.2.0)
+
+  '@totemsdk/root-identity@1.0.7(@noble/hashes@2.2.0)(@totemsdk/core@1.2.0(@noble/hashes@2.2.0))':
+    dependencies:
+      '@noble/hashes': 2.2.0
+      '@totemsdk/core': 1.2.0(@noble/hashes@2.2.0)
 
   '@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0)':
     dependencies:
@@ -8318,15 +8287,26 @@ snapshots:
       '@noble/hashes': 2.2.0
       '@totemsdk/core': 1.1.0(@noble/hashes@2.2.0)
 
+  '@totemsdk/tx-builder@0.1.6(@totemsdk/core@1.2.0(@noble/hashes@2.2.0))':
+    dependencies:
+      '@noble/hashes': 2.2.0
+      '@totemsdk/core': 1.2.0(@noble/hashes@2.2.0)
+
   '@totemsdk/txpow@0.1.5(@noble/hashes@2.2.0)':
     dependencies:
       '@noble/hashes': 2.2.0
-      '@totemsdk/core': 1.1.0(@noble/hashes@2.2.0)
+      '@totemsdk/core': 1.2.0(@noble/hashes@2.2.0)
 
   '@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0)':
     dependencies:
       '@noble/hashes': 2.2.0
-      '@totemsdk/core': 1.1.0(@noble/hashes@2.2.0)
+      '@totemsdk/core': 1.2.0(@noble/hashes@2.2.0)
+
+  '@totemsdk/txpow@file:packages/totem-sdk/packages/txpow(@noble/hashes@2.2.0)':
+    dependencies:
+      '@totemsdk/core': 1.2.0(@noble/hashes@2.2.0)
+    transitivePeerDependencies:
+      - '@noble/hashes'
 
   '@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)':
     dependencies:

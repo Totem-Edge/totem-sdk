@@ -1,5 +1,5 @@
-import { sha3_256 } from '@noble/hashes/sha3.js';
-import { randomBytes } from '@noble/hashes/utils.js';
+import { sha3_256 } from '@totemsdk/core';
+import { randomBytes } from 'node:crypto';
 import type {
   ScriptDescriptor,
   ExternalSignature,

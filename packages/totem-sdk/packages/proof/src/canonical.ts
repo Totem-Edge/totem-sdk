@@ -8,7 +8,7 @@
  * use it for proof URIs or IDs).
  */
 
-import { sha3_256 } from '@noble/hashes/sha3.js';
+import { sha3_256 } from '@totemsdk/core';
 import type { UnsignedProof, EvidenceRef } from './types.js';
 
 export function toHex(bytes: Uint8Array): string {

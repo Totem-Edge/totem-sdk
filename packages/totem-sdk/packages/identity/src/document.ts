@@ -5,7 +5,7 @@
  * Version is NOT part of the ID hash — schema version upgrades must not change the identity ID.
  */
 
-import { sha3_256 } from '@noble/hashes/sha3.js';
+import { sha3_256 } from '@totemsdk/core';
 import { IDENTITY_VERSION } from './constants.js';
 import { toHex } from './canonical.js';
 import type { IdentityKind, TotemIdentityDocument } from './types.js';

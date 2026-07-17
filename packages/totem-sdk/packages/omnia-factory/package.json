@@ -30,16 +30,7 @@
     "@totemsdk/txpow": "^0.1.5",
     "@totemsdk/chain-provider": "^0.1.4"
   },
-  "peerDependencies": {
-    "@noble/hashes": "^2.0.0"
-  },
-  "peerDependenciesMeta": {
-    "@noble/hashes": {
-      "optional": false
-    }
-  },
   "devDependencies": {
-    "@noble/hashes": "^2.2.0",
     "@types/jest": "^29.0.0",
     "@types/node": "^20.0.0",
     "jest": "^29.0.0",

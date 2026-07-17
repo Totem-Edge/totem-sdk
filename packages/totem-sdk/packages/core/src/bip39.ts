@@ -12,7 +12,7 @@
  * - convertStringToSeed(): Hashes phrase bytes with SHA3-256
  */
 
-import { sha3_256 } from '@noble/hashes/sha3.js';
+import { sha3_256 } from './wasm-sync.js';
 
 /**
  * Official BIP39 English word list (2048 words)

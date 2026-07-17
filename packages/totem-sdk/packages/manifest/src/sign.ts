@@ -15,7 +15,7 @@
  * this function. This package does NOT depend on @totemsdk/wots-lease.
  */
 
-import { sha3_256 } from '@noble/hashes/sha3.js';
+import { sha3_256 } from '@totemsdk/core';
 import {
   wotsSign,
   wotsKeypairFromSeed,

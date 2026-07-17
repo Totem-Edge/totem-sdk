@@ -1,5 +1,4 @@
-import { sha3_256 } from '@noble/hashes/sha3';
-import { bytesToHex, hexToBytes } from '@noble/hashes/utils';
+import { sha3_256, bytesToHex, hexToBytes } from '@totemsdk/core';
 import { OmniaVtxo, VtxoId, VtxoProof } from './types.js';
 import { EMPTY_LEAF, MOCK_BATCH_ID } from './constants.js';
 

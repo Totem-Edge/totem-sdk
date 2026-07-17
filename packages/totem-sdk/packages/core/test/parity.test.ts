@@ -5,7 +5,7 @@
  * These tests verify critical cryptographic derivation paths that must match exactly.
  */
 
-import { sha3_256 } from '@noble/hashes/sha3.js';
+import { sha3_256 } from '@totemsdk/core';
 import {
   cleanSeedPhrase,
   validatePhrase,

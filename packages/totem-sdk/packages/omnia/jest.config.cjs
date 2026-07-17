@@ -4,8 +4,7 @@ module.exports = {
   testMatch: ['**/src/**/*.test.ts', '**/src/__tests__/**/*.test.ts'],
   moduleFileExtensions: ['ts', 'js'],
   transformIgnorePatterns: [
-    'node_modules/\\.pnpm/(?!@noble)',
-    'node_modules/(?!\\.pnpm|@noble)',
+    'node_modules/',
   ],
   transform: {
     '^.+\\.ts$': ['ts-jest', {

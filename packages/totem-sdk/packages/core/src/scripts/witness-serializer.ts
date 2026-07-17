@@ -1,4 +1,4 @@
-import { sha3_256 } from '@noble/hashes/sha3.js';
+import { sha3_256 } from '../wasm-sync.js';
 import type { MMRProof, MMRProofChunk } from '../mmr.js';
 import { serializeMMRProof } from '../mmr.js';
 import type { ScriptDescriptor, StateValue, ExternalSignature, ScriptProofResult, FlatMMRProofChunk, LegacyMMRProof } from './types.js';

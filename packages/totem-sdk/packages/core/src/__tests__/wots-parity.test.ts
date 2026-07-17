@@ -11,7 +11,7 @@
  * to identify exactly where the implementations diverge.
  */
 
-import { sha3_256 } from '@noble/hashes/sha3.js';
+import { sha3_256 } from '@totemsdk/core';
 import { 
   setWotsLogger, 
   disableWotsLogger,

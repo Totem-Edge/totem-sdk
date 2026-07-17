@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { scriptToAddress } from "./derive";
 import { decodeMx } from "../../base32/src/minima32";
-import { bytesToHex } from "@noble/hashes/utils.js";
+import { bytesToHex } from "@totemsdk/core";
 
 describe("Script → Mx (Minima oracles)", () => {
   it("RETURN TRUE", () => {

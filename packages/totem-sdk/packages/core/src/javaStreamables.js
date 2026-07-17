@@ -12,7 +12,7 @@
  * NOTE: This module provides number-based wrappers for backward compatibility.
  * The canonical implementations are in Streamable.ts which uses bigint for precision.
  */
-import { sha3_256 } from '@noble/hashes/sha3.js';
+import { sha3_256 } from '@totemsdk/core';
 import { writeMiniNumber as streamableWriteMiniNumber, writeMiniData as streamableWriteMiniData, writeHashToStream as streamableWriteHashToStream, bigIntToByteArray } from './Streamable.js';
 /**
  * Serialize a number in MiniNumber format (Java compatible)

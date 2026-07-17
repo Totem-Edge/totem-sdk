@@ -18,7 +18,7 @@ KISSVM Studio is a browser-based IDE for authoring, simulating, and testing KISS
 
 | Package | Role in KISSVM Studio |
 |---------|----------------------|
-| `@totemsdk/kissvm` | Lexer, parser, AST, and evaluator for KISSVM scripts |
+| `@totemsdk/kissvm` | KISSVM v1 evaluator — Rust/WASM engine with TypeScript fallback |
 | `@totemsdk/agent-policy` | Safety linter — evaluates scripts before on-chain deployment |
 | `@totemsdk/tx-builder` | Wraps a script in a deployable transaction envelope |
 | `@totemsdk/chain-provider` | Submits deploy transactions to a local dev node |

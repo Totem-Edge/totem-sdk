@@ -13,7 +13,7 @@
  * The canonical implementations are in Streamable.ts which uses bigint for precision.
  */
 
-import { sha3_256 } from '@noble/hashes/sha3.js';
+import { sha3_256 } from './wasm-sync.js';
 import { 
   writeMiniNumber as streamableWriteMiniNumber,
   writeMiniData as streamableWriteMiniData,
