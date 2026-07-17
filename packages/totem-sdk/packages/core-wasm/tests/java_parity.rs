@@ -1,3 +1,5 @@
+#![allow(clippy::empty_line_after_doc_comments)]
+
 /// Parity tests against Java golden vectors from test-vectors.json.
 ///
 /// These tests verify that the Rust WOTS implementation produces
@@ -45,7 +47,7 @@ struct TestVector {
     #[serde(rename = "digestHex")]
     digest_hex: String,
     #[serde(rename = "keyIndex")]
-    key_index: u32,
+    _key_index: u32,
     #[serde(rename = "shouldVerify")]
     should_verify: bool,
 }

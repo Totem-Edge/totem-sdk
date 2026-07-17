@@ -53,9 +53,9 @@ impl GMSSRandom {
     /// Matches GMSSRandom.addByteArrays()
     fn add_byte_arrays(a: &mut [u8], b: &[u8]) {
         let mut overflow: u16 = 0;
-        for i in 0..a.len() {
-            let temp = (a[i] as u16) + (b[i] as u16) + overflow;
-            a[i] = temp as u8;
+        for (a_byte, b_byte) in a.iter_mut().zip(b.iter()) {
+            let temp = (*a_byte as u16) + (*b_byte as u16) + overflow;
+            *a_byte = temp as u8;
             overflow = temp >> 8;
         }
     }
@@ -64,9 +64,9 @@ impl GMSSRandom {
     /// Matches GMSSRandom.addOne()
     fn add_one(a: &mut [u8]) {
         let mut overflow: u16 = 1;
-        for i in 0..a.len() {
-            let temp = (a[i] as u16) + overflow;
-            a[i] = temp as u8;
+        for a_byte in a.iter_mut() {
+            let temp = (*a_byte as u16) + overflow;
+            *a_byte = temp as u8;
             overflow = temp >> 8;
             if overflow == 0 {
                 break;
@@ -181,8 +181,8 @@ pub fn derive_pk_digest(seed: &[u8], key_index: u32) -> Vec<u8> {
     let rounds = MAX_DIGIT; // 255
     let mut buf = Vec::with_capacity(WOTS_L * 32);
 
-    for j in 0..WOTS_L {
-        let top = hash_chain(&private_keys[j], rounds);
+    for private_key in private_keys.iter().take(WOTS_L) {
+        let top = hash_chain(private_key, rounds);
         buf.extend_from_slice(&top);
     }
 
@@ -202,8 +202,8 @@ pub fn derive_full_public_key(seed: &[u8], key_index: u32) -> Vec<u8> {
     let rounds = MAX_DIGIT; // 255
     let mut buf = Vec::with_capacity(WOTS_L * 32);
 
-    for j in 0..WOTS_L {
-        let top = hash_chain(&private_keys[j], rounds);
+    for private_key in private_keys.iter().take(WOTS_L) {
+        let top = hash_chain(private_key, rounds);
         buf.extend_from_slice(&top);
     }
 
@@ -252,7 +252,7 @@ pub fn wots_sign(seed: &[u8], key_index: u32, message: &[u8]) -> Vec<u8> {
 /// Matches WinternitzOTSVerify.Verify():
 ///   1. Hash the message: hashedMsg = SHA3-256(message)
 ///   2. for each digit d[i]:
-///        top[i] = hash(sig[i], (255 - d[i]) times)
+///      top[i] = hash(sig[i], (255 - d[i]) times)
 ///   3. return H(concat(tops))
 pub fn wots_pk_from_sig(message: &[u8], signature: &[u8]) -> Vec<u8> {
     let expected_len = WOTS_L * 32;
