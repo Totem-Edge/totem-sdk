@@ -28,7 +28,7 @@
   ],
   "dependencies": {
     "@totemsdk/core": "^1.1.0",
-    "express": "^5.0.0",
+    "express": "^5.2.1",
     "pg": "^8.11.3",
     "zod": "^3.22.4"
   },
