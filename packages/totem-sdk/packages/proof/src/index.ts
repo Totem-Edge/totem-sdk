@@ -22,7 +22,10 @@ export type {
   ProofOperationResult,
   ProofProviderCapability,
   ProofProvider,
+  SigningIndices,
 } from './types.js';
+
+export { sha3_256 } from '@totemsdk/core';
 
 export {
   toHex,
@@ -36,9 +39,11 @@ export type { CreateProofParams } from './proof.js';
 export {
   createProof,
   signProof,
+  signWithLease,
   verifyProofSignature,
   verifyProofPayload,
   verifyProof,
+  verifyProofIdIntegrity,
 } from './proof.js';
 
 export {

@@ -33,7 +33,7 @@ export {
   computeEdgeId,
   computeProofGraphId,
   recomputeGraphId,
-} from './canonical.js';
+} from './canonical.js'; // canonicalJson / toHex re-exported from @totemsdk/proof
 
 export {
   createProofGraph,

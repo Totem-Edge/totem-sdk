@@ -9,6 +9,7 @@ module.exports = {
     }],
   },
   moduleNameMapper: {
+    '^@totemsdk/core$': '<rootDir>/../core/src/index.ts',
     '^@totemsdk/edge$': '<rootDir>/../edge/src/index.ts',
     '^@totemsdk/agent-policy$': '<rootDir>/../agent-policy/src/index.ts',
     '^@totemsdk/chain-provider$': '<rootDir>/../chain-provider/src/index.ts',

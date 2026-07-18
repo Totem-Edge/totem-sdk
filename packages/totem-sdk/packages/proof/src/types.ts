@@ -4,6 +4,17 @@
  * Pure schema — no network, no DHT, no blockchain submission.
  */
 
+/**
+ * Minimal signing indices matching @totemsdk/wots-lease's SigningIndices.
+ * Kept here so signWithLease can accept any structurally compatible provider
+ * without a hard dependency on @totemsdk/wots-lease.
+ */
+export interface SigningIndices {
+  addressIndex: number;
+  l1: number;
+  l2: number;
+}
+
 export type ProofKind =
   | 'attestation'
   | 'ownership'

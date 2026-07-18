@@ -95,7 +95,17 @@ export const cleanSeedPhrase = clean_seed_phrase_wasm;
 
 export const makeMxAddress = make_mx_address_wasm;
 export const parseMxAddress = parse_mx_address_wasm;
-export const wotsAddressFromKeypair = wots_address_from_keypair_wasm;
+export function wotsAddressFromKeypair(seed: Uint8Array, index: number): string;
+export function wotsAddressFromKeypair(kp: { seed: Uint8Array; index: number }): string;
+export function wotsAddressFromKeypair(
+  seedOrKp: Uint8Array | { seed: Uint8Array; index: number },
+  index?: number,
+): string {
+  if (seedOrKp instanceof Uint8Array) {
+    return wots_address_from_keypair_wasm(seedOrKp, index!);
+  }
+  return wots_address_from_keypair_wasm(seedOrKp.seed, seedOrKp.index);
+}
 
 export const serializeTransaction = serialize_transaction_wasm;
 export const computeTransactionDigest = compute_transaction_digest_wasm;

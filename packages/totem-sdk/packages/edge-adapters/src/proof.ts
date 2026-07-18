@@ -1,5 +1,10 @@
-import { createProof, canonicalJson, toHex } from '@totemsdk/proof';
-import type { ProofProvider, SignedProof, ProofKind } from '@totemsdk/proof';
+import { createProof, signProof, signWithLease, toHex, sha3_256 } from '@totemsdk/proof';
+import type {
+  ProofProvider,
+  SignedProof,
+  ProofKind,
+  UnsignedProof,
+} from '@totemsdk/proof';
 import type { EdgeProofPort, EdgeOperationResult } from '@totemsdk/edge';
 
 export interface ProofPortConfig {
@@ -8,15 +13,44 @@ export interface ProofPortConfig {
   issuer: string;
   /** Default proof kind when callers don't specify one via context. */
   defaultKind?: ProofKind;
+  /**
+   * 32-byte WOTS seed. Required for signing; without it only unsigned
+   * proofs are returned, which MUST NOT be presented as completed proofs.
+   */
+  seed?: Uint8Array;
+  /**
+   * TreeKey index for direct signing (used when no leaseProvider is given).
+   * Ignored when leaseProvider is set.
+   */
+  keyIndex?: number;
+  /**
+   * WOTS lease provider for coordinated key-index reservation.
+   * When set, keyIndex is ignored and the index is reserved via the provider.
+   */
+  leaseProvider?: {
+    reserveKeyUse(params: {
+      treeId: string;
+      ttlMs?: number;
+      payloadHash?: string;
+    }): Promise<{ reservationId: string; indices: { addressIndex: number; l1: number; l2: number } }>;
+    commitKeyUse(reservationId: string, txId: string): Promise<void>;
+    burnReservation(reservationId: string, reason: string): Promise<void>;
+  };
+  leaseTreeId?: string;
+}
+
+function rawPayloadEvidence(rawPayload?: Uint8Array): { id: string; kind: string; hash: string } | undefined {
+  if (!rawPayload || rawPayload.length === 0) return undefined;
+  const hash = toHex(sha3_256(rawPayload));
+  return { id: 'payload:' + hash, kind: 'raw-payload', hash };
 }
 
 /**
  * Wraps a ProofProvider (e.g. proof-integritas) as an EdgeProofPort.
  *
- * createProof: builds an unsigned proof from the EdgeProofPort params, then
- *   stamps its canonical hash via provider.stampHash if available.
- * verifyProof: delegates to provider.verifyProof for SignedProof values,
- *   or provider.checkProof for lightweight existence checks.
+ * When config.seed is provided the returned proof is a SignedProof;
+ * without seed only an UnsignedProof is returned and MUST NOT be
+ * presented as a completed proof.
  */
 export function createProofPortAdapter(config: ProofPortConfig): EdgeProofPort {
   const { provider, issuer, defaultKind = 'attestation' } = config;
@@ -29,24 +63,44 @@ export function createProofPortAdapter(config: ProofPortConfig): EdgeProofPort {
     }): Promise<EdgeOperationResult<{ proofId: string; proof: unknown }>> {
       try {
         const kind = (params.context?.['kind'] as ProofKind | undefined) ?? defaultKind;
-        const unsigned = createProof({
+        const rawPayload: Uint8Array | undefined = params.context?.['rawPayload'] as Uint8Array | undefined;
+
+        const evidence = rawPayloadEvidence(rawPayload);
+        const unsigned: UnsignedProof = createProof({
           kind,
           subject: { id: params.subject, kind: 'edge-subject' },
           issuer,
-          payload: { claims: params.claims, ...(params.context ?? {}) },
+          payload: {
+            claims: params.claims,
+            ...(rawPayload !== undefined ? { rawPayloadHash: toHex(sha3_256(rawPayload)) } : {}),
+            ...(params.context ?? {}),
+          },
+          ...(evidence !== undefined ? { evidence: [evidence] } : {}),
         });
+
+        // Sign if seed is available
+        let proof: unknown;
+        let proofId: string;
+        if (config.seed) {
+          if (config.leaseProvider) {
+            proof = await signWithLease(unsigned, config.seed, config.leaseProvider, {
+              treeId: config.leaseTreeId,
+            });
+          } else {
+            proof = signProof(unsigned, config.seed, config.keyIndex ?? 0);
+          }
+          proofId = (proof as SignedProof).proofId;
+        } else {
+          proof = unsigned;
+          proofId = unsigned.proofId;
+        }
 
         // Stamp the proof's canonical hash if the provider supports it.
         if (provider.stampHash) {
-          const hash = toHex(
-            new Uint8Array(
-              await crypto.subtle.digest('SHA-256', new TextEncoder().encode(canonicalJson(unsigned)))
-            )
-          );
-          await provider.stampHash({ hash });
+          await provider.stampHash({ hash: proofId });
         }
 
-        return { ok: true, data: { proofId: unsigned.proofId, proof: unsigned } };
+        return { ok: true, data: { proofId, proof } };
       } catch (err) {
         return { ok: false, error: err instanceof Error ? err.message : String(err) };
       }

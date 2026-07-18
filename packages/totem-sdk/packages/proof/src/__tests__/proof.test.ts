@@ -42,8 +42,7 @@ const SEED_A = testSeed(1);
 const SEED_B = testSeed(2);
 
 function deriveAddress(seed: Uint8Array, keyIndex: number): string {
-  const kp = wotsKeypairFromSeed(seed, keyIndex);
-  return wotsAddressFromKeypair(kp);
+  return wotsAddressFromKeypair(seed, keyIndex);
 }
 
 // ─── 1. canonicalJson is stable across different key orderings ─────────────────

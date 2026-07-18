@@ -1,8 +1,8 @@
 /**
  * Canonical JSON and ID rules for @totemsdk/proofgraph.
  *
- * canonicalJson is implemented fresh — @totemsdk/identity and @totemsdk/proof
- * each have their own copy; none of them export it publicly.
+ * canonicalJson and toHex are re-exported from @totemsdk/proof, which is the
+ * canonical implementation across the Totem SDK.
  *
  * ID rules:
  *   Node:  type + ":" + refId  (e.g. "proof:totem:proof:abc123")
@@ -12,26 +12,10 @@
  */
 
 import { sha3_256 } from '@totemsdk/core';
+import { canonicalJson, toHex } from '@totemsdk/proof';
 import type { ProofGraphNode, ProofGraphEdge } from './types.js';
 
-export function toHex(bytes: Uint8Array): string {
-  return Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
-}
-
-export function canonicalJson(value: unknown): string {
-  if (value === null || typeof value !== 'object') {
-    return JSON.stringify(value);
-  }
-  if (Array.isArray(value)) {
-    return '[' + value.map(canonicalJson).join(',') + ']';
-  }
-  const obj = value as Record<string, unknown>;
-  const keys = Object.keys(obj).sort();
-  const pairs = keys.map((k) => `${JSON.stringify(k)}:${canonicalJson(obj[k])}`);
-  return '{' + pairs.join(',') + '}';
-}
+export { canonicalJson, toHex };
 
 export function computeNodeId(type: string, refId: string): string {
   return `${type}:${refId}`;

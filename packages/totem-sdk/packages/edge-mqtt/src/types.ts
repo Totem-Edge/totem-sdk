@@ -195,6 +195,24 @@ export interface MqttProofPublisherConfig {
   proofMode?: 'edge-port' | 'proof-package';
   /** Issuer identity used in proof-package mode. Falls back to runtime.deviceId then 'unknown'. */
   issuer?: string;
+  /** 32-byte WOTS seed for signing proofs in proof-package mode. */
+  seed?: Uint8Array;
+  /** WOTS key index for direct signing (used when no leaseProvider is given). */
+  keyIndex?: number;
+  /**
+   * WOTS lease provider for coordinated key-index reservation.
+   * When set, keyIndex is ignored and the index is reserved via the provider.
+   */
+  leaseProvider?: {
+    reserveKeyUse(params: {
+      treeId: string;
+      ttlMs?: number;
+      payloadHash?: string;
+    }): Promise<{ reservationId: string; indices: { addressIndex: number; l1: number; l2: number } }>;
+    commitKeyUse(reservationId: string, txId: string): Promise<void>;
+    burnReservation(reservationId: string, reason: string): Promise<void>;
+  };
+  leaseTreeId?: string;
   metadata?: Record<string, unknown>;
 }
 
