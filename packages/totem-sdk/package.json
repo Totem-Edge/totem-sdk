@@ -38,9 +38,9 @@
   "author": "Totem SDK",
   "license": "MIT",
   "devDependencies": {
-    "@types/jest": "^29.5.14",
+    "@types/jest": "^30.0.0",
     "@types/node": "^20.19.43",
-    "jest": "^29.7.0",
+    "jest": "^30.4.2",
     "ts-jest": "^29.4.11",
     "typedoc": "^0.25.0",
     "typescript": "^7.0.2"
