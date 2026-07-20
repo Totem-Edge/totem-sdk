@@ -8,7 +8,7 @@
  * verifyProof: combined check returning ProofVerifyResult.
  */
 
-import { sha3_256 } from '@totemsdk/core';
+import { sha3_256, scriptFromWotsPk, scriptToAddress } from '@totemsdk/core';
 import {
   wotsSign,
   wotsKeypairFromSeed,
@@ -76,13 +76,14 @@ export function signProof(
   const digest = sha3_256(new TextEncoder().encode(canonicalJson(unsignedProof)));
   const sigBytes = wotsSign(seed, keyIndex, digest);
   const kp = wotsKeypairFromSeed(seed, keyIndex);
-  const address = wotsAddressFromKeypair(seed, keyIndex);
+  const pkHex = bytesToHex(kp.pk);
+  const address = scriptToAddress(scriptFromWotsPk(kp.pk));
 
   return {
     ...unsignedProof,
     signature: {
       address,
-      publicKey: bytesToHex(kp.pk),
+      publicKey: pkHex,
       signature: bytesToHex(sigBytes),
     },
   };
@@ -164,10 +165,33 @@ export function verifyProofIdIntegrity(signedProof: SignedProof): boolean {
  *
  * Recomputes the digest from the unsigned proof fields (stripping signature,
  * anchor, rootIdentityProof). Does NOT use signature.message.
+ *
+ * Security: cryptographically derives the expected Minima address from the
+ * WOTS public-key digest and compares it with the declared signature.address.
+ * Rejects the proof when the addresses do not match, preventing an attacker
+ * from setting a privileged address while signing with a different key.
  */
 export function verifyProofSignature(signedProof: SignedProof): boolean {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { signature, anchor: _anchor, rootIdentityProof: _rootIdentityProof, ...unsignedProof } = signedProof;
+
+  // Address/public-key binding check:
+  // Derive the expected Minima address from the WOTS public-key digest using
+  // the same script-based derivation as signProof (scriptFromWotsPk + scriptToAddress).
+  // Reject the proof when the declared address does not match, preventing an
+  // attacker from claiming a privileged address while signing with a different key.
+  let pkBytes: Uint8Array;
+  try {
+    pkBytes = hexToBytes(signature.publicKey);
+  } catch {
+    return false;
+  }
+  try {
+    const expectedAddress = scriptToAddress(scriptFromWotsPk(pkBytes));
+    if (expectedAddress !== signature.address) return false;
+  } catch {
+    return false;
+  }
 
   let sigBytes: Uint8Array;
   let pkDigest: Uint8Array;
@@ -190,10 +214,13 @@ export function verifyProofSignature(signedProof: SignedProof): boolean {
 /**
  * Check the payload constraints of a SignedProof (expiry only).
  * Returns false if expiresAt is in the past.
- * graceMs: optional tolerance in ms for clock skew (default 0).
+ * @param graceMs optional tolerance in ms for clock skew (default 0).
+ * @param now optional explicit timestamp (ms). When provided, the check is
+ *   deterministic and does NOT call Date.now(). If omitted, Date.now() is used.
  */
-export function verifyProofPayload(signedProof: SignedProof, graceMs = 0): boolean {
-  if (signedProof.expiresAt !== undefined && Date.now() > signedProof.expiresAt + graceMs) {
+export function verifyProofPayload(signedProof: SignedProof, graceMs = 0, now?: number): boolean {
+  const effectiveNow = now ?? Date.now();
+  if (signedProof.expiresAt !== undefined && effectiveNow > signedProof.expiresAt + graceMs) {
     return false;
   }
   return true;
@@ -210,7 +237,7 @@ export function verifyProofPayload(signedProof: SignedProof, graceMs = 0): boole
  */
 export function verifyProof(
   signedProof: SignedProof,
-  options?: { graceMs?: number },
+  options?: { graceMs?: number; now?: number },
 ): ProofVerifyResult {
   const sig = (signedProof as unknown as Record<string, unknown>).signature;
   if (!sig || typeof sig !== 'object') {
@@ -229,7 +256,7 @@ export function verifyProof(
     };
   }
 
-  const expired = !verifyProofPayload(signedProof, options?.graceMs);
+  const expired = !verifyProofPayload(signedProof, options?.graceMs, options?.now);
   if (expired) {
     return {
       valid: false,

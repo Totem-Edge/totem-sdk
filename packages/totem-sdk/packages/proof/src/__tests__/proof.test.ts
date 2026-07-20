@@ -29,7 +29,7 @@ import {
   createDelegationClaim,
   createIdentityDocument,
 } from '@totemsdk/identity';
-import { wotsKeypairFromSeed, wotsAddressFromKeypair } from '@totemsdk/core';
+import { wotsKeypairFromSeed, wotsAddressFromKeypair, scriptFromWotsPk, scriptToAddress } from '@totemsdk/core';
 
 function testSeed(n: number): Uint8Array {
   const s = new Uint8Array(32);
@@ -42,6 +42,11 @@ const SEED_A = testSeed(1);
 const SEED_B = testSeed(2);
 
 function deriveAddress(seed: Uint8Array, keyIndex: number): string {
+  const kp = wotsKeypairFromSeed(seed, keyIndex);
+  return scriptToAddress(scriptFromWotsPk(kp.pk));
+}
+
+function deriveWasmAddress(seed: Uint8Array, keyIndex: number): string {
   return wotsAddressFromKeypair(seed, keyIndex);
 }
 
@@ -342,10 +347,12 @@ describe('attachAnchor', () => {
 });
 
 // ─── 12. verifyManifestProof delegates to verifyManifest ──────────────────────
+// Note: these tests use deriveWasmAddress because @totemsdk/manifest's
+// signManifest derives addresses via WASM wotsAddressFromKeypair.
 
 describe('verifyManifestProof', () => {
   it('returns valid when manifest and proof are both valid', async () => {
-    const signerAddr = deriveAddress(SEED_A, 0);
+    const signerAddr = deriveWasmAddress(SEED_A, 0);
     const manifest = {
       type: 'edge-service' as const,
       serviceId: 'svc-proof-test',
@@ -372,7 +379,7 @@ describe('verifyManifestProof', () => {
   }, 30000);
 
   it('returns invalid when manifest signature is tampered', async () => {
-    const signerAddr = deriveAddress(SEED_A, 0);
+    const signerAddr = deriveWasmAddress(SEED_A, 0);
     const manifest = {
       type: 'edge-service' as const,
       serviceId: 'svc-proof-test-2',
@@ -463,7 +470,46 @@ describe('verifyIdentityProof', () => {
   }, 30000);
 });
 
-// ─── 14. All named exports are present in the root index ──────────────────────
+// ─── 14. Address binding — reject proof with spoofed signer address ──────────
+
+describe('address binding security', () => {
+  it('rejects proof with spoofed signer address', () => {
+    const realAddr = deriveAddress(SEED_A, 0);
+    const attackerAddr = deriveAddress(SEED_B, 0);
+
+    const proof = createProof({
+      kind: 'attestation',
+      subject: { id: 'subj-spoof', kind: 'device' },
+      issuer: attackerAddr,
+      issuedAt: 1000,
+    });
+    const signed = signProof(proof, SEED_B, 0);
+
+    // Spoof: set signature.address to a different address (SEED_A's address)
+    const spoofed: SignedProof = {
+      ...signed,
+      signature: { ...signed.signature, address: realAddr },
+    };
+
+    const result = verifyProof(spoofed);
+    expect(result.valid).toBe(false);
+  });
+
+  it('accepts proof with correct address binding', () => {
+    const addr = deriveAddress(SEED_A, 0);
+    const proof = createProof({
+      kind: 'attestation',
+      subject: { id: 'subj-bind', kind: 'device' },
+      issuer: addr,
+      issuedAt: 1000,
+    });
+    const signed = signProof(proof, SEED_A, 0);
+    const result = verifyProof(signed);
+    expect(result.valid).toBe(true);
+  });
+});
+
+// ─── 15. All named exports are present in the root index ──────────────────────
 
 describe('root index exports', () => {
   it('exports all expected names', () => {

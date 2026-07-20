@@ -6,7 +6,7 @@
  * NOT depend on @totemsdk/wots-lease.
  */
 
-import { sha3_256 } from '@totemsdk/core';
+import { sha3_256, scriptFromWotsPk, scriptToAddress } from '@totemsdk/core';
 import {
   wotsSign,
   wotsKeypairFromSeed,
@@ -29,13 +29,14 @@ export async function signIdentityClaim(
   const digest = claimDigest(claim);
   const sigBytes = wotsSign(seed, keyIndex, digest);
   const kp = wotsKeypairFromSeed(seed, keyIndex);
-  const address = wotsAddressFromKeypair(kp);
+  const pkHex = bytesToHex(kp.pk);
+  const address = scriptToAddress(scriptFromWotsPk(kp.pk));
 
   return {
     claim,
     proof: {
       address,
-      publicKey: bytesToHex(kp.pk),
+      publicKey: pkHex,
       signature: bytesToHex(sigBytes),
     },
   };
