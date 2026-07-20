@@ -26,6 +26,37 @@ export function matchScope(action: string, scope: string): boolean {
   return ai === aParts.length && si === sParts.length;
 }
 
+function compareNumeric(actual: unknown, value: unknown, operator: 'lt' | 'lte' | 'gt' | 'gte'): boolean {
+  let a: bigint | undefined;
+  let b: bigint | undefined;
+
+  if (typeof actual === 'bigint') a = actual;
+  else if (typeof actual === 'string') try { a = BigInt(actual); } catch {}
+  else if (typeof actual === 'number') a = BigInt(actual);
+
+  if (typeof value === 'bigint') b = value;
+  else if (typeof value === 'string') try { b = BigInt(value); } catch {}
+  else if (typeof value === 'number') b = BigInt(value);
+
+  if (a !== undefined && b !== undefined) {
+    switch (operator) {
+      case 'lt':  return a < b;
+      case 'lte': return a <= b;
+      case 'gt':  return a > b;
+      case 'gte': return a >= b;
+    }
+  }
+
+  const an = Number(actual);
+  const bn = Number(value);
+  switch (operator) {
+    case 'lt':  return an < bn;
+    case 'lte': return an <= bn;
+    case 'gt':  return an > bn;
+    case 'gte': return an >= bn;
+  }
+}
+
 export function matchConstraints(
   action: ActionIntent,
   constraints: MandateConstraint[],
@@ -39,16 +70,16 @@ export function matchConstraints(
         if (actual !== c.value) return false;
         break;
       case 'lt':
-        if (Number(actual) >= Number(c.value)) return false;
+        if (!compareNumeric(actual, c.value, 'lt')) return false;
         break;
       case 'lte':
-        if (Number(actual) > Number(c.value)) return false;
+        if (!compareNumeric(actual, c.value, 'lte')) return false;
         break;
       case 'gt':
-        if (Number(actual) <= Number(c.value)) return false;
+        if (!compareNumeric(actual, c.value, 'gt')) return false;
         break;
       case 'gte':
-        if (Number(actual) < Number(c.value)) return false;
+        if (!compareNumeric(actual, c.value, 'gte')) return false;
         break;
       case 'in': {
         const arr = c.value as unknown[];

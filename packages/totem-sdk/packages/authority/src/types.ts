@@ -18,6 +18,7 @@ export interface MandateBody {
   usageLimit?: UsageLimit;
   issuedAt: number;
   expiresAt?: number;
+  revocationEpoch?: number;
 }
 
 export interface MandateConstraint {
@@ -50,7 +51,8 @@ export interface AuthorityUsageSnapshot {
 
 export interface MandateStatusSnapshot {
   checkedAt: number;
-  revokedMandateIds: readonly string[];
+  currentEpoch?: number;
+  revocationEpochs?: Record<string, number>;
 }
 
 export interface MandateVerificationResult {

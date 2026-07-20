@@ -1,4 +1,10 @@
-import type { ActionIntent, AuthorityUsage, AuthorityUsageSnapshot, UsageLimit } from './types.js';
+import { sha3_256, canonicalJson, toHex } from '@totemsdk/proof';
+import type {
+  ActionIntent,
+  AuthorityUsage,
+  AuthorityUsageSnapshot,
+  UsageLimit,
+} from './types.js';
 
 export function checkUsageLimit(
   snapshot: AuthorityUsageSnapshot,
@@ -31,6 +37,23 @@ export function calculateUsageDelta(action: ActionIntent): {
   const count = 1;
   const amount = action.constraints?.amount as string | undefined;
   return { count, amount };
+}
+
+const DOMAIN_USAGE_ROOT = 'TOTEM_AUTHORITY_USAGE_ROOT_V1';
+
+export function computeUsageRoot(receipts: AuthorityUsage[]): string {
+  const inputs = receipts
+    .map((r) => ({
+      usageId: r.usageId,
+      mandateProofId: r.mandateProofId,
+      intentId: r.intentId,
+      usedAt: r.usedAt,
+      count: r.countsToward?.count ?? 1,
+      amount: r.countsToward?.amount,
+    }))
+    .sort((a, b) => a.usageId.localeCompare(b.usageId));
+  const input = DOMAIN_USAGE_ROOT + canonicalJson(inputs);
+  return toHex(sha3_256(new TextEncoder().encode(input)));
 }
 
 export function snapshotFromUsage(

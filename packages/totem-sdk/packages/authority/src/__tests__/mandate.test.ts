@@ -340,7 +340,7 @@ describe('verifyMandate', () => {
     const mandateId = computeMandateId(mandate);
     const statusSnapshot: MandateStatusSnapshot = {
       checkedAt: 2000,
-      revokedMandateIds: [mandateId],
+      revocationEpochs: { [mandateId]: 1 },
     };
     const result = verifyMandate(signed, resolver, 2000, 0, statusSnapshot);
     expect(result.valid).toBe(false);

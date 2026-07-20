@@ -22,7 +22,6 @@ export {
   createAgentMandate,
   createMandateProofDraft,
   signMandateWithLease,
-  signMandateUnsafe,
   verifyMandate,
 } from './mandate.js';
 export type { CreateAgentMandateParams } from './mandate.js';
@@ -32,6 +31,7 @@ export { matchScope, matchConstraints } from './scope.js';
 export {
   checkUsageLimit,
   calculateUsageDelta,
+  computeUsageRoot,
   snapshotFromUsage,
 } from './usage.js';
 

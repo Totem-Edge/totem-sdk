@@ -19,6 +19,7 @@ export interface CreateAgentMandateParams {
   usageLimit?: MandateBody['usageLimit'];
   issuedAt?: number;
   expiresAt?: number;
+  revocationEpoch?: number;
 }
 
 export function createAgentMandate(params: CreateAgentMandateParams): MandateBody {
@@ -32,6 +33,7 @@ export function createAgentMandate(params: CreateAgentMandateParams): MandateBod
   if (params.constraints !== undefined) mandate.constraints = params.constraints;
   if (params.usageLimit !== undefined) mandate.usageLimit = params.usageLimit;
   if (params.expiresAt !== undefined) mandate.expiresAt = params.expiresAt;
+  if (params.revocationEpoch !== undefined) mandate.revocationEpoch = params.revocationEpoch;
   return mandate;
 }
 
@@ -58,6 +60,7 @@ export async function signMandateWithLease(
   return signWithLease(unsignedMandate, seed, leaseProvider, options);
 }
 
+/** @deprecated WARNING: WOTS keys are one-time use. Repeated signing with the same keyIndex leaks the private key. Use `signMandateWithLease` instead. */
 export function signMandateUnsafe(
   unsignedMandate: UnsignedProof,
   seed: Uint8Array,
@@ -129,7 +132,7 @@ export function verifyMandate(
   result.granteeAddress = mandateBody.grantee;
   result.principalId = mandateBody.principal;
 
-  if (mandateStatus && mandateStatus.revokedMandateIds.includes(result.mandateId)) {
+  if (mandateStatus?.revocationEpochs?.[result.mandateId] !== undefined) {
     result.valid = false;
     result.mandateRevoked = true;
     result.reason = 'mandate has been revoked';
