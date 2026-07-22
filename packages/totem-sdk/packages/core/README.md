@@ -2,7 +2,7 @@
 
 **The cryptographic engine — every other package depends on this.**
 
-Zero production dependencies (only `@noble/hashes` as a peer). Provides quantum-resistant WOTS signatures, hierarchical TreeKey address derivation, BIP39 seed phrases, Merkle Mountain Range proofs, and byte-exact Minima Java-compatible transaction serialization.
+Zero production dependencies (only `@noble/hashes` as a peer). Provides WOTS (Winternitz) signatures, hierarchical TreeKey address derivation, BIP39 seed phrases, Merkle Mountain Range proofs, and byte-exact Minima Java-compatible transaction serialization.
 
 ## Install
 

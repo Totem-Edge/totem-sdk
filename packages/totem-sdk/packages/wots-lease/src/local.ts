@@ -34,8 +34,6 @@ export class LocalLeaseProvider implements WotsLeaseProvider {
   private readonly journal: LeaseJournal;
   private _initialized = false;
   private readonly deviceId: string;
-  /** In-memory map: reservationId → treeId (lost on restart; watermark survives). */
-  private readonly _treeIdByReservation = new Map<string, string>();
 
   constructor(
     storage: StorageAdapter,
@@ -54,14 +52,39 @@ export class LocalLeaseProvider implements WotsLeaseProvider {
     await this.leaseStore.initialize();
     await this.journal.initialize();
     await this.recoverExpiredReservations();
+    await this.burnUnresolvedReservations();
     this._initialized = true;
+  }
+
+  /** Burn all active (non-expired) leases that have no matching treeId.
+   *  On restart, leases with missing treeId (from before the treeId field was added)
+   *  must be burned to prevent index reuse. */
+  private async burnUnresolvedReservations(): Promise<void> {
+    const now = Date.now();
+    for (const lease of this.leaseStore.getAll()) {
+      if (lease.status === 'active' && lease.expiresAt >= now && !lease.treeId) {
+        this.logger.warn(`[LocalLeaseProvider] Burning unresolved lease ${lease.leaseId} (no treeId)`);
+        await this.watermark.markUnavailable('default', lease.indices, 'burned');
+        await this.leaseStore.updateStatus(lease.leaseId, 'cancelled');
+        await this.journal.append({
+          treeId: 'default',
+          branchId: 'default',
+          wotsIndex: flatIndex(lease.indices),
+          indices: lease.indices,
+          status: 'burned',
+          reservationId: lease.leaseId,
+          timestamp: now,
+          deviceId: this.deviceId,
+        });
+      }
+    }
   }
 
   private async recoverExpiredReservations(): Promise<void> {
     const now = Date.now();
     for (const lease of this.leaseStore.getAll()) {
       if (lease.status === 'active' && lease.expiresAt < now) {
-        const treeId = this._treeIdByReservation.get(lease.leaseId) ?? 'default';
+        const treeId = lease.treeId ?? 'default';
         await this.watermark.markUnavailable(treeId, lease.indices, 'reserved-expired');
         await this.leaseStore.updateStatus(lease.leaseId, 'expired');
         await this.journal.append({
@@ -70,6 +93,7 @@ export class LocalLeaseProvider implements WotsLeaseProvider {
           wotsIndex: flatIndex(lease.indices),
           indices: lease.indices,
           status: 'reserved-expired',
+          reservationId: lease.leaseId,
           timestamp: now,
           deviceId: this.deviceId,
         });
@@ -82,8 +106,10 @@ export class LocalLeaseProvider implements WotsLeaseProvider {
     const treeId = params.treeId;
     const ttlMs = params.ttlMs ?? 120_000;
 
+    // Atomically get the next available index AND mark it reserved in the watermark
     const indices = this.watermark.getNextIndices(treeId);
 
+    // Validate device range BEFORE marking unavailable — prevents permanent index loss
     if (params.deviceId) {
       const range = this.getDeviceRange(params.deviceId);
       if (range && (indices.addressIndex < range.start || indices.addressIndex > range.end)) {
@@ -91,12 +117,15 @@ export class LocalLeaseProvider implements WotsLeaseProvider {
       }
     }
 
+    await this.watermark.markUnavailable(treeId, indices, 'reserved');
+
     const reservationId = randomId();
     const expiresAt = Date.now() + ttlMs;
 
     const lease: StoredLease = {
       leaseId: reservationId,
       leaseToken: reservationId,
+      treeId,
       indices,
       expiresAt,
       status: 'active',
@@ -105,15 +134,13 @@ export class LocalLeaseProvider implements WotsLeaseProvider {
     };
     await this.leaseStore.save(lease);
 
-    // Track treeId in memory so commit/burn can reference the right watermark tree
-    this._treeIdByReservation.set(reservationId, treeId);
-
     await this.journal.append({
       treeId,
       branchId: params.branchId ?? 'default',
       wotsIndex: flatIndex(indices),
       indices,
       status: 'reserved',
+      reservationId,
       payloadHash: params.payloadHash,
       timestamp: Date.now(),
       deviceId: params.deviceId ?? this.deviceId,
@@ -126,12 +153,12 @@ export class LocalLeaseProvider implements WotsLeaseProvider {
     if (!this._initialized) await this.initialize();
     const lease = this.leaseStore.get(reservationId);
     if (!lease) throw new LeaseNotFoundError(reservationId);
+    if (lease.status === 'finalized') return;
 
-    const treeId = this._treeIdByReservation.get(reservationId) ?? 'default';
+    const treeId = lease.treeId ?? 'default';
     const indices: SigningIndices = lease.indices;
     await this.watermark.markUnavailable(treeId, indices, 'committed');
     await this.leaseStore.updateStatus(reservationId, 'finalized');
-    this._treeIdByReservation.delete(reservationId);
 
     await this.journal.append({
       treeId,
@@ -139,6 +166,7 @@ export class LocalLeaseProvider implements WotsLeaseProvider {
       wotsIndex: flatIndex(indices),
       indices,
       status: 'committed',
+      reservationId,
       txId,
       timestamp: Date.now(),
       deviceId: this.deviceId,
@@ -150,11 +178,10 @@ export class LocalLeaseProvider implements WotsLeaseProvider {
     const lease = this.leaseStore.get(reservationId);
     if (!lease) throw new LeaseNotFoundError(reservationId);
 
-    const treeId = this._treeIdByReservation.get(reservationId) ?? 'default';
+    const treeId = lease.treeId ?? 'default';
     const indices: SigningIndices = lease.indices;
     await this.watermark.markUnavailable(treeId, indices, 'burned');
     await this.leaseStore.updateStatus(reservationId, 'cancelled');
-    this._treeIdByReservation.delete(reservationId);
 
     this.logger.warn(`[LocalLeaseProvider] Burning reservation ${reservationId}: ${reason}`);
     await this.journal.append({
@@ -163,6 +190,7 @@ export class LocalLeaseProvider implements WotsLeaseProvider {
       wotsIndex: flatIndex(indices),
       indices,
       status: 'burned',
+      reservationId,
       timestamp: Date.now(),
       deviceId: this.deviceId,
     });

@@ -17,8 +17,19 @@ import type { PureMinimaConfig, MinimaEnvelope } from './types.js';
 import { PureMinimaRpcError } from './types.js';
 
 function buildUrl(config: PureMinimaConfig): string {
-  const scheme = config.ssl ? 'https' : 'http';
+  const scheme = config.ssl === false ? 'http' : 'https';
   return `${scheme}://${config.host}:${config.port}`;
+}
+
+function sanitizeRpcValue(value: unknown, paramName: string): string {
+  const str = String(value);
+  if (str.length > 1024) {
+    throw new PureMinimaRpcError(`Parameter ${paramName} exceeds maximum length (1024)`, '');
+  }
+  if (/[\x00-\x1f\x7f]/.test(str)) {
+    throw new PureMinimaRpcError(`Parameter ${paramName} contains control characters`, '');
+  }
+  return str;
 }
 
 function buildAuthHeader(password: string): string {
@@ -249,15 +260,14 @@ export function buildCommandString(
 
     case 'sendfrom': {
       const parts = ['sendfrom'];
-      if (p.fromaddress !== undefined) parts.push(`fromaddress:${p.fromaddress}`);
-      if (p.address !== undefined) parts.push(`address:${p.address}`);
-      if (p.amount !== undefined) parts.push(`amount:${p.amount}`);
-      if (p.tokenid !== undefined) parts.push(`tokenid:${p.tokenid}`);
-      if (p.script !== undefined) parts.push(`script:${p.script}`);
-      if (p.privatekey !== undefined) parts.push(`privatekey:${p.privatekey}`);
-      if (p.keyuses !== undefined) parts.push(`keyuses:${p.keyuses}`);
-      if (p.burn !== undefined) parts.push(`burn:${p.burn}`);
-      if (p.mine !== undefined) parts.push(`mine:${p.mine}`);
+      if (p.fromaddress !== undefined) parts.push(`fromaddress:${sanitizeRpcValue(p.fromaddress, 'fromaddress')}`);
+      if (p.address !== undefined) parts.push(`address:${sanitizeRpcValue(p.address, 'address')}`);
+      if (p.amount !== undefined) parts.push(`amount:${sanitizeRpcValue(p.amount, 'amount')}`);
+      if (p.tokenid !== undefined) parts.push(`tokenid:${sanitizeRpcValue(p.tokenid, 'tokenid')}`);
+      if (p.script !== undefined) parts.push(`script:${sanitizeRpcValue(p.script, 'script')}`);
+      if (p.keyuses !== undefined) parts.push(`keyuses:${sanitizeRpcValue(p.keyuses, 'keyuses')}`);
+      if (p.burn !== undefined) parts.push(`burn:${sanitizeRpcValue(p.burn, 'burn')}`);
+      if (p.mine !== undefined) parts.push(`mine:${sanitizeRpcValue(p.mine, 'mine')}`);
       return parts.join(' ');
     }
 

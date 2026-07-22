@@ -29,6 +29,8 @@ export type {
   EdgeIdentityPort,
   EdgeManifestPort,
   EdgeKeyLeasePort,
+  EdgeStreamPort,
+  EdgePubSubPort,
   EdgeRuntimePorts,
 } from './ports.js';
 

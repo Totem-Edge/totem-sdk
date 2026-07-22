@@ -4,6 +4,7 @@ dist/
 .env
 *.log
 test-results/
+.DS_Store
 
 # Large test vector files
 packages/totem-sdk/packages/core/test-vectors/java-parity/*.jar

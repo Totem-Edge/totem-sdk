@@ -1,7 +1,7 @@
 import { sha3_256 } from '@totemsdk/core';
 import { serializeTxBody } from '@totemsdk/txpow';
 import {
-  fromHex,
+  hexToBytes,
   serializeTransaction,
   createDefaultTransaction,
   buildMinimaCoin,
@@ -347,19 +347,19 @@ export function omniaDraftToMinimaBytes(draft: OmniaTxDraft): Uint8Array {
 
   for (const inp of draft.inputs) {
     tx.inputs.push(buildMinimaCoin({
-      coinId: fromHex(inp.coinId),
-      address: fromHex(inp.address),
+      coinId: hexToBytes(inp.coinId),
+      address: hexToBytes(inp.address),
       amount: inp.amount.toString(),
-      tokenId: fromHex(inp.tokenId),
+      tokenId: hexToBytes(inp.tokenId),
     }));
   }
 
   for (const out of draft.outputs) {
     const svs = toCoreSvs(out.stateVariables ?? draft.stateVariables);
     tx.outputs.push(buildMinimaCoin({
-      address: fromHex(out.address),
+      address: hexToBytes(out.address),
       amount: out.amount.toString(),
-      tokenId: fromHex(out.tokenId),
+      tokenId: hexToBytes(out.tokenId),
       storeState: out.storeState ?? false,
       state: out.storeState ? svs : [],
     }));
@@ -367,7 +367,7 @@ export function omniaDraftToMinimaBytes(draft: OmniaTxDraft): Uint8Array {
 
   tx.state = toCoreSvs(draft.stateVariables);
 
-  return serializeTransaction(tx);
+  return serializeTransaction(JSON.stringify(tx));
 }
 
 /**

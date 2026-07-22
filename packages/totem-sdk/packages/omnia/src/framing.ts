@@ -14,7 +14,7 @@
  * wire format.
  */
 
-import { peekFrameLength, FramingError } from '@totemsdk/lookup-protocol';
+import { peekFrameLength, FramingError, MAX_FRAME_BODY_LENGTH } from '@totemsdk/lookup-protocol';
 import type { OmniaMessage } from './messaging-types.js';
 
 export { FramingError };
@@ -75,6 +75,9 @@ export function encodeOmniaMessage(msg: OmniaMessage): Uint8Array {
 function _decodeOmniaFrame(buf: Uint8Array): OmniaMessage {
   const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
   const bodyLen = view.getUint32(0, false);
+  if (bodyLen > MAX_FRAME_BODY_LENGTH) {
+    throw new FramingError(`Omnia frame body length ${bodyLen} exceeds maximum ${MAX_FRAME_BODY_LENGTH}`);
+  }
   const body = buf.slice(4, 4 + bodyLen);
   const json = new TextDecoder().decode(body);
   try {

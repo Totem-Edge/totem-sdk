@@ -4,7 +4,7 @@
  * This implementation matches BouncyCastle's WinternitzOTSignature exactly,
  * which is used by Minima's Winternitz.java class.
  * 
- * Key differences from standard WOTS/WOTS+:
+ * Key differences from standard WOTS (Winternitz):
  * - w=8 means 8 BITS per digit (not base-8), so each byte is one digit (0-255)
  * - Stateful PRNG (GMSSRandom) for chain seed derivation, not stateless H(i||seed)
  * - 34 total chains (32 message + 2 checksum), not 89

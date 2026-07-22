@@ -33,19 +33,27 @@ export interface CoinSelectionOptions {
 const MINIMA_DECIMALS = 44;
 const SCALE = BigInt(10) ** BigInt(MINIMA_DECIMALS);
 
+const DECIMAL_RE = /^-?(?:0|[1-9][0-9]*)(?:\.[0-9]{1,44})?$/;
+
 export function parseDecimalToBigInt(value: string): bigint {
   const clean = (value || '0').trim();
-  const parts = clean.split('.');
+  if (!DECIMAL_RE.test(clean)) {
+    throw new CoinSelectionError(`Invalid decimal format: "${value}"`, 'INSUFFICIENT_FUNDS');
+  }
+  const isNegative = clean.startsWith('-');
+  const abs = isNegative ? clean.slice(1) : clean;
+  const parts = abs.split('.');
   const intPart = parts[0] || '0';
   let fracPart = parts[1] || '';
-  
+
   if (fracPart.length > MINIMA_DECIMALS) {
     fracPart = fracPart.slice(0, MINIMA_DECIMALS);
   } else {
     fracPart = fracPart.padEnd(MINIMA_DECIMALS, '0');
   }
-  
-  return BigInt(intPart) * SCALE + BigInt(fracPart);
+
+  const result = BigInt(intPart) * SCALE + BigInt(fracPart);
+  return isNegative ? -result : result;
 }
 
 export function bigIntToDecimalString(value: bigint): string {

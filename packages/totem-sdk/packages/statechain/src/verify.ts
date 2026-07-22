@@ -1,5 +1,5 @@
 import { sha3_256 } from '@totemsdk/core';
-import { fromHex, wotsVerifyDigest, derivePKdigest, hex } from '@totemsdk/core';
+import { hexToBytes, wotsVerifyDigest, derivePKdigest, bytesToHex } from '@totemsdk/core';
 import type { StateChain } from './types.js';
 
 export interface VerifyResult {
@@ -12,42 +12,42 @@ export interface VerifyResult {
 export interface VerifyOptions {
   /**
    * Override SE blind-signature verification.
-   * Default: `wotsVerifyDigest(fromHex(sig), commitment, fromHex(sePkdHex))`
+   * Default: `wotsVerifyDigest(hexToBytes(sig), commitment, hexToBytes(sePkdHex))`
    * Tests override because mock SE sigs use SHA3-256.
    */
   verifyBlindSig?: (sig: string, commitment: Uint8Array, sePkdHex: string) => boolean;
 
   /**
    * Override old-owner signature verification per hop.
-   * Default: `wotsVerifyDigest(fromHex(ownerSig), commitment, fromHex(fromPkdHex))`
+   * Default: `wotsVerifyDigest(hexToBytes(ownerSig), commitment, hexToBytes(fromPkdHex))`
    * Tests override because mock owner sigs use SHA3-256.
    */
   verifyOwnerSig?: (ownerSig: string, commitment: Uint8Array, fromPkdHex: string) => boolean;
 
   /**
    * Override transferKey lineage verification.
-   * Default: `hex(derivePKdigest(fromHex(transferKey), 0)) === fromPublicKeyDigest`
+   * Default: `bytesToHex(derivePKdigest(hexToBytes(transferKey), 0)) === fromPublicKeyDigest`
    * Tests override because mock seeds are not real WOTS seeds.
    */
   verifyTransferKey?: (transferKey: string, fromPublicKeyDigest: string) => boolean;
 }
 
 function defaultVerifyBlindSig(sig: string, commitment: Uint8Array, sePkdHex: string): boolean {
-  return wotsVerifyDigest(fromHex(sig), commitment, fromHex(sePkdHex));
+  return wotsVerifyDigest(hexToBytes(sig), commitment, hexToBytes(sePkdHex));
 }
 
 function defaultVerifyOwnerSig(
   ownerSig: string, commitment: Uint8Array, fromPkdHex: string,
 ): boolean {
-  return wotsVerifyDigest(fromHex(ownerSig), commitment, fromHex(fromPkdHex));
+  return wotsVerifyDigest(hexToBytes(ownerSig), commitment, hexToBytes(fromPkdHex));
 }
 
 function defaultVerifyTransferKey(transferKey: string, fromPublicKeyDigest: string): boolean {
   if (!transferKey) return false;
   try {
-    const seed = fromHex(transferKey);
+    const seed = hexToBytes(transferKey);
     if (seed.length !== 32) return false;
-    return hex(derivePKdigest(seed, 0)) === fromPublicKeyDigest;
+    return bytesToHex(derivePKdigest(seed, 0)) === fromPublicKeyDigest;
   } catch {
     return false;
   }
@@ -120,14 +120,14 @@ export function verifyStateChain(chain: StateChain, opts?: VerifyOptions): Verif
     }
     let txBodyBytes: Uint8Array;
     try {
-      txBodyBytes = fromHex(record.txBodyHex);
+      txBodyBytes = hexToBytes(record.txBodyHex);
     } catch {
       return {
         valid: false, depth, rootOwner,
         reason: `Invalid txBodyHex hex at index ${i}`,
       };
     }
-    const recomputedDigest = hex(sha3_256(txBodyBytes));
+    const recomputedDigest = bytesToHex(sha3_256(txBodyBytes));
     if (recomputedDigest !== record.signedDigest) {
       return {
         valid: false, depth, rootOwner,
@@ -135,7 +135,7 @@ export function verifyStateChain(chain: StateChain, opts?: VerifyOptions): Verif
       };
     }
 
-    const commitment = fromHex(record.signedDigest);
+    const commitment = hexToBytes(record.signedDigest);
 
     // ── 4. SE blind signature ───────────────────────────────────────────────
     if (!verifyBlindSig(record.blindedSignature, commitment, chain.sePublicKey)) {

@@ -100,7 +100,13 @@ export class ClientSession {
   // ---------------------------------------------------------------------------
 
   private _onData(chunk: Uint8Array): void {
-    const messages = this._parser.push(chunk);
+    let messages: LookupMessage[];
+    try {
+      messages = this._parser.push(chunk);
+    } catch {
+      this._transport.close();
+      return;
+    }
     for (const msg of messages) {
       this._handleMessage(msg).catch((err) => {
         if (msg.id) {
@@ -240,7 +246,7 @@ export class ClientSession {
       case 'LEASE_RESERVE': {
         const lease = this._dispatcher.lease;
         if (lease) {
-          await lease.handleReserve(msg, this._sendFn);
+          await lease.handleReserve(msg, this._sendFn, this.publicKeyHex);
         } else {
           sendError(this._sendFn, msg.id, 'NOT_SUPPORTED', 'Lease coordinator not enabled');
         }
@@ -250,7 +256,7 @@ export class ClientSession {
       case 'LEASE_COMMIT': {
         const lease = this._dispatcher.lease;
         if (lease) {
-          await lease.handleCommit(msg, this._sendFn);
+          await lease.handleCommit(msg, this._sendFn, this.publicKeyHex);
         } else {
           sendError(this._sendFn, msg.id, 'NOT_SUPPORTED', 'Lease coordinator not enabled');
         }
@@ -260,7 +266,7 @@ export class ClientSession {
       case 'LEASE_BURN': {
         const lease = this._dispatcher.lease;
         if (lease) {
-          await lease.handleBurn(msg, this._sendFn);
+          await lease.handleBurn(msg, this._sendFn, this.publicKeyHex);
         } else {
           sendError(this._sendFn, msg.id, 'NOT_SUPPORTED', 'Lease coordinator not enabled');
         }

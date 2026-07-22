@@ -1,5 +1,5 @@
 import { sha3_256 } from '@totemsdk/core';
-import { concatBytes, wotsVerifyDigest, fromHex } from '@totemsdk/core';
+import { concatBytes, wotsVerifyDigest, hexToBytes } from '@totemsdk/core';
 import {
   buildFundingTx,
   omniaDraftToMinimaBytes,
@@ -68,7 +68,7 @@ async function leaseSign(
   // Verify the signature against the REGISTERED participant public key digest —
   // not self-reported from the signer, ensuring the signer matches the factory record.
   const verifyFn = bundle.verify
-    ?? ((s: Uint8Array, c: Uint8Array, pkd: string) => wotsVerifyDigest(s, c, fromHex(pkd)));
+    ?? ((s: Uint8Array, c: Uint8Array, pkd: string) => wotsVerifyDigest(s, c, hexToBytes(pkd)));
   if (!verifyFn(sig, commitment, participant.publicKeyDigest)) {
     await bundle.leaseProvider.burnReservation(reservation.reservationId, 'verification-failed').catch(() => {});
     throw new Error(
@@ -199,7 +199,7 @@ export async function createFactory(
     const draftBytes  = omniaDraftToMinimaBytes(fundingDraft);
     const txBody      = serializeTxBody(draftBytes, new Uint8Array(0));
     const mined       = await mineTxPoW(txBody, TX_POW_MIN_DIFFICULTY);
-    const fullTxPoW   = concatBytes(mined.minedHeaderBytes, new Uint8Array([0x01]), txBody);
+    const fullTxPoW   = concatBytes(concatBytes(mined.minedHeaderBytes, new Uint8Array([0x01])), txBody);
     await chainProvider.broadcastTxPoW(Buffer.from(fullTxPoW).toString('hex'));
 
     fundingTxId   = Buffer.from(mined.txpowId).toString('hex');

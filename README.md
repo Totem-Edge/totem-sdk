@@ -1,6 +1,6 @@
 # Totem SDK
 
-> **The sovereign toolkit for the Minima network.** Cryptographic primitives, payment channels, edge computing, verifiable claims, and AI agent policies — all quantum-resistant, all modular, all open-source.
+> **The sovereign toolkit for the Minima network.** Cryptographic primitives, KISSVM scripting, recursive MAST policy trees, payment channels, edge computing, on-chain governance, verifiable claims, and AI agent policies — all quantum-resistant, all modular, all open-source.
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![NPM](https://img.shields.io/npm/v/@totemsdk/core?label=core)](https://www.npmjs.com/package/@totemsdk/core)
@@ -10,7 +10,7 @@
 
 ## Why Totem SDK?
 
-Most blockchain SDKs give you a wallet and a JSON-RPC client. Totem SDK gives you **an entire platform** — 37 packages spanning five architectural domains, from quantum-resistant cryptography to AI agent policy enforcement. You pick the pieces you need and leave the rest.
+Most blockchain SDKs give you a wallet and a JSON-RPC client. Totem SDK gives you **an entire platform** — 52 packages spanning five architectural domains, from quantum-resistant cryptography to AI agent policy enforcement. You pick the pieces you need and leave the rest.
 
 **The problem:** Building on Minima today means hand-rolling WOTS+ signature management, writing KISSVM scripts from scratch, managing payment channel state machines, and figuring out how to connect sensors and gateways to the chain. Every team solves these problems independently, wasting time on infrastructure instead of building their product.
 
@@ -31,11 +31,11 @@ Totem SDK is organized into five architectural layers. Each layer builds on the 
 
 | Domain | What it does | Key packages |
 |--------|-------------|--------------|
-| **Cryptographic Foundation** | WOTS+ signatures, TreeKey hierarchy, MMR proofs, Java-compatible serialization, KISSVM script evaluation | `core`, `core-wasm`, `kissvm`, `txpow` |
+| **Cryptographic Foundation** | WOTS+ signatures, TreeKey hierarchy, MMR proofs, Java-compatible serialization, KISSVM script evaluation, recursive MAST compilation, policy trees | `core`, `core-wasm`, `kissvm`, `recursive-mast`, `txpow`, `wots-lease` |
 | **Sovereignty Stack** | Personal infrastructure — run your own lookup node, query chain data P2P, stream real-time balances | `lookup-node`, `lookup-client`, `lookup-protocol`, `chain-provider`, `pureminima-rpc`, `realtime` |
 | **Payment Network** | Eltoo payment channels, multi-hop routing, channel factories, virtual UTXOs, statechains with blind co-signing | `omnia`, `omnia-factory`, `omnia-router`, `omnia-splice`, `omnia-vtxo`, `statechain`, `se-server` |
-| **Edge Computing** | IoT/industrial runtime — MQTT sensor bridges, MachinePay micropayments, P2P device communication, gateways | `edge`, `edge-adapters`, `edge-mqtt`, `pear`, `server`, `pubsub-transport`, `stream-transport` |
-| **Verifiable Claims** | WOTS-signed proofs, DID-like identities, signed app manifests, AI agent policies, provider reputation, liquidity bonds | `proof`, `proof-integritas`, `proofgraph`, `identity`, `manifest`, `root-identity`, `agent-policy`, `provider-bond`, `liquidity-bond` |
+| **Edge Computing** | IoT/industrial runtime — MQTT sensor bridges, MachinePay micropayments, P2P device communication, gateways, multi-protocol transport connectors | `edge`, `edge-adapters`, `edge-connectors`, `edge-mqtt`, `pear`, `server`, `pubsub-transport`, `stream-transport` |
+| **Verifiable Claims** | WOTS-signed proofs, DID-like identities, signed app manifests, AI agent policies, on-chain governance (voting, delegation), provider reputation, liquidity bonds | `proof`, `proof-integritas`, `proofgraph`, `identity`, `manifest`, `root-identity`, `governance`, `agent-policy`, `provider-bond`, `liquidity-bond` |
 
 ### How they compose
 
@@ -70,14 +70,20 @@ A typical application uses packages from 2-3 layers. A wallet uses the cryptogra
 # Cryptographic primitives (everyone needs this)
 pnpm add @totemsdk/core
 
-# KISSVM script evaluation
+# KISSVM script evaluation + MAST compiler + templates
 pnpm add @totemsdk/kissvm
+
+# Policy coordination (delegation, discovery, signing)
+pnpm add @totemsdk/recursive-mast
+
+# On-chain governance (quadratic voting, liquid democracy)
+pnpm add @totemsdk/governance
 
 # Payment channels
 pnpm add @totemsdk/omnia
 
-# Edge computing with MQTT
-pnpm add @totemsdk/edge @totemsdk/edge-mqtt
+# Edge computing: MQTT + multi-protocol connectors
+pnpm add @totemsdk/edge @totemsdk/edge-mqtt @totemsdk/edge-connectors
 
 # AI agent policies
 pnpm add @totemsdk/agent-policy
@@ -127,7 +133,7 @@ discovery.onChange((wallets) => {
 
 ```
 packages/
-├── totem-sdk/packages/     # 37 SDK packages (the platform)
+├── totem-sdk/packages/     # 52 SDK packages (the platform)
 ├── totem-extension/        # Chrome MV3 browser extension wallet
 ├── totem-pwa-wallet/       # Progressive web app wallet
 ├── totem-dapp-starter/     # dApp starter template

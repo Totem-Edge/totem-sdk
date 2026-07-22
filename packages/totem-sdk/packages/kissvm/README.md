@@ -204,9 +204,29 @@ This package is a TypeScript port of the Minima KISSVM scripting engine. Canonic
 - [`kissvm/tokens/`](https://github.com/spartacusrex-minima/minima-core/blob/main/src/org/minima/kissvm/tokens/) — lexer tokens
 - [`kissvm/values/`](https://github.com/spartacusrex-minima/minima-core/blob/main/src/org/minima/kissvm/values/) — value types
 
+## MAST & Policy Infrastructure
+
+This package now includes the full MAST compiler, policy tree, proof chain, layered policy, anchor coin, PREVSTATE workflows, and 17 ready-to-use script templates. See [`GUIDE.md`](https://github.com/totem-sdk/totem-sdk/blob/main/packages/totem-sdk/packages/kissvm/src/GUIDE.md) for complete documentation.
+
+```ts
+import { compileMastTree, verifyScriptMembership } from '@totemsdk/kissvm';
+import { buildPolicyTree } from '@totemsdk/kissvm';
+import { buildProofChain, verifyProofChain } from '@totemsdk/kissvm';
+import { buildLayeredPolicy } from '@totemsdk/kissvm';
+import { buildFirmwareUpdateScript } from '@totemsdk/kissvm';
+```
+
+### Quick overview
+
+| Module | Description |
+|--------|-------------|
+| `mast/` | MMR compiler, policy tree, proof chains, layered policy, anchor coin, PREVSTATE workflows |
+| `templates/` | 17 script generators (firmware, voting, state machine, recovery, supply chain, etc.) |
+
 ## See also
 
 - [`@totemsdk/core`](https://www.npmjs.com/package/@totemsdk/core) — cryptographic primitives (SHA3, WOTS, TreeKey)
 - [`@totemsdk/core-wasm`](https://www.npmjs.com/package/@totemsdk/core-wasm) — Rust/WASM crypto engine
+- [`@totemsdk/recursive-mast`](https://www.npmjs.com/package/@totemsdk/recursive-mast) — higher-level policy coordination (delegation, discovery, signing, storage)
 - [`@totemsdk/tx-builder`](https://www.npmjs.com/package/@totemsdk/tx-builder) — builds transactions for `simulateSpend`
 - [`@totemsdk/omnia`](https://www.npmjs.com/package/@totemsdk/omnia) — payment channel state machine using KISSVM

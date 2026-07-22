@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/authority",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Deterministic authority engine for Totem Edge — mandate verification, scope matching, usage tracking, and authority evaluation",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -53,14 +53,14 @@
     "cryptography"
   ],
   "bugs": {
-    "url": "https://github.com/MrGheek/totem-sdk/issues"
+    "url": "https://github.com/totem-sdk/totem-sdk/issues"
   },
   "license": "MIT",
   "author": "Totem SDK",
   "homepage": "https://totem.ing",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/MrGheek/totem-sdk.git",
+    "url": "git+https://github.com/totem-sdk/totem-sdk.git",
     "directory": "packages/totem-sdk/packages/authority"
   }
 }

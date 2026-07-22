@@ -1,22 +1,9 @@
 import { tokenize, Token, TokenKind } from './lexer.js';
+import { MiniNumber } from './MiniNumber.js';
 import type { ASTNode, Scalar, Span } from './types.js';
 
-/**
- * Parse a decimal string literal directly to a scaled bigint (SCALE = 10^8),
- * avoiding any IEEE-754 float intermediary.  Rounds the 9th decimal digit
- * to match the same rounding used by the evaluator's parseLiteralBigInt.
- */
-function parseNumLiteral(s: string): bigint {
-  const SCALE = 100_000_000n;
-  const neg = s.startsWith('-');
-  const abs = neg ? s.slice(1) : s;
-  const dot = abs.indexOf('.');
-  const intPart = dot === -1 ? abs : (abs.slice(0, dot) || '0');
-  const fracFull = dot === -1 ? '' : abs.slice(dot + 1);
-  const fracStr  = fracFull.slice(0, 8).padEnd(8, '0');
-  const ninth    = fracFull.length > 8 ? parseInt(fracFull[8] ?? '0', 10) : 0;
-  const result   = BigInt(intPart) * SCALE + BigInt(fracStr) + (ninth >= 5 ? 1n : 0n);
-  return neg ? -result : result;
+function parseNumLiteral(s: string): MiniNumber {
+  return new MiniNumber(s);
 }
 
 export function parseScript(source: string): ASTNode[] {
@@ -199,7 +186,7 @@ class Parser {
           this.eat('RBRACE');             // closing } of MAST block
           return { type: 'MAST_BLOCK', branches, span: this.span(startPos) };
         }
-        const rootHash = this.eat('HEX').value;
+        const rootHash = this.parseExpr();
         return { type: 'MAST_STMT', rootHash, span: this.span(startPos) };
       }
       case 'IDENT': {
@@ -315,25 +302,25 @@ class Parser {
     switch (tok.kind) {
       case 'NUMBER': {
         this.eat();
-        // Parse directly to scaled bigint (SCALE = 10^8) — avoids IEEE-754
-        // float intermediary which loses precision for large/high-fractional literals.
+        // Parse to MiniNumber (matching Java's MiniNumber semantics) — avoids
+        // IEEE-754 float intermediary which loses precision.
         return { type: 'LITERAL', value: parseNumLiteral(tok.value), span: this.span(startPos) };
       }
       case 'HEX': {
         this.eat();
-        return { type: 'LITERAL', value: tok.value, span: this.span(startPos) };
+        return { type: 'LITERAL', kind: 'HEX', value: tok.value, span: this.span(startPos) };
       }
       case 'STRING': {
         this.eat();
-        return { type: 'LITERAL', value: tok.value, span: this.span(startPos) };
+        return { type: 'LITERAL', kind: 'STR', value: tok.value, span: this.span(startPos) };
       }
       case 'TRUE': {
         this.eat();
-        return { type: 'LITERAL', value: true, span: this.span(startPos) };
+        return { type: 'LITERAL', kind: 'BOOL', value: true, span: this.span(startPos) };
       }
       case 'FALSE': {
         this.eat();
-        return { type: 'LITERAL', value: false, span: this.span(startPos) };
+        return { type: 'LITERAL', kind: 'BOOL', value: false, span: this.span(startPos) };
       }
       case 'ATVAR': {
         this.eat();
@@ -455,15 +442,17 @@ class Parser {
       }
       case 'PROOF': {
         this.eat(); this.eat('LPAREN');
-        const scriptHash = this.parseExpr(); this.tryEat('COMMA');
-        const policyRoot = this.parseExpr(); this.tryEat('COMMA');
-        const proof = this.parseExpr();
+        const data     = this.parseExpr(); this.tryEat('COMMA');
+        const leafSum  = this.parseExpr(); this.tryEat('COMMA');
+        const rootHash = this.parseExpr(); this.tryEat('COMMA');
+        const rootSum  = this.parseExpr(); this.tryEat('COMMA');
+        const proof    = this.parseExpr();
         this.eat('RPAREN');
-        return { type: 'PROOF', scriptHash, policyRoot, proof, span: this.span(startPos) };
+        return { type: 'PROOF', data, leafSum, rootHash, rootSum, proof, span: this.span(startPos) };
       }
       case 'MAST': {
         this.eat();
-        const rootHash = this.eat('HEX').value;
+        const rootHash = this.parseExpr();
         return { type: 'MAST_EXPR', rootHash, span: this.span(startPos) };
       }
       case 'IDENT': {

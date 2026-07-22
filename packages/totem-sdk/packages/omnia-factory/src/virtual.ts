@@ -1,5 +1,5 @@
 import type { OmniaChannel, ChannelParticipant } from '@totemsdk/omnia';
-import { wotsVerifyDigest, fromHex } from '@totemsdk/core';
+import { wotsVerifyDigest, hexToBytes } from '@totemsdk/core';
 import type { ChannelFactory, FactoryLogEntry, WotsLeaseBundle } from './types.js';
 import { enforceConservation } from './factory.js';
 import { computeFactoryStateCommitment } from './commitment.js';
@@ -37,7 +37,7 @@ async function leaseSign(
   }
 
   const verifyFn = bundle.verify
-    ?? ((s: Uint8Array, c: Uint8Array, pkd: string) => wotsVerifyDigest(s, c, fromHex(pkd)));
+    ?? ((s: Uint8Array, c: Uint8Array, pkd: string) => wotsVerifyDigest(s, c, hexToBytes(pkd)));
   if (!verifyFn(sig, commitment, publicKeyDigest)) {
     await bundle.leaseProvider.burnReservation(reservation.reservationId, 'verification-failed').catch(() => {});
     throw new Error(

@@ -42,6 +42,20 @@ export interface UTXO {
   state?: Record<string, any>;
 }
 
+function sanitizeRpcParam(value: string, name: string): string {
+  if (value.length > 1024) {
+    throw new Error(`RPC parameter ${name} exceeds maximum length (1024)`);
+  }
+  if (/[\x00-\x1f\x7f]/.test(value)) {
+    throw new Error(`RPC parameter ${name} contains control characters`);
+  }
+  const trimmed = value.trim();
+  if (trimmed.length === 0) {
+    throw new Error(`RPC parameter ${name} is empty after trimming`);
+  }
+  return trimmed;
+}
+
 export class MinimaClient extends EventEmitter {
   private config: ClientConfig;
   private ws?: WebSocket;
@@ -55,6 +69,10 @@ export class MinimaClient extends EventEmitter {
       apiKey: 'totem-shared',
       ...config,
     };
+    const apiUrl = this.config.apiUrl.replace(/\/$/, '');
+    if (!apiUrl.startsWith('https://')) {
+      throw new Error('MinimaClient requires HTTPS — credentials sent via x-api-key header');
+    }
   }
 
   /**
@@ -192,7 +210,8 @@ export class MinimaClient extends EventEmitter {
    * For the full production path (mine + submit) use MinimaWallet.mineAndSubmitTxPoW().
    */
   async submitTransaction(signedTxHex: string): Promise<string> {
-    const data = await this.rpc<{ txpowid?: string }>(`txnpost data:${signedTxHex}`);
+    const clean = sanitizeRpcParam(signedTxHex, 'signedTxHex');
+    const data = await this.rpc<{ txpowid?: string }>(`txnpost data:${clean}`);
     return data?.txpowid ?? '';
   }
 

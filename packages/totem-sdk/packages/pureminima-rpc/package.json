@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/pureminima-rpc",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Fetch-based PureMinima RPC client — Bare/Pear/Node/browser compatible",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -40,11 +40,11 @@
   "author": "Totem SDK",
   "homepage": "https://totem.ing",
   "bugs": {
-    "url": "https://github.com/MrGheek/totem-sdk/issues"
+    "url": "https://github.com/totem-sdk/totem-sdk/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/MrGheek/totem-sdk.git",
+    "url": "git+https://github.com/totem-sdk/totem-sdk.git",
     "directory": "packages/totem-sdk/packages/pureminima-rpc"
   },
   "keywords": [

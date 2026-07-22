@@ -13,6 +13,8 @@
 import type { LookupMessage } from './messages.js';
 import { PROTOCOL_VERSION } from './messages.js';
 
+export const MAX_FRAME_BODY_LENGTH = 4_194_304; // 4 MiB
+
 export class FramingError extends Error {
   constructor(message: string) {
     super(message);
@@ -51,6 +53,9 @@ export function decodeMessage(buf: Uint8Array): LookupMessage {
   }
   const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
   const bodyLen = view.getUint32(0, false);
+  if (bodyLen > MAX_FRAME_BODY_LENGTH) {
+    throw new FramingError(`Frame body length ${bodyLen} exceeds maximum ${MAX_FRAME_BODY_LENGTH}`);
+  }
   if (buf.length < 4 + bodyLen) {
     throw new FramingError(
       `Incomplete frame: expected ${4 + bodyLen} bytes, got ${buf.length}`,
@@ -84,5 +89,9 @@ export function decodeMessage(buf: Uint8Array): LookupMessage {
 export function peekFrameLength(buf: Uint8Array): number | null {
   if (buf.length < 4) return null;
   const view = new DataView(buf.buffer, buf.byteOffset, 4);
-  return view.getUint32(0, false);
+  const len = view.getUint32(0, false);
+  if (len > MAX_FRAME_BODY_LENGTH) {
+    throw new FramingError(`Frame body length ${len} exceeds maximum ${MAX_FRAME_BODY_LENGTH}`);
+  }
+  return len;
 }

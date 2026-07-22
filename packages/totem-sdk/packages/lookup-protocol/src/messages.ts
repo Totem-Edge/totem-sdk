@@ -42,6 +42,14 @@ export type MessageType =
   | 'TRUST_RECORD'
   | 'TRUST_QUERY'
   | 'TRUST_RESPONSE'
+  | 'POLICY_ANNOUNCE'
+  | 'POLICY_QUERY'
+  | 'POLICY_RESULT'
+  | 'POLICY_WATCH'
+  | 'POLICY_UPDATE'
+  | 'POLICY_SIGN_REQUEST'
+  | 'POLICY_SIGN_RESPONSE'
+  | 'POLICY_SIGN_CANCEL'
   | 'VERSION_MISMATCH'
   | 'ERROR'
   | 'PING'
@@ -376,6 +384,102 @@ export interface PongMessage extends BaseMessage {
   payload: { ts: number; echo: number };
 }
 
+// ─── Policy discovery ──────────────────────────────────────────────────────
+
+export interface PolicyAnnounceMessage extends BaseMessage {
+  type: 'POLICY_ANNOUNCE';
+  payload: {
+    policyId: string;
+    subjectId: string;
+    policyRoot: string;
+    policyVersion: number;
+    policyEpoch: number;
+    authorityIdentityId: string;
+    capabilities: string[];
+    manifest: Uint8Array;
+    expiresAt: number;
+    retrievalEndpoints?: Array<{
+      type: 'hyperswarm' | 'https' | 'mqtt' | 'websocket' | 'custom';
+      uri: string;
+    }>;
+  };
+}
+
+export interface PolicyQueryMessage extends BaseMessage {
+  type: 'POLICY_QUERY';
+  payload: {
+    policyId?: string;
+    subjectId?: string;
+    policyRoot?: string;
+    authorityIdentityId?: string;
+    capability?: string;
+    minVersion?: number;
+    minEpoch?: number;
+    activeOnly?: boolean;
+    limit?: number;
+  };
+}
+
+export interface PolicyResultMessage extends BaseMessage {
+  type: 'POLICY_RESULT';
+  payload: {
+    results: Array<{
+      policyId: string;
+      policyRoot: string;
+      policyVersion: number;
+      policyEpoch: number;
+      manifest: Uint8Array;
+      nodeId: string;
+      expiresAt: number;
+    }>;
+  };
+}
+
+export interface PolicyWatchMessage extends BaseMessage {
+  type: 'POLICY_WATCH';
+  payload: {
+    policyId: string;
+    afterEpoch?: number;
+  };
+}
+
+export interface PolicyUpdateMessage extends BaseMessage {
+  type: 'POLICY_UPDATE';
+  payload: {
+    policyId: string;
+    previousRoot?: string;
+    currentRoot: string;
+    policyVersion: number;
+    policyEpoch: number;
+    manifest: Uint8Array;
+  };
+}
+
+// ─── Policy signing coordination ───────────────────────────────────────────
+
+export interface PolicySignRequestMessage extends BaseMessage {
+  type: 'POLICY_SIGN_REQUEST';
+  payload: {
+    request: Uint8Array;
+  };
+}
+
+export interface PolicySignResponseMessage extends BaseMessage {
+  type: 'POLICY_SIGN_RESPONSE';
+  payload: {
+    response: Uint8Array;
+  };
+}
+
+export interface PolicySignCancelMessage extends BaseMessage {
+  type: 'POLICY_SIGN_CANCEL';
+  payload: {
+    requestId: string;
+    policyId: string;
+    reason?: string;
+  };
+}
+
 export type LookupMessage =
   | HelloMessage
   | AuthChallengeMessage
@@ -409,6 +513,14 @@ export type LookupMessage =
   | TrustRecordMessage
   | TrustQueryMessage
   | TrustResponseMessage
+  | PolicyAnnounceMessage
+  | PolicyQueryMessage
+  | PolicyResultMessage
+  | PolicyWatchMessage
+  | PolicyUpdateMessage
+  | PolicySignRequestMessage
+  | PolicySignResponseMessage
+  | PolicySignCancelMessage
   | VersionMismatchMessage
   | ErrorMessage
   | PingMessage

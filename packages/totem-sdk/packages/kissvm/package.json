@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/kissvm",
-  "version": "0.2.1",
+  "version": "0.4.0",
   "description": "KISSVM v1 evaluator for Minima scripting language — backed by Rust/WASM",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -20,6 +20,7 @@
   },
   "files": [
     "dist",
+    "src/GUIDE.md",
     "rust/pkg/",
     "rust/pkg-node/",
     "README.md",
@@ -45,11 +46,11 @@
   "author": "Totem SDK",
   "homepage": "https://totem.ing",
   "bugs": {
-    "url": "https://github.com/MrGheek/totem-sdk/issues"
+    "url": "https://github.com/totem-sdk/totem-sdk/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/MrGheek/totem-sdk.git",
+    "url": "git+https://github.com/totem-sdk/totem-sdk.git",
     "directory": "packages/totem-sdk/packages/kissvm"
   },
   "keywords": [

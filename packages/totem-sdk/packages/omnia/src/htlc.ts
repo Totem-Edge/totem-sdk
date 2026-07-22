@@ -1,5 +1,6 @@
 import { HTLCHelper, bytesToHex } from '@totemsdk/core';
 import type { WotsLeaseProvider } from '@totemsdk/wots-lease';
+import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import type {
   OmniaChannel,
   HTLCRecord,
@@ -44,6 +45,9 @@ export async function addHTLC(
   if (!offererPartyId) throw new Error('Signer is not a channel participant');
 
   const offererBalance = channel.balances[offererPartyId] ?? 0n;
+  if (params.amount <= 0n) {
+    throw new Error(`HTLC amount must be positive: ${params.amount}`);
+  }
   if (params.amount > offererBalance) {
     throw new Error(`Insufficient balance: ${offererBalance} < ${params.amount}`);
   }
@@ -81,11 +85,16 @@ export async function addHTLC(
   if (balanceSum + htlcTotal !== channel.totalValue) {
     throw new BalanceConservationError(channel.totalValue, balanceSum + htlcTotal);
   }
+  for (const [partyId, balance] of Object.entries(newBalances)) {
+    if (balance < 0n) {
+      throw new Error(`Negative balance for ${partyId}: ${balance}`);
+    }
+  }
 
   // ── Shared update guards (capacity, watermark double-sign/stale-sequence) ──
   const commitment = computeStateCommitment(newSequence, newBalances, newHTLCs);
   const payloadHash = bytesToHex(commitment);
-  const guardError = enforceUpdateGuards(channel.channelId, newSequence, payloadHash);
+  const guardError = enforceUpdateGuards(channel.channelId, newSequence, payloadHash, channel.pendingProposal);
   if (guardError) {
     return { channel, htlcId: htlcRecord.htlcId, partialState: {}, error: guardError };
   }
@@ -93,6 +102,7 @@ export async function addHTLC(
   const channelWithHTLC: OmniaChannel = {
     ...channel,
     pendingHTLCs: newHTLCs,
+    pendingProposal: { sequence: newSequence, payloadHash },
   };
 
   const partialState = await signState(
@@ -185,16 +195,25 @@ export async function fulfillHTLC(
   if (balanceSum + htlcTotal !== channel.totalValue) {
     throw new BalanceConservationError(channel.totalValue, balanceSum + htlcTotal);
   }
+  for (const [partyId, balance] of Object.entries(newBalances)) {
+    if (balance < 0n) {
+      throw new Error(`Negative balance for ${partyId}: ${balance}`);
+    }
+  }
 
   // ── Shared update guards (capacity, watermark double-sign/stale-sequence) ──
   const commitment = computeStateCommitment(newSequence, newBalances, newHTLCs);
   const payloadHash = bytesToHex(commitment);
-  const guardError = enforceUpdateGuards(channel.channelId, newSequence, payloadHash);
+  const guardError = enforceUpdateGuards(channel.channelId, newSequence, payloadHash, channel.pendingProposal);
   if (guardError) {
     return { channel, partialState: {}, error: guardError };
   }
 
-  const channelWithSettled: OmniaChannel = { ...channel, pendingHTLCs: newHTLCs };
+  const channelWithSettled: OmniaChannel = {
+    ...channel,
+    pendingHTLCs: newHTLCs,
+    pendingProposal: { sequence: newSequence, payloadHash },
+  };
 
   const partialState = await signState(
     channelWithSettled,
@@ -240,13 +259,15 @@ export async function fulfillHTLC(
 /**
  * After `timeoutBlock`, HTLC amount returns to sender balance in new state.
  *
- * Spec: `timeoutHTLC(channel, htlcId, leaseProvider)` — currentBlock and signer are optional.
+ * Spec: `timeoutHTLC(channel, htlcId, leaseProvider, chainProvider)` — signer is optional.
+ * The current block height is fetched from `chainProvider.getTip()` — the caller
+ * cannot supply an untrusted height. This prevents premature timeout attacks.
  */
 export async function timeoutHTLC(
   channel: OmniaChannel,
   htlcId: string,
   leaseProvider: WotsLeaseProvider,
-  currentBlock?: bigint,
+  chainProvider: ChainStateProvider,
   signer?: ChannelSigner,
 ): Promise<{ channel: OmniaChannel; partialState: Partial<SignedChannelState>; error?: string }> {
   if (channel.status !== 'active') {
@@ -259,7 +280,9 @@ export async function timeoutHTLC(
   const htlc = channel.pendingHTLCs.find(h => h.htlcId === htlcId && h.status === 'pending');
   if (!htlc) throw new Error(`HTLC ${htlcId} not found or not pending`);
 
-  if (currentBlock !== undefined && currentBlock < htlc.timeoutBlock) {
+  const tip = await chainProvider.getTip();
+  const currentBlock = BigInt(tip.block);
+  if (currentBlock < htlc.timeoutBlock) {
     throw new Error(`HTLC ${htlcId} has not yet timed out (block ${currentBlock} < ${htlc.timeoutBlock})`);
   }
 
@@ -287,16 +310,25 @@ export async function timeoutHTLC(
   if (balanceSum + htlcTotal !== channel.totalValue) {
     throw new BalanceConservationError(channel.totalValue, balanceSum + htlcTotal);
   }
+  for (const [partyId, balance] of Object.entries(newBalances)) {
+    if (balance < 0n) {
+      throw new Error(`Negative balance for ${partyId}: ${balance}`);
+    }
+  }
 
   // ── Shared update guards (capacity, watermark double-sign/stale-sequence) ──
   const commitment = computeStateCommitment(newSequence, newBalances, newHTLCs);
   const payloadHash = bytesToHex(commitment);
-  const guardError = enforceUpdateGuards(channel.channelId, newSequence, payloadHash);
+  const guardError = enforceUpdateGuards(channel.channelId, newSequence, payloadHash, channel.pendingProposal);
   if (guardError) {
     return { channel, partialState: {}, error: guardError };
   }
 
-  const channelWithTimeout: OmniaChannel = { ...channel, pendingHTLCs: newHTLCs };
+  const channelWithTimeout: OmniaChannel = {
+    ...channel,
+    pendingHTLCs: newHTLCs,
+    pendingProposal: { sequence: newSequence, payloadHash },
+  };
 
   const partialState = await signState(
     channelWithTimeout,

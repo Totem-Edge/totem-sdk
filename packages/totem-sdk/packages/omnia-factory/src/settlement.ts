@@ -1,4 +1,4 @@
-import { concatBytes, wotsVerifyDigest, fromHex } from '@totemsdk/core';
+import { concatBytes, wotsVerifyDigest, hexToBytes } from '@totemsdk/core';
 import {
   serializeTxDraft,
   omniaDraftToMinimaBytes,
@@ -118,7 +118,7 @@ export async function closeFactory(
     }
 
     const verifyFn = bundle.verify
-      ?? ((s: Uint8Array, c: Uint8Array, pkd: string) => wotsVerifyDigest(s, c, fromHex(pkd)));
+      ?? ((s: Uint8Array, c: Uint8Array, pkd: string) => wotsVerifyDigest(s, c, hexToBytes(pkd)));
     if (!verifyFn(sig, txDigest, p.publicKeyDigest)) {
       await bundle.leaseProvider.burnReservation(reservation.reservationId, 'verification-failed').catch(() => {});
       throw new Error(`Settlement signature verification failed for party '${p.partyId}'`);
@@ -132,7 +132,7 @@ export async function closeFactory(
   }
 
   // Concatenated WOTS signatures form the N-of-N MULTISIG witness.
-  const witnessBytes = concatBytes(...witnessParts);
+  const witnessBytes = witnessParts.reduce((a, b) => concatBytes(a, b));
 
   const payload: FactorySettlementPayload = {
     factoryId:        factory.factoryId,
@@ -146,7 +146,7 @@ export async function closeFactory(
     const draftBytes = omniaDraftToMinimaBytes(settlementDraft);
     const txBody     = serializeTxBody(draftBytes, witnessBytes);
     const mined      = await mineTxPoW(txBody, TX_POW_MIN_DIFFICULTY);
-    const fullTxPoW  = concatBytes(mined.minedHeaderBytes, new Uint8Array([0x01]), txBody);
+    const fullTxPoW  = concatBytes(concatBytes(mined.minedHeaderBytes, new Uint8Array([0x01])), txBody);
     await chainProvider.broadcastTxPoW(Buffer.from(fullTxPoW).toString('hex'));
     payload.txpowId  = Buffer.from(mined.txpowId).toString('hex');
   }

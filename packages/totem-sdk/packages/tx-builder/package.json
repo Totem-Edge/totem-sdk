@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/tx-builder",
-  "version": "0.1.6",
+  "version": "0.1.8",
   "description": "Transaction builder for Minima blockchain — coin selection, multisig, and WOTS signing",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -38,11 +38,11 @@
   "author": "Totem SDK",
   "homepage": "https://totem.ing",
   "bugs": {
-    "url": "https://github.com/MrGheek/totem-sdk/issues"
+    "url": "https://github.com/totem-sdk/totem-sdk/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/MrGheek/totem-sdk.git",
+    "url": "git+https://github.com/totem-sdk/totem-sdk.git",
     "directory": "packages/totem-sdk/packages/tx-builder"
   },
   "keywords": [

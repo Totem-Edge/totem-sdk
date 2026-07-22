@@ -111,16 +111,16 @@ export function bindPeerIntegration(
 
 // ── Private handlers ──────────────────────────────────────────────────────────
 
-function _handleChannelProposal(
+async function _handleChannelProposal(
   peer: OmniaPeer,
   msg: OmniaMessage,
   store: ChannelStore,
   config: OmniaIntegrationConfig,
   bindPeer: boolean,
-): void {
+): Promise<void> {
   try {
     const proposal = msg.payload as ChannelProposal;
-    const channel = acceptChannel(proposal, config.chainProvider);
+    const channel = await acceptChannel(proposal, config.chainProvider);
     store.set(channel.channelId, channel);
 
     if (bindPeer) {

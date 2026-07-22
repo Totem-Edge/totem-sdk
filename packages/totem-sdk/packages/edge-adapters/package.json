@@ -30,7 +30,9 @@
     "@totemsdk/manifest": "^0.1.2",
     "@totemsdk/omnia-router": "^0.1.4",
     "@totemsdk/proof": "^0.1.1",
-    "@totemsdk/root-identity": "^1.0.7"
+    "@totemsdk/pubsub-transport": "^0.1.0",
+    "@totemsdk/root-identity": "^1.0.7",
+    "@totemsdk/stream-transport": "^0.1.0"
   },
   "peerDependenciesMeta": {
     "@totemsdk/agent-policy": {
@@ -54,7 +56,13 @@
     "@totemsdk/lookup-client": {
       "optional": true
     },
+    "@totemsdk/pubsub-transport": {
+      "optional": true
+    },
     "@totemsdk/root-identity": {
+      "optional": true
+    },
+    "@totemsdk/stream-transport": {
       "optional": true
     }
   },
@@ -67,7 +75,9 @@
     "@totemsdk/manifest": "^0.1.2",
     "@totemsdk/omnia-router": "^0.1.4",
     "@totemsdk/proof": "^0.1.1",
+    "@totemsdk/pubsub-transport": "^0.1.0",
     "@totemsdk/root-identity": "^1.0.7",
+    "@totemsdk/stream-transport": "^0.1.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^20.0.0",
     "jest": "^30.4.2",
@@ -85,7 +95,7 @@
   "homepage": "https://totem.ing",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/MrGheek/totem-sdk.git",
+    "url": "git+https://github.com/totem-sdk/totem-sdk.git",
     "directory": "packages/totem-sdk/packages/edge-adapters"
   },
   "keywords": [
@@ -102,6 +112,6 @@
     "ports"
   ],
   "bugs": {
-    "url": "https://github.com/MrGheek/totem-sdk/issues"
+    "url": "https://github.com/totem-sdk/totem-sdk/issues"
   }
 }

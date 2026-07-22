@@ -44,7 +44,23 @@ export type EdgeCapability =
   | 'manifest:sign'
   | 'manifest:verify'
   | 'payment:send'
-  | 'policy:check';
+  | 'policy:check'
+  | 'transport:stream'
+  | 'transport:pubsub'
+  | 'transport:websocket'
+  | 'transport:hyperswarm'
+  | 'transport:webrtc'
+  | 'transport:stdio'
+  | 'transport:modbus'
+  | 'transport:grpc'
+  | 'transport:coap'
+  | 'transport:can'
+  | 'transport:ble'
+  | 'transport:lorawan'
+  | 'transport:ros2'
+  | 'transport:opcua'
+  | 'transport:bacnet'
+  | 'transport:matter';
 
 export type EdgeCapabilitySet = Set<EdgeCapability>;
 

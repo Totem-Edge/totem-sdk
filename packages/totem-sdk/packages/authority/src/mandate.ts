@@ -60,14 +60,6 @@ export async function signMandateWithLease(
   return signWithLease(unsignedMandate, seed, leaseProvider, options);
 }
 
-/** @deprecated WARNING: WOTS keys are one-time use. Repeated signing with the same keyIndex leaks the private key. Use `signMandateWithLease` instead. */
-export function signMandateUnsafe(
-  unsignedMandate: UnsignedProof,
-  seed: Uint8Array,
-  keyIndex: number,
-): SignedProof {
-  return signProof(unsignedMandate, seed, keyIndex);
-}
 
 function isGrantorAuthorized(
   grantingAddress: string,

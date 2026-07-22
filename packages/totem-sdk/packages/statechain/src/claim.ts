@@ -1,8 +1,8 @@
 import { sha3_256 } from '@totemsdk/core';
 import {
-  hex,
-  fromHex,
-  computeScriptAddress,
+  bytesToHex,
+  hexToBytes,
+  scriptToAddress,
   buildMinimaCoin,
   serializeTransaction,
   computeTransactionDigest,
@@ -42,18 +42,18 @@ export async function claimOwnership(
   }
 
   const claimScript  = `RETURN SIGNEDBY(${kissHex(chain.currentOwner.publicKeyDigest)})`;
-  const claimAddress = computeScriptAddress(claimScript);
+  const claimAddress = scriptToAddress(claimScript);
 
   const inputCoin = buildMinimaCoin({
     coinId:     coinIdBytes(chain.coinId),
-    address:    fromHex(chain.lockingAddress),
+    address:    hexToBytes(chain.lockingAddress),
     amount:     chain.amount.toString(),
     tokenId:    tokenIdBytes(chain.tokenId),
     storeState: true,
     state:      [{ port: 0, value: chain.currentOwner.publicKeyDigest, type: 'hex' as const }],
   });
   const outputCoin = buildMinimaCoin({
-    address:    fromHex(claimAddress),
+    address:    hexToBytes(claimAddress),
     amount:     chain.amount.toString(),
     tokenId:    tokenIdBytes(chain.tokenId),
     storeState: false,
@@ -66,16 +66,16 @@ export async function claimOwnership(
     state:    [],
   };
 
-  // Pre-compute output coinId before signing (mandatory for allsignaturesvalid=true on-chain)
-  precomputeTransactionCoinID(tx.inputs, tx.outputs);
+  const txBytes = serializeTransaction(JSON.stringify(tx));
+  const outputCoinId = precomputeTransactionCoinID(txBytes, 0);
+  tx.outputs[0].coinId = outputCoinId;
 
-  const digest = computeTransactionDigest(tx);
+  const digest = computeTransactionDigest(txBytes);
 
-  const seSig    = await leaseProvider.seClient.blindSign(hex(digest));
+  const seSig    = await leaseProvider.seClient.blindSign(chain.chainId, bytesToHex(digest));
   const ownerSig = await chain.currentOwner.sign(digest);
 
-  const txBytes      = serializeTransaction(tx);
-  const seBytes      = fromHex(seSig.length >= 2 ? seSig : '00');
+  const seBytes      = hexToBytes(seSig.length >= 2 ? seSig : '00');
   const witnessBytes = buildWitnessBytes([ownerSig, seBytes]);
   const prng         = sha3_256(new TextEncoder().encode(`claim:${chain.chainId}`));
   const txHex        = Buffer.from(serializeTxPoW(txBytes, witnessBytes, { prng })).toString('hex');

@@ -10,6 +10,7 @@ export type partyId = string;
 
 export type ChannelStatus =
   | 'opening'
+  | 'funding_pending'
   | 'active'
   | 'closing_mutual'
   | 'closing_unilateral'

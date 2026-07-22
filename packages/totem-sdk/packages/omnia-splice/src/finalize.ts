@@ -1,6 +1,5 @@
-import { wotsVerifyDigest, fromHex } from '@totemsdk/core';
+import { wotsVerifyDigest, hexToBytes, concatBytes } from '@totemsdk/core';
 import { serializeTxBody, mineTxPoW, TX_POW_MIN_DIFFICULTY } from '@totemsdk/txpow';
-import { concatBytes } from '@totemsdk/core';
 import type { OmniaChannel } from '@totemsdk/omnia';
 import type { WotsLeaseProvider } from '@totemsdk/wots-lease';
 import type {
@@ -33,7 +32,7 @@ import {
  *                                    ```ts
  *                                    // Example test helper:
  *                                    verifySignature: (sig, digest, pkd) => {
- *                                      const expected = sha3_256(concatBytes(fromHex(pkd), digest));
+ *                                      const expected = sha3_256(concatBytes(hexToBytes(pkd), digest));
  *                                      return expected.length === sig.length
  *                                        && expected.every((b, i) => b === sig[i]);
  *                                    }
@@ -62,7 +61,7 @@ export interface FinalizeSpliceOptions {
 
 function defaultWotsVerify(sig: Uint8Array, digest: Uint8Array, pkd: string): boolean {
   try {
-    return wotsVerifyDigest(sig, digest, fromHex(pkd));
+    return wotsVerifyDigest(sig, digest, hexToBytes(pkd));
   } catch {
     return false;
   }
@@ -80,10 +79,16 @@ function assembleSpliceWitness(sig1: Uint8Array, sig2: Uint8Array): Uint8Array {
     return concatBytes(lenBuf, b);
   };
   return concatBytes(
-    encodeMiniNumber(2),
-    encodeVarBytes(sig1),
-    encodeVarBytes(sig2),
-    encodeMiniNumber(0),
+    concatBytes(
+      concatBytes(
+        concatBytes(
+          encodeMiniNumber(2),
+          encodeVarBytes(sig1),
+        ),
+        encodeVarBytes(sig2),
+      ),
+      encodeMiniNumber(0),
+    ),
     encodeMiniNumber(0),
   );
 }
@@ -268,7 +273,7 @@ export async function finalizeSplice(
     const difficulty = options?.mineDifficulty ?? TX_POW_MIN_DIFFICULTY;
     const txBody = serializeTxBody(txBytes, witnessBytes);
     const mined = await mineTxPoW(txBody, difficulty);
-    const fullTxPoW = concatBytes(mined.minedHeaderBytes, new Uint8Array([0x01]), txBody);
+    const fullTxPoW = concatBytes(concatBytes(mined.minedHeaderBytes, new Uint8Array([0x01])), txBody);
     const txHex = Buffer.from(fullTxPoW).toString('hex');
 
     spliceFundingTxId = Buffer.from(mined.txpowId).toString('hex');

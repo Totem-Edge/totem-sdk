@@ -14,6 +14,7 @@ export type LeaseStatus = 'pending' | 'active' | 'expired' | 'finalized' | 'canc
 export interface StoredLease {
   leaseId: string;
   leaseToken: string;
+  treeId?: string;
   indices: WotsIndices;
   expiresAt: number;
   status: LeaseStatus;

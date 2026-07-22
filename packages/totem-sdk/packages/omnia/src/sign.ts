@@ -1,4 +1,4 @@
-import { wotsVerifyDigest, fromHex } from '@totemsdk/core';
+import { wotsVerifyDigest, hexToBytes } from '@totemsdk/core';
 import type { WotsLeaseProvider, SigningIndices } from '@totemsdk/wots-lease';
 import type {
   OmniaChannel,
@@ -151,7 +151,7 @@ export function verifyStateSignature(
   try {
     // Must use the same commitment as signState — NOT the TX draft digest.
     const commitment = computeStateCommitment(state.sequence, state.balances, state.pendingHTLCs);
-    const pkDigestBytes = fromHex(publicKeyDigest);
+    const pkDigestBytes = hexToBytes(publicKeyDigest);
     return wotsVerifyDigest(sig, commitment, pkDigestBytes);
   } catch {
     return false;

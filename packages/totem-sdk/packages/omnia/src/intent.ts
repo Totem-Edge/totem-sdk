@@ -95,6 +95,10 @@ export async function executeIntent(
   }
 
   const transferAmount = BigInt(intent.amount);
+  if (transferAmount <= 0n) {
+    throw new Error(`Transfer amount must be positive: ${transferAmount}`);
+  }
+
   const senderBalance = channel.balances[senderParty.partyId] ?? 0n;
   const recipientBalance = channel.balances[recipientParty.partyId] ?? 0n;
 

@@ -10,6 +10,7 @@ export function checkUsageLimit(
   snapshot: AuthorityUsageSnapshot,
   limit: UsageLimit,
   now: number,
+  proposed?: { count: number; amount?: string },
 ): boolean {
   if (limit.windowMs !== undefined && snapshot.windowStart !== undefined) {
     if (now > snapshot.windowStart + limit.windowMs) {
@@ -17,12 +18,17 @@ export function checkUsageLimit(
     }
   }
 
-  if (limit.maxCount !== undefined && snapshot.totalCount >= limit.maxCount) {
-    return false;
+  if (limit.maxCount !== undefined) {
+    const proposedCount = proposed?.count ?? 0;
+    if (snapshot.totalCount + proposedCount > limit.maxCount) {
+      return false;
+    }
   }
 
-  if (limit.maxTotal !== undefined && snapshot.totalAmount !== undefined) {
-    if (BigInt(snapshot.totalAmount) >= BigInt(limit.maxTotal)) {
+  if (limit.maxTotal !== undefined) {
+    const current = BigInt(snapshot.totalAmount ?? '0');
+    const proposedAmount = proposed?.amount ? BigInt(proposed.amount) : 0n;
+    if (current + proposedAmount > BigInt(limit.maxTotal)) {
       return false;
     }
   }

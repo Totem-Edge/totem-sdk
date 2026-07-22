@@ -75,6 +75,7 @@ export class AxiaLeaseProvider implements WotsLeaseProvider {
     const lease: StoredLease = {
       leaseId: reservationId,
       leaseToken: resp.leaseToken,
+      treeId: params.treeId,
       indices,
       expiresAt,
       status: 'active',

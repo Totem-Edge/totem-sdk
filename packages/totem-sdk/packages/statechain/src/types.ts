@@ -1,8 +1,14 @@
 export type StatechainStatus = 'active' | 'claiming' | 'claimed' | 'abandoned';
 
 export interface SEClient {
-  blindSign(commitmentHex: string): Promise<string>;
-  revokeKey(ownerPartyId: string): Promise<void>;
+  blindSign(chainId: string, commitmentHex: string): Promise<string>;
+  revokeKey(chainId: string, opts: {
+    previousOwnerPartyId: string;
+    previousOwnerPkd: string;
+    newOwnerPartyId: string;
+    newOwnerPkd: string;
+    newReclaimTxHex: string;
+  }): Promise<void>;
   isRevoked(ownerPartyId: string): Promise<boolean>;
   /**
    * Optional: register a newly locked coin with the SE.

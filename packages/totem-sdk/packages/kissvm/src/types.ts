@@ -1,23 +1,25 @@
+import type { MiniNumber } from './MiniNumber.js';
+
 /**
  * KISSVM v1 public value type.
- *   bigint    — integer/fixed-point numeric values (scaled ×10⁸ internally)
- *   string    — hex literals (0x…), text strings [...]
- *   boolean   — TRUE / FALSE
+ *   MiniNumber — numeric values (matches Java MiniNumber / BigDecimal)
+ *   string     — hex literals (0x…), text strings [...]
+ *   boolean    — TRUE / FALSE
  *   Uint8Array — raw byte arrays (hash digests, raw data)
  *
  * NOTE: `number` (IEEE-754 float) is intentionally excluded from the public
  * type to prevent callers from relying on non-deterministic float arithmetic.
  */
-export type Value = bigint | string | boolean | Uint8Array;
+export type Value = MiniNumber | string | boolean | Uint8Array;
 
 /**
  * Internal evaluator type.
  * Extends Value with `number` solely to accommodate the parser's
- * `parseFloat(numStr)` literal output before the LITERAL evaluator converts
- * it to a scaled `bigint`.  Nothing outside LiteralNode.value should hold
+ * `parseFloat(numStr)` output before the LITERAL evaluator converts
+ * it to a MiniNumber.  Nothing outside LiteralNode.value should hold
  * a `number`.
  */
-export type Scalar = number | bigint | string | boolean | Uint8Array;
+export type Scalar = number | MiniNumber | string | boolean | Uint8Array;
 
 /** Source-range span — for error messages and tooling */
 export interface Span { start: number; end: number }
@@ -30,12 +32,24 @@ export interface EvalResult {
   instructionsUsed: number;
 }
 
-/** Witness supplied for signature verification */
+/** A canonical Minima ScriptProof: script + MMR proof + computed root address */
+export interface ScriptProof {
+  script: string;
+  proofHex: string;
+  address: string;
+}
+
+/** Witness supplied for signature and MAST verification */
 export interface ScriptWitness {
   /** pubkey-hex (lowercase, no 0x) → flat 1088-byte WOTS signature */
   signatures: Map<string, Uint8Array>;
   /** HTLC: hash hex → preimage hex */
   preimages?: Map<string, string>;
+  /**
+   * Canonical ScriptProofs for MAST branch revelation.
+   * The evaluator verifies each proof against the MAST root before executing.
+   */
+  scriptProofs?: ScriptProof[];
 }
 
 /** A single input coin */
@@ -119,11 +133,11 @@ export interface SwitchNode     { type: 'SWITCH';      expr: ASTNode; cases: { v
 export interface FuncDefNode    { type: 'FUNC_DEF';    name: string; params: string[]; body: ASTNode[]; span?: Span }
 export interface CallStmtNode   { type: 'CALL_STMT';   name: string; args: ASTNode[]; span?: Span }
 export interface ExecMastNode   { type: 'EXEC_MAST';   span?: Span }
-export interface MastStmtNode   { type: 'MAST_STMT';   rootHash: string; span?: Span }
+export interface MastStmtNode   { type: 'MAST_STMT';   rootHash: ASTNode; span?: Span }
 /** Brace-form MAST: `MAST { HASH 0x… = PROOF { body } … }` */
 export interface MastBlockNode  { type: 'MAST_BLOCK';  branches: { hash: string; body: ASTNode[] }[]; span?: Span }
-/** LiteralNode.value may be `number` only for legacy programmatic Scalars; the parser emits `bigint` for numeric literals (no IEEE-754 float involved) */
-export interface LiteralNode    { type: 'LITERAL';     value: Scalar; span?: Span }
+/** LiteralNode.value may be `number` only for legacy programmatic Scalars; the parser emits `MiniNumber` for numeric literals (no IEEE-754 float involved) */
+export interface LiteralNode    { type: 'LITERAL';     kind?: 'HEX'|'STR'|'NUM'|'BOOL'; value: Scalar; span?: Span }
 export interface BuiltinVarNode { type: 'BUILTIN';     name: string; span?: Span }
 export interface IdentNode      { type: 'IDENT';       name: string; span?: Span }
 export interface BinaryNode     { type: 'BINARY';      op: string; left: ASTNode; right: ASTNode; span?: Span }
@@ -141,5 +155,5 @@ export interface HashNode       { type: 'HASH';        fn: 'SHA3' | 'SHA2' | 'HA
 export interface VerifyoutNode  { type: 'VERIFYOUT';   index: ASTNode; address: ASTNode; amount: ASTNode; tokenId: ASTNode; keepState: ASTNode; span?: Span }
 export interface GetoutNode     { type: 'GETOUT';      fn: 'AMT'|'ADDR'|'TOK'|'KEEPSTATE'; index: ASTNode; span?: Span }
 export interface SigdigNode     { type: 'SIGDIG';      digits: ASTNode; expr: ASTNode; span?: Span }
-export interface MastExprNode   { type: 'MAST_EXPR';   rootHash: string; span?: Span }
-export interface ProofNode      { type: 'PROOF';       scriptHash: ASTNode; policyRoot: ASTNode; proof: ASTNode; span?: Span }
+export interface MastExprNode   { type: 'MAST_EXPR';   rootHash: ASTNode; span?: Span }
+export interface ProofNode      { type: 'PROOF';       data: ASTNode; leafSum: ASTNode; rootHash: ASTNode; rootSum: ASTNode; proof: ASTNode; span?: Span }

@@ -1,0 +1,67 @@
+{
+  "name": "@totemsdk/recursive-mast",
+  "version": "0.2.5",
+  "description": "Recursive MAST + PREVSTATE library — composable policy trees, proof chains, state transitions, and delegation workflows for Minima KISSVM",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.js"
+    },
+    "./templates/*": {
+      "types": "./dist/templates/*.d.ts",
+      "require": "./dist/templates/*.js",
+      "import": "./dist/templates/*.js"
+    },
+    "./kissvm": {
+      "types": "./dist/kissvm/index.d.ts",
+      "require": "./dist/kissvm/index.js",
+      "import": "./dist/kissvm/index.js"
+    },
+    "./transaction": {
+      "types": "./dist/transaction/index.d.ts",
+      "require": "./dist/transaction/index.js",
+      "import": "./dist/transaction/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "prepare": "tsc",
+    "clean": "rm -rf dist",
+    "test": "jest"
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "dependencies": {
+    "@totemsdk/core": "^1.2.5",
+    "@totemsdk/kissvm": "^0.4.0"
+  },
+  "peerDependencies": {
+    "@totemsdk/tx-builder": "^0.1.8"
+  },
+  "peerDependenciesMeta": {
+    "@totemsdk/tx-builder": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20.0.0",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.0.0",
+    "typescript": "^7.0.2"
+  },
+  "engines": { "node": ">=18.0.0" },
+  "publishConfig": { "access": "public" },
+  "license": "MIT",
+  "author": "Totem SDK",
+  "homepage": "https://totem.ing",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/totem-sdk/totem-sdk.git",
+    "directory": "packages/totem-sdk/packages/recursive-mast"
+  },
+  "keywords": ["totem", "totemsdk", "minima", "blockchain", "mast", "recursive", "prevstate", "kissvm", "policy", "governance", "delegation"],
+  "bugs": { "url": "https://github.com/totem-sdk/totem-sdk/issues" }
+}

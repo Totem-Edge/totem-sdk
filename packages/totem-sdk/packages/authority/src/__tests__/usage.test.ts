@@ -9,10 +9,16 @@ describe('checkUsageLimit', () => {
     expect(checkUsageLimit(snap, limit, 5000)).toBe(true);
   });
 
-  it('rejects when at maxCount', () => {
+  it('allows when exactly at maxCount with no proposed delta', () => {
     const snap: AuthorityUsageSnapshot = { mandateProofId: 'm1', totalCount: 5 };
     const limit: UsageLimit = { maxCount: 5 };
-    expect(checkUsageLimit(snap, limit, 5000)).toBe(false);
+    expect(checkUsageLimit(snap, limit, 5000)).toBe(true);
+  });
+
+  it('rejects when proposed delta would exceed maxCount', () => {
+    const snap: AuthorityUsageSnapshot = { mandateProofId: 'm1', totalCount: 5 };
+    const limit: UsageLimit = { maxCount: 5 };
+    expect(checkUsageLimit(snap, limit, 5000, { count: 1 })).toBe(false);
   });
 
   it('rejects when over maxCount', () => {
@@ -27,10 +33,16 @@ describe('checkUsageLimit', () => {
     expect(checkUsageLimit(snap, limit, 5000)).toBe(true);
   });
 
-  it('rejects when at maxTotal amount', () => {
+  it('allows when exactly at maxTotal with no proposed delta', () => {
     const snap: AuthorityUsageSnapshot = { mandateProofId: 'm1', totalCount: 0, totalAmount: '100' };
     const limit: UsageLimit = { maxTotal: '100' };
-    expect(checkUsageLimit(snap, limit, 5000)).toBe(false);
+    expect(checkUsageLimit(snap, limit, 5000)).toBe(true);
+  });
+
+  it('rejects when proposed delta would exceed maxTotal', () => {
+    const snap: AuthorityUsageSnapshot = { mandateProofId: 'm1', totalCount: 0, totalAmount: '100' };
+    const limit: UsageLimit = { maxTotal: '100' };
+    expect(checkUsageLimit(snap, limit, 5000, { count: 1, amount: '1' })).toBe(false);
   });
 
   it('rejects when over maxTotal amount', () => {

@@ -1,4 +1,4 @@
-import { sha3_256 } from '@totemsdk/core';
+import { sha3_256, wotsVerifyDigest, hexToBytes } from '@totemsdk/core';
 import { randomBytes } from 'node:crypto';
 import type {
   ScriptDescriptor,
@@ -49,6 +49,22 @@ export interface MultisigExportData {
 function generateTransactionId(): string {
   const bytes = randomBytes(16);
   return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function verifyWotsSignature(signatureHex: string, digestHex: string, publicKeyHex: string): boolean {
+  try {
+    const sig = hexToBytes(signatureHex);
+    const digest = hexToBytes(digestHex);
+    const pkd = hexToBytes(publicKeyHex);
+    return wotsVerifyDigest(sig, digest, pkd);
+  } catch {
+    return false;
+  }
+}
+
+function recomputeDigest(transactionHex: string): string {
+  const txBytes = hexToBytes(transactionHex);
+  return Array.from(sha3_256(txBytes)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 export class MultisigManager {
@@ -159,13 +175,14 @@ export class MultisigManager {
     }
 
     const signingPublicKey = tx.config.ownPublicKey;
+    const valid = verifyWotsSignature(signature, tx.transactionDigest, signingPublicKey);
 
     const extSig: ExternalSignature = {
       publicKey: signingPublicKey,
       signature,
       proof,
       signatureType: 'wots',
-      validated: true
+      validated: valid
     };
 
     tx.signatures.set(signingPublicKey.toLowerCase(), extSig);
@@ -197,6 +214,14 @@ export class MultisigManager {
     
     if (!isValidSigner) {
       return { valid: false, error: 'Public key is not a valid signer for this transaction' };
+    }
+
+    const verified = signatureType === 'wots'
+      ? verifyWotsSignature(signature, tx.transactionDigest, publicKey)
+      : false;
+
+    if (!verified) {
+      return { valid: false, error: 'Signature verification failed' };
     }
     
     const extSig: ExternalSignature = {
@@ -318,6 +343,11 @@ export class MultisigManager {
       }
       return existing;
     }
+
+    const recomputedDigest = recomputeDigest(data.transactionHex);
+    if (recomputedDigest !== data.transactionDigest) {
+      throw new Error('Imported transaction digest does not match transactionHex');
+    }
     
     const tx: PendingMultisigTransaction = {
       id: data.id,
@@ -331,11 +361,14 @@ export class MultisigManager {
     };
     
     for (const sig of data.signatures) {
+      const verified = sig.signatureType === 'wots'
+        ? verifyWotsSignature(sig.signature, data.transactionDigest, sig.publicKey)
+        : false;
       tx.signatures.set(sig.publicKey.toLowerCase(), {
         publicKey: sig.publicKey,
         signature: sig.signature,
         signatureType: sig.signatureType,
-        validated: true
+        validated: verified
       });
     }
     

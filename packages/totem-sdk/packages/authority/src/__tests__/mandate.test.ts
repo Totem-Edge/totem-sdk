@@ -2,7 +2,6 @@ import { createIdentityDocument, createIdentityClaim, signIdentityClaim } from '
 import {
   createAgentMandate,
   createMandateProofDraft,
-  signMandateUnsafe,
   signMandateWithLease,
   verifyMandate,
 } from '../mandate.js';
@@ -98,7 +97,7 @@ describe('signMandateWithLease', () => {
   });
 });
 
-describe('signMandateUnsafe', () => {
+describe('mandate signing via makeMandateProof', () => {
   it('signs the mandate proof draft', () => {
     const mandate: MandateBody = {
       grantor: ADDR_ROOT,
@@ -107,8 +106,7 @@ describe('signMandateUnsafe', () => {
       scope: 'data:read',
       issuedAt: 1000,
     };
-    const draft = createMandateProofDraft(mandate);
-    const signed = signMandateUnsafe(draft, SEED_ROOT, 0);
+    const signed = makeMandateProof(mandate, SEED_ROOT, 0);
     expect(signed.signature).toBeDefined();
     expect(signed.proofId).toBeDefined();
   });

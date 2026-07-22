@@ -7,7 +7,8 @@ import {
   sigdig,
 } from '../index';
 import type { ScriptWitness, TxContext, CoinData, OutputData } from '../index';
-import { sha3_256, hexToBytes, bytesToHex, wotsSign, derivePKdigest } from '@totemsdk/core';
+import { sha3_256, hexToBytes, bytesToHex, wotsSign, derivePKdigest, mmrLeafExact, createMMRDataParentNode, createMMRDataLeafNode, parseMMRProofFromHex, serializeMMRProof } from '@totemsdk/core';
+import type { MMRData, MMRProofChunk } from '@totemsdk/core';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -636,24 +637,24 @@ describe('SAMESTATE covenant continuity', () => {
 // ─── 14. SIGDIG precision ────────────────────────────────────────────────────
 
 describe('SIGDIG fixed-precision rounding', () => {
-  test('sigdig(8, 1234567890) → 8 significant digits', () => {
+  test('sigdig(8, 1234567890) → 8 significant digits (truncating)', () => {
     const result = sigdig(1234567890, 8);
-    // 1234567890 → 8 sig digits → round at 100s place → 1234567900
-    expect(result).toBeCloseTo(1234567900, -2);
+    // MiniNumber uses RoundingMode.DOWN (truncation) like Java
+    expect(result).toBeCloseTo(1234567800, -2);
   });
 
-  test('sigdig(4, 1.23456789) → 4 significant digits', () => {
+  test('sigdig(4, 1.23456789) → 4 significant digits (truncating)', () => {
     const result = sigdig(1.23456789, 4);
-    expect(result).toBeCloseTo(1.235, 3);
+    expect(result).toBeCloseTo(1.234, 3);
   });
 
-  test('sigdig(6, 0.000123456789) → 6 sig digits', () => {
+  test('sigdig(6, 0.000123456789) → 6 sig digits (truncating)', () => {
     const result = sigdig(0.000123456789, 6);
-    expect(result).toBeCloseTo(0.000123457, 9);
+    expect(result).toBeCloseTo(0.000123456, 9);
   });
 
-  test('SIGDIG opcode in script', () => {
-    const script = `LET x = SIGDIG(4 12345.6789)\nRETURN x GT 12340`;
+  test('SIGDIG opcode in script (truncating)', () => {
+    const script = `LET x = SIGDIG(4 12345.6789)\nRETURN x EQ 12340`;
     const res = evaluateScript(script, mkWitness(), mkCtx());
     expect(res.passed).toBe(true);
   });
@@ -1083,97 +1084,119 @@ describe('simulateSpend coinData population', () => {
   });
 });
 
-// ─── 28. PROOF() expression — strict semantics ───────────────────────────────
+// ─── 28. PROOF() expression — canonical MMR semantics ────────────────────────
 
 describe('PROOF() expression', () => {
   /**
-   * Single-leaf trivial tree: policyRoot === scriptHash.
-   * Empty proof is valid ONLY when the caller also passes scriptHash as policyRoot.
+   * Single-leaf trivial MMR tree: root === mmrLeafExact(scriptText).
+   * Empty proof is valid ONLY when the computed leaf matches rootHash AND leafSum matches rootSum.
+   * PROOF data argument is the script text (STRING literal in brackets).
    */
-  test('trivial single-leaf: empty proof accepted when scriptHash === policyRoot', () => {
+  test('trivial single-leaf: empty proof accepted when root matches leaf', () => {
     const scriptText = `RETURN SIGNEDBY(${mockPk(1)})`;
-    const scriptHash = '0x' + bytesToHex(sha3_256(new TextEncoder().encode(scriptText.trim().toUpperCase())));
-    // policyRoot = scriptHash (trivial tree)
-    const proofHex  = '0x';
-    const script = `RETURN PROOF(${scriptHash} ${scriptHash} ${proofHex})`;
-    const ctx = mkCtx({ mastBranches: new Map([[scriptHash, scriptText]]) });
-    const res = evaluateScript(script, mkWitness(), ctx);
+    const leafHash   = mmrLeafExact(scriptText);
+    const rootHex    = '0x' + bytesToHex(leafHash);
+    // Pass the script text directly as a STRING literal (bracket form) — no mastBranches
+    const script = `RETURN PROOF([${scriptText}] 0 ${rootHex} 0 0x)`;
+    const res = evaluateScript(script, mkWitness(), mkCtx({}));
     expect(res.passed).toBe(true);
   });
 
-  test('empty proof rejected when scriptHash !== policyRoot', () => {
+  test('empty proof rejected when root does not match leaf', () => {
     const scriptText = `RETURN TRUE`;
-    const scriptHash = '0x' + bytesToHex(sha3_256(new TextEncoder().encode(scriptText.trim().toUpperCase())));
-    const fakeRoot   = '0x' + 'ff'.repeat(32);  // different from scriptHash
-    const proofHex   = '0x';
-    const script = `RETURN PROOF(${scriptHash} ${fakeRoot} ${proofHex})`;
-    const ctx = mkCtx({ mastBranches: new Map([[scriptHash, scriptText]]) });
-    const res = evaluateScript(script, mkWitness(), ctx);
+    const fakeRoot   = '0x' + 'ff'.repeat(32);  // different from actual mmrLeafExact
+    const script = `RETURN PROOF([${scriptText}] 0 ${fakeRoot} 0 0x)`;
+    const res = evaluateScript(script, mkWitness(), mkCtx({}));
     expect(res.passed).toBe(false);
   });
 
-  test('returns false when scriptHash not in mastBranches', () => {
-    const ghostHash = '0x' + 'aa'.repeat(32);
+  test('returns false when hex data does not match root', () => {
+    const dataHex = '0x' + 'aa'.repeat(32);
     const fakeRoot  = '0x' + 'bb'.repeat(32);
-    const script = `RETURN PROOF(${ghostHash} ${fakeRoot} 0x)`;
-    const ctx = mkCtx({ mastBranches: new Map() });
-    const res = evaluateScript(script, mkWitness(), ctx);
+    const script = `RETURN PROOF(${dataHex} 0 ${fakeRoot} 0 0x)`;
+    const res = evaluateScript(script, mkWitness(), mkCtx({}));
     expect(res.passed).toBe(false);
   });
 
-  test('valid two-leaf Merkle proof accepted', () => {
-    // Build a 2-leaf tree: leaves are h0, h1.  root = SHA3(sort(h0, h1))
-    const h0Bytes = sha3_256(new TextEncoder().encode('LEAF0'));
-    const h1Bytes = sha3_256(new TextEncoder().encode('LEAF1'));
-    const h0Hex   = '0x' + bytesToHex(h0Bytes);
-    const h1Hex   = '0x' + bytesToHex(h1Bytes);
+  test('valid two-leaf canonical MMR proof accepted', () => {
+    // Build a 2-leaf canonical MMR tree using createMMRDataLeafNode
+    const script0 = `RETURN TRUE`;
+    const script1 = `RETURN SIGNEDBY(${mockPk(1)})`;
+    const utf80 = new TextEncoder().encode(script0);
+    const utf81 = new TextEncoder().encode(script1);
+    const leaf0Data = createMMRDataLeafNode(utf80, 0n);
+    const leaf1Data = createMMRDataLeafNode(utf81, 0n);
+    const parentData = createMMRDataParentNode(leaf0Data, leaf1Data);
+    const rootHex = '0x' + bytesToHex(parentData.data);
 
-    // Sort and hash for root
-    function uint8Less(a: Uint8Array, b: Uint8Array): boolean {
-      for (let i = 0; i < Math.min(a.length, b.length); i++) {
-        if (a[i] < b[i]) return true;
-        if (a[i] > b[i]) return false;
-      }
-      return a.length < b.length;
-    }
-    const [lo, hi] = uint8Less(h0Bytes, h1Bytes) ? [h0Bytes, h1Bytes] : [h1Bytes, h0Bytes];
-    const pair = new Uint8Array(64); pair.set(lo, 0); pair.set(hi, 32);
-    const rootBytes = sha3_256(pair);
-    const rootHex   = '0x' + bytesToHex(rootBytes);
-    // proof for h0 = sibling h1
-    const proofHex  = '0x' + bytesToHex(h1Bytes);
+    // Proof for leaf0: sibling is leaf1 on the right
+    const proofChunks: MMRProofChunk[] = [
+      { isLeft: false, mmrData: leaf1Data },
+    ];
+    const proofBytes = serializeMMRProof({ chunks: proofChunks }, 0n);
+    const proofHex   = '0x' + bytesToHex(proofBytes);
 
-    const scriptText = `RETURN TRUE`;
-    const mastBranches = new Map([[h0Hex, scriptText]]);
-    const script = `RETURN PROOF(${h0Hex} ${rootHex} ${proofHex})`;
-    const ctx = mkCtx({ mastBranches });
-    const res = evaluateScript(script, mkWitness(), ctx);
+    // Pass script0 directly as STRING literal — no mastBranches
+    const script = `RETURN PROOF([${script0}] 0 ${rootHex} 0 ${proofHex})`;
+    const res = evaluateScript(script, mkWitness(), mkCtx({}));
     expect(res.passed).toBe(true);
   });
 
-  test('rejects tampered Merkle proof (wrong sibling hash)', () => {
-    const h0Bytes = sha3_256(new TextEncoder().encode('LEAF0'));
-    const h1Bytes = sha3_256(new TextEncoder().encode('LEAF1'));
-    const h0Hex   = '0x' + bytesToHex(h0Bytes);
-    const h1Hex   = '0x' + bytesToHex(h1Bytes);
+  test('rejects tampered canonical MMR proof (wrong sibling)', () => {
+    const script0 = `RETURN TRUE`;
+    const script1 = `RETURN SIGNEDBY(${mockPk(1)})`;
+    const utf80 = new TextEncoder().encode(script0);
+    const utf81 = new TextEncoder().encode(script1);
+    const leaf0Data = createMMRDataLeafNode(utf80, 0n);
+    const leaf1Data = createMMRDataLeafNode(utf81, 0n);
+    const parentData = createMMRDataParentNode(leaf0Data, leaf1Data);
+    const rootHex = '0x' + bytesToHex(parentData.data);
 
-    function uint8Less(a: Uint8Array, b: Uint8Array): boolean {
-      for (let i = 0; i < Math.min(a.length, b.length); i++) {
-        if (a[i] < b[i]) return true; if (a[i] > b[i]) return false;
-      }
-      return a.length < b.length;
-    }
-    const [lo, hi] = uint8Less(h0Bytes, h1Bytes) ? [h0Bytes, h1Bytes] : [h1Bytes, h0Bytes];
-    const pair = new Uint8Array(64); pair.set(lo, 0); pair.set(hi, 32);
-    const rootHex = '0x' + bytesToHex(sha3_256(pair));
+    // Wrong proof: use a fabricated sibling
+    const fakeData: MMRData = { data: new Uint8Array(32), value: 0n };
+    const proofChunks: MMRProofChunk[] = [
+      { isLeft: false, mmrData: fakeData },
+    ];
+    const proofBytes = serializeMMRProof({ chunks: proofChunks }, 0n);
+    const wrongProof = '0x' + bytesToHex(proofBytes);
 
-    // Use a WRONG sibling (h1 flipped to all-zeros)
-    const wrongProof = '0x' + '00'.repeat(32);
-    const scriptText = `RETURN TRUE`;
-    const mastBranches = new Map([[h0Hex, scriptText]]);
-    const script = `RETURN PROOF(${h0Hex} ${rootHex} ${wrongProof})`;
-    const ctx = mkCtx({ mastBranches });
-    const res = evaluateScript(script, mkWitness(), ctx);
+    const script = `RETURN PROOF([${script0}] 0 ${rootHex} 0 ${wrongProof})`;
+    const res = evaluateScript(script, mkWitness(), mkCtx({}));
     expect(res.passed).toBe(false);
+  });
+
+  test('valid two-leaf with non-zero leafSum and rootSum', () => {
+    // Build a 2-leaf MMR with non-zero sums using createMMRDataLeafNode
+    const script0 = `RETURN TRUE`;
+    const script1 = `RETURN SIGNEDBY(${mockPk(1)})`;
+    const utf80 = new TextEncoder().encode(script0);
+    const utf81 = new TextEncoder().encode(script1);
+    const leaf0Data = createMMRDataLeafNode(utf80, 1n);
+    const leaf1Data = createMMRDataLeafNode(utf81, 2n);
+    const parentData = createMMRDataParentNode(leaf0Data, leaf1Data);
+    const rootHex = '0x' + bytesToHex(parentData.data);
+
+    // Proof for leaf0: sibling is leaf1 on the right
+    const proofChunks: MMRProofChunk[] = [
+      { isLeft: false, mmrData: leaf1Data },
+    ];
+    const proofBytes = serializeMMRProof({ chunks: proofChunks }, 0n);
+    const proofHex   = '0x' + bytesToHex(proofBytes);
+
+    // KISSVM "1" → MiniNumber(1) → unscaled=1n = leafSum, "3" → 3n = rootSum (1n + 2n)
+    const script = `RETURN PROOF([${script0}] 1 ${rootHex} 3 ${proofHex})`;
+    const res = evaluateScript(script, mkWitness(), mkCtx({}));
+    expect(res.passed).toBe(true);
+  });
+
+  test('hex data as PROOF data arg (MiniData path)', () => {
+    // Hex data leaf: createMMRDataLeafNode(hexBytes, sum)
+    const hexData = '0x' + 'deadbeef';
+    const rawBytes = hexToBytes('deadbeef');
+    const leafData = createMMRDataLeafNode(rawBytes, 0n);
+    const rootHex = '0x' + bytesToHex(leafData.data);
+    const script = `RETURN PROOF(${hexData} 0 ${rootHex} 0 0x)`;
+    const res = evaluateScript(script, mkWitness(), mkCtx({}));
+    expect(res.passed).toBe(true);
   });
 });

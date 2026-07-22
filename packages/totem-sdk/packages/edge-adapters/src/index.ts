@@ -18,3 +18,7 @@ export type { MinimaL1PaymentPortConfig } from './payment-l1.js';
 
 export { createOmniaL2PaymentPort } from './payment-l2.js';
 export type { OmniaL2PaymentPortConfig } from './payment-l2.js';
+
+export { createStreamPortAdapter } from './stream.js';
+
+export { createPubSubPortAdapter } from './pubsub.js';

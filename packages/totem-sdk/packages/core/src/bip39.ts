@@ -404,22 +404,30 @@ export function phraseToSeed(rawPhrase: string): Uint8Array {
  * @returns Array of 24 random BIP39 words (lowercase)
  */
 export function generateWordList(): string[] {
-  const words: string[] = [];
   const randomValues = new Uint32Array(24);
-  
+
   if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
     crypto.getRandomValues(randomValues);
-  } else {
+  } else if (typeof process !== 'undefined' && process.versions?.node) {
+    const nodeCrypto = Function('return require')()('crypto') as { randomBytes: (size: number) => Buffer };
+    const bytes = nodeCrypto.randomBytes(96);
     for (let i = 0; i < 24; i++) {
-      randomValues[i] = Math.floor(Math.random() * 0x100000000);
+      randomValues[i] = bytes.readUInt32BE(i * 4);
     }
+  } else {
+    throw new Error(
+      'generateWordList: no cryptographically secure random source available. ' +
+      'Seed generation requires crypto.getRandomValues (browser/Node 19+) or node:crypto.randomBytes (Node). ' +
+      'Math.random() is not acceptable for key material.'
+    );
   }
-  
+
+  const words: string[] = [];
   for (let i = 0; i < 24; i++) {
     const index = randomValues[i] % WORD_LIST.length;
     words.push(WORD_LIST[index]);
   }
-  
+
   return words;
 }
 

@@ -34,7 +34,6 @@ export async function announceMqttService(
   if (!runtime.ports.lookup) {
     return { ok: false, error: 'No lookup port available', errorCode: 'NO_LOOKUP_PORT' };
   }
-  // @ts-expect-error announce not yet on EdgeLookupPort interface
   return runtime.ports.lookup.announce(params);
 }
 

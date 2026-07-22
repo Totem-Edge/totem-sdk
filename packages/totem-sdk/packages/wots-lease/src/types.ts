@@ -2,7 +2,7 @@
  * @totemsdk/wots-lease — canonical v3 watermark types and WotsLeaseProvider interface
  */
 
-export type UnavailableReason = 'committed' | 'burned' | 'reserved-expired';
+export type UnavailableReason = 'reserved' | 'committed' | 'burned' | 'reserved-expired';
 
 export interface SigningIndices {
   addressIndex: number;
@@ -99,10 +99,13 @@ export interface JournalEntry {
   wotsIndex: number;
   indices: SigningIndices;
   status: 'reserved' | 'committed' | 'burned' | 'reserved-expired';
+  reservationId?: string;
   payloadHash?: string;
   txId?: string;
   timestamp: number;
   deviceId: string;
+  previousHash?: string;
+  hash?: string;
 }
 
 export interface DeviceKeyRange {

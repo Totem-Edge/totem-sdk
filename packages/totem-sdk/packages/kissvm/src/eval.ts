@@ -1,18 +1,10 @@
 /**
- * KISSVM v1 evaluator — deterministic scaled-BigInt arithmetic.
- *
- * All numeric values inside the VM are `bigint` scaled by SCALE = 10^8
- * (8 decimal places, matching Minima's MiniNumber precision).
- *
- * Conversion rules:
- *   Script literal "1.01"  → 101_000_000n
- *   Script literal "500"   → 50_000_000_000n
- *   Context value  1000.0  → contextToScaled(1000.0) = 100_000_000_000n
+ * KISSVM v1 evaluator — uses MiniNumber matching Java's MiniNumber/BigDecimal.
  *
  * Arithmetic:
- *   ADD / SUB : a + b  / a − b        (scales cancel)
- *   MUL       : (a × b) / SCALE
- *   DIV       : (a × SCALE) / b
+ *   ADD / SUB : a + b  / a − b        (standard decimal arithmetic)
+ *   MUL       : a × b                  (standard decimal multiplication)
+ *   DIV       : a / b                  (standard decimal division)
  *   MOD       : a mod b
  *   LSHIFT    : n << k   (BigInt, k ≤ 256)
  *   RSHIFT    : n >> k   (BigInt, k ≤ 256)
@@ -22,84 +14,29 @@
  */
 
 import { createHash } from 'node:crypto';
-import { sha3_256, hexToBytes, wotsVerifyDigest } from '@totemsdk/core';
+import { sha3_256, hexToBytes, wotsVerifyDigest, mmrLeafExact, parseMMRProofFromHex, createMMRDataParentNode, createMMRDataLeafNode, calculateProofRoot } from '@totemsdk/core';
+import type { MMRData, MMRProof } from '@totemsdk/core';
 import { KissvmLimitError, KissvmRuntimeError, ReturnSignal } from './errors.js';
 import { LIMITS, VMState, MastBranch, UserFunction } from './vm.js';
 import { parseScript } from './parser.js';
+import { MiniNumber } from './MiniNumber.js';
 import type { ASTNode, Value, Scalar, EvalResult, ScriptWitness, TxContext } from './types.js';
 
-// ─── Fixed-point scale ────────────────────────────────────────────────────────
-
-/** 8 decimal places — matches Minima MiniNumber precision */
-const SCALE = 100_000_000n;
-
-/**
- * Parse a decimal string literal to a scaled bigint.
- * "1.01" → 101_000_000n   "500" → 50_000_000_000n   "0.3" → 30_000_000n
- * The 9th+ decimal digits are dropped with standard rounding.
- */
-function parseLiteralBigInt(s: string): bigint {
-  const isNeg = s.startsWith('-');
-  const abs   = isNeg ? s.slice(1) : s;
-  const dot   = abs.indexOf('.');
-
-  let intPart: string;
-  let fracStr: string;
-
-  if (dot === -1) {
-    intPart = abs;
-    fracStr = '';
-  } else {
-    intPart = abs.slice(0, dot) || '0';
-    fracStr = abs.slice(dot + 1);
-  }
-
-  const fracPadded = fracStr.slice(0, 8).padEnd(8, '0');
-  const ninth      = fracStr.length > 8 ? parseInt(fracStr[8] ?? '0', 10) : 0;
-  const result = BigInt(intPart) * SCALE + BigInt(fracPadded) + (ninth >= 5 ? 1n : 0n);
-  return isNeg ? -result : result;
-}
-
-/**
- * Convert a JavaScript `number` (e.g. `CoinData.amount`, `TxContext.block`)
- * to a scaled bigint.  Uses `toFixed(8)` to avoid float-to-string rounding drift.
- */
-function contextToScaled(n: number): bigint {
-  return parseLiteralBigInt(n.toFixed(8));
-}
-
-/**
- * Extract the scaled bigint from a VM value (for arithmetic / comparison).
- * Throws KissvmRuntimeError if the value cannot be interpreted as a number.
- * Hex strings (MiniData / 0x…) are NOT accepted here — they are data, not numbers.
- */
-function asScaled(v: Value): bigint {
-  if (typeof v === 'bigint')  return v;
-  if (typeof v === 'boolean') return v ? SCALE : 0n;
+function asMiniNumber(v: Value): MiniNumber {
+  if (v instanceof MiniNumber) return v;
+  if (typeof v === 'boolean') return v ? MiniNumber.ONE : MiniNumber.ZERO;
   if (typeof v === 'string') {
     if (v.startsWith('0x') || v.startsWith('0X')) {
       throw new KissvmRuntimeError(`Cannot use hex data value "${v.slice(0, 20)}" as a number`);
     }
-    if (v === '') return 0n;
-    return parseLiteralBigInt(v);
+    if (v === '') return MiniNumber.ZERO;
+    return new MiniNumber(v);
   }
   throw new KissvmRuntimeError(`Cannot convert ${typeof v} to number`);
 }
 
-/**
- * Convert a VM port/index value (scaled bigint) to a plain integer.
- * e.g. 300_000_000n → 3
- */
 function asPortInt(v: Value): number {
-  return Number(asScaled(v) / SCALE);
-}
-
-/** Scaled multiplication: (a × b) / SCALE */
-function mulScaled(a: bigint, b: bigint): bigint { return (a * b) / SCALE; }
-/** Scaled division: (a × SCALE) / b */
-function divScaled(a: bigint, b: bigint): bigint {
-  if (b === 0n) throw new KissvmRuntimeError('Division by zero');
-  return (a * SCALE) / b;
+  return asMiniNumber(v).toNumber();
 }
 
 // ─── Public entry point ───────────────────────────────────────────────────────
@@ -173,7 +110,7 @@ function execStatement(node: ASTNode, vm: VMState): void {
       const port = asPortInt(evalExpr(node.port, vm));
       const val  = evalExpr(node.value, vm);
       vm.addTrace(`STORE STATE(${port}) WITH ${val}`);
-      vm.txCtx.state[port] = scaledToString(val);
+      vm.txCtx.state[port] = miniNumberToString(val);
       break;
     }
     case 'IF': {
@@ -187,11 +124,13 @@ function execStatement(node: ASTNode, vm: VMState): void {
       break;
     }
     case 'FOR': {
-      const from = asScaled(evalExpr(node.from, vm));
-      const to   = asScaled(evalExpr(node.to, vm));
-      const by   = node.by ? asScaled(evalExpr(node.by, vm)) : SCALE;
-      if (by === 0n) throw new KissvmRuntimeError('FOR loop step cannot be zero');
-      for (let i = from; by > 0n ? i <= to : i >= to; i += by) {
+      const from = asMiniNumber(evalExpr(node.from, vm));
+      const to   = asMiniNumber(evalExpr(node.to, vm));
+      const by   = node.by ? asMiniNumber(evalExpr(node.by, vm)) : MiniNumber.ONE;
+      if (by.isEqual(MiniNumber.ZERO)) throw new KissvmRuntimeError('FOR loop step cannot be zero');
+      let i = from;
+      const cmp = by.isMore(MiniNumber.ZERO) ? (i: MiniNumber) => i.isLessEqual(to) : (i: MiniNumber) => i.isMoreEqual(to);
+      for (; cmp(i); i = i.add(by)) {
         vm.tick();
         vm.pushBlockScope();
         vm.set(node.name, i);
@@ -253,8 +192,9 @@ function execStatement(node: ASTNode, vm: VMState): void {
       throw new ReturnSignal(result);
     }
     case 'MAST_STMT': {
-      if (node.rootHash) {
-        const result = evalMastExpr(node.rootHash, vm);
+      const rootHash = String(evalExpr(node.rootHash, vm));
+      if (rootHash) {
+        const result = evalMastExpr(rootHash, vm);
         throw new ReturnSignal(result);
       }
       break;
@@ -272,8 +212,7 @@ function evalExpr(node: ASTNode, vm: VMState): Value {
   switch (node.type) {
     case 'LITERAL': {
       const v = node.value;
-      // Convert parser's parseFloat output to a deterministic scaled bigint
-      if (typeof v === 'number') return parseLiteralBigInt(v.toString());
+      if (typeof v === 'number') return new MiniNumber(v.toString());
       return v as Value;
     }
 
@@ -289,7 +228,7 @@ function evalExpr(node: ASTNode, vm: VMState): Value {
 
     case 'UNARY': {
       if (node.op === 'NOT') return !isTruthy(evalExpr(node.expr, vm));
-      if (node.op === 'NEG') return -asScaled(evalExpr(node.expr, vm));
+      if (node.op === 'NEG') return asMiniNumber(evalExpr(node.expr, vm)).negate();
       throw new KissvmRuntimeError(`Unknown unary op: ${node.op}`);
     }
 
@@ -364,7 +303,7 @@ function evalExpr(node: ASTNode, vm: VMState): Value {
     case 'VERIFYOUT': {
       const idxVal    = evalExpr(node.index, vm);
       const addr      = normalizeHex(String(evalExpr(node.address, vm)));
-      const amtScaled = asScaled(evalExpr(node.amount, vm));
+      const amt       = asMiniNumber(evalExpr(node.amount, vm));
       const tokId     = normalizeHex(String(evalExpr(node.tokenId, vm)));
       const keep      = isTruthy(evalExpr(node.keepState, vm));
 
@@ -375,7 +314,7 @@ function evalExpr(node: ASTNode, vm: VMState): Value {
       const out = vm.txCtx.outputs[outIdx];
       if (!out) return false;
       const r = normalizeHex(out.address) === addr
-             && contextToScaled(out.amount) === amtScaled
+             && new MiniNumber(out.amount).isEqual(amt)
              && normalizeHex(out.tokenId)  === tokId
              && out.keepState              === keep;
       vm.addTrace(`VERIFYOUT[${outIdx}] → ${r}`);
@@ -384,17 +323,17 @@ function evalExpr(node: ASTNode, vm: VMState): Value {
     case 'GETOUT': {
       const idx = asPortInt(evalExpr(node.index, vm));
       const out = vm.txCtx.outputs[idx];
-      if (!out) return 0n;
-      if (node.fn === 'AMT')       return contextToScaled(out.amount);
+      if (!out) return MiniNumber.ZERO;
+      if (node.fn === 'AMT')       return new MiniNumber(out.amount);
       if (node.fn === 'ADDR')      return out.address;
       if (node.fn === 'TOK')       return out.tokenId;
       if (node.fn === 'KEEPSTATE') return out.keepState;
-      return 0n;
+      return MiniNumber.ZERO;
     }
     case 'SIGDIG': {
-      const nScaled  = asScaled(evalExpr(node.digits, vm));
-      const valScaled = asScaled(evalExpr(node.expr, vm));
-      return sigdigBigInt(valScaled, nScaled);
+      const n   = asMiniNumber(evalExpr(node.digits, vm));
+      const val = asMiniNumber(evalExpr(node.expr, vm));
+      return val.setSignificantDigits(n.toNumber());
     }
     case 'CALL_EXPR': {
       const fn = vm.funcs.get(node.name);
@@ -402,13 +341,19 @@ function evalExpr(node: ASTNode, vm: VMState): Value {
       validateArgCount(fn, node.args.length, node.name);
       return callUserFuncExpr(fn, node.args, vm);
     }
-    case 'MAST_EXPR': return evalMastExpr(node.rootHash, vm) as Value;
+    case 'MAST_EXPR': {
+      const rootHash = String(evalExpr(node.rootHash, vm));
+      return evalMastExpr(rootHash, vm) as Value;
+    }
     case 'EXEC_MAST': return execMastBlockVm(vm) as Value;
     case 'PROOF': {
-      const scriptHashVal = String(evalExpr(node.scriptHash, vm));
-      const policyRootVal = String(evalExpr(node.policyRoot, vm));
-      const proofVal      = String(evalExpr(node.proof, vm));
-      return evalProof(scriptHashVal, policyRootVal, proofVal, vm);
+      const dataVal    = String(evalExpr(node.data, vm));
+      const leafSumVal = asMiniNumber(evalExpr(node.leafSum, vm));
+      const rootHashVal = String(evalExpr(node.rootHash, vm));
+      const rootSumVal  = asMiniNumber(evalExpr(node.rootSum, vm));
+      const proofVal    = String(evalExpr(node.proof, vm));
+      const isHex = (node.data as { kind?: string }).kind === 'HEX';
+      return evalProof(dataVal, leafSumVal, rootHashVal, rootSumVal, proofVal, isHex, vm);
     }
 
     default:
@@ -436,36 +381,34 @@ function evalBinary(op: string, leftNode: ASTNode, rightNode: ASTNode, vm: VMSta
     case 'XOR':  return isTruthy(left) !== isTruthy(right);
     case 'EQ':   return kissvmEq(left, right);
     case 'NEQ':  return !kissvmEq(left, right);
-    case 'GT':   return asScaled(left) >  asScaled(right);
-    case 'GTE':  return asScaled(left) >= asScaled(right);
-    case 'LT':   return asScaled(left) <  asScaled(right);
-    case 'LTE':  return asScaled(left) <= asScaled(right);
-    case 'ADD':  return asScaled(left) +  asScaled(right);
-    case 'SUB':  return asScaled(left) -  asScaled(right);
-    case 'MUL':  return mulScaled(asScaled(left), asScaled(right));
-    case 'DIV':  return divScaled(asScaled(left), asScaled(right));
-    case 'MOD': {
-      const d = asScaled(right);
-      if (d === 0n) throw new KissvmRuntimeError('Modulo by zero');
-      return asScaled(left) % d;
-    }
+    case 'GT':   return asMiniNumber(left).isMore(asMiniNumber(right));
+    case 'GTE':  return asMiniNumber(left).isMoreEqual(asMiniNumber(right));
+    case 'LT':   return asMiniNumber(left).isLess(asMiniNumber(right));
+    case 'LTE':  return asMiniNumber(left).isLessEqual(asMiniNumber(right));
+    case 'ADD':  return asMiniNumber(left).add(asMiniNumber(right));
+    case 'SUB':  return asMiniNumber(left).sub(asMiniNumber(right));
+    case 'MUL':  return asMiniNumber(left).mult(asMiniNumber(right));
+    case 'DIV':  return asMiniNumber(left).div(asMiniNumber(right));
+    case 'MOD':  return asMiniNumber(left).modulo(asMiniNumber(right));
     case 'LSHIFT': {
-      const n      = asScaled(left) / SCALE;           // unscale to integer
-      const amount = Number(asScaled(right) / SCALE);  // shift count as plain int
+      const n      = asMiniNumber(left).getAsBigInteger();  // integer part
+      const amount = asMiniNumber(right).toNumber();         // shift count
       if (amount < 0) throw new KissvmRuntimeError('Negative shift amount');
       if (amount > LIMITS.MAX_SHIFT_BITS) {
         throw new KissvmLimitError(`Shift ${amount} exceeds max ${LIMITS.MAX_SHIFT_BITS}`);
       }
-      return (n << BigInt(amount)) * SCALE;            // re-scale result
+      const intVal = BigInt(n) << BigInt(amount);
+      return new MiniNumber(intVal.toString());
     }
     case 'RSHIFT': {
-      const n      = asScaled(left) / SCALE;
-      const amount = Number(asScaled(right) / SCALE);
+      const n      = asMiniNumber(left).getAsBigInteger();
+      const amount = asMiniNumber(right).toNumber();
       if (amount < 0) throw new KissvmRuntimeError('Negative shift amount');
       if (amount > LIMITS.MAX_SHIFT_BITS) {
         throw new KissvmLimitError(`Shift ${amount} exceeds max ${LIMITS.MAX_SHIFT_BITS}`);
       }
-      return (n >> BigInt(amount)) * SCALE;
+      const intVal = BigInt(n) >> BigInt(amount);
+      return new MiniNumber(intVal.toString());
     }
     default:
       throw new KissvmRuntimeError(`Unknown binary operator: ${op}`);
@@ -478,11 +421,11 @@ function resolveBuiltin(name: string, vm: VMState): Value {
   const ctx  = vm.txCtx;
   const coin = ctx.inputs[ctx.inputIndex];
   switch (name) {
-    case 'BLOCK':   return contextToScaled(ctx.block);
+    case 'BLOCK':   return new MiniNumber(ctx.block);
     case 'ADDRESS': { const a = coin?.address ?? ''; checkStringSize(a); return a; }
-    case 'AMOUNT':  return contextToScaled(coin?.amount ?? 0);
+    case 'AMOUNT':  return new MiniNumber(coin?.amount ?? 0);
     case 'TOKENID': { const t = coin?.tokenId ?? ''; checkStringSize(t); return t; }
-    case 'INPUT':   return contextToScaled(ctx.inputIndex);
+    case 'INPUT':   return new MiniNumber(ctx.inputIndex);
     /** @SCRIPT = the SHA3-256 hash of the coin's locking script */
     case 'SCRIPT':  { const s = coin?.scriptHash ?? ''; checkStringSize(s); return s; }
     /**
@@ -491,7 +434,7 @@ function resolveBuiltin(name: string, vm: VMState): Value {
      */
     case 'COINAGE': {
       const created = coin?.coinCreatedBlock ?? 0;
-      return contextToScaled(Math.max(0, ctx.block - created));
+      return new MiniNumber(Math.max(0, ctx.block - created));
     }
     default:
       throw new KissvmRuntimeError(`Unknown built-in variable: @${name}`);
@@ -526,34 +469,44 @@ function verifySignedBy(pkVal: string, vm: VMState): boolean {
   }
 }
 
-// ─── MAST — hash-form ─────────────────────────────────────────────────────────
+// ─── MAST — canonical ScriptProof verification ──────────────────────────────
 
+/**
+ * Evaluate a MAST expression by verifying ScriptProofs from the witness.
+ *
+ * Canonical Minima semantics:
+ *  1. Look in the witness scriptProofs array for proofs that match the
+ *     requested root (verified via MMR proof).
+ *  2. Only execute a script whose MMR proof confirms membership in the root.
+ *  3. Fall back to mastBranches (TxContext) for backward compatibility.
+ *  4. No uppercase-hash fallback — that is non-canonical.
+ */
 function evalMastExpr(rootHash: string, vm: VMState): boolean {
-  const branches = vm.txCtx.mastBranches;
-  if (!branches) throw new KissvmRuntimeError(`MAST requires mastBranches in TxContext`);
-
   const norm = normalizeHex(rootHash);
+  const scriptProofs = vm.witness.scriptProofs;
 
-  // 1. Direct hash → script lookup
-  if (branches.has(norm)) {
-    vm.addTrace(`MAST branch found for ${norm.slice(0, 14)}…`);
-    return executeSubScript(branches.get(norm)!, vm);
-  }
-
-  // 2. Normalise all keys and retry
-  for (const [key, value] of branches) {
-    if (normalizeHex(key) === norm) {
-      vm.addTrace(`MAST branch found (normalised) for ${norm.slice(0, 14)}…`);
-      return executeSubScript(value, vm);
+  // 1. Canonical path: verify ScriptProofs from witness
+  if (scriptProofs && scriptProofs.length > 0) {
+    for (const sp of scriptProofs) {
+      if (verifyScriptProof(sp, norm, vm)) {
+        vm.addTrace(`MAST: verified ScriptProof for ${norm.slice(0, 14)}…`);
+        return executeSubScript(sp.script, vm);
+      }
     }
+    throw new KissvmRuntimeError(`MAST: no verified ScriptProof found for root ${norm.slice(0, 20)}…`);
   }
 
-  // 3. Treat keys as script texts — compute their hashes and compare
-  for (const [scriptText] of branches) {
-    if (!scriptText.startsWith('0x') && !scriptText.startsWith('0X')) {
-      if (normalizeHex(computeScriptHash(scriptText)) === norm) {
-        vm.addTrace(`MAST branch found (hash match) for ${norm.slice(0, 14)}…`);
-        return executeSubScript(scriptText, vm);
+  // 2. Fallback: legacy mastBranches (TxContext)
+  const branches = vm.txCtx.mastBranches;
+  if (branches) {
+    if (branches.has(norm)) {
+      vm.addTrace(`MAST branch found (legacy mastBranches) for ${norm.slice(0, 14)}…`);
+      return executeSubScript(branches.get(norm)!, vm);
+    }
+    for (const [key, value] of branches) {
+      if (normalizeHex(key) === norm) {
+        vm.addTrace(`MAST branch found (legacy normalized) for ${norm.slice(0, 14)}…`);
+        return executeSubScript(value, vm);
       }
     }
   }
@@ -561,30 +514,79 @@ function evalMastExpr(rootHash: string, vm: VMState): boolean {
   throw new KissvmRuntimeError(`MAST: no branch found for root ${norm.slice(0, 20)}…`);
 }
 
+function verifyScriptProof(sp: { script: string; proofHex: string }, expectedRoot: string, vm: VMState): boolean {
+  try {
+    const leafBytes = mmrLeafExact(sp.script);
+    const leafData: MMRData = { data: leafBytes, value: 0n };
+    const proofBytes = hexToBytes(sp.proofHex.replace(/^0x/i, ''));
+    if (proofBytes.length === 0) {
+      const leafRoot = normalizeHex('0x' + bytesToHex(leafBytes));
+      if (leafRoot !== expectedRoot) {
+        vm.addTrace(`MAST: empty-proof ScriptProof root mismatch for ${sp.script.slice(0, 20)}…`);
+        return false;
+      }
+    } else {
+      const { proof } = parseMMRProofFromHex(proofBytes);
+      const computedRoot = calculateProofRoot(leafData, proof);
+      const computedRootHex = normalizeHex('0x' + bytesToHex(computedRoot));
+      if (computedRootHex !== expectedRoot) {
+        vm.addTrace(`MAST: ScriptProof root mismatch for ${sp.script.slice(0, 20)}…`);
+        return false;
+      }
+    }
+    return true;
+  } catch {
+    vm.addTrace(`MAST: ScriptProof verification error for ${sp.script.slice(0, 20)}…`);
+    return false;
+  }
+}
+
 // ─── MAST — brace-form (EXEC MAST) ───────────────────────────────────────────
 
 function execMastBlockVm(vm: VMState): boolean {
   const defined = vm.mastBlock;
   if (!defined || defined.length === 0) {
+    // No inline branches — try witness ScriptProofs, then legacy mastBranches
+    const scriptProofs = vm.witness.scriptProofs;
+    if (scriptProofs && scriptProofs.length > 0) {
+      vm.addTrace('EXEC MAST: executing first verified ScriptProof');
+      return executeSubScript(scriptProofs[0].script, vm);
+    }
     const branches = vm.txCtx.mastBranches;
-    if (!branches || branches.size === 0) throw new KissvmRuntimeError('EXEC MAST: no branches available');
-    const [, script] = [...branches.entries()][0];
-    vm.addTrace('EXEC MAST (fallback to mastBranches)');
-    return executeSubScript(script, vm);
+    if (branches && branches.size > 0) {
+      const [, script] = [...branches.entries()][0];
+      vm.addTrace('EXEC MAST (fallback to mastBranches)');
+      return executeSubScript(script, vm);
+    }
+    throw new KissvmRuntimeError('EXEC MAST: no branches available in witness or mastBranches');
   }
 
+  // Inline branches — verify against ScriptProofs, then legacy mastBranches
+  const scriptProofs = vm.witness.scriptProofs;
   const revealed = vm.txCtx.mastBranches;
-  if (!revealed) throw new KissvmRuntimeError('EXEC MAST: mastBranches not provided in TxContext');
 
   for (const branch of defined) {
     const norm = normalizeHex(branch.hash);
-    if (revealed.has(norm)) {
-      vm.addTrace(`EXEC MAST: executing branch ${norm.slice(0, 14)}…`);
+
+    // Canonical: match via ScriptProof verification
+    if (scriptProofs && scriptProofs.length > 0) {
+      for (const sp of scriptProofs) {
+        const leafBytes = mmrLeafExact(sp.script);
+        if (normalizeHex('0x' + bytesToHex(leafBytes)) === norm) {
+          vm.addTrace(`EXEC MAST: executing verified inline branch ${norm.slice(0, 14)}…`);
+          return execInlineBody(branch.body, vm);
+        }
+      }
+    }
+
+    // Fallback: legacy mastBranches
+    if (revealed && revealed.has(norm)) {
+      vm.addTrace(`EXEC MAST: executing inline branch (legacy) ${norm.slice(0, 14)}…`);
       return execInlineBody(branch.body, vm);
     }
   }
 
-  throw new KissvmRuntimeError('EXEC MAST: no matching branch revealed in mastBranches');
+  throw new KissvmRuntimeError('EXEC MAST: no matching branch revealed');
 }
 
 function execInlineBody(body: ASTNode[], vm: VMState): boolean {
@@ -620,88 +622,99 @@ function executeSubScript(script: string, parentVm: VMState): boolean {
   return result;
 }
 
-// ─── PROOF — Merkle-conditioned policy verification ───────────────────────────
+// ─── PROOF — Canonical MMR proof verification ─────────────────────────────────
 
 /**
- * PROOsha3_256(scriptHash, policyRoot, proof)
+ * Canonical Minima PROOF: PROOF(data, leafSum, rootHash, rootSum, proofHex)
  *
  * Semantics:
- *  1. scriptHash must be present in txCtx.mastBranches (spender revealed it).
- *  2a. If proof is empty (zero-length hex or empty string):
- *      ONLY accepted when scriptHash === policyRoot
- *      (trivial single-leaf Merkle tree: root = leaf).
- *  2b. If proof is non-empty: verify the Merkle inclusion path.
- *      Returns false if verification fails.
+ *  1. If `data` is a HEX literal, the leaf hash is computed as
+ *     MMRData.CreateMMRDataLeafNode(MiniData.fromHex(data), leafSum).
+ *  2. If `data` is a SCRIPT expression, the leaf hash is computed as
+ *     MMRData.CreateMMRDataLeafNode(MiniString(data), leafSum).
+ *  3. No mastBranches lookup is performed — the data argument is used
+ *     directly (MAST branch revelation is handled by the MAST opcode).
+ *  4. If `proofHex` is empty (zero-length hex): only accepted when the
+ *     computed leaf hash matches rootHash AND leafSum matches rootSum
+ *     (trivial single-leaf MMR tree).
+ *  5. If `proofHex` is non-empty: parse the canonical MMR proof and
+ *     verify inclusion using createMMRDataParentNode / calculateProofRoot.
+ *     The computed root hash must match rootHash.
  */
 function evalProof(
-  scriptHashVal: string,
-  policyRootVal: string,
+  dataVal: string,
+  leafSumVal: MiniNumber,
+  rootHashVal: string,
+  rootSumVal: MiniNumber,
   proofVal: string,
+  isHex: boolean,
   vm: VMState,
 ): boolean {
-  const normHash = normalizeHex(scriptHashVal);
-  const normRoot = normalizeHex(policyRootVal);
+  const normRoot = normalizeHex(rootHashVal);
 
-  // Step 1: revealed script must be known to the spender
-  const branches = vm.txCtx.mastBranches;
-  let scriptPresent = branches?.has(normHash) ?? false;
-  if (!scriptPresent && branches) {
-    for (const [k] of branches) {
-      if (normalizeHex(k) === normHash) { scriptPresent = true; break; }
+  // Compute canonical MMR leaf — HEX vs SCRIPT determines serialization
+  let leafData: MMRData;
+  try {
+    if (isHex) {
+      const raw = hexToBytes(dataVal.startsWith('0x') || dataVal.startsWith('0X') ? dataVal.slice(2) : dataVal);
+      leafData = createMMRDataLeafNode(raw, leafSumVal.unscaled);
+    } else {
+      const scriptUtf8 = new TextEncoder().encode(dataVal);
+      leafData = createMMRDataLeafNode(scriptUtf8, leafSumVal.unscaled);
     }
-  }
-  if (!scriptPresent) {
-    vm.addTrace(`PROOF: script ${normHash.slice(0, 12)}… not in mastBranches → false`);
+  } catch {
+    vm.addTrace(`PROOF: leaf data construction failed → false`);
     return false;
   }
 
-  // Canonicalise proof bytes: strip 0x prefix
+  // Canonicalise proof
   const proofHex = (proofVal.startsWith('0x') || proofVal.startsWith('0X'))
     ? proofVal.slice(2)
     : proofVal;
 
-  // Step 2a: empty proof — only valid for trivial single-leaf tree (root == leaf)
+  // Empty proof: trivial single-leaf tree
   if (proofHex.length === 0) {
-    const ok = normHash === normRoot;
-    vm.addTrace(`PROOsha3_256(${normHash.slice(0, 12)}…) empty-proof, trivial=${ok}`);
+    const computedRoot = '0x' + bytesToHex(leafData.data);
+    const hashOk = normalizeHex(computedRoot) === normRoot;
+    const sumOk  = leafSumVal.unscaled === rootSumVal.unscaled;
+    const ok = hashOk && sumOk;
+    vm.addTrace(`PROOF(data=${(isHex ? '0x' : '') + dataVal.slice(0, 12)}…, isHex=${isHex}) empty-proof trivial=${ok} (hash=${hashOk}, sum=${sumOk})`);
     return ok;
   }
 
-  // Step 2b: non-empty proof — verify Merkle inclusion path
-  const ok = verifyMerkleProof(normHash, normRoot, proofHex);
-  vm.addTrace(`PROOsha3_256(${normHash.slice(0, 12)}…, root=${normRoot.slice(0, 12)}…) merkle=${ok}`);
-  return ok;
+  // Parse proof and verify
+  try {
+    const proofBytes = hexToBytes(proofHex);
+    const { proof } = parseMMRProofFromHex(proofBytes);
+
+    // Walk the proof chain, tracking both hash and sum
+    const computedLeafData = calculateRootMMRData(leafData, proof);
+    const computedRoot = '0x' + bytesToHex(computedLeafData.data);
+    const hashOk = normalizeHex(computedRoot) === normRoot;
+    const sumOk  = computedLeafData.value === rootSumVal.unscaled;
+    const ok = hashOk && sumOk;
+    vm.addTrace(`PROOF(data=${(isHex ? '0x' : '') + dataVal.slice(0, 12)}…, isHex=${isHex}) canonical-MMR root=${computedRoot.slice(0, 12)}… hash-match=${hashOk} sum-match=${sumOk}`);
+    return ok;
+  } catch (e) {
+    vm.addTrace(`PROOF: verification error → false`);
+    return false;
+  }
 }
 
 /**
- * Verify a binary-Merkle inclusion proof.
- *
- * proofHex: concatenation of 32-byte sibling hashes (no direction bits —
- * the left-then-right sorted-pair convention used by Minima).
- * Returns true iff the recomputed root matches policyRoot.
+ * Walk a canonical MMR proof chain, computing the root MMRData
+ * (hash + accumulated sum) from the leaf upward.
  */
-function verifyMerkleProof(leafHex: string, rootHex: string, proofHex: string): boolean {
-  try {
-    const leafPure = leafHex.startsWith('0x') ? leafHex.slice(2) : leafHex;
-    let current   = hexToBytes(leafPure);
-    const proofBytes = hexToBytes(proofHex);
-    const SIBLING = 32;
-    for (let off = 0; off + SIBLING <= proofBytes.length; off += SIBLING) {
-      const sibling = proofBytes.slice(off, off + SIBLING);
-      // Canonical pair-hash: sort both halves lexicographically then SHA3-256
-      const [lo, hi] = uint8Less(current, sibling)
-        ? [current, sibling]
-        : [sibling, current];
-      const pair = new Uint8Array(64);
-      pair.set(lo,  0);
-      pair.set(hi, 32);
-      current = sha3_256(pair);
+function calculateRootMMRData(leafData: MMRData, proof: MMRProof): MMRData {
+  let current = leafData;
+  for (const chunk of proof.chunks) {
+    if (chunk.isLeft) {
+      current = createMMRDataParentNode(chunk.mmrData, current);
+    } else {
+      current = createMMRDataParentNode(current, chunk.mmrData);
     }
-    const computedRoot = '0x' + bytesToHex(current);
-    return normalizeHex(computedRoot) === normalizeHex(rootHex);
-  } catch {
-    return false;
   }
+  return current;
 }
 
 // ─── User-defined function calls ──────────────────────────────────────────────
@@ -737,53 +750,19 @@ function callUserFuncExpr(fn: UserFunction, argNodes: ASTNode[], vm: VMState): V
 // ─── SIGDIG ───────────────────────────────────────────────────────────────────
 
 /**
- * Round `value` (scaled bigint) to `n` significant decimal digits.
- * n is also a scaled bigint (e.g. 4 significant digits → 400_000_000n).
- * Returns a scaled bigint.
- *
- * Example:  sigdigBigInt(100_000_000_000n, 400_000_000n)
- *           = sigdig(1000, 4) → still 1000 → 100_000_000_000n
- *
- * Example:  sigdigBigInt(123_456_789_000_000_000n, 800_000_000n)
- *           = sigdig(1234567890, 8) → 1234567900 → 123_456_790_000_000_000n
- */
-function sigdigBigInt(value: bigint, nScaled: bigint): bigint {
-  const n = Number(nScaled / SCALE);
-  if (n <= 0 || value === 0n) return 0n;
-
-  const isNeg  = value < 0n;
-  const absVal = isNeg ? -value : value;
-  const absStr = absVal.toString();
-  const totalDigits = absStr.length;
-  const drop = totalDigits - n;
-
-  if (drop <= 0) return value; // already fewer than n digits
-
-  const divisor    = 10n ** BigInt(drop);
-  const halfDivsor = divisor / 2n;
-  const rounded    = ((absVal + halfDivsor) / divisor) * divisor;
-
-  return isNeg ? -rounded : rounded;
-}
-
-/**
- * Public utility: round `value` to `n` significant digits (JavaScript float version).
- * This is the exported API used directly by tests and external consumers.
- * The evaluator uses sigdigBigInt internally for deterministic VM arithmetic.
+ * Public utility: round `value` to `n` significant digits.
  */
 export function sigdig(value: number, n: number): number {
   if (value === 0 || n <= 0) return 0;
-  const d         = Math.ceil(Math.log10(Math.abs(value)));
-  const power     = n - d;
-  const magnitude = Math.pow(10, power);
-  return Math.round(value * magnitude) / magnitude;
+  const mn = new MiniNumber(value.toString());
+  return mn.setSignificantDigits(n).toNumber();
 }
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
 function isTruthy(v: unknown): boolean {
   if (typeof v === 'boolean') return v;
-  if (typeof v === 'bigint')  return v !== 0n;
+  if (v instanceof MiniNumber) return !v.isEqual(MiniNumber.ZERO);
   if (typeof v === 'number')  return v !== 0;
   if (typeof v === 'string')  return v !== '' && v.toLowerCase() !== 'false';
   if (v instanceof Uint8Array) return v.length > 0;
@@ -792,20 +771,20 @@ function isTruthy(v: unknown): boolean {
 
 /**
  * Equality comparison:
- *   bigint  vs bigint  : exact
+ *   MiniNumber vs MiniNumber : exact
  *   string  vs string  : normalise-hex then compare
  *   boolean vs boolean : exact
- *   cross-type numeric : both coerced to scaled bigint
+ *   cross-type numeric : both coerced to MiniNumber
  *   cross-type bool    : isTruthy both sides
  */
 function kissvmEq(a: Value, b: Value): boolean {
-  if (typeof a === 'bigint' && typeof b === 'bigint') return a === b;
+  if (a instanceof MiniNumber && b instanceof MiniNumber) return a.isEqual(b);
   if (typeof a === 'string' && typeof b === 'string') return normalizeHex(a) === normalizeHex(b);
   if (typeof a === 'boolean' && typeof b === 'boolean') return a === b;
-  // Cross-type: if either is bigint and the other is boolean
+  // Cross-type: if either is boolean
   if (typeof a === 'boolean' || typeof b === 'boolean') return isTruthy(a) === isTruthy(b);
   // Cross-type numeric
-  try { return asScaled(a) === asScaled(b); } catch { return false; }
+  try { return asMiniNumber(a).isEqual(asMiniNumber(b)); } catch { return false; }
 }
 
 function normalizeHex(s: string): string {
@@ -821,8 +800,9 @@ function toBytes(v: Value): Uint8Array {
     if (v.startsWith('0x') || v.startsWith('0X')) return hexToBytes(v.slice(2));
     return new TextEncoder().encode(v);
   }
-  if (typeof v === 'bigint') {
-    let hex = (v < 0n ? -v : v).toString(16);
+  if (v instanceof MiniNumber) {
+    const s = v.toString();
+    let hex = BigInt(s).toString(16);
     if (hex.length % 2) hex = '0' + hex;
     return hexToBytes(hex);
   }
@@ -832,6 +812,7 @@ function toBytes(v: Value): Uint8Array {
 
 function toArray(v: Value): Value[] {
   if (typeof v === 'string') return v.split(',').map(s => s.trim()) as Value[];
+  if (v instanceof MiniNumber) return [v];
   return [v];
 }
 
@@ -860,28 +841,19 @@ function checkStringSize(s: string): void {
  *   "42"     → 4_200_000_000n  (42 * SCALE)
  */
 function parseStateValue(raw: string): Value {
-  if (!raw) return 0n;
+  if (!raw) return MiniNumber.ZERO;
   if (raw.startsWith('0x') || raw.startsWith('0X')) return raw;
   // Try numeric
   const f = parseFloat(raw);
-  if (!isNaN(f)) return parseLiteralBigInt(raw);
+  if (!isNaN(f)) return new MiniNumber(raw);
   return raw;
 }
 
 /**
  * Convert a VM value back to its canonical string representation for storage.
  */
-function scaledToString(v: Value): string {
-  if (typeof v === 'bigint') {
-    // Unscale: divide by SCALE, format with 8 decimal places
-    const neg = v < 0n;
-    const abs = neg ? -v : v;
-    const intPart  = abs / SCALE;
-    const fracPart = abs % SCALE;
-    const frac = fracPart.toString().padStart(8, '0').replace(/0+$/, '');
-    const body = frac.length > 0 ? `${intPart}.${frac}` : `${intPart}`;
-    return neg ? `-${body}` : body;
-  }
+function miniNumberToString(v: Value): string {
+  if (v instanceof MiniNumber) return v.toString();
   if (typeof v === 'boolean') return v ? '1' : '0';
   if (v instanceof Uint8Array) return '0x' + bytesToHex(v);
   return String(v);
@@ -894,14 +866,4 @@ function sha2(data: Uint8Array): Uint8Array {
   return new Uint8Array(h.digest());
 }
 
-// ─── Uint8Array ordering helper for Merkle pair sort ─────────────────────────
 
-/** Lexicographic comparison of two Uint8Arrays */
-function uint8Less(a: Uint8Array, b: Uint8Array): boolean {
-  const len = Math.min(a.length, b.length);
-  for (let i = 0; i < len; i++) {
-    if (a[i] < b[i]) return true;
-    if (a[i] > b[i]) return false;
-  }
-  return a.length < b.length;
-}

@@ -166,6 +166,9 @@ export {
   generateSeedPhrase,
 } from './bip39.js';
 
+// MiniNumber class (matches Java MiniNumber/BigDecimal semantics)
+export { MiniNumber } from './MiniNumber.js';
+
 // Transaction types (from JS)
 export {
   type MinimaTransaction,

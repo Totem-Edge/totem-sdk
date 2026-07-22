@@ -1,6 +1,6 @@
 # @totemsdk/core-wasm
 
-Quantum-resistant WOTS+ cryptographic engine compiled to WebAssembly. Rust core for `@totemsdk/core`.
+WOTS (Winternitz) cryptographic engine compiled to WebAssembly. Rust core for `@totemsdk/core`.
 
 ## Install
 
@@ -12,7 +12,7 @@ npm install @totemsdk/core-wasm
 
 | Module | Description |
 |--------|-------------|
-| WOTS+ signatures | Winternitz One-Time Signatures (w=8, L=34) — sign, verify, key derivation |
+| WOTS signatures | Winternitz One-Time Signatures (w=8, L=34) — sign, verify, key derivation |
 | TreeKey | 3-level hierarchical key tree (262,144 signatures per seed) |
 | MMR | Merkle Mountain Range proofs for TreeKey verification |
 | BIP39 | Minima-compatible seed phrase generation and validation |

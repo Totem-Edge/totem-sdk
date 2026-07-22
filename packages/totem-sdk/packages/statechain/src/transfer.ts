@@ -1,7 +1,7 @@
 import { sha3_256 } from '@totemsdk/core';
 import {
-  hex,
-  fromHex,
+  bytesToHex,
+  hexToBytes,
   wotsVerifyDigest,
   buildMinimaCoin,
   serializeTransaction,
@@ -15,7 +15,7 @@ import { buildOwnerReclaimTx, buildWitnessBytes, coinIdBytes, tokenIdBytes } fro
 import type { StateChain, StatechainOwner, SEClient, TransferRecord } from './types.js';
 
 function defaultVerifyBlindSig(sig: string, commitment: Uint8Array, sePkdHex: string): boolean {
-  return wotsVerifyDigest(fromHex(sig), commitment, fromHex(sePkdHex));
+  return wotsVerifyDigest(hexToBytes(sig), commitment, hexToBytes(sePkdHex));
 }
 
 /**
@@ -64,7 +64,7 @@ export async function transferOwnership(
   const sequence  = chain.transferHistory.length;
   const timestamp = Date.now();
 
-  const lockAddrBytes = fromHex(chain.lockingAddress);
+  const lockAddrBytes = hexToBytes(chain.lockingAddress);
 
   // ── Build state-update TX ────────────────────────────────────────────────
   const inputCoin = buildMinimaCoin({
@@ -90,23 +90,18 @@ export async function transferOwnership(
     state:    [],
   };
 
-  // Pre-compute output coinId so it is part of the TX digest
-  precomputeTransactionCoinID(stateUpdateTx.inputs, stateUpdateTx.outputs);
+  const txBodyBytes = serializeTransaction(JSON.stringify(stateUpdateTx));
+  const outputCoinId = precomputeTransactionCoinID(txBodyBytes, 0);
+  stateUpdateTx.outputs[0].coinId = outputCoinId;
+  const txBodyHex = bytesToHex(txBodyBytes);
 
-  // ── Serialize TX body for provenance binding ─────────────────────────────
-  // txBodyHex is stored in TransferRecord so verifyStateChain can recompute
-  // signedDigest = sha3_256(txBodyBytes) and reject mismatches.
-  const txBodyBytes = serializeTransaction(stateUpdateTx);
-  const txBodyHex   = hex(txBodyBytes);
-
-  // ── Sign TX body digest — old owner + SE ────────────────────────────────
-  const digest       = computeTransactionDigest(stateUpdateTx);
-  const signedDigest = hex(digest);
+  const digest       = computeTransactionDigest(txBodyBytes);
+  const signedDigest = bytesToHex(digest);
 
   const oldOwnerSigBytes = await chain.currentOwner.sign(digest);
-  const ownerSignature   = hex(oldOwnerSigBytes);
+  const ownerSignature   = bytesToHex(oldOwnerSigBytes);
 
-  const blindedSignature = await seClient.blindSign(signedDigest);
+  const blindedSignature = await seClient.blindSign(chain.chainId, signedDigest);
 
   const verifyFn = _verifyBlindSig ?? defaultVerifyBlindSig;
   if (!verifyFn(blindedSignature, digest, chain.sePublicKey)) {
@@ -116,12 +111,12 @@ export async function transferOwnership(
   }
 
   // ── Build TxPoW (MULTISIG(2) witness: old owner + SE) ───────────────────
-  const witnessBytes = buildWitnessBytes([oldOwnerSigBytes, fromHex(blindedSignature)]);
+  const witnessBytes = buildWitnessBytes([oldOwnerSigBytes, hexToBytes(blindedSignature)]);
   const prng = sha3_256(
     new TextEncoder().encode(`transfer:${chain.chainId}:${sequence}`),
   );
   const txHex    = Buffer.from(serializeTxPoW(txBodyBytes, witnessBytes, { prng })).toString('hex');
-  const newCoinId = hex(stateUpdateTx.outputs[0].coinId!);
+  const newCoinId = bytesToHex(outputCoinId);
 
   // ── Optional on-chain broadcast ──────────────────────────────────────────
   if (_chainProvider) {
@@ -143,14 +138,20 @@ export async function transferOwnership(
   const transferKey = chain.currentOwner.transferKeySeed ?? '';
   if (chain.currentOwner.transferKeySeed) {
     try {
-      const keyBytes = fromHex(chain.currentOwner.transferKeySeed);
+      const keyBytes = hexToBytes(chain.currentOwner.transferKeySeed);
       keyBytes.fill(0);
     } catch { /* ignore hex decode errors on already-zeroed values */ }
     (chain.currentOwner as { transferKeySeed: string }).transferKeySeed =
       '0'.repeat(chain.currentOwner.transferKeySeed.length);
   }
 
-  await seClient.revokeKey(from);
+  await seClient.revokeKey(chain.chainId, {
+    previousOwnerPartyId: from,
+    previousOwnerPkd: chain.currentOwner.publicKeyDigest,
+    newOwnerPartyId: to,
+    newOwnerPkd: newOwner.publicKeyDigest,
+    newReclaimTxHex: newReclaimTx,
+  });
 
   const record: TransferRecord = {
     from,

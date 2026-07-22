@@ -27,6 +27,20 @@ export interface HostedProviderConfig {
   timeoutMs?: number;
 }
 
+function sanitizeRpcParam(value: string, name: string): string {
+  if (value.length > 1024) {
+    throw new Error(`RPC parameter ${name} exceeds maximum length (1024)`);
+  }
+  if (/[\x00-\x1f\x7f]/.test(value)) {
+    throw new Error(`RPC parameter ${name} contains control characters`);
+  }
+  const trimmed = value.trim();
+  if (trimmed.length === 0) {
+    throw new Error(`RPC parameter ${name} is empty after trimming`);
+  }
+  return trimmed;
+}
+
 export class HostedProvider implements ChainStateProvider {
   private readonly baseUrl: string;
   private readonly apiKey: string;
@@ -34,6 +48,9 @@ export class HostedProvider implements ChainStateProvider {
 
   constructor(config: HostedProviderConfig) {
     this.baseUrl = config.baseUrl.replace(/\/$/, '');
+    if (!this.baseUrl.startsWith('https://')) {
+      throw new Error('HostedProvider requires HTTPS — credentials sent via x-api-key header');
+    }
     this.apiKey = config.apiKey;
     this.timeoutMs = config.timeoutMs ?? 30_000;
   }
@@ -126,7 +143,8 @@ export class HostedProvider implements ChainStateProvider {
 
   async getCoin(coinId: string): Promise<Coin | null> {
     try {
-      const coins = await this.rpc<any[]>(`coins coinid:${coinId}`);
+      const clean = sanitizeRpcParam(coinId, 'coinId');
+      const coins = await this.rpc<any[]>(`coins coinid:${clean}`);
       const u = Array.isArray(coins) ? coins[0] : null;
       if (!u) return null;
       return {
@@ -151,7 +169,8 @@ export class HostedProvider implements ChainStateProvider {
    * Get MMR proof for a coin via Minima `coinproof` RPC command.
    */
   async getProof(coinId: string): Promise<MMRProof> {
-    const data = await this.rpc<any>(`coinproof coinid:${coinId}`);
+    const clean = sanitizeRpcParam(coinId, 'coinId');
+    const data = await this.rpc<any>(`coinproof coinid:${clean}`);
     return { coinid: coinId, data };
   }
 
@@ -172,7 +191,8 @@ export class HostedProvider implements ChainStateProvider {
    * Get token info via Minima `tokens tokenid:X` RPC command.
    */
   async getToken(tokenId: string): Promise<TokenInfo> {
-    const data = await this.rpc<any[]>(`tokens tokenid:${tokenId}`);
+    const clean = sanitizeRpcParam(tokenId, 'tokenId');
+    const data = await this.rpc<any[]>(`tokens tokenid:${clean}`);
     const t = Array.isArray(data) ? data[0] : data;
     if (!t) throw new Error(`Token not found: ${tokenId}`);
     return this._mapToken(t);

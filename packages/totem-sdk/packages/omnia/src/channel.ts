@@ -16,7 +16,7 @@ import type {
 import { buildAndHashEltooScript } from './script.js';
 import { buildFundingTx, buildUpdateTx, computeStateCommitment, omniaDraftToMinimaBytes } from './transactions.js';
 import { assessCapacity, WOTS_CAPACITY_TOTAL, flatSigningIndex } from './capacity.js';
-import { signState } from './sign.js';
+import { signState, verifyStateSignature } from './sign.js';
 import { ChannelStatusError, SigningIndexMonotonicityError, DoubleSignError, SequenceError } from './errors.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -58,17 +58,29 @@ export function enforceUpdateGuards(
   channelId: string,
   newSequence: number,
   payloadHash: string,
+  pendingProposal?: { sequence: number; payloadHash: string },
 ): 'CAPACITY_NEAR_EXHAUSTION' | null {
   // 1. Capacity — throws ChannelCapacityError at 100%, nearExhaustion at 95%.
   const { nearExhaustion } = assessCapacity(newSequence);
 
   // 2/3. Watermark: stale-sequence and double-sign protection.
+  // Check both the module-level map (in-process) and the channel's persisted
+  // pendingProposal (cross-restart). The module-level map provides the stronger
+  // guarantee within one process; the channel watermark covers crash/restart.
   const watermark = _channelWatermarks.get(channelId);
   if (watermark) {
     if (watermark.sequence > newSequence) {
       throw new SequenceError(watermark.sequence, newSequence);
     }
     if (watermark.sequence === newSequence && watermark.payloadHash !== payloadHash) {
+      throw new DoubleSignError(newSequence);
+    }
+  }
+  if (pendingProposal) {
+    if (pendingProposal.sequence > newSequence) {
+      throw new SequenceError(pendingProposal.sequence, newSequence);
+    }
+    if (pendingProposal.sequence === newSequence && pendingProposal.payloadHash !== payloadHash) {
       throw new DoubleSignError(newSequence);
     }
   }
@@ -121,6 +133,9 @@ export async function createChannel(
   const { script, address } = buildAndHashEltooScript(parties);
   const tokenId = params.tokenId ?? TOKENID_MINIMA;
   const tokenScale = params.tokenScale ?? 0;
+  if (params.localAmount <= 0n || params.remoteAmount <= 0n) {
+    throw new Error('Initial channel amounts must be positive');
+  }
   const totalValue = params.localAmount + params.remoteAmount;
 
   const fundingDraft = buildFundingTx(
@@ -141,7 +156,7 @@ export async function createChannel(
   const fundingTxBytes = omniaDraftToMinimaBytes(fundingDraft);
   const txBody = serializeTxBody(fundingTxBytes, new Uint8Array(0));
   const mined = await mineTxPoW(txBody, TX_POW_MIN_DIFFICULTY);
-  const fullTxPoW = concatBytes(mined.minedHeaderBytes, new Uint8Array([0x01]), txBody);
+  const fullTxPoW = concatBytes(concatBytes(mined.minedHeaderBytes, new Uint8Array([0x01])), txBody);
   const broadcast = await chainProvider.broadcastTxPoW(Buffer.from(fullTxPoW).toString('hex'));
   const fundingTxId = broadcast.txpowid ?? Buffer.from(mined.txpowId).toString('hex');
   const fundingCoinId = `${fundingTxId}-0`;
@@ -205,22 +220,57 @@ export async function createChannel(
 }
 
 /**
- * Bob's side: validates an inbound channel proposal and returns an active channel.
- * Recomputes the script from the proposal's parties and validates it matches the
- * claimed fundingScript (tampering detection).
+ * Bob's side: validates an inbound channel proposal and returns a channel.
+ *
+ * If a chain provider is supplied, the funding coin is verified on-chain.
+ * The channel is returned with status 'funding_pending' — call
+ * `activateChannel()` after the funding transaction reaches the required
+ * confirmation depth.
  *
  * @param proposal  - Inbound channel proposal from the initiating party.
  * @param provider  - Optional chain provider for on-chain funding TX validation.
+ * @param minConfirmations - Minimum confirmations required (default 1).
  */
-export function acceptChannel(
+export async function acceptChannel(
   proposal: ChannelProposal,
   provider?: ChainStateProvider,
-): OmniaChannel {
+  minConfirmations: number = 1,
+): Promise<OmniaChannel> {
   const parties = [proposal.localParty, proposal.remoteParty];
   const { script, address } = buildAndHashEltooScript(parties);
 
   if (script !== proposal.fundingScript) {
     throw new Error('Script mismatch: recomputed script does not match proposal');
+  }
+
+  let fundingConfirmed = false;
+  if (provider) {
+    const coin = await provider.getCoin(proposal.fundingCoinId);
+    if (!coin) {
+      throw new Error(`Funding coin ${proposal.fundingCoinId} not found on chain`);
+    }
+    if (coin.spent) {
+      throw new Error(`Funding coin ${proposal.fundingCoinId} is already spent`);
+    }
+    const expectedAmount = proposal.localAmount + proposal.remoteAmount;
+    if (BigInt(coin.amount) !== expectedAmount) {
+      throw new Error(`Funding coin amount ${coin.amount} does not match proposal total ${expectedAmount}`);
+    }
+    if (coin.tokenid !== (proposal.tokenId ?? '0x00')) {
+      throw new Error(`Funding coin token ${coin.tokenid} does not match proposal token ${proposal.tokenId}`);
+    }
+    // Check confirmation depth
+    if (minConfirmations > 0) {
+      const tip = await provider.getTip();
+      if (coin.mmrentry) {
+        const coinBlock = typeof coin.mmrentry === 'number' ? coin.mmrentry : 0;
+        if (tip.block - coinBlock >= minConfirmations) {
+          fundingConfirmed = true;
+        }
+      }
+    } else {
+      fundingConfirmed = true;
+    }
   }
 
   const totalValue = proposal.localAmount + proposal.remoteAmount;
@@ -244,7 +294,7 @@ export function acceptChannel(
     currentSequence: 0,
     latestState: null,
     stateLog: [],
-    status: 'active',
+    status: fundingConfirmed ? 'active' : 'funding_pending',
     channelType: 'direct',
     createdAt: Date.now(),
     updatedAt: Date.now(),
@@ -283,7 +333,7 @@ export async function updateState(
 
   const newSequence = channel.currentSequence + 1;
 
-  // Validate balance conservation.
+  // Validate balance conservation and non-negativity.
   const htlcTotal = channel.pendingHTLCs
     .filter(h => h.status === 'pending')
     .reduce((a, h) => a + h.amount, 0n);
@@ -292,13 +342,18 @@ export async function updateState(
     const { BalanceConservationError } = await import('./errors.js');
     throw new BalanceConservationError(channel.totalValue, balanceSum + htlcTotal);
   }
+  for (const [partyId, balance] of Object.entries(delta.newBalances)) {
+    if (balance < 0n) {
+      throw new Error(`Negative balance for ${partyId}: ${balance}`);
+    }
+  }
 
   // Compute state commitment (fail-fast, before any async work) then run all
   // per-update invariants through the shared enforceUpdateGuards path —
   // capacity, watermark double-sign / stale-sequence, and watermark advance.
   const commitment = computeStateCommitment(newSequence, delta.newBalances, channel.pendingHTLCs);
   const payloadHash = bytesToHex(commitment);
-  const guardError = enforceUpdateGuards(channel.channelId, newSequence, payloadHash);
+  const guardError = enforceUpdateGuards(channel.channelId, newSequence, payloadHash, channel.pendingProposal);
   if (guardError) {
     return { channel, signedState: {}, error: guardError };
   }
@@ -360,6 +415,11 @@ export function attachCounterpartySignature(
     throw new Error('Partial state is incomplete');
   }
 
+  const counterParty = channel.parties.find(p => p.partyId === counterPartyId);
+  if (!counterParty) {
+    throw new Error(`Counterparty ${counterPartyId} not found in channel parties`);
+  }
+
   const signedState: SignedChannelState = {
     sequence: partialState.sequence,
     balances: partialState.balances,
@@ -375,6 +435,12 @@ export function attachCounterpartySignature(
       [counterPartyId]: counterIndices,
     },
   };
+
+  // Verify the counterparty's WOTS signature before accepting the state.
+  const valid = verifyStateSignature(channel, signedState, counterPartyId, counterParty.publicKeyDigest);
+  if (!valid) {
+    throw new Error(`Invalid WOTS signature for counterparty ${counterPartyId}`);
+  }
 
   const updatedChannel: OmniaChannel = {
     ...channel,
@@ -404,5 +470,109 @@ export function getChannelReceipt(
 }
 
 export function activateChannel(channel: OmniaChannel): OmniaChannel {
+  if (channel.status !== 'funding_pending' && channel.status !== 'opening') {
+    throw new Error(`Cannot activate channel with status '${channel.status}' — must be 'funding_pending' or 'opening'`);
+  }
   return { ...channel, status: 'active', updatedAt: Date.now() };
+}
+
+/**
+ * Validate every invariant of a signed channel state before replacing latestState.
+ *
+ * Checks:
+ *   1. Exact participant balance keys (no extra, no missing).
+ *   2. Distinct participant IDs and public-key digests.
+ *   3. Non-negative balances.
+ *   4. Conservation including pending HTLCs.
+ *   5. Exact sequence progression.
+ *   6. Both signatures present.
+ *   7. Signature-to-party binding.
+ *   8. WOTS index monotonicity.
+ *   9. Transaction bytes/state commitment binding.
+ *
+ * Call before updating latestState, settling, disputing, or generating receipts.
+ */
+export function validateCompleteChannelState(
+  channel: OmniaChannel,
+  state: SignedChannelState,
+): { valid: boolean; reason?: string } {
+  // 1. Exact participant balance keys
+  const partyIds = new Set(channel.parties.map(p => p.partyId));
+  const balanceKeys = Object.keys(state.balances);
+  if (balanceKeys.length !== partyIds.size) {
+    return { valid: false, reason: `Balance map has ${balanceKeys.length} keys, expected ${partyIds.size} (channel participants)` };
+  }
+  for (const key of balanceKeys) {
+    if (!partyIds.has(key)) {
+      return { valid: false, reason: `Balance key '${key}' is not a channel participant` };
+    }
+  }
+
+  // 2. Distinct participant IDs and public-key digests
+  const pkds = new Set(channel.parties.map(p => p.publicKeyDigest));
+  if (pkds.size !== channel.parties.length) {
+    return { valid: false, reason: 'Duplicate public key digests in channel parties' };
+  }
+
+  // 3. Non-negative balances
+  for (const [partyId, balance] of Object.entries(state.balances)) {
+    if (balance < 0n) {
+      return { valid: false, reason: `Negative balance for ${partyId}: ${balance}` };
+    }
+  }
+
+  // 4. Conservation including pending HTLCs
+  const htlcTotal = (state.pendingHTLCs ?? [])
+    .filter(h => h.status === 'pending')
+    .reduce((a, h) => a + h.amount, 0n);
+  const balanceSum = Object.values(state.balances).reduce((a, b) => a + b, 0n);
+  if (balanceSum + htlcTotal !== channel.totalValue) {
+    return { valid: false, reason: `Balance conservation failed: ${balanceSum} + ${htlcTotal} ≠ ${channel.totalValue}` };
+  }
+
+  // 5. Exact sequence progression
+  if (state.sequence <= 0) {
+    return { valid: false, reason: `Sequence must be positive: ${state.sequence}` };
+  }
+
+  // 6. Both signatures present
+  for (const party of channel.parties) {
+    if (!state.signatures[party.partyId]) {
+      return { valid: false, reason: `Missing signature for party ${party.partyId}` };
+    }
+  }
+
+  // 7. Signature-to-party binding
+  for (const [partyId, sig] of Object.entries(state.signatures)) {
+    const party = channel.parties.find(p => p.partyId === partyId);
+    if (!party) {
+      return { valid: false, reason: `Signature party '${partyId}' not found in channel parties` };
+    }
+    const valid = verifyStateSignature(channel, state, partyId, party.publicKeyDigest);
+    if (!valid) {
+      return { valid: false, reason: `Invalid WOTS signature for party ${partyId}` };
+    }
+  }
+
+  // 8. WOTS index monotonicity
+  if (channel.latestState) {
+    for (const party of channel.parties) {
+      const prevIndices = channel.latestState.signingIndices[party.partyId];
+      const newIndices = state.signingIndices[party.partyId];
+      if (prevIndices && newIndices) {
+        const prevFlat = flatSigningIndex(prevIndices.l1, prevIndices.l2);
+        const newFlat = flatSigningIndex(newIndices.l1, newIndices.l2);
+        if (newFlat <= prevFlat) {
+          return { valid: false, reason: `WOTS index not monotonic for ${party.partyId}: ${newFlat} ≤ ${prevFlat}` };
+        }
+      }
+    }
+  }
+
+  // 9. Transaction bytes/state commitment binding
+  if (!state.transactionHex || state.transactionHex.length === 0) {
+    return { valid: false, reason: 'Missing transactionHex in signed state' };
+  }
+
+  return { valid: true };
 }

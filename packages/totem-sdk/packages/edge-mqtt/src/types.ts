@@ -232,6 +232,17 @@ export interface MqttCommand {
   createdAt: number;
 }
 
+export interface SignedCommandEnvelope {
+  commandId: string;
+  command: string;
+  payloadHash: string;
+  issuedAt: number;
+  expiresAt: number;
+  nonce: string;
+  issuerIdentity: string;
+  signature: string;
+}
+
 export interface MqttCommandExecutor {
   execute(command: MqttCommand): Promise<EdgeOperationResult>;
 }
@@ -243,6 +254,10 @@ export interface MqttCommandHandlerConfig {
   receiptTopic?: string;
   executor?: MqttCommandExecutor;
   metadata?: Record<string, unknown>;
+  /** Maximum age of a command in milliseconds (default 60_000). */
+  maxCommandAgeMs?: number;
+  /** Function to verify a command signature. */
+  verifyCommandSignature?: (envelope: SignedCommandEnvelope) => Promise<boolean>;
 }
 
 export interface MqttCommandHandler {

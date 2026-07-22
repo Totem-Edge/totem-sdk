@@ -27,6 +27,14 @@ export type {
   AgentResultMessage,
   TrustRecordMessage,
   TrustQueryMessage,
+  PolicyAnnounceMessage,
+  PolicyQueryMessage,
+  PolicyResultMessage,
+  PolicyWatchMessage,
+  PolicyUpdateMessage,
+  PolicySignRequestMessage,
+  PolicySignResponseMessage,
+  PolicySignCancelMessage,
   VersionMismatchMessage,
   ErrorMessage,
   PingMessage,
@@ -38,6 +46,7 @@ export {
   decodeMessage,
   peekFrameLength,
   FramingError,
+  MAX_FRAME_BODY_LENGTH,
 } from './framing.js';
 
 export {

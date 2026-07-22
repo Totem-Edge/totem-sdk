@@ -3,7 +3,7 @@
   "collaborators": [
     "Totem SDK Contributors"
   ],
-  "description": "Quantum-resistant WOTS+ cryptographic engine for the Totem SDK — compiled to WASM",
+  "description": "WOTS (Winternitz) cryptographic engine for the Totem SDK — compiled to WASM",
   "version": "0.1.0",
   "license": "MIT",
   "repository": {

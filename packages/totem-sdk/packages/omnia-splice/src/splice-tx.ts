@@ -3,7 +3,7 @@ import {
   serializeTransaction,
   createDefaultTransaction,
   buildMinimaCoin,
-  fromHex,
+  hexToBytes,
   type StateVariable as CoreStateVariable,
 } from '@totemsdk/core';
 import type { OmniaChannel } from '@totemsdk/omnia';
@@ -135,10 +135,10 @@ export function spliceDraftToMinimaBytes(draft: SpliceTxDraft): Uint8Array {
 
   for (const inp of draft.inputs) {
     tx.inputs.push(buildMinimaCoin({
-      coinId: fromHex(inp.coinId),
-      address: fromHex(inp.address),
+      coinId: hexToBytes(inp.coinId),
+      address: hexToBytes(inp.address),
       amount: inp.amount.toString(),
-      tokenId: fromHex(inp.tokenId),
+      tokenId: hexToBytes(inp.tokenId),
     }));
   }
 
@@ -151,9 +151,9 @@ export function spliceDraftToMinimaBytes(draft: SpliceTxDraft): Uint8Array {
       : [];
 
     tx.outputs.push(buildMinimaCoin({
-      address: fromHex(out.address),
+      address: hexToBytes(out.address),
       amount: out.amount.toString(),
-      tokenId: fromHex(out.tokenId),
+      tokenId: hexToBytes(out.tokenId),
       storeState: out.storeState,
       state,
     }));
@@ -164,7 +164,7 @@ export function spliceDraftToMinimaBytes(draft: SpliceTxDraft): Uint8Array {
     { port: STATE_SEQUENCE_PORT,   value: 0n,    type: 'number' },
   ];
 
-  return serializeTransaction(tx);
+  return serializeTransaction(JSON.stringify(tx));
 }
 
 /**

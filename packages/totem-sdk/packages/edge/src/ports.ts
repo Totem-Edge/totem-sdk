@@ -138,4 +138,43 @@ export interface EdgeRuntimePorts {
   manifest?: EdgeManifestPort;
   /** WOTS key-lease coordination — required before any signing operation. */
   keyLease?: EdgeKeyLeasePort;
+  /** Bidirectional byte-stream transport (WebSocket, Hyperswarm, WebRTC, stdio). */
+  stream?: EdgeStreamPort;
+  /** Publish-subscribe transport (MQTT-compatible, protocol-agnostic). */
+  pubsub?: EdgePubSubPort;
+}
+
+/**
+ * Bidirectional byte-stream transport port.
+ *
+ * Wraps @totemsdk/stream-transport's IStreamTransport as a first-class
+ * Edge runtime port. Use for P2P channel messaging, lookup node connections,
+ * or any protocol that needs a raw bidirectional byte pipe.
+ */
+export interface EdgeStreamPort {
+  /** Send raw bytes to the remote peer. */
+  send(data: Uint8Array): void;
+  /** Register a handler for inbound data. */
+  onData(handler: (data: Uint8Array) => void): () => void;
+  /** Register a handler for connection close. */
+  onClose(handler: () => void): () => void;
+  /** Register a handler for transport errors. */
+  onError(handler: (err: Error) => void): () => void;
+  /** Close the connection. */
+  close(): void;
+}
+
+/**
+ * Publish-subscribe transport port.
+ *
+ * Wraps @totemsdk/pubsub-transport's IPubSubTransport as a first-class
+ * Edge runtime port. Protocol-agnostic — works with MQTT brokers, in-process
+ * event buses, or any pub/sub backend.
+ */
+export interface EdgePubSubPort {
+  connect(): Promise<void>;
+  disconnect(): Promise<void>;
+  subscribe(topic: string): Promise<{ topic: string; unsubscribe(): Promise<void> }>;
+  publish(topic: string, payload: string | Uint8Array): Promise<void>;
+  onMessage(handler: (message: { topic: string; payload: Uint8Array }) => void): () => void;
 }

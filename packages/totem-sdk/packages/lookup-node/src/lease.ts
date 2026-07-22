@@ -60,11 +60,53 @@ export class LeaseCoordinator {
   private _signFn?: (data: Uint8Array) => Promise<Uint8Array>;
   /** Track burned reservations to reject commit-after-burn */
   private readonly _burnedReservations = new Set<string>();
+  /** treeId → authorised controller public key hex */
+  private readonly _treeOwners = new Map<string, string>();
+  /** reservationId → controller public key hex */
+  private readonly _reservationOwners = new Map<string, string>();
 
   constructor(nodeId: string, config: LeaseConfig) {
     const storage: StorageAdapter = config.storage ?? new MemoryStorageAdapter();
     this._provider = new LocalLeaseProvider(storage);
     this._nodeId = nodeId;
+  }
+
+  /**
+   * Register a tree as owned by a specific authenticated controller.
+   * Called on first LEASE_RESERVE for a tree, or externally during setup.
+   */
+  registerTreeOwner(treeId: string, controllerPublicKeyHex: string): void {
+    const existing = this._treeOwners.get(treeId);
+    if (existing && existing !== controllerPublicKeyHex) {
+      throw new Error(`Tree ${treeId} is already owned by ${existing.slice(0, 16)}…`);
+    }
+    this._treeOwners.set(treeId, controllerPublicKeyHex);
+  }
+
+  /**
+   * Verify that a controller is authorised to operate on a tree.
+   * If the tree has no registered owner, the first controller to reserve it becomes the owner.
+   */
+  private _authoriseTree(treeId: string, controllerPublicKeyHex: string): void {
+    const existing = this._treeOwners.get(treeId);
+    if (!existing) {
+      this._treeOwners.set(treeId, controllerPublicKeyHex);
+      return;
+    }
+    if (existing !== controllerPublicKeyHex) {
+      throw new Error(`Tree ${treeId} is owned by ${existing.slice(0, 16)}…, not ${controllerPublicKeyHex.slice(0, 16)}…`);
+    }
+  }
+
+  private _authoriseReservation(reservationId: string, controllerPublicKeyHex: string): void {
+    const existing = this._reservationOwners.get(reservationId);
+    if (!existing) {
+      this._reservationOwners.set(reservationId, controllerPublicKeyHex);
+      return;
+    }
+    if (existing !== controllerPublicKeyHex) {
+      throw new Error(`Reservation ${reservationId} is owned by ${existing.slice(0, 16)}…, not ${controllerPublicKeyHex.slice(0, 16)}…`);
+    }
   }
 
   async initialize(): Promise<void> {
@@ -126,9 +168,12 @@ export class LeaseCoordinator {
     return cert;
   }
 
-  async handleReserve(msg: LeaseReserveMessage, sendFn: SendFn): Promise<void> {
+  async handleReserve(msg: LeaseReserveMessage, sendFn: SendFn, controllerPublicKeyHex?: string): Promise<void> {
     if (!this._initialized) await this.initialize();
     try {
+      if (controllerPublicKeyHex) {
+        this._authoriseTree(msg.payload.treeId, controllerPublicKeyHex);
+      }
       const reservation = await this._provider.reserveKeyUse({
         treeId: msg.payload.treeId,
         branchId: msg.payload.branchId,
@@ -137,6 +182,10 @@ export class LeaseCoordinator {
         payloadHash: msg.payload.payloadHash,
         purpose: msg.payload.purpose,
       });
+
+      if (controllerPublicKeyHex) {
+        this._reservationOwners.set(reservation.reservationId, controllerPublicKeyHex);
+      }
 
       const cert = await this._issueCertificate(
         reservation.reservationId,
@@ -165,8 +214,11 @@ export class LeaseCoordinator {
     }
   }
 
-  async handleCommit(msg: LeaseCommitMessage, sendFn: SendFn): Promise<void> {
+  async handleCommit(msg: LeaseCommitMessage, sendFn: SendFn, controllerPublicKeyHex?: string): Promise<void> {
     if (!this._initialized) await this.initialize();
+    if (controllerPublicKeyHex) {
+      this._authoriseReservation(msg.payload.reservationId, controllerPublicKeyHex);
+    }
     if (this._burnedReservations.has(msg.payload.reservationId)) {
       sendFn({
         type: 'ERROR',
@@ -194,8 +246,11 @@ export class LeaseCoordinator {
     }
   }
 
-  async handleBurn(msg: LeaseBurnMessage, sendFn: SendFn): Promise<void> {
+  async handleBurn(msg: LeaseBurnMessage, sendFn: SendFn, controllerPublicKeyHex?: string): Promise<void> {
     if (!this._initialized) await this.initialize();
+    if (controllerPublicKeyHex) {
+      this._authoriseReservation(msg.payload.reservationId, controllerPublicKeyHex);
+    }
     try {
       await this._provider.burnReservation(msg.payload.reservationId, msg.payload.reason);
       this._burnedReservations.add(msg.payload.reservationId);

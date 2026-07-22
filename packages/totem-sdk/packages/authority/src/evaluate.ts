@@ -82,7 +82,7 @@ export function evaluateAuthority(params: EvaluateAuthorityParams): EvaluateAuth
 
   let usageExceeded = false;
   if (mandateBody?.usageLimit && scopeMatch) {
-    usageExceeded = !checkUsageLimit(usageSnapshot, mandateBody.usageLimit, now);
+    usageExceeded = !checkUsageLimit(usageSnapshot, mandateBody.usageLimit, now, usageDelta);
     if (usageExceeded) {
       failedRules.push('usage:limit_exceeded');
     } else {

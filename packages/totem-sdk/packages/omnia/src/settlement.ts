@@ -148,7 +148,7 @@ export async function proposeSettlement(
     const mined = await mineTxPoW(txBody, TX_POW_MIN_DIFFICULTY);
 
     // Full TxPoW = TxHeader bytes + MiniByte(0x01=hasBody) + TxBody bytes
-    const fullTxPoW = concatBytes(mined.minedHeaderBytes, new Uint8Array([0x01]), txBody);
+    const fullTxPoW = concatBytes(concatBytes(mined.minedHeaderBytes, new Uint8Array([0x01])), txBody);
     await opts.chainProvider.broadcastTxPoW(Buffer.from(fullTxPoW).toString('hex'));
 
     settlementPayload.txpowId = Buffer.from(mined.txpowId).toString('hex');
