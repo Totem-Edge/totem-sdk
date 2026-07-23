@@ -13,8 +13,9 @@
   },
   "scripts": {
     "build": "tsc",
+    "build:go": "cd go && go build -o ../bin/realtime .",
     "prepare": "tsc",
-    "clean": "rm -rf dist",
+    "clean": "rm -rf dist bin",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest --passWithNoTests"
   },

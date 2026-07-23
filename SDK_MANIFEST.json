@@ -1,0 +1,762 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Totem SDK Package Manifest",
+  "description": "Machine-readable index of all @totemsdk packages — for AI agents, tooling, and developers. Updated 2026-07-22.",
+  "org": "@totemsdk",
+  "total": 50,
+  "domains": {
+    "cryptographic-foundation": {
+      "description": "WOTS+ signatures, TreeKey hierarchy, MMR proofs, KISSVM, MAST, TxPoW",
+      "packages": [
+        "@totemsdk/core",
+        "@totemsdk/core-wasm",
+        "@totemsdk/kissvm",
+        "@totemsdk/recursive-mast",
+        "@totemsdk/txpow",
+        "@totemsdk/wots-lease"
+      ]
+    },
+    "sovereignty-stack": {
+      "description": "Personal infrastructure — lookup nodes, chain queries, P2P data, real-time streaming",
+      "packages": [
+        "@totemsdk/lookup-node",
+        "@totemsdk/lookup-client",
+        "@totemsdk/lookup-protocol",
+        "@totemsdk/chain-provider",
+        "@totemsdk/pureminima-rpc",
+        "@totemsdk/realtime"
+      ]
+    },
+    "payment-network": {
+      "description": "Eltoo payment channels, routing, factories, statechains, virtual UTXOs, splicing",
+      "packages": [
+        "@totemsdk/omnia",
+        "@totemsdk/omnia-factory",
+        "@totemsdk/omnia-router",
+        "@totemsdk/omnia-splice",
+        "@totemsdk/omnia-vtxo",
+        "@totemsdk/statechain",
+        "@totemsdk/se-server",
+        "@totemsdk/tx-builder"
+      ]
+    },
+    "edge-computing": {
+      "description": "IoT/industrial runtime — transport connectors, MQTT, P2P, gateways, runtime harnesses",
+      "packages": [
+        "@totemsdk/edge",
+        "@totemsdk/edge-adapters",
+        "@totemsdk/edge-mqtt",
+        "@totemsdk/edge-bacnet",
+        "@totemsdk/edge-ble",
+        "@totemsdk/edge-can",
+        "@totemsdk/edge-coap",
+        "@totemsdk/edge-grpc",
+        "@totemsdk/edge-lorawan",
+        "@totemsdk/edge-matter",
+        "@totemsdk/edge-modbus",
+        "@totemsdk/edge-opcua",
+        "@totemsdk/edge-ros2",
+        "@totemsdk/pear",
+        "@totemsdk/server",
+        "@totemsdk/pubsub-transport",
+        "@totemsdk/stream-transport",
+        "@totemsdk/wallet-adapter"
+      ]
+    },
+    "verifiable-claims": {
+      "description": "WOTS-signed proofs, DID identities, manifests, AI agent policies, on-chain governance, reputation",
+      "packages": [
+        "@totemsdk/proof",
+        "@totemsdk/proof-integritas",
+        "@totemsdk/proofgraph",
+        "@totemsdk/identity",
+        "@totemsdk/root-identity",
+        "@totemsdk/manifest",
+        "@totemsdk/governance",
+        "@totemsdk/agent-policy",
+        "@totemsdk/provider-bond",
+        "@totemsdk/liquidity-bond",
+        "@totemsdk/authority"
+      ]
+    }
+  },
+  "packages": [
+    {
+      "name": "@totemsdk/agent-policy",
+      "version": "0.2.0",
+      "description": "Protobuf-based interface contracts for AI agent ↔ wallet communication",
+      "domain": "verifiable-claims",
+      "keywords": ["ai", "agents", "policy", "payment-intent", "protobuf"],
+      "dependencies": {
+        "@totemsdk/core": "^1.1.0",
+        "@protobuf-ts/runtime": "^2.11.1"
+      },
+      "exports": {
+        ".": "dist/index.{js,d.ts}"
+      },
+      "exportsDescription": "AgentPolicy, PaymentIntent, PolicyEvaluation, signAgentPolicy, verifyAgentPolicy"
+    },
+    {
+      "name": "@totemsdk/authority",
+      "version": "0.1.2",
+      "description": "Deterministic authority engine — mandate verification, scope matching, usage tracking",
+      "domain": "verifiable-claims",
+      "keywords": ["authority", "mandate", "governance", "edge-computing"],
+      "dependencies": {
+        "@totemsdk/proof": "^0.1.1",
+        "@totemsdk/identity": "^0.1.2"
+      },
+      "exports": {
+        ".": "dist/index.{js,d.ts}"
+      },
+      "exportsDescription": "AuthorityEngine, Mandate, Scope, evaluateAuthority, verifyMandate"
+    },
+    {
+      "name": "@totemsdk/chain-provider",
+      "version": "0.1.5",
+      "description": "Unified ChainStateProvider interface — Hosted, PureMinima, and Composite strategies",
+      "domain": "sovereignty-stack",
+      "keywords": ["chain-provider", "rpc", "provider", "chain-data", "strategy-pattern"],
+      "dependencies": {
+        "@totemsdk/core": "^1.1.0",
+        "@totemsdk/pureminima-rpc": "^0.1.3"
+      },
+      "exports": {
+        ".": "dist/index.{js,d.ts}"
+      },
+      "exportsDescription": "ChainStateProvider, HostedProvider, PureMinimaProvider, CompositeProvider"
+    },
+    {
+      "name": "@totemsdk/connect",
+      "version": "2.1.0",
+      "description": "Client-side SDK for Totem wallet browser extension — includes Edge capability layer",
+      "domain": "edge-computing",
+      "keywords": ["connect", "wallet", "extension", "dapp"],
+      "dependencies": {
+        "@totemsdk/omnia": ">=0.1.1",
+        "@totemsdk/omnia-router": ">=0.1.1",
+        "@totemsdk/omnia-factory": ">=0.1.2",
+        "@totemsdk/omnia-splice": ">=0.1.1",
+        "@totemsdk/statechain": ">=0.1.1",
+        "@totemsdk/kissvm": ">=0.1.1",
+        "@totemsdk/pear": ">=0.1.0",
+        "@totemsdk/wots-lease": ">=0.1.1",
+        "@totemsdk/txpow": ">=0.1.0",
+        "@totemsdk/chain-provider": ">=0.1.1",
+        "@totemsdk/lookup-client": ">=0.1.1"
+      },
+      "exports": {
+        ".": "dist/index.{js,d.ts}"
+      },
+      "exportsDescription": "WalletDiscovery, TotemProvider, request, TOTEM_CONNECT, TOTEM_SIGN"
+    },
+    {
+      "name": "@totemsdk/core",
+      "version": "1.2.6",
+      "description": "Core cryptographic primitives — WOTS+, SHA3-256, TreeKey, BIP39, backed by Rust/WASM",
+      "domain": "cryptographic-foundation",
+      "keywords": ["wots", "signatures", "sha3", "treekey", "bip39", "wasm"],
+      "dependencies": { "@totemsdk/core-wasm": "^0.1.0" },
+      "exports": {
+        ".": "dist/index.{js,d.ts}",
+        "./wasm": "dist/wasm-sync.{js,d.ts}",
+        "./legacy": "dist/legacy.{js,d.ts}",
+        "./adapters": "dist/adapters/index.{js,d.ts}",
+        "./lease": "dist/lease/index.{js,d.ts}",
+        "./tx": "dist/tx/index.{js,d.ts}",
+        "./scripts": "dist/scripts/index.{js,d.ts}"
+      },
+      "exportsDescription": "wotsSign, wotsVerify, derivePKdigest, sha3_256, TreeKey, BIP39, Mnemonic, TxPoW mining"
+    },
+    {
+      "name": "@totemsdk/core-wasm",
+      "version": "0.1.0",
+      "description": "WOTS+ cryptographic engine compiled from Rust to WASM",
+      "domain": "cryptographic-foundation",
+      "keywords": ["wasm", "rust", "cryptography", "wots"],
+      "dependencies": {},
+      "exports": {
+        ".": "pkg/{totemsdk_core_wasm.js, totemsdk_core_wasm.d.ts}"
+      },
+      "exportsDescription": "Low-level WASM bindings — used internally by @totemsdk/core"
+    },
+    {
+      "name": "@totemsdk/edge",
+      "version": "0.1.3",
+      "description": "Unified developer-facing runtime — composes identity, manifest, wallet, payment, proof, lookup, and policy via injected ports",
+      "domain": "edge-computing",
+      "keywords": ["edge", "runtime", "compose", "ports"],
+      "dependencies": {
+        "@totemsdk/core": "^1.1.0",
+        "@totemsdk/manifest": "^0.1.2",
+        "@totemsdk/identity": "^0.1.2",
+        "@totemsdk/agent-policy": "^0.1.3",
+        "@totemsdk/connect": "^2.1.0"
+      },
+      "exports": {
+        ".": "dist/index.{js,d.ts}"
+      },
+      "exportsDescription": "TotemEdge, EdgeConfig, createEdge, edge.getBalance, edge.sign, edge.connectWallet"
+    },
+    {
+      "name": "@totemsdk/edge-adapters",
+      "version": "0.1.0",
+      "description": "Reference adapters bridging SDK packages to @totemsdk/edge port interfaces",
+      "domain": "edge-computing",
+      "keywords": ["edge", "adapters", "ports"],
+      "dependencies": {
+        "@totemsdk/agent-policy": "^0.1.3",
+        "@totemsdk/chain-provider": "^0.1.4",
+        "@totemsdk/identity": "^0.1.2",
+        "@totemsdk/lookup-client": "^0.1.4",
+        "@totemsdk/manifest": "^0.1.2",
+        "@totemsdk/omnia-router": "^0.1.4",
+        "@totemsdk/proof": "^0.1.1",
+        "@totemsdk/pubsub-transport": "^0.1.0",
+        "@totemsdk/root-identity": "^1.0.7",
+        "@totemsdk/stream-transport": "^0.1.0"
+      },
+      "exports": {
+        ".": "dist/index.{js,d.ts}"
+      },
+      "exportsDescription": "InMemoryAdapter, NodeAdapter, PearAdapter — port implementations"
+    },
+    {
+      "name": "@totemsdk/edge-bacnet",
+      "version": "0.1.0",
+      "description": "Edge runtime adapter for BACnet — building automation, HVAC, device properties",
+      "domain": "edge-computing",
+      "keywords": ["bacnet", "building-automation", "hvac"],
+      "dependencies": { "@totemsdk/edge": "^0.1.3" },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "createBacnetGateway, createBacnetSensorBridge, BacnetGatewayConfig, BacnetTransportPort"
+    },
+    {
+      "name": "@totemsdk/edge-ble",
+      "version": "0.1.0",
+      "description": "Edge runtime adapter for BLE — wearables, beacons, proximity tracking",
+      "domain": "edge-computing",
+      "keywords": ["ble", "bluetooth", "wearables", "beacons"],
+      "dependencies": { "@totemsdk/edge": "^0.1.3" },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "createBleGateway, createBleSensorBridge, BleGatewayConfig, BleTransportPort"
+    },
+    {
+      "name": "@totemsdk/edge-can",
+      "version": "0.1.0",
+      "description": "Edge runtime adapter for CAN bus — automotive, heavy machinery, socketcan",
+      "domain": "edge-computing",
+      "keywords": ["can", "can-bus", "automotive", "socketcan"],
+      "dependencies": { "@totemsdk/edge": "^0.1.3" },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "createCanGateway, createCanSensorBridge, CanGatewayConfig, CanTransportPort"
+    },
+    {
+      "name": "@totemsdk/edge-coap",
+      "version": "0.1.0",
+      "description": "Edge runtime adapter for CoAP — constrained devices, RFC 7252, UDP transport",
+      "domain": "edge-computing",
+      "keywords": ["coap", "constrained-devices", "udp", "rfc7252"],
+      "dependencies": { "@totemsdk/edge": "^0.1.3" },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "createCoapGateway, createCoapSensorBridge, CoapGatewayConfig, CoapTransportPort"
+    },
+    {
+      "name": "@totemsdk/edge-grpc",
+      "version": "0.1.0",
+      "description": "Edge runtime adapter for gRPC — service-to-service, cloud-to-edge control planes",
+      "domain": "edge-computing",
+      "keywords": ["grpc", "service-to-service", "cloud-edge"],
+      "dependencies": { "@totemsdk/edge": "^0.1.3" },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "createGrpcGateway, createGrpcSensorBridge, GrpcGatewayConfig, GrpcTransportPort"
+    },
+    {
+      "name": "@totemsdk/edge-lorawan",
+      "version": "0.1.0",
+      "description": "Edge runtime adapter for LoRaWAN — agriculture, asset tracking, long-range sensors",
+      "domain": "edge-computing",
+      "keywords": ["lorawan", "lora", "agriculture", "asset-tracking"],
+      "dependencies": { "@totemsdk/edge": "^0.1.3" },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "createLorawanGateway, createLorawanSensorBridge, LorawanGatewayConfig, LorawanTransportPort"
+    },
+    {
+      "name": "@totemsdk/edge-matter",
+      "version": "0.1.0",
+      "description": "Edge runtime adapter for Matter — smart home, multi-transport, fabric management",
+      "domain": "edge-computing",
+      "keywords": ["matter", "smart-home", "fabric"],
+      "dependencies": { "@totemsdk/edge": "^0.1.3" },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "createMatterGateway, createMatterSensorBridge, MatterGatewayConfig, MatterTransportPort"
+    },
+    {
+      "name": "@totemsdk/edge-modbus",
+      "version": "0.1.0",
+      "description": "Edge runtime adapter for Modbus — PLCs, RTUs, industrial sensors over serial/TCP",
+      "domain": "edge-computing",
+      "keywords": ["modbus", "plc", "rtu", "industrial", "serial"],
+      "dependencies": { "@totemsdk/edge": "^0.1.3" },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "createModbusGateway, createModbusSensorBridge, ModbusGatewayConfig, ModbusTransportPort"
+    },
+    {
+      "name": "@totemsdk/edge-mqtt",
+      "version": "0.2.3",
+      "description": "MQTT adapter — Rust/WASM-backed canonicalization, topic matching, MachinePay arithmetic",
+      "domain": "edge-computing",
+      "keywords": ["mqtt", "iot", "sensor", "gateway", "machinepay", "wasm"],
+      "dependencies": {
+        "@totemsdk/core": "^1.1.0",
+        "@totemsdk/manifest": "^0.1.2",
+        "@totemsdk/identity": "^0.1.2",
+        "@totemsdk/edge": "^0.1.2",
+        "@totemsdk/proof": "^0.1.1",
+        "@totemsdk/agent-policy": "^0.1.3",
+        "@totemsdk/pubsub-transport": "^0.1.0"
+      },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "MqttGateway, MqttSensorBridge, MachinePay, createMqttGateway, createMqttSensorBridge"
+    },
+    {
+      "name": "@totemsdk/edge-opcua",
+      "version": "0.1.0",
+      "description": "Edge runtime adapter for OPC-UA — SCADA, factory floors, industrial automation",
+      "domain": "edge-computing",
+      "keywords": ["opcua", "scada", "factory", "industrial"],
+      "dependencies": { "@totemsdk/edge": "^0.1.3" },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "createOpcuaGateway, createOpcuaSensorBridge, OpcuaGatewayConfig, OpcuaTransportPort"
+    },
+    {
+      "name": "@totemsdk/edge-ros2",
+      "version": "0.1.0",
+      "description": "Edge runtime adapter for ROS 2 — robotics, DDS middleware, typed topics",
+      "domain": "edge-computing",
+      "keywords": ["ros2", "robotics", "dds"],
+      "dependencies": { "@totemsdk/edge": "^0.1.3" },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "createRos2Gateway, createRos2SensorBridge, Ros2GatewayConfig, Ros2TransportPort"
+    },
+    {
+      "name": "@totemsdk/governance",
+      "version": "0.1.0",
+      "description": "Deterministic governance engine — quadratic voting, liquid democracy, delegation, mandate-bound proposal execution",
+      "domain": "verifiable-claims",
+      "keywords": ["governance", "dao", "quadratic-voting", "liquid-democracy", "delegation"],
+      "dependencies": {
+        "@totemsdk/authority": "^0.1.2",
+        "@totemsdk/core": "^1.1.0",
+        "@totemsdk/identity": "^0.1.3",
+        "@totemsdk/proof": "^0.1.2"
+      },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "GovernanceEngine, Proposal, Vote, Delegation, Tally, Snapshot, createProposal, castVote"
+    },
+    {
+      "name": "@totemsdk/identity",
+      "version": "0.1.3",
+      "description": "Canonical identity and claims layer — who controls a manifest, device, or agent",
+      "domain": "verifiable-claims",
+      "keywords": ["identity", "did", "claims"],
+      "dependencies": {
+        "@totemsdk/core": "^1.1.0",
+        "@totemsdk/manifest": "^0.1.2"
+      },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "Identity, createIdentity, signClaim, verifyClaim, getPublicKey, getAddress"
+    },
+    {
+      "name": "@totemsdk/kissvm",
+      "version": "0.4.0",
+      "description": "KISSVM v1 evaluator for Minima scripting — lexer, parser, VM, all opcodes, backed by Rust/WASM",
+      "domain": "cryptographic-foundation",
+      "keywords": ["kissvm", "script", "vm", "evaluator", "wasm"],
+      "dependencies": { "@totemsdk/core": "^1.2.0" },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "evaluateScript, compileScript, parseScript, KISSVMResult, Opcode, Witness, TxContext"
+    },
+    {
+      "name": "@totemsdk/liquidity-bond",
+      "version": "0.1.0",
+      "description": "Deterministic, non-custodial LP position and productive liquidity record",
+      "domain": "verifiable-claims",
+      "keywords": ["liquidity", "bond", "lp", "pool"],
+      "dependencies": {
+        "@totemsdk/core": "^1.1.0",
+        "@totemsdk/identity": "^0.1.2",
+        "@totemsdk/manifest": "^0.1.2",
+        "@totemsdk/proof": "^0.1.1"
+      },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "LiquidityBond, createBond, verifyBond, claimBond"
+    },
+    {
+      "name": "@totemsdk/lookup-client",
+      "version": "0.1.5",
+      "description": "Hyperswarm client for Totem lookup nodes — chain queries, real-time coin updates, TxPoW broadcast",
+      "domain": "sovereignty-stack",
+      "keywords": ["hyperswarm", "p2p", "lookup", "client"],
+      "dependencies": {
+        "@totemsdk/core": "^1.1.0",
+        "@totemsdk/lookup-protocol": "^0.1.3",
+        "@totemsdk/chain-provider": "^0.1.4",
+        "@totemsdk/stream-transport": "^0.1.0"
+      },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "LookupClient, createLookupClient, getCoin, getBalance, subscribeCoinUpdates"
+    },
+    {
+      "name": "@totemsdk/lookup-node",
+      "version": "0.1.7",
+      "description": "Always-on personal lookup node — Hyperswarm, chain queries, COIN_UPDATE push, WOTS lease coordination",
+      "domain": "sovereignty-stack",
+      "keywords": ["hyperswarm", "p2p", "lookup", "node", "server"],
+      "dependencies": {
+        "@totemsdk/core": "^1.1.0",
+        "@totemsdk/lookup-protocol": "^0.1.3",
+        "@totemsdk/chain-provider": "^0.1.4",
+        "@totemsdk/pureminima-rpc": "^0.1.3",
+        "@totemsdk/wots-lease": "^0.1.3",
+        "@totemsdk/txpow": "^0.1.5",
+        "better-sqlite3": "^12.2.0"
+      },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "LookupNode, createLookupNode, LookupNodeConfig"
+    },
+    {
+      "name": "@totemsdk/lookup-protocol",
+      "version": "0.1.4",
+      "description": "Wire protocol definitions for lookup node ↔ client communication",
+      "domain": "sovereignty-stack",
+      "keywords": ["protocol", "lookup", "p2p", "wire"],
+      "dependencies": { "@totemsdk/core": "^1.1.0" },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "LookupMessage, MessageType, serialize, deserialize, Request, Response"
+    },
+    {
+      "name": "@totemsdk/manifest",
+      "version": "0.1.2",
+      "description": "Canonical signed declaration format — apps, agent capabilities, dApps, edge services",
+      "domain": "verifiable-claims",
+      "keywords": ["manifest", "declaration", "signed"],
+      "dependencies": { "@totemsdk/core": "^1.1.0" },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "Manifest, createManifest, signManifest, verifyManifest, ManifestType"
+    },
+    {
+      "name": "@totemsdk/omnia",
+      "version": "0.1.9",
+      "description": "Omnia eltoo payment channel state machine — transport-agnostic, WOTS-safe, HTLC-ready",
+      "domain": "payment-network",
+      "keywords": ["omnia", "payment-channel", "eltoo", "layer2", "htlc", "state-machine"],
+      "dependencies": {
+        "@totemsdk/core": "^1.1.0",
+        "@totemsdk/tx-builder": "^0.1.6",
+        "@totemsdk/txpow": "^0.1.5",
+        "@totemsdk/wots-lease": "^0.1.3",
+        "@totemsdk/chain-provider": "^0.1.4",
+        "@totemsdk/agent-policy": "^0.1.3",
+        "@totemsdk/stream-transport": "^0.1.0",
+        "@totemsdk/lookup-protocol": "^0.1.3"
+      },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "Channel, ChannelState, openChannel, closeChannel, updateChannel, HTLC, addHTLC, fulfillHTLC"
+    },
+    {
+      "name": "@totemsdk/omnia-factory",
+      "version": "0.1.8",
+      "description": "Channel factory — N-of-N MULTISIG funding, virtual channel management, factory settlement",
+      "domain": "payment-network",
+      "keywords": ["omnia", "factory", "multisig", "virtual-channel"],
+      "dependencies": {
+        "@totemsdk/core": "^1.1.0",
+        "@totemsdk/omnia": "^0.1.5",
+        "@totemsdk/wots-lease": "^0.1.3",
+        "@totemsdk/tx-builder": "^0.1.6",
+        "@totemsdk/txpow": "^0.1.5",
+        "@totemsdk/chain-provider": "^0.1.4"
+      },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "ChannelFactory, createFactory, openVirtualChannel, settleFactory"
+    },
+    {
+      "name": "@totemsdk/omnia-router",
+      "version": "0.1.4",
+      "description": "Multi-hop payment routing — single-token and cross-token paths over Omnia channels",
+      "domain": "payment-network",
+      "keywords": ["omnia", "routing", "multi-hop", "htlc", "dijkstra"],
+      "dependencies": {
+        "@totemsdk/core": "^1.1.0",
+        "@totemsdk/omnia": ">=0.1.5"
+      },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "Router, findPath, Route, Hop, sendPayment, receivePayment"
+    },
+    {
+      "name": "@totemsdk/omnia-splice",
+      "version": "0.1.7",
+      "description": "Channel splicing — resize eltoo channels without close+reopen",
+      "domain": "payment-network",
+      "keywords": ["omnia", "splice", "channel-resize"],
+      "dependencies": {
+        "@totemsdk/omnia": "^0.1.5",
+        "@totemsdk/core": "^1.1.0",
+        "@totemsdk/tx-builder": "^0.1.6",
+        "@totemsdk/txpow": "^0.1.5",
+        "@totemsdk/wots-lease": "^0.1.3"
+      },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "spliceIn, spliceOut, SpliceConfig"
+    },
+    {
+      "name": "@totemsdk/omnia-vtxo",
+      "version": "0.1.0",
+      "description": "Virtual UTXO / payment-pool claim layer — cash-like off-chain balance primitive",
+      "domain": "payment-network",
+      "keywords": ["omnia", "vtxo", "virtual-utxo", "payment-pool", "ark"],
+      "dependencies": {},
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "VTXO, VtxoPool, createVtxo, claimVtxo, VtxoConfig"
+    },
+    {
+      "name": "@totemsdk/pear",
+      "version": "0.1.2",
+      "description": "Bare/Pear runtime integration — storage, networking, lifecycle, Hyperdrive adapters",
+      "domain": "edge-computing",
+      "keywords": ["pear", "bare", "hyperdrive", "hyperswarm"],
+      "dependencies": {
+        "@totemsdk/stream-transport": "^0.1.0",
+        "hyperswarm": ">=4.0.0",
+        "hyperbee": ">=2.0.0",
+        "hypercore": ">=10.0.0",
+        "hyperdrive": ">=2.0.0",
+        "corestore": ">=6.0.0"
+      },
+      "exports": {
+        ".": "dist/index.{js,d.ts}",
+        "./storage": "dist/storage/index.{js,d.ts}",
+        "./network": "dist/network/index.{js,d.ts}",
+        "./lifecycle": "dist/lifecycle.{js,d.ts}",
+        "./hyperdrive": "dist/hyperdrive.{js,d.ts}"
+      },
+      "exportsDescription": "PearRuntime, createStorage, createNetwork, createLifecycle, HyperdriveAdapter"
+    },
+    {
+      "name": "@totemsdk/proof",
+      "version": "0.1.2",
+      "description": "Portable proof layer — create, sign, verify, and anchor WOTS-signed proof envelopes on Minima",
+      "domain": "verifiable-claims",
+      "keywords": ["proof", "attestation", "anchoring", "verification"],
+      "dependencies": {
+        "@totemsdk/core": "^1.1.0",
+        "@totemsdk/manifest": "^0.1.2",
+        "@totemsdk/identity": "^0.1.2"
+      },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "Proof, ProofEnvelope, createProof, signProof, verifyProof, anchorProof"
+    },
+    {
+      "name": "@totemsdk/proof-integritas",
+      "version": "0.1.1",
+      "description": "Integritas v2 proof provider — hash stamping, checking, on-chain verification on Minima",
+      "domain": "verifiable-claims",
+      "keywords": ["integritas", "proof", "hash-stamp", "anchoring"],
+      "dependencies": { "@totemsdk/proof": "^0.1.1" },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "IntegritasProvider, stampHash, checkStamp, verifyOnChain"
+    },
+    {
+      "name": "@totemsdk/proofgraph",
+      "version": "0.1.1",
+      "description": "Local deterministic proof relationship graph — indexes proofs, identities, manifests into a content-addressed DAG",
+      "domain": "verifiable-claims",
+      "keywords": ["proof", "graph", "dag", "identity", "content-addressed"],
+      "dependencies": {
+        "@totemsdk/core": "^1.1.0",
+        "@totemsdk/proof": "^0.1.1",
+        "@totemsdk/manifest": "^0.1.2",
+        "@totemsdk/identity": "^0.1.2"
+      },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "ProofGraph, addProof, queryProofs, queryByIdentity, GraphNode, GraphEdge"
+    },
+    {
+      "name": "@totemsdk/provider-bond",
+      "version": "0.1.0",
+      "description": "Provider trust layer — prove, record, score and filter infrastructure providers",
+      "domain": "verifiable-claims",
+      "keywords": ["provider", "bond", "reputation", "trust"],
+      "dependencies": {
+        "@totemsdk/core": "^1.1.0",
+        "@totemsdk/identity": "^0.1.2",
+        "@totemsdk/manifest": "^0.1.2",
+        "@totemsdk/proof": "^0.1.1"
+      },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "ProviderBond, createProviderBond, verifyProviderBond, calculateReputation"
+    },
+    {
+      "name": "@totemsdk/pubsub-transport",
+      "version": "0.1.0",
+      "description": "Pub/sub transport interfaces — IPubSubTransport, EventEmitterTransport, MockPubSubTransport",
+      "domain": "edge-computing",
+      "keywords": ["transport", "pubsub", "mqtt", "iot"],
+      "dependencies": {},
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "IPubSubTransport, EventEmitterTransport, MockPubSubTransport, PublishOptions, SubscribeOptions"
+    },
+    {
+      "name": "@totemsdk/pureminima-rpc",
+      "version": "0.1.4",
+      "description": "Fetch-based PureMinima RPC client — Bare/Pear/Node/browser compatible",
+      "domain": "sovereignty-stack",
+      "keywords": ["rpc", "fetch", "browser", "pureminima"],
+      "dependencies": {},
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "PureMinimaRPC, createClient, getChainstate, sendTransaction"
+    },
+    {
+      "name": "@totemsdk/realtime",
+      "version": "0.1.9",
+      "description": "Real-time balance streaming — WebSocket and HTTP fallback",
+      "domain": "sovereignty-stack",
+      "keywords": ["realtime", "websocket", "streaming", "balance"],
+      "dependencies": {
+        "@totemsdk/core": "^1.0.4",
+        "typescript": ">=5.0.0"
+      },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "subscribeBalance, unsubscribeBalance, BalanceStream, BalanceUpdate"
+    },
+    {
+      "name": "@totemsdk/recursive-mast",
+      "version": "0.2.5",
+      "description": "Recursive MAST + PREVSTATE — composable policy trees, proof chains, state transitions, delegation",
+      "domain": "cryptographic-foundation",
+      "keywords": ["mast", "recursive", "prevstate", "policy", "governance"],
+      "dependencies": {
+        "@totemsdk/core": "^1.2.5",
+        "@totemsdk/kissvm": "^0.4.0",
+        "@totemsdk/tx-builder": "^0.1.8"
+      },
+      "exports": {
+        ".": "dist/index.{js,d.ts}",
+        "./templates/*": "dist/templates/*.{js,d.ts}",
+        "./kissvm": "dist/kissvm/index.{js,d.ts}",
+        "./transaction": "dist/transaction/index.{js,d.ts}"
+      },
+      "exportsDescription": "PolicyTree, ProofChain, PrevState, Delegation, compilePolicy, templates for access-control, commercial, compliance, data-privacy, device-lifecycle, energy, firmware-update, healthcare, identity-verification, layers, legal, payment-channel, recovery, rwa-lifecycle, sensor-proof, state-machine, supply-chain, treasury, voting"
+    },
+    {
+      "name": "@totemsdk/root-identity",
+      "version": "1.0.7",
+      "description": "Single root identity controlling up to 64 on-chain addresses — cryptographically linked via 3-level TreeKeys",
+      "domain": "verifiable-claims",
+      "keywords": ["identity", "did", "chain-of-custody", "dao-attestation", "kyc"],
+      "dependencies": { "@totemsdk/core": ">=1.0.1" },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "RootIdentity, createRootIdentity, deriveChildIdentity, getAddress"
+    },
+    {
+      "name": "@totemsdk/se-server",
+      "version": "0.1.2",
+      "description": "Self-hostable Statechain Entity (SE) server — Mercury-protocol co-signer as Express app",
+      "domain": "payment-network",
+      "keywords": ["statechain", "mercury", "se", "self-hosted", "express"],
+      "dependencies": {
+        "@totemsdk/core": "^1.1.0",
+        "express": "^5.2.1",
+        "pg": "^8.11.3",
+        "zod": "^4.4.3"
+      },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "SEServer, createSEServer, SEServerConfig, coSign, verifyStatechain"
+    },
+    {
+      "name": "@totemsdk/server",
+      "version": "1.0.1",
+      "description": "Server-side SDK — signing, transaction building and submission via Axia",
+      "domain": "edge-computing",
+      "keywords": ["server", "axia", "signing", "transaction"],
+      "dependencies": {
+        "@totemsdk/core": "^1.1.0",
+        "@totemsdk/txpow": "^0.1.5",
+        "node-fetch": "^2.6.9",
+        "ws": "^8.21.1"
+      },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "ServerTotem, createServerTotem, signTransaction, submitTransaction"
+    },
+    {
+      "name": "@totemsdk/statechain",
+      "version": "0.1.8",
+      "description": "Mercury-protocol state chain — privacy-preserving off-chain UTXO custody transfer with blind SE co-signatures",
+      "domain": "payment-network",
+      "keywords": ["statechain", "mercury", "blind-signature", "privacy", "custody-transfer"],
+      "dependencies": {
+        "@totemsdk/core": "^1.1.0",
+        "@totemsdk/wots-lease": "^0.1.3",
+        "@totemsdk/tx-builder": "^0.1.6",
+        "@totemsdk/txpow": "^0.1.5",
+        "@totemsdk/chain-provider": "^0.1.4"
+      },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "Statechain, createStatechain, transfer, close, StatechainConfig"
+    },
+    {
+      "name": "@totemsdk/stream-transport",
+      "version": "0.1.0",
+      "description": "Transport adapters — IStreamTransport, NodeStream, WebSocket, WebRTC, Stdio, Hyperswarm, in-memory",
+      "domain": "edge-computing",
+      "keywords": ["transport", "stream", "p2p", "hyperswarm", "webrtc"],
+      "dependencies": { "hyperswarm": ">=4.0.0" },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "IStreamTransport, NodeStreamAdapter, WebSocketAdapter, WebRTCAdapter, StdioAdapter, HyperswarmAdapter, InMemoryTransport"
+    },
+    {
+      "name": "@totemsdk/tx-builder",
+      "version": "0.1.8",
+      "description": "Transaction builder for Minima — coin selection, multisig, WOTS signing",
+      "domain": "payment-network",
+      "keywords": ["transaction", "builder", "coin-selection", "multisig"],
+      "dependencies": { "@totemsdk/core": "^1.1.0" },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "TxBuilder, buildTransaction, selectCoins, addInput, addOutput, sign, MultiSigConfig"
+    },
+    {
+      "name": "@totemsdk/txpow",
+      "version": "0.1.6",
+      "description": "TxPoW envelope serialization and proof-of-work mining for Minima",
+      "domain": "cryptographic-foundation",
+      "keywords": ["txpow", "proof-of-work", "mining", "serialization"],
+      "dependencies": { "@totemsdk/core": "^1.1.0" },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "TxPoW, mineTxPoW, serializeTxPoW, deserializeTxPoW, TxPoWConfig"
+    },
+    {
+      "name": "@totemsdk/wallet-adapter",
+      "version": "0.1.0",
+      "description": "Abstract base class for Totem-compatible wallets — hardware bridges, mobile companions, institutional custody",
+      "domain": "edge-computing",
+      "keywords": ["wallet-adapter", "hardware-wallet", "custody", "multi-wallet"],
+      "dependencies": { "@totemsdk/chain-provider": ">=0.1.3" },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "WalletAdapter, WalletConfig, sign, getBalance, getAddresses, TotemAnnounce"
+    },
+    {
+      "name": "@totemsdk/wots-lease",
+      "version": "0.1.5",
+      "description": "WOTS key-use coordination — canonical v3 watermark, provider-based lease safety",
+      "domain": "cryptographic-foundation",
+      "keywords": ["wots", "lease", "watermark", "key-coordination"],
+      "dependencies": {
+        "@totemsdk/core": "^1.1.0",
+        "@totemsdk/lookup-protocol": "^0.1.3"
+      },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "WotsLease, acquireLease, releaseLease, Watermark, WatermarkProvider"
+    }
+  ]
+}

@@ -422,7 +422,7 @@ importers:
     devDependencies:
       '@totemsdk/connect':
         specifier: ^2.1.0
-        version: 2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.3.0(@noble/hashes@2.2.0))(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0))
+        version: 2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0))
       '@types/jest':
         specifier: ^30.0.0
         version: 30.0.0
@@ -449,7 +449,7 @@ importers:
         version: 0.1.4(@noble/hashes@2.2.0)
       '@totemsdk/edge':
         specifier: ^0.1.3
-        version: 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.3.0(@noble/hashes@2.2.0))(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
+        version: 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
       '@totemsdk/identity':
         specifier: ^0.1.2
         version: 0.1.2(@noble/hashes@2.2.0)
@@ -494,7 +494,7 @@ importers:
     dependencies:
       '@totemsdk/edge':
         specifier: ^0.1.3
-        version: 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.3.0(@noble/hashes@2.2.0))(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
+        version: 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
     devDependencies:
       '@types/jest':
         specifier: ^30.0.0
@@ -516,7 +516,7 @@ importers:
     dependencies:
       '@totemsdk/edge':
         specifier: ^0.1.3
-        version: 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.3.0(@noble/hashes@2.2.0))(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
+        version: 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
     devDependencies:
       '@types/jest':
         specifier: ^30.0.0
@@ -538,7 +538,7 @@ importers:
     dependencies:
       '@totemsdk/edge':
         specifier: ^0.1.3
-        version: 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.3.0(@noble/hashes@2.2.0))(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
+        version: 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
     devDependencies:
       '@types/jest':
         specifier: ^30.0.0
@@ -560,8 +560,66 @@ importers:
     dependencies:
       '@totemsdk/edge':
         specifier: ^0.1.3
-        version: 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.3.0(@noble/hashes@2.2.0))(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
+        version: 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
     devDependencies:
+      '@types/jest':
+        specifier: ^30.0.0
+        version: 30.0.0
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.43
+      jest:
+        specifier: ^30.4.2
+        version: 30.4.2(@types/node@20.19.43)
+      ts-jest:
+        specifier: ^29.0.0
+        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
+  packages/totem-sdk/packages/edge-connectors:
+    dependencies:
+      '@totemsdk/edge':
+        specifier: ^0.1.3
+        version: 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
+      '@totemsdk/edge-bacnet':
+        specifier: ^0.1.0
+        version: 0.1.0(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
+      '@totemsdk/edge-ble':
+        specifier: ^0.1.0
+        version: 0.1.0(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
+      '@totemsdk/edge-can':
+        specifier: ^0.1.0
+        version: 0.1.0(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
+      '@totemsdk/edge-coap':
+        specifier: ^0.1.0
+        version: 0.1.0(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
+      '@totemsdk/edge-grpc':
+        specifier: ^0.1.0
+        version: 0.1.0(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
+      '@totemsdk/edge-lorawan':
+        specifier: ^0.1.0
+        version: 0.1.0(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
+      '@totemsdk/edge-matter':
+        specifier: ^0.1.0
+        version: 0.1.0(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
+      '@totemsdk/edge-modbus':
+        specifier: ^0.1.0
+        version: 0.1.0(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
+      '@totemsdk/edge-opcua':
+        specifier: ^0.1.0
+        version: 0.1.0(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
+      '@totemsdk/edge-ros2':
+        specifier: ^0.1.0
+        version: 0.1.0(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
+    devDependencies:
+      '@swc/core':
+        specifier: ^1.15.46
+        version: 1.15.46
+      '@swc/jest':
+        specifier: ^0.2.39
+        version: 0.2.39(@swc/core@1.15.46)
       '@types/jest':
         specifier: ^30.0.0
         version: 30.0.0
@@ -582,7 +640,7 @@ importers:
     dependencies:
       '@totemsdk/edge':
         specifier: ^0.1.3
-        version: 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.3.0(@noble/hashes@2.2.0))(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
+        version: 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
     devDependencies:
       '@types/jest':
         specifier: ^30.0.0
@@ -604,7 +662,7 @@ importers:
     dependencies:
       '@totemsdk/edge':
         specifier: ^0.1.3
-        version: 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.3.0(@noble/hashes@2.2.0))(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
+        version: 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
     devDependencies:
       '@types/jest':
         specifier: ^30.0.0
@@ -626,7 +684,7 @@ importers:
     dependencies:
       '@totemsdk/edge':
         specifier: ^0.1.3
-        version: 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.3.0(@noble/hashes@2.2.0))(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
+        version: 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
     devDependencies:
       '@types/jest':
         specifier: ^30.0.0
@@ -648,7 +706,7 @@ importers:
     dependencies:
       '@totemsdk/edge':
         specifier: ^0.1.3
-        version: 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.3.0(@noble/hashes@2.2.0))(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
+        version: 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
     devDependencies:
       '@types/jest':
         specifier: ^30.0.0
@@ -710,7 +768,7 @@ importers:
     dependencies:
       '@totemsdk/edge':
         specifier: ^0.1.3
-        version: 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.3.0(@noble/hashes@2.2.0))(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
+        version: 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
     devDependencies:
       '@types/jest':
         specifier: ^30.0.0
@@ -732,8 +790,45 @@ importers:
     dependencies:
       '@totemsdk/edge':
         specifier: ^0.1.3
-        version: 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.3.0(@noble/hashes@2.2.0))(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
+        version: 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
     devDependencies:
+      '@types/jest':
+        specifier: ^30.0.0
+        version: 30.0.0
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.43
+      jest:
+        specifier: ^30.4.2
+        version: 30.4.2(@types/node@20.19.43)
+      ts-jest:
+        specifier: ^29.0.0
+        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
+  packages/totem-sdk/packages/governance:
+    dependencies:
+      '@totemsdk/authority':
+        specifier: ^0.1.2
+        version: 0.1.2(@noble/hashes@2.2.0)
+      '@totemsdk/core':
+        specifier: ^1.1.0
+        version: 1.2.5
+      '@totemsdk/identity':
+        specifier: ^0.1.3
+        version: 0.1.3(@noble/hashes@2.2.0)
+      '@totemsdk/proof':
+        specifier: ^0.1.2
+        version: 0.1.2(@noble/hashes@2.2.0)
+    devDependencies:
+      '@swc/core':
+        specifier: ^1.15.46
+        version: 1.15.46
+      '@swc/jest':
+        specifier: ^0.2.39
+        version: 0.2.39(@swc/core@1.15.46)
       '@types/jest':
         specifier: ^30.0.0
         version: 30.0.0
@@ -1316,8 +1411,8 @@ importers:
         specifier: ^1.2.5
         version: 1.2.5
       '@totemsdk/kissvm':
-        specifier: ^0.3.0
-        version: 0.3.0(@noble/hashes@2.2.0)
+        specifier: ^0.4.0
+        version: 0.4.0
       '@totemsdk/tx-builder':
         specifier: ^0.1.8
         version: 0.1.8(@totemsdk/core@1.2.5)
@@ -1366,10 +1461,10 @@ importers:
         version: link:../core
       '@totemsdk/realtime':
         specifier: file:../realtime
-        version: file:packages/totem-sdk/packages/realtime(@noble/hashes@2.2.0)(typescript@7.0.2)
+        version: file:packages/totem-sdk/packages/realtime(typescript@7.0.2)
       '@totemsdk/txpow':
         specifier: file:../txpow
-        version: file:packages/totem-sdk/packages/txpow(@noble/hashes@2.2.0)
+        version: file:packages/totem-sdk/packages/txpow
     devDependencies:
       '@types/jest':
         specifier: ^30.0.0
@@ -2550,6 +2645,10 @@ packages:
       node-notifier:
         optional: true
 
+  '@jest/create-cache-key-function@30.4.1':
+    resolution: {integrity: sha512-R+xGEtzA95NIsvpXJSROG4t01956dDOt17KpamguY4XOnGvdHNFFXE7Er0C1OAsRjOwiIxpKqOvGlznIGZIQlQ==}
+    engines: {node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0}
+
   '@jest/diff-sequences@30.4.0':
     resolution: {integrity: sha512-zOpzlfUs45l6u7jm39qr87JCHUDsaeCtvL+kQe/Vn9jSnRB4/5IPXISm0h9I1vZW/o00Kn4UTJ2MOlhnUGwv3g==}
     engines: {node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0}
@@ -3082,8 +3181,111 @@ packages:
   '@sinonjs/fake-timers@15.4.0':
     resolution: {integrity: sha512-DsG+8/LscQIQg68J6Ef3dv10u6nVyetYn923s3/sus5eaGfTo1of5WMZSLf0UJc9KDuKPilPH0UDJCjvNbDNCA==}
 
+  '@swc/core-darwin-arm64@1.15.46':
+    resolution: {integrity: sha512-IsISIT22EfktVJrlvIpnAxG2u/A9aob9l99HMlx80x72WlFmFPk1V3UhkEzx86eJP8hw049KTFv/RISho2cq2Q==}
+    engines: {node: '>=10'}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@swc/core-darwin-x64@1.15.46':
+    resolution: {integrity: sha512-4Tj4ppVIPCmUMpmGFiGtyEriwLyJ+yi/US4WfBrP/ok8COGddDZXLEzQETnKyK46mjvr1v0jevrS23zjoff7vA==}
+    engines: {node: '>=10'}
+    cpu: [x64]
+    os: [darwin]
+
+  '@swc/core-linux-arm-gnueabihf@1.15.46':
+    resolution: {integrity: sha512-i8tUGnNjyOgMmfmgFSg4aeJLQoFyfpIHK5FjpQAwpRyQIqEUB2w1e8zIDQzY1WhOxx8NoS1S5iUL813Un4Sf5A==}
+    engines: {node: '>=10'}
+    cpu: [arm]
+    os: [linux]
+
+  '@swc/core-linux-arm64-gnu@1.15.46':
+    resolution: {integrity: sha512-c0OnhqzdhfOvv6qhNCcByepB+sNYOGZyhtr2Qa6ZCHvAWTYhSRw4j/u92Stue9PbZ/6q74b9nHzi76+kVzqQHQ==}
+    engines: {node: '>=10'}
+    cpu: [arm64]
+    os: [linux]
+    libc: [glibc]
+
+  '@swc/core-linux-arm64-musl@1.15.46':
+    resolution: {integrity: sha512-imyRpNEcUzFQFV2LE4jL68ErvmKEuZCbvZru77iQREunJ+bR4i658cupTgtG1mLYM3F1Tzy3Sb9xYb02KghWTg==}
+    engines: {node: '>=10'}
+    cpu: [arm64]
+    os: [linux]
+    libc: [musl]
+
+  '@swc/core-linux-ppc64-gnu@1.15.46':
+    resolution: {integrity: sha512-ctEfcl/HcUeomK33cbySiHZm98GEDIxTm1EkpBsYCiHxElYBzvTXVeuQT2YwbUXn9XCrjiw4ipyUNk33k26qRg==}
+    engines: {node: '>=10'}
+    cpu: [ppc64]
+    os: [linux]
+    libc: [glibc]
+
+  '@swc/core-linux-s390x-gnu@1.15.46':
+    resolution: {integrity: sha512-DxlMdnt84TtRVTv7WL/thWyz9+QU8QZNNoAP9rrk0P68LziuhfePp8MjQ44zIprpTHTsEwyziIuGUUN5iSC1bQ==}
+    engines: {node: '>=10'}
+    cpu: [s390x]
+    os: [linux]
+    libc: [glibc]
+
+  '@swc/core-linux-x64-gnu@1.15.46':
+    resolution: {integrity: sha512-SKxI7J6t90XPl8hRUqtJi9NfGdunN/E/vZMc7Bc0figeRdOPDBT+Tm8g7cx9xM0T0mewh2l+8dewa3Am27/P+A==}
+    engines: {node: '>=10'}
+    cpu: [x64]
+    os: [linux]
+    libc: [glibc]
+
+  '@swc/core-linux-x64-musl@1.15.46':
+    resolution: {integrity: sha512-qj9T6B7bosI0VEsrWOVXZN1OXxS8Tp63ywyrLxNdOycnUtLdkgYcoBsN5y8ImnDDsnwrEWZOy1e+J4xSe7mA3Q==}
+    engines: {node: '>=10'}
+    cpu: [x64]
+    os: [linux]
+    libc: [musl]
+
+  '@swc/core-win32-arm64-msvc@1.15.46':
+    resolution: {integrity: sha512-8p7l4c3LU+eA5g9Et1JPhNeMC1oQwXTGU+uah8DPIBX7YXzqswvaBtyKVmXefVGi/DJU1x3YJsc3mbAp9aWzSQ==}
+    engines: {node: '>=10'}
+    cpu: [arm64]
+    os: [win32]
+
+  '@swc/core-win32-ia32-msvc@1.15.46':
+    resolution: {integrity: sha512-tUEnfr3Bn9u6FOjUb3PN9p+09qZC2j+wNDLKHzXXZn22rqGcUqR/ohCRSS+nG9B9+X+U+3FewNEHJkTmdIvMjQ==}
+    engines: {node: '>=10'}
+    cpu: [ia32]
+    os: [win32]
+
+  '@swc/core-win32-x64-msvc@1.15.46':
+    resolution: {integrity: sha512-Vux7UDzBJYQggSuPfcl2w9iu+IJpgpRCxHzgCaVkELnAXAE4XZMOTX9HNcaNiwfeIDqdu2rkr69RuDm6wY8neA==}
+    engines: {node: '>=10'}
+    cpu: [x64]
+    os: [win32]
+
+  '@swc/core@1.15.46':
+    resolution: {integrity: sha512-Ri3em2mBpq3h2zSPliCYl63otDGqek8PPEfv2nWgRQEbZ/VBCNyypVTVQ6cEbTCXBhy+WE2T3fQb08moIyuYaw==}
+    engines: {node: '>=10'}
+    peerDependencies:
+      '@swc/helpers': '>=0.5.17'
+    peerDependenciesMeta:
+      '@swc/helpers':
+        optional: true
+
+  '@swc/counter@0.1.3':
+    resolution: {integrity: sha512-e2BR4lsJkkRlKZ/qCHPw9ZaSxc0MVUd7gtbtaB7aMvHeJVYe8sOB8DBZkP2DtISHGSku9sCK6T6cnY0CtXrOCQ==}
+
+  '@swc/jest@0.2.39':
+    resolution: {integrity: sha512-eyokjOwYd0Q8RnMHri+8/FS1HIrIUKK/sRrFp8c1dThUOfNeCWbLmBP1P5VsKdvmkd25JaH+OKYwEYiAYg9YAA==}
+    engines: {npm: '>= 7.0.0'}
+    peerDependencies:
+      '@swc/core': '*'
+
+  '@swc/types@0.1.27':
+    resolution: {integrity: sha512-K6h3iUlqeM946U4sXFYeahefR1YBbXJvko+hv8WS8/0BNJ4OHiHRywMnQUJCqkR7Y9+hqQ1TvEpiKqUhz7NEFg==}
+
   '@totemsdk/agent-policy@0.1.3':
     resolution: {integrity: sha512-V5Y5RywO5OM7457VORRtBlRoPhgNX9YmFxC05MFKCcMFgMYXCF2ntmKG+WEii/mXSmVGRvOfvYN0TZ4ZKpCcTA==}
+    engines: {node: '>=18.0.0'}
+
+  '@totemsdk/authority@0.1.2':
+    resolution: {integrity: sha512-RrSuz2gCm0txQzwdFTqI6H9JIRkM0J0P2WOUQesziWPrmjdYQgS7kpelyza1XQjZvAc0cLAn2phHk21FL/ZKOA==}
     engines: {node: '>=18.0.0'}
 
   '@totemsdk/chain-provider@0.1.3':
@@ -3164,6 +3366,46 @@ packages:
     resolution: {integrity: sha512-QYsp+GG0zHgnbMRybw3yoI0tAYpzspRJOa5eRuj9aHZx515SM3dhjb74HDowXJhpcxvZfDoH6cY9hb/QLhKYfw==}
     engines: {node: '>=16.0.0'}
 
+  '@totemsdk/edge-bacnet@0.1.0':
+    resolution: {integrity: sha512-eMQ1j1nRaiu0EOvpEaQWW/zqW6SOplxa9Y9CyyPwEQdDBEemE0Goe479SwUtSf4IrNUAhKgB6zxox1ElOLIkng==}
+    engines: {node: '>=18.0.0'}
+
+  '@totemsdk/edge-ble@0.1.0':
+    resolution: {integrity: sha512-QBfp459+MZUhC9GZ0BOE/XY3DJuvL3pJUPYe/5AEzCXieJOwdB/EouXeC0GrxbIjsFZWCSy/symwG6v5Tj4LAw==}
+    engines: {node: '>=18.0.0'}
+
+  '@totemsdk/edge-can@0.1.0':
+    resolution: {integrity: sha512-3SC5RrjYZ7bUvCIFOj3nVSFEM03/OcIKucpis4Fc39evDkqRLMQpNPYiTg4XORydVBqQ3o+KrYGb5GUf3Z6Wmw==}
+    engines: {node: '>=18.0.0'}
+
+  '@totemsdk/edge-coap@0.1.0':
+    resolution: {integrity: sha512-3N2p2BWVeaxjUlWpykm0pWAMdq/k5xQFa5i1lrh0GIoI0/1l0aQhmZswWTlR0qJL5LgNb1eYpx4hqXjDzibelQ==}
+    engines: {node: '>=18.0.0'}
+
+  '@totemsdk/edge-grpc@0.1.0':
+    resolution: {integrity: sha512-l8iIHkEkOLzlU29qAIlhIURP3BsboLGOBaMJ3WtrPoX7B0RbAtVO7EbzkCX6xvWMCeMR2aHkiLObN/81CKHlcg==}
+    engines: {node: '>=18.0.0'}
+
+  '@totemsdk/edge-lorawan@0.1.0':
+    resolution: {integrity: sha512-FV7IOc2BWZK8QAi3cicH4is8dh0ysn5AwBzdO2D9lr6xg/iX1MmBaIWpnnrP4bxgSNC4DmHdKeCPtKNJ6X9L2w==}
+    engines: {node: '>=18.0.0'}
+
+  '@totemsdk/edge-matter@0.1.0':
+    resolution: {integrity: sha512-gaPvRHyAeJeswXQgFzBsEtTbGbLsbwFfxyh09vm+m69BhmgemszpPxxwKuEAU14A+zDQMJq+S+GYMUXjSiQJuw==}
+    engines: {node: '>=18.0.0'}
+
+  '@totemsdk/edge-modbus@0.1.0':
+    resolution: {integrity: sha512-1qTRy3QF0mF3mNzcSIfuwQ1bVtHDWILzjtBUAg5Pad/P5jUMFcdQF8I68M5wPJ6dJzALgJVouG/uNs0oYd8Mnw==}
+    engines: {node: '>=18.0.0'}
+
+  '@totemsdk/edge-opcua@0.1.0':
+    resolution: {integrity: sha512-jX/82GdtKql2Fp3vuZAZ3YiUzYiuQsF7iUxS84CaaH1m7ux+sGQkdhaG6NuuJx4C0OoyfAu3D6ZsJAuNer8jbA==}
+    engines: {node: '>=18.0.0'}
+
+  '@totemsdk/edge-ros2@0.1.0':
+    resolution: {integrity: sha512-jwDpoZfu7vbzoQ3qroomQqDNqogpttpVpP1uwAjZlko8AnOPR7crGBHt9eVIAfTESqj/+5TbMAfrU/rBLV0i/A==}
+    engines: {node: '>=18.0.0'}
+
   '@totemsdk/edge@0.1.2':
     resolution: {integrity: sha512-tPlh7YSV861p6zcs4VCj3SPLyPOl9n5PZODzVvGvNtPZm2g+u2ANmNOrtTDex5hcGjex/W72gepm+fVT0byiUw==}
     engines: {node: '>=18.0.0'}
@@ -3190,12 +3432,16 @@ packages:
     peerDependencies:
       '@noble/hashes': ^2.0.0
 
+  '@totemsdk/identity@0.1.3':
+    resolution: {integrity: sha512-E0B16e+pgi23W2+WoVR2D0fjOGqH/c9PDJv23ePYXcd+Vg6Eo8v1lUsuf6m8wxThA105e+Ps7hMDw5WTufZ4nw==}
+    engines: {node: '>=18.0.0'}
+
   '@totemsdk/kissvm@0.1.4':
     resolution: {integrity: sha512-wZn9ZkcK0rPFlHbWwfmb8DaX8kMhwW1h9/4wgUohhfi142KQbO48fHDhrLiZljM0XsljBXFUBqLNOtSv9/+c9A==}
     engines: {node: '>=18.0.0'}
 
-  '@totemsdk/kissvm@0.3.0':
-    resolution: {integrity: sha512-UMnh0wUN9wVdBO/gqJeChIOYIwLce/jxY5343j6dL+Flq0XgBvrRpBVI7bVXYUBTY6XduysSj9vPX2ndPaymBw==}
+  '@totemsdk/kissvm@0.4.0':
+    resolution: {integrity: sha512-c8QyaJdsl2ugXFMxzxsGnlOfzeF4kmDrfZHjVEpoN45StNs5/TSoadq7JsQmHm/FHz6yKXaEYjTITcSv0IVYlQ==}
     engines: {node: '>=18.0.0'}
 
   '@totemsdk/lookup-client@0.1.5':
@@ -3289,6 +3535,10 @@ packages:
     engines: {node: '>=18.0.0'}
     peerDependencies:
       '@noble/hashes': ^2.0.0
+
+  '@totemsdk/proof@0.1.2':
+    resolution: {integrity: sha512-9XA4LSMXk5mSqQZ0PTM+aEao9YlZG3uJNxMemm0Cj86rJ6Mdn/5M7rk+SJE7ooixBlYSc4BlpotYFj1i4slbIA==}
+    engines: {node: '>=18.0.0'}
 
   '@totemsdk/pubsub-transport@0.1.0':
     resolution: {integrity: sha512-7kbLkHd7mdwEFY5Ck/e7X6ihZFOGy5wq7LQH0yQj13tqqUO7nSkaWSxJEEyTMZ3nUM4qgOkyf+/bt9SWMFUfjg==}
@@ -7708,7 +7958,7 @@ snapshots:
     dependencies:
       '@babel/compat-data': 7.29.7
       '@babel/helper-validator-option': 7.29.7
-      browserslist: 4.28.5
+      browserslist: 4.28.6
       lru-cache: 5.1.1
       semver: 6.3.1
 
@@ -8676,7 +8926,7 @@ snapshots:
   '@jest/console@29.7.0':
     dependencies:
       '@jest/types': 29.6.3
-      '@types/node': 26.1.1
+      '@types/node': 20.19.43
       chalk: 4.1.2
       jest-message-util: 29.7.0
       jest-util: 29.7.0
@@ -8698,14 +8948,14 @@ snapshots:
       '@jest/test-result': 29.7.0
       '@jest/transform': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 26.1.1
+      '@types/node': 20.19.43
       ansi-escapes: 4.3.2
       chalk: 4.1.2
       ci-info: 3.9.0
       exit: 0.1.2
       graceful-fs: 4.2.11
       jest-changed-files: 29.7.0
-      jest-config: 29.7.0(@types/node@26.1.1)
+      jest-config: 29.7.0(@types/node@20.19.43)
       jest-haste-map: 29.7.0
       jest-message-util: 29.7.0
       jest-regex-util: 29.6.3
@@ -8762,13 +9012,17 @@ snapshots:
       - supports-color
       - ts-node
 
+  '@jest/create-cache-key-function@30.4.1':
+    dependencies:
+      '@jest/types': 30.4.1
+
   '@jest/diff-sequences@30.4.0': {}
 
   '@jest/environment@29.7.0':
     dependencies:
       '@jest/fake-timers': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 26.1.1
+      '@types/node': 20.19.43
       jest-mock: 29.7.0
 
   '@jest/environment@30.4.1':
@@ -8804,7 +9058,7 @@ snapshots:
     dependencies:
       '@jest/types': 29.6.3
       '@sinonjs/fake-timers': 10.3.0
-      '@types/node': 26.1.1
+      '@types/node': 20.19.43
       jest-message-util: 29.7.0
       jest-mock: 29.7.0
       jest-util: 29.7.0
@@ -8851,7 +9105,7 @@ snapshots:
       '@jest/transform': 29.7.0
       '@jest/types': 29.6.3
       '@jridgewell/trace-mapping': 0.3.31
-      '@types/node': 26.1.1
+      '@types/node': 20.19.43
       chalk: 4.1.2
       collect-v8-coverage: 1.0.3
       exit: 0.1.2
@@ -8999,7 +9253,7 @@ snapshots:
       '@jest/schemas': 29.6.3
       '@types/istanbul-lib-coverage': 2.0.6
       '@types/istanbul-reports': 3.0.4
-      '@types/node': 26.1.1
+      '@types/node': 20.19.43
       '@types/yargs': 17.0.35
       chalk: 4.1.2
 
@@ -9299,9 +9553,83 @@ snapshots:
     dependencies:
       '@sinonjs/commons': 3.0.1
 
+  '@swc/core-darwin-arm64@1.15.46':
+    optional: true
+
+  '@swc/core-darwin-x64@1.15.46':
+    optional: true
+
+  '@swc/core-linux-arm-gnueabihf@1.15.46':
+    optional: true
+
+  '@swc/core-linux-arm64-gnu@1.15.46':
+    optional: true
+
+  '@swc/core-linux-arm64-musl@1.15.46':
+    optional: true
+
+  '@swc/core-linux-ppc64-gnu@1.15.46':
+    optional: true
+
+  '@swc/core-linux-s390x-gnu@1.15.46':
+    optional: true
+
+  '@swc/core-linux-x64-gnu@1.15.46':
+    optional: true
+
+  '@swc/core-linux-x64-musl@1.15.46':
+    optional: true
+
+  '@swc/core-win32-arm64-msvc@1.15.46':
+    optional: true
+
+  '@swc/core-win32-ia32-msvc@1.15.46':
+    optional: true
+
+  '@swc/core-win32-x64-msvc@1.15.46':
+    optional: true
+
+  '@swc/core@1.15.46':
+    dependencies:
+      '@swc/counter': 0.1.3
+      '@swc/types': 0.1.27
+    optionalDependencies:
+      '@swc/core-darwin-arm64': 1.15.46
+      '@swc/core-darwin-x64': 1.15.46
+      '@swc/core-linux-arm-gnueabihf': 1.15.46
+      '@swc/core-linux-arm64-gnu': 1.15.46
+      '@swc/core-linux-arm64-musl': 1.15.46
+      '@swc/core-linux-ppc64-gnu': 1.15.46
+      '@swc/core-linux-s390x-gnu': 1.15.46
+      '@swc/core-linux-x64-gnu': 1.15.46
+      '@swc/core-linux-x64-musl': 1.15.46
+      '@swc/core-win32-arm64-msvc': 1.15.46
+      '@swc/core-win32-ia32-msvc': 1.15.46
+      '@swc/core-win32-x64-msvc': 1.15.46
+
+  '@swc/counter@0.1.3': {}
+
+  '@swc/jest@0.2.39(@swc/core@1.15.46)':
+    dependencies:
+      '@jest/create-cache-key-function': 30.4.1
+      '@swc/core': 1.15.46
+      '@swc/counter': 0.1.3
+      jsonc-parser: 3.3.1
+
+  '@swc/types@0.1.27':
+    dependencies:
+      '@swc/counter': 0.1.3
+
   '@totemsdk/agent-policy@0.1.3(@noble/hashes@2.2.0)':
     dependencies:
       '@totemsdk/core': 1.0.9(@noble/hashes@2.2.0)
+    transitivePeerDependencies:
+      - '@noble/hashes'
+
+  '@totemsdk/authority@0.1.2(@noble/hashes@2.2.0)':
+    dependencies:
+      '@totemsdk/identity': 0.1.2(@noble/hashes@2.2.0)
+      '@totemsdk/proof': 0.1.1(@noble/hashes@2.2.0)
     transitivePeerDependencies:
       - '@noble/hashes'
 
@@ -9319,10 +9647,10 @@ snapshots:
     transitivePeerDependencies:
       - '@noble/hashes'
 
-  '@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.3.0(@noble/hashes@2.2.0))(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0))':
+  '@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0))':
     optionalDependencies:
       '@totemsdk/chain-provider': 0.1.4(@noble/hashes@2.2.0)
-      '@totemsdk/kissvm': 0.3.0(@noble/hashes@2.2.0)
+      '@totemsdk/kissvm': 0.4.0
       '@totemsdk/lookup-client': 0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))
       '@totemsdk/omnia': 0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0)
       '@totemsdk/omnia-factory': 0.1.6(@noble/hashes@2.2.0)
@@ -9360,6 +9688,76 @@ snapshots:
     dependencies:
       '@totemsdk/core-wasm': 0.1.0
 
+  '@totemsdk/edge-bacnet@0.1.0(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))':
+    dependencies:
+      '@totemsdk/edge': 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
+    transitivePeerDependencies:
+      - '@noble/hashes'
+      - '@totemsdk/connect'
+
+  '@totemsdk/edge-ble@0.1.0(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))':
+    dependencies:
+      '@totemsdk/edge': 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
+    transitivePeerDependencies:
+      - '@noble/hashes'
+      - '@totemsdk/connect'
+
+  '@totemsdk/edge-can@0.1.0(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))':
+    dependencies:
+      '@totemsdk/edge': 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
+    transitivePeerDependencies:
+      - '@noble/hashes'
+      - '@totemsdk/connect'
+
+  '@totemsdk/edge-coap@0.1.0(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))':
+    dependencies:
+      '@totemsdk/edge': 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
+    transitivePeerDependencies:
+      - '@noble/hashes'
+      - '@totemsdk/connect'
+
+  '@totemsdk/edge-grpc@0.1.0(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))':
+    dependencies:
+      '@totemsdk/edge': 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
+    transitivePeerDependencies:
+      - '@noble/hashes'
+      - '@totemsdk/connect'
+
+  '@totemsdk/edge-lorawan@0.1.0(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))':
+    dependencies:
+      '@totemsdk/edge': 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
+    transitivePeerDependencies:
+      - '@noble/hashes'
+      - '@totemsdk/connect'
+
+  '@totemsdk/edge-matter@0.1.0(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))':
+    dependencies:
+      '@totemsdk/edge': 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
+    transitivePeerDependencies:
+      - '@noble/hashes'
+      - '@totemsdk/connect'
+
+  '@totemsdk/edge-modbus@0.1.0(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))':
+    dependencies:
+      '@totemsdk/edge': 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
+    transitivePeerDependencies:
+      - '@noble/hashes'
+      - '@totemsdk/connect'
+
+  '@totemsdk/edge-opcua@0.1.0(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))':
+    dependencies:
+      '@totemsdk/edge': 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
+    transitivePeerDependencies:
+      - '@noble/hashes'
+      - '@totemsdk/connect'
+
+  '@totemsdk/edge-ros2@0.1.0(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))':
+    dependencies:
+      '@totemsdk/edge': 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
+    transitivePeerDependencies:
+      - '@noble/hashes'
+      - '@totemsdk/connect'
+
   '@totemsdk/edge@0.1.2(@noble/hashes@2.2.0)':
     dependencies:
       '@noble/hashes': 2.2.0
@@ -9368,7 +9766,7 @@ snapshots:
       '@totemsdk/identity': 0.1.2(@noble/hashes@2.2.0)
       '@totemsdk/manifest': 0.1.2(@noble/hashes@2.2.0)
 
-  '@totemsdk/edge@0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.3.0(@noble/hashes@2.2.0))(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))':
+  '@totemsdk/edge@0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))':
     dependencies:
       '@noble/hashes': 2.2.0
       '@totemsdk/agent-policy': 0.1.3(@noble/hashes@2.2.0)
@@ -9376,7 +9774,7 @@ snapshots:
       '@totemsdk/identity': 0.1.2(@noble/hashes@2.2.0)
       '@totemsdk/manifest': 0.1.2(@noble/hashes@2.2.0)
     optionalDependencies:
-      '@totemsdk/connect': 2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.3.0(@noble/hashes@2.2.0))(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0))
+      '@totemsdk/connect': 2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.5))(corestore@7.11.0(bare-url@2.4.5))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.5))(hyperdrive@13.3.3(bare-url@2.4.5))(hyperswarm@4.17.0(bare-url@2.4.5)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0))
 
   '@totemsdk/identity@0.1.2(@noble/hashes@2.2.0)':
     dependencies:
@@ -9384,17 +9782,22 @@ snapshots:
       '@totemsdk/core': 1.0.10(@noble/hashes@2.2.0)
       '@totemsdk/manifest': 0.1.2(@noble/hashes@2.2.0)
 
+  '@totemsdk/identity@0.1.3(@noble/hashes@2.2.0)':
+    dependencies:
+      '@totemsdk/core': 1.2.5
+      '@totemsdk/manifest': 0.1.2(@noble/hashes@2.2.0)
+    transitivePeerDependencies:
+      - '@noble/hashes'
+
   '@totemsdk/kissvm@0.1.4(@noble/hashes@2.2.0)':
     dependencies:
       '@totemsdk/core': 1.1.0(@noble/hashes@2.2.0)
     transitivePeerDependencies:
       - '@noble/hashes'
 
-  '@totemsdk/kissvm@0.3.0(@noble/hashes@2.2.0)':
+  '@totemsdk/kissvm@0.4.0':
     dependencies:
-      '@totemsdk/core': 1.2.0(@noble/hashes@2.2.0)
-    transitivePeerDependencies:
-      - '@noble/hashes'
+      '@totemsdk/core': 1.2.5
 
   '@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.5))':
     dependencies:
@@ -9492,6 +9895,14 @@ snapshots:
       '@totemsdk/identity': 0.1.2(@noble/hashes@2.2.0)
       '@totemsdk/manifest': 0.1.2(@noble/hashes@2.2.0)
 
+  '@totemsdk/proof@0.1.2(@noble/hashes@2.2.0)':
+    dependencies:
+      '@totemsdk/core': 1.2.5
+      '@totemsdk/identity': 0.1.2(@noble/hashes@2.2.0)
+      '@totemsdk/manifest': 0.1.2(@noble/hashes@2.2.0)
+    transitivePeerDependencies:
+      - '@noble/hashes'
+
   '@totemsdk/pubsub-transport@0.1.0': {}
 
   '@totemsdk/pureminima-rpc@0.1.3': {}
@@ -9510,12 +9921,10 @@ snapshots:
     transitivePeerDependencies:
       - '@noble/hashes'
 
-  '@totemsdk/realtime@file:packages/totem-sdk/packages/realtime(@noble/hashes@2.2.0)(typescript@7.0.2)':
+  '@totemsdk/realtime@file:packages/totem-sdk/packages/realtime(typescript@7.0.2)':
     dependencies:
-      '@totemsdk/core': 1.2.0(@noble/hashes@2.2.0)
+      '@totemsdk/core': 1.2.5
       typescript: 7.0.2
-    transitivePeerDependencies:
-      - '@noble/hashes'
 
   '@totemsdk/root-identity@1.0.7(@noble/hashes@1.8.0)(@totemsdk/core@1.1.0(@noble/hashes@1.8.0))':
     dependencies:
@@ -9564,18 +9973,16 @@ snapshots:
   '@totemsdk/txpow@0.1.5(@noble/hashes@2.2.0)':
     dependencies:
       '@noble/hashes': 2.2.0
-      '@totemsdk/core': 1.2.0(@noble/hashes@2.2.0)
+      '@totemsdk/core': 1.2.5
 
   '@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0)':
     dependencies:
       '@noble/hashes': 2.2.0
       '@totemsdk/core': 1.1.0(@noble/hashes@2.2.0)
 
-  '@totemsdk/txpow@file:packages/totem-sdk/packages/txpow(@noble/hashes@2.2.0)':
+  '@totemsdk/txpow@file:packages/totem-sdk/packages/txpow':
     dependencies:
-      '@totemsdk/core': 1.2.0(@noble/hashes@2.2.0)
-    transitivePeerDependencies:
-      - '@noble/hashes'
+      '@totemsdk/core': 1.2.5
 
   '@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)':
     dependencies:
@@ -9658,7 +10065,7 @@ snapshots:
 
   '@types/graceful-fs@4.1.9':
     dependencies:
-      '@types/node': 26.1.1
+      '@types/node': 20.19.43
 
   '@types/har-format@1.2.16': {}
 
@@ -10779,7 +11186,7 @@ snapshots:
 
   core-js-compat@3.49.0:
     dependencies:
-      browserslist: 4.28.5
+      browserslist: 4.28.6
 
   core-util-is@1.0.3: {}
 
@@ -12153,7 +12560,7 @@ snapshots:
       '@jest/expect': 29.7.0
       '@jest/test-result': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 26.1.1
+      '@types/node': 20.19.43
       chalk: 4.1.2
       co: 4.6.0
       dedent: 1.7.2
@@ -12390,7 +12797,7 @@ snapshots:
       '@jest/environment': 29.7.0
       '@jest/fake-timers': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 26.1.1
+      '@types/node': 20.19.43
       jest-mock: 29.7.0
       jest-util: 29.7.0
 
@@ -12410,7 +12817,7 @@ snapshots:
     dependencies:
       '@jest/types': 29.6.3
       '@types/graceful-fs': 4.1.9
-      '@types/node': 26.1.1
+      '@types/node': 20.19.43
       anymatch: 3.1.3
       fb-watchman: 2.0.2
       graceful-fs: 4.2.11
@@ -12489,7 +12896,7 @@ snapshots:
   jest-mock@29.7.0:
     dependencies:
       '@jest/types': 29.6.3
-      '@types/node': 26.1.1
+      '@types/node': 20.19.43
       jest-util: 29.7.0
 
   jest-mock@30.4.1:
@@ -12554,7 +12961,7 @@ snapshots:
       '@jest/test-result': 29.7.0
       '@jest/transform': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 26.1.1
+      '@types/node': 20.19.43
       chalk: 4.1.2
       emittery: 0.13.1
       graceful-fs: 4.2.11
@@ -12609,7 +13016,7 @@ snapshots:
       '@jest/test-result': 29.7.0
       '@jest/transform': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 26.1.1
+      '@types/node': 20.19.43
       chalk: 4.1.2
       cjs-module-lexer: 1.4.3
       collect-v8-coverage: 1.0.3
@@ -12708,7 +13115,7 @@ snapshots:
   jest-util@29.7.0:
     dependencies:
       '@jest/types': 29.6.3
-      '@types/node': 26.1.1
+      '@types/node': 20.19.43
       chalk: 4.1.2
       ci-info: 3.9.0
       graceful-fs: 4.2.11
@@ -12745,7 +13152,7 @@ snapshots:
     dependencies:
       '@jest/test-result': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 26.1.1
+      '@types/node': 20.19.43
       ansi-escapes: 4.3.2
       chalk: 4.1.2
       emittery: 0.13.1
@@ -12765,13 +13172,13 @@ snapshots:
 
   jest-worker@27.5.1:
     dependencies:
-      '@types/node': 26.1.1
+      '@types/node': 20.19.43
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
   jest-worker@29.7.0:
     dependencies:
-      '@types/node': 26.1.1
+      '@types/node': 20.19.43
       jest-util: 29.7.0
       merge-stream: 2.0.0
       supports-color: 8.1.1

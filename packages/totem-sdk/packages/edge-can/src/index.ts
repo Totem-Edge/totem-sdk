@@ -3,3 +3,5 @@ export { createCanGateway } from './gateway.js';
 export type { CanGatewayConfig, CanGateway, CanSignalDef } from './gateway.js';
 export { createCanSensorBridge } from './sensor-bridge.js';
 export type { CanSensorBinding, CanSensorBridgeConfig, CanSensorBridge } from './sensor-bridge.js';
+export { NativeCanTransport } from './native-transport.js';
+export type { NativeCanConfig } from './native-transport.js';

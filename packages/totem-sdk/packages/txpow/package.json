@@ -12,11 +12,11 @@
     }
   },
   "scripts": {
-    "build": "tsc",
+    "build": "npm run build:wasm && tsc",
     "postbuild": "node -e \"const fs=require('fs'),p=require('path');const src=p.join(__dirname,'src','wasm','miner.wasm');const dst=p.join(__dirname,'dist','wasm','miner.wasm');if(fs.existsSync(src)){fs.mkdirSync(p.dirname(dst),{recursive:true});fs.copyFileSync(src,dst);console.log('[@totemsdk/txpow] miner.wasm → dist/wasm/')}else{console.log('[@totemsdk/txpow] Note: miner.wasm not compiled — JS fallback only. Run npm run build:wasm with Emscripten to enable WASM acceleration.')}\"",
     "compile:wasm": "node scripts/compile-wasm.js",
     "build:wasm": "npm run compile:wasm && npm run build",
-    "prepare": "tsc",
+    "prepare": "npm run build:wasm && tsc",
     "clean": "rm -rf dist",
     "test": "jest --passWithNoTests"
   },

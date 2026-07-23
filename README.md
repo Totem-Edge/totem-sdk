@@ -34,7 +34,7 @@ Totem SDK is organized into five architectural layers. Each layer builds on the 
 | **Cryptographic Foundation** | WOTS+ signatures, TreeKey hierarchy, MMR proofs, Java-compatible serialization, KISSVM script evaluation, recursive MAST compilation, policy trees | `core`, `core-wasm`, `kissvm`, `recursive-mast`, `txpow`, `wots-lease` |
 | **Sovereignty Stack** | Personal infrastructure — run your own lookup node, query chain data P2P, stream real-time balances | `lookup-node`, `lookup-client`, `lookup-protocol`, `chain-provider`, `pureminima-rpc`, `realtime` |
 | **Payment Network** | Eltoo payment channels, multi-hop routing, channel factories, virtual UTXOs, statechains with blind co-signing | `omnia`, `omnia-factory`, `omnia-router`, `omnia-splice`, `omnia-vtxo`, `statechain`, `se-server` |
-| **Edge Computing** | IoT/industrial runtime — MQTT sensor bridges, MachinePay micropayments, P2P device communication, gateways, multi-protocol transport connectors | `edge`, `edge-adapters`, `edge-connectors`, `edge-mqtt`, `pear`, `server`, `pubsub-transport`, `stream-transport` |
+| **Edge Computing** | IoT/industrial runtime — MQTT sensor bridges, MachinePay micropayments, P2P device communication, gateways, multi-protocol transport connectors | `edge`, `edge-adapters`, `edge-mqtt`, `pear`, `server`, `pubsub-transport`, `stream-transport` |
 | **Verifiable Claims** | WOTS-signed proofs, DID-like identities, signed app manifests, AI agent policies, on-chain governance (voting, delegation), provider reputation, liquidity bonds | `proof`, `proof-integritas`, `proofgraph`, `identity`, `manifest`, `root-identity`, `governance`, `agent-policy`, `provider-bond`, `liquidity-bond` |
 
 ### How they compose
@@ -82,8 +82,8 @@ pnpm add @totemsdk/governance
 # Payment channels
 pnpm add @totemsdk/omnia
 
-# Edge computing: MQTT + multi-protocol connectors
-pnpm add @totemsdk/edge @totemsdk/edge-mqtt @totemsdk/edge-connectors
+# Edge computing: MQTT + protocol-specific connector (install only what you need)
+pnpm add @totemsdk/edge @totemsdk/edge-mqtt @totemsdk/edge-bacnet
 
 # AI agent policies
 pnpm add @totemsdk/agent-policy
@@ -191,6 +191,7 @@ See [SECURITY.md](SECURITY.md) for our vulnerability disclosure policy.
 ## Documentation
 
 - **API Reference:** [https://totem.ing](https://totem.ing)
+- **Package Manifest (machine-readable):** [SDK_MANIFEST.json](SDK_MANIFEST.json) — for AI agents, tooling, and dependency analysis
 - **WOTS/TreeKey Spec:** [TOTEM_WALLET_SPEC.md](TOTEM_WALLET_SPEC.md)
 - **Lease/Watermark Spec:** [LEASE_WATERMARK_SPEC.md](LEASE_WATERMARK_SPEC.md)
 - **Privacy Note:** [TOTEM_PRIVACY_NOTE.md](TOTEM_PRIVACY_NOTE.md)

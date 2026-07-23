@@ -6,4 +6,14 @@ allowBuilds:
   sharp: set this to true or false
 minimumReleaseAgeExclude:
   - '@totemsdk/core-wasm@0.1.0'
-  - '@totemsdk/core@1.2.0'
+  - '@totemsdk/core@1.2.0 || 1.2.6'
+  - '@totemsdk/edge-bacnet@0.1.0'
+  - '@totemsdk/edge-ble@0.1.0'
+  - '@totemsdk/edge-can@0.1.0'
+  - '@totemsdk/edge-grpc@0.1.0'
+  - '@totemsdk/edge-lorawan@0.1.0'
+  - '@totemsdk/edge-matter@0.1.0'
+  - '@totemsdk/edge-modbus@0.1.0'
+  - '@totemsdk/edge-opcua@0.1.0'
+  - '@totemsdk/edge-ros2@0.1.0'
+  - '@totemsdk/kissvm@0.4.0'
