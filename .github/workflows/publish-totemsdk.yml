@@ -77,7 +77,7 @@ jobs:
             echo "ℹ️  Tag '$GITHUB_REF_NAME' does not match '$PREFIX' — this job is a no-op."
           fi
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: steps.gate.outputs.proceed == 'true'
 
       - uses: actions/setup-node@v4
@@ -175,7 +175,7 @@ jobs:
     needs: [publish]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # TotemEdgeSDKDocs is a standalone npm project (has its own package-lock.json)
       # and is NOT part of the pnpm monorepo, so we use npm here deliberately.
