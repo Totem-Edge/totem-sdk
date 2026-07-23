@@ -13,8 +13,9 @@
   },
   "scripts": {
     "build": "tsc",
+    "build:rust": "cd rust && cargo build --release",
     "prepare": "tsc",
-    "clean": "rm -rf dist",
+    "clean": "rm -rf dist rust/target",
     "test": "jest --passWithNoTests"
   },
   "files": ["dist", "README.md", "LICENSE"],
