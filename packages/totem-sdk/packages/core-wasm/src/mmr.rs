@@ -190,7 +190,7 @@ impl MMRTree {
         let mut entry_number = leaf_index as u64;
 
         while row < self.max_row {
-            let sibling_number = if entry_number % 2 == 0 {
+            let sibling_number = if entry_number.is_multiple_of(2) {
                 entry_number + 1  // Current is left, sibling is right
             } else {
                 entry_number - 1  // Current is right, sibling is left
@@ -217,6 +217,12 @@ impl MMRTree {
     /// Get the leaf MMRData at a specific index.
     pub fn get_leaf(&self, index: u32) -> Option<MMRData> {
         self.get_entry(0, index as u64).cloned()
+    }
+}
+
+impl Default for MMRTree {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

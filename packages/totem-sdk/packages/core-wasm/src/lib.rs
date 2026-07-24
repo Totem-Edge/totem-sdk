@@ -1,3 +1,5 @@
+#![allow(clippy::empty_line_after_doc_comments)]
+
 /// Totem SDK Core — Quantum-resistant WOTS+ cryptographic engine
 ///
 /// Compiled to WASM for use in browsers, Node.js, Pear/Bare, and edge devices.

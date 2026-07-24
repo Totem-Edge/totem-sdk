@@ -159,7 +159,7 @@ impl TreeKeyNode {
 // ---------------------------------------------------------------------------
 
 pub struct TreeKey {
-    private_seed: Vec<u8>,
+    _private_seed: Vec<u8>,
     levels: usize,
     keys_per_level: usize,
     root: TreeKeyNode,
@@ -178,7 +178,7 @@ impl TreeKey {
         let public_key = root.get_public_key().to_vec();
 
         Ok(TreeKey {
-            private_seed: private_seed.to_vec(),
+            _private_seed: private_seed.to_vec(),
             levels,
             keys_per_level,
             root,
@@ -241,8 +241,8 @@ impl TreeKey {
             return Ok(self.root.clone());
         }
         let mut current = self.root.get_child(path[0])?;
-        for i in 1..depth {
-            current = current.get_child(path[i])?;
+        for &child_index in path.iter().take(depth).skip(1) {
+            current = current.get_child(child_index)?;
         }
         Ok(*current)
     }
@@ -316,10 +316,8 @@ pub fn verify_tree_signature(
         let proof = &proofs[depth];
         let root_pubkey = get_root_public_key(proof);
 
-        if depth == 0 {
-            if !crate::verify::timing_safe_equal(&root_pubkey, expected_pubkey) {
-                return false;
-            }
+        if depth == 0 && !crate::verify::timing_safe_equal(&root_pubkey, expected_pubkey) {
+            return false;
         }
 
         let signed_data = if depth == proofs.len() - 1 {

@@ -7,7 +7,7 @@
 use sha3::{Digest, Sha3_256};
 
 /// BIP39 English word list (2048 words).
-pub const WORD_LIST: [&str; 2049] = [
+pub static WORD_LIST: [&str; 2049] = [
     "abandon", "ability", "able", "about", "above", "absent", "absorb", "abstract",
     "absurd", "abuse", "access", "accident", "account", "accuse", "achieve", "acid",
     "acoustic", "acquire", "across", "act", "action", "actor", "actress", "actual",
