@@ -37,6 +37,6 @@
     "serve:wots:prod": "node scripts/serve-wots-prod.mjs"
   },
   "devDependencies": {
-    "typescript": "^5.0.0"
+    "typescript": "^7.0.2"
   }
 }
