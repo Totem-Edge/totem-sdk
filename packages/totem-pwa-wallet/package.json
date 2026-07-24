@@ -32,7 +32,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@noble/hashes": "^1.8.0",
+    "@noble/hashes": "^2.2.0",
     "@totemsdk/core": "^1.1.0",
     "@totemsdk/realtime": "^0.1.9",
     "@totemsdk/root-identity": "^1.0.7",
