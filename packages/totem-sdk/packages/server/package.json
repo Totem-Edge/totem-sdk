@@ -25,7 +25,7 @@
   "dependencies": {
     "@totemsdk/core": "^1.1.0",
     "@totemsdk/txpow": "^0.1.5",
-    "node-fetch": "^2.6.9",
+    "node-fetch": "^3.3.2",
     "ws": "^8.21.1"
   },
   "devDependencies": {
