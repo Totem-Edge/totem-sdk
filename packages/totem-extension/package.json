@@ -70,7 +70,7 @@
     "@types/react-dom": "^19.2.3"
   },
   "devDependencies": {
-    "@types/chrome": "^0.0.268",
+    "@types/chrome": "^0.2.2",
     "@types/jest": "^29.5.8",
     "@types/node": "^26.1.1",
     "@types/react": "^18.2.0",
