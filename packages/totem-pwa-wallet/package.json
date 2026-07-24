@@ -38,13 +38,13 @@
     "@totemsdk/root-identity": "^1.0.7",
     "idb": "^8.0.0",
     "qrcode": "^1.5.4",
-    "react": "^18.3.1",
+    "react": "^19.2.8",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.18.1"
   },
   "devDependencies": {
     "@types/qrcode": "^1.5.5",
-    "@types/react": "^18.3.1",
+    "@types/react": "^19.2.17",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",
     "typescript": "^5.4.5",
