@@ -1,5 +1,5 @@
 import type { Proposal, Vote, VoteTally, Delegation, MembershipSnapshot, ProposalOutcome } from './types.js'
-import { hashCanonical } from './canonical.js'
+import { hashCanonical } from '@totemsdk/core'
 
 const DOMAIN_PROPOSAL = 'TOTEM_GOVERNANCE_PROPOSAL_V1'
 const DOMAIN_VOTE = 'TOTEM_GOVERNANCE_VOTE_V1'

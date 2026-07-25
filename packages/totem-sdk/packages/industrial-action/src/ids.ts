@@ -1,4 +1,4 @@
-import { hashCanonical } from './canonical.js'
+import { hashCanonical } from '@totemsdk/core'
 
 export function computeActionProposalId(params: {
   kind: string

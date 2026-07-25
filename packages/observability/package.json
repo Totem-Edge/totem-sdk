@@ -1,4 +1,5 @@
 {
+  "private": true,
   "name": "@totemsdk/observability",
   "version": "0.1.0",
   "description": "Drop-in observability for Totem-based dApps: trace propagation, connect-funnel events, batched telemetry to telemetry.axia.to",

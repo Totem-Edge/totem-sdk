@@ -21,7 +21,7 @@ export type {
   ExecuteActionResult,
 } from './types.js'
 
-export { toHex, canonicalJson, hashCanonical } from './canonical.js'
+export { toHex, canonicalJson, hashCanonical } from '@totemsdk/core'
 
 export {
   computeActionProposalId,

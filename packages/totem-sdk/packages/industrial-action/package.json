@@ -13,7 +13,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "prepare": "",
+    "prepare": "tsc",
     "clean": "rm -rf dist",
     "test": "jest --passWithNoTests"
   },

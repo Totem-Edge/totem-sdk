@@ -28,8 +28,6 @@
     "LICENSE"
   ],
   "dependencies": {
-  },
-  "peerDependencies": {
     "@totemsdk/core": "^1.2.0"
   },
   "engines": {

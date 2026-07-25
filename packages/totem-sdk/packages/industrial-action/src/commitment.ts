@@ -1,6 +1,6 @@
 import type { ActionProposal } from './types.js'
 import { computeCommitmentHash } from './ids.js'
-import { canonicalJson } from './canonical.js'
+import { canonicalJson } from '@totemsdk/core'
 
 export function createCommitment(proposal: {
   kind: string

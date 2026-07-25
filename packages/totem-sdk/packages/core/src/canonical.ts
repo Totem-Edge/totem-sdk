@@ -1,4 +1,4 @@
-import { sha3_256 } from '@totemsdk/core'
+import { sha3_256 } from './wasm-sync.js'
 
 export function toHex(bytes: Uint8Array): string {
   return Array.from(bytes)

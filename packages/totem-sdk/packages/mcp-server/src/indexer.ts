@@ -2,7 +2,16 @@ import * as fs from 'fs'
 import * as path from 'path'
 import type { PackageIndex, PackageExports, SdkIndex, SymbolEntry, DomainMap } from './types.js'
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..', '..', '..', '..', '..')
+function findRepoRoot(): string {
+  let dir = path.resolve(__dirname)
+  while (dir !== path.dirname(dir)) {
+    if (fs.existsSync(path.join(dir, 'pnpm-workspace.yaml'))) return dir
+    dir = path.dirname(dir)
+  }
+  return dir
+}
+
+const REPO_ROOT = findRepoRoot()
 const PKG_DIR = path.join(REPO_ROOT, 'packages', 'totem-sdk', 'packages')
 const TOP_PKG_DIR = path.join(REPO_ROOT, 'packages')
 

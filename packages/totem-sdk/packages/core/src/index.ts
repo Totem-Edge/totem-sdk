@@ -248,6 +248,9 @@ export {
 // WOTS legacy types
 export type { WotsKeypair, WotsSignature } from './wots.js';
 
+// Canonical helpers (deterministic JSON + hashing)
+export { toHex, canonicalJson, hashCanonical } from './canonical.js';
+
 // Constants
 export const MINIMA_CONSTANTS = {
   WOTS_W: 8,
