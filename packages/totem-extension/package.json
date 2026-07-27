@@ -53,7 +53,7 @@
   },
   "dependencies": {
     "@noble/hashes": "^2.0.0",
-    "@totemsdk/core": "^1.1.0",
+    "@totemsdk/core": "^1.2.6",
     "@totemsdk/realtime": "^0.1.9",
     "@totemsdk/root-identity": "^1.0.7",
     "@totemsdk/txpow": "^0.1.6",
