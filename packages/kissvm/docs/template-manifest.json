@@ -1,0 +1,126 @@
+{
+  "snapshot": "74316b11b6ce724f36ff757ad30113f2dcc04990",
+  "template_count": 24,
+  "templates": [
+    {
+      "file": "01_single_signature.kiss",
+      "bytes": 22,
+      "sha256": "49f46bd1c2b65556c85c496690e38dae721dc89dba91adb4cf36f3aab922be48"
+    },
+    {
+      "file": "02_multisig_2_of_3.kiss",
+      "bytes": 34,
+      "sha256": "feb991c6e068c7894ab3d90f84a5fd978337b03bb4df51f125981d5c7888ab4c"
+    },
+    {
+      "file": "03_absolute_block_timelock.kiss",
+      "bytes": 48,
+      "sha256": "61aef3d60e78d24fb61d3f07afde3e8ab29bda57876b77d3d2ce8d265763c4d6"
+    },
+    {
+      "file": "04_relative_coinage_timelock.kiss",
+      "bytes": 46,
+      "sha256": "acb5ded999b002a04b0845400611010f50f2d2b43a748431cb0e16d88c0c1dc0"
+    },
+    {
+      "file": "05_htlc_dual_path.kiss",
+      "bytes": 189,
+      "sha256": "9c8b60f0b225c585da9a4dbcb21515c85dccad304bc5d8ae0ccd9b2bf4d1b1ac"
+    },
+    {
+      "file": "06_three_party_escrow.kiss",
+      "bytes": 34,
+      "sha256": "feb991c6e068c7894ab3d90f84a5fd978337b03bb4df51f125981d5c7888ab4c"
+    },
+    {
+      "file": "07_counter_state_machine.kiss",
+      "bytes": 150,
+      "sha256": "c4d07cf40b4878c91dd6b8f243f0519d2488367d79596e5823efad840e32e087"
+    },
+    {
+      "file": "08_immutable_state_schema.kiss",
+      "bytes": 45,
+      "sha256": "cc0644eedfb230f33db1b92a462e669cb92d47d31d98257e93bf7d8f55e66396"
+    },
+    {
+      "file": "09_token_gate.kiss",
+      "bytes": 46,
+      "sha256": "9d88cf397383b595170f363aaa6551e17077b535cca2c8c59d668763bac63567"
+    },
+    {
+      "file": "10_exact_indexed_payout.kiss",
+      "bytes": 59,
+      "sha256": "4f8aa91d851efb053227ad4f1ef13cec8daa7d4c8a3aee7ff738bbed47981ba0"
+    },
+    {
+      "file": "11_two_output_split.kiss",
+      "bytes": 96,
+      "sha256": "0c225597849b824c3eb2fbe1fec87dde3888c4db2fd3b77abf1590b074b590c1"
+    },
+    {
+      "file": "12_self_recreating_covenant.kiss",
+      "bytes": 90,
+      "sha256": "d3f2afdebce137fc622e221005096983b3460958aba6d87e6ba3490d1f98cade"
+    },
+    {
+      "file": "13_bounded_withdrawal_vault.kiss",
+      "bytes": 287,
+      "sha256": "cfc7fb9c9832cda7f6269862ded5ee45fd4d0011772d886a030b4ab41cf31a92"
+    },
+    {
+      "file": "14_nonce_authorized_transition.kiss",
+      "bytes": 120,
+      "sha256": "b3cc572c33f62e2cab4a5963975820f1e2405acb02502922c2e22fb19f6f5bd0"
+    },
+    {
+      "file": "15_bitfield_permissions.kiss",
+      "bytes": 102,
+      "sha256": "276ec9231dd0f6bfef55d78a0e635674a4f91ded61b281c74c5567389f0c20ed"
+    },
+    {
+      "file": "16_dynamic_function_safe_demo.kiss",
+      "bytes": 115,
+      "sha256": "0e236e53c9292aecfc505cad37dd72c61de115ebe42437c056e3ae35b7b39aa5"
+    },
+    {
+      "file": "17_exec_hash_authorized.kiss",
+      "bytes": 92,
+      "sha256": "0256803c7ecba1fbe8bbbe4657ef613081c52d90a1c5fb015b6d4db760d4d1a5"
+    },
+    {
+      "file": "18_mast_leaf_dispatch.kiss",
+      "bytes": 23,
+      "sha256": "4bb516a7248d9b09d15ff9b9182982981a718823a721b188d0422b5e4841007b"
+    },
+    {
+      "file": "19_explicit_checksig_oracle.kiss",
+      "bytes": 152,
+      "sha256": "60b35bc0eab1f162d3a839768d857dafa44b3be548cbc268e026234c44fc0e4d"
+    },
+    {
+      "file": "20_mmr_membership.kiss",
+      "bytes": 179,
+      "sha256": "afe2f4fb19dae0c260c57812303d560f78fb9df8fd514fa9e0337793c4957447"
+    },
+    {
+      "file": "21_array_allowlist.kiss",
+      "bytes": 249,
+      "sha256": "a41fcbe5a18516da18137295f4e6b20d3f02c398f95dd85690282784e681be98"
+    },
+    {
+      "file": "22_preserve_selected_state.kiss",
+      "bytes": 117,
+      "sha256": "367ba72ab6e596a52b458425ae818378258c7fe1db829bc40b14484e6d5ed721"
+    },
+    {
+      "file": "23_emergency_escape_plus_covenant.kiss",
+      "bytes": 156,
+      "sha256": "d09fca19b67063fa7b0f3dc7fb42154658b03343a5f50793f7a0ebdf28afc663"
+    },
+    {
+      "file": "24_commit_reveal_round.kiss",
+      "bytes": 306,
+      "sha256": "8a444c287c6de77a439df5dff357050dbcb3ef93f2660408046927aa7e646997"
+    }
+  ]
+}

@@ -24,7 +24,7 @@
 
 ## Deprecated
 
-Use [createUnifiedChildTreeKey](createUnifiedChildTreeKey.md) instead.
+Use [createUnifiedChildTreeKey](../variables/createUnifiedChildTreeKey.md) instead.
 This wrapper preserves the LEGACY per-address seed derivation
 (`SHA3-256(baseSeed ‖ indexBytes(i))`) so that existing callers
 that import this symbol by name continue to derive the same keys.

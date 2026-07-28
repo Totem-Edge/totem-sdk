@@ -32,6 +32,9 @@
 
 > **broadcastTxPoW**(`txpowHex`): `Promise`\<[`BroadcastResult`](../interfaces/BroadcastResult.md)\>
 
+Broadcast a mined TxPoW hex.
+Uses POST /api/meg/postminedtxn (the correct Axia MEG broadcast bridge).
+
 #### Parameters
 
 ##### txpowHex
@@ -72,6 +75,9 @@
 
 > **getCoins**(`query`): `Promise`\<[`Coin`](../interfaces/Coin.md)[]\>
 
+Get coins (UTXOs) for an address.
+Maps GET /v1/wallet/utxos/:address → Coin[].
+
 #### Parameters
 
 ##### query
@@ -91,6 +97,8 @@
 ### getProof()
 
 > **getProof**(`coinId`): `Promise`\<[`MMRProof`](../interfaces/MMRProof.md)\>
+
+Get MMR proof for a coin via Minima `coinproof` RPC command.
 
 #### Parameters
 
@@ -112,6 +120,8 @@
 
 > **getTip**(): `Promise`\<[`ChainTip`](../interfaces/ChainTip.md)\>
 
+Get chain tip via Minima `status` RPC — parses response.chain.
+
 #### Returns
 
 `Promise`\<[`ChainTip`](../interfaces/ChainTip.md)\>
@@ -125,6 +135,8 @@
 ### getToken()
 
 > **getToken**(`tokenId`): `Promise`\<[`TokenInfo`](../interfaces/TokenInfo.md)\>
+
+Get token info via Minima `tokens tokenid:X` RPC command.
 
 #### Parameters
 
@@ -165,6 +177,8 @@
 ### searchTokens()
 
 > **searchTokens**(`query`): `Promise`\<[`TokenInfo`](../interfaces/TokenInfo.md)[]\>
+
+Search tokens via Minima `tokens` RPC command, then filter client-side.
 
 #### Parameters
 

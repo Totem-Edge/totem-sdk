@@ -62,10 +62,6 @@ _version_check() {
     fi
   }
 
-  for manifest in packages/totem-sdk/packages/*/package.json; do
-    [[ -f "$manifest" ]] && check_pkg "$manifest"
-  done
-
   for manifest in packages/*/package.json; do
     [[ -f "$manifest" ]] && check_pkg "$manifest"
   done

@@ -6,11 +6,14 @@
 
 # Function: acceptChannel()
 
-> **acceptChannel**(`proposal`, `provider?`): [`OmniaChannel`](../interfaces/OmniaChannel.md)
+> **acceptChannel**(`proposal`, `provider?`, `minConfirmations?`): `Promise`\<[`OmniaChannel`](../interfaces/OmniaChannel.md)\>
 
-Bob's side: validates an inbound channel proposal and returns an active channel.
-Recomputes the script from the proposal's parties and validates it matches the
-claimed fundingScript (tampering detection).
+Bob's side: validates an inbound channel proposal and returns a channel.
+
+If a chain provider is supplied, the funding coin is verified on-chain.
+The channel is returned with status 'funding_pending' — call
+`activateChannel()` after the funding transaction reaches the required
+confirmation depth.
 
 ## Parameters
 
@@ -22,10 +25,16 @@ Inbound channel proposal from the initiating party.
 
 ### provider?
 
-`ChainStateProvider`
+`any`
 
 Optional chain provider for on-chain funding TX validation.
 
+### minConfirmations?
+
+`number` = `1`
+
+Minimum confirmations required (default 1).
+
 ## Returns
 
-[`OmniaChannel`](../interfaces/OmniaChannel.md)
+`Promise`\<[`OmniaChannel`](../interfaces/OmniaChannel.md)\>

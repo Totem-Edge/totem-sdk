@@ -21,7 +21,6 @@
 - [FsLike](interfaces/FsLike.md)
 - [HypebeeLike](interfaces/HypebeeLike.md)
 - [HyperdriveAdapter](interfaces/HyperdriveAdapter.md)
-- [ITransport](interfaces/ITransport.md)
 - [KVStore](interfaces/KVStore.md)
 - [Logger](interfaces/Logger.md)
 - [PearApp](interfaces/PearApp.md)
@@ -34,6 +33,7 @@
 ## Type Aliases
 
 - [ExitCallback](type-aliases/ExitCallback.md)
+- [IStreamTransport](type-aliases/IStreamTransport.md)
 - [Unsubscribe](type-aliases/Unsubscribe.md)
 
 ## Functions
@@ -48,3 +48,9 @@
 - [openLocalDrive](functions/openLocalDrive.md)
 - [openRemoteDrive](functions/openRemoteDrive.md)
 - [runExitHandlers](functions/runExitHandlers.md)
+
+## References
+
+### ITransport
+
+Renames and re-exports [IStreamTransport](type-aliases/IStreamTransport.md)

@@ -506,5 +506,5 @@ These features will be documented here when available.
 ## Support
 
 For additional support or to report issues:
-- GitHub: https://github.com/MrGheek/totem-sdk
+- GitHub: https://github.com/Totem-Edge/totem-sdk
 - Documentation: https://totem.ing

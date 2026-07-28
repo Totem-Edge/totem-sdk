@@ -8,8 +8,7 @@
 
 - [CompositeProvider](classes/CompositeProvider.md)
 - [HostedProvider](classes/HostedProvider.md)
-- [LookupNodeNotImplementedError](classes/LookupNodeNotImplementedError.md)
-- [LookupNodeProvider](classes/LookupNodeProvider.md)
+- [LookupClientProvider](classes/LookupClientProvider.md)
 - [PureMinimaRpcProvider](classes/PureMinimaRpcProvider.md)
 
 ## Interfaces
@@ -20,6 +19,7 @@
 - [Coin](interfaces/Coin.md)
 - [CoinsQuery](interfaces/CoinsQuery.md)
 - [HostedProviderConfig](interfaces/HostedProviderConfig.md)
+- [LookupClientLike](interfaces/LookupClientLike.md)
 - [MMRProof](interfaces/MMRProof.md)
 - [TokenInfo](interfaces/TokenInfo.md)
 - [TokenSearchQuery](interfaces/TokenSearchQuery.md)

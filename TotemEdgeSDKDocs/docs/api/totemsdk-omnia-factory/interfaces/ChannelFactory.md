@@ -113,6 +113,6 @@ Keyed by `partyId`.  Cleared when all N parties have signed.
 
 ### virtualChannels
 
-> **virtualChannels**: [`OmniaChannel`](OmniaChannel.md)[]
+> **virtualChannels**: `OmniaChannel`[]
 
 Currently open virtual channels backed by this factory's shared UTXO.

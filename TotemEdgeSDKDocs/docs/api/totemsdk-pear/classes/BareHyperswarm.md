@@ -32,10 +32,10 @@ Destroy the underlying Hyperswarm instance.
 
 ### connect()
 
-> **connect**(`topic`, `options?`): `Promise`\<[`ITransport`](../interfaces/ITransport.md)\>
+> **connect**(`topic`, `options?`): `Promise`\<`IStreamTransport`\>
 
 Join a Hyperswarm topic and wait for the first inbound connection.
-Returns an `ITransport` wrapping that connection.
+Returns an `IStreamTransport` wrapping that connection.
 
 #### Parameters
 
@@ -49,4 +49,4 @@ Returns an `ITransport` wrapping that connection.
 
 #### Returns
 
-`Promise`\<[`ITransport`](../interfaces/ITransport.md)\>
+`Promise`\<`IStreamTransport`\>

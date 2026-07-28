@@ -48,7 +48,7 @@ Token ID (e.g. `'0x00'` for native Minima).
 
 ### chainProvider?
 
-`ChainStateProvider`
+`any`
 
 Optional: build + mine + broadcast the factory funding TX.
 

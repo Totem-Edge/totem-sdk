@@ -41,3 +41,9 @@
 ### tokenId?
 
 > `optional` **tokenId?**: `string`
+
+***
+
+### witness?
+
+> `optional` **witness?**: [`TransactionWitnessDescriptor`](TransactionWitnessDescriptor.md)

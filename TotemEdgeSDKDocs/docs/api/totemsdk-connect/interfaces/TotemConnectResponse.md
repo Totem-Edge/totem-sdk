@@ -29,3 +29,9 @@
 ### isReconnect?
 
 > `optional` **isReconnect?**: `boolean`
+
+***
+
+### publicKey
+
+> **publicKey**: `string` \| `null`

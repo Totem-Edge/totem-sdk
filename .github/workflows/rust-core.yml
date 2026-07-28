@@ -4,12 +4,12 @@ on:
   push:
     branches: [main]
     paths:
-      - 'packages/totem-sdk/packages/core-wasm/**'
+      - 'packages/core-wasm/**'
       - '.github/workflows/rust-core.yml'
   pull_request:
     branches: [main]
     paths:
-      - 'packages/totem-sdk/packages/core-wasm/**'
+      - 'packages/core-wasm/**'
       - '.github/workflows/rust-core.yml'
 
 env:
@@ -38,16 +38,16 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            packages/totem-sdk/packages/core-wasm/target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('packages/totem-sdk/packages/core-wasm/Cargo.lock') }}
+            packages/core-wasm/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('packages/core-wasm/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-
 
       - name: Run unit tests
-        working-directory: packages/totem-sdk/packages/core-wasm
+        working-directory: packages/core-wasm
         run: cargo test --lib
 
       - name: Run Java parity tests
-        working-directory: packages/totem-sdk/packages/core-wasm
+        working-directory: packages/core-wasm
         run: cargo test --test java_parity
 
   clippy:
@@ -69,12 +69,12 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            packages/totem-sdk/packages/core-wasm/target
-          key: ${{ runner.os }}-cargo-clippy-${{ hashFiles('packages/totem-sdk/packages/core-wasm/Cargo.lock') }}
+            packages/core-wasm/target
+          key: ${{ runner.os }}-cargo-clippy-${{ hashFiles('packages/core-wasm/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-clippy-
 
       - name: Run Clippy
-        working-directory: packages/totem-sdk/packages/core-wasm
+        working-directory: packages/core-wasm
         run: cargo clippy --all-targets -- -D warnings
 
   wasm-build:
@@ -98,20 +98,20 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            packages/totem-sdk/packages/core-wasm/target
-          key: ${{ runner.os }}-cargo-wasm-${{ hashFiles('packages/totem-sdk/packages/core-wasm/Cargo.lock') }}
+            packages/core-wasm/target
+          key: ${{ runner.os }}-cargo-wasm-${{ hashFiles('packages/core-wasm/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-wasm-
 
       - name: Build WASM (bundler target)
-        working-directory: packages/totem-sdk/packages/core-wasm
+        working-directory: packages/core-wasm
         run: wasm-pack build --target bundler --out-dir pkg
 
       - name: Build WASM (nodejs target)
-        working-directory: packages/totem-sdk/packages/core-wasm
+        working-directory: packages/core-wasm
         run: wasm-pack build --target nodejs --out-dir pkg-node
 
       - name: Check WASM size
-        working-directory: packages/totem-sdk/packages/core-wasm
+        working-directory: packages/core-wasm
         run: |
           SIZE=$(wc -c < pkg/totemsdk_core_wasm_bg.wasm)
           echo "WASM size: ${SIZE} bytes"
@@ -124,8 +124,8 @@ jobs:
         with:
           name: wasm-pkg-${{ github.sha }}
           path: |
-            packages/totem-sdk/packages/core-wasm/pkg/
-            packages/totem-sdk/packages/core-wasm/pkg-node/
+            packages/core-wasm/pkg/
+            packages/core-wasm/pkg-node/
           retention-days: 7
 
   wasm-test:
@@ -150,12 +150,12 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            packages/totem-sdk/packages/core-wasm/target
-          key: ${{ runner.os }}-cargo-wasm-test-${{ hashFiles('packages/totem-sdk/packages/core-wasm/Cargo.lock') }}
+            packages/core-wasm/target
+          key: ${{ runner.os }}-cargo-wasm-test-${{ hashFiles('packages/core-wasm/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-wasm-test-
 
       - name: Run wasm-pack tests
-        working-directory: packages/totem-sdk/packages/core-wasm
+        working-directory: packages/core-wasm
         run: wasm-pack test --node
 
   sdk-integration:
@@ -186,7 +186,7 @@ jobs:
           cache: 'pnpm'
 
       - name: Build WASM
-        working-directory: packages/totem-sdk/packages/core-wasm
+        working-directory: packages/core-wasm
         run: |
           wasm-pack build --target bundler --out-dir pkg
           wasm-pack build --target nodejs --out-dir pkg-node
@@ -195,17 +195,17 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build TypeScript
-        working-directory: packages/totem-sdk/packages/core
+        working-directory: packages/core
         run: npx tsc
 
       - name: Run core tests
-        working-directory: packages/totem-sdk/packages/core
+        working-directory: packages/core
         run: npx jest --passWithNoTests --no-coverage || true
 
       - name: Run wots-lease tests
-        working-directory: packages/totem-sdk/packages/wots-lease
+        working-directory: packages/wots-lease
         run: npx jest --passWithNoTests --no-coverage || true
 
       - name: Run txpow tests
-        working-directory: packages/totem-sdk/packages/txpow
+        working-directory: packages/txpow
         run: npx jest --passWithNoTests --no-coverage || true

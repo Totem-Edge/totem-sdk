@@ -10,9 +10,13 @@
 
 ### blindSign()
 
-> **blindSign**(`commitmentHex`): `Promise`\<`string`\>
+> **blindSign**(`chainId`, `commitmentHex`): `Promise`\<`string`\>
 
 #### Parameters
+
+##### chainId
+
+`string`
 
 ##### commitmentHex
 
@@ -73,11 +77,33 @@ Called during `createStateChain` when present.
 
 ### revokeKey()
 
-> **revokeKey**(`ownerPartyId`): `Promise`\<`void`\>
+> **revokeKey**(`chainId`, `opts`): `Promise`\<`void`\>
 
 #### Parameters
 
-##### ownerPartyId
+##### chainId
+
+`string`
+
+##### opts
+
+###### newOwnerPartyId
+
+`string`
+
+###### newOwnerPkd
+
+`string`
+
+###### newReclaimTxHex
+
+`string`
+
+###### previousOwnerPartyId
+
+`string`
+
+###### previousOwnerPkd
 
 `string`
 

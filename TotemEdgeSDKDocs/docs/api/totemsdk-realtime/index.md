@@ -6,24 +6,24 @@
 
 ## Classes
 
-- [BalanceCache](classes/BalanceCache.md)
 - [LookupBackend](classes/LookupBackend.md)
-- [MegBalanceStreamManager](classes/MegBalanceStreamManager.md)
+- [PortfolioCache](classes/PortfolioCache.md)
+- [PortfolioStreamManager](classes/PortfolioStreamManager.md)
 - [PureMinimaBackend](classes/PureMinimaBackend.md)
 
 ## Interfaces
 
-- [BalanceCacheConfig](interfaces/BalanceCacheConfig.md)
-- [BalanceCacheDependencies](interfaces/BalanceCacheDependencies.md)
-- [BalanceEntry](interfaces/BalanceEntry.md)
-- [BalanceStreamBackend](interfaces/BalanceStreamBackend.md)
-- [BalanceStreamConfig](interfaces/BalanceStreamConfig.md)
-- [BalanceStreamListener](interfaces/BalanceStreamListener.md)
-- [BalanceUpdateEvent](interfaces/BalanceUpdateEvent.md)
-- [CachedBalance](interfaces/CachedBalance.md)
 - [LookupLike](interfaces/LookupLike.md)
-- [MegBalanceStreamDependencies](interfaces/MegBalanceStreamDependencies.md)
+- [PortfolioBackend](interfaces/PortfolioBackend.md)
+- [PortfolioCacheConfig](interfaces/PortfolioCacheConfig.md)
+- [PortfolioCacheDependencies](interfaces/PortfolioCacheDependencies.md)
+- [PortfolioEntry](interfaces/PortfolioEntry.md)
+- [PortfolioStreamConfig](interfaces/PortfolioStreamConfig.md)
+- [PortfolioStreamDependencies](interfaces/PortfolioStreamDependencies.md)
+- [PortfolioStreamListener](interfaces/PortfolioStreamListener.md)
+- [PortfolioUpdateEvent](interfaces/PortfolioUpdateEvent.md)
 - [PureMinimaLike](interfaces/PureMinimaLike.md)
+- [RawBalanceEntry](interfaces/RawBalanceEntry.md)
 - [TxConfirmationEvent](interfaces/TxConfirmationEvent.md)
 - [WebSocketMessage](interfaces/WebSocketMessage.md)
 - [WebSocketTokenResponse](interfaces/WebSocketTokenResponse.md)
@@ -35,4 +35,6 @@
 
 ## Functions
 
-- [createBalanceStreamManager](functions/createBalanceStreamManager.md)
+- [classifyKind](functions/classifyKind.md)
+- [createPortfolioStreamManager](functions/createPortfolioStreamManager.md)
+- [toPortfolioEntry](functions/toPortfolioEntry.md)

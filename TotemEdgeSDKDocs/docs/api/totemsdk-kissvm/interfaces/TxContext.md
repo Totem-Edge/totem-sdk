@@ -18,6 +18,14 @@ Current block height
 
 ***
 
+### blockMilli?
+
+> `optional` **blockMilli?**: `number`
+
+Current block timestamp in milliseconds
+
+***
+
 ### inputIndex
 
 > **inputIndex**: `number`

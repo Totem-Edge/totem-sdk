@@ -32,6 +32,14 @@
 - [LeaseReserveMessage](interfaces/LeaseReserveMessage.md)
 - [LeaseWatermarkMessage](interfaces/LeaseWatermarkMessage.md)
 - [PingMessage](interfaces/PingMessage.md)
+- [PolicyAnnounceMessage](interfaces/PolicyAnnounceMessage.md)
+- [PolicyQueryMessage](interfaces/PolicyQueryMessage.md)
+- [PolicyResultMessage](interfaces/PolicyResultMessage.md)
+- [PolicySignCancelMessage](interfaces/PolicySignCancelMessage.md)
+- [PolicySignRequestMessage](interfaces/PolicySignRequestMessage.md)
+- [PolicySignResponseMessage](interfaces/PolicySignResponseMessage.md)
+- [PolicyUpdateMessage](interfaces/PolicyUpdateMessage.md)
+- [PolicyWatchMessage](interfaces/PolicyWatchMessage.md)
 - [PongMessage](interfaces/PongMessage.md)
 - [ProofResponseMessage](interfaces/ProofResponseMessage.md)
 - [SignFn](interfaces/SignFn.md)
@@ -50,6 +58,7 @@
 
 ## Variables
 
+- [MAX\_FRAME\_BODY\_LENGTH](variables/MAX_FRAME_BODY_LENGTH.md)
 - [PROTOCOL\_VERSION](variables/PROTOCOL_VERSION.md)
 
 ## Functions

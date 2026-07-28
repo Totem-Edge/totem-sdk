@@ -6,7 +6,7 @@
 
 # Function: wotsKeypairFromSeed()
 
-> **wotsKeypairFromSeed**(`seed`, `index`, `paramSet?`): [`WotsKeypair`](../type-aliases/WotsKeypair.md)
+> **wotsKeypairFromSeed**(`seed`, `index`): `object`
 
 ## Parameters
 
@@ -18,10 +18,18 @@
 
 `number`
 
-### paramSet?
-
-[`ParamSet`](../type-aliases/ParamSet.md)
-
 ## Returns
 
-[`WotsKeypair`](../type-aliases/WotsKeypair.md)
+`object`
+
+### index
+
+> **index**: `number`
+
+### pk
+
+> **pk**: `Uint8Array`
+
+### seed
+
+> **seed**: `Uint8Array`

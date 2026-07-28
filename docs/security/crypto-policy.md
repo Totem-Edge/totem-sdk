@@ -15,7 +15,7 @@ This document defines the cryptographic security policies for the Totem SDK. All
 - The `WatermarkMonotonicityError` is thrown if a watermark would decrease
 - The `WatermarkExhaustedError` is thrown if all 262,144 signatures are used
 
-**Reference**: `LEASE_WATERMARK_SPEC.md` for the complete specification.
+**Reference**: `TOTEM_CORE_YELLOW_PAPER.md` for the complete specification including lease/watermark coordination.
 
 ## 2. Key Generation Entropy Requirements
 
@@ -58,7 +58,7 @@ This document defines the cryptographic security policies for the Totem SDK. All
   - MACs
   - Any secret-derived values
 
-**Reference**: `packages/totem-sdk/packages/core/src/verify.ts` lines 148-155 for the `timingSafeEqual` implementation.
+**Reference**: `packages/core/src/verify.ts` lines 148-155 for the `timingSafeEqual` implementation.
 
 ## 5. Side-Channel Attack Mitigation
 
@@ -81,7 +81,7 @@ This document defines the cryptographic security policies for the Totem SDK. All
 - Nonces must be unique per operation
 - Nonces must not be reused across different operations
 
-**Reference**: `packages/totem-sdk/packages/core/src/verify.ts` lines 173-179 for challenge generation.
+**Reference**: `packages/core/src/verify.ts` lines 173-179 for challenge generation.
 
 ## 7. Dependency Security
 
@@ -110,14 +110,14 @@ This document defines the cryptographic security policies for the Totem SDK. All
 - The journal must be append-only (no deletion or modification of entries)
 - The journal must be tamper-evident
 
-**Reference**: `packages/totem-sdk/packages/wots-lease/src/journal.ts` for the `LeaseJournal` implementation.
+**Reference**: `packages/wots-lease/src/journal.ts` for the `LeaseJournal` implementation.
 
 ## 9. Code Review Requirements for Cryptographic Code
 
 **Policy**: Changes to cryptographic code require enhanced review.
 
 **Requirements**:
-- All changes to `packages/totem-sdk/packages/core/` require review by at least 2 maintainers
+- All changes to `packages/core/` require review by at least 2 maintainers
 - All changes to WOTS signing paths require parity test verification against the Java reference implementation
 - All changes to key derivation paths require review of backward compatibility
 - All changes to serialization code require byte-exact verification against Java output

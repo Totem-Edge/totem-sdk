@@ -1,0 +1,30 @@
+{
+  "01_single_signature.kiss": {
+    "positive": "runscript script:\"RETURN SIGNEDBY(0xAA)\" signatures:[\"0xAA\"]",
+    "negative": "runscript script:\"RETURN SIGNEDBY(0xAA)\" signatures:[\"0xBB\"]"
+  },
+  "02_multisig_2_of_3.kiss": {
+    "positive": "runscript script:\"RETURN MULTISIG(2 0xAA 0xBB 0xCC)\" signatures:[\"0xAA\",\"0xCC\"]",
+    "negative": "runscript script:\"RETURN MULTISIG(2 0xAA 0xBB 0xCC)\" signatures:[\"0xAA\"]"
+  },
+  "03_absolute_block_timelock.kiss": {
+    "positive": "runscript script:\"ASSERT @BLOCK GTE 1000000 RETURN SIGNEDBY(0xAA)\" globals:{\"@BLOCK\":\"1000000\"} signatures:[\"0xAA\"]",
+    "negative": "runscript script:\"ASSERT @BLOCK GTE 1000000 RETURN SIGNEDBY(0xAA)\" globals:{\"@BLOCK\":\"999999\"} signatures:[\"0xAA\"]"
+  },
+  "04_relative_coinage_timelock.kiss": {
+    "positive": "runscript script:\"ASSERT @COINAGE GTE 144 RETURN SIGNEDBY(0xAA)\" globals:{\"@COINAGE\":\"144\"} signatures:[\"0xAA\"]",
+    "negative": "runscript script:\"ASSERT @COINAGE GTE 144 RETURN SIGNEDBY(0xAA)\" globals:{\"@COINAGE\":\"143\"} signatures:[\"0xAA\"]"
+  },
+  "05_htlc_dual_path.kiss": {
+    "positive": "runscript script:\"LET preimage=STATE(0) LET commitment=SHA3(0x01) IF SHA3(preimage) EQ commitment THEN RETURN SIGNEDBY(0xBB) ELSEIF @COINAGE GTE 144 THEN RETURN SIGNEDBY(0xAA) ENDIF RETURN FALSE\" state:{\"0\":\"0x01\"} globals:{\"@COINAGE\":\"0\"} signatures:[\"0xBB\"]",
+    "negative": "runscript script:\"LET preimage=STATE(0) LET commitment=SHA3(0x01) IF SHA3(preimage) EQ commitment THEN RETURN SIGNEDBY(0xBB) ELSEIF @COINAGE GTE 144 THEN RETURN SIGNEDBY(0xAA) ENDIF RETURN FALSE\" state:{\"0\":\"0x02\"} globals:{\"@COINAGE\":\"10\"} signatures:[\"0xBB\"]"
+  },
+  "08_immutable_state_schema.kiss": {
+    "positive": "runscript script:\"ASSERT SAMESTATE(0 1) RETURN SIGNEDBY(0xAA)\" state:{\"0\":\"1\",\"1\":\"0xFF\"} prevstate:{\"0\":\"1\",\"1\":\"0xFF\"} signatures:[\"0xAA\"]",
+    "negative": "runscript script:\"ASSERT SAMESTATE(0 1) RETURN SIGNEDBY(0xAA)\" state:{\"0\":\"2\",\"1\":\"0xFF\"} prevstate:{\"0\":\"1\",\"1\":\"0xFF\"} signatures:[\"0xAA\"]"
+  },
+  "16_dynamic_function_safe_demo.kiss": {
+    "positive": "runscript script:\"LET body=[LET returnvalue = $1 GTE $2] LET allowed=FUNCTION(body @AMOUNT 10) RETURN allowed AND SIGNEDBY(0xAA)\" globals:{\"@AMOUNT\":\"10\"} signatures:[\"0xAA\"]",
+    "negative": "runscript script:\"LET body=[LET returnvalue = $1 GTE $2] LET allowed=FUNCTION(body @AMOUNT 10) RETURN allowed AND SIGNEDBY(0xAA)\" globals:{\"@AMOUNT\":\"9\"} signatures:[\"0xAA\"]"
+  }
+}

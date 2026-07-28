@@ -6,4 +6,4 @@
 
 # Type Alias: ChannelStatus
 
-> **ChannelStatus** = `"opening"` \| `"active"` \| `"closing_mutual"` \| `"closing_unilateral"` \| `"disputing"` \| `"closed"` \| `"spliced"`
+> **ChannelStatus** = `"opening"` \| `"funding_pending"` \| `"active"` \| `"closing_mutual"` \| `"closing_unilateral"` \| `"disputing"` \| `"closed"` \| `"spliced"`

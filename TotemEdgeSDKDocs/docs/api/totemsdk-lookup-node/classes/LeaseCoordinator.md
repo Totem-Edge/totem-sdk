@@ -30,7 +30,7 @@
 
 ### handleBurn()
 
-> **handleBurn**(`msg`, `sendFn`): `Promise`\<`void`\>
+> **handleBurn**(`msg`, `sendFn`, `controllerPublicKeyHex?`): `Promise`\<`void`\>
 
 #### Parameters
 
@@ -42,6 +42,10 @@
 
 `SendFn`
 
+##### controllerPublicKeyHex?
+
+`string`
+
 #### Returns
 
 `Promise`\<`void`\>
@@ -50,7 +54,7 @@
 
 ### handleCommit()
 
-> **handleCommit**(`msg`, `sendFn`): `Promise`\<`void`\>
+> **handleCommit**(`msg`, `sendFn`, `controllerPublicKeyHex?`): `Promise`\<`void`\>
 
 #### Parameters
 
@@ -62,6 +66,10 @@
 
 `SendFn`
 
+##### controllerPublicKeyHex?
+
+`string`
+
 #### Returns
 
 `Promise`\<`void`\>
@@ -70,7 +78,7 @@
 
 ### handleReserve()
 
-> **handleReserve**(`msg`, `sendFn`): `Promise`\<`void`\>
+> **handleReserve**(`msg`, `sendFn`, `controllerPublicKeyHex?`): `Promise`\<`void`\>
 
 #### Parameters
 
@@ -81,6 +89,10 @@
 ##### sendFn
 
 `SendFn`
+
+##### controllerPublicKeyHex?
+
+`string`
 
 #### Returns
 
@@ -95,3 +107,26 @@
 #### Returns
 
 `Promise`\<`void`\>
+
+***
+
+### registerTreeOwner()
+
+> **registerTreeOwner**(`treeId`, `controllerPublicKeyHex`): `void`
+
+Register a tree as owned by a specific authenticated controller.
+Called on first LEASE_RESERVE for a tree, or externally during setup.
+
+#### Parameters
+
+##### treeId
+
+`string`
+
+##### controllerPublicKeyHex
+
+`string`
+
+#### Returns
+
+`void`

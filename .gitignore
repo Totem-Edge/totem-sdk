@@ -2,10 +2,11 @@ attached_assets/
 node_modules/
 dist/
 .env
+.env.local
 *.log
 test-results/
 .DS_Store
 
 # Large test vector files
-packages/totem-sdk/packages/core/test-vectors/java-parity/*.jar
+packages/core/test-vectors/java-parity/*.jar
 target/

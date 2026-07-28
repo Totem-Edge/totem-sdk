@@ -32,7 +32,7 @@ Fully serialized TxHeader bytes with the winning nonce.
 
 > **source**: `"wasm"` \| `"js"`
 
-'wasm' when the WASM binary is present; 'js' otherwise.
+'wasm' when the pre-compiled WASM binary found the nonce; 'js' otherwise.
 
 ***
 

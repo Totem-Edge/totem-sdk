@@ -46,7 +46,7 @@
 
 ##### proof?
 
-`MMRProof`
+`any`
 
 #### Returns
 
@@ -238,7 +238,7 @@
 
 ##### proof?
 
-`MMRProof`
+`any`
 
 #### Returns
 

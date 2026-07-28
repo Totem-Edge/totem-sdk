@@ -47,7 +47,7 @@ function runCheck(name: string, check: () => boolean, details: string = ''): voi
 function checkDefaultParamSet(): boolean {
   const paramsPath = path.join(__dirname, '../packages/minimask/packages/wots/src/params.ts');
   if (!fs.existsSync(paramsPath)) {
-    const altPath = path.join(__dirname, '../packages/totem-sdk/packages/core/src/params.ts');
+    const altPath = path.join(__dirname, '../packages/core/src/params.ts');
     if (!fs.existsSync(altPath)) return false;
   }
   
@@ -65,7 +65,7 @@ function checkV2Parameters(): boolean {
   // Check test files for v2 parameter validation
   const testFiles = [
     '../packages/minimask/packages/wots/test/length.test.ts',
-    '../packages/totem-sdk/packages/core/test/length.test.ts'
+    '../packages/core/test/length.test.ts'
   ];
   
   for (const file of testFiles) {
@@ -104,7 +104,7 @@ function checkDifferentPKdigests(): boolean {
 // 4. Check v1-dev creation is blocked
 function checkV1DevBlocked(): boolean {
   const wotsPath = path.join(__dirname, '../packages/minimask/packages/wots/src/wots.ts');
-  const altPath = path.join(__dirname, '../packages/totem-sdk/packages/core/src/wots.ts');
+  const altPath = path.join(__dirname, '../packages/core/src/wots.ts');
   
   const checkFile = (filePath: string) => {
     if (fs.existsSync(filePath)) {

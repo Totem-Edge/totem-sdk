@@ -27,11 +27,11 @@ without signing.
 
 ### intent
 
-[`PaymentIntent`](../interfaces/PaymentIntent.md)
+`PaymentIntent`
 
 ### policy
 
-[`AgentPolicy`](../interfaces/AgentPolicy.md)
+`AgentPolicy`
 
 ### leaseProvider
 

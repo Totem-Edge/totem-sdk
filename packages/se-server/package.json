@@ -1,0 +1,74 @@
+{
+  "name": "@totemsdk/se-server",
+  "version": "0.1.2",
+  "description": "Self-hostable Statechain Entity (SE) server — Mercury-protocol co-signer packaged as a standalone Express app",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "se-server": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "build:go": "cd go && go build -o ../bin/se-server .",
+    "prepare": "tsc",
+    "clean": "rm -rf dist bin",
+    "start": "node dist/cli.js",
+    "start:go": "./bin/se-server",
+    "test": "node ../../node_modules/jest/bin/jest.js --config jest.config.cjs --passWithNoTests"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "@totemsdk/core": "^1.1.0",
+    "express": "^5.2.1",
+    "pg": "^8.11.3",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^20.10.0",
+    "@types/pg": "^8.11.0",
+    "typescript": "^7.0.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "author": "Totem SDK",
+  "keywords": [
+    "totem",
+    "totemsdk",
+    "minima",
+    "blockchain",
+    "quantum-resistant",
+    "wots",
+    "utxo",
+    "statechain",
+    "mercury",
+    "blind-signature",
+    "se",
+    "self-hosted"
+  ],
+  "homepage": "https://totem.ing",
+  "bugs": {
+    "url": "https://github.com/totem-sdk/totem-sdk/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/totem-sdk/totem-sdk.git",
+    "directory": "packages/se-server"
+  }
+}

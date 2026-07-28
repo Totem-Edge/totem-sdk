@@ -1,0 +1,67 @@
+{
+  "name": "@totemsdk/proof-integritas",
+  "version": "0.1.1",
+  "description": "Integritas v2 proof provider adapter for @totemsdk/proof — hash stamping, checking, and on-chain verification on Minima",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "prepare": "tsc",
+    "clean": "rm -rf dist",
+    "test": "jest --passWithNoTests"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "@totemsdk/proof": "^0.1.1"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20.0.0",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.0.0",
+    "typescript": "^7.0.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "author": "Totem SDK",
+  "homepage": "https://totem.ing",
+  "bugs": {
+    "url": "https://github.com/totem-sdk/totem-sdk/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/totem-sdk/totem-sdk.git",
+    "directory": "packages/proof-integritas"
+  },
+  "keywords": [
+    "totem",
+    "totemsdk",
+    "minima",
+    "blockchain",
+    "quantum-resistant",
+    "wots",
+    "utxo",
+    "integritas",
+    "proof",
+    "hash-stamp",
+    "anchoring",
+    "verification",
+    "on-chain"
+  ]
+}

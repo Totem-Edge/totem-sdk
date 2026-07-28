@@ -6,11 +6,13 @@
 
 # Function: timeoutHTLC()
 
-> **timeoutHTLC**(`channel`, `htlcId`, `leaseProvider`, `currentBlock?`, `signer?`): `Promise`\<\{ `channel`: [`OmniaChannel`](../interfaces/OmniaChannel.md); `error?`: `string`; `partialState`: `Partial`\<[`SignedChannelState`](../interfaces/SignedChannelState.md)\>; \}\>
+> **timeoutHTLC**(`channel`, `htlcId`, `leaseProvider`, `chainProvider`, `signer?`): `Promise`\<\{ `channel`: [`OmniaChannel`](../interfaces/OmniaChannel.md); `error?`: `string`; `partialState`: `Partial`\<[`SignedChannelState`](../interfaces/SignedChannelState.md)\>; \}\>
 
 After `timeoutBlock`, HTLC amount returns to sender balance in new state.
 
-Spec: `timeoutHTLC(channel, htlcId, leaseProvider)` — currentBlock and signer are optional.
+Spec: `timeoutHTLC(channel, htlcId, leaseProvider, chainProvider)` — signer is optional.
+The current block height is fetched from `chainProvider.getTip()` — the caller
+cannot supply an untrusted height. This prevents premature timeout attacks.
 
 ## Parameters
 
@@ -26,9 +28,9 @@ Spec: `timeoutHTLC(channel, htlcId, leaseProvider)` — currentBlock and signer 
 
 `WotsLeaseProvider`
 
-### currentBlock?
+### chainProvider
 
-`bigint`
+`ChainStateProvider`
 
 ### signer?
 

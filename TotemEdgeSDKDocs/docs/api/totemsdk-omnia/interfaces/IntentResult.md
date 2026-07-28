@@ -16,7 +16,7 @@
 
 ### receipt?
 
-> `optional` **receipt?**: [`AgentReceipt`](AgentReceipt.md)
+> `optional` **receipt?**: `any`
 
 ***
 

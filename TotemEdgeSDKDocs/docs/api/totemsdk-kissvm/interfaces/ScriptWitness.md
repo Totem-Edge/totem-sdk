@@ -6,7 +6,7 @@
 
 # Interface: ScriptWitness
 
-Witness supplied for signature verification
+Witness supplied for signature and MAST verification
 
 ## Properties
 
@@ -15,6 +15,15 @@ Witness supplied for signature verification
 > `optional` **preimages?**: `Map`\<`string`, `string`\>
 
 HTLC: hash hex → preimage hex
+
+***
+
+### scriptProofs?
+
+> `optional` **scriptProofs?**: [`ScriptProof`](ScriptProof.md)[]
+
+Canonical ScriptProofs for MAST branch revelation.
+The evaluator verifies each proof against the MAST root before executing.
 
 ***
 

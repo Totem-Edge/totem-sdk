@@ -1,0 +1,4 @@
+LET candidate = STATE(0)
+ASSERT SHA3(candidate) EQ PREVSTATE(0)
+EXEC candidate
+RETURN FALSE

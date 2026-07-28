@@ -6,16 +6,40 @@
 
 # Function: wotsAddressFromKeypair()
 
+## Call Signature
+
+> **wotsAddressFromKeypair**(`seed`, `index`): `string`
+
+### Parameters
+
+#### seed
+
+`Uint8Array`
+
+#### index
+
+`number`
+
+### Returns
+
+`string`
+
+## Call Signature
+
 > **wotsAddressFromKeypair**(`kp`): `string`
 
-Address from WOTS keypair (client-only): script -> MMR leaf -> Mx
+### Parameters
 
-## Parameters
+#### kp
 
-### kp
+##### index
 
-[`WotsKeypair`](../type-aliases/WotsKeypair.md)
+`number`
 
-## Returns
+##### seed
+
+`Uint8Array`
+
+### Returns
 
 `string`

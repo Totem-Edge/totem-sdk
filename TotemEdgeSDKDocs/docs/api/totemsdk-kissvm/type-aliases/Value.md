@@ -6,12 +6,12 @@
 
 # Type Alias: Value
 
-> **Value** = `bigint` \| `string` \| `boolean` \| `Uint8Array`
+> **Value** = [`MiniNumber`](../classes/MiniNumber.md) \| `string` \| `boolean` \| `Uint8Array`
 
 KISSVM v1 public value type.
-  bigint    — integer/fixed-point numeric values (scaled ×10⁸ internally)
-  string    — hex literals (0x…), text strings [...]
-  boolean   — TRUE / FALSE
+  MiniNumber — numeric values (matches Java MiniNumber / BigDecimal)
+  string     — hex literals (0x…), text strings [...]
+  boolean    — TRUE / FALSE
   Uint8Array — raw byte arrays (hash digests, raw data)
 
 NOTE: `number` (IEEE-754 float) is intentionally excluded from the public

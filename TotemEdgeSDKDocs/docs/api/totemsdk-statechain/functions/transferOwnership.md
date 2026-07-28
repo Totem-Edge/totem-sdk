@@ -57,7 +57,7 @@ Optional SE blind-sig verification override (test use).
 
 ### \_chainProvider?
 
-`ChainStateProvider`
+`any`
 
 Optional: broadcast the state-update TX on-chain.
 

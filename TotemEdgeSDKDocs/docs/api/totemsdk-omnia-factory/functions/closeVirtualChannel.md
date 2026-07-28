@@ -29,7 +29,7 @@ Active factory.
 
 ### channel
 
-[`OmniaChannel`](../interfaces/OmniaChannel.md)
+`OmniaChannel`
 
 The virtual `OmniaChannel` to close (with `latestState` set if updated).
 

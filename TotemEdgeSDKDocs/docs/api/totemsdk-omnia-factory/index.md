@@ -12,13 +12,13 @@
 - [FactoryLogEntry](interfaces/FactoryLogEntry.md)
 - [FactoryParticipant](interfaces/FactoryParticipant.md)
 - [FactorySettlementPayload](interfaces/FactorySettlementPayload.md)
-- [OmniaChannel](interfaces/OmniaChannel.md)
 - [WotsLeaseBundle](interfaces/WotsLeaseBundle.md)
 
 ## Type Aliases
 
 - [FactorySignature](type-aliases/FactorySignature.md)
 - [FactoryStatus](type-aliases/FactoryStatus.md)
+- [OmniaChannel](type-aliases/OmniaChannel.md)
 
 ## Functions
 

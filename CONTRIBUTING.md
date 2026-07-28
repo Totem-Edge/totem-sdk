@@ -16,7 +16,7 @@ This project adheres to the [Contributor Covenant Code of Conduct](CODE_OF_CONDU
 ### Development Setup
 
 ```bash
-git clone https://github.com/MrGheek/totem-sdk.git
+git clone https://github.com/Totem-Edge/totem-sdk.git
 cd totem-sdk
 pnpm install
 ```
@@ -26,19 +26,20 @@ pnpm install
 The project is a pnpm monorepo with the following structure:
 
 ```
-packages/
-├── totem-sdk/packages/   # 37 SDK packages (@totemsdk/*)
-├── totem-extension/      # Chrome MV3 browser extension
-├── totem-pwa-wallet/     # PWA wallet
-├── totem-dapp-starter/   # dApp starter template
-└── observability/        # Telemetry & observability
+packages/           # 55 SDK packages (@totemsdk/*)
+extensions/         # Apps & extensions
+├── totem-extension/            # Chrome MV3 browser extension
+├── totem-pwa-wallet/           # PWA wallet
+├── totem-dapp-starter/         # dApp starter template
+├── totem-pear-android-starter/ # Android Pear runtime starter
+└── observability/              # Telemetry & observability
 ```
 
 ## Development Workflow
 
 ### 1. Find or Create an Issue
 
-- Check existing [issues](https://github.com/MrGheek/totem-sdk/issues) before starting work
+- Check existing [issues](https://github.com/Totem-Edge/totem-sdk/issues) before starting work
 - For bugs, include steps to reproduce and expected behavior
 - For features, describe the use case and proposed solution
 
@@ -68,13 +69,10 @@ Branch naming conventions:
 
 ```bash
 # Run SDK tests
-pnpm test:sdk
+pnpm test
 
 # Run extension tests
 pnpm test:extension
-
-# Run parity tests (crypto code only)
-cd packages/totem-sdk && npm test
 ```
 
 ### 5. Commit Your Changes
@@ -122,7 +120,7 @@ chore(deps): update @noble/hashes to v2.0.0
 
 ## Cryptographic Code Requirements
 
-Changes to cryptographic code (`packages/totem-sdk/packages/core/`) have additional requirements:
+Changes to cryptographic code (`packages/core/`) have additional requirements:
 
 1. **Review**: At least 2 maintainer approvals required
 2. **Parity Tests**: Must pass parity tests against Java reference implementation
@@ -143,8 +141,8 @@ Only maintainers can publish packages. The publishing process:
 
 ## Getting Help
 
-- **Questions**: Open a [GitHub Discussion](https://github.com/MrGheek/totem-sdk/discussions)
-- **Bugs**: Open a [GitHub Issue](https://github.com/MrGheek/totem-sdk/issues)
+- **Questions**: Open a [GitHub Discussion](https://github.com/Totem-Edge/totem-sdk/discussions)
+- **Bugs**: Open a [GitHub Issue](https://github.com/Totem-Edge/totem-sdk/issues)
 - **Security**: See [SECURITY.md](SECURITY.md)
 
 ## License

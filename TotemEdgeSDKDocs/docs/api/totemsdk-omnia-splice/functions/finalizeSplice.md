@@ -6,7 +6,7 @@
 
 # Function: finalizeSplice()
 
-> **finalizeSplice**(`channel`, `proposal`, `acceptance`, `options?`): `Promise`\<[`SplicedChannel`](../type-aliases/SplicedChannel.md)\>
+> **finalizeSplice**(`channel`, `proposal`, `acceptance`, `options?`): `Promise`\<`any`\>
 
 Finalize a splice by assembling both parties' signatures, mining PoW,
 optionally broadcasting the TX, and returning the new active channel.
@@ -51,7 +51,7 @@ quiesced channel as invalid; only the returned `SplicedChannel` is live.
 
 ### channel
 
-`OmniaChannel` \| [`QuiescedChannel`](../type-aliases/QuiescedChannel.md)
+`any`
 
 Quiesced channel (mutated to 'spliced' on success).
 
@@ -75,6 +75,6 @@ Broadcast, difficulty, verifier, and lease providers.
 
 ## Returns
 
-`Promise`\<[`SplicedChannel`](../type-aliases/SplicedChannel.md)\>
+`Promise`\<`any`\>
 
 SplicedChannel (`status: 'active'`) with updated value and provenance.

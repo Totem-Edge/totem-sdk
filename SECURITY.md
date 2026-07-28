@@ -37,7 +37,7 @@ We will acknowledge your report within 48 hours and provide a timeline for resol
 | Version | Supported          |
 |---------|--------------------|
 | 2.x     | :white_check_mark: |
-| 1.x     | :white_check_mark: |
+| 1.x     | :x:                |
 | < 1.0   | :x:                |
 
 ## Security Model

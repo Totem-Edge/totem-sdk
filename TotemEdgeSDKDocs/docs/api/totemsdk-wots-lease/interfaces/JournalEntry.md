@@ -20,6 +20,12 @@
 
 ***
 
+### hash?
+
+> `optional` **hash?**: `string`
+
+***
+
 ### indices
 
 > **indices**: [`SigningIndices`](SigningIndices.md)
@@ -32,9 +38,21 @@
 
 ***
 
+### previousHash?
+
+> `optional` **previousHash?**: `string`
+
+***
+
+### reservationId?
+
+> `optional` **reservationId?**: `string`
+
+***
+
 ### status
 
-> **status**: `"committed"` \| `"burned"` \| `"reserved-expired"` \| `"reserved"`
+> **status**: `"reserved"` \| `"committed"` \| `"burned"` \| `"reserved-expired"`
 
 ***
 

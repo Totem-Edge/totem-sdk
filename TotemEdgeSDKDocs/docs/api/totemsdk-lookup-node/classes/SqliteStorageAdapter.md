@@ -14,7 +14,7 @@ against the SQLite backend (better-sqlite3 is synchronous).
 
 ## Implements
 
-- `StorageAdapter`
+- `unknown`
 
 ## Constructors
 
@@ -42,10 +42,6 @@ against the SQLite backend (better-sqlite3 is synchronous).
 
 `Promise`\<`void`\>
 
-#### Implementation of
-
-`StorageAdapter.clear`
-
 ***
 
 ### get()
@@ -68,10 +64,6 @@ against the SQLite backend (better-sqlite3 is synchronous).
 
 `Promise`\<`T` \| `null`\>
 
-#### Implementation of
-
-`StorageAdapter.get`
-
 ***
 
 ### has()
@@ -88,10 +80,6 @@ against the SQLite backend (better-sqlite3 is synchronous).
 
 `Promise`\<`boolean`\>
 
-#### Implementation of
-
-`StorageAdapter.has`
-
 ***
 
 ### keys()
@@ -101,10 +89,6 @@ against the SQLite backend (better-sqlite3 is synchronous).
 #### Returns
 
 `Promise`\<`string`[]\>
-
-#### Implementation of
-
-`StorageAdapter.keys`
 
 ***
 
@@ -121,10 +105,6 @@ against the SQLite backend (better-sqlite3 is synchronous).
 #### Returns
 
 `Promise`\<`boolean`\>
-
-#### Implementation of
-
-`StorageAdapter.remove`
 
 ***
 
@@ -151,7 +131,3 @@ against the SQLite backend (better-sqlite3 is synchronous).
 #### Returns
 
 `Promise`\<`void`\>
-
-#### Implementation of
-
-`StorageAdapter.set`

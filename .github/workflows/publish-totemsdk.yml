@@ -26,11 +26,11 @@ jobs:
       matrix:
         include:
           - pkg: core
-            dir: packages/totem-sdk/packages/core
+            dir: packages/core
             npm_name: '@totemsdk/core'
             needs_wasm: true
           - pkg: core-wasm
-            dir: packages/totem-sdk/packages/core-wasm
+            dir: packages/core-wasm
             npm_name: '@totemsdk/core-wasm'
             needs_wasm: false
             build_cmd: |
@@ -39,22 +39,22 @@ jobs:
               wasm-pack build --target bundler --out-dir pkg
               wasm-pack build --target nodejs --out-dir pkg-node
           - pkg: connect
-            dir: packages/totem-sdk/packages/connect
+            dir: packages/connect
             npm_name: '@totemsdk/connect'
           - pkg: tx-builder
-            dir: packages/totem-sdk/packages/tx-builder
+            dir: packages/tx-builder
             npm_name: '@totemsdk/tx-builder'
           - pkg: node
-            dir: packages/totem-sdk/packages/node
+            dir: packages/node
             npm_name: '@totemsdk/node'
           - pkg: realtime
-            dir: packages/totem-sdk/packages/realtime
+            dir: packages/realtime
             npm_name: '@totemsdk/realtime'
           - pkg: root-identity
-            dir: packages/totem-sdk/packages/root-identity
+            dir: packages/root-identity
             npm_name: '@totemsdk/root-identity'
           - pkg: omnia-vtxo
-            dir: packages/totem-sdk/packages/omnia-vtxo
+            dir: packages/omnia-vtxo
             npm_name: '@totemsdk/omnia-vtxo'
           - pkg: observability
             dir: packages/observability
@@ -107,7 +107,7 @@ jobs:
       - name: Build @totemsdk/core-wasm
         if: steps.gate.outputs.proceed == 'true' && matrix.pkg == 'core'
         run: |
-          cd packages/totem-sdk/packages/core-wasm
+          cd packages/core-wasm
           wasm-pack build --target bundler --out-dir pkg
           wasm-pack build --target nodejs --out-dir pkg-node
 
@@ -115,7 +115,7 @@ jobs:
       - name: Build @totemsdk/core (workspace dependency)
         if: steps.gate.outputs.proceed == 'true' && matrix.pkg != 'core'
         run: npm run build
-        working-directory: packages/totem-sdk/packages/core
+        working-directory: packages/core
 
       # ── Extract version from tag ──────────────────────────────────────────────
       - name: Extract version from tag

@@ -6,7 +6,7 @@
 
 # Class: LookupBackend
 
-Plug-in interface for the balance data source.
+Plug-in interface for the portfolio data source.
 
 Implement this to use any chain provider — LookupNode, a raw Minima RPC,
 a custom indexer — instead of the default Axia hosted API.
@@ -18,7 +18,7 @@ import { LookupBackend } from '@totemsdk/realtime';
 import { connectLookupNode } from '@totemsdk/lookup-client';
 
 const client = await connectLookupNode({ hyperswarmTopic: 'abc...' });
-const manager = createBalanceStreamManager(deps, {
+const manager = createPortfolioStreamManager(deps, {
   backend: new LookupBackend(client),
 });
 ```
@@ -28,14 +28,14 @@ import { PureMinimaBackend } from '@totemsdk/realtime';
 import { createPureMinimaClient } from '@totemsdk/pureminima-rpc';
 
 const rpc = createPureMinimaClient({ host: 'localhost', port: 9005 });
-const manager = createBalanceStreamManager(deps, {
+const manager = createPortfolioStreamManager(deps, {
   backend: new PureMinimaBackend(rpc),
 });
 ```
 
 ## Implements
 
-- [`BalanceStreamBackend`](../interfaces/BalanceStreamBackend.md)
+- [`PortfolioBackend`](../interfaces/PortfolioBackend.md)
 
 ## Constructors
 
@@ -60,19 +60,19 @@ const manager = createBalanceStreamManager(deps, {
 > `readonly` **supportsPush**: `true` = `true`
 
 Whether this backend delivers push updates via `subscribe()`.
-If false or absent the manager will call `getBalance()` on a timer.
+If false or absent the manager will call `getPortfolio()` on a timer.
 
 #### Implementation of
 
-[`BalanceStreamBackend`](../interfaces/BalanceStreamBackend.md).[`supportsPush`](../interfaces/BalanceStreamBackend.md#supportspush)
+[`PortfolioBackend`](../interfaces/PortfolioBackend.md).[`supportsPush`](../interfaces/PortfolioBackend.md#supportspush)
 
 ## Methods
 
-### getBalance()
+### getPortfolio()
 
-> **getBalance**(`address`): `Promise`\<[`BalanceEntry`](../interfaces/BalanceEntry.md)[]\>
+> **getPortfolio**(`address`): `Promise`\<[`PortfolioEntry`](../interfaces/PortfolioEntry.md)[]\>
 
-Fetch the current balance for one address.
+Fetch the current portfolio for one address.
 Called for the initial snapshot and for poll cycles on non-push backends.
 
 #### Parameters
@@ -83,11 +83,11 @@ Called for the initial snapshot and for poll cycles on non-push backends.
 
 #### Returns
 
-`Promise`\<[`BalanceEntry`](../interfaces/BalanceEntry.md)[]\>
+`Promise`\<[`PortfolioEntry`](../interfaces/PortfolioEntry.md)[]\>
 
 #### Implementation of
 
-[`BalanceStreamBackend`](../interfaces/BalanceStreamBackend.md).[`getBalance`](../interfaces/BalanceStreamBackend.md#getbalance)
+[`PortfolioBackend`](../interfaces/PortfolioBackend.md).[`getPortfolio`](../interfaces/PortfolioBackend.md#getportfolio)
 
 ***
 
@@ -97,7 +97,7 @@ Called for the initial snapshot and for poll cycles on non-push backends.
 
 (Optional) Subscribe to real-time updates for a set of addresses.
 Only called when `supportsPush` is true.
-Must call `onUpdate(address, entries)` whenever the balance changes.
+Must call `onUpdate(address, entries)` whenever the portfolio changes.
 Returns an unsubscribe function to clean up listeners and watches.
 
 #### Parameters
@@ -116,4 +116,4 @@ Returns an unsubscribe function to clean up listeners and watches.
 
 #### Implementation of
 
-[`BalanceStreamBackend`](../interfaces/BalanceStreamBackend.md).[`subscribe`](../interfaces/BalanceStreamBackend.md#subscribe)
+[`PortfolioBackend`](../interfaces/PortfolioBackend.md).[`subscribe`](../interfaces/PortfolioBackend.md#subscribe)

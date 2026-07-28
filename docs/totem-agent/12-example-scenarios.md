@@ -1,6 +1,6 @@
 # Totem Agent - Example Scenarios
 
-> **Note:** This document describes the intended design and architecture for the Totem Agent. Some details may differ from the current implementation. For the authoritative specification, see [TOTEM_WALLET_SPEC.md](../../TOTEM_WALLET_SPEC.md) and [LEASE_WATERMARK_SPEC.md](../../LEASE_WATERMARK_SPEC.md).
+> **Note:** This document describes the intended design and architecture for the Totem Agent. Some details may differ from the current implementation. For the authoritative specification, see [TOTEM_CORE_YELLOW_PAPER.md](../../TOTEM_CORE_YELLOW_PAPER.md).
 
 This document demonstrates Totem Agent's capabilities through real-world examples.
 

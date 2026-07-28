@@ -34,7 +34,7 @@
 
 ### signingIndices
 
-> **signingIndices**: `Record`\<[`partyId`](../type-aliases/partyId.md), `SigningIndices`\>
+> **signingIndices**: `Record`\<[`partyId`](../type-aliases/partyId.md), [`PaymentIntent`](../type-aliases/PaymentIntent.md)\>
 
 ***
 

@@ -12,7 +12,7 @@ Options for `finalizeSplice`.
 
 ### acceptorLeaseProvider?
 
-> `optional` **acceptorLeaseProvider?**: `WotsLeaseProvider`
+> `optional` **acceptorLeaseProvider?**: `any`
 
 Acceptor's WOTS lease provider. Same commit/burn
                                    semantics as `proposerLeaseProvider`.
@@ -49,7 +49,7 @@ Override PoW difficulty (pass `MAX_HASH` in tests).
 
 ### proposerLeaseProvider?
 
-> `optional` **proposerLeaseProvider?**: `WotsLeaseProvider`
+> `optional` **proposerLeaseProvider?**: `any`
 
 Proposer's WOTS lease provider. If supplied,
                                    `finalizeSplice` will call `commitKeyUse` on the
@@ -73,7 +73,7 @@ Custom signature verifier called for both the
                                    ```ts
                                    // Example test helper:
                                    verifySignature: (sig, digest, pkd) => {
-                                     const expected = sha3_256(concatBytes(fromHex(pkd), digest));
+                                     const expected = sha3_256(concatBytes(hexToBytes(pkd), digest));
                                      return expected.length === sig.length
                                        && expected.every((b, i) => b === sig[i]);
                                    }

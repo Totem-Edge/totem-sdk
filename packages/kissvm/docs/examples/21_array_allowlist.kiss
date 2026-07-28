@@ -1,0 +1,10 @@
+LET (0) = 0xAA
+LET (1) = 0xBB
+LET candidate = STATE(0)
+LET counter = 0
+LET found = FALSE
+WHILE counter LT 2 DO
+    IF GET(counter) EQ candidate THEN LET found = TRUE ENDIF
+    LET counter = INC(counter)
+ENDWHILE
+RETURN found AND SIGNEDBY(candidate)

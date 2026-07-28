@@ -53,7 +53,7 @@ SE client + optional broadcast for the lock TX.
 
 ### chainProvider?
 
-`ChainStateProvider`
+`any`
 
 Optional: fetch coin details when owner metadata is absent.
 

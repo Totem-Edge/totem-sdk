@@ -28,7 +28,7 @@
 
 ### counterIndices
 
-`SigningIndices`
+`any`
 
 ## Returns
 

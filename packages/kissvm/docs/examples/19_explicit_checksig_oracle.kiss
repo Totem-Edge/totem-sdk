@@ -1,0 +1,5 @@
+LET oraclekey = PREVSTATE(0)
+LET message = STATE(0)
+LET signature = STATE(1)
+ASSERT CHECKSIG(oraclekey message signature)
+RETURN SIGNEDBY(PREVSTATE(1))

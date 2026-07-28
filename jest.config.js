@@ -7,23 +7,9 @@ module.exports = {
     '<rootDir>/packages/**/?(*.)(spec|test).(ts|js)'
   ],
 
-  // Exclude packages that use different test runners or have uninstalled deps:
-  // - totem-sdk/*: pnpm workspace packages — deps not installed by root npm ci;
-  //   each has its own CI workflow (edge-build-and-test, identity-build-and-test, etc.)
-  // - totem/*: totem workspace packages — same issue
-  // - axia-dashboard: uses Playwright, not Jest
-  // - totem-extension: has its own Jest config with jsdom + different dep tree
-  // - axia-homepage-vite / docs-site: no Jest tests
   testPathIgnorePatterns: [
     '/node_modules/',
-    '<rootDir>/packages/totem-sdk/',
-    '<rootDir>/packages/totem/',
-    '<rootDir>/packages/axia-dashboard/',
-    '<rootDir>/packages/totem-extension/',
-    '<rootDir>/packages/axia-homepage-vite/',
-    '<rootDir>/packages/docs-site/',
-    // Uses node:test runner, not Jest
-    '<rootDir>/packages/totem-dapp-starter/',
+    '<rootDir>/extensions/',
   ],
 
   transform: {

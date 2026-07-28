@@ -13,7 +13,7 @@
 > `optional` **verifyBlindSig?**: (`sig`, `commitment`, `sePkdHex`) => `boolean`
 
 Override SE blind-signature verification.
-Default: `wotsVerifyDigest(fromHex(sig), commitment, fromHex(sePkdHex))`
+Default: `wotsVerifyDigest(hexToBytes(sig), commitment, hexToBytes(sePkdHex))`
 Tests override because mock SE sigs use SHA3-256.
 
 #### Parameters
@@ -41,7 +41,7 @@ Tests override because mock SE sigs use SHA3-256.
 > `optional` **verifyOwnerSig?**: (`ownerSig`, `commitment`, `fromPkdHex`) => `boolean`
 
 Override old-owner signature verification per hop.
-Default: `wotsVerifyDigest(fromHex(ownerSig), commitment, fromHex(fromPkdHex))`
+Default: `wotsVerifyDigest(hexToBytes(ownerSig), commitment, hexToBytes(fromPkdHex))`
 Tests override because mock owner sigs use SHA3-256.
 
 #### Parameters
@@ -69,7 +69,7 @@ Tests override because mock owner sigs use SHA3-256.
 > `optional` **verifyTransferKey?**: (`transferKey`, `fromPublicKeyDigest`) => `boolean`
 
 Override transferKey lineage verification.
-Default: `hex(derivePKdigest(fromHex(transferKey), 0)) === fromPublicKeyDigest`
+Default: `bytesToHex(derivePKdigest(hexToBytes(transferKey), 0)) === fromPublicKeyDigest`
 Tests override because mock seeds are not real WOTS seeds.
 
 #### Parameters

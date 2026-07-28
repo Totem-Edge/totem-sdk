@@ -1,0 +1,3 @@
+LET body = [LET returnvalue = $1 GTE $2]
+LET allowed = FUNCTION(body @AMOUNT 10)
+RETURN allowed AND SIGNEDBY(0xAA)

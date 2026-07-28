@@ -1,0 +1,6 @@
+LET leaf = STATE(0)
+LET leafsum = STATE(1)
+LET roothash = PREVSTATE(0)
+LET rootsum = PREVSTATE(1)
+LET proofchain = STATE(2)
+RETURN PROOF(leaf leafsum roothash rootsum proofchain)

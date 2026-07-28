@@ -1,6 +1,6 @@
 # Totem Extension Architecture
 
-> **Note:** This document describes the intended design and architecture for the Totem Agent. Some details may differ from the current implementation. For the authoritative specification, see [TOTEM_WALLET_SPEC.md](../../TOTEM_WALLET_SPEC.md) and [LEASE_WATERMARK_SPEC.md](../../LEASE_WATERMARK_SPEC.md).
+> **Note:** This document describes the intended design and architecture for the Totem Agent. Some details may differ from the current implementation. For the authoritative specification, see [TOTEM_CORE_YELLOW_PAPER.md](../../TOTEM_CORE_YELLOW_PAPER.md).
 
 ## Overview
 Totem is a quantum-resistant browser wallet extension for the Minima blockchain, implementing WOTS (Winternitz One-Time Signatures) with w=8 parameter (L=34 chains, 1,088-byte signatures). Built as a Chrome Manifest V3 extension with cross-browser compatibility for Firefox and Safari.

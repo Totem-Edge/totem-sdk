@@ -32,7 +32,83 @@
 
 ##### transport
 
-[`ITransport`](../interfaces/ITransport.md)
+`ITransport`
+
+#### Returns
+
+`Promise`\<`void`\>
+
+***
+
+### announceAgent()
+
+> **announceAgent**(`params`): `Promise`\<`void`\>
+
+#### Parameters
+
+##### params
+
+###### capabilityId
+
+`string`
+
+###### expiresAt
+
+`number`
+
+###### latencyMs?
+
+`number`
+
+###### manifest
+
+`Uint8Array`
+
+Encoded SignedManifest bytes — call encodeManifest(signedManifest) first.
+
+###### pricePerCall?
+
+`number`
+
+###### tags?
+
+`string`[]
+
+#### Returns
+
+`Promise`\<`void`\>
+
+***
+
+### announceApp()
+
+> **announceApp**(`params`): `Promise`\<`void`\>
+
+#### Parameters
+
+##### params
+
+###### appId
+
+`string`
+
+###### authorAddress?
+
+`string`
+
+###### expiresAt
+
+`number`
+
+###### isFree?
+
+`boolean`
+
+###### manifest
+
+`Uint8Array`
+
+Encoded SignedManifest bytes — call encodeManifest(signedManifest) first.
 
 #### Returns
 
@@ -68,7 +144,7 @@
 
 ### getCoin()
 
-> **getCoin**(`coinId`): `Promise`\<`Coin` \| `null`\>
+> **getCoin**(`coinId`): `Promise`\<`any`\>
 
 #### Parameters
 
@@ -78,7 +154,7 @@
 
 #### Returns
 
-`Promise`\<`Coin` \| `null`\>
+`Promise`\<`any`\>
 
 ***
 
@@ -173,6 +249,74 @@
 #### Returns
 
 [`Unsubscribe`](../type-aliases/Unsubscribe.md)
+
+***
+
+### queryAgents()
+
+> **queryAgents**(`params?`): `Promise`\<`object`[]\>
+
+#### Parameters
+
+##### params?
+
+###### capabilityName?
+
+`string`
+
+###### limit?
+
+`number`
+
+###### maxLatencyMs?
+
+`number`
+
+###### maxPricePerCall?
+
+`number`
+
+###### tags?
+
+`string`[]
+
+#### Returns
+
+`Promise`\<`object`[]\>
+
+***
+
+### queryApps()
+
+> **queryApps**(`params?`): `Promise`\<`object`[]\>
+
+#### Parameters
+
+##### params?
+
+###### authorAddress?
+
+`string`
+
+###### category?
+
+`string`[]
+
+###### freeOnly?
+
+`boolean`
+
+###### limit?
+
+`number`
+
+###### minVersion?
+
+`number`
+
+#### Returns
+
+`Promise`\<`object`[]\>
 
 ***
 

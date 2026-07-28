@@ -1,6 +1,6 @@
 # Totem SDK Integration Patterns
 
-> **Note:** This document describes the intended design and architecture for the Totem Agent. Some details may differ from the current implementation. For the authoritative specification, see [TOTEM_WALLET_SPEC.md](../../TOTEM_WALLET_SPEC.md) and [LEASE_WATERMARK_SPEC.md](../../LEASE_WATERMARK_SPEC.md).
+> **Note:** This document describes the intended design and architecture for the Totem Agent. Some details may differ from the current implementation. For the authoritative specification, see [TOTEM_CORE_YELLOW_PAPER.md](../../TOTEM_CORE_YELLOW_PAPER.md).
 
 ## Overview
 The Totem Extension integrates with three primary systems:
@@ -12,7 +12,7 @@ The Totem Extension integrates with three primary systems:
 
 ### Package Structure
 ```
-packages/totem-sdk/packages/core/
+packages/core/
 ├── src/
 │   ├── wots.js          # WOTS signing algorithms
 │   ├── treekey.js       # TreeKey/TreeKeyNode hierarchical keys

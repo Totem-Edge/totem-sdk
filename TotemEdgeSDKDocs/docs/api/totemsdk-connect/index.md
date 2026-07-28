@@ -8,9 +8,11 @@
 
 - [TotemConnectionError](classes/TotemConnectionError.md)
 - [TotemNotInstalledError](classes/TotemNotInstalledError.md)
+- [WalletDiscovery](classes/WalletDiscovery.md)
 
 ## Interfaces
 
+- [DiscoveredWallet](interfaces/DiscoveredWallet.md)
 - [EnhancedBuildParams](interfaces/EnhancedBuildParams.md)
 - [InputCoinProof](interfaces/InputCoinProof.md)
 - [InputScriptDescriptor](interfaces/InputScriptDescriptor.md)
@@ -34,6 +36,7 @@
 - [TotemAgentExplainTransactionResponse](interfaces/TotemAgentExplainTransactionResponse.md)
 - [TotemAgentProposePaymentRequest](interfaces/TotemAgentProposePaymentRequest.md)
 - [TotemAgentProposePaymentResponse](interfaces/TotemAgentProposePaymentResponse.md)
+- [TotemAnnounceDetail](interfaces/TotemAnnounceDetail.md)
 - [TotemBroadcastHexErrorResponse](interfaces/TotemBroadcastHexErrorResponse.md)
 - [TotemBroadcastHexRequest](interfaces/TotemBroadcastHexRequest.md)
 - [TotemBroadcastHexSuccessResponse](interfaces/TotemBroadcastHexSuccessResponse.md)
@@ -127,6 +130,7 @@
 - [TotemStatechainVerifyResponse](interfaces/TotemStatechainVerifyResponse.md)
 - [TotemVerifyRequest](interfaces/TotemVerifyRequest.md)
 - [TotemVerifyResponse](interfaces/TotemVerifyResponse.md)
+- [TotemWalletInfo](interfaces/TotemWalletInfo.md)
 - [TransactionPlan](interfaces/TransactionPlan.md)
 
 ## Type Aliases
@@ -146,6 +150,8 @@
 ## Variables
 
 - [~~requestSignature~~](variables/requestSignature.md)
+- [TOTEM\_ANNOUNCE](variables/TOTEM_ANNOUNCE.md)
+- [TOTEM\_REQUEST\_ANNOUNCE](variables/TOTEM_REQUEST_ANNOUNCE.md)
 
 ## Functions
 
@@ -154,6 +160,7 @@
 - [agentProposePayment](functions/agentProposePayment.md)
 - [broadcastHex](functions/broadcastHex.md)
 - [broadcastTxPoW](functions/broadcastTxPoW.md)
+- [clearActiveProvider](functions/clearActiveProvider.md)
 - [connect](functions/connect.md)
 - [createPaymentRequest](functions/createPaymentRequest.md)
 - [getAccounts](functions/getAccounts.md)
@@ -190,6 +197,7 @@
 - [revokeTxPermission](functions/revokeTxPermission.md)
 - [sendComplex](functions/sendComplex.md)
 - [sendTransaction](functions/sendTransaction.md)
+- [setActiveProvider](functions/setActiveProvider.md)
 - [setChainProvider](functions/setChainProvider.md)
 - [signData](functions/signData.md)
 - [signTransaction](functions/signTransaction.md)

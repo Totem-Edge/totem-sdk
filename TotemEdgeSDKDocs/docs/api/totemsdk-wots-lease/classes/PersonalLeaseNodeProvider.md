@@ -6,11 +6,23 @@
 
 # Class: PersonalLeaseNodeProvider
 
-Layer 3 — personal p2p lease node.
+Layer 3 — personal lookup-node lease coordinator.
 
-Verifies ed25519 certs issued by a configured node public key.
-Reserve/commit throws until the node is reachable — callers should
-wrap with HybridLeaseProvider using a LocalLeaseProvider as the local layer.
+Calls the HTTP REST API exposed by a running @totemsdk/lookup-node that has
+lease coordination enabled. All write operations are forwarded to the node's
+LeaseCoordinator so the node acts as the source-of-truth watermark journal
+for high-value transactions.
+
+Wrap with HybridLeaseProvider so local reservations always succeed even when
+the personal node is temporarily unreachable:
+
+```ts
+const provider = new HybridLeaseProvider({
+  local: new LocalLeaseProvider(storage),
+  node:  new PersonalLeaseNodeProvider({ nodeUrl, nodePubkey }),
+  threshold: 10, // escalate to node for txns >= 10 MIN
+});
+```
 
 ## Implements
 
@@ -36,15 +48,15 @@ wrap with HybridLeaseProvider using a LocalLeaseProvider as the local layer.
 
 ### burnReservation()
 
-> **burnReservation**(`_reservationId`, `_reason`): `Promise`\<`void`\>
+> **burnReservation**(`reservationId`, `reason`): `Promise`\<`void`\>
 
 #### Parameters
 
-##### \_reservationId
+##### reservationId
 
 `string`
 
-##### \_reason
+##### reason
 
 `string`
 
@@ -60,15 +72,15 @@ wrap with HybridLeaseProvider using a LocalLeaseProvider as the local layer.
 
 ### commitKeyUse()
 
-> **commitKeyUse**(`_reservationId`, `_txId`): `Promise`\<`void`\>
+> **commitKeyUse**(`reservationId`, `txId`): `Promise`\<`void`\>
 
 #### Parameters
 
-##### \_reservationId
+##### reservationId
 
 `string`
 
-##### \_txId
+##### txId
 
 `string`
 
@@ -84,11 +96,11 @@ wrap with HybridLeaseProvider using a LocalLeaseProvider as the local layer.
 
 ### getLocalWatermark()
 
-> **getLocalWatermark**(`_treeId`): `Promise`\<[`LocalWatermark`](../interfaces/LocalWatermark.md)\>
+> **getLocalWatermark**(`treeId`): `Promise`\<[`LocalWatermark`](../interfaces/LocalWatermark.md)\>
 
 #### Parameters
 
-##### \_treeId
+##### treeId
 
 `string`
 
@@ -104,11 +116,11 @@ wrap with HybridLeaseProvider using a LocalLeaseProvider as the local layer.
 
 ### publishWatermark()
 
-> **publishWatermark**(`_treeId`): `Promise`\<`void`\>
+> **publishWatermark**(`treeId`): `Promise`\<`void`\>
 
 #### Parameters
 
-##### \_treeId
+##### treeId
 
 `string`
 
@@ -124,11 +136,11 @@ wrap with HybridLeaseProvider using a LocalLeaseProvider as the local layer.
 
 ### reserveKeyUse()
 
-> **reserveKeyUse**(`_params`): `Promise`\<[`LeaseReservation`](../interfaces/LeaseReservation.md)\>
+> **reserveKeyUse**(`params`): `Promise`\<[`LeaseReservation`](../interfaces/LeaseReservation.md)\>
 
 #### Parameters
 
-##### \_params
+##### params
 
 [`ReserveParams`](../interfaces/ReserveParams.md)
 

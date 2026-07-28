@@ -6,7 +6,7 @@
 
 # Function: enforceUpdateGuards()
 
-> **enforceUpdateGuards**(`channelId`, `newSequence`, `payloadHash`): `"CAPACITY_NEAR_EXHAUSTION"` \| `null`
+> **enforceUpdateGuards**(`channelId`, `newSequence`, `payloadHash`, `pendingProposal?`): `"CAPACITY_NEAR_EXHAUSTION"` \| `null`
 
 Enforce all per-update invariants that must hold for every state transition
 regardless of whether the caller is `updateState`, `addHTLC`, `fulfillHTLC`,
@@ -43,6 +43,16 @@ Proposed next sequence number.
 
 Hex-encoded SHA3-256 of the full off-chain state
                     commitment (sequence + balances + pending HTLCs).
+
+### pendingProposal?
+
+#### payloadHash
+
+`string`
+
+#### sequence
+
+`number`
 
 ## Returns
 

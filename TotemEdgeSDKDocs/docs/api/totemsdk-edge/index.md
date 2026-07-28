@@ -12,6 +12,7 @@
 
 - [EdgeDevice](interfaces/EdgeDevice.md)
 - [EdgeIdentityPort](interfaces/EdgeIdentityPort.md)
+- [EdgeKeyLeasePort](interfaces/EdgeKeyLeasePort.md)
 - [EdgeLiquidityPort](interfaces/EdgeLiquidityPort.md)
 - [EdgeLookupPort](interfaces/EdgeLookupPort.md)
 - [EdgeManifestPort](interfaces/EdgeManifestPort.md)
@@ -20,10 +21,12 @@
 - [EdgePolicyPort](interfaces/EdgePolicyPort.md)
 - [EdgeProofPort](interfaces/EdgeProofPort.md)
 - [EdgeProviderProfile](interfaces/EdgeProviderProfile.md)
+- [EdgePubSubPort](interfaces/EdgePubSubPort.md)
 - [EdgeReceipt](interfaces/EdgeReceipt.md)
 - [EdgeRuntime](interfaces/EdgeRuntime.md)
 - [EdgeRuntimePorts](interfaces/EdgeRuntimePorts.md)
 - [EdgeServiceRegistration](interfaces/EdgeServiceRegistration.md)
+- [EdgeStreamPort](interfaces/EdgeStreamPort.md)
 
 ## Type Aliases
 

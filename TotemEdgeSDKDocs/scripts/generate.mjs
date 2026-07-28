@@ -38,44 +38,84 @@ const SITE_URL = (siteConfig.url + (siteConfig.baseUrl && siteConfig.baseUrl !==
 // entryPoint: path relative to REPO_ROOT (null = always write curated stub)
 // ---------------------------------------------------------------------------
 const PACKAGES = [
-  { slug: 'totemsdk-core',             name: '@totemsdk/core',             desc: 'WOTS cryptography, TreeKey derivation, and Streamable serialization primitives',                entryPoint: 'packages/totem-sdk/packages/core/src/index.ts' },
-  { slug: 'totemsdk-connect',          name: '@totemsdk/connect',          desc: 'Browser dApp to Totem wallet extension provider bridge (TOTEM_CONNECT v4.1)',                   entryPoint: 'packages/totem-sdk/packages/connect/src/index.ts' },
-  { slug: 'totemsdk-root-identity',    name: '@totemsdk/root-identity',    desc: 'Root identity controlling up to 64 on-chain addresses',                                         entryPoint: 'packages/totem-sdk/packages/root-identity/src/index.ts' },
-  { slug: 'totemsdk-server',           name: '@totemsdk/server',           desc: 'Node.js server SDK — wallet, transaction building, and Axia API client',                       entryPoint: 'packages/totem-sdk/packages/server/src/index.ts' },
-  { slug: 'totemsdk-wallet-adapter',   name: '@totemsdk/wallet-adapter',   desc: 'Abstract base class for building Totem-compatible wallets',                                    entryPoint: 'packages/totem-sdk/packages/wallet-adapter/src/index.ts' },
-  { slug: 'totemsdk-agent-policy',     name: '@totemsdk/agent-policy',     desc: 'QVAC AI bridge — policy evaluation seam between agents and the wallet',                        entryPoint: 'packages/totem-sdk/packages/agent-policy/src/index.ts' },
-  { slug: 'totemsdk-manifest',         name: '@totemsdk/manifest',         desc: 'Canonical signed declarations for apps, AI capabilities, dApps, and edge services',            entryPoint: 'packages/totem-sdk/packages/manifest/src/index.ts' },
-  { slug: 'totemsdk-omnia',            name: '@totemsdk/omnia',            desc: 'Eltoo payment channel state machine',                                                           entryPoint: 'packages/totem-sdk/packages/omnia/src/index.ts' },
-  { slug: 'totemsdk-omnia-factory',    name: '@totemsdk/omnia-factory',    desc: 'N-of-N group channel factory',                                                                  entryPoint: 'packages/totem-sdk/packages/omnia-factory/src/index.ts' },
-  { slug: 'totemsdk-omnia-router',     name: '@totemsdk/omnia-router',     desc: 'Multi-hop pathfinding and fee computation',                                                     entryPoint: 'packages/totem-sdk/packages/omnia-router/src/index.ts' },
-  { slug: 'totemsdk-omnia-splice',     name: '@totemsdk/omnia-splice',     desc: 'Channel resizing without closing',                                                              entryPoint: 'packages/totem-sdk/packages/omnia-splice/src/index.ts' },
-  { slug: 'totemsdk-omnia-vtxo',       name: '@totemsdk/omnia-vtxo',       desc: 'Virtual UTXO claim layer — cash-like off-chain balances backed by Merkle commitment trees',    entryPoint: 'packages/totem-sdk/packages/omnia-vtxo/src/index.ts' },
-  { slug: 'totemsdk-edge',             name: '@totemsdk/edge',             desc: 'Unified developer-facing runtime for Totem Edge — port-injected, adapter-neutral',             entryPoint: 'packages/totem-sdk/packages/edge/src/index.ts' },
-  { slug: 'totemsdk-edge-adapters',    name: '@totemsdk/edge-adapters',    desc: 'Reference adapters bridging Totem SDK packages to edge port interfaces',                       entryPoint: 'packages/totem-sdk/packages/edge-adapters/src/index.ts' },
-  { slug: 'totemsdk-edge-mqtt',        name: '@totemsdk/edge-mqtt',        desc: 'MQTT adapter for Totem Edge — sensor bridges, gateways, MachinePay',                          entryPoint: 'packages/totem-sdk/packages/edge-mqtt/src/index.ts' },
-  { slug: 'totemsdk-identity',         name: '@totemsdk/identity',         desc: 'Canonical identity and claims layer — identity documents, signed claims, graph resolution',    entryPoint: 'packages/totem-sdk/packages/identity/src/index.ts' },
-  { slug: 'totemsdk-proof',            name: '@totemsdk/proof',            desc: 'Portable proof layer — create, sign, verify, and anchor WOTS-signed proof envelopes',         entryPoint: 'packages/totem-sdk/packages/proof/src/index.ts' },
-  { slug: 'totemsdk-proof-integritas', name: '@totemsdk/proof-integritas', desc: 'Integritas v2 proof provider — on-chain hash stamping and verification',                      entryPoint: 'packages/totem-sdk/packages/proof-integritas/src/index.ts' },
-  { slug: 'totemsdk-proofgraph',       name: '@totemsdk/proofgraph',       desc: 'Local deterministic proof relationship graph — content-addressed DAG',                        entryPoint: 'packages/totem-sdk/packages/proofgraph/src/index.ts' },
-  { slug: 'totemsdk-provider-bond',    name: '@totemsdk/provider-bond',    desc: 'Provider trust layer — prove, record, score and filter infrastructure providers',             entryPoint: 'packages/totem-sdk/packages/provider-bond/src/index.ts' },
-  { slug: 'totemsdk-liquidity-bond',   name: '@totemsdk/liquidity-bond',   desc: 'Deterministic LP position and productive liquidity record package',                           entryPoint: 'packages/totem-sdk/packages/liquidity-bond/src/index.ts' },
-  { slug: 'totemsdk-lookup-client',    name: '@totemsdk/lookup-client',    desc: 'Hyperswarm client for Totem lookup nodes — chain queries and real-time updates',              entryPoint: 'packages/totem-sdk/packages/lookup-client/src/index.ts' },
-  { slug: 'totemsdk-lookup-node',      name: '@totemsdk/lookup-node',      desc: 'Always-on personal lookup node — Hyperswarm, SQLite, WOTS lease coordination',               entryPoint: 'packages/totem-sdk/packages/lookup-node/src/index.ts' },
-  { slug: 'totemsdk-lookup-protocol',  name: '@totemsdk/lookup-protocol',  desc: 'Wire protocol types, message framing, and auth for lookup node communication',                entryPoint: 'packages/totem-sdk/packages/lookup-protocol/src/index.ts' },
-  { slug: 'totemsdk-txpow',            name: '@totemsdk/txpow',            desc: 'TxPoW proof-of-work mining, serialization, and verification',                                  entryPoint: 'packages/totem-sdk/packages/txpow/src/index.ts' },
-  { slug: 'totemsdk-wots-lease',       name: '@totemsdk/wots-lease',       desc: 'WOTS key-use coordination — canonical v3 watermark and lease safety layers',                  entryPoint: 'packages/totem-sdk/packages/wots-lease/src/index.ts' },
-  { slug: 'totemsdk-tx-builder',       name: '@totemsdk/tx-builder',       desc: 'Transaction builder — coin selection, multisig, and WOTS signing',                            entryPoint: 'packages/totem-sdk/packages/tx-builder/src/index.ts' },
-  { slug: 'totemsdk-kissvm',           name: '@totemsdk/kissvm',           desc: 'KISSVM script lexer, parser, AST, and evaluator',                                              entryPoint: 'packages/totem-sdk/packages/kissvm/src/index.ts' },
-  { slug: 'totemsdk-statechain',       name: '@totemsdk/statechain',       desc: 'Mercury-protocol state chain — privacy-preserving off-chain UTXO custody transfer',           entryPoint: 'packages/totem-sdk/packages/statechain/src/index.ts' },
-  { slug: 'totemsdk-se-server',        name: '@totemsdk/se-server',        desc: 'Self-hostable Statechain Entity server — blind co-signer for Mercury protocol',              entryPoint: 'packages/totem-sdk/packages/se-server/src/index.ts' },
-  { slug: 'totemsdk-chain-provider',   name: '@totemsdk/chain-provider',   desc: 'Unified chain data provider — hosted, RPC, and P2P lookup backends',                          entryPoint: 'packages/totem-sdk/packages/chain-provider/src/index.ts' },
-  { slug: 'totemsdk-realtime',         name: '@totemsdk/realtime',         desc: 'Real-time balance streaming with WebSocket and HTTP fallback',                                 entryPoint: 'packages/totem-sdk/packages/realtime/src/index.ts' },
-  { slug: 'totemsdk-pear',             name: '@totemsdk/pear',             desc: 'Pear/Holepunch runtime integration — storage, networking, lifecycle',                         entryPoint: 'packages/totem-sdk/packages/pear/src/index.ts' },
-  { slug: 'totemsdk-pureminima-rpc',   name: '@totemsdk/pureminima-rpc',   desc: 'Fetch-based PureMinima RPC client — Bare/Pear/Node/browser compatible',                      entryPoint: 'packages/totem-sdk/packages/pureminima-rpc/src/index.ts' },
-  { slug: 'totemsdk-pubsub-transport', name: '@totemsdk/pubsub-transport', desc: 'Pub/sub transport interfaces — MQTT-compatible, transport-agnostic',                          entryPoint: 'packages/totem-sdk/packages/pubsub-transport/src/index.ts' },
-  { slug: 'totemsdk-stream-transport', name: '@totemsdk/stream-transport', desc: 'Stream transport adapters — WebSocket, WebRTC, Hyperswarm, stdio',                           entryPoint: 'packages/totem-sdk/packages/stream-transport/src/index.ts' },
-  { slug: 'totem-observability',       name: '@totemsdk/observability',    desc: 'Drop-in observability for Totem-based dApps — trace propagation and batched telemetry',       entryPoint: 'packages/observability/src/index.js' },
-  { slug: 'totem-extension-keyring',   name: 'totem-extension/keyring',    desc: 'Totem Extension public keyring API — signing validator types and security boundary utilities', entryPoint: 'packages/totem-extension/src/keyring.ts' },
+  // Core & Connect
+  { slug: 'totemsdk-core',             name: '@totemsdk/core',             desc: 'WOTS cryptography, TreeKey derivation, and Streamable serialization primitives',                entryPoint: 'packages/core/src/index.ts' },
+  { slug: 'totemsdk-connect',          name: '@totemsdk/connect',          desc: 'Browser dApp to Totem wallet extension provider bridge (TOTEM_CONNECT v4.1)',                   entryPoint: 'packages/connect/src/index.ts' },
+  { slug: 'totemsdk-root-identity',    name: '@totemsdk/root-identity',    desc: 'Root identity controlling up to 64 on-chain addresses',                                         entryPoint: 'packages/root-identity/src/index.ts' },
+  { slug: 'totemsdk-core-wasm',        name: '@totemsdk/core-wasm',        desc: 'WebAssembly bindings for WOTS signing and SHA3-256 hashing',                                   entryPoint: null },
+
+  // AI & Policy
+  { slug: 'totemsdk-agent-policy',     name: '@totemsdk/agent-policy',     desc: 'QVAC AI bridge — policy evaluation seam between agents and the wallet',                        entryPoint: 'packages/agent-policy/src/index.ts' },
+  { slug: 'totemsdk-manifest',         name: '@totemsdk/manifest',         desc: 'Canonical signed declarations for apps, AI capabilities, dApps, and edge services',            entryPoint: 'packages/manifest/src/index.ts' },
+  { slug: 'totemsdk-authority',        name: '@totemsdk/authority',        desc: 'Authority verification and delegation framework for Totem services',                          entryPoint: 'packages/authority/src/index.ts' },
+  { slug: 'totemsdk-governance',       name: '@totemsdk/governance',       desc: 'On-chain governance — proposals, voting, and treasury management',                            entryPoint: 'packages/governance/src/index.ts' },
+
+  // Omnia Channels
+  { slug: 'totemsdk-omnia',            name: '@totemsdk/omnia',            desc: 'Eltoo payment channel state machine',                                                           entryPoint: 'packages/omnia/src/index.ts' },
+  { slug: 'totemsdk-omnia-factory',    name: '@totemsdk/omnia-factory',    desc: 'N-of-N group channel factory',                                                                  entryPoint: 'packages/omnia-factory/src/index.ts' },
+  { slug: 'totemsdk-omnia-router',     name: '@totemsdk/omnia-router',     desc: 'Multi-hop pathfinding and fee computation',                                                     entryPoint: 'packages/omnia-router/src/index.ts' },
+  { slug: 'totemsdk-omnia-splice',     name: '@totemsdk/omnia-splice',     desc: 'Channel resizing without closing',                                                              entryPoint: 'packages/omnia-splice/src/index.ts' },
+  { slug: 'totemsdk-omnia-vtxo',       name: '@totemsdk/omnia-vtxo',       desc: 'Virtual UTXO claim layer — cash-like off-chain balances backed by Merkle commitment trees',    entryPoint: 'packages/omnia-vtxo/src/index.ts' },
+
+  // Edge Computing
+  { slug: 'totemsdk-edge',             name: '@totemsdk/edge',             desc: 'Unified developer-facing runtime for Totem Edge — port-injected, adapter-neutral',             entryPoint: 'packages/edge/src/index.ts' },
+  { slug: 'totemsdk-edge-adapters',    name: '@totemsdk/edge-adapters',    desc: 'Reference adapters bridging Totem SDK packages to edge port interfaces',                       entryPoint: 'packages/edge-adapters/src/index.ts' },
+  { slug: 'totemsdk-edge-bacnet',      name: '@totemsdk/edge-bacnet',      desc: 'BACnet adapter for building automation and HVAC systems',                                      entryPoint: 'packages/edge-bacnet/src/index.ts' },
+  { slug: 'totemsdk-edge-ble',         name: '@totemsdk/edge-ble',         desc: 'Bluetooth Low Energy adapter for Totem Edge',                                                    entryPoint: 'packages/edge-ble/src/index.ts' },
+  { slug: 'totemsdk-edge-can',         name: '@totemsdk/edge-can',         desc: 'CAN bus adapter for automotive and industrial control systems',                                 entryPoint: 'packages/edge-can/src/index.ts' },
+  { slug: 'totemsdk-edge-coap',        name: '@totemsdk/edge-coap',        desc: 'CoAP adapter for constrained IoT devices',                                                        entryPoint: 'packages/edge-coap/src/index.ts' },
+  { slug: 'totemsdk-edge-email',       name: '@totemsdk/edge-email',       desc: 'Email adapter — send and receive email via Totem Edge',                                         entryPoint: 'packages/edge-email/src/index.ts' },
+  { slug: 'totemsdk-edge-grpc',        name: '@totemsdk/edge-grpc',        desc: 'gRPC adapter for high-performance microservice communication',                                 entryPoint: 'packages/edge-grpc/src/index.ts' },
+  { slug: 'totemsdk-edge-lorawan',     name: '@totemsdk/edge-lorawan',     desc: 'LoRaWAN adapter for long-range low-power IoT networks',                                         entryPoint: 'packages/edge-lorawan/src/index.ts' },
+  { slug: 'totemsdk-edge-matter',      name: '@totemsdk/edge-matter',      desc: 'Matter (formerly CHIP) smart home protocol adapter',                                            entryPoint: 'packages/edge-matter/src/index.ts' },
+  { slug: 'totemsdk-edge-modbus',      name: '@totemsdk/edge-modbus',      desc: 'Modbus adapter for industrial automation and SCADA systems',                                    entryPoint: 'packages/edge-modbus/src/index.ts' },
+  { slug: 'totemsdk-edge-mqtt',        name: '@totemsdk/edge-mqtt',        desc: 'MQTT adapter for Totem Edge — sensor bridges, gateways, MachinePay',                          entryPoint: 'packages/edge-mqtt/src/index.ts' },
+  { slug: 'totemsdk-edge-opcua',       name: '@totemsdk/edge-opcua',       desc: 'OPC UA adapter for industrial IoT and factory automation',                                      entryPoint: 'packages/edge-opcua/src/index.ts' },
+  { slug: 'totemsdk-edge-ros2',        name: '@totemsdk/edge-ros2',        desc: 'ROS 2 adapter for robotics middleware',                                                         entryPoint: 'packages/edge-ros2/src/index.ts' },
+  { slug: 'totemsdk-pubsub-transport', name: '@totemsdk/pubsub-transport', desc: 'Pub/sub transport interfaces — MQTT-compatible, transport-agnostic',                          entryPoint: 'packages/pubsub-transport/src/index.ts' },
+  { slug: 'totemsdk-stream-transport', name: '@totemsdk/stream-transport', desc: 'Stream transport adapters — WebSocket, WebRTC, Hyperswarm, stdio',                           entryPoint: 'packages/stream-transport/src/index.ts' },
+
+  // Identity & Proofs
+  { slug: 'totemsdk-identity',         name: '@totemsdk/identity',         desc: 'Canonical identity and claims layer — identity documents, signed claims, graph resolution',    entryPoint: 'packages/identity/src/index.ts' },
+  { slug: 'totemsdk-proof',            name: '@totemsdk/proof',            desc: 'Portable proof layer — create, sign, verify, and anchor WOTS-signed proof envelopes',         entryPoint: 'packages/proof/src/index.ts' },
+  { slug: 'totemsdk-proof-integritas', name: '@totemsdk/proof-integritas', desc: 'Integritas v2 proof provider — on-chain hash stamping and verification',                      entryPoint: 'packages/proof-integritas/src/index.ts' },
+  { slug: 'totemsdk-proofgraph',       name: '@totemsdk/proofgraph',       desc: 'Local deterministic proof relationship graph — content-addressed DAG',                        entryPoint: 'packages/proofgraph/src/index.ts' },
+  { slug: 'totemsdk-provider-bond',    name: '@totemsdk/provider-bond',    desc: 'Provider trust layer — prove, record, score and filter infrastructure providers',             entryPoint: 'packages/provider-bond/src/index.ts' },
+  { slug: 'totemsdk-liquidity-bond',   name: '@totemsdk/liquidity-bond',   desc: 'Deterministic LP position and productive liquidity record package',                           entryPoint: 'packages/liquidity-bond/src/index.ts' },
+  { slug: 'totemsdk-industrial-action', name: '@totemsdk/industrial-action', desc: 'Industrial action templates for KISSVM — automated supply chain decisions',                entryPoint: 'packages/industrial-action/src/index.ts' },
+
+  // Lookup & Routing
+  { slug: 'totemsdk-lookup-client',    name: '@totemsdk/lookup-client',    desc: 'Hyperswarm client for Totem lookup nodes — chain queries and real-time updates',              entryPoint: 'packages/lookup-client/src/index.ts' },
+  { slug: 'totemsdk-lookup-node',      name: '@totemsdk/lookup-node',      desc: 'Always-on personal lookup node — Hyperswarm, SQLite, WOTS lease coordination',               entryPoint: 'packages/lookup-node/src/index.ts' },
+  { slug: 'totemsdk-lookup-protocol',  name: '@totemsdk/lookup-protocol',  desc: 'Wire protocol types, message framing, and auth for lookup node communication',                entryPoint: 'packages/lookup-protocol/src/index.ts' },
+
+  // Transactions & Cryptography
+  { slug: 'totemsdk-txpow',            name: '@totemsdk/txpow',            desc: 'TxPoW proof-of-work mining, serialization, and verification',                                  entryPoint: 'packages/txpow/src/index.ts' },
+  { slug: 'totemsdk-wots-lease',       name: '@totemsdk/wots-lease',       desc: 'WOTS key-use coordination — canonical v3 watermark and lease safety layers',                  entryPoint: 'packages/wots-lease/src/index.ts' },
+  { slug: 'totemsdk-tx-builder',       name: '@totemsdk/tx-builder',       desc: 'Transaction builder — coin selection, multisig, and WOTS signing',                            entryPoint: 'packages/tx-builder/src/index.ts' },
+  { slug: 'totemsdk-kissvm',           name: '@totemsdk/kissvm',           desc: 'KISSVM script lexer, parser, AST, and evaluator',                                              entryPoint: 'packages/kissvm/src/index.ts' },
+  { slug: 'totemsdk-statechain',       name: '@totemsdk/statechain',       desc: 'Mercury-protocol state chain — privacy-preserving off-chain UTXO custody transfer',           entryPoint: 'packages/statechain/src/index.ts' },
+  { slug: 'totemsdk-se-server',        name: '@totemsdk/se-server',        desc: 'Self-hostable Statechain Entity server — blind co-signer for Mercury protocol',              entryPoint: 'packages/se-server/src/index.ts' },
+
+  // Smart Contracts & Advanced Templates
+  { slug: 'totemsdk-recursive-mast',   name: '@totemsdk/recursive-mast',   desc: 'Recursive MAST — delegatable policy trees, layered covenants, and programmable availability',  entryPoint: 'packages/recursive-mast/src/index.ts' },
+
+  // Infrastructure
+  { slug: 'totemsdk-chain-provider',   name: '@totemsdk/chain-provider',   desc: 'Unified chain data provider — hosted, RPC, and P2P lookup backends',                          entryPoint: 'packages/chain-provider/src/index.ts' },
+  { slug: 'totemsdk-realtime',         name: '@totemsdk/realtime',         desc: 'Real-time balance streaming with WebSocket and HTTP fallback',                                 entryPoint: 'packages/realtime/src/index.ts' },
+  { slug: 'totemsdk-pear',             name: '@totemsdk/pear',             desc: 'Pear/Holepunch runtime integration — storage, networking, lifecycle',                         entryPoint: 'packages/pear/src/index.ts' },
+  { slug: 'totemsdk-pureminima-rpc',   name: '@totemsdk/pureminima-rpc',   desc: 'Fetch-based PureMinima RPC client — Bare/Pear/Node/browser compatible',                      entryPoint: 'packages/pureminima-rpc/src/index.ts' },
+
+  // MCP & AI Agents
+  { slug: 'totemsdk-mcp-server',       name: '@totemsdk/mcp-server',       desc: 'Model Context Protocol server — AI agent integration with Totem Edge tool catalog',            entryPoint: 'packages/mcp-server/src/index.ts' },
+
+  // Server & CLI
+  { slug: 'totemsdk-server',           name: '@totemsdk/server',           desc: 'Node.js server SDK — wallet, transaction building, and Axia API client',                       entryPoint: 'packages/server/src/index.ts' },
+  { slug: 'totemsdk-wallet-adapter',   name: '@totemsdk/wallet-adapter',   desc: 'Abstract base class for building Totem-compatible wallets',                                    entryPoint: 'packages/wallet-adapter/src/index.ts' },
+
+  // Browser & Platform
+  { slug: 'totem-observability',       name: '@totemsdk/observability',    desc: 'Drop-in observability for Totem-based dApps — trace propagation and batched telemetry',       entryPoint: 'extensions/observability/src/index.js' },
+  { slug: 'totem-extension-keyring',   name: 'totem-extension/keyring',    desc: 'Totem Extension public keyring API — signing validator types and security boundary utilities', entryPoint: 'extensions/totem-extension/src/keyring.ts' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -253,6 +293,12 @@ const typedocResults = {};  // slug → true (OK) | false (stub)
 
 // Filter to packages with valid entryPoints
 const pkgsToProcess = PACKAGES.filter(pkg => {
+  if (pkg.entryPoint === null) {
+    console.log(`[generate]   ${pkg.slug}: null entryPoint → stub`);
+    writeCuratedStub(pkg);
+    typedocResults[pkg.slug] = false;
+    return false;
+  }
   const entryAbs = path.resolve(REPO_ROOT, pkg.entryPoint);
   if (!fs.existsSync(entryAbs)) {
     console.log(`[generate]   ${pkg.slug}: entryPoint not found → stub`);

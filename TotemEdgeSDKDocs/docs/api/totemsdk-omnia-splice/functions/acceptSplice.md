@@ -30,7 +30,7 @@ The acceptor independently:
 
 ### channel
 
-`OmniaChannel` \| [`QuiescedChannel`](../type-aliases/QuiescedChannel.md)
+`any`
 
 Quiesced channel.
 

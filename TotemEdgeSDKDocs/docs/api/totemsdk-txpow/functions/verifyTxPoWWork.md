@@ -10,18 +10,26 @@
 
 Relay-side work verification from raw TxPoW hex.
 
-Validates hex format, minimum length (spam filter), then computes
-SHA3-256 of the serialized bytes as a proxy txpowId and checks it
-against TX_POW_MIN_DIFFICULTY.
+Parses the TxPoW hex into header and body by locating the hasBody byte via
+body-hash verification. Computes the canonical TxPoW ID (SHA3-256 of the
+header only), extracts mTxnDifficulty from the TxBody, and verifies:
+  txpowId < mTxnDifficulty
 
-Note: full structural parsing of TxPoW headers is deferred to a future
-parser. PureMinima performs authoritative work verification on submission.
+Falls back to TX_POW_MIN_DIFFICULTY as a spam filter when:
+  - The hex is invalid or malformed
+  - No valid header/body split can be found (non-standard structure)
+  - mTxnDifficulty cannot be extracted from the body
+
+PureMinima performs authoritative work verification on submission; this
+function is a first-pass relay-side filter.
 
 ## Parameters
 
 ### txpowHex
 
 `string`
+
+Hex-encoded serialized TxPoW (TxHeader | 0x01 | TxBody).
 
 ## Returns
 

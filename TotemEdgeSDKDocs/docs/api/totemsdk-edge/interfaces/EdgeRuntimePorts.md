@@ -14,6 +14,14 @@
 
 ***
 
+### keyLease?
+
+> `optional` **keyLease?**: [`EdgeKeyLeasePort`](EdgeKeyLeasePort.md)
+
+WOTS key-lease coordination — required before any signing operation.
+
+***
+
 ### liquidity?
 
 > `optional` **liquidity?**: [`EdgeLiquidityPort`](EdgeLiquidityPort.md)
@@ -47,3 +55,19 @@
 ### proof?
 
 > `optional` **proof?**: [`EdgeProofPort`](EdgeProofPort.md)
+
+***
+
+### pubsub?
+
+> `optional` **pubsub?**: [`EdgePubSubPort`](EdgePubSubPort.md)
+
+Publish-subscribe transport (MQTT-compatible, protocol-agnostic).
+
+***
+
+### stream?
+
+> `optional` **stream?**: [`EdgeStreamPort`](EdgeStreamPort.md)
+
+Bidirectional byte-stream transport (WebSocket, Hyperswarm, WebRTC, stdio).

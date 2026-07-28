@@ -16,3 +16,9 @@
 ## Variables
 
 - [MAX\_CHILD\_COUNT](variables/MAX_CHILD_COUNT.md)
+
+## References
+
+### RootIdentityWallet
+
+Renames and re-exports [UnifiedIdentityWallet](classes/UnifiedIdentityWallet.md)

@@ -1,0 +1,69 @@
+{
+  "name": "@totemsdk/omnia-vtxo",
+  "version": "0.1.0",
+  "description": "Virtual UTXO / payment-pool claim layer for Omnia — cash-like off-chain balance primitive for Totem Edge",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "npm run build:wasm && tsc",
+    "prepare": "npm run build:wasm && tsc",
+    "clean": "rm -rf dist rust/pkg rust/pkg-node rust/target",
+    "test": "node ../../node_modules/jest/bin/jest.js --config jest.config.cjs --passWithNoTests",
+    "build:wasm": "cd rust && wasm-pack build --target bundler --out-dir pkg && wasm-pack build --target nodejs --out-dir pkg-node"
+  },
+  "files": [
+    "dist",
+    "rust/pkg/",
+    "rust/pkg-node/",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {},
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20.0.0",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.0.0",
+    "typescript": "^7.0.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "author": "Totem SDK",
+  "homepage": "https://totem.ing",
+  "bugs": {
+    "url": "https://github.com/totem-sdk/totem-sdk/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/totem-sdk/totem-sdk.git",
+    "directory": "packages/omnia-vtxo"
+  },
+  "keywords": [
+    "totem",
+    "totemsdk",
+    "minima",
+    "blockchain",
+    "quantum-resistant",
+    "wots",
+    "utxo",
+    "omnia",
+    "vtxo",
+    "virtual-utxo",
+    "payment-pool",
+    "layer2",
+    "off-chain",
+    "ark"
+  ]
+}
