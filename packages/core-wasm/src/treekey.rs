@@ -159,6 +159,7 @@ impl TreeKeyNode {
 // ---------------------------------------------------------------------------
 
 pub struct TreeKey {
+    #[allow(dead_code)]
     private_seed: Vec<u8>,
     levels: usize,
     keys_per_level: usize,
