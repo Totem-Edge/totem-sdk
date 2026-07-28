@@ -7,7 +7,7 @@ on:
       - 'totemsdk/core-wasm-v*'
       - 'totemsdk/connect-v*'
       - 'totemsdk/tx-builder-v*'
-      - 'totemsdk/node-v*'
+      - 'totemsdk/server-v*'
       - 'totemsdk/realtime-v*'
       - 'totemsdk/root-identity-v*'
       - 'totemsdk/omnia-vtxo-v*'
@@ -44,9 +44,9 @@ jobs:
           - pkg: tx-builder
             dir: packages/tx-builder
             npm_name: '@totemsdk/tx-builder'
-          - pkg: node
-            dir: packages/node
-            npm_name: '@totemsdk/node'
+          - pkg: server
+            dir: packages/server
+            npm_name: '@totemsdk/server'
           - pkg: realtime
             dir: packages/realtime
             npm_name: '@totemsdk/realtime'
