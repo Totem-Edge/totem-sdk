@@ -495,29 +495,33 @@ QVAC proposes → agent-policy evaluates → Totem signs → Minima settles
 
 ### Composable policies
 
-Policies chain like middleware:
+The `@totemsdk/agent-policy` package ships built-in middleware primitives and a `ComposablePolicy` that chains them with short-circuit semantics:
 
 ```typescript
-const composedPolicy = {
-  async evaluate(proposal) {
-    // Layer 1: Rate limiting — max 1 proposal per minute
-    const rateOk = await rateLimitPolicy.evaluate(proposal);
-    if (rateOk.outcome !== 'approved') return rateOk;
+import {
+  ComposablePolicy,
+  RateLimitPolicy,
+  AmountCapPolicy,
+  RecipientAllowlistPolicy,
+  TimeWindowPolicy,
+  RiskThresholdPolicy,
+} from '@totemsdk/agent-policy';
 
-    // Layer 2: Amount cap — max 500 MIN per proposal
-    const amountOk = await amountCapPolicy.evaluate(proposal);
-    if (amountOk.outcome !== 'approved') return amountOk;
+const policy = new ComposablePolicy([
+  new RateLimitPolicy(60, 60_000),               // max 60 proposals per minute
+  new AmountCapPolicy({ perTx: '5000' }),         // max 5,000 MIN per transaction
+  new RecipientAllowlistPolicy(['MxSupplier1', 'MxMarket']),
+  new TimeWindowPolicy(TimeWindowPolicy.hour(6), TimeWindowPolicy.hour(22)),
+  new RiskThresholdPolicy('medium'),
+]);
 
-    // Layer 3: Recipient allowlist — only approved counterparties
-    const recipientOk = await recipientAllowlistPolicy.evaluate(proposal);
-    if (recipientOk.outcome !== 'approved') return recipientOk;
-
-    // Layer 4: Time window — no price changes during locked periods
-    const timeOk = await timeWindowPolicy.evaluate(proposal);
-    return timeOk;
-  },
-};
+const result = await policy.evaluate(proposal);
+if (result.outcome === 'approved') {
+  // policy says yes — sign and broadcast
+}
 ```
+
+Custom middleware layers can be written by implementing `PolicyMiddleware.evaluate()`. Any `ComposablePolicy` also satisfies the legacy `AgentPolicy` interface for use with `@totemsdk/omnia`'s `executeIntent`.
 
 ### The autonomy spectrum
 

@@ -22,16 +22,86 @@ npm install @totemsdk/agent-policy
 
 ## What's inside
 
-| Type | Role | Source |
+| Type / Class | Role | Source |
 |------|------|--------|
 | `PaymentIntent` | Structured description of what an agent wants to pay and why | Proto message |
 | `AgentProposal` | An agent's formal request to a wallet for funds | Proto message |
-| `AgentPolicy` | Behavioral interface — `canAutoApprove` / `requiresUserApproval` | TypeScript only |
+| `AgentPolicy` | Legacy behavioral interface — `canAutoApprove` / `requiresUserApproval` | TypeScript only |
 | `AgentReceipt` | Verifiable proof that a payment was executed | Proto message |
 | `AgentIdentity` | Minimal agent identity for lookup-node registration | Proto message |
 | `AgentPolicyConfig` | Serializable policy configuration (limits, allowed intents, expiry) | Proto message |
+| `PolicyMiddleware` | Composable middleware interface — `evaluate()` returns `PolicyEvalResult` | TypeScript only |
+| `PolicyEvalResult` | Three-state result (`approved` / `rejected` / `requires_human`) with reason | TypeScript only |
+| `ComposablePolicy` | Chains multiple `PolicyMiddleware` layers with short-circuit semantics | TypeScript |
+| `RateLimitPolicy` | Limits proposals per time window (e.g. max 10/min) | TypeScript |
+| `AmountCapPolicy` | Caps amount per transaction and/or per day | TypeScript |
+| `RecipientAllowlistPolicy` | Only allows proposals to approved addresses | TypeScript |
+| `TimeWindowPolicy` | Only allows proposals during configurable daily window | TypeScript |
+| `RiskThresholdPolicy` | Auto-approves up to a configurable risk level | TypeScript |
 
 ## Usage
+
+### Composable policy pipeline (recommended)
+
+Chain multiple policy layers together — the pipeline short-circuits on the first rejection:
+
+```typescript
+import {
+  ComposablePolicy,
+  RateLimitPolicy,
+  AmountCapPolicy,
+  RecipientAllowlistPolicy,
+  TimeWindowPolicy,
+  RiskThresholdPolicy,
+} from '@totemsdk/agent-policy';
+
+const policy = new ComposablePolicy([
+  // 1. Max 60 proposals per minute (anti-DoS)
+  new RateLimitPolicy(60, 60_000),
+
+  // 2. Max 500 MIN per tx, 10_000 MIN per day
+  new AmountCapPolicy({ perTx: '500', perDay: '10000' }),
+
+  // 3. Only allow known supplier addresses
+  new RecipientAllowlistPolicy(['MxABC...', 'MxDEF...']),
+
+  // 4. Only during business hours (06:00–22:00 UTC)
+  new TimeWindowPolicy(TimeWindowPolicy.hour(6), TimeWindowPolicy.hour(22)),
+
+  // 5. Low/medium risk auto-approved, high → requires human
+  new RiskThresholdPolicy('medium'),
+]);
+
+const result = await policy.evaluate(proposal);
+if (result.outcome === 'approved') {
+  // sign and broadcast
+} else if (result.outcome === 'requires_human') {
+  // route to user approval UI
+}
+```
+
+`ComposablePolicy` also implements the legacy `AgentPolicy` interface so it works
+seamlessly with `@totemsdk/omnia`'s `executeIntent`:
+
+```typescript
+if (await policy.canAutoApprove(proposal)) {
+  // backward-compatible with executeIntent
+}
+```
+
+### Standalone primitive policies
+
+Each policy works independently too:
+
+```typescript
+const rateLimit = new RateLimitPolicy(10, 60_000);          // 10/min
+const amountCap = new AmountCapPolicy({ perTx: '500' });     // max 500
+const allowlist = new RecipientAllowlistPolicy(['MxABC']);   // known address
+const timeWindow = new TimeWindowPolicy(360, 1320);           // 06:00–22:00 UTC
+const riskGate = new RiskThresholdPolicy('low');              // only low risk
+```
+
+### Legacy AgentPolicy interface (backward-compatible)
 
 ### TypeScript — Wallet: evaluate an incoming agent proposal
 

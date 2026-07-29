@@ -289,26 +289,35 @@ QVAC proposes → agent-policy evaluates → Totem signs → Minima settles
 
 **QVAC never touches a private key.** It proposes. It observes. It reasons. But it cannot sign. The `AgentPolicy` is the gate. If the policy says no, no transaction is built. This is the fundamental separation that makes autonomous device operation safe: intelligence is external, but authority remains local.
 
-### 5.3 Composable Policies
+### 5.3 Composable Policies — Runtime Implementation
 
-Policies are plain TypeScript functions. They compose like middleware:
+Policies are plain TypeScript classes that implement the `PolicyMiddleware` interface. They evaluate an `AgentProposal` and return a `PolicyEvalResult` — a three-state outcome (`approved`, `rejected`, `requires_human`) with a human-readable reason string.
+
+The `@totemsdk/agent-policy` package ships built-in middleware primitives and a `ComposablePolicy` class that chains them with short-circuit semantics (first rejection stops the pipeline):
 
 ```typescript
-const composedPolicy = {
-  async evaluate(proposal) {
-    const rateOk = await rateLimitPolicy.evaluate(proposal);     // max 1/min
-    if (rateOk.outcome !== 'approved') return rateOk;
-    
-    const amountOk = await amountCapPolicy.evaluate(proposal);   // max 500 MIN
-    if (amountOk.outcome !== 'approved') return amountOk;
-    
-    const recipientOk = await allowlistPolicy.evaluate(proposal); // whitelist only
-    if (recipientOk.outcome !== 'approved') return recipientOk;
-    
-    return timeWindowPolicy.evaluate(proposal);                  // 06:00-22:00 only
-  },
-};
+import {
+  ComposablePolicy,
+  RateLimitPolicy,
+  AmountCapPolicy,
+  RecipientAllowlistPolicy,
+  TimeWindowPolicy,
+  RiskThresholdPolicy,
+} from '@totemsdk/agent-policy';
+
+const policy = new ComposablePolicy([
+  new RateLimitPolicy(10, 60_000),              // max 10 proposals/min
+  new AmountCapPolicy({ perTx: '500', perDay: '2000' }),  // caps
+  new RecipientAllowlistPolicy(['MxSupplier1', 'MxSupplier2']),
+  new TimeWindowPolicy(TimeWindowPolicy.hour(6), TimeWindowPolicy.hour(22)),
+  new RiskThresholdPolicy('medium'),             // low/medium OK, high→human
+]);
+
+const result = await policy.evaluate(proposal);
+// { outcome: 'approved' | 'rejected' | 'requires_human', reason: string }
 ```
+
+`ComposablePolicy` also implements the legacy `AgentPolicy` interface (`canAutoApprove` / `requiresUserApproval`), so it works as a drop-in for `@totemsdk/omnia`'s `executeIntent`. Custom middleware layers can be written by implementing `PolicyMiddleware.evaluate()`.
 
 ### 5.4 The Autonomy Spectrum
 

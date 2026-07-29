@@ -114,3 +114,35 @@ export interface AgentIdentity {
   /** Capability names this agent can service (e.g. ["invoice-parse", "fx-quote"]). */
   capabilities: string[];
 }
+
+// ---------------------------------------------------------------------------
+// Composable Policy Middleware — Phase 2 runtime evaluation
+// ---------------------------------------------------------------------------
+
+/**
+ * Result of evaluating a proposal against a single policy middleware layer.
+ * Richer than a boolean — communicates why a decision was made.
+ */
+export interface PolicyEvalResult {
+  /** Three-state outcome — never `pending_user` which is a wallet concern. */
+  outcome: 'approved' | 'rejected' | 'requires_human';
+  /** Human-readable explanation (shown in logs, audit trail, user UI). */
+  reason: string;
+}
+
+/**
+ * A single composable middleware layer in the policy evaluation pipeline.
+ *
+ * Each middleware receives the full AgentProposal and returns a decision.
+ * Middleware is stateless by design — implementors that need state (rate
+ * limits, daily caps) manage their own internal counters.
+ *
+ * The middleware API replaces the boolean-based AgentPolicy with a richer
+ * three-state result that includes a reason string for auditability.
+ */
+export interface PolicyMiddleware {
+  /** Evaluate a proposal. Called in sequence by ComposablePolicy. */
+  evaluate(proposal: AgentProposal): Promise<PolicyEvalResult>;
+  /** Optional: reset internal state (useful in tests or at midnight rollover). */
+  reset?(): Promise<void>;
+}

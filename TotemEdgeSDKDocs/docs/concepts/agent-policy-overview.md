@@ -133,21 +133,31 @@ QVAC agents can orchestrate complex workflows — paying for API calls, settling
 
 ### Composable rules
 
-Policies are plain TypeScript. You can compose them like middleware:
+The `@totemsdk/agent-policy` package ships built-in middleware primitives and a `ComposablePolicy` that chains them with short-circuit semantics:
 
 ```typescript
-const composedPolicy: AgentPolicy = {
-  async evaluate(proposal) {
-    const rateLimitOk = await rateLimitPolicy.evaluate(proposal);
-    if (rateLimitOk.outcome !== 'approved') return rateLimitOk;
+import {
+  ComposablePolicy,
+  RateLimitPolicy,
+  AmountCapPolicy,
+  RecipientAllowlistPolicy,
+  RiskThresholdPolicy,
+} from '@totemsdk/agent-policy';
 
-    const amountOk = await amountCapPolicy.evaluate(proposal);
-    if (amountOk.outcome !== 'approved') return amountOk;
+const policy = new ComposablePolicy([
+  new RateLimitPolicy(60, 60_000),                // max 60 per minute
+  new AmountCapPolicy({ perTx: '500', perDay: '10000' }),
+  new RecipientAllowlistPolicy(['MxSupplier1', 'MxSupplier2']),
+  new RiskThresholdPolicy('low'),
+]);
 
-    return recipientAllowlistPolicy.evaluate(proposal);
-  },
-};
+const result = await policy.evaluate(proposal);
+if (result.outcome === 'approved') {
+  // sign and broadcast
+}
 ```
+
+Custom middleware layers implement `PolicyMiddleware.evaluate()`. `ComposablePolicy` also satisfies the legacy `AgentPolicy` interface for backward compatibility with `@totemsdk/omnia`.
 
 ### Auditability
 

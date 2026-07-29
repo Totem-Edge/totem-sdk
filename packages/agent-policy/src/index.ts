@@ -25,6 +25,8 @@ export type {
   AgentPolicy,
   AgentReceipt,
   AgentIdentity,
+  PolicyEvalResult,
+  PolicyMiddleware,
 } from './types.js';
 
 // Proto-generated types (enums, serializable, language-agnostic)
@@ -41,3 +43,14 @@ export type {
   AgentIdentity as ProtoAgentIdentity,
   AgentPolicyConfig,
 } from './generated/totem/agent/policy/v1/agent_policy.js';
+
+// Composable policy middleware
+export { ComposablePolicy } from './composable.js';
+
+// Built-in policy primitives
+export { RateLimitPolicy } from './rate-limit.js';
+export { AmountCapPolicy } from './amount-cap.js';
+export type { AmountCapConfig } from './amount-cap.js';
+export { RecipientAllowlistPolicy } from './recipient-allowlist.js';
+export { TimeWindowPolicy } from './time-window.js';
+export { RiskThresholdPolicy } from './risk-threshold.js';
