@@ -723,41 +723,142 @@ export async function kissvmValidate(script: string): Promise<TotemKissvmValidat
   });
 }
 
-// ─── QVAC stubs (forward-looking) ────────────────────────────────────────────
+// ─── QVAC — agent-proposed actions ──────────────────────────────────────────
+
+/**
+ * Module-level AgentPolicy for local evaluation.
+ * When set, proposals are evaluated against this policy before being sent
+ * to the wallet provider. If the policy rejects or requires human approval,
+ * the RPC call is short-circuited and the result is returned locally.
+ *
+ * Wallet apps should call setAgentPolicy() during initialization with their
+ * ComposablePolicy pipeline. dApps typically leave it unset and let the
+ * wallet handle evaluation.
+ */
+
+let _agentPolicy: {
+  evaluate(proposal: {
+    id: string;
+    agentId: string;
+    intent: {
+      type: string;
+      amount?: string;
+      tokenId?: string;
+      recipient?: string;
+      reason?: string;
+      risk?: string;
+      metadata?: Record<string, unknown>;
+    };
+    explanation: string;
+    confidence: number;
+    createdAt: number;
+  }): Promise<{ outcome: string; reason: string }>;
+} | null = null;
+
+export function setAgentPolicy(policy: typeof _agentPolicy): void {
+  _agentPolicy = policy;
+}
+
+export function clearAgentPolicy(): void {
+  _agentPolicy = null;
+}
+
+/** @internal */
+function makeProposalId(): string {
+  return `prop-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
 
 export async function agentProposePayment(origin: string, params: {
-  amount: string;
-  tokenId?: string;
-  recipient: string;
-  intent?: string;
-  context?: Record<string, unknown>;
+  agentId: string;
+  intent: {
+    type: 'payment' | 'channel_update' | 'settlement' | 'lookup' | 'receipt';
+    amount?: string;
+    tokenId?: string;
+    recipient?: string;
+    reason?: string;
+    risk?: 'low' | 'medium' | 'high';
+    metadata?: Record<string, unknown>;
+  };
+  explanation: string;
+  confidence?: number;
 }): Promise<TotemAgentProposePaymentResponse> {
+  const proposal = {
+    id: makeProposalId(),
+    agentId: params.agentId,
+    intent: params.intent,
+    explanation: params.explanation,
+    confidence: params.confidence ?? 0.9,
+    createdAt: Date.now(),
+  };
+
+  // Local policy evaluation (if configured)
+  if (_agentPolicy) {
+    const result = await _agentPolicy.evaluate(proposal);
+    if (result.outcome === 'rejected') {
+      return {
+        success: false,
+        proposalId: proposal.id,
+        status: 'rejected',
+        rejectionReason: result.reason,
+        receipt: {
+          proposalId: proposal.id,
+          status: 'rejected',
+          rejectionReason: result.reason,
+          settledAt: Date.now(),
+        },
+      };
+    }
+    if (result.outcome === 'requires_human') {
+      // Send to wallet for user approval
+      const provider = getProvider();
+      const response = await provider.request({
+        method: 'totem_agentProposePayment',
+        params: { origin, ...params },
+      });
+      return response as TotemAgentProposePaymentResponse;
+    }
+  }
+
   const provider = getProvider();
-  return await provider.request({
+  const response = await provider.request({
     method: 'totem_agentProposePayment',
-    params: { origin, ...params }
+    params: { origin, agentId: params.agentId, intent: params.intent, explanation: params.explanation, confidence: params.confidence },
   });
+  return response as TotemAgentProposePaymentResponse;
 }
 
 export async function agentExplainTransaction(origin: string, params: {
   txpowId?: string;
   unsignedHex?: string;
+  intent?: {
+    type: 'payment' | 'channel_update' | 'settlement' | 'lookup' | 'receipt';
+    amount?: string;
+    tokenId?: string;
+    recipient?: string;
+    reason?: string;
+  };
   context?: Record<string, unknown>;
 }): Promise<TotemAgentExplainTransactionResponse> {
   const provider = getProvider();
-  return await provider.request({
+  const response = await provider.request({
     method: 'totem_agentExplainTransaction',
-    params: { origin, ...params }
+    params: { origin, ...params },
   });
+  return response as TotemAgentExplainTransactionResponse;
 }
 
 export async function agentCreateReceipt(origin: string, params: {
-  txpowId: string;
+  proposalId: string;
+  status: 'approved' | 'rejected' | 'pending_user';
+  txpowId?: string;
+  channelState?: string;
+  rejectionReason?: string;
   metadata?: Record<string, unknown>;
 }): Promise<TotemAgentCreateReceiptResponse> {
   const provider = getProvider();
-  return await provider.request({
+  const response = await provider.request({
     method: 'totem_agentCreateReceipt',
-    params: { origin, ...params }
+    params: { origin, ...params },
   });
+  return response as TotemAgentCreateReceiptResponse;
 }

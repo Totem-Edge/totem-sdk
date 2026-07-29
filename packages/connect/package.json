@@ -32,6 +32,7 @@
     "typescript": "^7.0.2"
   },
   "peerDependencies": {
+    "@totemsdk/agent-policy": ">=0.2.0",
     "@totemsdk/omnia": ">=0.1.1",
     "@totemsdk/omnia-router": ">=0.1.1",
     "@totemsdk/omnia-factory": ">=0.1.2",
@@ -45,6 +46,9 @@
     "@totemsdk/lookup-client": ">=0.1.1"
   },
   "peerDependenciesMeta": {
+    "@totemsdk/agent-policy": {
+      "optional": true
+    },
     "@totemsdk/omnia": {
       "optional": true
     },

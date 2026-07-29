@@ -40,6 +40,37 @@ export interface EdgeRuntime {
   ports: import('./ports.js').EdgeRuntimePorts;
   hasCapability(cap: import('./capabilities.js').EdgeCapability): boolean;
   assertCapability(cap: import('./capabilities.js').EdgeCapability): void;
+  /**
+   * Execute an action through the runtime.
+   *
+   * If a policy port is configured, the action is first checked against it.
+   * If the policy rejects the action, execution is blocked and the rejection
+   * reason is returned.
+   *
+   * The action string determines which port handles execution:
+   *   - 'payment:*'        → EdgePaymentPort.pay()
+   *   - 'lookup:*'         → EdgeLookupPort.query() / announce()
+   *   - 'proof:*'          → EdgeProofPort.createProof() / verifyProof()
+   *
+   * Unknown action strings return an error without attempting execution.
+   */
+  executeAction(params: EdgeActionParams): Promise<EdgeActionResult>;
+}
+
+export interface EdgeActionParams {
+  action: string;
+  subject: string;
+  payload?: Record<string, unknown>;
+  context?: Record<string, unknown>;
+}
+
+export interface EdgeActionResult {
+  ok: boolean;
+  action: string;
+  data?: unknown;
+  policyResult?: { allowed: boolean; reason?: string };
+  error?: string;
+  errorCode?: string;
 }
 
 export interface EdgeProviderProfile {

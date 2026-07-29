@@ -1,22 +1,82 @@
-import type { AgentPolicy, AgentProposal } from '@totemsdk/agent-policy';
+import type { AgentPolicy, AgentProposal, PolicyMiddleware } from '@totemsdk/agent-policy';
 import type { EdgePolicyPort, EdgeOperationResult } from '@totemsdk/edge';
 
+type PolicyLike = AgentPolicy | PolicyMiddleware;
+
+function isMiddleware(p: PolicyLike): p is PolicyMiddleware {
+  return 'evaluate' in p && typeof (p as PolicyMiddleware).evaluate === 'function';
+}
+
 /**
- * Wraps an AgentPolicy as an EdgePolicyPort.
+ * Wraps an AgentPolicy or PolicyMiddleware as an EdgePolicyPort.
  *
- * Builds a minimal AgentProposal from the EdgePolicyPort check() params and
- * delegates to policy.canAutoApprove(). The intent type is inferred from the
- * action string (actions starting with 'pay' map to 'payment'; everything
- * else maps to 'receipt' as a catch-all).
+ * When the EdgePolicyPort receives a full `proposal` object, it delegates
+ * directly to the policy without lossy reconstruction. When only flat
+ * `action`/`subject` params are provided, it builds a minimal AgentProposal
+ * (legacy path).
  */
-export function createPolicyPortAdapter(policy: AgentPolicy): EdgePolicyPort {
+export function createPolicyPortAdapter(policy: PolicyLike): EdgePolicyPort {
   return {
     async check(params: {
       action: string;
       subject: string;
       context?: Record<string, unknown>;
+      proposal?: {
+        id: string;
+        agentId: string;
+        intent: {
+          type: string;
+          amount?: string;
+          tokenId?: string;
+          recipient?: string;
+          reason?: string;
+          risk?: string;
+        };
+        explanation: string;
+        confidence: number;
+        createdAt: number;
+      };
     }): Promise<EdgeOperationResult<{ allowed: boolean; reason?: string }>> {
       try {
+        // Prefer full proposal when available
+        if (params.proposal) {
+          const proposal: AgentProposal = {
+            id: params.proposal.id,
+            agentId: params.proposal.agentId,
+            intent: {
+              type: params.proposal.intent.type as AgentProposal['intent']['type'],
+              amount: params.proposal.intent.amount,
+              tokenId: params.proposal.intent.tokenId,
+              recipient: params.proposal.intent.recipient,
+              reason: params.proposal.intent.reason,
+              risk: params.proposal.intent.risk as AgentProposal['intent']['risk'],
+            },
+            explanation: params.proposal.explanation,
+            confidence: params.proposal.confidence,
+            createdAt: params.proposal.createdAt,
+          };
+
+          if (isMiddleware(policy)) {
+            const result = await policy.evaluate(proposal);
+            return {
+              ok: true,
+              data: {
+                allowed: result.outcome === 'approved',
+                reason: result.reason,
+              },
+            };
+          }
+          const allowed = await policy.canAutoApprove(proposal);
+          return {
+            ok: true,
+            data: {
+              allowed,
+              reason: allowed ? undefined : 'Action requires user approval per configured policy',
+            },
+          };
+        }
+
+        // Legacy path: build minimal proposal from flat params
         const intentType: AgentProposal['intent']['type'] =
           params.action.startsWith('pay') ? 'payment' : 'receipt';
 
@@ -35,6 +95,16 @@ export function createPolicyPortAdapter(policy: AgentPolicy): EdgePolicyPort {
           createdAt: Date.now(),
         };
 
+        if (isMiddleware(policy)) {
+          const result = await policy.evaluate(proposal);
+          return {
+            ok: true,
+            data: {
+              allowed: result.outcome === 'approved',
+              reason: result.reason,
+            },
+          };
+        }
         const allowed = await policy.canAutoApprove(proposal);
         return {
           ok: true,

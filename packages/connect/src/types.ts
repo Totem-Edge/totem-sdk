@@ -770,24 +770,45 @@ export interface TotemKissvmValidateResponse {
   }>;
 }
 
-// ─── QVAC stubs (forward-looking) ────────────────────────────────────────────
+// ─── QVAC — agent-proposed actions ─────────────────────────────────────────
 
 export interface TotemAgentProposePaymentRequest {
   method: 'totem_agentProposePayment';
   params: {
     origin: string;
-    amount: string;
-    tokenId?: string;
-    recipient: string;
-    intent?: string;
-    context?: Record<string, unknown>;
+    /** Agent identifier — opaque string chosen by the agent. */
+    agentId: string;
+    /** The intent this proposal wants executed. */
+    intent: {
+      type: 'payment' | 'channel_update' | 'settlement' | 'lookup' | 'receipt';
+      amount?: string;
+      tokenId?: string;
+      recipient?: string;
+      reason?: string;
+      risk?: 'low' | 'medium' | 'high';
+      metadata?: Record<string, unknown>;
+    };
+    /** Human-readable explanation shown to the user. */
+    explanation: string;
+    /** Agent's confidence (0–1). */
+    confidence?: number;
   };
 }
 
 export interface TotemAgentProposePaymentResponse {
   success: boolean;
   proposalId?: string;
-  status?: 'approved' | 'pending_user' | 'rejected';
+  status?: 'approved' | 'rejected' | 'pending_user';
+  /** Populated when approved — the receipt for the executed intent. */
+  receipt?: {
+    proposalId: string;
+    status: 'approved' | 'rejected' | 'pending_user';
+    txpowId?: string;
+    channelState?: string;
+    rejectionReason?: string;
+    settledAt?: number;
+  };
+  rejectionReason?: string;
   error?: string;
   errorCode?: string;
 }
@@ -798,21 +819,35 @@ export interface TotemAgentExplainTransactionRequest {
     origin: string;
     txpowId?: string;
     unsignedHex?: string;
+    intent?: {
+      type: 'payment' | 'channel_update' | 'settlement' | 'lookup' | 'receipt';
+      amount?: string;
+      tokenId?: string;
+      recipient?: string;
+      reason?: string;
+    };
     context?: Record<string, unknown>;
   };
 }
 
 export interface TotemAgentExplainTransactionResponse {
+  success: boolean;
   explanation: string;
   riskLevel?: 'low' | 'medium' | 'high';
   warnings?: string[];
+  error?: string;
+  errorCode?: string;
 }
 
 export interface TotemAgentCreateReceiptRequest {
   method: 'totem_agentCreateReceipt';
   params: {
     origin: string;
-    txpowId: string;
+    proposalId: string;
+    status: 'approved' | 'rejected' | 'pending_user';
+    txpowId?: string;
+    channelState?: string;
+    rejectionReason?: string;
     metadata?: Record<string, unknown>;
   };
 }

@@ -334,3 +334,136 @@ describe('ComposablePolicy', () => {
     expect(result.reason).toContain('per-transaction cap');
   });
 });
+
+// ---------------------------------------------------------------------------
+// AuthorityPolicy
+// ---------------------------------------------------------------------------
+
+import { AuthorityPolicy } from '../authority.js';
+import type { AuthorityEvaluator } from '../authority.js';
+
+describe('AuthorityPolicy', () => {
+  it('approves when authority allows', async () => {
+    const evaluator: AuthorityEvaluator = {
+      async evaluate() {
+        return { allowed: true, reason: 'Mandate valid' };
+      },
+    };
+    const policy = new AuthorityPolicy(evaluator);
+    const result = await policy.evaluate(makeProposal());
+    expect(result.outcome).toBe('approved');
+  });
+
+  it('rejects when authority denies', async () => {
+    const evaluator: AuthorityEvaluator = {
+      async evaluate() {
+        return { allowed: false, reason: 'Scope mismatch' };
+      },
+    };
+    const policy = new AuthorityPolicy(evaluator);
+    const result = await policy.evaluate(makeProposal());
+    expect(result.outcome).toBe('rejected');
+    expect(result.reason).toContain('Scope mismatch');
+  });
+
+  it('uses custom action extractor', async () => {
+    const extractor = jest.fn(() => ({
+      action: 'custom:action',
+      principal: 'test',
+      agent: 'test',
+    }));
+    const evaluator: AuthorityEvaluator = {
+      async evaluate(params) {
+        expect(params.action.action).toBe('custom:action');
+        return { allowed: true };
+      },
+    };
+    const policy = new AuthorityPolicy(evaluator, extractor);
+    await policy.evaluate(makeProposal());
+    expect(extractor).toHaveBeenCalledTimes(1);
+  });
+
+  it('works in ComposablePolicy chain', async () => {
+    const evaluator: AuthorityEvaluator = {
+      async evaluate() {
+        return { allowed: true };
+      },
+    };
+    const policy = new ComposablePolicy([
+      new AmountCapPolicy({ perTx: '500' }),
+      new AuthorityPolicy(evaluator),
+    ]);
+    const result = await policy.evaluate(makeProposal({ amount: '100' }));
+    expect(result.outcome).toBe('approved');
+  });
+
+  it('short-circuits when authority denies in chain', async () => {
+    const denyEvaluator: AuthorityEvaluator = {
+      async evaluate() {
+        return { allowed: false, reason: 'No mandate' };
+      },
+    };
+    const policy = new ComposablePolicy([
+      new AuthorityPolicy(denyEvaluator),
+      new AmountCapPolicy({ perTx: '500' }),
+    ]);
+    const result = await policy.evaluate(makeProposal());
+    expect(result.outcome).toBe('rejected');
+    expect(result.reason).toContain('No mandate');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ReceiptStore
+// ---------------------------------------------------------------------------
+
+import { MemoryReceiptStore } from '../receipt-store.js';
+
+describe('MemoryReceiptStore', () => {
+  it('saves and retrieves a receipt', async () => {
+    const store = new MemoryReceiptStore();
+    const receipt = {
+      proposalId: 'prop-1',
+      status: 'approved' as const,
+      txpowId: '0xabc',
+      settledAt: Date.now(),
+    };
+    const id = await store.save(receipt);
+    expect(id).toMatch(/^rcpt-/);
+    const retrieved = await store.get(id);
+    expect(retrieved).toEqual(receipt);
+  });
+
+  it('returns null for unknown receiptId', async () => {
+    const store = new MemoryReceiptStore();
+    expect(await store.get('nonexistent')).toBeNull();
+  });
+
+  it('lists receipts newest first', async () => {
+    const store = new MemoryReceiptStore();
+    const r1 = { proposalId: 'prop-1', status: 'approved' as const, settledAt: 100 };
+    const r2 = { proposalId: 'prop-2', status: 'rejected' as const, rejectionReason: 'no', settledAt: 200 };
+    await store.save(r1);
+    await store.save(r2);
+    const list = await store.list();
+    expect(list).toHaveLength(2);
+    expect(list[0].proposalId).toBe('prop-2');
+    expect(list[1].proposalId).toBe('prop-1');
+  });
+
+  it('reports count', async () => {
+    const store = new MemoryReceiptStore();
+    expect(await store.count()).toBe(0);
+    await store.save({ proposalId: 'p1', status: 'approved' as const, settledAt: Date.now() });
+    expect(await store.count()).toBe(1);
+  });
+
+  it('supports pagination', async () => {
+    const store = new MemoryReceiptStore();
+    for (let i = 0; i < 10; i++) {
+      await store.save({ proposalId: `prop-${i}`, status: 'approved' as const, settledAt: i });
+    }
+    expect((await store.list(3, 0)).length).toBe(3);
+    expect((await store.list(3, 3)).length).toBe(3);
+  });
+});

@@ -96,6 +96,22 @@ export interface EdgePolicyPort {
     action: string;
     subject: string;
     context?: Record<string, unknown>;
+    /** Full agent proposal (when available — richer than flat action/subject). */
+    proposal?: {
+      id: string;
+      agentId: string;
+      intent: {
+        type: string;
+        amount?: string;
+        tokenId?: string;
+        recipient?: string;
+        reason?: string;
+        risk?: string;
+      };
+      explanation: string;
+      confidence: number;
+      createdAt: number;
+    };
   }): Promise<EdgeOperationResult<{ allowed: boolean; reason?: string }>>;
 }
 

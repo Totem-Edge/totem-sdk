@@ -54,3 +54,11 @@ export type { AmountCapConfig } from './amount-cap.js';
 export { RecipientAllowlistPolicy } from './recipient-allowlist.js';
 export { TimeWindowPolicy } from './time-window.js';
 export { RiskThresholdPolicy } from './risk-threshold.js';
+
+// Authority bridge
+export { AuthorityPolicy } from './authority.js';
+export type { AuthorityActionIntent, AuthorityEvaluator } from './authority.js';
+
+// Receipt persistence
+export { MemoryReceiptStore } from './receipt-store.js';
+export type { ReceiptStore } from './receipt-store.js';
