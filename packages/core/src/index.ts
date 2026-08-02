@@ -245,8 +245,21 @@ export {
   type TreeSignature,
 } from './treekey.js';
 
-// WOTS legacy types
+// WOTS legacy types + helpers (declared in index.d.ts)
 export type { WotsKeypair, WotsSignature } from './wots.js';
+export {
+  F,
+  hex,
+  fromHex,
+  u16be,
+  u32be,
+  assert32,
+  h,
+  prfChainSeed,
+  toWinternitzDigits,
+  baseWWithChecksum,
+  wotsSignLegacy,
+} from './wots.js';
 
 // Canonical helpers (deterministic JSON + hashing)
 export { toHex, canonicalJson, hashCanonical } from './canonical.js';

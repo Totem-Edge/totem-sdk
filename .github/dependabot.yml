@@ -14,20 +14,7 @@ updates:
       - "totem-sdk/core-maintainers"
 
   - package-ecosystem: "npm"
-    directory: "/packages/totem-sdk"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-    open-pull-requests-limit: 10
-    versioning-strategy: increase
-    labels:
-      - "dependencies"
-      - "security"
-    reviewers:
-      - "totem-sdk/core-maintainers"
-
-  - package-ecosystem: "npm"
-    directory: "/packages/totem-extension"
+    directory: "/extensions/totem-extension"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -39,7 +26,7 @@ updates:
       - "totem-sdk/wallet-maintainers"
 
   - package-ecosystem: "npm"
-    directory: "/packages/totem-pwa-wallet"
+    directory: "/extensions/totem-pwa-wallet"
     schedule:
       interval: "weekly"
       day: "monday"

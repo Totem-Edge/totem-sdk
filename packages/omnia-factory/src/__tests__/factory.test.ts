@@ -128,6 +128,22 @@ function checkConservation(factory: ChannelFactory): void {
   expect(allocSum + vcSum).toBe(factory.totalValue);
 }
 
+/**
+ * Create and fully activate a factory for a coloured token with the given scale.
+ */
+async function makeActiveFactoryColoured(participants: FactoryParticipant[], tokenScale: number): Promise<ChannelFactory> {
+  const bundles: Record<string, WotsLeaseBundle> = {};
+  for (const p of participants) {
+    bundles[p.partyId] = makeMockBundle(p.publicKeyDigest);
+  }
+  const proposer = participants[0];
+  let f = await createFactory(participants, TOKEN_A, bundles[proposer.partyId], undefined, tokenScale);
+  for (const p of participants.slice(1)) {
+    f = await acceptFactory(f, bundles[p.partyId]);
+  }
+  return f;
+}
+
 /** Attach a dummy fundingCoinId to a factory (needed by closeFactory). */
 function withFundingCoinId(factory: ChannelFactory, coinId = 'test-coin-001'): ChannelFactory {
   return { ...factory, fundingCoinId: coinId };
@@ -244,6 +260,24 @@ describe('createFactory', () => {
 
   test('conservation holds after creation', async () => {
     checkConservation(await createFactory([ALICE, BOB, CAROL], TOKEN_A, ALICE_BUNDLE));
+  });
+
+  test('accepts a coloured token with tokenScale > 0', async () => {
+    const f = await createFactory([ALICE, BOB], TOKEN_A, ALICE_BUNDLE, undefined, 4);
+    expect(f.tokenScale).toBe(4);
+    expect(f.tokenId).toBe(TOKEN_A);
+    checkConservation(f);
+  });
+
+  test('defaults tokenScale to 0 for native Minima', async () => {
+    const f = await createFactory([ALICE, BOB], TOKEN_A, ALICE_BUNDLE);
+    expect(f.tokenScale).toBe(0);
+  });
+
+  test('different tokenScale produces a distinct factoryId', async () => {
+    const f0 = await createFactory([ALICE, BOB], TOKEN_A, ALICE_BUNDLE);
+    const f4 = await createFactory([ALICE, BOB], TOKEN_A, ALICE_BUNDLE, undefined, 4);
+    expect(f0.factoryId).not.toBe(f4.factoryId);
   });
 });
 
@@ -412,6 +446,15 @@ describe('openVirtualChannel', () => {
     expect(channel.balances.alice).toBe(200n);
     expect(channel.balances.bob).toBe(100n);
     expect(channel.status).toBe('active');
+  });
+
+  test('virtual channel inherits factory tokenScale', async () => {
+    const f = await makeActiveFactoryColoured([ALICE, BOB, CAROL], 4);
+    const { channel } = await openVirtualChannel(
+      f, ['alice', 'bob'], { alice: 200n, bob: 100n }, BUNDLES3,
+    );
+    expect(channel.tokenScale).toBe(4);
+    expect(channel.tokenId).toBe(TOKEN_A);
   });
 
   test('channel appears in factory.virtualChannels', async () => {

@@ -431,7 +431,7 @@ export async function createWebSocketTransport(
 import { sha3_256 } from '@totemsdk/core';
 
 function topicBuffer(namespace: string, key: string): Buffer {
-  return Buffer.from(sha3_256(`${namespace}:${key}`));
+  return Buffer.from(sha3_256(new TextEncoder().encode(`${namespace}:${key}`)));
 }
 
 /**

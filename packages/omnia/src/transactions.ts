@@ -55,7 +55,7 @@ function channelStateVars(settlement: boolean, sequence: number): StateValue[] {
  * `rawAmount = scaledAmount / 10^tokenScale`
  * For native Minima (tokenScale=0), no conversion is needed.
  */
-function toRawMinima(scaledAmount: bigint, tokenScale: number): bigint {
+export function toRawMinima(scaledAmount: bigint, tokenScale: number): bigint {
   if (tokenScale === 0) return scaledAmount;
   const divisor = 10n ** BigInt(tokenScale);
   return scaledAmount / divisor;

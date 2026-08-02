@@ -173,23 +173,23 @@ function buildWitnessBytes(
   const parts: Uint8Array[] = [];
 
   // Signatures: one TreeSignature
-  parts.push(writeMiniNumber(1n));
+  parts.push(writeMiniNumber(1n, 0));
   parts.push(sigBytes);
 
   // CoinProofs: already serialized as Coin+MMRProof by the Minima node's coinexport
-  parts.push(writeMiniNumber(BigInt(coinProofHexes.length)));
+  parts.push(writeMiniNumber(BigInt(coinProofHexes.length), 0));
   for (const hex of coinProofHexes) {
     parts.push(hexToBytes(hex));
   }
 
   // ScriptProofs: one entry (unlock script for the from-address)
-  parts.push(writeMiniNumber(1n));
+  parts.push(writeMiniNumber(1n, 0));
   // ScriptProof = MiniString(script) + MMRProof(empty)
   // MiniString in Minima is MiniData wrapping UTF-8 bytes
   parts.push(writeMiniData(new TextEncoder().encode(unlockScript)));
   // Empty MMRProof: blockTime=0, proofChain.length=0
-  parts.push(writeMiniNumber(0n));
-  parts.push(writeMiniNumber(0n));
+  parts.push(writeMiniNumber(0n, 0));
+  parts.push(writeMiniNumber(0n, 0));
 
   return concat(...parts);
 }

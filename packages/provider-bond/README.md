@@ -30,18 +30,18 @@ Provider trust layer for Totem Edge — prove, record, score and filter infrastr
 | | provider-bond | liquidity-bond (future) |
 |---|---|---|
 | **Scope** | Provider trust, identity, reputation | LP deposits, shares, rewards, withdrawals |
-| **Bonds** | Declared MINIMA hard collateral | Productive liquidity positions |
+| **Bonds** | Declared hard collateral | Productive liquidity positions |
 | **Scoring** | Identity + bond + reliability + incidents | LP performance, fee generation |
 | **Policy** | Provider selection and filtering | Liquidity allocation and routing |
 
 `liquidityBondRefs` are string references to a future `@totemsdk/liquidity-bond` package. They do not count as collateral in v0.1.
 
-## MINIMA-first provider trust model
+## Asset-agnostic provider trust model
 
 - `MINIMA` is the default hard-collateral and bond asset
-- `TOTEM` cannot satisfy MINIMA hard-collateral policy
+- Any token declared as `hard-collateral` (e.g. stablecoins via `LiquidityAsset`) satisfies bond scoring equally — `computeProviderScore` does not discriminate by asset
 - `TOTEM` may satisfy service-level or reputation policies only if explicitly accepted
-- Other tokens cannot satisfy MINIMA hard-collateral policy unless explicitly accepted
+- Specific policy requirements (e.g. `requireMinimaHardCollateral`) are opt-in and can be combined with `acceptedAssets` for non-Minima collateral
 - Liquidity references do not count as bond collateral in v0.1
 
 ## Manifest compatibility
@@ -78,7 +78,7 @@ Incidents track provider issues: downtime, high-latency, failed-probe, invalid-r
 Scores are computed deterministically from four components:
 
 - **Identity** (25%) — is an identity address declared?
-- **Bond** (30%) — is there an active MINIMA hard-collateral bond with proof?
+- **Bond** (30%) — is there an active hard-collateral bond with proof?
 - **Reliability** (30%) — probe success rate and latency
 - **Incidents** (15%) — open, critical, and high-severity incidents
 
@@ -86,7 +86,7 @@ Recommendations: `recommended` (80+), `acceptable` (60+), `risky` (40+), `avoid`
 
 ## Policy filtering
 
-Policies filter providers by: service type, minimum score, identity requirement, active bond requirement, MINIMA hard collateral requirement, minimum bond amount, accepted assets/purposes, maximum incident severity, and maximum heartbeat age.
+Policies filter providers by: service type, minimum score, identity requirement, active bond requirement, MINIMA hard collateral requirement (opt-in), minimum bond amount, accepted assets/purposes, maximum incident severity, and maximum heartbeat age.
 
 ## Pear/Bare compatibility
 
@@ -137,7 +137,7 @@ if (!result.ok) {
 }
 ```
 
-### Attach MINIMA bond proof
+### Attach bond proof
 
 ```ts
 import { attachBondProof } from '@totemsdk/provider-bond';

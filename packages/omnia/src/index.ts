@@ -56,6 +56,7 @@ export {
   toEnhancedBuildParams,
   computeStateCommitment,
   buildTxPoWPayload,
+  toRawMinima,
 } from './transactions.js';
 
 export {

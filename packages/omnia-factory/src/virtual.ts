@@ -179,7 +179,7 @@ export async function openVirtualChannel(
     fundingScript:   factory.fundingScript,
     fundingAddress:  factory.fundingAddress,
     tokenId:         factory.tokenId,
-    tokenScale:      0,
+    tokenScale:      factory.tokenScale,
     totalValue:      amountA + amountB,
     parties:         [partyA, partyB],
     balances:        { [partyAId]: amountA, [partyBId]: amountB },

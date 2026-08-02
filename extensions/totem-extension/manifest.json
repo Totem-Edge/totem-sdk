@@ -9,13 +9,13 @@
     "storage",
     "activeTab",
     "alarms",
-    "contextMenus",
     "tabs"
   ],
   
   "host_permissions": [
     "https://api.axia.to/*",
     "https://rpc.axia.to/*",
+    "https://telemetry.axia.to/*",
     "wss://api.axia.to/*",
     "wss://rpc.axia.to/*"
   ],

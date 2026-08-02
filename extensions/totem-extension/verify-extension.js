@@ -72,7 +72,7 @@ function checkManifest() {
             errors.push(`❌ Background service_worker path incorrect: ${manifest.background?.service_worker}`);
         }
         
-        if (manifest.action?.default_popup !== 'index.html') {
+        if (manifest.action?.default_popup !== 'popup.html') {
             errors.push(`❌ Default popup path incorrect: ${manifest.action?.default_popup}`);
         }
         

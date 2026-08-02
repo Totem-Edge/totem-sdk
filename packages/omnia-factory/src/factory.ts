@@ -105,7 +105,7 @@ async function collectNofN(
 
 // ─── Factory ID ───────────────────────────────────────────────────────────────
 
-function generateFactoryId(participants: FactoryParticipant[], tokenId: string): string {
+function generateFactoryId(participants: FactoryParticipant[], tokenId: string, tokenScale: number): string {
   const sorted = [...participants].sort((a, b) => a.partyId.localeCompare(b.partyId));
   const nonce = Array.from(
     globalThis.crypto?.getRandomValues?.(new Uint8Array(8)) ?? new Uint8Array(8),
@@ -113,6 +113,7 @@ function generateFactoryId(participants: FactoryParticipant[], tokenId: string):
   const input = JSON.stringify({
     participants: sorted.map(p => ({ partyId: p.partyId, pkd: p.publicKeyDigest })),
     tokenId,
+    tokenScale,
     nonce,
   });
   return Buffer.from(sha3_256(new TextEncoder().encode(input))).toString('hex');
@@ -147,12 +148,16 @@ function generateFactoryId(participants: FactoryParticipant[], tokenId: string):
  * @param signer        - Proposer's channel signer (`signer.publicKeyDigest` must match
  *                        one of the registered participants).
  * @param chainProvider - Optional: build + mine + broadcast the factory funding TX.
+ * @param tokenScale    - Token scale exponent (Minima `Token.mTokenScale`). Native Minima
+ *                        is 0; coloured coins use `tokenAmount = minimaRawAmount × 10^scale`.
+ *                        Defaults to 0.
  */
 export async function createFactory(
   participants: FactoryParticipant[],
   tokenId: string,
   bundle: WotsLeaseBundle,
   chainProvider?: ChainStateProvider,
+  tokenScale: number = 0,
 ): Promise<ChannelFactory> {
   if (participants.length < 2) {
     throw new Error(`Factory requires at least 2 participants, got ${participants.length}`);
@@ -173,7 +178,7 @@ export async function createFactory(
   }
 
   const { script, address } = buildAndHashFactoryScript(participants);
-  const factoryId = generateFactoryId(participants, tokenId);
+  const factoryId = generateFactoryId(participants, tokenId, tokenScale);
 
   // ── Build + mine + broadcast funding TX (when participants provide UTXOs) ──
   let fundingTxId: string | undefined;
@@ -187,7 +192,7 @@ export async function createFactory(
       address,
       totalValue,
       tokenId,
-      0,
+      tokenScale,
       participants.map(p => p.fundingCoinId!),
       participants.map(p => p.contributionAmount),
       participants.map(p => p.settlementAddress ?? p.publicKeyDigest),
@@ -231,6 +236,7 @@ export async function createFactory(
     participants,
     totalValue,
     tokenId,
+    tokenScale,
     allocations:        { ...allocations },
     virtualChannels:    [],
     currentSequence:    0,

@@ -87,10 +87,10 @@ export function serializeHierarchicalWitness(bundle: HierarchicalWitnessBundle):
   const parts: Bytes[] = [];
 
   // Witness.signatureCount (MiniNumber) - 1 Signature object containing N proofs
-  parts.push(writeMiniNumber(1n));
+  parts.push(writeMiniNumber(1n, 0));
   
   // Signature.proofCount (MiniNumber) - N SignatureProofs inside the Signature
-  parts.push(writeMiniNumber(BigInt(bundle.proofs.length)));
+  parts.push(writeMiniNumber(BigInt(bundle.proofs.length), 0));
 
   for (const proofHex of bundle.proofs) {
     const publicKey = hexToBytes(proofHex.leafPubkey);

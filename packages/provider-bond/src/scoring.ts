@@ -24,20 +24,20 @@ export function computeProviderScore(params: ComputeProviderScoreParams): Provid
 
   let bondScore = 0;
   const hasBond = provider.providerBond.bondStack && provider.providerBond.bondStack.length > 0;
-  const hasMinimaBond = hasBond && provider.providerBond.bondStack!.some(
-    (d) => d.asset === 'MINIMA' && d.purpose === 'hard-collateral' && d.status === 'active'
+  const hasHardCollateralBond = hasBond && provider.providerBond.bondStack!.some(
+    (d) => d.purpose === 'hard-collateral' && d.status === 'active'
   );
   const hasProof = bondProofs && bondProofs.length > 0;
 
-  if (hasMinimaBond && hasProof) {
+  if (hasHardCollateralBond && hasProof) {
     bondScore = 100;
-    reasons.push('Active MINIMA hard-collateral bond with proof');
-  } else if (hasMinimaBond) {
+    reasons.push('Active hard-collateral bond with proof');
+  } else if (hasHardCollateralBond) {
     bondScore = 70;
-    reasons.push('MINIMA bond declared but no proof attached');
+    reasons.push('Hard-collateral bond declared but no proof attached');
   } else if (hasBond) {
     bondScore = 40;
-    reasons.push('Bond declared but not MINIMA hard-collateral');
+    reasons.push('Bond declared but not hard-collateral');
   } else {
     reasons.push('No bond declared');
   }

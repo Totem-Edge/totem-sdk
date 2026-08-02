@@ -111,7 +111,7 @@ export function isLessThan(a: Uint8Array, b: Uint8Array): boolean {
  *   k=3: 2^23 = 8388608
  */
 function nextNonceBoundary(nonce: bigint): bigint {
-  const nonceValueLen = writeMiniNumber(nonce).length - 2;
+  const nonceValueLen = writeMiniNumber(nonce, 0).length - 2;
   return 2n ** BigInt(8 * nonceValueLen - 1);
 }
 
@@ -123,13 +123,13 @@ function nextNonceBoundary(nonce: bigint): bigint {
 function buildHeaderTail(txBodyHash: Uint8Array, timeMilli: bigint): Uint8Array {
   return concat(
     writeMiniData(MAIN_NET_CHAIN_ID),
-    writeMiniNumber(timeMilli),
-    writeMiniNumber(0n),
+    writeMiniNumber(timeMilli, 0),
+    writeMiniNumber(0n, 0),
     writeMiniData(MAX_HASH),
     new Uint8Array([CASCADE_LEVELS]),
     writeHashToStream(ZERO_HASH),
     writeHashToStream(ZERO_HASH),
-    writeMiniNumber(0n),
+    writeMiniNumber(0n, 0),
     serializeMagic(),
     writeHashToStream(ZERO_HASH),
     writeHashToStream(txBodyHash)
@@ -434,7 +434,7 @@ export async function mineTxPoWInProcess(
     const boundary = nextNonceBoundary(nonce);
     const chunkEnd = nonce + chunkSize < boundary ? nonce + chunkSize : boundary;
 
-    const nonceBytes = writeMiniNumber(nonce);
+    const nonceBytes = writeMiniNumber(nonce, 0);
     const nonceValueLen = nonceBytes.length - 2;
     const headerBuf = concat(nonceBytes, headerTail);
 
@@ -459,7 +459,7 @@ export async function mineTxPoWInProcess(
     // ── End mutually exclusive section ───────────────────────────────────────
 
     if (found !== null) {
-      const finalNonceBytes = writeMiniNumber(found);
+      const finalNonceBytes = writeMiniNumber(found, 0);
       const finalHeader = concat(finalNonceBytes, headerTail);
       const txpowId = sha3_256(finalHeader);
       return {

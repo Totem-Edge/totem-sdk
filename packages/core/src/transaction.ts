@@ -200,9 +200,9 @@ function serializeStateVariable(sv: StateVariable): Uint8Array {
     case 'number':
       typeByte = new Uint8Array([STATETYPE_NUMBER]);
       if (typeof sv.value === 'bigint') {
-        dataBytes = writeMiniNumber(sv.value);
+        dataBytes = writeMiniNumber(sv.value, 0);
       } else if (typeof sv.value === 'string') {
-        dataBytes = writeMiniNumber(BigInt(sv.value));
+        dataBytes = writeMiniNumber(BigInt(sv.value), 0);
       } else {
         throw new Error(`Invalid number StateVariable value: ${sv.value}`);
       }
@@ -246,10 +246,10 @@ function serializeToken(token: MinimaToken): Uint8Array {
   const parts: Uint8Array[] = [];
   parts.push(writeHashToStream(token.coinId));
   parts.push(writeMiniData(token.script));
-  parts.push(writeMiniNumber(BigInt(token.scale)));
+  parts.push(writeMiniNumber(BigInt(token.scale), 0));
   parts.push(writeMiniNumber(token.totalAmount, 0));
   parts.push(writeMiniData(token.name));
-  parts.push(writeMiniNumber(token.created ?? 0n));
+  parts.push(writeMiniNumber(token.created ?? 0n, 0));
   return concat(...parts);
 }
 
@@ -285,11 +285,11 @@ export function serializeCoin(coin: MinimaCoin): Uint8Array {
   if (coin.rawBlockCreatedBytes && coin.rawBlockCreatedBytes.length > 0) {
     createdBytes = coin.rawBlockCreatedBytes;
   } else {
-    createdBytes = writeMiniNumber(coin.created);
+    createdBytes = writeMiniNumber(coin.created, 0);
   }
   parts.push(createdBytes);
 
-  const stateCountBytes = writeMiniNumber(BigInt(coin.state.length));
+  const stateCountBytes = writeMiniNumber(BigInt(coin.state.length), 0);
   parts.push(stateCountBytes);
 
   for (const sv of coin.state) {
@@ -321,19 +321,19 @@ export function serializeCoin(coin: MinimaCoin): Uint8Array {
 export function serializeTransaction(tx: MinimaTransaction): Uint8Array {
   const parts: Uint8Array[] = [];
 
-  parts.push(writeMiniNumber(BigInt(tx.inputs.length)));
+  parts.push(writeMiniNumber(BigInt(tx.inputs.length), 0));
 
   for (const input of tx.inputs) {
     parts.push(serializeCoin(input));
   }
 
-  parts.push(writeMiniNumber(BigInt(tx.outputs.length)));
+  parts.push(writeMiniNumber(BigInt(tx.outputs.length), 0));
 
   for (const output of tx.outputs) {
     parts.push(serializeCoin(output));
   }
 
-  parts.push(writeMiniNumber(BigInt(tx.state.length)));
+  parts.push(writeMiniNumber(BigInt(tx.state.length), 0));
 
   for (const sv of tx.state) {
     parts.push(serializeStateVariable(sv));
@@ -363,7 +363,7 @@ export function precomputeTransactionCoinID(tx: MinimaTransaction): void {
 
   for (let i = 0; i < tx.outputs.length; i++) {
     const baseCoinIdStream = writeMiniData(baseCoinId);
-    const outputIndexStream = writeMiniNumber(BigInt(i));
+    const outputIndexStream = writeMiniNumber(BigInt(i), 0);
     const combined = concat(baseCoinIdStream, outputIndexStream);
     tx.outputs[i].coinId = sha3_256(combined);
   }

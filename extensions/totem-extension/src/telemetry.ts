@@ -20,7 +20,45 @@ const TLM_URL = 'https://telemetry.axia.to/v1/telemetry';
 const FLUSH_MS = 4000;
 const MAX_BATCH = 50;
 
+// Telemetry is opt-in only (Chrome Web Store policy). No data is collected
+// until the user explicitly enables it in Settings.
+export const TELEMETRY_CONSENT_KEY = 'totem_telemetry_consent';
+let telemetryEnabled = false;
+
+export async function initTelemetry(): Promise<void> {
+  try {
+    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+      const result = await chrome.storage.local.get(TELEMETRY_CONSENT_KEY);
+      telemetryEnabled = result[TELEMETRY_CONSENT_KEY] === true;
+
+      chrome.storage.onChanged.addListener((changes, area) => {
+        if (area === 'local' && changes[TELEMETRY_CONSENT_KEY]) {
+          telemetryEnabled = changes[TELEMETRY_CONSENT_KEY].newValue === true;
+        }
+      });
+    }
+  } catch {
+    telemetryEnabled = false;
+  }
+}
+
+export function isTelemetryEnabled(): boolean {
+  return telemetryEnabled;
+}
+
+export async function setTelemetryEnabled(enabled: boolean): Promise<void> {
+  telemetryEnabled = enabled;
+  try {
+    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+      await chrome.storage.local.set({ [TELEMETRY_CONSENT_KEY]: enabled });
+    }
+  } catch {
+    // keep in-memory flag; persistence failure is non-fatal
+  }
+}
+
 export function track(e: TlmEvent) {
+  if (!telemetryEnabled) return;
   // never add PII, keep only allowlisted fields
   QUEUE.push({
     project_id: e.project_id,

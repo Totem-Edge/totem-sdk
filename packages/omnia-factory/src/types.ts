@@ -86,6 +86,14 @@ export interface ChannelFactory {
   participants: FactoryParticipant[];
   totalValue: bigint;
   tokenId: string;
+  /**
+   * Token scale exponent, matching Minima's `Token.mTokenScale`:
+   * `tokenAmount = minimaRawAmount × 10^scale`. Native Minima (tokenId `0x00`)
+   * has scale 0. Coloured coins use `MINIMA_MAX_DECIMAL_PLACES − scale`
+   * (44 − scale) decimal places. All factory amounts are held in scaled token
+   * units; TX builders convert to raw Minima via `toRawMinima()`.
+   */
+  tokenScale: number;
 
   /** Current committed allocations: sum must equal `totalValue − sum(vc.totalValue)`. */
   allocations: Record<string, bigint>;

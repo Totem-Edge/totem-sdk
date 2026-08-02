@@ -22,6 +22,8 @@ pub struct ChannelFactory {
     pub total_value: String,
     #[serde(rename = "tokenId")]
     pub token_id: String,
+    #[serde(rename = "tokenScale", default)]
+    pub token_scale: u32,
     pub allocations: HashMap<String, String>,
     #[serde(rename = "virtualChannels")]
     pub virtual_channels: Vec<serde_json::Value>,

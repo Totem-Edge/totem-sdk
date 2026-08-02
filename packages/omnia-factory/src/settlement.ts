@@ -3,6 +3,7 @@ import {
   serializeTxDraft,
   omniaDraftToMinimaBytes,
   computeTxDraftDigest,
+  toRawMinima,
 } from '@totemsdk/omnia';
 import type { OmniaTxDraft } from '@totemsdk/omnia';
 import { mineTxPoW, TX_POW_MIN_DIFFICULTY, serializeTxBody } from '@totemsdk/txpow';
@@ -73,7 +74,7 @@ export async function closeFactory(
     if (amount <= 0n) continue;
     outputs.push({
       address:        participant.settlementAddress ?? participant.publicKeyDigest,
-      amount,
+      amount:         toRawMinima(amount, factory.tokenScale),
       tokenId:        factory.tokenId,
       storeState:     false,
       stateVariables: [],
@@ -85,7 +86,7 @@ export async function closeFactory(
     inputs:  [{
       coinId:    factory.fundingCoinId,
       address:   factory.fundingAddress,
-      amount:    factory.totalValue,
+      amount:    toRawMinima(factory.totalValue, factory.tokenScale),
       tokenId:   factory.tokenId,
       scriptHex: factory.fundingScript,
     }],

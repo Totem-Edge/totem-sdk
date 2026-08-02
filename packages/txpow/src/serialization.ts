@@ -103,17 +103,17 @@ export function serializeTxHeader(
 
   const parts: Uint8Array[] = [];
 
-  parts.push(writeMiniNumber(nonce));
+  parts.push(writeMiniNumber(nonce, 0));
   parts.push(writeMiniData(MAIN_NET_CHAIN_ID));
-  parts.push(writeMiniNumber(timeMilli));
-  parts.push(writeMiniNumber(0n));
+  parts.push(writeMiniNumber(timeMilli, 0));
+  parts.push(writeMiniNumber(0n, 0));
   parts.push(writeMiniData(MAX_HASH));
 
   parts.push(new Uint8Array([CASCADE_LEVELS]));
   parts.push(writeHashToStream(ZERO_HASH));
 
   parts.push(writeHashToStream(ZERO_HASH));
-  parts.push(writeMiniNumber(0n));
+  parts.push(writeMiniNumber(0n, 0));
 
   parts.push(serializeMagic());
 
@@ -145,9 +145,9 @@ export function computeTxPoWId(headerBytes: Uint8Array): Uint8Array {
  */
 function buildEmptyBurnTxBytes(): Uint8Array {
   return concat(
-    writeMiniNumber(0n),
-    writeMiniNumber(0n),
-    writeMiniNumber(0n),
+    writeMiniNumber(0n, 0),
+    writeMiniNumber(0n, 0),
+    writeMiniNumber(0n, 0),
     writeHashToStream(new Uint8Array([0x00]))
   );
 }
@@ -162,9 +162,9 @@ function buildEmptyBurnTxBytes(): Uint8Array {
  */
 function buildEmptyBurnWitnessBytes(): Uint8Array {
   return concat(
-    writeMiniNumber(0n),
-    writeMiniNumber(0n),
-    writeMiniNumber(0n)
+    writeMiniNumber(0n, 0),
+    writeMiniNumber(0n, 0),
+    writeMiniNumber(0n, 0)
   );
 }
 
@@ -186,13 +186,14 @@ export function serializeTxBody(
   if (options?.prng) {
     prng = options.prng;
   } else {
-    prng = new Uint8Array(32);
+    const fresh = new Uint8Array(32);
     if (typeof crypto === 'undefined' || !crypto.getRandomValues) {
       throw new Error(
         'SECURITY: crypto.getRandomValues unavailable — cannot generate secure random bytes for transaction PRNG'
       );
     }
-    crypto.getRandomValues(prng);
+    crypto.getRandomValues(fresh);
+    prng = fresh;
   }
 
   return concat(
@@ -202,7 +203,7 @@ export function serializeTxBody(
     witnessBytes,
     buildEmptyBurnTxBytes(),
     buildEmptyBurnWitnessBytes(),
-    writeMiniNumber(0n)
+    writeMiniNumber(0n, 0)
   );
 }
 

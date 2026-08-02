@@ -27,8 +27,14 @@ Required for:
 ### `activeTab` permission
 Required to open approval popups (connect, transaction signing, permissions) via `chrome.windows.create` in response to dApp requests.
 
-### `contextMenus` permission
-Required for right-click context menu integration (e.g., "Send to this address").
+### `https://telemetry.axia.to/*` host permission
+Used **only** to send anonymous, opt-in telemetry. No telemetry is collected or transmitted unless the user explicitly enables "Anonymous Usage Data" in Settings (default: **off**). The toggle is stored in `chrome.storage.local` under `totem_telemetry_consent` and is gated in `src/telemetry.ts`.
+
+### Telemetry data minimization
+`telemetry.axia.to` host permission exists purely to support the opt-in feature. When enabled, the extension sends only:
+- An opaque `project_id`, event `method`, extension `client_version`, platform, timestamp, latency, outcome, error class, retry count, and credit usage.
+- **No** wallet addresses, public keys, seed material, transaction content, page URLs, or site origins are ever collected.
+- The full allowlist is defined in `src/telemetry.ts` (`TlmEvent`), which strips all fields outside the allowlist before enqueueing.
 
 ## Justification for CSP Exceptions
 
@@ -54,8 +60,8 @@ The extension bundles `miner.wasm` (SHA3-256 TxPoW miner compiled from Rust). Du
 See `PRIVACY.md` for the complete privacy policy. Key points for the Store privacy questionnaire:
 
 1. **User data collected**: Wallet addresses (local only), encrypted seed (local only), connected sites (local only).
-2. **Network requests**: Balance/transaction API (`api.axia.to`), anonymous telemetry (`telemetry.axia.to`), price ticker (CoinGecko), token image loading (IPFS).
-3. **Data sharing**: No user data is sold or shared. Telemetry is anonymous and does not include wallet addresses, keys, or transaction data.
+2. **Network requests**: Balance/transaction API (`api.axia.to`), **opt-in anonymous telemetry only** (`telemetry.axia.to`, disabled by default), price ticker (CoinGecko), token image loading (IPFS).
+3. **Data sharing**: No user data is sold or shared. Telemetry is anonymous, **opt-in only** (default off), and does not include wallet addresses, keys, or transaction data.
 4. **Data handling**: Private keys never leave the device. Seed phrases are encrypted with AES-256-GCM using the user's password.
 
 ## Build Instructions

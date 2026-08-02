@@ -28,6 +28,7 @@ import { buildTransaction, type BuildTransactionParams, type SpendableCoinInput,
 import { mxToHex, hexToMx } from '../core/utils/minima-base32';
 import { connectedSitesStore } from '../core/stores/ConnectedSitesStore';
 import { ChallengeBuilder, type VerifyChallenge } from '../core/verify/ChallengeBuilder';
+import { initTelemetry } from '../telemetry';
 import { serializeTreeSignature, getRootPublicKey, type TreeSignature } from '@totemsdk/core';
 import { serializeMMRProof } from '@totemsdk/core';
 import { scriptFromWotsPk } from '@totemsdk/core';
@@ -829,6 +830,9 @@ async function sdkStartupRecovery(projectId: string) {
 async function startupSequenceImpl() {
   const config = await bootstrapInit();
   const projectId = config?.AXIA_PROJECT_ID || 'totem-shared';
+  
+  // Telemetry is opt-in — load consent state before any tracking call.
+  await initTelemetry();
   
   // Restore session state after service worker restart (MV3)
   // This detects if wallet was unlocked when service worker died

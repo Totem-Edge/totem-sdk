@@ -23,14 +23,14 @@ import { MAX_HASH } from './constants.js';
 export function serializeMagic(): Uint8Array {
   const parts: Uint8Array[] = [];
 
-  parts.push(writeMiniNumber(65536n));
-  parts.push(writeMiniNumber(1024n));
-  parts.push(writeMiniNumber(256n));
+  parts.push(writeMiniNumber(65536n, 0));
+  parts.push(writeMiniNumber(1024n, 0));
+  parts.push(writeMiniNumber(256n, 0));
   parts.push(writeMiniData(MAX_HASH));
 
-  parts.push(writeMiniNumber(65536n));
-  parts.push(writeMiniNumber(1024n));
-  parts.push(writeMiniNumber(256n));
+  parts.push(writeMiniNumber(65536n, 0));
+  parts.push(writeMiniNumber(1024n, 0));
+  parts.push(writeMiniNumber(256n, 0));
   parts.push(writeMiniData(MAX_HASH));
 
   return concat(...parts);

@@ -101,6 +101,7 @@ export function BrutalistSettings({ onAccountsUpdated }: BrutalistSettingsProps 
   const [autoLockEnabled, setAutoLockEnabled] = useState<boolean>(true);
   const [autoLockMinutes, setAutoLockMinutes] = useState<number>(DEFAULT_AUTO_LOCK_MINUTES);
   const [biometricEnabled, setBiometricEnabled] = useState<boolean>(false);
+  const [telemetryEnabled, setTelemetryEnabled] = useState<boolean>(false);
   const [showRecoveryPhrase, setShowRecoveryPhrase] = useState<boolean>(false);
   const [recoveryPhraseMnemonic, setRecoveryPhraseMnemonic] = useState<string[]>([]);
   const [showConnectedSites, setShowConnectedSites] = useState<boolean>(false);
@@ -196,12 +197,14 @@ export function BrutalistSettings({ onAccountsUpdated }: BrutalistSettingsProps 
         'auto_lock_enabled', 
         'auto_lock_minutes',
         'biometric_enabled',
+        'totem_telemetry_consent',
         'axia_quota_state_v1',
         'AXIA_API_KEY',
       ], (result) => {
         setAutoLockEnabled(result.auto_lock_enabled !== false);
         setAutoLockMinutes(result.auto_lock_minutes || DEFAULT_AUTO_LOCK_MINUTES);
         setBiometricEnabled(result.biometric_enabled === true);
+        setTelemetryEnabled(result.totem_telemetry_consent === true);
         setAxiaApiKey(result.AXIA_API_KEY || '');
         
         const quota = result['axia_quota_state_v1'];
@@ -311,6 +314,14 @@ export function BrutalistSettings({ onAccountsUpdated }: BrutalistSettingsProps 
           chrome.storage.local.set({ biometric_enabled: false });
         }
       }
+    }
+  };
+
+  const handleToggleTelemetry = () => {
+    const newValue = !telemetryEnabled;
+    setTelemetryEnabled(newValue);
+    if (chrome?.storage?.local) {
+      chrome.storage.local.set({ totem_telemetry_consent: newValue });
     }
   };
 
@@ -1032,6 +1043,27 @@ export function BrutalistSettings({ onAccountsUpdated }: BrutalistSettingsProps 
               </Typography>
             </div>
             <ToggleSwitch checked={biometricEnabled} onChange={handleToggleBiometric} />
+          </div>
+
+          {/* Telemetry Opt-In Toggle */}
+          <div style={{
+            padding: 'var(--space-2)',
+            background: 'var(--bg-base)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}>
+            <div>
+              <Typography variant="caption" bold uppercase style={{ fontSize: 'var(--text-xs)' }}>
+                Anonymous Usage Data
+              </Typography>
+              <Typography variant="caption" style={{ opacity: 0.7, fontSize: 'var(--text-2xs)' }}>
+                {telemetryEnabled
+                  ? 'Sharing anonymous performance & error metrics (no addresses, keys, or transaction content)'
+                  : 'Opt in to share anonymous performance & error metrics'}
+              </Typography>
+            </div>
+            <ToggleSwitch checked={telemetryEnabled} onChange={handleToggleTelemetry} />
           </div>
 
           {/* Change Password Button */}
