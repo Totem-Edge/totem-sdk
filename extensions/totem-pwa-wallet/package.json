@@ -32,7 +32,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@noble/hashes": "^1.8.0",
+    "@noble/hashes": "^2.2.0",
     "@totemsdk/core": "workspace:^",
     "@totemsdk/realtime": "workspace:^",
     "@totemsdk/root-identity": "workspace:^",
