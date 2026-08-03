@@ -45,8 +45,7 @@ export class TimeWindowPolicy implements PolicyMiddleware {
     return h * 60;
   }
 
-  async evaluate(proposal: AgentProposal): Promise<PolicyEvalResult> {
-    const now = new Date();
+  async evaluate(proposal: AgentProposal, now: Date = new Date()): Promise<PolicyEvalResult> {
     const currentMinute = now.getUTCHours() * 60 + now.getUTCMinutes();
 
     if (currentMinute >= this.startMinute && currentMinute < this.endMinute) {

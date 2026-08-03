@@ -1,6 +1,6 @@
 import { createProof } from '@totemsdk/proof'
 import type { UnsignedProof } from '@totemsdk/proof'
-import type { GovernanceConfig, Proposal, ProposalAction, MembershipSnapshot } from './types.js'
+import type { GovernanceConfig, Proposal, ProposalAction, MembershipSnapshot, GovernanceResult } from './types.js'
 import { computeProposalId } from './ids.js'
 import { getMemberWeight } from './snapshot.js'
 
@@ -12,17 +12,17 @@ export function createProposal(params: {
   proposer: string
   snapshot: MembershipSnapshot
   createdAt?: number
-}): Proposal | string {
+}): GovernanceResult<Proposal> {
   const { config, actions, title, description, proposer, snapshot } = params
   const now = params.createdAt ?? Date.now()
 
   const proposerWeight = getMemberWeight(snapshot, proposer)
   if (proposerWeight < config.membership.minWeightToPropose) {
-    return `proposer weight ${proposerWeight} below minimum ${config.membership.minWeightToPropose}`
+    return { error: `proposer weight ${proposerWeight} below minimum ${config.membership.minWeightToPropose}` }
   }
 
   if (!snapshot.entries.has(proposer)) {
-    return 'proposer is not a member'
+    return { error: 'proposer is not a member' }
   }
 
   const proposalId = computeProposalId(config.daoId, proposer, now, actions.length)
@@ -71,20 +71,19 @@ export function createProposalProofDraft(
   })
 }
 
-export function activateProposal(proposal: Proposal): Proposal | string {
+export function activateProposal(proposal: Proposal, now = Date.now()): GovernanceResult<Proposal> {
   if (proposal.status !== 'draft') {
-    return `cannot activate proposal in status '${proposal.status}'`
+    return { error: `cannot activate proposal in status '${proposal.status}'` }
   }
-  const now = Date.now()
   if (now < proposal.votingStartsAt) {
-    return `voting has not started yet (starts at ${proposal.votingStartsAt})`
+    return { error: `voting has not started yet (starts at ${proposal.votingStartsAt})` }
   }
   return { ...proposal, status: 'active' }
 }
 
-export function cancelProposal(proposal: Proposal): Proposal | string {
+export function cancelProposal(proposal: Proposal): GovernanceResult<Proposal> {
   if (proposal.status === 'executed' || proposal.status === 'cancelled') {
-    return `cannot cancel proposal in status '${proposal.status}'`
+    return { error: `cannot cancel proposal in status '${proposal.status}'` }
   }
   return { ...proposal, status: 'cancelled' }
 }

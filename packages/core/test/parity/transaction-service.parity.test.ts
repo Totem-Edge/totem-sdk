@@ -87,12 +87,12 @@ describe('TransactionService Parity Tests', () => {
       });
 
       await txService.prepare(
-        { to: 'Mx12345', amount: '1000', tokenId: '0x00' },
+        { to: 'Mx12345', amount: '1000', tokenId: '0x00', addressIndex: 0 },
         'root-pk-hex'
       );
 
       const lastReq = http.getLastRequest();
-      expect(lastReq?.url).toBe('https://api.test.com/wots/hardened/prepare');
+      expect(lastReq?.url).toBe('https://api.test.com/v1/wots-hardened/prepare');
       expect(lastReq?.body).toMatchObject({
         rootPublicKey: 'root-pk-hex',
         to: 'Mx12345',
@@ -110,7 +110,7 @@ describe('TransactionService Parity Tests', () => {
       });
 
       const result = await txService.prepare(
-        { to: 'Mx12345', amount: '1000' },
+        { to: 'Mx12345', amount: '1000', addressIndex: 0 },
         'root-pk-hex'
       );
 
@@ -130,7 +130,7 @@ describe('TransactionService Parity Tests', () => {
       });
 
       await txService.prepare(
-        { to: 'Mx12345', amount: '1000' },
+        { to: 'Mx12345', amount: '1000', addressIndex: 0 },
         'root-pk-hex'
       );
 
@@ -148,7 +148,7 @@ describe('TransactionService Parity Tests', () => {
       });
 
       await txService.prepare(
-        { to: 'Mx12345', amount: '1000' },
+        { to: 'Mx12345', amount: '1000', addressIndex: 0 },
         'root-pk-hex'
       );
 
@@ -161,7 +161,7 @@ describe('TransactionService Parity Tests', () => {
       http.setError(new Error('Network error'));
 
       await expect(
-        txService.prepare({ to: 'Mx12345', amount: '1000' }, 'root-pk-hex')
+        txService.prepare({ to: 'Mx12345', amount: '1000', addressIndex: 0 }, 'root-pk-hex')
       ).rejects.toThrow('Network error');
     });
 
@@ -169,7 +169,7 @@ describe('TransactionService Parity Tests', () => {
       http.setError(new Error('Test error'));
 
       try {
-        await txService.prepare({ to: 'Mx12345', amount: '1000' }, 'root-pk-hex');
+        await txService.prepare({ to: 'Mx12345', amount: '1000', addressIndex: 0 }, 'root-pk-hex');
       } catch {
       }
 
@@ -192,12 +192,12 @@ describe('TransactionService Parity Tests', () => {
       digestTx: '0'.repeat(64),
     };
 
-    test('sign calls WOTS signing for all levels', async () => {
+    test('sign produces proofs for all TreeKey levels', async () => {
       const seed = new Uint8Array(32);
 
-      await txService.sign(signRequest, seed, mockDeps);
+      const result = await txService.sign(signRequest, seed, mockDeps);
 
-      expect(mockDeps.wotsSign).toHaveBeenCalledTimes(3);
+      expect(result.witnessBundle.proofs).toHaveLength(3);
     });
 
     test('sign returns witness bundle and signedHex', async () => {
@@ -210,13 +210,8 @@ describe('TransactionService Parity Tests', () => {
     });
 
     test('sign validates digest length', async () => {
-      const badDeps: WotsSigningDependencies = {
-        ...mockDeps,
-        fromHex: jest.fn().mockReturnValue(new Uint8Array(16)),
-      };
-
       await expect(
-        txService.sign(signRequest, new Uint8Array(32), badDeps)
+        txService.sign({ ...signRequest, digestTx: '0'.repeat(32) }, new Uint8Array(32))
       ).rejects.toThrow('Invalid digest length');
     });
   });
@@ -243,7 +238,7 @@ describe('TransactionService Parity Tests', () => {
       });
 
       const lastReq = http.getLastRequest();
-      expect(lastReq?.url).toBe('https://api.test.com/wots/hardened/finalize');
+      expect(lastReq?.url).toBe('https://api.test.com/v1/wots-hardened/finalize');
     });
 
     test('finalize includes lease token and signed hex', async () => {

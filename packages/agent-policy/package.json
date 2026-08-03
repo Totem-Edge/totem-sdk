@@ -16,7 +16,7 @@
     "prepare": "npm run generate:proto && tsc",
     "generate:proto": "node scripts/generate-proto.mjs",
     "clean": "rm -rf dist src/generated",
-    "test": "jest --passWithNoTests"
+    "test": "jest"
   },
   "files": [
     "dist",
@@ -27,7 +27,7 @@
   ],
   "dependencies": {
     "@protobuf-ts/runtime": "^2.11.1",
-    "@totemsdk/core": "^1.1.0"
+    "@totemsdk/core": "workspace:^"
   },
   "devDependencies": {
     "@protobuf-ts/plugin": "^2.9.4",

@@ -16,11 +16,11 @@
     "build:go": "cd go && go build -o ../bin/realtime .",
     "prepare": "tsc",
     "clean": "rm -rf dist bin",
-    "test": "vitest run --passWithNoTests",
-    "test:watch": "vitest --passWithNoTests"
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
-    "@totemsdk/core": "^1.0.4"
+    "@totemsdk/core": "workspace:^"
   },
   "peerDependencies": {
     "typescript": ">=5.0.0"

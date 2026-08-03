@@ -87,17 +87,33 @@ class RelayBackedStream {
 }
 
 /**
- * Adapt a RelayBackedStream (write/on/destroy interface) to IStreamTransport (send/on/close).
- * This is a file-internal function; RelayBackedStream itself is not modified.
+ * Adapt a RelayBackedStream to IStreamTransport (send/onData/onClose/onError/close).
+ * RelayBackedStream itself is not modified.
  */
 function asStreamTransport(s: RelayBackedStream): IStreamTransport {
   return {
-    send: (data: Uint8Array) => s.write(data),
-    on: (event: 'data' | 'close' | 'error', handler: AnyCallback) => {
-      s.on(event, handler);
+    state: 'open',
+    send: (data: Uint8Array) => {
+      s.write(data);
+      return Promise.resolve();
     },
-    close: () => s.destroy(),
-  } as unknown as IStreamTransport;
+    onData: (handler: (chunk: Uint8Array) => void) => {
+      s.on('data', handler as AnyCallback);
+      return () => {};
+    },
+    onClose: (handler: () => void) => {
+      s.on('close', handler as AnyCallback);
+      return () => {};
+    },
+    onError: (handler: (err: Error) => void) => {
+      s.on('error', handler as AnyCallback);
+      return () => {};
+    },
+    close: () => {
+      s.destroy();
+      return Promise.resolve();
+    },
+  };
 }
 
 // ── WebSocket factory ──────────────────────────────────────────────────────────

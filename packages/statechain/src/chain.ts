@@ -4,13 +4,12 @@ import {
   hexToBytes,
   concatBytes,
   scriptToAddress,
-  buildMinimaCoin,
+  parseMxAddress,
   serializeTransaction,
   computeTransactionDigest,
   precomputeTransactionCoinID,
   writeMiniNumber,
 } from '@totemsdk/core';
-import type { MinimaTransaction } from '@totemsdk/core';
 import { serializeTxPoW } from '@totemsdk/txpow';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import { buildStatechainScript, RECLAIM_TIMELOCK } from './script.js';
@@ -50,6 +49,21 @@ export function kissHex(h: string): string {
   return '0X' + raw.toUpperCase();
 }
 
+// ─── WASM JSON helpers (the @totemsdk/core WASM serializers consume JSON) ───
+
+/** Normalize an Mx (radix-32) or hex address to lowercase hex for the WASM JSON schema. */
+export function addressToHex(address: string): string {
+  const upper = address.startsWith('0x') || address.startsWith('0X') ? address.slice(2) : address;
+  return upper.toUpperCase().startsWith('MX')
+    ? bytesToHex(parseMxAddress(address))
+    : address.replace(/^0x/i, '');
+}
+
+/** Build a STATE(0) variable in WASM JSON form (`data` is hex). */
+export function stateVarJson(hexValue: string): { port: number; svtype: string; data: string } {
+  return { port: 0, svtype: 'hex', data: hexValue };
+}
+
 // ─── Lock TX ─────────────────────────────────────────────────────────────────
 
 /**
@@ -74,23 +88,23 @@ export async function buildLockTx(
   owner:              StatechainOwner,
   chainId:            string,
 ): Promise<{ txHex: string; lockedCoinId: string }> {
-  const inputCoin = buildMinimaCoin({
-    coinId:     coinIdBytes(inputCoinId),
-    address:    hexToBytes(ownerCurrentAddress),
-    amount:     amount.toString(),
-    tokenId:    tokenIdBytes(tokenId),
-    storeState: false,
-  });
-  const outputCoin = buildMinimaCoin({
-    address:    hexToBytes(lockingAddress),
-    amount:     amount.toString(),
-    tokenId:    tokenIdBytes(tokenId),
-    storeState: true,
-    state:      [{ port: 0, value: owner.publicKeyDigest, type: 'hex' as const }],
-  });
+  const inputCoin = {
+    coinid:    inputCoinId,
+    address:   addressToHex(ownerCurrentAddress),
+    amount:    amount.toString(),
+    tokenid:   tokenId,
+    storestate: false,
+  };
+  const outputCoin = {
+    address:   addressToHex(lockingAddress),
+    amount:    amount.toString(),
+    tokenid:   tokenId,
+    storestate: true,
+    state:     [stateVarJson(owner.publicKeyDigest)],
+  };
 
-  const tx: MinimaTransaction = {
-    linkHash: new Uint8Array([0x00]),
+  const tx = {
+    linkhash: '0x00',
     inputs:   [inputCoin],
     outputs:  [outputCoin],
     state:    [],
@@ -98,7 +112,6 @@ export async function buildLockTx(
 
   const txBytes = serializeTransaction(JSON.stringify(tx));
   const outputCoinId = precomputeTransactionCoinID(txBytes, 0);
-  tx.outputs[0].coinId = outputCoinId;
 
   const digest   = computeTransactionDigest(txBytes);
   const ownerSig = await owner.sign(digest);
@@ -133,23 +146,23 @@ export async function buildOwnerReclaimTx(
   const claimScript    = `RETURN SIGNEDBY(${kissHex(owner.publicKeyDigest)})`;
   const reclaimAddress = scriptToAddress(claimScript);
 
-  const inputCoin = buildMinimaCoin({
-    coinId:     coinIdBytes(coinId),
-    address:    hexToBytes(lockingAddress),
-    amount:     amount.toString(),
-    tokenId:    tokenIdBytes(tokenId),
-    storeState: true,
-    state:      [{ port: 0, value: owner.publicKeyDigest, type: 'hex' as const }],
-  });
-  const outputCoin = buildMinimaCoin({
-    address:    hexToBytes(reclaimAddress),
-    amount:     amount.toString(),
-    tokenId:    tokenIdBytes(tokenId),
-    storeState: false,
-  });
+  const inputCoin = {
+    coinid:    coinId,
+    address:   addressToHex(lockingAddress),
+    amount:    amount.toString(),
+    tokenid:   tokenId,
+    storestate: true,
+    state:     [stateVarJson(owner.publicKeyDigest)],
+  };
+  const outputCoin = {
+    address:   addressToHex(reclaimAddress),
+    amount:    amount.toString(),
+    tokenid:   tokenId,
+    storestate: false,
+  };
 
-  const tx: MinimaTransaction = {
-    linkHash: new Uint8Array([0x00]),
+  const tx = {
+    linkhash: '0x00',
     inputs:   [inputCoin],
     outputs:  [outputCoin],
     state:    [],
@@ -157,7 +170,6 @@ export async function buildOwnerReclaimTx(
 
   const txBytes = serializeTransaction(JSON.stringify(tx));
   const outputCoinId = precomputeTransactionCoinID(txBytes, 0);
-  tx.outputs[0].coinId = outputCoinId;
 
   const digest   = computeTransactionDigest(txBytes);
   const ownerSig = await owner.sign(digest);

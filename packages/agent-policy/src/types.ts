@@ -1,9 +1,9 @@
 /**
  * @totemsdk/agent-policy — Interface contracts
  *
- * This package contains NO logic — only types and interface contracts.
- * It is the seam between the deterministic Phase 1.5 sovereignty stack
- * and the optional Phase 2 intelligence layer.
+ * This package defines the seam between the deterministic Phase 1.5
+ * sovereignty stack and the optional Phase 2 intelligence layer:
+ * agent↔wallet contracts plus composable policy middleware primitives.
  *
  * Principle: the AI proposes, Totem validates and signs.
  * The AI never holds a private key. It never calls reserveKeyUse.

@@ -855,42 +855,54 @@ export function serializeTreeSignature(sig: TreeSignature): Bytes {
  */
 export function deserializeTreeSignature(data: Bytes): TreeSignature {
   let offset = 0;
-  
+
   // Read MiniNumber for proof count
   // Format: [scale: 1 byte] [length: 1 byte] [data: N bytes]
   const scale = data[offset];
   const numBytesLen = data[offset + 1];
   offset += 2;
-  
+
+  if (!Number.isInteger(numBytesLen) || numBytesLen < 0 || numBytesLen > 4) {
+    throw new Error('Malformed signature: invalid proof-count length');
+  }
+
   // Read the number bytes (big-endian)
   let numProofs = 0;
   for (let i = 0; i < numBytesLen; i++) {
     numProofs = (numProofs << 8) | data[offset + i];
   }
   offset += numBytesLen;
-  
+
+  if (!Number.isInteger(numProofs) || numProofs < 1 || numProofs > 8) {
+    throw new Error(`Malformed signature: impossible proof count (${numProofs})`);
+  }
+
   const proofs: SignatureProof[] = [];
-  
+
   for (let i = 0; i < numProofs; i++) {
     // Leaf pubkey - MiniData format (4-byte length prefix + data)
+    if (offset + 4 > data.length) throw new Error('Malformed signature: truncated leaf pubkey length');
     const pubkeyLen = (data[offset] << 24) | (data[offset+1] << 16) | (data[offset+2] << 8) | data[offset+3];
     offset += 4;
+    if (pubkeyLen < 0 || offset + pubkeyLen > data.length) throw new Error('Malformed signature: leaf pubkey out of bounds');
     const leafPubkey = data.slice(offset, offset + pubkeyLen);
     offset += pubkeyLen;
-    
+
     // Signature - MiniData format (4-byte length prefix + data)
+    if (offset + 4 > data.length) throw new Error('Malformed signature: truncated signature length');
     const sigLen = (data[offset] << 24) | (data[offset+1] << 16) | (data[offset+2] << 8) | data[offset+3];
     offset += 4;
+    if (sigLen < 0 || offset + sigLen > data.length) throw new Error('Malformed signature: signature out of bounds');
     const signature = data.slice(offset, offset + sigLen);
     offset += sigLen;
-    
+
     // MMR proof - returns { proof, blockTime, bytesRead }
     const { proof: mmrProof, bytesRead: mmrProofLen } = parseMMRProofFromHex(data.slice(offset));
     offset += mmrProofLen;
-    
+
     proofs.push({ leafPubkey, signature, mmrProof });
   }
-  
+
   return { proofs };
 }
 

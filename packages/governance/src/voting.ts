@@ -1,6 +1,6 @@
 import { createProof } from '@totemsdk/proof'
 import type { UnsignedProof } from '@totemsdk/proof'
-import type { Proposal, Vote, Delegation, MembershipSnapshot, GovernanceConfig, QuadraticCredits } from './types.js'
+import type { Proposal, Vote, Delegation, MembershipSnapshot, GovernanceConfig, QuadraticCredits, GovernanceResult } from './types.js'
 import { computeVoteId } from './ids.js'
 import { getMemberWeight } from './snapshot.js'
 import { getActiveDelegations } from './delegation.js'
@@ -13,27 +13,27 @@ export function createVote(params: {
   delegations?: Delegation[]
   config?: GovernanceConfig
   castAt?: number
-}): Vote | string {
+}): GovernanceResult<Vote> {
   const { proposal, voter, choice, snapshot } = params
   const now = params.castAt ?? Date.now()
 
   if (proposal.status !== 'active' && proposal.status !== 'draft') {
-    return `proposal is in status '${proposal.status}', cannot vote`
+    return { error: `proposal is in status '${proposal.status}', cannot vote` }
   }
   if (now < proposal.votingStartsAt) {
-    return 'voting has not started yet'
+    return { error: 'voting has not started yet' }
   }
   if (now > proposal.votingEndsAt) {
-    return 'voting has ended'
+    return { error: 'voting has ended' }
   }
 
   if (choice === 'abstain' && params.config && !params.config.voting.allowAbstain) {
-    return 'abstain is not allowed'
+    return { error: 'abstain is not allowed' }
   }
 
   const weight = getMemberWeight(snapshot, voter)
   if (weight <= 0) {
-    return 'voter has no weight in membership snapshot'
+    return { error: 'voter has no weight in membership snapshot' }
   }
 
   const id = computeVoteId(proposal.id, voter, choice, now)
@@ -58,23 +58,23 @@ export function createQuadraticVote(params: {
   credits?: QuadraticCredits
   config?: GovernanceConfig
   castAt?: number
-}): Vote[] | string {
+}): GovernanceResult<Vote[]> {
   const { proposal, voter, allocations, snapshot, credits } = params
   const now = params.castAt ?? Date.now()
 
   if (proposal.status !== 'active' && proposal.status !== 'draft') {
-    return `proposal is in status '${proposal.status}', cannot vote`
+    return { error: `proposal is in status '${proposal.status}', cannot vote` }
   }
   if (now < proposal.votingStartsAt) {
-    return 'voting has not started yet'
+    return { error: 'voting has not started yet' }
   }
   if (now > proposal.votingEndsAt) {
-    return 'voting has ended'
+    return { error: 'voting has ended' }
   }
 
   const weight = getMemberWeight(snapshot, voter)
   if (weight <= 0) {
-    return 'voter has no weight in membership snapshot'
+    return { error: 'voter has no weight in membership snapshot' }
   }
 
   const totalCreditsNeeded = allocations.reduce((sum, a) => sum + a.votes * a.votes, 0)
@@ -82,13 +82,13 @@ export function createQuadraticVote(params: {
   if (credits) {
     const available = credits.totalCredits - credits.spentCredits
     if (totalCreditsNeeded > available) {
-      return `quadratic vote requires ${totalCreditsNeeded} credits but only ${available} available`
+      return { error: `quadratic vote requires ${totalCreditsNeeded} credits but only ${available} available` }
     }
   }
 
   if (params.config?.voting.quadratic?.creditSource === 'weight') {
     if (totalCreditsNeeded > weight) {
-      return `quadratic vote requires ${totalCreditsNeeded} credits but weight is only ${weight}`
+      return { error: `quadratic vote requires ${totalCreditsNeeded} credits but weight is only ${weight}` }
     }
   }
 
@@ -99,7 +99,7 @@ export function createQuadraticVote(params: {
       proposalId: proposal.id,
       voter,
       choice: alloc.choice,
-      weight: Math.floor(Math.sqrt(alloc.votes * alloc.votes)),
+      weight: alloc.votes,
       quadraticCredits: alloc.votes * alloc.votes,
       castAt: now,
     }
@@ -113,24 +113,24 @@ export function createDelegatedVote(params: {
   snapshot: MembershipSnapshot
   choice: 'yes' | 'no' | 'abstain'
   castAt?: number
-}): Vote[] | string {
+}): GovernanceResult<Vote[]> {
   const { proposal, delegate, delegations, snapshot, choice } = params
   const now = params.castAt ?? Date.now()
 
   if (proposal.status !== 'active') {
-    return `proposal is in status '${proposal.status}', cannot vote`
+    return { error: `proposal is in status '${proposal.status}', cannot vote` }
   }
   if (now < proposal.votingStartsAt) {
-    return 'voting has not started yet'
+    return { error: 'voting has not started yet' }
   }
   if (now > proposal.votingEndsAt) {
-    return 'voting has ended'
+    return { error: 'voting has ended' }
   }
 
   const activeDelegations = getActiveDelegations(delegations, proposal.daoId)
   const inboundDelegations = activeDelegations.filter((d) => d.delegate === delegate)
   if (inboundDelegations.length === 0) {
-    return `no delegations found pointing to ${delegate}`
+    return { error: `no delegations found pointing to ${delegate}` }
   }
 
   const votes: Vote[] = []

@@ -1039,7 +1039,7 @@ describe('OmniaSwarmImpl with mock swarm', () => {
 
     const received: OmniaMessage[] = [];
     const connAParser = new OmniaFrameParser();
-    connA.on('data', (chunk: Uint8Array) => {
+    connA.onData((chunk: Uint8Array) => {
       connAParser.push(chunk).forEach(m => received.push(m));
     });
 
@@ -1214,7 +1214,7 @@ describe('OmniaSwarmImpl with mock swarm', () => {
     // We must also be able to send back
     const acks: OmniaMessage[] = [];
     const connBParser = new OmniaFrameParser();
-    connB.on('data', (chunk: Uint8Array) => {
+    connB.onData((chunk: Uint8Array) => {
       connBParser.push(chunk).forEach(m => acks.push(m));
     });
 

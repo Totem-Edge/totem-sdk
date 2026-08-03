@@ -3,15 +3,13 @@ import {
   bytesToHex,
   hexToBytes,
   wotsVerifyDigest,
-  buildMinimaCoin,
   serializeTransaction,
   computeTransactionDigest,
   precomputeTransactionCoinID,
 } from '@totemsdk/core';
-import type { MinimaTransaction } from '@totemsdk/core';
 import { serializeTxPoW } from '@totemsdk/txpow';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
-import { buildOwnerReclaimTx, buildWitnessBytes, coinIdBytes, tokenIdBytes } from './chain.js';
+import { addressToHex, buildOwnerReclaimTx, buildWitnessBytes, stateVarJson } from './chain.js';
 import type { StateChain, StatechainOwner, SEClient, TransferRecord } from './types.js';
 
 function defaultVerifyBlindSig(sig: string, commitment: Uint8Array, sePkdHex: string): boolean {
@@ -64,27 +62,27 @@ export async function transferOwnership(
   const sequence  = chain.transferHistory.length;
   const timestamp = Date.now();
 
-  const lockAddrBytes = hexToBytes(chain.lockingAddress);
+  const lockAddrHex = addressToHex(chain.lockingAddress);
 
   // ── Build state-update TX ────────────────────────────────────────────────
-  const inputCoin = buildMinimaCoin({
-    coinId:     coinIdBytes(chain.coinId),
-    address:    lockAddrBytes,
-    amount:     chain.amount.toString(),
-    tokenId:    tokenIdBytes(chain.tokenId),
-    storeState: true,
-    state:      [{ port: 0, value: chain.currentOwner.publicKeyDigest, type: 'hex' as const }],
-  });
-  const outputCoin = buildMinimaCoin({
-    address:    lockAddrBytes,
-    amount:     chain.amount.toString(),
-    tokenId:    tokenIdBytes(chain.tokenId),
-    storeState: true,
-    state:      [{ port: 0, value: newOwner.publicKeyDigest, type: 'hex' as const }],
-  });
+  const inputCoin = {
+    coinid:    chain.coinId,
+    address:   lockAddrHex,
+    amount:    chain.amount.toString(),
+    tokenid:   chain.tokenId,
+    storestate: true,
+    state:     [stateVarJson(chain.currentOwner.publicKeyDigest)],
+  };
+  const outputCoin = {
+    address:   lockAddrHex,
+    amount:    chain.amount.toString(),
+    tokenid:   chain.tokenId,
+    storestate: true,
+    state:     [stateVarJson(newOwner.publicKeyDigest)],
+  };
 
-  const stateUpdateTx: MinimaTransaction = {
-    linkHash: new Uint8Array([0x00]),
+  const stateUpdateTx = {
+    linkhash: '0x00',
     inputs:   [inputCoin],
     outputs:  [outputCoin],
     state:    [],
@@ -92,7 +90,6 @@ export async function transferOwnership(
 
   const txBodyBytes = serializeTransaction(JSON.stringify(stateUpdateTx));
   const outputCoinId = precomputeTransactionCoinID(txBodyBytes, 0);
-  stateUpdateTx.outputs[0].coinId = outputCoinId;
   const txBodyHex = bytesToHex(txBodyBytes);
 
   const digest       = computeTransactionDigest(txBodyBytes);

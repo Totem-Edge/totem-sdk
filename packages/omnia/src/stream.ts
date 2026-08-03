@@ -12,14 +12,15 @@ import type { OmniaMessage, Unsubscribe } from './messaging-types.js';
 export class OmniaStream {
   private readonly _parser = new OmniaFrameParser();
   private _listeners: ((msg: OmniaMessage) => void)[] = [];
+  private readonly _unsubData: () => void;
 
   constructor(private readonly _stream: IStreamTransport) {
-    _stream.on('data', (chunk: Uint8Array) => {
+    this._unsubData = _stream.onData((chunk: Uint8Array) => {
       let msgs: ReturnType<typeof this._parser.push>;
       try {
         msgs = this._parser.push(chunk);
       } catch (err) {
-        this._stream.close();
+        void this._stream.close();
         return;
       }
       for (const msg of msgs) {
@@ -30,8 +31,8 @@ export class OmniaStream {
     });
   }
 
-  send(msg: OmniaMessage): void {
-    this._stream.send(encodeOmniaMessage(msg));
+  async send(msg: OmniaMessage): Promise<void> {
+    await this._stream.send(encodeOmniaMessage(msg));
   }
 
   onMessage(cb: (msg: OmniaMessage) => void): Unsubscribe {
@@ -39,12 +40,12 @@ export class OmniaStream {
     return () => { this._listeners = this._listeners.filter(l => l !== cb); };
   }
 
-  onClose(cb: () => void): void {
-    this._stream.on('close', cb);
+  onClose(cb: () => void): Unsubscribe {
+    return this._stream.onClose(cb);
   }
 
-  onError(cb: (err: Error) => void): void {
-    this._stream.on('error', cb);
+  onError(cb: (err: Error) => void): Unsubscribe {
+    return this._stream.onError(cb);
   }
 
   reset(): void {
@@ -53,6 +54,7 @@ export class OmniaStream {
   }
 
   destroy(): void {
-    try { this._stream.close(); } catch { /* noop */ }
+    this._unsubData();
+    void this._stream.close();
   }
 }

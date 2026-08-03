@@ -15,7 +15,7 @@
     "build": "tsc",
     "prepare": "tsc",
     "clean": "rm -rf dist",
-    "test": "jest --passWithNoTests"
+    "test": "jest"
   },
   "files": [
     "dist",
@@ -23,22 +23,20 @@
     "LICENSE"
   ],
   "dependencies": {
-    "@totemsdk/core": "^1.1.0",
-    "@totemsdk/txpow": "^0.1.5",
-    "node-fetch": "^3.3.2",
+    "@totemsdk/core": "workspace:^",
+    "@totemsdk/txpow": "workspace:^",
     "ws": "^8.21.1"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "@types/node": "^20.0.0",
-    "@types/node-fetch": "^2.6.4",
     "@types/ws": "^8.5.0",
     "jest": "^30.4.2",
     "ts-jest": "^29.0.0",
     "typescript": "^7.0.2"
   },
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=18.0.0"
   },
   "publishConfig": {
     "access": "public"

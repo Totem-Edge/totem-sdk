@@ -1,4 +1,4 @@
-import type { Proposal, Vote, VoteTally, GovernanceConfig } from './types.js'
+import type { Proposal, Vote, VoteTally, GovernanceConfig, GovernanceResult } from './types.js'
 import { computeTallyHash } from './ids.js'
 
 export function tallyVotes(params: {
@@ -7,16 +7,17 @@ export function tallyVotes(params: {
   totalWeight: number
   quorumWeight?: number
   config?: GovernanceConfig
-}): VoteTally | string {
+  now?: number
+}): GovernanceResult<VoteTally> {
   const { proposal, votes, totalWeight } = params
 
   if (votes.length === 0) {
-    return 'no votes to tally'
+    return { error: 'no votes to tally' }
   }
 
-  const now = Date.now()
+  const now = params.now ?? Date.now()
   if (now < proposal.votingEndsAt) {
-    return 'voting has not ended yet'
+    return { error: 'voting has not ended yet' }
   }
 
   const algorithm = params.config?.voting?.algorithm === 'quadratic' ? 'quadratic' : 'linear'
@@ -25,19 +26,10 @@ export function tallyVotes(params: {
   let noWeight = 0
   let abstainWeight = 0
 
-  if (algorithm === 'quadratic') {
-    for (const vote of votes) {
-      const sqrtWeight = vote.weight > 0 ? Math.sqrt(vote.weight) : 0
-      if (vote.choice === 'yes') yesWeight += sqrtWeight
-      else if (vote.choice === 'no') noWeight += sqrtWeight
-      else if (vote.choice === 'abstain') abstainWeight += sqrtWeight
-    }
-  } else {
-    for (const vote of votes) {
-      if (vote.choice === 'yes') yesWeight += vote.weight
-      else if (vote.choice === 'no') noWeight += vote.weight
-      else if (vote.choice === 'abstain') abstainWeight += vote.weight
-    }
+  for (const vote of votes) {
+    if (vote.choice === 'yes') yesWeight += vote.weight
+    else if (vote.choice === 'no') noWeight += vote.weight
+    else abstainWeight += vote.weight
   }
 
   const totalCast = yesWeight + noWeight + abstainWeight
@@ -47,7 +39,8 @@ export function tallyVotes(params: {
 
   const quorumReached = totalCast >= quorumWeight
   const passThresholdBps = params.config?.voting?.passThresholdBps ?? 5000
-  const passed = quorumReached && (yesWeight / (yesWeight + noWeight)) * 10000 >= passThresholdBps
+  const decided = yesWeight + noWeight
+  const passed = quorumReached && decided > 0 && (yesWeight / decided) * 10000 >= passThresholdBps
 
   const tally: VoteTally = {
     proposalId: proposal.id,

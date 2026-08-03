@@ -17,6 +17,14 @@ jest.mock('@totemsdk/txpow', () => ({
   })),
 }));
 
+jest.mock('@totemsdk/core', () => {
+  const actual = jest.requireActual('@totemsdk/core');
+  return {
+    ...actual,
+    wotsVerifyDigest: jest.fn(() => true),
+  };
+});
+
 import {
   createChannel,
   acceptChannel,
@@ -124,6 +132,24 @@ function makeMockChainProvider() {
   };
 }
 
+/** Minimal ChainStateProvider whose getTip() returns the given block height. */
+function makeTipProvider(block: number) {
+  return {
+    getTip: jest.fn(async () => ({ block, hash: `0x${block.toString(16)}` })),
+  };
+}
+
+/** Provider that confirms a funding coin (for acceptChannel). */
+function makeConfirmingProvider(coinId: string, amount: bigint, tokenId: string) {
+  return {
+    getCoin: jest.fn(async (id: string) => {
+      if (id !== coinId) return null;
+      return { coinId, amount: amount.toString(), tokenid: tokenId, spent: false, mmrentry: 1 };
+    }),
+    getTip: jest.fn(async () => ({ block: 2, hash: '0x02' })),
+  };
+}
+
 // ─────────────────────────────────────────────────
 // Mock: ChannelSigner
 // Returns a deterministic fake signature (not cryptographically valid).
@@ -153,7 +179,7 @@ function makeTestChannel(overrides: Partial<OmniaChannel> = {}): OmniaChannel {
   const base: OmniaChannel = {
     channelId: '0xdeadbeef00000001',
     fundingTxId: '0xtxpow0',
-    fundingCoinId: '0xtxpow0-0',
+    fundingCoinId: '0x' + 'aa'.repeat(32),
     fundingScript: script,
     fundingAddress: address,
     tokenId: '0x00',
@@ -256,7 +282,7 @@ describe('@totemsdk/omnia — transaction builders', () => {
       signatures: {},
       signingIndices: {},
     };
-    const partyAddresses = { alice: '0xALICEADDR', bob: '0xBOBADDR' };
+    const partyAddresses = { alice: '0x' + 'aa'.repeat(32), bob: '0x' + 'bb'.repeat(32) };
     const draft = buildSettlementTx(channel, state, partyAddresses);
     expect(draft.type).toBe('settlement');
     const sv100 = draft.stateVariables.find(sv => sv.port === 100);
@@ -264,8 +290,10 @@ describe('@totemsdk/omnia — transaction builders', () => {
     expect(sv100?.value).toBe(true);
     expect(sv101?.value).toBe(5n);
     expect(draft.outputs).toHaveLength(2);
-    const aliceOut = draft.outputs.find(o => o.address === '0xALICEADDR');
-    const bobOut = draft.outputs.find(o => o.address === '0xBOBADDR');
+    const aliceAddr = '0x' + 'aa'.repeat(32);
+    const bobAddr = '0x' + 'bb'.repeat(32);
+    const aliceOut = draft.outputs.find(o => o.address === aliceAddr);
+    const bobOut = draft.outputs.find(o => o.address === bobAddr);
     expect(aliceOut?.amount).toBe(700n);
     expect(bobOut?.amount).toBe(300n);
   });
@@ -316,7 +344,7 @@ describe('@totemsdk/omnia — capacity management', () => {
 });
 
 describe('@totemsdk/omnia — acceptChannel', () => {
-  it('returns active channel with correct totals', () => {
+  it('returns active channel with correct totals', async () => {
     const { script, address } = buildAndHashEltooScript([alice, bob]);
     const proposal = {
       channelId: '0xchannelid',
@@ -327,9 +355,10 @@ describe('@totemsdk/omnia — acceptChannel', () => {
       tokenId: '0x00',
       fundingScript: script,
       fundingTxId: '0xtxpow0',
-      fundingCoinId: '0xtxpow0-0',
+      fundingCoinId: '0x' + 'aa'.repeat(32),
     };
-    const channel = acceptChannel(proposal);
+    const provider = makeConfirmingProvider(proposal.fundingCoinId, 1000n, '0x00');
+    const channel = await acceptChannel(proposal, provider as any);
     expect(channel.status).toBe('active');
     expect(channel.totalValue).toBe(1000n);
     expect(channel.balances.alice).toBe(600n);
@@ -338,7 +367,7 @@ describe('@totemsdk/omnia — acceptChannel', () => {
     expect(channel.fundingScript).toBe(script);
   });
 
-  it('throws if script is tampered', () => {
+  it('throws if script is tampered', async () => {
     const proposal = {
       channelId: '0xchannelid',
       localParty: alice,
@@ -348,9 +377,9 @@ describe('@totemsdk/omnia — acceptChannel', () => {
       tokenId: '0x00',
       fundingScript: 'RETURN TRUE',
       fundingTxId: '0xtxpow0',
-      fundingCoinId: '0xtxpow0-0',
+      fundingCoinId: '0x' + 'aa'.repeat(32),
     };
-    expect(() => acceptChannel(proposal)).toThrow('Script mismatch');
+    await expect(acceptChannel(proposal)).rejects.toThrow('Script mismatch');
   });
 });
 
@@ -363,7 +392,7 @@ describe('@totemsdk/omnia — createChannel', () => {
       localAmount: 600n,
       remoteAmount: 400n,
       tokenId: '0x00',
-      fundingCoinId: 'prev-coin-1',
+      fundingCoinId: '0x' + 'aa'.repeat(32),
     };
     const { channel, proposal } = await createChannel(params, chainProvider as any);
     expect(chainProvider.broadcastTxPoW).toHaveBeenCalledTimes(1);
@@ -682,7 +711,7 @@ describe('@totemsdk/omnia — HTLC lifecycle', () => {
       counterpartPublicKeyDigest: BOB_PKD,
     };
     const { channel: ch1, htlcId } = await addHTLC(channel, params, leaseProvider as any, aliceSigner);
-    const { channel: ch2 } = await timeoutHTLC(ch1, htlcId, leaseProvider as any, 501n, aliceSigner);
+    const { channel: ch2 } = await timeoutHTLC(ch1, htlcId, leaseProvider as any, makeTipProvider(501) as any, aliceSigner);
     expect(ch2.pendingHTLCs[0].status).toBe('timed_out');
     expect(ch2.balances.alice).toBe(600n);
   });
@@ -696,7 +725,7 @@ describe('@totemsdk/omnia — HTLC lifecycle', () => {
       counterpartPublicKeyDigest: BOB_PKD,
     };
     const { channel: ch1, htlcId } = await addHTLC(channel, params, leaseProvider as any, aliceSigner);
-    await expect(timeoutHTLC(ch1, htlcId, leaseProvider as any, 499n, aliceSigner))
+    await expect(timeoutHTLC(ch1, htlcId, leaseProvider as any, makeTipProvider(499) as any, aliceSigner))
       .rejects.toThrow('has not yet timed out');
   });
 
@@ -773,7 +802,7 @@ describe('@totemsdk/omnia — HTLC lifecycle', () => {
     };
     const { channel: ch1, htlcId } = await addHTLC(channel, params, leaseProvider as any, aliceSigner);
     const nearExhausted: OmniaChannel = { ...ch1, currentSequence: Math.floor(WOTS_CAPACITY_TOTAL * 0.95) };
-    const result = await timeoutHTLC(nearExhausted, htlcId, leaseProvider as any, 500n, aliceSigner);
+    const result = await timeoutHTLC(nearExhausted, htlcId, leaseProvider as any, makeTipProvider(500) as any, aliceSigner);
     expect(result.error).toBe('CAPACITY_NEAR_EXHAUSTION');
     expect(result.channel.currentSequence).toBe(nearExhausted.currentSequence);
   });
@@ -792,7 +821,7 @@ describe('@totemsdk/omnia — settlement', () => {
   });
 
   it('proposeSettlement: returns settlementPayload with correct channelId and sequence', async () => {
-    const partyAddresses = { alice: '0xALICEADDR', bob: '0xBOBADDR' };
+    const partyAddresses = { alice: '0x' + 'aa'.repeat(32), bob: '0x' + 'bb'.repeat(32) };
     const { settlementPayload, partialState } = await proposeSettlement(channel, leaseProvider as any, { partyAddresses: partyAddresses, signer: aliceSigner });
     expect(settlementPayload.channelId).toBe(channel.channelId);
     expect(settlementPayload.sequence).toBe(5);
@@ -802,7 +831,7 @@ describe('@totemsdk/omnia — settlement', () => {
   });
 
   it('settlement partialState has STATE(100)=true', async () => {
-    const partyAddresses = { alice: '0xALICEADDR', bob: '0xBOBADDR' };
+    const partyAddresses = { alice: '0x' + 'aa'.repeat(32), bob: '0x' + 'bb'.repeat(32) };
     const { partialState } = await proposeSettlement(channel, leaseProvider as any, { partyAddresses: partyAddresses, signer: aliceSigner });
     const sv100 = partialState.stateVariables?.find(sv => sv.port === 100);
     expect(sv100?.value).toBe(true);
@@ -870,7 +899,7 @@ describe('@totemsdk/omnia — settlement', () => {
   });
 
   it('proposeSettlement with chainProvider: mines TxPoW and broadcasts to chain', async () => {
-    const partyAddresses = { alice: '0xALICEADDR', bob: '0xBOBADDR' };
+    const partyAddresses = { alice: '0x' + 'aa'.repeat(32), bob: '0x' + 'bb'.repeat(32) };
     const chainProvider = makeMockChainProvider();
 
     const { settlementPayload } = await proposeSettlement(
@@ -907,7 +936,7 @@ describe('@totemsdk/omnia — integration: fund → N updates → cooperative se
         localAmount: 600n,
         remoteAmount: 400n,
         tokenId: '0x00',
-        fundingCoinId: 'prev-coin-1',
+        fundingCoinId: '0x' + 'aa'.repeat(32),
       },
       chain as any,
     );
@@ -930,7 +959,7 @@ describe('@totemsdk/omnia — integration: fund → N updates → cooperative se
     expect(ch.balances.bob).toBe(500n);
 
     // 3. Propose settlement
-    const partyAddresses = { alice: '0xALICEADDR', bob: '0xBOBADDR' };
+    const partyAddresses = { alice: '0x' + 'aa'.repeat(32), bob: '0x' + 'bb'.repeat(32) };
     const { settlementPayload } = await proposeSettlement(ch, leaseProvider as any, { partyAddresses: partyAddresses, signer: aliceSigner });
     expect(settlementPayload.balances.alice).toBe(500n);
     expect(settlementPayload.balances.bob).toBe(500n);

@@ -7,9 +7,9 @@
 import * as core from '@totemsdk/core';
 import { sendTransaction, type SendParams } from '../sendTransaction';
 
-// ─── mock node-fetch ─────────────────────────────────────────────────────────
-jest.mock('node-fetch', () => jest.fn());
-import nodeFetch from 'node-fetch';
+// ─── mock http fetch ────────────────────────────────────────────────────────
+jest.mock('../http-fetch.js', () => ({ httpFetch: jest.fn() }));
+import { httpFetch as nodeFetch } from '../http-fetch.js';
 const mockFetch = nodeFetch as unknown as jest.Mock;
 
 // ─── mock @totemsdk/txpow ────────────────────────────────────────────────────

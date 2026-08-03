@@ -19,7 +19,7 @@ import {
   add_decimal,
   compare_decimal,
   is_over_limit,
-} from '../rust/pkg/edge_mqtt_wasm.js';
+} from '../rust/pkg-node/edge_mqtt_wasm.js';
 
 // Canonical
 export const toHex = to_hex;

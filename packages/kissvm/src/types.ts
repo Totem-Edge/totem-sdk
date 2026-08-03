@@ -27,6 +27,8 @@ export interface Span { start: number; end: number }
 /** EvalResult returned from evaluateScript / simulateSpend */
 export interface EvalResult {
   passed: boolean;
+  /** Alias of `passed` for template callers. */
+  success: boolean;
   trace: string[];
   error?: string;
   instructionsUsed: number;

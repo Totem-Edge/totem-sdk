@@ -11,6 +11,13 @@
 import { decodeMessage, peekFrameLength } from '@totemsdk/lookup-protocol';
 import type { LookupMessage } from '@totemsdk/lookup-protocol';
 import type { ITransport, LookupClientConfig } from './types.js';
+import {
+  ClosedTransportError,
+  type DataHandler,
+  type CloseHandler,
+  type ErrorHandler,
+  type TransportState,
+} from '@totemsdk/stream-transport';
 
 // ---------------------------------------------------------------------------
 // Frame parser
@@ -45,20 +52,6 @@ export class FrameParser {
 }
 
 // ---------------------------------------------------------------------------
-// Shared handler types
-// ---------------------------------------------------------------------------
-
-type DataHandler = (chunk: Uint8Array) => void;
-type CloseHandler = () => void;
-type ErrorHandler = (err: Error) => void;
-
-type HandlerMap = {
-  data: DataHandler[];
-  close: CloseHandler[];
-  error: ErrorHandler[];
-};
-
-// ---------------------------------------------------------------------------
 // In-memory transport (for testing)
 // ---------------------------------------------------------------------------
 
@@ -67,36 +60,53 @@ type HandlerMap = {
  * Data sent from one side arrives at the other asynchronously (setImmediate).
  */
 export class InMemoryTransport implements ITransport {
-  private _handlers: HandlerMap = { data: [], close: [], error: [] };
+  private readonly _data = new Set<DataHandler>();
+  private readonly _close = new Set<CloseHandler>();
+  private readonly _error = new Set<ErrorHandler>();
   private _peer: InMemoryTransport | null = null;
   private _closed = false;
+  private _state: TransportState = 'open';
+
+  get state(): TransportState {
+    return this._state;
+  }
 
   /** @internal — link two transports as a pair. */
   _linkPeer(peer: InMemoryTransport): void {
     this._peer = peer;
   }
 
-  send(data: Uint8Array): void {
-    if (this._closed) throw new Error('InMemoryTransport is closed');
+  send(data: Uint8Array): Promise<void> {
+    if (this._closed) throw new ClosedTransportError();
     const copy = new Uint8Array(data);
-    setImmediate(() => this._peer?._deliver('data', copy));
+    setImmediate(() => this._peer?._deliverData(copy));
+    return Promise.resolve();
   }
 
-  on(event: 'data', handler: DataHandler): void;
-  on(event: 'close', handler: CloseHandler): void;
-  on(event: 'error', handler: ErrorHandler): void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  on(event: keyof HandlerMap, handler: any): void {
-    (this._handlers[event] as unknown[]).push(handler);
+  onData(handler: DataHandler): () => void {
+    this._data.add(handler);
+    return () => this._data.delete(handler);
   }
 
-  close(): void {
-    if (this._closed) return;
+  onClose(handler: CloseHandler): () => void {
+    this._close.add(handler);
+    return () => this._close.delete(handler);
+  }
+
+  onError(handler: ErrorHandler): () => void {
+    this._error.add(handler);
+    return () => this._error.delete(handler);
+  }
+
+  close(): Promise<void> {
+    if (this._closed) return Promise.resolve();
     this._closed = true;
+    this._state = 'closed';
     setImmediate(() => {
-      this._deliver('close');
-      this._peer?._deliver('close');
+      this._deliverClose();
+      this._peer?._deliverClose();
     });
+    return Promise.resolve();
   }
 
   /**
@@ -106,19 +116,24 @@ export class InMemoryTransport implements ITransport {
    */
   _simulateServerClose(): void {
     setImmediate(() => {
-      this._deliver('close');           // server transport closes
-      this._peer?._deliver('close');    // client transport sees it too
+      this._deliverClose();           // server transport closes
+      this._peer?._deliverClose();    // client transport sees it too
     });
   }
 
   /** @internal */
-  _deliver(event: 'data', chunk: Uint8Array): void;
-  _deliver(event: 'close'): void;
-  _deliver(event: 'error', err: Error): void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  _deliver(event: keyof HandlerMap, ...args: any[]): void {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (this._handlers[event] as ((...a: any[]) => void)[]).forEach(h => h(...args));
+  _deliverData(chunk: Uint8Array): void {
+    this._data.forEach((h) => h(chunk));
+  }
+
+  /** @internal */
+  _deliverClose(): void {
+    this._close.forEach((h) => h());
+  }
+
+  /** @internal */
+  _deliverError(err: Error): void {
+    this._error.forEach((h) => h(err));
   }
 }
 
@@ -138,34 +153,65 @@ export function createInMemoryPair(): [InMemoryTransport, InMemoryTransport] {
 // Node.js stream transport (for Hyperswarm connections)
 // ---------------------------------------------------------------------------
 
+const toBytes = (chunk: Buffer | Uint8Array): Uint8Array =>
+  chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk);
+
 /**
  * Wraps a Node.js duplex stream as ITransport.
  * Used for real Hyperswarm connections.
  */
 export class NodeStreamTransport implements ITransport {
+  private readonly _data = new Set<DataHandler>();
+  private readonly _close = new Set<CloseHandler>();
+  private readonly _error = new Set<ErrorHandler>();
+  private _state: TransportState = 'open';
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  constructor(private readonly _stream: any) {}
+  private readonly _stream: any;
 
-  send(data: Uint8Array): void {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  constructor(stream: any) {
+    this._stream = stream;
+    stream.on('data', (chunk: Buffer | Uint8Array) => {
+      this._data.forEach((h) => h(toBytes(chunk)));
+    });
+    stream.on('close', () => {
+      this._state = 'closed';
+      this._close.forEach((h) => h());
+    });
+    stream.on('error', (err: Error) => {
+      this._error.forEach((h) => h(err));
+    });
+  }
+
+  get state(): TransportState {
+    return this._state;
+  }
+
+  send(data: Uint8Array): Promise<void> {
+    if (this._state === 'closed') throw new ClosedTransportError();
     this._stream.write(Buffer.from(data));
+    return Promise.resolve();
   }
 
-  on(event: 'data', handler: DataHandler): void;
-  on(event: 'close', handler: CloseHandler): void;
-  on(event: 'error', handler: ErrorHandler): void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  on(event: string, handler: any): void {
-    if (event === 'data') {
-      this._stream.on('data', (chunk: Buffer | Uint8Array) => {
-        (handler as DataHandler)(chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk));
-      });
-    } else {
-      this._stream.on(event, handler);
-    }
+  onData(handler: DataHandler): () => void {
+    this._data.add(handler);
+    return () => this._data.delete(handler);
   }
 
-  close(): void {
+  onClose(handler: CloseHandler): () => void {
+    this._close.add(handler);
+    return () => this._close.delete(handler);
+  }
+
+  onError(handler: ErrorHandler): () => void {
+    this._error.add(handler);
+    return () => this._error.delete(handler);
+  }
+
+  close(): Promise<void> {
+    this._state = 'closed';
     this._stream.destroy?.();
+    return Promise.resolve();
   }
 }
 
@@ -179,45 +225,66 @@ export class NodeStreamTransport implements ITransport {
  * Binary messages are sent as ArrayBuffer.
  */
 export class WebSocketTransport implements ITransport {
+  private readonly _data = new Set<DataHandler>();
+  private readonly _close = new Set<CloseHandler>();
+  private readonly _error = new Set<ErrorHandler>();
+  private _state: TransportState = 'open';
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  constructor(private readonly _ws: any) {
-    this._ws.binaryType = 'arraybuffer';
+  private readonly _ws: any;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  constructor(ws: any) {
+    this._ws = ws;
+    ws.binaryType = 'arraybuffer';
+    ws.addEventListener('message', (ev: { data: unknown }) => {
+      const raw = ev.data;
+      const bytes =
+        raw instanceof ArrayBuffer
+          ? new Uint8Array(raw)
+          : raw instanceof Uint8Array
+            ? raw
+            : new Uint8Array(Buffer.from(raw as string, 'binary'));
+      this._data.forEach((h) => h(bytes));
+    });
+    ws.addEventListener('close', () => {
+      this._state = 'closed';
+      this._close.forEach((h) => h());
+    });
+    ws.addEventListener('error', (ev: { message?: string }) => {
+      const err = new Error(ev.message ?? 'WebSocket error');
+      this._error.forEach((h) => h(err));
+    });
   }
 
-  send(data: Uint8Array): void {
+  get state(): TransportState {
+    return this._state;
+  }
+
+  send(data: Uint8Array): Promise<void> {
+    if (this._state === 'closed') throw new ClosedTransportError();
     this._ws.send(data.buffer.byteLength === data.length ? data.buffer : data.slice().buffer);
+    return Promise.resolve();
   }
 
-  on(event: 'data', handler: DataHandler): void;
-  on(event: 'close', handler: CloseHandler): void;
-  on(event: 'error', handler: ErrorHandler): void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  on(event: string, handler: any): void {
-    if (event === 'data') {
-      this._ws.addEventListener('message', (ev: MessageEvent) => {
-        const raw = ev.data;
-        const bytes =
-          raw instanceof ArrayBuffer
-            ? new Uint8Array(raw)
-            : raw instanceof Uint8Array
-              ? raw
-              : new Uint8Array(Buffer.from(raw as string, 'binary'));
-        (handler as DataHandler)(bytes);
-      });
-    } else if (event === 'close') {
-      this._ws.addEventListener('close', handler);
-    } else if (event === 'error') {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      this._ws.addEventListener('error', (ev: any) => {
-        (handler as ErrorHandler)(
-          new Error((ev as { message?: string }).message ?? 'WebSocket error'),
-        );
-      });
-    }
+  onData(handler: DataHandler): () => void {
+    this._data.add(handler);
+    return () => this._data.delete(handler);
   }
 
-  close(): void {
+  onClose(handler: CloseHandler): () => void {
+    this._close.add(handler);
+    return () => this._close.delete(handler);
+  }
+
+  onError(handler: ErrorHandler): () => void {
+    this._error.add(handler);
+    return () => this._error.delete(handler);
+  }
+
+  close(): Promise<void> {
+    this._state = 'closed';
     this._ws.close();
+    return Promise.resolve();
   }
 }
 

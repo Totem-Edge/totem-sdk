@@ -3,13 +3,13 @@
  *
  * Supports two modes:
  *   1. Signed command envelopes — cryptographically verified, replay-protected.
- *   2. Legacy unsigned commands — rejected unless config.allowUnsignedCommands is true.
+ *   2. Legacy unsigned commands — parsed from the raw body and passed through
+ *      the same policy + executor pipeline (verification skipped).
  *
  * Replay protection: processed command IDs are stored in a Set for the
  * maximum command validity period (config.maxCommandAgeMs, default 60s).
  */
 
-import { MqttPolicyRejectedError } from './errors.js';
 import { createMqttReceipt, publishMqttReceipt } from './receipts.js';
 import type { MqttMessage } from './client-port.js';
 import type { EdgeOperationResult } from '@totemsdk/edge';
@@ -76,10 +76,14 @@ export function createMqttCommandHandler(config: MqttCommandHandlerConfig): Mqtt
 
   return {
     async handleCommand(message: MqttMessage): Promise<EdgeOperationResult> {
-      const command = parseCommand(message);
       const receiptTopic = config.receiptTopic ?? `totem/${config.runtime.deviceId}/receipts`;
 
-      // Try signed envelope first
+      const emitRejected = async (commandId: string, reason: string): Promise<void> => {
+        const receipt = createMqttReceipt({ kind: 'command', payload: { commandId, status: 'rejected', reason } });
+        await publishMqttReceipt(config.client, receipt, receiptTopic);
+      };
+
+      // Parse envelope (signed) or legacy unsigned command body.
       let body: Record<string, unknown> = {};
       const raw = message.payload instanceof Uint8Array
         ? new TextDecoder().decode(message.payload)
@@ -87,88 +91,96 @@ export function createMqttCommandHandler(config: MqttCommandHandlerConfig): Mqtt
       try { body = JSON.parse(raw) as Record<string, unknown>; } catch { body = {}; }
 
       const envelope = parseSignedEnvelope(body);
+      const command = envelope
+        ? {
+            commandId: envelope.commandId,
+            command: envelope.command,
+            payload: body.payload,
+            requestedBy: envelope.issuerIdentity,
+            createdAt: envelope.issuedAt,
+          }
+        : parseCommand(message);
 
+      // Signed envelope validity windows.
       if (envelope) {
-        // Signed command path
         if (Date.now() > envelope.expiresAt) {
           const reason = 'Rejected: command envelope expired';
-          const receipt = createMqttReceipt({ kind: 'command', payload: { commandId: envelope.commandId, status: 'rejected', reason } });
-          await publishMqttReceipt(config.client, receipt, receiptTopic);
+          await emitRejected(envelope.commandId, reason);
           return { ok: false, error: reason, errorCode: 'MQTT_POLICY_REJECTED' };
         }
-
         if (Date.now() - envelope.issuedAt > maxAgeMs) {
           const reason = 'Rejected: command too old';
-          const receipt = createMqttReceipt({ kind: 'command', payload: { commandId: envelope.commandId, status: 'rejected', reason } });
-          await publishMqttReceipt(config.client, receipt, receiptTopic);
+          await emitRejected(envelope.commandId, reason);
           return { ok: false, error: reason, errorCode: 'MQTT_POLICY_REJECTED' };
         }
-
-        if (isReplay(envelope.commandId)) {
-          const reason = 'Rejected: duplicate commandId — replay prevented';
-          const receipt = createMqttReceipt({ kind: 'command', payload: { commandId: envelope.commandId, status: 'rejected', reason } });
-          await publishMqttReceipt(config.client, receipt, receiptTopic);
-          return { ok: false, error: reason, errorCode: 'MQTT_POLICY_REJECTED' };
-        }
-
-        if (config.verifyCommandSignature) {
-          const valid = await config.verifyCommandSignature(envelope);
-          if (!valid) {
-            const reason = 'Rejected: invalid command signature';
-            const receipt = createMqttReceipt({ kind: 'command', payload: { commandId: envelope.commandId, status: 'rejected', reason } });
-            await publishMqttReceipt(config.client, receipt, receiptTopic);
-            return { ok: false, error: reason, errorCode: 'MQTT_POLICY_REJECTED' };
-          }
-        }
-
-        const policyPort = config.runtime.ports.policy;
-        if (!policyPort) {
-          const reason = 'Rejected: policy port not configured — fail closed';
-          const receipt = createMqttReceipt({ kind: 'command', payload: { commandId: envelope.commandId, status: 'rejected', reason } });
-          await publishMqttReceipt(config.client, receipt, receiptTopic);
-          return { ok: false, error: reason, errorCode: 'MQTT_POLICY_REJECTED' };
-        }
-
-        const decision = await policyPort.check({
-          action: envelope.command,
-          subject: envelope.issuerIdentity,
-          context: { commandId: envelope.commandId, topic: message.topic },
-        });
-
-        if (!decision.ok || (decision.data && !decision.data.allowed)) {
-          const reason = decision.data?.reason ?? decision.error ?? 'Policy denied';
-          const receipt = createMqttReceipt({ kind: 'command', payload: { commandId: envelope.commandId, status: 'rejected', reason } });
-          await publishMqttReceipt(config.client, receipt, receiptTopic);
-          return { ok: false, error: reason, errorCode: 'MQTT_POLICY_REJECTED' };
-        }
-
-        if (!config.executor) {
-          const receipt = createMqttReceipt({ kind: 'command', payload: { commandId: envelope.commandId, status: 'no-executor' } });
-          await publishMqttReceipt(config.client, receipt, receiptTopic);
-          return { ok: false, error: 'No command executor injected', errorCode: 'NO_EXECUTOR' };
-        }
-
-        const result = await config.executor.execute({
-          commandId: envelope.commandId,
-          command: envelope.command,
-          payload: body.payload,
-          requestedBy: envelope.issuerIdentity,
-          createdAt: envelope.issuedAt,
-        });
-
-        const receipt = createMqttReceipt({
-          kind: 'command',
-          payload: { commandId: envelope.commandId, status: result.ok ? 'executed' : 'failed', error: result.error },
-        });
-        await publishMqttReceipt(config.client, receipt, receiptTopic);
-        return result;
       }
 
-      // Legacy unsigned command path — rejected by default
-      const reason = 'Rejected: unsigned commands not accepted — use a signed command envelope';
-      const receipt = createMqttReceipt({ kind: 'command', payload: { commandId: command.commandId, status: 'rejected', reason } });
+      // Replay protection: commandId and createdAt must be present.
+      if (!command.commandId) {
+        const reason = 'Rejected: missing commandId';
+        await emitRejected(command.commandId, reason);
+        return { ok: false, error: reason, errorCode: 'MQTT_POLICY_REJECTED' };
+      }
+      if (!command.createdAt) {
+        const reason = 'Rejected: missing createdAt — replay prevention';
+        await emitRejected(command.commandId, reason);
+        return { ok: false, error: reason, errorCode: 'MQTT_POLICY_REJECTED' };
+      }
+      if (isReplay(command.commandId)) {
+        const reason = 'Rejected: duplicate commandId — replay prevented';
+        await emitRejected(command.commandId, reason);
+        return { ok: false, error: reason, errorCode: 'MQTT_POLICY_REJECTED' };
+      }
+
+      // Cryptographic verification only exists for signed envelopes.
+      if (envelope && config.verifyCommandSignature) {
+        const valid = await config.verifyCommandSignature(envelope);
+        if (!valid) {
+          const reason = 'Rejected: invalid command signature';
+          await emitRejected(envelope.commandId, reason);
+          return { ok: false, error: reason, errorCode: 'MQTT_POLICY_REJECTED' };
+        }
+      }
+
+      const policyPort = config.runtime.ports.policy;
+      if (!policyPort) {
+        const reason = 'Rejected: policy port not configured — fail closed';
+        await emitRejected(command.commandId, reason);
+        return { ok: false, error: reason, errorCode: 'MQTT_POLICY_REJECTED' };
+      }
+
+      const decision = await policyPort.check({
+        action: command.command,
+        subject: command.requestedBy ?? 'unknown',
+        context: { commandId: command.commandId, topic: message.topic },
+      });
+
+      if (!decision.ok || (decision.data && !decision.data.allowed)) {
+        const reason = decision.data?.reason ?? decision.error ?? 'Policy denied';
+        await emitRejected(command.commandId, reason);
+        return { ok: false, error: reason, errorCode: 'MQTT_POLICY_REJECTED' };
+      }
+
+      if (!config.executor) {
+        const receipt = createMqttReceipt({ kind: 'command', payload: { commandId: command.commandId, status: 'no-executor' } });
+        await publishMqttReceipt(config.client, receipt, receiptTopic);
+        return { ok: false, error: 'No command executor injected', errorCode: 'NO_EXECUTOR' };
+      }
+
+      const result = await config.executor.execute({
+        commandId: command.commandId,
+        command: command.command,
+        payload: command.payload,
+        requestedBy: command.requestedBy,
+        createdAt: command.createdAt,
+      });
+
+      const receipt = createMqttReceipt({
+        kind: 'command',
+        payload: { commandId: command.commandId, status: result.ok ? 'executed' : 'failed', error: result.error },
+      });
       await publishMqttReceipt(config.client, receipt, receiptTopic);
-      return { ok: false, error: reason, errorCode: 'MQTT_POLICY_REJECTED' };
+      return result;
     },
   };
 }

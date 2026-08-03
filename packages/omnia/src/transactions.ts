@@ -336,38 +336,63 @@ export function toEnhancedBuildParams(draft: OmniaTxDraft): EnhancedBuildParams 
  * ```
  */
 export function omniaDraftToMinimaBytes(draft: OmniaTxDraft): Uint8Array {
-  const tx = createDefaultTransaction();
+  const toHex = (b: Uint8Array): string => Buffer.from(b).toString('hex');
 
-  const toCoreSvs = (svs: StateValue[]): CoreStateVariable[] =>
-    svs.map(sv => ({
-      port: sv.port,
-      value: sv.value as string | bigint | boolean | Uint8Array,
-      type: sv.type as 'bool' | 'number' | 'hex' | 'string',
-    }));
+  const svToJson = (svs: StateValue[]) =>
+    svs.map(sv => {
+      const v: unknown = sv.value;
+      let data: string;
+      let svtype: string;
+      if (typeof v === 'bigint') {
+        data = v.toString();
+        svtype = 'number';
+      } else if (typeof v === 'boolean') {
+        data = v ? 'true' : 'false';
+        svtype = 'bool';
+      } else if (v instanceof Uint8Array) {
+        data = '0x' + toHex(v);
+        svtype = 'hex';
+      } else if (typeof v === 'number') {
+        data = v.toString();
+        svtype = 'number';
+      } else {
+        data = String(v);
+        svtype = 'string';
+      }
+      return { port: sv.port, svtype, data };
+    });
 
-  for (const inp of draft.inputs) {
-    tx.inputs.push(buildMinimaCoin({
-      coinId: hexToBytes(inp.coinId),
-      address: hexToBytes(inp.address),
-      amount: inp.amount.toString(),
-      tokenId: hexToBytes(inp.tokenId),
-    }));
-  }
+  const inputs = draft.inputs.map(inp => ({
+    coinid: inp.coinId,
+    amount: inp.amount.toString(),
+    address: inp.address,
+    tokenid: inp.tokenId,
+    storestate: false,
+    mmrentry: '0',
+    spent: false,
+    created: '0',
+    state: [],
+  }));
 
-  for (const out of draft.outputs) {
-    const svs = toCoreSvs(out.stateVariables ?? draft.stateVariables);
-    tx.outputs.push(buildMinimaCoin({
-      address: hexToBytes(out.address),
-      amount: out.amount.toString(),
-      tokenId: hexToBytes(out.tokenId),
-      storeState: out.storeState ?? false,
-      state: out.storeState ? svs : [],
-    }));
-  }
+  const outputs = draft.outputs.map(out => ({
+    amount: out.amount.toString(),
+    address: out.address,
+    tokenid: out.tokenId,
+    storestate: out.storeState ?? false,
+    mmrentry: '0',
+    spent: false,
+    created: '0',
+    state: out.storeState ? svToJson(out.stateVariables ?? draft.stateVariables) : [],
+  }));
 
-  tx.state = toCoreSvs(draft.stateVariables);
+  const state = svToJson(draft.stateVariables ?? []);
 
-  return serializeTransaction(JSON.stringify(tx));
+  return serializeTransaction(JSON.stringify({
+    inputs,
+    outputs,
+    state,
+    linkhash: '0x00',
+  }));
 }
 
 /**

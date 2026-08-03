@@ -41,17 +41,17 @@ const FIXED_PRNG = new Uint8Array(32).fill(0xcd);
 
 /** Empty pre-serialized transaction. */
 const EMPTY_TX_BYTES = concat(
-  writeMiniNumber(0n),
-  writeMiniNumber(0n),
-  writeMiniNumber(0n),
+  writeMiniNumber(0n, 0),
+  writeMiniNumber(0n, 0),
+  writeMiniNumber(0n, 0),
   writeHashToStream(new Uint8Array([0x00]))
 );
 
 /** Empty pre-serialized witness. */
 const EMPTY_WITNESS_BYTES = concat(
-  writeMiniNumber(0n),
-  writeMiniNumber(0n),
-  writeMiniNumber(0n)
+  writeMiniNumber(0n, 0),
+  writeMiniNumber(0n, 0),
+  writeMiniNumber(0n, 0)
 );
 
 /**
@@ -221,7 +221,7 @@ describe('mineTxPoW correctness', () => {
       maxIterations: 10_000,
     });
 
-    const expectedNonceBytes = writeMiniNumber(result.nonce);
+    const expectedNonceBytes = writeMiniNumber(result.nonce, 0);
     const headerNonceBytes = result.minedHeaderBytes.slice(0, expectedNonceBytes.length);
     expect(headerNonceBytes).toEqual(expectedNonceBytes);
   }, 10_000);

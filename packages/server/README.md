@@ -10,7 +10,7 @@ Re-exports everything from `@totemsdk/core` and adds `MinimaClient`, `MinimaWall
 npm install @totemsdk/node @noble/hashes
 ```
 
-Requires Node.js ≥ 16. Dependencies: `node-fetch`, `ws`.
+Requires Node.js ≥ 18 for native `fetch`. Dependency: `ws`.
 
 ## What's inside
 

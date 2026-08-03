@@ -8,23 +8,20 @@ import type { IStreamTransport } from '@totemsdk/stream-transport';
 
 export function createStreamPortAdapter(transport: IStreamTransport): EdgeStreamPort {
   return {
-    send(data: Uint8Array): void {
-      transport.send(data);
+    async send(data: Uint8Array): Promise<void> {
+      await transport.send(data);
     },
     onData(handler: (data: Uint8Array) => void): () => void {
-      transport.on('data', handler);
-      return () => {};
+      return transport.onData(handler);
     },
     onClose(handler: () => void): () => void {
-      transport.on('close', handler);
-      return () => {};
+      return transport.onClose(handler);
     },
     onError(handler: (err: Error) => void): () => void {
-      transport.on('error', handler);
-      return () => {};
+      return transport.onError(handler);
     },
     close(): void {
-      transport.close();
+      void transport.close();
     },
   };
 }

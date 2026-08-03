@@ -114,19 +114,11 @@ export class OmniaPeerImpl implements OmniaPeer {
     this._stream = this._attachStream(raw);
   }
 
-  sendMessage(msg: OmniaMessage): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (this._disconnected) {
-        reject(new Error('Peer is disconnected'));
-        return;
-      }
-      try {
-        this._stream.send(msg);
-        resolve();
-      } catch (err) {
-        reject(err);
-      }
-    });
+  async sendMessage(msg: OmniaMessage): Promise<void> {
+    if (this._disconnected) {
+      throw new Error('Peer is disconnected');
+    }
+    await this._stream.send(msg);
   }
 
   onMessage(cb: (msg: OmniaMessage) => void): Unsubscribe {

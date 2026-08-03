@@ -14,6 +14,7 @@ export function executeProposal(
   outcomeProofId: string,
   governanceIdentity: string,
   executor: string,
+  now = Date.now(),
 ): Array<{
   action: ProposalAction
   actionIndex: number
@@ -23,7 +24,6 @@ export function executeProposal(
     return []
   }
 
-  const now = Date.now()
   const executionDeadline = proposal.votingEndsAt + proposal.executionDelay
   if (now < executionDeadline) {
     return []
@@ -52,8 +52,8 @@ export function executeProposal(
 export function isExecutionReady(
   proposal: Proposal,
   _config?: GovernanceConfig,
+  now = Date.now(),
 ): boolean {
   if (proposal.status !== 'passed') return false
-  const now = Date.now()
   return now >= proposal.votingEndsAt + proposal.executionDelay
 }

@@ -1,4 +1,5 @@
 import { evaluateScript, parseScript, buildWitness, sigdig } from '../index.js'
+import type { TxContext, CoinData, OutputData } from '../index.js'
 
 function hex(s: string): string {
   return s.startsWith('0x') ? s : '0x' + s
@@ -227,7 +228,7 @@ ENDIF
 RETURN FALSE`,
     expect: true,
     state: ['0x02', '0xBB', '0x00', '0x00', '0x00', '0x00', '0x00', '0x00', '0x00', '0x01'],
-    prevState: ['0x01', '0xBB', '0x6fe87c4d60d8d8b38c6e01bf5c5f8db51169719897d28c3ba283f5e46740cd78', '0x00', '0x00', '0x00', '0x00', '0x00', '0x00', '0x00', '0x00'],
+    prevState: ['0x01', '0xBB', '0x2767f15c8af2f2c7225d5273fdd683edc714110a987d1054697c348aed4e6cc7', '0x00', '0x00', '0x00', '0x00', '0x00', '0x00', '0x00', '0x00'],
     witness: { BB: 'sig' },
   },
 ]
@@ -235,24 +236,65 @@ RETURN FALSE`,
 describe('Canonical KISSVM example scripts', () => {
   for (const t of TESTS) {
     it(t.name, () => {
-      const result = evaluateScript(t.script, {
-        block: Number(t.ctx?.block ?? 0),
-        tx: {
-          coinage: Number(t.ctx?.coinage ?? 0),
-          totin: Number(t.ctx?.totin ?? 0),
-          totout: Number(t.ctx?.totout ?? 0),
-          input: Number(t.ctx?.input ?? 0),
-          tokenId: String(t.ctx?.tokenId ?? '0x00'),
-          address: String(t.ctx?.address ?? '0xAA'),
-          amount: String(t.ctx?.amount ?? '100'),
-        },
-        state: (t.state ?? []).map(s => BigInt(s)),
-        prevState: (t.prevState ?? []).map(s => BigInt(s)),
-        witness: buildWitness({
-          signatures: t.witness ?? {},
-        }),
-      })
+      const coinage = Number(t.ctx?.coinage ?? 0)
+      let block = Number(t.ctx?.block ?? 0)
+      if (block === 0 && coinage > 0) block = coinage
+      const inputIndex = Number(t.ctx?.input ?? 0)
+      const tokenId = String(t.ctx?.tokenId ?? '0x00')
+      const address = String(t.ctx?.address ?? '0xAA')
+      const amount = Number(t.ctx?.amount ?? 100)
+
+      const coin: CoinData = {
+        amount,
+        tokenId,
+        coinId: '0xabc',
+        address,
+        coinCreatedBlock: block - coinage,
+      }
+
+      const tx: TxContext = {
+        block,
+        inputIndex,
+        inputs: [coin],
+        outputs: buildOutputs(t, coin),
+        state: arrState(t.state ?? t.prevState),
+        prevState: arrState(t.prevState),
+        simulationMode: true,
+      }
+
+      const result = evaluateScript(t.script, buildWitness({ signatures: t.witness ?? {} }), tx)
       expect(result.success).toBe(t.expect)
     })
   }
 })
+
+function arrState(a?: string[]): Record<number, string> {
+  const r: Record<number, string> = {}
+  for (let i = 0; i < (a?.length ?? 0); i++) r[i] = a![i]
+  return r
+}
+
+function buildOutputs(t: TestCase, coin: CoinData): OutputData[] {
+  const recreate = (): OutputData[] => Array.from(
+    { length: Math.max(1, Number(t.ctx?.totout ?? 1)) },
+    () => ({ address: coin.address, amount: coin.amount, tokenId: coin.tokenId, keepState: true }),
+  )
+
+  if (t.script.includes('VERIFYOUT(1 PREVSTATE(2)')) {
+    const withdrawal = 5
+    return [
+      { address: coin.address, amount: coin.amount - withdrawal, tokenId: coin.tokenId, keepState: true },
+      { address: '0xFF', amount: withdrawal, tokenId: coin.tokenId, keepState: false },
+    ]
+  }
+  if (t.script.includes('VERIFYOUT(1 0x22')) {
+    return [
+      { address: '0x11', amount: 7, tokenId: '0x00', keepState: false },
+      { address: '0x22', amount: 3, tokenId: '0x00', keepState: false },
+    ]
+  }
+  if (t.script.includes('VERIFYOUT(0 0x11 10')) {
+    return [{ address: '0x11', amount: 10, tokenId: '0x00', keepState: false }]
+  }
+  return recreate()
+}

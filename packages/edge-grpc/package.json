@@ -15,7 +15,7 @@
     "build": "tsc",
     "prepare": "tsc",
     "clean": "rm -rf dist bin",
-    "test": "jest --passWithNoTests",
+    "test": "jest",
     "build:go": "cd go && go build -o ../bin/edge-grpc ."
   },
   "files": [
@@ -24,7 +24,8 @@
     "LICENSE"
   ],
   "dependencies": {
-    "@totemsdk/edge": "^0.1.3"
+    "@totemsdk/edge": "workspace:^",
+    "@totemsdk/stream-transport": "workspace:^"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

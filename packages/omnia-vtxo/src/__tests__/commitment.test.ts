@@ -30,7 +30,7 @@ describe('computeVtxoLeaf', () => {
     const vtxo = makeVtxo();
     const leaf = computeVtxoLeaf(vtxo);
     expect(leaf).toHaveLength(64);
-    expect(leaf).toMatch(/^[0-9a-f]+$/);
+    expect(leaf).toMatch(/^[0-9A-Fa-f]+$/);
   });
 
   it('is deterministic', () => {

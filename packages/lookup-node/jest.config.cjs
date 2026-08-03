@@ -18,6 +18,7 @@ module.exports = {
     '^@totemsdk/pureminima-rpc$': '<rootDir>/../pureminima-rpc/src/index.ts',
     '^@totemsdk/wots-lease$': '<rootDir>/../wots-lease/src/index.ts',
     '^@totemsdk/txpow$': '<rootDir>/../txpow/src/index.ts',
+    '^better-sqlite3$': '<rootDir>/src/better-sqlite3.mock.cjs',
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
 };

@@ -38,8 +38,12 @@ async function main() {
   }
 
   if (!wabtMod) {
+    if (fs.existsSync(OUT_WASM)) {
+      console.warn(`wabt not found; using committed ${OUT_WASM}`);
+      return;
+    }
     throw new Error(
-      'wabt npm package not found. Install it:\n' +
+      'wabt npm package not found and no committed miner.wasm exists. Install it:\n' +
       '  npm install --save-dev wabt\n' +
       '  # or: npm install --prefix /tmp/wabt-install wabt\n'
     );

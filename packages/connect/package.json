@@ -32,18 +32,18 @@
     "typescript": "^7.0.2"
   },
   "peerDependencies": {
-    "@totemsdk/agent-policy": ">=0.2.0",
-    "@totemsdk/omnia": ">=0.1.1",
-    "@totemsdk/omnia-router": ">=0.1.1",
-    "@totemsdk/omnia-factory": ">=0.1.2",
-    "@totemsdk/omnia-splice": ">=0.1.1",
-    "@totemsdk/statechain": ">=0.1.1",
-    "@totemsdk/kissvm": ">=0.1.1",
-    "@totemsdk/pear": ">=0.1.0",
-    "@totemsdk/wots-lease": ">=0.1.1",
-    "@totemsdk/txpow": ">=0.1.0",
-    "@totemsdk/chain-provider": ">=0.1.1",
-    "@totemsdk/lookup-client": ">=0.1.1"
+    "@totemsdk/agent-policy": "workspace:^",
+    "@totemsdk/omnia": "workspace:^",
+    "@totemsdk/omnia-router": "workspace:^",
+    "@totemsdk/omnia-factory": "workspace:^",
+    "@totemsdk/omnia-splice": "workspace:^",
+    "@totemsdk/statechain": "workspace:^",
+    "@totemsdk/kissvm": "workspace:^",
+    "@totemsdk/pear": "workspace:^",
+    "@totemsdk/wots-lease": "workspace:^",
+    "@totemsdk/txpow": "workspace:^",
+    "@totemsdk/chain-provider": "workspace:^",
+    "@totemsdk/lookup-client": "workspace:^"
   },
   "peerDependenciesMeta": {
     "@totemsdk/agent-policy": {

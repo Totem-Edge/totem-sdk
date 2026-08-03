@@ -3,6 +3,7 @@ export default {
   preset: 'ts-jest/presets/default-esm',
   testEnvironment: 'node',
   testMatch: ['**/test/**/*.test.ts'],
+  moduleFileExtensions: ['ts', 'js'],
   transform: {
     '^.+\\.tsx?$': [
       'ts-jest',
@@ -20,6 +21,8 @@ export default {
   moduleNameMapper: {
     // Strip .js extensions from relative imports so ts-jest can resolve .ts files.
     '^(\\.{1,2}/.*)\\.js$': '$1',
+    // Load TypeScript sources (not ESM dist) for workspace packages.
+    '^@totemsdk/core$': '<rootDir>/../core/src/index.ts',
   },
   // @totemsdk/core resolves to its pre-built ESM dist (via the exports field).
   // Only @totemsdk/* packages need special handling.

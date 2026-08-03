@@ -51,7 +51,7 @@ export class RpcLayer {
   attach(transport: ITransport): void {
     this._transport = transport;
     this._parser.reset();
-    transport.on('data', (chunk) => {
+    transport.onData((chunk) => {
       const messages = this._parser.push(chunk);
       for (const msg of messages) {
         this._route(msg);

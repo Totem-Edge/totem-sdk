@@ -33,13 +33,19 @@
     "clean": "rm -rf dist rust/pkg rust/pkg-node rust/target",
     "test": "jest"
   },
-  "files": ["dist", "rust/pkg/", "rust/pkg-node/", "README.md", "LICENSE"],
+  "files": [
+    "dist",
+    "rust/pkg/",
+    "rust/pkg-node/",
+    "README.md",
+    "LICENSE"
+  ],
   "dependencies": {
-    "@totemsdk/core": "^1.2.5",
-    "@totemsdk/kissvm": "^0.4.0"
+    "@totemsdk/core": "workspace:^",
+    "@totemsdk/kissvm": "workspace:^"
   },
   "peerDependencies": {
-    "@totemsdk/tx-builder": "^0.1.8"
+    "@totemsdk/tx-builder": "workspace:^"
   },
   "peerDependenciesMeta": {
     "@totemsdk/tx-builder": {
@@ -53,8 +59,12 @@
     "ts-jest": "^29.0.0",
     "typescript": "^7.0.2"
   },
-  "engines": { "node": ">=18.0.0" },
-  "publishConfig": { "access": "public" },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "license": "MIT",
   "author": "Totem SDK",
   "homepage": "https://totem.ing",
@@ -63,5 +73,7 @@
     "url": "git+https://github.com/totem-sdk/totem-sdk.git",
     "directory": "packages/recursive-mast"
   },
-  "bugs": { "url": "https://github.com/totem-sdk/totem-sdk/issues" }
+  "bugs": {
+    "url": "https://github.com/totem-sdk/totem-sdk/issues"
+  }
 }

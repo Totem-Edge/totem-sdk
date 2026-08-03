@@ -15,7 +15,7 @@
     "build": "npm run build:wasm && tsc",
     "prepare": "npm run build:wasm && tsc",
     "clean": "rm -rf dist rust/pkg rust/pkg-node rust/target",
-    "test": "node ../../node_modules/jest/bin/jest.js --config jest.config.cjs --passWithNoTests",
+    "test": "jest",
     "build:wasm": "cd rust && wasm-pack build --target bundler --out-dir pkg && wasm-pack build --target nodejs --out-dir pkg-node"
   },
   "files": [

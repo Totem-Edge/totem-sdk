@@ -12,7 +12,7 @@
  * Use a WatermarkStore from `@totemsdk/core` to track used indices.
  */
 
-import fetch from 'node-fetch';
+import { httpFetch as fetch } from './http-fetch.js';
 import {
   phraseToSeed,
   deriveUnifiedAddressPublicKey,
@@ -21,7 +21,6 @@ import {
   mxToHex,
   createUnifiedChildTreeKey,
   serializeTreeSignature,
-  precomputeTransactionCoinIDTx,
   computeTransactionDigest,
   serializeTransaction,
   bytesToHex,
@@ -33,6 +32,9 @@ import {
   type MinimaTransaction,
   type MinimaCoin,
 } from '@totemsdk/core';
+import {
+  minimaTransactionToJson,
+} from './tx-json.js';
 import {
   fetchTxPowTarget,
   serializeTxBody,
@@ -469,17 +471,16 @@ export async function sendTransaction(params: SendParams): Promise<SendResult> {
     state: [],
   };
 
-  // ── 7. Precompute output coin IDs, compute digest, sign ──────────────────
-  precomputeTransactionCoinIDTx(tx);
-  const digest = computeTransactionDigest(tx);
+  // ── 7. Serialize tx, compute digest, sign ────────────────────────────────
+  const txBytes = serializeTransaction(JSON.stringify(minimaTransactionToJson(tx)));
+  const digest = computeTransactionDigest(txBytes);
 
   const treeKey = createUnifiedChildTreeKey(baseSeed, addressIndex);
   treeKey.setUses(l1 * 64 + l2);
   const treeSignature = treeKey.sign(digest);
   const sigBytes = serializeTreeSignature(treeSignature);
 
-  // ── 8. Serialise transaction and build witness ────────────────────────────
-  const txBytes = serializeTransaction(tx);
+  // ── 8. Build witness ─────────────────────────────────────────────────────
   const witnessBytes = buildWitnessBytes(sigBytes, coinProofHexes, unlockScript);
 
   // ── 9. Fetch cached difficulty and build TxBody ───────────────────────────

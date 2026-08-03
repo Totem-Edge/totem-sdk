@@ -38,6 +38,7 @@ module.exports = {
     '^@totemsdk/edge$': '<rootDir>/../edge/src/index.ts',
     '^@totemsdk/proof$': '<rootDir>/../proof/src/index.ts',
     '^@totemsdk/agent-policy$': '<rootDir>/../agent-policy/src/index.ts',
+    '\\.\\./rust/pkg-node/edge_mqtt_wasm\\.js$': '<rootDir>/src/wasm-jest-mock.ts',
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
 };

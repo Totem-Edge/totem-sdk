@@ -29,7 +29,7 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@totemsdk/chain-provider": ">=0.1.3"
+    "@totemsdk/chain-provider": "workspace:^"
   },
   "peerDependenciesMeta": {
     "@totemsdk/chain-provider": {

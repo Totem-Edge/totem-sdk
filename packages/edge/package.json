@@ -15,7 +15,7 @@
     "build": "tsc",
     "prepare": "tsc",
     "clean": "rm -rf dist",
-    "test": "jest --passWithNoTests"
+    "test": "jest"
   },
   "files": [
     "dist",
@@ -23,13 +23,13 @@
     "LICENSE"
   ],
   "dependencies": {
-    "@totemsdk/core": "^1.1.0",
-    "@totemsdk/manifest": "^0.1.2",
-    "@totemsdk/identity": "^0.1.2",
-    "@totemsdk/agent-policy": "^0.1.3"
+    "@totemsdk/core": "workspace:^",
+    "@totemsdk/manifest": "workspace:^",
+    "@totemsdk/identity": "workspace:^",
+    "@totemsdk/agent-policy": "workspace:^"
   },
   "peerDependencies": {
-    "@totemsdk/connect": "^2.1.0"
+    "@totemsdk/connect": "workspace:^"
   },
   "peerDependenciesMeta": {
     "@totemsdk/connect": {
@@ -37,7 +37,7 @@
     }
   },
   "devDependencies": {
-    "@totemsdk/connect": "^2.1.0",
+    "@totemsdk/connect": "workspace:^",
     "@types/jest": "^30.0.0",
     "@types/node": "^20.0.0",
     "jest": "^30.4.2",

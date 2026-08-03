@@ -16,12 +16,16 @@ export type {
   DelegationConfig,
   VotingConfig,
   GovernanceConfig,
+  GovernanceError,
+  GovernanceResult,
   UsageReservation,
   MandateReceipt,
   ProposalOutcome,
 } from './types.js'
 
 export { toHex, canonicalJson, hashCanonical } from '@totemsdk/core'
+
+export { isGovernanceError } from './types.js'
 
 export {
   computeProposalId,

@@ -21,7 +21,7 @@
     "clean": "rm -rf dist bin",
     "start": "node dist/cli.js",
     "start:go": "./bin/se-server",
-    "test": "node ../../node_modules/jest/bin/jest.js --config jest.config.cjs --passWithNoTests"
+    "test": "jest"
   },
   "files": [
     "dist",
@@ -29,7 +29,7 @@
     "LICENSE"
   ],
   "dependencies": {
-    "@totemsdk/core": "^1.1.0",
+    "@totemsdk/core": "workspace:^",
     "express": "^5.2.1",
     "pg": "^8.11.3",
     "zod": "^4.4.3"

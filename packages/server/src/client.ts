@@ -12,7 +12,7 @@
  *   WSS  /v1/wallet/balance/ws          — real-time balance stream
  */
 
-import fetch from 'node-fetch';
+import { httpFetch as fetch } from './http-fetch.js';
 import WebSocket from 'ws';
 import { EventEmitter } from 'events';
 import * as core from '@totemsdk/core';

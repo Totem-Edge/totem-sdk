@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "comment": "Machine-readable publishability and verification classification. Packages with status 'publishable' must pass every gate (build, typecheck, lint, unit tests). Packages with status 'excluded' are not published and are skipped by the verification gate with an explicit machine-readable reason. This file is the single source of truth consumed by scripts/verify-workspace.mjs.",
+  "packages": {
+    "packages/agent-policy": { "status": "publishable" },
+    "packages/authority": { "status": "publishable" },
+    "packages/chain-provider": { "status": "publishable" },
+    "packages/connect": {
+      "status": "excluded",
+      "reason": "no unit tests (test script is tsc --noEmit only); excluded until substantive tests exist"
+    },
+    "packages/core": { "status": "publishable" },
+    "packages/core-wasm": { "status": "publishable" },
+    "packages/edge": { "status": "publishable" },
+    "packages/edge-adapters": { "status": "publishable" },
+    "packages/edge-bacnet": {
+      "status": "excluded",
+      "reason": "placeholder smoke test (expect(true).toBe(true)); protocol implementation pending"
+    },
+    "packages/edge-ble": {
+      "status": "excluded",
+      "reason": "placeholder smoke test (expect(true).toBe(true)); protocol implementation pending"
+    },
+    "packages/edge-can": {
+      "status": "excluded",
+      "reason": "no tests; Go sidecar not packaged as a verified native dependency"
+    },
+    "packages/edge-coap": {
+      "status": "excluded",
+      "reason": "no tests; Go sidecar not packaged as a verified native dependency"
+    },
+    "packages/edge-email": {
+      "status": "excluded",
+      "reason": "placeholder smoke test (expect(true).toBe(true)); protocol implementation pending"
+    },
+    "packages/edge-grpc": {
+      "status": "excluded",
+      "reason": "Go binary rewritten to use real google.golang.org/grpc (unary + streaming); TS side updated to match; no Go toolchain to compile; no substantive tests"
+    },
+    "packages/edge-lorawan": {
+      "status": "excluded",
+      "reason": "placeholder smoke test (expect(true).toBe(true)); protocol implementation pending"
+    },
+    "packages/edge-matter": {
+      "status": "excluded",
+      "reason": "placeholder smoke test (expect(true).toBe(true)); protocol implementation pending"
+    },
+    "packages/edge-modbus": {
+      "status": "excluded",
+      "reason": "TS side fixed (RTU frame format, MBAP length bug, write ops, exception handling); Go binary uses goburrow/modbus (8 FCs); no Go toolchain to compile; no tests"
+    },
+    "packages/edge-mqtt": { "status": "publishable" },
+    "packages/edge-opcua": {
+      "status": "excluded",
+      "reason": "TS side fixed (subscription sampling interval, empty-subscription cleanup); Rust binary uses opcua crate; no substantive tests"
+    },
+    "packages/edge-ros2": {
+      "status": "excluded",
+      "reason": "placeholder smoke test (expect(true).toBe(true)); protocol implementation pending"
+    },
+    "packages/governance": { "status": "publishable" },
+    "packages/identity": { "status": "publishable" },
+    "packages/industrial-action": { "status": "publishable" },
+    "packages/kissvm": { "status": "publishable" },
+    "packages/liquidity-bond": { "status": "publishable" },
+    "packages/lookup-client": { "status": "publishable" },
+    "packages/lookup-node": { "status": "publishable" },
+    "packages/lookup-protocol": { "status": "publishable" },
+    "packages/manifest": { "status": "publishable" },
+    "packages/mcp-server": {
+      "status": "excluded",
+      "reason": "no test script and no tests"
+    },
+    "packages/omnia": { "status": "publishable" },
+    "packages/omnia-factory": { "status": "publishable" },
+    "packages/omnia-router": { "status": "publishable" },
+    "packages/omnia-splice": { "status": "publishable" },
+    "packages/omnia-vtxo": { "status": "publishable" },
+    "packages/pear": { "status": "publishable" },
+    "packages/proof": { "status": "publishable" },
+    "packages/proof-integritas": { "status": "publishable" },
+    "packages/proofgraph": { "status": "publishable" },
+    "packages/provider-bond": { "status": "publishable" },
+    "packages/pubsub-transport": {
+      "status": "excluded",
+      "reason": "no tests"
+    },
+    "packages/pureminima-rpc": { "status": "publishable" },
+    "packages/realtime": { "status": "publishable" },
+    "packages/recursive-mast": { "status": "publishable" },
+    "packages/root-identity": { "status": "publishable" },
+    "packages/sdk-tests": {
+      "status": "excluded",
+      "reason": "private test harness package; not intended for publication"
+    },
+    "packages/se-server": {
+      "status": "excluded",
+      "reason": "no tests; Go sidecar not packaged as a verified native dependency"
+    },
+    "packages/server": { "status": "publishable" },
+    "packages/statechain": { "status": "publishable" },
+    "packages/stream-transport": { "status": "publishable" },
+    "packages/tx-builder": {
+      "status": "excluded",
+      "reason": "stale compiled .js files in core/src/ conflict with ts-jest source resolution; requires core/src cleanup before tests can run"
+    },
+    "packages/txpow": { "status": "publishable" },
+    "packages/wallet-adapter": {
+      "status": "excluded",
+      "reason": "no unit tests (test script is tsc --noEmit only)"
+    },
+    "packages/wots-lease": { "status": "publishable" }
+  }
+}

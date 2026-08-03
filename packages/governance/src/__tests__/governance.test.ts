@@ -31,6 +31,7 @@ import {
   UsageStore,
   executeProposal,
   isExecutionReady,
+  isGovernanceError,
 } from '../index'
 import type {
   GovernanceConfig,
@@ -39,6 +40,7 @@ import type {
   Proposal,
   Delegation,
   Vote,
+  VoteTally,
 } from '../index'
 
 function makeSnapshot(
@@ -188,7 +190,7 @@ describe('proposal', () => {
       snapshot,
       createdAt: NOW,
     })
-    expect(typeof result).not.toBe('string')
+    expect(isGovernanceError(result)).toBe(false)
     const proposal = result as Proposal
     expect(proposal.id).toMatch(/^totem:gov:proposal:/)
     expect(proposal.status).toBe('draft')
@@ -209,7 +211,7 @@ describe('proposal', () => {
       snapshot,
       createdAt: NOW,
     })
-    expect(typeof result).toBe('string')
+    expect(isGovernanceError(result)).toBe(true)
   })
 
   it('activateProposal transitions to active', () => {
@@ -224,8 +226,8 @@ describe('proposal', () => {
       snapshot,
       createdAt: NOW - 1000,
     }) as Proposal
-    const activated = activateProposal(result)
-    expect(typeof activated).not.toBe('string')
+    const activated = activateProposal(result, NOW + 1000)
+    expect(isGovernanceError(activated)).toBe(false)
     expect((activated as Proposal).status).toBe('active')
   })
 
@@ -378,7 +380,7 @@ describe('voting', () => {
       snapshot,
       castAt: NOW + 1000,
     }) as Vote
-    expect(typeof vote).not.toBe('string')
+    expect(isGovernanceError(vote)).toBe(false)
     expect(vote.choice).toBe('yes')
     expect(vote.weight).toBe(10)
     expect(vote.id).toMatch(/^totem:gov:vote:/)
@@ -392,7 +394,7 @@ describe('voting', () => {
       snapshot,
       castAt: NOW - 1000,
     })
-    expect(typeof result).toBe('string')
+    expect(isGovernanceError(result)).toBe(true)
   })
 
   it('createVote fails for non-member', () => {
@@ -403,7 +405,7 @@ describe('voting', () => {
       snapshot,
       castAt: NOW + 1000,
     })
-    expect(typeof result).toBe('string')
+    expect(isGovernanceError(result)).toBe(true)
   })
 
   it('createVoteProofDraft produces valid proof', () => {
@@ -435,8 +437,10 @@ describe('voting', () => {
     expect(votes).toHaveLength(2)
     const yesVote = votes.find((v) => v.choice === 'yes')!
     expect(yesVote.quadraticCredits).toBe(9)
+    expect(yesVote.weight).toBe(3)
     const noVote = votes.find((v) => v.choice === 'no')!
     expect(noVote.quadraticCredits).toBe(1)
+    expect(noVote.weight).toBe(1)
   })
 
   it('createQuadraticVote rejects insufficient credits', () => {
@@ -448,7 +452,7 @@ describe('voting', () => {
       credits: { memberId: 'alice', totalCredits: 10, spentCredits: 0, creditSource: 'fixed' },
       castAt: NOW + 1000,
     })
-    expect(typeof result).toBe('string')
+    expect(isGovernanceError(result)).toBe(true)
   })
 
   it('createDelegatedVote creates votes for inbound delegations', () => {
@@ -483,7 +487,7 @@ describe('voting', () => {
       choice: 'yes',
       castAt: NOW + 1000,
     })
-    expect(typeof result).toBe('string')
+    expect(isGovernanceError(result)).toBe(true)
   })
 })
 
@@ -518,9 +522,10 @@ describe('tally', () => {
       votes,
       totalWeight: 200,
       config: cfg,
+      now: NOW + 1000,
     }) as any
 
-    expect(typeof tally).not.toBe('string')
+    expect(isGovernanceError(tally)).toBe(false)
     expect(tally.yes).toBe(150)
     expect(tally.no).toBe(50)
     expect(tally.quorumReached).toBe(true)
@@ -545,8 +550,56 @@ describe('tally', () => {
       votes: [],
       totalWeight: 10,
       config: cfg,
+      now: NOW + 100,
     })
-    expect(typeof result).toBe('string')
+    expect(isGovernanceError(result)).toBe(true)
+  })
+
+  it('tallyVotes counts quadratic votes once (no double sqrt)', () => {
+    const cfg = makeConfig({
+      voting: {
+        ...makeConfig().voting,
+        algorithm: 'quadratic',
+        quadratic: { enabled: true, creditSource: 'weight' },
+      },
+    })
+    const snapshot = makeSnapshot('dao-1', [{ id: 'alice', weight: 10 }], NOW)
+    const proposal = createProposal({
+      config: cfg,
+      actions: [],
+      title: 'Test',
+      description: 'desc',
+      proposer: 'alice',
+      snapshot,
+      createdAt: NOW,
+    }) as Proposal
+
+    const result = createQuadraticVote({
+      proposal,
+      voter: 'alice',
+      allocations: [
+        { choice: 'yes', votes: 3 },
+        { choice: 'no', votes: 1 },
+      ],
+      snapshot,
+      castAt: NOW + 1000,
+    })
+    expect(isGovernanceError(result)).toBe(false)
+    const votes = result as Vote[]
+
+    const tally = tallyVotes({
+      proposal: { ...proposal, status: 'active', votingEndsAt: NOW + 500 },
+      votes,
+      totalWeight: 10,
+      config: cfg,
+      now: NOW + 1000,
+    })
+    expect(isGovernanceError(tally)).toBe(false)
+    const t = tally as VoteTally
+    expect(t.algorithm).toBe('quadratic')
+    expect(t.yes).toBe(3)
+    expect(t.no).toBe(1)
+    expect(t.abstain).toBe(0)
   })
 
   it('finalizeProposal sets status based on tally', () => {
@@ -808,6 +861,7 @@ describe('execution', () => {
       'outcome-proof-id',
       'gov-identity',
       'executor',
+      NOW,
     )
     expect(plans).toHaveLength(2)
     expect(plans[0].actionIndex).toBe(0)
@@ -909,6 +963,7 @@ describe('root index exports', () => {
       'UsageStore',
       'executeProposal',
       'isExecutionReady',
+      'isGovernanceError',
     ]
     for (const sym of expected) {
       expect(mod[sym]).toBeDefined()

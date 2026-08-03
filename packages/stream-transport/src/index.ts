@@ -1,38 +1,138 @@
 /**
  * @totemsdk/stream-transport
  *
- * Transport-layer abstractions for Totem SDK:
- *   - IStreamTransport — canonical bidirectional byte-stream interface
- *   - NodeStreamTransport — wraps Node.js Duplex/Socket streams
- *   - WebSocketTransport — browser/server WebSocket adapter
- *   - WebRTCDataChannelTransport — browser RTCDataChannel adapter
- *   - StdioStreamTransport — process stdin/stdout transport
- *   - HyperswarmStreamTransport — direct Hyperswarm connection adapter
- *   - InMemoryTransport / createInMemoryPair — in-process test helpers
- *   - createHyperswarmTransport — factory for Hyperswarm P2P connections
- *   - createWebSocketTransport — factory for WebSocket connections
- *   - channelTopic / peerTopic / broadcastTopic — 32-byte DHT topic helpers
+ * Transport-layer abstractions for Totem SDK.
+ *
+ * The canonical transport contract is `IStreamTransport`:
+ *
+ *   - `state`              — explicit connection state
+ *   - `send(data)`         — async send; resolves when the bytes are accepted by
+ *                            the underlying transport or the documented backpressure
+ *                            policy is applied; rejects after close or on error.
+ *   - `onData`/`onClose`/`onError` — subscribe and receive an unsubscribe function.
+ *   - `close()`            — async close with predictable semantics (no further
+ *                            deliveries after the returned promise resolves).
+ *
+ * Implementations: NodeStreamTransport, WebSocketTransport,
+ * WebRTCDataChannelTransport, StdioStreamTransport, HyperswarmStreamTransport,
+ * and InMemoryTransport / createInMemoryPair for tests.
+ *
+ * Topic helpers (channelTopic / peerTopic / broadcastTopic) are Node-only
+ * (they return Buffer) and are used by the Omnia swarm in Node environments.
  */
 
-// ── Core interface ─────────────────────────────────────────────────────────────
+// ── Core contract ─────────────────────────────────────────────────────────────
+
+export type TransportState = 'connecting' | 'open' | 'closing' | 'closed';
 
 export type DataHandler = (chunk: Uint8Array) => void;
 export type CloseHandler = () => void;
 export type ErrorHandler = (err: Error) => void;
 
 /**
- * Minimal bidirectional byte-stream interface.
+ * Canonical bidirectional byte-stream transport contract.
  *
- * send()  — write bytes to the remote peer
- * on()    — subscribe to 'data', 'close', or 'error' events
- * close() — half-close / destroy the connection
+ * Every transport exposes the same subscription API; each `on*` method returns
+ * an unsubscribe function so handlers can always be removed. There is a single
+ * connection state machine and a single `send` signature. This replaces the old
+ * `on(event, handler)` API which could not express unsubscription, backpressure
+ * or connection state.
  */
 export interface IStreamTransport {
-  send(data: Uint8Array): void;
-  on(event: 'data', handler: DataHandler): void;
-  on(event: 'close', handler: CloseHandler): void;
-  on(event: 'error', handler: ErrorHandler): void;
-  close(): void;
+  /** Explicit connection state. */
+  readonly state: TransportState;
+
+  /**
+   * Optional async connect. Implementations that construct an already-connected
+   * transport may omit it.
+   */
+  connect?(): Promise<void>;
+
+  /**
+   * Send bytes to the remote peer.
+   *
+   * - Returns a promise that resolves once the bytes are accepted by the
+   *   underlying transport (or after the documented backpressure policy).
+   * - Rejects with `ClosedTransportError` if the transport is closed.
+   * - Rejects with the underlying error if delivery fails.
+   */
+  send(data: Uint8Array): Promise<void>;
+
+  /** Subscribe to data chunks. Returns an unsubscribe function. */
+  onData(handler: DataHandler): () => void;
+
+  /** Subscribe to connection close. Returns an unsubscribe function. */
+  onClose(handler: CloseHandler): () => void;
+
+  /** Subscribe to transport errors. Returns an unsubscribe function. */
+  onError(handler: ErrorHandler): () => void;
+
+  /**
+   * Close the transport. After the returned promise resolves, no further data
+   * or close deliveries occur. Calling close() more than once is safe (the
+   * second call resolves immediately).
+   */
+  close(): Promise<void>;
+}
+
+/** Thrown by send() when the transport has been closed. */
+export class ClosedTransportError extends Error {
+  readonly name = 'ClosedTransportError';
+  constructor(message = 'transport is closed') {
+    super(message);
+  }
+}
+
+// ── Base helpers ──────────────────────────────────────────────────────────────
+
+type Handler = (...args: unknown[]) => void;
+
+/**
+ * Maintains a handler list supporting subscribe/unsubscribe and removal after
+ * close. Prevents unbounded handler accumulation and silent double-fires.
+ */
+class HandlerSet {
+  private _handlers = new Set<Handler>();
+  private _fired = false;
+
+  add(handler: Handler): () => void {
+    if (this._fired) return () => {};
+    this._handlers.add(handler);
+    return () => {
+      this._handlers.delete(handler);
+    };
+  }
+
+  /** Deliver to a snapshot so handlers can safely unsubscribe during delivery. */
+  emit(...args: unknown[]): void {
+    for (const h of [...this._handlers]) {
+      h(...args);
+    }
+  }
+
+  get size(): number {
+    return this._handlers.size;
+  }
+
+  /** Marks the set as permanently fired; subsequent add() becomes a no-op. */
+  seal(): void {
+    this._fired = true;
+    this._handlers.clear();
+  }
+}
+
+function toBytes(chunk: unknown): Uint8Array {
+  if (chunk instanceof Uint8Array) return chunk;
+  if (chunk instanceof ArrayBuffer) return new Uint8Array(chunk);
+  if (typeof Buffer !== 'undefined' && Buffer.isBuffer(chunk)) {
+    return new Uint8Array(chunk.buffer, chunk.byteOffset, chunk.byteLength);
+  }
+  return new TextEncoder().encode(String(chunk));
+}
+
+/** True when running in a Node.js environment (Buffer exists). */
+function isNode(): boolean {
+  return typeof Buffer !== 'undefined';
 }
 
 // ── NodeStreamTransport ────────────────────────────────────────────────────────
@@ -45,38 +145,83 @@ export class NodeStreamTransport implements IStreamTransport {
   private readonly _stream: {
     write(chunk: Buffer | Uint8Array): boolean;
     on(event: string, handler: (...args: unknown[]) => void): unknown;
+    once?(event: string, handler: (...args: unknown[]) => void): unknown;
+    removeListener?(event: string, handler: (...args: unknown[]) => void): unknown;
     destroy?(err?: Error): void;
     end?(): void;
   };
+  private readonly _data = new HandlerSet();
+  private readonly _close = new HandlerSet();
+  private readonly _error = new HandlerSet();
+  private _state: TransportState = 'open';
+  private _closeResolve: (() => void) | null = null;
+  private readonly _closePromise: Promise<void>;
 
   constructor(stream: unknown) {
     this._stream = stream as NodeStreamTransport['_stream'];
+
+    this._stream.on('data', (chunk: unknown) => this._data.emit(toBytes(chunk)));
+
+    this._stream.on('close', () => {
+      if (this._state === 'closing' || this._state === 'closed') {
+        this._state = 'closed';
+      }
+      this._data.seal();
+      this._close.emit();
+      this._close.seal();
+      this._closeResolve?.();
+    });
+
+    this._stream.on('error', (err: unknown) => {
+      this._error.emit(err instanceof Error ? err : new Error(String(err)));
+    });
+
+    this._closePromise = new Promise((resolve) => {
+      this._closeResolve = resolve;
+    });
   }
 
-  send(data: Uint8Array): void {
-    this._stream.write(Buffer.isBuffer(data) ? data : Buffer.from(data));
+  get state(): TransportState {
+    return this._state;
   }
 
-  on(event: 'data', handler: DataHandler): void;
-  on(event: 'close', handler: CloseHandler): void;
-  on(event: 'error', handler: ErrorHandler): void;
-  on(event: 'data' | 'close' | 'error', handler: DataHandler | CloseHandler | ErrorHandler): void {
-    if (event === 'data') {
-      this._stream.on('data', (chunk: unknown) => {
-        const bytes = chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk as ArrayBuffer);
-        (handler as DataHandler)(bytes);
+  async send(data: Uint8Array): Promise<void> {
+    if (this._state === 'closed' || this._state === 'closing') {
+      throw new ClosedTransportError();
+    }
+    const buffer = Buffer.isBuffer(data) ? data : Buffer.from(data);
+    if (!this._stream.write(buffer)) {
+      // Backpressure: wait for the stream to drain before resolving.
+      await new Promise<void>((resolve, reject) => {
+        const onDrain = () => resolve();
+        const onErr = (err: unknown) => reject(err instanceof Error ? err : new Error(String(err)));
+        this._stream.once?.('drain', onDrain);
+        this._stream.once?.('error', onErr);
       });
-    } else {
-      this._stream.on(event, handler as (...args: unknown[]) => void);
     }
   }
 
-  close(): void {
+  onData(handler: DataHandler): () => void {
+    return this._data.add(handler as Handler);
+  }
+
+  onClose(handler: CloseHandler): () => void {
+    return this._close.add(handler as Handler);
+  }
+
+  onError(handler: ErrorHandler): () => void {
+    return this._error.add(handler as Handler);
+  }
+
+  async close(): Promise<void> {
+    if (this._state === 'closed') return;
+    this._state = 'closing';
     if (typeof this._stream.destroy === 'function') {
       this._stream.destroy();
     } else if (typeof this._stream.end === 'function') {
       this._stream.end();
     }
+    await this._closePromise;
   }
 }
 
@@ -84,7 +229,13 @@ export class NodeStreamTransport implements IStreamTransport {
 
 /**
  * Wraps a browser or Node.js WebSocket as IStreamTransport.
- * Compatible with both native browser WebSocket and the `ws` npm package.
+ * Compatible with both the native browser WebSocket and the `ws` npm package.
+ *
+ * Backpressure: `ws` exposes a send callback and `bufferedAmount`; the browser
+ * WebSocket API does not. When the underlying socket is a `ws` instance, send()
+ * resolves via the completion callback; for the browser API, send() resolves
+ * after enqueue and backpressure is documented as not honoured (the API offers
+ * no completion signal). In both cases send() rejects after close.
  */
 export class WebSocketTransport implements IStreamTransport {
   private readonly _ws: {
@@ -94,59 +245,76 @@ export class WebSocketTransport implements IStreamTransport {
     close(): void;
     readyState?: number;
   };
+  private readonly _data = new HandlerSet();
+  private readonly _close = new HandlerSet();
+  private readonly _error = new HandlerSet();
+  private _state: TransportState = 'open';
+  private _closeResolve: (() => void) | null = null;
+  private readonly _closePromise: Promise<void>;
 
   constructor(ws: unknown) {
     this._ws = ws as WebSocketTransport['_ws'];
+    const register = this._ws.addEventListener ? this._ws.addEventListener.bind(this._ws) : this._ws.on?.bind(this._ws);
+
+    register?.('message', (ev: unknown) => {
+      const raw = (ev as { data?: unknown }).data ?? ev;
+      this._data.emit(toBytes(raw));
+    });
+    register?.('close', () => {
+      this._state = 'closed';
+      this._data.seal();
+      this._close.emit();
+      this._close.seal();
+      this._closeResolve?.();
+    });
+    register?.('error', (err: unknown) => {
+      this._error.emit(err instanceof Error ? err : new Error(String(err)));
+    });
+
+    this._closePromise = new Promise((resolve) => {
+      this._closeResolve = resolve;
+    });
   }
 
-  send(data: Uint8Array): void {
-    this._ws.send(data);
+  get state(): TransportState {
+    return this._state;
   }
 
-  on(event: 'data', handler: DataHandler): void;
-  on(event: 'close', handler: CloseHandler): void;
-  on(event: 'error', handler: ErrorHandler): void;
-  on(event: 'data' | 'close' | 'error', handler: DataHandler | CloseHandler | ErrorHandler): void {
-    if (typeof this._ws.on === 'function') {
-      if (event === 'data') {
-        this._ws.on('message', (msg: unknown) => {
-          let bytes: Uint8Array;
-          if (msg instanceof Uint8Array) {
-            bytes = msg;
-          } else if (msg instanceof ArrayBuffer) {
-            bytes = new Uint8Array(msg);
-          } else if (Buffer.isBuffer(msg)) {
-            bytes = new Uint8Array(msg.buffer, msg.byteOffset, msg.byteLength);
-          } else {
-            bytes = new TextEncoder().encode(String(msg));
-          }
-          (handler as DataHandler)(bytes);
-        });
-      } else {
-        this._ws.on(event === 'close' ? 'close' : 'error', handler as (...args: unknown[]) => void);
-      }
-    } else if (typeof this._ws.addEventListener === 'function') {
-      if (event === 'data') {
-        this._ws.addEventListener('message', (ev: unknown) => {
-          const data = (ev as MessageEvent).data;
-          let bytes: Uint8Array;
-          if (data instanceof Uint8Array) {
-            bytes = data;
-          } else if (data instanceof ArrayBuffer) {
-            bytes = new Uint8Array(data);
-          } else {
-            bytes = new TextEncoder().encode(String(data));
-          }
-          (handler as DataHandler)(bytes);
-        });
-      } else {
-        this._ws.addEventListener(event, handler as (...args: unknown[]) => void);
-      }
+  async send(data: Uint8Array): Promise<void> {
+    if (this._state === 'closed' || this._state === 'closing') {
+      throw new ClosedTransportError();
     }
+    await new Promise<void>((resolve, reject) => {
+      try {
+        // `ws` (Node) supports a completion callback; browser WebSocket ignores it.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (this._ws.send as any)(data, (err?: unknown) => {
+          if (err) reject(err instanceof Error ? err : new Error(String(err)));
+          else resolve();
+        });
+      } catch (err) {
+        reject(err instanceof Error ? err : new Error(String(err)));
+      }
+    });
   }
 
-  close(): void {
+  onData(handler: DataHandler): () => void {
+    return this._data.add(handler as Handler);
+  }
+
+  onClose(handler: CloseHandler): () => void {
+    return this._close.add(handler as Handler);
+  }
+
+  onError(handler: ErrorHandler): () => void {
+    return this._error.add(handler as Handler);
+  }
+
+  async close(): Promise<void> {
+    if (this._state === 'closed') return;
+    this._state = 'closing';
     this._ws.close();
+    await this._closePromise;
   }
 }
 
@@ -155,6 +323,10 @@ export class WebSocketTransport implements IStreamTransport {
 /**
  * Wraps an RTCDataChannel (browser WebRTC) as IStreamTransport.
  * Requires the RTCDataChannel to be in arraybuffer mode.
+ *
+ * The browser RTCDataChannel API has no send-completion signal, so backpressure
+ * is documented as not honoured; send() resolves after enqueue and rejects only
+ * after close.
  */
 export class WebRTCDataChannelTransport implements IStreamTransport {
   private readonly _ch: {
@@ -163,55 +335,89 @@ export class WebRTCDataChannelTransport implements IStreamTransport {
     close(): void;
     binaryType?: string;
   };
+  private readonly _data = new HandlerSet();
+  private readonly _close = new HandlerSet();
+  private readonly _error = new HandlerSet();
+  private _state: TransportState = 'open';
+  private _closeResolve: (() => void) | null = null;
+  private readonly _closePromise: Promise<void>;
 
   constructor(channel: unknown) {
     this._ch = channel as WebRTCDataChannelTransport['_ch'];
     if ('binaryType' in this._ch) {
       this._ch.binaryType = 'arraybuffer';
     }
+    this._ch.addEventListener('message', (ev: unknown) => {
+      const data = (ev as { data?: unknown }).data;
+      this._data.emit(toBytes(data));
+    });
+    this._ch.addEventListener('close', () => {
+      this._state = 'closed';
+      this._data.seal();
+      this._close.emit();
+      this._close.seal();
+      this._closeResolve?.();
+    });
+    this._ch.addEventListener('error', (ev: unknown) => {
+      this._error.emit(ev instanceof Error ? ev : new Error(String(ev)));
+    });
+    this._closePromise = new Promise((resolve) => {
+      this._closeResolve = resolve;
+    });
   }
 
-  send(data: Uint8Array): void {
+  get state(): TransportState {
+    return this._state;
+  }
+
+  async send(data: Uint8Array): Promise<void> {
+    if (this._state === 'closed' || this._state === 'closing') {
+      throw new ClosedTransportError();
+    }
     this._ch.send(data);
   }
 
-  on(event: 'data', handler: DataHandler): void;
-  on(event: 'close', handler: CloseHandler): void;
-  on(event: 'error', handler: ErrorHandler): void;
-  on(event: 'data' | 'close' | 'error', handler: DataHandler | CloseHandler | ErrorHandler): void {
-    if (event === 'data') {
-      this._ch.addEventListener('message', (ev: unknown) => {
-        const data = (ev as MessageEvent).data;
-        const bytes = data instanceof ArrayBuffer
-          ? new Uint8Array(data)
-          : data instanceof Uint8Array
-            ? data
-            : new Uint8Array();
-        (handler as DataHandler)(bytes);
-      });
-    } else {
-      this._ch.addEventListener(event === 'close' ? 'close' : 'error', handler as (...args: unknown[]) => void);
-    }
+  onData(handler: DataHandler): () => void {
+    return this._data.add(handler as Handler);
   }
 
-  close(): void {
+  onClose(handler: CloseHandler): () => void {
+    return this._close.add(handler as Handler);
+  }
+
+  onError(handler: ErrorHandler): () => void {
+    return this._error.add(handler as Handler);
+  }
+
+  async close(): Promise<void> {
+    if (this._state === 'closed') return;
+    this._state = 'closing';
     this._ch.close();
+    await this._closePromise;
   }
 }
 
 // ── StdioStreamTransport ───────────────────────────────────────────────────────
 
 /**
- * Adapts process.stdin + process.stdout (or any pair of Readable+Writable)
- * as IStreamTransport. Useful for CLI tools and pipe-based IPC.
+ * Adapts a Node.js Readable + Writable pair (default: process.stdin/stdout)
+ * as IStreamTransport. This transport is Node-only by definition.
  */
 export class StdioStreamTransport implements IStreamTransport {
   private readonly _input: {
     on(event: string, handler: (...args: unknown[]) => void): unknown;
+    once?(event: string, handler: (...args: unknown[]) => void): unknown;
   };
   private readonly _output: {
     write(chunk: Buffer | Uint8Array): boolean;
+    once?(event: string, handler: (...args: unknown[]) => void): unknown;
   };
+  private readonly _data = new HandlerSet();
+  private readonly _close = new HandlerSet();
+  private readonly _error = new HandlerSet();
+  private _state: TransportState = 'open';
+  private _closeResolve: (() => void) | null = null;
+  private readonly _closePromise: Promise<void>;
 
   constructor(
     input: unknown = process.stdin,
@@ -219,38 +425,68 @@ export class StdioStreamTransport implements IStreamTransport {
   ) {
     this._input = input as StdioStreamTransport['_input'];
     this._output = output as StdioStreamTransport['_output'];
+
+    this._input.on('data', (chunk: unknown) => this._data.emit(toBytes(chunk)));
+    this._input.on('end', () => {
+      this._state = 'closed';
+      this._data.seal();
+      this._close.emit();
+      this._close.seal();
+      this._closeResolve?.();
+    });
+    this._input.on('error', (err: unknown) => {
+      this._error.emit(err instanceof Error ? err : new Error(String(err)));
+    });
+
+    this._closePromise = new Promise((resolve) => {
+      this._closeResolve = resolve;
+    });
   }
 
-  send(data: Uint8Array): void {
-    this._output.write(Buffer.isBuffer(data) ? data : Buffer.from(data));
+  get state(): TransportState {
+    return this._state;
   }
 
-  on(event: 'data', handler: DataHandler): void;
-  on(event: 'close', handler: CloseHandler): void;
-  on(event: 'error', handler: ErrorHandler): void;
-  on(event: 'data' | 'close' | 'error', handler: DataHandler | CloseHandler | ErrorHandler): void {
-    if (event === 'data') {
-      this._input.on('data', (chunk: unknown) => {
-        const bytes = chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk as ArrayBuffer);
-        (handler as DataHandler)(bytes);
+  async send(data: Uint8Array): Promise<void> {
+    if (this._state === 'closed' || this._state === 'closing') {
+      throw new ClosedTransportError();
+    }
+    if (!this._output.write(Buffer.isBuffer(data) ? data : Buffer.from(data))) {
+      await new Promise<void>((resolve, reject) => {
+        const onDrain = () => resolve();
+        const onErr = (err: unknown) => reject(err instanceof Error ? err : new Error(String(err)));
+        this._output.once?.('drain', onDrain);
+        this._output.once?.('error', onErr);
       });
-    } else {
-      this._input.on(event === 'close' ? 'end' : 'error', handler as (...args: unknown[]) => void);
     }
   }
 
-  close(): void {
-    (process.stdin as unknown as { destroy(): void }).destroy?.();
+  onData(handler: DataHandler): () => void {
+    return this._data.add(handler as Handler);
+  }
+
+  onClose(handler: CloseHandler): () => void {
+    return this._close.add(handler as Handler);
+  }
+
+  onError(handler: ErrorHandler): () => void {
+    return this._error.add(handler as Handler);
+  }
+
+  async close(): Promise<void> {
+    if (this._state === 'closed') return;
+    this._state = 'closing';
+    const stdin = process.stdin as unknown as { destroy?: () => void };
+    stdin.destroy?.();
+    await this._closePromise;
   }
 }
 
 // ── HyperswarmStreamTransport ──────────────────────────────────────────────────
 
 /**
- * Adapts a raw Hyperswarm connection (which is a Node.js Duplex stream)
- * to IStreamTransport. This is the production-path adapter used by OmniaSwarmImpl.
- *
- * Extends NodeStreamTransport with the connection's info (publicKey, topics).
+ * Adapts a raw Hyperswarm connection (a Node.js Duplex stream) to
+ * IStreamTransport, carrying the connection's info (publicKey, topics).
  */
 export class HyperswarmStreamTransport extends NodeStreamTransport {
   readonly pubkey: string;
@@ -265,11 +501,9 @@ export class HyperswarmStreamTransport extends NodeStreamTransport {
 
 // ── InMemoryTransport (test helper) ───────────────────────────────────────────
 
-type AnyHandler = (...args: unknown[]) => void;
-
 /**
- * In-process bidirectional transport for use in unit tests.
- * Call createInMemoryPair() to get two linked InMemoryTransport instances.
+ * In-process bidirectional transport for use in unit tests and the contract
+ * suite. Call createInMemoryPair() to get two linked instances.
  *
  * Extra test-helper methods:
  *   _deliver(event, ...args)   — fire event handlers on this side only
@@ -280,26 +514,30 @@ type AnyHandler = (...args: unknown[]) => void;
  */
 export class InMemoryTransport implements IStreamTransport {
   private _peer: InMemoryTransport | null = null;
-  private readonly _handlers: Map<string, AnyHandler[]> = new Map();
-  private _closed = false;
+  private readonly _data = new HandlerSet();
+  private readonly _close = new HandlerSet();
+  private readonly _error = new HandlerSet();
+  private _state: TransportState = 'open';
 
   _linkPeer(other: InMemoryTransport): void {
     this._peer = other;
     other._peer = this;
   }
 
+  get state(): TransportState {
+    return this._state;
+  }
+
   /** Fire event handlers on THIS side only. */
   _deliver(event: string, ...args: unknown[]): void {
-    for (const h of this._handlers.get(event) ?? []) {
-      h(...args);
-    }
+    if (event === 'data') this._data.emit(...args);
+    else if (event === 'close') this._close.emit();
+    else if (event === 'error') this._error.emit(...args);
   }
 
   /** Fire 'close' on this side's handlers only (for reconnect testing). */
   _deliverClose(): void {
-    setImmediate(() => {
-      this._deliver('close');
-    });
+    this._close.emit();
   }
 
   /**
@@ -307,10 +545,11 @@ export class InMemoryTransport implements IStreamTransport {
    * Use when simulating a remote side terminating the connection.
    */
   simulateRemoteClose(): void {
-    setImmediate(() => {
-      this._deliver('close');
-      this._peer?._deliver('close');
-    });
+    this._state = 'closed';
+    this._data.seal();
+    this._close.emit();
+    this._close.seal();
+    this._peer?.simulateLocalClose();
   }
 
   /** Alias for simulateRemoteClose(). */
@@ -318,30 +557,42 @@ export class InMemoryTransport implements IStreamTransport {
     this.simulateRemoteClose();
   }
 
-  send(data: Uint8Array): void {
-    if (this._closed) return;
+  /** Internal: close this side only (used by simulateRemoteClose). */
+  private simulateLocalClose(): void {
+    this._state = 'closed';
+    this._data.seal();
+    this._close.emit();
+    this._close.seal();
+  }
+
+  async send(data: Uint8Array): Promise<void> {
+    if (this._state === 'closed' || this._state === 'closing') {
+      throw new ClosedTransportError();
+    }
+    if (!this._peer) throw new ClosedTransportError('no peer linked');
     const copy = new Uint8Array(data);
-    setImmediate(() => {
-      this._peer?._deliver('data', copy);
-    });
+    this._peer._deliver('data', copy);
   }
 
-  on(event: 'data', handler: DataHandler): void;
-  on(event: 'close', handler: CloseHandler): void;
-  on(event: 'error', handler: ErrorHandler): void;
-  on(event: 'data' | 'close' | 'error', handler: DataHandler | CloseHandler | ErrorHandler): void {
-    const list = this._handlers.get(event) ?? [];
-    list.push(handler as AnyHandler);
-    this._handlers.set(event, list);
+  onData(handler: DataHandler): () => void {
+    return this._data.add(handler as Handler);
   }
 
-  close(): void {
-    if (this._closed) return;
-    this._closed = true;
-    setImmediate(() => {
-      this._deliver('close');
-      this._peer?._deliver('close');
-    });
+  onClose(handler: CloseHandler): () => void {
+    return this._close.add(handler as Handler);
+  }
+
+  onError(handler: ErrorHandler): () => void {
+    return this._error.add(handler as Handler);
+  }
+
+  async close(): Promise<void> {
+    if (this._state === 'closed') return;
+    this._state = 'closed';
+    this._data.seal();
+    this._close.emit();
+    this._close.seal();
+    this._peer?.simulateLocalClose();
   }
 }
 
@@ -418,7 +669,11 @@ export async function createWebSocketTransport(
       );
     });
   }
-  const { WebSocket: NodeWS } = await import('ws');
+  const { WebSocket: NodeWS } = await (import('ws' as string) as Promise<{
+    WebSocket: new (
+      url: string,
+    ) => { on(event: 'open', handler: () => void): void; on(event: 'error', handler: (err: Error) => void): void };
+  }>);
   const ws = new NodeWS(url);
   return new Promise<WebSocketTransport>((resolve, reject) => {
     ws.on('open', () => resolve(new WebSocketTransport(ws)));
@@ -426,7 +681,7 @@ export async function createWebSocketTransport(
   });
 }
 
-// ── Topic helpers (shared with OmniaSwarmImpl and LookupClient) ───────────────
+// ── Topic helpers (Node-only; shared with OmniaSwarmImpl and LookupClient) ─────
 
 import { sha3_256 } from '@totemsdk/core';
 
@@ -457,3 +712,6 @@ export function peerTopic(pubkey: string): Buffer {
 export function broadcastTopic(namespace: string): Buffer {
   return topicBuffer('omnia:broadcast', namespace);
 }
+
+/** @internal Re-exported so consumers can assert on transport state. */
+export const _isNode = isNode;

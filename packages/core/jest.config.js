@@ -4,13 +4,24 @@ export default {
   testMatch: ['**/test/**/*.test.ts', '**/src/**/*.test.ts'],
   moduleFileExtensions: ['ts', 'js'],
   transform: {
-    '^.+\\.ts$': 'ts-jest',
+    '^.+\\.ts$': ['ts-jest', {
+      tsconfig: {
+        module: 'CommonJS',
+        moduleResolution: 'bundler',
+        target: 'ES2022',
+        allowJs: true,
+        types: ['node', 'jest'],
+      },
+    }],
   },
   moduleNameMapper: {
     // Force jest to load TypeScript sources instead of pre-compiled .js stubs
     // in src/. Without this, imports like '../treekey.js' resolve to the
     // stale pre-compiled src/treekey.js rather than the current src/treekey.ts.
     '^(\\.{1,2}/.*)\\.js$': '$1',
+    // Resolve self-references to the TS source so the ESM dist bundle is not
+    // loaded by the CommonJS jest runtime.
+    '^@totemsdk/core$': '<rootDir>/src/index.ts',
   },
   testPathIgnorePatterns: [
     '/node_modules/',

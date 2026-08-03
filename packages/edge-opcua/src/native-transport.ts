@@ -157,6 +157,7 @@ export class NativeOpcuaTransport implements OpcuaTransportPort {
       subscriptionId,
       nodeIds,
       this,
+      samplingInterval,
     );
     this.subscriptions.set(subscriptionId, sub);
     return sub;
@@ -189,7 +190,7 @@ export class NativeOpcuaTransport implements OpcuaTransportPort {
     await this._unsubscribe(oldSubscriptionId);
     const data = await this.sendRequest('subscribe', { nodeIds, samplingInterval });
     const { subscriptionId } = data as { subscriptionId: string };
-    const sub = new NativeOpcuaSubscription(subscriptionId, nodeIds, this);
+    const sub = new NativeOpcuaSubscription(subscriptionId, nodeIds, this, samplingInterval);
     this.subscriptions.set(subscriptionId, sub);
     return subscriptionId;
   }
@@ -222,6 +223,7 @@ class NativeOpcuaSubscription implements OpcuaSubscription {
     private subscriptionId: string,
     private nodeIds: string[],
     private transport: NativeOpcuaTransport,
+    private samplingInterval: number,
   ) {}
 
   async addNodes(nodeIds: string[]): Promise<void> {
@@ -229,7 +231,7 @@ class NativeOpcuaSubscription implements OpcuaSubscription {
     this.subscriptionId = await this.transport._resubscribe(
       this.subscriptionId,
       newIds,
-      1000,
+      this.samplingInterval,
     );
     this.nodeIds = newIds;
   }
@@ -237,11 +239,14 @@ class NativeOpcuaSubscription implements OpcuaSubscription {
   async removeNodes(nodeIds: string[]): Promise<void> {
     const removeSet = new Set(nodeIds);
     const newIds = this.nodeIds.filter(id => !removeSet.has(id));
-    if (newIds.length === 0) return;
+    if (newIds.length === 0) {
+      await this.destroy();
+      return;
+    }
     this.subscriptionId = await this.transport._resubscribe(
       this.subscriptionId,
       newIds,
-      1000,
+      this.samplingInterval,
     );
     this.nodeIds = newIds;
   }

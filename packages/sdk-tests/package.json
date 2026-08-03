@@ -26,7 +26,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "test": "jest --passWithNoTests",
+    "test": "jest",
     "test:parity": "jest --testPathPattern=parity"
   },
   "devDependencies": {
@@ -37,8 +37,8 @@
     "typescript": "^7.0.2"
   },
   "dependencies": {
-    "@totemsdk/core": "file:../core",
-    "@totemsdk/txpow": "file:../txpow",
-    "@totemsdk/realtime": "file:../realtime"
+    "@totemsdk/core": "workspace:^",
+    "@totemsdk/txpow": "workspace:^",
+    "@totemsdk/realtime": "workspace:^"
   }
 }

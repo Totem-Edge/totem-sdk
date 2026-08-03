@@ -1,4 +1,4 @@
-import { F, bytesToHex as coreBytesToHex, hexToBytes as coreHexToBytes } from '@totemsdk/core';
+import { F, hexToBytes as coreHexToBytes } from '@totemsdk/core';
 import { verifyManifest, computeManifestId } from '@totemsdk/manifest';
 import type { EdgeServiceManifest, SignedManifest } from '@totemsdk/manifest';
 import { ProviderManifestError } from './errors.js';
@@ -16,7 +16,9 @@ function hexToBytes(hex: string): Uint8Array {
 }
 
 function bytesToHex(bytes: Uint8Array): string {
-  return coreBytesToHex(bytes);
+  return '0x' + Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 export function createProviderBondManifest(params: CreateProviderBondManifestParams): ProviderBondManifest {

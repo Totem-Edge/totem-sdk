@@ -15,7 +15,7 @@
     "build": "tsc",
     "prepare": "tsc",
     "clean": "rm -rf dist",
-    "test": "jest --passWithNoTests"
+    "test": "jest"
   },
   "files": [
     "dist",
@@ -23,16 +23,16 @@
     "LICENSE"
   ],
   "peerDependencies": {
-    "@totemsdk/agent-policy": "^0.1.3",
-    "@totemsdk/chain-provider": "^0.1.4",
-    "@totemsdk/identity": "^0.1.2",
-    "@totemsdk/lookup-client": "^0.1.4",
-    "@totemsdk/manifest": "^0.1.2",
-    "@totemsdk/omnia-router": "^0.1.4",
-    "@totemsdk/proof": "^0.1.1",
-    "@totemsdk/pubsub-transport": "^0.1.0",
-    "@totemsdk/root-identity": "^1.0.7",
-    "@totemsdk/stream-transport": "^0.1.0"
+    "@totemsdk/agent-policy": "workspace:^",
+    "@totemsdk/chain-provider": "workspace:^",
+    "@totemsdk/identity": "workspace:^",
+    "@totemsdk/lookup-client": "workspace:^",
+    "@totemsdk/manifest": "workspace:^",
+    "@totemsdk/omnia-router": "workspace:^",
+    "@totemsdk/proof": "workspace:^",
+    "@totemsdk/pubsub-transport": "workspace:^",
+    "@totemsdk/root-identity": "workspace:^",
+    "@totemsdk/stream-transport": "workspace:^"
   },
   "peerDependenciesMeta": {
     "@totemsdk/agent-policy": {
@@ -67,17 +67,17 @@
     }
   },
   "devDependencies": {
-    "@totemsdk/agent-policy": "^0.1.3",
-    "@totemsdk/chain-provider": "^0.1.4",
-    "@totemsdk/edge": "^0.1.3",
-    "@totemsdk/identity": "^0.1.2",
-    "@totemsdk/lookup-client": "^0.1.5",
-    "@totemsdk/manifest": "^0.1.2",
-    "@totemsdk/omnia-router": "^0.1.4",
-    "@totemsdk/proof": "^0.1.1",
-    "@totemsdk/pubsub-transport": "^0.1.0",
-    "@totemsdk/root-identity": "^1.0.7",
-    "@totemsdk/stream-transport": "^0.1.0",
+    "@totemsdk/agent-policy": "workspace:^",
+    "@totemsdk/chain-provider": "workspace:^",
+    "@totemsdk/edge": "workspace:^",
+    "@totemsdk/identity": "workspace:^",
+    "@totemsdk/lookup-client": "workspace:^",
+    "@totemsdk/manifest": "workspace:^",
+    "@totemsdk/omnia-router": "workspace:^",
+    "@totemsdk/proof": "workspace:^",
+    "@totemsdk/pubsub-transport": "workspace:^",
+    "@totemsdk/root-identity": "workspace:^",
+    "@totemsdk/stream-transport": "workspace:^",
     "@types/jest": "^30.0.0",
     "@types/node": "^20.0.0",
     "jest": "^30.4.2",

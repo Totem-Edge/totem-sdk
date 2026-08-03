@@ -70,11 +70,11 @@ export class AuthorityPolicy implements PolicyMiddleware {
     this.extractAction = extractAction ?? defaultActionExtractor;
   }
 
-  async evaluate(proposal: AgentProposal): Promise<PolicyEvalResult> {
+  async evaluate(proposal: AgentProposal, now = Date.now()): Promise<PolicyEvalResult> {
     const action = this.extractAction(proposal);
     const result = await this.evaluator.evaluate({
       action,
-      now: Date.now(),
+      now,
     });
 
     if (result.allowed) {

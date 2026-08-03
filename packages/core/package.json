@@ -76,7 +76,7 @@
     "build": "tsc",
     "prepare": "tsc",
     "clean": "rm -rf dist",
-    "test": "jest --passWithNoTests",
+    "test": "jest",
     "gen:pkdigest": "node scripts/gen_wots_pkdigest_vectors.cjs"
   },
   "files": [
@@ -85,7 +85,7 @@
     "LICENSE"
   ],
   "dependencies": {
-    "@totemsdk/core-wasm": "^0.1.0"
+    "@totemsdk/core-wasm": "workspace:^"
   },
   "engines": {
     "node": ">=16.0.0"

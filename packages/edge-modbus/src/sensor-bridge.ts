@@ -1,5 +1,7 @@
 /**
  * Modbus Sensor Bridge — maps Modbus register reads to Edge proof inputs.
+ *
+ * Uses RTU frame format (no MBAP header) to match the Go native binary.
  */
 
 import type { EdgeRuntime } from '@totemsdk/edge';
@@ -27,7 +29,6 @@ export interface ModbusSensorBridgeConfig {
 export interface ModbusSensorBridge {
   start(): Promise<void>;
   stop(): Promise<void>;
-  /** Force a single poll cycle. */
   poll(): Promise<void>;
 }
 
@@ -38,13 +39,12 @@ export function createModbusSensorBridge(config: ModbusSensorBridgeConfig): Modb
   async function pollBinding(binding: ModbusSensorBinding): Promise<void> {
     try {
       let values: unknown;
-      if (binding.functionCode === 1) {
-        const frame = buildReadFrame(binding.unitId, 1, binding.address, binding.count);
-        const response = await config.transport.sendFrame(frame);
+      const frame = buildReadFrame(binding.unitId, binding.functionCode, binding.address, binding.count);
+      const response = await config.transport.sendFrame(frame);
+
+      if (binding.functionCode === 1 || binding.functionCode === 2) {
         values = parseCoils(response, binding.count);
       } else if (binding.functionCode === 3 || binding.functionCode === 4) {
-        const frame = buildReadFrame(binding.unitId, binding.functionCode, binding.address, binding.count);
-        const response = await config.transport.sendFrame(frame);
         values = parseRegisters(response, binding.count);
       }
 
@@ -90,21 +90,24 @@ export function createModbusSensorBridge(config: ModbusSensorBridgeConfig): Modb
   };
 }
 
+// ── RTU frame builder (no MBAP header — matches Go binary) ────────────────
+
 function buildReadFrame(unitId: number, fc: number, address: number, count: number): Uint8Array {
-  const buf = new Uint8Array(12);
-  new DataView(buf.buffer).setUint16(0, 1, false); // transaction ID
-  new DataView(buf.buffer).setUint16(4, 6, false); // length
-  buf[6] = unitId;
-  buf[7] = fc;
-  new DataView(buf.buffer).setUint16(8, address, false);
-  new DataView(buf.buffer).setUint16(10, count, false);
+  const buf = new Uint8Array(8);
+  buf[0] = unitId;
+  buf[1] = fc;
+  new DataView(buf.buffer).setUint16(2, address, false);
+  new DataView(buf.buffer).setUint16(4, count, false);
+  buf[6] = 0; buf[7] = 0;
   return buf;
 }
+
+// ── Response parsers (RTU format — no MBAP header) ────────────────────────
 
 function parseCoils(response: Uint8Array, count: number): boolean[] {
   const result: boolean[] = [];
   for (let i = 0; i < count; i++) {
-    const byte = response[9 + Math.floor(i / 8)] ?? 0;
+    const byte = response[3 + Math.floor(i / 8)] ?? 0;
     result.push(((byte >> (i % 8)) & 1) === 1);
   }
   return result;
@@ -113,7 +116,7 @@ function parseCoils(response: Uint8Array, count: number): boolean[] {
 function parseRegisters(response: Uint8Array, count: number): number[] {
   const result: number[] = [];
   for (let i = 0; i < count; i++) {
-    result.push(new DataView(response.buffer, response.byteOffset + 9 + i * 2, 2).getUint16(0, false));
+    result.push(new DataView(response.buffer, response.byteOffset + 3 + i * 2, 2).getUint16(0, false));
   }
   return result;
 }

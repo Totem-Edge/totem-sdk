@@ -2,7 +2,7 @@ import type { AgentProposal, PolicyEvalResult, PolicyMiddleware } from './types.
 
 /**
  * RateLimitPolicy — limits the number of approved proposals within a
- * sliding time window. Once the limit is exceeded, subsequent proposals
+ * fixed time window. Once the limit is exceeded, subsequent proposals
  * are rejected until the window rolls over.
  *
  * Uses a simple fixed-window counter (not token-bucket or sliding-log)
@@ -27,8 +27,7 @@ export class RateLimitPolicy implements PolicyMiddleware {
     this.windowMs = windowMs;
   }
 
-  async evaluate(proposal: AgentProposal): Promise<PolicyEvalResult> {
-    const now = Date.now();
+  async evaluate(proposal: AgentProposal, now = Date.now()): Promise<PolicyEvalResult> {
     if (now - this.windowStart >= this.windowMs) {
       this.count = 0;
       this.windowStart = now;

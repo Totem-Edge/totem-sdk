@@ -52,13 +52,18 @@ function sigs(map: Record<string, string>): Record<string, string> {
 function s(entries: Record<number, string | number>): Record<number, string> {
   const r: Record<number, string> = {}
   for (const [k, v] of Object.entries(entries)) {
-    r[Number(k)] = typeof v === 'number' ? `0x${v.toString(16)}` : v
+    r[Number(k)] = typeof v === 'number' ? String(v) : v
   }
   return r
 }
 
 function ps(entries: Record<number, string | number>): Record<number, string> {
   return s(entries)
+}
+
+function run(script: string, tx: TxContext & { signatures?: Map<string, Uint8Array> }) {
+  const { signatures = new Map<string, Uint8Array>(), ...rest } = tx
+  return evaluateScript(script, { signatures }, rest)
 }
 
 describe('buildProposalStateMachineScript', () => {
@@ -91,7 +96,7 @@ describe('buildProposalStateMachineScript', () => {
 
   test('draft→cancelled passes when signed by governance or proposer', () => {
     const script = buildProposalStateMachineScript(cfg)
-    const result = evaluateScript(script, { signatures: new Map([[`${pkBB}aa`, mockSig('sig')]]) }, mkCtx(STATUS.DRAFT, STATUS.CANCELLED, 500))
+    const result = evaluateScript(script, { signatures: new Map([[pkBB, mockSig('sig')]]) }, mkCtx(STATUS.DRAFT, STATUS.CANCELLED, 500))
     expect(result.success).toBe(true)
   })
 
@@ -203,44 +208,44 @@ describe('buildVoteTallyScript', () => {
     return ctx({
       block,
       prevState: s({ 0: prev.yes, 1: prev.no, 2: prev.abstain, 3: prev.total }),
-      state: s({ 0: curr.yes, 1: curr.no, 2: curr.abstain, 3: curr.total }),
+      state: s({ 0: curr.yes, 1: curr.no, 2: curr.abstain, 3: curr.total, 10: 600, 11: 900 }),
       signatures: new Map(Object.entries(gSigs ?? { [pkAA]: 'sig' }).map(([k, v]) => [k, mockSig(v)])),
     })
   }
 
   test('passes for valid vote tally with quorum reached', () => {
     const script = buildVoteTallyScript(cfg)
-    const result = evaluateScript(script, {}, mkCtx({ yes: 0, no: 0, abstain: 0, total: 0 }, { yes: 30, no: 20, abstain: 5, total: 55 }))
+    const result = run(script, mkCtx({ yes: 0, no: 0, abstain: 0, total: 0 }, { yes: 30, no: 20, abstain: 5, total: 55 }))
     expect(result.success).toBe(true)
   })
 
   test('fails when quorum not reached', () => {
     const script = buildVoteTallyScript(cfg)
-    const result = evaluateScript(script, {}, mkCtx({ yes: 0, no: 0, abstain: 0, total: 0 }, { yes: 30, no: 20, abstain: 0, total: 50 }))
+    const result = run(script, mkCtx({ yes: 0, no: 0, abstain: 0, total: 0 }, { yes: 30, no: 20, abstain: 0, total: 50 }))
     expect(result.success).toBe(false)
   })
 
   test('fails when total delta does not match sum of choice deltas', () => {
     const script = buildVoteTallyScript(cfg)
-    const result = evaluateScript(script, {}, mkCtx({ yes: 0, no: 0, abstain: 0, total: 0 }, { yes: 30, no: 20, abstain: 5, total: 50 }))
+    const result = run(script, mkCtx({ yes: 0, no: 0, abstain: 0, total: 0 }, { yes: 30, no: 20, abstain: 5, total: 50 }))
     expect(result.success).toBe(false)
   })
 
   test('fails when no votes cast (totalDelta = 0)', () => {
     const script = buildVoteTallyScript(cfg)
-    const result = evaluateScript(script, {}, mkCtx({ yes: 10, no: 5, abstain: 0, total: 15 }, { yes: 10, no: 5, abstain: 0, total: 15 }))
+    const result = run(script, mkCtx({ yes: 10, no: 5, abstain: 0, total: 15 }, { yes: 10, no: 5, abstain: 0, total: 15 }))
     expect(result.success).toBe(false)
   })
 
   test('fails without governance signature', () => {
     const script = buildVoteTallyScript(cfg)
-    const result = evaluateScript(script, {}, mkCtx({ yes: 0, no: 0, abstain: 0, total: 0 }, { yes: 30, no: 20, abstain: 5, total: 55 }, 700, {}))
+    const result = run(script, mkCtx({ yes: 0, no: 0, abstain: 0, total: 0 }, { yes: 30, no: 20, abstain: 5, total: 55 }, 700, {}))
     expect(result.success).toBe(false)
   })
 
   test('passes with only yes votes (no=0)', () => {
     const script = buildVoteTallyScript(cfg)
-    const result = evaluateScript(script, {}, mkCtx({ yes: 0, no: 0, abstain: 0, total: 0 }, { yes: 60, no: 0, abstain: 0, total: 60 }))
+    const result = run(script, mkCtx({ yes: 0, no: 0, abstain: 0, total: 0 }, { yes: 60, no: 0, abstain: 0, total: 60 }))
     expect(result.success).toBe(true)
   })
 })
@@ -248,7 +253,8 @@ describe('buildVoteTallyScript', () => {
 describe('buildVoteSubmissionScript', () => {
   const cfg: VoteSubmissionConfig = {
     governancePk: pkAA,
-    quorumBps: BigInt(5100),
+    votingStartBlock: BigInt(600),
+    votingEndBlock: BigInt(900),
     noncePort: 1,
     weightPort: 2,
     snapshotPort: 5,
@@ -261,55 +267,55 @@ describe('buildVoteSubmissionScript', () => {
       block,
       prevState: s({ 1: prevNonce }),
       state: s({ 0: voterPk, 1: nonce, 2: weight, 3: choice, 4: weight, 5: snapshotHash }),
-      signatures: new Map(Object.entries(gSigs ?? { [pkAA]: 'sig' }).map(([k, v]) => [k, mockSig(v)])),
+      signatures: new Map(Object.entries(gSigs ?? { [voterPk]: 'v', [pkAA]: 'sig' }).map(([k, v]) => [k, mockSig(v)])),
     })
   }
 
   test('passes for valid vote submission', () => {
     const script = buildVoteSubmissionScript(cfg)
-    const result = evaluateScript(script, {}, mkCtx(pkBB, 2, 1, 10, 0))
+    const result = run(script, mkCtx(pkBB, 2, 1, 10, 0))
     expect(result.success).toBe(true)
   })
 
   test('fails when nonce not incremented', () => {
     const script = buildVoteSubmissionScript(cfg)
-    const result = evaluateScript(script, {}, mkCtx(pkBB, 1, 1, 10, 0))
+    const result = run(script, mkCtx(pkBB, 1, 1, 10, 0))
     expect(result.success).toBe(false)
   })
 
   test('fails when nonce decreases', () => {
     const script = buildVoteSubmissionScript(cfg)
-    const result = evaluateScript(script, {}, mkCtx(pkBB, 0, 1, 10, 0))
+    const result = run(script, mkCtx(pkBB, 0, 1, 10, 0))
     expect(result.success).toBe(false)
   })
 
   test('fails when weight is zero', () => {
     const script = buildVoteSubmissionScript(cfg)
-    const result = evaluateScript(script, {}, mkCtx(pkBB, 2, 1, 0, 0))
+    const result = run(script, mkCtx(pkBB, 2, 1, 0, 0))
     expect(result.success).toBe(false)
   })
 
   test('fails when choice is out of range (< 0)', () => {
     const script = buildVoteSubmissionScript(cfg)
-    const result = evaluateScript(script, {}, mkCtx(pkBB, 2, 1, 10, -1))
+    const result = run(script, mkCtx(pkBB, 2, 1, 10, -1))
     expect(result.success).toBe(false)
   })
 
   test('fails when choice is out of range (> 2)', () => {
     const script = buildVoteSubmissionScript(cfg)
-    const result = evaluateScript(script, {}, mkCtx(pkBB, 2, 1, 10, 3))
+    const result = run(script, mkCtx(pkBB, 2, 1, 10, 3))
     expect(result.success).toBe(false)
   })
 
   test('passes for abstain choice (2)', () => {
     const script = buildVoteSubmissionScript(cfg)
-    const result = evaluateScript(script, {}, mkCtx(pkBB, 2, 1, 10, 2))
+    const result = run(script, mkCtx(pkBB, 2, 1, 10, 2))
     expect(result.success).toBe(true)
   })
 
   test('fails without governance signature', () => {
     const script = buildVoteSubmissionScript(cfg)
-    const result = evaluateScript(script, {}, mkCtx(pkBB, 2, 1, 10, 0, 700, {}))
+    const result = run(script, mkCtx(pkBB, 2, 1, 10, 0, 700, {}))
     expect(result.success).toBe(false)
   })
 })
@@ -339,37 +345,37 @@ describe('buildExecutionMandateScript', () => {
 
   test('passes when all conditions met with multisig 2/2', () => {
     const script = buildExecutionMandateScript(cfg)
-    const result = evaluateScript(script, {}, mkCtx(1, 0, 911))
+    const result = run(script, mkCtx(1, 0, 911))
     expect(result.success).toBe(true)
   })
 
   test('fails when timelock not reached (block <= votingEndsAt + delay)', () => {
     const script = buildExecutionMandateScript(cfg)
-    const result = evaluateScript(script, {}, mkCtx(1, 0, 910))
+    const result = run(script, mkCtx(1, 0, 910))
     expect(result.success).toBe(false)
   })
 
   test('fails without multisig', () => {
     const script = buildExecutionMandateScript(cfg)
-    const result = evaluateScript(script, {}, mkCtx(1, 0, 911, {}))
+    const result = run(script, mkCtx(1, 0, 911, {}))
     expect(result.success).toBe(false)
   })
 
   test('fails with only 1 of 2 multisig', () => {
     const script = buildExecutionMandateScript(cfg)
-    const result = evaluateScript(script, {}, mkCtx(1, 0, 911, { [pkAA]: 's1' }))
+    const result = run(script, mkCtx(1, 0, 911, { [pkAA]: 's1' }))
     expect(result.success).toBe(false)
   })
 
   test('fails when nonce not incremented (replay)', () => {
     const script = buildExecutionMandateScript(cfg)
-    const result = evaluateScript(script, {}, mkCtx(0, 0, 911))
+    const result = run(script, mkCtx(0, 0, 911))
     expect(result.success).toBe(false)
   })
 
   test('fails when outcomeProof is empty', () => {
     const script = buildExecutionMandateScript(cfg)
-    const result = evaluateScript(script, {}, ctx({
+    const result = run(script, ctx({
       block: 911,
       prevState: s({ 0: 0 }),
       state: s({ 0: 1, 1: '0x00', 2: tallyHash, 3: snapHash, 4: 900, 5: 10 }),
@@ -380,7 +386,7 @@ describe('buildExecutionMandateScript', () => {
 
   test('fails when tallyHash is empty', () => {
     const script = buildExecutionMandateScript(cfg)
-    const result = evaluateScript(script, {}, ctx({
+    const result = run(script, ctx({
       block: 911,
       prevState: s({ 0: 0 }),
       state: s({ 0: 1, 1: outcomeProof, 2: '0x00', 3: snapHash, 4: 900, 5: 10 }),
@@ -406,32 +412,32 @@ describe('buildTreasuryExecutionScript', () => {
       prevState: s({ 4: prevNonce }),
       state: s({ 0: 900, 1: '0x' + 'dd'.repeat(32), 2: 0, 3: '0x01', 4: nonce }),
       inputs: [coin100],
-      outputs: [outputTo(`0x${pkCC}`, 100, false)],
+      outputs: [outputTo(`0x${pkCC}`, 100, true)],
       signatures: new Map(Object.entries(mSigs ?? { [pkAA]: 's1', [pkBB]: 's2' }).map(([k, v]) => [k, mockSig(v)])),
     })
   }
 
   test('passes when all conditions met', () => {
     const script = buildTreasuryExecutionScript(cfg)
-    const result = evaluateScript(script, {}, mkCtx(901))
+    const result = run(script, mkCtx(901))
     expect(result.success).toBe(true)
   })
 
   test('fails when block <= timelock', () => {
     const script = buildTreasuryExecutionScript(cfg)
-    const result = evaluateScript(script, {}, mkCtx(900))
+    const result = run(script, mkCtx(900))
     expect(result.success).toBe(false)
   })
 
   test('fails without multisig', () => {
     const script = buildTreasuryExecutionScript(cfg)
-    const result = evaluateScript(script, {}, mkCtx(901, 1, 0, {}))
+    const result = run(script, mkCtx(901, 1, 0, {}))
     expect(result.success).toBe(false)
   })
 
   test('fails when nonce is same as prev (replay)', () => {
     const script = buildTreasuryExecutionScript(cfg)
-    const result = evaluateScript(script, {}, mkCtx(901, 0, 0))
+    const result = run(script, mkCtx(901, 0, 0))
     expect(result.success).toBe(false)
   })
 })

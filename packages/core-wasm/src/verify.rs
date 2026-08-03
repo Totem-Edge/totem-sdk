@@ -109,8 +109,8 @@ pub fn verify_tree_signature(
     let sig_bytes = hex::decode(data_proof.signature.trim_start_matches("0x"))
         .map_err(|e| format!("Invalid signature hex: {}", e))?;
 
-    // Verify the WOTS signature against the leaf public key
-    if !crate::wots::wots_verify(&sig_bytes, message, &leaf_pubkey) {
+    // Verify the WOTS signature against the leaf public key DIGEST (32 bytes)
+    if !crate::wots::wots_verify_digest(&sig_bytes, message, &leaf_pubkey) {
         return Ok(false);
     }
 
@@ -122,7 +122,7 @@ pub fn verify_tree_signature(
         let parent_sig = hex::decode(proof.signature.trim_start_matches("0x"))
             .map_err(|e| format!("Invalid parent signature hex: {}", e))?;
 
-        if !crate::wots::wots_verify(&parent_sig, &current_pk, &parent_pubkey) {
+        if !crate::wots::wots_verify_digest(&parent_sig, &current_pk, &parent_pubkey) {
             return Ok(false);
         }
         current_pk = parent_pubkey;

@@ -100,7 +100,7 @@ export function createMqttProofPublisher(config: MqttProofPublisherConfig): Mqtt
               treeId: config.leaseTreeId,
             });
           } else {
-            proof = signProof(unsigned, config.seed, config.keyIndex ?? 0);
+            proof = signProof(unsigned, config.seed, 0);
           }
           proofId = (proof as SignedProof).proofId;
         } else {

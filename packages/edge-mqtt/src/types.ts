@@ -197,11 +197,9 @@ export interface MqttProofPublisherConfig {
   issuer?: string;
   /** 32-byte WOTS seed for signing proofs in proof-package mode. */
   seed?: Uint8Array;
-  /** WOTS key index for direct signing (used when no leaseProvider is given). */
-  keyIndex?: number;
   /**
    * WOTS lease provider for coordinated key-index reservation.
-   * When set, keyIndex is ignored and the index is reserved via the provider.
+   * When set, key indices are reserved via the provider.
    */
   leaseProvider?: {
     reserveKeyUse(params: {

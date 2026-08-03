@@ -16,6 +16,8 @@ module.exports = {
         paths: {
           '@totemsdk/proof': ['../proof/src/index.ts'],
           '@totemsdk/core': ['../core/src/index.ts'],
+          '@totemsdk/manifest': ['../manifest/src/index.ts'],
+          '@totemsdk/proofgraph': ['../proofgraph/src/index.ts'],
         },
       },
     }],
@@ -28,6 +30,8 @@ module.exports = {
         paths: {
           '@totemsdk/proof': ['../proof/src/index.ts'],
           '@totemsdk/core': ['../core/src/index.ts'],
+          '@totemsdk/manifest': ['../manifest/src/index.ts'],
+          '@totemsdk/proofgraph': ['../proofgraph/src/index.ts'],
         },
       },
     }],
@@ -35,6 +39,8 @@ module.exports = {
   moduleNameMapper: {
     '^@totemsdk/proof$': '<rootDir>/../proof/src/index.ts',
     '^@totemsdk/core$': '<rootDir>/../core/src/index.ts',
+    '^@totemsdk/manifest$': '<rootDir>/../manifest/src/index.ts',
+    '^@totemsdk/proofgraph$': '<rootDir>/../proofgraph/src/index.ts',
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
 };

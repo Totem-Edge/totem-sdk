@@ -31,7 +31,7 @@ export class AmountCapPolicy implements PolicyMiddleware {
     this.perDay = config.perDay !== undefined ? BigInt(config.perDay) : null;
   }
 
-  async evaluate(proposal: AgentProposal): Promise<PolicyEvalResult> {
+  async evaluate(proposal: AgentProposal, now = Date.now()): Promise<PolicyEvalResult> {
     const amount = proposal.intent.amount;
     if (amount === undefined || amount === null) {
       return { outcome: 'approved', reason: 'No amount to cap' };
@@ -53,7 +53,6 @@ export class AmountCapPolicy implements PolicyMiddleware {
       };
     }
 
-    const now = Date.now();
     if (now - this.dayStart >= 86_400_000) {
       this.dayTotal = 0n;
       this.dayStart = now;

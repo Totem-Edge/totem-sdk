@@ -1,66 +1,116 @@
+// edge-grpc: gRPC transport proxy for Totem Edge Runtime.
+//
+// Architecture:
+//   TypeScript (EdgeRuntime) ←→ TCP/JSON ←→ Go binary ←→ gRPC/HTTP2 ←→ gRPC server
+//
+// The Go binary accepts newline-delimited JSON commands from the TypeScript
+// native transport and translates them to real gRPC calls using the standard
+// google.golang.org/grpc library. All protobuf payloads are base64-encoded
+// in the JSON protocol.
+//
+// Supported operations:
+//   connect     — dial a gRPC server
+//   disconnect  — close the gRPC connection
+//   unary       — single request → single response
+//   server_stream — single request → stream of responses
+//   client_stream — stream of requests → single response
+//   bidi_stream — bidirectional streaming
+//   stream_send — send a message on an open stream
+//   stream_close — close the send side of a stream
+//
+// Environment:
+//   GRPC_LISTEN_ADDR  — TCP address to listen on (default: 127.0.0.1:15005)
+//   GRPC_TIMEOUT_MS   — default deadline in ms (default: 30000)
+
 package main
 
 import (
-	"bufio"
-	"encoding/hex"
+	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"os"
 	"strconv"
 	"sync"
 	"time"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
-type Config struct {
-	ListenAddr string `json:"listenAddr"`
-	TimeoutMs  int    `json:"timeoutMs"`
-}
+// ── JSON protocol types ──────────────────────────────────────────────────
 
 type Request struct {
-	ID      string `json:"id"`
-	Type    string `json:"type"` // "connect", "disconnect", "send"
-	Address string `json:"address,omitempty"`
-	Data    string `json:"data,omitempty"` // hex-encoded bytes
+	ID       string `json:"id"`
+	Type     string `json:"type"`
+	Address  string `json:"address,omitempty"`
+	Path     string `json:"path,omitempty"`
+	Payload  string `json:"payload,omitempty"`  // base64-encoded protobuf
+	Deadline int    `json:"deadline_ms,omitempty"`
+	StreamID string `json:"stream_id,omitempty"`
 }
 
 type Response struct {
-	ID    string `json:"id"`
-	OK    bool   `json:"ok"`
-	Data  string `json:"data,omitempty"` // hex-encoded response bytes
-	Error string `json:"error,omitempty"`
+	ID       string `json:"id"`
+	OK       bool   `json:"ok"`
+	Data     string `json:"data,omitempty"`     // base64-encoded protobuf
+	Error    string `json:"error,omitempty"`
+	Code     int    `json:"code,omitempty"`     // gRPC status code
+	StreamID string `json:"stream_id,omitempty"`
 }
 
-type PushData struct {
-	Type    string `json:"type"` // "data"
-	Address string `json:"address"`
-	Data    string `json:"data"` // hex-encoded bytes
+type PushMessage struct {
+	Type     string `json:"type"`               // "stream_data" | "stream_end" | "stream_error"
+	StreamID string `json:"stream_id"`
+	Payload  string `json:"payload,omitempty"`
+	Error    string `json:"error,omitempty"`
+	Code     int    `json:"code,omitempty"`
 }
+
+// ── Server ───────────────────────────────────────────────────────────────
 
 type Server struct {
 	config   Config
 	mu       sync.RWMutex
 	clients  map[net.Conn]struct{}
-	conns    map[string]net.Conn // gRPC connections keyed by address
+	conn     *grpc.ClientConn
+	connAddr string
+	streams  map[string]streamHandle
 	listener net.Listener
 	stopCh   chan struct{}
+}
+
+type Config struct {
+	ListenAddr string
+	TimeoutMs  int
+}
+
+type streamHandle struct {
+	stream grpc.ClientStream
+	cancel context.CancelFunc
+	ctx    context.Context
 }
 
 func main() {
 	config := Config{
 		ListenAddr: getEnv("GRPC_LISTEN_ADDR", "127.0.0.1:15005"),
-		TimeoutMs:  getEnvInt("GRPC_TIMEOUT_MS", 10000),
+		TimeoutMs:  getEnvInt("GRPC_TIMEOUT_MS", 30000),
 	}
 
 	srv := &Server{
 		config:  config,
 		clients: make(map[net.Conn]struct{}),
-		conns:   make(map[string]net.Conn),
+		streams: make(map[string]streamHandle),
 		stopCh:  make(chan struct{}),
 	}
 
-	log.Printf("[edge-grpc] Starting gRPC transport proxy")
+	log.Printf("[edge-grpc] gRPC transport proxy starting")
 	log.Printf("[edge-grpc] Listening on %s", config.ListenAddr)
 
 	if err := srv.Listen(); err != nil {
@@ -100,6 +150,8 @@ func (s *Server) Listen() error {
 	return nil
 }
 
+// ── Connection handler ───────────────────────────────────────────────────
+
 func (s *Server) handleConn(conn net.Conn) {
 	defer func() {
 		s.mu.Lock()
@@ -109,131 +161,418 @@ func (s *Server) handleConn(conn net.Conn) {
 		log.Printf("[edge-grpc] Client disconnected: %s", conn.RemoteAddr())
 	}()
 
-	scanner := bufio.NewScanner(conn)
-	scanner.Buffer(make([]byte, 1024*1024), 1024*1024)
-
-	for scanner.Scan() {
-		line := scanner.Text()
-		if line == "" {
-			continue
-		}
-
-		var req Request
-		if err := json.Unmarshal([]byte(line), &req); err != nil {
-			s.writeResponse(conn, Response{ID: "", OK: false, Error: fmt.Sprintf("invalid json: %v", err)})
-			continue
-		}
-
-		switch req.Type {
-		case "connect":
-			grpcConn, err := net.DialTimeout("tcp", req.Address, time.Duration(s.config.TimeoutMs)*time.Millisecond)
-			if err != nil {
-				s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: fmt.Sprintf("connect failed: %v", err)})
-				continue
-			}
-			s.mu.Lock()
-			s.conns[req.Address] = grpcConn
-			s.mu.Unlock()
-
-			// Start reading from the gRPC connection
-			go s.readFromGRPC(req.Address, grpcConn)
-
-			s.writeResponse(conn, Response{ID: req.ID, OK: true})
-
-		case "disconnect":
-			s.mu.Lock()
-			if grpcConn, ok := s.conns[req.Address]; ok {
-				grpcConn.Close()
-				delete(s.conns, req.Address)
-			}
-			s.mu.Unlock()
-			s.writeResponse(conn, Response{ID: req.ID, OK: true})
-
-		case "send":
-			s.mu.RLock()
-			grpcConn, ok := s.conns[req.Address]
-			s.mu.RUnlock()
-			if !ok {
-				s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: fmt.Sprintf("not connected to %s", req.Address)})
-				continue
-			}
-
-			data, err := hex.DecodeString(req.Data)
-			if err != nil {
-				s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: fmt.Sprintf("invalid hex: %v", err)})
-				continue
-			}
-
-			// Write gRPC frame: 1 byte compression flag + 4 bytes big-endian length + payload
-			frame := make([]byte, 5+len(data))
-			frame[0] = 0 // no compression
-			frame[1] = byte(len(data) >> 24)
-			frame[2] = byte(len(data) >> 16)
-			frame[3] = byte(len(data) >> 8)
-			frame[4] = byte(len(data))
-			copy(frame[5:], data)
-
-			if _, err := grpcConn.Write(frame); err != nil {
-				s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: fmt.Sprintf("write failed: %v", err)})
-				continue
-			}
-
-			// Read response: 5-byte header + payload
-			header := make([]byte, 5)
-			grpcConn.SetReadDeadline(time.Now().Add(time.Duration(s.config.TimeoutMs) * time.Millisecond))
-			if _, err := grpcConn.Read(header); err != nil {
-				s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: fmt.Sprintf("read header failed: %v", err)})
-				continue
-			}
-
-			respLen := int(header[1])<<24 | int(header[2])<<16 | int(header[3])<<8 | int(header[4])
-			respData := make([]byte, respLen)
-			if _, err := grpcConn.Read(respData); err != nil {
-				s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: fmt.Sprintf("read body failed: %v", err)})
-				continue
-			}
-
-			s.writeResponse(conn, Response{ID: req.ID, OK: true, Data: hex.EncodeToString(respData)})
-
-		default:
-			s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: fmt.Sprintf("unknown request type: %s", req.Type)})
-		}
-	}
-}
-
-func (s *Server) readFromGRPC(address string, conn net.Conn) {
-	defer func() {
-		s.mu.Lock()
-		delete(s.conns, address)
-		s.mu.Unlock()
-	}()
+	buf := make([]byte, 0, 64*1024)
+	tmp := make([]byte, 4096)
 
 	for {
-		header := make([]byte, 5)
-		if _, err := conn.Read(header); err != nil {
+		n, err := conn.Read(tmp)
+		if err != nil {
 			return
 		}
+		buf = append(buf, tmp[:n]...)
 
-		respLen := int(header[1])<<24 | int(header[2])<<16 | int(header[3])<<8 | int(header[4])
-		if respLen > 16*1024*1024 {
-			return
-		}
+		for {
+			nl := -1
+			for i, b := range buf {
+				if b == '\n' {
+					nl = i
+					break
+				}
+			}
+			if nl < 0 {
+				break
+			}
 
-		respData := make([]byte, respLen)
-		if _, err := conn.Read(respData); err != nil {
-			return
-		}
+			line := string(buf[:nl])
+			buf = buf[nl+1:]
 
-		msg := PushData{
-			Type:    "data",
-			Address: address,
-			Data:    hex.EncodeToString(respData),
+			if line == "" {
+				continue
+			}
+
+			var req Request
+			if err := json.Unmarshal([]byte(line), &req); err != nil {
+				s.writeResponse(conn, Response{ID: "", OK: false, Error: fmt.Sprintf("invalid json: %v", err)})
+				continue
+			}
+
+			s.handleRequest(conn, &req)
 		}
-		s.broadcastPush(msg)
 	}
 }
 
-func (s *Server) broadcastPush(msg PushData) {
+// ── Request dispatcher ───────────────────────────────────────────────────
+
+func (s *Server) handleRequest(conn net.Conn, req *Request) {
+	switch req.Type {
+	case "connect":
+		s.handleConnect(conn, req)
+	case "disconnect":
+		s.handleDisconnect(conn, req)
+	case "unary":
+		s.handleUnary(conn, req)
+	case "server_stream":
+		s.handleServerStream(conn, req)
+	case "client_stream":
+		s.handleClientStream(conn, req)
+	case "bidi_stream":
+		s.handleBidiStream(conn, req)
+	case "stream_send":
+		s.handleStreamSend(conn, req)
+	case "stream_close":
+		s.handleStreamClose(conn, req)
+	default:
+		s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: fmt.Sprintf("unknown request type: %s", req.Type)})
+	}
+}
+
+// ── connect / disconnect ──────────────────────────────────────────────────
+
+func (s *Server) handleConnect(conn net.Conn, req *Request) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.conn != nil {
+		s.conn.Close()
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(s.config.TimeoutMs)*time.Millisecond)
+	defer cancel()
+
+	grpcConn, err := grpc.DialContext(ctx, req.Address,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithBlock(),
+	)
+	if err != nil {
+		s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: fmt.Sprintf("dial failed: %v", err)})
+		return
+	}
+
+	s.conn = grpcConn
+	s.connAddr = req.Address
+	log.Printf("[edge-grpc] Connected to gRPC server: %s", req.Address)
+	s.writeResponse(conn, Response{ID: req.ID, OK: true})
+}
+
+func (s *Server) handleDisconnect(conn net.Conn, req *Request) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.conn != nil {
+		s.conn.Close()
+		s.conn = nil
+		s.connAddr = ""
+	}
+	s.writeResponse(conn, Response{ID: req.ID, OK: true})
+}
+
+// ── unary ────────────────────────────────────────────────────────────────
+
+func (s *Server) handleUnary(conn net.Conn, req *Request) {
+	s.mu.RLock()
+	grpcConn := s.conn
+	s.mu.RUnlock()
+
+	if grpcConn == nil {
+		s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: "not connected"})
+		return
+	}
+
+	payload, err := base64.StdEncoding.DecodeString(req.Payload)
+	if err != nil {
+		s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: fmt.Sprintf("invalid base64: %v", err)})
+		return
+	}
+
+	deadline := time.Duration(req.Deadline) * time.Millisecond
+	if deadline <= 0 {
+		deadline = time.Duration(s.config.TimeoutMs) * time.Millisecond
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), deadline)
+	defer cancel()
+
+	var respData []byte
+	var respHeader, respTrailer metadata.MD
+
+	err = grpcConn.Invoke(ctx, req.Path, payload, &respData,
+		grpc.Header(&respHeader),
+		grpc.Trailer(&respTrailer),
+	)
+	if err != nil {
+		st := status.Convert(err)
+		s.writeResponse(conn, Response{
+			ID: req.ID, OK: false,
+			Error: st.Message(),
+			Code:  int(st.Code()),
+		})
+		return
+	}
+
+	s.writeResponse(conn, Response{
+		ID:   req.ID,
+		OK:   true,
+		Data: base64.StdEncoding.EncodeToString(respData),
+	})
+}
+
+// ── server_stream ────────────────────────────────────────────────────────
+
+func (s *Server) handleServerStream(conn net.Conn, req *Request) {
+	s.mu.RLock()
+	grpcConn := s.conn
+	s.mu.RUnlock()
+
+	if grpcConn == nil {
+		s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: "not connected"})
+		return
+	}
+
+	payload, err := base64.StdEncoding.DecodeString(req.Payload)
+	if err != nil {
+		s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: fmt.Sprintf("invalid base64: %v", err)})
+		return
+	}
+
+	deadline := time.Duration(req.Deadline) * time.Millisecond
+	if deadline <= 0 {
+		deadline = time.Duration(s.config.TimeoutMs) * time.Millisecond
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), deadline)
+
+	stream, err := grpcConn.NewStream(ctx, &grpc.StreamDesc{
+		StreamName:    req.Path,
+		ServerStreams: true,
+		ClientStreams: false,
+	}, req.Path)
+	if err != nil {
+		cancel()
+		st := status.Convert(err)
+		s.writeResponse(conn, Response{
+			ID: req.ID, OK: false,
+			Error: st.Message(),
+			Code:  int(st.Code()),
+		})
+		return
+	}
+
+	if err := stream.SendMsg(payload); err != nil {
+		cancel()
+		s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: fmt.Sprintf("send failed: %v", err)})
+		return
+	}
+	stream.CloseSend()
+
+	// Acknowledge stream creation
+	s.writeResponse(conn, Response{ID: req.ID, OK: true, StreamID: req.ID})
+
+	// Read responses in background
+	go func() {
+		defer cancel()
+		for {
+			var msg []byte
+			if err := stream.RecvMsg(&msg); err != nil {
+				if err == io.EOF {
+					s.pushToAll(PushMessage{Type: "stream_end", StreamID: req.ID})
+				} else {
+					st := status.Convert(err)
+					s.pushToAll(PushMessage{
+						Type: "stream_error", StreamID: req.ID,
+						Error: st.Message(), Code: int(st.Code()),
+					})
+				}
+				return
+			}
+			s.pushToAll(PushMessage{
+				Type: "stream_data", StreamID: req.ID,
+				Payload: base64.StdEncoding.EncodeToString(msg),
+			})
+		}
+	}()
+}
+
+// ── client_stream ────────────────────────────────────────────────────────
+
+func (s *Server) handleClientStream(conn net.Conn, req *Request) {
+	s.mu.RLock()
+	grpcConn := s.conn
+	s.mu.RUnlock()
+
+	if grpcConn == nil {
+		s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: "not connected"})
+		return
+	}
+
+	deadline := time.Duration(req.Deadline) * time.Millisecond
+	if deadline <= 0 {
+		deadline = time.Duration(s.config.TimeoutMs) * time.Millisecond
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), deadline)
+
+	stream, err := grpcConn.NewStream(ctx, &grpc.StreamDesc{
+		StreamName:    req.Path,
+		ServerStreams: false,
+		ClientStreams: true,
+	}, req.Path)
+	if err != nil {
+		cancel()
+		st := status.Convert(err)
+		s.writeResponse(conn, Response{
+			ID: req.ID, OK: false,
+			Error: st.Message(), Code: int(st.Code()),
+		})
+		return
+	}
+
+	s.mu.Lock()
+	s.streams[req.ID] = streamHandle{stream: stream, cancel: cancel, ctx: ctx}
+	s.mu.Unlock()
+
+	s.writeResponse(conn, Response{ID: req.ID, OK: true, StreamID: req.ID})
+
+	// Wait for close, then receive response
+	go func() {
+		defer func() {
+			cancel()
+			s.mu.Lock()
+			delete(s.streams, req.ID)
+			s.mu.Unlock()
+		}()
+
+		// Block until RecvMsg returns (stream closed by client)
+		var resp []byte
+		if err := stream.RecvMsg(&resp); err != nil {
+			st := status.Convert(err)
+			s.pushToAll(PushMessage{
+				Type: "stream_error", StreamID: req.ID,
+				Error: st.Message(), Code: int(st.Code()),
+			})
+			return
+		}
+		s.pushToAll(PushMessage{
+			Type: "stream_end", StreamID: req.ID,
+			Payload: base64.StdEncoding.EncodeToString(resp),
+		})
+	}()
+}
+
+// ── bidi_stream ──────────────────────────────────────────────────────────
+
+func (s *Server) handleBidiStream(conn net.Conn, req *Request) {
+	s.mu.RLock()
+	grpcConn := s.conn
+	s.mu.RUnlock()
+
+	if grpcConn == nil {
+		s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: "not connected"})
+		return
+	}
+
+	deadline := time.Duration(req.Deadline) * time.Millisecond
+	if deadline <= 0 {
+		deadline = time.Duration(s.config.TimeoutMs) * time.Millisecond
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), deadline)
+
+	stream, err := grpcConn.NewStream(ctx, &grpc.StreamDesc{
+		StreamName:    req.Path,
+		ServerStreams: true,
+		ClientStreams: true,
+	}, req.Path)
+	if err != nil {
+		cancel()
+		st := status.Convert(err)
+		s.writeResponse(conn, Response{
+			ID: req.ID, OK: false,
+			Error: st.Message(), Code: int(st.Code()),
+		})
+		return
+	}
+
+	s.mu.Lock()
+	s.streams[req.ID] = streamHandle{stream: stream, cancel: cancel, ctx: ctx}
+	s.mu.Unlock()
+
+	s.writeResponse(conn, Response{ID: req.ID, OK: true, StreamID: req.ID})
+
+	// Read responses in background
+	go func() {
+		defer func() {
+			cancel()
+			s.mu.Lock()
+			delete(s.streams, req.ID)
+			s.mu.Unlock()
+		}()
+		for {
+			var msg []byte
+			if err := stream.RecvMsg(&msg); err != nil {
+				if err == io.EOF {
+					s.pushToAll(PushMessage{Type: "stream_end", StreamID: req.ID})
+				} else {
+					st := status.Convert(err)
+					s.pushToAll(PushMessage{
+						Type: "stream_error", StreamID: req.ID,
+						Error: st.Message(), Code: int(st.Code()),
+					})
+				}
+				return
+			}
+			s.pushToAll(PushMessage{
+				Type: "stream_data", StreamID: req.ID,
+				Payload: base64.StdEncoding.EncodeToString(msg),
+			})
+		}
+	}()
+}
+
+// ── stream_send / stream_close ────────────────────────────────────────────
+
+func (s *Server) handleStreamSend(conn net.Conn, req *Request) {
+	s.mu.RLock()
+	sh, ok := s.streams[req.StreamID]
+	s.mu.RUnlock()
+
+	if !ok {
+		s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: "stream not found"})
+		return
+	}
+
+	payload, err := base64.StdEncoding.DecodeString(req.Payload)
+	if err != nil {
+		s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: fmt.Sprintf("invalid base64: %v", err)})
+		return
+	}
+
+	if err := sh.stream.SendMsg(payload); err != nil {
+		s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: fmt.Sprintf("send failed: %v", err)})
+		return
+	}
+
+	s.writeResponse(conn, Response{ID: req.ID, OK: true})
+}
+
+func (s *Server) handleStreamClose(conn net.Conn, req *Request) {
+	s.mu.RLock()
+	sh, ok := s.streams[req.StreamID]
+	s.mu.RUnlock()
+
+	if !ok {
+		s.writeResponse(conn, Response{ID: req.ID, OK: false, Error: "stream not found"})
+		return
+	}
+
+	sh.stream.CloseSend()
+	s.writeResponse(conn, Response{ID: req.ID, OK: true})
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+
+func (s *Server) writeResponse(conn net.Conn, resp Response) {
+	data, _ := json.Marshal(resp)
+	data = append(data, '\n')
+	conn.Write(data)
+}
+
+func (s *Server) pushToAll(msg PushMessage) {
 	data, _ := json.Marshal(msg)
 	data = append(data, '\n')
 
@@ -242,12 +581,6 @@ func (s *Server) broadcastPush(msg PushData) {
 	for conn := range s.clients {
 		conn.Write(data)
 	}
-}
-
-func (s *Server) writeResponse(conn net.Conn, resp Response) {
-	data, _ := json.Marshal(resp)
-	data = append(data, '\n')
-	conn.Write(data)
 }
 
 func getEnv(key, defaultVal string) string {

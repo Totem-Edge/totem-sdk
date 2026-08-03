@@ -1,9 +1,8 @@
 /**
  * gRPC transport port — injected by the caller.
  *
- * Uses @totemsdk/stream-transport's IStreamTransport for the underlying
- * bidirectional byte pipe. gRPC framing (HTTP/2 + protobuf) is handled
- * by the caller's codec layer.
+ * The GrpcClient interface provides high-level gRPC operations.
+ * NativeGrpcTransport implements both IStreamTransport and GrpcClient.
  */
 
 import type { IStreamTransport } from '@totemsdk/stream-transport';
@@ -11,14 +10,25 @@ import type { IStreamTransport } from '@totemsdk/stream-transport';
 export type GrpcTransportPort = IStreamTransport;
 
 export interface GrpcMessage {
-  /** Fully qualified service/method name (e.g. "/package.Service/Method"). */
   path: string;
-  /** Serialized protobuf payload. */
   payload: Uint8Array;
-  /** Whether this is a response to a previous request. */
   isResponse: boolean;
-  /** Correlation ID for request/response matching. */
   requestId?: string;
-  /** Timestamp of receipt. */
   receivedAt: number;
+}
+
+export interface GrpcStreamHandle {
+  readonly streamId: string;
+  send(payload: Uint8Array): Promise<void>;
+  close(): Promise<void>;
+  onData(handler: (payload: Uint8Array) => void): () => void;
+  onEnd(handler: () => void): () => void;
+  onError(handler: (err: Error) => void): () => void;
+}
+
+export interface GrpcClient {
+  unaryCall(path: string, payload: Uint8Array, deadlineMs?: number): Promise<Uint8Array>;
+  serverStream(path: string, payload: Uint8Array, deadlineMs?: number): Promise<GrpcStreamHandle>;
+  clientStream(path: string, deadlineMs?: number): Promise<GrpcStreamHandle>;
+  bidiStream(path: string, deadlineMs?: number): Promise<GrpcStreamHandle>;
 }

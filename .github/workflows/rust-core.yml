@@ -177,7 +177,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
         with:
-          version: 9
+          version: 11.10.0
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
@@ -194,18 +194,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build TypeScript
-        working-directory: packages/core
-        run: npx tsc
-
       - name: Run core tests
         working-directory: packages/core
-        run: npx jest --passWithNoTests --no-coverage || true
+        run: npx jest --no-coverage
 
       - name: Run wots-lease tests
         working-directory: packages/wots-lease
-        run: npx jest --passWithNoTests --no-coverage || true
+        run: npx jest --no-coverage
 
       - name: Run txpow tests
         working-directory: packages/txpow
-        run: npx jest --passWithNoTests --no-coverage || true
+        run: npx jest --no-coverage

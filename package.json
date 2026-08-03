@@ -26,23 +26,26 @@
     "edge-computing",
     "cryptography"
   ],
+  "packageManager": "pnpm@11.10.0",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=11.0.0"
+  },
   "scripts": {
-    "build": "npm run build:core && npm run build:txpow && npm run build:server && npm run build:root-identity",
-    "build:core": "cd packages/core && npm run build",
-    "build:txpow": "cd packages/txpow && npm run build",
-    "build:server": "cd packages/server && npm run build",
-    "build:root-identity": "cd packages/root-identity && npm run build",
-    "build:extension": "cd extensions/totem-extension && npm run build",
-    "test": "cd packages/core && npm test && cd ../txpow && npm test",
-    "test:extension": "cd extensions/totem-extension && npm test",
+    "clean": "pnpm -r run clean",
+    "build": "pnpm -r --workspace-concurrency=4 run build",
+    "typecheck": "node scripts/verify-workspace.mjs --typecheck",
+    "lint": "node scripts/verify-workspace.mjs --lint",
+    "test": "pnpm -r run test",
+    "test:integration": "node scripts/verify-workspace.mjs --integration",
+    "test:pack": "node scripts/verify-workspace.mjs --pack",
+    "verify": "node scripts/verify-workspace.mjs --all",
     "smoke-test": "node scripts/smoke-test-imports.mjs",
-    "prepack": "node scripts/smoke-test-imports.mjs",
     "smoke:wots:prepare": "node scripts/smoke-wots-prepare.mjs",
     "smoke:wots:e2e": "node scripts/smoke-wots-e2e.mjs",
     "serve:wots:prod": "node scripts/serve-wots-prod.mjs",
     "docs": "typedoc",
-    "validate:meta": "node scripts/validate-pkg-meta.mjs",
-    "clean": "for d in packages/*/; do (cd \"$d\" && npm run clean); done"
+    "validate:meta": "node scripts/validate-pkg-meta.mjs"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
@@ -50,6 +53,6 @@
     "jest": "^30.4.2",
     "ts-jest": "^29.4.11",
     "typedoc": "^0.28.20",
-    "typescript": "^5.0.0"
+    "typescript": "^7.0.2"
   }
 }

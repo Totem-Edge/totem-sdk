@@ -66,6 +66,7 @@ export function evaluateScript(
     execStatements(ast, vm);
     return {
       passed: false,
+      success: false,
       trace: vm.trace,
       error: 'Script ended without RETURN',
       instructionsUsed: vm.instructionCount,
@@ -74,15 +75,15 @@ export function evaluateScript(
     if (e instanceof ReturnSignal) {
       const passed = isTruthy(e.value as Value);
       vm.addTrace(`RETURN → ${passed}`);
-      return { passed, trace: vm.trace, instructionsUsed: vm.instructionCount };
+      return { passed, success: passed, trace: vm.trace, instructionsUsed: vm.instructionCount };
     }
     // KissvmLimitError: intentionally NOT caught — let it propagate to the caller
     if (e instanceof KissvmLimitError) throw e;
     if (e instanceof KissvmRuntimeError) {
-      return { passed: false, trace: vm.trace, error: e.message, instructionsUsed: vm.instructionCount };
+      return { passed: false, success: false, trace: vm.trace, error: e.message, instructionsUsed: vm.instructionCount };
     }
     const msg = e instanceof Error ? e.message : String(e);
-    return { passed: false, trace: vm.trace, error: msg, instructionsUsed: vm.instructionCount };
+    return { passed: false, success: false, trace: vm.trace, error: msg, instructionsUsed: vm.instructionCount };
   }
 }
 

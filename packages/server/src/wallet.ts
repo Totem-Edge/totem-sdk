@@ -36,6 +36,7 @@ import {
   serializeTxBody as sdkSerializeTxBody,
   type MineResult,
 } from '@totemsdk/txpow';
+import { minimaTransactionToJson } from './tx-json.js';
 
 export interface WalletConfig {
   client: MinimaClient;
@@ -257,7 +258,7 @@ export class MinimaWallet {
     const signature = treeKey.sign(txHashBytes);
     
     const serialized = core.serializeTreeSignature(signature);
-    return core.bytesToHex(serialized);
+    return '0x' + core.bytesToHex(serialized);
   }
 
   /**
@@ -285,9 +286,8 @@ export class MinimaWallet {
     if (l1 < 0 || l1 >= 64) throw new Error(`Invalid l1 index ${l1}: must be 0-63`);
     if (l2 < 0 || l2 >= 64) throw new Error(`Invalid l2 index ${l2}: must be 0-63`);
 
-    core.precomputeTransactionCoinIDTx(tx);
-
-    const digest = core.computeTransactionDigest(tx);
+    const txBytes = core.serializeTransaction(JSON.stringify(minimaTransactionToJson(tx)));
+    const digest = core.computeTransactionDigest(txBytes);
 
     const treeKey = await this.getOrCreateTreeKey(addressIndex);
     const KEYS_PER_LEVEL = 64;
@@ -297,7 +297,7 @@ export class MinimaWallet {
 
     const serialized = core.serializeTreeSignature(sig);
     return {
-      signature: core.bytesToHex(serialized),
+      signature: '0x' + core.bytesToHex(serialized),
       digest,
     };
   }
@@ -339,7 +339,7 @@ export class MinimaWallet {
     const signature = treeKey.sign(dataHash);
     
     const serialized = core.serializeTreeSignature(signature);
-    return core.bytesToHex(serialized);
+    return '0x' + core.bytesToHex(serialized);
   }
 
   /**

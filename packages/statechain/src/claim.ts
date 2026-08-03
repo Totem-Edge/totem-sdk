@@ -3,14 +3,12 @@ import {
   bytesToHex,
   hexToBytes,
   scriptToAddress,
-  buildMinimaCoin,
   serializeTransaction,
   computeTransactionDigest,
   precomputeTransactionCoinID,
 } from '@totemsdk/core';
-import type { MinimaTransaction } from '@totemsdk/core';
 import { serializeTxPoW } from '@totemsdk/txpow';
-import { buildWitnessBytes, coinIdBytes, tokenIdBytes, kissHex } from './chain.js';
+import { addressToHex, buildWitnessBytes, kissHex, stateVarJson } from './chain.js';
 import type {
   StateChain,
   StatechainLeaseProvider,
@@ -44,23 +42,23 @@ export async function claimOwnership(
   const claimScript  = `RETURN SIGNEDBY(${kissHex(chain.currentOwner.publicKeyDigest)})`;
   const claimAddress = scriptToAddress(claimScript);
 
-  const inputCoin = buildMinimaCoin({
-    coinId:     coinIdBytes(chain.coinId),
-    address:    hexToBytes(chain.lockingAddress),
-    amount:     chain.amount.toString(),
-    tokenId:    tokenIdBytes(chain.tokenId),
-    storeState: true,
-    state:      [{ port: 0, value: chain.currentOwner.publicKeyDigest, type: 'hex' as const }],
-  });
-  const outputCoin = buildMinimaCoin({
-    address:    hexToBytes(claimAddress),
-    amount:     chain.amount.toString(),
-    tokenId:    tokenIdBytes(chain.tokenId),
-    storeState: false,
-  });
+  const inputCoin = {
+    coinid:    chain.coinId,
+    address:   addressToHex(chain.lockingAddress),
+    amount:    chain.amount.toString(),
+    tokenid:   chain.tokenId,
+    storestate: true,
+    state:     [stateVarJson(chain.currentOwner.publicKeyDigest)],
+  };
+  const outputCoin = {
+    address:   addressToHex(claimAddress),
+    amount:    chain.amount.toString(),
+    tokenid:   chain.tokenId,
+    storestate: false,
+  };
 
-  const tx: MinimaTransaction = {
-    linkHash: new Uint8Array([0x00]),
+  const tx = {
+    linkhash: '0x00',
     inputs:   [inputCoin],
     outputs:  [outputCoin],
     state:    [],
@@ -68,7 +66,6 @@ export async function claimOwnership(
 
   const txBytes = serializeTransaction(JSON.stringify(tx));
   const outputCoinId = precomputeTransactionCoinID(txBytes, 0);
-  tx.outputs[0].coinId = outputCoinId;
 
   const digest = computeTransactionDigest(txBytes);
 

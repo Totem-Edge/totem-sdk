@@ -16,7 +16,7 @@
     "build:go": "cd go && go build -o ../bin/omnia-router .",
     "prepare": "tsc",
     "clean": "rm -rf dist bin",
-    "test": "node ../../node_modules/jest/bin/jest.js --config jest.config.cjs --passWithNoTests"
+    "test": "jest"
   },
   "files": [
     "dist",
@@ -24,10 +24,10 @@
     "LICENSE"
   ],
   "dependencies": {
-    "@totemsdk/core": "^1.1.0"
+    "@totemsdk/core": "workspace:^"
   },
   "peerDependencies": {
-    "@totemsdk/omnia": ">=0.1.5"
+    "@totemsdk/omnia": "workspace:^"
   },
   "peerDependenciesMeta": {
     "@totemsdk/omnia": {

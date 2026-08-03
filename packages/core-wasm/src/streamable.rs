@@ -48,66 +48,24 @@ pub fn write_mini_byte(b: u8) -> Vec<u8> {
 }
 
 /// Write a hash (32 bytes) to stream.
+///
+/// Matches Java's Crypto.writeHashToStream() / MiniData.writeHashToStream():
+///   4-byte big-endian length + 32 hash bytes
 pub fn write_hash_to_stream(hash: &[u8]) -> Vec<u8> {
-    assert_eq!(hash.len(), 32, "hash must be 32 bytes");
-    hash.to_vec()
+    write_mini_data(hash)
 }
 
 /// Write an MMR entry number.
-pub fn write_mmr_entry_number(entry: u64) -> Vec<u8> {
-    entry.to_be_bytes().to_vec()
-}
-
-/// Write a state variable: 4-byte length + port(4) + data.
-pub fn write_state_variable(port: u32, data: &[u8]) -> Vec<u8> {
+///
+/// Matches Java's MMREntryNumber.writeDataStream():
+///   MiniNumber(scale) + MiniData(unscaled BigInteger bytes)
+pub fn write_mmr_entry_number(value: u64) -> Vec<u8> {
     let mut buf = Vec::new();
-    let total_len = (4 + data.len()) as u32;
-    buf.extend_from_slice(&total_len.to_be_bytes());
-    buf.extend_from_slice(&port.to_be_bytes());
-    buf.extend_from_slice(data);
-    buf
-}
-
-/// Write MMR data: entry number + data.
-pub fn write_mmr_data(entry: u64, data: &[u8]) -> Vec<u8> {
-    let mut buf = Vec::new();
-    buf.extend_from_slice(&write_mmr_entry_number(entry));
-    buf.extend_from_slice(&write_mini_data(data));
-    buf
-}
-
-/// Write MMR proof: count(4) + [entry(8) + data(minidata)]*count.
-pub fn write_mmr_proof(entries: &[(u64, Vec<u8>)]) -> Vec<u8> {
-    let mut buf = Vec::new();
-    buf.extend_from_slice(&(entries.len() as u32).to_be_bytes());
-    for (entry, data) in entries {
-        buf.extend_from_slice(&write_mmr_data(*entry, data));
-    }
-    buf
-}
-
-/// Write a WOTS signature: L × 32 bytes.
-pub fn write_signature(sig: &[u8]) -> Vec<u8> {
-    sig.to_vec()
-}
-
-/// Write a witness: count(4) + [signature]*count.
-pub fn write_witness(signatures: &[Vec<u8>]) -> Vec<u8> {
-    let mut buf = Vec::new();
-    buf.extend_from_slice(&(signatures.len() as u32).to_be_bytes());
-    for sig in signatures {
-        buf.extend_from_slice(sig);
-    }
-    buf
-}
-
-/// Write a hierarchical witness: level count + per-level witnesses.
-pub fn write_hierarchical_witness(level_witnesses: &[Vec<Vec<u8>>]) -> Vec<u8> {
-    let mut buf = Vec::new();
-    buf.extend_from_slice(&(level_witnesses.len() as u32).to_be_bytes());
-    for level in level_witnesses {
-        buf.extend_from_slice(&write_witness(level));
-    }
+    // Scale as MiniNumber (always 0 for integer MMR entries)
+    buf.extend_from_slice(&write_mini_number(value as i64, 0));
+    // Unscaled value as MiniData
+    let bytes = big_int_to_byte_array(value as i64);
+    buf.extend_from_slice(&write_mini_data(&bytes));
     buf
 }
 
@@ -190,7 +148,8 @@ mod tests {
     #[test]
     fn test_write_mmr_entry_number() {
         let result = write_mmr_entry_number(0);
+        // MiniNumber(0,0): [00 01 00] + MiniData([0]): [00 00 00 01 00] = 8 bytes
         assert_eq!(result.len(), 8);
-        assert_eq!(result, vec![0, 0, 0, 0, 0, 0, 0, 0]);
+        assert_eq!(result, vec![0, 1, 0, 0, 0, 0, 1, 0]);
     }
 }

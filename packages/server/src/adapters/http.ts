@@ -1,10 +1,10 @@
 /**
  * Node.js HTTP Client Adapter
- * Provides HttpClient implementation using native fetch (Node 18+) or node-fetch@2
+ * Provides HttpClient implementation using native fetch (Node 18+).
  */
 
-import nodeFetch from 'node-fetch';
-import type { RequestInit, Response as NodeFetchResponse } from 'node-fetch';
+import { httpFetch } from '../http-fetch.js';
+import type { RequestInit, Response as NodeFetchResponse } from '../http-fetch.js';
 import type {
   HttpClient,
   HttpRequestOptions,
@@ -13,9 +13,7 @@ import type {
 
 type FetchFunction = (url: string, init?: RequestInit) => Promise<NodeFetchResponse>;
 
-const fetchImpl: FetchFunction = (typeof globalThis.fetch === 'function')
-  ? globalThis.fetch.bind(globalThis) as unknown as FetchFunction
-  : nodeFetch;
+const fetchImpl: FetchFunction = httpFetch;
 
 export interface NodeHttpClientOptions {
   defaultHeaders?: Record<string, string>;

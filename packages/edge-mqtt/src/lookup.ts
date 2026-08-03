@@ -34,7 +34,18 @@ export async function announceMqttService(
   if (!runtime.ports.lookup) {
     return { ok: false, error: 'No lookup port available', errorCode: 'NO_LOOKUP_PORT' };
   }
-  return runtime.ports.lookup.announce(params);
+  if (typeof runtime.ports.lookup.announce !== 'function') {
+    return { ok: false, error: 'Lookup port has no announce method', errorCode: 'NO_ANNOUNCE_METHOD' };
+  }
+  try {
+    return await runtime.ports.lookup.announce(params);
+  } catch (err) {
+    return {
+      ok: false,
+      error: (err as Error).message ?? 'Lookup announce failed',
+      errorCode: 'LOOKUP_ANNOUNCE_FAILED',
+    };
+  }
 }
 
 /**

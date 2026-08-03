@@ -318,6 +318,7 @@ pub fn wots_verify_digest(sig: &[u8], message: &[u8], pk_digest: &[u8]) -> bool 
         return false;
     }
 
+    // CRITICAL: Hash the message internally to match Java/BouncyCastle
     let hashed_msg = sha3_256(message);
     let all_digits = base_w_with_checksum(&hashed_msg);
     let mut buf = vec![0u8; expected_len];

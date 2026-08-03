@@ -29,7 +29,7 @@ class MockLookupServer {
 
   constructor(serverTransport: InMemoryTransport) {
     this.transport = serverTransport;
-    serverTransport.on('data', (chunk) => {
+    serverTransport.onData((chunk) => {
       const msgs = this._parser.push(chunk);
       for (const msg of msgs) {
         this._receivedTypes.push(msg.type);
@@ -206,7 +206,7 @@ describe('Auth handshake', () => {
 
     // Server sends GET_TIP instead of AUTH_CHALLENGE
     const sp = new FrameParser();
-    serverTransport.on('data', (chunk) => {
+    serverTransport.onData((chunk) => {
       const msgs = sp.push(chunk);
       for (const msg of msgs) {
         if (msg.type === 'HELLO') {
@@ -441,7 +441,7 @@ describe('RPC timeout', () => {
 
     // Minimal auth-only server — handles HELLO and AUTH_RESPONSE, silently drops everything else
     const authParser = new FrameParser();
-    str.on('data', (chunk) => {
+    str.onData((chunk) => {
       const msgs = authParser.push(chunk);
       for (const msg of msgs) {
         if (msg.type === 'HELLO') {

@@ -62,7 +62,7 @@ export class LookupClient {
     this._activeTransport = transport;
     this._rpc.attach(transport);
 
-    transport.on('close', () => {
+    transport.onClose(() => {
       if (!this._destroyed) {
         this._activeTransport = null;
         this._rpc.detach();
@@ -70,7 +70,7 @@ export class LookupClient {
       }
     });
 
-    transport.on('error', () => {
+    transport.onError(() => {
       // Errors always lead to 'close'; handled above
     });
 

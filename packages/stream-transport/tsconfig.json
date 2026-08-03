@@ -6,6 +6,10 @@
       "ES2020",
       "DOM"
     ],
+    "types": [
+      "node",
+      "jest"
+    ],
     "declaration": true,
     "outDir": "./dist",
     "rootDir": "./src",

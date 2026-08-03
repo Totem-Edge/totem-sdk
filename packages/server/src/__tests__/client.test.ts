@@ -7,9 +7,9 @@
 import { EventEmitter } from 'events';
 import { MinimaClient } from '../client';
 
-// ─── mock node-fetch ─────────────────────────────────────────────────────────
-jest.mock('node-fetch', () => jest.fn());
-import nodeFetch from 'node-fetch';
+// ─── mock http fetch ────────────────────────────────────────────────────────
+jest.mock('../http-fetch.js', () => ({ httpFetch: jest.fn() }));
+import { httpFetch as nodeFetch } from '../http-fetch.js';
 const mockFetch = nodeFetch as unknown as jest.Mock;
 
 // ─── mock WebSocket ───────────────────────────────────────────────────────────

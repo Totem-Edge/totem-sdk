@@ -69,6 +69,7 @@ export type { WotsIndices } from './tx/index.js';
 
 // Utilities
 export { bytesToHex, hexToBytes, concatBytes } from './wasm-sync.js';
+import { bytesToHex, parseMxAddress } from './wasm-sync.js';
 
 // SHA3-256
 export { sha3_256 } from './wasm-sync.js';
@@ -102,22 +103,34 @@ export {
 } from './wasm-sync.js';
 
 // TreeKey/TreeKeyNode — WASM-backed
+// createUnifiedChildTreeKey / createUnifiedRootTreeKey come from the TS
+// implementation (returning a full TreeKey object with setUses/sign/getPublicKey)
+// to match the object API that downstream consumers (server, root-identity)
+// rely on. The WASM binding only returns the root public key bytes.
 export {
   createUnifiedChildTreeKey,
   createUnifiedRootTreeKey,
   deriveUnifiedAddressPublicKey,
   verifyTreeSignature,
+} from './treekey.js';
+
+export {
   mmrRootFromPublicKeys,
   verifyMMRProof,
 } from './wasm-sync.js';
 
 // BIP39 Seed Phrase Handling
+// NOTE: the TS implementation (bip39.ts) uses the complete 2048-word BIP39
+// word list and Minima-compatible uppercase canonicalization. The WASM
+// binding (wasm-sync.ts) ships a corrupted/partial word list (missing
+// "hungry", contains spurious words) and lowercases instead of uppercasing,
+// so the public API routes through the TS implementation.
 export {
   phraseToSeed,
   generateWordList,
   validatePhrase,
   cleanSeedPhrase,
-} from './wasm-sync.js';
+} from './bip39.js';
 
 // Address Derivation
 export {
@@ -148,6 +161,14 @@ export { scriptFromWotsPk } from './script.js';
 
 // Base32 Encoding (Minima-compatible) — re-export from WASM
 export { makeMxAddress as encodeMx, parseMxAddress as decodeMx } from './wasm-sync.js';
+
+/** Convert an Mx (radix-32) or hex Minima address to lowercase hex. */
+export function mxToHex(address: string): string {
+  const upper = address.startsWith('0x') || address.startsWith('0X') ? address.slice(2) : address;
+  return upper.toUpperCase().startsWith('MX')
+    ? bytesToHex(parseMxAddress(address))
+    : upper.replace(/^0x/i, '');
+}
 
 // Merkle Mountain Range (original JS — types and helpers)
 export * from './mmr.js';
@@ -263,6 +284,9 @@ export {
 
 // Canonical helpers (deterministic JSON + hashing)
 export { toHex, canonicalJson, hashCanonical } from './canonical.js';
+
+// Byte/string utilities
+export { utf8ToBytes, bytesToUtf8 } from './utils.js';
 
 // Constants
 export const MINIMA_CONSTANTS = {

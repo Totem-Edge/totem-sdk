@@ -32,13 +32,13 @@
     }
   },
   "dependencies": {
-    "@totemsdk/stream-transport": "^0.1.0"
+    "@totemsdk/stream-transport": "workspace:^"
   },
   "scripts": {
     "build": "tsc",
     "prepare": "tsc",
     "clean": "rm -rf dist",
-    "test": "jest --passWithNoTests",
+    "test": "jest",
     "test:bare": "node --input-type=module < src/__tests__/bare/run-bare.mjs"
   },
   "files": [

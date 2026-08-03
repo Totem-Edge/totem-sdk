@@ -12,7 +12,7 @@ module.exports = {
         module: 'CommonJS',
         moduleResolution: 'node',
         allowJs: true,
-        lib: ['ES2022'],
+        lib: ['ES2022', 'DOM'],
         target: 'ES2022',
         baseUrl: '.',
         paths: {

@@ -27,16 +27,16 @@ import { TX_POW_MIN_DIFFICULTY } from '../constants.js';
 const FIXED_PRNG = new Uint8Array(32).fill(0xab);
 
 const EMPTY_TX_BYTES = concat(
-  writeMiniNumber(0n),
-  writeMiniNumber(0n),
-  writeMiniNumber(0n),
+  writeMiniNumber(0n, 0),
+  writeMiniNumber(0n, 0),
+  writeMiniNumber(0n, 0),
   writeHashToStream(new Uint8Array([0x00]))
 );
 
 const EMPTY_WITNESS_BYTES = concat(
-  writeMiniNumber(0n),
-  writeMiniNumber(0n),
-  writeMiniNumber(0n)
+  writeMiniNumber(0n, 0),
+  writeMiniNumber(0n, 0),
+  writeMiniNumber(0n, 0)
 );
 
 /** Easy difficulty: first byte 0x0F, rest 0xFF. Mines in <1 ms. */

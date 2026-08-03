@@ -67,6 +67,15 @@ describe('RateLimitPolicy', () => {
     const result2 = await policy.evaluate(makeProposal());
     expect(result2.outcome).toBe('approved');
   });
+
+  it('resets the window automatically after it rolls over (time-based)', async () => {
+    const policy = new RateLimitPolicy(1, 1000);
+    const t0 = 1_000_000;
+    expect((await policy.evaluate(makeProposal(), t0)).outcome).toBe('approved');
+    expect((await policy.evaluate(makeProposal(), t0 + 500)).outcome).toBe('rejected');
+    expect((await policy.evaluate(makeProposal(), t0 + 1000)).outcome).toBe('approved');
+    expect((await policy.evaluate(makeProposal(), t0 + 1001)).outcome).toBe('rejected');
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -121,6 +130,14 @@ describe('AmountCapPolicy', () => {
     const result2 = await policy.evaluate(makeProposal({ amount: '50' }));
     expect(result2.outcome).toBe('approved');
   });
+
+  it('resets the day budget automatically after 24h (time-based)', async () => {
+    const policy = new AmountCapPolicy({ perDay: '100' });
+    const day1 = 1_000_000;
+    expect((await policy.evaluate(makeProposal({ amount: '100' }), day1)).outcome).toBe('approved');
+    expect((await policy.evaluate(makeProposal({ amount: '50' }), day1 + 1000)).outcome).toBe('rejected');
+    expect((await policy.evaluate(makeProposal({ amount: '50' }), day1 + 86_400_000)).outcome).toBe('approved');
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -160,20 +177,29 @@ describe('TimeWindowPolicy', () => {
   });
 
   it('approves within the window', async () => {
-    const now = new Date();
-    const currentMinute = now.getUTCHours() * 60 + now.getUTCMinutes();
-    const start = Math.max(0, currentMinute - 30);
-    const end = Math.min(1440, currentMinute + 30);
-    const policy = new TimeWindowPolicy(start, end);
-    const result = await policy.evaluate(makeProposal());
+    const policy = new TimeWindowPolicy(360, 1320);
+    const result = await policy.evaluate(makeProposal(), new Date('2026-08-03T12:30:00Z'));
     expect(result.outcome).toBe('approved');
   });
 
   it('rejects outside the window', async () => {
     const policy = new TimeWindowPolicy(0, 1);
-    const result = await policy.evaluate(makeProposal());
+    const result = await policy.evaluate(makeProposal(), new Date('2026-08-03T12:00:00Z'));
     expect(result.outcome).toBe('rejected');
     expect(result.reason).toContain('Outside time window');
+  });
+
+  it('rejects just before midnight-UTC rollover when outside window', async () => {
+    const policy = new TimeWindowPolicy(360, 1320);
+    const result = await policy.evaluate(makeProposal(), new Date('2026-08-03T00:00:00Z'));
+    expect(result.outcome).toBe('rejected');
+  });
+
+  it('approves at the window boundary (start inclusive, end exclusive)', async () => {
+    const policy = new TimeWindowPolicy(360, 1320);
+    expect((await policy.evaluate(makeProposal(), new Date('2026-08-03T06:00:00Z'))).outcome).toBe('approved');
+    expect((await policy.evaluate(makeProposal(), new Date('2026-08-03T21:59:00Z'))).outcome).toBe('approved');
+    expect((await policy.evaluate(makeProposal(), new Date('2026-08-03T22:00:00Z'))).outcome).toBe('rejected');
   });
 
   it('static hour helper works', () => {

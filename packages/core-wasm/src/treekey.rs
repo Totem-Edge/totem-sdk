@@ -81,7 +81,12 @@ impl TreeKeyNode {
             return Err("Private seed must be 32 bytes".to_string());
         }
 
-        let child_seed = sha3(private_seed);
+        // Java: mChildSeed = Crypto.getInstance().hashObject(zPrivateSeed)
+        // hashObject serializes as MiniData (4-byte len + bytes) then SHA3-256
+        let child_seed = {
+            let serialized = crate::streamable::write_mini_data(private_seed);
+            sha3(&serialized)
+        };
 
         let mut public_key_digests = Vec::with_capacity(keys_per_level);
         for i in 0..keys_per_level {

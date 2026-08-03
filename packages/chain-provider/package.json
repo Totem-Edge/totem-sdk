@@ -15,7 +15,7 @@
     "build": "tsc",
     "prepare": "tsc",
     "clean": "rm -rf dist",
-    "test": "jest --passWithNoTests"
+    "test": "jest"
   },
   "files": [
     "dist",
@@ -23,8 +23,8 @@
     "LICENSE"
   ],
   "dependencies": {
-    "@totemsdk/core": "^1.1.0",
-    "@totemsdk/pureminima-rpc": "^0.1.3"
+    "@totemsdk/core": "workspace:^",
+    "@totemsdk/pureminima-rpc": "workspace:^"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

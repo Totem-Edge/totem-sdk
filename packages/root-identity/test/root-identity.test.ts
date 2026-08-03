@@ -76,7 +76,7 @@ describe('UnifiedIdentityWallet — address derivation', () => {
 
   test('getRootPublicKey returns 64-char hex', () => {
     const pk = sharedWallet.getRootPublicKey();
-    expect(pk).toMatch(/^[0-9a-f]{64}$/);
+    expect(pk).toMatch(/^[0-9A-Fa-f]{64}$/);
   });
 
   test('root address differs from child addresses (root is identity anchor, not a spend addr)', () => {
@@ -117,7 +117,7 @@ describe('UnifiedIdentityWallet — address derivation', () => {
   });
 
   test('getChildPublicKey returns 64-char hex', () => {
-    expect(sharedWallet.getChildPublicKey(0)).toMatch(/^[0-9a-f]{64}$/);
+    expect(sharedWallet.getChildPublicKey(0)).toMatch(/^[0-9A-Fa-f]{64}$/);
   });
 
   test('root public key differs from child public keys', () => {

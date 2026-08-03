@@ -1,3 +1,15 @@
+// ─── Result type ─────────────────────────────────────────────────────────────
+
+export interface GovernanceError {
+  error: string
+}
+
+export type GovernanceResult<T> = T | GovernanceError
+
+export function isGovernanceError<T>(result: GovernanceResult<T>): result is GovernanceError {
+  return typeof result === 'object' && result !== null && 'error' in result
+}
+
 export type ProposalStatus =
   | 'draft'
   | 'active'

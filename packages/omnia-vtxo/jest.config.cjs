@@ -19,6 +19,8 @@ module.exports = {
     }],
   },
   moduleNameMapper: {
+    '^@totemsdk/core$': '<rootDir>/../core/src/index.ts',
+    '^@totemsdk/omnia-vtxo$': '<rootDir>/src/index.ts',
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
 };

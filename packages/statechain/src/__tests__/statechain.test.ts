@@ -1,4 +1,4 @@
-import { sha3_256 } from '@totemsdk/core';
+import { sha3_256, bytesToHex } from '@totemsdk/core';
 import { hex } from '@totemsdk/core';
 import {
   createStateChain,
@@ -64,19 +64,19 @@ function makeSEClient(): SEClient & { revokedKeys: string[]; registeredChains: s
     async registerChain(chainId: string): Promise<void> {
       registeredChains.push(chainId);
     },
-    async blindSign(message: string): Promise<string> { return blindSignMock(message); },
-    async revokeKey(old: string): Promise<void> { revokedKeys.push(old); },
+    async blindSign(_chainId: string, commitmentHex: string): Promise<string> { return blindSignMock(commitmentHex); },
+    async revokeKey(_chainId: string, details: { previousOwnerPartyId: string }): Promise<void> { revokedKeys.push(details.previousOwnerPartyId); },
     async isRevoked(o: string): Promise<boolean> { return revokedKeys.includes(o); },
   };
 }
 
 function mockVerifyBlindSig(sig: string, commitment: Uint8Array, _: string): boolean {
-  return sig === blindSignMock(hex(commitment));
+  return sig === blindSignMock(bytesToHex(commitment));
 }
 
 function mockVerifyOwnerSig(ownerSig: string, commitment: Uint8Array, _: string): boolean {
   const expected = sha3_256(new Uint8Array([...sha3_256(commitment), ...commitment.slice(0, 4)]));
-  return ownerSig === hex(expected);
+  return ownerSig === bytesToHex(expected);
 }
 
 function mockVerifyTransferKey(transferKey: string, _: string): boolean {
@@ -128,7 +128,7 @@ describe('@totemsdk/statechain — createStateChain', () => {
   it('lock TX output coinId is stored as chain.coinId — NOT the original input coinId', () => {
     // createStateChain builds a lock TX; the OUTPUT coin has a new, computed coinId
     expect(chain.coinId).not.toBe(COIN_ID);
-    expect(chain.coinId).toMatch(/^[0-9a-f]+$/);
+    expect(chain.coinId).toMatch(/^[0-9A-Fa-f]+$/);
   });
 
   it('sets tokenId and amount from owner', () => {
@@ -156,7 +156,7 @@ describe('@totemsdk/statechain — createStateChain', () => {
   });
 
   it('chainId is a 64-char hex string', () => {
-    expect(chain.chainId).toMatch(/^[0-9a-f]{64}$/);
+    expect(chain.chainId).toMatch(/^[0-9A-Fa-f]{64}$/);
   });
 
   it('lockingScript uses STATE(0) for owner key (not hardcoded PKD)', () => {
@@ -190,13 +190,13 @@ describe('@totemsdk/statechain — createStateChain', () => {
 
   it('reclaimTx is pre-built (signed with TX body digest, not synthetic hash)', () => {
     expect(chain.reclaimTx.length).toBeGreaterThan(100);
-    expect(chain.reclaimTx).toMatch(/^[0-9a-f]+$/);
+    expect(chain.reclaimTx).toMatch(/^[0-9A-Fa-f]+$/);
   });
 
   it('reclaimAddress is SIGNEDBY(ownerPkd) output, distinct from lockingAddress', () => {
     expect(chain.reclaimAddress.length).toBeGreaterThan(0);
     expect(chain.reclaimAddress).not.toBe(chain.lockingAddress);
-    expect(chain.reclaimAddress.replace(/^0x/i, '').length).toBe(64);
+    expect(chain.reclaimAddress).toMatch(/^Mx[0-9A-Z]+$/);
   });
 
   it('reclaimTimelock equals RECLAIM_TIMELOCK constant', () => {
@@ -325,18 +325,18 @@ describe('@totemsdk/statechain — transferOwnership (A → B)', () => {
 
   it('TransferRecord.signedDigest is sha3_256(txBodyHex)', () => {
     const rec = transferred.transferHistory[0];
-    const recomputed = hex(sha3_256(Buffer.from(rec.txBodyHex, 'hex')));
+    const recomputed = bytesToHex(sha3_256(Buffer.from(rec.txBodyHex, 'hex')));
     expect(rec.signedDigest).toBe(recomputed);
   });
 
   it('TransferRecord.txBodyHex is raw TX bytes hex', () => {
     expect(transferred.transferHistory[0].txBodyHex.length).toBeGreaterThan(0);
-    expect(transferred.transferHistory[0].txBodyHex).toMatch(/^[0-9a-f]+$/);
+    expect(transferred.transferHistory[0].txBodyHex).toMatch(/^[0-9A-Fa-f]+$/);
   });
 
   it('TransferRecord.ownerSignature is the old owner WOTS sig hex', () => {
     expect(transferred.transferHistory[0].ownerSignature.length).toBeGreaterThan(0);
-    expect(transferred.transferHistory[0].ownerSignature).toMatch(/^[0-9a-f]+$/);
+    expect(transferred.transferHistory[0].ownerSignature).toMatch(/^[0-9A-Fa-f]+$/);
   });
 
   it('TransferRecord.txHex is the state-update TxPoW', () => {
@@ -451,7 +451,7 @@ describe('@totemsdk/statechain — transfer chain A → B → C', () => {
 
   it('signedDigest matches sha3_256(txBodyHex) for both hops', () => {
     for (const rec of afterBC.transferHistory) {
-      const recomputed = hex(sha3_256(Buffer.from(rec.txBodyHex, 'hex')));
+      const recomputed = bytesToHex(sha3_256(Buffer.from(rec.txBodyHex, 'hex')));
       expect(rec.signedDigest).toBe(recomputed);
     }
   });
@@ -624,7 +624,7 @@ describe('@totemsdk/statechain — claimOwnership', () => {
   it('returns ClaimPayload with TxPoW hex signed with actual TX body digest', async () => {
     const r = await claimOwnership(chain, makeLeaseProvider(se));
     expect(r.txHex.length).toBeGreaterThan(100);
-    expect(r.txHex).toMatch(/^[0-9a-f]+$/);
+    expect(r.txHex).toMatch(/^[0-9A-Fa-f]+$/);
   });
 
   it('returns ClaimPayload — chainId and coinId match chain', async () => {
@@ -658,8 +658,8 @@ describe('@totemsdk/statechain — claimOwnership', () => {
     expect(r1.claimAddress).not.toBe(chain.lockingAddress);
     // Both TxPoW must be well-formed hex of non-trivial length
     expect(r1.txHex.length).toBeGreaterThan(200);
-    expect(r1.txHex).toMatch(/^[0-9a-f]+$/);
-    expect(r2.txHex).toMatch(/^[0-9a-f]+$/);
+    expect(r1.txHex).toMatch(/^[0-9A-Fa-f]+$/);
+    expect(r2.txHex).toMatch(/^[0-9A-Fa-f]+$/);
   });
 
   it('txpowId is set when leaseProvider.broadcast is present', async () => {
@@ -853,9 +853,9 @@ describe('@totemsdk/statechain — full lifecycle A → B → C → verify → c
     expect(afterAB.currentOwner.partyId).toBe('bob');
     expect(afterAB.coinId).not.toBe(created.coinId);
     expect(afterAB.reclaimTx).not.toBe(created.reclaimTx);
-    expect(afterAB.transferHistory[0].signedDigest).toMatch(/^[0-9a-f]{64}$/);
+    expect(afterAB.transferHistory[0].signedDigest).toMatch(/^[0-9A-Fa-f]{64}$/);
     expect(afterAB.transferHistory[0].ownerSignature.length).toBeGreaterThan(0);
-    const recomputedAB = hex(sha3_256(Buffer.from(afterAB.transferHistory[0].txBodyHex, 'hex')));
+    const recomputedAB = bytesToHex(sha3_256(Buffer.from(afterAB.transferHistory[0].txBodyHex, 'hex')));
     expect(afterAB.transferHistory[0].signedDigest).toBe(recomputedAB);
 
     // Transfer B → C — reclaimTx updated for carol

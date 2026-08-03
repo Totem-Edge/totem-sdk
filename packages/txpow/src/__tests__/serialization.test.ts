@@ -46,15 +46,15 @@ const MOCK_PRNG = new Uint8Array(32).fill(0xcd);
 
 // Empty pre-serialized transaction and witness (smallest valid inputs)
 const EMPTY_TX_BYTES = concat(
-  writeMiniNumber(0n),
-  writeMiniNumber(0n),
-  writeMiniNumber(0n),
+  writeMiniNumber(0n, 0),
+  writeMiniNumber(0n, 0),
+  writeMiniNumber(0n, 0),
   writeHashToStream(new Uint8Array([0x00]))
 );
 const EMPTY_WITNESS_BYTES = concat(
-  writeMiniNumber(0n),
-  writeMiniNumber(0n),
-  writeMiniNumber(0n)
+  writeMiniNumber(0n, 0),
+  writeMiniNumber(0n, 0),
+  writeMiniNumber(0n, 0)
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -114,7 +114,7 @@ describe('serializeMagic', () => {
   it('contains expected MiniNumber values for maxTxPoWSize=65536', () => {
     const magic = serializeMagic();
     const hex = bytesToHex(magic);
-    // writeMiniNumber(65536n): scale=0 [00], len=3 [03], bytes=[01,00,00]
+    // writeMiniNumber(65536n, 0): scale=0 [00], len=3 [03], bytes=[01,00,00]
     // so "000301 0000" — confirm first 6 bytes contain expected value
     expect(hex.startsWith('000301')).toBe(true);
   });
@@ -150,13 +150,13 @@ describe('serializeTxHeader', () => {
 
   it('encodes nonce=128 with 4 bytes (MiniNumber boundary)', () => {
     const h = serializeTxHeader(MOCK_BODY_HASH, { nonce: 128n, timeMilli: FIXED_TIME });
-    // writeMiniNumber(128n): scale=0 [00], len=2 [02], bytes=[00,80]
+    // writeMiniNumber(128n, 0): scale=0 [00], len=2 [02], bytes=[00,80]
     expect(Array.from(h.slice(0, 4))).toEqual([0x00, 0x02, 0x00, 0x80]);
   });
 
   it('encodes nonce=32768 with 5 bytes (MiniNumber boundary)', () => {
     const h = serializeTxHeader(MOCK_BODY_HASH, { nonce: 32768n, timeMilli: FIXED_TIME });
-    // writeMiniNumber(32768n): scale=0 [00], len=3 [03], bytes=[00,80,00]
+    // writeMiniNumber(32768n, 0): scale=0 [00], len=3 [03], bytes=[00,80,00]
     expect(Array.from(h.slice(0, 5))).toEqual([0x00, 0x03, 0x00, 0x80, 0x00]);
   });
 
@@ -237,7 +237,7 @@ describe('serializeTxBody', () => {
 
   it('ends with MiniNumber(0) for empty txpowid list', () => {
     const body = serializeTxBody(EMPTY_TX_BYTES, EMPTY_WITNESS_BYTES, { prng: MOCK_PRNG });
-    // Last 3 bytes: writeMiniNumber(0n) = [00, 01, 00]
+    // Last 3 bytes: writeMiniNumber(0n, 0) = [00, 01, 00]
     expect(Array.from(body.slice(body.length - 3))).toEqual([0x00, 0x01, 0x00]);
   });
 });
@@ -304,31 +304,31 @@ describe('nonce MiniNumber encoding boundaries', () => {
   const TIME = 1700000000000n;
 
   it('nonce=0 encodes as 3 bytes [00 01 00]', () => {
-    const n = writeMiniNumber(0n);
+    const n = writeMiniNumber(0n, 0);
     expect(n.length).toBe(3);
     expect(Array.from(n)).toEqual([0x00, 0x01, 0x00]);
   });
 
   it('nonce=127 encodes as 3 bytes (still 1-byte unscaled)', () => {
-    const n = writeMiniNumber(127n);
+    const n = writeMiniNumber(127n, 0);
     expect(n.length).toBe(3);
     expect(Array.from(n)).toEqual([0x00, 0x01, 0x7f]);
   });
 
   it('nonce=128 encodes as 4 bytes (2-byte unscaled: leading zero + 0x80)', () => {
-    const n = writeMiniNumber(128n);
+    const n = writeMiniNumber(128n, 0);
     expect(n.length).toBe(4);
     expect(Array.from(n)).toEqual([0x00, 0x02, 0x00, 0x80]);
   });
 
   it('nonce=32767 encodes as 4 bytes', () => {
-    const n = writeMiniNumber(32767n);
+    const n = writeMiniNumber(32767n, 0);
     expect(n.length).toBe(4);
     expect(Array.from(n)).toEqual([0x00, 0x02, 0x7f, 0xff]);
   });
 
   it('nonce=32768 encodes as 5 bytes (3-byte unscaled: leading zero + 0x80 0x00)', () => {
-    const n = writeMiniNumber(32768n);
+    const n = writeMiniNumber(32768n, 0);
     expect(n.length).toBe(5);
     expect(Array.from(n)).toEqual([0x00, 0x03, 0x00, 0x80, 0x00]);
   });

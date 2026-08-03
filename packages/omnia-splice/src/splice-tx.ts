@@ -1,9 +1,6 @@
 import { sha3_256 } from '@totemsdk/core';
 import {
   serializeTransaction,
-  createDefaultTransaction,
-  buildMinimaCoin,
-  hexToBytes,
   type StateVariable as CoreStateVariable,
 } from '@totemsdk/core';
 import type { OmniaChannel } from '@totemsdk/omnia';
@@ -131,40 +128,68 @@ export function buildSpliceTx(
  * the final splice TX assembles both signatures into the witness.
  */
 export function spliceDraftToMinimaBytes(draft: SpliceTxDraft): Uint8Array {
-  const tx = createDefaultTransaction();
+  const toHex = (b: Uint8Array): string => Buffer.from(b).toString('hex');
 
-  for (const inp of draft.inputs) {
-    tx.inputs.push(buildMinimaCoin({
-      coinId: hexToBytes(inp.coinId),
-      address: hexToBytes(inp.address),
-      amount: inp.amount.toString(),
-      tokenId: hexToBytes(inp.tokenId),
-    }));
-  }
+  const svToJson = (
+    port: number,
+    value: string | number | bigint | boolean | Uint8Array,
+    type: 'bool' | 'number' | 'hex' | 'string',
+  ): { port: number; svtype: string; data: string } => {
+    let data: string;
+    let svtype: string;
+    if (typeof value === 'bigint') {
+      data = value.toString();
+      svtype = 'number';
+    } else if (typeof value === 'boolean') {
+      data = value ? 'true' : 'false';
+      svtype = 'bool';
+    } else if (value instanceof Uint8Array) {
+      data = '0x' + toHex(value);
+      svtype = 'hex';
+    } else if (typeof value === 'number') {
+      data = value.toString();
+      svtype = 'number';
+    } else {
+      data = String(value);
+      svtype = type;
+    }
+    return { port, svtype, data };
+  };
 
-  for (const out of draft.outputs) {
-    const state: CoreStateVariable[] = out.storeState
+  const inputs = draft.inputs.map(inp => ({
+    coinid: inp.coinId,
+    amount: inp.amount.toString(),
+    address: inp.address,
+    tokenid: inp.tokenId,
+    storestate: false,
+    mmrentry: '0',
+    spent: false,
+    created: '0',
+    state: [],
+  }));
+
+  const outputs = draft.outputs.map(out => ({
+    amount: out.amount.toString(),
+    address: out.address,
+    tokenid: out.tokenId,
+    storestate: out.storeState ?? false,
+    mmrentry: '0',
+    spent: false,
+    created: '0',
+    state: out.storeState
       ? [
-          { port: STATE_SETTLEMENT_PORT, value: out.stateVarSettlement, type: 'bool' },
-          { port: STATE_SEQUENCE_PORT,   value: BigInt(out.stateVarSequence),  type: 'number' },
+          svToJson(STATE_SETTLEMENT_PORT, out.stateVarSettlement, 'bool'),
+          svToJson(STATE_SEQUENCE_PORT, out.stateVarSequence, 'number'),
         ]
-      : [];
+      : [],
+  }));
 
-    tx.outputs.push(buildMinimaCoin({
-      address: hexToBytes(out.address),
-      amount: out.amount.toString(),
-      tokenId: hexToBytes(out.tokenId),
-      storeState: out.storeState,
-      state,
-    }));
-  }
-
-  tx.state = [
-    { port: STATE_SETTLEMENT_PORT, value: false, type: 'bool' },
-    { port: STATE_SEQUENCE_PORT,   value: 0n,    type: 'number' },
+  const state = [
+    svToJson(STATE_SETTLEMENT_PORT, false, 'bool'),
+    svToJson(STATE_SEQUENCE_PORT, 0n, 'number'),
   ];
 
-  return serializeTransaction(JSON.stringify(tx));
+  return serializeTransaction(JSON.stringify({ inputs, outputs, state, linkhash: '0x00' }));
 }
 
 /**

@@ -15,7 +15,7 @@
     "build": "tsc",
     "prepare": "tsc",
     "clean": "rm -rf dist",
-    "test": "jest --passWithNoTests"
+    "test": "jest"
   },
   "files": [
     "dist",
@@ -23,10 +23,10 @@
     "LICENSE"
   ],
   "dependencies": {
-    "@totemsdk/core": "^1.1.0",
-    "@totemsdk/proof": "^0.1.2",
-    "@totemsdk/authority": "^0.1.2",
-    "@totemsdk/edge": "^0.1.3"
+    "@totemsdk/core": "workspace:^",
+    "@totemsdk/proof": "workspace:^",
+    "@totemsdk/authority": "workspace:^",
+    "@totemsdk/edge": "workspace:^"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

@@ -1,0 +1,156 @@
+name: Workspace CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: '-D warnings'
+
+jobs:
+  install:
+    name: Frozen lockfile install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.10.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: 'pnpm'
+      - name: Install with frozen lockfile
+        run: pnpm install --frozen-lockfile
+      - name: Verify working tree clean after install
+        run: |
+          git status --short
+          test -z "$(git status --porcelain)" || (echo "install modified the working tree" && exit 1)
+
+  typecheck-build:
+    name: Typecheck and build (TypeScript packages)
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.10.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: 'pnpm'
+      - name: Install with frozen lockfile
+        run: pnpm install --frozen-lockfile
+      - name: Build core-wasm (prerequisite)
+        working-directory: packages/core-wasm
+        run: |
+          rustup target add wasm32-unknown-unknown
+          curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+          wasm-pack build --target bundler --out-dir pkg
+          wasm-pack build --target nodejs --out-dir pkg-node
+      - name: Typecheck + build (workspace)
+        run: node scripts/verify-workspace.mjs --typecheck
+
+  test:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.10.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: 'pnpm'
+      - name: Install with frozen lockfile
+        run: pnpm install --frozen-lockfile
+      - name: Build core-wasm (prerequisite)
+        working-directory: packages/core-wasm
+        run: |
+          rustup target add wasm32-unknown-unknown
+          curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+          wasm-pack build --target bundler --out-dir pkg
+          wasm-pack build --target nodejs --out-dir pkg-node
+      - name: Run unit tests (workspace)
+        run: pnpm -r run test
+
+  lint:
+    name: Lint + script hygiene
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.10.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: 'pnpm'
+      - name: Install with frozen lockfile
+        run: pnpm install --frozen-lockfile
+      - name: Run lint gate
+        run: node scripts/verify-workspace.mjs --lint
+
+  pack:
+    name: Pack validation (publishable packages)
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.10.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: 'pnpm'
+      - name: Install with frozen lockfile
+        run: pnpm install --frozen-lockfile
+      - name: Build core-wasm (prerequisite)
+        working-directory: packages/core-wasm
+        run: |
+          rustup target add wasm32-unknown-unknown
+          curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+          wasm-pack build --target bundler --out-dir pkg
+          wasm-pack build --target nodejs --out-dir pkg-node
+      - name: Pack validation
+        run: node scripts/verify-workspace.mjs --pack
+
+  rust:
+    name: Rust (core-wasm)
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+          targets: wasm32-unknown-unknown
+      - uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            packages/core-wasm/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('packages/core-wasm/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+      - name: cargo fmt --check
+        working-directory: packages/core-wasm
+        run: cargo fmt --check
+      - name: cargo clippy (-D warnings)
+        working-directory: packages/core-wasm
+        run: cargo clippy --all-targets --all-features -- -D warnings
+      - name: cargo test
+        working-directory: packages/core-wasm
+        run: cargo test --all-targets --all-features
