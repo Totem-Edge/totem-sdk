@@ -163,9 +163,8 @@ export class NodeStreamTransport implements IStreamTransport {
     this._stream.on('data', (chunk: unknown) => this._data.emit(toBytes(chunk)));
 
     this._stream.on('close', () => {
-      if (this._state === 'closing' || this._state === 'closed') {
-        this._state = 'closed';
-      }
+      if (this._state === 'closed') return;
+      this._state = 'closed';
       this._data.seal();
       this._close.emit();
       this._close.seal();
@@ -254,6 +253,7 @@ export class WebSocketTransport implements IStreamTransport {
 
   constructor(ws: unknown) {
     this._ws = ws as WebSocketTransport['_ws'];
+    if ('binaryType' in this._ws) this._ws.binaryType = 'arraybuffer';
     const register = this._ws.addEventListener ? this._ws.addEventListener.bind(this._ws) : this._ws.on?.bind(this._ws);
 
     register?.('message', (ev: unknown) => {
@@ -286,12 +286,16 @@ export class WebSocketTransport implements IStreamTransport {
     }
     await new Promise<void>((resolve, reject) => {
       try {
-        // `ws` (Node) supports a completion callback; browser WebSocket ignores it.
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this._ws.send as any)(data, (err?: unknown) => {
-          if (err) reject(err instanceof Error ? err : new Error(String(err)));
-          else resolve();
-        });
+        if (this._ws.on) {
+          // `ws` (Node) supports a completion callback; browser WebSocket does not.
+          (this._ws.send as (payload: Uint8Array, callback: (err?: unknown) => void) => void)(data, (err) => {
+            if (err) reject(err instanceof Error ? err : new Error(String(err)));
+            else resolve();
+          });
+        } else {
+          this._ws.send(data);
+          resolve();
+        }
       } catch (err) {
         reject(err instanceof Error ? err : new Error(String(err)));
       }
@@ -407,11 +411,15 @@ export class StdioStreamTransport implements IStreamTransport {
   private readonly _input: {
     on(event: string, handler: (...args: unknown[]) => void): unknown;
     once?(event: string, handler: (...args: unknown[]) => void): unknown;
+    destroy?(): void;
   };
   private readonly _output: {
     write(chunk: Buffer | Uint8Array): boolean;
     once?(event: string, handler: (...args: unknown[]) => void): unknown;
+    end?(): void;
   };
+  private readonly _inputOwned: boolean;
+  private readonly _outputOwned: boolean;
   private readonly _data = new HandlerSet();
   private readonly _close = new HandlerSet();
   private readonly _error = new HandlerSet();
@@ -425,9 +433,20 @@ export class StdioStreamTransport implements IStreamTransport {
   ) {
     this._input = input as StdioStreamTransport['_input'];
     this._output = output as StdioStreamTransport['_output'];
+    this._inputOwned = input !== process.stdin;
+    this._outputOwned = output !== process.stdout;
 
     this._input.on('data', (chunk: unknown) => this._data.emit(toBytes(chunk)));
     this._input.on('end', () => {
+      if (this._state === 'closed') return;
+      this._state = 'closed';
+      this._data.seal();
+      this._close.emit();
+      this._close.seal();
+      this._closeResolve?.();
+    });
+    this._input.on('close', () => {
+      if (this._state === 'closed') return;
       this._state = 'closed';
       this._data.seal();
       this._close.emit();
@@ -476,8 +495,13 @@ export class StdioStreamTransport implements IStreamTransport {
   async close(): Promise<void> {
     if (this._state === 'closed') return;
     this._state = 'closing';
-    const stdin = process.stdin as unknown as { destroy?: () => void };
-    stdin.destroy?.();
+    if (this._inputOwned) this._input.destroy?.();
+    if (this._outputOwned) this._output.end?.();
+    this._state = 'closed';
+    this._data.seal();
+    this._close.emit();
+    this._close.seal();
+    this._closeResolve?.();
     await this._closePromise;
   }
 }

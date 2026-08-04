@@ -28,5 +28,5 @@ The canonical KISSVM reference from Minima (1437 pages, 20 chapters) has been me
 | Document | Topic |
 |----------|-------|
 | [`../temporal-framework-design.md`](../temporal-framework-design.md) | Cross-package temporal script design |
-| [`../remediation-plan.md`](../remediation-plan.md) | Per-package line-level remediation (1193 lines) |
+| [`../remediation-plan.md`](../remediation-plan.md) | Per-package remediation and second hardening pass |
 | [`../dead-code-inventory.md`](../dead-code-inventory.md) | 145+ dead-code findings inventory |
