@@ -36,17 +36,18 @@ export function verifyMembershipSnapshot(snapshot: MembershipSnapshot): boolean 
 export function getMemberWeight(
   snapshot: MembershipSnapshot,
   memberId: string,
+  at = Date.now(),
 ): number {
   const entry = snapshot.entries.get(memberId)
   if (!entry) return 0
-  if (entry.expiresAt !== undefined && Date.now() > entry.expiresAt) return 0
+  if (entry.expiresAt !== undefined && at > entry.expiresAt) return 0
   return entry.weight
 }
 
-export function getTotalWeight(snapshot: MembershipSnapshot): number {
+export function getTotalWeight(snapshot: MembershipSnapshot, at = Date.now()): number {
   let total = 0
   for (const entry of snapshot.entries.values()) {
-    if (entry.expiresAt !== undefined && Date.now() > entry.expiresAt) continue
+    if (entry.expiresAt !== undefined && at > entry.expiresAt) continue
     total += entry.weight
   }
   return total

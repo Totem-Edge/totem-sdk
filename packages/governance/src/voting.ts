@@ -2,8 +2,18 @@ import { createProof } from '@totemsdk/proof'
 import type { UnsignedProof } from '@totemsdk/proof'
 import type { Proposal, Vote, Delegation, MembershipSnapshot, GovernanceConfig, QuadraticCredits, GovernanceResult } from './types.js'
 import { computeVoteId } from './ids.js'
-import { getMemberWeight } from './snapshot.js'
+import { getMemberWeight, verifyMembershipSnapshot } from './snapshot.js'
 import { getActiveDelegations } from './delegation.js'
+
+function validateVotingSnapshot(proposal: Proposal, snapshot: MembershipSnapshot): string | undefined {
+  if (snapshot.daoId !== proposal.daoId || snapshot.hash !== proposal.membershipSnapshotHash) {
+    return 'membership snapshot does not match proposal'
+  }
+  if (!verifyMembershipSnapshot(snapshot)) {
+    return 'membership snapshot integrity check failed'
+  }
+  return undefined
+}
 
 export function createVote(params: {
   proposal: Proposal
@@ -17,7 +27,10 @@ export function createVote(params: {
   const { proposal, voter, choice, snapshot } = params
   const now = params.castAt ?? Date.now()
 
-  if (proposal.status !== 'active' && proposal.status !== 'draft') {
+  const snapshotError = validateVotingSnapshot(proposal, snapshot)
+  if (snapshotError) return { error: snapshotError }
+
+  if (proposal.status !== 'active') {
     return { error: `proposal is in status '${proposal.status}', cannot vote` }
   }
   if (now < proposal.votingStartsAt) {
@@ -31,7 +44,7 @@ export function createVote(params: {
     return { error: 'abstain is not allowed' }
   }
 
-  const weight = getMemberWeight(snapshot, voter)
+  const weight = getMemberWeight(snapshot, voter, snapshot.frozenAt)
   if (weight <= 0) {
     return { error: 'voter has no weight in membership snapshot' }
   }
@@ -62,7 +75,10 @@ export function createQuadraticVote(params: {
   const { proposal, voter, allocations, snapshot, credits } = params
   const now = params.castAt ?? Date.now()
 
-  if (proposal.status !== 'active' && proposal.status !== 'draft') {
+  const snapshotError = validateVotingSnapshot(proposal, snapshot)
+  if (snapshotError) return { error: snapshotError }
+
+  if (proposal.status !== 'active') {
     return { error: `proposal is in status '${proposal.status}', cannot vote` }
   }
   if (now < proposal.votingStartsAt) {
@@ -72,12 +88,55 @@ export function createQuadraticVote(params: {
     return { error: 'voting has ended' }
   }
 
-  const weight = getMemberWeight(snapshot, voter)
+  const weight = getMemberWeight(snapshot, voter, snapshot.frozenAt)
   if (weight <= 0) {
     return { error: 'voter has no weight in membership snapshot' }
   }
 
+  if (allocations.length === 0) {
+    return { error: 'quadratic vote must contain at least one allocation' }
+  }
+
+  const choices = new Set<string>()
+  for (const allocation of allocations) {
+    if (choices.has(allocation.choice)) {
+      return { error: `duplicate quadratic allocation for choice '${allocation.choice}'` }
+    }
+    choices.add(allocation.choice)
+    if (!Number.isSafeInteger(allocation.votes) || allocation.votes <= 0) {
+      return { error: 'quadratic allocation votes must be positive safe integers' }
+    }
+  }
+
+  if (credits && credits.memberId !== voter) {
+    return { error: 'quadratic credit state does not belong to voter' }
+  }
+
+  if (credits && (
+    !Number.isSafeInteger(credits.totalCredits) ||
+    !Number.isSafeInteger(credits.spentCredits) ||
+    credits.totalCredits < 0 ||
+    credits.spentCredits < 0 ||
+    credits.spentCredits > credits.totalCredits
+  )) {
+    return { error: 'invalid quadratic credit state' }
+  }
+
+  const quadraticConfig = params.config?.voting.quadratic
+  if (quadraticConfig?.creditSource === 'fixed' && !credits) {
+    return { error: 'fixed-credit quadratic voting requires credit state' }
+  }
+
   const totalCreditsNeeded = allocations.reduce((sum, a) => sum + a.votes * a.votes, 0)
+
+  if (!Number.isSafeInteger(totalCreditsNeeded)) {
+    return { error: 'quadratic vote exceeds safe credit limits' }
+  }
+
+  if (quadraticConfig?.maxCreditsPerMember !== undefined &&
+      totalCreditsNeeded > quadraticConfig.maxCreditsPerMember) {
+    return { error: 'quadratic vote exceeds per-member credit limit' }
+  }
 
   if (credits) {
     const available = credits.totalCredits - credits.spentCredits
@@ -117,6 +176,9 @@ export function createDelegatedVote(params: {
   const { proposal, delegate, delegations, snapshot, choice } = params
   const now = params.castAt ?? Date.now()
 
+  const snapshotError = validateVotingSnapshot(proposal, snapshot)
+  if (snapshotError) return { error: snapshotError }
+
   if (proposal.status !== 'active') {
     return { error: `proposal is in status '${proposal.status}', cannot vote` }
   }
@@ -140,7 +202,7 @@ export function createDelegatedVote(params: {
     if (processed.has(del.delegator)) continue
     processed.add(del.delegator)
 
-    const delegatorWeight = getMemberWeight(snapshot, del.delegator)
+    const delegatorWeight = getMemberWeight(snapshot, del.delegator, snapshot.frozenAt)
     if (delegatorWeight <= 0) continue
 
     const effectiveWeight = del.weight > 0 ? Math.min(del.weight, delegatorWeight) : delegatorWeight
