@@ -36,6 +36,38 @@ export class ComposablePolicy implements AgentPolicy, PolicyMiddleware {
     return { outcome: 'approved', reason: 'All policy layers approved' };
   }
 
+  async reserve(proposal: AgentProposal): Promise<PolicyEvalResult> {
+    const reserved: PolicyMiddleware[] = [];
+    for (const layer of this.layers) {
+      const hasReservation = layer.reserve !== undefined;
+      const result = hasReservation
+        ? await layer.reserve!(proposal)
+        : await layer.evaluate(proposal);
+      if (result.outcome !== 'approved') {
+        for (const previous of reserved.reverse()) {
+          await previous.release?.(proposal.id);
+        }
+        return result;
+      }
+      if (hasReservation) {
+        reserved.push(layer);
+      }
+    }
+    return { outcome: 'approved', reason: 'All policy layers reserved' };
+  }
+
+  async commit(operationId: string): Promise<void> {
+    for (const layer of this.layers) {
+      await layer.commit?.(operationId);
+    }
+  }
+
+  async release(operationId: string): Promise<void> {
+    for (const layer of [...this.layers].reverse()) {
+      await layer.release?.(operationId);
+    }
+  }
+
   async canAutoApprove(proposal: AgentProposal): Promise<boolean> {
     const result = await this.evaluate(proposal);
     return result.outcome === 'approved';

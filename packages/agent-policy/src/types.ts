@@ -134,8 +134,8 @@ export interface PolicyEvalResult {
  * A single composable middleware layer in the policy evaluation pipeline.
  *
  * Each middleware receives the full AgentProposal and returns a decision.
- * Middleware is stateless by design — implementors that need state (rate
- * limits, daily caps) manage their own internal counters.
+ * Evaluation is read-only. Implementors that need state (rate limits, daily
+ * caps) expose the optional reservation lifecycle below.
  *
  * The middleware API replaces the boolean-based AgentPolicy with a richer
  * three-state result that includes a reason string for auditability.
@@ -143,6 +143,15 @@ export interface PolicyEvalResult {
 export interface PolicyMiddleware {
   /** Evaluate a proposal. Called in sequence by ComposablePolicy. */
   evaluate(proposal: AgentProposal): Promise<PolicyEvalResult>;
+  /**
+   * Reserve state for execution using `proposal.id` as the idempotency key.
+   * Implementations must not consume committed quota during evaluation.
+   */
+  reserve?(proposal: AgentProposal): Promise<PolicyEvalResult>;
+  /** Commit a prior reservation after execution succeeds. */
+  commit?(operationId: string): Promise<void>;
+  /** Release a prior reservation after execution fails or is cancelled. */
+  release?(operationId: string): Promise<void>;
   /** Optional: reset internal state (useful in tests or at midnight rollover). */
   reset?(): Promise<void>;
 }

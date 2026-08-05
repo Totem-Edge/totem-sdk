@@ -74,11 +74,24 @@ const policy = new ComposablePolicy([
 
 const result = await policy.evaluate(proposal);
 if (result.outcome === 'approved') {
-  // sign and broadcast
+  const reservation = await policy.reserve(proposal);
+  if (reservation.outcome !== 'approved') throw new Error(reservation.reason);
+  try {
+    // sign and broadcast
+    await policy.commit(proposal.id);
+  } catch (error) {
+    await policy.release(proposal.id);
+    throw error;
+  }
 } else if (result.outcome === 'requires_human') {
   // route to user approval UI
 }
 ```
+
+`evaluate()` is read-only. Use `reserve()` before execution, then call
+`commit()` after a successful broadcast or `release()` when execution fails or
+is cancelled. Reservations are idempotent by `proposal.id`; rate and amount
+limits are scoped by agent and token.
 
 `ComposablePolicy` also implements the legacy `AgentPolicy` interface so it works
 seamlessly with `@totemsdk/omnia`'s `executeIntent`:
