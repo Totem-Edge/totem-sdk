@@ -32,7 +32,8 @@
     }
   },
   "dependencies": {
-    "@totemsdk/stream-transport": "workspace:^"
+    "@totemsdk/stream-transport": "workspace:^",
+    "@noble/hashes": "^2.2.0"
   },
   "scripts": {
     "build": "tsc",

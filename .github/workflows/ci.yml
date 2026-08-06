@@ -123,6 +123,8 @@ jobs:
           npm run build
       - name: Pack validation
         run: node scripts/verify-workspace.mjs --pack
+      - name: Verify clean consumer install from packed tarballs
+        run: node scripts/verify-consumer-pack-all.mjs
 
   rust:
     name: Rust (core-wasm)

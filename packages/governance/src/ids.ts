@@ -1,4 +1,4 @@
-import type { Proposal, Vote, VoteTally, Delegation, MembershipSnapshot, ProposalOutcome } from './types.js'
+import type { Proposal, Vote, VoteTally, Delegation, MembershipSnapshot, MembershipEntry, ProposalOutcome } from './types.js'
 import { hashCanonical } from '@totemsdk/core'
 
 const DOMAIN_PROPOSAL = 'TOTEM_GOVERNANCE_PROPOSAL_V1'
@@ -33,8 +33,24 @@ export function computeDelegationId(delegator: string, delegate: string, daoId: 
   return 'totem:gov:delegation:' + hashCanonical(DOMAIN_DELEGATION, { delegator, delegate, daoId, castAt })
 }
 
-export function computeSnapshotHash(daoId: string, frozenAt: number, entries: Array<{ memberId: string; weight: number }>): string {
-  const sorted = [...entries].sort((a, b) => a.memberId.localeCompare(b.memberId))
+/**
+ * Canonical snapshot hash.
+ *
+ * Covers every field that determines voting eligibility: `memberId`, `role`,
+ * `weight`, `addedAt`, `addedBy`, and `expiresAt`. Omitting any of these would
+ * let an attacker mutate eligibility metadata (e.g. grant a role, extend an
+ * expiry, or backdate an `addedAt`) without invalidating the snapshot hash.
+ */
+export function computeSnapshotHash(daoId: string, frozenAt: number, entries: MembershipEntry[]): string {
+  const normalized = entries.map((e) => ({
+    memberId: e.memberId,
+    role: e.role,
+    weight: e.weight,
+    addedAt: e.addedAt,
+    addedBy: e.addedBy,
+    expiresAt: e.expiresAt ?? null,
+  }))
+  const sorted = [...normalized].sort((a, b) => a.memberId.localeCompare(b.memberId))
   return hashCanonical(DOMAIN_SNAPSHOT, { daoId, frozenAt, entries: sorted })
 }
 

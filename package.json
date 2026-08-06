@@ -53,6 +53,6 @@
     "jest": "^30.4.2",
     "ts-jest": "^29.4.11",
     "typedoc": "^0.28.20",
-    "typescript": "^7.0.2"
+    "typescript": "5.9.3"
   }
 }

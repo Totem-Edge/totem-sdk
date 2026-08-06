@@ -1,12 +1,14 @@
-import type { Proposal, Vote, VoteTally, GovernanceConfig, GovernanceResult, MembershipSnapshot } from './types.js'
-import { computeTallyHash } from './ids.js'
+import type { Proposal, Vote, VoteTally, GovernanceConfig, GovernanceResult, MembershipSnapshot, Delegation } from './types.js'
+import { computeTallyHash, computeVoteId } from './ids.js'
 import { getMemberWeight, getTotalWeight, verifyMembershipSnapshot } from './snapshot.js'
+import { getActiveDelegations } from './delegation.js'
 
 export function tallyVotes(params: {
   proposal: Proposal
   votes: Vote[]
   snapshot: MembershipSnapshot
   config?: GovernanceConfig
+  delegations?: Delegation[]
   now?: number
 }): GovernanceResult<VoteTally> {
   const { proposal, votes, snapshot } = params
@@ -32,10 +34,12 @@ export function tallyVotes(params: {
   }
 
   const algorithm = params.config?.voting?.algorithm === 'quadratic' ? 'quadratic' : 'linear'
+  const quadraticConfig = params.config?.voting?.quadratic
 
   const seenVoteIds = new Set<string>()
   const seenBallots = new Set<string>()
   const seenVoters = new Set<string>()
+  const spentCreditsByVoter = new Map<string, number>()
   const totalWeight = getTotalWeight(snapshot, snapshot.frozenAt)
 
   let yesWeight = 0
@@ -50,6 +54,13 @@ export function tallyVotes(params: {
       return { error: `duplicate vote ID: ${vote.id}` }
     }
     seenVoteIds.add(vote.id)
+
+    // Ballot ID binding: every vote's ID is deterministic given its contents,
+    // so a forged or recomputed ballot cannot claim an arbitrary ID.
+    const expectedVoteId = computeVoteId(vote.proposalId, vote.voter, vote.choice, vote.castAt)
+    if (vote.id !== expectedVoteId) {
+      return { error: `vote ID ${vote.id} does not match its ballot contents` }
+    }
 
     const ballotKey = `${vote.voter}:${vote.choice}`
     if (seenBallots.has(ballotKey)) {
@@ -75,13 +86,36 @@ export function tallyVotes(params: {
     if (!Number.isFinite(vote.weight) || vote.weight <= 0 || vote.weight > memberWeight) {
       return { error: `invalid vote weight for ${vote.voter}` }
     }
-    if (algorithm !== 'quadratic' && !vote.delegationChain && vote.weight !== memberWeight) {
+
+    // Delegations must resolve to real, active delegation records when a vote
+    // claims to have been cast on behalf of someone else.
+    if (vote.delegationChain && vote.delegationChain.length > 0) {
+      if (!params.delegations) {
+        return { error: `vote ${vote.id} has a delegation chain but no delegation records were provided` }
+      }
+      const chainError = validateDelegatedBallot(vote, params.delegations, proposal.daoId, snapshot, now)
+      if (chainError) return { error: chainError }
+    } else if (algorithm !== 'quadratic' && vote.weight !== memberWeight) {
       return { error: `vote weight for ${vote.voter} does not match snapshot weight` }
     }
+
     if (algorithm === 'quadratic') {
       if (!Number.isSafeInteger(vote.weight) || vote.quadraticCredits !== vote.weight * vote.weight) {
         return { error: `invalid quadratic weight or credits for ${vote.voter}` }
       }
+      // Aggregate budget: a voter must not exceed their total quadratic credit
+      // budget across ALL of their ballots, not just within a single ballot.
+      const spent = (spentCreditsByVoter.get(vote.voter) ?? 0) + (vote.quadraticCredits ?? 0)
+      const budget =
+        quadraticConfig?.creditSource === 'fixed'
+          ? (quadraticConfig.maxCreditsPerMember ?? memberWeight)
+          : memberWeight
+      if (spent > budget) {
+        return {
+          error: `aggregate quadratic credits for ${vote.voter} (${spent}) exceed budget of ${budget}`,
+        }
+      }
+      spentCreditsByVoter.set(vote.voter, spent)
     }
 
     if (vote.choice === 'yes') yesWeight += vote.weight
@@ -113,6 +147,39 @@ export function tallyVotes(params: {
   }
 
   return tally
+}
+
+/**
+ * Verify that a vote claiming to be delegated matches real delegation records:
+ * - the chain must start at the voter who casts the ballot
+ * - every hop must be an active delegation record for the proposal
+ * - the weight must not exceed what the delegation actually transfers
+ */
+function validateDelegatedBallot(
+  vote: Vote,
+  delegations: Delegation[],
+  daoId: string,
+  snapshot: MembershipSnapshot,
+  now: number,
+): string | undefined {
+  const chain = vote.delegationChain!
+  if (chain[0] !== vote.voter) {
+    return `delegation chain for ${vote.voter} does not start with the voter`
+  }
+  const active = getActiveDelegations(delegations, daoId, now)
+  for (let i = 0; i < chain.length - 1; i++) {
+    const hop = active.find((d) => d.delegator === chain[i] && d.delegate === chain[i + 1])
+    if (!hop) {
+      return `delegation ${chain[i]} -> ${chain[i + 1]} in vote ${vote.id} is not an active delegation record`
+    }
+  }
+  const delegatorWeight = getMemberWeight(snapshot, vote.voter, snapshot.frozenAt)
+  const firstHop = active.find((d) => d.delegator === chain[0] && d.delegate === chain[1])
+  const transferred = firstHop && firstHop.weight > 0 ? Math.min(firstHop.weight, delegatorWeight) : delegatorWeight
+  if (vote.weight > transferred) {
+    return `delegated vote weight for ${vote.voter} exceeds delegated weight`
+  }
+  return undefined
 }
 
 export function finalizeProposal(

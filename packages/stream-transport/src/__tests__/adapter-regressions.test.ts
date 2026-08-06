@@ -21,6 +21,10 @@ class BrowserWebSocketFake {
   close(): void {
     this.handlers.get('close')?.();
   }
+
+  emit(event: string, value: unknown): void {
+    this.handlers.get(event)?.(value);
+  }
 }
 
 describe('transport adapter regressions', () => {
@@ -53,12 +57,54 @@ describe('transport adapter regressions', () => {
       end: jest.fn(),
       write: jest.fn(() => true),
     });
-    const transport = new StdioStreamTransport(input, output);
+    const transport = new StdioStreamTransport(input, output, {
+      ownInput: true,
+      ownOutput: true,
+    });
 
     await transport.close();
 
     expect(input.destroy).toHaveBeenCalledTimes(1);
     expect(output.end).toHaveBeenCalledTimes(1);
     expect(transport.state).toBe('closed');
+  });
+
+  it('does not close injected stdio streams unless ownership is explicit', async () => {
+    const input = Object.assign(new EventEmitter(), { destroy: jest.fn() });
+    const output = Object.assign(new EventEmitter(), {
+      end: jest.fn(),
+      write: jest.fn(() => true),
+    });
+    const transport = new StdioStreamTransport(input, output);
+
+    await transport.close();
+
+    expect(input.destroy).not.toHaveBeenCalled();
+    expect(output.end).not.toHaveBeenCalled();
+  });
+
+  it('delivers Blob messages as bytes', async () => {
+    const socket = new BrowserWebSocketFake();
+    const transport = new WebSocketTransport(socket);
+    const received: Uint8Array[] = [];
+    transport.onData((chunk) => received.push(chunk));
+
+    socket.emit('message', { data: new Blob([new Uint8Array([4, 5, 6])]) });
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(Array.from(received[0])).toEqual([4, 5, 6]);
+  });
+
+  it('rejects a backpressured Node send when the stream closes', async () => {
+    const stream = Object.assign(new EventEmitter(), {
+      write: jest.fn(() => false),
+      destroy: jest.fn(),
+    });
+    const transport = new NodeStreamTransport(stream);
+    const send = transport.send(new Uint8Array([1]));
+
+    stream.emit('close');
+
+    await expect(send).rejects.toBeInstanceOf(Error);
   });
 });

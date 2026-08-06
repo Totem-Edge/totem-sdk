@@ -26,6 +26,7 @@
     "LICENSE"
   ],
   "dependencies": {
+    "@noble/hashes": "^1.8.0",
     "@protobuf-ts/runtime": "^2.11.1",
     "@totemsdk/core": "workspace:^"
   },

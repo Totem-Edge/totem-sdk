@@ -43,6 +43,17 @@ export interface AgentProposal {
    * Just a string the agent chooses (e.g. "qvac-payment-agent-v1").
    */
   agentId: string;
+  /**
+   * Authenticated principal supplied by the trusted execution boundary
+   * (e.g. the wallet's resolved signer public-key digest or session ID).
+   *
+   * `agentId` is chosen by the agent and can be rotated to evade limits.
+   * Stateful policies MUST key quota buckets by `principal` when present,
+   * never by the caller-controlled `agentId` alone. The agent cannot set
+   * this field itself; only the wallet layer that executes the proposal
+   * populates it after authenticating the signer.
+   */
+  principal?: string;
   /** The intent this proposal wants executed. */
   intent: PaymentIntent;
   /** Human-readable justification shown to the user in the approval UI. */
@@ -71,6 +82,17 @@ export interface AgentPolicy {
    * (e.g. always require approval for settlements regardless of risk).
    */
   requiresUserApproval(proposal: AgentProposal): Promise<boolean>;
+  /**
+   * Optional reservation lifecycle for stateful policies.
+   *
+   * The execution boundary calls `reserve` before executing, then `commit`
+   * after a successful execution or `release` on any failure path. When
+   * implemented, quota is only consumed through reserve/commit — a read-only
+   * `evaluate` / `canAutoApprove` never touches the limits.
+   */
+  reserve?(proposal: AgentProposal): Promise<PolicyEvalResult>;
+  commit?(operationId: string): Promise<void>;
+  release?(operationId: string): Promise<void>;
 }
 
 /**

@@ -1050,6 +1050,77 @@ describe('@totemsdk/omnia — executeIntent', () => {
     expect(result.status).toBe('pending_user');
     expect(result.status).not.toBe('approved');
   });
+
+  it('reserves before executing, commits on success, passes authenticated principal', async () => {
+    const calls: string[] = [];
+    const lifecyclePolicy = {
+      canAutoApprove: async () => true,
+      reserve: async (proposal: { principal?: string }) => {
+        calls.push(`reserve:${proposal.principal}`);
+        return { outcome: 'approved' as const, reason: 'ok' };
+      },
+      commit: async (id: string) => {
+        calls.push(`commit:${id}`);
+      },
+      release: async (id: string) => {
+        calls.push(`release:${id}`);
+      },
+    };
+    const intent = { type: 'channel_update' as const, amount: '100', recipient: '0xBOBADDR' };
+    const result = await executeIntent(channel, intent as any, lifecyclePolicy as any, leaseProvider as any, aliceSigner);
+    expect(result.status).toBe('approved');
+    expect(calls).toEqual([`reserve:${ALICE_PKD}`, expect.stringMatching(/^commit:intent-/), ]);
+    expect(calls).not.toContain(expect.stringMatching(/^release:/));
+  });
+
+  it('releases the reservation when execution fails (updateState error)', async () => {
+    const calls: string[] = [];
+    const lifecyclePolicy = {
+      canAutoApprove: async () => true,
+      reserve: async () => {
+        calls.push('reserve');
+        return { outcome: 'approved' as const, reason: 'ok' };
+      },
+      commit: async (id: string) => {
+        calls.push(`commit:${id}`);
+      },
+      release: async (id: string) => {
+        calls.push(`release:${id}`);
+      },
+    };
+    const nearExhausted: OmniaChannel = { ...channel, currentSequence: Math.floor(WOTS_CAPACITY_TOTAL * 0.95) };
+    const intent = { type: 'channel_update' as const, amount: '100', recipient: '0xBOBADDR' };
+    const result = await executeIntent(nearExhausted, intent as any, lifecyclePolicy as any, leaseProvider as any, aliceSigner);
+    expect(result.status).toBe('pending_user');
+    expect(calls).toEqual(['reserve', expect.stringMatching(/^release:intent-/)]);
+    expect(calls).not.toContain(expect.stringMatching(/^commit:/));
+  });
+
+  it('rejects when the policy reserve declines', async () => {
+    const lifecyclePolicy = {
+      canAutoApprove: async () => true,
+      reserve: async () => ({ outcome: 'rejected' as const, reason: 'Daily cap exceeded' }),
+    };
+    const intent = { type: 'channel_update' as const, amount: '100', recipient: '0xBOBADDR' };
+    const result = await executeIntent(channel, intent as any, lifecyclePolicy as any, leaseProvider as any, aliceSigner);
+    expect(result.status).toBe('rejected');
+    expect(result.receipt?.rejectionReason).toBe('Daily cap exceeded');
+  });
+
+  it('does not reserve when canAutoApprove is false', async () => {
+    let reserveCalled = false;
+    const lifecyclePolicy = {
+      canAutoApprove: async () => false,
+      reserve: async () => {
+        reserveCalled = true;
+        return { outcome: 'approved' as const, reason: 'ok' };
+      },
+    };
+    const intent = { type: 'channel_update' as const, amount: '100', recipient: '0xBOBADDR' };
+    const result = await executeIntent(channel, intent as any, lifecyclePolicy as any, leaseProvider as any, aliceSigner);
+    expect(result.status).toBe('pending_user');
+    expect(reserveCalled).toBe(false);
+  });
 });
 
 describe('@totemsdk/omnia — coloured coin support (custom tokenId)', () => {

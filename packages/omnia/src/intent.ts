@@ -18,7 +18,10 @@ import { updateState } from './channel.js';
  * returns an `AgentReceipt`. If approval is required, returns `{ status: 'pending_user' }`
  * without signing.
  *
- * `canAutoApprove` is the primary and only gate — no bypass path exists.
+ * `canAutoApprove` is the primary and only gate — no bypass path exists. When the
+ * policy implements the reservation lifecycle, quota is reserved immediately before
+ * execution, committed on success, and released on any non-success path. Stateful
+ * policies are never mutated by the read-only `canAutoApprove` check.
  */
 export async function executeIntent(
   channel: OmniaChannel,
@@ -32,6 +35,7 @@ export async function executeIntent(
   const proposal: AgentProposal = {
     id: `intent-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     agentId: 'omnia-channel-agent',
+    principal: effectiveSigner?.publicKeyDigest,
     intent,
     explanation: intent.reason ?? `Channel ${intent.type} for ${intent.amount ?? 'unknown'} ${intent.tokenId ?? '0x00'}`,
     confidence: 0.9,
@@ -116,13 +120,29 @@ export async function executeIntent(
   newBalances[senderParty.partyId] = senderBalance - transferAmount;
   newBalances[recipientParty.partyId] = recipientBalance + transferAmount;
 
+  // Reserve quota through the policy lifecycle before executing. A policy that
+  // implements `reserve` consumes its limits here — the read-only
+  // `canAutoApprove` gate above never mutates policy state.
+  const reservation = await policy.reserve?.(proposal);
+  if (reservation && reservation.outcome !== 'approved') {
+    const receipt: AgentReceipt = {
+      proposalId: proposal.id,
+      status: 'rejected',
+      rejectionReason: reservation.reason ?? 'Policy reserve rejected',
+      settledAt: Date.now(),
+    };
+    return { status: 'rejected', receipt };
+  }
+
   const delta: UpdateDelta = { newBalances, memo: intent.reason };
   const { channel: updatedChannel, signedState, error } = await updateState(channel, delta, leaseProvider, effectiveSigner);
 
   // If updateState returned an error (e.g. CAPACITY_NEAR_EXHAUSTION), no signing
-  // occurred — do NOT emit approved. Map to pending_user so the caller can act
-  // (e.g. propose cooperative settlement before retrying).
+  // occurred — do NOT emit approved. Release the reservation so the quota is
+  // refunded, then map to pending_user so the caller can act (e.g. propose
+  // cooperative settlement before retrying).
   if (error) {
+    await policy.release?.(proposal.id);
     const receipt: AgentReceipt = {
       proposalId: proposal.id,
       status: 'pending_user',
@@ -131,6 +151,9 @@ export async function executeIntent(
     };
     return { status: 'pending_user', receipt };
   }
+
+  // Execution succeeded — make the reservation permanent.
+  await policy.commit?.(proposal.id);
 
   const receipt: AgentReceipt = {
     proposalId: proposal.id,

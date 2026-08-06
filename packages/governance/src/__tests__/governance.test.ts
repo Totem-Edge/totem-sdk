@@ -32,6 +32,7 @@ import {
   executeProposal,
   isExecutionReady,
   isGovernanceError,
+  computeVoteId,
 } from '../index'
 import type {
   GovernanceConfig,
@@ -172,6 +173,37 @@ describe('snapshot', () => {
       { id: 'c', weight: 30 },
     ], NOW)
     expect(getTotalWeight(s)).toBe(60)
+  })
+
+  it('freezeMembershipSnapshot excludes members added after the freeze point', () => {
+    const entries: MembershipEntry[] = [
+      { memberId: 'alice', role: 'voter', weight: 10, addedAt: NOW - 5000, addedBy: 'admin' },
+      { memberId: 'bob', role: 'voter', weight: 5, addedAt: NOW + 5000, addedBy: 'admin' },
+    ]
+    const s = freezeMembershipSnapshot('dao-1', entries, NOW)
+    expect(s.entries.has('alice')).toBe(true)
+    expect(s.entries.has('bob')).toBe(false)
+  })
+
+  it('snapshot hash covers role, addedBy, addedAt, and expiresAt', () => {
+    const base: MembershipEntry = { memberId: 'alice', role: 'voter', weight: 10, addedAt: NOW - 1000, addedBy: 'admin' }
+    const s1 = freezeMembershipSnapshot('dao-1', [base], NOW)
+    const s2 = freezeMembershipSnapshot('dao-1', [{ ...base, role: 'treasurer' }], NOW)
+    const s3 = freezeMembershipSnapshot('dao-1', [{ ...base, addedBy: 'other' }], NOW)
+    const s4 = freezeMembershipSnapshot('dao-1', [{ ...base, addedAt: NOW - 2000 }], NOW)
+    const s5 = freezeMembershipSnapshot('dao-1', [{ ...base, expiresAt: NOW + 1000 }], NOW)
+    expect(s1.hash).not.toBe(s2.hash)
+    expect(s1.hash).not.toBe(s3.hash)
+    expect(s1.hash).not.toBe(s4.hash)
+    expect(s1.hash).not.toBe(s5.hash)
+  })
+
+  it('verifyMembershipSnapshot fails when eligibility metadata is tampered', () => {
+    const base: MembershipEntry = { memberId: 'alice', role: 'voter', weight: 10, addedAt: NOW - 1000, addedBy: 'admin' }
+    const s = freezeMembershipSnapshot('dao-1', [base], NOW)
+    const entry = s.entries.get('alice')!
+    entry.role = 'treasurer'
+    expect(verifyMembershipSnapshot(s)).toBe(false)
   })
 })
 
@@ -565,9 +597,9 @@ describe('tally', () => {
     }) as Proposal
 
     const votes: Vote[] = [
-      { id: 'v1', proposalId: proposal.id, voter: 'a', choice: 'yes', weight: 100, castAt: NOW + 100 },
-      { id: 'v2', proposalId: proposal.id, voter: 'b', choice: 'yes', weight: 50, castAt: NOW + 200 },
-      { id: 'v3', proposalId: proposal.id, voter: 'c', choice: 'no', weight: 50, castAt: NOW + 300 },
+      { id: computeVoteId(proposal.id, 'a', 'yes', NOW + 100), proposalId: proposal.id, voter: 'a', choice: 'yes', weight: 100, castAt: NOW + 100 },
+      { id: computeVoteId(proposal.id, 'b', 'yes', NOW + 200), proposalId: proposal.id, voter: 'b', choice: 'yes', weight: 50, castAt: NOW + 200 },
+      { id: computeVoteId(proposal.id, 'c', 'no', NOW + 300), proposalId: proposal.id, voter: 'c', choice: 'no', weight: 50, castAt: NOW + 300 },
     ]
 
     const tally = tallyVotes({
@@ -655,6 +687,138 @@ describe('tally', () => {
     expect(t.abstain).toBe(0)
   })
 
+  it('tallyVotes rejects a vote whose ID does not bind to its ballot contents', () => {
+    const cfg = makeConfig()
+    const snapshot = makeSnapshot('dao-1', [{ id: 'alice', weight: 10 }], NOW)
+    const proposal = createProposal({
+      config: cfg,
+      actions: [],
+      title: 'Test',
+      description: 'desc',
+      proposer: 'alice',
+      snapshot,
+      createdAt: NOW,
+    }) as Proposal
+
+    const forged = tallyVotes({
+      proposal: { ...proposal, status: 'active', votingEndsAt: NOW + 5000 },
+      votes: [{ id: 'forged-id', proposalId: proposal.id, voter: 'alice', choice: 'yes', weight: 10, castAt: NOW + 100 }],
+      snapshot,
+      config: cfg,
+      now: NOW + 10000,
+    })
+    expect(isGovernanceError(forged)).toBe(true)
+  })
+
+  it('tallyVotes enforces aggregate quadratic credit budgets across ballots', () => {
+    const cfg = makeConfig({
+      voting: {
+        ...makeConfig().voting,
+        algorithm: 'quadratic',
+        quadratic: { enabled: true, creditSource: 'weight' },
+      },
+    })
+    const snapshot = makeSnapshot('dao-1', [{ id: 'alice', weight: 4 }], NOW)
+    const proposal = createProposal({
+      config: cfg,
+      actions: [],
+      title: 'Test',
+      description: 'desc',
+      proposer: 'alice',
+      snapshot,
+      createdAt: NOW,
+    }) as Proposal
+    const activeProposal = { ...proposal, status: 'active' as const, votingEndsAt: NOW + 5000 }
+
+    // Each ballot alone is within weight; together they exceed the budget.
+    const votes: Vote[] = [
+      { id: computeVoteId(proposal.id, 'alice', 'yes', NOW + 100), proposalId: proposal.id, voter: 'alice', choice: 'yes', weight: 2, quadraticCredits: 4, castAt: NOW + 100 },
+      { id: computeVoteId(proposal.id, 'alice', 'no', NOW + 200), proposalId: proposal.id, voter: 'alice', choice: 'no', weight: 1, quadraticCredits: 1, castAt: NOW + 200 },
+    ]
+    const tally = tallyVotes({
+      proposal: activeProposal,
+      votes,
+      snapshot,
+      config: cfg,
+      now: NOW + 10000,
+    })
+    expect(isGovernanceError(tally)).toBe(true)
+  })
+
+  it('tallyVotes rejects a delegation chain that does not resolve to real records', () => {
+    const cfg = makeConfig()
+    const snapshot = makeSnapshot('dao-1', [
+      { id: 'alice', weight: 10 },
+      { id: 'bob', weight: 5 },
+    ], NOW)
+    const proposal = createProposal({
+      config: cfg,
+      actions: [],
+      title: 'Test',
+      description: 'desc',
+      proposer: 'alice',
+      snapshot,
+      createdAt: NOW,
+    }) as Proposal
+
+    // Claims a delegation chain, but no delegation records are provided.
+    const noRecords = tallyVotes({
+      proposal: { ...proposal, status: 'active', votingEndsAt: NOW + 5000 },
+      votes: [{
+        id: computeVoteId(proposal.id, 'alice', 'yes', NOW + 100),
+        proposalId: proposal.id,
+        voter: 'alice',
+        choice: 'yes',
+        weight: 10,
+        delegationChain: ['alice', 'bob'],
+        castAt: NOW + 100,
+      }],
+      snapshot,
+      config: cfg,
+      now: NOW + 10000,
+    })
+    expect(isGovernanceError(noRecords)).toBe(true)
+
+    // Chain references a delegation that was never created.
+    const forgedChain = tallyVotes({
+      proposal: { ...proposal, status: 'active', votingEndsAt: NOW + 5000 },
+      votes: [{
+        id: computeVoteId(proposal.id, 'alice', 'yes', NOW + 100),
+        proposalId: proposal.id,
+        voter: 'alice',
+        choice: 'yes',
+        weight: 10,
+        delegationChain: ['alice', 'bob'],
+        castAt: NOW + 100,
+      }],
+      snapshot,
+      config: cfg,
+      delegations: [],
+      now: NOW + 10000,
+    })
+    expect(isGovernanceError(forgedChain)).toBe(true)
+
+    // A real delegation validates.
+    const del = createDelegation({ daoId: 'dao-1', delegator: 'alice', delegate: 'bob', castAt: NOW })
+    const valid = tallyVotes({
+      proposal: { ...proposal, status: 'active', votingEndsAt: NOW + 5000 },
+      votes: [{
+        id: computeVoteId(proposal.id, 'alice', 'yes', NOW + 100),
+        proposalId: proposal.id,
+        voter: 'alice',
+        choice: 'yes',
+        weight: 10,
+        delegationChain: ['alice', 'bob'],
+        castAt: NOW + 100,
+      }],
+      snapshot,
+      config: cfg,
+      delegations: [del],
+      now: NOW + 10000,
+    })
+    expect(isGovernanceError(valid)).toBe(false)
+  })
+
   it('tallyVotes rejects mismatched, duplicate, and inflated ballots', () => {
     const cfg = makeConfig()
     const snapshot = makeSnapshot('dao-1', [{ id: 'alice', weight: 10 }], NOW)
@@ -671,7 +835,7 @@ describe('tally', () => {
 
     const mismatched = tallyVotes({
       proposal: activeProposal,
-      votes: [{ id: 'v1', proposalId: 'other', voter: 'alice', choice: 'yes', weight: 10, castAt: NOW + 100 }],
+      votes: [{ id: computeVoteId('other', 'alice', 'yes', NOW + 100), proposalId: 'other', voter: 'alice', choice: 'yes', weight: 10, castAt: NOW + 100 }],
       snapshot,
       config: cfg,
       now: NOW + 10000,
@@ -681,8 +845,8 @@ describe('tally', () => {
     const duplicate = tallyVotes({
       proposal: activeProposal,
       votes: [
-        { id: 'v1', proposalId: proposal.id, voter: 'alice', choice: 'yes', weight: 10, castAt: NOW + 100 },
-        { id: 'v1', proposalId: proposal.id, voter: 'alice', choice: 'yes', weight: 10, castAt: NOW + 200 },
+        { id: computeVoteId(proposal.id, 'alice', 'yes', NOW + 100), proposalId: proposal.id, voter: 'alice', choice: 'yes', weight: 10, castAt: NOW + 100 },
+        { id: computeVoteId(proposal.id, 'alice', 'yes', NOW + 100), proposalId: proposal.id, voter: 'alice', choice: 'yes', weight: 10, castAt: NOW + 100 },
       ],
       snapshot,
       config: cfg,
@@ -692,7 +856,7 @@ describe('tally', () => {
 
     const inflated = tallyVotes({
       proposal: activeProposal,
-      votes: [{ id: 'v2', proposalId: proposal.id, voter: 'alice', choice: 'yes', weight: 11, castAt: NOW + 100 }],
+      votes: [{ id: computeVoteId(proposal.id, 'alice', 'yes', NOW + 100), proposalId: proposal.id, voter: 'alice', choice: 'yes', weight: 11, castAt: NOW + 100 }],
       snapshot,
       config: cfg,
       now: NOW + 10000,

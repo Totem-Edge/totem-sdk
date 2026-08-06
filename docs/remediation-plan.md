@@ -12,29 +12,25 @@
 - **Exact change:** Delete lines 4-7 (the entire JSDoc block containing `Phase 1.5` / `Phase 2`)
 - **Rationale:** Design-phase notes are in git history. No runtime impact.
 
-### Finding 2: `PaymentIntent.amount` — never read
-- **File:** `src/types.ts`
-- **Action:** delete
-- **Exact change:** Delete line 21 (`amount?: string;`)
-- **Rationale:** `RiskBasedPolicy` only evaluates `risk`. `amount` is forward-looking for temporal linear pay-per-use. Move to temporal template integration (see below).
+### Finding 2: `PaymentIntent.amount` — consumed by policy enforcement
+- **File:** `src/types.ts`, `src/amount-cap.ts`, `src/digest.ts`
+- **Action:** retain
+- **Rationale:** `AmountCapPolicy` validates transaction and daily amounts, and the canonical operation digest binds the amount to the operation ID. The earlier inventory entry was stale.
 
-### Finding 3: `PaymentIntent.tokenId` — never read
-- **File:** `src/types.ts`
-- **Action:** delete
-- **Exact change:** Delete line 23 (`tokenId?: string;`)
-- **Rationale:** Same as Finding 2.
+### Finding 3: `PaymentIntent.tokenId` — consumed for quota scope
+- **File:** `src/types.ts`, `src/amount-cap.ts`, `src/rate-limit.ts`, `src/digest.ts`
+- **Action:** retain
+- **Rationale:** Stateful policy buckets are scoped by token, and the canonical operation digest binds the token to the operation ID. The earlier inventory entry was stale.
 
-### Finding 4: `PaymentIntent.recipient` — never read
-- **File:** `src/types.ts`
-- **Action:** delete
-- **Exact change:** Delete line 25 (`recipient?: string;`)
-- **Rationale:** Same as Finding 2.
+### Finding 4: `PaymentIntent.recipient` — consumed by recipient policy
+- **File:** `src/types.ts`, `src/recipient-allowlist.ts`, `src/digest.ts`
+- **Action:** retain
+- **Rationale:** `RecipientAllowlistPolicy` enforces recipient restrictions, and the canonical operation digest binds the recipient. The earlier inventory entry was stale.
 
-### Finding 5: `PaymentIntent.reason` — never read
-- **File:** `src/types.ts`
-- **Action:** delete
-- **Exact change:** Delete line 27 (`reason?: string;`)
-- **Rationale:** Shown in approval UI only — remove until UI layer exists.
+### Finding 5: `PaymentIntent.reason` — retained as authenticated proposal context
+- **File:** `src/types.ts`, `src/digest.ts`
+- **Action:** retain
+- **Rationale:** The reason is included in the canonical operation digest so changing the user-facing justification cannot silently reuse an existing operation ID. The earlier inventory entry was stale.
 
 ### Finding 6: `PaymentIntent.metadata` — never read
 - **File:** `src/types.ts`

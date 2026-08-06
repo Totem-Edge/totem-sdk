@@ -9,7 +9,7 @@
  * Run: node scripts/generate-proto.mjs
  */
 import { execSync } from 'child_process';
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, renameSync, rmSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -24,29 +24,37 @@ if (!existsSync(PROTO_FILE)) {
   process.exit(1);
 }
 
-// Clear and recreate output directory
-if (existsSync(GEN_DIR)) rmSync(GEN_DIR, { recursive: true, force: true });
-mkdirSync(GEN_DIR, { recursive: true });
-
 // ---------------------------------------------------------------------------
 // 1. TypeScript (protobuf-ts)
 // ---------------------------------------------------------------------------
 console.log('[generate-proto] Generating TypeScript types...');
+const TS_GEN_DIR = `${GEN_DIR}.tmp`;
 try {
+  if (existsSync(TS_GEN_DIR)) rmSync(TS_GEN_DIR, { recursive: true, force: true });
+  mkdirSync(TS_GEN_DIR, { recursive: true });
+  const plugin = join(PKG_ROOT, 'node_modules', '.bin', 'protoc-gen-ts');
+  if (!existsSync(plugin)) throw new Error('protoc-gen-ts is not installed');
   execSync(
-    `npx protoc \
-      --ts_out ${GEN_DIR} \
+    `${join(PKG_ROOT, 'node_modules', '.bin', 'protoc')} \
+      --ts_out ${TS_GEN_DIR} \
       --ts_opt generate_dependencies,long_type_string,output_typescript \
       --proto_path ${PROTO_DIR} \
-      --proto_path ${join(PKG_ROOT, 'node_modules', '@protobuf-ts', 'plugin', 'node_modules', '.proto-include') || PROTO_DIR} \
+      --proto_path ${join(PKG_ROOT, 'node_modules', '@protobuf-ts', 'plugin', 'node_modules', '.proto-include')} \
       ${PROTO_FILE}`,
-    { cwd: PKG_ROOT, stdio: 'pipe' }
+    { cwd: PKG_ROOT, stdio: 'pipe', env: { ...process.env, PATH: `${join(PKG_ROOT, 'node_modules', '.bin')}:${process.env.PATH ?? ''}` } }
   );
+  if (existsSync(GEN_DIR)) rmSync(GEN_DIR, { recursive: true, force: true });
+  renameSync(TS_GEN_DIR, GEN_DIR);
   console.log('[generate-proto]   ✓ TypeScript types generated');
 } catch (err) {
-  // protobuf-ts may not be installed yet — write a stub
-  console.warn('[generate-proto]   ⚠ protobuf-ts not available, writing stub');
-  writeTsStub();
+  if (existsSync(TS_GEN_DIR)) rmSync(TS_GEN_DIR, { recursive: true, force: true });
+  if (existsSync(join(GEN_DIR, 'totem', 'agent', 'policy', 'v1', 'agent_policy.ts'))) {
+    console.warn('[generate-proto]   ! protobuf-ts unavailable; preserving checked-in TypeScript bindings');
+  } else {
+    console.error('[generate-proto] ERROR: protobuf-ts TypeScript generation failed');
+    console.error(err instanceof Error ? err.message : String(err));
+    process.exit(1);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -54,6 +62,7 @@ try {
 // ---------------------------------------------------------------------------
 console.log('[generate-proto] Generating Python types...');
 try {
+  mkdirSync(GEN_DIR, { recursive: true });
   execSync(
     `protoc \
       --python_out ${GEN_DIR} \
@@ -67,78 +76,3 @@ try {
 }
 
 console.log('[generate-proto] Done.');
-
-// ---------------------------------------------------------------------------
-// Stub: write TypeScript types manually when protobuf-ts is unavailable
-// ---------------------------------------------------------------------------
-function writeTsStub() {
-  const stub = `// Auto-generated stub — install @protobuf-ts/plugin and re-run generate:proto
-// for full protobuf-ts output.
-
-export enum IntentType {
-  UNSPECIFIED = 0,
-  PAYMENT = 1,
-  CHANNEL_UPDATE = 2,
-  SETTLEMENT = 3,
-  LOOKUP = 4,
-  RECEIPT = 5,
-}
-
-export enum RiskLevel {
-  UNSPECIFIED = 0,
-  LOW = 1,
-  MEDIUM = 2,
-  HIGH = 3,
-}
-
-export enum ReceiptStatus {
-  UNSPECIFIED = 0,
-  APPROVED = 1,
-  REJECTED = 2,
-  PENDING_USER = 3,
-}
-
-export interface PaymentIntent {
-  type: IntentType;
-  amount: string;
-  tokenId: string;
-  recipient: string;
-  reason: string;
-  risk: RiskLevel;
-  metadata?: Record<string, unknown>;
-}
-
-export interface AgentProposal {
-  id: string;
-  agentId: string;
-  intent: PaymentIntent;
-  explanation: string;
-  confidence: number;
-  createdAt: string;
-}
-
-export interface AgentReceipt {
-  proposalId: string;
-  status: ReceiptStatus;
-  txpowId: string;
-  channelState: string;
-  rejectionReason: string;
-  settledAt: string;
-}
-
-export interface AgentIdentity {
-  agentId: string;
-  address: string;
-  capabilities: string[];
-}
-
-export interface AgentPolicyConfig {
-  agentId: string;
-  allowedIntents: IntentType[];
-  limits: Record<string, string>;
-  expiresAt: string;
-}
-`;
-  mkdirSync(GEN_DIR, { recursive: true });
-  writeFileSync(join(GEN_DIR, 'agent_policy.ts'), stub);
-}
