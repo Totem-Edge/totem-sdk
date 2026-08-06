@@ -121,13 +121,31 @@ class HandlerSet {
   }
 }
 
-function toBytes(chunk: unknown): Uint8Array {
+function toBytes(chunk: unknown): Uint8Array | Promise<Uint8Array> {
   if (chunk instanceof Uint8Array) return chunk;
   if (chunk instanceof ArrayBuffer) return new Uint8Array(chunk);
+  if (typeof Blob !== 'undefined' && chunk instanceof Blob) {
+    return chunk.arrayBuffer().then((buffer) => new Uint8Array(buffer));
+  }
   if (typeof Buffer !== 'undefined' && Buffer.isBuffer(chunk)) {
     return new Uint8Array(chunk.buffer, chunk.byteOffset, chunk.byteLength);
   }
   return new TextEncoder().encode(String(chunk));
+}
+
+function emitBytes(
+  chunk: unknown,
+  emit: (bytes: Uint8Array) => void,
+  onError: (error: Error) => void,
+): void {
+  const bytes = toBytes(chunk);
+  if (bytes instanceof Uint8Array) {
+    emit(bytes);
+    return;
+  }
+  void bytes.then(emit, (error: unknown) =>
+    onError(error instanceof Error ? error : new Error(String(error))),
+  );
 }
 
 /** True when running in a Node.js environment (Buffer exists). */
@@ -156,16 +174,19 @@ export class NodeStreamTransport implements IStreamTransport {
   private _state: TransportState = 'open';
   private _closeResolve: (() => void) | null = null;
   private readonly _closePromise: Promise<void>;
+  private readonly _pendingSendRejects = new Set<(error: Error) => void>();
 
   constructor(stream: unknown) {
     this._stream = stream as NodeStreamTransport['_stream'];
 
-    this._stream.on('data', (chunk: unknown) => this._data.emit(toBytes(chunk)));
+    this._stream.on('data', (chunk: unknown) =>
+      emitBytes(chunk, (bytes) => this._data.emit(bytes), (error) => this._error.emit(error)),
+    );
 
     this._stream.on('close', () => {
-      if (this._state === 'closing' || this._state === 'closed') {
-        this._state = 'closed';
-      }
+      if (this._state === 'closed') return;
+      this._state = 'closed';
+      this._rejectPendingSends(new ClosedTransportError());
       this._data.seal();
       this._close.emit();
       this._close.seal();
@@ -193,10 +214,27 @@ export class NodeStreamTransport implements IStreamTransport {
     if (!this._stream.write(buffer)) {
       // Backpressure: wait for the stream to drain before resolving.
       await new Promise<void>((resolve, reject) => {
-        const onDrain = () => resolve();
-        const onErr = (err: unknown) => reject(err instanceof Error ? err : new Error(String(err)));
+        let settled = false;
+        const onDrain = () => settle(resolve);
+        const onErr = (err: unknown) => settleReject(err instanceof Error ? err : new Error(String(err)));
+        const onClose = () => settleReject(new ClosedTransportError());
+        const cleanup = () => {
+          this._stream.removeListener?.('drain', onDrain);
+          this._stream.removeListener?.('error', onErr);
+          this._stream.removeListener?.('close', onClose);
+          this._pendingSendRejects.delete(settleReject);
+        };
+        const settle = (value: () => void) => {
+          if (settled) return;
+          settled = true;
+          cleanup();
+          value();
+        };
+        const settleReject = (error: Error) => settle(() => reject(error));
+        this._pendingSendRejects.add(settleReject);
         this._stream.once?.('drain', onDrain);
         this._stream.once?.('error', onErr);
+        this._stream.once?.('close', onClose);
       });
     }
   }
@@ -215,13 +253,19 @@ export class NodeStreamTransport implements IStreamTransport {
 
   async close(): Promise<void> {
     if (this._state === 'closed') return;
+    if (this._state === 'closing') return this._closePromise;
     this._state = 'closing';
+    this._rejectPendingSends(new ClosedTransportError());
     if (typeof this._stream.destroy === 'function') {
       this._stream.destroy();
     } else if (typeof this._stream.end === 'function') {
       this._stream.end();
     }
     await this._closePromise;
+  }
+
+  private _rejectPendingSends(error: Error): void {
+    for (const reject of [...this._pendingSendRejects]) reject(error);
   }
 }
 
@@ -254,11 +298,12 @@ export class WebSocketTransport implements IStreamTransport {
 
   constructor(ws: unknown) {
     this._ws = ws as WebSocketTransport['_ws'];
+    if ('binaryType' in this._ws) this._ws.binaryType = 'arraybuffer';
     const register = this._ws.addEventListener ? this._ws.addEventListener.bind(this._ws) : this._ws.on?.bind(this._ws);
 
     register?.('message', (ev: unknown) => {
       const raw = (ev as { data?: unknown }).data ?? ev;
-      this._data.emit(toBytes(raw));
+      emitBytes(raw, (bytes) => this._data.emit(bytes), (error) => this._error.emit(error));
     });
     register?.('close', () => {
       this._state = 'closed';
@@ -286,12 +331,16 @@ export class WebSocketTransport implements IStreamTransport {
     }
     await new Promise<void>((resolve, reject) => {
       try {
-        // `ws` (Node) supports a completion callback; browser WebSocket ignores it.
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (this._ws.send as any)(data, (err?: unknown) => {
-          if (err) reject(err instanceof Error ? err : new Error(String(err)));
-          else resolve();
-        });
+        if (this._ws.on) {
+          // `ws` (Node) supports a completion callback; browser WebSocket does not.
+          (this._ws.send as (payload: Uint8Array, callback: (err?: unknown) => void) => void)(data, (err) => {
+            if (err) reject(err instanceof Error ? err : new Error(String(err)));
+            else resolve();
+          });
+        } else {
+          this._ws.send(data);
+          resolve();
+        }
       } catch (err) {
         reject(err instanceof Error ? err : new Error(String(err)));
       }
@@ -349,7 +398,7 @@ export class WebRTCDataChannelTransport implements IStreamTransport {
     }
     this._ch.addEventListener('message', (ev: unknown) => {
       const data = (ev as { data?: unknown }).data;
-      this._data.emit(toBytes(data));
+      emitBytes(data, (bytes) => this._data.emit(bytes), (error) => this._error.emit(error));
     });
     this._ch.addEventListener('close', () => {
       this._state = 'closed';
@@ -403,32 +452,59 @@ export class WebRTCDataChannelTransport implements IStreamTransport {
  * Adapts a Node.js Readable + Writable pair (default: process.stdin/stdout)
  * as IStreamTransport. This transport is Node-only by definition.
  */
+export interface StdioStreamTransportOptions {
+  ownInput?: boolean;
+  ownOutput?: boolean;
+}
+
 export class StdioStreamTransport implements IStreamTransport {
   private readonly _input: {
     on(event: string, handler: (...args: unknown[]) => void): unknown;
     once?(event: string, handler: (...args: unknown[]) => void): unknown;
+    destroy?(): void;
   };
   private readonly _output: {
     write(chunk: Buffer | Uint8Array): boolean;
     once?(event: string, handler: (...args: unknown[]) => void): unknown;
+    removeListener?(event: string, handler: (...args: unknown[]) => void): unknown;
+    end?(): void;
   };
+  private readonly _inputOwned: boolean;
+  private readonly _outputOwned: boolean;
   private readonly _data = new HandlerSet();
   private readonly _close = new HandlerSet();
   private readonly _error = new HandlerSet();
   private _state: TransportState = 'open';
   private _closeResolve: (() => void) | null = null;
   private readonly _closePromise: Promise<void>;
+  private readonly _pendingSendRejects = new Set<(error: Error) => void>();
 
   constructor(
     input: unknown = process.stdin,
     output: unknown = process.stdout,
+    options: StdioStreamTransportOptions = {},
   ) {
     this._input = input as StdioStreamTransport['_input'];
     this._output = output as StdioStreamTransport['_output'];
+    this._inputOwned = options.ownInput ?? false;
+    this._outputOwned = options.ownOutput ?? false;
 
-    this._input.on('data', (chunk: unknown) => this._data.emit(toBytes(chunk)));
+    this._input.on('data', (chunk: unknown) =>
+      emitBytes(chunk, (bytes) => this._data.emit(bytes), (error) => this._error.emit(error)),
+    );
     this._input.on('end', () => {
+      if (this._state === 'closed') return;
       this._state = 'closed';
+      this._rejectPendingSends(new ClosedTransportError());
+      this._data.seal();
+      this._close.emit();
+      this._close.seal();
+      this._closeResolve?.();
+    });
+    this._input.on('close', () => {
+      if (this._state === 'closed') return;
+      this._state = 'closed';
+      this._rejectPendingSends(new ClosedTransportError());
       this._data.seal();
       this._close.emit();
       this._close.seal();
@@ -453,8 +529,22 @@ export class StdioStreamTransport implements IStreamTransport {
     }
     if (!this._output.write(Buffer.isBuffer(data) ? data : Buffer.from(data))) {
       await new Promise<void>((resolve, reject) => {
-        const onDrain = () => resolve();
-        const onErr = (err: unknown) => reject(err instanceof Error ? err : new Error(String(err)));
+        let settled = false;
+        const onDrain = () => settle(resolve);
+        const onErr = (err: unknown) => settleReject(err instanceof Error ? err : new Error(String(err)));
+        const cleanup = () => {
+          this._output.removeListener?.('drain', onDrain);
+          this._output.removeListener?.('error', onErr);
+          this._pendingSendRejects.delete(settleReject);
+        };
+        const settle = (value: () => void) => {
+          if (settled) return;
+          settled = true;
+          cleanup();
+          value();
+        };
+        const settleReject = (error: Error) => settle(() => reject(error));
+        this._pendingSendRejects.add(settleReject);
         this._output.once?.('drain', onDrain);
         this._output.once?.('error', onErr);
       });
@@ -475,10 +565,21 @@ export class StdioStreamTransport implements IStreamTransport {
 
   async close(): Promise<void> {
     if (this._state === 'closed') return;
+    if (this._state === 'closing') return this._closePromise;
     this._state = 'closing';
-    const stdin = process.stdin as unknown as { destroy?: () => void };
-    stdin.destroy?.();
+    this._rejectPendingSends(new ClosedTransportError());
+    if (this._inputOwned) this._input.destroy?.();
+    if (this._outputOwned) this._output.end?.();
+    this._state = 'closed';
+    this._data.seal();
+    this._close.emit();
+    this._close.seal();
+    this._closeResolve?.();
     await this._closePromise;
+  }
+
+  private _rejectPendingSends(error: Error): void {
+    for (const reject of [...this._pendingSendRejects]) reject(error);
   }
 }
 

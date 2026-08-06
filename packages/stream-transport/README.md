@@ -33,12 +33,12 @@ import {
 
 // In-process pair (great for tests)
 const [a, b] = createInMemoryPair();
-b.on('data', (bytes) => console.log('received', bytes));
+b.onData((bytes) => console.log('received', bytes));
 a.send(new TextEncoder().encode('hello'));
 
 // WebSocket
 const wst = new WebSocketTransport(myWebSocket);
-wst.on('data', (bytes) => { /* ... */ });
+wst.onData((bytes) => { /* ... */ });
 wst.send(new Uint8Array([1, 2, 3]));
 ```
 

@@ -5,8 +5,6 @@ on:
     tags:
       - 'totemsdk/core-v*'
       - 'totemsdk/core-wasm-v*'
-      - 'totemsdk/connect-v*'
-      - 'totemsdk/tx-builder-v*'
       - 'totemsdk/server-v*'
       - 'totemsdk/realtime-v*'
       - 'totemsdk/root-identity-v*'
@@ -31,18 +29,7 @@ jobs:
           - pkg: core-wasm
             dir: packages/core-wasm
             npm_name: '@totemsdk/core-wasm'
-            needs_wasm: false
-            build_cmd: |
-              curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-              rustup target add wasm32-unknown-unknown
-              wasm-pack build --target bundler --out-dir pkg
-              wasm-pack build --target nodejs --out-dir pkg-node
-          - pkg: connect
-            dir: packages/connect
-            npm_name: '@totemsdk/connect'
-          - pkg: tx-builder
-            dir: packages/tx-builder
-            npm_name: '@totemsdk/tx-builder'
+            needs_wasm: true
           - pkg: server
             dir: packages/server
             npm_name: '@totemsdk/server'
@@ -73,43 +60,62 @@ jobs:
             echo "ℹ️  Tag '$GITHUB_REF_NAME' does not match '$PREFIX' — this job is a no-op."
           fi
 
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         if: steps.gate.outputs.proceed == 'true'
 
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@f520eceda224fe1a4aed5a2a27a194379a409996 # v6
         if: steps.gate.outputs.proceed == 'true'
         with:
           version: 11.10.0
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         if: steps.gate.outputs.proceed == 'true'
         with:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
           cache: 'pnpm'
 
+      - name: Verify package eligibility
+        if: steps.gate.outputs.proceed == 'true'
+        env:
+          PACKAGE_DIR: ${{ matrix.dir }}
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const config = JSON.parse(fs.readFileSync('scripts/workspace-gates.config.json', 'utf8'));
+          const packageDir = process.env.PACKAGE_DIR;
+          const entry = config.packages[packageDir];
+          if (!entry) {
+            throw new Error(`Package is missing from workspace-gates.config.json: ${packageDir}`);
+          }
+          if (entry.status !== 'publishable') {
+            throw new Error(`Package is not publishable: ${packageDir} (${entry.reason ?? 'no reason supplied'})`);
+          }
+          console.log(`Publish eligibility confirmed: ${packageDir}`);
+          NODE
+
       - name: Install dependencies (workspace)
         if: steps.gate.outputs.proceed == 'true'
         run: pnpm install --frozen-lockfile
 
-      # ── Pre-build @totemsdk/core-wasm (Rust → WASM) for core publish ──
+      # ── Pre-build @totemsdk/core-wasm (Rust → WASM) ──
+      # Required both when publishing core-wasm itself and when publishing core,
+      # which consumes core-wasm as a workspace dependency.
       - name: Install Rust toolchain
-        if: steps.gate.outputs.proceed == 'true' && matrix.pkg == 'core'
-        uses: dtolnay/rust-toolchain@stable
+        if: steps.gate.outputs.proceed == 'true' && matrix.needs_wasm
+        uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
         with:
           toolchain: stable
           targets: wasm32-unknown-unknown
 
       - name: Install wasm-pack
-        if: steps.gate.outputs.proceed == 'true' && matrix.pkg == 'core'
+        if: steps.gate.outputs.proceed == 'true' && matrix.needs_wasm
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
       - name: Build @totemsdk/core-wasm
-        if: steps.gate.outputs.proceed == 'true' && matrix.pkg == 'core'
-        run: |
-          cd packages/core-wasm
-          wasm-pack build --target bundler --out-dir pkg
-          wasm-pack build --target nodejs --out-dir pkg-node
+        if: steps.gate.outputs.proceed == 'true' && matrix.needs_wasm
+        working-directory: packages/core-wasm
+        run: npm run build
 
       # ── Pre-build @totemsdk/core so dependent packages can resolve its types ──
       - name: Build @totemsdk/core (workspace dependency)
@@ -150,7 +156,11 @@ jobs:
         working-directory: ${{ matrix.dir }}
 
       # ── Test the package from its packed tarball ───────────────────────────
-      - name: Test ${{ matrix.npm_name }}
+      - name: Test clean consumer from packed tarball
+        if: steps.gate.outputs.proceed == 'true'
+        run: node scripts/verify-consumer-pack.mjs "${{ matrix.dir }}"
+
+      - name: Run unit tests for ${{ matrix.npm_name }}
         if: steps.gate.outputs.proceed == 'true'
         run: pnpm test
         working-directory: ${{ matrix.dir }}
@@ -179,11 +189,11 @@ jobs:
     needs: [publish]
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       # TotemEdgeSDKDocs is a standalone npm project (has its own package-lock.json)
       # and is NOT part of the pnpm monorepo, so we use npm here deliberately.
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: '20'
           cache: 'npm'
@@ -200,7 +210,7 @@ jobs:
         working-directory: TotemEdgeSDKDocs
 
       - name: Deploy to Cloudflare Pages
-        uses: cloudflare/pages-action@v1
+        uses: cloudflare/pages-action@f0a1cd58cd66095dee69bfa18fa5efd1dde93bca # v1
         with:
           # CLOUDFLARE_API_TOKEN — Pages:Edit permission required
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}

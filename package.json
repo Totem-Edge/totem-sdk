@@ -36,7 +36,7 @@
     "build": "pnpm -r --workspace-concurrency=4 run build",
     "typecheck": "node scripts/verify-workspace.mjs --typecheck",
     "lint": "node scripts/verify-workspace.mjs --lint",
-    "test": "pnpm -r run test",
+    "test": "node scripts/verify-workspace.mjs --test",
     "test:integration": "node scripts/verify-workspace.mjs --integration",
     "test:pack": "node scripts/verify-workspace.mjs --pack",
     "verify": "node scripts/verify-workspace.mjs --all",
@@ -53,6 +53,6 @@
     "jest": "^30.4.2",
     "ts-jest": "^29.4.11",
     "typedoc": "^0.28.20",
-    "typescript": "^7.0.2"
+    "typescript": "5.9.3"
   }
 }

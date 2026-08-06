@@ -43,38 +43,112 @@ describe('RateLimitPolicy', () => {
 
   it('approves within limit', async () => {
     const policy = new RateLimitPolicy(3, 60_000);
-    expect(await policy.evaluate(makeProposal())).toMatchObject({ outcome: 'approved' });
-    expect(await policy.evaluate(makeProposal())).toMatchObject({ outcome: 'approved' });
-    expect(await policy.evaluate(makeProposal())).toMatchObject({ outcome: 'approved' });
+    expect(await policy.reserve({ ...makeProposal(), id: 'p1' })).toMatchObject({ outcome: 'approved' });
+    expect(await policy.reserve({ ...makeProposal(), id: 'p2' })).toMatchObject({ outcome: 'approved' });
+    expect(await policy.reserve({ ...makeProposal(), id: 'p3' })).toMatchObject({ outcome: 'approved' });
   });
 
   it('rejects after limit', async () => {
     const policy = new RateLimitPolicy(2, 60_000);
-    await policy.evaluate(makeProposal());
-    await policy.evaluate(makeProposal());
-    const result = await policy.evaluate(makeProposal());
+    await policy.reserve({ ...makeProposal(), id: 'p1' });
+    await policy.reserve({ ...makeProposal(), id: 'p2' });
+    const result = await policy.reserve({ ...makeProposal(), id: 'p3' });
     expect(result.outcome).toBe('rejected');
     expect(result.reason).toContain('Rate limit exceeded');
   });
 
   it('resets after window expires', async () => {
     const policy = new RateLimitPolicy(1, 50);
-    await policy.evaluate(makeProposal());
-    const result1 = await policy.evaluate(makeProposal());
+    await policy.reserve({ ...makeProposal(), id: 'p1' });
+    const result1 = await policy.reserve({ ...makeProposal(), id: 'p2' });
     expect(result1.outcome).toBe('rejected');
 
     await policy.reset();
-    const result2 = await policy.evaluate(makeProposal());
+    const result2 = await policy.reserve({ ...makeProposal(), id: 'p3' });
     expect(result2.outcome).toBe('approved');
   });
 
   it('resets the window automatically after it rolls over (time-based)', async () => {
     const policy = new RateLimitPolicy(1, 1000);
     const t0 = 1_000_000;
-    expect((await policy.evaluate(makeProposal(), t0)).outcome).toBe('approved');
-    expect((await policy.evaluate(makeProposal(), t0 + 500)).outcome).toBe('rejected');
-    expect((await policy.evaluate(makeProposal(), t0 + 1000)).outcome).toBe('approved');
-    expect((await policy.evaluate(makeProposal(), t0 + 1001)).outcome).toBe('rejected');
+    expect((await policy.reserve({ ...makeProposal(), id: 'p1' }, t0)).outcome).toBe('approved');
+    expect((await policy.reserve({ ...makeProposal(), id: 'p2' }, t0 + 500)).outcome).toBe('rejected');
+    expect((await policy.reserve({ ...makeProposal(), id: 'p3' }, t0 + 1000)).outcome).toBe('approved');
+    expect((await policy.reserve({ ...makeProposal(), id: 'p4' }, t0 + 1001)).outcome).toBe('rejected');
+  });
+
+  it('keeps evaluation read-only and reservations idempotent', async () => {
+    const policy = new RateLimitPolicy(1, 1000);
+    const proposal = makeProposal();
+    expect((await policy.evaluate(proposal, 1_000_000)).outcome).toBe('approved');
+    expect((await policy.evaluate(proposal, 1_000_000)).outcome).toBe('approved');
+    expect((await policy.reserve(proposal, 1_000_000)).outcome).toBe('approved');
+    expect((await policy.reserve(proposal, 1_000_000)).outcome).toBe('approved');
+    expect((await policy.reserve({ ...proposal, id: 'other' }, 1_000_000)).outcome).toBe('rejected');
+    await policy.release(proposal.id);
+    expect((await policy.reserve({ ...proposal, id: 'other' }, 1_000_000)).outcome).toBe('approved');
+  });
+
+  it('isolates rate limits by agent and token', async () => {
+    const policy = new RateLimitPolicy(1, 1000);
+    const proposal = makeProposal();
+    expect((await policy.reserve(proposal, 1_000_000)).outcome).toBe('approved');
+    expect((await policy.reserve({ ...proposal, id: 'agent-2', agentId: 'other' }, 1_000_000)).outcome).toBe('approved');
+    expect((await policy.reserve({ ...proposal, id: 'token-2', intent: { ...proposal.intent, tokenId: 'other' } }, 1_000_000)).outcome).toBe('approved');
+  });
+
+  it('does not over-commit under concurrent reservations', async () => {
+    const policy = new RateLimitPolicy(2, 60_000);
+    const results = await Promise.all([
+      policy.reserve({ ...makeProposal(), id: 'p1' }, 1_000_000),
+      policy.reserve({ ...makeProposal(), id: 'p2' }, 1_000_000),
+      policy.reserve({ ...makeProposal(), id: 'p3' }, 1_000_000),
+    ]);
+    expect(results.filter((r) => r.outcome === 'approved')).toHaveLength(2);
+    expect(results.filter((r) => r.outcome === 'rejected')).toHaveLength(1);
+  });
+
+  it('allows retry after releasing a reservation', async () => {
+    const policy = new RateLimitPolicy(1, 60_000);
+    const t0 = 1_000_000;
+    expect((await policy.reserve({ ...makeProposal(), id: 'p1' }, t0)).outcome).toBe('approved');
+    expect((await policy.reserve({ ...makeProposal(), id: 'p2' }, t0)).outcome).toBe('rejected');
+    await policy.release('p1');
+    expect((await policy.reserve({ ...makeProposal(), id: 'p2' }, t0)).outcome).toBe('approved');
+  });
+
+  it('rejects reusing an operation ID bound to different proposal contents', async () => {
+    const policy = new RateLimitPolicy(1, 60_000);
+    expect((await policy.reserve({ ...makeProposal(), id: 'p1' }, 1_000_000)).outcome).toBe('approved');
+    const tampered = { ...makeProposal({ reason: 'changed contents' }), id: 'p1' };
+    const result = await policy.reserve(tampered, 1_000_000);
+    expect(result.outcome).toBe('rejected');
+    expect(result.reason).toContain('different proposal contents');
+  });
+
+  it('isolates rate limits by authenticated principal', async () => {
+    const policy = new RateLimitPolicy(1, 60_000);
+    expect((await policy.reserve({ ...makeProposal(), id: 'p1', principal: 'wallet-1' }, 1_000_000)).outcome).toBe('approved');
+    expect((await policy.reserve({ ...makeProposal(), id: 'p2', principal: 'wallet-2' }, 1_000_000)).outcome).toBe('approved');
+    expect((await policy.reserve({ ...makeProposal(), id: 'p3', principal: 'wallet-1' }, 1_000_000)).outcome).toBe('rejected');
+  });
+
+  it('does not refund quota on release after commit (monotonic lifecycle)', async () => {
+    const policy = new RateLimitPolicy(1, 60_000);
+    const t0 = 1_000_000;
+    expect((await policy.reserve({ ...makeProposal(), id: 'p1' }, t0)).outcome).toBe('approved');
+    await policy.commit('p1');
+    await policy.release('p1');
+    expect((await policy.reserve({ ...makeProposal(), id: 'p2' }, t0)).outcome).toBe('rejected');
+  });
+
+  it('evaluate is read-only: repeated evaluation never consumes quota', async () => {
+    const policy = new RateLimitPolicy(1, 60_000);
+    const t0 = 1_000_000;
+    for (let i = 0; i < 5; i++) {
+      expect((await policy.evaluate(makeProposal(), t0)).outcome).toBe('approved');
+    }
+    expect((await policy.reserve({ ...makeProposal(), id: 'p1' }, t0)).outcome).toBe('approved');
   });
 });
 
@@ -104,12 +178,12 @@ describe('AmountCapPolicy', () => {
 
   it('tracks per-day cap', async () => {
     const policy = new AmountCapPolicy({ perDay: '300' });
-    await policy.evaluate(makeProposal({ amount: '100' }));
-    await policy.evaluate(makeProposal({ amount: '100' }));
-    const result = await policy.evaluate(makeProposal({ amount: '100' }));
+    await policy.reserve({ ...makeProposal({ amount: '100' }), id: 'p1' });
+    await policy.reserve({ ...makeProposal({ amount: '100' }), id: 'p2' });
+    const result = await policy.reserve({ ...makeProposal({ amount: '100' }), id: 'p3' });
     expect(result.outcome).toBe('approved');
     // Fourth exceeds 300
-    const result2 = await policy.evaluate(makeProposal({ amount: '100' }));
+    const result2 = await policy.reserve({ ...makeProposal({ amount: '100' }), id: 'p4' });
     expect(result2.outcome).toBe('rejected');
     expect(result2.reason).toContain('per-day cap');
   });
@@ -123,20 +197,93 @@ describe('AmountCapPolicy', () => {
 
   it('resets day counter', async () => {
     const policy = new AmountCapPolicy({ perDay: '100' });
-    await policy.evaluate(makeProposal({ amount: '100' }));
-    const result1 = await policy.evaluate(makeProposal({ amount: '50' }));
+    await policy.reserve({ ...makeProposal({ amount: '100' }), id: 'p1' });
+    const result1 = await policy.reserve({ ...makeProposal({ amount: '50' }), id: 'p2' });
     expect(result1.outcome).toBe('rejected');
     await policy.reset();
-    const result2 = await policy.evaluate(makeProposal({ amount: '50' }));
+    const result2 = await policy.reserve({ ...makeProposal({ amount: '50' }), id: 'p3' });
     expect(result2.outcome).toBe('approved');
   });
 
   it('resets the day budget automatically after 24h (time-based)', async () => {
     const policy = new AmountCapPolicy({ perDay: '100' });
     const day1 = 1_000_000;
-    expect((await policy.evaluate(makeProposal({ amount: '100' }), day1)).outcome).toBe('approved');
-    expect((await policy.evaluate(makeProposal({ amount: '50' }), day1 + 1000)).outcome).toBe('rejected');
-    expect((await policy.evaluate(makeProposal({ amount: '50' }), day1 + 86_400_000)).outcome).toBe('approved');
+    expect((await policy.reserve({ ...makeProposal({ amount: '100' }), id: 'p1' }, day1)).outcome).toBe('approved');
+    expect((await policy.reserve({ ...makeProposal({ amount: '50' }), id: 'p2' }, day1 + 1000)).outcome).toBe('rejected');
+    expect((await policy.reserve({ ...makeProposal({ amount: '50' }), id: 'p3' }, day1 + 86_400_000)).outcome).toBe('approved');
+  });
+
+  it('does not consume amount quota until commit and isolates tokens', async () => {
+    const policy = new AmountCapPolicy({ perDay: '100' });
+    const proposal = makeProposal({ amount: '100' });
+    expect((await policy.evaluate(proposal, 1_000_000)).outcome).toBe('approved');
+    expect((await policy.evaluate(proposal, 1_000_000)).outcome).toBe('approved');
+    await policy.reserve(proposal, 1_000_000);
+    await policy.commit(proposal.id);
+    expect((await policy.reserve({ ...proposal, id: 'other' }, 1_000_000)).outcome).toBe('rejected');
+    expect((await policy.reserve({ ...proposal, id: 'token', intent: { ...proposal.intent, tokenId: 'other' } }, 1_000_000)).outcome).toBe('approved');
+    await policy.commit(proposal.id);
+  });
+
+  it('does not over-commit quota under concurrent reservations', async () => {
+    const policy = new AmountCapPolicy({ perDay: '100' });
+    const results = await Promise.all([
+      policy.reserve({ ...makeProposal({ amount: '100' }), id: 'p1' }, 1_000_000),
+      policy.reserve({ ...makeProposal({ amount: '100' }), id: 'p2' }, 1_000_000),
+    ]);
+    expect(results.filter((r) => r.outcome === 'approved')).toHaveLength(1);
+    expect(results.filter((r) => r.outcome === 'rejected')).toHaveLength(1);
+  });
+
+  it('commit is idempotent under concurrent calls', async () => {
+    const policy = new AmountCapPolicy({ perDay: '100' });
+    await policy.reserve({ ...makeProposal({ amount: '100' }), id: 'p1' }, 1_000_000);
+    await Promise.all([policy.commit('p1'), policy.commit('p1')]);
+    const result = await policy.reserve({ ...makeProposal({ amount: '100' }), id: 'p2' }, 1_000_000);
+    expect(result.outcome).toBe('rejected');
+  });
+
+  it('supports retry after releasing a reservation', async () => {
+    const policy = new AmountCapPolicy({ perDay: '100' });
+    const t0 = 1_000_000;
+    expect((await policy.reserve({ ...makeProposal({ amount: '100' }), id: 'p1' }, t0)).outcome).toBe('approved');
+    expect((await policy.reserve({ ...makeProposal({ amount: '100' }), id: 'p2' }, t0)).outcome).toBe('rejected');
+    await policy.release('p1');
+    expect((await policy.reserve({ ...makeProposal({ amount: '100' }), id: 'p2' }, t0)).outcome).toBe('approved');
+  });
+
+  it('rejects reusing an operation ID bound to different proposal contents', async () => {
+    const policy = new AmountCapPolicy({ perDay: '100' });
+    expect((await policy.reserve({ ...makeProposal({ amount: '100' }), id: 'p1' }, 1_000_000)).outcome).toBe('approved');
+    const tampered = { ...makeProposal({ amount: '200' }), id: 'p1' };
+    const result = await policy.reserve(tampered, 1_000_000);
+    expect(result.outcome).toBe('rejected');
+    expect(result.reason).toContain('different proposal contents');
+  });
+
+  it('isolates daily caps by authenticated principal', async () => {
+    const policy = new AmountCapPolicy({ perDay: '100' });
+    expect((await policy.reserve({ ...makeProposal({ amount: '100' }), id: 'p1', principal: 'wallet-1' }, 1_000_000)).outcome).toBe('approved');
+    expect((await policy.reserve({ ...makeProposal({ amount: '100' }), id: 'p2', principal: 'wallet-2' }, 1_000_000)).outcome).toBe('approved');
+    expect((await policy.reserve({ ...makeProposal({ amount: '100' }), id: 'p3', principal: 'wallet-1' }, 1_000_000)).outcome).toBe('rejected');
+  });
+
+  it('does not refund quota on release after commit (monotonic lifecycle)', async () => {
+    const policy = new AmountCapPolicy({ perDay: '100' });
+    const t0 = 1_000_000;
+    expect((await policy.reserve({ ...makeProposal({ amount: '100' }), id: 'p1' }, t0)).outcome).toBe('approved');
+    await policy.commit('p1');
+    await policy.release('p1');
+    expect((await policy.reserve({ ...makeProposal({ amount: '100' }), id: 'p2' }, t0)).outcome).toBe('rejected');
+  });
+
+  it('evaluate is read-only: repeated evaluation never consumes quota', async () => {
+    const policy = new AmountCapPolicy({ perDay: '100' });
+    const t0 = 1_000_000;
+    for (let i = 0; i < 5; i++) {
+      expect((await policy.evaluate({ ...makeProposal({ amount: '100' }), id: `ev-${i}` }, t0)).outcome).toBe('approved');
+    }
+    expect((await policy.reserve({ ...makeProposal({ amount: '100' }), id: 'p1' }, t0)).outcome).toBe('approved');
   });
 });
 
@@ -358,6 +505,70 @@ describe('ComposablePolicy', () => {
     const result = await policy.evaluate(makeProposal({ amount: '100', recipient: 'MxABC' }));
     expect(result.outcome).toBe('rejected');
     expect(result.reason).toContain('per-transaction cap');
+  });
+
+  it('releases earlier reservations when a later layer rejects', async () => {
+    let released = 0;
+    const reservingLayer: PolicyMiddleware = {
+      async evaluate() {
+        return { outcome: 'approved' as const, reason: 'yes' };
+      },
+      async reserve() {
+        return { outcome: 'approved' as const, reason: 'reserved' };
+      },
+      async release() {
+        released++;
+      },
+    };
+    const rejectingLayer: PolicyMiddleware = {
+      async evaluate() {
+        return { outcome: 'rejected' as const, reason: 'no' };
+      },
+    };
+    const policy = new ComposablePolicy([reservingLayer, rejectingLayer]);
+
+    const result = await policy.reserve(makeProposal());
+
+    expect(result.outcome).toBe('rejected');
+    expect(released).toBe(1);
+  });
+
+  it('does not release evaluation-only layers during rollback', async () => {
+    let released = 0;
+    const evaluationOnlyLayer: PolicyMiddleware = {
+      async evaluate() {
+        return { outcome: 'approved' as const, reason: 'yes' };
+      },
+      async release() {
+        released++;
+      },
+    };
+    const rejectingLayer: PolicyMiddleware = {
+      async evaluate() {
+        return { outcome: 'rejected' as const, reason: 'no' };
+      },
+    };
+
+    const result = await new ComposablePolicy([evaluationOnlyLayer, rejectingLayer]).reserve(makeProposal());
+
+    expect(result.outcome).toBe('rejected');
+    expect(released).toBe(0);
+  });
+
+  it('keeps limits consistent under concurrent reservations', async () => {
+    const policy = new ComposablePolicy([
+      new RateLimitPolicy(2, 60_000),
+      new AmountCapPolicy({ perDay: '150' }),
+    ]);
+    const results = await Promise.all([
+      policy.reserve({ ...makeProposal({ amount: '100' }), id: 'p1' }),
+      policy.reserve({ ...makeProposal({ amount: '100' }), id: 'p2' }),
+      policy.reserve({ ...makeProposal({ amount: '100' }), id: 'p3' }),
+    ]);
+    const approved = results.filter((r) => r.outcome === 'approved');
+    const rejected = results.filter((r) => r.outcome === 'rejected');
+    expect(approved).toHaveLength(1);
+    expect(rejected).toHaveLength(2);
   });
 });
 

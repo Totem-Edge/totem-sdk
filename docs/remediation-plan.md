@@ -12,29 +12,25 @@
 - **Exact change:** Delete lines 4-7 (the entire JSDoc block containing `Phase 1.5` / `Phase 2`)
 - **Rationale:** Design-phase notes are in git history. No runtime impact.
 
-### Finding 2: `PaymentIntent.amount` — never read
-- **File:** `src/types.ts`
-- **Action:** delete
-- **Exact change:** Delete line 21 (`amount?: string;`)
-- **Rationale:** `RiskBasedPolicy` only evaluates `risk`. `amount` is forward-looking for temporal linear pay-per-use. Move to temporal template integration (see below).
+### Finding 2: `PaymentIntent.amount` — consumed by policy enforcement
+- **File:** `src/types.ts`, `src/amount-cap.ts`, `src/digest.ts`
+- **Action:** retain
+- **Rationale:** `AmountCapPolicy` validates transaction and daily amounts, and the canonical operation digest binds the amount to the operation ID. The earlier inventory entry was stale.
 
-### Finding 3: `PaymentIntent.tokenId` — never read
-- **File:** `src/types.ts`
-- **Action:** delete
-- **Exact change:** Delete line 23 (`tokenId?: string;`)
-- **Rationale:** Same as Finding 2.
+### Finding 3: `PaymentIntent.tokenId` — consumed for quota scope
+- **File:** `src/types.ts`, `src/amount-cap.ts`, `src/rate-limit.ts`, `src/digest.ts`
+- **Action:** retain
+- **Rationale:** Stateful policy buckets are scoped by token, and the canonical operation digest binds the token to the operation ID. The earlier inventory entry was stale.
 
-### Finding 4: `PaymentIntent.recipient` — never read
-- **File:** `src/types.ts`
-- **Action:** delete
-- **Exact change:** Delete line 25 (`recipient?: string;`)
-- **Rationale:** Same as Finding 2.
+### Finding 4: `PaymentIntent.recipient` — consumed by recipient policy
+- **File:** `src/types.ts`, `src/recipient-allowlist.ts`, `src/digest.ts`
+- **Action:** retain
+- **Rationale:** `RecipientAllowlistPolicy` enforces recipient restrictions, and the canonical operation digest binds the recipient. The earlier inventory entry was stale.
 
-### Finding 5: `PaymentIntent.reason` — never read
-- **File:** `src/types.ts`
-- **Action:** delete
-- **Exact change:** Delete line 27 (`reason?: string;`)
-- **Rationale:** Shown in approval UI only — remove until UI layer exists.
+### Finding 5: `PaymentIntent.reason` — retained as authenticated proposal context
+- **File:** `src/types.ts`, `src/digest.ts`
+- **Action:** retain
+- **Rationale:** The reason is included in the canonical operation digest so changing the user-facing justification cannot silently reuse an existing operation ID. The earlier inventory entry was stale.
 
 ### Finding 6: `PaymentIntent.metadata` — never read
 - **File:** `src/types.ts`
@@ -1191,3 +1187,221 @@
 - `buildLinearRelease(startPort, totalPort)` — 3 fields (`SyncResult.advancedTo`, streaming payments, fee pro-rata)
 - `buildRateLimitScript(periodPort, usedPort, maxPerPeriod)` — 6 fields (`maxCallsPerMinute`, `nonce`, `maxKISSVMOps`, usage windows)
 - `buildDecayScript(decayPort)` — 2 fields (bond value decay, proof freshness)
+
+---
+
+# Second Hardening Pass — Gates, Adapters, and Integrity
+
+This section defines the follow-up hardening pass after the workspace gate was
+made green. It is intentionally separate from the dead-code inventory above.
+The pass must preserve existing repository, package, marketing, and product
+positioning. Documentation changes are limited to correcting obsolete API
+examples or implementation claims.
+
+## Phase 0: Establish the Baseline
+
+1. Create a dedicated hardening branch from commit `699e2d0`.
+2. Run and retain the complete output of:
+   `node scripts/verify-workspace.mjs --all`
+3. Record failing gates, excluded packages, and required environmental
+   prerequisites.
+4. Reconcile `pnpm-lock.yaml` with the current workspace manifests before
+   requiring `--frozen-lockfile` in CI.
+5. Establish `scripts/workspace-gates.config.json` as the single
+   machine-readable source of truth for package eligibility.
+6. Require every excluded package to have a specific reason, an accountable
+   work item, and objective re-entry conditions.
+7. Preserve existing public descriptions, slogans, and product claims.
+
+## Phase 1: CI and Release Integrity
+
+1. Replace unrestricted recursive CI tests with:
+   `node scripts/verify-workspace.mjs --test`
+2. Make build, test, integration, and pack jobs consume the same eligibility
+   configuration.
+3. Make publish workflows validate package eligibility against
+   `workspace-gates.config.json`.
+4. Remove excluded packages from static publish matrices or generate the
+   matrix directly from the eligibility configuration.
+5. Pin third-party GitHub Actions to reviewed full commit SHAs.
+6. Configure Dependabot or Renovate to propose action-SHA updates.
+7. Implement genuine tarball consumer tests for every publishable package:
+   build the package, create a real tarball, install it into a clean temporary
+   consumer, test supported ESM and CommonJS entry points, import declared
+   exports, execute a minimal public API operation, and verify required WASM,
+   native, and data assets are present.
+8. Publish gate reports, package classifications, tarball manifests, and
+   consumer-test results as CI artifacts.
+9. Prevent publication unless the package has passed the relevant build, test,
+   and consumer-install gates on the release commit.
+10. Pin or remove mutable or deprecated deployment actions.
+
+## Phase 2: Stream Transport
+
+1. Convert the transport tests into a reusable conformance suite.
+2. Run deterministic contract tests against every applicable transport.
+3. Add environment-specific integration harnesses for Node streams, browser
+   WebSockets, Node WebSockets, WebRTC data channels, and stdio rather than
+   forcing every adapter through one fixture.
+4. Fix browser WebSocket `send()` so it does not wait for an unsupported
+   callback.
+5. Define and test Node WebSocket completion and backpressure behavior.
+6. Correct binary WebSocket handling for `ArrayBuffer`, typed arrays, Buffer,
+   and Blob where supported.
+7. Fix Node stream state transitions when the remote side closes unexpectedly.
+8. Ensure pending sends reject or settle predictably on close and error.
+9. Fix stdio ownership so injected streams are not replaced by global process
+   streams and resources are closed only when owned by the transport.
+10. Add WebRTC state, close, ordering, unsubscribe, and binary-delivery tests.
+11. Correct obsolete README API examples to use `onData`, `onClose`,
+    `onError`, and returned unsubscribe functions without changing package
+    positioning or descriptive claims.
+
+## Phase 3: gRPC Adapter
+
+1. Choose and document one supported message strategy: generated protobuf
+   messages with the default codec, or a deliberately registered raw-byte
+   codec with explicit interoperability constraints.
+2. Prove the selected codec against a real gRPC server.
+3. Align every TypeScript sidecar request type with a corresponding Go
+   dispatcher command.
+4. Remove unsupported commands or implement and test them.
+5. Reject malformed JSON and malformed base64 with visible protocol errors.
+6. Propagate sidecar, stream, handler, upstream, and write failures without
+   silent catches.
+7. Return client-stream final response payloads through the TypeScript stream
+   API.
+8. Define stream completion semantics for final payload, trailers, status, and
+   cancellation.
+9. Isolate upstream connections and stream registries per local client, or
+   explicitly document and enforce a shared model.
+10. Remove cross-client event broadcasting.
+11. Route stream events only to the client that created the stream.
+12. Add locking and lifecycle protection around connection replacement and
+    stream cleanup.
+13. Decide and implement one distribution model: ship verified platform
+    binaries, build during a supported installation step, use an external
+    configured sidecar, or keep the package excluded.
+14. Add TypeScript-to-Go integration tests covering unary calls, deadlines,
+    server streaming, client streaming with a final response, bidirectional
+    streaming, cancellation, status propagation, concurrent local clients,
+    and malformed local protocol messages.
+15. Keep `edge-grpc` excluded until native compilation, packaging, and
+    integration tests pass in CI.
+
+## Phase 4: Modbus Safety
+
+1. Define explicit start, connect, disconnect, and stop lifecycle requirements.
+2. Connect the Modbus handler before serving requests and close it during
+   shutdown.
+3. Apply the requested unit ID to the actual operation.
+4. Avoid races caused by mutating a shared handler's unit ID by using
+   request-scoped clients or serializing handler mutation and execution under
+   a lock.
+5. Validate the complete request before indexing: frame length, function,
+   address, quantity, byte count, payload length, protocol limits, and
+   quantity-to-byte-count consistency.
+6. Reject zero and out-of-range quantities.
+7. Return valid Modbus exception responses where appropriate.
+8. Handle socket and Modbus response write failures.
+9. Add panic-safety and malformed-frame tests for every supported function.
+10. Add concurrent unit-ID tests.
+11. Add integration tests against a deterministic Modbus TCP test server.
+12. Decide and implement the Go-binary distribution model.
+13. Update the exclusion reason to accurately identify implemented,
+    unverified, and unsafe components.
+14. Keep `edge-modbus` excluded until native compilation, packaging, and
+    integration tests pass.
+
+## Phase 5: Governance Integrity
+
+1. Permit voting only when a proposal is `active`.
+2. Validate vote timing against the active voting interval.
+3. Validate quadratic allocations as finite, positive, safe integers within
+   configured limits.
+4. Reject empty allocations and repeated choices within one allocation
+   request.
+5. Define one canonical quadratic representation and prevent a second square
+   root or square during tallying.
+6. Require authoritative credit state when quadratic voting is enabled.
+7. Reserve and commit quadratic credits atomically.
+8. Derive tally inputs from the membership snapshot rather than accepting
+   authoritative totals from callers.
+9. Require tallying to receive and validate the expected proposal and snapshot.
+10. Reject votes whose proposal ID or snapshot hash does not match.
+11. Reject duplicate vote IDs.
+12. Enforce one effective ballot per voter under an explicit replacement or
+    rejection policy.
+13. Recompute voter eligibility and maximum voting power from the snapshot.
+14. Resolve delegation deterministically.
+15. Prevent direct and delegated voting power from being counted simultaneously.
+16. Verify ballot signatures or proofs before accepting ballots into a tally.
+17. Reject malformed, unsigned, expired, or untrusted proofs.
+18. Derive quorum denominator and eligible total weight internally.
+19. Add adversarial and property-based tests for every invariant.
+
+## Phase 6: Agent Policy
+
+1. Define stable limit keys for principal, token or asset, policy scope, and
+   optional recipient.
+2. Clarify and consistently implement fixed-window, sliding-window, or
+   token-bucket semantics.
+3. Correct stale documentation that describes fixed-window accounting as
+   rolling.
+4. Make policy evaluation read-only.
+5. Introduce two-phase accounting: reserve before execution, commit after
+   success, and release or roll back after failure.
+6. Require stable operation IDs for reserve, commit, and release operations.
+7. Ensure retries cannot reserve or commit quota twice.
+8. Provide an atomic storage interface with compare-and-set or transactional
+   semantics.
+9. Provide at least one durable storage implementation.
+10. Reload receipt and quota state correctly after restart.
+11. Detect corrupt or incomplete persisted records visibly.
+12. Add concurrency, retry, rollback, restart, and multi-principal isolation
+    tests.
+
+## Phase 7: Token Arithmetic and Core Hygiene
+
+1. Validate token scales as bounded, non-negative safe integers.
+2. Reject scales that could cause excessive exponentiation or resource use.
+3. Require exact scaled-to-raw conversion for consensus-sensitive transaction
+   construction.
+4. Reject non-divisible amounts rather than silently truncating them.
+5. Define the rounding mode explicitly for non-consensus display or accounting
+   paths and expose any remainder or loss information.
+6. Add raw-unit conservation tests for funding inputs, outputs, updates,
+   settlements, fees, HTLC creation, HTLC resolution, boundary scales, and
+   non-divisible values.
+7. Remove compiled JavaScript and declaration output from `packages/core/src`.
+8. Remove self-imports and stale generated modules from source directories.
+9. Remove Jest resolution workarounds after source cleanup.
+10. Restore excluded tests incrementally or document why obsolete tests are
+    retired.
+11. Add a CI check that rejects generated build output in source directories.
+12. Ensure builds leave the working tree clean.
+
+## Definition of Done
+
+1. `node scripts/verify-workspace.mjs --all` passes from a clean checkout with
+   a reconciled frozen lockfile.
+2. CI, release, and publish workflows consume the same eligibility policy.
+3. No excluded package can enter a publish matrix or be released.
+4. Every published package passes a clean-consumer tarball installation test.
+5. Every declared export is verified in each supported module system.
+6. Required WASM, native binaries, and runtime assets are present in tarballs.
+7. gRPC and Modbus remain excluded unless native builds and end-to-end tests
+   pass.
+8. Governance tests cover proposal state, identity, membership, duplication,
+   delegation, credits, proofs, and tally derivation.
+9. Agent-policy tests cover isolation, concurrency, idempotency, reservation,
+   commit, rollback, and restart recovery.
+10. No publishable package relies on placeholder tests, silent failure
+    suppression, or unverified no-test success paths.
+11. No relevant implementation silently swallows malformed input, transport
+    failure, or persistence corruption.
+12. The final commit contains no unrelated generated directories, nested
+    repositories, or unrelated nested JavaScript package lockfiles. Legitimate
+    Rust `Cargo.lock` files are excluded from this restriction.
+13. CI artifacts provide enough evidence to reproduce package classification
+    and every release gate.

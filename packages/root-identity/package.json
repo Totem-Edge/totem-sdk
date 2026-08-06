@@ -14,8 +14,8 @@
     }
   },
   "scripts": {
-    "build": "npm run build:wasm && tsc",
-    "prepare": "npm run build:wasm && tsc",
+    "build": "npm run build:wasm && tsc && node ../../scripts/clean-wasm-output-ignores.mjs",
+    "prepare": "npm run build:wasm && tsc && node ../../scripts/clean-wasm-output-ignores.mjs",
     "clean": "rm -rf dist rust/pkg rust/pkg-node rust/target",
     "pretest": "cd ../core && npm run build",
     "test": "jest",
