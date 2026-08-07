@@ -13,7 +13,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "build:go": "cd go && go build -o ../bin/omnia-router .",
+    "build:go": "cd go && go build -o ../bin/omnia-router ./cmd/omnia-router",
     "prepare": "tsc",
     "clean": "rm -rf dist bin",
     "test": "jest"

@@ -16,6 +16,22 @@ export interface EdgePaymentPort {
   }): Promise<EdgeOperationResult<{ txpowId?: string }>>;
 }
 
+export interface EdgeOmniaPort {
+  getChannels(params?: Record<string, unknown>): Promise<EdgeOperationResult<{ channels: unknown[] }>>;
+  openChannel(params: Record<string, unknown>): Promise<EdgeOperationResult>;
+  pay(params: Record<string, unknown>): Promise<EdgeOperationResult>;
+  settle(params: Record<string, unknown>): Promise<EdgeOperationResult>;
+  closeChannel(params: Record<string, unknown>): Promise<EdgeOperationResult>;
+  getRoute(params: Record<string, unknown>): Promise<EdgeOperationResult>;
+  payMultiHop(params: Record<string, unknown>): Promise<EdgeOperationResult>;
+  getSwapRate(params: Record<string, unknown>): Promise<EdgeOperationResult>;
+  createFactory(params: Record<string, unknown>): Promise<EdgeOperationResult>;
+  openVirtualChannel(params: Record<string, unknown>): Promise<EdgeOperationResult>;
+  closeFactory(params: Record<string, unknown>): Promise<EdgeOperationResult>;
+  spliceIn(params: Record<string, unknown>): Promise<EdgeOperationResult>;
+  spliceOut(params: Record<string, unknown>): Promise<EdgeOperationResult>;
+}
+
 export interface EdgeLiquidityPort {
   getBalance(address: string): Promise<EdgeOperationResult<{ balance: string; tokenId: string }>>;
   getUtxos(address: string): Promise<EdgeOperationResult<{ utxos: unknown[] }>>;
@@ -146,6 +162,7 @@ export interface EdgeKeyLeasePort {
 
 export interface EdgeRuntimePorts {
   payment?: EdgePaymentPort;
+  omnia?: EdgeOmniaPort;
   liquidity?: EdgeLiquidityPort;
   proof?: EdgeProofPort;
   lookup?: EdgeLookupPort;

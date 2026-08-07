@@ -1,0 +1,39 @@
+name: Setup pnpm workspace
+description: Configure Node/pnpm caching and install the frozen workspace without lifecycle fan-out
+inputs:
+  node-version:
+    description: Node.js version
+    required: false
+    default: '22'
+  pnpm-version:
+    description: pnpm version
+    required: false
+    default: '11.10.0'
+  filter:
+    description: Optional pnpm filter including dependency closure
+    required: false
+    default: ''
+runs:
+  using: composite
+  steps:
+    - name: Setup pnpm
+      uses: pnpm/action-setup@f520eceda224fe1a4aed5a2a27a194379a409996
+      with:
+        version: ${{ inputs.pnpm-version }}
+    - name: Setup Node.js
+      uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+      with:
+        node-version: ${{ inputs.node-version }}
+        registry-url: https://registry.npmjs.org
+        cache: pnpm
+        cache-dependency-path: pnpm-lock.yaml
+    - name: Install filtered workspace
+      shell: bash
+      env:
+        PNPM_FILTER: ${{ inputs.filter }}
+      run: |
+        if [[ -n "$PNPM_FILTER" ]]; then
+          pnpm install --frozen-lockfile --prefer-offline --ignore-scripts --filter "$PNPM_FILTER"
+        else
+          pnpm install --frozen-lockfile --prefer-offline --ignore-scripts
+        fi

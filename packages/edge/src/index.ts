@@ -22,6 +22,7 @@ export type {
 
 export type {
   EdgePaymentPort,
+  EdgeOmniaPort,
   EdgeLiquidityPort,
   EdgeProofPort,
   EdgeLookupPort,

@@ -20,15 +20,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: pnpm/action-setup@f520eceda224fe1a4aed5a2a27a194379a409996 # v6
-        with:
-          version: 11.10.0
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
-        with:
-          node-version: 22
-          cache: 'pnpm'
-      - name: Install with frozen lockfile
-        run: pnpm install --frozen-lockfile
+      - name: Setup filtered workspace
+        uses: ./.github/actions/setup-pnpm
       - name: Verify working tree clean after install
         run: |
           git status --short
@@ -40,21 +33,13 @@ jobs:
     needs: install
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: pnpm/action-setup@f520eceda224fe1a4aed5a2a27a194379a409996 # v6
-        with:
-          version: 11.10.0
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
-        with:
-          node-version: 22
-          cache: 'pnpm'
-      - name: Install with frozen lockfile
-        run: pnpm install --frozen-lockfile
+      - name: Setup filtered workspace
+        uses: ./.github/actions/setup-pnpm
+      - name: Setup Rust and WASM toolchain
+        uses: ./.github/actions/setup-rust-wasm
       - name: Build core-wasm (prerequisite)
         working-directory: packages/core-wasm
-        run: |
-          rustup target add wasm32-unknown-unknown
-          curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-          npm run build
+        run: npm run build
       - name: Typecheck + build (workspace)
         run: node scripts/verify-workspace.mjs --typecheck
 
@@ -64,21 +49,13 @@ jobs:
     needs: install
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: pnpm/action-setup@f520eceda224fe1a4aed5a2a27a194379a409996 # v6
-        with:
-          version: 11.10.0
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
-        with:
-          node-version: 22
-          cache: 'pnpm'
-      - name: Install with frozen lockfile
-        run: pnpm install --frozen-lockfile
+      - name: Setup filtered workspace
+        uses: ./.github/actions/setup-pnpm
+      - name: Setup Rust and WASM toolchain
+        uses: ./.github/actions/setup-rust-wasm
       - name: Build core-wasm (prerequisite)
         working-directory: packages/core-wasm
-        run: |
-          rustup target add wasm32-unknown-unknown
-          curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-          npm run build
+        run: npm run build
       - name: Run unit tests (workspace)
         run: node scripts/verify-workspace.mjs --test
 
@@ -88,17 +65,12 @@ jobs:
     needs: install
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: pnpm/action-setup@f520eceda224fe1a4aed5a2a27a194379a409996 # v6
-        with:
-          version: 11.10.0
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
-        with:
-          node-version: 22
-          cache: 'pnpm'
-      - name: Install with frozen lockfile
-        run: pnpm install --frozen-lockfile
+      - name: Setup filtered workspace
+        uses: ./.github/actions/setup-pnpm
       - name: Run lint gate
         run: node scripts/verify-workspace.mjs --lint
+      - name: Validate npm metadata
+        run: node scripts/validate-pkg-meta.mjs
 
   pack:
     name: Pack validation (publishable packages)
@@ -106,21 +78,13 @@ jobs:
     needs: install
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: pnpm/action-setup@f520eceda224fe1a4aed5a2a27a194379a409996 # v6
-        with:
-          version: 11.10.0
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
-        with:
-          node-version: 22
-          cache: 'pnpm'
-      - name: Install with frozen lockfile
-        run: pnpm install --frozen-lockfile
+      - name: Setup filtered workspace
+        uses: ./.github/actions/setup-pnpm
+      - name: Setup Rust and WASM toolchain
+        uses: ./.github/actions/setup-rust-wasm
       - name: Build core-wasm (prerequisite)
         working-directory: packages/core-wasm
-        run: |
-          rustup target add wasm32-unknown-unknown
-          curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-          npm run build
+        run: npm run build
       - name: Pack validation
         run: node scripts/verify-workspace.mjs --pack
       - name: Verify clean consumer install from packed tarballs

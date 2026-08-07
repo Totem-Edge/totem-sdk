@@ -1,0 +1,31 @@
+name: Setup Rust WASM toolchain
+description: Install Rust, wasm32 target, wasm-pack, and cache compiled dependencies
+inputs:
+  cache-key:
+    description: Additional cache-key segment
+    required: false
+    default: workspace
+runs:
+  using: composite
+  steps:
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4
+      with:
+        toolchain: stable
+        targets: wasm32-unknown-unknown
+    - name: Cache Rust and WASM artifacts
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          packages/**/target
+          packages/**/rust/pkg
+          packages/**/rust/pkg-node
+        key: ${{ runner.os }}-rust-wasm-${{ inputs.cache-key }}-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-rust-wasm-${{ inputs.cache-key }}-
+          ${{ runner.os }}-rust-wasm-
+    - name: Install wasm-pack
+      shell: bash
+      run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
