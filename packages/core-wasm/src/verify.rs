@@ -73,25 +73,31 @@ pub fn verify_tree_signature(
         leaf_pubkey: String,
         signature: String,
         #[serde(rename = "mmrProof")]
+        #[allow(dead_code)]
         mmr_proof: MmrProofData,
     }
 
     #[derive(Deserialize)]
     struct MmrProofData {
+        #[allow(dead_code)]
         chunks: Vec<MmrChunkData>,
     }
 
     #[derive(Deserialize)]
     struct MmrChunkData {
         #[serde(rename = "isLeft")]
+        #[allow(dead_code)]
         is_left: bool,
         #[serde(rename = "mmrData")]
+        #[allow(dead_code)]
         mmr_data: MmrEntryData,
     }
 
     #[derive(Deserialize)]
     struct MmrEntryData {
+        #[allow(dead_code)]
         data: String,
+        #[allow(dead_code)]
         value: String,
     }
 
