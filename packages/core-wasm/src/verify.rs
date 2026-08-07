@@ -77,27 +77,25 @@ pub fn verify_tree_signature(
         mmr_proof: MmrProofData,
     }
 
+    #[allow(dead_code)]
     #[derive(Deserialize)]
     struct MmrProofData {
-        #[allow(dead_code)]
         chunks: Vec<MmrChunkData>,
     }
 
+    #[allow(dead_code)]
     #[derive(Deserialize)]
     struct MmrChunkData {
         #[serde(rename = "isLeft")]
-        #[allow(dead_code)]
         is_left: bool,
         #[serde(rename = "mmrData")]
-        #[allow(dead_code)]
         mmr_data: MmrEntryData,
     }
 
+    #[allow(dead_code)]
     #[derive(Deserialize)]
     struct MmrEntryData {
-        #[allow(dead_code)]
         data: String,
-        #[allow(dead_code)]
         value: String,
     }
 
