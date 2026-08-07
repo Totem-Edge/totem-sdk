@@ -40,6 +40,15 @@
     "README.md",
     "LICENSE"
   ],
+  "keywords": [
+    "totem",
+    "totemsdk",
+    "recursive-mast",
+    "kissvm",
+    "governance",
+    "policy",
+    "wots"
+  ],
   "dependencies": {
     "@totemsdk/core": "workspace:^",
     "@totemsdk/kissvm": "workspace:^"

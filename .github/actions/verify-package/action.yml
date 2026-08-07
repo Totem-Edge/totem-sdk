@@ -1,0 +1,21 @@
+name: Verify package release
+description: Build dependency closure, test, and validate a package tarball as a clean consumer
+inputs:
+  package-name:
+    description: Workspace package name
+    required: true
+  package-dir:
+    description: Package directory
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Build dependency closure
+      shell: bash
+      run: pnpm --filter "${{ inputs.package-name }}..." run build
+    - name: Run package tests
+      shell: bash
+      run: pnpm --filter "${{ inputs.package-name }}" test
+    - name: Verify packed consumer
+      shell: bash
+      run: node scripts/verify-consumer-pack.mjs "${{ inputs.package-dir }}"

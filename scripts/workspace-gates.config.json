@@ -73,6 +73,7 @@
     },
     "packages/omnia": { "status": "publishable" },
     "packages/omnia-factory": { "status": "publishable" },
+    "packages/omnia-host": { "status": "publishable" },
     "packages/omnia-router": { "status": "publishable" },
     "packages/omnia-splice": { "status": "publishable" },
     "packages/omnia-vtxo": { "status": "publishable" },
