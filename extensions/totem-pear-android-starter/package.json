@@ -12,7 +12,7 @@
     "@totemsdk/edge": "workspace:^",
     "@totemsdk/omnia": "workspace:^",
     "@totemsdk/pear": "workspace:^",
-    "@totemsdk/pureminima-rpc": "workspace:^",
+    "@totemsdk/minima-rpc": "workspace:^",
     "@noble/hashes": "^2.2.0"
   },
   "peerDependencies": {

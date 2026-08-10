@@ -141,8 +141,20 @@ export function createOmniaHost(
           }),
         });
       }
-      started = true;
-      await controlServer.listen();
+      try {
+        await controlServer.listen();
+        started = true;
+      } catch (error) {
+        unsubscribe?.();
+        unsubscribe = undefined;
+        chainAdapter?.close();
+        await swarm?.close();
+        if (ownedOperationStore) await ownedOperationStore.close();
+        ownedOperationStore = undefined;
+        ownedStore?.close();
+        ownedStore = undefined;
+        throw error;
+      }
     },
 
     async close(): Promise<void> {

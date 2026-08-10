@@ -96,6 +96,12 @@ async function withOperation<T>(
   if (!context.operations) throw new Error('Operation store is not configured');
   const id = operationId(params);
   const existing = context.operations.get(id);
+  const verifier = (context.operations as OperationStoreLike & {
+    verifyRequest?: (operationId: string, request: unknown) => boolean;
+  }).verifyRequest;
+  if (existing && verifier && !verifier(id, params)) {
+    throw new Error(`Operation ${id} request does not match the original request`);
+  }
   if (existing?.status === 'committed') return existing.result as T;
   if (existing && !['pending', 'failed'].includes(existing.status)) {
     throw new Error(`Operation ${id} is already ${existing.status}`);

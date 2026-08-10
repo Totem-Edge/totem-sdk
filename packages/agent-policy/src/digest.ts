@@ -36,12 +36,19 @@ export function proposalPolicyDigest(proposal: AgentProposal): string {
     id: proposal.id,
     principal: proposal.principal ?? null,
     agentId: proposal.agentId,
-    type: proposal.intent.type,
-    amount: proposal.intent.amount ?? null,
-    tokenId: proposal.intent.tokenId ?? null,
-    recipient: proposal.intent.recipient ?? null,
-    reason: proposal.intent.reason ?? null,
-    risk: proposal.intent.risk ?? null,
+    intent: {
+      type: proposal.intent.type,
+      amount: proposal.intent.amount ?? null,
+      tokenId: proposal.intent.tokenId ?? null,
+      recipient: proposal.intent.recipient ?? null,
+      reason: proposal.intent.reason ?? null,
+      risk: proposal.intent.risk ?? null,
+      metadata: proposal.intent.metadata ?? null,
+    },
+    explanation: proposal.explanation,
+    confidence: proposal.confidence,
+    // createdAt is intentionally excluded: it is execution metadata and would
+    // make a retry with the same stable operation ID look like new contents.
   };
   return toHex(sha3_256(new TextEncoder().encode(DOMAIN_PROPOSAL + canonicalJson(canonical))));
 }

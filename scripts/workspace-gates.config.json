@@ -86,7 +86,7 @@
       "status": "excluded",
       "reason": "no tests"
     },
-    "packages/pureminima-rpc": { "status": "publishable" },
+    "packages/minima-rpc": { "status": "publishable" },
     "packages/realtime": { "status": "publishable" },
     "packages/recursive-mast": { "status": "publishable" },
     "packages/root-identity": { "status": "publishable" },

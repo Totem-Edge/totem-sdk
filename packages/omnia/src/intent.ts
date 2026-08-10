@@ -7,6 +7,14 @@ import type {
   UpdateDelta,
 } from './types.js';
 import { updateState } from './channel.js';
+import { createHash } from 'node:crypto';
+
+export interface ExecuteIntentOptions {
+  /** Stable caller-supplied idempotency key. */
+  operationId?: string;
+  /** Original proposal creation time, reused for retries with operationId. */
+  createdAt?: number;
+}
 
 /**
  * Agent entry point for channel payment execution.
@@ -29,17 +37,26 @@ export async function executeIntent(
   policy: AgentPolicy,
   leaseProvider: WotsLeaseProvider,
   signer?: ChannelSigner,
+  options?: ExecuteIntentOptions,
 ): Promise<IntentResult> {
   const effectiveSigner = signer ?? channel.localSigner;
+  const createdAt = options?.createdAt ?? Date.now();
+  const stableOperationId = options?.operationId ?? createHash('sha256')
+    .update(JSON.stringify({
+      channelId: channel.channelId,
+      principal: effectiveSigner?.publicKeyDigest ?? null,
+      intent,
+    }))
+    .digest('hex');
 
   const proposal: AgentProposal = {
-    id: `intent-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    id: `intent-${stableOperationId}`,
     agentId: 'omnia-channel-agent',
     principal: effectiveSigner?.publicKeyDigest,
     intent,
     explanation: intent.reason ?? `Channel ${intent.type} for ${intent.amount ?? 'unknown'} ${intent.tokenId ?? '0x00'}`,
     confidence: 0.9,
-    createdAt: Date.now(),
+    createdAt,
   };
 
   // canAutoApprove is the primary gate. If it returns false for any reason
@@ -133,16 +150,31 @@ export async function executeIntent(
     };
     return { status: 'rejected', receipt };
   }
+  if (reservation?.reservationState === 'already_committed') {
+    return {
+      status: 'approved',
+      receipt: {
+        proposalId: proposal.id,
+        status: 'approved',
+        settledAt: Date.now(),
+      },
+      idempotentReplay: true,
+    };
+  }
 
-  const delta: UpdateDelta = { newBalances, memo: intent.reason };
-  const { channel: updatedChannel, signedState, error } = await updateState(channel, delta, leaseProvider, effectiveSigner);
+  let reserved = Boolean(reservation && reservation.outcome === 'approved');
+  let executionSucceeded = false;
+  try {
+    const delta: UpdateDelta = { newBalances, memo: intent.reason };
+    const { channel: updatedChannel, signedState, error } = await updateState(channel, delta, leaseProvider, effectiveSigner);
 
   // If updateState returned an error (e.g. CAPACITY_NEAR_EXHAUSTION), no signing
   // occurred — do NOT emit approved. Release the reservation so the quota is
   // refunded, then map to pending_user so the caller can act (e.g. propose
   // cooperative settlement before retrying).
-  if (error) {
-    await policy.release?.(proposal.id);
+    if (error) {
+      if (reserved) await policy.release?.(proposal.id);
+      reserved = false;
     const receipt: AgentReceipt = {
       proposalId: proposal.id,
       status: 'pending_user',
@@ -150,10 +182,12 @@ export async function executeIntent(
       settledAt: Date.now(),
     };
     return { status: 'pending_user', receipt };
-  }
+    }
 
-  // Execution succeeded — make the reservation permanent.
-  await policy.commit?.(proposal.id);
+    // Execution succeeded — make the reservation permanent.
+    executionSucceeded = true;
+    await policy.commit?.(proposal.id);
+    reserved = false;
 
   const receipt: AgentReceipt = {
     proposalId: proposal.id,
@@ -162,5 +196,9 @@ export async function executeIntent(
     settledAt: Date.now(),
   };
 
-  return { status: 'approved', receipt, channel: updatedChannel };
+    return { status: 'approved', receipt, channel: updatedChannel };
+  } catch (error) {
+    if (reserved && !executionSucceeded) await policy.release?.(proposal.id);
+    throw error;
+  }
 }

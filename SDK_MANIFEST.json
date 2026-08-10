@@ -23,7 +23,7 @@
         "@totemsdk/lookup-client",
         "@totemsdk/lookup-protocol",
         "@totemsdk/chain-provider",
-        "@totemsdk/pureminima-rpc",
+        "@totemsdk/minima-rpc",
         "@totemsdk/realtime"
       ]
     },
@@ -119,7 +119,7 @@
       "keywords": ["chain-provider", "rpc", "provider", "chain-data", "strategy-pattern"],
       "dependencies": {
         "@totemsdk/core": "^1.1.0",
-        "@totemsdk/pureminima-rpc": "^0.1.3"
+        "@totemsdk/minima-rpc": "^0.1.4"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -417,7 +417,7 @@
         "@totemsdk/core": "^1.1.0",
         "@totemsdk/lookup-protocol": "^0.1.3",
         "@totemsdk/chain-provider": "^0.1.4",
-        "@totemsdk/pureminima-rpc": "^0.1.3",
+        "@totemsdk/minima-rpc": "^0.1.4",
         "@totemsdk/wots-lease": "^0.1.3",
         "@totemsdk/txpow": "^0.1.5",
         "better-sqlite3": "^12.2.0"
@@ -608,11 +608,11 @@
       "exportsDescription": "IPubSubTransport, EventEmitterTransport, MockPubSubTransport, PublishOptions, SubscribeOptions"
     },
     {
-      "name": "@totemsdk/pureminima-rpc",
+      "name": "@totemsdk/minima-rpc",
       "version": "0.1.4",
       "description": "Fetch-based PureMinima RPC client — Bare/Pear/Node/browser compatible",
       "domain": "sovereignty-stack",
-      "keywords": ["rpc", "fetch", "browser", "pureminima"],
+      "keywords": ["rpc", "fetch", "browser", "minima", "node-rpc"],
       "dependencies": {},
       "exports": { ".": "dist/index.{js,d.ts}" },
       "exportsDescription": "PureMinimaRPC, createClient, getChainstate, sendTransaction"

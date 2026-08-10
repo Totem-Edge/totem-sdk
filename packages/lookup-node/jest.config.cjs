@@ -15,7 +15,7 @@ module.exports = {
     '^@totemsdk/core$': '<rootDir>/../core/src/index.ts',
     '^@totemsdk/lookup-protocol$': '<rootDir>/../lookup-protocol/src/index.ts',
     '^@totemsdk/chain-provider$': '<rootDir>/../chain-provider/src/index.ts',
-    '^@totemsdk/pureminima-rpc$': '<rootDir>/../pureminima-rpc/src/index.ts',
+    '^@totemsdk/minima-rpc$': '<rootDir>/../minima-rpc/src/index.ts',
     '^@totemsdk/wots-lease$': '<rootDir>/../wots-lease/src/index.ts',
     '^@totemsdk/txpow$': '<rootDir>/../txpow/src/index.ts',
     '^better-sqlite3$': '<rootDir>/src/better-sqlite3.mock.cjs',

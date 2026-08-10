@@ -32,7 +32,7 @@ interface ChainStateProvider {
 | Class | Connects to |
 |-------|------------|
 | `HostedProvider` | Axia / MEG hosted API (requires project credentials) |
-| `PureMinimaRpcProvider` | A local or self-hosted PureMinima node directly |
+| `MinimaRpcProvider` | A local or self-hosted Totem/Minima node directly |
 | `LookupClientProvider` | A personal lookup node over Hyperswarm DHT (via `@totemsdk/lookup-client`) |
 | `CompositeProvider` | Fans out across multiple providers with fallback logic |
 
@@ -58,9 +58,9 @@ const coins = await provider.getCoins({ address: 'Mx...' });
 ### Self-hosted node
 
 ```typescript
-import { PureMinimaRpcProvider } from '@totemsdk/chain-provider';
+import { MinimaRpcProvider } from '@totemsdk/chain-provider';
 
-const provider = new PureMinimaRpcProvider({
+const provider = new MinimaRpcProvider({
   nodeUrl: 'http://localhost:9005',
 });
 ```
@@ -130,7 +130,7 @@ const provider = new LookupClientProvider(mockClient);
 
 ## See also
 
-- [`@totemsdk/pureminima-rpc`](https://www.npmjs.com/package/@totemsdk/pureminima-rpc) — the RPC client used by `PureMinimaRpcProvider`
+- [`@totemsdk/minima-rpc`](https://www.npmjs.com/package/@totemsdk/minima-rpc) — the RPC client used by `MinimaRpcProvider`
 - [`@totemsdk/lookup-client`](https://www.npmjs.com/package/@totemsdk/lookup-client) — connect to a personal lookup node over Hyperswarm DHT
 - [`@totemsdk/node`](https://www.npmjs.com/package/@totemsdk/node) — Node.js `MinimaProvider`
 - [`@totemsdk/omnia`](https://www.npmjs.com/package/@totemsdk/omnia) — uses `ChainStateProvider` for coin queries

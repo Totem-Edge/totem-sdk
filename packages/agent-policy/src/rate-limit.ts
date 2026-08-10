@@ -118,7 +118,11 @@ export class RateLimitPolicy implements PolicyMiddleware {
         return { outcome: 'rejected', reason: 'operation ID is already bound to another policy scope' };
       }
       if (existing.status === 'reserved' || existing.status === 'committed') {
-        return { outcome: 'approved', reason: 'Rate limit reservation already exists' };
+        return {
+          outcome: 'approved',
+          reason: 'Rate limit reservation already exists',
+          reservationState: existing.status === 'committed' ? 'already_committed' : 'already_reserved',
+        };
       }
     }
 
@@ -133,7 +137,7 @@ export class RateLimitPolicy implements PolicyMiddleware {
     }
     bucket.reservations.add(proposal.id);
     this.operations.set(proposal.id, { key, digest, status: 'reserved' });
-    return { outcome: 'approved', reason: 'Rate limit reserved' };
+    return { outcome: 'approved', reason: 'Rate limit reserved', reservationState: 'new' };
   }
 
   async commit(operationId: string): Promise<void> {

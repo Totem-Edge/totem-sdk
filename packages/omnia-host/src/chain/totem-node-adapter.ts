@@ -1,6 +1,6 @@
 import type { ChainStateProvider, ChainTip } from '@totemsdk/chain-provider';
-import { PureMinimaRpcProvider } from '@totemsdk/chain-provider';
-import { createPureMinimaClient, type PureMinimaClient } from '@totemsdk/pureminima-rpc';
+import { MinimaRpcProvider } from '@totemsdk/chain-provider';
+import { createMinimaRpcClient, type MinimaRpcClient } from '@totemsdk/minima-rpc';
 
 export interface TotemNodeAdapterOptions {
   host: string;
@@ -9,7 +9,7 @@ export interface TotemNodeAdapterOptions {
   ssl?: boolean;
   pollIntervalMs?: number;
   provider?: ChainStateProvider;
-  client?: PureMinimaClient;
+  client?: MinimaRpcClient;
 }
 
 export interface ConfirmationOptions {
@@ -26,13 +26,13 @@ export interface TotemNodeAdapter extends ChainStateProvider {
 }
 
 export function createTotemNodeAdapter(options: TotemNodeAdapterOptions): TotemNodeAdapter {
-  const client = options.client ?? createPureMinimaClient({
+  const client = options.client ?? createMinimaRpcClient({
     host: options.host,
     port: options.port,
     password: options.password,
     ssl: options.ssl ?? false,
   });
-  const provider = options.provider ?? new PureMinimaRpcProvider(client);
+  const provider = options.provider ?? new MinimaRpcProvider(client);
   const listeners = new Set<(tip: ChainTip) => void>();
   const pollIntervalMs = options.pollIntervalMs ?? 5_000;
   let timer: NodeJS.Timeout | undefined;

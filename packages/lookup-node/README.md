@@ -73,4 +73,4 @@ await node.txPoWRelay.broadcast(signedTxHex);
 - [`@totemsdk/lookup-client`](https://www.npmjs.com/package/@totemsdk/lookup-client) — the client that connects to this node
 - [`@totemsdk/lookup-protocol`](https://www.npmjs.com/package/@totemsdk/lookup-protocol) — shared wire protocol types
 - [`@totemsdk/wots-lease`](https://www.npmjs.com/package/@totemsdk/wots-lease) — WOTS key safety coordinated by `LeaseCoordinator`
-- [`@totemsdk/pureminima-rpc`](https://www.npmjs.com/package/@totemsdk/pureminima-rpc) — RPC used to index from a Minima node
+- [`@totemsdk/minima-rpc`](https://www.npmjs.com/package/@totemsdk/minima-rpc) — RPC used to index from a Minima node
