@@ -1649,46 +1649,6 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
 
-  packages/totem-dapp-starter:
-    dependencies:
-      '@totemsdk/core':
-        specifier: ^1.1.0
-        version: 1.1.0(@noble/hashes@2.2.0)
-      '@totemsdk/observability':
-        specifier: ^0.1.0
-        version: 0.1.0
-      '@totemsdk/proof-integritas':
-        specifier: ^0.1.1
-        version: 0.1.1(@noble/hashes@2.2.0)
-      '@totemsdk/root-identity':
-        specifier: ^1.0.7
-        version: 1.0.7(@noble/hashes@2.2.0)(@totemsdk/core@1.1.0(@noble/hashes@2.2.0))
-      dotenv:
-        specifier: ^16.4.5
-        version: 16.6.1
-      express:
-        specifier: ^4.18.2
-        version: 4.22.2
-      redis:
-        specifier: ^5.12.1
-        version: 5.12.1
-    devDependencies:
-      '@vitejs/plugin-react':
-        specifier: ^4.2.1
-        version: 4.7.0(vite@5.4.21(@types/node@26.1.1)(lightningcss@1.33.0)(terser@5.49.0))
-      concurrently:
-        specifier: ^8.2.2
-        version: 8.2.2
-      react:
-        specifier: ^18.2.0
-        version: 18.3.1
-      react-dom:
-        specifier: ^18.2.0
-        version: 18.3.1(react@18.3.1)
-      vite:
-        specifier: ^5.1.4
-        version: 5.4.21(@types/node@26.1.1)(lightningcss@1.33.0)(terser@5.49.0)
-
   packages/totem-extension:
     dependencies:
       '@noble/hashes':
@@ -5290,8 +5250,6 @@ packages:
     peerDependencies:
       '@noble/hashes': ^2.0.0
 
-  '@totemsdk/observability@0.1.0':
-    resolution: {integrity: sha512-rxnZlM1dpYsFNB/uhxePx4o0Df97Ox1m1GEugG1odHWsliNoofe0v8ceN8lkYp2rIZQpdh3ZkbV0FZOvoWxotw==}
 
   '@totemsdk/omnia-factory@0.1.6':
     resolution: {integrity: sha512-AAw7fWxH6+206BaS6oqYR1z64joo0g8gZdxQaNg+IUu51keP63mTddD7+nJXhCFjLeaCF/MB6zHMkn2Qi/WYIQ==}
@@ -11831,7 +11789,6 @@ snapshots:
       '@noble/hashes': 2.2.0
       '@totemsdk/core': 1.0.10(@noble/hashes@2.2.0)
 
-  '@totemsdk/observability@0.1.0': {}
 
   '@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0)':
     dependencies:
