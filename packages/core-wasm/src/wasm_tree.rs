@@ -5,7 +5,9 @@
 /// single calls. Eliminates the JS↔WASM boundary crossings for
 /// multi-step operations like sign (which needs 3 WOTS signs + 3 MMR proofs).
 
-use crate::treekey::{TreeKey, TreeSignature, SignatureProof, verify_tree_signature};
+use crate::treekey::{TreeKey, SignatureProof};
+#[cfg(test)]
+use crate::treekey::{TreeSignature, verify_tree_signature};
 
 pub struct WasmTreeKey {
     tree: TreeKey,
