@@ -58,7 +58,7 @@ importers:
     devDependencies:
       '@vitejs/plugin-react':
         specifier: ^4.2.1
-        version: 4.7.0(vite@5.4.21(@types/node@26.1.1)(lightningcss@1.33.0)(terser@5.49.0))
+        version: 4.7.0(vite@5.4.21(@types/node@26.2.0)(lightningcss@1.33.0)(terser@5.49.0))
       concurrently:
         specifier: ^8.2.2
         version: 8.2.2
@@ -70,7 +70,7 @@ importers:
         version: 18.3.1(react@18.3.1)
       vite:
         specifier: ^5.1.4
-        version: 5.4.21(@types/node@26.1.1)(lightningcss@1.33.0)(terser@5.49.0)
+        version: 5.4.21(@types/node@26.2.0)(lightningcss@1.33.0)(terser@5.49.0)
 
   extensions/totem-extension:
     dependencies:
@@ -124,11 +124,11 @@ importers:
         specifier: ^0.2.2
         version: 0.2.2
       '@types/jest':
-        specifier: ^29.5.8
-        version: 29.5.14
+        specifier: ^30.0.0
+        version: 30.0.0
       '@types/node':
-        specifier: ^26.1.1
-        version: 26.1.1
+        specifier: ^26.1.2
+        version: 26.2.0
       '@types/react':
         specifier: ^18.2.0
         version: 18.3.31
@@ -137,7 +137,7 @@ importers:
         version: 18.3.7(@types/react@18.3.31)
       '@vitejs/plugin-react':
         specifier: ^4.2.1
-        version: 4.7.0(vite@5.4.21(@types/node@26.1.1)(lightningcss@1.33.0)(terser@5.49.0))
+        version: 4.7.0(vite@5.4.21(@types/node@26.2.0)(lightningcss@1.33.0)(terser@5.49.0))
       assert:
         specifier: ^2.1.0
         version: 2.1.0
@@ -145,62 +145,62 @@ importers:
         specifier: ^10.5.4
         version: 10.5.4(postcss@8.5.20)
       copy-webpack-plugin:
-        specifier: ^13.0.1
-        version: 13.0.1(webpack@5.108.4)
+        specifier: ^14.0.0
+        version: 14.0.0(webpack@5.109.2)
       crypto-browserify:
         specifier: ^3.12.1
         version: 3.12.1
       css-loader:
         specifier: ^7.1.2
-        version: 7.1.4(webpack@5.108.4)
+        version: 7.1.4(webpack@5.109.2)
       jest:
-        specifier: ^29.7.0
-        version: 29.7.0(@types/node@26.1.1)
+        specifier: ^30.4.2
+        version: 30.4.2(@types/node@26.2.0)
       mini-css-extract-plugin:
         specifier: ^2.9.4
-        version: 2.10.2(webpack@5.108.4)
+        version: 2.10.2(webpack@5.109.2)
       postcss:
         specifier: ^8.4.32
         version: 8.5.20
       postcss-loader:
         specifier: ^8.2.0
-        version: 8.2.1(postcss@8.5.20)(typescript@5.9.3)(webpack@5.108.4)
+        version: 8.2.1(postcss@8.5.20)(typescript@5.9.3)(webpack@5.109.2)
       process:
         specifier: ^0.11.10
         version: 0.11.10
       sharp:
         specifier: ^0.35.3
-        version: 0.35.3(@types/node@26.1.1)
+        version: 0.35.3(@types/node@26.2.0)
       stream-browserify:
         specifier: ^3.0.0
         version: 3.0.0
       style-loader:
         specifier: ^4.0.0
-        version: 4.0.0(webpack@5.108.4)
+        version: 4.0.0(webpack@5.109.2)
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
       ts-jest:
         specifier: ^29.1.1
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@29.7.0(@types/node@26.1.1))(typescript@5.9.3)
+        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@26.2.0))(typescript@5.9.3)
       ts-loader:
         specifier: ^9.5.1
-        version: 9.6.2(typescript@5.9.3)(webpack@5.108.4)
+        version: 9.6.2(typescript@5.9.3)(webpack@5.109.2)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
       vite:
         specifier: ^5.0.0
-        version: 5.4.21(@types/node@26.1.1)(lightningcss@1.33.0)(terser@5.49.0)
+        version: 5.4.21(@types/node@26.2.0)(lightningcss@1.33.0)(terser@5.49.0)
       vite-plugin-node-polyfills:
-        specifier: ^0.17.0
-        version: 0.17.0(rollup@4.62.2)(vite@5.4.21(@types/node@26.1.1)(lightningcss@1.33.0)(terser@5.49.0))
+        specifier: ^0.28.0
+        version: 0.28.0(rollup@4.62.2)(vite@5.4.21(@types/node@26.2.0)(lightningcss@1.33.0)(terser@5.49.0))
       webpack:
-        specifier: ^5.89.0
-        version: 5.108.4(lightningcss@1.33.0)(postcss@8.5.20)(webpack-cli@5.1.4)
+        specifier: ^5.109.2
+        version: 5.109.2(lightningcss@1.33.0)(postcss@8.5.20)(webpack-cli@5.1.4)
       webpack-cli:
         specifier: ^5.1.4
-        version: 5.1.4(webpack@5.108.4)
+        version: 5.1.4(webpack@5.109.2)
 
   extensions/totem-pear-android-starter:
     dependencies:
@@ -210,15 +210,15 @@ importers:
       '@totemsdk/edge':
         specifier: workspace:^
         version: link:../../packages/edge
+      '@totemsdk/minima-rpc':
+        specifier: workspace:^
+        version: link:../../packages/minima-rpc
       '@totemsdk/omnia':
         specifier: workspace:^
         version: link:../../packages/omnia
       '@totemsdk/pear':
         specifier: workspace:^
         version: link:../../packages/pear
-      '@totemsdk/pureminima-rpc':
-        specifier: workspace:^
-        version: link:../../packages/pureminima-rpc
       hyperbee:
         specifier: '>=2.0.0'
         version: 2.27.3
@@ -229,8 +229,8 @@ importers:
   extensions/totem-pwa-wallet:
     dependencies:
       '@noble/hashes':
-        specifier: ^1.8.0
-        version: 1.8.0
+        specifier: ^2.2.0
+        version: 2.2.0
       '@totemsdk/core':
         specifier: workspace:^
         version: link:../../packages/core
@@ -247,36 +247,36 @@ importers:
         specifier: ^1.5.4
         version: 1.5.4
       react:
-        specifier: ^18.3.1
-        version: 18.3.1
+        specifier: ^19.2.8
+        version: 19.2.8
       react-dom:
         specifier: ^19.2.8
-        version: 19.2.8(react@18.3.1)
+        version: 19.2.8(react@19.2.8)
       react-router-dom:
         specifier: ^7.18.1
-        version: 7.18.1(react-dom@19.2.8(react@18.3.1))(react@18.3.1)
+        version: 7.18.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
     devDependencies:
       '@types/qrcode':
         specifier: ^1.5.5
         version: 1.5.6
       '@types/react':
-        specifier: ^18.3.1
-        version: 18.3.31
+        specifier: ^19.2.18
+        version: 19.2.18
       '@types/react-dom':
         specifier: ^19.2.3
-        version: 19.2.3(@types/react@18.3.31)
+        version: 19.2.3(@types/react@19.2.18)
       '@vitejs/plugin-react':
-        specifier: ^4.3.4
-        version: 4.7.0(vite@8.1.5(@types/node@26.1.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0))
+        specifier: ^6.0.5
+        version: 6.0.5(vite@8.1.5(@types/node@26.2.0)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0))
       typescript:
         specifier: 5.9.3
         version: 5.9.3
       vite:
         specifier: ^8.1.5
-        version: 8.1.5(@types/node@26.1.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0)
+        version: 8.1.5(@types/node@26.2.0)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0)
       vite-plugin-pwa:
-        specifier: ^0.21.1
-        version: 0.21.2(vite@8.1.5(@types/node@26.1.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0))(workbox-build@7.4.1(@types/babel__core@7.20.5))(workbox-window@7.4.1)
+        specifier: ^1.3.0
+        version: 1.3.0(vite@8.1.5(@types/node@26.2.0)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0))(workbox-build@7.4.1(@types/babel__core@7.20.5))(workbox-window@7.4.1)
       workbox-window:
         specifier: ^7.3.0
         version: 7.4.1
@@ -342,9 +342,9 @@ importers:
       '@totemsdk/core':
         specifier: workspace:^
         version: link:../core
-      '@totemsdk/pureminima-rpc':
+      '@totemsdk/minima-rpc':
         specifier: workspace:^
-        version: link:../pureminima-rpc
+        version: link:../minima-rpc
     devDependencies:
       '@types/jest':
         specifier: ^30.0.0
@@ -1002,9 +1002,9 @@ importers:
       '@totemsdk/lookup-protocol':
         specifier: workspace:^
         version: link:../lookup-protocol
-      '@totemsdk/pureminima-rpc':
+      '@totemsdk/minima-rpc':
         specifier: workspace:^
-        version: link:../pureminima-rpc
+        version: link:../minima-rpc
       '@totemsdk/txpow':
         specifier: workspace:^
         version: link:../txpow
@@ -1091,7 +1091,23 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
 
-  packages/observability: {}
+  packages/minima-rpc:
+    devDependencies:
+      '@types/jest':
+        specifier: ^30.0.0
+        version: 30.0.0
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.43
+      jest:
+        specifier: ^30.4.2
+        version: 30.4.2(@types/node@20.19.43)
+      ts-jest:
+        specifier: ^29.0.0
+        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
 
   packages/omnia:
     dependencies:
@@ -1178,6 +1194,9 @@ importers:
       '@totemsdk/chain-provider':
         specifier: workspace:^
         version: link:../chain-provider
+      '@totemsdk/minima-rpc':
+        specifier: workspace:^
+        version: link:../minima-rpc
       '@totemsdk/omnia':
         specifier: workspace:^
         version: link:../omnia
@@ -1193,9 +1212,6 @@ importers:
       '@totemsdk/omnia-vtxo':
         specifier: workspace:^
         version: link:../omnia-vtxo
-      '@totemsdk/pureminima-rpc':
-        specifier: workspace:^
-        version: link:../pureminima-rpc
       '@totemsdk/wots-lease':
         specifier: workspace:^
         version: link:../wots-lease
@@ -1307,6 +1323,9 @@ importers:
 
   packages/pear:
     dependencies:
+      '@noble/hashes':
+        specifier: ^2.2.0
+        version: 2.2.0
       '@totemsdk/stream-transport':
         specifier: workspace:^
         version: link:../stream-transport
@@ -1507,7 +1526,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.10
-        version: 4.1.10(@types/node@26.1.1)(vite@8.1.5(@types/node@26.1.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0))
+        version: 4.1.10(@types/node@26.2.0)(vite@8.1.5(@types/node@26.2.0)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0))
 
   packages/recursive-mast:
     dependencies:
@@ -1703,1647 +1722,6 @@ importers:
       typescript:
         specifier: 5.9.3
         version: 5.9.3
-
-  packages/totem-extension:
-    dependencies:
-      '@noble/hashes':
-        specifier: ^2.0.0
-        version: 2.2.0
-      '@totemsdk/core':
-        specifier: ^1.1.0
-        version: 1.1.0(@noble/hashes@2.2.0)
-      '@totemsdk/realtime':
-        specifier: ^0.1.9
-        version: 0.1.9(typescript@5.9.3)
-      '@totemsdk/root-identity':
-        specifier: ^1.0.7
-        version: 1.0.7(@noble/hashes@2.2.0)(@totemsdk/core@1.1.0(@noble/hashes@2.2.0))
-      '@totemsdk/txpow':
-        specifier: ^0.1.6
-        version: 0.1.6(@noble/hashes@2.2.0)
-      bip39:
-        specifier: ^3.1.0
-        version: 3.1.0
-      buffer:
-        specifier: ^6.0.3
-        version: 6.0.3
-      clsx:
-        specifier: ^2.1.0
-        version: 2.1.1
-      jsqr:
-        specifier: ^1.4.0
-        version: 1.4.0
-      qrcode.react:
-        specifier: ^4.2.0
-        version: 4.2.0(react@18.3.1)
-      react:
-        specifier: ^18.2.0
-        version: 18.3.1
-      react-dom:
-        specifier: ^19.2.7
-        version: 19.2.8(react@18.3.1)
-    devDependencies:
-      '@types/chrome':
-        specifier: ^0.2.2
-        version: 0.2.2
-      '@types/jest':
-        specifier: ^29.5.8
-        version: 29.5.14
-      '@types/node':
-        specifier: ^26.1.1
-        version: 26.1.1
-      '@types/react':
-        specifier: ^18.2.0
-        version: 18.3.31
-      '@types/react-dom':
-        specifier: ^19.2.3
-        version: 19.2.3(@types/react@18.3.31)
-      '@vitejs/plugin-react':
-        specifier: ^4.2.1
-        version: 4.7.0(vite@5.4.21(@types/node@26.1.1)(lightningcss@1.33.0)(terser@5.49.0))
-      autoprefixer:
-        specifier: ^10.5.4
-        version: 10.5.4(postcss@8.5.16)
-      copy-webpack-plugin:
-        specifier: ^13.0.1
-        version: 13.0.1(webpack@5.108.4)
-      css-loader:
-        specifier: ^7.1.2
-        version: 7.1.4(webpack@5.108.4)
-      jest:
-        specifier: ^29.7.0
-        version: 29.7.0(@types/node@26.1.1)
-      mini-css-extract-plugin:
-        specifier: ^2.9.4
-        version: 2.10.2(webpack@5.108.4)
-      postcss:
-        specifier: ^8.4.32
-        version: 8.5.16
-      postcss-loader:
-        specifier: ^8.2.0
-        version: 8.2.1(postcss@8.5.16)(typescript@5.9.3)(webpack@5.108.4)
-      sharp:
-        specifier: ^0.35.3
-        version: 0.35.3(@types/node@26.1.1)
-      style-loader:
-        specifier: ^4.0.0
-        version: 4.0.0(webpack@5.108.4)
-      tailwindcss:
-        specifier: ^4.3.3
-        version: 4.3.3
-      ts-jest:
-        specifier: ^29.1.1
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@29.7.0(@types/node@26.1.1))(typescript@5.9.3)
-      ts-loader:
-        specifier: ^9.5.1
-        version: 9.6.2(typescript@5.9.3)(webpack@5.108.4)
-      typescript:
-        specifier: ^5.3.2
-        version: 5.9.3
-      vite:
-        specifier: ^5.0.0
-        version: 5.4.21(@types/node@26.1.1)(lightningcss@1.33.0)(terser@5.49.0)
-      vite-plugin-node-polyfills:
-        specifier: ^0.17.0
-        version: 0.17.0(rollup@4.62.2)(vite@5.4.21(@types/node@26.1.1)(lightningcss@1.33.0)(terser@5.49.0))
-      webpack:
-        specifier: ^5.89.0
-        version: 5.108.4(lightningcss@1.33.0)(postcss@8.5.16)(webpack-cli@5.1.4)
-      webpack-cli:
-        specifier: ^5.1.4
-        version: 5.1.4(webpack@5.108.4)
-
-  packages/totem-pear-android-starter:
-    dependencies:
-      '@noble/hashes':
-        specifier: ^2.2.0
-        version: 2.2.0
-      '@totemsdk/edge':
-        specifier: ^0.1.2
-        version: 0.1.2(@noble/hashes@2.2.0)
-      '@totemsdk/omnia':
-        specifier: ^0.1.5
-        version: 0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0)
-      '@totemsdk/pear':
-        specifier: ^0.1.2
-        version: 0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.6))(corestore@7.11.0(bare-url@2.4.6))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.6))(hyperdrive@13.3.3(bare-url@2.4.6))(hyperswarm@4.17.0(bare-url@2.4.6))
-      '@totemsdk/pureminima-rpc':
-        specifier: ^0.1.3
-        version: 0.1.3
-      hyperbee:
-        specifier: '>=2.0.0'
-        version: 2.27.3
-      hypercore:
-        specifier: '>=10.0.0'
-        version: 11.33.5(bare-url@2.4.6)
-
-  packages/totem-pwa-wallet:
-    dependencies:
-      '@noble/hashes':
-        specifier: ^1.8.0
-        version: 1.8.0
-      '@totemsdk/core':
-        specifier: ^1.1.0
-        version: 1.1.0(@noble/hashes@1.8.0)
-      '@totemsdk/realtime':
-        specifier: ^0.1.9
-        version: 0.1.9(typescript@7.0.2)
-      '@totemsdk/root-identity':
-        specifier: ^1.0.7
-        version: 1.0.7(@noble/hashes@1.8.0)(@totemsdk/core@1.1.0(@noble/hashes@1.8.0))
-      idb:
-        specifier: ^8.0.0
-        version: 8.0.3
-      qrcode:
-        specifier: ^1.5.4
-        version: 1.5.4
-      react:
-        specifier: ^18.3.1
-        version: 18.3.1
-      react-dom:
-        specifier: ^19.2.8
-        version: 19.2.8(react@18.3.1)
-      react-router-dom:
-        specifier: ^7.18.1
-        version: 7.18.1(react-dom@19.2.8(react@18.3.1))(react@18.3.1)
-    devDependencies:
-      '@types/qrcode':
-        specifier: ^1.5.5
-        version: 1.5.6
-      '@types/react':
-        specifier: ^18.3.1
-        version: 18.3.31
-      '@types/react-dom':
-        specifier: ^19.2.3
-        version: 19.2.3(@types/react@18.3.31)
-      '@vitejs/plugin-react':
-        specifier: ^4.3.4
-        version: 4.7.0(vite@8.1.5(@types/node@26.1.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0))
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-      vite:
-        specifier: ^8.1.5
-        version: 8.1.5(@types/node@26.1.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0)
-      vite-plugin-pwa:
-        specifier: ^0.21.1
-        version: 0.21.2(vite@8.1.5(@types/node@26.1.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0))(workbox-build@7.4.1(@types/babel__core@7.20.5))(workbox-window@7.4.1)
-      workbox-window:
-        specifier: ^7.3.0
-        version: 7.4.1
-
-  packages/totem-sdk:
-    devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.19.43
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.4.11
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typedoc:
-        specifier: ^0.28.20
-        version: 0.28.20(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/agent-policy:
-    dependencies:
-      '@protobuf-ts/runtime':
-        specifier: ^2.11.1
-        version: 2.11.1
-      '@totemsdk/core':
-        specifier: ^1.1.0
-        version: 1.1.0(@noble/hashes@2.2.0)
-    devDependencies:
-      '@protobuf-ts/plugin':
-        specifier: ^2.9.4
-        version: 2.11.1
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/authority:
-    dependencies:
-      '@totemsdk/identity':
-        specifier: ^0.1.2
-        version: 0.1.2(@noble/hashes@2.2.0)
-      '@totemsdk/proof':
-        specifier: ^0.1.1
-        version: 0.1.1(@noble/hashes@2.2.0)
-    devDependencies:
-      '@types/jest':
-        specifier: ^29.0.0
-        version: 29.5.14
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^29.0.0
-        version: 29.7.0(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@29.7.0(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/chain-provider:
-    dependencies:
-      '@totemsdk/core':
-        specifier: ^1.1.0
-        version: 1.1.0(@noble/hashes@2.2.0)
-      '@totemsdk/pureminima-rpc':
-        specifier: ^0.1.3
-        version: 0.1.3
-    devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/connect:
-    dependencies:
-      '@totemsdk/chain-provider':
-        specifier: '>=0.1.1'
-        version: 0.1.4(@noble/hashes@2.2.0)
-      '@totemsdk/kissvm':
-        specifier: '>=0.1.1'
-        version: 0.1.4
-      '@totemsdk/lookup-client':
-        specifier: '>=0.1.1'
-        version: 0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6))
-      '@totemsdk/omnia':
-        specifier: '>=0.1.1'
-        version: 0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0)
-      '@totemsdk/omnia-factory':
-        specifier: '>=0.1.2'
-        version: 0.1.6(@noble/hashes@2.2.0)
-      '@totemsdk/omnia-router':
-        specifier: '>=0.1.1'
-        version: 0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6)))
-      '@totemsdk/omnia-splice':
-        specifier: '>=0.1.1'
-        version: 0.1.5(@noble/hashes@2.2.0)
-      '@totemsdk/pear':
-        specifier: '>=0.1.0'
-        version: 0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.6))(corestore@7.11.0(bare-url@2.4.6))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.6))(hyperdrive@13.3.3(bare-url@2.4.6))(hyperswarm@4.17.0(bare-url@2.4.6))
-      '@totemsdk/statechain':
-        specifier: '>=0.1.1'
-        version: 0.1.6(@noble/hashes@2.2.0)
-      '@totemsdk/txpow':
-        specifier: '>=0.1.0'
-        version: 0.1.6(@noble/hashes@2.2.0)
-      '@totemsdk/wots-lease':
-        specifier: '>=0.1.1'
-        version: 0.1.3(@noble/hashes@2.2.0)
-    devDependencies:
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/core:
-    dependencies:
-      '@totemsdk/core-wasm':
-        specifier: ^0.1.0
-        version: 0.1.0
-    devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/core-wasm: {}
-
-  packages/totem-sdk/packages/edge:
-    dependencies:
-      '@totemsdk/agent-policy':
-        specifier: ^0.1.3
-        version: 0.1.3(@noble/hashes@2.2.0)
-      '@totemsdk/core':
-        specifier: ^1.1.0
-        version: 1.1.0(@noble/hashes@2.2.0)
-      '@totemsdk/identity':
-        specifier: ^0.1.2
-        version: 0.1.2(@noble/hashes@2.2.0)
-      '@totemsdk/manifest':
-        specifier: ^0.1.2
-        version: 0.1.2(@noble/hashes@2.2.0)
-    devDependencies:
-      '@totemsdk/connect':
-        specifier: ^2.1.0
-        version: 2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.6))(corestore@7.11.0(bare-url@2.4.6))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.6))(hyperdrive@13.3.3(bare-url@2.4.6))(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0))
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/edge-adapters:
-    devDependencies:
-      '@totemsdk/agent-policy':
-        specifier: ^0.1.3
-        version: 0.1.3(@noble/hashes@2.2.0)
-      '@totemsdk/chain-provider':
-        specifier: ^0.1.4
-        version: 0.1.4(@noble/hashes@2.2.0)
-      '@totemsdk/edge':
-        specifier: ^0.1.3
-        version: 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.6))(corestore@7.11.0(bare-url@2.4.6))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.6))(hyperdrive@13.3.3(bare-url@2.4.6))(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
-      '@totemsdk/identity':
-        specifier: ^0.1.2
-        version: 0.1.2(@noble/hashes@2.2.0)
-      '@totemsdk/lookup-client':
-        specifier: ^0.1.5
-        version: 0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6))
-      '@totemsdk/manifest':
-        specifier: ^0.1.2
-        version: 0.1.2(@noble/hashes@2.2.0)
-      '@totemsdk/omnia-router':
-        specifier: ^0.1.4
-        version: 0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6)))
-      '@totemsdk/proof':
-        specifier: ^0.1.1
-        version: 0.1.1(@noble/hashes@2.2.0)
-      '@totemsdk/pubsub-transport':
-        specifier: ^0.1.0
-        version: 0.1.0
-      '@totemsdk/root-identity':
-        specifier: ^1.0.7
-        version: 1.0.7(@noble/hashes@2.2.0)(@totemsdk/core@1.2.6)
-      '@totemsdk/stream-transport':
-        specifier: ^0.1.0
-        version: 0.1.0(@noble/hashes@2.2.0)(hyperswarm@4.17.0)
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/edge-bacnet:
-    dependencies:
-      '@totemsdk/edge':
-        specifier: ^0.1.3
-        version: 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.6))(corestore@7.11.0(bare-url@2.4.6))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.6))(hyperdrive@13.3.3(bare-url@2.4.6))(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
-    devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/edge-ble:
-    dependencies:
-      '@totemsdk/edge':
-        specifier: ^0.1.3
-        version: 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.6))(corestore@7.11.0(bare-url@2.4.6))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.6))(hyperdrive@13.3.3(bare-url@2.4.6))(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
-    devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/edge-can:
-    dependencies:
-      '@totemsdk/edge':
-        specifier: ^0.1.3
-        version: 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.6))(corestore@7.11.0(bare-url@2.4.6))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.6))(hyperdrive@13.3.3(bare-url@2.4.6))(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
-    devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/edge-coap:
-    dependencies:
-      '@totemsdk/edge':
-        specifier: ^0.1.3
-        version: 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.6))(corestore@7.11.0(bare-url@2.4.6))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.6))(hyperdrive@13.3.3(bare-url@2.4.6))(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
-    devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/edge-email:
-    dependencies:
-      '@totemsdk/edge':
-        specifier: ^0.1.3
-        version: 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.6))(corestore@7.11.0(bare-url@2.4.6))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.6))(hyperdrive@13.3.3(bare-url@2.4.6))(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
-    devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/edge-grpc:
-    dependencies:
-      '@totemsdk/edge':
-        specifier: ^0.1.3
-        version: 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.6))(corestore@7.11.0(bare-url@2.4.6))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.6))(hyperdrive@13.3.3(bare-url@2.4.6))(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
-    devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/edge-lorawan:
-    dependencies:
-      '@totemsdk/edge':
-        specifier: ^0.1.3
-        version: 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.6))(corestore@7.11.0(bare-url@2.4.6))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.6))(hyperdrive@13.3.3(bare-url@2.4.6))(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
-    devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/edge-matter:
-    dependencies:
-      '@totemsdk/edge':
-        specifier: ^0.1.3
-        version: 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.6))(corestore@7.11.0(bare-url@2.4.6))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.6))(hyperdrive@13.3.3(bare-url@2.4.6))(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
-    devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/edge-modbus:
-    dependencies:
-      '@totemsdk/edge':
-        specifier: ^0.1.3
-        version: 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.6))(corestore@7.11.0(bare-url@2.4.6))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.6))(hyperdrive@13.3.3(bare-url@2.4.6))(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
-    devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/edge-mqtt:
-    dependencies:
-      '@totemsdk/agent-policy':
-        specifier: ^0.1.3
-        version: 0.1.3(@noble/hashes@2.2.0)
-      '@totemsdk/core':
-        specifier: ^1.1.0
-        version: 1.1.0(@noble/hashes@2.2.0)
-      '@totemsdk/edge':
-        specifier: ^0.1.2
-        version: 0.1.2(@noble/hashes@2.2.0)
-      '@totemsdk/identity':
-        specifier: ^0.1.2
-        version: 0.1.2(@noble/hashes@2.2.0)
-      '@totemsdk/manifest':
-        specifier: ^0.1.2
-        version: 0.1.2(@noble/hashes@2.2.0)
-      '@totemsdk/proof':
-        specifier: ^0.1.1
-        version: 0.1.1(@noble/hashes@2.2.0)
-      '@totemsdk/pubsub-transport':
-        specifier: ^0.1.0
-        version: 0.1.0
-    devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/edge-opcua:
-    dependencies:
-      '@totemsdk/edge':
-        specifier: ^0.1.3
-        version: 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.6))(corestore@7.11.0(bare-url@2.4.6))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.6))(hyperdrive@13.3.3(bare-url@2.4.6))(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
-    devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/edge-ros2:
-    dependencies:
-      '@totemsdk/edge':
-        specifier: ^0.1.3
-        version: 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.6))(corestore@7.11.0(bare-url@2.4.6))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.6))(hyperdrive@13.3.3(bare-url@2.4.6))(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
-    devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/governance:
-    dependencies:
-      '@totemsdk/authority':
-        specifier: ^0.1.2
-        version: 0.1.2(@noble/hashes@2.2.0)
-      '@totemsdk/core':
-        specifier: ^1.1.0
-        version: 1.2.5
-      '@totemsdk/identity':
-        specifier: ^0.1.3
-        version: 0.1.3(@noble/hashes@2.2.0)
-      '@totemsdk/kissvm':
-        specifier: ^0.4.0
-        version: 0.4.0
-      '@totemsdk/proof':
-        specifier: ^0.1.2
-        version: 0.1.2(@noble/hashes@2.2.0)
-    devDependencies:
-      '@swc/core':
-        specifier: ^1.15.46
-        version: 1.15.46
-      '@swc/jest':
-        specifier: ^0.2.39
-        version: 0.2.39(@swc/core@1.15.46)
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/identity:
-    dependencies:
-      '@totemsdk/core':
-        specifier: ^1.1.0
-        version: 1.1.0(@noble/hashes@2.2.0)
-      '@totemsdk/kissvm':
-        specifier: ^0.4.0
-        version: 0.4.0
-      '@totemsdk/manifest':
-        specifier: ^0.1.2
-        version: 0.1.2(@noble/hashes@2.2.0)
-    devDependencies:
-      '@totemsdk/root-identity':
-        specifier: ^1.0.7
-        version: 1.0.7(@noble/hashes@2.2.0)(@totemsdk/core@1.1.0(@noble/hashes@2.2.0))
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/industrial-action:
-    dependencies:
-      '@totemsdk/authority':
-        specifier: ^0.1.2
-        version: 0.1.2(@noble/hashes@2.2.0)
-      '@totemsdk/core':
-        specifier: ^1.1.0
-        version: 1.2.5
-      '@totemsdk/edge':
-        specifier: ^0.1.3
-        version: 0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.6))(corestore@7.11.0(bare-url@2.4.6))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.6))(hyperdrive@13.3.3(bare-url@2.4.6))(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))
-      '@totemsdk/proof':
-        specifier: ^0.1.2
-        version: 0.1.2(@noble/hashes@2.2.0)
-    devDependencies:
-      '@swc/core':
-        specifier: ^1.15.46
-        version: 1.15.46
-      '@swc/jest':
-        specifier: ^0.2.39
-        version: 0.2.39(@swc/core@1.15.46)
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      jest-environment-node:
-        specifier: ^30.0.0
-        version: 30.4.1
-      jest-runtime:
-        specifier: ^30.0.0
-        version: 30.4.2
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/kissvm:
-    dependencies:
-      '@totemsdk/core':
-        specifier: ^1.2.0
-        version: 1.2.0(@noble/hashes@2.2.0)
-    devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/liquidity-bond:
-    dependencies:
-      '@totemsdk/core':
-        specifier: ^1.1.0
-        version: 1.1.0(@noble/hashes@2.2.0)
-      '@totemsdk/identity':
-        specifier: ^0.1.2
-        version: 0.1.2(@noble/hashes@2.2.0)
-      '@totemsdk/manifest':
-        specifier: ^0.1.2
-        version: 0.1.2(@noble/hashes@2.2.0)
-      '@totemsdk/proof':
-        specifier: ^0.1.1
-        version: 0.1.1(@noble/hashes@2.2.0)
-    devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.19.43
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.4.11
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/lookup-client:
-    dependencies:
-      '@totemsdk/chain-provider':
-        specifier: ^0.1.4
-        version: 0.1.4(@noble/hashes@2.2.0)
-      '@totemsdk/core':
-        specifier: ^1.1.0
-        version: 1.1.0(@noble/hashes@2.2.0)
-      '@totemsdk/lookup-protocol':
-        specifier: ^0.1.3
-        version: 0.1.3(@noble/hashes@2.2.0)
-      '@totemsdk/stream-transport':
-        specifier: ^0.1.0
-        version: 0.1.0(@noble/hashes@2.2.0)(hyperswarm@4.17.0)
-    devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/lookup-node:
-    dependencies:
-      '@totemsdk/chain-provider':
-        specifier: ^0.1.4
-        version: 0.1.4(@noble/hashes@2.2.0)
-      '@totemsdk/core':
-        specifier: ^1.1.0
-        version: 1.1.0(@noble/hashes@2.2.0)
-      '@totemsdk/lookup-protocol':
-        specifier: ^0.1.3
-        version: 0.1.3(@noble/hashes@2.2.0)
-      '@totemsdk/pureminima-rpc':
-        specifier: ^0.1.3
-        version: 0.1.3
-      '@totemsdk/txpow':
-        specifier: ^0.1.5
-        version: 0.1.6(@noble/hashes@2.2.0)
-      '@totemsdk/wots-lease':
-        specifier: ^0.1.3
-        version: 0.1.3(@noble/hashes@2.2.0)
-      better-sqlite3:
-        specifier: ^12.2.0
-        version: 12.11.1
-    devDependencies:
-      '@types/better-sqlite3':
-        specifier: ^7.6.0
-        version: 7.6.13
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/lookup-protocol:
-    dependencies:
-      '@totemsdk/core':
-        specifier: ^1.1.0
-        version: 1.1.0(@noble/hashes@2.2.0)
-    devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/manifest:
-    dependencies:
-      '@totemsdk/core':
-        specifier: ^1.1.0
-        version: 1.1.0(@noble/hashes@2.2.0)
-    devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/mcp-server:
-    dependencies:
-      '@modelcontextprotocol/sdk':
-        specifier: ^1.29.0
-        version: 1.29.0(zod@4.4.3)
-    devDependencies:
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/omnia:
-    dependencies:
-      '@totemsdk/agent-policy':
-        specifier: ^0.1.3
-        version: 0.1.3(@noble/hashes@2.2.0)
-      '@totemsdk/chain-provider':
-        specifier: ^0.1.4
-        version: 0.1.4(@noble/hashes@2.2.0)
-      '@totemsdk/core':
-        specifier: ^1.1.0
-        version: 1.1.0(@noble/hashes@2.2.0)
-      '@totemsdk/lookup-protocol':
-        specifier: ^0.1.3
-        version: 0.1.3(@noble/hashes@2.2.0)
-      '@totemsdk/stream-transport':
-        specifier: ^0.1.0
-        version: 0.1.0(@noble/hashes@2.2.0)(hyperswarm@4.17.0)
-      '@totemsdk/tx-builder':
-        specifier: ^0.1.6
-        version: 0.1.6(@totemsdk/core@1.1.0(@noble/hashes@2.2.0))
-      '@totemsdk/txpow':
-        specifier: ^0.1.5
-        version: 0.1.6(@noble/hashes@2.2.0)
-      '@totemsdk/wots-lease':
-        specifier: ^0.1.3
-        version: 0.1.3(@noble/hashes@2.2.0)
-    devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/omnia-factory:
-    dependencies:
-      '@totemsdk/chain-provider':
-        specifier: ^0.1.4
-        version: 0.1.4(@noble/hashes@2.2.0)
-      '@totemsdk/core':
-        specifier: ^1.1.0
-        version: 1.1.0(@noble/hashes@2.2.0)
-      '@totemsdk/omnia':
-        specifier: ^0.1.5
-        version: 0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0)
-      '@totemsdk/tx-builder':
-        specifier: ^0.1.6
-        version: 0.1.6(@totemsdk/core@1.1.0(@noble/hashes@2.2.0))
-      '@totemsdk/txpow':
-        specifier: ^0.1.5
-        version: 0.1.6(@noble/hashes@2.2.0)
-      '@totemsdk/wots-lease':
-        specifier: ^0.1.3
-        version: 0.1.3(@noble/hashes@2.2.0)
-    devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/omnia-router:
-    dependencies:
-      '@totemsdk/core':
-        specifier: ^1.1.0
-        version: 1.1.0(@noble/hashes@2.2.0)
-      '@totemsdk/omnia':
-        specifier: '>=0.1.5'
-        version: 0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0)
-    devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/omnia-splice:
-    dependencies:
-      '@totemsdk/core':
-        specifier: ^1.1.0
-        version: 1.1.0(@noble/hashes@2.2.0)
-      '@totemsdk/omnia':
-        specifier: ^0.1.5
-        version: 0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0)
-      '@totemsdk/tx-builder':
-        specifier: ^0.1.6
-        version: 0.1.6(@totemsdk/core@1.1.0(@noble/hashes@2.2.0))
-      '@totemsdk/txpow':
-        specifier: ^0.1.5
-        version: 0.1.6(@noble/hashes@2.2.0)
-      '@totemsdk/wots-lease':
-        specifier: ^0.1.3
-        version: 0.1.3(@noble/hashes@2.2.0)
-    devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/omnia-vtxo:
-    devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/pear:
-    dependencies:
-      '@totemsdk/stream-transport':
-        specifier: ^0.1.0
-        version: 0.1.0(@noble/hashes@2.2.0)(hyperswarm@4.17.0)
-      bare-fs:
-        specifier: '>=2.0.0'
-        version: 4.7.4
-      bare-http1:
-        specifier: '>=3.0.0'
-        version: 4.5.7(bare-url@2.4.6)
-      corestore:
-        specifier: '>=6.0.0'
-        version: 7.11.0(bare-url@2.4.6)
-      hyperbee:
-        specifier: '>=2.0.0'
-        version: 2.27.3
-      hypercore:
-        specifier: '>=10.0.0'
-        version: 11.33.5(bare-url@2.4.6)
-      hyperdrive:
-        specifier: '>=2.0.0'
-        version: 13.3.3(bare-url@2.4.6)
-      hyperswarm:
-        specifier: '>=4.0.0'
-        version: 4.17.0(bare-url@2.4.6)
-    devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/proof:
-    dependencies:
-      '@totemsdk/core':
-        specifier: ^1.1.0
-        version: 1.1.0(@noble/hashes@2.2.0)
-      '@totemsdk/identity':
-        specifier: ^0.1.2
-        version: 0.1.2(@noble/hashes@2.2.0)
-      '@totemsdk/manifest':
-        specifier: ^0.1.2
-        version: 0.1.2(@noble/hashes@2.2.0)
-    devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/proof-integritas:
-    dependencies:
-      '@totemsdk/proof':
-        specifier: ^0.1.1
-        version: 0.1.1(@noble/hashes@2.2.0)
-    devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/proofgraph:
-    dependencies:
-      '@totemsdk/core':
-        specifier: ^1.1.0
-        version: 1.1.0(@noble/hashes@2.2.0)
-      '@totemsdk/identity':
-        specifier: ^0.1.2
-        version: 0.1.2(@noble/hashes@2.2.0)
-      '@totemsdk/manifest':
-        specifier: ^0.1.2
-        version: 0.1.2(@noble/hashes@2.2.0)
-      '@totemsdk/proof':
-        specifier: ^0.1.1
-        version: 0.1.1(@noble/hashes@2.2.0)
-    devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/provider-bond:
-    dependencies:
-      '@totemsdk/core':
-        specifier: ^1.1.0
-        version: 1.1.0(@noble/hashes@2.2.0)
-      '@totemsdk/identity':
-        specifier: ^0.1.2
-        version: 0.1.2(@noble/hashes@2.2.0)
-      '@totemsdk/manifest':
-        specifier: ^0.1.2
-        version: 0.1.2(@noble/hashes@2.2.0)
-      '@totemsdk/proof':
-        specifier: ^0.1.1
-        version: 0.1.1(@noble/hashes@2.2.0)
-    devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.19.43
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.4.11
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/pubsub-transport:
-    devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/pureminima-rpc:
-    devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/realtime:
-    dependencies:
-      '@totemsdk/core':
-        specifier: ^1.0.4
-        version: 1.1.0(@noble/hashes@2.2.0)
-    devDependencies:
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-      vitest:
-        specifier: ^4.1.10
-        version: 4.1.10(@types/node@26.1.1)(vite@8.1.5(@types/node@26.1.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0))
-
-  packages/totem-sdk/packages/recursive-mast:
-    dependencies:
-      '@totemsdk/core':
-        specifier: ^1.2.5
-        version: 1.2.5
-      '@totemsdk/kissvm':
-        specifier: ^0.4.0
-        version: 0.4.0
-      '@totemsdk/tx-builder':
-        specifier: ^0.1.8
-        version: 0.1.8(@totemsdk/core@1.2.5)
-    devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/root-identity:
-    devDependencies:
-      '@totemsdk/core':
-        specifier: ^1.1.0
-        version: 1.1.0(@noble/hashes@2.2.0)
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/sdk-tests:
-    dependencies:
-      '@totemsdk/core':
-        specifier: file:../core
-        version: link:../core
-      '@totemsdk/realtime':
-        specifier: file:../realtime
-        version: file:packages/totem-sdk/packages/realtime(typescript@7.0.2)
-      '@totemsdk/txpow':
-        specifier: file:../txpow
-        version: file:packages/totem-sdk/packages/txpow
-    devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.11.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.1.2
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/se-server:
-    dependencies:
-      '@totemsdk/core':
-        specifier: ^1.1.0
-        version: 1.1.0(@noble/hashes@2.2.0)
-      express:
-        specifier: ^5.2.1
-        version: 5.2.1
-      pg:
-        specifier: ^8.11.3
-        version: 8.22.0
-      zod:
-        specifier: ^4.4.3
-        version: 4.4.3
-    devDependencies:
-      '@types/express':
-        specifier: ^5.0.0
-        version: 5.0.6
-      '@types/node':
-        specifier: ^20.10.0
-        version: 20.19.43
-      '@types/pg':
-        specifier: ^8.11.0
-        version: 8.20.0
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/server:
-    dependencies:
-      '@totemsdk/core':
-        specifier: ^1.1.0
-        version: 1.1.0(@noble/hashes@2.2.0)
-      '@totemsdk/txpow':
-        specifier: ^0.1.5
-        version: 0.1.6(@noble/hashes@2.2.0)
-      node-fetch:
-        specifier: ^3.3.2
-        version: 3.3.2
-      ws:
-        specifier: ^8.21.1
-        version: 8.21.1
-    devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      '@types/node-fetch':
-        specifier: ^2.6.4
-        version: 2.6.13
-      '@types/ws':
-        specifier: ^8.5.0
-        version: 8.18.1
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/statechain:
-    dependencies:
-      '@totemsdk/chain-provider':
-        specifier: ^0.1.4
-        version: 0.1.4(@noble/hashes@2.2.0)
-      '@totemsdk/core':
-        specifier: ^1.1.0
-        version: 1.1.0(@noble/hashes@2.2.0)
-      '@totemsdk/tx-builder':
-        specifier: ^0.1.6
-        version: 0.1.6(@totemsdk/core@1.1.0(@noble/hashes@2.2.0))
-      '@totemsdk/txpow':
-        specifier: ^0.1.5
-        version: 0.1.6(@noble/hashes@2.2.0)
-      '@totemsdk/wots-lease':
-        specifier: ^0.1.3
-        version: 0.1.3(@noble/hashes@2.2.0)
-    devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/stream-transport:
-    dependencies:
-      hyperswarm:
-        specifier: '>=4.0.0'
-        version: 4.17.0(bare-url@2.4.6)
-    devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/tx-builder:
-    dependencies:
-      '@totemsdk/core':
-        specifier: ^1.2.0
-        version: 1.2.5
-
-  packages/totem-sdk/packages/txpow:
-    dependencies:
-      '@totemsdk/core':
-        specifier: ^1.1.0
-        version: 1.1.0(@noble/hashes@2.2.0)
-    devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/wallet-adapter:
-    dependencies:
-      '@totemsdk/chain-provider':
-        specifier: '>=0.1.3'
-        version: 0.1.4(@noble/hashes@2.2.0)
-    devDependencies:
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
-
-  packages/totem-sdk/packages/wots-lease:
-    dependencies:
-      '@totemsdk/core':
-        specifier: ^1.1.0
-        version: 1.1.0(@noble/hashes@2.2.0)
-      '@totemsdk/lookup-protocol':
-        specifier: ^0.1.3
-        version: 0.1.3(@noble/hashes@2.2.0)
-    devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2)
-      typescript:
-        specifier: ^7.0.2
-        version: 7.0.2
 
   packages/tx-builder:
     dependencies:
@@ -5163,307 +3541,6 @@ packages:
   '@tailwindcss/postcss@4.3.3':
     resolution: {integrity: sha512-JTSZZGQi1AyKirbLN3azmjVzef92tcX7h+iSqPdaeStyFpGpDlKvvpxeOE8njhbUanbRwr3z8DyzhICWnMtQeg==}
 
-  '@totemsdk/agent-policy@0.1.3':
-    resolution: {integrity: sha512-V5Y5RywO5OM7457VORRtBlRoPhgNX9YmFxC05MFKCcMFgMYXCF2ntmKG+WEii/mXSmVGRvOfvYN0TZ4ZKpCcTA==}
-    engines: {node: '>=18.0.0'}
-
-  '@totemsdk/authority@0.1.2':
-    resolution: {integrity: sha512-RrSuz2gCm0txQzwdFTqI6H9JIRkM0J0P2WOUQesziWPrmjdYQgS7kpelyza1XQjZvAc0cLAn2phHk21FL/ZKOA==}
-    engines: {node: '>=18.0.0'}
-
-  '@totemsdk/chain-provider@0.1.3':
-    resolution: {integrity: sha512-pNOjNrVhk0VPTjmWY8Xmld8HHQArCykYPW/zaXtBHfiib6yde/F+Jd+D1+mXwDt09ubHzDrGlWV8vuQQfKPL9A==}
-    engines: {node: '>=18.0.0'}
-
-  '@totemsdk/chain-provider@0.1.4':
-    resolution: {integrity: sha512-6QYsoP4QcTRJY3Wxw13wLmWTcWNbV7alIr7ZXhQHhSMDFVpbIkIVZzEw6n/26YrAGUTta9uGmKVZa0Fa7aoVDg==}
-    engines: {node: '>=18.0.0'}
-
-  '@totemsdk/connect@2.1.0':
-    resolution: {integrity: sha512-lirvBM+bZKcajTD4JUaqXUIw1dg1zkP+p1AU6DOOWfLA/wugbdI0rV1JJKETJFCrwq7zGEZYQQe5NU30uaaukg==}
-    engines: {node: '>=16.0.0'}
-    peerDependencies:
-      '@totemsdk/chain-provider': '>=0.1.1'
-      '@totemsdk/kissvm': '>=0.1.1'
-      '@totemsdk/lookup-client': '>=0.1.1'
-      '@totemsdk/omnia': '>=0.1.1'
-      '@totemsdk/omnia-factory': '>=0.1.2'
-      '@totemsdk/omnia-router': '>=0.1.1'
-      '@totemsdk/omnia-splice': '>=0.1.1'
-      '@totemsdk/pear': '>=0.1.0'
-      '@totemsdk/statechain': '>=0.1.1'
-      '@totemsdk/txpow': '>=0.1.0'
-      '@totemsdk/wots-lease': '>=0.1.1'
-    peerDependenciesMeta:
-      '@totemsdk/chain-provider':
-        optional: true
-      '@totemsdk/kissvm':
-        optional: true
-      '@totemsdk/lookup-client':
-        optional: true
-      '@totemsdk/omnia':
-        optional: true
-      '@totemsdk/omnia-factory':
-        optional: true
-      '@totemsdk/omnia-router':
-        optional: true
-      '@totemsdk/omnia-splice':
-        optional: true
-      '@totemsdk/pear':
-        optional: true
-      '@totemsdk/statechain':
-        optional: true
-      '@totemsdk/txpow':
-        optional: true
-      '@totemsdk/wots-lease':
-        optional: true
-
-  '@totemsdk/core-wasm@0.1.0':
-    resolution: {integrity: sha512-gw3DE1WJF7uI0W4RUr6BiS+2WHf16dlvF613XvSTKXLtUpPq8rcAkrAoYE3mZAvCVKS6lQetZrdKdBB+vhfLvw==}
-
-  '@totemsdk/core@1.0.10':
-    resolution: {integrity: sha512-CF8/2KIkUDN8ZoOgSDysS50NzNMABGShmZWQpPJnbBlyJ0OYewCvYfMU+iIGtX+QWLxoQIoAglfGHgSYC7DUfQ==}
-    engines: {node: '>=16.0.0'}
-    peerDependencies:
-      '@noble/hashes': ^2.0.0
-
-  '@totemsdk/core@1.0.9':
-    resolution: {integrity: sha512-F0W1QK3edkmix05CRE19m7Wy3ZHUJpm5Shz4M8eN4aNT8D6XKYP0Q4SqVdZyT5RTqbqxLlYaDoJtLPgZb6NUWA==}
-    engines: {node: '>=16.0.0'}
-    peerDependencies:
-      '@noble/hashes': '>=1.3.0'
-
-  '@totemsdk/core@1.1.0':
-    resolution: {integrity: sha512-5t94lbV52a0vAlVpHqiYMBN9toBeHVmIgsPtqi2udsQdvoagLOQaAu2buL6mBGoi7FYxfnwCKXO7tLFqzkfTLA==}
-    engines: {node: '>=16.0.0'}
-    peerDependencies:
-      '@noble/hashes': ^2.0.0
-
-  '@totemsdk/core@1.2.0':
-    resolution: {integrity: sha512-AKJyxZ1mJ34pAypSK80itgCqv8FqLkXIi8//ayTOiz8BkTjm8dJWIqk/Obz+3lzHygl8Qlh4Gj7lhV3hhStWaA==}
-    engines: {node: '>=16.0.0'}
-    peerDependencies:
-      '@noble/hashes': ^2.0.0
-
-  '@totemsdk/core@1.2.5':
-    resolution: {integrity: sha512-QYsp+GG0zHgnbMRybw3yoI0tAYpzspRJOa5eRuj9aHZx515SM3dhjb74HDowXJhpcxvZfDoH6cY9hb/QLhKYfw==}
-    engines: {node: '>=16.0.0'}
-
-  '@totemsdk/core@1.2.6':
-    resolution: {integrity: sha512-jmqkMXRd//eZ7JUG0vGFqxefXmb0K7BABe0MoJueJUlFrgush7EdFZ3OcmZXZ46eQGqfRmmuxkVJIYtumAwiQQ==}
-    engines: {node: '>=16.0.0'}
-
-  '@totemsdk/edge@0.1.2':
-    resolution: {integrity: sha512-tPlh7YSV861p6zcs4VCj3SPLyPOl9n5PZODzVvGvNtPZm2g+u2ANmNOrtTDex5hcGjex/W72gepm+fVT0byiUw==}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      '@noble/hashes': ^2.0.0
-      '@totemsdk/connect': 2.0.3
-    peerDependenciesMeta:
-      '@totemsdk/connect':
-        optional: true
-
-  '@totemsdk/edge@0.1.3':
-    resolution: {integrity: sha512-Be3z4PjZgnlkBbq30W57A1geSQLXHolIoC13wWXOX8EllscCc8NAdMdqjKIVgDUYHLxscxjRjsiGbBCIQlel4g==}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      '@noble/hashes': ^2.0.0
-      '@totemsdk/connect': ^2.1.0
-    peerDependenciesMeta:
-      '@totemsdk/connect':
-        optional: true
-
-  '@totemsdk/identity@0.1.2':
-    resolution: {integrity: sha512-yh8+uhz6nQLpG7oyseVX8jR21Ps/gbVGaHKrQ5CGCvndosUQIZOi/NyVDgsJpPVNamLFCYAF2j6ufpLzca25IA==}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      '@noble/hashes': ^2.0.0
-
-  '@totemsdk/identity@0.1.3':
-    resolution: {integrity: sha512-E0B16e+pgi23W2+WoVR2D0fjOGqH/c9PDJv23ePYXcd+Vg6Eo8v1lUsuf6m8wxThA105e+Ps7hMDw5WTufZ4nw==}
-    engines: {node: '>=18.0.0'}
-
-  '@totemsdk/kissvm@0.1.4':
-    resolution: {integrity: sha512-wZn9ZkcK0rPFlHbWwfmb8DaX8kMhwW1h9/4wgUohhfi142KQbO48fHDhrLiZljM0XsljBXFUBqLNOtSv9/+c9A==}
-    engines: {node: '>=18.0.0'}
-
-  '@totemsdk/kissvm@0.4.0':
-    resolution: {integrity: sha512-c8QyaJdsl2ugXFMxzxsGnlOfzeF4kmDrfZHjVEpoN45StNs5/TSoadq7JsQmHm/FHz6yKXaEYjTITcSv0IVYlQ==}
-    engines: {node: '>=18.0.0'}
-
-  '@totemsdk/lookup-client@0.1.5':
-    resolution: {integrity: sha512-C11yIxUoRgRGVTnd7aQPvW+gvexPJnzP3UzU6lMphDWjQ6B8g6usNxJqbHRURqrYpxSyO1xXuSpS8qMri4OiIg==}
-    engines: {node: '>=18.0.0'}
-
-  '@totemsdk/lookup-protocol@0.1.3':
-    resolution: {integrity: sha512-GicZQbYPyr+J6q1eS+ckaekegMTjxnuwFcetcVmqQFq9fJKlwPjkFpuQFQvgFq2SkTSdG1fP8qDP4CUdN+1lmQ==}
-    engines: {node: '>=18.0.0'}
-
-  '@totemsdk/manifest@0.1.2':
-    resolution: {integrity: sha512-LR3XeUT7XyCQmRyV17C4GLMmjJyJHOrckq4sJ++J3o3w24APxIOVV+w/U0KwtoRNrlL5cy2C10uo50jjuNlxPg==}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      '@noble/hashes': ^2.0.0
-
-
-  '@totemsdk/omnia-factory@0.1.6':
-    resolution: {integrity: sha512-AAw7fWxH6+206BaS6oqYR1z64joo0g8gZdxQaNg+IUu51keP63mTddD7+nJXhCFjLeaCF/MB6zHMkn2Qi/WYIQ==}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      '@noble/hashes': ^2.0.0
-
-  '@totemsdk/omnia-router@0.1.4':
-    resolution: {integrity: sha512-leVen6W4roSer8ep+CZXcMPhRntoIWXZrjcifDOOE0+OfU52rIOTgoYoAmpM8/Vzpt7di7y3ARVkZiNCQXxhwA==}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      '@totemsdk/omnia': '>=0.1.3'
-      '@totemsdk/omnia-hyperswarm': '>=0.2.0'
-    peerDependenciesMeta:
-      '@totemsdk/omnia':
-        optional: true
-      '@totemsdk/omnia-hyperswarm':
-        optional: true
-
-  '@totemsdk/omnia-splice@0.1.5':
-    resolution: {integrity: sha512-uXOo0JQGdPOwa+PxHC5ZrML21Fe2zk32WlhP+XjjCtfq70ovZJwxCXcPrKi9pJ//OGx8Rbbe6IJs2wHbghPKKA==}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      '@noble/hashes': ^2.0.0
-
-  '@totemsdk/omnia@0.1.5':
-    resolution: {integrity: sha512-CV7hyYOidj/RhakZPbGHTwfOLrRFVVg7WyFZPvEZ3KywFh7nqCC0Rl6reRGH+aRIvYOtij3u597jj1USkEAjxg==}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      '@noble/hashes': ^2.0.0
-
-  '@totemsdk/omnia@0.1.6':
-    resolution: {integrity: sha512-iOxQ4l7zdHnHqpS3+QKItHi6Pl1bDYb2kMymX8dMIci+o2GG73zTnUkiudJ2pS1Cj4i4EidHvTyI4e8YZPj/9Q==}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      '@noble/hashes': ^2.0.0
-
-  '@totemsdk/pear@0.1.2':
-    resolution: {integrity: sha512-gRcvqB/MvriQFiPkMHeiFFCvj0ulYkrDxW16gaTdZNFWNuBKVKv9U8Rt4glnmEbeS/6ZaAV5LkmQrrxchR21qw==}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      bare-fs: '>=2.0.0'
-      bare-http1: '>=3.0.0'
-      corestore: '>=6.0.0'
-      hyperbee: '>=2.0.0'
-      hypercore: '>=10.0.0'
-      hyperdrive: '>=2.0.0'
-      hyperswarm: '>=4.0.0'
-    peerDependenciesMeta:
-      bare-fs:
-        optional: true
-      bare-http1:
-        optional: true
-      corestore:
-        optional: true
-      hyperbee:
-        optional: true
-      hypercore:
-        optional: true
-      hyperdrive:
-        optional: true
-      hyperswarm:
-        optional: true
-
-  '@totemsdk/proof-integritas@0.1.1':
-    resolution: {integrity: sha512-wn7oLb9/doY2eLEw/Tjxbuc9fjox280WToKgqQ5DKDuYWHdBKbd9lT8Mt7GVoD+pkazfn1sdi8jb3nQqzrhAJw==}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      '@noble/hashes': ^2.0.0
-
-  '@totemsdk/proof@0.1.1':
-    resolution: {integrity: sha512-/fV7qsMqkWdXrJRAemHru/EsdWcFdQB6wbmAmBd34OXYzjYx0P8H8n14yaLNWw0eYbI1WPj7YkgqmftaH81t3Q==}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      '@noble/hashes': ^2.0.0
-
-  '@totemsdk/proof@0.1.2':
-    resolution: {integrity: sha512-9XA4LSMXk5mSqQZ0PTM+aEao9YlZG3uJNxMemm0Cj86rJ6Mdn/5M7rk+SJE7ooixBlYSc4BlpotYFj1i4slbIA==}
-    engines: {node: '>=18.0.0'}
-
-  '@totemsdk/pubsub-transport@0.1.0':
-    resolution: {integrity: sha512-7kbLkHd7mdwEFY5Ck/e7X6ihZFOGy5wq7LQH0yQj13tqqUO7nSkaWSxJEEyTMZ3nUM4qgOkyf+/bt9SWMFUfjg==}
-    engines: {node: '>=18.0.0'}
-
-  '@totemsdk/pureminima-rpc@0.1.3':
-    resolution: {integrity: sha512-J9YKIlkP3iwp5dx5Pgdh3pxuJKgC+td7kAruh04YHD2tjLlLfGI8z0RdrUPmzhxZ0K89QAsvpYKlPBP4k/2IQA==}
-    engines: {node: '>=18.0.0'}
-
-  '@totemsdk/realtime@0.1.9':
-    resolution: {integrity: sha512-dYmi0vjAq+iAwi8UyQmFdZBZrvFQwYW0s/ZRcPkXelZwskW5n2WIet7EuLPqY1H8AMqGiiDdTUzQFfNc3ti2Vg==}
-    peerDependencies:
-      typescript: '>=5.0.0'
-
-  '@totemsdk/realtime@file:packages/totem-sdk/packages/realtime':
-    resolution: {directory: packages/totem-sdk/packages/realtime, type: directory}
-    peerDependencies:
-      typescript: '>=5.0.0'
-
-  '@totemsdk/root-identity@1.0.7':
-    resolution: {integrity: sha512-2UBR6YihEytyihoOo45I41tsFCKW6TpSGgubKMyEha5vbrhTp4BWfWjXCZ8YaU5gCgYDKnPphXhicgAhlldqoQ==}
-    engines: {bare: '>=1.0.0', node: '>=16.0.0'}
-    peerDependencies:
-      '@noble/hashes': ^2.0.0
-      '@totemsdk/core': '>=1.0.1'
-
-  '@totemsdk/statechain@0.1.6':
-    resolution: {integrity: sha512-sqA7L8CCj+E4ffh3OuchwDDr5FKq3NSWXoEPpGzEYkydA1TycTpfDTPo8BLxVgPk1pRNqqPGXt+Wv8l1k0EHHg==}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      '@noble/hashes': ^2.0.0
-
-  '@totemsdk/stream-transport@0.1.0':
-    resolution: {integrity: sha512-h3a6OI2HGCJ9TuAofzbikyHuQuXOYtV5faSZiI1n+7KCdwA0YpAMIUOqHCZLkM9h6WvC4UpXOQSHWnAZbp3hrw==}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      '@noble/hashes': ^2.0.0
-      hyperswarm: '>=4.0.0'
-    peerDependenciesMeta:
-      hyperswarm:
-        optional: true
-
-  '@totemsdk/tx-builder@0.1.5':
-    resolution: {integrity: sha512-CixykhfZe3MvWsKd9j2cdO9yDHofPl4md3dPW7SLKOzl+4Y5kvTPqfhvXbOp6KeHEDvE1wUQSIO6acaM80DVow==}
-    engines: {node: '>=16.0.0'}
-    peerDependencies:
-      '@totemsdk/core': 1.0.10
-
-  '@totemsdk/tx-builder@0.1.6':
-    resolution: {integrity: sha512-DYFWPN2qGebxBx1qzRmFXvl3mr0x1naN2EULKafNJvqq6oJSrVffikVq2P5+bmBTRWu/VW+E37VBJjnJknHxUA==}
-    engines: {node: '>=16.0.0'}
-    peerDependencies:
-      '@totemsdk/core': 1.0.11
-
-  '@totemsdk/tx-builder@0.1.8':
-    resolution: {integrity: sha512-B9kf2brIJGIpOqzNPL90/bF5o+VmOtSIgQ5dYoxcNAp5JkdmibrhqAJXG+k2KzyllR1HHh8pxoFAPnm5C9825g==}
-    engines: {node: '>=16.0.0'}
-    peerDependencies:
-      '@totemsdk/core': ^1.1.0
-
-  '@totemsdk/txpow@0.1.5':
-    resolution: {integrity: sha512-bk5H+FEIN0/Ui31bll+/DPmO+fZsth99s8u25z7YDT4GE6DSfTVumudTHYK1RwK0N5nj89/lk/KVdEIARvcr9Q==}
-    engines: {node: '>=16.0.0'}
-    peerDependencies:
-      '@noble/hashes': ^2.0.0
-
-  '@totemsdk/txpow@0.1.6':
-    resolution: {integrity: sha512-4X7YR5Ylzn8yCAESLmuliGcnXAdv2fVhYAmTBrZqq3cw9wYpYrDcsoOM9KCiOlpjCK/DEYXz8+CWu2CS110VvA==}
-    engines: {node: '>=16.0.0'}
-    peerDependencies:
-      '@noble/hashes': ^2.0.0
-
-  '@totemsdk/txpow@file:packages/totem-sdk/packages/txpow':
-    resolution: {directory: packages/totem-sdk/packages/txpow, type: directory}
-    engines: {node: '>=16.0.0'}
-
-  '@totemsdk/wots-lease@0.1.3':
-    resolution: {integrity: sha512-NMsmk5YGRf20u52fLwVZ9LP7jJLvOE2PK44VqybnlvSZhWbJjdW2LywbEcDZkB9qYsbmhAi42m/nFil5MthMfw==}
-    engines: {node: '>=18.0.0'}
-
   '@trickfilm400/rollup-plugin-off-main-thread@3.0.0-pre1':
     resolution: {integrity: sha512-/67zpWDBLV+oYAEL682s1ktXL0HgqX76f6gaVGkGnVZlBbm1zd0v4Bz8MFF2GGhoX9rvfq3KSQHubFHwa6w6/Q==}
     engines: {node: '>=12'}
@@ -5546,14 +3623,11 @@ packages:
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
 
-  '@types/node-fetch@2.6.13':
-    resolution: {integrity: sha512-QGpRVpzSaUs30JBSGPjOg4Uveu384erbHBoT1zeONvyCfwQxIkUshLAOqN/k9EjGviPRmWTTe6aH2qySWKTVSw==}
-
   '@types/node@20.19.43':
     resolution: {integrity: sha512-6oYBAi5ikg4Pl+kGsoYtawUMBT2zZMCvPNF7pVLnHZfd1zf38DRiWn/gT01RYCdUqkv7Fhr+C9ot4/tb+2sVvA==}
 
-  '@types/node@26.1.1':
-    resolution: {integrity: sha512-nxAkRSVkN1Y0JC1W8ky/fTfkGsMmcrRsbx+3XoZE+rMOX71kLYTV7fLXpqud1GpbpP5TuffXFqfX7fH2GgZREw==}
+  '@types/node@26.2.0':
+    resolution: {integrity: sha512-5IviulTZeRNp2vAJ514cc/HUlY5nZ9fCbq9DMyC52BrhFZACo3nI0R7qBxhQmo/d27NFe96ur/b7Wwxklda+kg==}
 
   '@types/pg@8.20.0':
     resolution: {integrity: sha512-bEPFOaMAHTEP1EzpvHTbmwR8UsFyHSKsRisLIHVMXnpNefSbGA1bD6CVy+qKjGSqmZqNqBDV2azOBo8TgkcVow==}
@@ -5583,6 +3657,9 @@ packages:
   '@types/react@18.3.31':
     resolution: {integrity: sha512-vfEqpXTvwT91yhmwdfouStN2hSKwTvyRs8qpLfADyrq/kxDw0hZM7Wk9Ug1FELj8hIby+S/+kQCSRFF32nv2Qw==}
 
+  '@types/react@19.2.18':
+    resolution: {integrity: sha512-AnzbBERsrLKtk2XSfTbYRLjQPdy116Sty4q+T+Bp3IC4l6jNBvreVPAHmpq9qhXQM7CXZPjLVmGMw9sy+hxQ3w==}
+
   '@types/resolve@1.20.2':
     resolution: {integrity: sha512-60BCwRFOZCQhDncwQdxxeOEEkbc5dIMccYLwbxsS4TUNeVECQ/pBJ0j09mrHOl/JJvpRPGwO9SvE4nR2Nb/a4Q==}
 
@@ -5609,126 +3686,6 @@ packages:
 
   '@types/yargs@17.0.35':
     resolution: {integrity: sha512-qUHkeCyQFxMXg79wQfTtfndEC+N9ZZg76HJftDJp+qH2tV7Gj4OJi7l+PiWwJ+pWtW8GwSmqsDj/oymhrTWXjg==}
-
-  '@typescript/typescript-aix-ppc64@7.0.2':
-    resolution: {integrity: sha512-MTKKkWB7p/0E9xi1d1tHtZ5PiLkGEMIq88pK2CubZjOsLtYTLqhgIgi6zepFa+9GHZ6h05NMCkQxGKiPXMxXtQ==}
-    engines: {node: '>=16.20.0'}
-    cpu: [ppc64]
-    os: [aix]
-
-  '@typescript/typescript-darwin-arm64@7.0.2':
-    resolution: {integrity: sha512-gowzar9MwS/aRWp6f3a4KUqzRjAZjOsmGNCM6LcTgXum+dBfgsBVMN+AgvOCCbguXyick6LJhpBszxMebJ8syA==}
-    engines: {node: '>=16.20.0'}
-    cpu: [arm64]
-    os: [darwin]
-
-  '@typescript/typescript-darwin-x64@7.0.2':
-    resolution: {integrity: sha512-SZ9xZInqApNlNGc9s0W1VSsktYSOe9cFqNOIqmN1Gs8SmkjKZYFt017G4VwPxASInODuAdbTW7sXiFUf893RgA==}
-    engines: {node: '>=16.20.0'}
-    cpu: [x64]
-    os: [darwin]
-
-  '@typescript/typescript-freebsd-arm64@7.0.2':
-    resolution: {integrity: sha512-W5NH4y/J0plIIS5b2xvTEkU7JFxyqdMAOgf+Ilhl0vHQXKO5dZoxd+C/jEtq56c4F3wk71RB4BMRQ2XdI+bwYQ==}
-    engines: {node: '>=16.20.0'}
-    cpu: [arm64]
-    os: [freebsd]
-
-  '@typescript/typescript-freebsd-x64@7.0.2':
-    resolution: {integrity: sha512-UMGDx5sTpzNw3WiPebH7l90IWfJggEd+egHt/q6p7/Cm3zqoV7VxkGXt+3DxPIw8CcmvAB0j3sVVfbhX+M4Tpw==}
-    engines: {node: '>=16.20.0'}
-    cpu: [x64]
-    os: [freebsd]
-
-  '@typescript/typescript-linux-arm64@7.0.2':
-    resolution: {integrity: sha512-Qh4eU4/y3yDjnfjjyPYihMj5/ODIlmt+Bzu17OI+fiSRDW57QmU5SiN63exPRNJPKUzcc1INa1NXdrJ+MqHjUQ==}
-    engines: {node: '>=16.20.0'}
-    cpu: [arm64]
-    os: [linux]
-
-  '@typescript/typescript-linux-arm@7.0.2':
-    resolution: {integrity: sha512-gffT3xPz9sR7j/YJExkyPntrI0P2EP9XbOyWzth2/Gs0RstK+90RBcO0ncXoXy/beYll1SXw846Nf2zdnEz0QQ==}
-    engines: {node: '>=16.20.0'}
-    cpu: [arm]
-    os: [linux]
-
-  '@typescript/typescript-linux-loong64@7.0.2':
-    resolution: {integrity: sha512-uEHck9i8hoAzXPiYRib1O7miOnz23SxIeVl6F4LXox+qov1K35jHcEW6VHKvZI+pyvl7fZEP4MCU5LYvIq1GuQ==}
-    engines: {node: '>=16.20.0'}
-    cpu: [loong64]
-    os: [linux]
-
-  '@typescript/typescript-linux-mips64el@7.0.2':
-    resolution: {integrity: sha512-R4KvAMnE43W5Qeqb0Ly56O3mWMWIAgsMyz36DCaycd5nbg/9kzm0liw3JocfRqyJY0KPmzFjbswozXyW0DnIYA==}
-    engines: {node: '>=16.20.0'}
-    cpu: [mips64el]
-    os: [linux]
-
-  '@typescript/typescript-linux-ppc64@7.0.2':
-    resolution: {integrity: sha512-DORx5b3sd/4S7eayxm4FQv+A7CrkUIGRaHiwI8oiHTAI1fAPWhF4J0vAlkC8biAlHSVVwxMQ3tjZ2/DVbnQiiA==}
-    engines: {node: '>=16.20.0'}
-    cpu: [ppc64]
-    os: [linux]
-
-  '@typescript/typescript-linux-riscv64@7.0.2':
-    resolution: {integrity: sha512-wf0jqEDOjrPRnKwYRyyJDRo11KMbvMFrU+q4zqKyChODBzvlkbhNQfKvLxQCcwTpdDaXSHZTVuh0JoCrKCUMHQ==}
-    engines: {node: '>=16.20.0'}
-    cpu: [riscv64]
-    os: [linux]
-
-  '@typescript/typescript-linux-s390x@7.0.2':
-    resolution: {integrity: sha512-IkwJc3L7yhytWd/ewjyxNDfOmswCm9GWMJT/ue/dU4aZNbwZeYAetq42VyLmsmSjvoX7z74X6ZaYCtzAr0EuGw==}
-    engines: {node: '>=16.20.0'}
-    cpu: [s390x]
-    os: [linux]
-
-  '@typescript/typescript-linux-x64@7.0.2':
-    resolution: {integrity: sha512-EYdf2cNg7rgCWJnxCdJ+F3V39O8ihb37eHAu1LK8oAFizgTQbPOK7zHHXbPt8rX24COqODXeI3sIf0fCXG7H/A==}
-    engines: {node: '>=16.20.0'}
-    cpu: [x64]
-    os: [linux]
-
-  '@typescript/typescript-netbsd-arm64@7.0.2':
-    resolution: {integrity: sha512-+polYF4MF04aPpO5FTkHran9yUQDSXqy5GiSDKpsll5jy3l3+g9QLhpf39T+ePtefhXLOGrLl0QIjkQP6VnelA==}
-    engines: {node: '>=16.20.0'}
-    cpu: [arm64]
-    os: [netbsd]
-
-  '@typescript/typescript-netbsd-x64@7.0.2':
-    resolution: {integrity: sha512-8YIT0EHM/3dq10ZOVF/A7pc/YSMtbcecct4rWtexrnSCHOPcpC2KTLXfTCR6vDpnSiY12heNb1GiN/wu+T/FyA==}
-    engines: {node: '>=16.20.0'}
-    cpu: [x64]
-    os: [netbsd]
-
-  '@typescript/typescript-openbsd-arm64@7.0.2':
-    resolution: {integrity: sha512-APT8+ClYnuYm1u9+kgGXoMj2VzWzcymwh2gNSQVySHfkRDGOTVkoWLjCmOQSaO+PoqQ57B0flRp9SA+7GnnkzQ==}
-    engines: {node: '>=16.20.0'}
-    cpu: [arm64]
-    os: [openbsd]
-
-  '@typescript/typescript-openbsd-x64@7.0.2':
-    resolution: {integrity: sha512-yX7s+Q0Dln0Dt9tEzZsAjXXR/+ytBM7AlglaqyeMPxQszJ1JhlJdZ6jLA+IzldHtflX81em7lDao1xXu+aRRkg==}
-    engines: {node: '>=16.20.0'}
-    cpu: [x64]
-    os: [openbsd]
-
-  '@typescript/typescript-sunos-x64@7.0.2':
-    resolution: {integrity: sha512-dLJDGaLZ1D4HPQn62u1n8mBDkJREwMsAkCdkwd4Ieqw+x3TUyTsqY0YiBCtE6H6OzzgGk3iuZ3vFWRS+E8/d1g==}
-    engines: {node: '>=16.20.0'}
-    cpu: [x64]
-    os: [sunos]
-
-  '@typescript/typescript-win32-arm64@7.0.2':
-    resolution: {integrity: sha512-Gyl1Vy6OsWesLzmq+EP0Fb7b4Nid5232AvcA2SFcdYreldpNtYFFofPjnt62y9hQy7VTaZp65ICJjuAQRaVcIQ==}
-    engines: {node: '>=16.20.0'}
-    cpu: [arm64]
-    os: [win32]
-
-  '@typescript/typescript-win32-x64@7.0.2':
-    resolution: {integrity: sha512-0BQ3HkAHHlKLSp1qRvf3SUhGpGsDuhB/jgFw75guyqbxJqEaS0Cw/VFO8i2nHglJUzQCRtMMR/IBAKE3ETMC4g==}
-    engines: {node: '>=16.20.0'}
-    cpu: [x64]
-    os: [win32]
 
   '@typescript/vfs@1.6.4':
     resolution: {integrity: sha512-PJFXFS4ZJKiJ9Qiuix6Dz/OwEIqHD7Dme1UwZhTK11vR+5dqW2ACbdndWQexBzCx+CPuMe5WBYQWCsFyGlQLlQ==}
@@ -5864,6 +3821,19 @@ packages:
     peerDependencies:
       vite: ^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0
 
+  '@vitejs/plugin-react@6.0.5':
+    resolution: {integrity: sha512-BOVzne/NL162sMdResB25mUv+vWMF5NoAjNf09TeGlE7ZpszZWSD3winycicLJw72yeVsoCn/2kOhEuCvEShMA==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    peerDependencies:
+      '@rolldown/plugin-babel': ^0.1.7 || ^0.2.0
+      babel-plugin-react-compiler: ^1.0.0
+      vite: ^8.0.0
+    peerDependenciesMeta:
+      '@rolldown/plugin-babel':
+        optional: true
+      babel-plugin-react-compiler:
+        optional: true
+
   '@vitest/expect@4.1.10':
     resolution: {integrity: sha512-YsCn+qAk1GWjQOWFEsEcL2gNQ0zmVmQu3T03qP6UyjhtmdtwtbuI+DASn/7iQB3HGTXkdBwGddzxPlmiql5vlA==}
 
@@ -5977,12 +3947,6 @@ packages:
     resolution: {integrity: sha512-5cvg6CtKwfgdmVqY1WIiXKc3Q1bkRqGLi+2W/6ao+6Y7gu/RCwRuAhGEzh5B4KlszSuTLgZYuqFqo5bImjNKng==}
     engines: {node: '>= 0.6'}
 
-  acorn-import-phases@1.0.4:
-    resolution: {integrity: sha512-wKmbr/DDiIXzEOiWrTTUcDm24kQ2vGfZQvM2fwg2vXqR5uW6aapr7ObPtj1th32b9u90/Pf4AItvdTh42fBmVQ==}
-    engines: {node: '>=10.13.0'}
-    peerDependencies:
-      acorn: ^8.14.0
-
   acorn@8.17.0:
     resolution: {integrity: sha512-xRQbDb9BnwDafYNn6Vwl839DYVjqXYb1XVGtWAZ1kcDc6iwAL4hg3B1dZlRiuENFeO2H53gFG3in621AdERVAg==}
     engines: {node: '>=0.4.0'}
@@ -6076,9 +4040,6 @@ packages:
 
   async@3.2.6:
     resolution: {integrity: sha512-htCUDlxyyCLMgaM3xXg0C0LW2xqfuQ6p05pCEIsXuyQ+a1koYKTuBMzRNwmybfLgvJDMd0r1LTn4+E0Ti6C2AA==}
-
-  asynckit@0.4.0:
-    resolution: {integrity: sha512-Oei9OH4tRh0YqU3GxhX79dM/mwVgvbZJaSNaRk+bshkj0S5cfHcgYakreBjrHwatXKbz+IoIdYLxrKim2MjW0Q==}
 
   at-least-node@1.0.0:
     resolution: {integrity: sha512-+q/t7Ekv1EDY2l6Gda6LLiX14rU9TV20Wa3ofeQmwPFZbOMo9DXrLbOjFaaclkXKWidIaopwAObQDqwWtGUjqg==}
@@ -6275,11 +4236,6 @@ packages:
   base64-js@1.5.1:
     resolution: {integrity: sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==}
 
-  baseline-browser-mapping@2.10.42:
-    resolution: {integrity: sha512-c/jurFrDLyui7o1J86yLkRu4LMsTYcBohveus7/I2Hzdn9KIP2bdJPTue/lR1KH46enoPbD77GKeSYNdyPoD3Q==}
-    engines: {node: '>=6.0.0'}
-    hasBin: true
-
   baseline-browser-mapping@2.11.1:
     resolution: {integrity: sha512-HYXq73DDpCtNzOmrFsm9eSwCvWCql0RzqjpDzXN9EadiLJ4DNat0nsZ/Bzmy+Ud12mb4/zKDY0cQ805ZzN+i0A==}
     engines: {node: '>=6.0.0'}
@@ -6367,16 +4323,6 @@ packages:
   browserify-zlib@0.2.0:
     resolution: {integrity: sha512-Z942RysHXmJrhqk88FmKBVq/v5tqmSkDz7p54G/MGyjMnCFFnC79XWNbg+Vta8W6Wb2qtSZTSxIGkJrRpCFEiA==}
 
-  browserslist@4.28.5:
-    resolution: {integrity: sha512-Cu2E6QejHWzuDMTkuwgpABFgDfZrXLQq5V13YOACZx4mFAG4IwGTbTfHPMr4WtxlHoXSM8FIuRwYYCz5XiabaQ==}
-    engines: {node: ^6 || ^7 || ^8 || ^9 || ^10 || ^11 || ^12 || >=13.7}
-    hasBin: true
-
-  browserslist@4.28.6:
-    resolution: {integrity: sha512-FQBYNK15VMslhLHpA7+n+n1GOlF1kId2xcCg7/j95f24AOF6VDYMNH4mFxF7KuaTdv627faazpOAjFzMrfJOUw==}
-    engines: {node: ^6 || ^7 || ^8 || ^9 || ^10 || ^11 || ^12 || >=13.7}
-    hasBin: true
-
   browserslist@4.28.7:
     resolution: {integrity: sha512-JxV13hNrFxqjOc8alRbq9dK1MM79NEXYpma2B2J4wAtpWS5zIEIKqWPGCl7N4o7Uc7B7itylh7SuDujATRyyTw==}
     engines: {node: ^6 || ^7 || ^8 || ^9 || ^10 || ^11 || ^12 || >=13.7}
@@ -6431,9 +4377,6 @@ packages:
   camelcase@6.3.0:
     resolution: {integrity: sha512-Gmy6FhYlCY7uOElZUSbxo2UCDH8owEk996gkbrpsgGtrJLM3J7jGxl9Ic7Qwwj4ivOE5AWZWRMecDdF7hqGjFA==}
     engines: {node: '>=10'}
-
-  caniuse-lite@1.0.30001803:
-    resolution: {integrity: sha512-g/uHREV2ZpK9qMalCsWaxmA6ol+DX8GYhuf3T40RKoP+oL7vhRJh8LNt73PCjpnR6l14FzfPrB5Yux4PKm2meg==}
 
   caniuse-lite@1.0.30001806:
     resolution: {integrity: sha512-72Cuvd95zbSYPKq6Fhg8eDJRlzgWDf7/mtoZv6Qe/DYNCEBdNxoA3+rZAU2ZhGCpZlns3EssFavaZomckT5Uuw==}
@@ -6514,10 +4457,6 @@ packages:
   colorette@2.0.20:
     resolution: {integrity: sha512-IfEDxwoWIjkeXL1eXcDiow4UbKjhLdq6/EuSVR9GMN7KVH3r9gQ83e73hsz1Nd1T3ijd5xv1wcWRYO+D6kCI2w==}
 
-  combined-stream@1.0.8:
-    resolution: {integrity: sha512-FQN4MRfuJeHf7cBbBMJFXhKSDq+2kAArBlmRBvcvFE5BB1HZKXtSFASDhdlz9zOYwxh8lDdnvmMOe/+5cdoEdg==}
-    engines: {node: '>= 0.8'}
-
   commander@10.0.1:
     resolution: {integrity: sha512-y4Mg2tXshplEbSGzx7amzPwKKOCGuoSRP/CjEdwwk0FOGlUbq6lKuoyDZTNZkmxHdJtp54hdfY/JUrdL7Xfdug==}
     engines: {node: '>=14'}
@@ -6586,9 +4525,9 @@ packages:
     resolution: {integrity: sha512-ei8Aos7ja0weRpFzJnEA9UHJ/7XQmqglbRwnf2ATjcB9Wq874VKH9kfjjirM6UhU2/E5fFYadylyhFldcqSidQ==}
     engines: {node: '>=18'}
 
-  copy-webpack-plugin@13.0.1:
-    resolution: {integrity: sha512-J+YV3WfhY6W/Xf9h+J1znYuqTye2xkBUIGyTPWuBAT27qajBa5mR4f8WBmfDY3YjRftT2kqZZiLi1qf0H+UOFw==}
-    engines: {node: '>= 18.12.0'}
+  copy-webpack-plugin@14.0.0:
+    resolution: {integrity: sha512-3JLW90aBGeaTLpM7mYQKpnVdgsUZRExY55giiZgLuX/xTQRUs1dOCwbBnWnvY6Q6rfZoXMNwzOQJCSZPppfqXA==}
+    engines: {node: '>= 20.9.0'}
     peerDependencies:
       webpack: ^5.1.0
 
@@ -6663,10 +4602,6 @@ packages:
   csstype@3.2.3:
     resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
 
-  data-uri-to-buffer@4.0.1:
-    resolution: {integrity: sha512-0R9ikRb668HB7QDxT1vkpuUBtqc53YyAwMwGeUFKRojY/NWKvdZ+9UYtRfGmhqNbRkTSVpMbmyhXipFFv2cb/A==}
-    engines: {node: '>= 12'}
-
   data-view-buffer@1.0.2:
     resolution: {integrity: sha512-EmKO5V3OLXh1rtK2wgXRansaK1/mtVdTUEiEI0W8RkvgT05kfxaH29PliLnpLP73yYO6142Q72QNa8Wx/A5CqQ==}
     engines: {node: '>= 0.4'}
@@ -6735,10 +4670,6 @@ packages:
     resolution: {integrity: sha512-8QmQKqEASLd5nx0U1B1okLElbUuuttJ/AnYmRXbbbGDWh6uS208EjD4Xqq/I9wK7u0v6O08XhTWnt5XtEbR6Dg==}
     engines: {node: '>= 0.4'}
 
-  delayed-stream@1.0.0:
-    resolution: {integrity: sha512-ZySD7Nf91aLB0RxL4KGrKHBXl7Eds1DAmEdcoVawXnLD7SDhpNgtuII2aAkg7a7QS41jxPSZ17p4VdGnMHk3MQ==}
-    engines: {node: '>=0.4.0'}
-
   depd@2.0.0:
     resolution: {integrity: sha512-g7nH6P6dyDioJogAAGprGpCtVImJhpPk/roCzdb3fIh61/s/nPsfR6onyMwkCAR/OlC3yBC0lESvUoQEAssIrw==}
     engines: {node: '>= 0.8'}
@@ -6797,9 +4728,6 @@ packages:
     engines: {node: '>=0.10.0'}
     hasBin: true
 
-  electron-to-chromium@1.5.389:
-    resolution: {integrity: sha512-cEto7aeOqBfU1D+c5py5pE+ooscKE75JifxLBdFUZsqAxRS6y7kebtxAZvICszSl05gPjYHDTjY+lXpyGvpJbg==}
-
   electron-to-chromium@1.5.396:
     resolution: {integrity: sha512-yHiw2Y3C3H9U6TMbOfoWK/BPreiOPXRfTWPBwQBoZG6/8TB6eOPnsy5oaRYuatR7Fw2SJ4kKforgufeo7fq0EQ==}
 
@@ -6825,6 +4753,10 @@ packages:
 
   enhanced-resolve@5.24.2:
     resolution: {integrity: sha512-rpsZEGT1jFuve6QlpyRp9ckQ+kN61hvF9BzCPyMdaKTm8UJce96KBn3sorXOFXlzjPrs3Vc4T1NsSroZ3PxlFw==}
+    engines: {node: '>=10.13.0'}
+
+  enhanced-resolve@5.24.5:
+    resolution: {integrity: sha512-L1l8TNvomm6UVW5B253AGxQagSQr+vGwhMlrrfRS2qmhx46AMpMVJKQYLvWYbysTMY8VoicOvzHzoHMbyzB+4A==}
     engines: {node: '>=10.13.0'}
 
   entities@4.5.0:
@@ -7020,10 +4952,6 @@ packages:
       picomatch:
         optional: true
 
-  fetch-blob@3.2.0:
-    resolution: {integrity: sha512-7yAQpD2UMJzLi1Dqv7qFYnPbaPx7ZfFK6PiIxQ4PfkGPyNyl2Ugx+a/umUonmKqjhM4DnfbMvdX6otXq83soQQ==}
-    engines: {node: ^12.20 || >= 14.13}
-
   file-uri-to-path@1.0.0:
     resolution: {integrity: sha512-0Zt+s3L7Vf1biwWZ29aARiVYLx7iMGnEUl9x33fbB/j3jR81u/O2LbqK+Bm1CDSNDKVtJ/YjwY7TUd5SkeLQLw==}
 
@@ -7064,14 +4992,6 @@ packages:
   foreground-child@3.3.1:
     resolution: {integrity: sha512-gIXjKqtFuWEgzFRJA9WCQeSJLZDjgJUOMCMzxtvFq/37KojM1BFGufqsCy0r4qSQmYLsZYMeyRqzIWOMup03sw==}
     engines: {node: '>=14'}
-
-  form-data@4.0.6:
-    resolution: {integrity: sha512-vKatAh4SlVfgbv+YtmhiRjhEMJsYpsG1Y2rMQtR+SVSbytsSD1YGzDIcrAJmdFec88u/+VoGmxnl+80gL1tRCQ==}
-    engines: {node: '>= 6'}
-
-  formdata-polyfill@4.0.10:
-    resolution: {integrity: sha512-buewHzMvYL29jdeQTVILecSaZKnt/RJWjoZCF5OW60Z67/GmSLBkOFM7qh1PI3zFNtJbaZL5eQu1vLfazOwj4g==}
-    engines: {node: '>=12.20.0'}
 
   forwarded@0.2.0:
     resolution: {integrity: sha512-buRG0fpBtRHSTCOASe6hD258tEubFoRLb4ZNA6NxMVHNw2gOcwHo9wyablzMzOA5z9xA9L1KNjk/Nt6MT9aYow==}
@@ -8038,10 +5958,6 @@ packages:
   linkify-it@5.0.2:
     resolution: {integrity: sha512-ONTm2jCMAVZjgQa/Fy1kScXsuOoF5NPTsoFBdE1KVIZ2vAh/r9+Bqo+0jINCBYnavTPQZz38QzFTme79ENoN3Q==}
 
-  loader-runner@4.3.2:
-    resolution: {integrity: sha512-DFEqQ3ihfS9blba08cLfYf1NRAIEm+dDjic073DRDc3/JspI/8wYmtDsHwd3+4hwvdxSK7PGaElfTmm0awWJ4w==}
-    engines: {node: '>=6.11.5'}
-
   locate-path@5.0.0:
     resolution: {integrity: sha512-t7hw9pI+WvuwNJXwk5zVHpyhIqzg2qTlklJOf0mVxGSbe3Fp2VieZcduNYjaLDoy6p9uGpQEGWG87WpMKlNq8g==}
     engines: {node: '>=8'}
@@ -8257,11 +6173,6 @@ packages:
   nanoassert@2.0.0:
     resolution: {integrity: sha512-7vO7n28+aYO4J+8w96AzhmU8G+Y/xpPDJz/se19ICsqj/momRbb9mh9ZUtkoJ5X3nTnPdhEJyc0qnM6yAsHBaA==}
 
-  nanoid@3.3.15:
-    resolution: {integrity: sha512-y7Wygv/7mEOvxTuEQDB8StXdMRBWf1kR/tlhAzBRUFkB2jfcLOAxO/SHmOO2zgz1pVgK29/kyupn059/bCHdjA==}
-    engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
-    hasBin: true
-
   nanoid@3.3.16:
     resolution: {integrity: sha512-bzlKTyNJ7+LdGIIwy8ijFpIqEQIvafahV7eYykJ8Cvh42EdJeODoJ6gUJXpQJvej1BddH8OqTXZNE/KfbWAu8Q==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
@@ -8295,15 +6206,6 @@ packages:
   node-abi@3.94.0:
     resolution: {integrity: sha512-W5ZNO5KRPB5TkYmGVD9F6YqhsglXJzE6etpbmT+f6EQElhiX/UTG551cnsRGvLG3fyZEg9HwaDmNmj5nwJ4z9g==}
     engines: {node: '>=10'}
-
-  node-domexception@1.0.0:
-    resolution: {integrity: sha512-/jKZoMpw0F8GRwl4/eLROPA3cfcXtLApP0QzLmUT/HuPCZWyB7IY9ZrMeKw2O/nFIqPQB3PVM9aYm0F312AXDQ==}
-    engines: {node: '>=10.5.0'}
-    deprecated: Use your platform's native DOMException instead
-
-  node-fetch@3.3.2:
-    resolution: {integrity: sha512-dRB78srN/l6gqWulah9SrxeYnxeddIG30+GOqK/9OlLVyLg3HPnr6SqOWTWOXKRwC2eGYCkZ59NNuSgvSrpgOA==}
-    engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
 
   node-int64@0.4.0:
     resolution: {integrity: sha512-O5lz91xSOeoXP6DulyHfllpq+Eg00MWitZIbtPfoSEvqIHdl5gfcY6hYzDWnj0qD5tz52PI08u9qUvSVeUBeHw==}
@@ -8566,10 +6468,6 @@ packages:
   postcss-value-parser@4.2.0:
     resolution: {integrity: sha512-1NNCs6uurfkVbeXG4S8JFT9t19m45ICnif8zWLd5oPSZ50QnwMfK+H3jv408d4jw/7Bttv5axS5IiHoLaVNHeQ==}
 
-  postcss@8.5.16:
-    resolution: {integrity: sha512-vuwillviilfKZsg0VGj5R/YwwcHx4SLsIOI/7K6mQkWx+l5cUHTjj5g0AasTBcyXsbfTgrwsUNmVUb5xVwyPwg==}
-    engines: {node: ^10 || ^12 || >=14}
-
   postcss@8.5.20:
     resolution: {integrity: sha512-lW616l85ucIQL+FocMmL7pQFPqBmwejrCMg+iPxyImlrANNJG9NHq/RkyCZopDhd8C3LA03PHRJDjkbGu8vvug==}
     engines: {node: ^10 || ^12 || >=14}
@@ -8754,6 +6652,10 @@ packages:
     resolution: {integrity: sha512-wS+hAgJShR0KhEvPJArfuPVN1+Hz1t0Y6n5jLrGQbkb4urgPE/0Rve+1kMB1v/oWgHgm4WIcV+i7F2pTVj+2iQ==}
     engines: {node: '>=0.10.0'}
 
+  react@19.2.8:
+    resolution: {integrity: sha512-PWaYA1L/q9u2u7xYQi+Y3L3Yfnie7XyLeaJICV1MGD6LprsBxcAqGjYyr0eY3p+QdsA+x/Irkt4Qif8D63+Sbw==}
+    engines: {node: '>=0.10.0'}
+
   readable-stream@2.3.8:
     resolution: {integrity: sha512-8p0AUk4XODgIewSi0l8Epjs+EVnWiK7NoDIEGU0HhE7+ZyY8D1IMY7odu5lRrFXGg71L15KG8QrPmum45RTtdA==}
 
@@ -8927,9 +6829,6 @@ packages:
   send@1.2.1:
     resolution: {integrity: sha512-1gnZf7DFcoIcajTjTwjwuDjzuz4PPcY2StKPlsGAQ1+YH20IRVrBaXSWmdjowTJ6u8Rc01PoYOGHXfP1mYcZNQ==}
     engines: {node: '>= 18'}
-
-  serialize-javascript@6.0.2:
-    resolution: {integrity: sha512-Saa1xPByTTq2gdeFZYLLo+RFE35NHZkAbqZeWNd3BpzppeVisAqpDjcp8dyf6uIvEqJRd46jemmyA4iFIeVk8g==}
 
   serialize-javascript@7.0.7:
     resolution: {integrity: sha512-YAy8Od6KV+uuwUuU50np8fGB/Aues6Y0nAhA9y/hId74PlKUcme4pXcBD46NWKr1Q4osN/iseZ17YqO1XfmI8g==}
@@ -9403,11 +7302,6 @@ packages:
     engines: {node: '>=14.17'}
     hasBin: true
 
-  typescript@7.0.2:
-    resolution: {integrity: sha512-8FYau96o3NKOhbjKi/qNvG/W5jhzxkbdm5sj9AbZ/5T5sWqn3hJgLfGx27sRKZWTvyzCP8dLRBTf5tBTSRVUNA==}
-    engines: {node: '>=16.20.0'}
-    hasBin: true
-
   uc.micro@2.1.0:
     resolution: {integrity: sha512-ARDJmphmdvUk6Glw7y9DQ2bFkKBHwQHLi2lsaH6PPmz/Ka9sFOBsBluozhDltWmnv9u/cF6Rt87znRTPV+yp/A==}
 
@@ -9505,19 +7399,19 @@ packages:
     resolution: {integrity: sha512-BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg==}
     engines: {node: '>= 0.8'}
 
-  vite-plugin-node-polyfills@0.17.0:
-    resolution: {integrity: sha512-iPmPn7376e5u6QvoTSJa16hf5Q0DFwHFXJk2uYpsNlmI3JdPms7hWyh55o+OysJ5jo9J5XPhLC9sMOYifwFd1w==}
+  vite-plugin-node-polyfills@0.28.0:
+    resolution: {integrity: sha512-NXct/ci2ef4fRyCfTb8fk2HmR80Rv7icLd+cRH41TnUugDzdKMFKqFPpZYCFUInZMMem9bkLv5pkq02+7Xu7+w==}
     peerDependencies:
-      vite: ^2.0.0 || ^3.0.0 || ^4.0.0 || ^5.0.0
+      vite: ^2.0.0 || ^3.0.0 || ^4.0.0 || ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0
 
-  vite-plugin-pwa@0.21.2:
-    resolution: {integrity: sha512-vFhH6Waw8itNu37hWUJxL50q+CBbNcMVzsKaYHQVrfxTt3ihk3PeLO22SbiP1UNWzcEPaTQv+YVxe4G0KOjAkg==}
+  vite-plugin-pwa@1.3.0:
+    resolution: {integrity: sha512-c5kMgN+ITrOtHXp8PAtk2uOIEea6XjP/unCGxOWWBzQ6qa65qj/awHg0wf+QF9E/2u9vh86LqxPwzEPNbM2r5A==}
     engines: {node: '>=16.0.0'}
     peerDependencies:
-      '@vite-pwa/assets-generator': ^0.2.6
-      vite: ^3.1.0 || ^4.0.0 || ^5.0.0 || ^6.0.0
-      workbox-build: ^7.3.0
-      workbox-window: ^7.3.0
+      '@vite-pwa/assets-generator': ^1.0.0
+      vite: ^3.1.0 || ^4.0.0 || ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0
+      workbox-build: ^7.4.1
+      workbox-window: ^7.4.1
     peerDependenciesMeta:
       '@vite-pwa/assets-generator':
         optional: true
@@ -9647,10 +7541,6 @@ packages:
     resolution: {integrity: sha512-6i/00NBjP4yGPs+caKSyRfpTF/8Torsu0MOW3mMzIbhgISFder8i7xbqgHlLMwJrdiN8ndBV3UA1/AfzPSr+jg==}
     engines: {node: '>=10.13.0'}
 
-  web-streams-polyfill@3.3.3:
-    resolution: {integrity: sha512-d2JWLCivmZYTSIoge9MsgFCZrt571BikcWGYkjC1khllbTeDlGqZ2D8vD8E/lJa8WGWbb7Plm8/XJYV7IJHZZw==}
-    engines: {node: '>= 8'}
-
   webpack-cli@5.1.4:
     resolution: {integrity: sha512-pIDJHIEI9LR0yxHXQ+Qh95k2EvXpWzZ5l+d+jIo+RdSm9MiHfzazIxwwni/p7+x4eJZuvG1AJwgC4TNQ7NRgsg==}
     engines: {node: '>=14.15.0'}
@@ -9676,8 +7566,8 @@ packages:
     resolution: {integrity: sha512-jyuiGJdtvY434z5bUZrjz67v76/ePNvFZTp9Mdz29IlH4+GPsgyGjiv0fKI+M7BdkU6ADjulUcKAd3tUK3WlEw==}
     engines: {node: '>=10.13.0'}
 
-  webpack@5.108.4:
-    resolution: {integrity: sha512-yur8LyJoeiWh47dErD+Ok7vlbmDsJ3UbbRPAoxbGJ54WpE2y5yVo5G/inUzujnYgw3tPmBRdn+G7PoxXaYC33w==}
+  webpack@5.109.2:
+    resolution: {integrity: sha512-U9/cvLzxObKNEZ9+TtdqrHM5/9z3lgl2c+c4BzbqGxFQvQvBAq87yql5A8pQ+rrMbS496MZJeF5enVBndIy2hw==}
     engines: {node: '>=10.13.0'}
     hasBin: true
     peerDependencies:
@@ -11712,308 +9602,6 @@ snapshots:
       postcss: 8.5.20
       tailwindcss: 4.3.3
 
-  '@totemsdk/agent-policy@0.1.3(@noble/hashes@2.2.0)':
-    dependencies:
-      '@totemsdk/core': 1.0.9(@noble/hashes@2.2.0)
-    transitivePeerDependencies:
-      - '@noble/hashes'
-
-  '@totemsdk/authority@0.1.2(@noble/hashes@2.2.0)':
-    dependencies:
-      '@totemsdk/identity': 0.1.3(@noble/hashes@2.2.0)
-      '@totemsdk/proof': 0.1.2(@noble/hashes@2.2.0)
-    transitivePeerDependencies:
-      - '@noble/hashes'
-
-  '@totemsdk/chain-provider@0.1.3(@noble/hashes@2.2.0)':
-    dependencies:
-      '@totemsdk/core': 1.0.9(@noble/hashes@2.2.0)
-      '@totemsdk/pureminima-rpc': 0.1.3
-    transitivePeerDependencies:
-      - '@noble/hashes'
-
-  '@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0)':
-    dependencies:
-      '@totemsdk/core': 1.1.0(@noble/hashes@2.2.0)
-      '@totemsdk/pureminima-rpc': 0.1.3
-    transitivePeerDependencies:
-      - '@noble/hashes'
-
-  '@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.6))(corestore@7.11.0(bare-url@2.4.6))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.6))(hyperdrive@13.3.3(bare-url@2.4.6))(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0))':
-    optionalDependencies:
-      '@totemsdk/chain-provider': 0.1.4(@noble/hashes@2.2.0)
-      '@totemsdk/kissvm': 0.4.0
-      '@totemsdk/lookup-client': 0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6))
-      '@totemsdk/omnia': 0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0)
-      '@totemsdk/omnia-factory': 0.1.6(@noble/hashes@2.2.0)
-      '@totemsdk/omnia-router': 0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6)))
-      '@totemsdk/omnia-splice': 0.1.5(@noble/hashes@2.2.0)
-      '@totemsdk/pear': 0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.6))(corestore@7.11.0(bare-url@2.4.6))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.6))(hyperdrive@13.3.3(bare-url@2.4.6))(hyperswarm@4.17.0(bare-url@2.4.6))
-      '@totemsdk/statechain': 0.1.6(@noble/hashes@2.2.0)
-      '@totemsdk/txpow': 0.1.6(@noble/hashes@2.2.0)
-      '@totemsdk/wots-lease': 0.1.3(@noble/hashes@2.2.0)
-
-  '@totemsdk/core-wasm@0.1.0': {}
-
-  '@totemsdk/core@1.0.10(@noble/hashes@2.2.0)':
-    dependencies:
-      '@noble/hashes': 2.2.0
-
-  '@totemsdk/core@1.0.9(@noble/hashes@2.2.0)':
-    dependencies:
-      '@noble/hashes': 2.2.0
-
-  '@totemsdk/core@1.1.0(@noble/hashes@1.8.0)':
-    dependencies:
-      '@noble/hashes': 1.8.0
-
-  '@totemsdk/core@1.1.0(@noble/hashes@2.2.0)':
-    dependencies:
-      '@noble/hashes': 2.2.0
-
-  '@totemsdk/core@1.2.0(@noble/hashes@2.2.0)':
-    dependencies:
-      '@noble/hashes': 2.2.0
-      '@totemsdk/core-wasm': 0.1.0
-
-  '@totemsdk/core@1.2.5':
-    dependencies:
-      '@totemsdk/core-wasm': 0.1.0
-
-  '@totemsdk/core@1.2.6':
-    dependencies:
-      '@totemsdk/core-wasm': 0.1.0
-
-  '@totemsdk/edge@0.1.2(@noble/hashes@2.2.0)':
-    dependencies:
-      '@noble/hashes': 2.2.0
-      '@totemsdk/agent-policy': 0.1.3(@noble/hashes@2.2.0)
-      '@totemsdk/core': 1.0.10(@noble/hashes@2.2.0)
-      '@totemsdk/identity': 0.1.2(@noble/hashes@2.2.0)
-      '@totemsdk/manifest': 0.1.2(@noble/hashes@2.2.0)
-
-  '@totemsdk/edge@0.1.3(@noble/hashes@2.2.0)(@totemsdk/connect@2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.6))(corestore@7.11.0(bare-url@2.4.6))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.6))(hyperdrive@13.3.3(bare-url@2.4.6))(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)))':
-    dependencies:
-      '@noble/hashes': 2.2.0
-      '@totemsdk/agent-policy': 0.1.3(@noble/hashes@2.2.0)
-      '@totemsdk/core': 1.2.5
-      '@totemsdk/identity': 0.1.3(@noble/hashes@2.2.0)
-      '@totemsdk/manifest': 0.1.2(@noble/hashes@2.2.0)
-    optionalDependencies:
-      '@totemsdk/connect': 2.1.0(@totemsdk/chain-provider@0.1.4(@noble/hashes@2.2.0))(@totemsdk/kissvm@0.4.0)(@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0))(@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6))))(@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0))(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.6))(corestore@7.11.0(bare-url@2.4.6))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.6))(hyperdrive@13.3.3(bare-url@2.4.6))(hyperswarm@4.17.0(bare-url@2.4.6)))(@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0))(@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0))(@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0))
-
-  '@totemsdk/identity@0.1.2(@noble/hashes@2.2.0)':
-    dependencies:
-      '@noble/hashes': 2.2.0
-      '@totemsdk/core': 1.0.10(@noble/hashes@2.2.0)
-      '@totemsdk/manifest': 0.1.2(@noble/hashes@2.2.0)
-
-  '@totemsdk/identity@0.1.3(@noble/hashes@2.2.0)':
-    dependencies:
-      '@totemsdk/core': 1.2.5
-      '@totemsdk/manifest': 0.1.2(@noble/hashes@2.2.0)
-    transitivePeerDependencies:
-      - '@noble/hashes'
-
-  '@totemsdk/kissvm@0.1.4':
-    dependencies:
-      '@totemsdk/core': 1.2.5
-
-  '@totemsdk/kissvm@0.4.0':
-    dependencies:
-      '@totemsdk/core': 1.2.6
-
-  '@totemsdk/lookup-client@0.1.5(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6))':
-    dependencies:
-      '@totemsdk/chain-provider': 0.1.4(@noble/hashes@2.2.0)
-      '@totemsdk/core': 1.2.6
-      '@totemsdk/lookup-protocol': 0.1.3(@noble/hashes@2.2.0)
-      '@totemsdk/stream-transport': 0.1.0(@noble/hashes@2.2.0)(hyperswarm@4.17.0)
-    transitivePeerDependencies:
-      - '@noble/hashes'
-      - hyperswarm
-
-  '@totemsdk/lookup-protocol@0.1.3(@noble/hashes@2.2.0)':
-    dependencies:
-      '@totemsdk/core': 1.0.10(@noble/hashes@2.2.0)
-    transitivePeerDependencies:
-      - '@noble/hashes'
-
-  '@totemsdk/manifest@0.1.2(@noble/hashes@2.2.0)':
-    dependencies:
-      '@noble/hashes': 2.2.0
-      '@totemsdk/core': 1.0.10(@noble/hashes@2.2.0)
-
-
-  '@totemsdk/omnia-factory@0.1.6(@noble/hashes@2.2.0)':
-    dependencies:
-      '@noble/hashes': 2.2.0
-      '@totemsdk/chain-provider': 0.1.3(@noble/hashes@2.2.0)
-      '@totemsdk/core': 1.0.10(@noble/hashes@2.2.0)
-      '@totemsdk/omnia': 0.1.5(@noble/hashes@2.2.0)
-      '@totemsdk/tx-builder': 0.1.5(@totemsdk/core@1.0.10(@noble/hashes@2.2.0))
-      '@totemsdk/txpow': 0.1.5(@noble/hashes@2.2.0)
-      '@totemsdk/wots-lease': 0.1.3(@noble/hashes@2.2.0)
-
-  '@totemsdk/omnia-router@0.1.4(@noble/hashes@2.2.0)(@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0(bare-url@2.4.6)))':
-    dependencies:
-      '@totemsdk/core': 1.0.9(@noble/hashes@2.2.0)
-    optionalDependencies:
-      '@totemsdk/omnia': 0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0)
-    transitivePeerDependencies:
-      - '@noble/hashes'
-
-  '@totemsdk/omnia-splice@0.1.5(@noble/hashes@2.2.0)':
-    dependencies:
-      '@noble/hashes': 2.2.0
-      '@totemsdk/core': 1.0.10(@noble/hashes@2.2.0)
-      '@totemsdk/omnia': 0.1.5(@noble/hashes@2.2.0)
-      '@totemsdk/tx-builder': 0.1.5(@totemsdk/core@1.0.10(@noble/hashes@2.2.0))
-      '@totemsdk/txpow': 0.1.5(@noble/hashes@2.2.0)
-      '@totemsdk/wots-lease': 0.1.3(@noble/hashes@2.2.0)
-
-  '@totemsdk/omnia@0.1.5(@noble/hashes@2.2.0)':
-    dependencies:
-      '@noble/hashes': 2.2.0
-      '@totemsdk/agent-policy': 0.1.3(@noble/hashes@2.2.0)
-      '@totemsdk/chain-provider': 0.1.3(@noble/hashes@2.2.0)
-      '@totemsdk/core': 1.0.10(@noble/hashes@2.2.0)
-      '@totemsdk/tx-builder': 0.1.5(@totemsdk/core@1.0.10(@noble/hashes@2.2.0))
-      '@totemsdk/txpow': 0.1.5(@noble/hashes@2.2.0)
-      '@totemsdk/wots-lease': 0.1.3(@noble/hashes@2.2.0)
-
-  '@totemsdk/omnia@0.1.6(@noble/hashes@2.2.0)(hyperswarm@4.17.0)':
-    dependencies:
-      '@noble/hashes': 2.2.0
-      '@totemsdk/agent-policy': 0.1.3(@noble/hashes@2.2.0)
-      '@totemsdk/chain-provider': 0.1.4(@noble/hashes@2.2.0)
-      '@totemsdk/core': 1.2.6
-      '@totemsdk/lookup-protocol': 0.1.3(@noble/hashes@2.2.0)
-      '@totemsdk/stream-transport': 0.1.0(@noble/hashes@2.2.0)(hyperswarm@4.17.0)
-      '@totemsdk/tx-builder': 0.1.8(@totemsdk/core@1.2.6)
-      '@totemsdk/txpow': 0.1.6(@noble/hashes@2.2.0)
-      '@totemsdk/wots-lease': 0.1.3(@noble/hashes@2.2.0)
-    transitivePeerDependencies:
-      - hyperswarm
-
-  '@totemsdk/pear@0.1.2(bare-fs@4.7.4)(bare-http1@4.5.7(bare-url@2.4.6))(corestore@7.11.0(bare-url@2.4.6))(hyperbee@2.27.3)(hypercore@11.33.5(bare-url@2.4.6))(hyperdrive@13.3.3(bare-url@2.4.6))(hyperswarm@4.17.0(bare-url@2.4.6))':
-    optionalDependencies:
-      bare-fs: 4.7.4
-      bare-http1: 4.5.7(bare-url@2.4.6)
-      corestore: 7.11.0(bare-url@2.4.6)
-      hyperbee: 2.27.3
-      hypercore: 11.33.5(bare-url@2.4.6)
-      hyperdrive: 13.3.3(bare-url@2.4.6)
-      hyperswarm: 4.17.0(bare-url@2.4.6)
-
-  '@totemsdk/proof-integritas@0.1.1(@noble/hashes@2.2.0)':
-    dependencies:
-      '@noble/hashes': 2.2.0
-      '@totemsdk/proof': 0.1.1(@noble/hashes@2.2.0)
-
-  '@totemsdk/proof@0.1.1(@noble/hashes@2.2.0)':
-    dependencies:
-      '@noble/hashes': 2.2.0
-      '@totemsdk/core': 1.1.0(@noble/hashes@2.2.0)
-      '@totemsdk/identity': 0.1.2(@noble/hashes@2.2.0)
-      '@totemsdk/manifest': 0.1.2(@noble/hashes@2.2.0)
-
-  '@totemsdk/proof@0.1.2(@noble/hashes@2.2.0)':
-    dependencies:
-      '@totemsdk/core': 1.2.5
-      '@totemsdk/identity': 0.1.3(@noble/hashes@2.2.0)
-      '@totemsdk/manifest': 0.1.2(@noble/hashes@2.2.0)
-    transitivePeerDependencies:
-      - '@noble/hashes'
-
-  '@totemsdk/pubsub-transport@0.1.0': {}
-
-  '@totemsdk/pureminima-rpc@0.1.3': {}
-
-  '@totemsdk/realtime@0.1.9(typescript@5.9.3)':
-    dependencies:
-      '@totemsdk/core': 1.2.5
-      typescript: 5.9.3
-
-  '@totemsdk/realtime@0.1.9(typescript@7.0.2)':
-    dependencies:
-      '@totemsdk/core': 1.2.5
-      typescript: 7.0.2
-
-  '@totemsdk/realtime@file:packages/totem-sdk/packages/realtime(typescript@7.0.2)':
-    dependencies:
-      '@totemsdk/core': 1.2.6
-      typescript: 7.0.2
-
-  '@totemsdk/root-identity@1.0.7(@noble/hashes@1.8.0)(@totemsdk/core@1.1.0(@noble/hashes@1.8.0))':
-    dependencies:
-      '@noble/hashes': 1.8.0
-      '@totemsdk/core': 1.1.0(@noble/hashes@1.8.0)
-
-  '@totemsdk/root-identity@1.0.7(@noble/hashes@2.2.0)(@totemsdk/core@1.1.0(@noble/hashes@2.2.0))':
-    dependencies:
-      '@noble/hashes': 2.2.0
-      '@totemsdk/core': 1.1.0(@noble/hashes@2.2.0)
-
-  '@totemsdk/root-identity@1.0.7(@noble/hashes@2.2.0)(@totemsdk/core@1.2.6)':
-    dependencies:
-      '@noble/hashes': 2.2.0
-      '@totemsdk/core': 1.2.6
-
-  '@totemsdk/statechain@0.1.6(@noble/hashes@2.2.0)':
-    dependencies:
-      '@noble/hashes': 2.2.0
-      '@totemsdk/chain-provider': 0.1.3(@noble/hashes@2.2.0)
-      '@totemsdk/core': 1.0.10(@noble/hashes@2.2.0)
-      '@totemsdk/tx-builder': 0.1.5(@totemsdk/core@1.0.10(@noble/hashes@2.2.0))
-      '@totemsdk/txpow': 0.1.5(@noble/hashes@2.2.0)
-      '@totemsdk/wots-lease': 0.1.3(@noble/hashes@2.2.0)
-
-  '@totemsdk/stream-transport@0.1.0(@noble/hashes@2.2.0)(hyperswarm@4.17.0)':
-    dependencies:
-      '@noble/hashes': 2.2.0
-    optionalDependencies:
-      hyperswarm: 4.17.0(bare-url@2.4.6)
-
-  '@totemsdk/tx-builder@0.1.5(@totemsdk/core@1.0.10(@noble/hashes@2.2.0))':
-    dependencies:
-      '@noble/hashes': 2.2.0
-      '@totemsdk/core': 1.0.10(@noble/hashes@2.2.0)
-
-  '@totemsdk/tx-builder@0.1.6(@totemsdk/core@1.1.0(@noble/hashes@2.2.0))':
-    dependencies:
-      '@noble/hashes': 2.2.0
-      '@totemsdk/core': 1.1.0(@noble/hashes@2.2.0)
-
-  '@totemsdk/tx-builder@0.1.8(@totemsdk/core@1.2.5)':
-    dependencies:
-      '@totemsdk/core': 1.2.5
-
-  '@totemsdk/tx-builder@0.1.8(@totemsdk/core@1.2.6)':
-    dependencies:
-      '@totemsdk/core': 1.2.6
-
-  '@totemsdk/txpow@0.1.5(@noble/hashes@2.2.0)':
-    dependencies:
-      '@noble/hashes': 2.2.0
-      '@totemsdk/core': 1.2.6
-
-  '@totemsdk/txpow@0.1.6(@noble/hashes@2.2.0)':
-    dependencies:
-      '@noble/hashes': 2.2.0
-      '@totemsdk/core': 1.2.6
-
-  '@totemsdk/txpow@file:packages/totem-sdk/packages/txpow':
-    dependencies:
-      '@totemsdk/core': 1.2.6
-
-  '@totemsdk/wots-lease@0.1.3(@noble/hashes@2.2.0)':
-    dependencies:
-      '@totemsdk/core': 1.0.10(@noble/hashes@2.2.0)
-      '@totemsdk/lookup-protocol': 0.1.3(@noble/hashes@2.2.0)
-    transitivePeerDependencies:
-      - '@noble/hashes'
-
   '@trickfilm400/rollup-plugin-off-main-thread@3.0.0-pre1':
     dependencies:
       ejs: 3.1.10
@@ -12127,16 +9715,11 @@ snapshots:
 
   '@types/json-schema@7.0.15': {}
 
-  '@types/node-fetch@2.6.13':
-    dependencies:
-      '@types/node': 20.19.43
-      form-data: 4.0.6
-
   '@types/node@20.19.43':
     dependencies:
       undici-types: 6.21.0
 
-  '@types/node@26.1.1':
+  '@types/node@26.2.0':
     dependencies:
       undici-types: 8.3.0
 
@@ -12160,13 +9743,17 @@ snapshots:
     dependencies:
       '@types/react': 18.3.31
 
-  '@types/react-dom@19.2.3(@types/react@18.3.31)':
+  '@types/react-dom@19.2.3(@types/react@19.2.18)':
     dependencies:
-      '@types/react': 18.3.31
+      '@types/react': 19.2.18
 
   '@types/react@18.3.31':
     dependencies:
       '@types/prop-types': 15.7.15
+      csstype: 3.2.3
+
+  '@types/react@19.2.18':
+    dependencies:
       csstype: 3.2.3
 
   '@types/resolve@1.20.2': {}
@@ -12195,66 +9782,6 @@ snapshots:
   '@types/yargs@17.0.35':
     dependencies:
       '@types/yargs-parser': 21.0.3
-
-  '@typescript/typescript-aix-ppc64@7.0.2':
-    optional: true
-
-  '@typescript/typescript-darwin-arm64@7.0.2':
-    optional: true
-
-  '@typescript/typescript-darwin-x64@7.0.2':
-    optional: true
-
-  '@typescript/typescript-freebsd-arm64@7.0.2':
-    optional: true
-
-  '@typescript/typescript-freebsd-x64@7.0.2':
-    optional: true
-
-  '@typescript/typescript-linux-arm64@7.0.2':
-    optional: true
-
-  '@typescript/typescript-linux-arm@7.0.2':
-    optional: true
-
-  '@typescript/typescript-linux-loong64@7.0.2':
-    optional: true
-
-  '@typescript/typescript-linux-mips64el@7.0.2':
-    optional: true
-
-  '@typescript/typescript-linux-ppc64@7.0.2':
-    optional: true
-
-  '@typescript/typescript-linux-riscv64@7.0.2':
-    optional: true
-
-  '@typescript/typescript-linux-s390x@7.0.2':
-    optional: true
-
-  '@typescript/typescript-linux-x64@7.0.2':
-    optional: true
-
-  '@typescript/typescript-netbsd-arm64@7.0.2':
-    optional: true
-
-  '@typescript/typescript-netbsd-x64@7.0.2':
-    optional: true
-
-  '@typescript/typescript-openbsd-arm64@7.0.2':
-    optional: true
-
-  '@typescript/typescript-openbsd-x64@7.0.2':
-    optional: true
-
-  '@typescript/typescript-sunos-x64@7.0.2':
-    optional: true
-
-  '@typescript/typescript-win32-arm64@7.0.2':
-    optional: true
-
-  '@typescript/typescript-win32-x64@7.0.2':
-    optional: true
 
   '@typescript/vfs@1.6.4(typescript@5.9.3)':
     dependencies:
@@ -12335,7 +9862,7 @@ snapshots:
   '@unrs/resolver-binding-win32-x64-msvc@1.12.2':
     optional: true
 
-  '@vitejs/plugin-react@4.7.0(vite@5.4.21(@types/node@26.1.1)(lightningcss@1.33.0)(terser@5.49.0))':
+  '@vitejs/plugin-react@4.7.0(vite@5.4.21(@types/node@26.2.0)(lightningcss@1.33.0)(terser@5.49.0))':
     dependencies:
       '@babel/core': 7.29.7
       '@babel/plugin-transform-react-jsx-self': 7.29.7(@babel/core@7.29.7)
@@ -12343,21 +9870,14 @@ snapshots:
       '@rolldown/pluginutils': 1.0.0-beta.27
       '@types/babel__core': 7.20.5
       react-refresh: 0.17.0
-      vite: 5.4.21(@types/node@26.1.1)(lightningcss@1.33.0)(terser@5.49.0)
+      vite: 5.4.21(@types/node@26.2.0)(lightningcss@1.33.0)(terser@5.49.0)
     transitivePeerDependencies:
       - supports-color
 
-  '@vitejs/plugin-react@4.7.0(vite@8.1.5(@types/node@26.1.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0))':
+  '@vitejs/plugin-react@6.0.5(vite@8.1.5(@types/node@26.2.0)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0))':
     dependencies:
-      '@babel/core': 7.29.7
-      '@babel/plugin-transform-react-jsx-self': 7.29.7(@babel/core@7.29.7)
-      '@babel/plugin-transform-react-jsx-source': 7.29.7(@babel/core@7.29.7)
-      '@rolldown/pluginutils': 1.0.0-beta.27
-      '@types/babel__core': 7.20.5
-      react-refresh: 0.17.0
-      vite: 8.1.5(@types/node@26.1.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0)
-    transitivePeerDependencies:
-      - supports-color
+      '@rolldown/pluginutils': 1.0.1
+      vite: 8.1.5(@types/node@26.2.0)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0)
 
   '@vitest/expect@4.1.10':
     dependencies:
@@ -12368,13 +9888,13 @@ snapshots:
       chai: 6.2.2
       tinyrainbow: 3.1.0
 
-  '@vitest/mocker@4.1.10(vite@8.1.5(@types/node@26.1.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0))':
+  '@vitest/mocker@4.1.10(vite@8.1.5(@types/node@26.2.0)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0))':
     dependencies:
       '@vitest/spy': 4.1.10
       estree-walker: 3.0.3
       magic-string: 0.30.21
     optionalDependencies:
-      vite: 8.1.5(@types/node@26.1.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0)
+      vite: 8.1.5(@types/node@26.2.0)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0)
 
   '@vitest/pretty-format@4.1.10':
     dependencies:
@@ -12476,20 +9996,20 @@ snapshots:
       '@webassemblyjs/ast': 1.14.1
       '@xtuc/long': 4.2.2
 
-  '@webpack-cli/configtest@2.1.1(webpack-cli@5.1.4)(webpack@5.108.4)':
+  '@webpack-cli/configtest@2.1.1(webpack-cli@5.1.4)(webpack@5.109.2)':
     dependencies:
-      webpack: 5.108.4(lightningcss@1.33.0)(postcss@8.5.20)(webpack-cli@5.1.4)
-      webpack-cli: 5.1.4(webpack@5.108.4)
+      webpack: 5.109.2(lightningcss@1.33.0)(postcss@8.5.20)(webpack-cli@5.1.4)
+      webpack-cli: 5.1.4(webpack@5.109.2)
 
-  '@webpack-cli/info@2.0.2(webpack-cli@5.1.4)(webpack@5.108.4)':
+  '@webpack-cli/info@2.0.2(webpack-cli@5.1.4)(webpack@5.109.2)':
     dependencies:
-      webpack: 5.108.4(lightningcss@1.33.0)(postcss@8.5.20)(webpack-cli@5.1.4)
-      webpack-cli: 5.1.4(webpack@5.108.4)
+      webpack: 5.109.2(lightningcss@1.33.0)(postcss@8.5.20)(webpack-cli@5.1.4)
+      webpack-cli: 5.1.4(webpack@5.109.2)
 
-  '@webpack-cli/serve@2.0.5(webpack-cli@5.1.4)(webpack@5.108.4)':
+  '@webpack-cli/serve@2.0.5(webpack-cli@5.1.4)(webpack@5.109.2)':
     dependencies:
-      webpack: 5.108.4(lightningcss@1.33.0)(postcss@8.5.20)(webpack-cli@5.1.4)
-      webpack-cli: 5.1.4(webpack@5.108.4)
+      webpack: 5.109.2(lightningcss@1.33.0)(postcss@8.5.20)(webpack-cli@5.1.4)
+      webpack-cli: 5.1.4(webpack@5.109.2)
 
   '@xtuc/ieee754@1.2.0': {}
 
@@ -12504,10 +10024,6 @@ snapshots:
     dependencies:
       mime-types: 3.0.2
       negotiator: 1.0.0
-
-  acorn-import-phases@1.0.4(acorn@8.17.0):
-    dependencies:
-      acorn: 8.17.0
 
   acorn@8.17.0: {}
 
@@ -12599,18 +10115,7 @@ snapshots:
 
   async@3.2.6: {}
 
-  asynckit@0.4.0: {}
-
   at-least-node@1.0.0: {}
-
-  autoprefixer@10.5.4(postcss@8.5.16):
-    dependencies:
-      browserslist: 4.28.6
-      caniuse-lite: 1.0.30001806
-      fraction.js: 5.3.4
-      picocolors: 1.1.1
-      postcss: 8.5.16
-      postcss-value-parser: 4.2.0
 
   autoprefixer@10.5.4(postcss@8.5.20):
     dependencies:
@@ -12845,8 +10350,6 @@ snapshots:
 
   base64-js@1.5.1: {}
 
-  baseline-browser-mapping@2.10.42: {}
-
   baseline-browser-mapping@2.11.1: {}
 
   better-sqlite3@12.11.1:
@@ -13008,22 +10511,6 @@ snapshots:
     dependencies:
       pako: 1.0.11
 
-  browserslist@4.28.5:
-    dependencies:
-      baseline-browser-mapping: 2.10.42
-      caniuse-lite: 1.0.30001803
-      electron-to-chromium: 1.5.389
-      node-releases: 2.0.51
-      update-browserslist-db: 1.2.3(browserslist@4.28.5)
-
-  browserslist@4.28.6:
-    dependencies:
-      baseline-browser-mapping: 2.10.42
-      caniuse-lite: 1.0.30001803
-      electron-to-chromium: 1.5.389
-      node-releases: 2.0.51
-      update-browserslist-db: 1.2.3(browserslist@4.28.6)
-
   browserslist@4.28.7:
     dependencies:
       baseline-browser-mapping: 2.11.1
@@ -13080,8 +10567,6 @@ snapshots:
   camelcase@5.3.1: {}
 
   camelcase@6.3.0: {}
-
-  caniuse-lite@1.0.30001803: {}
 
   caniuse-lite@1.0.30001806: {}
 
@@ -13152,10 +10637,6 @@ snapshots:
 
   colorette@2.0.20: {}
 
-  combined-stream@1.0.8:
-    dependencies:
-      delayed-stream: 1.0.0
-
   commander@10.0.1: {}
 
   commander@2.20.3: {}
@@ -13218,14 +10699,14 @@ snapshots:
 
   cookie@1.1.1: {}
 
-  copy-webpack-plugin@13.0.1(webpack@5.108.4):
+  copy-webpack-plugin@14.0.0(webpack@5.109.2):
     dependencies:
       glob-parent: 6.0.2
       normalize-path: 3.0.0
       schema-utils: 4.3.3
-      serialize-javascript: 6.0.2
+      serialize-javascript: 7.0.7
       tinyglobby: 0.2.17
-      webpack: 5.108.4(lightningcss@1.33.0)(postcss@8.5.20)(webpack-cli@5.1.4)
+      webpack: 5.109.2(lightningcss@1.33.0)(postcss@8.5.20)(webpack-cli@5.1.4)
 
   core-js-compat@3.49.0:
     dependencies:
@@ -13303,21 +10784,6 @@ snapshots:
       - supports-color
       - ts-node
 
-  create-jest@29.7.0(@types/node@26.1.1):
-    dependencies:
-      '@jest/types': 29.6.3
-      chalk: 4.1.2
-      exit: 0.1.2
-      graceful-fs: 4.2.11
-      jest-config: 29.7.0(@types/node@26.1.1)
-      jest-util: 29.7.0
-      prompts: 2.4.2
-    transitivePeerDependencies:
-      - '@types/node'
-      - babel-plugin-macros
-      - supports-color
-      - ts-node
-
   create-require@1.1.1: {}
 
   cross-spawn@7.0.6:
@@ -13343,7 +10809,7 @@ snapshots:
 
   crypto-random-string@2.0.0: {}
 
-  css-loader@7.1.4(webpack@5.108.4):
+  css-loader@7.1.4(webpack@5.109.2):
     dependencies:
       icss-utils: 5.1.0(postcss@8.5.20)
       postcss: 8.5.20
@@ -13354,13 +10820,11 @@ snapshots:
       postcss-value-parser: 4.2.0
       semver: 7.8.5
     optionalDependencies:
-      webpack: 5.108.4(lightningcss@1.33.0)(postcss@8.5.20)(webpack-cli@5.1.4)
+      webpack: 5.109.2(lightningcss@1.33.0)(postcss@8.5.20)(webpack-cli@5.1.4)
 
   cssesc@3.0.0: {}
 
   csstype@3.2.3: {}
-
-  data-uri-to-buffer@4.0.1: {}
 
   data-view-buffer@1.0.2:
     dependencies:
@@ -13417,8 +10881,6 @@ snapshots:
       define-data-property: 1.1.4
       has-property-descriptors: 1.0.2
       object-keys: 1.1.1
-
-  delayed-stream@1.0.0: {}
 
   depd@2.0.0: {}
 
@@ -13496,8 +10958,6 @@ snapshots:
     dependencies:
       jake: 10.9.4
 
-  electron-to-chromium@1.5.389: {}
-
   electron-to-chromium@1.5.396: {}
 
   elliptic@6.6.1:
@@ -13523,6 +10983,11 @@ snapshots:
       once: 1.4.0
 
   enhanced-resolve@5.24.2:
+    dependencies:
+      graceful-fs: 4.2.11
+      tapable: 2.3.3
+
+  enhanced-resolve@5.24.5:
     dependencies:
       graceful-fs: 4.2.11
       tapable: 2.3.3
@@ -13849,11 +11314,6 @@ snapshots:
     optionalDependencies:
       picomatch: 4.0.5
 
-  fetch-blob@3.2.0:
-    dependencies:
-      node-domexception: 1.0.0
-      web-streams-polyfill: 3.3.3
-
   file-uri-to-path@1.0.0: {}
 
   filelist@1.0.6:
@@ -13909,18 +11369,6 @@ snapshots:
     dependencies:
       cross-spawn: 7.0.6
       signal-exit: 4.1.0
-
-  form-data@4.0.6:
-    dependencies:
-      asynckit: 0.4.0
-      combined-stream: 1.0.8
-      es-set-tostringtag: 2.1.0
-      hasown: 2.0.4
-      mime-types: 2.1.35
-
-  formdata-polyfill@4.0.10:
-    dependencies:
-      fetch-blob: 3.2.0
 
   forwarded@0.2.0: {}
 
@@ -14684,25 +12132,6 @@ snapshots:
       - supports-color
       - ts-node
 
-  jest-cli@29.7.0(@types/node@26.1.1):
-    dependencies:
-      '@jest/core': 29.7.0
-      '@jest/test-result': 29.7.0
-      '@jest/types': 29.6.3
-      chalk: 4.1.2
-      create-jest: 29.7.0(@types/node@26.1.1)
-      exit: 0.1.2
-      import-local: 3.2.0
-      jest-config: 29.7.0(@types/node@26.1.1)
-      jest-util: 29.7.0
-      jest-validate: 29.7.0
-      yargs: 17.7.3
-    transitivePeerDependencies:
-      - '@types/node'
-      - babel-plugin-macros
-      - supports-color
-      - ts-node
-
   jest-cli@30.4.2(@types/node@20.19.43):
     dependencies:
       '@jest/core': 30.4.2
@@ -14712,6 +12141,25 @@ snapshots:
       exit-x: 0.2.2
       import-local: 3.2.0
       jest-config: 30.4.2(@types/node@20.19.43)
+      jest-util: 30.4.1
+      jest-validate: 30.4.1
+      yargs: 17.7.3
+    transitivePeerDependencies:
+      - '@types/node'
+      - babel-plugin-macros
+      - esbuild-register
+      - supports-color
+      - ts-node
+
+  jest-cli@30.4.2(@types/node@26.2.0):
+    dependencies:
+      '@jest/core': 30.4.2
+      '@jest/test-result': 30.4.1
+      '@jest/types': 30.4.1
+      chalk: 4.1.2
+      exit-x: 0.2.2
+      import-local: 3.2.0
+      jest-config: 30.4.2(@types/node@26.2.0)
       jest-util: 30.4.1
       jest-validate: 30.4.1
       yargs: 17.7.3
@@ -14752,36 +12200,6 @@ snapshots:
       - babel-plugin-macros
       - supports-color
 
-  jest-config@29.7.0(@types/node@26.1.1):
-    dependencies:
-      '@babel/core': 7.29.7
-      '@jest/test-sequencer': 29.7.0
-      '@jest/types': 29.6.3
-      babel-jest: 29.7.0(@babel/core@7.29.7)
-      chalk: 4.1.2
-      ci-info: 3.9.0
-      deepmerge: 4.3.1
-      glob: 7.2.3
-      graceful-fs: 4.2.11
-      jest-circus: 29.7.0
-      jest-environment-node: 29.7.0
-      jest-get-type: 29.6.3
-      jest-regex-util: 29.6.3
-      jest-resolve: 29.7.0
-      jest-runner: 29.7.0
-      jest-util: 29.7.0
-      jest-validate: 29.7.0
-      micromatch: 4.0.8
-      parse-json: 5.2.0
-      pretty-format: 29.7.0
-      slash: 3.0.0
-      strip-json-comments: 3.1.1
-    optionalDependencies:
-      '@types/node': 26.1.1
-    transitivePeerDependencies:
-      - babel-plugin-macros
-      - supports-color
-
   jest-config@30.4.2(@types/node@20.19.43):
     dependencies:
       '@babel/core': 7.29.7
@@ -14809,6 +12227,37 @@ snapshots:
       strip-json-comments: 3.1.1
     optionalDependencies:
       '@types/node': 20.19.43
+    transitivePeerDependencies:
+      - babel-plugin-macros
+      - supports-color
+
+  jest-config@30.4.2(@types/node@26.2.0):
+    dependencies:
+      '@babel/core': 7.29.7
+      '@jest/get-type': 30.1.0
+      '@jest/pattern': 30.4.0
+      '@jest/test-sequencer': 30.4.1
+      '@jest/types': 30.4.1
+      babel-jest: 30.4.1(@babel/core@7.29.7)
+      chalk: 4.1.2
+      ci-info: 4.4.0
+      deepmerge: 4.3.1
+      glob: 10.5.0
+      graceful-fs: 4.2.11
+      jest-circus: 30.4.2
+      jest-docblock: 30.4.0
+      jest-environment-node: 30.4.1
+      jest-regex-util: 30.4.0
+      jest-resolve: 30.4.1
+      jest-runner: 30.4.2
+      jest-util: 30.4.1
+      jest-validate: 30.4.1
+      parse-json: 5.2.0
+      pretty-format: 30.4.1
+      slash: 3.0.0
+      strip-json-comments: 3.1.1
+    optionalDependencies:
+      '@types/node': 26.2.0
     transitivePeerDependencies:
       - babel-plugin-macros
       - supports-color
@@ -15262,24 +12711,25 @@ snapshots:
       - supports-color
       - ts-node
 
-  jest@29.7.0(@types/node@26.1.1):
-    dependencies:
-      '@jest/core': 29.7.0
-      '@jest/types': 29.6.3
-      import-local: 3.2.0
-      jest-cli: 29.7.0(@types/node@26.1.1)
-    transitivePeerDependencies:
-      - '@types/node'
-      - babel-plugin-macros
-      - supports-color
-      - ts-node
-
   jest@30.4.2(@types/node@20.19.43):
     dependencies:
       '@jest/core': 30.4.2
       '@jest/types': 30.4.1
       import-local: 3.2.0
       jest-cli: 30.4.2(@types/node@20.19.43)
+    transitivePeerDependencies:
+      - '@types/node'
+      - babel-plugin-macros
+      - esbuild-register
+      - supports-color
+      - ts-node
+
+  jest@30.4.2(@types/node@26.2.0):
+    dependencies:
+      '@jest/core': 30.4.2
+      '@jest/types': 30.4.1
+      import-local: 3.2.0
+      jest-cli: 30.4.2(@types/node@26.2.0)
     transitivePeerDependencies:
       - '@types/node'
       - babel-plugin-macros
@@ -15442,8 +12892,6 @@ snapshots:
     dependencies:
       uc.micro: 2.1.0
 
-  loader-runner@4.3.2: {}
-
   locate-path@5.0.0:
     dependencies:
       p-locate: 4.1.0
@@ -15545,11 +12993,11 @@ snapshots:
 
   mimic-response@3.1.0: {}
 
-  mini-css-extract-plugin@2.10.2(webpack@5.108.4):
+  mini-css-extract-plugin@2.10.2(webpack@5.109.2):
     dependencies:
       schema-utils: 4.3.3
       tapable: 2.3.3
-      webpack: 5.108.4(lightningcss@1.33.0)(postcss@8.5.20)(webpack-cli@5.1.4)
+      webpack: 5.109.2(lightningcss@1.33.0)(postcss@8.5.20)(webpack-cli@5.1.4)
 
   minimalistic-assert@1.0.1: {}
 
@@ -15573,24 +13021,13 @@ snapshots:
 
   minimist@1.2.8: {}
 
-  minimizer-webpack-plugin@5.6.1(lightningcss@1.33.0)(postcss@8.5.16)(webpack@5.108.4):
+  minimizer-webpack-plugin@5.6.1(lightningcss@1.33.0)(postcss@8.5.20)(webpack@5.109.2):
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
       jest-worker: 27.5.1
       schema-utils: 4.3.3
       terser: 5.49.0
-      webpack: 5.108.4(lightningcss@1.33.0)(postcss@8.5.16)(webpack-cli@5.1.4)
-    optionalDependencies:
-      lightningcss: 1.33.0
-      postcss: 8.5.16
-
-  minimizer-webpack-plugin@5.6.1(lightningcss@1.33.0)(postcss@8.5.20)(webpack@5.108.4):
-    dependencies:
-      '@jridgewell/trace-mapping': 0.3.31
-      jest-worker: 27.5.1
-      schema-utils: 4.3.3
-      terser: 5.49.0
-      webpack: 5.108.4(lightningcss@1.33.0)(postcss@8.5.20)(webpack-cli@5.1.4)
+      webpack: 5.109.2(lightningcss@1.33.0)(postcss@8.5.20)(webpack-cli@5.1.4)
     optionalDependencies:
       lightningcss: 1.33.0
       postcss: 8.5.20
@@ -15623,8 +13060,6 @@ snapshots:
 
   nanoassert@2.0.0: {}
 
-  nanoid@3.3.15: {}
-
   nanoid@3.3.16: {}
 
   napi-build-utils@2.0.0: {}
@@ -15644,14 +13079,6 @@ snapshots:
   node-abi@3.94.0:
     dependencies:
       semver: 7.8.5
-
-  node-domexception@1.0.0: {}
-
-  node-fetch@3.3.2:
-    dependencies:
-      data-uri-to-buffer: 4.0.1
-      fetch-blob: 3.2.0
-      formdata-polyfill: 4.0.10
 
   node-int64@0.4.0: {}
 
@@ -15897,25 +13324,14 @@ snapshots:
 
   possible-typed-array-names@1.1.0: {}
 
-  postcss-loader@8.2.1(postcss@8.5.16)(typescript@5.9.3)(webpack@5.108.4):
-    dependencies:
-      cosmiconfig: 9.0.2(typescript@5.9.3)
-      jiti: 2.7.0
-      postcss: 8.5.16
-      semver: 7.8.5
-    optionalDependencies:
-      webpack: 5.108.4(lightningcss@1.33.0)(postcss@8.5.16)(webpack-cli@5.1.4)
-    transitivePeerDependencies:
-      - typescript
-
-  postcss-loader@8.2.1(postcss@8.5.20)(typescript@5.9.3)(webpack@5.108.4):
+  postcss-loader@8.2.1(postcss@8.5.20)(typescript@5.9.3)(webpack@5.109.2):
     dependencies:
       cosmiconfig: 9.0.2(typescript@5.9.3)
       jiti: 2.7.0
       postcss: 8.5.20
       semver: 7.8.5
     optionalDependencies:
-      webpack: 5.108.4(lightningcss@1.33.0)(postcss@8.5.20)(webpack-cli@5.1.4)
+      webpack: 5.109.2(lightningcss@1.33.0)(postcss@8.5.20)(webpack-cli@5.1.4)
     transitivePeerDependencies:
       - typescript
 
@@ -15946,12 +13362,6 @@ snapshots:
       util-deprecate: 1.0.2
 
   postcss-value-parser@4.2.0: {}
-
-  postcss@8.5.16:
-    dependencies:
-      nanoid: 3.3.15
-      picocolors: 1.1.1
-      source-map-js: 1.2.1
 
   postcss@8.5.20:
     dependencies:
@@ -16148,9 +13558,9 @@ snapshots:
       react: 18.3.1
       scheduler: 0.23.2
 
-  react-dom@19.2.8(react@18.3.1):
+  react-dom@19.2.8(react@19.2.8):
     dependencies:
-      react: 18.3.1
+      react: 19.2.8
       scheduler: 0.27.0
 
   react-is@18.3.1: {}
@@ -16159,23 +13569,25 @@ snapshots:
 
   react-refresh@0.17.0: {}
 
-  react-router-dom@7.18.1(react-dom@19.2.8(react@18.3.1))(react@18.3.1):
+  react-router-dom@7.18.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8):
     dependencies:
-      react: 18.3.1
-      react-dom: 19.2.8(react@18.3.1)
-      react-router: 7.18.1(react-dom@19.2.8(react@18.3.1))(react@18.3.1)
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
+      react-router: 7.18.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
 
-  react-router@7.18.1(react-dom@19.2.8(react@18.3.1))(react@18.3.1):
+  react-router@7.18.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8):
     dependencies:
       cookie: 1.1.1
-      react: 18.3.1
+      react: 19.2.8
       set-cookie-parser: 2.7.2
     optionalDependencies:
-      react-dom: 19.2.8(react@18.3.1)
+      react-dom: 19.2.8(react@19.2.8)
 
   react@18.3.1:
     dependencies:
       loose-envify: 1.4.0
+
+  react@19.2.8: {}
 
   readable-stream@2.3.8:
     dependencies:
@@ -16463,10 +13875,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  serialize-javascript@6.0.2:
-    dependencies:
-      randombytes: 2.1.0
-
   serialize-javascript@7.0.7: {}
 
   serve-static@1.16.3:
@@ -16527,7 +13935,7 @@ snapshots:
     dependencies:
       kind-of: 6.0.3
 
-  sharp@0.35.3(@types/node@26.1.1):
+  sharp@0.35.3(@types/node@26.2.0):
     dependencies:
       '@img/colour': 1.1.0
       detect-libc: 2.1.2
@@ -16558,7 +13966,7 @@ snapshots:
       '@img/sharp-win32-arm64': 0.35.3
       '@img/sharp-win32-ia32': 0.35.3
       '@img/sharp-win32-x64': 0.35.3
-      '@types/node': 26.1.1
+      '@types/node': 26.2.0
 
   shebang-command@2.0.0:
     dependencies:
@@ -16829,9 +14237,9 @@ snapshots:
 
   strip-json-comments@3.1.1: {}
 
-  style-loader@4.0.0(webpack@5.108.4):
+  style-loader@4.0.0(webpack@5.109.2):
     dependencies:
-      webpack: 5.108.4(lightningcss@1.33.0)(postcss@8.5.20)(webpack-cli@5.1.4)
+      webpack: 5.109.2(lightningcss@1.33.0)(postcss@8.5.20)(webpack-cli@5.1.4)
 
   sub-encoder@2.1.3:
     dependencies:
@@ -16963,46 +14371,6 @@ snapshots:
       babel-jest: 30.4.1(@babel/core@7.29.7)
       jest-util: 30.4.1
 
-  ts-jest@29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@29.7.0(@types/node@20.19.43))(typescript@7.0.2):
-    dependencies:
-      bs-logger: 0.2.6
-      fast-json-stable-stringify: 2.1.0
-      handlebars: 4.7.9
-      jest: 29.7.0(@types/node@20.19.43)
-      json5: 2.2.3
-      lodash.memoize: 4.1.2
-      make-error: 1.3.6
-      semver: 7.8.5
-      type-fest: 4.41.0
-      typescript: 7.0.2
-      yargs-parser: 21.1.1
-    optionalDependencies:
-      '@babel/core': 7.29.7
-      '@jest/transform': 30.4.1
-      '@jest/types': 30.4.1
-      babel-jest: 30.4.1(@babel/core@7.29.7)
-      jest-util: 30.4.1
-
-  ts-jest@29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@29.7.0(@types/node@26.1.1))(typescript@5.9.3):
-    dependencies:
-      bs-logger: 0.2.6
-      fast-json-stable-stringify: 2.1.0
-      handlebars: 4.7.9
-      jest: 29.7.0(@types/node@26.1.1)
-      json5: 2.2.3
-      lodash.memoize: 4.1.2
-      make-error: 1.3.6
-      semver: 7.8.5
-      type-fest: 4.41.0
-      typescript: 5.9.3
-      yargs-parser: 21.1.1
-    optionalDependencies:
-      '@babel/core': 7.29.7
-      '@jest/transform': 30.4.1
-      '@jest/types': 30.4.1
-      babel-jest: 30.4.1(@babel/core@7.29.7)
-      jest-util: 30.4.1
-
   ts-jest@29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3):
     dependencies:
       bs-logger: 0.2.6
@@ -17023,18 +14391,18 @@ snapshots:
       babel-jest: 30.4.1(@babel/core@7.29.7)
       jest-util: 30.4.1
 
-  ts-jest@29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@7.0.2):
+  ts-jest@29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@26.2.0))(typescript@5.9.3):
     dependencies:
       bs-logger: 0.2.6
       fast-json-stable-stringify: 2.1.0
       handlebars: 4.7.9
-      jest: 30.4.2(@types/node@20.19.43)
+      jest: 30.4.2(@types/node@26.2.0)
       json5: 2.2.3
       lodash.memoize: 4.1.2
       make-error: 1.3.6
       semver: 7.8.5
       type-fest: 4.41.0
-      typescript: 7.0.2
+      typescript: 5.9.3
       yargs-parser: 21.1.1
     optionalDependencies:
       '@babel/core': 7.29.7
@@ -17043,13 +14411,13 @@ snapshots:
       babel-jest: 30.4.1(@babel/core@7.29.7)
       jest-util: 30.4.1
 
-  ts-loader@9.6.2(typescript@5.9.3)(webpack@5.108.4):
+  ts-loader@9.6.2(typescript@5.9.3)(webpack@5.109.2):
     dependencies:
       chalk: 4.1.2
       picomatch: 4.0.5
       source-map: 0.7.6
       typescript: 5.9.3
-      webpack: 5.108.4(lightningcss@1.33.0)(postcss@8.5.20)(webpack-cli@5.1.4)
+      webpack: 5.109.2(lightningcss@1.33.0)(postcss@8.5.20)(webpack-cli@5.1.4)
 
   tslib@2.8.1: {}
 
@@ -17120,39 +14488,7 @@ snapshots:
       typescript: 5.9.3
       yaml: 2.9.0
 
-  typedoc@0.28.20(typescript@7.0.2):
-    dependencies:
-      '@gerrit0/mini-shiki': 3.23.0
-      lunr: 2.3.9
-      markdown-it: 14.3.0
-      minimatch: 10.2.5
-      typescript: 7.0.2
-      yaml: 2.9.0
-
   typescript@5.9.3: {}
-
-  typescript@7.0.2:
-    optionalDependencies:
-      '@typescript/typescript-aix-ppc64': 7.0.2
-      '@typescript/typescript-darwin-arm64': 7.0.2
-      '@typescript/typescript-darwin-x64': 7.0.2
-      '@typescript/typescript-freebsd-arm64': 7.0.2
-      '@typescript/typescript-freebsd-x64': 7.0.2
-      '@typescript/typescript-linux-arm': 7.0.2
-      '@typescript/typescript-linux-arm64': 7.0.2
-      '@typescript/typescript-linux-loong64': 7.0.2
-      '@typescript/typescript-linux-mips64el': 7.0.2
-      '@typescript/typescript-linux-ppc64': 7.0.2
-      '@typescript/typescript-linux-riscv64': 7.0.2
-      '@typescript/typescript-linux-s390x': 7.0.2
-      '@typescript/typescript-linux-x64': 7.0.2
-      '@typescript/typescript-netbsd-arm64': 7.0.2
-      '@typescript/typescript-netbsd-x64': 7.0.2
-      '@typescript/typescript-openbsd-arm64': 7.0.2
-      '@typescript/typescript-openbsd-x64': 7.0.2
-      '@typescript/typescript-sunos-x64': 7.0.2
-      '@typescript/typescript-win32-arm64': 7.0.2
-      '@typescript/typescript-win32-x64': 7.0.2
 
   uc.micro@2.1.0: {}
 
@@ -17239,18 +14575,6 @@ snapshots:
 
   upath@1.2.0: {}
 
-  update-browserslist-db@1.2.3(browserslist@4.28.5):
-    dependencies:
-      browserslist: 4.28.5
-      escalade: 3.2.0
-      picocolors: 1.1.1
-
-  update-browserslist-db@1.2.3(browserslist@4.28.6):
-    dependencies:
-      browserslist: 4.28.6
-      escalade: 3.2.0
-      picocolors: 1.1.1
-
   update-browserslist-db@1.2.3(browserslist@4.28.7):
     dependencies:
       browserslist: 4.28.7
@@ -17284,39 +14608,37 @@ snapshots:
 
   vary@1.1.2: {}
 
-  vite-plugin-node-polyfills@0.17.0(rollup@4.62.2)(vite@5.4.21(@types/node@26.1.1)(lightningcss@1.33.0)(terser@5.49.0)):
+  vite-plugin-node-polyfills@0.28.0(rollup@4.62.2)(vite@5.4.21(@types/node@26.2.0)(lightningcss@1.33.0)(terser@5.49.0)):
     dependencies:
       '@rollup/plugin-inject': 5.0.5(rollup@4.62.2)
-      buffer-polyfill: buffer@6.0.3
       node-stdlib-browser: 1.3.1
-      process: 0.11.10
-      vite: 5.4.21(@types/node@26.1.1)(lightningcss@1.33.0)(terser@5.49.0)
+      vite: 5.4.21(@types/node@26.2.0)(lightningcss@1.33.0)(terser@5.49.0)
     transitivePeerDependencies:
       - rollup
 
-  vite-plugin-pwa@0.21.2(vite@8.1.5(@types/node@26.1.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0))(workbox-build@7.4.1(@types/babel__core@7.20.5))(workbox-window@7.4.1):
+  vite-plugin-pwa@1.3.0(vite@8.1.5(@types/node@26.2.0)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0))(workbox-build@7.4.1(@types/babel__core@7.20.5))(workbox-window@7.4.1):
     dependencies:
       debug: 4.4.3
       pretty-bytes: 6.1.1
       tinyglobby: 0.2.17
-      vite: 8.1.5(@types/node@26.1.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0)
+      vite: 8.1.5(@types/node@26.2.0)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0)
       workbox-build: 7.4.1(@types/babel__core@7.20.5)
       workbox-window: 7.4.1
     transitivePeerDependencies:
       - supports-color
 
-  vite@5.4.21(@types/node@26.1.1)(lightningcss@1.33.0)(terser@5.49.0):
+  vite@5.4.21(@types/node@26.2.0)(lightningcss@1.33.0)(terser@5.49.0):
     dependencies:
       esbuild: 0.21.5
       postcss: 8.5.20
       rollup: 4.62.2
     optionalDependencies:
-      '@types/node': 26.1.1
+      '@types/node': 26.2.0
       fsevents: 2.3.3
       lightningcss: 1.33.0
       terser: 5.49.0
 
-  vite@8.1.5(@types/node@26.1.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0):
+  vite@8.1.5(@types/node@26.2.0)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0):
     dependencies:
       lightningcss: 1.33.0
       picomatch: 4.0.5
@@ -17324,16 +14646,16 @@ snapshots:
       rolldown: 1.1.5
       tinyglobby: 0.2.17
     optionalDependencies:
-      '@types/node': 26.1.1
+      '@types/node': 26.2.0
       fsevents: 2.3.3
       jiti: 2.7.0
       terser: 5.49.0
       yaml: 2.9.0
 
-  vitest@4.1.10(@types/node@26.1.1)(vite@8.1.5(@types/node@26.1.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0)):
+  vitest@4.1.10(@types/node@26.2.0)(vite@8.1.5(@types/node@26.2.0)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0)):
     dependencies:
       '@vitest/expect': 4.1.10
-      '@vitest/mocker': 4.1.10(vite@8.1.5(@types/node@26.1.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0))
+      '@vitest/mocker': 4.1.10(vite@8.1.5(@types/node@26.2.0)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0))
       '@vitest/pretty-format': 4.1.10
       '@vitest/runner': 4.1.10
       '@vitest/snapshot': 4.1.10
@@ -17350,10 +14672,10 @@ snapshots:
       tinyexec: 1.2.4
       tinyglobby: 0.2.17
       tinyrainbow: 3.1.0
-      vite: 8.1.5(@types/node@26.1.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0)
+      vite: 8.1.5(@types/node@26.2.0)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0)
       why-is-node-running: 2.3.0
     optionalDependencies:
-      '@types/node': 26.1.1
+      '@types/node': 26.2.0
     transitivePeerDependencies:
       - msw
 
@@ -17367,14 +14689,12 @@ snapshots:
     dependencies:
       graceful-fs: 4.2.11
 
-  web-streams-polyfill@3.3.3: {}
-
-  webpack-cli@5.1.4(webpack@5.108.4):
+  webpack-cli@5.1.4(webpack@5.109.2):
     dependencies:
       '@discoveryjs/json-ext': 0.5.7
-      '@webpack-cli/configtest': 2.1.1(webpack-cli@5.1.4)(webpack@5.108.4)
-      '@webpack-cli/info': 2.0.2(webpack-cli@5.1.4)(webpack@5.108.4)
-      '@webpack-cli/serve': 2.0.5(webpack-cli@5.1.4)(webpack@5.108.4)
+      '@webpack-cli/configtest': 2.1.1(webpack-cli@5.1.4)(webpack@5.109.2)
+      '@webpack-cli/info': 2.0.2(webpack-cli@5.1.4)(webpack@5.109.2)
+      '@webpack-cli/serve': 2.0.5(webpack-cli@5.1.4)(webpack@5.109.2)
       colorette: 2.0.20
       commander: 10.0.1
       cross-spawn: 7.0.6
@@ -17383,7 +14703,7 @@ snapshots:
       import-local: 3.2.0
       interpret: 3.1.1
       rechoir: 0.8.0
-      webpack: 5.108.4(lightningcss@1.33.0)(postcss@8.5.20)(webpack-cli@5.1.4)
+      webpack: 5.109.2(lightningcss@1.33.0)(postcss@8.5.20)(webpack-cli@5.1.4)
       webpack-merge: 5.10.0
 
   webpack-merge@5.10.0:
@@ -17394,7 +14714,7 @@ snapshots:
 
   webpack-sources@3.5.1: {}
 
-  webpack@5.108.4(lightningcss@1.33.0)(postcss@8.5.16)(webpack-cli@5.1.4):
+  webpack@5.109.2(lightningcss@1.33.0)(postcss@8.5.20)(webpack-cli@5.1.4):
     dependencies:
       '@types/estree': 1.0.9
       '@types/json-schema': 7.0.15
@@ -17402,64 +14722,22 @@ snapshots:
       '@webassemblyjs/wasm-edit': 1.14.1
       '@webassemblyjs/wasm-parser': 1.14.1
       acorn: 8.17.0
-      acorn-import-phases: 1.0.4(acorn@8.17.0)
-      browserslist: 4.28.5
-      chrome-trace-event: 1.0.4
-      enhanced-resolve: 5.24.2
-      es-module-lexer: 2.3.0
-      eslint-scope: 5.1.1
-      events: 3.3.0
-      graceful-fs: 4.2.11
-      loader-runner: 4.3.2
-      mime-db: 1.54.0
-      minimizer-webpack-plugin: 5.6.1(lightningcss@1.33.0)(postcss@8.5.16)(webpack@5.108.4)
-      neo-async: 2.6.2
-      schema-utils: 4.3.3
-      tapable: 2.3.3
-      watchpack: 2.5.2
-      webpack-sources: 3.5.1
-    optionalDependencies:
-      webpack-cli: 5.1.4(webpack@5.108.4)
-    transitivePeerDependencies:
-      - '@minify-html/node'
-      - '@swc/core'
-      - '@swc/css'
-      - '@swc/html'
-      - clean-css
-      - cssnano
-      - csso
-      - esbuild
-      - html-minifier-terser
-      - lightningcss
-      - postcss
-      - uglify-js
-
-  webpack@5.108.4(lightningcss@1.33.0)(postcss@8.5.20)(webpack-cli@5.1.4):
-    dependencies:
-      '@types/estree': 1.0.9
-      '@types/json-schema': 7.0.15
-      '@webassemblyjs/ast': 1.14.1
-      '@webassemblyjs/wasm-edit': 1.14.1
-      '@webassemblyjs/wasm-parser': 1.14.1
-      acorn: 8.17.0
-      acorn-import-phases: 1.0.4(acorn@8.17.0)
       browserslist: 4.28.7
       chrome-trace-event: 1.0.4
-      enhanced-resolve: 5.24.2
+      enhanced-resolve: 5.24.5
       es-module-lexer: 2.3.0
       eslint-scope: 5.1.1
       events: 3.3.0
       graceful-fs: 4.2.11
-      loader-runner: 4.3.2
       mime-db: 1.54.0
-      minimizer-webpack-plugin: 5.6.1(lightningcss@1.33.0)(postcss@8.5.20)(webpack@5.108.4)
+      minimizer-webpack-plugin: 5.6.1(lightningcss@1.33.0)(postcss@8.5.20)(webpack@5.109.2)
       neo-async: 2.6.2
       schema-utils: 4.3.3
       tapable: 2.3.3
       watchpack: 2.5.2
       webpack-sources: 3.5.1
     optionalDependencies:
-      webpack-cli: 5.1.4(webpack@5.108.4)
+      webpack-cli: 5.1.4(webpack@5.109.2)
     transitivePeerDependencies:
       - '@minify-html/node'
       - '@swc/core'

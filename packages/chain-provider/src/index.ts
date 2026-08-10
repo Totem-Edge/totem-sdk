@@ -12,7 +12,7 @@ export type {
 export { HostedProvider } from './providers/hosted.js';
 export type { HostedProviderConfig } from './providers/hosted.js';
 
-export { PureMinimaRpcProvider } from './providers/pureminima.js';
+export { MinimaRpcProvider } from './providers/minima-rpc.js';
 
 export { LookupClientProvider } from './providers/lookup-client.js';
 export type { LookupClientLike } from './providers/lookup-client.js';

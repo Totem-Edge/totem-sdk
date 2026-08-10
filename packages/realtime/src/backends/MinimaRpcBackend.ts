@@ -1,9 +1,9 @@
 /**
- * PureMinimaBackend — PortfolioBackend adapter for direct Minima node RPC.
+ * MinimaRpcBackend — PortfolioBackend adapter for direct Minima node RPC.
  *
  * Accepts any object that satisfies the minimal duck-typed interface below,
- * so @totemsdk/realtime does not take a hard dependency on pureminima-rpc.
- * Pass a `PureMinimaClient` (or any compatible object) at construction time.
+ * so @totemsdk/realtime does not take a hard dependency on minima-rpc.
+ * Pass a `MinimaRpcClient` (or any compatible object) at construction time.
  *
  * Polling-only model:
  *   - The Minima node RPC has no native push mechanism for balance changes.
@@ -14,12 +14,12 @@
  *
  * @example
  * ```ts
- * import { createPureMinimaClient } from '@totemsdk/pureminima-rpc';
- * import { PureMinimaBackend, createPortfolioStreamManager } from '@totemsdk/realtime';
+ * import { createMinimaRpcClient } from '@totemsdk/minima-rpc';
+ * import { MinimaRpcBackend, createPortfolioStreamManager } from '@totemsdk/realtime';
  *
- * const rpc = createPureMinimaClient({ host: 'localhost', port: 9005 });
+ * const rpc = createMinimaRpcClient({ host: 'localhost', port: 9005 });
  * const manager = createPortfolioStreamManager(deps, {
- *   backend: new PureMinimaBackend(rpc),
+ *   backend: new MinimaRpcBackend(rpc),
  *   httpPollInterval: 5_000,
  * });
  * await manager.start(['MxABCD...']);
@@ -29,7 +29,7 @@
 import type { PortfolioEntry, PortfolioBackend } from '../types.js';
 import { toPortfolioEntry } from '../normalize.js';
 
-/** Minimal balance row returned by PureMinimaClient.balance(). */
+/** Minimal balance row returned by MinimaRpcClient.balance(). */
 interface MinimaBalance {
   tokenid: string;
   confirmed: string;
@@ -45,17 +45,17 @@ interface MinimaBalance {
 }
 
 /**
- * Duck-typed subset of PureMinimaClient that PureMinimaBackend needs.
- * A real @totemsdk/pureminima-rpc `PureMinimaClient` satisfies this automatically.
+ * Duck-typed subset of MinimaRpcClient that MinimaRpcBackend needs.
+ * A real @totemsdk/minima-rpc `MinimaRpcClient` satisfies this automatically.
  */
-export interface PureMinimaLike {
+export interface MinimaRpcLike {
   balance(params?: { address?: string; megammr?: boolean; tokendetails?: boolean }): Promise<MinimaBalance[]>;
 }
 
-export class PureMinimaBackend implements PortfolioBackend {
+export class MinimaRpcBackend implements PortfolioBackend {
   readonly supportsPush = false;
 
-  constructor(private readonly client: PureMinimaLike) {}
+  constructor(private readonly client: MinimaRpcLike) {}
 
   async getPortfolio(address: string): Promise<PortfolioEntry[]> {
     const rows = await this.client.balance({ address, megammr: true, tokendetails: true });

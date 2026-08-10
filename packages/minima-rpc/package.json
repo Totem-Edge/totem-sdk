@@ -1,7 +1,7 @@
 {
-  "name": "@totemsdk/chain-provider",
-  "version": "0.1.5",
-  "description": "Unified ChainStateProvider interface for Totem SDK — Hosted, Minima RPC, Composite",
+  "name": "@totemsdk/minima-rpc",
+  "version": "0.1.4",
+  "description": "Fetch-based Totem/Minima RPC client — Bare/Pear/Node/browser compatible",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -22,10 +22,7 @@
     "README.md",
     "LICENSE"
   ],
-  "dependencies": {
-    "@totemsdk/core": "workspace:^",
-    "@totemsdk/minima-rpc": "workspace:^"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "@types/node": "^20.0.0",
@@ -48,7 +45,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/totem-sdk/totem-sdk.git",
-    "directory": "packages/chain-provider"
+    "directory": "packages/minima-rpc"
   },
   "keywords": [
     "totem",
@@ -58,10 +55,11 @@
     "quantum-resistant",
     "wots",
     "utxo",
-    "chain-provider",
     "rpc",
-    "provider",
-    "chain-data",
-    "strategy-pattern"
+    "fetch",
+    "browser",
+    "client",
+    "minima",
+    "node-rpc"
   ]
 }

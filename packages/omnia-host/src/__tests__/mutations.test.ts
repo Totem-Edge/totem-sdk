@@ -87,4 +87,23 @@ describe('omnia-host mutations', () => {
     expect(signer.sign).toHaveBeenCalledTimes(1);
     expect(channels.get('channel-1')!.balances).toEqual({ alice: 6n, bob: 4n });
   });
+
+  it('rejects a reused operation ID with different request data', async () => {
+    const records = new Map<string, any>();
+    records.set('same', { operationId: 'same', status: 'committed', result: { success: true } });
+    const operations = {
+      get: (id: string) => records.get(id),
+      create: (id: string, request: unknown) => {
+        const record = { operationId: id, status: 'committed', request, result: { success: true } };
+        records.set(id, record);
+        return record;
+      },
+      transition: jest.fn(),
+      listByStatus: () => [],
+      verifyRequest: () => false,
+    };
+    const methods = createHostMethods({ channels: new Map(), routing: new InProcessRoutingProvider(), operations: operations as any });
+    await expect(methods.get('totem_omniaCloseChannel')!({ operationId: 'same', channelId: 'other' }))
+      .rejects.toThrow('does not match the original request');
+  });
 });

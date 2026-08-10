@@ -79,7 +79,7 @@ The SDK is organised in layers. Each layer builds on the one below it. Each laye
 ├─────────────────────────────────────────────────────────────┤
 │                    INFRASTRUCTURE LAYER                      │
 │  lookup-node  lookup-client  lookup-protocol                │
-│  chain-provider  pureminima-rpc  realtime  server           │
+│  chain-provider  minima-rpc  realtime  server               │
 │  stream-transport  pubsub-transport  pear  mcp-server       │
 │                                                             │
 │  Personal chain indexers. P2P relay. Hyperswarm DHT.        │
@@ -122,7 +122,7 @@ The SDK is organised in layers. Each layer builds on the one below it. Each laye
 | [`@totemsdk/lookup-client`](packages/lookup-client) | Connect to your personal lookup node from any app |
 | [`@totemsdk/lookup-protocol`](packages/lookup-protocol) | Wire protocol spec for the P2P lookup network with frame-size limits |
 | [`@totemsdk/chain-provider`](packages/chain-provider) | Unified abstraction over all chain data sources — hosted, PureMinima RPC, lookup node |
-| [`@totemsdk/pureminima-rpc`](packages/pureminima-rpc) | Direct RPC to a self-hosted PureMinima node — TLS by default, value-sanitised |
+| [`@totemsdk/minima-rpc`](packages/minima-rpc) | Direct RPC to a self-hosted Totem/Minima node — TLS by default, value-sanitised |
 | [`@totemsdk/realtime`](packages/realtime) | Live balance streaming with WebSocket and HTTP fallback |
 | [`@totemsdk/server`](packages/server) | Server-side utilities — Axia API client with RPC sanitisation |
 | [`@totemsdk/stream-transport`](packages/stream-transport) | Bidirectional byte-stream adapters — WebSocket, Hyperswarm, WebRTC, stdio, in-memory |

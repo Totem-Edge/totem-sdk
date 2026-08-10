@@ -6,7 +6,7 @@
  *
  * Covers:
  *   - Relay dedup (prevents resubmitting already-seen TxPoWs)
- *   - Result cache (reduces PureMinima RPC load, with TTL)
+ *   - Result cache (reduces Minima RPC RPC load, with TTL)
  *   - Durable KV store (lease journal, no TTL)
  *   - Watchlist persistence (address subscriptions survive restarts)
  *   - App registry (AppManifest announcements with authorAddress/isFree columns)

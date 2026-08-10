@@ -5,7 +5,7 @@
  *   - Work verification via `verifyTxPoWWork` from `@totemsdk/txpow` (or injected override)
  *   - SQLite-backed dedup with bounded size (evicts oldest when maxDedupSize exceeded)
  *   - Spam filter: rejects hex strings shorter than spamMinBytes * 2
- *   - Submits valid TxPoWs to the provider (which calls PureMinima internally)
+ *   - Submits valid TxPoWs to the provider (which calls Minima RPC internally)
  */
 
 import { verifyTxPoWWork } from '@totemsdk/txpow';

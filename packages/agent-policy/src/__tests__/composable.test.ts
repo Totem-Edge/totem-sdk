@@ -555,6 +555,21 @@ describe('ComposablePolicy', () => {
     expect(released).toBe(0);
   });
 
+  it('rolls back when a later reservation throws', async () => {
+    let released = 0;
+    const first: PolicyMiddleware = {
+      async evaluate() { return { outcome: 'approved' as const, reason: 'approved' }; },
+      async reserve() { return { outcome: 'approved' as const, reason: 'reserved' }; },
+      async release() { released++; },
+    };
+    const throwing: PolicyMiddleware = {
+      async evaluate() { return { outcome: 'approved' as const, reason: 'approved' }; },
+      async reserve() { throw new Error('reserve failed'); },
+    };
+    await expect(new ComposablePolicy([first, throwing]).reserve(makeProposal())).rejects.toThrow('reserve failed');
+    expect(released).toBe(1);
+  });
+
   it('keeps limits consistent under concurrent reservations', async () => {
     const policy = new ComposablePolicy([
       new RateLimitPolicy(2, 60_000),
@@ -702,5 +717,19 @@ describe('MemoryReceiptStore', () => {
     }
     expect((await store.list(3, 0)).length).toBe(3);
     expect((await store.list(3, 3)).length).toBe(3);
+  });
+
+  it('reloads file-backed receipts after restart', async () => {
+    const filePath = `/tmp/totem-receipts-${process.pid}-${Date.now()}.jsonl`;
+    const receipt = { proposalId: 'persisted', status: 'approved' as const, settledAt: 1 };
+    try {
+      const first = new MemoryReceiptStore({ filePath });
+      const id = await first.save(receipt);
+      const second = new MemoryReceiptStore({ filePath });
+      await new Promise((resolve) => setImmediate(resolve));
+      expect(await second.get(id)).toEqual(receipt);
+    } finally {
+      await import('fs/promises').then((fs) => fs.rm(filePath, { force: true }));
+    }
   });
 });

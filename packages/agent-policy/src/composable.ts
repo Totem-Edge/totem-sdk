@@ -38,22 +38,44 @@ export class ComposablePolicy implements AgentPolicy, PolicyMiddleware {
 
   async reserve(proposal: AgentProposal): Promise<PolicyEvalResult> {
     const reserved: PolicyMiddleware[] = [];
-    for (const layer of this.layers) {
-      const hasReservation = layer.reserve !== undefined;
-      const result = hasReservation
-        ? await layer.reserve!(proposal)
-        : await layer.evaluate(proposal);
-      if (result.outcome !== 'approved') {
-        for (const previous of reserved.reverse()) {
-          await previous.release?.(proposal.id);
+    let reservationState: PolicyEvalResult['reservationState'] = undefined;
+    try {
+      for (const layer of this.layers) {
+        const hasReservation = layer.reserve !== undefined;
+        const result = hasReservation
+          ? await layer.reserve!(proposal)
+          : await layer.evaluate(proposal);
+        if (result.outcome !== 'approved') {
+          await this.releaseLayers(reserved, proposal.id);
+          return result;
         }
-        return result;
+        if (result.reservationState === 'already_committed') {
+          await this.releaseLayers(reserved, proposal.id);
+          return { outcome: 'approved', reason: 'All policy layers already committed', reservationState: 'already_committed' };
+        }
+        if (hasReservation) {
+          if (result.reservationState !== 'already_reserved') reserved.push(layer);
+          if (result.reservationState === 'already_reserved') reservationState = 'already_reserved';
+          else if (!reservationState) reservationState = 'new';
+        }
       }
-      if (hasReservation) {
-        reserved.push(layer);
+      return { outcome: 'approved', reason: 'All policy layers reserved', reservationState };
+    } catch (error) {
+      await this.releaseLayers(reserved, proposal.id);
+      throw error;
+    }
+  }
+
+  private async releaseLayers(layers: PolicyMiddleware[], operationId: string): Promise<void> {
+    const failures: unknown[] = [];
+    for (const layer of [...layers].reverse()) {
+      try {
+        await layer.release?.(operationId);
+      } catch (error) {
+        failures.push(error);
       }
     }
-    return { outcome: 'approved', reason: 'All policy layers reserved' };
+    if (failures.length > 0) throw new Error(`Policy reservation rollback failed: ${String(failures[0])}`);
   }
 
   async commit(operationId: string): Promise<void> {

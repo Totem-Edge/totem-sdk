@@ -150,6 +150,8 @@ export interface PolicyEvalResult {
   outcome: 'approved' | 'rejected' | 'requires_human';
   /** Human-readable explanation (shown in logs, audit trail, user UI). */
   reason: string;
+  /** Reservation lifecycle state, when returned by a stateful policy. */
+  reservationState?: 'new' | 'already_reserved' | 'already_committed';
 }
 
 /**
