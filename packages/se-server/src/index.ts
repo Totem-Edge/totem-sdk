@@ -79,7 +79,7 @@ export function createSeServer(
         server!.once('error', reject);
       });
 
-      const sePublicKey = (await import('./seKey')).getPublicKeyHex(config.seSeed);
+      const sePublicKey = (await import('./seKey.js')).getPublicKeyHex(config.seSeed);
       console.log(`[se-server] Listening on port ${listenPort}`);
       console.log(`[se-server] SE public key: ${sePublicKey}`);
       return server;

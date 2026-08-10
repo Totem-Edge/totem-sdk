@@ -1304,6 +1304,10 @@ importers:
         version: 5.9.3
 
   packages/omnia-vtxo:
+    dependencies:
+      '@totemsdk/core':
+        specifier: workspace:^
+        version: link:../core
     devDependencies:
       '@types/jest':
         specifier: ^30.0.0

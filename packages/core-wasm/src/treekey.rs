@@ -164,7 +164,7 @@ impl TreeKeyNode {
 // ---------------------------------------------------------------------------
 
 pub struct TreeKey {
-    private_seed: Vec<u8>,
+    _private_seed: Vec<u8>,
     levels: usize,
     keys_per_level: usize,
     root: TreeKeyNode,
@@ -183,7 +183,7 @@ impl TreeKey {
         let public_key = root.get_public_key().to_vec();
 
         Ok(TreeKey {
-            private_seed: private_seed.to_vec(),
+            _private_seed: private_seed.to_vec(),
             levels,
             keys_per_level,
             root,
