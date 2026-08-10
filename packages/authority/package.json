@@ -30,6 +30,7 @@
     "@totemsdk/identity": "workspace:^"
   },
   "devDependencies": {
+    "@totemsdk/core": "workspace:^",
     "@types/jest": "^29.0.0",
     "@types/node": "^20.0.0",
     "jest": "^29.0.0",

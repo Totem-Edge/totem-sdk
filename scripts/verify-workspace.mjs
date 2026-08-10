@@ -37,6 +37,8 @@ const config = JSON.parse(readFileSync(CONFIG_PATH, 'utf8'));
 
 const PUBLISHABLE = Object.entries(config.packages).filter(([, v]) => v.status === 'publishable');
 const EXCLUDED = Object.entries(config.packages).filter(([, v]) => v.status !== 'publishable');
+const PUBLISHABLE_DIRS = new Set(PUBLISHABLE.map(([dir]) => dir));
+const WORKSPACE_DIRS = new Set(Object.keys(config.packages));
 
 // Gate flags ---------------------------------------------------------------
 const args = process.argv.slice(2);
@@ -52,6 +54,7 @@ const FORBIDDEN_SCRIPT_MARKERS = ['|| true', '||true', '--passWithNoTests', 'ech
 
 const results = [];
 let failures = 0;
+let prerequisiteBuildsDone = false;
 
 function run(cwd, cmd, label) {
   const r = spawnSync(cmd, { cwd, shell: true, encoding: 'utf8' });
@@ -65,6 +68,85 @@ function run(cwd, cmd, label) {
     process.stdout.write(`ok: ${label}\n`);
   }
   return ok;
+}
+
+function readPackageManifest(dir) {
+  const pj = join(ROOT, dir, 'package.json');
+  if (!existsSync(pj)) return null;
+  return JSON.parse(readFileSync(pj, 'utf8'));
+}
+
+function getWorkspaceOrder() {
+  const nameToDir = new Map();
+  const manifests = new Map();
+
+  for (const dir of WORKSPACE_DIRS) {
+    const manifest = readPackageManifest(dir);
+    if (!manifest?.name) continue;
+    manifests.set(dir, manifest);
+    nameToDir.set(manifest.name, dir);
+  }
+
+  const visiting = new Set();
+  const visited = new Set();
+  const ordered = [];
+
+  function visit(dir, stack = []) {
+    if (visited.has(dir)) return;
+    if (visiting.has(dir)) {
+      failures += 1;
+      const cycle = [...stack, dir].join(' -> ');
+      results.push({ label: `workspace dependency cycle: ${cycle}`, ok: false });
+      return;
+    }
+
+    visiting.add(dir);
+    const manifest = manifests.get(dir);
+    const depGroups = [
+      manifest?.dependencies,
+      manifest?.devDependencies,
+      manifest?.peerDependencies,
+      manifest?.optionalDependencies,
+    ];
+
+    for (const deps of depGroups) {
+      for (const name of Object.keys(deps ?? {})) {
+        const depDir = nameToDir.get(name);
+        if (depDir && depDir !== dir && WORKSPACE_DIRS.has(depDir)) {
+          visit(depDir, [...stack, dir]);
+        }
+      }
+    }
+
+    visiting.delete(dir);
+    visited.add(dir);
+    ordered.push([dir, config.packages[dir]]);
+  }
+
+  for (const [dir] of PUBLISHABLE) visit(dir);
+  return ordered;
+}
+
+const ORDERED_WORKSPACE = getWorkspaceOrder();
+const ORDERED_PUBLISHABLE = ORDERED_WORKSPACE.filter(([dir]) => PUBLISHABLE_DIRS.has(dir));
+
+function runBuildGate(labelPrefix) {
+  process.stdout.write(`── ${labelPrefix} build prerequisites (dependency order) ──\n`);
+  for (const [dir] of ORDERED_WORKSPACE) {
+    const pkgDir = join(ROOT, dir);
+    const manifest = readPackageManifest(dir);
+    if (!manifest) { failures += 1; results.push({ label: `${dir}: missing package.json`, ok: false }); continue; }
+    if (manifest.scripts?.build) {
+      run(pkgDir, 'npm run build', `${dir}: build`);
+    }
+  }
+  process.stdout.write('\n');
+}
+
+function ensurePrerequisiteBuilds(labelPrefix) {
+  if (prerequisiteBuildsDone) return;
+  runBuildGate(labelPrefix);
+  prerequisiteBuildsDone = true;
 }
 
 function packageHasTestFiles(pkgDir) {
@@ -88,7 +170,7 @@ process.stdout.write(`  excluded packages:    ${EXCLUDED.length}\n\n`);
 // 1. Script-hygiene gate: no suppression markers in publishable packages ----
 if (wantLint) {
   process.stdout.write('── script hygiene (publishable packages) ──────────────\n');
-  for (const [dir, meta] of PUBLISHABLE) {
+  for (const [dir, meta] of ORDERED_PUBLISHABLE) {
     const pj = join(ROOT, dir, 'package.json');
     if (!existsSync(pj)) {
       failures += 1;
@@ -122,28 +204,16 @@ if (wantLint) {
 
 // 2. Typecheck gate --------------------------------------------------------
 if (wantTypecheck) {
-  process.stdout.write('── typecheck (publishable packages) ───────────────────\n');
-  for (const [dir, meta] of PUBLISHABLE) {
-    const pkgDir = join(ROOT, dir);
-    const pj = join(pkgDir, 'package.json');
-    if (!existsSync(pj)) { failures += 1; results.push({ label: `${dir}: missing package.json`, ok: false }); continue; }
-    const manifest = JSON.parse(readFileSync(pj, 'utf8'));
-    if (manifest.scripts?.typecheck) {
-      run(pkgDir, 'npm run typecheck', `${dir}: typecheck`);
-    } else {
-      // fall back to build (tsc) which performs type-checking during emit
-      if (manifest.scripts?.build) {
-        run(pkgDir, 'npm run build', `${dir}: build (typecheck)`);
-      }
-    }
-  }
-  process.stdout.write('\n');
+  // Most packages expose built dist files through package exports. Build in
+  // dependency order so each package can resolve local workspace siblings.
+  runBuildGate('typecheck');
+  prerequisiteBuildsDone = true;
 }
 
 // 3. Lint gate -------------------------------------------------------------
 if (wantLint) {
   process.stdout.write('── lint (publishable packages with a lint script) ──────\n');
-  for (const [dir, meta] of PUBLISHABLE) {
+  for (const [dir, meta] of ORDERED_PUBLISHABLE) {
     const pkgDir = join(ROOT, dir);
     const pj = join(pkgDir, 'package.json');
     if (!existsSync(pj)) continue;
@@ -157,8 +227,9 @@ if (wantLint) {
 
 // 4. Test gate --------------------------------------------------------------
 if (wantTest) {
+  ensurePrerequisiteBuilds('test');
   process.stdout.write('── unit tests (publishable packages with a test script) ──\n');
-  for (const [dir, meta] of PUBLISHABLE) {
+  for (const [dir, meta] of ORDERED_PUBLISHABLE) {
     const pkgDir = join(ROOT, dir);
     const pj = join(pkgDir, 'package.json');
     if (!existsSync(pj)) continue;
@@ -172,8 +243,9 @@ if (wantTest) {
 
 // 5. Integration gate ------------------------------------------------------
 if (wantIntegration) {
+  ensurePrerequisiteBuilds('integration');
   process.stdout.write('── integration (publishable packages with a test:integration script) ──\n');
-  for (const [dir, meta] of PUBLISHABLE) {
+  for (const [dir, meta] of ORDERED_PUBLISHABLE) {
     const pkgDir = join(ROOT, dir);
     const pj = join(pkgDir, 'package.json');
     if (!existsSync(pj)) continue;
@@ -187,8 +259,9 @@ if (wantIntegration) {
 
 // 5. Pack gate -------------------------------------------------------------
 if (wantPack) {
+  ensurePrerequisiteBuilds('pack');
   process.stdout.write('── pack (publishable packages) ─────────────────────────\n');
-  for (const [dir, meta] of PUBLISHABLE) {
+  for (const [dir, meta] of ORDERED_PUBLISHABLE) {
     const pkgDir = join(ROOT, dir);
     run(pkgDir, 'npm pack --dry-run --json', `${dir}: pack --dry-run`);
   }

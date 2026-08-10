@@ -11,6 +11,10 @@ export default {
         target: 'ES2022',
         allowJs: true,
         types: ['node', 'jest'],
+        baseUrl: '.',
+        paths: {
+          '@totemsdk/core': ['src/index.ts'],
+        },
       },
     }],
   },

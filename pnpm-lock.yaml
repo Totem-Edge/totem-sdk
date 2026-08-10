@@ -321,6 +321,9 @@ importers:
         specifier: workspace:^
         version: link:../proof
     devDependencies:
+      '@totemsdk/core':
+        specifier: workspace:^
+        version: link:../core
       '@types/jest':
         specifier: ^29.0.0
         version: 29.5.14
