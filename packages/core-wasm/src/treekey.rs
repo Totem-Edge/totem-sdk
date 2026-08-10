@@ -1,3 +1,8 @@
+use crate::java_streamables;
+use crate::mmr::{calculate_proof_root, create_mmr_data_leaf_node, MMRProof, MMRTree};
+use crate::wots;
+use sha3::{Digest, Sha3_256};
+use std::cell::RefCell;
 /// TreeKey/TreeKeyNode implementation matching Minima's TreeKey.java and TreeKeyNode.java.
 ///
 /// Hierarchical key tree structure:
@@ -6,13 +11,7 @@
 /// - Signatures include the Winternitz leaf pubkey digest + signature + MMR proof
 ///
 /// Default structure: 3 levels × 64 keys = 64^3 = 262,144 one-time signatures
-
 use std::collections::HashMap;
-use std::cell::RefCell;
-use sha3::{Digest, Sha3_256};
-use crate::wots;
-use crate::java_streamables;
-use crate::mmr::{MMRTree, MMRProof, create_mmr_data_leaf_node, calculate_proof_root};
 
 fn sha3(data: &[u8]) -> Vec<u8> {
     let mut hasher = Sha3_256::new();
@@ -115,33 +114,49 @@ impl TreeKeyNode {
 
     pub fn get_wots_public_key_digest(&self, index: usize) -> Result<&[u8], String> {
         if index >= self.keys_per_level {
-            return Err(format!("Key index {} out of range [0, {})", index, self.keys_per_level));
+            return Err(format!(
+                "Key index {} out of range [0, {})",
+                index, self.keys_per_level
+            ));
         }
         Ok(&self.public_key_digests[index])
     }
 
     pub fn get_proof(&self, key_index: usize) -> Result<MMRProof, String> {
         if key_index >= self.keys_per_level {
-            return Err(format!("Key index {} out of range [0, {})", key_index, self.keys_per_level));
+            return Err(format!(
+                "Key index {} out of range [0, {})",
+                key_index, self.keys_per_level
+            ));
         }
         Ok(self.mmr_tree.get_proof(key_index as u32))
     }
 
     pub fn sign(&self, key_index: usize, data: &[u8]) -> Result<SignatureProof, String> {
         if key_index >= self.keys_per_level {
-            return Err(format!("Key index {} out of range [0, {})", key_index, self.keys_per_level));
+            return Err(format!(
+                "Key index {} out of range [0, {})",
+                key_index, self.keys_per_level
+            ));
         }
 
         let leaf_pubkey = self.public_key_digests[key_index].clone();
         let signature = wots::wots_sign(&self.seed, key_index as u32, data);
         let mmr_proof = self.get_proof(key_index)?;
 
-        Ok(SignatureProof { leaf_pubkey, signature, mmr_proof })
+        Ok(SignatureProof {
+            leaf_pubkey,
+            signature,
+            mmr_proof,
+        })
     }
 
     pub fn get_child(&self, child_index: usize) -> Result<Box<TreeKeyNode>, String> {
         if child_index >= self.keys_per_level {
-            return Err(format!("Child index {} out of range [0, {})", child_index, self.keys_per_level));
+            return Err(format!(
+                "Child index {} out of range [0, {})",
+                child_index, self.keys_per_level
+            ));
         }
 
         {
@@ -151,10 +166,13 @@ impl TreeKeyNode {
             }
         }
 
-        let child_seed = java_streamables::derive_chain_seed_java(&self.child_seed, child_index as u32);
+        let child_seed =
+            java_streamables::derive_chain_seed_java(&self.child_seed, child_index as u32);
         let child = TreeKeyNode::new(&child_seed, self.keys_per_level)?;
         let boxed = Box::new(child);
-        self.child_cache.borrow_mut().insert(child_index, boxed.clone());
+        self.child_cache
+            .borrow_mut()
+            .insert(child_index, boxed.clone());
         Ok(boxed)
     }
 }
@@ -193,23 +211,43 @@ impl TreeKey {
         })
     }
 
-    pub fn get_public_key(&self) -> &[u8] { &self.public_key }
-    pub fn get_max_uses(&self) -> u64 { (self.keys_per_level as u64).pow(self.levels as u32) }
-    pub fn get_uses(&self) -> u64 { self.uses }
-    pub fn set_uses(&mut self, uses: u64) { self.uses = uses; }
+    pub fn get_public_key(&self) -> &[u8] {
+        &self.public_key
+    }
+    pub fn get_max_uses(&self) -> u64 {
+        (self.keys_per_level as u64).pow(self.levels as u32)
+    }
+    pub fn get_uses(&self) -> u64 {
+        self.uses
+    }
+    pub fn set_uses(&mut self, uses: u64) {
+        self.uses = uses;
+    }
 
     pub fn has_parent_child_sig(&self, path: &[usize]) -> bool {
-        let key = path.iter().map(|i| i.to_string()).collect::<Vec<_>>().join(",");
+        let key = path
+            .iter()
+            .map(|i| i.to_string())
+            .collect::<Vec<_>>()
+            .join(",");
         self.parent_child_sig_cache.contains_key(&key)
     }
 
     pub fn get_parent_child_sig(&self, path: &[usize]) -> Option<&SignatureProof> {
-        let key = path.iter().map(|i| i.to_string()).collect::<Vec<_>>().join(",");
+        let key = path
+            .iter()
+            .map(|i| i.to_string())
+            .collect::<Vec<_>>()
+            .join(",");
         self.parent_child_sig_cache.get(&key)
     }
 
     pub fn set_parent_child_sig(&mut self, path: &[usize], sig: SignatureProof) {
-        let key = path.iter().map(|i| i.to_string()).collect::<Vec<_>>().join(",");
+        let key = path
+            .iter()
+            .map(|i| i.to_string())
+            .collect::<Vec<_>>()
+            .join(",");
         self.parent_child_sig_cache.insert(key, sig);
     }
 
@@ -246,8 +284,8 @@ impl TreeKey {
             return Ok(self.root.clone());
         }
         let mut current = self.root.get_child(path[0])?;
-        for i in 1..depth {
-            current = current.get_child(path[i])?;
+        for &child_index in path.iter().take(depth).skip(1) {
+            current = current.get_child(child_index)?;
         }
         Ok(*current)
     }
@@ -321,10 +359,8 @@ pub fn verify_tree_signature(
         let proof = &proofs[depth];
         let root_pubkey = get_root_public_key(proof);
 
-        if depth == 0 {
-            if !crate::verify::timing_safe_equal(&root_pubkey, expected_pubkey) {
-                return false;
-            }
+        if depth == 0 && !crate::verify::timing_safe_equal(&root_pubkey, expected_pubkey) {
+            return false;
         }
 
         let signed_data = if depth == proofs.len() - 1 {
@@ -360,7 +396,10 @@ pub fn derive_unified_address_public_key(base_seed: &[u8], index: u32) -> Result
     Ok(tree_key.get_public_key().to_vec())
 }
 
-pub fn create_per_address_tree_key(base_seed: &[u8], address_index: u32) -> Result<TreeKey, String> {
+pub fn create_per_address_tree_key(
+    base_seed: &[u8],
+    address_index: u32,
+) -> Result<TreeKey, String> {
     let per_address_seed = java_streamables::derive_per_address_seed(base_seed, address_index);
     TreeKey::new(&per_address_seed, 64, 3)
 }

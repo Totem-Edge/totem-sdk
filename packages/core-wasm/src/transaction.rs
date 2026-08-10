@@ -1,62 +1,59 @@
-/// Transaction serialization and digest computation.
-///
-/// Matches Minima's Java transaction serialization byte-for-byte.
-///
-/// Java reference:
-///   Transaction.writeDataStream()  — top-level TX serialization
-///   Coin.writeDataStream()         — per-input / per-output coin serialization
-///   StateVariable.writeDataStream() — state variable serialization
-///   Token.writeDataStream()        — token descriptor serialization
-///
-/// Binary format (Java writeDataStream order):
-///
-///   Transaction:
-///     MiniNumber(input_count)
-///     for each input:  Coin bytes
-///     MiniNumber(output_count)
-///     for each output: Coin bytes
-///     MiniNumber(state_count)
-///     for each sv:     StateVariable bytes
-///     linkHash.writeHashToStream()   // 4-byte len + 32 bytes
-///
-///   Coin:
-///     coinID.writeHashToStream()     // 4-byte len + 32 bytes
-///     address.writeHashToStream()    // 4-byte len + 32 bytes
-///     amount.writeDataStream()       // MiniNumber: scale(1) + len(1) + bytes
-///     tokenID.writeHashToStream()    // 4-byte len + 32 bytes
-///     MiniByte(storeState)           // 1 byte
-///     mmrEntryNumber.writeDataStream() // MiniNumber(scale) + MiniData(unscaled)
-///     MiniByte(spent)                // 1 byte
-///     blockCreated.writeDataStream() // MiniNumber
-///     MiniNumber(coin_state_count)
-///     for each sv: StateVariable bytes
-///     MiniByte(hasToken)            // 1 byte
-///     if hasToken: Token bytes
-///
-///   StateVariable:
-///     MiniByte(port)                 // 1 byte
-///     MiniByte(type)                 // 1 byte: 1=HEX, 2=NUMBER, 4=STRING, 8=BOOL
-///     data (type-dependent):
-///       BOOL:   MiniByte
-///       HEX:    MiniData (4-byte len + bytes)
-///       NUMBER: MiniNumber (scale + len + bytes)
-///       STRING: MiniString = MiniData(UTF-8 bytes)
-///
-///   Token:
-///     coinId.writeHashToStream()
-///     script.writeDataStream()      // MiniData
-///     scale.writeDataStream()       // MiniNumber
-///     totalAmount.writeDataStream() // MiniNumber
-///     name.writeDataStream()        // MiniData
-///     created.writeDataStream()     // MiniNumber
+//! Transaction serialization and digest computation.
+//!
+//! Matches Minima's Java transaction serialization byte-for-byte.
+//!
+//! Java reference:
+//!   Transaction.writeDataStream()  — top-level TX serialization
+//!   Coin.writeDataStream()         — per-input / per-output coin serialization
+//!   StateVariable.writeDataStream() — state variable serialization
+//!   Token.writeDataStream()        — token descriptor serialization
+//!
+//! Binary format (Java writeDataStream order):
+//!
+//!   Transaction:
+//!     MiniNumber(input_count)
+//!     for each input:  Coin bytes
+//!     MiniNumber(output_count)
+//!     for each output: Coin bytes
+//!     MiniNumber(state_count)
+//!     for each sv:     StateVariable bytes
+//!     linkHash.writeHashToStream()   // 4-byte len + 32 bytes
+//!
+//!   Coin:
+//!     coinID.writeHashToStream()     // 4-byte len + 32 bytes
+//!     address.writeHashToStream()    // 4-byte len + 32 bytes
+//!     amount.writeDataStream()       // MiniNumber: scale(1) + len(1) + bytes
+//!     tokenID.writeHashToStream()    // 4-byte len + 32 bytes
+//!     MiniByte(storeState)           // 1 byte
+//!     mmrEntryNumber.writeDataStream() // MiniNumber(scale) + MiniData(unscaled)
+//!     MiniByte(spent)                // 1 byte
+//!     blockCreated.writeDataStream() // MiniNumber
+//!     MiniNumber(coin_state_count)
+//!     for each sv: StateVariable bytes
+//!     MiniByte(hasToken)            // 1 byte
+//!     if hasToken: Token bytes
+//!
+//!   StateVariable:
+//!     MiniByte(port)                 // 1 byte
+//!     MiniByte(type)                 // 1 byte: 1=HEX, 2=NUMBER, 4=STRING, 8=BOOL
+//!     data (type-dependent):
+//!       BOOL:   MiniByte
+//!       HEX:    MiniData (4-byte len + bytes)
+//!       NUMBER: MiniNumber (scale + len + bytes)
+//!       STRING: MiniString = MiniData(UTF-8 bytes)
+//!
+//!   Token:
+//!     coinId.writeHashToStream()
+//!     script.writeDataStream()      // MiniData
+//!     scale.writeDataStream()       // MiniNumber
+//!     totalAmount.writeDataStream() // MiniNumber
+//!     name.writeDataStream()        // MiniData
+//!     created.writeDataStream()     // MiniNumber
 
-use sha3::{Digest, Sha3_256};
 use serde::Deserialize;
+use sha3::{Digest, Sha3_256};
 
-use crate::streamable::{
-    write_mini_number, write_mini_data,
-    write_hash_to_stream,
-};
+use crate::streamable::{write_hash_to_stream, write_mini_data, write_mini_number};
 
 // ── State variable type constants (match Java StateVariable) ──────────────
 
@@ -67,11 +64,21 @@ const STATETYPE_BOOL: u8 = 8;
 
 // ── JSON input structures ─────────────────────────────────────────────────
 
-fn default_zero() -> String { "0".into() }
-fn default_zero_hex() -> String { "0x00".into() }
-fn default_false() -> bool { false }
-fn default_true() -> bool { true }
-fn default_empty_state() -> Vec<StateVariableJson> { vec![] }
+fn default_zero() -> String {
+    "0".into()
+}
+fn default_zero_hex() -> String {
+    "0x00".into()
+}
+fn default_false() -> bool {
+    false
+}
+fn default_true() -> bool {
+    true
+}
+fn default_empty_state() -> Vec<StateVariableJson> {
+    vec![]
+}
 
 #[derive(Debug, Deserialize)]
 pub struct TransactionInputJson {
@@ -183,7 +190,10 @@ fn parse_decimal(s: &str) -> Result<(Vec<u8>, u8), String> {
     let mut bytes = vec![0u8];
     for ch in digits.bytes() {
         if !ch.is_ascii_digit() {
-            return Err(format!("Invalid decimal character '{}' in '{}'", ch as char, s));
+            return Err(format!(
+                "Invalid decimal character '{}' in '{}'",
+                ch as char, s
+            ));
         }
         let digit = (ch - b'0') as u16;
         // multiply current by 10 and add digit
@@ -211,7 +221,10 @@ fn parse_decimal(s: &str) -> Result<(Vec<u8>, u8), String> {
 fn write_mini_number_from_str(s: &str) -> Result<Vec<u8>, String> {
     let (unscaled, scale) = parse_decimal(s)?;
     if unscaled.len() > 255 {
-        return Err(format!("MiniNumber data too large: {} bytes", unscaled.len()));
+        return Err(format!(
+            "MiniNumber data too large: {} bytes",
+            unscaled.len()
+        ));
     }
     let mut buf = Vec::with_capacity(2 + unscaled.len());
     buf.push(scale);
@@ -435,8 +448,8 @@ fn serialize_coin_output(output: &TransactionOutputJson) -> Result<Vec<u8>, Stri
 
 /// Serialize a transaction from JSON to canonical Java-compatible bytes.
 pub fn serialize_transaction_from_json(json: &str) -> Result<Vec<u8>, String> {
-    let tx: MinimaTransactionJson = serde_json::from_str(json)
-        .map_err(|e| format!("Invalid transaction JSON: {}", e))?;
+    let tx: MinimaTransactionJson =
+        serde_json::from_str(json).map_err(|e| format!("Invalid transaction JSON: {}", e))?;
 
     let mut buf = Vec::new();
 

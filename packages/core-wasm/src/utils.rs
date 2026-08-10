@@ -1,4 +1,4 @@
-/// Byte array utility functions — mirrors @totemsdk/core utils.ts
+//! Byte array utility functions — mirrors @totemsdk/core utils.ts
 
 /// Convert bytes to uppercase hex string.
 pub fn bytes_to_hex(bytes: &[u8]) -> String {

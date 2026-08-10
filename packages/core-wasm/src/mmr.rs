@@ -1,10 +1,9 @@
+use crate::streamable::{write_mini_data, write_mini_number};
 /// Merkle Mountain Range implementation matching Minima's MMR.java and MMRData.java.
 ///
 /// Used by TreeKeyNode for computing wallet public key from 64 Winternitz keys.
 /// All serialization is byte-exact compatible with the Java implementation.
-
 use sha3::{Digest, Sha3_256};
-use crate::streamable::{write_mini_number, write_mini_data};
 
 fn sha3(data: &[u8]) -> Vec<u8> {
     let mut hasher = Sha3_256::new();
@@ -24,15 +23,15 @@ fn concat(parts: &[&[u8]]) -> Vec<u8> {
 /// MMRData — a node in the MMR tree containing a hash and a sum value.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct MMRData {
-    pub data: Vec<u8>,   // 32-byte hash
-    pub value: u64,      // Sum value (always 0 for TreeKeyNode)
+    pub data: Vec<u8>, // 32-byte hash
+    pub value: u64,    // Sum value (always 0 for TreeKeyNode)
 }
 
 /// MMRProofChunk — one step in the proof path.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct MMRProofChunk {
     #[serde(rename = "isLeft")]
-    pub is_left: bool,   // Is this sibling on the left?
+    pub is_left: bool, // Is this sibling on the left?
     #[serde(rename = "mmrData")]
     pub mmr_data: MMRData,
 }
@@ -65,7 +64,10 @@ pub fn create_mmr_data_leaf_node(pubkey: &[u8], sum_value: u64) -> MMRData {
     };
 
     let hash = sha3(&concat(&[&zero, &pubkey_serialized, &sum_serialized]));
-    MMRData { data: hash, value: sum_value }
+    MMRData {
+        data: hash,
+        value: sum_value,
+    }
 }
 
 /// Create MMRData parent node matching Minima's MMRData.CreateMMRDataParentNode.
@@ -93,8 +95,16 @@ pub fn create_mmr_data_parent_node(left: &MMRData, right: &MMRData) -> MMRData {
         write_mini_number(sum_value as i64, 0)
     };
 
-    let hash = sha3(&concat(&[&one, &left_serialized, &right_serialized, &sum_serialized]));
-    MMRData { data: hash, value: sum_value }
+    let hash = sha3(&concat(&[
+        &one,
+        &left_serialized,
+        &right_serialized,
+        &sum_serialized,
+    ]));
+    MMRData {
+        data: hash,
+        value: sum_value,
+    }
 }
 
 /// MMR Tree — builds a perfect binary tree from N entries (N must be power of 2).
@@ -190,10 +200,10 @@ impl MMRTree {
         let mut entry_number = leaf_index as u64;
 
         while row < self.max_row {
-            let sibling_number = if entry_number % 2 == 0 {
-                entry_number + 1  // Current is left, sibling is right
+            let sibling_number = if entry_number.is_multiple_of(2) {
+                entry_number + 1 // Current is left, sibling is right
             } else {
-                entry_number - 1  // Current is right, sibling is left
+                entry_number - 1 // Current is right, sibling is left
             };
 
             let sibling = match self.get_entry(row, sibling_number) {
@@ -217,6 +227,12 @@ impl MMRTree {
     /// Get the leaf MMRData at a specific index.
     pub fn get_leaf(&self, index: u32) -> Option<MMRData> {
         self.get_entry(0, index as u64).cloned()
+    }
+}
+
+impl Default for MMRTree {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -287,7 +303,12 @@ pub fn parse_mmr_proof_from_hex(data: &[u8]) -> Result<(MMRProof, u64, usize), S
         if offset + 4 > data.len() {
             return Err("Unexpected end of data reading hash length".to_string());
         }
-        let hash_length = u32::from_be_bytes([data[offset], data[offset+1], data[offset+2], data[offset+3]]) as usize;
+        let hash_length = u32::from_be_bytes([
+            data[offset],
+            data[offset + 1],
+            data[offset + 2],
+            data[offset + 3],
+        ]) as usize;
         offset += 4;
 
         if offset + hash_length > data.len() {
@@ -301,7 +322,10 @@ pub fn parse_mmr_proof_from_hex(data: &[u8]) -> Result<(MMRProof, u64, usize), S
 
         chunks.push(MMRProofChunk {
             is_left,
-            mmr_data: MMRData { data: hash_data, value: chunk_value },
+            mmr_data: MMRData {
+                data: hash_data,
+                value: chunk_value,
+            },
         });
     }
 
@@ -401,6 +425,9 @@ mod tests {
         let pks2: Vec<Vec<u8>> = (0..64).map(|i| vec![(i + 1) as u8; 32]).collect();
         let tree1 = MMRTree::from_public_keys(&pks1);
         let tree2 = MMRTree::from_public_keys(&pks2);
-        assert_ne!(tree1.get_root().unwrap().data, tree2.get_root().unwrap().data);
+        assert_ne!(
+            tree1.get_root().unwrap().data,
+            tree2.get_root().unwrap().data
+        );
     }
 }

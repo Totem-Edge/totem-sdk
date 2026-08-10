@@ -1,11 +1,11 @@
-/// High-level verification API.
-///
-/// Provides signature verification, tree signature verification,
-/// address derivation from public keys, and Sign-In With Wallet (SIWE)
-/// challenge/response.
+//! High-level verification API.
+//!
+//! Provides signature verification, tree signature verification,
+//! address derivation from public keys, and Sign-In With Wallet (SIWE)
+//! challenge/response.
 
-use sha3::{Digest, Sha3_256};
 use serde::{Deserialize, Serialize};
+use sha3::{Digest, Sha3_256};
 
 /// Constant-time comparison of two byte arrays.
 ///
@@ -156,20 +156,28 @@ pub fn verify_mmr_proof_from_json(
         value: String,
     }
 
-    let proof_data: MmrProofData = serde_json::from_str(proof_json)
-        .map_err(|e| format!("Invalid proof JSON: {}", e))?;
+    let proof_data: MmrProofData =
+        serde_json::from_str(proof_json).map_err(|e| format!("Invalid proof JSON: {}", e))?;
 
-    let chunks: Vec<crate::mmr::MMRProofChunk> = proof_data.chunks.iter().map(|c| {
-        let data = hex::decode(c.mmr_data.data.trim_start_matches("0x")).unwrap_or_default();
-        let value = c.mmr_data.value.parse::<u64>().unwrap_or(0);
-        crate::mmr::MMRProofChunk {
-            is_left: c.is_left,
-            mmr_data: crate::mmr::MMRData { data, value },
-        }
-    }).collect();
+    let chunks: Vec<crate::mmr::MMRProofChunk> = proof_data
+        .chunks
+        .iter()
+        .map(|c| {
+            let data = hex::decode(c.mmr_data.data.trim_start_matches("0x")).unwrap_or_default();
+            let value = c.mmr_data.value.parse::<u64>().unwrap_or(0);
+            crate::mmr::MMRProofChunk {
+                is_left: c.is_left,
+                mmr_data: crate::mmr::MMRData { data, value },
+            }
+        })
+        .collect();
 
     let proof = crate::mmr::MMRProof { chunks };
-    Ok(crate::mmr::verify_mmr_proof(leaf_pubkey, &proof, expected_root))
+    Ok(crate::mmr::verify_mmr_proof(
+        leaf_pubkey,
+        &proof,
+        expected_root,
+    ))
 }
 
 /// Derive a Minima Mx address from a WOTS public key.
@@ -217,8 +225,7 @@ pub fn create_challenge(domain: &str, statement: &str) -> Result<String, String>
         expiry: now + 300, // 5 minutes
     };
 
-    serde_json::to_string(&challenge)
-        .map_err(|e| format!("Failed to serialize challenge: {}", e))
+    serde_json::to_string(&challenge).map_err(|e| format!("Failed to serialize challenge: {}", e))
 }
 
 /// Validate a Sign-In With Wallet challenge.

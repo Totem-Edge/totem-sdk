@@ -1,9 +1,9 @@
-/// Minima "Mx" Base32 address encoding/decoding.
-///
-/// Matches Minima's org.minima.utils.BaseConverter.encode32/decode32:
-///   BigInteger → radix-32 string → character swaps → uppercase → "Mx" prefix
-///
-/// Address format: [sentinel(1) + length(2) + data(32) + checksum(4)] = 39 bytes → Mx... string
+//! Minima "Mx" Base32 address encoding/decoding.
+//!
+//! Matches Minima's org.minima.utils.BaseConverter.encode32/decode32:
+//!   BigInteger → radix-32 string → character swaps → uppercase → "Mx" prefix
+//!
+//! Address format: [sentinel(1) + length(2) + data(32) + checksum(4)] = 39 bytes → Mx... string
 
 use sha3::{Digest, Sha3_256};
 
@@ -30,12 +30,15 @@ pub fn encode_mx_radix32_frame(data: &[u8]) -> String {
     }
 
     // Apply character swaps: i→w, l→y, o→z
-    let s: String = chars.into_iter().map(|ch| match ch {
-        'i' => 'w',
-        'l' => 'y',
-        'o' => 'z',
-        _ => ch,
-    }).collect();
+    let s: String = chars
+        .into_iter()
+        .map(|ch| match ch {
+            'i' => 'w',
+            'l' => 'y',
+            'o' => 'z',
+            _ => ch,
+        })
+        .collect();
 
     s.to_uppercase()
 }
@@ -47,19 +50,23 @@ fn decode_mx_radix32_frame(encoded: &str, _expected_len: usize) -> Result<Vec<u8
     let s = encoded.to_lowercase();
 
     // Reverse character swaps: w→i, y→l, z→o
-    let s: String = s.chars().map(|ch| match ch {
-        'w' => 'i',
-        'y' => 'l',
-        'z' => 'o',
-        _ => ch,
-    }).collect();
+    let s: String = s
+        .chars()
+        .map(|ch| match ch {
+            'w' => 'i',
+            'y' => 'l',
+            'z' => 'o',
+            _ => ch,
+        })
+        .collect();
 
     // Parse as base-32 BigInt
     let mut x = num_bigint::BigUint::ZERO;
     let thirty_two = num_bigint::BigUint::from(32u32);
 
     for ch in s.chars() {
-        let digit = ch.to_digit(32)
+        let digit = ch
+            .to_digit(32)
             .ok_or_else(|| format!("Invalid Base32 character: {}", ch))?;
         x = x * &thirty_two + digit;
     }
@@ -73,13 +80,16 @@ fn decode_mx_radix32_frame(encoded: &str, _expected_len: usize) -> Result<Vec<u8
 /// Then Base32 encoded with Mx prefix.
 pub fn make_mx_address(root32: &[u8]) -> Result<String, String> {
     if root32.len() != 32 {
-        return Err(format!("root32 must be exactly 32 bytes, got {}", root32.len()));
+        return Err(format!(
+            "root32 must be exactly 32 bytes, got {}",
+            root32.len()
+        ));
     }
 
     let mut frame = Vec::with_capacity(39);
-    frame.push(0x01);  // Sentinel byte (matches TypeScript: 0x01)
-    frame.push(0x00);  // Length high byte
-    frame.push(32);    // Length low byte
+    frame.push(0x01); // Sentinel byte (matches TypeScript: 0x01)
+    frame.push(0x00); // Length high byte
+    frame.push(32); // Length low byte
     frame.extend_from_slice(root32);
 
     // Checksum: first 4 bytes of SHA3-256 of the raw 32 bytes (matches TypeScript)
@@ -114,7 +124,10 @@ pub fn parse_mx_address(address: &str) -> Result<Vec<u8>, String> {
 
     // Validate sentinel byte (matches TypeScript: 0x01)
     if frame[0] != 0x01 {
-        return Err(format!("Invalid sentinel byte: 0x{:02x}, expected 0x01", frame[0]));
+        return Err(format!(
+            "Invalid sentinel byte: 0x{:02x}, expected 0x01",
+            frame[0]
+        ));
     }
 
     let data_len = u16::from_be_bytes([frame[1], frame[2]]) as usize;

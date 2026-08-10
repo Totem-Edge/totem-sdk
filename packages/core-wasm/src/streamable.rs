@@ -1,8 +1,8 @@
-/// Canonical byte-exact serialization matching Java's Streamable interface.
-///
-/// Every function here must produce output that is byte-for-byte identical
-/// to Minima's Java implementation. A single byte difference causes
-/// `allsignaturesvalid=false` and potential consensus failure.
+//! Canonical byte-exact serialization matching Java's Streamable interface.
+//!
+//! Every function here must produce output that is byte-for-byte identical
+//! to Minima's Java implementation. A single byte difference causes
+//! `allsignaturesvalid=false` and potential consensus failure.
 
 /// Write a MiniNumber: 1-byte scale + 1-byte length + BigInteger bytes.
 ///
