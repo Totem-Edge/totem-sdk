@@ -50,7 +50,7 @@ jobs:
           package-dir: ${{ matrix.dir }}
 
       # ── Publish ────────────────────────────────────────────────────────────
-      - name: Publish ${{ matrix.npm_name }}@${{ steps.meta.outputs.version }}
+      - name: Publish ${{ matrix.npm_name }}@${{ matrix.version }}
         run: pnpm publish --access public --no-git-checks
         working-directory: ${{ matrix.dir }}
         env:
