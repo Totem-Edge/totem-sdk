@@ -1,6 +1,6 @@
-/// KISSVM script generation.
-///
-/// Generates Minima KISSVM scripts for WOTS public keys.
+//! KISSVM script generation.
+//!
+//! Generates Minima KISSVM scripts for WOTS public keys.
 
 /// Generate a KISSVM script from a WOTS public key digest.
 ///

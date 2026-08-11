@@ -87,7 +87,7 @@ export interface SqliteConfig {
  * When enabled:
  *   - GET_COINS requests without an `address` filter are accepted (chain-wide indexer).
  *   - The provider is expected to implement full UTXO index queries
- *     (e.g. PureMinimaRpcProvider connected to a MegaMMR-enabled node).
+ *     (e.g. MinimaRpcProvider connected to a MegaMMR-enabled node).
  *   - Standard nodes reject unfiltered GET_COINS requests to prevent unbounded scans.
  */
 export interface MegaMMRConfig {
@@ -95,7 +95,7 @@ export interface MegaMMRConfig {
 }
 
 export interface LookupNodeConfig {
-  /** Chain state source — PureMinimaRpcProvider or any ChainStateProvider */
+  /** Chain state source — MinimaRpcProvider or any ChainStateProvider */
   provider: ChainStateProvider;
   /** Block polling interval in ms. Default: 5_000 */
   pollIntervalMs?: number;

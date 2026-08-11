@@ -148,7 +148,11 @@ export class AmountCapPolicy implements PolicyMiddleware {
         return { outcome: 'rejected', reason: 'operation ID is already bound to another policy scope' };
       }
       if (existing.status === 'reserved' || existing.status === 'committed') {
-        return { outcome: 'approved', reason: 'Amount cap reservation already exists' };
+        return {
+          outcome: 'approved',
+          reason: 'Amount cap reservation already exists',
+          reservationState: existing.status === 'committed' ? 'already_committed' : 'already_reserved',
+        };
       }
     }
 
@@ -181,7 +185,7 @@ export class AmountCapPolicy implements PolicyMiddleware {
     }
     bucket.reservations.set(proposal.id, parsed);
     this.operations.set(proposal.id, { key, amount: parsed, digest, status: 'reserved' });
-    return { outcome: 'approved', reason: 'Amount cap reserved' };
+    return { outcome: 'approved', reason: 'Amount cap reserved', reservationState: 'new' };
   }
 
   async commit(operationId: string): Promise<void> {

@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/chain-provider",
   "version": "0.1.5",
-  "description": "Unified ChainStateProvider interface for Totem SDK — Hosted, PureMinima, Composite",
+  "description": "Unified ChainStateProvider interface for Totem SDK — Hosted, Minima RPC, Composite",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -24,7 +24,7 @@
   ],
   "dependencies": {
     "@totemsdk/core": "workspace:^",
-    "@totemsdk/pureminima-rpc": "workspace:^"
+    "@totemsdk/minima-rpc": "workspace:^"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

@@ -1,11 +1,13 @@
-/// Stateful TreeKey held in WASM linear memory.
-///
-/// Instead of serializing/deserializing the tree for every operation,
-/// this keeps the TreeKey alive in WASM and exposes operations as
-/// single calls. Eliminates the JS↔WASM boundary crossings for
-/// multi-step operations like sign (which needs 3 WOTS signs + 3 MMR proofs).
+//! Stateful TreeKey held in WASM linear memory.
+//!
+//! Instead of serializing/deserializing the tree for every operation,
+//! this keeps the TreeKey alive in WASM and exposes operations as
+//! single calls. Eliminates the JS↔WASM boundary crossings for
+//! multi-step operations like sign (which needs 3 WOTS signs + 3 MMR proofs).
 
-use crate::treekey::{TreeKey, TreeSignature, SignatureProof, verify_tree_signature};
+#[cfg(test)]
+use crate::treekey::{verify_tree_signature, TreeSignature};
+use crate::treekey::{SignatureProof, TreeKey};
 
 pub struct WasmTreeKey {
     tree: TreeKey,

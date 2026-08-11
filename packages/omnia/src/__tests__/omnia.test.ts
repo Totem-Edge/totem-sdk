@@ -45,6 +45,7 @@ import {
   computeTxDraftDigest,
   serializeTxDraft,
   deserializeTxDraft,
+  toRawMinima,
 } from '../transactions';
 import {
   BalanceConservationError,
@@ -975,6 +976,14 @@ describe('@totemsdk/omnia — integration: fund → N updates → cooperative se
 });
 
 describe('@totemsdk/omnia — token scale: funding TX unit consistency', () => {
+  it('rejects fractional raw token amounts instead of truncating', () => {
+    expect(() => toRawMinima(15n, 1)).toThrow('not divisible');
+  });
+
+  it('rejects invalid token scales', () => {
+    expect(() => toRawMinima(10n, -1)).toThrow('non-negative integer');
+  });
+
   it('buildFundingTx with tokenScale>0: input and output amounts are both in raw units', () => {
     const { script, address } = buildAndHashEltooScript([alice, bob]);
     // tokenScale=2 → raw = scaled / 100. Scaled 1000n → raw 10n.
@@ -1057,7 +1066,7 @@ describe('@totemsdk/omnia — executeIntent', () => {
       canAutoApprove: async () => true,
       reserve: async (proposal: { principal?: string }) => {
         calls.push(`reserve:${proposal.principal}`);
-        return { outcome: 'approved' as const, reason: 'ok' };
+        return { outcome: 'approved' as const, reason: 'ok', reservationState: 'new' as const };
       },
       commit: async (id: string) => {
         calls.push(`commit:${id}`);
@@ -1120,6 +1129,30 @@ describe('@totemsdk/omnia — executeIntent', () => {
     const result = await executeIntent(channel, intent as any, lifecyclePolicy as any, leaseProvider as any, aliceSigner);
     expect(result.status).toBe('pending_user');
     expect(reserveCalled).toBe(false);
+  });
+
+  it('releases a reservation when updateState throws', async () => {
+    const calls: string[] = [];
+    const lifecyclePolicy = {
+      canAutoApprove: async () => true,
+      reserve: async () => ({ outcome: 'approved' as const, reason: 'ok', reservationState: 'new' as const }),
+      release: async (id: string) => calls.push(`release:${id}`),
+    };
+    const signer = { ...aliceSigner, sign: jest.fn().mockRejectedValue(new Error('sign failed')) } as any;
+    await expect(executeIntent(channel, { type: 'channel_update', amount: '100', recipient: '0xBOBADDR' } as any, lifecyclePolicy as any, leaseProvider as any, signer, { operationId: 'stable-throw' })).rejects.toThrow('sign failed');
+    expect(calls).toEqual(['release:intent-stable-throw']);
+  });
+
+  it('short-circuits a committed operation replay', async () => {
+    const calls: string[] = [];
+    const lifecyclePolicy = {
+      canAutoApprove: async () => true,
+      reserve: async () => ({ outcome: 'approved' as const, reason: 'already', reservationState: 'already_committed' as const }),
+      commit: async () => calls.push('commit'),
+    };
+    const result = await executeIntent(channel, { type: 'channel_update', amount: '100', recipient: '0xBOBADDR' } as any, lifecyclePolicy as any, leaseProvider as any, aliceSigner, { operationId: 'stable-replay' });
+    expect(result.idempotentReplay).toBe(true);
+    expect(calls).toEqual([]);
   });
 });
 

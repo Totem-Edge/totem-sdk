@@ -99,6 +99,34 @@ export function createEdgeRuntime(opts: {
       return { ok: result.ok, action, data: result.data, policyResult, error: result.error, errorCode: result.errorCode };
     }
 
+    if (action.startsWith('omnia:')) {
+      if (!ports.omnia) {
+        return { ok: false, action, policyResult, error: 'No Omnia port configured', errorCode: 'PORT_MISSING' };
+      }
+      const operation = action.slice('omnia:'.length);
+      const handlers: Record<string, (value: Record<string, unknown>) => Promise<import('./types.js').EdgeOperationResult>> = {
+        getChannels: (value) => ports.omnia!.getChannels(value),
+        openChannel: (value) => ports.omnia!.openChannel(value),
+        pay: (value) => ports.omnia!.pay(value),
+        settle: (value) => ports.omnia!.settle(value),
+        closeChannel: (value) => ports.omnia!.closeChannel(value),
+        getRoute: (value) => ports.omnia!.getRoute(value),
+        payMultiHop: (value) => ports.omnia!.payMultiHop(value),
+        getSwapRate: (value) => ports.omnia!.getSwapRate(value),
+        createFactory: (value) => ports.omnia!.createFactory(value),
+        openVirtualChannel: (value) => ports.omnia!.openVirtualChannel(value),
+        closeFactory: (value) => ports.omnia!.closeFactory(value),
+        spliceIn: (value) => ports.omnia!.spliceIn(value),
+        spliceOut: (value) => ports.omnia!.spliceOut(value),
+      };
+      const handler = handlers[operation];
+      if (!handler) {
+        return { ok: false, action, policyResult, error: `Unknown Omnia operation: ${operation}`, errorCode: 'UNKNOWN_ACTION' };
+      }
+      const result = await handler({ subject, ...(payload ?? {}) });
+      return { ok: result.ok, action, data: result.data, policyResult, error: result.error, errorCode: result.errorCode };
+    }
+
     return {
       ok: false,
       action,

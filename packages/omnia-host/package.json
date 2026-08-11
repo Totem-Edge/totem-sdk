@@ -1,0 +1,75 @@
+{
+  "name": "@totemsdk/omnia-host",
+  "version": "0.1.0",
+  "description": "Durable Omnia node daemon for channel lifecycle, routing, and control APIs",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "omnia-host": "dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "prepare": "tsc",
+    "clean": "rm -rf dist",
+    "test": "jest",
+    "start": "node dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "@totemsdk/chain-provider": "workspace:^",
+    "@totemsdk/omnia": "workspace:^",
+    "@totemsdk/omnia-factory": "workspace:^",
+    "@totemsdk/omnia-router": "workspace:^",
+    "@totemsdk/omnia-splice": "workspace:^",
+    "@totemsdk/omnia-vtxo": "workspace:^",
+    "@totemsdk/minima-rpc": "workspace:^",
+    "@totemsdk/wots-lease": "workspace:^",
+    "better-sqlite3": "^12.2.0",
+    "ws": "^8.21.1"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^20.19.43",
+    "@types/ws": "^8.5.0",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.4.11",
+    "typescript": "5.9.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "author": "Totem SDK",
+  "homepage": "https://totem.ing",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/totem-sdk/totem-sdk.git",
+    "directory": "packages/omnia-host"
+  },
+  "bugs": {
+    "url": "https://github.com/Totem-Edge/totem-sdk/issues"
+  },
+  "keywords": [
+    "totem",
+    "totemsdk",
+    "omnia",
+    "payment-channel",
+    "daemon",
+    "node"
+  ]
+}

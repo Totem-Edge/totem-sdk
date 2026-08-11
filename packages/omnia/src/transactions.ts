@@ -56,8 +56,15 @@ function channelStateVars(settlement: boolean, sequence: number): StateValue[] {
  * For native Minima (tokenScale=0), no conversion is needed.
  */
 export function toRawMinima(scaledAmount: bigint, tokenScale: number): bigint {
+  if (!Number.isInteger(tokenScale) || tokenScale < 0) {
+    throw new Error(`tokenScale must be a non-negative integer, received ${tokenScale}`);
+  }
+  if (scaledAmount < 0n) throw new Error(`scaledAmount must be non-negative, received ${scaledAmount}`);
   if (tokenScale === 0) return scaledAmount;
   const divisor = 10n ** BigInt(tokenScale);
+  if (scaledAmount % divisor !== 0n) {
+    throw new Error(`scaledAmount ${scaledAmount} is not divisible by tokenScale divisor ${divisor}`);
+  }
   return scaledAmount / divisor;
 }
 

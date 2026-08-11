@@ -1,7 +1,7 @@
 /**
  * @module @totemsdk/realtime/normalize
  *
- * Canonical normalizer that maps raw MegaMMR / LookupNode / PureMinima coin
+ * Canonical normalizer that maps raw MegaMMR / LookupNode / Minima RPC coin
  * and balance shapes to the unified PortfolioEntry.
  *
  * NFT classification (all three conditions must be met to avoid misclassifying

@@ -28,7 +28,7 @@
     "@totemsdk/core": "workspace:^",
     "@totemsdk/lookup-protocol": "workspace:^",
     "@totemsdk/chain-provider": "workspace:^",
-    "@totemsdk/pureminima-rpc": "workspace:^",
+    "@totemsdk/minima-rpc": "workspace:^",
     "@totemsdk/wots-lease": "workspace:^",
     "@totemsdk/txpow": "workspace:^",
     "better-sqlite3": "^12.2.0"

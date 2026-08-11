@@ -1,13 +1,13 @@
-/// Java-compatible seed derivation helpers.
-///
-/// Matches Minima's Crypto.getInstance().hashAllObjects() and
-/// related seed derivation functions byte-for-byte.
-///
-/// These functions use the Streamable serialization format to
-/// produce deterministic, Java-compatible outputs.
+//! Java-compatible seed derivation helpers.
+//!
+//! Matches Minima's Crypto.getInstance().hashAllObjects() and
+//! related seed derivation functions byte-for-byte.
+//!
+//! These functions use the Streamable serialization format to
+//! produce deterministic, Java-compatible outputs.
 
+use crate::streamable::{write_mini_data, write_mini_number};
 use sha3::{Digest, Sha3_256};
-use crate::streamable::{write_mini_number, write_mini_data};
 
 /// SHA3-256 hash function.
 fn sha3_256(data: &[u8]) -> Vec<u8> {

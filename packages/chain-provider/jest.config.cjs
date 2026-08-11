@@ -13,7 +13,7 @@ module.exports = {
   },
   moduleNameMapper: {
     '^@totemsdk/core$': '<rootDir>/../core/src/index.ts',
-    '^@totemsdk/pureminima-rpc$': '<rootDir>/../pureminima-rpc/src/index.ts',
+    '^@totemsdk/minima-rpc$': '<rootDir>/../minima-rpc/src/index.ts',
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
 };

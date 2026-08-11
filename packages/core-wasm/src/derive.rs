@@ -1,16 +1,16 @@
-/// Address derivation — script → MMR leaf → Mx address.
-///
-/// Matches Minima's Address.java constructor:
-///   MMRData scriptdata = MMRData.CreateMMRDataLeafNode(mScript, MiniNumber.ZERO);
-///   MMRProof proof = mmr.getProof(entry.getEntryNumber());
-///   MMRData root = proof.calculateProof(scriptdata);
-///   mAddressData = root.getData();
-///
-/// For a single-leaf MMR, the root equals the leaf commitment:
-///   leaf = SHA3-256( MiniNumber.ZERO | MiniData(script) | MiniNumber.ZERO )
+//! Address derivation — script → MMR leaf → Mx address.
+//!
+//! Matches Minima's Address.java constructor:
+//!   MMRData scriptdata = MMRData.CreateMMRDataLeafNode(mScript, MiniNumber.ZERO);
+//!   MMRProof proof = mmr.getProof(entry.getEntryNumber());
+//!   MMRData root = proof.calculateProof(scriptdata);
+//!   mAddressData = root.getData();
+//!
+//! For a single-leaf MMR, the root equals the leaf commitment:
+//!   leaf = SHA3-256( MiniNumber.ZERO | MiniData(script) | MiniNumber.ZERO )
 
+use crate::streamable::{write_mini_data, write_mini_number};
 use sha3::{Digest, Sha3_256};
-use crate::streamable::{write_mini_number, write_mini_data};
 
 /// Convert a KISSVM script to a Minima address (32-byte root).
 ///

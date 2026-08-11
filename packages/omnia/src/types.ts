@@ -251,4 +251,6 @@ export interface IntentResult {
   status: 'approved' | 'pending_user' | 'rejected';
   receipt?: AgentReceipt;
   channel?: OmniaChannel;
+  /** True when a stable operation ID was already committed. */
+  idempotentReplay?: boolean;
 }

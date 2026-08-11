@@ -3,175 +3,59 @@ name: Publish @totemsdk packages
 on:
   push:
     tags:
-      - 'totemsdk/core-v*'
-      - 'totemsdk/core-wasm-v*'
-      - 'totemsdk/server-v*'
-      - 'totemsdk/realtime-v*'
-      - 'totemsdk/root-identity-v*'
-      - 'totemsdk/omnia-vtxo-v*'
+      - 'totemsdk/**'
 
 jobs:
+  resolve:
+    name: Resolve release package
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '22'
+      - name: Resolve publishable package from tag
+        id: matrix
+        run: echo "matrix=$(node scripts/resolve-release-matrix.mjs "$GITHUB_REF_NAME")" >> "$GITHUB_OUTPUT"
+
   publish:
     name: Publish ${{ matrix.npm_name }}
     runs-on: ubuntu-latest
+    needs: resolve
     permissions:
       contents: read
-      id-token: write   # retained for future provenance use (currently unused — private repo)
+      id-token: write   # npm trusted publishing provenance
 
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - pkg: core
-            dir: packages/core
-            npm_name: '@totemsdk/core'
-            needs_wasm: true
-          - pkg: core-wasm
-            dir: packages/core-wasm
-            npm_name: '@totemsdk/core-wasm'
-            needs_wasm: true
-          - pkg: server
-            dir: packages/server
-            npm_name: '@totemsdk/server'
-          - pkg: realtime
-            dir: packages/realtime
-            npm_name: '@totemsdk/realtime'
-          - pkg: root-identity
-            dir: packages/root-identity
-            npm_name: '@totemsdk/root-identity'
-          - pkg: omnia-vtxo
-            dir: packages/omnia-vtxo
-            npm_name: '@totemsdk/omnia-vtxo'
+      matrix: ${{ fromJSON(needs.resolve.outputs.matrix) }}
 
     steps:
-      # ── Gate: only proceed when the pushed tag targets this package ───────────
-      # NOTE: The matrix context is not available in job-level `if:` expressions,
-      # so we gate here at step level instead.
-      # Tag format: totemsdk/<pkg>-v<semver>  e.g. totemsdk/core-v1.2.3
-      - name: Check tag matches this package
-        id: gate
-        run: |
-          PREFIX="totemsdk/${{ matrix.pkg }}-v"
-          if [[ "$GITHUB_REF_NAME" == ${PREFIX}* ]]; then
-            echo "proceed=true" >> "$GITHUB_OUTPUT"
-            echo "✅ Tag '$GITHUB_REF_NAME' matches prefix '$PREFIX'"
-          else
-            echo "proceed=false" >> "$GITHUB_OUTPUT"
-            echo "ℹ️  Tag '$GITHUB_REF_NAME' does not match '$PREFIX' — this job is a no-op."
-          fi
-
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        if: steps.gate.outputs.proceed == 'true'
-
-      - uses: pnpm/action-setup@f520eceda224fe1a4aed5a2a27a194379a409996 # v6
-        if: steps.gate.outputs.proceed == 'true'
+      - name: Setup filtered workspace
+        uses: ./.github/actions/setup-pnpm
         with:
-          version: 11.10.0
-
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
-        if: steps.gate.outputs.proceed == 'true'
+          filter: ${{ matrix.npm_name }}...
+      - name: Setup Rust and WASM toolchain
+        if: matrix.needs_wasm
+        uses: ./.github/actions/setup-rust-wasm
         with:
-          node-version: '22'
-          registry-url: 'https://registry.npmjs.org'
-          cache: 'pnpm'
-
-      - name: Verify package eligibility
-        if: steps.gate.outputs.proceed == 'true'
-        env:
-          PACKAGE_DIR: ${{ matrix.dir }}
-        run: |
-          node <<'NODE'
-          const fs = require('fs');
-          const config = JSON.parse(fs.readFileSync('scripts/workspace-gates.config.json', 'utf8'));
-          const packageDir = process.env.PACKAGE_DIR;
-          const entry = config.packages[packageDir];
-          if (!entry) {
-            throw new Error(`Package is missing from workspace-gates.config.json: ${packageDir}`);
-          }
-          if (entry.status !== 'publishable') {
-            throw new Error(`Package is not publishable: ${packageDir} (${entry.reason ?? 'no reason supplied'})`);
-          }
-          console.log(`Publish eligibility confirmed: ${packageDir}`);
-          NODE
-
-      - name: Install dependencies (workspace)
-        if: steps.gate.outputs.proceed == 'true'
-        run: pnpm install --frozen-lockfile
-
-      # ── Pre-build @totemsdk/core-wasm (Rust → WASM) ──
-      # Required both when publishing core-wasm itself and when publishing core,
-      # which consumes core-wasm as a workspace dependency.
-      - name: Install Rust toolchain
-        if: steps.gate.outputs.proceed == 'true' && matrix.needs_wasm
-        uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
+          cache-key: ${{ matrix.pkg }}
+      - name: Verify package release
+        uses: ./.github/actions/verify-package
         with:
-          toolchain: stable
-          targets: wasm32-unknown-unknown
-
-      - name: Install wasm-pack
-        if: steps.gate.outputs.proceed == 'true' && matrix.needs_wasm
-        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-
-      - name: Build @totemsdk/core-wasm
-        if: steps.gate.outputs.proceed == 'true' && matrix.needs_wasm
-        working-directory: packages/core-wasm
-        run: npm run build
-
-      # ── Pre-build @totemsdk/core so dependent packages can resolve its types ──
-      - name: Build @totemsdk/core (workspace dependency)
-        if: steps.gate.outputs.proceed == 'true' && matrix.pkg != 'core'
-        run: npm run build
-        working-directory: packages/core
-
-      # ── Extract version from tag ──────────────────────────────────────────────
-      - name: Extract version from tag
-        id: meta
-        if: steps.gate.outputs.proceed == 'true'
-        run: |
-          TAG="${GITHUB_REF_NAME}"          # e.g. totemsdk/core-v1.2.3
-          SLUG="${TAG#totemsdk/}"           # e.g. core-v1.2.3
-          VERSION="${SLUG##*-v}"            # e.g. 1.2.3
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-
-      # ── Verify package.json version matches the tag ───────────────────────────
-      - name: Verify package.json version matches tag
-        if: steps.gate.outputs.proceed == 'true'
-        run: |
-          ACTUAL=$(node -p "require('./${{ matrix.dir }}/package.json').version")
-          EXPECTED="${{ steps.meta.outputs.version }}"
-          if [ "$ACTUAL" != "$EXPECTED" ]; then
-            echo "Version mismatch: package.json has $ACTUAL but tag says $EXPECTED"
-            exit 1
-          fi
-          echo "✅ ${{ matrix.npm_name }}@$ACTUAL confirmed"
-
-      # ── Build the package ──────────────────────────────────────────────────
-      - name: Build workspace dependencies
-        if: steps.gate.outputs.proceed == 'true' && matrix.pkg != 'core'
-        run: pnpm -r --filter "@totemsdk/core..." run build
-
-      - name: Build ${{ matrix.npm_name }}
-        if: steps.gate.outputs.proceed == 'true'
-        run: pnpm run build
-        working-directory: ${{ matrix.dir }}
-
-      # ── Test the package from its packed tarball ───────────────────────────
-      - name: Test clean consumer from packed tarball
-        if: steps.gate.outputs.proceed == 'true'
-        run: node scripts/verify-consumer-pack.mjs "${{ matrix.dir }}"
-
-      - name: Run unit tests for ${{ matrix.npm_name }}
-        if: steps.gate.outputs.proceed == 'true'
-        run: pnpm test
-        working-directory: ${{ matrix.dir }}
+          package-name: ${{ matrix.npm_name }}
+          package-dir: ${{ matrix.dir }}
 
       # ── Publish ────────────────────────────────────────────────────────────
-      - name: Publish ${{ matrix.npm_name }}@${{ steps.meta.outputs.version }}
-        if: steps.gate.outputs.proceed == 'true'
+      - name: Publish ${{ matrix.npm_name }}@${{ matrix.version }}
         run: pnpm publish --access public --no-git-checks
         working-directory: ${{ matrix.dir }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: 'true'
 
   # ── Rebuild & deploy TotemEdgeSDKDocs ──────────────────────────────────────
   # Runs only after ALL publish matrix jobs complete successfully.

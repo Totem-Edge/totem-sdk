@@ -210,15 +210,15 @@ importers:
       '@totemsdk/edge':
         specifier: workspace:^
         version: link:../../packages/edge
+      '@totemsdk/minima-rpc':
+        specifier: workspace:^
+        version: link:../../packages/minima-rpc
       '@totemsdk/omnia':
         specifier: workspace:^
         version: link:../../packages/omnia
       '@totemsdk/pear':
         specifier: workspace:^
         version: link:../../packages/pear
-      '@totemsdk/pureminima-rpc':
-        specifier: workspace:^
-        version: link:../../packages/pureminima-rpc
       hyperbee:
         specifier: '>=2.0.0'
         version: 2.27.3
@@ -321,6 +321,9 @@ importers:
         specifier: workspace:^
         version: link:../proof
     devDependencies:
+      '@totemsdk/core':
+        specifier: workspace:^
+        version: link:../core
       '@types/jest':
         specifier: ^29.0.0
         version: 29.5.14
@@ -342,9 +345,9 @@ importers:
       '@totemsdk/core':
         specifier: workspace:^
         version: link:../core
-      '@totemsdk/pureminima-rpc':
+      '@totemsdk/minima-rpc':
         specifier: workspace:^
-        version: link:../pureminima-rpc
+        version: link:../minima-rpc
     devDependencies:
       '@types/jest':
         specifier: ^30.0.0
@@ -1002,9 +1005,9 @@ importers:
       '@totemsdk/lookup-protocol':
         specifier: workspace:^
         version: link:../lookup-protocol
-      '@totemsdk/pureminima-rpc':
+      '@totemsdk/minima-rpc':
         specifier: workspace:^
-        version: link:../pureminima-rpc
+        version: link:../minima-rpc
       '@totemsdk/txpow':
         specifier: workspace:^
         version: link:../txpow
@@ -1091,6 +1094,24 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
 
+  packages/minima-rpc:
+    devDependencies:
+      '@types/jest':
+        specifier: ^30.0.0
+        version: 30.0.0
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.43
+      jest:
+        specifier: ^30.4.2
+        version: 30.4.2(@types/node@20.19.43)
+      ts-jest:
+        specifier: ^29.0.0
+        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
   packages/omnia:
     dependencies:
       '@totemsdk/agent-policy':
@@ -1171,6 +1192,61 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
 
+  packages/omnia-host:
+    dependencies:
+      '@totemsdk/chain-provider':
+        specifier: workspace:^
+        version: link:../chain-provider
+      '@totemsdk/minima-rpc':
+        specifier: workspace:^
+        version: link:../minima-rpc
+      '@totemsdk/omnia':
+        specifier: workspace:^
+        version: link:../omnia
+      '@totemsdk/omnia-factory':
+        specifier: workspace:^
+        version: link:../omnia-factory
+      '@totemsdk/omnia-router':
+        specifier: workspace:^
+        version: link:../omnia-router
+      '@totemsdk/omnia-splice':
+        specifier: workspace:^
+        version: link:../omnia-splice
+      '@totemsdk/omnia-vtxo':
+        specifier: workspace:^
+        version: link:../omnia-vtxo
+      '@totemsdk/wots-lease':
+        specifier: workspace:^
+        version: link:../wots-lease
+      better-sqlite3:
+        specifier: ^12.2.0
+        version: 12.11.1
+      ws:
+        specifier: ^8.21.1
+        version: 8.21.1
+    devDependencies:
+      '@types/better-sqlite3':
+        specifier: ^7.6.13
+        version: 7.6.13
+      '@types/jest':
+        specifier: ^30.0.0
+        version: 30.0.0
+      '@types/node':
+        specifier: ^20.19.43
+        version: 20.19.43
+      '@types/ws':
+        specifier: ^8.5.0
+        version: 8.18.1
+      jest:
+        specifier: ^30.4.2
+        version: 30.4.2(@types/node@20.19.43)
+      ts-jest:
+        specifier: ^29.4.11
+        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.4.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
   packages/omnia-router:
     dependencies:
       '@totemsdk/core':
@@ -1231,6 +1307,10 @@ importers:
         version: 5.9.3
 
   packages/omnia-vtxo:
+    dependencies:
+      '@totemsdk/core':
+        specifier: workspace:^
+        version: link:../core
     devDependencies:
       '@types/jest':
         specifier: ^30.0.0

@@ -1,14 +1,14 @@
-/// TxPoW proof-of-work mining loop.
-///
-/// Matches Minima's TxPoWChecker.java:
-///   txpowId = SHA3-256(serialize(TxHeader))
-///   valid   = txpowId < mTxnDifficulty (big-endian 256-bit comparison)
-///
-/// The mining loop iterates the nonce in the TxHeader until a valid hash is found.
-/// Moving this into WASM eliminates hundreds of JS↔WASM boundary crossings per chunk.
+//! TxPoW proof-of-work mining loop.
+//!
+//! Matches Minima's TxPoWChecker.java:
+//!   txpowId = SHA3-256(serialize(TxHeader))
+//!   valid   = txpowId < mTxnDifficulty (big-endian 256-bit comparison)
+//!
+//! The mining loop iterates the nonce in the TxHeader until a valid hash is found.
+//! Moving this into WASM eliminates hundreds of JS↔WASM boundary crossings per chunk.
 
+use crate::streamable::{write_hash_to_stream, write_mini_data, write_mini_number};
 use sha3::{Digest, Sha3_256};
-use crate::streamable::{write_mini_number, write_mini_data, write_hash_to_stream};
 
 fn sha3_256(data: &[u8]) -> Vec<u8> {
     let mut hasher = Sha3_256::new();
@@ -19,8 +19,12 @@ fn sha3_256(data: &[u8]) -> Vec<u8> {
 /// Big-endian 256-bit comparison: true if a < b.
 fn is_less_than(a: &[u8], b: &[u8]) -> bool {
     for i in 0..32 {
-        if a[i] < b[i] { return true; }
-        if a[i] > b[i] { return false; }
+        if a[i] < b[i] {
+            return true;
+        }
+        if a[i] > b[i] {
+            return false;
+        }
     }
     false
 }
@@ -30,7 +34,9 @@ fn is_less_than(a: &[u8], b: &[u8]) -> bool {
 fn next_nonce_boundary(nonce: u64) -> u64 {
     let nonce_bytes = write_mini_number(nonce as i64, 0);
     let nonce_value_len = nonce_bytes.len() - 2;
-    if nonce_value_len == 0 { return 128; }
+    if nonce_value_len == 0 {
+        return 128;
+    }
     2u64.pow((8 * nonce_value_len - 1) as u32)
 }
 
@@ -137,14 +143,24 @@ pub fn mine_txpow(
 
         let boundary = next_nonce_boundary(nonce);
         let chunk_size: u64 = 10_000;
-        let chunk_end = if nonce + chunk_size < boundary { nonce + chunk_size } else { boundary };
+        let chunk_end = if nonce + chunk_size < boundary {
+            nonce + chunk_size
+        } else {
+            boundary
+        };
 
         let nonce_bytes = write_mini_number(nonce as i64, 0);
         let nonce_value_len = nonce_bytes.len() - 2;
         let mut header_buf = nonce_bytes;
         header_buf.extend_from_slice(&header_tail);
 
-        if let Some(found) = mine_chunk(&mut header_buf, nonce_value_len, txn_difficulty, nonce, chunk_end) {
+        if let Some(found) = mine_chunk(
+            &mut header_buf,
+            nonce_value_len,
+            txn_difficulty,
+            nonce,
+            chunk_end,
+        ) {
             let final_nonce_bytes = write_mini_number(found as i64, 0);
             let mut final_header = final_nonce_bytes;
             final_header.extend_from_slice(&header_tail);
@@ -187,7 +203,13 @@ pub fn mine_txpow_chunk(
     let mut header_buf = nonce_bytes;
     header_buf.extend_from_slice(&header_tail);
 
-    mine_chunk(&mut header_buf, nonce_value_len, txn_difficulty, start_nonce, chunk_end)
+    mine_chunk(
+        &mut header_buf,
+        nonce_value_len,
+        txn_difficulty,
+        start_nonce,
+        chunk_end,
+    )
 }
 
 #[cfg(test)]

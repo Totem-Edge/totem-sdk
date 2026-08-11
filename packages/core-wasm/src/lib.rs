@@ -1,23 +1,23 @@
-/// Totem SDK Core — Quantum-resistant WOTS+ cryptographic engine
-///
-/// Compiled to WASM for use in browsers, Node.js, Pear/Bare, and edge devices.
-/// All functions are byte-exact compatible with the Minima Java node.
+//! Totem SDK Core — Quantum-resistant WOTS+ cryptographic engine
+//!
+//! Compiled to WASM for use in browsers, Node.js, Pear/Bare, and edge devices.
+//! All functions are byte-exact compatible with the Minima Java node.
 
-pub mod params;
-pub mod utils;
-pub mod streamable;
-pub mod java_streamables;
-pub mod wots;
 pub mod bip39;
-pub mod minima32;
 pub mod derive;
-pub mod script;
-pub mod transaction;
-pub mod verify;
+pub mod java_streamables;
+pub mod minima32;
 pub mod mmr;
+pub mod params;
+pub mod script;
+pub mod streamable;
+pub mod transaction;
 pub mod treekey;
 pub mod txpow_mine;
+pub mod utils;
+pub mod verify;
 pub mod wasm_tree;
+pub mod wots;
 
 use wasm_bindgen::prelude::*;
 
@@ -33,9 +33,24 @@ pub fn get_params() -> JsValue {
     js_sys::Reflect::set(&obj, &"n".into(), &(params::WOTS_N as u32).into()).unwrap();
     js_sys::Reflect::set(&obj, &"L".into(), &(params::WOTS_L as u32).into()).unwrap();
     js_sys::Reflect::set(&obj, &"maxDigit".into(), &(params::MAX_DIGIT as u32).into()).unwrap();
-    js_sys::Reflect::set(&obj, &"maxSignatures".into(), &(params::MAX_SIGNATURES as u32).into()).unwrap();
-    js_sys::Reflect::set(&obj, &"signatureLevels".into(), &(params::SIGNATURE_LEVELS as u32).into()).unwrap();
-    js_sys::Reflect::set(&obj, &"addressPrefix".into(), &params::ADDRESS_PREFIX.into()).unwrap();
+    js_sys::Reflect::set(
+        &obj,
+        &"maxSignatures".into(),
+        &(params::MAX_SIGNATURES as u32).into(),
+    )
+    .unwrap();
+    js_sys::Reflect::set(
+        &obj,
+        &"signatureLevels".into(),
+        &(params::SIGNATURE_LEVELS as u32).into(),
+    )
+    .unwrap();
+    js_sys::Reflect::set(
+        &obj,
+        &"addressPrefix".into(),
+        &params::ADDRESS_PREFIX.into(),
+    )
+    .unwrap();
     obj.into()
 }
 
@@ -255,7 +270,10 @@ pub fn write_mini_string_wasm(s: &str) -> Vec<u8> {
 /// Create a unified child TreeKey for a spend address.
 /// Returns the root public key (32 bytes).
 #[wasm_bindgen]
-pub fn create_unified_child_tree_key_wasm(base_seed: &[u8], index: u32) -> Result<Vec<u8>, JsValue> {
+pub fn create_unified_child_tree_key_wasm(
+    base_seed: &[u8],
+    index: u32,
+) -> Result<Vec<u8>, JsValue> {
     let tree = treekey::create_unified_child_tree_key(base_seed, index)
         .map_err(|e| JsValue::from_str(&e))?;
     Ok(tree.get_public_key().to_vec())
@@ -265,21 +283,27 @@ pub fn create_unified_child_tree_key_wasm(base_seed: &[u8], index: u32) -> Resul
 /// Returns the root public key (32 bytes).
 #[wasm_bindgen]
 pub fn create_unified_root_tree_key_wasm(base_seed: &[u8]) -> Result<Vec<u8>, JsValue> {
-    let tree = treekey::create_unified_root_tree_key(base_seed)
-        .map_err(|e| JsValue::from_str(&e))?;
+    let tree =
+        treekey::create_unified_root_tree_key(base_seed).map_err(|e| JsValue::from_str(&e))?;
     Ok(tree.get_public_key().to_vec())
 }
 
 /// Derive a unified address public key without constructing the full TreeKey.
 #[wasm_bindgen]
-pub fn derive_unified_address_public_key_wasm(base_seed: &[u8], index: u32) -> Result<Vec<u8>, JsValue> {
-    treekey::derive_unified_address_public_key(base_seed, index)
-        .map_err(|e| JsValue::from_str(&e))
+pub fn derive_unified_address_public_key_wasm(
+    base_seed: &[u8],
+    index: u32,
+) -> Result<Vec<u8>, JsValue> {
+    treekey::derive_unified_address_public_key(base_seed, index).map_err(|e| JsValue::from_str(&e))
 }
 
 /// Verify an MMR proof for a leaf public key.
 #[wasm_bindgen]
-pub fn verify_mmr_proof_wasm(leaf_pubkey: &[u8], proof_json: &str, expected_root: &[u8]) -> Result<bool, JsValue> {
+pub fn verify_mmr_proof_wasm(
+    leaf_pubkey: &[u8],
+    proof_json: &str,
+    expected_root: &[u8],
+) -> Result<bool, JsValue> {
     verify::verify_mmr_proof_from_json(leaf_pubkey, proof_json, expected_root)
         .map_err(|e| JsValue::from_str(&e))
 }
@@ -311,7 +335,12 @@ pub fn mmr_root_from_public_keys_wasm(pubkeys_flat: &[u8], count: u32) -> Result
 /// Sign multiple messages with the same key index.
 /// Returns flat concatenated signatures: [sig0(1088B), sig1(1088B), ...]
 #[wasm_bindgen]
-pub fn wots_sign_batch_wasm(seed: &[u8], key_index: u32, messages_flat: &[u8], count: u32) -> Vec<u8> {
+pub fn wots_sign_batch_wasm(
+    seed: &[u8],
+    key_index: u32,
+    messages_flat: &[u8],
+    count: u32,
+) -> Vec<u8> {
     let msg_size = 32usize;
     let mut messages = Vec::with_capacity(count as usize);
     for i in 0..count as usize {
@@ -343,9 +372,19 @@ pub fn derive_full_public_key_batch_wasm(seed: &[u8], start_index: u32, count: u
 /// Mine a TxPoW by iterating the header nonce.
 /// Returns JSON: { minedHeaderBytes: hex, txpowId: hex, nonce: string, iterations: string }
 #[wasm_bindgen]
-pub fn mine_txpow_wasm(tx_body_bytes: &[u8], txn_difficulty: &[u8], time_milli: u32, max_iterations: u32) -> Result<String, JsValue> {
-    let result = txpow_mine::mine_txpow(tx_body_bytes, txn_difficulty, time_milli as u64, max_iterations as u64)
-        .map_err(|e| JsValue::from_str(&e))?;
+pub fn mine_txpow_wasm(
+    tx_body_bytes: &[u8],
+    txn_difficulty: &[u8],
+    time_milli: u32,
+    max_iterations: u32,
+) -> Result<String, JsValue> {
+    let result = txpow_mine::mine_txpow(
+        tx_body_bytes,
+        txn_difficulty,
+        time_milli as u64,
+        max_iterations as u64,
+    )
+    .map_err(|e| JsValue::from_str(&e))?;
 
     let json = serde_json::json!({
         "minedHeaderBytes": hex::encode(&result.mined_header_bytes),
@@ -372,7 +411,8 @@ pub fn mine_txpow_chunk_wasm(
         time_milli as u64,
         start_nonce as u64,
         chunk_size as u64,
-    ).map(|n| n.to_string())
+    )
+    .map(|n| n.to_string())
 }
 
 // ---------------------------------------------------------------------------
@@ -394,7 +434,8 @@ pub fn wasm_tree_key_new(seed: &[u8], keys_per_level: u32, levels: u32) -> Resul
 #[wasm_bindgen]
 pub fn wasm_tree_key_sign(handle: u32, data: &[u8]) -> Result<String, JsValue> {
     let mut registry = WASM_TREE_REGISTRY.lock().unwrap();
-    let tree = registry.get_mut(handle)
+    let tree = registry
+        .get_mut(handle)
         .ok_or_else(|| JsValue::from_str("Invalid tree handle"))?;
     tree.sign(data).map_err(|e| JsValue::from_str(&e))
 }
@@ -403,7 +444,8 @@ pub fn wasm_tree_key_sign(handle: u32, data: &[u8]) -> Result<String, JsValue> {
 #[wasm_bindgen]
 pub fn wasm_tree_key_get_public_key(handle: u32) -> Result<Vec<u8>, JsValue> {
     let registry = WASM_TREE_REGISTRY.lock().unwrap();
-    let tree = registry.get(handle)
+    let tree = registry
+        .get(handle)
         .ok_or_else(|| JsValue::from_str("Invalid tree handle"))?;
     Ok(tree.get_public_key().to_vec())
 }
@@ -412,7 +454,8 @@ pub fn wasm_tree_key_get_public_key(handle: u32) -> Result<Vec<u8>, JsValue> {
 #[wasm_bindgen]
 pub fn wasm_tree_key_get_uses(handle: u32) -> Result<u32, JsValue> {
     let registry = WASM_TREE_REGISTRY.lock().unwrap();
-    let tree = registry.get(handle)
+    let tree = registry
+        .get(handle)
         .ok_or_else(|| JsValue::from_str("Invalid tree handle"))?;
     Ok(tree.get_uses() as u32)
 }
@@ -421,7 +464,8 @@ pub fn wasm_tree_key_get_uses(handle: u32) -> Result<u32, JsValue> {
 #[wasm_bindgen]
 pub fn wasm_tree_key_set_uses(handle: u32, uses: u32) -> Result<(), JsValue> {
     let mut registry = WASM_TREE_REGISTRY.lock().unwrap();
-    let tree = registry.get_mut(handle)
+    let tree = registry
+        .get_mut(handle)
         .ok_or_else(|| JsValue::from_str("Invalid tree handle"))?;
     tree.set_uses(uses as u64);
     Ok(())
@@ -431,7 +475,8 @@ pub fn wasm_tree_key_set_uses(handle: u32, uses: u32) -> Result<(), JsValue> {
 #[wasm_bindgen]
 pub fn wasm_tree_key_get_max_uses(handle: u32) -> Result<u32, JsValue> {
     let registry = WASM_TREE_REGISTRY.lock().unwrap();
-    let tree = registry.get(handle)
+    let tree = registry
+        .get(handle)
         .ok_or_else(|| JsValue::from_str("Invalid tree handle"))?;
     Ok(tree.get_max_uses() as u32)
 }
@@ -446,8 +491,8 @@ pub fn wasm_tree_key_free(handle: u32) {
 // Global TreeKey registry (handles → WasmTreeKey)
 // ---------------------------------------------------------------------------
 
-use std::sync::Mutex;
 use std::collections::HashMap;
+use std::sync::Mutex;
 
 static WASM_TREE_REGISTRY: once_cell::sync::Lazy<Mutex<TreeRegistry>> =
     once_cell::sync::Lazy::new(|| Mutex::new(TreeRegistry::new()));
@@ -459,7 +504,10 @@ struct TreeRegistry {
 
 impl TreeRegistry {
     fn new() -> Self {
-        TreeRegistry { trees: HashMap::new(), next_handle: 1 }
+        TreeRegistry {
+            trees: HashMap::new(),
+            next_handle: 1,
+        }
     }
 
     fn insert(&mut self, tree: wasm_tree::WasmTreeKey) -> u32 {

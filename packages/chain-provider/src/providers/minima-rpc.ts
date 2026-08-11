@@ -1,8 +1,8 @@
 /**
- * PureMinimaRpcProvider — thin wrapper over @totemsdk/pureminima-rpc.
+ * MinimaRpcProvider — thin wrapper over @totemsdk/minima-rpc.
  */
 
-import type { PureMinimaClient } from '@totemsdk/pureminima-rpc';
+import type { MinimaRpcClient } from '@totemsdk/minima-rpc';
 import type {
   ChainStateProvider,
   CoinsQuery,
@@ -14,8 +14,8 @@ import type {
   BroadcastResult,
 } from '../types.js';
 
-export class PureMinimaRpcProvider implements ChainStateProvider {
-  constructor(private readonly client: PureMinimaClient) {}
+export class MinimaRpcProvider implements ChainStateProvider {
+  constructor(private readonly client: MinimaRpcClient) {}
 
   async getCoins(query: CoinsQuery): Promise<Coin[]> {
     const result = await this.client.coins({
@@ -86,7 +86,7 @@ export class PureMinimaRpcProvider implements ChainStateProvider {
       return {
         success: true,
         txpowid: result?.txpowid,
-        message: 'broadcast via PureMinima txnminepost',
+        message: 'broadcast via MinimaRpc txnminepost',
       };
     } catch (e) {
       return { success: false, message: String(e) };
