@@ -81,7 +81,7 @@ export class OperationStore {
   create(operationId: string, request?: unknown, now = Date.now()): OperationRecord {
     this.db.prepare(`
       INSERT OR IGNORE INTO omnia_operations
-        (operation_id, status, created_at, updated_at, request_json)
+        (operation_id, status, created_at, updated_at, request_json, request_digest)
       VALUES (?, 'pending', ?, ?, ?, ?)
     `).run(operationId, now, now, encode(request), digest(request));
     const record = this.get(operationId);

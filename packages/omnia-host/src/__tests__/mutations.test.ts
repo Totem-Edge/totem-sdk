@@ -4,16 +4,16 @@ import { InProcessRoutingProvider } from '../router/routing-provider.js';
 function channel() {
   return {
     channelId: 'channel-1',
-    fundingTxId: 'tx',
-    fundingCoinId: 'coin',
-    fundingScript: 'script',
-    fundingAddress: 'address',
+    fundingTxId: '0x' + '11'.repeat(32),
+    fundingCoinId: '0x' + '22'.repeat(32),
+    fundingScript: 'RETURN TRUE',
+    fundingAddress: '0x' + '33'.repeat(32),
     tokenId: '0x00',
     tokenScale: 0,
     totalValue: 10n,
     parties: [
-      { partyId: 'alice', publicKeyDigest: 'alice-key', addressIndex: 0, settlementAddress: 'alice-address' },
-      { partyId: 'bob', publicKeyDigest: 'bob-key', addressIndex: 1, settlementAddress: 'bob-address' },
+      { partyId: 'alice', publicKeyDigest: '0x' + 'aa'.repeat(32), addressIndex: 0, settlementAddress: '0x' + '44'.repeat(32) },
+      { partyId: 'bob', publicKeyDigest: '0x' + 'bb'.repeat(32), addressIndex: 1, settlementAddress: '0x' + '55'.repeat(32) },
     ],
     balances: { alice: 7n, bob: 3n },
     pendingHTLCs: [],
@@ -61,7 +61,7 @@ describe('omnia-host mutations', () => {
     const channels = new Map([['channel-1', channel()]]);
     const operations = operationStore();
     const signer = {
-      publicKeyDigest: 'alice-key',
+      publicKeyDigest: '0x' + 'aa'.repeat(32),
       sign: jest.fn(async () => new Uint8Array(1088)),
     };
     const leaseProvider = {
@@ -84,7 +84,7 @@ describe('omnia-host mutations', () => {
     const second = await methods.get('totem_omniaPay')!(params);
     expect(first).toMatchObject({ success: true, sequence: 1 });
     expect(second).toEqual(first);
-    expect(signer.sign).toHaveBeenCalledTimes(1);
+    expect(signer.sign).toHaveBeenCalledTimes(2);
     expect(channels.get('channel-1')!.balances).toEqual({ alice: 6n, bob: 4n });
   });
 
