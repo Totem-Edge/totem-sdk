@@ -13,6 +13,7 @@ import type {
   ChannelSigner,
   ChannelLogEntry,
   SignedClosePackage,
+  ApplyProgramTransitionParams,
 } from './types.js';
 import { buildAndHashEltooScript, scriptAddress } from './script.js';
 import {
@@ -421,6 +422,24 @@ export async function updateState(
   ];
 
   return { channel: updatedChannel, signedState: partialState };
+}
+
+export async function applyProgramTransition(
+  channel: OmniaChannel,
+  params: ApplyProgramTransitionParams,
+  leaseProvider: WotsLeaseProvider,
+  signer?: ChannelSigner,
+): Promise<UpdateStateResult> {
+  return updateState(
+    channel,
+    {
+      newBalances: params.balances ?? channel.balances,
+      memo: params.memo,
+      programTransition: params.transition,
+    },
+    leaseProvider,
+    signer,
+  );
 }
 
 export function attachCounterpartySignature(

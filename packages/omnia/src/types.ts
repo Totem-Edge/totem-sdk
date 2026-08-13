@@ -309,6 +309,12 @@ export interface UpdateDelta {
   programTransition?: ProgramTransition;
 }
 
+export interface ApplyProgramTransitionParams {
+  transition: ProgramTransition;
+  balances?: Record<partyId, bigint>;
+  memo?: string;
+}
+
 /**
  * Return type of `updateState`.
  *

@@ -29,6 +29,7 @@ import {
   createChannel,
   acceptChannel,
   updateState,
+  applyProgramTransition,
   attachCounterpartySignature,
   getChannelReceipt,
   activateChannel,
@@ -683,6 +684,55 @@ describe('@totemsdk/omnia — ChannelProgram', () => {
       { port: 121, value: 77n, type: 'number' },
     ]));
     expect(stateCommitmentV2Matches(channel, result.signedState as SignedChannelState)).toBe(true);
+  });
+
+  it('applies non-payment ProgramTransition without changing balances', async () => {
+    const { registerChannelProgram } = await import('../program');
+    registerChannelProgram({
+      id: 'counter-program',
+      version: 1,
+      buildScript: DefaultEltooPaymentProgram.buildScript,
+      buildStateVariables: ({ previousState, transition }) => {
+        const previousCounter = previousState?.stateVariables.find(v => v.port === 122)?.value;
+        const delta = transition?.action === 'increment'
+          ? BigInt(String(transition.inputs?.by ?? 1n))
+          : 0n;
+        return [{
+          port: 122,
+          value: BigInt(String(previousCounter ?? 0n)) + delta,
+          type: 'number' as const,
+        }];
+      },
+      validateTransition: (_channel, state) => state.programTransition?.action === 'increment'
+        ? { valid: true }
+        : { valid: false, error: 'expected increment action' },
+    });
+    const channel = makeTestChannel({
+      programId: 'counter-program',
+      programVersion: 1,
+      latestState: {
+        sequence: 0,
+        balances: { alice: 600n, bob: 400n },
+        pendingHTLCs: [],
+        stateVariables: [{ port: 122, value: 40n, type: 'number' }],
+        transactionHex: '',
+        signatures: {},
+        signingIndices: {},
+      },
+    });
+
+    const result = await applyProgramTransition(
+      channel,
+      { transition: { action: 'increment', inputs: { by: 2n } } },
+      makeMockLeaseProvider() as any,
+      makeMockSigner('alice', ALICE_PKD),
+    );
+
+    expect(result.channel.balances).toEqual(channel.balances);
+    expect(result.signedState.stateVariables).toEqual(expect.arrayContaining([
+      { port: 122, value: 42n, type: 'number' },
+    ]));
+    expect(result.signedState.programTransition).toEqual({ action: 'increment', inputs: { by: 2n } });
   });
 });
 
