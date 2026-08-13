@@ -185,6 +185,14 @@ export function verifyClosePackage(
   return { valid: errors.length === 0, errors };
 }
 
+/**
+ * Verify close-package artifacts before adding this node's co-signature.
+ *
+ * This accepts packages that are incomplete for unsigned parties, but every
+ * party already present in `state.signatures` must also have matching update
+ * and settlement close-artifact signatures. Use `verifyClosePackage()` after
+ * both parties have signed the final state.
+ */
 export function verifyPartialClosePackage(
   channel: OmniaChannel,
   state: SignedChannelState,

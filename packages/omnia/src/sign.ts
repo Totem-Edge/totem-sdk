@@ -279,6 +279,14 @@ export async function verifyState(
   return { valid: errors.length === 0, errors };
 }
 
+/**
+ * Validate a one-party state update before this node adds its co-signature.
+ *
+ * This performs the sequence, conservation, V2 commitment, program-hook,
+ * partial close-package, and present-signature checks needed by the co-sign
+ * path. It intentionally does not require every channel party to have signed.
+ * After co-signing and merging, use `verifyState()` on the completed state.
+ */
 export async function verifyStateForCoSign(
   channel: OmniaChannel,
   state: SignedChannelState,

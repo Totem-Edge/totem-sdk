@@ -175,6 +175,12 @@ const { signedState: fullState } = attachCounterpartySignature(
 const counter = getStateBigInt(fullState, 120);
 ```
 
+### Co-sign verification boundary
+
+Lease-backed messaging receivers use `verifyStateForCoSign()` before adding their local signature. It accepts a one-party proposal only if that party's update signature, close-package artifacts, sequence, balance conservation, `STATE(102)` commitment, and program validation hooks pass.
+
+After the receiver signs and both partial close packages are merged, use `verifyState()` on the complete state. `verifyState()` is intentionally stricter: it requires every channel party to have signed both the update and paired close-package artifacts.
+
 ### Cooperative close
 
 ```typescript
