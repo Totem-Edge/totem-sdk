@@ -53,6 +53,16 @@ buildDisputePayload (unilateral close)
 | `buildUpdateTx(state, params)` | Build an eltoo update transaction |
 | `buildSettlementTx(state, params)` | Build the cooperative settlement transaction |
 
+### Programmable channel helpers
+
+| Function | What it does |
+|----------|-------------|
+| `applyProgramTransition(channel, params)` | Sign a non-payment program transition |
+| `incrementCounter(channel, by)` | Built-in CounterProgram increment transition |
+| `decrementCounter(channel, by)` | Built-in CounterProgram decrement transition |
+| `setCounter(channel, value)` | Built-in CounterProgram set transition |
+| `sendProgramTransitionStateUpdate(peer, channel, signedState, nonce)` | Send a signed program transition over Omnia messaging |
+
 ### Error types
 
 `ChannelCapacityError` · `DoubleSignError` · `BalanceConservationError` · `SequenceError` · `SigningIndexMonotonicityError` · `ChannelStatusError`
@@ -119,6 +129,50 @@ const { channel: withHtlc, htlcId } = await addHTLC(channel, htlcParams, leasePr
 
 // Fulfill on receipt of the preimage
 const { channel: settled } = await fulfillHTLC(withHtlc, htlcId, preimage, leaseProvider, signer);
+```
+
+### Programmable CounterProgram state
+
+```typescript
+import {
+  COUNTER_PROGRAM_ID,
+  attachCounterpartySignature,
+  createChannel,
+  getStateBigInt,
+  incrementCounter,
+  sendProgramTransitionStateUpdate,
+} from '@totemsdk/omnia';
+
+const { channel, proposal } = await createChannel({
+  localParty: alice,
+  remoteParty: bob,
+  localAmount: 100n,
+  remoteAmount: 0n,
+  fundingCoinId: '0x...',
+  fundingWitnessBytes,
+  program: { id: COUNTER_PROGRAM_ID, version: 1 },
+}, provider);
+
+const { channel: proposedChannel, signedState } = await incrementCounter(
+  channel,
+  5n,
+  leaseProvider,
+  signer,
+);
+
+await sendProgramTransitionStateUpdate(peer, channel, signedState, 1);
+
+// When the ACK arrives, merge the counterparty signature and close package.
+const { signedState: fullState } = attachCounterpartySignature(
+  proposedChannel,
+  signedState,
+  'bob',
+  ack.counterpartyPartialState.signatures.bob,
+  ack.counterpartyPartialState.signingIndices.bob,
+  ack.counterpartyClosePackage,
+);
+
+const counter = getStateBigInt(fullState, 120);
 ```
 
 ### Cooperative close

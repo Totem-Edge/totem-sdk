@@ -162,6 +162,12 @@ export {
 } from './htlc.js';
 
 export {
+  decrementCounter,
+  incrementCounter,
+  setCounter,
+} from './counter.js';
+
+export {
   proposeSettlement,
   startUnilateralClose,
   finalizeUnilateralClose,

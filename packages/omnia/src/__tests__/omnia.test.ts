@@ -80,6 +80,7 @@ import { getStateBigInt, programNumberState } from '../state-vars';
 import { bindPeerIntegration, sendProgramTransitionStateUpdate } from '../integration';
 import { OmniaPeerImpl } from '../peer';
 import { createInMemoryPair } from '@totemsdk/stream-transport';
+import { decrementCounter, incrementCounter, setCounter } from '../counter';
 import type { OmniaMessage } from '../messaging-types';
 import type {
   OmniaChannel,
@@ -947,6 +948,36 @@ describe('@totemsdk/omnia — ChannelProgram', () => {
 
   it('resolves the built-in CounterProgram by id and version', () => {
     expect(resolveChannelProgram({ id: COUNTER_PROGRAM_ID, version: 1 })).toBe(CounterProgram);
+  });
+
+  it('counter helpers build standard ProgramTransition updates', async () => {
+    const makeCounterChannel = (channelId: string) => makeTestChannel({
+      channelId,
+      programId: COUNTER_PROGRAM_ID,
+      programVersion: 1,
+      latestState: {
+        sequence: 0,
+        balances: { alice: 600n, bob: 400n },
+        pendingHTLCs: [],
+        stateVariables: [programNumberState(COUNTER_STATE_PORT, 10n)],
+        transactionHex: '',
+        signatures: {},
+        signingIndices: {},
+      },
+    });
+    const signer = makeMockSigner('alice', ALICE_PKD);
+
+    const inc = await incrementCounter(makeCounterChannel('counter-helper-inc'), 2n, makeMockLeaseProvider() as any, signer);
+    expect(inc.signedState.programTransition).toEqual({ action: 'increment', inputs: { by: 2n } });
+    expect(getStateBigInt(inc.signedState as SignedChannelState, COUNTER_STATE_PORT)).toBe(12n);
+
+    const dec = await decrementCounter(makeCounterChannel('counter-helper-dec'), 3n, makeMockLeaseProvider() as any, signer);
+    expect(dec.signedState.programTransition).toEqual({ action: 'decrement', inputs: { by: 3n } });
+    expect(getStateBigInt(dec.signedState as SignedChannelState, COUNTER_STATE_PORT)).toBe(7n);
+
+    const set = await setCounter(makeCounterChannel('counter-helper-set'), 42n, makeMockLeaseProvider() as any, signer);
+    expect(set.signedState.programTransition).toEqual({ action: 'set', inputs: { value: 42n } });
+    expect(getStateBigInt(set.signedState as SignedChannelState, COUNTER_STATE_PORT)).toBe(42n);
   });
 
   it('exchanges CounterProgram transition over messaging and returns co-sign ACK', async () => {
