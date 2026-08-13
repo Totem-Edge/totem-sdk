@@ -73,6 +73,12 @@ import {
   mergeClosePackages,
   verifyClosePackage,
 } from '../close-package';
+import {
+  recoverChannel,
+  recoverChannelSnapshot,
+  serializeChannelSnapshot,
+  snapshotChannel,
+} from '../persistence';
 import { validateChannelStateWithKissvm } from '../kissvm';
 import { computeProgramUpdateDigestHex, CounterProgram, COUNTER_PROGRAM_ID, COUNTER_STATE_PORT, DefaultEltooPaymentProgram, MeterProgram, METER_PAYMENT_PORT, METER_PROGRAM_ID, METER_READING_PORT, METER_UNIT_PRICE_PORT, METER_USAGE_DELTA_PORT, resolveChannelProgram } from '../program';
 import { canonicalizeProgramTransition, serializeProgramTransition } from '../transition';
@@ -1456,6 +1462,105 @@ describe('@totemsdk/omnia — close packages', () => {
     });
 
     expect(() => mergeClosePackages(closePackageA, closePackageB)).toThrow('different artifacts');
+  });
+});
+
+describe('@totemsdk/omnia — channel persistence and recovery', () => {
+  beforeEach(() => {
+    _resetChannelWatermarks();
+  });
+
+  it('serializes durable channel snapshots without runtime signers', async () => {
+    const channel = makeTestChannel({ localSigner: makeMockSigner('alice', ALICE_PKD) });
+    const { channel: signedChannel } = await makeCompleteSignedState(channel, { alice: 550n, bob: 450n });
+
+    const recovered = recoverChannel(serializeChannelSnapshot(signedChannel));
+
+    expect(recovered.localSigner).toBeUndefined();
+    expect(recovered.latestState?.signatures.alice).toBeInstanceOf(Uint8Array);
+    expect(recovered.latestState?.signatures.bob).toBeInstanceOf(Uint8Array);
+    expect(recovered.latestState?.closePackage?.update.signatures.alice).toBeInstanceOf(Uint8Array);
+    expect(recovered.latestState?.closePackage?.settlement.signatures.bob).toBeInstanceOf(Uint8Array);
+    expect(recovered.totalValue).toBe(1000n);
+    expect(recovered.balances).toEqual({ alice: 550n, bob: 450n });
+  });
+
+  it('recovers latest signed state and unilateral close progress', async () => {
+    const channel = makeTestChannel();
+    const { channel: signedChannel } = await makeCompleteSignedState(channel, { alice: 500n, bob: 500n });
+    const closingChannel = {
+      ...signedChannel,
+      status: 'closing_unilateral' as const,
+      unilateralClose: {
+        channelId: signedChannel.channelId,
+        sequence: signedChannel.currentSequence,
+        updateTxHex: signedChannel.latestState!.closePackage!.update.txHex,
+        settlementTxHex: signedChannel.latestState!.closePackage!.settlement.txHex,
+        contestStartBlock: 10,
+        contestDeadlineBlock: 70,
+        status: 'update_broadcast' as const,
+        updateTxpowId: '0xupdate',
+      },
+    };
+
+    const recovered = recoverChannelSnapshot(serializeChannelSnapshot(closingChannel));
+
+    expect(recovered.warnings).toEqual([]);
+    expect(recovered.latestSignedState?.sequence).toBe(1);
+    expect(recovered.channel.unilateralClose?.settlementTxHex).toBe(closingChannel.unilateralClose.settlementTxHex);
+    expect(recovered.channel.status).toBe('closing_unilateral');
+  });
+
+  it('keeps pendingProposal durable to block conflicting retry after restart', async () => {
+    const channel = makeTestChannel();
+    const leaseProvider = makeMockLeaseProvider();
+    const aliceSigner = makeMockSigner('alice', ALICE_PKD);
+    const { channel: partialChannel } = await updateState(
+      channel,
+      { newBalances: { alice: 590n, bob: 410n } },
+      leaseProvider as any,
+      aliceSigner,
+    );
+
+    _resetChannelWatermarks();
+    const recovered = recoverChannel(serializeChannelSnapshot(partialChannel));
+
+    await expect(updateState(
+      { ...recovered, currentSequence: 0 },
+      { newBalances: { alice: 580n, bob: 420n } },
+      makeMockLeaseProvider() as any,
+      aliceSigner,
+    )).rejects.toThrow(DoubleSignError);
+  });
+
+  it('rejects snapshots that violate balance conservation', () => {
+    const snapshot = snapshotChannel(makeTestChannel({ balances: { alice: 999n, bob: 999n } }));
+
+    expect(() => recoverChannelSnapshot(snapshot)).toThrow('balance conservation failed');
+  });
+
+  it('recovers legacy raw channel JSON rows', () => {
+    const channel = makeTestChannel({
+      localSigner: makeMockSigner('alice', ALICE_PKD),
+      latestState: {
+        sequence: 1,
+        balances: { alice: 600n, bob: 400n },
+        pendingHTLCs: [],
+        stateVariables: [],
+        transactionHex: '0x1234',
+        signatures: { alice: new Uint8Array([9, 8, 7]) },
+        signingIndices: { alice: { addressIndex: 0, l1: 0, l2: 1 } },
+      },
+      currentSequence: 1,
+    });
+    const legacyJson = JSON.stringify(channel, (_key, value) => typeof value === 'bigint' ? { __omniaBigInt: value.toString() } : value);
+
+    const recovered = recoverChannel(legacyJson);
+
+    expect(recovered.localSigner).toBeUndefined();
+    expect(recovered.programId).toBe('eltoo-payment');
+    expect(recovered.latestState?.signatures.alice).toBeInstanceOf(Uint8Array);
+    expect(Array.from(recovered.latestState!.signatures.alice)).toEqual([9, 8, 7]);
   });
 });
 

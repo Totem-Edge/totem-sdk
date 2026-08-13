@@ -16,24 +16,38 @@ function sqliteAvailable(): boolean {
 const describeSqlite = sqliteAvailable() ? describe : describe.skip;
 
 describeSqlite('SqliteChannelStore', () => {
-  it('persists bigint channel state and omits runtime signers', () => {
+  it('persists recoverable channel state and omits runtime signers', () => {
     const store = new SqliteChannelStore(':memory:');
+    const signature = new Uint8Array([1, 2, 3, 4]);
     const channel = {
       channelId: 'channel-1',
       fundingTxId: 'tx',
       fundingCoinId: 'coin',
       fundingScript: 'script',
+      programId: 'eltoo-payment',
+      programVersion: 1,
       fundingAddress: 'address',
       tokenId: '0x00',
       tokenScale: 0,
       totalValue: 10n,
-      parties: [],
+      parties: [
+        { partyId: 'alice', publicKeyDigest: 'alice-pkd', addressIndex: 0 },
+        { partyId: 'bob', publicKeyDigest: 'bob-pkd', addressIndex: 1 },
+      ],
       balances: { alice: 7n, bob: 3n },
       pendingHTLCs: [],
       currentSequence: 2,
-      latestState: null,
+      latestState: {
+        sequence: 2,
+        balances: { alice: 7n, bob: 3n },
+        pendingHTLCs: [],
+        stateVariables: [],
+        transactionHex: '0x1234',
+        signatures: { alice: signature },
+        signingIndices: { alice: { addressIndex: 0, l1: 0, l2: 2 } },
+      },
       stateLog: [],
-      status: 'open',
+      status: 'active',
       channelType: 'direct',
       localSigner: { sign: jest.fn(), publicKeyDigest: 'runtime-only' },
       createdAt: 1,
@@ -45,6 +59,8 @@ describeSqlite('SqliteChannelStore', () => {
 
     expect(loaded.totalValue).toBe(10n);
     expect(loaded.balances).toEqual({ alice: 7n, bob: 3n });
+    expect(loaded.latestState?.signatures.alice).toBeInstanceOf(Uint8Array);
+    expect(Array.from(loaded.latestState!.signatures.alice)).toEqual([1, 2, 3, 4]);
     expect(loaded.localSigner).toBeUndefined();
     expect(store.size).toBe(1);
     store.close();

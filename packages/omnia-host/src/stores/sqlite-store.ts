@@ -1,34 +1,5 @@
 import Database from 'better-sqlite3';
-import type { OmniaChannel } from '@totemsdk/omnia';
-
-const BIGINT_TAG = '__omniaBigInt';
-
-function serialize(value: unknown): string {
-  return JSON.stringify(value, (_key, nested) => {
-    if (typeof nested === 'bigint') return { [BIGINT_TAG]: nested.toString() };
-    return nested;
-  });
-}
-
-function deserialize<T>(value: string): T {
-  return JSON.parse(value, (_key, nested: unknown) => {
-    if (
-      nested &&
-      typeof nested === 'object' &&
-      BIGINT_TAG in nested &&
-      typeof (nested as Record<string, unknown>)[BIGINT_TAG] === 'string'
-    ) {
-      return BigInt((nested as Record<string, string>)[BIGINT_TAG]);
-    }
-    return nested;
-  }) as T;
-}
-
-function durableSnapshot(channel: OmniaChannel): OmniaChannel {
-  // Signer functions are runtime capabilities and must never be persisted.
-  const { localSigner: _localSigner, ...snapshot } = channel;
-  return snapshot;
-}
+import { recoverChannel, serializeChannelSnapshot, type OmniaChannel } from '@totemsdk/omnia';
 
 function iterator<T>(values: T[]): MapIterator<T> {
   let index = 0;
@@ -79,11 +50,11 @@ export class SqliteChannelStore extends Map<string, OmniaChannel> {
 
   override get(channelId: string): OmniaChannel | undefined {
     const row = this.readStatement.get(channelId) as { channel_json: string } | undefined;
-    return row ? deserialize<OmniaChannel>(row.channel_json) : undefined;
+    return row ? recoverChannel(row.channel_json) : undefined;
   }
 
   override set(channelId: string, channel: OmniaChannel): this {
-    this.writeStatement.run(channelId, serialize(durableSnapshot(channel)), Date.now());
+    this.writeStatement.run(channelId, serializeChannelSnapshot(channel), Date.now());
     return this;
   }
 
@@ -110,7 +81,7 @@ export class SqliteChannelStore extends Map<string, OmniaChannel> {
     ).iterate() as Iterable<{ channel_id: string; channel_json: string }>;
     return iterator(Array.from(rows, (row) => [
       row.channel_id,
-      deserialize<OmniaChannel>(row.channel_json),
+      recoverChannel(row.channel_json),
     ]));
   }
 

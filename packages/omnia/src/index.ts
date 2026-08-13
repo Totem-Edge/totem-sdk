@@ -133,6 +133,15 @@ export {
 } from './transition.js';
 
 export {
+  snapshotChannel,
+  serializeChannelSnapshot,
+  deserializeChannelSnapshot,
+  recoverChannelSnapshot,
+  recoverChannel,
+} from './persistence.js';
+export type { OmniaChannelSnapshot, ChannelRecoveryResult } from './persistence.js';
+
+export {
   PROGRAM_STATE_PORT_MIN,
   assertProgramStatePort,
   getStateBigInt,
