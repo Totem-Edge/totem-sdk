@@ -103,6 +103,9 @@ export type { KissvmValidationOptions } from './kissvm.js';
 
 export {
   DefaultEltooPaymentProgram,
+  CounterProgram,
+  COUNTER_PROGRAM_ID,
+  COUNTER_STATE_PORT,
   ELTOO_PAYMENT_PROGRAM_ID,
   buildProgramUpdateTx,
   computeProgramUpdateDigest,
@@ -115,6 +118,14 @@ export {
   canonicalizeProgramTransition,
   serializeProgramTransition,
 } from './transition.js';
+
+export {
+  PROGRAM_STATE_PORT_MIN,
+  assertProgramStatePort,
+  getStateBigInt,
+  getStateValue,
+  programNumberState,
+} from './state-vars.js';
 
 export {
   assertBroadcastProofs,

@@ -74,8 +74,9 @@ import {
   verifyClosePackage,
 } from '../close-package';
 import { validateChannelStateWithKissvm } from '../kissvm';
-import { computeProgramUpdateDigestHex, DefaultEltooPaymentProgram, resolveChannelProgram } from '../program';
+import { computeProgramUpdateDigestHex, CounterProgram, COUNTER_PROGRAM_ID, COUNTER_STATE_PORT, DefaultEltooPaymentProgram, resolveChannelProgram } from '../program';
 import { canonicalizeProgramTransition, serializeProgramTransition } from '../transition';
+import { getStateBigInt, programNumberState } from '../state-vars';
 import type {
   OmniaChannel,
   ChannelParticipant,
@@ -840,6 +841,100 @@ describe('@totemsdk/omnia — ChannelProgram', () => {
         ? { ...v, value: 14n }
         : v),
     })).errors).toEqual(expect.arrayContaining(['state commitment v2 mismatch', 'program validation failed: counter mismatch']));
+  });
+
+  it('built-in CounterProgram applies and validates a co-signed non-payment transition', async () => {
+    const channel = makeTestChannel({
+      programId: COUNTER_PROGRAM_ID,
+      programVersion: 1,
+      latestState: {
+        sequence: 0,
+        balances: { alice: 600n, bob: 400n },
+        pendingHTLCs: [],
+        stateVariables: [programNumberState(COUNTER_STATE_PORT, 10n)],
+        transactionHex: '',
+        signatures: {},
+        signingIndices: {},
+      },
+    });
+    const aliceSigner = makeMockSigner('alice', ALICE_PKD);
+    const bobSigner = makeMockSigner('bob', BOB_PKD);
+    const aliceLeaseProvider = makeMockLeaseProvider();
+    const bobLeaseProvider = makeMockLeaseProvider();
+
+    const { channel: updatedChannel, signedState } = await applyProgramTransition(
+      channel,
+      { transition: { action: 'increment', inputs: { by: 5n } } },
+      aliceLeaseProvider as any,
+      aliceSigner,
+    );
+    const { signState, verifyState } = await import('../sign');
+    const bobPartialState = await signState(
+      channel,
+      {
+        newSequence: signedState.sequence!,
+        newBalances: signedState.balances!,
+        programTransition: signedState.programTransition,
+      },
+      bobLeaseProvider as any,
+      bobSigner,
+    );
+    const { signedState: fullState } = attachCounterpartySignature(
+      updatedChannel,
+      signedState,
+      'bob',
+      bobPartialState.signatures!.bob,
+      bobPartialState.signingIndices!.bob,
+      bobPartialState.closePackage,
+    );
+
+    expect(getStateBigInt(fullState, COUNTER_STATE_PORT)).toBe(15n);
+    expect(fullState.balances).toEqual(channel.balances);
+    expect(fullState.closePackage?.update.signatures.alice).toBeDefined();
+    expect(fullState.closePackage?.update.signatures.bob).toBeDefined();
+    expect((await verifyState(channel, fullState)).errors)
+      .not.toEqual(expect.arrayContaining(['program validation failed: counter increment mismatch']));
+  });
+
+  it('CounterProgram rejects tampered counter state', async () => {
+    const channel = makeTestChannel({
+      programId: COUNTER_PROGRAM_ID,
+      programVersion: 1,
+      latestState: {
+        sequence: 0,
+        balances: { alice: 600n, bob: 400n },
+        pendingHTLCs: [],
+        stateVariables: [programNumberState(COUNTER_STATE_PORT, 10n)],
+        transactionHex: '',
+        signatures: {},
+        signingIndices: {},
+      },
+    });
+    const { signedState } = await applyProgramTransition(
+      channel,
+      { transition: { action: 'increment', inputs: { by: 5n } } },
+      makeMockLeaseProvider() as any,
+      makeMockSigner('alice', ALICE_PKD),
+    );
+    const tampered = {
+      ...signedState,
+      stateVariables: signedState.stateVariables!.map(v => v.port === COUNTER_STATE_PORT
+        ? { ...v, value: 16n }
+        : v),
+      signatures: { alice: new Uint8Array(1088), bob: new Uint8Array(1088) },
+      signingIndices: {
+        alice: { addressIndex: 0, l1: 1, l2: 0 },
+        bob: { addressIndex: 0, l1: 1, l2: 1 },
+      },
+    } as SignedChannelState;
+    const { verifyState } = await import('../sign');
+
+    expect((await verifyState(channel, tampered)).errors)
+      .toEqual(expect.arrayContaining(['program validation failed: counter increment mismatch']));
+  });
+
+  it('resolves the built-in CounterProgram by id and version', () => {
+    expect(resolveChannelProgram({ id: COUNTER_PROGRAM_ID, version: 1 })).toBe(CounterProgram);
   });
 });
 
