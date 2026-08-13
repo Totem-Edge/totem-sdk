@@ -105,6 +105,12 @@ export type { KissvmValidationOptions } from './kissvm.js';
 export {
   DefaultEltooPaymentProgram,
   CounterProgram,
+  COUNTER_ACTION_DECREMENT,
+  COUNTER_ACTION_INCREMENT,
+  COUNTER_ACTION_NONE,
+  COUNTER_ACTION_PORT,
+  COUNTER_ACTION_SET,
+  COUNTER_OPERAND_PORT,
   COUNTER_PROGRAM_ID,
   COUNTER_STATE_PORT,
   ELTOO_PAYMENT_PROGRAM_ID,

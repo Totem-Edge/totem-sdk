@@ -1,6 +1,6 @@
 import { evaluateScript, KissvmLimitError, type ScriptWitness, type TxContext } from '@totemsdk/kissvm';
 import type { OmniaChannel, OmniaTxDraft, SignedChannelState, StateValue } from './types.js';
-import { buildSettlementTx, computeOmniaTxDigest, STATE_SEQUENCE_PORT, STATE_SETTLEMENT_PORT } from './transactions.js';
+import { buildSettlementTx, computeOmniaTxDigest, deserializeTxDraft, STATE_SEQUENCE_PORT, STATE_SETTLEMENT_PORT } from './transactions.js';
 import { buildProgramUpdateTx } from './program.js';
 
 function stateValuesToContext(values: StateValue[]): Record<number, string> {
@@ -73,7 +73,9 @@ export function validateChannelStateWithKissvm(
   try {
     const draft = opts?.settlement
       ? buildSettlementTx(channel, state, opts.partyAddresses ?? Object.fromEntries(channel.parties.map(p => [p.partyId, p.publicKeyDigest])), { floatingInput: true })
-      : buildProgramUpdateTx(channel, state.sequence, state.balances, state.pendingHTLCs, state.programTransition);
+      : state.transactionHex
+        ? deserializeTxDraft(state.transactionHex)
+        : buildProgramUpdateTx(channel, state.sequence, state.balances, state.pendingHTLCs, state.programTransition);
     const result = evaluateScript(
       channel.fundingScript,
       signatureWitness(channel, state),

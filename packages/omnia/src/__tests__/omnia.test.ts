@@ -1831,6 +1831,81 @@ describe('@totemsdk/omnia — KISSVM validation', () => {
     expect(result.valid).toBe(false);
     expect(result.error).toContain('kissvm limit');
   });
+
+  it('validates CounterProgram state arithmetic with KISSVM', async () => {
+    const initial = makeTestChannel({
+      programId: COUNTER_PROGRAM_ID,
+      programVersion: 1,
+      fundingScript: CounterProgram.buildScript([alice, bob]),
+      latestState: {
+        sequence: 0,
+        balances: { alice: 600n, bob: 400n },
+        pendingHTLCs: [],
+        stateVariables: [programNumberState(COUNTER_STATE_PORT, 10n)],
+        transactionHex: '',
+        signatures: {},
+        signingIndices: {},
+      },
+    });
+    const { signedState } = await incrementCounter(
+      initial,
+      5n,
+      makeMockLeaseProvider() as any,
+      makeMockSigner('alice', ALICE_PKD),
+    );
+    const state = {
+      ...signedState,
+      signatures: { alice: new Uint8Array(1088), bob: new Uint8Array(1088) },
+      signingIndices: {
+        alice: { addressIndex: 0, l1: 1, l2: 0 },
+        bob: { addressIndex: 0, l1: 1, l2: 1 },
+      },
+    } as SignedChannelState;
+
+    expect(validateChannelStateWithKissvm(initial, state, { block: 1 })).toEqual({ valid: true });
+  });
+
+  it('rejects tampered CounterProgram STATE(120) with KISSVM', async () => {
+    const initial = makeTestChannel({
+      programId: COUNTER_PROGRAM_ID,
+      programVersion: 1,
+      fundingScript: CounterProgram.buildScript([alice, bob]),
+      latestState: {
+        sequence: 0,
+        balances: { alice: 600n, bob: 400n },
+        pendingHTLCs: [],
+        stateVariables: [programNumberState(COUNTER_STATE_PORT, 10n)],
+        transactionHex: '',
+        signatures: {},
+        signingIndices: {},
+      },
+    });
+    const { signedState } = await incrementCounter(
+      initial,
+      5n,
+      makeMockLeaseProvider() as any,
+      makeMockSigner('alice', ALICE_PKD),
+    );
+    const state = {
+      ...signedState,
+      stateVariables: signedState.stateVariables!.map(v => v.port === COUNTER_STATE_PORT
+        ? { ...v, value: 16n }
+        : v),
+      signatures: { alice: new Uint8Array(1088), bob: new Uint8Array(1088) },
+      signingIndices: {
+        alice: { addressIndex: 0, l1: 1, l2: 0 },
+        bob: { addressIndex: 0, l1: 1, l2: 1 },
+      },
+    } as SignedChannelState;
+    state.transactionHex = serializeTxDraft({
+      ...deserializeTxDraft(state.transactionHex),
+      stateVariables: state.stateVariables,
+    });
+
+    const result = validateChannelStateWithKissvm(initial, state, { block: 1 });
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain('ASSERT failed');
+  });
 });
 
 describe('@totemsdk/omnia — integration: fund → N updates → cooperative settle', () => {

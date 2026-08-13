@@ -8,6 +8,12 @@ import { getStateBigInt, programNumberState } from './state-vars.js';
 export const ELTOO_PAYMENT_PROGRAM_ID = 'eltoo-payment';
 export const COUNTER_PROGRAM_ID = 'counter';
 export const COUNTER_STATE_PORT = 120;
+export const COUNTER_ACTION_PORT = 121;
+export const COUNTER_OPERAND_PORT = 122;
+export const COUNTER_ACTION_NONE = 0n;
+export const COUNTER_ACTION_INCREMENT = 1n;
+export const COUNTER_ACTION_DECREMENT = 2n;
+export const COUNTER_ACTION_SET = 3n;
 
 const programs = new Map<string, ChannelProgram>();
 
@@ -26,21 +32,61 @@ export const CounterProgram: ChannelProgram = {
   id: COUNTER_PROGRAM_ID,
   version: 1,
   buildScript(parties: ChannelParticipant[]): string {
-    return buildEltooScript(parties);
+    const base = buildEltooScript(parties).replace('ASSERT BOTHSIGNED\nASSERT SEQUENCE GT PREVSEQUENCE', [
+      'ASSERT BOTHSIGNED',
+      'ASSERT SEQUENCE GT PREVSEQUENCE',
+      `LET COUNTER=STATE(${COUNTER_STATE_PORT})`,
+      `LET PREVCOUNTER=PREVSTATE(${COUNTER_STATE_PORT})`,
+      `LET ACTION=STATE(${COUNTER_ACTION_PORT})`,
+      `LET OPERAND=STATE(${COUNTER_OPERAND_PORT})`,
+      `IF ACTION EQ ${COUNTER_ACTION_INCREMENT} THEN`,
+      '    ASSERT COUNTER EQ PREVCOUNTER ADD OPERAND',
+      `ELSEIF ACTION EQ ${COUNTER_ACTION_DECREMENT} THEN`,
+      '    ASSERT COUNTER EQ PREVCOUNTER SUB OPERAND',
+      `ELSEIF ACTION EQ ${COUNTER_ACTION_SET} THEN`,
+      '    ASSERT COUNTER EQ OPERAND',
+      'ELSE',
+      `    ASSERT ACTION EQ ${COUNTER_ACTION_NONE}`,
+      '    ASSERT COUNTER EQ PREVCOUNTER',
+      'ENDIF',
+    ].join('\n'));
+    return base;
   },
   buildStateVariables({ previousState, transition }: ChannelProgramBuildStateInput): StateValue[] {
     const current = getStateBigInt(previousState, COUNTER_STATE_PORT, 0n);
-    if (!transition) return [programNumberState(COUNTER_STATE_PORT, current)];
+    if (!transition) return [
+      programNumberState(COUNTER_STATE_PORT, current),
+      programNumberState(COUNTER_ACTION_PORT, COUNTER_ACTION_NONE),
+      programNumberState(COUNTER_OPERAND_PORT, 0n),
+    ];
     const by = BigInt(String(transition.inputs?.by ?? 1n));
     switch (transition.action) {
       case 'increment':
-        return [programNumberState(COUNTER_STATE_PORT, current + by)];
+        return [
+          programNumberState(COUNTER_STATE_PORT, current + by),
+          programNumberState(COUNTER_ACTION_PORT, COUNTER_ACTION_INCREMENT),
+          programNumberState(COUNTER_OPERAND_PORT, by),
+        ];
       case 'decrement':
-        return [programNumberState(COUNTER_STATE_PORT, current - by)];
-      case 'set':
-        return [programNumberState(COUNTER_STATE_PORT, BigInt(String(transition.inputs?.value ?? current)))];
+        return [
+          programNumberState(COUNTER_STATE_PORT, current - by),
+          programNumberState(COUNTER_ACTION_PORT, COUNTER_ACTION_DECREMENT),
+          programNumberState(COUNTER_OPERAND_PORT, by),
+        ];
+      case 'set': {
+        const value = BigInt(String(transition.inputs?.value ?? current));
+        return [
+          programNumberState(COUNTER_STATE_PORT, value),
+          programNumberState(COUNTER_ACTION_PORT, COUNTER_ACTION_SET),
+          programNumberState(COUNTER_OPERAND_PORT, value),
+        ];
+      }
       default:
-        return [programNumberState(COUNTER_STATE_PORT, current)];
+        return [
+          programNumberState(COUNTER_STATE_PORT, current),
+          programNumberState(COUNTER_ACTION_PORT, COUNTER_ACTION_NONE),
+          programNumberState(COUNTER_OPERAND_PORT, 0n),
+        ];
     }
   },
   validateTransition({ previousState, nextState, transition }) {
