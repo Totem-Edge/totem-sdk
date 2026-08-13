@@ -32,6 +32,7 @@
     "@totemsdk/wots-lease": "workspace:^",
     "@totemsdk/chain-provider": "workspace:^",
     "@totemsdk/agent-policy": "workspace:^",
+    "@totemsdk/kissvm": "workspace:^",
     "@totemsdk/stream-transport": "workspace:^",
     "@totemsdk/lookup-protocol": "workspace:^"
   },

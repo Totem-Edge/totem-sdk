@@ -10,10 +10,20 @@ import type {
   DisputePayload,
   ChannelSigner,
   ChannelSignature,
+  UnilateralCloseStartResult,
+  UnilateralCloseFinalizeResult,
 } from './types.js';
 import { ChannelStatusError } from './errors.js';
-import { buildSettlementTx, serializeTxDraft, omniaDraftToMinimaBytes } from './transactions.js';
+import { buildSettlementTx, deserializeTxDraft, serializeTxDraft, omniaDraftToCanonicalMinimaBytes } from './transactions.js';
 import { signTxDraft } from './sign.js';
+import { verifyClosePackage } from './close-package.js';
+import { ELTOO_CONTEST_DELAY_BLOCKS } from './script.js';
+import {
+  assertBroadcastProofs,
+  closePackageSignatureBytes,
+  serializeOmniaWitness,
+  type OmniaWitnessProofs,
+} from './witness.js';
 
 export interface ProposeSettlementOptions {
   /** Explicit signer — falls back to channel.localSigner when not provided. */
@@ -33,6 +43,7 @@ export interface ProposeSettlementOptions {
    * for cooperative multi-sig flows where the counterparty broadcasts).
    */
   chainProvider?: ChainStateProvider;
+  broadcastProofs?: OmniaWitnessProofs;
 }
 
 /**
@@ -49,6 +60,19 @@ function encodeSettlementWitness(signature: ChannelSignature, indices: SigningIn
   view.setUint16(4, indices.l1, false);
   view.setUint16(6, indices.l2, false);
   return concatBytes(meta, signature);
+}
+
+async function mineAndBroadcastDraft(
+  txHex: string,
+  chainProvider: ChainStateProvider,
+  witnessBytes: Uint8Array,
+): Promise<string | undefined> {
+  const draftBytes = omniaDraftToCanonicalMinimaBytes(deserializeTxDraft(txHex));
+  const txBody = serializeTxBody(draftBytes, witnessBytes);
+  const mined = await mineTxPoW(txBody, TX_POW_MIN_DIFFICULTY);
+  const fullTxPoW = concatBytes(concatBytes(mined.minedHeaderBytes, new Uint8Array([0x01])), txBody);
+  const broadcast = await chainProvider.broadcastTxPoW(Buffer.from(fullTxPoW).toString('hex'));
+  return broadcast.txpowid ?? Buffer.from(mined.txpowId).toString('hex');
 }
 
 /**
@@ -137,12 +161,17 @@ export async function proposeSettlement(
 
   // ── Full TxPoW mining + chain broadcast ──────────────────────────────────
   // When chainProvider is supplied, produce a chain-ready TxPoW:
-  //   omniaDraftToMinimaBytes() → canonical Minima TX bytes (via @totemsdk/core serializeTransaction)
+  //   omniaDraftToCanonicalMinimaBytes() → canonical Minima TX bytes
   //   + witness → serializeTxBody → mineTxPoW
   //   → concat(minedHeader, 0x01, txBody) → broadcastTxPoW
   if (opts?.chainProvider) {
-    const draftBytes = omniaDraftToMinimaBytes(settlementDraft);
-    const witnessBytes = encodeSettlementWitness(signature, indices);
+    assertBroadcastProofs(opts.broadcastProofs);
+    const draftBytes = omniaDraftToCanonicalMinimaBytes(settlementDraft);
+    const witnessBytes = serializeOmniaWitness({
+      signatures: [encodeSettlementWitness(signature, indices)],
+      coinProofs: opts.broadcastProofs.coinProofs,
+      scriptProofs: opts.broadcastProofs.scriptProofs,
+    });
     const txBody = serializeTxBody(draftBytes, witnessBytes);
 
     const mined = await mineTxPoW(txBody, TX_POW_MIN_DIFFICULTY);
@@ -158,10 +187,7 @@ export async function proposeSettlement(
     sequence: state.sequence,
     balances: state.balances,
     pendingHTLCs: state.pendingHTLCs,
-    stateVariables: [
-      { port: 100, value: true, type: 'bool' },
-      { port: 101, value: BigInt(state.sequence), type: 'number' },
-    ],
+    stateVariables: settlementDraft.stateVariables,
     transactionHex: settlementHex,
     signatures: { [signerParty.partyId]: signature },
     signingIndices: { [signerParty.partyId]: indices },
@@ -185,6 +211,150 @@ export function buildDisputePayload(
     updateTxHex: latest.transactionHex,
     stateLog: channel.stateLog,
     evidence: evidence ?? JSON.stringify(latest.stateVariables),
+  };
+}
+
+export async function startUnilateralClose(
+  channel: OmniaChannel,
+  chainProvider: ChainStateProvider,
+  broadcastProofs?: OmniaWitnessProofs,
+): Promise<UnilateralCloseStartResult> {
+  if (!['active', 'closing_unilateral', 'disputing'].includes(channel.status)) {
+    throw new ChannelStatusError(['active', 'closing_unilateral', 'disputing'], channel.status);
+  }
+
+  const latest = channel.latestState;
+  if (!latest) throw new Error('Cannot start unilateral close: no signed state available');
+  const closePackageCheck = verifyClosePackage(channel, latest);
+  if (!closePackageCheck.valid) {
+    throw new Error(`Cannot start unilateral close: ${closePackageCheck.errors.join('; ')}`);
+  }
+  const closePackage = latest.closePackage!;
+  assertBroadcastProofs(broadcastProofs);
+
+  const tip = await chainProvider.getTip();
+  const updateTxpowId = await mineAndBroadcastDraft(
+    closePackage.update.txHex,
+    chainProvider,
+    serializeOmniaWitness({
+      signatures: closePackageSignatureBytes(latest, 'update'),
+      coinProofs: broadcastProofs.coinProofs,
+      scriptProofs: broadcastProofs.scriptProofs,
+    }),
+  );
+  const contestDeadlineBlock = tip.block + ELTOO_CONTEST_DELAY_BLOCKS;
+  const disputePayload = buildDisputePayload(channel, JSON.stringify({
+    stateCommitmentV2: closePackage.stateCommitmentV2,
+    updateTxDigest: closePackage.update.txDigest,
+    settlementTxDigest: closePackage.settlement.txDigest,
+  }));
+
+  const updatedChannel: OmniaChannel = {
+    ...channel,
+    status: 'closing_unilateral',
+    unilateralClose: {
+      channelId: channel.channelId,
+      sequence: latest.sequence,
+      updateTxHex: closePackage.update.txHex,
+      settlementTxHex: closePackage.settlement.txHex,
+      contestStartBlock: tip.block,
+      contestDeadlineBlock,
+      status: 'update_broadcast',
+      updateTxpowId,
+    },
+    updatedAt: Date.now(),
+  };
+
+  return {
+    channel: updatedChannel,
+    disputePayload,
+    contestStartBlock: tip.block,
+    contestDeadlineBlock,
+    updateTxpowId,
+  };
+}
+
+export async function finalizeUnilateralClose(
+  channel: OmniaChannel,
+  chainProvider: ChainStateProvider,
+  broadcastProofs?: OmniaWitnessProofs,
+): Promise<UnilateralCloseFinalizeResult> {
+  if (channel.status !== 'closing_unilateral' && channel.status !== 'disputing') {
+    throw new ChannelStatusError(['closing_unilateral', 'disputing'], channel.status);
+  }
+  const closeState = channel.unilateralClose;
+  if (!closeState) throw new Error('Cannot finalize unilateral close: no unilateral close in progress');
+  const tip = await chainProvider.getTip();
+  if (tip.block < closeState.contestDeadlineBlock) {
+    throw new Error(`Contest delay not elapsed: current block ${tip.block}, deadline ${closeState.contestDeadlineBlock}`);
+  }
+
+  assertBroadcastProofs(broadcastProofs);
+
+  const latest = channel.latestState;
+  if (!latest) throw new Error('Cannot finalize unilateral close: no signed state available');
+  const settlementTxpowId = await mineAndBroadcastDraft(
+    closeState.settlementTxHex,
+    chainProvider,
+    serializeOmniaWitness({
+      signatures: closePackageSignatureBytes(latest, 'settlement'),
+      coinProofs: broadcastProofs.coinProofs,
+      scriptProofs: broadcastProofs.scriptProofs,
+    }),
+  );
+  const htlcOutputs = latest.pendingHTLCs
+    .filter(h => h.status === 'pending')
+    .map(h => ({ htlcId: h.htlcId, amount: h.amount, htlcTxHex: '' }));
+  const settlementPayload: SettlementPayload = {
+    channelId: channel.channelId,
+    sequence: closeState.sequence,
+    settlementTxHex: closeState.settlementTxHex,
+    balances: { ...latest.balances },
+    htlcOutputs,
+    txpowId: settlementTxpowId,
+  };
+
+  const updatedChannel = markChannelClosed({
+    ...channel,
+    unilateralClose: {
+      ...closeState,
+      status: 'settlement_broadcast',
+      settlementTxpowId,
+    },
+    updatedAt: Date.now(),
+  });
+
+  return { channel: updatedChannel, settlementPayload };
+}
+
+export function replaceUnilateralCloseState(
+  channel: OmniaChannel,
+  newerState: SignedChannelState,
+): OmniaChannel {
+  if (!channel.unilateralClose) {
+    throw new Error('Cannot replace unilateral close state: no unilateral close in progress');
+  }
+  if (newerState.sequence <= channel.unilateralClose.sequence) {
+    throw new Error(`Replacement state must have newer sequence: ${newerState.sequence} <= ${channel.unilateralClose.sequence}`);
+  }
+  const closePackageCheck = verifyClosePackage(channel, newerState);
+  if (!closePackageCheck.valid) {
+    throw new Error(`Cannot replace unilateral close state: ${closePackageCheck.errors.join('; ')}`);
+  }
+  return {
+    ...channel,
+    latestState: newerState,
+    currentSequence: newerState.sequence,
+    balances: newerState.balances,
+    unilateralClose: {
+      ...channel.unilateralClose,
+      sequence: newerState.sequence,
+      updateTxHex: newerState.closePackage!.update.txHex,
+      settlementTxHex: newerState.closePackage!.settlement.txHex,
+      status: 'update_broadcast',
+    },
+    status: 'disputing',
+    updatedAt: Date.now(),
   };
 }
 

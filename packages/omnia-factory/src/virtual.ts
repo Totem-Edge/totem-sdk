@@ -1,4 +1,4 @@
-import type { OmniaChannel, ChannelParticipant } from '@totemsdk/omnia';
+import { DefaultEltooPaymentProgram, type OmniaChannel, type ChannelParticipant } from '@totemsdk/omnia';
 import { wotsVerifyDigest, hexToBytes } from '@totemsdk/core';
 import type { ChannelFactory, FactoryLogEntry, WotsLeaseBundle } from './types.js';
 import { enforceConservation } from './factory.js';
@@ -177,6 +177,8 @@ export async function openVirtualChannel(
     fundingTxId:     factory.fundingTxId ?? '',
     fundingCoinId:   factory.fundingCoinId ?? '',
     fundingScript:   factory.fundingScript,
+    programId:       DefaultEltooPaymentProgram.id,
+    programVersion:  DefaultEltooPaymentProgram.version,
     fundingAddress:  factory.fundingAddress,
     tokenId:         factory.tokenId,
     tokenScale:      factory.tokenScale,

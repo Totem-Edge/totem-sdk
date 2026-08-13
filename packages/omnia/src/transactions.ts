@@ -1,13 +1,7 @@
 import { sha3_256 } from '@totemsdk/core';
 import { serializeTxBody } from '@totemsdk/txpow';
-import {
-  hexToBytes,
-  serializeTransaction,
-  createDefaultTransaction,
-  buildMinimaCoin,
-  type StateVariable as CoreStateVariable,
-} from '@totemsdk/core';
 import type { OmniaChannel, OmniaTxDraft, StateValue, TxOutputDraft, HTLCRecord, SignedChannelState } from './types.js';
+import { COINID_ELTOO } from './script.js';
 
 // ── @totemsdk/tx-builder compatible types ───────────────────────────────────
 // Mirror of EnhancedBuildParams / EnhancedCoinInput / EnhancedCoinOutput from
@@ -42,12 +36,221 @@ export interface EnhancedBuildParams {
 }
 
 const TOKENID_MINIMA = '0x00';
+export const COINID_OUTPUT = '0x00';
+export const STATE_SETTLEMENT_PORT = 100;
+export const STATE_SEQUENCE_PORT = 101;
+export const STATE_COMMITMENT_V2_PORT = 102;
 
 function channelStateVars(settlement: boolean, sequence: number): StateValue[] {
   return [
-    { port: 100, value: settlement, type: 'bool' },
-    { port: 101, value: BigInt(sequence), type: 'number' },
+    { port: STATE_SETTLEMENT_PORT, value: settlement, type: 'bool' },
+    { port: STATE_SEQUENCE_PORT, value: BigInt(sequence), type: 'number' },
   ];
+}
+
+function strip0x(hex: string): string {
+  return hex.startsWith('0x') || hex.startsWith('0X') ? hex.slice(2) : hex;
+}
+
+function hexToBytesLocal(hex: string): Uint8Array {
+  const raw = strip0x(hex);
+  if (raw.length === 0) return new Uint8Array();
+  if (raw.length % 2 !== 0) throw new Error(`Invalid hex string: odd length (${raw.length})`);
+  if (!/^[0-9a-fA-F]+$/.test(raw)) throw new Error(`Invalid hex string: ${hex}`);
+  const out = new Uint8Array(raw.length / 2);
+  for (let i = 0; i < raw.length; i += 2) out[i / 2] = Number.parseInt(raw.slice(i, i + 2), 16);
+  return out;
+}
+
+function bytesToHexLocal(bytes: Uint8Array): string {
+  return '0x' + Buffer.from(bytes).toString('hex');
+}
+
+function concatBytesLocal(parts: Uint8Array[]): Uint8Array {
+  const total = parts.reduce((sum, p) => sum + p.length, 0);
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const part of parts) {
+    out.set(part, offset);
+    offset += part.length;
+  }
+  return out;
+}
+
+function bigintToJavaBytes(value: bigint): Uint8Array {
+  if (value < 0n) throw new Error(`Negative MiniNumber values are not supported: ${value}`);
+  if (value === 0n) return new Uint8Array([0]);
+  let hex = value.toString(16);
+  if (hex.length % 2) hex = `0${hex}`;
+  let bytes = hexToBytesLocal(hex);
+  if ((bytes[0] & 0x80) !== 0) {
+    const padded = new Uint8Array(bytes.length + 1);
+    padded.set(bytes, 1);
+    bytes = padded;
+  }
+  return bytes;
+}
+
+function writeMiniNumberLocal(value: bigint, scale = 0): Uint8Array {
+  const unscaled = bigintToJavaBytes(value);
+  if (unscaled.length > 255) throw new Error(`MiniNumber data too large: ${unscaled.length}`);
+  const out = new Uint8Array(2 + unscaled.length);
+  out[0] = scale & 0xff;
+  out[1] = unscaled.length;
+  out.set(unscaled, 2);
+  return out;
+}
+
+function writeMiniDataLocal(data: Uint8Array): Uint8Array {
+  const out = new Uint8Array(4 + data.length);
+  const view = new DataView(out.buffer);
+  view.setUint32(0, data.length, false);
+  out.set(data, 4);
+  return out;
+}
+
+function writeHashToStreamLocal(hex: string): Uint8Array {
+  return writeMiniDataLocal(hexToBytesLocal(hex));
+}
+
+function writeMiniByteLocal(value: boolean | number): Uint8Array {
+  if (typeof value === 'boolean') return new Uint8Array([value ? 1 : 0]);
+  if (!Number.isInteger(value) || value < 0 || value > 255) throw new Error(`MiniByte value must be 0-255, got ${value}`);
+  return new Uint8Array([value]);
+}
+
+function writeMMREntryNumberLocal(value: bigint): Uint8Array {
+  return concatBytesLocal([
+    writeMiniNumberLocal(0n),
+    writeMiniDataLocal(bigintToJavaBytes(value)),
+  ]);
+}
+
+function writeStateValueLocal(sv: StateValue): Uint8Array {
+  const port = writeMiniByteLocal(sv.port);
+  let type: number;
+  let data: Uint8Array;
+  switch (sv.type) {
+    case 'bool':
+      type = 8;
+      data = writeMiniByteLocal(sv.value === true || String(sv.value).toUpperCase() === 'TRUE');
+      break;
+    case 'number':
+      type = 2;
+      data = writeMiniNumberLocal(typeof sv.value === 'bigint' ? sv.value : BigInt(String(sv.value)));
+      break;
+    case 'hex':
+      type = 1;
+      data = writeMiniDataLocal(hexToBytesLocal(String(sv.value)));
+      break;
+    case 'string': {
+      type = 4;
+      const raw = String(sv.value);
+      const bracketed = raw.startsWith('[') && raw.endsWith(']') ? raw : `[${raw}]`;
+      data = writeMiniDataLocal(new TextEncoder().encode(bracketed));
+      break;
+    }
+    default:
+      throw new Error(`Unknown StateValue type: ${(sv as StateValue).type}`);
+  }
+  return concatBytesLocal([port, writeMiniByteLocal(type), data]);
+}
+
+function canonicalJson(value: unknown): string {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+  const obj = value as Record<string, unknown>;
+  return `{${Object.keys(obj).sort().map(k => `${JSON.stringify(k)}:${canonicalJson(obj[k])}`).join(',')}}`;
+}
+
+interface NormalizedStateValueForCommitment {
+  port: number;
+  type: StateValue['type'];
+  value: string;
+}
+
+function normalizeStateValueForCommitment(sv: StateValue): NormalizedStateValueForCommitment {
+  return {
+    port: sv.port,
+    type: sv.type,
+    value: typeof sv.value === 'bigint' ? sv.value.toString() : String(sv.value),
+  };
+}
+
+export function computeStateCommitmentV2(
+  channel: OmniaChannel,
+  sequence: number,
+  balances: Record<string, bigint>,
+  pendingHTLCs: HTLCRecord[],
+  opts?: { settlement?: boolean; programStateVariables?: StateValue[] },
+): Uint8Array {
+  const programStateVariables = (opts?.programStateVariables ?? [])
+    .filter(sv => ![STATE_SETTLEMENT_PORT, STATE_SEQUENCE_PORT, STATE_COMMITMENT_V2_PORT].includes(sv.port))
+    .map(normalizeStateValueForCommitment)
+    .sort((a, b) => a.port - b.port);
+
+  const payload = {
+    version: 2,
+    channelId: channel.channelId,
+    fundingAddress: channel.fundingAddress,
+    fundingScriptHash: bytesToHexLocal(sha3_256(new TextEncoder().encode(channel.fundingScript.trim().toUpperCase()))),
+    tokenId: channel.tokenId,
+    tokenScale: channel.tokenScale ?? 0,
+    totalValue: channel.totalValue.toString(),
+    sequence,
+    settlement: opts?.settlement ?? false,
+    balances: Object.fromEntries(
+      Object.entries(balances)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([party, balance]) => [party, balance.toString()]),
+    ),
+    htlcs: pendingHTLCs
+      .filter(h => h.status === 'pending')
+      .map(h => ({
+        htlcId: h.htlcId,
+        amount: h.amount.toString(),
+        hashlock: h.hashlock,
+        timeoutBlock: h.timeoutBlock.toString(),
+        direction: h.direction,
+        htlcAddress: h.htlcAddress,
+        senderPublicKeyDigest: h.senderPublicKeyDigest,
+        recipientPublicKeyDigest: h.recipientPublicKeyDigest,
+      }))
+      .sort((a, b) => a.htlcId.localeCompare(b.htlcId)),
+    programStateVariables,
+  };
+
+  return sha3_256(new TextEncoder().encode(canonicalJson(payload)));
+}
+
+function channelStateVarsV2(
+  channel: OmniaChannel,
+  settlement: boolean,
+  sequence: number,
+  balances: Record<string, bigint>,
+  pendingHTLCs: HTLCRecord[],
+  programStateVariables: StateValue[] = [],
+): StateValue[] {
+  const base = channelStateVars(settlement, sequence);
+  const commitment = computeStateCommitmentV2(channel, sequence, balances, pendingHTLCs, {
+    settlement,
+    programStateVariables,
+  });
+  return [
+    ...base,
+    ...programStateVariables.filter(sv => ![STATE_SETTLEMENT_PORT, STATE_SEQUENCE_PORT, STATE_COMMITMENT_V2_PORT].includes(sv.port)),
+    { port: STATE_COMMITMENT_V2_PORT, value: bytesToHexLocal(commitment), type: 'hex' },
+  ];
+}
+
+export function stateCommitmentV2Matches(channel: OmniaChannel, state: SignedChannelState, settlement = false): boolean {
+  const sv = state.stateVariables.find(v => v.port === STATE_COMMITMENT_V2_PORT);
+  if (!sv || sv.type !== 'hex') return false;
+  const expected = bytesToHexLocal(computeStateCommitmentV2(channel, state.sequence, state.balances, state.pendingHTLCs, {
+    settlement,
+    programStateVariables: state.stateVariables,
+  })).toLowerCase();
+  return String(sv.value).toLowerCase() === expected;
 }
 
 /**
@@ -112,8 +315,9 @@ export function buildUpdateTx(
   newSequence: number,
   newBalances: Record<string, bigint>,
   pendingHTLCs: HTLCRecord[],
+  programStateVariables: StateValue[] = [],
 ): OmniaTxDraft {
-  const stateVars = channelStateVars(false, newSequence);
+  const stateVars = channelStateVarsV2(channel, false, newSequence, newBalances, pendingHTLCs, programStateVariables);
   const rawTotal = toRawMinima(channel.totalValue, channel.tokenScale ?? 0);
   if (!channel.fundingAddress) {
     throw new Error(`channel.fundingAddress is required but not set on channel ${channel.channelId}`);
@@ -121,7 +325,7 @@ export function buildUpdateTx(
   const scriptAddress = channel.fundingAddress;
 
   const input = {
-    coinId: channel.latestCoinId ?? channel.fundingCoinId,
+    coinId: COINID_ELTOO,
     address: scriptAddress,
     amount: rawTotal,
     tokenId: channel.tokenId,
@@ -149,11 +353,9 @@ export function buildSettlementTx(
   channel: OmniaChannel,
   state: SignedChannelState,
   partyAddresses: Record<string, string>,
+  opts?: { floatingInput?: boolean; programStateVariables?: StateValue[] },
 ): OmniaTxDraft {
-  const stateVars: StateValue[] = [
-    { port: 100, value: true, type: 'bool' },
-    { port: 101, value: BigInt(state.sequence), type: 'number' },
-  ];
+  const stateVars = channelStateVarsV2(channel, true, state.sequence, state.balances, state.pendingHTLCs, opts?.programStateVariables);
 
   const rawTotal = toRawMinima(channel.totalValue, channel.tokenScale ?? 0);
   if (!channel.fundingAddress) {
@@ -162,7 +364,7 @@ export function buildSettlementTx(
   const scriptAddress = channel.fundingAddress;
 
   const input = {
-    coinId: channel.latestCoinId ?? channel.fundingCoinId,
+    coinId: opts?.floatingInput ? COINID_ELTOO : channel.latestCoinId ?? channel.fundingCoinId,
     address: scriptAddress,
     amount: rawTotal,
     tokenId: channel.tokenId,
@@ -237,6 +439,9 @@ export function computeTxDraftDigest(draft: OmniaTxDraft): Uint8Array {
   }, bigintReplacer));
   return sha3_256(bytes);
 }
+
+/** Legacy/test-only JSON draft digest. Production signatures must use computeOmniaTxDigest(). */
+export const computeLegacyTxDraftDigest = computeTxDraftDigest;
 
 /**
  * Canonical state commitment — the 32-byte digest that is WOTS-signed and
@@ -343,63 +548,78 @@ export function toEnhancedBuildParams(draft: OmniaTxDraft): EnhancedBuildParams 
  * ```
  */
 export function omniaDraftToMinimaBytes(draft: OmniaTxDraft): Uint8Array {
-  const toHex = (b: Uint8Array): string => Buffer.from(b).toString('hex');
+  return omniaDraftToCanonicalMinimaBytes(draft);
+}
 
-  const svToJson = (svs: StateValue[]) =>
-    svs.map(sv => {
-      const v: unknown = sv.value;
-      let data: string;
-      let svtype: string;
-      if (typeof v === 'bigint') {
-        data = v.toString();
-        svtype = 'number';
-      } else if (typeof v === 'boolean') {
-        data = v ? 'true' : 'false';
-        svtype = 'bool';
-      } else if (v instanceof Uint8Array) {
-        data = '0x' + toHex(v);
-        svtype = 'hex';
-      } else if (typeof v === 'number') {
-        data = v.toString();
-        svtype = 'number';
-      } else {
-        data = String(v);
-        svtype = 'string';
-      }
-      return { port: sv.port, svtype, data };
-    });
+export function minimaOutputCoinIdsForDraft(draft: OmniaTxDraft): string[] {
+  if (draft.inputs.length === 0) return draft.outputs.map(() => COINID_OUTPUT);
+  const baseCoinId = draft.inputs[0].coinId;
+  if (baseCoinId.toLowerCase() === COINID_ELTOO.toLowerCase()) {
+    return draft.outputs.map(() => COINID_OUTPUT);
+  }
 
-  const inputs = draft.inputs.map(inp => ({
-    coinid: inp.coinId,
-    amount: inp.amount.toString(),
-    address: inp.address,
-    tokenid: inp.tokenId,
-    storestate: false,
-    mmrentry: '0',
-    spent: false,
-    created: '0',
-    state: [],
+  return draft.outputs.map((_, index) => bytesToHexLocal(sha3_256(concatBytesLocal([
+    writeMiniDataLocal(hexToBytesLocal(baseCoinId)),
+    writeMiniNumberLocal(BigInt(index)),
+  ]))));
+}
+
+function serializeCoinForMinima(opts: {
+  coinId: string;
+  address: string;
+  amount: bigint;
+  tokenId: string;
+  storeState: boolean;
+  stateVariables: StateValue[];
+}): Uint8Array {
+  const parts = [
+    writeHashToStreamLocal(opts.coinId),
+    writeHashToStreamLocal(opts.address),
+    writeMiniNumberLocal(opts.amount),
+    writeHashToStreamLocal(opts.tokenId),
+    writeMiniByteLocal(opts.storeState),
+    writeMMREntryNumberLocal(0n),
+    writeMiniByteLocal(false),
+    writeMiniNumberLocal(0n),
+    writeMiniNumberLocal(BigInt(opts.stateVariables.length)),
+    ...opts.stateVariables.map(writeStateValueLocal),
+    writeMiniByteLocal(false),
+  ];
+  return concatBytesLocal(parts);
+}
+
+export function omniaDraftToCanonicalMinimaBytes(draft: OmniaTxDraft): Uint8Array {
+  const outputCoinIds = minimaOutputCoinIdsForDraft(draft);
+  const inputBytes = draft.inputs.map(input => serializeCoinForMinima({
+    coinId: input.coinId,
+    address: input.address,
+    amount: input.amount,
+    tokenId: input.tokenId,
+    storeState: false,
+    stateVariables: [],
+  }));
+  const outputBytes = draft.outputs.map((output, index) => serializeCoinForMinima({
+    coinId: outputCoinIds[index],
+    address: output.address,
+    amount: output.amount,
+    tokenId: output.tokenId,
+    storeState: output.storeState,
+    stateVariables: output.storeState ? (output.stateVariables ?? draft.stateVariables) : [],
   }));
 
-  const outputs = draft.outputs.map(out => ({
-    amount: out.amount.toString(),
-    address: out.address,
-    tokenid: out.tokenId,
-    storestate: out.storeState ?? false,
-    mmrentry: '0',
-    spent: false,
-    created: '0',
-    state: out.storeState ? svToJson(out.stateVariables ?? draft.stateVariables) : [],
-  }));
+  return concatBytesLocal([
+    writeMiniNumberLocal(BigInt(inputBytes.length)),
+    ...inputBytes,
+    writeMiniNumberLocal(BigInt(outputBytes.length)),
+    ...outputBytes,
+    writeMiniNumberLocal(BigInt((draft.stateVariables ?? []).length)),
+    ...(draft.stateVariables ?? []).map(writeStateValueLocal),
+    writeHashToStreamLocal('0x00'),
+  ]);
+}
 
-  const state = svToJson(draft.stateVariables ?? []);
-
-  return serializeTransaction(JSON.stringify({
-    inputs,
-    outputs,
-    state,
-    linkhash: '0x00',
-  }));
+export function computeOmniaTxDigest(draft: OmniaTxDraft): Uint8Array {
+  return sha3_256(omniaDraftToCanonicalMinimaBytes(draft));
 }
 
 /**

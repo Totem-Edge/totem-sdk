@@ -53,6 +53,17 @@ buildDisputePayload (unilateral close)
 | `buildUpdateTx(state, params)` | Build an eltoo update transaction |
 | `buildSettlementTx(state, params)` | Build the cooperative settlement transaction |
 
+### Programmable channel helpers
+
+| Function | What it does |
+|----------|-------------|
+| `applyProgramTransition(channel, params)` | Sign a non-payment program transition |
+| `incrementCounter(channel, by)` | Built-in CounterProgram increment transition |
+| `decrementCounter(channel, by)` | Built-in CounterProgram decrement transition |
+| `setCounter(channel, value)` | Built-in CounterProgram set transition |
+| `recordMeterReading(channel, reading, unitPrice)` | Built-in MeterProgram usage/payment transition |
+| `sendProgramTransitionStateUpdate(peer, channel, signedState, nonce)` | Send a signed program transition over Omnia messaging |
+
 ### Error types
 
 `ChannelCapacityError` · `DoubleSignError` · `BalanceConservationError` · `SequenceError` · `SigningIndexMonotonicityError` · `ChannelStatusError`
@@ -120,6 +131,76 @@ const { channel: withHtlc, htlcId } = await addHTLC(channel, htlcParams, leasePr
 // Fulfill on receipt of the preimage
 const { channel: settled } = await fulfillHTLC(withHtlc, htlcId, preimage, leaseProvider, signer);
 ```
+
+### Programmable CounterProgram state
+
+```typescript
+import {
+  COUNTER_PROGRAM_ID,
+  attachCounterpartySignature,
+  createChannel,
+  getStateBigInt,
+  incrementCounter,
+  sendProgramTransitionStateUpdate,
+} from '@totemsdk/omnia';
+
+const { channel, proposal } = await createChannel({
+  localParty: alice,
+  remoteParty: bob,
+  localAmount: 100n,
+  remoteAmount: 0n,
+  fundingCoinId: '0x...',
+  fundingWitnessBytes,
+  program: { id: COUNTER_PROGRAM_ID, version: 1 },
+}, provider);
+
+const { channel: proposedChannel, signedState } = await incrementCounter(
+  channel,
+  5n,
+  leaseProvider,
+  signer,
+);
+
+await sendProgramTransitionStateUpdate(peer, channel, signedState, 1);
+
+// When the ACK arrives, merge the counterparty signature and close package.
+const { signedState: fullState } = attachCounterpartySignature(
+  proposedChannel,
+  signedState,
+  'bob',
+  ack.counterpartyPartialState.signatures.bob,
+  ack.counterpartyPartialState.signingIndices.bob,
+  ack.counterpartyClosePackage,
+);
+
+const counter = getStateBigInt(fullState, 120);
+```
+
+### Programmable MeterProgram state
+
+`MeterProgram` treats the first party as payer and second party as payee. A reading transition records a monotonic meter reading and transfers `(reading - previousReading) * unitPrice` from payer to payee.
+
+```typescript
+import { METER_PROGRAM_ID, recordMeterReading } from '@totemsdk/omnia';
+
+const { channel } = await createChannel({
+  localParty: consumer,
+  remoteParty: provider,
+  localAmount: 1000n,
+  remoteAmount: 0n,
+  fundingCoinId: '0x...',
+  fundingWitnessBytes,
+  program: { id: METER_PROGRAM_ID, version: 1 },
+}, provider);
+
+const { signedState } = await recordMeterReading(channel, 110n, 2n, leaseProvider, signer);
+```
+
+### Co-sign verification boundary
+
+Lease-backed messaging receivers use `verifyStateForCoSign()` before adding their local signature. It accepts a one-party proposal only if that party's update signature, close-package artifacts, sequence, balance conservation, `STATE(102)` commitment, and program validation hooks pass.
+
+After the receiver signs and both partial close packages are merged, use `verifyState()` on the complete state. `verifyState()` is intentionally stricter: it requires every channel party to have signed both the update and paired close-package artifacts.
 
 ### Cooperative close
 

@@ -55,6 +55,36 @@ export interface SignedChannelState {
   transactionHex: string;
   signatures: Record<partyId, ChannelSignature>;
   signingIndices: Record<partyId, SigningIndices>;
+  closePackage?: SignedClosePackage;
+  programTransition?: ProgramTransition;
+}
+
+export interface ClosePackageArtifact {
+  txHex: string;
+  txDigest: string;
+  signatures: Record<partyId, ChannelSignature>;
+  signingIndices: Record<partyId, SigningIndices>;
+}
+
+export interface SignedClosePackage {
+  version: 1;
+  channelId: string;
+  sequence: number;
+  stateCommitmentV2: string;
+  update: ClosePackageArtifact;
+  settlement: ClosePackageArtifact;
+}
+
+export interface UnilateralCloseState {
+  channelId: string;
+  sequence: number;
+  updateTxHex: string;
+  settlementTxHex: string;
+  contestStartBlock: number;
+  contestDeadlineBlock: number;
+  status: 'update_broadcast' | 'settlement_broadcast';
+  updateTxpowId?: string;
+  settlementTxpowId?: string;
 }
 
 export interface ChannelLogEntry {
@@ -78,6 +108,8 @@ export interface OmniaChannel {
   fundingTxId: string;
   fundingCoinId: string;
   fundingScript: string;
+  programId: string;
+  programVersion: number;
   /** SHA3-256 script-hash address for the eltoo script — used as input/output address in update/settlement TXs. */
   fundingAddress: string;
   tokenId: string;
@@ -115,6 +147,7 @@ export interface OmniaChannel {
    * reference the real spendable coin rather than the funding output.
    */
   latestCoinId?: string;
+  unilateralClose?: UnilateralCloseState;
   createdAt: number;
   updatedAt: number;
 }
@@ -138,8 +171,11 @@ export interface CreateChannelParams {
   /** Scale factor for coloured coins. 0 = native Minima. Default: 0. */
   tokenScale?: number;
   fundingCoinId: string;
+  /** Serialized Minima witness for the funding transaction input(s). Required for createChannel broadcast. */
+  fundingWitnessBytes?: Uint8Array;
   channelType?: 'direct' | 'virtual';
   factoryRef?: string;
+  program?: ChannelProgram;
 }
 
 export interface ChannelProposal {
@@ -151,6 +187,8 @@ export interface ChannelProposal {
   tokenId: string;
   tokenScale?: number;
   fundingScript: string;
+  programId?: string;
+  programVersion?: number;
   fundingAddress?: string;
   fundingTxId: string;
   fundingCoinId: string;
@@ -188,12 +226,62 @@ export interface DisputePayload {
   evidence: string;
 }
 
+export interface UnilateralCloseStartResult {
+  channel: OmniaChannel;
+  disputePayload: DisputePayload;
+  contestStartBlock: number;
+  contestDeadlineBlock: number;
+  updateTxpowId?: string;
+}
+
+export interface UnilateralCloseFinalizeResult {
+  channel: OmniaChannel;
+  settlementPayload: SettlementPayload;
+}
+
 export interface OmniaTxDraft {
   type: 'funding' | 'update' | 'settlement';
   inputs: TxInputDraft[];
   outputs: TxOutputDraft[];
   storeState: boolean;
   stateVariables: StateValue[];
+}
+
+export interface ChannelProgramBuildStateInput {
+  channel: OmniaChannel;
+  sequence: number;
+  balances: Record<partyId, bigint>;
+  pendingHTLCs: HTLCRecord[];
+  settlement: boolean;
+  previousState?: SignedChannelState | null;
+  transition?: ProgramTransition;
+}
+
+export interface ChannelProgramValidationResult {
+  valid: boolean;
+  error?: string;
+}
+
+export interface ChannelProgramValidateTransitionInput {
+  channel: OmniaChannel;
+  previousState?: SignedChannelState | null;
+  nextState: SignedChannelState;
+  transition?: ProgramTransition;
+}
+
+export interface ChannelProgram {
+  id: string;
+  version: number;
+  buildScript(parties: ChannelParticipant[]): string;
+  buildStateVariables(input: ChannelProgramBuildStateInput): StateValue[];
+  validateTransition?(input: ChannelProgramValidateTransitionInput): ChannelProgramValidationResult;
+}
+
+export interface ProgramTransition {
+  action: string;
+  inputs?: Record<string, string | bigint | boolean>;
+  witness?: Record<string, string>;
+  metadata?: Record<string, string>;
 }
 
 export interface TxInputDraft {
@@ -218,16 +306,19 @@ export interface ChannelSigner {
   sign(payload: Uint8Array, indices: SigningIndices): Promise<ChannelSignature>;
 }
 
-export interface KissvmEvaluator {
-  evaluate(script: string, stateVariables: StateValue[]): Promise<{ result: boolean; error?: string }>;
-}
-
 export interface VerifyStateOptions {
-  kissvm?: KissvmEvaluator;
+  kissvm?: boolean | import('./kissvm.js').KissvmValidationOptions;
 }
 
 export interface UpdateDelta {
   newBalances: Record<partyId, bigint>;
+  memo?: string;
+  programTransition?: ProgramTransition;
+}
+
+export interface ApplyProgramTransitionParams {
+  transition: ProgramTransition;
+  balances?: Record<partyId, bigint>;
   memo?: string;
 }
 

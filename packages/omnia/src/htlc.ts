@@ -1,4 +1,4 @@
-import { HTLCHelper, bytesToHex } from '@totemsdk/core';
+import { HTLCHelper } from '@totemsdk/core';
 import type { WotsLeaseProvider } from '@totemsdk/wots-lease';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import type {
@@ -10,9 +10,9 @@ import type {
 } from './types.js';
 import { ChannelStatusError, BalanceConservationError, SigningIndexMonotonicityError } from './errors.js';
 import { signState } from './sign.js';
-import { computeStateCommitment } from './transactions.js';
 import { enforceUpdateGuards } from './channel.js';
 import { flatSigningIndex } from './capacity.js';
+import { computeProgramUpdateDigestHex } from './program.js';
 
 function generateHtlcId(): string {
   const buf = new Uint8Array(16);
@@ -92,8 +92,7 @@ export async function addHTLC(
   }
 
   // ── Shared update guards (capacity, watermark double-sign/stale-sequence) ──
-  const commitment = computeStateCommitment(newSequence, newBalances, newHTLCs);
-  const payloadHash = bytesToHex(commitment);
+  const payloadHash = computeProgramUpdateDigestHex({ ...channel, pendingHTLCs: newHTLCs }, newSequence, newBalances, newHTLCs);
   const guardError = enforceUpdateGuards(channel.channelId, newSequence, payloadHash, channel.pendingProposal);
   if (guardError) {
     return { channel, htlcId: htlcRecord.htlcId, partialState: {}, error: guardError };
@@ -202,8 +201,7 @@ export async function fulfillHTLC(
   }
 
   // ── Shared update guards (capacity, watermark double-sign/stale-sequence) ──
-  const commitment = computeStateCommitment(newSequence, newBalances, newHTLCs);
-  const payloadHash = bytesToHex(commitment);
+  const payloadHash = computeProgramUpdateDigestHex({ ...channel, pendingHTLCs: newHTLCs }, newSequence, newBalances, newHTLCs);
   const guardError = enforceUpdateGuards(channel.channelId, newSequence, payloadHash, channel.pendingProposal);
   if (guardError) {
     return { channel, partialState: {}, error: guardError };
@@ -317,8 +315,7 @@ export async function timeoutHTLC(
   }
 
   // ── Shared update guards (capacity, watermark double-sign/stale-sequence) ──
-  const commitment = computeStateCommitment(newSequence, newBalances, newHTLCs);
-  const payloadHash = bytesToHex(commitment);
+  const payloadHash = computeProgramUpdateDigestHex({ ...channel, pendingHTLCs: newHTLCs }, newSequence, newBalances, newHTLCs);
   const guardError = enforceUpdateGuards(channel.channelId, newSequence, payloadHash, channel.pendingProposal);
   if (guardError) {
     return { channel, partialState: {}, error: guardError };
