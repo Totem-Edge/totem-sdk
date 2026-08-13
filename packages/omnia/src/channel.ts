@@ -371,7 +371,7 @@ export async function updateState(
   // Compute the canonical update TX digest (fail-fast, before any async work) then run all
   // per-update invariants through the shared enforceUpdateGuards path —
   // capacity, watermark double-sign / stale-sequence, and watermark advance.
-  const payloadHash = computeProgramUpdateDigestHex(channel, newSequence, delta.newBalances, channel.pendingHTLCs);
+  const payloadHash = computeProgramUpdateDigestHex(channel, newSequence, delta.newBalances, channel.pendingHTLCs, delta.programTransition);
   const guardError = enforceUpdateGuards(channel.channelId, newSequence, payloadHash, channel.pendingProposal);
   if (guardError) {
     return { channel, signedState: {}, error: guardError };
@@ -379,7 +379,7 @@ export async function updateState(
 
   const partialState = await signState(
     channel,
-    { newSequence, newBalances: delta.newBalances },
+    { newSequence, newBalances: delta.newBalances, programTransition: delta.programTransition },
     leaseProvider,
     effectiveSigner,
   );

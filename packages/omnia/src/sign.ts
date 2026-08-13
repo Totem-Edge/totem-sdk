@@ -6,6 +6,7 @@ import type {
   SignedChannelState,
   ChannelSigner,
   ChannelSignature,
+  ProgramTransition,
   VerifyStateOptions,
 } from './types.js';
 import {
@@ -80,14 +81,14 @@ export async function signTxDraft(
  */
 export async function signState(
   channel: OmniaChannel,
-  update: { newSequence: number; newBalances: Record<string, bigint> },
+  update: { newSequence: number; newBalances: Record<string, bigint>; programTransition?: ProgramTransition },
   leaseProvider: WotsLeaseProvider,
   signer?: ChannelSigner,
 ): Promise<Partial<SignedChannelState>> {
   const { newSequence, newBalances } = update;
   const effectiveSigner = resolveSignerOrThrow(channel, signer);
   const pendingHTLCs = channel.pendingHTLCs.filter(h => h.status === 'pending');
-  const draft = buildProgramUpdateTx(channel, newSequence, newBalances, channel.pendingHTLCs);
+  const draft = buildProgramUpdateTx(channel, newSequence, newBalances, channel.pendingHTLCs, update.programTransition);
 
   const digest = computeOmniaTxDigest(draft);
 
@@ -137,6 +138,7 @@ export async function signState(
     signatures: { [signerParty.partyId]: signature },
     signingIndices: { [signerParty.partyId]: reservation.indices },
     closePackage,
+    programTransition: update.programTransition,
   };
 }
 
@@ -163,7 +165,7 @@ export function verifyStateSignature(
   if (!sig || !(sig instanceof Uint8Array)) return false;
 
   try {
-    const draft = buildProgramUpdateTx(channel, state.sequence, state.balances, state.pendingHTLCs);
+    const draft = buildProgramUpdateTx(channel, state.sequence, state.balances, state.pendingHTLCs, state.programTransition);
     const digest = computeOmniaTxDigest(draft);
     const pkDigestBytes = hexToBytes(publicKeyDigest);
     return wotsVerifyDigest(sig, digest, pkDigestBytes);

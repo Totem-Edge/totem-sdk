@@ -56,6 +56,7 @@ export interface SignedChannelState {
   signatures: Record<partyId, ChannelSignature>;
   signingIndices: Record<partyId, SigningIndices>;
   closePackage?: SignedClosePackage;
+  programTransition?: ProgramTransition;
 }
 
 export interface ClosePackageArtifact {
@@ -253,6 +254,7 @@ export interface ChannelProgramBuildStateInput {
   pendingHTLCs: HTLCRecord[];
   settlement: boolean;
   previousState?: SignedChannelState | null;
+  transition?: ProgramTransition;
 }
 
 export interface ChannelProgramValidationResult {
@@ -266,6 +268,13 @@ export interface ChannelProgram {
   buildScript(parties: ChannelParticipant[]): string;
   buildStateVariables(input: ChannelProgramBuildStateInput): StateValue[];
   validateTransition?(channel: OmniaChannel, state: SignedChannelState): ChannelProgramValidationResult;
+}
+
+export interface ProgramTransition {
+  action: string;
+  inputs?: Record<string, string | bigint | boolean>;
+  witness?: Record<string, string>;
+  metadata?: Record<string, string>;
 }
 
 export interface TxInputDraft {
@@ -297,6 +306,7 @@ export interface VerifyStateOptions {
 export interface UpdateDelta {
   newBalances: Record<partyId, bigint>;
   memo?: string;
+  programTransition?: ProgramTransition;
 }
 
 /**

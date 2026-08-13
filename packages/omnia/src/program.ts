@@ -1,5 +1,5 @@
 import { bytesToHex } from '@totemsdk/core';
-import type { ChannelParticipant, ChannelProgram, ChannelProgramBuildStateInput, OmniaChannel, OmniaTxDraft, StateValue, HTLCRecord } from './types.js';
+import type { ChannelParticipant, ChannelProgram, ChannelProgramBuildStateInput, OmniaChannel, OmniaTxDraft, StateValue, HTLCRecord, ProgramTransition } from './types.js';
 import { buildEltooScript } from './script.js';
 import { buildUpdateTx, computeOmniaTxDigest } from './transactions.js';
 
@@ -39,6 +39,7 @@ export function buildProgramUpdateTx(
   sequence: number,
   balances: Record<string, bigint>,
   pendingHTLCs: HTLCRecord[],
+  transition?: ProgramTransition,
 ): OmniaTxDraft {
   const program = resolveChannelProgram({ id: channel.programId, version: channel.programVersion });
   const programStateVariables = program.buildStateVariables({
@@ -48,6 +49,7 @@ export function buildProgramUpdateTx(
     pendingHTLCs: pendingHTLCs.filter(h => h.status === 'pending'),
     settlement: false,
     previousState: channel.latestState,
+    transition,
   });
   return buildUpdateTx(channel, sequence, balances, pendingHTLCs, programStateVariables);
 }
@@ -57,8 +59,9 @@ export function computeProgramUpdateDigest(
   sequence: number,
   balances: Record<string, bigint>,
   pendingHTLCs: HTLCRecord[],
+  transition?: ProgramTransition,
 ): Uint8Array {
-  return computeOmniaTxDigest(buildProgramUpdateTx(channel, sequence, balances, pendingHTLCs));
+  return computeOmniaTxDigest(buildProgramUpdateTx(channel, sequence, balances, pendingHTLCs, transition));
 }
 
 export function computeProgramUpdateDigestHex(
@@ -66,6 +69,7 @@ export function computeProgramUpdateDigestHex(
   sequence: number,
   balances: Record<string, bigint>,
   pendingHTLCs: HTLCRecord[],
+  transition?: ProgramTransition,
 ): string {
-  return bytesToHex(computeProgramUpdateDigest(channel, sequence, balances, pendingHTLCs));
+  return bytesToHex(computeProgramUpdateDigest(channel, sequence, balances, pendingHTLCs, transition));
 }

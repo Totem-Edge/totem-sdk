@@ -29,6 +29,7 @@ export type {
   ChannelProgram,
   ChannelProgramBuildStateInput,
   ChannelProgramValidationResult,
+  ProgramTransition,
   partyId,
 } from './types.js';
 

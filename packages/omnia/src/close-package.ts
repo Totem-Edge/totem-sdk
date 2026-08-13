@@ -31,7 +31,7 @@ function defaultSettlementAddresses(channel: OmniaChannel): Record<string, strin
 
 export function buildUnsignedClosePackage(
   channel: OmniaChannel,
-  state: Pick<SignedChannelState, 'sequence' | 'balances' | 'pendingHTLCs' | 'stateVariables'>,
+  state: Pick<SignedChannelState, 'sequence' | 'balances' | 'pendingHTLCs' | 'stateVariables' | 'programTransition'>,
   partyAddresses: Record<string, string> = defaultSettlementAddresses(channel),
 ): SignedClosePackage {
   const program = resolveChannelProgram({ id: channel.programId, version: channel.programVersion });
@@ -42,6 +42,7 @@ export function buildUnsignedClosePackage(
     pendingHTLCs: state.pendingHTLCs,
     settlement: false,
     previousState: channel.latestState,
+    transition: state.programTransition,
   });
   const updateDraft = buildUpdateTx(channel, state.sequence, state.balances, state.pendingHTLCs, programUpdateState);
   const settlementState: SignedChannelState = {
@@ -60,6 +61,7 @@ export function buildUnsignedClosePackage(
     pendingHTLCs: state.pendingHTLCs,
     settlement: true,
     previousState: channel.latestState,
+    transition: state.programTransition,
   });
   const settlementDraft = buildSettlementTx(channel, settlementState, partyAddresses, {
     floatingInput: true,

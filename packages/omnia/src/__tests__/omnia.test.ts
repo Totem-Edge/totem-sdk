@@ -651,6 +651,39 @@ describe('@totemsdk/omnia — ChannelProgram', () => {
     expect(computeProgramUpdateDigestHex(channelA, 1, { alice: 500n, bob: 500n }, []))
       .not.toBe(computeProgramUpdateDigestHex(channelB, 1, { alice: 500n, bob: 500n }, []));
   });
+
+  it('passes ProgramTransition into program state building and persists it on signed state', async () => {
+    const { registerChannelProgram } = await import('../program');
+    registerChannelProgram({
+      id: 'transition-program',
+      version: 1,
+      buildScript: DefaultEltooPaymentProgram.buildScript,
+      buildStateVariables: ({ transition }) => [{
+        port: 121,
+        value: BigInt(String(transition?.inputs?.meterReading ?? 0n)),
+        type: 'number' as const,
+      }],
+    });
+    const channel = makeTestChannel({ programId: 'transition-program', programVersion: 1 });
+    const programTransition = {
+      action: 'meter_reading',
+      inputs: { meterReading: 77n },
+      metadata: { source: 'test' },
+    };
+
+    const result = await updateState(
+      channel,
+      { newBalances: { alice: 500n, bob: 500n }, programTransition },
+      makeMockLeaseProvider() as any,
+      makeMockSigner('alice', ALICE_PKD),
+    );
+
+    expect(result.signedState.programTransition).toEqual(programTransition);
+    expect(result.signedState.stateVariables).toEqual(expect.arrayContaining([
+      { port: 121, value: 77n, type: 'number' },
+    ]));
+    expect(stateCommitmentV2Matches(channel, result.signedState as SignedChannelState)).toBe(true);
+  });
 });
 
 describe('@totemsdk/omnia — updateState (full lifecycle)', () => {

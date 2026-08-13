@@ -73,7 +73,7 @@ export function validateChannelStateWithKissvm(
   try {
     const draft = opts?.settlement
       ? buildSettlementTx(channel, state, opts.partyAddresses ?? Object.fromEntries(channel.parties.map(p => [p.partyId, p.publicKeyDigest])), { floatingInput: true })
-      : buildProgramUpdateTx(channel, state.sequence, state.balances, state.pendingHTLCs);
+      : buildProgramUpdateTx(channel, state.sequence, state.balances, state.pendingHTLCs, state.programTransition);
     const result = evaluateScript(
       channel.fundingScript,
       signatureWitness(channel, state),
