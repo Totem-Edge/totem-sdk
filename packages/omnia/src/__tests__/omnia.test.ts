@@ -77,6 +77,10 @@ import { validateChannelStateWithKissvm } from '../kissvm';
 import { computeProgramUpdateDigestHex, CounterProgram, COUNTER_PROGRAM_ID, COUNTER_STATE_PORT, DefaultEltooPaymentProgram, resolveChannelProgram } from '../program';
 import { canonicalizeProgramTransition, serializeProgramTransition } from '../transition';
 import { getStateBigInt, programNumberState } from '../state-vars';
+import { bindPeerIntegration, sendProgramTransitionStateUpdate } from '../integration';
+import { OmniaPeerImpl } from '../peer';
+import { createInMemoryPair } from '@totemsdk/stream-transport';
+import type { OmniaMessage } from '../messaging-types';
 import type {
   OmniaChannel,
   ChannelParticipant,
@@ -104,6 +108,14 @@ const bob: ChannelParticipant = {
   publicKeyDigest: BOB_PKD,
   addressIndex: 1,
 };
+
+function waitNextTick(n = 1): Promise<void> {
+  return new Promise(resolve => {
+    let count = 0;
+    const tick = () => { if (++count >= n) resolve(); else setImmediate(tick); };
+    setImmediate(tick);
+  });
+}
 
 // ─────────────────────────────────────────────────
 // Mock: WotsLeaseProvider
@@ -935,6 +947,71 @@ describe('@totemsdk/omnia — ChannelProgram', () => {
 
   it('resolves the built-in CounterProgram by id and version', () => {
     expect(resolveChannelProgram({ id: COUNTER_PROGRAM_ID, version: 1 })).toBe(CounterProgram);
+  });
+
+  it('exchanges CounterProgram transition over messaging and returns co-sign ACK', async () => {
+    const [sideA, sideB] = createInMemoryPair();
+    const peerA = new OmniaPeerImpl(sideA, { pubkey: '0xALICE' });
+    const peerB = new OmniaPeerImpl(sideB, { pubkey: '0xBOB' });
+    const initialState: SignedChannelState = {
+      sequence: 0,
+      balances: { alice: 600n, bob: 400n },
+      pendingHTLCs: [],
+      stateVariables: [programNumberState(COUNTER_STATE_PORT, 10n)],
+      transactionHex: '',
+      signatures: {},
+      signingIndices: {},
+    };
+    const channel = makeTestChannel({
+      programId: COUNTER_PROGRAM_ID,
+      programVersion: 1,
+      currentSequence: 0,
+      latestState: initialState,
+    });
+    const aliceLeaseProvider = makeMockLeaseProvider();
+    const bobLeaseProvider = makeMockLeaseProvider();
+    const aliceSigner = makeMockSigner('alice', ALICE_PKD);
+    const bobSigner = makeMockSigner('bob', BOB_PKD);
+    const bobStore = new Map([[channel.channelId, channel]]);
+    const acks: OmniaMessage[] = [];
+
+    bindPeerIntegration(peerB, bobStore, { leaseProvider: bobLeaseProvider as any, signer: bobSigner });
+    peerA.onMessage(msg => { if (msg.type === 'ACK') acks.push(msg); });
+
+    const { channel: proposedChannel, signedState } = await applyProgramTransition(
+      channel,
+      { transition: { action: 'increment', inputs: { by: 5n } } },
+      aliceLeaseProvider as any,
+      aliceSigner,
+    );
+    await sendProgramTransitionStateUpdate(peerA, channel, signedState, 99);
+    await waitNextTick(10);
+
+    expect(acks).toHaveLength(1);
+    const ackPayload = acks[0].payload as { counterpartyPartialState: Partial<SignedChannelState> };
+    const bobPartialState = ackPayload.counterpartyPartialState;
+    expect(bobPartialState.programTransition).toEqual({ action: 'increment', inputs: { by: 5n } });
+
+    const { signedState: fullState } = attachCounterpartySignature(
+      proposedChannel,
+      signedState,
+      'bob',
+      bobPartialState.signatures!.bob,
+      bobPartialState.signingIndices!.bob,
+      bobPartialState.closePackage,
+    );
+    const { verifyState } = await import('../sign');
+
+    expect(getStateBigInt(fullState, COUNTER_STATE_PORT)).toBe(15n);
+    expect(fullState.closePackage?.update.signatures.bob).toBeDefined();
+    expect((await verifyState(channel, fullState)).errors)
+      .not.toEqual(expect.arrayContaining(['program validation failed: counter increment mismatch']));
+    expect(bobStore.get(channel.channelId)?.latestState?.programTransition).toEqual({ action: 'increment', inputs: { by: 5n } });
+    expect(bobStore.get(channel.channelId)?.latestState?.signatures.bob).toBeDefined();
+    expect(bobStore.get(channel.channelId)?.currentSequence).toBe(1);
+
+    peerA.disconnect();
+    peerB.disconnect();
   });
 });
 

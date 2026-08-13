@@ -184,3 +184,51 @@ export function verifyClosePackage(
 
   return { valid: errors.length === 0, errors };
 }
+
+export function verifyPartialClosePackage(
+  channel: OmniaChannel,
+  state: SignedChannelState,
+): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+  const closePackage = state.closePackage;
+  if (!closePackage) return { valid: false, errors: ['missing close package'] };
+  if (closePackage.version !== 1) errors.push(`unsupported close package version ${closePackage.version}`);
+  if (closePackage.channelId !== channel.channelId) errors.push('close package channelId mismatch');
+  if (closePackage.sequence !== state.sequence) errors.push('close package sequence mismatch');
+  if (closePackage.stateCommitmentV2 !== stateCommitmentV2Hex(state)) errors.push('close package stateCommitmentV2 mismatch');
+
+  const expected = buildUnsignedClosePackage(channel, state);
+  if (closePackage.update.txHex !== expected.update.txHex) errors.push('close package update tx mismatch');
+  if (closePackage.update.txDigest !== expected.update.txDigest) errors.push('close package update digest mismatch');
+  if (closePackage.settlement.txHex !== expected.settlement.txHex) errors.push('close package settlement tx mismatch');
+  if (closePackage.settlement.txDigest !== expected.settlement.txDigest) errors.push('close package settlement digest mismatch');
+
+  const stateSignerIds = new Set(Object.keys(state.signatures ?? {}));
+  for (const party of channel.parties) {
+    const updateSig = closePackage.update.signatures[party.partyId];
+    const updateIndices = closePackage.update.signingIndices[party.partyId];
+    const settlementSig = closePackage.settlement.signatures[party.partyId];
+    const settlementIndices = closePackage.settlement.signingIndices[party.partyId];
+    if (stateSignerIds.has(party.partyId)) {
+      if (!updateSig || !updateIndices) errors.push(`missing update close artifact signature for state signer ${party.partyId}`);
+      if (!settlementSig || !settlementIndices) errors.push(`missing settlement close artifact signature for state signer ${party.partyId}`);
+    }
+    if (!updateSig && !settlementSig) continue;
+    if (!updateSig || !updateIndices) errors.push(`incomplete update close artifact signature for ${party.partyId}`);
+    if (!settlementSig || !settlementIndices) errors.push(`incomplete settlement close artifact signature for ${party.partyId}`);
+
+    try {
+      const pk = hexToBytes(party.publicKeyDigest);
+      if (updateSig && !wotsVerifyDigest(updateSig, hexToBytes(closePackage.update.txDigest), pk)) {
+        errors.push(`invalid update close artifact signature for ${party.partyId}`);
+      }
+      if (settlementSig && !wotsVerifyDigest(settlementSig, hexToBytes(closePackage.settlement.txDigest), pk)) {
+        errors.push(`invalid settlement close artifact signature for ${party.partyId}`);
+      }
+    } catch {
+      errors.push(`close artifact signature verification error for ${party.partyId}`);
+    }
+  }
+
+  return { valid: errors.length === 0, errors };
+}

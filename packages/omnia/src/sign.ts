@@ -17,7 +17,7 @@ import {
 } from './errors.js';
 import { serializeTxDraft, computeOmniaTxDigest, stateCommitmentV2Matches } from './transactions.js';
 import { flatSigningIndex } from './capacity.js';
-import { addClosePackageSignature, buildUnsignedClosePackage, verifyClosePackage } from './close-package.js';
+import { addClosePackageSignature, buildUnsignedClosePackage, verifyClosePackage, verifyPartialClosePackage } from './close-package.js';
 import { validateChannelStateWithKissvm } from './kissvm.js';
 import { buildProgramUpdateTx, resolveChannelProgram } from './program.js';
 import { canonicalizeProgramTransition } from './transition.js';
@@ -111,6 +111,7 @@ export async function signState(
     balances: newBalances,
     pendingHTLCs,
     stateVariables: draft.stateVariables,
+    programTransition,
   });
   const settlementDigest = hexToBytes(unsignedClosePackage.settlement.txDigest);
   const settlementReservation = await leaseProvider.reserveKeyUse({
@@ -273,6 +274,68 @@ export async function verifyState(
       typeof opts.kissvm === 'boolean' ? undefined : opts.kissvm,
     );
     if (!result.valid) errors.push(`kissvm pre-validation failed: ${result.error ?? 'unknown'}`);
+  }
+
+  return { valid: errors.length === 0, errors };
+}
+
+export async function verifyStateForCoSign(
+  channel: OmniaChannel,
+  state: SignedChannelState,
+): Promise<{ valid: boolean; errors: string[] }> {
+  const errors: string[] = [];
+
+  if (state.sequence <= channel.currentSequence) {
+    errors.push(`sequence ${state.sequence} not > current ${channel.currentSequence}`);
+  }
+
+  const balanceSum = Object.values(state.balances).reduce((a, b) => a + b, 0n);
+  const htlcSum = state.pendingHTLCs
+    .filter(h => h.status === 'pending')
+    .reduce((a, h) => a + h.amount, 0n);
+  if (balanceSum + htlcSum !== channel.totalValue) {
+    errors.push(`balance conservation: ${balanceSum + htlcSum} !== ${channel.totalValue}`);
+  }
+
+  if (!stateCommitmentV2Matches(channel, state, false)) {
+    errors.push('state commitment v2 mismatch');
+  }
+
+  const program = resolveChannelProgram({ id: channel.programId, version: channel.programVersion });
+  const programTransition = canonicalizeProgramTransition(state.programTransition);
+  const programResult = program.validateTransition?.({
+    channel,
+    previousState: channel.latestState,
+    nextState: state,
+    transition: programTransition,
+  });
+  if (programResult && !programResult.valid) {
+    errors.push(`program validation failed: ${programResult.error ?? 'invalid transition'}`);
+  }
+
+  const partialClosePackageResult = verifyPartialClosePackage(channel, state);
+  if (!partialClosePackageResult.valid) {
+    errors.push(...partialClosePackageResult.errors);
+  }
+
+  const signedPartyIds = Object.keys(state.signatures ?? {});
+  if (signedPartyIds.length === 0) {
+    errors.push('missing state signature for co-sign');
+  }
+  for (const partyId of signedPartyIds) {
+    const party = channel.parties.find(p => p.partyId === partyId);
+    if (!party) {
+      errors.push(`unknown signing party ${partyId}`);
+      continue;
+    }
+    const indices = state.signingIndices[partyId];
+    if (!indices) {
+      errors.push(`missing signing indices for party ${partyId}`);
+      continue;
+    }
+    if (!verifyStateSignature(channel, state, partyId, party.publicKeyDigest)) {
+      errors.push(`invalid WOTS signature for party ${partyId}`);
+    }
   }
 
   return { valid: errors.length === 0, errors };

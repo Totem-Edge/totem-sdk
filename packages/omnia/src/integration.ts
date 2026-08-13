@@ -9,9 +9,11 @@
 
 import {
   acceptChannel,
+  attachCounterpartySignature,
 } from './channel.js';
 import {
   verifyState,
+  verifyStateForCoSign,
   signState,
 } from './sign.js';
 import {
@@ -46,6 +48,32 @@ export interface OmniaIntegrationConfig {
 }
 
 export type ChannelStore = Map<string, OmniaChannel>;
+
+export function buildProgramTransitionStateUpdateMessage(
+  channel: OmniaChannel,
+  signedState: Partial<SignedChannelState>,
+  nonce: number,
+): OmniaMessage {
+  return {
+    type: 'STATE_UPDATE',
+    channelId: channel.channelId,
+    nonce,
+    version: 1,
+    payload: {
+      ...signedState,
+      programTransition: canonicalizeProgramTransition(signedState.programTransition),
+    },
+  };
+}
+
+export async function sendProgramTransitionStateUpdate(
+  peer: OmniaPeer,
+  channel: OmniaChannel,
+  signedState: Partial<SignedChannelState>,
+  nonce: number,
+): Promise<void> {
+  await peer.sendMessage(buildProgramTransitionStateUpdateMessage(channel, signedState, nonce));
+}
 
 /**
  * Wire an OmniaSwarm to @totemsdk/omnia function calls for the full channel lifecycle.
@@ -154,7 +182,9 @@ async function _handleStateUpdate(
 
   const signedState = msg.payload as SignedChannelState;
   signedState.programTransition = canonicalizeProgramTransition(signedState.programTransition);
-  const result = await verifyState(channel, signedState);
+  const result = config.leaseProvider
+    ? await verifyStateForCoSign(channel, signedState)
+    : await verifyState(channel, signedState);
   if (!result.valid) {
     _sendError(
       peer,
@@ -165,19 +195,10 @@ async function _handleStateUpdate(
     return;
   }
 
-  const updatedChannel: OmniaChannel = {
-    ...channel,
-    latestState: signedState,
-    currentSequence: signedState.sequence,
-    balances: signedState.balances,
-    updatedAt: Date.now(),
-  };
-  store.set(msg.channelId, updatedChannel);
-
   if (config.leaseProvider) {
     try {
       const partialState = await signState(
-        updatedChannel,
+        channel,
         {
           newSequence: signedState.sequence,
           newBalances: signedState.balances,
@@ -186,6 +207,22 @@ async function _handleStateUpdate(
         config.leaseProvider,
         config.signer,
       );
+      let mergedChannel: OmniaChannel | undefined;
+      const remotePartyId = Object.keys(signedState.signatures ?? {})[0];
+      if (remotePartyId && partialState.signatures && partialState.signingIndices) {
+        const localPartyId = Object.keys(partialState.signatures)[0];
+        if (localPartyId) {
+          const merged = attachCounterpartySignature(
+            channel,
+            partialState,
+            remotePartyId,
+            signedState.signatures[remotePartyId],
+            signedState.signingIndices[remotePartyId],
+            signedState.closePackage,
+          );
+          mergedChannel = merged.channel;
+        }
+      }
       await peer.sendMessage({
         type: 'ACK',
         channelId: msg.channelId,
@@ -197,6 +234,11 @@ async function _handleStateUpdate(
           counterpartyClosePackage: partialState.closePackage,
         },
       });
+      if (mergedChannel) {
+        store.set(msg.channelId, mergedChannel);
+        config.onStateUpdated?.(mergedChannel, peer);
+        return;
+      }
     } catch (err) {
       _sendError(peer, msg.channelId, msg.nonce, `signState failed: ${String(err)}`);
       return;
@@ -204,6 +246,15 @@ async function _handleStateUpdate(
   } else {
     _sendAck(peer, msg.channelId, msg.nonce);
   }
+
+  const updatedChannel: OmniaChannel = {
+    ...channel,
+    latestState: signedState,
+    currentSequence: signedState.sequence,
+    balances: signedState.balances,
+    updatedAt: Date.now(),
+  };
+  store.set(msg.channelId, updatedChannel);
 
   config.onStateUpdated?.(updatedChannel, peer);
 }

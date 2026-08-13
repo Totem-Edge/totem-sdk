@@ -94,6 +94,7 @@ export {
   verifyStateSignature,
   validateStateTransition,
   verifyState,
+  verifyStateForCoSign,
 } from './sign.js';
 
 export {
@@ -139,6 +140,7 @@ export {
   buildUnsignedClosePackage,
   mergeClosePackages,
   verifyClosePackage,
+  verifyPartialClosePackage,
 } from './close-package.js';
 
 export {
@@ -199,8 +201,10 @@ export { OmniaSwarmImpl, createOmniaSwarm, createOmniaSwarmFromInstance } from '
 export { HostedRelaySwarmImpl, createOmniaSwarmFromRelayUrl } from './relay.js';
 
 export {
+  buildProgramTransitionStateUpdateMessage,
   bindPeerIntegration,
   createOmniaIntegration,
+  sendProgramTransitionStateUpdate,
 } from './integration.js';
 export type {
   OmniaIntegrationConfig,

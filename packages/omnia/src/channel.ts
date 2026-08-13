@@ -493,6 +493,8 @@ export function attachCounterpartySignature(
   const updatedChannel: OmniaChannel = {
     ...channel,
     latestState: signedState,
+    currentSequence: signedState.sequence,
+    balances: signedState.balances,
     updatedAt: Date.now(),
   };
 

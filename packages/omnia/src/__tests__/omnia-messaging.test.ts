@@ -10,7 +10,9 @@
 // ── Mock internal integration dependencies before any imports ────────────────
 
 const mockAcceptChannel = jest.fn();
+const mockAttachCounterpartySignature = jest.fn();
 const mockVerifyState = jest.fn();
+const mockVerifyStateForCoSign = jest.fn();
 const mockSignState = jest.fn();
 const mockProposeSettlement = jest.fn();
 
@@ -18,7 +20,7 @@ jest.mock('../channel', () => ({
   acceptChannel: mockAcceptChannel,
   createChannel: jest.fn(),
   updateState: jest.fn(),
-  attachCounterpartySignature: jest.fn(),
+  attachCounterpartySignature: mockAttachCounterpartySignature,
   getChannelReceipt: jest.fn(),
   activateChannel: jest.fn(),
   enforceUpdateGuards: jest.fn(),
@@ -27,6 +29,7 @@ jest.mock('../channel', () => ({
 
 jest.mock('../sign', () => ({
   verifyState: mockVerifyState,
+  verifyStateForCoSign: mockVerifyStateForCoSign,
   signState: mockSignState,
   signTxDraft: jest.fn(),
   verifyStateSignature: jest.fn(),
@@ -574,7 +577,9 @@ describe('OmniaPeerImpl reconnect backoff', () => {
 describe('bindPeerIntegration', () => {
   beforeEach(() => {
     mockAcceptChannel.mockReset();
+    mockAttachCounterpartySignature.mockReset();
     mockVerifyState.mockReset();
+    mockVerifyStateForCoSign.mockReset();
     mockSignState.mockReset();
     mockProposeSettlement.mockReset();
   });
@@ -804,13 +809,18 @@ describe('bindPeerIntegration', () => {
     const peerA = new OmniaPeerImpl(sideA, { pubkey: '0xSRV' });
     const peerB = new OmniaPeerImpl(sideB, { pubkey: '0xCLI' });
 
-    mockVerifyState.mockResolvedValue({ valid: true, errors: [] });
+    mockVerifyStateForCoSign.mockResolvedValue({ valid: true, errors: [] });
     const fakePartialState = {
       sequence: 2,
       signatures: { alice: 'sig-a' },
+      signingIndices: { alice: { addressIndex: 0, l1: 0, l2: 1 } },
       closePackage: { channelId: 'ch-sign', sequence: 2 },
     };
     mockSignState.mockResolvedValue(fakePartialState);
+    mockAttachCounterpartySignature.mockReturnValue({
+      channel: { channelId: 'ch-sign', latestState: { sequence: 2 } },
+      signedState: { sequence: 2 },
+    });
 
     const fakeLeaseProvider = { reserveKeyUse: jest.fn(), commitKeyUse: jest.fn() };
     const store: ChannelStore = new Map([['ch-sign', { channelId: 'ch-sign', currentSequence: 1, totalValue: 1000n, balances: { alice: 600n }, pendingHTLCs: [] } as any]]);
