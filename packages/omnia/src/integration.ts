@@ -176,7 +176,11 @@ async function _handleStateUpdate(
     try {
       const partialState = await signState(
         updatedChannel,
-        { newSequence: signedState.sequence, newBalances: signedState.balances },
+        {
+          newSequence: signedState.sequence,
+          newBalances: signedState.balances,
+          programTransition: signedState.programTransition,
+        },
         config.leaseProvider,
         config.signer,
       );

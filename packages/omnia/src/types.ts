@@ -262,12 +262,19 @@ export interface ChannelProgramValidationResult {
   error?: string;
 }
 
+export interface ChannelProgramValidateTransitionInput {
+  channel: OmniaChannel;
+  previousState?: SignedChannelState | null;
+  nextState: SignedChannelState;
+  transition?: ProgramTransition;
+}
+
 export interface ChannelProgram {
   id: string;
   version: number;
   buildScript(parties: ChannelParticipant[]): string;
   buildStateVariables(input: ChannelProgramBuildStateInput): StateValue[];
-  validateTransition?(channel: OmniaChannel, state: SignedChannelState): ChannelProgramValidationResult;
+  validateTransition?(input: ChannelProgramValidateTransitionInput): ChannelProgramValidationResult;
 }
 
 export interface ProgramTransition {

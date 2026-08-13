@@ -29,6 +29,7 @@ export type {
   StateValue,
   ChannelProgram,
   ChannelProgramBuildStateInput,
+  ChannelProgramValidateTransitionInput,
   ChannelProgramValidationResult,
   ProgramTransition,
   partyId,

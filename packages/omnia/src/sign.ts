@@ -223,7 +223,12 @@ export async function verifyState(
   }
 
   const program = resolveChannelProgram({ id: channel.programId, version: channel.programVersion });
-  const programResult = program.validateTransition?.(channel, state);
+  const programResult = program.validateTransition?.({
+    channel,
+    previousState: channel.latestState,
+    nextState: state,
+    transition: state.programTransition,
+  });
   if (programResult && !programResult.valid) {
     errors.push(`program validation failed: ${programResult.error ?? 'invalid transition'}`);
   }

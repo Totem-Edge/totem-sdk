@@ -823,11 +823,26 @@ describe('bindPeerIntegration', () => {
       type: 'STATE_UPDATE',
       channelId: 'ch-sign',
       nonce: 5,
-      payload: { sequence: 2, balances: { alice: 500n, bob: 500n }, pendingHTLCs: [] },
+      payload: {
+        sequence: 2,
+        balances: { alice: 500n, bob: 500n },
+        pendingHTLCs: [],
+        programTransition: { action: 'meter_reading', inputs: { meterReading: 88n } },
+      },
     });
     await waitNextTick(8);
 
     expect(mockSignState).toHaveBeenCalledTimes(1);
+    expect(mockSignState).toHaveBeenCalledWith(
+      expect.objectContaining({ channelId: 'ch-sign' }),
+      {
+        newSequence: 2,
+        newBalances: { alice: 500n, bob: 500n },
+        programTransition: { action: 'meter_reading', inputs: { meterReading: 88n } },
+      },
+      fakeLeaseProvider,
+      undefined,
+    );
     expect(acks).toHaveLength(1);
     expect((acks[0].payload as any).partialState).toEqual(fakePartialState);
     expect((acks[0].payload as any).counterpartyPartialState).toEqual(fakePartialState);

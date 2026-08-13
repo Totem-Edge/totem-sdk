@@ -479,6 +479,7 @@ export function attachCounterpartySignature(
       [counterPartyId]: counterIndices,
     },
     closePackage,
+    programTransition: partialState.programTransition,
   };
 
   // Verify the counterparty's WOTS signature before accepting the state.

@@ -703,7 +703,7 @@ describe('@totemsdk/omnia — ChannelProgram', () => {
           type: 'number' as const,
         }];
       },
-      validateTransition: (_channel, state) => state.programTransition?.action === 'increment'
+      validateTransition: ({ transition }) => transition?.action === 'increment'
         ? { valid: true }
         : { valid: false, error: 'expected increment action' },
     });
@@ -733,6 +733,69 @@ describe('@totemsdk/omnia — ChannelProgram', () => {
       { port: 122, value: 42n, type: 'number' },
     ]));
     expect(result.signedState.programTransition).toEqual({ action: 'increment', inputs: { by: 2n } });
+  });
+
+  it('passes previous state, next state, and transition into program validation', async () => {
+    const { registerChannelProgram } = await import('../program');
+    registerChannelProgram({
+      id: 'validation-context-program',
+      version: 1,
+      buildScript: DefaultEltooPaymentProgram.buildScript,
+      buildStateVariables: ({ previousState, transition }) => {
+        const previousCounter = previousState?.stateVariables.find(v => v.port === 123)?.value;
+        const delta = BigInt(String(transition?.inputs?.by ?? 0n));
+        return [{
+          port: 123,
+          value: BigInt(String(previousCounter ?? 0n)) + delta,
+          type: 'number' as const,
+        }];
+      },
+      validateTransition: ({ previousState, nextState, transition }) => {
+        const previousCounter = BigInt(String(previousState?.stateVariables.find(v => v.port === 123)?.value ?? 0n));
+        const nextCounter = BigInt(String(nextState.stateVariables.find(v => v.port === 123)?.value ?? 0n));
+        const delta = BigInt(String(transition?.inputs?.by ?? 0n));
+        return nextCounter === previousCounter + delta
+          ? { valid: true }
+          : { valid: false, error: 'counter mismatch' };
+      },
+    });
+    const channel = makeTestChannel({
+      programId: 'validation-context-program',
+      programVersion: 1,
+      latestState: {
+        sequence: 0,
+        balances: { alice: 600n, bob: 400n },
+        pendingHTLCs: [],
+        stateVariables: [{ port: 123, value: 10n, type: 'number' }],
+        transactionHex: '',
+        signatures: {},
+        signingIndices: {},
+      },
+    });
+    const { signedState } = await applyProgramTransition(
+      channel,
+      { transition: { action: 'increment', inputs: { by: 5n } } },
+      makeMockLeaseProvider() as any,
+      makeMockSigner('alice', ALICE_PKD),
+    );
+    const completeState = {
+      ...signedState,
+      signatures: { alice: new Uint8Array(1088), bob: new Uint8Array(1088) },
+      signingIndices: {
+        alice: { addressIndex: 0, l1: 1, l2: 0 },
+        bob: { addressIndex: 0, l1: 1, l2: 1 },
+      },
+    } as SignedChannelState;
+    const { verifyState } = await import('../sign');
+
+    expect((await verifyState(channel, completeState)).errors)
+      .not.toEqual(expect.arrayContaining(['program validation failed: counter mismatch']));
+    expect((await verifyState(channel, {
+      ...completeState,
+      stateVariables: completeState.stateVariables.map(v => v.port === 123
+        ? { ...v, value: 14n }
+        : v),
+    })).errors).toEqual(expect.arrayContaining(['state commitment v2 mismatch', 'program validation failed: counter mismatch']));
   });
 });
 
@@ -940,6 +1003,30 @@ describe('@totemsdk/omnia — attachCounterpartySignature', () => {
     expect(fullState.sequence).toBe(1);
     expect(fullState.closePackage?.update.signatures['bob']).toBeUndefined();
     expect(fullState.closePackage?.settlement.signatures['bob']).toBeUndefined();
+  });
+
+  it('preserves ProgramTransition when merging counterparty signature', async () => {
+    const channel = makeTestChannel();
+    const aliceSigner = makeMockSigner('alice', ALICE_PKD);
+    const leaseProvider = makeMockLeaseProvider();
+    const programTransition = { action: 'meter_reading', inputs: { meterReading: 88n } };
+
+    const { channel: ch1, signedState } = await updateState(
+      channel,
+      { newBalances: { alice: 500n, bob: 500n }, programTransition },
+      leaseProvider as any,
+      aliceSigner,
+    );
+
+    const { signedState: fullState } = attachCounterpartySignature(
+      ch1,
+      signedState,
+      'bob',
+      new Uint8Array(1088).fill(2),
+      { addressIndex: 0, l1: 0, l2: 99 },
+    );
+
+    expect(fullState.programTransition).toEqual(programTransition);
   });
 
   it('merges a complete counterparty close package into latest state', async () => {
