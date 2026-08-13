@@ -1,7 +1,7 @@
 import { sha3_256 } from '@totemsdk/core';
 import { MAX_HASH } from '@totemsdk/txpow';
 import type { OmniaChannel, ChannelSigner } from '@totemsdk/omnia';
-import { _resetChannelWatermarks, COINID_ELTOO } from '@totemsdk/omnia';
+import { _resetChannelWatermarks, COINID_ELTOO, DefaultEltooPaymentProgram } from '@totemsdk/omnia';
 import type { SigningIndices, WotsLeaseProvider } from '@totemsdk/wots-lease';
 import {
   quiesceChannel,
@@ -94,6 +94,8 @@ function makeChannel(overrides: Partial<OmniaChannel> = {}): OmniaChannel {
     fundingTxId: '0x' + 'ef'.repeat(32),
     fundingCoinId: FUNDING_COIN_ID,
     fundingScript: 'RETURN TRUE',
+    programId: DefaultEltooPaymentProgram.id,
+    programVersion: DefaultEltooPaymentProgram.version,
     fundingAddress: FUNDING_ADDRESS,
     tokenId: TOKEN_ID,
     tokenScale: 0,
