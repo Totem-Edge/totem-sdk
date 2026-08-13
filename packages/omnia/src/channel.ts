@@ -1,4 +1,4 @@
-import { bytesToHex, concatBytes } from '@totemsdk/core';
+import { concatBytes } from '@totemsdk/core';
 import { mineTxPoW, TX_POW_MIN_DIFFICULTY, serializeTxBody } from '@totemsdk/txpow';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import type { WotsLeaseProvider } from '@totemsdk/wots-lease';
@@ -12,12 +12,19 @@ import type {
   SignedChannelState,
   ChannelSigner,
   ChannelLogEntry,
+  SignedClosePackage,
 } from './types.js';
-import { buildAndHashEltooScript } from './script.js';
-import { buildFundingTx, buildUpdateTx, computeStateCommitment, omniaDraftToMinimaBytes } from './transactions.js';
+import { buildAndHashEltooScript, scriptAddress } from './script.js';
+import {
+  buildFundingTx,
+  minimaOutputCoinIdsForDraft,
+  omniaDraftToCanonicalMinimaBytes,
+} from './transactions.js';
 import { assessCapacity, WOTS_CAPACITY_TOTAL, flatSigningIndex } from './capacity.js';
 import { signState, verifyStateSignature } from './sign.js';
 import { ChannelStatusError, SigningIndexMonotonicityError, DoubleSignError, SequenceError } from './errors.js';
+import { mergeClosePackages, verifyClosePackage } from './close-package.js';
+import { computeProgramUpdateDigestHex, resolveChannelProgram } from './program.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Module-level sequence watermarks
@@ -130,7 +137,9 @@ export async function createChannel(
   chainProvider: ChainStateProvider,
 ): Promise<{ channel: OmniaChannel; proposal: ChannelProposal }> {
   const parties = [params.localParty, params.remoteParty];
-  const { script, address } = buildAndHashEltooScript(parties);
+  const program = resolveChannelProgram(params.program);
+  const script = program.buildScript(parties);
+  const address = scriptAddress(script);
   const tokenId = params.tokenId ?? TOKENID_MINIMA;
   const tokenScale = params.tokenScale ?? 0;
   if (params.localAmount <= 0n || params.remoteAmount <= 0n) {
@@ -150,16 +159,19 @@ export async function createChannel(
   );
 
   // Build canonical Minima TX bytes, mine PoW, assemble full TxPoW, and broadcast.
-  // The funding coin is signed by the wallet layer; the omnia package provides an
-  // empty witness here — the host application attaches the wallet coin proof before
-  // or after the mineTxPoW call as required by the chain integration.
-  const fundingTxBytes = omniaDraftToMinimaBytes(fundingDraft);
-  const txBody = serializeTxBody(fundingTxBytes, new Uint8Array(0));
+  // The funding coin is signed by the wallet layer; Omnia requires the caller to
+  // provide the serialized Minima witness bytes so funding never broadcasts with
+  // placeholder witness data.
+  if (!params.fundingWitnessBytes?.length) {
+    throw new Error('createChannel requires serialized fundingWitnessBytes for broadcast');
+  }
+  const fundingTxBytes = omniaDraftToCanonicalMinimaBytes(fundingDraft);
+  const txBody = serializeTxBody(fundingTxBytes, params.fundingWitnessBytes);
   const mined = await mineTxPoW(txBody, TX_POW_MIN_DIFFICULTY);
   const fullTxPoW = concatBytes(concatBytes(mined.minedHeaderBytes, new Uint8Array([0x01])), txBody);
   const broadcast = await chainProvider.broadcastTxPoW(Buffer.from(fullTxPoW).toString('hex'));
   const fundingTxId = broadcast.txpowid ?? Buffer.from(mined.txpowId).toString('hex');
-  const fundingCoinId = `${fundingTxId}-0`;
+  const fundingCoinId = minimaOutputCoinIdsForDraft(fundingDraft)[0];
 
   if (params.tokenId && params.tokenId !== TOKENID_MINIMA) {
     const tokenInfo = await chainProvider.getToken(params.tokenId);
@@ -183,6 +195,8 @@ export async function createChannel(
     fundingTxId,
     fundingCoinId,
     fundingScript: script,
+    programId: program.id,
+    programVersion: program.version,
     fundingAddress: address,
     tokenId,
     tokenScale,
@@ -211,6 +225,8 @@ export async function createChannel(
     tokenId,
     tokenScale,
     fundingScript: script,
+    programId: program.id,
+    programVersion: program.version,
     fundingAddress: address,
     fundingTxId,
     fundingCoinId,
@@ -237,7 +253,9 @@ export async function acceptChannel(
   minConfirmations: number = 1,
 ): Promise<OmniaChannel> {
   const parties = [proposal.localParty, proposal.remoteParty];
-  const { script, address } = buildAndHashEltooScript(parties);
+  const program = resolveChannelProgram({ id: proposal.programId, version: proposal.programVersion });
+  const script = program.buildScript(parties);
+  const address = scriptAddress(script);
 
   if (script !== proposal.fundingScript) {
     throw new Error('Script mismatch: recomputed script does not match proposal');
@@ -284,6 +302,8 @@ export async function acceptChannel(
     fundingTxId: proposal.fundingTxId,
     fundingCoinId: proposal.fundingCoinId,
     fundingScript: proposal.fundingScript,
+    programId: program.id,
+    programVersion: program.version,
     fundingAddress: proposal.fundingAddress ?? address,
     tokenId: proposal.tokenId,
     tokenScale: proposal.tokenScale ?? 0,
@@ -348,11 +368,10 @@ export async function updateState(
     }
   }
 
-  // Compute state commitment (fail-fast, before any async work) then run all
+  // Compute the canonical update TX digest (fail-fast, before any async work) then run all
   // per-update invariants through the shared enforceUpdateGuards path —
   // capacity, watermark double-sign / stale-sequence, and watermark advance.
-  const commitment = computeStateCommitment(newSequence, delta.newBalances, channel.pendingHTLCs);
-  const payloadHash = bytesToHex(commitment);
+  const payloadHash = computeProgramUpdateDigestHex(channel, newSequence, delta.newBalances, channel.pendingHTLCs);
   const guardError = enforceUpdateGuards(channel.channelId, newSequence, payloadHash, channel.pendingProposal);
   if (guardError) {
     return { channel, signedState: {}, error: guardError };
@@ -410,6 +429,7 @@ export function attachCounterpartySignature(
   counterPartyId: string,
   counterSignature: import('./types.js').ChannelSignature,
   counterIndices: import('@totemsdk/wots-lease').SigningIndices,
+  counterClosePackage?: SignedClosePackage,
 ): { channel: OmniaChannel; signedState: SignedChannelState } {
   if (!partialState.sequence || !partialState.balances || !partialState.transactionHex) {
     throw new Error('Partial state is incomplete');
@@ -418,6 +438,11 @@ export function attachCounterpartySignature(
   const counterParty = channel.parties.find(p => p.partyId === counterPartyId);
   if (!counterParty) {
     throw new Error(`Counterparty ${counterPartyId} not found in channel parties`);
+  }
+
+  let closePackage = partialState.closePackage;
+  if (closePackage && counterClosePackage) {
+    closePackage = mergeClosePackages(closePackage, counterClosePackage);
   }
 
   const signedState: SignedChannelState = {
@@ -434,6 +459,7 @@ export function attachCounterpartySignature(
       ...(partialState.signingIndices ?? {}),
       [counterPartyId]: counterIndices,
     },
+    closePackage,
   };
 
   // Verify the counterparty's WOTS signature before accepting the state.
@@ -572,6 +598,11 @@ export function validateCompleteChannelState(
   // 9. Transaction bytes/state commitment binding
   if (!state.transactionHex || state.transactionHex.length === 0) {
     return { valid: false, reason: 'Missing transactionHex in signed state' };
+  }
+
+  const closePackage = verifyClosePackage(channel, state);
+  if (!closePackage.valid) {
+    return { valid: false, reason: closePackage.errors.join('; ') };
   }
 
   return { valid: true };

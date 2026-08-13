@@ -184,7 +184,12 @@ async function _handleStateUpdate(
         type: 'ACK',
         channelId: msg.channelId,
         nonce: msg.nonce,
-        payload: { ok: true, partialState },
+        payload: {
+          ok: true,
+          partialState,
+          counterpartyPartialState: partialState,
+          counterpartyClosePackage: partialState.closePackage,
+        },
       });
     } catch (err) {
       _sendError(peer, msg.channelId, msg.nonce, `signState failed: ${String(err)}`);

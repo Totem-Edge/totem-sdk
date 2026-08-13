@@ -5,7 +5,7 @@ import {
   proposeSettlement,
   updateState,
 } from '@totemsdk/omnia';
-import type { ChannelParticipant, ChannelSigner, OmniaChannel, OmniaSwarm } from '@totemsdk/omnia';
+import type { ChannelParticipant, ChannelSigner, CreateChannelParams, OmniaChannel, OmniaSwarm } from '@totemsdk/omnia';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import type { WotsLeaseProvider } from '@totemsdk/wots-lease';
 import {
@@ -193,14 +193,16 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       settlementAddress: typeof params.remoteSettlementAddress === 'string' ? params.remoteSettlementAddress : undefined,
     };
     const result = await withOperation(context, params, async () => {
-      const created = await createChannel({
+      const createParams: CreateChannelParams & { fundingWitnessBytes: Uint8Array } = {
         localParty: context.localParticipant,
         remoteParty: remote,
         localAmount: requiredBigInt(params, 'localAmount'),
         remoteAmount: requiredBigInt(params, 'remoteAmount'),
         tokenId: typeof params.tokenId === 'string' ? params.tokenId : undefined,
         fundingCoinId: requiredString(params, 'fundingCoinId'),
-      }, context.chainProvider);
+        fundingWitnessBytes: Buffer.from(requiredString(params, 'fundingWitnessHex').replace(/^0x/i, ''), 'hex'),
+      };
+      const created = await createChannel(createParams as CreateChannelParams, context.chainProvider);
       context.channels.set(created.channel.channelId, {
         ...created.channel,
         localSigner: context.signer,

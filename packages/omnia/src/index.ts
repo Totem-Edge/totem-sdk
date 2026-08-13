@@ -2,6 +2,8 @@ export type {
   OmniaChannel,
   ChannelParticipant,
   SignedChannelState,
+  SignedClosePackage,
+  ClosePackageArtifact,
   ChannelStatus,
   CapacityWarning,
   HTLCRecord,
@@ -9,6 +11,8 @@ export type {
   ChannelLogEntry,
   SettlementPayload,
   DisputePayload,
+  UnilateralCloseStartResult,
+  UnilateralCloseFinalizeResult,
   ChannelReceipt,
   CreateChannelParams,
   ChannelProposal,
@@ -17,12 +21,14 @@ export type {
   TxInputDraft,
   TxOutputDraft,
   ChannelSigner,
-  KissvmEvaluator,
   VerifyStateOptions,
   UpdateDelta,
   UpdateStateResult,
   IntentResult,
   StateValue,
+  ChannelProgram,
+  ChannelProgramBuildStateInput,
+  ChannelProgramValidationResult,
   partyId,
 } from './types.js';
 
@@ -43,6 +49,7 @@ export {
   scriptAddress,
   buildAndHashEltooScript,
   COINID_ELTOO,
+  ELTOO_CONTEST_DELAY_BLOCKS,
 } from './script.js';
 
 export {
@@ -52,11 +59,21 @@ export {
   serializeTxDraft,
   deserializeTxDraft,
   computeTxDraftDigest,
+  computeLegacyTxDraftDigest,
+  computeOmniaTxDigest,
+  omniaDraftToCanonicalMinimaBytes,
   omniaDraftToMinimaBytes,
+  minimaOutputCoinIdsForDraft,
   toEnhancedBuildParams,
   computeStateCommitment,
+  computeStateCommitmentV2,
+  stateCommitmentV2Matches,
   buildTxPoWPayload,
   toRawMinima,
+  COINID_OUTPUT,
+  STATE_SETTLEMENT_PORT,
+  STATE_SEQUENCE_PORT,
+  STATE_COMMITMENT_V2_PORT,
 } from './transactions.js';
 
 export {
@@ -77,6 +94,35 @@ export {
 } from './sign.js';
 
 export {
+  validateChannelStateWithKissvm,
+} from './kissvm.js';
+export type { KissvmValidationOptions } from './kissvm.js';
+
+export {
+  DefaultEltooPaymentProgram,
+  ELTOO_PAYMENT_PROGRAM_ID,
+  buildProgramUpdateTx,
+  computeProgramUpdateDigest,
+  computeProgramUpdateDigestHex,
+  registerChannelProgram,
+  resolveChannelProgram,
+} from './program.js';
+
+export {
+  assertBroadcastProofs,
+  closePackageSignatureBytes,
+  serializeOmniaWitness,
+} from './witness.js';
+export type { OmniaWitnessOptions, OmniaWitnessProofs } from './witness.js';
+
+export {
+  addClosePackageSignature,
+  buildUnsignedClosePackage,
+  mergeClosePackages,
+  verifyClosePackage,
+} from './close-package.js';
+
+export {
   enforceUpdateGuards,
   _resetChannelWatermarks,
   createChannel,
@@ -95,6 +141,9 @@ export {
 
 export {
   proposeSettlement,
+  startUnilateralClose,
+  finalizeUnilateralClose,
+  replaceUnilateralCloseState,
   buildDisputePayload,
   markChannelClosing,
   markChannelClosed,

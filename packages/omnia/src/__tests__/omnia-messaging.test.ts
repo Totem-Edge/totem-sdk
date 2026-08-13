@@ -805,7 +805,11 @@ describe('bindPeerIntegration', () => {
     const peerB = new OmniaPeerImpl(sideB, { pubkey: '0xCLI' });
 
     mockVerifyState.mockResolvedValue({ valid: true, errors: [] });
-    const fakePartialState = { sequence: 2, signatures: { alice: 'sig-a' } };
+    const fakePartialState = {
+      sequence: 2,
+      signatures: { alice: 'sig-a' },
+      closePackage: { channelId: 'ch-sign', sequence: 2 },
+    };
     mockSignState.mockResolvedValue(fakePartialState);
 
     const fakeLeaseProvider = { reserveKeyUse: jest.fn(), commitKeyUse: jest.fn() };
@@ -826,6 +830,8 @@ describe('bindPeerIntegration', () => {
     expect(mockSignState).toHaveBeenCalledTimes(1);
     expect(acks).toHaveLength(1);
     expect((acks[0].payload as any).partialState).toEqual(fakePartialState);
+    expect((acks[0].payload as any).counterpartyPartialState).toEqual(fakePartialState);
+    expect((acks[0].payload as any).counterpartyClosePackage).toEqual(fakePartialState.closePackage);
 
     peerA.disconnect();
     peerB.disconnect();
