@@ -26,6 +26,7 @@ import { signState, verifyStateSignature } from './sign.js';
 import { ChannelStatusError, SigningIndexMonotonicityError, DoubleSignError, SequenceError } from './errors.js';
 import { mergeClosePackages, verifyClosePackage } from './close-package.js';
 import { computeProgramUpdateDigestHex, resolveChannelProgram } from './program.js';
+import { canonicalizeProgramTransition } from './transition.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Module-level sequence watermarks
@@ -353,6 +354,7 @@ export async function updateState(
   if (!signerParty) throw new Error('Signer public key digest not found in channel parties');
 
   const newSequence = channel.currentSequence + 1;
+  const programTransition = canonicalizeProgramTransition(delta.programTransition);
 
   // Validate balance conservation and non-negativity.
   const htlcTotal = channel.pendingHTLCs
@@ -372,7 +374,7 @@ export async function updateState(
   // Compute the canonical update TX digest (fail-fast, before any async work) then run all
   // per-update invariants through the shared enforceUpdateGuards path —
   // capacity, watermark double-sign / stale-sequence, and watermark advance.
-  const payloadHash = computeProgramUpdateDigestHex(channel, newSequence, delta.newBalances, channel.pendingHTLCs, delta.programTransition);
+  const payloadHash = computeProgramUpdateDigestHex(channel, newSequence, delta.newBalances, channel.pendingHTLCs, programTransition);
   const guardError = enforceUpdateGuards(channel.channelId, newSequence, payloadHash, channel.pendingProposal);
   if (guardError) {
     return { channel, signedState: {}, error: guardError };
@@ -380,7 +382,7 @@ export async function updateState(
 
   const partialState = await signState(
     channel,
-    { newSequence, newBalances: delta.newBalances, programTransition: delta.programTransition },
+    { newSequence, newBalances: delta.newBalances, programTransition },
     leaseProvider,
     effectiveSigner,
   );

@@ -112,6 +112,11 @@ export {
 } from './program.js';
 
 export {
+  canonicalizeProgramTransition,
+  serializeProgramTransition,
+} from './transition.js';
+
+export {
   assertBroadcastProofs,
   closePackageSignatureBytes,
   serializeOmniaWitness,

@@ -29,6 +29,7 @@ import type {
   OmniaSwarm,
   Unsubscribe,
 } from './messaging-types.js';
+import { canonicalizeProgramTransition } from './transition.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type WotsLeaseProviderLike = any;
@@ -152,6 +153,7 @@ async function _handleStateUpdate(
   }
 
   const signedState = msg.payload as SignedChannelState;
+  signedState.programTransition = canonicalizeProgramTransition(signedState.programTransition);
   const result = await verifyState(channel, signedState);
   if (!result.valid) {
     _sendError(

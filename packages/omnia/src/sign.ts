@@ -20,6 +20,7 @@ import { flatSigningIndex } from './capacity.js';
 import { addClosePackageSignature, buildUnsignedClosePackage, verifyClosePackage } from './close-package.js';
 import { validateChannelStateWithKissvm } from './kissvm.js';
 import { buildProgramUpdateTx, resolveChannelProgram } from './program.js';
+import { canonicalizeProgramTransition } from './transition.js';
 
 function resolveSignerOrThrow(channel: OmniaChannel, signer?: ChannelSigner): ChannelSigner {
   const effective = signer ?? channel.localSigner;
@@ -88,7 +89,8 @@ export async function signState(
   const { newSequence, newBalances } = update;
   const effectiveSigner = resolveSignerOrThrow(channel, signer);
   const pendingHTLCs = channel.pendingHTLCs.filter(h => h.status === 'pending');
-  const draft = buildProgramUpdateTx(channel, newSequence, newBalances, channel.pendingHTLCs, update.programTransition);
+  const programTransition = canonicalizeProgramTransition(update.programTransition);
+  const draft = buildProgramUpdateTx(channel, newSequence, newBalances, channel.pendingHTLCs, programTransition);
 
   const digest = computeOmniaTxDigest(draft);
 
@@ -138,7 +140,7 @@ export async function signState(
     signatures: { [signerParty.partyId]: signature },
     signingIndices: { [signerParty.partyId]: reservation.indices },
     closePackage,
-    programTransition: update.programTransition,
+    programTransition,
   };
 }
 
@@ -223,11 +225,12 @@ export async function verifyState(
   }
 
   const program = resolveChannelProgram({ id: channel.programId, version: channel.programVersion });
+  const programTransition = canonicalizeProgramTransition(state.programTransition);
   const programResult = program.validateTransition?.({
     channel,
     previousState: channel.latestState,
     nextState: state,
-    transition: state.programTransition,
+    transition: programTransition,
   });
   if (programResult && !programResult.valid) {
     errors.push(`program validation failed: ${programResult.error ?? 'invalid transition'}`);

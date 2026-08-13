@@ -2,6 +2,7 @@ import { bytesToHex } from '@totemsdk/core';
 import type { ChannelParticipant, ChannelProgram, ChannelProgramBuildStateInput, OmniaChannel, OmniaTxDraft, StateValue, HTLCRecord, ProgramTransition } from './types.js';
 import { buildEltooScript } from './script.js';
 import { buildUpdateTx, computeOmniaTxDigest } from './transactions.js';
+import { canonicalizeProgramTransition } from './transition.js';
 
 export const ELTOO_PAYMENT_PROGRAM_ID = 'eltoo-payment';
 
@@ -42,6 +43,7 @@ export function buildProgramUpdateTx(
   transition?: ProgramTransition,
 ): OmniaTxDraft {
   const program = resolveChannelProgram({ id: channel.programId, version: channel.programVersion });
+  const canonicalTransition = canonicalizeProgramTransition(transition);
   const programStateVariables = program.buildStateVariables({
     channel,
     sequence,
@@ -49,7 +51,7 @@ export function buildProgramUpdateTx(
     pendingHTLCs: pendingHTLCs.filter(h => h.status === 'pending'),
     settlement: false,
     previousState: channel.latestState,
-    transition,
+    transition: canonicalTransition,
   });
   return buildUpdateTx(channel, sequence, balances, pendingHTLCs, programStateVariables);
 }

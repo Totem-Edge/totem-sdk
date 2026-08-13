@@ -75,6 +75,7 @@ import {
 } from '../close-package';
 import { validateChannelStateWithKissvm } from '../kissvm';
 import { computeProgramUpdateDigestHex, DefaultEltooPaymentProgram, resolveChannelProgram } from '../program';
+import { canonicalizeProgramTransition, serializeProgramTransition } from '../transition';
 import type {
   OmniaChannel,
   ChannelParticipant,
@@ -653,6 +654,29 @@ describe('@totemsdk/omnia — ChannelProgram', () => {
       .not.toBe(computeProgramUpdateDigestHex(channelB, 1, { alice: 500n, bob: 500n }, []));
   });
 
+  it('serializes ProgramTransition canonically regardless of key insertion order', () => {
+    const a = serializeProgramTransition({
+      action: 'meter_reading',
+      inputs: { z: true, a: 7n, m: 'ok' },
+      metadata: { z: 'last', a: 'first' },
+    });
+    const b = serializeProgramTransition({
+      metadata: { a: 'first', z: 'last' },
+      inputs: { m: 'ok', a: 7n, z: true },
+      action: 'meter_reading',
+    });
+
+    expect(a).toBe(b);
+    expect(a).toBe('{"action":"meter_reading","inputs":{"a":{"__bigint":"7"},"m":"ok","z":true},"metadata":{"a":"first","z":"last"}}');
+  });
+
+  it('rejects unsupported nested ProgramTransition input values', () => {
+    expect(() => canonicalizeProgramTransition({
+      action: 'bad',
+      inputs: { nested: { value: 'not allowed' } as any },
+    })).toThrow('Invalid ProgramTransition inputs.nested');
+  });
+
   it('passes ProgramTransition into program state building and persists it on signed state', async () => {
     const { registerChannelProgram } = await import('../program');
     registerChannelProgram({
@@ -684,6 +708,26 @@ describe('@totemsdk/omnia — ChannelProgram', () => {
       { port: 121, value: 77n, type: 'number' },
     ]));
     expect(stateCommitmentV2Matches(channel, result.signedState as SignedChannelState)).toBe(true);
+  });
+
+  it('stores ProgramTransition with canonical key order after signing', async () => {
+    const channel = makeTestChannel();
+    const result = await updateState(
+      channel,
+      {
+        newBalances: { alice: 500n, bob: 500n },
+        programTransition: {
+          action: 'meter_reading',
+          inputs: { z: true, a: 7n, m: 'ok' },
+          metadata: { z: 'last', a: 'first' },
+        },
+      },
+      makeMockLeaseProvider() as any,
+      makeMockSigner('alice', ALICE_PKD),
+    );
+
+    expect(Object.keys(result.signedState.programTransition!.inputs!)).toEqual(['a', 'm', 'z']);
+    expect(Object.keys(result.signedState.programTransition!.metadata!)).toEqual(['a', 'z']);
   });
 
   it('applies non-payment ProgramTransition without changing balances', async () => {
