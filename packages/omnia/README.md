@@ -61,6 +61,7 @@ buildDisputePayload (unilateral close)
 | `incrementCounter(channel, by)` | Built-in CounterProgram increment transition |
 | `decrementCounter(channel, by)` | Built-in CounterProgram decrement transition |
 | `setCounter(channel, value)` | Built-in CounterProgram set transition |
+| `recordMeterReading(channel, reading, unitPrice)` | Built-in MeterProgram usage/payment transition |
 | `sendProgramTransitionStateUpdate(peer, channel, signedState, nonce)` | Send a signed program transition over Omnia messaging |
 
 ### Error types
@@ -173,6 +174,26 @@ const { signedState: fullState } = attachCounterpartySignature(
 );
 
 const counter = getStateBigInt(fullState, 120);
+```
+
+### Programmable MeterProgram state
+
+`MeterProgram` treats the first party as payer and second party as payee. A reading transition records a monotonic meter reading and transfers `(reading - previousReading) * unitPrice` from payer to payee.
+
+```typescript
+import { METER_PROGRAM_ID, recordMeterReading } from '@totemsdk/omnia';
+
+const { channel } = await createChannel({
+  localParty: consumer,
+  remoteParty: provider,
+  localAmount: 1000n,
+  remoteAmount: 0n,
+  fundingCoinId: '0x...',
+  fundingWitnessBytes,
+  program: { id: METER_PROGRAM_ID, version: 1 },
+}, provider);
+
+const { signedState } = await recordMeterReading(channel, 110n, 2n, leaseProvider, signer);
 ```
 
 ### Co-sign verification boundary

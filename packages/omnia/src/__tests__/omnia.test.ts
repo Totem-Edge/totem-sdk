@@ -74,13 +74,14 @@ import {
   verifyClosePackage,
 } from '../close-package';
 import { validateChannelStateWithKissvm } from '../kissvm';
-import { computeProgramUpdateDigestHex, CounterProgram, COUNTER_PROGRAM_ID, COUNTER_STATE_PORT, DefaultEltooPaymentProgram, resolveChannelProgram } from '../program';
+import { computeProgramUpdateDigestHex, CounterProgram, COUNTER_PROGRAM_ID, COUNTER_STATE_PORT, DefaultEltooPaymentProgram, MeterProgram, METER_PAYMENT_PORT, METER_PROGRAM_ID, METER_READING_PORT, METER_UNIT_PRICE_PORT, METER_USAGE_DELTA_PORT, resolveChannelProgram } from '../program';
 import { canonicalizeProgramTransition, serializeProgramTransition } from '../transition';
 import { getStateBigInt, programNumberState } from '../state-vars';
 import { bindPeerIntegration, sendProgramTransitionStateUpdate } from '../integration';
 import { OmniaPeerImpl } from '../peer';
 import { createInMemoryPair } from '@totemsdk/stream-transport';
 import { decrementCounter, incrementCounter, setCounter } from '../counter';
+import { recordMeterReading } from '../meter';
 import type { OmniaMessage } from '../messaging-types';
 import type {
   OmniaChannel,
@@ -1044,6 +1045,85 @@ describe('@totemsdk/omnia — ChannelProgram', () => {
     peerA.disconnect();
     peerB.disconnect();
   });
+
+  it('MeterProgram records usage and transfers payment between parties', async () => {
+    const channel = makeTestChannel({
+      programId: METER_PROGRAM_ID,
+      programVersion: 1,
+      latestState: {
+        sequence: 0,
+        balances: { alice: 600n, bob: 400n },
+        pendingHTLCs: [],
+        stateVariables: [
+          programNumberState(METER_READING_PORT, 100n),
+          programNumberState(METER_UNIT_PRICE_PORT, 2n),
+        ],
+        transactionHex: '',
+        signatures: {},
+        signingIndices: {},
+      },
+    });
+
+    const result = await recordMeterReading(
+      channel,
+      110n,
+      2n,
+      makeMockLeaseProvider() as any,
+      makeMockSigner('alice', ALICE_PKD),
+    );
+
+    expect(result.signedState.programTransition).toEqual({ action: 'record_reading', inputs: { reading: 110n, unitPrice: 2n } });
+    expect(result.signedState.balances).toEqual({ alice: 580n, bob: 420n });
+    expect(getStateBigInt(result.signedState as SignedChannelState, METER_READING_PORT)).toBe(110n);
+    expect(getStateBigInt(result.signedState as SignedChannelState, METER_USAGE_DELTA_PORT)).toBe(10n);
+    expect(getStateBigInt(result.signedState as SignedChannelState, METER_PAYMENT_PORT)).toBe(20n);
+  });
+
+  it('MeterProgram rejects balance transfers that do not match usage payment', async () => {
+    const { registerChannelProgram } = await import('../program');
+    registerChannelProgram({
+      ...MeterProgram,
+      id: 'meter-tampered-balances',
+    });
+    const channel = makeTestChannel({
+      programId: 'meter-tampered-balances',
+      programVersion: 1,
+      latestState: {
+        sequence: 0,
+        balances: { alice: 600n, bob: 400n },
+        pendingHTLCs: [],
+        stateVariables: [programNumberState(METER_READING_PORT, 100n)],
+        transactionHex: '',
+        signatures: {},
+        signingIndices: {},
+      },
+    });
+    const { signedState } = await applyProgramTransition(
+      channel,
+      {
+        balances: { alice: 590n, bob: 410n },
+        transition: { action: 'record_reading', inputs: { reading: 110n, unitPrice: 2n } },
+      },
+      makeMockLeaseProvider() as any,
+      makeMockSigner('alice', ALICE_PKD),
+    );
+    const state = {
+      ...signedState,
+      signatures: { alice: new Uint8Array(1088), bob: new Uint8Array(1088) },
+      signingIndices: {
+        alice: { addressIndex: 0, l1: 1, l2: 0 },
+        bob: { addressIndex: 0, l1: 1, l2: 1 },
+      },
+    } as SignedChannelState;
+    const { verifyState } = await import('../sign');
+
+    expect((await verifyState(channel, state)).errors)
+      .toEqual(expect.arrayContaining(['program validation failed: meter balance transfer mismatch']));
+  });
+
+  it('resolves the built-in MeterProgram by id and version', () => {
+    expect(resolveChannelProgram({ id: METER_PROGRAM_ID, version: 1 })).toBe(MeterProgram);
+  });
 });
 
 describe('@totemsdk/omnia — updateState (full lifecycle)', () => {
@@ -1890,6 +1970,83 @@ describe('@totemsdk/omnia — KISSVM validation', () => {
       ...signedState,
       stateVariables: signedState.stateVariables!.map(v => v.port === COUNTER_STATE_PORT
         ? { ...v, value: 16n }
+        : v),
+      signatures: { alice: new Uint8Array(1088), bob: new Uint8Array(1088) },
+      signingIndices: {
+        alice: { addressIndex: 0, l1: 1, l2: 0 },
+        bob: { addressIndex: 0, l1: 1, l2: 1 },
+      },
+    } as SignedChannelState;
+    state.transactionHex = serializeTxDraft({
+      ...deserializeTxDraft(state.transactionHex),
+      stateVariables: state.stateVariables,
+    });
+
+    const result = validateChannelStateWithKissvm(initial, state, { block: 1 });
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain('ASSERT failed');
+  });
+
+  it('validates MeterProgram arithmetic with KISSVM', async () => {
+    const initial = makeTestChannel({
+      programId: METER_PROGRAM_ID,
+      programVersion: 1,
+      fundingScript: MeterProgram.buildScript([alice, bob]),
+      latestState: {
+        sequence: 0,
+        balances: { alice: 600n, bob: 400n },
+        pendingHTLCs: [],
+        stateVariables: [programNumberState(METER_READING_PORT, 100n)],
+        transactionHex: '',
+        signatures: {},
+        signingIndices: {},
+      },
+    });
+    const { signedState } = await recordMeterReading(
+      initial,
+      110n,
+      2n,
+      makeMockLeaseProvider() as any,
+      makeMockSigner('alice', ALICE_PKD),
+    );
+    const state = {
+      ...signedState,
+      signatures: { alice: new Uint8Array(1088), bob: new Uint8Array(1088) },
+      signingIndices: {
+        alice: { addressIndex: 0, l1: 1, l2: 0 },
+        bob: { addressIndex: 0, l1: 1, l2: 1 },
+      },
+    } as SignedChannelState;
+
+    expect(validateChannelStateWithKissvm(initial, state, { block: 1 })).toEqual({ valid: true });
+  });
+
+  it('rejects tampered MeterProgram payment with KISSVM', async () => {
+    const initial = makeTestChannel({
+      programId: METER_PROGRAM_ID,
+      programVersion: 1,
+      fundingScript: MeterProgram.buildScript([alice, bob]),
+      latestState: {
+        sequence: 0,
+        balances: { alice: 600n, bob: 400n },
+        pendingHTLCs: [],
+        stateVariables: [programNumberState(METER_READING_PORT, 100n)],
+        transactionHex: '',
+        signatures: {},
+        signingIndices: {},
+      },
+    });
+    const { signedState } = await recordMeterReading(
+      initial,
+      110n,
+      2n,
+      makeMockLeaseProvider() as any,
+      makeMockSigner('alice', ALICE_PKD),
+    );
+    const state = {
+      ...signedState,
+      stateVariables: signedState.stateVariables!.map(v => v.port === METER_PAYMENT_PORT
+        ? { ...v, value: 19n }
         : v),
       signatures: { alice: new Uint8Array(1088), bob: new Uint8Array(1088) },
       signingIndices: {

@@ -105,6 +105,7 @@ export type { KissvmValidationOptions } from './kissvm.js';
 export {
   DefaultEltooPaymentProgram,
   CounterProgram,
+  MeterProgram,
   COUNTER_ACTION_DECREMENT,
   COUNTER_ACTION_INCREMENT,
   COUNTER_ACTION_NONE,
@@ -114,6 +115,11 @@ export {
   COUNTER_PROGRAM_ID,
   COUNTER_STATE_PORT,
   ELTOO_PAYMENT_PROGRAM_ID,
+  METER_PAYMENT_PORT,
+  METER_PROGRAM_ID,
+  METER_READING_PORT,
+  METER_UNIT_PRICE_PORT,
+  METER_USAGE_DELTA_PORT,
   buildProgramUpdateTx,
   computeProgramUpdateDigest,
   computeProgramUpdateDigestHex,
@@ -172,6 +178,10 @@ export {
   incrementCounter,
   setCounter,
 } from './counter.js';
+
+export {
+  recordMeterReading,
+} from './meter.js';
 
 export {
   proposeSettlement,
