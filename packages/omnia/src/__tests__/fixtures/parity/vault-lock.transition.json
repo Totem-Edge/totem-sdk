@@ -1,0 +1,7 @@
+{
+  "action": "lock",
+  "inputs": {
+    "amount": "800",
+    "releaseSequence": "50"
+  }
+}

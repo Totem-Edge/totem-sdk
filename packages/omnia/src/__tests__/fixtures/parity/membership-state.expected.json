@@ -1,0 +1,17 @@
+[
+  {
+    "port": 170,
+    "value": "abcd",
+    "type": "hex"
+  },
+  {
+    "port": 171,
+    "value": "0",
+    "type": "number"
+  },
+  {
+    "port": 172,
+    "value": "0",
+    "type": "number"
+  }
+]

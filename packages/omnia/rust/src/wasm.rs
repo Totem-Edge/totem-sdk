@@ -266,6 +266,173 @@ pub fn validate_meter_transition_wasm(
         .map_err(|e| JsValue::from_str(&format!("Failed to serialize: {}", e)))
 }
 
+// ─── RFC-003 built-in programs ───────────────────────────────────────────────
+
+#[wasm_bindgen]
+pub fn build_htlc_state_variables_wasm(
+    previous_state_js: JsValue,
+    transition_js: JsValue,
+) -> Result<JsValue, JsValue> {
+    let previous_state = parse_optional_state(previous_state_js)?;
+    let transition = parse_optional_transition(transition_js)?;
+    let state_variables =
+        program::build_htlc_state_variables(previous_state.as_ref(), transition.as_ref())
+            .map_err(|e| JsValue::from_str(&e))?;
+    serde_wasm_bindgen::to_value(&state_variables)
+        .map_err(|e| JsValue::from_str(&format!("Failed to serialize: {}", e)))
+}
+
+#[wasm_bindgen]
+pub fn validate_htlc_transition_wasm(
+    previous_state_js: JsValue,
+    next_state_js: JsValue,
+    transition_js: JsValue,
+) -> Result<JsValue, JsValue> {
+    let previous_state = parse_optional_state(previous_state_js)?;
+    let next_state: SignedChannelState = serde_wasm_bindgen::from_value(next_state_js)
+        .map_err(|e| JsValue::from_str(&format!("Failed to parse SignedChannelState: {}", e)))?;
+    let transition = parse_optional_transition(transition_js)?;
+    let result = program::validate_htlc_transition(
+        previous_state.as_ref(),
+        &next_state,
+        transition.as_ref(),
+    );
+    serde_wasm_bindgen::to_value(&result)
+        .map_err(|e| JsValue::from_str(&format!("Failed to serialize: {}", e)))
+}
+
+#[wasm_bindgen]
+pub fn build_vault_state_variables_wasm(
+    previous_state_js: JsValue,
+    transition_js: JsValue,
+) -> Result<JsValue, JsValue> {
+    let previous_state = parse_optional_state(previous_state_js)?;
+    let transition = parse_optional_transition(transition_js)?;
+    let state_variables =
+        program::build_vault_state_variables(previous_state.as_ref(), transition.as_ref())
+            .map_err(|e| JsValue::from_str(&e))?;
+    serde_wasm_bindgen::to_value(&state_variables)
+        .map_err(|e| JsValue::from_str(&format!("Failed to serialize: {}", e)))
+}
+
+#[wasm_bindgen]
+pub fn validate_vault_transition_wasm(
+    previous_state_js: JsValue,
+    next_state_js: JsValue,
+    transition_js: JsValue,
+) -> Result<JsValue, JsValue> {
+    let previous_state = parse_optional_state(previous_state_js)?;
+    let next_state: SignedChannelState = serde_wasm_bindgen::from_value(next_state_js)
+        .map_err(|e| JsValue::from_str(&format!("Failed to parse SignedChannelState: {}", e)))?;
+    let transition = parse_optional_transition(transition_js)?;
+    let result = program::validate_vault_transition(
+        previous_state.as_ref(),
+        &next_state,
+        transition.as_ref(),
+    );
+    serde_wasm_bindgen::to_value(&result)
+        .map_err(|e| JsValue::from_str(&format!("Failed to serialize: {}", e)))
+}
+
+#[wasm_bindgen]
+pub fn build_treasury_state_variables_wasm(
+    previous_state_js: JsValue,
+    transition_js: JsValue,
+) -> Result<JsValue, JsValue> {
+    let previous_state = parse_optional_state(previous_state_js)?;
+    let transition = parse_optional_transition(transition_js)?;
+    let state_variables =
+        program::build_treasury_state_variables(previous_state.as_ref(), transition.as_ref())
+            .map_err(|e| JsValue::from_str(&e))?;
+    serde_wasm_bindgen::to_value(&state_variables)
+        .map_err(|e| JsValue::from_str(&format!("Failed to serialize: {}", e)))
+}
+
+#[wasm_bindgen]
+pub fn validate_treasury_transition_wasm(
+    previous_state_js: JsValue,
+    next_state_js: JsValue,
+    transition_js: JsValue,
+) -> Result<JsValue, JsValue> {
+    let previous_state = parse_optional_state(previous_state_js)?;
+    let next_state: SignedChannelState = serde_wasm_bindgen::from_value(next_state_js)
+        .map_err(|e| JsValue::from_str(&format!("Failed to parse SignedChannelState: {}", e)))?;
+    let transition = parse_optional_transition(transition_js)?;
+    let result = program::validate_treasury_transition(
+        previous_state.as_ref(),
+        &next_state,
+        transition.as_ref(),
+    );
+    serde_wasm_bindgen::to_value(&result)
+        .map_err(|e| JsValue::from_str(&format!("Failed to serialize: {}", e)))
+}
+
+#[wasm_bindgen]
+pub fn build_membership_state_variables_wasm(
+    previous_state_js: JsValue,
+    transition_js: JsValue,
+) -> Result<JsValue, JsValue> {
+    let previous_state = parse_optional_state(previous_state_js)?;
+    let transition = parse_optional_transition(transition_js)?;
+    let state_variables =
+        program::build_membership_state_variables(previous_state.as_ref(), transition.as_ref())
+            .map_err(|e| JsValue::from_str(&e))?;
+    serde_wasm_bindgen::to_value(&state_variables)
+        .map_err(|e| JsValue::from_str(&format!("Failed to serialize: {}", e)))
+}
+
+#[wasm_bindgen]
+pub fn validate_membership_transition_wasm(
+    previous_state_js: JsValue,
+    next_state_js: JsValue,
+    transition_js: JsValue,
+) -> Result<JsValue, JsValue> {
+    let previous_state = parse_optional_state(previous_state_js)?;
+    let next_state: SignedChannelState = serde_wasm_bindgen::from_value(next_state_js)
+        .map_err(|e| JsValue::from_str(&format!("Failed to parse SignedChannelState: {}", e)))?;
+    let transition = parse_optional_transition(transition_js)?;
+    let result = program::validate_membership_transition(
+        previous_state.as_ref(),
+        &next_state,
+        transition.as_ref(),
+    );
+    serde_wasm_bindgen::to_value(&result)
+        .map_err(|e| JsValue::from_str(&format!("Failed to serialize: {}", e)))
+}
+
+#[wasm_bindgen]
+pub fn build_asset_state_variables_wasm(
+    previous_state_js: JsValue,
+    transition_js: JsValue,
+) -> Result<JsValue, JsValue> {
+    let previous_state = parse_optional_state(previous_state_js)?;
+    let transition = parse_optional_transition(transition_js)?;
+    let state_variables =
+        program::build_asset_state_variables(previous_state.as_ref(), transition.as_ref())
+            .map_err(|e| JsValue::from_str(&e))?;
+    serde_wasm_bindgen::to_value(&state_variables)
+        .map_err(|e| JsValue::from_str(&format!("Failed to serialize: {}", e)))
+}
+
+#[wasm_bindgen]
+pub fn validate_asset_transition_wasm(
+    previous_state_js: JsValue,
+    next_state_js: JsValue,
+    transition_js: JsValue,
+) -> Result<JsValue, JsValue> {
+    let previous_state = parse_optional_state(previous_state_js)?;
+    let next_state: SignedChannelState = serde_wasm_bindgen::from_value(next_state_js)
+        .map_err(|e| JsValue::from_str(&format!("Failed to parse SignedChannelState: {}", e)))?;
+    let transition = parse_optional_transition(transition_js)?;
+    let result = program::validate_asset_transition(
+        previous_state.as_ref(),
+        &next_state,
+        transition.as_ref(),
+    );
+    serde_wasm_bindgen::to_value(&result)
+        .map_err(|e| JsValue::from_str(&format!("Failed to serialize: {}", e)))
+}
+
 // ─── persistence and recovery ────────────────────────────────────────────────
 
 #[wasm_bindgen]

@@ -1,0 +1,22 @@
+[
+  {
+    "port": 140,
+    "value": "0123",
+    "type": "hex"
+  },
+  {
+    "port": 141,
+    "value": "250",
+    "type": "number"
+  },
+  {
+    "port": 142,
+    "value": "200",
+    "type": "number"
+  },
+  {
+    "port": 143,
+    "value": false,
+    "type": "bool"
+  }
+]

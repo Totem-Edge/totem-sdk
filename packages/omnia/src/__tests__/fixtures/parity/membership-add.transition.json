@@ -1,0 +1,6 @@
+{
+  "action": "member_add",
+  "inputs": {
+    "memberRoot": "0xABCD"
+  }
+}

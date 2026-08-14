@@ -1,0 +1,17 @@
+[
+  {
+    "port": 150,
+    "value": "800",
+    "type": "number"
+  },
+  {
+    "port": 151,
+    "value": "50",
+    "type": "number"
+  },
+  {
+    "port": 152,
+    "value": false,
+    "type": "bool"
+  }
+]

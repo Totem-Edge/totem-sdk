@@ -1,0 +1,8 @@
+{
+  "action": "add",
+  "inputs": {
+    "hashlock": "0x0123",
+    "amount": "250",
+    "timeoutBlock": "200"
+  }
+}
