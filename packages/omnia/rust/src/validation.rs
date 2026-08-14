@@ -133,7 +133,7 @@ pub fn validate_complete_channel_state(
         }
     }
 
-    for (party_id, _sig) in &state.signatures {
+    for party_id in state.signatures.keys() {
         if !channel.parties.iter().any(|p| &p.party_id == party_id) {
             return ValidationResult {
                 valid: false,

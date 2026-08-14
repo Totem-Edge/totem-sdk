@@ -16,7 +16,7 @@ pub fn compute_state_commitment(
 
     let mut hasher = Sha3_256::new();
 
-    hasher.update(&sequence.to_le_bytes());
+    hasher.update(sequence.to_le_bytes());
 
     for (party_id, balance) in &sorted_balances {
         hasher.update(party_id.as_bytes());

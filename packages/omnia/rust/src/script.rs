@@ -21,7 +21,7 @@ pub fn build_eltoo_script(parties: &[ChannelParticipant]) -> Result<String, Stri
     let pk_a = kiss_hex(&parties[0].public_key_digest);
     let pk_b = kiss_hex(&parties[1].public_key_digest);
 
-    let script = vec![
+    let script = [
         "LET SETTLEMENT=STATE(100)".to_string(),
         "LET SEQUENCE=STATE(101)".to_string(),
         "LET PREVSEQUENCE=PREVSTATE(101)".to_string(),
