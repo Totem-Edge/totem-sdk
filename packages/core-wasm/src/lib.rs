@@ -245,15 +245,9 @@ pub fn validate_challenge_wasm(challenge_json: &str, domain: &str) -> Result<boo
     verify::validate_challenge(challenge_json, domain).map_err(|e| JsValue::from_str(&e))
 }
 
-/// Write MiniNumber (Java-compatible serialization).
+/// Write MiniNumber (Java-compatible serialization) from an arbitrary-size decimal integer.
 #[wasm_bindgen]
-pub fn write_mini_number_wasm(value: i64, scale: u8) -> Vec<u8> {
-    streamable::write_mini_number(value, scale)
-}
-
-/// Write MiniNumber from an arbitrary-size decimal integer string.
-#[wasm_bindgen]
-pub fn write_mini_number_decimal_wasm(value: &str, scale: u8) -> Result<Vec<u8>, JsValue> {
+pub fn write_mini_number_wasm(value: &str, scale: u8) -> Result<Vec<u8>, JsValue> {
     streamable::write_mini_number_decimal(value, scale).map_err(|e| JsValue::from_str(&e))
 }
 
