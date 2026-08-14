@@ -66,16 +66,13 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Setup filtered workspace
         uses: ./.github/actions/setup-pnpm
-        with:
-          filter: "@totemsdk/omnia..."
       - name: Setup Rust and WASM toolchain
         uses: ./.github/actions/setup-rust-wasm
       - name: Build core-wasm (prerequisite)
         working-directory: packages/core-wasm
         run: npm run build
-      - name: Build core (prerequisite)
-        working-directory: packages/core
-        run: npm run build
+      - name: Build workspace dependencies (dependency order)
+        run: node scripts/verify-workspace.mjs --typecheck
       - name: Run Omnia parity tests (builds WASM first)
         working-directory: packages/omnia
         run: npm run test:parity
