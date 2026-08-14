@@ -444,6 +444,11 @@ Policy for this RFC:
 5. Do not commit locally regenerated `packages/core-wasm/pkg` binaries unless the source change or release process requires it.
 6. If generated artifact policy is unclear, resolve it before the final parity PR.
 
+Observed repository policy as of this RFC implementation:
+
+- `packages/omnia/rust/pkg` and `packages/omnia/rust/pkg-node` contain nested `.gitignore` files and are generated during build/test workflows, not committed.
+- `packages/core-wasm/pkg` and `packages/core-wasm/pkg-node` are tracked package artifacts and must be regenerated when core WASM exports change.
+
 Open decision:
 
 | Decision | Options | Default Recommendation |
@@ -481,7 +486,7 @@ Checklist:
 - [x] Implement canonical transition serialization.
 - [x] Implement program state port helpers.
 - [x] Add WASM exports for transition canonicalization and state var helpers.
-- [ ] Add TS/WASM parity tests for transition fixtures.
+- [x] Add TS/WASM parity tests for transition fixtures.
 - [x] Add Rust unit tests for malformed transition inputs.
 
 Exit criteria:
@@ -534,7 +539,7 @@ Checklist:
 - [x] Integrate close-package checks into complete state/recovery validation.
 - [ ] Add parity tests for signed close package snapshots.
 - [ ] Add targeted CI parity command if needed.
-- [ ] Document generated artifact expectations.
+- [x] Document generated artifact expectations.
 
 Exit criteria:
 
@@ -596,7 +601,7 @@ Pending decisions:
 
 | Decision | Owner | Status |
 | --- | --- | --- |
-| Generated artifact policy | Maintainers | Pending |
+| Generated artifact policy | Maintainers | Resolved for this RFC: Omnia WASM outputs are generated/ignored; core-wasm package outputs are tracked. |
 | Error code vs exact string parity | Omnia maintainers | Pending |
 | Built-in-only vs external program validation | Omnia maintainers | Pending |
 | Legacy recovery support window | Omnia maintainers | Pending |
