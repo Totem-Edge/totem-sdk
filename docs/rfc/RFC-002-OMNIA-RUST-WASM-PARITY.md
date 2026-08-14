@@ -505,7 +505,7 @@ Checklist:
 - [x] Add counter validation.
 - [x] Add meter validation.
 - [x] Add WASM exports for counter and meter helpers.
-- [ ] Add cross-language parity fixtures.
+- [x] Add cross-language parity fixtures.
 
 Exit criteria:
 
@@ -523,7 +523,7 @@ Checklist:
 - [x] Implement recovery validation.
 - [x] Implement legacy raw channel recovery if still supported by TypeScript.
 - [x] Add WASM exports for snapshot and recovery functions.
-- [ ] Add TS/WASM parity tests for all recovery fixtures.
+- [x] Add TS/WASM parity tests for all recovery fixtures.
 
 Exit criteria:
 
@@ -537,8 +537,8 @@ Checklist:
 
 - [x] Add close-package shape validation helpers.
 - [x] Integrate close-package checks into complete state/recovery validation.
-- [ ] Add parity tests for signed close package snapshots.
-- [ ] Add targeted CI parity command if needed.
+- [x] Add parity tests for signed close package snapshots.
+- [x] Add targeted CI parity command if needed.
 - [x] Document generated artifact expectations.
 
 Exit criteria:
@@ -550,11 +550,13 @@ Exit criteria:
 
 Checklist:
 
-- [ ] Run `npm run build` in `packages/omnia`.
-- [ ] Review generated `packages/omnia/rust/pkg` and `pkg-node` diff.
-- [ ] Confirm no unrelated package artifacts are staged.
-- [ ] Run package tests and typecheck after generation.
-- [ ] Commit generated artifacts separately if they are expected in git.
+- [x] Run `npm run build` in `packages/omnia`.
+- [x] Review generated `packages/omnia/rust/pkg` and `pkg-node` diff.
+- [x] Confirm no unrelated package artifacts are staged.
+- [x] Run package tests and typecheck after generation.
+- [x] Commit generated artifacts separately if they are expected in git.
+
+Resolution: per §12, Omnia WASM outputs are generated during build/test and ignored in git (nested `.gitignore`); the parity CI job rebuilds them before testing. No artifact commit is required.
 
 Exit criteria:
 
@@ -565,17 +567,17 @@ Exit criteria:
 
 Complete parity is reached when all of the following are true:
 
-- [ ] Rust `OmniaChannel` can deserialize current TypeScript channels without dropping durable fields.
-- [ ] Rust `SignedChannelState` can deserialize current TypeScript signed states without dropping durable fields.
-- [ ] Rust/WASM canonical transition output matches TypeScript for all golden fixtures.
-- [ ] Rust/WASM counter program output matches TypeScript for all golden fixtures.
-- [ ] Rust/WASM meter program output matches TypeScript for all golden fixtures.
-- [ ] Rust/WASM snapshot serialization and recovery validation match TypeScript for all golden fixtures.
-- [ ] Rust/WASM close-package shape validation covers durable recovery cases.
-- [ ] Existing TypeScript Omnia tests pass.
-- [ ] Existing Rust Omnia tests pass.
-- [ ] Workspace typecheck and unit-test gates pass.
-- [ ] Generated Omnia WASM outputs are intentionally updated or intentionally excluded by documented policy.
+- [x] Rust `OmniaChannel` can deserialize current TypeScript channels without dropping durable fields.
+- [x] Rust `SignedChannelState` can deserialize current TypeScript signed states without dropping durable fields.
+- [x] Rust/WASM canonical transition output matches TypeScript for all golden fixtures.
+- [x] Rust/WASM counter program output matches TypeScript for all golden fixtures.
+- [x] Rust/WASM meter program output matches TypeScript for all golden fixtures.
+- [x] Rust/WASM snapshot serialization and recovery validation match TypeScript for all golden fixtures.
+- [x] Rust/WASM close-package shape validation covers durable recovery cases.
+- [x] Existing TypeScript Omnia tests pass.
+- [x] Existing Rust Omnia tests pass.
+- [x] Workspace typecheck and unit-test gates pass.
+- [x] Generated Omnia WASM outputs are intentionally updated or intentionally excluded by documented policy.
 
 ## 15. Risks
 
@@ -589,7 +591,7 @@ Complete parity is reached when all of the following are true:
 
 ## 16. Open Questions
 
-1. Should generated Omnia WASM outputs remain committed in git, or should publish/build produce them from Rust source?
+1. ~~Should generated Omnia WASM outputs remain committed in git, or should publish/build produce them from Rust source?~~ Resolved: generate during build; ignored in git (see §12).
 2. Should Rust validation return exact TypeScript error strings or stable error codes with human-readable messages?
 3. Should Rust support externally registered programs, or only built-in deterministic programs for now?
 4. Should close-package signature verification remain TypeScript-only, or should Rust eventually verify WOTS signatures as a separate RFC?

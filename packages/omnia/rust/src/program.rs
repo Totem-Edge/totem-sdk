@@ -64,7 +64,7 @@ fn state_bigint_or_validation(
     port: u32,
     fallback: i128,
 ) -> Result<i128, ValidationResult> {
-    get_state_bigint(state, port, fallback).map_err(|e| invalid(e))
+    get_state_bigint(state, port, fallback).map_err(invalid)
 }
 
 fn balance_bigint(balance: Option<&String>, fallback: i128) -> Result<i128, ValidationResult> {

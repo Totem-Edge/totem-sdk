@@ -76,6 +76,12 @@ jobs:
       - name: Run Omnia parity tests (builds WASM first)
         working-directory: packages/omnia
         run: npm run test:parity
+      - name: Install clippy and rustfmt
+        run: rustup component add clippy rustfmt
+      - name: cargo fmt --check (omnia)
+        run: cargo fmt --manifest-path packages/omnia/rust/Cargo.toml -- --check
+      - name: cargo clippy (omnia, -D warnings)
+        run: cargo clippy --all-targets --all-features --manifest-path packages/omnia/rust/Cargo.toml -- -D warnings
       - name: Run Omnia Rust tests
         run: cargo test --all-targets --all-features --manifest-path packages/omnia/rust/Cargo.toml
 
