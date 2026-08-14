@@ -1,11 +1,16 @@
 import {
   createChannel,
+  applyProgramTransition,
+  decrementCounter,
+  incrementCounter,
   markChannelClosed,
   markChannelClosing,
   proposeSettlement,
+  recordMeterReading,
+  setCounter,
   updateState,
 } from '@totemsdk/omnia';
-import type { ChannelParticipant, ChannelSigner, CreateChannelParams, OmniaChannel, OmniaSwarm } from '@totemsdk/omnia';
+import type { ChannelParticipant, ChannelSigner, CreateChannelParams, OmniaChannel, OmniaSwarm, ProgramTransition, UpdateStateResult } from '@totemsdk/omnia';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import type { WotsLeaseProvider } from '@totemsdk/wots-lease';
 import {
@@ -88,6 +93,41 @@ function operationId(params: Record<string, unknown>): string {
   return requiredString(params, 'operationId');
 }
 
+function bigintRecord(params: Record<string, unknown>, key: string): Record<string, bigint> | undefined {
+  const value = params[key];
+  if (value === undefined) return undefined;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`${key} must be an object`);
+  return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([partyId, balance]) => [
+    partyId,
+    BigInt(String(balance)),
+  ]));
+}
+
+function optionalStringRecord(params: Record<string, unknown>, key: string): Record<string, string> | undefined {
+  const value = params[key];
+  if (value === undefined) return undefined;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`${key} must be an object`);
+  return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([name, nested]) => {
+    if (typeof nested !== 'string') throw new Error(`${key}.${name} must be a string`);
+    return [name, nested];
+  }));
+}
+
+function optionalTransitionInputs(params: Record<string, unknown>): ProgramTransition['inputs'] {
+  const value = params.inputs;
+  if (value === undefined) return undefined;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('inputs must be an object');
+  return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([name, nested]) => {
+    if (typeof nested === 'string' || typeof nested === 'boolean') return [name, nested];
+    if (typeof nested === 'number' && Number.isSafeInteger(nested)) return [name, BigInt(nested)];
+    throw new Error(`inputs.${name} must be a string, boolean, or safe integer`);
+  }));
+}
+
+function balancesJson(channel: OmniaChannel): Record<string, string> {
+  return Object.fromEntries(Object.entries(channel.balances).map(([partyId, balance]) => [partyId, balance.toString()]));
+}
+
 async function withOperation<T>(
   context: HostApiContext,
   params: Record<string, unknown>,
@@ -127,6 +167,33 @@ function requireMutationContext(context: HostApiContext): asserts context is Hos
   if (!context.signer || !context.leaseProvider || !context.chainProvider || !context.localParticipant) {
     throw new Error('Omnia mutations require signer, WOTS lease provider, chain provider, and local participant configuration');
   }
+}
+
+async function persistProgramUpdate(
+  context: HostApiContext & {
+    signer: ChannelSigner;
+    leaseProvider: WotsLeaseProvider;
+    localParticipant: ChannelParticipant;
+  },
+  channelId: string,
+  run: (channel: OmniaChannel) => Promise<UpdateStateResult>,
+): Promise<Record<string, unknown>> {
+  const channel = context.channels.get(channelId);
+  if (!channel) throw new Error(`Channel ${channelId} not found`);
+  const result = await run(channel);
+  if (result.error) throw new Error(result.error);
+  context.channels.set(channelId, result.channel);
+  const remoteParty = channel.parties.find((party) => party.partyId !== context.localParticipant.partyId);
+  if (context.swarm && remoteParty) {
+    const peer = await context.swarm.connectToPeer(remoteParty.publicKeyDigest, channelId);
+    await peer.sendMessage({ type: 'STATE_UPDATE', channelId, nonce: Date.now(), payload: result.signedState });
+  }
+  return {
+    success: true,
+    channelId,
+    sequence: result.channel.currentSequence,
+    balances: balancesJson(result.channel),
+  };
 }
 
 export function createHostMethods(context: HostApiContext): Map<string, JsonRpcHandler> {
@@ -247,6 +314,61 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
     });
   };
   register('totem_omniaPay', pay, 'omnia/pay');
+
+  const programTransition: JsonRpcHandler = async (raw) => {
+    const params = paramsObject(raw);
+    requireMutationContext(context);
+    const channelId = requiredString(params, 'channelId');
+    const transition: ProgramTransition = {
+      action: requiredString(params, 'action'),
+      inputs: optionalTransitionInputs(params),
+      witness: optionalStringRecord(params, 'witness'),
+      metadata: optionalStringRecord(params, 'metadata'),
+    };
+    const balances = bigintRecord(params, 'balances');
+    return withOperation(context, params, async () => persistProgramUpdate(
+      context,
+      channelId,
+      (channel) => applyProgramTransition(channel, { transition, balances }, context.leaseProvider, context.signer),
+    ));
+  };
+  register('totem_omniaApplyProgramTransition', programTransition, 'omnia/applyProgramTransition');
+
+  const counterTransition = (action: 'increment' | 'decrement' | 'set'): JsonRpcHandler => async (raw) => {
+    const params = paramsObject(raw);
+    requireMutationContext(context);
+    const channelId = requiredString(params, 'channelId');
+    return withOperation(context, params, async () => persistProgramUpdate(
+      context,
+      channelId,
+      (channel) => {
+        if (action === 'increment') return incrementCounter(channel, requiredBigInt(params, 'by'), context.leaseProvider, context.signer);
+        if (action === 'decrement') return decrementCounter(channel, requiredBigInt(params, 'by'), context.leaseProvider, context.signer);
+        return setCounter(channel, requiredBigInt(params, 'value'), context.leaseProvider, context.signer);
+      },
+    ));
+  };
+  register('totem_omniaIncrementCounter', counterTransition('increment'), 'omnia/incrementCounter');
+  register('totem_omniaDecrementCounter', counterTransition('decrement'), 'omnia/decrementCounter');
+  register('totem_omniaSetCounter', counterTransition('set'), 'omnia/setCounter');
+
+  const meterReading: JsonRpcHandler = async (raw) => {
+    const params = paramsObject(raw);
+    requireMutationContext(context);
+    const channelId = requiredString(params, 'channelId');
+    return withOperation(context, params, async () => persistProgramUpdate(
+      context,
+      channelId,
+      (channel) => recordMeterReading(
+        channel,
+        requiredBigInt(params, 'reading'),
+        requiredBigInt(params, 'unitPrice'),
+        context.leaseProvider,
+        context.signer,
+      ),
+    ));
+  };
+  register('totem_omniaRecordMeterReading', meterReading, 'omnia/recordMeterReading');
 
   const settle: JsonRpcHandler = async (raw) => {
     const params = paramsObject(raw);

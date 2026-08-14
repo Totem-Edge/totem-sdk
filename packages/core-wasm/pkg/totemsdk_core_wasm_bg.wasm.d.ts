@@ -50,7 +50,7 @@ export const wots_sign_wasm: (a: number, b: number, c: number, d: number, e: num
 export const wots_verify_digest_wasm: (a: number, b: number, c: number, d: number, e: number, f: number) => number;
 export const wots_verify_wasm: (a: number, b: number, c: number, d: number, e: number, f: number) => number;
 export const write_mini_data_wasm: (a: number, b: number) => [number, number];
-export const write_mini_number_wasm: (a: bigint, b: number) => [number, number];
+export const write_mini_number_wasm: (a: number, b: number, c: number) => [number, number, number, number];
 export const write_mini_string_wasm: (a: number, b: number) => [number, number];
 export const __wbindgen_malloc: (a: number, b: number) => number;
 export const __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
