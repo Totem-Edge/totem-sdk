@@ -1,0 +1,9 @@
+{
+  "action": "configure",
+  "inputs": {
+    "membershipSnapshotHash": "snap-1",
+    "voteTallyHash": "tally-1",
+    "spendCap": "1000",
+    "outcomeProofId": "proof-1"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "action": "configure",
+  "inputs": {
+    "tokenId": "0xABCD",
+    "holderABalance": "300",
+    "holderBBalance": "200"
+  }
+}

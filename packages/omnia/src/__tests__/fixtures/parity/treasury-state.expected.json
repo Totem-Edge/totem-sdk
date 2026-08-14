@@ -1,0 +1,27 @@
+[
+  {
+    "port": 160,
+    "value": "snap-1",
+    "type": "string"
+  },
+  {
+    "port": 161,
+    "value": "tally-1",
+    "type": "string"
+  },
+  {
+    "port": 162,
+    "value": "1000",
+    "type": "number"
+  },
+  {
+    "port": 163,
+    "value": "0",
+    "type": "number"
+  },
+  {
+    "port": 164,
+    "value": "proof-1",
+    "type": "string"
+  }
+]

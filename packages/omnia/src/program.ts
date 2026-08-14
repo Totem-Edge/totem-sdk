@@ -1,9 +1,9 @@
-import { bytesToHex } from '@totemsdk/core';
+import { bytesToHex, sha3_256 } from '@totemsdk/core';
 import type { ChannelParticipant, ChannelProgram, ChannelProgramBuildStateInput, OmniaChannel, OmniaTxDraft, StateValue, HTLCRecord, ProgramTransition } from './types.js';
 import { buildEltooScript } from './script.js';
 import { buildUpdateTx, computeOmniaTxDigest } from './transactions.js';
 import { canonicalizeProgramTransition } from './transition.js';
-import { getStateBigInt, programNumberState } from './state-vars.js';
+import { getStateBigInt, getStateBool, getStateHex, getStateString, programNumberState, programBoolState, programHexState, programStringState } from './state-vars.js';
 
 export const ELTOO_PAYMENT_PROGRAM_ID = 'eltoo-payment';
 export const COUNTER_PROGRAM_ID = 'counter';
@@ -20,7 +20,51 @@ export const METER_USAGE_DELTA_PORT = 131;
 export const METER_UNIT_PRICE_PORT = 132;
 export const METER_PAYMENT_PORT = 133;
 
+export const HTLC_PROGRAM_ID = 'htlc-payment';
+export const HTLC_HASHLOCK_PORT = 140;
+export const HTLC_LOCKED_AMOUNT_PORT = 141;
+export const HTLC_TIMEOUT_BLOCK_PORT = 142;
+export const HTLC_CLAIMED_PORT = 143;
+
+export const VAULT_PROGRAM_ID = 'vault';
+export const VAULT_LOCKED_VALUE_PORT = 150;
+export const VAULT_RELEASE_SEQUENCE_PORT = 151;
+export const VAULT_SWEPT_PORT = 152;
+
+export const TREASURY_PROGRAM_ID = 'treasury';
+export const TREASURY_MEMBERSHIP_SNAPSHOT_HASH_PORT = 160;
+export const TREASURY_VOTE_TALLY_HASH_PORT = 161;
+export const TREASURY_SPEND_CAP_PORT = 162;
+export const TREASURY_SPENT_PORT = 163;
+export const TREASURY_OUTCOME_PROOF_ID_PORT = 164;
+
+export const MEMBERSHIP_PROGRAM_ID = 'membership';
+export const MEMBERSHIP_MEMBER_ROOT_PORT = 170;
+export const MEMBERSHIP_DIVIDEND_POOL_PORT = 171;
+export const MEMBERSHIP_PAYOUT_SEQUENCE_PORT = 172;
+
+export const ASSET_PROGRAM_ID = 'asset';
+export const ASSET_TOKEN_ID_PORT = 180;
+export const ASSET_HOLDER_A_BALANCE_PORT = 181;
+export const ASSET_HOLDER_B_BALANCE_PORT = 182;
+export const ASSET_TOTAL_PORT = 183;
+
 const programs = new Map<string, ChannelProgram>();
+
+const ELTOO_INJECTION_ANCHOR = 'ASSERT BOTHSIGNED\nASSERT SEQUENCE GT PREVSEQUENCE';
+
+function preimageDigest(preimage: string): string {
+  const digest = sha3_256(new TextEncoder().encode(preimage));
+  return bytesToHex(digest).replace(/^0x/i, '').toLowerCase();
+}
+
+function normalizeHex(value: string): string {
+  return value.replace(/^0x/i, '').toLowerCase();
+}
+
+function injectEltooScript(parties: ChannelParticipant[], additions: string[]): string {
+  return buildEltooScript(parties).replace(ELTOO_INJECTION_ANCHOR, [ELTOO_INJECTION_ANCHOR, ...additions].join('\n'));
+}
 
 export const DefaultEltooPaymentProgram: ChannelProgram = {
   id: ELTOO_PAYMENT_PROGRAM_ID,
@@ -177,6 +221,487 @@ export const MeterProgram: ChannelProgram = {
 programs.set(`${DefaultEltooPaymentProgram.id}@${DefaultEltooPaymentProgram.version}`, DefaultEltooPaymentProgram);
 programs.set(`${CounterProgram.id}@${CounterProgram.version}`, CounterProgram);
 programs.set(`${MeterProgram.id}@${MeterProgram.version}`, MeterProgram);
+
+export const HTLCPaymentProgram: ChannelProgram = {
+  id: HTLC_PROGRAM_ID,
+  version: 1,
+  buildScript(parties: ChannelParticipant[]): string {
+    return injectEltooScript(parties, [
+      `LET PREIMAGEHASH=SHA3(STATE(${HTLC_HASHLOCK_PORT}))`,
+      `LET LOCKED=STATE(${HTLC_LOCKED_AMOUNT_PORT})`,
+      `LET CLAIMED=STATE(${HTLC_CLAIMED_PORT})`,
+      `IF CLAIMED THEN`,
+      '    ASSERT SEQUENCE EQ PREVSEQUENCE',
+      `    ASSERT LOCKED EQ PREVSTATE(${HTLC_LOCKED_AMOUNT_PORT})`,
+      '    RETURN TRUE',
+      'ENDIF',
+    ]);
+  },
+  buildStateVariables({ previousState, transition }: ChannelProgramBuildStateInput): StateValue[] {
+    if (!transition) return [
+      programHexState(HTLC_HASHLOCK_PORT, getStateHex(previousState, HTLC_HASHLOCK_PORT, '')),
+      programNumberState(HTLC_LOCKED_AMOUNT_PORT, getStateBigInt(previousState, HTLC_LOCKED_AMOUNT_PORT, 0n)),
+      programNumberState(HTLC_TIMEOUT_BLOCK_PORT, getStateBigInt(previousState, HTLC_TIMEOUT_BLOCK_PORT, 0n)),
+      programBoolState(HTLC_CLAIMED_PORT, getStateBool(previousState, HTLC_CLAIMED_PORT, false)),
+    ];
+    switch (transition.action) {
+      case 'add': {
+        const hashlock = normalizeHex(String(transition.inputs?.hashlock ?? ''));
+        const amount = BigInt(String(transition.inputs?.amount ?? 0n));
+        const timeoutBlock = BigInt(String(transition.inputs?.timeoutBlock ?? 0n));
+        return [
+          programHexState(HTLC_HASHLOCK_PORT, hashlock),
+          programNumberState(HTLC_LOCKED_AMOUNT_PORT, amount),
+          programNumberState(HTLC_TIMEOUT_BLOCK_PORT, timeoutBlock),
+          programBoolState(HTLC_CLAIMED_PORT, false),
+        ];
+      }
+      case 'claim': {
+        if (!transition.inputs?.preimage) return [
+          programHexState(HTLC_HASHLOCK_PORT, getStateHex(previousState, HTLC_HASHLOCK_PORT, '')),
+          programNumberState(HTLC_LOCKED_AMOUNT_PORT, getStateBigInt(previousState, HTLC_LOCKED_AMOUNT_PORT, 0n)),
+          programNumberState(HTLC_TIMEOUT_BLOCK_PORT, getStateBigInt(previousState, HTLC_TIMEOUT_BLOCK_PORT, 0n)),
+          programBoolState(HTLC_CLAIMED_PORT, false),
+        ];
+        const digest = preimageDigest(String(transition.inputs.preimage));
+        const lock = getStateHex(previousState, HTLC_HASHLOCK_PORT, '');
+        if (digest !== normalizeHex(lock)) {
+          return [
+            programHexState(HTLC_HASHLOCK_PORT, lock),
+            programNumberState(HTLC_LOCKED_AMOUNT_PORT, getStateBigInt(previousState, HTLC_LOCKED_AMOUNT_PORT, 0n)),
+            programNumberState(HTLC_TIMEOUT_BLOCK_PORT, getStateBigInt(previousState, HTLC_TIMEOUT_BLOCK_PORT, 0n)),
+            programBoolState(HTLC_CLAIMED_PORT, false),
+          ];
+        }
+        return [
+          programHexState(HTLC_HASHLOCK_PORT, lock),
+          programNumberState(HTLC_LOCKED_AMOUNT_PORT, 0n),
+          programNumberState(HTLC_TIMEOUT_BLOCK_PORT, getStateBigInt(previousState, HTLC_TIMEOUT_BLOCK_PORT, 0n)),
+          programBoolState(HTLC_CLAIMED_PORT, true),
+        ];
+      }
+      case 'timeout': {
+        return [
+          programHexState(HTLC_HASHLOCK_PORT, getStateHex(previousState, HTLC_HASHLOCK_PORT, '')),
+          programNumberState(HTLC_LOCKED_AMOUNT_PORT, 0n),
+          programNumberState(HTLC_TIMEOUT_BLOCK_PORT, getStateBigInt(previousState, HTLC_TIMEOUT_BLOCK_PORT, 0n)),
+          programBoolState(HTLC_CLAIMED_PORT, true),
+        ];
+      }
+      default:
+        return [
+          programHexState(HTLC_HASHLOCK_PORT, getStateHex(previousState, HTLC_HASHLOCK_PORT, '')),
+          programNumberState(HTLC_LOCKED_AMOUNT_PORT, getStateBigInt(previousState, HTLC_LOCKED_AMOUNT_PORT, 0n)),
+          programNumberState(HTLC_TIMEOUT_BLOCK_PORT, getStateBigInt(previousState, HTLC_TIMEOUT_BLOCK_PORT, 0n)),
+          programBoolState(HTLC_CLAIMED_PORT, getStateBool(previousState, HTLC_CLAIMED_PORT, false)),
+        ];
+    }
+  },
+  validateTransition({ previousState, nextState, transition }) {
+    if (!transition) return { valid: true };
+    switch (transition.action) {
+      case 'add': {
+        const nextHashlock = getStateHex(nextState, HTLC_HASHLOCK_PORT, '');
+        const nextAmount = getStateBigInt(nextState, HTLC_LOCKED_AMOUNT_PORT, 0n);
+        const expectedAmount = BigInt(String(transition.inputs?.amount ?? 0n));
+        const claimed = getStateBool(nextState, HTLC_CLAIMED_PORT, false);
+        if (claimed) return { valid: false, error: 'htlc add after claim is not allowed' };
+        if (nextHashlock === '') return { valid: false, error: 'htlc add requires hashlock' };
+        if (nextAmount !== expectedAmount) return { valid: false, error: 'htlc amount mismatch' };
+        return { valid: true };
+      }
+      case 'claim': {
+        if (!transition.inputs?.preimage) return { valid: false, error: 'htlc claim requires preimage' };
+        const digest = preimageDigest(String(transition.inputs.preimage));
+        const lock = getStateHex(previousState, HTLC_HASHLOCK_PORT, '');
+        if (digest !== normalizeHex(lock)) return { valid: false, error: 'htlc preimage mismatch' };
+        const nextAmount = getStateBigInt(nextState, HTLC_LOCKED_AMOUNT_PORT, 0n);
+        const claimed = getStateBool(nextState, HTLC_CLAIMED_PORT, false);
+        if (nextAmount !== 0n) return { valid: false, error: 'htlc claim must release locked amount' };
+        if (!claimed) return { valid: false, error: 'htlc claim must set claimed flag' };
+        return { valid: true };
+      }
+      case 'timeout': {
+        const currentBlock = BigInt(String(transition.inputs?.currentBlock ?? '0'));
+        const timeoutBlock = getStateBigInt(previousState, HTLC_TIMEOUT_BLOCK_PORT, 0n);
+        if (currentBlock < timeoutBlock) return { valid: false, error: 'htlc timeout block not reached' };
+        const nextAmount = getStateBigInt(nextState, HTLC_LOCKED_AMOUNT_PORT, 0n);
+        const claimed = getStateBool(nextState, HTLC_CLAIMED_PORT, false);
+        if (nextAmount !== 0n) return { valid: false, error: 'htlc timeout must release locked amount' };
+        if (!claimed) return { valid: false, error: 'htlc timeout must set claimed flag' };
+        return { valid: true };
+      }
+      default:
+        return { valid: false, error: `unsupported htlc action: ${transition.action}` };
+    }
+  },
+};
+
+export const VaultProgram: ChannelProgram = {
+  id: VAULT_PROGRAM_ID,
+  version: 1,
+  buildScript(parties: ChannelParticipant[]): string {
+    return injectEltooScript(parties, [
+      `LET LOCKEDVALUE=STATE(${VAULT_LOCKED_VALUE_PORT})`,
+      `LET RELEASE=STATE(${VAULT_RELEASE_SEQUENCE_PORT})`,
+      `LET SWEPT=STATE(${VAULT_SWEPT_PORT})`,
+      `IF SWEPT THEN`,
+      '    ASSERT SEQUENCE EQ PREVSEQUENCE',
+      `    ASSERT LOCKEDVALUE EQ PREVSTATE(${VAULT_LOCKED_VALUE_PORT})`,
+      '    RETURN TRUE',
+      'ENDIF',
+    ]);
+  },
+  buildStateVariables({ previousState, transition }: ChannelProgramBuildStateInput): StateValue[] {
+    if (!transition) return [
+      programNumberState(VAULT_LOCKED_VALUE_PORT, getStateBigInt(previousState, VAULT_LOCKED_VALUE_PORT, 0n)),
+      programNumberState(VAULT_RELEASE_SEQUENCE_PORT, getStateBigInt(previousState, VAULT_RELEASE_SEQUENCE_PORT, 0n)),
+      programBoolState(VAULT_SWEPT_PORT, getStateBool(previousState, VAULT_SWEPT_PORT, false)),
+    ];
+    switch (transition.action) {
+      case 'lock': {
+        const amount = BigInt(String(transition.inputs?.amount ?? 0n));
+        const release = BigInt(String(transition.inputs?.releaseSequence ?? 0n));
+        return [
+          programNumberState(VAULT_LOCKED_VALUE_PORT, amount),
+          programNumberState(VAULT_RELEASE_SEQUENCE_PORT, release),
+          programBoolState(VAULT_SWEPT_PORT, false),
+        ];
+      }
+      case 'extend': {
+        const release = BigInt(String(transition.inputs?.releaseSequence ?? 0n));
+        return [
+          programNumberState(VAULT_LOCKED_VALUE_PORT, getStateBigInt(previousState, VAULT_LOCKED_VALUE_PORT, 0n)),
+          programNumberState(VAULT_RELEASE_SEQUENCE_PORT, release),
+          programBoolState(VAULT_SWEPT_PORT, getStateBool(previousState, VAULT_SWEPT_PORT, false)),
+        ];
+      }
+      case 'release': {
+        return [
+          programNumberState(VAULT_LOCKED_VALUE_PORT, 0n),
+          programNumberState(VAULT_RELEASE_SEQUENCE_PORT, getStateBigInt(previousState, VAULT_RELEASE_SEQUENCE_PORT, 0n)),
+          programBoolState(VAULT_SWEPT_PORT, true),
+        ];
+      }
+      default:
+        return [
+          programNumberState(VAULT_LOCKED_VALUE_PORT, getStateBigInt(previousState, VAULT_LOCKED_VALUE_PORT, 0n)),
+          programNumberState(VAULT_RELEASE_SEQUENCE_PORT, getStateBigInt(previousState, VAULT_RELEASE_SEQUENCE_PORT, 0n)),
+          programBoolState(VAULT_SWEPT_PORT, getStateBool(previousState, VAULT_SWEPT_PORT, false)),
+        ];
+    }
+  },
+  validateTransition({ channel, previousState, nextState, transition }) {
+    if (!transition) return { valid: true };
+    switch (transition.action) {
+      case 'lock': {
+        const amount = BigInt(String(transition.inputs?.amount ?? 0n));
+        const release = BigInt(String(transition.inputs?.releaseSequence ?? 0n));
+        if (amount < 0n) return { valid: false, error: 'vault lock amount must be non-negative' };
+        const nextAmount = getStateBigInt(nextState, VAULT_LOCKED_VALUE_PORT, 0n);
+        const nextRelease = getStateBigInt(nextState, VAULT_RELEASE_SEQUENCE_PORT, 0n);
+        const swept = getStateBool(nextState, VAULT_SWEPT_PORT, false);
+        if (nextAmount !== amount) return { valid: false, error: 'vault locked value mismatch' };
+        if (nextRelease !== release) return { valid: false, error: 'vault release sequence mismatch' };
+        if (swept) return { valid: false, error: 'vault lock after sweep is not allowed' };
+        return { valid: true };
+      }
+      case 'extend': {
+        const release = BigInt(String(transition.inputs?.releaseSequence ?? 0n));
+        const prevRelease = getStateBigInt(previousState, VAULT_RELEASE_SEQUENCE_PORT, 0n);
+        const nextRelease = getStateBigInt(nextState, VAULT_RELEASE_SEQUENCE_PORT, 0n);
+        const swept = getStateBool(nextState, VAULT_SWEPT_PORT, false);
+        if (release < prevRelease) return { valid: false, error: 'vault extend must not shorten release' };
+        if (nextRelease !== release) return { valid: false, error: 'vault release sequence mismatch' };
+        if (swept) return { valid: false, error: 'vault extend after sweep is not allowed' };
+        return { valid: true };
+      }
+      case 'release': {
+        const currentSequence = BigInt(String(transition.inputs?.sequence ?? 0n));
+        const prevRelease = getStateBigInt(previousState, VAULT_RELEASE_SEQUENCE_PORT, 0n);
+        if (currentSequence < prevRelease) return { valid: false, error: 'vault release sequence not reached' };
+        const nextAmount = getStateBigInt(nextState, VAULT_LOCKED_VALUE_PORT, 0n);
+        const swept = getStateBool(nextState, VAULT_SWEPT_PORT, false);
+        if (nextAmount !== 0n) return { valid: false, error: 'vault release must empty locked value' };
+        if (!swept) return { valid: false, error: 'vault release must set swept flag' };
+        return { valid: true };
+      }
+      default:
+        return { valid: false, error: `unsupported vault action: ${transition.action}` };
+    }
+  },
+};
+
+export const TreasuryProgram: ChannelProgram = {
+  id: TREASURY_PROGRAM_ID,
+  version: 1,
+  buildScript(parties: ChannelParticipant[]): string {
+    return injectEltooScript(parties, [
+      `LET SPENT=STATE(${TREASURY_SPENT_PORT})`,
+      `LET CAP=STATE(${TREASURY_SPEND_CAP_PORT})`,
+      'ASSERT SPENT LTE CAP',
+    ]);
+  },
+  buildStateVariables({ previousState, transition }: ChannelProgramBuildStateInput): StateValue[] {
+    if (!transition) return [
+      programStringState(TREASURY_MEMBERSHIP_SNAPSHOT_HASH_PORT, getStateString(previousState, TREASURY_MEMBERSHIP_SNAPSHOT_HASH_PORT, '')),
+      programStringState(TREASURY_VOTE_TALLY_HASH_PORT, getStateString(previousState, TREASURY_VOTE_TALLY_HASH_PORT, '')),
+      programNumberState(TREASURY_SPEND_CAP_PORT, getStateBigInt(previousState, TREASURY_SPEND_CAP_PORT, 0n)),
+      programNumberState(TREASURY_SPENT_PORT, getStateBigInt(previousState, TREASURY_SPENT_PORT, 0n)),
+      programStringState(TREASURY_OUTCOME_PROOF_ID_PORT, getStateString(previousState, TREASURY_OUTCOME_PROOF_ID_PORT, '')),
+    ];
+    switch (transition.action) {
+      case 'configure': {
+        return [
+          programStringState(TREASURY_MEMBERSHIP_SNAPSHOT_HASH_PORT, String(transition.inputs?.membershipSnapshotHash ?? '')),
+          programStringState(TREASURY_VOTE_TALLY_HASH_PORT, String(transition.inputs?.voteTallyHash ?? '')),
+          programNumberState(TREASURY_SPEND_CAP_PORT, BigInt(String(transition.inputs?.spendCap ?? 0n))),
+          programNumberState(TREASURY_SPENT_PORT, 0n),
+          programStringState(TREASURY_OUTCOME_PROOF_ID_PORT, String(transition.inputs?.outcomeProofId ?? '')),
+        ];
+      }
+      case 'spend': {
+        const amount = BigInt(String(transition.inputs?.amount ?? 0n));
+        return [
+          programStringState(TREASURY_MEMBERSHIP_SNAPSHOT_HASH_PORT, getStateString(previousState, TREASURY_MEMBERSHIP_SNAPSHOT_HASH_PORT, '')),
+          programStringState(TREASURY_VOTE_TALLY_HASH_PORT, getStateString(previousState, TREASURY_VOTE_TALLY_HASH_PORT, '')),
+          programNumberState(TREASURY_SPEND_CAP_PORT, getStateBigInt(previousState, TREASURY_SPEND_CAP_PORT, 0n)),
+          programNumberState(TREASURY_SPENT_PORT, getStateBigInt(previousState, TREASURY_SPENT_PORT, 0n) + amount),
+          programStringState(TREASURY_OUTCOME_PROOF_ID_PORT, getStateString(previousState, TREASURY_OUTCOME_PROOF_ID_PORT, '')),
+        ];
+      }
+      case 'rotate_snapshot': {
+        return [
+          programStringState(TREASURY_MEMBERSHIP_SNAPSHOT_HASH_PORT, String(transition.inputs?.membershipSnapshotHash ?? '')),
+          programStringState(TREASURY_VOTE_TALLY_HASH_PORT, String(transition.inputs?.voteTallyHash ?? '')),
+          programNumberState(TREASURY_SPEND_CAP_PORT, BigInt(String(transition.inputs?.spendCap ?? 0n))),
+          programNumberState(TREASURY_SPENT_PORT, 0n),
+          programStringState(TREASURY_OUTCOME_PROOF_ID_PORT, String(transition.inputs?.outcomeProofId ?? '')),
+        ];
+      }
+      default:
+        return [
+          programStringState(TREASURY_MEMBERSHIP_SNAPSHOT_HASH_PORT, getStateString(previousState, TREASURY_MEMBERSHIP_SNAPSHOT_HASH_PORT, '')),
+          programStringState(TREASURY_VOTE_TALLY_HASH_PORT, getStateString(previousState, TREASURY_VOTE_TALLY_HASH_PORT, '')),
+          programNumberState(TREASURY_SPEND_CAP_PORT, getStateBigInt(previousState, TREASURY_SPEND_CAP_PORT, 0n)),
+          programNumberState(TREASURY_SPENT_PORT, getStateBigInt(previousState, TREASURY_SPENT_PORT, 0n)),
+          programStringState(TREASURY_OUTCOME_PROOF_ID_PORT, getStateString(previousState, TREASURY_OUTCOME_PROOF_ID_PORT, '')),
+        ];
+    }
+  },
+  validateTransition({ previousState, nextState, transition }) {
+    if (!transition) return { valid: true };
+    switch (transition.action) {
+      case 'configure': {
+        const spendCap = getStateBigInt(nextState, TREASURY_SPEND_CAP_PORT, 0n);
+        const spent = getStateBigInt(nextState, TREASURY_SPENT_PORT, 0n);
+        if (spendCap < 0n) return { valid: false, error: 'treasury spend cap must be non-negative' };
+        if (spent !== 0n) return { valid: false, error: 'treasury configure must reset spent' };
+        return { valid: true };
+      }
+      case 'spend': {
+        const outcomeProof = getStateString(previousState, TREASURY_OUTCOME_PROOF_ID_PORT, '');
+        const requested = getStateString(nextState, TREASURY_OUTCOME_PROOF_ID_PORT, '');
+        if (outcomeProof !== '' && requested !== outcomeProof) return { valid: false, error: 'treasury outcome proof mismatch' };
+        const cap = getStateBigInt(previousState, TREASURY_SPEND_CAP_PORT, 0n);
+        const prevSpent = getStateBigInt(previousState, TREASURY_SPENT_PORT, 0n);
+        const nextSpent = getStateBigInt(nextState, TREASURY_SPENT_PORT, 0n);
+        const amount = BigInt(String(transition.inputs?.amount ?? 0n));
+        if (amount < 0n) return { valid: false, error: 'treasury spend amount must be non-negative' };
+        if (nextSpent !== prevSpent + amount) return { valid: false, error: 'treasury spent accounting mismatch' };
+        if (nextSpent > cap) return { valid: false, error: 'treasury spend exceeds cap' };
+        return { valid: true };
+      }
+      case 'rotate_snapshot': {
+        const spent = getStateBigInt(nextState, TREASURY_SPENT_PORT, 0n);
+        if (spent !== 0n) return { valid: false, error: 'treasury rotate must reset spent' };
+        return { valid: true };
+      }
+      default:
+        return { valid: false, error: `unsupported treasury action: ${transition.action}` };
+    }
+  },
+};
+
+export const MembershipProgram: ChannelProgram = {
+  id: MEMBERSHIP_PROGRAM_ID,
+  version: 1,
+  buildScript(parties: ChannelParticipant[]): string {
+    return injectEltooScript(parties, [
+      `LET ROOT=STATE(${MEMBERSHIP_MEMBER_ROOT_PORT})`,
+      `LET POOL=STATE(${MEMBERSHIP_DIVIDEND_POOL_PORT})`,
+      'ASSERT POOL GTE 0',
+    ]);
+  },
+  buildStateVariables({ previousState, transition }: ChannelProgramBuildStateInput): StateValue[] {
+    if (!transition) return [
+      programHexState(MEMBERSHIP_MEMBER_ROOT_PORT, getStateHex(previousState, MEMBERSHIP_MEMBER_ROOT_PORT, '')),
+      programNumberState(MEMBERSHIP_DIVIDEND_POOL_PORT, getStateBigInt(previousState, MEMBERSHIP_DIVIDEND_POOL_PORT, 0n)),
+      programNumberState(MEMBERSHIP_PAYOUT_SEQUENCE_PORT, getStateBigInt(previousState, MEMBERSHIP_PAYOUT_SEQUENCE_PORT, 0n)),
+    ];
+    switch (transition.action) {
+      case 'member_add':
+      case 'member_remove': {
+        const root = normalizeHex(String(transition.inputs?.memberRoot ?? ''));
+        return [
+          programHexState(MEMBERSHIP_MEMBER_ROOT_PORT, root),
+          programNumberState(MEMBERSHIP_DIVIDEND_POOL_PORT, getStateBigInt(previousState, MEMBERSHIP_DIVIDEND_POOL_PORT, 0n)),
+          programNumberState(MEMBERSHIP_PAYOUT_SEQUENCE_PORT, getStateBigInt(previousState, MEMBERSHIP_PAYOUT_SEQUENCE_PORT, 0n)),
+        ];
+      }
+      case 'mint_dividend': {
+        const amount = BigInt(String(transition.inputs?.amount ?? 0n));
+        return [
+          programHexState(MEMBERSHIP_MEMBER_ROOT_PORT, getStateHex(previousState, MEMBERSHIP_MEMBER_ROOT_PORT, '')),
+          programNumberState(MEMBERSHIP_DIVIDEND_POOL_PORT, getStateBigInt(previousState, MEMBERSHIP_DIVIDEND_POOL_PORT, 0n) + amount),
+          programNumberState(MEMBERSHIP_PAYOUT_SEQUENCE_PORT, getStateBigInt(previousState, MEMBERSHIP_PAYOUT_SEQUENCE_PORT, 0n)),
+        ];
+      }
+      case 'pay_dividend': {
+        const payout = BigInt(String(transition.inputs?.payoutSequence ?? 0n));
+        return [
+          programHexState(MEMBERSHIP_MEMBER_ROOT_PORT, getStateHex(previousState, MEMBERSHIP_MEMBER_ROOT_PORT, '')),
+          programNumberState(MEMBERSHIP_DIVIDEND_POOL_PORT, 0n),
+          programNumberState(MEMBERSHIP_PAYOUT_SEQUENCE_PORT, payout),
+        ];
+      }
+      default:
+        return [
+          programHexState(MEMBERSHIP_MEMBER_ROOT_PORT, getStateHex(previousState, MEMBERSHIP_MEMBER_ROOT_PORT, '')),
+          programNumberState(MEMBERSHIP_DIVIDEND_POOL_PORT, getStateBigInt(previousState, MEMBERSHIP_DIVIDEND_POOL_PORT, 0n)),
+          programNumberState(MEMBERSHIP_PAYOUT_SEQUENCE_PORT, getStateBigInt(previousState, MEMBERSHIP_PAYOUT_SEQUENCE_PORT, 0n)),
+        ];
+    }
+  },
+  validateTransition({ previousState, nextState, transition }) {
+    if (!transition) return { valid: true };
+    switch (transition.action) {
+      case 'member_add':
+      case 'member_remove': {
+        const root = normalizeHex(String(transition.inputs?.memberRoot ?? ''));
+        const nextRoot = getStateHex(nextState, MEMBERSHIP_MEMBER_ROOT_PORT, '');
+        if (root === '') return { valid: false, error: 'membership member root required' };
+        if (nextRoot !== root) return { valid: false, error: 'membership member root mismatch' };
+        return { valid: true };
+      }
+      case 'mint_dividend': {
+        const amount = BigInt(String(transition.inputs?.amount ?? 0n));
+        const prevPool = getStateBigInt(previousState, MEMBERSHIP_DIVIDEND_POOL_PORT, 0n);
+        const nextPool = getStateBigInt(nextState, MEMBERSHIP_DIVIDEND_POOL_PORT, 0n);
+        if (amount < 0n) return { valid: false, error: 'membership dividend amount must be non-negative' };
+        if (nextPool !== prevPool + amount) return { valid: false, error: 'membership dividend pool mismatch' };
+        return { valid: true };
+      }
+      case 'pay_dividend': {
+        const payout = BigInt(String(transition.inputs?.payoutSequence ?? 0n));
+        const prevPayout = getStateBigInt(previousState, MEMBERSHIP_PAYOUT_SEQUENCE_PORT, 0n);
+        const nextPayout = getStateBigInt(nextState, MEMBERSHIP_PAYOUT_SEQUENCE_PORT, 0n);
+        const nextPool = getStateBigInt(nextState, MEMBERSHIP_DIVIDEND_POOL_PORT, 0n);
+        if (payout <= prevPayout) return { valid: false, error: 'membership payout must advance sequence' };
+        if (nextPayout !== payout) return { valid: false, error: 'membership payout sequence mismatch' };
+        if (nextPool !== 0n) return { valid: false, error: 'membership payout must empty pool' };
+        return { valid: true };
+      }
+      default:
+        return { valid: false, error: `unsupported membership action: ${transition.action}` };
+    }
+  },
+};
+
+export const AssetProgram: ChannelProgram = {
+  id: ASSET_PROGRAM_ID,
+  version: 1,
+  buildScript(parties: ChannelParticipant[]): string {
+    return injectEltooScript(parties, [
+      `LET A=STATE(${ASSET_HOLDER_A_BALANCE_PORT})`,
+      `LET B=STATE(${ASSET_HOLDER_B_BALANCE_PORT})`,
+      `LET TOTAL=STATE(${ASSET_TOTAL_PORT})`,
+      'ASSERT A GTE 0',
+      'ASSERT B GTE 0',
+      'ASSERT A ADD B EQ TOTAL',
+    ]);
+  },
+  buildStateVariables({ previousState, transition }: ChannelProgramBuildStateInput): StateValue[] {
+    if (!transition) return [
+      programHexState(ASSET_TOKEN_ID_PORT, getStateHex(previousState, ASSET_TOKEN_ID_PORT, '')),
+      programNumberState(ASSET_HOLDER_A_BALANCE_PORT, getStateBigInt(previousState, ASSET_HOLDER_A_BALANCE_PORT, 0n)),
+      programNumberState(ASSET_HOLDER_B_BALANCE_PORT, getStateBigInt(previousState, ASSET_HOLDER_B_BALANCE_PORT, 0n)),
+      programNumberState(ASSET_TOTAL_PORT, getStateBigInt(previousState, ASSET_TOTAL_PORT, 0n)),
+    ];
+    switch (transition.action) {
+      case 'configure': {
+        const a = BigInt(String(transition.inputs?.holderABalance ?? 0n));
+        const b = BigInt(String(transition.inputs?.holderBBalance ?? 0n));
+        return [
+          programHexState(ASSET_TOKEN_ID_PORT, normalizeHex(String(transition.inputs?.tokenId ?? ''))),
+          programNumberState(ASSET_HOLDER_A_BALANCE_PORT, a),
+          programNumberState(ASSET_HOLDER_B_BALANCE_PORT, b),
+          programNumberState(ASSET_TOTAL_PORT, a + b),
+        ];
+      }
+      case 'transfer': {
+        const amount = BigInt(String(transition.inputs?.amount ?? 0n));
+        const to = String(transition.inputs?.to ?? 'b');
+        const prevA = getStateBigInt(previousState, ASSET_HOLDER_A_BALANCE_PORT, 0n);
+        const prevB = getStateBigInt(previousState, ASSET_HOLDER_B_BALANCE_PORT, 0n);
+        const total = getStateBigInt(previousState, ASSET_TOTAL_PORT, 0n);
+        const nextA = to === 'a' ? prevA + amount : prevA - amount;
+        const nextB = to === 'a' ? prevB - amount : prevB + amount;
+        return [
+          programHexState(ASSET_TOKEN_ID_PORT, getStateHex(previousState, ASSET_TOKEN_ID_PORT, '')),
+          programNumberState(ASSET_HOLDER_A_BALANCE_PORT, nextA),
+          programNumberState(ASSET_HOLDER_B_BALANCE_PORT, nextB),
+          programNumberState(ASSET_TOTAL_PORT, total),
+        ];
+      }
+      default:
+        return [
+          programHexState(ASSET_TOKEN_ID_PORT, getStateHex(previousState, ASSET_TOKEN_ID_PORT, '')),
+          programNumberState(ASSET_HOLDER_A_BALANCE_PORT, getStateBigInt(previousState, ASSET_HOLDER_A_BALANCE_PORT, 0n)),
+          programNumberState(ASSET_HOLDER_B_BALANCE_PORT, getStateBigInt(previousState, ASSET_HOLDER_B_BALANCE_PORT, 0n)),
+          programNumberState(ASSET_TOTAL_PORT, getStateBigInt(previousState, ASSET_TOTAL_PORT, 0n)),
+        ];
+    }
+  },
+  validateTransition({ previousState, nextState, transition }) {
+    if (!transition) return { valid: true };
+    switch (transition.action) {
+      case 'configure': {
+        const a = getStateBigInt(nextState, ASSET_HOLDER_A_BALANCE_PORT, 0n);
+        const b = getStateBigInt(nextState, ASSET_HOLDER_B_BALANCE_PORT, 0n);
+        const total = getStateBigInt(nextState, ASSET_TOTAL_PORT, 0n);
+        if (a < 0n || b < 0n) return { valid: false, error: 'asset balances must be non-negative' };
+        if (total !== a + b) return { valid: false, error: 'asset conservation mismatch' };
+        return { valid: true };
+      }
+      case 'transfer': {
+        const amount = BigInt(String(transition.inputs?.amount ?? 0n));
+        const to = String(transition.inputs?.to ?? 'b');
+        if (amount < 0n) return { valid: false, error: 'asset transfer amount must be non-negative' };
+        const prevA = getStateBigInt(previousState, ASSET_HOLDER_A_BALANCE_PORT, 0n);
+        const prevB = getStateBigInt(previousState, ASSET_HOLDER_B_BALANCE_PORT, 0n);
+        const total = getStateBigInt(previousState, ASSET_TOTAL_PORT, 0n);
+        const nextA = getStateBigInt(nextState, ASSET_HOLDER_A_BALANCE_PORT, 0n);
+        const nextB = getStateBigInt(nextState, ASSET_HOLDER_B_BALANCE_PORT, 0n);
+        const nextTotal = getStateBigInt(nextState, ASSET_TOTAL_PORT, 0n);
+        const expectedA = to === 'a' ? prevA + amount : prevA - amount;
+        const expectedB = to === 'a' ? prevB - amount : prevB + amount;
+        if (expectedA < 0n || expectedB < 0n) return { valid: false, error: 'asset transfer exceeds balance' };
+        if (nextA !== expectedA || nextB !== expectedB) return { valid: false, error: 'asset balance accounting mismatch' };
+        if (nextTotal !== total) return { valid: false, error: 'asset conservation mismatch' };
+        return { valid: true };
+      }
+      default:
+        return { valid: false, error: `unsupported asset action: ${transition.action}` };
+    }
+  },
+};
+
+programs.set(`${HTLCPaymentProgram.id}@${HTLCPaymentProgram.version}`, HTLCPaymentProgram);
+programs.set(`${VaultProgram.id}@${VaultProgram.version}`, VaultProgram);
+programs.set(`${TreasuryProgram.id}@${TreasuryProgram.version}`, TreasuryProgram);
+programs.set(`${MembershipProgram.id}@${MembershipProgram.version}`, MembershipProgram);
+programs.set(`${AssetProgram.id}@${AssetProgram.version}`, AssetProgram);
 
 export function registerChannelProgram(program: ChannelProgram): void {
   programs.set(`${program.id}@${program.version}`, program);

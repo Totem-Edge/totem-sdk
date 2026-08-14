@@ -1,23 +1,57 @@
-import { writeMiniNumber } from '@totemsdk/core';
+import { sha3_256, writeMiniNumber } from '@totemsdk/core';
 import type { OmniaChannel, ProgramTransition, SignedChannelState, StateValue } from '../types';
 import {
+  ASSET_HOLDER_A_BALANCE_PORT,
+  ASSET_HOLDER_B_BALANCE_PORT,
+  ASSET_PROGRAM_ID,
+  ASSET_TOKEN_ID_PORT,
+  ASSET_TOTAL_PORT,
+  AssetProgram,
   COUNTER_PROGRAM_ID,
   COUNTER_STATE_PORT,
   CounterProgram,
+  HTLC_CLAIMED_PORT,
+  HTLC_HASHLOCK_PORT,
+  HTLC_LOCKED_AMOUNT_PORT,
+  HTLC_PROGRAM_ID,
+  HTLC_TIMEOUT_BLOCK_PORT,
+  HTLCPaymentProgram,
+  MEMBERSHIP_DIVIDEND_POOL_PORT,
+  MEMBERSHIP_MEMBER_ROOT_PORT,
+  MEMBERSHIP_PAYOUT_SEQUENCE_PORT,
+  MEMBERSHIP_PROGRAM_ID,
+  MembershipProgram,
   METER_PAYMENT_PORT,
   METER_PROGRAM_ID,
   METER_READING_PORT,
   METER_UNIT_PRICE_PORT,
   METER_USAGE_DELTA_PORT,
   MeterProgram,
+  TREASURY_MEMBERSHIP_SNAPSHOT_HASH_PORT,
+  TREASURY_OUTCOME_PROOF_ID_PORT,
+  TREASURY_PROGRAM_ID,
+  TREASURY_SPEND_CAP_PORT,
+  TREASURY_SPENT_PORT,
+  TREASURY_VOTE_TALLY_HASH_PORT,
+  TreasuryProgram,
+  VAULT_LOCKED_VALUE_PORT,
+  VAULT_PROGRAM_ID,
+  VAULT_RELEASE_SEQUENCE_PORT,
+  VAULT_SWEPT_PORT,
+  VaultProgram,
 } from '../program';
 import { serializeProgramTransition } from '../transition';
-import { programNumberState } from '../state-vars';
+import { programBoolState, programHexState, programNumberState, programStringState } from '../state-vars';
 import { serializeChannelSnapshot } from '../persistence';
 
 const wasm = require('../../rust/pkg-node/omnia_wasm.js') as {
   build_counter_state_variables_wasm(previousState: unknown, transition: unknown): StateValue[];
   build_meter_state_variables_wasm(previousState: unknown, transition: unknown): StateValue[];
+  build_htlc_state_variables_wasm(previousState: unknown, transition: unknown): StateValue[];
+  build_vault_state_variables_wasm(previousState: unknown, transition: unknown): StateValue[];
+  build_treasury_state_variables_wasm(previousState: unknown, transition: unknown): StateValue[];
+  build_membership_state_variables_wasm(previousState: unknown, transition: unknown): StateValue[];
+  build_asset_state_variables_wasm(previousState: unknown, transition: unknown): StateValue[];
   default_eltoo_payment_state_variables_wasm(): StateValue[];
   deserialize_channel_snapshot_wasm(json: string): { channel: Record<string, unknown> };
   program_number_state_wasm(port: number, value: string): StateValue;
@@ -25,6 +59,11 @@ const wasm = require('../../rust/pkg-node/omnia_wasm.js') as {
   serialize_program_transition_wasm(transition: unknown): string;
   validate_counter_transition_wasm(previousState: unknown, nextState: unknown, transition: unknown): { valid: boolean; reason?: string };
   validate_meter_transition_wasm(channel: unknown, previousState: unknown, nextState: unknown, transition: unknown): { valid: boolean; reason?: string };
+  validate_htlc_transition_wasm(previousState: unknown, nextState: unknown, transition: unknown): { valid: boolean; reason?: string };
+  validate_vault_transition_wasm(previousState: unknown, nextState: unknown, transition: unknown): { valid: boolean; reason?: string };
+  validate_treasury_transition_wasm(previousState: unknown, nextState: unknown, transition: unknown): { valid: boolean; reason?: string };
+  validate_membership_transition_wasm(previousState: unknown, nextState: unknown, transition: unknown): { valid: boolean; reason?: string };
+  validate_asset_transition_wasm(previousState: unknown, nextState: unknown, transition: unknown): { valid: boolean; reason?: string };
 };
 
 const alice = { partyId: 'alice', publicKeyDigest: '0x' + 'aa'.repeat(32), addressIndex: 0 };
@@ -184,6 +223,180 @@ describe('Omnia Rust/WASM parity', () => {
       programNumberState(METER_PAYMENT_PORT, 20n),
     ], { alice: 580n, bob: 420n });
     expect(wasm.validate_meter_transition_wasm(toWasmValue(channel), toWasmValue(previous), toWasmValue(next), transition)).toEqual({ valid: true });
+  });
+
+  it('builds and validates htlc state variables like TypeScript', () => {
+    const previous = makeState([
+      programHexState(HTLC_HASHLOCK_PORT, '0xabcdef'),
+      programNumberState(HTLC_LOCKED_AMOUNT_PORT, 500n),
+      programNumberState(HTLC_TIMEOUT_BLOCK_PORT, 100n),
+      programBoolState(HTLC_CLAIMED_PORT, false),
+    ]);
+    const addTransition: ProgramTransition = { action: 'add', inputs: { hashlock: '0x0123', amount: '250', timeoutBlock: '200' } };
+    const channel = makeChannel({ programId: HTLC_PROGRAM_ID });
+
+    expect(normalizeStateVariables(wasm.build_htlc_state_variables_wasm(toWasmValue(previous), addTransition))).toEqual(
+      normalizeStateVariables(HTLCPaymentProgram.buildStateVariables({
+        channel,
+        sequence: 8,
+        balances: previous.balances,
+        pendingHTLCs: [],
+        settlement: false,
+        previousState: previous,
+        transition: addTransition,
+      })),
+    );
+
+    const added = makeState([
+      programHexState(HTLC_HASHLOCK_PORT, '0x0123'),
+      programNumberState(HTLC_LOCKED_AMOUNT_PORT, 250n),
+      programNumberState(HTLC_TIMEOUT_BLOCK_PORT, 200n),
+      programBoolState(HTLC_CLAIMED_PORT, false),
+    ]);
+    expect(wasm.validate_htlc_transition_wasm(toWasmValue(previous), toWasmValue(added), addTransition)).toEqual({ valid: true });
+  });
+
+  it('builds htlc claim with the same sha3 preimage digest as TypeScript', () => {
+    const preimage = 'secret-totem-preimage';
+    const lockHex = bytesToPlainHex(sha3_256(new TextEncoder().encode(preimage)));
+    const claimTransition: ProgramTransition = { action: 'claim', inputs: { preimage } };
+    const channel = makeChannel({ programId: HTLC_PROGRAM_ID });
+    const prev = makeState([
+      programHexState(HTLC_HASHLOCK_PORT, lockHex),
+      programNumberState(HTLC_LOCKED_AMOUNT_PORT, 500n),
+      programNumberState(HTLC_TIMEOUT_BLOCK_PORT, 100n),
+      programBoolState(HTLC_CLAIMED_PORT, false),
+    ]);
+    const expected = {
+      hashlock: lockHex,
+      amount: '0',
+      claimed: 'true',
+    };
+
+    const tsVars = normalizeStateVariables(HTLCPaymentProgram.buildStateVariables({
+      channel,
+      sequence: 8,
+      balances: prev.balances,
+      pendingHTLCs: [],
+      settlement: false,
+      previousState: prev,
+      transition: claimTransition,
+    }));
+    const wasmVars = normalizeStateVariables(wasm.build_htlc_state_variables_wasm(toWasmValue(prev), claimTransition));
+
+    const hashlocks = [tsVars.find(v => v.port === HTLC_HASHLOCK_PORT)?.value, wasmVars.find(v => v.port === HTLC_HASHLOCK_PORT)?.value];
+    const amounts = [tsVars.find(v => v.port === HTLC_LOCKED_AMOUNT_PORT)?.value, wasmVars.find(v => v.port === HTLC_LOCKED_AMOUNT_PORT)?.value];
+    const claimed = [tsVars.find(v => v.port === HTLC_CLAIMED_PORT)?.value, wasmVars.find(v => v.port === HTLC_CLAIMED_PORT)?.value];
+
+    expect(amounts).toEqual([expected.amount, expected.amount]);
+    expect(claimed).toEqual([expected.claimed, expected.claimed]);
+    expect(hashlocks).toEqual([expected.hashlock, expected.hashlock]);
+    expect(lockHex).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it('builds and validates vault state variables like TypeScript', () => {
+    const lockTransition: ProgramTransition = { action: 'lock', inputs: { amount: '800', releaseSequence: '50' } };
+    const channel = makeChannel({ programId: VAULT_PROGRAM_ID });
+
+    expect(normalizeStateVariables(wasm.build_vault_state_variables_wasm(null, lockTransition))).toEqual(
+      normalizeStateVariables(VaultProgram.buildStateVariables({
+        channel,
+        sequence: 8,
+        balances: { alice: 600n, bob: 400n },
+        pendingHTLCs: [],
+        settlement: false,
+        previousState: null,
+        transition: lockTransition,
+      })),
+    );
+
+    const next = makeState([
+      programNumberState(VAULT_LOCKED_VALUE_PORT, 800n),
+      programNumberState(VAULT_RELEASE_SEQUENCE_PORT, 50n),
+      programBoolState(VAULT_SWEPT_PORT, false),
+    ]);
+    expect(wasm.validate_vault_transition_wasm(null, toWasmValue(next), lockTransition)).toEqual({ valid: true });
+  });
+
+  it('builds and validates treasury state variables like TypeScript', () => {
+    const configureTransition: ProgramTransition = {
+      action: 'configure',
+      inputs: { membershipSnapshotHash: 'snap-1', voteTallyHash: 'tally-1', spendCap: '1000', outcomeProofId: 'proof-1' },
+    };
+    const channel = makeChannel({ programId: TREASURY_PROGRAM_ID });
+
+    expect(normalizeStateVariables(wasm.build_treasury_state_variables_wasm(null, configureTransition))).toEqual(
+      normalizeStateVariables(TreasuryProgram.buildStateVariables({
+        channel,
+        sequence: 8,
+        balances: { alice: 600n, bob: 400n },
+        pendingHTLCs: [],
+        settlement: false,
+        previousState: null,
+        transition: configureTransition,
+      })),
+    );
+
+    const next = makeState([
+      programStringState(TREASURY_MEMBERSHIP_SNAPSHOT_HASH_PORT, 'snap-1'),
+      programStringState(TREASURY_VOTE_TALLY_HASH_PORT, 'tally-1'),
+      programNumberState(TREASURY_SPEND_CAP_PORT, 1000n),
+      programNumberState(TREASURY_SPENT_PORT, 0n),
+      programStringState(TREASURY_OUTCOME_PROOF_ID_PORT, 'proof-1'),
+    ]);
+    expect(wasm.validate_treasury_transition_wasm(null, toWasmValue(next), configureTransition)).toEqual({ valid: true });
+  });
+
+  it('builds and validates membership state variables like TypeScript', () => {
+    const addTransition: ProgramTransition = { action: 'member_add', inputs: { memberRoot: '0xABCD' } };
+    const channel = makeChannel({ programId: MEMBERSHIP_PROGRAM_ID });
+
+    expect(normalizeStateVariables(wasm.build_membership_state_variables_wasm(null, addTransition))).toEqual(
+      normalizeStateVariables(MembershipProgram.buildStateVariables({
+        channel,
+        sequence: 8,
+        balances: { alice: 600n, bob: 400n },
+        pendingHTLCs: [],
+        settlement: false,
+        previousState: null,
+        transition: addTransition,
+      })),
+    );
+
+    const next = makeState([
+      programHexState(MEMBERSHIP_MEMBER_ROOT_PORT, 'abcd'),
+      programNumberState(MEMBERSHIP_DIVIDEND_POOL_PORT, 0n),
+      programNumberState(MEMBERSHIP_PAYOUT_SEQUENCE_PORT, 0n),
+    ]);
+    expect(wasm.validate_membership_transition_wasm(null, toWasmValue(next), addTransition)).toEqual({ valid: true });
+  });
+
+  it('builds and validates asset state variables like TypeScript', () => {
+    const configureTransition: ProgramTransition = {
+      action: 'configure',
+      inputs: { tokenId: '0xABCD', holderABalance: '300', holderBBalance: '200' },
+    };
+    const channel = makeChannel({ programId: ASSET_PROGRAM_ID });
+
+    expect(normalizeStateVariables(wasm.build_asset_state_variables_wasm(null, configureTransition))).toEqual(
+      normalizeStateVariables(AssetProgram.buildStateVariables({
+        channel,
+        sequence: 8,
+        balances: { alice: 600n, bob: 400n },
+        pendingHTLCs: [],
+        settlement: false,
+        previousState: null,
+        transition: configureTransition,
+      })),
+    );
+
+    const next = makeState([
+      programHexState(ASSET_TOKEN_ID_PORT, 'abcd'),
+      programNumberState(ASSET_HOLDER_A_BALANCE_PORT, 300n),
+      programNumberState(ASSET_HOLDER_B_BALANCE_PORT, 200n),
+      programNumberState(ASSET_TOTAL_PORT, 500n),
+    ]);
+    expect(wasm.validate_asset_transition_wasm(null, toWasmValue(next), configureTransition)).toEqual({ valid: true });
   });
 
   it('recovers TypeScript serialized channel snapshots', () => {
