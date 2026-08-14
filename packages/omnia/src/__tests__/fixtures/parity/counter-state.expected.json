@@ -1,0 +1,17 @@
+[
+  {
+    "port": 120,
+    "value": "15",
+    "type": "number"
+  },
+  {
+    "port": 121,
+    "value": "1",
+    "type": "number"
+  },
+  {
+    "port": 122,
+    "value": "5",
+    "type": "number"
+  }
+]

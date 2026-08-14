@@ -1,0 +1,151 @@
+{
+  "version": 1,
+  "savedAt": 1700000000000,
+  "channel": {
+    "channelId": "0xchannel",
+    "fundingTxId": "0xfunding",
+    "fundingCoinId": "0xcoin",
+    "fundingScript": "RETURN TRUE",
+    "programId": "counter",
+    "programVersion": 1,
+    "fundingAddress": "0xaddress",
+    "tokenId": "0x00",
+    "tokenScale": 0,
+    "totalValue": {
+      "__omniaBigInt": "1000"
+    },
+    "parties": [
+      {
+        "partyId": "alice",
+        "publicKeyDigest": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "addressIndex": 0
+      },
+      {
+        "partyId": "bob",
+        "publicKeyDigest": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "addressIndex": 1
+      }
+    ],
+    "balances": {
+      "alice": {
+        "__omniaBigInt": "600"
+      },
+      "bob": {
+        "__omniaBigInt": "400"
+      }
+    },
+    "pendingHTLCs": [],
+    "currentSequence": 7,
+    "latestState": {
+      "sequence": 7,
+      "balances": {
+        "alice": {
+          "__omniaBigInt": "600"
+        },
+        "bob": {
+          "__omniaBigInt": "400"
+        }
+      },
+      "pendingHTLCs": [],
+      "stateVariables": [
+        {
+          "port": 120,
+          "value": {
+            "__omniaBigInt": "42"
+          },
+          "type": "number"
+        }
+      ],
+      "transactionHex": "0xupdate",
+      "signatures": {
+        "alice": {
+          "__omniaBytes": "0102"
+        },
+        "bob": {
+          "__omniaBytes": "0304"
+        }
+      },
+      "signingIndices": {
+        "alice": {
+          "addressIndex": 0,
+          "l1": 7,
+          "l2": 0
+        },
+        "bob": {
+          "addressIndex": 1,
+          "l1": 7,
+          "l2": 0
+        }
+      },
+      "closePackage": {
+        "version": 1,
+        "channelId": "0xchannel",
+        "sequence": 7,
+        "stateCommitmentV2": "abababababababababababababababababababababababababababababababab",
+        "update": {
+          "txHex": "0xupdate",
+          "txDigest": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+          "signatures": {
+            "alice": {
+              "__omniaBytes": "0102"
+            },
+            "bob": {
+              "__omniaBytes": "0304"
+            }
+          },
+          "signingIndices": {
+            "alice": {
+              "addressIndex": 0,
+              "l1": 7,
+              "l2": 0
+            },
+            "bob": {
+              "addressIndex": 1,
+              "l1": 7,
+              "l2": 0
+            }
+          }
+        },
+        "settlement": {
+          "txHex": "0xsettlement",
+          "txDigest": "efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef",
+          "signatures": {
+            "alice": {
+              "__omniaBytes": "0506"
+            },
+            "bob": {
+              "__omniaBytes": "0708"
+            }
+          },
+          "signingIndices": {
+            "alice": {
+              "addressIndex": 0,
+              "l1": 7,
+              "l2": 0
+            },
+            "bob": {
+              "addressIndex": 1,
+              "l1": 7,
+              "l2": 0
+            }
+          }
+        }
+      }
+    },
+    "stateLog": [],
+    "status": "closing_unilateral",
+    "channelType": "direct",
+    "createdAt": 1000,
+    "updatedAt": 2000,
+    "unilateralClose": {
+      "channelId": "0xchannel",
+      "sequence": 7,
+      "updateTxHex": "0xupdate",
+      "settlementTxHex": "0xsettlement",
+      "contestStartBlock": 100,
+      "contestDeadlineBlock": 200,
+      "status": "update_broadcast",
+      "updateTxpowId": "0xpow"
+    }
+  }
+}

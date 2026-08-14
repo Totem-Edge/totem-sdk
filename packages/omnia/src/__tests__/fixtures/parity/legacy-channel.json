@@ -1,0 +1,35 @@
+{
+  "channelId": "0xlegacy",
+  "fundingTxId": "0xfunding",
+  "fundingCoinId": "0xcoin",
+  "fundingScript": "RETURN TRUE",
+  "fundingAddress": "0xaddress",
+  "tokenId": "0x00",
+  "totalValue": {
+    "__omniaBigInt": "1000"
+  },
+  "parties": [
+    {
+      "partyId": "alice",
+      "publicKeyDigest": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "addressIndex": 0
+    },
+    {
+      "partyId": "bob",
+      "publicKeyDigest": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "addressIndex": 1
+    }
+  ],
+  "balances": {
+    "alice": {
+      "__omniaBigInt": "600"
+    },
+    "bob": {
+      "__omniaBigInt": "400"
+    }
+  },
+  "status": "active",
+  "channelType": "direct",
+  "createdAt": 1000,
+  "updatedAt": 2000
+}
