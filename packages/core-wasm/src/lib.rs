@@ -251,6 +251,12 @@ pub fn write_mini_number_wasm(value: i64, scale: u8) -> Vec<u8> {
     streamable::write_mini_number(value, scale)
 }
 
+/// Write MiniNumber from an arbitrary-size decimal integer string.
+#[wasm_bindgen]
+pub fn write_mini_number_decimal_wasm(value: &str, scale: u8) -> Result<Vec<u8>, JsValue> {
+    streamable::write_mini_number_decimal(value, scale).map_err(|e| JsValue::from_str(&e))
+}
+
 /// Write MiniData (Java-compatible serialization).
 #[wasm_bindgen]
 pub fn write_mini_data_wasm(data: &[u8]) -> Vec<u8> {

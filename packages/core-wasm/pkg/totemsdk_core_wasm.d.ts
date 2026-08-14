@@ -257,6 +257,11 @@ export function wots_verify_wasm(sig: Uint8Array, message: Uint8Array, pk_full: 
 export function write_mini_data_wasm(data: Uint8Array): Uint8Array;
 
 /**
+ * Write MiniNumber from an arbitrary-size decimal integer string.
+ */
+export function write_mini_number_decimal_wasm(value: string, scale: number): Uint8Array;
+
+/**
  * Write MiniNumber (Java-compatible serialization).
  */
 export function write_mini_number_wasm(value: bigint, scale: number): Uint8Array;

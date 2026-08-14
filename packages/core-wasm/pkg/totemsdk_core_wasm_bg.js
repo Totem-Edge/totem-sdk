@@ -845,6 +845,24 @@ export function write_mini_data_wasm(data) {
 }
 
 /**
+ * Write MiniNumber from an arbitrary-size decimal integer string.
+ * @param {string} value
+ * @param {number} scale
+ * @returns {Uint8Array}
+ */
+export function write_mini_number_decimal_wasm(value, scale) {
+    const ptr0 = passStringToWasm0(value, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.write_mini_number_decimal_wasm(ptr0, len0, scale);
+    if (ret[3]) {
+        throw takeFromExternrefTable0(ret[2]);
+    }
+    var v2 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v2;
+}
+
+/**
  * Write MiniNumber (Java-compatible serialization).
  * @param {bigint} value
  * @param {number} scale

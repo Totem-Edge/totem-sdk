@@ -23,6 +23,66 @@ pub fn write_mini_number(value: i64, scale: u8) -> Vec<u8> {
     buf
 }
 
+/// Convert a non-negative decimal integer string to Java BigInteger.toByteArray()
+/// bytes. This supports values larger than Rust/wasm integer primitives so JS
+/// BigInt callers can remain byte-exact with Minima Java.
+pub fn decimal_big_int_to_byte_array(value: &str) -> Result<Vec<u8>, String> {
+    let value = value.trim();
+    if value.is_empty() {
+        return Err("MiniNumber value must not be empty".to_string());
+    }
+    if value.starts_with('-') {
+        return Err(format!("MiniNumber must be non-negative: {}", value));
+    }
+    if value.contains('.') {
+        return Err(format!("MiniNumber integer value expected, got: {}", value));
+    }
+
+    let digits = value.trim_start_matches('0');
+    let digits = if digits.is_empty() { "0" } else { digits };
+    let mut bytes = vec![0u8];
+    for ch in digits.bytes() {
+        if !ch.is_ascii_digit() {
+            return Err(format!(
+                "Invalid MiniNumber decimal character '{}' in '{}'",
+                ch as char, value
+            ));
+        }
+        let digit = (ch - b'0') as u16;
+        let mut carry = digit;
+        for byte in bytes.iter_mut().rev() {
+            let next = (*byte as u16) * 10 + carry;
+            *byte = (next & 0xff) as u8;
+            carry = next >> 8;
+        }
+        while carry > 0 {
+            bytes.insert(0, (carry & 0xff) as u8);
+            carry >>= 8;
+        }
+    }
+
+    while bytes.len() > 1 && bytes[0] == 0 {
+        bytes.remove(0);
+    }
+    if bytes[0] & 0x80 != 0 {
+        bytes.insert(0, 0);
+    }
+    Ok(bytes)
+}
+
+/// Write a MiniNumber from an arbitrary-size non-negative decimal integer.
+pub fn write_mini_number_decimal(value: &str, scale: u8) -> Result<Vec<u8>, String> {
+    let bytes = decimal_big_int_to_byte_array(value)?;
+    if bytes.len() > 255 {
+        return Err(format!("MiniNumber data too large: {} bytes", bytes.len()));
+    }
+    let mut buf = Vec::with_capacity(2 + bytes.len());
+    buf.push(scale);
+    buf.push(bytes.len() as u8);
+    buf.extend_from_slice(&bytes);
+    Ok(buf)
+}
+
 /// Write MiniData: 4-byte length (big-endian) + raw bytes.
 ///
 /// Matches Java's MiniData.writeDataStream().
@@ -118,6 +178,19 @@ mod tests {
         assert_eq!(result[0], 0); // scale
         assert_eq!(result[1], 1); // length
         assert_eq!(result[2], 42); // value
+    }
+
+    #[test]
+    fn test_write_mini_number_decimal_java_vectors() {
+        assert_eq!(write_mini_number_decimal("0", 0).unwrap(), vec![0, 1, 0]);
+        assert_eq!(write_mini_number_decimal("127", 0).unwrap(), vec![0, 1, 127]);
+        assert_eq!(write_mini_number_decimal("128", 0).unwrap(), vec![0, 2, 0, 128]);
+        assert_eq!(write_mini_number_decimal("255", 0).unwrap(), vec![0, 2, 0, 255]);
+        assert_eq!(write_mini_number_decimal("256", 0).unwrap(), vec![0, 2, 1, 0]);
+        assert_eq!(
+            write_mini_number_decimal("18446744073709551616", 0).unwrap(),
+            vec![0, 9, 1, 0, 0, 0, 0, 0, 0, 0, 0]
+        );
     }
 
     #[test]

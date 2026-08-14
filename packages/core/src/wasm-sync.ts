@@ -61,6 +61,7 @@ import {
   wots_verify_digest_wasm,
   wots_verify_wasm,
   write_mini_data_wasm,
+  write_mini_number_decimal_wasm,
   write_mini_number_wasm,
   write_mini_string_wasm,
 } from '@totemsdk/core-wasm';
@@ -116,7 +117,9 @@ export const timingSafeEqual = timing_safe_equal_wasm;
 export const createChallenge = create_challenge_wasm;
 export const validateChallenge = validate_challenge_wasm;
 
-export const writeMiniNumber = write_mini_number_wasm;
+export function writeMiniNumber(value: bigint, scale = 0): Uint8Array {
+  return write_mini_number_decimal_wasm(value.toString(), scale);
+}
 export const writeMiniData = write_mini_data_wasm;
 export const writeMiniString = write_mini_string_wasm;
 
