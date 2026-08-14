@@ -1,0 +1,7 @@
+{
+  "action": "record_reading",
+  "inputs": {
+    "reading": "110",
+    "unitPrice": "2"
+  }
+}

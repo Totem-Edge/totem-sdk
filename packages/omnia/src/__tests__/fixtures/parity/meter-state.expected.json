@@ -1,0 +1,22 @@
+[
+  {
+    "port": 130,
+    "value": "110",
+    "type": "number"
+  },
+  {
+    "port": 131,
+    "value": "10",
+    "type": "number"
+  },
+  {
+    "port": 132,
+    "value": "2",
+    "type": "number"
+  },
+  {
+    "port": 133,
+    "value": "20",
+    "type": "number"
+  }
+]

@@ -27,10 +27,14 @@ pub struct ChannelRecoveryResult {
 }
 
 fn now_ms() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_millis() as u64)
-        .unwrap_or(0)
+    if cfg!(target_arch = "wasm32") {
+        js_sys::Date::now() as u64
+    } else {
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|duration| duration.as_millis() as u64)
+            .unwrap_or(0)
+    }
 }
 
 fn normalize_tags(value: Value) -> Value {

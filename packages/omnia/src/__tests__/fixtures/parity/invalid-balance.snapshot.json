@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "savedAt": 1700000000000,
+  "channel": {
+    "channelId": "0xchannel",
+    "fundingTxId": "0xfunding",
+    "fundingCoinId": "0xcoin",
+    "fundingScript": "RETURN TRUE",
+    "programId": "counter",
+    "programVersion": 1,
+    "fundingAddress": "0xaddress",
+    "tokenId": "0x00",
+    "tokenScale": 0,
+    "totalValue": {
+      "__omniaBigInt": "1000"
+    },
+    "parties": [
+      {
+        "partyId": "alice",
+        "publicKeyDigest": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "addressIndex": 0
+      },
+      {
+        "partyId": "bob",
+        "publicKeyDigest": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "addressIndex": 1
+      }
+    ],
+    "balances": {
+      "alice": {
+        "__omniaBigInt": "600"
+      },
+      "bob": {
+        "__omniaBigInt": "300"
+      }
+    },
+    "pendingHTLCs": [],
+    "currentSequence": 7,
+    "latestState": {
+      "sequence": 7,
+      "balances": {
+        "alice": {
+          "__omniaBigInt": "600"
+        },
+        "bob": {
+          "__omniaBigInt": "300"
+        }
+      },
+      "pendingHTLCs": [],
+      "stateVariables": [
+        {
+          "port": 120,
+          "value": {
+            "__omniaBigInt": "42"
+          },
+          "type": "number"
+        }
+      ],
+      "transactionHex": "0xupdate",
+      "signatures": {
+        "alice": {
+          "__omniaBytes": "0102"
+        },
+        "bob": {
+          "__omniaBytes": "0304"
+        }
+      },
+      "signingIndices": {
+        "alice": {
+          "addressIndex": 0,
+          "l1": 7,
+          "l2": 0
+        },
+        "bob": {
+          "addressIndex": 1,
+          "l1": 7,
+          "l2": 0
+        }
+      }
+    },
+    "stateLog": [],
+    "status": "active",
+    "channelType": "direct",
+    "createdAt": 1000,
+    "updatedAt": 2000
+  }
+}
