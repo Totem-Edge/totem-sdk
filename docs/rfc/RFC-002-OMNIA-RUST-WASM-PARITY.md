@@ -605,7 +605,7 @@ Pending decisions:
 | --- | --- | --- |
 | Generated artifact policy | Maintainers | Resolved for this RFC: Omnia WASM outputs are generated/ignored; core-wasm package outputs are tracked. |
 | Error code vs exact string parity | Omnia maintainers | Pending |
-| Built-in-only vs external program validation | Omnia maintainers | Pending |
+| Built-in-only vs external program validation | Omnia maintainers | Pending — expansion scope defined in `RFC-003-OMNIA-BUILT-IN-PROGRAMS.md` |
 | Legacy recovery support window | Omnia maintainers | Pending |
 
 ## 18. Appendix: Initial Gap Checklist
