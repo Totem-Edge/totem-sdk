@@ -183,10 +183,22 @@ mod tests {
     #[test]
     fn test_write_mini_number_decimal_java_vectors() {
         assert_eq!(write_mini_number_decimal("0", 0).unwrap(), vec![0, 1, 0]);
-        assert_eq!(write_mini_number_decimal("127", 0).unwrap(), vec![0, 1, 127]);
-        assert_eq!(write_mini_number_decimal("128", 0).unwrap(), vec![0, 2, 0, 128]);
-        assert_eq!(write_mini_number_decimal("255", 0).unwrap(), vec![0, 2, 0, 255]);
-        assert_eq!(write_mini_number_decimal("256", 0).unwrap(), vec![0, 2, 1, 0]);
+        assert_eq!(
+            write_mini_number_decimal("127", 0).unwrap(),
+            vec![0, 1, 127]
+        );
+        assert_eq!(
+            write_mini_number_decimal("128", 0).unwrap(),
+            vec![0, 2, 0, 128]
+        );
+        assert_eq!(
+            write_mini_number_decimal("255", 0).unwrap(),
+            vec![0, 2, 0, 255]
+        );
+        assert_eq!(
+            write_mini_number_decimal("256", 0).unwrap(),
+            vec![0, 2, 1, 0]
+        );
         assert_eq!(
             write_mini_number_decimal("18446744073709551616", 0).unwrap(),
             vec![0, 9, 1, 0, 0, 0, 0, 0, 0, 0, 0]
