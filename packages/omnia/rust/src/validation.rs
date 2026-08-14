@@ -3,8 +3,7 @@ use std::collections::{HashMap, HashSet};
 use crate::capacity::flat_signing_index;
 use crate::commitment::compute_state_commitment;
 use crate::types::{
-    HTLCRecord, OmniaChannel, SignedChannelState, ValidationResult,
-    VerifyStateResult,
+    HTLCRecord, OmniaChannel, SignedChannelState, ValidationResult, VerifyStateResult,
 };
 
 pub fn validate_balance_conservation(
@@ -14,10 +13,18 @@ pub fn validate_balance_conservation(
 ) -> ValidationResult {
     let tv: u128 = match total_value.parse() {
         Ok(v) => v,
-        Err(_) => return ValidationResult { valid: false, reason: Some("Invalid totalValue".to_string()) },
+        Err(_) => {
+            return ValidationResult {
+                valid: false,
+                reason: Some("Invalid totalValue".to_string()),
+            }
+        }
     };
 
-    let balance_sum: u128 = balances.values().filter_map(|v| v.parse::<u128>().ok()).sum();
+    let balance_sum: u128 = balances
+        .values()
+        .filter_map(|v| v.parse::<u128>().ok())
+        .sum();
 
     let htlc_total: u128 = pending_htlcs
         .iter()
@@ -46,7 +53,10 @@ pub fn validate_balance_conservation(
         }
     }
 
-    ValidationResult { valid: true, reason: None }
+    ValidationResult {
+        valid: true,
+        reason: None,
+    }
 }
 
 pub fn validate_complete_channel_state(
@@ -70,12 +80,19 @@ pub fn validate_complete_channel_state(
         if !party_ids.contains(*key) {
             return ValidationResult {
                 valid: false,
-                reason: Some(format!("Balance key '{}' is not a channel participant", key)),
+                reason: Some(format!(
+                    "Balance key '{}' is not a channel participant",
+                    key
+                )),
             };
         }
     }
 
-    let pkds: HashSet<&String> = channel.parties.iter().map(|p| &p.public_key_digest).collect();
+    let pkds: HashSet<&String> = channel
+        .parties
+        .iter()
+        .map(|p| &p.public_key_digest)
+        .collect();
     if pkds.len() != channel.parties.len() {
         return ValidationResult {
             valid: false,
@@ -94,11 +111,8 @@ pub fn validate_complete_channel_state(
         }
     }
 
-    let conservation = validate_balance_conservation(
-        &channel.total_value,
-        &state.balances,
-        &state.pending_htlcs,
-    );
+    let conservation =
+        validate_balance_conservation(&channel.total_value, &state.balances, &state.pending_htlcs);
     if !conservation.valid {
         return conservation;
     }
@@ -159,7 +173,10 @@ pub fn validate_complete_channel_state(
         };
     }
 
-    ValidationResult { valid: true, reason: None }
+    ValidationResult {
+        valid: true,
+        reason: None,
+    }
 }
 
 pub fn verify_state(
@@ -176,11 +193,8 @@ pub fn verify_state(
         ));
     }
 
-    let conservation = validate_balance_conservation(
-        &channel.total_value,
-        &state.balances,
-        &state.pending_htlcs,
-    );
+    let conservation =
+        validate_balance_conservation(&channel.total_value, &state.balances, &state.pending_htlcs);
     if !conservation.valid {
         if let Some(reason) = &conservation.reason {
             errors.push(reason.clone());
@@ -199,11 +213,8 @@ pub fn verify_state(
             continue;
         }
 
-        let commitment = compute_state_commitment(
-            state.sequence,
-            &state.balances,
-            &state.pending_htlcs,
-        );
+        let commitment =
+            compute_state_commitment(state.sequence, &state.balances, &state.pending_htlcs);
 
         if !verify_sig_fn(sig.unwrap(), &commitment, &party.public_key_digest) {
             errors.push(format!(
@@ -213,10 +224,8 @@ pub fn verify_state(
         }
 
         if let Some(ref latest) = channel.latest_state {
-            if let (Some(prev), Some(new)) = (
-                latest.signing_indices.get(&party.party_id),
-                indices,
-            ) {
+            if let (Some(prev), Some(new)) = (latest.signing_indices.get(&party.party_id), indices)
+            {
                 let prev_flat = flat_signing_index(prev.l1, prev.l2);
                 let new_flat = flat_signing_index(new.l1, new.l2);
                 if new_flat <= prev_flat {
@@ -248,8 +257,13 @@ pub fn validate_state_transition(
         ));
     }
 
-    let tv: u128 = channel.total_value.parse().map_err(|_| "Invalid totalValue".to_string())?;
-    let delta: u128 = pending_htlc_delta.parse().map_err(|_| "Invalid pendingHTLCDelta".to_string())?;
+    let tv: u128 = channel
+        .total_value
+        .parse()
+        .map_err(|_| "Invalid totalValue".to_string())?;
+    let delta: u128 = pending_htlc_delta
+        .parse()
+        .map_err(|_| "Invalid pendingHTLCDelta".to_string())?;
 
     let htlc_total: u128 = channel
         .pending_htlcs

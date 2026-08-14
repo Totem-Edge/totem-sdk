@@ -13,7 +13,10 @@ fn kiss_hex(h: &str) -> String {
 
 pub fn build_eltoo_script(parties: &[ChannelParticipant]) -> Result<String, String> {
     if parties.len() != 2 {
-        return Err(format!("v0.1.0 supports exactly 2 parties, got {}", parties.len()));
+        return Err(format!(
+            "v0.1.0 supports exactly 2 parties, got {}",
+            parties.len()
+        ));
     }
     let pk_a = kiss_hex(&parties[0].public_key_digest);
     let pk_b = kiss_hex(&parties[1].public_key_digest);
