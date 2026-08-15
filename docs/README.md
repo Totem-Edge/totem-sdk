@@ -82,6 +82,7 @@
 | Package | Document |
 |---------|----------|
 | `@totemsdk/core` | [Integration guide](../packages/core/docs/INTEGRATION_GUIDE.md) — server-side verification, hex conventions, TreeSignature format |
+| `@totemsdk/omnia` | [Package README](../packages/omnia/README.md) — eltoo channels, 8 built-in programs, Rust/WASM parity |
 | `@totemsdk/authority` | [Governance boundary](../packages/authority/docs/authority-governance-boundary.md), [Governance design](../packages/authority/docs/governance-design.md) |
 | `@totemsdk/edge-adapters` | [Protocol adapters plan](../packages/edge-adapters/docs/edge-protocol-adapters-plan.md) |
 
@@ -126,6 +127,8 @@
 | Document | Description |
 |----------|-------------|
 | [rfc/RFC-001-SDK-UPGRADE.md](rfc/RFC-001-SDK-UPGRADE.md) | SDK upgrade process RFC |
+| [rfc/RFC-002-OMNIA-RUST-WASM-PARITY.md](rfc/RFC-002-OMNIA-RUST-WASM-PARITY.md) | Omnia Rust/WASM channel state machine parity (implemented) |
+| [rfc/RFC-003-OMNIA-BUILT-IN-PROGRAMS.md](rfc/RFC-003-OMNIA-BUILT-IN-PROGRAMS.md) | Omnia built-in channel programs — HTLC, vault, treasury, membership, asset (implemented) |
 
 ---
 
@@ -135,4 +138,4 @@ The Docusaurus-powered documentation site is at **[totem.ing](https://totem.ing)
 
 - **Concepts:** Agent policy overview, WOTS key management, Omnia channels, relay modes, Totem Connect
 - **Guides:** Tessa Pay, Totem Personal Node, KISSVM Studio, Statechain Pass, Omnia Pocket, Channel Factory Wallet, Omnia Router Node, Totem Community Node, MachinePay Edge, TypeScript Configuration
-- **API Reference:** Auto-generated TypeDoc output for all 50+ packages
+- **API Reference:** Auto-generated TypeDoc output for all workspace packages

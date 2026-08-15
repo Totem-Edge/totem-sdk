@@ -16,6 +16,20 @@
 - **WOTS test vectors** shipped for integrator validation
 - 29+ Java byte-exact parity tests
 
+### Omnia Rust/WASM Parity (RFC-002, implemented)
+
+The `@totemsdk/omnia` channel state machine now has a **Rust/WASM parity engine** (`packages/omnia/rust/`):
+
+- Channel data model, signed state, program transitions, and snapshot types mirrored in Rust
+- Transition canonicalization and state-variable helpers identical across TypeScript and Rust
+- Built-in program registry (RFC-003) and close-package validation duplicated in Rust
+- **Golden fixtures** (`npm run test:parity`) enforce byte-identical behavior between TypeScript and Rust/WASM
+- 27 Rust unit tests + 11 WASM-parity suites, run by the `omnia-parity` CI job
+
+### Omnia Built-In Channel Programs (RFC-003, implemented)
+
+`@totemsdk/omnia` ships **8 built-in programs**: `eltoo-payment`, `counter` (ports 120–122), `meter` (130–133), `htlc-payment` (140–143), `vault` (150–152), `treasury` (160–164), `membership` (170–172), `asset` (180–183). Each injects KISSVM assertions into the eltoo script and asserts invariants in both TypeScript and Rust/WASM. See the [Omnia package README](../packages/omnia/README.md) and [RFC-003](rfc/RFC-003-OMNIA-BUILT-IN-PROGRAMS.md).
+
 ### Serialization Architecture (January 2026)
 
 - **Streamable.ts** is the canonical source for all byte-exact Java-compatible serialization
