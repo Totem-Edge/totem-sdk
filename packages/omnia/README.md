@@ -4,6 +4,8 @@
 
 An eltoo-based (not Lightning's punishment model) payment channel state machine. Eltoo uses sequential update numbers so you never need to store revocation secrets, making channels dramatically simpler and safer.
 
+Omnia ships with a **programmable channel surface**: state variables written to dedicated ports, enforced on-chain by KISSVM scripts injected into the eltoo script, and mirrored 1:1 by a Rust/WASM parity engine that TypeScript uses for independent verification.
+
 ## Install
 
 ```bash
@@ -27,6 +29,8 @@ npm install @totemsdk/omnia
 | `ChannelSigner` | Interface — plug in any signing backend |
 | `KissvmEvaluator` | Interface — plug in custom channel conditions |
 | `UpdateStateResult` | Result of `updateState()` |
+| `StateValue` | A typed state variable (`number` \| `bool` \| `hex` \| `string`) bound to a program port |
+| `ChannelProgram` | A built-in or custom channel program (id, version, script, state builder, validator) |
 
 ### Channel lifecycle functions
 
@@ -53,7 +57,24 @@ buildDisputePayload (unilateral close)
 | `buildUpdateTx(state, params)` | Build an eltoo update transaction |
 | `buildSettlementTx(state, params)` | Build the cooperative settlement transaction |
 
-### Programmable channel helpers
+### Built-in channel programs
+
+Omnia ships **8 built-in programs** (RFC-003). Each defines a KISSVM script injected into the eltoo script, a state-variable builder, and a transition validator — all mirrored in Rust/WASM:
+
+| Program | `id` | Ports | State |
+|---------|------|-------|-------|
+| `DefaultEltooPaymentProgram` | `eltoo-payment` | — | Plain payment channel (no extra state) |
+| `CounterProgram` | `counter` | 120–122 | Counter, action, operand |
+| `MeterProgram` | `meter` | 130–133 | Reading, usage delta, unit price, payment |
+| `HTLCPaymentProgram` | `htlc-payment` | 140–143 | Hashlock, locked amount, timeout block, claimed |
+| `VaultProgram` | `vault` | 150–152 | Locked value, release sequence, swept |
+| `TreasuryProgram` | `treasury` | 160–164 | Membership snapshot hash, vote tally hash, spend cap, spent, outcome proof id |
+| `MembershipProgram` | `membership` | 170–172 | Member root, dividend pool, payout sequence |
+| `AssetProgram` | `asset` | 180–183 | Token id, holder A/B balances, total |
+
+Program state ports start at `PROGRAM_STATE_PORT_MIN = 120`; ports below 120 are reserved for eltoo core state (`STATE_SETTLEMENT_PORT`, `STATE_SEQUENCE_PORT`, `STATE_COMMITMENT_V2_PORT`, …).
+
+#### Built-in program helpers
 
 | Function | What it does |
 |----------|-------------|
@@ -62,7 +83,60 @@ buildDisputePayload (unilateral close)
 | `decrementCounter(channel, by)` | Built-in CounterProgram decrement transition |
 | `setCounter(channel, value)` | Built-in CounterProgram set transition |
 | `recordMeterReading(channel, reading, unitPrice)` | Built-in MeterProgram usage/payment transition |
+| `registerChannelProgram(program)` | Register a custom `ChannelProgram` for resolution |
+| `resolveChannelProgram(program)` | Resolve a program id/version to its implementation (defaults to `eltoo-payment`) |
 | `sendProgramTransitionStateUpdate(peer, channel, signedState, nonce)` | Send a signed program transition over Omnia messaging |
+
+#### State-variable helpers
+
+| Function | What it does |
+|----------|-------------|
+| `programNumberState(port, value)` | Build a `number` state variable (port ≥ 120) |
+| `programBoolState(port, value)` | Build a `bool` state variable |
+| `programHexState(port, value)` | Build a `hex` state variable (validated) |
+| `programStringState(port, value)` | Build a `string` state variable |
+| `getStateValue(state, port)` | Read a raw `StateValue` from a signed state |
+| `getStateBigInt(state, port, fallback)` | Read a numeric state value as `bigint` |
+| `getStateBool(state, port, fallback)` | Read a boolean state value |
+| `getStateHex(state, port, fallback)` | Read a hex state value |
+| `getStateString(state, port, fallback)` | Read a string state value |
+
+#### How a program is enforced
+
+Program transitions write typed state variables to program ports. The program's `buildScript()` injects KISSVM assertions between the eltoo `ASSERT BOTHSIGNED` / `ASSERT SEQUENCE GT PREVSEQUENCE` anchor and the rest of the eltoo script. For example `HTLCPaymentProgram` injects:
+
+```
+LET PREIMAGEHASH=SHA3(STATE(140))
+LET LOCKED=STATE(141)
+...
+IF CLAIMED THEN
+    ASSERT SEQUENCE EQ PREVSEQUENCE
+    ...
+    RETURN TRUE
+ENDIF
+```
+
+So the on-chain script itself enforces the program invariants, exactly as computed off-chain by `buildStateVariables()` and `validateTransition()`. Custom programs do the same: implement `buildScript()`, `buildStateVariables()`, and `validateTransition()`, then `registerChannelProgram()`.
+
+### Rust/WASM parity (RFC-002)
+
+The channel data model, transition canonicalization, state-variable helpers, built-in program registry, snapshot/recovery validation, and close-package validation are **duplicated in Rust and exposed over WASM** — and parity between TypeScript and Rust/WASM is enforced by golden fixtures and `npm run test:parity`. This gives integrators an independent, byte-compatible implementation of the same state machine.
+
+### Persistence and recovery
+
+| Function | What it does |
+|----------|-------------|
+| `snapshotChannel(channel)` | Produce a serializable channel snapshot |
+| `serializeChannelSnapshot(snapshot)` | Serialize a snapshot to bytes |
+| `deserializeChannelSnapshot(bytes)` | Deserialize a snapshot |
+| `recoverChannelSnapshot(snapshot)` | Validate and rebuild the channel state from a snapshot |
+| `recoverChannel(snapshot)` | High-level channel recovery helper |
+
+### KISSVM validation
+
+| Function | What it does |
+|----------|-------------|
+| `validateChannelStateWithKissvm(state, options)` | Independently evaluate a channel state against its script/conditions using the KISSVM evaluator |
 
 ### Error types
 
@@ -225,11 +299,25 @@ const closed  = markChannelClosed(closing);
 opening → active → closing_mutual | closing_unilateral | disputing → closed | spliced
 ```
 
+## Parity testing
+
+```bash
+npm run test:parity
+```
+
+Runs `build:wasm` then the parity fixture suites: `parity-fixtures`, `omnia-parity-recovery`, and `omnia-wasm-parity`. The Rust implementation lives in `packages/omnia/rust/`.
+
 ## See also
 
 - [`@totemsdk/omnia-factory`](https://www.npmjs.com/package/@totemsdk/omnia-factory) — factory channels for reduced on-chain footprint
 - [`@totemsdk/omnia-router`](https://www.npmjs.com/package/@totemsdk/omnia-router) — multi-hop routing over channel networks
 - [`@totemsdk/omnia-splice`](https://www.npmjs.com/package/@totemsdk/omnia-splice) — resize channels without closing them
-- [`@totemsdk/omnia`](https://www.npmjs.com/package/@totemsdk/omnia) — Omnia messaging layer (framing, swarm, relay, pubsub)
+- [`@totemsdk/stream-transport`](https://www.npmjs.com/package/@totemsdk/stream-transport) — Omnia messaging transport (framing, swarm, relay, pubsub)
 - [`@totemsdk/wots-lease`](https://www.npmjs.com/package/@totemsdk/wots-lease) — key safety for channel signing
 - [`@totemsdk/agent-policy`](https://www.npmjs.com/package/@totemsdk/agent-policy) — AI agent spending policies (`PaymentIntent`, `AgentPolicy`)
+- [`@totemsdk/kissvm`](https://www.npmjs.com/package/@totemsdk/kissvm) — the KISSVM script language and evaluator
+
+## References
+
+- [`docs/rfc/RFC-002-OMNIA-RUST-WASM-PARITY.md`](../../docs/rfc/RFC-002-OMNIA-RUST-WASM-PARITY.md) — Rust/WASM parity engine
+- [`docs/rfc/RFC-003-OMNIA-BUILT-IN-PROGRAMS.md`](../../docs/rfc/RFC-003-OMNIA-BUILT-IN-PROGRAMS.md) — built-in channel programs

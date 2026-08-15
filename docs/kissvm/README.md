@@ -23,6 +23,10 @@ The canonical KISSVM reference from Minima (1437 pages, 20 chapters) has been me
 | 24 example scripts | [`packages/kissvm/docs/examples/`](../../../packages/kissvm/docs/examples/) |
 | Template manifest | [`packages/kissvm/docs/template-manifest.json`](../../../packages/kissvm/docs/template-manifest.json) |
 
+## Omnia usage of KISSVM
+
+Omnia programs are expressed in KISSVM. Every built-in channel program (RFC-003) — counter, meter, HTLC, vault, treasury, membership, asset — injects KISSVM assertions into the eltoo channel script between the `ASSERT BOTHSIGNED` / `ASSERT SEQUENCE GT PREVSEQUENCE` anchor (for example `SHA3(STATE(port))`, `ASSERT SEQUENCE EQ PREVSEQUENCE`, `PREVSTATE`). The resulting script is evaluated with `@totemsdk/kissvm` via `@totemsdk/omnia`'s `validateChannelStateWithKissvm()` for independent verification of channel state. See [`../rfc/RFC-003-OMNIA-BUILT-IN-PROGRAMS.md`](../rfc/RFC-003-OMNIA-BUILT-IN-PROGRAMS.md).
+
 ## Related docs in this directory
 
 | Document | Topic |

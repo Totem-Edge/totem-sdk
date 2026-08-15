@@ -3,7 +3,7 @@
   "title": "Totem SDK Package Manifest",
   "description": "Machine-readable index of all @totemsdk packages — for AI agents, tooling, and developers. Updated 2026-07-22.",
   "org": "@totemsdk",
-  "total": 50,
+  "total": 55,
   "domains": {
     "cryptographic-foundation": {
       "description": "WOTS+ signatures, TreeKey hierarchy, MMR proofs, KISSVM, MAST, TxPoW",
@@ -24,7 +24,9 @@
         "@totemsdk/lookup-protocol",
         "@totemsdk/chain-provider",
         "@totemsdk/minima-rpc",
-        "@totemsdk/realtime"
+        "@totemsdk/realtime",
+        "@totemsdk/pureminima-rpc",
+        "@totemsdk/mcp-server"
       ]
     },
     "payment-network": {
@@ -37,7 +39,8 @@
         "@totemsdk/omnia-vtxo",
         "@totemsdk/statechain",
         "@totemsdk/se-server",
-        "@totemsdk/tx-builder"
+        "@totemsdk/tx-builder",
+        "@totemsdk/omnia-host"
       ]
     },
     "edge-computing": {
@@ -60,7 +63,10 @@
         "@totemsdk/server",
         "@totemsdk/pubsub-transport",
         "@totemsdk/stream-transport",
-        "@totemsdk/wallet-adapter"
+        "@totemsdk/wallet-adapter",
+        "@totemsdk/edge-email",
+        "@totemsdk/industrial-action",
+        "@totemsdk/connect"
       ]
     },
     "verifiable-claims": {
@@ -757,6 +763,72 @@
       },
       "exports": { ".": "dist/index.{js,d.ts}" },
       "exportsDescription": "WotsLease, acquireLease, releaseLease, Watermark, WatermarkProvider"
+    },
+    {
+      "name": "@totemsdk/edge-email",
+      "version": "0.1.0",
+      "description": "Edge runtime adapter for email — IMAP/SMTP polling, notification delivery, command parsing, and sensor ingestion via email",
+      "domain": "edge-computing",
+      "keywords": ["email", "imap", "smtp", "notification", "sensor", "transport"],
+      "dependencies": { "@totemsdk/edge": "workspace:^" },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "createEmailGateway, createEmailSensorBridge, EmailGatewayConfig, EmailTransportPort"
+    },
+    {
+      "name": "@totemsdk/industrial-action",
+      "version": "0.1.0",
+      "description": "Deterministic industrial action lifecycle for Totem Edge — converts governed intent into context-aware, bounded, verifiably executed operations on field devices and protocols",
+      "domain": "edge-computing",
+      "keywords": ["industrial", "iot", "edge", "action", "guardrails", "opcua"],
+      "dependencies": {
+        "@totemsdk/core": "workspace:^",
+        "@totemsdk/proof": "workspace:^",
+        "@totemsdk/authority": "workspace:^",
+        "@totemsdk/edge": "workspace:^"
+      },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "IndustrialAction, ActionLifecycle, executeAction, verifyActionBoundary"
+    },
+    {
+      "name": "@totemsdk/pureminima-rpc",
+      "version": "0.1.4",
+      "description": "Fetch-based PureMinima RPC client — Bare/Pear/Node/browser compatible",
+      "domain": "sovereignty-stack",
+      "keywords": ["rpc", "fetch", "browser", "client", "pureminima"],
+      "dependencies": {},
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "PureMinimaRpcClient, rpcRequest, getBalance, getBlock"
+    },
+    {
+      "name": "@totemsdk/mcp-server",
+      "version": "0.1.0",
+      "description": "MCP server exposing the full Totem SDK package set — metadata, types, exports, dependency graphs, and scaffolding tools for 53 packages",
+      "domain": "sovereignty-stack",
+      "keywords": ["mcp", "model-context-protocol", "sdk-index", "ai", "tooling"],
+      "dependencies": { "@modelcontextprotocol/sdk": "^1.29.0" },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "TotemMcpServer, listPackages, getPackageMetadata, scaffold"
+    },
+    {
+      "name": "@totemsdk/omnia-host",
+      "version": "0.1.0",
+      "description": "Durable Omnia node daemon for channel lifecycle, routing, and control APIs",
+      "domain": "payment-network",
+      "keywords": ["omnia", "payment-channel", "daemon", "node"],
+      "dependencies": {
+        "@totemsdk/chain-provider": "workspace:^",
+        "@totemsdk/omnia": "workspace:^",
+        "@totemsdk/omnia-factory": "workspace:^",
+        "@totemsdk/omnia-router": "workspace:^",
+        "@totemsdk/omnia-splice": "workspace:^",
+        "@totemsdk/omnia-vtxo": "workspace:^",
+        "@totemsdk/minima-rpc": "workspace:^",
+        "@totemsdk/wots-lease": "workspace:^",
+        "better-sqlite3": "^12.2.0",
+        "ws": "^8.21.1"
+      },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "OmniaHost, startOmniaHost, channelRouter, controlApi"
     }
   ]
 }
