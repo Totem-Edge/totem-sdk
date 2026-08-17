@@ -134,20 +134,25 @@ See [docs/security/crypto-policy.md](docs/security/crypto-policy.md) for the com
 
 Only maintainers can publish packages. Every package marked `publishable` in
 `scripts/workspace-gates.config.json` is eligible for the same release workflow;
-the workflow resolves the package from the tag instead of maintaining a second
-hardcoded package list.
+the workflow resolves the package from the release tag instead of maintaining a
+second hardcoded package list.
 
-The publishing process:
+The admin publishing process is one GitHub button:
 
 1. Version bump following semver
 2. Update CHANGELOG.md
 3. Confirm the package passes `node scripts/validate-pkg-meta.mjs` and the workspace gates
-4. Create a release tag matching the package name (e.g., `totemsdk/core-v1.2.0`)
-5. CI/CD builds the dependency closure, runs tests, validates the packed consumer, and publishes to npm with provenance
+4. Create a draft GitHub Release with a tag matching the package name, e.g. `totemsdk/core-v1.2.0`
+5. Human admin reviews the draft and clicks **Publish release**
+6. CI/CD checks out that exact tag, builds the dependency closure, runs tests, validates the packed consumer, and publishes to npm with provenance
 
 Tags must use `totemsdk/<package-slug>-v<semver>`, where the package slug is the
 part after `@totemsdk/`. For example, `@totemsdk/omnia-host@0.1.0` uses
 `totemsdk/omnia-host-v0.1.0`.
+
+The production publish job uses the GitHub Environment `npm-production`. Configure
+that environment in repository settings with required reviewers if the npm admin
+must approve the final deployment gate after the GitHub Release is published.
 
 ## Getting Help
 
