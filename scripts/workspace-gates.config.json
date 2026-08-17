@@ -5,10 +5,7 @@
     "packages/agent-policy": { "status": "publishable" },
     "packages/authority": { "status": "publishable" },
     "packages/chain-provider": { "status": "publishable" },
-    "packages/connect": {
-      "status": "excluded",
-      "reason": "no unit tests (test script is tsc --noEmit only); excluded until substantive tests exist"
-    },
+    "packages/connect": { "status": "publishable" },
     "packages/core": { "status": "publishable" },
     "packages/core-wasm": { "status": "publishable" },
     "packages/edge": { "status": "publishable" },
@@ -67,10 +64,7 @@
     "packages/lookup-node": { "status": "publishable" },
     "packages/lookup-protocol": { "status": "publishable" },
     "packages/manifest": { "status": "publishable" },
-    "packages/mcp-server": {
-      "status": "excluded",
-      "reason": "no test script and no tests"
-    },
+    "packages/mcp-server": { "status": "publishable" },
     "packages/omnia": { "status": "publishable" },
     "packages/omnia-factory": { "status": "publishable" },
     "packages/omnia-host": { "status": "publishable" },
@@ -82,10 +76,7 @@
     "packages/proof-integritas": { "status": "publishable" },
     "packages/proofgraph": { "status": "publishable" },
     "packages/provider-bond": { "status": "publishable" },
-    "packages/pubsub-transport": {
-      "status": "excluded",
-      "reason": "no tests"
-    },
+    "packages/pubsub-transport": { "status": "publishable" },
     "packages/minima-rpc": { "status": "publishable" },
     "packages/realtime": { "status": "publishable" },
     "packages/recursive-mast": { "status": "publishable" },
@@ -106,10 +97,7 @@
       "reason": "stale compiled .js files in core/src/ conflict with ts-jest source resolution; requires core/src cleanup before tests can run"
     },
     "packages/txpow": { "status": "publishable" },
-    "packages/wallet-adapter": {
-      "status": "excluded",
-      "reason": "no unit tests (test script is tsc --noEmit only)"
-    },
+    "packages/wallet-adapter": { "status": "publishable" },
     "packages/wots-lease": { "status": "publishable" }
   }
 }

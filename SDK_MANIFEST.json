@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Totem SDK Package Manifest",
-  "description": "Machine-readable index of all @totemsdk packages — for AI agents, tooling, and developers. Updated 2026-07-22.",
+  "description": "Machine-readable index of all @totemsdk packages — for AI agents, tooling, and developers. Updated 2026-08-17.",
   "org": "@totemsdk",
   "total": 55,
   "domains": {

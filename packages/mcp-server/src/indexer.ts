@@ -20,11 +20,11 @@ const DOMAIN_GROUPS: [RegExp, string][] = [
   [/^identity$|^root-identity$|^authority$|^proof$|^proof-integritas$|^proofgraph$|^manifest$/, 'identity/authority'],
   [/^governance$|^recursive-mast$/, 'governance'],
   [/^edge$|^edge-adapters$|^industrial-action$|^agent-policy$/, 'edge/runtime'],
-  [/^edge-(bacnet|ble|can|coap|grpc|lorawan|matter|modbus|mqtt|opcua|ros2)$/, 'edge/protocols'],
-  [/^omnia(-factory|-router|-splice|-vtxo)?$/, 'blockchain/omnia'],
+  [/^edge-(bacnet|ble|can|coap|email|grpc|lorawan|matter|modbus|mqtt|opcua|ros2)$/, 'edge/protocols'],
+  [/^omnia(-factory|-router|-splice|-vtxo|-host)?$/, 'blockchain/omnia'],
   [/^statechain$|^tx-builder$|^chain-provider$|^wots-lease$|^liquidity-bond$|^provider-bond$/, 'blockchain/infra'],
   [/^lookup-(client|node|protocol)$/, 'lookup/p2p'],
-  [/^stream-transport$|^pubsub-transport$|^pureminima-rpc$|^server$|^se-server$|^realtime$|^connect$|^wallet-adapter$|^pear$|^observability$/, 'utilities'],
+  [/^stream-transport$|^pubsub-transport$|^(pureminima-rpc|minima-rpc)$|^server$|^se-server$|^realtime$|^connect$|^wallet-adapter$|^pear$|^mcp-server$|^observability$/, 'utilities'],
   [/^sdk-tests$/, 'testing'],
 ]
 
