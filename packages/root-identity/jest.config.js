@@ -21,8 +21,8 @@ export default {
   moduleNameMapper: {
     // Strip .js extensions from relative imports so ts-jest can resolve .ts files.
     '^(\\.{1,2}/.*)\\.js$': '$1',
-    // Load TypeScript sources (not ESM dist) for workspace packages.
-    '^@totemsdk/core$': '<rootDir>/../core/src/index.ts',
+    // Load the CommonJS build (not the ESM-emitting TS source) for @totemsdk/core.
+    '^@totemsdk/core$': '<rootDir>/../core/dist/cjs/index.js',
   },
   // @totemsdk/core resolves to its pre-built ESM dist (via the exports field).
   // Only @totemsdk/* packages need special handling.
