@@ -3,7 +3,7 @@
   "title": "Totem SDK Package Manifest",
   "description": "Machine-readable index of all @totemsdk packages — for AI agents, tooling, and developers. Updated 2026-08-18.",
   "org": "@totemsdk",
-  "total": 57,
+  "total": 58,
   "domains": {
     "cryptographic-foundation": {
       "description": "WOTS+ signatures, TreeKey hierarchy, MMR proofs, KISSVM, MAST, TxPoW",
@@ -84,7 +84,8 @@
         "@totemsdk/liquidity-bond",
         "@totemsdk/authority",
         "@totemsdk/location-proof",
-        "@totemsdk/spatial-proof"
+        "@totemsdk/spatial-proof",
+        "@totemsdk/raster-proof"
       ]
     }
   },
@@ -860,6 +861,21 @@
       },
       "exports": { ".": "dist/index.{js,d.ts}" },
       "exportsDescription": "evaluateSpatialRelation, pointInPolygon, computeGeometryHash, spatialRelationFromLocationClaim, createUnsignedSpatialProof, signSpatialProof, verifySpatialProof"
+    },
+    {
+      "name": "@totemsdk/raster-proof",
+      "version": "0.1.0",
+      "description": "Edge-capable raster and visual evidence proof primitives — asset hashes, tile Merkle roots, raster manifests, derived-layer provenance, and proof envelope integration",
+      "domain": "verifiable-claims",
+      "keywords": ["totem", "totemsdk", "raster", "imagery", "drone", "satellite", "geotiff", "proof", "merkle", "edge", "visual-evidence", "spatial", "autonomous-devices"],
+      "dependencies": {
+        "@totemsdk/core": "^1.1.0",
+        "@totemsdk/proof": "^0.1.2",
+        "@totemsdk/proofgraph": "^0.1.1",
+        "@totemsdk/spatial-proof": "^0.1.0"
+      },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "createRasterManifest, createRasterMerkleSummary, createMerkleProof, verifyMerkleProof, createDerivedRasterManifest, createUnsignedRasterProof, signRasterProof, verifyRasterProof"
     }
   ]
 }

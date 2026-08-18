@@ -65,6 +65,7 @@
     "packages/liquidity-bond": { "status": "publishable" },
     "packages/location-proof": { "status": "publishable" },
     "packages/spatial-proof": { "status": "publishable" },
+    "packages/raster-proof": { "status": "publishable" },
     "packages/lookup-client": { "status": "publishable" },
     "packages/lookup-node": { "status": "publishable" },
     "packages/lookup-protocol": { "status": "publishable" },
