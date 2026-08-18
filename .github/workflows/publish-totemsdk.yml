@@ -59,6 +59,9 @@ jobs:
           package-name: ${{ matrix.npm_name }}
           package-dir: ${{ matrix.dir }}
 
+      - name: Consumer smoke install (registry deps, no overrides)
+        run: node scripts/smoke-release-install.mjs "${{ matrix.dir }}"
+
       # ── Publish ────────────────────────────────────────────────────────────
       - name: Publish ${{ matrix.npm_name }}@${{ matrix.version }}
         run: pnpm publish --access public --no-git-checks
