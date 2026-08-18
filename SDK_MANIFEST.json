@@ -1,9 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Totem SDK Package Manifest",
-  "description": "Machine-readable index of all @totemsdk packages — for AI agents, tooling, and developers. Updated 2026-07-22.",
+  "description": "Machine-readable index of all @totemsdk packages — for AI agents, tooling, and developers. Updated 2026-08-18.",
   "org": "@totemsdk",
-  "total": 55,
+  "total": 58,
   "domains": {
     "cryptographic-foundation": {
       "description": "WOTS+ signatures, TreeKey hierarchy, MMR proofs, KISSVM, MAST, TxPoW",
@@ -82,7 +82,10 @@
         "@totemsdk/agent-policy",
         "@totemsdk/provider-bond",
         "@totemsdk/liquidity-bond",
-        "@totemsdk/authority"
+        "@totemsdk/authority",
+        "@totemsdk/location-proof",
+        "@totemsdk/spatial-proof",
+        "@totemsdk/raster-proof"
       ]
     }
   },
@@ -829,6 +832,50 @@
       },
       "exports": { ".": "dist/index.{js,d.ts}" },
       "exportsDescription": "OmniaHost, startOmniaHost, channelRouter, controlApi"
+    },
+    {
+      "name": "@totemsdk/location-proof",
+      "version": "0.1.0",
+      "description": "Generic location and movement proof primitives — device-neutral GPS/GNSS claims, confidence scoring, motion trails, and proof envelope integration",
+      "domain": "verifiable-claims",
+      "keywords": ["location", "gps", "gnss", "rtk", "proof", "edge", "spatial", "attestation", "movement", "autonomous-devices"],
+      "dependencies": {
+        "@totemsdk/core": "^1.1.0",
+        "@totemsdk/proof": "^0.1.2",
+        "@totemsdk/proofgraph": "^0.1.1"
+      },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "createLocationClaim, scoreLocationClaim, createMovementTrail, createUnsignedLocationProof, signLocationProof, verifyLocationProof"
+    },
+    {
+      "name": "@totemsdk/spatial-proof",
+      "version": "0.1.0",
+      "description": "Generic spatial relationship proof primitives — geometry hashes, geofence relations, route checks, and proof envelope integration",
+      "domain": "verifiable-claims",
+      "keywords": ["spatial", "geojson", "geofence", "proof", "location", "route", "boundary", "edge", "autonomous-devices"],
+      "dependencies": {
+        "@totemsdk/core": "^1.1.0",
+        "@totemsdk/proof": "^0.1.2",
+        "@totemsdk/proofgraph": "^0.1.1",
+        "@totemsdk/location-proof": "^0.1.0"
+      },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "evaluateSpatialRelation, pointInPolygon, computeGeometryHash, spatialRelationFromLocationClaim, createUnsignedSpatialProof, signSpatialProof, verifySpatialProof"
+    },
+    {
+      "name": "@totemsdk/raster-proof",
+      "version": "0.1.0",
+      "description": "Edge-capable raster and visual evidence proof primitives — asset hashes, tile Merkle roots, raster manifests, derived-layer provenance, and proof envelope integration",
+      "domain": "verifiable-claims",
+      "keywords": ["totem", "totemsdk", "raster", "imagery", "drone", "satellite", "geotiff", "proof", "merkle", "edge", "visual-evidence", "spatial", "autonomous-devices"],
+      "dependencies": {
+        "@totemsdk/core": "^1.1.0",
+        "@totemsdk/proof": "^0.1.2",
+        "@totemsdk/proofgraph": "^0.1.1",
+        "@totemsdk/spatial-proof": "^0.1.0"
+      },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "createRasterManifest, createRasterMerkleSummary, createMerkleProof, verifyMerkleProof, createDerivedRasterManifest, createUnsignedRasterProof, signRasterProof, verifyRasterProof"
     }
   ]
 }
