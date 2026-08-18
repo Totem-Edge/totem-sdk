@@ -40,7 +40,7 @@ The SDK is organised into five systems that map onto the loop — plus a cryptog
 | System | Covers | Example packages |
 |--------|--------|------------------|
 | **Settlement** | Payment channels and value movement | `omnia`, `omnia-router`, `omnia-splice`, `omnia-factory`, `omnia-vtxo`, `omnia-host`, `statechain`, `se-server`, `tx-builder`, `txpow`, `liquidity-bond`, `provider-bond` |
-| **Trust** | Identity, signatures, proofs, anchoring | `core`, `core-wasm`, `wots-lease`, `root-identity`, `proof`, `proof-integritas`, `proofgraph`, `identity`, `manifest`, `connect` |
+| **Trust** | Identity, signatures, proofs, anchoring | `core`, `core-wasm`, `wots-lease`, `root-identity`, `proof`, `proof-integritas`, `proofgraph`, `location-proof`, `spatial-proof`, `identity`, `manifest`, `connect` |
 | **Policy** | Decisions, delegation, governance, agent seams | `recursive-mast`, `authority`, `governance`, `agent-policy` |
 | **Action** | Bounded operational execution on devices | `edge`, `industrial-action`, `edge-adapters` |
 | **Edge** | Protocol connectors for sensing | `edge-mqtt`, `edge-modbus`, `edge-bacnet`, `edge-ble`, `edge-can`, `edge-coap`, `edge-grpc`, `edge-lorawan`, `edge-matter`, `edge-opcua`, `edge-ros2`, `edge-email`, `pear` |
@@ -165,6 +165,7 @@ Every stage produces evidence the next stage consumes — and every stage can be
 | [`@totemsdk/proof-integritas`](packages/proof-integritas) | Integritas v2 proof-of-existence — hash stamping and on-chain verification |
 | [`@totemsdk/proofgraph`](packages/proofgraph) | Local deterministic proof relationship graph — content-addressed DAG of proofs, identities, and manifests |
 | [`@totemsdk/location-proof`](packages/location-proof) | Device-neutral location & movement proof primitives — GPS/GNSS claims, confidence scoring, motion trails, proof envelope integration |
+| [`@totemsdk/spatial-proof`](packages/spatial-proof) | Generic spatial relationship proof primitives — geometry hashes, geofence relations (inside/covers/on-route/overlaps), proof envelope integration |
 | [`@totemsdk/identity`](packages/identity) | Canonical identity and claims layer — who controls a manifest, device, or agent |
 | [`@totemsdk/manifest`](packages/manifest) | Service manifests and KISSVM contract/covenant declarations |
 | [`@totemsdk/connect`](packages/connect) | The dApp gateway — everything a web app needs to talk to the Totem extension |

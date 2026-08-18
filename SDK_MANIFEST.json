@@ -1,9 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Totem SDK Package Manifest",
-  "description": "Machine-readable index of all @totemsdk packages — for AI agents, tooling, and developers. Updated 2026-07-22.",
+  "description": "Machine-readable index of all @totemsdk packages — for AI agents, tooling, and developers. Updated 2026-08-18.",
   "org": "@totemsdk",
-  "total": 56,
+  "total": 57,
   "domains": {
     "cryptographic-foundation": {
       "description": "WOTS+ signatures, TreeKey hierarchy, MMR proofs, KISSVM, MAST, TxPoW",
@@ -83,7 +83,8 @@
         "@totemsdk/provider-bond",
         "@totemsdk/liquidity-bond",
         "@totemsdk/authority",
-        "@totemsdk/location-proof"
+        "@totemsdk/location-proof",
+        "@totemsdk/spatial-proof"
       ]
     }
   },
@@ -844,6 +845,21 @@
       },
       "exports": { ".": "dist/index.{js,d.ts}" },
       "exportsDescription": "createLocationClaim, scoreLocationClaim, createMovementTrail, createUnsignedLocationProof, signLocationProof, verifyLocationProof"
+    },
+    {
+      "name": "@totemsdk/spatial-proof",
+      "version": "0.1.0",
+      "description": "Generic spatial relationship proof primitives — geometry hashes, geofence relations, route checks, and proof envelope integration",
+      "domain": "verifiable-claims",
+      "keywords": ["spatial", "geojson", "geofence", "proof", "location", "route", "boundary", "edge", "autonomous-devices"],
+      "dependencies": {
+        "@totemsdk/core": "^1.1.0",
+        "@totemsdk/proof": "^0.1.2",
+        "@totemsdk/proofgraph": "^0.1.1",
+        "@totemsdk/location-proof": "^0.1.0"
+      },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "evaluateSpatialRelation, pointInPolygon, computeGeometryHash, spatialRelationFromLocationClaim, createUnsignedSpatialProof, signSpatialProof, verifySpatialProof"
     }
   ]
 }
