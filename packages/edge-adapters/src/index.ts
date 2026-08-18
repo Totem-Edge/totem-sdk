@@ -6,6 +6,9 @@ export type { ProofPortConfig } from './proof.js';
 
 export { createLookupPortAdapter } from './lookup.js';
 
+export { createLocationPortAdapter } from './location.js';
+export type { LocationPortConfig } from './location.js';
+
 export { createPolicyPortAdapter } from './policy.js';
 
 export { createIdentityPortAdapter } from './identity.js';

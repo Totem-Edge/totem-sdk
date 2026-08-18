@@ -164,6 +164,7 @@ Every stage produces evidence the next stage consumes — and every stage can be
 | [`@totemsdk/proof`](packages/proof) | Portable proof layer — create, sign, verify, and anchor WOTS-signed proof envelopes |
 | [`@totemsdk/proof-integritas`](packages/proof-integritas) | Integritas v2 proof-of-existence — hash stamping and on-chain verification |
 | [`@totemsdk/proofgraph`](packages/proofgraph) | Local deterministic proof relationship graph — content-addressed DAG of proofs, identities, and manifests |
+| [`@totemsdk/location-proof`](packages/location-proof) | Device-neutral location & movement proof primitives — GPS/GNSS claims, confidence scoring, motion trails, proof envelope integration |
 | [`@totemsdk/identity`](packages/identity) | Canonical identity and claims layer — who controls a manifest, device, or agent |
 | [`@totemsdk/manifest`](packages/manifest) | Service manifests and KISSVM contract/covenant declarations |
 | [`@totemsdk/connect`](packages/connect) | The dApp gateway — everything a web app needs to talk to the Totem extension |

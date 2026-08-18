@@ -3,7 +3,7 @@
   "title": "Totem SDK Package Manifest",
   "description": "Machine-readable index of all @totemsdk packages — for AI agents, tooling, and developers. Updated 2026-07-22.",
   "org": "@totemsdk",
-  "total": 55,
+  "total": 56,
   "domains": {
     "cryptographic-foundation": {
       "description": "WOTS+ signatures, TreeKey hierarchy, MMR proofs, KISSVM, MAST, TxPoW",
@@ -82,7 +82,8 @@
         "@totemsdk/agent-policy",
         "@totemsdk/provider-bond",
         "@totemsdk/liquidity-bond",
-        "@totemsdk/authority"
+        "@totemsdk/authority",
+        "@totemsdk/location-proof"
       ]
     }
   },
@@ -829,6 +830,20 @@
       },
       "exports": { ".": "dist/index.{js,d.ts}" },
       "exportsDescription": "OmniaHost, startOmniaHost, channelRouter, controlApi"
+    },
+    {
+      "name": "@totemsdk/location-proof",
+      "version": "0.1.0",
+      "description": "Generic location and movement proof primitives — device-neutral GPS/GNSS claims, confidence scoring, motion trails, and proof envelope integration",
+      "domain": "verifiable-claims",
+      "keywords": ["location", "gps", "gnss", "rtk", "proof", "edge", "spatial", "attestation", "movement", "autonomous-devices"],
+      "dependencies": {
+        "@totemsdk/core": "^1.1.0",
+        "@totemsdk/proof": "^0.1.2",
+        "@totemsdk/proofgraph": "^0.1.1"
+      },
+      "exports": { ".": "dist/index.{js,d.ts}" },
+      "exportsDescription": "createLocationClaim, scoreLocationClaim, createMovementTrail, createUnsignedLocationProof, signLocationProof, verifyLocationProof"
     }
   ]
 }

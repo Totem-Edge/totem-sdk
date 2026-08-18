@@ -18,6 +18,7 @@ module.exports = {
     '^@totemsdk/omnia-router$': '<rootDir>/../omnia-router/src/index.ts',
     '^@totemsdk/proof$': '<rootDir>/../proof/src/index.ts',
     '^@totemsdk/lookup-client$': '<rootDir>/../lookup-client/src/index.ts',
+    '^@totemsdk/location-proof$': '<rootDir>/../location-proof/src/index.ts',
     '^@totemsdk/root-identity$': '<rootDir>/../root-identity/src/index.ts',
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },

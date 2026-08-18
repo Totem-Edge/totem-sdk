@@ -26,6 +26,7 @@ export type {
   EdgeLiquidityPort,
   EdgeProofPort,
   EdgeLookupPort,
+  EdgeLocationPort,
   EdgePolicyPort,
   EdgeIdentityPort,
   EdgeManifestPort,

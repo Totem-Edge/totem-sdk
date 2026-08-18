@@ -27,6 +27,7 @@
     "@totemsdk/chain-provider": "workspace:^",
     "@totemsdk/identity": "workspace:^",
     "@totemsdk/lookup-client": "workspace:^",
+    "@totemsdk/location-proof": "workspace:^",
     "@totemsdk/manifest": "workspace:^",
     "@totemsdk/omnia-router": "workspace:^",
     "@totemsdk/proof": "workspace:^",
@@ -56,6 +57,9 @@
     "@totemsdk/lookup-client": {
       "optional": true
     },
+    "@totemsdk/location-proof": {
+      "optional": true
+    },
     "@totemsdk/pubsub-transport": {
       "optional": true
     },
@@ -72,6 +76,7 @@
     "@totemsdk/edge": "workspace:^",
     "@totemsdk/identity": "workspace:^",
     "@totemsdk/lookup-client": "workspace:^",
+    "@totemsdk/location-proof": "workspace:^",
     "@totemsdk/manifest": "workspace:^",
     "@totemsdk/omnia-router": "workspace:^",
     "@totemsdk/proof": "workspace:^",
