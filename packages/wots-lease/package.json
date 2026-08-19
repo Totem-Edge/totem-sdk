@@ -27,7 +27,8 @@
   ],
   "dependencies": {
     "@totemsdk/core": "workspace:^",
-    "@totemsdk/lookup-protocol": "workspace:^"
+    "@totemsdk/lookup-protocol": "workspace:^",
+    "@totemsdk/txpow": "workspace:^"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

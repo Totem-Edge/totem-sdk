@@ -14,6 +14,7 @@ module.exports = {
   moduleNameMapper: {
     '^@totemsdk/core$': '<rootDir>/../core/src/index.ts',
     '^@totemsdk/lookup-protocol$': '<rootDir>/../lookup-protocol/src/index.ts',
+    '^@totemsdk/txpow$': '<rootDir>/../txpow/src/index.ts',
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
 };

@@ -127,6 +127,41 @@ class MockLookupServer {
         });
         break;
 
+      case 'LEASE_RESERVE':
+        this._sendRaw({
+          type: 'LEASE_RESPONSE',
+          version: 1,
+          id: msg.id,
+          payload: {
+            action: 'reserved',
+            reservation: {
+              reservationId: 'res-lease-1',
+              indices: { addressIndex: 0, l1: 0, l2: 3 },
+              expiresAt: Date.now() + 60_000,
+            },
+            certificate: {
+              reservationId: 'res-lease-1',
+              treeId: (msg.payload as { treeId: string }).treeId,
+              indices: { addressIndex: 0, l1: 0, l2: 3 },
+              issuedBy: 'node-pubkey',
+              issuedAt: Date.now(),
+              expiresAt: Date.now() + 60_000,
+              signature: 'aabbcc',
+            },
+          },
+        });
+        break;
+
+      case 'LEASE_COMMIT':
+      case 'LEASE_BURN':
+        this._sendRaw({
+          type: 'LEASE_RESPONSE',
+          version: 1,
+          id: msg.id,
+          payload: { action: msg.type === 'LEASE_COMMIT' ? 'committed' : 'burned' },
+        });
+        break;
+
       case 'WATCH_REGISTER':
         // Fire-and-forget — no ACK needed
         this._watchedAddresses.push(
@@ -275,6 +310,23 @@ describe('Chain queries', () => {
     expect(result.success).toBe(true);
     expect(result.txpowid).toBe('0xTXID123');
     expect(server.getReceivedTypes()).toContain('BROADCAST_TXPOW');
+  });
+
+  it('leaseReserve returns a reservation with certificate', async () => {
+    const { reservation, certificate } = await client.leaseReserve({ treeId: 'wallet' });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((reservation as any).reservationId).toBe('res-lease-1');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((certificate as any).issuedBy).toBe('node-pubkey');
+    expect(server.getReceivedTypes()).toContain('LEASE_RESERVE');
+  });
+
+  it('leaseCommit and leaseBurn send the wire messages', async () => {
+    await client.leaseCommit('res-lease-1', '0xTX1', { addressIndex: 0, l1: 0, l2: 3 });
+    await client.leaseBurn('res-lease-1', 'test', { addressIndex: 0, l1: 0, l2: 3 });
+    const types = server.getReceivedTypes();
+    expect(types).toContain('LEASE_COMMIT');
+    expect(types).toContain('LEASE_BURN');
   });
 
   it('searchTokens returns empty array (not in v1 protocol)', async () => {

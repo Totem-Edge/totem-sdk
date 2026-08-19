@@ -28,9 +28,9 @@ npm install @totemsdk/wots-lease
 | `LocalLeaseProvider` | Single-device, in-process coordination |
 | `AxiaLeaseProvider` | Cloud-coordinated leases via Axia API |
 | `HybridLeaseProvider` | Local-first with Axia sync fallback |
-| `PersonalLeaseNodeProvider` | Coordinates through your personal lookup node *(ready for implementation)* |
-| `P2PQuorumLeaseProvider` | Multi-device quorum consensus *(stub)* |
-| `OnchainWatermarkProvider` | On-chain watermark anchoring *(stub)* |
+| `PersonalLeaseNodeProvider` | Coordinates through your personal lookup node |
+| `P2PQuorumLeaseProvider` | Multi-device quorum consensus — peers attest to the same slot before it is handed out |
+| `OnchainWatermarkProvider` | On-chain watermark anchoring — spends a dedicated watermark coin whose STATE(0) holds the flat cursor |
 
 ### Device range splitting
 
@@ -88,6 +88,45 @@ import { LeaseJournal } from '@totemsdk/wots-lease';
 const journal = new LeaseJournal(storageAdapter);
 const entries = await journal.getEntries({ addressIndex: 0 });
 entries.forEach(e => console.log(e.flatIndex, e.allocatedAt, e.committedAt));
+```
+
+### P2P quorum (multi-device)
+
+```typescript
+import { P2PQuorumLeaseProvider, LocalLeaseProvider } from '@totemsdk/wots-lease';
+
+const provider = new P2PQuorumLeaseProvider({
+  local: new LocalLeaseProvider(storage),
+  peers: [peerA, peerB, peerC],   // QuorumPeer[] — any LEASE_* wire-protocol speaker
+  minAttestations: 2,             // require 2 peers to attest before handing out a slot
+});
+
+const reservation = await provider.reserveKeyUse({ treeId: 'wallet' });
+// reservation.certificate.attestations — peer attestations for the same indices
+```
+
+Peers speak the same `LEASE_RESERVE` / `LEASE_COMMIT` / `LEASE_BURN` /
+`LEASE_WATERMARK` messages as the lookup protocol, so a personal lookup node
+(`@totemsdk/lookup-node` with `lease.enabled`) or another device running this
+provider can participate. If quorum cannot be reached the local reservation is
+**burned** — a slot that might have been attested is never handed out again.
+
+### On-chain watermark anchoring
+
+```typescript
+import { OnchainWatermarkProvider, LocalLeaseProvider } from '@totemsdk/wots-lease';
+
+const provider = new OnchainWatermarkProvider({
+  local: new LocalLeaseProvider(storage),
+  chain: chainProvider,            // any ChainStateProvider (hosted / RPC / lookup node)
+  watermarkCoinId: '0x…',         // dedicated watermark coin
+  watermarkAddress: '0x…',        // its current spending address
+  signer: { publicKeyDigest, sign }, // SIGNEDBY key for the watermark coin
+});
+
+await provider.publishWatermark('wallet');
+// Spends the watermark coin back to itself with STATE(0) = flat cursor,
+// so any third party can verify slot consumption on-chain.
 ```
 
 ## See also

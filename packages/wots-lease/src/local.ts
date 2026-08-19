@@ -19,7 +19,7 @@ import type {
 } from './types.js';
 import { WotsWatermarkStore, flatIndex } from './watermark.js';
 import { LeaseJournal } from './journal.js';
-import { LeaseNotFoundError, DeviceRangeViolationError } from './errors.js';
+import { LeaseNotFoundError, DeviceRangeViolationError, IndicesUnavailableError } from './errors.js';
 
 function randomId(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -103,11 +103,23 @@ export class LocalLeaseProvider implements WotsLeaseProvider {
 
   async reserveKeyUse(params: ReserveParams): Promise<LeaseReservation> {
     if (!this._initialized) await this.initialize();
+    const indices = this.watermark.getNextIndices(params.treeId);
+    return this.reserveSpecificKeyUse(params, indices);
+  }
+
+  /**
+   * Reserve a specific set of indices (used by quorum coordination so every
+   * peer attests to the same slot). Throws IndicesUnavailableError when the
+   * slot is already taken.
+   */
+  async reserveSpecificKeyUse(params: ReserveParams, indices: SigningIndices): Promise<LeaseReservation> {
+    if (!this._initialized) await this.initialize();
     const treeId = params.treeId;
     const ttlMs = params.ttlMs ?? 120_000;
 
-    // Atomically get the next available index AND mark it reserved in the watermark
-    const indices = this.watermark.getNextIndices(treeId);
+    if (this.watermark.isUnavailable(treeId, indices)) {
+      throw new IndicesUnavailableError(treeId, indices);
+    }
 
     // Validate device range BEFORE marking unavailable — prevents permanent index loss
     if (params.deviceId) {
@@ -199,6 +211,40 @@ export class LocalLeaseProvider implements WotsLeaseProvider {
   async getLocalWatermark(treeId: string): Promise<LocalWatermark> {
     if (!this._initialized) await this.initialize();
     return this.watermark.getLocalWatermark(treeId);
+  }
+
+  /** List all tree IDs known to the local watermark store. */
+  listTrees(): string[] {
+    return Object.keys(this.watermark.getRawState().trees);
+  }
+
+  /** Expose the journal for quorum/on-chain providers to merge remote entries. */
+  getJournal(): LeaseJournal {
+    return this.journal;
+  }
+
+  /**
+   * Advance the local watermark to a remote cursor (monotonic merge).
+   * Used by quorum sync and the lookup-node LeaseCoordinator when a peer
+   * publishes a watermark ahead of ours. Returns false when the remote
+   * cursor is behind (no-op).
+   */
+  async advanceToRemoteWatermark(
+    treeId: string,
+    remote: { addressCursor: number; l1Cursor: number; l2Cursor: number },
+  ): Promise<boolean> {
+    if (!this._initialized) await this.initialize();
+    const local = this.watermark.getLocalWatermark(treeId);
+    const localFlat = flatIndex({ addressIndex: local.addressCursor, l1: local.l1Cursor, l2: local.l2Cursor });
+    const remoteFlat = flatIndex({ addressIndex: remote.addressCursor, l1: remote.l1Cursor, l2: remote.l2Cursor });
+    if (remoteFlat <= localFlat) return false;
+    await this.watermark.save(treeId, {
+      addressCursor: remote.addressCursor,
+      l1Cursor: remote.l1Cursor,
+      l2Cursor: remote.l2Cursor,
+      lastSyncTimestamp: Date.now(),
+    });
+    return true;
   }
 
   async publishWatermark(_treeId: string): Promise<void> {

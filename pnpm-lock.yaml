@@ -1899,6 +1899,9 @@ importers:
       '@totemsdk/lookup-protocol':
         specifier: workspace:^
         version: link:../lookup-protocol
+      '@totemsdk/txpow':
+        specifier: workspace:^
+        version: link:../txpow
     devDependencies:
       '@types/jest':
         specifier: ^30.0.0

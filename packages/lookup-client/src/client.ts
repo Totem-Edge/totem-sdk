@@ -245,6 +245,43 @@ export class LookupClient {
   }
 
   // ---------------------------------------------------------------------------
+  // WOTS lease coordination (LEASE_RESERVE / LEASE_COMMIT / LEASE_BURN)
+  // ---------------------------------------------------------------------------
+
+  async leaseReserve(params: {
+    treeId: string;
+    branchId?: string;
+    deviceId?: string;
+    ttlMs?: number;
+    payloadHash?: string;
+    purpose?: string;
+  }): Promise<{ reservation: unknown; certificate?: unknown }> {
+    const resp = await this._rpc.sendRequest({
+      type: 'LEASE_RESERVE',
+      version: PROTOCOL_VERSION,
+      payload: params,
+    });
+    const p = resp.payload as { reservation?: unknown; certificate?: unknown };
+    return { reservation: p.reservation, certificate: p.certificate };
+  }
+
+  async leaseCommit(reservationId: string, txId: string, indices: { addressIndex: number; l1: number; l2: number }): Promise<void> {
+    await this._rpc.sendRequest({
+      type: 'LEASE_COMMIT',
+      version: PROTOCOL_VERSION,
+      payload: { reservationId, txId, indices },
+    });
+  }
+
+  async leaseBurn(reservationId: string, reason: string, indices: { addressIndex: number; l1: number; l2: number }): Promise<void> {
+    await this._rpc.sendRequest({
+      type: 'LEASE_BURN',
+      version: PROTOCOL_VERSION,
+      payload: { reservationId, reason, indices },
+    });
+  }
+
+  // ---------------------------------------------------------------------------
   // Service / agent discovery announcements
   //
   // The manifest bytes must already be encoded (call encodeManifest from

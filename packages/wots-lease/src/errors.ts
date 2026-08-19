@@ -1,3 +1,5 @@
+import type { SigningIndices } from './types.js';
+
 export class WatermarkMonotonicityError extends Error {
   constructor(message: string) {
     super(message);
@@ -16,6 +18,15 @@ export class LeaseNotFoundError extends Error {
   constructor(public readonly reservationId: string) {
     super(`Lease reservation not found: ${reservationId}`);
     this.name = 'LeaseNotFoundError';
+  }
+}
+
+export class IndicesUnavailableError extends Error {
+  constructor(public readonly treeId: string, public readonly indices: SigningIndices) {
+    super(
+      `Indices (${indices.addressIndex}, ${indices.l1}, ${indices.l2}) are already unavailable for tree: ${treeId}`,
+    );
+    this.name = 'IndicesUnavailableError';
   }
 }
 
@@ -40,6 +51,33 @@ export class OnchainWatermarkNotImplementedError extends Error {
   constructor() {
     super('OnchainWatermarkProvider is not yet implemented.');
     this.name = 'OnchainWatermarkNotImplementedError';
+  }
+}
+
+export class QuorumUnavailableError extends Error {
+  constructor(public readonly required: number, public readonly available: number) {
+    super(
+      `Quorum not reached: ${available}/${required} peers attested. ` +
+        'The reservation was burned locally — retry when more peers are reachable.',
+    );
+    this.name = 'QuorumUnavailableError';
+  }
+}
+
+export class QuorumConflictError extends Error {
+  constructor(public readonly treeId: string, public readonly indices: SigningIndices) {
+    super(
+      `Quorum conflict for tree ${treeId} at (${indices.addressIndex}, ${indices.l1}, ${indices.l2}): ` +
+        'a peer already holds a reservation for these indices.',
+    );
+    this.name = 'QuorumConflictError';
+  }
+}
+
+export class OnchainWatermarkError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'OnchainWatermarkError';
   }
 }
 

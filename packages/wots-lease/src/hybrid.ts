@@ -51,6 +51,33 @@ export class HybridLeaseProvider implements WotsLeaseProvider {
     const reservation = await this.local.reserveKeyUse(params);
 
     if (this.isHighValue(params)) {
+      // Layer 4 — quorum attestation over the SAME local slot.
+      if (this.quorum) {
+        try {
+          const attestations = await this.quorum.attestKeyUse(params, reservation.indices);
+          return {
+            ...reservation,
+            certificate: {
+              reservationId: reservation.reservationId,
+              treeId: params.treeId,
+              branchId: params.branchId,
+              deviceId: params.deviceId,
+              indices: reservation.indices,
+              purpose: params.purpose,
+              payloadHash: params.payloadHash,
+              issuedBy: 'p2p-quorum',
+              issuedAt: Date.now(),
+              expiresAt: reservation.expiresAt,
+              signature: '',
+              attestations,
+            },
+          };
+        } catch {
+          // Quorum unavailable — fall through to node / local only.
+        }
+      }
+
+      // Layer 3 — personal lookup node certificate.
       if (this.node) {
         try {
           const nodeReservation = await this.node.reserveKeyUse(params);

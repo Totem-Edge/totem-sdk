@@ -174,14 +174,26 @@ export class LeaseCoordinator {
       if (controllerPublicKeyHex) {
         this._authoriseTree(msg.payload.treeId, controllerPublicKeyHex);
       }
-      const reservation = await this._provider.reserveKeyUse({
-        treeId: msg.payload.treeId,
-        branchId: msg.payload.branchId,
-        deviceId: msg.payload.deviceId,
-        ttlMs: msg.payload.ttlMs,
-        payloadHash: msg.payload.payloadHash,
-        purpose: msg.payload.purpose,
-      });
+      const reservation = msg.payload.indices
+        ? await this._provider.reserveSpecificKeyUse(
+            {
+              treeId: msg.payload.treeId,
+              branchId: msg.payload.branchId,
+              deviceId: msg.payload.deviceId,
+              ttlMs: msg.payload.ttlMs,
+              payloadHash: msg.payload.payloadHash,
+              purpose: msg.payload.purpose,
+            },
+            msg.payload.indices,
+          )
+        : await this._provider.reserveKeyUse({
+            treeId: msg.payload.treeId,
+            branchId: msg.payload.branchId,
+            deviceId: msg.payload.deviceId,
+            ttlMs: msg.payload.ttlMs,
+            payloadHash: msg.payload.payloadHash,
+            purpose: msg.payload.purpose,
+          });
 
       if (controllerPublicKeyHex) {
         this._reservationOwners.set(reservation.reservationId, controllerPublicKeyHex);

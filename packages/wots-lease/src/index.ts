@@ -14,6 +14,10 @@ export type {
   JournalEntry,
   DeviceKeyRange,
   PersonalLeaseNodeConfig,
+  QuorumAttestation,
+  QuorumPeer,
+  P2PQuorumLeaseProviderConfig,
+  OnchainWatermarkProviderConfig,
 } from './types.js';
 
 export {
@@ -38,14 +42,21 @@ export {
   OnchainWatermarkProvider,
 } from './stubs.js';
 
+export { P2PQuorumLeaseProvider as QuorumLeaseProvider } from './quorum.js';
+export { OnchainWatermarkProvider as ChainWatermarkProvider } from './onchain.js';
+
 export { allocateDeviceRange, deviceSlotForAddressIndex } from './device.js';
 
 export {
   WatermarkMonotonicityError,
   WatermarkExhaustedError,
   LeaseNotFoundError,
+  IndicesUnavailableError,
   PersonalLeaseNodeNotConfiguredError,
   P2PQuorumNotImplementedError,
   OnchainWatermarkNotImplementedError,
+  QuorumUnavailableError,
+  QuorumConflictError,
+  OnchainWatermarkError,
   DeviceRangeViolationError,
 } from './errors.js';

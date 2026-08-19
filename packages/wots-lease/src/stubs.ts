@@ -5,8 +5,8 @@
  *   that has lease coordination enabled ({ lease: { enabled: true } }).
  *   The node exposes REST endpoints under /v1/lease/*.
  *
- * Layers 4–5 (P2PQuorumLeaseProvider, OnchainWatermarkProvider) — require
- *   distributed infrastructure not yet available; they throw descriptive errors.
+ * Layers 4–5 (P2PQuorumLeaseProvider, OnchainWatermarkProvider) — implemented in
+ *   quorum.ts and onchain.ts; re-exported here for backward compatibility.
  */
 
 import type {
@@ -18,10 +18,9 @@ import type {
   SyncResult,
   PersonalLeaseNodeConfig,
 } from './types.js';
-import {
-  P2PQuorumNotImplementedError,
-  OnchainWatermarkNotImplementedError,
-} from './errors.js';
+
+export { P2PQuorumLeaseProvider } from './quorum.js';
+export { OnchainWatermarkProvider } from './onchain.js';
 
 // ---------------------------------------------------------------------------
 // PersonalLeaseNodeProvider — Layer 3
@@ -134,55 +133,5 @@ export class PersonalLeaseNodeProvider implements WotsLeaseProvider {
     if (cert.issuedBy !== this.nodePubkey) return false;
     if (cert.expiresAt <= Date.now()) return false;
     return true;
-  }
-}
-
-/** Layer 4 — p2p replicated lease witnesses. */
-export class P2PQuorumLeaseProvider implements WotsLeaseProvider {
-  reserveKeyUse(_params: ReserveParams): Promise<LeaseReservation> {
-    throw new P2PQuorumNotImplementedError();
-  }
-  commitKeyUse(_reservationId: string, _txId: string): Promise<void> {
-    throw new P2PQuorumNotImplementedError();
-  }
-  burnReservation(_reservationId: string, _reason: string): Promise<void> {
-    throw new P2PQuorumNotImplementedError();
-  }
-  getLocalWatermark(_treeId: string): Promise<LocalWatermark> {
-    throw new P2PQuorumNotImplementedError();
-  }
-  publishWatermark(_treeId: string): Promise<void> {
-    throw new P2PQuorumNotImplementedError();
-  }
-  syncLeaseJournal(): Promise<SyncResult> {
-    throw new P2PQuorumNotImplementedError();
-  }
-  verifyLeaseCertificate(_cert?: LeaseCertificate): Promise<boolean> {
-    throw new P2PQuorumNotImplementedError();
-  }
-}
-
-/** Layer 5 — on-chain watermark coin. */
-export class OnchainWatermarkProvider implements WotsLeaseProvider {
-  reserveKeyUse(_params: ReserveParams): Promise<LeaseReservation> {
-    throw new OnchainWatermarkNotImplementedError();
-  }
-  commitKeyUse(_reservationId: string, _txId: string): Promise<void> {
-    throw new OnchainWatermarkNotImplementedError();
-  }
-  burnReservation(_reservationId: string, _reason: string): Promise<void> {
-    throw new OnchainWatermarkNotImplementedError();
-  }
-  getLocalWatermark(_treeId: string): Promise<LocalWatermark> {
-    throw new OnchainWatermarkNotImplementedError();
-  }
-  publishWatermark(_treeId: string): Promise<void> {
-    throw new OnchainWatermarkNotImplementedError();
-  }
-  syncLeaseJournal(): Promise<SyncResult> {
-    throw new OnchainWatermarkNotImplementedError();
-  }
-  verifyLeaseCertificate(_cert?: LeaseCertificate): Promise<boolean> {
-    throw new OnchainWatermarkNotImplementedError();
   }
 }

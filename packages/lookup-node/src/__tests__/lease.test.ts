@@ -215,4 +215,38 @@ describe('Lease coordinator', () => {
 
     await node.stop();
   });
+
+  it('LEASE_RESERVE with explicit indices reserves exactly those indices (quorum attestation)', async () => {
+    const node = makeLeaseNode();
+    await node.start();
+    const { buffer, clientTransport } = await connectTestClient(node);
+
+    const requested = { addressIndex: 0, l1: 0, l2: 9 };
+    buffer.send(clientTransport, {
+      type: 'LEASE_RESERVE',
+      version: 1,
+      id: 'lr-explicit',
+      payload: { treeId: 'tree-explicit', indices: requested },
+    });
+
+    const response = await buffer.waitFor((m) => m.id === 'lr-explicit', 2_000);
+    expect(response.type).not.toBe('ERROR');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { reservation } = response.payload as { reservation: LeaseReservation };
+    expect(reservation.indices).toEqual(requested);
+
+    // A second reserve for the same indices must fail (slot taken).
+    buffer.send(clientTransport, {
+      type: 'LEASE_RESERVE',
+      version: 1,
+      id: 'lr-explicit-dup',
+      payload: { treeId: 'tree-explicit', indices: requested },
+    });
+    const dupResponse = await buffer.waitFor((m) => m.id === 'lr-explicit-dup', 2_000);
+    expect(dupResponse.type).toBe('ERROR');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((dupResponse.payload as any).code).toBe('LEASE_RESERVE_FAILED');
+
+    await node.stop();
+  });
 });

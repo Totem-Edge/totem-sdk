@@ -171,6 +171,9 @@ export interface LeaseReserveMessage extends BaseMessage {
     ttlMs?: number;
     payloadHash?: string;
     purpose?: string;
+    /** Optional — when present, the node must reserve these exact indices
+     *  (quorum attestation) instead of allocating the next free slot. */
+    indices?: WotsIndices;
   };
 }
 
