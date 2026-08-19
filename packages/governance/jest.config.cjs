@@ -1,4 +1,5 @@
 module.exports = {
+  preset: 'ts-jest',
   testEnvironment: 'node',
   testMatch: ['**/src/__tests__/**/*.test.ts'],
   moduleFileExtensions: ['ts', 'js'],
@@ -6,11 +7,19 @@ module.exports = {
     'node_modules/',
   ],
   transform: {
-    '^.+\\.(ts|js)$': ['@swc/jest', {
-      module: {
-        type: 'commonjs',
+    '^.+\\.ts$': ['ts-jest', {
+      tsconfig: {
+        module: 'CommonJS',
+        moduleResolution: 'node',
+        allowJs: true,
       },
-      sourceMaps: 'inline',
+    }],
+    '^.+\\.js$': ['ts-jest', {
+      tsconfig: {
+        module: 'CommonJS',
+        moduleResolution: 'node',
+        allowJs: true,
+      },
     }],
   },
   moduleNameMapper: {

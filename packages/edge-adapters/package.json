@@ -43,22 +43,22 @@
       "optional": true
     },
     "@totemsdk/identity": {
-      "optional": true
+      "optional": false
     },
     "@totemsdk/manifest": {
-      "optional": true
+      "optional": false
     },
     "@totemsdk/omnia-router": {
-      "optional": true
+      "optional": false
     },
     "@totemsdk/proof": {
-      "optional": true
+      "optional": false
     },
     "@totemsdk/lookup-client": {
       "optional": true
     },
     "@totemsdk/location-proof": {
-      "optional": true
+      "optional": false
     },
     "@totemsdk/pubsub-transport": {
       "optional": true
