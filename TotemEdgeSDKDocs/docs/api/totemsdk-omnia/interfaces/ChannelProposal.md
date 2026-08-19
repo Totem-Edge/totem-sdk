@@ -50,6 +50,18 @@
 
 ***
 
+### programId?
+
+> `optional` **programId?**: `string`
+
+***
+
+### programVersion?
+
+> `optional` **programVersion?**: `number`
+
+***
+
 ### remoteAmount
 
 > **remoteAmount**: `bigint`

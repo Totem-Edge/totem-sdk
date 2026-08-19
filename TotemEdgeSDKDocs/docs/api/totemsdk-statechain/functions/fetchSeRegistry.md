@@ -18,7 +18,7 @@ Fetch and cache the SE registry from a given URL.
 
 ### fetchImpl?
 
-`any`
+\{(`input`, `init?`): `Promise`\<`Response`\>; (`input`, `init?`): `Promise`\<`Response`\>; \}
 
 ## Returns
 

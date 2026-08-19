@@ -62,7 +62,7 @@ Block polling interval in ms. Default: 5_000
 
 > **provider**: `ChainStateProvider`
 
-Chain state source — PureMinimaRpcProvider or any ChainStateProvider
+Chain state source — MinimaRpcProvider or any ChainStateProvider
 
 ***
 

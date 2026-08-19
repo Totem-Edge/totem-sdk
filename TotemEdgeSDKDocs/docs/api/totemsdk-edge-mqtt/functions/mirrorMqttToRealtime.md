@@ -6,7 +6,7 @@
 
 # Function: mirrorMqttToRealtime()
 
-> **mirrorMqttToRealtime**(`message`, `realtimePort`): `Promise`\<`EdgeOperationResult`\>
+> **mirrorMqttToRealtime**(`message`, `realtimePort`): `Promise`\<`EdgeOperationResult`\<`unknown`\>\>
 
 ## Parameters
 
@@ -20,4 +20,4 @@
 
 ## Returns
 
-`Promise`\<`EdgeOperationResult`\>
+`Promise`\<`EdgeOperationResult`\<`unknown`\>\>

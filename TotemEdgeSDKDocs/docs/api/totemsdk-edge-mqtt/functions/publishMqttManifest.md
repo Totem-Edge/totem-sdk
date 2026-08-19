@@ -16,7 +16,7 @@
 
 ### manifest
 
-`any`
+`Record`\<`string`, `unknown`\> \| `EdgeServiceManifest`
 
 ### topic
 

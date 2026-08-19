@@ -28,6 +28,14 @@ EvalResult returned from evaluateScript / simulateSpend
 
 ***
 
+### success
+
+> **success**: `boolean`
+
+Alias of `passed` for template callers.
+
+***
+
 ### trace
 
 > **trace**: `string`[]

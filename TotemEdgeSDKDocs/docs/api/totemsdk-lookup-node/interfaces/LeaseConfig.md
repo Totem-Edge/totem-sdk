@@ -16,4 +16,4 @@
 
 ### storage?
 
-> `optional` **storage?**: `any`
+> `optional` **storage?**: `StorageAdapter`

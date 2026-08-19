@@ -32,7 +32,7 @@
 
 ##### transport
 
-`ITransport`
+[`ITransport`](../interfaces/ITransport.md)
 
 #### Returns
 
@@ -144,7 +144,7 @@ Encoded SignedManifest bytes — call encodeManifest(signedManifest) first.
 
 ### getCoin()
 
-> **getCoin**(`coinId`): `Promise`\<`any`\>
+> **getCoin**(`coinId`): `Promise`\<`Coin` \| `null`\>
 
 #### Parameters
 
@@ -154,7 +154,7 @@ Encoded SignedManifest bytes — call encodeManifest(signedManifest) first.
 
 #### Returns
 
-`Promise`\<`any`\>
+`Promise`\<`Coin` \| `null`\>
 
 ***
 

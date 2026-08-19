@@ -19,10 +19,6 @@
 - [ProofGraphEdgeType](type-aliases/ProofGraphEdgeType.md)
 - [ProofGraphNodeType](type-aliases/ProofGraphNodeType.md)
 
-## Variables
-
-- [toHex](variables/toHex.md)
-
 ## Functions
 
 - [addAnchor](functions/addAnchor.md)
@@ -34,6 +30,7 @@
 - [addProof](functions/addProof.md)
 - [addReceiptLike](functions/addReceiptLike.md)
 - [buildEdge](functions/buildEdge.md)
+- [canonicalJson](functions/canonicalJson.md)
 - [computeEdgeId](functions/computeEdgeId.md)
 - [computeNodeId](functions/computeNodeId.md)
 - [computeProofGraphId](functions/computeProofGraphId.md)
@@ -59,11 +56,6 @@
 - [recomputeGraphId](functions/recomputeGraphId.md)
 - [resolveCurrentProofSet](functions/resolveCurrentProofSet.md)
 - [setGraphMetadata](functions/setGraphMetadata.md)
+- [toHex](functions/toHex.md)
 - [verifyGraphProofs](functions/verifyGraphProofs.md)
 - [verifyProofGraph](functions/verifyProofGraph.md)
-
-## References
-
-### canonicalJson
-
-Renames and re-exports [toHex](variables/toHex.md)

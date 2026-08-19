@@ -8,7 +8,7 @@
 
 ## Implements
 
-- [`ITransport`](../type-aliases/ITransport.md)
+- `ChainStateProvider`
 
 ## Constructors
 
@@ -42,11 +42,15 @@
 
 `Promise`\<`BroadcastResult`\>
 
+#### Implementation of
+
+`ChainStateProvider.broadcastTxPoW`
+
 ***
 
 ### getCoin()
 
-> **getCoin**(`coinId`): `Promise`\<`any`\>
+> **getCoin**(`coinId`): `Promise`\<`Coin` \| `null`\>
 
 #### Parameters
 
@@ -56,7 +60,11 @@
 
 #### Returns
 
-`Promise`\<`any`\>
+`Promise`\<`Coin` \| `null`\>
+
+#### Implementation of
+
+`ChainStateProvider.getCoin`
 
 ***
 
@@ -74,6 +82,10 @@
 
 `Promise`\<`Coin`[]\>
 
+#### Implementation of
+
+`ChainStateProvider.getCoins`
+
 ***
 
 ### getProof()
@@ -90,6 +102,10 @@
 
 `Promise`\<`MMRProof`\>
 
+#### Implementation of
+
+`ChainStateProvider.getProof`
+
 ***
 
 ### getTip()
@@ -99,6 +115,10 @@
 #### Returns
 
 `Promise`\<`ChainTip`\>
+
+#### Implementation of
+
+`ChainStateProvider.getTip`
 
 ***
 
@@ -116,6 +136,10 @@
 
 `Promise`\<`TokenInfo`\>
 
+#### Implementation of
+
+`ChainStateProvider.getToken`
+
 ***
 
 ### getTokensByCreator()
@@ -132,6 +156,10 @@
 
 `Promise`\<`TokenInfo`[]\>
 
+#### Implementation of
+
+`ChainStateProvider.getTokensByCreator`
+
 ***
 
 ### searchTokens()
@@ -147,3 +175,7 @@
 #### Returns
 
 `Promise`\<`TokenInfo`[]\>
+
+#### Implementation of
+
+`ChainStateProvider.searchTokens`

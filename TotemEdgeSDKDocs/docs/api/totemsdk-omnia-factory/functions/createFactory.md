@@ -6,7 +6,7 @@
 
 # Function: createFactory()
 
-> **createFactory**(`participants`, `tokenId`, `bundle`, `chainProvider?`): `Promise`\<[`ChannelFactory`](../interfaces/ChannelFactory.md)\>
+> **createFactory**(`participants`, `tokenId`, `bundle`, `chainProvider?`, `tokenScale?`): `Promise`\<[`ChannelFactory`](../interfaces/ChannelFactory.md)\>
 
 Create a factory proposal (proposer step).
 
@@ -48,9 +48,17 @@ Token ID (e.g. `'0x00'` for native Minima).
 
 ### chainProvider?
 
-`any`
+`ChainStateProvider`
 
 Optional: build + mine + broadcast the factory funding TX.
+
+### tokenScale?
+
+`number` = `0`
+
+Token scale exponent (Minima `Token.mTokenScale`). Native Minima
+                       is 0; coloured coins use `tokenAmount = minimaRawAmount × 10^scale`.
+                       Defaults to 0.
 
 ## Returns
 

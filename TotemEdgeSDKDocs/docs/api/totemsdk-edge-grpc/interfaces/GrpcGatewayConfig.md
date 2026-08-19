@@ -8,12 +8,12 @@
 
 ## Properties
 
-### runtime
+### client
 
-> **runtime**: `EdgeRuntime`
+> **client**: [`GrpcClient`](GrpcClient.md)
 
 ***
 
-### transport
+### runtime
 
-> **transport**: `IStreamTransport`
+> **runtime**: `EdgeRuntime`

@@ -106,7 +106,7 @@ Read a characteristic.
 
 ### subscribe()
 
-> **subscribe**(`peripheralId`, `serviceUuid`, `characteristicUuid`): `Promise`\<`EdgeOperationResult`\>
+> **subscribe**(`peripheralId`, `serviceUuid`, `characteristicUuid`): `Promise`\<`EdgeOperationResult`\<`unknown`\>\>
 
 Subscribe to notifications.
 
@@ -126,13 +126,13 @@ Subscribe to notifications.
 
 #### Returns
 
-`Promise`\<`EdgeOperationResult`\>
+`Promise`\<`EdgeOperationResult`\<`unknown`\>\>
 
 ***
 
 ### write()
 
-> **write**(`peripheralId`, `serviceUuid`, `characteristicUuid`, `data`): `Promise`\<`EdgeOperationResult`\>
+> **write**(`peripheralId`, `serviceUuid`, `characteristicUuid`, `data`): `Promise`\<`EdgeOperationResult`\<`unknown`\>\>
 
 Write a characteristic.
 
@@ -156,4 +156,4 @@ Write a characteristic.
 
 #### Returns
 
-`Promise`\<`EdgeOperationResult`\>
+`Promise`\<`EdgeOperationResult`\<`unknown`\>\>

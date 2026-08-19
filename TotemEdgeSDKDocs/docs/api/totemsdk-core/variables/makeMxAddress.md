@@ -6,4 +6,16 @@
 
 # Variable: makeMxAddress
 
-> `const` **makeMxAddress**: `any` = `make_mx_address_wasm`
+> `const` **makeMxAddress**: (`root32`) => `string` = `make_mx_address_wasm`
+
+Encode bytes to Minima Mx address format.
+
+## Parameters
+
+### root32
+
+`Uint8Array`
+
+## Returns
+
+`string`

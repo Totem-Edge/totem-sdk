@@ -6,7 +6,7 @@
 
 # Function: activateProposal()
 
-> **activateProposal**(`proposal`): `string` \| [`Proposal`](../interfaces/Proposal.md)
+> **activateProposal**(`proposal`, `now?`): [`GovernanceResult`](../type-aliases/GovernanceResult.md)\<[`Proposal`](../interfaces/Proposal.md)\>
 
 ## Parameters
 
@@ -14,6 +14,10 @@
 
 [`Proposal`](../interfaces/Proposal.md)
 
+### now?
+
+`number` = `...`
+
 ## Returns
 
-`string` \| [`Proposal`](../interfaces/Proposal.md)
+[`GovernanceResult`](../type-aliases/GovernanceResult.md)\<[`Proposal`](../interfaces/Proposal.md)\>

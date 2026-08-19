@@ -18,6 +18,9 @@
 - [BranchFilter](interfaces/BranchFilter.md)
 - [BranchInventory](interfaces/BranchInventory.md)
 - [BranchInventoryEntry](interfaces/BranchInventoryEntry.md)
+- [CompiledMast](interfaces/CompiledMast.md)
+- [CompiledPolicyNode](interfaces/CompiledPolicyNode.md)
+- [CompiledRecursivePolicy](interfaces/CompiledRecursivePolicy.md)
 - [ContentKey](interfaces/ContentKey.md)
 - [CreateSigningRequestConfig](interfaces/CreateSigningRequestConfig.md)
 - [CreateSigningResponseConfig](interfaces/CreateSigningResponseConfig.md)
@@ -29,14 +32,23 @@
 - [ExpectedOutput](interfaces/ExpectedOutput.md)
 - [HttpStoreOptions](interfaces/HttpStoreOptions.md)
 - [KeyWrappingEnvelope](interfaces/KeyWrappingEnvelope.md)
+- [LayeredPolicyConfig](interfaces/LayeredPolicyConfig.md)
 - [MastBranchPackage](interfaces/MastBranchPackage.md)
 - [MastBranchSummary](interfaces/MastBranchSummary.md)
 - [MemoryStoreOptions](interfaces/MemoryStoreOptions.md)
+- [MinimaScriptProof](interfaces/MinimaScriptProof.md)
 - [MirrorResult](interfaces/MirrorResult.md)
 - [PolicyAction](interfaces/PolicyAction.md)
+- [PolicyAnchorConfig](interfaces/PolicyAnchorConfig.md)
 - [PolicyAvailabilityReport](interfaces/PolicyAvailabilityReport.md)
+- [PolicyDelegationEdge](interfaces/PolicyDelegationEdge.md)
 - [PolicyEndpoint](interfaces/PolicyEndpoint.md)
+- [PolicyGraph](interfaces/PolicyGraph.md)
+- [PolicyGraphNode](interfaces/PolicyGraphNode.md)
+- [PolicyLayer](interfaces/PolicyLayer.md)
 - [PolicyLookupClient](interfaces/PolicyLookupClient.md)
+- [PolicyNode](interfaces/PolicyNode.md)
+- [PolicyNodeInput](interfaces/PolicyNodeInput.md)
 - [PolicyPathDescriptor](interfaces/PolicyPathDescriptor.md)
 - [PolicyQueryResult](interfaces/PolicyQueryResult.md)
 - [PolicyRole](interfaces/PolicyRole.md)
@@ -45,7 +57,11 @@
 - [PolicySignerConfig](interfaces/PolicySignerConfig.md)
 - [PolicySigningRequest](interfaces/PolicySigningRequest.md)
 - [PolicySigningResponse](interfaces/PolicySigningResponse.md)
+- [PolicyTree](interfaces/PolicyTree.md)
 - [PolicyUpdateNotification](interfaces/PolicyUpdateNotification.md)
+- [PrevStateWorkflow](interfaces/PrevStateWorkflow.md)
+- [ProofChain](interfaces/ProofChain.md)
+- [ProofLink](interfaces/ProofLink.md)
 - [QueryPolicyConfig](interfaces/QueryPolicyConfig.md)
 - [RecursiveMastPolicyManifest](interfaces/RecursiveMastPolicyManifest.md)
 - [RecursiveMastPolicyStore](interfaces/RecursiveMastPolicyStore.md)
@@ -59,6 +75,8 @@
 - [SigningRoundResult](interfaces/SigningRoundResult.md)
 - [SigningSession](interfaces/SigningSession.md)
 - [SigningSessionConfig](interfaces/SigningSessionConfig.md)
+- [StateTransition](interfaces/StateTransition.md)
+- [VerificationResult](interfaces/VerificationResult.md)
 - [WatchPolicyConfig](interfaces/WatchPolicyConfig.md)
 
 ## Type Aliases
@@ -67,7 +85,6 @@
 - [BlockHeight](type-aliases/BlockHeight.md)
 - [EncodingDomain](type-aliases/EncodingDomain.md)
 - [EncryptionAlgorithm](type-aliases/EncryptionAlgorithm.md)
-- [PolicyNode](type-aliases/PolicyNode.md)
 - [SigningDomain](type-aliases/SigningDomain.md)
 - [SigningSessionStatus](type-aliases/SigningSessionStatus.md)
 - [UnixTimeMs](type-aliases/UnixTimeMs.md)
@@ -79,6 +96,7 @@
 - [ENCRYPTION\_ALGORITHMS](variables/ENCRYPTION_ALGORITHMS.md)
 - [ENVELOPE\_VERSION](variables/ENVELOPE_VERSION.md)
 - [KEY\_PREFIX](variables/KEY_PREFIX.md)
+- [STANDARD\_LAYERS](variables/STANDARD_LAYERS.md)
 
 ## Functions
 
@@ -97,10 +115,21 @@
 - [buildDelegationChain](functions/buildDelegationChain.md)
 - [buildDelegationLink](functions/buildDelegationLink.md)
 - [buildDelegationScript](functions/buildDelegationScript.md)
+- [buildEpochAdvancementScript](functions/buildEpochAdvancementScript.md)
+- [buildLayeredMastScript](functions/buildLayeredMastScript.md)
+- [buildLayeredPolicy](functions/buildLayeredPolicy.md)
+- [buildLayerSubset](functions/buildLayerSubset.md)
 - [buildMigrationPath](functions/buildMigrationPath.md)
 - [buildMigrationScript](functions/buildMigrationScript.md)
 - [buildMigrationStep](functions/buildMigrationStep.md)
+- [buildPolicyAnchorScript](functions/buildPolicyAnchorScript.md)
+- [buildPolicyAnchorState](functions/buildPolicyAnchorState.md)
+- [buildPolicyTree](functions/buildPolicyTree.md)
+- [buildPrevStateWorkflow](functions/buildPrevStateWorkflow.md)
+- [buildProofChain](functions/buildProofChain.md)
 - [buildRecursiveWitnessPlan](functions/buildRecursiveWitnessPlan.md)
+- [buildRootRotationScript](functions/buildRootRotationScript.md)
+- [buildStateTransition](functions/buildStateTransition.md)
 - [buildTrustNetwork](functions/buildTrustNetwork.md)
 - [bundleKey](functions/bundleKey.md)
 - [cancelSession](functions/cancelSession.md)
@@ -109,12 +138,17 @@
 - [canonicalSign](functions/canonicalSign.md)
 - [canonicalVerify](functions/canonicalVerify.md)
 - [collectSigningResponses](functions/collectSigningResponses.md)
+- [compileMastTree](functions/compileMastTree.md)
+- [compilePolicyGraph](functions/compilePolicyGraph.md)
 - [computeBranchInventoryHash](functions/computeBranchInventoryHash.md)
 - [computeBundleHash](functions/computeBundleHash.md)
+- [computeCanonicalScriptAddress](functions/computeCanonicalScriptAddress.md)
+- [computeCanonicalScriptHash](functions/computeCanonicalScriptHash.md)
 - [computeKeyFingerprint](functions/computeKeyFingerprint.md)
 - [computePolicyPackageHash](functions/computePolicyPackageHash.md)
 - [computeScriptHash](functions/computeScriptHash.md)
 - [confirmSession](functions/confirmSession.md)
+- [counterWorkflow](functions/counterWorkflow.md)
 - [createAvailabilityReceipt](functions/createAvailabilityReceipt.md)
 - [createBranchPackage](functions/createBranchPackage.md)
 - [createEncryptedBranch](functions/createEncryptedBranch.md)
@@ -128,10 +162,13 @@
 - [deserializeEncryptionEnvelope](functions/deserializeEncryptionEnvelope.md)
 - [deserializeKeyWrappingEnvelope](functions/deserializeKeyWrappingEnvelope.md)
 - [encryptedBranchPublicMetadata](functions/encryptedBranchPublicMetadata.md)
+- [findPolicyNode](functions/findPolicyNode.md)
 - [getActivePolicyRoot](functions/getActivePolicyRoot.md)
 - [getBranchesByAction](functions/getBranchesByAction.md)
 - [getBranchesByRole](functions/getBranchesByRole.md)
 - [getCriticalBranches](functions/getCriticalBranches.md)
+- [getPolicyLeaves](functions/getPolicyLeaves.md)
+- [getPolicyPath](functions/getPolicyPath.md)
 - [getRecoveryBranches](functions/getRecoveryBranches.md)
 - [isEncryptedBranch](functions/isEncryptedBranch.md)
 - [isMigrationActive](functions/isMigrationActive.md)
@@ -146,6 +183,7 @@
 - [receiptCoversInventory](functions/receiptCoversInventory.md)
 - [recordEvidence](functions/recordEvidence.md)
 - [resolvePolicyForSubject](functions/resolvePolicyForSubject.md)
+- [roundBasedWorkflow](functions/roundBasedWorkflow.md)
 - [scriptKey](functions/scriptKey.md)
 - [serializeBranchPackage](functions/serializeBranchPackage.md)
 - [serializeEncryptionEnvelope](functions/serializeEncryptionEnvelope.md)
@@ -155,289 +193,21 @@
 - [signPolicyManifest](functions/signPolicyManifest.md)
 - [splitPolicyManifest](functions/splitPolicyManifest.md)
 - [submitSession](functions/submitSession.md)
+- [timelockWorkflow](functions/timelockWorkflow.md)
 - [toDelegationChainScript](functions/toDelegationChainScript.md)
 - [toMigrationPathScript](functions/toMigrationPathScript.md)
+- [toMinimaProofExpression](functions/toMinimaProofExpression.md)
+- [toNestedMastScript](functions/toNestedMastScript.md)
+- [~~toProofExpression~~](functions/toProofExpression.md)
+- [~~toTotemProofExpression~~](functions/toTotemProofExpression.md)
 - [unixTimeMsToSec](functions/unixTimeMsToSec.md)
 - [unixTimeSecToMs](functions/unixTimeSecToMs.md)
 - [validateInventoryCoverage](functions/validateInventoryCoverage.md)
 - [verifyAvailabilityReceipt](functions/verifyAvailabilityReceipt.md)
 - [~~verifyBranchPackage~~](functions/verifyBranchPackage.md)
 - [verifyDelegationChain](functions/verifyDelegationChain.md)
+- [verifyProofChain](functions/verifyProofChain.md)
+- [verifyScriptMembership](functions/verifyScriptMembership.md)
 - [verifySigningRequest](functions/verifySigningRequest.md)
+- [vestingWorkflow](functions/vestingWorkflow.md)
 - [watchPolicy](functions/watchPolicy.md)
-
-## References
-
-### buildEpochAdvancementScript
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### buildLayeredMastScript
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### buildLayeredPolicy
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### buildLayerSubset
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### buildPolicyAnchorScript
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### buildPolicyAnchorState
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### buildPolicyTree
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### buildPrevStateWorkflow
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### buildProofChain
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### buildRootRotationScript
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### buildStateTransition
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### CompiledMast
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### CompiledPolicyNode
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### CompiledRecursivePolicy
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### compileMastTree
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### compilePolicyGraph
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### computeCanonicalScriptAddress
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### computeCanonicalScriptHash
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### counterWorkflow
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### findPolicyNode
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### getPolicyLeaves
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### getPolicyPath
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### LayeredPolicyConfig
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### MinimaScriptProof
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### PolicyAnchorConfig
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### PolicyDelegationEdge
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### PolicyGraph
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### PolicyGraphNode
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### PolicyLayer
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### PolicyNodeInput
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### PolicyTree
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### PrevStateWorkflow
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### ProofChain
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### ProofLink
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### roundBasedWorkflow
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### STANDARD\_LAYERS
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### StateTransition
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### timelockWorkflow
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### toMinimaProofExpression
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### toNestedMastScript
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### toProofExpression
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### toTotemProofExpression
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### VerificationResult
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### verifyProofChain
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### verifyScriptMembership
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)
-
-***
-
-### vestingWorkflow
-
-Renames and re-exports [PolicyNode](type-aliases/PolicyNode.md)

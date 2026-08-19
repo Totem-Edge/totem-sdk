@@ -16,7 +16,21 @@
 
 ### fetchFn?
 
-> `optional` **fetchFn?**: `any`
+> `optional` **fetchFn?**: (`input`, `init?`) => `Promise`\<`Response`\>
+
+#### Parameters
+
+##### input
+
+`string` \| `URL` \| `Request`
+
+##### init?
+
+`RequestInit`
+
+#### Returns
+
+`Promise`\<`Response`\>
 
 ***
 

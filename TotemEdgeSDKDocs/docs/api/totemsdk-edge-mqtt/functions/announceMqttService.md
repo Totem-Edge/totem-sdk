@@ -6,7 +6,7 @@
 
 # Function: announceMqttService()
 
-> **announceMqttService**(`runtime`, `params`): `Promise`\<`EdgeOperationResult`\>
+> **announceMqttService**(`runtime`, `params`): `Promise`\<`EdgeOperationResult`\<`unknown`\>\>
 
 Announce to a single runtime's lookup port.
 
@@ -22,4 +22,4 @@ Announce to a single runtime's lookup port.
 
 ## Returns
 
-`Promise`\<`EdgeOperationResult`\>
+`Promise`\<`EdgeOperationResult`\<`unknown`\>\>

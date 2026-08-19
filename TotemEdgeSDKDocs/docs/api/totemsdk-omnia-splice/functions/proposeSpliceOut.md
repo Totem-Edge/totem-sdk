@@ -20,7 +20,7 @@ must be committed/burned by `finalizeSplice`.
 
 ### channel
 
-`any`
+`OmniaChannel` \| [`QuiescedChannel`](../type-aliases/QuiescedChannel.md)
 
 Quiesced channel.
 

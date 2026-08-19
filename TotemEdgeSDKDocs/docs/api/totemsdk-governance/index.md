@@ -14,6 +14,7 @@
 - [DelegationConfig](interfaces/DelegationConfig.md)
 - [DelegationResolution](interfaces/DelegationResolution.md)
 - [GovernanceConfig](interfaces/GovernanceConfig.md)
+- [GovernanceError](interfaces/GovernanceError.md)
 - [MandateReceipt](interfaces/MandateReceipt.md)
 - [MembershipEntry](interfaces/MembershipEntry.md)
 - [MembershipSnapshot](interfaces/MembershipSnapshot.md)
@@ -30,18 +31,16 @@
 
 ## Type Aliases
 
+- [GovernanceResult](type-aliases/GovernanceResult.md)
 - [ProposalActionType](type-aliases/ProposalActionType.md)
 - [ProposalStatus](type-aliases/ProposalStatus.md)
 - [TallyAlgorithm](type-aliases/TallyAlgorithm.md)
-
-## Variables
-
-- [toHex](variables/toHex.md)
 
 ## Functions
 
 - [activateProposal](functions/activateProposal.md)
 - [cancelProposal](functions/cancelProposal.md)
+- [canonicalJson](functions/canonicalJson.md)
 - [computeDelegationId](functions/computeDelegationId.md)
 - [computeOutcomeId](functions/computeOutcomeId.md)
 - [computeProposalId](functions/computeProposalId.md)
@@ -68,22 +67,13 @@
 - [getMemberWeight](functions/getMemberWeight.md)
 - [getTotalWeight](functions/getTotalWeight.md)
 - [getWeightToDelegate](functions/getWeightToDelegate.md)
+- [hashCanonical](functions/hashCanonical.md)
 - [isExecutionReady](functions/isExecutionReady.md)
+- [isGovernanceError](functions/isGovernanceError.md)
 - [recallDelegation](functions/recallDelegation.md)
 - [resolveDelegation](functions/resolveDelegation.md)
 - [resolveVotingPower](functions/resolveVotingPower.md)
 - [tallyVotes](functions/tallyVotes.md)
+- [toHex](functions/toHex.md)
 - [validateGovernanceConfig](functions/validateGovernanceConfig.md)
 - [verifyMembershipSnapshot](functions/verifyMembershipSnapshot.md)
-
-## References
-
-### canonicalJson
-
-Renames and re-exports [toHex](variables/toHex.md)
-
-***
-
-### hashCanonical
-
-Renames and re-exports [toHex](variables/toHex.md)

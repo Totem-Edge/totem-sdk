@@ -16,7 +16,7 @@
 
 ### deleteMessage()
 
-> **deleteMessage**(`mailbox`, `id`): `Promise`\<`EdgeOperationResult`\>
+> **deleteMessage**(`mailbox`, `id`): `Promise`\<`EdgeOperationResult`\<`unknown`\>\>
 
 #### Parameters
 
@@ -30,7 +30,7 @@
 
 #### Returns
 
-`Promise`\<`EdgeOperationResult`\>
+`Promise`\<`EdgeOperationResult`\<`unknown`\>\>
 
 ***
 
@@ -46,7 +46,7 @@
 
 ### markAsRead()
 
-> **markAsRead**(`mailbox`, `id`): `Promise`\<`EdgeOperationResult`\>
+> **markAsRead**(`mailbox`, `id`): `Promise`\<`EdgeOperationResult`\<`unknown`\>\>
 
 #### Parameters
 
@@ -60,13 +60,13 @@
 
 #### Returns
 
-`Promise`\<`EdgeOperationResult`\>
+`Promise`\<`EdgeOperationResult`\<`unknown`\>\>
 
 ***
 
 ### moveMessage()
 
-> **moveMessage**(`mailbox`, `id`, `destination`): `Promise`\<`EdgeOperationResult`\>
+> **moveMessage**(`mailbox`, `id`, `destination`): `Promise`\<`EdgeOperationResult`\<`unknown`\>\>
 
 #### Parameters
 
@@ -84,7 +84,7 @@
 
 #### Returns
 
-`Promise`\<`EdgeOperationResult`\>
+`Promise`\<`EdgeOperationResult`\<`unknown`\>\>
 
 ***
 

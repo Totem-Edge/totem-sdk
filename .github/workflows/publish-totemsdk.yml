@@ -90,6 +90,13 @@ jobs:
         with:
           ref: ${{ github.event.release.tag_name }}
 
+      # The generate step (npm run build:deploy) runs TypeDoc over every SDK
+      # package's source, which imports workspace peers (e.g. @totemsdk/core).
+      # Install the SDK workspace so those imports resolve on CI; otherwise
+      # packages silently degrade to curated stubs.
+      - name: Setup SDK workspace (TypeDoc source deps)
+        uses: ./.github/actions/setup-pnpm
+
       # TotemEdgeSDKDocs is a standalone npm project (has its own package-lock.json)
       # and is NOT part of the pnpm monorepo, so we use npm here deliberately.
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7

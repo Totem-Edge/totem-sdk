@@ -6,4 +6,16 @@
 
 # Variable: writeMiniData
 
-> `const` **writeMiniData**: `any` = `write_mini_data_wasm`
+> `const` **writeMiniData**: (`data`) => `Uint8Array` = `write_mini_data_wasm`
+
+Write MiniData (Java-compatible serialization).
+
+## Parameters
+
+### data
+
+`Uint8Array`
+
+## Returns
+
+`Uint8Array`

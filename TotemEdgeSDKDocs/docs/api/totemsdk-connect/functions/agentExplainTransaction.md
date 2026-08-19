@@ -20,6 +20,30 @@
 
 `Record`\<`string`, `unknown`\>
 
+#### intent?
+
+\{ `amount?`: `string`; `reason?`: `string`; `recipient?`: `string`; `tokenId?`: `string`; `type`: `"payment"` \| `"channel_update"` \| `"settlement"` \| `"lookup"` \| `"receipt"`; \}
+
+#### intent.amount?
+
+`string`
+
+#### intent.reason?
+
+`string`
+
+#### intent.recipient?
+
+`string`
+
+#### intent.tokenId?
+
+`string`
+
+#### intent.type
+
+`"payment"` \| `"channel_update"` \| `"settlement"` \| `"lookup"` \| `"receipt"`
+
 #### txpowId?
 
 `string`

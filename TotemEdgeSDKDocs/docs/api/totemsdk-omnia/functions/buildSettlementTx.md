@@ -6,7 +6,7 @@
 
 # Function: buildSettlementTx()
 
-> **buildSettlementTx**(`channel`, `state`, `partyAddresses`): [`OmniaTxDraft`](../interfaces/OmniaTxDraft.md)
+> **buildSettlementTx**(`channel`, `state`, `partyAddresses`, `opts?`): [`OmniaTxDraft`](../interfaces/OmniaTxDraft.md)
 
 ## Parameters
 
@@ -21,6 +21,16 @@
 ### partyAddresses
 
 `Record`\<`string`, `string`\>
+
+### opts?
+
+#### floatingInput?
+
+`boolean`
+
+#### programStateVariables?
+
+[`StateValue`](../interfaces/StateValue.md)[]
 
 ## Returns
 

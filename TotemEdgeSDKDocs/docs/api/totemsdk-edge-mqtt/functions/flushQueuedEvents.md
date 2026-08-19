@@ -6,7 +6,7 @@
 
 # Function: flushQueuedEvents()
 
-> **flushQueuedEvents**(`client`, `queue`, `options?`): `Promise`\<`EdgeOperationResult`\>
+> **flushQueuedEvents**(`client`, `queue`, `options?`): `Promise`\<`EdgeOperationResult`\<`unknown`\>\>
 
 ## Parameters
 
@@ -24,4 +24,4 @@
 
 ## Returns
 
-`Promise`\<`EdgeOperationResult`\>
+`Promise`\<`EdgeOperationResult`\<`unknown`\>\>

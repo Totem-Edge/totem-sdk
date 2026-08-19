@@ -92,7 +92,7 @@
 
 ### write()
 
-> **write**(`nodeId`, `value`): `Promise`\<`EdgeOperationResult`\>
+> **write**(`nodeId`, `value`): `Promise`\<`EdgeOperationResult`\<`unknown`\>\>
 
 #### Parameters
 
@@ -106,4 +106,4 @@
 
 #### Returns
 
-`Promise`\<`EdgeOperationResult`\>
+`Promise`\<`EdgeOperationResult`\<`unknown`\>\>

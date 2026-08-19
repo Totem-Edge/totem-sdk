@@ -6,85 +6,115 @@
 
 # Interface: IStreamTransport
 
-Minimal bidirectional byte-stream interface.
+Canonical bidirectional byte-stream transport contract.
 
-send()  — write bytes to the remote peer
-on()    — subscribe to 'data', 'close', or 'error' events
-close() — half-close / destroy the connection
+Every transport exposes the same subscription API; each `on*` method returns
+an unsubscribe function so handlers can always be removed. There is a single
+connection state machine and a single `send` signature. This replaces the old
+`on(event, handler)` API which could not express unsubscription, backpressure
+or connection state.
+
+## Properties
+
+### state
+
+> `readonly` **state**: [`TransportState`](../type-aliases/TransportState.md)
+
+Explicit connection state.
 
 ## Methods
 
 ### close()
 
-> **close**(): `void`
+> **close**(): `Promise`\<`void`\>
+
+Close the transport. After the returned promise resolves, no further data
+or close deliveries occur. Calling close() more than once is safe (the
+second call resolves immediately).
 
 #### Returns
 
-`void`
+`Promise`\<`void`\>
 
 ***
 
-### on()
+### connect()?
 
-#### Call Signature
+> `optional` **connect**(): `Promise`\<`void`\>
 
-> **on**(`event`, `handler`): `void`
+Optional async connect. Implementations that construct an already-connected
+transport may omit it.
 
-##### Parameters
+#### Returns
 
-###### event
+`Promise`\<`void`\>
 
-`"data"`
+***
 
-###### handler
+### onClose()
 
-[`DataHandler`](../type-aliases/DataHandler.md)
+> **onClose**(`handler`): () => `void`
 
-##### Returns
+Subscribe to connection close. Returns an unsubscribe function.
 
-`void`
+#### Parameters
 
-#### Call Signature
-
-> **on**(`event`, `handler`): `void`
-
-##### Parameters
-
-###### event
-
-`"close"`
-
-###### handler
+##### handler
 
 [`CloseHandler`](../type-aliases/CloseHandler.md)
 
-##### Returns
+#### Returns
 
-`void`
+() => `void`
 
-#### Call Signature
+***
 
-> **on**(`event`, `handler`): `void`
+### onData()
 
-##### Parameters
+> **onData**(`handler`): () => `void`
 
-###### event
+Subscribe to data chunks. Returns an unsubscribe function.
 
-`"error"`
+#### Parameters
 
-###### handler
+##### handler
+
+[`DataHandler`](../type-aliases/DataHandler.md)
+
+#### Returns
+
+() => `void`
+
+***
+
+### onError()
+
+> **onError**(`handler`): () => `void`
+
+Subscribe to transport errors. Returns an unsubscribe function.
+
+#### Parameters
+
+##### handler
 
 [`ErrorHandler`](../type-aliases/ErrorHandler.md)
 
-##### Returns
+#### Returns
 
-`void`
+() => `void`
 
 ***
 
 ### send()
 
-> **send**(`data`): `void`
+> **send**(`data`): `Promise`\<`void`\>
+
+Send bytes to the remote peer.
+
+- Returns a promise that resolves once the bytes are accepted by the
+  underlying transport (or after the documented backpressure policy).
+- Rejects with `ClosedTransportError` if the transport is closed.
+- Rejects with the underlying error if delivery fails.
 
 #### Parameters
 
@@ -94,4 +124,4 @@ close() — half-close / destroy the connection
 
 #### Returns
 
-`void`
+`Promise`\<`void`\>

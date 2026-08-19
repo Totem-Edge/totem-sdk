@@ -26,6 +26,14 @@
 
 ***
 
+### fundingWitnessBytes?
+
+> `optional` **fundingWitnessBytes?**: `Uint8Array`\<`ArrayBufferLike`\>
+
+Serialized Minima witness for the funding transaction input(s). Required for createChannel broadcast.
+
+***
+
 ### localAmount
 
 > **localAmount**: `bigint`
@@ -35,6 +43,12 @@
 ### localParty
 
 > **localParty**: [`ChannelParticipant`](ChannelParticipant.md)
+
+***
+
+### program?
+
+> `optional` **program?**: [`ChannelProgram`](ChannelProgram.md)
 
 ***
 

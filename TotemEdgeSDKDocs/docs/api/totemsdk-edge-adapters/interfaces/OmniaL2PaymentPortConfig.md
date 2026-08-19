@@ -36,7 +36,7 @@ HTLC timeout in blocks past the current tip. Defaults to 144 (≈24h on Minima).
 
 ### leaseProviders
 
-> **leaseProviders**: `Map`\<`string`, `LeaseProvider`\>
+> **leaseProviders**: `Map`\<`string`, `unknown`\>
 
 WOTS lease providers keyed by channelId — required for HTLC signing.
 
@@ -60,7 +60,7 @@ HTLC operations (addHTLC, fulfillHTLC, timeoutHTLC) for each channel.
 
 ### routeOptions?
 
-> `optional` **routeOptions?**: `any`
+> `optional` **routeOptions?**: `RouteOptions`
 
 Optional pathfinding overrides forwarded to findRoute.
 

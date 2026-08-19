@@ -67,7 +67,6 @@
 ## Variables
 
 - [createDefaultMqttTopics](variables/createDefaultMqttTopics.md)
-- [createEdgeRuntime](variables/createEdgeRuntime.md)
 - [createSensorTopic](variables/createSensorTopic.md)
 - [matchMqttTopic](variables/matchMqttTopic.md)
 - [toHex](variables/toHex.md)
@@ -79,6 +78,8 @@
 - [canonicalJson](functions/canonicalJson.md)
 - [computeMqttEventId](functions/computeMqttEventId.md)
 - [createDeadLetterEvent](functions/createDeadLetterEvent.md)
+- [createEdgeReceipt](functions/createEdgeReceipt.md)
+- [createEdgeRuntime](functions/createEdgeRuntime.md)
 - [createMemoryMqttEdgeQueue](functions/createMemoryMqttEdgeQueue.md)
 - [createMqttCommandHandler](functions/createMqttCommandHandler.md)
 - [createMqttCreditGate](functions/createMqttCreditGate.md)
@@ -97,15 +98,4 @@
 - [publishMqttManifest](functions/publishMqttManifest.md)
 - [publishMqttReceipt](functions/publishMqttReceipt.md)
 - [routeMqttMessage](functions/routeMqttMessage.md)
-
-## References
-
-### createEdgeReceipt
-
-Renames and re-exports [createEdgeRuntime](variables/createEdgeRuntime.md)
-
-***
-
-### verifyEdgeReceipt
-
-Renames and re-exports [createEdgeRuntime](variables/createEdgeRuntime.md)
+- [verifyEdgeReceipt](functions/verifyEdgeReceipt.md)

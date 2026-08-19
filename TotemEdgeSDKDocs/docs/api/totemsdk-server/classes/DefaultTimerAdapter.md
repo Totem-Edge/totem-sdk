@@ -30,7 +30,7 @@
 
 ##### handle
 
-`number`
+`Timeout`
 
 #### Returns
 
@@ -50,7 +50,7 @@
 
 ##### handle
 
-`number`
+`Timeout`
 
 #### Returns
 
@@ -78,7 +78,7 @@
 
 ### setInterval()
 
-> **setInterval**(`callback`, `ms`): `number`
+> **setInterval**(`callback`, `ms`): `Timeout`
 
 #### Parameters
 
@@ -92,7 +92,7 @@
 
 #### Returns
 
-`number`
+`Timeout`
 
 #### Implementation of
 
@@ -102,7 +102,7 @@
 
 ### setTimeout()
 
-> **setTimeout**(`callback`, `ms`): `number`
+> **setTimeout**(`callback`, `ms`): `Timeout`
 
 #### Parameters
 
@@ -116,7 +116,7 @@
 
 #### Returns
 
-`number`
+`Timeout`
 
 #### Implementation of
 

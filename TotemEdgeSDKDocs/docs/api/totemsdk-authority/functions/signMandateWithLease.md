@@ -20,11 +20,21 @@
 
 ### leaseProvider
 
-`any`
+#### burnReservation
+
+#### commitKeyUse
+
+#### reserveKeyUse
 
 ### options?
 
-`any`
+#### treeId?
+
+`string`
+
+#### ttlMs?
+
+`number`
 
 ## Returns
 

@@ -105,6 +105,18 @@ Keyed by `partyId`.  Cleared when all N parties have signed.
 
 ***
 
+### tokenScale
+
+> **tokenScale**: `number`
+
+Token scale exponent, matching Minima's `Token.mTokenScale`:
+`tokenAmount = minimaRawAmount × 10^scale`. Native Minima (tokenId `0x00`)
+has scale 0. Coloured coins use `MINIMA_MAX_DECIMAL_PLACES − scale`
+(44 − scale) decimal places. All factory amounts are held in scaled token
+units; TX builders convert to raw Minima via `toRawMinima()`.
+
+***
+
 ### totalValue
 
 > **totalValue**: `bigint`
@@ -113,6 +125,6 @@ Keyed by `partyId`.  Cleared when all N parties have signed.
 
 ### virtualChannels
 
-> **virtualChannels**: `OmniaChannel`[]
+> **virtualChannels**: [`OmniaChannel`](OmniaChannel.md)[]
 
 Currently open virtual channels backed by this factory's shared UTXO.

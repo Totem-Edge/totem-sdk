@@ -28,6 +28,12 @@ WOTS key-lease coordination — required before any signing operation.
 
 ***
 
+### location?
+
+> `optional` **location?**: [`EdgeLocationPort`](EdgeLocationPort.md)
+
+***
+
 ### lookup?
 
 > `optional` **lookup?**: [`EdgeLookupPort`](EdgeLookupPort.md)
@@ -37,6 +43,12 @@ WOTS key-lease coordination — required before any signing operation.
 ### manifest?
 
 > `optional` **manifest?**: [`EdgeManifestPort`](EdgeManifestPort.md)
+
+***
+
+### omnia?
+
+> `optional` **omnia?**: [`EdgeOmniaPort`](EdgeOmniaPort.md)
 
 ***
 
