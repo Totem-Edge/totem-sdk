@@ -1,5 +1,8 @@
 name: Publish @totemsdk packages
 
+permissions:
+  contents: read
+
 on:
   release:
     types: [published]

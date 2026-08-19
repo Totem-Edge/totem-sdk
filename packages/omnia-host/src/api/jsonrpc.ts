@@ -57,7 +57,8 @@ async function dispatch(
   try {
     return response(request.id, await method(request.params));
   } catch (error) {
-    return errorResponse(request.id, -32000, error instanceof Error ? error.message : String(error));
+    console.error('[jsonrpc] handler error:', error instanceof Error ? error.stack ?? error.message : String(error));
+    return errorResponse(request.id, -32000, 'Internal error');
   }
 }
 
@@ -97,7 +98,8 @@ export function createControlServer(options: ControlServerOptions): ControlServe
       const request = JSON.parse(await readBody(req)) as JsonRpcRequest;
       sendJson(res, 200, await dispatch(request, methods));
     } catch (error) {
-      sendJson(res, 400, errorResponse(null, -32700, error instanceof Error ? error.message : String(error)));
+      console.error('[jsonrpc] parse error:', error instanceof Error ? error.stack ?? error.message : String(error));
+      sendJson(res, 400, errorResponse(null, -32700, 'Invalid JSON RPC request'));
     }
   });
   const webSockets = new WebSocketServer({ noServer: true });
@@ -117,7 +119,8 @@ export function createControlServer(options: ControlServerOptions): ControlServe
         const request = JSON.parse(data.toString()) as JsonRpcRequest;
         socket.send(JSON.stringify(await dispatch(request, methods)));
       } catch (error) {
-        socket.send(JSON.stringify(errorResponse(null, -32700, error instanceof Error ? error.message : String(error))));
+        console.error('[jsonrpc] ws parse error:', error instanceof Error ? error.stack ?? error.message : String(error));
+        socket.send(JSON.stringify(errorResponse(null, -32700, 'Invalid JSON RPC request')));
       }
     });
   });

@@ -121,7 +121,13 @@ export class MiniNumber {
     } else {
       s = s.slice(0, s.length - this.scale) + '.' + s.slice(s.length - this.scale);
     }
-    s = s.replace(/(\.[0-9]*?)0+$/, '$1').replace(/\.$/, '');
+    const dotIdx = s.indexOf('.');
+    if (dotIdx !== -1) {
+      let end = s.length;
+      while (end > dotIdx + 1 && s[end - 1] === '0') end -= 1;
+      if (end === dotIdx + 1) end = dotIdx;
+      s = s.slice(0, end);
+    }
     return neg ? '-' + s : s;
   }
 

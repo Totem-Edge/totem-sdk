@@ -192,7 +192,7 @@ function fixFrontmatter(filePath) {
     /^(title|sidebar_label|description):\s*(?!")(.+)/gm,
     (_, key, val) => {
       if (/[@/]/.test(val) || /^[{[\|>&*!,#?]/.test(val.trim())) {
-        return `${key}: "${val.trim().replace(/"/g, '\\"')}"`;
+        return `${key}: ${JSON.stringify(val.trim())}`;
       }
       return `${key}: ${val}`;
     }

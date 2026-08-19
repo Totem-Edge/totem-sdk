@@ -1,4 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
+import rateLimit from 'express-rate-limit';
 import crypto from 'crypto';
 import { sha3_256, bytesToHex } from '@totemsdk/core';
 import { z } from 'zod';
@@ -96,6 +97,14 @@ async function verifyOwnerSig(ownerPkd: string, nonce: string, ownerSig: string)
 
 export function createSeRouter(config: SeServerConfig, pool: Pool): Router {
   const r = Router();
+  const limiter = rateLimit({
+    windowMs: 60_000,
+    limit: 60,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    message: { error: 'Too many requests, please try again later.' },
+  });
+  r.use(limiter);
   const reclaimTimelock = config.reclaimTimelock ?? 256;
   const seed = config.seSeed;
 

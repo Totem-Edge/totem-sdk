@@ -10,6 +10,7 @@
  */
 
 import { encodeMessage } from '@totemsdk/lookup-protocol';
+import { randomBytes } from 'node:crypto';
 import type { LookupMessage } from '@totemsdk/lookup-protocol';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import { generateChallenge, verifyAuthResponse } from './server-auth.js';
@@ -74,7 +75,7 @@ export class ClientSession {
     private readonly _transport: ITransport,
     private readonly _dispatcher: NodeDispatcher,
   ) {
-    this.sessionId = `session-${Math.random().toString(36).slice(2)}-${Date.now()}`;
+    this.sessionId = `session-${randomBytes(8).toString('hex')}-${Date.now()}`;
     this._sendFn = makeRawSender(_transport);
 
     // Issue challenge immediately
