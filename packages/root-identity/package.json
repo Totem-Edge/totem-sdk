@@ -10,7 +10,7 @@
       "bare": "./dist/index.js",
       "browser": "./dist/index.js",
       "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "require": "./dist/index.js"
     }
   },
   "scripts": {
