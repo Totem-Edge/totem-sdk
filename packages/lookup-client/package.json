@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/lookup-client",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Hyperswarm client for Totem lookup nodes — chain queries, real-time coin updates, and TxPoW broadcast without a local chain DB",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
