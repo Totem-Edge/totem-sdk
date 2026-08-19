@@ -5,22 +5,13 @@
     "packages/agent-policy": { "status": "publishable" },
     "packages/authority": { "status": "publishable" },
     "packages/chain-provider": { "status": "publishable" },
-    "packages/connect": {
-      "status": "excluded",
-      "reason": "no unit tests (test script is tsc --noEmit only); excluded until substantive tests exist"
-    },
+    "packages/connect": { "status": "publishable" },
     "packages/core": { "status": "publishable" },
     "packages/core-wasm": { "status": "publishable" },
     "packages/edge": { "status": "publishable" },
     "packages/edge-adapters": { "status": "publishable" },
-    "packages/edge-bacnet": {
-      "status": "excluded",
-      "reason": "placeholder smoke test (expect(true).toBe(true)); protocol implementation pending"
-    },
-    "packages/edge-ble": {
-      "status": "excluded",
-      "reason": "placeholder smoke test (expect(true).toBe(true)); protocol implementation pending"
-    },
+    "packages/edge-bacnet": { "status": "publishable" },
+    "packages/edge-ble": { "status": "publishable" },
     "packages/edge-can": {
       "status": "excluded",
       "reason": "no tests; Go sidecar not packaged as a verified native dependency"
@@ -29,22 +20,13 @@
       "status": "excluded",
       "reason": "no tests; Go sidecar not packaged as a verified native dependency"
     },
-    "packages/edge-email": {
-      "status": "excluded",
-      "reason": "placeholder smoke test (expect(true).toBe(true)); protocol implementation pending"
-    },
+    "packages/edge-email": { "status": "publishable" },
     "packages/edge-grpc": {
       "status": "excluded",
       "reason": "Go binary rewritten to use real google.golang.org/grpc (unary + streaming); TS side updated to match; no Go toolchain to compile; no substantive tests"
     },
-    "packages/edge-lorawan": {
-      "status": "excluded",
-      "reason": "placeholder smoke test (expect(true).toBe(true)); protocol implementation pending"
-    },
-    "packages/edge-matter": {
-      "status": "excluded",
-      "reason": "placeholder smoke test (expect(true).toBe(true)); protocol implementation pending"
-    },
+    "packages/edge-lorawan": { "status": "publishable" },
+    "packages/edge-matter": { "status": "publishable" },
     "packages/edge-modbus": {
       "status": "excluded",
       "reason": "TS side fixed (RTU frame format, MBAP length bug, write ops, exception handling); Go binary uses goburrow/modbus (8 FCs); no Go toolchain to compile; no tests"
@@ -54,10 +36,7 @@
       "status": "excluded",
       "reason": "TS side fixed (subscription sampling interval, empty-subscription cleanup); Rust binary uses opcua crate; no substantive tests"
     },
-    "packages/edge-ros2": {
-      "status": "excluded",
-      "reason": "placeholder smoke test (expect(true).toBe(true)); protocol implementation pending"
-    },
+    "packages/edge-ros2": { "status": "publishable" },
     "packages/governance": { "status": "publishable" },
     "packages/identity": { "status": "publishable" },
     "packages/industrial-action": { "status": "publishable" },
@@ -70,10 +49,7 @@
     "packages/lookup-node": { "status": "publishable" },
     "packages/lookup-protocol": { "status": "publishable" },
     "packages/manifest": { "status": "publishable" },
-    "packages/mcp-server": {
-      "status": "excluded",
-      "reason": "no test script and no tests"
-    },
+    "packages/mcp-server": { "status": "publishable" },
     "packages/omnia": { "status": "publishable" },
     "packages/omnia-factory": { "status": "publishable" },
     "packages/omnia-host": { "status": "publishable" },
@@ -85,10 +61,7 @@
     "packages/proof-integritas": { "status": "publishable" },
     "packages/proofgraph": { "status": "publishable" },
     "packages/provider-bond": { "status": "publishable" },
-    "packages/pubsub-transport": {
-      "status": "excluded",
-      "reason": "no tests"
-    },
+    "packages/pubsub-transport": { "status": "publishable" },
     "packages/minima-rpc": { "status": "publishable" },
     "packages/realtime": { "status": "publishable" },
     "packages/recursive-mast": { "status": "publishable" },
@@ -109,10 +82,7 @@
       "reason": "stale compiled .js files in core/src/ conflict with ts-jest source resolution; requires core/src cleanup before tests can run"
     },
     "packages/txpow": { "status": "publishable" },
-    "packages/wallet-adapter": {
-      "status": "excluded",
-      "reason": "no unit tests (test script is tsc --noEmit only)"
-    },
+    "packages/wallet-adapter": { "status": "publishable" },
     "packages/wots-lease": { "status": "publishable" }
   }
 }

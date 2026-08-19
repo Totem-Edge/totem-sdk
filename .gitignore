@@ -10,3 +10,5 @@ test-results/
 # Large test vector files
 packages/core/test-vectors/java-parity/*.jar
 target/
+packages/*/rust/pkg/
+packages/*/rust/pkg-node/

@@ -15,7 +15,8 @@
     "build": "tsc",
     "prepare": "tsc",
     "clean": "rm -rf dist",
-    "test": "tsc --noEmit"
+    "test": "jest",
+    "test:typecheck": "tsc --noEmit"
   },
   "files": [
     "dist",
@@ -37,7 +38,10 @@
     }
   },
   "devDependencies": {
+    "@types/jest": "^30.0.0",
     "@types/node": "^20.0.0",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.0.0",
     "typescript": "^7.0.2"
   },
   "license": "MIT",

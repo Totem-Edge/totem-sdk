@@ -1,7 +1,7 @@
 <!--
   SEO metadata (for standalone repo README / social sharing)
   title: Building Eefi with Totem Edge — Edge DeFi, IoT Payments & the Machine Economy on Minima
-  description: Edge DeFi (Eefi) is a new category of financial infrastructure where IoT devices, sensors, and machines run their own payment channels, liquidity pools, and governance — all on the Minima blockchain, all quantum-resistant, all without cloud servers. Learn how the Totem SDK's 55+ packages compose to turn every device into a bank.
+  description: Edge DeFi (Eefi) is a new category of financial infrastructure where IoT devices, sensors, and machines run their own payment channels, liquidity pools, and governance — all on the Minima blockchain, all quantum-resistant, all without cloud servers. Learn how the Totem SDK's 55 publishable packages compose to turn every device into a bank.
   keywords: Edge DeFi, Eefi, IoT payments, machine economy, machine-to-machine payments, M2M payments, autonomous payments, device payments, Minima blockchain, Totem SDK, Omnia payment channels, eltoo, WOTS signatures, quantum-resistant, statechains, VTXO, channel factory, MachinePay, QVAC, agent policy, recursive MAST, quadratic voting, liquid democracy, provider bonds, liquidity bonds, edge computing, industrial IoT, DePIN, decentralized physical infrastructure
   og:image: https://totem.ing/img/totem-edge-framework.png
   og:type: article
@@ -50,7 +50,7 @@ Now imagine the same scenario in Eefi. The sensor detects the anomaly. It has it
 
 **The device is the bank. The device is the auditor. The device is the market participant.**
 
-This isn't science fiction. Every piece of this stack exists today in the Totem SDK — 55+ packages spanning cryptographic primitives, payment channels, identity systems, governance frameworks, proof layers, and edge computing runtimes. This article walks through how they compose to create Eefi, following two journeys: a human user who wants to pay a device for a service, and a device that wants to earn revenue autonomously.
+This isn't science fiction. Every piece of this stack exists today in the Totem SDK — 55 publishable packages spanning cryptographic primitives, payment channels, identity systems, governance frameworks, proof layers, and edge computing runtimes. This article walks through how they compose to create Eefi, following two journeys: a human user who wants to pay a device for a service, and a device that wants to earn revenue autonomously.
 
 ---
 

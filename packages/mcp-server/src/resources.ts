@@ -179,7 +179,7 @@ export function handleResourceRead(uri: string, index: SdkIndex): string | null 
 
 export function listResources(index: SdkIndex): Array<{ uri: string; name: string; description: string }> {
   const resources: Array<{ uri: string; name: string; description: string }> = [
-    { uri: 'totemsdk://packages', name: 'All Packages', description: 'List of all 53 SDK packages with metadata' },
+    { uri: 'totemsdk://packages', name: 'All Packages', description: `List of all ${Object.keys(index.packages).length} SDK packages with metadata` },
     { uri: 'totemsdk://templates', name: 'All KISSVM Templates', description: 'All 45 KISSVM script templates with import paths and descriptions' },
     { uri: 'totemsdk://conventions', name: 'Coding Conventions', description: 'Totem SDK coding conventions and patterns' },
     { uri: 'totemsdk://domain-map', name: 'Domain Map', description: 'Packages grouped by domain layer' },
