@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/proofgraph",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Local deterministic proof relationship graph for Totem Edge — indexes proofs, identities, manifests, and subjects into a queryable content-addressed DAG",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

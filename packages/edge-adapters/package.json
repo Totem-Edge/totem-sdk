@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/edge-adapters",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Reference adapters bridging Totem SDK packages to @totemsdk/edge port interfaces",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

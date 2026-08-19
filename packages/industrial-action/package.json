@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/industrial-action",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Deterministic industrial action lifecycle for Totem Edge — converts governed intent into context-aware, bounded, verifiably executed operations on field devices and protocols",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

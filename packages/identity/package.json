@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/identity",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Canonical identity and claims layer for Totem Edge — who controls a manifest, device, or agent",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

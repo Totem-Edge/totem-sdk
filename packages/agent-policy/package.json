@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/agent-policy",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Agent-policy interface contracts — language-agnostic Protobuf schema for AI agent ↔ wallet communication",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

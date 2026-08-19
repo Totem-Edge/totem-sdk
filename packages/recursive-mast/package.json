@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/recursive-mast",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "Recursive MAST + PREVSTATE library — composable policy trees, proof chains, state transitions, and delegation workflows for Minima KISSVM",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

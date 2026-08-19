@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/realtime",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "Real-time balance streaming with WebSocket and HTTP fallback",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

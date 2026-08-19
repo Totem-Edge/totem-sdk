@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/core",
-  "version": "1.2.7",
+  "version": "1.2.8",
   "description": "Core cryptographic primitives for Totem SDK — backed by Rust/WASM",
   "type": "module",
   "main": "dist/cjs/index.js",
