@@ -10,7 +10,7 @@
 
 ### resolve()
 
-> **resolve**(`identityId`): `any`
+> **resolve**(`identityId`): `IdentityGraph` \| `undefined`
 
 #### Parameters
 
@@ -20,4 +20,4 @@
 
 #### Returns
 
-`any`
+`IdentityGraph` \| `undefined`

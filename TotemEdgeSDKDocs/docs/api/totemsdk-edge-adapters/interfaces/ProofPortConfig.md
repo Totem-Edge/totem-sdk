@@ -10,7 +10,7 @@
 
 ### defaultKind?
 
-> `optional` **defaultKind?**: `any`
+> `optional` **defaultKind?**: `ProofKind`
 
 Default proof kind when callers don't specify one via context.
 

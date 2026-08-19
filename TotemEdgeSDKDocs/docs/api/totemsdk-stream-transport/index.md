@@ -6,6 +6,7 @@
 
 ## Classes
 
+- [ClosedTransportError](classes/ClosedTransportError.md)
 - [HyperswarmStreamTransport](classes/HyperswarmStreamTransport.md)
 - [InMemoryTransport](classes/InMemoryTransport.md)
 - [NodeStreamTransport](classes/NodeStreamTransport.md)
@@ -17,12 +18,14 @@
 
 - [HyperswarmTransportConfig](interfaces/HyperswarmTransportConfig.md)
 - [IStreamTransport](interfaces/IStreamTransport.md)
+- [StdioStreamTransportOptions](interfaces/StdioStreamTransportOptions.md)
 
 ## Type Aliases
 
 - [CloseHandler](type-aliases/CloseHandler.md)
 - [DataHandler](type-aliases/DataHandler.md)
 - [ErrorHandler](type-aliases/ErrorHandler.md)
+- [TransportState](type-aliases/TransportState.md)
 
 ## Functions
 

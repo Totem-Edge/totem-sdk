@@ -32,6 +32,38 @@ Implementations typically check risk, amount thresholds, and known agents.
 
 ***
 
+### commit()?
+
+> `optional` **commit**(`operationId`): `Promise`\<`void`\>
+
+#### Parameters
+
+##### operationId
+
+`string`
+
+#### Returns
+
+`Promise`\<`void`\>
+
+***
+
+### release()?
+
+> `optional` **release**(`operationId`): `Promise`\<`void`\>
+
+#### Parameters
+
+##### operationId
+
+`string`
+
+#### Returns
+
+`Promise`\<`void`\>
+
+***
+
 ### requiresUserApproval()
 
 > **requiresUserApproval**(`proposal`): `Promise`\<`boolean`\>
@@ -49,3 +81,26 @@ Generally the complement of canAutoApprove, but may have independent logic
 #### Returns
 
 `Promise`\<`boolean`\>
+
+***
+
+### reserve()?
+
+> `optional` **reserve**(`proposal`): `Promise`\<[`PolicyEvalResult`](PolicyEvalResult.md)\>
+
+Optional reservation lifecycle for stateful policies.
+
+The execution boundary calls `reserve` before executing, then `commit`
+after a successful execution or `release` on any failure path. When
+implemented, quota is only consumed through reserve/commit — a read-only
+`evaluate` / `canAutoApprove` never touches the limits.
+
+#### Parameters
+
+##### proposal
+
+[`AgentProposal`](AgentProposal.md)
+
+#### Returns
+
+`Promise`\<[`PolicyEvalResult`](PolicyEvalResult.md)\>

@@ -16,7 +16,7 @@
 
 ### lifecycle?
 
-> `optional` **lifecycle?**: `any`
+> `optional` **lifecycle?**: `LifecycleAdapter`
 
 ***
 

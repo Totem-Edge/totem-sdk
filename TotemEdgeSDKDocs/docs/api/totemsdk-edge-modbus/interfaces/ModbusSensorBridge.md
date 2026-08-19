@@ -12,8 +12,6 @@
 
 > **poll**(): `Promise`\<`void`\>
 
-Force a single poll cycle.
-
 #### Returns
 
 `Promise`\<`void`\>

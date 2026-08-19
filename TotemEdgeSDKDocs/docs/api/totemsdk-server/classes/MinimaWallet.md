@@ -218,7 +218,7 @@ Initialize wallet with new seed phrase or load existing
 
 ### mineAndSubmitTxPoW()
 
-> **mineAndSubmitTxPoW**(`txBytes`, `witnessBytes`, `opts?`): `Promise`\<\{ `elapsedMs`: `number`; `miningSource`: `MineResult`; `txpowId`: `string`; \}\>
+> **mineAndSubmitTxPoW**(`txBytes`, `witnessBytes`, `opts?`): `Promise`\<\{ `elapsedMs`: `number`; `miningSource`: `"wasm"` \| `"js"`; `txpowId`: `string`; \}\>
 
 Mine a TxPoW locally and submit it to the Axia API.
 
@@ -269,7 +269,7 @@ Optional: axiaBaseUrl override, AbortSignal, mining chunk size.
 
 #### Returns
 
-`Promise`\<\{ `elapsedMs`: `number`; `miningSource`: `MineResult`; `txpowId`: `string`; \}\>
+`Promise`\<\{ `elapsedMs`: `number`; `miningSource`: `"wasm"` \| `"js"`; `txpowId`: `string`; \}\>
 
 txpowId (hex), mining source, and wall-clock time.
 

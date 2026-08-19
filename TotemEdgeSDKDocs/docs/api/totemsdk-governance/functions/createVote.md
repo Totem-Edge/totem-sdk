@@ -6,7 +6,7 @@
 
 # Function: createVote()
 
-> **createVote**(`params`): `string` \| [`Vote`](../interfaces/Vote.md)
+> **createVote**(`params`): [`GovernanceResult`](../type-aliases/GovernanceResult.md)\<[`Vote`](../interfaces/Vote.md)\>
 
 ## Parameters
 
@@ -42,4 +42,4 @@
 
 ## Returns
 
-`string` \| [`Vote`](../interfaces/Vote.md)
+[`GovernanceResult`](../type-aliases/GovernanceResult.md)\<[`Vote`](../interfaces/Vote.md)\>

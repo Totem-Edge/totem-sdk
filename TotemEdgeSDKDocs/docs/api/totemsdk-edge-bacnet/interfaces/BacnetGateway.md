@@ -78,7 +78,7 @@ Read a property from a remote device.
 
 ### writeProperty()
 
-> **writeProperty**(`deviceId`, `objectType`, `objectInstance`, `propertyId`, `value`, `priority?`): `Promise`\<`EdgeOperationResult`\>
+> **writeProperty**(`deviceId`, `objectType`, `objectInstance`, `propertyId`, `value`, `priority?`): `Promise`\<`EdgeOperationResult`\<`unknown`\>\>
 
 Write a property to a remote device.
 
@@ -110,4 +110,4 @@ Write a property to a remote device.
 
 #### Returns
 
-`Promise`\<`EdgeOperationResult`\>
+`Promise`\<`EdgeOperationResult`\<`unknown`\>\>

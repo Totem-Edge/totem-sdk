@@ -6,4 +6,20 @@
 
 # Variable: timingSafeEqual
 
-> `const` **timingSafeEqual**: `any` = `timing_safe_equal_wasm`
+> `const` **timingSafeEqual**: (`a`, `b`) => `boolean` = `timing_safe_equal_wasm`
+
+Constant-time comparison of two byte arrays.
+
+## Parameters
+
+### a
+
+`Uint8Array`
+
+### b
+
+`Uint8Array`
+
+## Returns
+
+`boolean`

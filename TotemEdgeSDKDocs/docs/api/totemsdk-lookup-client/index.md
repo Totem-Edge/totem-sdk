@@ -14,12 +14,12 @@
 ## Interfaces
 
 - [CoinUpdateEvent](interfaces/CoinUpdateEvent.md)
+- [ITransport](interfaces/ITransport.md)
 - [LookupClientConfig](interfaces/LookupClientConfig.md)
 
 ## Type Aliases
 
 - [CoinUpdateCallback](type-aliases/CoinUpdateCallback.md)
-- [ITransport](type-aliases/ITransport.md)
 - [Unsubscribe](type-aliases/Unsubscribe.md)
 
 ## Functions

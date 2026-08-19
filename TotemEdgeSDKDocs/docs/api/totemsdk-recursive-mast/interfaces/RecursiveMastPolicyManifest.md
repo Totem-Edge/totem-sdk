@@ -140,7 +140,7 @@ The subject being governed.
 
 #### type
 
-> **type**: `"vehicle"` \| `"machine"` \| `"device"` \| `"site"` \| `"fleet"` \| `"building"`
+> **type**: `"site"` \| `"vehicle"` \| `"machine"` \| `"device"` \| `"fleet"` \| `"building"`
 
 ***
 

@@ -6,7 +6,7 @@
 
 # Function: attachCounterpartySignature()
 
-> **attachCounterpartySignature**(`channel`, `partialState`, `counterPartyId`, `counterSignature`, `counterIndices`): `object`
+> **attachCounterpartySignature**(`channel`, `partialState`, `counterPartyId`, `counterSignature`, `counterIndices`, `counterClosePackage?`): `object`
 
 ## Parameters
 
@@ -28,7 +28,11 @@
 
 ### counterIndices
 
-`any`
+`SigningIndices`
+
+### counterClosePackage?
+
+[`SignedClosePackage`](../interfaces/SignedClosePackage.md)
 
 ## Returns
 

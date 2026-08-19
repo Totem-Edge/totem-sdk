@@ -1,80 +1,121 @@
 {
   "name": "@totemsdk/core",
-  "version": "1.2.6",
+  "version": "1.2.7",
   "description": "Core cryptographic primitives for Totem SDK — backed by Rust/WASM",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "type": "module",
+  "main": "dist/cjs/index.js",
+  "types": "dist/cjs/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "require": "./dist/index.js",
-      "import": "./dist/index.js"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
     },
     "./wasm": {
-      "types": "./dist/wasm-sync.d.ts",
-      "require": "./dist/wasm-sync.js",
-      "import": "./dist/wasm-sync.js"
+      "import": {
+        "types": "./dist/wasm-sync.d.ts",
+        "default": "./dist/wasm-sync.js"
+      },
+      "require": {
+        "types": "./dist/cjs/wasm-sync.d.ts",
+        "default": "./dist/cjs/wasm-sync.js"
+      }
     },
     "./legacy": {
-      "types": "./dist/legacy.d.ts",
-      "require": "./dist/legacy.js",
-      "import": "./dist/legacy.js"
+      "import": {
+        "types": "./dist/legacy.d.ts",
+        "default": "./dist/legacy.js"
+      },
+      "require": {
+        "types": "./dist/cjs/legacy.d.ts",
+        "default": "./dist/cjs/legacy.js"
+      }
     },
     "./adapters": {
-      "types": "./dist/adapters/index.d.ts",
-      "require": "./dist/adapters/index.js",
-      "import": "./dist/adapters/index.js"
+      "import": {
+        "types": "./dist/adapters/index.d.ts",
+        "default": "./dist/adapters/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/adapters/index.d.ts",
+        "default": "./dist/cjs/adapters/index.js"
+      }
     },
     "./adapters/types": {
-      "types": "./dist/adapters/types.d.ts",
-      "require": "./dist/adapters/types.js",
-      "import": "./dist/adapters/types.js"
+      "import": {
+        "types": "./dist/adapters/types.d.ts",
+        "default": "./dist/adapters/types.js"
+      },
+      "require": {
+        "types": "./dist/cjs/adapters/types.d.ts",
+        "default": "./dist/cjs/adapters/types.js"
+      }
     },
     "./lease": {
-      "types": "./dist/lease/index.d.ts",
-      "require": "./dist/lease/index.js",
-      "import": "./dist/lease/index.js"
+      "import": {
+        "types": "./dist/lease/index.d.ts",
+        "default": "./dist/lease/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/lease/index.d.ts",
+        "default": "./dist/cjs/lease/index.js"
+      }
     },
     "./tx": {
-      "types": "./dist/tx/index.d.ts",
-      "require": "./dist/tx/index.js",
-      "import": "./dist/tx/index.js"
+      "import": {
+        "types": "./dist/tx/index.d.ts",
+        "default": "./dist/tx/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/tx/index.d.ts",
+        "default": "./dist/cjs/tx/index.js"
+      }
     },
     "./scripts": {
-      "types": "./dist/scripts/index.d.ts",
-      "require": "./dist/scripts/index.js",
-      "import": "./dist/scripts/index.js"
+      "import": {
+        "types": "./dist/scripts/index.d.ts",
+        "default": "./dist/scripts/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/scripts/index.d.ts",
+        "default": "./dist/cjs/scripts/index.js"
+      }
     },
     "./test-vectors.json": "./test-vectors.json"
   },
   "typesVersions": {
     "*": {
       "wasm": [
-        "./dist/wasm-sync.d.ts"
+        "./dist/cjs/wasm-sync.d.ts"
       ],
       "legacy": [
-        "./dist/legacy.d.ts"
+        "./dist/cjs/legacy.d.ts"
       ],
       "adapters": [
-        "./dist/adapters/index.d.ts"
+        "./dist/cjs/adapters/index.d.ts"
       ],
       "adapters/types": [
-        "./dist/adapters/types.d.ts"
+        "./dist/cjs/adapters/types.d.ts"
       ],
       "lease": [
-        "./dist/lease/index.d.ts"
+        "./dist/cjs/lease/index.d.ts"
       ],
       "tx": [
-        "./dist/tx/index.d.ts"
+        "./dist/cjs/tx/index.d.ts"
       ],
       "scripts": [
-        "./dist/scripts/index.d.ts"
+        "./dist/cjs/scripts/index.d.ts"
       ]
     }
   },
   "scripts": {
-    "build": "tsc",
-    "prepare": "tsc",
+    "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
+    "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist",
     "test": "jest",
     "gen:pkdigest": "node scripts/gen_wots_pkdigest_vectors.cjs"

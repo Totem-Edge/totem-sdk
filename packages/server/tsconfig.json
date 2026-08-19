@@ -17,10 +17,10 @@
     "resolveJsonModule": true,
     "paths": {
       "@totemsdk/core": [
-        "../core/dist/index.d.ts"
+        "../core/dist/cjs/index.d.ts"
       ],
       "@totemsdk/core/*": [
-        "../core/dist/*"
+        "../core/dist/cjs/*"
       ]
     },
     "types": [

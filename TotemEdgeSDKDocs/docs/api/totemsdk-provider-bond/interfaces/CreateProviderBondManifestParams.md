@@ -10,7 +10,7 @@
 
 ### edgeService
 
-> **edgeService**: `any`
+> **edgeService**: `EdgeServiceManifest`
 
 ***
 
@@ -22,4 +22,4 @@
 
 ### signedEdgeService?
 
-> `optional` **signedEdgeService?**: `any`
+> `optional` **signedEdgeService?**: `SignedManifest`\<`EdgeServiceManifest`\>

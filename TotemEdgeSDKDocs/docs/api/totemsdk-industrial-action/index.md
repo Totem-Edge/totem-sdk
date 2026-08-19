@@ -41,15 +41,12 @@
 - [ExecutionStatus](type-aliases/ExecutionStatus.md)
 - [ParameterType](type-aliases/ParameterType.md)
 
-## Variables
-
-- [toHex](variables/toHex.md)
-
 ## Functions
 
 - [assertValidContext](functions/assertValidContext.md)
 - [assertValidParameters](functions/assertValidParameters.md)
 - [assertValidProposal](functions/assertValidProposal.md)
+- [canonicalJson](functions/canonicalJson.md)
 - [checkGovernanceConstraints](functions/checkGovernanceConstraints.md)
 - [computeActionExecutionId](functions/computeActionExecutionId.md)
 - [computeActionProposalId](functions/computeActionProposalId.md)
@@ -63,23 +60,13 @@
 - [createReceipt](functions/createReceipt.md)
 - [evaluateConditions](functions/evaluateConditions.md)
 - [executeAction](functions/executeAction.md)
+- [hashCanonical](functions/hashCanonical.md)
 - [isProposalExecutable](functions/isProposalExecutable.md)
 - [isProposalExpired](functions/isProposalExpired.md)
 - [serializeCommitmentPayload](functions/serializeCommitmentPayload.md)
+- [toHex](functions/toHex.md)
 - [validateContext](functions/validateContext.md)
 - [validateParameters](functions/validateParameters.md)
 - [verifyCommitment](functions/verifyCommitment.md)
 - [verifyCommitmentBinding](functions/verifyCommitmentBinding.md)
 - [verifyReceiptIntegrity](functions/verifyReceiptIntegrity.md)
-
-## References
-
-### canonicalJson
-
-Renames and re-exports [toHex](variables/toHex.md)
-
-***
-
-### hashCanonical
-
-Renames and re-exports [toHex](variables/toHex.md)

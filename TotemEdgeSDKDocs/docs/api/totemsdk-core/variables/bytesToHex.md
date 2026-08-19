@@ -6,4 +6,16 @@
 
 # Variable: bytesToHex
 
-> `const` **bytesToHex**: `any` = `bytes_to_hex_wasm`
+> `const` **bytesToHex**: (`bytes`) => `string` = `bytes_to_hex_wasm`
+
+Convert bytes to uppercase hex string.
+
+## Parameters
+
+### bytes
+
+`Uint8Array`
+
+## Returns
+
+`string`

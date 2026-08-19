@@ -50,6 +50,93 @@ export interface EdgeProofPort {
   }): Promise<EdgeOperationResult<{ valid: boolean; reason?: string }>>;
 }
 
+export interface EdgeLocationPort {
+  createClaim(params: {
+    subjectId: string;
+    deviceId: string;
+    deviceClass?: string;
+    operatorId?: string;
+    observedAt?: number;
+    location: { lat: number; lon: number; altitudeM?: number; accuracyM?: number };
+    source: {
+      type: string;
+      fixType?: string;
+      satellitesUsed?: number;
+      hdop?: number;
+      vdop?: number;
+      pdop?: number;
+      rawPayloadHash?: string;
+      nmeaPayloadHash?: string;
+      spoofingFlag?: boolean;
+      jammingFlag?: boolean;
+      metadata?: Record<string, unknown>;
+    };
+    challenge?: {
+      nonce: string;
+      issuedAt: number;
+      expiresAt?: number;
+      verifierId: string;
+    };
+    corroboration?: {
+      beaconsSeen?: string[];
+      wifiFingerprints?: string[];
+      cellTowers?: string[];
+      lorawanGateways?: string[];
+      networkProfileId?: string;
+      nearbyDeviceProofIds?: string[];
+      metadata?: Record<string, unknown>;
+    };
+    metadata?: Record<string, unknown>;
+  }): Promise<EdgeOperationResult<{ claimId: string; claim: unknown }>>;
+
+  scoreClaim(params: {
+    claim: unknown;
+    options?: {
+      accuracyThresholdM?: number;
+      weakAccuracyThresholdM?: number;
+      maxAgeMs?: number;
+      now?: number;
+      strongSatellites?: number;
+      strongHdop?: number;
+    };
+  }): Promise<EdgeOperationResult<{ score: number; level: string; positiveSignals: string[]; negativeSignals: string[] }>>;
+
+  createTrail(params: {
+    subjectId: string;
+    deviceId: string;
+    samples: Array<{
+      observedAt: number;
+      location: { lat: number; lon: number; altitudeM?: number; accuracyM?: number };
+      headingDeg?: number;
+      speedMps?: number;
+      accuracyM?: number;
+      source?: {
+        type: string;
+        fixType?: string;
+        satellitesUsed?: number;
+        hdop?: number;
+        rawPayloadHash?: string;
+        nmeaPayloadHash?: string;
+        spoofingFlag?: boolean;
+        jammingFlag?: boolean;
+        metadata?: Record<string, unknown>;
+      };
+    }>;
+    metadata?: Record<string, unknown>;
+    maxSpeedMps?: number;
+  }): Promise<EdgeOperationResult<{ trailId: string; trail: unknown }>>;
+
+  createProof(params: {
+    claim: unknown;
+    context?: Record<string, unknown>;
+  }): Promise<EdgeOperationResult<{ proofId: string; proof: unknown }>>;
+
+  verifyProof(params: {
+    proof: unknown;
+    now?: number;
+  }): Promise<EdgeOperationResult<{ valid: boolean; reason?: string; expired?: boolean; signerAddress?: string; claimId?: string }>>;
+}
+
 export interface EdgeLookupPort {
   lookup(params: {
     query: string;
@@ -166,6 +253,7 @@ export interface EdgeRuntimePorts {
   liquidity?: EdgeLiquidityPort;
   proof?: EdgeProofPort;
   lookup?: EdgeLookupPort;
+  location?: EdgeLocationPort;
   policy?: EdgePolicyPort;
   identity?: EdgeIdentityPort;
   manifest?: EdgeManifestPort;

@@ -6,7 +6,7 @@
 
 # Function: buildUpdateTx()
 
-> **buildUpdateTx**(`channel`, `newSequence`, `newBalances`, `pendingHTLCs`): [`OmniaTxDraft`](../interfaces/OmniaTxDraft.md)
+> **buildUpdateTx**(`channel`, `newSequence`, `newBalances`, `pendingHTLCs`, `programStateVariables?`): [`OmniaTxDraft`](../interfaces/OmniaTxDraft.md)
 
 ## Parameters
 
@@ -25,6 +25,10 @@
 ### pendingHTLCs
 
 [`HTLCRecord`](../interfaces/HTLCRecord.md)[]
+
+### programStateVariables?
+
+[`StateValue`](../interfaces/StateValue.md)[] = `[]`
 
 ## Returns
 

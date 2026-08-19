@@ -20,7 +20,7 @@ Wall-clock mining time in milliseconds (excludes API latency).
 
 ### miningSource
 
-> **miningSource**: `MineResult`
+> **miningSource**: `"wasm"` \| `"js"`
 
 Mining engine: `'wasm'` when the pre-compiled binary was used.
 

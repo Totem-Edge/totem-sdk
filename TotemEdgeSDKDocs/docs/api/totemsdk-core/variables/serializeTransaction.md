@@ -6,4 +6,16 @@
 
 # Variable: serializeTransaction
 
-> `const` **serializeTransaction**: `any` = `serialize_transaction_wasm`
+> `const` **serializeTransaction**: (`tx_json`) => `Uint8Array` = `serialize_transaction_wasm`
+
+Serialize a transaction for digest computation.
+
+## Parameters
+
+### tx\_json
+
+`string`
+
+## Returns
+
+`Uint8Array`

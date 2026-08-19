@@ -122,7 +122,7 @@ Read an attribute from a node.
 
 ### writeAttribute()
 
-> **writeAttribute**(`nodeId`, `endpointId`, `clusterId`, `attributeId`, `value`): `Promise`\<`EdgeOperationResult`\>
+> **writeAttribute**(`nodeId`, `endpointId`, `clusterId`, `attributeId`, `value`): `Promise`\<`EdgeOperationResult`\<`unknown`\>\>
 
 Write an attribute to a node.
 
@@ -150,4 +150,4 @@ Write an attribute to a node.
 
 #### Returns
 
-`Promise`\<`EdgeOperationResult`\>
+`Promise`\<`EdgeOperationResult`\<`unknown`\>\>

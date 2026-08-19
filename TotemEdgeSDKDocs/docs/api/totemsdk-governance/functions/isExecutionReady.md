@@ -6,7 +6,7 @@
 
 # Function: isExecutionReady()
 
-> **isExecutionReady**(`proposal`, `_config?`): `boolean`
+> **isExecutionReady**(`proposal`, `_config?`, `now?`): `boolean`
 
 ## Parameters
 
@@ -17,6 +17,10 @@
 ### \_config?
 
 [`GovernanceConfig`](../interfaces/GovernanceConfig.md)
+
+### now?
+
+`number` = `...`
 
 ## Returns
 

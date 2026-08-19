@@ -9,7 +9,7 @@
 - [CompositeProvider](classes/CompositeProvider.md)
 - [HostedProvider](classes/HostedProvider.md)
 - [LookupClientProvider](classes/LookupClientProvider.md)
-- [PureMinimaRpcProvider](classes/PureMinimaRpcProvider.md)
+- [MinimaRpcProvider](classes/MinimaRpcProvider.md)
 
 ## Interfaces
 

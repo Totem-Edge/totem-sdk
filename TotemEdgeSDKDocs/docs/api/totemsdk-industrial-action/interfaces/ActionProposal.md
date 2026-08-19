@@ -10,7 +10,7 @@
 
 ### authorityDecision?
 
-> `optional` **authorityDecision?**: `any`
+> `optional` **authorityDecision?**: `AuthorityDecision`
 
 ***
 

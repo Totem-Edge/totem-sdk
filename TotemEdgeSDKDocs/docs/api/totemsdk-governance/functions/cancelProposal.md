@@ -6,7 +6,7 @@
 
 # Function: cancelProposal()
 
-> **cancelProposal**(`proposal`): `string` \| [`Proposal`](../interfaces/Proposal.md)
+> **cancelProposal**(`proposal`): [`GovernanceResult`](../type-aliases/GovernanceResult.md)\<[`Proposal`](../interfaces/Proposal.md)\>
 
 ## Parameters
 
@@ -16,4 +16,4 @@
 
 ## Returns
 
-`string` \| [`Proposal`](../interfaces/Proposal.md)
+[`GovernanceResult`](../type-aliases/GovernanceResult.md)\<[`Proposal`](../interfaces/Proposal.md)\>

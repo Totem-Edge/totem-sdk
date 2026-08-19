@@ -6,4 +6,20 @@
 
 # Variable: wotsPkFromSig
 
-> `const` **wotsPkFromSig**: `any` = `wots_pk_from_sig_wasm`
+> `const` **wotsPkFromSig**: (`message`, `signature`) => `Uint8Array` = `wots_pk_from_sig_wasm`
+
+Recover public key digest from signature.
+
+## Parameters
+
+### message
+
+`Uint8Array`
+
+### signature
+
+`Uint8Array`
+
+## Returns
+
+`Uint8Array`

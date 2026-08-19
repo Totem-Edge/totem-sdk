@@ -10,4 +10,4 @@
 
 ### kissvm?
 
-> `optional` **kissvm?**: [`KissvmEvaluator`](KissvmEvaluator.md)
+> `optional` **kissvm?**: `boolean` \| [`KissvmValidationOptions`](KissvmValidationOptions.md)

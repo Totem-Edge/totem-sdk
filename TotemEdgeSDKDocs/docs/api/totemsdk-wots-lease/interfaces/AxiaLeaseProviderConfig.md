@@ -22,7 +22,7 @@
 
 ### logger?
 
-> `optional` **logger?**: `any`
+> `optional` **logger?**: `LoggerAdapter`
 
 ***
 

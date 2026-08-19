@@ -6,7 +6,7 @@
 
 # Function: executeIntent()
 
-> **executeIntent**(`channel`, `intent`, `policy`, `leaseProvider`, `signer?`): `Promise`\<[`IntentResult`](../interfaces/IntentResult.md)\>
+> **executeIntent**(`channel`, `intent`, `policy`, `leaseProvider`, `signer?`, `options?`): `Promise`\<[`IntentResult`](../interfaces/IntentResult.md)\>
 
 Agent entry point for channel payment execution.
 
@@ -17,7 +17,10 @@ Evaluates `policy.canAutoApprove(proposal)`. If approved, calls `updateState` an
 returns an `AgentReceipt`. If approval is required, returns `{ status: 'pending_user' }`
 without signing.
 
-`canAutoApprove` is the primary and only gate — no bypass path exists.
+`canAutoApprove` is the primary and only gate — no bypass path exists. When the
+policy implements the reservation lifecycle, quota is reserved immediately before
+execution, committed on success, and released on any non-success path. Stateful
+policies are never mutated by the read-only `canAutoApprove` check.
 
 ## Parameters
 
@@ -27,11 +30,11 @@ without signing.
 
 ### intent
 
-`PaymentIntent`
+[`PaymentIntent`](../interfaces/PaymentIntent.md)
 
 ### policy
 
-`AgentPolicy`
+[`AgentPolicy`](../interfaces/AgentPolicy.md)
 
 ### leaseProvider
 
@@ -40,6 +43,10 @@ without signing.
 ### signer?
 
 [`ChannelSigner`](../interfaces/ChannelSigner.md)
+
+### options?
+
+`ExecuteIntentOptions`
 
 ## Returns
 

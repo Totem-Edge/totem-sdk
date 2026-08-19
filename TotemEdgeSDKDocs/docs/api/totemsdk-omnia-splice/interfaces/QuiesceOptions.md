@@ -31,7 +31,7 @@ when pending HTLCs are found.
 
 ##### pending
 
-`OmniaChannel`
+`HTLCRecord`[]
 
 The HTLCs that still need resolution.
 
