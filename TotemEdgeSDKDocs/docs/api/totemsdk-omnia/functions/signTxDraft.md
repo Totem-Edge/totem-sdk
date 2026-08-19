@@ -11,9 +11,8 @@
 Core signing primitive used by both update and settlement paths.
 Handles the full wots-lease reserve → sign → commit cycle for any OmniaTxDraft.
 
-The signed digest is the TX draft digest (suitable for settlement/dispute TXs
-where the on-chain TX fully encodes the intent). For channel update TXs, use
-`signState` which signs the full state commitment instead (see NOTE below).
+The signed digest is the canonical Minima transaction digest, matching the
+domain Minima validates in TxPoWChecker.checkSignatures().
 
 ## Parameters
 

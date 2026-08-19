@@ -42,7 +42,7 @@ const swarm = new Hyperswarm();
 
 ### topic
 
-> **topic**: `any`
+> **topic**: `string` \| `Buffer`\<`ArrayBufferLike`\>
 
 Topic to announce and join. Should be a 32-byte Buffer derived from
 a well-known string (e.g. `crypto.createHash('sha256').update('totem-lookup-v1').digest()`).

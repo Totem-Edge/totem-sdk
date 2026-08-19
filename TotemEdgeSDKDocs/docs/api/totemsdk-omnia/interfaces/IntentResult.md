@@ -14,9 +14,17 @@
 
 ***
 
+### idempotentReplay?
+
+> `optional` **idempotentReplay?**: `boolean`
+
+True when a stable operation ID was already committed.
+
+***
+
 ### receipt?
 
-> `optional` **receipt?**: `any`
+> `optional` **receipt?**: [`AgentReceipt`](AgentReceipt.md)
 
 ***
 

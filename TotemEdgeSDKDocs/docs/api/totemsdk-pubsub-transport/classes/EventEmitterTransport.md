@@ -26,7 +26,7 @@ form a bidirectional pub/sub channel: what one publishes, the other receives.
 
 ##### bus?
 
-`any`
+`EventEmitter`\<`DefaultEventMap`\>
 
 #### Returns
 

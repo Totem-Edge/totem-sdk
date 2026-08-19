@@ -6,7 +6,7 @@
 
 # Function: finalizeLease()
 
-> **finalizeLease**(`apiUrl`, `apiKey`, `leaseToken`, `signedHex`): `Promise`\<\{ `body`: `any`; `status`: `any`; \}\>
+> **finalizeLease**(`apiUrl`, `apiKey`, `leaseToken`, `signedHex`): `Promise`\<\{ `body`: `string`; `status`: `number`; \}\>
 
 ## Parameters
 
@@ -28,4 +28,4 @@
 
 ## Returns
 
-`Promise`\<\{ `body`: `any`; `status`: `any`; \}\>
+`Promise`\<\{ `body`: `string`; `status`: `number`; \}\>

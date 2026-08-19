@@ -14,9 +14,21 @@
 
 ***
 
+### closePackage?
+
+> `optional` **closePackage?**: [`SignedClosePackage`](SignedClosePackage.md)
+
+***
+
 ### pendingHTLCs
 
 > **pendingHTLCs**: [`HTLCRecord`](HTLCRecord.md)[]
+
+***
+
+### programTransition?
+
+> `optional` **programTransition?**: [`ProgramTransition`](ProgramTransition.md)
 
 ***
 
@@ -34,7 +46,7 @@
 
 ### signingIndices
 
-> **signingIndices**: `Record`\<[`partyId`](../type-aliases/partyId.md), [`PaymentIntent`](../type-aliases/PaymentIntent.md)\>
+> **signingIndices**: `Record`\<[`partyId`](../type-aliases/partyId.md), `SigningIndices`\>
 
 ***
 

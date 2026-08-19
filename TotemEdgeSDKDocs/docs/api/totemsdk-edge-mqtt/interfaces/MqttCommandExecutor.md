@@ -10,7 +10,7 @@
 
 ### execute()
 
-> **execute**(`command`): `Promise`\<`EdgeOperationResult`\>
+> **execute**(`command`): `Promise`\<`EdgeOperationResult`\<`unknown`\>\>
 
 #### Parameters
 
@@ -20,4 +20,4 @@
 
 #### Returns
 
-`Promise`\<`EdgeOperationResult`\>
+`Promise`\<`EdgeOperationResult`\<`unknown`\>\>

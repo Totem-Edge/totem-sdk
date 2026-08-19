@@ -18,6 +18,10 @@
 
 > **params**: `object`
 
+#### channelState?
+
+> `optional` **channelState?**: `string`
+
 #### metadata?
 
 > `optional` **metadata?**: `Record`\<`string`, `unknown`\>
@@ -26,6 +30,18 @@
 
 > **origin**: `string`
 
-#### txpowId
+#### proposalId
 
-> **txpowId**: `string`
+> **proposalId**: `string`
+
+#### rejectionReason?
+
+> `optional` **rejectionReason?**: `string`
+
+#### status
+
+> **status**: `"approved"` \| `"rejected"` \| `"pending_user"`
+
+#### txpowId?
+
+> `optional` **txpowId?**: `string`

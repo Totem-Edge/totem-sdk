@@ -14,11 +14,14 @@ Each entry provides the public-key digest and the corresponding WOTS
 signature over the transaction digest. The evaluator uses this witness
 when verifying SIGNEDBY / MULTISIG opcodes.
 
+For convenience, a `{ signatures }` map (pubkey hex → signature bytes or
+hex string) is also accepted — used by the canonical example suite.
+
 ## Parameters
 
 ### inputs
 
-[`WitnessInput`](../interfaces/WitnessInput.md)[]
+[`WitnessInput`](../interfaces/WitnessInput.md)[] \| \{ `signatures`: `Record`\<`string`, `Uint8Array` \| `string`\>; \}
 
 ## Returns
 

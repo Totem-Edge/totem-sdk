@@ -83,6 +83,9 @@ const PACKAGES = [
   { slug: 'totemsdk-provider-bond',    name: '@totemsdk/provider-bond',    desc: 'Provider trust layer — prove, record, score and filter infrastructure providers',             entryPoint: 'packages/provider-bond/src/index.ts' },
   { slug: 'totemsdk-liquidity-bond',   name: '@totemsdk/liquidity-bond',   desc: 'Deterministic LP position and productive liquidity record package',                           entryPoint: 'packages/liquidity-bond/src/index.ts' },
   { slug: 'totemsdk-industrial-action', name: '@totemsdk/industrial-action', desc: 'Industrial action templates for KISSVM — automated supply chain decisions',                entryPoint: 'packages/industrial-action/src/index.ts' },
+  { slug: 'totemsdk-location-proof',   name: '@totemsdk/location-proof',   desc: 'Generic location and movement proof primitives for Totem Edge — GPS/GNSS claims, confidence scoring, motion trails, and proof envelope integration', entryPoint: 'packages/location-proof/src/index.ts' },
+  { slug: 'totemsdk-spatial-proof',    name: '@totemsdk/spatial-proof',    desc: 'Generic spatial relationship proof primitives for Totem Edge — geometry hashes, geofence relations, route checks, and proof envelope integration', entryPoint: 'packages/spatial-proof/src/index.ts' },
+  { slug: 'totemsdk-raster-proof',     name: '@totemsdk/raster-proof',     desc: 'Edge-capable raster and visual evidence proof primitives for Totem Edge — asset hashes, tile Merkle roots, raster manifests, derived-layer provenance, and proof envelope integration', entryPoint: 'packages/raster-proof/src/index.ts' },
 
   // Lookup & Routing
   { slug: 'totemsdk-lookup-client',    name: '@totemsdk/lookup-client',    desc: 'Hyperswarm client for Totem lookup nodes — chain queries and real-time updates',              entryPoint: 'packages/lookup-client/src/index.ts' },
@@ -349,6 +352,32 @@ for (let i = 0; i < pkgsToProcess.length; i += CONCURRENCY) {
 
 const succeededCount = Object.values(typedocResults).filter(Boolean).length;
 console.log(`[generate] Per-package TypeDoc done: ${succeededCount}/${PACKAGES.length} with real docs.`);
+
+// ---------------------------------------------------------------------------
+// 2b. Write package index page (docs/api/index.md)
+//     Referenced explicitly by sidebars.ts as the "Package Index" doc, so it
+//     must be regenerated on every run or the Docusaurus build fails.
+// ---------------------------------------------------------------------------
+fs.writeFileSync(
+  path.join(API_DIR, 'index.md'),
+  [
+    '---',
+    'title: API Reference',
+    'sidebar_label: Package Index',
+    'description: "Auto-generated API reference for all @totemsdk/* packages."',
+    '---',
+    '',
+    '# API Reference',
+    '',
+    'Auto-generated from TypeScript sources via TypeDoc. Run `npm run generate` from `TotemEdgeSDKDocs/` to regenerate.',
+    '',
+    '| Package | Description |',
+    '|---------|-------------|',
+    ...PACKAGES.map(pkg => `| [\`${pkg.name}\`](${pkg.slug}/index.md) | ${pkg.desc} |`),
+    '',
+  ].join('\n')
+);
+console.log('[generate] Wrote docs/api/index.md');
 
 // ---------------------------------------------------------------------------
 // 3. Extract symbols from generated file tree

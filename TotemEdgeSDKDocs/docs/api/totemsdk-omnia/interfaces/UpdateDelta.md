@@ -17,3 +17,9 @@
 ### newBalances
 
 > **newBalances**: `Record`\<[`partyId`](../type-aliases/partyId.md), `bigint`\>
+
+***
+
+### programTransition?
+
+> `optional` **programTransition?**: [`ProgramTransition`](ProgramTransition.md)

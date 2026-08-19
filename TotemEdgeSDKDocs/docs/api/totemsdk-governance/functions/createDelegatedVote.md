@@ -6,7 +6,7 @@
 
 # Function: createDelegatedVote()
 
-> **createDelegatedVote**(`params`): `string` \| [`Vote`](../interfaces/Vote.md)[]
+> **createDelegatedVote**(`params`): [`GovernanceResult`](../type-aliases/GovernanceResult.md)\<[`Vote`](../interfaces/Vote.md)[]\>
 
 ## Parameters
 
@@ -38,4 +38,4 @@
 
 ## Returns
 
-`string` \| [`Vote`](../interfaces/Vote.md)[]
+[`GovernanceResult`](../type-aliases/GovernanceResult.md)\<[`Vote`](../interfaces/Vote.md)[]\>

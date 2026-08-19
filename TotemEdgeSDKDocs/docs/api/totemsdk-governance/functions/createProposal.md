@@ -6,7 +6,7 @@
 
 # Function: createProposal()
 
-> **createProposal**(`params`): `string` \| [`Proposal`](../interfaces/Proposal.md)
+> **createProposal**(`params`): [`GovernanceResult`](../type-aliases/GovernanceResult.md)\<[`Proposal`](../interfaces/Proposal.md)\>
 
 ## Parameters
 
@@ -42,4 +42,4 @@
 
 ## Returns
 
-`string` \| [`Proposal`](../interfaces/Proposal.md)
+[`GovernanceResult`](../type-aliases/GovernanceResult.md)\<[`Proposal`](../interfaces/Proposal.md)\>

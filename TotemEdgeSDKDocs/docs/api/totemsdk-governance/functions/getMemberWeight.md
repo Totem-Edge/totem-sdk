@@ -6,7 +6,7 @@
 
 # Function: getMemberWeight()
 
-> **getMemberWeight**(`snapshot`, `memberId`): `number`
+> **getMemberWeight**(`snapshot`, `memberId`, `at?`): `number`
 
 ## Parameters
 
@@ -17,6 +17,10 @@
 ### memberId
 
 `string`
+
+### at?
+
+`number` = `...`
 
 ## Returns
 

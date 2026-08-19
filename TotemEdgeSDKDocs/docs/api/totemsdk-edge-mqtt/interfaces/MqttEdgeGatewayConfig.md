@@ -28,13 +28,13 @@
 
 ### identity?
 
-> `optional` **identity?**: `any`
+> `optional` **identity?**: `TotemIdentityDocument`
 
 ***
 
 ### manifest?
 
-> `optional` **manifest?**: `any`
+> `optional` **manifest?**: `SignedManifest`\<`EdgeServiceManifest`\>
 
 ***
 

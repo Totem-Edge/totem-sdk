@@ -6,7 +6,7 @@
 
 # Function: announceToAll()
 
-> **announceToAll**(`runtimes`, `params`): `Promise`\<`EdgeOperationResult`[]\>
+> **announceToAll**(`runtimes`, `params`): `Promise`\<`EdgeOperationResult`\<`unknown`\>[]\>
 
 Announce to every lookup port in the provided list of runtimes.
 
@@ -28,4 +28,4 @@ to be discoverable on all of them without multiple call sites.
 
 ## Returns
 
-`Promise`\<`EdgeOperationResult`[]\>
+`Promise`\<`EdgeOperationResult`\<`unknown`\>[]\>

@@ -36,7 +36,7 @@
 
 ### onClose()
 
-> **onClose**(`cb`): `void`
+> **onClose**(`cb`): [`Unsubscribe`](../type-aliases/Unsubscribe.md)
 
 #### Parameters
 
@@ -46,13 +46,13 @@
 
 #### Returns
 
-`void`
+[`Unsubscribe`](../type-aliases/Unsubscribe.md)
 
 ***
 
 ### onError()
 
-> **onError**(`cb`): `void`
+> **onError**(`cb`): [`Unsubscribe`](../type-aliases/Unsubscribe.md)
 
 #### Parameters
 
@@ -62,7 +62,7 @@
 
 #### Returns
 
-`void`
+[`Unsubscribe`](../type-aliases/Unsubscribe.md)
 
 ***
 
@@ -94,7 +94,7 @@
 
 ### send()
 
-> **send**(`msg`): `void`
+> **send**(`msg`): `Promise`\<`void`\>
 
 #### Parameters
 
@@ -104,4 +104,4 @@
 
 #### Returns
 
-`void`
+`Promise`\<`void`\>

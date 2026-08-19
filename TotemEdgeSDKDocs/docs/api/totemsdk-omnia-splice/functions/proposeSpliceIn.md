@@ -22,7 +22,7 @@ success or burned on failure, preventing one-time-key reuse.
 
 ### channel
 
-`any`
+`OmniaChannel` \| [`QuiescedChannel`](../type-aliases/QuiescedChannel.md)
 
 Quiesced channel to splice.
 

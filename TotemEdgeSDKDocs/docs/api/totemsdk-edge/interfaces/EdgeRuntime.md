@@ -48,6 +48,35 @@
 
 ***
 
+### executeAction()
+
+> **executeAction**(`params`): `Promise`\<`EdgeActionResult`\>
+
+Execute an action through the runtime.
+
+If a policy port is configured, the action is first checked against it.
+If the policy rejects the action, execution is blocked and the rejection
+reason is returned.
+
+The action string determines which port handles execution:
+  - 'payment:*'        → EdgePaymentPort.pay()
+  - 'lookup:*'         → EdgeLookupPort.query() / announce()
+  - 'proof:*'          → EdgeProofPort.createProof() / verifyProof()
+
+Unknown action strings return an error without attempting execution.
+
+#### Parameters
+
+##### params
+
+`EdgeActionParams`
+
+#### Returns
+
+`Promise`\<`EdgeActionResult`\>
+
+***
+
 ### hasCapability()
 
 > **hasCapability**(`cap`): `boolean`

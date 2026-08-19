@@ -6,7 +6,7 @@
 
 # Function: openVirtualChannel()
 
-> **openVirtualChannel**(`factory`, `parties`, `amounts`, `leaseProviders`, `channelId?`): `Promise`\<\{ `channel`: `OmniaChannel`; `factory`: [`ChannelFactory`](../interfaces/ChannelFactory.md); \}\>
+> **openVirtualChannel**(`factory`, `parties`, `amounts`, `leaseProviders`, `channelId?`): `Promise`\<\{ `channel`: [`OmniaChannel`](../interfaces/OmniaChannel.md); `factory`: [`ChannelFactory`](../interfaces/ChannelFactory.md); \}\>
 
 Open a virtual channel between two factory participants.
 
@@ -56,4 +56,4 @@ Optional explicit channel ID; auto-generated if omitted.
 
 ## Returns
 
-`Promise`\<\{ `channel`: `OmniaChannel`; `factory`: [`ChannelFactory`](../interfaces/ChannelFactory.md); \}\>
+`Promise`\<\{ `channel`: [`OmniaChannel`](../interfaces/OmniaChannel.md); `factory`: [`ChannelFactory`](../interfaces/ChannelFactory.md); \}\>

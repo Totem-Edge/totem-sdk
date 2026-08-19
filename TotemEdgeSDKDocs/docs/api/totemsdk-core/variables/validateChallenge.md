@@ -6,4 +6,20 @@
 
 # Variable: validateChallenge
 
-> `const` **validateChallenge**: `any` = `validate_challenge_wasm`
+> `const` **validateChallenge**: (`challenge_json`, `domain`) => `boolean` = `validate_challenge_wasm`
+
+Validate a Sign-In With Wallet challenge.
+
+## Parameters
+
+### challenge\_json
+
+`string`
+
+### domain
+
+`string`
+
+## Returns
+
+`boolean`

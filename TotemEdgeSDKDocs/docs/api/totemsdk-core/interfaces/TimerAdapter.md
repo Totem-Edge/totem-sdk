@@ -16,7 +16,7 @@
 
 ##### handle
 
-`any`
+`Timeout`
 
 #### Returns
 
@@ -32,7 +32,7 @@
 
 ##### handle
 
-`any`
+`Timeout`
 
 #### Returns
 
@@ -52,7 +52,7 @@
 
 ### setInterval()
 
-> **setInterval**(`callback`, `ms`): `any`
+> **setInterval**(`callback`, `ms`): `Timeout`
 
 #### Parameters
 
@@ -66,13 +66,13 @@
 
 #### Returns
 
-`any`
+`Timeout`
 
 ***
 
 ### setTimeout()
 
-> **setTimeout**(`callback`, `ms`): `any`
+> **setTimeout**(`callback`, `ms`): `Timeout`
 
 #### Parameters
 
@@ -86,4 +86,4 @@
 
 #### Returns
 
-`any`
+`Timeout`

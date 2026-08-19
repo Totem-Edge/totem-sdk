@@ -26,7 +26,7 @@ Hyperswarm join options. Default: { server: true, client: true }.
 
 ### targetPublicKey?
 
-> `optional` **targetPublicKey?**: `any`
+> `optional` **targetPublicKey?**: `Buffer`\<`ArrayBufferLike`\>
 
 Optional: only accept connections matching this 32-byte pubkey.
 

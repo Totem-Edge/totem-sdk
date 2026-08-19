@@ -6,10 +6,8 @@
 
 # Class: HyperswarmStreamTransport
 
-Adapts a raw Hyperswarm connection (which is a Node.js Duplex stream)
-to IStreamTransport. This is the production-path adapter used by OmniaSwarmImpl.
-
-Extends NodeStreamTransport with the connection's info (publicKey, topics).
+Adapts a raw Hyperswarm connection (a Node.js Duplex stream) to
+IStreamTransport, carrying the connection's info (publicKey, topics).
 
 ## Extends
 
@@ -35,7 +33,7 @@ Extends NodeStreamTransport with the connection's info (publicKey, topics).
 
 ###### topics?
 
-`Buffer`[]
+`Buffer`\<`ArrayBufferLike`\>[]
 
 #### Returns
 
@@ -55,17 +53,41 @@ Extends NodeStreamTransport with the connection's info (publicKey, topics).
 
 ### topics
 
-> `readonly` **topics**: `Buffer`[]
+> `readonly` **topics**: `Buffer`\<`ArrayBufferLike`\>[]
+
+## Accessors
+
+### state
+
+#### Get Signature
+
+> **get** **state**(): [`TransportState`](../type-aliases/TransportState.md)
+
+Explicit connection state.
+
+##### Returns
+
+[`TransportState`](../type-aliases/TransportState.md)
+
+Explicit connection state.
+
+#### Inherited from
+
+[`NodeStreamTransport`](NodeStreamTransport.md).[`state`](NodeStreamTransport.md#state)
 
 ## Methods
 
 ### close()
 
-> **close**(): `void`
+> **close**(): `Promise`\<`void`\>
+
+Close the transport. After the returned promise resolves, no further data
+or close deliveries occur. Calling close() more than once is safe (the
+second call resolves immediately).
 
 #### Returns
 
-`void`
+`Promise`\<`void`\>
 
 #### Inherited from
 
@@ -73,79 +95,82 @@ Extends NodeStreamTransport with the connection's info (publicKey, topics).
 
 ***
 
-### on()
+### onClose()
 
-#### Call Signature
+> **onClose**(`handler`): () => `void`
 
-> **on**(`event`, `handler`): `void`
+Subscribe to connection close. Returns an unsubscribe function.
 
-##### Parameters
+#### Parameters
 
-###### event
-
-`"data"`
-
-###### handler
-
-[`DataHandler`](../type-aliases/DataHandler.md)
-
-##### Returns
-
-`void`
-
-##### Inherited from
-
-[`NodeStreamTransport`](NodeStreamTransport.md).[`on`](NodeStreamTransport.md#on)
-
-#### Call Signature
-
-> **on**(`event`, `handler`): `void`
-
-##### Parameters
-
-###### event
-
-`"close"`
-
-###### handler
+##### handler
 
 [`CloseHandler`](../type-aliases/CloseHandler.md)
 
-##### Returns
+#### Returns
 
-`void`
+() => `void`
 
-##### Inherited from
+#### Inherited from
 
-[`NodeStreamTransport`](NodeStreamTransport.md).[`on`](NodeStreamTransport.md#on)
+[`NodeStreamTransport`](NodeStreamTransport.md).[`onClose`](NodeStreamTransport.md#onclose)
 
-#### Call Signature
+***
 
-> **on**(`event`, `handler`): `void`
+### onData()
 
-##### Parameters
+> **onData**(`handler`): () => `void`
 
-###### event
+Subscribe to data chunks. Returns an unsubscribe function.
 
-`"error"`
+#### Parameters
 
-###### handler
+##### handler
+
+[`DataHandler`](../type-aliases/DataHandler.md)
+
+#### Returns
+
+() => `void`
+
+#### Inherited from
+
+[`NodeStreamTransport`](NodeStreamTransport.md).[`onData`](NodeStreamTransport.md#ondata)
+
+***
+
+### onError()
+
+> **onError**(`handler`): () => `void`
+
+Subscribe to transport errors. Returns an unsubscribe function.
+
+#### Parameters
+
+##### handler
 
 [`ErrorHandler`](../type-aliases/ErrorHandler.md)
 
-##### Returns
+#### Returns
 
-`void`
+() => `void`
 
-##### Inherited from
+#### Inherited from
 
-[`NodeStreamTransport`](NodeStreamTransport.md).[`on`](NodeStreamTransport.md#on)
+[`NodeStreamTransport`](NodeStreamTransport.md).[`onError`](NodeStreamTransport.md#onerror)
 
 ***
 
 ### send()
 
-> **send**(`data`): `void`
+> **send**(`data`): `Promise`\<`void`\>
+
+Send bytes to the remote peer.
+
+- Returns a promise that resolves once the bytes are accepted by the
+  underlying transport (or after the documented backpressure policy).
+- Rejects with `ClosedTransportError` if the transport is closed.
+- Rejects with the underlying error if delivery fails.
 
 #### Parameters
 
@@ -155,7 +180,7 @@ Extends NodeStreamTransport with the connection's info (publicKey, topics).
 
 #### Returns
 
-`void`
+`Promise`\<`void`\>
 
 #### Inherited from
 

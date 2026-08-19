@@ -20,7 +20,7 @@
 
 ### gatePublish()
 
-> **gatePublish**(`topic`, `payload`, `options?`): `Promise`\<`EdgeOperationResult`\>
+> **gatePublish**(`topic`, `payload`, `options?`): `Promise`\<`EdgeOperationResult`\<`unknown`\>\>
 
 #### Parameters
 
@@ -38,7 +38,7 @@
 
 #### Returns
 
-`Promise`\<`EdgeOperationResult`\>
+`Promise`\<`EdgeOperationResult`\<`unknown`\>\>
 
 ***
 

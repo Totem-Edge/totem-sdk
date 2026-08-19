@@ -10,7 +10,7 @@
 
 ### handleCommand()
 
-> **handleCommand**(`message`): `Promise`\<`EdgeOperationResult`\>
+> **handleCommand**(`message`): `Promise`\<`EdgeOperationResult`\<`unknown`\>\>
 
 #### Parameters
 
@@ -20,4 +20,4 @@
 
 #### Returns
 
-`Promise`\<`EdgeOperationResult`\>
+`Promise`\<`EdgeOperationResult`\<`unknown`\>\>

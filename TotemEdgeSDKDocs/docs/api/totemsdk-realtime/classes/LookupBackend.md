@@ -24,12 +24,12 @@ const manager = createPortfolioStreamManager(deps, {
 ```
 
 ```ts
-import { PureMinimaBackend } from '@totemsdk/realtime';
-import { createPureMinimaClient } from '@totemsdk/pureminima-rpc';
+import { MinimaRpcBackend } from '@totemsdk/realtime';
+import { createMinimaRpcClient } from '@totemsdk/minima-rpc';
 
-const rpc = createPureMinimaClient({ host: 'localhost', port: 9005 });
+const rpc = createMinimaRpcClient({ host: 'localhost', port: 9005 });
 const manager = createPortfolioStreamManager(deps, {
-  backend: new PureMinimaBackend(rpc),
+  backend: new MinimaRpcBackend(rpc),
 });
 ```
 

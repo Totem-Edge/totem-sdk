@@ -6,4 +6,16 @@
 
 # Variable: parseMxAddress
 
-> `const` **parseMxAddress**: `any` = `parse_mx_address_wasm`
+> `const` **parseMxAddress**: (`address`) => `Uint8Array` = `parse_mx_address_wasm`
+
+Decode a Minima Mx address to bytes.
+
+## Parameters
+
+### address
+
+`string`
+
+## Returns
+
+`Uint8Array`

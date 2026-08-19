@@ -8,6 +8,18 @@
 
 ## Properties
 
+### error?
+
+> `optional` **error?**: `string`
+
+***
+
+### errorCode?
+
+> `optional` **errorCode?**: `string`
+
+***
+
 ### explanation
 
 > **explanation**: `string`
@@ -17,6 +29,12 @@
 ### riskLevel?
 
 > `optional` **riskLevel?**: `"low"` \| `"medium"` \| `"high"`
+
+***
+
+### success
+
+> **success**: `boolean`
 
 ***
 

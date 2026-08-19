@@ -126,6 +126,18 @@ Used for double-sign detection: same sequence + different payload → DoubleSign
 
 ***
 
+### programId
+
+> **programId**: `string`
+
+***
+
+### programVersion
+
+> **programVersion**: `number`
+
+***
+
 ### stateLog
 
 > **stateLog**: [`ChannelLogEntry`](ChannelLogEntry.md)[]
@@ -157,6 +169,12 @@ Balances are stored in scaled token units; TX builders convert to raw Minima.
 ### totalValue
 
 > **totalValue**: `bigint`
+
+***
+
+### unilateralClose?
+
+> `optional` **unilateralClose?**: `UnilateralCloseState`
 
 ***
 

@@ -7,13 +7,14 @@
 ## Classes
 
 - [LookupBackend](classes/LookupBackend.md)
+- [MinimaRpcBackend](classes/MinimaRpcBackend.md)
 - [PortfolioCache](classes/PortfolioCache.md)
 - [PortfolioStreamManager](classes/PortfolioStreamManager.md)
-- [PureMinimaBackend](classes/PureMinimaBackend.md)
 
 ## Interfaces
 
 - [LookupLike](interfaces/LookupLike.md)
+- [MinimaRpcLike](interfaces/MinimaRpcLike.md)
 - [PortfolioBackend](interfaces/PortfolioBackend.md)
 - [PortfolioCacheConfig](interfaces/PortfolioCacheConfig.md)
 - [PortfolioCacheDependencies](interfaces/PortfolioCacheDependencies.md)
@@ -22,7 +23,6 @@
 - [PortfolioStreamDependencies](interfaces/PortfolioStreamDependencies.md)
 - [PortfolioStreamListener](interfaces/PortfolioStreamListener.md)
 - [PortfolioUpdateEvent](interfaces/PortfolioUpdateEvent.md)
-- [PureMinimaLike](interfaces/PureMinimaLike.md)
 - [RawBalanceEntry](interfaces/RawBalanceEntry.md)
 - [TxConfirmationEvent](interfaces/TxConfirmationEvent.md)
 - [WebSocketMessage](interfaces/WebSocketMessage.md)

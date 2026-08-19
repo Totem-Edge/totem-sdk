@@ -10,7 +10,7 @@
 
 ### createUsageReceipt()
 
-> **createUsageReceipt**(`event`): `any`
+> **createUsageReceipt**(`event`): `EdgeReceipt`
 
 #### Parameters
 
@@ -20,7 +20,7 @@
 
 #### Returns
 
-`any`
+`EdgeReceipt`
 
 ***
 
@@ -36,7 +36,7 @@
 
 ### recordUsage()
 
-> **recordUsage**(`event`): `Promise`\<`EdgeOperationResult`\>
+> **recordUsage**(`event`): `Promise`\<`EdgeOperationResult`\<`unknown`\>\>
 
 #### Parameters
 
@@ -46,7 +46,7 @@
 
 #### Returns
 
-`Promise`\<`EdgeOperationResult`\>
+`Promise`\<`EdgeOperationResult`\<`unknown`\>\>
 
 ***
 

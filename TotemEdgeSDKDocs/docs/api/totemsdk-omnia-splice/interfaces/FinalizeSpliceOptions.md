@@ -12,7 +12,7 @@ Options for `finalizeSplice`.
 
 ### acceptorLeaseProvider?
 
-> `optional` **acceptorLeaseProvider?**: `any`
+> `optional` **acceptorLeaseProvider?**: `WotsLeaseProvider`
 
 Acceptor's WOTS lease provider. Same commit/burn
                                    semantics as `proposerLeaseProvider`.
@@ -49,7 +49,7 @@ Override PoW difficulty (pass `MAX_HASH` in tests).
 
 ### proposerLeaseProvider?
 
-> `optional` **proposerLeaseProvider?**: `any`
+> `optional` **proposerLeaseProvider?**: `WotsLeaseProvider`
 
 Proposer's WOTS lease provider. If supplied,
                                    `finalizeSplice` will call `commitKeyUse` on the

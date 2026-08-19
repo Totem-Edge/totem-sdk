@@ -6,7 +6,7 @@
 
 # Function: tallyVotes()
 
-> **tallyVotes**(`params`): `string` \| [`VoteTally`](../interfaces/VoteTally.md)
+> **tallyVotes**(`params`): [`GovernanceResult`](../type-aliases/GovernanceResult.md)\<[`VoteTally`](../interfaces/VoteTally.md)\>
 
 ## Parameters
 
@@ -16,17 +16,21 @@
 
 [`GovernanceConfig`](../interfaces/GovernanceConfig.md)
 
+#### delegations?
+
+[`Delegation`](../interfaces/Delegation.md)[]
+
+#### now?
+
+`number`
+
 #### proposal
 
 [`Proposal`](../interfaces/Proposal.md)
 
-#### quorumWeight?
+#### snapshot
 
-`number`
-
-#### totalWeight
-
-`number`
+[`MembershipSnapshot`](../interfaces/MembershipSnapshot.md)
 
 #### votes
 
@@ -34,4 +38,4 @@
 
 ## Returns
 
-`string` \| [`VoteTally`](../interfaces/VoteTally.md)
+[`GovernanceResult`](../type-aliases/GovernanceResult.md)\<[`VoteTally`](../interfaces/VoteTally.md)\>

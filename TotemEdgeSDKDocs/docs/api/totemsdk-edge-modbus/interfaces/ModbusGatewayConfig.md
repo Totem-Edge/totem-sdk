@@ -23,5 +23,3 @@
 ### unitMap?
 
 > `optional` **unitMap?**: `Record`\<`number`, `string`\>
-
-Map unit IDs to sensor/device identifiers.

@@ -6,4 +6,20 @@
 
 # Variable: createChallenge
 
-> `const` **createChallenge**: `any` = `create_challenge_wasm`
+> `const` **createChallenge**: (`domain`, `statement`) => `string` = `create_challenge_wasm`
+
+Create a Sign-In With Wallet challenge.
+
+## Parameters
+
+### domain
+
+`string`
+
+### statement
+
+`string`
+
+## Returns
+
+`string`

@@ -25,7 +25,7 @@ Inbound channel proposal from the initiating party.
 
 ### provider?
 
-`any`
+`ChainStateProvider`
 
 Optional chain provider for on-chain funding TX validation.
 

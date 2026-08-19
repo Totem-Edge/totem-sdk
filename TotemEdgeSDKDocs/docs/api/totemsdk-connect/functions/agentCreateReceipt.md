@@ -16,11 +16,27 @@
 
 ### params
 
+#### channelState?
+
+`string`
+
 #### metadata?
 
 `Record`\<`string`, `unknown`\>
 
-#### txpowId
+#### proposalId
+
+`string`
+
+#### rejectionReason?
+
+`string`
+
+#### status
+
+`"approved"` \| `"rejected"` \| `"pending_user"`
+
+#### txpowId?
 
 `string`
 

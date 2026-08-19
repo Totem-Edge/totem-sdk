@@ -18,7 +18,29 @@
 
 > **readCoils**(`unitId`, `address`, `count`): `Promise`\<`EdgeOperationResult`\<\{ `values`: `boolean`[]; \}\>\>
 
-Read coils (function code 1).
+#### Parameters
+
+##### unitId
+
+`number`
+
+##### address
+
+`number`
+
+##### count
+
+`number`
+
+#### Returns
+
+`Promise`\<`EdgeOperationResult`\<\{ `values`: `boolean`[]; \}\>\>
+
+***
+
+### readDiscreteInputs()
+
+> **readDiscreteInputs**(`unitId`, `address`, `count`): `Promise`\<`EdgeOperationResult`\<\{ `values`: `boolean`[]; \}\>\>
 
 #### Parameters
 
@@ -40,11 +62,33 @@ Read coils (function code 1).
 
 ***
 
-### readRegisters()
+### readHoldingRegisters()
 
-> **readRegisters**(`unitId`, `address`, `count`): `Promise`\<`EdgeOperationResult`\<\{ `values`: `number`[]; \}\>\>
+> **readHoldingRegisters**(`unitId`, `address`, `count`): `Promise`\<`EdgeOperationResult`\<\{ `values`: `number`[]; \}\>\>
 
-Read holding registers (function code 3).
+#### Parameters
+
+##### unitId
+
+`number`
+
+##### address
+
+`number`
+
+##### count
+
+`number`
+
+#### Returns
+
+`Promise`\<`EdgeOperationResult`\<\{ `values`: `number`[]; \}\>\>
+
+***
+
+### readInputRegisters()
+
+> **readInputRegisters**(`unitId`, `address`, `count`): `Promise`\<`EdgeOperationResult`\<\{ `values`: `number`[]; \}\>\>
 
 #### Parameters
 
@@ -83,3 +127,99 @@ Read holding registers (function code 3).
 #### Returns
 
 `Promise`\<`void`\>
+
+***
+
+### writeMultipleCoils()
+
+> **writeMultipleCoils**(`unitId`, `address`, `values`): `Promise`\<`EdgeOperationResult`\<`void`\>\>
+
+#### Parameters
+
+##### unitId
+
+`number`
+
+##### address
+
+`number`
+
+##### values
+
+`boolean`[]
+
+#### Returns
+
+`Promise`\<`EdgeOperationResult`\<`void`\>\>
+
+***
+
+### writeMultipleRegisters()
+
+> **writeMultipleRegisters**(`unitId`, `address`, `values`): `Promise`\<`EdgeOperationResult`\<`void`\>\>
+
+#### Parameters
+
+##### unitId
+
+`number`
+
+##### address
+
+`number`
+
+##### values
+
+`number`[]
+
+#### Returns
+
+`Promise`\<`EdgeOperationResult`\<`void`\>\>
+
+***
+
+### writeSingleCoil()
+
+> **writeSingleCoil**(`unitId`, `address`, `value`): `Promise`\<`EdgeOperationResult`\<`void`\>\>
+
+#### Parameters
+
+##### unitId
+
+`number`
+
+##### address
+
+`number`
+
+##### value
+
+`boolean`
+
+#### Returns
+
+`Promise`\<`EdgeOperationResult`\<`void`\>\>
+
+***
+
+### writeSingleRegister()
+
+> **writeSingleRegister**(`unitId`, `address`, `value`): `Promise`\<`EdgeOperationResult`\<`void`\>\>
+
+#### Parameters
+
+##### unitId
+
+`number`
+
+##### address
+
+`number`
+
+##### value
+
+`number`
+
+#### Returns
+
+`Promise`\<`EdgeOperationResult`\<`void`\>\>

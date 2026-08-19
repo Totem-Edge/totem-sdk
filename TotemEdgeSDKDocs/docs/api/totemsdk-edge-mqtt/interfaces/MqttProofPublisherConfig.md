@@ -34,20 +34,12 @@ Issuer identity used in proof-package mode. Falls back to runtime.deviceId then 
 
 ***
 
-### keyIndex?
-
-> `optional` **keyIndex?**: `number`
-
-WOTS key index for direct signing (used when no leaseProvider is given).
-
-***
-
 ### leaseProvider?
 
 > `optional` **leaseProvider?**: `object`
 
 WOTS lease provider for coordinated key-index reservation.
-When set, keyIndex is ignored and the index is reserved via the provider.
+When set, key indices are reserved via the provider.
 
 #### burnReservation()
 

@@ -38,7 +38,7 @@ WOTS lease bundles for ALL N factory participants.
 
 ### chainProvider?
 
-`any`
+`ChainStateProvider`
 
 Optional: mine + broadcast the settlement TX.
 

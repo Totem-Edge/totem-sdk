@@ -16,25 +16,49 @@
 
 ### params
 
-#### amount
+#### agentId
 
 `string`
 
-#### context?
+#### confidence?
+
+`number`
+
+#### explanation
+
+`string`
+
+#### intent
+
+\{ `amount?`: `string`; `metadata?`: `Record`\<`string`, `unknown`\>; `reason?`: `string`; `recipient?`: `string`; `risk?`: `"low"` \| `"medium"` \| `"high"`; `tokenId?`: `string`; `type`: `"payment"` \| `"channel_update"` \| `"settlement"` \| `"lookup"` \| `"receipt"`; \}
+
+#### intent.amount?
+
+`string`
+
+#### intent.metadata?
 
 `Record`\<`string`, `unknown`\>
 
-#### intent?
+#### intent.reason?
 
 `string`
 
-#### recipient
+#### intent.recipient?
 
 `string`
 
-#### tokenId?
+#### intent.risk?
+
+`"low"` \| `"medium"` \| `"high"`
+
+#### intent.tokenId?
 
 `string`
+
+#### intent.type
+
+`"payment"` \| `"channel_update"` \| `"settlement"` \| `"lookup"` \| `"receipt"`
 
 ## Returns
 

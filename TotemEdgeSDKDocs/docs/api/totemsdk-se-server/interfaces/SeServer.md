@@ -32,7 +32,7 @@
 
 ### listen()
 
-> **listen**(`port?`): `Promise`\<`Server`\>
+> **listen**(`port?`): `Promise`\<`Server`\<*typeof* `IncomingMessage`, *typeof* `ServerResponse`\>\>
 
 #### Parameters
 
@@ -42,4 +42,4 @@
 
 #### Returns
 
-`Promise`\<`Server`\>
+`Promise`\<`Server`\<*typeof* `IncomingMessage`, *typeof* `ServerResponse`\>\>
