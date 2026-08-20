@@ -47,6 +47,7 @@
     "packages/proofgraph": { "status": "publishable" },
     "packages/provider-bond": { "status": "publishable" },
     "packages/pubsub-transport": { "status": "publishable" },
+    "packages/pureminima-rpc": { "status": "publishable" },
     "packages/minima-rpc": { "status": "publishable" },
     "packages/realtime": { "status": "publishable" },
     "packages/recursive-mast": { "status": "publishable" },
@@ -62,6 +63,26 @@
     "packages/tx-builder": { "status": "publishable" },
     "packages/txpow": { "status": "publishable" },
     "packages/wallet-adapter": { "status": "publishable" },
-    "packages/wots-lease": { "status": "publishable" }
+    "packages/wots-lease": { "status": "publishable" },
+    "extensions/observability": {
+      "status": "excluded",
+      "reason": "private extension/observability scaffold (not an @totemsdk/* publishable)"
+    },
+    "extensions/totem-dapp-starter": {
+      "status": "excluded",
+      "reason": "private dApp starter scaffold (not an @totemsdk/* publishable)"
+    },
+    "extensions/totem-extension": {
+      "status": "excluded",
+      "reason": "private extension scaffold (not an @totemsdk/* publishable)"
+    },
+    "extensions/totem-pear-android-starter": {
+      "status": "excluded",
+      "reason": "private Android starter scaffold (not an @totemsdk/* publishable)"
+    },
+    "extensions/totem-pwa-wallet": {
+      "status": "excluded",
+      "reason": "private PWA wallet scaffold (not an @totemsdk/* publishable)"
+    }
   }
 }

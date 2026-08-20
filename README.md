@@ -311,7 +311,11 @@ const { channel } = await createChannel({
   localParty: alice,
   remoteParty: bob,
   localAmount: 100n,
-  remoteAmount: 0n,
+  remoteAmount: 50n,
+  // Funding is broadcast with a real serialized Minima witness — Omnia never
+  // invents a funding coin or broadcasts placeholder witness data.
+  fundingCoinId: '0x' + 'ab'.repeat(32),
+  fundingWitnessBytes: fundingWitness, // serialized Minima witness for the funding input
   program: { id: 'counter', version: 1 },
 }, provider);
 
@@ -486,7 +490,7 @@ docs/                       # SDK documentation
 | [RFC-001](docs/rfc/RFC-001-SDK-UPGRADE.md) | SDK upgrade process |
 | [RFC-002](docs/rfc/RFC-002-OMNIA-RUST-WASM-PARITY.md) | Omnia Rust/WASM channel parity (implemented) |
 | [RFC-003](docs/rfc/RFC-003-OMNIA-BUILT-IN-PROGRAMS.md) | Omnia built-in channel programs (implemented) |
-| [SDK Audit](docs/SDK_AUDIT.md) | Package audit, status, and parity table |
+| [SDK Audit (archived)](docs/archive/SDK_AUDIT-2026-02-ARCHIVED.md) | Historical Feb 2026 audit; current maturity lives in the table above |
 | [SDK Manifest](SDK_MANIFEST.json) | Machine-readable package index — 55 packages, for AI agents and tooling |
 | [API Reference](https://totem.ing) | Full TypeDoc-generated API reference |
 

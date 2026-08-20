@@ -5,7 +5,7 @@ edition = "2021"
 description = "Root identity ownership proof verification — canonical message reconstruction, WOTS signature verification, address derivation (Rust/WASM)"
 license = "MIT"
 authors = ["Totem SDK Contributors"]
-repository = "https://github.com/totem-sdk/totem-sdk"
+repository = "https://github.com/Totem-Edge/totem-sdk"
 homepage = "https://totem.ing"
 
 [lib]

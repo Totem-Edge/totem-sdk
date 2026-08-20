@@ -100,7 +100,7 @@
   "homepage": "https://totem.ing",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/totem-sdk/totem-sdk.git",
+    "url": "git+https://github.com/Totem-Edge/totem-sdk.git",
     "directory": "packages/edge-adapters"
   },
   "keywords": [
@@ -116,6 +116,6 @@
     "ports"
   ],
   "bugs": {
-    "url": "https://github.com/totem-sdk/totem-sdk/issues"
+    "url": "https://github.com/Totem-Edge/totem-sdk/issues"
   }
 }
