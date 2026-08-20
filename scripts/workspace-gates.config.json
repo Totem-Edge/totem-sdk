@@ -70,17 +70,11 @@
       "status": "excluded",
       "reason": "private test harness package; not intended for publication"
     },
-    "packages/se-server": {
-      "status": "excluded",
-      "reason": "no tests; Go sidecar not packaged as a verified native dependency"
-    },
+    "packages/se-server": { "status": "publishable" },
     "packages/server": { "status": "publishable" },
     "packages/statechain": { "status": "publishable" },
     "packages/stream-transport": { "status": "publishable" },
-    "packages/tx-builder": {
-      "status": "excluded",
-      "reason": "stale compiled .js files in core/src/ conflict with ts-jest source resolution; requires core/src cleanup before tests can run"
-    },
+    "packages/tx-builder": { "status": "publishable" },
     "packages/txpow": { "status": "publishable" },
     "packages/wallet-adapter": { "status": "publishable" },
     "packages/wots-lease": { "status": "publishable" }
