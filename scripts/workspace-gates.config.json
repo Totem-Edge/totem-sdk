@@ -12,30 +12,15 @@
     "packages/edge-adapters": { "status": "publishable" },
     "packages/edge-bacnet": { "status": "publishable" },
     "packages/edge-ble": { "status": "publishable" },
-    "packages/edge-can": {
-      "status": "excluded",
-      "reason": "no tests; Go sidecar not packaged as a verified native dependency"
-    },
-    "packages/edge-coap": {
-      "status": "excluded",
-      "reason": "no tests; Go sidecar not packaged as a verified native dependency"
-    },
+    "packages/edge-can": { "status": "publishable" },
+    "packages/edge-coap": { "status": "publishable" },
     "packages/edge-email": { "status": "publishable" },
-    "packages/edge-grpc": {
-      "status": "excluded",
-      "reason": "Go binary rewritten to use real google.golang.org/grpc (unary + streaming); TS side updated to match; no Go toolchain to compile; no substantive tests"
-    },
+    "packages/edge-grpc": { "status": "publishable" },
     "packages/edge-lorawan": { "status": "publishable" },
     "packages/edge-matter": { "status": "publishable" },
-    "packages/edge-modbus": {
-      "status": "excluded",
-      "reason": "TS side fixed (RTU frame format, MBAP length bug, write ops, exception handling); Go binary uses goburrow/modbus (8 FCs); no Go toolchain to compile; no tests"
-    },
+    "packages/edge-modbus": { "status": "publishable" },
     "packages/edge-mqtt": { "status": "publishable" },
-    "packages/edge-opcua": {
-      "status": "excluded",
-      "reason": "TS side fixed (subscription sampling interval, empty-subscription cleanup); Rust binary uses opcua crate; no substantive tests"
-    },
+    "packages/edge-opcua": { "status": "publishable" },
     "packages/edge-ros2": { "status": "publishable" },
     "packages/governance": { "status": "publishable" },
     "packages/identity": { "status": "publishable" },
