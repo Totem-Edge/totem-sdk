@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/wots-lease",
-  "version": "0.1.6",
+  "version": "1.0.0",
   "description": "WOTS key-use coordination — canonical v3 watermark, provider-based lease safety layers",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

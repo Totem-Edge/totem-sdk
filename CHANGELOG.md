@@ -5,6 +5,29 @@ All notable changes to the Totem SDK will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-08-20
+
+### Added
+
+- **`@totemsdk/core-wasm` 1.0.0** — Rust/WASM cryptographic core reaches v1 (WOTS+, SHA3-256, TreeKey, TxPoW mining, BIP39).
+- **`@totemsdk/kissvm` 1.0.0** — KISSVM evaluator reaches v1 (Rust/WASM-backed, Java byte-exact parity).
+- **`@totemsdk/wots-lease` 1.0.0** — WOTS key-use coordination reaches v1 with all five provider layers implemented:
+  - Layer 4 `P2PQuorumLeaseProvider` — multi-device quorum attestation over the same signing slot; slots are burned on quorum failure or conflict so they are never reused.
+  - Layer 5 `OnchainWatermarkProvider` — on-chain watermark anchoring via a dedicated watermark coin whose STATE(0) holds the flat cursor.
+  - `LocalLeaseProvider.reserveSpecificKeyUse` / `advanceToRemoteWatermark` / `listTrees` / `getJournal`.
+  - New errors: `QuorumUnavailableError`, `QuorumConflictError`, `OnchainWatermarkError`, `IndicesUnavailableError`.
+- **`@totemsdk/omnia` 1.0.0** — eltoo payment channels reach v1 (186 TS tests, 27 Rust tests, 11 WASM-parity suites, 8 built-in programs).
+- **`@totemsdk/core` 1.2.9** — republished against `@totemsdk/core-wasm@^1.0.0`.
+
+### Fixed
+
+- **Stale compiled artifacts removed from `packages/core/src`** — 56 committed `.js`/`.d.ts` files that shadowed the TypeScript sources under jest's default module resolution, breaking `@totemsdk/tx-builder`'s ts-jest tests.
+- **`@totemsdk/tx-builder` promoted to publishable** (0.1.9) — tests now run against the TS sources.
+- **`@totemsdk/se-server` promoted to publishable** (0.1.3) — 24 new tests covering WOTS sign/verify, reclaim-TX encryption, config validation, and the full HTTP router flow.
+- **`@totemsdk/lookup-protocol` 0.1.6** — `LEASE_RESERVE` accepts explicit indices for quorum attestation.
+- **`@totemsdk/lookup-node` 0.1.9** — `LeaseCoordinator` honours explicit indices.
+- **`@totemsdk/lookup-client` 0.1.7** — `leaseReserve` / `leaseCommit` / `leaseBurn` wire methods.
+
 ## [2.2.0] - 2026-03-08
 
 ### Added

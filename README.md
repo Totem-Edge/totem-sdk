@@ -243,7 +243,7 @@ We are honest about where things stand. The core cryptographic layer and the Omn
 |-------|--------|-------|
 | `core`, `core-wasm`, `kissvm` | **Production** | Extensive test vectors, Java byte-exact parity, WASM-backed |
 | `omnia` (+ parity engine) | **Production** | 186 TS tests, 27 Rust tests, 11 WASM-parity suites; golden fixtures |
-| `wots-lease` | **Stable** | Watermark v3 canonical; some provider backends still stubbed |
+| `wots-lease` | **Stable** | Watermark v3 canonical; all five provider layers implemented (local, Axia, personal node, P2P quorum, on-chain) |
 | `recursive-mast`, `authority`, `governance` | **Alpha → Beta** | Architecture-proven; broader policy templates in progress |
 | `edge-*` connectors | **Reference** | Proven adapters (MQTT, Modbus); others demonstrate port injection |
 | `industrial-action` | **Alpha** | Guardrail model defined; field hardening in progress |

@@ -161,11 +161,11 @@
     },
     {
       "name": "@totemsdk/core",
-      "version": "1.2.6",
+      "version": "1.2.9",
       "description": "Core cryptographic primitives — WOTS+, SHA3-256, TreeKey, BIP39, backed by Rust/WASM",
       "domain": "cryptographic-foundation",
       "keywords": ["wots", "signatures", "sha3", "treekey", "bip39", "wasm"],
-      "dependencies": { "@totemsdk/core-wasm": "^0.1.0" },
+      "dependencies": { "@totemsdk/core-wasm": "^1.0.0" },
       "exports": {
         ".": "dist/index.{js,d.ts}",
         "./wasm": "dist/wasm-sync.{js,d.ts}",
@@ -179,7 +179,7 @@
     },
     {
       "name": "@totemsdk/core-wasm",
-      "version": "0.1.0",
+      "version": "1.0.0",
       "description": "WOTS+ cryptographic engine compiled from Rust to WASM",
       "domain": "cryptographic-foundation",
       "keywords": ["wasm", "rust", "cryptography", "wots"],
@@ -378,7 +378,7 @@
     },
     {
       "name": "@totemsdk/kissvm",
-      "version": "0.4.0",
+      "version": "1.0.0",
       "description": "KISSVM v1 evaluator for Minima scripting — lexer, parser, VM, all opcodes, backed by Rust/WASM",
       "domain": "cryptographic-foundation",
       "keywords": ["kissvm", "script", "vm", "evaluator", "wasm"],
@@ -456,7 +456,7 @@
     },
     {
       "name": "@totemsdk/omnia",
-      "version": "0.1.9",
+      "version": "1.0.0",
       "description": "Omnia eltoo payment channel state machine — transport-agnostic, WOTS-safe, HTLC-ready",
       "domain": "payment-network",
       "keywords": ["omnia", "payment-channel", "eltoo", "layer2", "htlc", "state-machine"],
@@ -756,7 +756,7 @@
     },
     {
       "name": "@totemsdk/wots-lease",
-      "version": "0.1.5",
+      "version": "1.0.0",
       "description": "WOTS key-use coordination — canonical v3 watermark, provider-based lease safety",
       "domain": "cryptographic-foundation",
       "keywords": ["wots", "lease", "watermark", "key-coordination"],
