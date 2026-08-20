@@ -120,11 +120,11 @@ export {
 } from './wasm-sync.js';
 
 // BIP39 Seed Phrase Handling
-// NOTE: the TS implementation (bip39.ts) uses the complete 2048-word BIP39
-// word list and Minima-compatible uppercase canonicalization. The WASM
-// binding (wasm-sync.ts) ships a corrupted/partial word list (missing
-// "hungry", contains spurious words) and lowercases instead of uppercasing,
-// so the public API routes through the TS implementation.
+// The WASM binding (wasm-sync.ts) shares the canonical 2048-word BIP39 list
+// and Minima-compatible uppercase canonicalization with the TS implementation
+// (packages/core-wasm/src/bip39.rs -- regenerated from bip39.ts). We still
+// route the public API through the TS implementation (bip39.ts): it is the
+// canonical source of truth and avoids double-entering the list.
 export {
   phraseToSeed,
   generateWordList,

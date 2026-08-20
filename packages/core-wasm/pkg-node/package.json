@@ -8,7 +8,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/MrGheek/totem-sdk"
+    "url": "https://github.com/Totem-Edge/totem-sdk"
   },
   "files": [
     "totemsdk_core_wasm_bg.wasm",
