@@ -38,12 +38,17 @@ import type {
   QuorumPeer,
   QuorumAttestation,
   P2PQuorumLeaseProviderConfig,
+  CertificateSigner,
 } from './types.js';
 import type { LocalLeaseProvider } from './local.js';
 import {
   QuorumUnavailableError,
   QuorumConflictError,
 } from './errors.js';
+import {
+  signCertificate,
+  certificateSignatureVerified,
+} from './certificate.js';
 
 interface PeerReserveResponse {
   action?: string;
@@ -75,6 +80,7 @@ export class P2PQuorumLeaseProvider implements WotsLeaseProvider {
   private readonly local: LocalLeaseProvider;
   private readonly requestTimeoutMs: number;
   private readonly requireQuorumOnCommit: boolean;
+  private readonly certificateSigner?: CertificateSigner;
   private _initialized = false;
 
   constructor(config: P2PQuorumLeaseProviderConfig) {
@@ -83,6 +89,7 @@ export class P2PQuorumLeaseProvider implements WotsLeaseProvider {
     this.local = config.local;
     this.requestTimeoutMs = config.requestTimeoutMs ?? 5_000;
     this.requireQuorumOnCommit = config.requireQuorumOnCommit ?? false;
+    this.certificateSigner = config.certificateSigner;
   }
 
   async initialize(): Promise<void> {
@@ -126,12 +133,13 @@ export class P2PQuorumLeaseProvider implements WotsLeaseProvider {
       indices: reservation.indices,
       purpose: params.purpose,
       payloadHash: params.payloadHash,
-      issuedBy: 'p2p-quorum',
+      issuedBy: this.certificateSigner?.name ?? 'p2p-quorum',
       issuedAt: Date.now(),
       expiresAt: reservation.expiresAt,
       signature: '',
       attestations,
     };
+    certificate.signature = this.certificateSigner ? await signCertificate(this.certificateSigner, certificate) : '';
 
     return { ...reservation, certificate };
   }
@@ -340,6 +348,10 @@ export class P2PQuorumLeaseProvider implements WotsLeaseProvider {
   async verifyLeaseCertificate(cert?: LeaseCertificate): Promise<boolean> {
     if (!cert) return false;
     if (cert.expiresAt <= Date.now()) return false;
+    // An unsigned certificate carries no authenticity evidence.
+    if (!(await certificateSignatureVerified(cert, this.certificateSigner))) {
+      return false;
+    }
     const attestations = cert.attestations ?? [];
     if (attestations.length < this.minAttestations) return false;
     return attestations.every(

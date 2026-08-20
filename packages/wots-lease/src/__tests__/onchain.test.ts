@@ -13,6 +13,7 @@
 import { OnchainWatermarkProvider } from '../onchain';
 import { LocalLeaseProvider } from '../local';
 import { OnchainWatermarkError } from '../errors';
+import { precomputeTransactionCoinID, hexToBytes, bytesToHex } from '@totemsdk/core';
 
 class MemoryStorage {
   private store = new Map<string, unknown>();
@@ -45,6 +46,7 @@ interface MockChain {
     state: Array<{ port: number; data: string }>;
   } | null;
   broadcasts: string[];
+  queried: string[];
   rejectBroadcast?: boolean;
   tip: { block: number };
 }
@@ -61,14 +63,20 @@ function makeChain(initialFlat: number | null): MockChain {
           state: [{ port: 0, data: initialFlat.toString(16) }],
         },
     broadcasts: [],
+    queried: [],
     tip: { block: 100 },
   };
 }
 
-function makeProvider(chain: MockChain, local: LocalLeaseProvider) {
+function makeProvider(
+  chain: MockChain,
+  local: LocalLeaseProvider,
+  extra: Partial<ConstructorParameters<typeof OnchainWatermarkProvider>[0]> = {},
+) {
   return new OnchainWatermarkProvider({
     chain: {
       getCoin: async (coinId: string) => {
+        chain.queried.push(coinId);
         if (!chain.coin) return null;
         return { ...chain.coin, coinid: coinId };
       },
@@ -86,7 +94,9 @@ function makeProvider(chain: MockChain, local: LocalLeaseProvider) {
     signer: {
       publicKeyDigest: '0x' + '12'.repeat(32),
       sign: async () => new Uint8Array(1088).fill(7),
+      verify: async () => true,
     },
+    ...extra,
   });
 }
 
@@ -190,5 +200,52 @@ describe('OnchainWatermarkProvider', () => {
     expect(
       await provider.verifyLeaseCertificate({ ...reservation.certificate!, expiresAt: Date.now() - 1 }),
     ).toBe(false);
+    // Certificates must be signed by the watermark owner.
+    expect(
+      await provider.verifyLeaseCertificate({ ...reservation.certificate!, signature: '' }),
+    ).toBe(false);
+  });
+
+  it('rolls the watermark coin forward across consecutive publishes', async () => {
+    const local = makeLocal();
+    const chain = makeChain(0);
+    const initialId = '0x' + 'ab'.repeat(32);
+    const provider = makeProvider(chain, local);
+
+    await provider.reserveKeyUse({ treeId: 'wallet' });
+    await provider.publishWatermark('wallet');
+    // Advance the chain tip past the rate-limit window so the next publish proceeds.
+    chain.tip.block = 200;
+    await provider.publishWatermark('wallet');
+
+    expect(chain.queried).toHaveLength(2);
+    expect(chain.queried[0]).toBe(initialId);
+    // The second publish must read the ADVANCED coin, not the consumed one.
+    expect(chain.queried[1]).not.toBe(initialId);
+
+    // Deterministic rollover: output coin id of the self-spend (output index 0).
+    const expectedRolled = '0x' + bytesToHex(precomputeTransactionCoinID(hexToBytes(initialId), 0));
+    expect(chain.queried[1]).toBe(expectedRolled);
+  });
+
+  it('persists the advanced watermark coin id across provider restarts', async () => {
+    const local = makeLocal();
+    const chain = makeChain(0);
+    const initialId = '0x' + 'ab'.repeat(32);
+    const storage = new MemoryStorage();
+
+    const provider1 = makeProvider(chain, local, { storage });
+    await provider1.reserveKeyUse({ treeId: 'wallet' });
+    await provider1.publishWatermark('wallet');
+
+    chain.tip.block = 300;
+    const provider2 = makeProvider(chain, local, { storage });
+    await provider2.initialize();
+    await provider2.publishWatermark('wallet');
+
+    const expectedRolled = '0x' + bytesToHex(precomputeTransactionCoinID(hexToBytes(initialId), 0));
+    expect(chain.queried).toContain(expectedRolled);
+    // The restarted provider's second publish must use the persisted coin id.
+    expect(chain.queried[chain.queried.length - 1]).toBe(expectedRolled);
   });
 });

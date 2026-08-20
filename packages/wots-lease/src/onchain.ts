@@ -36,6 +36,7 @@ import { OnchainWatermarkError } from './errors.js';
 import {
   sha3_256,
   bytesToHex,
+  hexToBytes,
   parseMxAddress,
   serializeTransaction,
   computeTransactionDigest,
@@ -43,8 +44,10 @@ import {
   writeMiniNumber,
 } from '@totemsdk/core';
 import { serializeTxPoW } from '@totemsdk/txpow';
+import { signCertificate, certificateSignatureVerified } from './certificate.js';
 
 const MAX_L = 64;
+const WATERMARK_COIN_STORAGE_KEY = 'wots-lease:onchain:watermark-coin';
 
 function multiConcat(parts: Uint8Array[]): Uint8Array {
   if (parts.length === 0) return new Uint8Array(0);
@@ -112,7 +115,8 @@ function buildWitnessBytes(sigs: Uint8Array[]): Uint8Array {
 
 export class OnchainWatermarkProvider implements WotsLeaseProvider {
   private readonly chain: OnchainWatermarkProviderConfig['chain'];
-  private readonly watermarkCoinId: string;
+  private readonly initialWatermarkCoinId: string;
+  private currentCoinId: string;
   private readonly watermarkAddress: string;
   private readonly tokenId: string;
   private readonly amount: string;
@@ -120,12 +124,14 @@ export class OnchainWatermarkProvider implements WotsLeaseProvider {
   private readonly signer: OnchainWatermarkProviderConfig['signer'];
   private readonly statePort: number;
   private readonly minBlocksBetweenPublishes: number;
+  private readonly storage?: OnchainWatermarkProviderConfig['storage'];
   private _initialized = false;
   private _lastPublishBlock = -1;
 
   constructor(config: OnchainWatermarkProviderConfig) {
     this.chain = config.chain;
-    this.watermarkCoinId = config.watermarkCoinId;
+    this.initialWatermarkCoinId = config.watermarkCoinId;
+    this.currentCoinId = config.watermarkCoinId;
     this.watermarkAddress = config.watermarkAddress;
     this.tokenId = config.tokenId ?? '0x00';
     this.amount = config.amount ?? '1';
@@ -133,10 +139,25 @@ export class OnchainWatermarkProvider implements WotsLeaseProvider {
     this.signer = config.signer;
     this.statePort = config.statePort ?? 0;
     this.minBlocksBetweenPublishes = config.minBlocksBetweenPublishes ?? 1;
+    this.storage = config.storage;
   }
 
   async initialize(): Promise<void> {
     if (this._initialized) return;
+    // Recover the advanced watermark coin identity across restarts.
+    if (this.storage) {
+      try {
+        const saved = await this.storage.get<{ coinId: string; lastPublishBlock: number }>(
+          WATERMARK_COIN_STORAGE_KEY,
+        );
+        if (saved?.coinId) this.currentCoinId = saved.coinId;
+        if (typeof saved?.lastPublishBlock === 'number') {
+          this._lastPublishBlock = saved.lastPublishBlock;
+        }
+      } catch {
+        // Storage unavailable — fall back to the configured coin.
+      }
+    }
     await this.local.initialize();
     this._initialized = true;
   }
@@ -165,6 +186,7 @@ export class OnchainWatermarkProvider implements WotsLeaseProvider {
       expiresAt: reservation.expiresAt,
       signature: '',
     };
+    certificate.signature = await signCertificate(this.signer, certificate);
     return { ...reservation, certificate };
   }
 
@@ -214,10 +236,11 @@ export class OnchainWatermarkProvider implements WotsLeaseProvider {
       // Tip unavailable — proceed without rate limiting.
     }
 
-    // Read the current on-chain cursor so the input state matches the coin.
-    const coin = await this.chain.getCoin(this.watermarkCoinId);
+    // Read the current on-chain cursor so the input state matches the coin
+    // anchored by the CURRENT watermark coin (which advances on every spend).
+    const coin = await this.chain.getCoin(this.currentCoinId);
     if (!coin) {
-      throw new OnchainWatermarkError(`Watermark coin not found: ${this.watermarkCoinId}`);
+      throw new OnchainWatermarkError(`Watermark coin not found: ${this.currentCoinId}`);
     }
 
     const currentState = coin.state ?? [];
@@ -228,7 +251,7 @@ export class OnchainWatermarkProvider implements WotsLeaseProvider {
     }
 
     const inputCoin = {
-      coinid: this.watermarkCoinId,
+      coinid: this.currentCoinId,
       address: addressToHex(this.watermarkAddress),
       amount: this.amount,
       tokenid: this.tokenId,
@@ -257,7 +280,7 @@ export class OnchainWatermarkProvider implements WotsLeaseProvider {
 
     const witnessBytes = buildWitnessBytes([sig]);
     const prng = sha3_256(
-      new TextEncoder().encode(`watermark:${treeId}:${this.watermarkCoinId}:${newFlat}`),
+      new TextEncoder().encode(`watermark:${treeId}:${this.currentCoinId}:${newFlat}`),
     );
     const txHex = Buffer.from(serializeTxPoW(txBytes, witnessBytes, { prng })).toString('hex');
 
@@ -266,6 +289,25 @@ export class OnchainWatermarkProvider implements WotsLeaseProvider {
       throw new OnchainWatermarkError(
         `Watermark publish rejected: ${result.message ?? 'unknown error'}`,
       );
+    }
+
+    // Rollover: the spent watermark coin is destroyed and replaced by a fresh
+    // coin with a new coin ID (output 0 of this spend). Track and persist the
+    // ADVANCED identity so the next publish spends the live coin, not the
+    // consumed one.
+    const newCoinId = '0x' + bytesToHex(
+      precomputeTransactionCoinID(hexToBytes(this.currentCoinId), 0),
+    );
+    this.currentCoinId = newCoinId;
+    if (this.storage) {
+      try {
+        await this.storage.set(WATERMARK_COIN_STORAGE_KEY, {
+          coinId: newCoinId,
+          lastPublishBlock: this._lastPublishBlock,
+        });
+      } catch {
+        // Storage unavailable — in-memory rollover still applies this session.
+      }
     }
   }
 
@@ -288,7 +330,7 @@ export class OnchainWatermarkProvider implements WotsLeaseProvider {
 
       let onchainFlat: number | null = null;
       try {
-        const coin = await this.chain.getCoin(this.watermarkCoinId);
+        const coin = await this.chain.getCoin(this.currentCoinId);
         if (coin) onchainFlat = readStateCursor(coin.state ?? [], this.statePort);
       } catch {
         // Chain unreachable — skip.
@@ -325,6 +367,7 @@ export class OnchainWatermarkProvider implements WotsLeaseProvider {
   async verifyLeaseCertificate(cert?: LeaseCertificate): Promise<boolean> {
     if (!cert) return false;
     if (cert.expiresAt <= Date.now()) return false;
+    if (!(await certificateSignatureVerified(cert, this.signer))) return false;
     return cert.issuedBy === 'onchain-watermark';
   }
 }
