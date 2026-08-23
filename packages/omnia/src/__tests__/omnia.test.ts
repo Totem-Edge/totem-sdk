@@ -80,9 +80,10 @@ import {
   snapshotChannel,
 } from '../persistence';
 import { validateChannelStateWithKissvm } from '../kissvm';
-import { computeProgramUpdateDigestHex, CounterProgram, COUNTER_PROGRAM_ID, COUNTER_STATE_PORT, DefaultEltooPaymentProgram, MeterProgram, METER_PAYMENT_PORT, METER_PROGRAM_ID, METER_READING_PORT, METER_UNIT_PRICE_PORT, METER_USAGE_DELTA_PORT, resolveChannelProgram } from '../program';
+import { computeProgramUpdateDigestHex, CounterProgram, COUNTER_PROGRAM_ID, COUNTER_STATE_PORT, DefaultEltooPaymentProgram, MeterProgram, METER_PAYMENT_PORT, METER_PROGRAM_ID, METER_READING_PORT, METER_UNIT_PRICE_PORT, METER_USAGE_DELTA_PORT, resolveChannelProgram, HTLCPaymentProgram, HTLC_PROGRAM_ID, HTLC_HASHLOCK_PORT, HTLC_LOCKED_AMOUNT_PORT, HTLC_TIMEOUT_BLOCK_PORT, HTLC_CLAIMED_PORT, HTLC_PREIMAGE_PORT, VaultProgram, VAULT_PROGRAM_ID, VAULT_LOCKED_VALUE_PORT, VAULT_RELEASE_SEQUENCE_PORT, VAULT_SWEPT_PORT } from '../program';
 import { canonicalizeProgramTransition, serializeProgramTransition } from '../transition';
-import { getStateBigInt, programNumberState } from '../state-vars';
+import { getStateBigInt, programNumberState, programHexState, programBoolState } from '../state-vars';
+import { sha3_256, bytesToHex } from '@totemsdk/core';
 import { bindPeerIntegration, sendProgramTransitionStateUpdate } from '../integration';
 import { OmniaPeerImpl } from '../peer';
 import { createInMemoryPair } from '@totemsdk/stream-transport';
@@ -2167,6 +2168,257 @@ describe('@totemsdk/omnia — KISSVM validation', () => {
     const result = validateChannelStateWithKissvm(initial, state, { block: 1 });
     expect(result.valid).toBe(false);
     expect(result.error).toContain('ASSERT failed');
+  });
+
+  it('validates HTLC claim with the revealed preimage via KISSVM', async () => {
+    const preimage = 'secret-totem-preimage';
+    const lockHex = bytesToHex(sha3_256(new TextEncoder().encode(preimage)));
+    const initial = makeTestChannel({
+      programId: HTLC_PROGRAM_ID,
+      programVersion: 1,
+      fundingScript: HTLCPaymentProgram.buildScript([alice, bob]),
+      latestState: {
+        sequence: 0,
+        balances: { alice: 500n, bob: 400n },
+        pendingHTLCs: [],
+        stateVariables: [
+          programHexState(HTLC_HASHLOCK_PORT, `0x${lockHex}`),
+          programNumberState(HTLC_LOCKED_AMOUNT_PORT, 100n),
+          programNumberState(HTLC_TIMEOUT_BLOCK_PORT, 1000n),
+          programBoolState(HTLC_CLAIMED_PORT, false),
+          programHexState(HTLC_PREIMAGE_PORT, ''),
+        ],
+        transactionHex: '',
+        signatures: {},
+        signingIndices: {},
+      },
+    });
+    const { signedState } = await applyProgramTransition(
+      initial,
+      { transition: { action: 'claim', inputs: { preimage } }, balances: { alice: 500n, bob: 500n } },
+      makeMockLeaseProvider() as any,
+      makeMockSigner('alice', ALICE_PKD),
+    );
+    const state = {
+      ...signedState,
+      signatures: { alice: new Uint8Array(1088), bob: new Uint8Array(1088) },
+      signingIndices: {
+        alice: { addressIndex: 0, l1: 1, l2: 0 },
+        bob: { addressIndex: 0, l1: 1, l2: 1 },
+      },
+    } as SignedChannelState;
+
+    expect(validateChannelStateWithKissvm(initial, state, { block: 1 })).toEqual({ valid: true });
+  });
+
+  it('rejects HTLC claim with a wrong preimage via KISSVM', async () => {
+    const preimage = 'secret-totem-preimage';
+    const lockHex = bytesToHex(sha3_256(new TextEncoder().encode(preimage)));
+    const initial = makeTestChannel({
+      programId: HTLC_PROGRAM_ID,
+      programVersion: 1,
+      fundingScript: HTLCPaymentProgram.buildScript([alice, bob]),
+      latestState: {
+        sequence: 0,
+        balances: { alice: 500n, bob: 400n },
+        pendingHTLCs: [],
+        stateVariables: [
+          programHexState(HTLC_HASHLOCK_PORT, `0x${lockHex}`),
+          programNumberState(HTLC_LOCKED_AMOUNT_PORT, 100n),
+          programNumberState(HTLC_TIMEOUT_BLOCK_PORT, 1000n),
+          programBoolState(HTLC_CLAIMED_PORT, false),
+          programHexState(HTLC_PREIMAGE_PORT, ''),
+        ],
+        transactionHex: '',
+        signatures: {},
+        signingIndices: {},
+      },
+    });
+    // A tampered claimed state: claimed=true and lock released, but the stored
+    // preimage does not hash to the hashlock and the timeout block is far away.
+    const wrongPreimageHex = bytesToHex(new TextEncoder().encode('wrong-preimage'));
+    const draft = buildUpdateTx(initial, 1, { alice: 500n, bob: 500n }, [], [
+      programHexState(HTLC_HASHLOCK_PORT, `0x${lockHex}`),
+      programNumberState(HTLC_LOCKED_AMOUNT_PORT, 0n),
+      programNumberState(HTLC_TIMEOUT_BLOCK_PORT, 1000n),
+      programBoolState(HTLC_CLAIMED_PORT, true),
+      programHexState(HTLC_PREIMAGE_PORT, `0x${wrongPreimageHex}`),
+    ]);
+    const state: SignedChannelState = {
+      sequence: 1,
+      balances: { alice: 500n, bob: 500n },
+      pendingHTLCs: [],
+      stateVariables: draft.stateVariables,
+      transactionHex: serializeTxDraft(draft),
+      signatures: { alice: new Uint8Array(1088), bob: new Uint8Array(1088) },
+      signingIndices: {
+        alice: { addressIndex: 0, l1: 1, l2: 0 },
+        bob: { addressIndex: 0, l1: 1, l2: 1 },
+      },
+    };
+
+    const result = validateChannelStateWithKissvm(initial, state, { block: 1 });
+    expect(result.valid).toBe(false);
+  });
+
+  it('validates HTLC timeout after the timeout block via KISSVM', async () => {
+    const initial = makeTestChannel({
+      programId: HTLC_PROGRAM_ID,
+      programVersion: 1,
+      fundingScript: HTLCPaymentProgram.buildScript([alice, bob]),
+      latestState: {
+        sequence: 0,
+        balances: { alice: 500n, bob: 400n },
+        pendingHTLCs: [],
+        stateVariables: [
+          programHexState(HTLC_HASHLOCK_PORT, '0x' + 'ab'.repeat(32)),
+          programNumberState(HTLC_LOCKED_AMOUNT_PORT, 100n),
+          programNumberState(HTLC_TIMEOUT_BLOCK_PORT, 1000n),
+          programBoolState(HTLC_CLAIMED_PORT, false),
+          programHexState(HTLC_PREIMAGE_PORT, ''),
+        ],
+        transactionHex: '',
+        signatures: {},
+        signingIndices: {},
+      },
+    });
+    const { signedState } = await applyProgramTransition(
+      initial,
+      { transition: { action: 'timeout', inputs: { currentBlock: '1001' } }, balances: { alice: 600n, bob: 400n } },
+      makeMockLeaseProvider() as any,
+      makeMockSigner('alice', ALICE_PKD),
+    );
+    const state = {
+      ...signedState,
+      signatures: { alice: new Uint8Array(1088), bob: new Uint8Array(1088) },
+      signingIndices: {
+        alice: { addressIndex: 0, l1: 1, l2: 0 },
+        bob: { addressIndex: 0, l1: 1, l2: 1 },
+      },
+    } as SignedChannelState;
+
+    expect(validateChannelStateWithKissvm(initial, state, { block: 1001 })).toEqual({ valid: true });
+  });
+
+  it('rejects HTLC timeout before the timeout block via KISSVM', async () => {
+    const initial = makeTestChannel({
+      programId: HTLC_PROGRAM_ID,
+      programVersion: 1,
+      fundingScript: HTLCPaymentProgram.buildScript([alice, bob]),
+      latestState: {
+        sequence: 0,
+        balances: { alice: 500n, bob: 400n },
+        pendingHTLCs: [],
+        stateVariables: [
+          programHexState(HTLC_HASHLOCK_PORT, '0x' + 'ab'.repeat(32)),
+          programNumberState(HTLC_LOCKED_AMOUNT_PORT, 100n),
+          programNumberState(HTLC_TIMEOUT_BLOCK_PORT, 1000n),
+          programBoolState(HTLC_CLAIMED_PORT, false),
+          programHexState(HTLC_PREIMAGE_PORT, ''),
+        ],
+        transactionHex: '',
+        signatures: {},
+        signingIndices: {},
+      },
+    });
+    const { signedState } = await applyProgramTransition(
+      initial,
+      { transition: { action: 'timeout', inputs: { currentBlock: '999' } }, balances: { alice: 600n, bob: 400n } },
+      makeMockLeaseProvider() as any,
+      makeMockSigner('alice', ALICE_PKD),
+    );
+    const state = {
+      ...signedState,
+      signatures: { alice: new Uint8Array(1088), bob: new Uint8Array(1088) },
+      signingIndices: {
+        alice: { addressIndex: 0, l1: 1, l2: 0 },
+        bob: { addressIndex: 0, l1: 1, l2: 1 },
+      },
+    } as SignedChannelState;
+
+    const result = validateChannelStateWithKissvm(initial, state, { block: 999 });
+    expect(result.valid).toBe(false);
+  });
+
+  it('validates vault release after the release sequence via KISSVM', async () => {
+    const initial = makeTestChannel({
+      programId: VAULT_PROGRAM_ID,
+      programVersion: 1,
+      fundingScript: VaultProgram.buildScript([alice, bob]),
+      latestState: {
+        sequence: 0,
+        balances: { alice: 600n, bob: 400n },
+        pendingHTLCs: [],
+        stateVariables: [
+          programNumberState(VAULT_LOCKED_VALUE_PORT, 800n),
+          programNumberState(VAULT_RELEASE_SEQUENCE_PORT, 50n),
+          programBoolState(VAULT_SWEPT_PORT, false),
+        ],
+        transactionHex: '',
+        signatures: {},
+        signingIndices: {},
+      },
+    });
+    const draft = buildUpdateTx(initial, 51, { alice: 600n, bob: 400n }, [], [
+      programNumberState(VAULT_LOCKED_VALUE_PORT, 0n),
+      programNumberState(VAULT_RELEASE_SEQUENCE_PORT, 50n),
+      programBoolState(VAULT_SWEPT_PORT, true),
+    ]);
+    const state: SignedChannelState = {
+      sequence: 51,
+      balances: { alice: 600n, bob: 400n },
+      pendingHTLCs: [],
+      stateVariables: draft.stateVariables,
+      transactionHex: serializeTxDraft(draft),
+      signatures: { alice: new Uint8Array(1088), bob: new Uint8Array(1088) },
+      signingIndices: {
+        alice: { addressIndex: 0, l1: 1, l2: 0 },
+        bob: { addressIndex: 0, l1: 1, l2: 1 },
+      },
+    };
+
+    expect(validateChannelStateWithKissvm(initial, state, { block: 1 })).toEqual({ valid: true });
+  });
+
+  it('rejects vault release before the release sequence via KISSVM', async () => {
+    const initial = makeTestChannel({
+      programId: VAULT_PROGRAM_ID,
+      programVersion: 1,
+      fundingScript: VaultProgram.buildScript([alice, bob]),
+      latestState: {
+        sequence: 0,
+        balances: { alice: 600n, bob: 400n },
+        pendingHTLCs: [],
+        stateVariables: [
+          programNumberState(VAULT_LOCKED_VALUE_PORT, 800n),
+          programNumberState(VAULT_RELEASE_SEQUENCE_PORT, 50n),
+          programBoolState(VAULT_SWEPT_PORT, false),
+        ],
+        transactionHex: '',
+        signatures: {},
+        signingIndices: {},
+      },
+    });
+    const draft = buildUpdateTx(initial, 10, { alice: 600n, bob: 400n }, [], [
+      programNumberState(VAULT_LOCKED_VALUE_PORT, 0n),
+      programNumberState(VAULT_RELEASE_SEQUENCE_PORT, 50n),
+      programBoolState(VAULT_SWEPT_PORT, true),
+    ]);
+    const state: SignedChannelState = {
+      sequence: 10,
+      balances: { alice: 600n, bob: 400n },
+      pendingHTLCs: [],
+      stateVariables: draft.stateVariables,
+      transactionHex: serializeTxDraft(draft),
+      signatures: { alice: new Uint8Array(1088), bob: new Uint8Array(1088) },
+      signingIndices: {
+        alice: { addressIndex: 0, l1: 1, l2: 0 },
+        bob: { addressIndex: 0, l1: 1, l2: 1 },
+      },
+    };
+
+    const result = validateChannelStateWithKissvm(initial, state, { block: 1 });
+    expect(result.valid).toBe(false);
   });
 });
 

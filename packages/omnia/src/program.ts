@@ -25,6 +25,7 @@ export const HTLC_HASHLOCK_PORT = 140;
 export const HTLC_LOCKED_AMOUNT_PORT = 141;
 export const HTLC_TIMEOUT_BLOCK_PORT = 142;
 export const HTLC_CLAIMED_PORT = 143;
+export const HTLC_PREIMAGE_PORT = 144;
 
 export const VAULT_PROGRAM_ID = 'vault';
 export const VAULT_LOCKED_VALUE_PORT = 150;
@@ -227,12 +228,13 @@ export const HTLCPaymentProgram: ChannelProgram = {
   version: 1,
   buildScript(parties: ChannelParticipant[]): string {
     return injectEltooScript(parties, [
-      `LET PREIMAGEHASH=SHA3(STATE(${HTLC_HASHLOCK_PORT}))`,
+      `LET PREIMAGEHASH=SHA3(STATE(${HTLC_PREIMAGE_PORT}))`,
       `LET LOCKED=STATE(${HTLC_LOCKED_AMOUNT_PORT})`,
+      `LET TIMEOUTBLOCK=STATE(${HTLC_TIMEOUT_BLOCK_PORT})`,
       `LET CLAIMED=STATE(${HTLC_CLAIMED_PORT})`,
       `IF CLAIMED THEN`,
-      '    ASSERT SEQUENCE EQ PREVSEQUENCE',
-      `    ASSERT LOCKED EQ PREVSTATE(${HTLC_LOCKED_AMOUNT_PORT})`,
+      '    ASSERT LOCKED EQ 0',
+      `    ASSERT PREIMAGEHASH EQ STATE(${HTLC_HASHLOCK_PORT}) OR @BLOCK GTE TIMEOUTBLOCK OR PREVSTATE(${HTLC_CLAIMED_PORT}) EQ TRUE`,
       '    RETURN TRUE',
       'ENDIF',
     ]);
@@ -243,6 +245,7 @@ export const HTLCPaymentProgram: ChannelProgram = {
       programNumberState(HTLC_LOCKED_AMOUNT_PORT, getStateBigInt(previousState, HTLC_LOCKED_AMOUNT_PORT, 0n)),
       programNumberState(HTLC_TIMEOUT_BLOCK_PORT, getStateBigInt(previousState, HTLC_TIMEOUT_BLOCK_PORT, 0n)),
       programBoolState(HTLC_CLAIMED_PORT, getStateBool(previousState, HTLC_CLAIMED_PORT, false)),
+      programHexState(HTLC_PREIMAGE_PORT, getStateHex(previousState, HTLC_PREIMAGE_PORT, '')),
     ];
     switch (transition.action) {
       case 'add': {
@@ -250,10 +253,11 @@ export const HTLCPaymentProgram: ChannelProgram = {
         const amount = BigInt(String(transition.inputs?.amount ?? 0n));
         const timeoutBlock = BigInt(String(transition.inputs?.timeoutBlock ?? 0n));
         return [
-          programHexState(HTLC_HASHLOCK_PORT, hashlock),
+          programHexState(HTLC_HASHLOCK_PORT, `0x${hashlock}`),
           programNumberState(HTLC_LOCKED_AMOUNT_PORT, amount),
           programNumberState(HTLC_TIMEOUT_BLOCK_PORT, timeoutBlock),
           programBoolState(HTLC_CLAIMED_PORT, false),
+          programHexState(HTLC_PREIMAGE_PORT, ''),
         ];
       }
       case 'claim': {
@@ -262,8 +266,10 @@ export const HTLCPaymentProgram: ChannelProgram = {
           programNumberState(HTLC_LOCKED_AMOUNT_PORT, getStateBigInt(previousState, HTLC_LOCKED_AMOUNT_PORT, 0n)),
           programNumberState(HTLC_TIMEOUT_BLOCK_PORT, getStateBigInt(previousState, HTLC_TIMEOUT_BLOCK_PORT, 0n)),
           programBoolState(HTLC_CLAIMED_PORT, false),
+          programHexState(HTLC_PREIMAGE_PORT, getStateHex(previousState, HTLC_PREIMAGE_PORT, '')),
         ];
-        const digest = preimageDigest(String(transition.inputs.preimage));
+        const preimage = String(transition.inputs.preimage);
+        const digest = preimageDigest(preimage);
         const lock = getStateHex(previousState, HTLC_HASHLOCK_PORT, '');
         if (digest !== normalizeHex(lock)) {
           return [
@@ -271,6 +277,7 @@ export const HTLCPaymentProgram: ChannelProgram = {
             programNumberState(HTLC_LOCKED_AMOUNT_PORT, getStateBigInt(previousState, HTLC_LOCKED_AMOUNT_PORT, 0n)),
             programNumberState(HTLC_TIMEOUT_BLOCK_PORT, getStateBigInt(previousState, HTLC_TIMEOUT_BLOCK_PORT, 0n)),
             programBoolState(HTLC_CLAIMED_PORT, false),
+            programHexState(HTLC_PREIMAGE_PORT, getStateHex(previousState, HTLC_PREIMAGE_PORT, '')),
           ];
         }
         return [
@@ -278,6 +285,7 @@ export const HTLCPaymentProgram: ChannelProgram = {
           programNumberState(HTLC_LOCKED_AMOUNT_PORT, 0n),
           programNumberState(HTLC_TIMEOUT_BLOCK_PORT, getStateBigInt(previousState, HTLC_TIMEOUT_BLOCK_PORT, 0n)),
           programBoolState(HTLC_CLAIMED_PORT, true),
+          programHexState(HTLC_PREIMAGE_PORT, `0x${bytesToHex(new TextEncoder().encode(preimage))}`),
         ];
       }
       case 'timeout': {
@@ -286,6 +294,7 @@ export const HTLCPaymentProgram: ChannelProgram = {
           programNumberState(HTLC_LOCKED_AMOUNT_PORT, 0n),
           programNumberState(HTLC_TIMEOUT_BLOCK_PORT, getStateBigInt(previousState, HTLC_TIMEOUT_BLOCK_PORT, 0n)),
           programBoolState(HTLC_CLAIMED_PORT, true),
+          programHexState(HTLC_PREIMAGE_PORT, getStateHex(previousState, HTLC_PREIMAGE_PORT, '')),
         ];
       }
       default:
@@ -294,6 +303,7 @@ export const HTLCPaymentProgram: ChannelProgram = {
           programNumberState(HTLC_LOCKED_AMOUNT_PORT, getStateBigInt(previousState, HTLC_LOCKED_AMOUNT_PORT, 0n)),
           programNumberState(HTLC_TIMEOUT_BLOCK_PORT, getStateBigInt(previousState, HTLC_TIMEOUT_BLOCK_PORT, 0n)),
           programBoolState(HTLC_CLAIMED_PORT, getStateBool(previousState, HTLC_CLAIMED_PORT, false)),
+          programHexState(HTLC_PREIMAGE_PORT, getStateHex(previousState, HTLC_PREIMAGE_PORT, '')),
         ];
     }
   },
@@ -343,12 +353,17 @@ export const VaultProgram: ChannelProgram = {
   buildScript(parties: ChannelParticipant[]): string {
     return injectEltooScript(parties, [
       `LET LOCKEDVALUE=STATE(${VAULT_LOCKED_VALUE_PORT})`,
-      `LET RELEASE=STATE(${VAULT_RELEASE_SEQUENCE_PORT})`,
       `LET SWEPT=STATE(${VAULT_SWEPT_PORT})`,
       `IF SWEPT THEN`,
-      '    ASSERT SEQUENCE EQ PREVSEQUENCE',
-      `    ASSERT LOCKEDVALUE EQ PREVSTATE(${VAULT_LOCKED_VALUE_PORT})`,
+      '    ASSERT LOCKEDVALUE EQ 0',
+      `    ASSERT SEQUENCE GTE PREVSTATE(${VAULT_RELEASE_SEQUENCE_PORT})`,
       '    RETURN TRUE',
+      'ENDIF',
+      `IF SEQUENCE LT PREVSTATE(${VAULT_RELEASE_SEQUENCE_PORT}) THEN`,
+      `    ASSERT LOCKEDVALUE EQ PREVSTATE(${VAULT_LOCKED_VALUE_PORT})`,
+      'ENDIF',
+      `IF LOCKEDVALUE LT PREVSTATE(${VAULT_LOCKED_VALUE_PORT}) THEN`,
+      '    ASSERT SWEPT',
       'ENDIF',
     ]);
   },
@@ -398,12 +413,22 @@ export const VaultProgram: ChannelProgram = {
         const amount = BigInt(String(transition.inputs?.amount ?? 0n));
         const release = BigInt(String(transition.inputs?.releaseSequence ?? 0n));
         if (amount < 0n) return { valid: false, error: 'vault lock amount must be non-negative' };
+        const prevLocked = getStateBigInt(previousState, VAULT_LOCKED_VALUE_PORT, 0n);
+        const prevRelease = getStateBigInt(previousState, VAULT_RELEASE_SEQUENCE_PORT, 0n);
         const nextAmount = getStateBigInt(nextState, VAULT_LOCKED_VALUE_PORT, 0n);
         const nextRelease = getStateBigInt(nextState, VAULT_RELEASE_SEQUENCE_PORT, 0n);
         const swept = getStateBool(nextState, VAULT_SWEPT_PORT, false);
         if (nextAmount !== amount) return { valid: false, error: 'vault locked value mismatch' };
         if (nextRelease !== release) return { valid: false, error: 'vault release sequence mismatch' };
         if (swept) return { valid: false, error: 'vault lock after sweep is not allowed' };
+        if (prevLocked > 0n) {
+          if (BigInt(nextState.sequence) < prevRelease && nextAmount !== prevLocked) {
+            return { valid: false, error: 'vault lock before release must keep locked value' };
+          }
+          if (BigInt(nextState.sequence) >= prevRelease && nextAmount < prevLocked) {
+            return { valid: false, error: 'vault lock must not decrease locked value' };
+          }
+        }
         return { valid: true };
       }
       case 'extend': {
@@ -417,9 +442,8 @@ export const VaultProgram: ChannelProgram = {
         return { valid: true };
       }
       case 'release': {
-        const currentSequence = BigInt(String(transition.inputs?.sequence ?? 0n));
         const prevRelease = getStateBigInt(previousState, VAULT_RELEASE_SEQUENCE_PORT, 0n);
-        if (currentSequence < prevRelease) return { valid: false, error: 'vault release sequence not reached' };
+        if (BigInt(nextState.sequence) < prevRelease) return { valid: false, error: 'vault release sequence not reached' };
         const nextAmount = getStateBigInt(nextState, VAULT_LOCKED_VALUE_PORT, 0n);
         const swept = getStateBool(nextState, VAULT_SWEPT_PORT, false);
         if (nextAmount !== 0n) return { valid: false, error: 'vault release must empty locked value' };
