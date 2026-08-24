@@ -796,6 +796,7 @@
       "name": "@totemsdk/pureminima-rpc",
       "version": "0.1.4",
       "description": "Fetch-based PureMinima RPC client — Bare/Pear/Node/browser compatible",
+      "deprecated": "Use @totemsdk/minima-rpc instead",
       "domain": "sovereignty-stack",
       "keywords": ["rpc", "fetch", "browser", "client", "pureminima"],
       "dependencies": {},

@@ -1,5 +1,5 @@
 /**
- * paymentPort.js — EdgePaymentPort backed by pureminima-rpc.
+ * paymentPort.js — EdgePaymentPort backed by minima-rpc.
  *
  * Uses rpc.runCommand('send', ...) for the on-chain send path.
  * For off-chain L2 payments prefer channelManager.sendPayment() from

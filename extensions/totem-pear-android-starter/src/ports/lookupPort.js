@@ -1,5 +1,5 @@
 /**
- * lookupPort.js — EdgeLookupPort backed by pureminima-rpc + polling.
+ * lookupPort.js — EdgeLookupPort backed by minima-rpc + polling.
  *
  * lookup()  → queries the node's coin/history index for an address or tokenId.
  * watch()   → polls the node every `pollIntervalMs` and fires onUpdate on changes.

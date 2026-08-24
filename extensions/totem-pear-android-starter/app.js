@@ -5,7 +5,7 @@
  *   1. Lifecycle  — createPearApp() registers Pear teardown + hot-reload hooks
  *   2. Config     — loadConfig() resolves Pear.config → Pear.storage → config.json
  *   3. Storage    — SeedStore wraps BareKVStore (Hyperbee) for seed persistence
- *   4. RPC        — createPureMinimaClient() for on-chain balance/send queries
+ *   4. RPC        — createMinimaRpcClient() for on-chain balance/send queries
  *   5. Ports      — EdgeLiquidityPort, EdgePaymentPort, EdgeLookupPort
  *   6. Omnia      — createChannelManager() for L2 payment channels over relay WS
  *   7. Runtime    — createEdgeRuntime() composes everything into one object
@@ -20,7 +20,7 @@ import {
   createEdgeDevice,
   createCapabilitySet,
 } from '@totemsdk/edge';
-import { createPureMinimaClient } from '@totemsdk/pureminima-rpc';
+import { createMinimaRpcClient } from '@totemsdk/minima-rpc';
 
 import { SeedStore }        from './src/storage/seedStore.js';
 import { createLiquidityPort } from './src/ports/liquidityPort.js';
@@ -67,9 +67,9 @@ async function main() {
   }
 
   // ─── 4. RPC client ────────────────────────────────────────────────────────────
-  // createPureMinimaClient is fetch-based — works in Bare/Pear with native fetch.
+  // createMinimaRpcClient is fetch-based — works in Bare/Pear with native fetch.
   // For Bare runtimes without fetch, use bareFetch from @totemsdk/pear/network.
-  const rpc = createPureMinimaClient({ nodeUrl });
+  const rpc = createMinimaRpcClient({ nodeUrl });
 
   // Quick connectivity check
   try {

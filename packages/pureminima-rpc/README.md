@@ -1,5 +1,10 @@
 # @totemsdk/pureminima-rpc
 
+> **DEPRECATED** — use [`@totemsdk/minima-rpc`](../minima-rpc) instead. This package is
+> kept for backwards compatibility only and receives no further updates. The
+> `@totemsdk/minima-rpc` package is the same fetch-based client with the
+> `MinimaRpcClient`/`createMinimaRpcClient` naming.
+
 **Direct RPC to a self-hosted PureMinima node — works in every JS runtime.**
 
 Fetch-based (no Node-specific APIs). Use it in the browser, Node.js, Pear/Bare, or any environment with a global `fetch`. No dependencies.

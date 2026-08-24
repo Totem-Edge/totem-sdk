@@ -46,7 +46,7 @@ The SDK is organised into five systems that map onto the loop — plus a cryptog
 | **Edge** | Protocol connectors for sensing | `edge-mqtt`, `edge-modbus`, `edge-bacnet`, `edge-ble`, `edge-can`, `edge-coap`, `edge-grpc`, `edge-lorawan`, `edge-matter`, `edge-opcua`, `edge-ros2`, `edge-email`, `pear` |
 | **Foundation** | KISSVM, serialization, crypto primitives | `core`, `kissvm`, `core-wasm` |
 
-Sovereignty infrastructure (`lookup-node`, `lookup-client`, `lookup-protocol`, `chain-provider`, `minima-rpc`, `pureminima-rpc`, `realtime`, `server`, `stream-transport`, `pubsub-transport`, `mcp-server`, `wallet-adapter`) is shared plumbing used by every system.
+Sovereignty infrastructure (`lookup-node`, `lookup-client`, `lookup-protocol`, `chain-provider`, `minima-rpc`, `realtime`, `server`, `stream-transport`, `pubsub-transport`, `mcp-server`, `wallet-adapter`) is shared plumbing used by every system.
 
 ## What Totem does not assume
 
@@ -223,7 +223,7 @@ Every stage produces evidence the next stage consumes — and every stage can be
 | [`@totemsdk/lookup-protocol`](packages/lookup-protocol) | Wire protocol spec for the P2P lookup network |
 | [`@totemsdk/chain-provider`](packages/chain-provider) | Unified abstraction over all chain data sources — hosted, PureMinima RPC, lookup node |
 | [`@totemsdk/minima-rpc`](packages/minima-rpc) | Direct RPC to a self-hosted Totem/Minima node — TLS by default |
-| [`@totemsdk/pureminima-rpc`](packages/pureminima-rpc) | Fetch-based PureMinima RPC client — Bare/Pear/Node/browser compatible |
+| [`@totemsdk/pureminima-rpc`](packages/pureminima-rpc) | **Deprecated** — use `@totemsdk/minima-rpc` |
 | [`@totemsdk/realtime`](packages/realtime) | Live balance streaming with WebSocket and HTTP fallback |
 | [`@totemsdk/server`](packages/server) | Server-side utilities — Axia API client with RPC sanitisation |
 | [`@totemsdk/stream-transport`](packages/stream-transport) | Bidirectional byte-stream adapters — WebSocket, Hyperswarm, WebRTC, stdio, in-memory |

@@ -1,7 +1,7 @@
 /**
- * liquidityPort.js — EdgeLiquidityPort backed by pureminima-rpc.
+ * liquidityPort.js — EdgeLiquidityPort backed by minima-rpc.
  *
- * pureminima-rpc is fetch-based and works in Bare/Pear without any polyfill
+ * minima-rpc is fetch-based and works in Bare/Pear without any polyfill
  * when native fetch is present (Android Pear ships it). For older Bare runtimes
  * without fetch, bareFetch from @totemsdk/pear/network is a drop-in shim.
  *
