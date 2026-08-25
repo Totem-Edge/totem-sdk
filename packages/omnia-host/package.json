@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/omnia-host",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Durable Omnia node daemon for channel lifecycle, routing, and control APIs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -28,6 +28,9 @@
   ],
   "dependencies": {
     "@totemsdk/chain-provider": "workspace:^",
+    "@totemsdk/core": "workspace:^",
+    "@totemsdk/identity": "workspace:^",
+    "@totemsdk/manifest": "workspace:^",
     "@totemsdk/omnia": "workspace:^",
     "@totemsdk/omnia-factory": "workspace:^",
     "@totemsdk/omnia-router": "workspace:^",
@@ -43,6 +46,7 @@
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20.19.43",
     "@types/ws": "^8.5.0",
+    "@totemsdk/txpow": "workspace:^",
     "jest": "^30.4.2",
     "ts-jest": "^29.4.11",
     "typescript": "5.9.3"

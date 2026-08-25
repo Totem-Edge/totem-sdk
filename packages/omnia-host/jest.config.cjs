@@ -14,6 +14,8 @@ module.exports = {
   },
   moduleNameMapper: {
     '^@totemsdk/core$': '<rootDir>/../core/src/index.ts',
+    '^@totemsdk/identity$': '<rootDir>/../identity/src/index.ts',
+    '^@totemsdk/manifest$': '<rootDir>/../manifest/src/index.ts',
     '^@totemsdk/tx-builder$': '<rootDir>/../tx-builder/src/index.ts',
     '^@totemsdk/txpow$': '<rootDir>/../txpow/src/index.ts',
     '^@totemsdk/wots-lease$': '<rootDir>/../wots-lease/src/index.ts',

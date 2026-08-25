@@ -1,18 +1,31 @@
 import {
+  addHTLC,
   createChannel,
   applyProgramTransition,
   decrementCounter,
+  fulfillHTLC,
   incrementCounter,
   markChannelClosed,
   markChannelClosing,
   proposeSettlement,
   recordMeterReading,
   setCounter,
+  timeoutHTLC,
   updateState,
 } from '@totemsdk/omnia';
 import type { ChannelParticipant, ChannelSigner, CreateChannelParams, OmniaChannel, OmniaSwarm, ProgramTransition, UpdateStateResult } from '@totemsdk/omnia';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import type { WotsLeaseProvider } from '@totemsdk/wots-lease';
+import {
+  executeCrossTokenPayment,
+  executeMultiHopPayment,
+  type ChannelOps,
+  type CrossTokenRoute,
+  type LeaseProvider,
+  type PaymentRequest,
+  type Route,
+  type RouterChannel,
+} from '@totemsdk/omnia-router';
 import {
   acceptFactory,
   closeFactory,
@@ -54,6 +67,17 @@ export interface HostApiContext {
   spliceProposals?: Map<string, SpliceProposal>;
   spliceAcceptances?: Map<string, SpliceAcceptance>;
   spliceLeaseProvider?: SpliceLeaseProvider;
+  /** When true, only read-only methods are registered (no signer material). */
+  readOnly?: boolean;
+  /** Opt-in host identity (address, publicKeyDigest, optional delegation). */
+  identity?: {
+    address: string;
+    publicKeyDigest: string;
+    identityId?: string;
+    delegation?: unknown;
+  };
+  /** Boot-time signed EdgeServiceManifest. */
+  manifest?: unknown;
 }
 
 function channelSummary(channel: OmniaChannel): Record<string, unknown> {
@@ -248,6 +272,33 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
   const getSwapRate: JsonRpcHandler = () => ({ success: true, announcements: [] });
   register('totem_omniaGetSwapRate', getSwapRate, 'omnia/getSwapRate');
 
+  const whoami: JsonRpcHandler = () => {
+    if (!context.identity) {
+      return { address: null, publicKeyDigest: null };
+    }
+    return {
+      address: context.identity.address,
+      publicKeyDigest: context.identity.publicKeyDigest,
+      identityId: context.identity.identityId,
+      delegation: context.identity.delegation,
+    };
+  };
+  register('totem_omniaWhoami', whoami, 'omnia/whoami');
+
+  const getManifest: JsonRpcHandler = () => {
+    if (!context.manifest) {
+      return { manifest: null };
+    }
+    return { manifest: context.manifest };
+  };
+  register('totem_omniaGetManifest', getManifest, 'omnia/getManifest');
+
+  // Fail-fast rule: without signing material only the read-only surface is
+  // registered. Mutation methods must never exist without a signer.
+  if (context.readOnly || !context.signer || !context.leaseProvider) {
+    return methods;
+  }
+
   const openChannel: JsonRpcHandler = async (raw) => {
     const params = paramsObject(raw);
     requireMutationContext(context);
@@ -374,6 +425,15 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
     const params = paramsObject(raw);
     requireMutationContext(context);
     const channelId = requiredString(params, 'channelId');
+    const broadcastProofs = params.broadcastProofs;
+    const parsedProofs = broadcastProofs && typeof broadcastProofs === 'object'
+      && Array.isArray((broadcastProofs as Record<string, unknown>).coinProofs)
+      && Array.isArray((broadcastProofs as Record<string, unknown>).scriptProofs)
+      ? {
+          coinProofs: ((broadcastProofs as Record<string, unknown>).coinProofs as unknown[]).map((hex) => Buffer.from(String(hex).replace(/^0x/i, ''), 'hex')),
+          scriptProofs: ((broadcastProofs as Record<string, unknown>).scriptProofs as unknown[]).map((hex) => Buffer.from(String(hex).replace(/^0x/i, ''), 'hex')),
+        }
+      : undefined;
     return withOperation(context, params, async () => {
       const channel = context.channels.get(channelId);
       if (!channel) throw new Error(`Channel ${channelId} not found`);
@@ -381,6 +441,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       const settlement = await proposeSettlement(closing, context.leaseProvider, {
         signer: context.signer,
         chainProvider: context.chainProvider,
+        broadcastProofs: parsedProofs,
         partyAddresses: Object.fromEntries(closing.parties.map((party) => [party.partyId, party.settlementAddress ?? party.publicKeyDigest])),
       });
       context.channels.set(channelId, markChannelClosed(closing));
@@ -483,10 +544,84 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
   register('totem_omniaSpliceIn', splice('in'), 'omnia/spliceIn');
   register('totem_omniaSpliceOut', splice('out'), 'omnia/spliceOut');
 
-  const unsupported: JsonRpcHandler = () => {
-    throw new Error('This operation requires a counterparty proposal/acceptance round');
+  const payMultiHop: JsonRpcHandler = async (raw) => {
+    const params = paramsObject(raw);
+    requireMutationContext(context);
+    const route = params.route;
+    if (!route || typeof route !== 'object' || !Array.isArray((route as Record<string, unknown>).hops)) {
+      throw new Error('route with hops is required');
+    }
+    const paymentRequest = params.paymentRequest;
+    if (!paymentRequest || typeof paymentRequest !== 'object') {
+      throw new Error('paymentRequest is required');
+    }
+    const request = paymentRequest as Record<string, unknown>;
+    const parsedRequest: PaymentRequest = {
+      hashlock: requiredString(request, 'hashlock'),
+      amount: requiredBigInt(request, 'amount'),
+      tokenId: requiredString(request, 'tokenId'),
+      expiryBlock: requiredBigInt(request, 'expiryBlock'),
+      preimage: typeof request.preimage === 'string' ? request.preimage : undefined,
+      description: typeof request.description === 'string' ? request.description : undefined,
+    };
+    const parsedRoute = route as Route | CrossTokenRoute;
+    const isCrossToken = 'swapHops' in parsedRoute && Array.isArray(parsedRoute.swapHops) && parsedRoute.swapHops.length > 0;
+
+    const ops: ChannelOps = {
+      addHTLC: (channel, htlcParams, leaseProvider) => addHTLC(
+        channel as OmniaChannel,
+        htlcParams,
+        leaseProvider as WotsLeaseProvider,
+        context.signer,
+      ),
+      fulfillHTLC: (channel, htlcId, preimage, leaseProvider) => fulfillHTLC(
+        channel as OmniaChannel,
+        htlcId,
+        preimage,
+        leaseProvider as WotsLeaseProvider,
+        context.signer,
+      ),
+      timeoutHTLC: (channel, htlcId, leaseProvider) => timeoutHTLC(
+        channel as OmniaChannel,
+        htlcId,
+        leaseProvider as WotsLeaseProvider,
+        context.chainProvider,
+        context.signer,
+      ),
+    };
+    const leaseProviders = new Map<string, LeaseProvider>();
+    for (const hop of parsedRoute.hops) {
+      const channelId = 'channelId' in hop ? hop.channelId : undefined;
+      if (channelId) leaseProviders.set(channelId, context.leaseProvider);
+      if ('inboundChannelId' in hop && hop.inboundChannelId) leaseProviders.set(hop.inboundChannelId, context.leaseProvider);
+      if ('outboundChannelId' in hop && hop.outboundChannelId) leaseProviders.set(hop.outboundChannelId, context.leaseProvider);
+    }
+
+    return withOperation(context, params, async () => {
+      const result = isCrossToken
+        ? await executeCrossTokenPayment(
+            ops,
+            context.channels as unknown as Map<string, RouterChannel>,
+            parsedRoute as CrossTokenRoute,
+            parsedRequest,
+            leaseProviders,
+          )
+        : await executeMultiHopPayment(
+            ops,
+            context.channels as unknown as Map<string, RouterChannel>,
+            parsedRoute as Route,
+            parsedRequest,
+            leaseProviders,
+          );
+      if (!result.success) throw new Error(result.error ?? 'multi-hop payment failed');
+      return {
+        success: true,
+        preimage: result.preimage,
+        settledHops: result.settledHops,
+      };
+    });
   };
-  register('totem_omniaPayMultiHop', unsupported, 'omnia/payMultiHop');
+  register('totem_omniaPayMultiHop', payMultiHop, 'omnia/payMultiHop');
 
   return methods;
 }

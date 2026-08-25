@@ -31,6 +31,15 @@ export interface OmniaHostDependencies {
   spliceProposals?: Map<string, SpliceProposal>;
   spliceAcceptances?: Map<string, SpliceAcceptance>;
   spliceLeaseProvider?: SpliceLeaseProvider;
+  /** Opt-in host identity surface (whoami). */
+  identity?: {
+    address: string;
+    publicKeyDigest: string;
+    identityId?: string;
+    delegation?: unknown;
+  };
+  /** Boot-time signed EdgeServiceManifest (getManifest). */
+  manifest?: unknown;
 }
 
 export interface OmniaHost {
@@ -118,6 +127,10 @@ export function createOmniaHost(
         chainProvider: dependencies.chainProvider ?? chainAdapter,
       });
       if (!controlServer) {
+        const readOnly = !dependencies.signer || !dependencies.leaseProvider;
+        if (readOnly) {
+          console.log('[omnia-host] no signing material; starting READ-ONLY');
+        }
         controlServer = createControlServer({
           host: config.host,
           port: config.port,
@@ -137,6 +150,9 @@ export function createOmniaHost(
             spliceProposals: dependencies.spliceProposals,
             spliceAcceptances: dependencies.spliceAcceptances,
             spliceLeaseProvider: dependencies.spliceLeaseProvider,
+            readOnly,
+            identity: dependencies.identity,
+            manifest: dependencies.manifest,
             refreshRouting: () => routingProvider.rebuild(channelGraphEdges(channelStore!.values())),
           }),
         });
