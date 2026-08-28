@@ -150,6 +150,12 @@ export interface PersonalLeaseNodeConfig {
   nodeUrl: string;
   nodePubkey: string;
   authToken?: string;
+  /**
+   * Identity that authenticates certificates issued by this node.
+   * When set, `verifyLeaseCertificate` performs cryptographic signature
+   * verification; without it, verification is issuer-only (no signature check).
+   */
+  certificateSigner?: CertificateSigner;
 }
 
 /**

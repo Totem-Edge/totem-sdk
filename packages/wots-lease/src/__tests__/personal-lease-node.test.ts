@@ -1,5 +1,5 @@
 import { PersonalLeaseNodeProvider } from '../stubs';
-import type { LeaseCertificate } from '../types';
+import type { LeaseCertificate, CertificateSigner } from '../types';
 
 const NODE_URL = 'http://localhost:7777';
 const NODE_PUBKEY = 'aabbccddeeff0011223344556677889900aabbccddeeff0011223344556677889900';
@@ -11,6 +11,15 @@ function mockFetch(body: unknown, status = 200): jest.SpyInstance {
     json: async () => body,
     text: async () => JSON.stringify(body),
   } as Response);
+}
+
+/** Fake signer for testing — always returns a fixed signature and verifies against it. */
+function makeFakeSigner(verifyResult = true): CertificateSigner {
+  return {
+    publicKeyDigest: NODE_PUBKEY,
+    sign: async () => new Uint8Array([0xaa, 0xbb, 0xcc]),
+    verify: async () => verifyResult,
+  };
 }
 
 afterEach(() => jest.restoreAllMocks());
@@ -142,7 +151,7 @@ describe('PersonalLeaseNodeProvider — verifyLeaseCertificate', () => {
     issuedBy: NODE_PUBKEY,
     issuedAt: Date.now() - 1000,
     expiresAt: Date.now() + 120_000,
-    signature: 'sig',
+    signature: 'aabbcc',  // valid hex
     ...overrides,
   });
 
@@ -161,9 +170,27 @@ describe('PersonalLeaseNodeProvider — verifyLeaseCertificate', () => {
     expect(await provider.verifyLeaseCertificate(makeCert({ expiresAt: Date.now() - 1 }))).toBe(false);
   });
 
-  it('returns true for a valid cert from the configured node', async () => {
+  it('returns true for a valid cert from the configured node (no signer)', async () => {
     const provider = new PersonalLeaseNodeProvider({ nodeUrl: NODE_URL, nodePubkey: NODE_PUBKEY });
     expect(await provider.verifyLeaseCertificate(makeCert())).toBe(true);
+  });
+
+  it('returns true when certificateSigner.verify succeeds', async () => {
+    const signer = makeFakeSigner(true);
+    const provider = new PersonalLeaseNodeProvider({ nodeUrl: NODE_URL, nodePubkey: NODE_PUBKEY, certificateSigner: signer });
+    expect(await provider.verifyLeaseCertificate(makeCert())).toBe(true);
+  });
+
+  it('returns false when certificateSigner.verify rejects', async () => {
+    const signer = makeFakeSigner(false);
+    const provider = new PersonalLeaseNodeProvider({ nodeUrl: NODE_URL, nodePubkey: NODE_PUBKEY, certificateSigner: signer });
+    expect(await provider.verifyLeaseCertificate(makeCert())).toBe(false);
+  });
+
+  it('returns false when signature is empty and certificateSigner is set', async () => {
+    const signer = makeFakeSigner(true);
+    const provider = new PersonalLeaseNodeProvider({ nodeUrl: NODE_URL, nodePubkey: NODE_PUBKEY, certificateSigner: signer });
+    expect(await provider.verifyLeaseCertificate(makeCert({ signature: '' }))).toBe(false);
   });
 
   it('URL-encodes treeId with special characters in getLocalWatermark', async () => {
