@@ -575,11 +575,10 @@ pub fn validate_vault_transition(
             if amount < 0 {
                 return invalid("vault lock amount must be non-negative");
             }
-            let prev_locked =
-                match get_state_bigint(previous_state, VAULT_LOCKED_VALUE_PORT, 0) {
-                    Ok(value) => value,
-                    Err(reason) => return invalid(reason),
-                };
+            let prev_locked = match get_state_bigint(previous_state, VAULT_LOCKED_VALUE_PORT, 0) {
+                Ok(value) => value,
+                Err(reason) => return invalid(reason),
+            };
             let prev_release =
                 match get_state_bigint(previous_state, VAULT_RELEASE_SEQUENCE_PORT, 0) {
                     Ok(value) => value,
