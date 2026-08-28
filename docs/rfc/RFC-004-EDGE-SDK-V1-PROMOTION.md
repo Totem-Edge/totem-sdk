@@ -166,32 +166,34 @@ Core deterministic and infrastructure packages with strong test coverage.
 
 ## 7. Wave 2 — Push to RC (19 packages)
 
+**Status:** ✅ Promoted to RC maturity
+
 Packages needing real-system integration, adversarial testing, and persistence validation.
 
-| Package | Work Needed | Effort |
-|---------|-------------|--------|
-| `@totemsdk/edge-mqtt` | Real Mosquitto/EMQX CI: QoS 0/1/2, persistent sessions, reconnect, TLS/auth/ACL, backpressure | Medium |
-| `@totemsdk/governance` | Cryptographically signed ballot envelopes, snapshot binding, durable credit ledger | High |
-| `@totemsdk/agent-policy` | Durable atomic policy-state backend, crash/restart reconciliation, outbox pattern | High |
-| `@totemsdk/recursive-mast` | PREVSTATE, delegation, stores, HTTP store, availability, recursion limits, malformed trees, DoS | High |
-| `@totemsdk/lookup-node` | Restart/reindex/reorg tests, DB corruption/recovery, migrations, auth/rate limiting, real-chain indexing | High |
-| `@totemsdk/realtime` | WebSocket drop/reconnect, duplicate/reordered events, HTTP fallback consistency, resubscription | Medium |
-| `@totemsdk/stream-transport` | Parameterized transport contract across all adapters | Medium |
-| `@totemsdk/pubsub-transport` | Broker-independent contract suite, ordering/duplicate/backpressure semantics | Medium |
-| `@totemsdk/liquidity-bond` | Durable storage, real transaction/bond redemption E2E | Medium |
-| `@totemsdk/provider-bond` | Adversarial proof-to-bond binding, real-chain bond lifecycle E2E | Medium |
-| `@totemsdk/omnia-router` | Multi-node route E2E, concurrent reservations, failed hops, replay, fee/slippage, HTLC expiry | Medium |
-| `@totemsdk/omnia-factory` | Participant dropout, stale factory state, double virtual allocation, cooperative/uncooperative exits | Medium |
-| `@totemsdk/omnia-splice` | Real-chain splice acceptance, concurrent update/splice races, fees/change/dust, interrupted broadcast | Medium |
-| `@totemsdk/omnia-vtxo` | Persistent-store restart tests, real exit integration | Low |
-| `@totemsdk/statechain` | Threat-model tests, replay/nonce attacks, co-signer compromise, withdrawal/ownership transfer E2E | High |
-| `@totemsdk/se-server` | Auth, secrets-at-rest, rotation, replay resistance, multi-client concurrency | High |
-| `@totemsdk/tx-builder` | Coin selection, fees/change, token conservation, WOTS signing, malformed proof, Minima acceptance | High |
-| `@totemsdk/industrial-action` | Two-phase/idempotent execution, cryptographic authority proof binding, retry/timeout/rollback | High |
-| `@totemsdk/omnia-host` | RPC auth/authorization, SQLite migration/recovery, request-bound idempotency, crash tests | High |
-| `@totemsdk/minima-rpc` | Live Minima server contract suite, TLS error cases, malformed RPC responses, timeout/cancellation | Medium |
-| `@totemsdk/pear` | Actual Bare/Pear runtime CI, native environment edge cases, packed consumer tests | Medium |
-| `@totemsdk/mcp-server` | Narrow V1 surface to metadata/scaffolding OR fully implement execution ambitions | High |
+| Package | Work Needed | Effort | Status |
+|---------|-------------|--------|--------|
+| `@totemsdk/edge-mqtt` | Real Mosquitto/EMQX CI: QoS 0/1/2, persistent sessions, reconnect, TLS/auth/ACL, backpressure | Medium | ✅ RC |
+| `@totemsdk/governance` | Cryptographically signed ballot envelopes, snapshot binding, durable credit ledger | High | ✅ RC |
+| `@totemsdk/agent-policy` | Durable atomic policy-state backend, crash/restart reconciliation, outbox pattern | High | ✅ RC |
+| `@totemsdk/recursive-mast` | PREVSTATE, delegation, stores, HTTP store, availability, recursion limits, malformed trees, DoS | High | ✅ RC |
+| `@totemsdk/lookup-node` | Restart/reindex/reorg tests, DB corruption/recovery, migrations, auth/rate limiting, real-chain indexing | High | ✅ RC |
+| `@totemsdk/realtime` | WebSocket drop/reconnect, duplicate/reordered events, HTTP fallback consistency, resubscription | Medium | ✅ RC |
+| `@totemsdk/stream-transport` | Parameterized transport contract across all adapters | Medium | ✅ RC |
+| `@totemsdk/pubsub-transport` | Broker-independent contract suite, ordering/duplicate/backpressure semantics | Medium | ✅ RC |
+| `@totemsdk/liquidity-bond` | Durable storage, real transaction/bond redemption E2E | Medium | ✅ RC |
+| `@totemsdk/provider-bond` | Adversarial proof-to-bond binding, real-chain bond lifecycle E2E | Medium | ✅ RC |
+| `@totemsdk/omnia-router` | Multi-node route E2E, concurrent reservations, failed hops, replay, fee/slippage, HTLC expiry | Medium | ✅ RC |
+| `@totemsdk/omnia-factory` | Participant dropout, stale factory state, double virtual allocation, cooperative/uncooperative exits | Medium | ✅ RC |
+| `@totemsdk/omnia-splice` | Real-chain splice acceptance, concurrent update/splice races, fees/change/dust, interrupted broadcast | Medium | ✅ RC |
+| `@totemsdk/omnia-vtxo` | Persistent-store restart tests, real exit integration | Low | ✅ RC |
+| `@totemsdk/statechain` | Threat-model tests, replay/nonce attacks, co-signer compromise, withdrawal/ownership transfer E2E | High | ✅ RC |
+| `@totemsdk/se-server` | Auth, secrets-at-rest, rotation, replay resistance, multi-client concurrency | High | ✅ RC |
+| `@totemsdk/tx-builder` | Coin selection, fees/change, token conservation, WOTS signing, malformed proof, Minima acceptance | High | ✅ RC |
+| `@totemsdk/industrial-action` | Two-phase/idempotent execution, cryptographic authority proof binding, retry/timeout/rollback | High | ✅ RC |
+| `@totemsdk/omnia-host` | RPC auth/authorization, SQLite migration/recovery, request-bound idempotency, crash tests | High | ✅ RC |
+| `@totemsdk/minima-rpc` | Live Minima server contract suite, TLS error cases, malformed RPC responses, timeout/cancellation | Medium | ✅ RC |
+| `@totemsdk/pear` | Actual Bare/Pear runtime CI, native environment edge cases, packed consumer tests | Medium | ✅ RC |
+| `@totemsdk/mcp-server` | Narrow V1 surface to metadata/scaffolding OR fully implement execution ambitions | High | ✅ RC |
 
 **Wave 2 RC Acceptance Criteria:**
 - All Wave 1 criteria
