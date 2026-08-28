@@ -35,7 +35,7 @@
     "@totemsdk/omnia-vtxo": "workspace:^",
     "@totemsdk/minima-rpc": "workspace:^",
     "@totemsdk/wots-lease": "workspace:^",
-    "better-sqlite3": "^12.2.0",
+    "better-sqlite3": "^13.0.3",
     "ws": "^8.21.1"
   },
   "devDependencies": {
