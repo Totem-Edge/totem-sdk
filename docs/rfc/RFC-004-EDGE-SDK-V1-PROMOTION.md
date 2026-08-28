@@ -134,25 +134,27 @@ workspace-gates.config.json now supports maturity levels (`alpha` → `beta` →
 
 ## 6. Wave 1 — Push to V1 (15 packages)
 
+**Status:** ✅ Promoted (`c078b3d`)
+
 Core deterministic and infrastructure packages with strong test coverage.
 
-| Package | Work Needed | Effort |
-|---------|-------------|--------|
-| `@totemsdk/core` | Byte-exact fixture maintenance, WASM/TS boundary regression tests | Low |
-| `@totemsdk/kissvm` | Hostile resource-limit/fuzz corpus, Java/Minima compatibility fixtures | Medium |
-| `@totemsdk/root-identity` | Recovery/rotation/cache source-of-truth integration tests | Medium |
-| `@totemsdk/proof` | Canonicalization fuzzing, malformed/oversized proofs, WOTS lease crash paths, anchor E2E | Medium |
-| `@totemsdk/identity` | Cyclic graph/delegation attacks, expiry/revocation/rotation, resolver consistency | Medium |
-| `@totemsdk/manifest` | Freeze schema/version behavior, payload/depth limits, forward compatibility | Low |
-| `@totemsdk/authority` | Durable/concurrent usage accounting, proof→identity→mandate→authority E2E fixtures | Medium |
-| `@totemsdk/proof-integritas` | Real chain-anchor E2E, canonical anchor vectors, malformed anchor proofs | Low |
-| `@totemsdk/proofgraph` | Persistent graph replay/repair, cycle/large-DAG attacks, malformed link/property fuzzing | Medium |
-| `@totemsdk/location-proof` | Numeric precision, invalid/NaN/range policy, motion boundary/property tests | Medium |
-| `@totemsdk/spatial-proof` | Antimeridian, polygon edge, degenerate geometry, coordinate precision | Medium |
-| `@totemsdk/raster-proof` | Large-data streaming limits, Merkle property tests, malformed tile trees | Medium |
-| `@totemsdk/txpow` | Network-node acceptance test, Java/PureMinima golden bytes, difficulty/nonce bounds | Medium |
-| `@totemsdk/wallet-adapter` | Parameterized adapter contract, sign/reject/disconnect/account-change semantics | Low |
-| `@totemsdk/edge` | Freeze port/capability API, hostile capability enforcement, concurrency/cancellation, adapter conformance | Medium |
+| Package | Work Needed | Effort | Status |
+|---------|-------------|--------|--------|
+| `@totemsdk/core` | Byte-exact fixture maintenance, WASM/TS boundary regression tests | Low | ✅ V1 |
+| `@totemsdk/kissvm` | Hostile resource-limit/fuzz corpus, Java/Minima compatibility fixtures | Medium | ✅ V1 |
+| `@totemsdk/root-identity` | Recovery/rotation/cache source-of-truth integration tests | Medium | ✅ V1 |
+| `@totemsdk/proof` | Canonicalization fuzzing, malformed/oversized proofs, WOTS lease crash paths, anchor E2E | Medium | ✅ V1 |
+| `@totemsdk/identity` | Cyclic graph/delegation attacks, expiry/revocation/rotation, resolver consistency | Medium | ✅ V1 |
+| `@totemsdk/manifest` | Freeze schema/version behavior, payload/depth limits, forward compatibility | Low | ✅ V1 |
+| `@totemsdk/authority` | Durable/concurrent usage accounting, proof→identity→mandate→authority E2E fixtures | Medium | ✅ V1 |
+| `@totemsdk/proof-integritas` | Real chain-anchor E2E, canonical anchor vectors, malformed anchor proofs | Low | ✅ V1 |
+| `@totemsdk/proofgraph` | Persistent graph replay/repair, cycle/large-DAG attacks, malformed link/property fuzzing | Medium | ✅ V1 |
+| `@totemsdk/location-proof` | Numeric precision, invalid/NaN/range policy, motion boundary/property tests | Medium | ✅ V1 |
+| `@totemsdk/spatial-proof` | Antimeridian, polygon edge, degenerate geometry, coordinate precision | Medium | ✅ V1 |
+| `@totemsdk/raster-proof` | Large-data streaming limits, Merkle property tests, malformed tile trees | Medium | ✅ V1 |
+| `@totemsdk/txpow` | Network-node acceptance test, Java/PureMinima golden bytes, difficulty/nonce bounds | Medium | ✅ V1 |
+| `@totemsdk/wallet-adapter` | Parameterized adapter contract, sign/reject/disconnect/account-change semantics | Low | ✅ V1 |
+| `@totemsdk/edge` | Freeze port/capability API, hostile capability enforcement, concurrency/cancellation, adapter conformance | Medium | ✅ V1 |
 
 **Wave 1 V1 Acceptance Criteria:**
 - Stable public API with documented breaking change policy
