@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/edge-matter",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Edge runtime adapter for Matter — smart home, multi-transport, fabric management",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

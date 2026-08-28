@@ -114,4 +114,24 @@ describe('loadConfigFromEnv', () => {
     expect(config.reclaimTimelock).toBe(128);
     expect(config.betaMode).toBe(false);
   });
+
+  it('defaults betaMode to false (stable API) when SE_BETA_MODE is unset', () => {
+    process.env.SE_KEY = 'ab'.repeat(32);
+    process.env.DATABASE_URL = 'postgres://localhost/db';
+    delete process.env.SE_BETA_MODE;
+
+    const config = loadConfigFromEnv();
+    expect(config.betaMode).toBe(false);
+  });
+
+  it('enables betaMode only when SE_BETA_MODE is exactly "true"', () => {
+    process.env.SE_KEY = 'ab'.repeat(32);
+    process.env.DATABASE_URL = 'postgres://localhost/db';
+    process.env.SE_BETA_MODE = 'true';
+
+    expect(loadConfigFromEnv().betaMode).toBe(true);
+
+    process.env.SE_BETA_MODE = '1';
+    expect(loadConfigFromEnv().betaMode).toBe(false);
+  });
 });

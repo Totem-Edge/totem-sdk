@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/proof-integritas",
-  "version": "0.1.1",
+  "version": "1.0.0",
   "description": "Integritas v2 proof provider adapter for @totemsdk/proof — hash stamping, checking, and on-chain verification on Minima",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

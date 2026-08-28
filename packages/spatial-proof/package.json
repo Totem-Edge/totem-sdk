@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/spatial-proof",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Generic spatial relationship proof primitives for Totem Edge — geometry hashes, geofence relations, route checks, and proof envelope integration",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

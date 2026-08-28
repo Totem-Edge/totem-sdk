@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/lookup-node",
-  "version": "0.1.9",
+  "version": "0.2.0",
   "description": "Always-on personal lookup node — accepts Hyperswarm connections, answers chain queries, pushes COIN_UPDATE to watchlist subscribers, relays TxPoW, and coordinates WOTS leases",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

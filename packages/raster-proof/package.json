@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/raster-proof",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Edge-capable raster and visual evidence proof primitives for Totem Edge — asset hashes, tile Merkle roots, raster manifests, derived-layer provenance, and proof envelope integration",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

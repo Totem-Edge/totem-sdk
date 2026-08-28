@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/proof",
-  "version": "0.1.2",
+  "version": "1.0.0",
   "description": "Portable proof layer for Totem Edge — create, sign, verify, and anchor WOTS-signed proof envelopes on Minima",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

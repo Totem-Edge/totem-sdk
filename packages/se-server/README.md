@@ -29,7 +29,7 @@ export SE_KEY=<64-char hex>        # Required: 32-byte WOTS seed
 export DATABASE_URL=postgres://...  # Required: Postgres connection string
 export PORT=4000                    # Optional: default 4000
 export SE_RECLAIM_TIMELOCK=256      # Optional: block timelock, default 256
-export SE_BETA_MODE=true            # Optional: adds X-Beta headers
+export SE_BETA_MODE=true            # Optional: adds X-Beta headers (default false — stable API)
 
 # Start
 node dist/cli.js

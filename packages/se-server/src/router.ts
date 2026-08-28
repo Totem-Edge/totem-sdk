@@ -109,7 +109,7 @@ export function createSeRouter(config: SeServerConfig, pool: Pool): Router {
   const seed = config.seSeed;
 
   function betaHeaders(res: Response): void {
-    if (config.betaMode !== false) {
+    if (config.betaMode === true) {
       res.setHeader('X-Beta', 'true');
       res.setHeader('X-Beta-Warning', 'BETA API. Breaking changes may occur without notice.');
       res.setHeader('X-SE-SLA', '99.5%');

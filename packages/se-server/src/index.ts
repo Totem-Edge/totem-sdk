@@ -41,12 +41,18 @@ export interface SeServer {
   close(): Promise<void>;
 }
 
+/** Stable API version prefix. The wire format is frozen at v1. */
+export const SE_API_VERSION = 'v1';
+
 /**
  * Create a fully configured SE server.
  *
  * Runs `migrateStatechainTables` on first `listen()` call.
  * The returned `app` can also be mounted into an existing Express app
  * at any path if you prefer not to bind a new port.
+ *
+ * The router is mounted at both `/statechain` (legacy) and
+ * `/v1/statechain` (versioned, stable).
  */
 export function createSeServer(
   config: SeServerConfig,
@@ -59,6 +65,7 @@ export function createSeServer(
 
   const seRouter = createSeRouter(config, pool);
   app.use('/statechain', seRouter);
+  app.use(`/${SE_API_VERSION}/statechain`, seRouter);
 
   const monitor = createTimelockMonitor(pool, monitorOpts ?? {});
   let server: http.Server | null = null;

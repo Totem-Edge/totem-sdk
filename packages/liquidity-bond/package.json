@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/liquidity-bond",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Deterministic, non-custodial LP position and productive liquidity record package for Totem Edge",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

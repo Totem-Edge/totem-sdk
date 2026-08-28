@@ -13,7 +13,7 @@ export interface SeServerConfig {
   port?: number;
   /** On-chain reclaim timelock in blocks. Default 256. */
   reclaimTimelock?: number;
-  /** Adds X-Beta headers to all responses. Default true. */
+  /** Adds X-Beta headers to all responses. Default false (stable API). */
   betaMode?: boolean;
   /**
    * Called after every SE signing event. Lets operators hook in billing,
@@ -49,6 +49,6 @@ export function loadConfigFromEnv(): SeServerConfig {
     reclaimTimelock: process.env.SE_RECLAIM_TIMELOCK
       ? parseInt(process.env.SE_RECLAIM_TIMELOCK, 10)
       : 256,
-    betaMode: process.env.SE_BETA_MODE !== 'false',
+    betaMode: process.env.SE_BETA_MODE === 'true',
   };
 }

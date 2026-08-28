@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/governance",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Deterministic governance engine for Totem SDK — quadratic voting, liquid democracy, delegation, and mandate-bound proposal execution",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

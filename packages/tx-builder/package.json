@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/tx-builder",
-  "version": "0.1.9",
+  "version": "0.2.0",
   "description": "Transaction builder for Minima blockchain — coin selection, multisig, and WOTS signing",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

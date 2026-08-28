@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/edge-bacnet",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Edge runtime adapter for BACnet — building automation, HVAC, device properties",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

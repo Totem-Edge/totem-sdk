@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/omnia-vtxo",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Virtual UTXO / payment-pool claim layer for Omnia — cash-like off-chain balance primitive for Totem Edge",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

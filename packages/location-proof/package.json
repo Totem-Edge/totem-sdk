@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/location-proof",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Generic location and movement proof primitives for Totem Edge — device-neutral GPS/GNSS claims, confidence scoring, motion trails, and proof envelope integration",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

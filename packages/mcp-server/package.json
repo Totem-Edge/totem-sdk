@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/mcp-server",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "MCP server exposing the full Totem SDK package set — metadata, types, exports, dependency graphs, and scaffolding tools for 55 packages",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -21,7 +21,11 @@
     "start": "node dist/index.js",
     "test": "jest"
   },
-  "files": ["dist", "README.md", "LICENSE"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0"
   },
@@ -49,5 +53,11 @@
     "url": "git+https://github.com/Totem-Edge/totem-sdk.git",
     "directory": "packages/mcp-server"
   },
-  "keywords": ["totem", "totemsdk", "mcp", "model-context-protocol", "sdk-index"]
+  "keywords": [
+    "totem",
+    "totemsdk",
+    "mcp",
+    "model-context-protocol",
+    "sdk-index"
+  ]
 }

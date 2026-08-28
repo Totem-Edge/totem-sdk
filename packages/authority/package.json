@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/authority",
-  "version": "0.1.2",
+  "version": "1.0.0",
   "description": "Deterministic authority engine for Totem Edge — mandate verification, scope matching, usage tracking, and authority evaluation",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

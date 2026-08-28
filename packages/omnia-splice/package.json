@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/omnia-splice",
-  "version": "0.1.8",
+  "version": "0.2.0",
   "description": "Channel splicing for @totemsdk/omnia — resize Minima eltoo channels without a close+reopen cycle",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

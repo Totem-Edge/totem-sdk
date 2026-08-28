@@ -69,16 +69,17 @@ function makePool(): MockPool {
   return pool;
 }
 
-function makeApp(pool: MockPool): express.Express {
+function makeApp(pool: MockPool, betaMode = false): express.Express {
   const config: SeServerConfig = {
     seSeed: SEED,
     databaseUrl: 'postgres://localhost/db',
     reclaimTimelock: 256,
-    betaMode: false,
+    betaMode,
   };
   const app = express();
   app.use(express.json({ limit: '1mb' }));
   app.use('/statechain', createSeRouter(config, pool as unknown as import('pg').Pool));
+  app.use('/v1/statechain', createSeRouter(config, pool as unknown as import('pg').Pool));
   return app;
 }
 
@@ -89,7 +90,7 @@ function httpRequest(
   method: 'GET' | 'POST',
   path: string,
   body?: unknown,
-): Promise<{ status: number; json: Record<string, unknown> }> {
+): Promise<{ status: number; json: Record<string, unknown>; headers: Record<string, string | string[] | undefined> }> {
   return new Promise((resolve, reject) => {
     const server = http.createServer(app);
     server.listen(0, '127.0.0.1', () => {
@@ -114,7 +115,7 @@ function httpRequest(
             server.close();
             let json: Record<string, unknown> = {};
             try { json = JSON.parse(data); } catch { /* non-JSON body */ }
-            resolve({ status: res.statusCode ?? 500, json });
+            resolve({ status: res.statusCode ?? 500, json, headers: res.headers });
           });
         },
       );
@@ -236,5 +237,38 @@ describe('se-server router', () => {
       nonce: 'bad-nonce',
     });
     expect(res.status).toBe(401);
+  });
+
+  it('serves the same API under the versioned /v1/statechain prefix', async () => {
+    const app = makeApp(makePool());
+    const res = await httpRequest(app, 'GET', '/v1/statechain/se-public-key');
+    expect(res.status).toBe(200);
+    expect(res.json.sePublicKey).toBe(SE_PKD);
+
+    const created = await httpRequest(app, 'POST', '/v1/statechain/create', {
+      coinId: '0x' + '11'.repeat(32),
+      ownerPublicKeyDigest: '0x' + '33'.repeat(32),
+      ownerPartyId: 'owner-1',
+      reclaimTxHex: '0x' + 'ab'.repeat(100),
+      tokenId: '0x00',
+    });
+    expect(created.status).toBe(201);
+    expect(created.json.chainId).toMatch(/^sc_/);
+  });
+
+  it('omits X-Beta headers by default (stable API)', async () => {
+    const app = makeApp(makePool());
+    const res = await httpRequest(app, 'GET', '/statechain/se-public-key');
+    expect(res.status).toBe(200);
+    expect(res.headers['x-beta']).toBeUndefined();
+    expect(res.headers['x-beta-warning']).toBeUndefined();
+  });
+
+  it('adds X-Beta headers when betaMode is enabled', async () => {
+    const app = makeApp(makePool(), true);
+    const res = await httpRequest(app, 'GET', '/statechain/se-public-key');
+    expect(res.status).toBe(200);
+    expect(res.headers['x-beta']).toBe('true');
+    expect(res.headers['x-beta-warning']).toContain('BETA API');
   });
 });

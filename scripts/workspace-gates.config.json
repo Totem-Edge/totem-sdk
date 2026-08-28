@@ -13,7 +13,7 @@
     "packages/chain-provider": { "status": "publishable", "maturity": "rc" },
     "packages/connect": { "status": "publishable", "maturity": "v1" },
     "packages/core": { "status": "publishable", "maturity": "v1" },
-    "packages/core-wasm": { "status": "publishable", "maturity": "rc" },
+    "packages/core-wasm": { "status": "publishable", "maturity": "v1" },
     "packages/edge": { "status": "publishable", "maturity": "v1" },
     "packages/edge-adapters": { "status": "publishable", "maturity": "rc" },
     "packages/edge-bacnet": { "status": "publishable", "maturity": "rc" },
@@ -41,7 +41,7 @@
     "packages/lookup-protocol": { "status": "publishable", "maturity": "rc" },
     "packages/manifest": { "status": "publishable", "maturity": "v1" },
     "packages/mcp-server": { "status": "publishable", "maturity": "rc" },
-    "packages/omnia": { "status": "publishable", "maturity": "rc" },
+    "packages/omnia": { "status": "publishable", "maturity": "v1" },
     "packages/omnia-factory": { "status": "publishable", "maturity": "rc" },
     "packages/omnia-host": { "status": "publishable", "maturity": "rc" },
     "packages/omnia-router": { "status": "publishable", "maturity": "rc" },
@@ -72,7 +72,7 @@
     "packages/tx-builder": { "status": "publishable", "maturity": "rc" },
     "packages/txpow": { "status": "publishable", "maturity": "v1" },
     "packages/wallet-adapter": { "status": "publishable", "maturity": "v1" },
-    "packages/wots-lease": { "status": "publishable", "maturity": "rc" },
+    "packages/wots-lease": { "status": "publishable", "maturity": "v1" },
     "extensions/observability": {
       "status": "excluded",
       "reason": "private extension/observability scaffold (not an @totemsdk/* publishable)"

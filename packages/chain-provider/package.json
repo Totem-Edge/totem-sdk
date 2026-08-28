@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/chain-provider",
-  "version": "0.1.6",
+  "version": "0.2.0",
   "description": "Unified ChainStateProvider interface for Totem SDK — Hosted, Minima RPC, Composite",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

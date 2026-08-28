@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/edge-email",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Edge runtime adapter for email — IMAP/SMTP polling, notification delivery, command parsing, and sensor ingestion via email",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

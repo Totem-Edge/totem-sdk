@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/pubsub-transport",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Pub/sub transport interfaces for Totem SDK — IPubSubTransport, EventEmitterTransport, MockPubSubTransport",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

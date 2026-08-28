@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/txpow",
-  "version": "0.1.7",
+  "version": "1.0.0",
   "description": "TxPoW envelope serialization and proof-of-work mining for the Minima protocol",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
