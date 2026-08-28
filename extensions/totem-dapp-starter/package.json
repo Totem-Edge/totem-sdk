@@ -37,7 +37,7 @@
     "@totemsdk/proof-integritas": "workspace:^",
     "@totemsdk/root-identity": "workspace:^",
     "dotenv": "^17.4.2",
-    "express": "^4.18.2",
+    "express": "^5.2.1",
     "redis": "^5.12.1"
   },
   "devDependencies": {
