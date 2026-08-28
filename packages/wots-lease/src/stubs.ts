@@ -17,7 +17,9 @@ import type {
   LocalWatermark,
   SyncResult,
   PersonalLeaseNodeConfig,
+  CertificateSigner,
 } from './types.js';
+import { certificateSignatureVerified } from './certificate.js';
 
 export { P2PQuorumLeaseProvider } from './quorum.js';
 export { OnchainWatermarkProvider } from './onchain.js';
@@ -59,11 +61,13 @@ export class PersonalLeaseNodeProvider implements WotsLeaseProvider {
   private readonly baseUrl: string;
   private readonly nodePubkey: string;
   private readonly authToken?: string;
+  private readonly certificateSigner?: CertificateSigner;
 
   constructor(config: PersonalLeaseNodeConfig) {
     this.baseUrl = config.nodeUrl.replace(/\/$/, '');
     this.nodePubkey = config.nodePubkey;
     this.authToken = config.authToken;
+    this.certificateSigner = config.certificateSigner;
   }
 
   private headers(): Record<string, string> {
@@ -132,7 +136,6 @@ export class PersonalLeaseNodeProvider implements WotsLeaseProvider {
     if (!cert) return false;
     if (cert.issuedBy !== this.nodePubkey) return false;
     if (cert.expiresAt <= Date.now()) return false;
-    if (typeof cert.signature !== 'string' || cert.signature.length === 0) return false;
-    return true;
+    return certificateSignatureVerified(cert, this.certificateSigner);
   }
 }

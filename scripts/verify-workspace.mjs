@@ -14,6 +14,7 @@
  *   node scripts/verify-workspace.mjs --test
  *   node scripts/verify-workspace.mjs --integration
  *   node scripts/verify-workspace.mjs --pack
+ *   node scripts/verify-workspace.mjs --maturity <level>  # Only run gates required for this maturity level
  *
  * Exit code is non-zero if any publishable package fails its gate. Excluded
  * packages are reported but never silently pass or fail — their exclusion is
@@ -22,6 +23,10 @@
  * No failure suppression: `|| true`, `continue-on-error`, and `--passWithNoTests`
  * are prohibited from appearing in publishable-package scripts and are checked
  * here.
+ *
+ * Maturity levels (schemaVersion 2):
+ *   alpha → beta → rc → v1
+ *   Each level activates additional required gates via maturityGates config.
  */
 
 import { readFileSync, readdirSync, existsSync } from 'fs';
@@ -71,9 +76,36 @@ const wantLint = wantAll || args.includes('--lint');
 const wantTest = wantAll || args.includes('--test');
 const wantIntegration = wantAll || args.includes('--integration');
 const wantPack = wantAll || args.includes('--pack');
+const maturityLevel = args.includes('--maturity') ? args[args.indexOf('--maturity') + 1] : null;
 
 // Forbidden suppression markers in publishable-package scripts -------------
 const FORBIDDEN_SCRIPT_MARKERS = ['|| true', '||true', '--passWithNoTests', 'echo \'no tests\'', 'echo "no tests"', 'echo "no tests yet"'];
+
+// Maturity gate checking ----------------------------------------------------
+const MATURITY_GATES = config.maturityGates ?? {
+  alpha: ['typecheck', 'lint', 'test'],
+  beta: ['typecheck', 'lint', 'test', 'pack'],
+  rc: ['typecheck', 'lint', 'test', 'pack', 'integration'],
+  v1: ['typecheck', 'lint', 'test', 'pack', 'integration'],
+};
+
+function isGateRequiredForMaturity(gateName, maturity) {
+  const requiredGates = MATURITY_GATES[maturity] ?? MATURITY_GATES.alpha;
+  return requiredGates.includes(gateName);
+}
+
+function shouldRunGate(gateName, pkgMaturity) {
+  // If maturity filtering is enabled, only run gates required for that level
+  if (maturityLevel) {
+    return isGateRequiredForMaturity(gateName, maturityLevel);
+  }
+  // If package has a maturity level, check if gate is required for it
+  if (pkgMaturity) {
+    return isGateRequiredForMaturity(gateName, pkgMaturity);
+  }
+  // Default: run all gates
+  return true;
+}
 
 const results = [];
 let failures = 0;
@@ -216,6 +248,7 @@ if (STALE_CONFIG.length > 0) {
 if (wantLint) {
   process.stdout.write('── script hygiene (publishable packages) ──────────────\n');
   for (const [dir, meta] of ORDERED_PUBLISHABLE) {
+    if (!shouldRunGate('lint', meta.maturity)) continue;
     const pj = join(ROOT, dir, 'package.json');
     if (!existsSync(pj)) {
       failures += 1;
@@ -259,6 +292,7 @@ if (wantTypecheck) {
 if (wantLint) {
   process.stdout.write('── lint (publishable packages with a lint script) ──────\n');
   for (const [dir, meta] of ORDERED_PUBLISHABLE) {
+    if (!shouldRunGate('lint', meta.maturity)) continue;
     const pkgDir = join(ROOT, dir);
     const pj = join(pkgDir, 'package.json');
     if (!existsSync(pj)) continue;
@@ -275,6 +309,7 @@ if (wantTest) {
   ensurePrerequisiteBuilds('test');
   process.stdout.write('── unit tests (publishable packages with a test script) ──\n');
   for (const [dir, meta] of ORDERED_PUBLISHABLE) {
+    if (!shouldRunGate('test', meta.maturity)) continue;
     const pkgDir = join(ROOT, dir);
     const pj = join(pkgDir, 'package.json');
     if (!existsSync(pj)) continue;
@@ -291,6 +326,7 @@ if (wantIntegration) {
   ensurePrerequisiteBuilds('integration');
   process.stdout.write('── integration (publishable packages with a test:integration script) ──\n');
   for (const [dir, meta] of ORDERED_PUBLISHABLE) {
+    if (!shouldRunGate('integration', meta.maturity)) continue;
     const pkgDir = join(ROOT, dir);
     const pj = join(pkgDir, 'package.json');
     if (!existsSync(pj)) continue;
@@ -307,6 +343,7 @@ if (wantPack) {
   ensurePrerequisiteBuilds('pack');
   process.stdout.write('── pack (publishable packages) ─────────────────────────\n');
   for (const [dir, meta] of ORDERED_PUBLISHABLE) {
+    if (!shouldRunGate('pack', meta.maturity)) continue;
     const pkgDir = join(ROOT, dir);
     run(pkgDir, 'npm pack --dry-run --json', `${dir}: pack --dry-run`);
   }
@@ -320,6 +357,10 @@ for (const [dir, meta] of EXCLUDED) {
   process.stdout.write(`  ${dir}  (${meta.reason})\n`);
 }
 process.stdout.write('\n');
+if (maturityLevel) {
+  process.stdout.write(`Maturity filter: ${maturityLevel}\n`);
+  process.stdout.write(`  Gates required: ${(MATURITY_GATES[maturityLevel] ?? []).join(', ')}\n\n`);
+}
 process.stdout.write(`Gates: ${results.filter((r) => r.ok).length} passed, ${results.filter((r) => !r.ok).length} failed\n`);
 process.stdout.write(failures === 0 ? 'VERIFY: PASS\n' : 'VERIFY: FAIL\n');
 process.exit(failures === 0 ? 0 : 1);

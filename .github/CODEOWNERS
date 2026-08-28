@@ -25,7 +25,6 @@ packages/lookup-client/  @totem-sdk/lookup-maintainers
 packages/lookup-node/    @totem-sdk/lookup-maintainers
 packages/lookup-protocol/ @totem-sdk/lookup-maintainers
 packages/chain-provider/ @totem-sdk/lookup-maintainers
-packages/pureminima-rpc/ @totem-sdk/lookup-maintainers
 
 # Identity & claims
 packages/identity/       @totem-sdk/identity-maintainers
