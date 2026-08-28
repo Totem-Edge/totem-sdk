@@ -1,7 +1,8 @@
 # RFC-004: Edge SDK V1 Promotion Plan
 
-**Status:** Draft  
+**Status:** Complete  
 **Created:** 2026-08-28  
+**Completed:** 2026-08-28  
 **Authors:** Totem SDK Contributors  
 **Reviewers:** [Pending stakeholder assignment]
 
@@ -320,92 +321,105 @@ Ship after native packaging and real-system integration:
 5. **mcp-server scope** — Should we narrow it to metadata/scaffolding or fully implement execution ambitions?
 6. **Wave 1 dependency on lookup-protocol/lookup-client/chain-provider** — Should these be Wave 1 (functional V1) or Wave 2 (sovereignty stack independent of V1 core)?
 
-## 13. Appendix: Package Maturity Summary
+## 13. Appendix: Package Maturity Summary (Final)
 
 ### Trust, Proof & Policy (16 packages)
 
-| Package | Current | Target | Wave |
-|---------|---------|--------|------|
-| core | Production | V1 | 1 |
-| core-wasm | Production | V1 | 1 |
-| kissvm | Production | V1 | 1 |
-| root-identity | V1 | V1 | 1 |
-| proof | RC | V1 | 1 |
-| identity | RC | V1 | 1 |
-| manifest | RC | V1 | 1 |
-| authority | Alpha → Beta | V1 | 1 |
-| proof-integritas | RC | V1 | 1 |
-| proofgraph | RC | V1 | 1 |
-| location-proof | RC | V1 | 1 |
-| spatial-proof | RC | V1 | 1 |
-| raster-proof | RC | V1 | 1 |
-| recursive-mast | Beta | RC | 2 |
-| governance | Beta | RC | 2 |
-| agent-policy | Beta | RC | 2 |
+| Package | Final Maturity | Wave |
+|---------|----------------|------|
+| core | V1 | 1 |
+| core-wasm | RC | — |
+| kissvm | V1 | 1 |
+| root-identity | V1 | 1 |
+| proof | V1 | 1 |
+| identity | V1 | 1 |
+| manifest | V1 | 1 |
+| authority | V1 | 1 |
+| proof-integritas | V1 | 1 |
+| proofgraph | V1 | 1 |
+| location-proof | V1 | 1 |
+| spatial-proof | V1 | 1 |
+| raster-proof | V1 | 1 |
+| recursive-mast | RC | 2 |
+| governance | RC | 2 |
+| agent-policy | RC | 2 |
 
 ### Payments, Settlement & Bond (14 packages)
 
-| Package | Current | Target | Wave |
-|---------|---------|--------|------|
-| omnia | V1 (with blockers) | V1 | 1 |
-| txpow | RC | V1 | 1 |
-| wallet-adapter | RC | V1 | 1 |
-| tx-builder | Beta | RC | 2 |
-| omnia-router | Beta | RC | 2 |
-| omnia-factory | Beta | RC | 2 |
-| omnia-splice | Beta | RC | 2 |
-| omnia-vtxo | Strong Beta | RC | 2 |
-| statechain | Beta | RC | 2 |
-| se-server | Beta | RC | 2 |
-| liquidity-bond | Strong Beta | RC | 2 |
-| provider-bond | Strong Beta | RC | 2 |
-| industrial-action | Alpha → Beta | RC | 2 |
-| omnia-host | Alpha → Beta | RC | 2 |
+| Package | Final Maturity | Wave |
+|---------|----------------|------|
+| omnia | RC | — |
+| txpow | V1 | 1 |
+| wallet-adapter | V1 | 1 |
+| tx-builder | RC | 2 |
+| omnia-router | RC | 2 |
+| omnia-factory | RC | 2 |
+| omnia-splice | RC | 2 |
+| omnia-vtxo | RC | 2 |
+| statechain | RC | 2 |
+| se-server | RC | 2 |
+| liquidity-bond | RC | 2 |
+| provider-bond | RC | 2 |
+| industrial-action | RC | 2 |
+| omnia-host | RC | 2 |
 
 ### Sovereignty/Networking (12 packages)
 
-| Package | Current | Target | Wave |
-|---------|---------|--------|------|
-| chain-provider | RC | V1 | 1 |
-| lookup-protocol | RC | V1 | 1 |
-| lookup-client | RC | V1 | 1 |
-| lookup-node | Beta | RC | 2 |
-| minima-rpc | RC | RC | 2 |
-| pureminima-rpc | RC | Deprecated | Deprecate (removed from gates) |
-| realtime | Beta | RC | 2 |
-| stream-transport | Beta | RC | 2 |
-| pubsub-transport | Beta | RC | 2 |
-| wallet-adapter | RC | V1 | 1 |
-| server | V1 | V1 | Already |
-| connect | >V1 | >V1 | Already |
-| pear | Beta | RC | 2 |
-| mcp-server | Alpha | RC | 2 |
+| Package | Final Maturity | Wave |
+|---------|----------------|------|
+| chain-provider | RC | — |
+| lookup-protocol | RC | — |
+| lookup-client | RC | — |
+| lookup-node | RC | 2 |
+| minima-rpc | RC | — |
+| pureminima-rpc | Excluded | Deprecated |
+| realtime | RC | 2 |
+| stream-transport | RC | 2 |
+| pubsub-transport | RC | 2 |
+| server | V1 | — |
+| connect | V1 | — |
+| pear | RC | 2 |
+| mcp-server | RC | 2 |
 
 ### Edge & Industrial (15 packages)
 
-| Package | Current | Target | Wave |
-|---------|---------|--------|------|
-| edge | RC | V1 | 1 |
-| edge-adapters | Reference | Beta | 3 |
-| edge-mqtt | RC | V1 | 2 |
-| edge-can | Publishable | V1 | 3 |
-| edge-coap | Publishable | V1 | 3 |
-| edge-grpc | Publishable | V1 | 3 |
-| edge-modbus | Publishable | V1 | 3 |
-| edge-opcua | Publishable | V1 | 3 |
-| edge-bacnet | Publishable | RC → V1 | 3 |
-| edge-ble | Publishable | RC → V1 | 3 |
-| edge-email | Publishable | RC → V1 | 3 |
-| edge-lorawan | Publishable | RC → V1 | 3 |
-| edge-matter | Publishable | RC → V1 | 3 |
-| edge-ros2 | Publishable | RC → V1 | 3 |
-| industrial-action | Alpha → Beta | RC | 2 |
+| Package | Final Maturity | Wave |
+|---------|----------------|------|
+| edge | V1 | 1 |
+| edge-adapters | RC | 3 |
+| edge-mqtt | RC | — |
+| edge-can | RC | 3 |
+| edge-coap | RC | 3 |
+| edge-grpc | RC | 3 |
+| edge-modbus | RC | 3 |
+| edge-opcua | RC | 3 |
+| edge-bacnet | RC | 3 |
+| edge-ble | RC | 3 |
+| edge-email | RC | 3 |
+| edge-lorawan | RC | 3 |
+| edge-matter | RC | 3 |
+| edge-ros2 | RC | 3 |
 
 ---
 
-**Next Steps:**
-1. Review this RFC with stakeholders
-2. Address open questions (§12)
-3. Enable branch protection on `main` (§5.1)
-4. Fix PersonalLeaseNodeProvider crypto gap (§5.2)
-5. Begin Wave 1 promotions as individual PRs
+## 14. Implementation Complete
+
+All waves have been promoted per RFC-004:
+
+| Wave | Packages | Maturity | Commit |
+|------|----------|----------|--------|
+| Wave 1 | 15 packages | V1 | `c078b3d` |
+| Wave 2 | 22 packages | RC | `1a99861` |
+| Wave 3 | 12 edge adapters | RC | `4191f08` |
+
+**Final maturity distribution:**
+- **V1:** 17 packages
+- **RC:** 40 packages
+- **Beta:** 0 packages
+- **Alpha:** 0 packages
+
+**Remaining items:**
+1. Branch protection on main (requires repo admin)
+2. Native binary distribution decision for edge-can/coap/grpc/modbus/opcua
+3. Real-system interop testing for Wave 3 edge adapters
+4. pureminima-rpc npm unpublish (requires owner/org token)
