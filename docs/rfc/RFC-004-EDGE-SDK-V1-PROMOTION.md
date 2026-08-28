@@ -203,17 +203,19 @@ Packages needing real-system integration, adversarial testing, and persistence v
 
 ## 8. Wave 3 — Protocol Integration (edge protocol adapters)
 
+**Status:** ✅ Promoted to RC maturity
+
 Packages requiring native compilation, packaging, and real-system interop testing.
 
 ### 8.1 Native Packaging (5 packages with Go/Rust sidecars)
 
-| Package | Native Type | Required Work |
-|---------|-------------|---------------|
-| `@totemsdk/edge-can` | Go binary | Package native side, SocketCAN/vcan CI, malformed frame tests |
-| `@totemsdk/edge-coap` | Go binary | Package native side, RFC7252 interop, retransmit/ACK/blockwise/DTLS tests |
-| `@totemsdk/edge-grpc` | Go binary | Compile sidecar in CI, prove codec interop, real unary/server/client/bidi/cancel/status tests |
-| `@totemsdk/edge-modbus` | Go binary | Package Go sidecar, run FC coverage against deterministic Modbus TCP/RTU server |
-| `@totemsdk/edge-opcua` | Rust binary | Build/package Rust binary, test against real OPC-UA server, secure channel, subscription recovery |
+| Package | Native Type | Required Work | Status |
+|---------|-------------|---------------|--------|
+| `@totemsdk/edge-can` | Go binary | Package native side, SocketCAN/vcan CI, malformed frame tests | ✅ RC |
+| `@totemsdk/edge-coap` | Go binary | Package native side, RFC7252 interop, retransmit/ACK/blockwise/DTLS tests | ✅ RC |
+| `@totemsdk/edge-grpc` | Go binary | Compile sidecar in CI, prove codec interop, real unary/server/client/bidi/cancel/status tests | ✅ RC |
+| `@totemsdk/edge-modbus` | Go binary | Package Go sidecar, run FC coverage against deterministic Modbus TCP/RTU server | ✅ RC |
+| `@totemsdk/edge-opcua` | Rust binary | Build/package Rust binary, test against real OPC-UA server, secure channel, subscription recovery | ✅ RC |
 
 **Native binary distribution decision required:**
 - Ship pre-built binaries in npm package
@@ -222,14 +224,14 @@ Packages requiring native compilation, packaging, and real-system interop testin
 
 ### 8.2 Protocol Integration (6 packages with real-system tests)
 
-| Package | Target | Required Work |
-|---------|--------|---------------|
-| `@totemsdk/edge-bacnet` | RC → V1 | BACnet simulator/real-stack, discovery storms, COV renewal, malformed APDUs |
-| `@totemsdk/edge-ble` | RC → V1 | BlueZ/Web Bluetooth or hardware simulation, GATT errors, notification lifecycle |
-| `@totemsdk/edge-email` | RC → V1 | Real SMTP/IMAP transport, TLS/auth, MIME limits, IMAP UID semantics |
-| `@totemsdk/edge-lorawan` | RC → V1 | ChirpStack/The Things Stack, frame counters, OTAA/ABP, dedupe |
-| `@totemsdk/edge-matter` | RC → V1 | Matter SDK/simulator, commissioning/fabric lifecycle, subscription recovery |
-| `@totemsdk/edge-ros2` | RC → V1 | Real ROS2/DDS CI container, QoS matrices, service cancelation |
+| Package | Target | Required Work | Status |
+|---------|--------|---------------|--------|
+| `@totemsdk/edge-bacnet` | RC → V1 | BACnet simulator/real-stack, discovery storms, COV renewal, malformed APDUs | ✅ RC |
+| `@totemsdk/edge-ble` | RC → V1 | BlueZ/Web Bluetooth or hardware simulation, GATT errors, notification lifecycle | ✅ RC |
+| `@totemsdk/edge-email` | RC → V1 | Real SMTP/IMAP transport, TLS/auth, MIME limits, IMAP UID semantics | ✅ RC |
+| `@totemsdk/edge-lorawan` | RC → V1 | ChirpStack/The Things Stack, frame counters, OTAA/ABP, dedupe | ✅ RC |
+| `@totemsdk/edge-matter` | RC → V1 | Matter SDK/simulator, commissioning/fabric lifecycle, subscription recovery | ✅ RC |
+| `@totemsdk/edge-ros2` | RC → V1 | Real ROS2/DDS CI container, QoS matrices, service cancelation | ✅ RC |
 
 **Wave 3 Acceptance Criteria:**
 - All previous wave criteria
