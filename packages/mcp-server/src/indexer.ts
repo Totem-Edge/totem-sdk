@@ -24,7 +24,7 @@ const DOMAIN_GROUPS: [RegExp, string][] = [
   [/^omnia(-factory|-router|-splice|-vtxo|-host)?$/, 'blockchain/omnia'],
   [/^statechain$|^tx-builder$|^chain-provider$|^wots-lease$|^liquidity-bond$|^provider-bond$/, 'blockchain/infra'],
   [/^lookup-(client|node|protocol)$/, 'lookup/p2p'],
-  [/^stream-transport$|^pubsub-transport$|^(pureminima-rpc|minima-rpc)$|^server$|^se-server$|^realtime$|^connect$|^wallet-adapter$|^pear$|^mcp-server$|^observability$/, 'utilities'],
+  [/^stream-transport$|^pubsub-transport$|^minima-rpc$|^server$|^se-server$|^realtime$|^connect$|^wallet-adapter$|^pear$|^mcp-server$|^observability$/, 'utilities'],
   [/^sdk-tests$/, 'testing'],
 ]
 

@@ -3,7 +3,7 @@
   "title": "Totem SDK Package Manifest",
   "description": "Machine-readable index of all @totemsdk packages — for AI agents, tooling, and developers. Updated 2026-08-18.",
   "org": "@totemsdk",
-  "total": 58,
+  "total": 57,
   "domains": {
     "cryptographic-foundation": {
       "description": "WOTS+ signatures, TreeKey hierarchy, MMR proofs, KISSVM, MAST, TxPoW",
@@ -25,7 +25,6 @@
         "@totemsdk/chain-provider",
         "@totemsdk/minima-rpc",
         "@totemsdk/realtime",
-        "@totemsdk/pureminima-rpc",
         "@totemsdk/mcp-server"
       ]
     },
@@ -793,20 +792,9 @@
       "exportsDescription": "IndustrialAction, ActionLifecycle, executeAction, verifyActionBoundary"
     },
     {
-      "name": "@totemsdk/pureminima-rpc",
-      "version": "0.1.4",
-      "description": "Fetch-based PureMinima RPC client — Bare/Pear/Node/browser compatible",
-      "deprecated": "Use @totemsdk/minima-rpc instead",
-      "domain": "sovereignty-stack",
-      "keywords": ["rpc", "fetch", "browser", "client", "pureminima"],
-      "dependencies": {},
-      "exports": { ".": "dist/index.{js,d.ts}" },
-      "exportsDescription": "PureMinimaRpcClient, rpcRequest, getBalance, getBlock"
-    },
-    {
       "name": "@totemsdk/mcp-server",
       "version": "0.1.0",
-      "description": "MCP server exposing the full Totem SDK package set — metadata, types, exports, dependency graphs, and scaffolding tools for 53 packages",
+      "description": "MCP server exposing the full Totem SDK package set — metadata, types, exports, dependency graphs, and scaffolding tools for 57 packages",
       "domain": "sovereignty-stack",
       "keywords": ["mcp", "model-context-protocol", "sdk-index", "ai", "tooling"],
       "dependencies": { "@modelcontextprotocol/sdk": "^1.29.0" },
