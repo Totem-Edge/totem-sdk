@@ -1,6 +1,8 @@
 /**
  * PureMinima RPC Client
  * Factory function returning a typed PureMinimaClient object.
+ *
+ * @deprecated Use `createMinimaRpcClient` from `@totemsdk/minima-rpc` instead.
  */
 
 import type {
@@ -36,6 +38,7 @@ import type {
 } from './types.js';
 import { buildCommandString, postCommand } from './transport.js';
 
+/** @deprecated Use `createMinimaRpcClient` from `@totemsdk/minima-rpc` instead. */
 export function createPureMinimaClient(config: PureMinimaConfig): PureMinimaClient {
   async function run(cmd: string, params?: Record<string, unknown>): Promise<unknown> {
     const commandString = buildCommandString(cmd, params);

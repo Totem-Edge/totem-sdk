@@ -36,8 +36,10 @@ function txContextForDraft(
   if (!Number.isSafeInteger(amount)) {
     throw new Error(`KISSVM validation requires safe integer channel totalValue, got ${channel.totalValue}`);
   }
+  const transitionBlock = state.programTransition?.inputs?.currentBlock;
+  const block = opts?.block ?? (transitionBlock !== undefined ? Number(transitionBlock) : 0);
   return {
-    block: opts?.block ?? 0,
+    block,
     inputIndex: 0,
     inputs: draft.inputs.map(input => ({
       coinId: input.coinId,

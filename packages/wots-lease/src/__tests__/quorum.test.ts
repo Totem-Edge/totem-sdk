@@ -13,7 +13,19 @@
 import { P2PQuorumLeaseProvider } from '../quorum';
 import { LocalLeaseProvider } from '../local';
 import { QuorumUnavailableError, QuorumConflictError } from '../errors';
-import type { QuorumPeer, SigningIndices } from '../types';
+import type { QuorumPeer, SigningIndices, CertificateSigner } from '../types';
+import { createSign, createVerify, generateKeyPairSync } from 'node:crypto';
+
+function makeCertificateSigner(): CertificateSigner {
+  const { privateKey, publicKey } = generateKeyPairSync('ec', { namedCurve: 'prime256v1' });
+  return {
+    publicKeyDigest: '0x' + '12'.repeat(32),
+    sign: async (message: Uint8Array) =>
+      createSign('sha256').update(Buffer.from(message)).sign(privateKey),
+    verify: async (message: Uint8Array, signature: Uint8Array) =>
+      createVerify('sha256').update(Buffer.from(message)).verify(publicKey, Buffer.from(signature)),
+  };
+}
 
 class MemoryStorage {
   private store = new Map<string, unknown>();
@@ -125,6 +137,7 @@ describe('P2PQuorumLeaseProvider', () => {
       local,
       peers: [makePeer('peer-a', peerState)],
       minAttestations: 1,
+      certificateSigner: makeCertificateSigner(),
     });
 
     const reservation = await provider.reserveKeyUse({ treeId: 'wallet', purpose: 'test' });
@@ -134,6 +147,7 @@ describe('P2PQuorumLeaseProvider', () => {
     expect(reservation.certificate!.attestations).toHaveLength(1);
     expect(reservation.certificate!.attestations![0].peerId).toBe('peer-a');
     expect(reservation.certificate!.issuedBy).toBe('p2p-quorum');
+    expect(reservation.certificate!.signature.length).toBeGreaterThan(0);
 
     // Local watermark advanced
     const wm = await local.getLocalWatermark('wallet');
@@ -153,6 +167,7 @@ describe('P2PQuorumLeaseProvider', () => {
       local,
       peers: [makePeer('peer-a', peerState)],
       minAttestations: 1,
+      certificateSigner: makeCertificateSigner(),
     });
 
     await expect(provider.reserveKeyUse({ treeId: 'wallet' })).rejects.toThrow(QuorumUnavailableError);
@@ -176,6 +191,7 @@ describe('P2PQuorumLeaseProvider', () => {
       local,
       peers: [makePeer('peer-a', peerState)],
       minAttestations: 1,
+      certificateSigner: makeCertificateSigner(),
     });
 
     await expect(provider.reserveKeyUse({ treeId: 'wallet' })).rejects.toThrow(QuorumConflictError);
@@ -198,6 +214,7 @@ describe('P2PQuorumLeaseProvider', () => {
       local,
       peers: [makePeer('peer-a', peerStateA), makePeer('peer-b', peerStateB)],
       minAttestations: 2,
+      certificateSigner: makeCertificateSigner(),
     });
 
     await expect(provider.reserveKeyUse({ treeId: 'wallet' })).rejects.toThrow(QuorumUnavailableError);
@@ -210,6 +227,7 @@ describe('P2PQuorumLeaseProvider', () => {
       local,
       peers: [makePeer('peer-a', peerState)],
       minAttestations: 1,
+      certificateSigner: makeCertificateSigner(),
     });
 
     const reservation = await provider.reserveKeyUse({ treeId: 'wallet' });
@@ -227,6 +245,7 @@ describe('P2PQuorumLeaseProvider', () => {
       local,
       peers: [makePeer('peer-a', peerState)],
       minAttestations: 1,
+      certificateSigner: makeCertificateSigner(),
     });
 
     const reservation = await provider.reserveKeyUse({ treeId: 'wallet' });
@@ -242,6 +261,7 @@ describe('P2PQuorumLeaseProvider', () => {
       local,
       peers: [makePeer('peer-a', peerState)],
       minAttestations: 1,
+      certificateSigner: makeCertificateSigner(),
     });
 
     await provider.reserveKeyUse({ treeId: 'wallet' });
@@ -266,6 +286,7 @@ describe('P2PQuorumLeaseProvider', () => {
       local,
       peers: [makePeer('peer-a', peerState)],
       minAttestations: 1,
+      certificateSigner: makeCertificateSigner(),
     });
 
     // Create the local tree first (reserve advances local to l2=1)
@@ -291,6 +312,7 @@ describe('P2PQuorumLeaseProvider', () => {
       local,
       peers: [makePeer('peer-a', peerState)],
       minAttestations: 1,
+      certificateSigner: makeCertificateSigner(),
     });
 
     await provider.reserveKeyUse({ treeId: 'wallet' });
@@ -308,6 +330,7 @@ describe('P2PQuorumLeaseProvider', () => {
       local,
       peers: [makePeer('peer-a', peerState)],
       minAttestations: 1,
+      certificateSigner: makeCertificateSigner(),
     });
 
     const reservation = await provider.reserveKeyUse({ treeId: 'wallet' });
@@ -323,5 +346,17 @@ describe('P2PQuorumLeaseProvider', () => {
     };
     expect(await provider.verifyLeaseCertificate(expired)).toBe(false);
     expect(await provider.verifyLeaseCertificate(undefined)).toBe(false);
+
+    // An unsigned certificate carries no authenticity evidence.
+    expect(
+      await provider.verifyLeaseCertificate({ ...reservation.certificate!, signature: '' }),
+    ).toBe(false);
+
+    // A certificate whose bound fields were tampered with fails signature verification.
+    const tampered = {
+      ...reservation.certificate!,
+      indices: { addressIndex: 999, l1: 999, l2: 999 },
+    };
+    expect(await provider.verifyLeaseCertificate(tampered)).toBe(false);
   });
 });

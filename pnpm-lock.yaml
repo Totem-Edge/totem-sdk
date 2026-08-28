@@ -1243,6 +1243,15 @@ importers:
       '@totemsdk/chain-provider':
         specifier: workspace:^
         version: link:../chain-provider
+      '@totemsdk/core':
+        specifier: workspace:^
+        version: link:../core
+      '@totemsdk/identity':
+        specifier: workspace:^
+        version: link:../identity
+      '@totemsdk/manifest':
+        specifier: workspace:^
+        version: link:../manifest
       '@totemsdk/minima-rpc':
         specifier: workspace:^
         version: link:../minima-rpc
@@ -1271,6 +1280,9 @@ importers:
         specifier: ^8.21.1
         version: 8.21.1
     devDependencies:
+      '@totemsdk/txpow':
+        specifier: workspace:^
+        version: link:../txpow
       '@types/better-sqlite3':
         specifier: ^7.6.13
         version: 7.6.13

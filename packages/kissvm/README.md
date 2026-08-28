@@ -206,7 +206,7 @@ This package is a TypeScript port of the Minima KISSVM scripting engine. Canonic
 
 ## MAST & Policy Infrastructure
 
-This package now includes the full MAST compiler, policy tree, proof chain, layered policy, anchor coin, PREVSTATE workflows, and 17 ready-to-use script templates. See [`GUIDE.md`](https://github.com/totem-sdk/totem-sdk/blob/main/packages/kissvm/src/GUIDE.md) for complete documentation.
+This package now includes the full MAST compiler, policy tree, proof chain, layered policy, anchor coin, PREVSTATE workflows, and 17 ready-to-use script templates. See [`GUIDE.md`](https://github.com/Totem-Edge/totem-sdk/blob/main/packages/kissvm/src/GUIDE.md) for complete documentation.
 
 ```ts
 import { compileMastTree, verifyScriptMembership } from '@totemsdk/kissvm';

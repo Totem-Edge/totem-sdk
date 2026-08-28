@@ -1,3 +1,8 @@
+> **ARCHIVED** — historical February 2026 audit snapshot. Superseded; the current
+> authoritative state lives in the root [README](../README.md) maturity table and the
+> machine-readable `scripts/workspace-gates.config.json`. Do not treat version,
+> package, or status statements below as current.
+>
 # SDK Package Audit Report
 
 **Date:** November 2025 (Updated February 2026)  

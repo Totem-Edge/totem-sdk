@@ -2,6 +2,20 @@ export type { OmniaHostConfig } from './config.js';
 export { loadConfigFromEnv } from './config.js';
 export type { OmniaHost } from './lifecycle.js';
 export { createOmniaHost } from './lifecycle.js';
+export type { HostSigning } from './signing.js';
+export {
+  createHostSigning,
+  hasSigningMaterial,
+  JsonFileStorageAdapter,
+  leaseStorageDir,
+  encryptSeedForKeyfile,
+} from './signing.js';
+export type { HostIdentity, HostIdentityAndManifest } from './identity.js';
+export {
+  createHostIdentityAndManifest,
+  createHostManifest,
+  loadHostIdentity,
+} from './identity.js';
 export { SqliteChannelStore } from './stores/sqlite-store.js';
 export { OperationStore } from './stores/operations.js';
 export type { OperationRecord, OperationStatus } from './stores/operations.js';

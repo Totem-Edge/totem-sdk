@@ -19,6 +19,7 @@ import {
   HTLC_LOCKED_AMOUNT_PORT,
   HTLC_TIMEOUT_BLOCK_PORT,
   HTLC_CLAIMED_PORT,
+  HTLC_PREIMAGE_PORT,
   MEMBERSHIP_MEMBER_ROOT_PORT,
   MEMBERSHIP_DIVIDEND_POOL_PORT,
   MEMBERSHIP_PAYOUT_SEQUENCE_PORT,
@@ -210,10 +211,11 @@ function buildFixtures(): Record<string, unknown> {
     ],
     'htlc-add.transition.json': { action: 'add', inputs: { hashlock: '0x0123', amount: '250', timeoutBlock: '200' } },
     'htlc-state.expected.json': [
-      { port: HTLC_HASHLOCK_PORT, value: '0123', type: 'hex' },
+      { port: HTLC_HASHLOCK_PORT, value: '0x0123', type: 'hex' },
       { port: HTLC_LOCKED_AMOUNT_PORT, value: '250', type: 'number' },
       { port: HTLC_TIMEOUT_BLOCK_PORT, value: '200', type: 'number' },
       { port: HTLC_CLAIMED_PORT, value: false, type: 'bool' },
+      { port: HTLC_PREIMAGE_PORT, value: '', type: 'hex' },
     ],
     'vault-lock.transition.json': { action: 'lock', inputs: { amount: '800', releaseSequence: '50' } },
     'vault-state.expected.json': [

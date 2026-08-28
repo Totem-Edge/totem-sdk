@@ -132,6 +132,7 @@ export class PersonalLeaseNodeProvider implements WotsLeaseProvider {
     if (!cert) return false;
     if (cert.issuedBy !== this.nodePubkey) return false;
     if (cert.expiresAt <= Date.now()) return false;
+    if (typeof cert.signature !== 'string' || cert.signature.length === 0) return false;
     return true;
   }
 }

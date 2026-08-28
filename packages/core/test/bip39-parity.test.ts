@@ -1,5 +1,6 @@
-import { cleanSeedPhrase, convertStringToSeed, phraseToSeed, validatePhrase } from '../src/bip39';
+import { cleanSeedPhrase, convertStringToSeed, phraseToSeed, validatePhrase, WORD_LIST, generateSeedPhrase } from '../src/bip39';
 import { sha3_256, bytesToHex } from '@totemsdk/core';
+import * as wasm from '../src/wasm-sync';
 
 describe('BIP39 Parity with Minima BIP39.java', () => {
   
@@ -169,6 +170,45 @@ describe('BIP39 Parity with Minima BIP39.java', () => {
       expect(cleanSeedPhrase('abil')).toBe('ABILITY');
       expect(cleanSeedPhrase('abou')).toBe('ABOUT');
       expect(cleanSeedPhrase('abov')).toBe('ABOVE');
+    });
+  });
+
+  describe('WASM binding parity with TS canonical implementation', () => {
+    const knownVector = 'MEAt inve act THEM WAGO ALONE PURI AVER UNFA RESI AMUS SMOK SENS MILL DIAGRAM OBVIO';
+    const canonicalUpper = 'MEAT INVEST ACT THEME WAGON ALONE PURITY AVERAGE UNFAIR RESIST AMUSED SMOKE SENSE MILLION DIAGRAM OBVIOUS';
+
+    it('should expose a cleanSeedPhrase export from the WASM glue', () => {
+      expect(typeof wasm.cleanSeedPhrase).toBe('function');
+    });
+
+    it('should clean to the same canonical uppercase form as TS', () => {
+      expect(wasm.cleanSeedPhrase(knownVector)).toBe(canonicalUpper);
+      expect(wasm.cleanSeedPhrase('aban abil')).toBe('ABANDON ABILITY');
+    });
+
+    it('should derive identical seeds to TS for identical phrases', () => {
+      const tsSeed = phraseToSeed(knownVector);
+      const wasmSeed = wasm.phraseToSeed(knownVector);
+      expect(wasmSeed).toEqual(tsSeed);
+      const tsSeedUppercase = phraseToSeed(canonicalUpper);
+      expect(wasmSeed).toEqual(tsSeedUppercase);
+    });
+
+    it('should agree with TS on word-list membership (incl. "hungry", excluding spurious words)', () => {
+      expect(wasm.validatePhrase('hungry')).toBe(true);
+      expect(wasm.validatePhrase('africa')).toBe(false);
+      expect(wasm.validatePhrase('abandon ability')).toBe(true);
+      expect(validatePhrase('hungry')).toBe(true);
+      expect(validatePhrase('africa')).toBe(false);
+    });
+
+    it('should generate 24-word mnemonics whose words are all canonical and valid', () => {
+      const mnemonic = wasm.generateWordList();
+      const words = mnemonic.split(' ');
+      expect(words).toHaveLength(24);
+      for (const w of words) {
+        expect(WORD_LIST).toContain(w);
+      }
     });
   });
 });

@@ -81,13 +81,14 @@ describe('omnia-host mutations', () => {
     _resetChannelWatermarks();
   });
 
-  it('rejects mutations without signer capabilities', async () => {
+  it('does not register mutation methods without signer capabilities', async () => {
     const methods = createHostMethods({
       channels: new Map([['channel-1', channel()]]),
       routing: new InProcessRoutingProvider(),
     });
-    await expect(methods.get('totem_omniaPay')!({ operationId: 'op-1', channelId: 'channel-1', amount: '1' }))
-      .rejects.toThrow('require signer');
+    expect(methods.has('totem_omniaPay')).toBe(false);
+    expect(methods.has('totem_omniaOpenChannel')).toBe(false);
+    expect(methods.has('totem_omniaGetChannels')).toBe(true);
   });
 
   it('updates a channel and replays committed operations', async () => {
@@ -169,7 +170,8 @@ describe('omnia-host mutations', () => {
       listByStatus: () => [],
       verifyRequest: () => false,
     };
-    const methods = createHostMethods({ channels: new Map(), routing: new InProcessRoutingProvider(), operations: operations as any });
+    const { context } = mutationContext(new Map([['channel-1', channel()]]), operations);
+    const methods = createHostMethods(context);
     await expect(methods.get('totem_omniaCloseChannel')!({ operationId: 'same', channelId: 'other' }))
       .rejects.toThrow('does not match the original request');
   });

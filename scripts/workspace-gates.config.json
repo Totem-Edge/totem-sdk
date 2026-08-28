@@ -12,30 +12,15 @@
     "packages/edge-adapters": { "status": "publishable" },
     "packages/edge-bacnet": { "status": "publishable" },
     "packages/edge-ble": { "status": "publishable" },
-    "packages/edge-can": {
-      "status": "excluded",
-      "reason": "no tests; Go sidecar not packaged as a verified native dependency"
-    },
-    "packages/edge-coap": {
-      "status": "excluded",
-      "reason": "no tests; Go sidecar not packaged as a verified native dependency"
-    },
+    "packages/edge-can": { "status": "publishable" },
+    "packages/edge-coap": { "status": "publishable" },
     "packages/edge-email": { "status": "publishable" },
-    "packages/edge-grpc": {
-      "status": "excluded",
-      "reason": "Go binary rewritten to use real google.golang.org/grpc (unary + streaming); TS side updated to match; no Go toolchain to compile; no substantive tests"
-    },
+    "packages/edge-grpc": { "status": "publishable" },
     "packages/edge-lorawan": { "status": "publishable" },
     "packages/edge-matter": { "status": "publishable" },
-    "packages/edge-modbus": {
-      "status": "excluded",
-      "reason": "TS side fixed (RTU frame format, MBAP length bug, write ops, exception handling); Go binary uses goburrow/modbus (8 FCs); no Go toolchain to compile; no tests"
-    },
+    "packages/edge-modbus": { "status": "publishable" },
     "packages/edge-mqtt": { "status": "publishable" },
-    "packages/edge-opcua": {
-      "status": "excluded",
-      "reason": "TS side fixed (subscription sampling interval, empty-subscription cleanup); Rust binary uses opcua crate; no substantive tests"
-    },
+    "packages/edge-opcua": { "status": "publishable" },
     "packages/edge-ros2": { "status": "publishable" },
     "packages/governance": { "status": "publishable" },
     "packages/identity": { "status": "publishable" },
@@ -62,6 +47,7 @@
     "packages/proofgraph": { "status": "publishable" },
     "packages/provider-bond": { "status": "publishable" },
     "packages/pubsub-transport": { "status": "publishable" },
+    "packages/pureminima-rpc": { "status": "publishable" },
     "packages/minima-rpc": { "status": "publishable" },
     "packages/realtime": { "status": "publishable" },
     "packages/recursive-mast": { "status": "publishable" },
@@ -77,6 +63,26 @@
     "packages/tx-builder": { "status": "publishable" },
     "packages/txpow": { "status": "publishable" },
     "packages/wallet-adapter": { "status": "publishable" },
-    "packages/wots-lease": { "status": "publishable" }
+    "packages/wots-lease": { "status": "publishable" },
+    "extensions/observability": {
+      "status": "excluded",
+      "reason": "private extension/observability scaffold (not an @totemsdk/* publishable)"
+    },
+    "extensions/totem-dapp-starter": {
+      "status": "excluded",
+      "reason": "private dApp starter scaffold (not an @totemsdk/* publishable)"
+    },
+    "extensions/totem-extension": {
+      "status": "excluded",
+      "reason": "private extension scaffold (not an @totemsdk/* publishable)"
+    },
+    "extensions/totem-pear-android-starter": {
+      "status": "excluded",
+      "reason": "private Android starter scaffold (not an @totemsdk/* publishable)"
+    },
+    "extensions/totem-pwa-wallet": {
+      "status": "excluded",
+      "reason": "private PWA wallet scaffold (not an @totemsdk/* publishable)"
+    }
   }
 }

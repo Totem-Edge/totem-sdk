@@ -4,7 +4,7 @@ Policy coordination library for composable, multi-party, cryptographically prova
 
 **Status: Alpha.** The architecture, storage, discovery, signing coordination, and availability auditing are implemented. Templates are experimental and not audited. This package coordinates policy; `@totemsdk/omnia` owns channel state, dispute, and settlement semantics.
 
-> **v0.4+ migration:** The MAST compiler, policy tree, proof chain, layered policy, policy anchor, PREVSTATE workflows, and script templates have moved to [`@totemsdk/kissvm`](https://www.npmjs.com/package/@totemsdk/kissvm) (see [`GUIDE.md`](https://github.com/totem-sdk/totem-sdk/blob/main/packages/kissvm/src/GUIDE.md)). They are re-exported here for backward compatibility — no code changes needed. New projects should import directly from `@totemsdk/kissvm`.
+> **v0.4+ migration:** The MAST compiler, policy tree, proof chain, layered policy, policy anchor, PREVSTATE workflows, and script templates have moved to [`@totemsdk/kissvm`](https://www.npmjs.com/package/@totemsdk/kissvm) (see [`GUIDE.md`](https://github.com/Totem-Edge/totem-sdk/blob/main/packages/kissvm/src/GUIDE.md)). They are re-exported here for backward compatibility — no code changes needed. New projects should import directly from `@totemsdk/kissvm`.
 
 ## Architecture
 
@@ -937,7 +937,7 @@ const signer: PolicySigner = {
 
 ## KISSVM integration (`@totemsdk/recursive-mast/kissvm`)
 
-> **v0.4+:** The MAST compiler, policy tree, proof chain, layered policy, policy anchor, PREVSTATE workflows, and templates now live in `@totemsdk/kissvm`. recursive-mast retains the higher-level policy coordination (delegation, discovery, signing, storage, etc.). See [`@totemsdk/kissvm` GUIDE.md](https://github.com/totem-sdk/totem-sdk/blob/main/packages/kissvm/src/GUIDE.md).
+> **v0.4+:** The MAST compiler, policy tree, proof chain, layered policy, policy anchor, PREVSTATE workflows, and templates now live in `@totemsdk/kissvm`. recursive-mast retains the higher-level policy coordination (delegation, discovery, signing, storage, etc.). See [`@totemsdk/kissvm` GUIDE.md](https://github.com/Totem-Edge/totem-sdk/blob/main/packages/kissvm/src/GUIDE.md).
 
 Delegates to `@totemsdk/kissvm` for all VM-level operations. recursive-mast owns policy coordination; kissvm owns execution.
 

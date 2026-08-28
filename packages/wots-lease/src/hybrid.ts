@@ -12,11 +12,13 @@ import type {
   LeaseCertificate,
   LocalWatermark,
   SyncResult,
+  CertificateSigner,
 } from './types.js';
 import type { LocalLeaseProvider } from './local.js';
 import type { PersonalLeaseNodeProvider } from './stubs.js';
 import type { P2PQuorumLeaseProvider } from './stubs.js';
 import type { OnchainWatermarkProvider } from './stubs.js';
+import { signCertificate, certificateSignatureVerified } from './certificate.js';
 
 export interface HybridLeaseProviderConfig {
   local: LocalLeaseProvider;
@@ -24,6 +26,8 @@ export interface HybridLeaseProviderConfig {
   quorum?: P2PQuorumLeaseProvider;
   onchain?: OnchainWatermarkProvider;
   threshold?: number;
+  /** Identity that authenticates locally-assembled quorum certificates. */
+  certificateSigner?: CertificateSigner;
 }
 
 export class HybridLeaseProvider implements WotsLeaseProvider {
@@ -32,6 +36,7 @@ export class HybridLeaseProvider implements WotsLeaseProvider {
   private readonly quorum?: P2PQuorumLeaseProvider;
   private readonly onchain?: OnchainWatermarkProvider;
   private readonly threshold: number;
+  private readonly certificateSigner?: CertificateSigner;
 
   constructor(config: HybridLeaseProviderConfig) {
     this.local = config.local;
@@ -39,6 +44,7 @@ export class HybridLeaseProvider implements WotsLeaseProvider {
     this.quorum = config.quorum;
     this.onchain = config.onchain;
     this.threshold = config.threshold ?? Infinity;
+    this.certificateSigner = config.certificateSigner;
   }
 
   private isHighValue(params: ReserveParams): boolean {
@@ -55,23 +61,24 @@ export class HybridLeaseProvider implements WotsLeaseProvider {
       if (this.quorum) {
         try {
           const attestations = await this.quorum.attestKeyUse(params, reservation.indices);
-          return {
-            ...reservation,
-            certificate: {
-              reservationId: reservation.reservationId,
-              treeId: params.treeId,
-              branchId: params.branchId,
-              deviceId: params.deviceId,
-              indices: reservation.indices,
-              purpose: params.purpose,
-              payloadHash: params.payloadHash,
-              issuedBy: 'p2p-quorum',
-              issuedAt: Date.now(),
-              expiresAt: reservation.expiresAt,
-              signature: '',
-              attestations,
-            },
+          const certificate: LeaseCertificate = {
+            reservationId: reservation.reservationId,
+            treeId: params.treeId,
+            branchId: params.branchId,
+            deviceId: params.deviceId,
+            indices: reservation.indices,
+            purpose: params.purpose,
+            payloadHash: params.payloadHash,
+            issuedBy: this.certificateSigner?.name ?? 'p2p-quorum',
+            issuedAt: Date.now(),
+            expiresAt: reservation.expiresAt,
+            signature: '',
+            attestations,
           };
+          certificate.signature = this.certificateSigner
+            ? await signCertificate(this.certificateSigner, certificate)
+            : '';
+          return { ...reservation, certificate };
         } catch {
           // Quorum unavailable — fall through to node / local only.
         }
@@ -119,6 +126,10 @@ export class HybridLeaseProvider implements WotsLeaseProvider {
 
   async verifyLeaseCertificate(cert?: LeaseCertificate): Promise<boolean> {
     if (!cert) return this.local.verifyLeaseCertificate(cert);
+    // Locally-assembled quorum certificates authenticate against our issuer.
+    if (cert.issuedBy === (this.certificateSigner?.name ?? 'p2p-quorum')) {
+      return certificateSignatureVerified(cert, this.certificateSigner);
+    }
     if (this.node) return this.node.verifyLeaseCertificate(cert);
     return false;
   }

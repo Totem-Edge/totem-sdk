@@ -92,7 +92,7 @@
 
 | Document | Description |
 |----------|-------------|
-| [SDK_AUDIT.md](SDK_AUDIT.md) | Package audit, status, and parity gap table |
+| [SDK Audit (archived)](archive/SDK_AUDIT-2026-02-ARCHIVED.md) | Historical Feb 2026 package audit; superseded by the README maturity table |
 | [SDK_ROLLBACK_RUNBOOK.md](SDK_ROLLBACK_RUNBOOK.md) | Rollback procedures for SDK releases |
 | [SDK_STAGED_ROLLOUT.md](SDK_STAGED_ROLLOUT.md) | Staged rollout strategy for SDK deployments |
 | [RECOVERY_CLI.md](RECOVERY_CLI.md) | Recovery CLI tool documentation |

@@ -29,6 +29,7 @@ pub const HTLC_HASHLOCK_PORT: u32 = 140;
 pub const HTLC_LOCKED_AMOUNT_PORT: u32 = 141;
 pub const HTLC_TIMEOUT_BLOCK_PORT: u32 = 142;
 pub const HTLC_CLAIMED_PORT: u32 = 143;
+pub const HTLC_PREIMAGE_PORT: u32 = 144;
 
 pub const VAULT_PROGRAM_ID: &str = "vault";
 pub const VAULT_LOCKED_VALUE_PORT: u32 = 150;
@@ -337,6 +338,10 @@ pub fn build_htlc_state_variables(
                 HTLC_CLAIMED_PORT,
                 get_state_bool(previous_state, HTLC_CLAIMED_PORT, false)?,
             )?,
+            program_hex_state(
+                HTLC_PREIMAGE_PORT,
+                &get_state_hex(previous_state, HTLC_PREIMAGE_PORT, "")?,
+            )?,
         ])
     };
 
@@ -346,16 +351,18 @@ pub fn build_htlc_state_variables(
     let hashlock = get_state_hex(previous_state, HTLC_HASHLOCK_PORT, "")?;
     let amount = get_state_bigint(previous_state, HTLC_LOCKED_AMOUNT_PORT, 0)?;
     let timeout = get_state_bigint(previous_state, HTLC_TIMEOUT_BLOCK_PORT, 0)?;
+    let prev_preimage = get_state_hex(previous_state, HTLC_PREIMAGE_PORT, "")?;
     match transition.action.as_str() {
         "add" => {
             let hashlock = normalize_hex(&input_string(Some(transition), "hashlock", ""));
             let amount = input_bigint(Some(transition), "amount", 0)?;
             let timeout = input_bigint(Some(transition), "timeoutBlock", 0)?;
             Ok(vec![
-                program_hex_state(HTLC_HASHLOCK_PORT, &hashlock)?,
+                program_hex_state(HTLC_HASHLOCK_PORT, &format!("0x{}", hashlock))?,
                 program_number_state(HTLC_LOCKED_AMOUNT_PORT, amount)?,
                 program_number_state(HTLC_TIMEOUT_BLOCK_PORT, timeout)?,
                 program_bool_state(HTLC_CLAIMED_PORT, false)?,
+                program_hex_state(HTLC_PREIMAGE_PORT, "")?,
             ])
         }
         "claim" => {
@@ -366,6 +373,7 @@ pub fn build_htlc_state_variables(
                     program_number_state(HTLC_LOCKED_AMOUNT_PORT, amount)?,
                     program_number_state(HTLC_TIMEOUT_BLOCK_PORT, timeout)?,
                     program_bool_state(HTLC_CLAIMED_PORT, false)?,
+                    program_hex_state(HTLC_PREIMAGE_PORT, &prev_preimage)?,
                 ]);
             }
             Ok(vec![
@@ -373,6 +381,10 @@ pub fn build_htlc_state_variables(
                 program_number_state(HTLC_LOCKED_AMOUNT_PORT, 0)?,
                 program_number_state(HTLC_TIMEOUT_BLOCK_PORT, timeout)?,
                 program_bool_state(HTLC_CLAIMED_PORT, true)?,
+                program_hex_state(
+                    HTLC_PREIMAGE_PORT,
+                    &format!("0x{}", hex::encode(preimage.as_bytes())),
+                )?,
             ])
         }
         "timeout" => Ok(vec![
@@ -380,6 +392,7 @@ pub fn build_htlc_state_variables(
             program_number_state(HTLC_LOCKED_AMOUNT_PORT, 0)?,
             program_number_state(HTLC_TIMEOUT_BLOCK_PORT, timeout)?,
             program_bool_state(HTLC_CLAIMED_PORT, true)?,
+            program_hex_state(HTLC_PREIMAGE_PORT, &prev_preimage)?,
         ]),
         _ => pass_through(),
     }
@@ -562,6 +575,15 @@ pub fn validate_vault_transition(
             if amount < 0 {
                 return invalid("vault lock amount must be non-negative");
             }
+            let prev_locked = match get_state_bigint(previous_state, VAULT_LOCKED_VALUE_PORT, 0) {
+                Ok(value) => value,
+                Err(reason) => return invalid(reason),
+            };
+            let prev_release =
+                match get_state_bigint(previous_state, VAULT_RELEASE_SEQUENCE_PORT, 0) {
+                    Ok(value) => value,
+                    Err(reason) => return invalid(reason),
+                };
             let next_amount = match get_state_bigint(Some(next_state), VAULT_LOCKED_VALUE_PORT, 0) {
                 Ok(value) => value,
                 Err(reason) => return invalid(reason),
@@ -583,6 +605,14 @@ pub fn validate_vault_transition(
             }
             if swept {
                 return invalid("vault lock after sweep is not allowed");
+            }
+            if prev_locked > 0 {
+                if i128::from(next_state.sequence) < prev_release && next_amount != prev_locked {
+                    return invalid("vault lock before release must keep locked value");
+                }
+                if i128::from(next_state.sequence) >= prev_release && next_amount < prev_locked {
+                    return invalid("vault lock must not decrease locked value");
+                }
             }
             valid()
         }
@@ -617,19 +647,12 @@ pub fn validate_vault_transition(
             valid()
         }
         "release" => {
-            let current_sequence = transition
-                .inputs
-                .as_ref()
-                .and_then(|inputs| inputs.get("sequence"))
-                .and_then(Value::as_str)
-                .and_then(|value| value.parse::<i128>().ok())
-                .unwrap_or_default();
             let prev_release =
                 match get_state_bigint(previous_state, VAULT_RELEASE_SEQUENCE_PORT, 0) {
                     Ok(value) => value,
                     Err(reason) => return invalid(reason),
                 };
-            if current_sequence < prev_release {
+            if i128::from(next_state.sequence) < prev_release {
                 return invalid("vault release sequence not reached");
             }
             let next_amount = match get_state_bigint(Some(next_state), VAULT_LOCKED_VALUE_PORT, 0) {
@@ -1279,10 +1302,11 @@ mod tests {
             metadata: None,
         };
         let vars = build_htlc_state_variables(Some(&previous), Some(&add)).unwrap();
-        assert_eq!(vars[0].value, json!("0123"));
+        assert_eq!(vars[0].value, json!("0x0123"));
         assert_eq!(vars[1].value, json!("250"));
         assert_eq!(vars[2].value, json!("200"));
         assert_eq!(vars[3].value, json!(false));
+        assert_eq!(vars[4].value, json!(""));
 
         let preimage = "secret";
         let digest = preimage_digest(preimage);

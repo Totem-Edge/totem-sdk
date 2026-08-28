@@ -35,10 +35,33 @@ const ROOT = resolve(__dirname, '..');
 const CONFIG_PATH = join(__dirname, 'workspace-gates.config.json');
 const config = JSON.parse(readFileSync(CONFIG_PATH, 'utf8'));
 
+// Discover every package manifest under the declared workspace globs so an
+// omitted package can never fall outside the verification system.
+function discoverWorkspaceDirs() {
+  const found = new Set();
+  for (const glob of config.workspaceGlobs ?? ['packages/*', 'extensions/*']) {
+    const [base, _rest] = glob.split('/');
+    const baseDir = join(ROOT, base);
+    if (!existsSync(baseDir)) continue;
+    for (const entry of readdirSync(baseDir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const dir = `${base}/${entry.name}`;
+      const pj = join(ROOT, dir, 'package.json');
+      if (existsSync(pj)) found.add(dir);
+    }
+  }
+  return found;
+}
+
+const DISCOVERED_DIRS = discoverWorkspaceDirs();
+const CONFIGURED_DIRS = new Set(Object.keys(config.packages));
+const UNCLASSIFIED = [...DISCOVERED_DIRS].sort().filter((d) => !CONFIGURED_DIRS.has(d));
+const STALE_CONFIG = [...CONFIGURED_DIRS].sort().filter((d) => !DISCOVERED_DIRS.has(d));
+
 const PUBLISHABLE = Object.entries(config.packages).filter(([, v]) => v.status === 'publishable');
 const EXCLUDED = Object.entries(config.packages).filter(([, v]) => v.status !== 'publishable');
 const PUBLISHABLE_DIRS = new Set(PUBLISHABLE.map(([dir]) => dir));
-const WORKSPACE_DIRS = new Set(Object.keys(config.packages));
+const WORKSPACE_DIRS = new Set([...DISCOVERED_DIRS, ...CONFIGURED_DIRS]);
 
 // Gate flags ---------------------------------------------------------------
 const args = process.argv.slice(2);
@@ -165,7 +188,29 @@ function packageHasTestFiles(pkgDir) {
 
 process.stdout.write(`Workspace verification gate\n`);
 process.stdout.write(`  publishable packages: ${PUBLISHABLE.length}\n`);
-process.stdout.write(`  excluded packages:    ${EXCLUDED.length}\n\n`);
+process.stdout.write(`  excluded packages:    ${EXCLUDED.length}\n`);
+process.stdout.write(`  discovered packages:  ${DISCOVERED_DIRS.size}\n\n`);
+
+// 0. Catalog-completeness gate: every discovered workspace package must have a
+// machine-readable classification, and every configured entry must exist.
+if (UNCLASSIFIED.length > 0) {
+  failures += 1;
+  process.stdout.write(`FAIL: discovered packages missing from ${CONFIG_PATH}:\n`);
+  for (const dir of UNCLASSIFIED) {
+    process.stdout.write(`  ${dir}\n`);
+    results.push({ label: `${dir}: unclassified package`, ok: false });
+  }
+  process.stdout.write('\n');
+}
+if (STALE_CONFIG.length > 0) {
+  failures += 1;
+  process.stdout.write(`FAIL: configured entries with no package manifest on disk:\n`);
+  for (const dir of STALE_CONFIG) {
+    process.stdout.write(`  ${dir}\n`);
+    results.push({ label: `${dir}: stale config entry`, ok: false });
+  }
+  process.stdout.write('\n');
+}
 
 // 1. Script-hygiene gate: no suppression markers in publishable packages ----
 if (wantLint) {

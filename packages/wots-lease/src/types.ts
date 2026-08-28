@@ -3,6 +3,7 @@
  */
 
 import type { LocalLeaseProvider } from './local.js';
+import type { StorageAdapter } from '@totemsdk/core';
 
 export type UnavailableReason = 'reserved' | 'committed' | 'burned' | 'reserved-expired';
 
@@ -35,6 +36,23 @@ export interface QuorumAttestation {
   indices: SigningIndices;
   expiresAt: number;
   signature?: string;
+}
+
+/**
+ * Identity used to authenticate lease certificates (Layer 4/5).
+ *
+ * A certificate's `signature` is a signature over the canonical certificate
+ * payload (see certificate.ts). Verifiers reject unsigned certificates.
+ */
+export interface CertificateSigner {
+  /** Hex (0x-prefixed or bare) public key digest of the issuing identity. */
+  publicKeyDigest: string;
+  /** Identity label stored on issued certificates via `issuedBy`. */
+  name?: string;
+  /** Sign the canonical certificate message. */
+  sign(message: Uint8Array): Promise<Uint8Array>;
+  /** Verify a signature over the canonical certificate message. */
+  verify?(message: Uint8Array, signature: Uint8Array): Promise<boolean>;
 }
 
 export interface LeaseCertificate {
@@ -165,6 +183,12 @@ export interface P2PQuorumLeaseProviderConfig {
   requestTimeoutMs?: number;
   /** Require quorum approval on commit as well as reserve. Default: false. */
   requireQuorumOnCommit?: boolean;
+  /**
+   * Identity that authenticates issued certificates. When set, reserved
+   * certificates carry a real signature; without it, certificates are
+   * issued unsigned and will FAIL verification.
+   */
+  certificateSigner?: CertificateSigner;
 }
 
 /**
@@ -193,13 +217,20 @@ export interface OnchainWatermarkProviderConfig {
   amount?: string;
   /** Local provider used for the authoritative local watermark + journal. */
   local: LocalLeaseProvider;
-  /** Signer for the watermark coin's script (SIGNEDBY digest). */
+  /** Signer for the watermark coin's script (SIGNEDBY digest). Also authenticates issued certificates. */
   signer: {
     publicKeyDigest: string;
     sign(message: Uint8Array): Promise<Uint8Array>;
+    verify?(message: Uint8Array, signature: Uint8Array): Promise<boolean>;
   };
   /** Port holding the flat watermark cursor in the coin state. Default: 0. */
   statePort?: number;
   /** Minimum blocks between on-chain publishes (rate limit). Default: 1. */
   minBlocksBetweenPublishes?: number;
+  /**
+   * Optional durable storage for the watermark coin's identity. When set, the
+   * provider persists the advanced watermark coin ID after each publish so the
+   * rollover survives restarts. Default: in-memory only.
+   */
+  storage?: StorageAdapter;
 }

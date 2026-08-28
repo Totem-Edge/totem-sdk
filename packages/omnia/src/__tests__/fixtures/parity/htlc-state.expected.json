@@ -1,7 +1,7 @@
 [
   {
     "port": 140,
-    "value": "0123",
+    "value": "0x0123",
     "type": "hex"
   },
   {
@@ -18,5 +18,10 @@
     "port": 143,
     "value": false,
     "type": "bool"
+  },
+  {
+    "port": 144,
+    "value": "",
+    "type": "hex"
   }
 ]

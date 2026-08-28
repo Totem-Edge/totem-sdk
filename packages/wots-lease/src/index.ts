@@ -16,6 +16,7 @@ export type {
   PersonalLeaseNodeConfig,
   QuorumAttestation,
   QuorumPeer,
+  CertificateSigner,
   P2PQuorumLeaseProviderConfig,
   OnchainWatermarkProviderConfig,
 } from './types.js';

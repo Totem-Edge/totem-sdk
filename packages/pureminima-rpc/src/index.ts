@@ -1,3 +1,7 @@
+/**
+ * @deprecated Use `@totemsdk/minima-rpc` instead. This package is kept for
+ * backwards compatibility only and receives no further updates.
+ */
 export { createPureMinimaClient } from './client.js';
 export { buildCommandString, postCommand } from './transport.js';
 export type {
