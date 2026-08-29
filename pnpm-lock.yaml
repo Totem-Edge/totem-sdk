@@ -1184,6 +1184,9 @@ importers:
       '@totemsdk/wots-lease':
         specifier: workspace:^
         version: link:../wots-lease
+      hyperswarm:
+        specifier: '>=4.0.0'
+        version: 4.17.0(bare-url@2.4.6)
     devDependencies:
       '@types/jest':
         specifier: ^30.0.0
