@@ -15,8 +15,8 @@
     }
   },
   "scripts": {
-    "build": "tsc",
-    "prepare": "tsc",
+    "build": "tsc && node -e \"const fs=require('fs');const f='dist/cli.js';const c='#!/usr/bin/env node\\n'+fs.readFileSync(f,'utf8');fs.writeFileSync(f,c);fs.chmodSync(f,0o755)\"",
+    "prepare": "tsc && node -e \"const fs=require('fs');const f='dist/cli.js';const c='#!/usr/bin/env node\\n'+fs.readFileSync(f,'utf8');fs.writeFileSync(f,c);fs.chmodSync(f,0o755)\"",
     "clean": "rm -rf dist",
     "test": "jest",
     "start": "node dist/cli.js"
@@ -59,7 +59,7 @@
   },
   "license": "MIT",
   "author": "Totem SDK",
-  "homepage": "https://totem.ing",
+  "homepage": "https://docs.totem.ing",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Totem-Edge/totem-sdk.git",

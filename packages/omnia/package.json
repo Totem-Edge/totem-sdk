@@ -37,6 +37,14 @@
     "@totemsdk/stream-transport": "workspace:^",
     "@totemsdk/lookup-protocol": "workspace:^"
   },
+  "peerDependencies": {
+    "hyperswarm": ">=4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "hyperswarm": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "@types/node": "^20.0.0",
@@ -52,7 +60,7 @@
   },
   "license": "MIT",
   "author": "Totem SDK",
-  "homepage": "https://totem.ing",
+  "homepage": "https://docs.totem.ing",
   "bugs": {
     "url": "https://github.com/Totem-Edge/totem-sdk/issues"
   },
