@@ -24,7 +24,7 @@ No network. No storage. No GDAL. No GeoTIFF parsing. No ML. Pure hashing, manife
 - construction progress images
 - derived analysis layers
 
-It is **not ZEDD-specific**. ZEDD Satellite is only one application.
+It is **not tied to any single project**. Satellite imagery is only one application.
 
 ### What this package does
 
@@ -315,11 +315,11 @@ import { rasterFootprintToSpatialObject, createRasterSpatialRelation } from '@to
 const site = {
   spatialId: computeSpatialObjectId({
     kind: 'site-boundary',
-    name: 'ZEDD flood site A',
+    name: 'Flood site A',
     geometry: { type: 'Polygon', coordinates: [[[36.78, -1.29], [36.82, -1.29], [36.82, -1.25], [36.78, -1.25], [36.78, -1.29]]] },
   }),
   kind: 'site-boundary' as const,
-  name: 'ZEDD flood site A',
+  name: 'Flood site A',
   geometry: { type: 'Polygon', coordinates: [[[36.78, -1.29], [36.82, -1.29], [36.82, -1.25], [36.78, -1.25], [36.78, -1.29]]] },
 };
 

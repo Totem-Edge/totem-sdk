@@ -21,7 +21,7 @@ For example:
 - a satellite scene footprint **covers** a project boundary
 - a derived flood mask **overlaps** a work zone
 
-It is not ZEDD-specific. ZEDD, Wajibika, AgriPulse, Guardbase, logistics, robotics, maritime, drones, and autonomous vehicles can all use it.
+It is not tied to any single project. Robotics, maritime, drones, autonomous vehicles, logistics, agriculture, and environmental monitoring can all use it.
 
 ## What this package does NOT prove
 
@@ -217,7 +217,7 @@ import {
 const site = {
   spatialId: computeSpatialObjectId({
     kind: 'site-boundary',
-    name: 'ZEDD site A',
+    name: 'Site A',
     geometry: {
       type: 'Polygon',
       coordinates: [[
@@ -226,7 +226,7 @@ const site = {
     },
   }),
   kind: 'site-boundary' as const,
-  name: 'ZEDD site A',
+  name: 'Site A',
   geometry: {
     type: 'Polygon',
     coordinates: [[
