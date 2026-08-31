@@ -241,6 +241,14 @@ server.setRequestHandler(GetPromptRequestSchema, async (request: any) => {
   throw new Error(`Prompt not found: ${name}`)
 })
 
+export const SERVER_INFO = {
+  name: '@totemsdk/mcp-server',
+  version: '0.2.0',
+  capabilities: { resources: {}, tools: {}, prompts: {} },
+} as const
+
+export { index as sdkIndex }
+
 async function main() {
   const transport = new StdioServerTransport()
   await server.connect(transport)
