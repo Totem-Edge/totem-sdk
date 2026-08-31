@@ -5,6 +5,16 @@
  * enough to prevent useful pre-mining, must expire, must bind to the intended
  * receiver, and must bind to an application domain. Verification NEVER trusts
  * sender-reported hardware speed — it only checks `hash < target`.
+ *
+ * ── AUTHENTICATION BOUNDARY ────────────────────────────────────────────────
+ * `validateWorkChallenge()` validates structural/freshness/domain/recipient
+ * properties but does NOT prove that the claimed recipient actually issued the
+ * challenge. A WorkChallenge is a plain data object; anyone can construct one
+ * claiming any recipient. Proving the issuer requires authenticating the
+ * enclosing message (e.g. a signed machine-to-machine protocol message in the
+ * Edge negotiation layer). @totemsdk/txpow deliberately does NOT implement a
+ * parallel identity/signature system — that belongs to the application layer.
+ * ───────────────────────────────────────────────────────────────────────────
  */
 
 import { sha3_256 } from '@totemsdk/core';

@@ -16,6 +16,12 @@
  *   - Cancellation (mining terminates cleanly)
  *   - Canonicalization (equivalent input → identical commitment)
  *   - Domain separation (different domains → different commitments)
+ *   - Challenge target as the single authoritative target
+ *   - Known Minima serialization/header fixture + correct TxPoW ID
+ *   - Three levels: admission-valid / l1Candidate / broadcastable
+ *   - Sender cannot forge qualifiesAsMinimaBlock
+ *   - Broadcast callback receives the complete expected candidate
+ *   - Offline mode does not claim L1 contribution
  *
  * Uses easy test targets and deterministic fixtures — no expensive real PoW.
  */
@@ -31,6 +37,10 @@ import {
   verifyWorkAdmission,
   isBlockWinner,
   templateFreshness,
+  buildBlockHeaderTail,
+  buildEmptyBlockBody,
+  assembleTxPoWEnvelope,
+  computeBlockCandidateId,
   MACHINE_WORK_ADMISSION_VERSION,
   type MachineWorkAction,
   type MinimaWorkTemplate,
@@ -123,6 +133,9 @@ const CHALLENGE = createWorkChallenge('bob', 'totem.negotiation.proposal', EASY_
   issuedAt: 1700000000000,
   ttlMs: 300_000,
 });
+
+/** Deterministic PRNG for reproducible TxBody bytes. */
+const FIXED_PRNG = new Uint8Array(32).fill(0xcd);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // createWorkChallenge / validateWorkChallenge
@@ -271,13 +284,86 @@ describe('challengeFingerprint', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Minima serialization compatibility fixture
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('Minima serialization compatibility', () => {
+  it('builds a deterministic empty block body', () => {
+    const body = buildEmptyBlockBody(FIXED_PRNG, BLOCK_TARGET);
+    // PRNG (36) + txnDifficulty (4+32) + empty tx + empty witness + burn tx +
+    // burn witness + txpowidlist(1)
+    expect(body.length).toBeGreaterThan(36 + 36);
+    // First 4 bytes are the PRNG length prefix (32)
+    expect(body[0]).toBe(0x00);
+    expect(body[1]).toBe(0x00);
+    expect(body[2]).toBe(0x00);
+    expect(body[3]).toBe(0x20);
+  });
+
+  it('builds a deterministic block header tail', () => {
+    const customHash = 'ab'.repeat(32);
+    const bodyHash = 'cd'.repeat(32);
+    const tail = buildBlockHeaderTail(TEMPLATE, customHash, bodyHash);
+    expect(tail.length).toBeGreaterThan(0);
+    // chainId MiniData: [0,0,0,1, 0x00]
+    expect(tail[0]).toBe(0x00);
+    expect(tail[1]).toBe(0x00);
+    expect(tail[2]).toBe(0x00);
+    expect(tail[3]).toBe(0x01);
+    expect(tail[4]).toBe(0x00);
+  });
+
+  it('assembleTxPoWEnvelope produces header | 0x01 | body', () => {
+    const header = new Uint8Array([1, 2, 3]);
+    const body = new Uint8Array([4, 5]);
+    const env = assembleTxPoWEnvelope(header, body);
+    expect(env).toEqual(new Uint8Array([1, 2, 3, 0x01, 4, 5]));
+  });
+
+  it('computeBlockCandidateId matches sha3_256 of the header', () => {
+    const header = new Uint8Array([1, 2, 3, 4, 5]);
+    expect(computeBlockCandidateId(header)).toEqual(sha3_256(header));
+  });
+
+  it('mined proof produces a complete, Minima-serializable TxPoW envelope', async () => {
+    const provider = makeProvider();
+    const proof = await mineWorkAdmission(ACTION, CHALLENGE, provider, {
+      _skipWorker: true,
+      forceJs: true,
+      maxIterations: 100_000,
+      prng: FIXED_PRNG,
+    });
+
+    // The envelope must be header | 0x01 | body
+    const env = Uint8Array.from(Buffer.from(proof.txpowEnvelope, 'hex'));
+    const header = Uint8Array.from(Buffer.from(proof.txpow, 'hex'));
+    expect(env.length).toBeGreaterThan(header.length + 1);
+    expect(env[header.length]).toBe(0x01);
+
+    // The header hash must equal the txpowId
+    expect(sha3_256(header)).toEqual(Uint8Array.from(Buffer.from(proof.txpowId, 'hex')));
+
+    // The envelope's body hash must be committed in the header tail
+    const body = env.slice(header.length + 1);
+    const bodyHash = sha3_256(body);
+    // The last 36 bytes of the header are writeHashToStream(bodyHash)
+    const headerBodyHashField = header.slice(header.length - 36);
+    expect(headerBodyHashField[0]).toBe(0x00);
+    expect(headerBodyHashField[1]).toBe(0x00);
+    expect(headerBodyHashField[2]).toBe(0x00);
+    expect(headerBodyHashField[3]).toBe(0x20);
+    expect(headerBodyHashField.slice(4)).toEqual(bodyHash);
+  }, 30_000);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Mining & verification
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('mineWorkAdmission + verifyWorkAdmission', () => {
   it('valid admission: correct action + challenge + candidate + nonce passes', async () => {
     const provider = makeProvider();
-    const proof = await mineWorkAdmission(ACTION, CHALLENGE, EASY_TARGET, provider, {
+    const proof = await mineWorkAdmission(ACTION, CHALLENGE, provider, {
       _skipWorker: true,
       forceJs: true,
       maxIterations: 100_000,
@@ -285,6 +371,8 @@ describe('mineWorkAdmission + verifyWorkAdmission', () => {
 
     expect(proof.qualifiesForAdmission).toBe(true);
     expect(proof.actionCommitment).toBe(computeActionCommitment(ACTION, CHALLENGE));
+    // The challenge target is the single authoritative target
+    expect(proof.admissionTarget).toBe(CHALLENGE.target);
 
     const verification = await verifyWorkAdmission(ACTION, CHALLENGE, proof, provider, {
       now: 1700000001000,
@@ -292,9 +380,21 @@ describe('mineWorkAdmission + verifyWorkAdmission', () => {
     expect(verification.valid).toBe(true);
   }, 30_000);
 
+  it('challenge target is the single authoritative target (no separate arg)', async () => {
+    const provider = makeProvider();
+    const proof = await mineWorkAdmission(ACTION, CHALLENGE, provider, {
+      _skipWorker: true,
+      forceJs: true,
+      maxIterations: 100_000,
+    });
+    // The miner derived the target from the challenge — there is no way to
+    // supply a different one.
+    expect(proof.admissionTarget).toBe(CHALLENGE.target);
+  }, 30_000);
+
   it('tampered payload: changing payloadHash invalidates the proof', async () => {
     const provider = makeProvider();
-    const proof = await mineWorkAdmission(ACTION, CHALLENGE, EASY_TARGET, provider, {
+    const proof = await mineWorkAdmission(ACTION, CHALLENGE, provider, {
       _skipWorker: true,
       forceJs: true,
       maxIterations: 100_000,
@@ -310,7 +410,7 @@ describe('mineWorkAdmission + verifyWorkAdmission', () => {
 
   it('wrong recipient: proof cannot be reused against another receiver', async () => {
     const provider = makeProvider();
-    const proof = await mineWorkAdmission(ACTION, CHALLENGE, EASY_TARGET, provider, {
+    const proof = await mineWorkAdmission(ACTION, CHALLENGE, provider, {
       _skipWorker: true,
       forceJs: true,
       maxIterations: 100_000,
@@ -325,7 +425,7 @@ describe('mineWorkAdmission + verifyWorkAdmission', () => {
 
   it('wrong domain: negotiation proof cannot become a mailbox proof', async () => {
     const provider = makeProvider();
-    const proof = await mineWorkAdmission(ACTION, CHALLENGE, EASY_TARGET, provider, {
+    const proof = await mineWorkAdmission(ACTION, CHALLENGE, provider, {
       _skipWorker: true,
       forceJs: true,
       maxIterations: 100_000,
@@ -340,7 +440,7 @@ describe('mineWorkAdmission + verifyWorkAdmission', () => {
 
   it('challenge replay: old challenge cannot satisfy a fresh challenge', async () => {
     const provider = makeProvider();
-    const proof = await mineWorkAdmission(ACTION, CHALLENGE, EASY_TARGET, provider, {
+    const proof = await mineWorkAdmission(ACTION, CHALLENGE, provider, {
       _skipWorker: true,
       forceJs: true,
       maxIterations: 100_000,
@@ -360,7 +460,7 @@ describe('mineWorkAdmission + verifyWorkAdmission', () => {
 
   it('expiry: expired challenge is rejected', async () => {
     const provider = makeProvider();
-    const proof = await mineWorkAdmission(ACTION, CHALLENGE, EASY_TARGET, provider, {
+    const proof = await mineWorkAdmission(ACTION, CHALLENGE, provider, {
       _skipWorker: true,
       forceJs: true,
       maxIterations: 100_000,
@@ -375,15 +475,20 @@ describe('mineWorkAdmission + verifyWorkAdmission', () => {
 
   it('target manipulation: proof mined against an easier target is rejected', async () => {
     const provider = makeProvider();
-    // Mine against a trivially easy target (all 0xFF = MAX_HASH).
-    const trivialTarget = 'ff'.repeat(32);
-    const proof = await mineWorkAdmission(ACTION, CHALLENGE, trivialTarget, provider, {
+    // Mine against a challenge with a trivially easy target (all 0xFF).
+    const trivialChallenge = createWorkChallenge(
+      'bob',
+      'totem.negotiation.proposal',
+      'ff'.repeat(32),
+      { challengeId: 'challenge-1', nonce: 'deadbeef', issuedAt: 1700000000000, ttlMs: 300_000 }
+    );
+    const proof = await mineWorkAdmission(ACTION, trivialChallenge, provider, {
       _skipWorker: true,
       forceJs: true,
       maxIterations: 100_000,
     });
 
-    // The challenge requires EASY_TARGET, but the proof claims trivialTarget.
+    // Verify against the REAL challenge (harder target, same challengeId).
     const verification = await verifyWorkAdmission(ACTION, CHALLENGE, proof, provider, {
       now: 1700000001000,
     });
@@ -398,7 +503,7 @@ describe('mineWorkAdmission + verifyWorkAdmission', () => {
         broadcastCount++;
       },
     });
-    const proof = await mineWorkAdmission(ACTION, CHALLENGE, EASY_TARGET, provider, {
+    const proof = await mineWorkAdmission(ACTION, CHALLENGE, provider, {
       _skipWorker: true,
       forceJs: true,
       maxIterations: 100_000,
@@ -406,6 +511,101 @@ describe('mineWorkAdmission + verifyWorkAdmission', () => {
 
     expect(proof.qualifiesAsMinimaBlock).toBe(false);
     expect(broadcastCount).toBe(0);
+  }, 30_000);
+
+  it('offline mode: no provider means no L1 contribution claim', async () => {
+    const provider = makeProvider();
+    const proof = await mineWorkAdmission(ACTION, CHALLENGE, provider, {
+      _skipWorker: true,
+      forceJs: true,
+      maxIterations: 100_000,
+    });
+
+    // Verify WITHOUT a template provider (offline mode).
+    const verification = await verifyWorkAdmission(ACTION, CHALLENGE, proof, undefined, {
+      now: 1700000001000,
+    });
+    expect(verification.valid).toBe(true);
+    // l1Candidate is still computed (from the proof's own template), but
+    // broadcastable must be undefined — offline mode cannot claim L1 contribution.
+    expect(verification.broadcastable).toBeUndefined();
+  }, 30_000);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Three levels: admission-valid / l1Candidate / broadcastable
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('three-level verification', () => {
+  it('admission-valid but NOT block-winning', async () => {
+    const provider = makeProvider(); // block target is much harder than admission
+    const proof = await mineWorkAdmission(ACTION, CHALLENGE, provider, {
+      _skipWorker: true,
+      forceJs: true,
+      maxIterations: 100_000,
+    });
+
+    const verification = await verifyWorkAdmission(ACTION, CHALLENGE, proof, provider, {
+      now: 1700000001000,
+    });
+    expect(verification.valid).toBe(true);
+    expect(verification.l1Candidate).toBe(false);
+    expect(verification.broadcastable).toBe(false);
+  }, 30_000);
+
+  it('admission-valid AND block-winning (block target == admission target)', async () => {
+    const template = makeTemplate({ blockDifficulty: EASY_TARGET });
+    const provider = makeProvider({ template });
+    const proof = await mineWorkAdmission(ACTION, CHALLENGE, provider, {
+      _skipWorker: true,
+      forceJs: true,
+      maxIterations: 100_000,
+    });
+
+    const verification = await verifyWorkAdmission(ACTION, CHALLENGE, proof, provider, {
+      now: 1700000001000,
+    });
+    expect(verification.valid).toBe(true);
+    expect(verification.l1Candidate).toBe(true);
+    expect(verification.broadcastable).toBe(true);
+  }, 30_000);
+
+  it('block-winning but stale/non-broadcastable', async () => {
+    const template = makeTemplate({ blockDifficulty: EASY_TARGET, templateId: 'old' });
+    const latest = makeTemplate({ blockDifficulty: EASY_TARGET, templateId: 'new' });
+    const provider = makeProvider({ template });
+    const proof = await mineWorkAdmission(ACTION, CHALLENGE, provider, {
+      _skipWorker: true,
+      forceJs: true,
+      maxIterations: 100_000,
+    });
+
+    const verification = await verifyWorkAdmission(ACTION, CHALLENGE, proof, provider, {
+      now: 1700000001000,
+      latestTemplate: latest,
+    });
+    expect(verification.valid).toBe(true);
+    expect(verification.l1Candidate).toBe(true);
+    expect(verification.broadcastable).toBe(false);
+  }, 30_000);
+
+  it('sender cannot forge qualifiesAsMinimaBlock', async () => {
+    const provider = makeProvider(); // block target much harder than admission
+    const proof = await mineWorkAdmission(ACTION, CHALLENGE, provider, {
+      _skipWorker: true,
+      forceJs: true,
+      maxIterations: 100_000,
+    });
+
+    // Sender lies: claims it IS a block winner.
+    const forged = { ...proof, qualifiesAsMinimaBlock: true };
+    const verification = await verifyWorkAdmission(ACTION, CHALLENGE, forged, provider, {
+      now: 1700000001000,
+    });
+    // Verification recomputes from the re-derived txpowId — the lie is ignored.
+    expect(verification.valid).toBe(true);
+    expect(verification.l1Candidate).toBe(false);
+    expect(verification.broadcastable).toBe(false);
   }, 30_000);
 });
 
@@ -433,26 +633,35 @@ describe('L1 winner handling', () => {
     expect(isBlockWinner(equal, BLOCK_TARGET)).toBe(false);
   });
 
-  it('block callback: valid block winner triggers broadcast exactly once', async () => {
+  it('block callback: valid block winner triggers broadcast exactly once with the complete candidate', async () => {
     // Use a block target EQUAL to the admission target so every mined hash
     // that admits is also a block winner.
     const template = makeTemplate({ blockDifficulty: EASY_TARGET });
     let broadcastCount = 0;
+    let broadcastCandidate: unknown = null;
     const provider = makeProvider({
       template,
-      broadcast: () => {
+      broadcast: (c) => {
         broadcastCount++;
+        broadcastCandidate = c;
       },
     });
 
-    const proof = await mineWorkAdmission(ACTION, CHALLENGE, EASY_TARGET, provider, {
+    const proof = await mineWorkAdmission(ACTION, CHALLENGE, provider, {
       _skipWorker: true,
       forceJs: true,
       maxIterations: 100_000,
+      prng: FIXED_PRNG,
     });
 
     expect(proof.qualifiesAsMinimaBlock).toBe(true);
     expect(broadcastCount).toBe(1);
+    // The broadcast callback receives the complete proof, including the
+    // full Minima TxPoW envelope required for network submission.
+    const candidate = broadcastCandidate as typeof proof;
+    expect(candidate.txpowEnvelope).toBe(proof.txpowEnvelope);
+    expect(candidate.txpowId).toBe(proof.txpowId);
+    expect(candidate.template).toBeDefined();
   }, 30_000);
 
   it('block callback: stale template does NOT broadcast', async () => {
@@ -475,7 +684,7 @@ describe('L1 winner handling', () => {
       return calls === 1 ? template : latest;
     };
 
-    const proof = await mineWorkAdmission(ACTION, CHALLENGE, EASY_TARGET, provider, {
+    const proof = await mineWorkAdmission(ACTION, CHALLENGE, provider, {
       _skipWorker: true,
       forceJs: true,
       maxIterations: 100_000,
@@ -535,8 +744,14 @@ describe('mineWorkAdmission cancellation', () => {
     const template = makeTemplate({ blockDifficulty: hardBlockTarget });
     const provider = makeProvider({ template });
     const controller = new AbortController();
+    const hardChallenge = createWorkChallenge(
+      'bob',
+      'totem.negotiation.proposal',
+      hardBlockTarget,
+      { challengeId: 'challenge-1', nonce: 'deadbeef', issuedAt: 1700000000000, ttlMs: 300_000 }
+    );
 
-    const minePromise = mineWorkAdmission(ACTION, CHALLENGE, hardBlockTarget, provider, {
+    const minePromise = mineWorkAdmission(ACTION, hardChallenge, provider, {
       signal: controller.signal,
       chunkSize: 100,
       _skipWorker: true,

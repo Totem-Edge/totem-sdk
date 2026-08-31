@@ -1,14 +1,22 @@
 /**
  * admission/verify.ts — Machine Work Admission verification.
  *
- * Verification NEVER trusts sender-reported hardware speed. It recomputes the
- * canonical action commitment, re-derives the TxPoW ID from the mined header,
- * and checks `txpowId < admissionTarget`. It also checks challenge validity
- * (expiry, recipient, domain) and template freshness.
+ * Verification NEVER trusts sender-reported hardware speed or self-reported
+ * block-winner status. It recomputes the canonical action commitment,
+ * re-derives the TxPoW ID from the mined header, and checks
+ * `txpowId < challenge.target`. It also checks challenge validity (expiry,
+ * recipient, domain) and template freshness.
  *
- * A proof may still be acceptable for machine admission if it was mined
- * against a sufficiently recent valid Minima template, even if it is no longer
- * suitable for L1 broadcast. Freshness policy is explicit and caller-tunable.
+ * Three distinct levels, never to be confused:
+ *   A. admissionValid — the hash satisfies the challenge target.
+ *   B. l1Candidate    — the hash ALSO satisfies the block difficulty encoded by
+ *                       the candidate template.
+ *   C. broadcastable  — l1Candidate AND the template is current AND a live
+ *                       template provider was supplied.
+ *
+ * A stale candidate may remain admissionValid = true while broadcastable =
+ * false. Offline verification (no provider) must NOT claim Minima L1
+ * contribution — `broadcastable` is left undefined.
  */
 
 import { sha3_256 } from '@totemsdk/core';
@@ -55,12 +63,20 @@ export interface VerifyWorkAdmissionOptions {
 /**
  * Verify a Machine Work Admission proof.
  *
+ * The admission target is taken from the validated challenge — never from the
+ * proof. `proof.qualifiesAsMinimaBlock` is treated as derived metadata and is
+ * NOT trusted; the block-target comparison is recomputed from the re-derived
+ * txpowId and the template's block difficulty.
+ *
  * @param action           The application action the proof claims to commit.
  * @param challenge        The challenge the proof claims to satisfy.
  * @param proof            The mined proof.
- * @param templateProvider Optional provider to fetch the latest template for
- *                         broadcastability checks. When omitted, broadcastable
- *                         is left undefined.
+ * @param templateProvider Optional live provider. When supplied, template
+ *                         freshness and L1 broadcastability are checked and
+ *                         `broadcastable` is set. When omitted, verification
+ *                         runs in offline mode and does NOT claim Minima L1
+ *                         contribution (`broadcastable` is undefined).
+ * @param options          Verification options.
  */
 export async function verifyWorkAdmission(
   action: MachineWorkAction,
@@ -126,15 +142,19 @@ export async function verifyWorkAdmission(
     return { valid: false, reason: 'proof template is stale for admission' };
   }
 
-  // 6. L1 broadcastability
-  const qualifiesAsBlock = isBlockWinner(txpowId, proof.template.blockDifficulty);
+  // 6. Level B: independently recompute the block-target comparison. Never
+  //    trust proof.qualifiesAsMinimaBlock.
+  const l1Candidate = isBlockWinner(txpowId, proof.template.blockDifficulty);
+
+  // 7. Level C: broadcastability requires a live template provider AND a
+  //    current template. Offline mode leaves broadcastable undefined.
   let broadcastable: boolean | undefined;
   if (templateProvider) {
     const latest = options?.latestTemplate ?? (await templateProvider.getCurrentTemplate());
-    broadcastable = qualifiesAsBlock && latest.templateId === proof.template.templateId;
+    broadcastable = l1Candidate && latest.templateId === proof.template.templateId;
   }
 
-  return { valid: true, broadcastable };
+  return { valid: true, l1Candidate, broadcastable };
 }
 
 function toHex(bytes: Uint8Array): string {

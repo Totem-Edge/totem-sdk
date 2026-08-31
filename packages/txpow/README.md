@@ -98,7 +98,8 @@ const provider: MinimaWorkTemplateProvider = {
   broadcastBlockCandidate: async (candidate) => node.broadcast(candidate),
 };
 
-const proof = await mineWorkAdmission(action, challenge, admissionTargetHex, provider);
+// The challenge target is the single authoritative admission target.
+const proof = await mineWorkAdmission(action, challenge, provider);
 
 // Receiver: verify (never trusts sender-reported hardware speed)
 const result = await verifyWorkAdmission(action, challenge, proof, provider);
@@ -106,6 +107,24 @@ if (result.valid) {
   // allocate the scarce resource
 }
 ```
+
+### Three distinct levels
+
+Verification distinguishes three claims that must never be confused:
+
+| Level | Meaning | Field |
+|-------|---------|-------|
+| **A. admission-valid** | the hash satisfies `challenge.target` | `valid` |
+| **B. L1-candidate** | the hash also satisfies the block difficulty encoded by the candidate template | `l1Candidate` |
+| **C. broadcastable** | L1-candidate AND the template is still current AND a live template provider was supplied | `broadcastable` |
+
+A stale candidate may remain `admissionValid = true` while `broadcastable = false`. Offline verification (no `MinimaWorkTemplateProvider`) leaves `broadcastable` undefined — it does **not** claim Minima L1 contribution.
+
+`proof.qualifiesAsMinimaBlock` is derived metadata recorded at mining time. Verification never trusts it — the block-target comparison is recomputed from the re-derived TxPoW ID.
+
+### Authentication boundary
+
+`validateWorkChallenge()` validates structural/freshness/domain/recipient properties but does **not** prove that the claimed recipient actually issued the challenge. A `WorkChallenge` is a plain data object; anyone can construct one claiming any recipient. Proving the issuer requires authenticating the enclosing message (e.g. a signed machine-to-machine protocol message in the Edge negotiation layer). `@totemsdk/txpow` deliberately does not implement a parallel identity/signature system.
 
 The primitive is generic — it knows only "there is an application action represented by canonical bytes". Domain-specific packages supply the action commitment for negotiation, compute, storage, mailbox, sensor, or rendezvous domains. It does NOT prove identity, authority, payment, or resource availability; higher-level layers must still perform those checks.
 

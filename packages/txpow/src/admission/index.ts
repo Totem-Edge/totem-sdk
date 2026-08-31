@@ -37,6 +37,13 @@ export {
   isBlockWinner,
   templateFreshness,
   computeBlockCandidateId,
+  buildEmptyBlockBody,
+  buildEmptyTransactionBytes,
+  buildEmptyWitnessBytes,
+  buildEmptyBurnTxBytes,
+  buildEmptyBurnWitnessBytes,
+  assembleTxPoWEnvelope,
+  reconstructTxPoWEnvelope,
 } from './template.js';
 
 export {

@@ -124,8 +124,16 @@ export interface MinimaWorkTemplateProvider {
 /**
  * The mined Machine Work Admission proof.
  *
- * Reuses the existing TxPoW types where possible: `txpow` is the serialized
- * TxPoW envelope (header | 0x01 | body) and `txpowId` is SHA3-256(header).
+ * Reuses the existing TxPoW types where possible:
+ *   - `txpow`          — serialized TxHeader bytes (SHA3-256 of these is `txpowId`)
+ *   - `txpowEnvelope`  — the COMPLETE Minima TxPoW wire format
+ *                        (header | 0x01 hasBody | body), required for network
+ *                        submission of a genuine L1 block candidate
+ *   - `txpowId`        — SHA3-256(header)
+ *
+ * `qualifiesAsMinimaBlock` is DERIVED METADATA recorded at mining time. It is
+ * never trusted by verification — verification recomputes the block-target
+ * comparison from the re-derived txpowId and the template's block difficulty.
  */
 export interface MachineWorkAdmissionProof {
   /** Protocol version. */
@@ -136,8 +144,10 @@ export interface MachineWorkAdmissionProof {
   challengeId: string;
   /** The admission target (32-byte hex) the proof satisfies. */
   admissionTarget: string;
-  /** Serialized TxPoW envelope (header | 0x01 | body). */
+  /** Serialized TxHeader bytes (SHA3-256 of these is the TxPoW ID). */
   txpow: string;
+  /** Complete Minima TxPoW envelope (header | 0x01 | body) for L1 submission. */
+  txpowEnvelope: string;
   /** SHA3-256(header) — the canonical TxPoW ID. */
   txpowId: string;
   /** The winning nonce. */
@@ -146,16 +156,40 @@ export interface MachineWorkAdmissionProof {
   minedAt: number;
   /** Always true for a valid admission proof. */
   qualifiesForAdmission: true;
-  /** True when the same hash also beats the current Minima block target. */
+  /**
+   * DERIVED METADATA: true when the mined hash also beats the block difficulty
+   * encoded by the candidate template. Never trusted by verification — it is
+   * recomputed from the re-derived txpowId.
+   */
   qualifiesAsMinimaBlock: boolean;
   /** Template the proof was mined against (for staleness policy). */
   template: MinimaWorkTemplate;
 }
 
-/** Result of verifying a Machine Work Admission proof. */
+/**
+ * Result of verifying a Machine Work Admission proof.
+ *
+ * Three distinct levels, never to be confused:
+ *   A. `admissionValid` — the hash satisfies the challenge target.
+ *   B. `l1Candidate`    — the hash ALSO satisfies the block difficulty encoded
+ *                         by the candidate template (a genuine L1 block hash).
+ *   C. `broadcastable`  — the candidate still corresponds to sufficiently
+ *                         current live Minima state AND can be submitted
+ *                         through the template provider.
+ *
+ * A stale candidate may remain `admissionValid = true` while
+ * `broadcastable = false`.
+ */
 export interface WorkAdmissionVerification {
+  /** Level A: the hash satisfies the challenge target. */
   valid: boolean;
   reason?: string;
-  /** True when the proof also beats the block target AND the template is current. */
+  /** Level B: the hash also beats the template's block difficulty. */
+  l1Candidate?: boolean;
+  /**
+   * Level C: l1Candidate AND the template is current AND a live template
+   * provider was supplied. Undefined in offline mode (no provider) — offline
+   * verification must NOT claim Minima L1 contribution.
+   */
   broadcastable?: boolean;
 }

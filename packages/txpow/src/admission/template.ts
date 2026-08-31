@@ -32,6 +32,10 @@ function hexToBytes(hex: string): Uint8Array {
   return out;
 }
 
+function toHex(bytes: Uint8Array): string {
+  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 /**
  * Serialize the super-parent RLE runs per TxHeader.writeDataStream.
  *
@@ -60,6 +64,102 @@ export function serializeSuperParents(superParents: string[]): Uint8Array {
   parts.push(new Uint8Array([runCount]));
   parts.push(writeHashToStream(hexToBytes(runHash)));
   return concat(...parts);
+}
+
+/**
+ * Build the empty burn transaction bytes (TxBody.writeDataStream fields 5-6).
+ *
+ * Equivalent to serializeTransaction({ linkHash: [0x00], inputs: [], outputs: [],
+ * state: [] }): 0 inputs, 0 outputs, 0 state, linkHash = ZERO_TXPOWID (1 byte).
+ */
+export function buildEmptyBurnTxBytes(): Uint8Array {
+  return concat(
+    writeMiniNumber(0n, 0),
+    writeMiniNumber(0n, 0),
+    writeMiniNumber(0n, 0),
+    writeHashToStream(new Uint8Array([0x00]))
+  );
+}
+
+/**
+ * Build the empty burn witness bytes (TxBody.writeDataStream field 6).
+ * 0 signatures, 0 coinproofs, 0 scriptproofs.
+ */
+export function buildEmptyBurnWitnessBytes(): Uint8Array {
+  return concat(
+    writeMiniNumber(0n, 0),
+    writeMiniNumber(0n, 0),
+    writeMiniNumber(0n, 0)
+  );
+}
+
+/**
+ * Build the empty transaction bytes (TxBody.writeDataStream field 3).
+ * 0 inputs, 0 outputs, 0 state, linkHash = ZERO_TXPOWID (1 byte).
+ */
+export function buildEmptyTransactionBytes(): Uint8Array {
+  return concat(
+    writeMiniNumber(0n, 0),
+    writeMiniNumber(0n, 0),
+    writeMiniNumber(0n, 0),
+    writeHashToStream(new Uint8Array([0x00]))
+  );
+}
+
+/**
+ * Build the empty witness bytes (TxBody.writeDataStream field 4).
+ * 0 signatures, 0 coinproofs, 0 scriptproofs.
+ */
+export function buildEmptyWitnessBytes(): Uint8Array {
+  return concat(
+    writeMiniNumber(0n, 0),
+    writeMiniNumber(0n, 0),
+    writeMiniNumber(0n, 0)
+  );
+}
+
+/**
+ * Build the serialized TxBody for a fresh block candidate.
+ *
+ * Mirrors TxBody.writeDataStream with an empty transaction and witness (the
+ * same shape Minima's MINEPULSE automine uses for block candidates):
+ *   mPRNG | mTxnDifficulty | mTransaction | mWitness |
+ *   mBurnTransaction | mBurnWitness | mTxPowIDList
+ *
+ * @param prng          32-byte PRNG (deterministic for tests; random otherwise).
+ * @param txnDifficulty Transaction difficulty (32-byte hex). For a block
+ *                      candidate this is typically the block difficulty.
+ */
+export function buildEmptyBlockBody(
+  prng: Uint8Array,
+  txnDifficulty: string
+): Uint8Array {
+  return concat(
+    writeHashToStream(prng),
+    writeMiniData(hexToBytes(txnDifficulty)),
+    buildEmptyTransactionBytes(),
+    buildEmptyWitnessBytes(),
+    buildEmptyBurnTxBytes(),
+    buildEmptyBurnWitnessBytes(),
+    writeMiniNumber(0n, 0)
+  );
+}
+
+/**
+ * Assemble the complete Minima TxPoW wire format:
+ *   TxHeader | 0x01 (hasBody) | TxBody
+ *
+ * This is the representation required for network submission of a genuine L1
+ * block candidate. A mined header alone is NOT sufficient.
+ *
+ * @param headerBytes  Serialized TxHeader bytes (with the winning nonce).
+ * @param bodyBytes    Serialized TxBody bytes.
+ */
+export function assembleTxPoWEnvelope(
+  headerBytes: Uint8Array,
+  bodyBytes: Uint8Array
+): Uint8Array {
+  return concat(headerBytes, new Uint8Array([0x01]), bodyBytes);
 }
 
 /**
@@ -130,4 +230,26 @@ export function templateFreshness(
   const admissionValid = age >= 0 && age <= windowMs;
   const broadcastable = latest !== null && template.templateId === latest.templateId;
   return { admissionValid, broadcastable };
+}
+
+/**
+ * Reconstruct the complete Minima TxPoW envelope for a proof.
+ *
+ * Rebuilds the empty block TxBody deterministically, recomputes the body hash,
+ * and reassembles header | 0x01 | body. Used by verification to confirm the
+ * proof corresponds to a complete, Minima-serializable candidate.
+ *
+ * @param proofTemplate The template the proof was mined against.
+ * @param headerBytes   The mined TxHeader bytes.
+ * @param prng          The PRNG used when the proof was mined (32 bytes).
+ */
+export function reconstructTxPoWEnvelope(
+  proofTemplate: MinimaWorkTemplate,
+  headerBytes: Uint8Array,
+  prng: Uint8Array
+): { envelope: Uint8Array; bodyHash: string } {
+  const body = buildEmptyBlockBody(prng, proofTemplate.blockDifficulty);
+  const bodyHash = toHex(sha3_256(body));
+  const envelope = assembleTxPoWEnvelope(headerBytes, body);
+  return { envelope, bodyHash };
 }

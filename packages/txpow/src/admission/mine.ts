@@ -6,8 +6,11 @@
  * (`mineHeaderTail` from ../mine.js) — the same SHA3-256 nonce search that
  * Minima uses for transaction/block mining.
  *
+ * The admission target is ALWAYS `challenge.target` — the challenge is the
+ * single source of truth. There is no separate admission target argument.
+ *
  * Two thresholds:
- *   - admission target (receiver-chosen, easier): hash < admissionTarget
+ *   - admission target (receiver-chosen, easier): hash < challenge.target
  *   - L1 block target (current Minima block difficulty): hash < blockTarget
  *
  * The loop stops as soon as the admission target is satisfied, unless the same
@@ -17,14 +20,18 @@
  */
 
 import { sha3_256 } from '@totemsdk/core';
-import { mineHeaderTail, type MineOptions } from '../mine.js';
+import { mineHeaderTail } from '../mine.js';
 import { computeActionCommitment } from './commitment.js';
-import { buildBlockHeaderTail, isBlockWinner } from './template.js';
+import {
+  buildBlockHeaderTail,
+  buildEmptyBlockBody,
+  assembleTxPoWEnvelope,
+  isBlockWinner,
+} from './template.js';
 import {
   MACHINE_WORK_ADMISSION_VERSION,
   type MachineWorkAction,
   type MachineWorkAdmissionProof,
-  type MinimaWorkTemplate,
   type MinimaWorkTemplateProvider,
   type WorkChallenge,
 } from './types.js';
@@ -32,9 +39,6 @@ import {
 function toHex(bytes: Uint8Array): string {
   return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
 }
-
-/** Empty serialized TxBody hash (fresh block candidate with empty body). */
-const EMPTY_BODY_HASH = toHex(sha3_256(new Uint8Array(0)));
 
 export interface MineWorkAdmissionOptions {
   /** AbortSignal — rejects the Promise when aborted. */
@@ -50,27 +54,28 @@ export interface MineWorkAdmissionOptions {
   /** Skip the Node.js worker_threads Worker (for testing). */
   _skipWorker?: boolean;
   /**
-   * Staleness window (ms) within which a template is still acceptable for
-   * admission even if the chain tip has moved. Default: 5 minutes.
+   * Deterministic 32-byte PRNG for the TxBody (testing only). When omitted a
+   * cryptographically random PRNG is generated.
    */
-  admissionWindowMs?: number;
+  prng?: Uint8Array;
 }
 
 /**
  * Mine a Machine Work Admission proof.
  *
+ * The admission target is derived from `challenge.target` — the challenge is
+ * the single authoritative source. The miner searches the nonce space of a
+ * real Minima block candidate (from the injected template provider) whose
+ * customHash commits to the action.
+ *
  * @param action           The application action.
- * @param challenge        The receiver-issued challenge.
- * @param admissionTarget  32-byte admission target (hex). MUST be easier than
- *                         or equal to the block target for the search to be
- *                         meaningful (admission is a subset of block search).
+ * @param challenge        The receiver-issued challenge (target is authoritative).
  * @param templateProvider Injected provider for the current Minima template.
  * @param options          Mining options.
  */
 export async function mineWorkAdmission(
   action: MachineWorkAction,
   challenge: WorkChallenge,
-  admissionTarget: string,
   templateProvider: MinimaWorkTemplateProvider,
   options?: MineWorkAdmissionOptions
 ): Promise<MachineWorkAdmissionProof> {
@@ -81,6 +86,7 @@ export async function mineWorkAdmission(
   }
 
   const actionCommitment = computeActionCommitment(action, challenge);
+  const admissionTarget = challenge.target;
   const admissionTargetBytes = hexToBytes(admissionTarget);
   const blockTargetBytes = hexToBytes(template.blockDifficulty);
 
@@ -88,12 +94,18 @@ export async function mineWorkAdmission(
   // otherwise the search would be chasing a block that can never admit.
   if (!isLessThanOrEqual(blockTargetBytes, admissionTargetBytes)) {
     throw new Error(
-      'admissionTarget must be easier than or equal to the current block target'
+      'challenge.target must be easier than or equal to the current block target'
     );
   }
 
+  // Build the complete block candidate: empty TxBody (same shape Minima's
+  // MINEPULSE automine uses) + header tail with the action commitment.
+  const prng = options?.prng ?? randomBytes(32);
+  const bodyBytes = buildEmptyBlockBody(prng, template.blockDifficulty);
+  const bodyHash = toHex(sha3_256(bodyBytes));
+
   const timeMilli = options?.timeMilli ?? template.timeMilli;
-  const headerTail = buildBlockHeaderTail(template, actionCommitment, EMPTY_BODY_HASH);
+  const headerTail = buildBlockHeaderTail(template, actionCommitment, bodyHash);
 
   // Mine against the admission target. The same nonce search also checks the
   // block target: if the winning hash beats the block target, it is a winner.
@@ -106,6 +118,9 @@ export async function mineWorkAdmission(
     _skipWorker: options?._skipWorker,
   });
 
+  // Assemble the complete Minima TxPoW wire format (header | 0x01 | body).
+  const envelope = assembleTxPoWEnvelope(result.minedHeaderBytes, bodyBytes);
+
   const qualifiesAsMinimaBlock = isBlockWinner(result.txpowId, template.blockDifficulty);
 
   const proof: MachineWorkAdmissionProof = {
@@ -114,6 +129,7 @@ export async function mineWorkAdmission(
     challengeId: challenge.challengeId,
     admissionTarget,
     txpow: toHex(result.minedHeaderBytes),
+    txpowEnvelope: toHex(envelope),
     txpowId: toHex(result.txpowId),
     nonce: result.nonce.toString(),
     minedAt: Date.now(),
@@ -140,6 +156,17 @@ function hexToBytes(hex: string): Uint8Array {
   for (let i = 0; i < h.length; i += 2) {
     out[i / 2] = parseInt(h.slice(i, i + 2), 16);
   }
+  return out;
+}
+
+function randomBytes(length: number): Uint8Array {
+  const out = new Uint8Array(length);
+  if (typeof crypto === 'undefined' || !crypto.getRandomValues) {
+    throw new Error(
+      'SECURITY: crypto.getRandomValues unavailable — cannot generate secure random PRNG'
+    );
+  }
+  crypto.getRandomValues(out);
   return out;
 }
 
