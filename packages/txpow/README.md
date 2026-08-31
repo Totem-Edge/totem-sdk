@@ -69,6 +69,46 @@ const estimatedMs     = estimateMiningCost(targetDifficulty, hashesPerSecond);
 console.log(`Expected mining time: ${estimatedMs}ms`);
 ```
 
+## Machine Work Admission
+
+Machine Work Admission allows applications to require computational proof before allocating scarce resources. The work is performed against a Minima block candidate so that application anti-spam work simultaneously searches for valid Minima L1 blocks.
+
+A receiver issues a `WorkChallenge` (unique, expiring, bound to the receiver and an application domain). A sender commits its application action into the TxPoW header's `customHash` field and mines the nonce space of a real current Minima block candidate. If the hash beats the receiver's admission target, the machine action is admissible. If the same hash also beats the current Minima block target, the candidate is a genuine L1 block and is broadcast.
+
+Ordinary admission proofs stay off-chain. Only actual L1-winning candidates are broadcast to the Minima network.
+
+```typescript
+import {
+  createWorkChallenge,
+  mineWorkAdmission,
+  verifyWorkAdmission,
+  type MinimaWorkTemplateProvider,
+} from '@totemsdk/txpow';
+
+// Receiver: issue a challenge (target chosen by receiver policy)
+const challenge = createWorkChallenge(
+  'receiver-address',
+  'totem.compute.reserve',
+  admissionTargetHex,
+);
+
+// Sender: mine the admission proof against a real Minima block candidate
+const provider: MinimaWorkTemplateProvider = {
+  getCurrentTemplate: async () => node.fetchCurrentTemplate(),
+  broadcastBlockCandidate: async (candidate) => node.broadcast(candidate),
+};
+
+const proof = await mineWorkAdmission(action, challenge, admissionTargetHex, provider);
+
+// Receiver: verify (never trusts sender-reported hardware speed)
+const result = await verifyWorkAdmission(action, challenge, proof, provider);
+if (result.valid) {
+  // allocate the scarce resource
+}
+```
+
+The primitive is generic — it knows only "there is an application action represented by canonical bytes". Domain-specific packages supply the action commitment for negotiation, compute, storage, mailbox, sensor, or rendezvous domains. It does NOT prove identity, authority, payment, or resource availability; higher-level layers must still perform those checks.
+
 ## Upstream Java source
 
 This package is a TypeScript port of Minima's TxPoW envelope structures. Canonical upstream references:

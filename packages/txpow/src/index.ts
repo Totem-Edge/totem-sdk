@@ -41,6 +41,8 @@ export { serializeMagic } from './magic.js';
 export {
   mineTxPoW,
   mineTxPoWInProcess,
+  mineHeaderTail,
+  buildHeaderTail,
   isLessThan,
   setBrowserWorkerUrl,
   type MineResult,
@@ -58,3 +60,35 @@ export {
   estimateMiningCost,
   type MiningEstimate,
 } from './calibrate.js';
+
+// ── Machine Work Admission ──────────────────────────────────────────────────
+// Receiver-controlled computational admission bound to a real Minima block
+// candidate. The same nonce search that admits a machine action also searches
+// for Minima L1 blocks.
+export {
+  createWorkChallenge,
+  validateWorkChallenge,
+  challengeFingerprint,
+  canonicalChallenge,
+  computeActionCommitment,
+  canonicalAction,
+  mineWorkAdmission,
+  verifyWorkAdmission,
+  buildBlockHeaderTail,
+  serializeSuperParents,
+  isBlockWinner,
+  templateFreshness,
+  computeBlockCandidateId,
+  MACHINE_WORK_ADMISSION_VERSION,
+  MACHINE_WORK_DOMAIN,
+  DEFAULT_CHALLENGE_TTL_MS,
+  MAX_CHALLENGE_TTL_MS,
+  type WorkChallenge,
+  type MachineWorkAction,
+  type MinimaWorkTemplate,
+  type MinimaWorkTemplateProvider,
+  type MachineWorkAdmissionProof,
+  type WorkAdmissionVerification,
+  type MineWorkAdmissionOptions,
+  type VerifyWorkAdmissionOptions,
+} from './admission/index.js';

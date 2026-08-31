@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/txpow",
-  "version": "1.0.0",
-  "description": "TxPoW envelope serialization and proof-of-work mining for the Minima protocol",
+  "version": "1.0.1",
+  "description": "TxPoW envelope serialization, proof-of-work mining, and Machine Work Admission for the Minima protocol",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -9,6 +9,11 @@
       "types": "./dist/index.d.ts",
       "require": "./dist/index.js",
       "import": "./dist/index.js"
+    },
+    "./admission": {
+      "types": "./dist/admission/index.d.ts",
+      "require": "./dist/admission/index.js",
+      "import": "./dist/admission/index.js"
     }
   },
   "scripts": {
@@ -43,7 +48,7 @@
   },
   "license": "MIT",
   "author": "Totem SDK",
-  "homepage": "https://totem.ing",
+  "homepage": "https://docs.totem.ing",
   "bugs": {
     "url": "https://github.com/Totem-Edge/totem-sdk/issues"
   },
