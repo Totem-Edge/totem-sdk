@@ -64,7 +64,7 @@ export {
 // ── Machine Work Admission ──────────────────────────────────────────────────
 // Receiver-controlled computational admission bound to a real Minima block
 // candidate. The same nonce search that admits a machine action also searches
-// for Minima L1 blocks.
+// for Minima blocks (Super-0 … Super-31).
 export {
   createWorkChallenge,
   validateWorkChallenge,
@@ -77,6 +77,7 @@ export {
   buildBlockHeaderTail,
   serializeSuperParents,
   isBlockWinner,
+  computeSuperLevel,
   templateFreshness,
   computeBlockCandidateId,
   buildEmptyBlockBody,
@@ -94,6 +95,7 @@ export {
   type MachineWorkAction,
   type MinimaWorkTemplate,
   type MinimaWorkTemplateProvider,
+  type MinimaWorkRelay,
   type MachineWorkAdmissionProof,
   type WorkAdmissionVerification,
   type MineWorkAdmissionOptions,

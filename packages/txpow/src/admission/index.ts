@@ -35,6 +35,7 @@ export {
   buildBlockHeaderTail,
   serializeSuperParents,
   isBlockWinner,
+  computeSuperLevel,
   templateFreshness,
   computeBlockCandidateId,
   buildEmptyBlockBody,
@@ -53,6 +54,7 @@ export {
   type MachineWorkAction,
   type MinimaWorkTemplate,
   type MinimaWorkTemplateProvider,
+  type MinimaWorkRelay,
   type MachineWorkAdmissionProof,
   type WorkAdmissionVerification,
 } from './types.js';

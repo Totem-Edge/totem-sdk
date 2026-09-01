@@ -202,7 +202,7 @@ export function computeBlockCandidateId(headerBytes: Uint8Array): Uint8Array {
 }
 
 /**
- * Check whether a txpowId beats the block target (i.e. is a genuine L1 winner).
+ * Check whether a txpowId beats the block target (i.e. is a genuine Minima block).
  * valid = txpowId < blockDifficulty (big-endian 256-bit comparison).
  */
 export function isBlockWinner(txpowId: Uint8Array, blockDifficulty: string): boolean {
@@ -212,6 +212,64 @@ export function isBlockWinner(txpowId: Uint8Array, blockDifficulty: string): boo
     if (txpowId[i] > target[i]) return false;
   }
   return false;
+}
+
+/** Java BigInteger.bitLength() for non-negative values. bitLength(0) = 0. */
+function bigIntBitLength(x: bigint): number {
+  if (x <= 0n) return 0;
+  let bits = 0;
+  let v = x;
+  while (v > 0n) {
+    v >>= 1n;
+    bits++;
+  }
+  return bits;
+}
+
+function bytesToBigInt(bytes: Uint8Array): bigint {
+  let v = 0n;
+  for (let i = 0; i < bytes.length; i++) {
+    v = (v << 8n) | BigInt(bytes[i]);
+  }
+  return v;
+}
+
+/**
+ * Compute the Minima Super level for a TxPoW ID against a block difficulty,
+ * with Minima's exact integer semantics.
+ *
+ * From TxPoW.calculateTXPOWID() / getSuperLevel():
+ *   quot  = blockDifficulty / txpowId          (unsigned BigInteger division)
+ *   super = quot.bitLength() - 1               (floor(log2(quot)))
+ *   if super >= MINIMA_CASCADE_LEVELS (32) → clamp to 31
+ *
+ * When the TxPoW is NOT a block (txpowId >= blockDifficulty), quot = 0,
+ * bitLength(0) = 0, so super = -1.
+ *
+ * Result:
+ *   -1   — not a Minima block
+ *    0   — ordinary/base Minima block (Super-0)
+ *    1..31 — Super-1 … Super-31 (stronger blocks; 31 is the maximum represented)
+ *
+ * @param txpowId        SHA3-256(header), 32 bytes.
+ * @param blockDifficulty 32-byte hex block difficulty target.
+ */
+export function computeSuperLevel(txpowId: Uint8Array, blockDifficulty: string): number {
+  const diffBigInt = bytesToBigInt(hexToBytes(blockDifficulty));
+  const idBigInt = bytesToBigInt(txpowId);
+
+  // Not a block: quot = 0 → super = -1
+  if (idBigInt >= diffBigInt) return -1;
+
+  const quot = diffBigInt / idBigInt;
+  let superLevel = bigIntBitLength(quot) - 1;
+
+  // Clamp to the maximum represented Super level, exactly as Minima does.
+  if (superLevel >= CASCADE_LEVELS) {
+    superLevel = CASCADE_LEVELS - 1;
+  }
+
+  return superLevel;
 }
 
 /**

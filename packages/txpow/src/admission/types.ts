@@ -109,16 +109,30 @@ export interface MinimaWorkTemplate {
  *
  * The TxPoW package remains transport/node-client agnostic: callers inject a
  * provider that fetches the current template from a Minima node, Axia, or a
- * test fixture. `broadcastBlockCandidate` is only invoked for genuine L1
- * winners.
+ * test fixture. `broadcastBlockCandidate` is only invoked for genuine Minima
+ * blocks (Super-0 … Super-31) against a current template.
  */
 export interface MinimaWorkTemplateProvider {
   /** Fetch the current block-candidate template. */
   getCurrentTemplate(): Promise<MinimaWorkTemplate>;
+  /** Optional: fetch the latest template for freshness checks. Falls back to getCurrentTemplate. */
+  getLatestTemplate?(): Promise<MinimaWorkTemplate>;
   /** Optional: validate a template before mining against it. */
   validateTemplate?(template: MinimaWorkTemplate): Promise<boolean>;
-  /** Optional: broadcast a genuine L1 block candidate. */
+  /** Optional: broadcast a genuine Minima block candidate. */
   broadcastBlockCandidate?(candidate: unknown): Promise<void>;
+}
+
+/**
+ * Relay boundary for a complete Minima TxPoW envelope.
+ *
+ * Keeps Minima networking outside core mining logic. A future
+ * @totemsdk/minima-rpc or chain-provider adapter may implement this port.
+ * Duplicate relay attempts must be safe/idempotent at the integration boundary.
+ */
+export interface MinimaWorkRelay {
+  /** Submit a complete Minima TxPoW envelope for block relay. */
+  submitBlock(envelope: Uint8Array): Promise<void>;
 }
 
 /**
@@ -128,12 +142,13 @@ export interface MinimaWorkTemplateProvider {
  *   - `txpow`          — serialized TxHeader bytes (SHA3-256 of these is `txpowId`)
  *   - `txpowEnvelope`  — the COMPLETE Minima TxPoW wire format
  *                        (header | 0x01 hasBody | body), required for network
- *                        submission of a genuine L1 block candidate
+ *                        submission of a genuine Minima block
  *   - `txpowId`        — SHA3-256(header)
  *
- * `qualifiesAsMinimaBlock` is DERIVED METADATA recorded at mining time. It is
- * never trusted by verification — verification recomputes the block-target
- * comparison from the re-derived txpowId and the template's block difficulty.
+ * `qualifiesAsMinimaBlock`, `isBlock`, and `superLevel` are DERIVED METADATA
+ * recorded at mining time. They are never trusted by verification —
+ * verification recomputes all of them from the re-derived txpowId and the
+ * template's block difficulty.
  */
 export interface MachineWorkAdmissionProof {
   /** Protocol version. */
@@ -146,7 +161,7 @@ export interface MachineWorkAdmissionProof {
   admissionTarget: string;
   /** Serialized TxHeader bytes (SHA3-256 of these is the TxPoW ID). */
   txpow: string;
-  /** Complete Minima TxPoW envelope (header | 0x01 | body) for L1 submission. */
+  /** Complete Minima TxPoW envelope (header | 0x01 | body) for block relay. */
   txpowEnvelope: string;
   /** SHA3-256(header) — the canonical TxPoW ID. */
   txpowId: string;
@@ -158,10 +173,17 @@ export interface MachineWorkAdmissionProof {
   qualifiesForAdmission: true;
   /**
    * DERIVED METADATA: true when the mined hash also beats the block difficulty
-   * encoded by the candidate template. Never trusted by verification — it is
-   * recomputed from the re-derived txpowId.
+   * encoded by the candidate template (i.e. a genuine Minima block). Never
+   * trusted by verification — it is recomputed from the re-derived txpowId.
    */
   qualifiesAsMinimaBlock: boolean;
+  /**
+   * DERIVED METADATA: Minima Super level (-1 = not a block, 0..31 = block
+   * strength). Never trusted by verification.
+   */
+  superLevel: number;
+  /** DERIVED METADATA: superLevel >= 0. Never trusted by verification. */
+  isBlock: boolean;
   /** Template the proof was mined against (for staleness policy). */
   template: MinimaWorkTemplate;
 }
@@ -169,27 +191,35 @@ export interface MachineWorkAdmissionProof {
 /**
  * Result of verifying a Machine Work Admission proof.
  *
- * Three distinct levels, never to be confused:
- *   A. `admissionValid` — the hash satisfies the challenge target.
- *   B. `l1Candidate`    — the hash ALSO satisfies the block difficulty encoded
- *                         by the candidate template (a genuine L1 block hash).
- *   C. `broadcastable`  — the candidate still corresponds to sufficiently
- *                         current live Minima state AND can be submitted
- *                         through the template provider.
+ * Three distinct claims, never to be confused:
+ *   A. `valid` — the hash satisfies the challenge target (admission proof).
+ *   B. `superLevel` / `isBlock` — the hash ALSO satisfies the block difficulty
+ *      encoded by the candidate template, yielding an exact Minima Super level.
+ *   C. `broadcastable` — the candidate still corresponds to sufficiently
+ *      current live Minima state AND can be submitted through the relay.
  *
- * A stale candidate may remain `admissionValid = true` while
+ * A stale candidate may remain `valid = true` (and `superLevel >= 0`) while
  * `broadcastable = false`.
+ *
+ * `superLevel === -1 ⇔ isBlock === false`, and
+ * `superLevel >= 0 ⇔ isBlock === true`. Verification recomputes these — it
+ * never trusts sender-supplied `isBlock`/`superLevel` metadata.
  */
 export interface WorkAdmissionVerification {
   /** Level A: the hash satisfies the challenge target. */
   valid: boolean;
   reason?: string;
-  /** Level B: the hash also beats the template's block difficulty. */
-  l1Candidate?: boolean;
   /**
-   * Level C: l1Candidate AND the template is current AND a live template
-   * provider was supplied. Undefined in offline mode (no provider) — offline
-   * verification must NOT claim Minima L1 contribution.
+   * Level B: exact Minima Super level of the candidate hash.
+   * -1 = not a Minima block; 0..31 = Super-0 … Super-31 block strength.
+   */
+  superLevel?: number;
+  /** Level B: superLevel >= 0 (a genuine Minima block). */
+  isBlock?: boolean;
+  /**
+   * Level C: isBlock AND the template is current AND a live template provider
+   * was supplied. Undefined in offline mode (no provider) — offline
+   * verification must NOT claim Minima block contribution.
    */
   broadcastable?: boolean;
 }

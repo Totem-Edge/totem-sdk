@@ -2,27 +2,28 @@
  * admission/verify.ts — Machine Work Admission verification.
  *
  * Verification NEVER trusts sender-reported hardware speed or self-reported
- * block-winner status. It recomputes the canonical action commitment,
- * re-derives the TxPoW ID from the mined header, and checks
- * `txpowId < challenge.target`. It also checks challenge validity (expiry,
- * recipient, domain) and template freshness.
+ * block metadata (`isBlock`, `superLevel`, `qualifiesAsMinimaBlock`,
+ * `broadcastable`). It recomputes the canonical action commitment, re-derives
+ * the TxPoW ID from the mined header, and checks `txpowId < challenge.target`.
+ * It also checks challenge validity (expiry, recipient, domain) and template
+ * freshness.
  *
- * Three distinct levels, never to be confused:
- *   A. admissionValid — the hash satisfies the challenge target.
- *   B. l1Candidate    — the hash ALSO satisfies the block difficulty encoded by
- *                       the candidate template.
- *   C. broadcastable  — l1Candidate AND the template is current AND a live
- *                       template provider was supplied.
+ * Three distinct claims, never to be confused:
+ *   A. valid — the hash satisfies the challenge target.
+ *   B. superLevel/isBlock — the exact Minima Super level (-1 or 0..31)
+ *      computed from blockDifficulty / txpowId.
+ *   C. broadcastable — isBlock AND the template is current AND a live
+ *      template provider was supplied.
  *
- * A stale candidate may remain admissionValid = true while broadcastable =
- * false. Offline verification (no provider) must NOT claim Minima L1
- * contribution — `broadcastable` is left undefined.
+ * A stale candidate may remain valid = true (and superLevel >= 0) while
+ * broadcastable = false. Offline verification (no provider) must NOT claim
+ * Minima block contribution — `broadcastable` is left undefined.
  */
 
 import { sha3_256 } from '@totemsdk/core';
 import { computeActionCommitment } from './commitment.js';
 import { validateWorkChallenge } from './challenge.js';
-import { isBlockWinner, templateFreshness } from './template.js';
+import { computeSuperLevel, templateFreshness } from './template.js';
 import {
   MACHINE_WORK_ADMISSION_VERSION,
   type MachineWorkAction,
@@ -56,7 +57,7 @@ export interface VerifyWorkAdmissionOptions {
   now?: number;
   /** Staleness window (ms) within which a template is acceptable for admission. */
   admissionWindowMs?: number;
-  /** The latest template, for L1 broadcastability checks. */
+  /** The latest template, for broadcastability checks. */
   latestTemplate?: MinimaWorkTemplate | null;
 }
 
@@ -64,18 +65,19 @@ export interface VerifyWorkAdmissionOptions {
  * Verify a Machine Work Admission proof.
  *
  * The admission target is taken from the validated challenge — never from the
- * proof. `proof.qualifiesAsMinimaBlock` is treated as derived metadata and is
- * NOT trusted; the block-target comparison is recomputed from the re-derived
- * txpowId and the template's block difficulty.
+ * proof. `proof.qualifiesAsMinimaBlock`, `proof.superLevel`, and
+ * `proof.isBlock` are treated as derived metadata and are NOT trusted; the
+ * Super level is recomputed from the re-derived txpowId and the template's
+ * block difficulty.
  *
  * @param action           The application action the proof claims to commit.
  * @param challenge        The challenge the proof claims to satisfy.
  * @param proof            The mined proof.
  * @param templateProvider Optional live provider. When supplied, template
- *                         freshness and L1 broadcastability are checked and
+ *                         freshness and broadcastability are checked and
  *                         `broadcastable` is set. When omitted, verification
- *                         runs in offline mode and does NOT claim Minima L1
- *                         contribution (`broadcastable` is undefined).
+ *                         runs in offline mode and does NOT claim Minima
+ *                         block contribution (`broadcastable` is undefined).
  * @param options          Verification options.
  */
 export async function verifyWorkAdmission(
@@ -142,19 +144,27 @@ export async function verifyWorkAdmission(
     return { valid: false, reason: 'proof template is stale for admission' };
   }
 
-  // 6. Level B: independently recompute the block-target comparison. Never
-  //    trust proof.qualifiesAsMinimaBlock.
-  const l1Candidate = isBlockWinner(txpowId, proof.template.blockDifficulty);
+  // 6. Level B: independently recompute the exact Minima Super level. Never
+  //    trust proof.superLevel / proof.isBlock / proof.qualifiesAsMinimaBlock.
+  const superLevel = computeSuperLevel(txpowId, proof.template.blockDifficulty);
+  const isBlock = superLevel >= 0;
 
   // 7. Level C: broadcastability requires a live template provider AND a
   //    current template. Offline mode leaves broadcastable undefined.
   let broadcastable: boolean | undefined;
   if (templateProvider) {
-    const latest = options?.latestTemplate ?? (await templateProvider.getCurrentTemplate());
-    broadcastable = l1Candidate && latest.templateId === proof.template.templateId;
+    let latest: MinimaWorkTemplate;
+    if (templateProvider.getLatestTemplate) {
+      latest = await templateProvider.getLatestTemplate();
+    } else if (options?.latestTemplate) {
+      latest = options.latestTemplate;
+    } else {
+      latest = await templateProvider.getCurrentTemplate();
+    }
+    broadcastable = isBlock && latest.templateId === proof.template.templateId;
   }
 
-  return { valid: true, l1Candidate, broadcastable };
+  return { valid: true, superLevel, isBlock, broadcastable };
 }
 
 function toHex(bytes: Uint8Array): string {

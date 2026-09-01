@@ -27,11 +27,14 @@ import {
   buildEmptyBlockBody,
   assembleTxPoWEnvelope,
   isBlockWinner,
+  computeSuperLevel,
 } from './template.js';
 import {
   MACHINE_WORK_ADMISSION_VERSION,
   type MachineWorkAction,
   type MachineWorkAdmissionProof,
+  type MinimaWorkRelay,
+  type MinimaWorkTemplate,
   type MinimaWorkTemplateProvider,
   type WorkChallenge,
 } from './types.js';
@@ -58,6 +61,14 @@ export interface MineWorkAdmissionOptions {
    * cryptographically random PRNG is generated.
    */
   prng?: Uint8Array;
+  /**
+   * Optional Minima block relay. When supplied AND the provider also supplies
+   * `getLatestTemplate`, a genuine current Minima block is submitted through
+   * the relay exactly once. The relay boundary keeps Minima networking out of
+   * core mining logic. Either `relay` or `provider.broadcastBlockCandidate`
+   * may be used; the relay is the preferred future port.
+   */
+  relay?: MinimaWorkRelay;
 }
 
 /**
@@ -108,7 +119,7 @@ export async function mineWorkAdmission(
   const headerTail = buildBlockHeaderTail(template, actionCommitment, bodyHash);
 
   // Mine against the admission target. The same nonce search also checks the
-  // block target: if the winning hash beats the block target, it is a winner.
+  // block target: if the winning hash beats the block target, it is a block.
   const result = await mineHeaderTail(headerTail, admissionTargetBytes, {
     signal: options?.signal,
     maxIterations: options?.maxIterations,
@@ -121,7 +132,9 @@ export async function mineWorkAdmission(
   // Assemble the complete Minima TxPoW wire format (header | 0x01 | body).
   const envelope = assembleTxPoWEnvelope(result.minedHeaderBytes, bodyBytes);
 
-  const qualifiesAsMinimaBlock = isBlockWinner(result.txpowId, template.blockDifficulty);
+  // Exact Minima-derived metadata.
+  const superLevel = computeSuperLevel(result.txpowId, template.blockDifficulty);
+  const isBlock = superLevel >= 0;
 
   const proof: MachineWorkAdmissionProof = {
     version: MACHINE_WORK_ADMISSION_VERSION,
@@ -134,16 +147,28 @@ export async function mineWorkAdmission(
     nonce: result.nonce.toString(),
     minedAt: Date.now(),
     qualifiesForAdmission: true,
-    qualifiesAsMinimaBlock,
+    qualifiesAsMinimaBlock: isBlock,
+    superLevel,
+    isBlock,
     template,
   };
 
-  // Broadcast genuine L1 winners exactly once, and only if the template is
-  // still current. Ordinary admission proofs are never broadcast.
-  if (qualifiesAsMinimaBlock && templateProvider.broadcastBlockCandidate) {
-    const latest = await templateProvider.getCurrentTemplate();
+  // Broadcast genuine Minima blocks exactly once, and only if the template is
+  // still current. All Super levels (0..31) are eligible — Super level is
+  // block strength, NOT a relay policy. Ordinary admission proofs never broadcast.
+  if (isBlock) {
+    let latest: MinimaWorkTemplate;
+    if (templateProvider.getLatestTemplate) {
+      latest = await templateProvider.getLatestTemplate();
+    } else {
+      latest = await templateProvider.getCurrentTemplate();
+    }
     if (latest.templateId === template.templateId) {
-      await templateProvider.broadcastBlockCandidate(proof);
+      if (options?.relay) {
+        await options.relay.submitBlock(envelope);
+      } else if (templateProvider.broadcastBlockCandidate) {
+        await templateProvider.broadcastBlockCandidate(proof);
+      }
     }
   }
 
