@@ -62,11 +62,9 @@ export interface MineWorkAdmissionOptions {
    */
   prng?: Uint8Array;
   /**
-   * Optional Minima block relay. When supplied AND the provider also supplies
-   * `getLatestTemplate`, a genuine current Minima block is submitted through
-   * the relay exactly once. The relay boundary keeps Minima networking out of
-   * core mining logic. Either `relay` or `provider.broadcastBlockCandidate`
-   * may be used; the relay is the preferred future port.
+   * Preferred Minima block relay boundary. When supplied, a genuine current
+   * Minima block is submitted through the relay exactly once. Falls back to
+   * the deprecated provider.broadcastBlockCandidate only when no relay is set.
    */
   relay?: MinimaWorkRelay;
 }

@@ -109,8 +109,12 @@ export interface MinimaWorkTemplate {
  *
  * The TxPoW package remains transport/node-client agnostic: callers inject a
  * provider that fetches the current template from a Minima node, Axia, or a
- * test fixture. `broadcastBlockCandidate` is only invoked for genuine Minima
- * blocks (Super-0 … Super-31) against a current template.
+ * test fixture.
+ *
+ * `MinimaWorkRelay` is the preferred long-term relay boundary. The legacy
+ * `broadcastBlockCandidate` callback is retained as a compatibility/fallback
+ * path only — new consumers should use `relay` via `MinimaWorkRelay` and not
+ * build around the lossy `candidate: unknown` shape.
  */
 export interface MinimaWorkTemplateProvider {
   /** Fetch the current block-candidate template. */
@@ -119,8 +123,12 @@ export interface MinimaWorkTemplateProvider {
   getLatestTemplate?(): Promise<MinimaWorkTemplate>;
   /** Optional: validate a template before mining against it. */
   validateTemplate?(template: MinimaWorkTemplate): Promise<boolean>;
-  /** Optional: broadcast a genuine Minima block candidate. */
-  broadcastBlockCandidate?(candidate: unknown): Promise<void>;
+  /**
+   * @deprecated Prefer `MinimaWorkRelay.submitBlock` (complete envelope).
+   * Retained for compatibility; only invoked for genuine Minima blocks
+   * (Super-0 … Super-31) when no relay is configured.
+   */
+  broadcastBlockCandidate?(candidate: MachineWorkAdmissionProof): Promise<void>;
 }
 
 /**
