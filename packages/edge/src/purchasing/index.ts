@@ -13,8 +13,40 @@ export { EdgeBuyer, type BuyerOptions, type BuyOptions } from './buyer.js';
 export { NegotiationEngine, type NegotiationEngineOptions } from './engine.js';
 export { EdgeWorkPolicy, EdgeTxPowAdapter } from './admission.js';
 export { createPurchaseSession, type SessionOptions } from './session.js';
-export { PurchaseError, NegotiationError } from './errors.js';
+export { PurchaseError, NegotiationError, PURCHASE_ERROR_CODES } from './errors.js';
 export { termsHash, proposalDigest, workRequiredDigest } from './terms.js';
+export {
+  type NegotiationStore,
+  type PurchaseStore,
+  type PrincipalNegotiationStore,
+  InMemoryNegotiationStore,
+  InMemoryPurchaseStore,
+  InMemoryPrincipalNegotiationStore,
+} from './store.js';
+export {
+  type NegotiationTransport,
+  type TransportMessageContext,
+  InMemoryNegotiationTransport,
+} from './transport.js';
+export {
+  messageId,
+  messageType,
+  type ReplayLedger,
+  InMemoryReplayLedger,
+} from './messages.js';
+export {
+  ingress,
+  MAX_NEGOTIATION_MESSAGE_BYTES,
+  type IngressOptions,
+  type IngressResult,
+} from './ingress.js';
+export {
+  createPurchaseRecord,
+  idempotencyKey,
+  type PurchaseRecord,
+  type PurchaseStatus,
+  TERMINAL_PURCHASE_STATUSES,
+} from './purchase.js';
 
 export {
   PURCHASING_VERSION,

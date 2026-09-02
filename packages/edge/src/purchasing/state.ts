@@ -63,6 +63,13 @@ export interface NegotiationRecord {
   termsHashes: string[];
   /** Consumed challenge fingerprints (one-shot). */
   consumedChallenges: string[];
+  /** Outstanding WorkRequired challenges (one per transition/head). */
+  outstandingChallenges: Array<{
+    fingerprint: string;
+    challengeId: string;
+    round: number;
+    status: 'OUTSTANDING' | 'CONSUMED' | 'EXPIRED' | 'CANCELLED';
+  }>;
   /** Cumulative expected hashes spent in this negotiation. */
   cumulativeWork: bigint;
   /** Round of the last proposal. */
@@ -77,6 +84,14 @@ export interface NegotiationRecord {
   counterparty: string;
   /** Manifest this negotiation is over. */
   manifestId: string;
+  /** Monotonically increasing revision for atomic CAS transitions. */
+  revision: number;
+  /** When the record was last updated. */
+  updatedAt: number;
+  /** Terminal reason (when terminal). */
+  terminalReason?: string;
+  /** The formed agreement (when AGREED). */
+  agreement?: import('./types.js').TradeAgreement;
 }
 
 export function createNegotiationRecord(opts: {
@@ -87,18 +102,22 @@ export function createNegotiationRecord(opts: {
   expiresAt: number;
   openedAt?: number;
 }): NegotiationRecord {
+  const openedAt = opts.openedAt ?? Date.now();
   return {
     negotiationId: opts.negotiationId,
     state: 'OPEN',
     proposals: [],
     termsHashes: [],
     consumedChallenges: [],
+    outstandingChallenges: [],
     cumulativeWork: 0n,
     lastRound: -1,
-    openedAt: opts.openedAt ?? Date.now(),
+    openedAt,
     expiresAt: opts.expiresAt,
     principal: opts.principal,
     counterparty: opts.counterparty,
     manifestId: opts.manifestId,
+    revision: 1,
+    updatedAt: openedAt,
   };
 }

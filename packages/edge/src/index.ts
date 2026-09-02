@@ -46,6 +46,7 @@ export {
 
 export { createEdgeRuntime } from './runtime.js';
 export { createEdgeDevice } from './device.js';
+export { createEdge, type CreateEdgeOptions, type EdgeCommerceRuntime } from './create-edge.js';
 
 export { createEdgeReceipt, verifyEdgeReceipt } from './receipts.js';
 
@@ -104,4 +105,27 @@ export {
   type BuyOptions,
   type NegotiationEngineOptions,
   type SessionOptions,
+  type NegotiationStore,
+  type PurchaseStore,
+  type PrincipalNegotiationStore,
+  type NegotiationTransport,
+  type TransportMessageContext,
+  type ReplayLedger,
+  type IngressOptions,
+  type IngressResult,
+  type PurchaseRecord,
+  type PurchaseStatus,
+  InMemoryNegotiationStore,
+  InMemoryPurchaseStore,
+  InMemoryPrincipalNegotiationStore,
+  InMemoryNegotiationTransport,
+  InMemoryReplayLedger,
+  messageId,
+  messageType,
+  ingress,
+  MAX_NEGOTIATION_MESSAGE_BYTES,
+  createPurchaseRecord,
+  idempotencyKey,
+  TERMINAL_PURCHASE_STATUSES,
+  PURCHASE_ERROR_CODES,
 } from './purchasing/index.js';

@@ -42,6 +42,7 @@ import {
   type TradeProposal,
   type TradeTerms,
   type WorkRequired,
+  InMemoryNegotiationStore,
 } from '../index';
 import type { MachineWorkAction, MinimaWorkRelay, MinimaWorkTemplate, WorkChallenge } from '@totemsdk/txpow';
 import { createWorkChallenge } from '@totemsdk/txpow';
@@ -406,11 +407,11 @@ describe('new-negotiation spam', () => {
       workPolicy: new EdgeWorkPolicy('disabled', {}, { baseTarget: EASY_TARGET, maxTarget: EASY_TARGET }, 100_000),
       limits: { maxRounds: 5, principal: { maxConcurrentNegotiations: 2 } },
     });
-    engine.openNegotiation({ negotiationId: 'n1', counterparty: 's', manifestId: 'm' });
-    engine.openNegotiation({ negotiationId: 'n2', counterparty: 's', manifestId: 'm' });
-    expect(() => engine.openNegotiation({ negotiationId: 'n3', counterparty: 's', manifestId: 'm' })).toThrow(
-      'too many concurrent',
-    );
+    await engine.openNegotiation({ negotiationId: 'n1', counterparty: 's', manifestId: 'm' });
+    await engine.openNegotiation({ negotiationId: 'n2', counterparty: 's', manifestId: 'm' });
+    await expect(
+      engine.openNegotiation({ negotiationId: 'n3', counterparty: 's', manifestId: 'm' }),
+    ).rejects.toThrow('too many concurrent');
     void manifest;
     void buyer;
   });
@@ -431,7 +432,7 @@ describe('same-terms counter', () => {
       txpow: new EdgeTxPowAdapter(makeTemplateProvider()),
       workPolicy: new EdgeWorkPolicy('disabled', {}, { baseTarget: EASY_TARGET, maxTarget: EASY_TARGET }, 100_000),
     });
-    engine.openNegotiation({ negotiationId: 'n1', counterparty: 's', manifestId: 'm' });
+    await engine.openNegotiation({ negotiationId: 'n1', counterparty: 's', manifestId: 'm' });
     const p0 = await makeProposal(engine, 'n1', 0, 'm', 'buyer-principal', 's', { price: '10' });
     await engine.submitProposal(p0);
     const p1 = await makeProposal(engine, 'n1', 1, 'm', 'buyer-principal', 's', { price: '10' }, p0.proposalId);
@@ -453,7 +454,7 @@ describe('wrong-parent counter', () => {
       txpow: new EdgeTxPowAdapter(makeTemplateProvider()),
       workPolicy: new EdgeWorkPolicy('disabled', {}, { baseTarget: EASY_TARGET, maxTarget: EASY_TARGET }, 100_000),
     });
-    engine.openNegotiation({ negotiationId: 'n1', counterparty: 's', manifestId: 'm' });
+    await engine.openNegotiation({ negotiationId: 'n1', counterparty: 's', manifestId: 'm' });
     const p0 = await makeProposal(engine, 'n1', 0, 'm', 'buyer-principal', 's', { price: '10' });
     await engine.submitProposal(p0);
     const p1 = await makeProposal(engine, 'n1', 1, 'm', 'buyer-principal', 's', { price: '9' }, 'wrong-parent');
@@ -474,7 +475,7 @@ describe('forked counter', () => {
       txpow: new EdgeTxPowAdapter(makeTemplateProvider()),
       workPolicy: new EdgeWorkPolicy('disabled', {}, { baseTarget: EASY_TARGET, maxTarget: EASY_TARGET }, 100_000),
     });
-    engine.openNegotiation({ negotiationId: 'n1', counterparty: 's', manifestId: 'm' });
+    await engine.openNegotiation({ negotiationId: 'n1', counterparty: 's', manifestId: 'm' });
     const p0 = await makeProposal(engine, 'n1', 0, 'm', 'buyer-principal', 's', { price: '10' });
     await engine.submitProposal(p0);
     const p1 = await makeProposal(engine, 'n1', 1, 'm', 'buyer-principal', 's', { price: '9' }, p0.proposalId);
@@ -491,6 +492,7 @@ describe('forked counter', () => {
 
 describe('expired proposal', () => {
   it('rejects an expired proposal', async () => {
+    const store = new InMemoryNegotiationStore();
     const engine = new NegotiationEngine({
       principal: 'buyer-principal',
       verifySignature: makeVerifier(),
@@ -498,11 +500,12 @@ describe('expired proposal', () => {
       txpow: new EdgeTxPowAdapter(makeTemplateProvider()),
       workPolicy: new EdgeWorkPolicy('disabled', {}, { baseTarget: EASY_TARGET, maxTarget: EASY_TARGET }, 100_000),
       now: () => 1000,
+      store,
     });
-    engine.openNegotiation({ negotiationId: 'n1', counterparty: 's', manifestId: 'm', expiresAt: 5000 });
+    await engine.openNegotiation({ negotiationId: 'n1', counterparty: 's', manifestId: 'm', expiresAt: 5000 });
     // Proposal expires at 2000, but the engine clock is at 3000 → expired.
     const p0 = await makeProposal(engine, 'n1', 0, 'm', 'buyer-principal', 's', { price: '10' }, undefined, 2000);
-    // Override the engine clock to 3000 for the submit.
+    // Override the engine clock to 3000 for the submit (same durable store).
     const engine2 = new NegotiationEngine({
       principal: 'buyer-principal',
       verifySignature: makeVerifier(),
@@ -510,8 +513,8 @@ describe('expired proposal', () => {
       txpow: new EdgeTxPowAdapter(makeTemplateProvider()),
       workPolicy: new EdgeWorkPolicy('disabled', {}, { baseTarget: EASY_TARGET, maxTarget: EASY_TARGET }, 100_000),
       now: () => 3000,
+      store,
     });
-    engine2.openNegotiation({ negotiationId: 'n1', counterparty: 's', manifestId: 'm', expiresAt: 5000 });
     await expect(engine2.submitProposal(p0)).rejects.toThrow('expired');
   });
 });
@@ -522,6 +525,7 @@ describe('expired proposal', () => {
 
 describe('expired negotiation', () => {
   it('becomes terminal EXPIRED after TTL', async () => {
+    const store = new InMemoryNegotiationStore();
     const engine = new NegotiationEngine({
       principal: 'buyer-principal',
       verifySignature: makeVerifier(),
@@ -529,10 +533,11 @@ describe('expired negotiation', () => {
       txpow: new EdgeTxPowAdapter(makeTemplateProvider()),
       workPolicy: new EdgeWorkPolicy('disabled', {}, { baseTarget: EASY_TARGET, maxTarget: EASY_TARGET }, 100_000),
       now: () => 1000,
+      store,
     });
-    engine.openNegotiation({ negotiationId: 'n1', counterparty: 's', manifestId: 'm', expiresAt: 2000 });
-    expect(engine.getState('n1')).toBe('OPEN');
-    // Advance time past expiry.
+    await engine.openNegotiation({ negotiationId: 'n1', counterparty: 's', manifestId: 'm', expiresAt: 2000 });
+    expect(await engine.getState('n1')).toBe('OPEN');
+    // Advance time past expiry using the SAME durable store.
     const engine2 = new NegotiationEngine({
       principal: 'buyer-principal',
       verifySignature: makeVerifier(),
@@ -540,10 +545,9 @@ describe('expired negotiation', () => {
       txpow: new EdgeTxPowAdapter(makeTemplateProvider()),
       workPolicy: new EdgeWorkPolicy('disabled', {}, { baseTarget: EASY_TARGET, maxTarget: EASY_TARGET }, 100_000),
       now: () => 3000,
+      store,
     });
-    // Re-open with the same id and check expiry via getState.
-    engine2.openNegotiation({ negotiationId: 'n1', counterparty: 's', manifestId: 'm', expiresAt: 2000 });
-    expect(engine2.getState('n1')).toBe('EXPIRED');
+    expect(await engine2.getState('n1')).toBe('EXPIRED');
   });
 });
 
@@ -561,7 +565,7 @@ describe('work challenge authentication', () => {
       txpow,
       workPolicy,
     });
-    engine.openNegotiation({ negotiationId: 'n1', counterparty: 'seller', manifestId: 'm' });
+    await engine.openNegotiation({ negotiationId: 'n1', counterparty: 'seller', manifestId: 'm' });
     const challenge = createWorkChallenge('seller', 'totem.negotiation.proposal', EASY_TARGET, {
       challengeId: 'c1',
       nonce: 'deadbeef',
@@ -597,7 +601,7 @@ describe('excessive requested work', () => {
       txpow,
       workPolicy,
     });
-    engine.openNegotiation({ negotiationId: 'n1', counterparty: 'seller', manifestId: 'm' });
+    await engine.openNegotiation({ negotiationId: 'n1', counterparty: 'seller', manifestId: 'm' });
     // A challenge with a much harder target than the policy allows.
     const hardTarget = (() => {
       const t = new Uint8Array(32).fill(0xff);
@@ -631,7 +635,7 @@ describe('missing work', () => {
       txpow,
       workPolicy,
     });
-    engine.openNegotiation({ negotiationId: 'n1', counterparty: 'seller', manifestId: 'm' });
+    await engine.openNegotiation({ negotiationId: 'n1', counterparty: 'seller', manifestId: 'm' });
     const p0 = await makeProposal(engine, 'n1', 0, 'm', 'buyer-principal', 'seller', { price: '10' });
     // No workAdmission attached.
     await expect(engine.submitProposal(p0)).rejects.toThrow('missing required work');
@@ -652,7 +656,7 @@ describe('tampered terms after mining', () => {
       txpow,
       workPolicy,
     });
-    engine.openNegotiation({ negotiationId: 'n1', counterparty: 'seller', manifestId: 'm' });
+    await engine.openNegotiation({ negotiationId: 'n1', counterparty: 'seller', manifestId: 'm' });
     const challenge = createWorkChallenge('seller', 'totem.negotiation.proposal', EASY_TARGET, {
       challengeId: 'c1',
       nonce: 'deadbeef',
@@ -684,7 +688,7 @@ describe('counter requires fresh work', () => {
       txpow,
       workPolicy,
     });
-    engine.openNegotiation({ negotiationId: 'n1', counterparty: 'seller', manifestId: 'm' });
+    await engine.openNegotiation({ negotiationId: 'n1', counterparty: 'seller', manifestId: 'm' });
 
     // Round 0 with challenge c1.
     const c1 = createWorkChallenge('seller', 'totem.negotiation.proposal', EASY_TARGET, {
@@ -723,7 +727,7 @@ describe('forged super level', () => {
       txpow,
       workPolicy,
     });
-    engine.openNegotiation({ negotiationId: 'n1', counterparty: 'seller', manifestId: 'm' });
+    await engine.openNegotiation({ negotiationId: 'n1', counterparty: 'seller', manifestId: 'm' });
     const challenge = createWorkChallenge('seller', 'totem.negotiation.proposal', EASY_TARGET, {
       challengeId: 'c1', nonce: 'deadbeef', issuedAt: Date.now(), ttlMs: 60_000,
     });
@@ -738,7 +742,7 @@ describe('forged super level', () => {
     // The engine accepted it because verification recomputes — the forged
     // metadata is ignored. (Block target == admission target here, so the
     // real superLevel is >= 0 anyway; the point is Edge never trusts it.)
-    expect(engine.getState('n1')).toBe('NEGOTIATING');
+    expect(await engine.getState('n1')).toBe('NEGOTIATING');
   });
 });
 
@@ -757,7 +761,7 @@ describe('block relay', () => {
       txpow,
       workPolicy,
     });
-    engine.openNegotiation({ negotiationId: 'n1', counterparty: 'seller', manifestId: 'm' });
+    await engine.openNegotiation({ negotiationId: 'n1', counterparty: 'seller', manifestId: 'm' });
     const challenge = createWorkChallenge('seller', 'totem.negotiation.proposal', EASY_TARGET, {
       challengeId: 'c1', nonce: 'deadbeef', issuedAt: Date.now(), ttlMs: 60_000,
     });
@@ -789,7 +793,7 @@ describe('block relay', () => {
       txpow,
       workPolicy,
     });
-    engine.openNegotiation({ negotiationId: 'n1', counterparty: 'seller', manifestId: 'm' });
+    await engine.openNegotiation({ negotiationId: 'n1', counterparty: 'seller', manifestId: 'm' });
     const challenge = createWorkChallenge('seller', 'totem.negotiation.proposal', EASY_TARGET, {
       challengeId: 'c1', nonce: 'deadbeef', issuedAt: Date.now(), ttlMs: 60_000,
     });
@@ -862,7 +866,7 @@ describe('duplicate challenge griefing', () => {
       txpow,
       workPolicy,
     });
-    engine.openNegotiation({ negotiationId: 'n1', counterparty: 'seller', manifestId: 'm' });
+    await engine.openNegotiation({ negotiationId: 'n1', counterparty: 'seller', manifestId: 'm' });
     const challenge = createWorkChallenge('seller', 'totem.negotiation.proposal', EASY_TARGET, {
       challengeId: 'c1', nonce: 'deadbeef', issuedAt: Date.now(), ttlMs: 60_000,
     });
@@ -896,7 +900,7 @@ describe('cumulative work exhaustion', () => {
       txpow,
       workPolicy,
     });
-    engine.openNegotiation({ negotiationId: 'n1', counterparty: 'seller', manifestId: 'm' });
+    await engine.openNegotiation({ negotiationId: 'n1', counterparty: 'seller', manifestId: 'm' });
     const challenge = createWorkChallenge('seller', 'totem.negotiation.proposal', EASY_TARGET, {
       challengeId: 'c1', nonce: 'deadbeef', issuedAt: Date.now(), ttlMs: 60_000,
     });
@@ -923,7 +927,7 @@ describe('bounded difficulty escalation', () => {
       txpow,
       workPolicy,
     });
-    engine.openNegotiation({ negotiationId: 'n1', counterparty: 'seller', manifestId: 'm' });
+    await engine.openNegotiation({ negotiationId: 'n1', counterparty: 'seller', manifestId: 'm' });
     // Round 0 uses EASY_TARGET (allowed).
     const c0 = createWorkChallenge('seller', 'totem.negotiation.proposal', EASY_TARGET, {
       challengeId: 'c0', nonce: 'deadbeef', issuedAt: Date.now(), ttlMs: 60_000,

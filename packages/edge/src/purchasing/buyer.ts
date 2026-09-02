@@ -1,6 +1,6 @@
 /**
  * purchasing/buyer.ts — Demand-side orchestration: edge.buy() and
- * edge.negotiate().
+ * edge.negotiate() (durable).
  *
  * Lifecycle:
  *   PurchaseIntent → lookup → candidate SignedManifests → manifest verification
@@ -12,7 +12,10 @@
  * Money budget, work budget, and time budget are independent purchasing
  * constraints. Immediately before payment/reservation, the agreement expiry,
  * policy/authority, spend constraints, and provider/manifest freshness are
- * revalidated.
+ * revalidated (economic commit barrier).
+ *
+ * Every externally side-effecting operation carries a stable idempotency key
+ * derived from durable protocol IDs — retries never duplicate side effects.
  */
 
 import { verifyManifest, computeManifestId } from '@totemsdk/manifest';
@@ -38,6 +41,15 @@ import { NegotiationEngine } from './engine.js';
 import { EdgeTxPowAdapter, EdgeWorkPolicy } from './admission.js';
 import { createEdgeReceipt } from '../receipts.js';
 import type { EdgeOperationResult } from '../types.js';
+import {
+  createPurchaseRecord,
+  idempotencyKey,
+  type PurchaseRecord,
+  type PurchaseStatus,
+} from './purchase.js';
+import type { PurchaseStore } from './store.js';
+import { InMemoryPurchaseStore } from './store.js';
+import { PurchaseError, PURCHASE_ERROR_CODES } from './errors.js';
 
 /** Signature verification (WOTS). */
 export type SignatureVerifier = (params: {
@@ -64,6 +76,8 @@ export interface PurchasePaymentPort {
     amount: string;
     tokenId?: string;
     memo?: string;
+    /** Stable idempotency key — retries must not double-pay. */
+    idempotencyKey?: string;
   }): Promise<EdgeOperationResult<{ txpowId?: string }>>;
 }
 
@@ -93,6 +107,12 @@ export interface BuyerOptions {
   adapters: ResourceAdapter[];
   onEvent?: (event: PurchaseEvent) => void;
   now?: () => number;
+  /** Durable purchase store. When omitted, in-memory (dev mode). */
+  purchaseStore?: PurchaseStore;
+  /** Durable negotiation store. When omitted, in-memory (dev mode). */
+  negotiationStore?: import('./store.js').NegotiationStore;
+  /** Durable principal anti-abuse store. When omitted, in-memory (dev mode). */
+  principalStore?: import('./store.js').PrincipalNegotiationStore;
 }
 
 export interface BuyOptions {
@@ -110,6 +130,7 @@ export interface BuyOptions {
 
 export class EdgeBuyer {
   private readonly engine: NegotiationEngine;
+  private readonly purchaseStore: PurchaseStore;
 
   constructor(private readonly opts: BuyerOptions) {
     this.engine = new NegotiationEngine({
@@ -120,7 +141,10 @@ export class EdgeBuyer {
       workPolicy: opts.workPolicy,
       onEvent: opts.onEvent,
       now: opts.now,
+      store: opts.negotiationStore,
+      principalStore: opts.principalStore,
     });
+    this.purchaseStore = opts.purchaseStore ?? new InMemoryPurchaseStore();
   }
 
   private emit(event: PurchaseEvent): void {
@@ -138,10 +162,18 @@ export class EdgeBuyer {
     const { intent } = options;
     this.emit({ type: 'purchase.requested', intent });
 
-    // Overall acquisition deadline.
+    // Overall acquisition deadline (persisted absolute, not relative).
     const acquireBy = options.acquireBy ?? intent.expiresAt;
     if (acquireBy !== undefined && this.now() > acquireBy) {
-      throw new Error('purchase acquisition deadline has passed');
+      throw new PurchaseError(PURCHASE_ERROR_CODES.PURCHASE_DEADLINE_EXPIRED, 'purchase acquisition deadline has passed');
+    }
+
+    // Create a durable purchase record (idempotent — reuse if already exists).
+    const purchaseId = `edge:purchase:${intent.id}`;
+    const existing = await this.purchaseStore.get(purchaseId);
+    const record = existing ?? createPurchaseRecord({ purchaseId, intent, acquireBy });
+    if (!existing) {
+      await this.purchaseStore.create(record);
     }
 
     // 1. Lookup candidate manifests.
@@ -152,6 +184,7 @@ export class EdgeBuyer {
     if (!lookupResult.ok) throw new Error(lookupResult.error ?? 'lookup failed');
     const candidates = lookupResult.data?.results ?? [];
     this.emit({ type: 'purchase.discovered', manifestId: candidates[0]?.id ?? '' });
+    let current = await this.casPurchase(record, (r) => { r.status = 'DISCOVERING'; });
 
     // 2. Verify manifests + constraint match.
     const verified = this.selectCandidates(intent, candidates);
@@ -159,15 +192,16 @@ export class EdgeBuyer {
     // 3. Fast path: fixed terms acceptable?
     const fixed = verified.find((c) => this.termsAcceptable(intent, c.manifest));
     if (fixed && !intent.negotiate) {
-      return this.executeDirect(intent, fixed.manifest, options);
+      return this.executeDirect(intent, fixed.manifest, options, current);
     }
 
     // 4. Negotiated path.
     if (intent.negotiate !== false && options.strategy) {
       const selected = verified[0];
       if (selected) {
+        const negotiating = await this.casPurchase(current, (r) => { r.status = 'NEGOTIATING'; });
         const agreement = await this.negotiateWith(intent, selected.manifest, options);
-        return this.executeAgreement(intent, agreement, options);
+        return this.executeAgreement(intent, agreement, options, negotiating);
       }
     }
 
@@ -187,7 +221,7 @@ export class EdgeBuyer {
     const manifestId = computeManifestId(manifest.manifest);
     const negotiationId = `edge:negotiation:${this.now()}:${Math.random().toString(36).slice(2)}`;
 
-    this.engine.openNegotiation({
+    await this.engine.openNegotiation({
       negotiationId,
       counterparty: manifest.authorAddress,
       manifestId,
@@ -215,7 +249,7 @@ export class EdgeBuyer {
         negotiationId,
         proposal: current,
         history,
-        termsHashes: this.engine.getTermsHashes(negotiationId),
+        termsHashes: await this.engine.getTermsHashes(negotiationId),
       });
 
       if (decision.action === 'accept') {
@@ -272,6 +306,7 @@ export class EdgeBuyer {
     intent: PurchaseIntent,
     manifest: SignedManifest,
     options: BuyOptions,
+    record: PurchaseRecord,
   ): Promise<PurchaseResult> {
     const terms = this.intentToTerms(intent);
     const agreement: TradeAgreement = {
@@ -288,42 +323,71 @@ export class EdgeBuyer {
       buyerSignature: '',
       sellerSignature: manifest.signature,
     };
-    return this.executeAgreement(intent, agreement, options);
+    return this.executeAgreement(intent, agreement, options, record);
   }
 
   private async executeAgreement(
     intent: PurchaseIntent,
     agreement: TradeAgreement,
     options: BuyOptions,
+    record: PurchaseRecord,
   ): Promise<PurchaseResult> {
-    // Revalidate immediately before payment/reservation.
-    this.revalidateBeforeCommit(intent, agreement);
+    // ── Economic commit barrier ─────────────────────────────────────────────
+    // Reload the latest durable state and revalidate before any irreversible
+    // economic action.
+    let current = (await this.purchaseStore.get(record.purchaseId)) ?? record;
+    this.revalidateBeforeCommit(intent, agreement, current);
 
     // Authority / policy approval.
+    current = await this.casPurchase(current, (r) => { r.status = 'AUTHORIZING'; r.agreement = agreement; });
     const auth = await this.opts.authority.approve({ agreement, intent });
     if (!auth.ok || !auth.data?.allowed) {
-      throw new Error(auth.data?.reason ?? 'authority denied purchase');
+      throw new PurchaseError('AUTHORITY_DENIED', auth.data?.reason ?? 'authority denied purchase');
     }
+    current = await this.casPurchase(current, (r) => { r.status = 'AUTHORIZED'; });
     this.emit({ type: 'purchase.authorized', agreementId: agreement.agreementId });
 
-    // Payment (reuses existing payment port).
+    // Payment (idempotent — stable key, never double-pay).
     if (agreement.terms.price !== '0' && agreement.terms.paymentMethod !== 'free') {
-      const pay = await this.opts.payment.pay({
-        recipient: agreement.seller,
-        amount: agreement.terms.price,
-        tokenId: agreement.terms.tokenId,
-        memo: `purchase ${agreement.agreementId}`,
-      });
-      if (!pay.ok) throw new Error(pay.error ?? 'payment failed');
+      const paymentKey = idempotencyKey(record.purchaseId, agreement.agreementId, 'payment');
+      if (!current.idempotencyKeys.includes(paymentKey)) {
+        current = await this.casPurchase(current, (r) => { r.status = 'PAYING'; });
+        const pay = await this.opts.payment.pay({
+          recipient: agreement.seller,
+          amount: agreement.terms.price,
+          tokenId: agreement.terms.tokenId,
+          memo: `purchase ${agreement.agreementId}`,
+          idempotencyKey: paymentKey,
+        });
+        if (!pay.ok) throw new PurchaseError('PAYMENT_FAILED', pay.error ?? 'payment failed');
+        current = await this.casPurchase(current, (r) => {
+          r.status = 'PAID';
+          if (!r.idempotencyKeys.includes(paymentKey)) r.idempotencyKeys.push(paymentKey);
+        });
+      }
     }
 
-    // Resource execution via adapter.
+    // Resource execution via adapter (idempotent start).
     const adapter =
       options.adapter ??
       this.opts.adapters.find((a) => a.supports(intent.resource, this.dummyManifest(agreement)));
     if (!adapter) throw new Error(`no adapter supports resource ${intent.resource}`);
 
-    const handle = await adapter.start(agreement, options.context ?? {});
+    const startKey = idempotencyKey(record.purchaseId, agreement.agreementId, 'resource-start');
+    let handle: import('./types.js').ResourceHandle;
+    if (current.idempotencyKeys.includes(startKey) && current.resourceReference) {
+      // Already started — recover the handle reference.
+      handle = { id: current.resourceReference, agreementId: agreement.agreementId, resource: intent.resource };
+    } else {
+      current = await this.casPurchase(current, (r) => { r.status = 'STARTING_RESOURCE'; });
+      handle = await adapter.start(agreement, options.context ?? {});
+      current = await this.casPurchase(current, (r) => {
+        r.status = 'ACTIVE';
+        r.resourceReference = handle.id;
+        if (!r.idempotencyKeys.includes(startKey)) r.idempotencyKeys.push(startKey);
+      });
+    }
+
     const session: PurchaseSession = {
       id: handle.id,
       agreement,
@@ -339,7 +403,23 @@ export class EdgeBuyer {
       },
       spent: async () => ({ amount: agreement.terms.price, tokenId: agreement.terms.tokenId }),
       close: async () => {
-        if (adapter.close) await adapter.close(handle);
+        // Idempotent settlement + receipt.
+        const settlementKey = idempotencyKey(record.purchaseId, agreement.agreementId, 'settlement');
+        const receiptKey = idempotencyKey(record.purchaseId, agreement.agreementId, 'receipt');
+        let closeCurrent = (await this.purchaseStore.get(record.purchaseId)) ?? current;
+        if (!closeCurrent.idempotencyKeys.includes(settlementKey)) {
+          if (adapter.close) await adapter.close(handle);
+          closeCurrent = await this.casPurchase(closeCurrent, (r) => {
+            r.status = 'SETTLING';
+            if (!r.idempotencyKeys.includes(settlementKey)) r.idempotencyKeys.push(settlementKey);
+          });
+        }
+        if (!closeCurrent.idempotencyKeys.includes(receiptKey)) {
+          await this.casPurchase(closeCurrent, (r) => {
+            r.status = 'COMPLETED';
+            if (!r.idempotencyKeys.includes(receiptKey)) r.idempotencyKeys.push(receiptKey);
+          });
+        }
         this.emit({ type: 'purchase.completed', sessionId: handle.id });
         return createEdgeReceipt({
           kind: 'purchase',
@@ -358,15 +438,36 @@ export class EdgeBuyer {
     return { agreement, session, negotiated: true };
   }
 
-  private revalidateBeforeCommit(intent: PurchaseIntent, agreement: TradeAgreement): void {
+  private async casPurchase(
+    record: PurchaseRecord,
+    mutate: (r: PurchaseRecord) => void,
+  ): Promise<PurchaseRecord> {
+    const expectedRevision = record.revision;
+    const next: PurchaseRecord = {
+      ...record,
+      revision: expectedRevision + 1,
+      updatedAt: this.now(),
+    };
+    mutate(next);
+    const ok = await this.purchaseStore.compareAndSet(record.purchaseId, expectedRevision, next);
+    if (!ok) {
+      throw new PurchaseError(PURCHASE_ERROR_CODES.STALE_REVISION, `purchase ${record.purchaseId} was advanced by another writer`);
+    }
+    return next;
+  }
+
+  private revalidateBeforeCommit(intent: PurchaseIntent, agreement: TradeAgreement, record: PurchaseRecord): void {
     const now = this.now();
     if (agreement.expiresAt !== undefined && now > agreement.expiresAt) {
-      throw new Error('agreement has expired before commit');
+      throw new PurchaseError('AGREEMENT_EXPIRED', 'agreement has expired before commit');
+    }
+    if (record.acquireBy !== undefined && now > record.acquireBy) {
+      throw new PurchaseError(PURCHASE_ERROR_CODES.PURCHASE_DEADLINE_EXPIRED, 'purchase acquisition deadline has passed');
     }
     if (intent.maxSpend) {
       const max = BigInt(intent.maxSpend.amount);
       const price = BigInt(agreement.terms.price);
-      if (price > max) throw new Error('agreement price exceeds maxSpend');
+      if (price > max) throw new PurchaseError('SPEND_EXCEEDED', 'agreement price exceeds maxSpend');
     }
   }
 

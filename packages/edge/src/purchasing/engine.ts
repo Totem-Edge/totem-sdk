@@ -1,5 +1,5 @@
 /**
- * purchasing/engine.ts — Bounded peer-to-peer negotiation engine.
+ * purchasing/engine.ts — Bounded peer-to-peer negotiation engine (durable).
  *
  * Enforces every anti-infinite-counter bound:
  *   1. Hard maxRounds (round < maxRounds)
@@ -11,13 +11,11 @@
  *   7. Fresh work per counter (one-shot challenges, cumulative budget)
  *   8. Local walk-away policy (strategy)
  *
- * Receiver-side validation order (cheap abuse before expensive strategy):
- *   structural → negotiation exists/state → challenge freshness →
- *   work verification → signature → replay/head/round → expiry →
- *   terms schema → policy → strategy
+ * All state transitions are atomic via compare-and-set on a durable store.
+ * A crash/restart must not corrupt economic state: the same incoming message
+ * after restart yields the same economic outcome.
  */
 
-import { wotsVerifyDigest, hexToBytes } from '@totemsdk/core';
 import type { MachineWorkAction, WorkChallenge } from '@totemsdk/txpow';
 import {
   PURCHASING_VERSION,
@@ -52,6 +50,13 @@ import {
   type NegotiationRecord,
 } from './state.js';
 import { EdgeTxPowAdapter, EdgeWorkPolicy } from './admission.js';
+import {
+  InMemoryNegotiationStore,
+  InMemoryPrincipalNegotiationStore,
+  type NegotiationStore,
+  type PrincipalNegotiationStore,
+} from './store.js';
+import { NegotiationError, PURCHASE_ERROR_CODES } from './errors.js';
 
 /** Signature verification function injected by the caller. */
 export type SignatureVerifier = (params: {
@@ -80,19 +85,23 @@ export interface NegotiationEngineOptions {
   onEvent?: (event: PurchaseEvent) => void;
   /** Current time (for deterministic tests). */
   now?: () => number;
+  /** Durable negotiation store. When omitted, an in-memory store is used. */
+  store?: NegotiationStore;
+  /** Durable principal anti-abuse store. When omitted, in-memory. */
+  principalStore?: PrincipalNegotiationStore;
 }
 
 export class NegotiationEngine {
-  private readonly records = new Map<string, NegotiationRecord>();
   private readonly fullProposals = new Map<string, TradeProposal>();
   private readonly issuedChallenges = new Map<string, WorkChallenge>();
-  private readonly principalOpenedAt = new Map<string, number[]>();
-  private readonly principalCooldownUntil = new Map<string, number>();
   private readonly onEvent?: (event: PurchaseEvent) => void;
   private readonly now: () => number;
   private readonly maxRounds: number;
   private readonly defaultExpiresAt: number;
   private readonly principalLimits: Required<PrincipalLimits>;
+  private readonly store: NegotiationStore;
+  private readonly principalStore: PrincipalNegotiationStore;
+
   constructor(private readonly opts: NegotiationEngineOptions) {
     this.onEvent = opts.onEvent;
     this.now = opts.now ?? (() => Date.now());
@@ -106,60 +115,87 @@ export class NegotiationEngine {
         opts.limits?.principal?.maxNegotiationsPerWindow ?? DEFAULT_MAX_NEGOTIATIONS_PER_WINDOW,
       windowMs: opts.limits?.principal?.windowMs ?? DEFAULT_NEGOTIATION_WINDOW_MS,
     };
+    this.store = opts.store ?? new InMemoryNegotiationStore();
+    this.principalStore = opts.principalStore ?? new InMemoryPrincipalNegotiationStore();
   }
 
   private emit(event: PurchaseEvent): void {
     this.onEvent?.(event);
   }
 
-  private getRecord(id: string): NegotiationRecord | undefined {
-    return this.records.get(id);
+  private async getRecord(id: string): Promise<NegotiationRecord | undefined> {
+    return this.store.get(id);
   }
 
-  private setRecord(record: NegotiationRecord): void {
-    this.records.set(record.negotiationId, record);
-  }
-
-  private principalActiveCount(principal: string): number {
-    let count = 0;
-    for (const record of this.records.values()) {
-      if (record.principal === principal && !isTerminal(record.state)) count++;
+  /**
+   * Atomically transition a record. Loads the current revision, validates the
+   * expected revision, derives the next state, and CASes it. Returns the next
+   * record, or throws STALE_REVISION when another writer advanced it.
+   */
+  private async casTransition(
+    record: NegotiationRecord,
+    mutate: (r: NegotiationRecord) => void,
+  ): Promise<NegotiationRecord> {
+    const expectedRevision = record.revision;
+    const next: NegotiationRecord = {
+      ...record,
+      revision: expectedRevision + 1,
+      updatedAt: this.now(),
+    };
+    mutate(next);
+    const ok = await this.store.compareAndSet(record.negotiationId, expectedRevision, next);
+    if (!ok) {
+      throw new NegotiationError(
+        PURCHASE_ERROR_CODES.STALE_REVISION,
+        `negotiation ${record.negotiationId} was advanced by another writer`,
+      );
     }
-    return count;
+    return next;
   }
 
-  private principalRecentCount(principal: string, now: number): number {
-    const opened = this.principalOpenedAt.get(principal) ?? [];
+  private async principalActiveCount(principal: string): Promise<number> {
+    const recoverable = (await this.store.listRecoverable?.()) ?? [];
+    return recoverable.filter((r) => r.principal === principal).length;
+  }
+
+  private async principalRecentCount(principal: string, now: number): Promise<number> {
+    const opened = await this.principalStore.listOpened(principal);
     return opened.filter((t) => now - t < this.principalLimits.windowMs).length;
   }
 
   /**
    * Open a new negotiation. Enforces per-principal concurrency, cooldown, and
-   * window limits. Returns the negotiation id, or throws.
+   * window limits. Returns the negotiation record.
    */
-  openNegotiation(opts: {
+  async openNegotiation(opts: {
     negotiationId: string;
     counterparty: string;
     manifestId: string;
     expiresAt?: number;
-  }): NegotiationRecord {
+  }): Promise<NegotiationRecord> {
     const now = this.now();
     const principal = this.opts.principal;
 
     // Cooldown after terminal failure.
-    const cooldownUntil = this.principalCooldownUntil.get(principal) ?? 0;
+    const cooldownUntil = await this.principalStore.getCooldownUntil(principal);
     if (now < cooldownUntil) {
-      throw new Error('principal is in negotiation cooldown');
+      throw new NegotiationError('PRINCIPAL_COOLDOWN', 'principal is in negotiation cooldown');
     }
 
     // Concurrency limit.
-    if (this.principalActiveCount(principal) >= this.principalLimits.maxConcurrentNegotiations) {
-      throw new Error('principal has too many concurrent negotiations');
+    if ((await this.principalActiveCount(principal)) >= this.principalLimits.maxConcurrentNegotiations) {
+      throw new NegotiationError(
+        'PRINCIPAL_CONCURRENCY',
+        'principal has too many concurrent negotiations',
+      );
     }
 
     // Window limit.
-    if (this.principalRecentCount(principal, now) >= this.principalLimits.maxNegotiationsPerWindow) {
-      throw new Error('principal has opened too many negotiations in the window');
+    if ((await this.principalRecentCount(principal, now)) >= this.principalLimits.maxNegotiationsPerWindow) {
+      throw new NegotiationError(
+        'PRINCIPAL_WINDOW',
+        'principal has opened too many negotiations in the window',
+      );
     }
 
     const expiresAt = opts.expiresAt ?? this.defaultExpiresAt;
@@ -172,22 +208,25 @@ export class NegotiationEngine {
       openedAt: now,
     });
 
-    this.setRecord(record);
-    const opened = this.principalOpenedAt.get(principal) ?? [];
-    opened.push(now);
-    this.principalOpenedAt.set(principal, opened);
+    await this.store.create(record);
+    await this.principalStore.recordOpened(principal, now);
     this.emit({ type: 'negotiation.opened', negotiationId: opts.negotiationId });
     return record;
   }
 
   /** Check whether a negotiation is expired; if so, transition it to EXPIRED. */
-  private checkExpiry(record: NegotiationRecord): void {
-    if (isTerminal(record.state)) return;
+  private async checkExpiry(record: NegotiationRecord): Promise<NegotiationRecord> {
+    if (isTerminal(record.state)) return record;
     if (this.now() > record.expiresAt) {
-      record.state = 'EXPIRED';
-      this.setRecord(record);
-      this.emit({ type: 'negotiation.expired', negotiationId: record.negotiationId });
+      return this.casTransition(record, (r) => {
+        r.state = 'EXPIRED';
+        r.terminalReason = 'negotiation TTL expired';
+      }).then((next) => {
+        this.emit({ type: 'negotiation.expired', negotiationId: record.negotiationId });
+        return next;
+      });
     }
+    return record;
   }
 
   /**
@@ -203,41 +242,56 @@ export class NegotiationEngine {
     // 2. Signature verification (authenticate the challenge issuer)
     const digest = workRequiredDigest(msg);
     if (!this.opts.verifySignature({ digest, signature: msg.signature, signerPublicKey: msg.signerPublicKey })) {
-      throw new Error('WorkRequired signature invalid');
+      throw new NegotiationError(PURCHASE_ERROR_CODES.INVALID_SIGNATURE, 'WorkRequired signature invalid');
     }
 
     // 3. Negotiation exists / state valid
-    const record = this.getRecord(msg.negotiationId);
+    const record = await this.getRecord(msg.negotiationId);
     if (!record) throw new Error('negotiation not found');
-    this.checkExpiry(record);
-    if (isTerminal(record.state)) throw new Error(`negotiation is ${record.state}`);
+    const current = await this.checkExpiry(record);
+    if (isTerminal(current.state)) throw new NegotiationError(PURCHASE_ERROR_CODES.TERMINAL_NEGOTIATION, `negotiation is ${current.state}`);
 
     // 4. One outstanding WorkRequired per head — the challenge must be for the
     //    current head (or for the initial proposal when no head exists yet).
-    if (msg.proposalId !== undefined && record.headProposalId !== undefined) {
-      if (msg.proposalId !== record.headProposalId) {
-        throw new Error('WorkRequired is for a stale proposal head');
+    if (msg.proposalId !== undefined && current.headProposalId !== undefined) {
+      if (msg.proposalId !== current.headProposalId) {
+        throw new NegotiationError(PURCHASE_ERROR_CODES.STALE_PROPOSAL, 'WorkRequired is for a stale proposal head');
       }
     }
 
     // 5. Challenge freshness / one-shot
     const fp = this.opts.txpow.fingerprint(msg.challenge);
-    if (record.consumedChallenges.includes(fp)) {
-      throw new Error('challenge already consumed');
+    if (current.consumedChallenges.includes(fp)) {
+      throw new NegotiationError(PURCHASE_ERROR_CODES.CHALLENGE_ALREADY_CONSUMED, 'challenge already consumed');
     }
 
     // 6. Local work policy (per-turn + cumulative)
-    const round = record.lastRound + 1;
+    const round = current.lastRound + 1;
     const willing = await this.opts.workPolicy.willingToWork(
       msg.challenge,
       round,
-      record.cumulativeWork,
+      current.cumulativeWork,
     );
-    if (!willing.ok) throw new Error(willing.reason ?? 'work policy refused challenge');
+    if (!willing.ok) throw new NegotiationError(PURCHASE_ERROR_CODES.WORK_BUDGET_EXHAUSTED, willing.reason ?? 'work policy refused challenge');
+
+    // 7. Persist the outstanding challenge (durable, one per transition).
+    await this.casTransition(current, (r) => {
+      // Reject challenge replacement for the same transition unless identical.
+      const existing = r.outstandingChallenges.find((c) => c.round === round);
+      if (existing && existing.fingerprint !== fp) {
+        throw new NegotiationError('CHALLENGE_REPLACEMENT', 'a different challenge is already outstanding for this transition');
+      }
+      if (!existing) {
+        r.outstandingChallenges.push({
+          fingerprint: fp,
+          challengeId: msg.challenge.challengeId,
+          round,
+          status: 'OUTSTANDING',
+        });
+      }
+    });
 
     // Record the issued challenge for this round (one outstanding per head).
-    // Keyed by negotiationId:round because the proposalId is not yet known
-    // when the challenge is issued.
     this.issuedChallenges.set(`${msg.negotiationId}:${round}`, msg.challenge);
 
     return msg.challenge;
@@ -266,11 +320,7 @@ export class NegotiationEngine {
   }
 
   /**
-   * Submit a proposal (initial or counter). Enforces every bound.
-   *
-   * Accepts proposals in both directions:
-   *   - incoming (recipient === principal) — from the counterparty
-   *   - outgoing (proposer === principal)  — our own proposal
+   * Submit a proposal (initial or counter). Enforces every bound atomically.
    * Returns the updated record.
    */
   async submitProposal(proposal: TradeProposal): Promise<NegotiationRecord> {
@@ -282,87 +332,94 @@ export class NegotiationEngine {
     if (!involvesUs) throw new Error('proposal does not involve us');
 
     // 2. Negotiation exists / state valid
-    const record = this.getRecord(proposal.negotiationId);
+    const record = await this.getRecord(proposal.negotiationId);
     if (!record) throw new Error('negotiation not found');
-    this.checkExpiry(record);
-    if (isTerminal(record.state)) throw new Error(`negotiation is ${record.state}`);
+    const current = await this.checkExpiry(record);
+    if (isTerminal(current.state)) throw new NegotiationError(PURCHASE_ERROR_CODES.TERMINAL_NEGOTIATION, `negotiation is ${current.state}`);
 
     // 3. Round bound (hard maxRounds)
     if (proposal.round >= this.maxRounds) {
-      record.state = 'EXHAUSTED';
-      this.setRecord(record);
+      await this.casTransition(current, (r) => {
+        r.state = 'EXHAUSTED';
+        r.terminalReason = `round ${proposal.round} exceeds maxRounds ${this.maxRounds}`;
+      });
       this.emit({ type: 'negotiation.exhausted', negotiationId: record.negotiationId });
-      throw new Error(`round ${proposal.round} exceeds maxRounds ${this.maxRounds}`);
+      throw new NegotiationError('MAX_ROUNDS', `round ${proposal.round} exceeds maxRounds ${this.maxRounds}`);
     }
 
     // 4. Round continuity
-    if (proposal.round !== record.lastRound + 1) {
-      throw new Error(`round ${proposal.round} is not the expected ${record.lastRound + 1}`);
+    if (proposal.round !== current.lastRound + 1) {
+      throw new NegotiationError('ROUND_MISMATCH', `round ${proposal.round} is not the expected ${current.lastRound + 1}`);
     }
 
     // 5. One active branch — parent must be the current head
     if (proposal.round > 0) {
-      if (proposal.parentProposalId !== record.headProposalId) {
-        throw new Error('counter parent is not the current proposal head');
+      if (proposal.parentProposalId !== current.headProposalId) {
+        throw new NegotiationError(PURCHASE_ERROR_CODES.WRONG_HEAD, 'counter parent is not the current proposal head');
       }
     }
 
     // 6. Proposal expiry
-    if (now > proposal.expiresAt) throw new Error('proposal has expired');
+    if (now > proposal.expiresAt) throw new NegotiationError('PROPOSAL_EXPIRED', 'proposal has expired');
 
     // 7. Same-terms counter rejection
     const th = termsHash(proposal.terms);
     if (proposal.round > 0) {
-      const parent = record.proposals.find((p) => p.proposalId === proposal.parentProposalId);
+      const parent = current.proposals.find((p) => p.proposalId === proposal.parentProposalId);
       if (parent && parent.termsHash === th) {
-        throw new Error('counter does not change terms');
+        throw new NegotiationError('SAME_TERMS', 'counter does not change terms');
       }
     }
 
     // 8. Work verification (if work is enabled)
+    let workRecord = current;
     if (this.opts.workPolicy.getMode() !== 'disabled') {
       if (!proposal.workAdmission) {
-        throw new Error('proposal is missing required work admission proof');
+        throw new NegotiationError('MISSING_WORK', 'proposal is missing required work admission proof');
       }
       const challenge = this.issuedChallenges.get(`${proposal.negotiationId}:${proposal.round}`);
       if (!challenge) {
-        throw new Error('no challenge issued for this proposal');
+        throw new NegotiationError('NO_CHALLENGE', 'no challenge issued for this proposal');
       }
       const action = this.buildAction(proposal);
       const verification = await this.opts.txpow.verify(action, challenge, proposal.workAdmission);
       if (!verification.valid) {
-        throw new Error(`work admission invalid: ${verification.reason ?? 'unknown'}`);
+        throw new NegotiationError('WORK_INVALID', `work admission invalid: ${verification.reason ?? 'unknown'}`);
       }
-      // Consume the one-shot challenge.
+      // Consume the one-shot challenge (durable).
       const fp = this.opts.txpow.fingerprint(challenge);
-      if (!record.consumedChallenges.includes(fp)) {
-        record.consumedChallenges.push(fp);
-      }
-      // Track cumulative work.
-      record.cumulativeWork += this.opts.workPolicy.expectedHashes(challenge.target);
+      workRecord = await this.casTransition(workRecord, (r) => {
+        if (!r.consumedChallenges.includes(fp)) {
+          r.consumedChallenges.push(fp);
+        }
+        const outstanding = r.outstandingChallenges.find((c) => c.fingerprint === fp);
+        if (outstanding) outstanding.status = 'CONSUMED';
+        r.cumulativeWork += this.opts.workPolicy.expectedHashes(challenge.target);
+      });
     }
 
     // 9. Proposal signature verification
     const digest = proposalDigest(proposal);
     if (!this.opts.verifySignature({ digest, signature: proposal.signature, signerPublicKey: proposal.signerPublicKey })) {
-      throw new Error('proposal signature invalid');
+      throw new NegotiationError(PURCHASE_ERROR_CODES.INVALID_SIGNATURE, 'proposal signature invalid');
     }
 
-    // 10. Record the proposal
-    record.proposals.push({ proposalId: proposal.proposalId, round: proposal.round, termsHash: th });
-    record.termsHashes.push(th);
-    record.headProposalId = proposal.proposalId;
-    record.lastRound = proposal.round;
-    record.state = 'NEGOTIATING';
+    // 10. Record the proposal (atomic CAS).
+    const updated = await this.casTransition(workRecord, (r) => {
+      r.proposals.push({ proposalId: proposal.proposalId, round: proposal.round, termsHash: th });
+      r.termsHashes.push(th);
+      r.headProposalId = proposal.proposalId;
+      r.lastRound = proposal.round;
+      r.state = 'NEGOTIATING';
+    });
     this.fullProposals.set(proposal.proposalId, proposal);
-    this.setRecord(record);
     this.emit({
       type: proposal.round === 0 ? 'negotiation.proposed' : 'negotiation.countered',
       negotiationId: record.negotiationId,
       round: proposal.round,
     });
 
-    return record;
+    return updated;
   }
 
   /**
@@ -375,14 +432,14 @@ export class NegotiationEngine {
     const involvesUs = acceptance.recipient === this.opts.principal || acceptance.acceptor === this.opts.principal;
     if (!involvesUs) throw new Error('acceptance does not involve us');
 
-    const record = this.getRecord(acceptance.negotiationId);
+    const record = await this.getRecord(acceptance.negotiationId);
     if (!record) throw new Error('negotiation not found');
-    this.checkExpiry(record);
-    if (isTerminal(record.state)) throw new Error(`negotiation is ${record.state}`);
+    const current = await this.checkExpiry(record);
+    if (isTerminal(current.state)) throw new NegotiationError(PURCHASE_ERROR_CODES.TERMINAL_NEGOTIATION, `negotiation is ${current.state}`);
 
     // Must accept the current head.
-    if (acceptance.proposalId !== record.headProposalId) {
-      throw new Error('acceptance is for a stale/superseded proposal');
+    if (acceptance.proposalId !== current.headProposalId) {
+      throw new NegotiationError(PURCHASE_ERROR_CODES.STALE_PROPOSAL, 'acceptance is for a stale/superseded proposal');
     }
 
     const proposal = this.fullProposals.get(acceptance.proposalId);
@@ -391,7 +448,7 @@ export class NegotiationEngine {
     // Acceptance signature.
     const digest = acceptanceDigest(acceptance);
     if (!this.opts.verifySignature({ digest, signature: acceptance.signature, signerPublicKey: acceptance.signerPublicKey })) {
-      throw new Error('acceptance signature invalid');
+      throw new NegotiationError(PURCHASE_ERROR_CODES.INVALID_SIGNATURE, 'acceptance signature invalid');
     }
 
     // Build the immutable agreement.
@@ -410,8 +467,12 @@ export class NegotiationEngine {
       sellerSignature: proposal.signature,
     };
 
-    record.state = 'AGREED';
-    this.setRecord(record);
+    // Atomic CAS to AGREED with the agreement persisted.
+    await this.casTransition(current, (r) => {
+      r.state = 'AGREED';
+      r.agreement = agreement;
+      r.terminalReason = 'accepted';
+    });
     this.emit({ type: 'negotiation.accepted', negotiationId: record.negotiationId, proposalId: acceptance.proposalId });
     return agreement;
   }
@@ -423,23 +484,25 @@ export class NegotiationEngine {
     const involvesUs = rejection.recipient === this.opts.principal || rejection.rejector === this.opts.principal;
     if (!involvesUs) throw new Error('rejection does not involve us');
 
-    const record = this.getRecord(rejection.negotiationId);
+    const record = await this.getRecord(rejection.negotiationId);
     if (!record) throw new Error('negotiation not found');
-    this.checkExpiry(record);
-    if (isTerminal(record.state)) throw new Error(`negotiation is ${record.state}`);
-    if (rejection.proposalId !== record.headProposalId) {
-      throw new Error('rejection is for a stale/superseded proposal');
+    const current = await this.checkExpiry(record);
+    if (isTerminal(current.state)) throw new NegotiationError(PURCHASE_ERROR_CODES.TERMINAL_NEGOTIATION, `negotiation is ${current.state}`);
+    if (rejection.proposalId !== current.headProposalId) {
+      throw new NegotiationError(PURCHASE_ERROR_CODES.STALE_PROPOSAL, 'rejection is for a stale/superseded proposal');
     }
 
     const digest = rejectionDigest(rejection);
     if (!this.opts.verifySignature({ digest, signature: rejection.signature, signerPublicKey: rejection.signerPublicKey })) {
-      throw new Error('rejection signature invalid');
+      throw new NegotiationError(PURCHASE_ERROR_CODES.INVALID_SIGNATURE, 'rejection signature invalid');
     }
 
-    record.state = 'REJECTED';
-    this.setRecord(record);
+    await this.casTransition(current, (r) => {
+      r.state = 'REJECTED';
+      r.terminalReason = rejection.reason ?? 'rejected';
+    });
     this.emit({ type: 'negotiation.rejected', negotiationId: record.negotiationId, proposalId: rejection.proposalId });
-    this.principalCooldownUntil.set(this.opts.principal, this.now() + this.principalLimits.cooldownMs);
+    await this.principalStore.setCooldownUntil(this.opts.principal, this.now() + this.principalLimits.cooldownMs);
   }
 
   /** Cancel a negotiation. */
@@ -449,30 +512,32 @@ export class NegotiationEngine {
     const involvesUs = cancellation.recipient === this.opts.principal || cancellation.sender === this.opts.principal;
     if (!involvesUs) throw new Error('cancellation does not involve us');
 
-    const record = this.getRecord(cancellation.negotiationId);
+    const record = await this.getRecord(cancellation.negotiationId);
     if (!record) throw new Error('negotiation not found');
-    if (isTerminal(record.state)) throw new Error(`negotiation is ${record.state}`);
+    if (isTerminal(record.state)) throw new NegotiationError(PURCHASE_ERROR_CODES.TERMINAL_NEGOTIATION, `negotiation is ${record.state}`);
 
     const digest = cancellationDigest(cancellation);
     if (!this.opts.verifySignature({ digest, signature: cancellation.signature, signerPublicKey: cancellation.signerPublicKey })) {
-      throw new Error('cancellation signature invalid');
+      throw new NegotiationError(PURCHASE_ERROR_CODES.INVALID_SIGNATURE, 'cancellation signature invalid');
     }
 
-    record.state = 'CANCELLED';
-    this.setRecord(record);
+    await this.casTransition(record, (r) => {
+      r.state = 'CANCELLED';
+      r.terminalReason = cancellation.reason ?? 'cancelled';
+    });
   }
 
   /** Get the current state of a negotiation. */
-  getState(negotiationId: string): NegotiationState | undefined {
-    const record = this.getRecord(negotiationId);
+  async getState(negotiationId: string): Promise<NegotiationState | undefined> {
+    const record = await this.getRecord(negotiationId);
     if (!record) return undefined;
-    this.checkExpiry(record);
-    return record.state;
+    const current = await this.checkExpiry(record);
+    return current.state;
   }
 
   /** Get the proposal history for a negotiation. */
-  getHistory(negotiationId: string): TradeProposal[] {
-    const record = this.getRecord(negotiationId);
+  async getHistory(negotiationId: string): Promise<TradeProposal[]> {
+    const record = await this.getRecord(negotiationId);
     if (!record) return [];
     return record.proposals
       .map((p) => this.fullProposals.get(p.proposalId))
@@ -480,14 +545,19 @@ export class NegotiationEngine {
   }
 
   /** Get the terms hashes for a negotiation (for cycle detection). */
-  getTermsHashes(negotiationId: string): string[] {
-    const record = this.getRecord(negotiationId);
+  async getTermsHashes(negotiationId: string): Promise<string[]> {
+    const record = await this.getRecord(negotiationId);
     return record ? record.termsHashes : [];
   }
 
   /** Get cumulative work spent in a negotiation. */
-  getCumulativeWork(negotiationId: string): bigint {
-    const record = this.getRecord(negotiationId);
+  async getCumulativeWork(negotiationId: string): Promise<bigint> {
+    const record = await this.getRecord(negotiationId);
     return record ? record.cumulativeWork : 0n;
+  }
+
+  /** Get the durable record for a negotiation. */
+  async getRecordFor(negotiationId: string): Promise<NegotiationRecord | undefined> {
+    return this.getRecord(negotiationId);
   }
 }
