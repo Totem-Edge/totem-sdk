@@ -26,7 +26,8 @@
     "@totemsdk/core": "workspace:^",
     "@totemsdk/manifest": "workspace:^",
     "@totemsdk/identity": "workspace:^",
-    "@totemsdk/agent-policy": "workspace:^"
+    "@totemsdk/agent-policy": "workspace:^",
+    "@totemsdk/txpow": "workspace:^"
   },
   "peerDependencies": {
     "@totemsdk/connect": "workspace:^"
@@ -52,7 +53,7 @@
   },
   "license": "MIT",
   "author": "Totem SDK",
-  "homepage": "https://totem.ing",
+  "homepage": "https://docs.totem.ing",
   "bugs": {
     "url": "https://github.com/Totem-Edge/totem-sdk/issues"
   },

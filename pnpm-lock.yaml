@@ -455,6 +455,9 @@ importers:
       '@totemsdk/manifest':
         specifier: workspace:^
         version: link:../manifest
+      '@totemsdk/txpow':
+        specifier: workspace:^
+        version: link:../txpow
     devDependencies:
       '@totemsdk/connect':
         specifier: workspace:^
