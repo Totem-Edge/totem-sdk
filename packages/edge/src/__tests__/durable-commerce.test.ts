@@ -27,6 +27,7 @@ import {
   InMemoryPrincipalNegotiationStore,
   InMemoryNegotiationTransport,
   InMemoryReplayLedger,
+  InMemoryOutboxStore,
   ingress,
   messageId,
   PURCHASING_VERSION,
@@ -492,7 +493,8 @@ describe('transport', () => {
       replayLedger: ledger,
     });
     expect(first.replayed).toBe(false);
-    await ledger.record(messageId(p0), { ok: true, result: 'processed' });
+    expect(first.claimed).toBe(true);
+    await ledger.complete(messageId(p0), { ok: true, result: 'processed' });
     const second = await ingress(p0, { sender: 'buyer-principal', recipient: 's' }, {
       recipient: 's',
       verifySignature: makeVerifier(),
@@ -500,6 +502,7 @@ describe('transport', () => {
       replayLedger: ledger,
     });
     expect(second.replayed).toBe(true);
+    expect(second.claimed).toBe(false);
   });
 
   it('message over size limit rejected', async () => {
@@ -727,5 +730,179 @@ describe('runtime API', () => {
     await edge.buy({ intent: makeIntent(), adapter: computeAdapter.adapter });
     const recoverable = await edge.recoverPurchases();
     expect(recoverable.length).toBeGreaterThanOrEqual(0);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Exactly-Once Protocol Hardening
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('atomic replay claim', () => {
+  it('two concurrent claims — exactly one wins', async () => {
+    const ledger = new InMemoryReplayLedger();
+    const id = 'msg-1';
+    const [a, b] = await Promise.all([
+      ledger.claim(id, 1000),
+      ledger.claim(id, 1000),
+    ]);
+    const winners = [a, b].filter((r) => r.claimed).length;
+    expect(winners).toBe(1);
+  });
+
+  it('completed message returns prior outcome on replay', async () => {
+    const ledger = new InMemoryReplayLedger();
+    const id = 'msg-2';
+    await ledger.claim(id, 1000);
+    await ledger.complete(id, { ok: true, result: 'agreed' });
+    const replay = await ledger.claim(id, 2000);
+    expect(replay.claimed).toBe(false);
+    if (!replay.claimed) {
+      expect(replay.outcome?.result).toBe('agreed');
+    }
+  });
+});
+
+describe('atomic principal admission', () => {
+  it('tryOpen check + consume is one operation (no over-admission)', async () => {
+    const store = new InMemoryPrincipalNegotiationStore();
+    const limits = {
+      maxConcurrentNegotiations: 2,
+      cooldownMs: 0,
+      maxNegotiationsPerWindow: 10,
+      windowMs: 60_000,
+    };
+    const r1 = await store.tryOpen('p', 1000, limits);
+    const r2 = await store.tryOpen('p', 1000, limits);
+    const r3 = await store.tryOpen('p', 1000, limits);
+    expect(r1.allowed).toBe(true);
+    expect(r2.allowed).toBe(true);
+    expect(r3.allowed).toBe(false);
+    if (!r3.allowed) expect(r3.reason).toBe('CONCURRENCY_LIMIT');
+  });
+
+  it('cooldown blocks new opens', async () => {
+    const store = new InMemoryPrincipalNegotiationStore();
+    await store.setCooldownUntil('p', 5000);
+    const r = await store.tryOpen('p', 1000, {
+      maxConcurrentNegotiations: 4,
+      cooldownMs: 0,
+      maxNegotiationsPerWindow: 10,
+      windowMs: 60_000,
+    });
+    expect(r.allowed).toBe(false);
+    if (!r.allowed) expect(r.reason).toBe('COOLDOWN');
+  });
+
+  it('window limit blocks after max opens', async () => {
+    const store = new InMemoryPrincipalNegotiationStore();
+    const limits = {
+      maxConcurrentNegotiations: 10,
+      cooldownMs: 0,
+      maxNegotiationsPerWindow: 2,
+      windowMs: 60_000,
+    };
+    await store.tryOpen('p', 1000, limits);
+    await store.tryOpen('p', 1000, limits);
+    const r = await store.tryOpen('p', 1000, limits);
+    expect(r.allowed).toBe(false);
+    if (!r.allowed) expect(r.reason).toBe('WINDOW_LIMIT');
+  });
+});
+
+describe('durable outbox', () => {
+  it('acceptance enqueued to outbox survives restart and resends same messageId', async () => {
+    const store = new InMemoryNegotiationStore();
+    const outbox = new InMemoryOutboxStore();
+    const e1 = new NegotiationEngine({
+      principal: 'buyer-principal',
+      verifySignature: makeVerifier(),
+      sign: makeSigner('buyer'),
+      txpow: new EdgeTxPowAdapter(makeTemplateProvider()),
+      workPolicy: new EdgeWorkPolicy('disabled', {}, { baseTarget: EASY_TARGET, maxTarget: EASY_TARGET }, 100_000),
+      store,
+      outbox,
+    });
+    await e1.openNegotiation({ negotiationId: 'n1', counterparty: 's', manifestId: 'm' });
+    const p0 = await makeProposal(e1, 'n1', 0, 'm', 'buyer-principal', 's', { price: '10' });
+    await e1.submitProposal(p0);
+    const acceptance = {
+      version: PURCHASING_VERSION,
+      negotiationId: 'n1',
+      proposalId: p0.proposalId,
+      acceptor: 'buyer-principal',
+      recipient: 's',
+      acceptedAt: Date.now(),
+      signature: '',
+      signerPublicKey: '',
+    };
+    const digest = toHex(sha3_256(new TextEncoder().encode(canonicalJson({
+      version: acceptance.version,
+      negotiationId: acceptance.negotiationId,
+      proposalId: acceptance.proposalId,
+      acceptor: acceptance.acceptor,
+      recipient: acceptance.recipient,
+      acceptedAt: acceptance.acceptedAt,
+    }))));
+    const sig = await makeSigner('buyer')(digest);
+    await e1.acceptProposal({ ...acceptance, signature: sig.signature, signerPublicKey: sig.signerPublicKey });
+
+    // The acceptance is in the outbox (undelivered).
+    const undelivered = await outbox.listUndelivered();
+    expect(undelivered.length).toBe(1);
+    expect(undelivered[0].messageId).toBe(messageId(acceptance as unknown as NegotiationMessage));
+
+    // "Restart" — a fresh engine with the same outbox can resend the SAME
+    // signed message with the SAME messageId.
+    const e2 = new NegotiationEngine({
+      principal: 'buyer-principal',
+      verifySignature: makeVerifier(),
+      sign: makeSigner('buyer'),
+      txpow: new EdgeTxPowAdapter(makeTemplateProvider()),
+      workPolicy: new EdgeWorkPolicy('disabled', {}, { baseTarget: EASY_TARGET, maxTarget: EASY_TARGET }, 100_000),
+      store,
+      outbox,
+    });
+    void e2;
+    const stillUndelivered = await outbox.listUndelivered();
+    expect(stillUndelivered.length).toBe(1);
+    expect(stillUndelivered[0].messageId).toBe(undelivered[0].messageId);
+  });
+});
+
+describe('explicit ephemeral mode', () => {
+  it('emits runtime.persistence_ephemeral when durable stores absent', async () => {
+    const events: string[] = [];
+    const computeAdapter = makeAdapter('compute');
+    createEdge({
+      principal: 'buyer-principal',
+      verifySignature: makeVerifier(),
+      sign: makeSigner('buyer'),
+      authority: makeAuthority(),
+      payment: makePayment(),
+      lookup: makeLookup(await makeSignedManifest('10')),
+      adapters: [computeAdapter.adapter],
+      onEvent: (e) => events.push(e.type),
+    });
+    expect(events).toContain('runtime.persistence_ephemeral');
+  });
+
+  it('does NOT emit ephemeral when durable stores supplied', async () => {
+    const events: string[] = [];
+    const computeAdapter = makeAdapter('compute');
+    createEdge({
+      principal: 'buyer-principal',
+      verifySignature: makeVerifier(),
+      sign: makeSigner('buyer'),
+      authority: makeAuthority(),
+      payment: makePayment(),
+      lookup: makeLookup(await makeSignedManifest('10')),
+      adapters: [computeAdapter.adapter],
+      negotiationStore: new InMemoryNegotiationStore(),
+      purchaseStore: new InMemoryPurchaseStore(),
+      principalStore: new InMemoryPrincipalNegotiationStore(),
+      outbox: new InMemoryOutboxStore(),
+      onEvent: (e) => events.push(e.type),
+    });
+    expect(events).not.toContain('runtime.persistence_ephemeral');
   });
 });

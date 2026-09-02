@@ -58,12 +58,31 @@ export interface PurchaseStore {
  * Concurrent negotiations, cooldown, and window counts must not reset
  * trivially on process restart. This is protocol admission accounting only —
  * NOT a global reputation system.
+ *
+ * `tryOpen` is ATOMIC: checking limits and consuming capacity is one
+ * operation. Two negotiations cannot simultaneously inspect a limit, both
+ * decide admission is allowed, then both record themselves and exceed it.
  */
 export interface PrincipalNegotiationStore {
-  /** Record that a principal opened a negotiation at the given time. */
-  recordOpened(principal: string, openedAt: number): Promise<void>;
-  /** List the timestamps of negotiations opened by a principal. */
-  listOpened(principal: string): Promise<number[]>;
+  /**
+   * Atomically check limits AND consume capacity. Returns `{ allowed: true }`
+   * when the principal may open a negotiation, or a typed rejection reason.
+   */
+  tryOpen(
+    principal: string,
+    now: number,
+    limits: {
+      maxConcurrentNegotiations: number;
+      cooldownMs: number;
+      maxNegotiationsPerWindow: number;
+      windowMs: number;
+    },
+  ): Promise<
+    | { allowed: true }
+    | { allowed: false; reason: 'CONCURRENCY_LIMIT' | 'COOLDOWN' | 'WINDOW_LIMIT' }
+  >;
+  /** Atomically release capacity for a principal (e.g. on terminal state). */
+  close(principal: string, openedAt: number): Promise<void>;
   /** Get the cooldown-until timestamp for a principal (0 = none). */
   getCooldownUntil(principal: string): Promise<number>;
   /** Set the cooldown-until timestamp for a principal. */
@@ -150,14 +169,48 @@ export class InMemoryPrincipalNegotiationStore implements PrincipalNegotiationSt
   private readonly opened = new Map<string, number[]>();
   private readonly cooldown = new Map<string, number>();
 
-  async recordOpened(principal: string, openedAt: number): Promise<void> {
+  async tryOpen(
+    principal: string,
+    now: number,
+    limits: {
+      maxConcurrentNegotiations: number;
+      cooldownMs: number;
+      maxNegotiationsPerWindow: number;
+      windowMs: number;
+    },
+  ): Promise<
+    | { allowed: true }
+    | { allowed: false; reason: 'CONCURRENCY_LIMIT' | 'COOLDOWN' | 'WINDOW_LIMIT' }
+  > {
+    // Cooldown check.
+    const cooldownUntil = this.cooldown.get(principal) ?? 0;
+    if (now < cooldownUntil) {
+      return { allowed: false, reason: 'COOLDOWN' };
+    }
+
+    // Window check (recent opens within the window).
+    const recent = (this.opened.get(principal) ?? []).filter((t) => now - t < limits.windowMs);
+    if (recent.length >= limits.maxNegotiationsPerWindow) {
+      return { allowed: false, reason: 'WINDOW_LIMIT' };
+    }
+
+    // Concurrency check (active = opened minus closed).
+    const active = (this.opened.get(principal) ?? []).length - (this.closed.get(principal) ?? 0);
+    if (active >= limits.maxConcurrentNegotiations) {
+      return { allowed: false, reason: 'CONCURRENCY_LIMIT' };
+    }
+
+    // Consume capacity atomically.
     const list = this.opened.get(principal) ?? [];
-    list.push(openedAt);
+    list.push(now);
     this.opened.set(principal, list);
+    return { allowed: true };
   }
 
-  async listOpened(principal: string): Promise<number[]> {
-    return [...(this.opened.get(principal) ?? [])];
+  private readonly closed = new Map<string, number>();
+
+  async close(principal: string, _openedAt: number): Promise<void> {
+    this.closed.set(principal, (this.closed.get(principal) ?? 0) + 1);
   }
 
   async getCooldownUntil(principal: string): Promise<number> {

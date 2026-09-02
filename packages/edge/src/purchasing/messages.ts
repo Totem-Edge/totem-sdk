@@ -58,28 +58,76 @@ function payloadHash(msg: NegotiationMessage): string {
 }
 
 /**
- * Replay ledger — persists enough information to answer
- * "have I already processed this exact signed message?"
+ * Replay outcome — the durable result of processing a message.
  */
-export interface ReplayLedger {
-  /** Record a processed message ID with its outcome. */
-  record(messageId: string, outcome: { ok: boolean; result?: string; error?: string }): Promise<void>;
-  /** Look up a previously processed message. */
-  get(messageId: string): Promise<{ ok: boolean; result?: string; error?: string } | undefined>;
+export interface ReplayOutcome {
+  ok: boolean;
+  result?: string;
+  error?: string;
 }
 
-/** In-memory replay ledger (dev/test). */
-export class InMemoryReplayLedger implements ReplayLedger {
-  private readonly entries = new Map<string, { ok: boolean; result?: string; error?: string }>();
+/**
+ * A durable replay entry.
+ */
+export interface ReplayEntry {
+  messageId: string;
+  /** When the message was first claimed. */
+  claimedAt: number;
+  /** When processing completed (undefined while in-flight). */
+  completedAt?: number;
+  outcome?: ReplayOutcome;
+}
 
-  async record(
+/**
+ * Replay ledger — persists enough information to answer
+ * "have I already processed this exact signed message?"
+ *
+ * The `claim` operation is ATOMIC: two identical messages arriving
+ * concurrently cannot both observe "not present" before either records the
+ * result. Exactly one caller wins the claim; the other takes the replay path.
+ */
+export interface ReplayLedger {
+  /**
+   * Atomically claim a message for processing. Returns `{ claimed: true }`
+   * when this caller won the claim, or `{ claimed: false, outcome }` when the
+   * message was already claimed/completed (replay path).
+   */
+  claim(
     messageId: string,
-    outcome: { ok: boolean; result?: string; error?: string },
-  ): Promise<void> {
-    this.entries.set(messageId, outcome);
+    receivedAt: number,
+  ): Promise<{ claimed: true } | { claimed: false; outcome?: ReplayOutcome }>;
+  /** Mark a claimed message as durably processed with its outcome. */
+  complete(messageId: string, outcome: ReplayOutcome): Promise<void>;
+  /** Look up a previously processed message. */
+  get(messageId: string): Promise<ReplayEntry | undefined>;
+}
+
+/** In-memory replay ledger (dev/test). Atomic within a single process. */
+export class InMemoryReplayLedger implements ReplayLedger {
+  private readonly entries = new Map<string, ReplayEntry>();
+
+  async claim(
+    messageId: string,
+    receivedAt: number,
+  ): Promise<{ claimed: true } | { claimed: false; outcome?: ReplayOutcome }> {
+    const existing = this.entries.get(messageId);
+    if (existing) {
+      return { claimed: false, outcome: existing.outcome };
+    }
+    this.entries.set(messageId, { messageId, claimedAt: receivedAt });
+    return { claimed: true };
   }
 
-  async get(messageId: string): Promise<{ ok: boolean; result?: string; error?: string } | undefined> {
+  async complete(messageId: string, outcome: ReplayOutcome): Promise<void> {
+    const existing = this.entries.get(messageId);
+    if (!existing) {
+      this.entries.set(messageId, { messageId, claimedAt: Date.now(), completedAt: Date.now(), outcome });
+      return;
+    }
+    this.entries.set(messageId, { ...existing, completedAt: Date.now(), outcome });
+  }
+
+  async get(messageId: string): Promise<ReplayEntry | undefined> {
     return this.entries.get(messageId);
   }
 }

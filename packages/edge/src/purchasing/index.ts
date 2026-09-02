@@ -47,6 +47,11 @@ export {
   type PurchaseStatus,
   TERMINAL_PURCHASE_STATUSES,
 } from './purchase.js';
+export {
+  type OutboxStore,
+  type OutboxEntry,
+  InMemoryOutboxStore,
+} from './outbox.js';
 
 export {
   PURCHASING_VERSION,

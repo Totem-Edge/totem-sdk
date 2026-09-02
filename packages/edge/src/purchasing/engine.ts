@@ -56,6 +56,8 @@ import {
   type NegotiationStore,
   type PrincipalNegotiationStore,
 } from './store.js';
+import { InMemoryOutboxStore, type OutboxStore } from './outbox.js';
+import { messageId } from './messages.js';
 import { NegotiationError, PURCHASE_ERROR_CODES } from './errors.js';
 
 /** Signature verification function injected by the caller. */
@@ -89,6 +91,8 @@ export interface NegotiationEngineOptions {
   store?: NegotiationStore;
   /** Durable principal anti-abuse store. When omitted, in-memory. */
   principalStore?: PrincipalNegotiationStore;
+  /** Durable outbox for persist-then-send crash safety. When omitted, in-memory. */
+  outbox?: import('./outbox.js').OutboxStore;
 }
 
 export class NegotiationEngine {
@@ -101,6 +105,7 @@ export class NegotiationEngine {
   private readonly principalLimits: Required<PrincipalLimits>;
   private readonly store: NegotiationStore;
   private readonly principalStore: PrincipalNegotiationStore;
+  private readonly outbox: OutboxStore;
 
   constructor(private readonly opts: NegotiationEngineOptions) {
     this.onEvent = opts.onEvent;
@@ -117,6 +122,7 @@ export class NegotiationEngine {
     };
     this.store = opts.store ?? new InMemoryNegotiationStore();
     this.principalStore = opts.principalStore ?? new InMemoryPrincipalNegotiationStore();
+    this.outbox = opts.outbox ?? new InMemoryOutboxStore();
   }
 
   private emit(event: PurchaseEvent): void {
@@ -153,19 +159,10 @@ export class NegotiationEngine {
     return next;
   }
 
-  private async principalActiveCount(principal: string): Promise<number> {
-    const recoverable = (await this.store.listRecoverable?.()) ?? [];
-    return recoverable.filter((r) => r.principal === principal).length;
-  }
-
-  private async principalRecentCount(principal: string, now: number): Promise<number> {
-    const opened = await this.principalStore.listOpened(principal);
-    return opened.filter((t) => now - t < this.principalLimits.windowMs).length;
-  }
-
   /**
    * Open a new negotiation. Enforces per-principal concurrency, cooldown, and
-   * window limits. Returns the negotiation record.
+   * window limits ATOMICALLY (check + consume is one operation). Returns the
+   * negotiation record.
    */
   async openNegotiation(opts: {
     negotiationId: string;
@@ -176,26 +173,16 @@ export class NegotiationEngine {
     const now = this.now();
     const principal = this.opts.principal;
 
-    // Cooldown after terminal failure.
-    const cooldownUntil = await this.principalStore.getCooldownUntil(principal);
-    if (now < cooldownUntil) {
-      throw new NegotiationError('PRINCIPAL_COOLDOWN', 'principal is in negotiation cooldown');
-    }
-
-    // Concurrency limit.
-    if ((await this.principalActiveCount(principal)) >= this.principalLimits.maxConcurrentNegotiations) {
-      throw new NegotiationError(
-        'PRINCIPAL_CONCURRENCY',
-        'principal has too many concurrent negotiations',
-      );
-    }
-
-    // Window limit.
-    if ((await this.principalRecentCount(principal, now)) >= this.principalLimits.maxNegotiationsPerWindow) {
-      throw new NegotiationError(
-        'PRINCIPAL_WINDOW',
-        'principal has opened too many negotiations in the window',
-      );
+    // Atomic admission: check limits AND consume capacity in one operation.
+    const admission = await this.principalStore.tryOpen(principal, now, this.principalLimits);
+    if (!admission.allowed) {
+      const reason =
+        admission.reason === 'COOLDOWN'
+          ? 'principal is in negotiation cooldown'
+          : admission.reason === 'WINDOW_LIMIT'
+            ? 'principal has opened too many negotiations in the window'
+            : 'principal has too many concurrent negotiations';
+      throw new NegotiationError(`PRINCIPAL_${admission.reason}`, reason);
     }
 
     const expiresAt = opts.expiresAt ?? this.defaultExpiresAt;
@@ -209,7 +196,6 @@ export class NegotiationEngine {
     });
 
     await this.store.create(record);
-    await this.principalStore.recordOpened(principal, now);
     this.emit({ type: 'negotiation.opened', negotiationId: opts.negotiationId });
     return record;
   }
@@ -473,6 +459,20 @@ export class NegotiationEngine {
       r.agreement = agreement;
       r.terminalReason = 'accepted';
     });
+
+    // Durable outbox: enqueue the acceptance for delivery to the counterparty.
+    // If we crash before the transport sends it, the outbox resends the SAME
+    // signed message with the SAME messageId on restart.
+    const outboxMessage = acceptance as unknown as import('./types.js').NegotiationMessage;
+    const outboxId = messageId(outboxMessage);
+    await this.outbox.enqueue({
+      messageId: outboxId,
+      recipient: proposal.recipient,
+      message: outboxMessage,
+      enqueuedAt: now,
+      attempts: 0,
+    });
+
     this.emit({ type: 'negotiation.accepted', negotiationId: record.negotiationId, proposalId: acceptance.proposalId });
     return agreement;
   }

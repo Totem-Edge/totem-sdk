@@ -29,6 +29,7 @@ import type { NegotiationTransport } from './purchasing/transport.js';
 import { InMemoryNegotiationTransport } from './purchasing/transport.js';
 import type { ReplayLedger } from './purchasing/messages.js';
 import { InMemoryReplayLedger } from './purchasing/messages.js';
+import { InMemoryOutboxStore, type OutboxStore } from './purchasing/outbox.js';
 import type { MinimaWorkRelay, MinimaWorkTemplateProvider } from '@totemsdk/txpow';
 import type {
   LocalWorkBudget,
@@ -122,6 +123,14 @@ export interface CreateEdgeOptions {
   negotiationTransport?: NegotiationTransport;
   /** Replay ledger (optional — in-memory dev mode). */
   replayLedger?: ReplayLedger;
+  /** Durable outbox (optional — in-memory dev mode). */
+  outbox?: import('./purchasing/outbox.js').OutboxStore;
+  /**
+   * Explicit persistence mode. When 'ephemeral' (or when durable stores are
+   * not supplied), the runtime emits `runtime.persistence_ephemeral` on
+   * startup so operators never mistake dev mode for crash guarantees.
+   */
+  persistence?: 'ephemeral' | 'durable';
   /** Event sink. */
   onEvent?: (event: PurchaseEvent) => void;
   /** Current time (for deterministic tests). */
@@ -179,6 +188,8 @@ export function createEdge(opts: CreateEdgeOptions): EdgeCommerceRuntime {
     principalStore,
     negotiationTransport,
     replayLedger,
+    outbox,
+    persistence,
     onEvent,
     now,
   } = opts;
@@ -203,6 +214,14 @@ export function createEdge(opts: CreateEdgeOptions): EdgeCommerceRuntime {
     hashRatePerSec ?? 100_000,
   );
 
+  // Explicit ephemeral mode: emit a startup event when durable stores are
+  // not supplied, so operators never mistake dev mode for crash guarantees.
+  const durable = Boolean(negotiationStore && purchaseStore && principalStore && outbox);
+  const isEphemeral = persistence === 'ephemeral' || !durable;
+  if (isEphemeral) {
+    onEvent?.({ type: 'runtime.persistence_ephemeral' } as PurchaseEvent);
+  }
+
   const buyer = new EdgeBuyer({
     principal,
     verifySignature,
@@ -218,6 +237,7 @@ export function createEdge(opts: CreateEdgeOptions): EdgeCommerceRuntime {
     purchaseStore: purchaseStore ?? new InMemoryPurchaseStore(),
     negotiationStore: negotiationStore ?? new InMemoryNegotiationStore(),
     principalStore: principalStore ?? new InMemoryPrincipalNegotiationStore(),
+    outbox: outbox ?? new InMemoryOutboxStore(),
   });
 
   // Wire the authenticated transport to the buyer's engine (if supplied).

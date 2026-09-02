@@ -128,4 +128,7 @@ export {
   idempotencyKey,
   TERMINAL_PURCHASE_STATUSES,
   PURCHASE_ERROR_CODES,
+  type OutboxStore,
+  type OutboxEntry,
+  InMemoryOutboxStore,
 } from './purchasing/index.js';

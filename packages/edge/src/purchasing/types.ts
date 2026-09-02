@@ -387,6 +387,7 @@ export interface NegotiationResult {
 
 /** Events emitted by the purchasing engine. */
 export type PurchaseEvent =
+  | { type: 'runtime.persistence_ephemeral' }
   | { type: 'purchase.requested'; intent: PurchaseIntent }
   | { type: 'purchase.discovered'; manifestId: string }
   | { type: 'negotiation.opened'; negotiationId: string }

@@ -50,11 +50,20 @@ export interface IngressResult {
   replayed: boolean;
   /** Prior outcome when replayed. */
   priorOutcome?: { ok: boolean; result?: string; error?: string };
+  /**
+   * True when this caller won the atomic replay claim and must process the
+   * message. When false, the message was already claimed/completed — take the
+   * replay path (return the prior outcome, do not re-process).
+   */
+  claimed: boolean;
 }
 
 /**
  * Run the authenticated ingress pipeline. Returns the authenticated message
  * and sender, or throws a typed error.
+ *
+ * The replay claim is ATOMIC: two identical messages arriving concurrently
+ * cannot both observe "not present". Exactly one caller wins the claim.
  */
 export async function ingress(
   raw: unknown,
@@ -100,12 +109,18 @@ export async function ingress(
     throw new NegotiationError(PURCHASE_ERROR_CODES.INVALID_SIGNATURE, 'message signature invalid');
   }
 
-  // 6. Message ID / replay check
+  // 6. Atomic message ID / replay claim
   const id = messageId(msg);
-  const prior = await opts.replayLedger.get(id);
-  if (prior) {
-    return { message: msg, sender: context.sender, replayed: true, priorOutcome: prior };
+  const claim = await opts.replayLedger.claim(id, Date.now());
+  if (!claim.claimed) {
+    return {
+      message: msg,
+      sender: context.sender,
+      replayed: true,
+      priorOutcome: claim.outcome,
+      claimed: false,
+    };
   }
 
-  return { message: msg, sender: context.sender, replayed: false };
+  return { message: msg, sender: context.sender, replayed: false, claimed: true };
 }
