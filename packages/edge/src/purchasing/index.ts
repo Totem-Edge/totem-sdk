@@ -15,10 +15,12 @@ export { EdgeWorkPolicy, EdgeTxPowAdapter } from './admission.js';
 export { createPurchaseSession, type SessionOptions } from './session.js';
 export { PurchaseError, NegotiationError, PURCHASE_ERROR_CODES } from './errors.js';
 export { termsHash, proposalDigest, workRequiredDigest } from './terms.js';
+export { type NegotiationRecord, createNegotiationRecord } from './state.js';
 export {
   type NegotiationStore,
   type PurchaseStore,
   type PrincipalNegotiationStore,
+  type OutboxMessage,
   InMemoryNegotiationStore,
   InMemoryPurchaseStore,
   InMemoryPrincipalNegotiationStore,
@@ -32,6 +34,8 @@ export {
   messageId,
   messageType,
   type ReplayLedger,
+  type ReplayEntry,
+  type ReplayOutcome,
   InMemoryReplayLedger,
 } from './messages.js';
 export {

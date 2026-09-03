@@ -118,6 +118,19 @@ export interface CreateEdgeOptions {
   purchaseStore?: PurchaseStore;
   /** Durable principal anti-abuse store (optional — in-memory dev mode). */
   principalStore?: PrincipalNegotiationStore;
+  /**
+   * Aggregated durable commerce store (negotiations + purchases + replay +
+   * principals + outbox in one physical backend). When supplied, it takes
+   * precedence over the individual store options. A SQLiteCommerceStore from
+   * @totemsdk/edge-adapters is the production reference.
+   */
+  commerceStore?: {
+    negotiations: NegotiationStore;
+    purchases: PurchaseStore;
+    replay: ReplayLedger;
+    principals: PrincipalNegotiationStore;
+    outbox: import('./purchasing/outbox.js').OutboxStore;
+  };
   /** Authenticated negotiation transport (optional — local/programmatic only). */
   negotiationTransport?: NegotiationTransport;
   /** Replay ledger (optional — in-memory dev mode). */
@@ -183,6 +196,7 @@ export function createEdge(opts: CreateEdgeOptions): EdgeCommerceRuntime {
     negotiationStore,
     purchaseStore,
     principalStore,
+    commerceStore,
     negotiationTransport,
     replayLedger,
     persistence,
@@ -212,7 +226,7 @@ export function createEdge(opts: CreateEdgeOptions): EdgeCommerceRuntime {
 
   // Explicit ephemeral mode: emit a startup event when durable stores are
   // not supplied, so operators never mistake dev mode for crash guarantees.
-  const durable = Boolean(negotiationStore && purchaseStore && principalStore);
+  const durable = Boolean(commerceStore || (negotiationStore && purchaseStore && principalStore));
   const isEphemeral = persistence === 'ephemeral' || !durable;
   if (isEphemeral) {
     onEvent?.({ type: 'runtime.persistence_ephemeral' } as PurchaseEvent);
@@ -230,9 +244,9 @@ export function createEdge(opts: CreateEdgeOptions): EdgeCommerceRuntime {
     adapters,
     onEvent,
     now,
-    purchaseStore: purchaseStore ?? new InMemoryPurchaseStore(),
-    negotiationStore: negotiationStore ?? new InMemoryNegotiationStore(),
-    principalStore: principalStore ?? new InMemoryPrincipalNegotiationStore(),
+    purchaseStore: commerceStore?.purchases ?? purchaseStore ?? new InMemoryPurchaseStore(),
+    negotiationStore: commerceStore?.negotiations ?? negotiationStore ?? new InMemoryNegotiationStore(),
+    principalStore: commerceStore?.principals ?? principalStore ?? new InMemoryPrincipalNegotiationStore(),
   });
 
   // Wire the authenticated transport to the buyer's engine (if supplied).
@@ -250,7 +264,7 @@ export function createEdge(opts: CreateEdgeOptions): EdgeCommerceRuntime {
     buy: (options) => buyer.buy(options),
     negotiate: (options) => buyer.negotiate(options),
     recoverPurchases: async () => {
-      const store = purchaseStore ?? new InMemoryPurchaseStore();
+      const store = commerceStore?.purchases ?? purchaseStore ?? new InMemoryPurchaseStore();
       const recoverable = (await store.listRecoverable?.()) ?? [];
       // Reconcile principal admission slots against active negotiations so
       // crashed processes cannot leak capacity.

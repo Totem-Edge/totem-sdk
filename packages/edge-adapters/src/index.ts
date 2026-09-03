@@ -28,3 +28,10 @@ export type { OmniaHostPortConfig } from './omnia.js';
 export { createStreamPortAdapter } from './stream.js';
 
 export { createPubSubPortAdapter } from './pubsub.js';
+
+export {
+  SQLiteCommerceStore,
+  createSQLiteCommerceStore,
+  type CommerceStore,
+  type SQLiteCommerceStoreConfig,
+} from './sqlite-commerce-store.js';

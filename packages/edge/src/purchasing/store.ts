@@ -150,10 +150,14 @@ export interface PrincipalNegotiationStore {
  */
 export class InMemoryNegotiationStore implements NegotiationStore {
   private readonly records = new Map<string, NegotiationRecord>();
-  private readonly outbox = new InMemoryOutboxStore();
+  private readonly outbox: InMemoryOutboxStore;
   /** A simple FIFO promise queue so concurrent transitionAndEnqueue calls
    *  serialize within a single process (atomic within the process). */
   private queue: Promise<unknown> = Promise.resolve();
+
+  constructor(outbox?: InMemoryOutboxStore) {
+    this.outbox = outbox ?? new InMemoryOutboxStore();
+  }
 
   private enqueueLock<T>(fn: () => Promise<T>): Promise<T> {
     const next = this.queue.then(fn, fn);
