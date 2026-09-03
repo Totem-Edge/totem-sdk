@@ -27,6 +27,8 @@ import {
 } from './purchasing/store.js';
 import type { NegotiationTransport } from './purchasing/transport.js';
 import { InMemoryNegotiationTransport } from './purchasing/transport.js';
+import { createOutboxDrainer } from './purchasing/outbox-drainer.js';
+import { InMemoryOutboxStore } from './purchasing/outbox.js';
 import type { ReplayLedger } from './purchasing/messages.js';
 import { InMemoryReplayLedger } from './purchasing/messages.js';
 import type { MinimaWorkRelay, MinimaWorkTemplateProvider } from '@totemsdk/txpow';
@@ -164,6 +166,12 @@ export interface EdgeCommerceRuntime {
   }): Promise<NegotiationResult>;
   /** Recover in-flight purchases after a restart (inspects durable state first). */
   recoverPurchases(): Promise<Array<{ purchaseId: string; status: string }>>;
+  /** Drain undelivered outbox messages (bounded attempts, durable receipt). */
+  drainOutbox(): Promise<{ delivered: number; retrying: number; held: number }>;
+  /** Start a periodic outbox drain loop (caller controls cadence). */
+  startOutbox(intervalMs?: number): void;
+  /** Stop the periodic outbox drain loop. */
+  stopOutbox(): void;
   /** The underlying buyer (advanced use). */
   buyer: EdgeBuyer;
 }
@@ -250,25 +258,34 @@ export function createEdge(opts: CreateEdgeOptions): EdgeCommerceRuntime {
   });
 
   // Wire the authenticated transport to the buyer's engine (if supplied).
-  if (negotiationTransport) {
-    const engine = buyer['engine'] as import('./purchasing/engine.js').NegotiationEngine;
-    const ledger = replayLedger ?? new InMemoryReplayLedger();
-    void engine;
-    void ledger;
-    // The transport subscription is wired by the application layer via the
-    // ingress pipeline. The engine itself remains transport-agnostic.
-  }
+  // The outbox drainer resends undelivered messages with the same messageId,
+  // marking delivered only on a durable remote receipt.
+  const outboxStore = commerceStore?.outbox ?? new InMemoryOutboxStore();
+  const drainer = negotiationTransport
+    ? createOutboxDrainer({
+        transport: negotiationTransport,
+        outbox: outboxStore,
+        onEvent: (e) => onEvent?.(e as unknown as PurchaseEvent),
+      })
+    : null;
 
   return {
     buyer,
     buy: (options) => buyer.buy(options),
     negotiate: (options) => buyer.negotiate(options),
+    drainOutbox: () => drainer?.drain() ?? Promise.resolve({ delivered: 0, retrying: 0, held: 0 }),
+    startOutbox: (intervalMs?: number) => drainer?.start(intervalMs),
+    stopOutbox: () => drainer?.stop(),
     recoverPurchases: async () => {
       const store = commerceStore?.purchases ?? purchaseStore ?? new InMemoryPurchaseStore();
       const recoverable = (await store.listRecoverable?.()) ?? [];
       // Reconcile principal admission slots against active negotiations so
       // crashed processes cannot leak capacity.
       await buyer.reconcilePrincipalSlots();
+      // Resume undelivered outbox messages (same messageId, durable receipt).
+      if (drainer) {
+        await drainer.drain();
+      }
       // Actively resume resources whose state is known and idempotent.
       const resumed: Array<{ purchaseId: string; status: string }> = [];
       for (const r of recoverable) {

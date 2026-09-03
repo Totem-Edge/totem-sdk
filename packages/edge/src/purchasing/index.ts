@@ -28,8 +28,15 @@ export {
 export {
   type NegotiationTransport,
   type TransportMessageContext,
+  type DeliveryReceipt,
   InMemoryNegotiationTransport,
 } from './transport.js';
+export {
+  createOutboxDrainer,
+  deliverOne,
+  type OutboxDrainer,
+  type OutboxDrainerOptions,
+} from './outbox-drainer.js';
 export {
   messageId,
   messageType,

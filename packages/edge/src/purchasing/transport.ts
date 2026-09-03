@@ -15,6 +15,21 @@
 
 import type { NegotiationMessage } from './types.js';
 
+/**
+ * A durable delivery receipt.
+ *
+ * Means ONLY: "the remote machine durably received/claimed this exact logical
+ * message (messageId)". It does NOT mean "I accept your economic proposal" —
+ * that is ProposalAcceptance. Never conflate the two.
+ */
+export interface DeliveryReceipt {
+  messageId: string;
+  /** Epoch ms when the remote durably processed (claimed) the message. */
+  receivedAt: number;
+  /** Always true — a receipt is only produced after durable processing. */
+  durablyProcessed: true;
+}
+
 /** Context passed to the transport handler for an inbound message. */
 export interface TransportMessageContext {
   /** The authenticated sender address (resolved by the transport). */
@@ -27,9 +42,18 @@ export interface TransportMessageContext {
 
 export type Unsubscribe = () => void;
 
-/** Authenticated negotiation transport boundary. */
+/**
+ * Authenticated negotiation transport boundary.
+ *
+ * `send` returns a DeliveryReceipt when the transport can prove the remote
+ * machine durably received/claimed the message (request/response or a durable
+ * acknowledgement), or `undefined` when the transport is fire-and-forget
+ * (e.g. pub/sub) and cannot prove durable remote processing. The outbox
+ * drainer must NOT mark a message delivered when `undefined` is returned —
+ * local transmission is not durable delivery.
+ */
 export interface NegotiationTransport {
-  send(recipient: string, message: NegotiationMessage): Promise<void>;
+  send(recipient: string, message: NegotiationMessage): Promise<DeliveryReceipt | undefined>;
   subscribe(
     handler: (
       message: NegotiationMessage,
@@ -40,7 +64,8 @@ export interface NegotiationTransport {
 
 /**
  * Deterministic in-memory transport for tests and local/programmatic
- * negotiation. Delivers messages synchronously to subscribed handlers.
+ * negotiation. Delivers messages synchronously to subscribed handlers, and
+ * returns a DeliveryReceipt when the handler is present (durably delivered).
  */
 export class InMemoryNegotiationTransport implements NegotiationTransport {
   private readonly handlers: Array<
@@ -48,11 +73,14 @@ export class InMemoryNegotiationTransport implements NegotiationTransport {
   > = [];
   private readonly sent: Array<{ recipient: string; message: NegotiationMessage }> = [];
 
-  async send(recipient: string, message: NegotiationMessage): Promise<void> {
+  async send(recipient: string, message: NegotiationMessage): Promise<DeliveryReceipt | undefined> {
     this.sent.push({ recipient, message });
     for (const handler of this.handlers) {
       await handler(message, { sender: 'local', recipient });
     }
+    // The in-memory transport durably delivers synchronously.
+    const id = (await import('./messages.js')).messageId(message);
+    return { messageId: id, receivedAt: Date.now(), durablyProcessed: true };
   }
 
   subscribe(
