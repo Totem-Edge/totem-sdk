@@ -6,6 +6,19 @@ export type { ProofPortConfig } from './proof.js';
 
 export { createLookupPortAdapter } from './lookup.js';
 
+export { createPurchaseLookupAdapter, type PurchaseLookupAdapterConfig } from './purchase-lookup.js';
+
+export { createPurchaseAuthorityAdapter, type PurchaseAuthorityAdapterConfig } from './purchase-authority.js';
+
+export { createPurchasePaymentAdapter, type PurchasePaymentAdapterConfig } from './purchase-payment.js';
+
+export {
+  createStreamNegotiationTransport,
+  createPubSubNegotiationTransport,
+  type StreamNegotiationTransportConfig,
+  type PubSubNegotiationTransportConfig,
+} from './negotiation-transport.js';
+
 export { createLocationPortAdapter } from './location.js';
 export type { LocationPortConfig } from './location.js';
 
