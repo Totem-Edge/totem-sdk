@@ -341,8 +341,45 @@ export interface NegotiationStrategy {
 export interface ResourceAdapter {
   supports(resource: string, manifest: SignedManifest): boolean;
   start(agreement: TradeAgreement, context: Record<string, unknown>): Promise<ResourceHandle>;
+  /**
+   * Recover a resource that may have been started before a crash.
+   *
+   * `reference` is the stable external identity persisted in the purchase
+   * record (e.g. compute job ID, container ID, storage lease ID, robot task
+   * ID). The adapter must NOT start another identical resource — it reconnects
+   * to the existing one.
+   *
+   * Returns:
+   *   ACTIVE    — the resource is running; a usable handle is returned.
+   *   COMPLETED — the resource already finished; no handle needed.
+   *   MISSING   — the resource no longer exists; safe to treat as not started.
+   *   UNKNOWN   — cannot determine state; block automatic duplicate execution.
+   */
+  recover?(
+    reference: PersistedResourceReference,
+    agreement: TradeAgreement,
+    context: Record<string, unknown>,
+  ): Promise<
+    | { state: 'ACTIVE'; handle: ResourceHandle }
+    | { state: 'COMPLETED'; result?: unknown }
+    | { state: 'MISSING' }
+    | { state: 'UNKNOWN' }
+  >;
   meter?(handle: ResourceHandle): AsyncIterable<UsageEvent>;
   close?(handle: ResourceHandle): Promise<void>;
+}
+
+/**
+ * A stable external resource identity that survives restart. Never persist
+ * opaque process-local JavaScript handles as crash recovery state.
+ */
+export interface PersistedResourceReference {
+  /** The stable external identifier (job ID, lease ID, task ID, etc.). */
+  id: string;
+  /** The resource type (e.g. 'compute', 'storage'). */
+  resource: string;
+  /** Optional adapter-specific recovery metadata. */
+  metadata?: Record<string, unknown>;
 }
 
 export interface ResourceHandle {

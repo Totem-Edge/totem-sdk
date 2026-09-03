@@ -376,8 +376,59 @@ export class EdgeBuyer {
     const startKey = idempotencyKey(record.purchaseId, agreement.agreementId, 'resource-start');
     let handle: import('./types.js').ResourceHandle;
     if (current.idempotencyKeys.includes(startKey) && current.resourceReference) {
-      // Already started — recover the handle reference.
-      handle = { id: current.resourceReference, agreementId: agreement.agreementId, resource: intent.resource };
+      // Already started — recover the handle reference via the adapter's
+      // recover() hook (reconnect, never start another identical resource).
+      const reference: import('./types.js').PersistedResourceReference = {
+        id: current.resourceReference,
+        resource: intent.resource,
+      };
+      if (adapter.recover) {
+        const recovered = await adapter.recover(reference, agreement, options.context ?? {});
+        if (recovered.state === 'ACTIVE') {
+          handle = recovered.handle;
+        } else if (recovered.state === 'COMPLETED') {
+          // Resource already finished — surface a completed session.
+          return {
+            agreement,
+            session: {
+              id: reference.id,
+              agreement,
+              status: 'completed',
+              usage: async () => [],
+              spent: async () => ({ amount: agreement.terms.price, tokenId: agreement.terms.tokenId }),
+              close: async () => createEdgeReceipt({
+                kind: 'purchase',
+                payload: {
+                  agreementId: agreement.agreementId,
+                  resource: intent.resource,
+                  amount: agreement.terms.price,
+                  tokenId: agreement.terms.tokenId,
+                },
+                relatedManifestId: agreement.manifestId,
+              }),
+            },
+            negotiated: true,
+          };
+        } else if (recovered.state === 'MISSING') {
+          // Resource no longer exists — safe to start fresh.
+          current = await this.casPurchase(current, (r) => { r.status = 'STARTING_RESOURCE'; });
+          handle = await adapter.start(agreement, options.context ?? {});
+          current = await this.casPurchase(current, (r) => {
+            r.status = 'ACTIVE';
+            r.resourceReference = handle.id;
+            if (!r.idempotencyKeys.includes(startKey)) r.idempotencyKeys.push(startKey);
+          });
+        } else {
+          // UNKNOWN — block automatic duplicate execution.
+          throw new PurchaseError(
+            'RESOURCE_STATE_UNKNOWN',
+            `cannot determine state of resource ${reference.id}; operator resolution required`,
+          );
+        }
+      } else {
+        // No recover() hook — fall back to the persisted reference.
+        handle = { id: current.resourceReference, agreementId: agreement.agreementId, resource: intent.resource };
+      }
     } else {
       current = await this.casPurchase(current, (r) => { r.status = 'STARTING_RESOURCE'; });
       handle = await adapter.start(agreement, options.context ?? {});
