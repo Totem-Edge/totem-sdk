@@ -129,11 +129,11 @@ export interface BuyOptions {
 }
 
 export class EdgeBuyer {
-  private readonly engine: NegotiationEngine;
+  private readonly _engine: NegotiationEngine;
   private readonly purchaseStore: PurchaseStore;
 
   constructor(private readonly opts: BuyerOptions) {
-    this.engine = new NegotiationEngine({
+    this._engine = new NegotiationEngine({
       principal: opts.principal,
       verifySignature: opts.verifySignature,
       sign: opts.sign,
@@ -221,7 +221,7 @@ export class EdgeBuyer {
     const manifestId = computeManifestId(manifest.manifest);
     const negotiationId = `edge:negotiation:${this.now()}:${Math.random().toString(36).slice(2)}`;
 
-    await this.engine.openNegotiation({
+    await this._engine.openNegotiation({
       negotiationId,
       counterparty: manifest.authorAddress,
       manifestId,
@@ -239,7 +239,7 @@ export class EdgeBuyer {
       parentProposalId: undefined,
     });
 
-    await this.engine.submitProposal(initial);
+    await this._engine.submitProposal(initial);
 
     // Run the bounded negotiation loop.
     let current = initial;
@@ -249,17 +249,17 @@ export class EdgeBuyer {
         negotiationId,
         proposal: current,
         history,
-        termsHashes: await this.engine.getTermsHashes(negotiationId),
+        termsHashes: await this._engine.getTermsHashes(negotiationId),
       });
 
       if (decision.action === 'accept') {
         const acceptance = await this.signAcceptance(negotiationId, current.proposalId);
-        const agreement = await this.engine.acceptProposal(acceptance);
+        const agreement = await this._engine.acceptProposal(acceptance);
         return { agreement, history };
       }
       if (decision.action === 'reject') {
         const rejection = await this.signRejection(negotiationId, current.proposalId, decision.reason);
-        await this.engine.rejectProposal(rejection);
+        await this._engine.rejectProposal(rejection);
         throw new Error(`negotiation rejected: ${decision.reason ?? 'no reason'}`);
       }
       if (decision.action === 'counter') {
@@ -272,7 +272,7 @@ export class EdgeBuyer {
           terms: decision.terms,
           parentProposalId: current.proposalId,
         });
-        await this.engine.submitProposal(counter);
+        await this._engine.submitProposal(counter);
         current = counter;
         history = [...history, counter];
       }
@@ -658,7 +658,121 @@ export class EdgeBuyer {
    * released, preventing capacity leaks from crashed processes.
    */
   async reconcilePrincipalSlots(): Promise<void> {
-    await this.engine.reconcilePrincipalSlots();
+    await this._engine.reconcilePrincipalSlots();
+  }
+
+  /**
+   * The underlying negotiation engine. Exposed so a seller-side runtime can
+   * wire inbound authenticated transport messages into the same engine that
+   * drives purchases. The engine remains the deterministic economic state
+   * machine; transport stays separate.
+   */
+  get engine(): NegotiationEngine {
+    return this._engine;
+  }
+
+  /**
+   * Recover a purchase's resource after a restart. Looks up the durable
+   * purchase record, and if a resource reference is persisted, reconnects via
+   * the adapter's recover() hook — never starting another identical resource.
+   *
+   * Returns the recovered session, or null when the purchase has no persisted
+   * resource reference (nothing to recover).
+   */
+  async recoverResource(purchaseId: string): Promise<import('./types.js').PurchaseSession | null> {
+    const record = await this.purchaseStore.get(purchaseId);
+    if (!record || !record.agreement || !record.resourceReference) return null;
+
+    const agreement = record.agreement;
+    const intent = record.intent;
+    const adapter = this.opts.adapters.find((a) => a.supports(intent.resource, this.dummyManifest(agreement)));
+    if (!adapter) return null;
+
+    const reference: import('./types.js').PersistedResourceReference = {
+      id: record.resourceReference,
+      resource: intent.resource,
+    };
+
+    if (!adapter.recover) {
+      // No recover() hook — fall back to the persisted reference.
+      const handle: import('./types.js').ResourceHandle = {
+        id: record.resourceReference,
+        agreementId: agreement.agreementId,
+        resource: intent.resource,
+      };
+      return this.buildSession(intent, agreement, adapter, handle);
+    }
+
+    const recovered = await adapter.recover(reference, agreement, {});
+    if (recovered.state === 'ACTIVE') {
+      return this.buildSession(intent, agreement, adapter, recovered.handle);
+    }
+    if (recovered.state === 'COMPLETED') {
+      // Resource already finished — surface a completed session.
+      return {
+        id: reference.id,
+        agreement,
+        status: 'completed',
+        usage: async () => [],
+        spent: async () => ({ amount: agreement.terms.price, tokenId: agreement.terms.tokenId }),
+        close: async () => createEdgeReceipt({
+          kind: 'purchase',
+          payload: {
+            agreementId: agreement.agreementId,
+            resource: intent.resource,
+            amount: agreement.terms.price,
+            tokenId: agreement.terms.tokenId,
+          },
+          relatedManifestId: agreement.manifestId,
+        }),
+      };
+    }
+    if (recovered.state === 'MISSING') {
+      // Resource no longer exists — nothing to recover.
+      return null;
+    }
+    // UNKNOWN — block automatic duplicate execution.
+    throw new PurchaseError(
+      'RESOURCE_STATE_UNKNOWN',
+      `cannot determine state of resource ${reference.id}; operator resolution required`,
+    );
+  }
+
+  private buildSession(
+    intent: PurchaseIntent,
+    agreement: TradeAgreement,
+    adapter: ResourceAdapter,
+    handle: import('./types.js').ResourceHandle,
+  ): import('./types.js').PurchaseSession {
+    return {
+      id: handle.id,
+      agreement,
+      status: 'active',
+      usage: async () => {
+        if (!adapter.meter) return [];
+        const events = [];
+        for await (const ev of adapter.meter(handle)) {
+          events.push(ev);
+          this.emit({ type: 'purchase.usage', sessionId: handle.id, amount: ev.amount, unit: ev.unit });
+        }
+        return events;
+      },
+      spent: async () => ({ amount: agreement.terms.price, tokenId: agreement.terms.tokenId }),
+      close: async () => {
+        if (adapter.close) await adapter.close(handle);
+        this.emit({ type: 'purchase.completed', sessionId: handle.id });
+        return createEdgeReceipt({
+          kind: 'purchase',
+          payload: {
+            agreementId: agreement.agreementId,
+            resource: intent.resource,
+            amount: agreement.terms.price,
+            tokenId: agreement.terms.tokenId,
+          },
+          relatedManifestId: agreement.manifestId,
+        });
+      },
+    };
   }
 }
 

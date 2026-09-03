@@ -269,7 +269,22 @@ export function createEdge(opts: CreateEdgeOptions): EdgeCommerceRuntime {
       // Reconcile principal admission slots against active negotiations so
       // crashed processes cannot leak capacity.
       await buyer.reconcilePrincipalSlots();
-      return recoverable.map((r) => ({ purchaseId: r.purchaseId, status: r.status }));
+      // Actively resume resources whose state is known and idempotent.
+      const resumed: Array<{ purchaseId: string; status: string }> = [];
+      for (const r of recoverable) {
+        if (r.status === 'ACTIVE' || r.status === 'STARTING_RESOURCE') {
+          try {
+            const session = await buyer.recoverResource(r.purchaseId);
+            resumed.push({ purchaseId: r.purchaseId, status: session ? 'ACTIVE' : r.status });
+          } catch {
+            // Unknown resource state — hold for operator resolution.
+            resumed.push({ purchaseId: r.purchaseId, status: 'RESOURCE_STATE_UNKNOWN' });
+          }
+        } else {
+          resumed.push({ purchaseId: r.purchaseId, status: r.status });
+        }
+      }
+      return resumed;
     },
   };
 }
