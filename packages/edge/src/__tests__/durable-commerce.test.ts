@@ -27,7 +27,6 @@ import {
   InMemoryPrincipalNegotiationStore,
   InMemoryNegotiationTransport,
   InMemoryReplayLedger,
-  InMemoryOutboxStore,
   ingress,
   messageId,
   PURCHASING_VERSION,
@@ -756,8 +755,8 @@ describe('atomic replay claim', () => {
     await ledger.complete(id, { ok: true, result: 'agreed' });
     const replay = await ledger.claim(id, 2000);
     expect(replay.claimed).toBe(false);
-    if (!replay.claimed) {
-      expect(replay.outcome?.result).toBe('agreed');
+    if (!replay.claimed && replay.entry) {
+      expect(replay.entry.state).toBe('COMPLETED');
     }
   });
 });
@@ -771,9 +770,9 @@ describe('atomic principal admission', () => {
       maxNegotiationsPerWindow: 10,
       windowMs: 60_000,
     };
-    const r1 = await store.tryOpen('p', 1000, limits);
-    const r2 = await store.tryOpen('p', 1000, limits);
-    const r3 = await store.tryOpen('p', 1000, limits);
+    const r1 = await store.tryOpen('p', 'n1', 1000, limits);
+    const r2 = await store.tryOpen('p', 'n2', 1000, limits);
+    const r3 = await store.tryOpen('p', 'n3', 1000, limits);
     expect(r1.allowed).toBe(true);
     expect(r2.allowed).toBe(true);
     expect(r3.allowed).toBe(false);
@@ -783,7 +782,7 @@ describe('atomic principal admission', () => {
   it('cooldown blocks new opens', async () => {
     const store = new InMemoryPrincipalNegotiationStore();
     await store.setCooldownUntil('p', 5000);
-    const r = await store.tryOpen('p', 1000, {
+    const r = await store.tryOpen('p', 'n1', 1000, {
       maxConcurrentNegotiations: 4,
       cooldownMs: 0,
       maxNegotiationsPerWindow: 10,
@@ -801,18 +800,37 @@ describe('atomic principal admission', () => {
       maxNegotiationsPerWindow: 2,
       windowMs: 60_000,
     };
-    await store.tryOpen('p', 1000, limits);
-    await store.tryOpen('p', 1000, limits);
-    const r = await store.tryOpen('p', 1000, limits);
+    await store.tryOpen('p', 'n1', 1000, limits);
+    await store.tryOpen('p', 'n2', 1000, limits);
+    const r = await store.tryOpen('p', 'n3', 1000, limits);
     expect(r.allowed).toBe(false);
     if (!r.allowed) expect(r.reason).toBe('WINDOW_LIMIT');
+  });
+
+  it('close releases a slot; reconcile releases slots for missing negotiations', async () => {
+    const store = new InMemoryPrincipalNegotiationStore();
+    const limits = {
+      maxConcurrentNegotiations: 2,
+      cooldownMs: 0,
+      maxNegotiationsPerWindow: 10,
+      windowMs: 60_000,
+    };
+    await store.tryOpen('p', 'n1', 1000, limits);
+    await store.tryOpen('p', 'n2', 1000, limits);
+    // Close n1 → one slot frees up.
+    await store.close('p', 'n1');
+    const r = await store.tryOpen('p', 'n3', 1000, limits);
+    expect(r.allowed).toBe(true);
+    // Reconcile: only n3 active → n2's stale slot is released.
+    await store.reconcile('p', ['n3']);
+    const r2 = await store.tryOpen('p', 'n4', 1000, limits);
+    expect(r2.allowed).toBe(true);
   });
 });
 
 describe('durable outbox', () => {
-  it('acceptance enqueued to outbox survives restart and resends same messageId', async () => {
+  it('acceptance enqueued atomically with AGREED transition survives restart', async () => {
     const store = new InMemoryNegotiationStore();
-    const outbox = new InMemoryOutboxStore();
     const e1 = new NegotiationEngine({
       principal: 'buyer-principal',
       verifySignature: makeVerifier(),
@@ -820,7 +838,6 @@ describe('durable outbox', () => {
       txpow: new EdgeTxPowAdapter(makeTemplateProvider()),
       workPolicy: new EdgeWorkPolicy('disabled', {}, { baseTarget: EASY_TARGET, maxTarget: EASY_TARGET }, 100_000),
       store,
-      outbox,
     });
     await e1.openNegotiation({ negotiationId: 'n1', counterparty: 's', manifestId: 'm' });
     const p0 = await makeProposal(e1, 'n1', 0, 'm', 'buyer-principal', 's', { price: '10' });
@@ -846,13 +863,16 @@ describe('durable outbox', () => {
     const sig = await makeSigner('buyer')(digest);
     await e1.acceptProposal({ ...acceptance, signature: sig.signature, signerPublicKey: sig.signerPublicKey });
 
-    // The acceptance is in the outbox (undelivered).
-    const undelivered = await outbox.listUndelivered();
+    // The state transition and outbox enqueue committed atomically: AGREED
+    // is durable AND the acceptance is in the outbox (undelivered).
+    const record = await store.get('n1');
+    expect(record?.state).toBe('AGREED');
+    const undelivered = await store.listUndelivered();
     expect(undelivered.length).toBe(1);
     expect(undelivered[0].messageId).toBe(messageId(acceptance as unknown as NegotiationMessage));
 
-    // "Restart" — a fresh engine with the same outbox can resend the SAME
-    // signed message with the SAME messageId.
+    // "Restart" — a fresh engine with the same store sees AGREED and the
+    // same undelivered outbox message (same messageId for resend).
     const e2 = new NegotiationEngine({
       principal: 'buyer-principal',
       verifySignature: makeVerifier(),
@@ -860,10 +880,9 @@ describe('durable outbox', () => {
       txpow: new EdgeTxPowAdapter(makeTemplateProvider()),
       workPolicy: new EdgeWorkPolicy('disabled', {}, { baseTarget: EASY_TARGET, maxTarget: EASY_TARGET }, 100_000),
       store,
-      outbox,
     });
     void e2;
-    const stillUndelivered = await outbox.listUndelivered();
+    const stillUndelivered = await store.listUndelivered();
     expect(stillUndelivered.length).toBe(1);
     expect(stillUndelivered[0].messageId).toBe(undelivered[0].messageId);
   });
@@ -900,7 +919,6 @@ describe('explicit ephemeral mode', () => {
       negotiationStore: new InMemoryNegotiationStore(),
       purchaseStore: new InMemoryPurchaseStore(),
       principalStore: new InMemoryPrincipalNegotiationStore(),
-      outbox: new InMemoryOutboxStore(),
       onEvent: (e) => events.push(e.type),
     });
     expect(events).not.toContain('runtime.persistence_ephemeral');

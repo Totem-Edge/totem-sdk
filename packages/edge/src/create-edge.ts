@@ -29,7 +29,6 @@ import type { NegotiationTransport } from './purchasing/transport.js';
 import { InMemoryNegotiationTransport } from './purchasing/transport.js';
 import type { ReplayLedger } from './purchasing/messages.js';
 import { InMemoryReplayLedger } from './purchasing/messages.js';
-import { InMemoryOutboxStore, type OutboxStore } from './purchasing/outbox.js';
 import type { MinimaWorkRelay, MinimaWorkTemplateProvider } from '@totemsdk/txpow';
 import type {
   LocalWorkBudget,
@@ -123,8 +122,6 @@ export interface CreateEdgeOptions {
   negotiationTransport?: NegotiationTransport;
   /** Replay ledger (optional — in-memory dev mode). */
   replayLedger?: ReplayLedger;
-  /** Durable outbox (optional — in-memory dev mode). */
-  outbox?: import('./purchasing/outbox.js').OutboxStore;
   /**
    * Explicit persistence mode. When 'ephemeral' (or when durable stores are
    * not supplied), the runtime emits `runtime.persistence_ephemeral` on
@@ -188,7 +185,6 @@ export function createEdge(opts: CreateEdgeOptions): EdgeCommerceRuntime {
     principalStore,
     negotiationTransport,
     replayLedger,
-    outbox,
     persistence,
     onEvent,
     now,
@@ -216,7 +212,7 @@ export function createEdge(opts: CreateEdgeOptions): EdgeCommerceRuntime {
 
   // Explicit ephemeral mode: emit a startup event when durable stores are
   // not supplied, so operators never mistake dev mode for crash guarantees.
-  const durable = Boolean(negotiationStore && purchaseStore && principalStore && outbox);
+  const durable = Boolean(negotiationStore && purchaseStore && principalStore);
   const isEphemeral = persistence === 'ephemeral' || !durable;
   if (isEphemeral) {
     onEvent?.({ type: 'runtime.persistence_ephemeral' } as PurchaseEvent);
@@ -237,7 +233,6 @@ export function createEdge(opts: CreateEdgeOptions): EdgeCommerceRuntime {
     purchaseStore: purchaseStore ?? new InMemoryPurchaseStore(),
     negotiationStore: negotiationStore ?? new InMemoryNegotiationStore(),
     principalStore: principalStore ?? new InMemoryPrincipalNegotiationStore(),
-    outbox: outbox ?? new InMemoryOutboxStore(),
   });
 
   // Wire the authenticated transport to the buyer's engine (if supplied).
@@ -257,6 +252,9 @@ export function createEdge(opts: CreateEdgeOptions): EdgeCommerceRuntime {
     recoverPurchases: async () => {
       const store = purchaseStore ?? new InMemoryPurchaseStore();
       const recoverable = (await store.listRecoverable?.()) ?? [];
+      // Reconcile principal admission slots against active negotiations so
+      // crashed processes cannot leak capacity.
+      await buyer.reconcilePrincipalSlots();
       return recoverable.map((r) => ({ purchaseId: r.purchaseId, status: r.status }));
     },
   };

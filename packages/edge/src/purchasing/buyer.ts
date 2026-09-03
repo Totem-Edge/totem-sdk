@@ -113,8 +113,6 @@ export interface BuyerOptions {
   negotiationStore?: import('./store.js').NegotiationStore;
   /** Durable principal anti-abuse store. When omitted, in-memory (dev mode). */
   principalStore?: import('./store.js').PrincipalNegotiationStore;
-  /** Durable outbox for persist-then-send crash safety. When omitted, in-memory. */
-  outbox?: import('./outbox.js').OutboxStore;
 }
 
 export interface BuyOptions {
@@ -145,7 +143,6 @@ export class EdgeBuyer {
       now: opts.now,
       store: opts.negotiationStore,
       principalStore: opts.principalStore,
-      outbox: opts.outbox,
     });
     this.purchaseStore = opts.purchaseStore ?? new InMemoryPurchaseStore();
   }
@@ -602,6 +599,15 @@ export class EdgeBuyer {
       signedAt: 0,
       signature: '',
     };
+  }
+
+  /**
+   * Reconcile principal admission slots against active negotiations after a
+   * restart. Any slot whose negotiation is terminal/expired/missing is
+   * released, preventing capacity leaks from crashed processes.
+   */
+  async reconcilePrincipalSlots(): Promise<void> {
+    await this.engine.reconcilePrincipalSlots();
   }
 }
 

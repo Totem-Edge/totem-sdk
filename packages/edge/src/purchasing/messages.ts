@@ -68,15 +68,23 @@ export interface ReplayOutcome {
 
 /**
  * A durable replay entry.
+ *
+ * Processing claims are recoverable: if a claim is never completed (process
+ * crash), the lease expires and the message may be reclaimed safely. The
+ * engine's CAS/idempotency protection makes reclamation safe.
  */
-export interface ReplayEntry {
-  messageId: string;
-  /** When the message was first claimed. */
-  claimedAt: number;
-  /** When processing completed (undefined while in-flight). */
-  completedAt?: number;
-  outcome?: ReplayOutcome;
-}
+export type ReplayEntry =
+  | {
+      state: 'PROCESSING';
+      claimedAt: number;
+      /** When the processing lease expires. After this, the claim may be reclaimed. */
+      leaseUntil?: number;
+    }
+  | {
+      state: 'COMPLETED';
+      outcome: ReplayOutcome;
+      completedAt: number;
+    };
 
 /**
  * Replay ledger — persists enough information to answer
@@ -85,17 +93,25 @@ export interface ReplayEntry {
  * The `claim` operation is ATOMIC: two identical messages arriving
  * concurrently cannot both observe "not present" before either records the
  * result. Exactly one caller wins the claim; the other takes the replay path.
+ *
+ * If a claim is PROCESSING past its lease, a subsequent claim reclaims it
+ * (safe because the engine's negotiate CAS is idempotency-protected).
  */
 export interface ReplayLedger {
   /**
    * Atomically claim a message for processing. Returns `{ claimed: true }`
-   * when this caller won the claim, or `{ claimed: false, outcome }` when the
-   * message was already claimed/completed (replay path).
+   * when this caller won the claim, `{ claimed: false, outcome }` when the
+   * message was already completed, or `{ claimed: true, reclaimed: true }`
+   * when a stale lease was reclaimed.
    */
   claim(
     messageId: string,
     receivedAt: number,
-  ): Promise<{ claimed: true } | { claimed: false; outcome?: ReplayOutcome }>;
+    leaseMs?: number,
+  ): Promise<
+    | { claimed: true; reclaimed?: boolean }
+    | { claimed: false; entry?: ReplayEntry }
+  >;
   /** Mark a claimed message as durably processed with its outcome. */
   complete(messageId: string, outcome: ReplayOutcome): Promise<void>;
   /** Look up a previously processed message. */
@@ -109,22 +125,41 @@ export class InMemoryReplayLedger implements ReplayLedger {
   async claim(
     messageId: string,
     receivedAt: number,
-  ): Promise<{ claimed: true } | { claimed: false; outcome?: ReplayOutcome }> {
+    leaseMs = 30_000,
+  ): Promise<
+    | { claimed: true; reclaimed?: boolean }
+    | { claimed: false; entry?: ReplayEntry }
+  > {
     const existing = this.entries.get(messageId);
     if (existing) {
-      return { claimed: false, outcome: existing.outcome };
+      if (existing.state === 'COMPLETED') {
+        return { claimed: false, entry: existing };
+      }
+      // PROCESSING — reclaim if the lease expired.
+      if (existing.leaseUntil !== undefined && receivedAt > existing.leaseUntil) {
+        this.entries.set(messageId, {
+          state: 'PROCESSING',
+          claimedAt: receivedAt,
+          leaseUntil: receivedAt + leaseMs,
+        });
+        return { claimed: true, reclaimed: true };
+      }
+      return { claimed: false, entry: existing };
     }
-    this.entries.set(messageId, { messageId, claimedAt: receivedAt });
+    this.entries.set(messageId, {
+      state: 'PROCESSING',
+      claimedAt: receivedAt,
+      leaseUntil: receivedAt + leaseMs,
+    });
     return { claimed: true };
   }
 
   async complete(messageId: string, outcome: ReplayOutcome): Promise<void> {
-    const existing = this.entries.get(messageId);
-    if (!existing) {
-      this.entries.set(messageId, { messageId, claimedAt: Date.now(), completedAt: Date.now(), outcome });
-      return;
-    }
-    this.entries.set(messageId, { ...existing, completedAt: Date.now(), outcome });
+    this.entries.set(messageId, {
+      state: 'COMPLETED',
+      outcome,
+      completedAt: Date.now(),
+    });
   }
 
   async get(messageId: string): Promise<ReplayEntry | undefined> {

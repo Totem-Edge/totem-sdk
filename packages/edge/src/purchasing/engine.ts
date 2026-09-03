@@ -56,7 +56,6 @@ import {
   type NegotiationStore,
   type PrincipalNegotiationStore,
 } from './store.js';
-import { InMemoryOutboxStore, type OutboxStore } from './outbox.js';
 import { messageId } from './messages.js';
 import { NegotiationError, PURCHASE_ERROR_CODES } from './errors.js';
 
@@ -87,12 +86,10 @@ export interface NegotiationEngineOptions {
   onEvent?: (event: PurchaseEvent) => void;
   /** Current time (for deterministic tests). */
   now?: () => number;
-  /** Durable negotiation store. When omitted, an in-memory store is used. */
+  /** Durable negotiation store (implements atomic transitionAndEnqueue). */
   store?: NegotiationStore;
   /** Durable principal anti-abuse store. When omitted, in-memory. */
   principalStore?: PrincipalNegotiationStore;
-  /** Durable outbox for persist-then-send crash safety. When omitted, in-memory. */
-  outbox?: import('./outbox.js').OutboxStore;
 }
 
 export class NegotiationEngine {
@@ -105,7 +102,6 @@ export class NegotiationEngine {
   private readonly principalLimits: Required<PrincipalLimits>;
   private readonly store: NegotiationStore;
   private readonly principalStore: PrincipalNegotiationStore;
-  private readonly outbox: OutboxStore;
 
   constructor(private readonly opts: NegotiationEngineOptions) {
     this.onEvent = opts.onEvent;
@@ -122,7 +118,6 @@ export class NegotiationEngine {
     };
     this.store = opts.store ?? new InMemoryNegotiationStore();
     this.principalStore = opts.principalStore ?? new InMemoryPrincipalNegotiationStore();
-    this.outbox = opts.outbox ?? new InMemoryOutboxStore();
   }
 
   private emit(event: PurchaseEvent): void {
@@ -173,8 +168,9 @@ export class NegotiationEngine {
     const now = this.now();
     const principal = this.opts.principal;
 
-    // Atomic admission: check limits AND consume capacity in one operation.
-    const admission = await this.principalStore.tryOpen(principal, now, this.principalLimits);
+    // Atomic admission: check limits AND consume capacity in one operation,
+    // binding the slot to this negotiationId so recovery can reconcile it.
+    const admission = await this.principalStore.tryOpen(principal, opts.negotiationId, now, this.principalLimits);
     if (!admission.allowed) {
       const reason =
         admission.reason === 'COOLDOWN'
@@ -204,15 +200,29 @@ export class NegotiationEngine {
   private async checkExpiry(record: NegotiationRecord): Promise<NegotiationRecord> {
     if (isTerminal(record.state)) return record;
     if (this.now() > record.expiresAt) {
-      return this.casTransition(record, (r) => {
+      const next = await this.casTransition(record, (r) => {
         r.state = 'EXPIRED';
         r.terminalReason = 'negotiation TTL expired';
-      }).then((next) => {
-        this.emit({ type: 'negotiation.expired', negotiationId: record.negotiationId });
-        return next;
       });
+      // Release the principal admission slot bound to this negotiation.
+      await this.principalStore.close(record.principal, record.negotiationId);
+      this.emit({ type: 'negotiation.expired', negotiationId: record.negotiationId });
+      return next;
     }
     return record;
+  }
+
+  /**
+   * Reconcile principal admission slots against currently-active negotiation
+   * records. Any slot whose negotiation is terminal, expired, or missing is
+   * released. Invoke after restart to prevent capacity leaks.
+   */
+  async reconcilePrincipalSlots(): Promise<void> {
+    const recoverable = await this.store.listRecoverable?.();
+    const active = recoverable
+      ? recoverable.map((r) => r.negotiationId)
+      : [];
+    await this.principalStore.reconcile(this.opts.principal, active);
   }
 
   /**
@@ -329,6 +339,7 @@ export class NegotiationEngine {
         r.state = 'EXHAUSTED';
         r.terminalReason = `round ${proposal.round} exceeds maxRounds ${this.maxRounds}`;
       });
+      await this.principalStore.close(current.principal, current.negotiationId);
       this.emit({ type: 'negotiation.exhausted', negotiationId: record.negotiationId });
       throw new NegotiationError('MAX_ROUNDS', `round ${proposal.round} exceeds maxRounds ${this.maxRounds}`);
     }
@@ -453,25 +464,39 @@ export class NegotiationEngine {
       sellerSignature: proposal.signature,
     };
 
-    // Atomic CAS to AGREED with the agreement persisted.
-    await this.casTransition(current, (r) => {
-      r.state = 'AGREED';
-      r.agreement = agreement;
-      r.terminalReason = 'accepted';
-    });
-
-    // Durable outbox: enqueue the acceptance for delivery to the counterparty.
-    // If we crash before the transport sends it, the outbox resends the SAME
-    // signed message with the SAME messageId on restart.
+    // Atomic durable commit: the negotiation CAS AND the outbox enqueue happen
+    // in ONE transaction, so the crash window between them is closed.
+    const next: NegotiationRecord = {
+      ...current,
+      state: 'AGREED',
+      agreement,
+      terminalReason: 'accepted',
+      revision: current.revision + 1,
+      updatedAt: now,
+    };
     const outboxMessage = acceptance as unknown as import('./types.js').NegotiationMessage;
     const outboxId = messageId(outboxMessage);
-    await this.outbox.enqueue({
-      messageId: outboxId,
-      recipient: proposal.recipient,
-      message: outboxMessage,
-      enqueuedAt: now,
-      attempts: 0,
-    });
+    const committed = await this.store.transitionAndEnqueue(
+      current.negotiationId,
+      current.revision,
+      next,
+      [
+        {
+          messageId: outboxId,
+          recipient: proposal.recipient,
+          payload: JSON.stringify(outboxMessage),
+        },
+      ],
+    );
+    if (!committed) {
+      throw new NegotiationError(
+        PURCHASE_ERROR_CODES.STALE_REVISION,
+        `negotiation ${record.negotiationId} was advanced by another writer`,
+      );
+    }
+
+    // Release the principal admission slot bound to this negotiation.
+    await this.principalStore.close(current.principal, current.negotiationId);
 
     this.emit({ type: 'negotiation.accepted', negotiationId: record.negotiationId, proposalId: acceptance.proposalId });
     return agreement;
@@ -501,6 +526,7 @@ export class NegotiationEngine {
       r.state = 'REJECTED';
       r.terminalReason = rejection.reason ?? 'rejected';
     });
+    await this.principalStore.close(current.principal, current.negotiationId);
     this.emit({ type: 'negotiation.rejected', negotiationId: record.negotiationId, proposalId: rejection.proposalId });
     await this.principalStore.setCooldownUntil(this.opts.principal, this.now() + this.principalLimits.cooldownMs);
   }
@@ -525,6 +551,7 @@ export class NegotiationEngine {
       r.state = 'CANCELLED';
       r.terminalReason = cancellation.reason ?? 'cancelled';
     });
+    await this.principalStore.close(record.principal, record.negotiationId);
   }
 
   /** Get the current state of a negotiation. */

@@ -12,7 +12,7 @@
  */
 
 import { PURCHASING_VERSION, type NegotiationMessage } from './types.js';
-import { messageId, messageType, type ReplayLedger } from './messages.js';
+import { messageId, messageType, type ReplayLedger, type ReplayEntry } from './messages.js';
 import { NegotiationError, PURCHASE_ERROR_CODES } from './errors.js';
 
 /** Maximum wire message size (bytes). */
@@ -48,14 +48,16 @@ export interface IngressResult {
   sender: string;
   /** True when this exact message was already processed (idempotent replay). */
   replayed: boolean;
-  /** Prior outcome when replayed. */
-  priorOutcome?: { ok: boolean; result?: string; error?: string };
+  /** Prior durable entry when replayed/completed. */
+  priorEntry?: ReplayEntry;
   /**
    * True when this caller won the atomic replay claim and must process the
    * message. When false, the message was already claimed/completed — take the
    * replay path (return the prior outcome, do not re-process).
    */
   claimed: boolean;
+  /** True when a stale PROCESSING lease was reclaimed. */
+  reclaimed?: boolean;
 }
 
 /**
@@ -113,14 +115,21 @@ export async function ingress(
   const id = messageId(msg);
   const claim = await opts.replayLedger.claim(id, Date.now());
   if (!claim.claimed) {
+    const entry = 'entry' in claim ? claim.entry : undefined;
     return {
       message: msg,
       sender: context.sender,
       replayed: true,
-      priorOutcome: claim.outcome,
+      priorEntry: entry,
       claimed: false,
     };
   }
 
-  return { message: msg, sender: context.sender, replayed: false, claimed: true };
+  return {
+    message: msg,
+    sender: context.sender,
+    replayed: false,
+    claimed: true,
+    reclaimed: claim.reclaimed,
+  };
 }
