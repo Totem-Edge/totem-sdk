@@ -33,7 +33,7 @@
     "express": "^5.2.1",
     "express-rate-limit": "^7.5.0",
     "pg": "^8.11.3",
-    "zod": "^4.4.3"
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",
