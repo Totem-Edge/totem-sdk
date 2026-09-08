@@ -215,7 +215,7 @@ export async function depositToPool(
   registry: LiquidityBondRegistryState,
 ): Promise<DepositToPoolResult> {
   const { commitment } = commitToPool(params);
-  const chainProvider = params.chainProvider ?? (params as { chainProvider?: AcceptCommitmentParams['chainProvider'] }).chainProvider;
+  const chainProvider = params.chainProvider;
 
   if (!chainProvider) {
     throw new Error('depositToPool requires a chainProvider to verify and confirm funding on-chain');
