@@ -1,3 +1,4 @@
+import { F, bytesToHex } from '@totemsdk/core';
 import type {
   WithdrawalIntent,
   LiquidityBondVerifyResult,
@@ -5,13 +6,26 @@ import type {
   VerifyWithdrawalAllowedParams,
 } from './types.js';
 
+export const WITHDRAWAL_ID_DOMAIN = 'totemsdk/liquidity-bond/withdrawal/v1';
+
 let withdrawalCounter = 0;
+
+/**
+ * Non-replayable withdrawal ID (#9): a domain hash over positionId + nonce,
+ * so `wdrw-${Date.now()}-${counter}`-style forgeability in the same millisecond
+ * is gone — the same position+nonce always yields the same ID, and a replayed
+ * intent is detectable.
+ */
+export function computeWithdrawalId(positionId: string, nonce: string): string {
+  return bytesToHex(F(new TextEncoder().encode(`${WITHDRAWAL_ID_DOMAIN}|${positionId}|${nonce}`)));
+}
 
 export function createWithdrawalIntent(params: CreateWithdrawalIntentParams): WithdrawalIntent {
   const now = params.requestedAt ?? Date.now();
   withdrawalCounter++;
+  const nonce = params.nonce ?? `${now}-${withdrawalCounter}`;
   return {
-    withdrawalId: `wdrw-${now}-${withdrawalCounter}`,
+    withdrawalId: computeWithdrawalId(params.positionId, nonce),
     positionId: params.positionId,
     poolId: params.poolId,
     ownerAddress: params.ownerAddress,

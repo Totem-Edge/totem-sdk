@@ -1,9 +1,11 @@
 import {
   createWithdrawalIntent,
+  computeWithdrawalId,
   approveWithdrawalIntent,
   rejectWithdrawalIntent,
   cancelWithdrawalIntent,
   verifyWithdrawalAllowed,
+  WITHDRAWAL_ID_DOMAIN,
 } from '../withdrawal.js';
 import { createLiquidityPosition } from '../position.js';
 import { createLiquidityCommitment } from '../commitment.js';
@@ -33,6 +35,21 @@ describe('withdrawal', () => {
       });
       expect(intent.status).toBe('requested');
       expect(intent.amount).toBe(500n);
+    });
+
+    it('derives a non-replayable, domain-hashed withdrawal ID', () => {
+      const a = createWithdrawalIntent({
+        positionId: 'pos-1', poolId: 'pool-1', ownerAddress: 'MxLP', amount: 500n, nonce: 'n1',
+      });
+      const b = createWithdrawalIntent({
+        positionId: 'pos-1', poolId: 'pool-1', ownerAddress: 'MxLP', amount: 500n, nonce: 'n1',
+      });
+      expect(a.withdrawalId).toBe(b.withdrawalId);
+      expect(a.withdrawalId).toBe(computeWithdrawalId('pos-1', 'n1'));
+      expect(a.withdrawalId).not.toMatch(/^wdrw-/);
+      expect(a.withdrawalId).not.toBe(computeWithdrawalId('pos-2', 'n1'));
+      expect(a.withdrawalId).not.toBe(computeWithdrawalId('pos-1', 'n2'));
+      expect(WITHDRAWAL_ID_DOMAIN).toMatch(/^totemsdk\/liquidity-bond\/withdrawal\/v1$/);
     });
   });
 

@@ -148,6 +148,8 @@ export {
   issueLiquidityReceipt,
   computeLiquidityReceiptHash,
   verifyLiquidityReceipt,
+  consumeLiquidityReceipt,
+  RECEIPT_HASH_DOMAIN,
 } from './receipt.js';
 
 export {
@@ -167,10 +169,12 @@ export {
 
 export {
   createWithdrawalIntent,
+  computeWithdrawalId,
   approveWithdrawalIntent,
   rejectWithdrawalIntent,
   cancelWithdrawalIntent,
   verifyWithdrawalAllowed,
+  WITHDRAWAL_ID_DOMAIN,
 } from './withdrawal.js';
 
 export {

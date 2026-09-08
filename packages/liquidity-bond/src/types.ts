@@ -307,6 +307,11 @@ export interface LiquidityReceipt {
   issuedAt: number;
   expiresAt?: number;
   receiptHash: string;
+  /** Per-position nonce — makes the receipt single-spend and non-replayable. */
+  nonce: string;
+  /** Set when the receipt was consumed by a withdrawal (single-spend). */
+  consumedAt?: number;
+  consumedIntentId?: string;
   proofRef?: LiquidityProofRef;
   metadata?: Record<string, unknown>;
 }
@@ -542,6 +547,8 @@ export interface CreateWithdrawalIntentParams {
   ownerAddress: string;
   amount: bigint;
   requestedAt?: number;
+  /** Per-position nonce — the withdrawal ID is a domain hash over it (non-replayable). */
+  nonce?: string;
   metadata?: Record<string, unknown>;
 }
 

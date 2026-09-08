@@ -4,6 +4,7 @@
 
 import {
   approveWithdrawalIntent,
+  consumeLiquidityReceipt,
   createWithdrawalIntent,
   attachWithdrawalIntent,
   registerLiquidityPosition,
@@ -177,6 +178,15 @@ export async function executePoolPayout(
 
   let nextRegistry: LiquidityBondRegistryState = { ...registry, withdrawals };
   nextRegistry = registerLiquidityPosition(nextRegistry, updatedPosition);
+
+  // Atomic receipt consumption (#23): the receipt is single-spent in the same
+  // transition that settles the withdrawal — a replayed receipt can never
+  // double-withdraw.
+  const receipt = nextRegistry.receipts[params.position.receiptId ?? ''];
+  if (receipt) {
+    const consumed = consumeLiquidityReceipt(receipt, settledIntent.withdrawalId);
+    nextRegistry = { ...nextRegistry, receipts: { ...nextRegistry.receipts, [consumed.receiptId]: consumed } };
+  }
 
   const signedTransition = await maybeSignTransition(params.rooting, nextRegistry, {
     type: 'payout',
