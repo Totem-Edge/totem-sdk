@@ -59,6 +59,11 @@ export interface OmniaVtxo {
   createdAt: number;
   updatedAt: number;
   expiresAt?: number;
+  /** The on-chain funding proof recorded at mint (deep proof, #28). */
+  fundingProof?: unknown;
+  /** Set when an exit draft consumed this VTXO — prevents double-exit. */
+  exitConsumedAt?: number;
+  exitReceiptId?: string;
 }
 
 export interface VtxoTransfer {
@@ -99,6 +104,8 @@ export interface MintVtxoParams {
   amount: bigint;
   nonce: string;
   expiresAt?: number;
+  /** The on-chain funding proof (deep proof) recorded at mint. */
+  fundingProof?: unknown;
 }
 
 export interface TransferVtxoParams {
@@ -160,6 +167,8 @@ export interface ExitDraft {
   draftType: 'mock-exit';
   timelockSeconds: number;
   createdAt: number;
+  /** The verified share this exit is capped at (the VTXO's amount). */
+  verifiedShare: bigint;
 }
 
 export interface VerifyVtxoResult {
