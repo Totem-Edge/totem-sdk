@@ -104,10 +104,12 @@ export function createLiquidityPoolManifest(params: CreateLiquidityPoolManifestP
   };
 }
 
+export const POOL_MANIFEST_HASH_DOMAIN = 'totemsdk/liquidity-bond/pool-manifest/v1';
+
 export function computeLiquidityPoolManifestHash(manifest: LiquidityPoolManifest): string {
   const { signedEdgeService, ...rest } = manifest;
   const json = canonicalJson(rest);
-  return bytesToHex(F(new TextEncoder().encode(json)));
+  return bytesToHex(F(new TextEncoder().encode(`${POOL_MANIFEST_HASH_DOMAIN}|${json}`)));
 }
 
 export function verifyLiquidityPoolManifest(params: VerifyLiquidityPoolManifestParams): LiquidityBondVerifyResult {
