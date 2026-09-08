@@ -48,7 +48,7 @@ export function detectDoubleCountedLiquidity(positions: LiquidityPosition[]): Li
 
   for (const pos of positions) {
     const refs = [
-      pos.underlyingUtxoRef,
+      pos.funding?.utxoRef,
       pos.omniaChannelId,
       pos.factoryId,
       pos.routerId,

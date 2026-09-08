@@ -19,6 +19,8 @@ export type {
   LiquidityRiskPolicy,
   LiquidityPoolManifest,
   LiquidityProofRef,
+  LiquidityFunding,
+  LiquidityChainFundingVerifier,
   LiquidityCommitment,
   LiquidityPosition,
   LiquidityReceipt,
@@ -117,6 +119,8 @@ export {
   rejectLiquidityCommitment,
   cancelLiquidityCommitment,
   verifyLiquidityCommitment,
+  confirmLiquidityCommitment,
+  assetToTokenId,
 } from './commitment.js';
 
 export {

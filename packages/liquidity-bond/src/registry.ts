@@ -135,16 +135,23 @@ export function listPositionsByLp(
 }
 
 export function listActivePositions(state: LiquidityBondRegistryState): LiquidityPosition[] {
-  return Object.values(state.positions).filter(
-    (p) => p.status === 'active' || p.status === 'allocated' || p.status === 'partially-reserved'
+  return Object.values(state.positions).filter((p) =>
+    p.status === 'active' || p.status === 'allocated' || p.status === 'partially-reserved'
   );
 }
 
+/**
+ * Withdrawable means the holder can pull real funded liquidity. A position whose
+ * funding is not chain-confirmed must never appear — a phantom position must not
+ * be withdrawable.
+ */
 export function listWithdrawablePositions(
   state: LiquidityBondRegistryState,
   now: number
 ): LiquidityPosition[] {
   return Object.values(state.positions).filter((p) => {
+    if (p.funding?.status === 'invalid') return false;
+    if (p.funding && p.funding.status !== 'chain-confirmed') return false;
     if (p.status === 'depleted' || p.status === 'invalid' || p.status === 'expired') return false;
     if (p.lockTerms.lockType === 'none') return true;
     if (p.lockTerms.earlyWithdrawalAllowed) return true;

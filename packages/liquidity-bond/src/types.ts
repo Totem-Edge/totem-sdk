@@ -167,6 +167,37 @@ export interface LiquidityProofRef {
   metadata?: Record<string, unknown>;
 }
 
+/**
+ * Structured funding proof. "Verified" here means an on-chain check, never a
+ * declared string: a coin that exists, is unspent, is owned by the LP, and
+ * covers the claimed token+amount. `chain-confirmed` is set only by
+ * `confirmLiquidityCommitment` after `verifyDeposit` passes.
+ */
+export interface LiquidityFunding {
+  utxoRef: string;
+  tokenId: string;
+  amount: bigint;
+  status: 'declared' | 'chain-confirmed' | 'invalid';
+  confirmedAt?: number;
+  txpowId?: string;
+  mmrProof?: unknown;
+}
+
+/**
+ * Minimal on-chain funding verifier. Structurally satisfied by
+ * `@totemsdk/chain-provider`'s `DepositVerifier` (extra fields are fine), so a
+ * pool backend can pass the same provider both places without forcing a hard
+ * dependency on chain-provider here.
+ */
+export interface LiquidityChainFundingVerifier {
+  verifyDeposit(params: {
+    coinId: string;
+    ownerAddress: string;
+    tokenId?: string;
+    claimedAmount?: string;
+  }): Promise<{ valid: boolean; reason?: string; error?: unknown }>;
+}
+
 export interface LiquidityCommitment {
   commitmentId: string;
   poolId: string;
@@ -180,6 +211,7 @@ export interface LiquidityCommitment {
   createdAt: number;
   expiresAt?: number;
   proofRef?: LiquidityProofRef;
+  funding?: LiquidityFunding;
   metadata?: Record<string, unknown>;
 }
 
@@ -199,7 +231,7 @@ export interface LiquidityPosition {
   allocatedAmount?: bigint;
   reservedAmount?: bigint;
   availableAmount?: bigint;
-  underlyingUtxoRef?: string;
+  funding?: LiquidityFunding;
   omniaChannelId?: string;
   factoryId?: string;
   routerId?: string;
@@ -348,6 +380,7 @@ export interface CreateLiquidityCommitmentParams {
   createdAt?: number;
   expiresAt?: number;
   proofRef?: LiquidityProofRef;
+  funding?: LiquidityFunding;
   metadata?: Record<string, unknown>;
 }
 
@@ -355,13 +388,15 @@ export interface VerifyLiquidityCommitmentParams {
   commitment: LiquidityCommitment;
   pool: LiquidityPoolManifest;
   now?: number;
+  /** On-chain funding verifier. Without it, verified commits return REQUIRES_LIVE_VERIFIER. */
+  chainProvider?: LiquidityChainFundingVerifier;
 }
 
 export interface CreateLiquidityPositionParams {
   commitment: LiquidityCommitment;
   poolId: string;
   providerBondRef?: ProviderBondRef;
-  underlyingUtxoRef?: string;
+  funding?: LiquidityFunding;
   omniaChannelId?: string;
   factoryId?: string;
   routerId?: string;
