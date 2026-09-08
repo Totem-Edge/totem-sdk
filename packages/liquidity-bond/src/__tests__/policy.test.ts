@@ -31,9 +31,9 @@ describe('policy', () => {
       expect(result.ok).toBe(true);
     });
 
-    it('MxUSD passes only if accepted', () => {
-      const pool = makePool('MxUSD');
-      const pos = makePosition('MxUSD');
+    it('USDT passes only if accepted', () => {
+      const pool = makePool('USDT');
+      const pos = makePosition('USDT');
       const policy: LiquidityBondPolicy = { acceptedAssets: ['MINIMA'] };
       const result = validateLiquidityAgainstPolicy({ position: pos, pool, policy });
       expect(result.ok).toBe(false);
@@ -90,7 +90,7 @@ describe('policy', () => {
       const pool = makePool('MINIMA');
       state = registerLiquidityPool(state, pool);
       const pos1 = makePosition('MINIMA');
-      const pos2 = makePosition('MxUSD');
+      const pos2 = makePosition('USDT');
       state = registerLiquidityPosition(state, pos1);
       state = registerLiquidityPosition(state, pos2);
       const policy: LiquidityBondPolicy = { acceptedAssets: ['MINIMA'] };

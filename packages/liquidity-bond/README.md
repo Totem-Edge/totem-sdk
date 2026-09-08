@@ -75,8 +75,8 @@ Policies filter positions by: accepted assets, accepted purposes, minimum amount
 ## MINIMA as default productive liquidity asset
 
 - `MINIMA` is the default productive liquidity asset
-- `MxUSD` may be accepted for stable settlement pools if policy allows it
-- Other tokens must be explicitly accepted
+- `USDT` may be accepted for stable settlement pools if policy allows it
+- Other tokens must be explicitly accepted (e.g. `TOTEM` as it becomes available)
 - Expired/depleted/invalid positions fail policy checks
 
 ## Why v0.1 does not execute routing or settlement
@@ -224,4 +224,4 @@ const restored = parseLiquidityBondState(json);
 - Yield and reward mechanics
 - DAO governance integration
 - Transport layer for pool announcements and queries
-- MxUSD stable settlement pool support
+- USDT stable settlement pool support

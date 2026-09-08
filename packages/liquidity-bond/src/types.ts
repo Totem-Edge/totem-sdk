@@ -24,7 +24,7 @@ export type LiquidityBondVerifyCode =
   | 'REQUIRES_LIVE_VERIFIER'
   | 'UNSUPPORTED_PROOF_TYPE';
 
-export type LiquidityAsset = 'MINIMA' | 'MxUSD' | string;
+export type LiquidityAsset = 'MINIMA' | 'USDT' | 'TOTEM' | string;
 
 export type LiquidityPurpose =
   | 'omnia-router-liquidity'

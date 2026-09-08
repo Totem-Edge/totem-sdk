@@ -19,7 +19,7 @@ RFC-002 established that Rust/WASM validates only *built-in deterministic progra
 
 The vision documents describe concrete channel behaviors that map naturally onto the program port model:
 
-- **Omnia Blue Paper §2.3 / §11** — atomic multi-hop payments, hashlock claims, tokenized off-chain assets (`tokenId`, MxUSD, VTXOs).
+- **Omnia Blue Paper §2.3 / §11** — atomic multi-hop payments, hashlock claims, tokenized off-chain assets (`tokenId`, USDT, VTXOs).
 - **Omnia Blue Paper §7** — statechain locking scripts using `@COINAGE GTE 256` timelocks; §10 flash-loan/liquidity.
 - **Totem Governance Green Paper §4 / §7.3** — `treasury_spend`, `member_add` / `member_remove`, execution delays "for challenges", DAO and solar-cooperative treasury flows.
 
@@ -189,7 +189,7 @@ ASSERT SPENT ADD 5 LTE SPEND_CAP
 
 ### 6.5 Tokenized-Asset Program (`asset`)
 
-- **Source:** Blue Paper §11 — `tokenId` on channels, MxUSD flows, VTXOs as tokenized off-chain assets, cross-token swaps (§11.1).
+- **Source:** Blue Paper §11 — `tokenId` on channels, stable settlement flows (USDT on Minima), VTXOs as tokenized off-chain assets, cross-token swaps (§11.1).
 - **Behavior:** Generalizes balance conservation to a named asset inside a single channel: per-party asset balances on ports, total conservation, and optional per-transition settlement flag. Complements the channel `tokenId` field rather than replacing it.
 - **Note:** The core channel already carries `tokenId`/`tokenScale` and enforces `totalValue` conservation; this program adds *per-holder* asset accounting and is most useful where a single channel multiplexes multiple assets (swap/atomicity path). Keep scope minimal to avoid duplicating core conservation.
 
