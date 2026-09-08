@@ -204,6 +204,21 @@ export interface PaymentRequest {
 
 // ─── Payment results ──────────────────────────────────────────────────────────
 
+/**
+ * A verifiable fee-provenance record for a settled hop (#29): the artifact a
+ * pool's `recordPoolFee` earn-proof consumes. Binds channel + HTLC + recipient
+ * + amount so a fee record traces to a real fulfilled payment.
+ */
+export interface RouterFeeProof {
+  channelId: string;
+  htlcId: string;
+  recipientPublicKeyDigest: string;
+  amount: bigint;
+  tokenId: string;
+  settledAt: number;
+  proofHash: string;
+}
+
 export interface PaymentResult {
   success: boolean;
   /** Hex preimage revealed during settlement (present on success) */
@@ -211,6 +226,8 @@ export interface PaymentResult {
   error?: string;
   /** htlcIds that were successfully settled */
   settledHops: string[];
+  /** Verifiable fee proofs for each settled hop — feeds recordPoolFee earn-proofs. */
+  feeProofs?: RouterFeeProof[];
 }
 
 // ─── Pathfinding options ──────────────────────────────────────────────────────
