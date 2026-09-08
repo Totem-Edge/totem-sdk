@@ -12,9 +12,13 @@ import type {
   TokenInfo,
   TokenSearchQuery,
   BroadcastResult,
+  DepositVerifier,
+  VerifyDepositParams,
+  DepositVerification,
 } from '../types.js';
+import { depositAddressFor } from '../verify-deposit.js';
 
-export class MinimaRpcProvider implements ChainStateProvider {
+export class MinimaRpcProvider implements ChainStateProvider, DepositVerifier {
   constructor(private readonly client: MinimaRpcClient) {}
 
   async getCoins(query: CoinsQuery): Promise<Coin[]> {
@@ -36,6 +40,60 @@ export class MinimaRpcProvider implements ChainStateProvider {
     } catch {
       return null;
     }
+  }
+
+  /** Authoritative live check: `coincheck` answers found + spent from the node. */
+  async verifyDeposit(params: VerifyDepositParams): Promise<DepositVerification> {
+    try {
+      const check = await this.client.coinCheck(params.coinId);
+      const coin = check.coin as unknown as Coin | undefined;
+      if (!check.found || !coin) {
+        return {
+          valid: false,
+          exists: false,
+          unspent: false,
+          ownedByOwner: false,
+          tokenMatches: false,
+          amountSufficient: false,
+          reason: `coin ${params.coinId} not found on chain`,
+        };
+      }
+      const unspent = !check.spent;
+      const ownedByOwner = coin.address === params.ownerAddress;
+      const tokenMatches = params.tokenId ? coin.tokenid === params.tokenId : coin.tokenid === '0x00' || coin.tokenid === '0x01';
+      const amountSufficient = params.claimedAmount === undefined || bigintify(coin.amount) >= bigintify(params.claimedAmount);
+      return {
+        valid: unspent && ownedByOwner && tokenMatches && amountSufficient,
+        exists: true,
+        unspent,
+        ownedByOwner,
+        tokenMatches,
+        amountSufficient,
+        reason: unspent && ownedByOwner && tokenMatches && amountSufficient ? undefined : 'deposit funding check failed',
+        coin,
+      };
+    } catch (error) {
+      return {
+        valid: false,
+        exists: false,
+        unspent: false,
+        ownedByOwner: false,
+        tokenMatches: false,
+        amountSufficient: false,
+        reason: 'unable to reach chain provider',
+        error,
+      };
+    }
+  }
+
+  depositAddressFor(lp: string, opts?: { poolId?: string; tokenId?: string }): string {
+    return depositAddressFor(lp, opts);
+  }
+
+  /** MMR root at tip — the anchor peers verify offline proofs against. */
+  async getMmrRoot(): Promise<string | null> {
+    const info = await this.client.megammr();
+    return info?.hash ?? null;
   }
 
   async getProof(coinId: string): Promise<MMRProof> {
@@ -92,4 +150,13 @@ export class MinimaRpcProvider implements ChainStateProvider {
       return { success: false, message: String(e) };
     }
   }
+}
+
+function bigintify(decimalOrMinima: string): bigint {
+  const match = /^([0-9]+(?:\.[0-9]+)?)/.exec(decimalOrMinima.trim());
+  const num = match ? match[1] : decimalOrMinima.trim();
+  if (!num || !/^[0-9]+(\.[0-9]+)?$/.test(num)) return 0n;
+  const [whole, frac] = num.split('.');
+  const fracPadded = (frac ?? '').padEnd(8, '0').slice(0, 8);
+  return BigInt(`${whole}${fracPadded || ''}` || '0');
 }
