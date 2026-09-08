@@ -44,6 +44,7 @@
     "packages/omnia": { "status": "publishable", "maturity": "v1" },
     "packages/omnia-factory": { "status": "publishable", "maturity": "rc" },
     "packages/omnia-host": { "status": "publishable", "maturity": "rc" },
+    "packages/omnia-pool": { "status": "publishable", "maturity": "rc" },
     "packages/omnia-router": { "status": "publishable", "maturity": "rc" },
     "packages/omnia-splice": { "status": "publishable", "maturity": "rc" },
     "packages/omnia-vtxo": { "status": "publishable", "maturity": "rc" },
