@@ -288,6 +288,44 @@ function rejectStrategy(): NegotiationStrategy {
   return { evaluate: async () => ({ action: 'reject', reason: 'no deal' }) };
 }
 
+/**
+ * Advance an engine to round 2 with a fresh, accepted round-1 head and an
+ * outstanding work challenge for round 2. Work admission is required from
+ * round 2 onward, so this is the canonical setup for work-related tests.
+ */
+async function advanceToRound2(
+  engine: NegotiationEngine,
+  txpow: EdgeTxPowAdapter,
+  terms0: TradeTerms = { price: '10' },
+  terms1: TradeTerms = { price: '9' },
+): Promise<{
+  negotiationId: string;
+  p0: TradeProposal;
+  p1: TradeProposal;
+  challenge: WorkChallenge;
+  workRequired: WorkRequired;
+}> {
+  const negotiationId = 'n1';
+  const manifestId = 'm';
+  const p0 = await makeProposal(engine, negotiationId, 0, manifestId, 'buyer-principal', 'seller', terms0);
+  await engine.submitProposal(p0);
+  const p1 = await makeProposal(engine, negotiationId, 1, manifestId, 'buyer-principal', 'seller', terms1, p0.proposalId);
+  await engine.submitProposal(p1);
+
+  // The challenge is issued by the seller to the buyer. The WorkChallenge
+  // recipient is the issuer (seller), because that party later verifies the
+  // proof against its own address.
+  const challenge = createWorkChallenge('seller', 'totem.negotiation.proposal', EASY_TARGET, {
+    challengeId: 'c2',
+    nonce: 'deadbeef',
+    issuedAt: Date.now(),
+    ttlMs: 60_000,
+  });
+  const workRequired = await signWorkRequired(engine, negotiationId, 'seller', 'buyer-principal', challenge, 'counterproposal');
+  await engine.handleWorkRequired(workRequired);
+  return { negotiationId, p0, p1, challenge, workRequired };
+}
+
 /** A strategy that cycles between two term sets (for cycle detection). */
 function cyclingStrategy(): NegotiationStrategy {
   let flip = false;
@@ -626,7 +664,7 @@ describe('excessive requested work', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('missing work', () => {
-  it('required proposal rejected before strategy evaluation', async () => {
+  it('rounds 0/1 do not require work admission', async () => {
     const { txpow, workPolicy } = await makeBuyer({ workMode: 'admission-only' });
     const engine = new NegotiationEngine({
       principal: 'buyer-principal',
@@ -637,8 +675,25 @@ describe('missing work', () => {
     });
     await engine.openNegotiation({ negotiationId: 'n1', counterparty: 'seller', manifestId: 'm' });
     const p0 = await makeProposal(engine, 'n1', 0, 'm', 'buyer-principal', 'seller', { price: '10' });
+    await expect(engine.submitProposal(p0)).resolves.toBeDefined();
+    const p1 = await makeProposal(engine, 'n1', 1, 'm', 'buyer-principal', 'seller', { price: '9' }, p0.proposalId);
+    await expect(engine.submitProposal(p1)).resolves.toBeDefined();
+  });
+
+  it('required proposal rejected before strategy evaluation from round 2', async () => {
+    const { txpow, workPolicy } = await makeBuyer({ workMode: 'admission-only' });
+    const engine = new NegotiationEngine({
+      principal: 'buyer-principal',
+      verifySignature: makeVerifier(),
+      sign: makeSigner('buyer'),
+      txpow,
+      workPolicy,
+    });
+    await engine.openNegotiation({ negotiationId: 'n1', counterparty: 'seller', manifestId: 'm' });
+    const { p1 } = await advanceToRound2(engine, txpow);
+    const p2 = await makeProposal(engine, 'n1', 2, 'm', 'buyer-principal', 'seller', { price: '8' }, p1.proposalId);
     // No workAdmission attached.
-    await expect(engine.submitProposal(p0)).rejects.toThrow('missing required work');
+    await expect(engine.submitProposal(p2)).rejects.toThrow('missing required work');
   });
 });
 
@@ -657,19 +712,12 @@ describe('tampered terms after mining', () => {
       workPolicy,
     });
     await engine.openNegotiation({ negotiationId: 'n1', counterparty: 'seller', manifestId: 'm' });
-    const challenge = createWorkChallenge('seller', 'totem.negotiation.proposal', EASY_TARGET, {
-      challengeId: 'c1',
-      nonce: 'deadbeef',
-      issuedAt: Date.now(),
-      ttlMs: 60_000,
-    });
-    const signed = await signWorkRequired(engine, 'n1', 'seller', 'buyer-principal', challenge);
-    await engine.handleWorkRequired(signed);
-    const p0 = await makeProposal(engine, 'n1', 0, 'm', 'buyer-principal', 'seller', { price: '10' });
+    const { p1, challenge } = await advanceToRound2(engine, txpow, { price: '10' }, { price: '9' });
+    const p2 = await makeProposal(engine, 'n1', 2, 'm', 'buyer-principal', 'seller', { price: '8' }, p1.proposalId);
     // Mine a proof for the ORIGINAL terms, then tamper the proposal terms.
-    const action = engine.buildAction(p0);
+    const action = engine.buildAction(p2);
     const proof = await txpow.mine(action, challenge, { prng: FIXED_PRNG, _skipWorker: true, forceJs: true, maxIterations: 100_000 });
-    const tampered = { ...p0, terms: { price: '9' }, workAdmission: proof };
+    const tampered = { ...p2, terms: { price: '7' }, workAdmission: proof };
     await expect(engine.submitProposal(tampered)).rejects.toThrow('work admission invalid');
   });
 });
@@ -690,26 +738,24 @@ describe('counter requires fresh work', () => {
     });
     await engine.openNegotiation({ negotiationId: 'n1', counterparty: 'seller', manifestId: 'm' });
 
-    // Round 0 with challenge c1.
-    const c1 = createWorkChallenge('seller', 'totem.negotiation.proposal', EASY_TARGET, {
-      challengeId: 'c1', nonce: 'deadbeef', issuedAt: Date.now(), ttlMs: 60_000,
-    });
-    const wr1 = await signWorkRequired(engine, 'n1', 'seller', 'buyer-principal', c1);
-    await engine.handleWorkRequired(wr1);
-    const p0 = await makeProposal(engine, 'n1', 0, 'm', 'buyer-principal', 'seller', { price: '10' });
-    const a0 = engine.buildAction(p0);
-    const proof0 = await txpow.mine(a0, c1, { prng: FIXED_PRNG, _skipWorker: true, forceJs: true, maxIterations: 100_000 });
-    await engine.submitProposal({ ...p0, workAdmission: proof0 });
+    // Get to round 2 with an outstanding challenge.
+    const { p1, challenge: c2 } = await advanceToRound2(engine, txpow, { price: '10' }, { price: '9' });
+    const p2 = await makeProposal(engine, 'n1', 2, 'm', 'buyer-principal', 'seller', { price: '8' }, p1.proposalId);
 
-    // Round 1 with challenge c2 (fresh).
-    const c2 = createWorkChallenge('seller', 'totem.negotiation.proposal', EASY_TARGET, {
-      challengeId: 'c2', nonce: 'cafebabe', issuedAt: Date.now(), ttlMs: 60_000,
+    // Mine a proof for round 2.
+    const a2 = engine.buildAction(p2);
+    const proof2 = await txpow.mine(a2, c2, { prng: FIXED_PRNG, _skipWorker: true, forceJs: true, maxIterations: 100_000 });
+    await engine.submitProposal({ ...p2, workAdmission: proof2 });
+
+    // Round 3 with a fresh challenge c3.
+    const c3 = createWorkChallenge('seller', 'totem.negotiation.proposal', EASY_TARGET, {
+      challengeId: 'c3', nonce: 'cafebabe', issuedAt: Date.now(), ttlMs: 60_000,
     });
-    const wr2 = await signWorkRequired(engine, 'n1', 'seller', 'buyer-principal', c2);
-    await engine.handleWorkRequired(wr2);
-    const p1 = await makeProposal(engine, 'n1', 1, 'm', 'buyer-principal', 'seller', { price: '9' }, p0.proposalId);
-    // Reuse proof0 (mined for c1) — must fail because the action binds c2.
-    await expect(engine.submitProposal({ ...p1, workAdmission: proof0 })).rejects.toThrow('work admission invalid');
+    const wr3 = await signWorkRequired(engine, 'n1', 'seller', 'buyer-principal', c3, 'counterproposal');
+    await engine.handleWorkRequired(wr3);
+    const p3 = await makeProposal(engine, 'n1', 3, 'm', 'buyer-principal', 'seller', { price: '7' }, p2.proposalId);
+    // Reuse proof2 (mined for c2) — must fail because the action binds c3.
+    await expect(engine.submitProposal({ ...p3, workAdmission: proof2 })).rejects.toThrow('work admission invalid');
   });
 });
 
@@ -728,17 +774,13 @@ describe('forged super level', () => {
       workPolicy,
     });
     await engine.openNegotiation({ negotiationId: 'n1', counterparty: 'seller', manifestId: 'm' });
-    const challenge = createWorkChallenge('seller', 'totem.negotiation.proposal', EASY_TARGET, {
-      challengeId: 'c1', nonce: 'deadbeef', issuedAt: Date.now(), ttlMs: 60_000,
-    });
-    const wr = await signWorkRequired(engine, 'n1', 'seller', 'buyer-principal', challenge);
-    await engine.handleWorkRequired(wr);
-    const p0 = await makeProposal(engine, 'n1', 0, 'm', 'buyer-principal', 'seller', { price: '10' });
-    const action = engine.buildAction(p0);
+    const { p1, challenge } = await advanceToRound2(engine, txpow, { price: '10' }, { price: '9' });
+    const p2 = await makeProposal(engine, 'n1', 2, 'm', 'buyer-principal', 'seller', { price: '8' }, p1.proposalId);
+    const action = engine.buildAction(p2);
     const proof = await txpow.mine(action, challenge, { prng: FIXED_PRNG, _skipWorker: true, forceJs: true, maxIterations: 100_000 });
     // Forge superLevel/isBlock metadata.
     const forged = { ...proof, superLevel: 5, isBlock: true, qualifiesAsMinimaBlock: true };
-    await engine.submitProposal({ ...p0, workAdmission: forged });
+    await engine.submitProposal({ ...p2, workAdmission: forged });
     // The engine accepted it because verification recomputes — the forged
     // metadata is ignored. (Block target == admission target here, so the
     // real superLevel is >= 0 anyway; the point is Edge never trusts it.)
@@ -762,16 +804,12 @@ describe('block relay', () => {
       workPolicy,
     });
     await engine.openNegotiation({ negotiationId: 'n1', counterparty: 'seller', manifestId: 'm' });
-    const challenge = createWorkChallenge('seller', 'totem.negotiation.proposal', EASY_TARGET, {
-      challengeId: 'c1', nonce: 'deadbeef', issuedAt: Date.now(), ttlMs: 60_000,
-    });
-    const wr = await signWorkRequired(engine, 'n1', 'seller', 'buyer-principal', challenge);
-    await engine.handleWorkRequired(wr);
-    const p0 = await makeProposal(engine, 'n1', 0, 'm', 'buyer-principal', 'seller', { price: '10' });
-    const action = engine.buildAction(p0);
+    const { p1, challenge } = await advanceToRound2(engine, txpow, { price: '10' }, { price: '9' });
+    const p2 = await makeProposal(engine, 'n1', 2, 'm', 'buyer-principal', 'seller', { price: '8' }, p1.proposalId);
+    const action = engine.buildAction(p2);
     const proof = await txpow.mine(action, challenge, { prng: FIXED_PRNG, _skipWorker: true, forceJs: true, maxIterations: 100_000 });
     // Block target == admission target → superLevel >= 0 → broadcastable.
-    await engine.submitProposal({ ...p0, workAdmission: proof });
+    await engine.submitProposal({ ...p2, workAdmission: proof });
     expect(submitted.length).toBe(1);
   });
 
@@ -794,15 +832,11 @@ describe('block relay', () => {
       workPolicy,
     });
     await engine.openNegotiation({ negotiationId: 'n1', counterparty: 'seller', manifestId: 'm' });
-    const challenge = createWorkChallenge('seller', 'totem.negotiation.proposal', EASY_TARGET, {
-      challengeId: 'c1', nonce: 'deadbeef', issuedAt: Date.now(), ttlMs: 60_000,
-    });
-    const wr = await signWorkRequired(engine, 'n1', 'seller', 'buyer-principal', challenge);
-    await engine.handleWorkRequired(wr);
-    const p0 = await makeProposal(engine, 'n1', 0, 'm', 'buyer-principal', 'seller', { price: '10' });
-    const action = engine.buildAction(p0);
+    const { p1, challenge } = await advanceToRound2(engine, txpow, { price: '10' }, { price: '9' });
+    const p2 = await makeProposal(engine, 'n1', 2, 'm', 'buyer-principal', 'seller', { price: '8' }, p1.proposalId);
+    const action = engine.buildAction(p2);
     const proof = await txpow.mine(action, challenge, { prng: FIXED_PRNG, _skipWorker: true, forceJs: true, maxIterations: 100_000 });
-    await engine.submitProposal({ ...p0, workAdmission: proof });
+    await engine.submitProposal({ ...p2, workAdmission: proof });
     expect(submitted.length).toBe(0);
   });
 });
@@ -867,18 +901,14 @@ describe('duplicate challenge griefing', () => {
       workPolicy,
     });
     await engine.openNegotiation({ negotiationId: 'n1', counterparty: 'seller', manifestId: 'm' });
-    const challenge = createWorkChallenge('seller', 'totem.negotiation.proposal', EASY_TARGET, {
-      challengeId: 'c1', nonce: 'deadbeef', issuedAt: Date.now(), ttlMs: 60_000,
-    });
-    const wr = await signWorkRequired(engine, 'n1', 'seller', 'buyer-principal', challenge);
-    await engine.handleWorkRequired(wr);
-    const p0 = await makeProposal(engine, 'n1', 0, 'm', 'buyer-principal', 'seller', { price: '10' });
-    const a0 = engine.buildAction(p0);
-    const proof0 = await txpow.mine(a0, challenge, { prng: FIXED_PRNG, _skipWorker: true, forceJs: true, maxIterations: 100_000 });
-    await engine.submitProposal({ ...p0, workAdmission: proof0 });
+    const { p1, challenge } = await advanceToRound2(engine, txpow, { price: '10' }, { price: '9' });
+    const p2 = await makeProposal(engine, 'n1', 2, 'm', 'buyer-principal', 'seller', { price: '8' }, p1.proposalId);
+    const a2 = engine.buildAction(p2);
+    const proof2 = await txpow.mine(a2, challenge, { prng: FIXED_PRNG, _skipWorker: true, forceJs: true, maxIterations: 100_000 });
+    await engine.submitProposal({ ...p2, workAdmission: proof2 });
 
     // Re-issuing the SAME challenge for a new proposal must be rejected.
-    const wr2 = await signWorkRequired(engine, 'n1', 'seller', 'buyer-principal', challenge);
+    const wr2 = await signWorkRequired(engine, 'n1', 'seller', 'buyer-principal', challenge, 'counterproposal');
     await expect(engine.handleWorkRequired(wr2)).rejects.toThrow('already consumed');
   });
 });
@@ -928,23 +958,18 @@ describe('bounded difficulty escalation', () => {
       workPolicy,
     });
     await engine.openNegotiation({ negotiationId: 'n1', counterparty: 'seller', manifestId: 'm' });
-    // Round 0 uses EASY_TARGET (allowed).
-    const c0 = createWorkChallenge('seller', 'totem.negotiation.proposal', EASY_TARGET, {
-      challengeId: 'c0', nonce: 'deadbeef', issuedAt: Date.now(), ttlMs: 60_000,
-    });
-    const wr0 = await signWorkRequired(engine, 'n1', 'seller', 'buyer-principal', c0);
-    await engine.handleWorkRequired(wr0);
+    // Rounds 0 and 1 are bootstrap rounds with no work required.
     const p0 = await makeProposal(engine, 'n1', 0, 'm', 'buyer-principal', 'seller', { price: '10' });
-    const a0 = engine.buildAction(p0);
-    const proof0 = await txpow.mine(a0, c0, { prng: FIXED_PRNG, _skipWorker: true, forceJs: true, maxIterations: 100_000 });
-    await engine.submitProposal({ ...p0, workAdmission: proof0 });
+    await engine.submitProposal(p0);
+    const p1 = await makeProposal(engine, 'n1', 1, 'm', 'buyer-principal', 'seller', { price: '9' }, p0.proposalId);
+    await engine.submitProposal(p1);
 
-    // Round 1 would use MEDIUM_TARGET (harder than maxTarget) → refused.
-    const c1 = createWorkChallenge('seller', 'totem.negotiation.proposal', MEDIUM_TARGET, {
-      challengeId: 'c1', nonce: 'cafebabe', issuedAt: Date.now(), ttlMs: 60_000,
+    // Round 2 would use MEDIUM_TARGET (harder than maxTarget) → refused.
+    const c2 = createWorkChallenge('seller', 'totem.negotiation.proposal', MEDIUM_TARGET, {
+      challengeId: 'c2', nonce: 'cafebabe', issuedAt: Date.now(), ttlMs: 60_000,
     });
-    const wr1 = await signWorkRequired(engine, 'n1', 'seller', 'buyer-principal', c1);
-    await expect(engine.handleWorkRequired(wr1)).rejects.toThrow('work budget');
+    const wr2 = await signWorkRequired(engine, 'n1', 'seller', 'buyer-principal', c2, 'counterproposal');
+    await expect(engine.handleWorkRequired(wr2)).rejects.toThrow('work budget');
   });
 });
 
@@ -1050,6 +1075,7 @@ async function signWorkRequired(
   sender: string,
   recipient: string,
   challenge: WorkChallenge,
+  reason: 'initial-proposal' | 'counterproposal' = 'initial-proposal',
 ): Promise<WorkRequired> {
   const unsigned = {
     version: PURCHASING_VERSION,
@@ -1057,7 +1083,7 @@ async function signWorkRequired(
     sender,
     recipient,
     challenge,
-    reason: 'initial-proposal' as const,
+    reason,
   };
   const canonical = canonicalJson({
     version: unsigned.version,

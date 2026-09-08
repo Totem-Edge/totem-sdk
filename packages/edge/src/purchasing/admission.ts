@@ -19,6 +19,7 @@
 import {
   mineWorkAdmission,
   verifyWorkAdmission,
+  createWorkChallenge,
   type MachineWorkAction,
   type MachineWorkAdmissionProof,
   type MinimaWorkRelay,
@@ -28,10 +29,12 @@ import {
 } from '@totemsdk/txpow';
 import { estimateMiningCost } from '@totemsdk/txpow';
 import { challengeFingerprint } from '@totemsdk/txpow';
-import type {
-  LocalWorkBudget,
-  WorkDifficultyPolicy,
-  WorkMode,
+import { workRequiredDigest } from './terms.js';
+import {
+  PURCHASING_VERSION,
+  type LocalWorkBudget,
+  type WorkDifficultyPolicy,
+  type WorkMode,
 } from './types.js';
 
 /** Convert a hex target to a bigint (for budget comparisons). */
@@ -144,6 +147,57 @@ export class EdgeWorkPolicy {
   /** Expected hashes for a target (exposed for telemetry). */
   expectedHashes(targetHex: string): bigint {
     return expectedHashesForTarget(targetHex);
+  }
+
+  /**
+   * Issue a WorkRequired challenge for the next round, bound by local policy.
+   *
+   * The caller (engine or seller service) is responsible for sending the
+   * challenge to the counterparty and persisting it as an outstanding
+   * challenge in the negotiation record.
+   */
+  async issueChallenge(params: {
+    negotiationId: string;
+    round: number;
+    recipient: string;
+    issuer: string;
+    sign: (digest: string) => Promise<{ signature: string; signerPublicKey: string }>;
+    now?: () => number;
+    domain?: string;
+  }): Promise<{
+    challenge: WorkChallenge;
+    workRequired: import('./types.js').WorkRequired;
+  }> {
+    const target = this.targetForRound(params.round);
+    if (target === null) {
+      throw new Error(`round ${params.round} difficulty exceeds local policy`);
+    }
+
+    // The WorkChallenge names the issuer as recipient because the issuer is
+    // the party that will later receive the proposal carrying the proof and
+    // verify it against its own address.
+    const challenge = createWorkChallenge(params.issuer, params.domain ?? 'totem.negotiation.proposal', target, {
+      issuedAt: params.now?.() ?? Date.now(),
+      ttlMs: 60_000,
+    });
+
+    const unsigned: Omit<import('./types.js').WorkRequired, 'signature' | 'signerPublicKey'> = {
+      version: PURCHASING_VERSION,
+      negotiationId: params.negotiationId,
+      proposalId: undefined,
+      sender: params.issuer,
+      recipient: params.recipient,
+      challenge,
+      reason: params.round === 0 ? 'initial-proposal' : 'counterproposal',
+    };
+    const digest = workRequiredDigest(unsigned as import('./types.js').WorkRequired);
+    const sig = await params.sign(digest);
+    const workRequired: import('./types.js').WorkRequired = {
+      ...unsigned,
+      signature: sig.signature,
+      signerPublicKey: sig.signerPublicKey,
+    };
+    return { challenge, workRequired };
   }
 }
 

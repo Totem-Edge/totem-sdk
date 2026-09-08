@@ -22,7 +22,9 @@ import { verifyManifest, computeManifestId } from '@totemsdk/manifest';
 import type { SignedManifest } from '@totemsdk/manifest';
 import {
   PURCHASING_VERSION,
+  type NegotiationCancellation,
   type NegotiationLimits,
+  type NegotiationMessage,
   type NegotiationResult,
   type NegotiationStrategy,
   type ProposalAcceptance,
@@ -47,9 +49,15 @@ import {
   type PurchaseRecord,
   type PurchaseStatus,
 } from './purchase.js';
-import type { PurchaseStore } from './store.js';
-import { InMemoryPurchaseStore } from './store.js';
-import { PurchaseError, PURCHASE_ERROR_CODES } from './errors.js';
+
+import { PurchaseError, NegotiationError, PURCHASE_ERROR_CODES } from './errors.js';
+import { ingress } from './ingress.js';
+import { messageId, InMemoryReplayLedger, type ReplayLedger, type ReplayOutcome } from './messages.js';
+import type { NegotiationStore, PurchaseStore, PrincipalNegotiationStore } from './store.js';
+import { InMemoryPurchaseStore, InMemoryNegotiationStore, InMemoryPrincipalNegotiationStore } from './store.js';
+import type { OutboxStore } from './outbox.js';
+import { InMemoryOutboxStore } from './outbox.js';
+import type { NegotiationTransport, TransportMessageContext } from './transport.js';
 
 /** Signature verification (WOTS). */
 export type SignatureVerifier = (params: {
@@ -110,9 +118,20 @@ export interface BuyerOptions {
   /** Durable purchase store. When omitted, in-memory (dev mode). */
   purchaseStore?: PurchaseStore;
   /** Durable negotiation store. When omitted, in-memory (dev mode). */
-  negotiationStore?: import('./store.js').NegotiationStore;
+  negotiationStore?: NegotiationStore;
   /** Durable principal anti-abuse store. When omitted, in-memory (dev mode). */
-  principalStore?: import('./store.js').PrincipalNegotiationStore;
+  principalStore?: PrincipalNegotiationStore;
+  /** Durable replay ledger. When omitted, in-memory (dev mode). */
+  replayLedger?: ReplayLedger;
+  /** Durable outbox store. When omitted, in-memory (dev mode). */
+  outboxStore?: OutboxStore;
+  /** Authenticated negotiation transport. When omitted, negotiation is local/programmatic. */
+  negotiationTransport?: NegotiationTransport;
+  /**
+   * Optional hook invoked after a message is enqueued to the durable outbox.
+   * The runtime uses this to trigger an immediate outbox drain over the wire.
+   */
+  onOutboundEnqueued?: () => Promise<void>;
 }
 
 export interface BuyOptions {
@@ -131,6 +150,14 @@ export interface BuyOptions {
 export class EdgeBuyer {
   private readonly _engine: NegotiationEngine;
   private readonly purchaseStore: PurchaseStore;
+  private readonly replayLedger: ReplayLedger;
+  private readonly outboxStore: OutboxStore;
+  private readonly negotiationTransport?: NegotiationTransport;
+  /** Inbound messages queued per negotiation when no waiter is present yet. */
+  private readonly inboundQueues = new Map<string, NegotiationMessage[]>();
+  /** Resolvers waiting for the next inbound message in a negotiation. */
+  private readonly inboundWaiters = new Map<string, Array<{ resolve: (msg: NegotiationMessage) => void; reject: (err: Error) => void }>>();
+  private unsubscribeTransport?: () => void;
 
   constructor(private readonly opts: BuyerOptions) {
     this._engine = new NegotiationEngine({
@@ -145,6 +172,9 @@ export class EdgeBuyer {
       principalStore: opts.principalStore,
     });
     this.purchaseStore = opts.purchaseStore ?? new InMemoryPurchaseStore();
+    this.replayLedger = opts.replayLedger ?? new InMemoryReplayLedger();
+    this.outboxStore = opts.outboxStore ?? new InMemoryOutboxStore();
+    this.negotiationTransport = opts.negotiationTransport;
   }
 
   private emit(event: PurchaseEvent): void {
@@ -153,6 +183,174 @@ export class EdgeBuyer {
 
   private now(): number {
     return this.opts.now?.() ?? Date.now();
+  }
+
+  private digestFor(msg: NegotiationMessage): string {
+    if ('proposalId' in msg && 'terms' in msg) return proposalDigest(msg as TradeProposal);
+    if ('acceptedAt' in msg) return acceptanceDigest(msg as ProposalAcceptance);
+    if ('rejectedAt' in msg) return rejectionDigest(msg as ProposalRejection);
+    if ('cancelledAt' in msg) {
+      const { cancellationDigest } = require('./terms.js');
+      return cancellationDigest(msg as NegotiationCancellation);
+    }
+    if ('challenge' in msg && 'reason' in msg) {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { workRequiredDigest } = require('./terms.js');
+      return workRequiredDigest(msg as import('./types.js').WorkRequired);
+    }
+    throw new NegotiationError('UNSUPPORTED_MESSAGE', 'unsupported message type for ingress digest');
+  }
+
+  /** Start listening on the negotiation transport (idempotent). */
+  async startTransport(): Promise<() => void> {
+    if (this.unsubscribeTransport || !this.negotiationTransport) {
+      return this.unsubscribeTransport ?? (() => {});
+    }
+    const off = await this.negotiationTransport.subscribe(async (message, context) => {
+      await this.handleInbound(message, context);
+    });
+    this.unsubscribeTransport = off;
+    return this.unsubscribeTransport;
+  }
+
+  /** Stop listening on the negotiation transport. */
+  stopTransport(): void {
+    this.unsubscribeTransport?.();
+    this.unsubscribeTransport = undefined;
+  }
+
+  /**
+   * Handle an inbound authenticated negotiation message.
+   * Used by the transport-driven negotiation loop.
+   */
+  async handleInbound(message: NegotiationMessage, context: TransportMessageContext): Promise<ReplayOutcome> {
+    try {
+      const ingressed = await ingress(message, context, {
+        recipient: this.opts.principal,
+        verifySignature: this.opts.verifySignature,
+        digest: (msg) => this.digestFor(msg),
+        replayLedger: this.replayLedger,
+      });
+
+      if (ingressed.replayed || !ingressed.claimed) {
+        const outcome = ingressed.priorEntry?.state === 'COMPLETED' ? ingressed.priorEntry.outcome : { ok: true, result: 'replayed' };
+        return outcome;
+      }
+
+      const result = await this.dispatchInbound(ingressed.message);
+      await this.replayLedger.complete(messageId(ingressed.message), result);
+      return result;
+    } catch (err) {
+      const outcome: ReplayOutcome = { ok: false, error: err instanceof Error ? err.message : String(err) };
+      try {
+        await this.replayLedger.complete(messageId(message), outcome);
+      } catch {
+        // Replay ledger failure is not fatal to the protocol outcome.
+      }
+      return outcome;
+    }
+  }
+
+  private deliverInbound(negotiationId: string, message: NegotiationMessage): void {
+    const waiters = this.inboundWaiters.get(negotiationId);
+    if (waiters && waiters.length > 0) {
+      const [next] = waiters.splice(0, 1);
+      next.resolve(message);
+      return;
+    }
+    const queue = this.inboundQueues.get(negotiationId) ?? [];
+    queue.push(message);
+    this.inboundQueues.set(negotiationId, queue);
+  }
+
+  private async dispatchInbound(message: NegotiationMessage): Promise<ReplayOutcome> {
+    const negotiationId = (message as { negotiationId: string }).negotiationId;
+    if ('proposalId' in message && 'terms' in message) {
+      const proposal = message as TradeProposal;
+      await this._engine.submitProposal(proposal);
+      this.deliverInbound(negotiationId, proposal);
+      return { ok: true, result: proposal.proposalId };
+    }
+    if ('acceptedAt' in message) {
+      const acceptance = message as ProposalAcceptance;
+      try {
+        await this._engine.acceptProposal(acceptance);
+      } catch {
+        // The seller may send an acceptance we already applied; ignore terminal.
+      }
+      this.deliverInbound(negotiationId, acceptance);
+      return { ok: true, result: acceptance.proposalId };
+    }
+    if ('rejectedAt' in message) {
+      const rejection = message as ProposalRejection;
+      try {
+        await this._engine.rejectProposal(rejection);
+      } catch {
+        // May already be terminal.
+      }
+      this.deliverInbound(negotiationId, rejection);
+      return { ok: true, result: 'rejected' };
+    }
+    if ('cancelledAt' in message) {
+      const cancellation = message as NegotiationCancellation;
+      try {
+        await this._engine.cancelNegotiation(cancellation);
+      } catch {
+        // May already be terminal.
+      }
+      this.deliverInbound(negotiationId, cancellation);
+      return { ok: true, result: 'cancelled' };
+    }
+    if ('challenge' in message && 'reason' in message) {
+      const workRequired = message as import('./types.js').WorkRequired;
+      try {
+        const challenge = await this._engine.handleWorkRequired(workRequired);
+        return { ok: true, result: challenge.challengeId };
+      } catch (err) {
+        return { ok: false, error: err instanceof Error ? err.message : String(err) };
+      }
+    }
+    return { ok: false, error: 'unsupported inbound message type' };
+  }
+
+  private async waitForInbound(negotiationId: string, timeoutMs: number): Promise<NegotiationMessage> {
+    const queue = this.inboundQueues.get(negotiationId);
+    if (queue && queue.length > 0) {
+      const [next] = queue.splice(0, 1);
+      if (queue.length === 0) this.inboundQueues.delete(negotiationId);
+      return next;
+    }
+    return new Promise((resolve, reject) => {
+      const waiters = this.inboundWaiters.get(negotiationId) ?? [];
+      const timer = setTimeout(() => {
+        const idx = waiters.findIndex((w) => w.resolve === resolve);
+        if (idx >= 0) waiters.splice(idx, 1);
+        if (waiters.length === 0) this.inboundWaiters.delete(negotiationId);
+        reject(new NegotiationError('NEGOTIATION_TIMEOUT', 'timed out waiting for seller response'));
+      }, timeoutMs);
+      waiters.push({
+        resolve: (msg) => {
+          clearTimeout(timer);
+          resolve(msg);
+        },
+        reject: (err) => {
+          clearTimeout(timer);
+          reject(err);
+        },
+      });
+      this.inboundWaiters.set(negotiationId, waiters);
+    });
+  }
+
+  private async enqueueOutbound(recipient: string, message: NegotiationMessage): Promise<void> {
+    await this.outboxStore.enqueue({
+      messageId: messageId(message),
+      recipient,
+      message,
+      enqueuedAt: this.now(),
+      attempts: 0,
+    });
+    await this.opts.onOutboundEnqueued?.();
   }
 
   /**
@@ -210,8 +408,26 @@ export class EdgeBuyer {
 
   /**
    * edge.negotiate() — bounded peer-to-peer negotiation.
+   *
+   * When a negotiation transport is configured, this method becomes
+   * transport-driven: the initial proposal is sent over the wire and the
+   * service waits for seller responses. When no transport is configured,
+   * negotiation is local/programmatic (used for deterministic tests and
+   * co-located runtimes).
    */
   async negotiate(options: {
+    manifest: SignedManifest;
+    desiredTerms: TradeTerms;
+    limits: Partial<NegotiationLimits>;
+    strategy: NegotiationStrategy;
+  }): Promise<NegotiationResult> {
+    if (this.negotiationTransport) {
+      return this.negotiateOverTransport(options);
+    }
+    return this.negotiateLocal(options);
+  }
+
+  private async negotiateLocal(options: {
     manifest: SignedManifest;
     desiredTerms: TradeTerms;
     limits: Partial<NegotiationLimits>;
@@ -253,12 +469,12 @@ export class EdgeBuyer {
       });
 
       if (decision.action === 'accept') {
-        const acceptance = await this.signAcceptance(negotiationId, current.proposalId);
+        const acceptance = await this.signAcceptance(negotiationId, current.proposalId, manifest.authorAddress);
         const agreement = await this._engine.acceptProposal(acceptance);
         return { agreement, history };
       }
       if (decision.action === 'reject') {
-        const rejection = await this.signRejection(negotiationId, current.proposalId, decision.reason);
+        const rejection = await this.signRejection(negotiationId, current.proposalId, manifest.authorAddress, decision.reason);
         await this._engine.rejectProposal(rejection);
         throw new Error(`negotiation rejected: ${decision.reason ?? 'no reason'}`);
       }
@@ -282,6 +498,152 @@ export class EdgeBuyer {
     throw new Error('negotiation exhausted maxRounds');
   }
 
+  private async negotiateOverTransport(options: {
+    manifest: SignedManifest;
+    desiredTerms: TradeTerms;
+    limits: Partial<NegotiationLimits>;
+    strategy: NegotiationStrategy;
+  }): Promise<NegotiationResult> {
+    const { manifest, desiredTerms, limits, strategy } = options;
+    const manifestId = computeManifestId(manifest.manifest);
+    const negotiationId = `edge:negotiation:${this.now()}:${Math.random().toString(36).slice(2)}`;
+    const sellerAddress = manifest.authorAddress;
+    const timeoutMs = limits.expiresAt ? limits.expiresAt - this.now() : 60_000;
+
+    // Ensure the transport listener is running before any outbound send.
+    await this.startTransport();
+
+    await this._engine.openNegotiation({
+      negotiationId,
+      counterparty: sellerAddress,
+      manifestId,
+      expiresAt: limits.expiresAt,
+    });
+
+    // Initial proposal (round 0).
+    const initial = await this.buildProposal({
+      negotiationId,
+      round: 0,
+      manifestId,
+      proposer: this.opts.principal,
+      recipient: sellerAddress,
+      terms: desiredTerms,
+      parentProposalId: undefined,
+    });
+
+    await this._engine.submitProposal(initial);
+    await this.enqueueOutbound(sellerAddress, initial);
+
+
+
+    let current = initial;
+    let history: TradeProposal[] = [initial];
+    const maxRounds = limits.maxRounds ?? 5;
+
+    for (let round = 1; round < maxRounds; round++) {
+      const response = await this.waitForInbound(negotiationId, timeoutMs);
+
+      if ('acceptedAt' in response) {
+        // Seller accepted a prior proposal of ours. The inbound dispatch may
+        // have already applied this acceptance, so tolerate an already-terminal
+        // negotiation and return the durable agreement.
+        const acceptance = response as ProposalAcceptance;
+        try {
+          const agreement = await this._engine.acceptProposal(acceptance);
+          return { agreement, history };
+        } catch (err) {
+          const record = await this._engine.getRecordFor(negotiationId);
+          if (record?.agreement) {
+            return { agreement: record.agreement, history };
+          }
+          throw err;
+        }
+      }
+
+      if ('rejectedAt' in response) {
+        const rejection = response as ProposalRejection;
+        throw new Error(`negotiation rejected: ${rejection.reason ?? 'no reason'}`);
+      }
+
+      if ('cancelledAt' in response) {
+        throw new Error('negotiation cancelled by seller');
+      }
+
+      // Must be a counter proposal.
+      const counter = response as TradeProposal;
+      const decision = await strategy.evaluate({
+        negotiationId,
+        proposal: counter,
+        history,
+        termsHashes: await this._engine.getTermsHashes(negotiationId),
+      });
+
+      if (decision.action === 'accept') {
+        const acceptance = await this.signAcceptance(negotiationId, counter.proposalId, sellerAddress);
+        await this._engine.acceptProposal(acceptance);
+        await this.enqueueOutbound(sellerAddress, acceptance);
+        // Wait for the seller's mirrored acceptance to converge the agreement.
+        const mirrored = await this.waitForInbound(negotiationId, timeoutMs);
+        if ('acceptedAt' in mirrored) {
+          try {
+            const agreement = await this._engine.acceptProposal(mirrored as ProposalAcceptance);
+            return { agreement, history: [...history, counter] };
+          } catch {
+            // Already terminal — return the durable agreement.
+          }
+        }
+        // The acceptance we already applied is sufficient.
+        const record = await this._engine.getRecordFor(negotiationId);
+        if (record?.agreement) {
+          return { agreement: record.agreement, history: [...history, counter] };
+        }
+        throw new Error('expected seller acceptance after our acceptance');
+      }
+
+      if (decision.action === 'reject') {
+        const rejection = await this.signRejection(negotiationId, counter.proposalId, sellerAddress, decision.reason);
+        await this._engine.rejectProposal(rejection);
+        await this.enqueueOutbound(sellerAddress, rejection);
+        throw new Error(`negotiation rejected: ${decision.reason ?? 'no reason'}`);
+      }
+
+      // Counter.
+      const nextRound = counter.round + 1;
+      const next = await this.buildProposal({
+        negotiationId,
+        round: nextRound,
+        manifestId,
+        proposer: this.opts.principal,
+        recipient: sellerAddress,
+        terms: decision.terms,
+        parentProposalId: counter.proposalId,
+      });
+
+      // Mine against the outstanding challenge the seller issued for this round.
+      if (this.opts.workPolicy.getMode() !== 'disabled' && nextRound >= 2) {
+        const record = await this._engine.getRecordFor(negotiationId);
+        const outstanding = record?.outstandingChallenges.find((c) => c.round === nextRound && c.status === 'OUTSTANDING');
+        if (!outstanding) {
+          throw new NegotiationError(PURCHASE_ERROR_CODES.WORK_BUDGET_EXHAUSTED, `no outstanding work challenge for round ${nextRound}`);
+        }
+        const challenge = this._engine.getIssuedChallenge(negotiationId, nextRound);
+        if (!challenge) {
+          throw new NegotiationError('NO_CHALLENGE', `work challenge for round ${nextRound} not found`);
+        }
+        const action = this._engine.buildAction(next as TradeProposal);
+        next.workAdmission = await this.opts.txpow.mine(action, challenge);
+      }
+
+      await this._engine.submitProposal(next);
+      await this.enqueueOutbound(sellerAddress, next);
+
+      current = next;
+      history = [...history, next];
+    }
+
+    throw new Error('negotiation exhausted maxRounds');
+  }
+
   private async negotiateWith(
     intent: PurchaseIntent,
     manifest: SignedManifest,
@@ -300,6 +662,14 @@ export class EdgeBuyer {
       strategy,
     });
     return result.agreement;
+  }
+
+  /**
+   * Enqueue a signed protocol message into the durable outbox.
+   * Exposed for the runtime-level outbox drainer to send.
+   */
+  async enqueueMessage(recipient: string, message: NegotiationMessage): Promise<void> {
+    await this.enqueueOutbound(recipient, message);
   }
 
   private async executeDirect(
@@ -592,14 +962,14 @@ export class EdgeBuyer {
     return { ...unsigned, signature: sig.signature, signerPublicKey: sig.signerPublicKey };
   }
 
-  private async signAcceptance(negotiationId: string, proposalId: string): Promise<ProposalAcceptance> {
+  private async signAcceptance(negotiationId: string, proposalId: string, recipient = ''): Promise<ProposalAcceptance> {
     const now = this.now();
     const acceptance: ProposalAcceptance = {
       version: PURCHASING_VERSION,
       negotiationId,
       proposalId,
       acceptor: this.opts.principal,
-      recipient: '',
+      recipient,
       acceptedAt: now,
       signature: '',
       signerPublicKey: '',
@@ -612,6 +982,7 @@ export class EdgeBuyer {
   private async signRejection(
     negotiationId: string,
     proposalId: string,
+    recipient = '',
     reason?: string,
   ): Promise<ProposalRejection> {
     const now = this.now();
@@ -620,7 +991,7 @@ export class EdgeBuyer {
       negotiationId,
       proposalId,
       rejector: this.opts.principal,
-      recipient: '',
+      recipient,
       reason,
       rejectedAt: now,
       signature: '',

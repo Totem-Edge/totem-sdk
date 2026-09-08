@@ -226,6 +226,63 @@ export class NegotiationEngine {
   }
 
   /**
+   * Issue a WorkRequired challenge for the next round from this engine.
+   *
+   * Persists the challenge locally as outstanding so that a future proposal
+   * mined against it can be verified. Validates local work policy and budget
+   * before issuing.
+   */
+  async issueChallenge(negotiationId: string): Promise<WorkRequired> {
+    if (this.opts.workPolicy.getMode() === 'disabled') {
+      throw new NegotiationError(PURCHASE_ERROR_CODES.WORK_DISABLED, 'work is disabled');
+    }
+
+    const record = await this.getRecord(negotiationId);
+    if (!record) throw new Error('negotiation not found');
+    const current = await this.checkExpiry(record);
+    if (isTerminal(current.state)) throw new NegotiationError(PURCHASE_ERROR_CODES.TERMINAL_NEGOTIATION, `negotiation is ${current.state}`);
+
+    const round = current.lastRound + 1;
+    const target = this.opts.workPolicy.targetForRound(round);
+    if (target === null) {
+      throw new NegotiationError(PURCHASE_ERROR_CODES.WORK_BUDGET_EXHAUSTED, `round ${round} difficulty exceeds local policy`);
+    }
+
+    const { challenge, workRequired } = await this.opts.workPolicy.issueChallenge({
+      negotiationId,
+      round,
+      recipient: current.counterparty,
+      issuer: this.opts.principal,
+      sign: this.opts.sign,
+      now: this.now,
+    });
+
+    const fp = this.opts.txpow.fingerprint(challenge);
+    await this.casTransition(current, (r) => {
+      const existing = r.outstandingChallenges.find((c) => c.round === round);
+      if (existing && existing.fingerprint !== fp) {
+        throw new NegotiationError('CHALLENGE_REPLACEMENT', 'a different challenge is already outstanding for this transition');
+      }
+      if (!existing) {
+        r.outstandingChallenges.push({
+          fingerprint: fp,
+          challengeId: challenge.challengeId,
+          round,
+          status: 'OUTSTANDING',
+        });
+      }
+    });
+
+    this.issuedChallenges.set(`${negotiationId}:${round}`, challenge);
+    return workRequired;
+  }
+
+  /** Retrieve a previously issued or received challenge for a round. */
+  getIssuedChallenge(negotiationId: string, round: number): WorkChallenge | undefined {
+    return this.issuedChallenges.get(`${negotiationId}:${round}`);
+  }
+
+  /**
    * Handle an inbound WorkRequired. Validates issuer signature, recipient,
    * negotiation state, and that only one outstanding WorkRequired exists for
    * the current head. Returns the challenge when acceptable.
@@ -261,16 +318,37 @@ export class NegotiationEngine {
       throw new NegotiationError(PURCHASE_ERROR_CODES.CHALLENGE_ALREADY_CONSUMED, 'challenge already consumed');
     }
 
-    // 6. Local work policy (per-turn + cumulative)
-    const round = current.lastRound + 1;
+    // 6. Identify the intended round for this challenge by matching its target
+    // against the local work policy. The issuer may send the challenge before
+    // the corresponding proposal has arrived, so we cannot simply use
+    // lastRound + 1.
+    let round = -1;
+    for (let r = current.lastRound + 1; r < this.maxRounds; r++) {
+      const target = this.opts.workPolicy.targetForRound(r);
+      if (target !== null && target === msg.challenge.target) {
+        round = r;
+        break;
+      }
+    }
+
+    // 7. Local work policy (per-turn + cumulative). If we cannot identify a
+    // round, use the next expected round for a provisional budget check so
+    // that excessive requested work still produces a meaningful budget error.
+    const provisionalRound = round === -1 ? current.lastRound + 1 : round;
     const willing = await this.opts.workPolicy.willingToWork(
       msg.challenge,
-      round,
+      provisionalRound,
       current.cumulativeWork,
     );
-    if (!willing.ok) throw new NegotiationError(PURCHASE_ERROR_CODES.WORK_BUDGET_EXHAUSTED, willing.reason ?? 'work policy refused challenge');
+    if (!willing.ok) {
+      throw new NegotiationError(PURCHASE_ERROR_CODES.WORK_BUDGET_EXHAUSTED, willing.reason ?? 'work policy refused challenge');
+    }
 
-    // 7. Persist the outstanding challenge (durable, one per transition).
+    if (round === -1) {
+      throw new NegotiationError('CHALLENGE_ROUND_MISMATCH', 'challenge target does not match any future round in local policy');
+    }
+
+    // 8. Persist the outstanding challenge (durable, one per transition).
     await this.casTransition(current, (r) => {
       // Reject challenge replacement for the same transition unless identical.
       const existing = r.outstandingChallenges.find((c) => c.round === round);
@@ -368,9 +446,10 @@ export class NegotiationEngine {
       }
     }
 
-    // 8. Work verification (if work is enabled)
+    // 8. Work verification (required from round 2 onward to avoid a bootstrap
+    // ordering problem; rounds 0 and 1 are the initial offer and first response).
     let workRecord = current;
-    if (this.opts.workPolicy.getMode() !== 'disabled') {
+    if (this.opts.workPolicy.getMode() !== 'disabled' && proposal.round >= 2) {
       if (!proposal.workAdmission) {
         throw new NegotiationError('MISSING_WORK', 'proposal is missing required work admission proof');
       }
@@ -448,6 +527,17 @@ export class NegotiationEngine {
       throw new NegotiationError(PURCHASE_ERROR_CODES.INVALID_SIGNATURE, 'acceptance signature invalid');
     }
 
+    // Determine economic roles deterministically from the round-0 proposal,
+    // which is always present in both engines. The round-0 proposer is the
+    // buyer; the round-0 recipient is the seller. Fall back to the accepted
+    // proposal's fields only if the round-0 proposal is somehow absent.
+    const roundZeroEntry = current.proposals.find((p) => p.round === 0);
+    const roundZeroProposal = roundZeroEntry
+      ? this.fullProposals.get(roundZeroEntry.proposalId)
+      : undefined;
+    const buyer = roundZeroProposal?.proposer ?? proposal.proposer;
+    const seller = roundZeroProposal?.recipient ?? proposal.recipient;
+
     // Build the immutable agreement.
     const agreement: TradeAgreement = {
       version: PURCHASING_VERSION,
@@ -455,8 +545,8 @@ export class NegotiationEngine {
       negotiationId: record.negotiationId,
       acceptedProposalId: acceptance.proposalId,
       manifestId: record.manifestId,
-      buyer: proposal.proposer,
-      seller: proposal.recipient,
+      buyer,
+      seller,
       terms: proposal.terms,
       agreedAt: now,
       expiresAt: proposal.expiresAt,
@@ -474,7 +564,27 @@ export class NegotiationEngine {
       revision: current.revision + 1,
       updatedAt: now,
     };
-    const outboxMessage = acceptance as unknown as import('./types.js').NegotiationMessage;
+    // Mirror the acceptance to the *other* party so both sides converge on
+    // AGREED. If we are the acceptor, send it to the acceptance recipient
+    // (the original proposer). If we received the acceptance, send it back
+    // to the acceptor — and re-sign it as coming from us.
+    const weAreAcceptor = acceptance.acceptor === this.opts.principal;
+    const mirrorRecipient = weAreAcceptor ? acceptance.recipient : acceptance.acceptor;
+    let outboxAcceptance: ProposalAcceptance = acceptance;
+    if (!weAreAcceptor) {
+      const unsigned: Omit<ProposalAcceptance, 'signature' | 'signerPublicKey'> = {
+        version: acceptance.version,
+        negotiationId: acceptance.negotiationId,
+        proposalId: acceptance.proposalId,
+        acceptor: this.opts.principal,
+        recipient: mirrorRecipient,
+        acceptedAt: acceptance.acceptedAt,
+      };
+      const mirrorDigest = acceptanceDigest(unsigned);
+      const mirrorSig = await this.opts.sign(mirrorDigest);
+      outboxAcceptance = { ...unsigned, signature: mirrorSig.signature, signerPublicKey: mirrorSig.signerPublicKey };
+    }
+    const outboxMessage = outboxAcceptance as unknown as import('./types.js').NegotiationMessage;
     const outboxId = messageId(outboxMessage);
     const committed = await this.store.transitionAndEnqueue(
       current.negotiationId,
@@ -483,7 +593,7 @@ export class NegotiationEngine {
       [
         {
           messageId: outboxId,
-          recipient: proposal.recipient,
+          recipient: mirrorRecipient,
           payload: JSON.stringify(outboxMessage),
         },
       ],

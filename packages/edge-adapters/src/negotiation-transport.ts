@@ -52,7 +52,10 @@ export function createStreamNegotiationTransport(
       const frame = new Uint8Array(4 + bytes.length);
       new DataView(frame.buffer).setUint32(0, bytes.length);
       frame.set(bytes, 4);
+      // Raw byte-stream send does NOT prove durable remote processing —
+      // return no receipt so the outbox drainer does not mark delivered.
       stream.send(frame);
+      return undefined;
     },
     subscribe(handler) {
       let buffer: Uint8Array = new Uint8Array(0);
@@ -119,7 +122,11 @@ export function createPubSubNegotiationTransport(
       if (bytes.length > maxBytes) {
         throw new Error(`negotiation message exceeds ${maxBytes} bytes`);
       }
+      // Pub/sub publish() proves local broker transmission, not durable remote
+      // processing — return no receipt so the outbox drainer does not mark
+      // delivered on local send alone.
       await pubsub.publish(topic, bytes);
+      return undefined;
     },
     subscribe(handler) {
       return pubsub.onMessage(({ topic, payload }) => {

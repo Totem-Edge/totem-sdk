@@ -429,6 +429,7 @@ export type PurchaseEvent =
   | { type: 'purchase.discovered'; manifestId: string }
   | { type: 'negotiation.opened'; negotiationId: string }
   | { type: 'negotiation.work_required'; negotiationId: string; round: number }
+  | { type: 'negotiation.work_challenge_refused'; negotiationId: string; reason: string }
   | { type: 'negotiation.proposed'; negotiationId: string; round: number }
   | { type: 'negotiation.countered'; negotiationId: string; round: number }
   | { type: 'negotiation.accepted'; negotiationId: string; proposalId: string }

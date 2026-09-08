@@ -11,6 +11,7 @@
  *   state → state/head/expiry → Work Admission → engine transition
  */
 
+import { canonicalJson } from '../canonical.js';
 import { PURCHASING_VERSION, type NegotiationMessage } from './types.js';
 import { messageId, messageType, type ReplayLedger, type ReplayEntry } from './messages.js';
 import { NegotiationError, PURCHASE_ERROR_CODES } from './errors.js';
@@ -76,7 +77,7 @@ export async function ingress(
   if (raw === null || typeof raw !== 'object') {
     throw new NegotiationError('INVALID_MESSAGE', 'message is not an object');
   }
-  const encoded = JSON.stringify(raw);
+  const encoded = canonicalJson(raw);
   if (encoded.length > (opts.maxBytes ?? MAX_NEGOTIATION_MESSAGE_BYTES)) {
     throw new NegotiationError('MESSAGE_TOO_LARGE', 'message exceeds size limit');
   }

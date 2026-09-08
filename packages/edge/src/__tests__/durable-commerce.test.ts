@@ -36,6 +36,9 @@ import {
   type TradeProposal,
   type TradeTerms,
   type WorkRequired,
+  type NegotiationTransport,
+  type TransportMessageContext,
+  type DeliveryReceipt,
 } from '../index';
 import type { MinimaWorkRelay, MinimaWorkTemplate, WorkChallenge } from '@totemsdk/txpow';
 import { createWorkChallenge } from '@totemsdk/txpow';
@@ -54,6 +57,25 @@ const EASY_TARGET = (() => {
 })();
 
 const BLOCK_TARGET = EASY_TARGET;
+
+const MEDIUM_TARGET = (() => {
+  const t = new Uint8Array(32).fill(0xff);
+  t[0] = 0x08;
+  return Array.from(t).map((b) => b.toString(16).padStart(2, '0')).join('');
+})();
+
+const HARD_TARGET = (() => {
+  const t = new Uint8Array(32).fill(0xff);
+  t[0] = 0x04;
+  return Array.from(t).map((b) => b.toString(16).padStart(2, '0')).join('');
+})();
+
+function makeHardTemplateProvider() {
+  return {
+    getCurrentTemplate: async () => makeTemplate({ blockDifficulty: '01' + 'ff'.repeat(31) }),
+    getLatestTemplate: async () => makeTemplate({ blockDifficulty: '01' + 'ff'.repeat(31) }),
+  };
+}
 
 function makeTemplate(overrides?: Partial<MinimaWorkTemplate>): MinimaWorkTemplate {
   const superParents: string[] = [];
@@ -137,6 +159,45 @@ function makeLookup(manifest: unknown) {
   return {
     query: async () => ({ ok: true, data: { results: [{ id: 'm1', manifest: bytes, nodeId: 'n1' }] } }),
   };
+}
+
+function createLinkedNegotiationTransports(): [NegotiationTransport, NegotiationTransport] {
+  const aHandlers: Array<(msg: NegotiationMessage, ctx: TransportMessageContext) => Promise<void>> = [];
+  const bHandlers: Array<(msg: NegotiationMessage, ctx: TransportMessageContext) => Promise<void>> = [];
+
+  function createTransport(
+    handlers: Array<(msg: NegotiationMessage, ctx: TransportMessageContext) => Promise<void>>,
+    peerHandlers: Array<(msg: NegotiationMessage, ctx: TransportMessageContext) => Promise<void>>,
+    side: string,
+    sender: string,
+    recipient: string,
+  ): NegotiationTransport {
+    return {
+      async send(recipientAddress, message) {
+        const ctx: TransportMessageContext = { sender, recipient: recipientAddress };
+        for (const h of peerHandlers) {
+          await h(message, ctx);
+        }
+        return {
+          messageId: messageId(message),
+          receivedAt: Date.now(),
+          durablyProcessed: true,
+        } as DeliveryReceipt;
+      },
+      subscribe(handler) {
+        handlers.push(handler);
+        return () => {
+          const idx = handlers.indexOf(handler);
+          if (idx >= 0) handlers.splice(idx, 1);
+        };
+      },
+    };
+  }
+
+  return [
+    createTransport(aHandlers, bHandlers, 'buyer', 'buyer-principal', sellerAddress()),
+    createTransport(bHandlers, aHandlers, 'seller', sellerAddress(), 'buyer-principal'),
+  ];
 }
 
 function makeAdapter(resource: string) {
@@ -602,12 +663,18 @@ describe('minima relay', () => {
     const challenge = createWorkChallenge('seller', 'totem.negotiation.proposal', EASY_TARGET, {
       challengeId: 'c1', nonce: 'deadbeef', issuedAt: Date.now(), ttlMs: 60_000,
     });
+    // Work admission is required from round 2 onward. Advance to round 2 and
+    // submit a valid block-winning proof; the relay should be called once.
+    const p0 = await makeProposal(engine, 'n1', 0, 'm', 'buyer-principal', 'seller', { price: '10' });
+    await engine.submitProposal(p0);
+    const p1 = await makeProposal(engine, 'n1', 1, 'm', 'buyer-principal', 'seller', { price: '9' }, p0.proposalId);
+    await engine.submitProposal(p1);
     const wr = await signWorkRequired(engine, 'n1', 'seller', 'buyer-principal', challenge);
     await engine.handleWorkRequired(wr);
-    const p0 = await makeProposal(engine, 'n1', 0, 'm', 'buyer-principal', 'seller', { price: '10' });
-    const action = engine.buildAction(p0);
+    const p2 = await makeProposal(engine, 'n1', 2, 'm', 'buyer-principal', 'seller', { price: '8' }, p1.proposalId);
+    const action = engine.buildAction(p2);
     const proof = await txpow.mine(action, challenge, { prng: FIXED_PRNG, _skipWorker: true, forceJs: true, maxIterations: 100_000 });
-    await engine.submitProposal({ ...p0, workAdmission: proof });
+    await engine.submitProposal({ ...p2, workAdmission: proof });
     expect(submitted.length).toBe(1);
   });
 
@@ -729,6 +796,141 @@ describe('runtime API', () => {
     await edge.buy({ intent: makeIntent(), adapter: computeAdapter.adapter });
     const recoverable = await edge.recoverPurchases();
     expect(recoverable.length).toBeGreaterThanOrEqual(0);
+  });
+
+  it('buyer and seller negotiate over linked transports', async () => {
+    const [buyerTransport, sellerTransport] = createLinkedNegotiationTransports();
+    const manifest = await makeSignedManifest('10');
+    const payment = makePayment();
+    const computeAdapter = makeAdapter('compute');
+
+    let countered = false;
+    const seller = createEdge({
+      principal: sellerAddress(),
+      verifySignature: makeVerifier(),
+      sign: makeSigner('seller'),
+      authority: makeAuthority(),
+      payment,
+      lookup: makeLookup(manifest),
+      adapters: [computeAdapter.adapter],
+      negotiationTransport: sellerTransport,
+      seller: {
+        strategy: {
+          evaluate: async ({ proposal }) => {
+            if (!countered && BigInt(proposal.terms.price) > 9n) {
+              countered = true;
+              return { action: 'counter', terms: { ...proposal.terms, price: '9' } };
+            }
+            return { action: 'accept' };
+          },
+        },
+        manifest,
+      },
+    });
+
+    const buyer = createEdge({
+      principal: 'buyer-principal',
+      verifySignature: makeVerifier(),
+      sign: makeSigner('buyer'),
+      authority: makeAuthority(),
+      payment,
+      lookup: makeLookup(manifest),
+      adapters: [computeAdapter.adapter],
+      negotiationTransport: buyerTransport,
+    });
+
+    await seller.startTransport();
+    await buyer.startTransport();
+
+    const result = await buyer.buy({
+      intent: makeIntent({ negotiate: true }),
+      strategy: {
+        evaluate: async () => ({ action: 'accept' }),
+      },
+    });
+
+    expect(result.agreement).toBeDefined();
+    expect(result.agreement.terms.price).toBe('9');
+    expect(payment.payments.length).toBe(1);
+  });
+
+  it('work admission escalates with each counter round', async () => {
+    const [buyerTransport, sellerTransport] = createLinkedNegotiationTransports();
+    const manifest = await makeSignedManifest('10');
+    const payment = makePayment();
+    const computeAdapter = makeAdapter('compute');
+
+    // Escalating targets: round 0 easy, round 1 medium, round 2 hard.
+    // A numerically smaller target is harder.
+    const workDifficulty = {
+      baseTarget: EASY_TARGET,
+      roundTargets: [EASY_TARGET, MEDIUM_TARGET, HARD_TARGET],
+      maxTarget: HARD_TARGET,
+    };
+
+    const seller = createEdge({
+      principal: sellerAddress(),
+      verifySignature: makeVerifier(),
+      sign: makeSigner('seller'),
+      authority: makeAuthority(),
+      payment,
+      lookup: makeLookup(manifest),
+      adapters: [computeAdapter.adapter],
+      negotiationTransport: sellerTransport,
+      templateProvider: makeHardTemplateProvider(),
+      workMode: 'admission-only',
+      workDifficulty,
+      seller: {
+        strategy: {
+          evaluate: async ({ proposal }) => {
+            if (BigInt(proposal.terms.price) > 9n) {
+              return { action: 'counter', terms: { ...proposal.terms, price: '9' } };
+            }
+            return { action: 'accept' };
+          },
+        },
+        manifest,
+      },
+    });
+
+    const buyer = createEdge({
+      principal: 'buyer-principal',
+      verifySignature: makeVerifier(),
+      sign: makeSigner('buyer'),
+      authority: makeAuthority(),
+      payment,
+      lookup: makeLookup(manifest),
+      adapters: [computeAdapter.adapter],
+      negotiationTransport: buyerTransport,
+      templateProvider: makeHardTemplateProvider(),
+      workMode: 'admission-only',
+      workDifficulty,
+    });
+
+    await seller.startTransport();
+    await buyer.startTransport();
+
+    const result = await buyer.buy({
+      intent: makeIntent({ negotiate: true }),
+      strategy: {
+        evaluate: async ({ proposal }) => {
+          if (BigInt(proposal.terms.price) > 8n) {
+            return { action: 'counter', terms: { ...proposal.terms, price: '8' } };
+          }
+          return { action: 'accept' };
+        },
+      },
+    });
+
+    expect(result.agreement).toBeDefined();
+    expect(result.agreement.terms.price).toBe('8');
+    expect(payment.payments.length).toBe(1);
+
+    // Inspect the negotiation history: round 2 (buyer's second counter)
+    // should carry a work admission proof.
+    const buyerRecord = await buyer.buyer.engine.getRecordFor(result.agreement.negotiationId);
+    const round2 = buyerRecord?.proposals.find((p: { round: number }) => p.round === 2);
+    expect(round2).toBeDefined();
   });
 });
 

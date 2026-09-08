@@ -42,11 +42,16 @@ import {
   type ResourceAdapter,
   type ResourceHandle,
   type UsageEvent,
+  type NegotiationTransport,
+  type DeliveryReceipt,
+  type NegotiationMessage,
+  type SellerStrategy,
 } from '@totemsdk/edge';
 import { createInMemoryPair, type IStreamTransport } from '@totemsdk/stream-transport';
 import { ComposablePolicy, RateLimitPolicy, AmountCapPolicy } from '@totemsdk/agent-policy';
 import { signManifest, type SignedManifest } from '@totemsdk/manifest';
 import { wotsKeypairFromSeed, wotsAddressFromKeypair } from '@totemsdk/core';
+import { type MinimaWorkTemplate, type MinimaWorkTemplateProvider } from '@totemsdk/txpow';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Test helpers
@@ -118,6 +123,62 @@ function makeAuthority(allow = true) {
   };
 }
 
+// ── Work admission helpers ─────────────────────────────────────────────────
+const EASY_TARGET = (() => {
+  const t = new Uint8Array(32).fill(0xff);
+  t[0] = 0x0f;
+  return Array.from(t).map((b) => b.toString(16).padStart(2, '0')).join('');
+})();
+const MEDIUM_TARGET = (() => {
+  const t = new Uint8Array(32).fill(0xff);
+  t[0] = 0x08;
+  return Array.from(t).map((b) => b.toString(16).padStart(2, '0')).join('');
+})();
+const HARD_TARGET = (() => {
+  const t = new Uint8Array(32).fill(0xff);
+  t[0] = 0x04;
+  return Array.from(t).map((b) => b.toString(16).padStart(2, '0')).join('');
+})();
+
+function makeBlockDifficulty(): string {
+  // Easier than MEDIUM/HARD so those targets are admissible, harder than
+  // EASY so ordinary proofs are not broadcastable blocks.
+  return '03' + 'ff'.repeat(31);
+}
+
+function makeSuperParents(): string[] {
+  const parents: string[] = [];
+  for (let i = 0; i < 32; i++) {
+    parents.push(
+      Array.from({ length: 32 }, (_, j) => (i * 32 + j).toString(16).padStart(2, '0')).join(''),
+    );
+  }
+  return parents;
+}
+
+function makeTemplate(overrides?: Partial<MinimaWorkTemplate>): MinimaWorkTemplate {
+  return {
+    chainId: '00',
+    blockNumber: 1000n,
+    blockDifficulty: makeBlockDifficulty(),
+    superParents: makeSuperParents(),
+    mmrRoot: 'ab'.repeat(32),
+    mmrTotal: 123456789n,
+    magic: '00',
+    timeMilli: 1700000000000n,
+    templateId: 'template-1',
+    capturedAt: Date.now(),
+    ...overrides,
+  };
+}
+
+function makeTemplateProvider(): MinimaWorkTemplateProvider {
+  return {
+    getCurrentTemplate: async () => makeTemplate(),
+    getLatestTemplate: async () => makeTemplate(),
+  };
+}
+
 /** A fake payment port that counts payments. */
 function makePayment() {
   const payments: Array<{ recipient: string; amount: string; tokenId?: string; idempotencyKey?: string }> = [];
@@ -165,14 +226,28 @@ function makeIntent(overrides?: Partial<PurchaseIntent>): PurchaseIntent {
   };
 }
 
-/** A strategy that counters once then accepts. */
-function counterThenAccept(): NegotiationStrategy {
+/** A buyer strategy that counters down to a target price once, then accepts. */
+function counterThenAccept(targetPrice = '90'): NegotiationStrategy {
   let countered = false;
   return {
     evaluate: async ({ proposal }) => {
-      if (!countered) {
+      if (!countered && BigInt(proposal.terms.price) > BigInt(targetPrice)) {
         countered = true;
-        return { action: 'counter', terms: { ...proposal.terms, price: '90' } };
+        return { action: 'counter', terms: { ...proposal.terms, price: targetPrice } };
+      }
+      return { action: 'accept' };
+    },
+  };
+}
+
+/** A seller strategy that counters to a floor price then accepts. */
+function sellerCounterThenAccept(floorPrice: string): SellerStrategy {
+  let countered = false;
+  return {
+    evaluate: async ({ proposal }: { proposal: import('@totemsdk/edge').TradeProposal }) => {
+      if (!countered && BigInt(proposal.terms.price) > BigInt(floorPrice)) {
+        countered = true;
+        return { action: 'counter', terms: { ...proposal.terms, price: floorPrice } };
       }
       return { action: 'accept' };
     },
@@ -189,53 +264,164 @@ function alwaysCounter(): NegotiationStrategy {
   };
 }
 
+/**
+ * Wrap a stream-based transport to return a synthetic durable delivery receipt.
+ *
+ * The production adapters return `undefined` because a raw byte-stream cannot
+ * prove durable remote processing. In this E2E the in-memory stream pair
+ * delivers synchronously to the remote handler, so a synthetic receipt lets
+ * the outbox drainer mark messages delivered and keeps the test focused on
+ * the negotiation protocol rather than transport semantics.
+ */
+function withReceiptTransport(transport: NegotiationTransport): NegotiationTransport {
+  return {
+    send: async (recipient, message) => {
+      await transport.send(recipient, message);
+      return {
+        messageId: (await import('@totemsdk/edge')).messageId(message),
+        receivedAt: Date.now(),
+        durablyProcessed: true,
+      } as DeliveryReceipt;
+    },
+    subscribe: (handler) => transport.subscribe(handler),
+  };
+}
+
+/** Create a buyer/seller pair of runtimes wired through an in-memory stream. */
+async function createTwoMachineRuntimes(
+  manifest: SignedManifest,
+  opts?: {
+    buyerStrategy?: NegotiationStrategy;
+    sellerStrategy?: SellerStrategy;
+    authorityAllow?: boolean;
+    workDifficulty?: { baseTarget: string; roundTargets?: string[]; maxTarget: string };
+    templateProvider?: MinimaWorkTemplateProvider;
+  },
+): Promise<{
+  buyer: EdgeCommerceRuntime;
+  seller: EdgeCommerceRuntime;
+  buyerStore: CommerceStore;
+  sellerStore: CommerceStore;
+  payment: ReturnType<typeof makePayment>;
+  resource: ReturnType<typeof makeResourceAdapter>;
+  stop: () => void;
+}> {
+  const [buyerStream, sellerStream] = createInMemoryPair();
+  const buyerTransport = withReceiptTransport(
+    createStreamNegotiationTransport({
+      stream: buyerStream as unknown as IStreamTransport,
+      sender: addressFor(SELLER_SEED),
+      recipient: addressFor(BUYER_SEED),
+    }),
+  );
+  const sellerTransport = withReceiptTransport(
+    createStreamNegotiationTransport({
+      stream: sellerStream as unknown as IStreamTransport,
+      sender: addressFor(BUYER_SEED),
+      recipient: addressFor(SELLER_SEED),
+    }),
+  );
+
+  const sellerStore = createSQLiteCommerceStore({ filename: ':memory:' });
+  const buyerStore = createSQLiteCommerceStore({ filename: ':memory:' });
+  const payment = makePayment();
+  const resource = makeResourceAdapter('compute');
+
+  const seller = createEdge({
+    principal: addressFor(SELLER_SEED),
+    verifySignature: makeVerifier(),
+    sign: makeSigner(SELLER_SEED),
+    authority: makeAuthority(opts?.authorityAllow ?? true),
+    payment: createPurchasePaymentAdapter({ port: payment }),
+    lookup: makeLookup([manifest]),
+    adapters: [resource.adapter],
+    commerceStore: sellerStore,
+    persistence: 'durable',
+    negotiationTransport: sellerTransport,
+    templateProvider: opts?.templateProvider,
+    workMode: opts?.templateProvider ? 'admission-only' : undefined,
+    workDifficulty: opts?.workDifficulty,
+    seller: {
+      strategy: opts?.sellerStrategy ?? sellerCounterThenAccept('90'),
+      manifest,
+    },
+  });
+
+  const buyer = createEdge({
+    principal: addressFor(BUYER_SEED),
+    verifySignature: makeVerifier(),
+    sign: makeSigner(BUYER_SEED),
+    authority: makeAuthority(opts?.authorityAllow ?? true),
+    payment: createPurchasePaymentAdapter({ port: payment }),
+    lookup: makeLookup([manifest]),
+    adapters: [resource.adapter],
+    commerceStore: buyerStore,
+    persistence: 'durable',
+    negotiationTransport: buyerTransport,
+    templateProvider: opts?.templateProvider,
+    workMode: opts?.templateProvider ? 'admission-only' : undefined,
+    workDifficulty: opts?.workDifficulty,
+  });
+
+  const stopBuyer = await buyer.startTransport();
+  const stopSeller = await seller.startTransport();
+
+  return {
+    buyer,
+    seller,
+    buyerStore,
+    sellerStore,
+    payment,
+    resource,
+    stop: () => {
+      stopBuyer();
+      stopSeller();
+    },
+  };
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Two-machine E2E
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('two-machine E2E', () => {
-  it('buyer discovers, negotiates, agrees, authorizes, pays, executes, receives', async () => {
-    // Machine B (provider): durable store + manifest.
-    const sellerStore = createSQLiteCommerceStore({ filename: ':memory:' });
+  it('buyer discovers, negotiates over the wire, agrees, authorizes, pays, executes, receives', async () => {
     const manifest = await makeServiceManifest('10');
+    const { buyer, seller, buyerStore, sellerStore, payment, resource, stop } = await createTwoMachineRuntimes(
+      manifest,
+      {
+        buyerStrategy: counterThenAccept(),
+        sellerStrategy: sellerCounterThenAccept('90'),
+      },
+    );
 
-    // Machine A (buyer): durable store + adapters.
-    const buyerStore = createSQLiteCommerceStore({ filename: ':memory:' });
-    const payment = makePayment();
-    const resource = makeResourceAdapter('compute');
-    const buyer = createEdge({
-      principal: addressFor(BUYER_SEED),
-      verifySignature: makeVerifier(),
-      sign: makeSigner(BUYER_SEED),
-      authority: makeAuthority(),
-      payment: createPurchasePaymentAdapter({ port: payment }),
-      lookup: makeLookup([manifest]),
-      adapters: [resource.adapter],
-      commerceStore: buyerStore,
-      persistence: 'durable',
-    });
+    try {
+      const result = await buyer.buy({
+        intent: makeIntent({ negotiate: true }),
+        strategy: counterThenAccept(),
+        adapter: resource.adapter,
+      });
 
-    // Buyer discovers B, terms not directly acceptable (manifest price 10,
-    // intent maxSpend 100 → acceptable actually; force negotiation).
-    const result = await buyer.buy({
-      intent: makeIntent({ negotiate: true }),
-      strategy: counterThenAccept(),
-      adapter: resource.adapter,
-    });
+      expect(result.agreement).toBeDefined();
+      expect(result.agreement.seller).toBe(addressFor(SELLER_SEED));
+      expect(result.agreement.terms.price).toBe('90');
+      expect(payment.payments.length).toBe(1);
+      expect(resource.starts.length).toBe(1);
+      expect(result.session).toBeDefined();
 
-    expect(result.agreement).toBeDefined();
-    expect(result.agreement.seller).toBe(addressFor(SELLER_SEED));
-    expect(payment.payments.length).toBe(1);
-    expect(resource.starts.length).toBe(1);
-    expect(result.session).toBeDefined();
+      // Both runtimes converged on the same agreement.
+      const sellerState = await seller.seller!.engine.getState(result.agreement.negotiationId);
+      expect(sellerState).toBe('AGREED');
 
-    // Close the session → settlement + receipt.
-    const receipt = await result.session!.close();
-    expect(receipt.kind).toBe('purchase');
-    expect(receipt.payload.agreementId).toBe(result.agreement.agreementId);
-
-    buyerStore.close();
-    sellerStore.close();
+      // Close the session → settlement + receipt.
+      const receipt = await result.session!.close();
+      expect(receipt.kind).toBe('purchase');
+      expect(receipt.payload.agreementId).toBe(result.agreement.agreementId);
+    } finally {
+      stop();
+      (buyerStore as unknown as { close(): void }).close();
+      (sellerStore as unknown as { close(): void }).close();
+    }
   });
 
   it('counteroffer abuse terminates at maxRounds', async () => {
@@ -362,5 +548,69 @@ describe('two-machine E2E', () => {
     expect(resource.recovers.length).toBeGreaterThanOrEqual(1);
     void result1;
     buyerStore.close();
+  });
+
+  it('work admission escalates with each counter round over stream transport', async () => {
+    const manifest = await makeServiceManifest('100');
+    const templateProvider = makeTemplateProvider();
+    const workDifficulty = {
+      baseTarget: EASY_TARGET,
+      roundTargets: [EASY_TARGET, MEDIUM_TARGET, HARD_TARGET],
+      maxTarget: HARD_TARGET,
+    };
+
+    // Seller counters once to 95; buyer then counters to 90; seller accepts.
+    // Round 2 (buyer's second counter) requires the HARD_TARGET work proof.
+    let sellerCountered = false;
+    const sellerStrategy: SellerStrategy = {
+      evaluate: async ({ proposal }) => {
+        if (!sellerCountered && BigInt(proposal.terms.price) > 95n) {
+          sellerCountered = true;
+          return { action: 'counter', terms: { ...proposal.terms, price: '95' } };
+        }
+        return { action: 'accept' };
+      },
+    };
+
+    let buyerCountered = false;
+    const buyerStrategy: NegotiationStrategy = {
+      evaluate: async ({ proposal }) => {
+        if (!buyerCountered && BigInt(proposal.terms.price) > 90n) {
+          buyerCountered = true;
+          return { action: 'counter', terms: { ...proposal.terms, price: '90' } };
+        }
+        return { action: 'accept' };
+      },
+    };
+
+    const { buyer, seller, buyerStore, sellerStore, payment, resource, stop } = await createTwoMachineRuntimes(
+      manifest,
+      {
+        buyerStrategy,
+        sellerStrategy,
+        templateProvider,
+        workDifficulty,
+      },
+    );
+
+    try {
+      const result = await buyer.buy({
+        intent: makeIntent({ negotiate: true }),
+        strategy: buyerStrategy,
+        adapter: resource.adapter,
+      });
+
+      expect(result.agreement).toBeDefined();
+      expect(result.agreement.terms.price).toBe('90');
+      expect(payment.payments.length).toBe(1);
+      expect(resource.starts.length).toBe(1);
+
+      const sellerState = await seller.seller!.engine.getState(result.agreement.negotiationId);
+      expect(sellerState).toBe('AGREED');
+    } finally {
+      stop();
+      (buyerStore as unknown as { close(): void }).close();
+      (sellerStore as unknown as { close(): void }).close();
+    }
   });
 });

@@ -19,6 +19,7 @@
 
 import { EdgeBuyer, type BuyerOptions } from './purchasing/buyer.js';
 import { EdgeWorkPolicy, EdgeTxPowAdapter } from './purchasing/admission.js';
+import { createEdgeSeller, type SellerServiceOptions, type SellerStrategy } from './purchasing/seller.js';
 import type { NegotiationStore, PurchaseStore, PrincipalNegotiationStore } from './purchasing/store.js';
 import {
   InMemoryNegotiationStore,
@@ -120,6 +121,8 @@ export interface CreateEdgeOptions {
   purchaseStore?: PurchaseStore;
   /** Durable principal anti-abuse store (optional — in-memory dev mode). */
   principalStore?: PrincipalNegotiationStore;
+  /** Durable outbox store (optional — in-memory dev mode). */
+  outboxStore?: import('./purchasing/outbox.js').OutboxStore;
   /**
    * Aggregated durable commerce store (negotiations + purchases + replay +
    * principals + outbox in one physical backend). When supplied, it takes
@@ -147,6 +150,16 @@ export interface CreateEdgeOptions {
   onEvent?: (event: PurchaseEvent) => void;
   /** Current time (for deterministic tests). */
   now?: () => number;
+  /**
+   * Seller-side negotiation service configuration. When supplied, the runtime
+   * also operates as a supply-side counterpart for inbound negotiation messages.
+   */
+  seller?: {
+    /** Seller bargaining strategy. */
+    strategy: SellerStrategy;
+    /** Standing service manifest (used to compute manifestId for opened negotiations). */
+    manifest?: SignedManifest;
+  };
 }
 
 export interface EdgeCommerceRuntime {
@@ -174,6 +187,12 @@ export interface EdgeCommerceRuntime {
   stopOutbox(): void;
   /** The underlying buyer (advanced use). */
   buyer: EdgeBuyer;
+  /** The optional seller-side negotiation service (advanced use). */
+  seller?: import('./purchasing/seller.js').EdgeSeller;
+  /** Start the buyer-side transport listener (when a transport is configured). */
+  startTransport(): Promise<() => void>;
+  /** Stop the buyer-side transport listener. */
+  stopTransport(): void;
 }
 
 /**
@@ -240,6 +259,18 @@ export function createEdge(opts: CreateEdgeOptions): EdgeCommerceRuntime {
     onEvent?.({ type: 'runtime.persistence_ephemeral' } as PurchaseEvent);
   }
 
+  const outboxStore = commerceStore?.outbox ?? opts.outboxStore ?? new InMemoryOutboxStore();
+  const replayLedgerStore = replayLedger ?? new InMemoryReplayLedger();
+
+  // In dev/ephemeral mode, the in-memory negotiation store must share the
+  // same outbox instance that the drainer observes; otherwise
+  // engine.transitionAndEnqueue writes to a store-private outbox and the
+  // mirrored acceptance never leaves the process.
+  const negotiationStoreInstance =
+    commerceStore?.negotiations ??
+    negotiationStore ??
+    new InMemoryNegotiationStore(outboxStore);
+
   const buyer = new EdgeBuyer({
     principal,
     verifySignature,
@@ -253,14 +284,21 @@ export function createEdge(opts: CreateEdgeOptions): EdgeCommerceRuntime {
     onEvent,
     now,
     purchaseStore: commerceStore?.purchases ?? purchaseStore ?? new InMemoryPurchaseStore(),
-    negotiationStore: commerceStore?.negotiations ?? negotiationStore ?? new InMemoryNegotiationStore(),
+    negotiationStore: negotiationStoreInstance,
     principalStore: commerceStore?.principals ?? principalStore ?? new InMemoryPrincipalNegotiationStore(),
+    replayLedger: replayLedgerStore,
+    outboxStore,
+    negotiationTransport,
+    onOutboundEnqueued: async () => {
+      if (drainer) {
+        await drainer.drain();
+      }
+    },
   });
 
   // Wire the authenticated transport to the buyer's engine (if supplied).
   // The outbox drainer resends undelivered messages with the same messageId,
   // marking delivered only on a durable remote receipt.
-  const outboxStore = commerceStore?.outbox ?? new InMemoryOutboxStore();
   const drainer = negotiationTransport
     ? createOutboxDrainer({
         transport: negotiationTransport,
@@ -269,19 +307,76 @@ export function createEdge(opts: CreateEdgeOptions): EdgeCommerceRuntime {
       })
     : null;
 
+  // Seller-side service (optional).
+  let seller: import('./purchasing/seller.js').EdgeSeller | undefined;
+  if (opts.seller) {
+    seller = createEdgeSeller({
+      principal,
+      verifySignature,
+      sign,
+      txpow,
+      workPolicy,
+      negotiationStore: negotiationStoreInstance,
+      principalStore: commerceStore?.principals ?? principalStore ?? new InMemoryPrincipalNegotiationStore(),
+      outboxStore,
+      replayLedger: replayLedgerStore,
+      strategy: opts.seller.strategy,
+      limits: negotiationLimits,
+      manifest: opts.seller.manifest,
+      onEvent,
+      now,
+      onOutboundEnqueued: async () => {
+        if (drainer) {
+          await drainer.drain();
+        }
+      },
+    });
+  }
+
+  let sellerUnsubscribe: (() => void) | undefined;
+
+  const startTransport = async () => {
+    // A runtime is either buyer-side or seller-side over its configured
+    // transport. Starting both services on the same transport would create
+    // duplicate listeners that race on the shared replay ledger. When a seller
+    // config is present, only the seller service listens on this transport;
+    // the buyer-side path auto-starts its own listener inside negotiateOverTransport
+    // when it is actually used.
+    if (negotiationTransport && seller && !sellerUnsubscribe) {
+      sellerUnsubscribe = await seller.subscribe(negotiationTransport);
+    } else if (negotiationTransport) {
+      await buyer.startTransport();
+    }
+    return () => {
+      buyer.stopTransport();
+      sellerUnsubscribe?.();
+      sellerUnsubscribe = undefined;
+    };
+  };
+
+  const stopTransport = () => {
+    buyer.stopTransport();
+    sellerUnsubscribe?.();
+    sellerUnsubscribe = undefined;
+  };
+
   return {
     buyer,
+    seller,
     buy: (options) => buyer.buy(options),
     negotiate: (options) => buyer.negotiate(options),
     drainOutbox: () => drainer?.drain() ?? Promise.resolve({ delivered: 0, retrying: 0, held: 0 }),
     startOutbox: (intervalMs?: number) => drainer?.start(intervalMs),
     stopOutbox: () => drainer?.stop(),
+    startTransport,
+    stopTransport,
     recoverPurchases: async () => {
       const store = commerceStore?.purchases ?? purchaseStore ?? new InMemoryPurchaseStore();
       const recoverable = (await store.listRecoverable?.()) ?? [];
       // Reconcile principal admission slots against active negotiations so
       // crashed processes cannot leak capacity.
       await buyer.reconcilePrincipalSlots();
+      await seller?.engine.reconcilePrincipalSlots();
       // Resume undelivered outbox messages (same messageId, durable receipt).
       if (drainer) {
         await drainer.drain();
