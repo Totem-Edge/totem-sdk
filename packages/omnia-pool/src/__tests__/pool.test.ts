@@ -278,7 +278,7 @@ describe('omnia-pool', () => {
   it('returns a signed registry transition when rooting is provided', async () => {
     const signer: RegistryTransitionSigner = {
       publicKeyDigest: 'rooter-1',
-      sign: jest.fn().mockResolvedValue(new Uint8Array([7, 8, 9])),
+      sign: jest.fn(async () => new Uint8Array([7, 8, 9])),
     };
     const { manifest, registry: reg } = createOmniaPool(basePoolParams(), registry);
     const { position, state } = await makeDeposit(
@@ -308,7 +308,7 @@ describe('omnia-pool', () => {
   it('re-pays a rooted allocation through a co-signed payout', async () => {
     const signer: RegistryTransitionSigner = {
       publicKeyDigest: 'rooter-1',
-      sign: jest.fn().mockResolvedValue(new Uint8Array([7, 8, 9])),
+      sign: jest.fn(async () => new Uint8Array([7, 8, 9])),
     };
     const { manifest, registry: reg } = createOmniaPool(basePoolParams(), registry);
     const { position, state } = await makeDeposit(
