@@ -563,7 +563,12 @@ describe('omnia-pool', () => {
   });
 
   it('payouts a channel-backed position via ctx.loadChannel', async () => {
-    const channel = { channelId: 'ch-9', status: 'open' } as unknown as import('@totemsdk/omnia').OmniaChannel;
+    const channel = {
+      channelId: 'ch-9',
+      status: 'open',
+      parties: [{ partyId: 'lp-party', publicKeyDigest: '0x00', addressIndex: 0, settlementAddress: lp }],
+      balances: { 'lp-party': 20000n },
+    } as unknown as import('@totemsdk/omnia').OmniaChannel;
     const port: OmniaExecutionPort = {
       createChannel: jest.fn(),
       updateState: jest.fn(),

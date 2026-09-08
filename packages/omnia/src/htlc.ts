@@ -1,4 +1,4 @@
-import { HTLCHelper } from '@totemsdk/core';
+import { HTLCHelper, bytesToHex, sha3_256 } from '@totemsdk/core';
 import type { WotsLeaseProvider } from '@totemsdk/wots-lease';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import type {
@@ -13,6 +13,52 @@ import { signState } from './sign.js';
 import { enforceUpdateGuards } from './channel.js';
 import { flatSigningIndex } from './capacity.js';
 import { computeProgramUpdateDigestHex } from './program.js';
+
+export const HTLC_FEE_PROOF_DOMAIN = 'totemsdk/omnia/htlc-fulfillment/v1';
+
+/**
+ * A verifiable fee-provenance record for a fulfilled HTLC (#27): the exact
+ * artifact a pool's `recordPoolFee` earn-proof consumes. It binds the channel,
+ * the HTLC, the recipient, and the amount so a fee record can be traced to a
+ * real fulfilled payment — never a declared string.
+ */
+export interface HtlcFulfillmentReceipt {
+  channelId: string;
+  htlcId: string;
+  recipientPublicKeyDigest: string;
+  amount: bigint;
+  tokenId: string;
+  fulfilledAt: number;
+  sequence: number;
+  receiptHash: string;
+}
+
+export function buildHtlcFulfillmentReceipt(
+  channel: OmniaChannel,
+  htlc: HTLCRecord,
+  sequence: number,
+  fulfilledAt?: number,
+): HtlcFulfillmentReceipt {
+  const ts = fulfilledAt ?? Date.now();
+  const receipt: HtlcFulfillmentReceipt = {
+    channelId: channel.channelId,
+    htlcId: htlc.htlcId,
+    recipientPublicKeyDigest: htlc.recipientPublicKeyDigest,
+    amount: htlc.amount,
+    tokenId: channel.tokenId,
+    fulfilledAt: ts,
+    sequence,
+    receiptHash: '',
+  };
+  receipt.receiptHash = computeHtlcFulfillmentReceiptHash(receipt);
+  return receipt;
+}
+
+export function computeHtlcFulfillmentReceiptHash(receipt: HtlcFulfillmentReceipt): string {
+  const { receiptHash, ...rest } = receipt;
+  const input = `${HTLC_FEE_PROOF_DOMAIN}|${JSON.stringify(rest)}`;
+  return bytesToHex(sha3_256(new TextEncoder().encode(input)));
+}
 
 function generateHtlcId(): string {
   const buf = new Uint8Array(16);

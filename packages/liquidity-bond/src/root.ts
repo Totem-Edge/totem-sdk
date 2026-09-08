@@ -74,6 +74,12 @@ export interface RegistryRootOptions {
   signedAt?: number;
   /** Signing indices bound into the signature (defaults to genesis indices). */
   signIndices?: SigningIndices;
+  /**
+   * When set, the root is computed over a filtered view of the registry —
+   * e.g. verified-only positions/fees — so an attacker's signed root cannot
+   * look clean over phantom state (#12).
+   */
+  filter?: (registry: LiquidityBondRegistryState) => LiquidityBondRegistryState;
 }
 
 function domainFor(opts?: RegistryRootOptions): string {
@@ -102,7 +108,8 @@ export function computeRegistryRoot(
   opts?: RegistryRootOptions,
 ): string {
   const domain = domainFor(opts);
-  const input = `${domain}|${serializeRegistryState(registry)}`;
+  const view = opts?.filter ? opts.filter(registry) : registry;
+  const input = `${domain}|${serializeRegistryState(view)}`;
   return toHex(sha3_256(new TextEncoder().encode(input)));
 }
 

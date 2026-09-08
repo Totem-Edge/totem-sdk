@@ -2,6 +2,7 @@
  * omnia-pool/withdraw.ts — Withdrawal primitives.
  */
 
+import { hexToBytes, scriptFromWotsPk, scriptToAddress } from '@totemsdk/core';
 import {
   approveWithdrawalIntent,
   consumeLiquidityReceipt,
@@ -110,6 +111,35 @@ async function resolveChannelForPayout(params: ExecutePoolPayoutParams): Promise
 }
 
 /**
+ * Reconcile a channel's LP balance against the payout (#22): the LP party's
+ * balance must cover the withdrawal before a settlement is proposed. The LP
+ * party is matched by settlement address (falling back to the address derived
+ * from the party's public key digest).
+ */
+function reconcileChannelBalance(
+  channel: import('@totemsdk/omnia').OmniaChannel,
+  lpAddress: string,
+  required: bigint,
+): void {
+  const party = channel.parties.find(
+    (p) => p.settlementAddress === lpAddress || addressFromPkDigestHex(p.publicKeyDigest) === lpAddress,
+  );
+  if (!party) {
+    throw new Error(`channel ${channel.channelId} has no party for LP ${lpAddress}`);
+  }
+  const balance = channel.balances[party.partyId] ?? 0n;
+  if (balance < required) {
+    throw new Error(
+      `channel ${channel.channelId} LP balance ${balance} is less than the payout ${required}`,
+    );
+  }
+}
+
+function addressFromPkDigestHex(pkDigestHex: string): string {
+  return scriptToAddress(scriptFromWotsPk(hexToBytes(pkDigestHex)));
+}
+
+/**
  * Execute a payout for an approved withdrawal intent.
  * For VTXO-backed positions this creates an exit draft; for channel-backed
  * positions it requests a settlement payload. Pure-record positions return the
@@ -146,6 +176,8 @@ export async function executePoolPayout(
     if (!channel) {
       throw new Error('channel-backed withdrawal requires ctx.loadChannel or a withdrawalChannel in position metadata');
     }
+    // Reconcile the LP's on-channel balance against the payout before settling (#22).
+    reconcileChannelBalance(channel, params.position.lpAddress, params.intent.amount);
     const settlement = await params.ctx.omnia.proposeSettlement(channel);
     if (params.ctx.saveChannelSnapshot) await params.ctx.saveChannelSnapshot(channel);
     execution = settlement;

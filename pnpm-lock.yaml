@@ -962,6 +962,9 @@ importers:
       '@totemsdk/proof':
         specifier: workspace:^
         version: link:../proof
+      '@totemsdk/wots-lease':
+        specifier: workspace:^
+        version: link:../wots-lease
     devDependencies:
       '@types/jest':
         specifier: ^30.0.0
@@ -1323,6 +1326,9 @@ importers:
       '@totemsdk/chain-provider':
         specifier: workspace:^
         version: link:../chain-provider
+      '@totemsdk/core':
+        specifier: workspace:^
+        version: link:../core
       '@totemsdk/liquidity-bond':
         specifier: workspace:^
         version: link:../liquidity-bond

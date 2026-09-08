@@ -211,7 +211,18 @@ export {
   addHTLC,
   fulfillHTLC,
   timeoutHTLC,
+  buildHtlcFulfillmentReceipt,
+  computeHtlcFulfillmentReceiptHash,
+  HTLC_FEE_PROOF_DOMAIN,
 } from './htlc.js';
+export type { HtlcFulfillmentReceipt } from './htlc.js';
+
+export {
+  buildRegistryRootTransition,
+  verifyRegistryRootInState,
+  REGISTRY_ROOT_ACTION,
+} from './registry-anchor.js';
+export type { RegistryRootTransitionInputs } from './registry-anchor.js';
 
 export {
   decrementCounter,

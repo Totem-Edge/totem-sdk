@@ -26,7 +26,8 @@
     "@totemsdk/chain-provider": "workspace:^",
     "@totemsdk/liquidity-bond": "workspace:^",
     "@totemsdk/tx-builder": "workspace:^",
-    "@totemsdk/wots-lease": "workspace:^"
+    "@totemsdk/wots-lease": "workspace:^",
+    "@totemsdk/core": "workspace:^"
   },
   "peerDependencies": {
     "@totemsdk/omnia": "workspace:^",
@@ -36,11 +37,21 @@
     "@totemsdk/omnia-vtxo": "workspace:^"
   },
   "peerDependenciesMeta": {
-    "@totemsdk/omnia": { "optional": true },
-    "@totemsdk/omnia-factory": { "optional": true },
-    "@totemsdk/omnia-router": { "optional": true },
-    "@totemsdk/omnia-splice": { "optional": true },
-    "@totemsdk/omnia-vtxo": { "optional": true }
+    "@totemsdk/omnia": {
+      "optional": true
+    },
+    "@totemsdk/omnia-factory": {
+      "optional": true
+    },
+    "@totemsdk/omnia-router": {
+      "optional": true
+    },
+    "@totemsdk/omnia-splice": {
+      "optional": true
+    },
+    "@totemsdk/omnia-vtxo": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@totemsdk/omnia": "workspace:^",
