@@ -26,6 +26,7 @@ export function createOmniaPool(
     purpose: params.purpose,
     asset: params.tokenId,
     operatorAddress: params.operatorAddress,
+    operatorBond: params.operatorBond,
     totalCapacity: BigInt(params.capacity),
     lockTerms: params.lockTerms ?? { lockType: 'none' },
     feePolicy: params.feePolicy,

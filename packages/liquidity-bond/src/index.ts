@@ -38,6 +38,8 @@ export type {
   VerifyLiquidityCommitmentParams,
   CreateLiquidityPositionParams,
   VerifyLiquidityPositionParams,
+  OperatorAutobond,
+  LiquidityProviderBondVerifier,
   IssueLiquidityReceiptParams,
   VerifyLiquidityReceiptParams,
   CreateLiquidityAllocationParams,
@@ -105,6 +107,10 @@ export {
   computeLiquidityPoolManifestHash,
   verifyLiquidityPoolManifest,
   assertLiquidityPoolManifestNotExpired,
+  computeOperatorAutobondPayloadHash,
+  buildOperatorAutobond,
+  verifyOperatorAutobond,
+  OPERATOR_AUTOBOND_DOMAIN,
 } from './pool-manifest.js';
 
 export {

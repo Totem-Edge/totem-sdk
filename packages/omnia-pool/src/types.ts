@@ -56,6 +56,7 @@ import type {
   LiquidityPurpose,
   LiquidityReceipt,
   LiquidityRiskPolicy,
+  OperatorAutobond,
   WithdrawalIntent,
 } from '@totemsdk/liquidity-bond';
 
@@ -79,6 +80,7 @@ export interface CreateOmniaPoolParams {
   riskPolicy?: LiquidityRiskPolicy;
   lockTerms?: LiquidityLockTerms;
   operatorSigner?: PoolSigner;
+  operatorBond?: OperatorAutobond;
   metadata?: Record<string, unknown>;
 }
 

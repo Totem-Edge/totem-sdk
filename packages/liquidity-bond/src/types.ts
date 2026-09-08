@@ -102,9 +102,36 @@ export interface LiquidityBondVerifyResult {
 export interface ProviderBondRef {
   providerId: string;
   providerBondId?: string;
+  /** An audited on-chain bond coin (utxo id), not free text. */
+  bondCoinId?: string;
   manifestId?: string;
   providerScore?: number;
   metadata?: Record<string, unknown>;
+}
+
+/**
+ * Operator autobond (#5): a WOTS signature by the pool operator over the
+ * load-bearing pool parameters (poolId, asset, totalCapacity, lockTerms,
+ * feePolicy). Signed manifests are the anchor of truth — an operator cannot
+ * forge a pool they never committed to.
+ */
+export interface OperatorAutobond {
+  autobondId: string;
+  /** Address derived from the signer's public key digest. */
+  address: string;
+  publicKeyDigest: string;
+  /** sha3_256(domain | canonicalJson({poolId, asset, totalCapacity, lockTerms, feePolicy})) */
+  payloadHash: string;
+  signature: string;
+  createdAt: number;
+}
+
+/** Verifier that confirms a provider's bond coin exists and is unspent on-chain. */
+export interface LiquidityProviderBondVerifier {
+  verifyBond(params: {
+    bondCoinId: string;
+    ownerProviderId: string;
+  }): Promise<{ valid: boolean; reason?: string }>;
 }
 
 export interface LiquidityLockTerms {
@@ -146,6 +173,7 @@ export interface LiquidityPoolManifest {
   asset: LiquidityAsset;
   operatorIdentityId?: string;
   operatorAddress?: string;
+  operatorBond?: OperatorAutobond;
   providerBondRef?: ProviderBondRef;
   minCommitment?: bigint;
   maxCommitment?: bigint;
@@ -337,6 +365,7 @@ export interface CreateLiquidityPoolManifestParams {
   asset: LiquidityAsset;
   operatorAddress?: string;
   operatorIdentityId?: string;
+  operatorBond?: OperatorAutobond;
   providerBondRef?: ProviderBondRef;
   minCommitment?: bigint;
   maxCommitment?: bigint;
@@ -352,6 +381,8 @@ export interface CreateLiquidityPoolManifestParams {
 export interface VerifyLiquidityPoolManifestParams {
   manifest: LiquidityPoolManifest;
   now?: number;
+  /** When true, a cryptographically valid operator autobond is required. */
+  requireOperatorBond?: boolean;
 }
 
 export interface VerifyPoolOperatorIdentityParams {
