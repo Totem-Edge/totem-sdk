@@ -121,7 +121,11 @@ export {
   verifyPoolOperatorIdentity,
   verifyLpIdentity,
   verifyReceiptOwnerIdentity,
+  verifyIdentityChallengeProof,
+  computeIdentityChallenge,
+  IDENTITY_CHALLENGE_DOMAIN,
 } from './identity.js';
+export type { IdentityChallengeProof } from './identity.js';
 
 export {
   createLiquidityCommitment,

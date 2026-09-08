@@ -426,17 +426,21 @@ export interface VerifyLiquidityPoolManifestParams {
 
 export interface VerifyPoolOperatorIdentityParams {
   manifest: LiquidityPoolManifest;
-  identityGraph: unknown;
+  identityGraph?: unknown;
+  /** Signature-backed challenge proof — the load-bearing identity check. */
+  proof?: import('./identity.js').IdentityChallengeProof;
 }
 
 export interface VerifyLpIdentityParams {
   commitment: LiquidityCommitment;
-  identityGraph: unknown;
+  identityGraph?: unknown;
+  proof?: import('./identity.js').IdentityChallengeProof;
 }
 
 export interface VerifyReceiptOwnerIdentityParams {
   receipt: LiquidityReceipt;
-  identityGraph: unknown;
+  identityGraph?: unknown;
+  proof?: import('./identity.js').IdentityChallengeProof;
 }
 
 export interface CreateLiquidityCommitmentParams {
