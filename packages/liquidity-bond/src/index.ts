@@ -90,6 +90,7 @@ export {
   signRegistryTransition,
   verifyRegistryRoot,
   verifyRegistryTransition,
+  applyRegistryTransition,
   registryRootPort,
 } from './root.js';
 export type {

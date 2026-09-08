@@ -340,6 +340,13 @@ export interface LiquidityBondRegistryState {
   feeRecords: Record<string, LiquidityFeeRecord[]>;
   withdrawals: Record<string, WithdrawalIntent[]>;
   updatedAt?: number;
+  /**
+   * The accepted registry anchor root — advanced only through signed transitions
+   * (`applyRegistryTransition`). Verifiers require the next transition's
+   * `previousRoot` to match it, so a fabricated registry without the anchor chain
+   * is rejected. Excluded from `serializeRegistryState`/`computeRegistryRoot`.
+   */
+  root?: string;
 }
 
 export interface LiquidityBondPolicy {

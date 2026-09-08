@@ -12,6 +12,7 @@
  */
 
 import { sha3_256, toHex } from '@totemsdk/core';
+import type { SigningIndices } from '@totemsdk/wots-lease';
 import { canonicalJson } from './serialization.js';
 import type { LiquidityBondRegistryState } from './types.js';
 
@@ -31,16 +32,22 @@ export interface RegistryOperation {
   metadata?: Record<string, unknown>;
 }
 
-/** Signer used to authorize registry transitions. Structurally compatible with a WOTS lease-backed signer. */
+/**
+ * Signer used to authorize registry transitions. Aligned with Omnia's
+ * `ChannelSigner` (#31): `sign(payload, indices)` so WOTS key-indices are bound
+ * at signing time and a single leased key is never reused across records.
+ */
 export interface RegistryTransitionSigner {
   publicKeyDigest: string;
-  sign(digest: Uint8Array): Promise<Uint8Array>;
+  sign(payload: Uint8Array, indices: SigningIndices): Promise<Uint8Array>;
 }
 
-/** Verifier used to check a registry root signature. */
+/**
+ * Verifier used to check a registry root signature.
+ */
 export interface RegistryRootVerifier {
   publicKeyDigest: string;
-  verify?(digest: Uint8Array, signature: Uint8Array): boolean | Promise<boolean>;
+  verify?(payload: Uint8Array, signature: Uint8Array, indices?: SigningIndices): boolean | Promise<boolean>;
 }
 
 export interface RegistryTransitionDelta {
@@ -65,18 +72,25 @@ export interface RegistryRootOptions {
   previousRoot?: string;
   reason?: string;
   signedAt?: number;
+  /** Signing indices bound into the signature (defaults to genesis indices). */
+  signIndices?: SigningIndices;
 }
 
 function domainFor(opts?: RegistryRootOptions): string {
   return opts?.domain ?? DEFAULT_REGISTRY_ROOT_DOMAIN;
 }
 
+function signIndicesFor(opts?: RegistryRootOptions): SigningIndices {
+  return opts?.signIndices ?? { addressIndex: 0, l1: 0, l2: 0 };
+}
+
 /**
  * Canonical serialization of a registry state. Excludes the volatile `updatedAt`
- * stamp so identical content always serializes to an identical string.
+ * stamp AND the anchor `root` so identical content (and the chain position)
+ * always serializes identically and a root depends only on the state it commits.
  */
 export function serializeRegistryState(registry: LiquidityBondRegistryState): string {
-  const { updatedAt: _updatedAt, ...stable } = registry;
+  const { updatedAt: _updatedAt, root: _root, ...stable } = registry;
   return canonicalJson(stable);
 }
 
@@ -117,7 +131,8 @@ export async function signRegistryTransition(
   const domain = domainFor(opts);
   const signedAt = opts?.signedAt ?? Date.now();
   const root = computeRegistryRoot(registry, opts);
-  const signature = await signer.sign(registryRootPayload(root, { domain }));
+  const indices = signIndicesFor(opts);
+  const signature = await signer.sign(registryRootPayload(root, { domain }), indices);
   return {
     delta: {
       op,
@@ -135,7 +150,7 @@ export async function signRegistryTransition(
 }
 
 /**
- * Verify a root against a registry:
+ * Verify a root against a registry (boolean form of the transition check):
  *  1. recompute the root from the registry and require it to equal `root`;
  *  2. when the verifier exposes `verify`, also check the signature over the root.
  */
@@ -149,25 +164,68 @@ export async function verifyRegistryRoot(
   if (computeRegistryRoot(registry, opts) !== root) return false;
   if (typeof verifier.verify !== 'function') return true;
   const payload = registryRootPayload(root, opts);
-  return await verifier.verify(payload, signature);
+  const ok = await verifier.verify(payload, signature, opts?.signIndices);
+  return ok;
 }
 
 /**
- * Full verification of a signed transition: root recompute, signature, signer
- * identity, and op hash (binds `delta.op` to the signature).
+ * Root-based transition verification (#6): recompute root, then (when the
+ * verifier exposes `verify`) check the signature and signer identity.
  */
 export async function verifyRegistryTransition(
   registry: LiquidityBondRegistryState,
   transition: RegistrySignedTransition,
   verifier: RegistryRootVerifier,
   opts?: RegistryRootOptions,
-): Promise<boolean> {
-  if (!(await verifyRegistryRoot(registry, transition.root, transition.signature, verifier, opts))) {
-    return false;
-  }
-  if (transition.signerPublicKey !== verifier.publicKeyDigest) return false;
+): Promise<{ valid: boolean; reasons: string[] }> {
+  const reasons: string[] = [];
   const domain = domainFor(opts);
-  return opHashFor(transition.delta.op, domain) === transition.delta.opHash;
+
+  if (computeRegistryRoot(registry, opts) !== transition.root) {
+    reasons.push('registry root does not match the signed transition');
+  }
+
+  if (transition.signerPublicKey !== verifier.publicKeyDigest) {
+    reasons.push('transition was not signed by the expected signer');
+  }
+
+  if (typeof verifier.verify === 'function') {
+    const indices = opts?.signIndices;
+    const ok = await verifier.verify(registryRootPayload(transition.root, opts), transition.signature, indices);
+    if (!ok) reasons.push('signature is invalid');
+  }
+
+  if (opHashFor(transition.delta.op, domain) !== transition.delta.opHash) {
+    reasons.push('operation hash does not bind to the signature');
+  }
+
+  return { valid: reasons.length === 0, reasons };
+}
+
+/**
+ * Apply a signed transition to a registry (#6): a mutation is only applied when
+ * its signature verifies AND its `previousRoot` extends the registry's current
+ * anchor root (`state.root`). Returns a new state with `root` advanced. Without
+ * this gate anyone could fabricate a `LiquidityBondRegistryState`.
+ */
+export async function applyRegistryTransition(
+  state: LiquidityBondRegistryState,
+  next: LiquidityBondRegistryState,
+  transition: RegistrySignedTransition,
+  verifier: RegistryRootVerifier,
+  opts?: RegistryRootOptions,
+): Promise<LiquidityBondRegistryState> {
+  const expectedPrevious = opts?.previousRoot ?? state.root;
+  if (transition.delta.previousRoot !== expectedPrevious) {
+    throw new Error(
+      `transition previousRoot does not extend the registry anchor (expected ${expectedPrevious ?? 'genesis'})`,
+    );
+  }
+  const verified = await verifyRegistryTransition(next, transition, verifier, opts);
+  if (!verified.valid) {
+    throw new Error(`cannot apply a transition that fails verification: ${verified.reasons.join('; ')}`);
+  }
+  return { ...next, root: transition.root };
 }
 
 /**
@@ -183,25 +241,25 @@ export interface RegistryRootPort {
     signer: RegistryTransitionSigner,
     opts?: RegistryRootOptions,
   ): Promise<RegistrySignedTransition>;
-  verifyRegistryRoot(
-    registry: LiquidityBondRegistryState,
-    root: string,
-    signature: Uint8Array,
-    verifier: RegistryRootVerifier,
-    opts?: RegistryRootOptions,
-  ): Promise<boolean>;
   verifyRegistryTransition(
     registry: LiquidityBondRegistryState,
     transition: RegistrySignedTransition,
     verifier: RegistryRootVerifier,
     opts?: RegistryRootOptions,
-  ): Promise<boolean>;
+  ): Promise<{ valid: boolean; reasons: string[] }>;
+  applyRegistryTransition(
+    state: LiquidityBondRegistryState,
+    next: LiquidityBondRegistryState,
+    transition: RegistrySignedTransition,
+    verifier: RegistryRootVerifier,
+    opts?: RegistryRootOptions,
+  ): Promise<LiquidityBondRegistryState>;
 }
 
 export const registryRootPort: RegistryRootPort = {
   serializeRegistryState,
   computeRegistryRoot,
   signRegistryTransition,
-  verifyRegistryRoot,
   verifyRegistryTransition,
+  applyRegistryTransition,
 };

@@ -1,5 +1,6 @@
 import {
   DEFAULT_REGISTRY_ROOT_DOMAIN,
+  applyRegistryTransition,
   computeRegistryRoot,
   registryRootPayload,
   registryRootPort,
@@ -14,6 +15,7 @@ import {
 } from '../root.js';
 import { createEmptyLiquidityBondRegistryState, registerLiquidityPool } from '../registry.js';
 import { createLiquidityPoolManifest } from '../pool-manifest.js';
+import type { LiquidityBondRegistryState } from '../types.js';
 
 function makePool(id = 'pool-1') {
   return createLiquidityPoolManifest({
@@ -23,28 +25,38 @@ function makePool(id = 'pool-1') {
 }
 
 function makeSigner(pk = 'rooter-1', sig = new Uint8Array([1, 2, 3])): RegistryTransitionSigner {
-  return { publicKeyDigest: pk, sign: jest.fn().mockResolvedValue(sig) };
+  return {
+    publicKeyDigest: pk,
+    sign: jest.fn(async (_payload: Uint8Array, _indices) => sig),
+  };
 }
 
 function makeVerifier(signer: RegistryTransitionSigner): RegistryRootVerifier {
   return {
     publicKeyDigest: signer.publicKeyDigest,
-    verify: jest.fn().mockImplementation((digest, signature) => {
-      const { sign } = signer;
-      return sign(digest as never).then((r) => (r as Uint8Array).every((b, i) => signature[i] === b));
+    verify: jest.fn(async (payload, signature) => {
+      const r = await signer.sign(payload as Uint8Array, { addressIndex: 0, l1: 0, l2: 0 });
+      return (r as Uint8Array).every((b, i) => (signature as Uint8Array)[i] === b);
     }),
   };
 }
 
+function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
+  return a.length === b.length && a.every((v, i) => v === b[i]);
+}
+
 describe('registry rooting', () => {
   describe('serializeRegistryState', () => {
-    it('excludes the volatile updatedAt stamp', () => {
+    it('excludes the volatile updatedAt and anchor root stamps', () => {
       const a = createEmptyLiquidityBondRegistryState();
       a.updatedAt = 111;
+      a.root = '0xROOT1';
       const b = createEmptyLiquidityBondRegistryState();
       b.updatedAt = 999;
+      b.root = '0xROOT2';
       expect(serializeRegistryState(a)).toBe(serializeRegistryState(b));
       expect(JSON.parse(serializeRegistryState(a)).updatedAt).toBeUndefined();
+      expect(JSON.parse(serializeRegistryState(a)).root).toBeUndefined();
     });
 
     it('is deterministic for identical content', () => {
@@ -67,11 +79,13 @@ describe('registry rooting', () => {
       expect(computeRegistryRoot(a)).not.toBe(computeRegistryRoot(b));
     });
 
-    it('is unaffected by updatedAt and scopes changes by domain', () => {
+    it('is unaffected by updatedAt/root and scopes changes by domain', () => {
       let a = registerLiquidityPool(createEmptyLiquidityBondRegistryState(), makePool('p1'));
       let b = registerLiquidityPool(createEmptyLiquidityBondRegistryState(), makePool('p1'));
       a.updatedAt = 1;
+      a.root = '0xROOT1';
       b.updatedAt = 2;
+      b.root = '0xROOT2';
       expect(computeRegistryRoot(a)).toBe(computeRegistryRoot(b));
       expect(computeRegistryRoot(a, { domain: 'other-domain' })).not.toBe(computeRegistryRoot(a));
     });
@@ -88,7 +102,7 @@ describe('registry rooting', () => {
         registry,
         op,
         signer,
-        { previousRoot, reason: 'pool join', signedAt: 42 },
+        { previousRoot, reason: 'pool join', signedAt: 42, signIndices: { addressIndex: 2, l1: 1, l2: 0 } },
       );
 
       expect(signed.signerPublicKey).toBe('rooter-1');
@@ -99,6 +113,7 @@ describe('registry rooting', () => {
       expect(signed.signature).toEqual(new Uint8Array([1, 2, 3]));
       expect(signer.sign).toHaveBeenCalledWith(
         registryRootPayload(signed.root, {}),
+        { addressIndex: 2, l1: 1, l2: 0 },
       );
       expect(signed.delta.opHash).toBeDefined();
     });
@@ -132,31 +147,95 @@ describe('registry rooting', () => {
 
     it('accepts a genuine signed transition', async () => {
       const signed = await signRegistryTransition(registry, { type: 'register-pool', poolId: 'p1' }, signer);
-      await expect(verifyRegistryTransition(registry, signed, makeVerifier(signer))).resolves.toBe(true);
+      const result = await verifyRegistryTransition(registry, signed, makeVerifier(signer));
+      expect(result.valid).toBe(true);
+      expect(result.reasons).toEqual([]);
     });
 
-    it('rejects a root that no longer matches the state (drift)', async () => {
+    it('rejects a root that no longer matches the state (drift) with a reason', async () => {
       const signed = await signRegistryTransition(registry, { type: 'register-pool', poolId: 'p1' }, signer);
       const drifted = registerLiquidityPool(registry, makePool('p2'));
-      await expect(verifyRegistryTransition(drifted, signed, makeVerifier(signer))).resolves.toBe(false);
+      const result = await verifyRegistryTransition(drifted, signed, makeVerifier(signer));
+      expect(result.valid).toBe(false);
+      expect(result.reasons).toEqual(expect.arrayContaining(['registry root does not match the signed transition']));
     });
 
     it('rejects a transition signed by a different signer', async () => {
       const signed = await signRegistryTransition(registry, { type: 'register-pool', poolId: 'p1' }, signer);
       const other = makeSigner('rooter-2');
-      await expect(verifyRegistryTransition(registry, signed, makeVerifier(other))).resolves.toBe(false);
+      const result = await verifyRegistryTransition(registry, signed, makeVerifier(other));
+      expect(result.valid).toBe(false);
+      expect(result.reasons).toEqual(expect.arrayContaining(['transition was not signed by the expected signer']));
     });
 
     it('rejects a tampered op (opHash binding)', async () => {
       const signed = await signRegistryTransition(registry, { type: 'register-pool', poolId: 'p1' }, signer);
       signed.delta.op = { type: 'register-pool', poolId: 'p1-changed' };
-      await expect(verifyRegistryTransition(registry, signed, makeVerifier(signer))).resolves.toBe(false);
+      const result = await verifyRegistryTransition(registry, signed, makeVerifier(signer));
+      expect(result.valid).toBe(false);
+      expect(result.reasons).toContain('operation hash does not bind to the signature');
     });
 
     it('rejects a bad signature via the verifier', async () => {
       const signed = await signRegistryTransition(registry, { type: 'register-pool', poolId: 'p1' }, signer);
       const forged = makeSigner(signer.publicKeyDigest, new Uint8Array([9, 9, 9]));
-      await expect(verifyRegistryTransition(registry, signed, makeVerifier(forged))).resolves.toBe(false);
+      const result = await verifyRegistryTransition(registry, signed, makeVerifier(forged));
+      expect(result.valid).toBe(false);
+      expect(result.reasons).toContain('signature is invalid');
+    });
+  });
+
+  describe('applyRegistryTransition (#6 signed-mutation gate)', () => {
+    async function setup() {
+      let state = createEmptyLiquidityBondRegistryState();
+      const signer = makeSigner();
+      const verifier = makeVerifier(signer);
+      const genesis = await signRegistryTransition(state, { type: 'genesis' }, signer, { signedAt: 1 });
+      state = await applyRegistryTransition(state, state, genesis, verifier);
+      return { state, signer, verifier };
+    }
+
+    it('applies a transition that extends the anchor and advances the root', async () => {
+      const { state, signer, verifier } = await setup();
+      const next: LiquidityBondRegistryState = registerLiquidityPool(state, makePool('p1'));
+      const signed = await signRegistryTransition(next, { type: 'register-pool', poolId: 'p1' }, signer, {
+        previousRoot: state.root,
+      });
+      const applied = await applyRegistryTransition(state, next, signed, verifier);
+      expect(applied.root).toBe(signed.root);
+      expect(Object.keys(applied.pools)).toContain('p1');
+      expect(computeRegistryRoot(applied)).toBe(signed.root);
+    });
+
+    it('rejects a transition that does not extend the anchor (fork)', async () => {
+      const { state, signer } = await setup();
+      const next = registerLiquidityPool(state, makePool('p1'));
+      const signed = await signRegistryTransition(next, { type: 'register-pool', poolId: 'p1' }, signer, {
+        previousRoot: '0xFORGED_FORK_ROOT',
+      });
+      await expect(applyRegistryTransition(state, next, signed, makeVerifier(signer))).rejects.toThrow(/does not extend the registry anchor/);
+    });
+
+    it('rejects a fabricated registry whose root was signed over different content', async () => {
+      const { state, signer, verifier } = await setup();
+      const next = registerLiquidityPool(state, makePool('p1'));
+      const fabricate: LiquidityBondRegistryState = registerLiquidityPool(state, makePool('p2'));
+      const signed = await signRegistryTransition(next, { type: 'register-pool', poolId: 'p1' }, signer, {
+        previousRoot: state.root,
+      });
+      await expect(applyRegistryTransition(state, fabricate, signed, verifier)).rejects.toThrow(/fails verification/);
+    });
+
+    it('rejects a transition forged by a different signer', async () => {
+      const { state, verifier } = await setup();
+      const next = registerLiquidityPool(state, makePool('p1'));
+      const attacker = makeSigner('attacker-1', new Uint8Array([7, 7, 7]));
+      const signed = await signRegistryTransition(next, { type: 'register-pool', poolId: 'p1' }, attacker, {
+        previousRoot: state.root,
+      });
+      // The registry trusts the real operator's key; the attacker's signature
+      // and key identity must both fail.
+      await expect(applyRegistryTransition(state, next, signed, verifier)).rejects.toThrow(/fails verification/);
     });
   });
 
@@ -174,7 +253,7 @@ describe('registry rooting', () => {
 
   describe('registryRootPort', () => {
     it('exposes all rooting primitives', () => {
-      for (const fn of ['serializeRegistryState', 'computeRegistryRoot', 'signRegistryTransition', 'verifyRegistryRoot', 'verifyRegistryTransition']) {
+      for (const fn of ['serializeRegistryState', 'computeRegistryRoot', 'signRegistryTransition', 'verifyRegistryTransition', 'applyRegistryTransition']) {
         expect(typeof (registryRootPort as never)[fn]).toBe('function');
       }
       expect(DEFAULT_REGISTRY_ROOT_DOMAIN).toMatch(/^totemsdk\/liquidity-bond\/registry\/v1$/);
