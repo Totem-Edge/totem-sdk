@@ -151,6 +151,29 @@ describe('createMinimaRpcClient — fetch mocking', () => {
     expect(Array.isArray(result)).toBe(true);
   });
 
+  it('sends Authorization: Basic base64(minima:password) by default', async () => {
+    mockFetch({ version: '1.0' });
+    const client = createMinimaRpcClient({ host: '127.0.0.1', port: 9005, password: 'totem-secret' });
+    await client.status();
+    const headers = (global.fetch as jest.Mock).mock.calls[0][1].headers as Record<string, string>;
+    const expected = Buffer.from('minima:totem-secret').toString('base64');
+    expect(headers['Authorization']).toBe(`Basic ${expected}`);
+  });
+
+  it('honours a custom username', async () => {
+    mockFetch({ version: '1.0' });
+    const client = createMinimaRpcClient({
+      host: '127.0.0.1',
+      port: 9005,
+      username: 'admin',
+      password: 'pw',
+    });
+    await client.status();
+    const headers = (global.fetch as jest.Mock).mock.calls[0][1].headers as Record<string, string>;
+    const expected = Buffer.from('admin:pw').toString('base64');
+    expect(headers['Authorization']).toBe(`Basic ${expected}`);
+  });
+
   it('throws MinimaRpcError on HTTP 401', async () => {
     global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 401, text: () => Promise.resolve('') }) as unknown as typeof fetch;
     const client = createMinimaRpcClient(config);

@@ -6,6 +6,11 @@
 export interface MinimaRpcConfig {
   host: string;
   port: number;
+  /**
+   * RPC username. Defaults to 'minima' — the totem-node's only auto-available
+   * RPC account, which authenticates against the global -rpcpassword.
+   */
+  username?: string;
   password?: string;
   ssl?: boolean;
   maxRetries?: number;

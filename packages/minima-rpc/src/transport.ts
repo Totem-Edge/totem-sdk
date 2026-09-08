@@ -32,11 +32,13 @@ function sanitizeRpcValue(value: unknown, paramName: string): string {
   return str;
 }
 
-function buildAuthHeader(password: string): string {
+function buildAuthHeader(config: MinimaRpcConfig): string {
+  const user = config.username ?? 'minima';
+  const credential = `${user}:${config.password ?? ''}`;
   const encoded =
     typeof Buffer !== 'undefined'
-      ? Buffer.from(`:${password}`).toString('base64')
-      : btoa(`:${password}`);
+      ? Buffer.from(credential).toString('base64')
+      : btoa(credential);
   return `Basic ${encoded}`;
 }
 
@@ -375,7 +377,7 @@ export async function postCommand(
         'Content-Type': 'text/plain',
       };
       if (config.password) {
-        headers['Authorization'] = buildAuthHeader(config.password);
+        headers['Authorization'] = buildAuthHeader(config);
       }
 
       const response = await fetch(url, {
