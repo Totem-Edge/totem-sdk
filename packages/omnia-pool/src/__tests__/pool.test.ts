@@ -37,6 +37,23 @@ describe('omnia-pool', () => {
   const lp = 'MxLP';
   let registry: LiquidityBondRegistryState;
 
+  const passFundingVerifier = {
+    verifyDeposit: jest.fn(async () => ({ valid: true })),
+  };
+
+  let fundingCoinSeq = 0;
+
+  async function makeDeposit(
+    params: Parameters<typeof depositToPool>[0],
+    reg: Parameters<typeof depositToPool>[1],
+  ) {
+    fundingCoinSeq++;
+    return depositToPool(
+      { ...params, underlyingUtxoRef: params.underlyingUtxoRef ?? `0xFUND${fundingCoinSeq}`, chainProvider: passFundingVerifier },
+      reg,
+    );
+  }
+
   beforeEach(() => {
     registry = createEmptyLiquidityBondRegistryState();
   });
@@ -63,9 +80,9 @@ describe('omnia-pool', () => {
     expect(loaded.manifest.poolId).toBe('pool-1');
   });
 
-  it('deposits liquidity and issues a receipt', () => {
+  it('deposits liquidity and issues a receipt', async () => {
     const { manifest } = createOmniaPool(basePoolParams(), registry);
-    const result = depositToPool(
+    const result = await makeDeposit(
       {
         pool: manifest,
         lpAddress: lp,
@@ -80,9 +97,33 @@ describe('omnia-pool', () => {
     expect(result.state.positions[result.position.positionId]).toBeDefined();
   });
 
+  it('refuses a deposit whose funding fails on-chain verification', async () => {
+    const { manifest } = createOmniaPool(basePoolParams(), registry);
+    await expect(
+      depositToPool(
+        {
+          pool: manifest,
+          lpAddress: lp,
+          amount: '100000',
+          purpose: 'omnia-channel-capital',
+          underlyingUtxoRef: '0xC1',
+          chainProvider: { verifyDeposit: async () => ({ valid: false, reason: 'coin is spent' }) },
+        },
+        registry,
+      ),
+    ).rejects.toThrow(/funding failed on-chain confirmation|not acceptable/);
+  });
+
+  it('requires a chainProvider to accept a deposit', async () => {
+    const { manifest } = createOmniaPool(basePoolParams(), registry);
+    await expect(
+      depositToPool({ pool: manifest, lpAddress: lp, amount: '100000', purpose: 'omnia-channel-capital' }, registry),
+    ).rejects.toThrow(/chainProvider/);
+  });
+
   it('allocates to a reserve target without a port', async () => {
     const { manifest, registry: reg } = createOmniaPool(basePoolParams(), registry);
-    const { position, state } = depositToPool(
+    const { position, state } = await makeDeposit(
       { pool: manifest, lpAddress: lp, amount: '100000', purpose: 'omnia-channel-capital' },
       reg,
     );
@@ -114,7 +155,7 @@ describe('omnia-pool', () => {
     };
 
     const { manifest, registry: reg } = createOmniaPool(basePoolParams(), registry);
-    const { position, state } = depositToPool(
+    const { position, state } = await makeDeposit(
       { pool: manifest, lpAddress: lp, amount: '100000', purpose: 'omnia-channel-capital' },
       reg,
     );
@@ -147,7 +188,7 @@ describe('omnia-pool', () => {
     };
 
     const { manifest, registry: reg } = createOmniaPool(basePoolParams(), registry);
-    const { position, state } = depositToPool(
+    const { position, state } = await makeDeposit(
       { pool: manifest, lpAddress: lp, amount: '100000', purpose: 'omnia-factory-capital' },
       reg,
     );
@@ -178,7 +219,7 @@ describe('omnia-pool', () => {
     };
 
     const { manifest, registry: reg } = createOmniaPool(basePoolParams(), registry);
-    const { position, state } = depositToPool(
+    const { position, state } = await makeDeposit(
       { pool: manifest, lpAddress: lp, amount: '100000', purpose: 'omnia-router-liquidity' },
       reg,
     );
@@ -213,7 +254,7 @@ describe('omnia-pool', () => {
     };
 
     const { manifest, registry: reg } = createOmniaPool(basePoolParams(), registry);
-    const { position, state } = depositToPool(
+    const { position, state } = await makeDeposit(
       { pool: manifest, lpAddress: lp, amount: '100000', purpose: 'statechain-exit-reserve' },
       reg,
     );
@@ -240,7 +281,7 @@ describe('omnia-pool', () => {
       sign: jest.fn().mockResolvedValue(new Uint8Array([7, 8, 9])),
     };
     const { manifest, registry: reg } = createOmniaPool(basePoolParams(), registry);
-    const { position, state } = depositToPool(
+    const { position, state } = await makeDeposit(
       { pool: manifest, lpAddress: lp, amount: '100000', purpose: 'omnia-channel-capital' },
       reg,
     );
@@ -270,7 +311,7 @@ describe('omnia-pool', () => {
       sign: jest.fn().mockResolvedValue(new Uint8Array([7, 8, 9])),
     };
     const { manifest, registry: reg } = createOmniaPool(basePoolParams(), registry);
-    const { position, state } = depositToPool(
+    const { position, state } = await makeDeposit(
       { pool: manifest, lpAddress: lp, amount: '100000', purpose: 'omnia-channel-capital' },
       reg,
     );
@@ -295,7 +336,7 @@ describe('omnia-pool', () => {
 
   it('rejects allocation type/purpose mismatch', async () => {
     const { manifest, registry: reg } = createOmniaPool(basePoolParams(), registry);
-    const { position, state } = depositToPool(
+    const { position, state } = await makeDeposit(
       { pool: manifest, lpAddress: lp, amount: '100000', purpose: 'omnia-channel-capital' },
       reg,
     );
@@ -316,7 +357,7 @@ describe('omnia-pool', () => {
 
   it('releases an allocation and restores availability', async () => {
     const { manifest, registry: reg } = createOmniaPool(basePoolParams(), registry);
-    const { position, state } = depositToPool(
+    const { position, state } = await makeDeposit(
       { pool: manifest, lpAddress: lp, amount: '100000', purpose: 'omnia-channel-capital' },
       reg,
     );
@@ -339,7 +380,7 @@ describe('omnia-pool', () => {
 
   it('rebalances capital between targets', async () => {
     const { manifest, registry: reg } = createOmniaPool(basePoolParams(), registry);
-    const { position, state } = depositToPool(
+    const { position, state } = await makeDeposit(
       { pool: manifest, lpAddress: lp, amount: '100000', purpose: 'community-liquidity' },
       reg,
     );
@@ -381,7 +422,7 @@ describe('omnia-pool', () => {
     };
 
     const { manifest, registry: reg } = createOmniaPool(basePoolParams(), registry);
-    const { position, state } = depositToPool(
+    const { position, state } = await makeDeposit(
       { pool: manifest, lpAddress: lp, amount: '100000', purpose: 'community-liquidity' },
       reg,
     );
@@ -414,10 +455,10 @@ describe('omnia-pool', () => {
     expect(result.newAllocation.amount).toBe(30000n);
   });
 
-  it('records, claims and compounds fees', () => {
+  it('records, claims and compounds fees', async () => {
     const params = basePoolParams();
     const { manifest, registry: reg } = createOmniaPool(params, registry);
-    const { position, state } = depositToPool(
+    const { position, state } = await makeDeposit(
       { pool: manifest, lpAddress: lp, amount: '100000', purpose: 'omnia-channel-capital' },
       reg,
     );
@@ -442,9 +483,9 @@ describe('omnia-pool', () => {
     expect(compounded.position.amount).toBe(100030n);
   });
 
-  it('computes pool NAV and risk score', () => {
+  it('computes pool NAV and risk score', async () => {
     const { manifest, registry: reg } = createOmniaPool(basePoolParams(), registry);
-    const { position, state } = depositToPool(
+    const { position, state } = await makeDeposit(
       { pool: manifest, lpAddress: lp, amount: '100000', purpose: 'omnia-channel-capital' },
       reg,
     );
@@ -473,7 +514,7 @@ describe('omnia-pool', () => {
 
   it('withdraws liquidity and executes payout', async () => {
     const { manifest, registry: reg } = createOmniaPool(basePoolParams(), registry);
-    const { position, state } = depositToPool(
+    const { position, state } = await makeDeposit(
       { pool: manifest, lpAddress: lp, amount: '100000', purpose: 'omnia-channel-capital' },
       reg,
     );
@@ -513,7 +554,7 @@ describe('omnia-pool', () => {
     const saveChannelSnapshot = jest.fn();
 
     const { manifest, registry: reg } = createOmniaPool(basePoolParams(), registry);
-    const { position, state } = depositToPool(
+    const { position, state } = await makeDeposit(
       {
         pool: manifest,
         lpAddress: lp,
@@ -553,7 +594,7 @@ describe('omnia-pool', () => {
 
   it('refuses to payout an unapproved intent', async () => {
     const { manifest, registry: reg } = createOmniaPool(basePoolParams(), registry);
-    const { position, state } = depositToPool(
+    const { position, state } = await makeDeposit(
       { pool: manifest, lpAddress: lp, amount: '100000', purpose: 'omnia-channel-capital' },
       reg,
     );

@@ -65,6 +65,7 @@ export interface DepositToPoolResult {
   position: LiquidityPosition;
   receipt: LiquidityReceipt;
   state: LiquidityBondRegistryState;
+  signedTransition?: RegistrySignedTransition;
 }
 
 export interface CreateOmniaPoolParams {
@@ -86,6 +87,8 @@ export interface OmniaPoolDeploymentContext {
   leaseBundle?: WotsLeaseBundle;
   /** Chain state provider for coin lookup and broadcast. */
   chainProvider?: ChainStateProvider;
+  /** On-chain funding verifier — required to confirm LP deposits. */
+  fundingVerifier?: import('@totemsdk/liquidity-bond').LiquidityChainFundingVerifier;
   /** Optional signer for pool-level operations. */
   signer?: PoolSigner;
 }
