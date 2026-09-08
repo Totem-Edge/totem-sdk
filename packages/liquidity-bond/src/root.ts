@@ -57,6 +57,8 @@ export interface RegistryTransitionDelta {
   root: string;
   signedAt: number;
   reason?: string;
+  /** Monotonic anti-reorg sequence (#34) — must advance on every applied transition. */
+  sequence?: number;
 }
 
 export interface RegistrySignedTransition {
@@ -74,6 +76,8 @@ export interface RegistryRootOptions {
   signedAt?: number;
   /** Signing indices bound into the signature (defaults to genesis indices). */
   signIndices?: SigningIndices;
+  /** Monotonic anti-reorg sequence (#34) — must advance on every applied transition. */
+  sequence?: number;
   /**
    * When set, the root is computed over a filtered view of the registry —
    * e.g. verified-only positions/fees — so an attacker's signed root cannot
@@ -92,11 +96,12 @@ function signIndicesFor(opts?: RegistryRootOptions): SigningIndices {
 
 /**
  * Canonical serialization of a registry state. Excludes the volatile `updatedAt`
- * stamp AND the anchor `root` so identical content (and the chain position)
- * always serializes identically and a root depends only on the state it commits.
+ * stamp AND the anchor `root`/`sequence` so identical content (and the chain
+ * position) always serializes identically and a root depends only on the state
+ * it commits.
  */
 export function serializeRegistryState(registry: LiquidityBondRegistryState): string {
-  const { updatedAt: _updatedAt, root: _root, ...stable } = registry;
+  const { updatedAt: _updatedAt, root: _root, sequence: _sequence, ...stable } = registry;
   return canonicalJson(stable);
 }
 
@@ -148,6 +153,7 @@ export async function signRegistryTransition(
       root,
       signedAt,
       reason: opts?.reason,
+      sequence: opts?.sequence,
     },
     root,
     signature: signature instanceof Uint8Array ? signature : new Uint8Array(signature),
@@ -210,17 +216,36 @@ export async function verifyRegistryTransition(
 }
 
 /**
- * Apply a signed transition to a registry (#6): a mutation is only applied when
- * its signature verifies AND its `previousRoot` extends the registry's current
- * anchor root (`state.root`). Returns a new state with `root` advanced. Without
- * this gate anyone could fabricate a `LiquidityBondRegistryState`.
+ * Per-pool writer registry (#34): each pool has exactly one authorized signer.
+ * A transition touching a pool must be signed by that pool's writer — an
+ * operator cannot mutate another pool's state.
+ */
+export type PoolWriterRegistry = Record<string, string>;
+
+export function registerPoolWriter(
+  writers: PoolWriterRegistry,
+  poolId: string,
+  signerPublicKeyDigest: string,
+): PoolWriterRegistry {
+  return { ...writers, [poolId]: signerPublicKeyDigest };
+}
+
+/**
+ * Apply a signed transition to a registry (#6/#34): a mutation is only applied
+ * when its signature verifies, its `previousRoot` extends the registry's current
+ * anchor root, and its `sequence` strictly advances the registry's sequence
+ * (anti-reorg — a `previousRoot` resubmission after a rollback is rejected).
+ * When `writers` is provided, every pool the transition touches must be signed
+ * by that pool's authorized writer. Returns a new state with `root` and
+ * `sequence` advanced. Without this gate anyone could fabricate a
+ * `LiquidityBondRegistryState`.
  */
 export async function applyRegistryTransition(
   state: LiquidityBondRegistryState,
   next: LiquidityBondRegistryState,
   transition: RegistrySignedTransition,
   verifier: RegistryRootVerifier,
-  opts?: RegistryRootOptions,
+  opts?: RegistryRootOptions & { writers?: PoolWriterRegistry },
 ): Promise<LiquidityBondRegistryState> {
   const expectedPrevious = opts?.previousRoot ?? state.root;
   if (transition.delta.previousRoot !== expectedPrevious) {
@@ -228,11 +253,29 @@ export async function applyRegistryTransition(
       `transition previousRoot does not extend the registry anchor (expected ${expectedPrevious ?? 'genesis'})`,
     );
   }
+  const expectedSequence = (state.sequence ?? 0) + 1;
+  if (transition.delta.sequence !== undefined && transition.delta.sequence !== expectedSequence) {
+    throw new Error(
+      `transition sequence ${transition.delta.sequence} does not advance the registry (expected ${expectedSequence})`,
+    );
+  }
+  if (opts?.writers) {
+    const poolIds = new Set<string>();
+    if (transition.delta.op.poolId) poolIds.add(transition.delta.op.poolId);
+    for (const poolId of poolIds) {
+      const writer = opts.writers[poolId];
+      if (writer && writer !== transition.signerPublicKey) {
+        throw new Error(
+          `transition for pool ${poolId} was not signed by its authorized writer`,
+        );
+      }
+    }
+  }
   const verified = await verifyRegistryTransition(next, transition, verifier, opts);
   if (!verified.valid) {
     throw new Error(`cannot apply a transition that fails verification: ${verified.reasons.join('; ')}`);
   }
-  return { ...next, root: transition.root };
+  return { ...next, root: transition.root, sequence: expectedSequence };
 }
 
 /**

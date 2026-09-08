@@ -94,6 +94,7 @@ export {
   verifyRegistryRoot,
   verifyRegistryTransition,
   applyRegistryTransition,
+  registerPoolWriter,
   registryRootPort,
 } from './root.js';
 export type {
@@ -104,6 +105,7 @@ export type {
   RegistrySignedTransition,
   RegistryRootOptions,
   RegistryRootPort,
+  PoolWriterRegistry,
 } from './root.js';
 
 export {

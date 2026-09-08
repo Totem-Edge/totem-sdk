@@ -379,6 +379,12 @@ export interface LiquidityBondRegistryState {
    * is rejected. Excluded from `serializeRegistryState`/`computeRegistryRoot`.
    */
   root?: string;
+  /**
+   * Monotonic anti-reorg sequence (#34): each applied transition must advance it,
+   * so a `previousRoot` resubmission after a rollback is rejected. Excluded from
+   * the root commitment.
+   */
+  sequence?: number;
 }
 
 export interface LiquidityBondPolicy {

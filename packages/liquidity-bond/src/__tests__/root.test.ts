@@ -4,6 +4,7 @@ import {
   computeRegistryRoot,
   registryRootPayload,
   registryRootPort,
+  registerPoolWriter,
   serializeRegistryState,
   signRegistryTransition,
   verifyRegistryRoot,
@@ -236,6 +237,46 @@ describe('registry rooting', () => {
       // The registry trusts the real operator's key; the attacker's signature
       // and key identity must both fail.
       await expect(applyRegistryTransition(state, next, signed, verifier)).rejects.toThrow(/fails verification/);
+    });
+
+    it('advances the anti-reorg sequence on each applied transition', async () => {
+      const { state, signer, verifier } = await setup();
+      const next = registerLiquidityPool(state, makePool('p1'));
+      const signed = await signRegistryTransition(next, { type: 'register-pool', poolId: 'p1' }, signer, {
+        previousRoot: state.root,
+        sequence: (state.sequence ?? 0) + 1,
+      });
+      const applied = await applyRegistryTransition(state, next, signed, verifier);
+      expect(applied.sequence).toBe((state.sequence ?? 0) + 1);
+    });
+
+    it('rejects a transition that does not advance the sequence (reorg)', async () => {
+      const { state, signer, verifier } = await setup();
+      const next = registerLiquidityPool(state, makePool('p1'));
+      const signed = await signRegistryTransition(next, { type: 'register-pool', poolId: 'p1' }, signer, {
+        previousRoot: state.root,
+        sequence: state.sequence ?? 0,
+      });
+      await expect(applyRegistryTransition(state, next, signed, verifier)).rejects.toThrow(/does not advance the registry/);
+    });
+
+    it('enforces per-pool writers', async () => {
+      const { state, signer, verifier } = await setup();
+      const writers = registerPoolWriter({}, 'p1', signer.publicKeyDigest);
+      const next = registerLiquidityPool(state, makePool('p1'));
+      const signed = await signRegistryTransition(next, { type: 'register-pool', poolId: 'p1' }, signer, {
+        previousRoot: state.root,
+        sequence: (state.sequence ?? 0) + 1,
+      });
+      await expect(applyRegistryTransition(state, next, signed, verifier, { writers })).resolves.toBeDefined();
+
+      // A different key cannot sign for pool-1 when pool-1's writer is registered.
+      const otherWriter = makeSigner('other-writer', new Uint8Array([7, 7, 7]));
+      const forged = await signRegistryTransition(next, { type: 'register-pool', poolId: 'p1' }, otherWriter, {
+        previousRoot: state.root,
+        sequence: (state.sequence ?? 0) + 1,
+      });
+      await expect(applyRegistryTransition(state, next, forged, verifier, { writers })).rejects.toThrow(/not signed by its authorized writer/);
     });
   });
 
