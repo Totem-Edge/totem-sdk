@@ -79,6 +79,7 @@ export type AllocationType =
   | 'factory-capital'
   | 'rfq-inventory'
   | 'settlement-reserve'
+  | 'vtxo-backing'
   | 'manual-reserve';
 
 export type AllocationStatus = 'active' | 'reserved' | 'released' | 'depleted' | 'invalid';

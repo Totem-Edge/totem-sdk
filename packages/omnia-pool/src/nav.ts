@@ -7,17 +7,24 @@ import {
   computePositionRiskScore,
   type LiquidityBondRegistryState,
   type LiquidityPoolManifest,
+  type LiquidityPosition,
 } from '@totemsdk/liquidity-bond';
 import type { PoolNAV } from './types.js';
 
 /**
  * Compute the net asset value of a pool from its registry state.
+ *
+ * An optional `filter` narrows which positions contribute (e.g. only `active`
+ * or non-withdrawn positions), defaulting to every position in the pool.
  */
 export function computePoolNAV(
   pool: LiquidityPoolManifest,
   registry: LiquidityBondRegistryState,
+  filter?: (position: LiquidityPosition) => boolean,
 ): PoolNAV {
-  const positions = Object.values(registry.positions).filter((p) => p.poolId === pool.poolId);
+  const positions = Object.values(registry.positions).filter(
+    (p) => p.poolId === pool.poolId && (filter ? filter(p) : true),
+  );
   const records = positions.flatMap((p) => registry.feeRecords[p.positionId] ?? []);
 
   let totalCommitted = 0n;

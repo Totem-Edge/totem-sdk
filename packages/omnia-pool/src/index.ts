@@ -42,6 +42,11 @@ export {
 
 export { computePoolNAV, computePoolRiskScore } from './nav.js';
 
+export { createChannelLoader, loadChannelFromSnapshotStore, saveChannelSnapshot } from './load-channel.js';
+export type { ChannelSnapshotStore } from './load-channel.js';
+
+export { maybeSignTransition, commitRegistryTransition } from './rooting.js';
+
 export {
   withdrawLiquidity,
   approveWithdrawal,
@@ -55,10 +60,12 @@ export type {
   OmniaPoolAllocationContext,
   PoolSigner,
   OmniaExecutionPort,
+  ChannelCloseResult,
   FactoryExecutionPort,
   RouterExecutionPort,
   SpliceExecutionPort,
   VtxoExecutionPort,
+  RegistryRootingContext,
   OmniaPoolFeeRecord,
   PoolNAV,
   OmniaPool,

@@ -14,7 +14,8 @@ import {
   type LiquidityPosition,
   type WithdrawalIntent,
 } from '@totemsdk/liquidity-bond';
-import type { OmniaPoolAllocationContext, OmniaPoolWithdrawalResult, WithdrawLiquidityOptions } from './types.js';
+import type { OmniaPoolAllocationContext, OmniaPoolWithdrawalResult, RegistryRootingContext, WithdrawLiquidityOptions } from './types.js';
+import { maybeSignTransition } from './rooting.js';
 
 /**
  * Create a withdrawal intent and mark the position as requesting withdrawal.
@@ -90,6 +91,21 @@ export interface ExecutePoolPayoutParams {
   intent: WithdrawalIntent;
   recipientAddress: string;
   ctx?: OmniaPoolAllocationContext;
+  rooting?: RegistryRootingContext;
+}
+
+/**
+ * Materialize the channel backing a payout: prefer a snapshot already attached
+ * in `position.metadata.withdrawalChannel`, else load from `ctx.loadChannel`
+ * using the position's `omniaChannelId`.
+ */
+async function resolveChannelForPayout(params: ExecutePoolPayoutParams): Promise<import('@totemsdk/omnia').OmniaChannel | undefined> {
+  const snapshot = params.position.metadata?.withdrawalChannel;
+  if (snapshot) return snapshot as never;
+  if (params.ctx?.loadChannel && params.position.omniaChannelId) {
+    return await params.ctx.loadChannel(params.position.omniaChannelId);
+  }
+  return undefined;
 }
 
 /**
@@ -106,6 +122,7 @@ export async function executePoolPayout(
   position: LiquidityPosition;
   registry: LiquidityBondRegistryState;
   execution?: unknown;
+  signedTransition?: import('@totemsdk/liquidity-bond').RegistrySignedTransition;
 }> {
   if (params.intent.status !== 'approved') {
     throw new Error('withdrawal intent must be approved before payout');
@@ -122,12 +139,14 @@ export async function executePoolPayout(
     const draft = await params.ctx.vtxo.createExitDraft(vtxo);
     execution = draft;
   } else if (params.position.omniaChannelId && params.ctx?.omnia) {
-    // Omnia settlement requires the live channel object; caller provides it.
-    const channel = params.position.metadata?.withdrawalChannel as never;
+    // Omnia settlement requires the live channel object; we materialize it from
+    // the position's omniaChannelId via ctx.loadChannel (or an attached snapshot).
+    const channel = await resolveChannelForPayout(params);
     if (!channel) {
-      throw new Error('channel-backed withdrawal requires a withdrawalChannel in position metadata');
+      throw new Error('channel-backed withdrawal requires ctx.loadChannel or a withdrawalChannel in position metadata');
     }
     const settlement = await params.ctx.omnia.proposeSettlement(channel);
+    if (params.ctx.saveChannelSnapshot) await params.ctx.saveChannelSnapshot(channel);
     execution = settlement;
   }
 
@@ -159,10 +178,19 @@ export async function executePoolPayout(
   let nextRegistry: LiquidityBondRegistryState = { ...registry, withdrawals };
   nextRegistry = registerLiquidityPosition(nextRegistry, updatedPosition);
 
+  const signedTransition = await maybeSignTransition(params.rooting, nextRegistry, {
+    type: 'payout',
+    poolId: params.pool.poolId,
+    positionId: params.position.positionId,
+    withdrawalId: params.intent.withdrawalId,
+    amount: withdrawnAmount,
+  });
+
   return {
     intent: settledIntent,
     position: updatedPosition,
     registry: nextRegistry,
     execution,
+    signedTransition,
   };
 }

@@ -20,6 +20,7 @@ export type {
   OmniaTxDraft,
   TxInputDraft,
   TxOutputDraft,
+  ChannelSignature,
   ChannelSigner,
   VerifyStateOptions,
   UpdateDelta,

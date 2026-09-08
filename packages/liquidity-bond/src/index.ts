@@ -79,6 +79,26 @@ export {
 } from './serialization.js';
 
 export {
+  DEFAULT_REGISTRY_ROOT_DOMAIN,
+  serializeRegistryState,
+  computeRegistryRoot,
+  registryRootPayload,
+  signRegistryTransition,
+  verifyRegistryRoot,
+  verifyRegistryTransition,
+  registryRootPort,
+} from './root.js';
+export type {
+  RegistryOperation,
+  RegistryTransitionSigner,
+  RegistryRootVerifier,
+  RegistryTransitionDelta,
+  RegistrySignedTransition,
+  RegistryRootOptions,
+  RegistryRootPort,
+} from './root.js';
+
+export {
   createLiquidityPoolManifest,
   computeLiquidityPoolManifestHash,
   verifyLiquidityPoolManifest,

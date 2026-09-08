@@ -26,6 +26,7 @@ import type {
   ReleaseAllocationParams,
   RebalanceAllocationParams,
 } from './types.js';
+import { maybeSignTransition } from './rooting.js';
 
 function allocateTypeMatchesPurpose(type: AllocationType, purpose: LiquidityPurpose): boolean {
   // Purpose/type alignment table (permissive — backends may be more specific).
@@ -35,9 +36,16 @@ function allocateTypeMatchesPurpose(type: AllocationType, purpose: LiquidityPurp
     'factory-capital': ['omnia-factory-capital'],
     'rfq-inventory': ['rfq-inventory'],
     'settlement-reserve': ['merchant-settlement-reserve', 'statechain-exit-reserve'],
+    'vtxo-backing': ['vtxo-pool-backing'],
     'manual-reserve': ['community-liquidity', 'sandbox-liquidity'],
   };
   return map[type]?.includes(purpose) ?? true;
+}
+
+async function persistChannelSnapshot(ctx: OmniaPoolAllocationContext | undefined, channel: unknown): Promise<void> {
+  if (ctx?.saveChannelSnapshot && channel && typeof channel === 'object') {
+    await ctx.saveChannelSnapshot(channel as never);
+  }
 }
 
 /**
@@ -78,6 +86,7 @@ export async function allocatePositionCapital(
         throw new Error('omnia execution port required for channel allocation');
       }
       const channel = await params.ctx.omnia.createChannel(params.target.params);
+      await persistChannelSnapshot(params.ctx, channel);
       execution = channel;
       break;
     }
@@ -142,7 +151,15 @@ export async function allocatePositionCapital(
   let nextRegistry = attachLiquidityAllocation(registry, allocation);
   nextRegistry = registerLiquidityPosition(nextRegistry, updatedPosition);
 
-  return { allocation, position: updatedPosition, registry: nextRegistry, execution };
+  const signedTransition = await maybeSignTransition(params.rooting, nextRegistry, {
+    type: 'allocate',
+    poolId: position.poolId,
+    positionId: position.positionId,
+    allocationId: allocation.allocationId,
+    amount,
+  });
+
+  return { allocation, position: updatedPosition, registry: nextRegistry, execution, signedTransition };
 }
 
 /**
@@ -205,11 +222,14 @@ export async function rebalancePoolCapital(
       position: releasedPosition,
       amount: params.amount,
       allocationType: params.toTarget.type === 'vtxo'
-        ? 'manual-reserve'
+        ? 'vtxo-backing'
         : (params.from.allocationType),
-      purpose: params.from.purpose,
+      purpose: params.toTarget.type === 'vtxo'
+        ? 'vtxo-pool-backing'
+        : (params.from.purpose),
       target: params.toTarget,
       ctx: params.ctx,
+      rooting: params.rooting,
       metadata: { rebalanceFrom: params.from.allocationId },
     },
     releasedRegistry,

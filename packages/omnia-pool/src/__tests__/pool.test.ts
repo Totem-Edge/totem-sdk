@@ -4,7 +4,9 @@
 
 import {
   createEmptyLiquidityBondRegistryState,
+  computeRegistryRoot,
   type LiquidityBondRegistryState,
+  type RegistryTransitionSigner,
 } from '@totemsdk/liquidity-bond';
 import {
   createOmniaPool,
@@ -107,6 +109,8 @@ describe('omnia-pool', () => {
       addHTLC: jest.fn(),
       fulfillHTLC: jest.fn(),
       proposeSettlement: jest.fn(),
+      verifyStateForCoSign: jest.fn().mockResolvedValue({ valid: true, errors: [] }),
+      closeChannel: jest.fn().mockResolvedValue({ channel, settlementPayload: {} }),
     };
 
     const { manifest, registry: reg } = createOmniaPool(basePoolParams(), registry);
@@ -230,6 +234,65 @@ describe('omnia-pool', () => {
     expect(result.execution).toEqual({ pool, vtxo });
   });
 
+  it('returns a signed registry transition when rooting is provided', async () => {
+    const signer: RegistryTransitionSigner = {
+      publicKeyDigest: 'rooter-1',
+      sign: jest.fn().mockResolvedValue(new Uint8Array([7, 8, 9])),
+    };
+    const { manifest, registry: reg } = createOmniaPool(basePoolParams(), registry);
+    const { position, state } = depositToPool(
+      { pool: manifest, lpAddress: lp, amount: '100000', purpose: 'omnia-channel-capital' },
+      reg,
+    );
+
+    const result = await allocatePositionCapital(
+      {
+        position,
+        amount: '40000',
+        allocationType: 'channel-capital',
+        purpose: 'omnia-channel-capital',
+        target: { type: 'reserve', purpose: 'co-sign' },
+        rooting: { signer, previousRoot: undefined, reason: 'channel-capital commitment' },
+      },
+      state,
+    );
+
+    expect(signer.sign).toHaveBeenCalled();
+    expect(result.signedTransition).toBeDefined();
+    expect(result.signedTransition!.signerPublicKey).toBe('rooter-1');
+    expect(result.signedTransition!.delta.op.type).toBe('allocate');
+    expect(result.signedTransition!.delta.root).toBe(computeRegistryRoot(result.registry));
+  });
+
+  it('re-pays a rooted allocation through a co-signed payout', async () => {
+    const signer: RegistryTransitionSigner = {
+      publicKeyDigest: 'rooter-1',
+      sign: jest.fn().mockResolvedValue(new Uint8Array([7, 8, 9])),
+    };
+    const { manifest, registry: reg } = createOmniaPool(basePoolParams(), registry);
+    const { position, state } = depositToPool(
+      { pool: manifest, lpAddress: lp, amount: '100000', purpose: 'omnia-channel-capital' },
+      reg,
+    );
+
+    const { intent, state: withIntent } = withdrawLiquidity(
+      manifest,
+      position,
+      { positionId: position.positionId, amount: '1000', recipientAddress: lp },
+      state,
+    );
+    const { intent: approved, registry: approvedReg } = approveWithdrawal(intent, position, withIntent);
+    const result = await executePoolPayout(
+      { pool: manifest, position, intent: approved, recipientAddress: lp, rooting: { signer } },
+      approvedReg,
+    );
+
+    expect(result.signedTransition).toBeDefined();
+    expect(result.signedTransition!.delta.op.type).toBe('payout');
+    expect(result.signedTransition!.delta.op.withdrawalId).toBe(intent.withdrawalId);
+    expect(result.signedTransition!.delta.root).toBe(computeRegistryRoot(result.registry));
+  });
+
   it('rejects allocation type/purpose mismatch', async () => {
     const { manifest, registry: reg } = createOmniaPool(basePoolParams(), registry);
     const { position, state } = depositToPool(
@@ -307,6 +370,50 @@ describe('omnia-pool', () => {
     expect(result.position.availableAmount).toBe(70000n);
   });
 
+  it('rebalances capital to a vtxo target as vtxo-backing', async () => {
+    const vtxoPool = { poolId: 'vtxo-pool-2' } as unknown as import('@totemsdk/omnia-vtxo').OmniaVtxoPool;
+    const port: VtxoExecutionPort = {
+      createPool: jest.fn(),
+      mintVtxo: jest.fn().mockResolvedValue({ pool: vtxoPool, vtxo: { vtxoId: 'v-2' } }),
+      createExitDraft: jest.fn(),
+      markExiting: jest.fn(),
+      markExited: jest.fn(),
+    };
+
+    const { manifest, registry: reg } = createOmniaPool(basePoolParams(), registry);
+    const { position, state } = depositToPool(
+      { pool: manifest, lpAddress: lp, amount: '100000', purpose: 'community-liquidity' },
+      reg,
+    );
+    const { allocation, registry: allocReg } = await allocatePositionCapital(
+      {
+        position,
+        amount: '50000',
+        allocationType: 'manual-reserve',
+        purpose: 'community-liquidity',
+        target: { type: 'reserve', purpose: 'old' },
+      },
+      state,
+    );
+
+    const result = await rebalancePoolCapital(
+      {
+        from: allocation,
+        toTarget: { type: 'vtxo', pool: vtxoPool, params: { owner: lp, amount: 25000n, nonce: 'n2' } },
+        amount: '30000',
+        ctx: { vtxo: port },
+      },
+      position,
+      allocReg,
+    );
+
+    expect(result.released.status).toBe('released');
+    expect(result.newAllocation.allocationType).toBe('vtxo-backing');
+    expect(result.newAllocation.purpose).toBe('vtxo-pool-backing');
+    expect(port.mintVtxo).toHaveBeenCalled();
+    expect(result.newAllocation.amount).toBe(30000n);
+  });
+
   it('records, claims and compounds fees', () => {
     const params = basePoolParams();
     const { manifest, registry: reg } = createOmniaPool(params, registry);
@@ -351,6 +458,10 @@ describe('omnia-pool', () => {
     expect(nav.accruedFees).toBe(100n);
     expect(nav.nav).toBe(100100n);
 
+    const filtered = computePoolNAV(manifest, afterFee, (p) => p.positionId !== position.positionId);
+    expect(filtered.totalCommitted).toBe(0n);
+    expect(filtered.nav).toBe(0n);
+
     const risk = computePoolRiskScore(manifest, afterFee);
     expect(typeof risk).toBe('number');
     expect(risk).toBeGreaterThanOrEqual(0);
@@ -385,6 +496,59 @@ describe('omnia-pool', () => {
     expect(result.intent.status).toBe('settled-externally');
     expect(result.position.amount).toBe(70000n);
     expect(result.position.availableAmount).toBe(70000n);
+  });
+
+  it('payouts a channel-backed position via ctx.loadChannel', async () => {
+    const channel = { channelId: 'ch-9', status: 'open' } as unknown as import('@totemsdk/omnia').OmniaChannel;
+    const port: OmniaExecutionPort = {
+      createChannel: jest.fn(),
+      updateState: jest.fn(),
+      addHTLC: jest.fn(),
+      fulfillHTLC: jest.fn(),
+      proposeSettlement: jest.fn().mockResolvedValue({ settlementId: 's-1' }),
+      verifyStateForCoSign: jest.fn().mockResolvedValue({ valid: true, errors: [] }),
+      closeChannel: jest.fn(),
+    };
+    const loadChannel = jest.fn().mockResolvedValue(channel);
+    const saveChannelSnapshot = jest.fn();
+
+    const { manifest, registry: reg } = createOmniaPool(basePoolParams(), registry);
+    const { position, state } = depositToPool(
+      {
+        pool: manifest,
+        lpAddress: lp,
+        amount: '100000',
+        purpose: 'omnia-channel-capital',
+        underlyingRefs: { omniaChannelId: 'ch-9' },
+      },
+      reg,
+    );
+
+    const { intent, state: withIntent } = withdrawLiquidity(
+      manifest,
+      position,
+      { positionId: position.positionId, amount: '20000', recipientAddress: lp },
+      state,
+    );
+    const { intent: approved, registry: approvedReg } = approveWithdrawal(intent, position, withIntent);
+
+    const result = await executePoolPayout(
+      {
+        pool: manifest,
+        position,
+        intent: approved,
+        recipientAddress: lp,
+        ctx: { omnia: port, loadChannel, saveChannelSnapshot },
+      },
+      approvedReg,
+    );
+
+    expect(loadChannel).toHaveBeenCalledWith('ch-9');
+    expect(port.proposeSettlement).toHaveBeenCalledWith(channel);
+    expect(saveChannelSnapshot).toHaveBeenCalledWith(channel);
+    expect(result.intent.status).toBe('settled-externally');
+    expect(result.position.status).toBe('active');
+    expect(result.position.amount).toBe(80000n);
   });
 
   it('refuses to payout an unapproved intent', async () => {

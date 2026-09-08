@@ -4,6 +4,8 @@
 
 import type {
   AddHTLCParams,
+  ChannelSignature,
+  ChannelSigner,
   CreateChannelParams,
   OmniaChannel,
   SettlementPayload,
@@ -34,6 +36,12 @@ import type {
 } from '@totemsdk/omnia-vtxo';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import type { WotsLeaseBundle } from '@totemsdk/omnia-factory';
+import type { SigningIndices, WotsLeaseProvider } from '@totemsdk/wots-lease';
+import type {
+  RegistryOperation,
+  RegistrySignedTransition,
+  RegistryTransitionSigner,
+} from '@totemsdk/liquidity-bond';
 import type {
   AllocationStatus,
   AllocationType,
@@ -93,12 +101,35 @@ export interface OmniaPoolAllocationContext {
   splice?: SpliceExecutionPort;
   /** Execute VTXO pool operations. */
   vtxo?: VtxoExecutionPort;
+  /**
+   * Materialize a live Omnia channel from its id. Default impl reads a stored
+   * channel snapshot via `recoverChannel(deserializeChannelSnapshot(snapshot))` —
+   * see `createChannelLoader`. The allocation/withdrawal path calls
+   * `loadChannel(position.omniaChannelId)` instead of requiring the caller to
+   * inject the live object.
+   */
+  loadChannel?: (channelId: string) => Promise<OmniaChannel>;
+  /** Persist a channel snapshot after create/update/close so it can be reloaded later. */
+  saveChannelSnapshot?: (channel: OmniaChannel) => Promise<void> | void;
+  /** Lease-backed signer aligned with Omnia's `ChannelSigner` (WOTS + signing indices). */
+  signer?: PoolSigner;
+  /** WOTS lease provider used for per-signing key reservations. */
+  leaseProvider?: WotsLeaseProvider;
 }
 
-/** Generic signer abstraction — returns a signature for a digest. */
-export interface PoolSigner {
-  sign(digest: string): Promise<{ signature: string; signerPublicKey: string }>;
-  getPublicKey(): Promise<string>;
+/**
+ * Signer aligned with `@totemsdk/omnia` `ChannelSigner`: lease-backed WOTS with
+ * signing indices — `sign(digest)` alone is too thin for Omnia. A `PoolSigner`
+ * is structurally a `ChannelSigner` (plus an optional convenience reader).
+ */
+export interface PoolSigner extends ChannelSigner {
+  getPublicKey?(): Promise<string>;
+}
+
+/** Result of closing a pool-backed Omnia channel. */
+export interface ChannelCloseResult {
+  channel: OmniaChannel;
+  settlementPayload: SettlementPayload;
 }
 
 /** Minimal port wrapping live Omnia channel operations. */
@@ -108,6 +139,22 @@ export interface OmniaExecutionPort {
   addHTLC(channel: OmniaChannel, params: AddHTLCParams): Promise<OmniaChannel>;
   fulfillHTLC(channel: OmniaChannel, htlcId: string, preimage: Uint8Array): Promise<OmniaChannel>;
   proposeSettlement(channel: OmniaChannel): Promise<SettlementPayload>;
+  /**
+   * Validate a one-party state update before this node adds its co-signature.
+   * The co-sign verification boundary is load-bearing — it prevents a taker from
+   * attaching a signature to a bad state — so it is a port, not caller-side boilerplate.
+   */
+  verifyStateForCoSign(channel: OmniaChannel, state: SignedChannelState): Promise<{ valid: boolean; errors: string[] }>;
+  /** Close a channel and return its final close artifact. */
+  closeChannel(channel: OmniaChannel): Promise<ChannelCloseResult>;
+}
+
+/** Optional signing context that makes a registry transition anchorable. */
+export interface RegistryRootingContext {
+  signer: RegistryTransitionSigner;
+  previousRoot?: string;
+  op?: RegistryOperation;
+  reason?: string;
 }
 
 /** Parameters for factory creation via the live execution port. */
@@ -246,6 +293,8 @@ export type AllocatePositionCapitalParams = {
   target: AllocationTarget;
   ctx?: OmniaPoolAllocationContext;
   metadata?: Record<string, unknown>;
+  /** When set, the produced registry transition is signed and anchored. */
+  rooting?: RegistryRootingContext;
 };
 
 export type AllocationResult = {
@@ -253,6 +302,7 @@ export type AllocationResult = {
   position: LiquidityPosition;
   registry: LiquidityBondRegistryState;
   execution?: unknown;
+  signedTransition?: RegistrySignedTransition;
 };
 
 export type ReleaseAllocationParams = {
@@ -265,6 +315,7 @@ export type RebalanceAllocationParams = {
   toTarget: AllocationTarget;
   amount: string;
   ctx?: OmniaPoolAllocationContext;
+  rooting?: RegistryRootingContext;
 };
 
 export type ExecutePoolPayoutParams = {
@@ -273,6 +324,7 @@ export type ExecutePoolPayoutParams = {
   intent: WithdrawalIntent;
   recipientAddress: string;
   ctx?: OmniaPoolAllocationContext;
+  rooting?: RegistryRootingContext;
 };
 
 export type RecordPoolFeeParams = {
