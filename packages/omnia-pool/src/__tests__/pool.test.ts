@@ -177,6 +177,43 @@ describe('omnia-pool', () => {
     expect(result.position.allocatedAmount).toBe(40000n);
   });
 
+  it('refuses a channel allocation whose state fails co-sign verification', async () => {
+    const channel = {
+      channelId: 'ch-2',
+      status: 'opening',
+      latestState: { sequence: 1 },
+    } as unknown as import('@totemsdk/omnia').OmniaChannel;
+    const port: OmniaExecutionPort = {
+      createChannel: jest.fn().mockResolvedValue(channel),
+      updateState: jest.fn(),
+      addHTLC: jest.fn(),
+      fulfillHTLC: jest.fn(),
+      proposeSettlement: jest.fn(),
+      verifyStateForCoSign: jest.fn().mockResolvedValue({ valid: false, errors: ['balance conservation failed'] }),
+      closeChannel: jest.fn(),
+    };
+
+    const { manifest, registry: reg } = createOmniaPool(basePoolParams(), registry);
+    const { position, state } = await makeDeposit(
+      { pool: manifest, lpAddress: lp, amount: '100000', purpose: 'omnia-channel-capital' },
+      reg,
+    );
+
+    await expect(
+      allocatePositionCapital(
+        {
+          position,
+          amount: '40000',
+          allocationType: 'channel-capital',
+          purpose: 'omnia-channel-capital',
+          target: { type: 'channel', params: {} as never },
+          ctx: { omnia: port },
+        },
+        state,
+      ),
+    ).rejects.toThrow(/co-sign verification failed/);
+  });
+
   it('allocates to a factory target using a port', async () => {
     const factory = { factoryId: 'f-1', status: 'opening' } as unknown as import('@totemsdk/omnia-factory').ChannelFactory;
     const port: FactoryExecutionPort = {

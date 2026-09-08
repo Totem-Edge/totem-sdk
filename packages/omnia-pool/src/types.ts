@@ -304,6 +304,8 @@ export type AllocatePositionCapitalParams = {
   metadata?: Record<string, unknown>;
   /** When set, the produced registry transition is signed and anchored. */
   rooting?: RegistryRootingContext;
+  /** Pool registry anchor root — verified against the channel's program state at co-sign (#26). */
+  anchorRoot?: string;
 };
 
 export type AllocationResult = {

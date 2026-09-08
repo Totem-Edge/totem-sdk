@@ -49,6 +49,35 @@ async function persistChannelSnapshot(ctx: OmniaPoolAllocationContext | undefine
 }
 
 /**
+ * Co-sign gate (#21/#26): before a channel-backed allocation is committed, the
+ * live execution port must verify the channel's latest state (sequence,
+ * conservation, commitment, program hook, signatures). When the channel carries
+ * a registry-root program transition, the announced root must match the pool's
+ * anchor root — on-chain settlement cannot override an off-chain position.
+ */
+async function verifyChannelForCoSign(
+  ctx: OmniaPoolAllocationContext | undefined,
+  channel: unknown,
+  poolId: string,
+  anchorRoot?: string,
+): Promise<void> {
+  if (!ctx?.omnia || !channel || typeof channel !== 'object') return;
+  const ch = channel as { latestState?: unknown; status?: string };
+  if (!ch.latestState) return;
+  const result = await ctx.omnia.verifyStateForCoSign(ch as never, ch.latestState as never);
+  if (!result.valid) {
+    throw new Error(`channel co-sign verification failed: ${result.errors.join('; ')}`);
+  }
+  if (anchorRoot) {
+    const { verifyRegistryRootInState } = await import('@totemsdk/omnia');
+    const rootCheck = verifyRegistryRootInState(ch.latestState as never, anchorRoot);
+    if (!rootCheck.valid) {
+      throw new Error(`channel registry-root mismatch: ${rootCheck.error}`);
+    }
+  }
+}
+
+/**
  * Allocate capital from a position to a specific Omnia execution backend.
  */
 export async function allocatePositionCapital(
@@ -86,6 +115,7 @@ export async function allocatePositionCapital(
         throw new Error('omnia execution port required for channel allocation');
       }
       const channel = await params.ctx.omnia.createChannel(params.target.params);
+      await verifyChannelForCoSign(params.ctx, channel, position.poolId, params.anchorRoot);
       await persistChannelSnapshot(params.ctx, channel);
       execution = channel;
       break;

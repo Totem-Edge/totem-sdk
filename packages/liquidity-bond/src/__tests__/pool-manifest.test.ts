@@ -29,10 +29,9 @@ function makeOperatorSigner(seed: Uint8Array, index = 0): OperatorAutobondSigner
   return {
     publicKeyDigest: bytesToHex(kp.pk),
     address: scriptToAddress(scriptFromWotsPk(kp.pk)),
-    sign: (digest) => wotsSign(kp.seed, kp.index, digest),
+    sign: (digest, _indices) => wotsSign(kp.seed, kp.index, digest),
   };
 }
-
 const OPERATOR_SEED = new Uint8Array(32).fill(11);
 
 async function poolWithBond(index = 0): Promise<LiquidityPoolManifest> {

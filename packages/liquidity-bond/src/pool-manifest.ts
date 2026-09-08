@@ -31,11 +31,16 @@ export function computeOperatorAutobondPayloadHash(manifest: LiquidityPoolManife
   return bytesToHex(F(new TextEncoder().encode(`${OPERATOR_AUTOBOND_DOMAIN}|${json}`)));
 }
 
-/** Sign the operator autobond. The signer must own the claimed operator address. */
+/**
+ * Sign the operator autobond. Aligned with Omnia's `ChannelSigner` (#31):
+ * `sign(payload, indices)` so WOTS key-indices are bound at signing time and a
+ * single leased key is never reused across records. The signer must own the
+ * claimed operator address.
+ */
 export interface OperatorAutobondSigner {
   publicKeyDigest: string;
   address: string;
-  sign(payloadHash: Uint8Array): Promise<Uint8Array> | Uint8Array;
+  sign(payload: Uint8Array, indices: import('@totemsdk/wots-lease').SigningIndices): Promise<Uint8Array> | Uint8Array;
 }
 
 export async function buildOperatorAutobond(
@@ -45,7 +50,7 @@ export async function buildOperatorAutobond(
 ): Promise<OperatorAutobond> {
   const ts = now ?? Date.now();
   const payloadHash = computeOperatorAutobondPayloadHash(manifest);
-  const signature = await signer.sign(hexToBytes(payloadHash));
+  const signature = await signer.sign(hexToBytes(payloadHash), { addressIndex: 0, l1: 0, l2: 0 });
   return {
     autobondId: `autobond-${manifest.poolId}-${ts}`,
     address: signer.address,
