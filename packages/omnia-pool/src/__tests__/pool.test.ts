@@ -464,7 +464,7 @@ describe('omnia-pool', () => {
     );
 
     const { feeRecord, registry: feeReg } = recordPoolFee(
-      { pool: manifest, position, grossAmount: '10000', source: 'route-fee' },
+      { pool: manifest, position, grossAmount: '10000', source: 'route-fee', earnProof: { htlcId: 'h-1' }, verified: true },
       state,
     );
     expect(feeRecord.grossFeeAmount).toBe(10000n);
@@ -475,12 +475,35 @@ describe('omnia-pool', () => {
     expect(view.amount).toBe('10000');
     expect(view.positionId).toBe(position.positionId);
 
-    const claimed = claimFees(manifest, position, feeReg, { positionId: position.positionId, amount: '20' });
+    const payoutRef = { payoutId: 'p-1', nonce: 'n1', kind: 'vtxo-mint' as const };
+    const claimed = claimFees(manifest, position, feeReg, {
+      positionId: position.positionId,
+      amount: '20',
+      payoutRef,
+    });
     expect(claimed.claimedAmount).toBe(20n);
 
-    const compounded = compoundFees(manifest, position, claimed.registry);
+    const compounded = compoundFees(manifest, position, claimed.registry, { positionId: position.positionId, payoutRef });
     expect(compounded.compoundedAmount).toBe(30n);
     expect(compounded.position.amount).toBe(100030n);
+  });
+
+  it('refuses to claim or compound fees without a settled payout', async () => {
+    const { manifest, registry: reg } = createOmniaPool(basePoolParams(), registry);
+    const { position, state } = await makeDeposit(
+      { pool: manifest, lpAddress: lp, amount: '100000', purpose: 'omnia-channel-capital' },
+      reg,
+    );
+    const { registry: feeReg } = recordPoolFee(
+      { pool: manifest, position, grossAmount: '10000', source: 'route-fee', earnProof: { htlcId: 'h-1' } },
+      state,
+    );
+    expect(() =>
+      claimFees(manifest, position, feeReg, { positionId: position.positionId }),
+    ).toThrow(/payoutRef/);
+    expect(() =>
+      compoundFees(manifest, position, feeReg, { positionId: position.positionId }),
+    ).toThrow(/payoutRef/);
   });
 
   it('computes pool NAV and risk score', async () => {
@@ -490,7 +513,7 @@ describe('omnia-pool', () => {
       reg,
     );
     const { registry: afterFee } = recordPoolFee(
-      { pool: manifest, position, grossAmount: '20000', source: 'route-fee' },
+      { pool: manifest, position, grossAmount: '20000', source: 'route-fee', earnProof: { htlcId: 'h-1' }, verified: true },
       state,
     );
 

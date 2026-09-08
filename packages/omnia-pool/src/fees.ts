@@ -49,7 +49,8 @@ export function recordPoolFee(
     lpFeeAmount: lp,
     operatorFeeAmount: operator,
     source: params.source,
-    proofRef: params.proofRef as never,
+    earnProof: params.earnProof,
+    verified: params.verified,
     metadata: params.metadata,
   });
 
@@ -69,21 +70,24 @@ export function computeUnclaimedFees(
 }
 
 /**
- * Claim accrued LP fees. This records a manual-adjustment fee record that
- * reduces the unclaimed LP fee balance; actual payout execution is left to
- * the caller.
+ * Claim accrued LP fees. The claim is bound to a settled payout (`payoutRef`):
+ * the LP fee balance is only reduced once a real payout (VTXO mint / channel
+ * settlement) exists — preventing "claim then fail to pay" and double-claim.
  */
 export function claimFees(
   pool: LiquidityPoolManifest,
   position: LiquidityPosition,
   registry: LiquidityBondRegistryState,
-  opts?: ClaimFeesOptions,
+  opts: ClaimFeesOptions,
 ): {
   claimedAmount: bigint;
   registry: LiquidityBondRegistryState;
 } {
+  if (!opts.payoutRef) {
+    throw new Error('claimFees requires a payoutRef (settled payout) to bind the claim to');
+  }
   const unclaimed = computeUnclaimedFees(position, registry);
-  const requested = opts?.amount ? BigInt(opts.amount) : unclaimed;
+  const requested = opts.amount ? BigInt(opts.amount) : unclaimed;
   if (requested > unclaimed) {
     throw new Error('claim amount exceeds unclaimed fees');
   }
@@ -96,9 +100,10 @@ export function claimFees(
     lpFeeAmount: -requested,
     operatorFeeAmount: 0n,
     source: 'manual-adjustment',
+    payoutRef: opts.payoutRef,
     metadata: {
       action: 'claim',
-      recipientAddress: opts?.recipientAddress,
+      recipientAddress: opts.recipientAddress,
     },
   });
 
@@ -107,18 +112,23 @@ export function claimFees(
 }
 
 /**
- * Compound accrued LP fees back into the position's principal.
+ * Compound accrued LP fees back into the position's principal. Like claims,
+ * compounding is bound to a settled payout so the entitlement is only zeroed
+ * against a real execution.
  */
 export function compoundFees(
   pool: LiquidityPoolManifest,
   position: LiquidityPosition,
   registry: LiquidityBondRegistryState,
-  opts?: CompoundFeesOptions,
+  opts: CompoundFeesOptions,
 ): {
   compoundedAmount: bigint;
   position: LiquidityPosition;
   registry: LiquidityBondRegistryState;
 } {
+  if (!opts.payoutRef) {
+    throw new Error('compoundFees requires a payoutRef (settled payout) to bind the compound to');
+  }
   const unclaimed = computeUnclaimedFees(position, registry);
   if (unclaimed <= 0n) {
     return { compoundedAmount: 0n, position, registry };
@@ -132,6 +142,7 @@ export function compoundFees(
     lpFeeAmount: -unclaimed,
     operatorFeeAmount: 0n,
     source: 'manual-adjustment',
+    payoutRef: opts.payoutRef,
     metadata: { action: 'compound' },
   });
 

@@ -73,7 +73,7 @@ describe('MemoryLiquidityBondStore', () => {
   it('attaches fee records', async () => {
     const fee = recordLiquidityFee({
       positionId: 'pos-1', poolId: 'pool-1', feeAsset: 'MINIMA',
-      grossFeeAmount: 10n, source: 'route-fee',
+      grossFeeAmount: 10n, source: 'route-fee', earnProof: { htlcId: 'h-1' },
     });
     await store.attachFeeRecord(fee);
     const snap = await store.getSnapshot();

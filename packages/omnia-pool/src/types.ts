@@ -283,10 +283,14 @@ export interface ClaimFeesOptions {
   positionId: string;
   amount?: string;
   recipientAddress?: string;
+  /** Required: the settled payout (VTXO mint / channel settlement) the claim is bound to. */
+  payoutRef?: import('@totemsdk/liquidity-bond').FeePayoutRef;
 }
 
 export interface CompoundFeesOptions {
   positionId: string;
+  /** Required: the settled payout the compound is bound to. */
+  payoutRef?: import('@totemsdk/liquidity-bond').FeePayoutRef;
 }
 
 /** Params exported from allocate.ts for the public index. */
@@ -337,6 +341,9 @@ export type RecordPoolFeeParams = {
   position: LiquidityPosition;
   grossAmount: string;
   source: FeeSource;
-  proofRef?: unknown;
+  /** Required for earnable sources — the payment proof backing the fee. */
+  earnProof?: unknown;
+  /** Set when the earn-proof was verified (see liquidity-bond verifyLiquidityFeeRecord). */
+  verified?: boolean;
   metadata?: Record<string, unknown>;
 };

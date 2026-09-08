@@ -92,6 +92,27 @@ export type ProofRefType = 'manual' | 'declared' | 'totem-proof' | 'future-live-
 
 export type FeeSource = 'route-fee' | 'rfq-spread' | 'merchant-fee' | 'manual-adjustment' | 'external-record';
 
+/** Fee sources that must prove real earnings (HTLC fulfillment / signed route record). */
+export type EarnableFeeSource = 'route-fee' | 'rfq-spread' | 'merchant-fee';
+
+/** Verifier for a fee's earn-proof. "Verified" means a checked payment proof. */
+export interface FeeProofVerifier {
+  verifyFeeProof(params: {
+    source: EarnableFeeSource;
+    proof: unknown;
+    positionId: string;
+    poolId: string;
+    grossAmount: bigint;
+  }): Promise<{ valid: boolean; reason?: string }>;
+}
+
+/** A settled payout that a claim/compound is bound to (prevents claim-then-fail). */
+export interface FeePayoutRef {
+  payoutId: string;
+  nonce: string;
+  kind: 'vtxo-mint' | 'channel-settlement' | 'external';
+}
+
 export interface LiquidityBondVerifyResult {
   ok: boolean;
   reason?: string;
@@ -314,6 +335,12 @@ export interface LiquidityFeeRecord {
   source: FeeSource;
   recordedAt: number;
   proofRef?: LiquidityProofRef;
+  /** The raw payment proof backing an earnable fee (HTLC fulfillment / route record). */
+  earnProof?: unknown;
+  /** Set only when the earn-proof was verified on-chain/against a payment record. */
+  verified?: boolean;
+  /** Bound payout for claim/compound reductions (prevents claim-then-fail). */
+  payoutRef?: FeePayoutRef;
   metadata?: Record<string, unknown>;
 }
 
@@ -494,12 +521,19 @@ export interface RecordLiquidityFeeParams {
   source: FeeSource;
   recordedAt?: number;
   proofRef?: LiquidityProofRef;
+  /** Required for earnable sources — the payment proof that backs the fee. */
+  earnProof?: unknown;
+  /** When set, the earn-proof was verified (see `verifyLiquidityFeeRecord`). */
+  verified?: boolean;
+  payoutRef?: FeePayoutRef;
   metadata?: Record<string, unknown>;
 }
 
 export interface VerifyLiquidityFeeRecordParams {
   record: LiquidityFeeRecord;
   position: LiquidityPosition;
+  /** Verifier for earnable sources; absent => earnable records fail verification. */
+  feeProofVerifier?: FeeProofVerifier;
 }
 
 export interface CreateWithdrawalIntentParams {

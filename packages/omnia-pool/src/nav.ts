@@ -14,8 +14,10 @@ import type { PoolNAV } from './types.js';
 /**
  * Compute the net asset value of a pool from its registry state.
  *
- * An optional `filter` narrows which positions contribute (e.g. only `active`
- * or non-withdrawn positions), defaulting to every position in the pool.
+ * NAV is the number PIPE broadcasts as POOL_NAV, so it must be spoof-proof:
+ * only positions whose funding is chain-confirmed contribute, and only fee
+ * records whose earnings are verified (or non-earnable adjustments) accrue.
+ * An optional `filter` narrows which positions contribute further.
  */
 export function computePoolNAV(
   pool: LiquidityPoolManifest,
@@ -23,7 +25,10 @@ export function computePoolNAV(
   filter?: (position: LiquidityPosition) => boolean,
 ): PoolNAV {
   const positions = Object.values(registry.positions).filter(
-    (p) => p.poolId === pool.poolId && (filter ? filter(p) : true),
+    (p) =>
+      p.poolId === pool.poolId &&
+      p.funding?.status === 'chain-confirmed' &&
+      (filter ? filter(p) : true),
   );
   const records = positions.flatMap((p) => registry.feeRecords[p.positionId] ?? []);
 
@@ -39,7 +44,9 @@ export function computePoolNAV(
     totalAvailable += pos.availableAmount ?? 0n;
   }
 
-  const accruedFees = records.reduce((sum, r) => sum + (r.lpFeeAmount ?? 0n), 0n);
+  const accruedFees = records
+    .filter((r) => r.source === 'manual-adjustment' || r.verified === true)
+    .reduce((sum, r) => sum + (r.lpFeeAmount ?? 0n), 0n);
   const nav = totalCommitted + accruedFees;
 
   return {
