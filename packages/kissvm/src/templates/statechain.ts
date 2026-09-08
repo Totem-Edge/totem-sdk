@@ -26,8 +26,8 @@ export function buildStatechainOwnerRotationScript(config: StateChainConfig): st
   return [
     `LET prevOwner = PREVSTATE(${ownerPort})`,
     `LET newOwner = STATE(${ownerPort})`,
-    `ASSERT prevOwner NE newOwner`,
-    `ASSERT newOwner NE 0x00`,
+    `ASSERT prevOwner NEQ newOwner`,
+    `ASSERT newOwner NEQ 0x00`,
     `ASSERT SIGNEDBY(prevOwner)`,
     `ASSERT MULTISIG(2 newOwner 0x${config.sePk})`,
     `RETURN TRUE`,

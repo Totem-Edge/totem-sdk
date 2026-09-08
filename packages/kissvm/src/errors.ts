@@ -14,6 +14,14 @@ export class KissvmRuntimeError extends Error {
   }
 }
 
+export class KissvmParseError extends Error {
+  readonly type = 'parse' as const;
+  constructor(message: string) {
+    super(message);
+    this.name = 'KissvmParseError';
+  }
+}
+
 export class ReturnSignal {
   constructor(public readonly value: unknown) {}
 }

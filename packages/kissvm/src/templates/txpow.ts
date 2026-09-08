@@ -19,7 +19,7 @@ export function buildTxPoWValidationScript(config: TxPoWValidationConfig): strin
     ``,
     `LET minWork = ${config.minTxPoWWork.toString()}`,
     `LET work = STATE(${config.workPort})`,
-    `ASSERT @BLOCK GTE minWork`,
+    `ASSERT work GTE minWork`,
     ``,
     `RETURN TRUE`,
   ].join('\n')

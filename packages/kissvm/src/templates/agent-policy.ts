@@ -5,17 +5,26 @@ export interface PaymentIntentConfig {
   tokenId?: string
 }
 
+function requireHex(value: string, field: string): string {
+  const raw = value.replace(/^0x/i, '')
+  if (raw.length === 0 || !/^[0-9a-fA-F]+$/.test(raw)) {
+    throw new Error(`${field} must be a hex string; received ${JSON.stringify(value)}`)
+  }
+  return raw
+}
+
 export function buildPaymentIntentScript(config: PaymentIntentConfig): string {
+  const recipient = requireHex(config.allowedRecipient, 'allowedRecipient')
   const lines: string[] = [
     `LET amount = STATE(20)`,
-    `LET limit = 0x${config.riskLimit}`,
+    `LET limit = ${config.riskLimit}`,
     `ASSERT amount LTE limit`,
-    `ASSERT STATE(21) EQ 0x${config.allowedRecipient}`,
+    `ASSERT STATE(21) EQ 0x${recipient}`,
     `ASSERT @BLOCK LTE ${config.expiresAt.toString()}`,
   ]
 
   if (config.tokenId !== undefined) {
-    lines.push(`ASSERT @TOKENID EQ 0x${config.tokenId}`)
+    lines.push(`ASSERT @TOKENID EQ 0x${requireHex(config.tokenId, 'tokenId')}`)
   }
 
   lines.push(`RETURN TRUE`)
@@ -56,16 +65,17 @@ export interface PolicyEnforcementConfig {
 }
 
 export function buildPolicyEnforcementScript(config: PolicyEnforcementConfig): string {
+  const authority = requireHex(config.authorityPk, 'authorityPk')
   const lines: string[] = [
-    `LET authority = 0x${config.authorityPk}`,
+    `LET authority = 0x${authority}`,
     `ASSERT SIGNEDBY(authority)`,
     `LET riskScore = STATE(20)`,
-    `LET threshold = 0x${config.riskThreshold}`,
+    `LET threshold = ${config.riskThreshold}`,
     `ASSERT riskScore LTE threshold`,
   ]
 
   for (const rule of config.policyRules) {
-    lines.push(`ASSERT STATE(21) EQ 0x${rule}`)
+    lines.push(`ASSERT STATE(21) EQ 0x${requireHex(rule, 'policyRules[]')}`)
   }
 
   lines.push(`ASSERT @BLOCK LTE ${config.expiresAt.toString()}`)

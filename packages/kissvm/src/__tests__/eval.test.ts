@@ -876,6 +876,18 @@ describe('parseScript', () => {
   test('throws on unknown token', () => {
     expect(() => parseScript('RETURN $ INVALID')).toThrow();
   });
+
+  test('throws on unknown identifier', () => {
+    expect(() => parseScript('RETURN MAYBE')).toThrow();
+  });
+
+  test('throws on unknown function call', () => {
+    expect(() => parseScript('RETURN MAYBE(1)')).toThrow();
+  });
+
+  test('accepts declared LET variables', () => {
+    expect(() => parseScript('LET X = 5\nRETURN X EQ 5')).not.toThrow();
+  });
 });
 
 // ─── 22. FOR/FOREACH loops ───────────────────────────────────────────────────
