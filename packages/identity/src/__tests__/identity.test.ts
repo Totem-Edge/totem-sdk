@@ -363,6 +363,17 @@ describe('resolveIdentityGraph', () => {
 
 // ─── Address binding security — proof.address spoofing ─────────────────────
 
+describe('address derivation parity', () => {
+  it('TS scriptToAddress path matches WASM path for same seed', () => {
+    // Regression: scriptFromWotsPk must emit 0x-prefixed hex so the TS and
+    // Rust/WASM derivations produce identical addresses. If they diverge,
+    // claims signed by signIdentityClaim never match the resolver's issuer.
+    for (const seed of [SEED_A, SEED_B]) {
+      expect(deriveAddress(seed, 0)).toBe(deriveWasmAddress(seed, 0));
+    }
+  });
+});
+
 describe('address binding security', () => {
   it('rejects identity claim with spoofed proof.address', async () => {
     const realAddr = deriveAddress(SEED_A, 0);

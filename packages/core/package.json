@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/core",
-  "version": "1.2.9",
+  "version": "1.2.10",
   "description": "Core cryptographic primitives for Totem SDK — backed by Rust/WASM",
   "type": "module",
   "main": "dist/cjs/index.js",
@@ -143,7 +143,7 @@
   },
   "license": "MIT",
   "author": "Totem SDK",
-  "homepage": "https://totem.ing",
+  "homepage": "https://docs.totem.ing",
   "bugs": {
     "url": "https://github.com/Totem-Edge/totem-sdk/issues"
   },
