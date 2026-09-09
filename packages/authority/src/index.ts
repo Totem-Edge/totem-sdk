@@ -26,7 +26,7 @@ export {
 } from './mandate.js';
 export type { CreateAgentMandateParams } from './mandate.js';
 
-export { matchScope, matchConstraints } from './scope.js';
+export { matchScope, matchConstraints, resolveActionField } from './scope.js';
 
 export {
   checkUsageLimit,

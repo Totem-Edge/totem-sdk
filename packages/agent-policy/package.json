@@ -28,7 +28,9 @@
   "dependencies": {
     "@noble/hashes": "^1.8.0",
     "@protobuf-ts/runtime": "^2.11.1",
-    "@totemsdk/core": "workspace:^"
+    "@totemsdk/core": "workspace:^",
+    "@totemsdk/authority": "workspace:^",
+    "@totemsdk/proof": "workspace:^"
   },
   "devDependencies": {
     "@protobuf-ts/plugin": "^2.9.4",

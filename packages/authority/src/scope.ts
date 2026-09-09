@@ -26,6 +26,43 @@ export function matchScope(action: string, scope: string): boolean {
   return ai === aParts.length && si === sParts.length;
 }
 
+/**
+ * Resolve a constraint field against an action intent.
+ *
+ * Supports:
+ *  - top-level action fields (`target`, `principal`, `agent`, `action`, `nonce`);
+ *  - flat constraint keys (`action.constraints[field]`);
+ *  - dotted nested paths into the constraint map (`payload.foo` → `constraints.payload.foo`).
+ *
+ * This lets governance-emitted constraints such as `target` and `payload.foo`
+ * match without the caller manually flattening them into a single map.
+ */
+export function resolveActionField(action: ActionIntent, field: string): unknown {
+  if (field === 'action') return action.action;
+  if (field === 'principal') return action.principal;
+  if (field === 'agent') return action.agent;
+  if (field === 'target') return action.target;
+  if (field === 'nonce') return action.nonce;
+
+  const constraints = action.constraints;
+  if (constraints === undefined) return undefined;
+
+  if (Object.prototype.hasOwnProperty.call(constraints, field)) {
+    return constraints[field];
+  }
+
+  if (field.includes('.')) {
+    let current: unknown = constraints;
+    for (const part of field.split('.')) {
+      if (current === null || typeof current !== 'object') return undefined;
+      current = (current as Record<string, unknown>)[part];
+    }
+    return current;
+  }
+
+  return undefined;
+}
+
 function compareNumeric(actual: unknown, value: unknown, operator: 'lt' | 'lte' | 'gt' | 'gte'): boolean {
   let a: bigint | undefined;
   let b: bigint | undefined;
@@ -62,7 +99,7 @@ export function matchConstraints(
   constraints: MandateConstraint[],
 ): boolean {
   for (const c of constraints) {
-    const actual = action.constraints?.[c.field];
+    const actual = resolveActionField(action, c.field);
     if (actual === undefined) return false;
 
     switch (c.operator) {

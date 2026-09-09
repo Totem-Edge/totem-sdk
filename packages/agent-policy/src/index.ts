@@ -58,8 +58,25 @@ export { TimeWindowPolicy } from './time-window.js';
 export { RiskThresholdPolicy } from './risk-threshold.js';
 
 // Authority bridge
-export { AuthorityPolicy } from './authority.js';
-export type { AuthorityActionIntent, AuthorityEvaluator } from './authority.js';
+export { AuthorityPolicy, defaultActionExtractor, intentAction } from './authority.js';
+export type { AuthorityActionIntent, AuthorityDecisionResult, AuthorityEvaluator, AuthorityPolicyOptions } from './authority.js';
+
+// Grant-bound autonomous run coordination
+export { GrantBoundPolicy, resolveStepField } from './grant-bound.js';
+export type { GrantBoundPolicyOptions, LocalBounds, AuthorizeStepResult } from './grant-bound.js';
+
+export { MemoryGrantUsageStore } from './grant-usage.js';
+export type { GrantUsageStore, MemoryGrantUsageStoreOptions } from './grant-usage.js';
+
+export type {
+  AutonomousRun,
+  AgentStep,
+  ActionIntent as RunActionIntent,
+  StepAuthorization,
+  StepAuthorizationInput,
+  StepReceipt,
+  RunMode,
+} from './run.js';
 
 // Receipt persistence
 export { MemoryReceiptStore } from './receipt-store.js';

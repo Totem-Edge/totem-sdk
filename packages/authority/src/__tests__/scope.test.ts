@@ -1,4 +1,4 @@
-import { matchScope, matchConstraints } from '../scope.js';
+import { matchScope, matchConstraints, resolveActionField } from '../scope.js';
 import type { ActionIntent, MandateConstraint } from '../types.js';
 
 function mc(list: MandateConstraint[]): MandateConstraint[] {
@@ -120,5 +120,46 @@ describe('matchConstraints', () => {
 
   it('empty constraints always pass', () => {
     expect(matchConstraints(baseAction, [])).toBe(true);
+  });
+
+  it('resolves top-level action fields (target, principal, agent)', () => {
+    const action: ActionIntent = {
+      action: 'governance:rebalance:execute',
+      principal: 'proposal-1',
+      agent: 'MxAGENT',
+      target: 'channel-7',
+      constraints: { payload: { amount: '500' } },
+    };
+    expect(resolveActionField(action, 'target')).toBe('channel-7');
+    expect(resolveActionField(action, 'principal')).toBe('proposal-1');
+    expect(resolveActionField(action, 'agent')).toBe('MxAGENT');
+    expect(resolveActionField(action, 'action')).toBe('governance:rebalance:execute');
+  });
+
+  it('resolves dotted nested constraint paths (payload.foo)', () => {
+    const action: ActionIntent = {
+      action: 'governance:rebalance:execute',
+      principal: 'proposal-1',
+      agent: 'MxAGENT',
+      constraints: { payload: { amount: '500', channel: 'ch-9' } },
+    };
+    expect(resolveActionField(action, 'payload.amount')).toBe('500');
+    expect(resolveActionField(action, 'payload.channel')).toBe('ch-9');
+    expect(resolveActionField(action, 'payload.missing')).toBeUndefined();
+  });
+
+  it('matches governance-emitted target and payload.foo constraints', () => {
+    const action: ActionIntent = {
+      action: 'governance:rebalance:execute',
+      principal: 'proposal-1',
+      agent: 'MxAGENT',
+      target: 'channel-7',
+      constraints: { payload: { amount: '500' } },
+    };
+    const constraints: MandateConstraint[] = [
+      { field: 'target', operator: 'eq', value: 'channel-7' },
+      { field: 'payload.amount', operator: 'eq', value: '500' },
+    ];
+    expect(matchConstraints(action, constraints)).toBe(true);
   });
 });
