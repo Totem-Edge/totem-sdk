@@ -16,7 +16,7 @@ import type {
   VerifyDepositParams,
   DepositVerification,
 } from '../types.js';
-import { depositAddressFor } from '../verify-deposit.js';
+import { depositAddressFor, evaluateDeposit, notFoundResult } from '../verify-deposit.js';
 
 export class MinimaRpcProvider implements ChainStateProvider, DepositVerifier {
   constructor(private readonly client: MinimaRpcClient) {}
@@ -42,41 +42,27 @@ export class MinimaRpcProvider implements ChainStateProvider, DepositVerifier {
     }
   }
 
-  /** Authoritative live check: `coincheck` answers found + spent from the node. */
+  /**
+   * Authoritative live check via `coinexport` (the coinproof endpoint): returns
+   * found/unspent/owned/token/amount + the full coin proof. `coincheck` on
+   * totem-node wants a full proof payload rather than a coinid, so coinexport
+   * is the canonical primitive (#3).
+   */
   async verifyDeposit(params: VerifyDepositParams): Promise<DepositVerification> {
     try {
-      const check = await this.client.coinCheck(params.coinId);
-      const coin = check.coin as unknown as Coin | undefined;
-      if (!check.found || !coin) {
-        return {
-          valid: false,
-          exists: false,
-          unspent: false,
-          ownedByOwner: false,
-          tokenMatches: false,
-          amountSufficient: false,
-          reason: `coin ${params.coinId} not found on chain`,
-        };
+      const exported = await this.client.coinExport(params.coinId);
+      const coin = exported?.coinproof?.coin as unknown as Coin | undefined;
+      const spent = coin?.spent === true;
+      if (!coin) {
+        return notFoundResult(`coin ${params.coinId} not found on chain`);
       }
-      const unspent = !check.spent;
-      const ownedByOwner = coin.address === params.ownerAddress;
-      const tokenMatches = params.tokenId ? coin.tokenid === params.tokenId : coin.tokenid === '0x00' || coin.tokenid === '0x01';
-      const amountSufficient = params.claimedAmount === undefined || bigintify(coin.amount) >= bigintify(params.claimedAmount);
-      return {
-        valid: unspent && ownedByOwner && tokenMatches && amountSufficient,
-        exists: true,
-        unspent,
-        ownedByOwner,
-        tokenMatches,
-        amountSufficient,
-        reason: unspent && ownedByOwner && tokenMatches && amountSufficient ? undefined : 'deposit funding check failed',
-        coin,
-      };
+      return evaluateDeposit(coin, spent, params);
     } catch (error) {
       return {
         valid: false,
         exists: false,
         unspent: false,
+        confirmed: false,
         ownedByOwner: false,
         tokenMatches: false,
         amountSufficient: false,

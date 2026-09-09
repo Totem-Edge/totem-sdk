@@ -15,6 +15,7 @@ const baseCoin = {
   address: 'MxLP',
   tokenid: '0x00',
   spent: false,
+  mmrentry: '5',
 };
 
 function providerWith(coin: unknown): Pick<ChainStateProvider, 'getCoin'> {
@@ -89,6 +90,21 @@ describe('verifyDeposit', () => {
     expect(result.valid).toBe(true);
   });
 
+  it('flags mempool coins as unconfirmed and enforces requireConfirmed', async () => {
+    const mempool = await verifyDeposit(
+      providerWith({ ...baseCoin, mmrentry: '0' }),
+      { coinId: '0xC1', ownerAddress: 'MxLP' },
+    );
+    expect(mempool.confirmed).toBe(false);
+    expect(mempool.valid).toBe(true);
+
+    const gated = await verifyDeposit(
+      providerWith({ ...baseCoin, mmrentry: '0' }),
+      { coinId: '0xC1', ownerAddress: 'MxLP', requireConfirmed: true },
+    );
+    expect(gated.valid).toBe(false);
+  });
+
   it('reports missing coin as exists:false', async () => {
     const result = await verifyDeposit(providerWith(null), { coinId: '0xC1', ownerAddress: 'MxLP' });
     expect(result.exists).toBe(false);
@@ -140,16 +156,21 @@ describe('withDepositVerifier', () => {
 });
 
 describe('MinimaRpcProvider deposit verifier', () => {
-  it('uses coincheck for the live check and megammr for the MMR root', async () => {
+  it('uses coinexport for the live check and megammr for the MMR root', async () => {
     const client = {
-      coinCheck: jest.fn().mockResolvedValue({ found: true, spent: false, coin: baseCoin }),
+      coinExport: jest.fn().mockResolvedValue({
+        coinid: '0xC1',
+        data: '',
+        coinproof: { coin: { ...baseCoin, mmrentry: '5' } },
+      }),
       megammr: jest.fn().mockResolvedValue({ size: '8', block: 42, hash: '0xROOT' }),
     } as unknown as MinimaRpcClient;
     const provider = new MinimaRpcProvider(client);
 
     const result = await provider.verifyDeposit({ coinId: '0xC1', ownerAddress: 'MxLP', claimedAmount: '100000' });
     expect(result.valid).toBe(true);
-    expect(client.coinCheck).toHaveBeenCalledWith('0xC1');
+    expect(result.confirmed).toBe(true);
+    expect(client.coinExport).toHaveBeenCalledWith('0xC1');
 
     expect(await provider.getMmrRoot()).toBe('0xROOT');
     expect(provider.depositAddressFor('MxLP').startsWith('Mx')).toBe(true);

@@ -28,7 +28,14 @@ const OWNER = process.env.MINIMA_DEPOSIT_ADDRESS;
 const configured = Boolean(PASSWORD && COIN_ID && OWNER);
 
 function client(): MinimaRpcClient {
-  return createMinimaRpcClient({ host: HOST, port: PORT, username: USERNAME, password: PASSWORD as string });
+  return createMinimaRpcClient({
+    host: HOST,
+    port: PORT,
+    username: USERNAME,
+    password: PASSWORD as string,
+    ssl: false,
+    timeoutMs: 10_000,
+  });
 }
 
 const run = configured ? describe : describe.skip;
@@ -58,8 +65,13 @@ run('live-node deposit verification', () => {
   it('returns an MMR root for offline proof anchoring', async () => {
     const provider = new MinimaRpcProvider(client());
     const root = await provider.getMmrRoot();
-    expect(typeof root).toBe('string');
-    expect((root as string).length).toBeGreaterThan(0);
+    // Offline anchoring is best-effort (#4): a fresh node may not have built its
+    // megammr tree yet, in which case the SDK degrades to null (live verifyDeposit
+    // remains the load-bearing path) rather than inventing a root.
+    expect(root === null || typeof root === 'string').toBe(true);
+    if (root !== null) {
+      expect((root as string).length).toBeGreaterThan(0);
+    }
   });
 
   it('offline verify rejects a forged root', () => {

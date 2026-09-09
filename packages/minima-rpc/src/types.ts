@@ -188,6 +188,11 @@ export interface CoinCheckResult {
 export interface CoinExportResult {
   coinid: string;
   data: string;
+  /** Full coin + MMR proof payload (totem-node `coinexport` shape). */
+  coinproof?: {
+    coin?: Coin;
+    proof?: unknown;
+  };
 }
 
 export interface MegaMMRInfo {

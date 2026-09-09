@@ -69,12 +69,14 @@ export interface BroadcastResult {
 export interface VerifyDepositParams {
   /** Coin spendable as the funding source. */
   coinId: string;
-  /** Address that must own the coin. */
+  /** Address that must own the coin (Mx form; 0x-hex roots are normalized against). */
   ownerAddress: string;
   /** Required token ID; omit to accept base MINIMA. */
   tokenId?: string;
   /** Claimed funding amount (decimal string); coin.amount must be >= this. */
   claimedAmount?: string;
+  /** When true, only chain-confirmed coins pass (mmrentry != '0'). */
+  requireConfirmed?: boolean;
 }
 
 /** Granular result of a deposit-funding check. `valid` is the all-gates AND. */
@@ -83,7 +85,9 @@ export interface DepositVerification {
   exists: boolean;
   /** Coin exists and is not spent (on-chain confirm, not declared). */
   unspent: boolean;
-  /** Coin address equals the claimed owner. */
+  /** Coin is confirmed on-chain (not a mempool entry). */
+  confirmed: boolean;
+  /** Coin address equals the claimed owner (Mx or 0x-root form). */
   ownedByOwner: boolean;
   /** Coin tokenid matches the requested token (or base token when none given). */
   tokenMatches: boolean;

@@ -15,6 +15,7 @@
 
 import type { MinimaRpcConfig, MinimaEnvelope } from './types.js';
 import { MinimaRpcError } from './types.js';
+import { postCommandRaw, isRawHttpAvailable } from './raw-http.js';
 
 function buildUrl(config: MinimaRpcConfig): string {
   const scheme = config.ssl === false ? 'http' : 'https';
@@ -431,13 +432,44 @@ export async function postCommand(
         err instanceof Error &&
         (err.name === 'AbortError' || err.message.includes('aborted'));
       if (isAbort) {
-        throw new MinimaRpcError(
-          `Request timeout after ${timeoutMs}ms`,
-          commandString,
-        );
+        // A hung fetch against a non-RFC server must NOT be fatal — record it
+        // and fall through to the tolerant raw transport below.
+        lastError = err;
+        continue;
       }
       lastError = err;
     }
+  }
+
+  // Final attempt via the raw, tolerant transport so the SDK works against
+  // servers that undici/node:http cannot parse.
+  if (isRawHttpAvailable()) {
+    const raw = await postCommandRaw(config, commandString);
+    if (raw.statusCode === 401 || raw.statusCode === 403) {
+      throw new MinimaRpcError(
+        `Authentication failed: HTTP ${raw.statusCode}`,
+        commandString,
+        undefined,
+        raw.statusCode,
+      );
+    }
+    if (!raw.bodyText.trim()) {
+      throw new MinimaRpcError(`HTTP ${raw.statusCode} error (empty body)`, commandString);
+    }
+    let envelope: MinimaEnvelope;
+    try {
+      envelope = JSON.parse(raw.bodyText) as MinimaEnvelope;
+    } catch {
+      return raw.bodyText;
+    }
+    if (envelope.status === false) {
+      throw new MinimaRpcError(
+        `Minima command failed: ${envelope.error ?? 'unknown error'}`,
+        commandString,
+        envelope.error,
+      );
+    }
+    return envelope.response;
   }
 
   throw new MinimaRpcError(
