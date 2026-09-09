@@ -68,6 +68,44 @@ export type { GrantBoundPolicyOptions, LocalBounds, AuthorizeStepResult } from '
 export { MemoryGrantUsageStore } from './grant-usage.js';
 export type { GrantUsageStore, MemoryGrantUsageStoreOptions } from './grant-usage.js';
 
+// Run-level autonomy
+export { GrantBoundAutonomyPolicy, accumulateAmount } from './grant-bound-autonomy.js';
+export type {
+  OpenRunParams,
+  AuthorizeAndReserveParams,
+  RunAuthorization,
+  RunAuthorizationRejected,
+  CommitParams,
+  RunReceiptGraph,
+  SuggestedGrantAmendment,
+  GrantBoundAutonomyOptions,
+} from './grant-bound-autonomy.js';
+
+export { MemoryRunStateStore } from './run-state-store.js';
+export type { RunStateStore, RunStateSnapshot, RunReservation, RunStepReceipt, RunSessionTotals } from './run-state-store.js';
+
+export { createAutonomyPolicy, checkRunLimits, checkTransition, checkObligations, evaluateGrantRequirement, isStartEligible } from './autonomy.js';
+export type { AutonomyPolicy, BoundaryFailure, BoundaryEscalation } from './autonomy.js';
+
+export { reduceToCanonicalAction, summarizeStepSpend } from './omnia-rebalance-slice.js';
+export type { PreparedRebalanceOperation, PreparedStep } from './omnia-rebalance-slice.js';
+
+export {
+  canonicalAgentActionDigest,
+} from './run.js';
+export type {
+  AutonomyMode,
+  AutonomyProfile,
+  GrantRequirement,
+  RunLimits,
+  RunObligations,
+  StepTransitionRule,
+  StepEffects,
+  StepEffect,
+  ChannelEffect,
+  CanonicalAgentAction,
+} from './run.js';
+
 export type {
   AutonomousRun,
   AgentStep,
