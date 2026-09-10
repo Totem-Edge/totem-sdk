@@ -38,7 +38,9 @@
     }
   },
   "devDependencies": {
+    "@totemsdk/authority": "workspace:^",
     "@totemsdk/connect": "workspace:^",
+    "@totemsdk/proof": "workspace:^",
     "@types/jest": "^30.0.0",
     "@types/node": "^20.0.0",
     "jest": "^30.4.2",

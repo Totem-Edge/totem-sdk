@@ -305,6 +305,9 @@ importers:
       '@protobuf-ts/plugin':
         specifier: ^2.9.4
         version: 2.11.1
+      '@totemsdk/identity':
+        specifier: workspace:^
+        version: link:../identity
       '@types/better-sqlite3':
         specifier: ^7.6.13
         version: 7.6.13
@@ -471,9 +474,15 @@ importers:
         specifier: workspace:^
         version: link:../txpow
     devDependencies:
+      '@totemsdk/authority':
+        specifier: workspace:^
+        version: link:../authority
       '@totemsdk/connect':
         specifier: workspace:^
         version: link:../connect
+      '@totemsdk/proof':
+        specifier: workspace:^
+        version: link:../proof
       '@types/jest':
         specifier: ^30.0.0
         version: 30.0.0
