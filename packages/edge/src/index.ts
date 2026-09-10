@@ -57,6 +57,14 @@ export type {
   EdgeActionRegistry,
 } from './action-registry.js';
 export { createBuiltinActionDefinitions } from './actions.js';
+export type { BuiltinActionRegistration, EdgeTxBuilderContext } from './actions.js';
+export {
+  deriveEffectsFromBuiltTx,
+  deriveSpendsFromBuiltTx,
+  fromEnhancedBuildParams,
+  fromOmniaTxDraft,
+} from './prepared-effects.js';
+export type { BuiltTransaction, BuiltTxInput, BuiltTxOutput } from './prepared-effects.js';
 export { createAgentEdgeRuntime } from './agent-runtime.js';
 export type { AgentEdgeRuntime, AgentEdgeRuntimeOptions } from './agent-runtime.js';
 

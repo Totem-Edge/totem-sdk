@@ -12,6 +12,7 @@ import type { EdgeCapability } from './capabilities.js';
 import type { EdgeRuntimePorts } from './ports.js';
 import type { EdgeOperationResult } from './types.js';
 import type { StepEffects } from '@totemsdk/agent-policy';
+import { deriveEffectsFromBuiltTx, fromEnhancedBuildParams, fromOmniaTxDraft } from './prepared-effects.js';
 
 function noEffects(): StepEffects {
   return { spends: [], fees: [], channels: [] };
@@ -22,9 +23,36 @@ export interface BuiltinActionRegistration {
   def: EdgeActionDefinition;
 }
 
+/**
+ * Wallet-side tx building context. The wallet builds the transaction FIRST
+ * (coin selection + outputs), then the action derives effects from the real
+ * built tx — never from agent-supplied hints.
+ */
+export interface EdgeTxBuilderContext {
+  /** Build an L1 payment tx (coin selection + outputs). Returns the built params. */
+  buildPaymentTx?(params: {
+    recipient: string;
+    amount: string;
+    tokenId?: string;
+    memo?: string;
+  }): Promise<{
+    params: { inputs: Array<{ address: string; amount: string; tokenId?: string }>; outputs: Array<{ address: string; amount: string; tokenId?: string }> };
+    ownAddresses: string[];
+  }>;
+  /** Build an Omnia channel update tx. Returns the draft + channel script address. */
+  buildChannelUpdateTx?(params: {
+    channelId: string;
+    newBalances: Record<string, string>;
+  }): Promise<{
+    draft: { inputs: Array<{ address: string; amount: bigint; tokenId: string }>; outputs: Array<{ address: string; amount: bigint; tokenId: string }> };
+    channelScriptAddress: string;
+  }>;
+}
+
 export function createBuiltinActionDefinitions(
   ports: EdgeRuntimePorts,
   trusted?: { manifestSeed?: Uint8Array; manifestKeyIndex?: number },
+  txBuilder?: EdgeTxBuilderContext,
 ): BuiltinActionRegistration[] {
   const defs: BuiltinActionRegistration[] = [];
 
@@ -34,19 +62,34 @@ export function createBuiltinActionDefinitions(
     def: {
       capability: 'payment:send',
       effect: 'spend',
-      prepare: (input) => ({
-        recipient: input.subject,
-        amount: String(input.payload?.amount ?? '0'),
-        tokenId: input.payload?.tokenId as string | undefined,
-        memo: input.payload?.memo as string | undefined,
-      }),
+      prepare: async (input) => {
+        const recipient = input.subject;
+        const amount = String(input.payload?.amount ?? '0');
+        const tokenId = input.payload?.tokenId as string | undefined;
+        const memo = input.payload?.memo as string | undefined;
+        // The wallet builds the transaction FIRST. Without a tx builder, fall
+        // back to the port's own construction (effects then come from the
+        // port result, not the agent payload).
+        if (txBuilder?.buildPaymentTx) {
+          const built = await txBuilder.buildPaymentTx({ recipient, amount, tokenId, memo });
+          return { built, recipient, amount, tokenId, memo };
+        }
+        return { recipient, amount, tokenId, memo };
+      },
       deriveEffects: (prepared) => {
-        const p = prepared as { recipient: string; amount: string; tokenId?: string };
+        const p = prepared as { built?: { params: { inputs: Array<{ address: string; amount: string; tokenId?: string }>; outputs: Array<{ address: string; amount: string; tokenId?: string }> }; ownAddresses: string[] }; recipient: string; amount: string; tokenId?: string };
+        if (p.built) {
+          // Security facts come from the REAL built tx outputs.
+          return deriveEffectsFromBuiltTx(fromEnhancedBuildParams(p.built.params, p.built.ownAddresses));
+        }
+        // No tx builder — the port constructs the tx; the agent payload is a
+        // hint only, and the port result is the execution proof.
         return { spends: [{ tokenId: p.tokenId ?? '0x00', amount: p.amount, recipient: p.recipient }], fees: [], channels: [] };
       },
       execute: async (prepared) => {
         if (!ports.payment) return { ok: false, error: 'No payment port configured', errorCode: 'PORT_MISSING' };
-        return ports.payment.pay(prepared as never);
+        const p = prepared as { recipient: string; amount: string; tokenId?: string; memo?: string };
+        return ports.payment.pay({ recipient: p.recipient, amount: p.amount, tokenId: p.tokenId, memo: p.memo });
       },
     },
   });
@@ -72,10 +115,32 @@ export function createBuiltinActionDefinitions(
       def: {
         capability: o.capability,
         effect: o.effect,
-        prepare: (input) => ({ subject: input.subject, ...(input.payload ?? {}) }),
+        prepare: async (input) => {
+          const base: Record<string, unknown> = { subject: input.subject, ...(input.payload ?? {}) };
+          // For spend ops, the wallet builds the channel update tx FIRST.
+          if (o.effect === 'spend' && txBuilder?.buildChannelUpdateTx && base.channelId && base.newBalances) {
+            const built = await txBuilder.buildChannelUpdateTx({
+              channelId: String(base.channelId),
+              newBalances: base.newBalances as Record<string, string>,
+            });
+            return { ...base, built };
+          }
+          return base;
+        },
         deriveEffects: (prepared) => {
-          const p = prepared as { subject: string; amount?: string; tokenId?: string; channelId?: string };
+          const p = prepared as { subject: string; amount?: string; tokenId?: string; channelId?: string; built?: { draft: { inputs: Array<{ address: string; amount: bigint; tokenId: string }>; outputs: Array<{ address: string; amount: bigint; tokenId: string }> }; channelScriptAddress: string } };
           const effects: StepEffects = { spends: [], fees: [], channels: [] };
+          if (p.built) {
+            // Security facts come from the REAL built channel update tx.
+            const derived = deriveEffectsFromBuiltTx(fromOmniaTxDraft(
+              p.built.draft,
+              p.built.channelScriptAddress,
+              p.channelId ? [{ channelId: p.channelId, operation: o.op }] : undefined,
+            ));
+            effects.spends = derived.spends;
+            effects.channels = derived.channels;
+            return effects;
+          }
           if (o.effect === 'spend' && p.amount) {
             effects.spends = [{ tokenId: p.tokenId ?? '0x00', amount: String(p.amount), recipient: p.subject }];
           }
@@ -88,7 +153,8 @@ export function createBuiltinActionDefinitions(
           if (!ports.omnia) return { ok: false, error: 'No Omnia port configured', errorCode: 'PORT_MISSING' };
           const fn = (ports.omnia as unknown as Record<string, (p: Record<string, unknown>) => Promise<EdgeOperationResult>>)[o.op];
           if (!fn) return { ok: false, error: `Unknown Omnia operation: ${o.op}`, errorCode: 'UNKNOWN_ACTION' };
-          return fn(prepared as Record<string, unknown>);
+          const { built: _built, ...rest } = prepared as Record<string, unknown>;
+          return fn(rest);
         },
       },
     });
