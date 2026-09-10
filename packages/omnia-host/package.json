@@ -47,7 +47,7 @@
     "@types/node": "^20.19.43",
     "@types/ws": "^8.5.0",
     "@totemsdk/txpow": "workspace:^",
-    "jest": "^30.4.2",
+    "jest": "^30.5.1",
     "ts-jest": "^29.4.11",
     "typescript": "5.9.3"
   },
