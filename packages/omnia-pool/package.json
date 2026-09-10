@@ -78,6 +78,9 @@
   "license": "MIT",
   "author": "Totem SDK",
   "homepage": "https://docs.totem.ing",
+  "bugs": {
+    "url": "https://github.com/Totem-Edge/totem-sdk/issues"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Totem-Edge/totem-sdk.git",
