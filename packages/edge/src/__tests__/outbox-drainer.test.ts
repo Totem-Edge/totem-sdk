@@ -19,7 +19,7 @@ import {
   type NegotiationMessage,
   type NegotiationTransport,
   type TransportMessageContext,
-} from '@totemsdk/edge';
+} from '../index';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Fixtures

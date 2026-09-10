@@ -511,6 +511,9 @@ importers:
       '@totemsdk/chain-provider':
         specifier: workspace:^
         version: link:../chain-provider
+      '@totemsdk/core':
+        specifier: workspace:^
+        version: link:../core
       '@totemsdk/edge':
         specifier: workspace:^
         version: link:../edge
@@ -541,6 +544,9 @@ importers:
       '@totemsdk/stream-transport':
         specifier: workspace:^
         version: link:../stream-transport
+      '@totemsdk/txpow':
+        specifier: workspace:^
+        version: link:../txpow
       '@types/better-sqlite3':
         specifier: ^7.6.13
         version: 7.6.13
