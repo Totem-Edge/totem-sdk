@@ -23,6 +23,7 @@ module.exports = {
     }],
   },
   moduleNameMapper: {
+    '^@totemsdk/edge$': '<rootDir>/src/index.ts',
     '^@totemsdk/core$': '<rootDir>/../core/src/index.ts',
     '^@totemsdk/manifest$': '<rootDir>/../manifest/src/index.ts',
     '^@totemsdk/identity$': '<rootDir>/../identity/src/index.ts',
