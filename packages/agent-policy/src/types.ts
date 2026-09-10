@@ -152,6 +152,10 @@ export interface PolicyEvalResult {
   reason: string;
   /** Reservation lifecycle state, when returned by a stateful policy. */
   reservationState?: 'new' | 'already_reserved' | 'already_committed';
+  /** Full authority decision, when an authority layer produced one. */
+  authorityDecision?: import('@totemsdk/authority').AuthorityDecision;
+  /** Usage delta implied by the authority decision. */
+  usageDelta?: { count: number; amount?: string };
 }
 
 /**

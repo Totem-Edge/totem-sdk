@@ -17,6 +17,9 @@ export function toHex(bytes: Uint8Array): string {
  */
 export function canonicalJson(value: unknown): string {
   if (value === null || typeof value !== 'object') {
+    if (typeof value === 'bigint') {
+      return JSON.stringify(value.toString());
+    }
     return JSON.stringify(value);
   }
   if (Array.isArray(value)) {
@@ -24,6 +27,8 @@ export function canonicalJson(value: unknown): string {
   }
   const obj = value as Record<string, unknown>;
   const keys = Object.keys(obj).sort();
-  const pairs = keys.map((k) => `${JSON.stringify(k)}:${canonicalJson(obj[k])}`);
+  const pairs = keys
+    .filter((k) => obj[k] !== undefined)
+    .map((k) => `${JSON.stringify(k)}:${canonicalJson(obj[k])}`);
   return '{' + pairs.join(',') + '}';
 }

@@ -21,6 +21,15 @@ export interface LeaseCertificateConfig {
   watermarkPort: number
 }
 
+/** Validate that a config field is a hex string (no 0x prefix). */
+function requireHex(value: string, field: string): string {
+  const raw = value.replace(/^0x/i, '')
+  if (raw.length === 0 || !/^[0-9a-fA-F]+$/.test(raw)) {
+    throw new Error(`LeaseCertificateConfig.${field} must be a hex string; received ${JSON.stringify(value)}`)
+  }
+  return raw
+}
+
 /**
  * Build a lease certificate verification script that checks:
  *   1. Authority signed the certificate
@@ -29,8 +38,14 @@ export interface LeaseCertificateConfig {
  *   4. State is unchanged (SAMESTATE)
  */
 export function buildLeaseCertificateScript(config: LeaseCertificateConfig): string {
+  const authorityPk = requireHex(config.authorityPk, 'authorityPk')
+  const treeId = requireHex(config.treeId, 'treeId')
+  const deviceId = requireHex(config.deviceId, 'deviceId')
+  const branchId = requireHex(config.branchId, 'branchId')
+  const purpose = requireHex(config.purpose, 'purpose')
+  const payloadHash = requireHex(config.payloadHash, 'payloadHash')
   return [
-    `LET authority = 0x${config.authorityPk}`,
+    `LET authority = 0x${authorityPk}`,
     `ASSERT SIGNEDBY(authority)`,
     ``,
     `LET certTreeId = STATE(${config.statePort})`,
@@ -39,11 +54,11 @@ export function buildLeaseCertificateScript(config: LeaseCertificateConfig): str
     `LET certPurpose = STATE(${config.statePort + 3})`,
     `LET certPayload = STATE(${config.statePort + 4})`,
     ``,
-    `ASSERT certTreeId EQ 0x${config.treeId}`,
-    `ASSERT certDeviceId EQ 0x${config.deviceId}`,
-    `ASSERT certBranchId EQ 0x${config.branchId}`,
-    `ASSERT certPurpose EQ 0x${config.purpose}`,
-    `ASSERT certPayload EQ 0x${config.payloadHash}`,
+    `ASSERT certTreeId EQ 0x${treeId}`,
+    `ASSERT certDeviceId EQ 0x${deviceId}`,
+    `ASSERT certBranchId EQ 0x${branchId}`,
+    `ASSERT certPurpose EQ 0x${purpose}`,
+    `ASSERT certPayload EQ 0x${payloadHash}`,
     ``,
     `ASSERT @BLOCK LT ${config.expiresAt.toString()}`,
     ``,

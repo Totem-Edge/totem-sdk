@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/liquidity-bond",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Deterministic, non-custodial LP position and productive liquidity record package for Totem Edge",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -29,7 +29,8 @@
     "@totemsdk/core": "workspace:^",
     "@totemsdk/identity": "workspace:^",
     "@totemsdk/manifest": "workspace:^",
-    "@totemsdk/proof": "workspace:^"
+    "@totemsdk/proof": "workspace:^",
+    "@totemsdk/wots-lease": "workspace:^"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
@@ -46,7 +47,7 @@
   },
   "license": "MIT",
   "author": "Totem SDK",
-  "homepage": "https://totem.ing",
+  "homepage": "https://docs.totem.ing",
   "bugs": {
     "url": "https://github.com/Totem-Edge/totem-sdk/issues"
   },

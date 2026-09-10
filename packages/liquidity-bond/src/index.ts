@@ -12,6 +12,9 @@ export type {
   WithdrawalStatus,
   ProofRefType,
   FeeSource,
+  EarnableFeeSource,
+  FeeProofVerifier,
+  FeePayoutRef,
   LiquidityBondVerifyResult,
   ProviderBondRef,
   LiquidityLockTerms,
@@ -19,6 +22,8 @@ export type {
   LiquidityRiskPolicy,
   LiquidityPoolManifest,
   LiquidityProofRef,
+  LiquidityFunding,
+  LiquidityChainFundingVerifier,
   LiquidityCommitment,
   LiquidityPosition,
   LiquidityReceipt,
@@ -36,6 +41,8 @@ export type {
   VerifyLiquidityCommitmentParams,
   CreateLiquidityPositionParams,
   VerifyLiquidityPositionParams,
+  OperatorAutobond,
+  LiquidityProviderBondVerifier,
   IssueLiquidityReceiptParams,
   VerifyLiquidityReceiptParams,
   CreateLiquidityAllocationParams,
@@ -79,17 +86,48 @@ export {
 } from './serialization.js';
 
 export {
+  DEFAULT_REGISTRY_ROOT_DOMAIN,
+  serializeRegistryState,
+  computeRegistryRoot,
+  registryRootPayload,
+  signRegistryTransition,
+  verifyRegistryRoot,
+  verifyRegistryTransition,
+  applyRegistryTransition,
+  registerPoolWriter,
+  registryRootPort,
+} from './root.js';
+export type {
+  RegistryOperation,
+  RegistryTransitionSigner,
+  RegistryRootVerifier,
+  RegistryTransitionDelta,
+  RegistrySignedTransition,
+  RegistryRootOptions,
+  RegistryRootPort,
+  PoolWriterRegistry,
+} from './root.js';
+
+export {
   createLiquidityPoolManifest,
   computeLiquidityPoolManifestHash,
   verifyLiquidityPoolManifest,
   assertLiquidityPoolManifestNotExpired,
+  computeOperatorAutobondPayloadHash,
+  buildOperatorAutobond,
+  verifyOperatorAutobond,
+  OPERATOR_AUTOBOND_DOMAIN,
 } from './pool-manifest.js';
 
 export {
   verifyPoolOperatorIdentity,
   verifyLpIdentity,
   verifyReceiptOwnerIdentity,
+  verifyIdentityChallengeProof,
+  computeIdentityChallenge,
+  IDENTITY_CHALLENGE_DOMAIN,
 } from './identity.js';
+export type { IdentityChallengeProof } from './identity.js';
 
 export {
   createLiquidityCommitment,
@@ -97,6 +135,8 @@ export {
   rejectLiquidityCommitment,
   cancelLiquidityCommitment,
   verifyLiquidityCommitment,
+  confirmLiquidityCommitment,
+  assetToTokenId,
 } from './commitment.js';
 
 export {
@@ -114,6 +154,8 @@ export {
   issueLiquidityReceipt,
   computeLiquidityReceiptHash,
   verifyLiquidityReceipt,
+  consumeLiquidityReceipt,
+  RECEIPT_HASH_DOMAIN,
 } from './receipt.js';
 
 export {
@@ -133,10 +175,12 @@ export {
 
 export {
   createWithdrawalIntent,
+  computeWithdrawalId,
   approveWithdrawalIntent,
   rejectWithdrawalIntent,
   cancelWithdrawalIntent,
   verifyWithdrawalAllowed,
+  WITHDRAWAL_ID_DOMAIN,
 } from './withdrawal.js';
 
 export {

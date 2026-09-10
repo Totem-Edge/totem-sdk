@@ -43,4 +43,8 @@ export {
   executeMultiHopPayment,
   executeCrossTokenPayment,
   cancelPayment,
+  buildRouterFeeProof,
+  computeRouterFeeProofHash,
+  ROUTER_FEE_PROOF_DOMAIN,
 } from './execute.js';
+export type { RouterFeeProof } from './types.js';

@@ -24,7 +24,7 @@ export type LiquidityBondVerifyCode =
   | 'REQUIRES_LIVE_VERIFIER'
   | 'UNSUPPORTED_PROOF_TYPE';
 
-export type LiquidityAsset = 'MINIMA' | 'MxUSD' | string;
+export type LiquidityAsset = 'MINIMA' | 'USDT' | 'TOTEM' | string;
 
 export type LiquidityPurpose =
   | 'omnia-router-liquidity'
@@ -79,6 +79,7 @@ export type AllocationType =
   | 'factory-capital'
   | 'rfq-inventory'
   | 'settlement-reserve'
+  | 'vtxo-backing'
   | 'manual-reserve';
 
 export type AllocationStatus = 'active' | 'reserved' | 'released' | 'depleted' | 'invalid';
@@ -91,6 +92,27 @@ export type ProofRefType = 'manual' | 'declared' | 'totem-proof' | 'future-live-
 
 export type FeeSource = 'route-fee' | 'rfq-spread' | 'merchant-fee' | 'manual-adjustment' | 'external-record';
 
+/** Fee sources that must prove real earnings (HTLC fulfillment / signed route record). */
+export type EarnableFeeSource = 'route-fee' | 'rfq-spread' | 'merchant-fee';
+
+/** Verifier for a fee's earn-proof. "Verified" means a checked payment proof. */
+export interface FeeProofVerifier {
+  verifyFeeProof(params: {
+    source: EarnableFeeSource;
+    proof: unknown;
+    positionId: string;
+    poolId: string;
+    grossAmount: bigint;
+  }): Promise<{ valid: boolean; reason?: string }>;
+}
+
+/** A settled payout that a claim/compound is bound to (prevents claim-then-fail). */
+export interface FeePayoutRef {
+  payoutId: string;
+  nonce: string;
+  kind: 'vtxo-mint' | 'channel-settlement' | 'external';
+}
+
 export interface LiquidityBondVerifyResult {
   ok: boolean;
   reason?: string;
@@ -101,9 +123,36 @@ export interface LiquidityBondVerifyResult {
 export interface ProviderBondRef {
   providerId: string;
   providerBondId?: string;
+  /** An audited on-chain bond coin (utxo id), not free text. */
+  bondCoinId?: string;
   manifestId?: string;
   providerScore?: number;
   metadata?: Record<string, unknown>;
+}
+
+/**
+ * Operator autobond (#5): a WOTS signature by the pool operator over the
+ * load-bearing pool parameters (poolId, asset, totalCapacity, lockTerms,
+ * feePolicy). Signed manifests are the anchor of truth — an operator cannot
+ * forge a pool they never committed to.
+ */
+export interface OperatorAutobond {
+  autobondId: string;
+  /** Address derived from the signer's public key digest. */
+  address: string;
+  publicKeyDigest: string;
+  /** sha3_256(domain | canonicalJson({poolId, asset, totalCapacity, lockTerms, feePolicy})) */
+  payloadHash: string;
+  signature: string;
+  createdAt: number;
+}
+
+/** Verifier that confirms a provider's bond coin exists and is unspent on-chain. */
+export interface LiquidityProviderBondVerifier {
+  verifyBond(params: {
+    bondCoinId: string;
+    ownerProviderId: string;
+  }): Promise<{ valid: boolean; reason?: string }>;
 }
 
 export interface LiquidityLockTerms {
@@ -145,6 +194,7 @@ export interface LiquidityPoolManifest {
   asset: LiquidityAsset;
   operatorIdentityId?: string;
   operatorAddress?: string;
+  operatorBond?: OperatorAutobond;
   providerBondRef?: ProviderBondRef;
   minCommitment?: bigint;
   maxCommitment?: bigint;
@@ -166,6 +216,37 @@ export interface LiquidityProofRef {
   metadata?: Record<string, unknown>;
 }
 
+/**
+ * Structured funding proof. "Verified" here means an on-chain check, never a
+ * declared string: a coin that exists, is unspent, is owned by the LP, and
+ * covers the claimed token+amount. `chain-confirmed` is set only by
+ * `confirmLiquidityCommitment` after `verifyDeposit` passes.
+ */
+export interface LiquidityFunding {
+  utxoRef: string;
+  tokenId: string;
+  amount: bigint;
+  status: 'declared' | 'chain-confirmed' | 'invalid';
+  confirmedAt?: number;
+  txpowId?: string;
+  mmrProof?: unknown;
+}
+
+/**
+ * Minimal on-chain funding verifier. Structurally satisfied by
+ * `@totemsdk/chain-provider`'s `DepositVerifier` (extra fields are fine), so a
+ * pool backend can pass the same provider both places without forcing a hard
+ * dependency on chain-provider here.
+ */
+export interface LiquidityChainFundingVerifier {
+  verifyDeposit(params: {
+    coinId: string;
+    ownerAddress: string;
+    tokenId?: string;
+    claimedAmount?: string;
+  }): Promise<{ valid: boolean; reason?: string; error?: unknown }>;
+}
+
 export interface LiquidityCommitment {
   commitmentId: string;
   poolId: string;
@@ -179,6 +260,7 @@ export interface LiquidityCommitment {
   createdAt: number;
   expiresAt?: number;
   proofRef?: LiquidityProofRef;
+  funding?: LiquidityFunding;
   metadata?: Record<string, unknown>;
 }
 
@@ -198,7 +280,7 @@ export interface LiquidityPosition {
   allocatedAmount?: bigint;
   reservedAmount?: bigint;
   availableAmount?: bigint;
-  underlyingUtxoRef?: string;
+  funding?: LiquidityFunding;
   omniaChannelId?: string;
   factoryId?: string;
   routerId?: string;
@@ -225,6 +307,11 @@ export interface LiquidityReceipt {
   issuedAt: number;
   expiresAt?: number;
   receiptHash: string;
+  /** Per-position nonce — makes the receipt single-spend and non-replayable. */
+  nonce: string;
+  /** Set when the receipt was consumed by a withdrawal (single-spend). */
+  consumedAt?: number;
+  consumedIntentId?: string;
   proofRef?: LiquidityProofRef;
   metadata?: Record<string, unknown>;
 }
@@ -253,6 +340,12 @@ export interface LiquidityFeeRecord {
   source: FeeSource;
   recordedAt: number;
   proofRef?: LiquidityProofRef;
+  /** The raw payment proof backing an earnable fee (HTLC fulfillment / route record). */
+  earnProof?: unknown;
+  /** Set only when the earn-proof was verified on-chain/against a payment record. */
+  verified?: boolean;
+  /** Bound payout for claim/compound reductions (prevents claim-then-fail). */
+  payoutRef?: FeePayoutRef;
   metadata?: Record<string, unknown>;
 }
 
@@ -279,6 +372,19 @@ export interface LiquidityBondRegistryState {
   feeRecords: Record<string, LiquidityFeeRecord[]>;
   withdrawals: Record<string, WithdrawalIntent[]>;
   updatedAt?: number;
+  /**
+   * The accepted registry anchor root — advanced only through signed transitions
+   * (`applyRegistryTransition`). Verifiers require the next transition's
+   * `previousRoot` to match it, so a fabricated registry without the anchor chain
+   * is rejected. Excluded from `serializeRegistryState`/`computeRegistryRoot`.
+   */
+  root?: string;
+  /**
+   * Monotonic anti-reorg sequence (#34): each applied transition must advance it,
+   * so a `previousRoot` resubmission after a rollback is rejected. Excluded from
+   * the root commitment.
+   */
+  sequence?: number;
 }
 
 export interface LiquidityBondPolicy {
@@ -304,6 +410,7 @@ export interface CreateLiquidityPoolManifestParams {
   asset: LiquidityAsset;
   operatorAddress?: string;
   operatorIdentityId?: string;
+  operatorBond?: OperatorAutobond;
   providerBondRef?: ProviderBondRef;
   minCommitment?: bigint;
   maxCommitment?: bigint;
@@ -319,21 +426,27 @@ export interface CreateLiquidityPoolManifestParams {
 export interface VerifyLiquidityPoolManifestParams {
   manifest: LiquidityPoolManifest;
   now?: number;
+  /** When true, a cryptographically valid operator autobond is required. */
+  requireOperatorBond?: boolean;
 }
 
 export interface VerifyPoolOperatorIdentityParams {
   manifest: LiquidityPoolManifest;
-  identityGraph: unknown;
+  identityGraph?: unknown;
+  /** Signature-backed challenge proof — the load-bearing identity check. */
+  proof?: import('./identity.js').IdentityChallengeProof;
 }
 
 export interface VerifyLpIdentityParams {
   commitment: LiquidityCommitment;
-  identityGraph: unknown;
+  identityGraph?: unknown;
+  proof?: import('./identity.js').IdentityChallengeProof;
 }
 
 export interface VerifyReceiptOwnerIdentityParams {
   receipt: LiquidityReceipt;
-  identityGraph: unknown;
+  identityGraph?: unknown;
+  proof?: import('./identity.js').IdentityChallengeProof;
 }
 
 export interface CreateLiquidityCommitmentParams {
@@ -347,6 +460,7 @@ export interface CreateLiquidityCommitmentParams {
   createdAt?: number;
   expiresAt?: number;
   proofRef?: LiquidityProofRef;
+  funding?: LiquidityFunding;
   metadata?: Record<string, unknown>;
 }
 
@@ -354,13 +468,15 @@ export interface VerifyLiquidityCommitmentParams {
   commitment: LiquidityCommitment;
   pool: LiquidityPoolManifest;
   now?: number;
+  /** On-chain funding verifier. Without it, verified commits return REQUIRES_LIVE_VERIFIER. */
+  chainProvider?: LiquidityChainFundingVerifier;
 }
 
 export interface CreateLiquidityPositionParams {
   commitment: LiquidityCommitment;
   poolId: string;
   providerBondRef?: ProviderBondRef;
-  underlyingUtxoRef?: string;
+  funding?: LiquidityFunding;
   omniaChannelId?: string;
   factoryId?: string;
   routerId?: string;
@@ -420,12 +536,19 @@ export interface RecordLiquidityFeeParams {
   source: FeeSource;
   recordedAt?: number;
   proofRef?: LiquidityProofRef;
+  /** Required for earnable sources — the payment proof that backs the fee. */
+  earnProof?: unknown;
+  /** When set, the earn-proof was verified (see `verifyLiquidityFeeRecord`). */
+  verified?: boolean;
+  payoutRef?: FeePayoutRef;
   metadata?: Record<string, unknown>;
 }
 
 export interface VerifyLiquidityFeeRecordParams {
   record: LiquidityFeeRecord;
   position: LiquidityPosition;
+  /** Verifier for earnable sources; absent => earnable records fail verification. */
+  feeProofVerifier?: FeeProofVerifier;
 }
 
 export interface CreateWithdrawalIntentParams {
@@ -434,6 +557,8 @@ export interface CreateWithdrawalIntentParams {
   ownerAddress: string;
   amount: bigint;
   requestedAt?: number;
+  /** Per-position nonce — the withdrawal ID is a domain hash over it (non-replayable). */
+  nonce?: string;
   metadata?: Record<string, unknown>;
 }
 

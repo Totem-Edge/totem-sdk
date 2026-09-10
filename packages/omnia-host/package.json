@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/omnia-host",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Durable Omnia node daemon for channel lifecycle, routing, and control APIs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

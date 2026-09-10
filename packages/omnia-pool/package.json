@@ -1,0 +1,98 @@
+{
+  "name": "@totemsdk/omnia-pool",
+  "version": "0.1.0",
+  "description": "Generic Omnia liquidity pool orchestration primitive for Totem SDK",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "prepare": "tsc",
+    "clean": "rm -rf dist",
+    "test": "jest"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "@totemsdk/agent-policy": "workspace:^",
+    "@totemsdk/chain-provider": "workspace:^",
+    "@totemsdk/liquidity-bond": "workspace:^",
+    "@totemsdk/tx-builder": "workspace:^",
+    "@totemsdk/wots-lease": "workspace:^",
+    "@totemsdk/core": "workspace:^"
+  },
+  "peerDependencies": {
+    "@totemsdk/omnia": "workspace:^",
+    "@totemsdk/omnia-factory": "workspace:^",
+    "@totemsdk/omnia-router": "workspace:^",
+    "@totemsdk/omnia-splice": "workspace:^",
+    "@totemsdk/omnia-vtxo": "workspace:^"
+  },
+  "peerDependenciesMeta": {
+    "@totemsdk/omnia": {
+      "optional": true
+    },
+    "@totemsdk/omnia-factory": {
+      "optional": true
+    },
+    "@totemsdk/omnia-router": {
+      "optional": true
+    },
+    "@totemsdk/omnia-splice": {
+      "optional": true
+    },
+    "@totemsdk/omnia-vtxo": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@totemsdk/authority": "workspace:^",
+    "@totemsdk/identity": "workspace:^",
+    "@totemsdk/omnia": "workspace:^",
+    "@totemsdk/omnia-factory": "workspace:^",
+    "@totemsdk/omnia-router": "workspace:^",
+    "@totemsdk/omnia-splice": "workspace:^",
+    "@totemsdk/omnia-vtxo": "workspace:^",
+    "@totemsdk/proof": "workspace:^",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20.0.0",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.0.0",
+    "typescript": "^7.0.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "author": "Totem SDK",
+  "homepage": "https://docs.totem.ing",
+  "bugs": {
+    "url": "https://github.com/Totem-Edge/totem-sdk/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Totem-Edge/totem-sdk.git",
+    "directory": "packages/omnia-pool"
+  },
+  "keywords": [
+    "totem",
+    "totemsdk",
+    "omnia",
+    "liquidity",
+    "pool",
+    "LP",
+    "minima"
+  ]
+}

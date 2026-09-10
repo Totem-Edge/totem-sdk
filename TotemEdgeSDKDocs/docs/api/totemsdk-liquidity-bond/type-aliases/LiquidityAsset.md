@@ -6,4 +6,4 @@
 
 # Type Alias: LiquidityAsset
 
-> **LiquidityAsset** = `"MINIMA"` \| `"MxUSD"` \| `string`
+> **LiquidityAsset** = `"MINIMA"` \| `"USDT"` \| `"TOTEM"` \| `string`

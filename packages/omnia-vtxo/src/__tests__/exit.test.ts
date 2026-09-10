@@ -1,6 +1,6 @@
 import { createPool } from '../pool';
 import { mintVtxo } from '../vtxo';
-import { markExiting, markExited, createExitDraft } from '../exit';
+import { markExiting, markExited, createExitDraft, consumeExitReceipt } from '../exit';
 import { VtxoStatusError, VtxoExitError, VtxoProofError } from '../errors';
 import { OmniaVtxo } from '../types';
 
@@ -127,5 +127,44 @@ describe('createExitDraft', () => {
     const { vtxo } = setup();
     const { draft } = createExitDraft(vtxo, 55555);
     expect(draft.createdAt).toBe(55555);
+  });
+
+  it('caps the exit at the verified share', () => {
+    const { vtxo } = setup();
+    const { draft } = createExitDraft(vtxo, NOW + 1);
+    expect(draft.verifiedShare).toBe(vtxo.amount);
+  });
+});
+
+describe('double-exit prevention (#28)', () => {
+  it('refuses a second exit draft after the receipt is consumed', () => {
+    const { vtxo } = setup();
+    const { receipt } = createExitDraft(vtxo, NOW + 1);
+    const consumed = consumeExitReceipt(vtxo, receipt.receiptId, NOW + 2);
+    expect(consumed.exitConsumedAt).toBe(NOW + 2);
+    expect(consumed.exitReceiptId).toBe(receipt.receiptId);
+    expect(() => createExitDraft(consumed, NOW + 3)).toThrow(/exit already consumed/);
+  });
+
+  it('refuses to consume an exit receipt twice', () => {
+    const { vtxo } = setup();
+    const consumed = consumeExitReceipt(vtxo, 'r-1', NOW + 1);
+    expect(() => consumeExitReceipt(consumed, 'r-2', NOW + 2)).toThrow(/already consumed/);
+  });
+});
+
+describe('mint funding proof (#28)', () => {
+  it('records the on-chain funding proof at mint', () => {
+    const pool = createPool(
+      { operator: 'op-1', tokenId: 'token-0', totalCapacity: BigInt(1_000_000), nonce: 'n1' },
+      NOW,
+    );
+    const fundingProof = { fundingCoinId: '0xFUND', txpowId: '0xTXPOW' };
+    const { vtxo } = mintVtxo(
+      pool,
+      { owner: 'alice', amount: BigInt(500), nonce: 'mint-1', fundingProof },
+      NOW,
+    );
+    expect(vtxo.fundingProof).toEqual(fundingProof);
   });
 });

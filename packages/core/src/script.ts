@@ -5,7 +5,7 @@ import type { WotsKeypair } from "./wots.js";
 /** Produce KISSVM script that authorizes with a WOTS PK digest (32 bytes). */
 export function scriptFromWotsPk(pkDigest32: Uint8Array): string {
   // Minima uses SHA3-256 in SIGNEDBY paths; here we embed the digest as hex.
-  return `RETURN SIGNEDBY(${bytesToHex(pkDigest32)})`;
+  return `RETURN SIGNEDBY(0x${bytesToHex(pkDigest32)})`;
 }
 
 /** Address from WOTS keypair (client-only): script -> MMR leaf -> Mx */

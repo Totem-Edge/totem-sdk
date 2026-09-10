@@ -65,7 +65,9 @@ function assertProofLeafValid(vtxo: OmniaVtxo): void {
 }
 
 /**
- * Creates a mock exit draft for a VTXO. Validates the proof leaf before drafting.
+ * Creates a mock exit draft for a VTXO. Validates the proof leaf before
+ * drafting, caps the exit at the verified share, and consumes the VTXO's
+ * receipt so a second exit draft is refused (double-exit prevention, #28).
  * @param now - Timestamp in ms. Defaults to Date.now() if omitted — pass explicitly for determinism.
  */
 export function createExitDraft(
@@ -80,6 +82,12 @@ export function createExitDraft(
     );
   }
 
+  if (vtxo.exitConsumedAt !== undefined) {
+    throw new VtxoExitError(
+      `Cannot create exit draft for VTXO ${vtxo.vtxoId}: exit already consumed by ${vtxo.exitReceiptId}`
+    );
+  }
+
   assertProofLeafValid(vtxo);
 
   const draft: ExitDraft = {
@@ -91,6 +99,7 @@ export function createExitDraft(
     draftType: 'mock-exit',
     timelockSeconds: 86400,
     createdAt: ts,
+    verifiedShare: vtxo.amount,
   };
 
   const receiptId = computeReceiptId(vtxo.poolId, 'exit_initiated', [vtxo.vtxoId], [], ts);
@@ -108,4 +117,22 @@ export function createExitDraft(
   };
 
   return { draft, receipt };
+}
+
+/**
+ * Consume a VTXO's exit receipt — the single-spend marker that prevents a
+ * second exit draft for the same VTXO. Returns the updated VTXO.
+ */
+export function consumeExitReceipt(vtxo: OmniaVtxo, receiptId: string, now?: number): OmniaVtxo {
+  if (vtxo.exitConsumedAt !== undefined) {
+    throw new VtxoExitError(
+      `VTXO ${vtxo.vtxoId} exit already consumed by ${vtxo.exitReceiptId}`,
+    );
+  }
+  return {
+    ...vtxo,
+    exitConsumedAt: now ?? Date.now(),
+    exitReceiptId: receiptId,
+    updatedAt: now ?? Date.now(),
+  };
 }

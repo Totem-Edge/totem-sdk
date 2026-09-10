@@ -119,8 +119,13 @@ function nextNonceBoundary(nonce: bigint): bigint {
  * Build the "header tail" — the part of TxHeader that follows mNonce.
  *
  * This is computed once at the start of a mine and never changes during it.
+ *
+ * This is the fresh-transaction header shape (blockNumber=0, MAX_HASH block
+ * difficulty, zero super-parents, zero MMR, zero customHash). Block-candidate
+ * mining (Machine Work Admission) builds its own tail via
+ * `admission/template.ts` with real chain state and a customHash commitment.
  */
-function buildHeaderTail(txBodyHash: Uint8Array, timeMilli: bigint): Uint8Array {
+export function buildHeaderTail(txBodyHash: Uint8Array, timeMilli: bigint): Uint8Array {
   return concat(
     writeMiniData(MAIN_NET_CHAIN_ID),
     writeMiniNumber(timeMilli, 0),
@@ -395,12 +400,20 @@ async function mineTxPoWViaNodeWorker(
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Run the mining loop in the current thread/task.
- * Called directly by the Node.js worker, and by the browser code path.
+ * Core mining loop over a pre-built header tail.
+ *
+ * Iterates the nonce in the serialized TxHeader (nonce value at offset 2,
+ * followed by `headerTail`) until `SHA3-256(header) < target`. Shared by the
+ * transaction miner (`mineTxPoWInProcess`) and the Machine Work Admission
+ * miner (`admission/mine.ts`), which supplies its own block-candidate tail.
+ *
+ * @param headerTail  Serialized TxHeader bytes AFTER the nonce field.
+ * @param target      32-byte difficulty target (big-endian 256-bit).
+ * @param options     Chunk size, max iterations, abort signal, timeMilli override.
  */
-export async function mineTxPoWInProcess(
-  txBodyBytes: Uint8Array,
-  txnDifficulty: Uint8Array,
+export async function mineHeaderTail(
+  headerTail: Uint8Array,
+  target: Uint8Array,
   options?: MineOptions
 ): Promise<MineResult> {
   const chunkSize = BigInt(options?.chunkSize ?? 10_000);
@@ -409,11 +422,7 @@ export async function mineTxPoWInProcess(
       ? BigInt(options.maxIterations)
       : undefined;
   const signal = options?.signal;
-  const timeMilli = options?.timeMilli ?? BigInt(Date.now());
   const forceJs = options?.forceJs ?? false;
-
-  const bodyHash = sha3_256(txBodyBytes);
-  const headerTail = buildHeaderTail(bodyHash, timeMilli);
 
   const useWasm = !forceJs && (await isWasmAvailable());
 
@@ -449,12 +458,12 @@ export async function mineTxPoWInProcess(
         headerBuf.slice(), // WASM gets its own copy to avoid aliasing
         2,
         nonceValueLen,
-        txnDifficulty,
+        target,
         nonce,
         chunkEnd - nonce
       );
     } else {
-      found = mineChunkJs(headerBuf, nonceValueLen, txnDifficulty, nonce, chunkEnd);
+      found = mineChunkJs(headerBuf, nonceValueLen, target, nonce, chunkEnd);
     }
     // ── End mutually exclusive section ───────────────────────────────────────
 
@@ -482,6 +491,21 @@ export async function mineTxPoWInProcess(
       }
     });
   }
+}
+
+/**
+ * Run the mining loop in the current thread/task.
+ * Called directly by the Node.js worker, and by the browser code path.
+ */
+export async function mineTxPoWInProcess(
+  txBodyBytes: Uint8Array,
+  txnDifficulty: Uint8Array,
+  options?: MineOptions
+): Promise<MineResult> {
+  const timeMilli = options?.timeMilli ?? BigInt(Date.now());
+  const bodyHash = sha3_256(txBodyBytes);
+  const headerTail = buildHeaderTail(bodyHash, timeMilli);
+  return mineHeaderTail(headerTail, txnDifficulty, options);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

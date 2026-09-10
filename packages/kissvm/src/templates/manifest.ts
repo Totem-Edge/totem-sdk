@@ -17,12 +17,12 @@ export interface ManifestExpiryConfig {
 
 export function buildManifestBindingScript(config: ManifestBindingConfig): string {
   const lines: string[] = [
-    `LET publisher = 0x${config.publisherPk}`,
+    `LET publisher = 0x${config.publisherPk.replace(/^0x/i, '')}`,
     `ASSERT SIGNEDBY(publisher)`,
     ``,
     `LET manifestData = STATE(0)`,
     `LET computedHash = SHA3(manifestData)`,
-    `ASSERT computedHash EQ 0x${config.manifestHash}`,
+    `ASSERT computedHash EQ 0x${config.manifestHash.replace(/^0x/i, '')}`,
   ]
 
   lines.push(``, `RETURN TRUE`)
@@ -31,14 +31,14 @@ export function buildManifestBindingScript(config: ManifestBindingConfig): strin
 
 export function buildCapabilityScript(config: CapabilityConfig): string {
   const lines: string[] = [
-    `LET agent = 0x${config.agentPk}`,
+    `LET agent = 0x${config.agentPk.replace(/^0x/i, '')}`,
     `ASSERT SIGNEDBY(agent)`,
     ``,
     `LET requestedPerm = STATE(0)`,
   ]
 
   if (config.permissions.length > 0) {
-    lines.push(`ASSERT ${config.permissions.map(p => `requestedPerm EQ 0x${p}`).join(' OR ')}`)
+    lines.push(`ASSERT ${config.permissions.map(p => `requestedPerm EQ 0x${p.replace(/^0x/i, '')}`).join(' OR ')}`)
   }
 
   lines.push(

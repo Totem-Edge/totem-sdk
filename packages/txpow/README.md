@@ -69,6 +69,94 @@ const estimatedMs     = estimateMiningCost(targetDifficulty, hashesPerSecond);
 console.log(`Expected mining time: ${estimatedMs}ms`);
 ```
 
+## Machine Work Admission
+
+Machine Work Admission allows applications to require computational proof before allocating scarce resources. The work is performed against a Minima block candidate so that application anti-spam work simultaneously searches for valid Minima blocks.
+
+A receiver issues a `WorkChallenge` (unique, expiring, bound to the receiver and an application domain). A sender commits its application action into the TxPoW header's `customHash` field and mines the nonce space of a real current Minima block candidate. If the hash beats the receiver's admission target, the machine action is admissible. If the same hash also beats the current Minima block target, the candidate is a genuine Minima block (Super-0 … Super-31) and is relayable.
+
+Ordinary admission proofs stay off-chain. Only actual Minima blocks are eligible for relay.
+
+```typescript
+import {
+  createWorkChallenge,
+  mineWorkAdmission,
+  verifyWorkAdmission,
+  type MinimaWorkTemplateProvider,
+  type MinimaWorkRelay,
+} from '@totemsdk/txpow';
+
+// Receiver: issue a challenge (target chosen by receiver policy)
+const challenge = createWorkChallenge(
+  'receiver-address',
+  'totem.compute.reserve',
+  admissionTargetHex,
+);
+
+// Sender: mine the admission proof against a real Minima block candidate
+// The relay boundary keeps Minima networking out of the core primitive.
+const relay: MinimaWorkRelay = {
+  submitBlock: async (envelope) => node.submitBlock(envelope),
+};
+const provider: MinimaWorkTemplateProvider = {
+  getCurrentTemplate: async () => node.fetchCurrentTemplate(),
+  getLatestTemplate: async () => node.fetchCurrentTemplate(),
+};
+
+// The challenge target is the single authoritative admission target.
+const proof = await mineWorkAdmission(action, challenge, provider, { relay });
+
+// Receiver: verify (never trusts sender-reported hardware speed)
+const result = await verifyWorkAdmission(action, challenge, proof, provider);
+if (result.valid) {
+  // allocate the scarce resource
+}
+```
+
+### Minima Super level
+
+A TxPoW is a Minima block when `txpowId < blockDifficulty`. Its strength is the exact Minima Super level:
+
+```text
+superLevel = floor(log2(blockDifficulty / txpowId))
+```
+
+with `MINIMA_CASCADE_LEVELS = 32`, clamped so the maximum represented value is 31.
+
+| `superLevel` | Meaning |
+|--------------|---------|
+| `-1` | not a Minima block |
+| `0` | ordinary/base Minima block (Super-0) |
+| `1` | stronger block (Super-1) |
+| … | |
+| `31` | maximum represented Super level |
+
+**Super-0 is an ordinary valid Minima block. Non-block TxPoWs have computed Super level -1.** Super level describes block strength — it is not a relay policy. Every valid current block (Super-0 … Super-31) is eligible for relay.
+
+### Three distinct claims
+
+Verification distinguishes three claims that must never be confused:
+
+| Claim | Meaning | Field |
+|-------|---------|-------|
+| **A. admission-valid** | the hash satisfies `challenge.target` | `valid` |
+| **B. Minima block** | the hash beats the block difficulty encoded by the candidate template | `superLevel` / `isBlock` |
+| **C. broadcastable** | a Minima block AND the template is still current AND a live template provider was supplied | `broadcastable` |
+
+A stale candidate may remain `valid = true` (and `superLevel >= 0`) while `broadcastable = false`. Offline verification (no `MinimaWorkTemplateProvider`) leaves `broadcastable` undefined — it does **not** claim Minima block contribution.
+
+`proof.superLevel`, `proof.isBlock`, and `proof.qualifiesAsMinimaBlock` are derived metadata recorded at mining time. Verification never trusts them — they are recomputed from the re-derived TxPoW ID and the template's block difficulty.
+
+### Distributed mining boundary
+
+Machine Work Admission is primarily local/off-chain: the requesting machine performs the work, which keeps it attributable to the machine requesting admission. Native Minima distributed mining (`MSG_TXBLOCKMINE`, where receiving peers reset the body PRNG to create independent search spaces) is a separate, optional, rate-limited, integration-controlled mechanism. It is NOT used per machine action — broadcasting every machine action through `MSG_TXBLOCKMINE` would turn machine anti-spam into Minima network spam. The body PRNG is independent candidate entropy; it never changes the `customHash` application commitment.
+
+### Authentication boundary
+
+`validateWorkChallenge()` validates structural/freshness/domain/recipient properties but does **not** prove that the claimed recipient actually issued the challenge. A `WorkChallenge` is a plain data object; anyone can construct one claiming any recipient. Proving the issuer requires authenticating the enclosing message (e.g. a signed machine-to-machine protocol message in the Edge negotiation layer). `@totemsdk/txpow` deliberately does not implement a parallel identity/signature system.
+
+The primitive is generic — it knows only "there is an application action represented by canonical bytes". Domain-specific packages supply the action commitment for negotiation, compute, storage, mailbox, sensor, or rendezvous domains. It does NOT prove identity, authority, payment, or resource availability; higher-level layers must still perform those checks.
+
 ## Upstream Java source
 
 This package is a TypeScript port of Minima's TxPoW envelope structures. Canonical upstream references:

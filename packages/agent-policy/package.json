@@ -28,10 +28,15 @@
   "dependencies": {
     "@noble/hashes": "^1.8.0",
     "@protobuf-ts/runtime": "^2.11.1",
-    "@totemsdk/core": "workspace:^"
+    "@totemsdk/core": "workspace:^",
+    "@totemsdk/authority": "workspace:^",
+    "@totemsdk/proof": "workspace:^",
+    "better-sqlite3": "^12.2.0"
   },
   "devDependencies": {
     "@protobuf-ts/plugin": "^2.9.4",
+    "@totemsdk/identity": "workspace:^",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/jest": "^30.0.0",
     "@types/node": "^20.0.0",
     "jest": "^30.4.2",
@@ -46,7 +51,7 @@
   },
   "license": "MIT",
   "author": "Totem SDK",
-  "homepage": "https://totem.ing",
+  "homepage": "https://docs.totem.ing",
   "bugs": {
     "url": "https://github.com/Totem-Edge/totem-sdk/issues"
   },

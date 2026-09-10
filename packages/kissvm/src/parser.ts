@@ -1,15 +1,225 @@
 import { tokenize, Token, TokenKind } from './lexer.js';
 import { MiniNumber } from './MiniNumber.js';
+import { KissvmParseError } from './errors.js';
 import type { ASTNode, Scalar, Span } from './types.js';
 
 function parseNumLiteral(s: string): MiniNumber {
   return new MiniNumber(s);
 }
 
+const BUILTIN_FUNCTIONS = new Set([
+  'LEN', 'INT', 'STR', 'ABS', 'MIN', 'MAX', 'SUBSTR', 'CONCAT',
+  'SIZE', 'REVERSE', 'INC', 'DEC', 'BITGET', 'BITSET', 'GET', 'FUNCTION',
+]);
+
 export function parseScript(source: string): ASTNode[] {
   const tokens = tokenize(source);
   const parser = new Parser(tokens);
-  return parser.parseProgram();
+  const ast = parser.parseProgram();
+  validateAst(ast);
+  return ast;
+}
+
+/**
+ * Parse-time semantic validation. Rejects bare identifiers that are never
+ * declared anywhere in the script (via LET / FOR / FOREACH / FUNC params)
+ * and unknown function calls, so garbage like `RETURN MAYBE` fails at parse
+ * time instead of surfacing only when the script executes.
+ */
+function validateAst(ast: ASTNode[]): void {
+  const declared = new Set<string>();
+  collectDeclarations(ast, declared);
+
+  const funcNames = new Set<string>();
+  for (const node of ast) {
+    if (node.type === 'FUNC_DEF') funcNames.add(node.name);
+  }
+
+  validateNodes(ast, declared, funcNames);
+}
+
+function collectDeclarations(nodes: ASTNode[], declared: Set<string>): void {
+  for (const node of nodes) {
+    switch (node.type) {
+      case 'LET':
+        declared.add(node.name);
+        collectDeclarations([node.value], declared);
+        break;
+      case 'FOR':
+        declared.add(node.name);
+        collectDeclarations(exprs(node.from, node.to), declared);
+        if (node.by) collectDeclarations([node.by], declared);
+        collectDeclarations(node.body, declared);
+        break;
+      case 'FOREACH':
+        declared.add(node.name);
+        collectDeclarations([node.list], declared);
+        collectDeclarations(node.body, declared);
+        break;
+      case 'FUNC_DEF':
+        for (const p of node.params) declared.add(p);
+        collectDeclarations(node.body, declared);
+        break;
+      case 'IF':
+        collectDeclarations([node.cond], declared);
+        collectDeclarations(node.then, declared);
+        for (const b of node.elseifBranches ?? []) collectDeclarations([b.cond, ...b.body], declared);
+        if (node.else) collectDeclarations(node.else, declared);
+        break;
+      case 'WHILE':
+        collectDeclarations([node.cond], declared);
+        collectDeclarations(node.body, declared);
+        break;
+      case 'SWITCH':
+        collectDeclarations([node.expr], declared);
+        for (const c of node.cases) collectDeclarations([c.value, ...c.body], declared);
+        if (node.defaultBody) collectDeclarations(node.defaultBody, declared);
+        break;
+      case 'MAST_BLOCK':
+        for (const b of node.branches) collectDeclarations(b.body, declared);
+        break;
+      case 'STORE_STATE':
+        collectDeclarations([node.port, node.value], declared);
+        break;
+      case 'STORE_TUPLE':
+        collectDeclarations([node.index, node.value], declared);
+        break;
+      case 'EXEC':
+        collectDeclarations([node.script], declared);
+        break;
+      case 'MAST_STMT':
+        collectDeclarations([node.rootHash], declared);
+        break;
+      case 'RETURN':
+      case 'ASSERT':
+        collectDeclarations([node.expr], declared);
+        break;
+      case 'CALL_STMT':
+        collectDeclarations(node.args, declared);
+        break;
+      case 'BINARY':
+        collectDeclarations([node.left, node.right], declared);
+        break;
+      case 'UNARY':
+        collectDeclarations([node.expr], declared);
+        break;
+      case 'CALL_EXPR':
+        collectDeclarations(node.args, declared);
+        break;
+      case 'STATE':
+      case 'PREVSTATE':
+        collectDeclarations([node.port], declared);
+        break;
+      case 'SAMESTATE':
+        collectDeclarations([node.from, node.to], declared);
+        break;
+      case 'SIGNEDBY':
+        collectDeclarations([node.pubkey], declared);
+        break;
+      case 'MULTISIG':
+        collectDeclarations([node.threshold, ...node.keys], declared);
+        break;
+      case 'CHECKSIG':
+        collectDeclarations(node.args, declared);
+        break;
+      case 'HASH':
+        collectDeclarations([node.expr], declared);
+        break;
+      case 'VERIFYOUT':
+        collectDeclarations([node.index, node.address, node.amount, node.tokenId, node.keepState], declared);
+        break;
+      case 'GETOUT':
+        collectDeclarations([node.index], declared);
+        break;
+      case 'SIGDIG':
+        collectDeclarations([node.digits, node.expr], declared);
+        break;
+      case 'MAST_EXPR':
+        collectDeclarations([node.rootHash], declared);
+        break;
+      case 'PROOF':
+        collectDeclarations([node.data, node.leafSum, node.rootHash, node.rootSum, node.proof], declared);
+        break;
+    }
+  }
+}
+
+function validateNodes(nodes: ASTNode[], declared: Set<string>, funcNames: Set<string>): void {
+  for (const node of nodes) {
+    switch (node.type) {
+      case 'IDENT': {
+        if (!declared.has(node.name)) {
+          throw new KissvmParseError(`Unknown identifier: ${node.name}`);
+        }
+        break;
+      }
+      case 'CALL_STMT':
+      case 'CALL_EXPR': {
+        if (!BUILTIN_FUNCTIONS.has(node.name.toUpperCase()) && !funcNames.has(node.name)) {
+          throw new KissvmParseError(`Unknown function: ${node.name}`);
+        }
+        validateNodes(node.args, declared, funcNames);
+        break;
+      }
+      case 'LET':
+        validateNodes([node.value], declared, funcNames);
+        break;
+      case 'FOR':
+        validateNodes(exprs(node.from, node.to), declared, funcNames);
+        if (node.by) validateNodes([node.by], declared, funcNames);
+        validateNodes(node.body, declared, funcNames);
+        break;
+      case 'FOREACH':
+        validateNodes([node.list], declared, funcNames);
+        validateNodes(node.body, declared, funcNames);
+        break;
+      case 'FUNC_DEF':
+        validateNodes(node.body, declared, funcNames);
+        break;
+      case 'IF':
+        validateNodes([node.cond], declared, funcNames);
+        validateNodes(node.then, declared, funcNames);
+        for (const b of node.elseifBranches ?? []) validateNodes([b.cond, ...b.body], declared, funcNames);
+        if (node.else) validateNodes(node.else, declared, funcNames);
+        break;
+      case 'WHILE':
+        validateNodes([node.cond], declared, funcNames);
+        validateNodes(node.body, declared, funcNames);
+        break;
+      case 'SWITCH':
+        validateNodes([node.expr], declared, funcNames);
+        for (const c of node.cases) validateNodes([c.value, ...c.body], declared, funcNames);
+        if (node.defaultBody) validateNodes(node.defaultBody, declared, funcNames);
+        break;
+      case 'MAST_BLOCK':
+        for (const b of node.branches) validateNodes(b.body, declared, funcNames);
+        break;
+      case 'STORE_STATE': validateNodes([node.port, node.value], declared, funcNames); break;
+      case 'STORE_TUPLE': validateNodes([node.index, node.value], declared, funcNames); break;
+      case 'EXEC': validateNodes([node.script], declared, funcNames); break;
+      case 'MAST_STMT': validateNodes([node.rootHash], declared, funcNames); break;
+      case 'RETURN':
+      case 'ASSERT': validateNodes([node.expr], declared, funcNames); break;
+      case 'BINARY': validateNodes([node.left, node.right], declared, funcNames); break;
+      case 'UNARY': validateNodes([node.expr], declared, funcNames); break;
+      case 'STATE':
+      case 'PREVSTATE': validateNodes([node.port], declared, funcNames); break;
+      case 'SAMESTATE': validateNodes([node.from, node.to], declared, funcNames); break;
+      case 'SIGNEDBY': validateNodes([node.pubkey], declared, funcNames); break;
+      case 'MULTISIG': validateNodes([node.threshold, ...node.keys], declared, funcNames); break;
+      case 'CHECKSIG': validateNodes(node.args, declared, funcNames); break;
+      case 'HASH': validateNodes([node.expr], declared, funcNames); break;
+      case 'VERIFYOUT': validateNodes([node.index, node.address, node.amount, node.tokenId, node.keepState], declared, funcNames); break;
+      case 'GETOUT': validateNodes([node.index], declared, funcNames); break;
+      case 'SIGDIG': validateNodes([node.digits, node.expr], declared, funcNames); break;
+      case 'MAST_EXPR': validateNodes([node.rootHash], declared, funcNames); break;
+      case 'PROOF': validateNodes([node.data, node.leafSum, node.rootHash, node.rootSum, node.proof], declared, funcNames); break;
+    }
+  }
+}
+
+function exprs(...nodes: (ASTNode | undefined)[]): ASTNode[] {
+  return nodes.filter((n): n is ASTNode => n !== undefined);
 }
 
 class Parser {

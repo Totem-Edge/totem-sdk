@@ -11,7 +11,11 @@ let positionCounter = 0;
 export function createLiquidityPosition(params: CreateLiquidityPositionParams): LiquidityPosition {
   const now = params.createdAt ?? Date.now();
   positionCounter++;
-  const amount = params.commitment.amount;
+  const funding = params.funding ?? params.commitment.funding;
+  // The position's amount comes from the VERIFIED funding proof, never from the
+  // self-declared commitment.amount — an attacker must prove real coins on-chain.
+  const chainConfirmed = funding?.status === 'chain-confirmed';
+  const amount = chainConfirmed && funding ? funding.amount : params.commitment.amount;
   return {
     positionId: `pos-${now}-${positionCounter}`,
     commitmentId: params.commitment.commitmentId,
@@ -23,12 +27,12 @@ export function createLiquidityPosition(params: CreateLiquidityPositionParams): 
     amount,
     effectiveAmount: amount,
     purpose: params.commitment.purpose,
-    status: 'active',
+    status: funding ? 'committed' : 'active',
     lockTerms: params.commitment.terms,
     allocatedAmount: 0n,
     reservedAmount: 0n,
     availableAmount: amount,
-    underlyingUtxoRef: params.underlyingUtxoRef,
+    funding,
     omniaChannelId: params.omniaChannelId,
     factoryId: params.factoryId,
     routerId: params.routerId,
@@ -42,7 +46,19 @@ export function createLiquidityPosition(params: CreateLiquidityPositionParams): 
   };
 }
 
+/**
+ * Activate a position only after its funding is chain-confirmed. A position
+ * whose proof is merely declared/signed must not reach active liquidity — that
+ * is the phantom-deposit seam.
+ */
 export function activateLiquidityPosition(position: LiquidityPosition, now?: number): LiquidityPosition {
+  if (position.funding && position.funding.status !== 'chain-confirmed') {
+    throw new Error(
+      position.funding.status === 'invalid'
+        ? 'cannot activate a position with invalid funding'
+        : 'cannot activate a position whose funding is not chain-confirmed',
+    );
+  }
   return { ...position, status: 'active', updatedAt: now ?? Date.now() };
 }
 

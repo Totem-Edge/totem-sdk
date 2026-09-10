@@ -1,3 +1,4 @@
+import { bytesToHex, sha3_256 } from '@totemsdk/core';
 import type {
   ChannelOps,
   RouterChannel,
@@ -8,6 +9,8 @@ import type {
   LeaseProvider,
   SwapHop,
   RoutingHop,
+  ChannelHTLC,
+  RouterFeeProof,
 } from './types.js';
 
 // ─── Type guard ───────────────────────────────────────────────────────────────
@@ -125,6 +128,7 @@ export async function executeMultiHopPayment(
   // ones (already-fulfilled HTLCs are irreversible and must not be retouched).
   const settled: string[]    = [];
   const fulfilledSet         = new Set<string>();
+  const feeProofs: RouterFeeProof[] = [];
 
   for (const { channelId, htlcId } of [...locked].reverse()) {
     const channel = channels.get(channelId)!;
@@ -149,9 +153,60 @@ export async function executeMultiHopPayment(
     channels.set(channelId, fulfillResult.channel);
     settled.push(htlcId);
     fulfilledSet.add(htlcId);
+
+    // Build the verifiable fee proof for this settled hop (#29).
+    const htlc = fulfillResult.channel.pendingHTLCs.find(h => h.htlcId === htlcId);
+    if (htlc) {
+      feeProofs.push(buildRouterFeeProof(fulfillResult.channel, htlc, Date.now()));
+    }
   }
 
-  return { success: true, preimage, settledHops: settled };
+  return { success: true, preimage, settledHops: settled, feeProofs };
+}
+
+export const ROUTER_FEE_PROOF_DOMAIN = 'totemsdk/omnia-router/fee-proof/v1';
+
+/**
+ * Build a verifiable fee-provenance record for a settled hop (#29). The pool's
+ * `recordPoolFee` earn-proof consumes this — a fee record can be traced to a
+ * real fulfilled payment, never a declared string.
+ */
+export function buildRouterFeeProof(
+  channel: RouterChannel,
+  htlc: ChannelHTLC,
+  settledAt?: number,
+): RouterFeeProof {
+  const ts = settledAt ?? Date.now();
+  const proof: RouterFeeProof = {
+    channelId: channel.channelId,
+    htlcId: htlc.htlcId,
+    recipientPublicKeyDigest: htlc.recipientPublicKeyDigest,
+    amount: htlc.amount,
+    tokenId: channel.tokenId,
+    settledAt: ts,
+    proofHash: '',
+  };
+  proof.proofHash = computeRouterFeeProofHash(proof);
+  return proof;
+}
+
+export function computeRouterFeeProofHash(proof: RouterFeeProof): string {
+  const { proofHash, ...rest } = proof;
+  const input = `${ROUTER_FEE_PROOF_DOMAIN}|${canonicalJson(rest)}`;
+  return bytesToHex(sha3_256(new TextEncoder().encode(input)));
+}
+
+function canonicalJson(value: unknown): string {
+  if (typeof value === 'bigint') return JSON.stringify({ __bigint: value.toString() });
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+  if (value && typeof value === 'object') {
+    const keys = Object.keys(value as Record<string, unknown>).sort();
+    const pairs = keys
+      .map((k) => `${JSON.stringify(k)}:${canonicalJson((value as Record<string, unknown>)[k])}`)
+      .filter((p) => p !== `${JSON.stringify('')}:null`);
+    return `{${pairs.join(',')}}`;
+  }
+  return JSON.stringify(value);
 }
 
 /**

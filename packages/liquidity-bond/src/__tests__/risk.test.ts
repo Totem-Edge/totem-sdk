@@ -15,7 +15,11 @@ function makePosition(utxoRef?: string) {
     poolId: 'pool-1', lpAddress: 'MxLP', asset: 'MINIMA', amount: 1000n,
     purpose: 'omnia-router-liquidity', terms: { lockType: 'none' },
   });
-  return createLiquidityPosition({ commitment, poolId: 'pool-1', underlyingUtxoRef: utxoRef });
+  return createLiquidityPosition({
+    commitment,
+    poolId: 'pool-1',
+    funding: utxoRef ? { utxoRef, tokenId: '0x00', amount: 1000n, status: 'chain-confirmed' } : undefined,
+  });
 }
 
 describe('risk', () => {

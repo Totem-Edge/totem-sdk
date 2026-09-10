@@ -2,6 +2,12 @@ import { sha3_256, bytesToHex, hexToBytes } from '@totemsdk/core';
 import { OmniaVtxo, VtxoId, VtxoProof } from './types.js';
 import { EMPTY_LEAF, MOCK_BATCH_ID } from './constants.js';
 
+/** Domain-separated hash prefixes (#33) — a hash on one record cannot replay against another. */
+export const VTXO_ID_DOMAIN = 'totemsdk/omnia-vtxo/vtxo/v1';
+export const VTXO_POOL_ID_DOMAIN = 'totemsdk/omnia-vtxo/pool/v1';
+export const VTXO_LEAF_DOMAIN = 'totemsdk/omnia-vtxo/leaf/v1';
+export const VTXO_RECEIPT_DOMAIN = 'totemsdk/omnia-vtxo/receipt/v1';
+
 function sha3hex(input: string): string {
   const bytes = new TextEncoder().encode(input);
   return bytesToHex(sha3_256(bytes));
@@ -16,6 +22,7 @@ function hashPair(a: string, b: string): string {
 
 export function computeVtxoLeaf(vtxo: OmniaVtxo): string {
   const input = [
+    VTXO_LEAF_DOMAIN,
     vtxo.vtxoId,
     vtxo.owner,
     vtxo.amount.toString(),
@@ -36,7 +43,7 @@ export interface ComputeVtxoIdParams {
 
 export function computeVtxoId(params: ComputeVtxoIdParams): string {
   const input = [
-    'vtxo',
+    VTXO_ID_DOMAIN,
     params.poolId,
     params.owner,
     params.amount.toString(),
@@ -54,7 +61,7 @@ export interface ComputePoolIdParams {
 
 export function computePoolId(params: ComputePoolIdParams): string {
   const input = [
-    'pool',
+    VTXO_POOL_ID_DOMAIN,
     params.operator,
     params.tokenId,
     params.nonce,
@@ -185,7 +192,7 @@ export function computeReceiptId(
   at: number,
 ): string {
   const input = [
-    'receipt',
+    VTXO_RECEIPT_DOMAIN,
     poolId,
     op,
     inputIds.sort().join(','),

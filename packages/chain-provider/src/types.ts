@@ -61,6 +61,80 @@ export interface BroadcastResult {
   message?: string;
 }
 
+/**
+ * Inputs for a live deposit-funding check. "Verified" here means a check against
+ * on-chain truth (unspent coin owned by the LP for the claimed token+amount) —
+ * never a declared string on a record.
+ */
+export interface VerifyDepositParams {
+  /** Coin spendable as the funding source. */
+  coinId: string;
+  /** Address that must own the coin (Mx form; 0x-hex roots are normalized against). */
+  ownerAddress: string;
+  /** Required token ID; omit to accept base MINIMA. */
+  tokenId?: string;
+  /** Claimed funding amount (decimal string); coin.amount must be >= this. */
+  claimedAmount?: string;
+  /** When true, only chain-confirmed coins pass (mmrentry != '0'). */
+  requireConfirmed?: boolean;
+}
+
+/** Granular result of a deposit-funding check. `valid` is the all-gates AND. */
+export interface DepositVerification {
+  valid: boolean;
+  exists: boolean;
+  /** Coin exists and is not spent (on-chain confirm, not declared). */
+  unspent: boolean;
+  /** Coin is confirmed on-chain (not a mempool entry). */
+  confirmed: boolean;
+  /** Coin address equals the claimed owner (Mx or 0x-root form). */
+  ownedByOwner: boolean;
+  /** Coin tokenid matches the requested token (or base token when none given). */
+  tokenMatches: boolean;
+  /** Coin amount covers the claimed amount. */
+  amountSufficient: boolean;
+  reason?: string;
+  /** The coin as observed on-chain. */
+  coin?: Coin;
+  error?: unknown;
+}
+
+/**
+ * A chunk-based MMR proof (legacy Minima shape), i.e. the sibling hashes
+ * between a leaf and the root. Matches `@totemsdk/core` `MMRProof`.
+ */
+export interface MmrChunkProof {
+  chunks: Array<{
+    isLeft: boolean;
+    mmrData: { data: Uint8Array; value: bigint };
+  }>;
+}
+
+/** Address-derivation policy for LP funding deposits. */
+export interface DepositAddressOptions {
+  poolId?: string;
+  tokenId?: string;
+}
+
+/**
+ * Optional funding-truth extension port. Providers that can attest deposits
+ * implement this; `withDepositVerifier(provider)` provides a default that uses
+ * the base provider's `getCoin` for the live path.
+ */
+export interface DepositVerifier {
+  verifyDeposit(params: VerifyDepositParams): Promise<DepositVerification>;
+  /** Deterministic deposit address the LP funds the pool/channel from. */
+  depositAddressFor(lp: string, opts?: DepositAddressOptions): string;
+  /** Chain MMR root for offline proof verification; null when unavailable. */
+  getMmrRoot(): Promise<string | null>;
+  /** Offline (root-anchored) proof check; falls back to the live path when absent. */
+  verifyMmrDeposit?(params: {
+    leafPubkey: Uint8Array;
+    proof: MmrChunkProof;
+    expectedRoot: Uint8Array;
+  }): Promise<boolean>;
+}
+
 export interface ChainStateProvider {
   getCoins(query: CoinsQuery): Promise<Coin[]>;
   getCoin(coinId: string): Promise<Coin | null>;

@@ -55,14 +55,16 @@ export interface UsageTrackingConfig {
 export function buildMandateEnforcementScript(config: MandateEnforcementConfig): string {
   const expiryPort = config.expiryPort ?? 2
   const noncePort = config.noncePort ?? 3
+  const grantor = config.grantor.replace(/^0x/i, '')
+  const scope = config.scope.replace(/^0x/i, '')
 
   return [
-    `LET grantor = 0x${config.grantor}`,
+    `LET grantor = 0x${grantor}`,
     `ASSERT SIGNEDBY(grantor)`,
     ``,
     `// Scope must match`,
     `LET scope = STATE(${config.scopePort})`,
-    `ASSERT scope EQ 0x${config.scope}`,
+    `ASSERT scope EQ 0x${scope}`,
     ``,
     `// Not expired`,
     `LET expiresAt = STATE(${expiryPort})`,
@@ -70,7 +72,7 @@ export function buildMandateEnforcementScript(config: MandateEnforcementConfig):
     ``,
     `// Not revoked (current epoch <= revocation epoch)`,
     `LET revocationEpoch = STATE(${config.revocationEpochPort})`,
-    `ASSERT @BLOCK LTE revocationEpoch`,
+    `ASSERT revocationEpoch LTE ${config.revocationEpoch.toString()}`,
     ``,
     `// Replay protection`,
     `LET nonce = STATE(${noncePort})`,
@@ -85,7 +87,7 @@ export function buildActionAuthorizationScript(config: ActionAuthorizationConfig
     `LET nonce = STATE(${config.noncePort})`,
     `ASSERT PREVSTATE(${config.noncePort}) NEQ nonce`,
     ``,
-    `LET actionHash = 0x${config.actionHash}`,
+    `LET actionHash = 0x${config.actionHash.replace(/^0x/i, '')}`,
     `ASSERT STATE(${config.actionPort}) EQ actionHash`,
     ``,
     `LET windowEnd = ${config.windowEnd.toString()}`,

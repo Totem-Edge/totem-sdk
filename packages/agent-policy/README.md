@@ -38,6 +38,124 @@ npm install @totemsdk/agent-policy
 | `RecipientAllowlistPolicy` | Only allows proposals to approved addresses | TypeScript |
 | `TimeWindowPolicy` | Only allows proposals during configurable daily window | TypeScript |
 | `RiskThresholdPolicy` | Auto-approves up to a configurable risk level | TypeScript |
+| `GrantBoundPolicy` | Grant-bound step coordination over signed mandates — resolve, verify scope/constraints/expiry/revocation, check budget, apply local bounds, reserve atomically | TypeScript |
+| `GrantUsageStore` | Transactional grant usage accounting (reserve/commit/abort + run-level counts) | TypeScript |
+| `GrantBoundAutonomyPolicy` | Run-level autonomy — `openRun`, `authorizeAndReserve`, `commit`/`abort`, receipt graph | TypeScript |
+| `RunStateStore` | Atomic run session state (totals, concurrency, failure budget, nonce anti-replay) | TypeScript |
+| `SqliteRunStateStore` | Durable SQLite (WAL) store implementing both `RunStateStore` and `GrantUsageStore` | TypeScript |
+| `createAutonomyPolicy` | Configurable autonomy profiles (dynamic / declared_plan / locked_plan / single_step) | TypeScript |
+| `reduceToCanonicalAction` | Reduce a prepared operation to canonical security facts (never agent hints) | TypeScript |
+
+## Run-level autonomy
+
+The run-level autonomy layer sits **over** existing signed mandates — it is not another grant format. The governing equation:
+
+> Effective authority = signed mandate ∩ local autonomy profile ∩ verified operation effects ∩ current run state
+
+### Open a run
+
+```typescript
+import { GrantBoundAutonomyPolicy, MemoryRunStateStore } from '@totemsdk/agent-policy';
+
+const policy = new GrantBoundAutonomyPolicy({
+  autonomyProfiles: {
+    'channel-rebalance': {
+      profileId: 'channel-rebalance',
+      mode: 'dynamic',
+      runLimits: {
+        maxSteps: 20,
+        maxParallel: 1,
+        maxFailures: 3,
+        maxDurationMs: 60 * 60_000,
+        maxGrossSpend: { tokenId: '0x00', amount: '500' },
+        maxFees: { tokenId: '0x00', amount: '10' },
+      },
+      transitions: [
+        { from: 'start', to: ['simulate'] },
+        { from: 'simulate', to: ['pay', 'requote'] },
+        { from: 'pay', to: ['verify', 'compensate'] },
+      ],
+      obligations: { requireSimulation: true },
+      boundaryFailure: 'request_narrow_grant',
+    },
+  },
+  mandateResolver: async (id) => mandateProofs[id],
+  identityResolver,
+  stateStore: new MemoryRunStateStore(), // or new SqliteRunStateStore('./runs.sqlite')
+});
+
+await policy.openRun({
+  runId: 'fleet-rebalance-42',
+  agentId: 'qvac-rebalancer',
+  principal: 'MxFleet',
+  grantProofIds: ['proof:owner-grant', 'proof:operator-grant'],
+  profileId: 'channel-rebalance',
+});
+```
+
+### Authorize actual effects, not agent descriptions
+
+The wallet builds (or simulates) the transaction FIRST, then reduces it to canonical security facts. Agent-supplied `amount`, `recipient`, `risk`, or metadata remain explanatory hints — never security facts.
+
+```typescript
+import { reduceToCanonicalAction } from '@totemsdk/agent-policy';
+
+const canonical = reduceToCanonicalAction('fleet-rebalance-42', 'MxFleet', 'qvac-rebalancer', preparedStep, {
+  simulation: { ok: true },
+});
+// canonical.effects.spends / fees / channels are the REAL operation effects.
+```
+
+### Atomic authorize → execute → commit / abort
+
+One reservation atomically covers mandate usage, run budgets, concurrency capacity, and the operation nonce:
+
+```typescript
+const authorization = await policy.authorizeAndReserve({
+  runId: 'fleet-rebalance-42',
+  stepId: 'pay-1',
+  nonce: 'pay-1', // unique per run — anti-replay
+  action: canonical,
+  evidence: { simulation: { ok: true } },
+});
+
+if (authorization.outcome === 'approved') {
+  try {
+    const result = await execute(preparedOperation);
+    await policy.commit({ reservationId: authorization.reservationId, executionProof: result });
+  } catch (error) {
+    await policy.abort(authorization.reservationId, error);
+  }
+}
+```
+
+### Boundary escalation issues authority
+
+When a step exceeds existing bounds, the policy returns a structured request — never a silent bypass:
+
+```typescript
+{
+  outcome: 'requires_human',
+  reason: 'maxGrossSpend exceeded',
+  boundaryError: { kind: 'escalate', boundary: 'run.maxGrossSpend', remaining: '25', requested: '40' },
+  suggestedGrant: {
+    scope: 'omnia:channel:pay',
+    maxTotal: '15',
+    expiresInMs: 300_000,
+    bindToRunId: 'fleet-rebalance-42',
+  },
+}
+```
+
+Human approval should produce a narrow, expiring, run-bound mandate amendment.
+
+### Receipt graph
+
+`getRunReceiptGraph(runId)` returns the full audit trail: run identity, every step's canonical action digest, mandates used, authority decision IDs, reservations and usage deltas, execution proofs, failures, and final run totals — making an autonomous workflow reconstructable and auditable.
+
+### Durable atomic store
+
+`SqliteRunStateStore` implements both `RunStateStore` and `GrantUsageStore` on a single SQLite database (WAL). Every reservation is one atomic transaction covering mandate usage, run budgets, concurrency slot, and nonce — durable across restarts. Pass `':memory:'` for ephemeral tests.
 
 ## Usage
 

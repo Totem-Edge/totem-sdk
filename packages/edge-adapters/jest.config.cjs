@@ -20,6 +20,7 @@ module.exports = {
     '^@totemsdk/lookup-client$': '<rootDir>/../lookup-client/src/index.ts',
     '^@totemsdk/location-proof$': '<rootDir>/../location-proof/src/index.ts',
     '^@totemsdk/root-identity$': '<rootDir>/../root-identity/src/index.ts',
+    '^better-sqlite3$': '<rootDir>/src/better-sqlite3.mock.cjs',
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
 };

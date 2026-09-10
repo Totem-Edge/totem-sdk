@@ -5,6 +5,31 @@ All notable changes to the Totem SDK will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **`@totemsdk/agent-policy` — run-level autonomy over existing mandates**
+  - `GrantBoundAutonomyPolicy` — `openRun`, `authorizeAndReserve`, `commit`/`abort`, `getRunReceiptGraph`. Effective authority = signed mandate ∩ local autonomy profile ∩ verified operation effects ∩ current run state.
+  - `createAutonomyPolicy` + `AutonomyProfile` — configurable profiles (`dynamic` / `declared_plan` / `locked_plan` / `single_step`) with run limits (steps, parallelism, failures, duration, gross spend, fees, channel exposure), transition DAGs, obligations (simulation/quote/receipt/postconditions), and explicit `allOf`/`anyOf` grant-set composition.
+  - `reduceToCanonicalAction` — reduce a prepared operation to canonical security facts; agent-supplied hints are never security facts.
+  - Boundary escalation returns a structured `requires_human` with a narrow, expiring, run-bound `suggestedGrant` — never a silent bypass.
+  - `SqliteRunStateStore` — durable SQLite (WAL) store implementing both `RunStateStore` and `GrantUsageStore`; one atomic transaction reserves mandate usage, run budgets, concurrency slot, and nonce. Durable across restarts.
+
+- **`@totemsdk/omnia-pool` — autonomous rebalance execution wiring**
+  - `executeAutonomousRebalanceStep` — the vertical slice: prepare (buildUpdateTx/buildFundingTx) → reduce → authorize → execute (channel update + `rebalancePoolCapital`) → commit with tx-digest proof / abort on failure. Channel-internal outputs are state changes, not external spends.
+
+- **`@totemsdk/edge` — universal action registry + governed agent facade**
+  - `createEdgeActionRegistry` — `EdgeActionDefinition { capability, effect, prepare, deriveEffects, execute }` with exact + prefix (`omnia:*`) resolution; explicit `UNGRANTABLE_ACTIONS` deny-list (seed export, raw signing, key-lease ops, policy replacement, raw port handles, identity-root rotation).
+  - `createBuiltinActionDefinitions` — canonical namespaces for every domain: `payment:send`, `omnia:*` (12 ops), `proof:create/verify`, `lookup:query/announce`, `location:claim:create/trail:create/proof:create`, `identity:resolve/verify`, `manifest:sign/verify`, `liquidity:balance:read/utxo:read`, `transport:publish/subscribe/send`.
+  - `createAgentEdgeRuntime` — governed facade exposing **only** `executeAction` (never the raw ports); pipeline = ungrantable check → resolve → capability → prepare → deriveEffects → `GrantBoundAutonomyPolicy` authorizeAndReserve → execute → commit/abort.
+  - `prepared-effects` — effects derived from the **real built transaction** (change and channel-internal outputs excluded from spends); the committed receipt reflects the real spend, not the agent's claimed amount.
+  - Key-lease lifecycle (`reserve → sign → commit/burn`) is an internal consequence of authorized signing actions, never an agent-callable action.
+
+### Fixed
+
+- **`scripts/workspace-gates.config.json`** — removed stale `pureminima-rpc` entry (package removed in `9440d2b`); workspace gates now pass 58/58.
+
 ## [1.0.0] - 2026-08-20
 
 ### Added

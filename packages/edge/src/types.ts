@@ -68,7 +68,17 @@ export interface EdgeActionResult {
   ok: boolean;
   action: string;
   data?: unknown;
-  policyResult?: { allowed: boolean; reason?: string };
+  policyResult?: {
+    allowed: boolean;
+    reason?: string;
+    suggestedGrant?: {
+      scope: string;
+      maxTotal?: string;
+      maxCount?: number;
+      expiresInMs: number;
+      bindToRunId: string;
+    };
+  };
   error?: string;
   errorCode?: string;
 }

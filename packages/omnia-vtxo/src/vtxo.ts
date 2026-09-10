@@ -52,6 +52,7 @@ export function mintVtxo(
       epoch: pool.epoch,
       batchId: MOCK_BATCH_ID,
     },
+    fundingProof: params.fundingProof,
     history: [
       {
         op: 'mint',

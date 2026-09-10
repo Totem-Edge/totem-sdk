@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/minima-rpc",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Fetch-based Totem/Minima RPC client — Bare/Pear/Node/browser compatible",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -38,7 +38,7 @@
   },
   "license": "MIT",
   "author": "Totem SDK",
-  "homepage": "https://totem.ing",
+  "homepage": "https://docs.totem.ing",
   "bugs": {
     "url": "https://github.com/Totem-Edge/totem-sdk/issues"
   },

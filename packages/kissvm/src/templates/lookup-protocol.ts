@@ -9,21 +9,25 @@ export interface LeaseMessageConfig {
   leaseStatePort?: number
 }
 
+function hex(value: string): string {
+  return value.replace(/^0x/i, '')
+}
+
 export function buildLeaseMessageScript(config: LeaseMessageConfig): string {
   const lines: string[] = [
-    `LET authority = 0x${config.authorityPk}`,
+    `LET authority = 0x${hex(config.authorityPk)}`,
     `ASSERT SIGNEDBY(authority)`,
     ``,
-    `ASSERT STATE(0) EQ 0x${config.treeId}`,
-    `ASSERT STATE(1) EQ 0x${config.leaseId}`,
+    `ASSERT STATE(0) EQ 0x${hex(config.treeId)}`,
+    `ASSERT STATE(1) EQ 0x${hex(config.leaseId)}`,
   ]
 
   if (config.branchId) {
-    lines.push(`ASSERT STATE(2) EQ 0x${config.branchId}`)
+    lines.push(`ASSERT STATE(2) EQ 0x${hex(config.branchId)}`)
   }
 
   if (config.deviceId) {
-    lines.push(`ASSERT STATE(3) EQ 0x${config.deviceId}`)
+    lines.push(`ASSERT STATE(3) EQ 0x${hex(config.deviceId)}`)
   }
 
   if (config.commissionPort !== undefined) {
@@ -60,11 +64,11 @@ export interface CoinUpdateConfig {
 
 export function buildCoinUpdateScript(config: CoinUpdateConfig): string {
   return [
-    `LET authority = 0x${config.authorityPk}`,
+    `LET authority = 0x${hex(config.authorityPk)}`,
     `ASSERT SIGNEDBY(authority)`,
     ``,
-    `ASSERT STATE(0) EQ 0x${config.coinId}`,
-    `ASSERT @TOKENID EQ 0x${config.tokenId}`,
+    `ASSERT STATE(0) EQ 0x${hex(config.coinId)}`,
+    `ASSERT @TOKENID EQ 0x${hex(config.tokenId)}`,
     ``,
     `LET prevEvent = PREVSTATE(${config.statePort})`,
     `LET curEvent = STATE(${config.statePort})`,
@@ -91,11 +95,11 @@ export interface TrustMessageConfig {
 
 export function buildTrustMessageScript(config: TrustMessageConfig): string {
   const lines: string[] = [
-    `LET authority = 0x${config.authorityPk}`,
+    `LET authority = 0x${hex(config.authorityPk)}`,
     `ASSERT SIGNEDBY(authority)`,
     ``,
-    `ASSERT STATE(0) EQ 0x${config.subjectId}`,
-    `ASSERT STATE(1) EQ 0x${config.subjectType}`,
+    `ASSERT STATE(0) EQ 0x${hex(config.subjectId)}`,
+    `ASSERT STATE(1) EQ 0x${hex(config.subjectType)}`,
     ``,
     `LET rating = STATE(2)`,
     `ASSERT rating GTE 0`,

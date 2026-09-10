@@ -7,15 +7,47 @@ import {
   RiskThresholdPolicy,
 } from '../index.js';
 import type { AgentProposal, PolicyMiddleware } from '../types.js';
+import type { AuthorityDecisionResult } from '../authority.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
+function makeDecisionResult(allowed: boolean, reason?: string): AuthorityDecisionResult {
+  return {
+    decision: {
+      allowed,
+      reason,
+      matchedRules: allowed ? ['mandate:crypto:valid'] : [],
+      failedRules: allowed ? [] : ['scope:mismatch'],
+      intentId: 'totem:intent:test',
+      mandateId: 'totem:mandate:test',
+      decisionId: 'totem:decision:test',
+      evaluatedAt: Date.now(),
+      policyVersion: '0.1.0',
+      mandateVerification: {
+        valid: allowed,
+        identityVerified: allowed,
+        scopeMatch: allowed,
+        usageExceeded: false,
+        expired: false,
+        identityRevoked: false,
+        mandateRevoked: false,
+      },
+      usageSnapshot: { mandateProofId: 'totem:mandate:test', totalCount: 0 },
+      usageSnapshotHash: '',
+      evidenceIds: [],
+      usageDelta: { count: 1 },
+    },
+    usageDelta: { count: 1 },
+  };
+}
+
 function makeProposal(overrides?: Partial<AgentProposal['intent']>): AgentProposal {
   return {
     id: 'prop-1',
     agentId: 'test-agent',
+    principal: 'MxPRINCIPAL',
     intent: {
       type: 'payment',
       amount: '100',
@@ -89,11 +121,11 @@ describe('RateLimitPolicy', () => {
     expect((await policy.reserve({ ...proposal, id: 'other' }, 1_000_000)).outcome).toBe('approved');
   });
 
-  it('isolates rate limits by agent and token', async () => {
+  it('isolates rate limits by principal and token', async () => {
     const policy = new RateLimitPolicy(1, 1000);
     const proposal = makeProposal();
     expect((await policy.reserve(proposal, 1_000_000)).outcome).toBe('approved');
-    expect((await policy.reserve({ ...proposal, id: 'agent-2', agentId: 'other' }, 1_000_000)).outcome).toBe('approved');
+    expect((await policy.reserve({ ...proposal, id: 'agent-2', principal: 'MxOTHER' }, 1_000_000)).outcome).toBe('approved');
     expect((await policy.reserve({ ...proposal, id: 'token-2', intent: { ...proposal.intent, tokenId: 'other' } }, 1_000_000)).outcome).toBe('approved');
   });
 
@@ -598,7 +630,7 @@ describe('AuthorityPolicy', () => {
   it('approves when authority allows', async () => {
     const evaluator: AuthorityEvaluator = {
       async evaluate() {
-        return { allowed: true, reason: 'Mandate valid' };
+        return makeDecisionResult(true, 'Mandate valid');
       },
     };
     const policy = new AuthorityPolicy(evaluator);
@@ -609,7 +641,7 @@ describe('AuthorityPolicy', () => {
   it('rejects when authority denies', async () => {
     const evaluator: AuthorityEvaluator = {
       async evaluate() {
-        return { allowed: false, reason: 'Scope mismatch' };
+        return makeDecisionResult(false, 'Scope mismatch');
       },
     };
     const policy = new AuthorityPolicy(evaluator);
@@ -627,7 +659,7 @@ describe('AuthorityPolicy', () => {
     const evaluator: AuthorityEvaluator = {
       async evaluate(params) {
         expect(params.action.action).toBe('custom:action');
-        return { allowed: true };
+        return makeDecisionResult(true);
       },
     };
     const policy = new AuthorityPolicy(evaluator, extractor);
@@ -638,7 +670,7 @@ describe('AuthorityPolicy', () => {
   it('works in ComposablePolicy chain', async () => {
     const evaluator: AuthorityEvaluator = {
       async evaluate() {
-        return { allowed: true };
+        return makeDecisionResult(true);
       },
     };
     const policy = new ComposablePolicy([
@@ -652,7 +684,7 @@ describe('AuthorityPolicy', () => {
   it('short-circuits when authority denies in chain', async () => {
     const denyEvaluator: AuthorityEvaluator = {
       async evaluate() {
-        return { allowed: false, reason: 'No mandate' };
+        return makeDecisionResult(false, 'No mandate');
       },
     };
     const policy = new ComposablePolicy([
@@ -662,6 +694,45 @@ describe('AuthorityPolicy', () => {
     const result = await policy.evaluate(makeProposal());
     expect(result.outcome).toBe('rejected');
     expect(result.reason).toContain('No mandate');
+  });
+
+  it('rejects a proposal without an authenticated principal in strict mode', async () => {
+    const evaluator: AuthorityEvaluator = {
+      async evaluate() {
+        return makeDecisionResult(true);
+      },
+    };
+    const policy = new AuthorityPolicy(evaluator);
+    const proposal = { ...makeProposal(), principal: undefined };
+    const result = await policy.evaluate(proposal);
+    expect(result.outcome).toBe('rejected');
+    expect(result.reason).toContain('principal');
+  });
+
+  it('preserves the real action namespace (no payment:* synthesis)', async () => {
+    const evaluator: AuthorityEvaluator = {
+      async evaluate(params) {
+        expect(params.action.action).toBe('channel_update');
+        expect(params.action.principal).toBe('MxPRINCIPAL');
+        return makeDecisionResult(true);
+      },
+    };
+    const policy = new AuthorityPolicy(evaluator);
+    const result = await policy.evaluate(makeProposal({ type: 'channel_update' }));
+    expect(result.outcome).toBe('approved');
+  });
+
+  it('carries the full authority decision on the result', async () => {
+    const evaluator: AuthorityEvaluator = {
+      async evaluate() {
+        return makeDecisionResult(true, 'Mandate valid');
+      },
+    };
+    const policy = new AuthorityPolicy(evaluator);
+    const result = await policy.evaluate(makeProposal());
+    expect(result.authorityDecision?.allowed).toBe(true);
+    expect(result.authorityDecision?.mandateId).toBe('totem:mandate:test');
+    expect(result.usageDelta).toEqual({ count: 1 });
   });
 });
 

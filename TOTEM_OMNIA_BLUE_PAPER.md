@@ -151,10 +151,10 @@ Estimated blocks: 8
 
 ### 3.3 Cross-Token Swaps
 
-The buyer wants to pay in MINIMA. The sensor wants to receive in a Euro stablecoin. An intermediary node announces a swap rate: 1 MINIMA = 0.95 EURS. The router finds a path that includes the swap:
+The buyer wants to pay in MINIMA. The sensor wants to receive a USD stablecoin. An intermediary node announces a swap rate: 1 MINIMA = 0.95 USDT. The router finds a path that includes the swap:
 
 ```
-Buyer(MINIMA) → Hub ASIA → [SWAP: 1 MIN = 0.95 EURS] → Hub EU(EURS) → Sensor(EURS)
+Buyer(MINIMA) → Hub ASIA → [SWAP: 1 MIN = 0.95 USDT] → Hub US(USDT) → Sensor(USDT)
 ```
 
 The swap uses two HTLCs with the same hashlock. The intermediary can only claim by revealing the preimage on both sides simultaneously — atomic cross-token settlement.
@@ -437,7 +437,7 @@ Transaction:
 
 ### 10.2 Liquidity Bonds: The Capital Layer
 
-`@totemsdk/liquidity-bond` provides the deterministic accounting layer for productive liquidity. Liquidity Providers (LPs) commit MINIMA (or accepted tokens like MxUSD) to pools. The pool operator allocates this capital to route-reserves, channel-capacity, factory-capital, or RFQ-inventory. Every allocation is recorded. Every fee is tracked. Every position has a risk haircut.
+`@totemsdk/liquidity-bond` provides the deterministic accounting layer for productive liquidity. Liquidity Providers (LPs) commit MINIMA (or accepted tokens like USDT) to pools. The pool operator allocates this capital to route-reserves, channel-capacity, factory-capital, or RFQ-inventory. Every allocation is recorded. Every fee is tracked. Every position has a risk haircut.
 
 **The lending model emerges naturally:**
 
@@ -468,14 +468,14 @@ A VTXO pool is structurally identical to a lending pool. The pool operator holds
 
 **The VTXO lending model:**
 
-1. A stablecoin issuer creates a VTXO pool with 1,000,000 MxUSD capacity
-2. Merchants mint MxUSD VTXOs by depositing MINIMA collateral into the pool
-3. The pool operator allocates the MINIMA collateral to channel factories, earning routing fees
-4. Merchants use their MxUSD VTXOs to pay suppliers, who can hold them, transfer them, or exit them for MINIMA
+1. A merchant opens a stable settlement pool with 1,000,000 USDT capacity (USDT is live on Minima)
+2. The merchant deposits USDT VTXOs into the pool; the pool operator records them against the pool's Merkle tree
+3. The pool operator allocates pooled USDT to channel factories, earning routing fees
+4. The merchant uses the USDT VTXOs to pay suppliers, who can hold them, transfer them, or exit them for MINIMA
 5. The pool's fee revenue is distributed to VTXO holders pro-rata
-6. A merchant holding 10,000 MxUSD in VTXOs earns yield on their balance — without lending it to a bank
+6. A supplier holding 10,000 USDT in VTXOs earns yield on their balance — without lending it to a bank
 
-This is a **collateralised stablecoin** where the collateral is productive (earning routing fees) rather than idle (sitting in a vault). The stablecoin is backed by MINIMA, but the MINIMA is working.
+**Future research — MxUSD:** A MINIMA-collateralised bond stablecoin (minted by depositing MINIMA collateral into a VTXO pool, MakerDAO-style) is under exploration. The collateral would be productive (earning routing fees) rather than idle (sitting in a vault). **MxUSD is not yet issued and should not be referenced as a live asset.**
 
 ### 10.4 Channel Factories as Credit Unions
 
@@ -517,41 +517,44 @@ These templates are the legal contracts of the Omnia capital market. They are no
 
 Omnia is token-agnostic. Any Minima token — native MINIMA, standard tokens, NFTs — can flow through channels, be locked in statechains, and be represented as VTXOs. This is not a future feature. It is how the protocol works today.
 
+**Assets on Minima today:** native MINIMA (base asset) and USDT (live stable settlement asset). **Upcoming:** TOTEM, the protocol's native token. **Research only — not issued:** MxUSD, a bond-backed stablecoin (see §10.3). This paper previously used the placeholder *MxUSD* as if it were a live asset; it is not.
+
 ### 11.1 How Tokens Flow Through Omnia
 
 Every Omnia channel has a `tokenId` field. A channel denominated in `0x00` carries MINIMA. A channel denominated in a custom token ID carries that token. The eltoo state machine, HTLC atomicity, and balance conservation work identically regardless of the token.
 
-Cross-token swaps use dual HTLCs with the same hashlock. Alice pays in MINIMA. Bob receives in EURS. The intermediary provides liquidity in both tokens. The swap is atomic — either both sides settle or neither does.
+Cross-token swaps use dual HTLCs with the same hashlock. Alice pays in MINIMA. Bob receives in USDT. The intermediary provides liquidity in both tokens. The swap is atomic — either both sides settle or neither does.
 
 ```
-Alice(MINIMA) ──HTLC(hash=H)──→ Intermediary ──HTLC(hash=H)──→ Bob(EURS)
+Alice(MINIMA) ──HTLC(hash=H)──→ Intermediary ──HTLC(hash=H)──→ Bob(USDT)
 ```
 
 The intermediary can only claim by revealing the preimage on both sides simultaneously. This is the mechanism that enables any token to flow through the Omnia network.
 
-### 11.2 MxUSD: The Stable Settlement Asset
+### 11.2 Stable Settlement Assets
 
-`@totemsdk/liquidity-bond` explicitly references MxUSD as an accepted asset for stable settlement pools. A liquidity pool denominated in MxUSD provides stable-value routing capacity. Merchants who want to receive stable-value payments open MxUSD channels. Customers who hold MINIMA route through a swap intermediary.
+USDT is live on Minima, giving Omnia a stable-value settlement asset today. `@totemsdk/liquidity-bond` accepts `USDT` for stable settlement pools. A liquidity pool denominated in USDT provides stable-value routing capacity. Merchants who want to receive stable-value payments open USDT channels. Customers who hold MINIMA route through a swap intermediary.
 
-**The MxUSD flow:**
+**The USDT flow:**
 
-1. A stablecoin issuer mints MxUSD against MINIMA collateral locked in a VTXO pool
-2. A merchant opens an MxUSD channel with a router node
-3. A customer wants to pay the merchant 100 MxUSD but holds MINIMA
-4. The router finds a cross-token route: Customer(MINIMA) → Swap Node → Merchant(MxUSD)
-5. The swap node provides the MINIMA/MxUSD exchange rate
-6. Dual HTLCs execute atomically: Customer pays MINIMA, Merchant receives MxUSD
-7. The merchant never touches MINIMA. The customer never touches MxUSD. The swap node earns the spread.
+1. A merchant opens a USDT channel with a router node
+2. A customer wants to pay the merchant 100 USDT but holds MINIMA
+3. The router finds a cross-token route: Customer(MINIMA) → Swap Node → Merchant(USDT)
+4. The swap node provides the MINIMA/USDT exchange rate
+5. Dual HTLCs execute atomically: Customer pays MINIMA, Merchant receives USDT
+6. The merchant never touches MINIMA. The customer never touches USDT. The swap node earns the spread.
+
+MxUSD — a MINIMA-collateralised bond stablecoin, explored in §10.3 — is **future research only** and is not a live settlement asset.
 
 ### 11.3 VTXOs as Tokenized Off-Chain Assets
 
-A VTXO can represent anything. It is a Merkle-proofed claim on a pool. The pool can hold MINIMA, MxUSD, or any token. The VTXO inherits the pool's token type.
+A VTXO can represent anything. It is a Merkle-proofed claim on a pool. The pool can hold MINIMA, USDT, or any token. The VTXO inherits the pool's token type.
 
 **What VTXOs can represent:**
 
 | VTXO Type | Pool Asset | Use Case |
 |-----------|-----------|----------|
-| Stablecoin balance | MxUSD | Merchant working capital |
+| Stablecoin balance | USDT | Merchant working capital |
 | Tokenized RWA share | Tokenised real-world asset | Fractional ownership of a solar farm |
 | Loyalty point | Brand token | Airline miles, coffee shop stamps |
 | Invoice | MINIMA | Trade finance — tokenised receivables |
@@ -580,6 +583,8 @@ A statechain is a bearer instrument. The holder of the statechain owns the under
 The statechain is the token. There is no separate token contract. The statechain's chain of custody is the ownership registry. The SE's blind signatures are the transfer authorisations. The KISSVM locking script is the token's rules.
 
 ### 11.5 The Vision: A Euro Stablecoin on Omnia
+
+*Illustrative vision. EURS does not exist on Minima today; the live stable asset is USDT (§11.2). This section shows how a third-party Euro stablecoin could be issued on Omnia if desired.*
 
 A European fintech company wants to issue a Euro stablecoin (EURS) on Minima. They want it to be used for everyday payments — coffee, groceries, utility bills. They want it to be private. They want it to earn yield.
 

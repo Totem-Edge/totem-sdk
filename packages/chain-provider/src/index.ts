@@ -7,7 +7,20 @@ export type {
   TokenInfo,
   TokenSearchQuery,
   BroadcastResult,
+  VerifyDepositParams,
+  DepositVerification,
+  MmrChunkProof,
+  DepositAddressOptions,
+  DepositVerifier,
 } from './types.js';
+
+export {
+  DEPOSIT_ADDRESS_DOMAIN,
+  depositAddressFor,
+  verifyDeposit,
+  verifyDepositMmrProof,
+  withDepositVerifier,
+} from './verify-deposit.js';
 
 export { HostedProvider } from './providers/hosted.js';
 export type { HostedProviderConfig } from './providers/hosted.js';

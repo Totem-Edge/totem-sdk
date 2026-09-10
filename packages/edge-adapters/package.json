@@ -22,6 +22,9 @@
     "README.md",
     "LICENSE"
   ],
+  "dependencies": {
+    "better-sqlite3": "^12.2.0"
+  },
   "peerDependencies": {
     "@totemsdk/agent-policy": "workspace:^",
     "@totemsdk/chain-provider": "workspace:^",
@@ -73,6 +76,7 @@
   "devDependencies": {
     "@totemsdk/agent-policy": "workspace:^",
     "@totemsdk/chain-provider": "workspace:^",
+    "@totemsdk/core": "workspace:^",
     "@totemsdk/edge": "workspace:^",
     "@totemsdk/identity": "workspace:^",
     "@totemsdk/lookup-client": "workspace:^",
@@ -83,8 +87,10 @@
     "@totemsdk/pubsub-transport": "workspace:^",
     "@totemsdk/root-identity": "workspace:^",
     "@totemsdk/stream-transport": "workspace:^",
+    "@totemsdk/txpow": "workspace:^",
     "@types/jest": "^30.0.0",
     "@types/node": "^20.0.0",
+    "@types/better-sqlite3": "^7.6.13",
     "jest": "^30.4.2",
     "ts-jest": "^29.0.0",
     "typescript": "^7.0.2"
@@ -97,7 +103,7 @@
   },
   "license": "MIT",
   "author": "Totem SDK",
-  "homepage": "https://totem.ing",
+  "homepage": "https://docs.totem.ing",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Totem-Edge/totem-sdk.git",

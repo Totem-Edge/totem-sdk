@@ -58,8 +58,66 @@ export { TimeWindowPolicy } from './time-window.js';
 export { RiskThresholdPolicy } from './risk-threshold.js';
 
 // Authority bridge
-export { AuthorityPolicy } from './authority.js';
-export type { AuthorityActionIntent, AuthorityEvaluator } from './authority.js';
+export { AuthorityPolicy, defaultActionExtractor, intentAction } from './authority.js';
+export type { AuthorityActionIntent, AuthorityDecisionResult, AuthorityEvaluator, AuthorityPolicyOptions } from './authority.js';
+
+// Grant-bound autonomous run coordination
+export { GrantBoundPolicy, resolveStepField } from './grant-bound.js';
+export type { GrantBoundPolicyOptions, LocalBounds, AuthorizeStepResult } from './grant-bound.js';
+
+export { MemoryGrantUsageStore } from './grant-usage.js';
+export type { GrantUsageStore, MemoryGrantUsageStoreOptions } from './grant-usage.js';
+
+// Run-level autonomy
+export { GrantBoundAutonomyPolicy, accumulateAmount } from './grant-bound-autonomy.js';
+export type {
+  OpenRunParams,
+  AuthorizeAndReserveParams,
+  RunAuthorization,
+  RunAuthorizationRejected,
+  CommitParams,
+  RunReceiptGraph,
+  SuggestedGrantAmendment,
+  GrantBoundAutonomyOptions,
+} from './grant-bound-autonomy.js';
+
+export { MemoryRunStateStore } from './run-state-store.js';
+export type { RunStateStore, RunStateSnapshot, RunReservation, RunStepReceipt, RunSessionTotals } from './run-state-store.js';
+
+export { SqliteRunStateStore } from './sqlite-run-state-store.js';
+export type { SqliteRunStateStoreOptions } from './sqlite-run-state-store.js';
+
+export { createAutonomyPolicy, checkRunLimits, checkTransition, checkObligations, evaluateGrantRequirement, isStartEligible } from './autonomy.js';
+export type { AutonomyPolicy, BoundaryFailure, BoundaryEscalation } from './autonomy.js';
+
+export { reduceToCanonicalAction, summarizeStepSpend } from './omnia-rebalance-slice.js';
+export type { PreparedRebalanceOperation, PreparedStep } from './omnia-rebalance-slice.js';
+
+export {
+  canonicalAgentActionDigest,
+} from './run.js';
+export type {
+  AutonomyMode,
+  AutonomyProfile,
+  GrantRequirement,
+  RunLimits,
+  RunObligations,
+  StepTransitionRule,
+  StepEffects,
+  StepEffect,
+  ChannelEffect,
+  CanonicalAgentAction,
+} from './run.js';
+
+export type {
+  AutonomousRun,
+  AgentStep,
+  ActionIntent as RunActionIntent,
+  StepAuthorization,
+  StepAuthorizationInput,
+  StepReceipt,
+  RunMode,
+} from './run.js';
 
 // Receipt persistence
 export { MemoryReceiptStore } from './receipt-store.js';
