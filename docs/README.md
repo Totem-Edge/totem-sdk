@@ -65,6 +65,7 @@
 | Document | Description |
 |----------|-------------|
 | [building-eefi-with-totem-edge.md](building-eefi-with-totem-edge.md) | **Building Eefi with Totem Edge** — Edge DeFi explained: how IoT devices, sensors, and machines run their own payment channels, liquidity pools, and governance on Minima. Covers Omnia eltoo channels, statechains, VTXOs, channel factories, MachinePay, provider bonds, recursive MAST, quadratic governance, QVAC agent policy, and the full Eefi stack. |
+| [edge-agent-governance.md](edge-agent-governance.md) | **Edge Agent Governance** — universal action registry, governed agent facade, real-tx effect derivation, ungrantable activities, boundary escalation, receipt graphs |
 
 ---
 

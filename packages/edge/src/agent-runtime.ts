@@ -55,6 +55,8 @@ export function createAgentEdgeRuntime(options: AgentEdgeRuntimeOptions): AgentE
     const { action, subject, payload, context } = input;
 
     // 0. Ungrantable activities are rejected before any port is touched.
+    //    This is a hard deny — even if a matching port or action definition
+    //    exists, the agent can never invoke these directly.
     if (isUngrantableAction(action)) {
       return {
         ok: false,

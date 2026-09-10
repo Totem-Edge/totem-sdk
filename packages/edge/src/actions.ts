@@ -24,6 +24,45 @@ export interface BuiltinActionRegistration {
 }
 
 /**
+ * Trusted wallet signing context. The agent never supplies a seed or key index —
+ * signing uses the trusted wallet key, and the key-lease lifecycle
+ * (reserve → sign → commit/burn) is an INTERNAL consequence of an authorized
+ * signing action, never an agent-callable action.
+ */
+export interface EdgeTrustedSigningContext {
+  manifestSeed?: Uint8Array;
+  manifestKeyIndex?: number;
+  /** Key index reserved for sign-effect actions (omnia spend ops). */
+  signingKeyIndex?: number;
+}
+
+/**
+ * Wrap a sign-effect execution in the key-lease lifecycle. The agent can never
+ * call keylease:reserve/commit/burn directly — this is the only path that
+ * touches the key-lease port, and it runs only after authorization.
+ */
+async function withKeyLease(
+  ports: EdgeRuntimePorts,
+  keyIndex: number | undefined,
+  fn: () => Promise<EdgeOperationResult>,
+): Promise<EdgeOperationResult> {
+  if (!ports.keyLease || keyIndex === undefined) return fn();
+  const { reservationId } = await ports.keyLease.reserve(keyIndex);
+  try {
+    const result = await fn();
+    if (result.ok) {
+      await ports.keyLease.commit(reservationId);
+    } else {
+      await ports.keyLease.burn(reservationId);
+    }
+    return result;
+  } catch (error) {
+    await ports.keyLease.burn(reservationId);
+    throw error;
+  }
+}
+
+/**
  * Wallet-side tx building context. The wallet builds the transaction FIRST
  * (coin selection + outputs), then the action derives effects from the real
  * built tx — never from agent-supplied hints.
@@ -51,7 +90,7 @@ export interface EdgeTxBuilderContext {
 
 export function createBuiltinActionDefinitions(
   ports: EdgeRuntimePorts,
-  trusted?: { manifestSeed?: Uint8Array; manifestKeyIndex?: number },
+  trusted?: EdgeTrustedSigningContext,
   txBuilder?: EdgeTxBuilderContext,
 ): BuiltinActionRegistration[] {
   const defs: BuiltinActionRegistration[] = [];
@@ -154,6 +193,11 @@ export function createBuiltinActionDefinitions(
           const fn = (ports.omnia as unknown as Record<string, (p: Record<string, unknown>) => Promise<EdgeOperationResult>>)[o.op];
           if (!fn) return { ok: false, error: `Unknown Omnia operation: ${o.op}`, errorCode: 'UNKNOWN_ACTION' };
           const { built: _built, ...rest } = prepared as Record<string, unknown>;
+          // Spend ops sign channel state — the key-lease lifecycle is an
+          // internal consequence of the authorized signing action.
+          if (o.effect === 'spend') {
+            return withKeyLease(ports, trusted?.signingKeyIndex, () => fn(rest));
+          }
           return fn(rest);
         },
       },
@@ -295,12 +339,15 @@ export function createBuiltinActionDefinitions(
       deriveEffects: noEffects,
       execute: async (prepared) => {
         if (!ports.manifest) return { ok: false, error: 'No manifest port configured', errorCode: 'PORT_MISSING' };
-        // The agent never supplies a seed — signing uses the trusted wallet key.
+        // The agent never supplies a seed — signing uses the trusted wallet key,
+        // and the key-lease lifecycle is an internal consequence of the action.
         if (!trusted?.manifestSeed) return { ok: false, error: 'No trusted manifest signing key configured', errorCode: 'SIGNING_KEY_MISSING' };
-        return ports.manifest.sign(
-          (prepared as { manifest: unknown }).manifest,
-          trusted.manifestSeed,
-          trusted.manifestKeyIndex ?? 0,
+        return withKeyLease(ports, trusted.manifestKeyIndex, () =>
+          ports.manifest!.sign(
+            (prepared as { manifest: unknown }).manifest,
+            trusted.manifestSeed!,
+            trusted.manifestKeyIndex ?? 0,
+          ),
         );
       },
     },
