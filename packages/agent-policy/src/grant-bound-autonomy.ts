@@ -251,6 +251,7 @@ export class GrantBoundAutonomyPolicy {
       status: 'reserved',
       mandateIds: authorizedGrantIds,
       decisionIds,
+      usageDeltas,
     };
     await this.stateStore.reserveStep(reservation);
 

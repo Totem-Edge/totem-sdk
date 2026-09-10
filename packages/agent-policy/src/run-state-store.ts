@@ -48,6 +48,8 @@ export interface RunReservation {
   /** Mandates/decisions that authorized this step. */
   mandateIds?: string[];
   decisionIds?: string[];
+  /** Per-mandate usage reserved atomically with the run-state reservation. */
+  usageDeltas?: Array<{ mandateId: string; delta: { count: number; amount?: string } }>;
 }
 
 export interface RunStepReceipt {

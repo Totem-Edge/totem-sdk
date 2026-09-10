@@ -289,13 +289,25 @@ importers:
       '@protobuf-ts/runtime':
         specifier: ^2.11.1
         version: 2.11.1
+      '@totemsdk/authority':
+        specifier: workspace:^
+        version: link:../authority
       '@totemsdk/core':
         specifier: workspace:^
         version: link:../core
+      '@totemsdk/proof':
+        specifier: workspace:^
+        version: link:../proof
+      better-sqlite3:
+        specifier: ^12.2.0
+        version: 12.11.1
     devDependencies:
       '@protobuf-ts/plugin':
         specifier: ^2.9.4
         version: 2.11.1
+      '@types/better-sqlite3':
+        specifier: ^7.6.13
+        version: 7.6.13
       '@types/jest':
         specifier: ^30.0.0
         version: 30.0.0
@@ -1323,6 +1335,9 @@ importers:
 
   packages/omnia-pool:
     dependencies:
+      '@totemsdk/agent-policy':
+        specifier: workspace:^
+        version: link:../agent-policy
       '@totemsdk/chain-provider':
         specifier: workspace:^
         version: link:../chain-provider
@@ -1339,6 +1354,12 @@ importers:
         specifier: workspace:^
         version: link:../wots-lease
     devDependencies:
+      '@totemsdk/authority':
+        specifier: workspace:^
+        version: link:../authority
+      '@totemsdk/identity':
+        specifier: workspace:^
+        version: link:../identity
       '@totemsdk/omnia':
         specifier: workspace:^
         version: link:../omnia
@@ -1354,6 +1375,9 @@ importers:
       '@totemsdk/omnia-vtxo':
         specifier: workspace:^
         version: link:../omnia-vtxo
+      '@totemsdk/proof':
+        specifier: workspace:^
+        version: link:../proof
       '@types/jest':
         specifier: ^30.0.0
         version: 30.0.0

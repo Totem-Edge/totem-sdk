@@ -32,6 +32,17 @@ export {
 } from './allocate.js';
 
 export {
+  executeAutonomousRebalanceStep,
+  prepareRebalanceStep,
+} from './autonomous-rebalance.js';
+export type {
+  AutonomousRebalanceOptions,
+  AutonomousRebalanceResult,
+  PreparedRebalanceStep,
+  RebalanceChannelUpdate,
+} from './autonomous-rebalance.js';
+
+export {
   recordPoolFee,
   computeUnclaimedFees,
   claimFees,

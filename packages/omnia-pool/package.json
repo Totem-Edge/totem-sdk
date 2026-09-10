@@ -23,6 +23,7 @@
     "LICENSE"
   ],
   "dependencies": {
+    "@totemsdk/agent-policy": "workspace:^",
     "@totemsdk/chain-provider": "workspace:^",
     "@totemsdk/liquidity-bond": "workspace:^",
     "@totemsdk/tx-builder": "workspace:^",
@@ -54,11 +55,14 @@
     }
   },
   "devDependencies": {
+    "@totemsdk/authority": "workspace:^",
+    "@totemsdk/identity": "workspace:^",
     "@totemsdk/omnia": "workspace:^",
     "@totemsdk/omnia-factory": "workspace:^",
     "@totemsdk/omnia-router": "workspace:^",
     "@totemsdk/omnia-splice": "workspace:^",
     "@totemsdk/omnia-vtxo": "workspace:^",
+    "@totemsdk/proof": "workspace:^",
     "@types/jest": "^30.0.0",
     "@types/node": "^20.0.0",
     "jest": "^30.4.2",

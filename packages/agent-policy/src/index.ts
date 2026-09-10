@@ -84,6 +84,9 @@ export type {
 export { MemoryRunStateStore } from './run-state-store.js';
 export type { RunStateStore, RunStateSnapshot, RunReservation, RunStepReceipt, RunSessionTotals } from './run-state-store.js';
 
+export { SqliteRunStateStore } from './sqlite-run-state-store.js';
+export type { SqliteRunStateStoreOptions } from './sqlite-run-state-store.js';
+
 export { createAutonomyPolicy, checkRunLimits, checkTransition, checkObligations, evaluateGrantRequirement, isStartEligible } from './autonomy.js';
 export type { AutonomyPolicy, BoundaryFailure, BoundaryEscalation } from './autonomy.js';
 

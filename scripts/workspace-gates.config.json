@@ -54,10 +54,6 @@
     "packages/proofgraph": { "status": "publishable", "maturity": "v1" },
     "packages/provider-bond": { "status": "publishable", "maturity": "rc" },
     "packages/pubsub-transport": { "status": "publishable", "maturity": "rc" },
-    "packages/pureminima-rpc": {
-      "status": "excluded",
-      "reason": "deprecated — superseded by @totemsdk/minima-rpc"
-    },
     "packages/minima-rpc": { "status": "publishable", "maturity": "rc" },
     "packages/realtime": { "status": "publishable", "maturity": "rc" },
     "packages/recursive-mast": { "status": "publishable", "maturity": "rc" },
