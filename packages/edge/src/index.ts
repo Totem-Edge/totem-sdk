@@ -48,6 +48,18 @@ export { createEdgeRuntime } from './runtime.js';
 export { createEdgeDevice } from './device.js';
 export { createEdge, type CreateEdgeOptions, type EdgeCommerceRuntime } from './create-edge.js';
 
+// ── Universal action registry + governed agent facade ──────────────────────
+export { createEdgeActionRegistry, isUngrantableAction, UNGRANTABLE_ACTIONS } from './action-registry.js';
+export type {
+  EdgeActionDefinition,
+  EdgeActionEffect,
+  EdgeActionInput,
+  EdgeActionRegistry,
+} from './action-registry.js';
+export { createBuiltinActionDefinitions } from './actions.js';
+export { createAgentEdgeRuntime } from './agent-runtime.js';
+export type { AgentEdgeRuntime, AgentEdgeRuntimeOptions } from './agent-runtime.js';
+
 export { createEdgeReceipt, verifyEdgeReceipt } from './receipts.js';
 
 export {
