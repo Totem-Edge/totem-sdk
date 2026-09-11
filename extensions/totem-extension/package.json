@@ -73,7 +73,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",
-    "@types/chrome": "^0.2.6",
+    "@types/chrome": "^0.2.7",
     "@types/jest": "^30.0.0",
     "@types/node": "^26.1.2",
     "@types/react": "^18.2.0",
