@@ -12,9 +12,15 @@ surface only — it cannot sign and never holds keys.
 pnpm add @totemsdk/qvac @qvac/sdk
 ```
 
-`@qvac/sdk` is an optional peer — the adapter consumes it through a
-structural `QvacSdkLike` interface, so your app stays buildable even before
-the QVAC runtime is present.
+`@qvac/sdk` is consumed at runtime only: the adapter has **no manifest peer on
+the heavy native SDK**. Its type surface is vendored from the real
+`@qvac/sdk@0.19.0` declarations and made ambient at build time, so the package
+typechecks against genuine upstream signatures (real `CompletionParams`,
+stream/run/session shapes, adapter param types) without dragging the QVAC
+native binaries into the install. A CI drift audit
+(`validate:qvac-drift`) reinstalls the real SDK and verifies the wrapped op
+surface still exists upstream; when the SDK is absent, the provider builds and
+advertises domains structurally and resolves lazily.
 
 ## Quick start
 
@@ -27,7 +33,7 @@ const provider = createQvacIntelligenceProvider({ sdk: qvac });
 const result = await provider.invoke({
   domain: 'llm',
   op: 'completion',
-  params: { model: 'qvac-llm', prompt: 'Summarize this invoice' },
+  params: { modelId: 'qvac-llm', history: [{ role: 'user', content: 'Summarize this invoice' }] },
 });
 ```
 
@@ -71,10 +77,10 @@ import { createQvacIntelligenceProvider, llmAdapter, ragAdapter } from '@totemsd
 const provider = createQvacIntelligenceProvider({ sdk: qvac });
 
 const completion = llmAdapter(provider).completion;
-const result = await completion({ model: 'qvac-llm', prompt: 'Summarize this invoice' });
+const result = await completion({ modelId: 'qvac-llm', history: [{ role: 'user', content: 'Summarize this invoice' }] });
 
 const { ragSearch } = ragAdapter(provider);
-const hits = await ragSearch({ query: 'invoice 42', topK: 5 });
+const hits = await ragSearch({ embeddingModelId: 'qvac-embed', text: 'invoice 42', topK: 5 });
 ```
 
 ## Security & trust
@@ -88,13 +94,32 @@ This adapter is a **compute surface, never a signing surface**:
 - `intelligence:<domain>` capability strings let `@totemsdk/edge` deny domains
   at dispatch (`CAPABILITY_MISSING`) before the port runs
 
+## Shapes & upstream parity
+
+The provider dispatches each op according to the real SDK's invocation shape
+(`QVAC_OP_SHAPES`): most ops take a params record, but `vlaPreprocessImage`
+and `vlaPadState` are positional and `subscribeServerLogs` is a callback that
+resolves to `{ unsubscribe }`. Adapter signatures mirror the real
+`@qvac/sdk` declarations, including streamable run/session surfaces
+(`completion` → token/progress/done, `textToSpeech` → audio samples +
+done, `transcribeStream` → segments, `loggingStream` → server log deltas,
+etc.), which `invokeStream` maps onto `IntelligenceStreamChunk`s.
+
+Cancellation reaches upstream too: `provider.cancel(requestId)` targets the
+local run and, when the SDK decorated the pending promise with a
+`requestId`, best-effort forwards `sdk.cancel({ requestId })`.
+
+For direct, type-exact access to the injected SDK, `@totemsdk/qvac/raw`
+exposes `createQvacRawClient({ sdk })` (pass-through) and the raw surface
+types.
+
 ## Subpaths
 
 | Subpath | Purpose |
 |---------|---------|
 | `.` | `createQvacIntelligenceProvider` + provider types + domain adapters |
 | `/edge` | `createQvacEdgeIntelligencePort` (port shape) |
-| `/raw` | raw QVAC SDK surface types (escape hatch) |
+| `/raw` | raw QVAC SDK surface — `createQvacRawClient` pass-through + types |
 | `/llm`, `/embed`, `/rag`, `/asr`, `/translate`, `/tts`, `/diffusion`, `/ocr`, `/classify`, `/audiogen`, `/video`, `/vla`, `/world`, `/models`, `/system`, `/plugins` | Typed per-domain adapter modules |
 
 ## License

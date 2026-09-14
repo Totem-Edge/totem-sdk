@@ -1,6 +1,12 @@
 /**
  * Tests for @totemsdk/qvac — provider factory, dispatch, usage extraction,
  * streaming, cancellation, and error mapping.
+ *
+ * The mock QVAC SDK (`mock-qvac.ts`) is faithful to @qvac/sdk@0.19.0 shapes:
+ * completion returns a live CompletionRun, embed/loadModel/transcribe return
+ * decorated promises carrying a sync requestId, TTS returns
+ * TextToSpeechStreamResult, and positional/callback ops keep their real
+ * signatures. The tests exercise those shapes end-to-end through the provider.
  */
 
 import {
@@ -10,7 +16,11 @@ import {
   createQvacEdgeIntelligencePort,
 } from '../edge-adapter.js';
 import { createQvacRawClient, getQvacRawSdk } from '../raw.js';
-import { createMockQvacSdk, MOCK_QVAC_VERSION } from '../test-fixtures/mock-qvac.js';
+import {
+  createMockQvacSdk,
+  getMockCancelled,
+  MOCK_QVAC_VERSION,
+} from '../test-fixtures/mock-qvac.js';
 
 import { IntelligenceError } from '@totemsdk/intelligence';
 import type { QvacSdkLike } from '../qvac-sdk.js';
@@ -104,32 +114,36 @@ describe('@totemsdk/qvac', () => {
   });
 
   describe('dispatch', () => {
-    it('routes llm:completion to the sdk completion callable', async () => {
-      const provider = createQvacIntelligenceProvider({ sdk: createMockQvacSdk() });
-      const result = await provider.invoke<{ text: string }>({
-        domain: 'llm',
-        op: 'completion',
-        params: { prompt: 'Summarize' },
-      });
-      expect(result.ok).toBe(true);
-      if (result.ok) {
-        expect(result.data.text).toBe('reply:Summarize');
-      }
-    });
-
-    it('extracts llm usage from run.stats', async () => {
+    it('routes llm:completion to the sdk completion callable and returns the live run', async () => {
       const provider = createQvacIntelligenceProvider({ sdk: createMockQvacSdk() });
       const result = await provider.invoke({
         domain: 'llm',
         op: 'completion',
-        params: { prompt: 'x' },
+        params: { history: [{ role: 'user', content: 'Summarize' }] },
       });
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.usage?.tokensIn).toBe(5);
-        expect(result.usage?.tokensOut).toBe(7);
-        expect(result.usage?.domain).toBe('llm');
-        expect(result.usage?.op).toBe('completion');
+        const run = result.data as {
+          requestId: string;
+          final: Promise<{ contentText: string }>;
+          text: Promise<string>;
+        };
+        expect(run.requestId).toMatch(/^comp-/);
+        expect(result.upstreamRequestId).toBe(run.requestId);
+        await expect(run.text).resolves.toBe('reply:Summarize');
+        await expect(run.final).resolves.toMatchObject({ contentText: 'reply:Summarize' });
+      }
+    });
+
+    it('extracts usage from resolved stat objects (decorated promises)', async () => {
+      const provider = createQvacIntelligenceProvider({ sdk: createMockQvacSdk() });
+      const result = await provider.invoke({ domain: 'embed', op: 'embed', params: { text: 'x' } });
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.usage?.tokensIn).toBe(10);
+        expect(result.usage?.domain).toBe('embed');
+        expect(result.usage?.op).toBe('embed');
+        expect(result.upstreamRequestId).toMatch(/^embed-/);
       }
     });
 
@@ -137,13 +151,16 @@ describe('@totemsdk/qvac', () => {
       const provider = createQvacIntelligenceProvider({ sdk: createMockQvacSdk() });
       const result = await provider.invoke({ domain: 'embed', op: 'embed', params: { text: 'hi' } });
       expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.data).toHaveProperty('embedding');
+      }
     });
 
     it('routes rag ops to the rag callables', async () => {
       const provider = createQvacIntelligenceProvider({ sdk: createMockQvacSdk() });
-      const search = await provider.invoke({ domain: 'rag', op: 'ragSearch', params: { query: 'q' } });
+      const search = await provider.invoke({ domain: 'rag', op: 'ragSearch', params: { text: 'q' } });
       expect(search.ok).toBe(true);
-      const ingest = await provider.invoke({ domain: 'rag', op: 'ragIngest', params: { docs: [] } });
+      const ingest = await provider.invoke({ domain: 'rag', op: 'ragIngest', params: { documents: [] } });
       expect(ingest.ok).toBe(true);
     });
 
@@ -208,6 +225,44 @@ describe('@totemsdk/qvac', () => {
     });
   });
 
+  describe('positional & callback op shapes', () => {
+    it('invokes positional vla helpers with their real argument order', async () => {
+      const provider = createQvacIntelligenceProvider({ sdk: createMockQvacSdk() });
+      const { vlaPreprocessImage, vlaPadState } = vlaAdapter(provider);
+
+      const processed = await vlaPreprocessImage(new Float32Array(4), 2, 2);
+      expect(processed.ok).toBe(true);
+      if (processed.ok) expect(processed.data).toHaveLength(4);
+
+      const padded = await vlaPadState(new Uint8Array(2), 8);
+      expect(padded.ok).toBe(true);
+      if (padded.ok) expect(padded.data).toHaveLength(8);
+    });
+
+    it('invokes positional modelRegistryGetModel(rp, rs)', async () => {
+      const provider = createQvacIntelligenceProvider({ sdk: createMockQvacSdk() });
+      const { modelRegistryGetModel } = modelsAdapter(provider);
+      const result = await modelRegistryGetModel('models/llm.gguf', 'registry');
+      expect(result.ok).toBe(true);
+      if (result.ok) expect(result.data.name).toBe('models/llm.gguf');
+    });
+
+    it('invokes callback subscribeServerLogs(handler) and returns unsubscribe', async () => {
+      const provider = createQvacIntelligenceProvider({ sdk: createMockQvacSdk() });
+      const { subscribeServerLogs } = systemAdapter(provider);
+      const logs: string[] = [];
+      const result = await subscribeServerLogs((log: { message: string }) => {
+        logs.push(log.message);
+      });
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(typeof result.data.unsubscribe).toBe('function');
+        result.data.unsubscribe();
+      }
+      expect(logs).toEqual(['subscribed']);
+    });
+  });
+
   describe('error mapping', () => {
     it('maps thrown errors to INTERNAL soft-fail results', async () => {
       const sdk: QvacSdkLike = {
@@ -255,9 +310,68 @@ describe('@totemsdk/qvac', () => {
       if (chunks[0].type === 'segment') expect(chunks[0].text).toBe('hello');
     });
 
+    it('streams completion events as token/stat chunks and reports final usage', async () => {
+      const provider = createQvacIntelligenceProvider({ sdk: createMockQvacSdk() });
+      const chunks = [];
+      for await (const c of provider.invokeStream({
+        domain: 'llm',
+        op: 'completion',
+        params: { history: [{ role: 'user', content: 'Hi' }] },
+      })) {
+        chunks.push(c);
+      }
+      expect(chunks.map(c => c.type)).toEqual(['token', 'token', 'progress', 'done']);
+      if (chunks[3].type === 'done') {
+        expect(chunks[3].usage?.tokensIn).toBe(5);
+        expect(chunks[3].usage?.tokensOut).toBe(7);
+      }
+    });
+
+    it('streams textToSpeech audio samples from bufferStream', async () => {
+      const provider = createQvacIntelligenceProvider({ sdk: createMockQvacSdk() });
+      const chunks = await collect(provider.invokeStream({
+        domain: 'tts',
+        op: 'textToSpeech',
+        params: { modelId: 'tts-1', text: 'hi' },
+      }));
+      expect(chunks.map(c => c.type)).toEqual(['audio', 'audio', 'done']);
+      expect(chunks[0].type === 'audio' ? chunks[0].data : null).toBe(1);
+    });
+
+    it('streams textToSpeechStream session chunks as audio', async () => {
+      const provider = createQvacIntelligenceProvider({ sdk: createMockQvacSdk() });
+      const chunks = await collect(provider.invokeStream({
+        domain: 'tts',
+        op: 'textToSpeechStream',
+        params: { modelId: 'tts-1' },
+      }));
+      expect(chunks.map(c => c.type)).toEqual(['audio', 'audio', 'done']);
+    });
+
+    it('streams loggingStream log entries', async () => {
+      const provider = createQvacIntelligenceProvider({ sdk: createMockQvacSdk() });
+      const chunks = await collect(provider.invokeStream({
+        domain: 'system',
+        op: 'loggingStream',
+        params: { id: 'sdk' },
+      }));
+      expect(chunks.map(c => c.type)).toEqual(['delta', 'done']);
+    });
+
+    it('streams diffusion progress ticks', async () => {
+      const provider = createQvacIntelligenceProvider({ sdk: createMockQvacSdk() });
+      const chunks = await collect(provider.invokeStream({
+        domain: 'diffusion',
+        op: 'diffusion',
+        params: { modelId: 'img-1', prompt: 'a cat' },
+      }));
+      expect(chunks.map(c => c.type)).toEqual(['progress', 'progress', 'progress', 'done']);
+      expect(chunks[0].type === 'progress' ? chunks[0].percent : null).toBe(25);
+    });
+
     it('rejects non-stream ops with NOT_IMPLEMENTED', async () => {
       const provider = createQvacIntelligenceProvider({ sdk: createMockQvacSdk() });
-      const iterator = provider.invokeStream({ domain: 'llm', op: 'completion', params: {} });
+      const iterator = provider.invokeStream({ domain: 'embed', op: 'embed', params: { text: 'x' } });
       await expect(collect(iterator)).rejects.toMatchObject({ code: 'NOT_IMPLEMENTED' });
     });
 
@@ -299,6 +413,57 @@ describe('@totemsdk/qvac', () => {
       if (!result.ok) expect(result.code).toBe('CANCELLED');
     });
 
+    it('forwards the upstream requestId to sdk.cancel for targeted cancellation', async () => {
+      const cancelled: string[] = [];
+      let resolveOp!: (v: unknown) => void;
+      const pendingEmbed = new Promise<unknown>((resolve) => {
+        resolveOp = resolve;
+      }) as Promise<unknown> & { requestId: string };
+      pendingEmbed.requestId = 'up-1';
+
+      const sdk: QvacSdkLike = {
+        embed() {
+          return pendingEmbed;
+        },
+        async cancel(params: { requestId: string }) {
+          cancelled.push(params.requestId);
+          return { success: true };
+        },
+      };
+      const provider = createQvacIntelligenceProvider({ sdk });
+      const invokePromise = provider.invoke({
+        domain: 'embed',
+        op: 'embed',
+        params: { text: 'x' },
+        requestId: 'req-1',
+      });
+
+      // Let the provider resolve the SDK + publish the upstream requestId.
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const cancelledResult = await provider.cancel('req-1');
+      expect(cancelledResult.ok).toBe(true);
+      expect(cancelled).toEqual(['up-1']);
+
+      resolveOp({ embedding: [1, 2, 3] });
+      const result = await invokePromise;
+      expect(result.ok).toBe(true);
+    });
+
+    it('tracks local→upstream request id mapping while in flight', async () => {
+      const mock = createMockQvacSdk();
+      const provider = createQvacIntelligenceProvider({ sdk: mock });
+      const result = await provider.invoke({
+        domain: 'embed',
+        op: 'embed',
+        params: { text: 'hi' },
+        requestId: 'req-1',
+      });
+      expect(result.ok).toBe(true);
+      expect(provider.upstreamRequestIds.size).toBe(0);
+    });
+
     it('returns NOT_FOUND for unknown request ids', async () => {
       const provider = createQvacIntelligenceProvider({ sdk: createMockQvacSdk() });
       const result = await provider.cancel('nope');
@@ -329,16 +494,16 @@ describe('@totemsdk/qvac', () => {
 
     it('routes domain-typed ops through the shared provider', async () => {
       const completion = llmAdapter(provider).completion;
-      const result = await completion({ model: 'mock-llm', prompt: 'Summarize' });
+      const result = await completion({ modelId: 'model-1', history: [{ role: 'user', content: 'Summarize' }] });
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.data.text).toBe('reply:Summarize');
+        await expect(result.data.text).resolves.toBe('reply:Summarize');
       }
     });
 
     it('embeds a domain adapter into the IntelligenceProvider contract', async () => {
       const { ragSearch } = ragAdapter(provider);
-      const result = await ragSearch({ query: 'documents' });
+      const result = await ragSearch({ embeddingModelId: 'embed-1', text: 'documents' });
       expect(result.ok).toBe(true);
     });
 
@@ -379,7 +544,7 @@ describe('@totemsdk/qvac', () => {
       const result = await port.invoke({
         domain: 'llm',
         op: 'completion',
-        params: { prompt: 'hello' },
+        params: { history: [{ role: 'user', content: 'hello' }] },
       });
       expect(result.ok).toBe(true);
       if (result.ok) {
@@ -421,11 +586,18 @@ describe('@totemsdk/qvac', () => {
       await provider.invoke({ domain: 'llm', op: 'completion', params: { prompt: 'hi' } });
       expect(getQvacRawSdk(provider)).toBe(mock);
     });
+
+    it('exposes the raw sdk cancel surface for targeted cancellation', async () => {
+      const mock = createMockQvacSdk();
+      const raw = createQvacRawClient({ sdk: mock });
+      await (raw as { cancel(p: { requestId: string }): Promise<unknown> }).cancel({ requestId: 'x' });
+      expect(getMockCancelled(mock).some(c => c.requestId === 'x')).toBe(true);
+    });
   });
 });
 
-async function collect(iterable: AsyncIterable<unknown>): Promise<unknown[]> {
-  const out: unknown[] = [];
+async function collect<T>(iterable: AsyncIterable<T>): Promise<T[]> {
+  const out: T[] = [];
   for await (const item of iterable) out.push(item);
   return out;
 }

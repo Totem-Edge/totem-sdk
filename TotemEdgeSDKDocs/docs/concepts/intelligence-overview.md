@@ -41,8 +41,13 @@ An `IntelligenceProvider` is a **compute surface, never a signing surface**.
 
 ## QVAC adapter
 
-`@totemsdk/qvac` consumes `@qvac/sdk` through a structural interface. The SDK
-can be injected, loaded via `sdkLoader`, or lazily required.
+`@totemsdk/qvac` consumes `@qvac/sdk` at runtime only — injected, loaded via
+`sdkLoader`, or lazily required. The package has **no manifest peer on the
+heavy native SDK**: its type surface is vendored from the real
+`@qvac/sdk@0.19.0` declarations, so adapter param/result types are genuine
+upstream signatures (e.g. `CompletionParams` requires `modelId` + `history`),
+and a CI drift audit (`validate:qvac-drift`) reinstalls the real SDK and
+verifies the wrapped op surface still exists upstream.
 
 ```ts
 import * as qvac from '@qvac/sdk';
@@ -53,7 +58,7 @@ const provider = createQvacIntelligenceProvider({ sdk: qvac });
 const result = await provider.invoke({
   domain: 'llm',
   op: 'completion',
-  params: { model: 'qvac-llm', prompt: 'Summarize this invoice' },
+  params: { modelId: 'qvac-llm', history: [{ role: 'user', content: 'Summarize this invoice' }] },
 });
 if (result.ok) console.log(result.data, result.usage?.tokensOut);
 ```
@@ -61,6 +66,14 @@ if (result.ok) console.log(result.data, result.usage?.tokensOut);
 **Capability discovery.** `provider.capabilities` reflects which domains are
 actually callable on the resolved SDK — a runtime without the RAG plugin stops
 advertising `intelligence:rag`.
+
+**Shapes & cancellation.** The provider dispatches each op per the real SDK
+invocation shape (record / positional / callback), maps streamable run/session
+surfaces (`textToSpeech` audio samples, `transcribeStream` segments,
+`completion` token/progress/done, `loggingStream` deltas) onto
+`IntelligenceStreamChunk`s, mirrors real adapter signatures, and forwards
+cancellation to `sdk.cancel({ requestId })` when the SDK decorates pending
+promises with a `requestId`.
 
 ## Edge integration
 

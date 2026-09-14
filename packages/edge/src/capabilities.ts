@@ -53,6 +53,7 @@ export type EdgeCapability =
   | 'intelligence:models'
   | 'intelligence:system'
   | 'intelligence:plugins'
+  | `intelligence:${string}`
   | 'proof:create'
   | 'proof:verify'
   | 'lookup:watch'

@@ -1,50 +1,75 @@
 /**
  * @totemsdk/qvac/rag — RAG domain adapter (chunk / ingest / search / embeddings / lifecycle).
+ *
+ * Types are the genuine `@qvac/sdk@0.19.0` RAG shapes. Note the decorated
+ * requests: `ragIngest`, `ragSaveEmbeddings`, `ragReindex` resolve to values
+ * but carry a synchronous upstream `requestId` the provider forwards to
+ * `sdk.cancel({ requestId })`.
  */
 
 import type { IntelligenceProvider } from '@totemsdk/intelligence';
 import { bindDomain } from './adapter.js';
 import type { QvacOp } from './adapter.js';
 
+import type {
+  RagChunkParams,
+  RagDoc,
+  RagSaveEmbeddingsResult,
+  RagSearchParams,
+  RagSearchResult,
+  RagReindexParams,
+  RagWorkspaceInfo,
+} from '@qvac/sdk';
+
 export const ragDomain = 'rag' as const;
 
-export interface RagSearchParams {
-  query?: string;
-  workspaceName?: string;
-  topK?: number;
-}
-
-export interface RagSearchResult {
-  results?: Array<{ id?: string; score?: number; text?: string }>;
-}
+export type {
+  RagChunkParams,
+  RagDoc,
+  RagEmbeddedDoc,
+  RagSaveEmbeddingsResult,
+  RagSearchParams,
+  RagSearchResult,
+  RagReindexParams,
+  RagWorkspaceInfo,
+} from '@qvac/sdk';
 
 export interface RagIngestParams {
-  docs?: unknown[];
-  workspaceName?: string;
+  documents: unknown[];
+  embeddingModelId: string;
+  workspaceId?: string;
 }
 
-export interface RagWorkspaceParams {
-  workspaceName?: string;
+export interface RagSaveEmbeddingsParams {
+  chunks: import('@qvac/sdk').RagEmbeddedDoc[];
+  embeddingModelId: string;
+  workspaceId?: string;
 }
 
-export interface RagChunkParams extends RagWorkspaceParams {
-  text?: string;
+export type RagDeleteEmbeddingsParams = {
+  id?: string | string[];
+  workspaceId?: string;
+};
+
+export interface RagCloseWorkspaceParams {
+  workspaceId: string;
+  deleteOnClose?: boolean;
 }
 
-export interface RagEmbeddingsParams extends RagWorkspaceParams {
-  vectors?: unknown[];
+export interface RagDeleteWorkspaceParams {
+  workspaceId: string;
 }
 
 export interface QvacRagOps {
-  ragChunk: QvacOp<RagChunkParams, unknown>;
-  ragIngest: QvacOp<RagIngestParams, unknown>;
-  ragSearch: QvacOp<RagSearchParams, RagSearchResult>;
-  ragSaveEmbeddings: QvacOp<RagEmbeddingsParams, unknown>;
-  ragDeleteEmbeddings: QvacOp<RagEmbeddingsParams, unknown>;
-  ragReindex: QvacOp<RagWorkspaceParams, unknown>;
-  ragListWorkspaces: QvacOp<Record<string, never>, unknown>;
-  ragCloseWorkspace: QvacOp<RagWorkspaceParams, unknown>;
-  ragDeleteWorkspace: QvacOp<RagWorkspaceParams, unknown>;
+  ragChunk: QvacOp<RagChunkParams, RagDoc[]>;
+  ragIngest: QvacOp<RagIngestParams, { processed: RagSaveEmbeddingsResult[]; droppedIndices: number[] }>;
+  ragSearch: QvacOp<RagSearchParams, RagSearchResult[]>;
+  ragSaveEmbeddings: QvacOp<RagSaveEmbeddingsParams, RagSaveEmbeddingsResult[]>;
+  ragDeleteEmbeddings: QvacOp<RagDeleteEmbeddingsParams, void>;
+  ragReindex: QvacOp<RagReindexParams, import('@qvac/sdk').RagReindexResult>;
+  ragListWorkspaces: QvacOp<Record<string, never>, RagWorkspaceInfo[]>;
+  ragCloseWorkspace: QvacOp<RagCloseWorkspaceParams, void>;
+  ragDeleteWorkspace: QvacOp<RagDeleteWorkspaceParams, void>;
 }
 
 export function ragAdapter(provider: IntelligenceProvider): QvacRagOps {

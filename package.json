@@ -46,7 +46,8 @@
     "serve:wots:prod": "node scripts/serve-wots-prod.mjs",
     "docs": "typedoc",
     "validate:meta": "node scripts/validate-pkg-meta.mjs",
-    "validate:manifest": "node scripts/verify-sdk-manifest.mjs"
+    "validate:manifest": "node scripts/verify-sdk-manifest.mjs",
+    "validate:qvac-drift": "node scripts/verify-qvac-api-drift.mjs"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

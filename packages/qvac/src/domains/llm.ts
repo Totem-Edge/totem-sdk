@@ -1,39 +1,39 @@
 /**
  * @totemsdk/qvac/llm — LLM domain adapter (completion / batchCompletion / finetune).
+ *
+ * Params and results are the genuine `@qvac/sdk@0.19.0` shapes (see
+ * `src/vendor/qvac-sdk.d.ts`): completion returns a live `CompletionRun`
+ * (requestId + `events` + `final`), not a flattened `{ text }`.
  */
 
 import type { IntelligenceProvider } from '@totemsdk/intelligence';
 import { bindDomain } from './adapter.js';
 import type { QvacOp } from './adapter.js';
 
+import type {
+  BatchCompletionRun,
+  CompletionParams,
+  CompletionRun,
+  FinetuneHandle,
+} from '@qvac/sdk';
+
 export const llmDomain = 'llm' as const;
 
-export interface LlmCompletionParams {
-  model?: string;
-  prompt?: string;
-  system?: string;
-  temperature?: number;
-  maxTokens?: number;
-}
-
-export interface LlmCompletionResult {
-  text: string;
-  model?: string;
-}
-
-export interface LlmBatchCompletionParams {
-  model?: string;
-  prompts?: unknown[];
-}
-
-export interface LlmFinetuneParams {
-  model?: string;
-}
+export type {
+  BatchCompletionRun,
+  CompletionParams,
+  CompletionRun,
+  FinetuneHandle,
+  CompletionEvent,
+  CompletionFinal,
+  CompletionStats,
+  StopReason,
+} from '@qvac/sdk';
 
 export interface QvacLlmOps {
-  completion: QvacOp<LlmCompletionParams, LlmCompletionResult>;
-  batchCompletion: QvacOp<LlmBatchCompletionParams, unknown>;
-  finetune: QvacOp<LlmFinetuneParams, unknown>;
+  completion: QvacOp<CompletionParams, CompletionRun>;
+  batchCompletion: QvacOp<Record<string, unknown>, BatchCompletionRun>;
+  finetune: QvacOp<Record<string, unknown>, FinetuneHandle>;
 }
 
 export function llmAdapter(provider: IntelligenceProvider): QvacLlmOps {

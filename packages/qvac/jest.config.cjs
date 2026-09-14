@@ -4,9 +4,7 @@ module.exports = {
   testMatch: ['**/src/__tests__/**/*.test.ts'],
   moduleFileExtensions: ['ts', 'js'],
   transform: {
-    '^.+\\.ts$': ['ts-jest', {
-      tsconfig: { module: 'CommonJS', moduleResolution: 'node' },
-    }],
+    '^.+\\.ts$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.jest.json' }],
   },
   moduleNameMapper: {
     '^@totemsdk/intelligence$': '<rootDir>/../intelligence/src/index.ts',

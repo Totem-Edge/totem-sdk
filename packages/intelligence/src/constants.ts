@@ -51,8 +51,16 @@ export const INTELLIGENCE_DOMAINS: readonly IntelligenceDomain[] = [
 /**
  * Edge capability strings for intelligence domains.
  * Follows the edge `domain:action` convention.
+ *
+ * `KnownIntelligenceCapability` is the canonical closed set; the base
+ * `IntelligenceCapability` additionally admits arbitrary `intelligence:*`
+ * strings so providers can advertise extension domains (e.g. a QVAC runtime
+ * exposing a future plugin domain) while IDE autocomplete still surfaces the
+ * canonical literals first.
  */
-export type IntelligenceCapability = `intelligence:${IntelligenceDomain}`;
+export type KnownIntelligenceCapability = `intelligence:${IntelligenceDomain}`;
+
+export type IntelligenceCapability = KnownIntelligenceCapability | `intelligence:${string}`;
 
 export const INTELLIGENCE_CAPABILITIES: readonly IntelligenceCapability[] =
   INTELLIGENCE_DOMAINS.map(d => `intelligence:${d}`) as unknown as readonly IntelligenceCapability[];

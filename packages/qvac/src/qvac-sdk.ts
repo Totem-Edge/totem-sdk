@@ -13,19 +13,76 @@ import type { IntelligenceUsage } from '@totemsdk/intelligence';
 
 /**
  * Result of a single QVAC invocation, normalised by the adapter.
+ *
+ * `upstreamRequestId` is the QVAC-side request id captured from the decorated
+ * promise / run object the SDK returned (see `requestId` on CompletionRun,
+ * embed/loadModel/transcribe decorated promises, translate results, …). The
+ * provider records it so a later `cancel(requestId)` can be forwarded upstream
+ * as `sdk.cancel({ requestId })` — targeted cancellation instead of a bare
+ * local AbortSignal.
  */
 export interface QvacCallResult {
   readonly data: unknown;
   readonly usage?: Partial<IntelligenceUsage>;
+  readonly upstreamRequestId?: string;
+}
+
+/**
+ * How a QVAC operation must be invoked on the SDK surface, because the
+ * upstream `@qvac/sdk@0.19.0` surface is not uniformly record-param:
+ *
+ *  - `record`      — the default: `sdk[op](params, opts?)`.
+ *  - `positional`  — exotic helpers that take positional args:
+ *                    `sdk[op](...argKeys.map(k => params[k]), opts?)`.
+ *                    e.g. `vlaPreprocessImage(pixels, width, height, options?)`
+ *                    and `vlaPadState(state, targetDim?)`.
+ *  - `callback`    — event-subscription helpers that take a handler function
+ *                    and return a teardown:
+ *                    `sdk[op](params[paramKey])` → data becomes
+ *                    `{ unsubscribe }`. e.g. `subscribeServerLogs(handler)`.
+ *
+ * The mapped op-shape catalog lives in {@link QVAC_OP_SHAPES} and is mirrored
+ * by the per-op `shape` field in `api-snapshot.ts`.
+ */
+export type QvacOpShape =
+  | { readonly kind: 'record' }
+  | { readonly kind: 'positional'; readonly argKeys: readonly string[] }
+  | { readonly kind: 'callback'; readonly paramKey: string };
+
+/**
+ * Op-shape table for the 54-op @qvac/sdk@0.19.0 catalog. Every op not listed
+ * here defaults to `record` — positional/callback are the only deviations.
+ */
+export const QVAC_OP_SHAPES: Readonly<Record<string, QvacOpShape>> = {
+  vlaPreprocessImage: { kind: 'positional', argKeys: ['pixels', 'width', 'height', 'options'] },
+  vlaPadState: { kind: 'positional', argKeys: ['state', 'targetDim'] },
+  modelRegistryGetModel: { kind: 'positional', argKeys: ['registryPath', 'registrySource'] },
+  subscribeServerLogs: { kind: 'callback', paramKey: 'handler' },
+};
+
+/** Shape of a given op (defaults to record). */
+export function qvacOpShape(op: string): QvacOpShape {
+  return QVAC_OP_SHAPES[op] ?? { kind: 'record' };
 }
 
 /**
  * A single resolvable QVAC operation.
  */
+export interface QvacOpHandlerCallOptions {
+  signal?: AbortSignal;
+  /**
+   * Mutable bridge the provider passes so the handler can publish the
+   * QVAC-side requestId synchronously — before the (possibly still-pending)
+   * call settles. This is what lets `cancel(requestId)` forward upstream even
+   * while the invoked promise hasn't resolved yet.
+   */
+  requestIdBridge?: { upstream?: string };
+}
+
 export interface QvacOpHandler {
   (
     params: Record<string, unknown>,
-    opts: { signal?: AbortSignal },
+    opts: QvacOpHandlerCallOptions,
   ): Promise<QvacCallResult>;
 }
 

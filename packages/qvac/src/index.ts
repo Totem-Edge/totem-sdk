@@ -15,7 +15,8 @@
  */
 
 export { createQvacIntelligenceProvider } from './provider.js';
-export type { QvacCallResult, QvacOpHandler, QvacProviderOptions, QvacSdkLike, QvacUsageExtractor } from './qvac-sdk.js';
+export { QVAC_OP_SHAPES, qvacOpShape } from './provider.js';
+export type { QvacCallResult, QvacOpHandler, QvacOpShape, QvacProviderOptions, QvacSdkLike, QvacUsageExtractor } from './qvac-sdk.js';
 
 // Per-domain typed convenience adapters (also published as /<domain> subpaths).
 export * from './domains/llm.js';

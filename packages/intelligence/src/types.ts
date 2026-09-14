@@ -91,6 +91,12 @@ export interface IntelligenceResult<T = unknown> {
   readonly data: T;
   readonly usage?: IntelligenceUsage;
   readonly receipt?: unknown;
+  /**
+   * The provider-side (upstream) request id, when the wrapped runtime is
+   * cancellable by id — e.g. `@qvac/sdk` decorates promises/run objects with
+   * a `requestId` that its own `cancel({ requestId })` targets.
+   */
+  readonly upstreamRequestId?: string;
 }
 
 /**
@@ -256,6 +262,7 @@ export interface IntelligenceProviderOptions {
 }
 
 export type {
+  KnownIntelligenceCapability,
   IntelligenceCapability,
   IntelligenceDomain,
 } from './constants.js';

@@ -6,15 +6,14 @@ import type { IntelligenceProvider } from '@totemsdk/intelligence';
 import { bindDomain } from './adapter.js';
 import type { QvacOp } from './adapter.js';
 
+import type { ClassificationResult, ClassifyClientParams } from '@qvac/sdk';
+
 export const classifyDomain = 'classify' as const;
 
-export interface ClassifyParams {
-  input?: unknown;
-  labels?: string[];
-}
+export type { ClassificationResult, ClassifyClientParams } from '@qvac/sdk';
 
 export interface QvacClassifyOps {
-  classify: QvacOp<ClassifyParams, { label?: string; confidence?: number }>;
+  classify: QvacOp<ClassifyClientParams, ClassificationResult[]>;
 }
 
 export function classifyAdapter(provider: IntelligenceProvider): QvacClassifyOps {

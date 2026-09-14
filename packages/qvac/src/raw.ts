@@ -13,24 +13,33 @@
  * against the upstream surface; it is not the runtime surface itself.
  */
 
-export type { QvacSdkLike, QvacOpHandler, QvacCallResult, QvacUsageExtractor } from './qvac-sdk.js';
+export type { QvacSdkLike, QvacOpHandler, QvacCallResult, QvacOpShape, QvacUsageExtractor } from './qvac-sdk.js';
+export { QVAC_OP_SHAPES, qvacOpShape } from './qvac-sdk.js';
 export { createQvacIntelligenceProvider } from './provider.js';
 export type { QvacProviderOptions } from './qvac-sdk.js';
 import type { QvacSdkLike } from './qvac-sdk.js';
 
 /**
- * Obtain the genuine raw QVAC SDK surface.
+ * The genuine raw QVAC SDK surface, preserved with its real upstream types.
  *
- * `options.sdk` is typically the real `@qvac/sdk` module (or a compatible
- * injected copy in tests). The object is returned as-is — identity
- * passthrough, no filtering and no re-listing of operations.
+ * `S` defaults to the retained `QvacSdkLike` structural seam; consumers who
+ * have the real `@qvac/sdk` installed can pass its type directly:
  *
  * @example
- *   import { createQvacRawClient } from '@totemsdk/qvac/raw';
+ *   import * as qvac from '@qvac/sdk';
  *   const raw = createQvacRawClient({ sdk: qvac });
- *   await raw.completion({ model: 'llama3', prompt: '...' });
+ *   raw.completion({ modelId, history }) // typed as CompletionRun
  */
-export function createQvacRawClient(options: { sdk: QvacSdkLike }): QvacSdkLike {
+export type QvacRawClient<S = QvacSdkLike> = S;
+
+/**
+ * Obtain the genuine raw QVAC SDK surface.
+ *
+ * Identity passthrough returning the injected SDK unchanged — no filtering, no
+ * re-listing, no provider normalisation. Type `S` with the real `@qvac/sdk`
+ * module type to retain the full upstream surface while editing.
+ */
+export function createQvacRawClient<S>(options: { sdk: S }): S {
   return options.sdk;
 }
 
@@ -41,6 +50,6 @@ export function createQvacRawClient(options: { sdk: QvacSdkLike }): QvacSdkLike 
  * resolved its SDK. Call `provider.invoke` first (which forces resolution) if
  * you need the handle.
  */
-export function getQvacRawSdk(provider: { readonly sdk?: QvacSdkLike }): QvacSdkLike | undefined {
+export function getQvacRawSdk<S = QvacSdkLike>(provider: { readonly sdk?: S }): S | undefined {
   return provider.sdk;
 }

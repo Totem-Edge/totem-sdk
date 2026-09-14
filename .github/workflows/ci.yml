@@ -44,6 +44,8 @@ jobs:
         run: npm run build
       - name: Typecheck + build (workspace)
         run: node scripts/verify-workspace.mjs --typecheck
+      - name: QVAC API drift audit (against real @qvac/sdk)
+        run: node scripts/verify-qvac-api-drift.mjs --strict
 
   test:
     name: Unit tests
