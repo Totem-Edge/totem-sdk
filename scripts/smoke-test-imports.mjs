@@ -41,6 +41,16 @@ const NAMED_EXPORT_CHECKS = {
     // IPubSubTransport and PubSubMessage are TS interfaces — no runtime value; skip
     'EventEmitterTransport', 'MockPubSubTransport', 'createPairedEventEmitterTransports',
   ],
+  '@totemsdk/intelligence': [
+    'INTELLIGENCE_VERSION', 'INTELLIGENCE_DOMAINS', 'INTELLIGENCE_CAPABILITIES',
+    'IntelligenceError', 'createEdgeIntelligencePort',
+  ],
+  '@totemsdk/qvac': [
+    'createQvacIntelligenceProvider',
+    'llmAdapter',
+    'ragAdapter',
+    'audiogenAdapter',
+  ],
 };
 
 const PACKAGES = [
@@ -57,6 +67,8 @@ const PACKAGES = [
   { pkg: 'pubsub-transport', name: '@totemsdk/pubsub-transport' },
   { pkg: 'omnia-splice', name: '@totemsdk/omnia-splice' },
   { pkg: 'lookup-node', name: '@totemsdk/lookup-node' },
+  { pkg: 'intelligence', name: '@totemsdk/intelligence' },
+  { pkg: 'qvac', name: '@totemsdk/qvac' },
 ];
 
 const req = createRequire(import.meta.url);
@@ -85,10 +97,15 @@ for (const { pkg, name } of PACKAGES) {
     continue;
   }
 
-  const mainField =
+  const rawMain =
     pkgJson.exports?.['.']?.import ||
+    pkgJson.exports?.['.']?.require ||
     pkgJson.exports?.import ||
+    pkgJson.exports?.require ||
     pkgJson.main;
+
+  const mainField =
+    typeof rawMain === 'string' ? rawMain : rawMain?.default || rawMain?.import || rawMain?.require;
 
   if (!mainField) {
     console.warn(`  SKIP  ${name} (no main/exports entry)`);

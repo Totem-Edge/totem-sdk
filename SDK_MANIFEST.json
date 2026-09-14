@@ -3,7 +3,7 @@
   "title": "Totem SDK Package Manifest",
   "description": "Machine-readable index of all @totemsdk packages — for AI agents, tooling, and developers. Updated 2026-08-18.",
   "org": "@totemsdk",
-  "total": 58,
+  "total": 60,
   "domains": {
     "cryptographic-foundation": {
       "description": "WOTS+ signatures, TreeKey hierarchy, MMR proofs, KISSVM, MAST, TxPoW",
@@ -87,6 +87,13 @@
         "@totemsdk/spatial-proof",
         "@totemsdk/raster-proof"
       ]
+    },
+    "intelligence": {
+      "description": "Provider-neutral intelligence contracts and the QVAC in-situ inference adapter — capabilities, operations, usage receipts for local self-hosted AI",
+      "packages": [
+        "@totemsdk/intelligence",
+        "@totemsdk/qvac"
+      ]
     }
   },
   "packages": [
@@ -104,12 +111,13 @@
       ],
       "dependencies": {
         "@totemsdk/core": "^1.1.0",
+        "@totemsdk/intelligence": "^0.1.0",
         "@protobuf-ts/runtime": "^2.11.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "AgentPolicy, PaymentIntent, PolicyEvaluation, signAgentPolicy, verifyAgentPolicy"
+      "exportsDescription": "AgentPolicy, PaymentIntent (incl. inference intents), PolicyEvaluation, InferenceReceiptLike, signAgentPolicy, verifyAgentPolicy"
     },
     {
       "name": "@totemsdk/authority",
@@ -241,7 +249,8 @@
         "@totemsdk/manifest": "^0.1.2",
         "@totemsdk/identity": "^0.1.2",
         "@totemsdk/agent-policy": "^0.1.3",
-        "@totemsdk/connect": "^2.1.0"
+        "@totemsdk/connect": "^2.1.0",
+        "@totemsdk/intelligence": "^0.1.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1362,6 +1371,82 @@
         ".": "dist/index.{js,d.ts}"
       },
       "exportsDescription": "createOmniaPool, depositToPool, allocatePositionCapital, recordPoolFee, claimFees, withdrawLiquidity, executePoolPayout, computePoolNAV"
+    },
+    {
+      "name": "@totemsdk/intelligence",
+      "version": "0.1.0",
+      "description": "Provider-neutral intelligence contracts — capabilities, operations, receipts, errors for local self-hosted AI inference",
+      "domain": "intelligence",
+      "keywords": [
+        "totem",
+        "totemsdk",
+        "ai",
+        "inference",
+        "intelligence",
+        "llm",
+        "embeddings",
+        "rag",
+        "transcription",
+        "tts",
+        "ocr",
+        "diffusion",
+        "edge-ai",
+        "provider-neutral"
+      ],
+      "dependencies": {},
+      "exports": {
+        ".": "dist/index.{js,d.ts}",
+        "./types": "dist/types.{js,d.ts}",
+        "./constants": "dist/constants.{js,d.ts}",
+        "./errors": "dist/errors.{js,d.ts}"
+      },
+      "exportsDescription": "IntelligenceProvider, IntelligenceOperation/Result/StreamChunk/Receipt, port contract (EdgeIntelligencePort, createEdgeIntelligencePort), domain/capability constants, error codes"
+    },
+    {
+      "name": "@totemsdk/qvac",
+      "version": "0.1.0",
+      "description": "QVAC intelligence adapter — wraps @qvac/sdk into @totemsdk/intelligence provider-neutral contracts (with /edge and /raw subpaths)",
+      "domain": "intelligence",
+      "keywords": [
+        "totem",
+        "totemsdk",
+        "ai",
+        "inference",
+        "qvac",
+        "llm",
+        "embeddings",
+        "rag",
+        "transcription",
+        "tts",
+        "ocr",
+        "diffusion",
+        "edge-ai"
+      ],
+      "dependencies": {
+        "@totemsdk/intelligence": "^0.1.0"
+      },
+      "exports": {
+        ".": "dist/index.{js,d.ts}",
+        "./edge": "dist/edge-adapter.{js,d.ts}",
+        "./raw": "dist/raw.{js,d.ts}",
+        "./llm": "dist/domains/llm.{js,d.ts}",
+        "./embed": "dist/domains/embed.{js,d.ts}",
+        "./rag": "dist/domains/rag.{js,d.ts}",
+        "./asr": "dist/domains/asr.{js,d.ts}",
+        "./translate": "dist/domains/translate.{js,d.ts}",
+        "./tts": "dist/domains/tts.{js,d.ts}",
+        "./diffusion": "dist/domains/diffusion.{js,d.ts}",
+        "./ocr": "dist/domains/ocr.{js,d.ts}",
+        "./classify": "dist/domains/classify.{js,d.ts}",
+        "./audiogen": "dist/domains/audiogen.{js,d.ts}",
+        "./video": "dist/domains/video.{js,d.ts}",
+        "./vla": "dist/domains/vla.{js,d.ts}",
+        "./world": "dist/domains/world.{js,d.ts}",
+        "./models": "dist/domains/models.{js,d.ts}",
+        "./system": "dist/domains/system.{js,d.ts}",
+        "./plugins": "dist/domains/plugins.{js,d.ts}"
+      },
+      "exportsDescription": "createQvacIntelligenceProvider (runtime capability discovery), QvacSdkLike structural injection seam, /edge EdgeIntelligencePort binding, /raw genuine SDK passthrough, per-domain typed adapters /llm…/plugins"
     }
   ]
 }

@@ -207,6 +207,13 @@ Every stage produces evidence the next stage consumes — and every stage can be
 | [`@totemsdk/edge-email`](packages/edge-email) | SMTP/IMAP | Email-triggered actions — send proofs, receive commands, sensor ingestion |
 | [`@totemsdk/pear`](packages/pear) | — | Run Totem SDK apps inside Holepunch's Pear/Bare runtime |
 
+### Intelligence system
+
+| Package | Description |
+|---------|-------------|
+| [`@totemsdk/intelligence`](packages/intelligence) | Provider-neutral intelligence contracts — capabilities, operations, usage receipts, error codes, and the edge intelligence port contract (`EdgeIntelligencePort`, `createEdgeIntelligencePort`) for local, self-hosted AI inference |
+| [`@totemsdk/qvac`](packages/qvac) | QVAC in-situ inference adapter — wraps `@qvac/sdk` into the provider-neutral contracts, with `/edge` and `/raw` subpaths (injection and lazy-loading seams) |
+
 ### Foundation
 
 | Package | Description |
@@ -232,7 +239,7 @@ Every stage produces evidence the next stage consumes — and every stage can be
 | [`@totemsdk/mcp-server`](packages/mcp-server) | MCP server for AI agent tooling — expose SDK capabilities to LLM agents |
 | [`@totemsdk/wallet-adapter`](packages/wallet-adapter) | Wallet adapter interfaces for multi-provider chain access |
 
-The authoritative machine-readable catalog is [`SDK_MANIFEST.json`](SDK_MANIFEST.json) — currently **55 publishable packages** plus the private `@totem/sdk-tests`.
+The authoritative machine-readable catalog is [`SDK_MANIFEST.json`](SDK_MANIFEST.json) — currently **60 packages across 6 domains**, plus the private `@totem/sdk-tests`.
 
 ---
 
@@ -442,7 +449,7 @@ See [SECURITY.md](SECURITY.md) for our vulnerability disclosure policy.
 ## Monorepo structure
 
 ```
-packages/                   # 56 workspace packages, 55 publishable @totemsdk scoped
+packages/                   # 61 workspace packages, 60 publishable @totemsdk scoped
 ├── core/                   # Cryptographic primitives (WOTS+, MMR, etc.)
 ├── core-wasm/              # Rust/WASM crypto engine
 ├── kissvm/                 # KISSVM evaluator + template library
