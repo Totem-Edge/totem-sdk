@@ -82,6 +82,7 @@ describe('AgentProposal shape', () => {
       'settlement',
       'lookup',
       'receipt',
+      'inference',
     ];
     for (const type of types) {
       const proposal = makeProposal('low');
@@ -95,6 +96,21 @@ describe('AgentProposal shape', () => {
     expect(intent.amount).toBeUndefined();
     expect(intent.tokenId).toBeUndefined();
     expect(intent.recipient).toBeUndefined();
+  });
+
+  it('carries a discriminated inference block on inference intents', () => {
+    const intent: PaymentIntent = {
+      type: 'inference',
+      inference: {
+        domain: 'llm',
+        op: 'completion',
+        model: 'qvac-llm',
+        maxTokens: 2048,
+      },
+    };
+    expect(intent.type).toBe('inference');
+    expect(intent.inference?.domain).toBe('llm');
+    expect(intent.inference?.maxTokens).toBe(2048);
   });
 });
 
@@ -128,6 +144,26 @@ describe('AgentReceipt shape', () => {
     };
     expect(receipt.status).toBe('pending_user');
     expect(receipt.txpowId).toBeUndefined();
+  });
+
+  it('attaches an inference consumption receipt', () => {
+    const receipt: AgentReceipt = {
+      proposalId: 'proposal-1',
+      status: 'approved',
+      inferenceReceipt: {
+        receiptId: 'rc-9',
+        provider: 'qvac',
+        requestId: 'r-9',
+        proposalId: 'proposal-1',
+        domain: 'llm',
+        op: 'completion',
+        model: 'qvac-llm',
+        usage: { tokensIn: 10, tokensOut: 5, durationMs: 300 },
+        issuedAt: Date.now(),
+      },
+    };
+    expect(receipt.inferenceReceipt?.provider).toBe('qvac');
+    expect(receipt.inferenceReceipt?.usage.tokensOut).toBe(5);
   });
 });
 

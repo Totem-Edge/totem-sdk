@@ -30,6 +30,7 @@
     "@protobuf-ts/runtime": "^2.11.1",
     "@totemsdk/core": "workspace:^",
     "@totemsdk/authority": "workspace:^",
+    "@totemsdk/intelligence": "workspace:^",
     "@totemsdk/proof": "workspace:^",
     "better-sqlite3": "^12.2.0"
   },

@@ -29,6 +29,8 @@ export type {
   AgentIdentity,
   PolicyEvalResult,
   PolicyMiddleware,
+  InferenceDomain,
+  InferenceReceiptLike,
 } from './types.js';
 
 // Proto-generated types (enums, serializable, language-agnostic)

@@ -10,13 +10,31 @@
  * It never constructs a raw transaction. It fills in a PaymentIntent.
  */
 
+import type { IntelligenceReceipt } from '@totemsdk/intelligence';
+
+/**
+ * Domains eligible for inference intents — mirrors the provider-neutral
+ * capability set shipped by @totemsdk/intelligence.
+ */
+export type InferenceDomain =
+  | 'llm' | 'embed' | 'rag' | 'asr' | 'translate' | 'tts'
+  | 'diffusion' | 'ocr' | 'classify' | 'audiogen' | 'video'
+  | 'vla' | 'world';
+
+/**
+ * Structural receipt produced by an IntelligenceProvider / EdgeIntelligencePort
+ * attestation path, with no hard compile-time dependency on @totemsdk/intelligence
+ * at the consumer boundary. TypeScript treats it identically to IntelligenceReceipt.
+ */
+export type InferenceReceiptLike = IntelligenceReceipt;
+
 /**
  * The action an agent wants the wallet to take.
  * Agents produce intents; they do not execute them.
  */
 export interface PaymentIntent {
   /** Discriminator — what kind of operation this intent represents. */
-  type: 'payment' | 'channel_update' | 'settlement' | 'lookup' | 'receipt';
+  type: 'payment' | 'channel_update' | 'settlement' | 'lookup' | 'receipt' | 'inference';
   /** Amount in the token's native unit (string to preserve precision). */
   amount?: string;
   /** Minima tokenId, or '0x00' for native Minima. */
@@ -27,6 +45,25 @@ export interface PaymentIntent {
   reason?: string;
   /** Agent's self-assessed risk level — used by AgentPolicy routing. */
   risk?: 'low' | 'medium' | 'high';
+  /**
+   * Inference block — present when `type === 'inference'` and describes the
+   * compute the agent wants authorized. Its `usage` output is the metering
+   * unit budget/cap policies convert into spend.
+   */
+  inference?: {
+    domain: InferenceDomain;
+    /** Provider-neutral operation name, e.g. 'completion', 'ragSearch'. */
+    op: string;
+    /** Requested model, when the intent targets a specific one. */
+    model?: string;
+    /** Prompt / audio / image reference to compute over. */
+    input?: unknown;
+    /** Upper bound on output tokens, used by budget policies. */
+    maxTokens?: number;
+    /** Token id the provider meters in, if inference is token-denominated. */
+    budgetTokenId?: string;
+    metadata?: Record<string, unknown>;
+  };
   /** Arbitrary extra context the agent wants to attach (e.g. invoice ref). */
   metadata?: Record<string, unknown>;
 }
@@ -116,6 +153,11 @@ export interface AgentReceipt {
   rejectionReason?: string;
   /** Unix timestamp (ms) when the intent was settled (signed/rejected). */
   settledAt?: number;
+  /**
+   * Consumption receipt for inference intents (`type: 'inference'`),
+   * when the wallet/authority layer attested execution.
+   */
+  inferenceReceipt?: InferenceReceiptLike;
 }
 
 /**
