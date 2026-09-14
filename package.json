@@ -45,7 +45,8 @@
     "smoke:wots:e2e": "node scripts/smoke-wots-e2e.mjs",
     "serve:wots:prod": "node scripts/serve-wots-prod.mjs",
     "docs": "typedoc",
-    "validate:meta": "node scripts/validate-pkg-meta.mjs"
+    "validate:meta": "node scripts/validate-pkg-meta.mjs",
+    "validate:manifest": "node scripts/verify-sdk-manifest.mjs"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

@@ -100,6 +100,8 @@ jobs:
         run: node scripts/verify-workspace.mjs --lint
       - name: Validate npm metadata
         run: node scripts/validate-pkg-meta.mjs
+      - name: Validate SDK_MANIFEST sync
+        run: node scripts/verify-sdk-manifest.mjs
 
   pack:
     name: Pack validation (publishable packages)
