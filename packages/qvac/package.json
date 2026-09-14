@@ -1,0 +1,158 @@
+{
+  "name": "@totemsdk/qvac",
+  "version": "0.1.0",
+  "description": "QVAC intelligence adapter — wraps @qvac/sdk into @totemsdk/intelligence's provider-neutral contracts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.js"
+    },
+    "./edge": {
+      "types": "./dist/edge-adapter.d.ts",
+      "require": "./dist/edge-adapter.js",
+      "import": "./dist/edge-adapter.js"
+    },
+    "./raw": {
+      "types": "./dist/raw.d.ts",
+      "require": "./dist/raw.js",
+      "import": "./dist/raw.js"
+    },
+    "./llm": {
+      "types": "./dist/domains/llm.d.ts",
+      "require": "./dist/domains/llm.js",
+      "import": "./dist/domains/llm.js"
+    },
+    "./embed": {
+      "types": "./dist/domains/embed.d.ts",
+      "require": "./dist/domains/embed.js",
+      "import": "./dist/domains/embed.js"
+    },
+    "./rag": {
+      "types": "./dist/domains/rag.d.ts",
+      "require": "./dist/domains/rag.js",
+      "import": "./dist/domains/rag.js"
+    },
+    "./asr": {
+      "types": "./dist/domains/asr.d.ts",
+      "require": "./dist/domains/asr.js",
+      "import": "./dist/domains/asr.js"
+    },
+    "./translate": {
+      "types": "./dist/domains/translate.d.ts",
+      "require": "./dist/domains/translate.js",
+      "import": "./dist/domains/translate.js"
+    },
+    "./tts": {
+      "types": "./dist/domains/tts.d.ts",
+      "require": "./dist/domains/tts.js",
+      "import": "./dist/domains/tts.js"
+    },
+    "./diffusion": {
+      "types": "./dist/domains/diffusion.d.ts",
+      "require": "./dist/domains/diffusion.js",
+      "import": "./dist/domains/diffusion.js"
+    },
+    "./ocr": {
+      "types": "./dist/domains/ocr.d.ts",
+      "require": "./dist/domains/ocr.js",
+      "import": "./dist/domains/ocr.js"
+    },
+    "./classify": {
+      "types": "./dist/domains/classify.d.ts",
+      "require": "./dist/domains/classify.js",
+      "import": "./dist/domains/classify.js"
+    },
+    "./audiogen": {
+      "types": "./dist/domains/audiogen.d.ts",
+      "require": "./dist/domains/audiogen.js",
+      "import": "./dist/domains/audiogen.js"
+    },
+    "./video": {
+      "types": "./dist/domains/video.d.ts",
+      "require": "./dist/domains/video.js",
+      "import": "./dist/domains/video.js"
+    },
+    "./vla": {
+      "types": "./dist/domains/vla.d.ts",
+      "require": "./dist/domains/vla.js",
+      "import": "./dist/domains/vla.js"
+    },
+    "./world": {
+      "types": "./dist/domains/world.d.ts",
+      "require": "./dist/domains/world.js",
+      "import": "./dist/domains/world.js"
+    },
+    "./models": {
+      "types": "./dist/domains/models.d.ts",
+      "require": "./dist/domains/models.js",
+      "import": "./dist/domains/models.js"
+    },
+    "./system": {
+      "types": "./dist/domains/system.d.ts",
+      "require": "./dist/domains/system.js",
+      "import": "./dist/domains/system.js"
+    },
+    "./plugins": {
+      "types": "./dist/domains/plugins.d.ts",
+      "require": "./dist/domains/plugins.js",
+      "import": "./dist/domains/plugins.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "prepare": "tsc",
+    "clean": "rm -rf dist",
+    "test": "jest"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "@totemsdk/intelligence": "workspace:^"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20.0.0",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.0.0",
+    "typescript": "^7.0.2"
+  },
+  "peerDependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "author": "Totem SDK",
+  "homepage": "https://docs.totem.ing",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Totem-Edge/totem-sdk.git",
+    "directory": "packages/qvac"
+  },
+  "keywords": [
+    "totem",
+    "totemsdk",
+    "ai",
+    "inference",
+    "qvac",
+    "llm",
+    "embeddings",
+    "rag",
+    "transcription",
+    "tts",
+    "ocr",
+    "diffusion",
+    "edge-ai"
+  ],
+  "bugs": {
+    "url": "https://github.com/Totem-Edge/totem-sdk/issues"
+  }
+}
