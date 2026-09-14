@@ -22,7 +22,7 @@ runs:
           packages/**/target
           packages/**/rust/pkg
           packages/**/rust/pkg-node
-        key: ${{ runner.os }}-rust-wasm-${{ inputs.cache-key }}-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ runner.os }}-rust-wasm-${{ inputs.cache-key }}-${{ hashFiles('packages/**/Cargo.lock') }}
         restore-keys: |
           ${{ runner.os }}-rust-wasm-${{ inputs.cache-key }}-
           ${{ runner.os }}-rust-wasm-
