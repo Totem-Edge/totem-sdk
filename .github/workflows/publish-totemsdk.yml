@@ -118,7 +118,10 @@ jobs:
         run: npm run build:deploy
         working-directory: TotemEdgeSDKDocs
 
+      # Deploy is best-effort: without the Cloudflare secrets configured the
+      # release must still go green (npm publish is the point of this workflow).
       - name: Deploy to Cloudflare Pages
+        continue-on-error: true
         uses: cloudflare/pages-action@f0a1cd58cd66095dee69bfa18fa5efd1dde93bca # v1
         with:
           # CLOUDFLARE_API_TOKEN — Pages:Edit permission required
