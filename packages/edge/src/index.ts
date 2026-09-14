@@ -33,10 +33,16 @@ export type {
   EdgeKeyLeasePort,
   EdgeStreamPort,
   EdgePubSubPort,
+  EdgeIntelligencePort,
   EdgeRuntimePorts,
 } from './ports.js';
 
 export type { EdgeCapability, EdgeCapabilitySet } from './capabilities.js';
+export {
+  EDGE_INTELLIGENCE_CAPABILITIES,
+  isIntelligenceCapability,
+  hasIntelligenceCapability,
+} from './capabilities.js';
 export {
   createCapabilitySet,
   hasCapability,
@@ -45,6 +51,7 @@ export {
 } from './capabilities.js';
 
 export { createEdgeRuntime } from './runtime.js';
+export { createEdgeIntelligencePort } from './intelligence.js';
 export { createEdgeDevice } from './device.js';
 export { createEdge, type CreateEdgeOptions, type EdgeCommerceRuntime } from './create-edge.js';
 

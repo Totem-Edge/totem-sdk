@@ -99,6 +99,39 @@ export function createEdgeRuntime(opts: {
       return { ok: result.ok, action, data: result.data, policyResult, error: result.error, errorCode: result.errorCode };
     }
 
+    if (action.startsWith('intelligence:invoke')) {
+      if (!ports.intelligence) {
+        return { ok: false, action, policyResult, error: 'No intelligence port configured', errorCode: 'PORT_MISSING' };
+      }
+      const domain = (payload?.domain as string) ?? 'llm';
+      if (!hasCapability(capabilities, `intelligence:${domain}` as EdgeCapability)) {
+        return {
+          ok: false,
+          action,
+          policyResult,
+          error: `Intelligence capability not granted: intelligence:${domain}`,
+          errorCode: 'CAPABILITY_MISSING',
+        };
+      }
+      const result = await ports.intelligence.invoke({
+        requestId: payload?.requestId as string | undefined,
+        domain,
+        op: (payload?.op as string) ?? 'completion',
+        params: (payload?.params as Record<string, unknown>) ?? {},
+        context,
+        signal: payload?.signal as AbortSignal | undefined,
+      });
+      return { ok: result.ok, action, data: result.data, policyResult, error: result.error, errorCode: result.errorCode };
+    }
+
+    if (action.startsWith('intelligence:cancel')) {
+      if (!ports.intelligence?.cancel) {
+        return { ok: false, action, policyResult, error: 'No intelligence port cancel configured', errorCode: 'PORT_MISSING' };
+      }
+      const result = await ports.intelligence.cancel(payload?.requestId as string);
+      return { ok: result.ok, action, data: result.data, policyResult, error: result.error, errorCode: result.errorCode };
+    }
+
     if (action.startsWith('omnia:')) {
       if (!ports.omnia) {
         return { ok: false, action, policyResult, error: 'No Omnia port configured', errorCode: 'PORT_MISSING' };

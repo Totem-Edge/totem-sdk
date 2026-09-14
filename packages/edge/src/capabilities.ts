@@ -37,6 +37,22 @@ export type EdgeCapability =
   | 'scripting:kissvm'
   | 'qvac:payment-intents'
   | 'qvac:explanations'
+  | 'intelligence:llm'
+  | 'intelligence:embed'
+  | 'intelligence:rag'
+  | 'intelligence:asr'
+  | 'intelligence:translate'
+  | 'intelligence:tts'
+  | 'intelligence:diffusion'
+  | 'intelligence:ocr'
+  | 'intelligence:classify'
+  | 'intelligence:audiogen'
+  | 'intelligence:video'
+  | 'intelligence:vla'
+  | 'intelligence:world'
+  | 'intelligence:models'
+  | 'intelligence:system'
+  | 'intelligence:plugins'
   | 'proof:create'
   | 'proof:verify'
   | 'lookup:watch'
@@ -66,6 +82,42 @@ export type EdgeCapability =
   | 'transport:matter';
 
 export type EdgeCapabilitySet = Set<EdgeCapability>;
+
+/**
+ * All intelligence domain capability strings (intelligence:<domain>).
+ * Used for discovery, gating, and documentation.
+ */
+export const EDGE_INTELLIGENCE_CAPABILITIES: readonly string[] = [
+  'intelligence:llm',
+  'intelligence:embed',
+  'intelligence:rag',
+  'intelligence:asr',
+  'intelligence:translate',
+  'intelligence:tts',
+  'intelligence:diffusion',
+  'intelligence:ocr',
+  'intelligence:classify',
+  'intelligence:audiogen',
+  'intelligence:video',
+  'intelligence:vla',
+  'intelligence:world',
+  'intelligence:models',
+  'intelligence:system',
+  'intelligence:plugins',
+] as const;
+
+/** Whether a capability string is an intelligence capability. */
+export function isIntelligenceCapability(cap: string): boolean {
+  return cap.startsWith('intelligence:');
+}
+
+/** True if every intelligence domain capability is present. */
+export function hasIntelligenceCapability(
+  set: EdgeCapabilitySet,
+  domain: string,
+): boolean {
+  return set.has(`intelligence:${domain}` as EdgeCapability);
+}
 
 export function createCapabilitySet(caps: EdgeCapability[]): EdgeCapabilitySet {
   return new Set(caps);

@@ -6,6 +6,9 @@
  */
 
 import type { EdgeOperationResult } from './types.js';
+import type { EdgeIntelligencePort } from '@totemsdk/intelligence';
+
+export type { EdgeIntelligencePort } from '@totemsdk/intelligence';
 
 export interface EdgePaymentPort {
   pay(params: {
@@ -229,6 +232,19 @@ export interface EdgeManifestPort {
 }
 
 /**
+ * Optional intelligence port for @totemsdk/edge.
+ *
+ * The canonical `EdgeIntelligencePort` contract lives in @totemsdk/intelligence
+ * (so adapters such as `@totemsdk/qvac/edge` can implement it without depending
+ * on edge). Edge re-exports it here and hosts implementations on
+ * `EdgeRuntimePorts.intelligence`. Provide at runtime via
+ * `createEdgeIntelligencePort(provider)` from @totemsdk/intelligence, or via
+ * `@totemsdk/qvac/edge`'s `createQvacEdgeIntelligencePort`.
+ *
+ * @totemsdk/edge itself never depends on QVAC or any concrete provider.
+ */
+
+/**
  * Port for WOTS key-lease coordination.
  *
  * Implementations must ensure that a WOTS key index is reserved exclusively
@@ -257,6 +273,8 @@ export interface EdgeRuntimePorts {
   policy?: EdgePolicyPort;
   identity?: EdgeIdentityPort;
   manifest?: EdgeManifestPort;
+  /** Optional local intelligence/inference surface. */
+  intelligence?: EdgeIntelligencePort;
   /** WOTS key-lease coordination — required before any signing operation. */
   keyLease?: EdgeKeyLeasePort;
   /** Bidirectional byte-stream transport (WebSocket, Hyperswarm, WebRTC, stdio). */

@@ -27,7 +27,8 @@
     "@totemsdk/manifest": "workspace:^",
     "@totemsdk/identity": "workspace:^",
     "@totemsdk/agent-policy": "workspace:^",
-    "@totemsdk/txpow": "workspace:^"
+    "@totemsdk/txpow": "workspace:^",
+    "@totemsdk/intelligence": "workspace:^"
   },
   "peerDependencies": {
     "@totemsdk/connect": "workspace:^"

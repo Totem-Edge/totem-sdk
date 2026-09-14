@@ -51,6 +51,7 @@ export interface EdgeRuntime {
    *   - 'payment:*'        → EdgePaymentPort.pay()
    *   - 'lookup:*'         → EdgeLookupPort.query() / announce()
    *   - 'proof:*'          → EdgeProofPort.createProof() / verifyProof()
+   *   - 'intelligence:*'   → EdgeIntelligencePort.invoke() / cancel()
    *
    * Unknown action strings return an error without attempting execution.
    */
