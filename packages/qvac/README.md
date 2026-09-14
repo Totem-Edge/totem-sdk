@@ -77,6 +77,17 @@ const { ragSearch } = ragAdapter(provider);
 const hits = await ragSearch({ query: 'invoice 42', topK: 5 });
 ```
 
+## Security & trust
+
+This adapter is a **compute surface, never a signing surface**:
+
+- inference executes in-process against `@qvac/sdk`; no key material is injected
+  or derivable
+- every invocation is tied to a `proposalId` / `runId` so `@totemsdk/agent-policy`
+  and `@totemsdk/authority` gate and meter inference like any other proposal
+- `intelligence:<domain>` capability strings let `@totemsdk/edge` deny domains
+  at dispatch (`CAPABILITY_MISSING`) before the port runs
+
 ## Subpaths
 
 | Subpath | Purpose |

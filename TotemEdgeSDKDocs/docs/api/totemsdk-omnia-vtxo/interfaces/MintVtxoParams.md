@@ -20,6 +20,14 @@
 
 ***
 
+### fundingProof?
+
+> `optional` **fundingProof?**: `unknown`
+
+The on-chain funding proof (deep proof) recorded at mint.
+
+***
+
 ### nonce
 
 > **nonce**: `string`

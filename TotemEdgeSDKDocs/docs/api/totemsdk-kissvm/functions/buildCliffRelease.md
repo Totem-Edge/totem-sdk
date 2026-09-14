@@ -8,6 +8,8 @@
 
 > **buildCliffRelease**(`config`): `string`
 
+Cliff release: nothing until cliffBlock, then linear from cliff to end.
+
 ## Parameters
 
 ### config

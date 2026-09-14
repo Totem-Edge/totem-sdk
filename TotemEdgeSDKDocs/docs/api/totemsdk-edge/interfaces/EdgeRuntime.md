@@ -62,6 +62,7 @@ The action string determines which port handles execution:
   - 'payment:*'        → EdgePaymentPort.pay()
   - 'lookup:*'         → EdgeLookupPort.query() / announce()
   - 'proof:*'          → EdgeProofPort.createProof() / verifyProof()
+  - 'intelligence:*'   → EdgeIntelligencePort.invoke() / cancel()
 
 Unknown action strings return an error without attempting execution.
 

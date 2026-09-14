@@ -6,7 +6,7 @@
 
 # Function: verifyLiquidityFeeRecord()
 
-> **verifyLiquidityFeeRecord**(`params`): [`LiquidityBondVerifyResult`](../interfaces/LiquidityBondVerifyResult.md)
+> **verifyLiquidityFeeRecord**(`params`): `Promise`\<[`LiquidityBondVerifyResult`](../interfaces/LiquidityBondVerifyResult.md)\>
 
 ## Parameters
 
@@ -16,4 +16,4 @@
 
 ## Returns
 
-[`LiquidityBondVerifyResult`](../interfaces/LiquidityBondVerifyResult.md)
+`Promise`\<[`LiquidityBondVerifyResult`](../interfaces/LiquidityBondVerifyResult.md)\>

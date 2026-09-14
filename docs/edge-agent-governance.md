@@ -48,6 +48,15 @@ receives only the governed facade.
 | Liquidity   | `liquidity:balance:read`, `liquidity:utxo:read`                           |
 | Pub/sub     | `transport:publish`, `transport:subscribe`                                |
 | Streams     | `transport:send`                                                          |
+| Intelligence | `intelligence:invoke`, `intelligence:cancel`                             |
+
+`intelligence:invoke` is a **compute action**, not a spend: it dispatches a
+local-AI inference (`intelligence:<domain>` capability-gated) through the
+`EdgeIntelligencePort` and returns a usage receipt. `intelligence:cancel`
+addresses an in-flight `requestId`. Neither namespace touches keys — the
+intelligence surface can propose, never sign. Inference intents approved here
+surface as `PaymentIntent.type === 'inference'` receipts in
+`@totemsdk/agent-policy` for budgeting and audit.
 
 Each action adapter derives canonical effects from the **real** prepared
 operation before authorization. Agent-supplied `amount`, `recipient`, `risk`, or

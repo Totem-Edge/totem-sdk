@@ -60,6 +60,18 @@
 
 ---
 
+## Intelligence system (local edge AI)
+
+| Document | Description |
+|----------|-------------|
+| [rfc/RFC-006-SDK-INTELLIGENCE-QVAC-INTEGRATION.md](rfc/RFC-006-SDK-INTELLIGENCE-QVAC-INTEGRATION.md) | Design spec — domains, capabilities, edge gating, agent-policy inference intents (implemented, P0–P7) |
+| [../packages/intelligence/README.md](../packages/intelligence/README.md) | `@totemsdk/intelligence` — provider-neutral contracts; **the AI proposes, Totem authorizes** |
+| [../packages/qvac/README.md](../packages/qvac/README.md) | `@totemsdk/qvac` — QVAC adapter, discovery, per-domain adapters |
+| [edge-agent-governance.md](edge-agent-governance.md) | Governed-agent coverage for `intelligence:invoke` / `intelligence:cancel` |
+| [../SECURITY.md](../SECURITY.md) | Reporting + supported-version policy |
+
+---
+
 ## Research & vision
 
 | Document | Description |
@@ -82,6 +94,8 @@
 
 | Package | Document |
 |---------|----------|
+| `@totemsdk/intelligence` | [Package README](../packages/intelligence/README.md) — provider-neutral contracts for local AI inference: capabilities, operations, usage receipts, error codes, `EdgeIntelligencePort` |
+| `@totemsdk/qvac` | [Package README](../packages/qvac/README.md) — QVAC adapter: runtime capability discovery, per-domain adapters, `/edge`/`/raw` subpaths |
 | `@totemsdk/core` | [Integration guide](../packages/core/docs/INTEGRATION_GUIDE.md) — server-side verification, hex conventions, TreeSignature format |
 | `@totemsdk/omnia` | [Package README](../packages/omnia/README.md) — eltoo channels, 8 built-in programs, Rust/WASM parity |
 | `@totemsdk/authority` | [Governance boundary](../packages/authority/docs/authority-governance-boundary.md), [Governance design](../packages/authority/docs/governance-design.md) |
@@ -130,6 +144,7 @@
 | [rfc/RFC-001-SDK-UPGRADE.md](rfc/RFC-001-SDK-UPGRADE.md) | SDK upgrade process RFC |
 | [rfc/RFC-002-OMNIA-RUST-WASM-PARITY.md](rfc/RFC-002-OMNIA-RUST-WASM-PARITY.md) | Omnia Rust/WASM channel state machine parity (implemented) |
 | [rfc/RFC-003-OMNIA-BUILT-IN-PROGRAMS.md](rfc/RFC-003-OMNIA-BUILT-IN-PROGRAMS.md) | Omnia built-in channel programs — HTLC, vault, treasury, membership, asset (implemented) |
+| [rfc/RFC-006-SDK-INTELLIGENCE-QVAC-INTEGRATION.md](rfc/RFC-006-SDK-INTELLIGENCE-QVAC-INTEGRATION.md) | SDK intelligence/QVAC integration — provider-neutral local AI inference contracts, capability strings, edge gating, agent-policy inference intents (implemented, P0–P7) |
 
 ---
 

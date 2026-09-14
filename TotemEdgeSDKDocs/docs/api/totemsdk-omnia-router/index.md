@@ -19,6 +19,7 @@
 - [Route](interfaces/Route.md)
 - [RouteOptions](interfaces/RouteOptions.md)
 - [RouterChannel](interfaces/RouterChannel.md)
+- [RouterFeeProof](interfaces/RouterFeeProof.md)
 - [RoutingHop](interfaces/RoutingHop.md)
 - [SwapAnnouncement](interfaces/SwapAnnouncement.md)
 - [SwapHop](interfaces/SwapHop.md)
@@ -28,6 +29,10 @@
 - [HTLCStatus](type-aliases/HTLCStatus.md)
 - [LeaseProvider](type-aliases/LeaseProvider.md)
 
+## Variables
+
+- [ROUTER\_FEE\_PROOF\_DOMAIN](variables/ROUTER_FEE_PROOF_DOMAIN.md)
+
 ## Functions
 
 - [addChannel](functions/addChannel.md)
@@ -35,7 +40,9 @@
 - [applyRate](functions/applyRate.md)
 - [buildCrossTokenRequest](functions/buildCrossTokenRequest.md)
 - [buildPaymentRequest](functions/buildPaymentRequest.md)
+- [buildRouterFeeProof](functions/buildRouterFeeProof.md)
 - [cancelPayment](functions/cancelPayment.md)
+- [computeRouterFeeProofHash](functions/computeRouterFeeProofHash.md)
 - [createChannelGraph](functions/createChannelGraph.md)
 - [executeCrossTokenPayment](functions/executeCrossTokenPayment.md)
 - [executeMultiHopPayment](functions/executeMultiHopPayment.md)

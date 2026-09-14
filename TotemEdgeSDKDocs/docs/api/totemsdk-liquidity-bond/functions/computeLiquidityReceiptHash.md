@@ -8,6 +8,9 @@
 
 > **computeLiquidityReceiptHash**(`receipt`): `string`
 
+Domain-separated receipt hash (#33): scoped to the receipt domain so a hash
+computed over one record cannot replay against another.
+
 ## Parameters
 
 ### receipt

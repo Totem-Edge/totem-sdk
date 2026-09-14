@@ -15,6 +15,8 @@ Auto-generated from TypeScript sources via TypeDoc. Run `npm run generate` from 
 | [`@totemsdk/root-identity`](totemsdk-root-identity/index.md) | Root identity controlling up to 64 on-chain addresses |
 | [`@totemsdk/core-wasm`](totemsdk-core-wasm/index.md) | WebAssembly bindings for WOTS signing and SHA3-256 hashing |
 | [`@totemsdk/agent-policy`](totemsdk-agent-policy/index.md) | QVAC AI bridge — policy evaluation seam between agents and the wallet |
+| [`@totemsdk/intelligence`](totemsdk-intelligence/index.md) | Provider-neutral contracts for local AI inference — capabilities, operations, usage receipts, error codes, and the EdgeIntelligencePort |
+| [`@totemsdk/qvac`](totemsdk-qvac/index.md) | QVAC in-situ inference adapter — wraps @qvac/sdk into provider-neutral contracts with runtime capability discovery and per-domain adapters |
 | [`@totemsdk/manifest`](totemsdk-manifest/index.md) | Canonical signed declarations for apps, AI capabilities, dApps, and edge services |
 | [`@totemsdk/authority`](totemsdk-authority/index.md) | Authority verification and delegation framework for Totem services |
 | [`@totemsdk/governance`](totemsdk-governance/index.md) | On-chain governance — proposals, voting, and treasury management |

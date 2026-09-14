@@ -8,6 +8,14 @@
 
 ## Properties
 
+### certificateSigner?
+
+> `optional` **certificateSigner?**: [`CertificateSigner`](CertificateSigner.md)
+
+Identity that authenticates locally-assembled quorum certificates.
+
+***
+
 ### local
 
 > **local**: [`LocalLeaseProvider`](../classes/LocalLeaseProvider.md)

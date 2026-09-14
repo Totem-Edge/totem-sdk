@@ -8,12 +8,20 @@
 
 ## Properties
 
-### identityGraph
+### identityGraph?
 
-> **identityGraph**: `unknown`
+> `optional` **identityGraph?**: `unknown`
 
 ***
 
 ### manifest
 
 > **manifest**: [`LiquidityPoolManifest`](LiquidityPoolManifest.md)
+
+***
+
+### proof?
+
+> `optional` **proof?**: [`IdentityChallengeProof`](IdentityChallengeProof.md)
+
+Signature-backed challenge proof — the load-bearing identity check.

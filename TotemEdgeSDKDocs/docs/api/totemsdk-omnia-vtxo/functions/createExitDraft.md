@@ -8,7 +8,9 @@
 
 > **createExitDraft**(`vtxo`, `now?`): `object`
 
-Creates a mock exit draft for a VTXO. Validates the proof leaf before drafting.
+Creates a mock exit draft for a VTXO. Validates the proof leaf before
+drafting, caps the exit at the verified share, and consumes the VTXO's
+receipt so a second exit draft is refused (double-exit prevention, #28).
 
 ## Parameters
 

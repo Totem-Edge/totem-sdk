@@ -232,6 +232,112 @@ Encoded SignedManifest bytes — call encodeManifest(signedManifest) first.
 
 ***
 
+### leaseBurn()
+
+> **leaseBurn**(`reservationId`, `reason`, `indices`): `Promise`\<`void`\>
+
+#### Parameters
+
+##### reservationId
+
+`string`
+
+##### reason
+
+`string`
+
+##### indices
+
+###### addressIndex
+
+`number`
+
+###### l1
+
+`number`
+
+###### l2
+
+`number`
+
+#### Returns
+
+`Promise`\<`void`\>
+
+***
+
+### leaseCommit()
+
+> **leaseCommit**(`reservationId`, `txId`, `indices`): `Promise`\<`void`\>
+
+#### Parameters
+
+##### reservationId
+
+`string`
+
+##### txId
+
+`string`
+
+##### indices
+
+###### addressIndex
+
+`number`
+
+###### l1
+
+`number`
+
+###### l2
+
+`number`
+
+#### Returns
+
+`Promise`\<`void`\>
+
+***
+
+### leaseReserve()
+
+> **leaseReserve**(`params`): `Promise`\<\{ `certificate?`: `unknown`; `reservation`: `unknown`; \}\>
+
+#### Parameters
+
+##### params
+
+###### branchId?
+
+`string`
+
+###### deviceId?
+
+`string`
+
+###### payloadHash?
+
+`string`
+
+###### purpose?
+
+`string`
+
+###### treeId
+
+`string`
+
+###### ttlMs?
+
+`number`
+
+#### Returns
+
+`Promise`\<\{ `certificate?`: `unknown`; `reservation`: `unknown`; \}\>
+
+***
+
 ### on()
 
 > **on**(`event`, `handler`): [`Unsubscribe`](../type-aliases/Unsubscribe.md)

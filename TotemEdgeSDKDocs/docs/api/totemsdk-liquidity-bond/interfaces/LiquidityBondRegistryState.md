@@ -44,6 +44,27 @@
 
 ***
 
+### root?
+
+> `optional` **root?**: `string`
+
+The accepted registry anchor root — advanced only through signed transitions
+(`applyRegistryTransition`). Verifiers require the next transition's
+`previousRoot` to match it, so a fabricated registry without the anchor chain
+is rejected. Excluded from `serializeRegistryState`/`computeRegistryRoot`.
+
+***
+
+### sequence?
+
+> `optional` **sequence?**: `number`
+
+Monotonic anti-reorg sequence (#34): each applied transition must advance it,
+so a `previousRoot` resubmission after a rollback is rejected. Excluded from
+the root commitment.
+
+***
+
 ### updatedAt?
 
 > `optional` **updatedAt?**: `number`

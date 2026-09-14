@@ -14,6 +14,14 @@
 
 ***
 
+### intelligence?
+
+> `optional` **intelligence?**: [`EdgeIntelligencePort`](EdgeIntelligencePort.md)
+
+Optional local intelligence/inference surface.
+
+***
+
 ### keyLease?
 
 > `optional` **keyLease?**: [`EdgeKeyLeasePort`](EdgeKeyLeasePort.md)

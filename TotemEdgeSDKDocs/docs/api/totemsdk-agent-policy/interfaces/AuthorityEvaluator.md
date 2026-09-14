@@ -6,17 +6,14 @@
 
 # Interface: AuthorityEvaluator
 
-Minimal authority evaluation interface — the caller injects their
-authority engine (e.g. `@totemsdk/authority`'s `evaluateAuthority`).
-
-This keeps `@totemsdk/agent-policy` free of a hard dependency on
-`@totemsdk/authority`.
+Authority evaluation interface — the caller injects their authority engine
+(e.g. `@totemsdk/authority`'s `evaluateAuthority`).
 
 ## Methods
 
 ### evaluate()
 
-> **evaluate**(`params`): `Promise`\<\{ `allowed`: `boolean`; `reason?`: `string`; \}\>
+> **evaluate**(`params`): `Promise`\<[`AuthorityDecisionResult`](AuthorityDecisionResult.md)\>
 
 #### Parameters
 
@@ -32,4 +29,4 @@ This keeps `@totemsdk/agent-policy` free of a hard dependency on
 
 #### Returns
 
-`Promise`\<\{ `allowed`: `boolean`; `reason?`: `string`; \}\>
+`Promise`\<[`AuthorityDecisionResult`](AuthorityDecisionResult.md)\>

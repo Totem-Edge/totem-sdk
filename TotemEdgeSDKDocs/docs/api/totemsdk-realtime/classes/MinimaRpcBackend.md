@@ -13,6 +13,8 @@ a custom indexer — instead of the default Axia hosted API.
 
 ## Examples
 
+**— sovereign LookupNode**
+
 ```ts
 import { LookupBackend } from '@totemsdk/realtime';
 import { connectLookupNode } from '@totemsdk/lookup-client';
@@ -22,6 +24,8 @@ const manager = createPortfolioStreamManager(deps, {
   backend: new LookupBackend(client),
 });
 ```
+
+**— direct Minima node (polling)**
 
 ```ts
 import { MinimaRpcBackend } from '@totemsdk/realtime';

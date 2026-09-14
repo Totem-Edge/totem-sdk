@@ -80,8 +80,30 @@ interface AgentReceipt {
   approvedAt: number;
   approvedBy: AgentIdentity;
   policyHash: string;
+  inferenceReceipt?: InferenceReceiptLike;
 }
 ```
+
+### Inference intents
+
+With [`@totemsdk/intelligence`](../api/totemsdk-intelligence/index.md) wired in,
+`PaymentIntent.type` also accepts `'inference'`, letting a policy approve and
+meter local model inference (LLM, RAG, TTS, vision, …) the same way it approves
+a payment:
+
+```typescript
+interface InferenceIntent {
+  type: 'inference';
+  domain: InferenceDomain; // 'llm' | 'embed' | 'rag' | 'asr' | … (13 domains)
+  operation: string;      // e.g. 'completion', 'ragSearch'
+  params?: Record<string, unknown>;
+}
+```
+
+On approval, `AgentReceipt.inferenceReceipt` carries the provider's usage
+figures (`tokensOut`, `durationMs`, …) so inference cost can be budgeted and
+audited against the provider's `proposalId`/`runId` — without the inference
+layer ever holding keys.
 
 ---
 

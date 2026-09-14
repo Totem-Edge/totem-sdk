@@ -20,6 +20,20 @@
 
 ***
 
+### consumedAt?
+
+> `optional` **consumedAt?**: `number`
+
+Set when the receipt was consumed by a withdrawal (single-spend).
+
+***
+
+### consumedIntentId?
+
+> `optional` **consumedIntentId?**: `string`
+
+***
+
 ### effectiveAmount?
 
 > `optional` **effectiveAmount?**: `bigint`
@@ -41,6 +55,14 @@
 ### metadata?
 
 > `optional` **metadata?**: `Record`\<`string`, `unknown`\>
+
+***
+
+### nonce
+
+> **nonce**: `string`
+
+Per-position nonce — makes the receipt single-spend and non-replayable.
 
 ***
 

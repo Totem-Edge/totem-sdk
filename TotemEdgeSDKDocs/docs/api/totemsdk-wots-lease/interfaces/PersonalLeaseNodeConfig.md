@@ -14,6 +14,16 @@
 
 ***
 
+### certificateSigner?
+
+> `optional` **certificateSigner?**: [`CertificateSigner`](CertificateSigner.md)
+
+Identity that authenticates certificates issued by this node.
+When set, `verifyLeaseCertificate` performs cryptographic signature
+verification; without it, verification is issuer-only (no signature check).
+
+***
+
 ### nodePubkey
 
 > **nodePubkey**: `string`

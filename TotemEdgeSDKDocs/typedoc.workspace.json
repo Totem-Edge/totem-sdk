@@ -8,6 +8,8 @@
     "../packages/totem-sdk/packages/node/src/index.ts",
     "../packages/totem-sdk/packages/root-identity/src/index.ts",
     "../packages/totem-sdk/packages/agent-policy/src/index.ts",
+    "../packages/totem-sdk/packages/intelligence/src/index.ts",
+    "../packages/totem-sdk/packages/qvac/src/index.ts",
     "../packages/totem-sdk/packages/omnia/src/index.ts",
     "../packages/totem-sdk/packages/omnia-factory/src/index.ts",
     "../packages/totem-sdk/packages/omnia-router/src/index.ts",

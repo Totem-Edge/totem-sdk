@@ -26,9 +26,31 @@
 
 ***
 
+### exitConsumedAt?
+
+> `optional` **exitConsumedAt?**: `number`
+
+Set when an exit draft consumed this VTXO — prevents double-exit.
+
+***
+
+### exitReceiptId?
+
+> `optional` **exitReceiptId?**: `string`
+
+***
+
 ### expiresAt?
 
 > `optional` **expiresAt?**: `number`
+
+***
+
+### fundingProof?
+
+> `optional` **fundingProof?**: `unknown`
+
+The on-chain funding proof recorded at mint (deep proof, #28).
 
 ***
 

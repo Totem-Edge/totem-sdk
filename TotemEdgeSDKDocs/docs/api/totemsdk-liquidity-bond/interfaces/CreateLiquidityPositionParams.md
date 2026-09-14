@@ -32,6 +32,12 @@
 
 ***
 
+### funding?
+
+> `optional` **funding?**: [`LiquidityFunding`](LiquidityFunding.md)
+
+***
+
 ### merchantSettlementId?
 
 > `optional` **merchantSettlementId?**: `string`
@@ -77,12 +83,6 @@
 ### statechainId?
 
 > `optional` **statechainId?**: `string`
-
-***
-
-### underlyingUtxoRef?
-
-> `optional` **underlyingUtxoRef?**: `string`
 
 ***
 

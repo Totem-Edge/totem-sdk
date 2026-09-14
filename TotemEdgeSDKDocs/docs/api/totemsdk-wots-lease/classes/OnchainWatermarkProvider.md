@@ -6,8 +6,6 @@
 
 # Class: OnchainWatermarkProvider
 
-Layer 5 — on-chain watermark coin.
-
 ## Implements
 
 - [`WotsLeaseProvider`](../interfaces/WotsLeaseProvider.md)
@@ -16,7 +14,13 @@ Layer 5 — on-chain watermark coin.
 
 ### Constructor
 
-> **new OnchainWatermarkProvider**(): `OnchainWatermarkProvider`
+> **new OnchainWatermarkProvider**(`config`): `OnchainWatermarkProvider`
+
+#### Parameters
+
+##### config
+
+[`OnchainWatermarkProviderConfig`](../interfaces/OnchainWatermarkProviderConfig.md)
 
 #### Returns
 
@@ -26,15 +30,15 @@ Layer 5 — on-chain watermark coin.
 
 ### burnReservation()
 
-> **burnReservation**(`_reservationId`, `_reason`): `Promise`\<`void`\>
+> **burnReservation**(`reservationId`, `reason`): `Promise`\<`void`\>
 
 #### Parameters
 
-##### \_reservationId
+##### reservationId
 
 `string`
 
-##### \_reason
+##### reason
 
 `string`
 
@@ -50,15 +54,15 @@ Layer 5 — on-chain watermark coin.
 
 ### commitKeyUse()
 
-> **commitKeyUse**(`_reservationId`, `_txId`): `Promise`\<`void`\>
+> **commitKeyUse**(`reservationId`, `txId`): `Promise`\<`void`\>
 
 #### Parameters
 
-##### \_reservationId
+##### reservationId
 
 `string`
 
-##### \_txId
+##### txId
 
 `string`
 
@@ -74,11 +78,11 @@ Layer 5 — on-chain watermark coin.
 
 ### getLocalWatermark()
 
-> **getLocalWatermark**(`_treeId`): `Promise`\<[`LocalWatermark`](../interfaces/LocalWatermark.md)\>
+> **getLocalWatermark**(`treeId`): `Promise`\<[`LocalWatermark`](../interfaces/LocalWatermark.md)\>
 
 #### Parameters
 
-##### \_treeId
+##### treeId
 
 `string`
 
@@ -92,13 +96,28 @@ Layer 5 — on-chain watermark coin.
 
 ***
 
+### initialize()
+
+> **initialize**(): `Promise`\<`void`\>
+
+#### Returns
+
+`Promise`\<`void`\>
+
+***
+
 ### publishWatermark()
 
-> **publishWatermark**(`_treeId`): `Promise`\<`void`\>
+> **publishWatermark**(`treeId`): `Promise`\<`void`\>
+
+Publish the local watermark cursor on-chain by spending the watermark
+coin back to itself with STATE(statePort) = flat cursor.
+
+Rate-limited by minBlocksBetweenPublishes using the chain tip.
 
 #### Parameters
 
-##### \_treeId
+##### treeId
 
 `string`
 
@@ -114,11 +133,11 @@ Layer 5 — on-chain watermark coin.
 
 ### reserveKeyUse()
 
-> **reserveKeyUse**(`_params`): `Promise`\<[`LeaseReservation`](../interfaces/LeaseReservation.md)\>
+> **reserveKeyUse**(`params`): `Promise`\<[`LeaseReservation`](../interfaces/LeaseReservation.md)\>
 
 #### Parameters
 
-##### \_params
+##### params
 
 [`ReserveParams`](../interfaces/ReserveParams.md)
 
@@ -148,11 +167,11 @@ Layer 5 — on-chain watermark coin.
 
 ### verifyLeaseCertificate()
 
-> **verifyLeaseCertificate**(`_cert?`): `Promise`\<`boolean`\>
+> **verifyLeaseCertificate**(`cert?`): `Promise`\<`boolean`\>
 
 #### Parameters
 
-##### \_cert?
+##### cert?
 
 [`LeaseCertificate`](../interfaces/LeaseCertificate.md)
 

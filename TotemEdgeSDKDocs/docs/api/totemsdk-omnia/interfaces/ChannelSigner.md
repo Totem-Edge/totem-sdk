@@ -16,7 +16,7 @@
 
 ### sign()
 
-> **sign**(`payload`, `indices`): `Promise`\<`ChannelSignature`\>
+> **sign**(`payload`, `indices`): `Promise`\<[`ChannelSignature`](../type-aliases/ChannelSignature.md)\>
 
 Returns flat WOTS signature bytes (output of wotsSign).
 
@@ -32,4 +32,4 @@ Returns flat WOTS signature bytes (output of wotsSign).
 
 #### Returns
 
-`Promise`\<`ChannelSignature`\>
+`Promise`\<[`ChannelSignature`](../type-aliases/ChannelSignature.md)\>

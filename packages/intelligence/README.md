@@ -47,6 +47,26 @@ if (result.ok) {
 consumers can route retries, budgets, and policies without depending on any
 concrete provider vocabulary.
 
+## Usage receipts
+
+Every successful invocation returns `usage` output (e.g. `tokensOut`,
+`durationMs`). This is the metering unit that `@totemsdk/agent-policy`
+inference-cost flows consume — approve an `inference` intent and the policy
+returns `AgentReceipt.inferenceReceipt` populated from the provider's usage.
+
+## Edge integration
+
+```ts
+import { createEdgeIntelligencePort } from '@totemsdk/intelligence';
+
+const port = createEdgeIntelligencePort(provider);
+// port matches EdgeIntelligencePort; assign edgeRuntime.ports.intelligence
+```
+
+Edge routes two verbs to this port: `intelligence:invoke` (capability-gated:
+fails with `CAPABILITY_MISSING` if `intelligence:<domain>` is not in the
+runtime's `EdgeCapabilitySet`) and `intelligence:cancel`.
+
 ## License
 
 MIT — Totem SDK Contributors

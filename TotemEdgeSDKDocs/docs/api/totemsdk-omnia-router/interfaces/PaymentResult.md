@@ -14,6 +14,14 @@
 
 ***
 
+### feeProofs?
+
+> `optional` **feeProofs?**: [`RouterFeeProof`](RouterFeeProof.md)[]
+
+Verifiable fee proofs for each settled hop — feeds recordPoolFee earn-proofs.
+
+***
+
 ### preimage?
 
 > `optional` **preimage?**: `string`

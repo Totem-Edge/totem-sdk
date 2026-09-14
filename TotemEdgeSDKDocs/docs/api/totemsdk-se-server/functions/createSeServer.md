@@ -14,6 +14,9 @@ Runs `migrateStatechainTables` on first `listen()` call.
 The returned `app` can also be mounted into an existing Express app
 at any path if you prefer not to bind a new port.
 
+The router is mounted at both `/statechain` (legacy) and
+`/v1/statechain` (versioned, stable).
+
 ## Parameters
 
 ### config

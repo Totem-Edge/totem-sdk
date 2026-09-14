@@ -68,6 +68,12 @@
 
 ***
 
+### operatorBond?
+
+> `optional` **operatorBond?**: [`OperatorAutobond`](OperatorAutobond.md)
+
+***
+
 ### operatorIdentityId?
 
 > `optional` **operatorIdentityId?**: `string`

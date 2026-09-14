@@ -9,29 +9,14 @@
 AuthorityPolicy — bridges PolicyMiddleware evaluation with mandate-based
 authority verification.
 
-Insert this layer into a ComposablePolicy pipeline to ensure every
-proposal is backed by a valid mandate before it is approved.
+Corrected bridge:
+ - uses the authenticated `proposal.principal` (never `agentId` as principal);
+ - preserves the real action namespace (no synthesized `payment:*`);
+ - returns the full `AuthorityDecision` + usage delta, not a boolean;
+ - binds the decision to the proposal id as the intent nonce.
 
-The caller provides an `AuthorityEvaluator` that encapsulates the
-full mandate verification (crypto, scope, constraints, usage limits).
-
-## Example
-
-```ts
-import { evaluateAuthority } from '@totemsdk/authority';
-
-const authorityCheck = new AuthorityPolicy({
-  async evaluate({ action, now }) {
-    const { decision } = evaluateAuthority({ ... });
-    return { allowed: decision.allowed, reason: decision.reason };
-  },
-});
-
-const policy = new ComposablePolicy([
-  new RateLimitPolicy(10, 60_000),
-  authorityCheck,
-]);
-```
+Insert this layer into a ComposablePolicy pipeline to ensure every proposal
+is backed by a valid mandate before it is approved.
 
 ## Implements
 
@@ -41,7 +26,7 @@ const policy = new ComposablePolicy([
 
 ### Constructor
 
-> **new AuthorityPolicy**(`evaluator`, `extractAction?`): `AuthorityPolicy`
+> **new AuthorityPolicy**(`evaluator`, `extractAction?`, `options?`): `AuthorityPolicy`
 
 #### Parameters
 
@@ -52,6 +37,10 @@ const policy = new ComposablePolicy([
 ##### extractAction?
 
 (`proposal`) => [`AuthorityActionIntent`](../interfaces/AuthorityActionIntent.md)
+
+##### options?
+
+[`AuthorityPolicyOptions`](../interfaces/AuthorityPolicyOptions.md)
 
 #### Returns
 

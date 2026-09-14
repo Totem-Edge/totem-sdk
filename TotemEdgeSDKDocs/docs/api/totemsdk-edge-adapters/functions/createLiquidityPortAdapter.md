@@ -8,7 +8,7 @@
 
 > **createLiquidityPortAdapter**(`config`): `EdgeLiquidityPort`
 
-Wraps a ChainStateProvider (chain-provider, pureminima-rpc, lookup-client) as
+Wraps a ChainStateProvider (chain-provider, minima-rpc, lookup-client) as
 an EdgeLiquidityPort.
 
 getBalance sums sendable coins for the given address and tokenId.

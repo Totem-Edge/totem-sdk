@@ -34,6 +34,13 @@
 
 > `optional` **deviceId?**: `string`
 
+#### indices?
+
+> `optional` **indices?**: `WotsIndices`
+
+Optional — when present, the node must reserve these exact indices
+ (quorum attestation) instead of allocating the next free slot.
+
 #### payloadHash?
 
 > `optional` **payloadHash?**: `string`

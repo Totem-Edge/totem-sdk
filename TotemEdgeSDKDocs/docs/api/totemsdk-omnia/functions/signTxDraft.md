@@ -6,7 +6,7 @@
 
 # Function: signTxDraft()
 
-> **signTxDraft**(`channel`, `draft`, `purpose`, `leaseProvider`, `signer?`): `Promise`\<\{ `indices`: `SigningIndices`; `signature`: `ChannelSignature`; `transactionHex`: `string`; \}\>
+> **signTxDraft**(`channel`, `draft`, `purpose`, `leaseProvider`, `signer?`): `Promise`\<\{ `indices`: `SigningIndices`; `signature`: [`ChannelSignature`](../type-aliases/ChannelSignature.md); `transactionHex`: `string`; \}\>
 
 Core signing primitive used by both update and settlement paths.
 Handles the full wots-lease reserve → sign → commit cycle for any OmniaTxDraft.
@@ -48,4 +48,4 @@ Optional explicit signer; falls back to channel.localSigner.
 
 ## Returns
 
-`Promise`\<\{ `indices`: `SigningIndices`; `signature`: `ChannelSignature`; `transactionHex`: `string`; \}\>
+`Promise`\<\{ `indices`: `SigningIndices`; `signature`: [`ChannelSignature`](../type-aliases/ChannelSignature.md); `transactionHex`: `string`; \}\>

@@ -8,6 +8,14 @@
 
 ## Properties
 
+### chainProvider?
+
+> `optional` **chainProvider?**: [`LiquidityChainFundingVerifier`](LiquidityChainFundingVerifier.md)
+
+On-chain funding verifier. Without it, verified commits return REQUIRES_LIVE_VERIFIER.
+
+***
+
 ### commitment
 
 > **commitment**: [`LiquidityCommitment`](LiquidityCommitment.md)

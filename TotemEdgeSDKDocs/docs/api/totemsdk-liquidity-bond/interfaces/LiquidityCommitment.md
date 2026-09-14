@@ -38,6 +38,12 @@
 
 ***
 
+### funding?
+
+> `optional` **funding?**: [`LiquidityFunding`](LiquidityFunding.md)
+
+***
+
 ### lpAddress
 
 > **lpAddress**: `string`

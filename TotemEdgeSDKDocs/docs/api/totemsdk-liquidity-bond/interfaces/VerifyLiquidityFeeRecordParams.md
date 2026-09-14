@@ -8,6 +8,14 @@
 
 ## Properties
 
+### feeProofVerifier?
+
+> `optional` **feeProofVerifier?**: [`FeeProofVerifier`](FeeProofVerifier.md)
+
+Verifier for earnable sources; absent => earnable records fail verification.
+
+***
+
 ### position
 
 > **position**: [`LiquidityPosition`](LiquidityPosition.md)

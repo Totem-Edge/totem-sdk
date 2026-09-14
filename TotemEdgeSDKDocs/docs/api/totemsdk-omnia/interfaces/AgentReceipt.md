@@ -19,6 +19,15 @@ Serialised Omnia channel state, set when an off-chain channel was updated.
 
 ***
 
+### inferenceReceipt?
+
+> `optional` **inferenceReceipt?**: `IntelligenceReceipt`
+
+Consumption receipt for inference intents (`type: 'inference'`),
+when the wallet/authority layer attested execution.
+
+***
+
 ### proposalId
 
 > **proposalId**: `string`

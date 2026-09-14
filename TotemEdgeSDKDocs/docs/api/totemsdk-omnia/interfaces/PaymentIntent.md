@@ -19,6 +19,54 @@ Amount in the token's native unit (string to preserve precision).
 
 ***
 
+### inference?
+
+> `optional` **inference?**: `object`
+
+Inference block — present when `type === 'inference'` and describes the
+compute the agent wants authorized. Its `usage` output is the metering
+unit budget/cap policies convert into spend.
+
+#### budgetTokenId?
+
+> `optional` **budgetTokenId?**: `string`
+
+Token id the provider meters in, if inference is token-denominated.
+
+#### domain
+
+> **domain**: `InferenceDomain`
+
+#### input?
+
+> `optional` **input?**: `unknown`
+
+Prompt / audio / image reference to compute over.
+
+#### maxTokens?
+
+> `optional` **maxTokens?**: `number`
+
+Upper bound on output tokens, used by budget policies.
+
+#### metadata?
+
+> `optional` **metadata?**: `Record`\<`string`, `unknown`\>
+
+#### model?
+
+> `optional` **model?**: `string`
+
+Requested model, when the intent targets a specific one.
+
+#### op
+
+> **op**: `string`
+
+Provider-neutral operation name, e.g. 'completion', 'ragSearch'.
+
+***
+
 ### metadata?
 
 > `optional` **metadata?**: `Record`\<`string`, `unknown`\>
@@ -61,6 +109,6 @@ Minima tokenId, or '0x00' for native Minima.
 
 ### type
 
-> **type**: `"settlement"` \| `"payment"` \| `"channel_update"` \| `"lookup"` \| `"receipt"`
+> **type**: `"settlement"` \| `"payment"` \| `"channel_update"` \| `"lookup"` \| `"receipt"` \| `"inference"`
 
 Discriminator — what kind of operation this intent represents.

@@ -6,7 +6,7 @@
 
 # Function: verifyLiquidityCommitment()
 
-> **verifyLiquidityCommitment**(`params`): [`LiquidityBondVerifyResult`](../interfaces/LiquidityBondVerifyResult.md)
+> **verifyLiquidityCommitment**(`params`): `Promise`\<[`LiquidityBondVerifyResult`](../interfaces/LiquidityBondVerifyResult.md)\>
 
 ## Parameters
 
@@ -16,4 +16,4 @@
 
 ## Returns
 
-[`LiquidityBondVerifyResult`](../interfaces/LiquidityBondVerifyResult.md)
+`Promise`\<[`LiquidityBondVerifyResult`](../interfaces/LiquidityBondVerifyResult.md)\>

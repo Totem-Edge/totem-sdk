@@ -50,6 +50,14 @@
 
 ***
 
+### verifiedShare
+
+> **verifiedShare**: `bigint`
+
+The verified share this exit is capped at (the VTXO's amount).
+
+***
+
 ### vtxoId
 
 > **vtxoId**: `string`

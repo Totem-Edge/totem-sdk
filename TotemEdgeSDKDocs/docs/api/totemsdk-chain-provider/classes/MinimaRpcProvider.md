@@ -6,9 +6,14 @@
 
 # Class: MinimaRpcProvider
 
+Optional funding-truth extension port. Providers that can attest deposits
+implement this; `withDepositVerifier(provider)` provides a default that uses
+the base provider's `getCoin` for the live path.
+
 ## Implements
 
 - [`ChainStateProvider`](../interfaces/ChainStateProvider.md)
+- [`DepositVerifier`](../interfaces/DepositVerifier.md)
 
 ## Constructors
 
@@ -45,6 +50,38 @@
 #### Implementation of
 
 [`ChainStateProvider`](../interfaces/ChainStateProvider.md).[`broadcastTxPoW`](../interfaces/ChainStateProvider.md#broadcasttxpow)
+
+***
+
+### depositAddressFor()
+
+> **depositAddressFor**(`lp`, `opts?`): `string`
+
+Deterministic deposit address the LP funds the pool/channel from.
+
+#### Parameters
+
+##### lp
+
+`string`
+
+##### opts?
+
+###### poolId?
+
+`string`
+
+###### tokenId?
+
+`string`
+
+#### Returns
+
+`string`
+
+#### Implementation of
+
+[`DepositVerifier`](../interfaces/DepositVerifier.md).[`depositAddressFor`](../interfaces/DepositVerifier.md#depositaddressfor)
 
 ***
 
@@ -85,6 +122,22 @@
 #### Implementation of
 
 [`ChainStateProvider`](../interfaces/ChainStateProvider.md).[`getCoins`](../interfaces/ChainStateProvider.md#getcoins)
+
+***
+
+### getMmrRoot()
+
+> **getMmrRoot**(): `Promise`\<`string` \| `null`\>
+
+MMR root at tip — the anchor peers verify offline proofs against.
+
+#### Returns
+
+`Promise`\<`string` \| `null`\>
+
+#### Implementation of
+
+[`DepositVerifier`](../interfaces/DepositVerifier.md).[`getMmrRoot`](../interfaces/DepositVerifier.md#getmmrroot)
 
 ***
 
@@ -179,3 +232,28 @@
 #### Implementation of
 
 [`ChainStateProvider`](../interfaces/ChainStateProvider.md).[`searchTokens`](../interfaces/ChainStateProvider.md#searchtokens)
+
+***
+
+### verifyDeposit()
+
+> **verifyDeposit**(`params`): `Promise`\<[`DepositVerification`](../interfaces/DepositVerification.md)\>
+
+Authoritative live check via `coinexport` (the coinproof endpoint): returns
+found/unspent/owned/token/amount + the full coin proof. `coincheck` on
+totem-node wants a full proof payload rather than a coinid, so coinexport
+is the canonical primitive (#3).
+
+#### Parameters
+
+##### params
+
+[`VerifyDepositParams`](../interfaces/VerifyDepositParams.md)
+
+#### Returns
+
+`Promise`\<[`DepositVerification`](../interfaces/DepositVerification.md)\>
+
+#### Implementation of
+
+[`DepositVerifier`](../interfaces/DepositVerifier.md).[`verifyDeposit`](../interfaces/DepositVerifier.md#verifydeposit)

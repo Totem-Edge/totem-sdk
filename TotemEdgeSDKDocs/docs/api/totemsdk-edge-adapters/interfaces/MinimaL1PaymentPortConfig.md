@@ -25,7 +25,7 @@ fully mined TxPoW hex string ready for broadcast.
 
 This keeps the adapter agnostic to key management — callers wire in their
 own signer (e.g. @totemsdk/server's sendTransaction, a hardware wallet
-bridge, or a pureminima-rpc command sequence).
+bridge, or a minima-rpc command sequence).
 
 #### Parameters
 

@@ -20,6 +20,14 @@
 
 ***
 
+### nonce?
+
+> `optional` **nonce?**: `string`
+
+Per-position nonce — the withdrawal ID is a domain hash over it (non-replayable).
+
+***
+
 ### ownerAddress
 
 > **ownerAddress**: `string`

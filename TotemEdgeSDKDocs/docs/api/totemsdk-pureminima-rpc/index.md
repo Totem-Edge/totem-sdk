@@ -1,48 +1,22 @@
-**@totemsdk/pureminima-rpc**
+---
+title: "@totemsdk/pureminima-rpc"
+sidebar_label: "@totemsdk/pureminima-rpc"
+description: "Fetch-based PureMinima RPC client — Bare/Pear/Node/browser compatible"
+---
 
-***
+# `@totemsdk/pureminima-rpc`
 
-# @totemsdk/pureminima-rpc
+> Fetch-based PureMinima RPC client — Bare/Pear/Node/browser compatible
 
-## Classes
+:::info Curated Reference
+Full API reference for this package requires TypeDoc regeneration.
+Run `npm run generate` from `TotemEdgeSDKDocs/` after installing deps.
+:::
 
-- [PureMinimaRpcError](classes/PureMinimaRpcError.md)
+## Install
 
-## Interfaces
+```bash
+npm install @totemsdk/pureminima-rpc
+```
 
-- [AddressInfo](interfaces/AddressInfo.md)
-- [Balance](interfaces/Balance.md)
-- [BalanceQuery](interfaces/BalanceQuery.md)
-- [BurnInfo](interfaces/BurnInfo.md)
-- [ChainTip](interfaces/ChainTip.md)
-- [Coin](interfaces/Coin.md)
-- [CoinCheckResult](interfaces/CoinCheckResult.md)
-- [CoinExportResult](interfaces/CoinExportResult.md)
-- [CoinsQuery](interfaces/CoinsQuery.md)
-- [HistoryEntry](interfaces/HistoryEntry.md)
-- [HistoryQuery](interfaces/HistoryQuery.md)
-- [MegaMMRInfo](interfaces/MegaMMRInfo.md)
-- [MinimaEnvelope](interfaces/MinimaEnvelope.md)
-- [MMRProof](interfaces/MMRProof.md)
-- [NodeStatus](interfaces/NodeStatus.md)
-- [PureMinimaClient](interfaces/PureMinimaClient.md)
-- [PureMinimaConfig](interfaces/PureMinimaConfig.md)
-- [SendParams](interfaces/SendParams.md)
-- [TokenInfo](interfaces/TokenInfo.md)
-- [TxnCheckResult](interfaces/TxnCheckResult.md)
-- [TxnInputParams](interfaces/TxnInputParams.md)
-- [TxnListResult](interfaces/TxnListResult.md)
-- [TxnMineParams](interfaces/TxnMineParams.md)
-- [TxnOutputParams](interfaces/TxnOutputParams.md)
-- [TxnPostParams](interfaces/TxnPostParams.md)
-- [TxnPostResult](interfaces/TxnPostResult.md)
-- [TxnScriptParams](interfaces/TxnScriptParams.md)
-- [TxnSignParams](interfaces/TxnSignParams.md)
-- [TxnStateParams](interfaces/TxnStateParams.md)
-- [WebhookEntry](interfaces/WebhookEntry.md)
-
-## Functions
-
-- [buildCommandString](functions/buildCommandString.md)
-- [createPureMinimaClient](functions/createPureMinimaClient.md)
-- [postCommand](functions/postCommand.md)
+← [Back to Package Index](/api)

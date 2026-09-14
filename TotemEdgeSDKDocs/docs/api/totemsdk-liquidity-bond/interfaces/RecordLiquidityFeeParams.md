@@ -8,6 +8,14 @@
 
 ## Properties
 
+### earnProof?
+
+> `optional` **earnProof?**: `unknown`
+
+Required for earnable sources — the payment proof that backs the fee.
+
+***
+
 ### feeAsset
 
 > **feeAsset**: `string`
@@ -38,6 +46,12 @@
 
 ***
 
+### payoutRef?
+
+> `optional` **payoutRef?**: [`FeePayoutRef`](FeePayoutRef.md)
+
+***
+
 ### poolId
 
 > **poolId**: `string`
@@ -65,3 +79,11 @@
 ### source
 
 > **source**: [`FeeSource`](../type-aliases/FeeSource.md)
+
+***
+
+### verified?
+
+> `optional` **verified?**: `boolean`
+
+When set, the earn-proof was verified (see `verifyLiquidityFeeRecord`).

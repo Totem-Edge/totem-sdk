@@ -8,6 +8,14 @@
 
 ## Properties
 
+### bondCoinId?
+
+> `optional` **bondCoinId?**: `string`
+
+An audited on-chain bond coin (utxo id), not free text.
+
+***
+
 ### manifestId?
 
 > `optional` **manifestId?**: `string`

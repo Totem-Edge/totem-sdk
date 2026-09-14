@@ -24,7 +24,7 @@
 
 ### counterSignature
 
-`ChannelSignature`
+[`ChannelSignature`](../type-aliases/ChannelSignature.md)
 
 ### counterIndices
 

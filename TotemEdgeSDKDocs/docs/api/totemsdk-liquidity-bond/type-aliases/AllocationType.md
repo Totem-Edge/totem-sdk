@@ -6,4 +6,4 @@
 
 # Type Alias: AllocationType
 
-> **AllocationType** = `"route-reserve"` \| `"channel-capital"` \| `"factory-capital"` \| `"rfq-inventory"` \| `"settlement-reserve"` \| `"manual-reserve"`
+> **AllocationType** = `"route-reserve"` \| `"channel-capital"` \| `"factory-capital"` \| `"rfq-inventory"` \| `"settlement-reserve"` \| `"vtxo-backing"` \| `"manual-reserve"`

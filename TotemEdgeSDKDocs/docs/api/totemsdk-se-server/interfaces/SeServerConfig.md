@@ -12,7 +12,7 @@
 
 > `optional` **betaMode?**: `boolean`
 
-Adds X-Beta headers to all responses. Default true.
+Adds X-Beta headers to all responses. Default false (stable API).
 
 ***
 

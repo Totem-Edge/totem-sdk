@@ -36,6 +36,41 @@
 
 ## Methods
 
+### advanceToRemoteWatermark()
+
+> **advanceToRemoteWatermark**(`treeId`, `remote`): `Promise`\<`boolean`\>
+
+Advance the local watermark to a remote cursor (monotonic merge).
+Used by quorum sync and the lookup-node LeaseCoordinator when a peer
+publishes a watermark ahead of ours. Returns false when the remote
+cursor is behind (no-op).
+
+#### Parameters
+
+##### treeId
+
+`string`
+
+##### remote
+
+###### addressCursor
+
+`number`
+
+###### l1Cursor
+
+`number`
+
+###### l2Cursor
+
+`number`
+
+#### Returns
+
+`Promise`\<`boolean`\>
+
+***
+
 ### burnReservation()
 
 > **burnReservation**(`reservationId`, `reason`): `Promise`\<`void`\>
@@ -84,6 +119,18 @@
 
 ***
 
+### getJournal()
+
+> **getJournal**(): [`LeaseJournal`](LeaseJournal.md)
+
+Expose the journal for quorum/on-chain providers to merge remote entries.
+
+#### Returns
+
+[`LeaseJournal`](LeaseJournal.md)
+
+***
+
 ### getLocalWatermark()
 
 > **getLocalWatermark**(`treeId`): `Promise`\<[`LocalWatermark`](../interfaces/LocalWatermark.md)\>
@@ -111,6 +158,18 @@
 #### Returns
 
 `Promise`\<`void`\>
+
+***
+
+### listTrees()
+
+> **listTrees**(): `string`[]
+
+List all tree IDs known to the local watermark store.
+
+#### Returns
+
+`string`[]
 
 ***
 
@@ -151,6 +210,30 @@
 #### Implementation of
 
 [`WotsLeaseProvider`](../interfaces/WotsLeaseProvider.md).[`reserveKeyUse`](../interfaces/WotsLeaseProvider.md#reservekeyuse)
+
+***
+
+### reserveSpecificKeyUse()
+
+> **reserveSpecificKeyUse**(`params`, `indices`): `Promise`\<[`LeaseReservation`](../interfaces/LeaseReservation.md)\>
+
+Reserve a specific set of indices (used by quorum coordination so every
+peer attests to the same slot). Throws IndicesUnavailableError when the
+slot is already taken.
+
+#### Parameters
+
+##### params
+
+[`ReserveParams`](../interfaces/ReserveParams.md)
+
+##### indices
+
+[`SigningIndices`](../interfaces/SigningIndices.md)
+
+#### Returns
+
+`Promise`\<[`LeaseReservation`](../interfaces/LeaseReservation.md)\>
 
 ***
 

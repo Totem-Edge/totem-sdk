@@ -64,6 +64,10 @@
 - [EPOCH\_ZERO](variables/EPOCH_ZERO.md)
 - [MOCK\_BATCH\_ID](variables/MOCK_BATCH_ID.md)
 - [MOCK\_OPERATOR\_SIGNATURE](variables/MOCK_OPERATOR_SIGNATURE.md)
+- [VTXO\_ID\_DOMAIN](variables/VTXO_ID_DOMAIN.md)
+- [VTXO\_LEAF\_DOMAIN](variables/VTXO_LEAF_DOMAIN.md)
+- [VTXO\_POOL\_ID\_DOMAIN](variables/VTXO_POOL_ID_DOMAIN.md)
+- [VTXO\_RECEIPT\_DOMAIN](variables/VTXO_RECEIPT_DOMAIN.md)
 
 ## Functions
 
@@ -77,6 +81,7 @@
 - [computeReceiptId](functions/computeReceiptId.md)
 - [computeVtxoId](functions/computeVtxoId.md)
 - [computeVtxoLeaf](functions/computeVtxoLeaf.md)
+- [consumeExitReceipt](functions/consumeExitReceipt.md)
 - [createExitDraft](functions/createExitDraft.md)
 - [createPool](functions/createPool.md)
 - [deserializePool](functions/deserializePool.md)

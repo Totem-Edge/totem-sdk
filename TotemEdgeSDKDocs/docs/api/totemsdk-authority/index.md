@@ -34,6 +34,7 @@
 - [evaluateAuthority](functions/evaluateAuthority.md)
 - [matchConstraints](functions/matchConstraints.md)
 - [matchScope](functions/matchScope.md)
+- [resolveActionField](functions/resolveActionField.md)
 - [signMandateWithLease](functions/signMandateWithLease.md)
 - [snapshotFromUsage](functions/snapshotFromUsage.md)
 - [verifyMandate](functions/verifyMandate.md)

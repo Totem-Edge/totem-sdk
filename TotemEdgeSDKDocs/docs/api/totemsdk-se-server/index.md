@@ -12,6 +12,10 @@
 - [StatechainRecord](interfaces/StatechainRecord.md)
 - [TimelockAlert](interfaces/TimelockAlert.md)
 
+## Variables
+
+- [SE\_API\_VERSION](variables/SE_API_VERSION.md)
+
 ## Functions
 
 - [consumeNonce](functions/consumeNonce.md)

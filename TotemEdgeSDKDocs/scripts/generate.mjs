@@ -46,6 +46,8 @@ const PACKAGES = [
 
   // AI & Policy
   { slug: 'totemsdk-agent-policy',     name: '@totemsdk/agent-policy',     desc: 'QVAC AI bridge — policy evaluation seam between agents and the wallet',                        entryPoint: 'packages/agent-policy/src/index.ts' },
+  { slug: 'totemsdk-intelligence',     name: '@totemsdk/intelligence',     desc: 'Provider-neutral contracts for local AI inference — capabilities, operations, usage receipts, error codes, and the EdgeIntelligencePort', entryPoint: 'packages/intelligence/src/index.ts' },
+  { slug: 'totemsdk-qvac',             name: '@totemsdk/qvac',             desc: 'QVAC in-situ inference adapter — wraps @qvac/sdk into provider-neutral contracts with runtime capability discovery and per-domain adapters', entryPoint: 'packages/qvac/src/index.ts' },
   { slug: 'totemsdk-manifest',         name: '@totemsdk/manifest',         desc: 'Canonical signed declarations for apps, AI capabilities, dApps, and edge services',            entryPoint: 'packages/manifest/src/index.ts' },
   { slug: 'totemsdk-authority',        name: '@totemsdk/authority',        desc: 'Authority verification and delegation framework for Totem services',                          entryPoint: 'packages/authority/src/index.ts' },
   { slug: 'totemsdk-governance',       name: '@totemsdk/governance',       desc: 'On-chain governance — proposals, voting, and treasury management',                            entryPoint: 'packages/governance/src/index.ts' },

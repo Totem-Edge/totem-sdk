@@ -10,7 +10,7 @@
 
 ### signatures
 
-> **signatures**: `Record`\<[`partyId`](../type-aliases/partyId.md), `ChannelSignature`\>
+> **signatures**: `Record`\<[`partyId`](../type-aliases/partyId.md), [`ChannelSignature`](../type-aliases/ChannelSignature.md)\>
 
 ***
 

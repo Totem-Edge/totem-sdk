@@ -6,8 +6,6 @@
 
 # Class: P2PQuorumLeaseProvider
 
-Layer 4 — p2p replicated lease witnesses.
-
 ## Implements
 
 - [`WotsLeaseProvider`](../interfaces/WotsLeaseProvider.md)
@@ -16,7 +14,13 @@ Layer 4 — p2p replicated lease witnesses.
 
 ### Constructor
 
-> **new P2PQuorumLeaseProvider**(): `P2PQuorumLeaseProvider`
+> **new P2PQuorumLeaseProvider**(`config`): `P2PQuorumLeaseProvider`
+
+#### Parameters
+
+##### config
+
+[`P2PQuorumLeaseProviderConfig`](../interfaces/P2PQuorumLeaseProviderConfig.md)
 
 #### Returns
 
@@ -24,17 +28,52 @@ Layer 4 — p2p replicated lease witnesses.
 
 ## Methods
 
-### burnReservation()
+### attestKeyUse()
 
-> **burnReservation**(`_reservationId`, `_reason`): `Promise`\<`void`\>
+> **attestKeyUse**(`params`, `indices`): `Promise`\<[`QuorumAttestation`](../interfaces/QuorumAttestation.md)[]\>
+
+Collect quorum attestations for a reservation that was already made
+locally (used by HybridLeaseProvider so the local slot and the attested
+slot are the same). Throws QuorumUnavailableError / QuorumConflictError
+on failure — the caller owns the local reservation and must burn it.
 
 #### Parameters
 
-##### \_reservationId
+##### params
+
+[`ReserveParams`](../interfaces/ReserveParams.md)
+
+##### indices
+
+###### addressIndex
+
+`number`
+
+###### l1
+
+`number`
+
+###### l2
+
+`number`
+
+#### Returns
+
+`Promise`\<[`QuorumAttestation`](../interfaces/QuorumAttestation.md)[]\>
+
+***
+
+### burnReservation()
+
+> **burnReservation**(`reservationId`, `reason`): `Promise`\<`void`\>
+
+#### Parameters
+
+##### reservationId
 
 `string`
 
-##### \_reason
+##### reason
 
 `string`
 
@@ -50,15 +89,15 @@ Layer 4 — p2p replicated lease witnesses.
 
 ### commitKeyUse()
 
-> **commitKeyUse**(`_reservationId`, `_txId`): `Promise`\<`void`\>
+> **commitKeyUse**(`reservationId`, `txId`): `Promise`\<`void`\>
 
 #### Parameters
 
-##### \_reservationId
+##### reservationId
 
 `string`
 
-##### \_txId
+##### txId
 
 `string`
 
@@ -74,11 +113,11 @@ Layer 4 — p2p replicated lease witnesses.
 
 ### getLocalWatermark()
 
-> **getLocalWatermark**(`_treeId`): `Promise`\<[`LocalWatermark`](../interfaces/LocalWatermark.md)\>
+> **getLocalWatermark**(`treeId`): `Promise`\<[`LocalWatermark`](../interfaces/LocalWatermark.md)\>
 
 #### Parameters
 
-##### \_treeId
+##### treeId
 
 `string`
 
@@ -92,13 +131,23 @@ Layer 4 — p2p replicated lease witnesses.
 
 ***
 
+### initialize()
+
+> **initialize**(): `Promise`\<`void`\>
+
+#### Returns
+
+`Promise`\<`void`\>
+
+***
+
 ### publishWatermark()
 
-> **publishWatermark**(`_treeId`): `Promise`\<`void`\>
+> **publishWatermark**(`treeId`): `Promise`\<`void`\>
 
 #### Parameters
 
-##### \_treeId
+##### treeId
 
 `string`
 
@@ -114,11 +163,11 @@ Layer 4 — p2p replicated lease witnesses.
 
 ### reserveKeyUse()
 
-> **reserveKeyUse**(`_params`): `Promise`\<[`LeaseReservation`](../interfaces/LeaseReservation.md)\>
+> **reserveKeyUse**(`params`): `Promise`\<[`LeaseReservation`](../interfaces/LeaseReservation.md)\>
 
 #### Parameters
 
-##### \_params
+##### params
 
 [`ReserveParams`](../interfaces/ReserveParams.md)
 
@@ -148,11 +197,11 @@ Layer 4 — p2p replicated lease witnesses.
 
 ### verifyLeaseCertificate()
 
-> **verifyLeaseCertificate**(`_cert?`): `Promise`\<`boolean`\>
+> **verifyLeaseCertificate**(`cert?`): `Promise`\<`boolean`\>
 
 #### Parameters
 
-##### \_cert?
+##### cert?
 
 [`LeaseCertificate`](../interfaces/LeaseCertificate.md)
 

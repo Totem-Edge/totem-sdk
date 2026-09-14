@@ -62,6 +62,12 @@
 
 ***
 
+### funding?
+
+> `optional` **funding?**: [`LiquidityFunding`](LiquidityFunding.md)
+
+***
+
 ### lockTerms
 
 > **lockTerms**: [`LiquidityLockTerms`](LiquidityLockTerms.md)
@@ -155,12 +161,6 @@
 ### status
 
 > **status**: [`LiquidityPositionStatus`](../type-aliases/LiquidityPositionStatus.md)
-
-***
-
-### underlyingUtxoRef?
-
-> `optional` **underlyingUtxoRef?**: `string`
 
 ***
 

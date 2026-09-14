@@ -20,7 +20,7 @@
 
 ### updateSignature
 
-`ChannelSignature`
+[`ChannelSignature`](../type-aliases/ChannelSignature.md)
 
 ### updateIndices
 
@@ -28,7 +28,7 @@
 
 ### settlementSignature
 
-`ChannelSignature`
+[`ChannelSignature`](../type-aliases/ChannelSignature.md)
 
 ### settlementIndices
 

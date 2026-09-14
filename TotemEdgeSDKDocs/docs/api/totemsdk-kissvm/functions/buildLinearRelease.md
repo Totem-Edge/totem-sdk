@@ -8,6 +8,9 @@
 
 > **buildLinearRelease**(`config`): `string`
 
+Linear release: vested = total * elapsed / duration, where
+duration = STATE(endPort) - STATE(startPort).
+
 ## Parameters
 
 ### config

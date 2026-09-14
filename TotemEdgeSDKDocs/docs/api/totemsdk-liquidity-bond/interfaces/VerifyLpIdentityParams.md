@@ -14,6 +14,12 @@
 
 ***
 
-### identityGraph
+### identityGraph?
 
-> **identityGraph**: `unknown`
+> `optional` **identityGraph?**: `unknown`
+
+***
+
+### proof?
+
+> `optional` **proof?**: [`IdentityChallengeProof`](IdentityChallengeProof.md)

@@ -8,6 +8,14 @@
 
 ## Properties
 
+### attestations?
+
+> `optional` **attestations?**: [`QuorumAttestation`](QuorumAttestation.md)[]
+
+Layer 4 — quorum attestations collected from P2P peers.
+
+***
+
 ### branchId?
 
 > `optional` **branchId?**: `string`
@@ -71,3 +79,11 @@
 ### treeId
 
 > **treeId**: `string`
+
+***
+
+### txpowid?
+
+> `optional` **txpowid?**: `string`
+
+Layer 5 — content hash of the on-chain watermark TX (sha3-256 of TxPoW bytes).
