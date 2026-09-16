@@ -1630,6 +1630,9 @@ importers:
       '@totemsdk/proof':
         specifier: workspace:^
         version: link:../proof
+      '@totemsdk/storage':
+        specifier: workspace:^
+        version: link:../storage
     devDependencies:
       '@types/jest':
         specifier: ^30.0.0

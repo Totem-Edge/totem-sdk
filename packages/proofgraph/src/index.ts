@@ -27,6 +27,26 @@ export type {
 } from './types.js';
 
 export {
+  createDurableProofGraphStore,
+} from './durable-store.js';
+
+export type {
+  DurableProofGraphStore,
+  DurableProofGraphStoreOptions,
+  ProofGraphRecoveryReport,
+} from './durable-store.js';
+
+export {
+  createProofGraphEvidenceStore,
+} from './evidence.js';
+
+export type {
+  ProofGraphEvidenceStore,
+  ProofGraphEvidenceStoreOptions,
+  ProofGraphEvidenceResult,
+} from './evidence.js';
+
+export {
   toHex,
   canonicalJson,
   computeNodeId,

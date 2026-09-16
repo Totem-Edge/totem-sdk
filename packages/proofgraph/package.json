@@ -29,7 +29,8 @@
     "@totemsdk/core": "workspace:^",
     "@totemsdk/proof": "workspace:^",
     "@totemsdk/manifest": "workspace:^",
-    "@totemsdk/identity": "workspace:^"
+    "@totemsdk/identity": "workspace:^",
+    "@totemsdk/storage": "workspace:^"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
