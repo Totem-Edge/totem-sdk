@@ -82,7 +82,7 @@ bridging them.
   *cryptographic/format* change that ships only in its own versioned proposal
   (OQ3 resolved: deferred, §7). Physical and cryptographic changes are never
   bundled.
-- **No forced migration of GPS-critical formats with live commitments.** Format
+- **No forced migration of state-critical formats with live commitments.** Format
   changes go through per-surface gates, and **valuable state is never silently
   wiped.** Pre-release does not mean disposable: **signing history,
   funded-channel state, unilateral recovery material (statechain `reclaimTx`,
@@ -195,7 +195,9 @@ is not deletion**: revoking one principal's entitlements denies access without
 touching a shared workspace or other principals' embeddings, and no destructive
 cleanup follows automatically. The storage layer defines **two separable
 contracts**: *revocation* (deny entitlements → gate any further retrieval/
-context) and a *separate deletion/retention decision* (invalidate chunk/embedding
+context — enforced once the authoritative revocation is observed, with a declared
+freshness/offline policy per enforcing surface, §5) and a *separate deletion/retention
+decision* (invalidate chunk/embedding
 records → drop caches → purge retained outputs → tombstone workspace/index).
 Destructive cleanup runs **only** when that deletion/retention decision fires,
 and executes **through provider ops**, never by writing into provider storage.
@@ -414,8 +416,12 @@ external store with a tested contract.
   Purchase entitlements and authority checks stay **above the backend** and reuse
   existing accounting (`agent-policy` mandates/budgets) rather than introducing a
   second accounting layer. Revocation and deletion are separate decisions (§3.5):
-  revocation denies an entitlement and gates retrieval/context **immediately**;
-  `ragDeleteEmbeds`/`ragDeleteWorkspace`/cache purge fire **only** under a
+  revocation denies an entitlement and gates retrieval/context **once the
+  authoritative revocation is observed** — enforcement is not instantaneous
+  propagation across disconnected devices, so each enforcing surface declares its
+  **freshness/offline policy** (how stale a cache may be before denial, and what
+  happens while offline);
+  `ragDeleteEmbeddings`/`ragDeleteWorkspace`/cache purge fire **only** under a
   distinct deletion/retention decision, while retained outputs are handled
   per-process. Totem does **not** assert that provider-retained outputs are never
   exposed past a revocation window: access denial to one principal is independent
@@ -443,6 +449,10 @@ and `SDK_MANIFEST` sync (`scripts/verify-sdk-manifest.mjs`) is updated when the 
 package is added (maturity `alpha`: typecheck/lint/test). Every matrix acceptance
 gate (§3.6) is exercised in the phase named in its row; a gate with no phase
 (delegation rows) is covered by the delegation conformance in Phase 1.
+**Deferred gates are the exception:** a gate on a Phase 6 / Defer+consequence
+row is **not exercised in this RFC** — its consequence is recorded and it is
+re-opened only when that scope is respecified; it is not simultaneously promised
+and deferred.
 
 | Phase | Scope | Acceptance gate |
 |-------|-------|-----------------|
@@ -478,12 +488,14 @@ snapshots, proof/raster/spatial primitives, and Hyperbee replication policy.
 6. **Order of Phases 2–4.** The plan reorders adapters before security-critical
    surfaces; run-state/identity hardening could be pulled earlier if review
    prioritizes it.
-7. **Blob/stream storage: include or defer.** **RESOLVED (boundary now, backend
-   later):** streamed artifacts (TTS/audioGen/video/diffusion outputs) have no
-   durable owner today. The artifact-storage boundary — ownership, stable
-   references, integrity, retention, recovery — is specified now (§4.3) and ships
-   with `@totemsdk/storage`; only the sophisticated blob backend
-   (chunking/CAS/GC/streaming) is deferred until a consumer needs durable retention.
+7. **Blob/stream storage: include or defer.** **RESOLVED (minimal adapter now,
+   advanced later):** streamed artifacts (TTS/audioGen/video/diffusion outputs)
+   have no durable owner today. The artifact-storage boundary — ownership, stable
+   references, integrity, retention, recovery — is specified now (§4.3), and a
+   **minimal durable `ArtifactStore`** (byte put/get, digest-verified on read,
+   `not-found` vs `corrupt`) ships with `@totemsdk/storage`; only the
+   sophisticated blob backend (chunking/CAS/GC/streaming) is deferred until a
+   consumer needs durable retention.
 8. **Usage journal granularity.** **RESOLVED (authority via domain interfaces):**
    accounting stays with the owning domain contract — `GrantUsageStore` for
    agent-policy budget/mandate consumption, commerce replay/outbox for purchase
