@@ -214,6 +214,12 @@ Every stage produces evidence the next stage consumes — and every stage can be
 | [`@totemsdk/intelligence`](packages/intelligence) | Provider-neutral intelligence contracts — capabilities, operations, usage receipts, error codes, and the edge intelligence port contract (`EdgeIntelligencePort`, `createEdgeIntelligencePort`) for local, self-hosted AI inference |
 | [`@totemsdk/qvac`](packages/qvac) | QVAC in-situ inference adapter — wraps `@qvac/sdk` into the provider-neutral contracts, with `/edge` and `/raw` subpaths (injection and lazy-loading seams) |
 
+### Storage system
+
+| Package | Description |
+|---------|-------------|
+| [`@totemsdk/storage`](packages/storage) | Provider-neutral storage contracts and adapters — `StorageError` taxonomy, versioned codec, namespaces, transactions + CAS, and a pluggable `ArtifactStoreBackend` artifact port |
+
 ### Foundation
 
 | Package | Description |

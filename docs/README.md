@@ -94,6 +94,7 @@
 
 | Package | Document |
 |---------|----------|
+| `@totemsdk/storage` | [Package README](../packages/storage/README.md) — storage contracts & adapters: `StorageError`, codec, `Namespace`, transaction/CAS, `ArtifactStore` + pluggable `ArtifactStoreBackend` port |
 | `@totemsdk/intelligence` | [Package README](../packages/intelligence/README.md) — provider-neutral contracts for local AI inference: capabilities, operations, usage receipts, error codes, `EdgeIntelligencePort` |
 | `@totemsdk/qvac` | [Package README](../packages/qvac/README.md) — QVAC adapter: runtime capability discovery, per-domain adapters, `/edge`/`/raw` subpaths |
 | `@totemsdk/core` | [Integration guide](../packages/core/docs/INTEGRATION_GUIDE.md) — server-side verification, hex conventions, TreeSignature format |

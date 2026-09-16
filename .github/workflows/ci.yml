@@ -104,6 +104,29 @@ jobs:
         run: node scripts/validate-pkg-meta.mjs
       - name: Validate SDK_MANIFEST sync
         run: node scripts/verify-sdk-manifest.mjs
+      - name: storage→core DAG lint
+        run: node scripts/verify-storage-dag.mjs
+
+  storage-durability:
+    name: Storage durable-CI (sqlite + fs conformance)
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Setup filtered workspace
+        uses: ./.github/actions/setup-pnpm
+      - name: Build core (dependency order)
+        working-directory: packages/core
+        run: npm run build
+      - name: Build storage
+        working-directory: packages/storage
+        run: npm run build
+      - name: Fail if better-sqlite3 cannot run
+        working-directory: packages/storage
+        run: node -e "require('better-sqlite3'); console.log('better-sqlite3 OK')"
+      - name: Run sqlite + fs conformance (durable gates)
+        working-directory: packages/storage
+        run: npx jest --testPathPattern="sqlite-store.conformance|file-store.conformance"
 
   pack:
     name: Pack validation (publishable packages)

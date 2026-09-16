@@ -67,6 +67,7 @@
     "packages/se-server": { "status": "publishable", "maturity": "rc" },
     "packages/server": { "status": "publishable", "maturity": "v1" },
     "packages/statechain": { "status": "publishable", "maturity": "rc" },
+    "packages/storage": { "status": "publishable", "maturity": "alpha" },
     "packages/stream-transport": { "status": "publishable", "maturity": "rc" },
     "packages/tx-builder": { "status": "publishable", "maturity": "rc" },
     "packages/txpow": { "status": "publishable", "maturity": "v1" },

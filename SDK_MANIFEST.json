@@ -3,7 +3,7 @@
   "title": "Totem SDK Package Manifest",
   "description": "Machine-readable index of all @totemsdk packages — for AI agents, tooling, and developers. Updated 2026-08-18.",
   "org": "@totemsdk",
-  "total": 60,
+  "total": 61,
   "domains": {
     "cryptographic-foundation": {
       "description": "WOTS+ signatures, TreeKey hierarchy, MMR proofs, KISSVM, MAST, TxPoW",
@@ -93,6 +93,12 @@
       "packages": [
         "@totemsdk/intelligence",
         "@totemsdk/qvac"
+      ]
+    },
+    "storage": {
+      "description": "Provider-neutral storage contracts and adapters — StorageError taxonomy, versioned codec, namespaces, transactions + CAS, and the pluggable ArtifactStoreBackend artifact port",
+      "packages": [
+        "@totemsdk/storage"
       ]
     }
   },
@@ -1487,6 +1493,44 @@
         "./world": "dist/domains/world.{js,d.ts}"
       },
       "exportsDescription": "createQvacIntelligenceProvider (runtime capability discovery), QvacSdkLike structural injection seam, /edge EdgeIntelligencePort binding, /raw genuine SDK passthrough, per-domain typed adapters /llm…/plugins"
+    },
+    {
+      "name": "@totemsdk/storage",
+      "version": "0.1.0",
+      "description": "Provider-neutral storage contracts and adapters — StorageError taxonomy, versioned codec, namespaces, transactions + CAS, artifact-boundary types with a pluggable ArtifactStoreBackend port",
+      "domain": "storage",
+      "keywords": [
+        "totem",
+        "totemsdk",
+        "storage",
+        "persistence",
+        "durability",
+        "codec",
+        "namespace",
+        "transaction",
+        "cas",
+        "artifacts",
+        "sqlite",
+        "provider-neutral"
+      ],
+      "dependencies": {
+        "@totemsdk/core": "^1.2.10"
+      },
+      "exports": {
+        ".": "dist/index.{js,d.ts}",
+        "./artifacts": "dist/artifacts/index.{js,d.ts}",
+        "./artifacts/local-fs-backend": "dist/artifacts/backends/local-fs-backend.{js,d.ts}",
+        "./codec": "dist/codec.{js,d.ts}",
+        "./conformance": "dist/conformance/index.{js,d.ts}",
+        "./errors": "dist/errors.{js,d.ts}",
+        "./fs": "dist/adapters/file-store.{js,d.ts}",
+        "./memory": "dist/adapters/memory-store.{js,d.ts}",
+        "./namespace": "dist/namespace.{js,d.ts}",
+        "./sqlite": "dist/adapters/sqlite-store.{js,d.ts}",
+        "./transaction": "dist/transaction.{js,d.ts}",
+        "./types": "dist/types.{js,d.ts}"
+      },
+      "exportsDescription": "StorageError taxonomy, versioned codec, Namespace, Transaction/CAS + conditionalUpdate, WriteAckMode/FailurePolicy/StoreCapabilities, MemoryStore/FileStore/SqliteStore, ArtifactStore + pluggable ArtifactStoreBackend port, core + backend conformance harnesses"
     }
   ]
 }

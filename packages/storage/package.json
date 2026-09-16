@@ -1,0 +1,125 @@
+{
+  "name": "@totemsdk/storage",
+  "version": "0.1.0",
+  "description": "Provider-neutral storage contracts and adapters — StorageError taxonomy, versioned codec, namespaces, transactions + CAS, artifact-boundary types with a pluggable ArtifactStoreBackend port",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.js"
+    },
+    "./artifacts": {
+      "types": "./dist/artifacts/index.d.ts",
+      "require": "./dist/artifacts/index.js",
+      "import": "./dist/artifacts/index.js"
+    },
+    "./artifacts/local-fs-backend": {
+      "types": "./dist/artifacts/backends/local-fs-backend.d.ts",
+      "require": "./dist/artifacts/backends/local-fs-backend.js",
+      "import": "./dist/artifacts/backends/local-fs-backend.js"
+    },
+    "./codec": {
+      "types": "./dist/codec.d.ts",
+      "require": "./dist/codec.js",
+      "import": "./dist/codec.js"
+    },
+    "./conformance": {
+      "types": "./dist/conformance/index.d.ts",
+      "require": "./dist/conformance/index.js",
+      "import": "./dist/conformance/index.js"
+    },
+    "./errors": {
+      "types": "./dist/errors.d.ts",
+      "require": "./dist/errors.js",
+      "import": "./dist/errors.js"
+    },
+    "./fs": {
+      "types": "./dist/adapters/file-store.d.ts",
+      "require": "./dist/adapters/file-store.js",
+      "import": "./dist/adapters/file-store.js"
+    },
+    "./memory": {
+      "types": "./dist/adapters/memory-store.d.ts",
+      "require": "./dist/adapters/memory-store.js",
+      "import": "./dist/adapters/memory-store.js"
+    },
+    "./namespace": {
+      "types": "./dist/namespace.d.ts",
+      "require": "./dist/namespace.js",
+      "import": "./dist/namespace.js"
+    },
+    "./sqlite": {
+      "types": "./dist/adapters/sqlite-store.d.ts",
+      "require": "./dist/adapters/sqlite-store.js",
+      "import": "./dist/adapters/sqlite-store.js"
+    },
+    "./transaction": {
+      "types": "./dist/transaction.d.ts",
+      "require": "./dist/transaction.js",
+      "import": "./dist/transaction.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "require": "./dist/types.js",
+      "import": "./dist/types.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "prepare": "tsc",
+    "clean": "rm -rf dist",
+    "test": "jest"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "@totemsdk/core": "workspace:^",
+    "better-sqlite3": "^12.2.0"
+  },
+  "devDependencies": {
+    "@jest/globals": "^30.4.2",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20.0.0",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.0.0",
+    "typescript": "^7.0.2"
+  },
+  "peerDependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "author": "Totem SDK",
+  "homepage": "https://docs.totem.ing",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Totem-Edge/totem-sdk.git",
+    "directory": "packages/storage"
+  },
+  "keywords": [
+    "totem",
+    "totemsdk",
+    "storage",
+    "persistence",
+    "durability",
+    "codec",
+    "namespace",
+    "transaction",
+    "cas",
+    "artifacts",
+    "sqlite",
+    "provider-neutral"
+  ],
+  "bugs": {
+    "url": "https://github.com/Totem-Edge/totem-sdk/issues"
+  }
+}
