@@ -75,6 +75,7 @@
   "files": [
     "dist",
     "README.md",
+    "docs",
     "LICENSE"
   ],
   "dependencies": {
