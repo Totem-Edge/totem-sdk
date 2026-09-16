@@ -272,7 +272,7 @@ phase plan (§6) reference the row labels (G6–G10, phases).
 | @totemsdk/industrial-action | `ActionStorage` (interface-only) | **Migrate** | industrial-action | Durable action-lifecycle records (G6) | `ActionStorage` reopen test (Phase 3) |
 | **verifiable-claims** | | | | | |
 | @totemsdk/proof, proof-integritas | — (envelopes; anchors on-chain) | **Ephemeral** | — | Deterministic verification; no local durable store | — |
-| @totemsdk/proofgraph | `ProofGraphStoragePort` (`save`/`load`/`findByNodeId`), graph + index | **Migrate** | proofgraph | **Evidence-graph durability (G8):** consistent graph/index updates, restart recovery, concurrent-update safety; durable owner for evidence from proof/location/spatial/raster/integritas — the drone-flight provenance chain; evidence *bytes* persist via the minimal artifact adapter (§4.3) | Shared durable adapter + concurrency + reopen tests (Phase 3); evidence-chain test raster→spatial→location→integritas **over a concrete artifact adapter** — graph references alone do not satisfy the gate (Phase 3) |
+| @totemsdk/proofgraph | `ProofGraphStoragePort` (`save`/`load`/`findByNodeId`), graph + index | **Migrate** | proofgraph | **Evidence-graph durability (G8):** consistent graph/index updates, restart recovery, concurrent-update safety; durable owner for evidence from proof/location/spatial/raster/integritas — the drone-flight provenance chain; evidence *bytes* persist via the minimal artifact adapter (§4.3) | Shared durable adapter + concurrency + reopen tests (Phase 3); evidence-chain test raster→spatial→location→integritas **over a concrete artifact adapter or named external store with a tested contract** — graph references alone do not satisfy the gate (Phase 3) |
 | @totemsdk/identity, manifest | — | **Retain** | identity / manifest | Signed formats; verification = signature check; persistence up to caller | Signature verification gates; contract recorded |
 | @totemsdk/root-identity | In-memory watermarks w/ export/restore | **Retain** | root-identity | Watermark durability via `StorageAdapter`; export/restore retained | Watermark reopen + corruption test (Phase 4) |
 | @totemsdk/governance | Engine + snapshots | **Retain** | governance | Engine deterministic, in-memory; membership snapshots are signed **domain artifacts**, not DB snapshots | Snapshot verifiability gate (Phase 4 sweep) |
@@ -333,7 +333,7 @@ workspaces, or inference. QVAC-specific workspace/index semantics live in
 | Write acknowledgment | Per store, one of **`volatile`** (ack before any disk state), **`buffered`** (ack before durability — bounded loss window on crash), or **`durably-acknowledged`** (the write path itself commits/fsyncs *before* returning success). Only `volatile`/`buffered` stores may still hold pending durability when `close()` is called. Declared per store, independently of the failure policy below |
 | Failure policy (`strict` / `lenient`) | **Error handling, separate from the durability modes.** `strict`: corruption/unavailability is an error, never treated as absent (signing history, accounts, evidence graphs, recovery material); `lenient`: absence tolerated (caches). The contract also fixes concurrency/CAS (`update … WHERE revision`), transaction scope, and `flush()`/`close()` semantics: `flush()`/`close()` drain and **report failures** for `buffered` writes; a `durably-acknowledged` store has no pending durability by construction (success implies commit) |
 | `Journal` + versioned records | Append-only, restart-recoverable record journal with versioned/forward-migratable records — the home for inference usage/execution *audit* records, MQTT replay, WOTS watermarks, and identity chains. **Single accounting authority, per domain:** the journal records, the owning domain interface accounts (see *Accounting authority* below); it never competes as a second counter (resolves OQ8) |
-| `Blob`/artifact storage | **Boundary + minimal adapter now, sophisticated backend deferred (resolves OQ7):** ownership, stable references, integrity, retention, recovery are specified in §4.3, and a minimal durable `ArtifactStore` (byte put/get, digest-verified on read, `not-found` vs `corrupt`) ships with the package; only chunking/CAS/GC/streaming is deferred until a consumer needs durable retention. Streamed artifacts (`textToSpeechStream`, `audioGen`, `video`, diffusion outputs) are retyped/resumed by consumers now |
+| `Blob`/artifact storage | **Boundary + minimal adapter + pluggable backend port now, sophisticated backend deferred (resolves OQ7):** ownership, stable references, integrity, retention, recovery are specified in §4.3; a minimal durable `ArtifactStore` (byte put/get, digest-verified on read, `not-found` vs `corrupt`) ships in-package over a pluggable **`ArtifactStoreBackend`** port, so any external store (Arweave/Filecoin/IPFS/torrents/Drive/object stores) is adapted by config, never an endless integration list. Only chunking/CAS/GC/streaming is deferred until a consumer needs it. Streamed artifacts (`textToSpeechStream`, `audioGen`, `video`, diffusion outputs) are retyped/resumed by consumers now |
 | Conformance harness | Runs the same suite over `InMemory`, `:memory:` SQLite, **and** a durable file-backed SQLite (disk-survival gate). Reopen tests do **not** prove crash/power-loss survival. A **required durability job** in CI must **FAIL** if a backend a deployed gate depends on cannot run; native-binding skip is allowed only for optional runs |
 | Runtime portability | Native `better-sqlite3` and Node `fs` sit behind **isolated subpaths**; runtime-specific file implementations (Bare/Pear) never leak into the neutral core — bare vs node are build-runtime concerns, not storage contracts |
 | Accounting authority | Authority lives in the **existing domain contracts** and their respective accounting responsibilities: `GrantUsageStore` (agent-policy budget/mandate consumption), commerce replay/outbox (purchase accounting), `WatermarkStore` (key-use watermarks), and so on per surface. The journal is an append-only audit trail reconciled to each domain authority and never competes as a second counter; the reconciliation boundary is stated per domain in the store contract |
@@ -346,6 +346,8 @@ Shared backends in the package:
   temp+rename) — replaces `server.FileStorageAdapter`, omnia
   `JsonFileStorageAdapter`, Pear `BareFileStore`.
 - `MemoryStore` (in-memory; conformance-only and dev).
+- `LocalFsBackend` (reference `ArtifactStoreBackend` adapter — proves the seam;
+  no provider registry is maintained).
 - Pear `BareKVStore` (Hyperbee) is **retained as supplied** — its `get()` propagates
   errors; only `BareFileStore` semantics are replaced.
 
@@ -377,14 +379,29 @@ durable output retention is a slot, not an afterthought:
   tombstoned) is additional metadata on that result, not a replacement for the
   distinction; `corrupt` surfaces under `strict` when the artifact is
   evidence-bearing — never fail-open.
+- **Backend port.** `ArtifactStoreBackend` is an explicit, artifact-shaped adapter
+  seam — a **content-addressed byte-mover, deliberately not a KV store** — so it
+  can never shadow the transactional `StorageAdapter` contract. It declares its
+  capabilities (`writable`, `acknowledge: volatile | buffered |
+  durably-acknowledged`, `atomic`, `retention: fixed | managed | none`,
+  `offlineReadable`) and exposes `put` / `get` (returning
+  `ok | not-found | corrupt | unavailable`) / optional `delete`. `ArtifactStore`
+  wraps a minimal local store around the pluggable backend; all mutation/GC/
+  tombstone/retention logic stays local, remote stores just move and verify
+  bytes. A **backend conformance suite** (`backend.conformance.test.ts`:
+  fetch+verify, status taxonomy, delete/retention where declared) is what "tested
+  contract" means — an external store earns that label only by passing it. One
+  reference adapter (local file system) ships to prove the seam; the SDK never
+  maintains a provider registry. Chunking/CAS/GC later slot in behind this port.
 
 The **minimal durable `ArtifactStore`** (byte put/get with committed-digest
-verification on read, `not-found` vs `corrupt` distinction) ships with
-`@totemsdk/storage`; the advanced blob backend (chunking, CAS, GC, streaming) is
-**deferred until a consumer requires durable retention** (OQ7 resolved). The
-ProofGraph flight-evidence gate (Phase 3) refuses to pass on graph references
-alone — evidence bytes must restore through the `ArtifactStore` or a named
-external store with a tested contract.
+verification on read, `not-found` vs `corrupt` distinction) ships in
+`@totemsdk/storage` as a wrapper over the pluggable `ArtifactStoreBackend` port;
+the advanced blob backend (chunking, CAS, GC, streaming) is **deferred until a
+consumer requires durable retention** (OQ7 resolved). The ProofGraph
+flight-evidence gate (Phase 3) refuses to pass on graph references alone —
+evidence bytes must restore through the `ArtifactStore` or a named external store
+with a **tested contract** (one that passes the backend conformance suite).
 
 ## 5. Security & Sovereignty
 
@@ -456,7 +473,7 @@ and deferred.
 
 | Phase | Scope | Acceptance gate |
 |-------|-------|-----------------|
-| **0** | `@totemsdk/storage` scaffold: `StorageError`, codec, `Namespace`, `Transaction`/CAS, artifact-boundary types (§4.3), `FileStore`/`MemoryStore`/`SqliteStore`, conformance harness + CI import-lint for the `storage→core` DAG | New conformance suite green on `InMemory`, `:memory:`, and durable file-backed SQLite; **required durable-CI job added that FAILS if a deployed-gate backend cannot run** (native-binding skip only for optional runs); import-lint added; manifest updated |
+| **0** | `@totemsdk/storage` scaffold: `StorageError`, codec, `Namespace`, `Transaction`/CAS, artifact-boundary types + **`ArtifactStoreBackend` port** (§4.3), `FileStore`/`MemoryStore`/`SqliteStore`, core-substrate conformance harness, backend conformance suite + **one reference backend adapter** (local-fs), CI import-lint for the `storage→core` DAG | New conformance suite green on `InMemory`, `:memory:`, and durable file-backed SQLite; backend conformance green on the reference adapter (fetch+verify, `not-found`/`corrupt`/`unavailable`, delete/retention where declared); **required durable-CI job added that FAILS if a deployed-gate backend cannot run** (native-binding skip only for optional runs); import-lint added; manifest updated |
 | **1** | Consolidate transactional backends: extract commerce CAS/`transitionAndEnqueue` and run-state primitives onto shared `SqliteStore`; re-home relevant contracts (still used by `edge`, `agent-policy`) | Commerce + run-state conformance suites green via shared primitives; reopen test retained; `autonomy_*`/commerce records unchanged in shape |
 | **2** | Harden runtime adapters: swap `server.FileStorageAdapter`, omnia `JsonFileStorageAdapter`, Pear `BareFileStore` to shared `FileStore`; per-store `strict`/`lenient` declared | `corrupt`/`write-failed` surfaced where `strict`; prefix `clear()`/`keys()` tested; bigint/bytes round-trip through codec |
 | **3** | Fill durability gaps: WOTS **physical append-only** journal (G3, hash chain unchanged), MQTT claim/ack/retry + persistent replay (G4), purchase-payment atomic claim (G5), durable backends for bonds/`ActionStorage`/VTXO/pool/factory/router/splice (G6/G9/G10), tx-builder `StorageAdapter` dissolution + migration (G10), ProofGraph durable `ProofGraphStoragePort` adapter + evidence chain **over the minimal `ArtifactStore`** (G8) | WOTS **layout** migration/replay gate (chain-format change stays deferred, OQ3); MQTT crash-window test (kill between claim and publish); factory crash-mid-signing-round test; router restart-mid-route + splice crash-window tests; tx-builder migration + classification (format detection & refusal, §4.2); idempotency concurrency test; registry reopen tests; ProofGraph concurrency + reopen + evidence-chain + **evidence-artifact restore** (`not-found` vs `corrupt`) test |
@@ -492,10 +509,11 @@ snapshots, proof/raster/spatial primitives, and Hyperbee replication policy.
    advanced later):** streamed artifacts (TTS/audioGen/video/diffusion outputs)
    have no durable owner today. The artifact-storage boundary — ownership, stable
    references, integrity, retention, recovery — is specified now (§4.3), and a
-   **minimal durable `ArtifactStore`** (byte put/get, digest-verified on read,
-   `not-found` vs `corrupt`) ships with `@totemsdk/storage`; only the
-   sophisticated blob backend (chunking/CAS/GC/streaming) is deferred until a
-   consumer needs durable retention.
+**minimal durable `ArtifactStore`** (byte put/get, digest-verified on read,
+    `not-found` vs `corrupt`) ships with `@totemsdk/storage` over the pluggable
+    `ArtifactStoreBackend` port (§4.3); only the sophisticated blob backend
+    (chunking/CAS/GC/streaming) is deferred until a consumer needs durable
+    retention.
 8. **Usage journal granularity.** **RESOLVED (authority via domain interfaces):**
    accounting stays with the owning domain contract — `GrantUsageStore` for
    agent-policy budget/mandate consumption, commerce replay/outbox for purchase

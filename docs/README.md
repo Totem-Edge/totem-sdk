@@ -145,7 +145,7 @@
 | [rfc/RFC-002-OMNIA-RUST-WASM-PARITY.md](rfc/RFC-002-OMNIA-RUST-WASM-PARITY.md) | Omnia Rust/WASM channel state machine parity (implemented) |
 | [rfc/RFC-003-OMNIA-BUILT-IN-PROGRAMS.md](rfc/RFC-003-OMNIA-BUILT-IN-PROGRAMS.md) | Omnia built-in channel programs — HTLC, vault, treasury, membership, asset (implemented) |
 | [rfc/RFC-006-SDK-INTELLIGENCE-QVAC-INTEGRATION.md](rfc/RFC-006-SDK-INTELLIGENCE-QVAC-INTEGRATION.md) | SDK intelligence/QVAC integration — provider-neutral local AI inference contracts, capability strings, edge gating, agent-policy inference intents (implemented, P0–P7) |
-| [rfc/RFC-007-STORAGE-CONSOLIDATION.md](rfc/RFC-007-STORAGE-CONSOLIDATION.md) | Storage consolidation & durable guarantees — `@totemsdk/storage` contract layer (codec/transaction/error taxonomy/artifact boundary), package persistence matrix (60 pkg, Migrate/Retain/Delegate/Ephemeral/Defer), ProofGraph evidence durability, QVAC verification-level & revocation semantics, audit baseline `e97b2c1` (draft) |
+| [rfc/RFC-007-STORAGE-CONSOLIDATION.md](rfc/RFC-007-STORAGE-CONSOLIDATION.md) | Storage consolidation & durable guarantees — `@totemsdk/storage` contract layer (codec/transaction/error taxonomy/artifact boundary + pluggable `ArtifactStoreBackend` port), package persistence matrix (60 pkg, Migrate/Retain/Delegate/Ephemeral/Defer), ProofGraph evidence durability, QVAC verification-level & revocation semantics, audit baseline `e97b2c1` (draft) |
 
 ---
 
