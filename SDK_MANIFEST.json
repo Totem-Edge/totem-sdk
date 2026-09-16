@@ -1195,6 +1195,7 @@
         "dependencies": {
         "@totemsdk/core": "^1.2.10",
         "@totemsdk/lookup-protocol": "^0.2.0",
+        "@totemsdk/storage": "^0.1.0",
         "@totemsdk/txpow": "^1.0.1"
       },
       "exports": {

@@ -39,9 +39,19 @@ export interface LeaseStoreConfig {
 
 const DEFAULT_STORAGE_KEY = 'totem_wots_leases';
 
+/** Drop fields whose value is `undefined` (strict adapters reject `undefined`). */
+function stripUndefined<T extends object>(value: T): T {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(value)) {
+    if (v !== undefined) out[k] = v;
+  }
+  return out as T;
+}
+
 export class LeaseStore {
   private leases: Map<string, StoredLease> = new Map();
   private _initialized = false;
+  private mutationTail: Promise<void> = Promise.resolve();
   private readonly storageKey: string;
   private readonly storage: StorageAdapter;
   private readonly logger: LoggerAdapter;
@@ -77,12 +87,13 @@ export class LeaseStore {
       }
     } catch (error) {
       this.logger.error('Failed to load leases:', error);
+      throw error;
     }
   }
 
   private async persist(): Promise<void> {
     try {
-      const leasesArray = Array.from(this.leases.values());
+      const leasesArray = Array.from(this.leases.values()).map((lease) => stripUndefined(lease));
       await this.storage.set(this.storageKey, leasesArray);
     } catch (error) {
       this.logger.error('Failed to persist leases:', error);
@@ -91,13 +102,45 @@ export class LeaseStore {
   }
 
   async save(lease: StoredLease): Promise<void> {
+    return this.mutate(() => this.saveUnlocked(lease));
+  }
+
+  private async saveUnlocked(lease: StoredLease): Promise<void> {
     const flatIndex = this.flattenIndex(lease.indices);
     this.logger.debug(`Storing lease: ${lease.leaseId}`);
     this.logger.debug(`  indices: (addressIndex=${lease.indices.addressIndex}, l1=${lease.indices.l1}, l2=${lease.indices.l2}) [${flatIndex}/262,144]`);
     this.logger.debug(`  status: ${lease.status}, TTL: ${lease.leaseTTL}ms`);
     
+    const previous = this.leases.get(lease.leaseId);
     this.leases.set(lease.leaseId, lease);
-    await this.persist();
+    try {
+      await this.persist();
+    } catch (error) {
+      if (previous) this.leases.set(lease.leaseId, previous);
+      else this.leases.delete(lease.leaseId);
+      throw error;
+    }
+  }
+
+  async delete(leaseId: string): Promise<boolean> {
+    return this.mutate(() => this.deleteUnlocked(leaseId));
+  }
+
+  private async deleteUnlocked(leaseId: string): Promise<boolean> {
+    const lease = this.leases.get(leaseId);
+    if (lease) {
+      this.logger.debug(`Deleting lease: ${leaseId}, final status: ${lease.status}`);
+    }
+    const existed = this.leases.delete(leaseId);
+    if (existed) {
+      try {
+        await this.persist();
+      } catch (error) {
+        this.leases.set(leaseId, lease!);
+        throw error;
+      }
+    }
+    return existed;
   }
 
   get(leaseId: string): StoredLease | undefined {
@@ -130,18 +173,6 @@ export class LeaseStore {
     );
   }
 
-  async delete(leaseId: string): Promise<boolean> {
-    const lease = this.leases.get(leaseId);
-    if (lease) {
-      this.logger.debug(`Deleting lease: ${leaseId}, final status: ${lease.status}`);
-    }
-    const existed = this.leases.delete(leaseId);
-    if (existed) {
-      await this.persist();
-    }
-    return existed;
-  }
-
   async deleteByToken(leaseToken: string): Promise<boolean> {
     const lease = this.getByToken(leaseToken);
     if (lease) {
@@ -151,38 +182,75 @@ export class LeaseStore {
   }
 
   async updateStatus(leaseId: string, status: LeaseStatus): Promise<void> {
+    return this.mutate(() => this.updateStatusUnlocked(leaseId, status));
+  }
+
+  private async updateStatusUnlocked(leaseId: string, status: LeaseStatus): Promise<void> {
     const lease = this.leases.get(leaseId);
     if (lease) {
       const oldStatus = lease.status;
       this.logger.debug(`Lease status change: ${leaseId} ${oldStatus} → ${status}`);
       lease.status = status;
-      await this.persist();
+      try {
+        await this.persist();
+      } catch (error) {
+        lease.status = oldStatus;
+        throw error;
+      }
     }
   }
 
   async cleanupExpired(): Promise<number> {
+    return this.mutate(() => this.cleanupExpiredUnlocked());
+  }
+
+  private async cleanupExpiredUnlocked(): Promise<number> {
     const now = Date.now();
-    const expiredLeaseIds: string[] = [];
+    const expiredLeases: Array<{ leaseId: string; status: LeaseStatus }> = [];
 
     for (const [leaseId, lease] of this.leases.entries()) {
-      if (lease.expiresAt <= now && lease.status !== 'finalized') {
+      if (lease.expiresAt <= now && (lease.status === 'active' || lease.status === 'pending')) {
+        expiredLeases.push({ leaseId, status: lease.status });
         lease.status = 'expired';
-        expiredLeaseIds.push(leaseId);
       }
     }
 
-    if (expiredLeaseIds.length > 0) {
-      this.logger.debug(`Marked ${expiredLeaseIds.length} leases as expired`);
-      await this.persist();
+    if (expiredLeases.length > 0) {
+      this.logger.debug(`Marked ${expiredLeases.length} leases as expired`);
+      try {
+        await this.persist();
+      } catch (error) {
+        for (const { leaseId, status } of expiredLeases) this.leases.get(leaseId)!.status = status;
+        throw error;
+      }
     }
 
-    return expiredLeaseIds.length;
+    return expiredLeases.length;
   }
 
   async clear(): Promise<void> {
+    await this.mutate(() => this.clearUnlocked());
+  }
+
+  private async clearUnlocked(): Promise<void> {
+    const previous = new Map(this.leases);
     this.leases.clear();
-    await this.storage.remove(this.storageKey);
+    try {
+      await this.storage.remove(this.storageKey);
+    } catch (error) {
+      this.leases = previous;
+      throw error;
+    }
     this.logger.debug('Cleared all leases');
+  }
+
+  private mutate<T>(operation: () => Promise<T>): Promise<T> {
+    const prior = this.mutationTail;
+    let release: () => void;
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    const run = prior.then(() => operation()).finally(() => release!());
+    this.mutationTail = run.then(() => undefined, () => undefined);
+    return run;
   }
 
   getMinimumTTL(): number | null {

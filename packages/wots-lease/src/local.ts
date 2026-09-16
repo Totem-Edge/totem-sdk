@@ -19,7 +19,12 @@ import type {
 } from './types.js';
 import { WotsWatermarkStore, flatIndex } from './watermark.js';
 import { LeaseJournal } from './journal.js';
-import { LeaseNotFoundError, DeviceRangeViolationError, IndicesUnavailableError } from './errors.js';
+import {
+  LeaseNotFoundError,
+  InvalidLeaseTransitionError,
+  DeviceRangeViolationError,
+  IndicesUnavailableError,
+} from './errors.js';
 
 function randomId(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -33,6 +38,8 @@ export class LocalLeaseProvider implements WotsLeaseProvider {
   private readonly leaseStore: LeaseStore;
   private readonly journal: LeaseJournal;
   private _initialized = false;
+  private initializePromise: Promise<void> | null = null;
+  private mutationTail: Promise<void> = Promise.resolve();
   private readonly deviceId: string;
 
   constructor(
@@ -48,12 +55,112 @@ export class LocalLeaseProvider implements WotsLeaseProvider {
 
   async initialize(): Promise<void> {
     if (this._initialized) return;
+    if (!this.initializePromise) {
+      this.initializePromise = this.initializeOnce().catch((error: unknown) => {
+        this.initializePromise = null;
+        throw error;
+      });
+    }
+    await this.initializePromise;
+  }
+
+  private async initializeOnce(): Promise<void> {
+    await this.journal.initialize();
     await this.watermark.initialize();
     await this.leaseStore.initialize();
-    await this.journal.initialize();
+    await this.reconcileDurableSafetyState();
     await this.recoverExpiredReservations();
     await this.burnUnresolvedReservations();
     this._initialized = true;
+  }
+
+  /**
+   * Rebuild the no-reuse watermark from immutable journal history and leases.
+   * The journal is audit authority; the watermark remains allocation authority.
+   */
+  private async reconcileDurableSafetyState(): Promise<void> {
+    const entries = this.journal.getAll();
+    const latestBySlot = new Map<string, typeof entries[number]>();
+    const latestByReservation = new Map<string, typeof entries[number]>();
+    for (const entry of entries) {
+      latestBySlot.set(`${entry.treeId}:${entry.wotsIndex}`, entry);
+      if (entry.reservationId) latestByReservation.set(entry.reservationId, entry);
+    }
+    for (const entry of latestBySlot.values()) {
+      await this.watermark.markUnavailable(entry.treeId, entry.indices, entry.status);
+    }
+
+    const leases = this.leaseStore.getAll();
+    const leaseIds = new Set(leases.map((lease) => lease.leaseId));
+    for (const entry of latestByReservation.values()) {
+      if (entry.status !== 'reserved' || leaseIds.has(entry.reservationId!)) continue;
+      await this.journal.append({
+        ...entry,
+        status: 'burned',
+        timestamp: Date.now(),
+      });
+      await this.watermark.markUnavailable(entry.treeId, entry.indices, 'burned');
+    }
+
+    for (const lease of leases) {
+      const treeId = lease.treeId ?? 'default';
+      const latest = this.journal.getByReservation(lease.leaseId);
+      if (!latest) {
+        const status = lease.status === 'finalized'
+          ? 'committed'
+          : lease.status === 'cancelled'
+            ? 'burned'
+            : lease.status === 'expired'
+              ? 'reserved-expired'
+              : 'reserved';
+        await this.journal.append({
+          treeId,
+          branchId: 'default',
+          wotsIndex: flatIndex(lease.indices),
+          indices: lease.indices,
+          status,
+          reservationId: lease.leaseId,
+          ...(lease.txId !== undefined ? { txId: lease.txId } : {}),
+          timestamp: lease.createdAt,
+          deviceId: this.deviceId,
+        });
+        await this.watermark.markUnavailable(treeId, lease.indices, status);
+        continue;
+      }
+
+      if (latest.status === 'committed' && lease.status !== 'finalized') {
+        await this.leaseStore.updateStatus(lease.leaseId, 'finalized');
+      } else if (latest.status === 'burned' && lease.status !== 'cancelled') {
+        await this.leaseStore.updateStatus(lease.leaseId, 'cancelled');
+      } else if (latest.status === 'reserved-expired' && lease.status !== 'expired') {
+        await this.leaseStore.updateStatus(lease.leaseId, 'expired');
+      } else if (latest.status === 'reserved' && lease.status === 'finalized') {
+        await this.journal.append({
+          treeId,
+          branchId: 'default',
+          wotsIndex: flatIndex(lease.indices),
+          indices: lease.indices,
+          status: 'committed',
+          reservationId: lease.leaseId,
+          ...(lease.txId !== undefined ? { txId: lease.txId } : {}),
+          timestamp: Date.now(),
+          deviceId: this.deviceId,
+        });
+        await this.watermark.markUnavailable(treeId, lease.indices, 'committed');
+      } else if (latest.status === 'reserved' && lease.status === 'cancelled') {
+        await this.journal.append({
+          treeId,
+          branchId: 'default',
+          wotsIndex: flatIndex(lease.indices),
+          indices: lease.indices,
+          status: 'burned',
+          reservationId: lease.leaseId,
+          timestamp: Date.now(),
+          deviceId: this.deviceId,
+        });
+        await this.watermark.markUnavailable(treeId, lease.indices, 'burned');
+      }
+    }
   }
 
   /** Burn all active (non-expired) leases that have no matching treeId.
@@ -64,18 +171,20 @@ export class LocalLeaseProvider implements WotsLeaseProvider {
     for (const lease of this.leaseStore.getAll()) {
       if (lease.status === 'active' && lease.expiresAt >= now && !lease.treeId) {
         this.logger.warn(`[LocalLeaseProvider] Burning unresolved lease ${lease.leaseId} (no treeId)`);
+        if (this.journal.getByReservation(lease.leaseId)?.status !== 'burned') {
+          await this.journal.append({
+            treeId: 'default',
+            branchId: 'default',
+            wotsIndex: flatIndex(lease.indices),
+            indices: lease.indices,
+            status: 'burned',
+            reservationId: lease.leaseId,
+            timestamp: now,
+            deviceId: this.deviceId,
+          });
+        }
         await this.watermark.markUnavailable('default', lease.indices, 'burned');
         await this.leaseStore.updateStatus(lease.leaseId, 'cancelled');
-        await this.journal.append({
-          treeId: 'default',
-          branchId: 'default',
-          wotsIndex: flatIndex(lease.indices),
-          indices: lease.indices,
-          status: 'burned',
-          reservationId: lease.leaseId,
-          timestamp: now,
-          deviceId: this.deviceId,
-        });
       }
     }
   }
@@ -83,28 +192,32 @@ export class LocalLeaseProvider implements WotsLeaseProvider {
   private async recoverExpiredReservations(): Promise<void> {
     const now = Date.now();
     for (const lease of this.leaseStore.getAll()) {
-      if (lease.status === 'active' && lease.expiresAt < now) {
+      if (lease.status === 'expired' || (lease.status === 'active' && lease.expiresAt < now)) {
         const treeId = lease.treeId ?? 'default';
+        if (this.journal.getByReservation(lease.leaseId)?.status !== 'reserved-expired') {
+          await this.journal.append({
+            treeId,
+            branchId: 'default',
+            wotsIndex: flatIndex(lease.indices),
+            indices: lease.indices,
+            status: 'reserved-expired',
+            reservationId: lease.leaseId,
+            timestamp: now,
+            deviceId: this.deviceId,
+          });
+        }
         await this.watermark.markUnavailable(treeId, lease.indices, 'reserved-expired');
-        await this.leaseStore.updateStatus(lease.leaseId, 'expired');
-        await this.journal.append({
-          treeId,
-          branchId: 'default',
-          wotsIndex: flatIndex(lease.indices),
-          indices: lease.indices,
-          status: 'reserved-expired',
-          reservationId: lease.leaseId,
-          timestamp: now,
-          deviceId: this.deviceId,
-        });
+        if (lease.status !== 'expired') await this.leaseStore.updateStatus(lease.leaseId, 'expired');
       }
     }
   }
 
   async reserveKeyUse(params: ReserveParams): Promise<LeaseReservation> {
-    if (!this._initialized) await this.initialize();
-    const indices = this.watermark.getNextIndices(params.treeId);
-    return this.reserveSpecificKeyUse(params, indices);
+    return this.withMutationLock(async () => {
+      if (!this._initialized) await this.initialize();
+      const indices = this.watermark.getNextIndices(params.treeId);
+      return this.reserveSpecificKeyUseUnlocked(params, indices);
+    });
   }
 
   /**
@@ -113,6 +226,16 @@ export class LocalLeaseProvider implements WotsLeaseProvider {
    * slot is already taken.
    */
   async reserveSpecificKeyUse(params: ReserveParams, indices: SigningIndices): Promise<LeaseReservation> {
+    return this.withMutationLock(async () => {
+      if (!this._initialized) await this.initialize();
+      return this.reserveSpecificKeyUseUnlocked(params, indices);
+    });
+  }
+
+  private async reserveSpecificKeyUseUnlocked(
+    params: ReserveParams,
+    indices: SigningIndices,
+  ): Promise<LeaseReservation> {
     if (!this._initialized) await this.initialize();
     const treeId = params.treeId;
     const ttlMs = params.ttlMs ?? 120_000;
@@ -129,10 +252,24 @@ export class LocalLeaseProvider implements WotsLeaseProvider {
       }
     }
 
-    await this.watermark.markUnavailable(treeId, indices, 'reserved');
-
     const reservationId = randomId();
     const expiresAt = Date.now() + ttlMs;
+
+    // Write-ahead safety record: once this succeeds, recovery will never
+    // re-expose the index even if a later snapshot write fails.
+    await this.journal.append({
+      treeId,
+      branchId: params.branchId ?? 'default',
+      wotsIndex: flatIndex(indices),
+      indices,
+      status: 'reserved',
+      reservationId,
+      payloadHash: params.payloadHash,
+      timestamp: Date.now(),
+      deviceId: params.deviceId ?? this.deviceId,
+    });
+
+    await this.watermark.markUnavailable(treeId, indices, 'reserved');
 
     const lease: StoredLease = {
       leaseId: reservationId,
@@ -146,32 +283,39 @@ export class LocalLeaseProvider implements WotsLeaseProvider {
     };
     await this.leaseStore.save(lease);
 
-    await this.journal.append({
-      treeId,
-      branchId: params.branchId ?? 'default',
-      wotsIndex: flatIndex(indices),
-      indices,
-      status: 'reserved',
-      reservationId,
-      payloadHash: params.payloadHash,
-      timestamp: Date.now(),
-      deviceId: params.deviceId ?? this.deviceId,
-    });
-
     return { reservationId, indices, expiresAt };
   }
 
+  private withMutationLock<T>(operation: () => Promise<T>): Promise<T> {
+    const run = this.mutationTail.then(operation, operation);
+    this.mutationTail = run.then(() => undefined, () => undefined);
+    return run;
+  }
+
   async commitKeyUse(reservationId: string, txId: string): Promise<void> {
+    return this.withMutationLock(() => this.commitKeyUseUnlocked(reservationId, txId));
+  }
+
+  private async commitKeyUseUnlocked(reservationId: string, txId: string): Promise<void> {
     if (!this._initialized) await this.initialize();
     const lease = this.leaseStore.get(reservationId);
     if (!lease) throw new LeaseNotFoundError(reservationId);
-    if (lease.status === 'finalized') return;
 
     const treeId = lease.treeId ?? 'default';
     const indices: SigningIndices = lease.indices;
-    await this.watermark.markUnavailable(treeId, indices, 'committed');
-    await this.leaseStore.updateStatus(reservationId, 'finalized');
-
+    const latest = this.journal.getByReservation(reservationId);
+    if (latest?.status === 'committed') {
+      if (latest.txId !== txId) {
+        throw new InvalidLeaseTransitionError(reservationId, 'committed', 'committed');
+      }
+      await this.watermark.markUnavailable(treeId, indices, 'committed');
+      if (lease.status !== 'finalized') await this.leaseStore.updateStatus(reservationId, 'finalized');
+      return;
+    }
+    if (latest?.status === 'burned' || latest?.status === 'reserved-expired'
+      || lease.status === 'cancelled' || lease.status === 'expired') {
+      throw new InvalidLeaseTransitionError(reservationId, latest?.status ?? lease.status, 'committed');
+    }
     await this.journal.append({
       treeId,
       branchId: 'default',
@@ -183,19 +327,31 @@ export class LocalLeaseProvider implements WotsLeaseProvider {
       timestamp: Date.now(),
       deviceId: this.deviceId,
     });
+    await this.watermark.markUnavailable(treeId, indices, 'committed');
+    await this.leaseStore.updateStatus(reservationId, 'finalized');
   }
 
   async burnReservation(reservationId: string, reason: string): Promise<void> {
+    return this.withMutationLock(() => this.burnReservationUnlocked(reservationId, reason));
+  }
+
+  private async burnReservationUnlocked(reservationId: string, reason: string): Promise<void> {
     if (!this._initialized) await this.initialize();
     const lease = this.leaseStore.get(reservationId);
     if (!lease) throw new LeaseNotFoundError(reservationId);
 
     const treeId = lease.treeId ?? 'default';
     const indices: SigningIndices = lease.indices;
-    await this.watermark.markUnavailable(treeId, indices, 'burned');
-    await this.leaseStore.updateStatus(reservationId, 'cancelled');
-
-    this.logger.warn(`[LocalLeaseProvider] Burning reservation ${reservationId}: ${reason}`);
+    const latest = this.journal.getByReservation(reservationId);
+    if (latest?.status === 'burned') {
+      await this.watermark.markUnavailable(treeId, indices, 'burned');
+      if (lease.status !== 'cancelled') await this.leaseStore.updateStatus(reservationId, 'cancelled');
+      return;
+    }
+    if (latest?.status === 'committed' || latest?.status === 'reserved-expired'
+      || lease.status === 'finalized' || lease.status === 'expired') {
+      throw new InvalidLeaseTransitionError(reservationId, latest?.status ?? lease.status, 'burned');
+    }
     await this.journal.append({
       treeId,
       branchId: 'default',
@@ -206,6 +362,10 @@ export class LocalLeaseProvider implements WotsLeaseProvider {
       timestamp: Date.now(),
       deviceId: this.deviceId,
     });
+    await this.watermark.markUnavailable(treeId, indices, 'burned');
+    await this.leaseStore.updateStatus(reservationId, 'cancelled');
+
+    this.logger.warn(`[LocalLeaseProvider] Burning reservation ${reservationId}: ${reason}`);
   }
 
   async getLocalWatermark(treeId: string): Promise<LocalWatermark> {

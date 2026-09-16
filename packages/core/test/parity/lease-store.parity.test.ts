@@ -227,6 +227,74 @@ describe('LeaseStore Parity Tests', () => {
       expect(count).toBe(1);
       expect(leaseStore.get('old-lease')?.status).toBe('expired');
     });
+
+    test('cleanupExpired preserves terminal lease statuses', async () => {
+      const expiredAt = Date.now() - 1000;
+      await leaseStore.save({ ...testLease, leaseId: 'final', status: 'finalized', expiresAt: expiredAt });
+      await leaseStore.save({ ...testLease, leaseId: 'cancelled', status: 'cancelled', expiresAt: expiredAt });
+
+      expect(await leaseStore.cleanupExpired()).toBe(0);
+      expect(leaseStore.get('final')?.status).toBe('finalized');
+      expect(leaseStore.get('cancelled')?.status).toBe('cancelled');
+    });
+
+    test('initialize propagates storage read failures', async () => {
+      const failure = new Error('corrupt lease storage');
+      class FailingStorage extends MockStorageAdapter {
+        override async get<T>(_key: string): Promise<T | null> {
+          throw failure;
+        }
+      }
+
+      const store = new LeaseStore(new FailingStorage(), logger);
+      await expect(store.initialize()).rejects.toBe(failure);
+      expect(store.isInitialized()).toBe(false);
+    });
+
+    test('persistence omits explicitly undefined optional fields', async () => {
+      await leaseStore.save({ ...testLease, treeId: undefined, txId: undefined });
+
+      const persisted = storage.getSnapshot().parity_test_leases as StoredLease[];
+      expect(persisted[0]).not.toHaveProperty('treeId');
+      expect(persisted[0]).not.toHaveProperty('txId');
+    });
+
+    test('serialized mutations keep memory and storage consistent after a failure', async () => {
+      class DelayedFailStorage extends MockStorageAdapter {
+        failNextSet = false;
+
+        override async set<T>(key: string, value: T): Promise<void> {
+          if (this.failNextSet) {
+            this.failNextSet = false;
+            throw new Error('injected set failure');
+          }
+          await super.set(key, value);
+        }
+      }
+
+      const delayed = new DelayedFailStorage();
+      const store = new LeaseStore(delayed, logger, { storageKey: 'concurrent_test' });
+      const leases = [
+        { ...testLease, leaseId: 'c-1', leaseToken: 't-1' },
+        { ...testLease, leaseId: 'c-2', leaseToken: 't-2' },
+      ];
+
+      delayed.failNextSet = true;
+      const results = await Promise.allSettled([
+        store.save(leases[0]),
+        store.save(leases[1]),
+      ]);
+      expect(results[0].status).toBe('rejected');
+      expect(results[1].status).toBe('fulfilled');
+
+      expect(store.get('c-1')).toBeUndefined();
+      expect(store.get('c-2')?.leaseId).toBe('c-2');
+
+      const reopened = new LeaseStore(delayed, logger, { storageKey: 'concurrent_test' });
+      await reopened.initialize();
+      expect(reopened.get('c-1')).toBeUndefined();
+      expect(reopened.get('c-2')?.leaseId).toBe('c-2');
+    });
   });
 
   describe('TTL Calculations', () => {

@@ -8,7 +8,13 @@ module.exports = {
       tsconfig: {
         module: 'CommonJS',
         moduleResolution: 'node',
+        baseUrl: '.',
+        paths: {
+          '@totemsdk/storage': ['../storage/src/index.ts'],
+          '@totemsdk/storage/errors': ['../storage/src/errors.ts'],
+        },
       },
+      diagnostics: { ignoreCodes: [2307] }, // workspace subpath exports resolved by moduleNameMapper
     }],
   },
   moduleNameMapper: {
@@ -17,6 +23,8 @@ module.exports = {
     '^@totemsdk/chain-provider$': '<rootDir>/../chain-provider/src/index.ts',
     '^@totemsdk/minima-rpc$': '<rootDir>/../minima-rpc/src/index.ts',
     '^@totemsdk/wots-lease$': '<rootDir>/../wots-lease/src/index.ts',
+    '^@totemsdk/storage$': '<rootDir>/../storage/src/index.ts',
+    '^@totemsdk/storage/errors$': '<rootDir>/../storage/src/errors.ts',
     '^@totemsdk/txpow$': '<rootDir>/../txpow/src/index.ts',
     '^better-sqlite3$': '<rootDir>/src/better-sqlite3.mock.cjs',
     '^(\\.{1,2}/.*)\\.js$': '$1',

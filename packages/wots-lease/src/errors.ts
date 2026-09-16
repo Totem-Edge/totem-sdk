@@ -21,6 +21,17 @@ export class LeaseNotFoundError extends Error {
   }
 }
 
+export class InvalidLeaseTransitionError extends Error {
+  constructor(
+    public readonly reservationId: string,
+    public readonly currentStatus: string,
+    public readonly requestedStatus: string,
+  ) {
+    super(`Cannot transition lease ${reservationId} from ${currentStatus} to ${requestedStatus}`);
+    this.name = 'InvalidLeaseTransitionError';
+  }
+}
+
 export class IndicesUnavailableError extends Error {
   constructor(public readonly treeId: string, public readonly indices: SigningIndices) {
     super(

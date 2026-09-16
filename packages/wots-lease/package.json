@@ -28,6 +28,7 @@
   "dependencies": {
     "@totemsdk/core": "workspace:^",
     "@totemsdk/lookup-protocol": "workspace:^",
+    "@totemsdk/storage": "workspace:^",
     "@totemsdk/txpow": "workspace:^"
   },
   "devDependencies": {

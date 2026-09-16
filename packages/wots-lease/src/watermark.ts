@@ -24,15 +24,28 @@ const CAPACITY_PER_TREE = MAX_L * MAX_L * MAX_L;
 const DEFAULT_TREE = 'default';
 
 export function flatIndex(idx: SigningIndices): number {
+  assertValidSigningIndices(idx);
   return idx.addressIndex * MAX_L * MAX_L + idx.l1 * MAX_L + idx.l2;
 }
 
 export function fromFlatIndex(flat: number): SigningIndices {
+  if (!Number.isSafeInteger(flat) || flat < 0 || flat >= CAPACITY_PER_TREE) {
+    throw new RangeError(`WOTS flat index must be an integer in [0, ${CAPACITY_PER_TREE - 1}]`);
+  }
   const addressIndex = Math.floor(flat / (MAX_L * MAX_L));
   const rem = flat % (MAX_L * MAX_L);
   const l1 = Math.floor(rem / MAX_L);
   const l2 = rem % MAX_L;
   return { addressIndex, l1, l2 };
+}
+
+export function assertValidSigningIndices(indices: SigningIndices): void {
+  for (const name of ['addressIndex', 'l1', 'l2'] as const) {
+    const value = indices[name];
+    if (!Number.isSafeInteger(value) || value < 0 || value >= MAX_L) {
+      throw new RangeError(`WOTS ${name} must be an integer in [0, ${MAX_L - 1}]`);
+    }
+  }
 }
 
 function emptyTree(treeId: string): TreeWatermark {
@@ -180,7 +193,13 @@ export class WotsWatermarkStore {
     const s = this.ensureInit();
     const tree = s.trees[treeId];
     if (!tree) return false;
-    return flatIndex(indices) in tree.unavailable;
+    const index = flatIndex(indices);
+    const cursor = flatIndex({
+      addressIndex: tree.addressCursor,
+      l1: tree.l1Cursor,
+      l2: tree.l2Cursor,
+    });
+    return index < cursor || index in tree.unavailable;
   }
 
   async save(treeId: string, patch: Partial<TreeWatermark>): Promise<void> {
