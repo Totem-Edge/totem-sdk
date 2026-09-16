@@ -30,6 +30,7 @@
     "@totemsdk/identity": "workspace:^",
     "@totemsdk/manifest": "workspace:^",
     "@totemsdk/proof": "workspace:^",
+    "@totemsdk/storage": "workspace:^",
     "@totemsdk/wots-lease": "workspace:^"
   },
   "devDependencies": {

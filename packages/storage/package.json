@@ -55,6 +55,11 @@
       "require": "./dist/adapters/sqlite-store.js",
       "import": "./dist/adapters/sqlite-store.js"
     },
+    "./snapshot": {
+      "types": "./dist/snapshot.d.ts",
+      "require": "./dist/snapshot.js",
+      "import": "./dist/snapshot.js"
+    },
     "./transaction": {
       "types": "./dist/transaction.d.ts",
       "require": "./dist/transaction.js",

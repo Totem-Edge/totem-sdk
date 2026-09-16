@@ -218,3 +218,5 @@ export {
 } from './registry.js';
 
 export { MemoryLiquidityBondStore } from './memory-store.js';
+export { createDurableLiquidityBondStore } from './durable-store.js';
+export type { DurableLiquidityBondStore, DurableLiquidityBondStoreOptions } from './durable-store.js';

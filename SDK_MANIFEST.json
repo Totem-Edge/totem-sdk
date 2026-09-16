@@ -607,6 +607,7 @@
         "@totemsdk/identity": "^1.0.0",
         "@totemsdk/manifest": "^1.0.0",
         "@totemsdk/proof": "^1.0.0",
+        "@totemsdk/storage": "^0.1.0",
         "@totemsdk/wots-lease": "^1.0.0"
       },
       "exports": {
@@ -923,7 +924,8 @@
         "@totemsdk/core": "^1.2.10",
         "@totemsdk/identity": "^1.0.0",
         "@totemsdk/manifest": "^1.0.0",
-        "@totemsdk/proof": "^1.0.0"
+        "@totemsdk/proof": "^1.0.0",
+        "@totemsdk/storage": "^0.1.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1535,6 +1537,7 @@
         "./memory": "dist/adapters/memory-store.{js,d.ts}",
         "./namespace": "dist/namespace.{js,d.ts}",
         "./sqlite": "dist/adapters/sqlite-store.{js,d.ts}",
+        "./snapshot": "dist/snapshot.{js,d.ts}",
         "./transaction": "dist/transaction.{js,d.ts}",
         "./types": "dist/types.{js,d.ts}"
       },

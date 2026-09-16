@@ -123,3 +123,5 @@ export {
 } from './registry.js';
 
 export { MemoryProviderBondStore } from './memory-store.js';
+export { createDurableProviderBondStore } from './durable-store.js';
+export type { DurableProviderBondStore, DurableProviderBondStoreOptions } from './durable-store.js';

@@ -28,6 +28,7 @@ module.exports = {
     '^@totemsdk/agent-policy$': '<rootDir>/../agent-policy/src/index.ts',
     '^@totemsdk/storage$': '<rootDir>/../storage/src/index.ts',
     '^@totemsdk/storage/sqlite$': '<rootDir>/../storage/src/adapters/sqlite-store.ts',
+    '^@totemsdk/storage/(.*)$': '<rootDir>/../storage/src/$1',
     '^@totemsdk/authority$': '<rootDir>/../authority/src/index.ts',
     '^@totemsdk/proof$': '<rootDir>/../proof/src/index.ts',
     '^@totemsdk/identity$': '<rootDir>/../identity/src/index.ts',

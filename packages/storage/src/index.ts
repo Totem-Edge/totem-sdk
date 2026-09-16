@@ -19,5 +19,6 @@ export * from './codec.js';
 export * from './types.js';
 export * from './namespace.js';
 export * from './transaction.js';
+export * from './snapshot.js';
 export * from './adapters/memory-store.js';
 export * from './artifacts/index.js';
