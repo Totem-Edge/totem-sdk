@@ -831,6 +831,7 @@
         "hypercore": ">=10.0.0",
         "hyperdrive": ">=2.0.0",
         "corestore": ">=6.0.0",
+        "@totemsdk/storage": "^0.1.0",
         "@totemsdk/stream-transport": "^0.2.0"
       },
       "exports": {
@@ -1065,6 +1066,7 @@
         "node-fetch": "^2.6.9",
         "ws": "^8.21.1",
         "@totemsdk/core": "^1.2.10",
+        "@totemsdk/storage": "^0.1.0",
         "@totemsdk/txpow": "^1.0.1"
       },
       "exports": {
@@ -1190,7 +1192,7 @@
         "watermark",
         "key-coordination"
       ],
-      "dependencies": {
+        "dependencies": {
         "@totemsdk/core": "^1.2.10",
         "@totemsdk/lookup-protocol": "^0.2.0",
         "@totemsdk/txpow": "^1.0.1"
@@ -1289,6 +1291,7 @@
         "@totemsdk/omnia-router": "^0.2.0",
         "@totemsdk/omnia-splice": "^0.2.0",
         "@totemsdk/omnia-vtxo": "^0.2.0",
+        "@totemsdk/storage": "^0.1.0",
         "@totemsdk/wots-lease": "^1.0.0"
       },
       "exports": {

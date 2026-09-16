@@ -24,6 +24,7 @@
   ],
   "dependencies": {
     "@totemsdk/core": "workspace:^",
+    "@totemsdk/storage": "workspace:^",
     "@totemsdk/txpow": "workspace:^",
     "ws": "^8.21.1"
   },

@@ -31,6 +31,7 @@ import {
   wotsSign,
 } from '@totemsdk/core';
 import type { StorageAdapter } from '@totemsdk/core';
+import { FileStore } from '@totemsdk/storage/fs';
 import { LocalLeaseProvider } from '@totemsdk/wots-lease';
 import { allocateDeviceRange, deviceSlotForAddressIndex } from '@totemsdk/wots-lease';
 import type { ChannelSigner } from '@totemsdk/omnia';
@@ -145,62 +146,41 @@ function resolveBaseSeed(config: OmniaHostConfig): Uint8Array {
 
 /**
  * JSON-file-backed StorageAdapter rooted at a directory next to the channel DB.
- * Each key is stored as `<key>.json`; the directory is created on first write.
+ *
+ * Delegates to the hardened shared `FileStore` from `@totemsdk/storage/fs`
+ * (RFC-007): one versioned codec record per key written temp+rename with an
+ * fsync; corrupt records surface as `StorageError` (`corrupt`) rather than
+ * silently returning JSON `null`. The directory is created on first write.
  */
 export class JsonFileStorageAdapter implements StorageAdapter {
-  private readonly dir: string;
+  private readonly store: FileStore;
 
   constructor(dir: string) {
-    this.dir = dir;
-  }
-
-  private fileFor(key: string): string {
-    const safe = key.replace(/[^a-zA-Z0-9_-]/g, '_');
-    return path.join(this.dir, `${safe}.json`);
-  }
-
-  private ensureDir(): void {
-    fs.mkdirSync(this.dir, { recursive: true });
+    this.store = new FileStore(dir);
   }
 
   async get<T>(key: string): Promise<T | null> {
-    const file = this.fileFor(key);
-    if (!fs.existsSync(file)) return null;
-    try {
-      return JSON.parse(fs.readFileSync(file, 'utf8')) as T;
-    } catch {
-      return null;
-    }
+    return this.store.get(key);
   }
 
   async set<T>(key: string, value: T): Promise<void> {
-    this.ensureDir();
-    fs.writeFileSync(this.fileFor(key), JSON.stringify(value));
+    return this.store.set(key, value);
   }
 
   async remove(key: string): Promise<boolean> {
-    const file = this.fileFor(key);
-    if (!fs.existsSync(file)) return false;
-    fs.unlinkSync(file);
-    return true;
+    return this.store.remove(key);
   }
 
   async clear(): Promise<void> {
-    if (!fs.existsSync(this.dir)) return;
-    for (const entry of fs.readdirSync(this.dir)) {
-      fs.unlinkSync(path.join(this.dir, entry));
-    }
+    return this.store.clear();
   }
 
   async keys(): Promise<string[]> {
-    if (!fs.existsSync(this.dir)) return [];
-    return fs.readdirSync(this.dir)
-      .filter((name) => name.endsWith('.json'))
-      .map((name) => name.slice(0, -'.json'.length));
+    return this.store.keys();
   }
 
   async has(key: string): Promise<boolean> {
-    return fs.existsSync(this.fileFor(key));
+    return this.store.has(key);
   }
 }
 

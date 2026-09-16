@@ -14,7 +14,7 @@ import type { HypebeeLike } from '../storage/BareKVStore';
 import type { FsLike } from '../storage/BareFileStore';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { unlinkSync, existsSync } from 'node:fs';
+import { unlinkSync, existsSync, writeFileSync } from 'node:fs';
 
 // ── BareFileStore ─────────────────────────────────────────────────────────────
 
@@ -36,14 +36,20 @@ describe('BareFileStore', () => {
 
   it('write → read round-trip', async () => {
     await store.set('hello', 'world');
-    // Allow the scheduled flush to run
-    await new Promise(r => setImmediate(r));
     expect(await store.get('hello')).toBe('world');
   });
 
   it('stores objects', async () => {
     await store.set('obj', { a: 1, b: [2, 3] });
     expect(await store.get('obj')).toEqual({ a: 1, b: [2, 3] });
+  });
+
+  it('round-trips bigint and bytes through the shared codec', async () => {
+    const value = { n: 7n, bytes: new Uint8Array([1, 2, 3]) };
+    await store.set('codec', value);
+    const read = await store.get<typeof value>('codec');
+    expect(read).toEqual(value);
+    expect(typeof read?.n).toBe('bigint');
   });
 
   it('has() returns true after set, false before', async () => {
@@ -90,20 +96,53 @@ describe('BareFileStore', () => {
     if (existsSync(path2)) unlinkSync(path2);
   });
 
-  it('accepts injected fs mock — no real file I/O', async () => {
-    const mem: Record<string, string> = {};
+  it('accepts an injected fs shim', async () => {
+    const mem: Record<string, Uint8Array> = {};
     const mockFs: FsLike = {
-      readFileSync: (p, _enc) => mem[p] ?? '',
-      writeFileSync: (p, data, _enc) => { mem[p] = String(data); },
+      readFileSync: (p) => mem[p] ?? new Uint8Array(),
+      writeFileSync: (p, data) => { mem[p] = new Uint8Array(data); },
       existsSync: (p) => p in mem,
       mkdirSync: () => {},
+      renameSync: (from, to) => { mem[to] = mem[from]; delete mem[from]; },
+      unlinkSync: (p) => { delete mem[p]; },
     };
     const mockPath = '/fake/store.json';
     const mockStore = new BareFileStore({ filePath: mockPath, fs: mockFs });
     await mockStore.set('injected', 'value');
     await mockStore.flush();
-    expect(JSON.parse(mem[mockPath] ?? '{}')).toMatchObject({ injected: 'value' });
+    expect(mem[mockPath]).toBeInstanceOf(Uint8Array);
     expect(await mockStore.get('injected')).toBe('value');
+  });
+
+  it('surfaces write-failed and rolls back the in-memory mutation', async () => {
+    const mem: Record<string, Uint8Array> = {};
+    const failingFs: FsLike = {
+      readFileSync: (p) => mem[p] ?? new Uint8Array(),
+      writeFileSync: (p, data) => { mem[p] = new Uint8Array(data); },
+      existsSync: (p) => p in mem,
+      mkdirSync: () => {},
+      renameSync: () => { throw new Error('disk full'); },
+      unlinkSync: (p) => { delete mem[p]; },
+    };
+    const failed = new BareFileStore({ filePath: '/fake/fail.bin', fs: failingFs });
+    await expect(failed.set('k', 1)).rejects.toMatchObject({ code: 'write-failed' });
+    expect(await failed.get('k')).toBeNull();
+  });
+
+  it('surfaces corrupt data in strict mode', async () => {
+    const path3 = join(tmpdir(), `bare-corrupt-${Date.now()}.bin`);
+    writeFileSync(path3, 'not-a-codec-record');
+    const strict = new BareFileStore({ filePath: path3 });
+    await expect(strict.get('k')).rejects.toMatchObject({ code: 'corrupt' });
+    if (existsSync(path3)) unlinkSync(path3);
+  });
+
+  it('treats corrupt data as empty in lenient mode', async () => {
+    const path3 = join(tmpdir(), `bare-corrupt-lenient-${Date.now()}.bin`);
+    writeFileSync(path3, 'not-a-codec-record');
+    const lenient = new BareFileStore({ filePath: path3, failurePolicy: 'lenient' });
+    expect(await lenient.get('k')).toBeNull();
+    if (existsSync(path3)) unlinkSync(path3);
   });
 });
 

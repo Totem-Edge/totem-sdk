@@ -32,6 +32,7 @@
     }
   },
   "dependencies": {
+    "@totemsdk/storage": "workspace:^",
     "@totemsdk/stream-transport": "workspace:^",
     "@noble/hashes": "^2.2.0"
   },
@@ -40,7 +41,7 @@
     "prepare": "tsc",
     "clean": "rm -rf dist",
     "test": "jest",
-    "test:bare": "node --input-type=module < src/__tests__/bare/run-bare.mjs"
+    "test:bare": "node src/__tests__/bare/run-bare.mjs"
   },
   "files": [
     "dist",

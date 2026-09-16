@@ -1334,6 +1334,9 @@ importers:
       '@totemsdk/omnia-vtxo':
         specifier: workspace:^
         version: link:../omnia-vtxo
+      '@totemsdk/storage':
+        specifier: workspace:^
+        version: link:../storage
       '@totemsdk/wots-lease':
         specifier: workspace:^
         version: link:../wots-lease
@@ -1516,6 +1519,9 @@ importers:
       '@noble/hashes':
         specifier: ^2.2.0
         version: 2.2.0
+      '@totemsdk/storage':
+        specifier: workspace:^
+        version: link:../storage
       '@totemsdk/stream-transport':
         specifier: workspace:^
         version: link:../stream-transport
@@ -1875,6 +1881,9 @@ importers:
       '@totemsdk/core':
         specifier: workspace:^
         version: link:../core
+      '@totemsdk/storage':
+        specifier: workspace:^
+        version: link:../storage
       '@totemsdk/txpow':
         specifier: workspace:^
         version: link:../txpow

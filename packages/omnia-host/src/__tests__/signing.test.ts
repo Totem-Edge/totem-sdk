@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { wotsVerifyDigest, hexToBytes } from '@totemsdk/core';
-import { createHostSigning, encryptSeedForKeyfile, hasSigningMaterial, leaseStorageDir } from '../signing.js';
+import { createHostSigning, encryptSeedForKeyfile, hasSigningMaterial, JsonFileStorageAdapter, leaseStorageDir } from '../signing.js';
 import { loadConfigFromEnv } from '../config.js';
 
 const HEX_SEED = '0x' + 'ab'.repeat(32);
@@ -115,5 +115,28 @@ describe('createHostSigning', () => {
     expect(hasSigningMaterial(loadConfigFromEnv({}))).toBe(false);
     expect(hasSigningMaterial(loadConfigFromEnv({ OMNIA_HOST_SEED: HEX_SEED }))).toBe(true);
     expect(hasSigningMaterial(loadConfigFromEnv({ OMNIA_HOST_KEYFILE: './k.json' }))).toBe(true);
+  });
+});
+
+describe('JsonFileStorageAdapter (RFC-007 Phase 2 hardening)', () => {
+  it('round-trips bigint and bytes through the shared codec', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'omnia-host-json-'));
+    const adapter = new JsonFileStorageAdapter(dir);
+    const value = { n: 9n, bytes: new Uint8Array([9]), flags: [true, false] };
+    await adapter.set('k', value);
+    const read = await adapter.get<typeof value>('k');
+    expect(read).toEqual(value);
+    expect(typeof read?.n).toBe('bigint');
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('surfaces corrupt records (strict) instead of returning null', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'omnia-host-json-'));
+    const adapter = new JsonFileStorageAdapter(dir);
+    await adapter.set('good', 1);
+    const file = path.join(dir, `${Buffer.from('good', 'utf8').toString('hex')}.bin`);
+    fs.writeFileSync(file, 'garbage');
+    await expect(adapter.get('good')).rejects.toThrow();
+    fs.rmSync(dir, { recursive: true, force: true });
   });
 });
