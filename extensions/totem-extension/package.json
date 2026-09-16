@@ -89,7 +89,7 @@
     "postcss": "^8.4.32",
     "postcss-loader": "^8.2.0",
     "process": "^0.11.10",
-    "sharp": "^0.35.3",
+    "sharp": "^0.35.4",
     "stream-browserify": "^3.0.0",
     "style-loader": "^4.0.0",
     "tailwindcss": "^4.3.3",
