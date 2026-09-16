@@ -245,6 +245,18 @@ export interface MqttCommandExecutor {
   execute(command: MqttCommand): Promise<EdgeOperationResult>;
 }
 
+/**
+ * Minimal durable key/value surface used by the replay ledger. Aligns with
+ * `@totemsdk/storage` `StorageAdapter`, but is dependency-light so edge-mqtt
+ * can accept any adapter-shaped store.
+ */
+export interface ReplayLedgerStore {
+  get<T>(key: string): Promise<T | null | undefined>;
+  set(key: string, value: unknown): Promise<void>;
+  remove(key: string): Promise<boolean | void>;
+  keys(): Promise<string[]>;
+}
+
 export interface MqttCommandHandlerConfig {
   runtime: EdgeRuntime;
   client: MqttClientPort;
@@ -254,6 +266,12 @@ export interface MqttCommandHandlerConfig {
   metadata?: Record<string, unknown>;
   /** Maximum age of a command in milliseconds (default 60_000). */
   maxCommandAgeMs?: number;
+  /**
+   * Durable store for the replay ledger. When provided, processed command IDs
+   * survive restarts (RFC-007 G4); otherwise an in-memory freshness window is
+   * used.
+   */
+  replayStore?: ReplayLedgerStore;
   /** Function to verify a command signature. */
   verifyCommandSignature?: (envelope: SignedCommandEnvelope) => Promise<boolean>;
 }
@@ -355,12 +373,39 @@ export interface MqttQueuedEvent {
   metadata?: Record<string, unknown>;
 }
 
+export interface MqttQueueReleaseOptions {
+  /** Attempt counter to persist with the returned event. */
+  attempts?: number;
+  /** Earliest time (ms epoch) at which the event may be claimed again. */
+  nextAttemptAt?: number;
+}
+
+/**
+ * Claim/ack/retry queue contract (RFC-007 G4).
+ *
+ * `dequeue()` claims an event; the event is only forgotten after `ack()`.
+ * `release()` returns a claimed event to pending for retry, and `deadLetter()`
+ * removes a claimed event from the active queue while durably recording it.
+ * A crash between `dequeue()` and `ack()` leaves the claim durable, so
+ * `recoverInFlight()` on startup re-delivers rather than loses.
+ */
 export interface MqttEdgeQueue {
   enqueue(event: MqttQueuedEvent): Promise<void>;
   dequeue(): Promise<MqttQueuedEvent | undefined>;
   peek(): Promise<MqttQueuedEvent | undefined>;
   size(): Promise<number>;
   clear(): Promise<void>;
+  /** Durable acknowledgment — forget the event after it has been published. */
+  ack?(id: string): Promise<void>;
+  /** Return a claimed event to pending for a later retry attempt. */
+  release?(id: string, options?: MqttQueueReleaseOptions): Promise<void>;
+  /** Move a claimed event into the durable dead-letter set (never re-delivered). */
+  deadLetter?(id: string, reason?: string): Promise<void>;
+  /**
+   * Reset any in-flight (claimed-but-unacked) events back to pending so they
+   * re-deliver after a crash. Returns the number recovered.
+   */
+  recoverInFlight?(maxAgeMs?: number): Promise<number>;
 }
 
 // ─── Realtime port ────────────────────────────────────────────────────────

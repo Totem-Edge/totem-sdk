@@ -96,6 +96,16 @@ export {
 } from './queue.js';
 
 export {
+  createDurableMqttEdgeQueue,
+} from './durable-queue.js';
+
+export type {
+  DurableMqttEdgeQueue,
+  DurableMqttEdgeQueueOptions,
+  DurableEventRecord,
+} from './durable-queue.js';
+
+export {
   createMqttEdgeServiceManifest,
   publishMqttManifest,
 } from './manifest.js';

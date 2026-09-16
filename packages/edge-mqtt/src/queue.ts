@@ -4,28 +4,49 @@
  * No persistent storage — pure in-memory array.
  */
 
-import type { MqttEdgeQueue, MqttQueuedEvent } from './types.js';
+import type { MqttEdgeQueue, MqttQueuedEvent, MqttQueueReleaseOptions } from './types.js';
 import type { MqttClientPort } from './client-port.js';
 import type { EdgeOperationResult } from '@totemsdk/edge';
 
 export function createMemoryMqttEdgeQueue(): MqttEdgeQueue {
-  const items: MqttQueuedEvent[] = [];
+  const pending: MqttQueuedEvent[] = [];
+  const inFlight = new Map<string, MqttQueuedEvent>();
 
   return {
     async enqueue(event: MqttQueuedEvent): Promise<void> {
-      items.push(event);
+      pending.push(event);
     },
     async dequeue(): Promise<MqttQueuedEvent | undefined> {
-      return items.shift();
+      const event = pending.shift();
+      if (event) inFlight.set(event.id, event);
+      return event;
     },
     async peek(): Promise<MqttQueuedEvent | undefined> {
-      return items[0];
+      return pending[0];
     },
     async size(): Promise<number> {
-      return items.length;
+      return pending.length;
     },
     async clear(): Promise<void> {
-      items.length = 0;
+      pending.length = 0;
+      inFlight.clear();
+    },
+    async ack(id: string): Promise<void> {
+      inFlight.delete(id);
+    },
+    async release(id: string, options: MqttQueueReleaseOptions = {}): Promise<void> {
+      const event = inFlight.get(id);
+      if (!event) return;
+      const updated = {
+        ...event,
+        attempts: options.attempts ?? event.attempts + 1,
+        ...(options.nextAttemptAt !== undefined ? { nextAttemptAt: options.nextAttemptAt } : {}),
+      };
+      inFlight.delete(id);
+      pending.push(updated);
+    },
+    async deadLetter(id: string): Promise<void> {
+      inFlight.delete(id);
     },
   };
 }
@@ -49,14 +70,16 @@ export async function flushQueuedEvents(
     try {
       await client.publish(event.topic, event.payload);
       flushed++;
+      await queue.ack?.(event.id);
     } catch (err) {
       const attempts = (event.attempts ?? 0) + 1;
       if (attempts >= maxRetries) {
         const dead = createDeadLetterEvent(event, err instanceof Error ? err.message : String(err));
         if (onDeadLetter) onDeadLetter(dead);
+        await queue.deadLetter?.(event.id, err instanceof Error ? err.message : String(err));
         failed++;
       } else {
-        await queue.enqueue({ ...event, attempts });
+        await queue.release?.(event.id, { attempts, nextAttemptAt: Date.now() });
       }
     }
     event = await queue.dequeue();

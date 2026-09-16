@@ -793,6 +793,9 @@ importers:
       '@totemsdk/pubsub-transport':
         specifier: workspace:^
         version: link:../pubsub-transport
+      '@totemsdk/storage':
+        specifier: workspace:^
+        version: link:../storage
     devDependencies:
       '@types/jest':
         specifier: ^30.0.0

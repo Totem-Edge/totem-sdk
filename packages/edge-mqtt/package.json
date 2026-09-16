@@ -32,7 +32,8 @@
     "@totemsdk/edge": "workspace:^",
     "@totemsdk/proof": "workspace:^",
     "@totemsdk/agent-policy": "workspace:^",
-    "@totemsdk/pubsub-transport": "workspace:^"
+    "@totemsdk/pubsub-transport": "workspace:^",
+    "@totemsdk/storage": "workspace:^"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

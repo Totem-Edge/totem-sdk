@@ -479,7 +479,8 @@
         "@totemsdk/identity": "^1.0.0",
         "@totemsdk/manifest": "^1.0.0",
         "@totemsdk/proof": "^1.0.0",
-        "@totemsdk/pubsub-transport": "^0.2.0"
+        "@totemsdk/pubsub-transport": "^0.2.0",
+        "@totemsdk/storage": "^0.1.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"

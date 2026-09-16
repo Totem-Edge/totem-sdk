@@ -6,16 +6,27 @@
  *   2. Legacy unsigned commands — parsed from the raw body and passed through
  *      the same policy + executor pipeline (verification skipped).
  *
- * Replay protection: processed command IDs are stored in a Set for the
- * maximum command validity period (config.maxCommandAgeMs, default 60s).
+ * Replay protection: processed command IDs are tracked for the maximum
+ * command validity period (config.maxCommandAgeMs, default 60s). When a
+ * durable replay store is configured (config.replayStore), the ledger is
+ * persisted so a command accepted before a restart is still rejected
+ * afterward (RFC-007 G4). Without a store it falls back to the in-memory
+ * freshness window.
  */
 
 import { createMqttReceipt, publishMqttReceipt } from './receipts.js';
 import type { MqttMessage } from './client-port.js';
 import type { EdgeOperationResult } from '@totemsdk/edge';
-import type { MqttCommandHandlerConfig, MqttCommandHandler, MqttCommand, SignedCommandEnvelope } from './types.js';
+import type {
+  MqttCommandHandlerConfig,
+  MqttCommandHandler,
+  MqttCommand,
+  ReplayLedgerStore,
+  SignedCommandEnvelope,
+} from './types.js';
 
-const REPLAY_CACHE_CLEANUP_INTERVAL = 60_000;
+const REPLAY_VALIDITY_MS = 60_000;
+const REPLAY_LEDGER_PREFIX = 'totem_mqtt_replay:';
 
 function parseCommand(message: MqttMessage): MqttCommand {
   let body: Record<string, unknown> = {};
@@ -58,21 +69,67 @@ function parseSignedEnvelope(body: Record<string, unknown>): SignedCommandEnvelo
   };
 }
 
-export function createMqttCommandHandler(config: MqttCommandHandlerConfig): MqttCommandHandler {
-  const maxAgeMs = config.maxCommandAgeMs ?? 60_000;
-  const processedIds = new Set<string>();
-  let lastCleanup = Date.now();
+interface LedgerEntry {
+  seenAt: number;
+}
 
-  function isReplay(commandId: string): boolean {
-    const now = Date.now();
-    if (now - lastCleanup > REPLAY_CACHE_CLEANUP_INTERVAL) {
-      processedIds.clear();
-      lastCleanup = now;
+class ReplayLedger {
+  private readonly seen = new Map<string, number>();
+  private lastMemoryPrune = 0;
+
+  constructor(
+    private readonly maxAgeMs: number,
+    private readonly store?: ReplayLedgerStore,
+  ) {}
+
+  private key(id: string): string {
+    return `${REPLAY_LEDGER_PREFIX}${id}`;
+  }
+
+  private pruneMemory(now: number): void {
+    if (now - this.lastMemoryPrune <= this.maxAgeMs) return;
+    for (const [id, seenAt] of this.seen) {
+      if (now - seenAt > this.maxAgeMs) this.seen.delete(id);
     }
-    if (processedIds.has(commandId)) return true;
-    processedIds.add(commandId);
+    this.lastMemoryPrune = now;
+  }
+
+  private async load(id: string): Promise<number | undefined> {
+    if (!this.store) {
+      return this.seen.get(id);
+    }
+    const entry = await this.store.get<LedgerEntry>(this.key(id));
+    return entry?.seenAt;
+  }
+
+  private async persist(id: string, seenAt: number): Promise<void> {
+    if (!this.store) {
+      this.seen.set(id, seenAt);
+      return;
+    }
+    await this.store.set(this.key(id), { seenAt } satisfies LedgerEntry);
+  }
+
+  /** Returns true if the command id was already processed (replay). */
+  async mark(commandId: string): Promise<boolean> {
+    const now = Date.now();
+    this.pruneMemory(now);
+    const seenAt = await this.load(commandId);
+    if (seenAt !== undefined && now - seenAt <= this.maxAgeMs) {
+      return true;
+    }
+    if (seenAt !== undefined && this.store) {
+      // Expired entry: drop it so the ledger stays bounded, then re-record.
+      await this.store.remove(this.key(commandId));
+    }
+    await this.persist(commandId, now);
     return false;
   }
+}
+
+export function createMqttCommandHandler(config: MqttCommandHandlerConfig): MqttCommandHandler {
+  const maxAgeMs = config.maxCommandAgeMs ?? REPLAY_VALIDITY_MS;
+  const ledger = new ReplayLedger(maxAgeMs, config.replayStore);
 
   return {
     async handleCommand(message: MqttMessage): Promise<EdgeOperationResult> {
@@ -126,7 +183,7 @@ export function createMqttCommandHandler(config: MqttCommandHandlerConfig): Mqtt
         await emitRejected(command.commandId, reason);
         return { ok: false, error: reason, errorCode: 'MQTT_POLICY_REJECTED' };
       }
-      if (isReplay(command.commandId)) {
+      if (await ledger.mark(command.commandId)) {
         const reason = 'Rejected: duplicate commandId — replay prevented';
         await emitRejected(command.commandId, reason);
         return { ok: false, error: reason, errorCode: 'MQTT_POLICY_REJECTED' };
