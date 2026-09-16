@@ -11,5 +11,6 @@ export * from './refresh.js';
 export * from './exit.js';
 export * from './verify.js';
 export * from './memory-store.js';
+export * from './durable-store.js';
 export * from './serialization.js';
 export * from './policy.js';

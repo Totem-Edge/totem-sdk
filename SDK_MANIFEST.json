@@ -809,7 +809,8 @@
         "ark"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.2.10"
+        "@totemsdk/core": "^1.2.10",
+        "@totemsdk/storage": "^0.1.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1413,6 +1414,7 @@
         "@totemsdk/omnia-router": "^0.2.0",
         "@totemsdk/omnia-splice": "^0.2.0",
         "@totemsdk/omnia-vtxo": "^0.2.0",
+        "@totemsdk/storage": "^0.1.0",
         "@totemsdk/tx-builder": "^0.2.0",
         "@totemsdk/wots-lease": "^1.0.0"
       },

@@ -55,6 +55,8 @@ export { computePoolNAV, computePoolRiskScore } from './nav.js';
 
 export { createChannelLoader, loadChannelFromSnapshotStore, saveChannelSnapshot } from './load-channel.js';
 export type { ChannelSnapshotStore } from './load-channel.js';
+export { createDurableChannelSnapshotStore } from './durable-channel-store.js';
+export type { DurableChannelSnapshotStore, DurableChannelSnapshotStoreOptions } from './durable-channel-store.js';
 
 export { maybeSignTransition, commitRegistryTransition } from './rooting.js';
 

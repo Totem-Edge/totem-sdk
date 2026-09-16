@@ -26,7 +26,8 @@
     "LICENSE"
   ],
   "dependencies": {
-    "@totemsdk/core": "workspace:^"
+    "@totemsdk/core": "workspace:^",
+    "@totemsdk/storage": "workspace:^"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

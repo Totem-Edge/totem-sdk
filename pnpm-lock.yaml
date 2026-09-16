@@ -1392,6 +1392,9 @@ importers:
       '@totemsdk/liquidity-bond':
         specifier: workspace:^
         version: link:../liquidity-bond
+      '@totemsdk/storage':
+        specifier: workspace:^
+        version: link:../storage
       '@totemsdk/tx-builder':
         specifier: workspace:^
         version: link:../tx-builder
@@ -1503,6 +1506,9 @@ importers:
       '@totemsdk/core':
         specifier: workspace:^
         version: link:../core
+      '@totemsdk/storage':
+        specifier: workspace:^
+        version: link:../storage
     devDependencies:
       '@types/jest':
         specifier: ^30.0.0

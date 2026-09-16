@@ -26,6 +26,7 @@
     "@totemsdk/agent-policy": "workspace:^",
     "@totemsdk/chain-provider": "workspace:^",
     "@totemsdk/liquidity-bond": "workspace:^",
+    "@totemsdk/storage": "workspace:^",
     "@totemsdk/tx-builder": "workspace:^",
     "@totemsdk/wots-lease": "workspace:^",
     "@totemsdk/core": "workspace:^"
