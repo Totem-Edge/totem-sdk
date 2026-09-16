@@ -301,9 +301,9 @@ importers:
       '@totemsdk/proof':
         specifier: workspace:^
         version: link:../proof
-      better-sqlite3:
-        specifier: ^12.2.0
-        version: 12.11.1
+      '@totemsdk/storage':
+        specifier: workspace:^
+        version: link:../storage
     devDependencies:
       '@protobuf-ts/plugin':
         specifier: ^2.9.4
@@ -311,15 +311,15 @@ importers:
       '@totemsdk/identity':
         specifier: workspace:^
         version: link:../identity
-      '@types/better-sqlite3':
-        specifier: ^7.6.13
-        version: 7.6.13
       '@types/jest':
         specifier: ^30.0.0
         version: 30.0.0
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
+      better-sqlite3:
+        specifier: ^12.2.0
+        version: 12.11.1
       jest:
         specifier: ^30.4.2
         version: 30.4.2(@types/node@20.19.43)
@@ -507,9 +507,9 @@ importers:
 
   packages/edge-adapters:
     dependencies:
-      better-sqlite3:
-        specifier: ^12.2.0
-        version: 12.11.1
+      '@totemsdk/storage':
+        specifier: workspace:^
+        version: link:../storage
     devDependencies:
       '@totemsdk/agent-policy':
         specifier: workspace:^
@@ -553,9 +553,6 @@ importers:
       '@totemsdk/txpow':
         specifier: workspace:^
         version: link:../txpow
-      '@types/better-sqlite3':
-        specifier: ^7.6.13
-        version: 7.6.13
       '@types/jest':
         specifier: ^30.0.0
         version: 30.0.0

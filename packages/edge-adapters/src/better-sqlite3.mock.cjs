@@ -17,6 +17,7 @@ const toBuffer = (v) => (v instanceof Uint8Array ? Buffer.from(v) : v);
 class Database {
   constructor(path) {
     this._db = new DatabaseSync(path);
+    this._inTransaction = false;
   }
 
   exec(sql) {
@@ -50,6 +51,34 @@ class Database {
           Object.fromEntries(Object.entries(row).map(([k, v]) => [k, toBuffer(v)])),
         );
       },
+    };
+  }
+
+  get inTransaction() {
+    return this._inTransaction;
+  }
+
+  // Synchronous transaction like better-sqlite3: commits on normal return,
+  // rolls back when the function throws. No savepoint nesting is required by
+  // the shared SqliteStore primitives or the commerce/run-state consumers.
+  transaction(fn) {
+    return (...params) => {
+      this._inTransaction = true;
+      this.exec('BEGIN');
+      try {
+        const result = fn(...params);
+        this.exec('COMMIT');
+        return result;
+      } catch (err) {
+        try {
+          this.exec('ROLLBACK');
+        } catch {
+          // connection already errored
+        }
+        throw err;
+      } finally {
+        this._inTransaction = false;
+      }
     };
   }
 

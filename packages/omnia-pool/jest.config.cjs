@@ -15,12 +15,19 @@ module.exports = {
         lib: ['ES2022'],
         target: 'ES2022',
         baseUrl: '.',
+        paths: {
+          '@totemsdk/storage/sqlite': ['../storage/src/adapters/sqlite-store.ts'],
+          '@totemsdk/storage': ['../storage/src/index.ts'],
+        },
       },
+      diagnostics: { ignoreCodes: [2307] }, // workspace subpath exports resolved by moduleNameMapper
     }],
   },
   moduleNameMapper: {
     '^@totemsdk/core$': '<rootDir>/../core/src/index.ts',
     '^@totemsdk/agent-policy$': '<rootDir>/../agent-policy/src/index.ts',
+    '^@totemsdk/storage$': '<rootDir>/../storage/src/index.ts',
+    '^@totemsdk/storage/sqlite$': '<rootDir>/../storage/src/adapters/sqlite-store.ts',
     '^@totemsdk/authority$': '<rootDir>/../authority/src/index.ts',
     '^@totemsdk/proof$': '<rootDir>/../proof/src/index.ts',
     '^@totemsdk/identity$': '<rootDir>/../identity/src/index.ts',

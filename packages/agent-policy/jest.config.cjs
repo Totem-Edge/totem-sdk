@@ -9,7 +9,13 @@ module.exports = {
         module: 'CommonJS',
         moduleResolution: 'node',
         types: ['node', 'jest'],
+        baseUrl: '.',
+        paths: {
+          '@totemsdk/storage/sqlite': ['../storage/src/adapters/sqlite-store.ts'],
+          '@totemsdk/storage': ['../storage/src/index.ts'],
+        },
       },
+      diagnostics: { ignoreCodes: [2307] }, // workspace subpath exports resolved by moduleNameMapper
     }],
   },
   moduleNameMapper: {
@@ -18,6 +24,8 @@ module.exports = {
     '^@totemsdk/proof$': '<rootDir>/../proof/src/index.ts',
     '^@totemsdk/identity$': '<rootDir>/../identity/src/index.ts',
     '^@totemsdk/intelligence$': '<rootDir>/../intelligence/src/index.ts',
+    '^@totemsdk/storage$': '<rootDir>/../storage/src/index.ts',
+    '^@totemsdk/storage/sqlite$': '<rootDir>/../storage/src/adapters/sqlite-store.ts',
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
 };

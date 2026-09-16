@@ -2,19 +2,22 @@
  * agent-policy/sqlite-run-state-store.ts — Durable atomic run + grant usage store.
  *
  * Implements both `RunStateStore` and `GrantUsageStore` on a single SQLite
- * database (better-sqlite3, WAL). Every reservation atomically covers:
+ * database. Every reservation atomically covers:
  *
  *   - mandate usage (per-mandate count/amount, reserved → committed/aborted)
  *   - run budgets (committed/reserved/aborted step counts)
  *   - concurrency capacity (reserved slot)
  *   - operation nonce (anti-replay, unique per run)
  *
- * better-sqlite3 is synchronous, so a single `db.transaction()` is atomic and
- * serialized across the process — and durable across restarts when backed by a
- * file path. Pass ':memory:' for ephemeral tests.
+ * The connection, journal/busy pragmas, and transaction lifecycle are owned by
+ * the shared `SqliteStore` primitive from `@totemsdk/storage/sqlite`
+ * (RFC-007 §4.2). SQLite is synchronous on `better-sqlite3`; `transactionalSync`
+ * makes each multi-statement mutation atomic and serialized across the process
+ * and durable across restarts when backed by a file path. Pass ':memory:' for
+ * ephemeral tests.
  */
 
-import Database from 'better-sqlite3';
+import { SqliteStore, type SqliteTx } from '@totemsdk/storage/sqlite';
 import type { StepAuthorization, StepReceipt } from './run.js';
 import type { GrantUsageStore } from './grant-usage.js';
 import { accumulate, type RunReservation, type RunStateSnapshot, type RunStateStore, type RunStepReceipt } from './run-state-store.js';
@@ -51,53 +54,56 @@ export interface SqliteRunStateStoreOptions {
 }
 
 export class SqliteRunStateStore implements RunStateStore, GrantUsageStore {
-  private readonly db: Database.Database;
+  private readonly store: SqliteStore;
   private readonly now: () => number;
   private readonly ttlMs: number;
 
   constructor(dbPath: string, options?: SqliteRunStateStoreOptions) {
-    this.db = new Database(dbPath);
-    this.db.pragma('journal_mode = WAL');
-    this.db.pragma('foreign_keys = ON');
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS autonomy_runs (
-        run_id TEXT PRIMARY KEY,
-        snapshot_json TEXT NOT NULL,
-        created_at INTEGER NOT NULL
-      );
+    this.store = new SqliteStore(dbPath, {
+      createKvTable: false,
+      foreignKeys: true,
+    });
+    this.store.transactionalSync((tx) =>
+      tx.exec(`
+        CREATE TABLE IF NOT EXISTS autonomy_runs (
+          run_id TEXT PRIMARY KEY,
+          snapshot_json TEXT NOT NULL,
+          created_at INTEGER NOT NULL
+        );
 
-      CREATE TABLE IF NOT EXISTS autonomy_reservations (
-        reservation_id TEXT PRIMARY KEY,
-        run_id TEXT NOT NULL,
-        step_id TEXT NOT NULL,
-        kind TEXT NOT NULL,
-        status TEXT NOT NULL,
-        reserved_at INTEGER NOT NULL,
-        expires_at INTEGER NOT NULL,
-        record_json TEXT NOT NULL,
-        receipt_json TEXT,
-        abort_reason TEXT
-      );
-      CREATE INDEX IF NOT EXISTS idx_reservations_run
-        ON autonomy_reservations(run_id, status);
+        CREATE TABLE IF NOT EXISTS autonomy_reservations (
+          reservation_id TEXT PRIMARY KEY,
+          run_id TEXT NOT NULL,
+          step_id TEXT NOT NULL,
+          kind TEXT NOT NULL,
+          status TEXT NOT NULL,
+          reserved_at INTEGER NOT NULL,
+          expires_at INTEGER NOT NULL,
+          record_json TEXT NOT NULL,
+          receipt_json TEXT,
+          abort_reason TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_reservations_run
+          ON autonomy_reservations(run_id, status);
 
-      CREATE TABLE IF NOT EXISTS autonomy_nonces (
-        run_id TEXT NOT NULL,
-        nonce TEXT NOT NULL,
-        PRIMARY KEY (run_id, nonce)
-      );
+        CREATE TABLE IF NOT EXISTS autonomy_nonces (
+          run_id TEXT NOT NULL,
+          nonce TEXT NOT NULL,
+          PRIMARY KEY (run_id, nonce)
+        );
 
-      CREATE TABLE IF NOT EXISTS autonomy_mandate_usage (
-        reservation_id TEXT NOT NULL,
-        mandate_id TEXT NOT NULL,
-        count INTEGER NOT NULL,
-        amount TEXT,
-        status TEXT NOT NULL,
-        PRIMARY KEY (reservation_id, mandate_id)
-      );
-      CREATE INDEX IF NOT EXISTS idx_mandate_usage
-        ON autonomy_mandate_usage(mandate_id, status);
-    `);
+        CREATE TABLE IF NOT EXISTS autonomy_mandate_usage (
+          reservation_id TEXT NOT NULL,
+          mandate_id TEXT NOT NULL,
+          count INTEGER NOT NULL,
+          amount TEXT,
+          status TEXT NOT NULL,
+          PRIMARY KEY (reservation_id, mandate_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_mandate_usage
+          ON autonomy_mandate_usage(mandate_id, status);
+      `),
+    );
     this.now = options?.now ?? (() => Date.now());
     this.ttlMs = options?.ttlMs ?? 60_000;
   }
@@ -105,32 +111,33 @@ export class SqliteRunStateStore implements RunStateStore, GrantUsageStore {
   // ── RunStateStore ─────────────────────────────────────────────────────────
 
   createRun(snapshot: RunStateSnapshot): Promise<void> {
-    this.db.prepare(`
-      INSERT INTO autonomy_runs (run_id, snapshot_json, created_at)
-      VALUES (?, ?, ?)
-    `).run(snapshot.runId, JSON.stringify(snapshot), snapshot.startedAt);
+    this.store.transactionalSync((tx) => {
+      tx.run(
+        'INSERT INTO autonomy_runs (run_id, snapshot_json, created_at) VALUES (?, ?, ?)',
+        snapshot.runId, JSON.stringify(snapshot), snapshot.startedAt,
+      );
+    });
     return Promise.resolve();
   }
 
   getRun(runId: string): Promise<RunStateSnapshot | undefined> {
-    const row = this.db.prepare(
-      'SELECT snapshot_json FROM autonomy_runs WHERE run_id = ?',
-    ).get(runId) as { snapshot_json: string } | undefined;
+    const row = this.store.transactionalSync((tx) =>
+      tx.get<{ snapshot_json: string }>('SELECT snapshot_json FROM autonomy_runs WHERE run_id = ?', runId),
+    );
     return Promise.resolve(row ? (JSON.parse(row.snapshot_json) as RunStateSnapshot) : undefined);
   }
 
   reserveStep(reservation: RunReservation): Promise<void> {
-    const tx = this.db.transaction(() => {
-      const existing = this.getReservationRow(reservation.reservationId);
-      if (existing && existing.status === 'reserved') return;
-      this.insertReservation('run', reservation.reservationId, reservation.runId, reservation.stepId, reservation, reservation.reservedAt, reservation.expiresAt);
-      for (const u of reservation.usageDeltas ?? []) {
-        this.insertMandateUsage(reservation.reservationId, u.mandateId, u.delta.count, u.delta.amount, 'reserved');
-      }
-      this.bumpRunTotal(reservation.runId, 'reservedSteps', 1);
-    });
     try {
-      tx();
+      this.store.transactionalSync((tx) => {
+        const existing = this.getReservationRow(tx, reservation.reservationId);
+        if (existing && existing.status === 'reserved') return;
+        this.insertReservation(tx, 'run', reservation.reservationId, reservation.runId, reservation.stepId, reservation, reservation.reservedAt, reservation.expiresAt);
+        for (const u of reservation.usageDeltas ?? []) {
+          this.insertMandateUsage(tx, reservation.reservationId, u.mandateId, u.delta.count, u.delta.amount, 'reserved');
+        }
+        this.bumpRunTotal(tx, reservation.runId, 'reservedSteps', 1);
+      });
       return Promise.resolve();
     } catch (error) {
       return Promise.reject(error);
@@ -138,38 +145,36 @@ export class SqliteRunStateStore implements RunStateStore, GrantUsageStore {
   }
 
   async commitStep(reservationId: string, receipt: RunStepReceipt): Promise<void> {
-    const tx = this.db.transaction(() => {
-      const row = this.getReservationRow(reservationId);
+    this.store.transactionalSync((tx) => {
+      const row = this.getReservationRow(tx, reservationId);
       if (!row) throw new Error(`reservation ${reservationId} not found`);
       if (row.status !== 'reserved') throw new Error(`reservation ${reservationId} is in status '${row.status}'`);
       if (this.now() > row.expires_at) {
-        this.setReservationStatus(reservationId, 'aborted', undefined, 'reservation expired');
+        this.setReservationStatus(tx, reservationId, 'aborted', undefined, 'reservation expired');
         throw new Error(`reservation ${reservationId} has expired`);
       }
-      this.setReservationStatus(reservationId, 'committed', receipt, undefined);
-      this.setMandateUsageStatus(reservationId, 'committed');
-      this.foldReceiptIntoRun(row.run_id, receipt);
+      this.setReservationStatus(tx, reservationId, 'committed', receipt, undefined);
+      this.setMandateUsageStatus(tx, reservationId, 'committed');
+      this.foldReceiptIntoRun(tx, row.run_id, receipt);
     });
-    tx();
   }
 
   async abortStep(reservationId: string, reason: string): Promise<void> {
-    const tx = this.db.transaction(() => {
-      const row = this.getReservationRow(reservationId);
+    this.store.transactionalSync((tx) => {
+      const row = this.getReservationRow(tx, reservationId);
       if (!row) throw new Error(`reservation ${reservationId} not found`);
       if (row.status !== 'reserved') return;
-      this.setReservationStatus(reservationId, 'aborted', undefined, reason);
-      this.setMandateUsageStatus(reservationId, 'aborted');
-      this.bumpRunTotal(row.run_id, 'abortedSteps', 1);
-      this.bumpRunTotal(row.run_id, 'reservedSteps', -1);
+      this.setReservationStatus(tx, reservationId, 'aborted', undefined, reason);
+      this.setMandateUsageStatus(tx, reservationId, 'aborted');
+      this.bumpRunTotal(tx, row.run_id, 'abortedSteps', 1);
+      this.bumpRunTotal(tx, row.run_id, 'reservedSteps', -1);
     });
-    tx();
   }
 
   getReservation(reservationId: string): Promise<RunReservation | undefined>;
   getReservation(reservationId: string): Promise<StepAuthorization | undefined>;
   getReservation(reservationId: string): Promise<RunReservation | StepAuthorization | undefined> {
-    const row = this.getReservationRow(reservationId);
+    const row = this.getReservationRow(undefined, reservationId);
     if (!row) return Promise.resolve(undefined);
     const record = JSON.parse(row.record_json) as RunReservation | StepAuthorization;
     if (row.kind === 'run') {
@@ -182,24 +187,26 @@ export class SqliteRunStateStore implements RunStateStore, GrantUsageStore {
   }
 
   getReceipt(reservationId: string): Promise<RunStepReceipt | undefined> {
-    const row = this.getReservationRow(reservationId);
+    const row = this.getReservationRow(undefined, reservationId);
     return Promise.resolve(row?.receipt_json ? (JSON.parse(row.receipt_json) as RunStepReceipt) : undefined);
   }
 
   listStepReceipts(runId: string): Promise<RunStepReceipt[]> {
-    const rows = this.db.prepare(`
-      SELECT receipt_json FROM autonomy_reservations
-      WHERE run_id = ? AND status = 'committed' AND receipt_json IS NOT NULL
-      ORDER BY reserved_at
-    `).all(runId) as Array<{ receipt_json: string }>;
+    const rows = this.store.transactionalSync((tx) =>
+      tx.all<{ receipt_json: string }>(`
+        SELECT receipt_json FROM autonomy_reservations
+        WHERE run_id = ? AND status = 'committed' AND receipt_json IS NOT NULL
+        ORDER BY reserved_at
+      `, runId),
+    );
     return Promise.resolve(rows.map((r) => JSON.parse(r.receipt_json) as RunStepReceipt));
   }
 
   checkNonce(runId: string, nonce: string): Promise<boolean> {
-    const result = this.db.prepare(`
-      INSERT OR IGNORE INTO autonomy_nonces (run_id, nonce) VALUES (?, ?)
-    `).run(runId, nonce);
-    return Promise.resolve(result.changes === 1);
+    const touched = this.store.transactionalSync((tx) =>
+      tx.run('INSERT OR IGNORE INTO autonomy_nonces (run_id, nonce) VALUES (?, ?)', runId, nonce),
+    );
+    return Promise.resolve(touched === 1);
   }
 
   // ── GrantUsageStore ───────────────────────────────────────────────────────
@@ -217,8 +224,8 @@ export class SqliteRunStateStore implements RunStateStore, GrantUsageStore {
     const expiresAt = reservedAt + (input.ttlMs ?? this.ttlMs);
     const reservationId = `grant:${input.mandateId.slice(0, 8)}:${input.stepId.slice(0, 8)}:${reservedAt}`;
 
-    const tx = this.db.transaction(() => {
-      const existing = this.getReservationRow(reservationId);
+    return Promise.resolve(this.store.transactionalSync((tx) => {
+      const existing = this.getReservationRow(tx, reservationId);
       if (existing && existing.status === 'reserved') {
         return JSON.parse(existing.record_json) as StepAuthorization;
       }
@@ -258,37 +265,34 @@ export class SqliteRunStateStore implements RunStateStore, GrantUsageStore {
         reservedAt,
         expiresAt,
       };
-      this.insertReservation('grant', reservationId, input.runId, input.stepId, authorization, reservedAt, expiresAt);
-      this.insertMandateUsage(reservationId, input.mandateId, input.usageDelta.count, input.usageDelta.amount, 'reserved');
+      this.insertReservation(tx, 'grant', reservationId, input.runId, input.stepId, authorization, reservedAt, expiresAt);
+      this.insertMandateUsage(tx, reservationId, input.mandateId, input.usageDelta.count, input.usageDelta.amount, 'reserved');
       return authorization;
-    });
-    return Promise.resolve(tx());
+    }));
   }
 
   async commit(reservationId: string, receipt: StepReceipt): Promise<void> {
-    const tx = this.db.transaction(() => {
-      const row = this.getReservationRow(reservationId);
+    this.store.transactionalSync((tx) => {
+      const row = this.getReservationRow(tx, reservationId);
       if (!row) throw new Error(`reservation ${reservationId} not found`);
       if (row.status !== 'reserved') throw new Error(`reservation ${reservationId} is in status '${row.status}'`);
       if (this.now() > row.expires_at) {
-        this.setReservationStatus(reservationId, 'aborted', undefined, 'reservation expired');
+        this.setReservationStatus(tx, reservationId, 'aborted', undefined, 'reservation expired');
         throw new Error(`reservation ${reservationId} has expired`);
       }
-      this.setReservationStatus(reservationId, 'committed', receipt, undefined);
-      this.setMandateUsageStatus(reservationId, 'committed');
+      this.setReservationStatus(tx, reservationId, 'committed', receipt, undefined);
+      this.setMandateUsageStatus(tx, reservationId, 'committed');
     });
-    tx();
   }
 
   async abort(reservationId: string, reason: string): Promise<void> {
-    const tx = this.db.transaction(() => {
-      const row = this.getReservationRow(reservationId);
+    this.store.transactionalSync((tx) => {
+      const row = this.getReservationRow(tx, reservationId);
       if (!row) throw new Error(`reservation ${reservationId} not found`);
       if (row.status !== 'reserved') throw new Error(`reservation ${reservationId} is in status '${row.status}'`);
-      this.setReservationStatus(reservationId, 'aborted', undefined, reason);
-      this.setMandateUsageStatus(reservationId, 'aborted');
+      this.setReservationStatus(tx, reservationId, 'aborted', undefined, reason);
+      this.setMandateUsageStatus(tx, reservationId, 'aborted');
     });
-    tx();
   }
 
   countCommitted(runId: string): Promise<number> {
@@ -304,24 +308,29 @@ export class SqliteRunStateStore implements RunStateStore, GrantUsageStore {
   }
 
   listCommittedReceipts(mandateId: string): Promise<StepReceipt[]> {
-    const rows = this.db.prepare(`
-      SELECT r.receipt_json FROM autonomy_reservations r
-      JOIN autonomy_mandate_usage u ON u.reservation_id = r.reservation_id
-      WHERE u.mandate_id = ? AND u.status = 'committed' AND r.receipt_json IS NOT NULL
-      ORDER BY r.reserved_at
-    `).all(mandateId) as Array<{ receipt_json: string }>;
+    const rows = this.store.transactionalSync((tx) =>
+      tx.all<{ receipt_json: string }>(`
+        SELECT r.receipt_json FROM autonomy_reservations r
+        JOIN autonomy_mandate_usage u ON u.reservation_id = r.reservation_id
+        WHERE u.mandate_id = ? AND u.status = 'committed' AND r.receipt_json IS NOT NULL
+        ORDER BY r.reserved_at
+      `, mandateId),
+    );
     return Promise.resolve(rows.map((row) => JSON.parse(row.receipt_json) as StepReceipt));
   }
 
   // ── Internal helpers ───────────────────────────────────────────────────────
 
-  private getReservationRow(reservationId: string): ReservationRow | undefined {
-    return this.db.prepare(
+  private getReservationRow(tx: SqliteTx | undefined, reservationId: string): ReservationRow | undefined {
+    const run = (t: SqliteTx) => t.get<ReservationRow>(
       'SELECT * FROM autonomy_reservations WHERE reservation_id = ?',
-    ).get(reservationId) as ReservationRow | undefined;
+      reservationId,
+    );
+    return tx ? run(tx) : this.store.transactionalSync(run);
   }
 
   private insertReservation(
+    tx: SqliteTx,
     kind: ReservationKind,
     reservationId: string,
     runId: string,
@@ -330,61 +339,65 @@ export class SqliteRunStateStore implements RunStateStore, GrantUsageStore {
     reservedAt: number,
     expiresAt: number,
   ): void {
-    this.db.prepare(`
+    tx.run(
+      `
       INSERT OR IGNORE INTO autonomy_reservations
         (reservation_id, run_id, step_id, kind, status, reserved_at, expires_at, record_json)
       VALUES (?, ?, ?, ?, 'reserved', ?, ?, ?)
-    `).run(reservationId, runId, stepId, kind, reservedAt, expiresAt, JSON.stringify(record));
+      `,
+      reservationId, runId, stepId, kind, reservedAt, expiresAt, JSON.stringify(record),
+    );
   }
 
   private insertMandateUsage(
+    tx: SqliteTx,
     reservationId: string,
     mandateId: string,
     count: number,
     amount: string | undefined,
     status: ReservationStatus,
   ): void {
-    this.db.prepare(`
+    tx.run(
+      `
       INSERT OR IGNORE INTO autonomy_mandate_usage
         (reservation_id, mandate_id, count, amount, status)
       VALUES (?, ?, ?, ?, ?)
-    `).run(reservationId, mandateId, count, amount ?? null, status);
+      `,
+      reservationId, mandateId, count, amount ?? null, status,
+    );
   }
 
   private setReservationStatus(
+    tx: SqliteTx,
     reservationId: string,
     status: ReservationStatus,
     receipt: unknown,
     abortReason: string | undefined,
   ): void {
-    this.db.prepare(`
+    tx.run(
+      `
       UPDATE autonomy_reservations
       SET status = ?, receipt_json = ?, abort_reason = ?
       WHERE reservation_id = ?
-    `).run(status, receipt === undefined ? null : JSON.stringify(receipt), abortReason ?? null, reservationId);
+      `,
+      status, receipt === undefined ? null : JSON.stringify(receipt), abortReason ?? null, reservationId,
+    );
   }
 
-  private setMandateUsageStatus(reservationId: string, status: ReservationStatus): void {
-    this.db.prepare(`
-      UPDATE autonomy_mandate_usage SET status = ? WHERE reservation_id = ?
-    `).run(status, reservationId);
+  private setMandateUsageStatus(tx: SqliteTx, reservationId: string, status: ReservationStatus): void {
+    tx.run('UPDATE autonomy_mandate_usage SET status = ? WHERE reservation_id = ?', status, reservationId);
   }
 
-  private bumpRunTotal(runId: string, field: 'reservedSteps' | 'abortedSteps', delta: number): void {
-    const row = this.db.prepare(
-      'SELECT snapshot_json FROM autonomy_runs WHERE run_id = ?',
-    ).get(runId) as { snapshot_json: string } | undefined;
+  private bumpRunTotal(tx: SqliteTx, runId: string, field: 'reservedSteps' | 'abortedSteps', delta: number): void {
+    const row = tx.get<{ snapshot_json: string }>('SELECT snapshot_json FROM autonomy_runs WHERE run_id = ?', runId);
     if (!row) return;
     const snapshot = JSON.parse(row.snapshot_json) as RunStateSnapshot;
     snapshot.totals[field] = Math.max(0, snapshot.totals[field] + delta);
-    this.db.prepare('UPDATE autonomy_runs SET snapshot_json = ? WHERE run_id = ?')
-      .run(JSON.stringify(snapshot), runId);
+    tx.run('UPDATE autonomy_runs SET snapshot_json = ? WHERE run_id = ?', JSON.stringify(snapshot), runId);
   }
 
-  private foldReceiptIntoRun(runId: string, receipt: RunStepReceipt): void {
-    const row = this.db.prepare(
-      'SELECT snapshot_json FROM autonomy_runs WHERE run_id = ?',
-    ).get(runId) as { snapshot_json: string } | undefined;
+  private foldReceiptIntoRun(tx: SqliteTx, runId: string, receipt: RunStepReceipt): void {
+    const row = tx.get<{ snapshot_json: string }>('SELECT snapshot_json FROM autonomy_runs WHERE run_id = ?', runId);
     if (!row) return;
     const snapshot = JSON.parse(row.snapshot_json) as RunStateSnapshot;
     snapshot.totals.committedSteps += 1;
@@ -398,19 +411,20 @@ export class SqliteRunStateStore implements RunStateStore, GrantUsageStore {
     for (const c of receipt.effects?.channels ?? []) {
       snapshot.totals.outstandingByToken[c.channelId] = accumulate(snapshot.totals.outstandingByToken[c.channelId], '0');
     }
-    this.db.prepare('UPDATE autonomy_runs SET snapshot_json = ? WHERE run_id = ?')
-      .run(JSON.stringify(snapshot), runId);
+    tx.run('UPDATE autonomy_runs SET snapshot_json = ? WHERE run_id = ?', JSON.stringify(snapshot), runId);
   }
 
   private countByRun(runId: string, status: ReservationStatus): Promise<number> {
-    const row = this.db.prepare(`
-      SELECT COUNT(*) AS count FROM autonomy_reservations
-      WHERE run_id = ? AND status = ?
-    `).get(runId, status) as { count: number };
-    return Promise.resolve(row.count);
+    const row = this.store.transactionalSync((tx) =>
+      tx.get<{ count: number }>(`
+        SELECT COUNT(*) AS count FROM autonomy_reservations
+        WHERE run_id = ? AND status = ?
+      `, runId, status),
+    );
+    return Promise.resolve(row?.count ?? 0);
   }
 
   close(): void {
-    this.db.close();
+    void this.store.close();
   }
 }

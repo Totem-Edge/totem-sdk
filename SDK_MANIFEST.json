@@ -120,7 +120,8 @@
         "@totemsdk/authority": "^1.0.0",
         "@totemsdk/core": "^1.2.10",
         "@totemsdk/intelligence": "^0.1.0",
-        "@totemsdk/proof": "^1.0.0"
+        "@totemsdk/proof": "^1.0.0",
+        "@totemsdk/storage": "^0.1.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -299,6 +300,7 @@
         "@totemsdk/proof": "^1.0.0",
         "@totemsdk/pubsub-transport": "^0.2.0",
         "@totemsdk/root-identity": "^1.0.8",
+        "@totemsdk/storage": "^0.1.0",
         "@totemsdk/stream-transport": "^0.2.0"
       },
       "exports": {

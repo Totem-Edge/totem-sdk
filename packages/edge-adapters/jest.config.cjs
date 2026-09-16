@@ -5,13 +5,24 @@ module.exports = {
   moduleFileExtensions: ['ts', 'js'],
   transform: {
     '^.+\\.ts$': ['ts-jest', {
-      tsconfig: { module: 'CommonJS', moduleResolution: 'node' },
+      tsconfig: {
+        module: 'CommonJS',
+        moduleResolution: 'node',
+        baseUrl: '.',
+        paths: {
+          '@totemsdk/storage/sqlite': ['../storage/src/adapters/sqlite-store.ts'],
+          '@totemsdk/storage': ['../storage/src/index.ts'],
+        },
+      },
+      diagnostics: { ignoreCodes: [2307] }, // workspace subpath exports resolved by moduleNameMapper
     }],
   },
   moduleNameMapper: {
     '^@totemsdk/core$': '<rootDir>/../core/src/index.ts',
     '^@totemsdk/edge$': '<rootDir>/../edge/src/index.ts',
     '^@totemsdk/agent-policy$': '<rootDir>/../agent-policy/src/index.ts',
+    '^@totemsdk/storage$': '<rootDir>/../storage/src/index.ts',
+    '^@totemsdk/storage/sqlite$': '<rootDir>/../storage/src/adapters/sqlite-store.ts',
     '^@totemsdk/chain-provider$': '<rootDir>/../chain-provider/src/index.ts',
     '^@totemsdk/identity$': '<rootDir>/../identity/src/index.ts',
     '^@totemsdk/manifest$': '<rootDir>/../manifest/src/index.ts',
