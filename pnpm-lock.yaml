@@ -930,6 +930,9 @@ importers:
       '@totemsdk/proof':
         specifier: workspace:^
         version: link:../proof
+      '@totemsdk/storage':
+        specifier: workspace:^
+        version: link:../storage
     devDependencies:
       '@swc/core':
         specifier: ^1.15.46
@@ -1282,6 +1285,9 @@ importers:
       '@totemsdk/omnia':
         specifier: workspace:^
         version: link:../omnia
+      '@totemsdk/storage':
+        specifier: workspace:^
+        version: link:../storage
       '@totemsdk/tx-builder':
         specifier: workspace:^
         version: link:../tx-builder
@@ -1450,6 +1456,9 @@ importers:
       '@totemsdk/omnia':
         specifier: workspace:^
         version: link:../omnia
+      '@totemsdk/storage':
+        specifier: workspace:^
+        version: link:../storage
     devDependencies:
       '@types/jest':
         specifier: ^30.0.0
@@ -1475,6 +1484,9 @@ importers:
       '@totemsdk/omnia':
         specifier: workspace:^
         version: link:../omnia
+      '@totemsdk/storage':
+        specifier: workspace:^
+        version: link:../storage
       '@totemsdk/tx-builder':
         specifier: workspace:^
         version: link:../tx-builder
@@ -2054,6 +2066,10 @@ importers:
       '@totemsdk/core':
         specifier: workspace:^
         version: link:../core
+    devDependencies:
+      '@totemsdk/storage':
+        specifier: workspace:^
+        version: link:../storage
 
   packages/txpow:
     dependencies:

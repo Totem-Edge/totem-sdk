@@ -746,7 +746,8 @@
         "@totemsdk/omnia": "^1.0.1",
         "@totemsdk/tx-builder": "^0.2.0",
         "@totemsdk/txpow": "^1.0.1",
-        "@totemsdk/wots-lease": "^1.0.0"
+        "@totemsdk/wots-lease": "^1.0.0",
+        "@totemsdk/storage": "^0.1.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -767,7 +768,8 @@
       ],
       "dependencies": {
         "@totemsdk/core": "^1.2.10",
-        "@totemsdk/omnia": "^1.0.1"
+        "@totemsdk/omnia": "^1.0.1",
+        "@totemsdk/storage": "^0.1.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -789,7 +791,8 @@
         "@totemsdk/omnia": "^1.0.1",
         "@totemsdk/tx-builder": "^0.2.0",
         "@totemsdk/txpow": "^1.0.1",
-        "@totemsdk/wots-lease": "^1.0.0"
+        "@totemsdk/wots-lease": "^1.0.0",
+        "@totemsdk/storage": "^0.1.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1197,7 +1200,7 @@
         "watermark",
         "key-coordination"
       ],
-        "dependencies": {
+      "dependencies": {
         "@totemsdk/core": "^1.2.10",
         "@totemsdk/lookup-protocol": "^0.2.0",
         "@totemsdk/storage": "^0.1.0",
@@ -1246,7 +1249,8 @@
         "@totemsdk/authority": "^1.0.0",
         "@totemsdk/core": "^1.2.10",
         "@totemsdk/edge": "^1.1.0",
-        "@totemsdk/proof": "^1.0.0"
+        "@totemsdk/proof": "^1.0.0",
+        "@totemsdk/storage": "^0.1.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"

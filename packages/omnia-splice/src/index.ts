@@ -1,4 +1,7 @@
-export { quiesceChannel, type QuiesceOptions } from './quiesce.js';
+export {
+  quiesceChannel,
+  type QuiesceOptions
+} from './quiesce.js';
 export { buildSpliceTx, spliceDraftToMinimaBytes, computeSpliceTxDigest } from './splice-tx.js';
 export { proposeSpliceIn, proposeSpliceOut, acceptSplice } from './splice.js';
 export { finalizeSplice, type FinalizeSpliceOptions } from './finalize.js';
@@ -27,3 +30,14 @@ export {
   SpliceMissingPartyError,
   SpliceInsufficientFundsError,
 } from './errors.js';
+
+export {
+  createDurableSpliceStore,
+} from './durable-splice-store.js';
+export type {
+  SpliceRecord,
+  SpliceRecordStatus,
+  SpliceStoreState,
+  DurableSpliceStore,
+  DurableSpliceStoreOptions,
+} from './durable-splice-store.js';

@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/omnia-splice",
   "version": "0.2.0",
-  "description": "Channel splicing for @totemsdk/omnia — resize Minima eltoo channels without a close+reopen cycle",
+  "description": "Channel splicing for @totemsdk/omnia \u2014 resize Minima eltoo channels without a close+reopen cycle",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -30,7 +30,8 @@
     "@totemsdk/core": "workspace:^",
     "@totemsdk/tx-builder": "workspace:^",
     "@totemsdk/txpow": "workspace:^",
-    "@totemsdk/wots-lease": "workspace:^"
+    "@totemsdk/wots-lease": "workspace:^",
+    "@totemsdk/storage": "workspace:^"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
