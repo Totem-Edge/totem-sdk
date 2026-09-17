@@ -42,7 +42,11 @@ export interface RunReservation {
   effects?: import('./run.js').StepEffects;
   reservedAt: number;
   expiresAt: number;
-  status: 'reserved' | 'committed' | 'aborted';
+  /**
+   * `unknown` = the executor never settled the step (crash/timeout). The
+   * budget stays HELD until the host reconciles the outcome explicitly.
+   */
+  status: 'reserved' | 'committed' | 'aborted' | 'unknown';
   abortReason?: string;
   receipt?: RunStepReceipt;
   /** Mandates/decisions that authorized this step. */
@@ -77,6 +81,35 @@ export interface RunStateStore {
   getReceipt(reservationId: string): Promise<RunStepReceipt | undefined>;
   listStepReceipts(runId: string): Promise<RunStepReceipt[]>;
   checkNonce(runId: string, nonce: string): Promise<boolean>;
+  /**
+   * Conservative reservation recovery (RFC-007 §3.5): a reservation that was
+   * never settled before its deadline is classified `unknown` — its budget is
+   * HELD, never restored by expiry. Returns every unsettled reservation.
+   */
+  recoverReservations(runId?: string): Promise<OutOfBandReservation[]>;
+  /**
+   * Settle a recovered (`unknown`) reservation. The ONLY way an unsettled
+   * reservation releases its budget is an explicit `'definitely-not-executed'`
+   * reconciliation; `'completed'` commits it and folds the receipt into the
+   * run totals.
+   */
+  reconcileReservation(
+    reservationId: string,
+    outcome: ReservationSettlementOutcome,
+    opts?: { receipt?: RunStepReceipt; reason?: string },
+  ): Promise<void>;
+}
+
+export type ReservationSettlementOutcome = 'completed' | 'definitely-not-executed';
+
+/** A reservation surfaced by `recoverReservations()` for out-of-band settlement. */
+export interface OutOfBandReservation {
+  reservationId: string;
+  runId: string;
+  stepId: string;
+  kind: 'run' | 'grant';
+  reservedAt: number;
+  expiresAt: number;
 }
 
 export interface MemoryRunStateStoreOptions {
@@ -119,7 +152,9 @@ export class MemoryRunStateStore implements RunStateStore {
     if (!res) throw new Error(`reservation ${reservationId} not found`);
     if (res.status !== 'reserved') throw new Error(`reservation ${reservationId} is in status '${res.status}'`);
     if (this.now() > res.expiresAt) {
-      res.status = 'aborted';
+      // Conservative: an expired, unsettled reservation is outcome-unknown.
+      // Its budget stays HELD until the host reconciles it explicitly.
+      res.status = 'unknown';
       throw new Error(`reservation ${reservationId} has expired`);
     }
     res.status = 'committed';
@@ -178,6 +213,76 @@ export class MemoryRunStateStore implements RunStateStore {
     if (run.totals.usedNonces.includes(nonce)) return false;
     run.totals.usedNonces.push(nonce);
     return true;
+  }
+
+  async recoverReservations(runId?: string): Promise<OutOfBandReservation[]> {
+    const now = this.now();
+    const unsettled: OutOfBandReservation[] = [];
+    for (const res of this.reservations.values()) {
+      if (runId !== undefined && res.runId !== runId) continue;
+      if (res.status === 'reserved' && now > res.expiresAt) {
+        // Outcome-unknown — hold the budget until the host reconciles.
+        res.status = 'unknown';
+        if (res.abortReason === undefined) res.abortReason = 'reservation expired';
+      }
+      if (res.status === 'unknown') {
+        unsettled.push({ reservationId: res.reservationId, runId: res.runId, stepId: res.stepId, kind: 'run', reservedAt: res.reservedAt, expiresAt: res.expiresAt });
+      }
+    }
+    return unsettled;
+  }
+
+  async reconcileReservation(
+    reservationId: string,
+    outcome: ReservationSettlementOutcome,
+    opts?: { receipt?: RunStepReceipt; reason?: string },
+  ): Promise<void> {
+    const res = this.reservations.get(reservationId);
+    if (!res) throw new Error(`reservation ${reservationId} not found`);
+    if (res.status === 'reserved' && this.now() > res.expiresAt) {
+      res.status = 'unknown';
+    }
+    if (res.status !== 'unknown') throw new Error(`reservation ${reservationId} is in status '${res.status}' — only unsettled reservations reconcile`);
+
+    if (outcome === 'definitely-not-executed') {
+      res.status = 'aborted';
+      res.abortReason = opts?.reason ?? 'reconciled: definitely not executed';
+      const run = this.runs.get(res.runId);
+      if (run) {
+        run.totals.abortedSteps += 1;
+        run.totals.reservedSteps = Math.max(0, run.totals.reservedSteps - 1);
+      }
+      return;
+    }
+
+    const receipt: RunStepReceipt = opts?.receipt ?? {
+      reservationId: res.reservationId,
+      runId: res.runId,
+      stepId: res.stepId,
+      actionDigest: res.actionDigest,
+      committedAt: this.now(),
+      mandateIds: res.mandateIds ?? [],
+      decisionIds: res.decisionIds ?? [],
+      effects: res.effects,
+    };
+    res.status = 'committed';
+    res.receipt = receipt;
+    this.receipts.set(reservationId, receipt);
+
+    const run = this.runs.get(res.runId);
+    if (run) {
+      run.totals.committedSteps += 1;
+      run.totals.reservedSteps = Math.max(0, run.totals.reservedSteps - 1);
+      for (const s of receipt.effects?.spends ?? []) {
+        run.totals.spentByToken[s.tokenId] = accumulate(run.totals.spentByToken[s.tokenId], s.amount);
+      }
+      for (const f of receipt.effects?.fees ?? []) {
+        run.totals.feesByToken[f.tokenId] = accumulate(run.totals.feesByToken[f.tokenId], f.amount);
+      }
+      for (const c of receipt.effects?.channels ?? []) {
+        run.totals.outstandingByToken[c.channelId] = accumulate(run.totals.outstandingByToken[c.channelId], '0');
+      }
+    }
   }
 }
 

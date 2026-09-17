@@ -11,6 +11,8 @@ import type { AutonomyProfile, CanonicalAgentAction, GrantRequirement, RunObliga
 import { checkObligations, checkRunLimits, checkTransition, evaluateGrantRequirement, type BoundaryFailure } from './autonomy.js';
 import {
   MemoryRunStateStore,
+  type OutOfBandReservation,
+  type ReservationSettlementOutcome,
   type RunReservation,
   type RunStateSnapshot,
   type RunStateStore,
@@ -96,6 +98,12 @@ export interface GrantBoundAutonomyOptions {
   mandateStatusResolver?: () => Promise<MandateStatusSnapshot>;
   stateStore?: RunStateStore;
   now?: () => number;
+  /**
+   * Explicitly permit the in-memory default store (dev/testing only).
+   * Without it, construction fails rather than silently downgrading to an
+   * ephemeral store that cannot recover reservations after a restart.
+   */
+  ephemeral?: boolean;
 }
 
 const DEFAULT_RESERVATION_TTL_MS = 60_000;
@@ -115,7 +123,16 @@ export class GrantBoundAutonomyPolicy {
     this.identityResolver = options.identityResolver;
     this.grantRequirements = options.grantRequirements ?? {};
     this.mandateStatusResolver = options.mandateStatusResolver;
-    this.stateStore = options.stateStore ?? new MemoryRunStateStore();
+    if (options.stateStore) {
+      this.stateStore = options.stateStore;
+    } else if (options.ephemeral) {
+      this.stateStore = new MemoryRunStateStore();
+    } else {
+      throw new Error(
+        'GrantBoundAutonomyPolicy requires a durable stateStore (e.g. SqliteRunStateStore) so reservations survive restart; ' +
+        'pass an explicit MemoryRunStateStore or ephemeral: true only for development/testing — no silent downgrade',
+      );
+    }
     this.now = options.now ?? (() => Date.now());
   }
 
@@ -287,6 +304,24 @@ export class GrantBoundAutonomyPolicy {
 
   async abort(reservationId: string, error: unknown): Promise<void> {
     await this.stateStore.abortStep(reservationId, error instanceof Error ? error.message : String(error));
+  }
+
+  /**
+   * Conservative reservation recovery (RFC-007 §3.5): reservations never
+   * settled before their deadline are surfaced as `unknown` — budget held —
+   * until the host settles them via `reconcileReservation`. No expiry ever
+   * restores spending capacity.
+   */
+  async recoverReservations(runId?: string): Promise<OutOfBandReservation[]> {
+    return this.stateStore.recoverReservations(runId);
+  }
+
+  async reconcileReservation(
+    reservationId: string,
+    outcome: ReservationSettlementOutcome,
+    opts?: { receipt?: RunStepReceipt; reason?: string },
+  ): Promise<void> {
+    return this.stateStore.reconcileReservation(reservationId, outcome, opts);
   }
 
   async getRunReceiptGraph(runId: string): Promise<RunReceiptGraph | undefined> {

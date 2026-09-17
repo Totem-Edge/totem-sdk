@@ -23,7 +23,11 @@ import type { GrantUsageStore } from './grant-usage.js';
 import { accumulate, type RunReservation, type RunStateSnapshot, type RunStateStore, type RunStepReceipt } from './run-state-store.js';
 
 type ReservationKind = 'run' | 'grant';
-type ReservationStatus = 'reserved' | 'committed' | 'aborted';
+type ReservationStatus = 'reserved' | 'committed' | 'aborted' | 'unknown';
+
+/** Conservative outcome for an unsettled (recovered) reservation. */
+type ReservationSettlementOutcome = import('./run-state-store.js').ReservationSettlementOutcome;
+type OutOfBandReservation = import('./run-state-store.js').OutOfBandReservation;
 
 interface ReservationRow {
   reservation_id: string;
@@ -145,18 +149,26 @@ export class SqliteRunStateStore implements RunStateStore, GrantUsageStore {
   }
 
   async commitStep(reservationId: string, receipt: RunStepReceipt): Promise<void> {
+    let expired = false;
     this.store.transactionalSync((tx) => {
       const row = this.getReservationRow(tx, reservationId);
       if (!row) throw new Error(`reservation ${reservationId} not found`);
       if (row.status !== 'reserved') throw new Error(`reservation ${reservationId} is in status '${row.status}'`);
       if (this.now() > row.expires_at) {
-        this.setReservationStatus(tx, reservationId, 'aborted', undefined, 'reservation expired');
-        throw new Error(`reservation ${reservationId} has expired`);
+        // Conservative recovery: an expired, unsettled step is outcome-unknown.
+        // The budget is HELD (never released by expiry) until the host
+        // reconciles via `reconcileReservation`. The transition commits BEFORE
+        // surfacing the expiry error.
+        this.setReservationStatus(tx, reservationId, 'unknown', undefined, 'reservation expired');
+        this.setMandateUsageStatus(tx, reservationId, 'unknown');
+        expired = true;
+        return;
       }
       this.setReservationStatus(tx, reservationId, 'committed', receipt, undefined);
       this.setMandateUsageStatus(tx, reservationId, 'committed');
       this.foldReceiptIntoRun(tx, row.run_id, receipt);
     });
+    if (expired) throw new Error(`reservation ${reservationId} has expired`);
   }
 
   async abortStep(reservationId: string, reason: string): Promise<void> {
@@ -272,17 +284,22 @@ export class SqliteRunStateStore implements RunStateStore, GrantUsageStore {
   }
 
   async commit(reservationId: string, receipt: StepReceipt): Promise<void> {
+    let expired = false;
     this.store.transactionalSync((tx) => {
       const row = this.getReservationRow(tx, reservationId);
       if (!row) throw new Error(`reservation ${reservationId} not found`);
       if (row.status !== 'reserved') throw new Error(`reservation ${reservationId} is in status '${row.status}'`);
       if (this.now() > row.expires_at) {
-        this.setReservationStatus(tx, reservationId, 'aborted', undefined, 'reservation expired');
-        throw new Error(`reservation ${reservationId} has expired`);
+        // Conservative recovery: outcome-unknown — budget HELD until reconcile.
+        this.setReservationStatus(tx, reservationId, 'unknown', undefined, 'reservation expired');
+        this.setMandateUsageStatus(tx, reservationId, 'unknown');
+        expired = true;
+        return;
       }
       this.setReservationStatus(tx, reservationId, 'committed', receipt, undefined);
       this.setMandateUsageStatus(tx, reservationId, 'committed');
     });
+    if (expired) throw new Error(`reservation ${reservationId} has expired`);
   }
 
   async abort(reservationId: string, reason: string): Promise<void> {
@@ -305,6 +322,100 @@ export class SqliteRunStateStore implements RunStateStore, GrantUsageStore {
 
   countAborted(runId: string): Promise<number> {
     return this.countByRun(runId, 'aborted');
+  }
+
+  countUnknown(runId: string): Promise<number> {
+    return this.countByRun(runId, 'unknown');
+  }
+
+  recoverReservations(runId?: string): Promise<OutOfBandReservation[]> {
+    const now = this.now();
+    const rows = this.store.transactionalSync((tx) => {
+      if (runId === undefined) {
+        tx.run(
+          "UPDATE autonomy_reservations SET status = 'unknown', abort_reason = 'reservation expired' WHERE status = 'reserved' AND expires_at < ?",
+          now,
+        );
+      } else {
+        tx.run(
+          "UPDATE autonomy_reservations SET status = 'unknown', abort_reason = 'reservation expired' WHERE status = 'reserved' AND run_id = ? AND expires_at < ?",
+          runId, now,
+        );
+      }
+      tx.run(
+        `UPDATE autonomy_mandate_usage SET status = 'unknown'
+         WHERE status = 'reserved' AND reservation_id IN (
+           SELECT reservation_id FROM autonomy_reservations WHERE status = 'unknown'
+         )`,
+      );
+      return tx.all<ReservationRow>('SELECT * FROM autonomy_reservations WHERE status = ?', 'unknown');
+    });
+    return Promise.resolve(rows.map((r) => ({
+      reservationId: r.reservation_id,
+      runId: r.run_id,
+      stepId: r.step_id,
+      kind: r.kind as ReservationKind,
+      reservedAt: r.reserved_at,
+      expiresAt: r.expires_at,
+    })));
+  }
+
+  async reconcileReservation(
+    reservationId: string,
+    outcome: ReservationSettlementOutcome,
+    opts?: { receipt?: RunStepReceipt | StepReceipt; reason?: string },
+  ): Promise<void> {
+    this.store.transactionalSync((tx) => {
+      const row = this.getReservationRow(tx, reservationId);
+      if (!row) throw new Error(`reservation ${reservationId} not found`);
+      if (row.status === 'reserved' && this.now() > row.expires_at) {
+        this.setReservationStatus(tx, reservationId, 'unknown', undefined, 'reservation expired');
+        this.setMandateUsageStatus(tx, reservationId, 'unknown');
+      }
+      const current = this.getReservationRow(tx, reservationId) as ReservationRow;
+      if (current.status !== 'unknown') {
+        throw new Error(`reservation ${reservationId} is in status '${current.status}' — only unsettled reservations reconcile`);
+      }
+      if (outcome === 'definitely-not-executed') {
+        this.setReservationStatus(tx, reservationId, 'aborted', undefined, opts?.reason ?? 'reconciled: definitely not executed');
+        this.setMandateUsageStatus(tx, reservationId, 'aborted');
+        if (current.kind === 'run') {
+          this.bumpRunTotal(tx, current.run_id, 'abortedSteps', 1);
+          this.bumpRunTotal(tx, current.run_id, 'reservedSteps', -1);
+        }
+        return;
+      }
+      const receipt = opts?.receipt ?? this.synthesizeReceipt(current);
+      this.setReservationStatus(tx, reservationId, 'committed', receipt, undefined);
+      this.setMandateUsageStatus(tx, reservationId, 'committed');
+      if (current.kind === 'run') this.foldReceiptIntoRun(tx, current.run_id, receipt as RunStepReceipt);
+    });
+  }
+
+  private synthesizeReceipt(row: ReservationRow): RunStepReceipt | StepReceipt {
+    const record = JSON.parse(row.record_json) as RunReservation | StepAuthorization;
+    if (row.kind === 'run') {
+      const res = record as RunReservation;
+      return {
+        reservationId: res.reservationId,
+        runId: res.runId,
+        stepId: res.stepId,
+        actionDigest: res.actionDigest,
+        committedAt: this.now(),
+        mandateIds: res.mandateIds ?? [],
+        decisionIds: res.decisionIds ?? [],
+        effects: res.effects,
+      } satisfies RunStepReceipt;
+    }
+    const auth = record as StepAuthorization;
+    return {
+      reservationId: auth.reservationId,
+      runId: auth.runId,
+      stepId: auth.stepId,
+      mandateId: auth.mandateId,
+      actionDigest: auth.actionDigest,
+      committedAt: this.now(),
+    } satisfies StepReceipt;
   }
 
   listCommittedReceipts(mandateId: string): Promise<StepReceipt[]> {

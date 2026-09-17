@@ -9,6 +9,7 @@
  */
 
 import type { StepAuthorization, StepReceipt } from './run.js';
+import type { OutOfBandReservation, ReservationSettlementOutcome } from './run-state-store.js';
 
 export interface GrantUsageStore {
   /** Atomically reserve mandate usage + local quotas for a step. */
@@ -29,10 +30,26 @@ export interface GrantUsageStore {
   countCommitted(runId: string): Promise<number>;
   countReserved(runId: string): Promise<number>;
   countAborted(runId: string): Promise<number>;
+  /** Reservations whose outcome is unknown after crash/timeout — budget HELD. */
+  countUnknown(runId: string): Promise<number>;
   /** Committed receipts for a mandate — used to build the usage snapshot. */
   listCommittedReceipts(mandateId: string): Promise<StepReceipt[]>;
   /** Read a reservation (for commit/abort bookkeeping). */
   getReservation(reservationId: string): Promise<StepAuthorization | undefined>;
+  /**
+   * Conservative reservation recovery: unsettled past-deadline reservations are
+   * classified `unknown` and their budget is HELD until explicit reconciliation.
+   */
+  recoverReservations(runId?: string): Promise<OutOfBandReservation[]>;
+  /**
+   * Explicit settlement of a recovered (`unknown`) reservation. The only way
+   * budget is released is `'definitely-not-executed'`; `'completed'` commits.
+   */
+  reconcileReservation(
+    reservationId: string,
+    outcome: ReservationSettlementOutcome,
+    opts?: { receipt?: StepReceipt; reason?: string },
+  ): Promise<void>;
 }
 
 export interface MemoryGrantUsageStoreOptions {
@@ -44,7 +61,7 @@ export interface MemoryGrantUsageStoreOptions {
 
 interface ReservationRecord {
   authorization: StepAuthorization;
-  status: 'reserved' | 'committed' | 'aborted';
+  status: 'reserved' | 'committed' | 'aborted' | 'unknown';
   abortReason?: string;
   receipt?: StepReceipt;
 }
@@ -129,7 +146,9 @@ export class MemoryGrantUsageStore implements GrantUsageStore {
     if (!rec) throw new Error(`reservation ${reservationId} not found`);
     if (rec.status !== 'reserved') throw new Error(`reservation ${reservationId} is in status '${rec.status}'`);
     if (this.now() > rec.authorization.expiresAt) {
-      rec.status = 'aborted';
+      // Conservative: an expired, unsettled execution is outcome-unknown. The
+      // budget stays HELD until the host reconciles it explicitly.
+      rec.status = 'unknown';
       throw new Error(`reservation ${reservationId} has expired`);
     }
     rec.status = 'committed';
@@ -164,6 +183,51 @@ export class MemoryGrantUsageStore implements GrantUsageStore {
     return this.countByRun(runId, 'aborted');
   }
 
+  async countUnknown(runId: string): Promise<number> {
+    return this.countByRun(runId, 'unknown');
+  }
+
+  async recoverReservations(runId?: string): Promise<OutOfBandReservation[]> {
+    this.cleanExpired(this.now());
+    const unsettled: OutOfBandReservation[] = [];
+    for (const rec of this.reservations.values()) {
+      if (runId !== undefined && rec.authorization.runId !== runId) continue;
+      if (rec.status === 'unknown') {
+        const a = rec.authorization;
+        unsettled.push({ reservationId: a.reservationId, runId: a.runId, stepId: a.stepId, kind: 'grant', reservedAt: a.reservedAt, expiresAt: a.expiresAt });
+      }
+    }
+    return unsettled;
+  }
+
+  async reconcileReservation(
+    reservationId: string,
+    outcome: ReservationSettlementOutcome,
+    opts?: { receipt?: StepReceipt; reason?: string },
+  ): Promise<void> {
+    const rec = this.reservations.get(reservationId);
+    if (!rec) throw new Error(`reservation ${reservationId} not found`);
+    const expired = rec.status === 'reserved' && this.now() > rec.authorization.expiresAt;
+    if (expired) rec.status = 'unknown';
+    if (rec.status !== 'unknown') throw new Error(`reservation ${reservationId} is in status '${rec.status}' — only unsettled reservations reconcile`);
+
+    if (outcome === 'definitely-not-executed') {
+      rec.status = 'aborted';
+      rec.abortReason = opts?.reason ?? 'reconciled: definitely not executed';
+      return;
+    }
+
+    rec.status = 'committed';
+    rec.receipt = opts?.receipt ?? {
+      reservationId: rec.authorization.reservationId,
+      runId: rec.authorization.runId,
+      stepId: rec.authorization.stepId,
+      mandateId: rec.authorization.mandateId,
+      actionDigest: rec.authorization.actionDigest,
+      committedAt: this.now(),
+    };
+  }
+
   async listCommittedReceipts(mandateId: string): Promise<StepReceipt[]> {
     const out: StepReceipt[] = [];
     for (const rec of this.reservations.values()) {
@@ -184,8 +248,11 @@ export class MemoryGrantUsageStore implements GrantUsageStore {
 
   private cleanExpired(now: number): void {
     for (const [id, rec] of this.reservations) {
+      // Conservative: never auto-release an unsettled reservation. Expiry
+      // classifies it `unknown` (outcome-unknown) — the budget is HELD until
+      // the host reconciles via `reconcileReservation`.
       if (rec.status === 'reserved' && now > rec.authorization.expiresAt) {
-        rec.status = 'aborted';
+        rec.status = 'unknown';
         this.reservations.set(id, rec);
       }
     }

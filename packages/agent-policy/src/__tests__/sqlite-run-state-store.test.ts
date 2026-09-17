@@ -168,31 +168,103 @@ describeSqlite('SqliteRunStateStore — RunStateStore', () => {
     store.close();
   });
 
-  it('rejects commit of an expired reservation', async () => {
+  it('rejects commit of an expired reservation and holds its budget', async () => {
     const store = new SqliteRunStateStore(':memory:', { now: () => 200_000 });
     await store.createRun(snapshot('run-3'));
     await store.reserveStep(reservation('run-3', 's1', 1000));
     await expect(store.commitStep('res:run-3:s1:1000', receipt('res:run-3:s1:1000', 'run-3', 's1', 200_000)))
       .rejects.toThrow('has expired');
+    // Outcome-unknown — the budget is HELD, never released by expiry.
+    expect((await store.getReservation('res:run-3:s1:1000'))?.status).toBe('unknown');
+    const run = await store.getRun('run-3');
+    expect(run?.totals.reservedSteps).toBe(1);
+    expect(run?.totals.abortedSteps).toBe(0);
+    expect(run?.totals.committedSteps).toBe(0);
     store.close();
   });
 
-  it('survives reopen on a file path', async () => {
+  it('survives reopen on a file path: reservations and nonces persist', async () => {
     const dir = require('node:os').tmpdir();
     const path = `${dir}/totem-agent-policy-${Date.now()}-${Math.random().toString(36).slice(2)}.sqlite`;
     const store = new SqliteRunStateStore(path, { now: () => 2000 });
     await store.createRun(snapshot('run-4'));
     await store.reserveStep(reservation('run-4', 's1', 1000));
     await store.commitStep('res:run-4:s1:1000', receipt('res:run-4:s1:1000', 'run-4', 's1', 2000));
+    // Outstanding reservation (within TTL at reopen) — must survive restart.
+    await store.reserveStep(reservation('run-4', 's2', 1000));
+    // Consume the nonce BEFORE close so the reopened store proves persistence.
+    expect(await store.checkNonce('run-4', 'n1')).toBe(true);
     store.close();
 
     const reopened = new SqliteRunStateStore(path, { now: () => 2000 });
     const run = await reopened.getRun('run-4');
     expect(run?.totals.committedSteps).toBe(1);
     expect(await reopened.listStepReceipts('run-4')).toHaveLength(1);
-    expect(await reopened.checkNonce('run-4', 'n1')).toBe(true);
+    // Nonce consumption persisted — replay of the same nonce is rejected.
+    expect(await reopened.checkNonce('run-4', 'n1')).toBe(false);
+    // The un-settled reservation survived reopen with its budget held.
+    expect((await reopened.getReservation('res:run-4:s2:1000'))?.status).toBe('reserved');
+    expect(run?.totals.reservedSteps).toBe(1);
+    // Nothing is outcome-unknown while within the reservation TTL.
+    expect(await reopened.recoverReservations('run-4')).toHaveLength(0);
     reopened.close();
     require('node:fs').unlinkSync(path);
+  });
+
+  it('holds budget for an expired reservation until explicit reconciliation', async () => {
+    const store = new SqliteRunStateStore(':memory:', { now: () => 200_000 });
+    await store.createRun(snapshot('run-5'));
+    await store.reserveStep(reservation('run-5', 's1', 1000));
+
+    const unsettled = await store.recoverReservations('run-5');
+    expect(unsettled).toHaveLength(1);
+    expect(unsettled[0]).toMatchObject({ reservationId: 'res:run-5:s1:1000', kind: 'run' });
+
+    const run = await store.getRun('run-5');
+    expect(run?.totals.reservedSteps).toBe(1); // budget STILL held
+    expect(run?.totals.abortedSteps).toBe(0);
+    expect(run?.totals.committedSteps).toBe(0);
+
+    // Settlement is exclusive — a second settlement is rejected.
+    await expect(store.reconcileReservation('res:run-5:s1:1000', 'definitely-not-executed')).resolves.toBeUndefined();
+    await expect(store.reconcileReservation('res:run-5:s1:1000', 'completed')).rejects.toThrow("is in status 'aborted'");
+    const after = await store.getRun('run-5');
+    expect(after?.totals.reservedSteps).toBe(0); // released ONLY by reconcile
+    expect(after?.totals.abortedSteps).toBe(1);
+    expect(await store.recoverReservations('run-5')).toHaveLength(0);
+    store.close();
+  });
+
+  it('settles a recovered reservation as completed and folds the receipt', async () => {
+    const store = new SqliteRunStateStore(':memory:', { now: () => 200_000 });
+    await store.createRun(snapshot('run-6'));
+    await store.reserveStep(reservation('run-6', 's1', 1000));
+    await expect(store.commitStep('res:run-6:s1:1000', receipt('res:run-6:s1:1000', 'run-6', 's1', 200_000)))
+      .rejects.toThrow('has expired');
+    expect((await store.getReservation('res:run-6:s1:1000'))?.status).toBe('unknown');
+    expect((await store.getRun('run-6'))?.totals.reservedSteps).toBe(1); // budget held after failed commit
+
+    await store.reconcileReservation('res:run-6:s1:1000', 'completed');
+    const after = await store.getRun('run-6');
+    expect(after?.totals.committedSteps).toBe(1);
+    expect(after?.totals.reservedSteps).toBe(0);
+    expect(after?.totals.abortedSteps).toBe(0);
+    expect(await store.listStepReceipts('run-6')).toHaveLength(1);
+    store.close();
+  });
+
+  it('does not release budget when a cancelled edge run stays unsettled', async () => {
+    const store = new SqliteRunStateStore(':memory:', { now: () => 200_000 });
+    await store.createRun(snapshot('run-7'));
+    await store.reserveStep(reservation('run-7', 's1', 1000));
+    await expect(store.commitStep('res:run-7:s1:1000', receipt('res:run-7:s1:1000', 'run-7', 's1', 200_000)))
+      .rejects.toThrow('has expired');
+    await store.abortStep('res:run-7:s1:1000', 'timeout'); // cancellation ≠ zero consumption
+    expect((await store.getReservation('res:run-7:s1:1000'))?.status).toBe('unknown');
+    const run = await store.getRun('run-7');
+    expect(run?.totals.reservedSteps).toBe(1);
+    expect(run?.totals.abortedSteps).toBe(0);
+    store.close();
   });
 });
 
@@ -221,6 +293,49 @@ describeSqlite('SqliteRunStateStore — GrantUsageStore', () => {
       usageDelta: { count: 1 }, now: 1000,
     });
     await store.abort(auth.reservationId, 'nope');
+    expect(await store.listCommittedReceipts('m1')).toHaveLength(0);
+    store.close();
+  });
+
+  it('holds grant usage for an expired reservation until reconciliation', async () => {
+    const store = new SqliteRunStateStore(':memory:', { now: () => 200_000 });
+    const auth = await store.authorizeAndReserve({
+      runId: 'run-1', stepId: 's-g', mandateId: 'm1', actionDigest: 'd1',
+      usageDelta: { count: 1 }, now: 1000, ttlMs: 60_000,
+    });
+    await expect(store.commit(auth.reservationId, {
+      reservationId: auth.reservationId, runId: 'run-1', stepId: 's-g', mandateId: 'm1',
+      actionDigest: 'd1', committedAt: 200_000,
+    } as StepReceipt)).rejects.toThrow('has expired');
+
+    expect(await store.countUnknown('run-1')).toBe(1);
+    expect(await store.countCommitted('run-1')).toBe(0);
+    expect(await store.countReserved('run-1')).toBe(0);
+    const unsettled = await store.recoverReservations('run-1');
+    expect(unsettled).toHaveLength(1);
+    expect(unsettled[0]).toMatchObject({ kind: 'grant' });
+
+    await store.reconcileReservation(auth.reservationId, 'completed');
+    expect(await store.listCommittedReceipts('m1')).toHaveLength(1);
+    expect(await store.countUnknown('run-1')).toBe(0);
+    store.close();
+  });
+
+  it('releases grant budget only via definitely-not-executed reconciliation', async () => {
+    const store = new SqliteRunStateStore(':memory:', { now: () => 200_000 });
+    const auth = await store.authorizeAndReserve({
+      runId: 'run-1', stepId: 's-g2', mandateId: 'm1', actionDigest: 'd2',
+      usageDelta: { count: 1 }, now: 1000, ttlMs: 60_000,
+    });
+    await expect(store.commit(auth.reservationId, {
+      reservationId: auth.reservationId, runId: 'run-1', stepId: 's-g2', mandateId: 'm1',
+      actionDigest: 'd2', committedAt: 200_000,
+    } as StepReceipt)).rejects.toThrow('has expired');
+    expect(await store.countUnknown('run-1')).toBe(1);
+
+    await store.reconcileReservation(auth.reservationId, 'definitely-not-executed');
+    expect(await store.countUnknown('run-1')).toBe(0);
+    expect(await store.countAborted('run-1')).toBe(1);
     expect(await store.listCommittedReceipts('m1')).toHaveLength(0);
     store.close();
   });
