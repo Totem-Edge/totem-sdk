@@ -18,6 +18,20 @@ export { createQvacIntelligenceProvider } from './provider.js';
 export { QVAC_OP_SHAPES, qvacOpShape } from './provider.js';
 export type { QvacCallResult, QvacOpHandler, QvacOpShape, QvacProviderOptions, QvacSdkLike, QvacUsageExtractor } from './qvac-sdk.js';
 
+// RFC-007 Phase 3a provider-verification gate (crash/disk behavior exercised
+// against the injected runtime — labelled provider-verified, not an SDK
+// guarantee).
+export {
+  QVAC_PROVIDER_VERIFIED_CLAIMS,
+  verifyQvacRuntimeBehavior,
+} from './provider-verification.js';
+export type {
+  QvacRuntimeBehaviorScenario,
+  QvacRuntimeObservation,
+  QvacRuntimeVerificationMark,
+  VerifyQvacRuntimeBehaviorInput,
+} from './provider-verification.js';
+
 // Per-domain typed convenience adapters (also published as /<domain> subpaths).
 export * from './domains/llm.js';
 export * from './domains/embed.js';
