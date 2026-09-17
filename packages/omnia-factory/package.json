@@ -31,7 +31,8 @@
     "@totemsdk/wots-lease": "workspace:^",
     "@totemsdk/tx-builder": "workspace:^",
     "@totemsdk/txpow": "workspace:^",
-    "@totemsdk/chain-provider": "workspace:^"
+    "@totemsdk/chain-provider": "workspace:^",
+    "@totemsdk/storage": "workspace:^"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

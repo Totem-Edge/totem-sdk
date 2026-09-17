@@ -36,3 +36,12 @@ export {
   closeFactory,
   buildDisputePayload,
 } from './settlement.js';
+
+export {
+  createDurableFactoryStore,
+} from './durable-factory-store.js';
+export type {
+  FactoryRegistryState,
+  DurableFactoryStore,
+  DurableFactoryStoreOptions,
+} from './durable-factory-store.js';
