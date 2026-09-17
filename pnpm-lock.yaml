@@ -476,6 +476,9 @@ importers:
       '@totemsdk/manifest':
         specifier: workspace:^
         version: link:../manifest
+      '@totemsdk/storage':
+        specifier: workspace:^
+        version: link:../storage
       '@totemsdk/txpow':
         specifier: workspace:^
         version: link:../txpow

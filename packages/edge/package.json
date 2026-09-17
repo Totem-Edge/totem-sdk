@@ -27,6 +27,7 @@
     "@totemsdk/manifest": "workspace:^",
     "@totemsdk/identity": "workspace:^",
     "@totemsdk/agent-policy": "workspace:^",
+    "@totemsdk/storage": "workspace:^",
     "@totemsdk/txpow": "workspace:^",
     "@totemsdk/intelligence": "workspace:^"
   },

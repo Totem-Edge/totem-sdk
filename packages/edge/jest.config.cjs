@@ -15,6 +15,9 @@ module.exports = {
         baseUrl: '.',
         paths: {
           '@totemsdk/storage/sqlite': ['../storage/src/adapters/sqlite-store.ts'],
+          '@totemsdk/storage/fs': ['../storage/src/adapters/file-store.ts'],
+          '@totemsdk/storage/memory': ['../storage/src/adapters/memory-store.ts'],
+          '@totemsdk/storage/journal': ['../storage/src/journal.ts'],
           '@totemsdk/storage': ['../storage/src/index.ts'],
         },
       },
@@ -28,6 +31,9 @@ module.exports = {
         baseUrl: '.',
         paths: {
           '@totemsdk/storage/sqlite': ['../storage/src/adapters/sqlite-store.ts'],
+          '@totemsdk/storage/fs': ['../storage/src/adapters/file-store.ts'],
+          '@totemsdk/storage/memory': ['../storage/src/adapters/memory-store.ts'],
+          '@totemsdk/storage/journal': ['../storage/src/journal.ts'],
           '@totemsdk/storage': ['../storage/src/index.ts'],
         },
       },
@@ -45,7 +51,11 @@ module.exports = {
     '^@totemsdk/proof$': '<rootDir>/../proof/src/index.ts',
     '^@totemsdk/connect$': '<rootDir>/../connect/src/index.ts',
     '^@totemsdk/storage$': '<rootDir>/../storage/src/index.ts',
+    '^@totemsdk/storage/journal$': '<rootDir>/../storage/src/journal.ts',
+    '^@totemsdk/storage/fs$': '<rootDir>/../storage/src/adapters/file-store.ts',
+    '^@totemsdk/storage/memory$': '<rootDir>/../storage/src/adapters/memory-store.ts',
     '^@totemsdk/storage/sqlite$': '<rootDir>/../storage/src/adapters/sqlite-store.ts',
+    '^@totemsdk/storage/(.*)$': '<rootDir>/../storage/src/$1',
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
 };

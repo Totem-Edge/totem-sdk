@@ -56,11 +56,11 @@
       "import": "./dist/adapters/sqlite-store.js"
     },
     "./journal": {
-  "types": "./dist/journal.d.ts",
-  "require": "./dist/journal.js",
-  "import": "./dist/journal.js"
- },
- "./snapshot": {
+      "types": "./dist/journal.d.ts",
+      "require": "./dist/journal.js",
+      "import": "./dist/journal.js"
+    },
+    "./snapshot": {
       "types": "./dist/snapshot.d.ts",
       "require": "./dist/snapshot.js",
       "import": "./dist/snapshot.js"

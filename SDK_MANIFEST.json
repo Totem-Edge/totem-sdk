@@ -272,6 +272,7 @@
         "@totemsdk/identity": "^1.0.0",
         "@totemsdk/intelligence": "^0.1.0",
         "@totemsdk/manifest": "^1.0.0",
+        "@totemsdk/storage": "^0.1.0",
         "@totemsdk/txpow": "^1.0.1"
       },
       "exports": {
@@ -1540,6 +1541,7 @@
         "./conformance": "dist/conformance/index.{js,d.ts}",
         "./errors": "dist/errors.{js,d.ts}",
         "./fs": "dist/adapters/file-store.{js,d.ts}",
+        "./journal": "dist/journal.{js,d.ts}",
         "./memory": "dist/adapters/memory-store.{js,d.ts}",
         "./namespace": "dist/namespace.{js,d.ts}",
         "./sqlite": "dist/adapters/sqlite-store.{js,d.ts}",

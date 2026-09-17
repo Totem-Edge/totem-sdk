@@ -52,6 +52,21 @@ export {
 
 export { createEdgeRuntime } from './runtime.js';
 export { createEdgeIntelligencePort } from './intelligence.js';
+export { createAccountedIntelligencePort } from './intelligence-usage-journal.js';
+export type {
+  InferenceAuditEvent,
+  InferenceRecordedUsage,
+  InferenceReadEvent,
+  InferenceRecoveryReport,
+  CreateAccountedIntelligencePortOptions,
+} from './intelligence-usage-journal.js';
+export { recoverInferenceJournal } from './intelligence-usage-journal.js';
+export { reconcileInferenceAccounting } from './inference-accounting.js';
+export type {
+  InferenceAccountingAuthority,
+  InferenceAccountingReconciliation,
+  ReconcileInferenceAccountingOptions,
+} from './inference-accounting.js';
 export { createEdgeDevice } from './device.js';
 export { createEdge, type CreateEdgeOptions, type EdgeCommerceRuntime } from './create-edge.js';
 
