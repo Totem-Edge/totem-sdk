@@ -88,6 +88,9 @@ const SNAPSHOT_KEY = 'snapshot';
 function jsonClean(value: unknown): unknown {
   if (value === undefined) return null;
   if (value === null || typeof value !== 'object') return value;
+  // Preserve bytes and bigint-likes verbatim for the codec (which round-trips
+  // Uint8Array/<bigint> through in-band tags); never flatten them to objects.
+  if (value instanceof Uint8Array) return value;
   if (Array.isArray(value)) {
     return value.map((item) => jsonClean(item));
   }
