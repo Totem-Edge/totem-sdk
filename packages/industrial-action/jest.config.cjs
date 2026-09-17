@@ -18,6 +18,10 @@ module.exports = {
     '^@totemsdk/proof$': '<rootDir>/../proof/src/index.ts',
     '^@totemsdk/edge$': '<rootDir>/../edge/src/index.ts',
     '^@totemsdk/authority$': '<rootDir>/../authority/src/index.ts',
+    '^@totemsdk/storage$': '<rootDir>/../storage/src/index.ts',
+    '^@totemsdk/storage/fs$': '<rootDir>/../storage/src/adapters/file-store.ts',
+    '^@totemsdk/storage/errors$': '<rootDir>/../storage/src/errors.ts',
+    '^@totemsdk/storage/(.*)$': '<rootDir>/../storage/src/$1',
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
 };

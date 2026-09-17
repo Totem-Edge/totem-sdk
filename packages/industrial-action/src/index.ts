@@ -82,3 +82,10 @@ export {
   createReceipt,
   verifyReceiptIntegrity,
 } from './receipt.js'
+
+export { createDurableActionStorage } from './durable-storage.js'
+export type {
+  DurableActionStorage,
+  DurableActionStorageOptions,
+  ActionRegistryState,
+} from './durable-storage.js'
