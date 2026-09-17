@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/omnia-router",
   "version": "0.2.0",
-  "description": "Multi-hop payment routing over Omnia channels — single-token and cross-token paths",
+  "description": "Multi-hop payment routing over Omnia channels \u2014 single-token and cross-token paths",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -24,7 +24,8 @@
     "LICENSE"
   ],
   "dependencies": {
-    "@totemsdk/core": "workspace:^"
+    "@totemsdk/core": "workspace:^",
+    "@totemsdk/storage": "workspace:^"
   },
   "peerDependencies": {
     "@totemsdk/omnia": "workspace:^"

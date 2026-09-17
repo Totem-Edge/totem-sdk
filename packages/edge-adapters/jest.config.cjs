@@ -12,6 +12,9 @@ module.exports = {
         paths: {
           '@totemsdk/storage/sqlite': ['../storage/src/adapters/sqlite-store.ts'],
           '@totemsdk/storage': ['../storage/src/index.ts'],
+          '@totemsdk/storage/snapshot': ['../storage/src/snapshot.ts'],
+          '@totemsdk/storage/types': ['../storage/src/index.ts'],
+          '@totemsdk/storage/errors': ['../storage/src/errors.ts'],
         },
       },
       diagnostics: { ignoreCodes: [2307] }, // workspace subpath exports resolved by moduleNameMapper
@@ -23,6 +26,9 @@ module.exports = {
     '^@totemsdk/agent-policy$': '<rootDir>/../agent-policy/src/index.ts',
     '^@totemsdk/storage$': '<rootDir>/../storage/src/index.ts',
     '^@totemsdk/storage/sqlite$': '<rootDir>/../storage/src/adapters/sqlite-store.ts',
+    '^@totemsdk/storage/snapshot$': '<rootDir>/../storage/src/snapshot.ts',
+    '^@totemsdk/storage/types$': '<rootDir>/../storage/src/index.ts',
+    '^@totemsdk/storage/errors$': '<rootDir>/../storage/src/errors.ts',
     '^@totemsdk/chain-provider$': '<rootDir>/../chain-provider/src/index.ts',
     '^@totemsdk/identity$': '<rootDir>/../identity/src/index.ts',
     '^@totemsdk/manifest$': '<rootDir>/../manifest/src/index.ts',

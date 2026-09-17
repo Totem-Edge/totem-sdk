@@ -48,3 +48,13 @@ export {
   ROUTER_FEE_PROOF_DOMAIN,
 } from './execute.js';
 export type { RouterFeeProof } from './types.js';
+
+export {
+  createDurableRouterLedger,
+} from './durable-router-ledger.js';
+export type {
+  SettledSegment,
+  RouterLedgerState,
+  DurableRouterLedger,
+  DurableRouterLedgerOptions,
+} from './durable-router-ledger.js';
