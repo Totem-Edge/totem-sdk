@@ -10,7 +10,12 @@ export { createPurchaseLookupAdapter, type PurchaseLookupAdapterConfig } from '.
 
 export { createPurchaseAuthorityAdapter, type PurchaseAuthorityAdapterConfig } from './purchase-authority.js';
 
-export { createPurchasePaymentAdapter, type PurchasePaymentAdapterConfig } from './purchase-payment.js';
+export {
+  createPurchasePaymentAdapter,
+  type PurchasePaymentAdapterConfig,
+  type PurchasePaymentStore,
+  type PurchasePaymentClaimRecord,
+} from './purchase-payment.js';
 
 export {
   createStreamNegotiationTransport,
