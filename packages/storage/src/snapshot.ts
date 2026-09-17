@@ -85,7 +85,7 @@ const SNAPSHOT_KEY = 'snapshot';
  * values are removed and undefined array entries become `null`, matching
  * `JSON.stringify` semantics while preserving bigint and Uint8Array values.
  */
-function jsonClean(value: unknown): unknown {
+export function jsonClean(value: unknown): unknown {
   if (value === undefined) return null;
   if (value === null || typeof value !== 'object') return value;
   // Preserve bytes and bigint-likes verbatim for the codec (which round-trips
