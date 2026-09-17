@@ -9,9 +9,27 @@ import {
   createMultisigDescriptor,
   createMofNMultisigDescriptor
 } from '@totemsdk/core/scripts';
-import type { KeyValueStorage } from './adapters.js';
+import type { StoragePort } from './adapters.js';
 
 const PENDING_MULTISIG_KEY = 'totem_pending_multisig';
+
+/**
+ * On-disk record format version. Signing-pending multisig state is valuable:
+ * opening a record with an unsupported or ambiguous version refuses to open
+ * (never silently reinitialises); the legacy pre-G10 shape (`{ transactions }`,
+ * no version) is migrated through a declared path.
+ */
+const MULTISIG_RECORD_VERSION = 1;
+
+/** Local storage error so corruption is surfaced, never treated as absence. */
+export class MultisigStorageError extends Error {
+  readonly code: 'corrupt' | 'unsupported-version';
+  constructor(code: 'corrupt' | 'unsupported-version', message: string) {
+    super(message);
+    this.name = 'MultisigStorageError';
+    this.code = code;
+  }
+}
 
 export interface MultisigConfig {
   type: '2of2' | 'mofn';
@@ -70,39 +88,96 @@ function recomputeDigest(transactionHex: string): string {
 export class MultisigManager {
   private pendingTransactions: Map<string, PendingMultisigTransaction> = new Map();
   readonly ready: Promise<void>;
-  private storage: KeyValueStorage | null;
+  private storage: StoragePort | null;
   
-  constructor(storage?: KeyValueStorage) {
+  constructor(storage?: StoragePort) {
     this.storage = storage || null;
     this.ready = this.load();
   }
   
+  /**
+   * Load pending transactions from the durable record.
+   *
+   * Format detection (RFC-007 §4.2): the record carries an explicit version.
+   * - `{ version: 1, transactions }` — supported, opened as-is.
+   * - `{ transactions }` (no version) — legacy pre-G10 shape, migrated by
+   *   rewriting it under the versioned envelope (never silently dropped).
+   * - any other version or an unrecognisable shape — **refuses to open**:
+   *   valuable signing state is never silently reinitialised or treated as
+   *   an empty store.
+   */
   private async load(): Promise<void> {
-    try {
-      if (!this.storage) return;
-      const data = await this.storage.get<{ transactions: any[] }>(PENDING_MULTISIG_KEY);
-      if (data) {
-        for (const tx of data.transactions || []) {
-          tx.signatures = new Map(Object.entries(tx.signatures || {}));
-          this.pendingTransactions.set(tx.id, tx);
-        }
+    if (!this.storage) return;
+    const data = await this.storage.get<unknown>(PENDING_MULTISIG_KEY);
+    if (data === null || data === undefined) return;
+
+    let raw = data as { version?: unknown; transactions?: unknown };
+    if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+      throw new MultisigStorageError('corrupt', 'multisig record is not an object');
+    }
+
+    let transactions: unknown[];
+    let migrated = false;
+    if (raw.version === undefined) {
+      if (!Array.isArray(raw.transactions)) {
+        throw new MultisigStorageError(
+          'corrupt',
+          'multisig record has no version and no legacy transactions array',
+        );
       }
+      // Legacy pre-G10 shape: migrate to the versioned envelope.
+      transactions = raw.transactions;
+      migrated = true;
+    } else {
+      const version = raw.version;
+      if (typeof version !== 'number' || version !== MULTISIG_RECORD_VERSION) {
+        throw new MultisigStorageError(
+          'unsupported-version',
+          `multisig record version ${String(version)} unsupported (this build supports up to ${MULTISIG_RECORD_VERSION}) — refusing to open`,
+        );
+      }
+      if (!Array.isArray(raw.transactions)) {
+        throw new MultisigStorageError('corrupt', 'multisig record has no transactions array');
+      }
+      transactions = raw.transactions;
+    }
+
+    try {
+      for (const tx of transactions) {
+        if (typeof tx !== 'object' || tx === null || Array.isArray(tx)) {
+          throw new MultisigStorageError('corrupt', 'multisig transaction entry is not an object');
+        }
+        const record = tx as Record<string, unknown>;
+        if (typeof record.signatures === 'object' && record.signatures !== null) {
+          record.signatures = new Map(Object.entries(record.signatures as Record<string, unknown>));
+        }
+        this.pendingTransactions.set(String(record.id), record as unknown as PendingMultisigTransaction);
+      }
+      // Persist a migrated legacy record so a subsequent open is clean v1.
+      if (migrated) await this.save();
     } catch (err) {
-      console.error('[MultisigManager] Failed to load:', err);
+      if (err instanceof MultisigStorageError) throw err;
+      throw new MultisigStorageError('corrupt', `multisig record failed to load: ${(err as Error).message}`);
     }
   }
   
   private async save(): Promise<void> {
-    try {
-      if (!this.storage) return;
-      const transactions = Array.from(this.pendingTransactions.values()).map(tx => ({
-        ...tx,
-        signatures: Object.fromEntries(tx.signatures)
-      }));
-      await this.storage.set(PENDING_MULTISIG_KEY, { transactions });
-    } catch (err) {
-      console.error('[MultisigManager] Failed to save:', err);
-    }
+    if (!this.storage) return;
+    const transactions = Array.from(this.pendingTransactions.values()).map(tx => ({
+      ...tx,
+      // Canonical form: drop absent optional fields (e.g. `proof`) so strict
+      // codecs (FileStore) do not reject the record for `undefined` values.
+      signatures: Object.fromEntries(
+        Array.from(tx.signatures.entries()).map(([key, sig]) => [
+          key,
+          Object.fromEntries(Object.entries(sig).filter(([, value]) => value !== undefined)),
+        ]),
+      ),
+    }));
+    await this.storage.set(PENDING_MULTISIG_KEY, {
+      version: MULTISIG_RECORD_VERSION,
+      transactions,
+    });
   }
   
   createMultisigScript(config: MultisigConfig): ScriptDescriptor {

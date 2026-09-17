@@ -1,4 +1,4 @@
-import type { KeyValueStorage, CoinFetcher, SpendableCoin } from './adapters.js';
+import type { StoragePort, CoinFetcher, SpendableCoin } from './adapters.js';
 export type { SpendableCoin } from './adapters.js';
 
 export class CoinSelectionError extends Error {
@@ -94,10 +94,10 @@ export function isPositive(value: string): boolean {
 
 export class CoinSelectionService {
   private excludedAddresses: Set<string> = new Set();
-  private storage: KeyValueStorage | null;
+  private storage: StoragePort | null;
   private fetcher: CoinFetcher;
   
-  constructor(fetcher: CoinFetcher, storage?: KeyValueStorage) {
+  constructor(fetcher: CoinFetcher, storage?: StoragePort) {
     this.fetcher = fetcher;
     this.storage = storage || null;
   }

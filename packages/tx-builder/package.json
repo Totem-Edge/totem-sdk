@@ -30,6 +30,9 @@
   "dependencies": {
     "@totemsdk/core": "workspace:^"
   },
+  "devDependencies": {
+    "@totemsdk/storage": "workspace:^"
+  },
   "engines": {
     "node": ">=16.0.0"
   },
