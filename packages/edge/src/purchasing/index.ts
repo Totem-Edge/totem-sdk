@@ -15,16 +15,18 @@ export { NegotiationEngine, type NegotiationEngineOptions } from './engine.js';
 export { EdgeWorkPolicy, EdgeTxPowAdapter } from './admission.js';
 export { createPurchaseSession, type SessionOptions } from './session.js';
 export { PurchaseError, NegotiationError, PURCHASE_ERROR_CODES } from './errors.js';
-export { termsHash, proposalDigest, workRequiredDigest } from './terms.js';
+export { termsHash, proposalDigest, workRequiredDigest, usageStatementDigest } from './terms.js';
 export { type NegotiationRecord, createNegotiationRecord } from './state.js';
 export {
   type NegotiationStore,
   type PurchaseStore,
   type PrincipalNegotiationStore,
+  type UsageStatementLogStore,
   type OutboxMessage,
   InMemoryNegotiationStore,
   InMemoryPurchaseStore,
   InMemoryPrincipalNegotiationStore,
+  InMemoryUsageStatementLogStore,
 } from './store.js';
 export {
   type NegotiationTransport,
@@ -85,6 +87,7 @@ export {
   type NegotiationRequest,
   type NegotiationMessage,
   type NegotiationState,
+  type UsageStatement,
   type NegotiationStrategy,
   type NegotiationLimits,
   type NegotiationResult,

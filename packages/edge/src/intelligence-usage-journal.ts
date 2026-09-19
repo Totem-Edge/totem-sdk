@@ -6,8 +6,10 @@
  * Phase 3a (RFC-007 §4.2 / §3.5): Totem-owned inference usage/execution
  * records are written to an append-only, restart-recoverable `Journal`, and
  * the journal is the *audit trail* — never a competing counter. The owning
- * domain accounting authority (e.g. agent-policy's `GrantUsageStore`) remains
- * the authority; the journal is reconciled against it, not the reverse.
+ * domain accounting authority (agent-policy's `GrantUsageStore` for budget/
+ * mandate consumption, the commerce replay/outbox for purchases) remains the
+ * authority; the journal is reconciled against it, not the reverse. Purchase-
+ * billed runs fold via `@totemsdk/edge/commerce-accounting`.
  *
  * Every dispatched inference call is journaled across two append-only events
  * joined by a caller-supplied or generated `requestId`:
@@ -93,6 +95,21 @@ export interface CreateAccountedIntelligencePortOptions {
   now?: () => number;
   /** Request-id generator used when the caller omits one (defaults to UUID). */
   requestId?: () => string;
+  /**
+   * Optional live-accounting hook invoked after a dispatch finishes
+   * `completed` (the journal write already appended). The commerce accounting
+   * fold (`@totemsdk/edge/commerce-accounting`) attaches here. Best-effort:
+   * a failure is reported to `onAfterCompletedError` and does NOT fail the
+   * already-completed dispatch — the authoritative fold pass is
+   * {@link foldUsageStatements} on restart (idempotent by messageId).
+   */
+  afterCompleted?: (completed: {
+    requestId: string;
+    context: Record<string, unknown> | undefined;
+    usage: InferenceRecordedUsage | undefined;
+  }) => Promise<void>;
+  /** Reports a best-effort `afterCompleted` failure (never throws upward). */
+  onAfterCompletedError?: (error: unknown) => void;
 }
 
 /**
@@ -165,6 +182,26 @@ export function createAccountedIntelligencePort(
                 }
               : undefined,
           });
+          if (options.afterCompleted) {
+            try {
+              await options.afterCompleted({
+                requestId,
+                context: params.context,
+                usage: usage
+                  ? {
+                      tokensIn: usage.tokensIn as number | undefined,
+                      tokensOut: usage.tokensOut as number | undefined,
+                      durationMs: usage.durationMs as number | undefined,
+                      metadata: usage.metadata,
+                    }
+                  : undefined,
+              });
+            } catch (error) {
+              // Best-effort live fold: the journal already recorded
+              // `completed`; recovery re-folds idempotently on restart.
+              options.onAfterCompletedError?.(error);
+            }
+          }
           return result;
         }
 

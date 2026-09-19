@@ -29,6 +29,7 @@
 
 import type { NegotiationRecord } from './state.js';
 import type { PurchaseRecord } from './purchase.js';
+import type { UsageStatement } from './types.js';
 import { InMemoryOutboxStore, type OutboxEntry, type OutboxStore } from './outbox.js';
 
 /** An outbound message to enqueue atomically with a state transition. */
@@ -357,5 +358,42 @@ export class InMemoryPrincipalNegotiationStore implements PrincipalNegotiationSt
 
   async setCooldownUntil(principal: string, until: number): Promise<void> {
     this.cooldown.set(principal, until);
+  }
+}
+
+/**
+ * Durable log of usage statements reconciled by the seller (Phase 3a
+ * accounting fold). Additive, write-once per `statementId`: a replayed
+ * statement is de-duplicated here (and at the replay ledger before it).
+ */
+export interface UsageStatementLogStore {
+  /**
+   * Record a reconciled statement. Returns `{ recorded: true }` when the
+   * statementId was not seen before, `{ recorded: false }` when it was
+   * already reconciled (idempotent — never double-counted).
+   */
+  record(statement: UsageStatement): Promise<{ recorded: boolean }>;
+  /** Whether a statementId has already been reconciled. */
+  has(statementId: string): Promise<boolean>;
+  /** All reconciled statements (for reconciliation/audit). */
+  list(): Promise<UsageStatement[]>;
+}
+
+/** In-memory usage statement log (dev/test). */
+export class InMemoryUsageStatementLogStore implements UsageStatementLogStore {
+  private readonly entries = new Map<string, UsageStatement>();
+
+  async record(statement: UsageStatement): Promise<{ recorded: boolean }> {
+    if (this.entries.has(statement.statementId)) return { recorded: false };
+    this.entries.set(statement.statementId, statement);
+    return { recorded: true };
+  }
+
+  async has(statementId: string): Promise<boolean> {
+    return this.entries.has(statementId);
+  }
+
+  async list(): Promise<UsageStatement[]> {
+    return [...this.entries.values()];
   }
 }

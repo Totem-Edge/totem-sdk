@@ -12,6 +12,7 @@ import type { NegotiationMessage } from './types.js';
 
 /** Canonical message type discriminator. */
 export function messageType(msg: NegotiationMessage): string {
+  if ('statementId' in msg) return 'UsageStatement';
   if ('proposalId' in msg && 'terms' in msg) return 'TradeProposal';
   if ('challenge' in msg && 'reason' in msg) return 'WorkRequired';
   if ('acceptedAt' in msg) return 'ProposalAcceptance';
@@ -36,16 +37,18 @@ export function messageId(msg: NegotiationMessage): string {
     negotiationId: (msg as { negotiationId?: string }).negotiationId,
     proposalId: (msg as { proposalId?: string }).proposalId,
     parentProposalId: (msg as { parentProposalId?: string }).parentProposalId,
-    sender: (msg as { sender?: string; proposer?: string; acceptor?: string; rejector?: string }).sender
+    sender: (msg as { sender?: string; proposer?: string; acceptor?: string; rejector?: string; issuer?: string }).sender
       ?? (msg as { proposer?: string }).proposer
       ?? (msg as { acceptor?: string }).acceptor
-      ?? (msg as { rejector?: string }).rejector,
+      ?? (msg as { rejector?: string }).rejector
+      ?? (msg as { issuer?: string }).issuer,
     recipient: (msg as { recipient?: string }).recipient,
-    timestamp: (msg as { createdAt?: number; acceptedAt?: number; rejectedAt?: number; cancelledAt?: number; requestedAt?: number }).createdAt
+    timestamp: (msg as { createdAt?: number; acceptedAt?: number; rejectedAt?: number; cancelledAt?: number; requestedAt?: number; issuedAt?: number }).createdAt
       ?? (msg as { acceptedAt?: number }).acceptedAt
       ?? (msg as { rejectedAt?: number }).rejectedAt
       ?? (msg as { cancelledAt?: number }).cancelledAt
-      ?? (msg as { requestedAt?: number }).requestedAt,
+      ?? (msg as { requestedAt?: number }).requestedAt
+      ?? (msg as { issuedAt?: number }).issuedAt,
     payloadHash: payloadHash(msg),
   });
   return toHex(sha3_256(new TextEncoder().encode(canonical)));

@@ -10,7 +10,7 @@
 
 import { sha3_256 } from '@totemsdk/core';
 import { canonicalJson, toHex } from '../canonical.js';
-import type { TradeProposal, TradeTerms } from './types.js';
+import type { TradeProposal, TradeTerms, UsageStatement } from './types.js';
 
 /** Canonical SHA3-256 hex hash of trade terms. */
 export function termsHash(terms: TradeTerms): string {
@@ -151,4 +151,43 @@ interface CancellationLike {
   recipient: string;
   reason?: string;
   cancelledAt: number;
+}
+
+/**
+ * Canonical digest of a UsageStatement (excluding signature and signer key).
+ *
+ * Binds every economically meaningful field: statementId, agreementId,
+ * negotiationId, manifestId, issuer, recipient, requestId, usage, issuedAt.
+ */
+export function usageStatementDigest(
+  msg: Omit<UsageStatementLike, 'signature'>,
+): string {
+  const canonical = canonicalJson({
+    version: msg.version,
+    statementId: msg.statementId,
+    agreementId: msg.agreementId,
+    negotiationId: msg.negotiationId,
+    manifestId: msg.manifestId,
+    issuer: msg.issuer,
+    recipient: msg.recipient,
+    requestId: msg.requestId,
+    usage: msg.usage,
+    issuedAt: msg.issuedAt,
+  });
+  return toHex(sha3_256(new TextEncoder().encode(canonical)));
+}
+
+/** Structural subset of UsageStatement used for digest computation. */
+interface UsageStatementLike {
+  version: number;
+  statementId: string;
+  agreementId: string;
+  negotiationId?: string;
+  manifestId: string;
+  issuer: string;
+  recipient: string;
+  requestId: string;
+  usage: UsageStatement['usage'];
+  issuedAt: number;
+  signature: string;
 }

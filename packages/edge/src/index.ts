@@ -68,6 +68,22 @@ export type {
   ReconcileInferenceAccountingOptions,
 } from './inference-accounting.js';
 export { createEdgeDevice } from './device.js';
+export {
+  foldUsageStatements,
+  foldCompletedDispatch,
+  issueUsageStatement,
+  usageStatementId,
+  isPurchaseBound,
+} from './commerce-accounting.js';
+export type {
+  UsageAgreementReference,
+  UsageAgreementResolver,
+  UsageFoldContext,
+  IssueUsageStatementOptions,
+  FoldUsageStatementsInput,
+  FoldUsageStatementsReport,
+  FoldCompletedDispatchInput,
+} from './commerce-accounting.js';
 export { createEdge, type CreateEdgeOptions, type EdgeCommerceRuntime } from './create-edge.js';
 
 // ── Universal action registry + governed agent facade ──────────────────────

@@ -234,7 +234,58 @@ export type NegotiationMessage =
   | TradeProposal
   | ProposalAcceptance
   | ProposalRejection
-  | NegotiationCancellation;
+  | NegotiationCancellation
+  | UsageStatement;
+
+/**
+ * A signed usage/billing statement (RFC-007 Phase 3a accounting fold).
+ *
+ * Issued by the buyer side after a *completed* purchase-bound inference
+ * dispatch: one statement per completed run, addressed to the seller, driving
+ * the durable commerce replay/outbox accounting authority. Statements are
+ * bounded — no negotiation fields, no rounds, no terms — and are reconciled by
+ * the seller idempotently (exactly once per `statementId`).
+ *
+ * Honesty contract (§3.5): a statement is an accounting fold, not a receipt or
+ * a claim of verified work. An *interrupted* run (journal `started` with no
+ * `finished`) is never billed and never gets a statement.
+ */
+export interface UsageStatement {
+  /** Protocol framing (signed, paired with a digest). */
+  version: number;
+  /**
+   * Stable canonical statement identity — `requestId` scoped:
+   * `${agreementId}:${requestId}:usage`. The seller reconciles exactly once
+   * per `statementId`, and the messageId over the whole statement makes a
+   * re-sent statement dedupe through both the replay ledger and outbox.
+   */
+  statementId: string;
+  /** The agreement the usage is billed against. */
+  agreementId: string;
+  /** The negotiation that produced the agreement (when known). */
+  negotiationId?: string;
+  /** The manifest the completion ran against. */
+  manifestId: string;
+  /** The principal issuing the statement (the buyer). */
+  issuer: string;
+  /** The principal being billed (the seller). */
+  recipient: string;
+  /** The journaled inference dispatch this statement accounts for. */
+  requestId: string;
+  /** Measured usage copied from the completed run. */
+  usage: {
+    tokensIn?: number;
+    tokensOut?: number;
+    durationMs?: number;
+    metadata?: Record<string, number | string>;
+  };
+  /** Issuance wall-clock time. */
+  issuedAt: number;
+  /** WOTS signature over the canonical statement digest. */
+  signature: string;
+  /** WOTS public-key digest (hex) of the issuer. */
+  signerPublicKey: string;
+}
 
 /** Negotiation state machine states. */
 export type NegotiationState =
@@ -440,6 +491,7 @@ export type PurchaseEvent =
   | { type: 'purchase.authorized'; agreementId: string }
   | { type: 'purchase.started'; sessionId: string }
   | { type: 'purchase.usage'; sessionId: string; amount: string; unit: string }
+  | { type: 'purchase.usage_statement'; agreementId: string; statementId: string; recipient: string }
   | { type: 'purchase.settling'; sessionId: string }
   | { type: 'purchase.completed'; sessionId: string }
   | { type: 'purchase.failed'; sessionId: string; reason: string };

@@ -28,6 +28,7 @@ import {
   type TradeAgreement,
   type TradeProposal,
   type TradeTerms,
+  type UsageStatement,
   type WorkRequired,
 } from './types.js';
 import {
@@ -35,13 +36,14 @@ import {
   proposalDigest,
   rejectionDigest,
   termsHash,
+  usageStatementDigest,
   workRequiredDigest,
 } from './terms.js';
 import { NegotiationEngine } from './engine.js';
 import { EdgeTxPowAdapter, EdgeWorkPolicy } from './admission.js';
 import { ingress } from './ingress.js';
 import { messageId, type ReplayLedger, type ReplayOutcome } from './messages.js';
-import type { NegotiationStore, PrincipalNegotiationStore } from './store.js';
+import type { NegotiationStore, PrincipalNegotiationStore, UsageStatementLogStore } from './store.js';
 import type { OutboxStore } from './outbox.js';
 import type { NegotiationTransport, TransportMessageContext } from './transport.js';
 import { NegotiationError, PURCHASE_ERROR_CODES } from './errors.js';
@@ -109,6 +111,24 @@ export interface SellerServiceOptions {
    * The runtime uses this to trigger an immediate outbox drain over the wire.
    */
   onOutboundEnqueued?: () => Promise<void>;
+  /**
+   * Optional durable log of reconciled usage statements (Phase 3a accounting
+   * fold). When provided, an inbound `usage.statement` is recorded exactly
+   * once per `statementId`. When absent, the seller refuses to reconcile
+   * statements (no silent accounting).
+   */
+  usageStatementLog?: UsageStatementLogStore;
+  /**
+   * Optional agreement cross-check for inbound usage statements: return true
+   * when `agreementId` was negotiated by this seller with `buyer`. When
+   * absent, statements are recorded without an agreement cross-check (the
+   * fold is advisory; reimbursement/settlement stays per the agreement).
+   */
+  verifyUsageStatementAgreement?: (params: {
+    agreementId: string;
+    buyer: string;
+    requestId: string;
+  }) => Promise<boolean> | boolean;
 }
 
 export interface EdgeSeller {
@@ -150,6 +170,8 @@ export function createEdgeSeller(opts: SellerServiceOptions): EdgeSeller {
     onEvent,
     now,
     onOutboundEnqueued,
+    usageStatementLog,
+    verifyUsageStatementAgreement,
   } = opts;
 
   const engine = new NegotiationEngine({
@@ -176,7 +198,7 @@ export function createEdgeSeller(opts: SellerServiceOptions): EdgeSeller {
   }
 
   function digestFor(msg: NegotiationMessage): string {
-    const type = (msg as { proposalId?: string; terms?: TradeTerms; challenge?: unknown; acceptedAt?: number; rejectedAt?: number; cancelledAt?: number; requestedAt?: number }).proposalId !== undefined && 'terms' in msg
+    const type = (msg as { proposalId?: string; terms?: TradeTerms; challenge?: unknown; acceptedAt?: number; rejectedAt?: number; cancelledAt?: number; requestedAt?: number; statementId?: string }).proposalId !== undefined && 'terms' in msg
       ? proposalDigest(msg as TradeProposal)
       : 'challenge' in msg
         ? workRequiredDigest(msg as WorkRequired)
@@ -190,9 +212,11 @@ export function createEdgeSeller(opts: SellerServiceOptions): EdgeSeller {
                 const { cancellationDigest } = require('./terms.js');
                 return cancellationDigest(msg as NegotiationCancellation);
               })()
-              : (() => {
-                throw new NegotiationError('UNSUPPORTED_MESSAGE', 'unsupported message type for ingress digest');
-              })();
+              : 'statementId' in msg
+                ? usageStatementDigest(msg as UsageStatement)
+                : (() => {
+                  throw new NegotiationError('UNSUPPORTED_MESSAGE', 'unsupported message type for ingress digest');
+                })();
     return type;
   }
 
@@ -415,7 +439,44 @@ export function createEdgeSeller(opts: SellerServiceOptions): EdgeSeller {
     }
   }
 
+  async function onUsageStatement(statement: UsageStatement): Promise<ReplayOutcome> {
+    // Ingress already authenticated the sender and confirmed `recipient ===
+    // principal`. Statement handling is intentionally outside the negotiation
+    // state machine: it is a post-AGREED accounting fold, not a negotiation
+    // transition (no rounds, no terms).
+    const log = usageStatementLog;
+    if (!log) {
+      return { ok: false, error: 'usage statement log not configured; refusing to reconcile' };
+    }
+    try {
+      if (verifyUsageStatementAgreement !== undefined) {
+        const ok = await verifyUsageStatementAgreement({
+          agreementId: statement.agreementId,
+          buyer: statement.issuer,
+          requestId: statement.requestId,
+        });
+        if (!ok) {
+          return { ok: false, error: `statement ${statement.statementId} does not match a negotiated agreement` };
+        }
+      }
+      const { recorded } = await log.record(statement);
+      // Exactly-once reconciliation: a replayed statement (or a duplicate
+      // statementId) is recorded once; the second arrival is a no-op, never a
+      // double count.
+      emit({
+        type: 'purchase.usage_statement',
+        agreementId: statement.agreementId,
+        statementId: statement.statementId,
+        recipient: statement.recipient,
+      });
+      return { ok: true, result: recorded ? 'recorded' : 'already-recorded' };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  }
+
   async function dispatch(message: NegotiationMessage): Promise<ReplayOutcome> {
+    if ('statementId' in message) return onUsageStatement(message as UsageStatement);
     if ('proposalId' in message && 'terms' in message) return onTradeProposal(message as TradeProposal);
     if ('acceptedAt' in message) return onProposalAcceptance(message as ProposalAcceptance);
     if ('rejectedAt' in message) return onProposalRejection(message as ProposalRejection);
