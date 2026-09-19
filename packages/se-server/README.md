@@ -95,6 +95,19 @@ Use `SE_REGISTRY_SELF_ANNOUNCE=true` on an Axia-API instance to auto-register at
 - [ ] **Use a dedicated Postgres user** — grant only the tables this server needs
 - [ ] **Enable Postgres SSL** — set `?sslmode=require` in `DATABASE_URL`
 
+## Persistence contract (RFC-007)
+
+The SE stores ownership, revocations, nonces, sign-log, and the encrypted
+`reclaim_tx_hex_enc` fields in PostgreSQL. Exactly which guarantees it makes
+(ACID ownership, atomic nonce consumption, exactly-once revocation, GCM
+encrypted reclaim at rest) — and the boundary that makes **client-side state
+the recovery authority** — is documented in
+[`docs/statechain-relational-contract.md`](docs/statechain-relational-contract.md).
+The corresponding client-side durable store lives in `@totemsdk/statechain`
+(`createDurableStateChainStore`), which persists `reclaimTx` + owner material
+and exposes `getRecoveryReport`/`verifyRecoverability` for SE-independent
+recovery.
+
 ## Embedding in an existing Express app
 
 ```ts

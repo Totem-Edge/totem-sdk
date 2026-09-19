@@ -87,6 +87,38 @@ const reclaimHex = await reclaimAbandoned(chain, { signer });
 await provider.broadcastTxPoW(reclaimHex);
 ```
 
+### Persist chains durably (RFC-007 Phase 4)
+
+The current owner's `StateChain` — including the pre-signed `reclaimTx` that
+works with **no SE cooperation** — is valuable unilateral-recovery material and
+must be owned durably by the wallet/caller, not by the SE. Persist it with
+`createDurableStateChainStore` over a CAS-capable `@totemsdk/storage` adapter
+(e.g. `FileStore` on Node, `MemoryStore` in tests with `requireAckMode:
+'volatile'`):
+
+```typescript
+import { FileStore } from '@totemsdk/storage/fs';
+import { createDurableStateChainStore } from '@totemsdk/statechain';
+
+const store = createDurableStateChainStore(new FileStore('./statechains'));
+await store.save(chain); // persist create / transfer / claim transitions
+
+// After restart: reopen, recover without the SE, and assert it.
+// Note: `currentOwner.sign` is a runtime capability and is not persisted;
+// re-attach the owner's signing closure before any signing flow.
+const recovered = await store.get(chain.chainId); // reclaimTx + owner fields intact
+const report = await store.getRecoveryReport(chain.chainId);
+if (report.recoverableWithoutSE) {
+  await reclaimAbandoned(recovered, { evidence: 'SE offline' });
+}
+```
+
+`getRecoveryReport` / `verifyRecoverability` assert that `reclaimTx` plus the
+owner material the reclaim TX spends are persisted and that the chain verifies —
+a hard gate so storage-only access **without** the SE is never assumed
+silently. Corruption and unsupported on-disk versions raise `StorageError`
+`corrupt` (fail-closed) instead of silently re-initialising.
+
 ## See also
 
 - [`@totemsdk/core`](https://www.npmjs.com/package/@totemsdk/core) — WOTS signing used for statechain state transitions

@@ -27,6 +27,7 @@
   ],
   "dependencies": {
     "@totemsdk/core": "workspace:^",
+    "@totemsdk/storage": "workspace:^",
     "@totemsdk/wots-lease": "workspace:^",
     "@totemsdk/tx-builder": "workspace:^",
     "@totemsdk/txpow": "workspace:^",

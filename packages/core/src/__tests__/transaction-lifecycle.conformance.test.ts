@@ -24,6 +24,11 @@ import { TransactionReceiptStore } from '../tx/TransactionReceiptStore.js';
 const SEED_32 = new Uint8Array(32).fill(0xab);
 const DIGEST_TX = '11'.repeat(32);
 
+// Real WOTS TreeKey signing is CPU-heavy (~2-3s per signature under jest),
+// so a full prepare → sign → finalize with restart wins no race at the 5s
+// default. Give the lifecycle suite a generous budget.
+jest.setTimeout(60_000);
+
 class StubHttp implements HttpClient {
   async post<T>(url: string): Promise<HttpResponse<T>> {
     if (url.endsWith('/v1/wots-hardened/prepare')) {
