@@ -15,6 +15,7 @@ module.exports = {
           '@totemsdk/storage/snapshot': ['../storage/src/snapshot.ts'],
           '@totemsdk/storage/types': ['../storage/src/index.ts'],
           '@totemsdk/storage/errors': ['../storage/src/errors.ts'],
+          '@totemsdk/storage/journal': ['../storage/src/journal.ts'],
         },
       },
       diagnostics: { ignoreCodes: [2307] }, // workspace subpath exports resolved by moduleNameMapper
@@ -25,6 +26,7 @@ module.exports = {
     '^@totemsdk/edge$': '<rootDir>/../edge/src/index.ts',
     '^@totemsdk/agent-policy$': '<rootDir>/../agent-policy/src/index.ts',
     '^@totemsdk/storage$': '<rootDir>/../storage/src/index.ts',
+    '^@totemsdk/storage/journal$': '<rootDir>/../storage/src/journal.ts',
     '^@totemsdk/storage/sqlite$': '<rootDir>/../storage/src/adapters/sqlite-store.ts',
     '^@totemsdk/storage/snapshot$': '<rootDir>/../storage/src/snapshot.ts',
     '^@totemsdk/storage/types$': '<rootDir>/../storage/src/index.ts',
