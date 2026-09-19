@@ -73,7 +73,10 @@ skip('SqliteStore transactionalSync', () => {
   });
 });
 
-skip('SqliteStore transitionAndEnqueue', () => {
+// The transitionAndEnqueue atomics are a required durable path (RFC-007 §4.2)
+// — run unconditionally and fail loudly if the native binding is unavailable,
+// rather than silently skipping a gate a deployed backend depends on.
+describe('SqliteStore transitionAndEnqueue', () => {
   const commit = (store: SqliteStore): void => {
     store.transactionalSync((tx) => tx.exec(SCHEMA));
   };
