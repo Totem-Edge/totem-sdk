@@ -5,6 +5,10 @@
  * snapshot and restore per-slot counters across simulated sessions.
  */
 
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { UnifiedIdentityWallet } from '../UnifiedIdentityWallet.js';
 
 const SEED_32 = new Uint8Array(32).fill(0xab);
@@ -79,5 +83,37 @@ describe('UnifiedIdentityWallet — getWatermarkState / restoreWatermarkState', 
     wallet2.restoreWatermarkState(JSON.parse(json));
     expect(wallet2.getRootUses()).toBe(1);
     expect(wallet2.getChildUses(3)).toBe(1);
+  });
+});
+
+describe('UnifiedIdentityWallet — durable watermark snapshot (RFC-007 Phase 4)', () => {
+  it('restores counters from a snapshot artifact after a simulated restart', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'totem-wm-'));
+    const artifact = join(dir, 'watermark.json');
+
+    const wallet1 = new UnifiedIdentityWallet(SEED_32, 4);
+    wallet1.signFromRoot('r1');
+    wallet1.signFromRoot('r2');
+    wallet1.signFromChild(2, 'c1');
+    wallet1.signFromChild(2, 'c2');
+    wallet1.signFromChild(2, 'c3');
+    await writeFile(artifact, JSON.stringify(wallet1.getWatermarkState()));
+
+    const wallet2 = new UnifiedIdentityWallet(SEED_32, 4);
+    wallet2.restoreWatermarkState(JSON.parse(await readFile(artifact, 'utf8')));
+
+    expect(wallet2.getRootUses()).toBe(2);
+    expect(wallet2.getChildUses(2)).toBe(3);
+    expect(wallet2.getChildUses(1)).toBe(0);
+  });
+
+  it('surfaces a corrupt snapshot artifact instead of silently resetting counters', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'totem-wm-'));
+    const artifact = join(dir, 'watermark.json');
+    await writeFile(artifact, '{not-valid-json');
+
+    const wallet = new UnifiedIdentityWallet(SEED_32, 4);
+    expect(() => wallet.restoreWatermarkState(JSON.parse(await readFile(artifact, 'utf8')))).toThrow();
+    expect(wallet.getRootUses()).toBe(0);
   });
 });

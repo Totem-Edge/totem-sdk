@@ -51,32 +51,28 @@ export class TransactionReceiptStore {
   }
 
   private async load(): Promise<void> {
-    try {
-      const receipts = await this.storage.get<TransactionReceipt[]>(this.storageKey);
-      if (receipts) {
-        this.receipts = receipts;
-        this.logger.debug(`Loaded ${this.receipts.length} transaction receipts`);
-      }
-    } catch (error) {
-      this.logger.error('Failed to load receipts:', error);
+    const receipts = await this.storage.get<TransactionReceipt[]>(this.storageKey);
+    if (receipts) {
+      this.receipts = receipts;
+      this.logger.debug(`Loaded ${this.receipts.length} transaction receipts`);
     }
   }
 
   private async persist(): Promise<void> {
-    try {
-      const trimmedReceipts = this.receipts.slice(-this.maxReceipts);
-      await this.storage.set(this.storageKey, trimmedReceipts);
-      this.receipts = trimmedReceipts;
-    } catch (error) {
-      this.logger.error('Failed to persist receipts:', error);
-      throw error;
-    }
+    const trimmedReceipts = this.receipts.slice(-this.maxReceipts);
+    await this.storage.set(this.storageKey, trimmedReceipts);
+    this.receipts = trimmedReceipts;
   }
 
   async add(receipt: TransactionReceipt): Promise<void> {
     this.receipts.push(receipt);
     this.logger.debug(`Added receipt: ${receipt.txpowid}`);
-    await this.persist();
+    try {
+      await this.persist();
+    } catch (error) {
+      this.receipts.pop();
+      throw error;
+    }
   }
 
   getAll(): TransactionReceipt[] {
@@ -94,16 +90,28 @@ export class TransactionReceiptStore {
   async updateStatus(txpowid: string, status: TransactionReceipt['status']): Promise<void> {
     const receipt = this.receipts.find(r => r.txpowid === txpowid);
     if (receipt) {
+      const previousStatus = receipt.status;
       receipt.status = status;
       this.logger.debug(`Updated receipt status: ${txpowid} → ${status}`);
-      await this.persist();
+      try {
+        await this.persist();
+      } catch (error) {
+        receipt.status = previousStatus;
+        throw error;
+      }
     }
   }
 
   async clear(): Promise<void> {
+    const previous = this.receipts;
     this.receipts = [];
-    await this.storage.remove(this.storageKey);
-    this.logger.debug('Cleared all receipts');
+    try {
+      await this.storage.remove(this.storageKey);
+      this.logger.debug('Cleared all receipts');
+    } catch (error) {
+      this.receipts = previous;
+      throw error;
+    }
   }
 
   count(): number {

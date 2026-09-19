@@ -87,18 +87,13 @@ export class WatermarkStore {
   }
 
   async load(): Promise<WatermarkState | null> {
-    try {
-      const watermark = await this.storage.get<WatermarkState>(this.storageKey);
-      if (watermark) {
-        this.state = watermark;
-        this.logger.debug('Loaded watermark from storage');
-        return this.state;
-      }
-      return null;
-    } catch (error) {
-      this.logger.error('Failed to load watermark:', error);
-      return null;
+    const watermark = await this.storage.get<WatermarkState>(this.storageKey);
+    if (watermark) {
+      this.state = watermark;
+      this.logger.debug('Loaded watermark from storage');
+      return this.state;
     }
+    return null;
   }
 
   async save(watermark: WatermarkState): Promise<void> {
