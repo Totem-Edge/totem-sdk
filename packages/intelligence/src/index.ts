@@ -47,3 +47,17 @@ export type {
 } from './types.js';
 
 export { createEdgeIntelligencePort } from './port.js';
+
+export {
+  RAG_WORKSPACE_OPS,
+  RAG_DESTRUCTIVE_OPS,
+  CONTENT_DENY_CODE,
+  evaluateContentAccess,
+  createContentAccessGatedProvider,
+} from './content-access.js';
+export type {
+  ContentWorkspaceEntitlement,
+  ContentAccessPolicy,
+  ContentAccessDecision,
+  RagWorkspaceOp,
+} from './content-access.js';

@@ -11,6 +11,24 @@ import type { IntelligenceProvider } from '@totemsdk/intelligence';
 import { bindDomain } from './adapter.js';
 import type { QvacOp } from './adapter.js';
 
+// RFC-007 §5 content-access gate: workspace-scoped entitlement enforcement
+// below dispatch, above the provider call. Re-exported so RAG hosters can
+// compose `createContentAccessGatedProvider(policy, qvacProvider)` and then
+// bind the typed domain adapter on top.
+export {
+  RAG_WORKSPACE_OPS,
+  RAG_DESTRUCTIVE_OPS,
+  CONTENT_DENY_CODE,
+  evaluateContentAccess,
+  createContentAccessGatedProvider,
+} from '@totemsdk/intelligence';
+export type {
+  ContentWorkspaceEntitlement,
+  ContentAccessPolicy,
+  ContentAccessDecision,
+  RagWorkspaceOp,
+} from '@totemsdk/intelligence';
+
 import type {
   RagChunkParams,
   RagDoc,
