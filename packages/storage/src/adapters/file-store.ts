@@ -47,7 +47,102 @@ function keyForFile(name: string): string {
 
 export interface FileStoreOptions {
   readonly failurePolicy?: FailurePolicy;
+  /** Stale CAS lock age in ms after which the lock is stolen (default 30_000). */
+  readonly lockStaleMs?: number;
 }
+
+/**
+ * Advisory per-key lock used to make `conditionalUpdate` a true CAS across both
+ * concurrent calls on one store and separate processes sharing one directory.
+ * `fs.mkdir` is atomic and exclusive on POSIX (a directory is the classic
+ * lock primitive): exactly one contender wins `EEXIST`-free creation. The lock
+ * directory is removed on release; a crashed holder leaves it behind, so a
+ * holder that has outlived the stale threshold is stolen, with the record
+ * re-read fresh after any steal — the read-modify-write always runs inside
+ * mutual exclusion.
+ *
+ * Safety rules:
+ * - a lock is only ever stolen when it is provably stale (marker present and
+ *   older than `staleMs`) or provably orphaned (marker absent for a full
+ *   `staleMs/2` grace, i.e. a claim crashed before writing its marker);
+ * - release removes only the owner's own marker, then rmdir's the now-empty
+ *   directory — a new holder's directory is never removed (rmdir of a
+ *   non-empty directory fails and is ignored).
+ */
+class CasLock {
+  private static readonly MARKER = '__owner__';
+
+  constructor(
+    readonly path: string,
+    readonly staleMs: number,
+  ) {}
+
+  private async readMarker(): Promise<number | null> {
+    try {
+      const raw = await fs.readFile(join(this.path, CasLock.MARKER), 'utf8');
+      const born = Number(raw.split('\n')[0]);
+      return Number.isFinite(born) ? born : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private async steal(): Promise<void> {
+    await fs.rm(this.path, { recursive: true, force: true }).catch(() => undefined);
+  }
+
+  async acquire(): Promise<void> {
+    await fs.mkdir(dirname(this.path), { recursive: true });
+    for (;;) {
+      try {
+        await fs.mkdir(this.path);
+        await fs.writeFile(join(this.path, CasLock.MARKER), `${Date.now()}\n${process.pid}`, 'utf8');
+        return;
+      } catch (err) {
+        if ((err as NodeJS.ErrnoException).code !== 'EEXIST') {
+          throw new StorageError(`FileStore CAS lock acquire failed: ${(err as Error).message}`, 'unavailable', { cause: err });
+        }
+      }
+
+      const born = await this.readMarker();
+      if (born !== null) {
+        if (Date.now() - born >= this.staleMs) {
+          await this.steal();
+        } else {
+          await new Promise((resolve) => setTimeout(resolve, 5));
+        }
+        continue;
+      }
+
+      // Marker missing: either a claim still in flight (mkdir→marker is a
+      // microsecond window) or a holder that crashed before its marker. Wait a
+      // short fixed grace for the marker to appear (normal handoff / in-flight
+      // claim); only steal if it never does (a genuine orphan).
+      const graceUntil = Date.now() + ORPHAN_GRACE_MS;
+      let orphan = true;
+      while (Date.now() < graceUntil) {
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        if ((await this.readMarker()) !== null) {
+          orphan = false;
+          break;
+        }
+      }
+      if (orphan) {
+        await this.steal();
+      }
+    }
+  }
+
+  async release(): Promise<void> {
+    await fs.rm(join(this.path, CasLock.MARKER), { force: true }).catch(() => undefined);
+    await fs.rmdir(this.path).catch(() => undefined);
+  }
+}
+
+/** Fixed grace for a marker-less lock dir (crash between `mkdir` and the
+ *  marker write). The mkdir→marker window is microseconds, so 150ms is ample
+ *  to observe a normal claim in flight without stalling hand-offs. */
+const ORPHAN_GRACE_MS = 150;
 
 export class FileStore implements StorageAdapterWithCapabilities, CasStore, TransactionalStore {
   readonly capabilities: StoreCapabilities = {
@@ -57,16 +152,24 @@ export class FileStore implements StorageAdapterWithCapabilities, CasStore, Tran
   };
 
   private readonly failurePolicy: FailurePolicy;
+  private readonly lockStaleMs: number;
 
   constructor(
     private readonly dir: string,
     options: FileStoreOptions = {},
   ) {
     this.failurePolicy = options.failurePolicy ?? 'strict';
+    this.lockStaleMs = options.lockStaleMs ?? 30_000;
   }
 
   private fileFor(key: string): string {
     return join(this.dir, fileNameFor(key));
+  }
+
+  /** Advisory lock path for a key. Sits beside the data (same filesystem) but
+   *  is named without the `.bin` suffix so `keys()` and `clear()` never see it. */
+  private lockFor(key: string): CasLock {
+    return new CasLock(join(this.dir, `.locks-${fileNameFor(key).slice(0, -4)}`), this.lockStaleMs);
   }
 
   private async readEnvelope(key: string): Promise<FileEnvelope | null> {
@@ -175,36 +278,46 @@ export class FileStore implements StorageAdapterWithCapabilities, CasStore, Tran
   }
 
   async conditionalUpdate<T>(key: string, update: ConditionalUpdater<T>): Promise<ConditionalResult<T>> {
-    const envelope = await this.readEnvelope(key);
-    const current = envelope ? (envelope.v as T | null) : null;
-    const revision = envelope ? envelope.r : 0;
-
-    const decision = update(current);
-    if ('abort' in decision) {
-      return { applied: false, value: current, revision };
-    }
-
-    const next: FileEnvelope = { k: key, v: decision.next, r: revision + 1 };
-    await fs.mkdir(this.dir, { recursive: true });
-    const file = this.fileFor(key);
-    const tmp = join(this.dir, `.tmp-${process.pid}-${Math.random().toString(36).slice(2)}`);
-    let handle: fs.FileHandle;
+    // The read → update → write must be in mutual exclusion; without a lock two
+    // writers both read the same revision and the last rename silently clobbers
+    // the other (AUD-033). Under this per-key lock, contention either waits or
+    // is detected — it is never resolved by overwriting a peer's commit.
+    const lock = this.lockFor(key);
+    await lock.acquire();
     try {
-      handle = await fs.open(tmp, 'w');
-    } catch (err) {
-      throw new StorageError(`FileStore open failed: ${(err as Error).message}`, 'unavailable', { key, cause: err });
+      const envelope = await this.readEnvelope(key);
+      const current = envelope ? (envelope.v as T | null) : null;
+      const revision = envelope ? envelope.r : 0;
+
+      const decision = update(current);
+      if ('abort' in decision) {
+        return { applied: false, value: current, revision };
+      }
+
+      const next: FileEnvelope = { k: key, v: decision.next, r: revision + 1 };
+      await fs.mkdir(this.dir, { recursive: true });
+      const file = this.fileFor(key);
+      const tmp = join(this.dir, `.tmp-${process.pid}-${Math.random().toString(36).slice(2)}`);
+      let handle: fs.FileHandle;
+      try {
+        handle = await fs.open(tmp, 'w');
+      } catch (err) {
+        throw new StorageError(`FileStore open failed: ${(err as Error).message}`, 'unavailable', { key, cause: err });
+      }
+      try {
+        await handle.writeFile(codec.serialize(next));
+        await handle.sync();
+        await handle.close();
+        await fs.rename(tmp, file);
+      } catch (err) {
+        await handle.close();
+        await fs.rm(tmp, { force: true }).catch(() => undefined);
+        throw new StorageError(`FileStore CAS failed: ${(err as Error).message}`, 'write-failed', { key, cause: err });
+      }
+      return { applied: true, value: decision.next, revision: revision + 1 };
+    } finally {
+      await lock.release();
     }
-    try {
-      await handle.writeFile(codec.serialize(next));
-      await handle.sync();
-      await handle.close();
-      await fs.rename(tmp, file);
-    } catch (err) {
-      await handle.close();
-      await fs.rm(tmp, { force: true }).catch(() => undefined);
-      throw new StorageError(`FileStore CAS failed: ${(err as Error).message}`, 'write-failed', { key, cause: err });
-    }
-    return { applied: true, value: decision.next, revision: revision + 1 };
   }
 
   transaction(): Transaction {

@@ -13,12 +13,19 @@
  * `{"$u":"<hex>"}`) so no bare `JSON.stringify(BigInt)` ever reaches the wire.
  * Non-finite numbers and `undefined` values are rejected rather than silently
  * dropped or coerced.
+ *
+ * Format v2: user object keys that begin with the reserved tag marker are
+ * escaped on write (U+0000 prefix) and unescaped on read, so a plain object
+ * such as `{"$b":"123"}` round-trips as the ordinary object it was — it can
+ * never be confused with a bigint/bytes tag (AUD-034). Version 1 records are
+ * forward-read: keys from before the escape existed are returned verbatim,
+ * so no previously-stored value is silently re-encoded.
  */
 
 import { StorageError } from './errors.js';
 
 export const CODEC_MAGIC = new Uint8Array([0x54, 0x53, 0x4b, 0x31]); // "TSK1"
-export const CODEC_VERSION = 1;
+export const CODEC_VERSION = 2;
 
 export interface Codec {
   readonly version: number;
@@ -47,6 +54,16 @@ function fromHex(hex: string): Uint8Array {
 
 const BIGINT_TAG = '$b';
 const BYTES_TAG = '$u';
+const TAG_MARKER = '$';
+/** Escape an object key that would collide with an in-band type tag. A U+0000
+ *  prefix can never be produced by `JSON.stringify` (it escapes the char), so
+ *  the escape is unambiguous. */
+const KEY_ESCAPE = '\u0000';
+const escapeKey = (key: string): string => (key.startsWith(TAG_MARKER) ? `${KEY_ESCAPE}${key}` : key);
+/** v1 records carried user keys verbatim; only v2 escapes (and therefore
+ *  unescapes) them. */
+const unescapeKey = (key: string, v1: boolean): string =>
+  v1 ? key : key.startsWith(KEY_ESCAPE) ? key.slice(KEY_ESCAPE.length) : key;
 
 function tagValue(value: unknown): unknown {
   if (value === null) return null;
@@ -74,7 +91,7 @@ function tagValue(value: unknown): unknown {
           if (item === undefined) {
             throw new StorageError(`codec: undefined value for key "${key}"`, 'write-failed');
           }
-          out[key] = tagValue(item);
+          out[escapeKey(key)] = tagValue(item);
         }
         return out;
       }
@@ -83,10 +100,10 @@ function tagValue(value: unknown): unknown {
   }
 }
 
-function untagValue(value: unknown): unknown {
+function untagValue(value: unknown, v1: boolean): unknown {
   if (value === null || typeof value !== 'object') return value;
   if (Array.isArray(value)) {
-    return value.map((item) => untagValue(item));
+    return value.map((item) => untagValue(item, v1));
   }
   const record = value as Record<string, unknown>;
   const objectKeys = Object.keys(record);
@@ -106,7 +123,7 @@ function untagValue(value: unknown): unknown {
   }
   const out: Record<string, unknown> = {};
   for (const [key, item] of Object.entries(record)) {
-    out[key] = untagValue(item);
+    out[unescapeKey(key, v1)] = untagValue(item, v1);
   }
   return out;
 }
@@ -161,7 +178,7 @@ class VersionedCodec implements Codec {
       throw new StorageError(`codec: corrupt payload: ${(err as Error).message}`, 'corrupt', { cause: err });
     }
     try {
-      return untagValue(parsed);
+      return untagValue(parsed, version === 1);
     } catch (err) {
       if (err instanceof StorageError) throw err;
       throw new StorageError(`codec: corrupt payload`, 'corrupt', { cause: err });

@@ -38,7 +38,7 @@ describe('codec', () => {
     const bytes = codec.serialize({ a: 1 });
     const bumped = new Uint8Array(bytes.length);
     bumped.set(bytes, 0);
-    bumped[CODEC_VERSION >= 255 ? 4 : 4] = 2; // header: magic(4) + version byte at index 4
+    bumped[4] = CODEC_VERSION + 1; // header: magic(4) + version byte at index 4
     try {
       forward.deserialize(bumped);
       throw new Error('expected StorageError');
@@ -46,8 +46,27 @@ describe('codec', () => {
       expect(err).toBeInstanceOf(StorageError);
       expect((err as StorageError).code).toBe('corrupt');
       const details = (err as StorageError).details;
-      expect(details.unsupportedVersion).toBe(2);
+      expect(details.unsupportedVersion).toBe(CODEC_VERSION + 1);
     }
+  });
+
+  it('does not confuse a plain object with a reserved type tag (AUD-034)', () => {
+    const value = { '$b': '123', '$u': '0a', '$other': 'kept' };
+    expect(codec.deserialize(codec.serialize(value))).toEqual(value);
+    expect(codec.deserialize(codec.serialize({ '$b': 'not-a-bigint' }))).toEqual({ '$b': 'not-a-bigint' });
+  });
+
+  it('keeps genuine bigint and bytes tags intact alongside escaped keys (AUD-034)', () => {
+    const value = { n: 42n, '$b': 'escaped-string', bytes: new Uint8Array([1, 2]) };
+    const round = codec.deserialize(codec.serialize(value)) as typeof value;
+    expect(round.n).toBe(42n);
+    expect(round['$b']).toBe('escaped-string');
+    expect([...(round.bytes as Uint8Array)]).toEqual([1, 2]);
+  });
+
+  it('forward-reads version 1 records: user keys are returned verbatim (AUD-034 migration)', () => {
+    const raw = new Uint8Array([0x54, 0x53, 0x4b, 0x31, 0x01, ...new TextEncoder().encode('{"$b":"123","k":1}')]);
+    expect(codec.deserialize(raw)).toEqual({ '$b': '123', k: 1 });
   });
 
   it('rejects data with a bad magic header as corrupt', () => {
