@@ -11,6 +11,12 @@
 
 export { EdgeBuyer, type BuyerOptions, type BuyOptions } from './buyer.js';
 export { createEdgeSeller, type EdgeSeller, type SellerServiceOptions, type SellerStrategy } from './seller.js';
+export {
+  createAccountedPurchaseAuthority,
+  type AccountedPurchaseAuthority,
+  type AccountedPurchaseAuthorityOptions,
+  type AccountedPurchaseApproval,
+} from './accounted-authority.js';
 export { NegotiationEngine, type NegotiationEngineOptions } from './engine.js';
 export { EdgeWorkPolicy, EdgeTxPowAdapter } from './admission.js';
 export { createPurchaseSession, type SessionOptions } from './session.js';

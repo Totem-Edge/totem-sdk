@@ -84,7 +84,15 @@ export type {
 } from './grant-bound-autonomy.js';
 
 export { MemoryRunStateStore } from './run-state-store.js';
-export type { RunStateStore, RunStateSnapshot, RunReservation, RunStepReceipt, RunSessionTotals } from './run-state-store.js';
+export type {
+  RunStateStore,
+  RunStateSnapshot,
+  RunReservation,
+  RunStepReceipt,
+  RunSessionTotals,
+  OutOfBandReservation,
+  ReservationSettlementOutcome,
+} from './run-state-store.js';
 
 export { SqliteRunStateStore } from './sqlite-run-state-store.js';
 export type { SqliteRunStateStoreOptions } from './sqlite-run-state-store.js';

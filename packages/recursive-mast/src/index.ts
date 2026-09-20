@@ -257,6 +257,13 @@ export type {
   PolicyAvailabilityReport,
   AuditConfig,
 } from './availability.js';
+export { evaluateAvailabilityGate } from './availability-gate.js';
+export type {
+  AvailabilityGateConfig,
+  AvailabilityGateDecision,
+  AvailabilityGateKind,
+  RecoveryAvailabilityPolicy,
+} from './availability-gate.js';
 
 // ─── Encrypted Branch ───────────────────────────────────────────────────────
 
