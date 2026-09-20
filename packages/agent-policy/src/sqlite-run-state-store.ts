@@ -18,8 +18,9 @@
  */
 
 import { SqliteStore, type SqliteTx } from '@totemsdk/storage/sqlite';
+import type { UsageLimit } from '@totemsdk/authority';
 import type { StepAuthorization, StepReceipt } from './run.js';
-import type { GrantUsageStore } from './grant-usage.js';
+import { GrantUsageLimitExceededError, type GrantUsageStore } from './grant-usage.js';
 import { accumulate, type RunReservation, type RunStateSnapshot, type RunStateStore, type RunStepReceipt } from './run-state-store.js';
 
 type ReservationKind = 'run' | 'grant';
@@ -231,6 +232,7 @@ export class SqliteRunStateStore implements RunStateStore, GrantUsageStore {
     usageDelta: { count: number; amount?: string };
     now: number;
     ttlMs?: number;
+    usageLimit?: UsageLimit;
   }): Promise<StepAuthorization> {
     const reservedAt = input.now;
     const expiresAt = reservedAt + (input.ttlMs ?? this.ttlMs);
@@ -240,6 +242,13 @@ export class SqliteRunStateStore implements RunStateStore, GrantUsageStore {
       const existing = this.getReservationRow(tx, reservationId);
       if (existing && existing.status === 'reserved') {
         return JSON.parse(existing.record_json) as StepAuthorization;
+      }
+      // Atomic limit enforcement (AUD-020): the committed + outstanding
+      // reserved totals and the reservation share one SQLite transaction, so a
+      // concurrent burst cannot over-reserve the mandate budget. Throwing rolls
+      // the transaction back with nothing inserted.
+      if (input.usageLimit) {
+        this.assertWithinLimit(tx, input.mandateId, input.usageDelta, input.usageLimit, input.now);
       }
       const authorization: StepAuthorization = {
         reservationId,
@@ -392,8 +401,48 @@ export class SqliteRunStateStore implements RunStateStore, GrantUsageStore {
     });
   }
 
-  private synthesizeReceipt(row: ReservationRow): RunStepReceipt | StepReceipt {
-    const record = JSON.parse(row.record_json) as RunReservation | StepAuthorization;
+  /** Enforce a mandate usage limit against committed + outstanding reserved usage. */
+  private assertWithinLimit(
+    tx: SqliteTx,
+    mandateId: string,
+    delta: { count: number; amount?: string },
+    limit: UsageLimit,
+    now: number,
+  ): void {
+    let windowStart: number | null = null;
+    if (limit.windowMs !== undefined && limit.windowMs > 0) {
+      windowStart = Math.floor(now / limit.windowMs) * limit.windowMs;
+    }
+    const rows = tx.all<{ count: number; amount: string | null; reserved_at: number }>(
+      `SELECT u.count AS count, u.amount AS amount, r.reserved_at AS reserved_at
+       FROM autonomy_mandate_usage u
+       JOIN autonomy_reservations r ON r.reservation_id = u.reservation_id
+       WHERE u.mandate_id = ? AND u.status IN ('committed', 'reserved')`,
+      mandateId,
+    );
+    let count = 0;
+    let amount = 0n;
+    for (const row of rows) {
+      if (windowStart !== null && row.reserved_at < windowStart) continue;
+      count += row.count;
+      if (row.amount !== null && row.amount !== undefined) amount += BigInt(row.amount);
+    }
+    if (limit.maxCount !== undefined && count + delta.count > limit.maxCount) {
+      throw new GrantUsageLimitExceededError(
+        `grant usage limit exceeded for mandate ${mandateId}: count ${count} + ${delta.count} > maxCount ${limit.maxCount}`,
+      );
+    }
+    if (limit.maxTotal !== undefined) {
+      const proposed = delta.amount !== undefined ? BigInt(delta.amount) : 0n;
+      if (amount + proposed > BigInt(limit.maxTotal)) {
+        throw new GrantUsageLimitExceededError(
+          `grant usage limit exceeded for mandate ${mandateId}: amount ${amount} + ${proposed} > maxTotal ${limit.maxTotal}`,
+        );
+      }
+    }
+  }
+
+  private synthesizeReceipt(row: ReservationRow): RunStepReceipt | StepReceipt {    const record = JSON.parse(row.record_json) as RunReservation | StepAuthorization;
     if (row.kind === 'run') {
       const res = record as RunReservation;
       return {

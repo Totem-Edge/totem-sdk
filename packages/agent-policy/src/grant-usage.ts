@@ -8,11 +8,32 @@
  * independently observe the same remaining grant budget.
  */
 
+import type { UsageLimit } from '@totemsdk/authority';
 import type { StepAuthorization, StepReceipt } from './run.js';
 import type { OutOfBandReservation, ReservationSettlementOutcome } from './run-state-store.js';
 
+/**
+ * Thrown by `authorizeAndReserve` when the requested delta would exceed the
+ * supplied mandate usage limit. The check and the reservation happen in one
+ * critical section (AUD-020), so concurrent callers cannot each observe the
+ * same remaining budget.
+ */
+export class GrantUsageLimitExceededError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'GrantUsageLimitExceededError';
+  }
+}
+
 export interface GrantUsageStore {
-  /** Atomically reserve mandate usage + local quotas for a step. */
+  /**
+   * Atomically reserve mandate usage + local quotas for a step.
+   *
+   * When `usageLimit` is supplied, the limit is enforced against committed +
+   * reserved usage inside the same critical section as the reservation, so a
+   * concurrent burst can never over-reserve the budget (AUD-020). Exceeding it
+   * throws `GrantUsageLimitExceededError`.
+   */
   authorizeAndReserve(input: {
     runId: string;
     stepId: string;
@@ -21,6 +42,7 @@ export interface GrantUsageStore {
     usageDelta: { count: number; amount?: string };
     now: number;
     ttlMs?: number;
+    usageLimit?: UsageLimit;
   }): Promise<StepAuthorization>;
   /** Commit a reservation after execution succeeds. */
   commit(reservationId: string, receipt: StepReceipt): Promise<void>;
@@ -89,6 +111,7 @@ export class MemoryGrantUsageStore implements GrantUsageStore {
     usageDelta: { count: number; amount?: string };
     now: number;
     ttlMs?: number;
+    usageLimit?: UsageLimit;
   }): Promise<StepAuthorization> {
     this.cleanExpired(input.now);
     const reservedAt = input.now;
@@ -98,6 +121,13 @@ export class MemoryGrantUsageStore implements GrantUsageStore {
     const existing = this.reservations.get(reservationId);
     if (existing && existing.status === 'reserved') {
       return existing.authorization;
+    }
+
+    // Atomic limit enforcement (AUD-020): committed + outstanding reserved usage
+    // is checked in the same synchronous critical section that inserts the
+    // reservation, so concurrent callers cannot each see the same free budget.
+    if (input.usageLimit) {
+      this.assertWithinLimit(input.mandateId, input.usageDelta, input.usageLimit, input.now);
     }
 
     const authorization: StepAuthorization = {
@@ -245,6 +275,48 @@ export class MemoryGrantUsageStore implements GrantUsageStore {
       if (rec.status === status && rec.authorization.runId === runId) n++;
     }
     return n;
+  }
+
+  /** Committed + outstanding reserved usage for a mandate (windowed when asked). */
+  private currentUsage(mandateId: string, now: number, windowMs?: number): { count: number; amount: bigint } {
+    let windowStart: number | undefined;
+    if (windowMs !== undefined && windowMs > 0) {
+      windowStart = Math.floor(now / windowMs) * windowMs;
+    }
+    let count = 0;
+    let amount = 0n;
+    for (const rec of this.reservations.values()) {
+      if (rec.authorization.mandateId !== mandateId) continue;
+      if (rec.status !== 'committed' && rec.status !== 'reserved') continue;
+      if (windowStart !== undefined && rec.authorization.reservedAt < windowStart) continue;
+      count += rec.authorization.usageDelta.count;
+      if (rec.authorization.usageDelta.amount !== undefined) {
+        amount += BigInt(rec.authorization.usageDelta.amount);
+      }
+    }
+    return { count, amount };
+  }
+
+  private assertWithinLimit(
+    mandateId: string,
+    delta: { count: number; amount?: string },
+    limit: UsageLimit,
+    now: number,
+  ): void {
+    const current = this.currentUsage(mandateId, now, limit.windowMs);
+    if (limit.maxCount !== undefined && current.count + delta.count > limit.maxCount) {
+      throw new GrantUsageLimitExceededError(
+        `grant usage limit exceeded for mandate ${mandateId}: count ${current.count} + ${delta.count} > maxCount ${limit.maxCount}`,
+      );
+    }
+    if (limit.maxTotal !== undefined) {
+      const proposed = delta.amount !== undefined ? BigInt(delta.amount) : 0n;
+      if (current.amount + proposed > BigInt(limit.maxTotal)) {
+        throw new GrantUsageLimitExceededError(
+          `grant usage limit exceeded for mandate ${mandateId}: amount ${current.amount} + ${proposed} > maxTotal ${limit.maxTotal}`,
+        );
+      }
+    }
   }
 
   private cleanExpired(now: number): void {

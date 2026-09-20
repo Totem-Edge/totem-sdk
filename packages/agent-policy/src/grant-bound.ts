@@ -19,10 +19,11 @@ import {
   type AuthorityIdentityResolver,
   type AuthorityUsageSnapshot,
   type MandateStatusSnapshot,
+  type UsageLimit,
 } from '@totemsdk/authority';
 import type { SignedProof } from '@totemsdk/proof';
 import type { AgentStep, AutonomousRun, StepAuthorization, StepReceipt } from './run.js';
-import type { GrantUsageStore } from './grant-usage.js';
+import { GrantUsageLimitExceededError, type GrantUsageStore } from './grant-usage.js';
 
 export interface GrantBoundPolicyOptions {
   /** Resolve a signed mandate proof by id. */
@@ -174,14 +175,26 @@ export class GrantBoundPolicy {
       if (!decision.allowed) continue;
 
       const actionDigest = computeActionIntentId(action);
-      const reservation = await this.usageStore.authorizeAndReserve({
-        runId: run.runId,
-        stepId: step.stepId,
-        mandateId,
-        actionDigest,
-        usageDelta,
-        now,
-      });
+      // The usage limit is enforced atomically inside the reservation
+      // (committed + outstanding reserved), closing the check-then-reserve race
+      // where concurrent steps each observed the same free budget (AUD-020).
+      let reservation: StepAuthorization;
+      try {
+        reservation = await this.usageStore.authorizeAndReserve({
+          runId: run.runId,
+          stepId: step.stepId,
+          mandateId,
+          actionDigest,
+          usageDelta,
+          now,
+          usageLimit: mandateBody.usageLimit as UsageLimit | undefined,
+        });
+      } catch (err) {
+        if (err instanceof GrantUsageLimitExceededError) {
+          return { allowed: false, reason: err.message };
+        }
+        throw err;
+      }
 
       return {
         allowed: true,

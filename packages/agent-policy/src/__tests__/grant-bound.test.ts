@@ -234,6 +234,30 @@ describe('GrantBoundPolicy', () => {
     expect(second.allowed).toBe(false);
   });
 
+  it('enforces the mandate cap atomically under concurrent steps (AUD-020)', async () => {
+    const { graph, identityId } = await makeIdentityGraph();
+    const resolver = makeResolver(new Map([[identityId, graph]]));
+    const store = new MemoryGrantUsageStore({ now: () => 2000 });
+    const mandate = makeMandateProof(identityId, { usageLimit: { maxCount: 1 } });
+    const policy = new GrantBoundPolicy({
+      mandateResolver: async (id) => (id === 'totem:mandate:test' ? mandate : undefined),
+      identityResolver: resolver,
+      usageStore: store,
+      // Keep local parallel bounds permissive so only the mandate cap can deny.
+      localBounds: { maxParallelSteps: 10 },
+      now: () => 2000,
+    });
+
+    const results = await Promise.all([
+      policy.authorizeStep(makeRun(identityId), makeStep(identityId, { stepId: 'a' })),
+      policy.authorizeStep(makeRun(identityId), makeStep(identityId, { stepId: 'b' })),
+      policy.authorizeStep(makeRun(identityId), makeStep(identityId, { stepId: 'c' })),
+    ]);
+
+    expect(results.filter((r) => r.allowed)).toHaveLength(1);
+    expect(await store.countReserved('run-1')).toBe(1);
+  });
+
   it('returns requires_human when no mandate matches and unmatchedAction is requires_human', async () => {
     const { policy, identityId } = await makePolicy();
     const run = makeRun(identityId, { grantProofIds: ['totem:mandate:none'] });
