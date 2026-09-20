@@ -116,11 +116,23 @@ export class MemoryGrantUsageStore implements GrantUsageStore {
     this.cleanExpired(input.now);
     const reservedAt = input.now;
     const expiresAt = reservedAt + (input.ttlMs ?? this.ttlMs);
-    const reservationId = `res:${input.mandateId.slice(0, 8)}:${input.stepId.slice(0, 8)}:${reservedAt}`;
+    // Unique over the complete request binding (AUD-021): truncating the
+    // mandate/step ids let unrelated runs/actions share a reservation id and
+    // silently reuse each other's authorization.
+    const reservationId = `res:${input.runId}:${input.stepId}:${input.mandateId}:${input.actionDigest}:${reservedAt}`;
 
     const existing = this.reservations.get(reservationId);
     if (existing && existing.status === 'reserved') {
-      return existing.authorization;
+      const a = existing.authorization;
+      if (
+        a.runId !== input.runId ||
+        a.stepId !== input.stepId ||
+        a.mandateId !== input.mandateId ||
+        a.actionDigest !== input.actionDigest
+      ) {
+        throw new Error(`reservation id collision for ${reservationId}`);
+      }
+      return a;
     }
 
     // Atomic limit enforcement (AUD-020): committed + outstanding reserved usage
@@ -270,6 +282,10 @@ export class MemoryGrantUsageStore implements GrantUsageStore {
   }
 
   private countByRun(runId: string, status: ReservationRecord['status']): number {
+    // Expire stale reservations before counting (AUD-022): otherwise an
+    // expired-but-unreconciled reservation keeps blocking the parallel-slot
+    // precheck forever, since policy checks never reach authorizeAndReserve.
+    this.cleanExpired(this.now());
     let n = 0;
     for (const rec of this.reservations.values()) {
       if (rec.status === status && rec.authorization.runId === runId) n++;

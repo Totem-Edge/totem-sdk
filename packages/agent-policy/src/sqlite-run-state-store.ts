@@ -236,12 +236,22 @@ export class SqliteRunStateStore implements RunStateStore, GrantUsageStore {
   }): Promise<StepAuthorization> {
     const reservedAt = input.now;
     const expiresAt = reservedAt + (input.ttlMs ?? this.ttlMs);
-    const reservationId = `grant:${input.mandateId.slice(0, 8)}:${input.stepId.slice(0, 8)}:${reservedAt}`;
+    // Unique over the complete request binding (AUD-021).
+    const reservationId = `grant:${input.runId}:${input.stepId}:${input.mandateId}:${input.actionDigest}:${reservedAt}`;
 
     return Promise.resolve(this.store.transactionalSync((tx) => {
       const existing = this.getReservationRow(tx, reservationId);
       if (existing && existing.status === 'reserved') {
-        return JSON.parse(existing.record_json) as StepAuthorization;
+        const a = JSON.parse(existing.record_json) as StepAuthorization;
+        if (
+          a.runId !== input.runId ||
+          a.stepId !== input.stepId ||
+          a.mandateId !== input.mandateId ||
+          a.actionDigest !== input.actionDigest
+        ) {
+          throw new Error(`reservation id collision for ${reservationId}`);
+        }
+        return a;
       }
       // Atomic limit enforcement (AUD-020): the committed + outstanding
       // reserved totals and the reservation share one SQLite transaction, so a
@@ -326,7 +336,17 @@ export class SqliteRunStateStore implements RunStateStore, GrantUsageStore {
   }
 
   countReserved(runId: string): Promise<number> {
-    return this.countByRun(runId, 'reserved');
+    // Expire stale reservations before counting (AUD-022) so an expired,
+    // unreconciled reservation cannot block the parallel-slot precheck forever.
+    const now = this.now();
+    const row = this.store.transactionalSync((tx) => {
+      this.expireReservations(tx, now, runId);
+      return tx.get<{ count: number }>(`
+        SELECT COUNT(*) AS count FROM autonomy_reservations
+        WHERE run_id = ? AND status = ?
+      `, runId, 'reserved');
+    });
+    return Promise.resolve(row?.count ?? 0);
   }
 
   countAborted(runId: string): Promise<number> {
@@ -340,23 +360,7 @@ export class SqliteRunStateStore implements RunStateStore, GrantUsageStore {
   recoverReservations(runId?: string): Promise<OutOfBandReservation[]> {
     const now = this.now();
     const rows = this.store.transactionalSync((tx) => {
-      if (runId === undefined) {
-        tx.run(
-          "UPDATE autonomy_reservations SET status = 'unknown', abort_reason = 'reservation expired' WHERE status = 'reserved' AND expires_at < ?",
-          now,
-        );
-      } else {
-        tx.run(
-          "UPDATE autonomy_reservations SET status = 'unknown', abort_reason = 'reservation expired' WHERE status = 'reserved' AND run_id = ? AND expires_at < ?",
-          runId, now,
-        );
-      }
-      tx.run(
-        `UPDATE autonomy_mandate_usage SET status = 'unknown'
-         WHERE status = 'reserved' AND reservation_id IN (
-           SELECT reservation_id FROM autonomy_reservations WHERE status = 'unknown'
-         )`,
-      );
+      this.expireReservations(tx, now, runId);
       return tx.all<ReservationRow>('SELECT * FROM autonomy_reservations WHERE status = ?', 'unknown');
     });
     return Promise.resolve(rows.map((r) => ({
@@ -573,6 +577,27 @@ export class SqliteRunStateStore implements RunStateStore, GrantUsageStore {
       snapshot.totals.outstandingByToken[c.channelId] = accumulate(snapshot.totals.outstandingByToken[c.channelId], '0');
     }
     tx.run('UPDATE autonomy_runs SET snapshot_json = ? WHERE run_id = ?', JSON.stringify(snapshot), runId);
+  }
+
+  /** Flip past-deadline `reserved` rows to `unknown` (budget stays HELD). */
+  private expireReservations(tx: SqliteTx, now: number, runId?: string): void {
+    if (runId === undefined) {
+      tx.run(
+        "UPDATE autonomy_reservations SET status = 'unknown', abort_reason = 'reservation expired' WHERE status = 'reserved' AND expires_at < ?",
+        now,
+      );
+    } else {
+      tx.run(
+        "UPDATE autonomy_reservations SET status = 'unknown', abort_reason = 'reservation expired' WHERE status = 'reserved' AND run_id = ? AND expires_at < ?",
+        runId, now,
+      );
+    }
+    tx.run(
+      `UPDATE autonomy_mandate_usage SET status = 'unknown'
+       WHERE status = 'reserved' AND reservation_id IN (
+         SELECT reservation_id FROM autonomy_reservations WHERE status = 'unknown'
+       )`,
+    );
   }
 
   private countByRun(runId: string, status: ReservationStatus): Promise<number> {

@@ -265,4 +265,45 @@ describe('GrantBoundPolicy', () => {
     expect(result.allowed).toBe(false);
     expect(result.reason).toContain('requires human');
   });
+
+  it('reservation ids are unique across runs and actions (AUD-021)', async () => {
+    const store = new MemoryGrantUsageStore();
+    const a = await store.authorizeAndReserve({
+      runId: 'run1', stepId: '12345678A', mandateId: 'mandate1A', actionDigest: 'first',
+      usageDelta: { count: 1 }, now: 1000,
+    });
+    const b = await store.authorizeAndReserve({
+      runId: 'run2', stepId: '12345678B', mandateId: 'mandate1B', actionDigest: 'second',
+      usageDelta: { count: 1 }, now: 1000,
+    });
+    expect(b.reservationId).not.toBe(a.reservationId);
+    expect(b.actionDigest).toBe('second');
+  });
+
+  it('expired reservations no longer block the parallel-slot precheck (AUD-022)', async () => {
+    const { graph, identityId } = await makeIdentityGraph();
+    const resolver = makeResolver(new Map([[identityId, graph]]));
+    let clock = 2000;
+    const store = new MemoryGrantUsageStore({ now: () => clock, ttlMs: 1000 });
+    const mandate = makeMandateProof(identityId, { usageLimit: { maxCount: 10 } });
+    const policy = new GrantBoundPolicy({
+      mandateResolver: async (id) => (id === 'totem:mandate:test' ? mandate : undefined),
+      identityResolver: resolver,
+      usageStore: store,
+      localBounds: { maxParallelSteps: 1 },
+      now: () => clock,
+    });
+
+    const first = await policy.authorizeStep(makeRun(identityId), makeStep(identityId, { stepId: 'a' }));
+    expect(first.allowed).toBe(true);
+
+    const blocked = await policy.authorizeStep(makeRun(identityId), makeStep(identityId, { stepId: 'b' }));
+    expect(blocked.allowed).toBe(false);
+    expect(blocked.reason).toContain('maxParallelSteps');
+
+    // Once the live reservation expires, the parallel slot frees up again.
+    clock += 5000;
+    const after = await policy.authorizeStep(makeRun(identityId), makeStep(identityId, { stepId: 'c' }));
+    expect(after.allowed).toBe(true);
+  });
 });
