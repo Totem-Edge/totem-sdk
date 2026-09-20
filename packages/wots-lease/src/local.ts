@@ -215,6 +215,9 @@ export class LocalLeaseProvider implements WotsLeaseProvider {
   async reserveKeyUse(params: ReserveParams): Promise<LeaseReservation> {
     return this.withMutationLock(async () => {
       if (!this._initialized) await this.initialize();
+      // Pick up any allocation made by another provider over the same storage
+      // before choosing a slot (AUD-004).
+      await this.watermark.refresh();
       const indices = this.watermark.getNextIndices(params.treeId);
       return this.reserveSpecificKeyUseUnlocked(params, indices);
     });
@@ -228,6 +231,7 @@ export class LocalLeaseProvider implements WotsLeaseProvider {
   async reserveSpecificKeyUse(params: ReserveParams, indices: SigningIndices): Promise<LeaseReservation> {
     return this.withMutationLock(async () => {
       if (!this._initialized) await this.initialize();
+      await this.watermark.refresh();
       return this.reserveSpecificKeyUseUnlocked(params, indices);
     });
   }
@@ -298,6 +302,7 @@ export class LocalLeaseProvider implements WotsLeaseProvider {
 
   private async commitKeyUseUnlocked(reservationId: string, txId: string): Promise<void> {
     if (!this._initialized) await this.initialize();
+    await this.watermark.refresh();
     const lease = this.leaseStore.get(reservationId);
     if (!lease) throw new LeaseNotFoundError(reservationId);
 
@@ -337,6 +342,7 @@ export class LocalLeaseProvider implements WotsLeaseProvider {
 
   private async burnReservationUnlocked(reservationId: string, reason: string): Promise<void> {
     if (!this._initialized) await this.initialize();
+    await this.watermark.refresh();
     const lease = this.leaseStore.get(reservationId);
     if (!lease) throw new LeaseNotFoundError(reservationId);
 

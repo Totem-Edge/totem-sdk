@@ -21,6 +21,7 @@ export async function maybeSignTransition(
 ): Promise<RegistrySignedTransition | undefined> {
   if (!rooting?.signer) return undefined;
   return signRegistryTransition(registry, rooting.op ?? op, rooting.signer, {
+    signIndices: rooting.signIndices,
     previousRoot: previousRoot ?? rooting.previousRoot,
     reason: rooting.reason,
   });
@@ -37,6 +38,7 @@ export async function commitRegistryTransition(params: {
   rooting: RegistryRootingContext;
 }): Promise<RegistrySignedTransition> {
   return signRegistryTransition(params.registry, params.rooting.op ?? params.op, params.rooting.signer, {
+    signIndices: params.rooting.signIndices,
     previousRoot: params.rooting.previousRoot,
     reason: params.rooting.reason,
   });

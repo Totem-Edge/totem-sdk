@@ -95,12 +95,13 @@ describe('spoof-hardening conformance (A/B/C/D/E)', () => {
     let state = createEmptyLiquidityBondRegistryState();
     const signer = makeSigner(SEED);
     const verifier = makeVerifier(signer);
-    const genesis = await signRegistryTransition(state, { type: 'genesis' }, signer, { signedAt: 1 });
+    const genesis = await signRegistryTransition(state, { type: 'genesis' }, signer, { signIndices: { addressIndex: 0, l1: 0, l2: 0 }, signedAt: 1 });
     state = await applyRegistryTransition(state, state, genesis, verifier);
 
     const next = { ...state, pools: { ...state.pools, 'pool-1': makePool() } };
     const attacker = makeSigner(ATTACKER_SEED, 'attacker-1');
     const forged = await signRegistryTransition(next, { type: 'register-pool', poolId: 'pool-1' }, attacker, {
+      signIndices: { addressIndex: 0, l1: 0, l2: 1 },
       previousRoot: state.root,
     });
     await expect(applyRegistryTransition(state, next, forged, verifier)).rejects.toThrow(/fails verification/);

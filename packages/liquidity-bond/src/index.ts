@@ -104,6 +104,7 @@ export type {
   RegistryTransitionDelta,
   RegistrySignedTransition,
   RegistryRootOptions,
+  RegistrySigningOptions,
   RegistryRootPort,
   PoolWriterRegistry,
 } from './root.js';

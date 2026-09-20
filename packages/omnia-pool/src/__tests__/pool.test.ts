@@ -330,7 +330,7 @@ describe('omnia-pool', () => {
         allocationType: 'channel-capital',
         purpose: 'omnia-channel-capital',
         target: { type: 'reserve', purpose: 'co-sign' },
-        rooting: { signer, previousRoot: undefined, reason: 'channel-capital commitment' },
+        rooting: { signer, signIndices: { addressIndex: 0, l1: 0, l2: 0 }, previousRoot: undefined, reason: 'channel-capital commitment' },
       },
       state,
     );
@@ -361,7 +361,7 @@ describe('omnia-pool', () => {
     );
     const { intent: approved, registry: approvedReg } = approveWithdrawal(intent, position, withIntent);
     const result = await executePoolPayout(
-      { pool: manifest, position, intent: approved, recipientAddress: lp, rooting: { signer } },
+      { pool: manifest, position, intent: approved, recipientAddress: lp, rooting: { signer, signIndices: { addressIndex: 0, l1: 0, l2: 1 } } },
       approvedReg,
     );
 

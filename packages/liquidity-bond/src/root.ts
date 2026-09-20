@@ -74,7 +74,10 @@ export interface RegistryRootOptions {
   previousRoot?: string;
   reason?: string;
   signedAt?: number;
-  /** Signing indices bound into the signature (defaults to genesis indices). */
+  /**
+   * Signing indices bound into the signature. Required for signing
+   * (`RegistrySigningOptions`); the other root helpers ignore it.
+   */
   signIndices?: SigningIndices;
   /** Monotonic anti-reorg sequence (#34) — must advance on every applied transition. */
   sequence?: number;
@@ -86,12 +89,18 @@ export interface RegistryRootOptions {
   filter?: (registry: LiquidityBondRegistryState) => LiquidityBondRegistryState;
 }
 
-function domainFor(opts?: RegistryRootOptions): string {
-  return opts?.domain ?? DEFAULT_REGISTRY_ROOT_DOMAIN;
+/**
+ * Options for `signRegistryTransition`. `signIndices` is **required** (AUD-006):
+ * a reusable genesis default meant every default call signed with the same WOTS
+ * leaf. Callers must supply explicitly leased indices — ideally from a
+ * `@totemsdk/wots-lease` reservation — so a one-time key is never reused.
+ */
+export interface RegistrySigningOptions extends RegistryRootOptions {
+  signIndices: SigningIndices;
 }
 
-function signIndicesFor(opts?: RegistryRootOptions): SigningIndices {
-  return opts?.signIndices ?? { addressIndex: 0, l1: 0, l2: 0 };
+function domainFor(opts?: RegistryRootOptions): string {
+  return opts?.domain ?? DEFAULT_REGISTRY_ROOT_DOMAIN;
 }
 
 /**
@@ -138,12 +147,19 @@ export async function signRegistryTransition(
   registry: LiquidityBondRegistryState,
   op: RegistryOperation,
   signer: RegistryTransitionSigner,
-  opts?: RegistryRootOptions,
+  opts: RegistrySigningOptions,
 ): Promise<RegistrySignedTransition> {
+  if (!opts?.signIndices) {
+    // Runtime guard for untyped callers (AUD-006): never fall back to a
+    // reusable genesis index.
+    throw new Error(
+      'signRegistryTransition requires explicit signIndices (leased WOTS indices); refusing to reuse a default index',
+    );
+  }
   const domain = domainFor(opts);
-  const signedAt = opts?.signedAt ?? Date.now();
+  const signedAt = opts.signedAt ?? Date.now();
   const root = computeRegistryRoot(registry, opts);
-  const indices = signIndicesFor(opts);
+  const indices = opts.signIndices;
   const signature = await signer.sign(registryRootPayload(root, { domain }), indices);
   return {
     delta: {

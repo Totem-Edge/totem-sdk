@@ -61,6 +61,37 @@ function nextIndices(cur: SigningIndices): SigningIndices | null {
   return { addressIndex, l1, l2 };
 }
 
+/**
+ * Monotonic merge of two watermark states: the cursor is the further of the
+ * two and the unavailable maps are unioned, so merging never re-exposes a used
+ * index. Used to pick up writes made by another provider over the same storage
+ * (AUD-004).
+ */
+function mergeWatermarkState(a: WotsWatermarkState | null, b: WotsWatermarkState): WotsWatermarkState {
+  if (!a) return b;
+  const trees: Record<string, TreeWatermark> = { ...a.trees };
+  for (const [treeId, bt] of Object.entries(b.trees)) {
+    const at = trees[treeId];
+    if (!at) {
+      trees[treeId] = bt;
+      continue;
+    }
+    const aFlat = flatIndex({ addressIndex: at.addressCursor, l1: at.l1Cursor, l2: at.l2Cursor });
+    const bFlat = flatIndex({ addressIndex: bt.addressCursor, l1: bt.l1Cursor, l2: bt.l2Cursor });
+    const cursor = bFlat > aFlat ? bt : at;
+    const lastSync = Math.max(at.lastSyncTimestamp ?? 0, bt.lastSyncTimestamp ?? 0);
+    trees[treeId] = {
+      treeId,
+      addressCursor: cursor.addressCursor,
+      l1Cursor: cursor.l1Cursor,
+      l2Cursor: cursor.l2Cursor,
+      unavailable: { ...bt.unavailable, ...at.unavailable },
+      ...(lastSync > 0 ? { lastSyncTimestamp: lastSync } : {}),
+    };
+  }
+  return { version: 3, trees };
+}
+
 type V1State = { next_addressIndex?: number; next_l1?: number; next_l2?: number; usedIndices?: Array<[number, number, number]> };
 type V2State = { version: 2; addresses: Record<number, { next_l1: number; next_l2: number; usedIndices: [number, number][] }> };
 type V3State = WotsWatermarkState;
@@ -140,6 +171,19 @@ export class WotsWatermarkStore {
 
   private async persist(): Promise<void> {
     await this.storage.set(STORAGE_KEY, this.state);
+  }
+
+  /**
+   * Reload the persisted watermark and merge it monotonically into the local
+   * state. A provider that shares its storage with another provider (AUD-004)
+   * must call this inside its mutation critical section before allocating or
+   * marking, so it observes writes it did not make and never re-issues a slot
+   * another instance already took.
+   */
+  async refresh(): Promise<void> {
+    if (!this._initialized || !this.state) return;
+    const raw = await this.storage.get<RawState>(STORAGE_KEY);
+    this.state = mergeWatermarkState(this.state, migrateToV3(raw));
   }
 
   private getOrCreateTree(treeId: string): TreeWatermark {

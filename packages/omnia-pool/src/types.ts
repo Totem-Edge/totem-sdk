@@ -157,6 +157,11 @@ export interface OmniaExecutionPort {
 /** Optional signing context that makes a registry transition anchorable. */
 export interface RegistryRootingContext {
   signer: RegistryTransitionSigner;
+  /**
+   * WOTS indices leased for this transition. Required (AUD-006): registry
+   * signing never defaults to a reusable genesis index.
+   */
+  signIndices: SigningIndices;
   previousRoot?: string;
   op?: RegistryOperation;
   reason?: string;

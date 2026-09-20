@@ -10,6 +10,7 @@ import {
   verifyRegistryRoot,
   verifyRegistryTransition,
   type RegistryOperation,
+  type RegistryRootOptions,
   type RegistryRootVerifier,
   type RegistrySignedTransition,
   type RegistryTransitionSigner,
@@ -44,6 +45,21 @@ function makeVerifier(signer: RegistryTransitionSigner): RegistryRootVerifier {
 
 function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
   return a.length === b.length && a.every((v, i) => v === b[i]);
+}
+
+// AUD-006: signing now requires explicit indices; the fixture supplies a fresh
+// index per call so no test reuses a WOTS leaf by default.
+let indexSeq = 0;
+function signWithIndices(
+  registry: LiquidityBondRegistryState,
+  op: RegistryOperation,
+  signer: RegistryTransitionSigner,
+  opts: RegistryRootOptions = {},
+): Promise<RegistrySignedTransition> {
+  return signRegistryTransition(registry, op, signer, {
+    ...opts,
+    signIndices: opts.signIndices ?? { addressIndex: 0, l1: 0, l2: indexSeq++ % 64 },
+  });
 }
 
 describe('registry rooting', () => {
@@ -93,13 +109,22 @@ describe('registry rooting', () => {
   });
 
   describe('signRegistryTransition', () => {
+    it('refuses to sign without explicit signIndices (AUD-006)', async () => {
+      const registry = registerLiquidityPool(createEmptyLiquidityBondRegistryState(), makePool('p1'));
+      const signer = makeSigner();
+      await expect(
+        signRegistryTransition(registry, { type: 'register-pool', poolId: 'p1' }, signer, {} as never),
+      ).rejects.toThrow(/requires explicit signIndices/);
+      expect(signer.sign).not.toHaveBeenCalled();
+    });
+
     it('produces a signed transition bound to the state, op, and previous root', async () => {
       const registry = registerLiquidityPool(createEmptyLiquidityBondRegistryState(), makePool('p1'));
       const signer = makeSigner();
       const op: RegistryOperation = { type: 'register-pool', poolId: 'p1' };
       const previousRoot = computeRegistryRoot(registry, { domain: 'genesis' });
 
-      const signed: RegistrySignedTransition = await signRegistryTransition(
+      const signed: RegistrySignedTransition = await signWithIndices(
         registry,
         op,
         signer,
@@ -122,14 +147,14 @@ describe('registry rooting', () => {
     it('chains from a prior root through previousRoot', async () => {
       let registry = createEmptyLiquidityBondRegistryState();
       const signer = makeSigner();
-      const first = await signRegistryTransition(registry, { type: 'genesis' }, signer, { signedAt: 1 });
+      const first = await signWithIndices(registry, { type: 'genesis' }, signer, { signedAt: 1 });
       registry = registerLiquidityPool(registry, makePool('p1'));
-      const second = await signRegistryTransition(registry, { type: 'register-pool', poolId: 'p1' }, signer, {
+      const second = await signWithIndices(registry, { type: 'register-pool', poolId: 'p1' }, signer, {
         previousRoot: first.root,
         signedAt: 2,
       });
       expect(second.delta.previousRoot).toBe(first.root);
-      const third = await signRegistryTransition(registry, { type: 'tip' }, signer, {
+      const third = await signWithIndices(registry, { type: 'tip' }, signer, {
         previousRoot: second.root,
         signedAt: 3,
       });
@@ -147,14 +172,14 @@ describe('registry rooting', () => {
     });
 
     it('accepts a genuine signed transition', async () => {
-      const signed = await signRegistryTransition(registry, { type: 'register-pool', poolId: 'p1' }, signer);
+      const signed = await signWithIndices(registry, { type: 'register-pool', poolId: 'p1' }, signer);
       const result = await verifyRegistryTransition(registry, signed, makeVerifier(signer));
       expect(result.valid).toBe(true);
       expect(result.reasons).toEqual([]);
     });
 
     it('rejects a root that no longer matches the state (drift) with a reason', async () => {
-      const signed = await signRegistryTransition(registry, { type: 'register-pool', poolId: 'p1' }, signer);
+      const signed = await signWithIndices(registry, { type: 'register-pool', poolId: 'p1' }, signer);
       const drifted = registerLiquidityPool(registry, makePool('p2'));
       const result = await verifyRegistryTransition(drifted, signed, makeVerifier(signer));
       expect(result.valid).toBe(false);
@@ -162,7 +187,7 @@ describe('registry rooting', () => {
     });
 
     it('rejects a transition signed by a different signer', async () => {
-      const signed = await signRegistryTransition(registry, { type: 'register-pool', poolId: 'p1' }, signer);
+      const signed = await signWithIndices(registry, { type: 'register-pool', poolId: 'p1' }, signer);
       const other = makeSigner('rooter-2');
       const result = await verifyRegistryTransition(registry, signed, makeVerifier(other));
       expect(result.valid).toBe(false);
@@ -170,7 +195,7 @@ describe('registry rooting', () => {
     });
 
     it('rejects a tampered op (opHash binding)', async () => {
-      const signed = await signRegistryTransition(registry, { type: 'register-pool', poolId: 'p1' }, signer);
+      const signed = await signWithIndices(registry, { type: 'register-pool', poolId: 'p1' }, signer);
       signed.delta.op = { type: 'register-pool', poolId: 'p1-changed' };
       const result = await verifyRegistryTransition(registry, signed, makeVerifier(signer));
       expect(result.valid).toBe(false);
@@ -178,7 +203,7 @@ describe('registry rooting', () => {
     });
 
     it('rejects a bad signature via the verifier', async () => {
-      const signed = await signRegistryTransition(registry, { type: 'register-pool', poolId: 'p1' }, signer);
+      const signed = await signWithIndices(registry, { type: 'register-pool', poolId: 'p1' }, signer);
       const forged = makeSigner(signer.publicKeyDigest, new Uint8Array([9, 9, 9]));
       const result = await verifyRegistryTransition(registry, signed, makeVerifier(forged));
       expect(result.valid).toBe(false);
@@ -191,7 +216,7 @@ describe('registry rooting', () => {
       let state = createEmptyLiquidityBondRegistryState();
       const signer = makeSigner();
       const verifier = makeVerifier(signer);
-      const genesis = await signRegistryTransition(state, { type: 'genesis' }, signer, { signedAt: 1 });
+      const genesis = await signWithIndices(state, { type: 'genesis' }, signer, { signedAt: 1 });
       state = await applyRegistryTransition(state, state, genesis, verifier);
       return { state, signer, verifier };
     }
@@ -199,7 +224,7 @@ describe('registry rooting', () => {
     it('applies a transition that extends the anchor and advances the root', async () => {
       const { state, signer, verifier } = await setup();
       const next: LiquidityBondRegistryState = registerLiquidityPool(state, makePool('p1'));
-      const signed = await signRegistryTransition(next, { type: 'register-pool', poolId: 'p1' }, signer, {
+      const signed = await signWithIndices(next, { type: 'register-pool', poolId: 'p1' }, signer, {
         previousRoot: state.root,
       });
       const applied = await applyRegistryTransition(state, next, signed, verifier);
@@ -211,7 +236,7 @@ describe('registry rooting', () => {
     it('rejects a transition that does not extend the anchor (fork)', async () => {
       const { state, signer } = await setup();
       const next = registerLiquidityPool(state, makePool('p1'));
-      const signed = await signRegistryTransition(next, { type: 'register-pool', poolId: 'p1' }, signer, {
+      const signed = await signWithIndices(next, { type: 'register-pool', poolId: 'p1' }, signer, {
         previousRoot: '0xFORGED_FORK_ROOT',
       });
       await expect(applyRegistryTransition(state, next, signed, makeVerifier(signer))).rejects.toThrow(/does not extend the registry anchor/);
@@ -221,7 +246,7 @@ describe('registry rooting', () => {
       const { state, signer, verifier } = await setup();
       const next = registerLiquidityPool(state, makePool('p1'));
       const fabricate: LiquidityBondRegistryState = registerLiquidityPool(state, makePool('p2'));
-      const signed = await signRegistryTransition(next, { type: 'register-pool', poolId: 'p1' }, signer, {
+      const signed = await signWithIndices(next, { type: 'register-pool', poolId: 'p1' }, signer, {
         previousRoot: state.root,
       });
       await expect(applyRegistryTransition(state, fabricate, signed, verifier)).rejects.toThrow(/fails verification/);
@@ -231,7 +256,7 @@ describe('registry rooting', () => {
       const { state, verifier } = await setup();
       const next = registerLiquidityPool(state, makePool('p1'));
       const attacker = makeSigner('attacker-1', new Uint8Array([7, 7, 7]));
-      const signed = await signRegistryTransition(next, { type: 'register-pool', poolId: 'p1' }, attacker, {
+      const signed = await signWithIndices(next, { type: 'register-pool', poolId: 'p1' }, attacker, {
         previousRoot: state.root,
       });
       // The registry trusts the real operator's key; the attacker's signature
@@ -242,7 +267,7 @@ describe('registry rooting', () => {
     it('advances the anti-reorg sequence on each applied transition', async () => {
       const { state, signer, verifier } = await setup();
       const next = registerLiquidityPool(state, makePool('p1'));
-      const signed = await signRegistryTransition(next, { type: 'register-pool', poolId: 'p1' }, signer, {
+      const signed = await signWithIndices(next, { type: 'register-pool', poolId: 'p1' }, signer, {
         previousRoot: state.root,
         sequence: (state.sequence ?? 0) + 1,
       });
@@ -253,7 +278,7 @@ describe('registry rooting', () => {
     it('rejects a transition that does not advance the sequence (reorg)', async () => {
       const { state, signer, verifier } = await setup();
       const next = registerLiquidityPool(state, makePool('p1'));
-      const signed = await signRegistryTransition(next, { type: 'register-pool', poolId: 'p1' }, signer, {
+      const signed = await signWithIndices(next, { type: 'register-pool', poolId: 'p1' }, signer, {
         previousRoot: state.root,
         sequence: state.sequence ?? 0,
       });
@@ -264,7 +289,7 @@ describe('registry rooting', () => {
       const { state, signer, verifier } = await setup();
       const writers = registerPoolWriter({}, 'p1', signer.publicKeyDigest);
       const next = registerLiquidityPool(state, makePool('p1'));
-      const signed = await signRegistryTransition(next, { type: 'register-pool', poolId: 'p1' }, signer, {
+      const signed = await signWithIndices(next, { type: 'register-pool', poolId: 'p1' }, signer, {
         previousRoot: state.root,
         sequence: (state.sequence ?? 0) + 1,
       });
@@ -272,7 +297,7 @@ describe('registry rooting', () => {
 
       // A different key cannot sign for pool-1 when pool-1's writer is registered.
       const otherWriter = makeSigner('other-writer', new Uint8Array([7, 7, 7]));
-      const forged = await signRegistryTransition(next, { type: 'register-pool', poolId: 'p1' }, otherWriter, {
+      const forged = await signWithIndices(next, { type: 'register-pool', poolId: 'p1' }, otherWriter, {
         previousRoot: state.root,
         sequence: (state.sequence ?? 0) + 1,
       });
