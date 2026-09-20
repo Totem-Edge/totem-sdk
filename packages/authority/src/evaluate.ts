@@ -61,7 +61,26 @@ export function evaluateAuthority(params: EvaluateAuthorityParams): EvaluateAuth
 
   let scopeMatch = false;
   let constraintsMatch = true;
+  let actorBound = true;
+  let principalBound = true;
   if (mandateBody && mandateVerification.valid) {
+    // Mandatory actor/principal binding (AUD-017): the action's agent must be
+    // the mandate's grantee and the action's principal must be the mandate's
+    // principal. Without this, a valid signed mandate authorized any unrelated
+    // agent/principal and only constraints (if any) provided binding.
+    actorBound = action.agent === mandateBody.grantee;
+    principalBound = action.principal === mandateBody.principal;
+    if (actorBound) {
+      matchedRules.push('binding:grantee:match');
+    } else {
+      failedRules.push('binding:grantee:mismatch');
+    }
+    if (principalBound) {
+      matchedRules.push('binding:principal:match');
+    } else {
+      failedRules.push('binding:principal:mismatch');
+    }
+
     scopeMatch = matchScope(action.action, mandateBody.scope);
     if (scopeMatch) {
       matchedRules.push('scope:match');
@@ -96,7 +115,7 @@ export function evaluateAuthority(params: EvaluateAuthorityParams): EvaluateAuth
   const evidenceIds = (evidence ?? []).map((e) => e.proofId).slice().sort();
 
   const allowed =
-    mandateVerification.valid && scopeMatch && constraintsMatch && !usageExceeded;
+    mandateVerification.valid && actorBound && principalBound && scopeMatch && constraintsMatch && !usageExceeded;
 
   const decisionBase = {
     intentId,

@@ -36,6 +36,9 @@ const SEED_AGENT = testSeed(403);
 const ADDR_ROOT = deriveAddress(SEED_ROOT, 0);
 const ADDR_AGENT = deriveAddress(SEED_AGENT, 0);
 
+// Bound to the resolved principal identity in makePolicy (AUD-017).
+let PRINCIPAL_ID = 'PRINCIPAL';
+
 async function makeResolver() {
   const rootAddr = deriveAddress(SEED_ROOT, 0);
   const ctrlAddr = deriveAddress(SEED_CTRL, 0);
@@ -82,6 +85,7 @@ const PROFILE: AutonomyProfile = {
 
 async function makePolicy() {
   const { resolver, identityId } = await makeResolver();
+  PRINCIPAL_ID = identityId;
   const mandate = makeMandateProof(identityId, '*');
   const policy = new GrantBoundAutonomyPolicy({
     autonomyProfiles: { 'edge-agent': PROFILE },
@@ -90,7 +94,7 @@ async function makePolicy() {
     stateStore: new MemoryRunStateStore({ now: () => 1000 }),
     now: () => 1000,
   });
-  await policy.openRun({ runId: 'run-1', agentId: 'ag', principal: 'PRINCIPAL', grantProofIds: ['totem:mandate:owner'], profileId: 'edge-agent' });
+  await policy.openRun({ runId: 'run-1', agentId: ADDR_AGENT, principal: PRINCIPAL_ID, grantProofIds: ['totem:mandate:owner'], profileId: 'edge-agent' });
   return policy;
 }
 
@@ -213,8 +217,8 @@ describe('agent edge runtime', () => {
       registry,
       policy,
       runId: 'run-1',
-      principal: 'PRINCIPAL',
-      agentId: 'ag',
+      principal: PRINCIPAL_ID,
+      agentId: ADDR_AGENT,
     });
 
     const result = await runtime.executeAction({
@@ -243,8 +247,8 @@ describe('agent edge runtime', () => {
       registry,
       policy,
       runId: 'run-1',
-      principal: 'PRINCIPAL',
-      agentId: 'ag',
+      principal: PRINCIPAL_ID,
+      agentId: ADDR_AGENT,
     });
 
     const result = await runtime.executeAction({ action: 'payment:send', subject: 'MxR', payload: { amount: '1' } });
@@ -266,8 +270,8 @@ describe('agent edge runtime', () => {
       registry,
       policy,
       runId: 'run-1',
-      principal: 'PRINCIPAL',
-      agentId: 'ag',
+      principal: PRINCIPAL_ID,
+      agentId: ADDR_AGENT,
     });
 
     const result = await runtime.executeAction({ action: 'wallet:seed-export', subject: 'MxR' });
@@ -284,8 +288,8 @@ describe('agent edge runtime', () => {
       registry,
       policy,
       runId: 'run-1',
-      principal: 'PRINCIPAL',
-      agentId: 'ag',
+      principal: PRINCIPAL_ID,
+      agentId: ADDR_AGENT,
     });
 
     const result = await runtime.executeAction({ action: 'nonsense:thing', subject: 'MxR' });
@@ -308,8 +312,8 @@ describe('agent edge runtime', () => {
       registry,
       policy,
       runId: 'run-1',
-      principal: 'PRINCIPAL',
-      agentId: 'ag',
+      principal: PRINCIPAL_ID,
+      agentId: ADDR_AGENT,
     });
 
     const result = await runtime.executeAction({ action: 'payment:send', subject: 'MxR', payload: { amount: '10' } });
@@ -334,8 +338,8 @@ describe('agent edge runtime', () => {
       registry,
       policy,
       runId: 'run-1',
-      principal: 'PRINCIPAL',
-      agentId: 'ag',
+      principal: PRINCIPAL_ID,
+      agentId: ADDR_AGENT,
     });
 
     // maxGrossSpend is 500 — a 600 spend exceeds it.
@@ -359,8 +363,8 @@ describe('agent edge runtime', () => {
       registry,
       policy,
       runId: 'run-1',
-      principal: 'PRINCIPAL',
-      agentId: 'ag',
+      principal: PRINCIPAL_ID,
+      agentId: ADDR_AGENT,
     });
 
     expect((runtime as unknown as Record<string, unknown>).ports).toBeUndefined();

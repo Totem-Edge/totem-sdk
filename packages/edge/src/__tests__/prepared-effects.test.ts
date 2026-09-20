@@ -43,6 +43,9 @@ const SEED_AGENT = testSeed(503);
 const ADDR_ROOT = deriveAddress(SEED_ROOT, 0);
 const ADDR_AGENT = deriveAddress(SEED_AGENT, 0);
 
+// Bound to the resolved principal identity in makePolicy (AUD-017).
+let PRINCIPAL_ID = 'PRINCIPAL';
+
 async function makeResolver() {
   const rootAddr = deriveAddress(SEED_ROOT, 0);
   const ctrlAddr = deriveAddress(SEED_CTRL, 0);
@@ -89,6 +92,7 @@ const PROFILE: AutonomyProfile = {
 
 async function makePolicy() {
   const { resolver, identityId } = await makeResolver();
+  PRINCIPAL_ID = identityId;
   const mandate = makeMandateProof(identityId, '*');
   const policy = new GrantBoundAutonomyPolicy({
     autonomyProfiles: { 'edge-agent': PROFILE },
@@ -97,7 +101,7 @@ async function makePolicy() {
     stateStore: new MemoryRunStateStore({ now: () => 1000 }),
     now: () => 1000,
   });
-  await policy.openRun({ runId: 'run-1', agentId: 'ag', principal: 'PRINCIPAL', grantProofIds: ['totem:mandate:owner'], profileId: 'edge-agent' });
+  await policy.openRun({ runId: 'run-1', agentId: ADDR_AGENT, principal: PRINCIPAL_ID, grantProofIds: ['totem:mandate:owner'], profileId: 'edge-agent' });
   return policy;
 }
 
@@ -223,8 +227,8 @@ describe('agent runtime with tx builder', () => {
       registry,
       policy,
       runId: 'run-1',
-      principal: 'PRINCIPAL',
-      agentId: 'ag',
+      principal: PRINCIPAL_ID,
+      agentId: ADDR_AGENT,
     });
 
     // Agent claims 100 — but the real tx only spends 40 (60 is change).
@@ -264,8 +268,8 @@ describe('agent runtime with tx builder', () => {
       registry,
       policy,
       runId: 'run-1',
-      principal: 'PRINCIPAL',
-      agentId: 'ag',
+      principal: PRINCIPAL_ID,
+      agentId: ADDR_AGENT,
     });
 
     const result = await runtime.executeAction({

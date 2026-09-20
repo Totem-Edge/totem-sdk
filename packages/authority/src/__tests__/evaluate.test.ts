@@ -8,6 +8,7 @@ import {
   makeResolver,
   makeMandateProof,
   makeSimpleAction,
+  setSimpleActionPrincipal,
   SEED_ROOT,
   SEED_CTRL,
   SEED_DELEGATE,
@@ -27,6 +28,7 @@ describe('evaluateAuthority', () => {
       { seed: SEED_DELEGATE, keyIndex: 0, scopes: ['*'] },
     ]);
     PRINCIPAL_ID = identityId;
+    setSimpleActionPrincipal(PRINCIPAL_ID);
     const map = new Map<string, IdentityGraph>();
     map.set(PRINCIPAL_ID, principalGraph);
     resolver = makeResolver(map);

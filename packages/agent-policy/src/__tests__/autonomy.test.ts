@@ -28,6 +28,10 @@ const SEED_AGENT = testSeed(103);
 const ADDR_ROOT = deriveAddress(SEED_ROOT, 0);
 const ADDR_AGENT = deriveAddress(SEED_AGENT, 0);
 
+// Bound to the resolved principal identity in makePolicy so actions satisfy the
+// mandatory actor/principal binding (AUD-017).
+let PRINCIPAL_ID = 'PRINCIPAL';
+
 async function makeResolver() {
   const rootAddr = deriveAddress(SEED_ROOT, 0);
   const ctrlAddr = deriveAddress(SEED_CTRL, 0);
@@ -80,6 +84,7 @@ const PROFILE: AutonomyProfile = {
 
 async function makePolicy(_allowed: string[] = []) {
   const { resolver, identityId } = await makeResolver();
+  PRINCIPAL_ID = identityId;
   const mandate = makeMandateProof(identityId, '*');
   let policy: GrantBoundAutonomyPolicy;
   policy = new GrantBoundAutonomyPolicy({
@@ -95,8 +100,8 @@ async function makePolicy(_allowed: string[] = []) {
 function step(action: string, stepId = `${action}-1`, nonce = stepId, overrides: Partial<CanonicalAgentAction> = {}): CanonicalAgentAction {
   return {
     action,
-    principal: 'PRINCIPAL',
-    agent: 'ag',
+    principal: PRINCIPAL_ID,
+    agent: ADDR_AGENT,
     effects: {
       spends: action === 'pay' ? [{ tokenId: '0x00', amount: '100' }] : [],
       fees: [],
@@ -181,7 +186,7 @@ describe('evaluateGrantRequirement', () => {
 describe('GrantBoundAutonomyPolicy — rebalance run', () => {
   it('authorizes prepared steps, folds spend into run totals, and produces a receipt graph', async () => {
     const { policy } = await makePolicy();
-    const run = await policy.openRun({ runId: 'run-1', agentId: 'ag', principal: 'PRINCIPAL', grantProofIds: ['totem:mandate:owner'], profileId: 'channel-rebalance' });
+    const run = await policy.openRun({ runId: 'run-1', agentId: ADDR_AGENT, principal: PRINCIPAL_ID, grantProofIds: ['totem:mandate:owner'], profileId: 'channel-rebalance' });
     expect(run.totals.committedSteps).toBe(0);
 
     // prepare + reduce the first operation
@@ -191,7 +196,7 @@ describe('GrantBoundAutonomyPolicy — rebalance run', () => {
       nonce: 'sim-1',
       operation: { spends: [], fees: [], channelOps: [{ channelId: 'ch-7', operation: 'simulate' }] },
     };
-    const canonical = reduceToCanonicalAction('run-1', 'PRINCIPAL', 'ag', prepared as never, { simulation: { ok: true } });
+    const canonical = reduceToCanonicalAction('run-1', PRINCIPAL_ID, ADDR_AGENT, prepared as never, { simulation: { ok: true } });
     const auth = await policy.authorizeAndReserve({ runId: 'run-1', stepId: 'sim-1', nonce: 'sim-1', action: canonical, evidence: { simulation: { ok: true } } });
     expect(auth.outcome).toBe('approved');
     await policy.commit({ reservationId: (auth as { reservationId: string }).reservationId, executionProof: { sim: 'ok' } });
@@ -213,7 +218,7 @@ describe('GrantBoundAutonomyPolicy — rebalance run', () => {
 
   it('enforces the profile transition DAG and rejects out-of-order steps', async () => {
     const { policy } = await makePolicy();
-    await policy.openRun({ runId: 'run-b', agentId: 'ag', principal: 'PRINCIPAL', grantProofIds: ['totem:mandate:owner'], profileId: 'channel-rebalance' });
+    await policy.openRun({ runId: 'run-b', agentId: ADDR_AGENT, principal: PRINCIPAL_ID, grantProofIds: ['totem:mandate:owner'], profileId: 'channel-rebalance' });
     const auth = await policy.authorizeAndReserve({
       runId: 'run-b', stepId: 'pay-1', nonce: 'pay-1', action: step('pay'),
     });
@@ -223,7 +228,7 @@ describe('GrantBoundAutonomyPolicy — rebalance run', () => {
 
   it('rejects a replayed nonce', async () => {
     const { policy } = await makePolicy();
-    await policy.openRun({ runId: 'run-c', agentId: 'ag', principal: 'PRINCIPAL', grantProofIds: ['totem:mandate:owner'], profileId: 'channel-rebalance' });
+    await policy.openRun({ runId: 'run-c', agentId: ADDR_AGENT, principal: PRINCIPAL_ID, grantProofIds: ['totem:mandate:owner'], profileId: 'channel-rebalance' });
     const a = await policy.authorizeAndReserve({ runId: 'run-c', stepId: 's1', nonce: 'same', action: step('simulate'), evidence: { simulation: { ok: true } } });
     expect(a.outcome).toBe('approved');
     await policy.abort((a as { reservationId: string }).reservationId, 'n/a');
@@ -234,7 +239,7 @@ describe('GrantBoundAutonomyPolicy — rebalance run', () => {
 
   it('escalates to requires_human with a narrow-grant suggestion when spend exceeds the ceiling', async () => {
     const { policy } = await makePolicy();
-    await policy.openRun({ runId: 'run-d', agentId: 'ag', principal: 'PRINCIPAL', grantProofIds: ['totem:mandate:owner'], profileId: 'channel-rebalance' });
+    await policy.openRun({ runId: 'run-d', agentId: ADDR_AGENT, principal: PRINCIPAL_ID, grantProofIds: ['totem:mandate:owner'], profileId: 'channel-rebalance' });
 
     // simulate must be the first step per the profile DAG — commit it so its slot frees
     const sim = await policy.authorizeAndReserve({ runId: 'run-d', stepId: 'sim-1', nonce: 'sim-1', action: step('simulate'), evidence: { simulation: { ok: true } } });
@@ -260,7 +265,7 @@ describe('GrantBoundAutonomyPolicy — rebalance run', () => {
 
   it('aborts failed steps and enforces the failure budget', async () => {
     const { policy } = await makePolicy();
-    await policy.openRun({ runId: 'run-e', agentId: 'ag', principal: 'PRINCIPAL', grantProofIds: ['totem:mandate:owner'], profileId: 'channel-rebalance' });
+    await policy.openRun({ runId: 'run-e', agentId: ADDR_AGENT, principal: PRINCIPAL_ID, grantProofIds: ['totem:mandate:owner'], profileId: 'channel-rebalance' });
     // maxFailures: 2 → exactly 2 aborts are permitted
     for (const [sid, nonce] of [['s1', 'n1'], ['s2', 'n2']]) {
       const a = await policy.authorizeAndReserve({ runId: 'run-e', stepId: sid, nonce, action: step('simulate', sid, nonce), evidence: { simulation: { ok: true } } });
@@ -289,7 +294,7 @@ describe('omnia rebalance slice', () => {
         positionId: 'pos-1',
       },
     };
-const canonical = reduceToCanonicalAction('run-1', 'PRINCIPAL', 'ag', prepared as never, { simulation: { ok: true } });
+const canonical = reduceToCanonicalAction('run-1', PRINCIPAL_ID, ADDR_AGENT, prepared as never, { simulation: { ok: true } });
     expect(canonical.effects.spends?.[0].amount).toBe('100');
     expect(canonical.effects.channels?.[0].channelId).toBe('ch-7');
     const d1 = canonicalAgentActionDigest(canonical);

@@ -354,13 +354,13 @@ describeSqlite('GrantBoundAutonomyPolicy on SqliteRunStateStore', () => {
       now: () => 1000,
     });
 
-    await policy.openRun({ runId: 'run-1', agentId: 'ag', principal: 'PRINCIPAL', grantProofIds: ['totem:mandate:owner'], profileId: 'channel-rebalance' });
+    await policy.openRun({ runId: 'run-1', agentId: ADDR_AGENT, principal: identityId, grantProofIds: ['totem:mandate:owner'], profileId: 'channel-rebalance' });
 
     const prepared = {
       stepId: 'sim-1', action: 'simulate', nonce: 'sim-1',
       operation: { spends: [], fees: [], channelOps: [{ channelId: 'ch-7', operation: 'simulate' }] },
     };
-    const canonical = reduceToCanonicalAction('run-1', 'PRINCIPAL', 'ag', prepared as never, { simulation: { ok: true } });
+    const canonical = reduceToCanonicalAction('run-1', identityId, ADDR_AGENT, prepared as never, { simulation: { ok: true } });
     const auth = await policy.authorizeAndReserve({ runId: 'run-1', stepId: 'sim-1', nonce: 'sim-1', action: canonical, evidence: { simulation: { ok: true } } });
     expect(auth.outcome).toBe('approved');
     await policy.commit({ reservationId: (auth as { reservationId: string }).reservationId, executionProof: { sim: 'ok' } });

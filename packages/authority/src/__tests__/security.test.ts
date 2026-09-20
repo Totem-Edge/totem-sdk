@@ -29,7 +29,7 @@ import type {
   MandateStatusSnapshot,
 } from '../types.js';
 import type { IdentityGraph } from '@totemsdk/identity';
-import { makeIdentityGraph, makeResolver, makeMandateProof, makeSimpleAction } from './test-helpers.js';
+import { makeIdentityGraph, makeResolver, makeMandateProof, makeSimpleAction, setSimpleActionPrincipal } from './test-helpers.js';
 import {
   SEED_ROOT,
   SEED_CTRL,
@@ -51,6 +51,7 @@ beforeAll(async () => {
     { seed: SEED_DELEGATE, keyIndex: 0, scopes: ['*'] },
   ]);
   PRINCIPAL_ID = identityId;
+  setSimpleActionPrincipal(PRINCIPAL_ID);
   const map = new Map<string, IdentityGraph>();
   map.set(PRINCIPAL_ID, principalGraph);
   resolver = makeResolver(map);

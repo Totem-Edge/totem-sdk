@@ -46,6 +46,9 @@ const SEED_AGENT = testSeed(303);
 const ADDR_ROOT = deriveAddress(SEED_ROOT, 0);
 const ADDR_AGENT = deriveAddress(SEED_AGENT, 0);
 
+// Bound to the resolved principal identity in makePolicy (AUD-017).
+let PRINCIPAL_ID = 'PRINCIPAL';
+
 async function makeResolver() {
   const rootAddr = deriveAddress(SEED_ROOT, 0);
   const ctrlAddr = deriveAddress(SEED_CTRL, 0);
@@ -177,6 +180,7 @@ describe('autonomous rebalance slice', () => {
 
   async function makePolicy() {
     const { resolver, identityId } = await makeResolver();
+    PRINCIPAL_ID = identityId;
     const mandate = makeMandateProof(identityId, '*');
     const policy = new GrantBoundAutonomyPolicy({
       autonomyProfiles: { 'channel-rebalance': PROFILE },
@@ -212,7 +216,7 @@ describe('autonomous rebalance slice', () => {
       channelUpdate: { channel, newBalances: { alice: 700n, bob: 300n }, operation: 'simulate' },
       simulation: { ok: true },
     };
-    const { canonical } = prepareRebalanceStep('run-1', 'PRINCIPAL', 'ag', step);
+    const { canonical } = prepareRebalanceStep('run-1', PRINCIPAL_ID, ADDR_AGENT, step);
     expect(canonical.action).toBe('simulate');
     // Channel-internal update pays back to the channel script → no external spend.
     expect(canonical.effects.spends).toHaveLength(0);
@@ -230,7 +234,7 @@ describe('autonomous rebalance slice', () => {
       draft,
       simulation: { ok: true },
     };
-    const { canonical } = prepareRebalanceStep('run-1', 'PRINCIPAL', 'ag', step);
+    const { canonical } = prepareRebalanceStep('run-1', PRINCIPAL_ID, ADDR_AGENT, step);
     expect(canonical.effects.spends).toHaveLength(1);
     expect(canonical.effects.spends?.[0].amount).toBe('400');
     expect(canonical.effects.spends?.[0].recipient).toBe('0x' + 'cc'.repeat(32));
@@ -238,7 +242,7 @@ describe('autonomous rebalance slice', () => {
 
   it('authorizes, executes and commits a channel update step', async () => {
     const policy = await makePolicy();
-    await policy.openRun({ runId: 'run-1', agentId: 'ag', principal: 'PRINCIPAL', grantProofIds: ['totem:mandate:owner'], profileId: 'channel-rebalance' });
+    await policy.openRun({ runId: 'run-1', agentId: ADDR_AGENT, principal: PRINCIPAL_ID, grantProofIds: ['totem:mandate:owner'], profileId: 'channel-rebalance' });
 
     const channel = makeChannel();
     const port = makePort();
@@ -246,7 +250,7 @@ describe('autonomous rebalance slice', () => {
     // simulate (valid from start)
     const simDraft = buildUpdateTx(channel, 1, { alice: 600n, bob: 400n }, []);
     const sim = await executeAutonomousRebalanceStep(
-      { policy, runId: 'run-1', principal: 'PRINCIPAL', agentId: 'ag', ctx: { omnia: port } },
+      { policy, runId: 'run-1', principal: PRINCIPAL_ID, agentId: ADDR_AGENT, ctx: { omnia: port } },
       {
         stepId: 'sim-1',
         action: 'simulate',
@@ -261,7 +265,7 @@ describe('autonomous rebalance slice', () => {
     // pay (valid from simulate)
     const payDraft = buildUpdateTx(channel, 2, { alice: 700n, bob: 300n }, []);
     const result = await executeAutonomousRebalanceStep(
-      { policy, runId: 'run-1', principal: 'PRINCIPAL', agentId: 'ag', ctx: { omnia: port } },
+      { policy, runId: 'run-1', principal: PRINCIPAL_ID, agentId: ADDR_AGENT, ctx: { omnia: port } },
       {
         stepId: 'pay-1',
         action: 'pay',
@@ -284,7 +288,7 @@ describe('autonomous rebalance slice', () => {
 
   it('aborts the reservation when execution fails', async () => {
     const policy = await makePolicy();
-    await policy.openRun({ runId: 'run-2', agentId: 'ag', principal: 'PRINCIPAL', grantProofIds: ['totem:mandate:owner'], profileId: 'channel-rebalance' });
+    await policy.openRun({ runId: 'run-2', agentId: ADDR_AGENT, principal: PRINCIPAL_ID, grantProofIds: ['totem:mandate:owner'], profileId: 'channel-rebalance' });
 
     const channel = makeChannel();
     const updateState = jest.fn()
@@ -294,7 +298,7 @@ describe('autonomous rebalance slice', () => {
 
     const simDraft = buildUpdateTx(channel, 1, { alice: 600n, bob: 400n }, []);
     const sim = await executeAutonomousRebalanceStep(
-      { policy, runId: 'run-2', principal: 'PRINCIPAL', agentId: 'ag', ctx: { omnia: port } },
+      { policy, runId: 'run-2', principal: PRINCIPAL_ID, agentId: ADDR_AGENT, ctx: { omnia: port } },
       {
         stepId: 'sim-1',
         action: 'simulate',
@@ -309,7 +313,7 @@ describe('autonomous rebalance slice', () => {
     const payDraft = buildUpdateTx(channel, 2, { alice: 700n, bob: 300n }, []);
     await expect(
       executeAutonomousRebalanceStep(
-        { policy, runId: 'run-2', principal: 'PRINCIPAL', agentId: 'ag', ctx: { omnia: port } },
+        { policy, runId: 'run-2', principal: PRINCIPAL_ID, agentId: ADDR_AGENT, ctx: { omnia: port } },
         {
           stepId: 'pay-1',
           action: 'pay',
@@ -328,7 +332,7 @@ describe('autonomous rebalance slice', () => {
 
   it('executes a pool allocation rebalance and commits', async () => {
     const policy = await makePolicy();
-    await policy.openRun({ runId: 'run-3', agentId: 'ag', principal: 'PRINCIPAL', grantProofIds: ['totem:mandate:owner'], profileId: 'channel-rebalance' });
+    await policy.openRun({ runId: 'run-3', agentId: ADDR_AGENT, principal: PRINCIPAL_ID, grantProofIds: ['totem:mandate:owner'], profileId: 'channel-rebalance' });
 
     const { position, state } = await makeDeposit('100000');
     const { allocation } = await allocatePositionCapital(
@@ -345,7 +349,7 @@ describe('autonomous rebalance slice', () => {
     const channel = makeChannel();
     const simDraft = buildUpdateTx(channel, 1, { alice: 600n, bob: 400n }, []);
     const sim = await executeAutonomousRebalanceStep(
-      { policy, runId: 'run-3', principal: 'PRINCIPAL', agentId: 'ag' },
+      { policy, runId: 'run-3', principal: PRINCIPAL_ID, agentId: ADDR_AGENT },
       {
         stepId: 'sim-1',
         action: 'simulate',
@@ -358,7 +362,7 @@ describe('autonomous rebalance slice', () => {
     expect(sim.outcome).toBe('approved');
 
     const result = await executeAutonomousRebalanceStep(
-      { policy, runId: 'run-3', principal: 'PRINCIPAL', agentId: 'ag' },
+      { policy, runId: 'run-3', principal: PRINCIPAL_ID, agentId: ADDR_AGENT },
       {
         stepId: 'rebalance-1',
         action: 'pay',
@@ -382,12 +386,12 @@ describe('autonomous rebalance slice', () => {
 
   it('returns requires_human when the step exceeds the run ceiling', async () => {
     const policy = await makePolicy();
-    await policy.openRun({ runId: 'run-4', agentId: 'ag', principal: 'PRINCIPAL', grantProofIds: ['totem:mandate:owner'], profileId: 'channel-rebalance' });
+    await policy.openRun({ runId: 'run-4', agentId: ADDR_AGENT, principal: PRINCIPAL_ID, grantProofIds: ['totem:mandate:owner'], profileId: 'channel-rebalance' });
 
     const channel = makeChannel();
     const simDraft = buildUpdateTx(channel, 1, { alice: 600n, bob: 400n }, []);
     const sim = await executeAutonomousRebalanceStep(
-      { policy, runId: 'run-4', principal: 'PRINCIPAL', agentId: 'ag' },
+      { policy, runId: 'run-4', principal: PRINCIPAL_ID, agentId: ADDR_AGENT },
       {
         stepId: 'sim-1',
         action: 'simulate',
@@ -402,7 +406,7 @@ describe('autonomous rebalance slice', () => {
     // A 'pay' step with an external spend of 600 exceeds maxGrossSpend (500).
     const bigDraft = makeExternalSpendDraft(channel, '600', '0x' + 'cc'.repeat(32));
     const result = await executeAutonomousRebalanceStep(
-      { policy, runId: 'run-4', principal: 'PRINCIPAL', agentId: 'ag' },
+      { policy, runId: 'run-4', principal: PRINCIPAL_ID, agentId: ADDR_AGENT },
       {
         stepId: 'pay-1',
         action: 'pay',

@@ -91,7 +91,7 @@ function makeStep(identityId: string, overrides?: Partial<AgentStep>): AgentStep
     action: {
       action: 'rebalance',
       principal: identityId,
-      agent: 'agent-1',
+      agent: ADDR_AGENT,
       target: 'channel-7',
       constraints: { amount: '100', payload: { channel: 'ch-9' } },
       nonce: 'step-1',

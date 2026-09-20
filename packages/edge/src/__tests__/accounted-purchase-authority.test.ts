@@ -93,7 +93,7 @@ function makePurchaseMandate(identityId: string, maxCount: number): SignedProof 
 function makeRun(identityId: string): AutonomousRun {
   return {
     runId: 'purchase-run-1',
-    agentId: 'edge-purchase-agent',
+    agentId: ADDR_AGENT,
     principal: identityId,
     startedAt: 2000,
     mode: 'dynamic',

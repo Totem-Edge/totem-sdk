@@ -93,10 +93,21 @@ export function makeMandateProof(
   return signProof(unsigned, signerSeed, keyIndex);
 }
 
+let simpleActionPrincipal = 'totem:id:agent:principal';
+
+/**
+ * Bind the principal used by the `makeSimpleAction` fixture. Tests register the
+ * real principal identity id here so actions satisfy the mandatory
+ * actor/principal binding (AUD-017).
+ */
+export function setSimpleActionPrincipal(principal: string): void {
+  simpleActionPrincipal = principal;
+}
+
 export function makeSimpleAction(action?: Partial<ActionIntent>): ActionIntent {
   return {
     action: 'data:read',
-    principal: 'totem:id:agent:principal',
+    principal: simpleActionPrincipal,
     agent: ADDR_AGENT,
     ...action,
   };
