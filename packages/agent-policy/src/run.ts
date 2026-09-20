@@ -206,4 +206,10 @@ export interface StepReceipt {
   actionDigest: string;
   committedAt: number;
   executionProof?: unknown;
+  /**
+   * The exact usage reserved for this step. Persisted so committed budget
+   * reconstructs BOTH count and amount (AUD-019) — dropping amount made
+   * `maxTotal` unenforceable after the first commit.
+   */
+  usageDelta?: { count: number; amount?: string };
 }

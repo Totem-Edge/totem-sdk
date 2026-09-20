@@ -59,12 +59,19 @@ describe('checkUsageLimit', () => {
     expect(checkUsageLimit(snap, limit, 3000)).toBe(true);
   });
 
-  it('allows after window has expired (no window reset in v0.1)', () => {
+  it('does not fail open when a prior window has expired (AUD-018)', () => {
     const snap: AuthorityUsageSnapshot = {
       mandateProofId: 'm1', totalCount: 5, windowStart: 1000, windowEnd: 5000,
     };
     const limit: UsageLimit = { maxCount: 3, windowMs: 2000 };
-    expect(checkUsageLimit(snap, limit, 4000)).toBe(true);
+    // The cap is still enforced; expiring a window resets totals, never the cap.
+    expect(checkUsageLimit(snap, limit, 4000)).toBe(false);
+  });
+
+  it('rejects a proposed delta larger than the entire cap even with no prior usage', () => {
+    const snap: AuthorityUsageSnapshot = { mandateProofId: 'm1', totalCount: 0 };
+    const limit: UsageLimit = { maxCount: 1, maxTotal: '10' };
+    expect(checkUsageLimit(snap, limit, 4000, { count: 99, amount: '1000000' })).toBe(false);
   });
 
   it('allows when no limits set', () => {
@@ -116,14 +123,28 @@ describe('snapshotFromUsage', () => {
     expect(snap.totalAmount).toBe('300');
   });
 
-  it('applies windowMs filter', () => {
+  it('applies windowMs filter to the window containing now (AUD-018)', () => {
     const usages: AuthorityUsage[] = [
       { usageId: 'u1', mandateProofId: 'm1', intentId: 'i1', usedAt: 1000 },
       { usageId: 'u2', mandateProofId: 'm1', intentId: 'i2', usedAt: 5000 },
     ];
     const limit: UsageLimit = { windowMs: 2000 };
     const snap = snapshotFromUsage(usages, 5000, limit);
-    expect(snap.windowStart).toBe(1000);
+    // Window containing now=5000 is [4000, 6000): the 1000 receipt is retired.
+    expect(snap.windowStart).toBe(4000);
+    expect(snap.windowEnd).toBe(6000);
     expect(snap.totalCount).toBe(1);
+  });
+
+  it('does not retire the cap when the earliest receipt is in a past window (AUD-018)', () => {
+    const usages: AuthorityUsage[] = [
+      { usageId: 'u1', mandateProofId: 'm1', intentId: 'i1', usedAt: 0, countsToward: { count: 1, amount: '10' } },
+      { usageId: 'u2', mandateProofId: 'm1', intentId: 'i2', usedAt: 190, countsToward: { count: 1, amount: '100' } },
+    ];
+    const limit: UsageLimit = { maxCount: 1, maxTotal: '10', windowMs: 100 };
+    const snap = snapshotFromUsage(usages, 200, limit);
+    expect(snap.totalCount).toBe(0);
+    expect(snap.totalAmount).toBeUndefined();
+    expect(checkUsageLimit(snap, limit, 200, { count: 99, amount: '1000000' })).toBe(false);
   });
 });

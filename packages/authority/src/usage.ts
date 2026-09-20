@@ -9,15 +9,13 @@ import type {
 export function checkUsageLimit(
   snapshot: AuthorityUsageSnapshot,
   limit: UsageLimit,
-  now: number,
+  _now: number,
   proposed?: { count: number; amount?: string },
 ): boolean {
-  if (limit.windowMs !== undefined && snapshot.windowStart !== undefined) {
-    if (now > snapshot.windowStart + limit.windowMs) {
-      return true;
-    }
-  }
-
+  // No "window expired => allow" shortcut (AUD-018). The snapshot is always
+  // built for the window containing `now` (see snapshotFromUsage), and the
+  // proposed delta is ALWAYS validated against the cap: a new window resets the
+  // accumulated totals, it never disables the limit.
   if (limit.maxCount !== undefined) {
     const proposedCount = proposed?.count ?? 0;
     if (snapshot.totalCount + proposedCount > limit.maxCount) {
@@ -70,9 +68,11 @@ export function snapshotFromUsage(
   let windowStart: number | undefined;
   let windowEnd: number | undefined;
 
-  if (limit?.windowMs !== undefined && usages.length > 0) {
-    const sorted = [...usages].sort((a, b) => a.usedAt - b.usedAt);
-    windowStart = sorted[0].usedAt;
+  if (limit?.windowMs !== undefined && limit.windowMs > 0) {
+    // Anchor to the window containing `now` (AUD-018). Never to the earliest
+    // historical receipt: that anchored the window in the past, filtered out
+    // current usage, and retired the limit as soon as the first window passed.
+    windowStart = Math.floor(now / limit.windowMs) * limit.windowMs;
     windowEnd = windowStart + limit.windowMs;
   }
 
@@ -80,10 +80,8 @@ export function snapshotFromUsage(
   let totalAmount: string | undefined;
 
   for (const u of usages) {
-    if (limit?.windowMs !== undefined && windowStart !== undefined) {
-      if (u.usedAt < windowStart || u.usedAt > windowStart + limit.windowMs) {
-        continue;
-      }
+    if (windowStart !== undefined && windowEnd !== undefined) {
+      if (u.usedAt < windowStart || u.usedAt >= windowEnd) continue;
     }
 
     totalCount += u.countsToward?.count ?? 1;

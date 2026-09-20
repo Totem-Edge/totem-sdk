@@ -143,7 +143,10 @@ export class GrantBoundPolicy {
           mandateProofId: r.mandateId,
           intentId: r.actionDigest,
           usedAt: r.committedAt,
-          countsToward: { count: 1 },
+          // Reconstruct BOTH count and amount from the persisted reservation
+          // delta. Dropping amount let committed spending escape `maxTotal`
+          // (AUD-019).
+          countsToward: r.usageDelta ?? { count: 1 },
         })),
         now,
         mandateBody.usageLimit as never,
@@ -211,6 +214,7 @@ export class GrantBoundPolicy {
       actionDigest: reservation.actionDigest,
       committedAt: this.now(),
       executionProof,
+      usageDelta: reservation.usageDelta,
     };
     await this.usageStore.commit(reservationId, receipt);
   }

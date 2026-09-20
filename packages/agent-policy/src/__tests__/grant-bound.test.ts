@@ -44,7 +44,10 @@ function makeResolver(graphs: Map<string, unknown>): AuthorityIdentityResolver {
   return { resolve: (id) => graphs.get(id) as never };
 }
 
-function makeMandateProof(identityId: string, overrides?: { scope?: string; constraints?: MandateConstraint[] }): SignedProof {
+function makeMandateProof(
+  identityId: string,
+  overrides?: { scope?: string; constraints?: MandateConstraint[]; usageLimit?: { maxCount?: number; maxTotal?: string; windowMs?: number } },
+): SignedProof {
   const mandate = createAgentMandate({
     grantor: ADDR_ROOT,
     grantee: ADDR_AGENT,
@@ -54,7 +57,7 @@ function makeMandateProof(identityId: string, overrides?: { scope?: string; cons
       { field: 'target', operator: 'eq', value: 'channel-7' },
       { field: 'payload.channel', operator: 'eq', value: 'ch-9' },
     ],
-    usageLimit: { maxCount: 3 },
+    usageLimit: overrides?.usageLimit ?? { maxCount: 3 },
     issuedAt: 0,
   });
   const unsigned = createProof({
@@ -203,6 +206,32 @@ describe('GrantBoundPolicy', () => {
     const second = await policy.authorizeStep(makeRun(identityId), makeStep(identityId, { stepId: 's2' }));
     await policy.abortStep(second.reservation!.reservationId, 'execution failed');
     expect(await store.countAborted('run-1')).toBe(1);
+  });
+
+  it('enforces maxTotal across sequential committed actions (AUD-019)', async () => {
+    const { graph, identityId } = await makeIdentityGraph();
+    const resolver = makeResolver(new Map([[identityId, graph]]));
+    const store = new MemoryGrantUsageStore({ now: () => 2000 });
+    const mandate = makeMandateProof(identityId, { usageLimit: { maxTotal: '10' } });
+    const policy = new GrantBoundPolicy({
+      mandateResolver: async (id) => (id === 'totem:mandate:test' ? mandate : undefined),
+      identityResolver: resolver,
+      usageStore: store,
+      now: () => 2000,
+    });
+    const stepWithAmount = (id: string, amount: string) =>
+      makeStep(identityId, {
+        stepId: id,
+        action: { ...makeStep(identityId).action, constraints: { amount, payload: { channel: 'ch-9' } } },
+      });
+
+    const first = await policy.authorizeStep(makeRun(identityId), stepWithAmount('a', '8'));
+    expect(first.allowed).toBe(true);
+    await policy.commitStep(first.reservation!.reservationId);
+
+    // The committed amount (8) is NOT forgotten: a second 8 exceeds maxTotal 10.
+    const second = await policy.authorizeStep(makeRun(identityId), stepWithAmount('b', '8'));
+    expect(second.allowed).toBe(false);
   });
 
   it('returns requires_human when no mandate matches and unmatchedAction is requires_human', async () => {

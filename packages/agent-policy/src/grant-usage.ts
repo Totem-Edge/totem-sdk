@@ -225,6 +225,7 @@ export class MemoryGrantUsageStore implements GrantUsageStore {
       mandateId: rec.authorization.mandateId,
       actionDigest: rec.authorization.actionDigest,
       committedAt: this.now(),
+      usageDelta: rec.authorization.usageDelta,
     };
   }
 

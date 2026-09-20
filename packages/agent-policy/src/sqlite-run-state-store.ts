@@ -415,6 +415,7 @@ export class SqliteRunStateStore implements RunStateStore, GrantUsageStore {
       mandateId: auth.mandateId,
       actionDigest: auth.actionDigest,
       committedAt: this.now(),
+      usageDelta: auth.usageDelta,
     } satisfies StepReceipt;
   }
 
