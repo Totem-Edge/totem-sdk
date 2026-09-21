@@ -1,4 +1,5 @@
 import type { MiniNumber } from './MiniNumber.js';
+import type { TreeSignature } from '@totemsdk/core';
 
 /**
  * KISSVM v1 public value type.
@@ -43,8 +44,16 @@ export interface ScriptProof {
 
 /** Witness supplied for signature and MAST verification */
 export interface ScriptWitness {
-  /** pubkey-hex (lowercase, no 0x) → flat 1088-byte WOTS signature */
-  signatures: Map<string, Uint8Array>;
+  /**
+   * Signer-root-key hex (lowercase, no 0x) → signature.
+   *
+   * - `Uint8Array`: a flat 1088-byte WOTS signature (single-key convenience),
+   *   verified against the key as a bare WOTS public-key digest.
+   * - `TreeSignature` (`{ proofs }`, RFC-009): a Minima tree signature whose
+   *   root public key is the signer identity; verified with
+   *   `verifyTreeSignature` (proof chain to the root).
+   */
+  signatures: Map<string, Uint8Array | TreeSignature>;
   /** HTLC: hash hex → preimage hex */
   preimages?: Map<string, string>;
   /**

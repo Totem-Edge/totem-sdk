@@ -1,39 +1,69 @@
+import { getRootPublicKey, bytesToHex } from '@totemsdk/core';
+import type { TreeSignature } from '@totemsdk/core';
 import type { ScriptWitness } from './types.js';
 
-export interface WitnessInput {
-  /** Public key digest hex (32 bytes, with or without 0x prefix) */
-  pubkeyHex: string;
-  /** 1088-byte flat WOTS signature */
-  signature: Uint8Array;
+/**
+ * One witness signature entry (RFC-009).
+ *
+ * - a flat single-key WOTS signature (`{ pubkeyHex, signature }`), or
+ * - a Minima tree signature (`TreeSignature`) whose root public key is the
+ *   signer identity.
+ */
+export type WitnessInput =
+  | { pubkeyHex: string; signature: Uint8Array }
+  | TreeSignature;
+
+function isTreeSignature(value: unknown): value is TreeSignature {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    Array.isArray((value as { proofs?: unknown }).proofs)
+  );
+}
+
+/** Signer identity = the root public key of a tree signature's first proof. */
+function rootKeyHex(sig: TreeSignature): string {
+  return bytesToHex(getRootPublicKey(sig.proofs[0])).toLowerCase();
 }
 
 /**
- * buildWitness — constructs a ScriptWitness from a list of signed inputs.
+ * buildWitness — constructs a ScriptWitness from signed entries.
  *
- * Each entry provides the public-key digest and the corresponding WOTS
- * signature over the transaction digest. The evaluator uses this witness
- * when verifying SIGNEDBY / MULTISIG opcodes.
+ * Flat entries are keyed by their declared WOTS public-key digest; tree
+ * signatures are keyed by their **computed root public key** (never a
+ * caller-supplied value), so `SIGNEDBY(<root>)` can only be satisfied by a
+ * signature that actually reconstructs to that root.
  *
- * For convenience, a `{ signatures }` map (pubkey hex → signature bytes or
- * hex string) is also accepted — used by the canonical example suite.
+ * For convenience, a `{ signatures }` map (key → signature bytes/hex or
+ * `TreeSignature`) is also accepted.
  */
 export function buildWitness(
-  inputs: WitnessInput[] | { signatures: Record<string, Uint8Array | string> },
+  inputs:
+    | WitnessInput[]
+    | { signatures: Record<string, Uint8Array | string | TreeSignature> },
 ): ScriptWitness {
-  const signatures = new Map<string, Uint8Array>();
+  const signatures = new Map<string, Uint8Array | TreeSignature>();
 
   if (Array.isArray(inputs)) {
     for (const inp of inputs) {
-      signatures.set(normalizeKey(inp.pubkeyHex), inp.signature);
+      if (isTreeSignature(inp)) {
+        signatures.set(rootKeyHex(inp), inp);
+      } else {
+        signatures.set(normalizeKey(inp.pubkeyHex), inp.signature);
+      }
     }
     return { signatures };
   }
 
   for (const [pubkeyHex, sig] of Object.entries(inputs.signatures ?? {})) {
-    const value = typeof sig === 'string'
-      ? hexToBytes(sig.replace(/^0x/i, ''))
-      : sig;
-    signatures.set(normalizeKey(pubkeyHex), value);
+    if (isTreeSignature(sig)) {
+      signatures.set(rootKeyHex(sig), sig);
+    } else {
+      const value = typeof sig === 'string'
+        ? hexToBytes(sig.replace(/^0x/i, ''))
+        : sig;
+      signatures.set(normalizeKey(pubkeyHex), value);
+    }
   }
   return { signatures };
 }

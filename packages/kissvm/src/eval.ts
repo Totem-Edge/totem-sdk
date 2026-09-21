@@ -14,8 +14,8 @@
  */
 
 import { createHash } from 'node:crypto';
-import { sha3_256, hexToBytes, wotsVerifyDigest, mmrLeafExact, parseMMRProofFromHex, createMMRDataParentNode, createMMRDataLeafNode, calculateProofRoot } from '@totemsdk/core';
-import type { MMRData, MMRProof } from '@totemsdk/core';
+import { sha3_256, hexToBytes, wotsVerifyDigest, verifyTreeSignature, mmrLeafExact, parseMMRProofFromHex, createMMRDataParentNode, createMMRDataLeafNode, calculateProofRoot } from '@totemsdk/core';
+import type { MMRData, MMRProof, TreeSignature } from '@totemsdk/core';
 import { KissvmLimitError, KissvmRuntimeError, ReturnSignal } from './errors.js';
 import { LIMITS, VMState, MastBranch, UserFunction } from './vm.js';
 import { parseScript } from './parser.js';
@@ -702,6 +702,35 @@ function resolveBuiltinFunction(name: string, argNodes: ASTNode[], vm: VMState):
 
 // ─── SIGNEDBY verification ────────────────────────────────────────────────────
 
+/**
+ * Resolve the signer identity of a tree signature (RFC-009): the root public key
+ * of its first proof — matches Minima `SignatureProof.getRootPublicKey()`.
+ */
+const MAX_KEY_LEVELS = 8;
+
+/**
+ * Verify a witness signature entry against `expectedKey` over `txDigest`.
+ *
+ * - Flat `Uint8Array`: bare WOTS signature verified against the key as a pkd.
+ * - `TreeSignature` (`{ proofs }`): verified with `verifyTreeSignature`, which
+ *   reconstructs the root from the proof chain and requires it to equal
+ *   `expectedKey` (Minima `TreeKey.verify`). Proof depth is bounded.
+ */
+function verifyWitnessSignature(
+  entry: Uint8Array | TreeSignature,
+  txDigest: Uint8Array,
+  expectedKey: Uint8Array,
+): boolean {
+  if (entry instanceof Uint8Array) {
+    return wotsVerifyDigest(entry, txDigest, expectedKey);
+  }
+  const proofs = entry?.proofs;
+  if (!Array.isArray(proofs) || proofs.length === 0 || proofs.length > MAX_KEY_LEVELS) {
+    return false;
+  }
+  return verifyTreeSignature(expectedKey, txDigest, entry);
+}
+
 function verifySignedBy(pkVal: string, vm: VMState): boolean {
   const stripped = (pkVal.startsWith('0x') || pkVal.startsWith('0X'))
     ? pkVal.slice(2).toLowerCase()
@@ -719,7 +748,7 @@ function verifySignedBy(pkVal: string, vm: VMState): boolean {
     return false;
   }
   try {
-    const ok = wotsVerifyDigest(sig, vm.txCtx.txDigest, hexToBytes(stripped));
+    const ok = verifyWitnessSignature(sig, vm.txCtx.txDigest, hexToBytes(stripped));
     vm.addTrace(`SIGNEDBY(${stripped.slice(0, 10)}…) → ${ok}`);
     return ok;
   } catch {
@@ -746,7 +775,7 @@ function evalChecksig(args: ASTNode[], vm: VMState): boolean {
   if (args.length === 0) {
     for (const [, sig] of vm.witness.signatures) {
       try {
-        if (wotsVerifyDigest(sig, txDigest, new Uint8Array(32))) return true;
+        if (sig instanceof Uint8Array && wotsVerifyDigest(sig, txDigest, new Uint8Array(32))) return true;
       } catch { /**/ }
     }
     return false;
@@ -763,7 +792,7 @@ function evalChecksig(args: ASTNode[], vm: VMState): boolean {
   }
 
   try {
-    const ok = wotsVerifyDigest(sig, txDigest, pkBytes);
+    const ok = verifyWitnessSignature(sig, txDigest, pkBytes);
     vm.addTrace(`CHECKSIG(${stripped.slice(0, 10)}…) → ${ok}`);
     return ok;
   } catch {
