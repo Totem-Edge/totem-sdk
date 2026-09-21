@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -15,26 +16,33 @@ import (
 
 const reclaimEncKeyInfo = "statechain-reclaim-tx-v1"
 
+// ErrNotInteroperable marks the Go SE signing/identity surface as disabled
+// (AUD-045). This package is NOT a WOTS-compatible SE: the TypeScript
+// `@totemsdk/se-server` is the supported implementation. Until real
+// interoperable WOTS (with cross-language known-answer tests) lands here, the
+// signer/verifier fail closed rather than emitting placeholder cryptography
+// that a peer could mistake for a valid SE signature.
+var ErrNotInteroperable = errors.New("se-server(go): not an interoperable WOTS SE (AUD-045); use the TypeScript SE")
+
+// getPublicKeyHex returns the (non-interoperable) legacy hash. It is retained
+// only so the reference server still compiles; it is NOT the SE signing key and
+// MUST NOT be treated as an SE identity. See ErrNotInteroperable.
 func getPublicKeyHex(seed []byte) string {
 	h := sha3.New256()
 	h.Write(append(seed, 0, 0, 0, 0))
 	return hex.EncodeToString(h.Sum(nil))
 }
 
+// seSign is disabled (AUD-045). The previous implementation returned an
+// HMAC-SHA256 value, which is not a WOTS signature and must never be presented
+// as one.
 func seSign(seed, commitmentBytes []byte) ([]byte, error) {
-	h := sha3.New256()
-	h.Write(append(seed, 0, 0, 0, 0))
-	key := h.Sum(nil)
-
-	mac := hmac.New(sha256.New, key)
-	mac.Write(commitmentBytes)
-	return mac.Sum(nil), nil
+	return nil, ErrNotInteroperable
 }
 
+// wotsVerifyDigest is disabled (AUD-045): never accept a non-WOTS signature.
 func wotsVerifyDigest(sig, message, pkDigest []byte) bool {
-	expected := sha3.Sum256(append(sig, pkDigest...))
-	actual := sha3.Sum256(message)
-	return hex.EncodeToString(expected[:]) == hex.EncodeToString(actual[:])
+	return false
 }
 
 func getReclaimEncKey(seed []byte) []byte {

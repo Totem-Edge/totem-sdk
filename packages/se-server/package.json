@@ -31,6 +31,9 @@
   ],
   "dependencies": {
     "@totemsdk/core": "workspace:^",
+    "@totemsdk/root-identity": "workspace:^",
+    "@totemsdk/storage": "workspace:^",
+    "@totemsdk/wots-lease": "workspace:^",
     "express": "^5.2.1",
     "express-rate-limit": "^7.5.0",
     "pg": "^8.11.3",

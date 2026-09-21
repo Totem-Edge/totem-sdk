@@ -8,42 +8,26 @@
  *   - router: create / challenge / blind-sign / claim / reclaim-tx flows with a mocked DB
  */
 
-import { getPublicKeyHex, seSign, wotsVerifyDigestAsync, encryptReclaimTx, decryptReclaimTx } from '../seKey';
+import { wotsVerifyDigestAsync, encryptReclaimTx, decryptReclaimTx } from '../seKey';
 import { loadConfigFromEnv } from '../config';
-import { derivePKdigest } from '@totemsdk/core';
+import { wotsSign, derivePKdigest } from '@totemsdk/core';
 
 const SEED = new Uint8Array(32).fill(0x5e);
 
 describe('seKey', () => {
-  it('getPublicKeyHex is deterministic for a given seed', () => {
-    const a = getPublicKeyHex(SEED);
-    const b = getPublicKeyHex(SEED);
-    expect(a).toBe(b);
-    expect(a).toMatch(/^[0-9a-fA-F]{64}$/);
-  });
-
-  it('getPublicKeyHex differs across seeds', () => {
-    const other = new Uint8Array(32).fill(0x6f);
-    expect(getPublicKeyHex(SEED)).not.toBe(getPublicKeyHex(other));
-  });
-
-  it('seSign produces a signature that wotsVerifyDigestAsync accepts', async () => {
+  // AUD-003/AUD-025: the legacy getPublicKeyHex / seSign (fixed index-0 key,
+  // advertised digest != signer) were removed; the SE signs via SeIdentity.
+  it('wotsVerifyDigestAsync accepts a WOTS signature over the message', async () => {
     const message = new Uint8Array(32).fill(0x42);
-    const sig = await seSign(SEED, message);
-    const pkdBytes = derivePKdigest(SEED, 0);
-
-    const valid = await wotsVerifyDigestAsync(sig, message, pkdBytes);
-    expect(valid).toBe(true);
+    const sig = wotsSign(SEED, 0, message);
+    expect(await wotsVerifyDigestAsync(sig, message, derivePKdigest(SEED, 0))).toBe(true);
   });
 
   it('wotsVerifyDigestAsync rejects a tampered message', async () => {
     const message = new Uint8Array(32).fill(0x42);
-    const sig = await seSign(SEED, message);
-    const pkdBytes = derivePKdigest(SEED, 0);
-
+    const sig = wotsSign(SEED, 0, message);
     const tampered = new Uint8Array(32).fill(0x43);
-    const valid = await wotsVerifyDigestAsync(sig, tampered, pkdBytes);
-    expect(valid).toBe(false);
+    expect(await wotsVerifyDigestAsync(sig, tampered, derivePKdigest(SEED, 0))).toBe(false);
   });
 
   it('encryptReclaimTx / decryptReclaimTx roundtrip', () => {

@@ -1896,6 +1896,15 @@ importers:
       '@totemsdk/core':
         specifier: workspace:^
         version: link:../core
+      '@totemsdk/root-identity':
+        specifier: workspace:^
+        version: link:../root-identity
+      '@totemsdk/storage':
+        specifier: workspace:^
+        version: link:../storage
+      '@totemsdk/wots-lease':
+        specifier: workspace:^
+        version: link:../wots-lease
       express:
         specifier: ^5.2.1
         version: 5.2.1
@@ -2017,6 +2026,9 @@ importers:
         specifier: workspace:^
         version: link:../wots-lease
     devDependencies:
+      '@totemsdk/kissvm':
+        specifier: workspace:^
+        version: link:../kissvm
       '@types/jest':
         specifier: ^30.0.0
         version: 30.0.0

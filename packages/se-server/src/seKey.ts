@@ -1,5 +1,4 @@
 import crypto from 'crypto';
-import { sha3_256, bytesToHex } from '@totemsdk/core';
 
 let _coreModule: any = null;
 
@@ -9,32 +8,15 @@ async function loadCore(): Promise<any> {
   return _coreModule;
 }
 
-/** Stateless WOTS key utilities — all functions take the seed as a parameter. */
-
 /**
- * Derives the SE WOTS public key digest from seed.
- * Fast approximation using sha3_256 — consistent with what axia-api stores
- * in statechain_records.se_public_key and what clients verify against.
+ * Stateless helpers for the SE.
+ *
+ * The SE's identity and one-time WOTS signing live in `./seIdentity` (RFC-008):
+ * a root-identity anchor with leased one-time leaves. The legacy
+ * `getPublicKeyHex` / `seSign` (a fixed index-0 key that did not match the
+ * advertised digest) have been removed (AUD-003/AUD-025). What remains here is
+ * generic verification and the reclaim-tx encryption helpers.
  */
-export function getPublicKeyHex(seed: Uint8Array): string {
-  const pkdBytes = sha3_256(
-    Buffer.concat([Buffer.from(seed), Buffer.from([0, 0, 0, 0])]),
-  );
-  return bytesToHex(pkdBytes);
-}
-
-/** Full WOTS public key derivation (async, loads WASM core). */
-export async function getPublicKeyHexAsync(seed: Uint8Array): Promise<string> {
-  const core = await loadCore();
-  const pkd = core.wotsPublicKeyFromSeed(seed, 0);
-  return bytesToHex(pkd);
-}
-
-/** Sign commitmentBytes with the SE's WOTS key at index 0. */
-export async function seSign(seed: Uint8Array, commitmentBytes: Uint8Array): Promise<Uint8Array> {
-  const core = await loadCore();
-  return core.wotsSign(seed, 0, commitmentBytes);
-}
 
 /** Verify a WOTS digest signature. Generic — verifies any operator's signature. */
 export async function wotsVerifyDigestAsync(

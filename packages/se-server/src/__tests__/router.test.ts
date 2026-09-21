@@ -8,23 +8,27 @@
 
 import express from 'express';
 import { createSeRouter } from '../router';
-import { getPublicKeyHex } from '../seKey';
 import type { SeServerConfig } from '../config';
 
 const SEED = new Uint8Array(32).fill(0x5e);
-const SE_PKD = getPublicKeyHex(SEED);
+
+// Building the SE identity (root/child TreeKeys) is CPU-heavy; give the suite
+// a realistic budget.
+jest.setTimeout(180_000);
 
 interface MockPool {
   query: jest.Mock;
+  connect: jest.Mock;
 }
 
 function makePool(): MockPool {
-  const pool: MockPool = { query: jest.fn() };
+  const pool: MockPool = { query: jest.fn(), connect: jest.fn() };
 
   // Default canned responses per query shape.
   pool.query.mockImplementation(async (sql: string, params?: unknown[]) => {
     const text = String(sql);
 
+    if (text.includes('BEGIN') || text.includes('COMMIT') || text.includes('ROLLBACK')) return { rows: [], rowCount: 0 };
     if (text.includes('INSERT INTO statechain_records')) return { rows: [], rowCount: 1 };
     if (text.includes('INSERT INTO statechain_nonces')) return { rows: [], rowCount: 1 };
     if (text.includes('INSERT INTO statechain_revocations')) return { rows: [], rowCount: 1 };
@@ -34,6 +38,23 @@ function makePool(): MockPool {
       const nonce = params?.[0];
       if (nonce === 'valid-nonce') return { rows: [{ chain_id: 'sc_test' }], rowCount: 1 };
       return { rows: [], rowCount: 0 };
+    }
+
+    if (text.includes('SELECT 1 FROM statechain_nonces')) {
+      const nonce = params?.[0];
+      return nonce === 'valid-nonce' ? { rows: [{ '?column?': 1 }], rowCount: 1 } : { rows: [], rowCount: 0 };
+    }
+
+    // Transactional ownership read (AUD-027): FOR UPDATE, explicit columns.
+    if (text.includes('SELECT status, current_owner_pkd, version FROM statechain_records')) {
+      return {
+        rows: [{
+          status: 'active',
+          current_owner_pkd: '0x' + '33'.repeat(32),
+          version: 0,
+        }],
+        rowCount: 1,
+      };
     }
 
     if (text.includes('SELECT * FROM statechain_records WHERE chain_id')) {
@@ -47,10 +68,11 @@ function makePool(): MockPool {
           token_id: '0x00',
           statechain_script: 'RETURN TRUE',
           locking_address: '0x' + '22'.repeat(32),
-          se_public_key: SE_PKD,
+          se_public_key: '0x' + 'aa'.repeat(32),
           current_owner_party_id: 'owner-1',
           current_owner_pkd: '0x' + '33'.repeat(32),
           transfer_count: 0,
+          version: 0,
           status: 'active',
           reclaim_tx_hex_enc: 'enc:deadbeef',
           created_at: new Date(),
@@ -61,10 +83,16 @@ function makePool(): MockPool {
     }
 
     if (text.includes('SELECT 1 FROM statechain_revocations')) return { rows: [], rowCount: 0 };
-    if (text.includes('UPDATE statechain_records')) return { rows: [], rowCount: 1 };
+    if (text.includes('UPDATE statechain_records')) {
+      if (text.includes('RETURNING')) return { rows: [{ version: 1, transfer_count: 1 }], rowCount: 1 };
+      return { rows: [], rowCount: 1 };
+    }
 
     return { rows: [], rowCount: 0 };
   });
+
+  // AUD-027: pool.connect() for transactional routes.
+  pool.connect.mockImplementation(async () => ({ query: pool.query, release: () => undefined }));
 
   return pool;
 }
@@ -78,8 +106,11 @@ function makeApp(pool: MockPool, betaMode = false): express.Express {
   };
   const app = express();
   app.use(express.json({ limit: '1mb' }));
-  app.use('/statechain', createSeRouter(config, pool as unknown as import('pg').Pool));
-  app.use('/v1/statechain', createSeRouter(config, pool as unknown as import('pg').Pool));
+  // One router instance mounted at both prefixes (as createSeServer does), so
+  // the SE identity is built once per app.
+  const router = createSeRouter(config, pool as unknown as import('pg').Pool);
+  app.use('/statechain', router);
+  app.use('/v1/statechain', router);
   return app;
 }
 
@@ -130,11 +161,17 @@ function httpRequest(
 }
 
 describe('se-server router', () => {
-  it('GET /se-public-key returns the SE public key and timelock', async () => {
+  it('GET /se-public-key returns the SE root identity and timelock', async () => {
     const app = makeApp(makePool());
     const res = await httpRequest(app, 'GET', '/statechain/se-public-key');
     expect(res.status).toBe(200);
-    expect(res.json.sePublicKey).toBe(SE_PKD);
+    // RFC-008 Phase 1: the published key is the real root identity, not the
+    // legacy sha3(seed||0000) placeholder.
+    expect(res.json.sePublicKey).toMatch(/^[0-9a-fA-F]{64}$/);
+    expect(res.json.sePublicKey).toBe(res.json.seRootPublicKey);
+    expect(typeof res.json.seRootAddress).toBe('string');
+    expect(res.json.seProofVersion).toBe(1);
+    expect(res.json.seOwnershipProof).toBeDefined();
     expect(res.json.reclaimTimelock).toBe(256);
   });
 
@@ -150,7 +187,7 @@ describe('se-server router', () => {
     });
     expect(res.status).toBe(201);
     expect(res.json.chainId).toMatch(/^sc_/);
-    expect(res.json.sePublicKey).toBe(SE_PKD);
+    expect(res.json.sePublicKey).toMatch(/^[0-9a-fA-F]{64}$/);
     expect(res.json.lockingAddress).toMatch(/^[0-9a-fA-F]{64}$/);
     expect(pool.query).toHaveBeenCalled();
   });
@@ -243,7 +280,7 @@ describe('se-server router', () => {
     const app = makeApp(makePool());
     const res = await httpRequest(app, 'GET', '/v1/statechain/se-public-key');
     expect(res.status).toBe(200);
-    expect(res.json.sePublicKey).toBe(SE_PKD);
+    expect(res.json.sePublicKey).toMatch(/^[0-9a-fA-F]{64}$/);
 
     const created = await httpRequest(app, 'POST', '/v1/statechain/create', {
       coinId: '0x' + '11'.repeat(32),

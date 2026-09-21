@@ -1,3 +1,5 @@
+import type { StorageAdapter } from '@totemsdk/core';
+
 export interface SeSignEvent {
   chainId: string;
   eventType: string;
@@ -15,6 +17,13 @@ export interface SeServerConfig {
   reclaimTimelock?: number;
   /** Adds X-Beta headers to all responses. Default false (stable API). */
   betaMode?: boolean;
+  /**
+   * Durable storage for the SE identity watermark and the one-time WOTS leaf
+   * lease (RFC-008). Operators should provide a durable backing store; when
+   * omitted an in-memory store is used (dev only — leaf-use watermarks are lost
+   * on restart).
+   */
+  seStorage?: StorageAdapter;
   /**
    * Called after every SE signing event. Lets operators hook in billing,
    * audit logging, or rate limiting without patching this package.

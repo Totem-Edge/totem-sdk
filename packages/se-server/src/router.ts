@@ -1,27 +1,27 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import rateLimit from 'express-rate-limit';
 import crypto from 'crypto';
-import { sha3_256, bytesToHex } from '@totemsdk/core';
+import { sha3_256, bytesToHex, computeTransactionDigest } from '@totemsdk/core';
 import { z } from 'zod';
 import { Pool } from 'pg';
 import {
   insertStatechainRecord,
   getStatechainRecord,
-  updateStatechainOwner,
   updateStatechainStatus,
-  insertRevocation,
   isRevoked,
   issueNonce,
   consumeNonce,
+  nonceExists,
   logSignEvent,
+  revokeOwnerTransactional,
 } from './db';
 import {
-  getPublicKeyHex,
-  seSign,
-  wotsVerifyDigestAsync,
   encryptReclaimTx,
   decryptReclaimTx,
 } from './seKey';
+import { verifyOwnerRequest } from './ownerAuth';
+import { SeIdentity } from './seIdentity';
+import { MemoryStore } from '@totemsdk/storage';
 import type { SeServerConfig } from './config';
 
 function fromHex(s: string): Uint8Array {
@@ -88,13 +88,6 @@ const ReclaimQuerySchema = z.object({
   ownerSignature: z.string().min(1),
 });
 
-async function verifyOwnerSig(ownerPkd: string, nonce: string, ownerSig: string): Promise<boolean> {
-  try {
-    const msg = sha3_256(new TextEncoder().encode(nonce));
-    return await wotsVerifyDigestAsync(fromHex(ownerSig), msg, fromHex(ownerPkd));
-  } catch { return false; }
-}
-
 export function createSeRouter(config: SeServerConfig, pool: Pool): Router {
   const r = Router();
   const limiter = rateLimit({
@@ -108,6 +101,12 @@ export function createSeRouter(config: SeServerConfig, pool: Pool): Router {
   const reclaimTimelock = config.reclaimTimelock ?? 256;
   const seed = config.seSeed;
 
+  // RFC-008 Phase 1: the SE identity is a root identity (root-identity) whose
+  // one-time WOTS leaves are leased through wots-lease. No index-0 reuse, and
+  // the published identity is the actual signer's root.
+  const seStorage = config.seStorage ?? new MemoryStore();
+  const identityPromise = SeIdentity.create({ seed, storage: seStorage });
+
   function betaHeaders(res: Response): void {
     if (config.betaMode === true) {
       res.setHeader('X-Beta', 'true');
@@ -116,10 +115,19 @@ export function createSeRouter(config: SeServerConfig, pool: Pool): Router {
     }
   }
 
-  r.get('/se-public-key', (_req: Request, res: Response) => {
+  r.get('/se-public-key', asyncRoute(async (_req: Request, res: Response) => {
     betaHeaders(res);
-    res.json({ sePublicKey: getPublicKeyHex(seed), reclaimTimelock, sla: '99.5%' });
-  });
+    const published = (await identityPromise).getPublishedIdentity();
+    res.json({
+      sePublicKey: published.rootPublicKey,
+      seRootPublicKey: published.rootPublicKey,
+      seRootAddress: published.rootAddress,
+      seOwnershipProof: published.ownershipProof,
+      seProofVersion: published.proofVersion,
+      reclaimTimelock,
+      sla: '99.5%',
+    });
+  }));
 
   r.post('/create', asyncRoute(async (req, res) => {
     betaHeaders(res);
@@ -128,7 +136,9 @@ export function createSeRouter(config: SeServerConfig, pool: Pool): Router {
 
     const { coinId, ownerPublicKeyDigest, ownerPartyId, reclaimTxHex, tokenId } = body.data;
     const projectId = resolveProjectId(req);
-    const sePkd = getPublicKeyHex(seed);
+    // Bind the SE root identity in the locking script; the claim co-signature
+    // is a leased root-leaf signature verified against this key (RFC-008).
+    const sePkd = (await identityPromise).getPublishedIdentity().rootPublicKey;
     const statechainScript = buildStatechainScript(sePkd, reclaimTimelock);
     const lockingAddress = scriptAddress(statechainScript);
     const chainId = 'sc_' + crypto.randomBytes(16).toString('hex');
@@ -172,22 +182,22 @@ export function createSeRouter(config: SeServerConfig, pool: Pool): Router {
     const nonceChainId = await consumeNonce(pool, nonce);
     if (!nonceChainId || nonceChainId !== chainId) return res.status(401).json({ error: 'Invalid or expired nonce' });
 
-    if (!await verifyOwnerSig(chain.current_owner_pkd, nonce, ownerSignature)) {
+    if (!await verifyOwnerRequest(chain.current_owner_pkd, chainId, 'blind-sign', nonce, { blindedCommitment }, ownerSignature)) {
       return res.status(403).json({ error: 'Ownership verification failed' });
     }
     if (await isRevoked(pool, chainId, chain.current_owner_party_id)) {
       return res.status(403).json({ error: 'Current owner key has been revoked' });
     }
 
-    let commitmentBytes: Uint8Array;
-    try { commitmentBytes = fromHex(blindedCommitment); }
+    try { fromHex(blindedCommitment); }
     catch { return res.status(400).json({ error: 'blindedCommitment must be valid hex' }); }
 
-    const seSignatureHex = bytesToHex(await seSign(seed, commitmentBytes));
+    // Leased child leaf, one-time signature (RFC-008).
+    const seSignature = await (await identityPromise).signChild(blindedCommitment);
     await logSignEvent(pool, chainId, 'blind_sign');
     config.onSign?.({ chainId, eventType: 'blind_sign', projectId: resolveProjectId(req) });
 
-    return res.json({ blindSignature: seSignatureHex });
+    return res.json({ blindSignature: seSignature.signature, seSignature });
   }));
 
   r.post('/:chainId/revoke-key', asyncRoute(async (req, res) => {
@@ -202,21 +212,44 @@ export function createSeRouter(config: SeServerConfig, pool: Pool): Router {
     if (!chain) return res.status(404).json({ error: 'Statechain not found' });
     if (chain.status !== 'active') return res.status(409).json({ error: `Statechain not active (${chain.status})` });
 
-    const nonceChainId = await consumeNonce(pool, nonce);
-    if (!nonceChainId || nonceChainId !== chainId) return res.status(401).json({ error: 'Invalid or expired nonce' });
-
-    if (!await verifyOwnerSig(previousOwnerPkd, nonce, ownerSignature)) {
+    if (!await nonceExists(pool, chainId, nonce)) {
+      return res.status(401).json({ error: 'Invalid or expired nonce' });
+    }
+    if (!await verifyOwnerRequest(
+      previousOwnerPkd,
+      chainId,
+      'revoke-key',
+      nonce,
+      { previousOwnerPartyId, previousOwnerPkd, newOwnerPartyId, newOwnerPkd, newReclaimTxHex },
+      ownerSignature,
+    )) {
       return res.status(403).json({ error: 'Previous owner signature verification failed' });
     }
     if (previousOwnerPkd !== chain.current_owner_pkd) {
       return res.status(400).json({ error: 'previousOwnerPkd does not match current chain owner' });
     }
 
-    await insertRevocation(pool, chainId, previousOwnerPartyId, previousOwnerPkd);
-    await updateStatechainOwner(pool, chainId, newOwnerPartyId, newOwnerPkd, encryptReclaimTx(seed, newReclaimTxHex));
-    await logSignEvent(pool, chainId, 'revoke_key');
+    // AUD-027: nonce consumption + ownership transition + revocation + sign log
+    // in one transaction, guarded by a row lock and a version CAS. A request
+    // authorized against a stale owner snapshot is rejected, never applied.
+    const result = await revokeOwnerTransactional(pool, {
+      chainId,
+      nonce,
+      expectedOwnerPkd: previousOwnerPkd,
+      revokedPartyId: previousOwnerPartyId,
+      newOwnerPartyId,
+      newOwnerPkd,
+      newReclaimTxHexEnc: encryptReclaimTx(seed, newReclaimTxHex),
+    });
+    if (!result.ok) {
+      const status = result.reason === 'invalid-nonce' ? 401
+        : result.reason === 'chain-not-found' ? 404
+        : 409; // not-active | stale-owner
+      return res.status(status).json({ error: `Revoke failed: ${result.reason}` });
+    }
 
-    return res.json({ ok: true, transferCount: chain.transfer_count + 1 });
+    config.onSign?.({ chainId, eventType: 'revoke_key', projectId: resolveProjectId(req) });
+    return res.json({ ok: true, transferCount: result.transferCount, version: result.newVersion });
   }));
 
   r.get('/:chainId', asyncRoute(async (req, res) => {
@@ -245,17 +278,22 @@ export function createSeRouter(config: SeServerConfig, pool: Pool): Router {
     const nonceChainId = await consumeNonce(pool, nonce);
     if (!nonceChainId || nonceChainId !== chainId) return res.status(401).json({ error: 'Invalid or expired nonce' });
 
-    if (!await verifyOwnerSig(chain.current_owner_pkd, nonce, ownerSignature)) {
+    if (!await verifyOwnerRequest(chain.current_owner_pkd, chainId, 'claim', nonce, { claimAddress, claimTxHex }, ownerSignature)) {
       return res.status(403).json({ error: 'Ownership verification failed' });
     }
 
-    const claimDigest = sha3_256(new TextEncoder().encode(claimTxHex));
-    const seClaimSignature = bytesToHex(await seSign(seed, claimDigest));
+    // AUD-029: sign the canonical transaction digest of the claim TX, not the
+    // UTF-8 bytes of its hex text.
+    let claimTxBytes: Uint8Array;
+    try { claimTxBytes = fromHex(claimTxHex); }
+    catch { return res.status(400).json({ error: 'claimTxHex must be valid hex' }); }
+    const claimDigest = computeTransactionDigest(claimTxBytes);
+    const claimSignature = await (await identityPromise).signRoot(bytesToHex(claimDigest));
     await updateStatechainStatus(pool, chainId, 'claimed');
     await logSignEvent(pool, chainId, 'claim');
     config.onSign?.({ chainId, eventType: 'claim', projectId: resolveProjectId(req) });
 
-    return res.json({ ok: true, chainId, claimAddress, claimTxHex, seClaimSignature });
+    return res.json({ ok: true, chainId, claimAddress, claimTxHex, seClaimSignature: claimSignature.signature, seSignature: claimSignature });
   }));
 
   r.get('/:chainId/reclaim-tx', asyncRoute(async (req, res) => {
@@ -277,7 +315,7 @@ export function createSeRouter(config: SeServerConfig, pool: Pool): Router {
     const nonceChainId = await consumeNonce(pool, nonce);
     if (!nonceChainId || nonceChainId !== chainId) return res.status(401).json({ error: 'Invalid or expired nonce' });
 
-    if (!await verifyOwnerSig(chain.current_owner_pkd, nonce, ownerSignature)) {
+    if (!await verifyOwnerRequest(chain.current_owner_pkd, chainId, 'reclaim-tx', nonce, {}, ownerSignature)) {
       return res.status(403).json({ error: 'Ownership verification failed' });
     }
 

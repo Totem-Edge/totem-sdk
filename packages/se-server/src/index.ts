@@ -26,13 +26,12 @@ export {
 export { createSeRouter } from './router';
 export { createTimelockMonitor } from './timelockMonitor';
 export {
-  getPublicKeyHex,
-  getPublicKeyHexAsync,
-  seSign,
   wotsVerifyDigestAsync,
   encryptReclaimTx,
   decryptReclaimTx,
 } from './seKey';
+export { SeIdentity } from './seIdentity';
+export type { SePublishedIdentity, SeSignature, SeIdentityOptions } from './seIdentity';
 
 export interface SeServer {
   app: express.Express;
@@ -86,9 +85,8 @@ export function createSeServer(
         server!.once('error', reject);
       });
 
-      const sePublicKey = (await import('./seKey.js')).getPublicKeyHex(config.seSeed);
       console.log(`[se-server] Listening on port ${listenPort}`);
-      console.log(`[se-server] SE public key: ${sePublicKey}`);
+      console.log('[se-server] SE identity: GET /statechain/se-public-key');
       return server;
     },
 
