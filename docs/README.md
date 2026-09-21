@@ -147,6 +147,8 @@
 | [rfc/RFC-003-OMNIA-BUILT-IN-PROGRAMS.md](rfc/RFC-003-OMNIA-BUILT-IN-PROGRAMS.md) | Omnia built-in channel programs — HTLC, vault, treasury, membership, asset (implemented) |
 | [rfc/RFC-006-SDK-INTELLIGENCE-QVAC-INTEGRATION.md](rfc/RFC-006-SDK-INTELLIGENCE-QVAC-INTEGRATION.md) | SDK intelligence/QVAC integration — provider-neutral local AI inference contracts, capability strings, edge gating, agent-policy inference intents (implemented, P0–P7) |
 | [rfc/RFC-007-STORAGE-CONSOLIDATION.md](rfc/RFC-007-STORAGE-CONSOLIDATION.md) | Storage consolidation & durable guarantees — `@totemsdk/storage` contract layer (codec/transaction/error taxonomy/artifact boundary + pluggable `ArtifactStoreBackend` port), package persistence matrix (60 pkg, Migrate/Retain/Delegate/Ephemeral/Defer), ProofGraph evidence durability, QVAC verification-level & revocation semantics, audit baseline `e97b2c1` (draft) |
+| [rfc/RFC-008-FEDERATED-STATECHAIN.md](rfc/RFC-008-FEDERATED-STATECHAIN.md) | Federated statechain — leased WOTS identity via `root-identity` + `wots-lease`, federation-shaped single-SE redesign (fixes AUD-003/025/045), and the full path to threshold k-of-n SE federation, equivocation proofs/slashing, and an SE marketplace (draft) |
+| [rfc/RFC-009-KISSVM-SIGNATURE-FIDELITY.md](rfc/RFC-009-KISSVM-SIGNATURE-FIDELITY.md) | KISSVM signature fidelity — make the script validator Minima-faithful by verifying TreeKey `SignatureProof`s (root public keys) instead of flat WOTS only; unblocks RFC-008's on-chain SE witness (draft) |
 
 ---
 

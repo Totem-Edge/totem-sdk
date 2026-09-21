@@ -511,6 +511,7 @@ docs/                       # SDK documentation
 | [RFC-006](docs/rfc/RFC-006-SDK-INTELLIGENCE-QVAC-INTEGRATION.md) | SDK intelligence/QVAC integration (implemented) |
 | [RFC-007](docs/rfc/RFC-007-STORAGE-CONSOLIDATION.md) | Storage consolidation & durable guarantees (draft) |
 | [RFC-008](docs/rfc/RFC-008-FEDERATED-STATECHAIN.md) | Federated statechain — leased WOTS identity & threshold SE federation (draft) |
+| [RFC-009](docs/rfc/RFC-009-KISSVM-SIGNATURE-FIDELITY.md) | KISSVM signature fidelity — Minima-faithful TreeKey `SignatureProof` verification (draft) |
 | [SDK Audit (archived)](docs/archive/SDK_AUDIT-2026-02-ARCHIVED.md) | Historical Feb 2026 audit; current maturity lives in the table above |
 | [SDK Manifest](SDK_MANIFEST.json) | Machine-readable package index — 55 packages, for AI agents and tooling |
 | [API Reference](https://totem.ing) | Full TypeDoc-generated API reference |
