@@ -1,6 +1,6 @@
 # RFC-009: KISSVM Signature Fidelity — Minima-Faithful TreeKey SignatureProof Verification
 
-**Status:** Draft — Phase 0/1 landed (witness model + evaluator tree-proof verification) and the RFC-008 on-chain gate passes
+**Status:** Draft — Phase 0/1 landed (witness model + evaluator tree-proof verification), Phase 2 landed (Java → SDK parity, byte-identical), and the RFC-008 on-chain gate passes; Phase 3 (owner key-model migration) outstanding
 **Created:** 2026-09-21
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]
@@ -254,14 +254,24 @@ available but is the less-faithful model.)
   unchanged. **5/5 passing.**
 - Suites: kissvm 220/220, statechain 120/120; workspace gates green.
 
+- `packages/statechain/src/__tests__/minima-parity.test.ts` + fixture — Phase 2
+  (Java → SDK): a `TreeKey(seed,4,2).sign(digest)` signature produced by the
+  authoritative **Minima Java** (with `minima.jar`) deserializes in core,
+  verifies against the Java root, **re-serializes byte-identically**
+  (`Signature.writeDataStream` parity), and is accepted by the KISSVM validator;
+  a wrong digest is rejected. **4/4 passing.**
+- Suites: kissvm 220/220, statechain 125/125; workspace gates green.
+
 **Outstanding.**
 
-- Phase 2 (cross-impl golden vectors against the Minima Java / node evaluator)
-  and Phase 3 (wire `tx-builder`/`statechain.claim.ts` to emit the tree witness
-  end-to-end) remain.
-- RFC-008's `SeIdentity` produces `TreeSignature`s, but the statechain client
-  still builds flat witnesses for claims; Phase 3 wires the tree witness into
-  the claim path.
+- Phase 2 reverse direction (SDK → Java) is implied by the byte-identical
+  serialization above; a scripted cross-check against `minima.jar` is optional.
+- Phase 3 (wire `tx-builder`/`statechain.claim.ts` to emit the tree witness
+  end-to-end) remains, and **requires the owner key-model migration**: Minima
+  binds the signer's *root* public key (`SignatureProof.getRootPublicKey()`), so
+  the statechain owner (currently a flat WOTS pkd) must become a TreeKey signer
+  before the witness is Minima-valid for both parties. RFC-008's `SeIdentity`
+  already produces `TreeSignature`s; the owner side is the remaining work.
 
 ## 7. Acceptance Gate (the RFC-008 blocker)
 
