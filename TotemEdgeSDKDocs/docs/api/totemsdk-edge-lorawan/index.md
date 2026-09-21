@@ -2,6 +2,8 @@
 
 ***
 
+**Maturity: rc**
+
 # @totemsdk/edge-lorawan
 
 ## Interfaces

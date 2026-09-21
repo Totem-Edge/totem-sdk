@@ -2,15 +2,20 @@
 
 ***
 
+**Maturity: rc**
+
 # @totemsdk/omnia-factory
 
 ## Interfaces
 
 - [ChannelFactory](interfaces/ChannelFactory.md)
+- [DurableFactoryStore](interfaces/DurableFactoryStore.md)
+- [DurableFactoryStoreOptions](interfaces/DurableFactoryStoreOptions.md)
 - [FactoryDisputePayload](interfaces/FactoryDisputePayload.md)
 - [FactoryLeaseOps](interfaces/FactoryLeaseOps.md)
 - [FactoryLogEntry](interfaces/FactoryLogEntry.md)
 - [FactoryParticipant](interfaces/FactoryParticipant.md)
+- [FactoryRegistryState](interfaces/FactoryRegistryState.md)
 - [FactorySettlementPayload](interfaces/FactorySettlementPayload.md)
 - [OmniaChannel](interfaces/OmniaChannel.md)
 - [WotsLeaseBundle](interfaces/WotsLeaseBundle.md)
@@ -29,6 +34,7 @@
 - [closeFactory](functions/closeFactory.md)
 - [closeVirtualChannel](functions/closeVirtualChannel.md)
 - [computeFactoryStateCommitment](functions/computeFactoryStateCommitment.md)
+- [createDurableFactoryStore](functions/createDurableFactoryStore.md)
 - [createFactory](functions/createFactory.md)
 - [enforceConservation](functions/enforceConservation.md)
 - [normalizeScript](functions/normalizeScript.md)

@@ -2,6 +2,8 @@
 
 ***
 
+**Maturity: rc**
+
 # @totemsdk/governance
 
 ## Classes

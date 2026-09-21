@@ -10,16 +10,16 @@
 
 ### batchCompletion
 
-> **batchCompletion**: `QvacOp`\<[`LlmBatchCompletionParams`](LlmBatchCompletionParams.md), `unknown`\>
+> **batchCompletion**: `QvacOp`\<`Record`\<`string`, `unknown`\>, [`BatchCompletionRun`](BatchCompletionRun.md)\>
 
 ***
 
 ### completion
 
-> **completion**: `QvacOp`\<[`LlmCompletionParams`](LlmCompletionParams.md), [`LlmCompletionResult`](LlmCompletionResult.md)\>
+> **completion**: `QvacOp`\<[`CompletionParams`](CompletionParams.md), [`CompletionRun`](CompletionRun.md)\>
 
 ***
 
 ### finetune
 
-> **finetune**: `QvacOp`\<[`LlmFinetuneParams`](LlmFinetuneParams.md), `unknown`\>
+> **finetune**: `QvacOp`\<`Record`\<`string`, `unknown`\>, [`FinetuneHandle`](FinetuneHandle.md)\>

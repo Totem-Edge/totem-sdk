@@ -10,28 +10,68 @@
 
 ### vla
 
-> **vla**: `QvacOp`\<[`VlaParams`](VlaParams.md), \{ `action?`: `string`; `confidence?`: `number`; \}\>
+> **vla**: `QvacOp`\<[`VlaClientRunParams`](VlaClientRunParams.md), [`VlaClientRunResult`](VlaClientRunResult.md)\>
 
 ***
 
 ### vlaHparams
 
-> **vlaHparams**: `QvacOp`\<`Record`\<`string`, `unknown`\>, `unknown`\>
+> **vlaHparams**: `QvacOp`\<\{ `modelId`: `string`; \}, [`VlaHparamsOpResult`](VlaHparamsOpResult.md)\>
 
 ***
 
 ### vlaPadState
 
-> **vlaPadState**: `QvacOp`\<`Record`\<`string`, `unknown`\>, `unknown`\>
+> **vlaPadState**: (`state`, `targetDim?`) => `Promise`\<`IntelligenceOutcome`\<`Uint8Array`\<`ArrayBufferLike`\>\>\>
+
+Real upstream signature: positional, pads a state tensor.
+
+#### Parameters
+
+##### state
+
+`Uint8Array`
+
+##### targetDim?
+
+`number`
+
+#### Returns
+
+`Promise`\<`IntelligenceOutcome`\<`Uint8Array`\<`ArrayBufferLike`\>\>\>
 
 ***
 
 ### vlaPreprocessImage
 
-> **vlaPreprocessImage**: `QvacOp`\<`Record`\<`string`, `unknown`\>, `unknown`\>
+> **vlaPreprocessImage**: (`pixels`, `width`, `height`, `options?`) => `Promise`\<`IntelligenceOutcome`\<`Uint8Array`\<`ArrayBufferLike`\>\>\>
+
+Real upstream signature: positional, returns the preprocessed image.
+
+#### Parameters
+
+##### pixels
+
+`Float32Array`
+
+##### width
+
+`number`
+
+##### height
+
+`number`
+
+##### options?
+
+`Record`\<`string`, `unknown`\>
+
+#### Returns
+
+`Promise`\<`IntelligenceOutcome`\<`Uint8Array`\<`ArrayBufferLike`\>\>\>
 
 ***
 
 ### vlaSetEmbodiment
 
-> **vlaSetEmbodiment**: `QvacOp`\<`Record`\<`string`, `unknown`\>, `unknown`\>
+> **vlaSetEmbodiment**: `QvacOp`\<\{ `embodiment`: [`VlaEmbodimentSelection`](../type-aliases/VlaEmbodimentSelection.md); `modelId`: `string`; \}, \{ `hparams`: [`VlaHparams`](VlaHparams.md); \}\>

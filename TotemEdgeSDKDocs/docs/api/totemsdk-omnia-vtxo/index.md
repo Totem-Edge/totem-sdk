@@ -2,6 +2,8 @@
 
 ***
 
+**Maturity: rc**
+
 # @totemsdk/omnia-vtxo
 
 ## Classes
@@ -24,6 +26,8 @@
 - [ComputeVtxoIdParams](interfaces/ComputeVtxoIdParams.md)
 - [ConservationInput](interfaces/ConservationInput.md)
 - [CreatePoolParams](interfaces/CreatePoolParams.md)
+- [DurableOmniaVtxoStore](interfaces/DurableOmniaVtxoStore.md)
+- [DurableOmniaVtxoStoreOptions](interfaces/DurableOmniaVtxoStoreOptions.md)
 - [ExitDraft](interfaces/ExitDraft.md)
 - [MergeResult](interfaces/MergeResult.md)
 - [MergeVtxosParams](interfaces/MergeVtxosParams.md)
@@ -33,6 +37,7 @@
 - [OmniaVtxo](interfaces/OmniaVtxo.md)
 - [OmniaVtxoOperator](interfaces/OmniaVtxoOperator.md)
 - [OmniaVtxoPool](interfaces/OmniaVtxoPool.md)
+- [OmniaVtxoRegistryState](interfaces/OmniaVtxoRegistryState.md)
 - [OmniaVtxoStore](interfaces/OmniaVtxoStore.md)
 - [RefreshResult](interfaces/RefreshResult.md)
 - [RefreshVtxoParams](interfaces/RefreshVtxoParams.md)
@@ -82,6 +87,7 @@
 - [computeVtxoId](functions/computeVtxoId.md)
 - [computeVtxoLeaf](functions/computeVtxoLeaf.md)
 - [consumeExitReceipt](functions/consumeExitReceipt.md)
+- [createDurableOmniaVtxoStore](functions/createDurableOmniaVtxoStore.md)
 - [createExitDraft](functions/createExitDraft.md)
 - [createPool](functions/createPool.md)
 - [deserializePool](functions/deserializePool.md)

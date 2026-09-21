@@ -10,34 +10,47 @@
 
 ### cancel
 
-> **cancel**: `QvacOp`\<\{ `requestId?`: `string`; \}, `unknown`\>
+> **cancel**: `QvacOp`\<[`CancelClientInput`](../type-aliases/CancelClientInput.md), `void`\>
 
 ***
 
 ### close
 
-> **close**: `QvacOp`\<`Record`\<`string`, `never`\>, `unknown`\>
+> **close**: `QvacOp`\<`Record`\<`string`, `never`\>, `void`\>
 
 ***
 
 ### getSystemResources
 
-> **getSystemResources**: `QvacOp`\<`Record`\<`string`, `never`\>, \{ `cpu?`: `string`; `gpu?`: `string`; \}\>
+> **getSystemResources**: `QvacOp`\<[`GetSystemResourcesInput`](GetSystemResourcesInput.md), [`SystemResources`](SystemResources.md)\>
 
 ***
 
 ### heartbeat
 
-> **heartbeat**: `QvacOp`\<`Record`\<`string`, `never`\>, \{ `status?`: `string`; \}\>
+> **heartbeat**: `QvacOp`\<`Record`\<`string`, `never`\>, [`HeartbeatResponse`](HeartbeatResponse.md)\>
 
 ***
 
 ### loggingStream
 
-> **loggingStream**: `QvacOp`\<`Record`\<`string`, `never`\>, `unknown`\>
+> **loggingStream**: `QvacOp`\<[`LoggingParams`](LoggingParams.md), `AsyncGenerator`\<[`LoggingStreamResponse`](LoggingStreamResponse.md), `any`, `any`\>\>
 
 ***
 
 ### subscribeServerLogs
 
-> **subscribeServerLogs**: `QvacOp`\<`Record`\<`string`, `never`\>, `unknown`\>
+> **subscribeServerLogs**: (`handler`) => `Promise`\<`IntelligenceOutcome`\<\{ `unsubscribe`: () => `void`; \}\>\>
+
+Real upstream signature: `subscribeServerLogs(handler)` returns an
+unsubscribe function; the adapter surfaces it as `{ unsubscribe }`.
+
+#### Parameters
+
+##### handler
+
+[`ServerLogHandler`](ServerLogHandler.md)
+
+#### Returns
+
+`Promise`\<`IntelligenceOutcome`\<\{ `unsubscribe`: () => `void`; \}\>\>

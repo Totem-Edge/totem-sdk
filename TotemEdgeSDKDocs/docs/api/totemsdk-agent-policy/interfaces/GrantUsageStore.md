@@ -154,6 +154,24 @@ Run-level accounting for local bounds.
 
 ***
 
+### countUnknown()
+
+> **countUnknown**(`runId`): `Promise`\<`number`\>
+
+Reservations whose outcome is unknown after crash/timeout — budget HELD.
+
+#### Parameters
+
+##### runId
+
+`string`
+
+#### Returns
+
+`Promise`\<`number`\>
+
+***
+
 ### getReservation()
 
 > **getReservation**(`reservationId`): `Promise`\<[`StepAuthorization`](StepAuthorization.md) \| `undefined`\>
@@ -187,3 +205,55 @@ Committed receipts for a mandate — used to build the usage snapshot.
 #### Returns
 
 `Promise`\<[`StepReceipt`](StepReceipt.md)[]\>
+
+***
+
+### reconcileReservation()
+
+> **reconcileReservation**(`reservationId`, `outcome`, `opts?`): `Promise`\<`void`\>
+
+Explicit settlement of a recovered (`unknown`) reservation. The only way
+budget is released is `'definitely-not-executed'`; `'completed'` commits.
+
+#### Parameters
+
+##### reservationId
+
+`string`
+
+##### outcome
+
+`ReservationSettlementOutcome`
+
+##### opts?
+
+###### reason?
+
+`string`
+
+###### receipt?
+
+[`StepReceipt`](StepReceipt.md)
+
+#### Returns
+
+`Promise`\<`void`\>
+
+***
+
+### recoverReservations()
+
+> **recoverReservations**(`runId?`): `Promise`\<`OutOfBandReservation`[]\>
+
+Conservative reservation recovery: unsettled past-deadline reservations are
+classified `unknown` and their budget is HELD until explicit reconciliation.
+
+#### Parameters
+
+##### runId?
+
+`string`
+
+#### Returns
+
+`Promise`\<`OutOfBandReservation`[]\>

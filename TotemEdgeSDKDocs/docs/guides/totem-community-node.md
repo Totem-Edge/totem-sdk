@@ -24,7 +24,7 @@ Totem Community Node is a shared Minima infrastructure deployment for a communit
 | `@totemsdk/agent-policy` | Merchant limits, relay permissions, child-account rules |
 | `@totemsdk/omnia-router` | Community routing node for off-chain member payments |
 | `@totemsdk/realtime` | Real-time event push to member dashboards |
-| `@totemsdk/pureminima-rpc` | Minima node RPC for balance queries and block events |
+| `@totemsdk/minima-rpc` | Minima node RPC for balance queries and block events |
 | `@totemsdk/chain-provider` | On-chain settlement for over-limit transactions |
 
 ---
@@ -101,10 +101,10 @@ async function buildCommunityPolicy(memberId: string): Promise<AgentPolicy> {
 
 ```typescript
 import { createRealtimeServer } from '@totemsdk/realtime';
-import { PureMinimaRPC } from '@totemsdk/pureminima-rpc';
+import { createMinimaRpcClient } from '@totemsdk/minima-rpc';
 
 const rtServer = createRealtimeServer({ port: 9004 });
-const rpc = new PureMinimaRPC({ url: NODE_URL });
+const rpc = createMinimaRpcClient({ url: NODE_URL });
 
 // Broadcast every payment touching a community address
 rpc.on('NEWTXPOW', async (txpow) => {
@@ -155,5 +155,5 @@ A QVAC agent can monitor community transaction patterns, automatically adjust da
 - [`@totemsdk/agent-policy`](/api/totemsdk-agent-policy)
 - [`@totemsdk/omnia-router`](/api/totemsdk-omnia-router)
 - [`@totemsdk/realtime`](/api/totemsdk-realtime)
-- [`@totemsdk/pureminima-rpc`](/api/totemsdk-pureminima-rpc)
+- [`@totemsdk/minima-rpc`](/api/totemsdk-minima-rpc)
 - [`@totemsdk/chain-provider`](/api/totemsdk-chain-provider)

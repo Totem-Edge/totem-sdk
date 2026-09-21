@@ -1,0 +1,62 @@
+{
+  "name": "@totemsdk/edge-nfc",
+  "version": "0.1.0",
+  "description": "Edge runtime adapter for NFC — reader polling, NDEF, secure-element APDU, P2P, HCE",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "prepare": "tsc",
+    "clean": "rm -rf dist",
+    "test": "jest"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "@totemsdk/edge": "workspace:^"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20.0.0",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.0.0",
+    "typescript": "^7.0.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "author": "Totem SDK",
+  "homepage": "https://docs.totem.ing",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Totem-Edge/totem-sdk.git",
+    "directory": "packages/edge-nfc"
+  },
+  "keywords": [
+    "totem",
+    "totemsdk",
+    "minima",
+    "edge",
+    "nfc",
+    "ndef",
+    "apdu",
+    "transport"
+  ],
+  "bugs": {
+    "url": "https://github.com/Totem-Edge/totem-sdk/issues"
+  }
+}

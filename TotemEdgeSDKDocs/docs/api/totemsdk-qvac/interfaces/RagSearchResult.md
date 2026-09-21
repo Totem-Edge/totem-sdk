@@ -8,18 +8,18 @@
 
 ## Properties
 
-### results?
+### details?
 
-> `optional` **results?**: `object`[]
+> `optional` **details?**: `unknown`
 
-#### id?
+***
 
-> `optional` **id?**: `string`
+### doc
 
-#### score?
+> **doc**: `unknown`
 
-> `optional` **score?**: `number`
+***
 
-#### text?
+### score
 
-> `optional` **text?**: `string`
+> **score**: `number`

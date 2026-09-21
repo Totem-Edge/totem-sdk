@@ -2,6 +2,8 @@
 
 ***
 
+**Maturity: rc**
+
 # @totemsdk/provider-bond
 
 ## Classes
@@ -27,6 +29,8 @@
 - [BondStatusContext](interfaces/BondStatusContext.md)
 - [ComputeProviderScoreParams](interfaces/ComputeProviderScoreParams.md)
 - [CreateProviderBondManifestParams](interfaces/CreateProviderBondManifestParams.md)
+- [DurableProviderBondStore](interfaces/DurableProviderBondStore.md)
+- [DurableProviderBondStoreOptions](interfaces/DurableProviderBondStoreOptions.md)
 - [IncidentRecord](interfaces/IncidentRecord.md)
 - [IncidentSummary](interfaces/IncidentSummary.md)
 - [PolicyMatch](interfaces/PolicyMatch.md)
@@ -78,6 +82,7 @@
 - [computeProviderBondManifestHash](functions/computeProviderBondManifestHash.md)
 - [computeProviderRecommendation](functions/computeProviderRecommendation.md)
 - [computeProviderScore](functions/computeProviderScore.md)
+- [createDurableProviderBondStore](functions/createDurableProviderBondStore.md)
 - [createEmptyProviderBondRegistryState](functions/createEmptyProviderBondRegistryState.md)
 - [createProviderBondManifest](functions/createProviderBondManifest.md)
 - [explainProviderPolicyMatch](functions/explainProviderPolicyMatch.md)

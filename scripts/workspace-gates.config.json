@@ -26,6 +26,7 @@
     "packages/edge-matter": { "status": "publishable", "maturity": "rc" },
     "packages/edge-modbus": { "status": "publishable", "maturity": "rc" },
     "packages/edge-mqtt": { "status": "publishable", "maturity": "rc" },
+    "packages/edge-nfc": { "status": "publishable", "maturity": "alpha" },
     "packages/edge-opcua": { "status": "publishable", "maturity": "rc" },
     "packages/edge-ros2": { "status": "publishable", "maturity": "rc" },
     "packages/governance": { "status": "publishable", "maturity": "rc" },

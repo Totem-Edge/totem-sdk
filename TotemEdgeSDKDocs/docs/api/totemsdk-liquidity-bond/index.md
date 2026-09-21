@@ -2,6 +2,8 @@
 
 ***
 
+**Maturity: rc**
+
 # @totemsdk/liquidity-bond
 
 ## Classes
@@ -30,6 +32,8 @@
 - [CreateLiquidityPoolManifestParams](interfaces/CreateLiquidityPoolManifestParams.md)
 - [CreateLiquidityPositionParams](interfaces/CreateLiquidityPositionParams.md)
 - [CreateWithdrawalIntentParams](interfaces/CreateWithdrawalIntentParams.md)
+- [DurableLiquidityBondStore](interfaces/DurableLiquidityBondStore.md)
+- [DurableLiquidityBondStoreOptions](interfaces/DurableLiquidityBondStoreOptions.md)
 - [FeePayoutRef](interfaces/FeePayoutRef.md)
 - [FeeProofVerifier](interfaces/FeeProofVerifier.md)
 - [IdentityChallengeProof](interfaces/IdentityChallengeProof.md)
@@ -131,6 +135,7 @@
 - [computeWithdrawalId](functions/computeWithdrawalId.md)
 - [confirmLiquidityCommitment](functions/confirmLiquidityCommitment.md)
 - [consumeLiquidityReceipt](functions/consumeLiquidityReceipt.md)
+- [createDurableLiquidityBondStore](functions/createDurableLiquidityBondStore.md)
 - [createEmptyLiquidityBondRegistryState](functions/createEmptyLiquidityBondRegistryState.md)
 - [createLiquidityAllocation](functions/createLiquidityAllocation.md)
 - [createLiquidityCommitment](functions/createLiquidityCommitment.md)

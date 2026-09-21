@@ -40,6 +40,16 @@ Successful result of an intelligence operation.
 
 ***
 
+### upstreamRequestId?
+
+> `readonly` `optional` **upstreamRequestId?**: `string`
+
+The provider-side (upstream) request id, when the wrapped runtime is
+cancellable by id — e.g. `@qvac/sdk` decorates promises/run objects with
+a `requestId` that its own `cancel({ requestId })` targets.
+
+***
+
 ### usage?
 
 > `readonly` `optional` **usage?**: [`IntelligenceUsage`](IntelligenceUsage.md)

@@ -2,6 +2,8 @@
 
 ***
 
+**Maturity: v1**
+
 # @totemsdk/edge
 
 ## Classes
@@ -30,6 +32,7 @@
 - [BuiltTxOutput](interfaces/BuiltTxOutput.md)
 - [BuyerOptions](interfaces/BuyerOptions.md)
 - [BuyOptions](interfaces/BuyOptions.md)
+- [CreateAccountedIntelligencePortOptions](interfaces/CreateAccountedIntelligencePortOptions.md)
 - [CreateEdgeOptions](interfaces/CreateEdgeOptions.md)
 - [DeliveryReceipt](interfaces/DeliveryReceipt.md)
 - [EdgeActionDefinition](interfaces/EdgeActionDefinition.md)
@@ -58,8 +61,16 @@
 - [EdgeServiceRegistration](interfaces/EdgeServiceRegistration.md)
 - [EdgeStreamPort](interfaces/EdgeStreamPort.md)
 - [EdgeTxBuilderContext](interfaces/EdgeTxBuilderContext.md)
+- [FoldCompletedDispatchInput](interfaces/FoldCompletedDispatchInput.md)
+- [FoldUsageStatementsInput](interfaces/FoldUsageStatementsInput.md)
+- [FoldUsageStatementsReport](interfaces/FoldUsageStatementsReport.md)
+- [InferenceAccountingAuthority](interfaces/InferenceAccountingAuthority.md)
+- [InferenceAccountingReconciliation](interfaces/InferenceAccountingReconciliation.md)
+- [InferenceRecordedUsage](interfaces/InferenceRecordedUsage.md)
+- [InferenceRecoveryReport](interfaces/InferenceRecoveryReport.md)
 - [IngressOptions](interfaces/IngressOptions.md)
 - [IngressResult](interfaces/IngressResult.md)
+- [IssueUsageStatementOptions](interfaces/IssueUsageStatementOptions.md)
 - [LocalWorkBudget](interfaces/LocalWorkBudget.md)
 - [NegotiationCancellation](interfaces/NegotiationCancellation.md)
 - [NegotiationEngineOptions](interfaces/NegotiationEngineOptions.md)
@@ -83,6 +94,7 @@
 - [PurchaseResult](interfaces/PurchaseResult.md)
 - [PurchaseSession](interfaces/PurchaseSession.md)
 - [PurchaseStore](interfaces/PurchaseStore.md)
+- [ReconcileInferenceAccountingOptions](interfaces/ReconcileInferenceAccountingOptions.md)
 - [ReplayLedger](interfaces/ReplayLedger.md)
 - [ReplayOutcome](interfaces/ReplayOutcome.md)
 - [ResourceAdapter](interfaces/ResourceAdapter.md)
@@ -94,7 +106,9 @@
 - [TradeProposal](interfaces/TradeProposal.md)
 - [TradeTerms](interfaces/TradeTerms.md)
 - [TransportMessageContext](interfaces/TransportMessageContext.md)
+- [UsageAgreementReference](interfaces/UsageAgreementReference.md)
 - [UsageEvent](interfaces/UsageEvent.md)
+- [UsageFoldContext](interfaces/UsageFoldContext.md)
 - [WorkDifficultyPolicy](interfaces/WorkDifficultyPolicy.md)
 - [WorkRequired](interfaces/WorkRequired.md)
 
@@ -104,12 +118,15 @@
 - [EdgeCapability](type-aliases/EdgeCapability.md)
 - [EdgeCapabilitySet](type-aliases/EdgeCapabilitySet.md)
 - [EdgeDeviceKind](type-aliases/EdgeDeviceKind.md)
+- [InferenceAuditEvent](type-aliases/InferenceAuditEvent.md)
+- [InferenceReadEvent](type-aliases/InferenceReadEvent.md)
 - [NegotiationMessage](type-aliases/NegotiationMessage.md)
 - [NegotiationState](type-aliases/NegotiationState.md)
 - [OutboxDrainer](type-aliases/OutboxDrainer.md)
 - [PurchaseEvent](type-aliases/PurchaseEvent.md)
 - [PurchaseStatus](type-aliases/PurchaseStatus.md)
 - [ReplayEntry](type-aliases/ReplayEntry.md)
+- [UsageAgreementResolver](type-aliases/UsageAgreementResolver.md)
 - [WorkMode](type-aliases/WorkMode.md)
 
 ## Variables
@@ -133,6 +150,7 @@
 
 - [assertCapability](functions/assertCapability.md)
 - [bindEdgeServiceIdentity](functions/bindEdgeServiceIdentity.md)
+- [createAccountedIntelligencePort](functions/createAccountedIntelligencePort.md)
 - [createAgentEdgeRuntime](functions/createAgentEdgeRuntime.md)
 - [createBuiltinActionDefinitions](functions/createBuiltinActionDefinitions.md)
 - [createCapabilitySet](functions/createCapabilitySet.md)
@@ -154,6 +172,8 @@
 - [deriveEffectsFromBuiltTx](functions/deriveEffectsFromBuiltTx.md)
 - [deriveSpendsFromBuiltTx](functions/deriveSpendsFromBuiltTx.md)
 - [edgeCapabilitiesFromTotemCapabilities](functions/edgeCapabilitiesFromTotemCapabilities.md)
+- [foldCompletedDispatch](functions/foldCompletedDispatch.md)
+- [foldUsageStatements](functions/foldUsageStatements.md)
 - [fromEnhancedBuildParams](functions/fromEnhancedBuildParams.md)
 - [fromOmniaTxDraft](functions/fromOmniaTxDraft.md)
 - [hasCapability](functions/hasCapability.md)
@@ -161,10 +181,15 @@
 - [idempotencyKey](functions/idempotencyKey.md)
 - [ingress](functions/ingress.md)
 - [isIntelligenceCapability](functions/isIntelligenceCapability.md)
+- [isPurchaseBound](functions/isPurchaseBound.md)
+- [issueUsageStatement](functions/issueUsageStatement.md)
 - [isUngrantableAction](functions/isUngrantableAction.md)
 - [messageId](functions/messageId.md)
 - [messageType](functions/messageType.md)
 - [proposalDigest](functions/proposalDigest.md)
+- [reconcileInferenceAccounting](functions/reconcileInferenceAccounting.md)
+- [recoverInferenceJournal](functions/recoverInferenceJournal.md)
 - [termsHash](functions/termsHash.md)
+- [usageStatementId](functions/usageStatementId.md)
 - [verifyEdgeReceipt](functions/verifyEdgeReceipt.md)
 - [workRequiredDigest](functions/workRequiredDigest.md)

@@ -10,4 +10,4 @@
 
 ### video
 
-> **video**: `QvacOp`\<[`VideoParams`](VideoParams.md), \{ `frames?`: `number`; `video?`: `string`; \}\>
+> **video**: `QvacOp`\<[`VideoClientParams`](VideoClientParams.md), [`VideoResult`](VideoResult.md)\>

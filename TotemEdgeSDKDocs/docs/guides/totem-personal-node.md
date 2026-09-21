@@ -21,7 +21,7 @@ Totem Personal Node keeps a Minima node running 24/7 on behalf of a single user,
 | `@totemsdk/lookup-node` | Runs the Hyperswarm-based address lookup node |
 | `@totemsdk/lookup-protocol` | Wire protocol for address announcements and queries |
 | `@totemsdk/agent-policy` | Governs which spend requests are auto-approved vs. queued |
-| `@totemsdk/pureminima-rpc` | Low-level RPC for block sync and UTXO queries |
+| `@totemsdk/minima-rpc` | Low-level RPC for block sync and UTXO queries |
 | `@totemsdk/chain-provider` | High-level abstraction over the local Minima node |
 | `@totemsdk/wots-lease` | Shared WOTS lease strategy — one lease shared across devices |
 | `@totemsdk/realtime` | Real-time push of new TxPoW events to connected devices |
@@ -138,7 +138,7 @@ A QVAC agent attached to a personal node can auto-rebalance channel liquidity, m
 - [`@totemsdk/lookup-node`](/api/totemsdk-lookup-node)
 - [`@totemsdk/lookup-protocol`](/api/totemsdk-lookup-protocol)
 - [`@totemsdk/agent-policy`](/api/totemsdk-agent-policy)
-- [`@totemsdk/pureminima-rpc`](/api/totemsdk-pureminima-rpc)
+- [`@totemsdk/minima-rpc`](/api/totemsdk-minima-rpc)
 - [`@totemsdk/chain-provider`](/api/totemsdk-chain-provider)
 - [`@totemsdk/wots-lease`](/api/totemsdk-wots-lease)
 - [`@totemsdk/realtime`](/api/totemsdk-realtime)

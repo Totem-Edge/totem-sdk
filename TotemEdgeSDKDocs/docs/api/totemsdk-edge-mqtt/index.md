@@ -2,6 +2,8 @@
 
 ***
 
+**Maturity: rc**
+
 # @totemsdk/edge-mqtt
 
 ## Classes
@@ -16,6 +18,8 @@
 
 ## Interfaces
 
+- [DurableEventRecord](interfaces/DurableEventRecord.md)
+- [DurableMqttEdgeQueueOptions](interfaces/DurableMqttEdgeQueueOptions.md)
 - [MqttClientPort](interfaces/MqttClientPort.md)
 - [MqttCommand](interfaces/MqttCommand.md)
 - [MqttCommandExecutor](interfaces/MqttCommandExecutor.md)
@@ -59,6 +63,7 @@
 
 ## Type Aliases
 
+- [DurableMqttEdgeQueue](type-aliases/DurableMqttEdgeQueue.md)
 - [MqttRuleKind](type-aliases/MqttRuleKind.md)
 - [MqttServiceType](type-aliases/MqttServiceType.md)
 - [MqttTransportKind](type-aliases/MqttTransportKind.md)
@@ -78,6 +83,7 @@
 - [canonicalJson](functions/canonicalJson.md)
 - [computeMqttEventId](functions/computeMqttEventId.md)
 - [createDeadLetterEvent](functions/createDeadLetterEvent.md)
+- [createDurableMqttEdgeQueue](functions/createDurableMqttEdgeQueue.md)
 - [createEdgeReceipt](functions/createEdgeReceipt.md)
 - [createEdgeRuntime](functions/createEdgeRuntime.md)
 - [createMemoryMqttEdgeQueue](functions/createMemoryMqttEdgeQueue.md)

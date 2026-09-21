@@ -6,11 +6,7 @@
 
 # Interface: QvacOpHandler()
 
-A single resolvable QVAC operation.
-
 > **QvacOpHandler**(`params`, `opts`): `Promise`\<[`QvacCallResult`](QvacCallResult.md)\>
-
-A single resolvable QVAC operation.
 
 ## Parameters
 
@@ -20,9 +16,7 @@ A single resolvable QVAC operation.
 
 ### opts
 
-#### signal?
-
-`AbortSignal`
+`QvacOpHandlerCallOptions`
 
 ## Returns
 

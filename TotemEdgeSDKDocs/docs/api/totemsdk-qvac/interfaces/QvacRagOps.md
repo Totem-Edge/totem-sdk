@@ -10,52 +10,52 @@
 
 ### ragChunk
 
-> **ragChunk**: `QvacOp`\<[`RagChunkParams`](RagChunkParams.md), `unknown`\>
+> **ragChunk**: `QvacOp`\<[`RagChunkParams`](RagChunkParams.md), [`RagDoc`](RagDoc.md)[]\>
 
 ***
 
 ### ragCloseWorkspace
 
-> **ragCloseWorkspace**: `QvacOp`\<[`RagWorkspaceParams`](RagWorkspaceParams.md), `unknown`\>
+> **ragCloseWorkspace**: `QvacOp`\<[`RagCloseWorkspaceParams`](RagCloseWorkspaceParams.md), `void`\>
 
 ***
 
 ### ragDeleteEmbeddings
 
-> **ragDeleteEmbeddings**: `QvacOp`\<[`RagEmbeddingsParams`](RagEmbeddingsParams.md), `unknown`\>
+> **ragDeleteEmbeddings**: `QvacOp`\<[`RagDeleteEmbeddingsParams`](../type-aliases/RagDeleteEmbeddingsParams.md), `void`\>
 
 ***
 
 ### ragDeleteWorkspace
 
-> **ragDeleteWorkspace**: `QvacOp`\<[`RagWorkspaceParams`](RagWorkspaceParams.md), `unknown`\>
+> **ragDeleteWorkspace**: `QvacOp`\<[`RagDeleteWorkspaceParams`](RagDeleteWorkspaceParams.md), `void`\>
 
 ***
 
 ### ragIngest
 
-> **ragIngest**: `QvacOp`\<[`RagIngestParams`](RagIngestParams.md), `unknown`\>
+> **ragIngest**: `QvacOp`\<[`RagIngestParams`](RagIngestParams.md), \{ `droppedIndices`: `number`[]; `processed`: [`RagSaveEmbeddingsResult`](RagSaveEmbeddingsResult.md)[]; \}\>
 
 ***
 
 ### ragListWorkspaces
 
-> **ragListWorkspaces**: `QvacOp`\<`Record`\<`string`, `never`\>, `unknown`\>
+> **ragListWorkspaces**: `QvacOp`\<`Record`\<`string`, `never`\>, [`RagWorkspaceInfo`](RagWorkspaceInfo.md)[]\>
 
 ***
 
 ### ragReindex
 
-> **ragReindex**: `QvacOp`\<[`RagWorkspaceParams`](RagWorkspaceParams.md), `unknown`\>
+> **ragReindex**: `QvacOp`\<[`RagReindexParams`](RagReindexParams.md), `RagReindexResult`\>
 
 ***
 
 ### ragSaveEmbeddings
 
-> **ragSaveEmbeddings**: `QvacOp`\<[`RagEmbeddingsParams`](RagEmbeddingsParams.md), `unknown`\>
+> **ragSaveEmbeddings**: `QvacOp`\<[`RagSaveEmbeddingsParams`](RagSaveEmbeddingsParams.md), [`RagSaveEmbeddingsResult`](RagSaveEmbeddingsResult.md)[]\>
 
 ***
 
 ### ragSearch
 
-> **ragSearch**: `QvacOp`\<[`RagSearchParams`](RagSearchParams.md), [`RagSearchResult`](RagSearchResult.md)\>
+> **ragSearch**: `QvacOp`\<[`RagSearchParams`](RagSearchParams.md), [`RagSearchResult`](RagSearchResult.md)[]\>

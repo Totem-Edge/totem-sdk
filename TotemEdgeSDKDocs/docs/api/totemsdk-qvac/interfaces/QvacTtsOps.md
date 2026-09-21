@@ -10,10 +10,10 @@
 
 ### textToSpeech
 
-> **textToSpeech**: `QvacOp`\<[`TextToSpeechParams`](TextToSpeechParams.md), \{ `audio?`: `unknown`; `mimeType?`: `string`; \}\>
+> **textToSpeech**: `QvacOp`\<[`TtsClientParamsInput`](TtsClientParamsInput.md), [`TextToSpeechStreamResult`](TextToSpeechStreamResult.md)\>
 
 ***
 
 ### textToSpeechStream
 
-> **textToSpeechStream**: `QvacOp`\<[`TextToSpeechParams`](TextToSpeechParams.md), `unknown`\>
+> **textToSpeechStream**: `QvacOp`\<[`TextToSpeechStreamClientParams`](TextToSpeechStreamClientParams.md), [`TextToSpeechStreamSession`](TextToSpeechStreamSession.md)\>

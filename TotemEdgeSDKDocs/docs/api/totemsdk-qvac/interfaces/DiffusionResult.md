@@ -8,6 +8,18 @@
 
 ## Properties
 
-### image?
+### outputs
 
-> `optional` **image?**: `string`
+> **outputs**: `Promise`\<`Uint8Array`\<`ArrayBufferLike`\>[]\>
+
+***
+
+### progressStream
+
+> **progressStream**: `AsyncGenerator`\<[`DiffusionProgressTick`](DiffusionProgressTick.md)\>
+
+***
+
+### stats
+
+> **stats**: `Promise`\<`unknown`\>

@@ -195,6 +195,7 @@ Every stage produces evidence the next stage consumes — and every stage can be
 |---------|----------|----------|
 | [`@totemsdk/edge-mqtt`](packages/edge-mqtt) | MQTT | Sensors, gateways, MachinePay — rule engine, sensor bridge, proof publisher |
 | [`@totemsdk/edge-modbus`](packages/edge-modbus) | Modbus TCP/RTU | PLCs, RTUs, industrial sensors — coil/register read, automated polling |
+| [`@totemsdk/edge-nfc`](packages/edge-nfc) | NFC | Contactless taps — NDEF read/write/erase, ISO 14443-4 APDU, P2P, Host Card Emulation |
 | [`@totemsdk/edge-bacnet`](packages/edge-bacnet) | BACnet | Building automation, HVAC — device discovery, COV subscriptions |
 | [`@totemsdk/edge-ble`](packages/edge-ble) | BLE | Wearables, beacons, proximity — GATT services, scanning, notifications |
 | [`@totemsdk/edge-can`](packages/edge-can) | CAN bus | Automotive, heavy machinery — DBC signal decoding, socketcan |
@@ -455,7 +456,7 @@ See [SECURITY.md](SECURITY.md) for our vulnerability disclosure policy.
 ## Monorepo structure
 
 ```
-packages/                   # 61 workspace packages, 60 publishable @totemsdk scoped
+packages/                   # 62 workspace packages, 61 publishable @totemsdk scoped
 ├── core/                   # Cryptographic primitives (WOTS+, MMR, etc.)
 ├── core-wasm/              # Rust/WASM crypto engine
 ├── kissvm/                 # KISSVM evaluator + template library
@@ -464,6 +465,7 @@ packages/                   # 61 workspace packages, 60 publishable @totemsdk sc
 ├── edge/                   # Edge device runtime
 ├── edge-modbus/            # Modbus protocol adapter
 ├── edge-mqtt/              # MQTT sensor bridge + MachinePay
+├── edge-nfc/               # NFC adapter (NDEF, APDU, P2P, HCE)
 ├── mcp-server/             # MCP server for AI agent tooling
 ├── governance/             # On-chain governance (voting, DAO)
 ├── recursive-mast/         # Nested MAST policy trees + PREVSTATE
@@ -504,6 +506,11 @@ docs/                       # SDK documentation
 | [RFC-001](docs/rfc/RFC-001-SDK-UPGRADE.md) | SDK upgrade process |
 | [RFC-002](docs/rfc/RFC-002-OMNIA-RUST-WASM-PARITY.md) | Omnia Rust/WASM channel parity (implemented) |
 | [RFC-003](docs/rfc/RFC-003-OMNIA-BUILT-IN-PROGRAMS.md) | Omnia built-in channel programs (implemented) |
+| [RFC-004](docs/rfc/RFC-004-EDGE-SDK-V1-PROMOTION.md) | Edge SDK v1 promotion |
+| [RFC-005](docs/rfc/RFC-005-SDK-WALLET-GAP-FIXES.md) | SDK wallet gap fixes |
+| [RFC-006](docs/rfc/RFC-006-SDK-INTELLIGENCE-QVAC-INTEGRATION.md) | SDK intelligence/QVAC integration (implemented) |
+| [RFC-007](docs/rfc/RFC-007-STORAGE-CONSOLIDATION.md) | Storage consolidation & durable guarantees (draft) |
+| [RFC-008](docs/rfc/RFC-008-FEDERATED-STATECHAIN.md) | Federated statechain — leased WOTS identity & threshold SE federation (draft) |
 | [SDK Audit (archived)](docs/archive/SDK_AUDIT-2026-02-ARCHIVED.md) | Historical Feb 2026 audit; current maturity lives in the table above |
 | [SDK Manifest](SDK_MANIFEST.json) | Machine-readable package index — 55 packages, for AI agents and tooling |
 | [API Reference](https://totem.ing) | Full TypeDoc-generated API reference |

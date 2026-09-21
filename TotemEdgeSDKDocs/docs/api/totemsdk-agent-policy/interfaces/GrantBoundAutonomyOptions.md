@@ -14,6 +14,16 @@
 
 ***
 
+### ephemeral?
+
+> `optional` **ephemeral?**: `boolean`
+
+Explicitly permit the in-memory default store (dev/testing only).
+Without it, construction fails rather than silently downgrading to an
+ephemeral store that cannot recover reservations after a restart.
+
+***
+
 ### grantRequirements?
 
 > `optional` **grantRequirements?**: `Record`\<`string`, [`GrantRequirement`](GrantRequirement.md)\>

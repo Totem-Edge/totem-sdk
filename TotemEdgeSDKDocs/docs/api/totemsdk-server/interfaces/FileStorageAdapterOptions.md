@@ -14,6 +14,14 @@
 
 ***
 
+### failurePolicy?
+
+> `optional` **failurePolicy?**: `"strict"` \| `"lenient"`
+
+`strict` (default) surfaces `corrupt` records; `lenient` returns null.
+
+***
+
 ### prefix?
 
 > `optional` **prefix?**: `string`

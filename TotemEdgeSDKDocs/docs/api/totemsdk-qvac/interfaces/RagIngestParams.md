@@ -8,12 +8,18 @@
 
 ## Properties
 
-### docs?
+### documents
 
-> `optional` **docs?**: `unknown`[]
+> **documents**: `unknown`[]
 
 ***
 
-### workspaceName?
+### embeddingModelId
 
-> `optional` **workspaceName?**: `string`
+> **embeddingModelId**: `string`
+
+***
+
+### workspaceId?
+
+> `optional` **workspaceId?**: `string`

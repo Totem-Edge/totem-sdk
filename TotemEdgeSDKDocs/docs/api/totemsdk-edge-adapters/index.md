@@ -2,6 +2,8 @@
 
 ***
 
+**Maturity: rc**
+
 # @totemsdk/edge-adapters
 
 ## Classes
@@ -24,6 +26,11 @@
 - [PurchasePaymentAdapterConfig](interfaces/PurchasePaymentAdapterConfig.md)
 - [SQLiteCommerceStoreConfig](interfaces/SQLiteCommerceStoreConfig.md)
 - [StreamNegotiationTransportConfig](interfaces/StreamNegotiationTransportConfig.md)
+
+## Type Aliases
+
+- [PurchasePaymentClaimRecord](type-aliases/PurchasePaymentClaimRecord.md)
+- [PurchasePaymentStore](type-aliases/PurchasePaymentStore.md)
 
 ## Functions
 

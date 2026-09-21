@@ -2,6 +2,8 @@
 
 ***
 
+**Maturity: rc**
+
 # @totemsdk/industrial-action
 
 ## Classes
@@ -23,6 +25,7 @@
 - [ActionHandler](interfaces/ActionHandler.md)
 - [ActionProposal](interfaces/ActionProposal.md)
 - [ActionReceipt](interfaces/ActionReceipt.md)
+- [ActionRegistryState](interfaces/ActionRegistryState.md)
 - [ActionSchema](interfaces/ActionSchema.md)
 - [ActionStorage](interfaces/ActionStorage.md)
 - [Condition](interfaces/Condition.md)
@@ -30,6 +33,8 @@
 - [ContextField](interfaces/ContextField.md)
 - [ContextSchema](interfaces/ContextSchema.md)
 - [CreateProposalParams](interfaces/CreateProposalParams.md)
+- [DurableActionStorage](interfaces/DurableActionStorage.md)
+- [DurableActionStorageOptions](interfaces/DurableActionStorageOptions.md)
 - [ExecuteActionResult](interfaces/ExecuteActionResult.md)
 - [GovernanceBridge](interfaces/GovernanceBridge.md)
 - [IndustrialActionDefinition](interfaces/IndustrialActionDefinition.md)
@@ -55,6 +60,7 @@
 - [createActionDefinition](functions/createActionDefinition.md)
 - [createCommitment](functions/createCommitment.md)
 - [createCondition](functions/createCondition.md)
+- [createDurableActionStorage](functions/createDurableActionStorage.md)
 - [createGovernanceBridge](functions/createGovernanceBridge.md)
 - [createProposal](functions/createProposal.md)
 - [createReceipt](functions/createReceipt.md)

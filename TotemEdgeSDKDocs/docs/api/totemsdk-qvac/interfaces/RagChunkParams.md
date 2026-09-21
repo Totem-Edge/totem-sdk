@@ -6,22 +6,36 @@
 
 # Interface: RagChunkParams
 
-## Extends
+## Indexable
 
-- [`RagWorkspaceParams`](RagWorkspaceParams.md)
+> \[`key`: `string`\]: `unknown`
 
 ## Properties
 
-### text?
+### chunkOverlap?
 
-> `optional` **text?**: `string`
+> `optional` **chunkOverlap?**: `number`
 
 ***
 
-### workspaceName?
+### chunkSize?
 
-> `optional` **workspaceName?**: `string`
+> `optional` **chunkSize?**: `number`
 
-#### Inherited from
+***
 
-[`RagWorkspaceParams`](RagWorkspaceParams.md).[`workspaceName`](RagWorkspaceParams.md#workspacename)
+### chunkStrategy?
+
+> `optional` **chunkStrategy?**: `string`
+
+***
+
+### content
+
+> **content**: `string`
+
+***
+
+### splitStrategy?
+
+> `optional` **splitStrategy?**: `string`

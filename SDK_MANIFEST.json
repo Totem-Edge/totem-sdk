@@ -3,7 +3,7 @@
   "title": "Totem SDK Package Manifest",
   "description": "Machine-readable index of all @totemsdk packages — for AI agents, tooling, and developers. Updated 2026-08-18.",
   "org": "@totemsdk",
-  "total": 61,
+  "total": 62,
   "domains": {
     "cryptographic-foundation": {
       "description": "WOTS+ signatures, TreeKey hierarchy, MMR proofs, KISSVM, MAST, TxPoW",
@@ -57,6 +57,7 @@
         "@totemsdk/edge-lorawan",
         "@totemsdk/edge-matter",
         "@totemsdk/edge-modbus",
+        "@totemsdk/edge-nfc",
         "@totemsdk/edge-opcua",
         "@totemsdk/edge-ros2",
         "@totemsdk/pear",
@@ -489,6 +490,27 @@
       "exportsDescription": "MqttGateway, MqttSensorBridge, MachinePay, createMqttGateway, createMqttSensorBridge"
     },
     {
+      "name": "@totemsdk/edge-nfc",
+      "version": "0.1.0",
+      "description": "Edge runtime adapter for NFC — NDEF read/write/erase, ISO 14443-4 APDU transceive, P2P, and Host Card Emulation",
+      "domain": "edge-computing",
+      "keywords": [
+        "nfc",
+        "ndef",
+        "contactless",
+        "iso14443",
+        "p2p",
+        "hce"
+      ],
+      "dependencies": {
+        "@totemsdk/edge": "^1.1.0"
+      },
+      "exports": {
+        ".": "dist/index.{js,d.ts}"
+      },
+      "exportsDescription": "createNfcGateway, NfcGatewayConfig, NfcTransportPort, encodeNdefMessage, decodeNdefMessage"
+    },
+    {
       "name": "@totemsdk/edge-opcua",
       "version": "0.2.0",
       "description": "Edge runtime adapter for OPC-UA — SCADA, factory floors, industrial automation",
@@ -745,10 +767,10 @@
         "@totemsdk/chain-provider": "^0.2.0",
         "@totemsdk/core": "^1.2.10",
         "@totemsdk/omnia": "^1.0.1",
+        "@totemsdk/storage": "^0.1.0",
         "@totemsdk/tx-builder": "^0.2.0",
         "@totemsdk/txpow": "^1.0.1",
-        "@totemsdk/wots-lease": "^1.0.0",
-        "@totemsdk/storage": "^0.1.0"
+        "@totemsdk/wots-lease": "^1.0.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -790,10 +812,10 @@
       "dependencies": {
         "@totemsdk/core": "^1.2.10",
         "@totemsdk/omnia": "^1.0.1",
+        "@totemsdk/storage": "^0.1.0",
         "@totemsdk/tx-builder": "^0.2.0",
         "@totemsdk/txpow": "^1.0.1",
-        "@totemsdk/wots-lease": "^1.0.0",
-        "@totemsdk/storage": "^0.1.0"
+        "@totemsdk/wots-lease": "^1.0.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1053,7 +1075,10 @@
         "express": "^5.2.1",
         "pg": "^8.11.3",
         "zod": "^4.4.3",
-        "@totemsdk/core": "^1.2.10"
+        "@totemsdk/core": "^1.2.10",
+        "@totemsdk/root-identity": "^0.1.0",
+        "@totemsdk/storage": "^0.1.0",
+        "@totemsdk/wots-lease": "^0.1.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1098,6 +1123,7 @@
       "dependencies": {
         "@totemsdk/chain-provider": "^0.2.0",
         "@totemsdk/core": "^1.2.10",
+        "@totemsdk/storage": "^0.1.0",
         "@totemsdk/tx-builder": "^0.2.0",
         "@totemsdk/txpow": "^1.0.1",
         "@totemsdk/wots-lease": "^1.0.0"
@@ -1544,8 +1570,8 @@
         "./journal": "dist/journal.{js,d.ts}",
         "./memory": "dist/adapters/memory-store.{js,d.ts}",
         "./namespace": "dist/namespace.{js,d.ts}",
-        "./sqlite": "dist/adapters/sqlite-store.{js,d.ts}",
         "./snapshot": "dist/snapshot.{js,d.ts}",
+        "./sqlite": "dist/adapters/sqlite-store.{js,d.ts}",
         "./transaction": "dist/transaction.{js,d.ts}",
         "./types": "dist/types.{js,d.ts}"
       },

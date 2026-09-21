@@ -2,20 +2,28 @@
 
 ***
 
+**Maturity: v1**
+
 # @totemsdk/proofgraph
 
 ## Interfaces
 
 - [AnchorInput](interfaces/AnchorInput.md)
+- [DurableProofGraphStoreOptions](interfaces/DurableProofGraphStoreOptions.md)
 - [ProofGraph](interfaces/ProofGraph.md)
 - [ProofGraphEdge](interfaces/ProofGraphEdge.md)
+- [ProofGraphEvidenceResult](interfaces/ProofGraphEvidenceResult.md)
+- [ProofGraphEvidenceStore](interfaces/ProofGraphEvidenceStore.md)
+- [ProofGraphEvidenceStoreOptions](interfaces/ProofGraphEvidenceStoreOptions.md)
 - [ProofGraphNode](interfaces/ProofGraphNode.md)
+- [ProofGraphRecoveryReport](interfaces/ProofGraphRecoveryReport.md)
 - [ProofGraphStoragePort](interfaces/ProofGraphStoragePort.md)
 - [ProofGraphVerifyResult](interfaces/ProofGraphVerifyResult.md)
 - [ReceiptLikeInput](interfaces/ReceiptLikeInput.md)
 
 ## Type Aliases
 
+- [DurableProofGraphStore](type-aliases/DurableProofGraphStore.md)
 - [ProofGraphEdgeType](type-aliases/ProofGraphEdgeType.md)
 - [ProofGraphNodeType](type-aliases/ProofGraphNodeType.md)
 
@@ -34,7 +42,9 @@
 - [computeEdgeId](functions/computeEdgeId.md)
 - [computeNodeId](functions/computeNodeId.md)
 - [computeProofGraphId](functions/computeProofGraphId.md)
+- [createDurableProofGraphStore](functions/createDurableProofGraphStore.md)
 - [createProofGraph](functions/createProofGraph.md)
+- [createProofGraphEvidenceStore](functions/createProofGraphEvidenceStore.md)
 - [exportProofGraph](functions/exportProofGraph.md)
 - [findAnchorsForProof](functions/findAnchorsForProof.md)
 - [findConflicts](functions/findConflicts.md)

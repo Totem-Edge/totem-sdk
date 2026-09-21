@@ -10,4 +10,4 @@
 
 ### translate
 
-> **translate**: `QvacOp`\<[`TranslateParams`](TranslateParams.md), \{ `text?`: `string`; \}\>
+> **translate**: `QvacOp`\<[`TranslateClientParams`](TranslateClientParams.md), [`TranslateResult`](TranslateResult.md)\>

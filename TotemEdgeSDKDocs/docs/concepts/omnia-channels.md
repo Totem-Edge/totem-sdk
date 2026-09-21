@@ -53,7 +53,8 @@ await closeChannel(channel, { cooperative: true });
 | `@totemsdk/omnia-factory` | N-of-N group channel creation |
 | `@totemsdk/omnia-router` | Multi-hop pathfinding and fee logic |
 | `@totemsdk/omnia-splice` | Resize a channel without closing |
-| `@totemsdk/omnia-hyperswarm` | Peer discovery and wire transport |
+| `@totemsdk/omnia` | Peer discovery |
+| `@totemsdk/stream-transport` | Wire transport |
 | [`@totemsdk/omnia-vtxo`](/concepts/omnia-vtxo) | Virtual UTXO claim layer — cash-like off-chain balances backed by Merkle commitment trees |
 
 ## See also

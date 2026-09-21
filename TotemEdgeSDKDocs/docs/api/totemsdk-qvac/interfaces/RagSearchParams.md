@@ -6,11 +6,21 @@
 
 # Interface: RagSearchParams
 
+## Indexable
+
+> \[`key`: `string`\]: `unknown`
+
 ## Properties
 
-### query?
+### embeddingModelId
 
-> `optional` **query?**: `string`
+> **embeddingModelId**: `string`
+
+***
+
+### text
+
+> **text**: `string`
 
 ***
 
@@ -20,6 +30,6 @@
 
 ***
 
-### workspaceName?
+### workspaceId?
 
-> `optional` **workspaceName?**: `string`
+> `optional` **workspaceId?**: `string`

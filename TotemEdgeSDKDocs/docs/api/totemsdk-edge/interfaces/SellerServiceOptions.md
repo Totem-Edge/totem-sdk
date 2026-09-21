@@ -131,11 +131,53 @@ TxPoW adapter (work admission).
 
 ***
 
+### usageStatementLog?
+
+> `optional` **usageStatementLog?**: `UsageStatementLogStore`
+
+Optional durable log of reconciled usage statements (Phase 3a accounting
+fold). When provided, an inbound `usage.statement` is recorded exactly
+once per `statementId`. When absent, the seller refuses to reconcile
+statements (no silent accounting).
+
+***
+
 ### verifySignature
 
 > **verifySignature**: `SignatureVerifier`
 
 Signature verification (WOTS).
+
+***
+
+### verifyUsageStatementAgreement?
+
+> `optional` **verifyUsageStatementAgreement?**: (`params`) => `boolean` \| `Promise`\<`boolean`\>
+
+Optional agreement cross-check for inbound usage statements: return true
+when `agreementId` was negotiated by this seller with `buyer`. When
+absent, statements are recorded without an agreement cross-check (the
+fold is advisory; reimbursement/settlement stays per the agreement).
+
+#### Parameters
+
+##### params
+
+###### agreementId
+
+`string`
+
+###### buyer
+
+`string`
+
+###### requestId
+
+`string`
+
+#### Returns
+
+`boolean` \| `Promise`\<`boolean`\>
 
 ***
 

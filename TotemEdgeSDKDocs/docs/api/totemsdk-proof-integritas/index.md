@@ -2,6 +2,8 @@
 
 ***
 
+**Maturity: v1**
+
 # @totemsdk/proof-integritas
 
 ## Interfaces

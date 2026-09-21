@@ -24,23 +24,21 @@ custom runtimes.
 
 ## Returns
 
-`object`
-
 ### activeRequests
 
 > `readonly` **activeRequests**: `ReadonlyMap`\<`string`, `AbortController`\>
 
 ### capabilities
 
-> `readonly` **capabilities**: (`"intelligence:llm"` \| `"intelligence:embed"` \| `"intelligence:rag"` \| `"intelligence:asr"` \| `"intelligence:translate"` \| `"intelligence:tts"` \| `"intelligence:diffusion"` \| `"intelligence:ocr"` \| `"intelligence:classify"` \| `"intelligence:audiogen"` \| `"intelligence:video"` \| `"intelligence:vla"` \| `"intelligence:world"` \| `"intelligence:models"` \| `"intelligence:system"` \| `"intelligence:plugins"`)[]
+> `readonly` **capabilities**: `` `intelligence:${string}` ``[]
 
 ### discoverCapabilities
 
-> `readonly` **discoverCapabilities**: () => (`"intelligence:llm"` \| `"intelligence:embed"` \| `"intelligence:rag"` \| `"intelligence:asr"` \| `"intelligence:translate"` \| `"intelligence:tts"` \| `"intelligence:diffusion"` \| `"intelligence:ocr"` \| `"intelligence:classify"` \| `"intelligence:audiogen"` \| `"intelligence:video"` \| `"intelligence:vla"` \| `"intelligence:world"` \| `"intelligence:models"` \| `"intelligence:system"` \| `"intelligence:plugins"`)[]
+> `readonly` **discoverCapabilities**: () => `` `intelligence:${string}` ``[]
 
 #### Returns
 
-(`"intelligence:llm"` \| `"intelligence:embed"` \| `"intelligence:rag"` \| `"intelligence:asr"` \| `"intelligence:translate"` \| `"intelligence:tts"` \| `"intelligence:diffusion"` \| `"intelligence:ocr"` \| `"intelligence:classify"` \| `"intelligence:audiogen"` \| `"intelligence:video"` \| `"intelligence:vla"` \| `"intelligence:world"` \| `"intelligence:models"` \| `"intelligence:system"` \| `"intelligence:plugins"`)[]
+`` `intelligence:${string}` ``[]
 
 ### displayName
 
@@ -57,6 +55,12 @@ custom runtimes.
 ### sdk?
 
 > `readonly` `optional` **sdk?**: [`QvacSdkLike`](../interfaces/QvacSdkLike.md)
+
+### upstreamRequestIds
+
+> `readonly` **upstreamRequestIds**: `ReadonlyMap`\<`string`, `string`\>
+
+local requestId → QVAC-side requestId captured from the SDK result.
 
 ### version
 

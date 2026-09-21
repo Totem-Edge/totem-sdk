@@ -20,7 +20,7 @@ The Omnia Router Node is a professional routing node that forwards multi-hop Omn
 |---------|--------------------------|
 | `@totemsdk/omnia-router` | Multi-hop pathfinding, HTLC forwarding, fee computation |
 | `@totemsdk/omnia` | Underlying channel state machine |
-| `@totemsdk/omnia-hyperswarm` | Peer connectivity and route advertisement |
+| `@totemsdk/stream-transport` | Peer connectivity and route advertisement |
 | `@totemsdk/agent-policy` | Route acceptance, fee floor, swap rule enforcement |
 | `@totemsdk/lookup-node` | Registers this router in the lookup network |
 | `@totemsdk/pear` | Optional Pear runtime for desktop deployment |
@@ -34,9 +34,9 @@ The Omnia Router Node is a professional routing node that forwards multi-hop Omn
 
 ```typescript
 import { createOmniaRouter } from '@totemsdk/omnia-router';
-import { HyperswarmTransport } from '@totemsdk/omnia-hyperswarm';
+import { createHyperswarmTransport } from '@totemsdk/stream-transport';
 
-const transport = new HyperswarmTransport({ topic: 'omnia-router-mainnet' });
+const transport = await createHyperswarmTransport({ topic: 'omnia-router-mainnet' });
 
 const router = await createOmniaRouter({
   nodeKey: ROUTER_SECRET_KEY,
@@ -148,7 +148,7 @@ A QVAC agent can dynamically adjust fee floors based on network congestion, reba
 
 - [`@totemsdk/omnia-router`](/api/totemsdk-omnia-router)
 - [`@totemsdk/omnia`](/api/totemsdk-omnia)
-- [`@totemsdk/omnia-hyperswarm`](/api/totemsdk-omnia-hyperswarm)
+- [`@totemsdk/stream-transport`](/api/totemsdk-stream-transport)
 - [`@totemsdk/agent-policy`](/api/totemsdk-agent-policy)
 - [`@totemsdk/lookup-node`](/api/totemsdk-lookup-node)
 - [`@totemsdk/pear`](/api/totemsdk-pear)

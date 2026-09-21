@@ -34,93 +34,61 @@ const siteConfig = _require('../site.config.json');
 const SITE_URL = (siteConfig.url + (siteConfig.baseUrl && siteConfig.baseUrl !== '/' ? siteConfig.baseUrl : '')).replace(/\/$/, '');
 
 // ---------------------------------------------------------------------------
-// Package manifest
-// entryPoint: path relative to REPO_ROOT (null = always write curated stub)
+// Package inventory — MANIFEST-DERIVED (RFC website-reorg §2.3)
+//
+// Source of truth: SDK_MANIFEST.json (packages/domains) + the workspace gates
+// config (maturity). The docs package index, sidebar order, TypeDoc runs and
+// docs-manifest all derive from these files — no hand-maintained package list.
+//
+// Entry point rule: a manifest package resolves to `packages/<short>/src/index.ts`
+// when that file exists; otherwise (Rust/WASM-only packages, today: core-wasm)
+// it falls to the curated stub. The two extension surfaces (observability,
+// totem-extension/keyring) are the only hand-authored entries, kept separate
+// and explicitly flagged.
 // ---------------------------------------------------------------------------
-const PACKAGES = [
-  // Core & Connect
-  { slug: 'totemsdk-core',             name: '@totemsdk/core',             desc: 'WOTS cryptography, TreeKey derivation, and Streamable serialization primitives',                entryPoint: 'packages/core/src/index.ts' },
-  { slug: 'totemsdk-connect',          name: '@totemsdk/connect',          desc: 'Browser dApp to Totem wallet extension provider bridge (TOTEM_CONNECT v4.1)',                   entryPoint: 'packages/connect/src/index.ts' },
-  { slug: 'totemsdk-root-identity',    name: '@totemsdk/root-identity',    desc: 'Root identity controlling up to 64 on-chain addresses',                                         entryPoint: 'packages/root-identity/src/index.ts' },
-  { slug: 'totemsdk-core-wasm',        name: '@totemsdk/core-wasm',        desc: 'WebAssembly bindings for WOTS signing and SHA3-256 hashing',                                   entryPoint: null },
+const manifest = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'SDK_MANIFEST.json'), 'utf8'));
+const gatesConfig = (() => {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'scripts', 'workspace-gates.config.json'), 'utf8'));
+  } catch {
+    return { packages: {} };
+  }
+})();
 
-  // AI & Policy
-  { slug: 'totemsdk-agent-policy',     name: '@totemsdk/agent-policy',     desc: 'QVAC AI bridge — policy evaluation seam between agents and the wallet',                        entryPoint: 'packages/agent-policy/src/index.ts' },
-  { slug: 'totemsdk-intelligence',     name: '@totemsdk/intelligence',     desc: 'Provider-neutral contracts for local AI inference — capabilities, operations, usage receipts, error codes, and the EdgeIntelligencePort', entryPoint: 'packages/intelligence/src/index.ts' },
-  { slug: 'totemsdk-qvac',             name: '@totemsdk/qvac',             desc: 'QVAC in-situ inference adapter — wraps @qvac/sdk into provider-neutral contracts with runtime capability discovery and per-domain adapters', entryPoint: 'packages/qvac/src/index.ts' },
-  { slug: 'totemsdk-manifest',         name: '@totemsdk/manifest',         desc: 'Canonical signed declarations for apps, AI capabilities, dApps, and edge services',            entryPoint: 'packages/manifest/src/index.ts' },
-  { slug: 'totemsdk-authority',        name: '@totemsdk/authority',        desc: 'Authority verification and delegation framework for Totem services',                          entryPoint: 'packages/authority/src/index.ts' },
-  { slug: 'totemsdk-governance',       name: '@totemsdk/governance',       desc: 'On-chain governance — proposals, voting, and treasury management',                            entryPoint: 'packages/governance/src/index.ts' },
+const entryPointFor = (short) => {
+  const candidate = path.join('packages', short, 'src', 'index.ts');
+  return fs.existsSync(path.resolve(REPO_ROOT, candidate)) ? candidate : null;
+};
 
-  // Omnia Channels
-  { slug: 'totemsdk-omnia',            name: '@totemsdk/omnia',            desc: 'Eltoo payment channel state machine',                                                           entryPoint: 'packages/omnia/src/index.ts' },
-  { slug: 'totemsdk-omnia-factory',    name: '@totemsdk/omnia-factory',    desc: 'N-of-N group channel factory',                                                                  entryPoint: 'packages/omnia-factory/src/index.ts' },
-  { slug: 'totemsdk-omnia-router',     name: '@totemsdk/omnia-router',     desc: 'Multi-hop pathfinding and fee computation',                                                     entryPoint: 'packages/omnia-router/src/index.ts' },
-  { slug: 'totemsdk-omnia-splice',     name: '@totemsdk/omnia-splice',     desc: 'Channel resizing without closing',                                                              entryPoint: 'packages/omnia-splice/src/index.ts' },
-  { slug: 'totemsdk-omnia-vtxo',       name: '@totemsdk/omnia-vtxo',       desc: 'Virtual UTXO claim layer — cash-like off-chain balances backed by Merkle commitment trees',    entryPoint: 'packages/omnia-vtxo/src/index.ts' },
-
-  // Edge Computing
-  { slug: 'totemsdk-edge',             name: '@totemsdk/edge',             desc: 'Unified developer-facing runtime for Totem Edge — port-injected, adapter-neutral',             entryPoint: 'packages/edge/src/index.ts' },
-  { slug: 'totemsdk-edge-adapters',    name: '@totemsdk/edge-adapters',    desc: 'Reference adapters bridging Totem SDK packages to edge port interfaces',                       entryPoint: 'packages/edge-adapters/src/index.ts' },
-  { slug: 'totemsdk-edge-bacnet',      name: '@totemsdk/edge-bacnet',      desc: 'BACnet adapter for building automation and HVAC systems',                                      entryPoint: 'packages/edge-bacnet/src/index.ts' },
-  { slug: 'totemsdk-edge-ble',         name: '@totemsdk/edge-ble',         desc: 'Bluetooth Low Energy adapter for Totem Edge',                                                    entryPoint: 'packages/edge-ble/src/index.ts' },
-  { slug: 'totemsdk-edge-can',         name: '@totemsdk/edge-can',         desc: 'CAN bus adapter for automotive and industrial control systems',                                 entryPoint: 'packages/edge-can/src/index.ts' },
-  { slug: 'totemsdk-edge-coap',        name: '@totemsdk/edge-coap',        desc: 'CoAP adapter for constrained IoT devices',                                                        entryPoint: 'packages/edge-coap/src/index.ts' },
-  { slug: 'totemsdk-edge-email',       name: '@totemsdk/edge-email',       desc: 'Email adapter — send and receive email via Totem Edge',                                         entryPoint: 'packages/edge-email/src/index.ts' },
-  { slug: 'totemsdk-edge-grpc',        name: '@totemsdk/edge-grpc',        desc: 'gRPC adapter for high-performance microservice communication',                                 entryPoint: 'packages/edge-grpc/src/index.ts' },
-  { slug: 'totemsdk-edge-lorawan',     name: '@totemsdk/edge-lorawan',     desc: 'LoRaWAN adapter for long-range low-power IoT networks',                                         entryPoint: 'packages/edge-lorawan/src/index.ts' },
-  { slug: 'totemsdk-edge-matter',      name: '@totemsdk/edge-matter',      desc: 'Matter (formerly CHIP) smart home protocol adapter',                                            entryPoint: 'packages/edge-matter/src/index.ts' },
-  { slug: 'totemsdk-edge-modbus',      name: '@totemsdk/edge-modbus',      desc: 'Modbus adapter for industrial automation and SCADA systems',                                    entryPoint: 'packages/edge-modbus/src/index.ts' },
-  { slug: 'totemsdk-edge-mqtt',        name: '@totemsdk/edge-mqtt',        desc: 'MQTT adapter for Totem Edge — sensor bridges, gateways, MachinePay',                          entryPoint: 'packages/edge-mqtt/src/index.ts' },
-  { slug: 'totemsdk-edge-opcua',       name: '@totemsdk/edge-opcua',       desc: 'OPC UA adapter for industrial IoT and factory automation',                                      entryPoint: 'packages/edge-opcua/src/index.ts' },
-  { slug: 'totemsdk-edge-ros2',        name: '@totemsdk/edge-ros2',        desc: 'ROS 2 adapter for robotics middleware',                                                         entryPoint: 'packages/edge-ros2/src/index.ts' },
-  { slug: 'totemsdk-pubsub-transport', name: '@totemsdk/pubsub-transport', desc: 'Pub/sub transport interfaces — MQTT-compatible, transport-agnostic',                          entryPoint: 'packages/pubsub-transport/src/index.ts' },
-  { slug: 'totemsdk-stream-transport', name: '@totemsdk/stream-transport', desc: 'Stream transport adapters — WebSocket, WebRTC, Hyperswarm, stdio',                           entryPoint: 'packages/stream-transport/src/index.ts' },
-
-  // Identity & Proofs
-  { slug: 'totemsdk-identity',         name: '@totemsdk/identity',         desc: 'Canonical identity and claims layer — identity documents, signed claims, graph resolution',    entryPoint: 'packages/identity/src/index.ts' },
-  { slug: 'totemsdk-proof',            name: '@totemsdk/proof',            desc: 'Portable proof layer — create, sign, verify, and anchor WOTS-signed proof envelopes',         entryPoint: 'packages/proof/src/index.ts' },
-  { slug: 'totemsdk-proof-integritas', name: '@totemsdk/proof-integritas', desc: 'Integritas v2 proof provider — on-chain hash stamping and verification',                      entryPoint: 'packages/proof-integritas/src/index.ts' },
-  { slug: 'totemsdk-proofgraph',       name: '@totemsdk/proofgraph',       desc: 'Local deterministic proof relationship graph — content-addressed DAG',                        entryPoint: 'packages/proofgraph/src/index.ts' },
-  { slug: 'totemsdk-provider-bond',    name: '@totemsdk/provider-bond',    desc: 'Provider trust layer — prove, record, score and filter infrastructure providers',             entryPoint: 'packages/provider-bond/src/index.ts' },
-  { slug: 'totemsdk-liquidity-bond',   name: '@totemsdk/liquidity-bond',   desc: 'Deterministic LP position and productive liquidity record package',                           entryPoint: 'packages/liquidity-bond/src/index.ts' },
-  { slug: 'totemsdk-industrial-action', name: '@totemsdk/industrial-action', desc: 'Industrial action templates for KISSVM — automated supply chain decisions',                entryPoint: 'packages/industrial-action/src/index.ts' },
-  { slug: 'totemsdk-location-proof',   name: '@totemsdk/location-proof',   desc: 'Generic location and movement proof primitives for Totem Edge — GPS/GNSS claims, confidence scoring, motion trails, and proof envelope integration', entryPoint: 'packages/location-proof/src/index.ts' },
-  { slug: 'totemsdk-spatial-proof',    name: '@totemsdk/spatial-proof',    desc: 'Generic spatial relationship proof primitives for Totem Edge — geometry hashes, geofence relations, route checks, and proof envelope integration', entryPoint: 'packages/spatial-proof/src/index.ts' },
-  { slug: 'totemsdk-raster-proof',     name: '@totemsdk/raster-proof',     desc: 'Edge-capable raster and visual evidence proof primitives for Totem Edge — asset hashes, tile Merkle roots, raster manifests, derived-layer provenance, and proof envelope integration', entryPoint: 'packages/raster-proof/src/index.ts' },
-
-  // Lookup & Routing
-  { slug: 'totemsdk-lookup-client',    name: '@totemsdk/lookup-client',    desc: 'Hyperswarm client for Totem lookup nodes — chain queries and real-time updates',              entryPoint: 'packages/lookup-client/src/index.ts' },
-  { slug: 'totemsdk-lookup-node',      name: '@totemsdk/lookup-node',      desc: 'Always-on personal lookup node — Hyperswarm, SQLite, WOTS lease coordination',               entryPoint: 'packages/lookup-node/src/index.ts' },
-  { slug: 'totemsdk-lookup-protocol',  name: '@totemsdk/lookup-protocol',  desc: 'Wire protocol types, message framing, and auth for lookup node communication',                entryPoint: 'packages/lookup-protocol/src/index.ts' },
-
-  // Transactions & Cryptography
-  { slug: 'totemsdk-txpow',            name: '@totemsdk/txpow',            desc: 'TxPoW proof-of-work mining, serialization, and verification',                                  entryPoint: 'packages/txpow/src/index.ts' },
-  { slug: 'totemsdk-wots-lease',       name: '@totemsdk/wots-lease',       desc: 'WOTS key-use coordination — canonical v3 watermark and lease safety layers',                  entryPoint: 'packages/wots-lease/src/index.ts' },
-  { slug: 'totemsdk-tx-builder',       name: '@totemsdk/tx-builder',       desc: 'Transaction builder — coin selection, multisig, and WOTS signing',                            entryPoint: 'packages/tx-builder/src/index.ts' },
-  { slug: 'totemsdk-kissvm',           name: '@totemsdk/kissvm',           desc: 'KISSVM script lexer, parser, AST, and evaluator',                                              entryPoint: 'packages/kissvm/src/index.ts' },
-  { slug: 'totemsdk-statechain',       name: '@totemsdk/statechain',       desc: 'Mercury-protocol state chain — privacy-preserving off-chain UTXO custody transfer',           entryPoint: 'packages/statechain/src/index.ts' },
-  { slug: 'totemsdk-se-server',        name: '@totemsdk/se-server',        desc: 'Self-hostable Statechain Entity server — blind co-signer for Mercury protocol',              entryPoint: 'packages/se-server/src/index.ts' },
-
-  // Smart Contracts & Advanced Templates
-  { slug: 'totemsdk-recursive-mast',   name: '@totemsdk/recursive-mast',   desc: 'Recursive MAST — delegatable policy trees, layered covenants, and programmable availability',  entryPoint: 'packages/recursive-mast/src/index.ts' },
-
-  // Infrastructure
-  { slug: 'totemsdk-chain-provider',   name: '@totemsdk/chain-provider',   desc: 'Unified chain data provider — hosted, RPC, and P2P lookup backends',                          entryPoint: 'packages/chain-provider/src/index.ts' },
-  { slug: 'totemsdk-realtime',         name: '@totemsdk/realtime',         desc: 'Real-time balance streaming with WebSocket and HTTP fallback',                                 entryPoint: 'packages/realtime/src/index.ts' },
-  { slug: 'totemsdk-pear',             name: '@totemsdk/pear',             desc: 'Pear/Holepunch runtime integration — storage, networking, lifecycle',                         entryPoint: 'packages/pear/src/index.ts' },
-  { slug: 'totemsdk-pureminima-rpc',   name: '@totemsdk/pureminima-rpc',   desc: 'Fetch-based PureMinima RPC client — Bare/Pear/Node/browser compatible',                      entryPoint: 'packages/pureminima-rpc/src/index.ts' },
-
-  // MCP & AI Agents
-  { slug: 'totemsdk-mcp-server',       name: '@totemsdk/mcp-server',       desc: 'Model Context Protocol server — AI agent integration with Totem Edge tool catalog',            entryPoint: 'packages/mcp-server/src/index.ts' },
-
-  // Server & CLI
-  { slug: 'totemsdk-server',           name: '@totemsdk/server',           desc: 'Node.js server SDK — wallet, transaction building, and Axia API client',                       entryPoint: 'packages/server/src/index.ts' },
-  { slug: 'totemsdk-wallet-adapter',   name: '@totemsdk/wallet-adapter',   desc: 'Abstract base class for building Totem-compatible wallets',                                    entryPoint: 'packages/wallet-adapter/src/index.ts' },
-
-  // Browser & Platform
+const EXTENSIONS = [
   { slug: 'totem-observability',       name: '@totemsdk/observability',    desc: 'Drop-in observability for Totem-based dApps — trace propagation and batched telemetry',       entryPoint: 'extensions/observability/src/index.js' },
   { slug: 'totem-extension-keyring',   name: 'totem-extension/keyring',    desc: 'Totem Extension public keyring API — signing validator types and security boundary utilities', entryPoint: 'extensions/totem-extension/src/keyring.ts' },
+];
+
+const DOMAIN_LABELS = {
+  'cryptographic-foundation': 'Cryptographic Foundation',
+  'sovereignty-stack': 'Sovereignty Stack',
+  'payment-network': 'Payment Network',
+  'edge-computing': 'Edge Computing',
+  'verifiable-claims': 'Verifiable Claims',
+  'intelligence': 'Intelligence',
+  'storage': 'Storage',
+};
+
+const PACKAGES = [
+  ...manifest.packages.map((p) => {
+    const short = p.name.replace(/^@totemsdk\//, '');
+    const gate = gatesConfig.packages?.[`packages/${short}`] ?? {};
+    return {
+      slug: `totemsdk-${short}`,
+      name: p.name,
+      desc: p.description,
+      maturity: gate.maturity ?? null,
+      domain: p.domain ?? null,
+      entryPoint: entryPointFor(short),
+    };
+  }),
+  ...EXTENSIONS,
 ];
 
 // ---------------------------------------------------------------------------
@@ -225,6 +193,7 @@ function countMdFiles(dir) {
 function writeCuratedStub(pkg) {
   const dir = path.join(API_DIR, pkg.slug);
   fs.mkdirSync(dir, { recursive: true });
+  const maturationLine = pkg.maturity ? `Maturity: \`${pkg.maturity}\`` : 'Maturity: not classified';
   fs.writeFileSync(path.join(dir, 'index.md'), `---
 title: "${pkg.name}"
 sidebar_label: "${pkg.name}"
@@ -234,6 +203,8 @@ description: "${pkg.desc}"
 # \`${pkg.name}\`
 
 > ${pkg.desc}
+
+**${maturationLine}**
 
 :::info Curated Reference
 Full API reference for this package requires TypeDoc regeneration.
@@ -277,9 +248,19 @@ function extractSymbolsFromFileTree(slug) {
 // 1. Clear package subdirs
 // ---------------------------------------------------------------------------
 console.log('[generate] Clearing docs/api package subdirs...');
-for (const pkg of PACKAGES) {
-  const dir = path.join(API_DIR, pkg.slug);
-  if (fs.existsSync(dir)) fs.rmSync(dir, { recursive: true, force: true });
+const currentSlugs = new Set(PACKAGES.map(p => p.slug));
+if (fs.existsSync(API_DIR)) {
+  for (const entry of fs.readdirSync(API_DIR, { withFileTypes: true })) {
+    const dir = path.join(API_DIR, entry.name);
+    if (!entry.isDirectory()) continue;
+    if (entry.name === 'index.md') continue;
+    // Remove every subdir not produced by the current manifest-derived set —
+    // this is what drops stale packages (e.g. pureminima-rpc) automatically
+    if (!currentSlugs.has(entry.name)) {
+      console.log(`[generate]   removing stale api dir: ${entry.name}`);
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  }
 }
 for (const stale of ['@totemsdk', '@totem', 'README.md']) {
   const p = path.join(API_DIR, stale);
@@ -356,6 +337,24 @@ const succeededCount = Object.values(typedocResults).filter(Boolean).length;
 console.log(`[generate] Per-package TypeDoc done: ${succeededCount}/${PACKAGES.length} with real docs.`);
 
 // ---------------------------------------------------------------------------
+// 2aa. Inject maturity line into real TypeDoc index pages (RFC §2.3 item 6)
+//      Alpha/beta/rc/v1 from the gates config, mirrored here so the docs label
+//      readiness exactly like the edge mirror — alpha is never promoted.
+// ---------------------------------------------------------------------------
+for (const pkg of PACKAGES) {
+  if (!pkg.maturity || typedocResults[pkg.slug] !== true) continue;
+  const idx = path.join(API_DIR, pkg.slug, 'index.md');
+  if (!fs.existsSync(idx)) continue;
+  const before = fs.readFileSync(idx, 'utf8');
+  if (before.includes('**Maturity:**')) continue;
+  const inject = `**Maturity: ${pkg.maturity}**\n\n`;
+  const bodyStart = before.indexOf('\n# ');
+  const after = bodyStart === -1 ? before : before.slice(0, bodyStart) + '\n' + inject + before.slice(bodyStart + 1);
+  fs.writeFileSync(idx, after);
+}
+console.log('[generate] Injected maturity into TypeDoc index pages.');
+
+// ---------------------------------------------------------------------------
 // 2b. Write package index page (docs/api/index.md)
 //     Referenced explicitly by sidebars.ts as the "Package Index" doc, so it
 //     must be regenerated on every run or the Docusaurus build fails.
@@ -373,9 +372,9 @@ fs.writeFileSync(
     '',
     'Auto-generated from TypeScript sources via TypeDoc. Run `npm run generate` from `TotemEdgeSDKDocs/` to regenerate.',
     '',
-    '| Package | Description |',
-    '|---------|-------------|',
-    ...PACKAGES.map(pkg => `| [\`${pkg.name}\`](${pkg.slug}/index.md) | ${pkg.desc} |`),
+    '| Package | Description | Maturity |',
+    '|---------|-------------|----------|',
+    ...PACKAGES.map(pkg => `| [\`${pkg.name}\`](${pkg.slug}/index.md) | ${pkg.desc} | ${pkg.maturity ?? '—'} |`),
     '',
   ].join('\n')
 );
@@ -473,6 +472,8 @@ fs.writeFileSync(
       name: pkg.name,
       slug: pkg.slug,
       description: pkg.desc,
+      domain: pkg.domain,
+      maturity: pkg.maturity,
       apiReferenceUrl: `${SITE_URL}/api/${pkg.slug}/`,
       hasFullDocs: typedocResults[pkg.slug] === true,
       exports: symbolsByPackage[pkg.slug] || [],
@@ -482,4 +483,26 @@ fs.writeFileSync(
   }, null, 2) + '\n'
 );
 console.log('[generate] Wrote static/docs-manifest.json');
+
+// ---------------------------------------------------------------------------
+// 8. static/package-catalog.json — manifest-derived sidebar grouping
+//    Consumed by sidebars.ts (RFC website-reorg §2.3 item 4) so the API sidebar
+//    mirrors the seven-domain taxonomy instead of a hand-typed category list.
+// ---------------------------------------------------------------------------
+const catalogDomains = manifest.domains && typeof manifest.domains === 'object'
+  ? Object.entries(manifest.domains).map(([id]) => {
+      const pkgs = PACKAGES.filter(p => p.domain === id && !p.name.includes('@totemsdk/observability') && !p.name.includes('keyring'));
+      return { id, label: DOMAIN_LABELS[id] ?? id, packages: pkgs.map(p => ({ slug: p.slug, name: p.name, maturity: p.maturity })) };
+    })
+  : [];
+
+fs.writeFileSync(
+  path.join(STATIC_DIR, 'package-catalog.json'),
+  JSON.stringify({
+    generatedAt: new Date().toISOString(),
+    domains: catalogDomains,
+    extensions: EXTENSIONS.map(p => ({ slug: p.slug, name: p.name, desc: p.desc })),
+  }, null, 2) + '\n'
+);
+console.log('[generate] Wrote static/package-catalog.json');
 console.log('[generate] Done.');

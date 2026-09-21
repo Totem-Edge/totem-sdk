@@ -10,22 +10,22 @@
 
 ### bciTranscribe
 
-> **bciTranscribe**: `QvacOp`\<[`TranscribeParams`](TranscribeParams.md), \{ `transcript?`: `string`; \}\>
+> **bciTranscribe**: `QvacOp`\<[`BciTranscribeClientParams`](BciTranscribeClientParams.md), `string`\>
 
 ***
 
 ### bciTranscribeStream
 
-> **bciTranscribeStream**: `QvacOp`\<[`TranscribeParams`](TranscribeParams.md), `unknown`\>
+> **bciTranscribeStream**: `QvacOp`\<[`BciTranscribeClientParams`](BciTranscribeClientParams.md), [`BciTranscribeStreamSession`](BciTranscribeStreamSession.md)\>
 
 ***
 
 ### transcribe
 
-> **transcribe**: `QvacOp`\<[`TranscribeParams`](TranscribeParams.md), \{ `transcript?`: `string`; \}\>
+> **transcribe**: `QvacOp`\<[`TranscribeClientParams`](TranscribeClientParams.md), `string`\>
 
 ***
 
 ### transcribeStream
 
-> **transcribeStream**: `QvacOp`\<[`TranscribeParams`](TranscribeParams.md), `unknown`\>
+> **transcribeStream**: `QvacOp`\<[`TranscribeClientParams`](TranscribeClientParams.md), [`TranscribeStreamSession`](TranscribeStreamSession.md)\>

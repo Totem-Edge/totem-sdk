@@ -22,7 +22,7 @@ KISSVM Studio is a browser-based IDE for authoring, simulating, and testing KISS
 | `@totemsdk/agent-policy` | Safety linter — evaluates scripts before on-chain deployment |
 | `@totemsdk/tx-builder` | Wraps a script in a deployable transaction envelope |
 | `@totemsdk/chain-provider` | Submits deploy transactions to a local dev node |
-| `@totemsdk/pureminima-rpc` | Fetches chain state for simulation context |
+| `@totemsdk/minima-rpc` | Fetches chain state for simulation context |
 | `@totemsdk/connect` | Connects to the developer's Totem wallet for signing |
 
 ---
@@ -53,9 +53,9 @@ renderASTExplorer(ast);
 
 ```typescript
 import { evaluate } from '@totemsdk/kissvm';
-import { PureMinimaRPC } from '@totemsdk/pureminima-rpc';
+import { createMinimaRpcClient } from '@totemsdk/minima-rpc';
 
-const rpc = new PureMinimaRPC({ url: 'http://localhost:9002' });
+const rpc = createMinimaRpcClient({ url: 'http://localhost:9002' });
 const chainState = await rpc.getChainState();
 
 const result = await evaluate(ast, {
@@ -152,5 +152,5 @@ A QVAC agent can auto-generate KISSVM scripts from natural-language specs, run t
 - [`@totemsdk/agent-policy`](/api/totemsdk-agent-policy)
 - [`@totemsdk/tx-builder`](/api/totemsdk-tx-builder)
 - [`@totemsdk/chain-provider`](/api/totemsdk-chain-provider)
-- [`@totemsdk/pureminima-rpc`](/api/totemsdk-pureminima-rpc)
+- [`@totemsdk/minima-rpc`](/api/totemsdk-minima-rpc)
 - [`@totemsdk/connect`](/api/totemsdk-connect)

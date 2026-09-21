@@ -6,6 +6,10 @@
 
 # Interface: OmniaVtxoStore
 
+## Extended by
+
+- [`DurableOmniaVtxoStore`](DurableOmniaVtxoStore.md)
+
 ## Methods
 
 ### getPool()

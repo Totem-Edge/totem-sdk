@@ -8,18 +8,12 @@
 
 ## Properties
 
-### input?
+### modelId
 
-> `optional` **input?**: `string`
-
-***
-
-### model?
-
-> `optional` **model?**: `string`
+> **modelId**: `string`
 
 ***
 
-### text?
+### text
 
-> `optional` **text?**: `string`
+> **text**: `string` \| `string`[]

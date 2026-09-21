@@ -10,10 +10,10 @@
 
 ### diffusion
 
-> **diffusion**: `QvacOp`\<[`DiffusionParams`](DiffusionParams.md), [`DiffusionResult`](DiffusionResult.md)\>
+> **diffusion**: `QvacOp`\<[`DiffusionClientParams`](DiffusionClientParams.md), [`DiffusionResult`](DiffusionResult.md)\>
 
 ***
 
 ### upscale
 
-> **upscale**: `QvacOp`\<[`UpscaleParams`](UpscaleParams.md), [`DiffusionResult`](DiffusionResult.md)\>
+> **upscale**: `QvacOp`\<[`UpscaleClientParams`](UpscaleClientParams.md), [`UpscaleResult`](UpscaleResult.md)\>

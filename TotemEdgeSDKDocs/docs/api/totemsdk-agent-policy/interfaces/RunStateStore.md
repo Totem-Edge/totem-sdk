@@ -148,6 +148,61 @@
 
 ***
 
+### reconcileReservation()
+
+> **reconcileReservation**(`reservationId`, `outcome`, `opts?`): `Promise`\<`void`\>
+
+Settle a recovered (`unknown`) reservation. The ONLY way an unsettled
+reservation releases its budget is an explicit `'definitely-not-executed'`
+reconciliation; `'completed'` commits it and folds the receipt into the
+run totals.
+
+#### Parameters
+
+##### reservationId
+
+`string`
+
+##### outcome
+
+`ReservationSettlementOutcome`
+
+##### opts?
+
+###### reason?
+
+`string`
+
+###### receipt?
+
+[`RunStepReceipt`](RunStepReceipt.md)
+
+#### Returns
+
+`Promise`\<`void`\>
+
+***
+
+### recoverReservations()
+
+> **recoverReservations**(`runId?`): `Promise`\<`OutOfBandReservation`[]\>
+
+Conservative reservation recovery (RFC-007 §3.5): a reservation that was
+never settled before its deadline is classified `unknown` — its budget is
+HELD, never restored by expiry. Returns every unsettled reservation.
+
+#### Parameters
+
+##### runId?
+
+`string`
+
+#### Returns
+
+`Promise`\<`OutOfBandReservation`[]\>
+
+***
+
 ### reserveStep()
 
 > **reserveStep**(`reservation`): `Promise`\<`void`\>

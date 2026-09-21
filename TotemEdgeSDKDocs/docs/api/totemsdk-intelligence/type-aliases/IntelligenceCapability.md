@@ -6,7 +6,4 @@
 
 # Type Alias: IntelligenceCapability
 
-> **IntelligenceCapability** = `` `intelligence:${IntelligenceDomain}` ``
-
-Edge capability strings for intelligence domains.
-Follows the edge `domain:action` convention.
+> **IntelligenceCapability** = `KnownIntelligenceCapability` \| `` `intelligence:${string}` ``

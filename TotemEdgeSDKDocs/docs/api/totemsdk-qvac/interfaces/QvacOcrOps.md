@@ -10,4 +10,4 @@
 
 ### ocr
 
-> **ocr**: `QvacOp`\<[`OcrParams`](OcrParams.md), \{ `text?`: `string`; \}\>
+> **ocr**: `QvacOp`\<[`OCRClientParams`](OCRClientParams.md), [`OcrResult`](OcrResult.md)\>

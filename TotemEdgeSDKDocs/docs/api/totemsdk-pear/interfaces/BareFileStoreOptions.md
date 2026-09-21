@@ -8,12 +8,19 @@
 
 ## Properties
 
+### failurePolicy?
+
+> `optional` **failurePolicy?**: `"strict"` \| `"lenient"`
+
+`strict` (default) surfaces corrupt data; `lenient` treats it as empty.
+
+***
+
 ### filePath
 
 > **filePath**: `string`
 
-Absolute path to the JSON file that backs this store.
-The parent directory is created automatically if it does not exist.
+Absolute path to the codec file backing this store.
 
 ***
 
@@ -21,5 +28,4 @@ The parent directory is created automatically if it does not exist.
 
 > `optional` **fs?**: [`FsLike`](FsLike.md)
 
-Optional fs shim — defaults to `node:fs`.
-Pass `bare-fs` here when running inside a Bare/Pear app.
+Optional fs shim. Pass `bare-fs` inside a Bare/Pear app.

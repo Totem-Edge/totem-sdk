@@ -2,6 +2,8 @@
 
 ***
 
+**Maturity: rc**
+
 # @totemsdk/omnia-router
 
 ## Interfaces
@@ -13,6 +15,8 @@
 - [ChannelParty](interfaces/ChannelParty.md)
 - [ChannelSigner](interfaces/ChannelSigner.md)
 - [CrossTokenRoute](interfaces/CrossTokenRoute.md)
+- [DurableRouterLedger](interfaces/DurableRouterLedger.md)
+- [DurableRouterLedgerOptions](interfaces/DurableRouterLedgerOptions.md)
 - [HTLCParams](interfaces/HTLCParams.md)
 - [PaymentRequest](interfaces/PaymentRequest.md)
 - [PaymentResult](interfaces/PaymentResult.md)
@@ -20,7 +24,9 @@
 - [RouteOptions](interfaces/RouteOptions.md)
 - [RouterChannel](interfaces/RouterChannel.md)
 - [RouterFeeProof](interfaces/RouterFeeProof.md)
+- [RouterLedgerState](interfaces/RouterLedgerState.md)
 - [RoutingHop](interfaces/RoutingHop.md)
+- [SettledSegment](interfaces/SettledSegment.md)
 - [SwapAnnouncement](interfaces/SwapAnnouncement.md)
 - [SwapHop](interfaces/SwapHop.md)
 
@@ -44,6 +50,7 @@
 - [cancelPayment](functions/cancelPayment.md)
 - [computeRouterFeeProofHash](functions/computeRouterFeeProofHash.md)
 - [createChannelGraph](functions/createChannelGraph.md)
+- [createDurableRouterLedger](functions/createDurableRouterLedger.md)
 - [executeCrossTokenPayment](functions/executeCrossTokenPayment.md)
 - [executeMultiHopPayment](functions/executeMultiHopPayment.md)
 - [findCrossTokenRoute](functions/findCrossTokenRoute.md)

@@ -43,7 +43,7 @@ This is safe for Node.js projects — it only adds type definitions, it does not
 | `@totemsdk/lookup-node` | `lease.ts`, `registry.ts`, `server-auth.ts` |
 | `@totemsdk/node` | Web Crypto + WebSocket types |
 | `@totemsdk/omnia-factory` | `factory.ts`, `virtual.ts` |
-| `@totemsdk/omnia-hyperswarm` | `relay.ts` (`ErrorEvent`) |
+| `@totemsdk/omnia` | `relay.ts` (`ErrorEvent`) |
 | `@totemsdk/omnia-router` | `request.ts` |
 | `@totemsdk/realtime` | WebSocket / event types |
 

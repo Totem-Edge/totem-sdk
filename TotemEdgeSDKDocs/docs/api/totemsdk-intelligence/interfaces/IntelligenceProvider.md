@@ -16,7 +16,7 @@ cannot move value, and must never hold private keys.
 
 ### capabilities
 
-> `readonly` **capabilities**: readonly (`"intelligence:llm"` \| `"intelligence:embed"` \| `"intelligence:rag"` \| `"intelligence:asr"` \| `"intelligence:translate"` \| `"intelligence:tts"` \| `"intelligence:diffusion"` \| `"intelligence:ocr"` \| `"intelligence:classify"` \| `"intelligence:audiogen"` \| `"intelligence:video"` \| `"intelligence:vla"` \| `"intelligence:world"` \| `"intelligence:models"` \| `"intelligence:system"` \| `"intelligence:plugins"`)[]
+> `readonly` **capabilities**: readonly `` `intelligence:${string}` ``[]
 
 Domains the provider currently supports.
 

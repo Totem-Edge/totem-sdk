@@ -1,0 +1,369 @@
+{
+  "generatedAt": "2026-09-19T12:42:21.018Z",
+  "domains": [
+    {
+      "id": "cryptographic-foundation",
+      "label": "Cryptographic Foundation",
+      "packages": [
+        {
+          "slug": "totemsdk-core",
+          "name": "@totemsdk/core",
+          "maturity": "v1"
+        },
+        {
+          "slug": "totemsdk-core-wasm",
+          "name": "@totemsdk/core-wasm",
+          "maturity": "v1"
+        },
+        {
+          "slug": "totemsdk-kissvm",
+          "name": "@totemsdk/kissvm",
+          "maturity": "v1"
+        },
+        {
+          "slug": "totemsdk-recursive-mast",
+          "name": "@totemsdk/recursive-mast",
+          "maturity": "rc"
+        },
+        {
+          "slug": "totemsdk-txpow",
+          "name": "@totemsdk/txpow",
+          "maturity": "v1"
+        },
+        {
+          "slug": "totemsdk-wots-lease",
+          "name": "@totemsdk/wots-lease",
+          "maturity": "v1"
+        }
+      ]
+    },
+    {
+      "id": "sovereignty-stack",
+      "label": "Sovereignty Stack",
+      "packages": [
+        {
+          "slug": "totemsdk-chain-provider",
+          "name": "@totemsdk/chain-provider",
+          "maturity": "rc"
+        },
+        {
+          "slug": "totemsdk-lookup-client",
+          "name": "@totemsdk/lookup-client",
+          "maturity": "rc"
+        },
+        {
+          "slug": "totemsdk-lookup-node",
+          "name": "@totemsdk/lookup-node",
+          "maturity": "rc"
+        },
+        {
+          "slug": "totemsdk-lookup-protocol",
+          "name": "@totemsdk/lookup-protocol",
+          "maturity": "rc"
+        },
+        {
+          "slug": "totemsdk-minima-rpc",
+          "name": "@totemsdk/minima-rpc",
+          "maturity": "rc"
+        },
+        {
+          "slug": "totemsdk-realtime",
+          "name": "@totemsdk/realtime",
+          "maturity": "rc"
+        },
+        {
+          "slug": "totemsdk-mcp-server",
+          "name": "@totemsdk/mcp-server",
+          "maturity": "rc"
+        }
+      ]
+    },
+    {
+      "id": "payment-network",
+      "label": "Payment Network",
+      "packages": [
+        {
+          "slug": "totemsdk-omnia",
+          "name": "@totemsdk/omnia",
+          "maturity": "v1"
+        },
+        {
+          "slug": "totemsdk-omnia-factory",
+          "name": "@totemsdk/omnia-factory",
+          "maturity": "rc"
+        },
+        {
+          "slug": "totemsdk-omnia-router",
+          "name": "@totemsdk/omnia-router",
+          "maturity": "rc"
+        },
+        {
+          "slug": "totemsdk-omnia-splice",
+          "name": "@totemsdk/omnia-splice",
+          "maturity": "rc"
+        },
+        {
+          "slug": "totemsdk-omnia-vtxo",
+          "name": "@totemsdk/omnia-vtxo",
+          "maturity": "rc"
+        },
+        {
+          "slug": "totemsdk-se-server",
+          "name": "@totemsdk/se-server",
+          "maturity": "rc"
+        },
+        {
+          "slug": "totemsdk-statechain",
+          "name": "@totemsdk/statechain",
+          "maturity": "rc"
+        },
+        {
+          "slug": "totemsdk-tx-builder",
+          "name": "@totemsdk/tx-builder",
+          "maturity": "rc"
+        },
+        {
+          "slug": "totemsdk-omnia-host",
+          "name": "@totemsdk/omnia-host",
+          "maturity": "rc"
+        },
+        {
+          "slug": "totemsdk-omnia-pool",
+          "name": "@totemsdk/omnia-pool",
+          "maturity": "rc"
+        }
+      ]
+    },
+    {
+      "id": "edge-computing",
+      "label": "Edge Computing",
+      "packages": [
+        {
+          "slug": "totemsdk-connect",
+          "name": "@totemsdk/connect",
+          "maturity": "v1"
+        },
+        {
+          "slug": "totemsdk-edge",
+          "name": "@totemsdk/edge",
+          "maturity": "v1"
+        },
+        {
+          "slug": "totemsdk-edge-adapters",
+          "name": "@totemsdk/edge-adapters",
+          "maturity": "rc"
+        },
+        {
+          "slug": "totemsdk-edge-bacnet",
+          "name": "@totemsdk/edge-bacnet",
+          "maturity": "rc"
+        },
+        {
+          "slug": "totemsdk-edge-ble",
+          "name": "@totemsdk/edge-ble",
+          "maturity": "rc"
+        },
+        {
+          "slug": "totemsdk-edge-can",
+          "name": "@totemsdk/edge-can",
+          "maturity": "rc"
+        },
+        {
+          "slug": "totemsdk-edge-coap",
+          "name": "@totemsdk/edge-coap",
+          "maturity": "rc"
+        },
+        {
+          "slug": "totemsdk-edge-grpc",
+          "name": "@totemsdk/edge-grpc",
+          "maturity": "rc"
+        },
+        {
+          "slug": "totemsdk-edge-lorawan",
+          "name": "@totemsdk/edge-lorawan",
+          "maturity": "rc"
+        },
+        {
+          "slug": "totemsdk-edge-matter",
+          "name": "@totemsdk/edge-matter",
+          "maturity": "rc"
+        },
+        {
+          "slug": "totemsdk-edge-modbus",
+          "name": "@totemsdk/edge-modbus",
+          "maturity": "rc"
+        },
+        {
+          "slug": "totemsdk-edge-mqtt",
+          "name": "@totemsdk/edge-mqtt",
+          "maturity": "rc"
+        },
+        {
+          "slug": "totemsdk-edge-nfc",
+          "name": "@totemsdk/edge-nfc",
+          "maturity": "alpha"
+        },
+        {
+          "slug": "totemsdk-edge-opcua",
+          "name": "@totemsdk/edge-opcua",
+          "maturity": "rc"
+        },
+        {
+          "slug": "totemsdk-edge-ros2",
+          "name": "@totemsdk/edge-ros2",
+          "maturity": "rc"
+        },
+        {
+          "slug": "totemsdk-pear",
+          "name": "@totemsdk/pear",
+          "maturity": "rc"
+        },
+        {
+          "slug": "totemsdk-pubsub-transport",
+          "name": "@totemsdk/pubsub-transport",
+          "maturity": "rc"
+        },
+        {
+          "slug": "totemsdk-server",
+          "name": "@totemsdk/server",
+          "maturity": "v1"
+        },
+        {
+          "slug": "totemsdk-stream-transport",
+          "name": "@totemsdk/stream-transport",
+          "maturity": "rc"
+        },
+        {
+          "slug": "totemsdk-wallet-adapter",
+          "name": "@totemsdk/wallet-adapter",
+          "maturity": "v1"
+        },
+        {
+          "slug": "totemsdk-edge-email",
+          "name": "@totemsdk/edge-email",
+          "maturity": "rc"
+        },
+        {
+          "slug": "totemsdk-industrial-action",
+          "name": "@totemsdk/industrial-action",
+          "maturity": "rc"
+        }
+      ]
+    },
+    {
+      "id": "verifiable-claims",
+      "label": "Verifiable Claims",
+      "packages": [
+        {
+          "slug": "totemsdk-agent-policy",
+          "name": "@totemsdk/agent-policy",
+          "maturity": "rc"
+        },
+        {
+          "slug": "totemsdk-authority",
+          "name": "@totemsdk/authority",
+          "maturity": "v1"
+        },
+        {
+          "slug": "totemsdk-governance",
+          "name": "@totemsdk/governance",
+          "maturity": "rc"
+        },
+        {
+          "slug": "totemsdk-identity",
+          "name": "@totemsdk/identity",
+          "maturity": "v1"
+        },
+        {
+          "slug": "totemsdk-liquidity-bond",
+          "name": "@totemsdk/liquidity-bond",
+          "maturity": "rc"
+        },
+        {
+          "slug": "totemsdk-manifest",
+          "name": "@totemsdk/manifest",
+          "maturity": "v1"
+        },
+        {
+          "slug": "totemsdk-proof",
+          "name": "@totemsdk/proof",
+          "maturity": "v1"
+        },
+        {
+          "slug": "totemsdk-proof-integritas",
+          "name": "@totemsdk/proof-integritas",
+          "maturity": "v1"
+        },
+        {
+          "slug": "totemsdk-proofgraph",
+          "name": "@totemsdk/proofgraph",
+          "maturity": "v1"
+        },
+        {
+          "slug": "totemsdk-provider-bond",
+          "name": "@totemsdk/provider-bond",
+          "maturity": "rc"
+        },
+        {
+          "slug": "totemsdk-root-identity",
+          "name": "@totemsdk/root-identity",
+          "maturity": "v1"
+        },
+        {
+          "slug": "totemsdk-location-proof",
+          "name": "@totemsdk/location-proof",
+          "maturity": "v1"
+        },
+        {
+          "slug": "totemsdk-spatial-proof",
+          "name": "@totemsdk/spatial-proof",
+          "maturity": "v1"
+        },
+        {
+          "slug": "totemsdk-raster-proof",
+          "name": "@totemsdk/raster-proof",
+          "maturity": "v1"
+        }
+      ]
+    },
+    {
+      "id": "intelligence",
+      "label": "Intelligence",
+      "packages": [
+        {
+          "slug": "totemsdk-intelligence",
+          "name": "@totemsdk/intelligence",
+          "maturity": "beta"
+        },
+        {
+          "slug": "totemsdk-qvac",
+          "name": "@totemsdk/qvac",
+          "maturity": "beta"
+        }
+      ]
+    },
+    {
+      "id": "storage",
+      "label": "Storage",
+      "packages": [
+        {
+          "slug": "totemsdk-storage",
+          "name": "@totemsdk/storage",
+          "maturity": "alpha"
+        }
+      ]
+    }
+  ],
+  "extensions": [
+    {
+      "slug": "totem-observability",
+      "name": "@totemsdk/observability",
+      "desc": "Drop-in observability for Totem-based dApps — trace propagation and batched telemetry"
+    },
+    {
+      "slug": "totem-extension-keyring",
+      "name": "totem-extension/keyring",
+      "desc": "Totem Extension public keyring API — signing validator types and security boundary utilities"
+    }
+  ]
+}

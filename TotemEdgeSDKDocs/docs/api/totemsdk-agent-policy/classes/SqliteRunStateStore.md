@@ -285,6 +285,28 @@ Run-level accounting for local bounds.
 
 ***
 
+### countUnknown()
+
+> **countUnknown**(`runId`): `Promise`\<`number`\>
+
+Reservations whose outcome is unknown after crash/timeout — budget HELD.
+
+#### Parameters
+
+##### runId
+
+`string`
+
+#### Returns
+
+`Promise`\<`number`\>
+
+#### Implementation of
+
+[`GrantUsageStore`](../interfaces/GrantUsageStore.md).[`countUnknown`](../interfaces/GrantUsageStore.md#countunknown)
+
+***
+
 ### createRun()
 
 > **createRun**(`snapshot`): `Promise`\<`void`\>
@@ -426,6 +448,69 @@ Committed receipts for a mandate — used to build the usage snapshot.
 #### Implementation of
 
 [`RunStateStore`](../interfaces/RunStateStore.md).[`listStepReceipts`](../interfaces/RunStateStore.md#liststepreceipts)
+
+***
+
+### reconcileReservation()
+
+> **reconcileReservation**(`reservationId`, `outcome`, `opts?`): `Promise`\<`void`\>
+
+Settle a recovered (`unknown`) reservation. The ONLY way an unsettled
+reservation releases its budget is an explicit `'definitely-not-executed'`
+reconciliation; `'completed'` commits it and folds the receipt into the
+run totals.
+
+#### Parameters
+
+##### reservationId
+
+`string`
+
+##### outcome
+
+`ReservationSettlementOutcome`
+
+##### opts?
+
+###### reason?
+
+`string`
+
+###### receipt?
+
+[`StepReceipt`](../interfaces/StepReceipt.md) \| [`RunStepReceipt`](../interfaces/RunStepReceipt.md)
+
+#### Returns
+
+`Promise`\<`void`\>
+
+#### Implementation of
+
+[`GrantUsageStore`](../interfaces/GrantUsageStore.md).[`reconcileReservation`](../interfaces/GrantUsageStore.md#reconcilereservation)
+
+***
+
+### recoverReservations()
+
+> **recoverReservations**(`runId?`): `Promise`\<`OutOfBandReservation`[]\>
+
+Conservative reservation recovery (RFC-007 §3.5): a reservation that was
+never settled before its deadline is classified `unknown` — its budget is
+HELD, never restored by expiry. Returns every unsettled reservation.
+
+#### Parameters
+
+##### runId?
+
+`string`
+
+#### Returns
+
+`Promise`\<`OutOfBandReservation`[]\>
+
+#### Implementation of
+
+[`GrantUsageStore`](../interfaces/GrantUsageStore.md).[`recoverReservations`](../interfaces/GrantUsageStore.md#recoverreservations)
 
 ***
 

@@ -46,6 +46,16 @@ Maximum age of a command in milliseconds (default 60_000).
 
 ***
 
+### replayStore?
+
+> `optional` **replayStore?**: `ReplayLedgerStore`
+
+Durable store for the replay ledger. When provided, processed command IDs
+survive restarts (RFC-007 G4); otherwise an in-memory freshness window is
+used.
+
+***
+
 ### runtime
 
 > **runtime**: `EdgeRuntime`

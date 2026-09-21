@@ -1,19 +1,19 @@
 ---
 title: Relay Modes
 sidebar_label: Relay Modes
-description: Choose between native Hyperswarm P2P, Axia-hosted relay, and self-hosted relay in @totemsdk/omnia-hyperswarm.
+description: Choose between native Hyperswarm P2P, Axia-hosted relay, and self-hosted relay in @totemsdk/omnia.
 ---
 
 # Relay Modes
 
-`@totemsdk/omnia-hyperswarm` supports three transport modes for Omnia payment channel peer discovery. You pick the mode by setting the `relay` field in `OmniaSwarmConfig`.
+`@totemsdk/omnia` supports three transport modes for Omnia payment channel peer discovery. You pick the mode by setting the `relay` field in `OmniaSwarmConfig`.
 
 ## native (default)
 
 Raw Hyperswarm P2P. The `hyperswarm` npm package must be installed as a peer dependency. This mode dials directly into the Hyperswarm DHT and is ideal for Node.js, Pear, and Bare environments where UDP is available.
 
 ```ts
-import { createOmniaSwarm } from '@totemsdk/omnia-hyperswarm';
+import { createOmniaSwarm } from '@totemsdk/omnia';
 
 // No relay config → 'native' is implied
 const swarm = await createOmniaSwarm({ localPubkey: myPubkeyHex });
@@ -30,7 +30,7 @@ const swarm = await createOmniaSwarm({ localPubkey: myPubkeyHex });
 Axia manages the relay infrastructure for you. Pass your Axia API key; no Hyperswarm binary is needed. Traffic is billed against your project's credit balance (10 credits per connection + 2 credits per 50-message batch).
 
 ```ts
-import { createOmniaSwarm } from '@totemsdk/omnia-hyperswarm';
+import { createOmniaSwarm } from '@totemsdk/omnia';
 
 const swarm = await createOmniaSwarm({
   localPubkey: myPubkeyHex,
@@ -62,7 +62,7 @@ The relay WebSocket URL is displayed in the **Relay Endpoints** section at the b
 Point the swarm at your own relay node running the Axia DHT Relay Bridge protocol. Useful for air-gapped environments, private deployments, or testing.
 
 ```ts
-import { createOmniaSwarm } from '@totemsdk/omnia-hyperswarm';
+import { createOmniaSwarm } from '@totemsdk/omnia';
 
 const swarm = await createOmniaSwarm({
   localPubkey: myPubkeyHex,
@@ -73,7 +73,7 @@ const swarm = await createOmniaSwarm({
 });
 
 // Or use the convenience function:
-import { createOmniaSwarmFromRelayUrl } from '@totemsdk/omnia-hyperswarm';
+import { createOmniaSwarmFromRelayUrl } from '@totemsdk/omnia';
 const swarm2 = createOmniaSwarmFromRelayUrl('wss://relay.example.com', { localPubkey });
 ```
 
@@ -112,4 +112,4 @@ OmniaMessage binary frames (4-byte length prefix + UTF-8 JSON) are hex-encoded i
 | Private/air-gapped deployment | `self-hosted` |
 | Development / CI testing | `native` (with mock stream pair) or `self-hosted` |
 
-For local development and tests, prefer `createMockStreamPair()` from `@totemsdk/omnia-hyperswarm` to avoid any network dependency.
+For local development and tests, prefer `createInMemoryPair()` from `@totemsdk/stream-transport` to avoid any network dependency.

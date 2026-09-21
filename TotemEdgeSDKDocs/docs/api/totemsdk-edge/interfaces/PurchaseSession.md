@@ -24,7 +24,7 @@ A long-running resource exchange session.
 
 ### status
 
-> **status**: `"authorized"` \| `"active"` \| `"settling"` \| `"completed"` \| `"failed"` \| `"cancelled"`
+> **status**: `"completed"` \| `"failed"` \| `"authorized"` \| `"active"` \| `"settling"` \| `"cancelled"`
 
 ## Methods
 

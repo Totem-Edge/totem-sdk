@@ -2,6 +2,8 @@
 
 ***
 
+**Maturity: rc**
+
 # @totemsdk/tx-builder
 
 ## Classes
@@ -9,6 +11,7 @@
 - [CoinSelectionError](classes/CoinSelectionError.md)
 - [CoinSelectionService](classes/CoinSelectionService.md)
 - [MultisigManager](classes/MultisigManager.md)
+- [MultisigStorageError](classes/MultisigStorageError.md)
 
 ## Interfaces
 
@@ -20,7 +23,6 @@
 - [EnhancedBuildParams](interfaces/EnhancedBuildParams.md)
 - [EnhancedCoinInput](interfaces/EnhancedCoinInput.md)
 - [EnhancedCoinOutput](interfaces/EnhancedCoinOutput.md)
-- [KeyValueStorage](interfaces/KeyValueStorage.md)
 - [MultisigConfig](interfaces/MultisigConfig.md)
 - [MultisigExportData](interfaces/MultisigExportData.md)
 - [PendingMultisigTransaction](interfaces/PendingMultisigTransaction.md)
@@ -30,12 +32,14 @@
 - [ScriptProofWitnessInput](interfaces/ScriptProofWitnessInput.md)
 - [SignatureWitnessInput](interfaces/SignatureWitnessInput.md)
 - [SpendableCoin](interfaces/SpendableCoin.md)
+- [StorageAdapter](interfaces/StorageAdapter.md)
 - [TokenProofWitnessInput](interfaces/TokenProofWitnessInput.md)
 - [TransactionWitnessDescriptor](interfaces/TransactionWitnessDescriptor.md)
 
 ## Type Aliases
 
 - [SendMode](type-aliases/SendMode.md)
+- [StoragePort](type-aliases/StoragePort.md)
 
 ## Variables
 

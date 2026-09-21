@@ -10,4 +10,4 @@
 
 ### embed
 
-> **embed**: `QvacOp`\<[`EmbedParams`](EmbedParams.md), \{ `vector?`: `number`[]; \}\>
+> **embed**: `QvacOp`\<[`EmbedParams`](EmbedParams.md), [`EmbedResult`](EmbedResult.md)\>

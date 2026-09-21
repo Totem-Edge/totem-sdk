@@ -8,7 +8,7 @@
 
 > **createPurchasePaymentAdapter**(`config`): `object`
 
-Create a PurchasePaymentPort with stable idempotency-key dedup.
+Create a PurchasePaymentPort with an atomic idempotency-key claim.
 
 ## Parameters
 

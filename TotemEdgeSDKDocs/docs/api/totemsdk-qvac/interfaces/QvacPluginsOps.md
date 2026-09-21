@@ -10,10 +10,10 @@
 
 ### invokePlugin
 
-> **invokePlugin**: `QvacOp`\<[`InvokePluginParams`](InvokePluginParams.md), \{ `ok?`: `boolean`; `plugin?`: `string`; \}\>
+> **invokePlugin**: `QvacOp`\<[`InvokePluginOptions`](InvokePluginOptions.md)\<`unknown`\>, `unknown`\>
 
 ***
 
 ### invokePluginStream
 
-> **invokePluginStream**: `QvacOp`\<[`InvokePluginParams`](InvokePluginParams.md), `unknown`\>
+> **invokePluginStream**: `QvacOp`\<[`InvokePluginOptions`](InvokePluginOptions.md)\<`unknown`\>, `unknown`\>

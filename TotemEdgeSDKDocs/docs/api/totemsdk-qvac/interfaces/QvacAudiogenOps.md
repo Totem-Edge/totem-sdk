@@ -10,4 +10,4 @@
 
 ### audioGen
 
-> **audioGen**: `QvacOp`\<[`AudioGenParams`](AudioGenParams.md), \{ `audio?`: `unknown`; `engine?`: `string`; \}\>
+> **audioGen**: `QvacOp`\<[`AudioGenClientParams`](AudioGenClientParams.md), [`AudioGenResult`](AudioGenResult.md)\>

@@ -55,7 +55,7 @@ No import from @totemsdk/core is used here to keep this package dependency-free.
 
 > **flush**(): `Promise`\<`void`\>
 
-Force a synchronous flush of pending writes. Useful before process exit.
+Writes are already durable; retained for shutdown-call compatibility.
 
 #### Returns
 

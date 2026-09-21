@@ -74,7 +74,10 @@ Mandates/decisions that authorized this step.
 
 ### status
 
-> **status**: `"reserved"` \| `"committed"` \| `"aborted"`
+> **status**: `"reserved"` \| `"committed"` \| `"aborted"` \| `"unknown"`
+
+`unknown` = the executor never settled the step (crash/timeout). The
+budget stays HELD until the host reconciles the outcome explicitly.
 
 ***
 

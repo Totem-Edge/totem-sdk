@@ -8,6 +8,8 @@ description: "Drop-in observability for Totem-based dApps — trace propagation 
 
 > Drop-in observability for Totem-based dApps — trace propagation and batched telemetry
 
+**Maturity: not classified**
+
 :::info Curated Reference
 Full API reference for this package requires TypeDoc regeneration.
 Run `npm run generate` from `TotemEdgeSDKDocs/` after installing deps.

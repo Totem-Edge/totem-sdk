@@ -10,10 +10,10 @@
 
 ### worldCreateScene
 
-> **worldCreateScene**: `QvacOp`\<[`WorldCreateSceneParams`](WorldCreateSceneParams.md), \{ `sceneId?`: `string`; \}\>
+> **worldCreateScene**: `QvacOp`\<[`WorldSceneClientParams`](WorldSceneClientParams.md), [`WorldCreateSceneResult`](../type-aliases/WorldCreateSceneResult.md)\>
 
 ***
 
 ### worldStep
 
-> **worldStep**: `QvacOp`\<[`WorldStepParams`](WorldStepParams.md), `unknown`\>
+> **worldStep**: `QvacOp`\<[`WorldStepClientParams`](WorldStepClientParams.md), [`WorldStepResult`](WorldStepResult.md)\>

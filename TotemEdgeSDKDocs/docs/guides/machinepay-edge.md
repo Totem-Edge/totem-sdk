@@ -19,7 +19,7 @@ MachinePay Edge turns any device into a pay-per-use service — Wi-Fi hotspot, s
 | Package | Role in MachinePay Edge |
 |---------|------------------------|
 | `@totemsdk/omnia` | Off-chain payment channels for micro-payment streams |
-| `@totemsdk/omnia-hyperswarm` | Peer-to-peer connectivity for device clients |
+| `@totemsdk/stream-transport` | Peer-to-peer connectivity for device clients |
 | `@totemsdk/statechain` | Off-chain ownership of prepaid service tokens |
 | `@totemsdk/agent-policy` | Min price, max unpaid usage, auto-shutdown enforcement |
 | `@totemsdk/pear` | Pear runtime for edge device deployment |
@@ -35,14 +35,14 @@ MachinePay Edge turns any device into a pay-per-use service — Wi-Fi hotspot, s
 
 ```typescript
 import { createPearRuntime } from '@totemsdk/pear';
-import { HyperswarmTransport } from '@totemsdk/omnia-hyperswarm';
+import { createHyperswarmTransport } from '@totemsdk/stream-transport';
 
 const pear = await createPearRuntime({
   appId: `machinepay-edge:${DEVICE_ID}`,
   storage: './device-data',
 });
 
-const transport = new HyperswarmTransport({ swarm: pear.swarm });
+const transport = await createHyperswarmTransport({ topic: `machinepay-edge:${DEVICE_ID}` });
 
 // Advertise this device on the lookup network
 await lookupClient.announce({
@@ -171,7 +171,7 @@ A QVAC agent can adjust pricing dynamically based on demand (surge pricing durin
 ## API reference links
 
 - [`@totemsdk/omnia`](/api/totemsdk-omnia)
-- [`@totemsdk/omnia-hyperswarm`](/api/totemsdk-omnia-hyperswarm)
+- [`@totemsdk/stream-transport`](/api/totemsdk-stream-transport)
 - [`@totemsdk/statechain`](/api/totemsdk-statechain)
 - [`@totemsdk/agent-policy`](/api/totemsdk-agent-policy)
 - [`@totemsdk/pear`](/api/totemsdk-pear)

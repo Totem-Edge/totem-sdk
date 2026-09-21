@@ -121,3 +121,54 @@
 #### Returns
 
 `Promise`\<[`RunStateSnapshot`](../interfaces/RunStateSnapshot.md)\>
+
+***
+
+### reconcileReservation()
+
+> **reconcileReservation**(`reservationId`, `outcome`, `opts?`): `Promise`\<`void`\>
+
+#### Parameters
+
+##### reservationId
+
+`string`
+
+##### outcome
+
+`ReservationSettlementOutcome`
+
+##### opts?
+
+###### reason?
+
+`string`
+
+###### receipt?
+
+[`RunStepReceipt`](../interfaces/RunStepReceipt.md)
+
+#### Returns
+
+`Promise`\<`void`\>
+
+***
+
+### recoverReservations()
+
+> **recoverReservations**(`runId?`): `Promise`\<`OutOfBandReservation`[]\>
+
+Conservative reservation recovery (RFC-007 §3.5): reservations never
+settled before their deadline are surfaced as `unknown` — budget held —
+until the host settles them via `reconcileReservation`. No expiry ever
+restores spending capacity.
+
+#### Parameters
+
+##### runId?
+
+`string`
+
+#### Returns
+
+`Promise`\<`OutOfBandReservation`[]\>

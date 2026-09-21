@@ -202,6 +202,28 @@ Run-level accounting for local bounds.
 
 ***
 
+### countUnknown()
+
+> **countUnknown**(`runId`): `Promise`\<`number`\>
+
+Reservations whose outcome is unknown after crash/timeout — budget HELD.
+
+#### Parameters
+
+##### runId
+
+`string`
+
+#### Returns
+
+`Promise`\<`number`\>
+
+#### Implementation of
+
+[`GrantUsageStore`](../interfaces/GrantUsageStore.md).[`countUnknown`](../interfaces/GrantUsageStore.md#countunknown)
+
+***
+
 ### getReceipt()
 
 > **getReceipt**(`reservationId`): [`StepReceipt`](../interfaces/StepReceipt.md) \| `undefined`
@@ -259,3 +281,63 @@ Committed receipts for a mandate — used to build the usage snapshot.
 #### Implementation of
 
 [`GrantUsageStore`](../interfaces/GrantUsageStore.md).[`listCommittedReceipts`](../interfaces/GrantUsageStore.md#listcommittedreceipts)
+
+***
+
+### reconcileReservation()
+
+> **reconcileReservation**(`reservationId`, `outcome`, `opts?`): `Promise`\<`void`\>
+
+Explicit settlement of a recovered (`unknown`) reservation. The only way
+budget is released is `'definitely-not-executed'`; `'completed'` commits.
+
+#### Parameters
+
+##### reservationId
+
+`string`
+
+##### outcome
+
+`ReservationSettlementOutcome`
+
+##### opts?
+
+###### reason?
+
+`string`
+
+###### receipt?
+
+[`StepReceipt`](../interfaces/StepReceipt.md)
+
+#### Returns
+
+`Promise`\<`void`\>
+
+#### Implementation of
+
+[`GrantUsageStore`](../interfaces/GrantUsageStore.md).[`reconcileReservation`](../interfaces/GrantUsageStore.md#reconcilereservation)
+
+***
+
+### recoverReservations()
+
+> **recoverReservations**(`runId?`): `Promise`\<`OutOfBandReservation`[]\>
+
+Conservative reservation recovery: unsettled past-deadline reservations are
+classified `unknown` and their budget is HELD until explicit reconciliation.
+
+#### Parameters
+
+##### runId?
+
+`string`
+
+#### Returns
+
+`Promise`\<`OutOfBandReservation`[]\>
+
+#### Implementation of
+
+[`GrantUsageStore`](../interfaces/GrantUsageStore.md).[`recoverReservations`](../interfaces/GrantUsageStore.md#recoverreservations)

@@ -16,7 +16,7 @@
 
 ##### storage?
 
-[`KeyValueStorage`](../interfaces/KeyValueStorage.md)
+[`StoragePort`](../type-aliases/StoragePort.md)
 
 #### Returns
 

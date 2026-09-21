@@ -10,4 +10,4 @@
 
 ### classify
 
-> **classify**: `QvacOp`\<[`ClassifyParams`](ClassifyParams.md), \{ `confidence?`: `number`; `label?`: `string`; \}\>
+> **classify**: `QvacOp`\<[`ClassifyClientParams`](ClassifyClientParams.md), [`ClassificationResult`](ClassificationResult.md)[]\>

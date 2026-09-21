@@ -6,6 +6,10 @@
 
 # Interface: ActionStorage
 
+## Extended by
+
+- [`DurableActionStorage`](DurableActionStorage.md)
+
 ## Methods
 
 ### getExecution()

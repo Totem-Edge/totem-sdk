@@ -19,7 +19,7 @@ Omnia Pocket is a lightweight eltoo payment-channel wallet that runs on mobile (
 | Package | Role in Omnia Pocket |
 |---------|---------------------|
 | `@totemsdk/omnia` | Core eltoo state machine — open, update, close channels |
-| `@totemsdk/omnia-hyperswarm` | Peer discovery and transport for channel counterparties |
+| `@totemsdk/stream-transport` | Peer discovery and transport for channel counterparties |
 | `@totemsdk/agent-policy` | Guards on channel size, auto-pay limits, settlement triggers |
 | `@totemsdk/pear` | Pear/Holepunch runtime integration for mobile/desktop |
 | `@totemsdk/wots-lease` | Manages WOTS signing keys for each channel state update |
@@ -49,10 +49,10 @@ await pear.ready();
 
 ```typescript
 import { openChannel } from '@totemsdk/omnia';
-import { HyperswarmTransport } from '@totemsdk/omnia-hyperswarm';
+import { createHyperswarmTransport } from '@totemsdk/stream-transport';
 import { createSharedLeaseStrategy } from '@totemsdk/wots-lease';
 
-const transport = new HyperswarmTransport({ swarm: pear.swarm });
+const transport = await createHyperswarmTransport({ topic: `omnia-pocket:${peerKey}` });
 const leaseStrategy = createSharedLeaseStrategy({ storage: pear.storage, storageKey: 'wots-lease' });
 
 const channel = await openChannel({
@@ -130,7 +130,7 @@ A QVAC agent can auto-top-up channels from the on-chain wallet when balance drop
 ## API reference links
 
 - [`@totemsdk/omnia`](/api/totemsdk-omnia)
-- [`@totemsdk/omnia-hyperswarm`](/api/totemsdk-omnia-hyperswarm)
+- [`@totemsdk/stream-transport`](/api/totemsdk-stream-transport)
 - [`@totemsdk/agent-policy`](/api/totemsdk-agent-policy)
 - [`@totemsdk/pear`](/api/totemsdk-pear)
 - [`@totemsdk/wots-lease`](/api/totemsdk-wots-lease)
