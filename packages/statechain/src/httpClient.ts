@@ -1,4 +1,21 @@
-import type { SEClient } from './types.js';
+import type { SEClient, SESignature } from './types.js';
+
+type SeOperation = 'blind-sign' | 'revoke-key' | 'claim' | 'reclaim-tx';
+
+/**
+ * AUD-026: canonical owner-authentication message — must match the SE server's
+ * `seRequestMessage` byte-for-byte. Binds the chain, operation, nonce and the
+ * operation's signed body so a pending signature cannot be replayed elsewhere.
+ */
+export function seRequestMessage(
+  chainId: string,
+  operation: SeOperation,
+  nonce: string,
+  body: Record<string, string> = {},
+): string {
+  const bodyStr = Object.keys(body).sort().map((k) => `${k}=${body[k]}`).join('&');
+  return `totem:se-request:v1|${chainId}|${operation}|${nonce}|${bodyStr}`;
+}
 
 export interface HttpSEClientOptions {
   /** Custom fetch implementation. Defaults to global fetch (Node 18+). */
@@ -10,9 +27,10 @@ export interface HttpSEClientOptions {
 /**
  * HTTP implementation of SEClient that talks to any compatible SE server.
  *
- * `ownerSign(nonce)` must sign sha3_256(nonce) with the current owner's WOTS key.
- * It is called automatically inside `blindSign` and `revokeKey` after the SE
- * issues a challenge nonce — callers do not need to manage the challenge protocol.
+ * `ownerSign(message)` must sign `sha3_256(message)` with the current owner's
+ * WOTS key, where `message` is the canonical request message (chain + operation
+ * + nonce + body). It is called automatically inside `blindSign` and
+ * `revokeKey` after the SE issues a challenge nonce.
  */
 export class HttpSEClient implements SEClient {
   private readonly fetch: typeof globalThis.fetch;
@@ -20,7 +38,7 @@ export class HttpSEClient implements SEClient {
 
   constructor(
     private readonly baseUrl: string,
-    private readonly ownerSign: (nonce: string) => Promise<Uint8Array>,
+    private readonly ownerSign: (message: string) => Promise<Uint8Array>,
     opts: HttpSEClientOptions = {},
   ) {
     this.fetch = opts.fetch ?? globalThis.fetch;
@@ -70,16 +88,18 @@ export class HttpSEClient implements SEClient {
     return nonce;
   }
 
-  async blindSign(chainId: string, blindedCommitmentHex: string): Promise<string> {
+  async blindSign(chainId: string, blindedCommitmentHex: string): Promise<SESignature | string> {
     const nonce = await this.getChallenge(chainId);
-    const sig = await this.ownerSign(nonce);
+    const message = seRequestMessage(chainId, 'blind-sign', nonce, { blindedCommitment: blindedCommitmentHex });
+    const sig = await this.ownerSign(message);
     const ownerSignature = Buffer.from(sig).toString('hex');
-    const { blindSignature } = await this.post<{ blindSignature: string }>(`/${chainId}/blind-sign`, {
+    const json = await this.post<{ blindSignature: string; seSignature?: SESignature }>(`/${chainId}/blind-sign`, {
       blindedCommitment: blindedCommitmentHex,
       nonce,
       ownerSignature,
     });
-    return blindSignature;
+    // RFC-008: prefer the leased-leaf envelope; fall back to the bare hex string.
+    return json.seSignature ?? json.blindSignature;
   }
 
   async revokeKey(
@@ -93,7 +113,14 @@ export class HttpSEClient implements SEClient {
     },
   ): Promise<void> {
     const nonce = await this.getChallenge(chainId);
-    const sig = await this.ownerSign(nonce);
+    const message = seRequestMessage(chainId, 'revoke-key', nonce, {
+      previousOwnerPartyId: opts.previousOwnerPartyId,
+      previousOwnerPkd: opts.previousOwnerPkd,
+      newOwnerPartyId: opts.newOwnerPartyId,
+      newOwnerPkd: opts.newOwnerPkd,
+      newReclaimTxHex: opts.newReclaimTxHex,
+    });
+    const sig = await this.ownerSign(message);
     const ownerSignature = Buffer.from(sig).toString('hex');
     await this.post(`/${chainId}/revoke-key`, { ...opts, nonce, ownerSignature });
   }

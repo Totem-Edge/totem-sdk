@@ -1,6 +1,6 @@
 import { sha3_256 } from '@totemsdk/core';
-import { hexToBytes, wotsVerifyDigest, derivePKdigest, bytesToHex } from '@totemsdk/core';
-import type { StateChain } from './types.js';
+import { hexToBytes, wotsVerifyDigest, derivePKdigest, bytesToHex, verifySignatureDetailed } from '@totemsdk/core';
+import type { StateChain, SESignature } from './types.js';
 
 export interface VerifyResult {
   valid: boolean;
@@ -48,6 +48,50 @@ function defaultVerifyTransferKey(transferKey: string, fromPublicKeyDigest: stri
     const seed = hexToBytes(transferKey);
     if (seed.length !== 32) return false;
     return bytesToHex(derivePKdigest(seed, 0)) === fromPublicKeyDigest;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * RFC-008: verify an SE signature envelope (leased one-time leaf).
+ *
+ *  - `child` (transfer blind-signature): the leaf public key/address must be a
+ *    member of the SE root's published `OwnershipProof`, and the one-time
+ *    `TreeSignature` must verify over the commitment.
+ *  - `root` (claim co-signature): the signing key must be the published root
+ *    identity (`chain.sePublicKey`).
+ *
+ * The root proof itself is pinned/verified once when the SE identity is
+ * established; per transfer we enforce leaf authorization + the signature.
+ */
+export function verifySeSignatureEnvelope(
+  envelope: SESignature,
+  commitment: Uint8Array,
+  chain: StateChain,
+): boolean {
+  const message = bytesToHex(commitment);
+  if (envelope.message !== message) return false;
+
+  if (envelope.kind === 'root') {
+    if (!chain.sePublicKey) return false;
+    if (envelope.publicKey.toLowerCase() !== chain.sePublicKey.toLowerCase()) return false;
+  } else {
+    const proof = chain.seOwnershipProof;
+    if (!proof) return false;
+    const leafKey = envelope.publicKey.toLowerCase();
+    const leafAddr = envelope.address.toLowerCase();
+    if (!proof.childPublicKeys.some((k) => k.toLowerCase() === leafKey)) return false;
+    if (!proof.childAddresses.some((a) => a.toLowerCase() === leafAddr)) return false;
+  }
+
+  try {
+    return verifySignatureDetailed(
+      envelope.address,
+      message,
+      envelope.signature,
+      envelope.publicKey,
+    ).valid === true;
   } catch {
     return false;
   }
@@ -137,11 +181,16 @@ export function verifyStateChain(chain: StateChain, opts?: VerifyOptions): Verif
 
     const commitment = hexToBytes(record.signedDigest);
 
-    // ── 4. SE blind signature ───────────────────────────────────────────────
-    if (!verifyBlindSig(record.blindedSignature, commitment, chain.sePublicKey)) {
+    // ── 4. SE signature ─────────────────────────────────────────────────────
+    // RFC-008: prefer the leased-leaf envelope (authorization + one-time sig);
+    // fall back to the legacy fixed-key check for string-only clients.
+    const seOk = record.seSignature
+      ? verifySeSignatureEnvelope(record.seSignature, commitment, chain)
+      : verifyBlindSig(record.blindedSignature, commitment, chain.sePublicKey);
+    if (!seOk) {
       return {
         valid: false, depth, rootOwner,
-        reason: `Invalid SE blind signature at transfer index ${i} (from='${record.from}' to='${record.to}')`,
+        reason: `Invalid SE signature at transfer index ${i} (from='${record.from}' to='${record.to}')`,
       };
     }
 

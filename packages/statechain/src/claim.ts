@@ -69,7 +69,8 @@ export async function claimOwnership(
 
   const digest = computeTransactionDigest(txBytes);
 
-  const seSig    = await leaseProvider.seClient.blindSign(chain.chainId, bytesToHex(digest));
+  const seResult = await leaseProvider.seClient.blindSign(chain.chainId, bytesToHex(digest));
+  const seSig = typeof seResult === 'string' ? seResult : seResult.signature;
   const ownerSig = await chain.currentOwner.sign(digest);
 
   const seBytes      = hexToBytes(seSig.length >= 2 ? seSig : '00');

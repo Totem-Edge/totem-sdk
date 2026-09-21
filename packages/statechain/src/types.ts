@@ -1,7 +1,44 @@
 export type StatechainStatus = 'active' | 'claiming' | 'claimed' | 'abandoned';
 
+/**
+ * SE signature envelope (RFC-008). Structural mirror of the envelope emitted by
+ * `@totemsdk/se-server`'s `SeIdentity`. `kind` is `child` for off-chain transfer
+ * blind-signatures (authorized by the SE root's `OwnershipProof`) and `root` for
+ * on-chain claim co-signatures (verified against the published root identity).
+ */
+export interface SESignature {
+  kind: 'child' | 'root';
+  member: string;
+  childIndex: number;
+  address: string;
+  publicKey: string;
+  /** Serialized one-time `TreeSignature` hex. */
+  signature: string;
+  message: string;
+  proofVersion: number;
+}
+
+/**
+ * Root-identity `OwnershipProof` shape (RFC-008) as published by an SE. The root
+ * key signs a canonical commitment to `childPublicKeys`; a child leaf is
+ * authorized when its public key appears in that set.
+ */
+export interface SeOwnershipProof {
+  rootAddress: string;
+  rootPublicKey: string;
+  childAddresses: string[];
+  childPublicKeys: string[];
+  rootProof: { address: string; publicKey: string; signature: string; message: string };
+  timestamp: string;
+}
+
 export interface SEClient {
-  blindSign(chainId: string, commitmentHex: string): Promise<string>;
+  /**
+   * Blind-sign a commitment. Returns the SE signature envelope (RFC-008) when
+   * the SE supports leased one-time leaves; a bare hex string is still accepted
+   * for legacy/mock clients.
+   */
+  blindSign(chainId: string, commitmentHex: string): Promise<SESignature | string>;
   revokeKey(chainId: string, opts: {
     previousOwnerPartyId: string;
     previousOwnerPkd: string;
@@ -72,6 +109,13 @@ export interface TransferRecord {
   fromPublicKeyDigest: string;
   toPublicKeyDigest: string;
   blindedSignature: string;
+  /**
+   * RFC-008: the SE signature envelope, when the SE returns one. Carries the
+   * leased leaf (`kind`, `publicKey`, `address`, `proofVersion`) so
+   * `verifyStateChain` can check leaf authorization against the SE root's
+   * `OwnershipProof` instead of a single fixed key.
+   */
+  seSignature?: SESignature;
   /** Prior owner's WOTS seed for custody lineage verification. */
   transferKey: string;
   /** Hex of old owner's signature over signedDigest. */
@@ -119,6 +163,14 @@ export interface StateChain {
   tokenId: string;
   amount: bigint;
   sePublicKey: string;
+  /**
+   * RFC-008: the SE's published identity — the root-identity `OwnershipProof`
+   * that authorizes the leased child leaves used for transfer blind-signatures.
+   * When present, `verifyStateChain` verifies leaf authorization against it.
+   */
+  seOwnershipProof?: SeOwnershipProof;
+  /** RFC-008: monotonic SE identity-proof version. */
+  seProofVersion?: number;
   lockingScript: string;
   lockingAddress: string;
   currentOwner: StatechainOwner;

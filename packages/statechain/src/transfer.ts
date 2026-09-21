@@ -10,6 +10,7 @@ import {
 import { serializeTxPoW } from '@totemsdk/txpow';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import { addressToHex, buildOwnerReclaimTx, buildWitnessBytes, stateVarJson } from './chain.js';
+import { verifySeSignatureEnvelope } from './verify.js';
 import type { StateChain, StatechainOwner, SEClient, TransferRecord } from './types.js';
 
 function defaultVerifyBlindSig(sig: string, commitment: Uint8Array, sePkdHex: string): boolean {
@@ -98,10 +99,16 @@ export async function transferOwnership(
   const oldOwnerSigBytes = await chain.currentOwner.sign(digest);
   const ownerSignature   = bytesToHex(oldOwnerSigBytes);
 
-  const blindedSignature = await seClient.blindSign(chain.chainId, signedDigest);
+  const seResult = await seClient.blindSign(chain.chainId, signedDigest);
+  const seSignature = typeof seResult === 'string' ? undefined : seResult;
+  const blindedSignature = typeof seResult === 'string' ? seResult : seResult.signature;
 
-  const verifyFn = _verifyBlindSig ?? defaultVerifyBlindSig;
-  if (!verifyFn(blindedSignature, digest, chain.sePublicKey)) {
+  // RFC-008: verify the leased-leaf envelope when the SE returns one; otherwise
+  // fall back to the legacy fixed-key check (test override or wotsVerifyDigest).
+  const seOk = seSignature
+    ? verifySeSignatureEnvelope(seSignature, digest, chain)
+    : (_verifyBlindSig ?? defaultVerifyBlindSig)(blindedSignature, digest, chain.sePublicKey);
+  if (!seOk) {
     throw new Error(
       `transferOwnership: SE blind signature verification failed for '${from}' → '${to}'`,
     );
@@ -156,6 +163,7 @@ export async function transferOwnership(
     fromPublicKeyDigest: chain.currentOwner.publicKeyDigest,
     toPublicKeyDigest:   newOwner.publicKeyDigest,
     blindedSignature,
+    ...(seSignature ? { seSignature } : {}),
     transferKey,
     ownerSignature,
     signedDigest,
