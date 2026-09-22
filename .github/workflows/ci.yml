@@ -60,6 +60,8 @@ jobs:
       - name: Build core-wasm (prerequisite)
         working-directory: packages/core-wasm
         run: npm run build
+      - name: Rebuild native sqlite bindings (install uses --ignore-scripts)
+        run: pnpm rebuild better-sqlite3
       - name: Run unit tests (workspace)
         run: node scripts/verify-workspace.mjs --test
 
@@ -121,12 +123,14 @@ jobs:
       - name: Build storage
         working-directory: packages/storage
         run: npm run build
+      - name: Rebuild native sqlite bindings (install uses --ignore-scripts)
+        run: pnpm rebuild better-sqlite3
       - name: Fail if better-sqlite3 cannot run
         working-directory: packages/storage
         run: node -e "require('better-sqlite3'); console.log('better-sqlite3 OK')"
       - name: Run sqlite + fs conformance (durable gates)
         working-directory: packages/storage
-        run: npx jest --testPathPattern="sqlite-store.conformance|file-store.conformance"
+        run: npx jest --testPathPatterns="sqlite-store.conformance|file-store.conformance"
 
   pack:
     name: Pack validation (publishable packages)
