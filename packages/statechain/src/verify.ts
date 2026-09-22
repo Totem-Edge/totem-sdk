@@ -1,5 +1,11 @@
 import { sha3_256 } from '@totemsdk/core';
-import { hexToBytes, wotsVerifyDigest, derivePKdigest, bytesToHex, verifySignatureDetailed } from '@totemsdk/core';
+import {
+  hexToBytes,
+  bytesToHex,
+  deserializeTreeSignature,
+  verifyTreeSignatureDetailed,
+  verifySignatureDetailed,
+} from '@totemsdk/core';
 import type { StateChain, SESignature } from './types.js';
 
 export interface VerifyResult {
@@ -9,45 +15,21 @@ export interface VerifyResult {
   reason?: string;
 }
 
-export interface VerifyOptions {
-  /**
-   * Override SE blind-signature verification.
-   * Default: `wotsVerifyDigest(hexToBytes(sig), commitment, hexToBytes(sePkdHex))`
-   * Tests override because mock SE sigs use SHA3-256.
-   */
-  verifyBlindSig?: (sig: string, commitment: Uint8Array, sePkdHex: string) => boolean;
-
-  /**
-   * Override old-owner signature verification per hop.
-   * Default: `wotsVerifyDigest(hexToBytes(ownerSig), commitment, hexToBytes(fromPkdHex))`
-   * Tests override because mock owner sigs use SHA3-256.
-   */
-  verifyOwnerSig?: (ownerSig: string, commitment: Uint8Array, fromPkdHex: string) => boolean;
-
-  /**
-   * Override transferKey lineage verification.
-   * Default: `bytesToHex(derivePKdigest(hexToBytes(transferKey), 0)) === fromPublicKeyDigest`
-   * Tests override because mock seeds are not real WOTS seeds.
-   */
-  verifyTransferKey?: (transferKey: string, fromPublicKeyDigest: string) => boolean;
-}
-
-function defaultVerifyBlindSig(sig: string, commitment: Uint8Array, sePkdHex: string): boolean {
-  return wotsVerifyDigest(hexToBytes(sig), commitment, hexToBytes(sePkdHex));
-}
-
-function defaultVerifyOwnerSig(
-  ownerSig: string, commitment: Uint8Array, fromPkdHex: string,
+/**
+ * Verify an old owner's serialized Minima `TreeSignature` over `commitment`.
+ *
+ * The signer identity is the owner's **root** public key; `verifyTreeSignature`
+ * recomputes the root from the proof chain, so a signature can only satisfy
+ * `fromPublicKeyDigest` if it actually reconstructs to it.
+ */
+function verifyOwnerTreeSig(
+  ownerSigHex: string,
+  commitment: Uint8Array,
+  fromRootHex: string,
 ): boolean {
-  return wotsVerifyDigest(hexToBytes(ownerSig), commitment, hexToBytes(fromPkdHex));
-}
-
-function defaultVerifyTransferKey(transferKey: string, fromPublicKeyDigest: string): boolean {
-  if (!transferKey) return false;
   try {
-    const seed = hexToBytes(transferKey);
-    if (seed.length !== 32) return false;
-    return bytesToHex(derivePKdigest(seed, 0)) === fromPublicKeyDigest;
+    const sig = deserializeTreeSignature(hexToBytes(ownerSigHex));
+    return verifyTreeSignatureDetailed(hexToBytes(fromRootHex), commitment, sig).valid === true;
   } catch {
     return false;
   }
@@ -98,21 +80,22 @@ export function verifySeSignatureEnvelope(
 }
 
 /**
- * Verify the full transfer history of a statechain.
+ * Verify the full transfer history of a statechain (RFC-009, Minima-faithful).
  *
  * For each TransferRecord, verifies:
- *  1. Chain continuity: party IDs and PKDs are linked hop-by-hop.
- *  2. Transfer key lineage: derivePKdigest(transferKey, 0) === fromPublicKeyDigest.
- *  3. Digest provenance: sha3_256(txBodyHex) === signedDigest.
+ *  1. Chain continuity: party IDs and root public keys are linked hop-by-hop.
+ *  2. Digest provenance: sha3_256(txBodyHex) === signedDigest.
  *     Prevents a malicious record from pairing valid signatures over one digest
  *     with unrelated `txHex`. Binds all signatures to the actual TX data.
- *  4. SE blind signature: verifies `blindedSignature` over `signedDigest`.
- *  5. Old-owner signature: verifies `ownerSignature` over `signedDigest`.
- *     Proves the old owner — not just the SE — authorised this state transition.
+ *  3. SE signature: verifies the leased-leaf envelope over `signedDigest`
+ *     against the SE root's `OwnershipProof` (or the root identity for `root`).
+ *  4. Old-owner signature: verifies the root-bound Minima `TreeSignature` over
+ *     `signedDigest` against `fromPublicKeyDigest`. Proves the old owner — not
+ *     just the SE — authorised this state transition.
  *
  * Then validates that `currentOwner` matches the last transfer recipient.
  */
-export function verifyStateChain(chain: StateChain, opts?: VerifyOptions): VerifyResult {
+export function verifyStateChain(chain: StateChain): VerifyResult {
   const history   = chain.transferHistory;
   const depth     = history.length;
   const rootOwner = depth === 0 ? chain.currentOwner.partyId : history[0].from;
@@ -120,10 +103,6 @@ export function verifyStateChain(chain: StateChain, opts?: VerifyOptions): Verif
   if (depth === 0) {
     return { valid: true, depth: 0, rootOwner };
   }
-
-  const verifyBlindSig    = opts?.verifyBlindSig    ?? defaultVerifyBlindSig;
-  const verifyOwnerSig    = opts?.verifyOwnerSig    ?? defaultVerifyOwnerSig;
-  const verifyTransferKey = opts?.verifyTransferKey ?? defaultVerifyTransferKey;
 
   for (let i = 0; i < history.length; i++) {
     const record = history[i];
@@ -145,15 +124,7 @@ export function verifyStateChain(chain: StateChain, opts?: VerifyOptions): Verif
       }
     }
 
-    // ── 2. Transfer key lineage ─────────────────────────────────────────────
-    if (!verifyTransferKey(record.transferKey, record.fromPublicKeyDigest)) {
-      return {
-        valid: false, depth, rootOwner,
-        reason: `Transfer key does not match prior owner public key at index ${i} (from='${record.from}')`,
-      };
-    }
-
-    // ── 3. Digest provenance: recompute signedDigest from txBodyHex ─────────
+    // ── 2. Digest provenance: recompute signedDigest from txBodyHex ─────────
     // This binds all signatures to the actual TX data and prevents grafting:
     // a record with a valid (sig, digest) pair but modified txHex is rejected.
     if (!record.txBodyHex) {
@@ -181,27 +152,28 @@ export function verifyStateChain(chain: StateChain, opts?: VerifyOptions): Verif
 
     const commitment = hexToBytes(record.signedDigest);
 
-    // ── 4. SE signature ─────────────────────────────────────────────────────
-    // RFC-008: prefer the leased-leaf envelope (authorization + one-time sig);
-    // fall back to the legacy fixed-key check for string-only clients.
-    const seOk = record.seSignature
-      ? verifySeSignatureEnvelope(record.seSignature, commitment, chain)
-      : verifyBlindSig(record.blindedSignature, commitment, chain.sePublicKey);
-    if (!seOk) {
+    // ── 3. SE signature envelope ────────────────────────────────────────────
+    if (!record.seSignature) {
+      return {
+        valid: false, depth, rootOwner,
+        reason: `Missing SE signature at transfer index ${i} (from='${record.from}')`,
+      };
+    }
+    if (!verifySeSignatureEnvelope(record.seSignature, commitment, chain)) {
       return {
         valid: false, depth, rootOwner,
         reason: `Invalid SE signature at transfer index ${i} (from='${record.from}' to='${record.to}')`,
       };
     }
 
-    // ── 5. Old-owner signature ──────────────────────────────────────────────
+    // ── 4. Old-owner TreeSignature ──────────────────────────────────────────
     if (!record.ownerSignature) {
       return {
         valid: false, depth, rootOwner,
         reason: `Missing ownerSignature at transfer index ${i} (from='${record.from}')`,
       };
     }
-    if (!verifyOwnerSig(record.ownerSignature, commitment, record.fromPublicKeyDigest)) {
+    if (!verifyOwnerTreeSig(record.ownerSignature, commitment, record.fromPublicKeyDigest)) {
       return {
         valid: false, depth, rootOwner,
         reason: `Invalid owner signature at transfer index ${i} (from='${record.from}')`,

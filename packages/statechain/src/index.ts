@@ -13,7 +13,7 @@ export type {
 export { createStateChain } from './chain.js';
 export { transferOwnership } from './transfer.js';
 export { verifyStateChain } from './verify.js';
-export type { VerifyResult, VerifyOptions } from './verify.js';
+export type { VerifyResult } from './verify.js';
 export { claimOwnership, reclaimAbandoned } from './claim.js';
 export { buildStatechainScript, scriptAddress, RECLAIM_TIMELOCK } from './script.js';
 export {

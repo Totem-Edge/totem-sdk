@@ -1,6 +1,6 @@
 use sha3::{Digest, Sha3_256};
 
-use crate::types::{StateChain, VerifyResult};
+use crate::types::{SeSignature, StateChain, VerifyResult};
 
 fn sha3_256_hex(data: &[u8]) -> String {
     let mut hasher = Sha3_256::new();
@@ -13,11 +13,17 @@ fn hex_to_bytes(hex_str: &str) -> Result<Vec<u8>, String> {
     hex::decode(cleaned).map_err(|e| format!("Invalid hex: {}", e))
 }
 
+/// Verify a statechain's transfer history (RFC-009, Minima-faithful).
+///
+/// `verify_se_sig(seSignature, commitment, chain)` must check the leased-leaf
+/// envelope is authorized by `chain.se_ownership_proof` and that the one-time
+/// signature verifies (mirrors TS `verifySeSignatureEnvelope`).
+/// `verify_owner_sig(ownerSignature, commitment, fromRoot)` must verify the
+/// old owner's root-bound Minima `TreeSignature`.
 pub fn verify_state_chain(
     chain: &StateChain,
-    verify_blind_sig: &dyn Fn(&str, &[u8], &str) -> bool,
+    verify_se_sig: &dyn Fn(&SeSignature, &[u8], &StateChain) -> bool,
     verify_owner_sig: &dyn Fn(&str, &[u8], &str) -> bool,
-    verify_transfer_key: &dyn Fn(&str, &str) -> bool,
 ) -> VerifyResult {
     let history = &chain.transfer_history;
     let depth = history.len() as u32;
@@ -65,18 +71,6 @@ pub fn verify_state_chain(
                     )),
                 };
             }
-        }
-
-        if !verify_transfer_key(&record.transfer_key, &record.from_public_key_digest) {
-            return VerifyResult {
-                valid: false,
-                depth,
-                root_owner,
-                reason: Some(format!(
-                    "Transfer key does not match prior owner public key at index {} (from='{}')",
-                    i, record.from
-                )),
-            };
         }
 
         if record.tx_body_hex.is_empty() {
@@ -128,13 +122,28 @@ pub fn verify_state_chain(
             }
         };
 
-        if !verify_blind_sig(&record.blinded_signature, &commitment, &chain.se_public_key) {
+        let se_sig = match &record.se_signature {
+            Some(s) => s,
+            None => {
+                return VerifyResult {
+                    valid: false,
+                    depth,
+                    root_owner,
+                    reason: Some(format!(
+                        "Missing SE signature at transfer index {} (from='{}')",
+                        i, record.from
+                    )),
+                };
+            }
+        };
+
+        if !verify_se_sig(se_sig, &commitment, chain) {
             return VerifyResult {
                 valid: false,
                 depth,
                 root_owner,
                 reason: Some(format!(
-                    "Invalid SE blind signature at transfer index {} (from='{}' to='{}')",
+                    "Invalid SE signature at transfer index {} (from='{}' to='{}')",
                     i, record.from, record.to
                 )),
             };

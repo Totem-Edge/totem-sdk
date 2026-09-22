@@ -2,37 +2,20 @@ import { sha3_256 } from '@totemsdk/core';
 import {
   bytesToHex,
   hexToBytes,
-  concatBytes,
   scriptToAddress,
   parseMxAddress,
   serializeTransaction,
   computeTransactionDigest,
   precomputeTransactionCoinID,
-  writeMiniNumber,
 } from '@totemsdk/core';
 import { serializeTxPoW } from '@totemsdk/txpow';
+import { buildMinimaWitnessBytes } from '@totemsdk/tx-builder';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import { buildStatechainScript, RECLAIM_TIMELOCK } from './script.js';
 import type { StateChain, StatechainOwner, StatechainLeaseProvider } from './types.js';
 
-function multiConcat(parts: Uint8Array[]): Uint8Array {
-  if (parts.length === 0) return new Uint8Array(0);
-  let result = parts[0];
-  for (let i = 1; i < parts.length; i++) {
-    result = concatBytes(result, parts[i]);
-  }
-  return result;
-}
-
 // ─── Internal utilities ──────────────────────────────────────────────────────
 
-export function buildWitnessBytes(sigs: Uint8Array[]): Uint8Array {
-  const parts: Uint8Array[] = [writeMiniNumber(BigInt(sigs.length), 0)];
-  for (const sig of sigs) parts.push(sig);
-  parts.push(writeMiniNumber(0n, 0));
-  parts.push(writeMiniNumber(0n, 0));
-  return multiConcat(parts);
-}
 
 export function coinIdBytes(coinIdHex: string): Uint8Array {
   const raw = coinIdHex.replace(/^0x/i, '').padStart(64, '0').slice(0, 64);
@@ -114,9 +97,9 @@ export async function buildLockTx(
   const outputCoinId = precomputeTransactionCoinID(txBytes, 0);
 
   const digest   = computeTransactionDigest(txBytes);
-  const ownerSig = await owner.sign(digest);
+  const ownerSig = await owner.signTree(digest);
 
-  const witnessBytes = buildWitnessBytes([ownerSig]);
+  const witnessBytes = buildMinimaWitnessBytes([ownerSig]);
   const prng         = sha3_256(new TextEncoder().encode(`lock:${chainId}`));
   const txHex        = Buffer.from(serializeTxPoW(txBytes, witnessBytes, { prng })).toString('hex');
   const lockedCoinId = bytesToHex(outputCoinId);
@@ -172,9 +155,9 @@ export async function buildOwnerReclaimTx(
   const outputCoinId = precomputeTransactionCoinID(txBytes, 0);
 
   const digest   = computeTransactionDigest(txBytes);
-  const ownerSig = await owner.sign(digest);
+  const ownerSig = await owner.signTree(digest);
 
-  const witnessBytes = buildWitnessBytes([ownerSig]);
+  const witnessBytes = buildMinimaWitnessBytes([ownerSig]);
   const prng         = sha3_256(new TextEncoder().encode(`reclaim:${chainId}:${owner.partyId}`));
   const txHex        = Buffer.from(serializeTxPoW(txBytes, witnessBytes, { prng })).toString('hex');
 

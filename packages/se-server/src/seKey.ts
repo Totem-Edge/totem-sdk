@@ -1,32 +1,16 @@
 import crypto from 'crypto';
 
-let _coreModule: any = null;
-
-async function loadCore(): Promise<any> {
-  if (_coreModule) return _coreModule;
-  _coreModule = await import('@totemsdk/core' as string);
-  return _coreModule;
-}
-
 /**
  * Stateless helpers for the SE.
  *
  * The SE's identity and one-time WOTS signing live in `./seIdentity` (RFC-008):
  * a root-identity anchor with leased one-time leaves. The legacy
  * `getPublicKeyHex` / `seSign` (a fixed index-0 key that did not match the
- * advertised digest) have been removed (AUD-003/AUD-025). What remains here is
- * generic verification and the reclaim-tx encryption helpers.
+ * advertised digest) have been removed (AUD-003/AUD-025), as has the generic
+ * flat-WOTS `wotsVerifyDigestAsync` — owner authentication is now root-bound
+ * TreeKey verification (RFC-009, see `./ownerAuth`). What remains here are the
+ * reclaim-tx encryption helpers.
  */
-
-/** Verify a WOTS digest signature. Generic — verifies any operator's signature. */
-export async function wotsVerifyDigestAsync(
-  sig: Uint8Array,
-  message: Uint8Array,
-  pkDigest: Uint8Array,
-): Promise<boolean> {
-  const core = await loadCore();
-  return core.wotsVerifyDigest(sig, message, pkDigest);
-}
 
 const RECLAIM_ENC_KEY_INFO = 'statechain-reclaim-tx-v1';
 

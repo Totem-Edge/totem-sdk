@@ -14,8 +14,8 @@ import type {
   SEClient,
   StatechainLeaseProvider,
   StateChain,
-  VerifyOptions,
 } from '../index';
+import { attachSe, makeOwner, testSE } from './tree-fixtures';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -27,73 +27,14 @@ function fakeAddress(label: string): string {
   return hex(sha3_256(new TextEncoder().encode(`addr:${label}`))).padStart(64, '0');
 }
 
-/**
- * Mock owner — sign uses SHA3-256 (not real WOTS).
- * `address`, `tokenId`, `amount` are creation-time coin metadata.
- */
-function makeOwner(
-  partyId: string,
-  opts?: { address?: string; tokenId?: string; amount?: bigint },
-): StatechainOwner {
-  return {
-    partyId,
-    publicKeyDigest: fakePkd(`owner:${partyId}`),
-    transferKeySeed: hex(sha3_256(new TextEncoder().encode(`seed:${partyId}`))),
-    async sign(message: Uint8Array): Promise<Uint8Array> {
-      return sha3_256(new Uint8Array([...sha3_256(message), ...message.slice(0, 4)]));
-    },
-    address: opts?.address,
-    tokenId: opts?.tokenId,
-    amount:  opts?.amount,
-  };
+const SE = testSE();
+
+function makeSEClient(): ReturnType<typeof SE.client> {
+  return SE.client();
 }
 
-const SE_SEED = sha3_256(new TextEncoder().encode('se-seed'));
-
-function blindSignMock(message: string): string {
-  const combined = new TextEncoder().encode(`blind:${message}`);
-  return hex(sha3_256(new Uint8Array([...SE_SEED, ...sha3_256(combined)])));
-}
-
-function makeSEClient(): SEClient & { revokedKeys: string[]; registeredChains: string[] } {
-  const revokedKeys:      string[] = [];
-  const registeredChains: string[] = [];
-  return {
-    revokedKeys,
-    registeredChains,
-    async registerChain(chainId: string): Promise<void> {
-      registeredChains.push(chainId);
-    },
-    async blindSign(_chainId: string, commitmentHex: string): Promise<string> { return blindSignMock(commitmentHex); },
-    async revokeKey(_chainId: string, details: { previousOwnerPartyId: string }): Promise<void> { revokedKeys.push(details.previousOwnerPartyId); },
-    async isRevoked(o: string): Promise<boolean> { return revokedKeys.includes(o); },
-  };
-}
-
-function mockVerifyBlindSig(sig: string, commitment: Uint8Array, _: string): boolean {
-  return sig === blindSignMock(bytesToHex(commitment));
-}
-
-function mockVerifyOwnerSig(ownerSig: string, commitment: Uint8Array, _: string): boolean {
-  const expected = sha3_256(new Uint8Array([...sha3_256(commitment), ...commitment.slice(0, 4)]));
-  return ownerSig === bytesToHex(expected);
-}
-
-function mockVerifyTransferKey(transferKey: string, _: string): boolean {
-  return transferKey.length > 0;
-}
-
-const TEST_VERIFY_OPTS: VerifyOptions = {
-  verifyBlindSig:    mockVerifyBlindSig,
-  verifyOwnerSig:    mockVerifyOwnerSig,
-  verifyTransferKey: mockVerifyTransferKey,
-};
-
-function makeLeaseProvider(se?: SEClient): StatechainLeaseProvider {
-  return {
-    seClient:       se ?? makeSEClient(),
-    verifyBlindSig: mockVerifyBlindSig,
-  };
+function makeLeaseProvider(se: SEClient): StatechainLeaseProvider {
+  return { seClient: se };
 }
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
@@ -101,11 +42,20 @@ function makeLeaseProvider(se?: SEClient): StatechainLeaseProvider {
 const COIN_ID  = '0xaabbcc0011223344556677889900aabb00112233445566778899001122334455';
 const TOKEN_ID = '0x00';
 const AMOUNT   = 1_000_000n;
-const SE_PKD   = fakePkd('statechain-entity');
+const SE_ROOT  = SE.rootPublicKey;
 const ALICE_ADDRESS = fakeAddress('alice');
 
 function makeAlice(): StatechainOwner {
   return makeOwner('alice', { address: ALICE_ADDRESS, tokenId: TOKEN_ID, amount: AMOUNT });
+}
+
+/** Create a chain bound to the test SE and attach the SE's published proof. */
+async function createChain(
+  se: SEClient,
+  owner: StatechainOwner = makeAlice(),
+): Promise<StateChain> {
+  const chain = await createStateChain(COIN_ID, owner, SE_ROOT, makeLeaseProvider(se));
+  return attachSe(chain, SE);
 }
 
 // ─── createStateChain ────────────────────────────────────────────────────────
@@ -118,7 +68,7 @@ describe('@totemsdk/statechain — createStateChain', () => {
   beforeEach(async () => {
     se     = makeSEClient();
     ownerA = makeAlice();
-    chain  = await createStateChain(COIN_ID, ownerA, SE_PKD, makeLeaseProvider(se));
+    chain  = await createChain(se, ownerA);
   });
 
   it('creates chain with status active', () => {
@@ -136,8 +86,8 @@ describe('@totemsdk/statechain — createStateChain', () => {
     expect(chain.amount).toBe(AMOUNT);
   });
 
-  it('sets sePublicKey', () => {
-    expect(chain.sePublicKey).toBe(SE_PKD);
+  it('sets sePublicKey to the SE root', () => {
+    expect(chain.sePublicKey).toBe(SE_ROOT);
   });
 
   it('sets currentOwner to alice', () => {
@@ -168,8 +118,8 @@ describe('@totemsdk/statechain — createStateChain', () => {
     expect(chain.lockingScript).toContain('MULTISIG(2');
   });
 
-  it('lockingScript contains SE public key digest', () => {
-    expect(chain.lockingScript.toUpperCase()).toContain(SE_PKD.toUpperCase());
+  it('lockingScript contains SE root public key', () => {
+    expect(chain.lockingScript.toUpperCase()).toContain(SE_ROOT.toUpperCase());
   });
 
   it('lockingScript uses @COINAGE-based reclaim timelock', () => {
@@ -184,7 +134,7 @@ describe('@totemsdk/statechain — createStateChain', () => {
 
   it('lockingAddress is same for different owners with the same SE', async () => {
     const ownerB = makeOwner('bob', { address: fakeAddress('bob'), tokenId: TOKEN_ID, amount: AMOUNT });
-    const chain2 = await createStateChain(COIN_ID, ownerB, SE_PKD, makeLeaseProvider());
+    const chain2 = await createChain(makeSEClient(), ownerB);
     expect(chain2.lockingAddress).toBe(chain.lockingAddress);
   });
 
@@ -193,7 +143,7 @@ describe('@totemsdk/statechain — createStateChain', () => {
     expect(chain.reclaimTx).toMatch(/^[0-9A-Fa-f]+$/);
   });
 
-  it('reclaimAddress is SIGNEDBY(ownerPkd) output, distinct from lockingAddress', () => {
+  it('reclaimAddress is SIGNEDBY(ownerRoot) output, distinct from lockingAddress', () => {
     expect(chain.reclaimAddress.length).toBeGreaterThan(0);
     expect(chain.reclaimAddress).not.toBe(chain.lockingAddress);
     expect(chain.reclaimAddress).toMatch(/^Mx[0-9A-Z]+$/);
@@ -205,12 +155,10 @@ describe('@totemsdk/statechain — createStateChain', () => {
 
   it('SE.registerChain is called with the locked coinId (not the input coinId)', () => {
     expect(se.registeredChains).toContain(chain.chainId);
-    // Registered with lockedCoinId, not the original input COIN_ID
-    // (tested implicitly via SE.registerChain chain.chainId call)
   });
 
   it('chainId and lockingAddress are deterministic', async () => {
-    const chain2 = await createStateChain(COIN_ID, makeAlice(), SE_PKD, makeLeaseProvider());
+    const chain2 = await createChain(makeSEClient(), makeAlice());
     expect(chain2.chainId).toBe(chain.chainId);
     expect(chain2.lockingAddress).toBe(chain.lockingAddress);
     expect(chain2.coinId).toBe(chain.coinId);  // lock TX output is also deterministic
@@ -219,25 +167,25 @@ describe('@totemsdk/statechain — createStateChain', () => {
 
   it('leaseProvider.broadcast is called for lock TX if present', async () => {
     const broadcastFn = jest.fn().mockResolvedValue({ success: true, txpowid: 'lock-tx-id' });
-    const lp: StatechainLeaseProvider = { ...makeLeaseProvider(se), broadcast: broadcastFn };
-    await createStateChain(COIN_ID, makeAlice(), SE_PKD, lp);
+    const lp: StatechainLeaseProvider = { ...makeLeaseProvider(makeSEClient()), broadcast: broadcastFn };
+    await createStateChain(COIN_ID, makeAlice(), SE_ROOT, lp);
     expect(broadcastFn).toHaveBeenCalledTimes(1);
   });
 
   it('works with a minimal SEClient (no registerChain)', async () => {
     const minimalSE: SEClient = {
-      async blindSign(m) { return hex(sha3_256(new TextEncoder().encode(m))); },
-      async revokeKey(_o) {},
-      async isRevoked(_o) { return false; },
+      async blindSign(_c, m) { return SE.sign(m); },
+      async revokeKey() {},
+      async isRevoked() { return false; },
     };
-    const c = await createStateChain(COIN_ID, makeAlice(), SE_PKD, { seClient: minimalSE });
+    const c = await createStateChain(COIN_ID, makeAlice(), SE_ROOT, { seClient: minimalSE });
     expect(c.status).toBe('active');
     expect(c.reclaimTx.length).toBeGreaterThan(100);
   });
 
   it('throws if owner.address, tokenId, amount are missing and no chainProvider', async () => {
     const bareOwner = makeOwner('alice');
-    await expect(createStateChain(COIN_ID, bareOwner, SE_PKD, makeLeaseProvider())).rejects.toThrow(
+    await expect(createStateChain(COIN_ID, bareOwner, SE_ROOT, makeLeaseProvider(makeSEClient()))).rejects.toThrow(
       'owner.address, owner.tokenId, and owner.amount are required',
     );
   });
@@ -260,7 +208,7 @@ describe('@totemsdk/statechain — createStateChain', () => {
       getTokensByCreator: jest.fn(),
       broadcastTxPoW: jest.fn().mockResolvedValue({ success: true }),
     };
-    const c = await createStateChain(COIN_ID, bareOwner, SE_PKD, makeLeaseProvider(), mockProvider);
+    const c = await createStateChain(COIN_ID, bareOwner, SE_ROOT, makeLeaseProvider(makeSEClient()), mockProvider);
     expect(c.status).toBe('active');
     expect(c.tokenId).toBe(TOKEN_ID);
     expect(c.amount).toBe(AMOUNT);
@@ -275,16 +223,13 @@ describe('@totemsdk/statechain — transferOwnership (A → B)', () => {
   let se: ReturnType<typeof makeSEClient>;
   let initial: StateChain;
   let transferred: StateChain;
-  let originalOwnerARef: StatechainOwner;
 
   beforeEach(async () => {
     ownerA  = makeAlice();
     ownerB  = makeOwner('bob');
     se      = makeSEClient();
-    initial = await createStateChain(COIN_ID, ownerA, SE_PKD, makeLeaseProvider(se));
-    // Keep a reference to the currentOwner BEFORE transfer (for zeroing check)
-    originalOwnerARef = initial.currentOwner;
-    transferred = await transferOwnership(initial, ownerB, se, mockVerifyBlindSig);
+    initial = await createChain(se, ownerA);
+    transferred = await transferOwnership(initial, ownerB, se);
   });
 
   it('currentOwner is bob after transfer', () => {
@@ -334,26 +279,13 @@ describe('@totemsdk/statechain — transferOwnership (A → B)', () => {
     expect(transferred.transferHistory[0].txBodyHex).toMatch(/^[0-9A-Fa-f]+$/);
   });
 
-  it('TransferRecord.ownerSignature is the old owner WOTS sig hex', () => {
+  it('TransferRecord.ownerSignature is the old owner tree-sig hex', () => {
     expect(transferred.transferHistory[0].ownerSignature.length).toBeGreaterThan(0);
     expect(transferred.transferHistory[0].ownerSignature).toMatch(/^[0-9A-Fa-f]+$/);
   });
 
   it('TransferRecord.txHex is the state-update TxPoW', () => {
     expect(transferred.transferHistory[0].txHex.length).toBeGreaterThan(100);
-  });
-
-  it('TransferRecord.transferKey holds alice\'s seed before zeroing', () => {
-    expect(transferred.transferHistory[0].transferKey).toBe(ownerA.transferKeySeed);
-    expect(transferred.transferHistory[0].transferKey.length).toBeGreaterThan(0);
-  });
-
-  it('old owner transferKeySeed is zeroed in-place on the original owner object (key zeroing)', () => {
-    // originalOwnerARef is the same JS object as chain.currentOwner was before transfer.
-    // After transferOwnership, it should have been zeroed in-place.
-    const seed = originalOwnerARef.transferKeySeed ?? '';
-    // Should be all zeros (not the original secret)
-    expect(seed).toMatch(/^0+$/);
   });
 
   it('fromPublicKeyDigest=alice, toPublicKeyDigest=bob', () => {
@@ -371,13 +303,15 @@ describe('@totemsdk/statechain — transferOwnership (A → B)', () => {
 
   it('throws if chain is not active', async () => {
     const closed: StateChain = { ...initial, status: 'claimed' };
-    await expect(transferOwnership(closed, ownerB, se, mockVerifyBlindSig)).rejects.toThrow('active');
+    await expect(transferOwnership(closed, ownerB, se)).rejects.toThrow('active');
   });
 
-  it('throws if verifyBlindSig override returns false (bad SE sig)', async () => {
-    await expect(
-      transferOwnership(initial, ownerB, se, () => false),
-    ).rejects.toThrow('verification failed');
+  it('throws if the SE envelope is invalid (bad message binding)', async () => {
+    const badSE: SEClient = {
+      ...se,
+      blindSign: async (_chainId, m) => ({ ...SE.sign(m), message: 'deadbeef' }),
+    };
+    await expect(transferOwnership(initial, ownerB, badSE)).rejects.toThrow('verification failed');
   });
 });
 
@@ -396,9 +330,9 @@ describe('@totemsdk/statechain — transfer chain A → B → C', () => {
     ownerB = makeOwner('bob');
     ownerC = makeOwner('carol');
     se     = makeSEClient();
-    const initial = await createStateChain(COIN_ID, ownerA, SE_PKD, makeLeaseProvider(se));
-    afterAB = await transferOwnership(initial,  ownerB, se, mockVerifyBlindSig);
-    afterBC = await transferOwnership(afterAB,  ownerC, se, mockVerifyBlindSig);
+    const initial = await createChain(se, ownerA);
+    afterAB = await transferOwnership(initial, ownerB, se);
+    afterBC = await transferOwnership(afterAB, ownerC, se);
   });
 
   it('currentOwner is carol', () => {
@@ -439,11 +373,6 @@ describe('@totemsdk/statechain — transfer chain A → B → C', () => {
     expect(h[0].toPublicKeyDigest).toBe(h[1].fromPublicKeyDigest);
   });
 
-  it('transferKey[0]=alice seed, transferKey[1]=bob seed', () => {
-    expect(afterBC.transferHistory[0].transferKey).toBe(ownerA.transferKeySeed);
-    expect(afterBC.transferHistory[1].transferKey).toBe(ownerB.transferKeySeed);
-  });
-
   it('SE.revokedKeys contains both alice and bob', () => {
     expect(se.revokedKeys).toContain('alice');
     expect(se.revokedKeys).toContain('bob');
@@ -456,9 +385,9 @@ describe('@totemsdk/statechain — transfer chain A → B → C', () => {
     }
   });
 
-  it('each transfer has unique blindedSignature, signedDigest, and ownerSignature', () => {
+  it('each transfer has a unique SE signature, signedDigest, and ownerSignature', () => {
     const h = afterBC.transferHistory;
-    expect(h[0].blindedSignature).not.toBe(h[1].blindedSignature);
+    expect(h[0].seSignature.signature).not.toBe(h[1].seSignature.signature);
     expect(h[0].signedDigest).not.toBe(h[1].signedDigest);
     expect(h[0].ownerSignature).not.toBe(h[1].ownerSignature);
   });
@@ -468,43 +397,52 @@ describe('@totemsdk/statechain — transfer chain A → B → C', () => {
 
 describe('@totemsdk/statechain — verifyStateChain', () => {
   let validChain: StateChain;
-  let se: ReturnType<typeof makeSEClient>;
 
   beforeEach(async () => {
-    se = makeSEClient();
-    const initial = await createStateChain(COIN_ID, makeAlice(), SE_PKD, makeLeaseProvider(se));
-    const afterAB = await transferOwnership(initial, makeOwner('bob'),   se, mockVerifyBlindSig);
-    validChain    = await transferOwnership(afterAB, makeOwner('carol'), se, mockVerifyBlindSig);
+    const se = makeSEClient();
+    const initial = await createChain(se, makeAlice());
+    const afterAB = await transferOwnership(initial, makeOwner('bob'),   se);
+    validChain    = await transferOwnership(afterAB, makeOwner('carol'), se);
   });
 
   it('returns valid=true for a correct A→B→C chain', () => {
-    expect(verifyStateChain(validChain, TEST_VERIFY_OPTS).valid).toBe(true);
+    expect(verifyStateChain(validChain).valid).toBe(true);
   });
 
   it('returns depth=2 and rootOwner=alice for A→B→C chain', () => {
-    const r = verifyStateChain(validChain, TEST_VERIFY_OPTS);
+    const r = verifyStateChain(validChain);
     expect(r.depth).toBe(2);
     expect(r.rootOwner).toBe('alice');
   });
 
   it('returns valid=true, depth=0 for a fresh chain', async () => {
-    const fresh = await createStateChain(COIN_ID, makeAlice(), SE_PKD, makeLeaseProvider());
-    const r = verifyStateChain(fresh, TEST_VERIFY_OPTS);
+    const fresh = await createChain(makeSEClient(), makeAlice());
+    const r = verifyStateChain(fresh);
     expect(r.valid).toBe(true);
     expect(r.depth).toBe(0);
     expect(r.rootOwner).toBe('alice');
   });
 
-  it('detects tampered blindedSignature', () => {
+  it('detects tampered SE signature', () => {
     const tampered: StateChain = {
       ...validChain,
       transferHistory: validChain.transferHistory.map((r, i) =>
-        i === 0 ? { ...r, blindedSignature: 'deadbeef00112233' } : r,
+        i === 0 ? { ...r, seSignature: { ...r.seSignature, signature: '00' } } : r,
       ),
     };
-    const result = verifyStateChain(tampered, TEST_VERIFY_OPTS);
+    const result = verifyStateChain(tampered);
     expect(result.valid).toBe(false);
     expect(result.reason).toContain('signature');
+  });
+
+  it('detects an SE envelope whose leaf is not authorized', () => {
+    const tampered: StateChain = {
+      ...validChain,
+      transferHistory: validChain.transferHistory.map((r, i) =>
+        i === 0 ? { ...r, seSignature: { ...r.seSignature, publicKey: 'cc'.repeat(32) } } : r,
+      ),
+    };
+    expect(verifyStateChain(tampered).valid).toBe(false);
   });
 
   it('detects tampered ownerSignature', () => {
@@ -514,7 +452,7 @@ describe('@totemsdk/statechain — verifyStateChain', () => {
         i === 0 ? { ...r, ownerSignature: 'deadbeef' + '00'.repeat(28) } : r,
       ),
     };
-    const result = verifyStateChain(tampered, TEST_VERIFY_OPTS);
+    const result = verifyStateChain(tampered);
     expect(result.valid).toBe(false);
     expect(result.reason).toContain('owner signature');
   });
@@ -526,18 +464,28 @@ describe('@totemsdk/statechain — verifyStateChain', () => {
         i === 1 ? { ...r, ownerSignature: '' } : r,
       ),
     };
-    expect(verifyStateChain(tampered, TEST_VERIFY_OPTS).valid).toBe(false);
+    expect(verifyStateChain(tampered).valid).toBe(false);
+  });
+
+  it('detects an owner signature rooted to a different key', () => {
+    // alice's signature is valid, but re-labelled as carol → root mismatch.
+    const tampered: StateChain = {
+      ...validChain,
+      transferHistory: validChain.transferHistory.map((r, i) =>
+        i === 0 ? { ...r, fromPublicKeyDigest: fakePkd('intruder') } : r,
+      ),
+    };
+    expect(verifyStateChain(tampered).valid).toBe(false);
   });
 
   it('detects tampered txBodyHex (signature grafting attack)', () => {
-    // Replace txBodyHex with different bytes — signedDigest will no longer match sha3_256(txBodyHex)
     const tampered: StateChain = {
       ...validChain,
       transferHistory: validChain.transferHistory.map((r, i) =>
         i === 0 ? { ...r, txBodyHex: 'deadbeef'.repeat(20) } : r,
       ),
     };
-    const result = verifyStateChain(tampered, TEST_VERIFY_OPTS);
+    const result = verifyStateChain(tampered);
     expect(result.valid).toBe(false);
     expect(result.reason).toContain('signedDigest mismatch');
   });
@@ -549,7 +497,7 @@ describe('@totemsdk/statechain — verifyStateChain', () => {
         i === 0 ? { ...r, signedDigest: 'deadbeef'.repeat(8) } : r,
       ),
     };
-    expect(verifyStateChain(tampered, TEST_VERIFY_OPTS).valid).toBe(false);
+    expect(verifyStateChain(tampered).valid).toBe(false);
   });
 
   it('detects broken chain continuity', () => {
@@ -559,7 +507,7 @@ describe('@totemsdk/statechain — verifyStateChain', () => {
         i === 1 ? { ...r, from: 'intruder' } : r,
       ),
     };
-    const result = verifyStateChain(broken, TEST_VERIFY_OPTS);
+    const result = verifyStateChain(broken);
     expect(result.valid).toBe(false);
     expect(result.reason).toContain('Broken chain');
   });
@@ -571,21 +519,23 @@ describe('@totemsdk/statechain — verifyStateChain', () => {
         i === 1 ? { ...r, fromPublicKeyDigest: fakePkd('intruder') } : r,
       ),
     };
-    const result = verifyStateChain(tampered, TEST_VERIFY_OPTS);
+    const result = verifyStateChain(tampered);
     expect(result.valid).toBe(false);
-    expect(result.reason).toContain('PKD mismatch');
+    // Either "PKD mismatch" continuity or "owner signature" root mismatch — both
+    // indicate the from-key was not the hop's signer.
+    expect(result.reason).toMatch(/PKD mismatch|owner signature/);
   });
 
-  it('detects empty transferKey (invalid lineage proof)', () => {
+  it('detects a missing SE envelope', () => {
     const badKey: StateChain = {
       ...validChain,
       transferHistory: validChain.transferHistory.map((r, i) =>
-        i === 0 ? { ...r, transferKey: '' } : r,
+        i === 0 ? ({ ...r, seSignature: undefined } as unknown as typeof r) : r,
       ),
     };
-    const result = verifyStateChain(badKey, TEST_VERIFY_OPTS);
+    const result = verifyStateChain(badKey);
     expect(result.valid).toBe(false);
-    expect(result.reason).toContain('Transfer key');
+    expect(result.reason).toContain('SE signature');
   });
 
   it('detects currentOwner partyId mismatch', () => {
@@ -593,7 +543,7 @@ describe('@totemsdk/statechain — verifyStateChain', () => {
       ...validChain,
       currentOwner: { ...validChain.currentOwner, partyId: 'dave' },
     };
-    const result = verifyStateChain(mismatch, TEST_VERIFY_OPTS);
+    const result = verifyStateChain(mismatch);
     expect(result.valid).toBe(false);
     expect(result.reason).toContain('currentOwner');
   });
@@ -603,7 +553,7 @@ describe('@totemsdk/statechain — verifyStateChain', () => {
       ...validChain,
       currentOwner: { ...validChain.currentOwner, publicKeyDigest: fakePkd('intruder') },
     };
-    const result = verifyStateChain(mismatch, TEST_VERIFY_OPTS);
+    const result = verifyStateChain(mismatch);
     expect(result.valid).toBe(false);
     expect(result.reason?.toLowerCase()).toContain('pkd');
   });
@@ -617,8 +567,8 @@ describe('@totemsdk/statechain — claimOwnership', () => {
 
   beforeEach(async () => {
     se        = makeSEClient();
-    const initial = await createStateChain(COIN_ID, makeAlice(), SE_PKD, makeLeaseProvider(se));
-    chain = await transferOwnership(initial, makeOwner('bob'), se, mockVerifyBlindSig);
+    const initial = await createChain(se, makeAlice());
+    chain = await transferOwnership(initial, makeOwner('bob'), se);
   });
 
   it('returns ClaimPayload with TxPoW hex signed with actual TX body digest', async () => {
@@ -645,12 +595,6 @@ describe('@totemsdk/statechain — claimOwnership', () => {
   });
 
   it('claim TX is signed over a digest that includes the precomputed output coinId', async () => {
-    // Verify that claimOwnership produces a well-formed TxPoW. The full TxPoW hex differs
-    // between calls because serializeTxPoW embeds Date.now() in the TxHeader; however the
-    // TX body digest (which covers the transaction including the precomputed output coinId)
-    // and both signatures are stable. We verify structural correctness here; chain-level
-    // signature validity (allsignaturesvalid=true) depends on precomputeTransactionCoinID
-    // being called before computeTransactionDigest — as it is in claimOwnership.
     const r1 = await claimOwnership(chain, makeLeaseProvider(se));
     const r2 = await claimOwnership(chain, makeLeaseProvider(se));
     // claimAddress is deterministic (derived from owner PKD script address)
@@ -694,7 +638,7 @@ describe('@totemsdk/statechain — reclaimAbandoned', () => {
 
   beforeEach(async () => {
     se    = makeSEClient();
-    chain = await createStateChain(COIN_ID, makeAlice(), SE_PKD, makeLeaseProvider(se));
+    chain = await createChain(se, makeAlice());
   });
 
   it('returns ClaimPayload with pre-built reclaimTx (pre-signed during createStateChain)', async () => {
@@ -704,18 +648,7 @@ describe('@totemsdk/statechain — reclaimAbandoned', () => {
   });
 
   it('reclaimTx was signed over a digest that includes the precomputed output coinId', () => {
-    // Verify the reclaim TX (built at createStateChain time) is non-trivially signed:
-    // precomputeTransactionCoinID sets the output coinId from sha3_256(inputCoinId || idx).
-    // If it were skipped, the digest would be over a placeholder zero coinId and the node
-    // would reject it (allsignaturesvalid=false). We check that the stored reclaimTx is
-    // deterministically produced and contains no all-zero 32-byte coinId fields.
     expect(chain.reclaimTx.length).toBeGreaterThan(200);
-    // The tx body must not contain a run of 64 consecutive zero hex chars (placeholder coinId)
-    // in a pattern that would indicate an unset output coinId.
-    const zeroBlock = '0'.repeat(64);
-    // We expect the TX contains some zeros (amounts, etc.) but not a pure 64-zero coinId
-    // immediately following a writeMiniData prefix. A simple heuristic: the overall hex
-    // must not be *dominated* by zeros (i.e. at least 20% non-zero nybbles).
     const nonZero = (chain.reclaimTx.match(/[1-9a-f]/g) ?? []).length;
     expect(nonZero / chain.reclaimTx.length).toBeGreaterThan(0.10);
   });
@@ -789,8 +722,8 @@ describe('@totemsdk/statechain — reclaimAbandoned', () => {
   });
 
   it('carol (after A→B→C) can reclaim — reclaimTx not anchored to initial owner', async () => {
-    const afterAB = await transferOwnership(chain, makeOwner('bob'),   se, mockVerifyBlindSig);
-    const afterBC = await transferOwnership(afterAB, makeOwner('carol'), se, mockVerifyBlindSig);
+    const afterAB = await transferOwnership(chain, makeOwner('bob'),   se);
+    const afterBC = await transferOwnership(afterAB, makeOwner('carol'), se);
     expect(afterBC.reclaimAddress).not.toBe(chain.reclaimAddress);
     const r = await reclaimAbandoned(afterBC, {});
     expect(r.txHex).toBe(afterBC.reclaimTx);
@@ -801,31 +734,31 @@ describe('@totemsdk/statechain — reclaimAbandoned', () => {
 // ─── buildStatechainScript ───────────────────────────────────────────────
 
 describe('@totemsdk/statechain — buildStatechainScript', () => {
-  it('uses STATE(0) for owner; SE PKD is hardcoded (owner PKD is not)', () => {
+  it('uses STATE(0) for owner; SE root is hardcoded (owner root is not)', () => {
     const ownerPkd = fakePkd('arbitrary-owner');
-    const script   = buildStatechainScript(SE_PKD);
+    const script   = buildStatechainScript(SE_ROOT);
     expect(script).toContain('STATE(0)');
-    expect(script.toUpperCase()).toContain(SE_PKD.toUpperCase());
+    expect(script.toUpperCase()).toContain(SE_ROOT.toUpperCase());
     expect(script.toUpperCase()).not.toContain(ownerPkd.toUpperCase());
   });
 
   it('contains MULTISIG(2', () => {
-    expect(buildStatechainScript(SE_PKD)).toContain('MULTISIG(2');
+    expect(buildStatechainScript(SE_ROOT)).toContain('MULTISIG(2');
   });
 
   it('uses @COINAGE-based unilateral reclaim', () => {
-    const s = buildStatechainScript(SE_PKD);
+    const s = buildStatechainScript(SE_ROOT);
     expect(s).toContain('@COINAGE');
     expect(s).toContain(`${RECLAIM_TIMELOCK}`);
     expect(s).toContain('SIGNEDBY');
   });
 
-  it('contains SE pkd in 0X prefix format', () => {
-    expect(buildStatechainScript(SE_PKD).toUpperCase()).toContain('0X' + SE_PKD.toUpperCase());
+  it('contains SE root in 0X prefix format', () => {
+    expect(buildStatechainScript(SE_ROOT).toUpperCase()).toContain('0X' + SE_ROOT.toUpperCase());
   });
 
   it('produces the same script regardless of owner (STATE-derived)', () => {
-    expect(buildStatechainScript(SE_PKD)).toBe(buildStatechainScript(SE_PKD));
+    expect(buildStatechainScript(SE_ROOT)).toBe(buildStatechainScript(SE_ROOT));
   });
 
   it('produces different scripts for different SEs', () => {
@@ -840,7 +773,7 @@ describe('@totemsdk/statechain — full lifecycle A → B → C → verify → c
     const se = makeSEClient();
 
     // Create — lock TX moves coin into MULTISIG(STATE(0)) script
-    const created = await createStateChain(COIN_ID, makeAlice(), SE_PKD, makeLeaseProvider(se));
+    const created = await createChain(se, makeAlice());
     expect(created.status).toBe('active');
     expect(created.coinId).not.toBe(COIN_ID);          // lock TX output coinId
     expect(created.lockingScript).toContain('STATE(0)');
@@ -849,7 +782,7 @@ describe('@totemsdk/statechain — full lifecycle A → B → C → verify → c
     expect(se.registeredChains).toContain(created.chainId);
 
     // Transfer A → B — reclaimTx updated for bob
-    const afterAB = await transferOwnership(created, makeOwner('bob'), se, mockVerifyBlindSig);
+    const afterAB = await transferOwnership(created, makeOwner('bob'), se);
     expect(afterAB.currentOwner.partyId).toBe('bob');
     expect(afterAB.coinId).not.toBe(created.coinId);
     expect(afterAB.reclaimTx).not.toBe(created.reclaimTx);
@@ -859,13 +792,13 @@ describe('@totemsdk/statechain — full lifecycle A → B → C → verify → c
     expect(afterAB.transferHistory[0].signedDigest).toBe(recomputedAB);
 
     // Transfer B → C — reclaimTx updated for carol
-    const afterBC = await transferOwnership(afterAB, makeOwner('carol'), se, mockVerifyBlindSig);
+    const afterBC = await transferOwnership(afterAB, makeOwner('carol'), se);
     expect(afterBC.currentOwner.partyId).toBe('carol');
     expect(afterBC.coinId).not.toBe(afterAB.coinId);
     expect(afterBC.reclaimTx).not.toBe(afterAB.reclaimTx);
 
-    // Verify — all 5 checks pass per hop (continuity, lineage, digest, SE sig, owner sig)
-    const verify = verifyStateChain(afterBC, TEST_VERIFY_OPTS);
+    // Verify — all checks pass per hop (continuity, digest, SE sig, owner sig)
+    const verify = verifyStateChain(afterBC);
     expect(verify.valid).toBe(true);
     expect(verify.depth).toBe(2);
     expect(verify.rootOwner).toBe('alice');

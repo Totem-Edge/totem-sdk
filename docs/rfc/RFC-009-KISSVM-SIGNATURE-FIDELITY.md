@@ -1,6 +1,6 @@
 # RFC-009: KISSVM Signature Fidelity — Minima-Faithful TreeKey SignatureProof Verification
 
-**Status:** Draft — Phase 0/1 landed (witness model + evaluator tree-proof verification), Phase 2 landed (Java → SDK parity, byte-identical), and the RFC-008 on-chain gate passes; Phase 3 (owner key-model migration) outstanding
+**Status:** Draft — Phase 0/1 (witness model + evaluator tree-proof verification), Phase 2 (Java → SDK parity, byte-identical), and Phase 3 (full TreeKey owner migration + canonical tx-builder witness serializer) landed; the RFC-008 on-chain gate passes. Remaining: non-TS parity mirrors (Rust verifier, Go SE).
 **Created:** 2026-09-21
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]
@@ -252,7 +252,6 @@ available but is the less-faithful model.)
   `simulateSpend` accept the cooperative spend and reject a missing SE
   signature, an imposter SE, and a wrong digest; the owner-only reclaim path is
   unchanged. **5/5 passing.**
-- Suites: kissvm 220/220, statechain 120/120; workspace gates green.
 
 - `packages/statechain/src/__tests__/minima-parity.test.ts` + fixture — Phase 2
   (Java → SDK): a `TreeKey(seed,4,2).sign(digest)` signature produced by the
@@ -260,18 +259,39 @@ available but is the less-faithful model.)
   verifies against the Java root, **re-serializes byte-identically**
   (`Signature.writeDataStream` parity), and is accepted by the KISSVM validator;
   a wrong digest is rejected. **4/4 passing.**
-- Suites: kissvm 220/220, statechain 125/125; workspace gates green.
+- Suites: kissvm 220/220, statechain 127/127; workspace gates green.
+
+**Phase 3 — full owner migration (landed).**
+
+- `@totemsdk/tx-builder` owns the canonical witness serializer
+  (`src/witness.ts`: `buildMinimaWitnessBytes`) — `[count][Signature…][0][0]`
+  using core's `serializeTreeSignature` (byte-identical to Java); statechain
+  imports it (single source of truth).
+- `types.ts`: `StatechainOwner` is now a Minima-faithful TreeKey signer — required
+  `signTree(message)`, `publicKeyDigest` carries the TreeKey **root** public key
+  (the value bound by `STATE(0)`/`SIGNEDBY`/`MULTISIG`), `sign`/`treePublicKey`
+  removed. `SEClient.blindSign` returns the RFC-008 `SESignature` envelope only
+  (no legacy hex fallback); `TransferRecord` carries `seSignature` +
+  tree-serialized `ownerSignature` (the flat `blindedSignature`/`transferKey`
+  lineage fields are gone).
+- `chain.ts`/`claim.ts`/`transfer.ts`: lock, reclaim, cooperative claim, and
+  state-update all sign with `signTree` and emit the tree witness
+  (`[ownerTreeSig, seTreeSig]`). `verify.ts` verifies owner signatures
+  root-bound against `fromPublicKeyDigest` via `verifyTreeSignatureDetailed`, and
+  requires a valid SE envelope per hop.
+- `se-server/src/ownerAuth.ts`: owner→SE authentication is now root-bound
+  TreeKey verification (was flat `wotsVerifyDigestAsync`, removed).
+- Suites rewritten to real small-param TreeKeys + a real leased-leaf test SE:
+  statechain **126/126** (`statechain`, `durable-store`, `tree-witness`,
+  `onchain-witness`), se-server 34/34, tx-builder 22/22.
 
 **Outstanding.**
 
 - Phase 2 reverse direction (SDK → Java) is implied by the byte-identical
   serialization above; a scripted cross-check against `minima.jar` is optional.
-- Phase 3 (wire `tx-builder`/`statechain.claim.ts` to emit the tree witness
-  end-to-end) remains, and **requires the owner key-model migration**: Minima
-  binds the signer's *root* public key (`SignatureProof.getRootPublicKey()`), so
-  the statechain owner (currently a flat WOTS pkd) must become a TreeKey signer
-  before the witness is Minima-valid for both parties. RFC-008's `SeIdentity`
-  already produces `TreeSignature`s; the owner side is the remaining work.
+- Non-TS parity mirrors: the Rust statechain verifier
+  (`packages/statechain/rust/src/{types,verify}.rs`) and the Go SE still reflect
+  the flat model (Go SE remains fail-closed, RFC-008 Open Question 7).
 
 ## 7. Acceptance Gate (the RFC-008 blocker)
 

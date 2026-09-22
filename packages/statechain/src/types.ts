@@ -34,11 +34,10 @@ export interface SeOwnershipProof {
 
 export interface SEClient {
   /**
-   * Blind-sign a commitment. Returns the SE signature envelope (RFC-008) when
-   * the SE supports leased one-time leaves; a bare hex string is still accepted
-   * for legacy/mock clients.
+   * Blind-sign a commitment. Returns the SE signature envelope (RFC-008): a
+   * leased one-time leaf authorized by the SE root's `OwnershipProof`.
    */
-  blindSign(chainId: string, commitmentHex: string): Promise<SESignature | string>;
+  blindSign(chainId: string, commitmentHex: string): Promise<SESignature>;
   revokeKey(chainId: string, opts: {
     previousOwnerPartyId: string;
     previousOwnerPkd: string;
@@ -60,10 +59,15 @@ export interface SEClient {
 }
 
 /**
- * StatechainOwner — owner identity and signing capability.
+ * StatechainOwner — owner identity and Minima-faithful TreeKey signing
+ * capability (RFC-009).
  *
- * `sign(message)` signs a `computeTransactionDigest` byte-array with this
- * owner's WOTS key. Used for: lock TX, reclaimTx building, cooperative claim.
+ * `signTree(message)` signs a `computeTransactionDigest` byte-array with this
+ * owner's TreeKey, producing a root-bound Minima `TreeSignature`. Used for the
+ * lock TX, reclaim TX, state-update TX, and cooperative claim. Minima binds the
+ * signer's **root** public key (`SignatureProof.getRootPublicKey()`), so
+ * `publicKeyDigest` carries that root — it is the value bound by
+ * `STATE(0)`/`SIGNEDBY`/`MULTISIG` in the locking script.
  *
  * Creation-time fields (only required on the owner passed to `createStateChain`):
  *   `address`  — the coin's current address (spending address of the input UTXO).
@@ -71,16 +75,16 @@ export interface SEClient {
  *   `tokenId`  — token ID of the coin being locked.
  *   `amount`   — coin amount in MIN base units.
  * These three fields are stripped from the stored `StateChain.currentOwner`.
- *
- * `transferKeySeed` — WOTS seed (hex) for this owner's key slot.
- * Moved into `TransferRecord.transferKey` on outbound transfer, then zeroed
- * in-place on the original owner object so the secret does not linger in hot state.
  */
 export interface StatechainOwner {
   partyId: string;
+  /** TreeKey **root** public key (32-byte hex) — the owner's Minima identity. */
   publicKeyDigest: string;
-  sign(message: Uint8Array): Promise<Uint8Array>;
-  transferKeySeed?: string;
+  /**
+   * Sign a digest with this owner's TreeKey. The returned `TreeSignature` is
+   * root-bound and serialized via `serializeTreeSignature` into the witness.
+   */
+  signTree(message: Uint8Array): Promise<import('@totemsdk/core').TreeSignature>;
   /** Source coin address — required for the lock TX in createStateChain. */
   address?: string;
   /** Coin token ID — required when creating a new statechain. */
@@ -92,9 +96,10 @@ export interface StatechainOwner {
 /**
  * TransferRecord — one entry per ownership hop in transferHistory.
  *
- * `transferKey`    — prior owner's WOTS seed (hex) for custody-lineage proofs.
- * `ownerSignature` — hex of the old owner's WOTS sig over `signedDigest`.
- *   Stored so `verifyStateChain` can verify per-hop old-owner signatures.
+ * `ownerSignature` — hex of the old owner's serialized Minima `TreeSignature`
+ *   over `signedDigest` (root-bound). Stored so `verifyStateChain` can verify
+ *   per-hop old-owner authorization.
+ * `seSignature`    — the SE's leased-leaf signature envelope over `signedDigest`.
  * `signedDigest`   — hex of computeTransactionDigest(stateUpdateTx).
  *   Bound to `txBodyHex` — `verifyStateChain` recomputes this digest from
  *   `txBodyHex` and rejects records where they do not match.
@@ -108,17 +113,13 @@ export interface TransferRecord {
   to: string;
   fromPublicKeyDigest: string;
   toPublicKeyDigest: string;
-  blindedSignature: string;
   /**
-   * RFC-008: the SE signature envelope, when the SE returns one. Carries the
-   * leased leaf (`kind`, `publicKey`, `address`, `proofVersion`) so
-   * `verifyStateChain` can check leaf authorization against the SE root's
-   * `OwnershipProof` instead of a single fixed key.
+   * RFC-008: the SE signature envelope. Carries the leased leaf (`kind`,
+   * `publicKey`, `address`, `proofVersion`) so `verifyStateChain` can check leaf
+   * authorization against the SE root's `OwnershipProof`.
    */
-  seSignature?: SESignature;
-  /** Prior owner's WOTS seed for custody lineage verification. */
-  transferKey: string;
-  /** Hex of old owner's signature over signedDigest. */
+  seSignature: SESignature;
+  /** Hex of old owner's serialized Minima `TreeSignature` over signedDigest. */
   ownerSignature: string;
   /** Hex of sha3_256(txBodyHex) — the TX body digest signed by old owner + SE. */
   signedDigest: string;

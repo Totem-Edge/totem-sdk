@@ -54,29 +54,35 @@ pub fn compute_reclaim_commitment_wasm(
 #[wasm_bindgen]
 pub fn verify_state_chain_wasm(
     chain_js: JsValue,
-    verify_blind_sig_js: JsValue,
+    verify_se_sig_js: JsValue,
     verify_owner_sig_js: JsValue,
-    verify_transfer_key_js: JsValue,
 ) -> Result<JsValue, JsValue> {
     let chain: StateChain = serde_wasm_bindgen::from_value(chain_js)
         .map_err(|e| JsValue::from_str(&format!("Failed to parse chain: {}", e)))?;
 
-    let verify_blind_sig = js_sys::Function::from(verify_blind_sig_js);
+    let verify_se_sig = js_sys::Function::from(verify_se_sig_js);
     let verify_owner_sig = js_sys::Function::from(verify_owner_sig_js);
-    let verify_transfer_key = js_sys::Function::from(verify_transfer_key_js);
 
-    let blind_sig_fn = move |sig: &str, commitment: &[u8], se_pkd: &str| -> bool {
+    let chain_json = serde_json::to_string(&chain)
+        .map_err(|e| JsValue::from_str(&format!("Failed to serialize chain: {}", e)))?;
+
+    // `verifySeSig(seSignatureJson, commitmentHex, chainJson) -> bool` — mirrors
+    // the TS `verifySeSignatureEnvelope`.
+    let se_sig_fn = move |sig: &SeSignature, commitment: &[u8], _chain: &StateChain| -> bool {
         let this = JsValue::NULL;
         let args = js_sys::Array::new();
-        args.push(&JsValue::from_str(sig));
+        let sig_json = serde_json::to_string(sig).unwrap_or_default();
+        args.push(&JsValue::from_str(&sig_json));
         args.push(&JsValue::from_str(&hex::encode(commitment)));
-        args.push(&JsValue::from_str(se_pkd));
-        match verify_blind_sig.call1(&this, &args) {
+        args.push(&JsValue::from_str(&chain_json));
+        match verify_se_sig.call1(&this, &args) {
             Ok(result) => result.as_bool().unwrap_or(false),
             Err(_) => false,
         }
     };
 
+    // `verifyOwnerSig(ownerSignatureHex, commitmentHex, fromRootHex) -> bool` —
+    // root-bound TreeSignature verification.
     let owner_sig_fn = move |sig: &str, commitment: &[u8], from_pkd: &str| -> bool {
         let this = JsValue::NULL;
         let args = js_sys::Array::new();
@@ -89,18 +95,7 @@ pub fn verify_state_chain_wasm(
         }
     };
 
-    let transfer_key_fn = move |transfer_key: &str, from_pkd: &str| -> bool {
-        let this = JsValue::NULL;
-        let args = js_sys::Array::new();
-        args.push(&JsValue::from_str(transfer_key));
-        args.push(&JsValue::from_str(from_pkd));
-        match verify_transfer_key.call1(&this, &args) {
-            Ok(result) => result.as_bool().unwrap_or(false),
-            Err(_) => false,
-        }
-    };
-
-    let result = verify::verify_state_chain(&chain, &blind_sig_fn, &owner_sig_fn, &transfer_key_fn);
+    let result = verify::verify_state_chain(&chain, &se_sig_fn, &owner_sig_fn);
 
     serde_wasm_bindgen::to_value(&result)
         .map_err(|e| JsValue::from_str(&format!("Failed to serialize result: {}", e)))

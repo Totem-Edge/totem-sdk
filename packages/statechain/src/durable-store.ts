@@ -33,7 +33,7 @@ import {
 } from '@totemsdk/storage/snapshot';
 import type { StorageAdapterWithCapabilities, CasStore, WriteAckMode } from '@totemsdk/storage/types';
 import { StorageError } from '@totemsdk/storage/errors';
-import { verifyStateChain, type VerifyOptions } from './verify.js';
+import { verifyStateChain } from './verify.js';
 import type { StateChain, StatechainOwner } from './types.js';
 
 const DEFAULT_NAMESPACE = 'totem_statechain:v1:';
@@ -47,12 +47,12 @@ const DEFAULT_NAMESPACE = 'totem_statechain:v1:';
 export const STATECHAIN_RECORD_VERSION = 1;
 
 /**
- * Owner snapshot as persisted: `sign` is a runtime capability (a closure over
- * the caller's WOTS key) that cannot be serialised, so it is stripped on save.
- * Every durable recovery field (`publicKeyDigest`, `transferKeySeed`) is kept;
- * a caller re-attaches signing capability when it loads a chain into memory.
+ * Owner snapshot as persisted: `signTree` is a runtime capability (a closure
+ * over the caller's TreeKey) that cannot be serialised, so it is stripped on
+ * save. Every durable recovery field (`publicKeyDigest`) is kept; a caller
+ * re-attaches signing capability when it loads a chain into memory.
  */
-export type StoredStatechainOwner = Omit<StatechainOwner, 'sign'>;
+export type StoredStatechainOwner = Omit<StatechainOwner, 'signTree'>;
 
 /** Chain record as persisted (owner minus signing capability). */
 export type StoredStateChain = Omit<StateChain, 'currentOwner'> & {
@@ -73,11 +73,9 @@ export interface DurableStateChainStoreOptions {
   readonly requireAckMode?: WriteAckMode;
   /**
    * Structural validation hook run over each `StateChain` at load and before
-   * each save (default: a strict `verifyChainIntegrity` check).
+   * each save (default: a strict `verifyStateChain` check).
    */
-  readonly verify?: (chain: StateChain, opts?: VerifyOptions) => VerifyResult;
-  /** Verification-override options (test/self-hosted SE mocks). */
-  readonly verifyOptions?: VerifyOptions;
+  readonly verify?: (chain: StateChain) => VerifyResult;
 }
 
 /**
@@ -106,8 +104,8 @@ export interface RecoveryReport {
 }
 
 /** Default structural check when no `verify` override is supplied. */
-function defaultVerify(chain: StateChain, opts?: VerifyOptions): VerifyResult {
-  const result = verifyStateChain(chain, opts);
+function defaultVerify(chain: StateChain): VerifyResult {
+  const result = verifyStateChain(chain);
   return {
     valid: result.valid,
     depth: result.depth,
@@ -181,7 +179,7 @@ function assertChain(chainId: string, raw: unknown, opts: DurableStateChainStore
     throw new StorageError(`statechain record "${chainId}" has an invalid reclaimTimelock`, 'corrupt', { key: chainId });
   }
   if (opts.verify) {
-    const result = opts.verify(chain as StateChain, opts.verifyOptions);
+    const result = opts.verify(chain as StateChain);
     if (!result.valid) {
       throw new StorageError(
         `statechain record "${chainId}" failed verification: ${result.reason ?? 'unknown'}`,
@@ -230,20 +228,20 @@ export function createDurableStateChainStore(
   );
 
   /**
-   * `currentOwner.sign` is a runtime capability (a closure over the caller's
-   * WOTS key) and cannot be serialised. The durable form strips it; a caller
-   * re-attaches signing capability when it loads a chain back into memory.
-   * Every durable recovery field (pkd, reclaimTx, locking address, coinId,
-   * amount) is retained.
+   * `currentOwner.signTree` is a runtime capability (a closure over the
+   * caller's TreeKey) and cannot be serialised. The durable form strips it; a
+   * caller re-attaches signing capability when it loads a chain back into
+   * memory. Every durable recovery field (pkd, reclaimTx, locking address,
+   * coinId, amount) is retained.
    */
   function toPersistable(chain: StateChain): StoredStateChain {
-    const { sign: _sign, ...ownerRecord } = chain.currentOwner;
+    const { signTree: _signTree, ...ownerRecord } = chain.currentOwner;
     return { ...chain, currentOwner: ownerRecord };
   }
 
   return {
     async save(chain: StateChain): Promise<void> {
-      const result = verify(chain, opts.verifyOptions);
+      const result = verify(chain);
       if (!result.valid) {
         throw new StorageError(
           `refusing to persist statechain "${chain.chainId}" that fails verification: ${result.reason ?? 'unknown'}`,
@@ -296,13 +294,13 @@ export function createDurableStateChainStore(
           recoverableWithoutSE: false,
         };
       }
-      return recoveryReportFor(chain, verify, opts.verifyOptions);
+      return recoveryReportFor(chain, verify);
     },
 
     async verifyRecoverability(): Promise<Array<{ chainId: string; report: RecoveryReport }>> {
       const chains = Object.values((await snapshots.load()).chains);
       return chains
-        .map((chain) => ({ chainId: chain.chainId, report: recoveryReportFor(chain, verify, opts.verifyOptions) }))
+        .map((chain) => ({ chainId: chain.chainId, report: recoveryReportFor(chain, verify) }))
         .sort((a, b) => a.chainId.localeCompare(b.chainId));
     },
   };
@@ -310,10 +308,9 @@ export function createDurableStateChainStore(
 
 function recoveryReportFor(
   chain: StoredStateChain,
-  verify: (c: StateChain, o?: VerifyOptions) => VerifyResult,
-  verifyOptions?: VerifyOptions,
+  verify: (c: StateChain) => VerifyResult,
 ): RecoveryReport {
-  const result = verify(chain as StateChain, verifyOptions);
+  const result = verify(chain as StateChain);
   const ownerRecoveryMaterialPresent =
     Boolean(chain.currentOwner) &&
     Boolean(chain.currentOwner.publicKeyDigest) &&

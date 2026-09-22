@@ -4,3 +4,4 @@ export * from './multisig-manager.js';
 export * from './enhanced-types.js';
 export * from './wasm-bridge.js';
 export * from './fund-tx.js';
+export * from './witness.js';

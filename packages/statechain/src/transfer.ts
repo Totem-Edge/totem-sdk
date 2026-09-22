@@ -2,20 +2,18 @@ import { sha3_256 } from '@totemsdk/core';
 import {
   bytesToHex,
   hexToBytes,
-  wotsVerifyDigest,
+  serializeTreeSignature,
+  deserializeTreeSignature,
   serializeTransaction,
   computeTransactionDigest,
   precomputeTransactionCoinID,
 } from '@totemsdk/core';
 import { serializeTxPoW } from '@totemsdk/txpow';
+import { buildMinimaWitnessBytes } from '@totemsdk/tx-builder';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
-import { addressToHex, buildOwnerReclaimTx, buildWitnessBytes, stateVarJson } from './chain.js';
+import { addressToHex, buildOwnerReclaimTx, stateVarJson } from './chain.js';
 import { verifySeSignatureEnvelope } from './verify.js';
 import type { StateChain, StatechainOwner, SEClient, TransferRecord } from './types.js';
-
-function defaultVerifyBlindSig(sig: string, commitment: Uint8Array, sePkdHex: string): boolean {
-  return wotsVerifyDigest(hexToBytes(sig), commitment, hexToBytes(sePkdHex));
-}
 
 /**
  * Transfer ownership of a statechain UTXO to a new owner.
@@ -23,33 +21,28 @@ function defaultVerifyBlindSig(sig: string, commitment: Uint8Array, sePkdHex: st
  * Public API: `transferOwnership(chain, newOwner, seClient)`
  *
  * Creates an on-chain state-update TX:
- *   input:  current MULTISIG coin with STATE(0) = oldOwnerPkd
- *   output: same locking address with STATE(0) = newOwnerPkd
+ *   input:  current MULTISIG coin with STATE(0) = oldOwnerRoot
+ *   output: same locking address with STATE(0) = newOwnerRoot
  *
- * Signing flow:
- *  - `chain.currentOwner.sign(txDigest)` — old owner signs TX body digest.
- *  - `seClient.blindSign(hex(txDigest))` — SE countersigns same digest.
- *  Both satisfy `MULTISIG(2 STATE(0) SE)` for the input coin.
+ * Signing flow (RFC-009, Minima-faithful):
+ *  - `chain.currentOwner.signTree(txDigest)` — old owner root-bound TreeKey sig.
+ *  - `seClient.blindSign(hex(txDigest))` — SE leased-leaf co-signature envelope.
+ *  Both satisfy `MULTISIG(2 STATE(0) SE)` for the input coin; the witness is a
+ *  list of Minima `TreeSignature` objects.
  *
  * Post-transfer:
- *  - New owner's reclaim TX is built via `newOwner.sign(reclaimDigest)`.
+ *  - New owner's reclaim TX is built via `newOwner.signTree(reclaimDigest)`.
  *    `chain.reclaimTx` always reflects CURRENT owner — never initial owner.
- *  - Old owner's `transferKeySeed` is moved to `TransferRecord.transferKey`
- *    then **zeroed in-place** on the original owner object so the secret does
- *    not persist in hot state after the ownership hop.
  *
- * @param chain           - Active statechain (must have `currentOwner.sign`).
- * @param newOwner        - Recipient identity + signing capability.
- * @param seClient        - SE client for countersigning the state-update TX.
- * @param _verifyBlindSig - Optional SE blind-sig verification override (test use).
- *   Defaults to `wotsVerifyDigest`. Production callers should omit this.
- * @param _chainProvider  - Optional: broadcast the state-update TX on-chain.
+ * @param chain          - Active statechain (must have `currentOwner.signTree`).
+ * @param newOwner       - Recipient identity + TreeKey signing capability.
+ * @param seClient       - SE client for countersigning the state-update TX.
+ * @param _chainProvider - Optional: broadcast the state-update TX on-chain.
  */
 export async function transferOwnership(
   chain:            StateChain,
   newOwner:         StatechainOwner,
   seClient:         SEClient,
-  _verifyBlindSig?: (sig: string, commitment: Uint8Array, sePkdHex: string) => boolean,
   _chainProvider?:  ChainStateProvider,
 ): Promise<StateChain> {
   if (chain.status !== 'active') {
@@ -96,26 +89,22 @@ export async function transferOwnership(
   const digest       = computeTransactionDigest(txBodyBytes);
   const signedDigest = bytesToHex(digest);
 
-  const oldOwnerSigBytes = await chain.currentOwner.sign(digest);
-  const ownerSignature   = bytesToHex(oldOwnerSigBytes);
+  const oldOwnerTreeSig = await chain.currentOwner.signTree(digest);
+  const ownerSignature  = bytesToHex(serializeTreeSignature(oldOwnerTreeSig));
 
-  const seResult = await seClient.blindSign(chain.chainId, signedDigest);
-  const seSignature = typeof seResult === 'string' ? undefined : seResult;
-  const blindedSignature = typeof seResult === 'string' ? seResult : seResult.signature;
+  const seSignature = await seClient.blindSign(chain.chainId, signedDigest);
 
-  // RFC-008: verify the leased-leaf envelope when the SE returns one; otherwise
-  // fall back to the legacy fixed-key check (test override or wotsVerifyDigest).
-  const seOk = seSignature
-    ? verifySeSignatureEnvelope(seSignature, digest, chain)
-    : (_verifyBlindSig ?? defaultVerifyBlindSig)(blindedSignature, digest, chain.sePublicKey);
-  if (!seOk) {
+  // RFC-008: verify the leased-leaf envelope against the SE root's proof.
+  if (!verifySeSignatureEnvelope(seSignature, digest, chain)) {
     throw new Error(
-      `transferOwnership: SE blind signature verification failed for '${from}' → '${to}'`,
+      `transferOwnership: SE signature verification failed for '${from}' → '${to}'`,
     );
   }
 
-  // ── Build TxPoW (MULTISIG(2) witness: old owner + SE) ───────────────────
-  const witnessBytes = buildWitnessBytes([oldOwnerSigBytes, hexToBytes(blindedSignature)]);
+  const seTreeSig = deserializeTreeSignature(hexToBytes(seSignature.signature));
+
+  // ── Build TxPoW (Minima witness: old owner + SE tree signatures) ────────
+  const witnessBytes = buildMinimaWitnessBytes([oldOwnerTreeSig, seTreeSig]);
   const prng = sha3_256(
     new TextEncoder().encode(`transfer:${chain.chainId}:${sequence}`),
   );
@@ -133,22 +122,6 @@ export async function transferOwnership(
       newCoinId, chain.tokenId, chain.amount, chain.lockingAddress, newOwner, chain.chainId,
     );
 
-  // ── Key zeroing (security-critical) ─────────────────────────────────────
-  // 1. Copy the old owner's WOTS seed into the TransferRecord before zeroing.
-  // 2. Zero the transferKeySeed in-place on the original owner object so any
-  //    caller retaining a reference to `chain.currentOwner` can no longer read
-  //    the live secret. The hex string is replaced with a zero-filled string of
-  //    the same length, and the underlying Buffer bytes are filled with 0x00.
-  const transferKey = chain.currentOwner.transferKeySeed ?? '';
-  if (chain.currentOwner.transferKeySeed) {
-    try {
-      const keyBytes = hexToBytes(chain.currentOwner.transferKeySeed);
-      keyBytes.fill(0);
-    } catch { /* ignore hex decode errors on already-zeroed values */ }
-    (chain.currentOwner as { transferKeySeed: string }).transferKeySeed =
-      '0'.repeat(chain.currentOwner.transferKeySeed.length);
-  }
-
   await seClient.revokeKey(chain.chainId, {
     previousOwnerPartyId: from,
     previousOwnerPkd: chain.currentOwner.publicKeyDigest,
@@ -162,9 +135,7 @@ export async function transferOwnership(
     to,
     fromPublicKeyDigest: chain.currentOwner.publicKeyDigest,
     toPublicKeyDigest:   newOwner.publicKeyDigest,
-    blindedSignature,
-    ...(seSignature ? { seSignature } : {}),
-    transferKey,
+    seSignature,
     ownerSignature,
     signedDigest,
     txBodyHex,

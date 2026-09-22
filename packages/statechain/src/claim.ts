@@ -4,11 +4,13 @@ import {
   hexToBytes,
   scriptToAddress,
   serializeTransaction,
+  deserializeTreeSignature,
   computeTransactionDigest,
   precomputeTransactionCoinID,
 } from '@totemsdk/core';
 import { serializeTxPoW } from '@totemsdk/txpow';
-import { addressToHex, buildWitnessBytes, kissHex, stateVarJson } from './chain.js';
+import { buildMinimaWitnessBytes } from '@totemsdk/tx-builder';
+import { addressToHex, kissHex, stateVarJson } from './chain.js';
 import type {
   StateChain,
   StatechainLeaseProvider,
@@ -21,9 +23,10 @@ import type {
  *
  * Public API: `claimOwnership(chain, leaseProvider) -> ClaimPayload`
  *
- * Both `chain.currentOwner.sign` and `leaseProvider.seClient.blindSign` sign
+ * Both `chain.currentOwner.signTree` and `leaseProvider.seClient.blindSign` sign
  * `computeTransactionDigest(tx)` — the actual TX body hash — satisfying the
- * `MULTISIG(2 STATE(0) SE)` spending path. No timelock required.
+ * `MULTISIG(2 STATE(0) SE)` spending path. The witness is a Minima-faithful list
+ * of root-bound `TreeSignature` objects (owner + SE). No timelock required.
  *
  * @param chain          - Active or claiming statechain.
  * @param leaseProvider  - Bundle: SE client for countersigning + optional broadcast.
@@ -70,11 +73,12 @@ export async function claimOwnership(
   const digest = computeTransactionDigest(txBytes);
 
   const seResult = await leaseProvider.seClient.blindSign(chain.chainId, bytesToHex(digest));
-  const seSig = typeof seResult === 'string' ? seResult : seResult.signature;
-  const ownerSig = await chain.currentOwner.sign(digest);
 
-  const seBytes      = hexToBytes(seSig.length >= 2 ? seSig : '00');
-  const witnessBytes = buildWitnessBytes([ownerSig, seBytes]);
+  // RFC-009: Minima-faithful tree witness — owner + SE signed as Minima
+  // `Signature` objects (root-bound), so a node verifies the cooperative branch.
+  const ownerTreeSig = await chain.currentOwner.signTree(digest);
+  const seTreeSig = deserializeTreeSignature(hexToBytes(seResult.signature));
+  const witnessBytes = buildMinimaWitnessBytes([ownerTreeSig, seTreeSig]);
   const prng         = sha3_256(new TextEncoder().encode(`claim:${chain.chainId}`));
   const txHex        = Buffer.from(serializeTxPoW(txBytes, witnessBytes, { prng })).toString('hex');
 

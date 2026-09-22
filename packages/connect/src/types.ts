@@ -619,12 +619,37 @@ export interface TotemOmniaSpliceOutResponse {
 
 // ─── Statechain ───────────────────────────────────────────────────────────────
 
+/** RFC-008 leased-leaf SE signature envelope (mirrors `@totemsdk/statechain`). */
+export interface StatechainSeSignature {
+  kind: 'child' | 'root';
+  member: string;
+  childIndex: number;
+  address: string;
+  publicKey: string;
+  /** Serialized one-time `TreeSignature` hex. */
+  signature: string;
+  message: string;
+  proofVersion: number;
+}
+
+export interface StatechainSeOwnershipProof {
+  rootAddress: string;
+  rootPublicKey: string;
+  childAddresses: string[];
+  childPublicKeys: string[];
+  rootProof: { address: string; publicKey: string; signature: string; message: string };
+  timestamp: string;
+}
+
 export interface StatechainTransferEntry {
   from: string;
   to: string;
+  /** TreeKey **root** public key hex (RFC-009). */
   fromPublicKeyDigest: string;
   toPublicKeyDigest: string;
-  blindedSignature: string;
+  /** RFC-008 SE signature envelope. */
+  seSignature: StatechainSeSignature;
+  /** Old owner's serialized Minima `TreeSignature` hex. */
   ownerSignature: string;
   signedDigest: string;
   txBodyHex: string;

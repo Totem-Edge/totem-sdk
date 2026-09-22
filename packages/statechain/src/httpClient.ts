@@ -27,10 +27,11 @@ export interface HttpSEClientOptions {
 /**
  * HTTP implementation of SEClient that talks to any compatible SE server.
  *
- * `ownerSign(message)` must sign `sha3_256(message)` with the current owner's
- * WOTS key, where `message` is the canonical request message (chain + operation
- * + nonce + body). It is called automatically inside `blindSign` and
- * `revokeKey` after the SE issues a challenge nonce.
+ * `ownerSign(message)` must produce the current owner's serialized Minima
+ * `TreeSignature` over `sha3_256(message)`, where `message` is the canonical
+ * request message (chain + operation + nonce + body). It is called
+ * automatically inside `blindSign` and `revokeKey` after the SE issues a
+ * challenge nonce; the SE verifies it against the owner's root public key.
  */
 export class HttpSEClient implements SEClient {
   private readonly fetch: typeof globalThis.fetch;
@@ -88,18 +89,17 @@ export class HttpSEClient implements SEClient {
     return nonce;
   }
 
-  async blindSign(chainId: string, blindedCommitmentHex: string): Promise<SESignature | string> {
+  async blindSign(chainId: string, blindedCommitmentHex: string): Promise<SESignature> {
     const nonce = await this.getChallenge(chainId);
     const message = seRequestMessage(chainId, 'blind-sign', nonce, { blindedCommitment: blindedCommitmentHex });
     const sig = await this.ownerSign(message);
     const ownerSignature = Buffer.from(sig).toString('hex');
-    const json = await this.post<{ blindSignature: string; seSignature?: SESignature }>(`/${chainId}/blind-sign`, {
+    const json = await this.post<{ blindSignature: string; seSignature: SESignature }>(`/${chainId}/blind-sign`, {
       blindedCommitment: blindedCommitmentHex,
       nonce,
       ownerSignature,
     });
-    // RFC-008: prefer the leased-leaf envelope; fall back to the bare hex string.
-    return json.seSignature ?? json.blindSignature;
+    return json.seSignature;
   }
 
   async revokeKey(

@@ -1,6 +1,6 @@
 # RFC-008: Federated Statechain — Leased WOTS Identity & Threshold SE Federation
 
-**Status:** Draft — Phase 1 landed (leased-WOTS identity + SE server wiring + client envelope verification + SE hardening AUD-026/027/029); remaining: on-chain witness wiring (RFC-009 Phase 3) + Go parity
+**Status:** Draft — Phase 1 landed (leased-WOTS identity + SE server wiring + client envelope verification + SE hardening AUD-026/027/029 + RFC-009 full owner key-model migration); remaining: Go parity
 **Created:** 2026-09-21
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]
@@ -423,18 +423,21 @@ never surfaces it.
 - `SDK_MANIFEST.json` — `@totemsdk/se-server` deps synced
   (`root-identity`, `storage`, `wots-lease`); `pnpm install` linked them.
 
-**Outstanding (Phase 1b — on-chain witness + Go parity).**
+**Outstanding (Phase 1b — Go parity).**
 
-- On-chain witness format: the claim depends on a leased **root**-leaf
+- On-chain witness format: **landed.** The claim depends on a leased-root
   `TreeSignature` verifying under `MULTISIG`/`SIGNEDBY` against the SE root.
-  **RFC-009** landed the required Minima-faithful TreeKey `SignatureProof`
-  verification in the KISSVM validator, and its §7 gate passes
-  (`packages/statechain/src/__tests__/onchain-witness.test.ts`: the cooperative
-  branch validates a real `TreeSignature` against the SE root). What remains is
-  wiring the statechain client's claim witness to emit the tree signature
-  (RFC-009 Phase 3).
-- Rewrite `seKey.test.ts` for the deprecated legacy functions; Go signing routes
-  return HTTP 501 explicitly.
+  **RFC-009** landed the KISSVM TreeKey `SignatureProof` verification (its §7
+  gate passes: `packages/statechain/src/__tests__/onchain-witness.test.ts`), the
+  canonical witness serializer (`@totemsdk/tx-builder` `buildMinimaWitnessBytes`),
+  and the **full owner key-model migration** — `StatechainOwner.signTree` is
+  required, `publicKeyDigest` is the TreeKey root, and lock/reclaim/claim/transfer
+  all emit the Minima witness and verify root-bound. The SE's owner auth
+  (`ownerAuth.ts`) is tree-aware.
+- Rewrite `seKey.test.ts` for the deprecated legacy functions — **landed** (the
+  legacy flat `wotsVerifyDigestAsync` is removed; owner auth is TreeKey).
+- **Remaining:** Go signing routes return HTTP 501 (Go SE stays fail-closed,
+  Open Question 7).
 
 **SE hardening landed (AUD-026/027/029).**
 
@@ -451,8 +454,7 @@ never surfaces it.
   (`computeTransactionDigest`) rather than the UTF-8 bytes of the hex text.
 - Regression tests added in both packages (se-server 36/36, statechain 121/121).
 
-Phase 1 is **landed** except for the on-chain witness wiring (RFC-009 Phase 3)
-and Go parity (Open Question 7).
+Phase 1 is **landed** except for Go parity (Open Question 7).
 
 ## 7. Phase 2 — Federation interfaces (membership, registry, bonding)
 

@@ -8,28 +8,16 @@
  *   - router: create / challenge / blind-sign / claim / reclaim-tx flows with a mocked DB
  */
 
-import { wotsVerifyDigestAsync, encryptReclaimTx, decryptReclaimTx } from '../seKey';
+import { encryptReclaimTx, decryptReclaimTx } from '../seKey';
 import { loadConfigFromEnv } from '../config';
-import { wotsSign, derivePKdigest } from '@totemsdk/core';
 
 const SEED = new Uint8Array(32).fill(0x5e);
 
 describe('seKey', () => {
   // AUD-003/AUD-025: the legacy getPublicKeyHex / seSign (fixed index-0 key,
   // advertised digest != signer) were removed; the SE signs via SeIdentity.
-  it('wotsVerifyDigestAsync accepts a WOTS signature over the message', async () => {
-    const message = new Uint8Array(32).fill(0x42);
-    const sig = wotsSign(SEED, 0, message);
-    expect(await wotsVerifyDigestAsync(sig, message, derivePKdigest(SEED, 0))).toBe(true);
-  });
-
-  it('wotsVerifyDigestAsync rejects a tampered message', async () => {
-    const message = new Uint8Array(32).fill(0x42);
-    const sig = wotsSign(SEED, 0, message);
-    const tampered = new Uint8Array(32).fill(0x43);
-    expect(await wotsVerifyDigestAsync(sig, tampered, derivePKdigest(SEED, 0))).toBe(false);
-  });
-
+  // RFC-009: the generic flat-WOTS wotsVerifyDigestAsync was removed too —
+  // owner authentication is now root-bound TreeKey verification (ownerAuth).
   it('encryptReclaimTx / decryptReclaimTx roundtrip', () => {
     const txHex = '0x' + 'ab'.repeat(200);
     const enc = encryptReclaimTx(SEED, txHex);

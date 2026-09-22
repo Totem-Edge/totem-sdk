@@ -14,8 +14,12 @@
  * where `sorted body` is `key=value` pairs sorted by key, joined with `&`.
  */
 
-import { sha3_256 } from '@totemsdk/core';
-import { wotsVerifyDigestAsync } from './seKey';
+import {
+  sha3_256,
+  hexToBytes,
+  deserializeTreeSignature,
+  verifyTreeSignatureDetailed,
+} from '@totemsdk/core';
 
 export type SeOperation = 'blind-sign' | 'revoke-key' | 'claim' | 'reclaim-tx';
 
@@ -33,7 +37,11 @@ function fromHex(s: string): Uint8Array {
   return new Uint8Array(Buffer.from(s.replace(/^0x/i, ''), 'hex'));
 }
 
-/** Verify the owner's signature over the bound request message. */
+/**
+ * Verify the owner's root-bound Minima `TreeSignature` over the bound request
+ * message (RFC-009). `ownerPkd` is the owner's TreeKey **root** public key;
+ * `ownerSig` is the serialized `TreeSignature` hex.
+ */
 export async function verifyOwnerRequest(
   ownerPkd: string,
   chainId: string,
@@ -45,7 +53,8 @@ export async function verifyOwnerRequest(
   try {
     const message = seRequestMessage(chainId, operation, nonce, body);
     const msg = sha3_256(new TextEncoder().encode(message));
-    return await wotsVerifyDigestAsync(fromHex(ownerSig), msg, fromHex(ownerPkd));
+    const sig = deserializeTreeSignature(fromHex(ownerSig));
+    return verifyTreeSignatureDetailed(fromHex(ownerPkd), msg, sig).valid === true;
   } catch {
     return false;
   }

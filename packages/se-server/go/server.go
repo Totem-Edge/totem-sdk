@@ -76,9 +76,22 @@ func (s *SeServer) Close() error {
 }
 
 func (s *SeServer) registerRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("/statechain/se-public-key", s.handleSEPublicKey)
-	mux.HandleFunc("/statechain/create", s.handleCreate)
+	// This Go SE is NOT an interoperable WOTS SE (AUD-045). Identity and signing
+	// routes fail closed with HTTP 501; only non-signing read routes remain.
+	mux.HandleFunc("/statechain/se-public-key", notImplemented)
+	mux.HandleFunc("/statechain/create", notImplemented)
 	mux.HandleFunc("/statechain/", s.handleChainRoutes)
+}
+
+// notImplemented is the fail-closed response for every identity/signing route
+// (AUD-045). The TypeScript `@totemsdk/se-server` is the supported SE.
+func notImplemented(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusNotImplemented)
+	json.NewEncoder(w).Encode(map[string]string{
+		"error": "se-server(go): not an interoperable WOTS SE (AUD-045); use the TypeScript SE",
+		"code":  "not_implemented",
+	})
 }
 
 func (s *SeServer) betaHeaders(w http.ResponseWriter) {
@@ -188,13 +201,13 @@ func (s *SeServer) handleChainRoutes(w http.ResponseWriter, r *http.Request) {
 	case subPath == "challenge" && r.Method == http.MethodGet:
 		s.handleChallenge(w, r, chainID)
 	case subPath == "blind-sign" && r.Method == http.MethodPost:
-		s.handleBlindSign(w, r, chainID)
+		notImplemented(w, r)
 	case subPath == "revoke-key" && r.Method == http.MethodPost:
-		s.handleRevokeKey(w, r, chainID)
+		notImplemented(w, r)
 	case subPath == "claim" && r.Method == http.MethodPost:
-		s.handleClaim(w, r, chainID)
+		notImplemented(w, r)
 	case subPath == "reclaim-tx" && r.Method == http.MethodGet:
-		s.handleReclaimTx(w, r, chainID)
+		notImplemented(w, r)
 	case subPath == "" && r.Method == http.MethodGet:
 		s.handleGetChain(w, r, chainID)
 	default:

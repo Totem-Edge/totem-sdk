@@ -26,7 +26,6 @@ export {
 export { createSeRouter } from './router';
 export { createTimelockMonitor } from './timelockMonitor';
 export {
-  wotsVerifyDigestAsync,
   encryptReclaimTx,
   decryptReclaimTx,
 } from './seKey';

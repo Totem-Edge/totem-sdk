@@ -4,24 +4,24 @@
  * and the no-silent-downgrade guard — mirroring the Phase 3 durable-store
  * suite patterns.
  *
- * Owner/SE identity in the fixtures is SHA3-based (not real WOTS), so the
- * default `verifyStateChain` verifiers are overridden with the same mock
- * verifiers as `statechain.test.ts`.
+ * Owner/SE identity in the fixtures is real TreeKey (RFC-009): `verifyStateChain`
+ * runs its real root-bound verification, so no mock verifier overrides exist.
  */
 
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { sha3_256, bytesToHex, hex } from '@totemsdk/core';
+import { sha3_256, hex } from '@totemsdk/core';
 import { MemoryStore } from '@totemsdk/storage';
 import { FileStore } from '@totemsdk/storage/fs';
 import type { StorageAdapter } from '@totemsdk/core';
 import { StorageError } from '@totemsdk/storage/errors';
 
 import { createDurableStateChainStore, type DurableStateChainStoreOptions, type DurableStateChainStore } from '../durable-store.js';
-import { createStateChain, transferOwnership, claimOwnership, reclaimAbandoned, RECLAIM_TIMELOCK } from '../index.js';
-import type { StatechainOwner, SEClient, StateChain, VerifyOptions } from '../index.js';
+import { createStateChain, transferOwnership, claimOwnership, reclaimAbandoned } from '../index.js';
+import type { StatechainOwner, StateChain } from '../index.js';
+import { attachSe, makeOwner, testSE } from './tree-fixtures';
 
 const VOLATILE = { requireAckMode: 'volatile' as const };
 
@@ -31,72 +31,27 @@ function fakePkd(label: string): string {
   return hex(sha3_256(new TextEncoder().encode(label)));
 }
 
-function makeOwner(partyId: string, opts?: { address?: string; tokenId?: string; amount?: bigint }): StatechainOwner {
-  return {
-    partyId,
-    publicKeyDigest: fakePkd(`owner:${partyId}`),
-    transferKeySeed: hex(sha3_256(new TextEncoder().encode(`seed:${partyId}`))),
-    async sign(message: Uint8Array): Promise<Uint8Array> {
-      return sha3_256(new Uint8Array([...sha3_256(message), ...message.slice(0, 4)]));
-    },
-    address: opts?.address,
-    tokenId: opts?.tokenId,
-    amount: opts?.amount,
-  };
-}
-
-const SE_SEED = sha3_256(new TextEncoder().encode('se-seed'));
-
-function blindSignMock(message: string): string {
-  const combined = new TextEncoder().encode(`blind:${message}`);
-  return hex(sha3_256(new Uint8Array([...SE_SEED, ...sha3_256(combined)])));
-}
-
-function makeSEClient(): SEClient {
-  return {
-    async registerChain() {},
-    async blindSign(_chainId: string, commitmentHex: string): Promise<string> {
-      return blindSignMock(commitmentHex);
-    },
-    async revokeKey() {},
-    async isRevoked() { return false; },
-  };
-}
-
-function mockVerifyBlindSig(sig: string, commitment: Uint8Array, _: string): boolean {
-  return sig === blindSignMock(bytesToHex(commitment));
-}
-
-function mockVerifyOwnerSig(ownerSig: string, commitment: Uint8Array, _: string): boolean {
-  const expected = sha3_256(new Uint8Array([...sha3_256(commitment), ...commitment.slice(0, 4)]));
-  return ownerSig === bytesToHex(expected);
-}
-
-function mockVerifyTransferKey(transferKey: string, _: string): boolean {
-  return transferKey.length > 0;
-}
-
-const MOCK_VERIFY_OPTS: VerifyOptions = {
-  verifyBlindSig: mockVerifyBlindSig,
-  verifyOwnerSig: mockVerifyOwnerSig,
-  verifyTransferKey: mockVerifyTransferKey,
-};
+const SE = testSE();
 
 const COIN_ID = '0xaabbcc0011223344556677889900aabb00112233445566778899001122334455';
 const TOKEN_ID = '0x00';
 const AMOUNT = 1_000_000n;
-const SE_PKD = fakePkd('statechain-entity');
-const ALICE = () => makeOwner('alice', { address: fakePkd('addr:alice').padStart(64, '0'), tokenId: TOKEN_ID, amount: AMOUNT });
+const SE_ROOT = SE.rootPublicKey;
+const ALICE = (): StatechainOwner =>
+  makeOwner('alice', { address: fakePkd('addr:alice').padStart(64, '0'), tokenId: TOKEN_ID, amount: AMOUNT });
 
 async function makeChain(partyId = 'alice'): Promise<StateChain> {
-  return createStateChain(COIN_ID, makeOwner(partyId, { address: fakePkd('addr').padStart(64, '0'), tokenId: TOKEN_ID, amount: AMOUNT }), SE_PKD, {
-    seClient: makeSEClient(),
-    verifyBlindSig: mockVerifyBlindSig,
-  });
+  const chain = await createStateChain(
+    COIN_ID,
+    makeOwner(partyId, { address: fakePkd('addr').padStart(64, '0'), tokenId: TOKEN_ID, amount: AMOUNT }),
+    SE_ROOT,
+    { seClient: SE.client() },
+  );
+  return attachSe(chain, SE);
 }
 
 function durableOptions(extra?: Partial<DurableStateChainStoreOptions>): DurableStateChainStoreOptions {
-  return { ...VOLATILE, verifyOptions: MOCK_VERIFY_OPTS, ...extra };
+  return { ...VOLATILE, ...extra };
 }
 
 function durable(adapter: StorageAdapter, extra?: Partial<DurableStateChainStoreOptions>): DurableStateChainStore {
@@ -132,7 +87,7 @@ describe('createDurableStateChainStore — construction guards', () => {
 
   it('rejects a low-durability adapter when durable ack is required (no silent downgrade)', () => {
     const store = new MemoryStore();
-    expect(() => createDurableStateChainStore(store, { verifyOptions: MOCK_VERIFY_OPTS })).toThrow(/acknowledges "volatile"/);
+    expect(() => createDurableStateChainStore(store, {})).toThrow(/acknowledges "volatile"/);
   });
 });
 
@@ -209,9 +164,9 @@ describe('createDurableStateChainStore — persistence', () => {
 
 describe('createDurableStateChainStore — recovery-without-SE report', () => {
   it('a persisted fresh chain is recoverable without SE cooperation', async () => {
-    const se = makeSEClient();
+    const se = SE.client();
     const store = durable(new MemoryStore());
-    const chain = await createStateChain(COIN_ID, ALICE(), SE_PKD, { seClient: se, verifyBlindSig: mockVerifyBlindSig });
+    const chain = attachSe(await createStateChain(COIN_ID, ALICE(), SE_ROOT, { seClient: se }), SE);
     await store.save(chain);
 
     // SE refuses to co-operate — cooperative claim fails…
@@ -288,7 +243,7 @@ describe('createDurableStateChainStore — corruption is surfaced, never absence
     const store = durable(new MemoryStore());
     const chain = await makeChain();
     // Give the chain a transfer hop so currentOwner is bound to history.
-    const transferred = await transferOwnership(chain, makeOwner('bob'), makeSEClient(), mockVerifyBlindSig);
+    const transferred = await transferOwnership(chain, makeOwner('bob'), SE.client());
     await store.save(transferred);
 
     const tampered: StateChain = {

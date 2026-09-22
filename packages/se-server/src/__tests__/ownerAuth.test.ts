@@ -5,14 +5,14 @@
  * signs a canonical message bound to chain + operation + nonce + body.
  */
 
-import { wotsSign, derivePKdigest, bytesToHex, sha3_256 } from '@totemsdk/core';
+import { TreeKey, bytesToHex, sha3_256, serializeTreeSignature } from '@totemsdk/core';
 import { seRequestMessage, verifyOwnerRequest } from '../ownerAuth';
 
-const SEED = new Uint8Array(32).fill(0x5a);
-const PKD_HEX = bytesToHex(derivePKdigest(SEED, 0));
+const owner = new TreeKey(new Uint8Array(32).fill(0x5a), 4, 2);
+const PKD_HEX = bytesToHex(owner.getPublicKey());
 
 function sign(message: string): string {
-  return bytesToHex(wotsSign(SEED, 0, sha3_256(new TextEncoder().encode(message))));
+  return bytesToHex(serializeTreeSignature(owner.sign(sha3_256(new TextEncoder().encode(message)))));
 }
 
 jest.setTimeout(60_000);
