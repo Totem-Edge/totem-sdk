@@ -200,6 +200,13 @@ function runBuildGate(labelPrefix) {
 
 function ensurePrerequisiteBuilds(labelPrefix) {
   if (prerequisiteBuildsDone) return;
+  // Callers that have already built prerequisites (and applied any native
+  // post-build steps, e.g. `pnpm rebuild better-sqlite3`) can set this to skip
+  // an in-gate rebuild that would otherwise discard those native artifacts.
+  if (process.env.SKIP_PREREQUISITE_BUILD === '1') {
+    prerequisiteBuildsDone = true;
+    return;
+  }
   runBuildGate(labelPrefix);
   prerequisiteBuildsDone = true;
 }

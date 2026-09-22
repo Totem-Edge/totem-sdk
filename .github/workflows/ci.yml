@@ -60,9 +60,13 @@ jobs:
       - name: Build core-wasm (prerequisite)
         working-directory: packages/core-wasm
         run: npm run build
+      - name: Build workspace (dependency order)
+        run: node scripts/verify-workspace.mjs --typecheck
       - name: Rebuild native sqlite bindings (install uses --ignore-scripts)
         run: pnpm rebuild better-sqlite3
       - name: Run unit tests (workspace)
+        env:
+          SKIP_PREREQUISITE_BUILD: '1'
         run: node scripts/verify-workspace.mjs --test
 
   omnia-parity:
