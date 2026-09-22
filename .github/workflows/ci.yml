@@ -63,7 +63,7 @@ jobs:
       - name: Build workspace (dependency order)
         run: node scripts/verify-workspace.mjs --typecheck
       - name: Rebuild native sqlite bindings (install uses --ignore-scripts)
-        run: pnpm rebuild better-sqlite3
+        run: pnpm -r rebuild better-sqlite3
       - name: Run unit tests (workspace)
         env:
           SKIP_PREREQUISITE_BUILD: '1'
@@ -128,10 +128,10 @@ jobs:
         working-directory: packages/storage
         run: npm run build
       - name: Rebuild native sqlite bindings (install uses --ignore-scripts)
-        run: pnpm rebuild better-sqlite3
+        run: pnpm -r rebuild better-sqlite3
       - name: Fail if better-sqlite3 cannot run
         working-directory: packages/storage
-        run: node -e "require('better-sqlite3'); console.log('better-sqlite3 OK')"
+        run: node -e "new (require('better-sqlite3'))(':memory:').close(); console.log('better-sqlite3 OK')"
       - name: Run sqlite + fs conformance (durable gates)
         working-directory: packages/storage
         run: npx jest --testPathPatterns="sqlite-store.conformance|file-store.conformance"
