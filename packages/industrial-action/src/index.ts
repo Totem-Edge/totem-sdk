@@ -30,6 +30,9 @@ export {
   ActionConditionError,
   ActionGovernanceError,
   ActionCommitmentError,
+  ActionInterlockError,
+  ActionScheduleError,
+  ActionApprovalError,
 } from './errors.js'
 
 export {
@@ -168,3 +171,24 @@ export {
   createVersionedActionRegistry,
 } from './versioning.js'
 export type { VersionedActionRegistry } from './versioning.js'
+
+export { isWithinWindows, createDurableRateLimiter } from './scheduling.js'
+export type {
+  TimeWindow,
+  RateLimit,
+  ActionSchedule,
+  WindowCheck,
+  RateLimitResult,
+  RateLimiter,
+  DurableRateLimiterOptions,
+} from './scheduling.js'
+
+export { createDurableApprovalRegistry } from './approvals.js'
+export type {
+  ApprovalStatus,
+  ApprovalRequest,
+  ApprovalValidation,
+  ApprovalRequestParams,
+  ApprovalRegistry,
+  DurableApprovalRegistryOptions,
+} from './approvals.js'

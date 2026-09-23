@@ -43,6 +43,8 @@ export interface EdgeActionInput {
   decisionId?: string;
   /** Industrial proposal id, for durable operation records (RFC-010 §6.6). */
   proposalId?: string;
+  /** Human approval id authorizing a guarded industrial action (RFC-011 §4.9). */
+  approvalId?: string;
   /**
    * Absolute deadline (epoch ms) after which the action must not be prepared
    * (RFC-010 §6.8 temporal deadline). Evaluated against the adapter's clock.

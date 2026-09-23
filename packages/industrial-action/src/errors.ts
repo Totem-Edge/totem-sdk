@@ -46,6 +46,20 @@ export class ActionInterlockError extends IndustrialActionError {
   }
 }
 
+export class ActionScheduleError extends IndustrialActionError {
+  constructor(message: string) {
+    super('ACTION_SCHEDULE_ERROR', message)
+    this.name = 'ActionScheduleError'
+  }
+}
+
+export class ActionApprovalError extends IndustrialActionError {
+  constructor(message: string) {
+    super('ACTION_APPROVAL_ERROR', message)
+    this.name = 'ActionApprovalError'
+  }
+}
+
 export class ActionGovernanceError extends IndustrialActionError {
   constructor(message: string) {
     super('ACTION_GOVERNANCE_ERROR', message)

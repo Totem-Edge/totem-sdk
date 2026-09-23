@@ -27,15 +27,18 @@ import type {
 import type { StepEffects } from '@totemsdk/agent-policy';
 
 import type { ActionError, ActionSchema, Condition } from './types.js';
-import { ActionConditionError, ActionDefinitionError, ActionValidationError, ActionInterlockError } from './errors.js';
+import { ActionConditionError, ActionDefinitionError, ActionValidationError, ActionInterlockError, ActionScheduleError, ActionApprovalError } from './errors.js';
 import { assertValidParameters, assertValidContext } from './definition.js';
 import { evaluateConditions } from './condition.js';
 import { computeCommitmentHash, computeOperationId } from './ids.js';
 import { createIndustrialReceipt } from './industrial-receipt.js';
 import type { DeviceOperationRecord, DeviceOperationStore } from './operation-store.js';
 import type { InterlockRegistry } from './interlocks.js';
+import { resourceIdKey } from './resources.js';
 import type { ResourceId, ResourceProtocol } from './resources.js';
 import type { DeviceErrorTaxonomy } from './error-taxonomy.js';
+import { isWithinWindows, type ActionSchedule, type RateLimiter } from './scheduling.js';
+import type { ApprovalRegistry } from './approvals.js';
 import { defaultUnitRegistry, type UnitRegistry } from './units.js';
 import { computeSchemaHash, definitionVersion } from './versioning.js';
 import type { ActionEventSink } from './events.js';
@@ -172,6 +175,14 @@ export interface ToEdgeActionOptions {
   expectedSchemaHash?: string;
   /** Lifecycle event stream (RFC-011 §4.6). */
   events?: ActionEventSink;
+  /** Maintenance windows + rate limit (RFC-011 §4.8). */
+  schedule?: ActionSchedule;
+  /** Durable rate limiter (required when `schedule.rateLimit` is set). */
+  rateLimiter?: RateLimiter;
+  /** Approval registry (RFC-011 §4.9). */
+  approvals?: ApprovalRegistry;
+  /** Require an approved request bound to this action's commitment. */
+  requireApproval?: boolean;
 }
 
 /** Effective failure mode: explicit, else `fail-silent` for reads. */
@@ -242,9 +253,10 @@ export function toEdgeActionDefinition<TResult = unknown>(
       }
       await events?.emit({ type: 'guardrails_passed', at: now(), detail: { kind: def.kind }, ...(input.proposalId !== undefined ? { proposalId: input.proposalId } : {}) });
 
+      const resourceId = options.resolveResourceId?.(params, context);
+
       // Interlocks (RFC-011 §4.3): fail closed before authorization/actuation.
       if (options.interlocks) {
-        const resourceId = options.resolveResourceId?.(params, context);
         const failures = await options.interlocks.evaluate({
           parameters: params,
           context,
@@ -260,13 +272,40 @@ export function toEdgeActionDefinition<TResult = unknown>(
       }
       await events?.emit({ type: 'interlocks_passed', at: now(), detail: { kind: def.kind }, ...(input.proposalId !== undefined ? { proposalId: input.proposalId } : {}) });
 
-      const base = await def.prepare(params, context);
+      // Scheduling (RFC-011 §4.8): maintenance windows + rate limit.
+      if (options.schedule?.windows && !isWithinWindows(options.schedule.windows, now()).allowed) {
+        throw new ActionScheduleError('outside a permitted maintenance window');
+      }
+      if (options.schedule?.rateLimit) {
+        if (!options.rateLimiter) {
+          throw new ActionScheduleError('schedule.rateLimit requires a rateLimiter');
+        }
+        const key = resourceId !== undefined ? resourceIdKey(resourceId) : def.kind;
+        const rate = await options.rateLimiter.consume(key, options.schedule.rateLimit);
+        if (!rate.allowed) {
+          throw new ActionScheduleError(`rate limit exceeded; resets at ${rate.resetAt}`);
+        }
+      }
+
       const commitmentHash = computeCommitmentHash({
         kind: def.kind,
         parameters: params,
         context,
         ...(input.mandateProofId !== undefined ? { mandateProofId: input.mandateProofId } : {}),
       });
+
+      // Approvals (RFC-011 §4.9): an approved request bound to this commitment.
+      if (options.requireApproval) {
+        if (input.approvalId === undefined) {
+          throw new ActionApprovalError('an approval is required for this action');
+        }
+        const validation = await options.approvals?.validate(input.approvalId, commitmentHash);
+        if (!validation?.valid) {
+          throw new ActionApprovalError(validation?.reason ?? 'approval is not valid');
+        }
+      }
+
+      const base = await def.prepare(params, context);
       const operationId = computeOperationId(commitmentHash, base.resourceId);
 
       return {

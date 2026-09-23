@@ -1,6 +1,6 @@
 # RFC-011: Industrial Action Domain Model & Extensibility — Units, Resources, Interlocks, Composition, and Vertical Profiles
 
-**Status:** Draft — Phase A (units & resources), Phase B (interlocks/safe-state + resource locks), Phase C (device error taxonomy), Phase D (recipes/sagas), and Phase E (definition/schema versioning + lifecycle events) landed. Phases F–H outstanding.
+**Status:** Draft — Phases A–F landed (units/resources, interlocks/safe-state + locks, device error taxonomy, recipes/sagas, versioning + events, scheduling + approvals). Phases G (standards adapters) and H (vertical profiles) outstanding.
 **Created:** 2026-09-23
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]
