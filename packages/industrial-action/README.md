@@ -74,34 +74,33 @@ if (passed) {
 ## API
 
 ### Core types
-- `ActionProposal` — proposed action with commitment hash, expiry, optional authority decision
-- `ActionExecution` — execution record with status, result, error, receipt
-- `ActionReceipt` — verifiable proof of action outcome
-- `ActionDefinition` — action kind + schema + handler (legacy registry entry)
-- `IndustrialActionDefinition` — edge-facing definition compiled via `toEdgeActionDefinition` (RFC-010)
+- `ActionProposal` — proposed action with commitment hash (bound to the mandate proof), expiry, optional authority decision
+- `IndustrialActionDefinition` — edge-facing definition compiled via `toEdgeActionDefinition`
+- `PreparedDeviceOp` — commitment-bound device operation (commitment, operationId, resource)
+- `ExecutionPolicy` — failure mode, timeout, retry, rollback, in-flight behaviour
+- `FailureMode` / `ActionOutcome` — declared failure semantics and terminal outcomes
+- `DeviceOperationRecord` — durable at-most-once operation record
 - `ActionSchema` — parameter and context field schemas
 - `Condition` — guardrail with field, operator, value, custom evaluator
 
 ### Key functions
 | Function | Purpose |
 |----------|---------|
-| `createProposal` | Create action proposal with computed ID and commitment hash |
-| `verifyCommitment` | Check proposal integrity against tampering |
-| `createActionDefinition` | Define an action kind with schema |
-| `validateParameters` / `validateContext` | Validate inputs against schema |
+| `createProposal` / `verifyCommitment` | Create and verify a proposal and its commitment |
+| `validateParameters` / `validateContext` | Validate inputs against a schema |
 | `evaluateConditions` | Evaluate guardrails before execution |
-| `executeAction` | Run executor, map result to confirmed/failed/unknown |
-| `createReceipt` / `verifyReceiptIntegrity` | Create and verify action receipts |
-| `createGovernanceBridge` | Wrap reserve/commit/abort for governance integration |
+| `toEdgeActionDefinition` | Compile an industrial definition into an edge action |
+| `runWithPolicy` | Run actuation under the execution policy + failure semantics |
+| `createDurableDeviceOperationStore` | Durable at-most-once operation store |
+| `createIndustrialReceipt` / `verifyIndustrialReceipt` | Emit and verify authority-bound `EdgeReceipt`s |
+| `computeCommitmentHash` / `computeOperationId` / `computeAuthorityBindingHash` | Deterministic, authority-bound identifiers |
 
 ### Errors
 - `IndustrialActionError` (base)
 - `ActionValidationError` — parameter/context validation failures
 - `ActionCommitmentError` — commitment hash mismatch
 - `ActionConditionError` — guardrail violations
-- `ActionExecutionError` — executor failures
-- `ActionGovernanceError` — governance bridge failures
-- `ActionDefinitionError` — registry/definition issues
+- `ActionDefinitionError` — definition/registration issues
 
 ## Governed execution (RFC-010)
 
