@@ -27,12 +27,14 @@ import type {
 import type { StepEffects } from '@totemsdk/agent-policy';
 
 import type { ActionError, ActionSchema, Condition } from './types.js';
-import { ActionConditionError, ActionDefinitionError, ActionValidationError } from './errors.js';
+import { ActionConditionError, ActionDefinitionError, ActionValidationError, ActionInterlockError } from './errors.js';
 import { assertValidParameters, assertValidContext } from './definition.js';
 import { evaluateConditions } from './condition.js';
 import { computeCommitmentHash, computeOperationId } from './ids.js';
 import { createIndustrialReceipt } from './industrial-receipt.js';
 import type { DeviceOperationRecord, DeviceOperationStore } from './operation-store.js';
+import type { InterlockRegistry } from './interlocks.js';
+import type { ResourceId } from './resources.js';
 import { defaultUnitRegistry, type UnitRegistry } from './units.js';
 
 /**
@@ -148,6 +150,10 @@ export interface ToEdgeActionOptions {
   operationStore?: DeviceOperationStore;
   /** Unit registry for quantity validation (RFC-011 §4.1). Defaults to the built-in units. */
   units?: UnitRegistry;
+  /** Interlocks evaluated before authorization (RFC-011 §4.3). */
+  interlocks?: InterlockRegistry;
+  /** Resolve the target resource so resource-scoped interlocks apply. */
+  resolveResourceId?: (params: Record<string, unknown>, context: Record<string, unknown>) => ResourceId | undefined;
 }
 
 /** Effective failure mode: explicit, else `fail-silent` for reads. */
@@ -198,6 +204,23 @@ export function toEdgeActionDefinition<TResult = unknown>(
       if (!guard.passed) {
         const reason = guard.failed.map((f) => f.reason).join('; ');
         throw new ActionConditionError(`guardrails failed: ${reason}`);
+      }
+
+      // Interlocks (RFC-011 §4.3): fail closed before authorization/actuation.
+      if (options.interlocks) {
+        const resourceId = options.resolveResourceId?.(params, context);
+        const failures = await options.interlocks.evaluate({
+          parameters: params,
+          context,
+          now: now(),
+          ...(resourceId !== undefined ? { resourceId } : {}),
+        });
+        if (failures.length > 0) {
+          throw new ActionInterlockError(
+            `interlocks failed: ${failures.map((f) => `${f.interlockId}: ${f.reason}`).join('; ')}`,
+            failures.map((f) => ({ interlockId: f.interlockId, reason: f.reason })),
+          );
+        }
       }
 
       const base = await def.prepare(params, context);

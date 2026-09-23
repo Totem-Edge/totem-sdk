@@ -29,11 +29,25 @@ export interface ResourceAddress {
   unit?: Unit;
 }
 
+/** Fail-safe state to command when an interlock trips or a fail-safe action fails. */
+export interface SafeState {
+  resourceId: ResourceId;
+  /** Adapter-specific safe-state command (e.g. a prepared device command). */
+  command: unknown;
+}
+
 export interface Resource {
   id: ResourceId;
   kind: ResourceKind;
   addresses: ResourceAddress[];
+  /** Declared safe state (required for `fail-safe`/`fail-closed` resources). */
+  safeState?: SafeState;
   metadata?: Record<string, unknown>;
+}
+
+/** Resolve a resource's declared safe state, if any. */
+export function safeStateFor(resource: Resource | undefined): SafeState | undefined {
+  return resource?.safeState;
 }
 
 /** Stable string key for a `ResourceId` (used for operation ids and logs). */

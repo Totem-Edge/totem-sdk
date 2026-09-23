@@ -102,6 +102,7 @@ export {
   createResourceRegistry,
   resourceIdKey,
   toWireQuantity,
+  safeStateFor,
 } from './resources.js'
 export type {
   ResourceId,
@@ -110,4 +111,23 @@ export type {
   ResourceAddress,
   Resource,
   ResourceRegistry,
+  SafeState,
 } from './resources.js'
+
+export { createInterlockRegistry } from './interlocks.js'
+export type {
+  Interlock,
+  InterlockKind,
+  InterlockContext,
+  InterlockResult,
+  InterlockFailure,
+  InterlockRegistry,
+} from './interlocks.js'
+
+export { createDurableResourceLockManager } from './locks.js'
+export type {
+  ResourceLock,
+  ResourceLockManager,
+  AcquireResult,
+  DurableResourceLockManagerOptions,
+} from './locks.js'

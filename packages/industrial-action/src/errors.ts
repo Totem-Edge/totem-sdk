@@ -37,6 +37,15 @@ export class ActionConditionError extends IndustrialActionError {
   }
 }
 
+export class ActionInterlockError extends IndustrialActionError {
+  public readonly failures: Array<{ interlockId: string; reason: string }>
+  constructor(message: string, failures: Array<{ interlockId: string; reason: string }> = []) {
+    super('ACTION_INTERLOCK_ERROR', message)
+    this.name = 'ActionInterlockError'
+    this.failures = failures
+  }
+}
+
 export class ActionGovernanceError extends IndustrialActionError {
   constructor(message: string) {
     super('ACTION_GOVERNANCE_ERROR', message)
