@@ -29,6 +29,7 @@ export {
   computeCommitmentHash,
   computeReceiptId,
   computeOperationId,
+  computeAuthorityBindingHash,
 } from './ids.js'
 
 export {
@@ -83,7 +84,20 @@ export type {
   PreparedDeviceOp,
   ExecutionPolicy,
   IndustrialActionDefinition,
+  FailureMode,
+  ActionOutcome,
+  IndustrialExecutionResult,
+  ToEdgeActionOptions,
 } from './edge-adapter.js'
+
+export { createDurableDeviceOperationStore } from './operation-store.js'
+export type {
+  DeviceOperationStore,
+  DeviceOperationRecord,
+  OperationStatus,
+  OperationClaim,
+  DurableDeviceOperationStoreOptions,
+} from './operation-store.js'
 
 export {
   createGovernanceBridge,

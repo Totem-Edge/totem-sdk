@@ -24,11 +24,38 @@ export function computeCommitmentHash(proposal: {
   kind: string
   parameters: Record<string, unknown>
   context: Record<string, unknown>
+  /**
+   * RFC-010 §6.4: the mandate proof that authorizes this action is bound into
+   * the commitment preimage, so the device operation cannot be re-pointed at a
+   * different mandate after the fact.
+   */
+  mandateProofId?: string
 }): string {
-  return hashCanonical('TOTEM_INDUSTRIAL_ACTION_COMMITMENT_V1', {
+  return hashCanonical('TOTEM_INDUSTRIAL_ACTION_COMMITMENT_V2', {
     kind: proposal.kind,
     parameters: proposal.parameters,
     context: proposal.context,
+    mandateProofId: proposal.mandateProofId ?? null,
+  })
+}
+
+/**
+ * RFC-010 §6.4 — authority binding digest.
+ *
+ * Ties a proposal commitment to the exact mandate proof and authorization
+ * decision that authorized it. The decision id is generally only known *after*
+ * authorization (the edge runtime prepares before it authorizes), so this is
+ * computed at the receipt/record layer rather than at `prepare` time.
+ */
+export function computeAuthorityBindingHash(
+  commitmentHash: string,
+  mandateProofId?: string,
+  decisionId?: string,
+): string {
+  return hashCanonical('TOTEM_INDUSTRIAL_ACTION_AUTHORITY_BINDING_V1', {
+    commitmentHash,
+    mandateProofId: mandateProofId ?? null,
+    decisionId: decisionId ?? null,
   })
 }
 

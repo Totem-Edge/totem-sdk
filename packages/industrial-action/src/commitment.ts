@@ -6,12 +6,18 @@ export function createCommitment(proposal: {
   kind: string
   parameters: Record<string, unknown>
   context: Record<string, unknown>
+  mandateProofId?: string
 }): string {
   return computeCommitmentHash(proposal)
 }
 
 export function verifyCommitmentBinding(proposal: ActionProposal): boolean {
-  const expected = createCommitment(proposal)
+  const expected = createCommitment({
+    kind: proposal.kind,
+    parameters: proposal.parameters,
+    context: proposal.context,
+    ...(proposal.mandateProofId !== undefined ? { mandateProofId: proposal.mandateProofId } : {}),
+  })
   return proposal.commitmentHash === expected
 }
 

@@ -8,6 +8,7 @@ export function createProposal(params: CreateProposalParams): ActionProposal {
     kind: params.kind,
     parameters: params.parameters,
     context: params.context,
+    ...(params.mandateProofId !== undefined ? { mandateProofId: params.mandateProofId } : {}),
   })
   const id = computeActionProposalId({
     kind: params.kind,
@@ -33,6 +34,7 @@ export function verifyCommitment(proposal: ActionProposal): boolean {
     kind: proposal.kind,
     parameters: proposal.parameters,
     context: proposal.context,
+    ...(proposal.mandateProofId !== undefined ? { mandateProofId: proposal.mandateProofId } : {}),
   })
   return proposal.commitmentHash === expected
 }

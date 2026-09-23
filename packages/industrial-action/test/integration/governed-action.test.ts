@@ -58,7 +58,7 @@ function makeDefinition(
     capability: 'industrial:action',
     effect: 'write',
     guardrails: [{ type: 'parameter_range', field: 'setpoint', operator: 'gte', value: 10 }],
-    ...(policy ? { policy } : {}),
+    policy: { failureMode: 'abort', ...(policy ?? {}) },
     async prepare(params) {
       return { resourceId: 'HVAC-03', command: { setpoint: params.setpoint } };
     },

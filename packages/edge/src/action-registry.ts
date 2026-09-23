@@ -33,6 +33,16 @@ export interface EdgeActionInput {
   subject: string;
   payload?: Record<string, unknown>;
   context?: Record<string, unknown>;
+  /**
+   * Authority mandate proof that authorizes this action (RFC-010 §6.4). Carried
+   * through to `prepare` so an industrial definition can bind it into its
+   * commitment; not itself an authorization decision.
+   */
+  mandateProofId?: string;
+  /** Authorization decision id, when known (typically attached post-authorization). */
+  decisionId?: string;
+  /** Industrial proposal id, for durable operation records (RFC-010 §6.6). */
+  proposalId?: string;
 }
 
 export interface EdgeActionDefinition {

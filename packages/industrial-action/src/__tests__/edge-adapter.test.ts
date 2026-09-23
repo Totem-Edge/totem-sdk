@@ -8,11 +8,14 @@
  */
 
 import { toEdgeActionDefinition, runWithPolicy } from '../edge-adapter.js';
-import type { IndustrialActionDefinition } from '../edge-adapter.js';
+import type { IndustrialActionDefinition, PreparedDeviceOp, IndustrialExecutionResult } from '../edge-adapter.js';
 import { executeAction } from '../executor.js';
-import { createProposal } from '../proposal.js';
-import { ActionValidationError, ActionConditionError } from '../errors.js';
+import { createProposal, verifyCommitment } from '../proposal.js';
+import { computeAuthorityBindingHash } from '../ids.js';
+import { createDurableDeviceOperationStore } from '../operation-store.js';
+import { ActionValidationError, ActionConditionError, ActionDefinitionError } from '../errors.js';
 import type { ActionSchema } from '../types.js';
+import { MemoryStore } from '@totemsdk/storage';
 
 const SCHEMA: ActionSchema = {
   parameters: [
@@ -25,6 +28,7 @@ const SCHEMA: ActionSchema = {
 function makeDefinition(
   overrides: Partial<IndustrialActionDefinition> = {},
 ): IndustrialActionDefinition {
+  const { policy, ...rest } = overrides;
   return {
     kind: 'temp.set',
     description: 'Set temperature setpoint',
@@ -40,7 +44,8 @@ function makeDefinition(
     },
     deriveEffects: () => ({ spends: [], stateChanges: { deviceWrite: true } }),
     actuate: async () => ({ ok: true, data: { applied: true } }),
-    ...overrides,
+    policy: { failureMode: 'abort', ...(policy ?? {}) },
+    ...rest,
   };
 }
 
@@ -201,5 +206,134 @@ describe('executeAction schema validation (RFC-010 P1 fix)', () => {
         { zoneId: 'HVAC-03' },
       ),
     ).rejects.toBeInstanceOf(ActionValidationError);
+  });
+});
+
+describe('failure semantics (RFC-010 P3)', () => {
+  const prepared = async (
+    def: IndustrialActionDefinition,
+  ): Promise<PreparedDeviceOp> =>
+    (await toEdgeActionDefinition(def).prepare(INPUT)) as PreparedDeviceOp;
+
+  it('rejects a write action without a failureMode at compile time', () => {
+    expect(() =>
+      toEdgeActionDefinition(makeDefinition({ policy: { failureMode: undefined } })),
+    ).toThrow(ActionDefinitionError);
+  });
+
+  it('rejects fail-safe without a safeState', () => {
+    expect(() =>
+      toEdgeActionDefinition(makeDefinition({ policy: { failureMode: 'fail-safe' } })),
+    ).toThrow(ActionDefinitionError);
+  });
+
+  it('fail-safe commands the safe state and reports safe-stated', async () => {
+    const safeState = jest.fn().mockResolvedValue({ ok: true });
+    const def = makeDefinition({
+      policy: { failureMode: 'fail-safe' },
+      safeState,
+      actuate: async () => ({ ok: false, error: 'trip', errorCode: 'EXECUTION_FAILED' }),
+    });
+    const result = (await runWithPolicy(def, await prepared(def))) as IndustrialExecutionResult;
+    expect(result.ok).toBe(false);
+    expect(result.outcome).toBe('safe-stated');
+    expect(result.safeStateApplied).toBe(true);
+    expect(safeState).toHaveBeenCalledTimes(1);
+  });
+
+  it('fail-silent suppresses further actuation', async () => {
+    const def = makeDefinition({
+      policy: { failureMode: 'fail-silent' },
+      actuate: async () => ({ ok: false, error: 'x', errorCode: 'EXECUTION_FAILED' }),
+    });
+    expect((await runWithPolicy(def, await prepared(def))).outcome).toBe('suppressed');
+  });
+
+  it('fail-closed reports requires-reset', async () => {
+    const def = makeDefinition({
+      policy: { failureMode: 'fail-closed' },
+      actuate: async () => ({ ok: false, error: 'x', errorCode: 'EXECUTION_FAILED' }),
+    });
+    expect((await runWithPolicy(def, await prepared(def))).outcome).toBe('requires-reset');
+  });
+
+  it('fail-operational uses the fallback path', async () => {
+    const fallback = jest.fn().mockResolvedValue({ ok: true, data: { via: 'redundant' } });
+    const def = makeDefinition({
+      policy: { failureMode: 'fail-operational' },
+      fallback,
+      actuate: async () => ({ ok: false, error: 'x', errorCode: 'EXECUTION_FAILED' }),
+    });
+    const result = await runWithPolicy(def, await prepared(def));
+    expect(result.outcome).toBe('confirmed');
+    expect(fallback).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('durable idempotency (RFC-010 P3)', () => {
+  it('actuates once and dedups a repeated operation', async () => {
+    const actuate = jest.fn().mockResolvedValue({ ok: true, data: { applied: true } });
+    const store = createDurableDeviceOperationStore(new MemoryStore(), {
+      requireAckMode: 'volatile',
+    });
+    const edgeDef = toEdgeActionDefinition(makeDefinition({ actuate }), { operationStore: store });
+    const prepared = (await edgeDef.prepare(INPUT)) as PreparedDeviceOp;
+
+    const first = (await edgeDef.execute(prepared)) as IndustrialExecutionResult;
+    const second = (await edgeDef.execute(prepared)) as IndustrialExecutionResult;
+
+    expect(first.outcome).toBe('confirmed');
+    expect(second.deduplicated).toBe(true);
+    expect(second.outcome).toBe('confirmed');
+    expect(actuate).toHaveBeenCalledTimes(1);
+  });
+
+  it('records a fail-safe outcome so a repeat does not re-actuate', async () => {
+    const actuate = jest.fn().mockResolvedValue({ ok: false, error: 'x', errorCode: 'EXECUTION_FAILED' });
+    const safeState = jest.fn().mockResolvedValue({ ok: true });
+    const store = createDurableDeviceOperationStore(new MemoryStore(), {
+      requireAckMode: 'volatile',
+    });
+    const edgeDef = toEdgeActionDefinition(
+      makeDefinition({ policy: { failureMode: 'fail-safe' }, safeState, actuate }),
+      { operationStore: store },
+    );
+    const prepared = (await edgeDef.prepare(INPUT)) as PreparedDeviceOp;
+
+    const first = (await edgeDef.execute(prepared)) as IndustrialExecutionResult;
+    const second = (await edgeDef.execute(prepared)) as IndustrialExecutionResult;
+
+    expect(first.outcome).toBe('safe-stated');
+    expect(second.deduplicated).toBe(true);
+    expect(second.outcome).toBe('safe-stated');
+    expect(actuate).toHaveBeenCalledTimes(1);
+    expect(safeState).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('authority-proof binding (RFC-010 P2)', () => {
+  it('binds mandateProofId into the commitment and operation id', async () => {
+    const edgeDef = toEdgeActionDefinition(makeDefinition());
+    const a = (await edgeDef.prepare({ ...INPUT, mandateProofId: 'mandate:1' })) as PreparedDeviceOp;
+    const b = (await edgeDef.prepare({ ...INPUT, mandateProofId: 'mandate:2' })) as PreparedDeviceOp;
+
+    expect(a.mandateProofId).toBe('mandate:1');
+    expect(a.commitmentHash).not.toBe(b.commitmentHash);
+    expect(a.operationId).not.toBe(b.operationId);
+  });
+
+  it('proposal commitment covers the mandate proof id', () => {
+    const base = { kind: 'temp.set', parameters: { setpoint: 22 }, context: { zoneId: 'z' } };
+    const p1 = createProposal({ ...base, mandateProofId: 'm1' });
+    const p2 = createProposal({ ...base, mandateProofId: 'm2' });
+    expect(p1.commitmentHash).not.toBe(p2.commitmentHash);
+    expect(verifyCommitment(p1)).toBe(true);
+  });
+
+  it('authority binding hash ties commitment + mandate + decision', () => {
+    const h = computeAuthorityBindingHash('commit', 'mandate', 'decision');
+    expect(h).toMatch(/^[0-9a-f]{64}$/);
+    expect(computeAuthorityBindingHash('commit', 'mandate', 'decision')).toBe(h);
+    expect(computeAuthorityBindingHash('commit', 'mandate', 'other')).not.toBe(h);
   });
 });

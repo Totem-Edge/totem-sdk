@@ -10,8 +10,10 @@
  *
  * The adapter's `prepare` performs, in order and before any port is touched:
  * schema validation → guardrail evaluation → device-op construction →
- * commitment + deterministic operation id. `execute` wraps the device actuation
- * in the industrial execution policy (timeout, bounded retry, rollback).
+ * commitment (bound to the authorizing mandate proof) + deterministic operation
+ * id. `execute` wraps the device actuation in the industrial execution policy
+ * (declared failure mode, timeout, bounded retry, rollback) and, when a durable
+ * operation store is supplied, gives the actuation an at-most-once guarantee.
  */
 
 import type {
@@ -24,10 +26,32 @@ import type {
 import type { StepEffects } from '@totemsdk/agent-policy';
 
 import type { ActionError, ActionSchema, Condition } from './types.js';
-import { ActionConditionError } from './errors.js';
+import { ActionConditionError, ActionDefinitionError } from './errors.js';
 import { assertValidParameters, assertValidContext } from './definition.js';
 import { evaluateConditions } from './condition.js';
 import { computeCommitmentHash, computeOperationId } from './ids.js';
+import type { DeviceOperationRecord, DeviceOperationStore } from './operation-store.js';
+
+/**
+ * How an action behaves when an attempt does not confirm (RFC-011 §4.11).
+ * Mandatory for `write`-effect actions; `read` defaults to `fail-silent`.
+ */
+export type FailureMode =
+  | 'fail-safe'
+  | 'fail-silent'
+  | 'fail-closed'
+  | 'fail-operational'
+  | 'abort';
+
+/** Terminal outcome of a governed actuation (never a bare boolean). */
+export type ActionOutcome =
+  | 'confirmed'
+  | 'failed'
+  | 'unknown'
+  | 'aborted'
+  | 'safe-stated'
+  | 'suppressed'
+  | 'requires-reset';
 
 /** Adapter-prepared device command (before commitment/identity are attached). */
 export interface DeviceOpBase {
@@ -44,6 +68,10 @@ export interface PreparedDeviceOp extends DeviceOpBase {
   context: Record<string, unknown>;
   commitmentHash: string;
   operationId: string;
+  /** Bound authorizing mandate proof, when supplied (RFC-010 §6.4). */
+  mandateProofId?: string;
+  /** Industrial proposal id, when supplied. */
+  proposalId?: string;
 }
 
 /**
@@ -53,6 +81,8 @@ export interface PreparedDeviceOp extends DeviceOpBase {
  * a timeout is never treated as success.
  */
 export interface ExecutionPolicy {
+  /** Failure semantics (RFC-011 §4.11). Mandatory for `write` actions. */
+  failureMode?: FailureMode;
   /** Actuation timeout in milliseconds. Default 30_000. */
   timeoutMs?: number;
   /** Total attempts (1 = no retry). Default 1. */
@@ -61,8 +91,20 @@ export interface ExecutionPolicy {
   backoffMs?: number;
   /** Whether a failed attempt is retryable. Default: timeout/transport only. */
   retryable?: (error: ActionError) => boolean;
+  /** Behaviour when a durable record already exists for the operation. Default `fail`. */
+  onInFlight?: 'fail' | 'return-existing';
   /** Compensating action run after a terminal failure (saga hook). */
   rollback?: (op: PreparedDeviceOp, error: ActionError) => Promise<void>;
+}
+
+/** Industrial execution result — `EdgeOperationResult` plus the outcome model. */
+export interface IndustrialExecutionResult<TResult = unknown> extends EdgeOperationResult<TResult> {
+  outcome: ActionOutcome;
+  failureMode: FailureMode;
+  attempts: number;
+  safeStateApplied?: boolean;
+  /** True when the result was served from an existing durable record (dedup). */
+  deduplicated?: boolean;
 }
 
 /**
@@ -80,8 +122,12 @@ export interface IndustrialActionDefinition<TResult = unknown> {
   effect: EdgeActionEffect;
   /** Pre-execution guardrails evaluated before authorization. */
   guardrails?: Condition[];
-  /** Timeout / retry / rollback policy. */
+  /** Timeout / retry / rollback / failure-mode policy. */
   policy?: ExecutionPolicy;
+  /** Command the resource's safe state (required for `fail-safe`). */
+  safeState?: (op: PreparedDeviceOp) => Promise<EdgeOperationResult>;
+  /** Fallback/redundant path used by `fail-operational`. */
+  fallback?: (op: PreparedDeviceOp) => Promise<EdgeOperationResult<TResult>>;
   /** Build the real device operation from validated inputs. */
   prepare(params: Record<string, unknown>, context: Record<string, unknown>): Promise<DeviceOpBase>;
   /** Canonical safety facts derived from the PREPARED operation. */
@@ -90,13 +136,40 @@ export interface IndustrialActionDefinition<TResult = unknown> {
   actuate(op: PreparedDeviceOp): Promise<EdgeOperationResult<TResult>>;
 }
 
-const EMPTY_SCHEMA: ActionSchema = { parameters: [], context: [] };
+export interface ToEdgeActionOptions {
+  /** Injectable clock (defaults to `Date.now`). */
+  now?: () => number;
+  /** Durable operation store enabling at-most-once actuation (RFC-010 §6.6). */
+  operationStore?: DeviceOperationStore;
+}
+
+/** Effective failure mode: explicit, else `fail-silent` for reads. */
+function effectiveFailureMode(def: IndustrialActionDefinition): FailureMode | undefined {
+  return def.policy?.failureMode ?? (def.effect === 'read' ? 'fail-silent' : undefined);
+}
 
 /** Compile an industrial definition into an edge action definition. */
 export function toEdgeActionDefinition<TResult = unknown>(
   def: IndustrialActionDefinition<TResult>,
-  now: () => number = () => Date.now(),
+  options: ToEdgeActionOptions = {},
 ): EdgeActionDefinition {
+  const now = options.now ?? (() => Date.now());
+  const store = options.operationStore;
+
+  // Registration-time validation (RFC-011 §4.11): writes must declare how they
+  // fail; `fail-safe` must be able to command a safe state.
+  const mode = effectiveFailureMode(def);
+  if (def.effect === 'write' && mode === undefined) {
+    throw new ActionDefinitionError(
+      `write action '${def.kind}' must declare policy.failureMode`,
+    );
+  }
+  if (mode === 'fail-safe' && !def.safeState) {
+    throw new ActionDefinitionError(
+      `action '${def.kind}' uses fail-safe but declares no safeState`,
+    );
+  }
+
   return {
     capability: def.capability,
     effect: def.effect,
@@ -119,10 +192,20 @@ export function toEdgeActionDefinition<TResult = unknown>(
         kind: def.kind,
         parameters: params,
         context,
+        ...(input.mandateProofId !== undefined ? { mandateProofId: input.mandateProofId } : {}),
       });
       const operationId = computeOperationId(commitmentHash, base.resourceId);
 
-      return { ...base, kind: def.kind, parameters: params, context, commitmentHash, operationId };
+      return {
+        ...base,
+        kind: def.kind,
+        parameters: params,
+        context,
+        commitmentHash,
+        operationId,
+        ...(input.mandateProofId !== undefined ? { mandateProofId: input.mandateProofId } : {}),
+        ...(input.proposalId !== undefined ? { proposalId: input.proposalId } : {}),
+      };
     },
 
     deriveEffects(prepared: unknown): StepEffects {
@@ -130,8 +213,55 @@ export function toEdgeActionDefinition<TResult = unknown>(
     },
 
     async execute(prepared: unknown): Promise<EdgeOperationResult> {
-      return runWithPolicy(def, prepared as PreparedDeviceOp);
+      const op = prepared as PreparedDeviceOp;
+      if (!store) return runWithPolicy(def, op);
+
+      const claim = await store.claimOperation(op.operationId, op.proposalId, now());
+      if (!claim.claimed) {
+        return resolveExisting(def, claim.record);
+      }
+
+      const result = await runWithPolicy(def, op);
+      const next: DeviceOperationRecord = {
+        operationId: op.operationId,
+        ...(op.proposalId !== undefined ? { proposalId: op.proposalId } : {}),
+        status: result.outcome,
+        attempts: result.attempts,
+        outcome: result.outcome,
+        updatedAt: now(),
+        ...(result.data !== undefined ? { result: result.data } : {}),
+      };
+      await store.transitionOperation(next);
+      return result;
     },
+  };
+}
+
+/** Serve a result from an existing durable record (idempotent dedup). */
+function resolveExisting<TResult>(
+  def: IndustrialActionDefinition<TResult>,
+  record: DeviceOperationRecord,
+): IndustrialExecutionResult<TResult> {
+  const mode = effectiveFailureMode(def) ?? 'abort';
+  if (record.status === 'in-flight') {
+    const onInFlight = def.policy?.onInFlight ?? 'fail';
+    return {
+      ok: false,
+      error: 'operation already in flight',
+      errorCode: 'OPERATION_IN_FLIGHT',
+      outcome: onInFlight === 'return-existing' ? 'unknown' : 'aborted',
+      failureMode: mode,
+      attempts: record.attempts,
+      deduplicated: true,
+    };
+  }
+  return {
+    ok: record.status === 'confirmed',
+    ...(record.result !== undefined ? { data: record.result as TResult } : {}),
+    outcome: record.outcome ?? (record.status as ActionOutcome),
+    failureMode: mode,
+    attempts: record.attempts,
+    deduplicated: true,
   };
 }
 
@@ -142,34 +272,91 @@ export function toEdgeActionDefinition<TResult = unknown>(
 export async function runWithPolicy<TResult = unknown>(
   def: IndustrialActionDefinition<TResult>,
   op: PreparedDeviceOp,
-): Promise<EdgeOperationResult<TResult>> {
+): Promise<IndustrialExecutionResult<TResult>> {
   const policy = def.policy ?? {};
+  const mode = effectiveFailureMode(def) ?? 'abort';
   const maxAttempts = Math.max(1, policy.maxAttempts ?? 1);
   const timeoutMs = policy.timeoutMs ?? 30_000;
   const retryable = policy.retryable ?? defaultRetryable;
 
+  let attempts = 0;
   let last: EdgeOperationResult<TResult> = {
     ok: false,
     error: 'actuation was not attempted',
     errorCode: 'NOT_ATTEMPTED',
   };
 
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+  while (attempts < maxAttempts) {
+    attempts += 1;
     last = await withTimeout(() => def.actuate(op), timeoutMs);
-    if (last.ok) return last;
-    if (attempt >= maxAttempts || !retryable(toActionError(last))) break;
-    if (policy.backoffMs) await sleep(policy.backoffMs * attempt);
+    if (last.ok) {
+      return { ...last, outcome: 'confirmed', failureMode: mode, attempts };
+    }
+    if (attempts >= maxAttempts || !retryable(toActionError(last))) break;
+    if (policy.backoffMs) await sleep(policy.backoffMs * attempts);
   }
 
-  if (!last.ok && policy.rollback) {
+  const error = toActionError(last);
+
+  if (policy.rollback) {
     try {
-      await policy.rollback(op, toActionError(last));
+      await policy.rollback(op, error);
     } catch {
       // Rollback failures are surfaced by the caller's event/receipt layer.
     }
   }
 
-  return last;
+  return applyFailureMode(def, op, mode, error, attempts);
+}
+
+async function applyFailureMode<TResult>(
+  def: IndustrialActionDefinition<TResult>,
+  op: PreparedDeviceOp,
+  mode: FailureMode,
+  error: ActionError,
+  attempts: number,
+): Promise<IndustrialExecutionResult<TResult>> {
+  const failure = (outcome: ActionOutcome): IndustrialExecutionResult<TResult> => ({
+    ok: false,
+    error: error.message,
+    errorCode: error.code,
+    outcome,
+    failureMode: mode,
+    attempts,
+  });
+
+  switch (mode) {
+    case 'abort':
+      return failure('aborted');
+    case 'fail-silent':
+      return failure('suppressed');
+    case 'fail-closed':
+      return failure('requires-reset');
+    case 'fail-safe': {
+      let applied = false;
+      if (def.safeState) {
+        try {
+          await def.safeState(op);
+          applied = true;
+        } catch {
+          // Safe-state command failed — surface as failed, not safe-stated.
+        }
+      }
+      return { ...failure(applied ? 'safe-stated' : 'failed'), safeStateApplied: applied };
+    }
+    case 'fail-operational': {
+      if (def.fallback) {
+        const result = await def.fallback(op);
+        return {
+          ...result,
+          outcome: result.ok ? 'confirmed' : 'failed',
+          failureMode: mode,
+          attempts,
+        };
+      }
+      return failure('failed');
+    }
+  }
 }
 
 function defaultRetryable(error: ActionError): boolean {
@@ -216,5 +403,3 @@ async function withTimeout<TResult>(
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
-
-export { EMPTY_SCHEMA };
