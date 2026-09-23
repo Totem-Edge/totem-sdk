@@ -1,6 +1,6 @@
 # RFC-011: Industrial Action Domain Model & Extensibility — Units, Resources, Interlocks, Composition, and Vertical Profiles
 
-**Status:** Draft — not started
+**Status:** Draft — Phase A (units & resources, §4.1/§4.2) landed: `UnitRegistry` with dimensional analysis, `Quantity` parameter validation, `Resource`/`ResourceAddress` registry, and wire-unit conversion wired into the adapter. Phases B–H outstanding.
 **Created:** 2026-09-23
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]

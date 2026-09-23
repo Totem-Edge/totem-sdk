@@ -1,6 +1,7 @@
 import type { AuthorityDecision } from '@totemsdk/authority'
+import type { Dimension, Unit, Quantity } from './units.js'
 
-export type ParameterType = 'string' | 'number' | 'boolean' | 'object' | 'array'
+export type ParameterType = 'string' | 'number' | 'boolean' | 'object' | 'array' | 'quantity'
 
 export interface ParameterSchema {
   name: string
@@ -9,6 +10,12 @@ export interface ParameterSchema {
   description?: string
   defaultValue?: unknown
   validation?: (value: unknown) => string | null
+  // Quantity fields (used when `type === 'quantity'` — RFC-011 §4.1).
+  dimension?: Dimension
+  unit?: Unit
+  min?: Quantity
+  max?: Quantity
+  step?: Quantity
 }
 
 export interface ContextField {

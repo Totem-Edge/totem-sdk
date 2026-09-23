@@ -1,12 +1,15 @@
 import type {
   ActionSchema,
+  ParameterSchema,
   ParameterType,
 } from './types.js'
 import { ActionValidationError } from './errors.js'
+import { checkQuantity, defaultUnitRegistry, type UnitRegistry } from './units.js'
 
 export function validateParameters(
   schema: ActionSchema,
   parameters: Record<string, unknown>,
+  units: UnitRegistry = defaultUnitRegistry(),
 ): string[] {
   const errors: string[] = []
   for (const field of schema.parameters) {
@@ -17,7 +20,9 @@ export function validateParameters(
       }
       continue
     }
-    const typeErr = checkType(field.type, value)
+    const typeErr = field.type === 'quantity'
+      ? checkQuantityField(field, value, units)
+      : checkType(field.type, value)
     if (typeErr) {
       errors.push(`parameter '${field.name}': ${typeErr}`)
     }
@@ -29,6 +34,27 @@ export function validateParameters(
     }
   }
   return errors
+}
+
+function checkQuantityField(
+  field: ParameterSchema,
+  value: unknown,
+  units: UnitRegistry,
+): string | null {
+  if (field.dimension === undefined || field.unit === undefined) {
+    return `quantity parameter is missing dimension/unit`
+  }
+  return checkQuantity(
+    value,
+    {
+      dimension: field.dimension,
+      unit: field.unit,
+      ...(field.min !== undefined ? { min: field.min } : {}),
+      ...(field.max !== undefined ? { max: field.max } : {}),
+      ...(field.step !== undefined ? { step: field.step } : {}),
+    },
+    units,
+  )
 }
 
 export function validateContext(
@@ -72,8 +98,12 @@ export function checkType(expected: ParameterType, value: unknown): string | nul
   }
 }
 
-export function assertValidParameters(schema: ActionSchema, parameters: Record<string, unknown>): void {
-  const errors = validateParameters(schema, parameters)
+export function assertValidParameters(
+  schema: ActionSchema,
+  parameters: Record<string, unknown>,
+  units: UnitRegistry = defaultUnitRegistry(),
+): void {
+  const errors = validateParameters(schema, parameters, units)
   if (errors.length > 0) {
     throw new ActionValidationError('parameter validation failed', { errors })
   }

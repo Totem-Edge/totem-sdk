@@ -88,3 +88,26 @@ export type {
   IndustrialReceiptPayload,
   IndustrialReceiptExtras,
 } from './industrial-receipt.js'
+
+export {
+  createUnitRegistry,
+  createDefaultUnitRegistry,
+  defaultUnitRegistry,
+  isQuantity,
+  checkQuantity,
+} from './units.js'
+export type { Dimension, Unit, Quantity, QuantityConstraint, UnitRegistry } from './units.js'
+
+export {
+  createResourceRegistry,
+  resourceIdKey,
+  toWireQuantity,
+} from './resources.js'
+export type {
+  ResourceId,
+  ResourceKind,
+  ResourceProtocol,
+  ResourceAddress,
+  Resource,
+  ResourceRegistry,
+} from './resources.js'

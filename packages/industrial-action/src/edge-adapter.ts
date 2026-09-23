@@ -33,6 +33,7 @@ import { evaluateConditions } from './condition.js';
 import { computeCommitmentHash, computeOperationId } from './ids.js';
 import { createIndustrialReceipt } from './industrial-receipt.js';
 import type { DeviceOperationRecord, DeviceOperationStore } from './operation-store.js';
+import { defaultUnitRegistry, type UnitRegistry } from './units.js';
 
 /**
  * How an action behaves when an attempt does not confirm (RFC-011 §4.11).
@@ -145,6 +146,8 @@ export interface ToEdgeActionOptions {
   now?: () => number;
   /** Durable operation store enabling at-most-once actuation (RFC-010 §6.6). */
   operationStore?: DeviceOperationStore;
+  /** Unit registry for quantity validation (RFC-011 §4.1). Defaults to the built-in units. */
+  units?: UnitRegistry;
 }
 
 /** Effective failure mode: explicit, else `fail-silent` for reads. */
@@ -159,6 +162,7 @@ export function toEdgeActionDefinition<TResult = unknown>(
 ): EdgeActionDefinition {
   const now = options.now ?? (() => Date.now());
   const store = options.operationStore;
+  const units = options.units ?? defaultUnitRegistry();
 
   // Registration-time validation (RFC-011 §4.11): writes must declare how they
   // fail; `fail-safe` must be able to command a safe state.
@@ -187,7 +191,7 @@ export function toEdgeActionDefinition<TResult = unknown>(
         throw new ActionValidationError('action deadline has passed');
       }
 
-      assertValidParameters(def.schema, params);
+      assertValidParameters(def.schema, params, units);
       assertValidContext(def.schema, context, now());
 
       const guard = evaluateConditions(def.guardrails ?? [], params, context);
