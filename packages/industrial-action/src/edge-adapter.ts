@@ -34,7 +34,8 @@ import { computeCommitmentHash, computeOperationId } from './ids.js';
 import { createIndustrialReceipt } from './industrial-receipt.js';
 import type { DeviceOperationRecord, DeviceOperationStore } from './operation-store.js';
 import type { InterlockRegistry } from './interlocks.js';
-import type { ResourceId } from './resources.js';
+import type { ResourceId, ResourceProtocol } from './resources.js';
+import type { DeviceErrorTaxonomy } from './error-taxonomy.js';
 import { defaultUnitRegistry, type UnitRegistry } from './units.js';
 
 /**
@@ -129,6 +130,10 @@ export interface IndustrialActionDefinition<TResult = unknown> {
   effect: EdgeActionEffect;
   /** Pre-execution guardrails evaluated before authorization. */
   guardrails?: Condition[];
+  /** Field protocol (error classification / wire units; RFC-011 §4.7). */
+  protocol?: ResourceProtocol;
+  /** Device error taxonomy for retry/safety classification (RFC-011 §4.7). */
+  errorTaxonomy?: DeviceErrorTaxonomy;
   /** Timeout / retry / rollback / failure-mode policy. */
   policy?: ExecutionPolicy;
   /** Command the resource's safe state (required for `fail-safe`). */
@@ -319,7 +324,7 @@ export async function runWithPolicy<TResult = unknown>(
   const mode = effectiveFailureMode(def) ?? 'abort';
   const maxAttempts = Math.max(1, policy.maxAttempts ?? 1);
   const timeoutMs = policy.timeoutMs ?? 30_000;
-  const retryable = policy.retryable ?? defaultRetryable;
+  const retryable = policy.retryable ?? buildRetryable(def);
 
   let attempts = 0;
   let last: EdgeOperationResult<TResult> = {
@@ -348,7 +353,47 @@ export async function runWithPolicy<TResult = unknown>(
     }
   }
 
+  // Safety-class errors never retry and require a safe state (RFC-011 §4.7/§4.11).
+  const classification = def.errorTaxonomy?.classify(def.protocol, error.code);
+  if (classification?.class === 'safety') {
+    return applySafetyStop(def, op, error, mode, attempts);
+  }
+
   return applyFailureMode(def, op, mode, error, attempts);
+}
+
+/** A taxonomy-aware retry predicate, or the transport-default one. */
+function buildRetryable<TResult>(def: IndustrialActionDefinition<TResult>): (error: ActionError) => boolean {
+  const taxonomy = def.errorTaxonomy;
+  if (!taxonomy) return defaultRetryable;
+  return (error) => taxonomy.classify(def.protocol, error.code).retryable;
+}
+
+async function applySafetyStop<TResult>(
+  def: IndustrialActionDefinition<TResult>,
+  op: PreparedDeviceOp,
+  error: ActionError,
+  mode: FailureMode,
+  attempts: number,
+): Promise<IndustrialExecutionResult<TResult>> {
+  let applied = false;
+  if (def.safeState) {
+    try {
+      await def.safeState(op);
+      applied = true;
+    } catch {
+      // Safe-state command failed — require operator reset.
+    }
+  }
+  return {
+    ok: false,
+    error: error.message,
+    errorCode: error.code,
+    outcome: applied ? 'safe-stated' : 'requires-reset',
+    failureMode: mode,
+    attempts,
+    safeStateApplied: applied,
+  };
 }
 
 async function applyFailureMode<TResult>(

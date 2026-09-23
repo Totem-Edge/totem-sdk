@@ -131,3 +131,10 @@ export type {
   AcquireResult,
   DurableResourceLockManagerOptions,
 } from './locks.js'
+
+export { createDeviceErrorTaxonomy, defaultDeviceErrorTaxonomy } from './error-taxonomy.js'
+export type {
+  DeviceErrorClass,
+  DeviceErrorClassification,
+  DeviceErrorTaxonomy,
+} from './error-taxonomy.js'
