@@ -37,6 +37,8 @@ import type { InterlockRegistry } from './interlocks.js';
 import type { ResourceId, ResourceProtocol } from './resources.js';
 import type { DeviceErrorTaxonomy } from './error-taxonomy.js';
 import { defaultUnitRegistry, type UnitRegistry } from './units.js';
+import { computeSchemaHash, definitionVersion } from './versioning.js';
+import type { ActionEventSink } from './events.js';
 
 /**
  * How an action behaves when an attempt does not confirm (RFC-011 §4.11).
@@ -70,6 +72,10 @@ export interface DeviceOpBase {
 /** A fully prepared, commitment-bound device operation. */
 export interface PreparedDeviceOp extends DeviceOpBase {
   kind: string;
+  /** Definition version the operation was prepared against (RFC-011 §4.5). */
+  definitionVersion: number;
+  /** Canonical schema hash (RFC-011 §4.5). */
+  schemaHash: string;
   parameters: Record<string, unknown>;
   context: Record<string, unknown>;
   commitmentHash: string;
@@ -122,6 +128,8 @@ export interface IndustrialExecutionResult<TResult = unknown> extends EdgeOperat
 export interface IndustrialActionDefinition<TResult = unknown> {
   kind: string;
   description: string;
+  /** Monotonic definition version (default 1; RFC-011 §4.5). */
+  version?: number;
   /** Parameter + context schema, validated before authorization. */
   schema: ActionSchema;
   /** Runtime capability the action requires (support check, not authorization). */
@@ -159,6 +167,11 @@ export interface ToEdgeActionOptions {
   interlocks?: InterlockRegistry;
   /** Resolve the target resource so resource-scoped interlocks apply. */
   resolveResourceId?: (params: Record<string, unknown>, context: Record<string, unknown>) => ResourceId | undefined;
+  /** Expected definition version/schema hash; a mismatch fails closed (RFC-011 §4.5). */
+  expectedVersion?: number;
+  expectedSchemaHash?: string;
+  /** Lifecycle event stream (RFC-011 §4.6). */
+  events?: ActionEventSink;
 }
 
 /** Effective failure mode: explicit, else `fail-silent` for reads. */
@@ -174,6 +187,22 @@ export function toEdgeActionDefinition<TResult = unknown>(
   const now = options.now ?? (() => Date.now());
   const store = options.operationStore;
   const units = options.units ?? defaultUnitRegistry();
+  const events = options.events;
+
+  // Version binding (RFC-011 §4.5): fail closed when the resolved definition no
+  // longer matches the version/hash a proposal was bound to.
+  const version = definitionVersion(def);
+  const schemaHash = computeSchemaHash(def.schema);
+  if (options.expectedVersion !== undefined && options.expectedVersion !== version) {
+    throw new ActionDefinitionError(
+      `definition '${def.kind}' version ${version} does not match expected ${options.expectedVersion}`,
+    );
+  }
+  if (options.expectedSchemaHash !== undefined && options.expectedSchemaHash !== schemaHash) {
+    throw new ActionDefinitionError(
+      `definition '${def.kind}' schema hash does not match the expected schema`,
+    );
+  }
 
   // Registration-time validation (RFC-011 §4.11): writes must declare how they
   // fail; `fail-safe` must be able to command a safe state.
@@ -204,12 +233,14 @@ export function toEdgeActionDefinition<TResult = unknown>(
 
       assertValidParameters(def.schema, params, units);
       assertValidContext(def.schema, context, now());
+      await events?.emit({ type: 'validated', at: now(), detail: { kind: def.kind }, ...(input.proposalId !== undefined ? { proposalId: input.proposalId } : {}) });
 
       const guard = evaluateConditions(def.guardrails ?? [], params, context);
       if (!guard.passed) {
         const reason = guard.failed.map((f) => f.reason).join('; ');
         throw new ActionConditionError(`guardrails failed: ${reason}`);
       }
+      await events?.emit({ type: 'guardrails_passed', at: now(), detail: { kind: def.kind }, ...(input.proposalId !== undefined ? { proposalId: input.proposalId } : {}) });
 
       // Interlocks (RFC-011 §4.3): fail closed before authorization/actuation.
       if (options.interlocks) {
@@ -227,6 +258,7 @@ export function toEdgeActionDefinition<TResult = unknown>(
           );
         }
       }
+      await events?.emit({ type: 'interlocks_passed', at: now(), detail: { kind: def.kind }, ...(input.proposalId !== undefined ? { proposalId: input.proposalId } : {}) });
 
       const base = await def.prepare(params, context);
       const commitmentHash = computeCommitmentHash({
@@ -240,6 +272,8 @@ export function toEdgeActionDefinition<TResult = unknown>(
       return {
         ...base,
         kind: def.kind,
+        definitionVersion: version,
+        schemaHash,
         parameters: params,
         context,
         commitmentHash,
@@ -257,8 +291,23 @@ export function toEdgeActionDefinition<TResult = unknown>(
       const op = prepared as PreparedDeviceOp;
       const startedAt = now();
 
-      if (!store) {
+      const run = async (): Promise<IndustrialExecutionResult> => {
+        const base = { operationId: op.operationId, ...(op.proposalId !== undefined ? { proposalId: op.proposalId } : {}) };
+        await events?.emit({ type: 'actuation_started', at: now(), ...base });
         const result = await runWithPolicy(def, op);
+        await events?.emit({
+          type: result.outcome === 'confirmed' ? 'actuation_succeeded' : 'actuation_failed',
+          at: now(),
+          outcome: result.outcome,
+          attempts: result.attempts,
+          ...base,
+        });
+        await events?.emit({ type: 'settled', at: now(), outcome: result.outcome, ...base });
+        return result;
+      };
+
+      if (!store) {
+        const result = await run();
         return { ...result, receipt: createIndustrialReceipt(op, result, { startedAt, completedAt: now() }) };
       }
 
@@ -268,7 +317,7 @@ export function toEdgeActionDefinition<TResult = unknown>(
         return { ...existing, receipt: createIndustrialReceipt(op, existing, { startedAt, completedAt: now() }) };
       }
 
-      const result = await runWithPolicy(def, op);
+      const result = await run();
       const next: DeviceOperationRecord = {
         operationId: op.operationId,
         ...(op.proposalId !== undefined ? { proposalId: op.proposalId } : {}),

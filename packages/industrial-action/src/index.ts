@@ -149,3 +149,22 @@ export type {
   RecipeRunOptions,
   CompensationResult,
 } from './recipes.js'
+
+export {
+  createMemoryActionEventSink,
+  createDurableActionEventSink,
+} from './events.js'
+export type {
+  IndustrialActionEventType,
+  IndustrialActionEvent,
+  ActionEventSink,
+  ActionEventStream,
+  DurableActionEventSinkOptions,
+} from './events.js'
+
+export {
+  definitionVersion,
+  computeSchemaHash,
+  createVersionedActionRegistry,
+} from './versioning.js'
+export type { VersionedActionRegistry } from './versioning.js'
