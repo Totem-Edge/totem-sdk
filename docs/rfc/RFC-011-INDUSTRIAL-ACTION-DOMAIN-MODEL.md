@@ -305,6 +305,56 @@ Profiles translate between the core model and industrial standards:
 
 Mappings are **adapters in profiles**, never in core types.
 
+### 4.11 Failure semantics
+
+Success/failure is insufficient for physical actuation. Every industrial action
+declares a **failure mode** that fixes what happens to the device, the
+reservation, retries, and the audit trail when an attempt does not confirm.
+
+```ts
+export type FailureMode =
+  | 'fail-safe'        // command the resource's declared SafeState
+  | 'fail-silent'      // leave the device as-is; suppress further actuation
+  | 'fail-closed'      // lock out the resource until an operator resets
+  | 'fail-operational' // continue on a declared fallback / redundant path
+  | 'abort';           // cancel atomically, no device side effects
+
+export type ActionOutcome =
+  | 'confirmed' | 'failed' | 'unknown'
+  | 'aborted' | 'safe-stated' | 'suppressed' | 'requires-reset';
+```
+
+| Mode | Device on failure | SafeState | Reservation | Retry | Typical use |
+|---|---|---|---|---|---|
+| `fail-safe` | command `SafeState` | **required** | abort | no for `safety`/`permanent`; policy may retry `transient` | hazardous writes (valves, motors, heaters) |
+| `fail-silent` | none (leave as-is) | n/a | abort | no | advisory/read, non-hazardous, best-effort |
+| `fail-closed` | disable / lock out | resource lock | abort | no | safety-critical until human reset |
+| `fail-operational` | switch to fallback path | n/a | commit fallback | fallback path only | redundant control / HA |
+| `abort` | none (pre-actuation only) | n/a | abort | no | validation / authorization failures |
+
+Rules:
+
+1. **Declaration is mandatory for writes.** A `write`-effect action without a
+   `failureMode` fails definition validation; `read` defaults to `fail-silent`.
+2. **`unknown` is not `fail-silent`.** A timeout or thrown actuation is
+   `unknown` and must route through the declared mode (e.g. `fail-safe` commands
+   safe state). `fail-silent` is an explicit, deliberate no-op and is never the
+   default for a timeout.
+3. **Safety errors never retry** (§4.7 `class: 'safety'`): they command safe
+   state and, where required, transition to `fail-closed`.
+4. **Reservation semantics:** `abort` and `fail-safe` abort the reservation;
+   `fail-operational` commits the fallback execution; `fail-closed` aborts and
+   marks the resource `requires-reset`.
+5. **Idempotency:** the deterministic `operationId` (RFC-010 §6.6) plus the
+   recorded outcome make a repeated `fail-safe` action a no-op (safe state
+   already commanded), while a repeated `fail-silent` action is suppressed.
+6. **Audit:** the `ActionOutcome` and the mode are recorded in the receipt and
+   event stream (§4.6).
+
+A resource used by a `fail-safe`/`fail-closed` action **must** declare a
+`SafeState` (§4.3); a definition targeting a resource without one is rejected at
+registration.
+
 ## 5. Extensibility and capability model
 
 - **Profile** — a bundle of registrations that configures the core for a vertical:
@@ -361,7 +411,7 @@ Each profile supplies the §5 bundle; the core (§4) is unchanged.
 | Phase | Work | Depends on |
 |---|---|---|
 | **A** Units & resources | §4.1, §4.2; `QuantitySchema`, `ResourceRegistry`; adapter wire-unit mapping | RFC-010 P1 |
-| **B** Safety | §4.3 interlocks/safe-state + §4.8 resource locks | A |
+| **B** Safety | §4.3 interlocks/safe-state, §4.11 failure semantics (`FailureMode`/`ActionOutcome`), §4.8 resource locks | A |
 | **C** Error taxonomy | §4.7; Modbus/OPC-UA/BACnet classifiers | B |
 | **D** Composition | §4.4 recipes/sagas as governed actions | B |
 | **E** Versioning & events | §4.5, §4.6 | A |

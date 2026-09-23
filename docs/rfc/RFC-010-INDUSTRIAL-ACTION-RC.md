@@ -182,10 +182,15 @@ industrial layer **binds** it rather than re-verifying it:
 - Delete `checkGovernanceConstraints`' ad-hoc checks (`src/governance-bridge.ts:19-31`);
   the authority decision is enforced by agent-policy and bound by the commitment.
 
-### 6.5 Industrial execution policy: timeout, retry, rollback (fix G5)
+### 6.5 Industrial execution policy: failure mode, timeout, retry, rollback (fix G5)
 
 ```ts
 export interface ExecutionPolicy {
+  /**
+   * What happens when an attempt does not confirm (RFC-011 §4.11). Mandatory for
+   * `write`-effect actions; `read` defaults to `'fail-silent'`.
+   */
+  failureMode?: FailureMode;          // 'fail-safe' | 'fail-silent' | 'fail-closed' | 'fail-operational' | 'abort'
   timeoutMs?: number;                 // default 30_000
   maxAttempts?: number;               // default 1 (opt-in)
   backoffMs?: number;
@@ -195,14 +200,27 @@ export interface ExecutionPolicy {
 }
 ```
 
+- **Failure mode** (RFC-011 §4.11): every `write` action declares how it fails —
+  `fail-safe` (command the resource's `SafeState`), `fail-silent` (deliberate
+  no-op), `fail-closed` (lock out until operator reset), `fail-operational`
+  (fallback path), or `abort` (pre-actuation only). A definition with a `write`
+  effect and no `failureMode` is rejected at registration. `unknown` **routes
+  through the declared mode** — it is never silently treated as success or as
+  `fail-silent`.
 - **Timeout**: race `actuate` against `timeoutMs`; a timeout is `unknown`, never
-  `confirmed`.
+  `confirmed`, and the failure mode decides the device action.
 - **Retry**: only when `retryable` returns true **and** the device op is
-  idempotent (declared per definition; RFC-011 adds the device error taxonomy).
-  Each attempt is recorded; retries must never double-apply a non-idempotent write.
+  idempotent (declared per definition; RFC-011 §4.7 adds the device error
+  taxonomy). Safety-class errors never retry. Each attempt is recorded; retries
+  must never double-apply a non-idempotent write.
 - **Rollback**: on terminal `failed`/`unknown`, run `rollback` (compensating
-  action) and record it. Rollback is *not* a safety model — interlocks/safe-state
-  are RFC-011.
+  action) and record it. Rollback is *not* a safety model — interlocks and
+  safe-state are RFC-011 §4.3/§4.11.
+
+**Outcome model.** The execution/receipt outcome is not a boolean:
+`confirmed | failed | unknown | aborted | safe-stated | suppressed |
+requires-reset` (RFC-011 §4.11), recorded with the failure mode in the receipt
+(§6.7) and event stream (RFC-011 §4.6).
 
 ### 6.6 Idempotency and durable device-operation records (fix G4)
 
@@ -232,7 +250,8 @@ createEdgeReceipt({
   payload: {
     actionId, proposalId, kind, resourceId,
     commitmentHash, mandateProofId, decisionId,
-    effects, attempts, status, error?, rollback?,
+    effects, attempts, failureMode,
+    outcome, error?, rollback?,
   },
   issuedAt,
 });
@@ -281,6 +300,7 @@ migration is a swap.
 | Two-phase/idempotent execution | §6.2 (edge runtime) + §6.6 (P3) |
 | Cryptographic authority proof binding | §6.4 (P2) |
 | Retry/timeout/rollback | §6.5 (P3) |
+| Declared failure semantics (fail-safe/silent/closed/operational/abort) | §6.5 + RFC-011 §4.11 (P3) |
 | Real-system E2E | §7 P6 |
 | Adversarial property tests | §7 P5 |
 | Crash/restart recovery under load | §6.6 + §7 P5 |
@@ -305,6 +325,10 @@ migration is a swap.
 - **Authority binding**: no actuation without an authorized mandate whose proof
   id and decision id are bound into the commitment and receipt.
 - **At-most-once actuation** of physical devices via a durable CAS claim.
+- **Declared failure semantics** (RFC-011 §4.11): every write action declares
+  `fail-safe`/`fail-silent`/`fail-closed`/`fail-operational`/`abort`; a write
+  without one is rejected. `unknown` routes through the mode — it is never
+  silently a success or a `fail-silent`.
 - **Unknown ≠ success**: timeout/throw never commits; rollback is recorded but is
   not a substitute for interlocks (RFC-011).
 - **Retries are opt-in** and require a declared idempotent device op.
