@@ -9,7 +9,6 @@
 
 import { toEdgeActionDefinition, runWithPolicy } from '../edge-adapter.js';
 import type { IndustrialActionDefinition, PreparedDeviceOp, IndustrialExecutionResult } from '../edge-adapter.js';
-import { executeAction } from '../executor.js';
 import { createProposal, verifyCommitment } from '../proposal.js';
 import { computeAuthorityBindingHash } from '../ids.js';
 import { createIndustrialReceipt, verifyIndustrialReceipt } from '../industrial-receipt.js';
@@ -173,40 +172,6 @@ describe('execution policy (RFC-010 P1)', () => {
     });
     await runWithPolicy(def, await prepared());
     expect(rollback).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe('executeAction schema validation (RFC-010 P1 fix)', () => {
-  it('rejects params that violate the executor schema', async () => {
-    const proposal = createProposal({
-      kind: 'temp.set',
-      parameters: { setpoint: 22.5 },
-      context: { zoneId: 'HVAC-03' },
-    });
-    await expect(
-      executeAction(
-        proposal,
-        {
-          kind: 'temp.set',
-          schema: SCHEMA,
-          execute: async () => ({ ok: true }),
-        },
-        { zoneId: 'HVAC-03' },
-      ),
-    ).resolves.toMatchObject({ execution: { status: 'confirmed' } });
-
-    const bad = createProposal({
-      kind: 'temp.set',
-      parameters: { rampRate: 1 },
-      context: { zoneId: 'HVAC-03' },
-    });
-    await expect(
-      executeAction(
-        bad,
-        { kind: 'temp.set', schema: SCHEMA, execute: async () => ({ ok: true }) },
-        { zoneId: 'HVAC-03' },
-      ),
-    ).rejects.toBeInstanceOf(ActionValidationError);
   });
 });
 

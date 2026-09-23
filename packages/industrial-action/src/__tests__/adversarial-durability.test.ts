@@ -19,7 +19,6 @@ import { createDurableDeviceOperationStore } from '../operation-store.js';
 import { verifyIndustrialReceipt } from '../industrial-receipt.js';
 import { createProposal, verifyCommitment, assertValidProposal } from '../proposal.js';
 import { evaluateConditions } from '../condition.js';
-import { checkGovernanceConstraints } from '../governance-bridge.js';
 import { ActionValidationError, ActionCommitmentError } from '../errors.js';
 import type { ActionSchema, ActionProposal } from '../types.js';
 
@@ -82,36 +81,6 @@ describe('adversarial inputs (RFC-010 P5)', () => {
       {},
     );
     expect(result.passed).toBe(false);
-  });
-
-  it('treats a denied authority decision as a governance error', () => {
-    const proposal: ActionProposal = {
-      ...createProposal({ kind: 'temp.set', parameters: { setpoint: 22 }, context: { zoneId: 'z' } }),
-      authorityDecision: {
-        allowed: false,
-        reason: 'out of scope',
-        matchedRules: [],
-        failedRules: ['scope'],
-        intentId: 'i',
-        mandateId: 'm',
-        decisionId: 'd',
-        evaluatedAt: 0,
-        policyVersion: 'v1',
-        mandateVerification: {
-          valid: false,
-          identityVerified: false,
-          scopeMatch: false,
-          usageExceeded: false,
-          expired: false,
-          identityRevoked: false,
-          mandateRevoked: false,
-        },
-        usageSnapshot: { mandateProofId: 'm', totalCount: 0 },
-        usageSnapshotHash: 'h',
-        evidenceIds: [],
-      },
-    };
-    expect(checkGovernanceConstraints(proposal, 1)).not.toHaveLength(0);
   });
 
   it('rejects a receipt whose authority binding is tampered', async () => {

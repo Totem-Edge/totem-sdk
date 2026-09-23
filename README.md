@@ -261,7 +261,7 @@ We are honest about where things stand. The core cryptographic layer and the Omn
 | `wots-lease` | **Stable** | Watermark v3 canonical; all five provider layers implemented (local, Axia, personal node, P2P quorum, on-chain) |
 | `recursive-mast`, `authority`, `governance` | **Alpha → Beta** | Architecture-proven; broader policy templates in progress |
 | `edge-*` connectors | **Reference** | Proven adapters (MQTT, Modbus); others demonstrate port injection |
-| `industrial-action` | **Beta → RC** | RFC-010: layered on the governed edge runtime; two-phase idempotency, authority-proof binding, and E2E hardening in progress |
+| `industrial-action` | **RC** | RFC-010 landed: governed edge runtime, authority-proof binding, fail-safe/fail-silent/fail-closed/abort semantics, durable at-most-once idempotency, authority-bound receipts, Modbus/TCP emulator E2E |
 | `omnia-host` | **Alpha** | Channel daemon; routing/control APIs active |
 
 ---

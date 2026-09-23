@@ -1,22 +1,4 @@
 import type { AuthorityDecision } from '@totemsdk/authority'
-import type { EdgeOperationResult } from '@totemsdk/edge'
-
-export type ActionStatus =
-  | 'proposed'
-  | 'approved'
-  | 'reserved'
-  | 'executing'
-  | 'confirmed'
-  | 'failed'
-  | 'unknown'
-  | 'cancelled'
-
-export type ExecutionStatus =
-  | 'pending'
-  | 'executing'
-  | 'confirmed'
-  | 'failed'
-  | 'unknown'
 
 export type ParameterType = 'string' | 'number' | 'boolean' | 'object' | 'array'
 
@@ -67,46 +49,6 @@ export interface ActionProposal {
   authorityDecision?: AuthorityDecision
 }
 
-export interface ActionExecution {
-  id: string
-  proposalId: string
-  status: ExecutionStatus
-  result?: unknown
-  error?: ActionError
-  startedAt: number
-  completedAt?: number
-  receipt?: ActionReceipt
-}
-
-export interface ActionReceipt {
-  receiptId: string
-  actionId: string
-  proposalId: string
-  kind: string
-  status: ActionStatus
-  commitmentHash: string
-  parameters: Record<string, unknown>
-  result?: unknown
-  error?: ActionError
-  issuedAt: number
-}
-
-export interface ActionHandler<TParameters = unknown, TResult = unknown> {
-  execute(params: TParameters, context: Record<string, unknown>): Promise<EdgeOperationResult<TResult>>
-}
-
-/**
- * Legacy registry entry: an action kind + schema + handler, held by
- * `ActionRegistry`. Superseded by the edge-facing `IndustrialActionDefinition`
- * (RFC-010, `edge-adapter.ts`) — kept until the registry is retired.
- */
-export interface ActionDefinition<TParameters = unknown, TResult = unknown> {
-  kind: string
-  description: string
-  schema: ActionSchema
-  handler: ActionHandler<TParameters, TResult>
-}
-
 export interface Condition {
   type: 'parameter_range' | 'context_match' | 'time_window' | 'custom'
   field?: string
@@ -120,40 +62,6 @@ export interface ConditionResult {
   failed: Array<{ condition: Condition; reason: string }>
 }
 
-export interface ActionExecutor<TParameters = unknown, TResult = unknown> {
-  kind: string
-  /** Optional schema; when present, `executeAction` validates params/context against it. */
-  schema?: ActionSchema
-  execute(
-    proposal: ActionProposal,
-    params: TParameters,
-    context: Record<string, unknown>,
-  ): Promise<EdgeOperationResult<TResult>>
-}
-
-export interface GovernanceBridge {
-  reserve(
-    proposal: ActionProposal,
-    mandateProofId: string,
-  ): Promise<EdgeOperationResult<{ reservationId: string }>>
-  commit(
-    reservationId: string,
-    execution: ActionExecution,
-  ): Promise<EdgeOperationResult<void>>
-  abort(
-    reservationId: string,
-    error: ActionError,
-  ): Promise<EdgeOperationResult<void>>
-}
-
-export interface ActionStorage {
-  saveProposal(proposal: ActionProposal): Promise<EdgeOperationResult<void>>
-  getProposal(id: string): Promise<EdgeOperationResult<ActionProposal>>
-  saveExecution(execution: ActionExecution): Promise<EdgeOperationResult<void>>
-  getExecution(id: string): Promise<EdgeOperationResult<ActionExecution>>
-  saveReceipt(receipt: ActionReceipt): Promise<EdgeOperationResult<void>>
-}
-
 export interface CreateProposalParams {
   kind: string
   parameters: Record<string, unknown>
@@ -161,9 +69,4 @@ export interface CreateProposalParams {
   proposedAt?: number
   expiresAt?: number
   mandateProofId?: string
-}
-
-export interface ExecuteActionResult {
-  execution: ActionExecution
-  receipt?: ActionReceipt
 }

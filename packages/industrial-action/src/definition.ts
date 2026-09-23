@@ -1,18 +1,8 @@
 import type {
-  ActionDefinition,
   ActionSchema,
   ParameterType,
 } from './types.js'
 import { ActionValidationError } from './errors.js'
-
-export function createActionDefinition<TParameters = unknown, TResult = unknown>(
-  kind: string,
-  description: string,
-  schema: ActionSchema,
-  handler: { execute(params: TParameters, context: Record<string, unknown>): Promise<{ ok: boolean; data?: TResult; error?: string; errorCode?: string }> },
-): ActionDefinition<TParameters, TResult> {
-  return { kind, description, schema, handler }
-}
 
 export function validateParameters(
   schema: ActionSchema,

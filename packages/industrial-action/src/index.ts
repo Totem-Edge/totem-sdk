@@ -1,6 +1,4 @@
 export type {
-  ActionStatus,
-  ExecutionStatus,
   ParameterType,
   ParameterSchema,
   ContextField,
@@ -8,17 +6,9 @@ export type {
   ActionSchema,
   ActionError,
   ActionProposal,
-  ActionExecution,
-  ActionReceipt,
-  ActionHandler,
-  ActionDefinition,
   Condition,
   ConditionResult,
-  ActionExecutor,
-  GovernanceBridge,
-  ActionStorage,
   CreateProposalParams,
-  ExecuteActionResult,
 } from './types.js'
 
 export { toHex, canonicalJson, hashCanonical } from '@totemsdk/core'
@@ -43,7 +33,6 @@ export {
 } from './errors.js'
 
 export {
-  createActionDefinition,
   validateParameters,
   validateContext,
   assertValidParameters,
@@ -68,12 +57,6 @@ export {
   evaluateConditions,
   createCondition,
 } from './condition.js'
-
-export {
-  executeAction,
-} from './executor.js'
-
-export { ActionRegistry } from './registry.js'
 
 export {
   toEdgeActionDefinition,
@@ -105,20 +88,3 @@ export type {
   IndustrialReceiptPayload,
   IndustrialReceiptExtras,
 } from './industrial-receipt.js'
-
-export {
-  createGovernanceBridge,
-  checkGovernanceConstraints,
-} from './governance-bridge.js'
-
-export {
-  createReceipt,
-  verifyReceiptIntegrity,
-} from './receipt.js'
-
-export { createDurableActionStorage } from './durable-storage.js'
-export type {
-  DurableActionStorage,
-  DurableActionStorageOptions,
-  ActionRegistryState,
-} from './durable-storage.js'
