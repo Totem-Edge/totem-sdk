@@ -1,6 +1,6 @@
 # RFC-011: Industrial Action Domain Model & Extensibility — Units, Resources, Interlocks, Composition, and Vertical Profiles
 
-**Status:** Draft — Phases A–F landed (units/resources, interlocks/safe-state + locks, device error taxonomy, recipes/sagas, versioning + events, scheduling + approvals). Phases G (standards adapters) and H (vertical profiles) outstanding.
+**Status:** Landed — Phases A–H complete: units/quantities + resources, interlocks/safe-state + resource locks, device error taxonomy, recipes/sagas, versioning + lifecycle events, scheduling + approvals, standards adapters (ISA-95/Modbus/OPC-UA/Sparkplug B/BACnet), and vertical profiles (water/HVAC) with a conformance harness.
 **Created:** 2026-09-23
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]

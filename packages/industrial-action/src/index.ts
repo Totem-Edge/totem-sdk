@@ -142,7 +142,7 @@ export type {
   DeviceErrorTaxonomy,
 } from './error-taxonomy.js'
 
-export { executeRecipe, createRecipe } from './recipes.js'
+export { executeRecipe, createRecipe, validateRecipe } from './recipes.js'
 export type {
   ActionStep,
   ActionRecipe,
@@ -192,3 +192,39 @@ export type {
   ApprovalRegistry,
   DurableApprovalRegistryOptions,
 } from './approvals.js'
+
+export {
+  toIsa95Path,
+  parseIsa95Path,
+  formatModbusEndpoint,
+  parseModbusEndpoint,
+  formatOpcuaNodeId,
+  parseOpcuaNodeId,
+  formatSparkplugTopic,
+  parseSparkplugTopic,
+  formatBacnetAddress,
+  parseBacnetAddress,
+  resourceAddressFor,
+} from './standards.js'
+export type {
+  ModbusRegisterType,
+  ModbusRegister,
+  OpcuaIdentifierType,
+  OpcuaNodeId,
+  SparkplugMessageType,
+  SparkplugTopic,
+  BacnetAddress,
+} from './standards.js'
+
+export {
+  runProfileConformance,
+  assertProfileConformance,
+  createProfileRegistries,
+  waterProfile,
+  hvacProfile,
+} from './profiles.js'
+export type {
+  IndustrialProfile,
+  ProfileConformanceIssue,
+  ProfileConformanceReport,
+} from './profiles.js'

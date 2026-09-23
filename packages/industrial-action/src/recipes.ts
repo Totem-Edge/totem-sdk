@@ -184,3 +184,8 @@ export async function executeRecipe(
 export function createRecipe(recipe: ActionRecipe): ActionRecipe {
   return recipe;
 }
+
+/** Validate a recipe's structure (unique ids, known deps, acyclic). Throws on failure. */
+export function validateRecipe(recipe: ActionRecipe): void {
+  orderSteps(recipe.steps);
+}
