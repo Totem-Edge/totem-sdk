@@ -99,6 +99,13 @@ export type {
   DurableDeviceOperationStoreOptions,
 } from './operation-store.js'
 
+export { createIndustrialReceipt, verifyIndustrialReceipt } from './industrial-receipt.js'
+export type {
+  IndustrialReceiptFields,
+  IndustrialReceiptPayload,
+  IndustrialReceiptExtras,
+} from './industrial-receipt.js'
+
 export {
   createGovernanceBridge,
   checkGovernanceConstraints,

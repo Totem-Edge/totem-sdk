@@ -43,6 +43,11 @@ export interface EdgeActionInput {
   decisionId?: string;
   /** Industrial proposal id, for durable operation records (RFC-010 §6.6). */
   proposalId?: string;
+  /**
+   * Absolute deadline (epoch ms) after which the action must not be prepared
+   * (RFC-010 §6.8 temporal deadline). Evaluated against the adapter's clock.
+   */
+  deadlineAt?: number;
 }
 
 export interface EdgeActionDefinition {

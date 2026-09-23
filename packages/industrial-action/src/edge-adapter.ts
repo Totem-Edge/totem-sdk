@@ -22,14 +22,16 @@ import type {
   EdgeActionInput,
   EdgeCapability,
   EdgeOperationResult,
+  EdgeReceipt,
 } from '@totemsdk/edge';
 import type { StepEffects } from '@totemsdk/agent-policy';
 
 import type { ActionError, ActionSchema, Condition } from './types.js';
-import { ActionConditionError, ActionDefinitionError } from './errors.js';
+import { ActionConditionError, ActionDefinitionError, ActionValidationError } from './errors.js';
 import { assertValidParameters, assertValidContext } from './definition.js';
 import { evaluateConditions } from './condition.js';
 import { computeCommitmentHash, computeOperationId } from './ids.js';
+import { createIndustrialReceipt } from './industrial-receipt.js';
 import type { DeviceOperationRecord, DeviceOperationStore } from './operation-store.js';
 
 /**
@@ -105,6 +107,8 @@ export interface IndustrialExecutionResult<TResult = unknown> extends EdgeOperat
   safeStateApplied?: boolean;
   /** True when the result was served from an existing durable record (dedup). */
   deduplicated?: boolean;
+  /** Authority-bound evidence (RFC-010 §6.7). */
+  receipt?: EdgeReceipt;
 }
 
 /**
@@ -178,6 +182,11 @@ export function toEdgeActionDefinition<TResult = unknown>(
       const params = (input.payload ?? {}) as Record<string, unknown>;
       const context = (input.context ?? {}) as Record<string, unknown>;
 
+      // Temporal deadline (RFC-010 §6.8): evaluated against the adapter clock.
+      if (input.deadlineAt !== undefined && now() > input.deadlineAt) {
+        throw new ActionValidationError('action deadline has passed');
+      }
+
       assertValidParameters(def.schema, params);
       assertValidContext(def.schema, context, now());
 
@@ -212,13 +221,19 @@ export function toEdgeActionDefinition<TResult = unknown>(
       return def.deriveEffects(prepared as PreparedDeviceOp);
     },
 
-    async execute(prepared: unknown): Promise<EdgeOperationResult> {
+    async execute(prepared: unknown): Promise<IndustrialExecutionResult> {
       const op = prepared as PreparedDeviceOp;
-      if (!store) return runWithPolicy(def, op);
+      const startedAt = now();
+
+      if (!store) {
+        const result = await runWithPolicy(def, op);
+        return { ...result, receipt: createIndustrialReceipt(op, result, { startedAt, completedAt: now() }) };
+      }
 
       const claim = await store.claimOperation(op.operationId, op.proposalId, now());
       if (!claim.claimed) {
-        return resolveExisting(def, claim.record);
+        const existing = resolveExisting(def, claim.record);
+        return { ...existing, receipt: createIndustrialReceipt(op, existing, { startedAt, completedAt: now() }) };
       }
 
       const result = await runWithPolicy(def, op);
@@ -232,7 +247,7 @@ export function toEdgeActionDefinition<TResult = unknown>(
         ...(result.data !== undefined ? { result: result.data } : {}),
       };
       await store.transitionOperation(next);
-      return result;
+      return { ...result, receipt: createIndustrialReceipt(op, result, { startedAt, completedAt: now() }) };
     },
   };
 }

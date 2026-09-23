@@ -12,6 +12,7 @@ import type { IndustrialActionDefinition, PreparedDeviceOp, IndustrialExecutionR
 import { executeAction } from '../executor.js';
 import { createProposal, verifyCommitment } from '../proposal.js';
 import { computeAuthorityBindingHash } from '../ids.js';
+import { createIndustrialReceipt, verifyIndustrialReceipt } from '../industrial-receipt.js';
 import { createDurableDeviceOperationStore } from '../operation-store.js';
 import { ActionValidationError, ActionConditionError, ActionDefinitionError } from '../errors.js';
 import type { ActionSchema } from '../types.js';
@@ -335,5 +336,58 @@ describe('authority-proof binding (RFC-010 P2)', () => {
     expect(h).toMatch(/^[0-9a-f]{64}$/);
     expect(computeAuthorityBindingHash('commit', 'mandate', 'decision')).toBe(h);
     expect(computeAuthorityBindingHash('commit', 'mandate', 'other')).not.toBe(h);
+  });
+});
+
+describe('industrial receipts (RFC-010 P4)', () => {
+  it('creates a verifiable, authority-bound EdgeReceipt for an execution', async () => {
+    const edgeDef = toEdgeActionDefinition(makeDefinition());
+    const prepared = (await edgeDef.prepare({ ...INPUT, mandateProofId: 'mandate:1' })) as PreparedDeviceOp;
+    const result = (await edgeDef.execute(prepared)) as IndustrialExecutionResult;
+
+    expect(result.receipt).toBeDefined();
+    expect(result.receipt?.kind).toBe('industrial:action');
+    expect(verifyIndustrialReceipt(result.receipt).ok).toBe(true);
+  });
+
+  it('detects a tampered receipt payload', async () => {
+    const edgeDef = toEdgeActionDefinition(makeDefinition());
+    const prepared = (await edgeDef.prepare(INPUT)) as PreparedDeviceOp;
+    const result = (await edgeDef.execute(prepared)) as IndustrialExecutionResult;
+
+    const receipt = result.receipt!;
+    const tampered = { ...receipt, payload: { ...receipt.payload, outcome: 'failed' } };
+    const verified = verifyIndustrialReceipt(tampered);
+    expect(verified.ok).toBe(false);
+    expect(verified.errorCode).toBe('RECEIPT_TAMPERED');
+  });
+
+  it('rejects a non-industrial receipt', () => {
+    expect(verifyIndustrialReceipt({ receiptId: 'x', kind: 'other', issuedAt: 1, payload: {} })).toMatchObject({
+      ok: false,
+      errorCode: 'INVALID_RECEIPT',
+    });
+  });
+
+  it('binds the mandate proof and decision into the receipt', async () => {
+    const edgeDef = toEdgeActionDefinition(makeDefinition());
+    const prepared = (await edgeDef.prepare({ ...INPUT, mandateProofId: 'mandate:1' })) as PreparedDeviceOp;
+    const result = (await edgeDef.execute(prepared)) as IndustrialExecutionResult;
+
+    const receipt = createIndustrialReceipt(prepared, result, { decisionId: 'decision:9' });
+    const payload = receipt.payload as unknown as { mandateProofId?: string; decisionId?: string; authorityBinding: string };
+    expect(payload.mandateProofId).toBe('mandate:1');
+    expect(payload.decisionId).toBe('decision:9');
+    expect(verifyIndustrialReceipt(receipt).ok).toBe(true);
+  });
+});
+
+describe('temporal deadline (RFC-010 P4)', () => {
+  it('rejects preparation after the deadline and allows before it', async () => {
+    const edgeDef = toEdgeActionDefinition(makeDefinition(), { now: () => 1000 });
+    await expect(edgeDef.prepare({ ...INPUT, deadlineAt: 500 })).rejects.toBeInstanceOf(
+      ActionValidationError,
+    );
+    await expect(edgeDef.prepare({ ...INPUT, deadlineAt: 2000 })).resolves.toBeDefined();
   });
 });
