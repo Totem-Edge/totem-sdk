@@ -138,3 +138,14 @@ export type {
   DeviceErrorClassification,
   DeviceErrorTaxonomy,
 } from './error-taxonomy.js'
+
+export { executeRecipe, createRecipe } from './recipes.js'
+export type {
+  ActionStep,
+  ActionRecipe,
+  RecipeStepStatus,
+  RecipeStepResult,
+  RecipeResult,
+  RecipeRunOptions,
+  CompensationResult,
+} from './recipes.js'
