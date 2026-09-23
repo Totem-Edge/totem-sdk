@@ -10,6 +10,10 @@ import { computeActionExecutionId, computeReceiptId } from './ids.js'
 import { assertValidProposal, isProposalExecutable } from './proposal.js'
 import { assertValidParameters, assertValidContext } from './definition.js'
 
+/**
+ * @deprecated Superseded by `toEdgeActionDefinition` on the governed edge
+ * runtime. Will be removed in a future minor.
+ */
 export async function executeAction(
   proposal: ActionProposal,
   executor: ActionExecutor,

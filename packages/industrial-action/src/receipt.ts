@@ -1,6 +1,10 @@
 import type { ActionReceipt } from './types.js'
 import { computeReceiptId } from './ids.js'
 
+/**
+ * @deprecated Superseded by `createIndustrialReceipt` (authority-bound
+ * `EdgeReceipt`). Will be removed in a future minor.
+ */
 export function createReceipt(params: {
   actionId: string
   proposalId: string
@@ -27,6 +31,10 @@ export function createReceipt(params: {
   }
 }
 
+/**
+ * @deprecated Superseded by `verifyIndustrialReceipt`. Will be removed in a
+ * future minor.
+ */
 export function verifyReceiptIntegrity(receipt: ActionReceipt): boolean {
   const expectedId = computeReceiptId(receipt.actionId, receipt.proposalId)
   return receipt.receiptId === expectedId

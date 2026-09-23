@@ -1,6 +1,6 @@
 # RFC-010: Industrial Action to RC — Industrial Action Definitions on the Governed Edge Runtime
 
-**Status:** Draft — not started
+**Status:** Draft — P0–P6 landed (edge adapter + validation fix, lint/integration gates, authority-proof binding, failure semantics, durable idempotency, authority-bound receipts, temporal deadline, adversarial + crash/restart, loopback Modbus/TCP E2E). P7 partial: breaking-change policy + legacy-surface deprecation added; full RC flip pending removal of the deprecated legacy lifecycle (`ActionRegistry`/`GovernanceBridge`/`executeAction`/`ActionReceipt`, §6.9).
 **Created:** 2026-09-23
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]

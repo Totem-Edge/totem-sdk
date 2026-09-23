@@ -103,12 +103,44 @@ if (passed) {
 - `ActionGovernanceError` — governance bridge failures
 - `ActionDefinitionError` — registry/definition issues
 
+## Governed execution (RFC-010)
+
+Industrial actions run on the `@totemsdk/edge` governed runtime
+(`AgentEdgeRuntime` + `EdgeActionRegistry`), not a parallel lifecycle:
+
+- `IndustrialActionDefinition` → `toEdgeActionDefinition` compiles an industrial
+  action into an edge `EdgeActionDefinition`.
+- `prepare` validates against the schema, evaluates guardrails, binds the
+  authorizing `mandateProofId` into the commitment, and derives a deterministic
+  `operationId`.
+- `ExecutionPolicy.failureMode` (`fail-safe` / `fail-silent` / `fail-closed` /
+  `fail-operational` / `abort`) is **mandatory for `write` actions**; outcomes are
+  `confirmed | failed | unknown | aborted | safe-stated | suppressed |
+  requires-reset` — never a bare boolean.
+- `createDurableDeviceOperationStore` gives actuation an at-most-once guarantee.
+- `createIndustrialReceipt` / `verifyIndustrialReceipt` emit authority-bound
+  `EdgeReceipt`s.
+
+The legacy `ActionRegistry`, `createGovernanceBridge`, `executeAction`, and
+`ActionReceipt` are **deprecated** and will be removed; use the edge-runtime path.
+
+## Breaking change policy
+
+- The package follows semantic versioning; while `0.x`, minor versions may
+  contain breaking changes, which are called out in the changelog and marked
+  with `@deprecated` for at least one minor release before removal.
+- Deprecated symbols remain functional for one minor release, then are removed
+  in the next minor (pre-1.0) or major (post-1.0) release.
+- Public API is the package root export (`@totemsdk/industrial-action`); subpath
+  imports and `src/*` are not public.
+
 ## Dependencies
 
 - `@totemsdk/core` — SHA3-256 hashing
 - `@totemsdk/proof` — proof types
 - `@totemsdk/authority` — mandate types
-- `@totemsdk/edge` — `EdgeOperationResult`
+- `@totemsdk/edge` — governed runtime, `EdgeActionDefinition`, `EdgeReceipt`
+- `@totemsdk/agent-policy` — `StepEffects`
 
 ## License
 

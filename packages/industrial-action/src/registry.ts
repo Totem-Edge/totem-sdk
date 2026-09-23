@@ -1,6 +1,10 @@
 import type { ActionDefinition, ActionExecutor } from './types.js'
 import { ActionDefinitionError } from './errors.js'
 
+/**
+ * @deprecated Superseded by the `@totemsdk/edge` `EdgeActionRegistry`. Will be
+ * removed in a future minor.
+ */
 export class ActionRegistry {
   private definitions: Map<string, ActionDefinition> = new Map()
   private executors: Map<string, ActionExecutor> = new Map()

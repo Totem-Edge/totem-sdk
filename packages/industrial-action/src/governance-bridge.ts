@@ -1,5 +1,10 @@
 import type { GovernanceBridge, ActionProposal } from './types.js'
 
+/**
+ * @deprecated Superseded by the governed edge runtime (`@totemsdk/edge`
+ * `AgentEdgeRuntime` + `@totemsdk/agent-policy`). The `commit`/`abort` methods
+ * are stubs; use `toEdgeActionDefinition`. Will be removed in a future minor.
+ */
 export function createGovernanceBridge(reserveFn: GovernanceBridge['reserve']): GovernanceBridge {
   return {
     async reserve(proposal, mandateProofId) {
@@ -14,6 +19,10 @@ export function createGovernanceBridge(reserveFn: GovernanceBridge['reserve']): 
   }
 }
 
+/**
+ * @deprecated Ad-hoc pre-check superseded by `@totemsdk/agent-policy`
+ * authorization and the RFC-010 authority-proof binding. Will be removed.
+ */
 export function checkGovernanceConstraints(
   proposal: ActionProposal,
   now: number,
