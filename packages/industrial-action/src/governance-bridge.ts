@@ -1,16 +1,14 @@
-import type { GovernanceBridge, ActionProposal, ActionExecution, ActionError } from './types.js'
-import type { EdgeOperationResult } from '@totemsdk/edge'
-import { ActionGovernanceError } from './errors.js'
+import type { GovernanceBridge, ActionProposal } from './types.js'
 
 export function createGovernanceBridge(reserveFn: GovernanceBridge['reserve']): GovernanceBridge {
   return {
     async reserve(proposal, mandateProofId) {
       return reserveFn(proposal, mandateProofId)
     },
-    async commit(reservationId, execution) {
+    async commit(_reservationId, _execution) {
       return { ok: true }
     },
-    async abort(reservationId, error) {
+    async abort(_reservationId, _error) {
       return { ok: true }
     },
   }

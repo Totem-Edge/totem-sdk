@@ -5,11 +5,10 @@ import type {
   ExecuteActionResult,
   ActionReceipt,
 } from './types.js'
-import { ActionExecutionError, ActionValidationError } from './errors.js'
+import { ActionValidationError } from './errors.js'
 import { computeActionExecutionId, computeReceiptId } from './ids.js'
 import { assertValidProposal, isProposalExecutable } from './proposal.js'
 import { assertValidParameters, assertValidContext } from './definition.js'
-import { evaluateConditions } from './condition.js'
 
 export async function executeAction(
   proposal: ActionProposal,
@@ -22,8 +21,9 @@ export async function executeAction(
   if (!isProposalExecutable(proposal, effectiveNow)) {
     throw new ActionValidationError('proposal is not executable')
   }
-  assertValidParameters(executor.kind === proposal.kind ? { parameters: [], context: [] } : { parameters: [], context: [] }, proposal.parameters)
-  assertValidContext(executor.kind === proposal.kind ? { parameters: [], context: [] } : { parameters: [], context: [] }, context, effectiveNow)
+  const schema = executor.schema ?? { parameters: [], context: [] }
+  assertValidParameters(schema, proposal.parameters)
+  assertValidContext(schema, context, effectiveNow)
   const executionId = computeActionExecutionId(proposal.id)
   const execution: ActionExecution = {
     id: executionId,

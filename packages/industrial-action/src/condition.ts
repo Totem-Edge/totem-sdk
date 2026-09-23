@@ -1,4 +1,4 @@
-import type { Condition, ConditionResult, ActionProposal } from './types.js'
+import type { Condition, ConditionResult } from './types.js'
 
 export function evaluateConditions(
   conditions: Condition[],

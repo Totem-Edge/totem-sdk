@@ -11,7 +11,7 @@ export type {
   ActionExecution,
   ActionReceipt,
   ActionHandler,
-  IndustrialActionDefinition,
+  ActionDefinition,
   Condition,
   ConditionResult,
   ActionExecutor,
@@ -28,6 +28,7 @@ export {
   computeActionExecutionId,
   computeCommitmentHash,
   computeReceiptId,
+  computeOperationId,
 } from './ids.js'
 
 export {
@@ -72,6 +73,17 @@ export {
 } from './executor.js'
 
 export { ActionRegistry } from './registry.js'
+
+export {
+  toEdgeActionDefinition,
+  runWithPolicy,
+} from './edge-adapter.js'
+export type {
+  DeviceOpBase,
+  PreparedDeviceOp,
+  ExecutionPolicy,
+  IndustrialActionDefinition,
+} from './edge-adapter.js'
 
 export {
   createGovernanceBridge,

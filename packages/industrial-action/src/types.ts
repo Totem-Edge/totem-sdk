@@ -95,7 +95,12 @@ export interface ActionHandler<TParameters = unknown, TResult = unknown> {
   execute(params: TParameters, context: Record<string, unknown>): Promise<EdgeOperationResult<TResult>>
 }
 
-export interface IndustrialActionDefinition<TParameters = unknown, TResult = unknown> {
+/**
+ * Legacy registry entry: an action kind + schema + handler, held by
+ * `ActionRegistry`. Superseded by the edge-facing `IndustrialActionDefinition`
+ * (RFC-010, `edge-adapter.ts`) — kept until the registry is retired.
+ */
+export interface ActionDefinition<TParameters = unknown, TResult = unknown> {
   kind: string
   description: string
   schema: ActionSchema
@@ -117,6 +122,8 @@ export interface ConditionResult {
 
 export interface ActionExecutor<TParameters = unknown, TResult = unknown> {
   kind: string
+  /** Optional schema; when present, `executeAction` validates params/context against it. */
+  schema?: ActionSchema
   execute(
     proposal: ActionProposal,
     params: TParameters,
@@ -156,7 +163,7 @@ export interface CreateProposalParams {
   mandateProofId?: string
 }
 
-export interface ExecuteActionResult<TResult = unknown> {
+export interface ExecuteActionResult {
   execution: ActionExecution
   receipt?: ActionReceipt
 }

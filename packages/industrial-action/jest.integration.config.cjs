@@ -1,15 +1,11 @@
 module.exports = {
   testEnvironment: 'node',
-  testMatch: ['**/src/__tests__/**/*.test.ts'],
+  testMatch: ['**/test/integration/**/*.test.ts'],
   moduleFileExtensions: ['ts', 'js'],
-  transformIgnorePatterns: [
-    'node_modules/',
-  ],
+  transformIgnorePatterns: ['node_modules/'],
   transform: {
     '^.+\\.(ts|js)$': ['@swc/jest', {
-      module: {
-        type: 'commonjs',
-      },
+      module: { type: 'commonjs' },
       sourceMaps: 'inline',
     }],
   },

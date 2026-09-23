@@ -1,11 +1,11 @@
-import type { IndustrialActionDefinition, ActionExecutor } from './types.js'
+import type { ActionDefinition, ActionExecutor } from './types.js'
 import { ActionDefinitionError } from './errors.js'
 
 export class ActionRegistry {
-  private definitions: Map<string, IndustrialActionDefinition> = new Map()
+  private definitions: Map<string, ActionDefinition> = new Map()
   private executors: Map<string, ActionExecutor> = new Map()
 
-  registerDefinition(definition: IndustrialActionDefinition): void {
+  registerDefinition(definition: ActionDefinition): void {
     if (this.definitions.has(definition.kind)) {
       throw new ActionDefinitionError(`definition '${definition.kind}' is already registered`)
     }
@@ -19,7 +19,7 @@ export class ActionRegistry {
     this.executors.set(executor.kind, executor)
   }
 
-  getDefinition(kind: string): IndustrialActionDefinition | undefined {
+  getDefinition(kind: string): ActionDefinition | undefined {
     return this.definitions.get(kind)
   }
 
@@ -27,7 +27,7 @@ export class ActionRegistry {
     return this.executors.get(kind)
   }
 
-  getDefinitionOrThrow(kind: string): IndustrialActionDefinition {
+  getDefinitionOrThrow(kind: string): ActionDefinition {
     const def = this.definitions.get(kind)
     if (!def) throw new ActionDefinitionError(`no definition registered for '${kind}'`)
     return def

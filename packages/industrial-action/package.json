@@ -15,7 +15,9 @@
     "build": "tsc",
     "prepare": "tsc",
     "clean": "rm -rf dist",
-    "test": "jest"
+    "test": "jest",
+    "test:integration": "jest --config jest.integration.config.cjs",
+    "lint": "eslint src test --max-warnings 0"
   },
   "files": [
     "dist",
@@ -27,6 +29,7 @@
     "@totemsdk/proof": "workspace:^",
     "@totemsdk/authority": "workspace:^",
     "@totemsdk/edge": "workspace:^",
+    "@totemsdk/agent-policy": "workspace:^",
     "@totemsdk/storage": "workspace:^"
   },
   "devDependencies": {

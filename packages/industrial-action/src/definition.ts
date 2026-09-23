@@ -1,8 +1,6 @@
 import type {
-  IndustrialActionDefinition,
+  ActionDefinition,
   ActionSchema,
-  ParameterSchema,
-  ContextSchema,
   ParameterType,
 } from './types.js'
 import { ActionValidationError } from './errors.js'
@@ -12,7 +10,7 @@ export function createActionDefinition<TParameters = unknown, TResult = unknown>
   description: string,
   schema: ActionSchema,
   handler: { execute(params: TParameters, context: Record<string, unknown>): Promise<{ ok: boolean; data?: TResult; error?: string; errorCode?: string }> },
-): IndustrialActionDefinition<TParameters, TResult> {
+): ActionDefinition<TParameters, TResult> {
   return { kind, description, schema, handler }
 }
 
@@ -46,7 +44,7 @@ export function validateParameters(
 export function validateContext(
   schema: ActionSchema,
   context: Record<string, unknown>,
-  now: number,
+  _now: number,
 ): string[] {
   const errors: string[] = []
   for (const field of schema.context) {

@@ -38,3 +38,17 @@ export function computeReceiptId(executionId: string, proposalId: string): strin
     proposalId,
   })
 }
+
+/**
+ * Deterministic device-operation id (RFC-010 §6.6).
+ *
+ * Derived from the proposal commitment and the target resource, so a
+ * re-submitted or retried action resolves to the same operation and can be
+ * deduplicated by a durable claim.
+ */
+export function computeOperationId(commitmentHash: string, resourceId?: string): string {
+  return 'totem:ia:op:' + hashCanonical('TOTEM_INDUSTRIAL_ACTION_OPERATION_V1', {
+    commitmentHash,
+    resourceId: resourceId ?? null,
+  })
+}

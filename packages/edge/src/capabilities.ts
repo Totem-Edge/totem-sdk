@@ -80,7 +80,9 @@ export type EdgeCapability =
   | 'transport:ros2'
   | 'transport:opcua'
   | 'transport:bacnet'
-  | 'transport:matter';
+  | 'transport:matter'
+  | 'industrial:action'
+  | 'industrial:read';
 
 export type EdgeCapabilitySet = Set<EdgeCapability>;
 

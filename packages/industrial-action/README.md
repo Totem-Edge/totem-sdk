@@ -77,7 +77,8 @@ if (passed) {
 - `ActionProposal` — proposed action with commitment hash, expiry, optional authority decision
 - `ActionExecution` — execution record with status, result, error, receipt
 - `ActionReceipt` — verifiable proof of action outcome
-- `IndustrialActionDefinition` — action kind + schema + handler
+- `ActionDefinition` — action kind + schema + handler (legacy registry entry)
+- `IndustrialActionDefinition` — edge-facing definition compiled via `toEdgeActionDefinition` (RFC-010)
 - `ActionSchema` — parameter and context field schemas
 - `Condition` — guardrail with field, operator, value, custom evaluator
 

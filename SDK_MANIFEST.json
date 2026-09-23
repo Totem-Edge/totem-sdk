@@ -1273,6 +1273,7 @@
         "opcua"
       ],
       "dependencies": {
+        "@totemsdk/agent-policy": "^0.3.0",
         "@totemsdk/authority": "^1.0.0",
         "@totemsdk/core": "^1.2.10",
         "@totemsdk/edge": "^1.1.0",

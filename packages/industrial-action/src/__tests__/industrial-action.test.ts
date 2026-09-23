@@ -30,7 +30,6 @@ import {
   ActionDefinitionError,
 } from '../index'
 import type {
-  IndustrialActionDefinition,
   ActionProposal,
   ActionExecutor,
   ActionExecution,
@@ -354,7 +353,7 @@ describe('execution', () => {
     })
     const executor: ActionExecutor = {
       kind: 'write-valve',
-      async execute(_proposal, params, _context) {
+      async execute(_proposal, _params, _context) {
         return { ok: true, data: { applied: true } }
       },
     }
