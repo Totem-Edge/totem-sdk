@@ -266,3 +266,4 @@ No cycles; Axia remains an external HTTP dependency, never a package dependency.
   `.../core/security/SecurityValidator.ts`, `.../ui/popup/pages/BrutalistSettings.tsx`
 - `docs/audits/wallet-connect-parity-2026-09.md` §6.4
 - RFC-008, RFC-010; `docs/totem-agent/01-architecture.md`
+- RFC-014 (wallet connect parity & shared execution bridge — how the chains families are served)

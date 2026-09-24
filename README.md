@@ -516,6 +516,7 @@ docs/                       # SDK documentation
 | [RFC-011](docs/rfc/RFC-011-INDUSTRIAL-ACTION-DOMAIN-MODEL.md) | Industrial action domain model — units, resources/interlocks, composition, versioning, events, and vertical profiles (draft) |
 | [RFC-012](docs/rfc/RFC-012-DECISION-RUNTIME.md) | Decision runtime — bounded semantic choice as a first-class Edge service (`@totemsdk/decision`), sibling to Intelligence (draft) |
 | [RFC-013](docs/rfc/RFC-013-WALLET-SELF-HOSTED-MODE.md) | Wallet self-hosted mode — Axia-relay default with chain-provider opt-out + wallet-side WOTS lease (draft) |
+| [RFC-014](docs/rfc/RFC-014-WALLET-CONNECT-PARITY.md) | Wallet connect parity & shared execution bridge — one method implementation for extension + PWA, Edge-routed families (draft) |
 | [SDK Audit (archived)](docs/archive/SDK_AUDIT-2026-02-ARCHIVED.md) | Historical Feb 2026 audit; current maturity lives in the table above |
 | [SDK Manifest](SDK_MANIFEST.json) | Machine-readable package index — 55 packages, for AI agents and tooling |
 | [API Reference](https://totem.ing) | Full TypeDoc-generated API reference |

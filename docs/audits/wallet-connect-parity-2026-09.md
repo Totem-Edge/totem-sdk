@@ -100,6 +100,9 @@ Conclusions:
 
 ## 5. Task list
 
+> Design contracts: **RFC-013** (self-hosted chain/lease) and **RFC-014** (connect
+> parity + shared execution bridge). This task list remains the working tracker.
+
 ### T1 — Single source of truth (both wallets)
 - [ ] Add `@totemsdk/connect` as a real dependency of both wallets.
 - [ ] Replace hand-maintained method tables with shared method/type constants.

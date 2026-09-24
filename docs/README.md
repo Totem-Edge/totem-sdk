@@ -154,6 +154,7 @@
 | [rfc/RFC-011-INDUSTRIAL-ACTION-DOMAIN-MODEL.md](rfc/RFC-011-INDUSTRIAL-ACTION-DOMAIN-MODEL.md) | Industrial action domain model & extensibility — units/quantities, resources/assets, interlocks/safe-state, action composition (recipes/sagas), versioning, lifecycle events, device error taxonomy, concurrency/scheduling, standards mapping, and vertical profiles (draft) |
 | [rfc/RFC-012-DECISION-RUNTIME.md](rfc/RFC-012-DECISION-RUNTIME.md) | Decision runtime — provider-neutral typed, constrained, provenance-bound decisions over dynamic candidate spaces (`@totemsdk/decision`); own `decision:*` capability namespace and `EdgeDecisionPort`, sibling to Intelligence, never an Intelligence domain (draft) |
 | [rfc/RFC-013-WALLET-SELF-HOSTED-MODE.md](rfc/RFC-013-WALLET-SELF-HOSTED-MODE.md) | Wallet self-hosted mode — Axia relay default with a user-selectable `ChainStateProvider` opt-out (`@totemsdk/chain-provider`) and wallet-side WOTS lease (`@totemsdk/wots-lease` local + on-chain watermark) with a browser storage adapter; extension + PWA parity (draft) |
+| [rfc/RFC-014-WALLET-CONNECT-PARITY.md](rfc/RFC-014-WALLET-CONNECT-PARITY.md) | Wallet connect parity & shared execution bridge — one shared wallet handler implementation (source of truth `@totemsdk/connect`), Edge-routed Omnia/Statechain/KISSVM/Agent families, one capability manifest; closes the audit's T1–T4 (draft) |
 
 ---
 
