@@ -135,7 +135,7 @@ Conclusions:
       both wallets share one implementation instead of duplicating.
 - [ ] Decide per-method whether it runs locally (SDK/Edge) or via Axia RPC (T5).
 
-### T5 — Axia API alignment (see §6)
+### T5 — Axia API alignment (see §6; owned by RFC-015)
 - [ ] Extend the SE registry to the RFC-008 identity/federation shape.
 - [ ] Update the WOTS lease API to the `wots-lease` v3 / `root-identity` model.
 - [ ] Add wallet capability/method-support discovery.

@@ -173,9 +173,10 @@ interface WalletCapabilityManifest {
 - The `KNOWN_GAPS` lists in the gate shrink to empty as T2/T3/T4 land; a method
   can only be `missing` if the manifest declares it `unsupported`.
 
-## 8. Axia surfaces (remaining T5)
+## 8. Axia surfaces (remaining T5 → RFC-015)
 
-Not all of T5 is wallet-local. RFC-014 references, and the audit §6 details:
+Not all of T5 is wallet-local; **RFC-015** owns the Axia contract changes. The
+audit §6 details them:
 
 - **SE registry → RFC-008 shape** (per-member root/proof-version, federation
   descriptor, bond ref, revocation/equivocation epochs).
