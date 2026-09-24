@@ -112,6 +112,8 @@ jobs:
         run: node scripts/verify-sdk-manifest.mjs
       - name: storage→core DAG lint
         run: node scripts/verify-storage-dag.mjs
+      - name: Wallet ⇄ connect parity audit (anti-drift)
+        run: node scripts/audit-wallet-connect-parity.mjs --check
 
   storage-durability:
     name: Storage durable-CI (sqlite + fs conformance)

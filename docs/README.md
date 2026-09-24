@@ -109,6 +109,7 @@
 | Document | Description |
 |----------|-------------|
 | [SDK Audit (archived)](archive/SDK_AUDIT-2026-02-ARCHIVED.md) | Historical Feb 2026 package audit; superseded by the README maturity table |
+| [Wallet ⇄ connect parity (2026-09)](audits/wallet-connect-parity-2026-09.md) | Extension vs PWA coverage of `@totemsdk/connect` methods; parity/task list and Axia API recommendations (`scripts/audit-wallet-connect-parity.mjs`) |
 | [SDK_ROLLBACK_RUNBOOK.md](SDK_ROLLBACK_RUNBOOK.md) | Rollback procedures for SDK releases |
 | [SDK_STAGED_ROLLOUT.md](SDK_STAGED_ROLLOUT.md) | Staged rollout strategy for SDK deployments |
 | [RECOVERY_CLI.md](RECOVERY_CLI.md) | Recovery CLI tool documentation |
@@ -151,6 +152,7 @@
 | [rfc/RFC-009-KISSVM-SIGNATURE-FIDELITY.md](rfc/RFC-009-KISSVM-SIGNATURE-FIDELITY.md) | KISSVM signature fidelity — make the script validator Minima-faithful by verifying TreeKey `SignatureProof`s (root public keys) instead of flat WOTS only; unblocks RFC-008's on-chain SE witness (draft) |
 | [rfc/RFC-010-INDUSTRIAL-ACTION-RC.md](rfc/RFC-010-INDUSTRIAL-ACTION-RC.md) | Industrial action to RC — layer `@totemsdk/industrial-action` on the governed edge runtime (`AgentEdgeRuntime`/`EdgeActionRegistry`); two-phase/idempotent execution, cryptographic authority-proof binding, retry/timeout/rollback, authority-bound `EdgeReceipt`s; closes the RFC-004 Wave 2 item (draft) |
 | [rfc/RFC-011-INDUSTRIAL-ACTION-DOMAIN-MODEL.md](rfc/RFC-011-INDUSTRIAL-ACTION-DOMAIN-MODEL.md) | Industrial action domain model & extensibility — units/quantities, resources/assets, interlocks/safe-state, action composition (recipes/sagas), versioning, lifecycle events, device error taxonomy, concurrency/scheduling, standards mapping, and vertical profiles (draft) |
+| [rfc/RFC-012-DECISION-RUNTIME.md](rfc/RFC-012-DECISION-RUNTIME.md) | Decision runtime — provider-neutral typed, constrained, provenance-bound decisions over dynamic candidate spaces (`@totemsdk/decision`); own `decision:*` capability namespace and `EdgeDecisionPort`, sibling to Intelligence, never an Intelligence domain (draft) |
 
 ---
 
