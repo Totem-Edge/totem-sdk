@@ -24,7 +24,7 @@ const PAPERS: Array<{ uri: string; name: string; description: string; file: stri
   {
     uri: 'totemsdk://papers/red',
     name: 'Connect Red Paper',
-    description: 'dApp-wallet wire protocol specification — all 49 methods, every parameter, every response shape, error codes, security model',
+    description: 'dApp-wallet wire protocol specification — every method, parameter, response shape, error code and the security model',
     file: 'TOTEM_CONNECT_RED_PAPER.md',
   },
   {
@@ -51,6 +51,19 @@ const PAPERS: Array<{ uri: string; name: string; description: string; file: stri
     description: 'Progressive decentralisation; MINIMA as settlement/native collateral where appropriate; $TOTEM as a potential network coordination and service-assurance asset (provider bonding, DAO stewardship, community-heavy genesis); no token assumed — network must earn the right to need one',
     file: 'TOTEM_NETWORK_ECONOMICS_GOLD_PAPER.md',
   },
+]
+
+/** RFCs and audits that AI agents should be able to read. */
+const DOCS: Array<{ uri: string; name: string; description: string; file: string }> = [
+  { uri: 'totemsdk://rfc/008', name: 'RFC-008 Federated Statechain', description: 'Leased-WOTS SE identity, federation, threshold SE, registry', file: 'docs/rfc/RFC-008-FEDERATED-STATECHAIN.md' },
+  { uri: 'totemsdk://rfc/009', name: 'RFC-009 KISSVM Signature Fidelity', description: 'Minima-faithful TreeKey SignatureProof verification', file: 'docs/rfc/RFC-009-KISSVM-SIGNATURE-FIDELITY.md' },
+  { uri: 'totemsdk://rfc/010', name: 'RFC-010 Industrial Action RC', description: 'Industrial action on the governed edge runtime', file: 'docs/rfc/RFC-010-INDUSTRIAL-ACTION-RC.md' },
+  { uri: 'totemsdk://rfc/011', name: 'RFC-011 Industrial Action Domain Model', description: 'Units, resources, interlocks, composition, vertical profiles', file: 'docs/rfc/RFC-011-INDUSTRIAL-ACTION-DOMAIN-MODEL.md' },
+  { uri: 'totemsdk://rfc/012', name: 'RFC-012 Decision Runtime', description: 'Bounded semantic choice as a first-class Edge service', file: 'docs/rfc/RFC-012-DECISION-RUNTIME.md' },
+  { uri: 'totemsdk://rfc/013', name: 'RFC-013 Wallet Self-Hosted Mode', description: 'Axia-relay default, chain-provider opt-out, wallet-side WOTS lease', file: 'docs/rfc/RFC-013-WALLET-SELF-HOSTED-MODE.md' },
+  { uri: 'totemsdk://rfc/014', name: 'RFC-014 Wallet Connect Parity', description: 'Shared execution bridge, Edge-routed families, capability manifest', file: 'docs/rfc/RFC-014-WALLET-CONNECT-PARITY.md' },
+  { uri: 'totemsdk://rfc/015', name: 'RFC-015 Axia API Alignment', description: 'Wallet capability, SE registry, lease, status, metering', file: 'docs/rfc/RFC-015-AXIA-API-ALIGNMENT.md' },
+  { uri: 'totemsdk://audit/wallet-connect-parity', name: 'Wallet ⇄ connect parity audit', description: 'Extension vs PWA coverage of connect methods; task list T1–T5', file: 'docs/audits/wallet-connect-parity-2026-09.md' },
 ]
 
 const CONVENTIONS = `# Totem SDK Conventions
@@ -98,17 +111,10 @@ const CONVENTIONS = `# Totem SDK Conventions
 - Action lifecycle: propose -> reserve -> execute -> confirm/fail/unknown`
 
 export function handleResourceRead(uri: string, index: SdkIndex): string | null {
-  const paperMatch = uri.match(/^totemsdk:\/\/papers\/(\w+)$/)
-  if (paperMatch) {
-    const paper = PAPERS.find(p => p.uri === uri)
-    if (paper) {
-      const filePath = path.join(REPO_ROOT, paper.file)
-      if (fs.existsSync(filePath)) {
-        return fs.readFileSync(filePath, 'utf-8')
-      }
-      return `Paper file not found: ${paper.file}`
-    }
-    return null
+  const readable = [...PAPERS, ...DOCS].find(d => d.uri === uri)
+  if (readable) {
+    const filePath = path.join(REPO_ROOT, readable.file)
+    return fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf-8') : `Document not found: ${readable.file}`
   }
 
   if (uri === 'totemsdk://packages') {
@@ -180,10 +186,11 @@ export function handleResourceRead(uri: string, index: SdkIndex): string | null 
 export function listResources(index: SdkIndex): Array<{ uri: string; name: string; description: string }> {
   const resources: Array<{ uri: string; name: string; description: string }> = [
     { uri: 'totemsdk://packages', name: 'All Packages', description: `List of all ${Object.keys(index.packages).length} SDK packages with metadata` },
-    { uri: 'totemsdk://templates', name: 'All KISSVM Templates', description: 'All 45 KISSVM script templates with import paths and descriptions' },
+    { uri: 'totemsdk://templates', name: 'All KISSVM Templates', description: `All ${getAllTemplates().length} KISSVM script templates with import paths and descriptions` },
     { uri: 'totemsdk://conventions', name: 'Coding Conventions', description: 'Totem SDK coding conventions and patterns' },
     { uri: 'totemsdk://domain-map', name: 'Domain Map', description: 'Packages grouped by domain layer' },
     ...PAPERS.map(p => ({ uri: p.uri, name: p.name, description: p.description })),
+    ...DOCS.map(d => ({ uri: d.uri, name: d.name, description: d.description })),
   ]
 
   for (const [domain, pkgs] of Object.entries(index.domainMap)) {

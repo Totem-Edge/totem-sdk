@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/mcp-server",
   "version": "0.2.0",
-  "description": "MCP server exposing the full Totem SDK package set — metadata, types, exports, dependency graphs, and scaffolding tools for 55 packages",
+  "description": "MCP server exposing the full Totem SDK package set — metadata, types, exports, dependency graphs, and scaffolding tools",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {

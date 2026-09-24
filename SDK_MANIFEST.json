@@ -1288,7 +1288,7 @@
     {
       "name": "@totemsdk/mcp-server",
       "version": "0.2.0",
-      "description": "MCP server exposing the full Totem SDK package set — metadata, types, exports, dependency graphs, and scaffolding tools for 57 packages",
+      "description": "MCP server exposing the full Totem SDK package set — metadata, types, exports, dependency graphs, and scaffolding tools",
       "domain": "sovereignty-stack",
       "keywords": [
         "mcp",

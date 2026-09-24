@@ -12,11 +12,21 @@ import { buildIndex } from './indexer.js'
 import { handleResourceRead, listResources } from './resources.js'
 import { handleToolCall } from './tools.js'
 import type { SdkIndex } from './types.js'
+import * as fs from 'fs'
+import * as path from 'path'
 
 const index: SdkIndex = buildIndex()
 
+function readPkgVersion(): string {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf-8')).version || '0.0.0'
+  } catch {
+    return '0.0.0'
+  }
+}
+
 const server = new Server(
-  { name: '@totemsdk/mcp-server', version: '0.1.0' },
+  { name: '@totemsdk/mcp-server', version: readPkgVersion() },
   { capabilities: { resources: {}, tools: {}, prompts: {} } },
 )
 
@@ -134,6 +144,29 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           usecase: { type: 'string', description: 'Describe what you want to do (e.g. "time-lock funds until a block height", "vote tally with quorum", "identity verification")' },
         },
         required: ['usecase'],
+      },
+    },
+    {
+      name: 'read-source',
+      description: "Read a source file from a package's src/ directory (e.g. package '@totemsdk/core', path 'treekey.ts')",
+      inputSchema: {
+        type: 'object',
+        properties: {
+          package: { type: 'string', description: 'Package name (e.g. @totemsdk/core)' },
+          path: { type: 'string', description: 'Path relative to the package src/ directory' },
+        },
+        required: ['package', 'path'],
+      },
+    },
+    {
+      name: 'list-packages',
+      description: 'List SDK packages, optionally filtered by domain or name substring',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          domain: { type: 'string', description: 'Optional domain filter (e.g. edge/runtime)' },
+          filter: { type: 'string', description: 'Optional package-name substring filter' },
+        },
       },
     },
   ],

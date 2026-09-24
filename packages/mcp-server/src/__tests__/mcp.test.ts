@@ -4,6 +4,8 @@ import {
   searchTemplates,
 } from '../template-catalog.js'
 import { handleToolCall } from '../tools.js'
+import { buildIndex, readSourceFile } from '../indexer.js'
+import { handleResourceRead, listResources } from '../resources.js'
 import type { SdkIndex } from '../types.js'
 
 function makeIndex(): SdkIndex {
@@ -176,5 +178,78 @@ describe('handleToolCall', () => {
     const res = handleToolCall('suggest-template', { usecase: 'eltoo channel' }, index)
     expect(res.isError).toBeFalsy()
     expect(res.content[0].text).toContain('eltoo')
+  })
+})
+describe('indexer — real SDK index (anti-drift)', () => {
+  const index = buildIndex()
+
+  it('indexes the manifest package set and classifies every package', () => {
+    expect(Object.keys(index.packages).length).toBeGreaterThan(50)
+    const others = Object.values(index.packages).filter(p => p.domain === 'other').map(p => p.name)
+    expect(others).toEqual([])
+    expect(Object.keys(index.domainMap).length).toBeGreaterThanOrEqual(7)
+  })
+
+  it('resolves barrel (export *) packages — e.g. core params', () => {
+    const core = index.packages['@totemsdk/core']
+    expect(core).toBeDefined()
+    // getParamSet is exported ONLY via `export * from './params.js'`
+    expect(core.exports.functions).toContain('getParamSet')
+    expect(index.symbolIndex['getParamSet']?.some(e => e.package === '@totemsdk/core')).toBe(true)
+    const total = core.exports.functions.length + core.exports.types.length + core.exports.classes.length + core.exports.interfaces.length + core.exports.consts.length
+    expect(total).toBeGreaterThan(20)
+  })
+
+  it('readSourceFile resolves scoped names and blocks traversal', () => {
+    expect(readSourceFile('@totemsdk/core', 'treekey.ts')).toContain('TreeKey')
+    expect(readSourceFile('@totemsdk/core', '../../../etc/passwd')).toBeNull()
+    expect(readSourceFile('@totemsdk/no-such-package', 'x.ts')).toBeNull()
+  })
+})
+
+describe('resources — real index', () => {
+  const index = buildIndex()
+
+  it('serves all-packages and matches the indexed count', () => {
+    const text = handleResourceRead('totemsdk://packages', index)
+    expect(text).not.toBeNull()
+    expect(JSON.parse(text as string).length).toBe(Object.keys(index.packages).length)
+  })
+
+  it('serves RFCs, the audit, and the renamed Gold Paper', () => {
+    expect(handleResourceRead('totemsdk://rfc/014', index)).toContain('Wallet Connect Parity')
+    expect(handleResourceRead('totemsdk://rfc/015', index)).toContain('Axia API Alignment')
+    expect(handleResourceRead('totemsdk://audit/wallet-connect-parity', index)).toContain('parity')
+    expect(handleResourceRead('totemsdk://papers/gold', index)).toContain('Network Economics')
+  })
+
+  it('lists doc resources and derives the template count at runtime', () => {
+    const resources = listResources(index)
+    const uris = resources.map(r => r.uri)
+    expect(uris).toContain('totemsdk://rfc/013')
+    expect(uris).toContain('totemsdk://audit/wallet-connect-parity')
+    const tpl = resources.find(r => r.uri === 'totemsdk://templates')
+    expect(tpl?.description).toContain(String(getAllTemplates().length))
+  })
+})
+
+describe('new tools — real index', () => {
+  const index = buildIndex()
+
+  it('read-source returns a package source file', () => {
+    const res = handleToolCall('read-source', { package: '@totemsdk/core', path: 'treekey.ts' }, index)
+    expect(res.isError).toBeFalsy()
+    expect(res.content[0].text).toContain('TreeKey')
+  })
+
+  it('read-source rejects path traversal', () => {
+    const res = handleToolCall('read-source', { package: '@totemsdk/core', path: '../../secret' }, index)
+    expect(res.isError).toBe(true)
+  })
+
+  it('list-packages filters by domain', () => {
+    const res = handleToolCall('list-packages', { domain: 'intelligence' }, index)
+    expect(res.isError).toBeFalsy()
+    expect(res.content[0].text).toContain('@totemsdk/qvac')
   })
 })

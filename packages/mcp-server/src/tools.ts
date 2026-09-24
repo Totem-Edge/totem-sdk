@@ -1,5 +1,6 @@
 import type { SdkIndex, ToolResponse, ValidImportResult, ScaffoldResult } from './types.js'
 import { searchTemplates, getTemplatesForPackage } from './template-catalog.js'
+import { readSourceFile } from './indexer.js'
 
 export function handleToolCall(name: string, args: any, index: SdkIndex): ToolResponse {
   switch (name) {
@@ -12,7 +13,38 @@ export function handleToolCall(name: string, args: any, index: SdkIndex): ToolRe
     case 'package-stats': return packageStats(args, index)
     case 'list-exports': return listExports(args, index)
     case 'suggest-template': return suggestTemplate(args)
+    case 'read-source': return readSource(args)
+    case 'list-packages': return listPackages(args, index)
     default: return { content: [{ type: 'text', text: `Unknown tool: ${name}` }], isError: true }
+  }
+}
+
+function readSource(args: any): ToolResponse {
+  const pkg = args.package
+  const file = args.path
+  if (!pkg || !file) return { content: [{ type: 'text', text: 'package and path are required' }], isError: true }
+  const content = readSourceFile(pkg, file)
+  if (content === null) {
+    return { content: [{ type: 'text', text: `Source not found: ${pkg}/src/${file}` }], isError: true }
+  }
+  return { content: [{ type: 'text', text: content }] }
+}
+
+function listPackages(args: any, index: SdkIndex): ToolResponse {
+  const domain = args.domain as string | undefined
+  const filter = (args.filter as string | undefined)?.toLowerCase()
+  const rows = Object.values(index.packages)
+    .filter(p => (!domain || p.domain === domain) && (!filter || p.name.toLowerCase().includes(filter)))
+    .sort((a, b) => a.name.localeCompare(b.name))
+  if (rows.length === 0) {
+    return { content: [{ type: 'text', text: 'No packages matched' }] }
+  }
+  return {
+    content: [{
+      type: 'text',
+      text: `${rows.length} package(s):\n\n` +
+        rows.map(p => `  ${p.name}@${p.version} [${p.domain}] — ${p.description}`).join('\n'),
+    }],
   }
 }
 
