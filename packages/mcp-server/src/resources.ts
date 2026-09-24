@@ -47,9 +47,9 @@ const PAPERS: Array<{ uri: string; name: string; description: string; file: stri
   },
   {
     uri: 'totemsdk://papers/gold',
-    name: 'Tokenomics Gold Paper',
-    description: 'Two-asset model — MINIMA as sovereign collateral backbone (Colour Coins, The Burn, Provider Bonds), TOTEM as service revenue token (staking, fee distribution, slashing, treasury)',
-    file: 'TOTEM_TOKENOMICS_GOLD_PAPER.md',
+    name: 'Network Economics Gold Paper',
+    description: 'Progressive decentralisation; MINIMA as settlement/native collateral where appropriate; $TOTEM as a potential network coordination and service-assurance asset (provider bonding, DAO stewardship, community-heavy genesis); no token assumed — network must earn the right to need one',
+    file: 'TOTEM_NETWORK_ECONOMICS_GOLD_PAPER.md',
   },
 ]
 

@@ -220,8 +220,8 @@ const restored = parseLiquidityBondState(json);
 
 - Live Omnia channel/factory integration
 - LP share token issuance
-- Automatic fee distribution
-- Yield and reward mechanics
+- Productive-liquidity compensation mechanisms (an LP is compensated because its capital enables a service, not because it passively holds an asset)
+- Service-revenue accounting and distribution mechanics for active liquidity providers
 - DAO governance integration
 - Transport layer for pool announcements and queries
 - USDT stable settlement pool support

@@ -229,5 +229,5 @@ const restored = parseProviderBondState(json);
 - Live chain-provider integration for bond verification
 - Omnia channel/factory liquidity integration
 - Transport layer for provider announcements and queries
-- TOTEM service-level bond support
+- `$TOTEM` network service-assurance bonds: provider eligibility, capacity and liability policies subject to the network economics specification (see the Network Economics Gold Paper)
 - DAO governance integration

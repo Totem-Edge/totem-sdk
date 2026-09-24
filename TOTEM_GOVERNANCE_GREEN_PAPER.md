@@ -199,7 +199,36 @@ The coordinator is not trusted. Every signer independently verifies the transact
 
 Authority answers "can this device do this action?" Governance answers "should this device be allowed to do this action in the first place?" It is the layer where collectives — DAOs, cooperatives, fleet operators, regulatory bodies — make decisions that become machine-enforceable rules.
 
-### 4.1 Three Voting Algorithms, Pick One
+### 4.1 Governance Is a System of Authorities, Not a Token Vote
+
+**Governance ≠ ledger ownership.** `@totemsdk/governance` is a general-purpose governance engine. It does not assume that voting power comes from holding a single network token, and the Totem network's own governance does **not** equate `$TOTEM` ownership with control.
+
+Voting weight is whatever an application configures. It may originate from:
+
+- a network token (`$TOTEM` or another asset);
+- provider status or bonded service capacity;
+- membership;
+- reputation or verified contribution;
+- operator identity;
+- delegated authority;
+- one-member-one-vote;
+- hybrid councils;
+- any other verifiable credential or commitment.
+
+For the Totem network specifically, different classes of decision have different constituencies — legitimacy is matched to the decision, not to token balance:
+
+| Decision | Appropriate constituency |
+|---|---|
+| Protocol parameter | operators + token participants |
+| Security upgrade | technical council + timelock |
+| Treasury grant | DAO governance |
+| Provider dispute | adjudication system |
+| DevCo employment | Totem Edge board (not the DAO) |
+| Axia pricing | Axia management (not `$TOTEM` holders) |
+
+This is why the engine is modular: authority, governance and economic assurance are separable. See the **Network Economics Gold Paper §17** ("Governance Is Not Token Voting Everywhere").
+
+### 4.2 Three Voting Algorithms, Pick One
 
 `@totemsdk/governance` provides three voting algorithms. **You choose one. You are not required to use all three. You are not required to use any of them.** A single-operator fleet can skip governance entirely and use only authority mandates.
 
@@ -211,11 +240,11 @@ Authority answers "can this device do this action?" Governance answers "should t
 
 **Linear voting** is the simplest. Each member's voting weight is their stake or membership weight. A proposal passes if yes votes exceed the threshold. This is what most DAOs use. It works well for small, aligned groups.
 
-**Quadratic voting** protects minorities. A whale with 10,000 tokens can cast 100 votes (costing 10,000 credits) while a small holder with 100 tokens can cast 10 votes (costing 100 credits). The whale has 100× the tokens but only 10× the voting power. This prevents a single large fleet operator from dominating every decision.
+**Quadratic voting** protects minorities. In a token-weighted configuration, a whale with 10,000 tokens could cast 100 votes (costing 10,000 credits) while a holder with 100 tokens casts 10 votes (costing 100 credits) — 100× the tokens but only 10× the voting power. (Token weight is one possible source of voting power; see §4.1 — the engine also supports membership, provider status, reputation, delegated authority and other configurations.)
 
 **Liquid democracy** lets operators delegate their votes to experts. A small solar farm operator who doesn't have time to evaluate every proposal can delegate to a trusted industry association. They can recall the delegation at any time. They can delegate on treasury proposals but vote directly on device additions. Delegation chains can be multi-hop with configurable maximum depth.
 
-### 4.2 The Proposal Lifecycle
+### 4.3 The Proposal Lifecycle
 
 ```
 draft → active → passed/failed → executed
@@ -232,7 +261,7 @@ draft → active → passed/failed → executed
 
 **Executed:** After a configurable execution delay (giving time for challenges), the proposal's actions are executed. Each action produces a mandate that the authority engine can enforce.
 
-### 4.3 The Mandate Bridge
+### 4.4 The Mandate Bridge
 
 This is the critical integration point between governance and authority. When a governance proposal passes, `createGovernedMandate()` produces an authority-compatible `MandateBody`:
 
@@ -246,13 +275,13 @@ const mandate = createGovernedMandate(outcome, action, 0, governanceIdentity, ex
 
 The resulting mandate includes 6 constraint fields that cryptographically bind the execution to the specific proposal, action, membership snapshot, vote tally, and outcome proof. The authority engine verifies all of them. A rogue executor cannot claim "the DAO told me to" without a valid mandate that traces back to a specific passed proposal with a verified vote tally.
 
-### 4.4 Event-Sourced Governance
+### 4.5 Event-Sourced Governance
 
 Governance is not just voting. It is an append-only event log: `policy_published`, `mandate_issued`, `mandate_revoked`, `approval_granted`, `authority_decision_recorded`, `usage_recorded`, `appeal_opened`, `ruling_issued`, `checkpoint_created`.
 
 The event log can be replayed to reconstruct the entire governance state at any point in time. Periodic checkpoints anchor the state hash to Minima L1 via Integritas, providing a tamper-evident constitutional anchor. If a dispute arises, the L1 checkpoint proves what the governance state was at a specific block height.
 
-### 4.5 What Governance Does NOT Require
+### 4.6 What Governance Does NOT Require
 
 - **You do not need a DAO.** A single operator can issue mandates directly without any governance process.
 - **You do not need quadratic voting.** Linear voting is simpler and works for small groups.

@@ -497,7 +497,7 @@ This is peer-to-peer lending within a cooperative. No bank. No loan application.
 
 The KISSVM `rwa-lifecycle` template provides the on-chain enforcement for yield distribution with `distributionType: 'interest'`. The `treasury` template provides time-locked reserves with linear vesting. The `liquidity-bond` template enforces lock terms, fee accrual, and withdrawal conditions.
 
-These templates are the legal contracts of the Omnia capital market. They are not legal prose interpreted by courts. They are KISSVM scripts executed deterministically by the Minima virtual machine. A loan that is not repaid does not go to collections — it is slashed from the borrower's provider bond.
+This KISSVM layer enforces the cryptographic and economic conditions of the Omnia capital market deterministically. It does not displace legal contracts, courts, property rights or regulatory obligations. A loan that is not repaid does not go to collections — it is slashed from the borrower's provider bond, and any residual dispute is a matter for adjudication outside the protocol.
 
 ### 10.6 How This Differs from Aave and Compound
 
@@ -517,7 +517,7 @@ These templates are the legal contracts of the Omnia capital market. They are no
 
 Omnia is token-agnostic. Any Minima token — native MINIMA, standard tokens, NFTs — can flow through channels, be locked in statechains, and be represented as VTXOs. This is not a future feature. It is how the protocol works today.
 
-**Assets on Minima today:** native MINIMA (base asset) and USDT (live stable settlement asset). **Upcoming:** TOTEM, the protocol's native token. **Research only — not issued:** MxUSD, a bond-backed stablecoin (see §10.3). This paper previously used the placeholder *MxUSD* as if it were a live asset; it is not.
+**Assets on Minima today:** native MINIMA (base asset) and USDT (live stable settlement asset). **Research only — not issued:** MxUSD, a bond-backed stablecoin (see §10.3). `$TOTEM`, if it is ever issued, is a potential **network coordination and service-assurance asset** for the wider Totem network — its issuance is contingent on demonstrated network utility, independent participation and the other readiness gates described in the Network Economics Gold Paper. **Omnia itself is token-agnostic and does not require `$TOTEM`.** This paper previously used the placeholder *MxUSD* as if it were a live asset; it is not.
 
 ### 11.1 How Tokens Flow Through Omnia
 

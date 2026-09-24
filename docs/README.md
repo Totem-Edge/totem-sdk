@@ -25,7 +25,7 @@
 | [../TOTEM_OMNIA_BLUE_PAPER.md](../TOTEM_OMNIA_BLUE_PAPER.md) | Omnia Blue Paper — P2P payment channels, routing, factories, VTXOs, statechains, scaling to billions |
 | [../TOTEM_GOVERNANCE_GREEN_PAPER.md](../TOTEM_GOVERNANCE_GREEN_PAPER.md) | Governance Green Paper — authority mandates, recursive MAST policy trees, quadratic voting, liquid democracy, QVAC agent policy |
 | [../TOTEM_EDGE_GREY_PAPER.md](../TOTEM_EDGE_GREY_PAPER.md) | Edge Grey Paper — port-injected, transport-agnostic runtime, protocol adapters, MachinePay, offline operation |
-| [../TOTEM_TOKENOMICS_GOLD_PAPER.md](../TOTEM_TOKENOMICS_GOLD_PAPER.md) | Tokenomics Gold Paper — two-asset model: MINIMA as collateral backbone, TOTEM as service revenue token |
+| [../TOTEM_NETWORK_ECONOMICS_GOLD_PAPER.md](../TOTEM_NETWORK_ECONOMICS_GOLD_PAPER.md) | Network Economics Gold Paper — progressive decentralisation; MINIMA as settlement/native collateral where appropriate; `$TOTEM` as a potential network coordination & service-assurance asset; provider bonding, DAO stewardship and community-heavy genesis |
 | [../TOTEM_PRIVACY_NOTE.md](../TOTEM_PRIVACY_NOTE.md) | Privacy considerations for Totem SDK users |
 
 ---

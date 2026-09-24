@@ -502,7 +502,7 @@ docs/                       # SDK documentation
 | [Omnia Blue Paper](TOTEM_OMNIA_BLUE_PAPER.md) | P2P payment channels, routing, factories, VTXOs, statechains |
 | [Governance Green Paper](TOTEM_GOVERNANCE_GREEN_PAPER.md) | Authority mandates, recursive MAST policy trees, quadratic voting |
 | [Edge Grey Paper](TOTEM_EDGE_GREY_PAPER.md) | Port-injected, transport-agnostic edge runtime |
-| [Tokenomics Gold Paper](TOTEM_TOKENOMICS_GOLD_PAPER.md) | Two-asset model: MINIMA collateral, TOTEM service token |
+| [Network Economics Gold Paper](TOTEM_NETWORK_ECONOMICS_GOLD_PAPER.md) | Progressive decentralisation; MINIMA settlement/collateral where appropriate; `$TOTEM` network coordination & service assurance (gated); DAO stewardship & community-heavy genesis |
 | [RFC-001](docs/rfc/RFC-001-SDK-UPGRADE.md) | SDK upgrade process |
 | [RFC-002](docs/rfc/RFC-002-OMNIA-RUST-WASM-PARITY.md) | Omnia Rust/WASM channel parity (implemented) |
 | [RFC-003](docs/rfc/RFC-003-OMNIA-BUILT-IN-PROGRAMS.md) | Omnia built-in channel programs (implemented) |
