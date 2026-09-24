@@ -153,6 +153,7 @@
 | [rfc/RFC-010-INDUSTRIAL-ACTION-RC.md](rfc/RFC-010-INDUSTRIAL-ACTION-RC.md) | Industrial action to RC — layer `@totemsdk/industrial-action` on the governed edge runtime (`AgentEdgeRuntime`/`EdgeActionRegistry`); two-phase/idempotent execution, cryptographic authority-proof binding, retry/timeout/rollback, authority-bound `EdgeReceipt`s; closes the RFC-004 Wave 2 item (draft) |
 | [rfc/RFC-011-INDUSTRIAL-ACTION-DOMAIN-MODEL.md](rfc/RFC-011-INDUSTRIAL-ACTION-DOMAIN-MODEL.md) | Industrial action domain model & extensibility — units/quantities, resources/assets, interlocks/safe-state, action composition (recipes/sagas), versioning, lifecycle events, device error taxonomy, concurrency/scheduling, standards mapping, and vertical profiles (draft) |
 | [rfc/RFC-012-DECISION-RUNTIME.md](rfc/RFC-012-DECISION-RUNTIME.md) | Decision runtime — provider-neutral typed, constrained, provenance-bound decisions over dynamic candidate spaces (`@totemsdk/decision`); own `decision:*` capability namespace and `EdgeDecisionPort`, sibling to Intelligence, never an Intelligence domain (draft) |
+| [rfc/RFC-013-WALLET-SELF-HOSTED-MODE.md](rfc/RFC-013-WALLET-SELF-HOSTED-MODE.md) | Wallet self-hosted mode — Axia relay default with a user-selectable `ChainStateProvider` opt-out (`@totemsdk/chain-provider`) and wallet-side WOTS lease (`@totemsdk/wots-lease` local + on-chain watermark) with a browser storage adapter; extension + PWA parity (draft) |
 
 ---
 
