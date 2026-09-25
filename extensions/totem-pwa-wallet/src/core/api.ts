@@ -4,7 +4,7 @@
  * Auth strategy: totem-shared public project ID + X-User-Identity-Hash header.
  * No private API key is ever embedded.
  */
-import { sha3_256 } from '@noble/hashes/sha3';
+import { sha3_256 } from '@noble/hashes/sha3.js';
 import type { PortfolioEntry } from '@totemsdk/realtime';
 import { toHex } from './utils';
 

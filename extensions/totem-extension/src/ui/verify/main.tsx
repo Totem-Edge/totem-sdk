@@ -40,6 +40,11 @@ interface PendingVerification {
   capacity?: SignatureCapacity;
 }
 
+// AUD-008: the background binds each popup window to a per-request nonce that
+// is embedded in the URL. It must be echoed back on every message so this popup
+// can only ever read/resolve its own verification request.
+const REQUEST_NONCE = new URLSearchParams(window.location.search).get('nonce') || '';
+
 const CAPACITY_COPY: Record<CapacityLevel, { title: string; body: string; color: string } | null> = {
   ok: null,
   warning: {
@@ -68,19 +73,30 @@ function VerifyApprovalPopup() {
   const [timeRemaining, setTimeRemaining] = useState<string>('');
 
   useEffect(() => {
+    let cancelled = false;
+
+    const fetchChallenge = (windowId: number | null) => {
+      chrome.runtime.sendMessage(
+        { method: 'verify:getChallenge', nonce: REQUEST_NONCE, windowId: windowId ?? undefined },
+        (response) => {
+          if (cancelled) return;
+          if (response?.ok && response.result) {
+            setPending(response.result);
+          } else {
+            setError(response?.error || 'No pending verification request');
+          }
+        }
+      );
+    };
+
     chrome.windows.getCurrent((win) => {
-      if (win?.id) {
-        setCurrentWindowId(win.id);
-      }
+      const winId = win?.id ?? null;
+      if (cancelled) return;
+      setCurrentWindowId(winId);
+      fetchChallenge(winId);
     });
 
-    chrome.runtime.sendMessage({ method: 'verify:getChallenge' }, (response) => {
-      if (response?.ok && response.result) {
-        setPending(response.result);
-      } else {
-        setError(response?.error || 'No pending verification request');
-      }
-    });
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
@@ -131,7 +147,8 @@ function VerifyApprovalPopup() {
     chrome.runtime.sendMessage({
       type: 'verify-approval',
       approved: true,
-      windowId: currentWindowId
+      windowId: currentWindowId,
+      nonce: REQUEST_NONCE
     }, () => {
       window.close();
     });
@@ -141,7 +158,8 @@ function VerifyApprovalPopup() {
     chrome.runtime.sendMessage({
       type: 'verify-approval',
       approved: false,
-      windowId: currentWindowId
+      windowId: currentWindowId,
+      nonce: REQUEST_NONCE
     }, () => {
       window.close();
     });

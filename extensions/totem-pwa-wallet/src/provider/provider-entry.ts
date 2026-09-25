@@ -179,10 +179,16 @@
 
   function openWalletWindow(id: string, method: string, path: string, qs: Record<string, string>, callerOrigin: string, returnUrlOverride?: string): void {
     const returnUrl = returnUrlOverride || window.location.href.split('?')[0];
+    // Per-request nonce scopes the BroadcastChannel so other pages cannot
+    // observe the wallet's response (AUD-041).
+    const nonceBytes = new Uint8Array(16);
+    crypto.getRandomValues(nonceBytes);
+    const nonce = Array.from(nonceBytes, b => b.toString(16).padStart(2, '0')).join('');
     const query = new URLSearchParams({
       ...qs,
       origin: callerOrigin,
       reqId: id,
+      nonce,
       returnUrl,
     }).toString();
     const url = `${WALLET_ORIGIN}${path}?${query}`;
@@ -217,7 +223,7 @@
 
     let bc: BroadcastChannel | null = null;
     try {
-      bc = new BroadcastChannel(`totem_response_${id}`);
+      bc = new BroadcastChannel(`totem_response_${id}_${nonce}`);
       bc.onmessage = (e: MessageEvent) => {
         bc?.close(); bc = null;
         clearInterval(closedCheck);
@@ -338,6 +344,35 @@
     });
   }
 
+  function idbPut(db: IDBDatabase, storeName: string, value: unknown): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(storeName, 'readwrite');
+      tx.objectStore(storeName).put(value);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    });
+  }
+
+  function idbDelete(db: IDBDatabase, storeName: string, key: IDBValidKey): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(storeName, 'readwrite');
+      tx.objectStore(storeName).delete(key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    });
+  }
+
+  function idbGetAll<T>(db: IDBDatabase, storeName: string): Promise<T[]> {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(storeName, 'readonly');
+      const req = tx.objectStore(storeName).getAll();
+      req.onsuccess = () => resolve((req.result ?? []) as T[]);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
   async function handleGrantTxPermission(origin: string, params?: Record<string, unknown>): Promise<unknown> {
     const config = params?.config as Record<string, unknown> | undefined;
     if (!config) return { success: false, error: 'Missing config', errorCode: 'INVALID_PARAMS' };
@@ -350,21 +385,21 @@
       grantedAt: Date.now(),
       expiresAt: Date.now() + ((config.expiresInDays as number ?? 30) * 86400000),
     };
-    await db.put('tx-permissions', perm);
+    await idbPut(db, 'tx-permissions', perm);
     db.close();
     return { success: true };
   }
 
   async function handleRevokeTxPermission(origin: string): Promise<unknown> {
     const db = await openPermissionDb();
-    await db.delete('tx-permissions', origin);
+    await idbDelete(db, 'tx-permissions', origin);
     db.close();
     return { success: true };
   }
 
   async function handleGetTxPermissions(): Promise<unknown> {
     const db = await openPermissionDb();
-    const perms = await db.getAll('tx-permissions');
+    const perms = await idbGetAll<Record<string, unknown>>(db, 'tx-permissions');
     db.close();
     return perms.map((p: Record<string, unknown>) => ({
       origin: p.origin,

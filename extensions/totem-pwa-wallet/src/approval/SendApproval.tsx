@@ -4,86 +4,24 @@
  * Builds a complete TxnRow so /finalize receives the full serialized
  * transaction (not just signature bytes).
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { WalletManager } from '../core/WalletManager';
 import {
   prepareLease, finalizeLease, fetchWatermark,
   fetchCoins, fetchCoinProofs,
 } from '../core/api';
-import { buildTxnRowHex, selectCoins } from '../core/buildTxnRow';
+import { buildTxnRowHex, normalizeAddressToHex, selectCoins } from '../core/buildTxnRow';
 import { track } from '../core/observability';
-
-/**
- * Derive the caller origin from a trusted source.
- * - For protocol-handler (native app) calls: use the ?origin= param directly
- *   (the protocol handler page validates the returnUrl before forwarding)
- * - For web dApps: document.referrer is set by the browser when a popup/tab
- *   is opened from a page and cannot be spoofed via URL query-param manipulation.
- *   The ?origin= param is used only as a fallback for the redirect flow (where
- *   the browser clears the referrer on full-page navigation).
- */
-function trustedCallerOrigin(): string {
-  const params = new URLSearchParams(window.location.search);
-  const source = params.get('source');
-  if (source === 'protocol-handler') {
-    const fromParam = params.get('origin');
-    return fromParam ? decodeURIComponent(fromParam) : 'native-app://unknown';
-  }
-  if (document.referrer) {
-    try { return new URL(document.referrer).origin; } catch { /* malformed */ }
-  }
-  const fromParam = params.get('origin');
-  return fromParam ? decodeURIComponent(fromParam) : 'Unknown dApp';
-}
+import { parseApprovalContext, sendApprovalResult } from './approvalContext';
 
 function getParams() {
   const url = new URL(window.location.href);
   return {
-    origin: trustedCallerOrigin(),
     to: url.searchParams.get('to') ?? '',
     amount: url.searchParams.get('amount') ?? '0',
     tokenId: url.searchParams.get('tokenId') ?? '0x00',
-    reqId: url.searchParams.get('reqId') ?? '',
     mode: url.searchParams.get('mode') ?? 'submit',
   };
-}
-
-function isPopup(): boolean { return window.opener !== null; }
-
-function isCustomScheme(url: string): boolean {
-  try { return !['https:', 'http:'].includes(new URL(url).protocol); } catch { return true; }
-}
-
-function sendResult(result: unknown, error?: string, reqId?: string) {
-  const payload = { type: 'totem_response', reqId, result, error };
-  const url = new URL(window.location.href);
-  const returnUrl = url.searchParams.get('returnUrl');
-
-  if (returnUrl && isCustomScheme(returnUrl)) {
-    const ret = new URL(returnUrl);
-    ret.searchParams.set('totem_result', btoa(JSON.stringify(error ? { error } : result)));
-    if (reqId) ret.searchParams.set('totem_reqid', reqId);
-    window.location.href = ret.toString();
-    return;
-  }
-
-  if (reqId) {
-    try {
-      const bc = new BroadcastChannel(`totem_response_${reqId}`);
-      bc.postMessage(payload);
-      setTimeout(() => bc.close(), 200);
-    } catch { /* BroadcastChannel not supported */ }
-  }
-
-  if (isPopup()) {
-    window.opener?.postMessage(payload, '*');
-    setTimeout(() => window.close(), 100);
-  } else if (returnUrl) {
-    const ret = new URL(returnUrl);
-    ret.searchParams.set('totem_result', btoa(JSON.stringify(error ? { error } : result)));
-    if (reqId) ret.searchParams.set('totem_reqid', reqId);
-    window.location.href = ret.toString();
-  }
 }
 
 export function SendApproval() {
@@ -92,7 +30,9 @@ export function SendApproval() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
-  const { origin, to, amount, tokenId, reqId, mode } = getParams();
+  const ctx = useMemo(parseApprovalContext, []);
+  const { to, amount, tokenId, mode } = getParams();
+  const isBuildMode = mode === 'build';
 
   useEffect(() => {
     if (!WalletManager.isUnlocked()) setStep('password');
@@ -114,11 +54,15 @@ export function SendApproval() {
   async function handleSend() {
     const session = WalletManager.getSession();
     const account = session?.accounts.find(a => a.index === session.activeIndex);
-    if (!session || !account) { sendResult(undefined, 'Wallet not ready', reqId); return; }
+    if (!session || !account) { sendApprovalResult(ctx, undefined, 'Wallet not ready'); return; }
 
     setStep('sending');
 
     try {
+      // Validate/normalise both addresses before any network or signing work (AUD-036)
+      const fromHex = normalizeAddressToHex(account.address);
+      const toHex   = normalizeAddressToHex(to);
+
       setStatusMsg('Syncing watermark…');
       await fetchWatermark(session.rootPublicKey, session.identityHash);
 
@@ -127,8 +71,6 @@ export function SendApproval() {
       if (!coins.length) throw new Error('No spendable coins found for this address.');
 
       const { selected, changeAmount } = selectCoins(coins, amount, tokenId);
-      const fromHex = account.address.replace(/^0x/i, '').padStart(64, '0');
-      const toHex   = to.replace(/^0x/i, '').padStart(64, '0');
 
       setStatusMsg('Requesting signing lease…');
       const txId = `dapp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -150,9 +92,9 @@ export function SendApproval() {
         throw new Error('Failed to fetch all CoinProofs. Some coins may be unconfirmed.');
       }
 
-      setStatusMsg('Building and signing transaction…');
-      const treeKey = await WalletManager.getActiveTreeKey();
-      const { txnRowHex } = await buildTxnRowHex({
+      setStatusMsg(isBuildMode ? 'Building transaction…' : 'Building and signing transaction…');
+      const treeKey = isBuildMode ? undefined : await WalletManager.getActiveTreeKey();
+      const { txnRowHex, digestTx } = await buildTxnRowHex({
         txId,
         treeKey,
         inputCoinProofsHex: coinProofHexes,
@@ -163,18 +105,18 @@ export function SendApproval() {
         perAddressPublicKey: account.publicKey,
         l1: lease.l1,
         l2: lease.l2,
+        sign: !isBuildMode,
       });
 
-      // Persist parent-child sig proofs so next sign is fast
-      await WalletManager.flushSigCache();
-
-      if (mode === 'build') {
-        // Build mode — return unsigned hex + plan without broadcasting
-        sendResult({
+      if (isBuildMode) {
+        // Build mode — return the UNSIGNED serialized Transaction + plan.
+        // No WOTS leaf is consumed and nothing is broadcast (AUD-040).
+        sendApprovalResult(ctx, {
           success: true,
           mode: 'build',
           unsignedHex: txnRowHex,
-          digestTx: '',
+          digestTx,
+          signed: false,
           plan: {
             inputs: selected.map(c => ({ coinId: c.coinid, amount: c.amount, tokenId: c.tokenid, address: c.address })),
             outputs: [{ address: to, amount, tokenId }],
@@ -193,9 +135,12 @@ export function SendApproval() {
           blobHash: '',
           detectedIntent: 'send',
           scriptTypes: ['signedby'],
-        }, undefined, reqId);
+        });
         return;
       }
+
+      // Persist parent-child sig proofs so next sign is fast
+      await WalletManager.flushSigCache();
 
       setStatusMsg('Broadcasting…');
       track('send:broadcast', { identityHash: session.identityHash });
@@ -204,13 +149,13 @@ export function SendApproval() {
         session.identityHash,
       );
       track('send:success', { identityHash: session.identityHash });
-      sendResult({
+      sendApprovalResult(ctx, {
         success: true,
         txpowid: result.txid ?? txId,
         status: 'submitted',
-      }, undefined, reqId);
+      });
     } catch (e) {
-      sendResult(undefined, String(e), reqId);
+      sendApprovalResult(ctx, undefined, String(e));
     }
   }
 
@@ -222,7 +167,7 @@ export function SendApproval() {
           fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-bold)',
           letterSpacing: 'var(--tracking-wider)', textTransform: 'uppercase',
         }}>CONFIRM TRANSACTION</h2>
-        <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)', marginTop: 4 }}>{origin}</p>
+        <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)', marginTop: 4 }}>{ctx.origin}</p>
       </div>
 
       {step === 'password' && (
@@ -236,7 +181,7 @@ export function SendApproval() {
             {loading ? <span className="spinner" /> : 'Unlock →'}
           </button>
           <button className="btn btn-secondary btn-full" style={{ marginTop: 'var(--space-1)' }}
-            onClick={() => sendResult(undefined, 'User rejected', reqId)}>Reject</button>
+            onClick={() => sendApprovalResult(ctx, undefined, 'User rejected')}>Reject</button>
         </div>
       )}
 
@@ -261,7 +206,7 @@ export function SendApproval() {
           </div>
           <button className="btn btn-primary btn-full" onClick={handleSend}>Approve & Send →</button>
           <button className="btn btn-secondary btn-full" style={{ marginTop: 'var(--space-1)' }}
-            onClick={() => sendResult(undefined, 'User rejected', reqId)}>Reject</button>
+            onClick={() => sendApprovalResult(ctx, undefined, 'User rejected')}>Reject</button>
         </div>
       )}
 

@@ -22,6 +22,7 @@ import {
 } from '@totemsdk/core';
 import { VaultStore, type AccountRecord } from '../stores/VaultStore';
 import { SigCacheStore } from '../stores/SigCacheStore';
+import { WotsUsesStore } from '../stores/WotsUsesStore';
 import { computeIdentityHash, fetchWatermark } from './api';
 import { toHex } from './utils';
 
@@ -40,6 +41,15 @@ let _pendingMnemonic: string | null = null;
 
 /** Cached TreeKeys for the active session (index → TreeKey) */
 const _treeKeyCache = new Map<number, TreeKey>();
+
+/**
+ * Parent-signature cache is scoped per account index. Keying only by the
+ * wallet-wide rootPublicKey let different account indices clobber/restore each
+ * other's proofs (AUD-042).
+ */
+function sigCacheKey(rootPublicKey: string, index: number): string {
+  return `${rootPublicKey}:${index}`;
+}
 
 // ── Web Worker for off-main-thread address derivation ──────────────────────
 let _keyWorker: Worker | null = null;
@@ -239,9 +249,10 @@ export const WalletManager = {
     const idx = _session.activeIndex;
     if (_treeKeyCache.has(idx)) return _treeKeyCache.get(idx)!;
     const treeKey = await createUnifiedChildTreeKeyAsync(_session.seed, idx);
-    // Restore persisted parent→child sig proofs so fast-path signing is available
+    // Restore persisted parent→child sig proofs so fast-path signing is available.
+    // Only the active index's cache is restored — never another account's proofs.
     try {
-      const stored = await SigCacheStore.getCacheForWallet(_session.rootPublicKey);
+      const stored = await SigCacheStore.getCacheForWallet(sigCacheKey(_session.rootPublicKey, idx));
       if (stored && Array.isArray(stored) && stored.length > 0) {
         treeKey.restoreCachedSignatures(new Map(stored as Array<[string, SignatureProof]>));
       }
@@ -251,16 +262,33 @@ export const WalletManager = {
   },
 
   /**
+   * Reserve a unique WOTS `uses` index for the active account for signing paths
+   * that are not driven by a server lease (message signing / TOTEM_VERIFY).
+   *
+   * Allocates top-down from the tree so it cannot immediately collide with the
+   * bottom-up transaction path, and persists the cursor so indices never repeat
+   * across popups/sessions (AUD-001).
+   */
+  async reserveNextUse(): Promise<number> {
+    if (!_session) throw new Error('Wallet locked');
+    const treeKey = await this.getActiveTreeKey();
+    return WotsUsesStore.reserveFromTop(
+      sigCacheKey(_session.rootPublicKey, _session.activeIndex),
+      treeKey.getMaxUses(),
+    );
+  },
+
+  /**
    * Persist parent-child sig proofs from all cached TreeKeys to IndexedDB so
    * subsequent signs skip the expensive parent-node computation.
    */
   async flushSigCache(): Promise<void> {
     if (!_session) return;
-    for (const treeKey of _treeKeyCache.values()) {
+    for (const [idx, treeKey] of _treeKeyCache.entries()) {
       const cache = treeKey.getCachedSignatures();
       if (cache.size > 0) {
         await SigCacheStore.saveCacheForWallet(
-          _session.rootPublicKey,
+          sigCacheKey(_session.rootPublicKey, idx),
           [...cache.entries()],
         );
       }
@@ -269,12 +297,12 @@ export const WalletManager = {
 
   async getSigCache(): Promise<unknown | null> {
     if (!_session) return null;
-    return SigCacheStore.getCacheForWallet(_session.rootPublicKey);
+    return SigCacheStore.getCacheForWallet(sigCacheKey(_session.rootPublicKey, _session.activeIndex));
   },
 
   async saveSigCache(data: unknown): Promise<void> {
     if (!_session) return;
-    await SigCacheStore.saveCacheForWallet(_session.rootPublicKey, data);
+    await SigCacheStore.saveCacheForWallet(sigCacheKey(_session.rootPublicKey, _session.activeIndex), data);
   },
 
   async isBackupConfirmed(): Promise<boolean> { return VaultStore.isBackupConfirmed(); },
@@ -288,7 +316,7 @@ export const WalletManager = {
 
   // ── Periodic watermark sync ────────────────────────────────────────────
 
-  _watermarkInterval: ReturnType<typeof setInterval> | null = null,
+  _watermarkInterval: null as ReturnType<typeof setInterval> | null,
 
   startWatermarkSync(intervalMs = 60000): void {
     this.stopWatermarkSync();
@@ -311,6 +339,7 @@ export const WalletManager = {
     WalletManager.lock();
     await VaultStore.clearAll();
     await SigCacheStore.clearAll();
+    await WotsUsesStore.clearAll();
     if (_keyWorker) { _keyWorker.terminate(); _keyWorker = null; _workerReady = false; }
   },
 };

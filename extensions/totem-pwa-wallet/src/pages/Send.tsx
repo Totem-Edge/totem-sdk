@@ -13,7 +13,7 @@ import {
   fetchCoins, fetchCoinProofs, fetchPortfolio, type PortfolioEntry,
 } from '../core/api';
 import { WalletManager } from '../core/WalletManager';
-import { buildTxnRowHex, selectCoins } from '../core/buildTxnRow';
+import { buildTxnRowHex, normalizeAddressToHex, selectCoins } from '../core/buildTxnRow';
 import { track } from '../core/observability';
 
 type Step = 'form' | 'confirm' | 'signing' | 'done' | 'error';
@@ -45,6 +45,11 @@ export function Send() {
 
   function validateForm(): string | null {
     if (!toAddress.trim()) return 'Recipient address required.';
+    try {
+      normalizeAddressToHex(toAddress);
+    } catch (e) {
+      return `Invalid recipient address: ${(e as Error).message}`;
+    }
     if (!amount.trim() || isNaN(Number(amount)) || Number(amount) <= 0) return 'Invalid amount.';
     return null;
   }
@@ -63,8 +68,8 @@ export function Send() {
       if (!coins.length) throw new Error('No spendable coins found for this address.');
 
       const { selected, changeAmount } = selectCoins(coins, amount, tokenId);
-      const fromHex = activeAccount.address.replace(/^0x/i, '').padStart(64, '0');
-      const toHex   = toAddress.replace(/^0x/i, '').padStart(64, '0');
+      const fromHex = normalizeAddressToHex(activeAccount.address);
+      const toHex   = normalizeAddressToHex(toAddress);
 
       setStatusMsg('Requesting signing lease…');
       const genTxId = `pwa-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;

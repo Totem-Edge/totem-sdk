@@ -40,6 +40,12 @@ export interface AddressWatermark {
   next_l1: number;
   next_l2: number;
   usedIndices: Array<[number, number]>;
+  /**
+   * Slots that were atomically reserved and then released before signing
+   * (e.g. the user rejected the request, or the challenge expired). These
+   * leaves were never consumed and are safe to hand out again.
+   */
+  releasedIndices?: Array<[number, number]>;
 }
 
 export interface WatermarkState {
@@ -284,6 +290,108 @@ export class WatermarkStore {
       addrWm.usedIndices.push([indices.l1, indices.l2]);
     } else {
       console.warn(`[WatermarkStore] Indices already used: address=${indices.addressIndex}, (l1=${indices.l1}, l2=${indices.l2})`);
+    }
+
+    // A slot that was reserved from the released pool is now genuinely used —
+    // remove it from the pool so it can never be handed out again.
+    if (addrWm.releasedIndices && addrWm.releasedIndices.length > 0) {
+      addrWm.releasedIndices = addrWm.releasedIndices.filter(
+        ([l1, l2]) => !(l1 === indices.l1 && l2 === indices.l2)
+      );
+    }
+
+    await this.save(this.state);
+  }
+
+  /**
+   * Atomically reserve the next unused signing slot for an address.
+   *
+   * Unlike {@link getNextIndicesForAddress} (a non-reserving read), this method
+   * immediately advances the watermark and persists it before returning, so two
+   * concurrent callers can never be handed the same WOTS leaf. Previously
+   * released-but-unsigned slots are reused first to avoid leaking capacity.
+   *
+   * Callers MUST call {@link markUsed} after a successful signature, or
+   * {@link releaseReservation} if the request is rejected/expired before signing.
+   */
+  async reserveNextIndicesForAddress(addressIndex: number): Promise<SigningIndices | null> {
+    if (!this.state) {
+      await this.load();
+    }
+
+    if (!this.state) {
+      throw new Error('Watermark not initialized');
+    }
+
+    if (this._legacyDetected) {
+      throw new Error('Signing blocked: legacy watermark format requires migration');
+    }
+
+    const addrWm = this.getOrCreateAddressWatermark(addressIndex);
+
+    // Reuse a previously released slot first (sorted ascending).
+    const released = Array.isArray(addrWm.releasedIndices)
+      ? addrWm.releasedIndices
+      : (addrWm.releasedIndices = []);
+    while (released.length > 0) {
+      const [l1, l2] = released.shift()!;
+      const alreadyUsed = addrWm.usedIndices.some(([u1, u2]) => u1 === l1 && u2 === l2);
+      if (!alreadyUsed) {
+        await this.save(this.state);
+        return { addressIndex, l1, l2 };
+      }
+    }
+
+    if (this.isAddressExhausted(addressIndex)) {
+      return null;
+    }
+
+    const indices: SigningIndices = {
+      addressIndex,
+      l1: addrWm.next_l1,
+      l2: addrWm.next_l2
+    };
+
+    const next = this.calculateNextPerAddressIndices({ l1: indices.l1, l2: indices.l2 });
+    addrWm.next_l1 = next.l1;
+    addrWm.next_l2 = next.l2;
+
+    await this.save(this.state);
+    return indices;
+  }
+
+  /**
+   * Release a reservation that was never signed (user rejected / challenge
+   * expired). The slot is returned to the reusable pool so the address does not
+   * leak one-time-signature capacity. Slots that were already marked used are
+   * ignored, so a signed leaf can never be recycled.
+   */
+  async releaseReservation(indices: SigningIndices): Promise<void> {
+    if (!this.state) {
+      await this.load();
+    }
+
+    if (!this.state || this._legacyDetected) {
+      return;
+    }
+
+    const addrWm = this.getOrCreateAddressWatermark(indices.addressIndex);
+    const { l1, l2 } = indices;
+
+    const alreadyUsed = addrWm.usedIndices.some(([u1, u2]) => u1 === l1 && u2 === l2);
+    if (alreadyUsed) {
+      return;
+    }
+
+    const released = Array.isArray(addrWm.releasedIndices)
+      ? addrWm.releasedIndices
+      : (addrWm.releasedIndices = []);
+    if (!released.some(([r1, r2]) => r1 === l1 && r2 === l2)) {
+      released.push([l1, l2]);
+      released.sort(
+        (a, b) =>
+          this.flattenPerAddressIndex(a[0], a[1]) - this.flattenPerAddressIndex(b[0], b[1])
+      );
     }
 
     await this.save(this.state);

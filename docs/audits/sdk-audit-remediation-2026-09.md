@@ -20,9 +20,9 @@
 
 | Status | Count |
 |---|---|
-| FIXED | 33 |
-| PARTIAL | 2 |
-| OPEN | 11 |
+| FIXED | 42 |
+| PARTIAL | 3 |
+| OPEN | 1 |
 | **Total** | **46** |
 
 Backlog (gap analysis, not part of the 46): see §4.
@@ -103,14 +103,14 @@ tests**. It is fixed here.
 
 | ID | P | Finding | Status | Evidence / next action |
 |---|---|---|---|---|
-| AUD-001 | P1 | PWA message signing reuses a one-time key across popups/unlocks | OPEN | `extensions/totem-pwa-wallet/src/approval/VerifyApproval.tsx:129`. Reserve a durable slot before every signature; coordinate across tabs. |
-| AUD-002 | P1 | Extension verification requests capture the same WOTS slot before approval | OPEN | `extensions/totem-extension/src/background/index.ts:2638`. Reserve at request time, not approval time. |
+| AUD-001 | P1 | PWA message signing reuses a one-time key across popups/unlocks | FIXED | `extensions/totem-pwa-wallet`. Per-address persistent uses counter (`WotsUsesStore`) + explicit `setUses` before signing. Residual: message signatures are not server-coordinated (local watermark only). |
+| AUD-002 | P1 | Extension verification requests capture the same WOTS slot before approval | FIXED | `extensions/totem-extension/src/background/index.ts` + `WatermarkStore`. Atomic `reserveNextIndicesForAddress` before the popup, release on reject, signing mutex. |
 | AUD-003 | P1 | SE server signs every message with WOTS key index zero | FIXED | `packages/se-server/src/seKey.ts` — monotonic index selection; covered by package tests. |
 | AUD-004 | P1 | Separate local lease providers allocate the same WOTS slot | FIXED | `packages/wots-lease/src/local.ts`. Per-slot CAS claim (`conditionalUpdate`) when the adapter supports it; two-FileStore concurrent test added. Residual: a crash between claim and journal write leaks a slot (safe direction). |
 | AUD-005 | P1 | Specific reservations can go behind a synchronized watermark | FIXED | `packages/wots-lease/src/watermark.ts`. |
 | AUD-006 | P1 | Registry signing defaults repeatedly select the same WOTS indices | FIXED | `packages/liquidity-bond/src/root.ts`. |
-| AUD-007 | P1 | Extension dApps can impersonate another connected origin | OPEN | `extensions/totem-extension/src/background/index.ts:1004`. Bind origin at connect and check per request. |
-| AUD-008 | P1 | Extension popup details are not bound to the window being approved | OPEN | `extensions/totem-extension/src/background/index.ts:404`. |
+| AUD-007 | P1 | Extension dApps can impersonate another connected origin | FIXED | `extensions/totem-extension/src/background/index.ts`. Dispatcher overwrites `params.origin` with the browser-verified `sender.tab.url` origin for DApp callers. |
+| AUD-008 | P1 | Extension popup details are not bound to the window being approved | FIXED | `extensions/totem-extension/src/background/index.ts` + `src/ui/verify/main.tsx`. Window-keyed challenge map with a per-window nonce; no blanket clear. |
 | AUD-009 | P1 | Omnia control API accepts unauthenticated requests from untrusted WebSocket origins | FIXED | `packages/omnia-host/src/api/jsonrpc.ts`. Origin allowlist + optional bearer token on HTTP and WS upgrade; env `OMNIA_ALLOWED_ORIGINS`/`OMNIA_CONTROL_TOKEN`; `jsonrpc.test.ts` added. |
 | AUD-010 | P1 | Minima RPC parameter interpolation allows command injection | FIXED | `packages/minima-rpc/src/transport.ts`. `sanitizeRpcValue` now rejects whitespace; every interpolated branch uses `pushParam`; injection test added. |
 | AUD-011 | P1 | RPC transport repeats operations after ambiguous failures | FIXED | `packages/minima-rpc/src/transport.ts`. Retry/raw fallback gated on `retryable` (default false); read-only commands opt in; write + `runCommand` fail closed. |
@@ -130,7 +130,7 @@ tests**. It is fixed here.
 | AUD-025 | P1 | SE advertises a public key unrelated to its real WOTS signer | FIXED | `packages/se-server/src/seKey.ts`. |
 | AUD-026 | P1 | SE owner authentication does not bind operation/request body | FIXED | `packages/se-server/src/router.ts`. |
 | AUD-027 | P1 | SE ownership changes race against stale database snapshots | FIXED | `packages/se-server/src/router.ts`. |
-| AUD-028 | P1 | HTTP statechain registration is a no-op after funding | OPEN | `packages/statechain/src/httpClient.ts:106`. Implement post-funding registration. |
+| AUD-028 | P1 | HTTP statechain registration is a no-op after funding | OPEN | `packages/statechain/src/httpClient.ts:133`. SE-server registration is `/create`-based; the client-initiated `createStateChain` flow calls `registerChain` with too little data (no partyId/tokenId/reclaimTxHex) for the existing record, and no `/register` endpoint exists. Needs a cross-package design (endpoint + auth) or removal of the misleading no-op. |
 | AUD-029 | P2 | SE claim endpoint signs the text of hex rather than the tx digest | PARTIAL | `packages/se-server/src/router.ts:267`. Digest signing fixed (signs `computeTransactionDigest`); missing confirmation state machine — status flips `active`→`claimed` immediately with no `claiming` intermediate state, broadcast/confirmation check, or persisted txpowId. |
 | AUD-030 | P1 | MQTT signatures do not bind the payload sent to the executor | FIXED | `packages/edge-mqtt/src/command-handler.ts`. Canonical payload hash checked against `envelope.payloadHash` before execution; tamper test added. |
 | AUD-031 | P1 | MQTT signature verification bypassed by legacy unsigned path | FIXED | `packages/edge-mqtt/src/command-handler.ts`. `requireSignedCommands` defaults true; unsigned/malformed envelopes rejected; legacy mode behind explicit opt-out. |
@@ -138,14 +138,14 @@ tests**. It is fixed here.
 | AUD-033 | P1 | FileStore conditional updates are not atomic CAS | FIXED | `packages/storage/src/adapters/file-store.ts`. |
 | AUD-034 | P2 | Storage codec confuses ordinary objects with reserved type tags | FIXED | `packages/storage/src/codec.ts`. |
 | AUD-035 | P1 | Trust index accepts forged reviewer records with verification enabled | FIXED | `packages/lookup-node/src/trust.ts`. Fails closed without a real verifier; `verifyReviewerSignature` config; session key binding; `trust.test.ts` added. |
-| AUD-036 | P1 | PWA send converts normal Mx addresses into unrelated bytes | OPEN | `extensions/totem-pwa-wallet/src/pages/Send.tsx:66`. |
-| AUD-037 | P2 | PWA coin selection truncates precision needed by serialization | OPEN | `extensions/totem-pwa-wallet/src/core/buildTxnRow.ts:479`. |
+| AUD-036 | P1 | PWA send converts normal Mx addresses into unrelated bytes | FIXED | `extensions/totem-pwa-wallet/src/pages/Send.tsx` + `SendApproval.tsx` + `buildTxnRow.ts`. Mx/hex normalization with checksum/length validation before signing. |
+| AUD-037 | P2 | PWA coin selection truncates precision needed by serialization | FIXED | `extensions/totem-pwa-wallet/src/core/buildTxnRow.ts`. 44-decimal selection, throws on over-precision, `sum(inputs) === toAmount + change` invariant. |
 | AUD-038 | P2 | Deposit verification rounds underfunded claims down | FIXED | `packages/chain-provider/src/verify-deposit.ts`. `compareAmounts` compares at a derived common scale; higher-precision claim tests added. |
 | AUD-039 | P2 | Deposit-verifier wrapper removes class provider methods | FIXED | `packages/chain-provider/src/verify-deposit.ts`. `withDepositVerifier` uses `Object.create(provider)`; class-instance regression test added. |
-| AUD-040 | P1 | PWA build mode returns a signed transaction as `unsignedHex` | OPEN | `extensions/totem-pwa-wallet/src/approval/SendApproval.tsx:171`. |
-| AUD-041 | P1 | PWA approval origin and return channel can be spoofed | OPEN | `extensions/totem-pwa-wallet/src/approval/VerifyApproval.tsx:22`. |
-| AUD-042 | P2 | PWA parent-signature cache shared across different account keys | OPEN | `extensions/totem-pwa-wallet/src/core/WalletManager.ts:262`. |
-| AUD-043 | P2 | PWA cannot build from current source/dependencies | OPEN | `extensions/totem-pwa-wallet/src/core/WalletManager.ts:291`. Build blocker. |
+| AUD-040 | P1 | PWA build mode returns a signed transaction as `unsignedHex` | FIXED | `extensions/totem-pwa-wallet/src/approval/SendApproval.tsx` + `buildTxnRow.ts`. Build mode takes `sign:false`, skips signing/witness/`flushSigCache`, consumes no WOTS leaf. |
+| AUD-041 | P1 | PWA approval origin and return channel can be spoofed | PARTIAL | `extensions/totem-pwa-wallet/src/approval/approvalContext.ts`. Verify/Send now use a trusted display origin, explicit `postMessage` targetOrigin, scheme-allowlisted returns, nonce-scoped channel. Residual: `ConnectApproval.tsx` still uses `postMessage('*')`/caller-supplied origin for display. |
+| AUD-042 | P2 | PWA parent-signature cache shared across different account keys | FIXED | `extensions/totem-pwa-wallet/src/core/WalletManager.ts`. Cache keyed per account (`rootPublicKey:idx`); restore only for the active index. |
+| AUD-043 | P2 | PWA cannot build from current source/dependencies | FIXED | `extensions/totem-pwa-wallet`. Syntax blocker, `@noble/hashes/sha3.js` imports, and IDB object-store calls fixed; `npx tsc --noEmit` is clean. |
 | AUD-044 | P2 | Quorum commits use the local reservation ID for every peer | FIXED | `packages/wots-lease/src/quorum.ts`. Peer-issued reservation ids captured in `QuorumAttestation.peerReservationId` and used per peer on commit/burn; tests updated. |
 | AUD-045 | P1 | Go SE cryptography is a placeholder, not interoperable WOTS | FIXED | `packages/se-server/go/sekey.go`. |
 | AUD-046 | P2 | Native-token coin selection can select unrelated tokens | FIXED | `packages/tx-builder/src/coin-selection.ts` + Rust mirror. Always filters; native accepts `0x00`/`0x01`; TS + cargo tests added. |

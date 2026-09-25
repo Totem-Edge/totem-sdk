@@ -41,6 +41,28 @@ const TX_POLL_INTERVAL = 2000; // 2 seconds
 const TX_POLL_TIMEOUT = 120000; // 2 minutes
 
 // =========================================================================
+// AUD-002: Single in-flight queue for WOTS index allocation + signing.
+// Serializes reserve/release/markUsed so concurrent verify/sign requests can
+// never observe or reuse the same one-time-signature leaf.
+// =========================================================================
+let signingLock: Promise<unknown> = Promise.resolve();
+
+function withSigningLock<T>(fn: () => Promise<T>): Promise<T> {
+  const run = signingLock.then(fn, fn);
+  signingLock = run.then(
+    () => undefined,
+    () => undefined
+  );
+  return run;
+}
+
+function generateVerifyNonce(): string {
+  const buf = new Uint8Array(16);
+  crypto.getRandomValues(buf);
+  return Array.from(buf).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// =========================================================================
 // Local TxPoW Mining Setup
 // Set the WASM URL so the miner can fetch it via chrome.runtime.getURL.
 // This is a no-op if the extension is not an extension context.
@@ -285,9 +307,16 @@ interface PendingVerification {
     level: 'ok' | 'warning' | 'critical' | 'exhausted';
   };
   resolveCallback?: (approved: boolean) => void;
+  /** AUD-008: per-window nonce embedded in the verify.html popup URL. */
+  requestNonce?: string;
+  /** AUD-008: window that owns this verification request. */
+  windowId?: number;
 }
 
-let pendingVerifyChallenge: PendingVerification | null = null;
+// AUD-008: verify approvals are keyed by window (and nonce) so overlapping
+// requests can never read or resolve each other's challenge.
+const pendingVerifyChallenges = new Map<number, PendingVerification>();
+const pendingVerifyByNonce = new Map<string, PendingVerification>();
 
 const pendingVerifyCallbacks = new Map<number, (approved: boolean) => void>();
 
@@ -401,12 +430,17 @@ async function showProveOwnershipPopup(req: PendingProveOwnershipRequest): Promi
 
 async function showVerifyApprovalPopup(pendingVerify: PendingVerification): Promise<boolean> {
   return new Promise((resolve) => {
-    pendingVerifyChallenge = { ...pendingVerify, resolveCallback: resolve };
-    
+    // AUD-008: bind the popup to this specific request with a nonce so
+    // overlapping requests cannot read or resolve one another.
+    const requestNonce = generateVerifyNonce();
+    const record: PendingVerification = { ...pendingVerify, requestNonce, resolveCallback: resolve };
+    pendingVerifyByNonce.set(requestNonce, record);
+
     const approvalUrl = chrome.runtime.getURL('verify.html');
-    
+    const url = `${approvalUrl}?nonce=${encodeURIComponent(requestNonce)}`;
+
     chrome.windows.create({
-      url: approvalUrl,
+      url,
       type: 'popup',
       width: 400,
       height: 650,
@@ -414,14 +448,17 @@ async function showVerifyApprovalPopup(pendingVerify: PendingVerification): Prom
     }, (window) => {
       if (window?.id) {
         console.log('[Background] Opened verify approval popup, windowId:', window.id);
+        record.windowId = window.id;
+        pendingVerifyChallenges.set(window.id, record);
         pendingVerifyCallbacks.set(window.id, resolve);
-        
+
         const removedListener = (windowId: number) => {
           if (windowId === window.id) {
             if (pendingVerifyCallbacks.has(windowId)) {
               console.log('[Background] Verify approval window closed without response');
               pendingVerifyCallbacks.delete(windowId);
-              pendingVerifyChallenge = null;
+              pendingVerifyChallenges.delete(windowId);
+              pendingVerifyByNonce.delete(requestNonce);
               resolve(false);
             }
             chrome.windows.onRemoved.removeListener(removedListener);
@@ -434,7 +471,7 @@ async function showVerifyApprovalPopup(pendingVerify: PendingVerification): Prom
         chrome.windows.onRemoved.addListener(removedListener);
       } else {
         console.error('[Background] Failed to open verify approval popup');
-        pendingVerifyChallenge = null;
+        pendingVerifyByNonce.delete(requestNonce);
         resolve(false);
       }
     });
@@ -664,41 +701,66 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === 'verify-approval') {
-    const windowId = sender.tab?.windowId || message.windowId;
-    console.log('[Background] Received verify-approval response:', { approved: message.approved, windowId });
-    
-    const callback = pendingVerifyCallbacks.get(windowId);
-    if (callback) {
-      pendingVerifyCallbacks.delete(windowId);
-      
-      const cleanupListener = windowRemoveListeners.get(windowId);
-      if (cleanupListener) {
-        cleanupListener();
-        windowRemoveListeners.delete(windowId);
+    const windowId = sender.tab?.windowId ?? message.windowId;
+    const requestNonce: string | undefined = message.nonce;
+    console.log('[Background] Received verify-approval response:', { approved: message.approved, windowId, requestNonce });
+
+    // AUD-008: resolve only the request that matches this window AND nonce.
+    const record =
+      (requestNonce ? pendingVerifyByNonce.get(requestNonce) : undefined) ??
+      (typeof windowId === 'number' ? pendingVerifyChallenges.get(windowId) : undefined);
+
+    const windowMatches =
+      !!record && (record.windowId === undefined || windowId === undefined || record.windowId === windowId);
+    const nonceMatches = !!record && (!requestNonce || record.requestNonce === requestNonce);
+
+    if (record && windowMatches && nonceMatches) {
+      const callback = record.windowId !== undefined ? pendingVerifyCallbacks.get(record.windowId) : undefined;
+
+      if (record.windowId !== undefined) {
+        pendingVerifyCallbacks.delete(record.windowId);
+        pendingVerifyChallenges.delete(record.windowId);
+        const cleanupListener = windowRemoveListeners.get(record.windowId);
+        if (cleanupListener) {
+          cleanupListener();
+          windowRemoveListeners.delete(record.windowId);
+        }
       }
-      
-      callback(message.approved === true);
+      if (record.requestNonce) {
+        pendingVerifyByNonce.delete(record.requestNonce);
+      }
+
+      (callback ?? record.resolveCallback)?.(message.approved === true);
     }
-    pendingVerifyChallenge = null;
   }
   
   if (message.method === 'verify:getChallenge') {
-    console.log('[Background] verify:getChallenge called, pending:', !!pendingVerifyChallenge);
-    if (pendingVerifyChallenge) {
+    const windowId = sender.tab?.windowId ?? message.windowId;
+    const requestNonce: string | undefined = message.nonce;
+    console.log('[Background] verify:getChallenge called, nonce:', requestNonce, 'windowId:', windowId);
+
+    // AUD-008: a caller must present the nonce and the request must belong to
+    // the requesting window. There is no global "current challenge" anymore.
+    const record = requestNonce ? pendingVerifyByNonce.get(requestNonce) : undefined;
+    const nonceMatches = !!record && record.requestNonce === requestNonce;
+    const windowMatches =
+      !!record && (record.windowId === undefined || windowId === undefined || record.windowId === windowId);
+
+    if (record && nonceMatches && windowMatches) {
       sendResponse({
         ok: true,
         result: {
-          challenge: pendingVerifyChallenge.challenge,
-          rawMessage: pendingVerifyChallenge.rawMessage,
-          addressIndex: pendingVerifyChallenge.addressIndex,
-          minimaAddress: pendingVerifyChallenge.minimaAddress,
-          origin: pendingVerifyChallenge.origin,
-          wotsIndices: pendingVerifyChallenge.wotsIndices,
-          capacity: pendingVerifyChallenge.capacity
+          challenge: record.challenge,
+          rawMessage: record.rawMessage,
+          addressIndex: record.addressIndex,
+          minimaAddress: record.minimaAddress,
+          origin: record.origin,
+          wotsIndices: record.wotsIndices,
+          capacity: record.capacity
         }
       });
     } else {
-      sendResponse({ ok: false, error: 'No pending verification request' });
+      sendResponse({ ok: false, error: 'No pending verification request for this window' });
     }
     return true;
   }
@@ -1001,12 +1063,31 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 async function handleMessage(request: any, sender: chrome.runtime.MessageSender) {
-  const { method, params, id, type } = request;
+  const { method, id, type } = request;
+  let params = request.params;
   const messageType = type || method; // Support both 'type' and 'method' for compatibility
 
-  if (isDAppSender(sender) && !DAPP_ALLOWED_METHODS.has(messageType)) {
-    console.warn('[Background] Blocked DApp message:', messageType, 'from tab:', sender.tab?.url);
-    return { ok: false, error: 'Method not allowed for DApp callers', id };
+  if (isDAppSender(sender)) {
+    if (!DAPP_ALLOWED_METHODS.has(messageType)) {
+      console.warn('[Background] Blocked DApp message:', messageType, 'from tab:', sender.tab?.url);
+      return { ok: false, error: 'Method not allowed for DApp callers', id };
+    }
+
+    // AUD-007: The only trustworthy origin for a DApp caller is the one derived
+    // from the browser-verified sender.tab.url. The content-script-supplied
+    // request.origin field and any caller-supplied params.origin are
+    // attacker-controlled and MUST NOT be used for authorization. Normalize
+    // once here so every downstream handler reads the trusted value.
+    let trustedOrigin: string | null = null;
+    if (sender.tab?.url) {
+      try { trustedOrigin = new URL(sender.tab.url).origin; } catch { trustedOrigin = null; }
+    }
+    if (!trustedOrigin) {
+      console.warn('[Background] Blocked DApp message with no determinable origin:', messageType);
+      return { ok: false, error: 'Cannot determine caller origin', id };
+    }
+
+    params = { ...(params && typeof params === 'object' ? params : {}), origin: trustedOrigin };
   }
   
   switch (messageType) {
@@ -2633,20 +2714,30 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
         const digestBytes = sha3_256(txBytes);
         const digestTx = '0x' + Array.from(digestBytes).map(b => b.toString(16).padStart(2, '0')).join('');
 
-        // Allocate signing indices for this address (same model as TOTEM_VERIFY)
+        // Allocate signing indices for this address (same model as TOTEM_VERIFY).
+        // AUD-002: reserve atomically so a concurrent verify/sign request cannot
+        // reuse the same leaf. Released on signing failure.
         await watermarkStore.initialize();
-        const signingIndices = watermarkStore.getNextIndicesForAddress(addressIndex);
-        if (!signingIndices) {
+        const reserved = await withSigningLock(() =>
+          watermarkStore.reserveNextIndicesForAddress(addressIndex)
+        );
+        if (!reserved) {
           return { ok: false, error: 'No available signing indices for this address (exhausted)', id };
         }
-        const { l1, l2 } = signingIndices;
+        const { l1, l2 } = reserved;
 
         // Sign with per-address TreeKey (setUses + sign for Java parity)
         const KEYS_PER_LEVEL = 64;
         const uses = l1 * KEYS_PER_LEVEL + l2;
-        perAddressTreeKey.setUses(uses);
-        const treeSignature: TreeSignature = perAddressTreeKey.sign(digestBytes);
-        await watermarkStore.advanceWatermark({ addressIndex, l1, l2 });
+        let treeSignature: TreeSignature;
+        try {
+          perAddressTreeKey.setUses(uses);
+          treeSignature = perAddressTreeKey.sign(digestBytes);
+        } catch (signError) {
+          await withSigningLock(() => watermarkStore.releaseReservation(reserved));
+          throw signError;
+        }
+        await withSigningLock(() => watermarkStore.markUsed(reserved));
 
         // Serialize signature
         const signatureBytes = serializeTreeSignature(treeSignature);
@@ -2930,18 +3021,21 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
           return { ok: false, error: 'Per-address TreeKey not available (wallet locked?)', id };
         }
 
-        // Get next available indices from watermark BEFORE showing popup so the user
-        // can see exactly which leaf will be consumed in the approval screen.
+        // AUD-002: atomically reserve the slot BEFORE the (unbounded) human
+        // approval wait. The watermark advances and persists immediately, so a
+        // concurrent verify/sign request can never be handed the same leaf.
         // CRITICAL: Must use initialize() not load() - load() returns null for fresh/legacy wallets
-        // leaving this.state null, which causes getNextIndicesForAddress() to return null
+        // leaving this.state null, which causes reserveNextIndicesForAddress() to throw.
         await watermarkStore.initialize();
-        const signingIndices = watermarkStore.getNextIndicesForAddress(addressIndex);
-        if (!signingIndices) {
+        const reserved = await withSigningLock(() =>
+          watermarkStore.reserveNextIndicesForAddress(addressIndex)
+        );
+        if (!reserved) {
           return { ok: false, error: 'No available signing indices for this address (exhausted)', id };
         }
 
-        const l1 = signingIndices.l1;
-        const l2 = signingIndices.l2;
+        const l1 = reserved.l1;
+        const l2 = reserved.l2;
 
         const capacity = watermarkStore.getAddressCapacity(addressIndex);
         if (capacity.level !== 'ok') {
@@ -2964,10 +3058,12 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
         
         if (!approved) {
           console.log('[TOTEM_VERIFY] User rejected verification request');
+          await withSigningLock(() => watermarkStore.releaseReservation(reserved));
           return { ok: false, error: 'User rejected verification request', id };
         }
         
         if (serialized.challenge.expiresAt <= Date.now()) {
+          await withSigningLock(() => watermarkStore.releaseReservation(reserved));
           return { ok: false, error: 'Challenge expired', id };
         }
         
@@ -2985,9 +3081,10 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
         const treeSignature: TreeSignature = perAddressTreeKey.sign(serialized.digest);
         console.log(`[TOTEM_VERIFY] Generated ${treeSignature.proofs.length} proofs (should be 3 for Java parity)`);
         
-        // Advance watermark after signing to prevent reuse
-        await watermarkStore.advanceWatermark({ addressIndex, l1, l2 });
-        console.log(`[TOTEM_VERIFY] Watermark advanced to next available slot`);
+        // AUD-002: the slot was already advanced atomically when reserved.
+        // Record it as used (do NOT advance the watermark again).
+        await withSigningLock(() => watermarkStore.markUsed(reserved));
+        console.log(`[TOTEM_VERIFY] Reserved slot marked used`);
         
         const signatureBytes = serializeTreeSignature(treeSignature);
         const signatureHex = '0x' + Array.from(signatureBytes)

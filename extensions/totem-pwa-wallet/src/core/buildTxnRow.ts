@@ -8,8 +8,8 @@
  *
  * Serialization primitives match Minima's Java Streamable interface exactly.
  */
-import { sha3_256 } from '@noble/hashes/sha3';
-import { serializeTreeSignature, type TreeKey } from '@totemsdk/core';
+import { sha3_256 } from '@noble/hashes/sha3.js';
+import { mxToHex, serializeTreeSignature, type TreeKey } from '@totemsdk/core';
 
 // ─── Utility ──────────────────────────────────────────────────────────────────
 
@@ -31,6 +31,30 @@ export function hexToBytes(hex: string): Uint8Array {
 
 export function bytesToHex(b: Uint8Array): string {
   return Array.from(b, x => x.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * Normalise a Minima address (Mx… or 0x hex) to a validated, lowercase 32-byte
+ * hex string. Throws on malformed input / bad checksum so callers can validate
+ * a recipient before signing (AUD-036).
+ */
+export function normalizeAddressToHex(address: string): string {
+  const a = (address ?? '').trim();
+  if (!a) throw new Error('Address required');
+  let hex: string;
+  if (/^mx/i.test(a)) {
+    try {
+      hex = mxToHex(a);
+    } catch (e) {
+      throw new Error(`Invalid Mx address: ${(e as Error).message}`);
+    }
+  } else {
+    hex = a.replace(/^0x/i, '');
+  }
+  if (!/^[0-9a-fA-F]{64}$/.test(hex)) {
+    throw new Error(`Invalid 32-byte address: ${address}`);
+  }
+  return hex.toLowerCase();
 }
 
 // ─── Minima serialization primitives ─────────────────────────────────────────
@@ -359,10 +383,11 @@ function serializeWitness(
 
 export interface BuildSendParams {
   txId: string;
-  treeKey: TreeKey;
+  /** Required when signing (sign !== false). Not needed for build-only mode. */
+  treeKey?: TreeKey;
   /** Serialized CoinProof hexes from /wots-hardened/coinproofs (one per input) */
   inputCoinProofsHex: string[];
-  /** Recipient address as 0x hex */
+  /** Recipient address as Mx or 0x hex */
   toAddressHex: string;
   /** Amount to send, decimal string e.g. "1.5" */
   toAmount: string;
@@ -375,11 +400,20 @@ export interface BuildSendParams {
   /** WOTS key indices for setUses() — from /wots-hardened/prepare response */
   l1: number;
   l2: number;
+  /**
+   * Whether to produce a fully signed TxnRow. Defaults to true.
+   * When false, no WOTS leaf is consumed and the result contains the unsigned
+   * serialized Transaction (not a valid TxnRow) — used by "build" mode.
+   */
+  sign?: boolean;
 }
 
 export interface BuildSendResult {
-  txnRowHex: string;     // 0x-prefixed, ready for /finalize signedHex
+  /** Signed TxnRow hex (sign=true) or unsigned Transaction hex (sign=false). */
+  txnRowHex: string;
   digestTx: string;      // hex of SHA3-256(transaction bytes)
+  /** Whether txnRowHex is a fully signed TxnRow. */
+  signed: boolean;
 }
 
 /**
@@ -393,26 +427,25 @@ export async function buildTxnRowHex(params: BuildSendParams): Promise<BuildSend
     txId, treeKey, inputCoinProofsHex,
     toAddressHex, toAmount, changeAddressHex, changeAmount,
     perAddressPublicKey, l1, l2,
+    sign = true,
   } = params;
 
   // 1. Parse input coins from CoinProof
   const inputs = inputCoinProofsHex.map(parseCoinFromProof);
   if (inputs.length === 0) throw new Error('No input coins provided');
 
-  // Helper: normalise hex address to bytes
-  const addrToBytes = (hex: string): Uint8Array => {
-    const h = hex.replace(/^0x/i, '');
-    if (h.length !== 64) throw new Error(`Invalid 32-byte address: ${hex}`);
-    return hexToBytes(h);
-  };
+  // Helper: normalise Mx/hex address to bytes (validates checksum + length)
+  const addrToBytes = (addr: string): Uint8Array => hexToBytes(normalizeAddressToHex(addr));
 
   // Determine tokenId from first input (native MINIMA = [0x00])
   const tokenId = inputs[0].tokenId;
 
   // 2. Build output coins (no coinId yet — will be precomputed)
+  const toAmountScaled = parseAmountToBigInt(toAmount);
+  const changeAmountScaled = parseAmountToBigInt(changeAmount);
   const outputs: OutputCoin[] = [];
 
-  if (parseFloat(toAmount) > 0) {
+  if (toAmountScaled > 0n) {
     outputs.push({
       coinId: new Uint8Array([0x00]),
       address: addrToBytes(toAddressHex),
@@ -421,7 +454,7 @@ export async function buildTxnRowHex(params: BuildSendParams): Promise<BuildSend
     });
   }
 
-  if (parseFloat(changeAmount) > 0) {
+  if (changeAmountScaled > 0n) {
     outputs.push({
       coinId: new Uint8Array([0x00]),
       address: addrToBytes(changeAddressHex),
@@ -430,11 +463,36 @@ export async function buildTxnRowHex(params: BuildSendParams): Promise<BuildSend
     });
   }
 
+  // 2b. Invariant: outputs must exactly consume the inputs (AUD-037).
+  let inputTotal = 0n;
+  for (const c of inputs) inputTotal += scaledAmountFromRaw(c.rawAmountBytes);
+  const outputTotal =
+    (toAmountScaled > 0n ? toAmountScaled : 0n) +
+    (changeAmountScaled > 0n ? changeAmountScaled : 0n);
+  if (inputTotal !== outputTotal) {
+    throw new Error(
+      `Transaction does not balance: inputs=${bigIntToDecimal(inputTotal)} ` +
+      `outputs=${bigIntToDecimal(outputTotal)}`,
+    );
+  }
+
   // 3. Precompute output coinIDs (must happen BEFORE digest computation)
   precomputeOutputCoinIds(inputs, outputs);
 
   // 4. Serialize Transaction + compute digestTx
   const { txBytes, digestTx } = serializeTransactionBytes(inputs, outputs);
+
+  // Build-only mode: return the unsigned serialized Transaction. No WOTS leaf
+  // is consumed and no witness is produced (AUD-040).
+  if (!sign) {
+    return {
+      txnRowHex: '0x' + bytesToHex(txBytes),
+      digestTx: '0x' + bytesToHex(digestTx),
+      signed: false,
+    };
+  }
+
+  if (!treeKey) throw new Error('treeKey is required when sign=true');
 
   // 5. Set WOTS key index (l1 * 64 + l2) and sign the transaction digest
   treeKey.setUses(l1 * 64 + l2);
@@ -454,6 +512,7 @@ export async function buildTxnRowHex(params: BuildSendParams): Promise<BuildSend
   return {
     txnRowHex: '0x' + bytesToHex(txnRow),
     digestTx: '0x' + bytesToHex(digestTx),
+    signed: true,
   };
 }
 
@@ -467,24 +526,58 @@ export interface RawCoinRecord {
   spent?: boolean;
 }
 
-/** Decimal-string multiply by 10^SCALE to avoid float rounding */
-const SCALE = 8;
-const SCALE_FACTOR = BigInt(10 ** SCALE);
+/**
+ * Minima uses 44-decimal precision. Amounts are represented as a bigint scaled
+ * by 10^44 so arithmetic is exact and never silently truncated (AUD-037).
+ */
+const MINIMA_DECIMALS = 44;
+const SCALE_FACTOR = BigInt(10) ** BigInt(MINIMA_DECIMALS);
 
 function parseAmountToBigInt(decimal: string): bigint {
-  const s = decimal.trim();
-  const dot = s.indexOf('.');
-  if (dot === -1) return BigInt(s) * SCALE_FACTOR;
-  const intPart = s.slice(0, dot) || '0';
-  const fracPart = s.slice(dot + 1).padEnd(SCALE, '0').slice(0, SCALE);
-  return BigInt(intPart) * SCALE_FACTOR + BigInt(fracPart);
+  const s = (decimal ?? '').trim();
+  if (!s) throw new Error('Empty amount');
+  const negative = s.startsWith('-');
+  const body = negative ? s.slice(1) : s;
+  const dot = body.indexOf('.');
+  const intPart = dot === -1 ? body || '0' : body.slice(0, dot) || '0';
+  const fracPart = dot === -1 ? '' : body.slice(dot + 1);
+
+  if (!/^\d+$/.test(intPart) || (fracPart && !/^\d+$/.test(fracPart))) {
+    throw new Error(`Invalid amount: ${decimal}`);
+  }
+  if (fracPart.length > MINIMA_DECIMALS) {
+    throw new Error(`Amount ${decimal} exceeds ${MINIMA_DECIMALS} decimal places`);
+  }
+
+  const paddedFrac = fracPart.padEnd(MINIMA_DECIMALS, '0');
+  const value = BigInt(intPart) * SCALE_FACTOR + BigInt(paddedFrac || '0');
+  return negative ? -value : value;
+}
+
+/**
+ * Decode a raw MiniNumber amount (scale + length + big-endian value) from a
+ * CoinProof into a 44-decimal scaled bigint. Throws if the coin carries more
+ * precision than Minima can represent.
+ */
+function scaledAmountFromRaw(raw: Uint8Array): bigint {
+  const scale = raw[0];
+  const len = raw[1];
+  let value = 0n;
+  for (let i = 0; i < len; i++) value = (value << 8n) | BigInt(raw[2 + i]);
+  if (scale > MINIMA_DECIMALS) {
+    throw new Error(`Coin amount scale ${scale} exceeds ${MINIMA_DECIMALS} decimals`);
+  }
+  return value * (BigInt(10) ** BigInt(MINIMA_DECIMALS - scale));
 }
 
 function bigIntToDecimal(n: bigint): string {
-  const s = n.toString().padStart(SCALE + 1, '0');
-  const intPart = s.slice(0, s.length - SCALE) || '0';
-  const fracPart = s.slice(s.length - SCALE).replace(/0+$/, '');
-  return fracPart ? `${intPart}.${fracPart}` : intPart;
+  const negative = n < 0n;
+  const abs = negative ? -n : n;
+  const intPart = abs / SCALE_FACTOR;
+  const fracPart = abs % SCALE_FACTOR;
+  const fracStr = fracPart.toString().padStart(MINIMA_DECIMALS, '0').replace(/0+$/, '');
+  const sign = negative ? '-' : '';
+  return fracStr ? `${sign}${intPart}.${fracStr}` : `${sign}${intPart}`;
 }
 
 export interface CoinSelectionResult {

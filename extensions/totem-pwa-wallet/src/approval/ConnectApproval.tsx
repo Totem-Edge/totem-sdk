@@ -53,6 +53,7 @@ function sendResult(result: unknown, error?: string, reqId?: string) {
   const payload = { type: 'totem_response', reqId, result, error };
   const url = new URL(window.location.href);
   const returnUrl = url.searchParams.get('returnUrl');
+  const nonce = url.searchParams.get('nonce') ?? '';
 
   // Custom scheme (native app callback) — redirect directly, no postMessage/BC
   if (returnUrl && isCustomScheme(returnUrl)) {
@@ -67,7 +68,7 @@ function sendResult(result: unknown, error?: string, reqId?: string) {
   // tab on mobile (where window.opener may be null cross-origin).
   if (reqId) {
     try {
-      const bc = new BroadcastChannel(`totem_response_${reqId}`);
+      const bc = new BroadcastChannel(`totem_response_${reqId}_${nonce}`);
       bc.postMessage(payload);
       setTimeout(() => bc.close(), 200);
     } catch { /* BroadcastChannel not supported */ }
