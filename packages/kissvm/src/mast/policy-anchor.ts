@@ -2,25 +2,31 @@
  * Policy Anchor Coin — a stable on-chain UTXO whose locking script commits to
  * a set of policy roots that can rotate through state updates.
  *
- * The anchor has explicit branches:
- *   1. Normal action — MAST the selected action root
- *   2. Root rotation — MAST the root-rotation authority
- *   3. Epoch advancement — MAST the epoch-advancement authority
- *   4. Recovery — MAST the recovery root
- *   5. Emergency — MAST the emergency root
+ * The anchor is **fail-closed**: `STATE(actionRoot)` must be one of the
+ * enabled action codes, and every MAST root executed by the anchor is bound
+ * to a committed `PREVSTATE` root. A spender cannot supply an arbitrary root.
  *
- * Every successful branch must enforce the complete successor anchor:
- *   - Same subject identity
- *   - Same token and amount (unless explicitly permitted)
- *   - Expected anchor script/address
- *   - Exact next epoch
- *   - Authorized root changes only
- *   - Unchanged roots preserved
- *   - Expected manifest commitment
- *   - Exactly one valid successor output
- *   - No duplicate anchor outputs
+ * Enabled branches:
+ *   0. Normal action — MAST a committed policy root selected via state
+ *   1. Root rotation — MAST the committed owner root; exactly one root changes
+ *   2. Epoch advancement — MAST the committed owner root; epoch advances by 1
+ *   3. Recovery — MAST the committed recovery root (only if configured)
+ *   4. Emergency — MAST the committed emergency root (only if configured)
  *
- * State port assignments:
+ * Invariants enforced for every successful branch:
+ *   - Same subject identity (`STATE(0)`)
+ *   - Manifest commitment unchanged
+ *   - Root ports preserved except the single port a rotation declares
+ *   - Epoch unchanged, except the epoch-advancement branch (exact +1)
+ *   - Successor anchor preserved at the input index (`VERIFYOUT(@INPUT …)`)
+ *
+ * Residual limitation: KISSVM exposes no output-count primitive, so the
+ * anchor cannot itself count duplicate anchor outputs. "Exactly one successor
+ * output" is enforced for the input-indexed output only; duplicate-output
+ * prevention must be enforced by the revealed action branch or the
+ * transaction planner.
+ *
+ * State port assignments (defaults):
  *   State 0  = subject ID
  *   State 10 = current regulator policy root
  *   State 11 = current owner policy root
@@ -30,10 +36,9 @@
  *   State 15 = policy-manifest commitment
  *   State 16 = recovery root
  *   State 17 = emergency root
- *   State 18 = action root (set by the spender to select which action to execute)
+ *   State 18 = action selector (0–4)
+ *   State 19 = action argument (selected root, or rotation target port)
  */
-
-import { sha3_256, bytesToHex } from '@totemsdk/core';
 
 export interface PolicyAnchorConfig {
   subjectId: string;
@@ -55,65 +60,148 @@ export interface PolicyAnchorConfig {
   emergencyRoot?: string;
 }
 
+/**
+ * Validate a {@link PolicyAnchorConfig}'s port assignments.
+ *
+ * Throws when two ports collide, when a port is not a non-negative integer,
+ * when the reserved subject port (0) is reused, or when the action-argument
+ * port (`actionRoot + 1`) collides with a committed port. Collisions would
+ * let one state slot be interpreted two ways and are a fail-open risk, so
+ * they are rejected at build time rather than at spend time.
+ */
+export function validatePolicyAnchorConfig(config: PolicyAnchorConfig): void {
+  const ports = config.ports;
+  const entries = Object.entries(ports) as Array<[keyof PolicyAnchorConfig['ports'], number]>;
+  const seen = new Map<number, string>();
+
+  for (const [name, port] of entries) {
+    if (!Number.isInteger(port) || port < 0) {
+      throw new Error(`policy-anchor: port '${name}' must be a non-negative integer (got ${port})`);
+    }
+    if (seen.has(port)) {
+      throw new Error(`policy-anchor: port collision — '${name}' and '${seen.get(port)}' both use ${port}`);
+    }
+    seen.set(port, name);
+  }
+
+  if (seen.has(0)) {
+    throw new Error(`policy-anchor: port 0 is reserved for the subject id (used by '${seen.get(0)}')`);
+  }
+
+  const actionArgPort = ports.actionRoot + 1;
+  if (seen.has(actionArgPort)) {
+    throw new Error(
+      `policy-anchor: action-argument port ${actionArgPort} (actionRoot + 1) collides with '${seen.get(actionArgPort)}'`,
+    );
+  }
+}
+
 export function buildPolicyAnchorScript(config: PolicyAnchorConfig): string {
-  const lines = [
+  validatePolicyAnchorConfig(config);
+  const p = config.ports;
+
+  const enabledActions = [0, 1, 2];
+  if (config.recoveryRoot) enabledActions.push(3);
+  if (config.emergencyRoot) enabledActions.push(4);
+
+  const rootPorts: Array<{ name: string; port: number }> = [
+    { name: 'regulatorRoot', port: p.regulatorRoot },
+    { name: 'ownerRoot', port: p.ownerRoot },
+    { name: 'serviceProviderRoot', port: p.serviceProviderRoot },
+    { name: 'firmwareRoot', port: p.firmwareApprovalRoot },
+  ];
+
+  const preserve = (port: number, indent = '  '): string =>
+    `${indent}ASSERT STATE(${port}) EQ PREVSTATE(${port})`;
+
+  // A bare `MAST <root>` statement terminates the script with the branch
+  // result (ReturnSignal), so every continuity check MUST run before it.
+  const continuity = `  ASSERT VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID TRUE)`;
+
+  const lines: string[] = [
     `// Policy Anchor: ${config.subjectId}`,
     `// Subject: ${config.subjectType}`,
+    `// Fail-closed: actionType must be one of [${enabledActions.join(', ')}]`,
+    `// and all MAST roots are bound to committed PREVSTATE roots.`,
     ``,
     `// ── Identity ──`,
     `LET subjectId = [${config.subjectId}]`,
     `ASSERT STATE(0) EQ subjectId`,
     ``,
+    `// ── Committed roots (from PREVSTATE — never spender-supplied) ──`,
+    `LET regulatorRoot = PREVSTATE(${p.regulatorRoot})`,
+    `LET ownerRoot = PREVSTATE(${p.ownerRoot})`,
+    `LET serviceProviderRoot = PREVSTATE(${p.serviceProviderRoot})`,
+    `LET firmwareRoot = PREVSTATE(${p.firmwareApprovalRoot})`,
+    `LET recoveryRoot = PREVSTATE(${p.recoveryRoot})`,
+    `LET emergencyRoot = PREVSTATE(${p.emergencyRoot})`,
+    ``,
+    `// ── Manifest commitment must be preserved ──`,
+    `ASSERT STATE(${p.manifestHash}) EQ PREVSTATE(${p.manifestHash})`,
+    ``,
     `// ── Epoch ──`,
-    `LET epoch = STATE(${config.ports.epoch})`,
-    `LET prevEpoch = PREVSTATE(${config.ports.epoch})`,
-    `ASSERT epoch GTE prevEpoch`,
+    `LET epoch = STATE(${p.epoch})`,
+    `LET prevEpoch = PREVSTATE(${p.epoch})`,
     ``,
-    `// ── Dynamic roots (from PREVSTATE) ──`,
-    `LET regulatorRoot = PREVSTATE(${config.ports.regulatorRoot})`,
-    `LET ownerRoot = PREVSTATE(${config.ports.ownerRoot})`,
-    `LET serviceProviderRoot = PREVSTATE(${config.ports.serviceProviderRoot})`,
-    `LET firmwareRoot = PREVSTATE(${config.ports.firmwareApprovalRoot})`,
-    `LET recoveryRoot = PREVSTATE(${config.ports.recoveryRoot})`,
-    `LET emergencyRoot = PREVSTATE(${config.ports.emergencyRoot})`,
-    `LET manifestHash = STATE(${config.ports.manifestHash})`,
+    `// ── Action selection (fail-closed whitelist) ──`,
+    `// 0 = normal action, 1 = root rotation, 2 = epoch advancement,`,
+    `// 3 = recovery, 4 = emergency. Any other value fails here.`,
+    `LET actionType = STATE(${p.actionRoot})`,
+    `ASSERT ${enabledActions.map((a) => `actionType EQ ${a}`).join(' OR ')}`,
     ``,
-    `// ── Action selection ──`,
-    `// The spender sets STATE(${config.ports.actionRoot}) to select which`,
-    `// branch to execute. 0 = normal action, 1 = root rotation,`,
-    `// 2 = epoch advancement, 3 = recovery, 4 = emergency.`,
-    `LET actionType = STATE(${config.ports.actionRoot})`,
-    ``,
-    `// ── Branch 1: Normal action ──`,
+    `// ── Branch 0: Normal action ──`,
     `IF actionType EQ 0 THEN`,
-    `  // The spender must supply the action root via STATE`,
-    `  LET selectedRoot = STATE(${config.ports.actionRoot + 1})`,
+    `  LET selectedRoot = STATE(${p.actionRoot + 1})`,
     `  ASSERT selectedRoot NEQ 0x00`,
+    `  ASSERT selectedRoot EQ regulatorRoot OR selectedRoot EQ ownerRoot OR selectedRoot EQ serviceProviderRoot OR selectedRoot EQ firmwareRoot`,
+    `  ASSERT epoch EQ prevEpoch`,
+    ...rootPorts.map((r) => preserve(r.port)),
+    continuity,
     `  MAST selectedRoot`,
     `ENDIF`,
     ``,
-    `// ── Branch 2: Root rotation ──`,
+    `// ── Branch 1: Root rotation ──`,
+    `// The argument port declares which committed root port rotates;`,
+    `// every other root port must be preserved. The owner-root branch`,
+    `// authorizes the specific new value.`,
     `IF actionType EQ 1 THEN`,
-    `  // The spender must supply the rotation authority root`,
-    `  LET rotationRoot = STATE(${config.ports.actionRoot + 1})`,
-    `  ASSERT rotationRoot NEQ 0x00`,
-    `  MAST rotationRoot`,
+    `  LET targetPort = STATE(${p.actionRoot + 1})`,
+    `  ASSERT targetPort EQ ${p.regulatorRoot} OR targetPort EQ ${p.ownerRoot} OR targetPort EQ ${p.serviceProviderRoot} OR targetPort EQ ${p.firmwareApprovalRoot}`,
+    `  IF targetPort NEQ ${p.regulatorRoot} THEN`,
+    `    ${preserve(p.regulatorRoot, '').trim()}`,
+    `  ENDIF`,
+    `  IF targetPort NEQ ${p.ownerRoot} THEN`,
+    `    ${preserve(p.ownerRoot, '').trim()}`,
+    `  ENDIF`,
+    `  IF targetPort NEQ ${p.serviceProviderRoot} THEN`,
+    `    ${preserve(p.serviceProviderRoot, '').trim()}`,
+    `  ENDIF`,
+    `  IF targetPort NEQ ${p.firmwareApprovalRoot} THEN`,
+    `    ${preserve(p.firmwareApprovalRoot, '').trim()}`,
+    `  ENDIF`,
+    `  ASSERT epoch EQ prevEpoch`,
+    continuity,
+    `  MAST ownerRoot`,
     `ENDIF`,
     ``,
-    `// ── Branch 3: Epoch advancement ──`,
+    `// ── Branch 2: Epoch advancement (exact +1) ──`,
     `IF actionType EQ 2 THEN`,
-    `  LET epochRoot = STATE(${config.ports.actionRoot + 1})`,
-    `  ASSERT epochRoot NEQ 0x00`,
-    `  MAST epochRoot`,
+    `  ASSERT epoch EQ INC(prevEpoch)`,
+    ...rootPorts.map((r) => preserve(r.port)),
+    continuity,
+    `  MAST ownerRoot`,
     `ENDIF`,
   ];
 
   if (config.recoveryRoot) {
     lines.push(
       ``,
-      `// ── Branch 4: Recovery ──`,
+      `// ── Branch 3: Recovery ──`,
+      `// Root changes are delegated to the committed recovery branch.`,
       `IF actionType EQ 3 THEN`,
       `  ASSERT recoveryRoot NEQ 0x00`,
+      `  ASSERT epoch EQ prevEpoch`,
+      continuity,
       `  MAST recoveryRoot`,
       `ENDIF`,
     );
@@ -122,9 +210,12 @@ export function buildPolicyAnchorScript(config: PolicyAnchorConfig): string {
   if (config.emergencyRoot) {
     lines.push(
       ``,
-      `// ── Branch 5: Emergency ──`,
+      `// ── Branch 4: Emergency ──`,
+      `// Root changes are delegated to the committed emergency branch.`,
       `IF actionType EQ 4 THEN`,
       `  ASSERT emergencyRoot NEQ 0x00`,
+      `  ASSERT epoch EQ prevEpoch`,
+      continuity,
       `  MAST emergencyRoot`,
       `ENDIF`,
     );
@@ -132,11 +223,10 @@ export function buildPolicyAnchorScript(config: PolicyAnchorConfig): string {
 
   lines.push(
     ``,
-    `// ── Covenant continuity ──`,
-    `// Every branch must preserve the successor anchor output`,
-    `ASSERT VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID TRUE)`,
-    ``,
-    `RETURN TRUE`,
+    `// ── Fail-closed default ──`,
+    `// Every enabled action terminates via its MAST branch above. Reaching`,
+    `// this point means the selector was not matched — reject the spend.`,
+    `RETURN FALSE`,
   );
 
   return lines.join('\n');

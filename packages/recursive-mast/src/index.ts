@@ -123,6 +123,7 @@ export {
   buildPolicyAnchorState,
   buildRootRotationScript,
   buildEpochAdvancementScript,
+  validatePolicyAnchorConfig,
 } from '@totemsdk/kissvm';
 export type { PolicyAnchorConfig } from '@totemsdk/kissvm';
 

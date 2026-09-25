@@ -630,7 +630,7 @@ trust threshold for both custody and privacy.
 
 - Audit findings: AUD-003 (SE index-0 reuse), AUD-025 (advertised key
   mismatch), AUD-045 (Go placeholder), AUD-004/005 (wots-lease allocation),
-  AUD-026/027/029 (SE hardening) — `audit/REPORT.md`.
+  AUD-026/027/029 (SE hardening) — `docs/audits/sdk-audit-remediation-2026-09.md`.
 - RFC-007: storage consolidation, durable guarantees, state versioning, and the
   accounting-authority principle this RFC reuses for leaf allocation.
 - Existing building blocks: `@totemsdk/root-identity`

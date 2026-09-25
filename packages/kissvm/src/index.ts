@@ -90,14 +90,16 @@ export {
   buildPolicyAnchorState,
   buildRootRotationScript,
   buildEpochAdvancementScript,
+  validatePolicyAnchorConfig,
 } from './mast/policy-anchor.js';
 export type { PolicyAnchorConfig } from './mast/policy-anchor.js';
 
 // ─── Templates (stable) ─────────────────────────────────────────────────────
 //
-// These templates are covered by the test suite and safe for production use.
+// These templates are covered by the test suite and are a stable API surface.
+// The package has NOT been independently audited — review before production.
 // Experimental templates live in `@totemsdk/kissvm/experimental` and are
-// NOT AUDITED — do not use them in production without independent review.
+// neither covered by the stable test suite nor audited; their API may change.
 
 export {
   buildIdentityVerificationScript,

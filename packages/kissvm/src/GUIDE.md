@@ -103,9 +103,20 @@ const script = buildPolicyAnchorScript({
 });
 ```
 
-## Templates (EXPERIMENTAL)
+## Templates
 
-Ready-to-use KISSVM script generators for common workflows. All templates share a warning: **not audited — do not use in production without independent security review**.
+Ready-to-use KISSVM script generators for common workflows.
+
+Two tiers exist:
+
+- **Stable** — exported from `@totemsdk/kissvm`. Covered by the test suite and
+  a stable API surface. The package has **not been independently audited**;
+  review before production use.
+- **Experimental** — exported from `@totemsdk/kissvm/experimental`. Not covered
+  by the stable test suite, not audited, and the API may change.
+
+The templates below are the **experimental** set and are imported from
+`@totemsdk/kissvm/experimental`.
 
 ### Access patterns by sector
 
@@ -132,7 +143,7 @@ Ready-to-use KISSVM script generators for common workflows. All templates share 
 ### Example: firmware update
 
 ```typescript
-import { buildFirmwareUpdateScript } from '@totemsdk/kissvm';
+import { buildFirmwareUpdateScript } from '@totemsdk/kissvm/experimental';
 
 const script = buildFirmwareUpdateScript({
   versionPort: 0,
@@ -151,6 +162,7 @@ Templates produce KISSVM script strings. Evaluate them with `evaluateScript`:
 
 ```typescript
 import { evaluateScript, buildWitness } from '@totemsdk/kissvm';
+import { buildSensorProofScript } from '@totemsdk/kissvm/experimental';
 
 const script = buildSensorProofScript(config);
 const witness = buildWitness([{ pubkeyHex: devicePkd, signature }]);
