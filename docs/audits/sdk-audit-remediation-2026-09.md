@@ -182,5 +182,22 @@ node scripts/verify-workspace.mjs --lint        # 63 passed
 node scripts/verify-workspace.mjs --test        # 124 passed
 ```
 
-All three gates pass at the commit that lands this document. `audit/` is
-retired and is not part of any gate.
+All publishable-package gates pass. `audit/` is retired and is not part of any
+gate.
+
+Notes:
+
+- `extensions/*` are **excluded** from `verify-workspace.mjs` (private
+  scaffolds), so the extension/PWA fixes (AUD-001/002/007/008/036/037/040/041/
+  042/043) are not covered by the workspace gate. They are verified by:
+  `extensions/totem-pwa-wallet` `npx tsc --noEmit` (clean) and
+  `extensions/totem-extension/test/security-regressions.test.ts` (source-scan
+  regression tests). The extension's `npx jest` currently cannot run in this
+  checkout because of a pre-existing jest 29/30 hybrid + missing
+  `jest-environment-jsdom`; that is unrelated to these changes.
+- `AUD-028` remains OPEN: it needs a cross-package design decision (SE-server
+  `/register` endpoint + auth, or removal of the misleading no-op). The
+  client-initiated `createStateChain` flow and the server `/create` flow are
+  not wired together today.
+- `AUD-041` remains PARTIAL: `ConnectApproval.tsx` still uses
+  `postMessage('*')`/caller-supplied origin for display.
