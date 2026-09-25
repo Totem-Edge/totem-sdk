@@ -3,12 +3,15 @@ export interface PackageIndex {
   dir: string
   version: string
   description: string
+  keywords?: string[]
   dependencies: string[]
   devDependencies: string[]
   hasRust: boolean
   hasGo: boolean
   hasTests: boolean
   exports: PackageExports
+  /** Per-symbol metadata (signature, doc, deprecation) keyed by symbol name. */
+  symbols?: { [name: string]: SymbolMeta }
   domain: string
 }
 
@@ -20,9 +23,24 @@ export interface PackageExports {
   consts: string[]
 }
 
+export type SymbolKind = 'function' | 'type' | 'class' | 'interface' | 'const' | 'variable'
+
+export interface SymbolMeta {
+  kind: SymbolKind
+  /** Best-effort declaration text (params/return/extends), whitespace-normalized. */
+  signature?: string
+  /** Leading JSDoc/line-comment text, if any. */
+  doc?: string
+  /** True when the doc contains an `@deprecated` tag. */
+  deprecated?: boolean
+}
+
 export interface SymbolEntry {
   package: string
-  kind: 'function' | 'type' | 'class' | 'interface' | 'const' | 'variable'
+  kind: SymbolKind
+  signature?: string
+  doc?: string
+  deprecated?: boolean
 }
 
 export interface DomainMap {
@@ -34,6 +52,12 @@ export interface SdkIndex {
   packages: { [name: string]: PackageIndex }
   symbolIndex: { [symbol: string]: SymbolEntry[] }
   domainMap: DomainMap
+}
+
+export interface ToolDefinition {
+  name: string
+  description: string
+  inputSchema: unknown
 }
 
 export interface ToolResponse {

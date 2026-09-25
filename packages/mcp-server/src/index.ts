@@ -8,14 +8,11 @@ import {
   ListPromptsRequestSchema,
   GetPromptRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js'
-import { buildIndex } from './indexer.js'
-import { handleResourceRead, listResources } from './resources.js'
-import { handleToolCall } from './tools.js'
-import type { SdkIndex } from './types.js'
+import { getIndex } from './index-store.js'
+import { handleResourceRead, listResources, resourceMimeType } from './resources.js'
+import { handleToolCall, TOOL_DEFINITIONS } from './tools.js'
 import * as fs from 'fs'
 import * as path from 'path'
-
-const index: SdkIndex = buildIndex()
 
 function readPkgVersion(): string {
   try {
@@ -31,150 +28,25 @@ const server = new Server(
 )
 
 server.setRequestHandler(ListResourcesRequestSchema, async () => ({
-  resources: listResources(index),
+  resources: listResources(getIndex()),
 }))
 
 server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
   const { uri } = request.params
-  const text = handleResourceRead(uri, index)
+  const text = handleResourceRead(uri, getIndex())
   if (text === null) {
     throw new Error(`Resource not found: ${uri}`)
   }
-  return { contents: [{ uri, mimeType: 'text/plain', text }] }
+  return { contents: [{ uri, mimeType: resourceMimeType(uri), text }] }
 })
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
-  tools: [
-    {
-      name: 'search-symbol',
-      description: 'Search for a symbol (function, type, class) across all packages',
-      inputSchema: {
-        type: 'object',
-        properties: { query: { type: 'string', description: 'Partial symbol name to search' } },
-        required: ['query'],
-      },
-    },
-    {
-      name: 'find-type',
-      description: 'Find type definitions (interfaces, classes, type aliases) matching a pattern',
-      inputSchema: {
-        type: 'object',
-        properties: { pattern: { type: 'string', description: 'Type name pattern to search' } },
-        required: ['pattern'],
-      },
-    },
-    {
-      name: 'dependency-graph',
-      description: 'Get dependency graph for a package — inbound dependents or outbound dependencies',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          package: { type: 'string', description: 'Package name (e.g. @totemsdk/edge-opcua)' },
-          direction: { type: 'string', enum: ['in', 'out', 'all'], description: 'Dependency direction' },
-        },
-        required: ['package'],
-      },
-    },
-    {
-      name: 'validate-import',
-      description: 'Check whether a cross-package import is valid',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          from: { type: 'string', description: 'Source package name' },
-          to: { type: 'string', description: 'Target package name' },
-          symbol: { type: 'string', description: 'Optional: specific symbol to check' },
-        },
-        required: ['from', 'to'],
-      },
-    },
-    {
-      name: 'scaffold-adapter',
-      description: 'Generate boilerplate for a new edge protocol adapter',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          name: { type: 'string', description: 'Package name suffix' },
-          protocol: { type: 'string', description: 'Protocol name (PascalCase)' },
-          commands: { type: 'array', items: { type: 'string' }, description: 'Transport port methods' },
-        },
-        required: ['name', 'protocol'],
-      },
-    },
-    {
-      name: 'scaffold-package',
-      description: 'Generate boilerplate for a new @totemsdk package',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          name: { type: 'string', description: 'Package name (without @totemsdk/ prefix)' },
-          deps: { type: 'array', items: { type: 'string' }, description: 'Dependency package names' },
-        },
-        required: ['name'],
-      },
-    },
-    {
-      name: 'package-stats',
-      description: 'Get statistics about a package — export counts, Rust/Go, tests, deps',
-      inputSchema: {
-        type: 'object',
-        properties: { name: { type: 'string', description: 'Package name' } },
-        required: ['name'],
-      },
-    },
-    {
-      name: 'list-exports',
-      description: 'List exports of a package',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          package: { type: 'string', description: 'Package name' },
-          kind: { type: 'string', enum: ['function', 'type', 'interface', 'class', 'const', ''], description: 'Filter by export kind' },
-          filter: { type: 'string', description: 'Filter by name substring' },
-        },
-        required: ['package'],
-      },
-    },
-    {
-      name: 'suggest-template',
-      description: 'Suggest KISSVM script templates matching a use case — describes what you want to do and returns matching templates with import paths',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          usecase: { type: 'string', description: 'Describe what you want to do (e.g. "time-lock funds until a block height", "vote tally with quorum", "identity verification")' },
-        },
-        required: ['usecase'],
-      },
-    },
-    {
-      name: 'read-source',
-      description: "Read a source file from a package's src/ directory (e.g. package '@totemsdk/core', path 'treekey.ts')",
-      inputSchema: {
-        type: 'object',
-        properties: {
-          package: { type: 'string', description: 'Package name (e.g. @totemsdk/core)' },
-          path: { type: 'string', description: 'Path relative to the package src/ directory' },
-        },
-        required: ['package', 'path'],
-      },
-    },
-    {
-      name: 'list-packages',
-      description: 'List SDK packages, optionally filtered by domain or name substring',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          domain: { type: 'string', description: 'Optional domain filter (e.g. edge/runtime)' },
-          filter: { type: 'string', description: 'Optional package-name substring filter' },
-        },
-      },
-    },
-  ],
+  tools: TOOL_DEFINITIONS,
 }))
 
 server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
   const { name, arguments: args } = request.params
-  return handleToolCall(name, args || {}, index) as any
+  return handleToolCall(name, args || {}, getIndex()) as any
 })
 
 server.setRequestHandler(ListPromptsRequestSchema, async () => ({
@@ -203,8 +75,8 @@ server.setRequestHandler(GetPromptRequestSchema, async (request: any) => {
   if (name === 'analyze-cross-package') {
     const from: string = args?.from
     const to: string = args?.to
-    const fromPkg = from ? index.packages[from] : null
-    const toPkg = to ? index.packages[to] : null
+    const fromPkg = from ? getIndex().packages[from] : null
+    const toPkg = to ? getIndex().packages[to] : null
     if (!fromPkg || !toPkg) {
       throw new Error(`Packages not found: ${!fromPkg ? from : ''} ${!toPkg ? to : ''}`)
     }
@@ -242,7 +114,7 @@ server.setRequestHandler(GetPromptRequestSchema, async (request: any) => {
 
   if (name === 'new-edge-adapter') {
     const protocol: string = args?.protocol || 'UnknownProtocol'
-    const existingAdapters = Object.values(index.packages).filter(p => p.domain === 'edge/protocols' && p.dir.startsWith('edge-'))
+    const existingAdapters = Object.values(getIndex().packages).filter(p => p.domain === 'edge/protocols' && p.dir.startsWith('edge-'))
     const lines = [
       `You are scaffolding a new **${protocol}** edge protocol adapter for Totem SDK.`,
       '',
@@ -276,11 +148,11 @@ server.setRequestHandler(GetPromptRequestSchema, async (request: any) => {
 
 export const SERVER_INFO = {
   name: '@totemsdk/mcp-server',
-  version: '0.2.0',
+  version: readPkgVersion(),
   capabilities: { resources: {}, tools: {}, prompts: {} },
 } as const
 
-export { index as sdkIndex }
+export const sdkIndex = getIndex()
 
 async function main() {
   const transport = new StdioServerTransport()

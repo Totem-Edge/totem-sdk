@@ -1,6 +1,28 @@
-import type { SdkIndex, ToolResponse, ValidImportResult, ScaffoldResult } from './types.js'
+import type { SdkIndex, ToolDefinition, ToolResponse, ValidImportResult, ScaffoldResult } from './types.js'
 import { searchTemplates, getTemplatesForPackage } from './template-catalog.js'
 import { readSourceFile } from './indexer.js'
+import { refreshIndex } from './index-store.js'
+
+/**
+ * The single source of truth for the MCP tool catalog. `index.ts` advertises
+ * these and `handleToolCall` dispatches them; the `mcp.test.ts` drift guard
+ * asserts the two never diverge.
+ */
+export const TOOL_DEFINITIONS: ToolDefinition[] = [
+  { name: 'search-symbol', description: 'Search for a symbol (function, type, class) across all packages', inputSchema: { type: 'object', properties: { query: { type: 'string', description: 'Partial symbol name to search' } }, required: ['query'] } },
+  { name: 'find-type', description: 'Find type definitions (interfaces, classes, type aliases) matching a pattern', inputSchema: { type: 'object', properties: { pattern: { type: 'string', description: 'Type name pattern to search' } }, required: ['pattern'] } },
+  { name: 'dependency-graph', description: 'Get dependency graph for a package — inbound dependents or outbound dependencies', inputSchema: { type: 'object', properties: { package: { type: 'string', description: 'Package name (e.g. @totemsdk/edge-opcua)' }, direction: { type: 'string', enum: ['in', 'out', 'all'], description: 'Dependency direction' } }, required: ['package'] } },
+  { name: 'validate-import', description: 'Check whether a cross-package import is valid', inputSchema: { type: 'object', properties: { from: { type: 'string', description: 'Source package name' }, to: { type: 'string', description: 'Target package name' }, symbol: { type: 'string', description: 'Optional: specific symbol to check' } }, required: ['from', 'to'] } },
+  { name: 'scaffold-adapter', description: 'Generate boilerplate for a new edge protocol adapter', inputSchema: { type: 'object', properties: { name: { type: 'string', description: 'Package name suffix' }, protocol: { type: 'string', description: 'Protocol name (PascalCase)' }, commands: { type: 'array', items: { type: 'string' }, description: 'Transport port methods' } }, required: ['name', 'protocol'] } },
+  { name: 'scaffold-package', description: 'Generate boilerplate for a new @totemsdk package', inputSchema: { type: 'object', properties: { name: { type: 'string', description: 'Package name (without @totemsdk/ prefix)' }, deps: { type: 'array', items: { type: 'string' }, description: 'Dependency package names' } }, required: ['name'] } },
+  { name: 'package-stats', description: 'Get statistics about a package — export counts, Rust/Go, tests, deps', inputSchema: { type: 'object', properties: { name: { type: 'string', description: 'Package name' } }, required: ['name'] } },
+  { name: 'list-exports', description: 'List exports of a package', inputSchema: { type: 'object', properties: { package: { type: 'string', description: 'Package name' }, kind: { type: 'string', enum: ['function', 'type', 'interface', 'class', 'const', ''], description: 'Filter by export kind' }, filter: { type: 'string', description: 'Filter by name substring' } }, required: ['package'] } },
+  { name: 'suggest-template', description: 'Suggest KISSVM script templates matching a use case — describes what you want to do and returns matching templates with import paths', inputSchema: { type: 'object', properties: { usecase: { type: 'string', description: 'Describe what you want to do (e.g. "time-lock funds until a block height", "vote tally with quorum", "identity verification")' } }, required: ['usecase'] } },
+  { name: 'read-source', description: "Read a source file from a package's src/ directory (e.g. package '@totemsdk/core', path 'treekey.ts')", inputSchema: { type: 'object', properties: { package: { type: 'string', description: 'Package name (e.g. @totemsdk/core)' }, path: { type: 'string', description: 'Path relative to the package src/ directory' } }, required: ['package', 'path'] } },
+  { name: 'list-packages', description: 'List SDK packages, optionally filtered by domain or name substring', inputSchema: { type: 'object', properties: { domain: { type: 'string', description: 'Optional domain filter (e.g. edge/runtime... see totemsdk://domain-map)' }, filter: { type: 'string', description: 'Optional package-name substring filter' } } } },
+  { name: 'search-packages', description: 'Search packages by keyword across name, description, keywords and exports (e.g. "wots lease coordination")', inputSchema: { type: 'object', properties: { query: { type: 'string', description: 'Free-text query' }, domain: { type: 'string', description: 'Optional domain filter' }, limit: { type: 'number', description: 'Max results (default 15)' } }, required: ['query'] } },
+  { name: 'refresh-index', description: 'Rebuild the SDK index from the filesystem (development convenience) and report counts', inputSchema: { type: 'object', properties: {} } },
+]
 
 export function handleToolCall(name: string, args: any, index: SdkIndex): ToolResponse {
   switch (name) {
@@ -15,7 +37,60 @@ export function handleToolCall(name: string, args: any, index: SdkIndex): ToolRe
     case 'suggest-template': return suggestTemplate(args)
     case 'read-source': return readSource(args)
     case 'list-packages': return listPackages(args, index)
+    case 'search-packages': return searchPackages(args, index)
+    case 'refresh-index': return refreshIndexTool()
     default: return { content: [{ type: 'text', text: `Unknown tool: ${name}` }], isError: true }
+  }
+}
+
+function refreshIndexTool(): ToolResponse {
+  const idx = refreshIndex()
+  return {
+    content: [{
+      type: 'text',
+      text: `Index rebuilt: ${Object.keys(idx.packages).length} packages, ${Object.keys(idx.symbolIndex).length} symbols, ${Object.keys(idx.domainMap).length} domains.`,
+    }],
+  }
+}
+
+function searchPackages(args: any, index: SdkIndex): ToolResponse {
+  const query = String(args.query || '').toLowerCase().trim()
+  if (!query) return { content: [{ type: 'text', text: 'query is required' }], isError: true }
+  const domain = args.domain as string | undefined
+  const limit = Number.isFinite(args.limit) ? Number(args.limit) : 15
+  const terms = query.split(/\s+/).filter(Boolean)
+
+  const scored = Object.values(index.packages)
+    .filter(p => !domain || p.domain === domain)
+    .map(p => {
+      const haystackName = p.name.toLowerCase()
+      const haystackDesc = p.description.toLowerCase()
+      const haystackKw = (p.keywords ?? []).join(' ').toLowerCase()
+      const haystackExports = [
+        ...p.exports.functions, ...p.exports.types, ...p.exports.classes, ...p.exports.interfaces, ...p.exports.consts,
+      ].join(' ').toLowerCase()
+      let score = 0
+      for (const t of terms) {
+        if (haystackName.includes(t)) score += 4
+        if (haystackKw.includes(t)) score += 3
+        if (haystackExports.includes(t)) score += 2
+        if (haystackDesc.includes(t)) score += 1
+      }
+      return { p, score }
+    })
+    .filter(r => r.score > 0)
+    .sort((a, b) => b.score - a.score || a.p.name.localeCompare(b.p.name))
+    .slice(0, limit)
+
+  if (scored.length === 0) {
+    return { content: [{ type: 'text', text: `No packages matched '${query}'` }] }
+  }
+  return {
+    content: [{
+      type: 'text',
+      text: `Found ${scored.length} package(s) for '${query}':\n\n` +
+        scored.map(r => `  ${r.p.name}@${r.p.version} [${r.p.domain}] (score ${r.score}) — ${r.p.description}`).join('\n'),
+    }],
   }
 }
 
@@ -52,11 +127,17 @@ function searchSymbol(args: any, index: SdkIndex): ToolResponse {
   const query = (args.query || '').toLowerCase()
   if (!query) return { content: [{ type: 'text', text: 'query is required' }], isError: true }
 
-  const results: Array<{ symbol: string; package: string; kind: string }> = []
+  const results: Array<{ symbol: string; package: string; kind: string; signature?: string; deprecated?: boolean }> = []
   for (const [symbol, entries] of Object.entries(index.symbolIndex)) {
     if (symbol.toLowerCase().includes(query)) {
       for (const entry of entries) {
-        results.push({ symbol, package: entry.package, kind: entry.kind })
+        results.push({
+          symbol,
+          package: entry.package,
+          kind: entry.kind,
+          ...(entry.signature !== undefined ? { signature: entry.signature } : {}),
+          ...(entry.deprecated ? { deprecated: true } : {}),
+        })
       }
     }
   }
@@ -69,7 +150,10 @@ function searchSymbol(args: any, index: SdkIndex): ToolResponse {
     content: [{
       type: 'text',
       text: `Found ${results.length} match(es) for '${query}':\n\n` +
-        results.map(r => `  ${r.symbol} (${r.kind}) — ${r.package}`).join('\n'),
+        results
+          .map(r => `  ${r.symbol} (${r.kind}) — ${r.package}${r.deprecated ? ' [deprecated]' : ''}` +
+            (r.signature ? `\n      ${r.signature}` : ''))
+          .join('\n'),
     }],
   }
 }
@@ -78,16 +162,18 @@ function findType(args: any, index: SdkIndex): ToolResponse {
   const pattern = (args.pattern || '').toLowerCase()
   if (!pattern) return { content: [{ type: 'text', text: 'pattern is required' }], isError: true }
 
-  const results: Array<{ package: string; type: string; kind: string }> = []
+  const results: Array<{ package: string; type: string; kind: string; signature?: string; deprecated?: boolean }> = []
   for (const [pkgName, pkg] of Object.entries(index.packages)) {
-    for (const t of pkg.exports.interfaces) {
-      if (t.toLowerCase().includes(pattern)) results.push({ package: pkgName, type: t, kind: 'interface' })
-    }
-    for (const t of pkg.exports.types) {
-      if (t.toLowerCase().includes(pattern)) results.push({ package: pkgName, type: t, kind: 'type' })
-    }
-    for (const c of pkg.exports.classes) {
-      if (c.toLowerCase().includes(pattern)) results.push({ package: pkgName, type: c, kind: 'class' })
+    for (const entry of typeEntries(pkg)) {
+      if (entry.name.toLowerCase().includes(pattern)) {
+        results.push({
+          package: pkgName,
+          type: entry.name,
+          kind: entry.kind,
+          ...(entry.signature !== undefined ? { signature: entry.signature } : {}),
+          ...(entry.deprecated ? { deprecated: true } : {}),
+        })
+      }
     }
   }
   results.sort((a, b) => a.type.localeCompare(b.type))
@@ -99,9 +185,31 @@ function findType(args: any, index: SdkIndex): ToolResponse {
     content: [{
       type: 'text',
       text: `Found ${results.length} type(s) for '${pattern}':\n\n` +
-        results.map(r => `  ${r.type} (${r.kind}) — ${r.package}`).join('\n'),
+        results
+          .map(r => `  ${r.type} (${r.kind}) — ${r.package}${r.deprecated ? ' [deprecated]' : ''}` +
+            (r.signature ? `\n      ${r.signature}` : ''))
+          .join('\n'),
     }],
   }
+}
+
+/** Type/interface/class entries for a package (uses `symbols` when present, else `exports`). */
+function typeEntries(pkg: SdkIndex['packages'][string]): Array<{ name: string; kind: string; signature?: string; deprecated?: boolean }> {
+  if (pkg.symbols && Object.keys(pkg.symbols).length > 0) {
+    return Object.entries(pkg.symbols)
+      .filter(([, m]) => m.kind === 'type' || m.kind === 'interface' || m.kind === 'class')
+      .map(([name, m]) => ({
+        name,
+        kind: m.kind,
+        ...(m.signature !== undefined ? { signature: m.signature } : {}),
+        ...(m.deprecated ? { deprecated: true } : {}),
+      }))
+  }
+  return [
+    ...pkg.exports.interfaces.map(n => ({ name: n, kind: 'interface' })),
+    ...pkg.exports.types.map(n => ({ name: n, kind: 'type' })),
+    ...pkg.exports.classes.map(n => ({ name: n, kind: 'class' })),
+  ]
 }
 
 function dependencyGraph(args: any, index: SdkIndex): ToolResponse {
@@ -502,26 +610,32 @@ function listExports(args: any, index: SdkIndex): ToolResponse {
 
   const pkg = index.packages[pkgName]
   const sections: string[] = []
+  const render = (s: string): string => {
+    const m = pkg.symbols?.[s]
+    const dep = m?.deprecated ? ' · deprecated' : ''
+    return `  - \`${s}\`${dep}${m?.signature ? `\n      ${m.signature}` : ''}`
+  }
+  const pick = (list: string[]) => (filter ? list.filter(s => s.toLowerCase().includes(filter)) : list)
 
   if (!kind || kind === 'function') {
-    const items = filter ? pkg.exports.functions.filter(s => s.toLowerCase().includes(filter)) : pkg.exports.functions
-    if (items.length) sections.push(`**Functions (${items.length}):**\n` + items.map(s => `  - \`${s}\``).join('\n'))
+    const items = pick(pkg.exports.functions)
+    if (items.length) sections.push(`**Functions (${items.length}):**\n` + items.map(render).join('\n'))
   }
   if (!kind || kind === 'interface') {
-    const items = filter ? pkg.exports.interfaces.filter(s => s.toLowerCase().includes(filter)) : pkg.exports.interfaces
-    if (items.length) sections.push(`**Interfaces (${items.length}):**\n` + items.map(s => `  - \`${s}\``).join('\n'))
+    const items = pick(pkg.exports.interfaces)
+    if (items.length) sections.push(`**Interfaces (${items.length}):**\n` + items.map(render).join('\n'))
   }
   if (!kind || kind === 'type') {
-    const items = filter ? pkg.exports.types.filter(s => s.toLowerCase().includes(filter)) : pkg.exports.types
-    if (items.length) sections.push(`**Named Types (${items.length}):**\n` + items.map(s => `  - \`${s}\``).join('\n'))
+    const items = pick(pkg.exports.types)
+    if (items.length) sections.push(`**Named Types (${items.length}):**\n` + items.map(render).join('\n'))
   }
   if (!kind || kind === 'class') {
-    const items = filter ? pkg.exports.classes.filter(s => s.toLowerCase().includes(filter)) : pkg.exports.classes
-    if (items.length) sections.push(`**Classes (${items.length}):**\n` + items.map(s => `  - \`${s}\``).join('\n'))
+    const items = pick(pkg.exports.classes)
+    if (items.length) sections.push(`**Classes (${items.length}):**\n` + items.map(render).join('\n'))
   }
   if (!kind || kind === 'const') {
-    const items = filter ? pkg.exports.consts.filter(s => s.toLowerCase().includes(filter)) : pkg.exports.consts
-    if (items.length) sections.push(`**Constants (${items.length}):**\n` + items.map(s => `  - \`${s}\``).join('\n'))
+    const items = pick(pkg.exports.consts)
+    if (items.length) sections.push(`**Constants (${items.length}):**\n` + items.map(render).join('\n'))
   }
 
   return {

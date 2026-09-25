@@ -66,6 +66,69 @@ const DOCS: Array<{ uri: string; name: string; description: string; file: string
   { uri: 'totemsdk://audit/wallet-connect-parity', name: 'Wallet ⇄ connect parity audit', description: 'Extension vs PWA coverage of connect methods; task list T1–T5', file: 'docs/audits/wallet-connect-parity-2026-09.md' },
 ]
 
+/** Generated structured catalogs (parsed from source, not stored). */
+const CATALOGS: Array<{ uri: string; name: string; description: string }> = [
+  { uri: 'totemsdk://connect/methods', name: 'Connect Methods', description: 'The dApp-wallet wire protocol method catalog (@totemsdk/connect)' },
+  { uri: 'totemsdk://edge/capabilities', name: 'Edge Capabilities', description: 'Canonical EdgeCapability strings (@totemsdk/edge)' },
+  { uri: 'totemsdk://rfc', name: 'RFC Index', description: 'Index of SDK RFCs' },
+]
+
+function readRepoFile(rel: string): string | null {
+  const p = path.join(REPO_ROOT, rel)
+  return fs.existsSync(p) ? fs.readFileSync(p, 'utf-8') : null
+}
+
+function slugify(s: string): string {
+  return s.toLowerCase().replace(/[`*_]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+}
+
+/** Extract a markdown section by heading slug/text (for `totemsdk://rfc/014#6-design`). */
+export function extractSection(markdown: string, anchor: string): string | null {
+  const lines = markdown.split('\n')
+  const decoded = anchor.replace(/%20/g, ' ').toLowerCase()
+  let start = -1
+  let level = 0
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(/^(#{1,6})\s+(.*)$/)
+    if (!m) continue
+    const text = m[2].trim()
+    if (slugify(text) === slugify(anchor) || text.toLowerCase().includes(decoded)) {
+      start = i
+      level = m[1].length
+      break
+    }
+  }
+  if (start < 0) return null
+  let end = lines.length
+  for (let i = start + 1; i < lines.length; i++) {
+    const m = lines[i].match(/^(#{1,6})\s+/)
+    if (m && m[1].length <= level) { end = i; break }
+  }
+  return lines.slice(start, end).join('\n').trim()
+}
+
+function connectMethods(): string[] {
+  const src = readRepoFile(path.join('packages', 'connect', 'src', 'index.ts'))
+  if (!src) return []
+  return [...new Set([...src.matchAll(/method:\s*'([A-Za-z_]+)'/g)].map(m => m[1]))].sort()
+}
+
+function edgeCapabilities(): string[] {
+  const src = readRepoFile(path.join('packages', 'edge', 'src', 'capabilities.ts'))
+  if (!src) return []
+  return [...new Set([...src.matchAll(/'([a-z][a-z0-9-]*:[a-z0-9-]+)'/g)].map(m => m[1]))].sort()
+}
+
+/** MIME type for a resource URI. */
+export function resourceMimeType(uri: string): string {
+  const base = uri.split('#')[0]
+  if (base === 'totemsdk://conventions' || base === 'totemsdk://templates') return 'text/markdown'
+  if (/^totemsdk:\/\/(papers|rfc|audit)\/[^/]+$/.test(base)) return 'text/markdown'
+  if (base === 'totemsdk://packages' || base === 'totemsdk://domain-map' || base === 'totemsdk://rfc') return 'application/json'
+  if (/^totemsdk:\/\/(packages|symbol|connect|edge)(\/|$)/.test(base)) return 'application/json'
+  return 'text/plain'
+}
+
 const CONVENTIONS = `# Totem SDK Conventions
 
 ## Package Structure
@@ -83,11 +146,11 @@ const CONVENTIONS = `# Totem SDK Conventions
 ## Canonical JSON
 - Recursive deterministic JSON with sorted object keys
 - Used as input to all hashing and signing operations
-- Each package has its own canonicalJson() (no shared util)
+- Shared: import { canonicalJson, hashCanonical, toHex, sha3_256 } from '@totemsdk/core'
 
 ## Hashing
 - SHA3-256 via @totemsdk/core
-- Domain-prefixed: sha3-256(domain + canonicalJson(data))
+- Domain-separated: hashCanonical('<DOMAIN>_V1', data) == sha3-256(domain + canonicalJson(data))
 - Domain constants like 'TOTEM_GOVERNANCE_PROPOSAL_V1'
 
 ## Signing
@@ -111,10 +174,28 @@ const CONVENTIONS = `# Totem SDK Conventions
 - Action lifecycle: propose -> reserve -> execute -> confirm/fail/unknown`
 
 export function handleResourceRead(uri: string, index: SdkIndex): string | null {
-  const readable = [...PAPERS, ...DOCS].find(d => d.uri === uri)
+  if (uri === 'totemsdk://connect/methods') return JSON.stringify(connectMethods(), null, 2)
+  if (uri === 'totemsdk://edge/capabilities') return JSON.stringify(edgeCapabilities(), null, 2)
+  if (uri === 'totemsdk://rfc') {
+    return JSON.stringify(
+      DOCS.filter(d => d.uri.startsWith('totemsdk://rfc/')).map(d => ({ uri: d.uri, name: d.name, description: d.description })),
+      null,
+      2,
+    )
+  }
+
+  const base = uri.split('#')[0]
+  const readable = [...PAPERS, ...DOCS].find(d => d.uri === base)
   if (readable) {
     const filePath = path.join(REPO_ROOT, readable.file)
-    return fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf-8') : `Document not found: ${readable.file}`
+    if (!fs.existsSync(filePath)) return `Document not found: ${readable.file}`
+    const content = fs.readFileSync(filePath, 'utf-8')
+    const hash = uri.indexOf('#')
+    if (hash >= 0) {
+      const section = extractSection(content, uri.slice(hash + 1))
+      return section ?? `Section not found: ${uri.slice(hash + 1)}`
+    }
+    return content
   }
 
   if (uri === 'totemsdk://packages') {
@@ -191,6 +272,7 @@ export function listResources(index: SdkIndex): Array<{ uri: string; name: strin
     { uri: 'totemsdk://domain-map', name: 'Domain Map', description: 'Packages grouped by domain layer' },
     ...PAPERS.map(p => ({ uri: p.uri, name: p.name, description: p.description })),
     ...DOCS.map(d => ({ uri: d.uri, name: d.name, description: d.description })),
+    ...CATALOGS,
   ]
 
   for (const [domain, pkgs] of Object.entries(index.domainMap)) {

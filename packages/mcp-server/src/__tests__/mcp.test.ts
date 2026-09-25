@@ -3,9 +3,9 @@ import {
   getTemplatesForPackage,
   searchTemplates,
 } from '../template-catalog.js'
-import { handleToolCall } from '../tools.js'
+import { handleToolCall, TOOL_DEFINITIONS } from '../tools.js'
 import { buildIndex, readSourceFile } from '../indexer.js'
-import { handleResourceRead, listResources } from '../resources.js'
+import { handleResourceRead, listResources, resourceMimeType } from '../resources.js'
 import type { SdkIndex } from '../types.js'
 
 function makeIndex(): SdkIndex {
@@ -251,5 +251,90 @@ describe('new tools — real index', () => {
     const res = handleToolCall('list-packages', { domain: 'intelligence' }, index)
     expect(res.isError).toBeFalsy()
     expect(res.content[0].text).toContain('@totemsdk/qvac')
+  })
+})
+
+describe('tool catalog — anti-drift', () => {
+  const index = buildIndex()
+
+  it('advertises unique tool names', () => {
+    const names = TOOL_DEFINITIONS.map(t => t.name)
+    expect(new Set(names).size).toBe(names.length)
+    expect(names).toContain('search-packages')
+    expect(names).toContain('refresh-index')
+  })
+
+  it('every advertised tool is handled (no "Unknown tool")', () => {
+    for (const tool of TOOL_DEFINITIONS) {
+      const res = handleToolCall(tool.name, {}, index)
+      expect(res.content[0].text).not.toContain('Unknown tool')
+    }
+  })
+})
+
+describe('P2 — symbol metadata', () => {
+  const index = buildIndex()
+
+  it('extracts signatures for functions reached via barrels', () => {
+    const sig = index.packages['@totemsdk/core']?.symbols?.['getParamSet']?.signature
+    expect(sig).toBeDefined()
+    expect(sig).toContain('getParamSet')
+  })
+
+  it('flags @deprecated symbols', () => {
+    // deserializeMMRProof is re-exported via `export * from './mmr.js'`
+    expect(index.packages['@totemsdk/core']?.symbols?.['deserializeMMRProof']?.deprecated).toBe(true)
+  })
+
+  it('search-packages matches by keyword/description', () => {
+    const res = handleToolCall('search-packages', { query: 'wots lease', limit: 5 }, index)
+    expect(res.isError).toBeFalsy()
+    expect(res.content[0].text.toLowerCase()).toContain('wots')
+  })
+
+  it('refresh-index rebuilds and reports counts', () => {
+    const res = handleToolCall('refresh-index', {}, index)
+    expect(res.isError).toBeFalsy()
+    expect(res.content[0].text).toMatch(/Index rebuilt: \d+ packages/)
+  })
+})
+
+describe('P3 — catalogs, mime types, section addressing', () => {
+  const index = buildIndex()
+
+  it('serves the connect method catalog', () => {
+    const methods = JSON.parse(handleResourceRead('totemsdk://connect/methods', index) as string)
+    expect(Array.isArray(methods)).toBe(true)
+    expect(methods).toContain('TOTEM_CONNECT')
+    expect(methods.length).toBeGreaterThan(40)
+  })
+
+  it('serves the edge capability catalog', () => {
+    const caps = JSON.parse(handleResourceRead('totemsdk://edge/capabilities', index) as string)
+    expect(caps).toContain('intelligence:llm')
+    expect(caps.some((c: string) => c.startsWith('decision:') || c.startsWith('industrial:'))).toBe(true)
+  })
+
+  it('uses correct mime types', () => {
+    expect(resourceMimeType('totemsdk://rfc/014')).toBe('text/markdown')
+    expect(resourceMimeType('totemsdk://papers/gold')).toBe('text/markdown')
+    expect(resourceMimeType('totemsdk://packages')).toBe('application/json')
+    expect(resourceMimeType('totemsdk://connect/methods')).toBe('application/json')
+    expect(resourceMimeType('totemsdk://conventions')).toBe('text/markdown')
+  })
+
+  it('extracts a doc section by heading anchor', () => {
+    const full = handleResourceRead('totemsdk://rfc/014', index) as string
+    const section = handleResourceRead('totemsdk://rfc/014#6-architecture', index) as string
+    expect(section).not.toBeNull()
+    expect(section.length).toBeGreaterThan(0)
+    expect(section.length).toBeLessThan(full.length)
+    expect(section).toContain('#')
+  })
+
+  it('refreshed conventions mention the shared canonical/hash helpers', () => {
+    const conventions = handleResourceRead('totemsdk://conventions', index) as string
+    expect(conventions).toContain('hashCanonical')
+    expect(conventions).not.toContain('no shared util')
   })
 })
