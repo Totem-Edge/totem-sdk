@@ -46,6 +46,8 @@ jobs:
         run: node scripts/verify-workspace.mjs --typecheck
       - name: QVAC API drift audit (against real @qvac/sdk)
         run: node scripts/verify-qvac-api-drift.mjs --strict
+      - name: MCP catalog parity gate
+        run: node scripts/verify-mcp-index.mjs
 
   test:
     name: Unit tests

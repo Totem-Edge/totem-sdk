@@ -53,18 +53,57 @@ const PAPERS: Array<{ uri: string; name: string; description: string; file: stri
   },
 ]
 
-/** RFCs and audits that AI agents should be able to read. */
-const DOCS: Array<{ uri: string; name: string; description: string; file: string }> = [
-  { uri: 'totemsdk://rfc/008', name: 'RFC-008 Federated Statechain', description: 'Leased-WOTS SE identity, federation, threshold SE, registry', file: 'docs/rfc/RFC-008-FEDERATED-STATECHAIN.md' },
-  { uri: 'totemsdk://rfc/009', name: 'RFC-009 KISSVM Signature Fidelity', description: 'Minima-faithful TreeKey SignatureProof verification', file: 'docs/rfc/RFC-009-KISSVM-SIGNATURE-FIDELITY.md' },
-  { uri: 'totemsdk://rfc/010', name: 'RFC-010 Industrial Action RC', description: 'Industrial action on the governed edge runtime', file: 'docs/rfc/RFC-010-INDUSTRIAL-ACTION-RC.md' },
-  { uri: 'totemsdk://rfc/011', name: 'RFC-011 Industrial Action Domain Model', description: 'Units, resources, interlocks, composition, vertical profiles', file: 'docs/rfc/RFC-011-INDUSTRIAL-ACTION-DOMAIN-MODEL.md' },
-  { uri: 'totemsdk://rfc/012', name: 'RFC-012 Decision Runtime', description: 'Bounded semantic choice as a first-class Edge service', file: 'docs/rfc/RFC-012-DECISION-RUNTIME.md' },
-  { uri: 'totemsdk://rfc/013', name: 'RFC-013 Wallet Self-Hosted Mode', description: 'Axia-relay default, chain-provider opt-out, wallet-side WOTS lease', file: 'docs/rfc/RFC-013-WALLET-SELF-HOSTED-MODE.md' },
-  { uri: 'totemsdk://rfc/014', name: 'RFC-014 Wallet Connect Parity', description: 'Shared execution bridge, Edge-routed families, capability manifest', file: 'docs/rfc/RFC-014-WALLET-CONNECT-PARITY.md' },
-  { uri: 'totemsdk://rfc/015', name: 'RFC-015 Axia API Alignment', description: 'Wallet capability, SE registry, lease, status, metering', file: 'docs/rfc/RFC-015-AXIA-API-ALIGNMENT.md' },
-  { uri: 'totemsdk://audit/wallet-connect-parity', name: 'Wallet ⇄ connect parity audit', description: 'Extension vs PWA coverage of connect methods; task list T1–T5', file: 'docs/audits/wallet-connect-parity-2026-09.md' },
-]
+/** Derive a name/description for a doc from its first heading + first paragraph. */
+function docMeta(file: string, fallbackName: string): { name: string; description: string } {
+  const content = readRepoFile(file) ?? ''
+  const lines = content.split('\n')
+  const titleIdx = lines.findIndex(l => l.startsWith('# '))
+  const name = titleIdx >= 0 ? lines[titleIdx].replace(/^#\s+/, '').trim() : fallbackName
+  let description = ''
+  for (let i = titleIdx + 1; i < lines.length; i++) {
+    const t = lines[i].trim()
+    if (!t || t.startsWith('#') || t.startsWith('**Status') || t.startsWith('---') || t.startsWith('>')) continue
+    description = t.replace(/[*_`]/g, '').trim()
+    break
+  }
+  return { name: name || fallbackName, description: description || name || fallbackName }
+}
+
+/**
+ * RFCs and audits are discovered from disk, so a new `docs/rfc/RFC-*.md` or
+ * `docs/audits/*.md` is exposed automatically — there is no hand-maintained
+ * list to forget.
+ */
+function discoverDocs(): Array<{ uri: string; name: string; description: string; file: string }> {
+  const docs: Array<{ uri: string; name: string; description: string; file: string }> = []
+
+  const rfcDir = path.join(REPO_ROOT, 'docs', 'rfc')
+  if (fs.existsSync(rfcDir)) {
+    for (const f of fs.readdirSync(rfcDir).sort()) {
+      const m = f.match(/^RFC-(\d+)-(.+)\.md$/)
+      if (!m) continue
+      const file = path.join('docs', 'rfc', f)
+      const meta = docMeta(file, `RFC-${m[1]}`)
+      docs.push({ uri: `totemsdk://rfc/${m[1]}`, ...meta, file })
+    }
+  }
+
+  const auditDir = path.join(REPO_ROOT, 'docs', 'audits')
+  if (fs.existsSync(auditDir)) {
+    for (const f of fs.readdirSync(auditDir).sort()) {
+      if (!f.endsWith('.md')) continue
+      const base = f.replace(/\.md$/, '')
+      const slug = base.replace(/-\d{4}-\d{2}$/, '')
+      const file = path.join('docs', 'audits', f)
+      const meta = docMeta(file, base)
+      docs.push({ uri: `totemsdk://audit/${slug}`, ...meta, file })
+    }
+  }
+
+  return docs
+}
+
+const DOCS = discoverDocs()
 
 /** Generated structured catalogs (parsed from source, not stored). */
 const CATALOGS: Array<{ uri: string; name: string; description: string }> = [
