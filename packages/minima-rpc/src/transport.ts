@@ -27,10 +27,24 @@ function sanitizeRpcValue(value: unknown, paramName: string): string {
   if (str.length > 1024) {
     throw new MinimaRpcError(`Parameter ${paramName} exceeds maximum length (1024)`, '');
   }
-  if (/[\x00-\x1f\x7f]/.test(str)) {
-    throw new MinimaRpcError(`Parameter ${paramName} contains control characters`, '');
+  // The wire format is space-delimited, so any whitespace in a value would
+  // inject additional `key:value` parameters. Reject whitespace and control
+  // characters outright.
+  if (/[\x00-\x20\x7f]/.test(str)) {
+    throw new MinimaRpcError(
+      `Parameter ${paramName} contains whitespace or control characters`,
+      '',
+    );
   }
   return str;
+}
+
+/**
+ * Push a `name:value` parameter onto the command parts, sanitizing the value
+ * so it cannot inject whitespace-delimited extra parameters.
+ */
+function pushParam(parts: string[], name: string, value: unknown): void {
+  parts.push(`${name}:${sanitizeRpcValue(value, name)}`);
 }
 
 function buildAuthHeader(config: MinimaRpcConfig): string {
@@ -60,39 +74,39 @@ export function buildCommandString(
   switch (method) {
     case 'balance': {
       const parts = ['balance'];
-      if (p.address !== undefined) parts.push(`address:${p.address}`);
-      if (p.megammr !== undefined) parts.push(`megammr:${p.megammr}`);
-      if (p.tokendetails !== undefined) parts.push(`tokendetails:${p.tokendetails}`);
+      if (p.address !== undefined) pushParam(parts, 'address', p.address);
+      if (p.megammr !== undefined) pushParam(parts, 'megammr', p.megammr);
+      if (p.tokendetails !== undefined) pushParam(parts, 'tokendetails', p.tokendetails);
       return parts.join(' ');
     }
 
     case 'history': {
       const parts = ['history'];
-      if (p.action !== undefined) parts.push(`action:${p.action}`);
-      if (p.max !== undefined) parts.push(`max:${p.max}`);
-      if (p.offset !== undefined) parts.push(`offset:${p.offset}`);
-      if (p.relevant !== undefined) parts.push(`relevant:${p.relevant}`);
-      if (p.address !== undefined) parts.push(`address:${p.address}`);
+      if (p.action !== undefined) pushParam(parts, 'action', p.action);
+      if (p.max !== undefined) pushParam(parts, 'max', p.max);
+      if (p.offset !== undefined) pushParam(parts, 'offset', p.offset);
+      if (p.relevant !== undefined) pushParam(parts, 'relevant', p.relevant);
+      if (p.address !== undefined) pushParam(parts, 'address', p.address);
       return parts.join(' ');
     }
 
     case 'coins': {
       const parts = ['coins'];
-      if (p.relevant !== undefined) parts.push(`relevant:${p.relevant}`);
-      if (p.sendable !== undefined) parts.push(`sendable:${p.sendable}`);
-      if (p.coinid !== undefined) parts.push(`coinid:${p.coinid}`);
-      if (p.amount !== undefined) parts.push(`amount:${p.amount}`);
-      if (p.address !== undefined) parts.push(`address:${p.address}`);
-      if (p.tokenid !== undefined) parts.push(`tokenid:${p.tokenid}`);
-      if (p.coinage !== undefined) parts.push(`coinage:${p.coinage}`);
-      if (p.megammr !== undefined) parts.push(`megammr:${p.megammr}`);
+      if (p.relevant !== undefined) pushParam(parts, 'relevant', p.relevant);
+      if (p.sendable !== undefined) pushParam(parts, 'sendable', p.sendable);
+      if (p.coinid !== undefined) pushParam(parts, 'coinid', p.coinid);
+      if (p.amount !== undefined) pushParam(parts, 'amount', p.amount);
+      if (p.address !== undefined) pushParam(parts, 'address', p.address);
+      if (p.tokenid !== undefined) pushParam(parts, 'tokenid', p.tokenid);
+      if (p.coinage !== undefined) pushParam(parts, 'coinage', p.coinage);
+      if (p.megammr !== undefined) pushParam(parts, 'megammr', p.megammr);
       return parts.join(' ');
     }
 
     case 'tokens': {
       const parts = ['tokens'];
-      if (p.tokenid !== undefined) parts.push(`tokenid:${p.tokenid}`);
-      if (p.action !== undefined) parts.push(`action:${p.action}`);
+      if (p.tokenid !== undefined) pushParam(parts, 'tokenid', p.tokenid);
+      if (p.action !== undefined) pushParam(parts, 'action', p.action);
       return parts.join(' ');
     }
 
@@ -101,17 +115,17 @@ export function buildCommandString(
 
     case 'burn': {
       const parts = ['burn'];
-      if (p.last !== undefined) parts.push(`last:${p.last}`);
+      if (p.last !== undefined) pushParam(parts, 'last', p.last);
       return parts.join(' ');
     }
 
     case 'send': {
       const parts = ['send'];
-      if (p.address !== undefined) parts.push(`address:${p.address}`);
-      if (p.amount !== undefined) parts.push(`amount:${p.amount}`);
-      if (p.tokenid !== undefined) parts.push(`tokenid:${p.tokenid}`);
-      if (p.burn !== undefined) parts.push(`burn:${p.burn}`);
-      if (p.split !== undefined) parts.push(`split:${p.split}`);
+      if (p.address !== undefined) pushParam(parts, 'address', p.address);
+      if (p.amount !== undefined) pushParam(parts, 'amount', p.amount);
+      if (p.tokenid !== undefined) pushParam(parts, 'tokenid', p.tokenid);
+      if (p.burn !== undefined) pushParam(parts, 'burn', p.burn);
+      if (p.split !== undefined) pushParam(parts, 'split', p.split);
       return parts.join(' ');
     }
 
@@ -123,186 +137,186 @@ export function buildCommandString(
 
     case 'coinexport': {
       const parts = ['coinexport'];
-      if (p.coinid !== undefined) parts.push(`coinid:${p.coinid}`);
+      if (p.coinid !== undefined) pushParam(parts, 'coinid', p.coinid);
       return parts.join(' ');
     }
 
     case 'verify': {
       const parts = ['verify'];
-      if (p.publickey !== undefined) parts.push(`publickey:${p.publickey}`);
-      if (p.data !== undefined) parts.push(`data:${p.data}`);
-      if (p.signature !== undefined) parts.push(`signature:${p.signature}`);
+      if (p.publickey !== undefined) pushParam(parts, 'publickey', p.publickey);
+      if (p.data !== undefined) pushParam(parts, 'data', p.data);
+      if (p.signature !== undefined) pushParam(parts, 'signature', p.signature);
       return parts.join(' ');
     }
 
     case 'webhooks': {
       const parts = ['webhooks'];
-      parts.push(`action:${p.action}`);
-      if (p.hook !== undefined) parts.push(`hook:${p.hook}`);
-      if (p.filter !== undefined) parts.push(`filter:${p.filter}`);
+      pushParam(parts, 'action', p.action);
+      if (p.hook !== undefined) pushParam(parts, 'hook', p.hook);
+      if (p.filter !== undefined) pushParam(parts, 'filter', p.filter);
       return parts.join(' ');
     }
 
     case 'txncreate': {
       const parts = ['txncreate'];
-      if (p.id !== undefined) parts.push(`id:${p.id}`);
+      if (p.id !== undefined) pushParam(parts, 'id', p.id);
       return parts.join(' ');
     }
 
     case 'txnbasics': {
       const parts = ['txnbasics'];
-      if (p.id !== undefined) parts.push(`id:${p.id}`);
+      if (p.id !== undefined) pushParam(parts, 'id', p.id);
       return parts.join(' ');
     }
 
     case 'txnpost': {
       const parts = ['txnpost'];
-      if (p.id !== undefined) parts.push(`id:${p.id}`);
-      if (p.data !== undefined) parts.push(`data:${p.data}`);
-      if (p.auto !== undefined) parts.push(`auto:${p.auto}`);
-      if (p.mine !== undefined) parts.push(`mine:${p.mine}`);
-      if (p.txndelete !== undefined) parts.push(`txndelete:${p.txndelete}`);
-      if (p.burn !== undefined) parts.push(`burn:${p.burn}`);
+      if (p.id !== undefined) pushParam(parts, 'id', p.id);
+      if (p.data !== undefined) pushParam(parts, 'data', p.data);
+      if (p.auto !== undefined) pushParam(parts, 'auto', p.auto);
+      if (p.mine !== undefined) pushParam(parts, 'mine', p.mine);
+      if (p.txndelete !== undefined) pushParam(parts, 'txndelete', p.txndelete);
+      if (p.burn !== undefined) pushParam(parts, 'burn', p.burn);
       return parts.join(' ');
     }
 
     case 'txnsign': {
       const parts = ['txnsign'];
-      if (p.id !== undefined) parts.push(`id:${p.id}`);
-      if (p.publickey !== undefined) parts.push(`publickey:${p.publickey}`);
-      if (p.txndata !== undefined) parts.push(`txndata:${p.txndata}`);
+      if (p.id !== undefined) pushParam(parts, 'id', p.id);
+      if (p.publickey !== undefined) pushParam(parts, 'publickey', p.publickey);
+      if (p.txndata !== undefined) pushParam(parts, 'txndata', p.txndata);
       return parts.join(' ');
     }
 
     case 'txncheck': {
       const parts = ['txncheck'];
-      if (p.id !== undefined) parts.push(`id:${p.id}`);
+      if (p.id !== undefined) pushParam(parts, 'id', p.id);
       return parts.join(' ');
     }
 
     case 'txnimport': {
       const parts = ['txnimport'];
-      if (p.data !== undefined) parts.push(`data:${p.data}`);
-      if (p.id !== undefined) parts.push(`id:${p.id}`);
+      if (p.data !== undefined) pushParam(parts, 'data', p.data);
+      if (p.id !== undefined) pushParam(parts, 'id', p.id);
       return parts.join(' ');
     }
 
     case 'txnexport': {
       const parts = ['txnexport'];
-      if (p.id !== undefined) parts.push(`id:${p.id}`);
+      if (p.id !== undefined) pushParam(parts, 'id', p.id);
       return parts.join(' ');
     }
 
     case 'txnlist': {
       const parts = ['txnlist'];
-      if (p.id !== undefined) parts.push(`id:${p.id}`);
-      if (p.transactiononly !== undefined) parts.push(`transactiononly:${p.transactiononly}`);
+      if (p.id !== undefined) pushParam(parts, 'id', p.id);
+      if (p.transactiononly !== undefined) pushParam(parts, 'transactiononly', p.transactiononly);
       return parts.join(' ');
     }
 
     case 'txndelete': {
       const parts = ['txndelete'];
-      if (p.id !== undefined) parts.push(`id:${p.id}`);
+      if (p.id !== undefined) pushParam(parts, 'id', p.id);
       return parts.join(' ');
     }
 
     case 'txninput': {
       const parts = ['txninput'];
-      if (p.id !== undefined) parts.push(`id:${p.id}`);
-      if (p.coinid !== undefined) parts.push(`coinid:${p.coinid}`);
-      if (p.address !== undefined) parts.push(`address:${p.address}`);
-      if (p.amount !== undefined) parts.push(`amount:${p.amount}`);
-      if (p.tokenid !== undefined) parts.push(`tokenid:${p.tokenid}`);
-      if (p.floating !== undefined) parts.push(`floating:${p.floating}`);
+      if (p.id !== undefined) pushParam(parts, 'id', p.id);
+      if (p.coinid !== undefined) pushParam(parts, 'coinid', p.coinid);
+      if (p.address !== undefined) pushParam(parts, 'address', p.address);
+      if (p.amount !== undefined) pushParam(parts, 'amount', p.amount);
+      if (p.tokenid !== undefined) pushParam(parts, 'tokenid', p.tokenid);
+      if (p.floating !== undefined) pushParam(parts, 'floating', p.floating);
       return parts.join(' ');
     }
 
     case 'txnoutput': {
       const parts = ['txnoutput'];
-      if (p.id !== undefined) parts.push(`id:${p.id}`);
-      if (p.address !== undefined) parts.push(`address:${p.address}`);
-      if (p.amount !== undefined) parts.push(`amount:${p.amount}`);
-      if (p.tokenid !== undefined) parts.push(`tokenid:${p.tokenid}`);
-      if (p.storestate !== undefined) parts.push(`storestate:${p.storestate}`);
+      if (p.id !== undefined) pushParam(parts, 'id', p.id);
+      if (p.address !== undefined) pushParam(parts, 'address', p.address);
+      if (p.amount !== undefined) pushParam(parts, 'amount', p.amount);
+      if (p.tokenid !== undefined) pushParam(parts, 'tokenid', p.tokenid);
+      if (p.storestate !== undefined) pushParam(parts, 'storestate', p.storestate);
       return parts.join(' ');
     }
 
     case 'txnstate': {
       const parts = ['txnstate'];
-      if (p.id !== undefined) parts.push(`id:${p.id}`);
-      if (p.port !== undefined) parts.push(`port:${p.port}`);
-      if (p.value !== undefined) parts.push(`value:${p.value}`);
+      if (p.id !== undefined) pushParam(parts, 'id', p.id);
+      if (p.port !== undefined) pushParam(parts, 'port', p.port);
+      if (p.value !== undefined) pushParam(parts, 'value', p.value);
       return parts.join(' ');
     }
 
     case 'txnscript': {
       const parts = ['txnscript'];
-      if (p.id !== undefined) parts.push(`id:${p.id}`);
-      if (p.scripts !== undefined) parts.push(`scripts:${p.scripts}`);
+      if (p.id !== undefined) pushParam(parts, 'id', p.id);
+      if (p.scripts !== undefined) pushParam(parts, 'scripts', p.scripts);
       return parts.join(' ');
     }
 
     case 'txnclear': {
       const parts = ['txnclear'];
-      if (p.id !== undefined) parts.push(`id:${p.id}`);
+      if (p.id !== undefined) pushParam(parts, 'id', p.id);
       return parts.join(' ');
     }
 
     case 'txnmine': {
       const parts = ['txnmine'];
-      if (p.id !== undefined) parts.push(`id:${p.id}`);
-      if (p.data !== undefined) parts.push(`data:${p.data}`);
+      if (p.id !== undefined) pushParam(parts, 'id', p.id);
+      if (p.data !== undefined) pushParam(parts, 'data', p.data);
       return parts.join(' ');
     }
 
     case 'txnminepost': {
       const parts = ['txnminepost'];
-      if (p.data !== undefined) parts.push(`data:${p.data}`);
+      if (p.data !== undefined) pushParam(parts, 'data', p.data);
       return parts.join(' ');
     }
 
     case 'sendfrom': {
       const parts = ['sendfrom'];
-      if (p.fromaddress !== undefined) parts.push(`fromaddress:${sanitizeRpcValue(p.fromaddress, 'fromaddress')}`);
-      if (p.address !== undefined) parts.push(`address:${sanitizeRpcValue(p.address, 'address')}`);
-      if (p.amount !== undefined) parts.push(`amount:${sanitizeRpcValue(p.amount, 'amount')}`);
-      if (p.tokenid !== undefined) parts.push(`tokenid:${sanitizeRpcValue(p.tokenid, 'tokenid')}`);
-      if (p.script !== undefined) parts.push(`script:${sanitizeRpcValue(p.script, 'script')}`);
-      if (p.keyuses !== undefined) parts.push(`keyuses:${sanitizeRpcValue(p.keyuses, 'keyuses')}`);
-      if (p.burn !== undefined) parts.push(`burn:${sanitizeRpcValue(p.burn, 'burn')}`);
-      if (p.mine !== undefined) parts.push(`mine:${sanitizeRpcValue(p.mine, 'mine')}`);
+      if (p.fromaddress !== undefined) pushParam(parts, 'fromaddress', p.fromaddress);
+      if (p.address !== undefined) pushParam(parts, 'address', p.address);
+      if (p.amount !== undefined) pushParam(parts, 'amount', p.amount);
+      if (p.tokenid !== undefined) pushParam(parts, 'tokenid', p.tokenid);
+      if (p.script !== undefined) pushParam(parts, 'script', p.script);
+      if (p.keyuses !== undefined) pushParam(parts, 'keyuses', p.keyuses);
+      if (p.burn !== undefined) pushParam(parts, 'burn', p.burn);
+      if (p.mine !== undefined) pushParam(parts, 'mine', p.mine);
       return parts.join(' ');
     }
 
     case 'sendnosign': {
       const parts = ['sendnosign'];
-      if (p.address !== undefined) parts.push(`address:${p.address}`);
-      if (p.amount !== undefined) parts.push(`amount:${p.amount}`);
-      if (p.multi !== undefined) parts.push(`multi:${p.multi}`);
-      if (p.tokenid !== undefined) parts.push(`tokenid:${p.tokenid}`);
-      if (p.state !== undefined) parts.push(`state:${p.state}`);
-      if (p.burn !== undefined) parts.push(`burn:${p.burn}`);
-      if (p.split !== undefined) parts.push(`split:${p.split}`);
-      if (p.file !== undefined) parts.push(`file:${p.file}`);
-      if (p.debug !== undefined) parts.push(`debug:${p.debug}`);
+      if (p.address !== undefined) pushParam(parts, 'address', p.address);
+      if (p.amount !== undefined) pushParam(parts, 'amount', p.amount);
+      if (p.multi !== undefined) pushParam(parts, 'multi', p.multi);
+      if (p.tokenid !== undefined) pushParam(parts, 'tokenid', p.tokenid);
+      if (p.state !== undefined) pushParam(parts, 'state', p.state);
+      if (p.burn !== undefined) pushParam(parts, 'burn', p.burn);
+      if (p.split !== undefined) pushParam(parts, 'split', p.split);
+      if (p.file !== undefined) pushParam(parts, 'file', p.file);
+      if (p.debug !== undefined) pushParam(parts, 'debug', p.debug);
       return parts.join(' ');
     }
 
     case 'sendview': {
       const parts = ['sendview'];
-      if (p.file !== undefined) parts.push(`file:${p.file}`);
+      if (p.file !== undefined) pushParam(parts, 'file', p.file);
       return parts.join(' ');
     }
 
     case 'sendsign': {
       const parts = ['sendsign'];
-      if (p.file !== undefined) parts.push(`file:${p.file}`);
+      if (p.file !== undefined) pushParam(parts, 'file', p.file);
       return parts.join(' ');
     }
 
     case 'sendpost': {
       const parts = ['sendpost'];
-      if (p.file !== undefined) parts.push(`file:${p.file}`);
+      if (p.file !== undefined) pushParam(parts, 'file', p.file);
       return parts.join(' ');
     }
 
@@ -313,13 +327,13 @@ export function buildCommandString(
      */
     case 'getmmrproof': {
       const parts = ['getmmrproof'];
-      if (p.coinid !== undefined) parts.push(`coinid:${p.coinid}`);
+      if (p.coinid !== undefined) pushParam(parts, 'coinid', p.coinid);
       return parts.join(' ');
     }
 
     case 'coincheck': {
       const parts = ['coincheck'];
-      if (p.coinid !== undefined) parts.push(`coinid:${p.coinid}`);
+      if (p.coinid !== undefined) pushParam(parts, 'coinid', p.coinid);
       return parts.join(' ');
     }
 
@@ -344,7 +358,7 @@ export function buildCommandString(
             method,
           );
         }
-        parts.push(`${key}:${value}`);
+        pushParam(parts, key, value);
       }
       return parts.join(' ');
     }
@@ -354,14 +368,21 @@ export function buildCommandString(
 /**
  * Send a single POST to the Minima RPC endpoint and return the parsed envelope.
  * Throws MinimaRpcError on HTTP errors or Minima status:false.
+ *
+ * @param opts.retryable When true, ambiguous network failures are retried (up to
+ *   `config.maxRetries`) and the tolerant raw HTTP transport may be used as a
+ *   fallback. Defaults to false: ambiguous failures surface immediately without
+ *   repeating a possibly non-idempotent command.
  */
 export async function postCommand(
   config: MinimaRpcConfig,
   commandString: string,
+  opts?: { retryable?: boolean },
 ): Promise<unknown> {
+  const retryable = opts?.retryable ?? false;
   const url = buildUrl(config);
   const timeoutMs = config.timeoutMs ?? 30_000;
-  const maxRetries = config.maxRetries ?? 0;
+  const maxRetries = retryable ? (config.maxRetries ?? 0) : 0;
 
   let lastError: unknown;
 
@@ -432,13 +453,24 @@ export async function postCommand(
         err instanceof Error &&
         (err.name === 'AbortError' || err.message.includes('aborted'));
       if (isAbort) {
-        // A hung fetch against a non-RFC server must NOT be fatal — record it
-        // and fall through to the tolerant raw transport below.
+        // A hung fetch against a non-RFC server must NOT be fatal for
+        // retryable reads — record it and fall through to the tolerant raw
+        // transport below.
         lastError = err;
         continue;
       }
       lastError = err;
     }
+  }
+
+  // Ambiguous network failure. For non-retryable (typically mutating)
+  // commands, surface the failure immediately rather than repeating the
+  // operation or falling back to a second transport.
+  if (!retryable) {
+    throw new MinimaRpcError(
+      `Ambiguous network failure (not retried): ${String(lastError)}`,
+      commandString,
+    );
   }
 
   // Final attempt via the raw, tolerant transport so the SDK works against

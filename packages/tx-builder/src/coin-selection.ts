@@ -160,9 +160,11 @@ export class CoinSelectionService {
       availableCoins = availableCoins.filter(c => !exclusions.includes(c.address));
     }
     
-    if (options.tokenId && options.tokenId !== '0x00') {
-      availableCoins = availableCoins.filter(c => c.tokenid === options.tokenId);
-    }
+    const tokenId = options.tokenId;
+    const isBaseToken = !tokenId || tokenId === '0x00' || tokenId === '0x01';
+    availableCoins = availableCoins.filter(c =>
+      isBaseToken ? c.tokenid === '0x00' || c.tokenid === '0x01' : c.tokenid === tokenId
+    );
     
     const orderedCoins = this.orderCoinsByAmount(availableCoins);
     

@@ -90,6 +90,27 @@ describe('verifyDeposit', () => {
     expect(result.valid).toBe(true);
   });
 
+  it('never rounds a higher-precision claim down into passing (AUD-038)', async () => {
+    const underfunded = await verifyDeposit(
+      providerWith({ ...baseCoin, amount: '100.00000000' }),
+      { coinId: '0xC1', ownerAddress: 'MxLP', claimedAmount: '100.000000001' },
+    );
+    expect(underfunded.amountSufficient).toBe(false);
+    expect(underfunded.valid).toBe(false);
+
+    const exact = await verifyDeposit(
+      providerWith({ ...baseCoin, amount: '100.000000001' }),
+      { coinId: '0xC1', ownerAddress: 'MxLP', claimedAmount: '100.00000000' },
+    );
+    expect(exact.amountSufficient).toBe(true);
+
+    const roundedDown = await verifyDeposit(
+      providerWith({ ...baseCoin, amount: '99.999999999' }),
+      { coinId: '0xC1', ownerAddress: 'MxLP', claimedAmount: '100' },
+    );
+    expect(roundedDown.amountSufficient).toBe(false);
+  });
+
   it('flags mempool coins as unconfirmed and enforces requireConfirmed', async () => {
     const mempool = await verifyDeposit(
       providerWith({ ...baseCoin, mmrentry: '0' }),
@@ -152,6 +173,28 @@ describe('withDepositVerifier', () => {
     expect(result.valid).toBe(true);
     expect(await verifier.getMmrRoot()).toBeNull();
     expect(typeof verifier.depositAddressFor('MxLP')).toBe('string');
+  });
+
+  it('keeps class prototype methods and `this` reachable (AUD-039)', async () => {
+    class ClassProvider {
+      constructor(
+        private readonly coin: unknown,
+        private readonly tag: string,
+      ) {}
+      async getCoin(): Promise<unknown> {
+        return this.tag === 'ok' ? this.coin : null;
+      }
+    }
+
+    const verifier = withDepositVerifier(
+      new ClassProvider(baseCoin, 'ok') as unknown as ChainStateProvider,
+    );
+
+    expect(typeof verifier.getCoin).toBe('function');
+    expect(await verifier.getCoin('0xC1')).toEqual(baseCoin);
+
+    const result = await verifier.verifyDeposit({ coinId: '0xC1', ownerAddress: 'MxLP' });
+    expect(result.valid).toBe(true);
   });
 });
 

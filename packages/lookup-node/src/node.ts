@@ -79,7 +79,7 @@ export class LookupNode implements NodeDispatcher {
     }
 
     if (config.trustIndex?.enabled) {
-      this.trustIndex = new TrustIndex(this.store);
+      this.trustIndex = new TrustIndex(this.store, config.trustIndex);
     }
   }
 

@@ -90,11 +90,13 @@ export {
   serializeRegistryState,
   computeRegistryRoot,
   registryRootPayload,
+  registryTransitionPayload,
   signRegistryTransition,
   verifyRegistryRoot,
   verifyRegistryTransition,
   applyRegistryTransition,
   registerPoolWriter,
+  changedPoolIds,
   registryRootPort,
 } from './root.js';
 export type {

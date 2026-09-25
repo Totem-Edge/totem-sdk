@@ -308,7 +308,7 @@ export class ClientSession {
 
       case 'TRUST_RECORD': {
         const ti = this._dispatcher.trustIndex;
-        if (ti) ti.record(msg);
+        if (ti) await ti.record(msg, this.publicKeyHex);
         break;
       }
 

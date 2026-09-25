@@ -44,10 +44,13 @@ export interface RegistryTransitionSigner {
 
 /**
  * Verifier used to check a registry root signature.
+ *
+ * `verify` is **required** (AUD-015): an optional verifier let a caller pass an
+ * object with no `verify` and have every signature silently accepted.
  */
 export interface RegistryRootVerifier {
   publicKeyDigest: string;
-  verify?(payload: Uint8Array, signature: Uint8Array, indices?: SigningIndices): boolean | Promise<boolean>;
+  verify(payload: Uint8Array, signature: Uint8Array, indices?: SigningIndices): boolean | Promise<boolean>;
 }
 
 export interface RegistryTransitionDelta {
@@ -135,6 +138,27 @@ export function registryRootPayload(root: string, opts?: RegistryRootOptions): U
   return sha3_256(new TextEncoder().encode(`${domain}|root|${root}`));
 }
 
+/**
+ * The exact bytes signed/verified for a transition (AUD-013): binds the
+ * resulting root to its anchor position (`previousRoot`), its anti-reorg
+ * `sequence`, and the mutation (`opHash`) so a signed root cannot be replayed
+ * at a forged chain position and `op.poolId` is signature-bound.
+ */
+export function registryTransitionPayload(
+  root: string,
+  previousRoot: string | undefined,
+  sequence: number | undefined,
+  opHash: string,
+  opts?: RegistryRootOptions,
+): Uint8Array {
+  const domain = domainFor(opts);
+  return sha3_256(
+    new TextEncoder().encode(
+      `${domain}|transition|${root}|prev|${previousRoot ?? 'genesis'}|seq|${sequence ?? 0}|op|${opHash}`,
+    ),
+  );
+}
+
 function opHashFor(op: RegistryOperation, domain: string): string {
   return toHex(sha3_256(new TextEncoder().encode(`${domain}|op|${canonicalJson(op)}`)));
 }
@@ -160,11 +184,15 @@ export async function signRegistryTransition(
   const signedAt = opts.signedAt ?? Date.now();
   const root = computeRegistryRoot(registry, opts);
   const indices = opts.signIndices;
-  const signature = await signer.sign(registryRootPayload(root, { domain }), indices);
+  const opHash = opHashFor(op, domain);
+  const signature = await signer.sign(
+    registryTransitionPayload(root, opts.previousRoot, opts.sequence, opHash, { domain }),
+    indices,
+  );
   return {
     delta: {
       op,
-      opHash: opHashFor(op, domain),
+      opHash,
       previousRoot: opts?.previousRoot,
       root,
       signedAt,
@@ -181,7 +209,8 @@ export async function signRegistryTransition(
 /**
  * Verify a root against a registry (boolean form of the transition check):
  *  1. recompute the root from the registry and require it to equal `root`;
- *  2. when the verifier exposes `verify`, also check the signature over the root.
+ *  2. require the verifier to actually check the signature (AUD-015 — no
+ *     structure-only acceptance).
  */
 export async function verifyRegistryRoot(
   registry: LiquidityBondRegistryState,
@@ -191,15 +220,16 @@ export async function verifyRegistryRoot(
   opts?: RegistryRootOptions,
 ): Promise<boolean> {
   if (computeRegistryRoot(registry, opts) !== root) return false;
-  if (typeof verifier.verify !== 'function') return true;
+  if (typeof verifier.verify !== 'function') return false;
   const payload = registryRootPayload(root, opts);
   const ok = await verifier.verify(payload, signature, opts?.signIndices);
   return ok;
 }
 
 /**
- * Root-based transition verification (#6): recompute root, then (when the
- * verifier exposes `verify`) check the signature and signer identity.
+ * Root-based transition verification (#6): recompute root, then always check
+ * the signature over the transition payload (anchor + sequence + op) and the
+ * signer identity. A verifier without `verify` fails closed (AUD-015).
  */
 export async function verifyRegistryTransition(
   registry: LiquidityBondRegistryState,
@@ -218,9 +248,21 @@ export async function verifyRegistryTransition(
     reasons.push('transition was not signed by the expected signer');
   }
 
-  if (typeof verifier.verify === 'function') {
+  if (typeof verifier.verify !== 'function') {
+    reasons.push('verifier does not implement signature verification');
+  } else {
     const indices = opts?.signIndices;
-    const ok = await verifier.verify(registryRootPayload(transition.root, opts), transition.signature, indices);
+    const ok = await verifier.verify(
+      registryTransitionPayload(
+        transition.root,
+        transition.delta.previousRoot,
+        transition.delta.sequence,
+        transition.delta.opHash,
+        { ...opts, domain },
+      ),
+      transition.signature,
+      indices,
+    );
     if (!ok) reasons.push('signature is invalid');
   }
 
@@ -244,6 +286,50 @@ export function registerPoolWriter(
   signerPublicKeyDigest: string,
 ): PoolWriterRegistry {
   return { ...writers, [poolId]: signerPublicKeyDigest };
+}
+
+const POOL_COLLECTIONS = [
+  'commitments',
+  'positions',
+  'receipts',
+  'allocations',
+  'feeRecords',
+  'withdrawals',
+] as const;
+
+function poolIdsOf(value: unknown): string[] {
+  const items = Array.isArray(value) ? value : [value];
+  const ids = new Set<string>();
+  for (const item of items) {
+    if (item && typeof item === 'object' && typeof (item as { poolId?: unknown }).poolId === 'string') {
+      ids.add((item as { poolId: string }).poolId);
+    }
+  }
+  return [...ids];
+}
+
+/**
+ * The set of pool ids whose state differs between `state` and `next`
+ * (AUD-014). Used to confine a writer-authorized transition to the pool it
+ * declared in `op.poolId`.
+ */
+export function changedPoolIds(
+  state: LiquidityBondRegistryState,
+  next: LiquidityBondRegistryState,
+): Set<string> {
+  const changed = new Set<string>();
+  for (const id of new Set([...Object.keys(state.pools), ...Object.keys(next.pools)])) {
+    if (canonicalJson(state.pools[id]) !== canonicalJson(next.pools[id])) changed.add(id);
+  }
+  for (const key of POOL_COLLECTIONS) {
+    const before = state[key] as Record<string, unknown>;
+    const after = next[key] as Record<string, unknown>;
+    for (const id of new Set([...Object.keys(before), ...Object.keys(after)])) {
+      if (canonicalJson(before[id]) === canonicalJson(after[id])) continue;
+      for (const poolId of poolIdsOf(after[id] ?? before[id])) changed.add(poolId);
+    }
+  }
+  return changed;
 }
 
 /**
@@ -276,13 +362,23 @@ export async function applyRegistryTransition(
     );
   }
   if (opts?.writers) {
-    const poolIds = new Set<string>();
-    if (transition.delta.op.poolId) poolIds.add(transition.delta.op.poolId);
-    for (const poolId of poolIds) {
-      const writer = opts.writers[poolId];
-      if (writer && writer !== transition.signerPublicKey) {
+    const targetPool = transition.delta.op.poolId;
+    if (!targetPool) {
+      throw new Error('a writer-authorized transition must declare op.poolId');
+    }
+    const authorized = opts.writers[targetPool];
+    if (!authorized) {
+      throw new Error(`no authorized writer registered for pool ${targetPool}`);
+    }
+    if (authorized !== transition.signerPublicKey) {
+      throw new Error(
+        `transition for pool ${targetPool} was not signed by its authorized writer`,
+      );
+    }
+    for (const poolId of changedPoolIds(state, next)) {
+      if (poolId !== targetPool) {
         throw new Error(
-          `transition for pool ${poolId} was not signed by its authorized writer`,
+          `transition for pool ${targetPool} modified pool ${poolId}`,
         );
       }
     }
@@ -305,7 +401,7 @@ export interface RegistryRootPort {
     registry: LiquidityBondRegistryState,
     op: RegistryOperation,
     signer: RegistryTransitionSigner,
-    opts?: RegistryRootOptions,
+    opts: RegistrySigningOptions,
   ): Promise<RegistrySignedTransition>;
   verifyRegistryTransition(
     registry: LiquidityBondRegistryState,
@@ -318,7 +414,7 @@ export interface RegistryRootPort {
     next: LiquidityBondRegistryState,
     transition: RegistrySignedTransition,
     verifier: RegistryRootVerifier,
-    opts?: RegistryRootOptions,
+    opts?: RegistryRootOptions & { writers?: PoolWriterRegistry },
   ): Promise<LiquidityBondRegistryState>;
 }
 

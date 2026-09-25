@@ -39,6 +39,7 @@ function makeHandlerConfig(store?: MemoryStore, overrides: Partial<MqttCommandHa
     executor: {
       execute: async () => ({ ok: true }),
     },
+    requireSignedCommands: false,
     ...(store ? { replayStore: store } : {}),
     ...overrides,
   };

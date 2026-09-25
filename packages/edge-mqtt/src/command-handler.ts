@@ -2,9 +2,11 @@
  * Policy-gated command handler for @totemsdk/edge-mqtt.
  *
  * Supports two modes:
- *   1. Signed command envelopes — cryptographically verified, replay-protected.
+ *   1. Signed command envelopes — cryptographically verified, payload-bound,
+ *      replay-protected. This is the default and fail-closed path.
  *   2. Legacy unsigned commands — parsed from the raw body and passed through
- *      the same policy + executor pipeline (verification skipped).
+ *      the same policy + executor pipeline (verification skipped). Available
+ *      only when `config.requireSignedCommands === false` on trusted networks.
  *
  * Replay protection: processed command IDs are tracked for the maximum
  * command validity period (config.maxCommandAgeMs, default 60s). When a
@@ -15,6 +17,8 @@
  */
 
 import { createMqttReceipt, publishMqttReceipt } from './receipts.js';
+import { canonicalJson, toHex } from './canonical.js';
+import { sha3_256 } from '@totemsdk/proof';
 import type { MqttMessage } from './client-port.js';
 import type { EdgeOperationResult } from '@totemsdk/edge';
 import type {
@@ -148,6 +152,17 @@ export function createMqttCommandHandler(config: MqttCommandHandlerConfig): Mqtt
       try { body = JSON.parse(raw) as Record<string, unknown>; } catch { body = {}; }
 
       const envelope = parseSignedEnvelope(body);
+      const requireSignedCommands = config.requireSignedCommands !== false;
+
+      // Fail closed: unsigned or malformed-envelope commands are rejected unless
+      // the legacy unsigned mode has been explicitly opted into.
+      if (!envelope && requireSignedCommands) {
+        const commandId = typeof body.commandId === 'string' ? body.commandId : '';
+        const reason = 'Rejected: signed command envelope required';
+        await emitRejected(commandId, reason);
+        return { ok: false, error: reason, errorCode: 'MQTT_POLICY_REJECTED' };
+      }
+
       const command = envelope
         ? {
             commandId: envelope.commandId,
@@ -157,6 +172,20 @@ export function createMqttCommandHandler(config: MqttCommandHandlerConfig): Mqtt
             createdAt: envelope.issuedAt,
           }
         : parseCommand(message);
+
+      // Bind the unsigned outer payload to the signed envelope: the executor
+      // must never receive a payload that differs from the one the issuer hashed
+      // and signed (integrity/tamper protection).
+      if (envelope) {
+        const actualPayloadHash = toHex(
+          sha3_256(new TextEncoder().encode(canonicalJson(body.payload))),
+        );
+        if (actualPayloadHash !== envelope.payloadHash) {
+          const reason = 'Rejected: command payload hash mismatch';
+          await emitRejected(envelope.commandId, reason);
+          return { ok: false, error: reason, errorCode: 'MQTT_POLICY_REJECTED' };
+        }
+      }
 
       // Signed envelope validity windows.
       if (envelope) {

@@ -4,6 +4,7 @@
 
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import type { StorageAdapter } from '@totemsdk/core';
+import type { TrustRecordMessage } from '@totemsdk/lookup-protocol';
 
 export type { ChainStateProvider };
 
@@ -65,12 +66,24 @@ export interface AgentRegistryConfig {
 export interface TrustIndexConfig {
   enabled: true;
   /**
-   * Require at minimum a well-formed hex signature on TRUST_RECORD messages.
-   * Default: true. Full WOTS cryptographic verification is a future hardening pass
-   * (requires chain RPC lookup of the reviewer's public key).
-   * Set to false only for development/testing.
+   * Require reviewer signatures to be cryptographically verified before a
+   * TRUST_RECORD is persisted. Default: true (fail closed). When true, a record
+   * is only accepted if `verifyReviewerSignature` is configured AND returns
+   * true. Set to false only for development/testing.
    */
   requireVerifiedSignature?: boolean;
+  /**
+   * Cryptographic verifier for a TRUST_RECORD payload. Required when
+   * `requireVerifiedSignature` is true; when omitted, every TRUST_RECORD is
+   * rejected (fail closed). The `record` argument is the signed review payload
+   * and `authenticatedPublicKey` is the public key bound to the authenticated
+   * session (when available), so the verifier can check the reviewer's WOTS
+   * signature against the key recovered from the chain.
+   */
+  verifyReviewerSignature?: (
+    record: TrustRecordMessage['payload'],
+    authenticatedPublicKey?: string,
+  ) => boolean | Promise<boolean>;
 }
 
 /** SQLite storage configuration. Defaults to ':memory:' if omitted. */

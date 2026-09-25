@@ -54,11 +54,14 @@ interface PeerState {
   committed: string[];
   burned: string[];
   watermarks: Map<string, { addressCursor: number; l1Cursor: number; l2Cursor: number }>;
+  /** reservation ids this peer issued in LEASE_RESERVE responses. */
+  issued?: Set<string>;
   failReserve?: boolean;
   unreachable?: boolean;
 }
 
 function makePeer(peerId: string, state: PeerState): QuorumPeer {
+  const issued = (state.issued ??= new Set<string>());
   return {
     peerId,
     async request(message, _timeoutMs) {
@@ -78,12 +81,14 @@ function makePeer(peerId: string, state: PeerState): QuorumPeer {
             return { type: 'ERROR', payload: { message: 'slot taken' } };
           }
           state.reserved.set(key, payload.indices);
+          const reservationId = `peer-${peerId}-${key}`;
+          issued.add(reservationId);
           return {
             type: 'LEASE_RESPONSE',
             payload: {
               action: 'reserved',
               reservation: {
-                reservationId: `peer-${peerId}-${key}`,
+                reservationId,
                 indices: payload.indices,
                 expiresAt: Date.now() + (payload.ttlMs ?? 120_000),
               },
@@ -91,11 +96,19 @@ function makePeer(peerId: string, state: PeerState): QuorumPeer {
           };
         }
         case 'LEASE_COMMIT': {
-          state.committed.push(String(message.payload.reservationId));
+          const reservationId = String(message.payload.reservationId);
+          if (!issued.has(reservationId)) {
+            return { type: 'ERROR', payload: { message: `unknown reservation ${reservationId}` } };
+          }
+          state.committed.push(reservationId);
           return { type: 'LEASE_RESPONSE', payload: { action: 'committed' } };
         }
         case 'LEASE_BURN': {
-          state.burned.push(String(message.payload.reservationId));
+          const reservationId = String(message.payload.reservationId);
+          if (!issued.has(reservationId)) {
+            return { type: 'ERROR', payload: { message: `unknown reservation ${reservationId}` } };
+          }
+          state.burned.push(reservationId);
           return { type: 'LEASE_RESPONSE', payload: { action: 'burned' } };
         }
         case 'LEASE_WATERMARK': {
@@ -146,6 +159,10 @@ describe('P2PQuorumLeaseProvider', () => {
     expect(reservation.certificate).toBeDefined();
     expect(reservation.certificate!.attestations).toHaveLength(1);
     expect(reservation.certificate!.attestations![0].peerId).toBe('peer-a');
+    expect(reservation.certificate!.attestations![0].peerReservationId).toBeDefined();
+    expect(reservation.certificate!.attestations![0].peerReservationId).not.toBe(
+      reservation.reservationId,
+    );
     expect(reservation.certificate!.issuedBy).toBe('p2p-quorum');
     expect(reservation.certificate!.signature.length).toBeGreaterThan(0);
 
@@ -233,7 +250,10 @@ describe('P2PQuorumLeaseProvider', () => {
     const reservation = await provider.reserveKeyUse({ treeId: 'wallet' });
     await provider.commitKeyUse(reservation.reservationId, '0xTX1');
 
-    expect(peerState.committed).toContain(reservation.reservationId);
+    // AUD-044: the peer must receive the id IT issued, never the local one.
+    const peerReservationId = [...(peerState.issued ?? [])][0];
+    expect(peerState.committed).toEqual([peerReservationId]);
+    expect(peerState.committed).not.toContain(reservation.reservationId);
     const wm = await local.getLocalWatermark('wallet');
     expect(wm.unavailableCount).toBe(1);
   });
@@ -251,7 +271,10 @@ describe('P2PQuorumLeaseProvider', () => {
     const reservation = await provider.reserveKeyUse({ treeId: 'wallet' });
     await provider.burnReservation(reservation.reservationId, 'test burn');
 
-    expect(peerState.burned).toContain(reservation.reservationId);
+    // AUD-044: the peer must receive the id IT issued, never the local one.
+    const peerReservationId = [...(peerState.issued ?? [])][0];
+    expect(peerState.burned).toEqual([peerReservationId]);
+    expect(peerState.burned).not.toContain(reservation.reservationId);
   });
 
   it('publishes the local watermark to peers', async () => {

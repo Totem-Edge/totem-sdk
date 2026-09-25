@@ -29,6 +29,16 @@ export interface OmniaHostConfig {
   identityFile?: string;
   /** EdgeServiceManifest serviceType (default "omnia-router"). */
   serviceType: string;
+  /**
+   * Browser Origin allowlist for the control plane (OMNIA_ALLOWED_ORIGINS,
+   * comma-separated). Undefined/empty allows any Origin.
+   */
+  allowedOrigins?: string[];
+  /**
+   * Bearer token required on control-plane requests (OMNIA_CONTROL_TOKEN).
+   * Undefined disables token auth.
+   */
+  controlToken?: string;
 }
 
 function parsePort(value: string | undefined): number {
@@ -52,6 +62,14 @@ function optionalInteger(value: string | undefined): number | undefined {
   const parsed = Number(trimmed);
   if (!Number.isInteger(parsed) || parsed < 0) throw new Error(`OMNIA_LOCAL_ADDRESS_INDEX must be a non-negative integer; received ${value}`);
   return parsed;
+}
+
+function parseOrigins(value: string | undefined): string[] | undefined {
+  const parts = value
+    ?.split(',')
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0);
+  return parts && parts.length > 0 ? parts : undefined;
 }
 
 function parseSeed(value: string | undefined): string | undefined {
@@ -110,5 +128,7 @@ export function loadConfigFromEnv(env: NodeJS.ProcessEnv = process.env): OmniaHo
     readOnly: env.OMNIA_HOST_READ_ONLY?.trim() === '1',
     identityFile: optional(env.OMNIA_HOST_IDENTITY_FILE),
     serviceType: optional(env.OMNIA_HOST_SERVICE_TYPE) ?? 'omnia-router',
+    allowedOrigins: parseOrigins(env.OMNIA_ALLOWED_ORIGINS),
+    controlToken: optional(env.OMNIA_CONTROL_TOKEN),
   };
 }

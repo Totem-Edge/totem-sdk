@@ -274,6 +274,13 @@ export interface MqttCommandHandlerConfig {
   replayStore?: ReplayLedgerStore;
   /** Function to verify a command signature. */
   verifyCommandSignature?: (envelope: SignedCommandEnvelope) => Promise<boolean>;
+  /**
+   * Require every command to carry a well-formed signed envelope (default true).
+   * When true, unsigned or malformed-envelope messages are rejected with
+   * MQTT_POLICY_REJECTED before any policy/executor work. Set to false only to
+   * restore the legacy unsigned-command mode on private/trusted networks.
+   */
+  requireSignedCommands?: boolean;
 }
 
 export interface MqttCommandHandler {

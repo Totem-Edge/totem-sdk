@@ -5,16 +5,14 @@ use crate::types::{ActionIntent, AuthorityUsage, AuthorityUsageSnapshot, UsageLi
 pub fn check_usage_limit(
     snapshot: &AuthorityUsageSnapshot,
     limit: &UsageLimit,
-    now: u64,
+    _now: u64,
     proposed_count: Option<u32>,
     proposed_amount: Option<&str>,
 ) -> bool {
-    if let (Some(window_ms), Some(window_start)) = (limit.window_ms, snapshot.window_start) {
-        if now > window_start + window_ms {
-            return true;
-        }
-    }
-
+    // No "window expired => allow" shortcut (AUD-018). The snapshot is always
+    // built for the window containing `now` (see snapshot_from_usage), and the
+    // proposed delta is ALWAYS validated against the cap: a new window resets
+    // the accumulated totals, it never disables the limit.
     if let Some(max_count) = limit.max_count {
         let pc = proposed_count.unwrap_or(0);
         if snapshot.total_count + pc > max_count {
@@ -77,16 +75,21 @@ pub fn compute_usage_root(receipts: &[AuthorityUsage]) -> String {
     hex::encode(hasher.finalize())
 }
 
-pub fn snapshot_from_usage(usages: &[AuthorityUsage], _now: u64, limit: Option<&UsageLimit>) -> AuthorityUsageSnapshot {
+pub fn snapshot_from_usage(usages: &[AuthorityUsage], now: u64, limit: Option<&UsageLimit>) -> AuthorityUsageSnapshot {
     let mut window_start: Option<u64> = None;
     let mut window_end: Option<u64> = None;
 
     if let Some(limit) = limit {
-        if limit.window_ms.is_some() && !usages.is_empty() {
-            let mut sorted: Vec<&AuthorityUsage> = usages.iter().collect();
-            sorted.sort_by_key(|u| u.used_at);
-            window_start = Some(sorted[0].used_at);
-            window_end = window_start.map(|ws| ws + limit.window_ms.unwrap_or(0));
+        if let Some(window_ms) = limit.window_ms {
+            if window_ms > 0 {
+                // Anchor to the window containing `now` (AUD-018). Never to the
+                // earliest historical receipt: that anchored the window in the
+                // past, filtered out current usage, and retired the limit as
+                // soon as the first window passed.
+                let ws = (now / window_ms) * window_ms;
+                window_start = Some(ws);
+                window_end = Some(ws + window_ms);
+            }
         }
     }
 
@@ -94,8 +97,8 @@ pub fn snapshot_from_usage(usages: &[AuthorityUsage], _now: u64, limit: Option<&
     let mut total_amount: Option<String> = None;
 
     for u in usages {
-        if let (Some(ws), Some(wms)) = (window_start, limit.and_then(|l| l.window_ms)) {
-            if u.used_at < ws || u.used_at > ws + wms {
+        if let (Some(ws), Some(we)) = (window_start, window_end) {
+            if u.used_at < ws || u.used_at >= we {
                 continue;
             }
         }
@@ -115,5 +118,75 @@ pub fn snapshot_from_usage(usages: &[AuthorityUsage], _now: u64, limit: Option<&
         total_amount,
         window_start,
         window_end,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::UsageCounts;
+
+    fn usage(usage_id: &str, used_at: u64, counts: Option<(u32, Option<&str>)>) -> AuthorityUsage {
+        AuthorityUsage {
+            usage_id: usage_id.to_string(),
+            mandate_proof_id: "m1".to_string(),
+            intent_id: "i1".to_string(),
+            used_at,
+            counts_toward: counts.map(|(count, amount)| UsageCounts {
+                count: Some(count),
+                amount: amount.map(|a| a.to_string()),
+            }),
+        }
+    }
+
+    // Mirrors packages/authority/src/__tests__/usage.test.ts:62-69
+    #[test]
+    fn does_not_fail_open_when_a_prior_window_has_expired() {
+        let snapshot = AuthorityUsageSnapshot {
+            mandate_proof_id: "m1".to_string(),
+            total_count: 5,
+            total_amount: None,
+            window_start: Some(1000),
+            window_end: Some(5000),
+        };
+        let limit = UsageLimit {
+            max_count: Some(3),
+            max_total: None,
+            window_ms: Some(2000),
+        };
+        assert!(!check_usage_limit(&snapshot, &limit, 4000, None, None));
+    }
+
+    // Mirrors packages/authority/src/__tests__/usage.test.ts:126-137
+    #[test]
+    fn applies_window_ms_filter_to_the_window_containing_now() {
+        let usages = vec![usage("u1", 1000, None), usage("u2", 5000, None)];
+        let limit = UsageLimit {
+            max_count: None,
+            max_total: None,
+            window_ms: Some(2000),
+        };
+        let snapshot = snapshot_from_usage(&usages, 5000, Some(&limit));
+        assert_eq!(snapshot.window_start, Some(4000));
+        assert_eq!(snapshot.window_end, Some(6000));
+        assert_eq!(snapshot.total_count, 1);
+    }
+
+    // Mirrors packages/authority/src/__tests__/usage.test.ts:139-149
+    #[test]
+    fn does_not_retire_the_cap_when_the_earliest_receipt_is_in_a_past_window() {
+        let usages = vec![
+            usage("u1", 0, Some((1, Some("10")))),
+            usage("u2", 190, Some((1, Some("100")))),
+        ];
+        let limit = UsageLimit {
+            max_count: Some(1),
+            max_total: Some("10".to_string()),
+            window_ms: Some(100),
+        };
+        let snapshot = snapshot_from_usage(&usages, 200, Some(&limit));
+        assert_eq!(snapshot.total_count, 0);
+        assert_eq!(snapshot.total_amount, None);
+        assert!(!check_usage_limit(&snapshot, &limit, 200, Some(99), Some("1000000")));
     }
 }

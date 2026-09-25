@@ -4,13 +4,13 @@
  * Storage: SQLite via SqliteStore (always-on; use ':memory:' dbPath for ephemeral).
  *
  * Signature verification model:
- *   - Structural check: `signature` must be a non-empty hex string (always enforced).
- *   - With `requireVerifiedSignature: true` (default): records are only accepted when
- *     the signature passes the structural check AND the reviewerPublicKey is present
- *     (full WOTS cryptographic verification against the on-chain key requires a chain
- *     RPC round-trip and is gated behind the feature flag `enableWotsVerification`).
- *   - With `requireVerifiedSignature: false`: any structurally valid hex signature is
- *     accepted. Use only on private/trusted networks.
+ *   - With `requireVerifiedSignature: true` (default, fail closed): a record is
+ *     persisted only when `verifyReviewerSignature` is configured and approves.
+ *     When a session key is available it must equal `reviewerAddress`. A missing
+ *     verifier, a reviewer/session-key mismatch, or a verifier rejection drops
+ *     the record.
+ *   - With `requireVerifiedSignature: false`: a non-empty signature is accepted
+ *     without cryptographic verification. Use only on private/trusted networks.
  *
  * One review per (subjectId, reviewerAddress) pair — later reviews replace earlier.
  * Rating is clamped to [0, 5].
@@ -33,33 +33,54 @@ function isValidHexSignature(sig: string): boolean {
 
 export class TrustIndex {
   private readonly _store: SqliteStore;
+  private readonly _config?: TrustIndexConfig;
   private readonly _requireVerifiedSignature: boolean;
 
   /**
-   * @param store                    SQLite backing store
-   * @param config                   Trust index configuration
-   * @param requireVerifiedSignature When true (default), records with missing or
-   *   non-hex signatures are rejected. Records with a valid hex signature are
-   *   accepted (full WOTS cryptographic verification is a future hardening pass).
+   * @param store  SQLite backing store
+   * @param config Trust index configuration. When `requireVerifiedSignature` is
+   *   true (default), `config.verifyReviewerSignature` must be provided and must
+   *   approve the record, otherwise the record is rejected (fail closed).
    */
   constructor(store: SqliteStore, config?: TrustIndexConfig) {
     this._store = store;
-    // Default: require at minimum a non-empty hex signature (structural check)
+    this._config = config;
+    // Default: fail closed — require a real cryptographic verifier.
     this._requireVerifiedSignature = config?.requireVerifiedSignature !== false;
   }
 
-  record(msg: TrustRecordMessage): void {
+  /**
+   * Persist a reviewer's trust record.
+   *
+   * @param msg                    TRUST_RECORD message
+   * @param authenticatedPublicKey Public key bound to the authenticated session,
+   *   used to bind `reviewerAddress` to the connection that submitted the record.
+   * @returns true when the record was accepted and persisted, false otherwise.
+   */
+  async record(msg: TrustRecordMessage, authenticatedPublicKey?: string): Promise<boolean> {
     const { subjectId, rating, comment, reviewerAddress, signature } = msg.payload;
 
-    // Structural signature format check
-    if (!isValidHexSignature(signature)) {
-      if (this._requireVerifiedSignature) {
-        // Reject — signature is missing or not a valid hex string
-        return;
+    if (this._requireVerifiedSignature) {
+      const verifier = this._config?.verifyReviewerSignature;
+      // Fail closed: no verifier configured means no record is trusted.
+      if (!verifier) return false;
+      if (typeof signature !== 'string' || signature.trim().length === 0) return false;
+
+      // Bind the reviewer identity to the authenticated session key. When the
+      // session exposes a key, the record must be signed by that same identity.
+      if (authenticatedPublicKey !== undefined && reviewerAddress !== authenticatedPublicKey) {
+        return false;
       }
-      // If verification is disabled, still require at minimum a non-empty string
-      if (!signature || signature.trim().length === 0) {
-        return;
+
+      const approved = await verifier(
+        { subjectId, rating, comment, reviewerAddress, signature },
+        authenticatedPublicKey,
+      );
+      if (!approved) return false;
+    } else {
+      // Legacy/trusted-network mode: keep the structural signature check.
+      if (!isValidHexSignature(signature) && (!signature || signature.trim().length === 0)) {
+        return false;
       }
     }
 
@@ -72,6 +93,7 @@ export class TrustIndex {
       recordedAt: Date.now(),
     };
     this._store.trustUpsert(entry);
+    return true;
   }
 
   query(msg: TrustQueryMessage, sendFn: SendFn): void {

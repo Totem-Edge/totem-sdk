@@ -37,9 +37,13 @@ import type {
 import { buildCommandString, postCommand } from './transport.js';
 
 export function createMinimaRpcClient(config: MinimaRpcConfig): MinimaRpcClient {
-  async function run(cmd: string, params?: Record<string, unknown>): Promise<unknown> {
+  async function run(
+    cmd: string,
+    params?: Record<string, unknown>,
+    retryable = false,
+  ): Promise<unknown> {
     const commandString = buildCommandString(cmd, params);
-    return postCommand(config, commandString);
+    return postCommand(config, commandString, { retryable });
   }
 
   return {
@@ -48,16 +52,16 @@ export function createMinimaRpcClient(config: MinimaRpcConfig): MinimaRpcClient 
     },
 
     async status() {
-      return run('status') as Promise<NodeStatus>;
+      return run('status', undefined, true) as Promise<NodeStatus>;
     },
 
     async balance(params?: BalanceQuery) {
-      const result = await run('balance', params as Record<string, unknown> | undefined);
+      const result = await run('balance', params as Record<string, unknown> | undefined, true);
       return result as Balance[];
     },
 
     async coins(query?: CoinsQuery) {
-      const result = await run('coins', query as Record<string, unknown> | undefined);
+      const result = await run('coins', query as Record<string, unknown> | undefined, true);
       return result as Coin[];
     },
 
@@ -65,20 +69,20 @@ export function createMinimaRpcClient(config: MinimaRpcConfig): MinimaRpcClient 
       const p: Record<string, unknown> = {};
       if (tokenId !== undefined) p.tokenid = tokenId;
       if (action !== undefined) p.action = action;
-      const result = await run('tokens', p);
+      const result = await run('tokens', p, true);
       return result as TokenInfo[];
     },
 
     async getAddress() {
-      return run('getaddress') as Promise<AddressInfo>;
+      return run('getaddress', undefined, true) as Promise<AddressInfo>;
     },
 
     async megammr() {
-      return run('megammr') as Promise<MegaMMRInfo>;
+      return run('megammr', undefined, true) as Promise<MegaMMRInfo>;
     },
 
     async history(params?: HistoryQuery) {
-      const result = await run('history', params as Record<string, unknown> | undefined);
+      const result = await run('history', params as Record<string, unknown> | undefined, true);
       return result as HistoryEntry[];
     },
 
@@ -93,19 +97,19 @@ export function createMinimaRpcClient(config: MinimaRpcConfig): MinimaRpcClient 
     },
 
     async coinCheck(coinId: string) {
-      return run('coincheck', { coinid: coinId }) as Promise<CoinCheckResult>;
+      return run('coincheck', { coinid: coinId }, true) as Promise<CoinCheckResult>;
     },
 
     async coinExport(coinId: string) {
-      return run('coinexport', { coinid: coinId }) as Promise<CoinExportResult>;
+      return run('coinexport', { coinid: coinId }, true) as Promise<CoinExportResult>;
     },
 
     async mmrProof(coinId: string) {
-      return run('getmmrproof', { coinid: coinId }) as Promise<MMRProof>;
+      return run('getmmrproof', { coinid: coinId }, true) as Promise<MMRProof>;
     },
 
     async getTip() {
-      return run('getchaintip') as Promise<ChainTip>;
+      return run('getchaintip', undefined, true) as Promise<ChainTip>;
     },
 
     async txnCreate(id: string) {
@@ -137,14 +141,14 @@ export function createMinimaRpcClient(config: MinimaRpcConfig): MinimaRpcClient 
     },
 
     async txnCheck(id: string) {
-      return run('txncheck', { id }) as Promise<TxnCheckResult>;
+      return run('txncheck', { id }, true) as Promise<TxnCheckResult>;
     },
 
     async txnList(id?: string, transactionOnly?: boolean) {
       const p: Record<string, unknown> = {};
       if (id !== undefined) p.id = id;
       if (transactionOnly !== undefined) p.transactiononly = transactionOnly;
-      return run('txnlist', p) as Promise<TxnListResult>;
+      return run('txnlist', p, true) as Promise<TxnListResult>;
     },
 
     async txnImport(data: string, id?: string) {
@@ -154,7 +158,7 @@ export function createMinimaRpcClient(config: MinimaRpcConfig): MinimaRpcClient 
     },
 
     async txnExport(id: string) {
-      const result = await run('txnexport', { id });
+      const result = await run('txnexport', { id }, true);
       return result as string;
     },
 
@@ -179,11 +183,15 @@ export function createMinimaRpcClient(config: MinimaRpcConfig): MinimaRpcClient 
     },
 
     async verify(publicKey: string, data: string, signature: string) {
-      const result = await run('verify', {
-        publickey: publicKey,
-        data,
-        signature,
-      });
+      const result = await run(
+        'verify',
+        {
+          publickey: publicKey,
+          data,
+          signature,
+        },
+        true,
+      );
       const r = result as { valid?: boolean };
       return r?.valid === true;
     },

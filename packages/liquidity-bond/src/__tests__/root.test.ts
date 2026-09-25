@@ -2,8 +2,8 @@ import {
   DEFAULT_REGISTRY_ROOT_DOMAIN,
   applyRegistryTransition,
   computeRegistryRoot,
-  registryRootPayload,
   registryRootPort,
+  registryTransitionPayload,
   registerPoolWriter,
   serializeRegistryState,
   signRegistryTransition,
@@ -17,6 +17,7 @@ import {
 } from '../root.js';
 import { createEmptyLiquidityBondRegistryState, registerLiquidityPool } from '../registry.js';
 import { createLiquidityPoolManifest } from '../pool-manifest.js';
+import { sha3_256 } from '@totemsdk/core';
 import type { LiquidityBondRegistryState } from '../types.js';
 
 function makePool(id = 'pool-1') {
@@ -45,6 +46,19 @@ function makeVerifier(signer: RegistryTransitionSigner): RegistryRootVerifier {
 
 function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
   return a.length === b.length && a.every((v, i) => v === b[i]);
+}
+
+/** Payload-binding signer/verifier (unlike makeSigner, the signature depends on the payload). */
+function makeBindingSigner(pk = 'rooter-1'): RegistryTransitionSigner {
+  return { publicKeyDigest: pk, sign: async (payload) => sha3_256(payload) };
+}
+
+function makeBindingVerifier(signer: RegistryTransitionSigner): RegistryRootVerifier {
+  return {
+    publicKeyDigest: signer.publicKeyDigest,
+    verify: async (payload, signature) =>
+      bytesEqual((await signer.sign(payload, { addressIndex: 0, l1: 0, l2: 0 })) as Uint8Array, signature),
+  };
 }
 
 // AUD-006: signing now requires explicit indices; the fixture supplies a fresh
@@ -138,7 +152,7 @@ describe('registry rooting', () => {
       expect(signed.delta.reason).toBe('pool join');
       expect(signed.signature).toEqual(new Uint8Array([1, 2, 3]));
       expect(signer.sign).toHaveBeenCalledWith(
-        registryRootPayload(signed.root, {}),
+        registryTransitionPayload(signed.root, previousRoot, undefined, signed.delta.opHash, {}),
         { addressIndex: 2, l1: 1, l2: 0 },
       );
       expect(signed.delta.opHash).toBeDefined();
@@ -208,6 +222,24 @@ describe('registry rooting', () => {
       const result = await verifyRegistryTransition(registry, signed, makeVerifier(forged));
       expect(result.valid).toBe(false);
       expect(result.reasons).toContain('signature is invalid');
+    });
+
+    it('rejects a signed root replayed at a forged anchor or sequence (AUD-013)', async () => {
+      const binding = makeBindingSigner();
+      const signed = await signRegistryTransition(
+        registry,
+        { type: 'register-pool', poolId: 'p1' },
+        binding,
+        { signIndices: { addressIndex: 0, l1: 0, l2: 0 }, previousRoot: '0xANCHOR_A', sequence: 7 },
+      );
+      const verifier = makeBindingVerifier(binding);
+      expect((await verifyRegistryTransition(registry, signed, verifier)).valid).toBe(true);
+
+      const movedAnchor = { ...signed, delta: { ...signed.delta, previousRoot: '0xANCHOR_B' } };
+      expect((await verifyRegistryTransition(registry, movedAnchor, verifier)).valid).toBe(false);
+
+      const movedSequence = { ...signed, delta: { ...signed.delta, sequence: 8 } };
+      expect((await verifyRegistryTransition(registry, movedSequence, verifier)).valid).toBe(false);
     });
   });
 
@@ -303,17 +335,60 @@ describe('registry rooting', () => {
       });
       await expect(applyRegistryTransition(state, next, forged, verifier, { writers })).rejects.toThrow(/not signed by its authorized writer/);
     });
+
+    it('rejects a writer mutating a pool it did not declare (AUD-014)', async () => {
+      const { state, signer, verifier } = await setup();
+      const writers = registerPoolWriter({}, 'p1', signer.publicKeyDigest);
+      let next = registerLiquidityPool(state, makePool('p1'));
+      next = registerLiquidityPool(next, makePool('p2'));
+      const signed = await signWithIndices(next, { type: 'register-pool', poolId: 'p1' }, signer, {
+        previousRoot: state.root,
+        sequence: (state.sequence ?? 0) + 1,
+      });
+      await expect(applyRegistryTransition(state, next, signed, verifier, { writers })).rejects.toThrow(/modified pool p2/);
+    });
+
+    it('fails closed when the verifier cannot verify (AUD-015)', async () => {
+      const { state, signer } = await setup();
+      const next = registerLiquidityPool(state, makePool('p1'));
+      const signed = await signWithIndices(next, { type: 'register-pool', poolId: 'p1' }, signer, {
+        previousRoot: state.root,
+        sequence: (state.sequence ?? 0) + 1,
+      });
+      await expect(
+        applyRegistryTransition(state, next, signed, { publicKeyDigest: signer.publicKeyDigest } as never),
+      ).rejects.toThrow(/verifier does not implement signature verification/);
+    });
   });
 
   describe('verifyRegistryRoot', () => {
-    it('succeeds without a verifier.verify when the root matches', async () => {
+    it('succeeds when the root matches and the signature verifies', async () => {
       const registry = registerLiquidityPool(createEmptyLiquidityBondRegistryState(), makePool('p1'));
-      await expect(verifyRegistryRoot(registry, computeRegistryRoot(registry), new Uint8Array(), { publicKeyDigest: 'x' })).resolves.toBe(true);
+      await expect(
+        verifyRegistryRoot(registry, computeRegistryRoot(registry), new Uint8Array(), {
+          publicKeyDigest: 'x',
+          verify: async () => true,
+        }),
+      ).resolves.toBe(true);
+    });
+
+    it('fails closed when the verifier cannot verify (AUD-015)', async () => {
+      const registry = registerLiquidityPool(createEmptyLiquidityBondRegistryState(), makePool('p1'));
+      await expect(
+        verifyRegistryRoot(registry, computeRegistryRoot(registry), new Uint8Array(), {
+          publicKeyDigest: 'x',
+        } as never),
+      ).resolves.toBe(false);
     });
 
     it('returns false for a mismatched root', async () => {
       const registry = registerLiquidityPool(createEmptyLiquidityBondRegistryState(), makePool('p1'));
-      await expect(verifyRegistryRoot(registry, '0xDEADBEEF', new Uint8Array(), { publicKeyDigest: 'x' })).resolves.toBe(false);
+      await expect(
+        verifyRegistryRoot(registry, '0xDEADBEEF', new Uint8Array(), {
+          publicKeyDigest: 'x',
+          verify: async () => true,
+        }),
+      ).resolves.toBe(false);
     });
   });
 

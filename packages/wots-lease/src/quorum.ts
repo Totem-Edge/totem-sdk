@@ -81,6 +81,12 @@ export class P2PQuorumLeaseProvider implements WotsLeaseProvider {
   private readonly requestTimeoutMs: number;
   private readonly requireQuorumOnCommit: boolean;
   private readonly certificateSigner?: CertificateSigner;
+  /**
+   * localReservationId -> (peerId -> the reservation id that peer issued).
+   * Commit/burn must reference each peer's own id, because a peer only knows
+   * the reservation it issued, not the local provider's id (AUD-044).
+   */
+  private readonly peerReservationIds = new Map<string, Map<string, string>>();
   private _initialized = false;
 
   constructor(config: P2PQuorumLeaseProviderConfig) {
@@ -124,6 +130,8 @@ export class P2PQuorumLeaseProvider implements WotsLeaseProvider {
       await this.local.burnReservation(reservation.reservationId, reason);
       throw err;
     }
+
+    this.recordPeerReservationIds(reservation.reservationId, attestations);
 
     const certificate: LeaseCertificate = {
       reservationId: reservation.reservationId,
@@ -190,10 +198,14 @@ export class P2PQuorumLeaseProvider implements WotsLeaseProvider {
             return;
           }
 
+          const peerReservationId = body.reservation?.reservationId;
           attestations.push({
             peerId: peer.peerId,
             indices,
             expiresAt: body.reservation?.expiresAt ?? Date.now() + (params.ttlMs ?? 120_000),
+            ...(typeof peerReservationId === 'string' && peerReservationId.length > 0
+              ? { peerReservationId }
+              : {}),
           });
         } catch {
           // Peer unreachable — counted as no attestation.
@@ -220,7 +232,10 @@ export class P2PQuorumLeaseProvider implements WotsLeaseProvider {
     await this.ensureInit();
     await this.local.commitKeyUse(reservationId, txId);
 
-    const acks = await this.broadcastAck('LEASE_COMMIT', { reservationId, txId });
+    const acks = await this.broadcastAck('LEASE_COMMIT', (peerId) => ({
+      reservationId: this.peerReservationIdFor(reservationId, peerId),
+      txId,
+    }));
     if (this.requireQuorumOnCommit && acks < this.minAttestations) {
       throw new QuorumUnavailableError(this.minAttestations, acks);
     }
@@ -229,18 +244,47 @@ export class P2PQuorumLeaseProvider implements WotsLeaseProvider {
   async burnReservation(reservationId: string, reason: string): Promise<void> {
     await this.ensureInit();
     await this.local.burnReservation(reservationId, reason);
-    await this.broadcastAck('LEASE_BURN', { reservationId, reason });
+    await this.broadcastAck('LEASE_BURN', (peerId) => ({
+      reservationId: this.peerReservationIdFor(reservationId, peerId),
+      reason,
+    }));
+  }
+
+  /** Record which peer issued which reservation id for a local reservation. */
+  private recordPeerReservationIds(
+    localReservationId: string,
+    attestations: QuorumAttestation[],
+  ): void {
+    const byPeer = new Map<string, string>();
+    for (const attestation of attestations) {
+      if (attestation.peerReservationId) {
+        byPeer.set(attestation.peerId, attestation.peerReservationId);
+      }
+    }
+    if (byPeer.size > 0) this.peerReservationIds.set(localReservationId, byPeer);
+  }
+
+  /**
+   * The id to send a peer for a local reservation. Peers only know the id they
+   * issued; fall back to the local id only when no peer id was recorded (e.g.
+   * attestations gathered outside `reserveKeyUse`).
+   */
+  private peerReservationIdFor(localReservationId: string, peerId: string): string {
+    return this.peerReservationIds.get(localReservationId)?.get(peerId) ?? localReservationId;
   }
 
   private async broadcastAck(
     type: 'LEASE_COMMIT' | 'LEASE_BURN',
-    payload: Record<string, unknown>,
+    payloadFor: (peerId: string) => Record<string, unknown>,
   ): Promise<number> {
     let acks = 0;
     await Promise.all(
       this.peers.map(async (peer) => {
         try {
-          const resp = await peer.request({ type, payload }, this.requestTimeoutMs);
+          const resp = await peer.request(
+            { type, payload: payloadFor(peer.peerId) },
+            this.requestTimeoutMs,
+          );
           if (resp.type !== 'ERROR') acks++;
         } catch {
           // Peer unreachable — no ack.

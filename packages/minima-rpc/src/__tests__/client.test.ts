@@ -1,6 +1,12 @@
-import { buildCommandString } from '../transport';
+import { buildCommandString, postCommand } from '../transport';
 import { createMinimaRpcClient } from '../client';
 import { MinimaRpcError } from '../types';
+import { postCommandRaw, isRawHttpAvailable } from '../raw-http';
+
+jest.mock('../raw-http', () => ({
+  isRawHttpAvailable: jest.fn(() => true),
+  postCommandRaw: jest.fn(),
+}));
 
 describe('buildCommandString', () => {
   it('status — no params', () => {
@@ -100,6 +106,18 @@ describe('buildCommandString', () => {
   it('passthrough — rejects command with injection chars', () => {
     expect(() => buildCommandString('bad;cmd')).toThrow(MinimaRpcError);
   });
+
+  it('rejects a param value containing a space (AUD-010)', () => {
+    expect(() =>
+      buildCommandString('balance', { address: 'x megammr:true' }),
+    ).toThrow(MinimaRpcError);
+  });
+
+  it('rejects a passthrough param value containing a space', () => {
+    expect(() =>
+      buildCommandString('debuglogs', { level: 'verbose extra' }),
+    ).toThrow(MinimaRpcError);
+  });
 });
 
 describe('createMinimaRpcClient — fetch mocking', () => {
@@ -188,5 +206,49 @@ describe('createMinimaRpcClient — fetch mocking', () => {
     }) as unknown as typeof fetch;
     const client = createMinimaRpcClient(config);
     await expect(client.status()).rejects.toThrow('node locked');
+  });
+});
+
+describe('postCommand — retry/fallback policy (AUD-011)', () => {
+  const config = { host: '127.0.0.1', port: 9005, password: 'testpw' };
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    (isRawHttpAvailable as jest.Mock).mockReturnValue(true);
+  });
+
+  it('non-retryable network failure does not retry or use raw fallback', async () => {
+    global.fetch = jest
+      .fn()
+      .mockRejectedValue(new TypeError('network error')) as unknown as typeof fetch;
+    (postCommandRaw as jest.Mock).mockResolvedValue({
+      statusCode: 200,
+      headers: {},
+      bodyText: JSON.stringify({ command: 'send', status: true, pending: false, response: {} }),
+    });
+
+    await expect(postCommand(config, 'send address:Mx1 amount:1')).rejects.toThrow(MinimaRpcError);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(postCommandRaw).not.toHaveBeenCalled();
+  });
+
+  it('retryable network failure retries then falls back to raw transport', async () => {
+    global.fetch = jest
+      .fn()
+      .mockRejectedValue(new TypeError('network error')) as unknown as typeof fetch;
+    (postCommandRaw as jest.Mock).mockResolvedValue({
+      statusCode: 200,
+      headers: {},
+      bodyText: JSON.stringify({ command: 'status', status: true, pending: false, response: { ok: true } }),
+    });
+
+    const result = await postCommand(
+      { ...config, maxRetries: 1 },
+      'status',
+      { retryable: true },
+    );
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+    expect(postCommandRaw).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({ ok: true });
   });
 });

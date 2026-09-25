@@ -36,6 +36,12 @@ export interface QuorumAttestation {
   indices: SigningIndices;
   expiresAt: number;
   signature?: string;
+  /**
+   * The reservation id the peer issued for these indices in its own journal.
+   * Commit/burn broadcasts must reference the peer's id, not the local one
+   * (AUD-044) — each peer only knows the reservation it issued.
+   */
+  peerReservationId?: string;
 }
 
 /**
@@ -151,11 +157,20 @@ export interface PersonalLeaseNodeConfig {
   nodePubkey: string;
   authToken?: string;
   /**
-   * Identity that authenticates certificates issued by this node.
-   * When set, `verifyLeaseCertificate` performs cryptographic signature
-   * verification; without it, verification is issuer-only (no signature check).
+   * Identity that authenticates certificates issued by this node. When it
+   * carries a `verify()` function, `verifyLeaseCertificate` uses it. Without
+   * any verifier the provider FAILS CLOSED (AUD-016) — an identity match on
+   * `issuedBy` alone is never enough.
    */
   certificateSigner?: CertificateSigner;
+  /**
+   * Verify-only cryptographic verifier for certificates issued by the node.
+   * The provider holds no signing key, so this is the recommended way to make
+   * `verifyLeaseCertificate` functional. When neither this nor a
+   * `certificateSigner.verify` is supplied, the provider rejects every
+   * certificate (fail closed).
+   */
+  verify?: (message: Uint8Array, signature: Uint8Array) => Promise<boolean>;
 }
 
 /**

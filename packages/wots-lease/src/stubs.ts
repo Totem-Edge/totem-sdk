@@ -62,12 +62,14 @@ export class PersonalLeaseNodeProvider implements WotsLeaseProvider {
   private readonly nodePubkey: string;
   private readonly authToken?: string;
   private readonly certificateSigner?: CertificateSigner;
+  private readonly verify?: (message: Uint8Array, signature: Uint8Array) => Promise<boolean>;
 
   constructor(config: PersonalLeaseNodeConfig) {
     this.baseUrl = config.nodeUrl.replace(/\/$/, '');
     this.nodePubkey = config.nodePubkey;
     this.authToken = config.authToken;
     this.certificateSigner = config.certificateSigner;
+    this.verify = config.verify;
   }
 
   private headers(): Record<string, string> {
@@ -136,6 +138,21 @@ export class PersonalLeaseNodeProvider implements WotsLeaseProvider {
     if (!cert) return false;
     if (cert.issuedBy !== this.nodePubkey) return false;
     if (cert.expiresAt <= Date.now()) return false;
-    return certificateSignatureVerified(cert, this.certificateSigner);
+
+    // AUD-016: fail closed. The provider can only verify a certificate when it
+    // holds a verifier; an `issuedBy` match is not authenticity evidence.
+    const signer: CertificateSigner | undefined = this.certificateSigner?.verify
+      ? this.certificateSigner
+      : this.verify
+        ? {
+            publicKeyDigest: this.nodePubkey,
+            sign: async () => {
+              throw new Error('PersonalLeaseNodeProvider holds a verify-only signer and cannot sign');
+            },
+            verify: this.verify,
+          }
+        : undefined;
+
+    return certificateSignatureVerified(cert, signer);
   }
 }

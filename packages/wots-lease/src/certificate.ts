@@ -4,9 +4,11 @@
  * A certificate is authenticated by a real signature over a canonical,
  * deterministic byte encoding of its content. Providers that hold an issuing
  * identity (`certificateSigner`, or the watermark coin owner on Layer 5) sign
- * the payload before returning the certificate. Verifiers reject certificates
- * whose signature is missing or empty and, when they possess a `verify()`
- * function, cryptographically verify the signature.
+ * the payload before returning the certificate. Verification FAILS CLOSED:
+ * a certificate is rejected unless the caller supplies a `verify()` function
+ * and the signature cryptographically verifies against it. An empty signature,
+ * an absent verifier, or an identity without a verifier are all rejections —
+ * `issuedBy` alone is never treated as authenticity evidence.
  */
 
 import { sha3_256, bytesToHex, hexToBytes } from '@totemsdk/core';
@@ -65,13 +67,14 @@ export async function signCertificate(
 /**
  * Verify a certificate's signature.
  *
+ * Fails closed (AUD-016):
  * - Empty/malformed signature -> false (an unsigned certificate is not
  *   authenticity evidence regardless of what issuedBy claims).
- * - When `signer` with a `verify()` function is provided, the signature must
- *   cryptographically verify against that identity.
- * - When only the identity is known (no verifier function, e.g. a remote
- *   verifier holding a digest), non-empty signature is required; the caller
- *   decides how strong that binding is.
+ * - No `signer`, or a `signer` without a `verify()` function -> false. Knowing
+ *   only an identity (e.g. a public key digest) cannot authenticate a
+ *   signature; a verifier is required.
+ * - Otherwise the signature must cryptographically verify against the
+ *   supplied verifier.
  */
 export async function certificateSignatureVerified(
   cert: LeaseCertificate,
@@ -80,8 +83,7 @@ export async function certificateSignatureVerified(
   if (typeof cert.signature !== 'string' || cert.signature.length === 0) {
     return false;
   }
-  if (!signer) return true;
-  if (!signer.verify) return true;
+  if (!signer?.verify) return false;
   let sig: Uint8Array;
   try {
     sig = hexToBytes(cert.signature);

@@ -137,12 +137,3 @@ export class MinimaRpcProvider implements ChainStateProvider, DepositVerifier {
     }
   }
 }
-
-function bigintify(decimalOrMinima: string): bigint {
-  const match = /^([0-9]+(?:\.[0-9]+)?)/.exec(decimalOrMinima.trim());
-  const num = match ? match[1] : decimalOrMinima.trim();
-  if (!num || !/^[0-9]+(\.[0-9]+)?$/.test(num)) return 0n;
-  const [whole, frac] = num.split('.');
-  const fracPadded = (frac ?? '').padEnd(8, '0').slice(0, 8);
-  return BigInt(`${whole}${fracPadded || ''}` || '0');
-}

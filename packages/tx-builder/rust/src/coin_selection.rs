@@ -41,11 +41,17 @@ pub fn select_coins(
         available_coins.retain(|c| !exclusions.contains(&c.address.as_str()));
     }
 
-    if let Some(ref token_id) = options.token_id {
-        if token_id != "0x00" {
-            available_coins.retain(|c| c.tokenid == *token_id);
+    let is_base_token = match options.token_id.as_deref() {
+        None | Some("0x00") | Some("0x01") => true,
+        _ => false,
+    };
+    available_coins.retain(|c| {
+        if is_base_token {
+            c.tokenid == "0x00" || c.tokenid == "0x01"
+        } else {
+            Some(c.tokenid.as_str()) == options.token_id.as_deref()
         }
-    }
+    });
 
     let ordered_coins = order_coins_by_amount(&available_coins);
 
@@ -97,6 +103,16 @@ mod tests {
             address: address.to_string(),
             amount: amount.to_string(),
             tokenid: "0x00".to_string(),
+            created: 0,
+        }
+    }
+
+    fn make_token_coin(id: &str, address: &str, amount: &str, tokenid: &str) -> SpendableCoin {
+        SpendableCoin {
+            coin_id: id.to_string(),
+            address: address.to_string(),
+            amount: amount.to_string(),
+            tokenid: tokenid.to_string(),
             created: 0,
         }
     }
@@ -189,5 +205,67 @@ mod tests {
         let result = select_coins(&coins, &options, &["addr1".to_string()]);
         assert_eq!(result.selected_coins.len(), 1);
         assert_eq!(result.selected_coins[0].coin_id, "c2");
+    }
+
+    #[test]
+    fn test_omitted_token_filters_to_base_only() {
+        let coins = vec![
+            make_token_coin("c1", "addr1", "10", "0x00"),
+            make_token_coin("c2", "addr1", "100", "0xUSDT"),
+            make_token_coin("c3", "addr1", "5", "0x01"),
+        ];
+        let options = CoinSelectionOptions {
+            mode: "global".to_string(),
+            target_amount: "8".to_string(),
+            token_id: None,
+            focused_address: None,
+            excluded_addresses: None,
+        };
+        let result = select_coins(&coins, &options, &[]);
+        assert!(!result.insufficient_funds);
+        assert!(result
+            .selected_coins
+            .iter()
+            .all(|c| c.tokenid == "0x00" || c.tokenid == "0x01"));
+        assert_eq!(result.total_selected, "10");
+    }
+
+    #[test]
+    fn test_explicit_base_token_filters_to_base_only() {
+        let coins = vec![
+            make_token_coin("c1", "addr1", "10", "0x00"),
+            make_token_coin("c2", "addr1", "100", "0xUSDT"),
+        ];
+        let options = CoinSelectionOptions {
+            mode: "global".to_string(),
+            target_amount: "8".to_string(),
+            token_id: Some("0x00".to_string()),
+            focused_address: None,
+            excluded_addresses: None,
+        };
+        let result = select_coins(&coins, &options, &[]);
+        assert!(!result.insufficient_funds);
+        assert_eq!(result.selected_coins.len(), 1);
+        assert_eq!(result.selected_coins[0].coin_id, "c1");
+    }
+
+    #[test]
+    fn test_alt_token_filters_out_base_coins() {
+        let coins = vec![
+            make_token_coin("c1", "addr1", "1000", "0x00"),
+            make_token_coin("c2", "addr1", "100", "0xUSDT"),
+        ];
+        let options = CoinSelectionOptions {
+            mode: "global".to_string(),
+            target_amount: "50".to_string(),
+            token_id: Some("0xUSDT".to_string()),
+            focused_address: None,
+            excluded_addresses: None,
+        };
+        let result = select_coins(&coins, &options, &[]);
+        assert!(!result.insufficient_funds);
+        assert_eq!(result.selected_coins.len(), 1);
+        assert_eq!(result.selected_coins[0].coin_id, "c2");
+        assert_eq!(result.total_selected, "100");
     }
 }

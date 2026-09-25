@@ -69,7 +69,7 @@ export function evaluateDeposit(coin: Coin, spent: boolean, params: VerifyDeposi
   const unspent = spent !== true && coin.spent !== true;
   const ownedByOwner = addressesEqual(coin.address, params.ownerAddress) || addressesEqual(coin.miniaddress ?? coin.address, params.ownerAddress);
   const tokenMatches = params.tokenId ? coin.tokenid === params.tokenId : coin.tokenid === '0x00' || coin.tokenid === '0x01';
-  const amountSufficient = params.claimedAmount === undefined || bigintify(coin.amount) >= bigintify(params.claimedAmount);
+  const amountSufficient = params.claimedAmount === undefined || compareAmounts(coin.amount, params.claimedAmount) >= 0;
   const confirmed = isConfirmed(coin);
 
   const gates = [unspent, ownedByOwner, tokenMatches, amountSufficient];
@@ -183,23 +183,44 @@ export function depositAddressFor(lp: string, opts?: DepositAddressOptions): str
  * root (concrete providers override `getMmrRoot`).
  */
 export function withDepositVerifier(provider: ChainStateProvider): ChainStateProvider & DepositVerifier {
-  return {
-    ...provider,
-    verifyDeposit: (params) => verifyDeposit(provider, params),
+  const verifier: DepositVerifier = {
+    verifyDeposit: (params: VerifyDepositParams) => verifyDeposit(provider, params),
     depositAddressFor,
     getMmrRoot: async () => null,
     verifyMmrDeposit: (params) => Promise.resolve(verifyDepositMmrProof(params.leafPubkey, params.proof, params.expectedRoot)),
   };
+  // Prototype-chain the wrapper onto the provider so class methods stay
+  // reachable and `this` still resolves against the original instance (AUD-039).
+  return Object.assign(Object.create(provider), verifier);
 }
 
-function bigintify(decimalOrMinima: string): bigint {
-  // Minima amounts may be MiniNumber "decimal.uuid" strings — parse the numeric
-  // prefix only. Falls back to a plain BigInt parse for bare integers.
+/**
+ * Parse a decimal amount — possibly a MiniNumber "decimal.uuid" string — into
+ * its whole part and full fractional digit string. The numeric prefix is used
+ * and fractional precision is preserved, never truncated (AUD-038).
+ */
+function splitAmount(decimalOrMinima: string): { whole: bigint; frac: string } {
   const match = /^([0-9]+(?:\.[0-9]+)?)/.exec(decimalOrMinima.trim());
   const num = match ? match[1] : decimalOrMinima.trim();
-  if (!num || !/^[0-9]+(\.[0-9]+)?$/.test(num)) return 0n;
+  if (!num || !/^[0-9]+(\.[0-9]+)?$/.test(num)) return { whole: 0n, frac: '' };
   const [whole, frac] = num.split('.');
-  // Scale to 8 decimal places (matches Minima's default MiniNumber scale).
-  const fracPadded = (frac ?? '').padEnd(8, '0').slice(0, 8);
-  return BigInt(`${whole}${fracPadded || ''}` || '0');
+  return { whole: BigInt(whole), frac: frac ?? '' };
+}
+
+/**
+ * Compare two decimal amounts exactly at a common scale derived from the
+ * inputs. Neither side is fixed-truncated, so a claim can never be rounded
+ * down into passing (AUD-038).
+ */
+export function compareAmounts(a: string, b: string): number {
+  const left = splitAmount(a);
+  const right = splitAmount(b);
+  if (left.whole < right.whole) return -1;
+  if (left.whole > right.whole) return 1;
+  const scale = Math.max(left.frac.length, right.frac.length);
+  const leftFrac = BigInt(left.frac.padEnd(scale, '0') || '0');
+  const rightFrac = BigInt(right.frac.padEnd(scale, '0') || '0');
+  if (leftFrac < rightFrac) return -1;
+  if (leftFrac > rightFrac) return 1;
+  return 0;
 }

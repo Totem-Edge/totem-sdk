@@ -1,5 +1,8 @@
 import { PersonalLeaseNodeProvider } from '../stubs';
 import type { LeaseCertificate, CertificateSigner } from '../types';
+import { canonicalCertificateMessage } from '../certificate';
+import { createSign, createVerify, generateKeyPairSync } from 'node:crypto';
+import { bytesToHex } from '@totemsdk/core';
 
 const NODE_URL = 'http://localhost:7777';
 const NODE_PUBKEY = 'aabbccddeeff0011223344556677889900aabbccddeeff0011223344556677889900';
@@ -170,9 +173,42 @@ describe('PersonalLeaseNodeProvider — verifyLeaseCertificate', () => {
     expect(await provider.verifyLeaseCertificate(makeCert({ expiresAt: Date.now() - 1 }))).toBe(false);
   });
 
-  it('returns true for a valid cert from the configured node (no signer)', async () => {
+  it('fails closed when no verifier is configured (AUD-016)', async () => {
     const provider = new PersonalLeaseNodeProvider({ nodeUrl: NODE_URL, nodePubkey: NODE_PUBKEY });
-    expect(await provider.verifyLeaseCertificate(makeCert())).toBe(true);
+    expect(await provider.verifyLeaseCertificate(makeCert())).toBe(false);
+  });
+
+  it('rejects a forged issuedBy with an arbitrary non-empty signature', async () => {
+    const { privateKey: attackerKey } = generateKeyPairSync('ec', { namedCurve: 'prime256v1' });
+    const { publicKey: nodeKey } = generateKeyPairSync('ec', { namedCurve: 'prime256v1' });
+    const verify = async (message: Uint8Array, signature: Uint8Array): Promise<boolean> =>
+      createVerify('sha256').update(Buffer.from(message)).verify(nodeKey, Buffer.from(signature));
+
+    const provider = new PersonalLeaseNodeProvider({
+      nodeUrl: NODE_URL,
+      nodePubkey: NODE_PUBKEY,
+      verify,
+    });
+
+    // issuedBy claims the node's key, but the signature was made by an attacker.
+    const cert = makeCert({ issuedBy: NODE_PUBKEY });
+    const forged = createSign('sha256').update(Buffer.from(canonicalCertificateMessage(cert))).sign(attackerKey);
+    expect(await provider.verifyLeaseCertificate({ ...cert, signature: bytesToHex(forged) })).toBe(false);
+  });
+
+  it('returns true when the configured verify function accepts the signature', async () => {
+    const pair = generateKeyPairSync('ec', { namedCurve: 'prime256v1' });
+    const verify = async (message: Uint8Array, signature: Uint8Array): Promise<boolean> =>
+      createVerify('sha256').update(Buffer.from(message)).verify(pair.publicKey, Buffer.from(signature));
+
+    const provider = new PersonalLeaseNodeProvider({
+      nodeUrl: NODE_URL,
+      nodePubkey: NODE_PUBKEY,
+      verify,
+    });
+    const cert = makeCert();
+    const sig = createSign('sha256').update(Buffer.from(canonicalCertificateMessage(cert))).sign(pair.privateKey);
+    expect(await provider.verifyLeaseCertificate({ ...cert, signature: bytesToHex(sig) })).toBe(true);
   });
 
   it('returns true when certificateSigner.verify succeeds', async () => {

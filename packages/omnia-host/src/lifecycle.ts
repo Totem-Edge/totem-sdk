@@ -136,6 +136,8 @@ export function createOmniaHost(
           port: config.port,
           wsPath: config.wsPath,
           isReady: () => started,
+          allowedOrigins: config.allowedOrigins,
+          authToken: config.controlToken,
           methods: dependencies.methods ?? createHostMethods({
             channels: channelStore,
             routing: routingProvider,

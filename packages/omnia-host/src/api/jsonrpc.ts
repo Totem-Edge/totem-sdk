@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { WebSocketServer, type WebSocket } from 'ws';
@@ -25,6 +26,18 @@ export interface ControlServerOptions {
   isReady?: () => boolean;
   methods?: Map<string, JsonRpcHandler>;
   onConnection?: (socket: WebSocket) => void;
+  /**
+   * Browser Origin allowlist (AUD-009). When set, browser requests whose
+   * `Origin` header is not listed are rejected. Requests with no Origin
+   * (native clients, curl) are always allowed.
+   */
+  allowedOrigins?: string[];
+  /**
+   * When set, control-plane requests must present this bearer token (AUD-009):
+   * `Authorization: Bearer <token>` over HTTP, or a query param / subprotocol
+   * over the WebSocket handshake.
+   */
+  authToken?: string;
 }
 
 export interface ControlServer {
@@ -77,21 +90,75 @@ function sendJson(res: http.ServerResponse, status: number, body: unknown): void
   res.end(payload);
 }
 
+function pathname(url: string | undefined): string {
+  if (!url) return '/';
+  const query = url.indexOf('?');
+  return query === -1 ? url : url.slice(0, query);
+}
+
+function isOriginAllowed(req: http.IncomingMessage, allowedOrigins: string[] | undefined): boolean {
+  if (!allowedOrigins || allowedOrigins.length === 0) return true;
+  const origin = req.headers.origin;
+  // Allow native clients (no browser Origin header).
+  if (!origin) return true;
+  return allowedOrigins.includes(origin);
+}
+
+function bearerToken(req: http.IncomingMessage): string | undefined {
+  const header = req.headers.authorization;
+  if (typeof header === 'string' && header.startsWith('Bearer ')) return header.slice('Bearer '.length);
+  return undefined;
+}
+
+function handshakeToken(req: http.IncomingMessage): string | undefined {
+  const url = new URL(req.url ?? '/', 'http://localhost');
+  const queryToken = url.searchParams.get('token');
+  if (queryToken) return queryToken;
+  const header = req.headers['sec-websocket-protocol'];
+  const raw = Array.isArray(header) ? header.join(',') : header;
+  if (typeof raw === 'string') {
+    for (const part of raw.split(',')) {
+      const protocol = part.trim();
+      if (protocol.startsWith('bearer.')) return protocol.slice('bearer.'.length);
+      if (protocol) return protocol;
+    }
+  }
+  return undefined;
+}
+
+function safeTokenEqual(provided: string | undefined, expected: string): boolean {
+  if (provided === undefined) return false;
+  const a = Buffer.from(provided);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
+}
+
 export function createControlServer(options: ControlServerOptions): ControlServer {
   const methods = options.methods ?? new Map();
   const wsPath = options.wsPath ?? '/rpc';
+  const allowedOrigins = options.allowedOrigins;
+  const authToken = options.authToken;
   const server = http.createServer(async (req, res) => {
-    if (req.method === 'GET' && req.url === '/healthz') {
+    if (req.method === 'GET' && pathname(req.url) === '/healthz') {
       sendJson(res, 200, { ok: true });
       return;
     }
-    if (req.method === 'GET' && req.url === '/readyz') {
+    if (req.method === 'GET' && pathname(req.url) === '/readyz') {
       const ready = options.isReady?.() ?? false;
       sendJson(res, ready ? 200 : 503, { ok: ready });
       return;
     }
-    if (req.method !== 'POST' || req.url !== wsPath) {
+    if (req.method !== 'POST' || pathname(req.url) !== wsPath) {
       sendJson(res, 404, { error: 'Not found' });
+      return;
+    }
+    if (!isOriginAllowed(req, allowedOrigins)) {
+      sendJson(res, 403, { error: 'Forbidden' });
+      return;
+    }
+    if (authToken !== undefined && !safeTokenEqual(bearerToken(req), authToken)) {
+      sendJson(res, 403, { error: 'Forbidden' });
       return;
     }
     try {
@@ -104,7 +171,15 @@ export function createControlServer(options: ControlServerOptions): ControlServe
   });
   const webSockets = new WebSocketServer({ noServer: true });
   server.on('upgrade', (req, socket, head) => {
-    if (req.url !== wsPath) {
+    if (pathname(req.url) !== wsPath) {
+      socket.destroy();
+      return;
+    }
+    if (!isOriginAllowed(req, allowedOrigins)) {
+      socket.destroy();
+      return;
+    }
+    if (authToken !== undefined && !safeTokenEqual(handshakeToken(req), authToken)) {
       socket.destroy();
       return;
     }

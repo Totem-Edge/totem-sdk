@@ -8,6 +8,7 @@
 import type { StorageAdapter, LoggerAdapter } from '@totemsdk/core';
 import { NoopLogger } from '@totemsdk/core';
 import { LeaseStore, type StoredLease } from '@totemsdk/core';
+import type { CasStore } from '@totemsdk/storage';
 import type {
   WotsLeaseProvider,
   ReserveParams,
@@ -33,6 +34,13 @@ function randomId(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
+/** Durable per-slot claim record written through the adapter's CAS primitive. */
+interface SlotClaim {
+  reservationId: string;
+  deviceId?: string;
+  claimedAt: number;
+}
+
 export class LocalLeaseProvider implements WotsLeaseProvider {
   private readonly watermark: WotsWatermarkStore;
   private readonly leaseStore: LeaseStore;
@@ -41,6 +49,14 @@ export class LocalLeaseProvider implements WotsLeaseProvider {
   private initializePromise: Promise<void> | null = null;
   private mutationTail: Promise<void> = Promise.resolve();
   private readonly deviceId: string;
+  /**
+   * Optional CAS primitive (AUD-004). When the adapter exposes
+   * `conditionalUpdate`, a per-slot claim key is written atomically before the
+   * reservation so two providers over distinct adapter objects on the same
+   * durable medium cannot both claim one slot. Adapters without CAS fall back
+   * to the existing refresh() + check behavior.
+   */
+  private readonly cas?: CasStore;
 
   constructor(
     storage: StorageAdapter,
@@ -51,6 +67,12 @@ export class LocalLeaseProvider implements WotsLeaseProvider {
     this.leaseStore = new LeaseStore(storage, logger);
     this.journal = new LeaseJournal(storage, logger);
     this.deviceId = deviceId;
+    this.cas = LocalLeaseProvider.detectCas(storage);
+  }
+
+  private static detectCas(storage: StorageAdapter): CasStore | undefined {
+    const candidate = storage as Partial<CasStore>;
+    return typeof candidate.conditionalUpdate === 'function' ? (candidate as CasStore) : undefined;
   }
 
   async initialize(): Promise<void> {
@@ -258,6 +280,28 @@ export class LocalLeaseProvider implements WotsLeaseProvider {
 
     const reservationId = randomId();
     const expiresAt = Date.now() + ttlMs;
+
+    // Cross-instance CAS claim (AUD-004): on a durable medium shared by two
+    // provider instances over distinct adapter objects, refresh() above can
+    // race and both pick the same slot. Claim it atomically first; a lost race
+    // means another instance owns it, so the slot is not re-allocated.
+    if (this.cas) {
+      const claimKey = `totem_wots_claim:${treeId}:${flatIndex(indices)}`;
+      const claim = await this.cas.conditionalUpdate<SlotClaim>(claimKey, (current) =>
+        current
+          ? { abort: 'slot already claimed' }
+          : {
+              next: {
+                reservationId,
+                ...(params.deviceId !== undefined ? { deviceId: params.deviceId } : {}),
+                claimedAt: Date.now(),
+              },
+            },
+      );
+      if (!claim.applied) {
+        throw new IndicesUnavailableError(treeId, indices);
+      }
+    }
 
     // Write-ahead safety record: once this succeeds, recovery will never
     // re-expose the index even if a later snapshot write fails.
