@@ -42,6 +42,28 @@ function loadManifest(): Map<string, ManifestPackage> {
 
 const MANIFEST = loadManifest()
 
+/**
+ * Optional exact symbol metadata produced by `scripts/generate-mcp-symbol-index.mjs`
+ * (TypeScript compiler API). When present it overrides the regex scan; the
+ * regex scan remains the fallback so the server works without the artifact.
+ */
+const AST_PATH = path.join(REPO_ROOT, 'scripts', 'mcp-symbols.ast.json')
+
+function loadAst(): Map<string, Record<string, SymbolMeta>> {
+  const map = new Map<string, Record<string, SymbolMeta>>()
+  try {
+    const ast = JSON.parse(fs.readFileSync(AST_PATH, 'utf-8')) as { packages?: Record<string, { symbols?: Record<string, SymbolMeta> }> }
+    for (const [name, pkg] of Object.entries(ast.packages ?? {})) {
+      if (pkg?.symbols) map.set(name, pkg.symbols)
+    }
+  } catch {
+    // Optional artifact — fall back to the regex scan.
+  }
+  return map
+}
+
+const AST = loadAst()
+
 function findPackageDirs(): string[] {
   const dirs: string[] = []
   if (!fs.existsSync(TOP_PKG_DIR)) return dirs
@@ -241,15 +263,27 @@ function collectExports(file: string, symbols: Map<string, SymbolMeta>, visited:
   }
 }
 
-function parseExports(dir: string): { exports: PackageExports; symbols: Map<string, SymbolMeta> } {
+function parseExports(dir: string): Map<string, SymbolMeta> {
   const symbols = new Map<string, SymbolMeta>()
   const candidates = [path.join(dir, 'src', 'index.ts'), path.join(dir, 'src', 'index.js')]
   const entry = candidates.find(f => fs.existsSync(f))
   if (entry) collectExports(entry, symbols, new Set())
+  return symbols
+}
 
+function exportsFromSymbols(symbols: Map<string, SymbolMeta>): PackageExports {
   const exports: PackageExports = { functions: [], types: [], classes: [], interfaces: [], consts: [] }
   for (const [name, meta] of symbols) exports[KIND_TO_ARRAY[meta.kind]].push(name)
-  return { exports, symbols }
+  return exports
+}
+
+/** Overlay exact AST metadata (authoritative) onto the regex-scanned symbols. */
+function mergeAst(symbols: Map<string, SymbolMeta>, ast: Record<string, SymbolMeta> | undefined): void {
+  if (!ast) return
+  for (const [name, meta] of Object.entries(ast)) {
+    const existing = symbols.get(name)
+    symbols.set(name, { ...existing, ...meta, kind: meta.kind })
+  }
 }
 
 export function buildIndex(): SdkIndex {
@@ -264,7 +298,9 @@ export function buildIndex(): SdkIndex {
     if (MANIFEST.size > 0 && !manifest) continue
 
     const dirName = path.basename(dir)
-    const { exports, symbols } = parseExports(dir)
+    const symbols = parseExports(dir)
+    mergeAst(symbols, AST.get(pkg.name))
+    const exports = exportsFromSymbols(symbols)
     const domain = manifest?.domain || 'other'
 
     const idx: PackageIndex = {

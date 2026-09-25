@@ -20,6 +20,7 @@ import { readFileSync, writeFileSync, readdirSync, existsSync } from 'fs'
 import { dirname, join, resolve } from 'path'
 import { fileURLToPath } from 'url'
 import { createRequire } from 'module'
+import { buildSymbolAst, AST_ARTIFACT_PATH } from './lib/symbol-ast.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(__dirname, '..')
@@ -74,7 +75,13 @@ if (UPDATE) {
     packages: Object.fromEntries(Object.keys(counts).sort().map((k) => [k, counts[k]])),
   }
   writeFileSync(BASELINE_PATH, JSON.stringify(baseline, null, 2) + '\n')
+
+  const ast = buildSymbolAst(ROOT)
+  writeFileSync(AST_ARTIFACT_PATH(ROOT), JSON.stringify(ast, null, 2) + '\n')
+  const astSymbols = Object.values(ast.packages).reduce((n, p) => n + Object.keys(p.symbols).length, 0)
+
   console.log(`Baseline updated: ${Object.keys(counts).length} packages, ${baseline.totalSymbols} symbols`)
+  console.log(`AST artifact updated: ${Object.keys(ast.packages).length} packages, ${astSymbols} symbols`)
   process.exit(0)
 }
 
@@ -128,6 +135,33 @@ if (existsSync(BASELINE_PATH)) {
     const now = exportCount(pkg)
     if (now < expected) {
       fail(`${name}: exports dropped below baseline (${expected} → ${now}); run --update if intentional`)
+    }
+  }
+}
+
+// ── 4c. exact AST symbol diff (removed/changed symbols fail; additions pass) ──
+const AST_COMMITTED_PATH = AST_ARTIFACT_PATH(ROOT)
+if (existsSync(AST_COMMITTED_PATH)) {
+  const committed = JSON.parse(readFileSync(AST_COMMITTED_PATH, 'utf8'))
+  const fresh = buildSymbolAst(ROOT)
+  for (const [pkgName, pkg] of Object.entries(committed.packages ?? {})) {
+    const freshPkg = fresh.packages[pkgName]
+    if (!freshPkg) {
+      fail(`AST: package ${pkgName} is no longer present in source`)
+      continue
+    }
+    for (const [symName, sym] of Object.entries(pkg.symbols ?? {})) {
+      const freshSym = freshPkg.symbols?.[symName]
+      if (!freshSym) {
+        fail(`AST: ${pkgName}.${symName} was removed (run --update if intentional)`)
+        continue
+      }
+      if (freshSym.kind !== sym.kind) {
+        fail(`AST: ${pkgName}.${symName} kind changed (${sym.kind} → ${freshSym.kind})`)
+      }
+      if ((freshSym.signature ?? '') !== (sym.signature ?? '')) {
+        fail(`AST: ${pkgName}.${symName} signature changed\n      was: ${sym.signature ?? ''}\n      now: ${freshSym.signature ?? ''}`)
+      }
     }
   }
 }
