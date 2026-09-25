@@ -16,7 +16,7 @@
  *
  * Usage: node scripts/verify-mcp-index.mjs
  */
-import { readFileSync, readdirSync, existsSync } from 'fs'
+import { readFileSync, writeFileSync, readdirSync, existsSync } from 'fs'
 import { dirname, join, resolve } from 'path'
 import { fileURLToPath } from 'url'
 import { createRequire } from 'module'
@@ -57,6 +57,27 @@ const { buildIndex } = require(join(distDir, 'indexer.js'))
 const { listResources } = require(join(distDir, 'resources.js'))
 const index = buildIndex()
 
+const BASELINE_PATH = join(__dirname, 'mcp-index-baseline.json')
+const UPDATE = process.argv.includes('--update')
+
+function exportCount(pkg) {
+  const e = pkg.exports
+  return e.functions.length + e.types.length + e.classes.length + e.interfaces.length + e.consts.length
+}
+
+if (UPDATE) {
+  const counts = {}
+  for (const [name, pkg] of Object.entries(index.packages)) counts[name] = exportCount(pkg)
+  const baseline = {
+    note: 'Per-package exported-symbol counts + total, used by scripts/verify-mcp-index.mjs to catch a package silently losing exports. Regenerate with: node scripts/verify-mcp-index.mjs --update',
+    totalSymbols: Object.keys(index.symbolIndex).length,
+    packages: Object.fromEntries(Object.keys(counts).sort().map((k) => [k, counts[k]])),
+  }
+  writeFileSync(BASELINE_PATH, JSON.stringify(baseline, null, 2) + '\n')
+  console.log(`Baseline updated: ${Object.keys(counts).length} packages, ${baseline.totalSymbols} symbols`)
+  process.exit(0)
+}
+
 // ── 1. set parity ────────────────────────────────────────────────────────────
 const indexNames = new Set(Object.keys(index.packages))
 for (const name of manifestNames) {
@@ -90,6 +111,25 @@ for (const [name, pkg] of Object.entries(index.packages)) {
 const symbolCount = Object.keys(index.symbolIndex).length
 if (symbolCount < SYMBOL_FLOOR) {
   fail(`symbol count ${symbolCount} is below the floor (${SYMBOL_FLOOR})`)
+}
+
+// ── 4b. per-package export baselines (catch a single package losing exports) ──
+if (existsSync(BASELINE_PATH)) {
+  const baseline = JSON.parse(readFileSync(BASELINE_PATH, 'utf8'))
+  if (symbolCount < (baseline.totalSymbols ?? 0)) {
+    fail(`total symbols dropped below baseline: ${symbolCount} < ${baseline.totalSymbols}`)
+  }
+  for (const [name, expected] of Object.entries(baseline.packages ?? {})) {
+    const pkg = index.packages[name]
+    if (!pkg) {
+      fail(`baseline package ${name} is missing from the MCP index`)
+      continue
+    }
+    const now = exportCount(pkg)
+    if (now < expected) {
+      fail(`${name}: exports dropped below baseline (${expected} → ${now}); run --update if intentional`)
+    }
+  }
 }
 
 // ── 5. docs parity (auto-discovery) ──────────────────────────────────────────
