@@ -108,7 +108,10 @@ export async function transferOwnership(
   const prng = sha3_256(
     new TextEncoder().encode(`transfer:${chain.chainId}:${sequence}`),
   );
-  const txHex    = Buffer.from(serializeTxPoW(txBodyBytes, witnessBytes, { prng })).toString('hex');
+  // AUD-012: pin the TxPoW header time to the record timestamp so the TxPoW is
+  // deterministically reconstructable during verification.
+  const txTimeMilli = timestamp;
+  const txHex    = Buffer.from(serializeTxPoW(txBodyBytes, witnessBytes, { prng, timeMilli: BigInt(txTimeMilli) })).toString('hex');
   const newCoinId = bytesToHex(outputCoinId);
 
   // ── Optional on-chain broadcast ──────────────────────────────────────────
@@ -141,6 +144,7 @@ export async function transferOwnership(
     txBodyHex,
     txHex,
     timestamp,
+    txTimeMilli,
   };
 
   return {

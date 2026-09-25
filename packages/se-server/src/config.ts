@@ -29,6 +29,14 @@ export interface SeServerConfig {
    * audit logging, or rate limiting without patching this package.
    */
   onSign?: (event: SeSignEvent) => void;
+  /**
+   * AUD-029: confirm a claim transaction on-chain before the statechain is
+   * marked `claimed`. Receives the claim tx body hex and the caller-supplied
+   * txpow id; return true only when the TX is confirmed. When omitted, a
+   * completed claim stays in the `claiming` state and the confirm endpoint
+   * returns 501 (fail-closed).
+   */
+  confirmClaim?: (chainId: string, claimTxHex: string, txpowId: string) => Promise<boolean>;
 }
 
 /** Load config from standard environment variables. Throws on missing/invalid SE_KEY. */

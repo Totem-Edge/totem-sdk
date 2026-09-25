@@ -557,6 +557,33 @@ describe('@totemsdk/statechain — verifyStateChain', () => {
     expect(result.valid).toBe(false);
     expect(result.reason?.toLowerCase()).toContain('pkd');
   });
+
+  it('rejects re-labelled ownership even when continuity and currentOwner agree (AUD-012)', () => {
+    const last = validChain.transferHistory.length - 1;
+    const relabeledPkd = fakePkd('mallory');
+    const relabeled: StateChain = {
+      ...validChain,
+      transferHistory: validChain.transferHistory.map((r, i) =>
+        i === last ? { ...r, to: 'mallory', toPublicKeyDigest: relabeledPkd } : r,
+      ),
+      currentOwner: { ...validChain.currentOwner, partyId: 'mallory', publicKeyDigest: relabeledPkd },
+    };
+    const result = verifyStateChain(relabeled);
+    expect(result.valid).toBe(false);
+    expect(result.reason).toMatch(/does not bind ownership/);
+  });
+
+  it('rejects a tampered txHex (AUD-012)', () => {
+    const tampered: StateChain = {
+      ...validChain,
+      transferHistory: validChain.transferHistory.map((r, i) =>
+        i === 0 ? { ...r, txHex: r.txHex.slice(0, -2) + (r.txHex.endsWith('ff') ? '00' : 'ff') } : r,
+      ),
+    };
+    const result = verifyStateChain(tampered);
+    expect(result.valid).toBe(false);
+    expect(result.reason).toMatch(/txHex/);
+  });
 });
 
 // ─── claimOwnership ───────────────────────────────────────────────────────

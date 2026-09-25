@@ -20,8 +20,8 @@
 
 | Status | Count |
 |---|---|
-| FIXED | 42 |
-| PARTIAL | 3 |
+| FIXED | 44 |
+| PARTIAL | 1 |
 | OPEN | 1 |
 | **Total** | **46** |
 
@@ -114,7 +114,7 @@ tests**. It is fixed here.
 | AUD-009 | P1 | Omnia control API accepts unauthenticated requests from untrusted WebSocket origins | FIXED | `packages/omnia-host/src/api/jsonrpc.ts`. Origin allowlist + optional bearer token on HTTP and WS upgrade; env `OMNIA_ALLOWED_ORIGINS`/`OMNIA_CONTROL_TOKEN`; `jsonrpc.test.ts` added. |
 | AUD-010 | P1 | Minima RPC parameter interpolation allows command injection | FIXED | `packages/minima-rpc/src/transport.ts`. `sanitizeRpcValue` now rejects whitespace; every interpolated branch uses `pushParam`; injection test added. |
 | AUD-011 | P1 | RPC transport repeats operations after ambiguous failures | FIXED | `packages/minima-rpc/src/transport.ts`. Retry/raw fallback gated on `retryable` (default false); read-only commands opt in; write + `runCommand` fail closed. |
-| AUD-012 | P1 | Statechain verification does not bind ownership or `txHex` to the signed transaction | PARTIAL | `packages/statechain/src/verify.ts:98`. Digest binds `txBodyHex`; still unbound: `txHex` (reconstruct via `serializeTxPoW`/witness) and ownership labels (`from`/`to` pkds) vs the tx body (reconstruct via `serializeTransaction` + `precomputeTransactionCoinID` chaining). |
+| AUD-012 | P1 | Statechain verification does not bind ownership or `txHex` to the signed transaction | FIXED | `packages/statechain/src/verify.ts`. Reconstructs the transfer tx body (STATE(0)=from/to pkds + chained coin id) and the TxPoW (witness + pinned `txTimeMilli`) and requires exact matches; `genesisCoinId`/`txTimeMilli` added. Legacy records lacking those fields skip the new bindings. |
 | AUD-013 | P1 | Signed registry states can be replayed at a forged anchor/sequence | FIXED | `packages/liquidity-bond/src/root.ts`. `registryTransitionPayload` binds root + `previousRoot` + `sequence` + `opHash`; replay test added. Wire format changed. |
 | AUD-014 | P1 | A pool writer can change another pool's registry state | FIXED | `packages/liquidity-bond/src/root.ts`. `changedPoolIds` confines a writer transition to its declared `op.poolId`; cross-pool mutation test added. |
 | AUD-015 | P1 | Registry transition application can skip signature verification | FIXED | `packages/liquidity-bond/src/root.ts`. `RegistryRootVerifier.verify` is required; untyped verifiers fail closed; regression tests added. |
@@ -131,7 +131,7 @@ tests**. It is fixed here.
 | AUD-026 | P1 | SE owner authentication does not bind operation/request body | FIXED | `packages/se-server/src/router.ts`. |
 | AUD-027 | P1 | SE ownership changes race against stale database snapshots | FIXED | `packages/se-server/src/router.ts`. |
 | AUD-028 | P1 | HTTP statechain registration is a no-op after funding | OPEN | `packages/statechain/src/httpClient.ts:133`. SE-server registration is `/create`-based; the client-initiated `createStateChain` flow calls `registerChain` with too little data (no partyId/tokenId/reclaimTxHex) for the existing record, and no `/register` endpoint exists. Needs a cross-package design (endpoint + auth) or removal of the misleading no-op. |
-| AUD-029 | P2 | SE claim endpoint signs the text of hex rather than the tx digest | PARTIAL | `packages/se-server/src/router.ts:267`. Digest signing fixed (signs `computeTransactionDigest`); missing confirmation state machine — status flips `active`→`claimed` immediately with no `claiming` intermediate state, broadcast/confirmation check, or persisted txpowId. |
+| AUD-029 | P2 | SE claim endpoint signs the text of hex rather than the tx digest | FIXED | `packages/se-server/src/router.ts` + `db.ts`. Digest signing fixed; claims now enter a `claiming` state and only become `claimed` via `POST /:chainId/claim/confirm` gated by the optional `confirmClaim` callback (501/fail-closed when unset). |
 | AUD-030 | P1 | MQTT signatures do not bind the payload sent to the executor | FIXED | `packages/edge-mqtt/src/command-handler.ts`. Canonical payload hash checked against `envelope.payloadHash` before execution; tamper test added. |
 | AUD-031 | P1 | MQTT signature verification bypassed by legacy unsigned path | FIXED | `packages/edge-mqtt/src/command-handler.ts`. `requireSignedCommands` defaults true; unsigned/malformed envelopes rejected; legacy mode behind explicit opt-out. |
 | AUD-032 | P2 | MQTT replay cache clears commands that are still valid | FIXED | `packages/edge-mqtt/src/command-handler.ts`. |

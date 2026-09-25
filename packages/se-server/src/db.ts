@@ -28,6 +28,18 @@ export async function migrateStatechainTables(pool: Pool): Promise<void> {
       ADD COLUMN IF NOT EXISTS version INTEGER NOT NULL DEFAULT 0
   `);
 
+  // AUD-029: allow an intermediate 'claiming' state so a claim is only final
+  // after an explicit on-chain confirmation.
+  await pool.query(`
+    ALTER TABLE statechain_records
+      DROP CONSTRAINT IF EXISTS statechain_records_status_check
+  `);
+  await pool.query(`
+    ALTER TABLE statechain_records
+      ADD CONSTRAINT statechain_records_status_check
+      CHECK (status IN ('active','claiming','claimed','disputed'))
+  `);
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS statechain_revocations (
       id                SERIAL PRIMARY KEY,
@@ -82,7 +94,7 @@ export interface StatechainRecord {
   current_owner_pkd: string;
   transfer_count: number;
   version: number;
-  status: 'active' | 'claimed' | 'disputed';
+  status: 'active' | 'claiming' | 'claimed' | 'disputed';
   reclaim_tx_hex_enc: string;
   created_at: Date;
   updated_at: Date;
@@ -138,7 +150,7 @@ export async function updateStatechainOwner(
 export async function updateStatechainStatus(
   pool: Pool,
   chainId: string,
-  status: 'active' | 'claimed' | 'disputed',
+  status: 'active' | 'claiming' | 'claimed' | 'disputed',
 ): Promise<void> {
   await pool.query(
     `UPDATE statechain_records SET status = $2, updated_at = NOW() WHERE chain_id = $1`,

@@ -262,6 +262,26 @@ describe('se-server router', () => {
     expect(res.status).toBe(401);
   });
 
+  it('POST /:chainId/claim/confirm rejects a chain that is not awaiting confirmation (AUD-029)', async () => {
+    const app = makeApp(makePool());
+    const res = await httpRequest(app, 'POST', '/statechain/sc_test/claim/confirm', {
+      claimAddress: '0x' + '66'.repeat(32),
+      claimTxHex: '0x' + '77'.repeat(100),
+      txpowId: '0x' + '99'.repeat(32),
+      ownerSignature: '0x' + '88'.repeat(100),
+      nonce: 'valid-nonce',
+    });
+    expect(res.status).toBe(409);
+  });
+
+  it('POST /:chainId/claim/confirm rejects an invalid body (AUD-029)', async () => {
+    const app = makeApp(makePool());
+    const res = await httpRequest(app, 'POST', '/statechain/sc_test/claim/confirm', {
+      claimTxHex: '0x' + '77'.repeat(100),
+    });
+    expect(res.status).toBe(400);
+  });
+
   it('POST /:chainId/revoke-key rejects an invalid nonce', async () => {
     const app = makeApp(makePool());
     const res = await httpRequest(app, 'POST', '/statechain/sc_test/revoke-key', {

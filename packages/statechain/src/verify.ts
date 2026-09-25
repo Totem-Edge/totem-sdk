@@ -5,8 +5,13 @@ import {
   deserializeTreeSignature,
   verifyTreeSignatureDetailed,
   verifySignatureDetailed,
+  serializeTransaction,
+  precomputeTransactionCoinID,
 } from '@totemsdk/core';
-import type { StateChain, SESignature } from './types.js';
+import { serializeTxPoW } from '@totemsdk/txpow';
+import { buildMinimaWitnessBytes } from '@totemsdk/tx-builder';
+import { addressToHex, stateVarJson } from './chain.js';
+import type { StateChain, SESignature, TransferRecord } from './types.js';
 
 export interface VerifyResult {
   valid: boolean;
@@ -76,6 +81,65 @@ export function verifySeSignatureEnvelope(
     ).valid === true;
   } catch {
     return false;
+  }
+}
+
+/**
+ * AUD-012: reconstruct the deterministic transfer tx body and require a
+ * byte-exact match, binding `from`/`to` public-key digests to the signed body.
+ */
+function expectedTransferBody(
+  chain: StateChain,
+  record: TransferRecord,
+  inputCoinId: string,
+): Uint8Array | null {
+  try {
+    const lockAddrHex = addressToHex(chain.lockingAddress);
+    const inputCoin = {
+      coinid:     inputCoinId,
+      address:    lockAddrHex,
+      amount:     chain.amount.toString(),
+      tokenid:    chain.tokenId,
+      storestate: true,
+      state:      [stateVarJson(record.fromPublicKeyDigest)],
+    };
+    const outputCoin = {
+      address:    lockAddrHex,
+      amount:     chain.amount.toString(),
+      tokenid:    chain.tokenId,
+      storestate: true,
+      state:      [stateVarJson(record.toPublicKeyDigest)],
+    };
+    return serializeTransaction(JSON.stringify({
+      linkhash: '0x00',
+      inputs:   [inputCoin],
+      outputs:  [outputCoin],
+      state:    [],
+    }));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * AUD-012: reconstruct the TxPoW hex from the signed body + witness and require
+ * a match, so a record cannot pair a valid body with an unrelated `txHex`.
+ */
+function expectedTransferTxHex(
+  chain: StateChain,
+  record: TransferRecord,
+  index: number,
+  txBodyBytes: Uint8Array,
+  timeMilli: bigint,
+): string | null {
+  try {
+    const ownerSig = deserializeTreeSignature(hexToBytes(record.ownerSignature));
+    const seSig = deserializeTreeSignature(hexToBytes(record.seSignature.signature));
+    const witnessBytes = buildMinimaWitnessBytes([ownerSig, seSig]);
+    const prng = sha3_256(new TextEncoder().encode(`transfer:${chain.chainId}:${index}`));
+    return bytesToHex(serializeTxPoW(txBodyBytes, witnessBytes, { prng, timeMilli }));
+  } catch {
+    return null;
   }
 }
 
@@ -152,6 +216,30 @@ export function verifyStateChain(chain: StateChain): VerifyResult {
 
     const commitment = hexToBytes(record.signedDigest);
 
+    // ── 2b. Ownership binding (AUD-012) ─────────────────────────────────────
+    // The tx body encodes STATE(0) = from/to public-key digests and the spent
+    // coin id. Reconstruct it from the record + chain and require an exact
+    // match so ownership labels cannot be re-labelled under a valid signature.
+    let inputCoinId: string | undefined;
+    if (i === 0) {
+      inputCoinId = chain.genesisCoinId;
+    } else {
+      try {
+        inputCoinId = bytesToHex(precomputeTransactionCoinID(hexToBytes(history[i - 1].txBodyHex), 0));
+      } catch {
+        inputCoinId = undefined;
+      }
+    }
+    if (inputCoinId) {
+      const expectedBody = expectedTransferBody(chain, record, inputCoinId);
+      if (!expectedBody || bytesToHex(expectedBody) !== record.txBodyHex) {
+        return {
+          valid: false, depth, rootOwner,
+          reason: `txBodyHex does not bind ownership at transfer index ${i} (from='${record.from}' to='${record.to}')`,
+        };
+      }
+    }
+
     // ── 3. SE signature envelope ────────────────────────────────────────────
     if (!record.seSignature) {
       return {
@@ -178,6 +266,25 @@ export function verifyStateChain(chain: StateChain): VerifyResult {
         valid: false, depth, rootOwner,
         reason: `Invalid owner signature at transfer index ${i} (from='${record.from}')`,
       };
+    }
+
+    // ── 5. TxPoW binding (AUD-012) ──────────────────────────────────────────
+    if (!record.txHex) {
+      return {
+        valid: false, depth, rootOwner,
+        reason: `Missing txHex at transfer index ${i} (from='${record.from}')`,
+      };
+    }
+    // Legacy records (pre-`txTimeMilli`) have a non-deterministic header time,
+    // so the TxPoW binding is only enforced when the timestamp was persisted.
+    if (record.txTimeMilli !== undefined) {
+      const expectedTxHex = expectedTransferTxHex(chain, record, i, txBodyBytes, BigInt(record.txTimeMilli));
+      if (!expectedTxHex || expectedTxHex.toLowerCase() !== record.txHex.toLowerCase()) {
+        return {
+          valid: false, depth, rootOwner,
+          reason: `txHex does not match the signed transfer at index ${i}`,
+        };
+      }
     }
   }
 

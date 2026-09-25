@@ -132,6 +132,12 @@ export interface TransferRecord {
   /** Full TxPoW hex of the on-chain state-update TX. */
   txHex: string;
   timestamp: number;
+  /**
+   * AUD-012: the TxPoW header `timeMilli` used when `txHex` was built, so the
+   * TxPoW can be reconstructed and bound to the signed body. Absent on records
+   * created before this field (legacy `txHex` binding is skipped).
+   */
+  txTimeMilli?: number;
 }
 
 export interface ClaimPayload {
@@ -161,6 +167,12 @@ export interface AbandonedProof {
 export interface StateChain {
   chainId: string;
   coinId: string;
+  /**
+   * The locked coin id at creation (the LOCK TX output spent by the first
+   * transfer). Required to bind the first transfer's `txBodyHex` to its
+   * ownership labels (AUD-012); absent on chains created before this field.
+   */
+  genesisCoinId?: string;
   tokenId: string;
   amount: bigint;
   sePublicKey: string;

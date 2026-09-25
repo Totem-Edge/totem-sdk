@@ -249,6 +249,7 @@ export async function createStateChain(
   return {
     chainId,
     coinId:          lockedCoinId,    // LOCK TX output coinId, not the original input
+    genesisCoinId:   lockedCoinId,    // AUD-012: binds the first transfer's tx body
     tokenId,
     amount,
     sePublicKey,

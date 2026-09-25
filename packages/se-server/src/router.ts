@@ -83,6 +83,14 @@ const ClaimSchema = z.object({
   nonce:          z.string().min(1),
 });
 
+const ConfirmClaimSchema = z.object({
+  claimAddress:   z.string().min(1),
+  claimTxHex:     z.string().min(1),
+  txpowId:        z.string().min(1),
+  ownerSignature: z.string().min(1),
+  nonce:          z.string().min(1),
+});
+
 const ReclaimQuerySchema = z.object({
   nonce:          z.string().min(1),
   ownerSignature: z.string().min(1),
@@ -164,6 +172,7 @@ export function createSeRouter(config: SeServerConfig, pool: Pool): Router {
     const chain = await getStatechainRecord(pool, req.params.chainId as string);
     if (!chain) return res.status(404).json({ error: 'Statechain not found' });
     if (chain.status === 'claimed') return res.status(410).json({ error: 'Statechain already claimed' });
+    if (chain.status === 'claiming') return res.status(409).json({ error: 'Statechain claim is awaiting confirmation' });
     const nonce = await issueNonce(pool, req.params.chainId as string);
     return res.json({ nonce, expiresInSeconds: 300 });
   }));
@@ -289,11 +298,48 @@ export function createSeRouter(config: SeServerConfig, pool: Pool): Router {
     catch { return res.status(400).json({ error: 'claimTxHex must be valid hex' }); }
     const claimDigest = computeTransactionDigest(claimTxBytes);
     const claimSignature = await (await identityPromise).signRoot(bytesToHex(claimDigest));
-    await updateStatechainStatus(pool, chainId, 'claimed');
+    // AUD-029: do not finalise the claim here — enter 'claiming' and require an
+    // explicit on-chain confirmation via POST /:chainId/claim/confirm.
+    await updateStatechainStatus(pool, chainId, 'claiming');
     await logSignEvent(pool, chainId, 'claim');
     config.onSign?.({ chainId, eventType: 'claim', projectId: resolveProjectId(req) });
 
-    return res.json({ ok: true, chainId, claimAddress, claimTxHex, seClaimSignature: claimSignature.signature, seSignature: claimSignature });
+    return res.json({ ok: true, chainId, claimAddress, claimTxHex, status: 'claiming', seClaimSignature: claimSignature.signature, seSignature: claimSignature });
+  }));
+
+  r.post('/:chainId/claim/confirm', asyncRoute(async (req, res) => {
+    betaHeaders(res);
+    const chainId = req.params.chainId as string;
+    const body = ConfirmClaimSchema.safeParse(req.body);
+    if (!body.success) return res.status(400).json({ error: 'Invalid body', details: body.error.issues });
+
+    const { claimAddress, claimTxHex, txpowId, ownerSignature, nonce } = body.data;
+    const chain = await getStatechainRecord(pool, chainId);
+    if (!chain) return res.status(404).json({ error: 'Statechain not found' });
+    if (chain.status !== 'claiming') {
+      return res.status(409).json({ error: `Statechain is not awaiting claim confirmation (${chain.status})` });
+    }
+
+    const nonceChainId = await consumeNonce(pool, nonce);
+    if (!nonceChainId || nonceChainId !== chainId) return res.status(401).json({ error: 'Invalid or expired nonce' });
+
+    if (!await verifyOwnerRequest(chain.current_owner_pkd, chainId, 'claim', nonce, { claimAddress, claimTxHex, txpowId }, ownerSignature)) {
+      return res.status(403).json({ error: 'Ownership verification failed' });
+    }
+
+    if (!config.confirmClaim) {
+      return res.status(501).json({ error: 'On-chain claim confirmation is not configured on this server' });
+    }
+    const confirmed = await config.confirmClaim(chainId, claimTxHex, txpowId);
+    if (!confirmed) {
+      return res.status(409).json({ error: 'Claim transaction is not confirmed on-chain' });
+    }
+
+    await updateStatechainStatus(pool, chainId, 'claimed');
+    await logSignEvent(pool, chainId, 'claim-confirm');
+    config.onSign?.({ chainId, eventType: 'claim', projectId: resolveProjectId(req) });
+
+    return res.json({ ok: true, chainId, status: 'claimed' });
   }));
 
   r.get('/:chainId/reclaim-tx', asyncRoute(async (req, res) => {
