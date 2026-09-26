@@ -2638,6 +2638,509 @@
         }
       }
     },
+    "@totemsdk/decision": {
+      "symbols": {
+        "DECISION_VERSION": {
+          "kind": "const",
+          "signature": "DECISION_VERSION = '0.1.0'"
+        },
+        "DECISION_TYPES": {
+          "kind": "const",
+          "signature": "DECISION_TYPES: readonly DecisionType[] = [ 'choice', 'score', 'probability', 'action', ] as const",
+          "doc": "All canonical decision type literals, in stable order."
+        },
+        "DECISION_CAPABILITIES": {
+          "kind": "const",
+          "signature": "DECISION_CAPABILITIES: readonly DecisionCapability[] = [ 'decision:choice', 'decision:score', 'decision:probability', 'decision:action', ] as const"
+        },
+        "DECISION_VERBS": {
+          "kind": "const",
+          "signature": "DECISION_VERBS = { decide: 'decision:decide', cancel: 'decision:cancel', } as const",
+          "doc": "Edge dispatch verbs. These are verbs, not capabilities."
+        },
+        "DECISION_DIGEST_DOMAINS": {
+          "kind": "const",
+          "signature": "DECISION_DIGEST_DOMAINS = { state: 'TOTEM_DECISION_STATE_V1', candidates: 'TOTEM_DECISION_CANDIDATES_V1', request: 'TOTEM_DECISION_REQUEST_V1', output: 'TOTEM_DECISION_OUTPUT_V1', receipt: 'TOTEM_DECI",
+          "doc": "Domain separation prefixes for canonical digests. Never hash ambiguous\nstring concatenations — always go through `hashCanonical(domain, value)`."
+        },
+        "DECISION_DEFAULTS": {
+          "kind": "const",
+          "signature": "DECISION_DEFAULTS = { /** Maximum canonical state size in bytes. */ maxStateBytes: 256 * 1024, /** Maximum questions in a batched questions request. */ maxQuestions: 64, /** Maximum candidates for any",
+          "doc": "Default runtime limits. Missing limits are omitted, never invented."
+        },
+        "isDecisionCapability": {
+          "kind": "function",
+          "signature": "isDecisionCapability(cap: string): boolean",
+          "doc": "True when `cap` is any `decision:*` capability."
+        },
+        "hasDecisionCapability": {
+          "kind": "function",
+          "signature": "hasDecisionCapability(capabilities: readonly string[], cap: string): boolean",
+          "doc": "True when the capability list contains `cap`."
+        },
+        "decisionCapabilityForType": {
+          "kind": "function",
+          "signature": "decisionCapabilityForType(type: DecisionType): DecisionCapability",
+          "doc": "Map a decision type to its canonical capability."
+        },
+        "DecisionType": {
+          "kind": "type",
+          "signature": "export type DecisionType = 'choice' | 'score' | 'probability' | 'action'",
+          "doc": "The four canonical decision semantics."
+        },
+        "DecisionCapability": {
+          "kind": "type",
+          "signature": "export type DecisionCapability = | 'decision:choice' | 'decision:score' | 'decision:probability' | 'decision:action'",
+          "doc": "Closed set of canonical decision capabilities (RFC-012 §4.2).\n\nv1 keeps this closed — there is no `decision:${string}` extension. The\nprovider vocabulary and the Edge capability vocabulary are identical, so an\nadapter can never advertise a capability Edge cannot grant. Widen both\ntogether when a fifth semantic type genuinely exists."
+        },
+        "KnownDecisionCapability": {
+          "kind": "type",
+          "signature": "export type KnownDecisionCapability = DecisionCapability",
+          "doc": "Back-compat alias for the canonical (closed) capability union."
+        },
+        "DecisionDigestDomain": {
+          "kind": "type",
+          "signature": "export type DecisionDigestDomain = (typeof DECISION_DIGEST_DOMAINS)[keyof typeof DECISION_DIGEST_DOMAINS]"
+        },
+        "DecisionError": {
+          "kind": "class",
+          "signature": "export class DecisionError extends Error",
+          "doc": "Base error for the decision surface."
+        },
+        "DECISION_ERROR_MESSAGES": {
+          "kind": "const",
+          "signature": "DECISION_ERROR_MESSAGES: Record<DecisionErrorCode, string> = { NOT_IMPLEMENTED: 'The requested decision semantic is not implemented by this provider.', INVALID_REQUEST: 'The decision request was malfo",
+          "doc": "Human-readable descriptions for each error code."
+        },
+        "DecisionErrorCode": {
+          "kind": "type",
+          "signature": "export type DecisionErrorCode = | 'NOT_IMPLEMENTED' | 'INVALID_REQUEST' | 'INVALID_OUTPUT' | 'INVALID_CANDIDATE' | 'DUPLICATE_CANDIDATE' | 'EMPTY_CANDIDATE_SET' | 'NON_FINITE_NUMBER' | 'INVALID_DISTRI",
+          "doc": "Error codes shared across the decision surface.\n\n`NO_ACCEPTABLE_RESULT` is the terminal outcome when every route is skipped,\nrejected, or fails."
+        },
+        "DecisionEscalationReason": {
+          "kind": "type",
+          "signature": "export type DecisionEscalationReason = | 'LOW_CONFIDENCE' | 'LOW_SELECTED_PROBABILITY' | 'INVALID_OUTPUT' | 'UNAVAILABLE' | 'TIMEOUT' | 'PROVIDER_ERROR' | 'LIMIT_EXCEEDED' | 'INELIGIBLE' | 'NOT_IMPLEM",
+          "doc": "Escalation reasons recorded on attempt provenance when a route does not\nproduce the accepted result."
+        },
+        "DecisionScalar": {
+          "kind": "type",
+          "signature": "export type DecisionScalar = string | number | boolean | null",
+          "doc": "A canonical scalar. `NaN`, `±Infinity`, functions, symbols, cycles, and\nambiguous `undefined` are not valid decision values."
+        },
+        "DecisionValue": {
+          "kind": "type",
+          "signature": "export type DecisionValue = | DecisionScalar | readonly DecisionValue[] | { readonly [key: string]: DecisionValue }",
+          "doc": "A canonical, JSON-compatible decision value. Large binaries are never\nembedded — they are referenced by digest/evidence id."
+        },
+        "DecisionObservation": {
+          "kind": "interface",
+          "signature": "export interface DecisionObservation",
+          "doc": "Optional lightweight observation. This is not a sensor framework; specialist\nmodels (intelligence) produce `DecisionValue`s."
+        },
+        "DecisionContext": {
+          "kind": "interface",
+          "signature": "export interface DecisionContext",
+          "doc": "Trace/governance metadata. Must never contain key material.\n\n**Invariant (RFC-012 §11.3):** context MUST NOT affect provider semantics.\nIt does not participate in the request digest, and the runtime strips it\nbefore invoking providers. Anything intended to influence the answer belongs\nin `state`, `goal`, `instruction`, criterion metadata, or another\ndigest-bound semantic field."
+        },
+        "DecisionCriterion": {
+          "kind": "interface",
+          "signature": "export interface DecisionCriterion",
+          "doc": "A selectable criterion for choice/score questions."
+        },
+        "DecisionTarget": {
+          "kind": "interface",
+          "signature": "export interface DecisionTarget",
+          "doc": "An action target."
+        },
+        "DecisionOperation": {
+          "kind": "interface",
+          "signature": "export interface DecisionOperation",
+          "doc": "An action operation, optionally bearing distinct targets."
+        },
+        "DecisionQuestion": {
+          "kind": "type",
+          "signature": "export type DecisionQuestion = | ChoiceQuestion | ScoreQuestion | ProbabilityQuestion"
+        },
+        "ChoiceQuestion": {
+          "kind": "interface",
+          "signature": "export interface ChoiceQuestion"
+        },
+        "ScoreQuestion": {
+          "kind": "interface",
+          "signature": "export interface ScoreQuestion"
+        },
+        "ProbabilityQuestion": {
+          "kind": "interface",
+          "signature": "export interface ProbabilityQuestion"
+        },
+        "QuestionDecisionRequest": {
+          "kind": "interface",
+          "signature": "export interface QuestionDecisionRequest"
+        },
+        "ActionDecisionRequest": {
+          "kind": "interface",
+          "signature": "export interface ActionDecisionRequest"
+        },
+        "DecisionRequest": {
+          "kind": "type",
+          "signature": "export type DecisionRequest = QuestionDecisionRequest | ActionDecisionRequest"
+        },
+        "DecisionProviderRequest": {
+          "kind": "type",
+          "signature": "export type DecisionProviderRequest = | { readonly kind: 'questions'",
+          "doc": "Provider-facing request. Semantically complete, trace-free: no `context`,\nno caller-owned tracing fields. `requestId` is runtime-issued so provider\ncancels are always addressable."
+        },
+        "DecisionConfidence": {
+          "kind": "interface",
+          "signature": "export interface DecisionConfidence",
+          "doc": "Confidence annotation. Never present a provider `0.92` as \"92% calibrated\ncorrectness\" — calibration is only asserted when the provider reports it."
+        },
+        "ChoiceAnswer": {
+          "kind": "interface",
+          "signature": "export interface ChoiceAnswer"
+        },
+        "ScoreAnswer": {
+          "kind": "interface",
+          "signature": "export interface ScoreAnswer"
+        },
+        "ProbabilityAnswer": {
+          "kind": "interface",
+          "signature": "export interface ProbabilityAnswer"
+        },
+        "QuestionAnswer": {
+          "kind": "type",
+          "signature": "export type QuestionAnswer = ChoiceAnswer | ScoreAnswer | ProbabilityAnswer"
+        },
+        "DecisionAnswer": {
+          "kind": "type",
+          "signature": "export type DecisionAnswer = QuestionAnswer | ActionAnswer"
+        },
+        "QuestionDecisionResult": {
+          "kind": "interface",
+          "signature": "export interface QuestionDecisionResult"
+        },
+        "ActionAnswer": {
+          "kind": "interface",
+          "signature": "export interface ActionAnswer"
+        },
+        "ActionDecisionResult": {
+          "kind": "interface",
+          "signature": "export interface ActionDecisionResult"
+        },
+        "DecisionResult": {
+          "kind": "type",
+          "signature": "export type DecisionResult = QuestionDecisionResult | ActionDecisionResult"
+        },
+        "DecisionModelRef": {
+          "kind": "interface",
+          "signature": "export interface DecisionModelRef"
+        },
+        "DecisionRuntimeRef": {
+          "kind": "interface",
+          "signature": "export interface DecisionRuntimeRef"
+        },
+        "DecisionLocality": {
+          "kind": "type",
+          "signature": "export type DecisionLocality = 'local' | 'remote' | 'hybrid' | 'unknown'"
+        },
+        "DecisionProvenance": {
+          "kind": "interface",
+          "signature": "export interface DecisionProvenance",
+          "doc": "Provider provenance. Missing fields are omitted, never invented. Caller\ndeclarations are never presented as verified facts."
+        },
+        "DecisionUsage": {
+          "kind": "interface",
+          "signature": "export interface DecisionUsage",
+          "doc": "Provider-reported usage. Unit of consumption is provider-specific."
+        },
+        "DecisionProviderSuccess": {
+          "kind": "interface",
+          "signature": "export interface DecisionProviderSuccess< T = DecisionResult, >",
+          "doc": "A provider's proposed decision. Contains **no** runtime bindings, receipt, or\nattempt history — those are runtime constructs."
+        },
+        "DecisionProviderFailure": {
+          "kind": "interface",
+          "signature": "export interface DecisionProviderFailure"
+        },
+        "DecisionProviderOutcome": {
+          "kind": "type",
+          "signature": "export type DecisionProviderOutcome<T = DecisionResult> = [T] extends [void] ? { readonly ok: true",
+          "doc": "Provider outcome. `DecisionProviderOutcome<void>` is the control form used by\n`cancel` (no proposed decision)."
+        },
+        "DecisionProviderRef": {
+          "kind": "interface",
+          "signature": "export interface DecisionProviderRef"
+        },
+        "DecisionAttempt": {
+          "kind": "interface",
+          "signature": "export interface DecisionAttempt",
+          "doc": "One provider invocation, preserved for provenance. Never carries secrets."
+        },
+        "DecisionRequestBindings": {
+          "kind": "interface",
+          "signature": "export interface DecisionRequestBindings",
+          "doc": "Request-scoped bindings (available before a decision exists)."
+        },
+        "DecisionBindings": {
+          "kind": "interface",
+          "signature": "export interface DecisionBindings extends DecisionRequestBindings",
+          "doc": "Full bindings, available once a decision exists."
+        },
+        "DecisionSuccess": {
+          "kind": "interface",
+          "signature": "export interface DecisionSuccess< T = DecisionResult, >",
+          "doc": "A decision success — a proposal, never an authorization."
+        },
+        "DecisionFailure": {
+          "kind": "interface",
+          "signature": "export interface DecisionFailure",
+          "doc": "A decision failure — terminal, non-throwing at the runtime boundary."
+        },
+        "DecisionOutcome": {
+          "kind": "type",
+          "signature": "export type DecisionOutcome<T = DecisionResult> = | DecisionSuccess<T> | DecisionFailure"
+        },
+        "DecisionReceipt": {
+          "kind": "interface",
+          "signature": "export interface DecisionReceipt",
+          "doc": "Unsigned advisory decision receipt (v1).\n\n`hashes ≠ proof of neural correctness`\n`DecisionReceipt ≠ cryptographic authorization ≠ signed attestation`"
+        },
+        "DecisionReceiptBody": {
+          "kind": "type",
+          "signature": "export type DecisionReceiptBody = Omit<DecisionReceipt, 'receiptId'>",
+          "doc": "Receipt body (everything except `receiptId`) used to derive `receiptId`."
+        },
+        "DecisionProviderInfo": {
+          "kind": "interface",
+          "signature": "export interface DecisionProviderInfo",
+          "doc": "Structural provenance. Aids routing; grants nothing. Missing fields are\nomitted, never invented."
+        },
+        "DecisionProvider": {
+          "kind": "interface",
+          "signature": "export interface DecisionProvider",
+          "doc": "Provider-neutral decision interface.\n\nImplementors are compute-only: they cannot sign, move value, or hold private\nkeys. `decide` returns a proposal subject to runtime validation; providers\ncannot supply bindings, receipts, or attempts."
+        },
+        "DecisionAcceptanceContext": {
+          "kind": "interface",
+          "signature": "export interface DecisionAcceptanceContext"
+        },
+        "DecisionAcceptanceEvaluation": {
+          "kind": "interface",
+          "signature": "export interface DecisionAcceptanceEvaluation"
+        },
+        "DecisionAcceptanceRule": {
+          "kind": "interface",
+          "signature": "export interface DecisionAcceptanceRule",
+          "doc": "Built-in acceptance rules. Acceptance answers only \"is this good enough to\nbecome the `DecisionResult`?\" — never \"may this happen?\"."
+        },
+        "DecisionRoute": {
+          "kind": "interface",
+          "signature": "export interface DecisionRoute"
+        },
+        "DecisionShortlister": {
+          "kind": "interface",
+          "signature": "export interface DecisionShortlister",
+          "doc": "Optional candidate shortlister. Deterministic by contract. Deferred v1."
+        },
+        "DecisionRuntimeOptions": {
+          "kind": "interface",
+          "signature": "export interface DecisionRuntimeOptions"
+        },
+        "DecisionRuntime": {
+          "kind": "interface",
+          "signature": "export interface DecisionRuntime"
+        },
+        "DecisionPortResult": {
+          "kind": "interface",
+          "signature": "export interface DecisionPortResult<T = unknown>",
+          "doc": "Port-facing result shape; mirrors"
+        },
+        "EdgeDecisionPort": {
+          "kind": "interface",
+          "signature": "export interface EdgeDecisionPort",
+          "doc": "Edge-compatible decision port contract.\n\nLives in"
+        },
+        "TypedBackendQuestion": {
+          "kind": "interface",
+          "signature": "export interface TypedBackendQuestion",
+          "doc": "A backend question in canonical form (provider peculiarities already removed)."
+        },
+        "TypedBackendPrediction": {
+          "kind": "interface",
+          "signature": "export interface TypedBackendPrediction"
+        },
+        "TypedBackendResult": {
+          "kind": "interface",
+          "signature": "export interface TypedBackendResult"
+        },
+        "TypedDecisionBackend": {
+          "kind": "interface",
+          "signature": "export interface TypedDecisionBackend",
+          "doc": "Shared typed-decision backend seam. Provider adapters translate backend\npeculiarities; the shared translation implements the four semantics."
+        },
+        "assertDecisionValue": {
+          "kind": "function",
+          "signature": "assertDecisionValue(value: unknown, path?: string): asserts value is DecisionValue",
+          "doc": "Assert that `value` is a canonical {@link DecisionValue}. Rejects `NaN`,\n`±Infinity`, `undefined`, functions, symbols, dates, class instances, and\ncyclic structures."
+        },
+        "isDecisionValue": {
+          "kind": "function",
+          "signature": "isDecisionValue(value: unknown): value is DecisionValue",
+          "doc": "Non-throwing variant of {@link assertDecisionValue}."
+        },
+        "computeStateDigest": {
+          "kind": "function",
+          "signature": "computeStateDigest(state: DecisionValue): string"
+        },
+        "computeCandidateSetDigest": {
+          "kind": "function",
+          "signature": "computeCandidateSetDigest(request: DecisionRequest): string"
+        },
+        "computeDecisionBindings": {
+          "kind": "function",
+          "signature": "computeDecisionBindings(request: DecisionRequest): DecisionRequestBindings",
+          "doc": "Compute the request-scoped bindings. `requestId`, `context`, `signal`, and\nother transport metadata are excluded."
+        },
+        "computeOutputDigest": {
+          "kind": "function",
+          "signature": "computeOutputDigest(decision: DecisionResult): string"
+        },
+        "stateByteLength": {
+          "kind": "function",
+          "signature": "stateByteLength(state: DecisionValue): number",
+          "doc": "Canonical state size in bytes (UTF-8 of the canonical JSON)."
+        },
+        "canonicalDecisionJson": {
+          "kind": "function",
+          "signature": "canonicalDecisionJson(value: unknown): string",
+          "doc": "Canonical JSON of a value (exported for tests/diagnostics)."
+        },
+        "isDecisionFresh": {
+          "kind": "function",
+          "signature": "isDecisionFresh(result: { bindings?: { requestDigest: string; }; }, currentRequest: DecisionRequest): boolean",
+          "doc": "A result is fresh when its `requestDigest` equals the digest of the current\nrequest. Because `requestDigest` incorporates state and candidate digests, it\nalso invalidates on state, candidate-set, goal, or instruction changes\n(RFC-012 §30)."
+        },
+        "assertDecisionFresh": {
+          "kind": "function",
+          "signature": "assertDecisionFresh(result: { bindings?: { requestDigest: string; }; }, currentRequest: DecisionRequest): void"
+        },
+        "validateDecisionRequest": {
+          "kind": "function",
+          "signature": "validateDecisionRequest(request: DecisionRequest, limits?: DecisionLimits): void",
+          "doc": "Validate a caller request. Throws on malformed shape, duplicate/missing IDs,\nempty candidate sets, or limit violations."
+        },
+        "validateProviderDecision": {
+          "kind": "function",
+          "signature": "validateProviderDecision(providerRequest: DecisionProviderRequest, decision: unknown): DecisionResult",
+          "doc": "Validate and normalize a provider-proposed decision against the offered\ncandidate space. Returns a clean canonical {@link DecisionResult}; unknown\nfields are dropped. Providers cannot invent IDs or malformed distributions."
+        },
+        "validateDistribution": {
+          "kind": "function",
+          "signature": "validateDistribution(distribution: Record<string, number>, options: DistributionValidationOptions): void",
+          "doc": "Validate a probability distribution. Complete distributions must cover the\ncandidate set and sum ≈ 1; partial distributions must be a subset. Partial\nvalues are never padded or renormalized."
+        },
+        "normalizedEntropy": {
+          "kind": "function",
+          "signature": "normalizedEntropy(distribution: Record<string, number>): number",
+          "doc": "Normalized Shannon entropy in [0,1] for a complete distribution."
+        },
+        "deriveRequestedTypes": {
+          "kind": "function",
+          "signature": "deriveRequestedTypes(request: DecisionRequest): DecisionType[]",
+          "doc": "Decision types exercised by a request, de-duplicated in encounter order."
+        },
+        "deriveRequiredCapabilities": {
+          "kind": "function",
+          "signature": "deriveRequiredCapabilities(request: DecisionRequest): DecisionCapability[]",
+          "doc": "Required capabilities = union of the request's decision types, de-duplicated."
+        },
+        "DecisionLimits": {
+          "kind": "interface",
+          "signature": "export interface DecisionLimits"
+        },
+        "DistributionValidationOptions": {
+          "kind": "interface",
+          "signature": "export interface DistributionValidationOptions"
+        },
+        "computeReceiptId": {
+          "kind": "function",
+          "signature": "computeReceiptId(body: DecisionReceiptBody): string",
+          "doc": "Derive the receipt id from a receipt body."
+        },
+        "createDecisionReceipt": {
+          "kind": "function",
+          "signature": "createDecisionReceipt(body: DecisionReceiptBody): DecisionReceipt",
+          "doc": "Build a v1 receipt, deriving `receiptId` from the body."
+        },
+        "verifyDecisionReceiptId": {
+          "kind": "function",
+          "signature": "verifyDecisionReceiptId(receipt: DecisionReceipt): boolean",
+          "doc": "Verify that a receipt's id matches its body (tamper detection, not proof)."
+        },
+        "aggregateConfidence": {
+          "kind": "function",
+          "signature": "aggregateConfidence(decision: DecisionResult): number | undefined",
+          "doc": "Aggregate confidence for a decision.\n\nFor batched questions this is the **minimum** across answers; if any answer\nlacks a confidence value the aggregate is `undefined` (so `minConfidence`\ntreats a missing confidence as a failure)."
+        },
+        "evaluateAcceptance": {
+          "kind": "function",
+          "signature": "evaluateAcceptance(rule: DecisionAcceptanceRule | undefined, context: DecisionAcceptanceContext): DecisionAcceptanceEvaluation",
+          "doc": "Evaluate a route's acceptance rule."
+        },
+        "createTypedDecisionProvider": {
+          "kind": "function",
+          "signature": "createTypedDecisionProvider(options: TypedDecisionProviderOptions): DecisionProvider",
+          "doc": "Wrap a {@link TypedDecisionBackend} as a provider-neutral\n{@link DecisionProvider}."
+        },
+        "createClientDecisionProvider": {
+          "kind": "function",
+          "signature": "createClientDecisionProvider(options: ClientDecisionProviderOptions): DecisionProvider",
+          "doc": "Wrap a provider-specific client as a {@link DecisionProvider}, translating\nonly vocabulary. Output stays untrusted and is re-validated by the runtime."
+        },
+        "ALL_DECISION_CAPABILITIES": {
+          "kind": "const",
+          "signature": "ALL_DECISION_CAPABILITIES: readonly DecisionCapability[] = DECISION_TYPES.map((t) => `decision:${t}` as DecisionCapability)",
+          "doc": "All four canonical capabilities."
+        },
+        "TypedDecisionProviderOptions": {
+          "kind": "interface",
+          "signature": "export interface TypedDecisionProviderOptions"
+        },
+        "ClientDecisionProviderOptions": {
+          "kind": "interface",
+          "signature": "export interface ClientDecisionProviderOptions"
+        },
+        "DecisionClientLike": {
+          "kind": "interface",
+          "signature": "export interface DecisionClientLike"
+        },
+        "DecisionClientQuestion": {
+          "kind": "interface",
+          "signature": "export interface DecisionClientQuestion"
+        },
+        "DecisionClientPrediction": {
+          "kind": "interface",
+          "signature": "export interface DecisionClientPrediction"
+        },
+        "DecisionClientResult": {
+          "kind": "interface",
+          "signature": "export interface DecisionClientResult"
+        },
+        "createDecisionRuntime": {
+          "kind": "function",
+          "signature": "createDecisionRuntime(options: DecisionRuntimeOptions): DecisionRuntime"
+        },
+        "createEdgeDecisionPort": {
+          "kind": "function",
+          "signature": "createEdgeDecisionPort(runtime: DecisionRuntime, options?: CreateEdgeDecisionPortOptions): EdgeDecisionPort",
+          "doc": "Bind a decision runtime to an edge-compatible port."
+        },
+        "CreateEdgeDecisionPortOptions": {
+          "kind": "interface",
+          "signature": "export interface CreateEdgeDecisionPortOptions"
+        }
+      }
+    },
     "@totemsdk/edge": {
       "symbols": {
         "EDGE_VERSION": {
@@ -2733,6 +3236,11 @@
           "signature": "export interface EdgeIntelligencePort",
           "doc": "Edge-compatible intelligence port contract.\n\nLives in"
         },
+        "EdgeDecisionPort": {
+          "kind": "interface",
+          "signature": "export interface EdgeDecisionPort",
+          "doc": "Edge-compatible decision port contract.\n\nLives in"
+        },
         "EdgeRuntimePorts": {
           "kind": "interface",
           "signature": "export interface EdgeRuntimePorts"
@@ -2785,6 +3293,26 @@
           "kind": "function",
           "signature": "createEdgeIntelligencePort(provider: IntelligenceProvider): EdgeIntelligencePort",
           "doc": "Bind a provider-neutral {@link IntelligenceProvider} to an\n{@link EdgeIntelligencePort}.\n\nThe port exposes the provider's `intelligence:*` capability strings and\ntranslates provider-neutral operations/results into the port result shape."
+        },
+        "EDGE_DECISION_CAPABILITIES": {
+          "kind": "const",
+          "signature": "EDGE_DECISION_CAPABILITIES: readonly string[] = [ 'decision:choice', 'decision:score', 'decision:probability', 'decision:action', ] as const",
+          "doc": "The four closed decision capabilities (RFC-012 §4.2/§33.1). Decision is a\nsibling of intelligence, with its own capability namespace — never\n`intelligence:decision`."
+        },
+        "isDecisionCapability": {
+          "kind": "function",
+          "signature": "isDecisionCapability(cap: string): boolean",
+          "doc": "Whether a capability string is a decision capability."
+        },
+        "hasDecisionCapability": {
+          "kind": "function",
+          "signature": "hasDecisionCapability(set: EdgeCapabilitySet, cap: string): boolean",
+          "doc": "True if a specific decision capability is granted."
+        },
+        "createEdgeDecisionPort": {
+          "kind": "function",
+          "signature": "createEdgeDecisionPort(runtime: DecisionRuntime, options?: CreateEdgeDecisionPortOptions): EdgeDecisionPort",
+          "doc": "Bind a decision runtime to an edge-compatible port."
         },
         "createAccountedIntelligencePort": {
           "kind": "function",

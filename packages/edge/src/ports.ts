@@ -7,8 +7,10 @@
 
 import type { EdgeOperationResult } from './types.js';
 import type { EdgeIntelligencePort } from '@totemsdk/intelligence';
+import type { EdgeDecisionPort } from '@totemsdk/decision';
 
 export type { EdgeIntelligencePort } from '@totemsdk/intelligence';
+export type { EdgeDecisionPort } from '@totemsdk/decision';
 
 export interface EdgePaymentPort {
   pay(params: {
@@ -275,6 +277,12 @@ export interface EdgeRuntimePorts {
   manifest?: EdgeManifestPort;
   /** Optional local intelligence/inference surface. */
   intelligence?: EdgeIntelligencePort;
+  /**
+   * Optional bounded decision surface — a sibling of intelligence, not an
+   * intelligence domain. Host implementations via `createEdgeDecisionPort`
+   * from @totemsdk/decision.
+   */
+  decision?: EdgeDecisionPort;
   /** WOTS key-lease coordination — required before any signing operation. */
   keyLease?: EdgeKeyLeasePort;
   /** Bidirectional byte-stream transport (WebSocket, Hyperswarm, WebRTC, stdio). */

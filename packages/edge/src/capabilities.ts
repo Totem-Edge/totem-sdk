@@ -54,6 +54,10 @@ export type EdgeCapability =
   | 'intelligence:system'
   | 'intelligence:plugins'
   | `intelligence:${string}`
+  | 'decision:choice'
+  | 'decision:score'
+  | 'decision:probability'
+  | 'decision:action'
   | 'proof:create'
   | 'proof:verify'
   | 'lookup:watch'
@@ -120,6 +124,28 @@ export function hasIntelligenceCapability(
   domain: string,
 ): boolean {
   return set.has(`intelligence:${domain}` as EdgeCapability);
+}
+
+/**
+ * The four closed decision capabilities (RFC-012 §4.2/§33.1). Decision is a
+ * sibling of intelligence, with its own capability namespace — never
+ * `intelligence:decision`.
+ */
+export const EDGE_DECISION_CAPABILITIES: readonly string[] = [
+  'decision:choice',
+  'decision:score',
+  'decision:probability',
+  'decision:action',
+] as const;
+
+/** Whether a capability string is a decision capability. */
+export function isDecisionCapability(cap: string): boolean {
+  return cap.startsWith('decision:');
+}
+
+/** True if a specific decision capability is granted. */
+export function hasDecisionCapability(set: EdgeCapabilitySet, cap: string): boolean {
+  return set.has(cap as EdgeCapability);
 }
 
 export function createCapabilitySet(caps: EdgeCapability[]): EdgeCapabilitySet {

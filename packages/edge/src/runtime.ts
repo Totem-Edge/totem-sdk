@@ -11,6 +11,8 @@ import {
 } from './capabilities.js';
 import type { EdgeRuntimePorts } from './ports.js';
 import type { EdgeRuntime, EdgeActionParams, EdgeActionResult } from './types.js';
+import { deriveRequiredCapabilities } from '@totemsdk/decision';
+import type { DecisionRequest } from '@totemsdk/decision';
 
 export function createEdgeRuntime(opts: {
   deviceId: string;
@@ -129,6 +131,40 @@ export function createEdgeRuntime(opts: {
         return { ok: false, action, policyResult, error: 'No intelligence port cancel configured', errorCode: 'PORT_MISSING' };
       }
       const result = await ports.intelligence.cancel(payload?.requestId as string);
+      return { ok: result.ok, action, data: result.data, policyResult, error: result.error, errorCode: result.errorCode };
+    }
+
+    if (action.startsWith('decision:decide')) {
+      if (!ports.decision) {
+        return { ok: false, action, policyResult, error: 'No decision port configured', errorCode: 'PORT_MISSING' };
+      }
+      const request = payload?.request as DecisionRequest | undefined;
+      if (!request || typeof request !== 'object' || (request.kind !== 'questions' && request.kind !== 'action')) {
+        return { ok: false, action, policyResult, error: 'decision:decide requires a valid request payload', errorCode: 'INVALID_REQUEST' };
+      }
+      // Gate on the union (de-duplicated) of the request's decision types.
+      const required = deriveRequiredCapabilities(request);
+      const missing = required.filter((cap) => !hasCapability(capabilities, cap as EdgeCapability));
+      if (missing.length > 0) {
+        return {
+          ok: false,
+          action,
+          policyResult,
+          error: `Decision capability not granted: ${missing.join(', ')}`,
+          errorCode: 'CAPABILITY_MISSING',
+        };
+      }
+      const result = await ports.decision.decide({ request });
+      return { ok: result.ok, action, data: result.data, policyResult, error: result.error, errorCode: result.errorCode };
+    }
+
+    if (action.startsWith('decision:cancel')) {
+      // Capability-ungated: control of an existing in-flight operation, not a
+      // new semantic decision (RFC-012 §27).
+      if (!ports.decision?.cancel) {
+        return { ok: false, action, policyResult, error: 'No decision port cancel configured', errorCode: 'PORT_MISSING' };
+      }
+      const result = await ports.decision.cancel(payload?.requestId as string);
       return { ok: result.ok, action, data: result.data, policyResult, error: result.error, errorCode: result.errorCode };
     }
 

@@ -3,7 +3,7 @@
   "title": "Totem SDK Package Manifest",
   "description": "Machine-readable index of all @totemsdk packages — for AI agents, tooling, and developers. Updated 2026-08-18.",
   "org": "@totemsdk",
-  "total": 62,
+  "total": 63,
   "domains": {
     "cryptographic-foundation": {
       "description": "WOTS+ signatures, TreeKey hierarchy, MMR proofs, KISSVM, MAST, TxPoW",
@@ -94,6 +94,12 @@
       "packages": [
         "@totemsdk/intelligence",
         "@totemsdk/qvac"
+      ]
+    },
+    "decision": {
+      "description": "Provider-neutral decision runtime — typed, constrained, provenance-bound proposals over dynamic candidate spaces (AI proposes, Totem authorizes)",
+      "packages": [
+        "@totemsdk/decision"
       ]
     },
     "storage": {
@@ -257,7 +263,7 @@
     },
     {
       "name": "@totemsdk/edge",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "description": "Unified developer-facing runtime — composes identity, manifest, wallet, payment, proof, lookup, and policy via injected ports",
       "domain": "edge-computing",
       "keywords": [
@@ -270,6 +276,7 @@
         "@totemsdk/agent-policy": "^0.3.0",
         "@totemsdk/connect": "^2.1.0",
         "@totemsdk/core": "^1.2.10",
+        "@totemsdk/decision": "^0.1.0",
         "@totemsdk/identity": "^1.0.0",
         "@totemsdk/intelligence": "^0.1.0",
         "@totemsdk/manifest": "^1.0.0",
@@ -321,7 +328,7 @@
         "hvac"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.1.0"
+        "@totemsdk/edge": "^1.2.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -340,7 +347,7 @@
         "beacons"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.1.0"
+        "@totemsdk/edge": "^1.2.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -359,7 +366,7 @@
         "socketcan"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.1.0"
+        "@totemsdk/edge": "^1.2.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -378,7 +385,7 @@
         "rfc7252"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.1.0"
+        "@totemsdk/edge": "^1.2.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -396,7 +403,7 @@
         "cloud-edge"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.1.0",
+        "@totemsdk/edge": "^1.2.0",
         "@totemsdk/stream-transport": "^0.2.0"
       },
       "exports": {
@@ -416,7 +423,7 @@
         "asset-tracking"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.1.0"
+        "@totemsdk/edge": "^1.2.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -434,7 +441,7 @@
         "fabric"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.1.0"
+        "@totemsdk/edge": "^1.2.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -454,7 +461,7 @@
         "serial"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.1.0"
+        "@totemsdk/edge": "^1.2.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -477,7 +484,7 @@
       "dependencies": {
         "@totemsdk/agent-policy": "^0.3.0",
         "@totemsdk/core": "^1.2.10",
-        "@totemsdk/edge": "^1.1.0",
+        "@totemsdk/edge": "^1.2.0",
         "@totemsdk/identity": "^1.0.0",
         "@totemsdk/manifest": "^1.0.0",
         "@totemsdk/proof": "^1.0.0",
@@ -503,7 +510,7 @@
         "hce"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.1.0"
+        "@totemsdk/edge": "^1.2.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -522,7 +529,7 @@
         "industrial"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.1.0"
+        "@totemsdk/edge": "^1.2.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -540,7 +547,7 @@
         "dds"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.1.0"
+        "@totemsdk/edge": "^1.2.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1076,9 +1083,9 @@
         "pg": "^8.11.3",
         "zod": "^4.4.3",
         "@totemsdk/core": "^1.2.10",
-        "@totemsdk/root-identity": "^0.1.0",
+        "@totemsdk/root-identity": "^1.0.8",
         "@totemsdk/storage": "^0.1.0",
-        "@totemsdk/wots-lease": "^0.1.0"
+        "@totemsdk/wots-lease": "^1.0.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1252,7 +1259,7 @@
         "transport"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.1.0"
+        "@totemsdk/edge": "^1.2.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1276,7 +1283,7 @@
         "@totemsdk/agent-policy": "^0.3.0",
         "@totemsdk/authority": "^1.0.0",
         "@totemsdk/core": "^1.2.10",
-        "@totemsdk/edge": "^1.1.0",
+        "@totemsdk/edge": "^1.2.0",
         "@totemsdk/proof": "^1.0.0",
         "@totemsdk/storage": "^0.1.0"
       },
@@ -1491,6 +1498,70 @@
         "./types": "dist/types.{js,d.ts}"
       },
       "exportsDescription": "IntelligenceProvider, IntelligenceOperation/Result/StreamChunk/Receipt, port contract (EdgeIntelligencePort, createEdgeIntelligencePort), domain/capability constants, error codes"
+    },
+    {
+      "name": "@totemsdk/decision",
+      "version": "0.1.0",
+      "description": "Provider-neutral decision runtime — typed, constrained, provenance-bound proposals over dynamic candidate spaces (AI proposes, Totem authorizes)",
+      "domain": "decision",
+      "keywords": [
+        "totem",
+        "totemsdk",
+        "decision",
+        "runtime",
+        "edge-ai",
+        "proposal",
+        "provider-neutral",
+        "bounded-choice",
+        "governance"
+      ],
+      "dependencies": {
+        "@totemsdk/core": "^1.2.10",
+        "@totemsdk/intelligence": "^0.1.0"
+      },
+      "exports": {
+        ".": {
+          "types": "./dist/index.d.ts",
+          "require": "./dist/index.js",
+          "import": "./dist/index.js"
+        },
+        "./constants": {
+          "types": "./dist/constants.d.ts",
+          "require": "./dist/constants.js",
+          "import": "./dist/constants.js"
+        },
+        "./errors": {
+          "types": "./dist/errors.d.ts",
+          "require": "./dist/errors.js",
+          "import": "./dist/errors.js"
+        },
+        "./intelligence": {
+          "types": "./dist/adapters/intelligence.d.ts",
+          "require": "./dist/adapters/intelligence.js",
+          "import": "./dist/adapters/intelligence.js"
+        },
+        "./jev": {
+          "types": "./dist/adapters/jev.d.ts",
+          "require": "./dist/adapters/jev.js",
+          "import": "./dist/adapters/jev.js"
+        },
+        "./laya": {
+          "types": "./dist/adapters/laya.d.ts",
+          "require": "./dist/adapters/laya.js",
+          "import": "./dist/adapters/laya.js"
+        },
+        "./testing": {
+          "types": "./dist/testing/mock-provider.d.ts",
+          "require": "./dist/testing/mock-provider.js",
+          "import": "./dist/testing/mock-provider.js"
+        },
+        "./types": {
+          "types": "./dist/types.d.ts",
+          "require": "./dist/types.js",
+          "import": "./dist/types.js"
+        }
+      },
+      "exportsDescription": "DecisionRequest/Result, DecisionProvider (DecisionProviderOutcome) + DecisionOutcome runtime trust split, createDecisionRuntime, canonical digests + freshness, DecisionReceipt, Laya/Jev/Intelligence adapters (/laya,/jev,/intelligence), EdgeDecisionPort + createEdgeDecisionPort, mock provider (/testing)"
     },
     {
       "name": "@totemsdk/qvac",

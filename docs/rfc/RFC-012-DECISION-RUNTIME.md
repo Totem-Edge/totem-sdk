@@ -1,7 +1,8 @@
 # RFC-012: Decision Runtime — Bounded Semantic Choice as a First-Class Edge Service
 
-**Status:** Draft — not started
+**Status:** Landed — P1–P6 complete: core contracts with the provider/runtime trust split, `createDecisionRuntime` (eligibility, deterministic routing, acceptance, escalation, timeout, terminal cancellation, freshness), typed backend + Laya/Jev adapters, Intelligence fallback, Edge surface (`decision:*` capabilities + `decision:decide`/`decision:cancel` + `EdgeRuntimePorts.decision`), manifest `decision` domain + catalogs, and 64 offline tests. Left as follow-ups: receipt signing (Q2) and embedding shortlisting (Q3).
 **Created:** 2026-09-24
+**Revised:** 2026-09-26
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]
 **Depends on:** `@totemsdk/intelligence` (Edge port pattern), `@totemsdk/edge` (port hosting + dispatch), RFC-004 (maturity/promotion conventions)
@@ -80,6 +81,44 @@ port:          EdgeRuntimePorts.decision
 The distinction is enforced structurally: Decision *may consume* Intelligence
 (§31), but Intelligence must not depend on Decision.
 
+### 4.2 Capability vocabulary is closed in v1
+
+There is no current extension requirement. For v1, `DecisionCapability` is a
+**closed** union of exactly the four semantics — **not** `decision:${string}`:
+
+```ts
+type DecisionCapability =
+  | 'decision:choice'
+  | 'decision:score'
+  | 'decision:probability'
+  | 'decision:action';
+```
+
+The provider vocabulary and the Edge capability vocabulary are therefore
+identical, so an adapter can never advertise a capability Edge cannot grant.
+Widen both together later, and only when a fifth semantic type genuinely exists.
+This also matches the closed literals added to `EdgeCapability` (§33).
+
+### 4.3 Provider output is not runtime output
+
+Decision draws a hard trust boundary between **what a provider proposes** and
+**what the trusted runtime certifies**:
+
+```text
+DecisionProviderOutcome        (provider, untrusted)
+        ↓
+runtime validates candidate membership + distributions
+        ↓
+acceptance / escalation
+        ↓
+DecisionOutcome                 (runtime, trusted)
+        + bindings + receipt + attempts
+```
+
+A provider cannot supply `stateDigest`, `requestDigest`, `outputDigest`,
+`attempts`, or a `DecisionReceipt`. Those are runtime constructs. §18 and §21
+freeze the two type families.
+
 ## 5. Cognitive stack
 
 ```text
@@ -118,14 +157,20 @@ not duplicate `@totemsdk/intelligence`, `@totemsdk/agent-policy`,
 
 ## 8. Existing SDK constraints (audit)
 
-- `EdgeCapability` (`packages/edge/src/capabilities.ts`) is a **closed union**;
-  `decision:*` capabilities must be added as literals (as `industrial:action` was).
-  `IntelligenceCapability` is open (`intelligence:${string}`); edge's is not.
+- `EdgeCapability` (`packages/edge/src/capabilities.ts`) is a **closed union**
+  that also admits an `intelligence:${string}` template-literal extension;
+  `decision:*` capabilities must be added as the four closed literals (as
+  `industrial:action` was). The `decision:*` template extension is **not** added
+  in v1 (§4.2).
 - Intelligence dispatch is an **inline branch** in `edge/src/runtime.ts`, not a
-  registered `EdgeActionDefinition`. `decision:decide`/`decision:cancel` follow suit.
+  registered `EdgeActionDefinition`. `decision:decide`/`decision:cancel` follow
+  suit.
+- The repo also has the universal `EdgeActionDefinition` registry and the
+  `createAgentEdgeRuntime` governed facade. **Decision is not registered as a
+  governed `EdgeActionDefinition` in v1** (§33.2).
 - `EdgeRuntimePorts` is the hosting surface (`packages/edge/src/ports.ts:266`).
 - `SDK_MANIFEST.json` groups packages under `domains`; `intelligence` currently
-  holds `intelligence`+`qvac`.
+  holds `intelligence`+`qvac`. Decision gets its **own `decision` domain** (§42).
 - `packages/qvac` consumes `createEdgeIntelligencePort`; Decision must not modify it.
 
 ## 9. Dependency graph
@@ -145,13 +190,14 @@ Forbidden cycles: `decision → agent-policy`, `decision → authority`,
 ```text
 DecisionRequest
   → validate (shape, IDs, limits)
-  → canonicalize (state, candidates)
-  → compute bindings (state/candidate/request digests)
+  → canonicalize (state, candidates; caller order preserved)
+  → compute request bindings (state/candidate/request digests)
+  → build DecisionProviderRequest (semantic only — trace context stripped)
   → route eligibility (capability, readiness, limits)
-  → provider.decide(request)
-  → validate provider output (candidate-constrained)
+  → provider.decide(providerRequest)            → DecisionProviderOutcome
+  → validate+normalize provider decision (candidate-constrained)
   → acceptance evaluation
-  → accepted ? return DecisionSuccess : escalate to next route
+  → accepted ? finalize DecisionSuccess : escalate to next route
        → all routes fail → NO_ACCEPTABLE_RESULT
 ```
 
@@ -190,7 +236,7 @@ interface DecisionObservation {
 
 This is not a sensor framework; specialist models produce `DecisionValue`s.
 
-### 11.3 Context
+### 11.3 Context — trace/governance metadata only
 
 ```ts
 interface DecisionContext {
@@ -206,16 +252,52 @@ Context must not contain key material. **Context does not participate in the
 request digest** (transport/identity metadata, not semantics) — documented and
 tested.
 
+**Invariant (locked): `DecisionContext` MUST NOT affect provider semantics.**
+Anything intended to influence the answer belongs in `state`, `goal`,
+`instruction`, criterion metadata, or another digest-bound semantic field. To
+enforce this structurally, the runtime never exposes context to providers: it
+hands providers a {@link DecisionProviderRequest} (§17.3) that omits `context`
+and `requestId` handling is runtime-owned. Adapters that use
+`context.metadata` to alter a decision are non-conformant.
+
+### 11.4 Criteria and candidates
+
+```ts
+interface DecisionCriterion {
+  readonly id: string;
+  readonly description?: string;
+  readonly metadata?: DecisionValue;
+}
+interface DecisionTarget {
+  readonly id: string;
+  readonly description?: string;
+  readonly metadata?: DecisionValue;
+}
+interface DecisionOperation {
+  readonly id: string;
+  readonly description?: string;
+  readonly metadata?: DecisionValue;
+  readonly targets?: readonly DecisionTarget[];
+}
+```
+
+IDs are unique within their namespace: criterion IDs unique per question;
+operation IDs unique; target IDs unique per operation.
+
 ## 12. Decision semantics
 
 `type DecisionType = 'choice' | 'score' | 'probability' | 'action';`
 
 - **choice** — select exactly one candidate; optional probabilities.
-- **score** — ordered rubric; explicit order; selected level + optional
-  distribution/expected score/confidence; never infer expected score from
-  unordered labels.
-- **probability** — `P(proposition)`; canonical term is `probability`; provider
-  vocabulary (e.g. Laya `noul`) never escapes the adapter.
+- **score** — ordered rubric (increasing); selected level + optional
+  distribution/expected score/confidence. **`expectedScore` is the zero-based
+  expectation over rubric order**: `Σ index(criterion) · P(criterion)`, using the
+  rubric's array position. It is never inferred from unordered labels, and it is
+  omitted unless rubric positions are meaningful (i.e. ordered rubric with a
+  complete distribution). Numeric rubric values may be added by a future RFC.
+- **probability** — `P(proposition)`; the canonical field is
+  **`probabilityTrue`** (not a manufactured boolean selection at `0.5`).
+  Provider vocabulary (e.g. Laya `noul`) never escapes the adapter.
 - **action** — select `operation` + optional compatible `target` (§15).
 
 ## 13. Dynamic candidate spaces
@@ -223,6 +305,12 @@ tested.
 Candidate sets are runtime state, not compiled constants. `observe t0 → space A →
 decision A`, `observe t1 → space B → decision B`. Candidate changes change the
 **candidate-set digest** and invalidate stale decisions.
+
+**Ordering is semantic.** The caller's array order is preserved exactly in both
+provider input and digests. Nothing sorts candidates or criteria. Object keys are
+canonicalized (sorted) by `canonicalJson`, but arrays keep their order. Therefore
+reordering candidates or rubric levels legitimately changes the
+`candidateSetDigest` (and hence the `requestDigest`), even when the sets are equal.
 
 ## 14. State is observed data, not instructions
 
@@ -232,16 +320,6 @@ provider credentials, and runtime policy **live outside model state** and cannot
 be mutated by it.
 
 ## 15. Action operation/target model (never flattened)
-
-```ts
-interface DecisionTarget { readonly id: string; readonly description?: string; readonly metadata?: DecisionValue }
-interface DecisionOperation {
-  readonly id: string;
-  readonly description?: string;
-  readonly metadata?: DecisionValue;
-  readonly targets?: readonly DecisionTarget[];
-}
-```
 
 Canonical result:
 
@@ -266,6 +344,8 @@ explicitly (§23 test 24).
 
 ## 17. Requests
 
+### 17.1 Caller request (with trace context)
+
 ```ts
 interface ChoiceQuestion { readonly type: 'choice'; readonly id: string; readonly instruction?: string; readonly criteria: readonly DecisionCriterion[] }
 interface ScoreQuestion  { readonly type: 'score';  readonly id: string; readonly instruction?: string; readonly rubric: readonly DecisionCriterion[] } // order = increasing
@@ -289,21 +369,106 @@ interface ActionDecisionRequest {
   readonly context?: DecisionContext;
   readonly signal?: AbortSignal;
 }
+
+type DecisionRequest = QuestionDecisionRequest | ActionDecisionRequest;
 ```
 
-IDs unique within their namespace (criterion IDs unique per question; operation
-IDs unique; target IDs unique per operation).
-
-## 18. Results
+### 17.2 Resolved result types (frozen)
 
 ```ts
-type DecisionOutcome<T = DecisionResult> = DecisionSuccess<T> | DecisionFailure;
+interface ChoiceAnswer { readonly type: 'choice'; readonly questionId: string; readonly selected: string; readonly probabilities?: Record<string, number>; readonly complete?: boolean; readonly confidence?: DecisionConfidence }
+interface ScoreAnswer  { readonly type: 'score';  readonly questionId: string; readonly selected: string; readonly distribution?: Record<string, number>; readonly complete?: boolean; readonly expectedScore?: number; readonly confidence?: DecisionConfidence }
+interface ProbabilityAnswer { readonly type: 'probability'; readonly questionId: string; readonly probabilityTrue: number; readonly confidence?: DecisionConfidence }
+
+interface QuestionDecisionResult { readonly kind: 'questions'; readonly answers: readonly (ChoiceAnswer | ScoreAnswer | ProbabilityAnswer)[] }
+
+interface ActionAnswer { readonly type: 'action'; readonly operation: string; readonly target?: string; readonly operationProbabilities?: Record<string, number>; readonly targetProbabilities?: Record<string, number>; readonly confidence?: DecisionConfidence }
+interface ActionDecisionResult { readonly kind: 'action'; readonly answer: ActionAnswer }
+
+type DecisionResult = QuestionDecisionResult | ActionDecisionResult;
 ```
 
-`DecisionSuccess` exposes at minimum: `requestId`, `provider {id,version}`,
-`decision`, `confidence`, `usage`, `stateDigest`, `candidateSetDigest`,
-`requestDigest`, `outputDigest`, `receipt`, `attempts`. No secrets. Raw provider
-output only when `includeRawProviderOutput: true` (default `false`).
+### 17.3 Provider request (semantic only — context stripped)
+
+The runtime constructs this and is the **only** thing providers see:
+
+```ts
+type DecisionProviderRequest =
+  | { readonly kind: 'questions'; readonly requestId: string; readonly state: DecisionValue; readonly questions: readonly DecisionQuestion[]; readonly signal?: AbortSignal }
+  | { readonly kind: 'action'; readonly requestId: string; readonly state: DecisionValue; readonly goal?: string; readonly operations: readonly DecisionOperation[]; readonly signal?: AbortSignal };
+```
+
+No `context`, no caller-supplied tracing fields. `requestId` is runtime-issued
+(even when the caller omitted one) so provider cancels are always addressable.
+
+## 18. Results — provider vs runtime
+
+### 18.1 Provider outcome (untrusted)
+
+```ts
+interface DecisionProviderSuccess<T extends DecisionResult = DecisionResult> {
+  readonly ok: true;
+  readonly requestId: string;
+  readonly decision: T;                 // proposed semantic output only
+  readonly confidence?: DecisionConfidence;
+  readonly usage?: DecisionUsage;
+  readonly provenance?: DecisionProvenance;
+  readonly upstreamRequestId?: string;
+  readonly rawProviderOutput?: unknown; // only when explicitly requested
+}
+
+interface DecisionProviderFailure {
+  readonly ok: false;
+  readonly requestId: string;
+  readonly code: DecisionErrorCode;
+  readonly message: string;
+  readonly retryable: boolean;
+}
+
+type DecisionProviderOutcome<T extends DecisionResult = DecisionResult> =
+  | DecisionProviderSuccess<T>
+  | DecisionProviderFailure;
+```
+
+### 18.2 Runtime outcome (trusted)
+
+```ts
+interface DecisionSuccess<T extends DecisionResult = DecisionResult> {
+  readonly ok: true;
+  readonly requestId: string;
+  readonly decision: T;
+  readonly provider: { readonly id: string; readonly version: string };
+
+  readonly bindings: {
+    readonly stateDigest: string;
+    readonly candidateSetDigest: string;
+    readonly requestDigest: string;
+    readonly outputDigest: string;
+  };
+
+  readonly receipt: DecisionReceipt;
+  readonly attempts: readonly DecisionAttempt[];
+  readonly usage?: DecisionUsage;
+  readonly confidence?: number;
+  readonly rawProviderOutput?: unknown;
+}
+
+interface DecisionFailure {
+  readonly ok: false;
+  readonly requestId: string;
+  readonly code: DecisionErrorCode;
+  readonly message: string;
+  readonly attempts: readonly DecisionAttempt[];
+  readonly bindings?: DecisionRequestBindings; // request-scoped; output may not exist
+}
+
+type DecisionOutcome<T extends DecisionResult = DecisionResult> =
+  | DecisionSuccess<T>
+  | DecisionFailure;
+```
+
+No secrets. Raw provider output only when
+`includeRawProviderOutput: true` (default `false`).
 
 ## 19. Confidence semantics
 
@@ -321,10 +486,17 @@ is only asserted when the provider reports it.
 ## 20. Distribution validation
 
 Validate: finite; `0 ≤ p ≤ 1`; keys are valid candidate IDs; selected present.
-If the provider claims a **complete** distribution, keys must match the candidate
-set and sum ≈ 1 (documented tolerance); if it returns **partial** probabilities,
-represent them as partial — never pad or renormalize silently. Where the provider
-contract requires selection = argmax, validate it.
+
+- **complete** (`complete === true`): keys must match the candidate set and sum
+  ≈ 1 within `DECISION_DEFAULTS.distributionTolerance`; selection must equal the
+  argmax when the provider contract requires it.
+- **partial** (`complete` absent/false): keys must be a subset of the candidate
+  set; no sum requirement; represent as partial — never pad or renormalize
+  silently.
+- **`maxEntropy`** is **normalized Shannon entropy in `[0,1]`**
+  (`H / log(n)`, `n = |candidates|`) and is evaluated **only when the
+  distribution is complete**. It is never applied to partial distributions, so
+  values are comparable across 2-way and 20-way choices. `n ≤ 1` yields `0`.
 
 ## 21. Provider contract
 
@@ -336,39 +508,57 @@ interface DecisionProvider {
   readonly capabilities: readonly DecisionCapability[];
   readonly isReady: boolean;
   readonly info?: DecisionProviderInfo;
-  decide(request: DecisionRequest): Promise<DecisionOutcome>;
-  cancel?(requestId: string): Promise<DecisionOutcome<void>>;
+  decide(request: DecisionProviderRequest): Promise<DecisionProviderOutcome>;
+  cancel?(requestId: string): Promise<DecisionProviderOutcome<void>>;
   close?(): Promise<void>;
 }
 ```
 
+Providers return `DecisionProviderOutcome` (§18.1). They cannot supply bindings,
+receipts, or attempt history.
+
 ## 22. Capabilities
 
 ```ts
-type KnownDecisionCapability = 'decision:choice' | 'decision:score' | 'decision:probability' | 'decision:action';
-type DecisionCapability = KnownDecisionCapability | `decision:${string}`;
+type DecisionCapability =
+  | 'decision:choice'
+  | 'decision:score'
+  | 'decision:probability'
+  | 'decision:action';
+
+const DECISION_CAPABILITIES: readonly DecisionCapability[] = [/* the four above */];
+function isDecisionCapability(cap: string): boolean;      // prefix check
+function hasDecisionCapability(caps: readonly string[], cap: DecisionCapability): boolean;
 ```
 
-Mirror `@totemsdk/intelligence`'s helper style: `DECISION_CAPABILITIES`,
-`isDecisionCapability`, `hasDecisionCapability`. **Never** `intelligence:decision`.
+Mirror `@totemsdk/intelligence`'s helper style. **Never** `intelligence:decision`.
+Closed in v1 (§4.2).
 
 ## 23. Provider metadata
 
-`info`: `locality: local|remote|hybrid|unknown`, `maxQuestions`, `maxCandidates`,
-`maxTargetsPerOperation`, `maxStateBytes`, `supportedTypes`, `runtime`, `model`.
-Aids routing; grants nothing. Missing fields are omitted, never invented.
+`info`: `locality: local|remote|hybrid|unknown`, `maxQuestions`,
+**`maxCandidatesPerQuestion`**, **`maxOperations`**, `maxTargetsPerOperation`,
+`maxStateBytes`, `supportedTypes`, `runtime`, `model`. Aids routing; grants
+nothing. Missing fields are omitted, never invented. `maxCandidates` (ambiguous
+for batched questions) is replaced by `maxCandidatesPerQuestion`.
 
 ## 24. Typed-decision backend (shared Laya/Jev seam)
 
 ```ts
 interface TypedDecisionBackend {
   readonly id: string;
-  predict(params: { state: DecisionValue; questions: Record<string, TypedBackendQuestion>; signal?: AbortSignal }): Promise<TypedBackendResult>;
+  readonly version?: string;
+  predict(params: {
+    state: DecisionValue;
+    questions: Record<string, TypedBackendQuestion>;
+    signal?: AbortSignal;
+  }): Promise<TypedBackendResult>;
 }
 ```
 
-Shared translation implements `choice`/`score`/`probability`/`action`;
-provider adapters only translate backend peculiarities.
+Shared translation implements `choice`/`score`/`probability`/`action`; provider
+adapters only translate backend peculiarities. All outputs are still
+`DecisionProviderOutcome` and are re-validated by the runtime.
 
 ## 25. Runtime and deterministic routing
 
@@ -388,40 +578,50 @@ routes: [
 
 ### 25.1 Route eligibility (checked before invoking)
 
-required capability; `isReady`; question/candidate/target/state-size limits;
-explicit route constraints. Skips are recorded with reasons.
+required capability; `isReady`; question/candidate/per-question/operation/target/
+state-size limits; explicit route constraints. Skips are recorded with reasons.
 
 ### 25.2 Acceptance is not authorization
 
-Acceptance answers only "is this good enough to become the `DecisionResult`?" — it
-never answers "may this happen?". Authority remains downstream (§32).
+Acceptance answers only "is this good enough to become the `DecisionResult`?" —
+it never answers "may this happen?". Authority remains downstream (§32).
 
 ### 25.3 Built-in acceptance rules
 
-`minConfidence`; `minSelectedProbability`; `requireProbabilities`; `maxEntropy`;
-`minOperationConfidence`; `minTargetConfidence`; custom predicate. For batched
-questions, `minConfidence` means **every** answer meets the threshold. Target
-thresholds don't apply when no target is required.
+`minConfidence`; `minSelectedProbability`; `requireProbabilities`; `maxEntropy`
+(normalized, complete-only); `minOperationConfidence`; `minTargetConfidence`;
+custom predicate. For batched questions, `minConfidence` means **every** answer
+meets the threshold. Target thresholds don't apply when no target is required.
 
 ## 26. Escalation
 
 Reasons: `LOW_CONFIDENCE`, `LOW_SELECTED_PROBABILITY`, `INVALID_OUTPUT`,
-`UNAVAILABLE`, `TIMEOUT`, `PROVIDER_ERROR`, `LIMIT_EXCEEDED`, `CUSTOM_REJECTION`.
-Preserve the attempt chain (provider, started, duration, accepted/rejected,
-reason, confidence, errorCode) — provenance, without secrets.
+`UNAVAILABLE`, `TIMEOUT`, `PROVIDER_ERROR`, `LIMIT_EXCEEDED`, `INELIGIBLE`,
+`NOT_IMPLEMENTED`, `CUSTOM_REJECTION`. Preserve the attempt chain (provider,
+started, duration, accepted/rejected, reason, confidence, errorCode) —
+provenance, without secrets.
 
-## 27. Cancellation
+## 27. Cancellation (locked)
 
-`AbortSignal` propagates where supported; timeouts must not orphan requests.
-Escalation-after-cancel/timeout is explicitly configured; no silent indefinite
-retries. Races tested.
+Three distinct events, three distinct behaviours:
+
+| Event | Behaviour |
+| --- | --- |
+| Caller `AbortSignal` | **Terminal.** Cancel the active provider and return `CANCELLED`. **Never escalates.** |
+| Route timeout | Cancel the active provider. May continue to the next route when `escalateOnTimeout !== false`. |
+| `decision:cancel` | Routed to `ports.decision.cancel(requestId)`; **capability-ungated** (control of an existing in-flight operation, not a new semantic decision). |
+
+There is no `escalateOnCancel`. A user cancelling an operation must never
+silently launch another model. Timeouts must not orphan requests; races are
+tested.
 
 ## 28. Determinism
 
 The model may be probabilistic; everything around it is deterministic:
-canonicalization, candidate ordering, digest construction, route ordering,
-validation, acceptance, fallback selection, error normalization. Digest equality
-under object-key reordering is tested.
+canonicalization (object keys sorted, **arrays order-preserved**), candidate
+ordering, digest construction, route ordering, validation, acceptance, fallback
+selection, error normalization. Digest equality under object-key reordering is
+tested; digest sensitivity to array reordering is tested.
 
 ## 29. Canonical digests
 
@@ -439,24 +639,37 @@ Use the SDK's existing SHA3/canonical-JSON. Never hash ambiguous string
 concatenations.
 
 - **stateDigest** — semantic state only (no signals/callbacks/credentials).
-- **candidateSetDigest** — question IDs/types, criterion IDs, ordered rubric;
-  operation IDs, target IDs, semantic descriptions/metadata.
-- **requestDigest** — decision semantics + stateDigest + candidateSetDigest +
-  goal/instructions + semantic config (excludes `requestId`, transport metadata,
-  non-semantic timestamps, `context`).
+- **candidateSetDigest** — question IDs/types, criterion IDs **in caller order**,
+  ordered rubric; operation IDs, target IDs, semantic descriptions/metadata.
+- **requestDigest** — `kind` + `stateDigest` + `candidateSetDigest` +
+  `goal`/instructions/propositions + semantic config (excludes `requestId`,
+  transport metadata, non-semantic timestamps, `context`, `signal`).
 - **outputDigest** — the canonical decision output.
+
+### 29.1 Receipt id derivation (locked)
+
+`DecisionReceipt.receiptId` is **not** caller-supplied. It is the domain-separated
+canonical hash of the receipt body **excluding `receiptId`**:
+
+```text
+receiptId = hashCanonical(TOTEM_DECISION_RECEIPT_V1, { ...receiptBodyWithoutId })
+```
+
+Same receipt body ⇒ same id; any semantic field change ⇒ different id.
 
 ## 30. Freshness
 
 ```ts
-computeDecisionBindings(request)
-isDecisionFresh(result, currentRequest)
-assertDecisionFresh(result, currentRequest)
+computeDecisionBindings(request): DecisionRequestBindings; // state/candidate/request
+isDecisionFresh(result, currentRequest): boolean;
+assertDecisionFresh(result, currentRequest): void;
 ```
 
-A result is bound to the state and candidate space that produced it; the
-execution boundary compares digests and rejects stale proposals. Decision still
-executes nothing.
+**Freshness is primarily `requestDigest` equality.** Because `requestDigest`
+already incorporates `stateDigest` and `candidateSetDigest`, it also catches
+state and candidate-set changes; additionally it invalidates a result when the
+`goal`/`instruction`/proposition changed. The execution boundary compares digests
+and rejects stale proposals. Decision still executes nothing.
 
 ## 31. Provider adapters
 
@@ -503,6 +716,8 @@ IDs/digests as evidence to the later step but never grants authority.
 
 ## 33. Edge surface
 
+### 33.1 Port contract and dispatch
+
 Port contract in `@totemsdk/decision` (not edge), structurally compatible:
 
 ```ts
@@ -520,19 +735,39 @@ createEdgeDecisionPort(runtime: DecisionRuntime): EdgeDecisionPort;
 
 `@totemsdk/edge`:
 - re-exports `EdgeDecisionPort` (mirroring `edge/src/intelligence.ts`);
-- adds `EdgeRuntimePorts.decision?: EdgeDecisionPort` (`packages/edge/src/ports.ts`);
-- adds `decision:choice|score|probability|action` to the closed `EdgeCapability`
-  union + `EDGE_DECISION_CAPABILITIES` + helpers;
-- dispatches `decision:decide` / `decision:cancel` inline in `runtime.ts`,
-  gating on the request's required capabilities (union for batched questions:
-  `choice`+`score`+`probability`) — verbs, not capabilities.
+- adds `EdgeRuntimePorts.decision?: EdgeDecisionPort`;
+- adds the four **closed** `decision:choice|score|probability|action` literals to
+  `EdgeCapability` + `EDGE_DECISION_CAPABILITIES` + helpers (no template
+  extension);
+- dispatches `decision:decide` / `decision:cancel` inline in `runtime.ts`.
+  `decision:decide` gates on the request's required capabilities — the **union,
+  de-duplicated,** of the decision types the request uses (batched questions may
+  require `choice`+`score`+`probability`; actions require `action`).
+  `decision:cancel` is **capability-ungated** (§27) — verbs, not capabilities.
+
+### 33.2 Not a governed action in v1 (locked)
+
+`decision:decide` is **not** registered as an `EdgeActionDefinition` in v1 and is
+not routed through `createAgentEdgeRuntime`/`CanonicalAgentAction`. A decision
+computation has no world effect; forcing it through the governed action registry
+would re-muddy the proposal/authorization boundary. Autonomous code may call
+Decision internally and submit only its resulting world-action proposal through
+the governed action registry. Mandate-level compute budgets for Decision itself
+are deferred to a dedicated compute/Decision-intent RFC.
+
+### 33.3 Policy wording
+
+The edge policy gate may permit invoking decision **compute** (like
+intelligence). This is explicitly distinct from permission to execute the
+result: `compute allowed ≠ action allowed`. Authority remains §32.
 
 ## 34. Storage and proof hooks
 
-No hard storage dependency; hooks only (`onReceipt`, `onAttempt`) or a structural
-recorder. Decision emits hash-bound artifacts ProofGraph can reference later —
-provenance, not authority. Desired chain: sensor evidence → observation proof →
-DecisionReceipt → policy → authority → CanonicalAgentAction → execution proof.
+No hard storage dependency; hooks only (`onReceipt`, `onAttempt`) or a
+structural recorder. Decision emits hash-bound artifacts ProofGraph can reference
+later — provenance, not authority. Desired chain: sensor evidence → observation
+proof → DecisionReceipt → policy → authority → CanonicalAgentAction → execution
+proof.
 
 ## 35. Receipts
 
@@ -545,16 +780,17 @@ DecisionReceipt ≠ cryptographic authorization ≠ signed attestation
 
 Fields: `version`, `receiptId`, `requestId`, `provider`, `model?`, `runtime?`,
 `stateDigest`, `candidateSetDigest`, `requestDigest`, `outputDigest`,
-`decisionKind`, `issuedAt`, `durationMs?`, `confidence?`. A future trusted layer
-may sign/attest; v1 makes no such claim.
+`decisionKind`, `issuedAt`, `durationMs?`, `confidence?`. `receiptId` derivation
+is fixed in §29.1. A future trusted layer may sign/attest; v1 makes no such claim
+(§45 Q2).
 
 ## 36. Provenance and fake-provenance defence
 
 Preserve where available: provider id/version, model id/revision/digest, runtime
 id/version, locality, latency, upstream request id. If unknown, omit — never
 invent. Caller-configured digests are **declared**, not **verified**; represent
-provenance source (`declared | provider-reported | verified`) so user declarations
-are never presented as facts.
+provenance source (`declared | provider-reported | verified`) so user
+declarations are never presented as facts.
 
 ## 37. Security threat model
 
@@ -563,23 +799,26 @@ candidate set; `NaN`/`Infinity`; distribution that doesn't sum; wrong target for
 operation; unused target-head influencing result; malicious provider JSON;
 oversized state/candidate set; prompt injection in state; remote provider
 unavailable; timeout; cancellation race; fallback disagreement; stale decision;
-caller-supplied fake model digest; receipt mistaken for proof; decision mistaken
-for authorization.
+caller-supplied fake model digest; fake runtime receipt/binding from a provider;
+receipt mistaken for proof; decision mistaken for authorization.
 
 ## 38. Testing
 
 Offline only (no Laya/MLX/Apple Silicon/TypeSafe/QVAC server/OpenAI/network/paid
 credentials). Structural mocks. ~70 tests grouped as in the build brief:
-canonicalization/digests; duplicate/empty/NaN/Infinity rejection; choice/score/
-probability/action mapping; multi-question; operation+target selection; wrong-
-operation target rejection; unused-head invariance; distribution validation
-(complete/partial); eligibility/limits/routing order; acceptance thresholds;
-escalation on low-confidence/invalid-output; timeout/cancel/race; all-routes-fail
-→ `NO_ACCEPTABLE_RESULT`; attempts; receipt; provenance; raw-output default off;
-freshness/stale; Laya/Jev conversions incl. malformed/invented; intelligence
-fallback incl. invented-candidate rejection and no-confidence; Edge port +
-`decision:decide` + capability gating + cancellation + coexistence with
-intelligence; no signing/authority dependency leaks; pack/import smoke.
+canonicalization/digests (incl. array-order sensitivity); duplicate/empty/NaN/
+Infinity rejection; choice/score/probability/action mapping; multi-question;
+operation+target selection; wrong-operation target rejection; unused-head
+invariance; distribution validation (complete/partial, normalized entropy);
+eligibility/limits/routing order; acceptance thresholds; escalation on
+low-confidence/invalid-output; timeout continues, caller-cancel is terminal;
+cancel/race; all-routes-fail → `NO_ACCEPTABLE_RESULT`; attempts; receipt id
+derivation; provenance; raw-output default off; freshness/stale (incl. changed
+goal); provider cannot inject bindings/receipt; Laya/Jev conversions incl.
+malformed/invented; intelligence fallback incl. invented-candidate rejection and
+no-confidence; Edge port + `decision:decide` + capability gating + cancellation +
+coexistence with intelligence; no signing/authority dependency leaks; pack/import
+smoke.
 
 ## 39. Backward compatibility
 
@@ -611,17 +850,17 @@ Subpaths: `@totemsdk/decision`, `/types`, `/constants`, `/errors`, `/laya`,
 
 ## 42. Manifest / catalog
 
-Add `@totemsdk/decision` to `SDK_MANIFEST.json`. Recommend a **distinct `decision`
-domain** (not grouped under `intelligence`), since catalog grouping is cosmetic
-but the architectural distinction must remain legible. Update README/docs package
-tables, MCP metadata, typedoc, smoke-import scripts, and package-count
-expectations; regenerate generated files via repo scripts. Version `0.1.0`.
+Add `@totemsdk/decision` to `SDK_MANIFEST.json` under a **distinct `decision`
+domain** (not grouped under `intelligence`) — resolved in §45 Q1. Update
+README/docs package tables, MCP metadata, typedoc, smoke-import scripts, and
+package-count expectations; regenerate generated files via repo scripts. Version
+`0.1.0`.
 
 ## 43. Implementation phases
 
 - **P0** — audit + this RFC + public API sketch + threat model.
 - **P1** — core contracts: types, constants, errors, canonicalization, validation,
-  digests, `DecisionReceipt`, single-provider contract.
+  digests, `DecisionReceipt`, provider contract + `DecisionProviderOutcome`.
 - **P2** — `createDecisionRuntime`: eligibility, deterministic routing,
   acceptance, escalation, attempts, timeout, cancellation, freshness.
 - **P3** — typed backend + Laya + Jev adapters (choice/score/probability/action
@@ -636,29 +875,35 @@ expectations; regenerate generated files via repo scripts. Version `0.1.0`.
 
 - Decision is not an Intelligence domain; own namespace/port.
 - Port lives in `@totemsdk/decision`; edge re-exports/hosts.
-- Dispatch verbs are inline edge-runtime branches, not registered actions.
-- `decision:*` capabilities are added to edge's closed union.
+- Provider output (`DecisionProviderOutcome`) is separate from and untrusted
+  relative to runtime output (`DecisionOutcome`). Providers cannot supply
+  bindings, receipts, or attempts.
+- Dispatch verbs are inline edge-runtime branches, not registered actions, and
+  `decision:decide` is **not** a governed `EdgeActionDefinition` in v1.
+- `decision:*` capabilities are closed in v1 in both `@totemsdk/decision` and
+  edge's union.
 - Action spaces are never flattened canonically.
 - Acceptance ≠ authorization; receipts are not proofs.
-- `context`/transport metadata excluded from the request digest.
+- `context` is trace/governance metadata only and MUST NOT affect provider
+  semantics; the runtime strips it before invoking providers.
+- Caller cancellation is terminal; only route timeouts may escalate.
 - Raw provider output off by default.
 
-## 45. Open questions
+## 45. Open questions — resolved for v1
 
-- **Q1** Manifest domain name: `decision` vs `cognition`?
-- **Q2** `DecisionReceipt` signing/attestation — own RFC, or fold into an existing
-  authority/receipt RFC?
-- **Q3** Shortlisting (§ RFC-011-style extension) default-off; is `embed`-based
-  shortlisting in scope for v1 or deferred?
-- **Q4** Multi-capability gating for batched questions: union semantics confirmed?
-- **Q5** Should `EdgeRuntimePorts.decision` gate `decision:decide` via the existing
-  policy gate (allowed) while keeping action authority separate — confirm policy
-  wording so "compute allowed" ≠ "action allowed".
+- **Q1** Manifest domain name → **`decision`** (not `cognition`).
+- **Q2** `DecisionReceipt` signing/attestation → **separate later RFC**;
+  v1 receipts are unsigned advisories.
+- **Q3** Embedding-based shortlisting → **deferred**; retain only the
+  `DecisionShortlister` interface/seam.
+- **Q4** Batched Edge gating → **union, de-duplicated** required capabilities.
+- **Q5** Edge policy wording → permission to invoke decision **compute** is
+  explicitly distinct from permission to execute the result (§33.3).
 
 ## 46. References
 
 - `packages/intelligence/src/{types,constants,port}.ts` — the port/pattern being mirrored
-- `packages/edge/src/{ports,intelligence,runtime,capabilities,actions}.ts`
+- `packages/edge/src/{ports,intelligence,runtime,capabilities,actions,action-registry}.ts`
 - `packages/qvac/src/edge-adapter.ts`
 - `packages/agent-policy/src/types.ts` — `InferenceDomain`, `PaymentIntent`
 - `packages/authority/src/{mandate,evaluate}.ts`

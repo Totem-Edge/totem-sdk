@@ -51,6 +51,11 @@ const NAMED_EXPORT_CHECKS = {
     'ragAdapter',
     'audiogenAdapter',
   ],
+  '@totemsdk/decision': [
+    'DECISION_VERSION', 'DECISION_CAPABILITIES', 'DecisionError',
+    'createDecisionRuntime', 'createEdgeDecisionPort', 'createTypedDecisionProvider',
+    'computeDecisionBindings', 'isDecisionFresh', 'validateProviderDecision',
+  ],
 };
 
 const PACKAGES = [
@@ -69,6 +74,7 @@ const PACKAGES = [
   { pkg: 'lookup-node', name: '@totemsdk/lookup-node' },
   { pkg: 'intelligence', name: '@totemsdk/intelligence' },
   { pkg: 'qvac', name: '@totemsdk/qvac' },
+  { pkg: 'decision', name: '@totemsdk/decision' },
 ];
 
 const req = createRequire(import.meta.url);

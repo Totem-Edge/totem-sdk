@@ -34,6 +34,7 @@ export type {
   EdgeStreamPort,
   EdgePubSubPort,
   EdgeIntelligencePort,
+  EdgeDecisionPort,
   EdgeRuntimePorts,
 } from './ports.js';
 
@@ -52,6 +53,12 @@ export {
 
 export { createEdgeRuntime } from './runtime.js';
 export { createEdgeIntelligencePort } from './intelligence.js';
+export {
+  EDGE_DECISION_CAPABILITIES,
+  isDecisionCapability,
+  hasDecisionCapability,
+} from './capabilities.js';
+export { createEdgeDecisionPort } from './decision.js';
 export { createAccountedIntelligencePort } from './intelligence-usage-journal.js';
 export type {
   InferenceAuditEvent,
