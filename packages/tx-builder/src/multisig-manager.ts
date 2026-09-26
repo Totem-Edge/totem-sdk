@@ -215,6 +215,13 @@ export class MultisigManager {
     expirationHours: number = 24
   ): Promise<PendingMultisigTransaction> {
     await this.ready;
+    // RFC-016 P5: the local-create path must verify the digest too (the import
+    // path already did), so signers cannot sign a mismatched authorizing digest.
+    const recomputed = recomputeDigest(transactionHex);
+    const norm = (h: string) => h.replace(/^0x/i, '').toLowerCase();
+    if (norm(recomputed) !== norm(transactionDigest)) {
+      throw new Error('transactionDigest does not match transactionHex');
+    }
     const id = generateTransactionId();
     
     const tx: PendingMultisigTransaction = {
@@ -252,6 +259,9 @@ export class MultisigManager {
     const signingPublicKey = tx.config.ownPublicKey;
     const valid = verifyWotsSignature(signature, tx.transactionDigest, signingPublicKey);
 
+    // RFC-016 P5: store the validation result; `updateStatus` counts only
+    // validated signatures from configured signers, so an invalid signature can
+    // never contribute to readiness.
     const extSig: ExternalSignature = {
       publicKey: signingPublicKey,
       signature,
@@ -320,9 +330,18 @@ export class MultisigManager {
       return;
     }
     
-    const signatureCount = tx.signatures.size;
+    // RFC-016 P5: only *validated* signatures from unique configured signers
+    // count toward the threshold. Counting map size let an invalid signature
+    // (or a non-signer) mark a transaction `ready`.
+    const configured = new Set(tx.config.publicKeys.map((pk) => pk.toLowerCase()));
+    const validSigners = new Set(
+      [...tx.signatures.entries()]
+        .filter(([key, sig]) => sig.validated && configured.has(key))
+        .map(([key]) => key),
+    );
+    const signatureCount = validSigners.size;
     const requiredCount = tx.config.threshold;
-    
+
     if (signatureCount >= requiredCount) {
       tx.status = 'ready';
     } else {
@@ -420,7 +439,8 @@ export class MultisigManager {
     }
 
     const recomputedDigest = recomputeDigest(data.transactionHex);
-    if (recomputedDigest !== data.transactionDigest) {
+    const normDigest = (h: string) => h.replace(/^0x/i, '').toLowerCase();
+    if (normDigest(recomputedDigest) !== normDigest(data.transactionDigest)) {
       throw new Error('Imported transaction digest does not match transactionHex');
     }
     
@@ -436,10 +456,11 @@ export class MultisigManager {
     };
     
     for (const sig of data.signatures) {
+      const key = sig.publicKey.toLowerCase();
       const verified = sig.signatureType === 'wots'
         ? verifyWotsSignature(sig.signature, data.transactionDigest, sig.publicKey)
         : false;
-      tx.signatures.set(sig.publicKey.toLowerCase(), {
+      tx.signatures.set(key, {
         publicKey: sig.publicKey,
         signature: sig.signature,
         signatureType: sig.signatureType,

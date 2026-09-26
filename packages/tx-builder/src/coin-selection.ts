@@ -4,7 +4,7 @@ export type { SpendableCoin } from './adapters.js';
 export class CoinSelectionError extends Error {
   constructor(
     message: string,
-    public readonly code: 'FETCH_FAILED' | 'INSUFFICIENT_FUNDS' | 'SERVICE_UNAVAILABLE' | 'NETWORK_ERROR',
+    public readonly code: 'FETCH_FAILED' | 'INSUFFICIENT_FUNDS' | 'SERVICE_UNAVAILABLE' | 'NETWORK_ERROR' | 'INVALID_TARGET',
     public readonly details?: Record<string, any>
   ) {
     super(message);
@@ -169,6 +169,11 @@ export class CoinSelectionService {
     const orderedCoins = this.orderCoinsByAmount(availableCoins);
     
     const targetBigInt = parseDecimalToBigInt(options.targetAmount);
+    // RFC-016 P5: a non-positive target is invalid; `-1` previously produced
+    // selectedCoins=[], insufficientFunds=false, change=1.
+    if (targetBigInt <= 0n) {
+      throw new CoinSelectionError('Target amount must be greater than zero', 'INVALID_TARGET');
+    }
     let accumulatedBigInt = 0n;
     const selectedCoins: SpendableCoin[] = [];
     const fromAddresses = new Set<string>();

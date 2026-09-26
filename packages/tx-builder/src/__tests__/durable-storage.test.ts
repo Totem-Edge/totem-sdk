@@ -12,6 +12,7 @@ import { promises as fs } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 
+import { sha3_256, hexToBytes, bytesToHex } from '@totemsdk/core';
 import { MemoryStore } from '@totemsdk/storage';
 import { FileStore } from '@totemsdk/storage/fs';
 import {
@@ -27,7 +28,7 @@ const OWN_PK = '0x' + 'aa'.repeat(32);
 const OTHER_PK = '0x' + 'cc'.repeat(32);
 const MOCK_SIG = '0x' + 'de'.repeat(1088);
 const MOCK_TX_HEX = '0x' + '01'.repeat(64);
-const MOCK_DIGEST = '0x' + 'ff'.repeat(32);
+const MOCK_DIGEST = '0x' + bytesToHex(sha3_256(hexToBytes(MOCK_TX_HEX)));
 
 function makeConfig(overrides: Partial<MultisigConfig> = {}): MultisigConfig {
   return {

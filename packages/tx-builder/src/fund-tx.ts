@@ -47,7 +47,13 @@ export interface BuildPoolFundTxParams {
   nonce?: string;
 }
 
-export interface DeepFundingProof {
+/**
+ * RFC-016 P5: a **signed funding intent** — it proves the LP signed these
+ * claims, but NOT that an on-chain transaction spent `fundingCoinId` into the
+ * pool. Acceptance must be accompanied by independently verified on-chain spend
+ * evidence. Formerly named `DeepFundingProof`, which overclaimed.
+ */
+export interface SignedFundingIntent {
   fundingCoinId: string;
   tokenId: string;
   amount: string;
@@ -59,11 +65,14 @@ export interface DeepFundingProof {
   nonce: string;
 }
 
+/** @deprecated Use {@link SignedFundingIntent} (RFC-016 P5). */
+export type DeepFundingProof = SignedFundingIntent;
+
 export interface PoolFundBuildResult {
   tx: PoolFundTx;
   digest: Uint8Array;
   signature: Uint8Array;
-  proof: DeepFundingProof;
+  proof: SignedFundingIntent;
 }
 
 export interface PoolFundVerification {
@@ -141,7 +150,7 @@ const empty = (reasons: string[]): PoolFundVerification => ({ valid: reasons.len
  */
 export function verifyPoolFundTx(
   tx: PoolFundTx,
-  proof: DeepFundingProof,
+  proof: SignedFundingIntent,
   expectedPoolAddress?: string,
 ): PoolFundVerification {
   const reasons: string[] = [];
@@ -178,6 +187,6 @@ export function verifyPoolFundTx(
   return empty(reasons);
 }
 
-export function toProofHex(proof: DeepFundingProof): string {
+export function toProofHex(proof: SignedFundingIntent): string {
   return toHex(new TextEncoder().encode(canonicalJson(proof)));
 }
