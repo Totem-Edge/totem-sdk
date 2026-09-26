@@ -77,7 +77,7 @@ describe('buildProposalStateMachineScript', () => {
   function mkCtx(prevStatus: number, currStatus: number, block = 1000): TxContext {
     return ctx({
       block,
-      prevState: s({ 0: prevStatus, 1: 500, 2: 900, 3: 10 }),
+      prevState: s({ 0: prevStatus, 1: 500, 2: 900, 3: 10, 4: pkBB }),
       state: s({ 0: currStatus, 1: 500, 2: 900, 3: 10, 4: pkBB }),
     })
   }

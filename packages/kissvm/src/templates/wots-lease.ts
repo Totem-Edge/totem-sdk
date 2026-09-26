@@ -89,7 +89,9 @@ export function buildWatermarkTrackingScript(config: LeaseCertificateConfig): st
     `LET elapsed = @BLOCK SUB prevBlock`,
     `ASSERT elapsed GTE ${config.issuedAt.toString()}`,
     ``,
-    `ASSERT SAMESTATE(${config.watermarkPort + 1} ${config.watermarkPort + 2})`,
+    // RFC-016 P4: preserve the committed block marker (the old SAMESTATE(w+1,w+2)
+    // compared the wrong ports).
+    `ASSERT STATE(${config.watermarkPort + 1}) EQ PREVSTATE(${config.watermarkPort + 1})`,
     ``,
     `RETURN TRUE`,
   ].join('\n')
