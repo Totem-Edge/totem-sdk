@@ -78,6 +78,7 @@ export function buildLiquidityLockScript(config: LiquidityLockConfig): string {
  */
 export function buildFeeAccrualScript(config: LiquidityLockConfig): string {
   const governancePort = config.governancePort ?? 3
+  const provider = config.providerPk.replace(/^0x/i, '')
 
   return [
     `LET startBlock = PREVSTATE(10)`,
@@ -96,8 +97,11 @@ export function buildFeeAccrualScript(config: LiquidityLockConfig): string {
     `LET claimable = fee SUB prevClaimed`,
     ``,
     `ASSERT claimable GT 0`,
-    `ASSERT @AMOUNT LTE claimable`,
-    `ASSERT VERIFYOUT(@INPUT STATE(${governancePort}) @AMOUNT @TOKENID TRUE)`,
+    // RFC-016 I1/I2: the provider authorizes the claim, and the claim is bound
+    // to the governance *output* — `@AMOUNT` (the input) is not the fee.
+    `ASSERT SIGNEDBY(0x${provider})`,
+    `ASSERT VERIFYOUT(@INPUT STATE(${governancePort}) claimable @TOKENID TRUE)`,
+    `STORE STATE(12) WITH prevClaimed ADD claimable`,
     `RETURN TRUE`,
   ].join('\n')
 }
@@ -143,7 +147,9 @@ export function buildWithdrawalScript(config: LiquidityLockConfig): string {
     `ASSERT newCount LTE 10`,
     ``,
     `ASSERT SIGNEDBY(provider)`,
-    `ASSERT VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID TRUE)`,
+    // RFC-016 I2: a withdrawal pays the provider, it does not recreate the coin
+    // at the same locking address (that was a rollover, not a withdrawal).
+    `ASSERT VERIFYOUT(@INPUT provider @AMOUNT @TOKENID TRUE)`,
     `RETURN TRUE`,
   ].join('\n')
 }

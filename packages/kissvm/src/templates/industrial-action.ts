@@ -65,8 +65,10 @@ export function buildRevealScript(config: RevealConfig): string {
     `LET committed = PREVSTATE(${config.commitmentPort})`,
     `LET check = SHA3(preimage)`,
     `ASSERT check EQ committed`,
-    ``,
-    `ASSERT SAMESTATE(${config.preimagePort} ${config.preimagePort})`,
+    // RFC-016 P4: the reveal sets a *new* preimage, so it cannot require the
+    // preimage to already exist in previous state; preserve the commitment
+    // instead (the old `SAMESTATE(p p)` made reveal impossible to satisfy).
+    `ASSERT STATE(${config.commitmentPort}) EQ committed`,
     ``,
     `RETURN TRUE`,
   ].join('\n')

@@ -365,7 +365,7 @@ describe('stable template: temporal', () => {
     const ok = run(script, ctx({
       block: 1100,
       state: s({ 1: 1000, 2: 2000, 3: 100 }),
-      prevState: s({ 4: 0 }),
+      prevState: s({ 1: 1000, 2: 2000, 3: 100, 4: 0 }),
       outputs: [outputTo('0x' + pkAA, 10, true)],
     }), { [pkAA]: 'beneficiary' });
     expect(ok.success).toBe(true);
@@ -373,7 +373,7 @@ describe('stable template: temporal', () => {
     const beforeStart = run(script, ctx({
       block: 999,
       state: s({ 1: 1000, 2: 2000, 3: 100 }),
-      prevState: s({ 4: 0 }),
+      prevState: s({ 1: 1000, 2: 2000, 3: 100, 4: 0 }),
       outputs: [outputTo('0x' + pkAA, 10, true)],
     }), { [pkAA]: 'beneficiary' });
     expect(beforeStart.success).toBe(false);
@@ -401,7 +401,7 @@ describe('stable template: temporal', () => {
     const afterCliff = run(script, ctx({
       block: 1200,
       state: s({ 1: 900, 2: 2000, 5: 1100, 3: 90 }),
-      prevState: s({ 4: 0 }),
+      prevState: s({ 1: 900, 2: 2000, 5: 1100, 3: 90, 4: 0 }),
       outputs: [outputTo('0x' + pkAA, 10, true)],
     }), { [pkAA]: 'beneficiary' });
     expect(afterCliff.success).toBe(true);
@@ -449,15 +449,33 @@ describe('stable template: temporal', () => {
     expect(over.success).toBe(false);
   });
 
-  it('decay script computes the decayed value', () => {
+  it('decay script computes the decayed value and pays the beneficiary', () => {
     const script = buildDecayScript({
       curve: 'decay',
       startPort: 1,
       totalPort: 2,
-      decayConstant: 10n,
+      decayConstant: 0n, // no decay → value == total, deterministic for the bound output
+      beneficiary: pkAA,
     });
-    const ok = run(script, ctx({ block: 1000, state: s({ 1: 900, 2: 100 }) }));
+    const ok = run(script, ctx({
+      block: 1000,
+      state: s({ 1: 900, 2: 100 }),
+      prevState: s({ 1: 900, 2: 100 }),
+      outputs: [outputTo('0x' + pkAA, 100, true)],
+    }), { [pkAA]: 'beneficiary' });
     expect(ok.success).toBe(true);
+
+    // RFC-016 I1/I2: the script authorizes the beneficiary and binds an output.
+    expect(script).toContain('SIGNEDBY');
+    expect(script).toContain('VERIFYOUT');
+
+    const unsigned = run(script, ctx({
+      block: 1000,
+      state: s({ 1: 900, 2: 100 }),
+      prevState: s({ 1: 900, 2: 100 }),
+      outputs: [outputTo('0x' + pkAA, 100, true)],
+    }));
+    expect(unsigned.success).toBe(false);
   });
 
   it('buildTemporalScript dispatches on the curve', () => {
@@ -868,12 +886,12 @@ describe('stable template: industrial-action', () => {
     const committed = sha3Hex('ab'.repeat(32));
     const script = buildRevealScript({ preimagePort: 1, commitmentPort: 2 });
     const ok = run(script, ctx({
-      state: s({ 1: preimage }),
+      state: s({ 1: preimage, 2: '0x' + committed }),
       prevState: s({ 1: preimage, 2: '0x' + committed }),
     }));
     expect(ok.success).toBe(true);
     const wrong = run(script, ctx({
-      state: s({ 1: '0x' + 'cd'.repeat(32) }),
+      state: s({ 1: '0x' + 'cd'.repeat(32), 2: '0x' + committed }),
       prevState: s({ 1: '0x' + 'cd'.repeat(32), 2: '0x' + committed }),
     }));
     expect(wrong.success).toBe(false);
@@ -950,7 +968,7 @@ describe('stable template: liquidity-bond', () => {
       state: s({ 10: 900, 11: 1100, 13: 10, 3: pkBB }),
       prevState: s({ 10: 900, 12: 0 }),
       outputs: [outputTo(pkBB, 5, true)],
-    }));
+    }), { [pkAA]: 'provider' });
     expect(ok.success).toBe(true);
 
     const outsideWindow = run(script, ctx({
@@ -959,7 +977,7 @@ describe('stable template: liquidity-bond', () => {
       state: s({ 10: 900, 11: 1100, 13: 10, 3: pkBB }),
       prevState: s({ 10: 900, 12: 0 }),
       outputs: [outputTo(pkBB, 5, true)],
-    }));
+    }), { [pkAA]: 'provider' });
     expect(outsideWindow.success).toBe(false);
   });
 
@@ -969,7 +987,7 @@ describe('stable template: liquidity-bond', () => {
       block: 1000,
       state: s({ 0: 100, 1: 500, 2: POSITION_STATUS.QUIESCING, 3: pkBB, 4: 1 }),
       prevState: s({ 3: pkBB, 4: 0 }),
-      outputs: [outputTo('0xAA', 100, true)],
+      outputs: [outputTo('0x' + pkAA, 100, true)],
     }), { [pkAA]: 'provider' });
     expect(ok.success).toBe(true);
 
@@ -977,7 +995,7 @@ describe('stable template: liquidity-bond', () => {
       block: 1000,
       state: s({ 0: 100, 1: 500, 2: POSITION_STATUS.COMMITTED, 3: pkBB, 4: 1 }),
       prevState: s({ 3: pkBB, 4: 0 }),
-      outputs: [outputTo('0xAA', 100, true)],
+      outputs: [outputTo('0x' + pkAA, 100, true)],
     }), { [pkAA]: 'provider' });
     expect(locked.success).toBe(false);
   });
@@ -1081,7 +1099,7 @@ describe('stable template: provider-bond', () => {
       block: 1000,
       state: s({ 5: BOND_STATUS.EXPIRING }),
       prevState: s({ 7: 900, 1: 100, 8: 0 }),
-      outputs: [outputTo('0xAA', 100, true)],
+      outputs: [outputTo('0x' + pkAA, 100, true)],
     }), { [pkBB]: 'governance' });
     expect(ok.success).toBe(true);
 
@@ -1089,7 +1107,7 @@ describe('stable template: provider-bond', () => {
       block: 1000,
       state: s({ 5: BOND_STATUS.EXPIRING }),
       prevState: s({ 7: 0, 1: 100, 8: 0 }),
-      outputs: [outputTo('0xAA', 100, true)],
+      outputs: [outputTo('0x' + pkAA, 100, true)],
     }), { [pkBB]: 'governance' });
     expect(noRequest.success).toBe(false);
   });
@@ -1107,7 +1125,7 @@ describe('stable template: provider-bond', () => {
       inputs: [coin(10)],
       state: s({ 0: 1, 1: pkAA, 3: 1100 }),
       prevState: s({ 0: 0 }),
-      outputs: [outputTo('0xAA', 10, true)],
+      outputs: [outputTo(pkAA, 10, true)],
     }), { [pkAA]: 'challenger' });
     expect(ok.success).toBe(true);
 
@@ -1116,7 +1134,7 @@ describe('stable template: provider-bond', () => {
       inputs: [coin(5)],
       state: s({ 0: 1, 1: pkAA, 3: 1100 }),
       prevState: s({ 0: 0 }),
-      outputs: [outputTo('0xAA', 5, true)],
+      outputs: [outputTo(pkAA, 5, true)],
     }), { [pkAA]: 'challenger' });
     expect(noBond.success).toBe(false);
   });

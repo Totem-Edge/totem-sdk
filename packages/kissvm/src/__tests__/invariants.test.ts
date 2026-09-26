@@ -15,6 +15,10 @@ import { buildPaymentIntentScript } from '../templates/agent-policy.js';
 import { buildProofDelegationScript } from '../templates/proof.js';
 import { buildHeartbeatScript } from '../templates/provider-bond.js';
 import { buildAttestedTxPoWMetaScript } from '../templates/txpow.js';
+import { buildCapabilityScript } from '../templates/manifest.js';
+import { buildLinearRelease, buildCliffRelease } from '../templates/temporal.js';
+import { buildFeeAccrualScript, buildWithdrawalScript } from '../templates/liquidity-bond.js';
+import { buildRevealScript } from '../templates/industrial-action.js';
 
 describe('RFC-016 invariant helpers', () => {
   it('authorizes against a fixed key or a previously-committed authority', () => {
@@ -147,5 +151,37 @@ describe('RFC-016 P1: repaired stable templates satisfy the invariants', () => {
   it('TxPoW metadata constraint requires the fixed attestor', () => {
     const script = buildAttestedTxPoWMetaScript({ attestorPk: pkA, maxTxPoWSize: 1000n, maxKISSVMOps: 500n, minTxPoWWork: 10n, magicPort: 1, opsPort: 2, workPort: 3 });
     expect(satisfiesInvariants({ name: 'txpow.attested', script, expectsAuthorization: true })).toBe(true);
+  });
+});
+
+describe('RFC-016 P4: high-severity families hardened', () => {
+  const pkA = 'aa'.repeat(32);
+
+  it('capability script refuses an empty permission set', () => {
+    expect(() => buildCapabilityScript({ agentPk: pkA, permissions: [], expiresAt: 2000n })).toThrow(/non-empty|allow-all/i);
+  });
+
+  it('vesting commits the schedule and clamps at total', () => {
+    const linear = buildLinearRelease({ curve: 'linear', startPort: 1, endPort: 2, totalPort: 3, beneficiaryPort: 4, beneficiary: pkA });
+    expect(linear).toContain('ASSERT vestStart EQ PREVSTATE(1)');
+    expect(linear).toContain('ASSERT prevClaimed ADD claimable LTE total');
+    const cliff = buildCliffRelease({ curve: 'cliff', startPort: 1, endPort: 2, cliffPort: 5, totalPort: 3, beneficiaryPort: 4, beneficiary: pkA });
+    expect(cliff).toContain('ASSERT total EQ PREVSTATE(3)');
+  });
+
+  it('liquidity/provider payouts bind the output to a recipient, not @ADDRESS/@AMOUNT', () => {
+    const fee = buildFeeAccrualScript({ providerPk: pkA, amount: '100', tokenId: '00', unlockBlock: 1n });
+    expect(fee).not.toContain('@AMOUNT LTE claimable');
+    expect(fee).toContain('VERIFYOUT(@INPUT STATE(3) claimable @TOKENID TRUE)');
+
+    const withdrawal = buildWithdrawalScript({ providerPk: pkA, amount: '100', tokenId: '00', unlockBlock: 1n });
+    expect(withdrawal).toContain('VERIFYOUT(@INPUT provider @AMOUNT @TOKENID TRUE)');
+    expect(withdrawal).not.toContain('VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID TRUE)');
+  });
+
+  it('reveal no longer requires the preimage to pre-exist', () => {
+    const reveal = buildRevealScript({ preimagePort: 1, commitmentPort: 2 });
+    expect(reveal).not.toContain('SAMESTATE(1 1)');
+    expect(reveal).toContain('ASSERT STATE(2) EQ committed');
   });
 });

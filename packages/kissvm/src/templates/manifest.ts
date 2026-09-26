@@ -30,16 +30,18 @@ export function buildManifestBindingScript(config: ManifestBindingConfig): strin
 }
 
 export function buildCapabilityScript(config: CapabilityConfig): string {
+  // RFC-016 I4: an empty permission set must fail construction, not compile to
+  // "any permission is acceptable".
+  if (config.permissions.length === 0) {
+    throw new Error('buildCapabilityScript: permissions must be non-empty (refusing allow-all)')
+  }
   const lines: string[] = [
     `LET agent = 0x${config.agentPk.replace(/^0x/i, '')}`,
     `ASSERT SIGNEDBY(agent)`,
     ``,
     `LET requestedPerm = STATE(0)`,
+    `ASSERT ${config.permissions.map(p => `requestedPerm EQ 0x${p.replace(/^0x/i, '')}`).join(' OR ')}`,
   ]
-
-  if (config.permissions.length > 0) {
-    lines.push(`ASSERT ${config.permissions.map(p => `requestedPerm EQ 0x${p.replace(/^0x/i, '')}`).join(' OR ')}`)
-  }
 
   lines.push(
     ``,

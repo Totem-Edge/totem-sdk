@@ -16616,12 +16616,12 @@
         },
         "verifyPoolFundTx": {
           "kind": "function",
-          "signature": "verifyPoolFundTx(tx: PoolFundTx, proof: DeepFundingProof, expectedPoolAddress?: string): PoolFundVerification",
+          "signature": "verifyPoolFundTx(tx: PoolFundTx, proof: SignedFundingIntent, expectedPoolAddress?: string): PoolFundVerification",
           "doc": "Verify a deep funding proof. `expectedPoolAddress` (the pool/channel script\naddress) is required to prove the spend target — without it the proof only\nproves the LP signed some tx, which is why acceptance must pass it."
         },
         "toProofHex": {
           "kind": "function",
-          "signature": "toProofHex(proof: DeepFundingProof): string"
+          "signature": "toProofHex(proof: SignedFundingIntent): string"
         },
         "POOL_FUND_DOMAIN": {
           "kind": "const",
@@ -16635,9 +16635,15 @@
           "kind": "interface",
           "signature": "export interface BuildPoolFundTxParams"
         },
-        "DeepFundingProof": {
+        "SignedFundingIntent": {
           "kind": "interface",
-          "signature": "export interface DeepFundingProof"
+          "signature": "export interface SignedFundingIntent",
+          "doc": "RFC-016 P5: a **signed funding intent** — it proves the LP signed these\nclaims, but NOT that an on-chain transaction spent `fundingCoinId` into the\npool. Acceptance must be accompanied by independently verified on-chain spend\nevidence. Formerly named `DeepFundingProof`, which overclaimed."
+        },
+        "DeepFundingProof": {
+          "kind": "type",
+          "signature": "export type DeepFundingProof = SignedFundingIntent",
+          "deprecated": true
         },
         "PoolFundBuildResult": {
           "kind": "interface",

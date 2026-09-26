@@ -42,13 +42,23 @@ export function buildLinearRelease(config: TemporalConfig): string {
     `LET vestStart = STATE(${startPort})`,
     `LET vestEnd = STATE(${endPort})`,
     `LET total = STATE(${totalPort})`,
+    // RFC-016 I3: the schedule is committed; a claim cannot rewrite it.
+    `ASSERT vestStart EQ PREVSTATE(${startPort})`,
+    `ASSERT vestEnd EQ PREVSTATE(${endPort})`,
+    `ASSERT total EQ PREVSTATE(${totalPort})`,
     `LET prevClaimed = PREVSTATE(${beneficiaryPort})`,
     `LET elapsed = @BLOCK SUB vestStart`,
     `LET duration = vestEnd SUB vestStart`,
-    `LET vested = total MUL elapsed DIV duration`,
+    // RFC-016: clamp vesting at `total` (never over-vest past the schedule end).
+    `IF elapsed GTE duration THEN`,
+    `  LET vested = total`,
+    `ELSE`,
+    `  LET vested = total MUL elapsed DIV duration`,
+    `ENDIF`,
     `LET claimable = vested SUB prevClaimed`,
     `ASSERT @BLOCK GT vestStart`,
     `ASSERT claimable GT 0`,
+    `ASSERT prevClaimed ADD claimable LTE total`,
     `ASSERT SIGNEDBY(0x${beneficiary})`,
     `ASSERT VERIFYOUT(@INPUT 0x${beneficiary} claimable @TOKENID TRUE)`,
     `STORE STATE(${beneficiaryPort}) WITH prevClaimed ADD claimable`,
@@ -74,13 +84,24 @@ export function buildCliffRelease(config: TemporalConfig): string {
     `LET vestEnd = STATE(${endPort})`,
     `LET cliffBlock = STATE(${cliffPort})`,
     `LET total = STATE(${totalPort})`,
+    // RFC-016 I3: the schedule is committed; a claim cannot rewrite it.
+    `ASSERT vestStart EQ PREVSTATE(${startPort})`,
+    `ASSERT vestEnd EQ PREVSTATE(${endPort})`,
+    `ASSERT cliffBlock EQ PREVSTATE(${cliffPort})`,
+    `ASSERT total EQ PREVSTATE(${totalPort})`,
     `LET prevClaimed = PREVSTATE(${beneficiaryPort})`,
     `ASSERT @BLOCK GT cliffBlock`,
     `LET cliffElapsed = @BLOCK SUB cliffBlock`,
     `LET duration = vestEnd SUB cliffBlock`,
-    `LET vested = total MUL cliffElapsed DIV duration`,
+    // RFC-016: clamp vesting at `total`.
+    `IF cliffElapsed GTE duration THEN`,
+    `  LET vested = total`,
+    `ELSE`,
+    `  LET vested = total MUL cliffElapsed DIV duration`,
+    `ENDIF`,
     `LET claimable = vested SUB prevClaimed`,
     `ASSERT claimable GT 0`,
+    `ASSERT prevClaimed ADD claimable LTE total`,
     `ASSERT SIGNEDBY(0x${beneficiary})`,
     `ASSERT VERIFYOUT(@INPUT 0x${beneficiary} claimable @TOKENID TRUE)`,
     `STORE STATE(${beneficiaryPort}) WITH prevClaimed ADD claimable`,
@@ -123,14 +144,22 @@ export function buildRateLimitScript(config: TemporalConfig): string {
 export function buildDecayScript(config: TemporalConfig): string {
   const startPort = config.startPort
   const totalPort = requirePort(config, config.totalPort, 'totalPort')
+  const beneficiary = config.beneficiary
+  // RFC-016 I1/I2: a decay claim must be authorized and must pay the beneficiary;
+  // previously the computed `value` was never checked against any output.
+  if (!beneficiary) throw new Error('TemporalConfig.beneficiary is required for decay')
   const lines: string[] = [
     `LET vestStart = STATE(${startPort})`,
     `LET total = STATE(${totalPort})`,
+    `ASSERT vestStart EQ PREVSTATE(${startPort})`,
+    `ASSERT total EQ PREVSTATE(${totalPort})`,
     `LET k = ${config.decayConstant!.toString()}`,
     `LET elapsed = @BLOCK SUB vestStart`,
     `LET numerator = ${MAX_DECIMAL.toString()}`,
     `LET denominator = ${MAX_DECIMAL.toString()} ADD k MUL elapsed`,
     `LET value = total MUL numerator DIV denominator`,
+    `ASSERT SIGNEDBY(0x${beneficiary})`,
+    `ASSERT VERIFYOUT(@INPUT 0x${beneficiary} value @TOKENID TRUE)`,
     `RETURN TRUE`,
   ]
   return lines.join('\n')

@@ -191,8 +191,8 @@ export function buildChallengeScript(config: {
     `    LET challenger = STATE(1)`,
     `    ASSERT challenger NEQ 0x00`,
     `    ASSERT SIGNEDBY(challenger)`,
-    `    // Post dispute bond`,
-    `    ASSERT @AMOUNT GTE ${config.disputeBondAmount}`,
+    `    // RFC-016 I2: filing a challenge posts a challenger-funded bond output`,
+    `    ASSERT VERIFYOUT(@INPUT challenger ${config.disputeBondAmount} 0x00 TRUE)`,
     `    // Set adjudication deadline`,
     `    LET deadline = @BLOCK ADD ${config.adjudicationBlocks.toString()}`,
     `    ASSERT STATE(3) EQ deadline`,
@@ -250,8 +250,10 @@ export function buildBondReleaseScript(config: ProviderBondConfig): string {
     `LET claimable = vested SUB prevClaimed`,
     ``,
     `ASSERT claimable GT 0`,
-    `ASSERT @AMOUNT LTE claimable`,
-    `ASSERT VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID TRUE)`,
+    // RFC-016 I2: release pays the provider the claimable amount (not a
+    // same-address rollover), and records the amount claimed.
+    `ASSERT VERIFYOUT(@INPUT 0x${config.providerPk.replace(/^0x/i, '')} claimable @TOKENID TRUE)`,
+    `STORE STATE(${config.claimedPort}) WITH prevClaimed ADD claimable`,
     `RETURN TRUE`,
   ].join('\n')
 }
