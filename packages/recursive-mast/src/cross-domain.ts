@@ -64,9 +64,12 @@ export function buildAcceptanceScript(
   }
 
   if (constraints.requiredAttributes && constraints.requiredAttributes.length > 0) {
-    for (const attr of constraints.requiredAttributes) {
-      lines.push(`ASSERT STATE(2) EQ "${attr}"`);
-    }
+    // RFC-016 P3: each required attribute gets its own state port. Asserting one
+    // port equal to multiple distinct values made multi-attribute policies
+    // unsatisfiable (a correctness/DoS bug).
+    constraints.requiredAttributes.forEach((attr, i) => {
+      lines.push(`ASSERT STATE(${2 + i}) EQ "${attr}"`);
+    });
   }
 
   if (constraints.expiryBlock !== undefined) {

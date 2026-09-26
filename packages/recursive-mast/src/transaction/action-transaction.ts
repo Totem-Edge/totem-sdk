@@ -19,6 +19,8 @@ export interface ActionTransactionConfig {
   anchorScriptDescriptor: ScriptDescriptor;
   action: string;
   subjectId: string;
+  /** Anchor action-selector port (state). When set, the plan selects the normal-action branch (0). */
+  actionSelectorPort?: number;
   disclosedScripts: ScriptDisclosure[];
   witnessPlan: RecursiveWitnessPlan;
   outputs: PolicyTransactionOutput[];
@@ -28,6 +30,13 @@ export interface ActionTransactionConfig {
 export function createActionTransactionPlan(
   config: ActionTransactionConfig,
 ): PolicyTransactionPlan {
+  // RFC-016 P3: bind the plan to the action selector (normal action = 0) so the
+  // anchor script cannot silently select a different branch.
+  const stateChanges: Record<number, string> = { ...(config.stateChanges ?? {}) };
+  if (config.actionSelectorPort !== undefined) {
+    stateChanges[config.actionSelectorPort] = '0';
+  }
+
   const anchorInput: PolicyTransactionInput = {
     coinId: config.anchorCoinId,
     address: config.anchorAddress,
@@ -41,11 +50,11 @@ export function createActionTransactionPlan(
     address: config.anchorAddress,
     amount: config.anchorAmount,
     storeState: true,
-    state: config.stateChanges,
+    state: Object.keys(stateChanges).length > 0 ? stateChanges : undefined,
   };
 
-  const stateValues: StateValue[] | undefined = config.stateChanges
-    ? Object.entries(config.stateChanges).map(([port, value]) => ({
+  const stateValues: StateValue[] | undefined = Object.keys(stateChanges).length > 0
+    ? Object.entries(stateChanges).map(([port, value]) => ({
         port: Number(port),
         value,
         type: 'string' as const,

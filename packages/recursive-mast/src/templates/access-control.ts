@@ -129,13 +129,16 @@ export function buildAccessDelegationChain(
   adminProof: string,
   supervisorProof: string,
   operatorProof: string,
+  /** Optional block-height expiry for the supervisor delegation (RFC-016 P3). */
+  expiryBlock?: number,
 ): ReturnType<typeof buildDelegationChain> {
   const adminConstraints: DelegationConstraints = {
     scopes: ['admin', 'configure', 'delegate'],
   };
   const supervisorConstraints: DelegationConstraints = {
     scopes: ['read', 'write', 'execute'],
-    maxBlock: Date.now() + 86400000, // 24h
+    // RFC-016 P3: `@BLOCK` is a block height; never mix in wall-clock ms.
+    ...(expiryBlock !== undefined ? { maxBlock: expiryBlock } : {}),
   };
 
   return buildDelegationChain([

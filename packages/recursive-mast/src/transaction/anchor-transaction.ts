@@ -7,6 +7,7 @@
  */
 
 import type { ScriptDescriptor, StateValue } from '@totemsdk/core/scripts';
+import { computeCanonicalScriptAddress } from '@totemsdk/kissvm';
 import type { PolicyAnchorConfig } from '../policy-anchor.js';
 import { buildPolicyAnchorScript, buildPolicyAnchorState } from '../policy-anchor.js';
 import { createPolicyTransactionPlan } from './transaction-plan.js';
@@ -34,6 +35,11 @@ export function createAnchorTransactionPlan(
   const script = buildPolicyAnchorScript(config.anchorConfig);
   const state = buildPolicyAnchorState(config.anchorConfig, config.initialRoots);
 
+  // RFC-016 P3: the anchor output must actually be locked by the Policy Anchor
+  // script. Derive the address from the script itself — previously the plan
+  // computed `script` and ignored it, sending the output to `fundingAddress`.
+  const anchorAddress = computeCanonicalScriptAddress(script);
+
   const stateValues: StateValue[] = Object.entries(state).map(([port, value]) => ({
     port: Number(port),
     value,
@@ -56,7 +62,7 @@ export function createAnchorTransactionPlan(
     ],
     outputs: [
       {
-        address: config.fundingAddress,
+        address: anchorAddress,
         amount: config.anchorAmount,
         storeState: true,
         state: stateRecord,

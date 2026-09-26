@@ -39,12 +39,24 @@ export function createRootRotationTransactionPlan(
       throw new Error('Epoch rotation requires newEpoch');
     }
   }
+  // RFC-016 I1/P3: a rotation must name the authority that authorizes it.
+  if (!config.authorizerPkd) {
+    throw new Error('Rotation requires authorizerPkd');
+  }
 
+  const ports = config.anchorConfig.ports;
   const stateChanges: Record<number, string> = {};
   if (config.rotationType === 'root' && config.port !== undefined && config.newRoot !== undefined) {
     stateChanges[config.port] = config.newRoot;
+    // RFC-016 P3: select the anchor's root-rotation branch (action 1) and carry
+    // the rotated port as the action argument.
+    stateChanges[ports.actionRoot] = '1';
+    stateChanges[ports.actionRoot + 1] = String(config.port);
   } else if (config.rotationType === 'epoch' && config.newEpoch !== undefined) {
-    stateChanges[config.anchorConfig.ports.epoch] = String(config.newEpoch);
+    stateChanges[ports.epoch] = String(config.newEpoch);
+    // Select the epoch-advancement branch (action 2).
+    stateChanges[ports.actionRoot] = '2';
+    stateChanges[ports.actionRoot + 1] = String(config.newEpoch);
   }
 
   const stateValues: StateValue[] = Object.entries(stateChanges).map(([port, value]) => ({
