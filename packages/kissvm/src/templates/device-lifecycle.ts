@@ -87,11 +87,24 @@ export function keyRotationLayer(
     newKeyPkd: string;
     recoveryPkd?: string;
     rotationBlock: number;
+    /** State port holding the active key. When set, the rotation is bound to it. */
+    keyPort?: number;
   },
 ): PolicyLayer {
   const signers = [`SIGNEDBY(0x${options.oldKeyPkd})`];
   if (options.recoveryPkd) {
     signers.push(`SIGNEDBY(0x${options.recoveryPkd})`);
+  }
+
+  const binding: string[] = [];
+  if (options.keyPort !== undefined) {
+    // RFC-016 P4: the active key must actually be the committed old key and
+    // must become the configured new key — otherwise the "rotation" is unbounded.
+    binding.push(
+      `LET prevKey = PREVSTATE(${options.keyPort})`,
+      `ASSERT prevKey EQ 0x${options.oldKeyPkd}`,
+      `ASSERT STATE(${options.keyPort}) EQ 0x${options.newKeyPkd}`,
+    );
   }
 
   return {
@@ -103,6 +116,7 @@ export function keyRotationLayer(
       `LET newKey = 0x${options.newKeyPkd}`,
       `ASSERT ${signers.join(' OR ')}`,
       `ASSERT @BLOCK GTE ${options.rotationBlock}`,
+      ...binding,
       `RETURN TRUE`,
     ].join('\n'),
     authorityPkd: devicePkd,

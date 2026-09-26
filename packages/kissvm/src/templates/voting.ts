@@ -156,6 +156,10 @@ export function buildQuadraticVotingScript(
       `LET prevSpent = PREVSTATE(${options.creditsSpentPort})`,
       `ASSERT prevSpent ADD cost LTE ${options.creditPool}`,
       ``,
+      // RFC-016 P4: the credits must actually be consumed (the spent counter
+      // advances by `cost`); otherwise a voter can vote repeatedly forever.
+      `ASSERT STATE(${options.creditsSpentPort}) EQ prevSpent ADD cost`,
+      ``,
       `ASSERT SIGNEDBY(governance)`,
       `RETURN TRUE`,
     ].join('\n'),
