@@ -78,7 +78,7 @@
     "@types/node": "^26.1.2",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
-    "@vitejs/plugin-react": "^4.2.1",
+    "@vitejs/plugin-react": "^6.1.1",
     "assert": "^2.1.0",
     "autoprefixer": "^10.5.4",
     "copy-webpack-plugin": "^14.0.0",
