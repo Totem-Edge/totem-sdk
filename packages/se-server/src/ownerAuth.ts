@@ -21,7 +21,7 @@ import {
   verifyTreeSignatureDetailed,
 } from '@totemsdk/core';
 
-export type SeOperation = 'blind-sign' | 'revoke-key' | 'claim' | 'reclaim-tx';
+export type SeOperation = 'blind-sign' | 'revoke-key' | 'claim' | 'reclaim-tx' | 'register';
 
 export function seRequestMessage(
   chainId: string,

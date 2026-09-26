@@ -1,102 +1,30 @@
 /**
  * ConnectApproval — popup/redirect page shown when a dApp calls totem.connect()
  * User must unlock wallet and approve the connection.
+ *
+ * Origin/return handling is shared with SendApproval/VerifyApproval via
+ * `approvalContext` (AUD-041): the displayed origin comes from the
+ * browser-set referrer, postMessage uses an explicit targetOrigin, and
+ * returnUrl is scheme-validated.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { WalletManager } from '../core/WalletManager';
 import { VaultStore } from '../stores/VaultStore';
-
-/**
- * Derive the caller origin from a trusted source.
- * - For protocol-handler (native app) calls: use the ?origin= param directly
- *   (the protocol handler page validates the returnUrl before forwarding)
- * - For web dApps: document.referrer is set by the browser when a popup/tab
- *   is opened from a page and cannot be spoofed via URL query-param manipulation.
- *   The ?origin= param is used only as a fallback for the redirect flow (where
- *   the browser clears the referrer on full-page navigation).
- */
-function trustedCallerOrigin(): string {
-  const params = new URLSearchParams(window.location.search);
-  const source = params.get('source');
-
-  // Native app calls via protocol handler — trust the origin param
-  if (source === 'protocol-handler') {
-    const fromParam = params.get('origin');
-    return fromParam ? decodeURIComponent(fromParam) : 'native-app://unknown';
-  }
-
-  // Web dApp calls — prefer document.referrer (browser-set, unspoofable)
-  if (document.referrer) {
-    try { return new URL(document.referrer).origin; } catch { /* malformed */ }
-  }
-  const fromParam = params.get('origin');
-  return fromParam ? decodeURIComponent(fromParam) : 'Unknown dApp';
-}
-
-function getParams() {
-  const url = new URL(window.location.href);
-  return {
-    origin: trustedCallerOrigin(),
-    reqId: url.searchParams.get('reqId') ?? '',
-  };
-}
-
-function isPopup(): boolean {
-  return window.opener !== null;
-}
-
-function isCustomScheme(url: string): boolean {
-  try { return !['https:', 'http:'].includes(new URL(url).protocol); } catch { return true; }
-}
-
-function sendResult(result: unknown, error?: string, reqId?: string) {
-  const payload = { type: 'totem_response', reqId, result, error };
-  const url = new URL(window.location.href);
-  const returnUrl = url.searchParams.get('returnUrl');
-  const nonce = url.searchParams.get('nonce') ?? '';
-
-  // Custom scheme (native app callback) — redirect directly, no postMessage/BC
-  if (returnUrl && isCustomScheme(returnUrl)) {
-    const ret = new URL(returnUrl);
-    ret.searchParams.set('totem_result', btoa(JSON.stringify(error ? { error } : result)));
-    if (reqId) ret.searchParams.set('totem_reqid', reqId);
-    window.location.href = ret.toString();
-    return;
-  }
-
-  // BroadcastChannel — delivers result to the dApp page when opened as a new
-  // tab on mobile (where window.opener may be null cross-origin).
-  if (reqId) {
-    try {
-      const bc = new BroadcastChannel(`totem_response_${reqId}_${nonce}`);
-      bc.postMessage(payload);
-      setTimeout(() => bc.close(), 200);
-    } catch { /* BroadcastChannel not supported */ }
-  }
-
-  if (isPopup()) {
-    window.opener?.postMessage(payload, '*');
-    setTimeout(() => window.close(), 100);
-  } else if (returnUrl) {
-    const ret = new URL(returnUrl);
-    ret.searchParams.set('totem_result', btoa(JSON.stringify(error ? { error } : result)));
-    if (reqId) ret.searchParams.set('totem_reqid', reqId);
-    window.location.href = ret.toString();
-  }
-}
+import { parseApprovalContext, sendApprovalResult } from './approvalContext';
 
 export function ConnectApproval() {
   const [step, setStep] = useState<'password' | 'confirm' | 'loading'>('loading');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { origin, reqId } = getParams();
+  const ctx = useMemo(parseApprovalContext, []);
+  const origin = ctx.origin;
 
   useEffect(() => {
     async function init() {
       const has = await WalletManager.hasWallet();
       if (!has) {
-        sendResult(undefined, 'No wallet found. Please set up Totem wallet at wallet.totem.ing', reqId);
+        sendApprovalResult(ctx, undefined, 'No wallet found. Please set up Totem wallet at wallet.totem.ing');
         return;
       }
       if (WalletManager.isUnlocked()) {
@@ -106,7 +34,7 @@ export function ConnectApproval() {
       }
     }
     init();
-  }, []);
+  }, [ctx]);
 
   async function handleUnlock() {
     setLoading(true);
@@ -124,18 +52,18 @@ export function ConnectApproval() {
   function handleApprove() {
     const session = WalletManager.getSession();
     const account = session?.accounts.find(a => a.index === session.activeIndex);
-    if (!account) { sendResult(undefined, 'No active account', reqId); return; }
-    sendResult({
+    if (!account) { sendApprovalResult(ctx, undefined, 'No active account'); return; }
+    sendApprovalResult(ctx, {
       connected: true,
       address: account.address,
       addressIndex: account.index,
       publicKey: account.publicKey,
       isReconnect: false,
-    }, undefined, reqId);
+    });
   }
 
   function handleReject() {
-    sendResult(undefined, 'User rejected connection', reqId);
+    sendApprovalResult(ctx, undefined, 'User rejected connection');
   }
 
   return (

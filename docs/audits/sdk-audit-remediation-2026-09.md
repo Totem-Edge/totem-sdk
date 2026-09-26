@@ -20,9 +20,9 @@
 
 | Status | Count |
 |---|---|
-| FIXED | 44 |
-| PARTIAL | 1 |
-| OPEN | 1 |
+| FIXED | 46 |
+| PARTIAL | 0 |
+| OPEN | 0 |
 | **Total** | **46** |
 
 Backlog (gap analysis, not part of the 46): see §4.
@@ -130,7 +130,7 @@ tests**. It is fixed here.
 | AUD-025 | P1 | SE advertises a public key unrelated to its real WOTS signer | FIXED | `packages/se-server/src/seKey.ts`. |
 | AUD-026 | P1 | SE owner authentication does not bind operation/request body | FIXED | `packages/se-server/src/router.ts`. |
 | AUD-027 | P1 | SE ownership changes race against stale database snapshots | FIXED | `packages/se-server/src/router.ts`. |
-| AUD-028 | P1 | HTTP statechain registration is a no-op after funding | OPEN | `packages/statechain/src/httpClient.ts:133`. SE-server registration is `/create`-based; the client-initiated `createStateChain` flow calls `registerChain` with too little data (no partyId/tokenId/reclaimTxHex) for the existing record, and no `/register` endpoint exists. Needs a cross-package design (endpoint + auth) or removal of the misleading no-op. |
+| AUD-028 | P1 | HTTP statechain registration is a no-op after funding | FIXED | `packages/statechain/src/{httpClient.ts,chain.ts,types.ts}` + `packages/se-server/src/router.ts`. `HttpSEClient.registerChain` posts an owner-signed `register` request with the record details; `createStateChain` builds the reclaim TX first and passes them. New `POST /:chainId/register` validates the locking script against this SE and verifies the owner signature before inserting (idempotent). |
 | AUD-029 | P2 | SE claim endpoint signs the text of hex rather than the tx digest | FIXED | `packages/se-server/src/router.ts` + `db.ts`. Digest signing fixed; claims now enter a `claiming` state and only become `claimed` via `POST /:chainId/claim/confirm` gated by the optional `confirmClaim` callback (501/fail-closed when unset). |
 | AUD-030 | P1 | MQTT signatures do not bind the payload sent to the executor | FIXED | `packages/edge-mqtt/src/command-handler.ts`. Canonical payload hash checked against `envelope.payloadHash` before execution; tamper test added. |
 | AUD-031 | P1 | MQTT signature verification bypassed by legacy unsigned path | FIXED | `packages/edge-mqtt/src/command-handler.ts`. `requireSignedCommands` defaults true; unsigned/malformed envelopes rejected; legacy mode behind explicit opt-out. |
@@ -143,7 +143,7 @@ tests**. It is fixed here.
 | AUD-038 | P2 | Deposit verification rounds underfunded claims down | FIXED | `packages/chain-provider/src/verify-deposit.ts`. `compareAmounts` compares at a derived common scale; higher-precision claim tests added. |
 | AUD-039 | P2 | Deposit-verifier wrapper removes class provider methods | FIXED | `packages/chain-provider/src/verify-deposit.ts`. `withDepositVerifier` uses `Object.create(provider)`; class-instance regression test added. |
 | AUD-040 | P1 | PWA build mode returns a signed transaction as `unsignedHex` | FIXED | `extensions/totem-pwa-wallet/src/approval/SendApproval.tsx` + `buildTxnRow.ts`. Build mode takes `sign:false`, skips signing/witness/`flushSigCache`, consumes no WOTS leaf. |
-| AUD-041 | P1 | PWA approval origin and return channel can be spoofed | PARTIAL | `extensions/totem-pwa-wallet/src/approval/approvalContext.ts`. Verify/Send now use a trusted display origin, explicit `postMessage` targetOrigin, scheme-allowlisted returns, nonce-scoped channel. Residual: `ConnectApproval.tsx` still uses `postMessage('*')`/caller-supplied origin for display. |
+| AUD-041 | P1 | PWA approval origin and return channel can be spoofed | FIXED | `extensions/totem-pwa-wallet/src/approval/approvalContext.ts`. `ConnectApproval` now uses the same shared context as Verify/Send: trusted display origin, explicit `postMessage` targetOrigin, scheme-allowlisted returns, nonce-scoped channel. |
 | AUD-042 | P2 | PWA parent-signature cache shared across different account keys | FIXED | `extensions/totem-pwa-wallet/src/core/WalletManager.ts`. Cache keyed per account (`rootPublicKey:idx`); restore only for the active index. |
 | AUD-043 | P2 | PWA cannot build from current source/dependencies | FIXED | `extensions/totem-pwa-wallet`. Syntax blocker, `@noble/hashes/sha3.js` imports, and IDB object-store calls fixed; `npx tsc --noEmit` is clean. |
 | AUD-044 | P2 | Quorum commits use the local reservation ID for every peer | FIXED | `packages/wots-lease/src/quorum.ts`. Peer-issued reservation ids captured in `QuorumAttestation.peerReservationId` and used per peer on commit/burn; tests updated. |
@@ -195,9 +195,6 @@ Notes:
   regression tests). The extension's `npx jest` currently cannot run in this
   checkout because of a pre-existing jest 29/30 hybrid + missing
   `jest-environment-jsdom`; that is unrelated to these changes.
-- `AUD-028` remains OPEN: it needs a cross-package design decision (SE-server
-  `/register` endpoint + auth, or removal of the misleading no-op). The
-  client-initiated `createStateChain` flow and the server `/create` flow are
-  not wired together today.
-- `AUD-041` remains PARTIAL: `ConnectApproval.tsx` still uses
-  `postMessage('*')`/caller-supplied origin for display.
+- All 46 findings are now FIXED. Residual notes are recorded per row (e.g.
+  AUD-001 message-signing is not server-coordinated; AUD-004 may leak a slot on
+  crash; AUD-012 skips the new bindings for legacy records).

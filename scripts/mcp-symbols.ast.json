@@ -6212,9 +6212,15 @@
           "kind": "function",
           "signature": "buildEpochAdvancementScript(config: PolicyAnchorConfig, newEpoch: number, authorizerPkd: string): string"
         },
+        "validatePolicyAnchorConfig": {
+          "kind": "function",
+          "signature": "validatePolicyAnchorConfig(config: PolicyAnchorConfig): void",
+          "doc": "Validate a {@link PolicyAnchorConfig}'s port assignments.\n\nThrows when two ports collide, when a port is not a non-negative integer,\nwhen the reserved subject port (0) is reused, or when the action-argument\nport (`actionRoot + 1`) collides with a committed port. Collisions would\nlet one state slot be interpreted two ways and are a fail-open risk, so\nthey are rejected at build time rather than at spend time."
+        },
         "PolicyAnchorConfig": {
           "kind": "interface",
-          "signature": "export interface PolicyAnchorConfig"
+          "signature": "export interface PolicyAnchorConfig",
+          "doc": "Policy Anchor Coin — a stable on-chain UTXO whose locking script commits to\na set of policy roots that can rotate through state updates.\n\nThe anchor is **fail-closed**: `STATE(actionRoot)` must be one of the\nenabled action codes, and every MAST root executed by the anchor is bound\nto a committed `PREVSTATE` root. A spender cannot supply an arbitrary root.\n\nEnabled branches:\n  0. Normal action — MAST a committed policy root selected via state\n  1. Root rotation — MAST the committed owner root; exactly one root changes\n  2. Epoch advancement — MAST the committed owner root; epoch advances by 1\n  3. Recovery — MAST the committed recovery root (only if configured)\n  4. Emergency — MAST the committed emergency root (only if configured)\n\nInvariants enforced for every successful branch:\n  - Same subject identity (`STATE(0)`)\n  - Manifest commitment unchanged\n  - Root ports preserved except the single port a rotation declares\n  - Epoch unchanged, except the epoch-advancement branch (exact +1)\n  - Successor anchor preserved at the input index (`VERIFYOUT(@INPUT …)`)\n\nResidual limitation: KISSVM exposes no output-count primitive, so the\nanchor cannot itself count duplicate anchor outputs. \"Exactly one successor\noutput\" is enforced for the input-indexed output only; duplicate-output\nprevention must be enforced by the revealed action branch or the\ntransaction planner.\n\nState port assignments (defaults):\n  State 0  = subject ID\n  State 10 = current regulator policy root\n  State 11 = current owner policy root\n  State 12 = current service-provider root\n  State 13 = current firmware-approval root\n  State 14 = policy epoch\n  State 15 = policy-manifest commitment\n  State 16 = recovery root\n  State 17 = emergency root\n  State 18 = action selector (0–4)\n  State 19 = action argument (selected root, or rotation target port)"
         },
         "buildIdentityVerificationScript": {
           "kind": "function",
@@ -6964,6 +6970,11 @@
           "signature": "registryRootPayload(root: string, opts?: RegistryRootOptions): Uint8Array",
           "doc": "The exact bytes a signer signs to authorize a root: SHA3-256(domain|root|root)."
         },
+        "registryTransitionPayload": {
+          "kind": "function",
+          "signature": "registryTransitionPayload(root: string, previousRoot: string | undefined, sequence: number | undefined, opHash: string, opts?: RegistryRootOptions): Uint8Array",
+          "doc": "The exact bytes signed/verified for a transition (AUD-013): binds the\nresulting root to its anchor position (`previousRoot`), its anti-reorg\n`sequence`, and the mutation (`opHash`) so a signed root cannot be replayed\nat a forged chain position and `op.poolId` is signature-bound."
+        },
         "signRegistryTransition": {
           "kind": "function",
           "signature": "signRegistryTransition(registry: LiquidityBondRegistryState, op: RegistryOperation, signer: RegistryTransitionSigner, opts: RegistrySigningOptions): Promise<RegistrySignedTransition>",
@@ -6972,12 +6983,12 @@
         "verifyRegistryRoot": {
           "kind": "function",
           "signature": "verifyRegistryRoot(registry: LiquidityBondRegistryState, root: string, signature: Uint8Array, verifier: RegistryRootVerifier, opts?: RegistryRootOptions): Promise<boolean>",
-          "doc": "Verify a root against a registry (boolean form of the transition check):\n 1. recompute the root from the registry and require it to equal `root`;\n 2. when the verifier exposes `verify`, also check the signature over the root."
+          "doc": "Verify a root against a registry (boolean form of the transition check):\n 1. recompute the root from the registry and require it to equal `root`;\n 2. require the verifier to actually check the signature (AUD-015 — no\n    structure-only acceptance)."
         },
         "verifyRegistryTransition": {
           "kind": "function",
           "signature": "verifyRegistryTransition(registry: LiquidityBondRegistryState, transition: RegistrySignedTransition, verifier: RegistryRootVerifier, opts?: RegistryRootOptions): Promise<{ valid: boolean; reasons: string[]; }>",
-          "doc": "Root-based transition verification (#6): recompute root, then (when the\nverifier exposes `verify`) check the signature and signer identity."
+          "doc": "Root-based transition verification (#6): recompute root, then always check\nthe signature over the transition payload (anchor + sequence + op) and the\nsigner identity. A verifier without `verify` fails closed (AUD-015)."
         },
         "applyRegistryTransition": {
           "kind": "function",
@@ -6987,6 +6998,11 @@
         "registerPoolWriter": {
           "kind": "function",
           "signature": "registerPoolWriter(writers: PoolWriterRegistry, poolId: string, signerPublicKeyDigest: string): PoolWriterRegistry"
+        },
+        "changedPoolIds": {
+          "kind": "function",
+          "signature": "changedPoolIds(state: LiquidityBondRegistryState, next: LiquidityBondRegistryState): Set<string>",
+          "doc": "The set of pool ids whose state differs between `state` and `next`\n(AUD-014). Used to confine a writer-authorized transition to the pool it\ndeclared in `op.poolId`."
         },
         "registryRootPort": {
           "kind": "const",
@@ -7005,7 +7021,7 @@
         "RegistryRootVerifier": {
           "kind": "interface",
           "signature": "export interface RegistryRootVerifier",
-          "doc": "Verifier used to check a registry root signature."
+          "doc": "Verifier used to check a registry root signature.\n\n`verify` is **required** (AUD-015): an optional verifier let a caller pass an\nobject with no `verify` and have every signature silently accepted."
         },
         "RegistryTransitionDelta": {
           "kind": "interface",
@@ -8059,7 +8075,7 @@
         },
         "postCommand": {
           "kind": "function",
-          "signature": "postCommand(config: MinimaRpcConfig, commandString: string): Promise<unknown>",
+          "signature": "postCommand(config: MinimaRpcConfig, commandString: string, opts?: { retryable?: boolean; }): Promise<unknown>",
           "doc": "Send a single POST to the Minima RPC endpoint and return the parsed envelope.\nThrows MinimaRpcError on HTTP errors or Minima status:false."
         },
         "MinimaRpcConfig": {
@@ -12766,10 +12782,15 @@
           "kind": "function",
           "signature": "buildEpochAdvancementScript(config: PolicyAnchorConfig, newEpoch: number, authorizerPkd: string): string"
         },
+        "validatePolicyAnchorConfig": {
+          "kind": "function",
+          "signature": "validatePolicyAnchorConfig(config: PolicyAnchorConfig): void",
+          "doc": "Validate a {@link PolicyAnchorConfig}'s port assignments.\n\nThrows when two ports collide, when a port is not a non-negative integer,\nwhen the reserved subject port (0) is reused, or when the action-argument\nport (`actionRoot + 1`) collides with a committed port. Collisions would\nlet one state slot be interpreted two ways and are a fail-open risk, so\nthey are rejected at build time rather than at spend time."
+        },
         "PolicyAnchorConfig": {
           "kind": "interface",
           "signature": "export interface PolicyAnchorConfig",
-          "doc": "Policy Anchor Coin — a stable on-chain UTXO whose locking script commits to\na set of policy roots that can rotate through state updates.\n\nThe anchor has explicit branches:\n  1. Normal action — MAST the selected action root\n  2. Root rotation — MAST the root-rotation authority\n  3. Epoch advancement — MAST the epoch-advancement authority\n  4. Recovery — MAST the recovery root\n  5. Emergency — MAST the emergency root\n\nEvery successful branch must enforce the complete successor anchor:\n  - Same subject identity\n  - Same token and amount (unless explicitly permitted)\n  - Expected anchor script/address\n  - Exact next epoch\n  - Authorized root changes only\n  - Unchanged roots preserved\n  - Expected manifest commitment\n  - Exactly one valid successor output\n  - No duplicate anchor outputs\n\nState port assignments:\n  State 0  = subject ID\n  State 10 = current regulator policy root\n  State 11 = current owner policy root\n  State 12 = current service-provider root\n  State 13 = current firmware-approval root\n  State 14 = policy epoch\n  State 15 = policy-manifest commitment\n  State 16 = recovery root\n  State 17 = emergency root\n  State 18 = action root (set by the spender to select which action to execute)"
+          "doc": "Policy Anchor Coin — a stable on-chain UTXO whose locking script commits to\na set of policy roots that can rotate through state updates.\n\nThe anchor is **fail-closed**: `STATE(actionRoot)` must be one of the\nenabled action codes, and every MAST root executed by the anchor is bound\nto a committed `PREVSTATE` root. A spender cannot supply an arbitrary root.\n\nEnabled branches:\n  0. Normal action — MAST a committed policy root selected via state\n  1. Root rotation — MAST the committed owner root; exactly one root changes\n  2. Epoch advancement — MAST the committed owner root; epoch advances by 1\n  3. Recovery — MAST the committed recovery root (only if configured)\n  4. Emergency — MAST the committed emergency root (only if configured)\n\nInvariants enforced for every successful branch:\n  - Same subject identity (`STATE(0)`)\n  - Manifest commitment unchanged\n  - Root ports preserved except the single port a rotation declares\n  - Epoch unchanged, except the epoch-advancement branch (exact +1)\n  - Successor anchor preserved at the input index (`VERIFYOUT(@INPUT …)`)\n\nResidual limitation: KISSVM exposes no output-count primitive, so the\nanchor cannot itself count duplicate anchor outputs. \"Exactly one successor\noutput\" is enforced for the input-indexed output only; duplicate-output\nprevention must be enforced by the revealed action branch or the\ntransaction planner.\n\nState port assignments (defaults):\n  State 0  = subject ID\n  State 10 = current regulator policy root\n  State 11 = current owner policy root\n  State 12 = current service-provider root\n  State 13 = current firmware-approval root\n  State 14 = policy epoch\n  State 15 = policy-manifest commitment\n  State 16 = recovery root\n  State 17 = emergency root\n  State 18 = action selector (0–4)\n  State 19 = action argument (selected root, or rotation target port)"
         },
         "computePolicyPackageHash": {
           "kind": "function",
@@ -13454,7 +13475,7 @@
         },
         "updateStatechainStatus": {
           "kind": "function",
-          "signature": "updateStatechainStatus(pool: Pool, chainId: string, status: \"active\" | \"claimed\" | \"disputed\"): Promise<void>"
+          "signature": "updateStatechainStatus(pool: Pool, chainId: string, status: \"active\" | \"claiming\" | \"claimed\" | \"disputed\"): Promise<void>"
         },
         "insertRevocation": {
           "kind": "function",
@@ -15147,6 +15168,11 @@
           "kind": "interface",
           "signature": "export interface StatechainLeaseProvider",
           "doc": "StatechainLeaseProvider — operational context for SE-based flows.\n\nUsed by `createStateChain`, `claimOwnership`, and `reclaimAbandoned`.\n\n`broadcast`  — if present, cooperative claim / reclaim broadcast the TxPoW.\n`getTip`     — if present alongside `proof.timelockBlock`, `reclaimAbandoned`\n  validates the current block height before broadcasting.\n`verifyBlindSig` — test override for SE blind-sig verification."
+        },
+        "RegisterChainDetails": {
+          "kind": "interface",
+          "signature": "export interface RegisterChainDetails",
+          "doc": "AUD-028: extra fields a real SE server needs to register a locked chain."
         },
         "createStateChain": {
           "kind": "function",

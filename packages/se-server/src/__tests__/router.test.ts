@@ -282,6 +282,27 @@ describe('se-server router', () => {
     expect(res.status).toBe(400);
   });
 
+  it('POST /:chainId/register rejects an invalid body (AUD-028)', async () => {
+    const app = makeApp(makePool());
+    const res = await httpRequest(app, 'POST', '/statechain/sc_missing/register', { coinId: '0xabc' });
+    expect(res.status).toBe(400);
+  });
+
+  it('POST /:chainId/register rejects a locking script that does not lock to this SE (AUD-028)', async () => {
+    const app = makeApp(makePool());
+    const res = await httpRequest(app, 'POST', '/statechain/sc_missing/register', {
+      coinId: '0x' + '11'.repeat(32),
+      tokenId: '0x00',
+      ownerPartyId: 'owner-1',
+      ownerPublicKeyDigest: '0x' + '33'.repeat(32),
+      lockingScript: 'RETURN TRUE',
+      reclaimTxHex: '0x' + '77'.repeat(50),
+      ownerSignature: '0x' + '88'.repeat(100),
+      nonce: 'reg-nonce',
+    });
+    expect(res.status).toBe(400);
+  });
+
   it('POST /:chainId/revoke-key rejects an invalid nonce', async () => {
     const app = makeApp(makePool());
     const res = await httpRequest(app, 'POST', '/statechain/sc_test/revoke-key', {

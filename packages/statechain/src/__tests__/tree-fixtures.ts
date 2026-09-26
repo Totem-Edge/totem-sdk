@@ -134,14 +134,42 @@ export class TestSE {
     };
   }
 
-  client(): SEClient & { revokedKeys: string[]; registeredChains: string[] } {
+  client(): SEClient & {
+    revokedKeys: string[];
+    registeredChains: string[];
+    registeredDetails: Array<{
+      chainId: string;
+      coinId: string;
+      ownerPublicKeyDigest: string;
+      lockingScript: string;
+      ownerPartyId?: string;
+      tokenId?: string;
+      reclaimTxHex?: string;
+    }>;
+  } {
     const revokedKeys: string[] = [];
     const registeredChains: string[] = [];
+    const registeredDetails: Array<{
+      chainId: string;
+      coinId: string;
+      ownerPublicKeyDigest: string;
+      lockingScript: string;
+      ownerPartyId?: string;
+      tokenId?: string;
+      reclaimTxHex?: string;
+    }> = [];
     return {
       revokedKeys,
       registeredChains,
-      registerChain: async (chainId: string) => {
+      registeredDetails,
+      registerChain: async (chainId, coinId, ownerPublicKeyDigest, lockingScript, details) => {
         registeredChains.push(chainId);
+        registeredDetails.push({
+          chainId, coinId, ownerPublicKeyDigest, lockingScript,
+          ownerPartyId: details?.ownerPartyId,
+          tokenId: details?.tokenId,
+          reclaimTxHex: details?.reclaimTxHex,
+        });
       },
       blindSign: async (_chainId: string, commitmentHex: string) => this.sign(commitmentHex),
       revokeKey: async (_chainId: string, details: { previousOwnerPartyId: string }) => {

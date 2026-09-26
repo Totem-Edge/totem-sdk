@@ -235,12 +235,17 @@ export async function createStateChain(
     await leaseProvider.broadcast(lockTxHex);
   }
 
-  // ── Register locked coin with SE ─────────────────────────────────────────
-  await leaseProvider.seClient.registerChain?.(chainId, lockedCoinId, owner.publicKeyDigest, lockingScript);
-
   // ── Pre-sign reclaim TX for initial owner ────────────────────────────────
   const { txHex: reclaimTx, reclaimAddress } = await buildOwnerReclaimTx(
     lockedCoinId, tokenId, amount, lockingAddress, owner, chainId,
+  );
+
+  // ── Register locked coin with SE (AUD-028) ───────────────────────────────
+  // The reclaim TX is built first so a real SE server can persist it together
+  // with the locked coin; otherwise registration was a silent no-op.
+  await leaseProvider.seClient.registerChain?.(
+    chainId, lockedCoinId, owner.publicKeyDigest, lockingScript,
+    { ownerPartyId: owner.partyId, tokenId, reclaimTxHex: reclaimTx },
   );
 
   // ── Strip creation-only metadata from the stored owner snapshot ──────────

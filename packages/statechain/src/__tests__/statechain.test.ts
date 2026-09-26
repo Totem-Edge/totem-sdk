@@ -157,6 +157,17 @@ describe('@totemsdk/statechain — createStateChain', () => {
     expect(se.registeredChains).toContain(chain.chainId);
   });
 
+  it('SE.registerChain receives the record details (AUD-028)', () => {
+    const detail = se.registeredDetails.find((d) => d.chainId === chain.chainId);
+    expect(detail).toBeDefined();
+    expect(detail?.coinId).toBe(chain.coinId);
+    expect(detail?.ownerPublicKeyDigest).toBe(chain.currentOwner.publicKeyDigest);
+    expect(detail?.lockingScript).toBe(chain.lockingScript);
+    expect(detail?.ownerPartyId).toBe('alice');
+    expect(detail?.tokenId).toBe(TOKEN_ID);
+    expect(detail?.reclaimTxHex).toBe(chain.reclaimTx);
+  });
+
   it('chainId and lockingAddress are deterministic', async () => {
     const chain2 = await createChain(makeSEClient(), makeAlice());
     expect(chain2.chainId).toBe(chain.chainId);

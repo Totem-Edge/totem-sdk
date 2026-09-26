@@ -1,6 +1,6 @@
-import type { SEClient, SESignature } from './types.js';
+import type { SEClient, SESignature, RegisterChainDetails } from './types.js';
 
-type SeOperation = 'blind-sign' | 'revoke-key' | 'claim' | 'reclaim-tx';
+type SeOperation = 'blind-sign' | 'revoke-key' | 'claim' | 'reclaim-tx' | 'register';
 
 /**
  * AUD-026: canonical owner-authentication message — must match the SE server's
@@ -132,11 +132,37 @@ export class HttpSEClient implements SEClient {
 
   async registerChain(
     chainId: string,
-    _coinId: string,
-    _ownerPublicKeyDigest: string,
-    _lockingScript: string,
+    coinId: string,
+    ownerPublicKeyDigest: string,
+    lockingScript: string,
+    details?: RegisterChainDetails,
   ): Promise<void> {
-    // Registration happens server-side during create; no separate call needed for HttpSEClient.
-    void chainId;
+    // AUD-028: announce the locked coin to the SE server after funding. The
+    // server needs the record fields (owner party, token, reclaim TX); without
+    // them registration cannot be persisted, so fail closed rather than no-op.
+    if (!details) {
+      throw new Error(
+        'HttpSEClient.registerChain requires ownerPartyId, tokenId, and reclaimTxHex (AUD-028)',
+      );
+    }
+    const nonce = randomNonce();
+    const body = {
+      coinId,
+      tokenId: details.tokenId,
+      ownerPartyId: details.ownerPartyId,
+      ownerPublicKeyDigest,
+      lockingScript,
+      reclaimTxHex: details.reclaimTxHex,
+    };
+    const message = seRequestMessage(chainId, 'register', nonce, body);
+    const sig = await this.ownerSign(message);
+    const ownerSignature = Buffer.from(sig).toString('hex');
+    await this.post(`/${chainId}/register`, { ...body, nonce, ownerSignature });
   }
+}
+
+function randomNonce(): string {
+  const bytes = new Uint8Array(16);
+  globalThis.crypto.getRandomValues(bytes);
+  return Buffer.from(bytes).toString('hex');
 }

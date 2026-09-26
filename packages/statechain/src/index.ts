@@ -8,6 +8,7 @@ export type {
   StateChain,
   StatechainLeaseOps,
   StatechainLeaseProvider,
+  RegisterChainDetails,
 } from './types.js';
 
 export { createStateChain } from './chain.js';

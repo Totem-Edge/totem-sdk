@@ -91,6 +91,17 @@ const ConfirmClaimSchema = z.object({
   nonce:          z.string().min(1),
 });
 
+const RegisterSchema = z.object({
+  coinId:               z.string().min(1),
+  tokenId:              z.string().min(1),
+  ownerPartyId:         z.string().min(1),
+  ownerPublicKeyDigest: z.string().min(1),
+  lockingScript:        z.string().min(1),
+  reclaimTxHex:         z.string().min(1),
+  ownerSignature:       z.string().min(1),
+  nonce:                z.string().min(1),
+});
+
 const ReclaimQuerySchema = z.object({
   nonce:          z.string().min(1),
   ownerSignature: z.string().min(1),
@@ -165,6 +176,54 @@ export function createSeRouter(config: SeServerConfig, pool: Pool): Router {
       chainId, statechainScript, lockingAddress, sePublicKey: sePkd,
       reclaimTxHex, reclaimTimelock, tokenId,
     });
+  }));
+
+  // AUD-028: register a client-created chain after the lock TX is funded. The
+  // client supplies its own chainId and the full record data; the caller must
+  // prove control of the owner key, and the locking script must lock to this
+  // SE. Idempotent for the same owner.
+  r.post('/:chainId/register', asyncRoute(async (req, res) => {
+    betaHeaders(res);
+    const chainId = req.params.chainId as string;
+    const body = RegisterSchema.safeParse(req.body);
+    if (!body.success) return res.status(400).json({ error: 'Invalid body', details: body.error.issues });
+
+    const { coinId, tokenId, ownerPartyId, ownerPublicKeyDigest, lockingScript, reclaimTxHex, ownerSignature, nonce } = body.data;
+    const sePkd = (await identityPromise).getPublishedIdentity().rootPublicKey;
+    const statechainScript = buildStatechainScript(sePkd, reclaimTimelock);
+    if (lockingScript !== statechainScript) {
+      return res.status(400).json({ error: 'lockingScript does not lock to this SE' });
+    }
+
+    if (!await verifyOwnerRequest(
+      ownerPublicKeyDigest, chainId, 'register', nonce,
+      { coinId, tokenId, ownerPartyId, ownerPublicKeyDigest, lockingScript, reclaimTxHex },
+      ownerSignature,
+    )) {
+      return res.status(403).json({ error: 'Ownership verification failed' });
+    }
+
+    const existing = await getStatechainRecord(pool, chainId);
+    if (existing) {
+      if (existing.current_owner_pkd !== ownerPublicKeyDigest) {
+        return res.status(409).json({ error: 'Statechain already registered to a different owner' });
+      }
+      return res.json({ ok: true, chainId, alreadyRegistered: true });
+    }
+
+    const projectId = resolveProjectId(req);
+    const lockingAddress = scriptAddress(statechainScript);
+    const encReclaim = encryptReclaimTx(seed, reclaimTxHex);
+    await insertStatechainRecord(pool, {
+      chain_id: chainId, project_id: projectId, coin_id: coinId, token_id: tokenId,
+      statechain_script: statechainScript, locking_address: lockingAddress,
+      se_public_key: sePkd, current_owner_party_id: ownerPartyId,
+      current_owner_pkd: ownerPublicKeyDigest, reclaim_tx_hex_enc: encReclaim,
+    });
+    await logSignEvent(pool, chainId, 'register');
+    config.onSign?.({ chainId, eventType: 'register', projectId });
+
+    return res.status(201).json({ ok: true, chainId, lockingAddress, sePublicKey: sePkd, reclaimTimelock, tokenId });
   }));
 
   r.get('/:chainId/challenge', asyncRoute(async (req, res) => {

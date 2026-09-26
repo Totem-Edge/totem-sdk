@@ -49,13 +49,26 @@ export interface SEClient {
   /**
    * Optional: register a newly locked coin with the SE.
    * Called during `createStateChain` when present.
+   *
+   * AUD-028: `details` carries the record fields the SE needs to create the
+   * registration (the locked coin is announced after funding). Implementations
+   * that talk to a real SE server should send them; the HTTP client requires
+   * them and fails closed otherwise.
    */
   registerChain?(
     chainId: string,
     coinId: string,
     ownerPublicKeyDigest: string,
     lockingScript: string,
+    details?: RegisterChainDetails,
   ): Promise<void>;
+}
+
+/** AUD-028: extra fields a real SE server needs to register a locked chain. */
+export interface RegisterChainDetails {
+  ownerPartyId: string;
+  tokenId: string;
+  reclaimTxHex: string;
 }
 
 /**
