@@ -31,6 +31,8 @@ export function buildDataAccessConsentScript(
     purposes: string[];
     dataCategories: string[];
     retentionBlocks: number;
+    /** Port holding the block at which retention starts (RFC-016 P4). */
+    retentionStartPort?: number;
     thirdPartySharing: boolean;
     consentPort: number;
     revocationPort: number;
@@ -54,11 +56,19 @@ export function buildDataAccessConsentScript(
     ``,
     `// Data category limitation`,
     `ASSERT CONTAINS([${catList}] STATE(1))`,
-    ``,
-    `// Retention period`,
-    `LET consentBlock = PREVSTATE(${options.accessLogPort})`,
-    `ASSERT @BLOCK SUB consentBlock LTE ${options.retentionBlocks}`,
   ];
+
+  // RFC-016 P4: retention is measured from a dedicated committed start port.
+  // The previous check read the *access counter* port as a block height, which
+  // conflated a count with a timestamp.
+  if (options.retentionStartPort !== undefined) {
+    lines.push(
+      ``,
+      `// Retention period`,
+      `LET consentStart = PREVSTATE(${options.retentionStartPort})`,
+      `ASSERT @BLOCK SUB consentStart LTE ${options.retentionBlocks}`,
+    );
+  }
 
   if (options.dataProcessorPkd) {
     lines.push(
