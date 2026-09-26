@@ -222,6 +222,8 @@ export function buildDistributionScript(
       `// Total distribution cap`,
       `LET prevDistributed = PREVSTATE(${options.distributionPort})`,
       `ASSERT prevDistributed ADD payout LTE ${options.totalDistribution}`,
+      // RFC-016 P4: record the distribution so the cap is actually enforced.
+      `ASSERT STATE(${options.distributionPort}) EQ prevDistributed ADD payout`,
       ``,
       `ASSERT VERIFYOUT(@INPUT @ADDRESS payout @TOKENID TRUE)`,
       `RETURN TRUE`,
@@ -337,6 +339,8 @@ export function buildRedemptionScript(
       `// Redemption cap`,
       `LET prevRedeemed = PREVSTATE(${options.totalRedeemedPort})`,
       `ASSERT prevRedeemed ADD @AMOUNT LTE ${options.maxRedeemable}`,
+      // RFC-016 P4: record the redemption so the cap is actually enforced.
+      `ASSERT STATE(${options.totalRedeemedPort}) EQ prevRedeemed ADD @AMOUNT`,
       ``,
       `// Calculate payout: shares × NAV minus fee`,
       `LET gross = @AMOUNT MUL ${options.navPerShare}`,

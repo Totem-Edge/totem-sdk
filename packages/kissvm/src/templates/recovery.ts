@@ -168,6 +168,9 @@ export function buildDelegatedCredentialScript(config: DelegatedCredentialConfig
       `// 4. Usage limit`,
       `LET uses = PREVSTATE(71)`,
       `ASSERT INC(uses) LTE ${config.maxUses}`,
+      // RFC-016 P4: the use must actually be consumed (advance the counter);
+      // otherwise the credential is reusable indefinitely.
+      `ASSERT STATE(71) EQ uses ADD 1`,
     );
   }
 
@@ -186,6 +189,12 @@ export interface InstitutionalHierarchyConfig {
   governanceCustodians: number;
   /** Governance threshold. */
   governanceThreshold: number;
+  /**
+   * Cold governance custodian public-key digests (RFC-016 P4). Required: the
+   * previous build emitted `MULTISIG(threshold 0x00 0x00 …)` placeholders, which
+   * is not a usable or safe authority.
+   */
+  governancePks: string[];
   /** Operational controller PKD. */
   operationalControllerPkd: string;
   /** Recovery delay in blocks. */
@@ -213,11 +222,16 @@ export function buildInstitutionalHierarchy(config: InstitutionalHierarchyConfig
   recoveryScript: string;
   institutionalRoot: string;
 } {
+  const governancePks = (config.governancePks ?? []).map((pk) => pk.replace(/^0x/i, ''));
+  if (governancePks.length < config.governanceThreshold || governancePks.some((pk) => pk.length === 0 || /^0+$/.test(pk))) {
+    throw new Error('buildInstitutionalHierarchy: governancePks must provide at least `governanceThreshold` real keys (RFC-016 P4)');
+  }
+
   const governanceScript = [
     `// Institutional governance: ${config.name}`,
     `LET identity = [${config.identityId}]`,
     `ASSERT STATE(0) EQ identity`,
-    `ASSERT MULTISIG(${config.governanceThreshold} ${Array(config.governanceCustodians).fill('PLACEHOLDER').map(() => '0x00').join(' ')})`,
+    `ASSERT MULTISIG(${config.governanceThreshold} ${governancePks.map((pk) => `0x${pk}`).join(' ')})`,
     `ASSERT VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID TRUE)`,
     `RETURN TRUE`,
   ].join('\n');

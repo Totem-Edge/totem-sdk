@@ -19,6 +19,9 @@ import { buildCapabilityScript } from '../templates/manifest.js';
 import { buildLinearRelease, buildCliffRelease } from '../templates/temporal.js';
 import { buildFeeAccrualScript, buildWithdrawalScript } from '../templates/liquidity-bond.js';
 import { buildRevealScript } from '../templates/industrial-action.js';
+import { buildMultiSigTreasuryScript } from '../templates/treasury.js';
+import { buildDistributionScript, buildRedemptionScript } from '../templates/rwa-lifecycle.js';
+import { buildDelegatedCredentialScript } from '../templates/recovery.js';
 
 describe('RFC-016 invariant helpers', () => {
   it('authorizes against a fixed key or a previously-committed authority', () => {
@@ -183,5 +186,39 @@ describe('RFC-016 P4: high-severity families hardened', () => {
     const reveal = buildRevealScript({ preimagePort: 1, commitmentPort: 2 });
     expect(reveal).not.toContain('SAMESTATE(1 1)');
     expect(reveal).toContain('ASSERT STATE(2) EQ committed');
+  });
+});
+
+describe('RFC-016 P4 wave 3: cumulative counters + recipient binding', () => {
+  const pkA = 'aa'.repeat(32);
+  const pkB = 'bb'.repeat(32);
+
+  it('treasury records the period spend and can bind the recipient', () => {
+    const base = { treasuryId: 't', maxSpendPerPeriod: '100', periodBlocks: 10, periodStartPort: 1, spentThisPeriodPort: 2 };
+    const bound = buildMultiSigTreasuryScript([pkA, pkB], 2, { ...base, recipientPkd: pkB }).script;
+    expect(bound).toContain(`ASSERT VERIFYOUT(@INPUT 0x${pkB} @AMOUNT @TOKENID TRUE)`);
+    expect(bound).toContain('ASSERT STATE(2) EQ spent ADD @AMOUNT');
+    expect(buildMultiSigTreasuryScript([pkA], 1, base).script).toContain('ASSERT VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID TRUE)');
+  });
+
+  it('distribution and redemption consume their cumulative counters', () => {
+    const dist = buildDistributionScript(pkA, {
+      assetId: 'a', distributionId: 'd', distributionType: 'dividend', totalDistribution: '1000',
+      shareTokenId: '00', recordDateBlock: 1, distributionPort: 7, perSharePort: 8,
+    }).script;
+    expect(dist).toContain('ASSERT STATE(7) EQ prevDistributed ADD payout');
+
+    const redeem = buildRedemptionScript(pkA, {
+      assetId: 'a', shareTokenId: '00', navPerShare: '1', redemptionFeeBps: 0, minHoldingPeriodBlocks: 0,
+      redemptionWindowStart: 1, redemptionWindowEnd: 100, totalRedeemedPort: 9, maxRedeemable: '1000',
+    }).script;
+    expect(redeem).toContain('ASSERT STATE(9) EQ prevRedeemed ADD @AMOUNT');
+  });
+
+  it('delegated credential consumes its usage counter', () => {
+    const script = buildDelegatedCredentialScript({
+      role: 'operator', issuerPkd: pkA, holderPkd: pkB, scope: 'ops', validFrom: 1, expiresAt: 100, maxUses: 3,
+    });
+    expect(script).toContain('ASSERT STATE(71) EQ uses ADD 1');
   });
 });

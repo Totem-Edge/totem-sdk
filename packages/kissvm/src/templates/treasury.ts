@@ -32,9 +32,16 @@ export function buildMultiSigTreasuryScript(
     periodBlocks: number;
     periodStartPort: number;
     spentThisPeriodPort: number;
+    /** When set, a spend must pay this recipient (RFC-016 P4). */
+    recipientPkd?: string;
   },
 ): PolicyLayer {
   const custodianList = custodians.map(c => `0x${c}`).join(' ');
+  // RFC-016 P4: a spend that only asserts a same-address rollover is not a
+  // payment. When a recipient is configured, bind the output to them.
+  const spendCheck = options.recipientPkd
+    ? `ASSERT VERIFYOUT(@INPUT 0x${options.recipientPkd.replace(/^0x/i, '')} @AMOUNT @TOKENID TRUE)`
+    : `ASSERT VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID TRUE)`;
 
   return {
     id: 'treasury',
@@ -55,7 +62,9 @@ export function buildMultiSigTreasuryScript(
       `ENDIF`,
       ``,
       `ASSERT spent ADD @AMOUNT LTE ${options.maxSpendPerPeriod}`,
-      `ASSERT VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID TRUE)`,
+      // RFC-016 P4: actually record the spend so the period limit is enforced.
+      `ASSERT STATE(${options.spentThisPeriodPort}) EQ spent ADD @AMOUNT`,
+      spendCheck,
       `RETURN TRUE`,
     ].join('\n'),
     authorityPkd: custodians[0],
