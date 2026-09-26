@@ -53,11 +53,15 @@ export function buildSensorProofScript(config: SensorProofConfig): string {
     ``,
     `// 1. Device is authorized by policy root`,
     `ASSERT PROOF(0x${config.devicePkd} 0 0x${config.policyRoot} 0 0x${config.deviceProof})`,
-    `MAST 0x${config.devicePkd}`,
+    // RFC-016 P2/P4: MAST takes the *policy root* (the proof is verified against
+    // it), not the device public key.
+    `MAST 0x${config.policyRoot}`,
     ``,
     `// 2. Reading is signed by the device`,
-    `LET reading = STATE(0)`,
-    `LET sigTime = STATE(1)`,
+    // RFC-016 P4: freshness must use the committed observation, not a
+    // spender-supplied current-state value.
+    `LET reading = PREVSTATE(0)`,
+    `LET sigTime = PREVSTATE(1)`,
     `ASSERT SIGDIG(2 reading)`,
     ``,
     `// 3. Reading is fresh`,

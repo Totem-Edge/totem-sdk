@@ -17,6 +17,7 @@ import { sha3_256, bytesToHex } from '@totemsdk/core';
 import type { PolicyTree } from '../mast/types.js';
 import { buildPolicyTree, type PolicyNodeInput } from '../mast/policy-tree.js';
 import { buildProofChain, type ProofLink } from '../mast/proof-chain.js';
+import { computeCanonicalScriptHash } from '../mast/mast-compiler.js';
 
 export interface ComplianceStage {
   /** Stage identifier. */
@@ -46,7 +47,9 @@ export interface CompliancePipelineConfig {
  */
 export function buildCompliancePipeline(config: CompliancePipelineConfig): ReturnType<typeof buildProofChain> {
   const links: ProofLink[] = config.stages.map((stage, i) => ({
-    scriptHash: bytesToHex(sha3_256(new TextEncoder().encode(stage.script))),
+    // RFC-016 P2/P4: canonical MMR leaf hash, matching buildProofChain's
+    // verification (raw SHA3 here would now throw).
+    scriptHash: computeCanonicalScriptHash(stage.script),
     policyRoot: stage.policyRoot,
     proof: stage.proof,
     script: stage.script,
@@ -92,7 +95,9 @@ export function buildStandardCompliancePipeline(
         id: 'issuer',
         name: 'Issuer Verification',
         script: [
-          `LET issuer = STATE(2)`,
+          // RFC-016 I1: the issuer is a committed credential field, not a
+          // mutable current-state value an executor can substitute.
+          `LET issuer = PREVSTATE(2)`,
           `ASSERT SIGNEDBY(issuer)`,
           `RETURN TRUE`,
         ].join('\n'),
@@ -104,7 +109,8 @@ export function buildStandardCompliancePipeline(
         name: 'Revocation Check',
         script: [
           `LET credentialId = STATE(3)`,
-          `ASSERT NOT CONTAINS(STATE(4) credentialId)`,
+          // RFC-016 I1: check the committed revocation list, not a spender-supplied one.
+          `ASSERT NOT CONTAINS(PREVSTATE(4) credentialId)`,
           `RETURN TRUE`,
         ].join('\n'),
         policyRoot: revocationPolicyRoot,
@@ -152,9 +158,9 @@ export function buildSupplyChainPipeline(
         name: 'Origin Verification',
         script: [
           `LET origin = STATE(0)`,
-          `LET producer = STATE(1)`,
+          `LET producer = PREVSTATE(1)`,
           `ASSERT SIGNEDBY(producer)`,
-          `ASSERT origin EQ STATE(2)`,
+          `ASSERT origin EQ PREVSTATE(2)`,
           `RETURN TRUE`,
         ].join('\n'),
         policyRoot: originRoot,
@@ -164,10 +170,10 @@ export function buildSupplyChainPipeline(
         id: 'transport',
         name: 'Transport Verification',
         script: [
-          `LET carrier = STATE(3)`,
+          `LET carrier = PREVSTATE(3)`,
           `LET route = STATE(4)`,
           `ASSERT SIGNEDBY(carrier)`,
-          `ASSERT route EQ STATE(5)`,
+          `ASSERT route EQ PREVSTATE(5)`,
           `RETURN TRUE`,
         ].join('\n'),
         policyRoot: transportRoot,
@@ -177,7 +183,7 @@ export function buildSupplyChainPipeline(
         id: 'quality',
         name: 'Quality Verification',
         script: [
-          `LET inspector = STATE(6)`,
+          `LET inspector = PREVSTATE(6)`,
           `LET grade = STATE(7)`,
           `ASSERT SIGNEDBY(inspector)`,
           `ASSERT grade GTE [A]`,
@@ -190,7 +196,7 @@ export function buildSupplyChainPipeline(
         id: 'customs',
         name: 'Customs Verification',
         script: [
-          `LET authority = STATE(8)`,
+          `LET authority = PREVSTATE(8)`,
           `LET clearance = STATE(9)`,
           `ASSERT SIGNEDBY(authority)`,
           `ASSERT clearance EQ [APPROVED]`,

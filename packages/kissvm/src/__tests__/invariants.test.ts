@@ -22,6 +22,8 @@ import { buildRevealScript } from '../templates/industrial-action.js';
 import { buildMultiSigTreasuryScript } from '../templates/treasury.js';
 import { buildDistributionScript, buildRedemptionScript } from '../templates/rwa-lifecycle.js';
 import { buildDelegatedCredentialScript } from '../templates/recovery.js';
+import { buildSensorProofScript } from '../templates/sensor-proof.js';
+import { buildStandardCompliancePipeline } from '../templates/compliance.js';
 
 describe('RFC-016 invariant helpers', () => {
   it('authorizes against a fixed key or a previously-committed authority', () => {
@@ -220,5 +222,26 @@ describe('RFC-016 P4 wave 3: cumulative counters + recipient binding', () => {
       role: 'operator', issuerPkd: pkA, holderPkd: pkB, scope: 'ops', validFrom: 1, expiresAt: 100, maxUses: 3,
     });
     expect(script).toContain('ASSERT STATE(71) EQ uses ADD 1');
+  });
+});
+
+describe('RFC-016 P4 wave 4: compliance, healthcare, sensor-proof', () => {
+  const pkA = 'aa'.repeat(32);
+  const root = 'cc'.repeat(32);
+
+  it('compliance pipeline uses canonical hashes and committed authorities', () => {
+    const chain = buildStandardCompliancePipeline(root, root, root, root, 'aa', 'bb', 'cc', 'dd');
+    const issuer = chain.links[1].script;
+    expect(issuer).toContain('LET issuer = PREVSTATE(2)');
+    expect(chain.links[2].script).toContain('NOT CONTAINS(PREVSTATE(4)');
+  });
+
+  it('sensor proof MASTs the policy root and uses committed freshness', () => {
+    const script = buildSensorProofScript({
+      deviceId: 'dev-1', devicePkd: pkA, policyRoot: root, deviceProof: 'aa', maxAgeSeconds: 60,
+    });
+    expect(script).toContain(`MAST 0x${root}`);
+    expect(script).not.toContain(`MAST 0x${pkA}`);
+    expect(script).toContain('LET sigTime = PREVSTATE(1)');
   });
 });
