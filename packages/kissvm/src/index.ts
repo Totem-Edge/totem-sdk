@@ -262,3 +262,17 @@ export type {
   EltooConfig,
   FactoryConfig,
 } from './templates/eltoo.js';
+
+// ─── RFC-016 security invariants (helpers + static detector) ────────────────
+export {
+  assertNonEmpty,
+  authorizeFixed,
+  authorizeMultisig,
+  assertStateUnchanged,
+  assertMonotonic,
+  payExact,
+  branch,
+  auditScriptInvariants,
+  satisfiesInvariants,
+} from './invariants.js';
+export type { InvariantId, InvariantAuditInput, InvariantViolation } from './invariants.js';

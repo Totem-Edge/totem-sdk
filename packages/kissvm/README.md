@@ -2,6 +2,25 @@
 
 **KISSVM v1 evaluator for Minima scripting language — backed by Rust/WASM.**
 
+> ## ⚠️ Security status: stable templates are NOT independently audited
+>
+> The KISSVM **evaluator** is generally sound. The bundled **template library is
+> not production-safe as written** and must not be shipped unchanged. A
+> source-level audit (`docs/audits/kissvm-template-audit-2026-09.md`) found
+> authorization bypasses, unenforced economic invariants, a split MAST root
+> system, and witness/multisig integration defects; the hardening contract and
+> remediation plan are in **RFC-016**. Until those phases land:
+>
+> - treat every `templates/*` generator as **unaudited**;
+> - do **not** rely on a template's name as a guarantee (e.g. a
+>   "PaymentIntent" that does not call `VERIFYOUT`);
+> - prefer the RFC-016 invariant helpers (`authorizeFixed`,
+>   `assertStateUnchanged`, `assertMonotonic`, `payExact`, `branch`) when
+>   building new scripts;
+> - run `auditScriptInvariants()` over any generated script before use.
+>
+> The "stable" label denotes API stability, **not** security review.
+
 KISSVM (Keep It Simple Scripting Virtual Machine) is Minima's on-chain scripting language. This package provides a complete evaluator for simulating coin spends, building witnesses, and validating scripts — all client-side with no node required.
 
 The evaluator is available in two engines:
