@@ -7,11 +7,12 @@
  * both old and new policies are valid.
  */
 
-import { sha3_256, bytesToHex } from '@totemsdk/core';
+import { computeCanonicalScriptHash } from '@totemsdk/kissvm';
 import type { MigrationStep, MigrationPath } from './types.js';
 
 function hashScript(script: string): string {
-  return bytesToHex(sha3_256(new TextEncoder().encode(script)));
+  // RFC-016 P2: canonical MMR leaf hash
+  return computeCanonicalScriptHash(script);
 }
 
 /**

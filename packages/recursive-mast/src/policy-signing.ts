@@ -15,6 +15,7 @@
  */
 
 import { sha3_256, bytesToHex, hexToBytes } from '@totemsdk/core';
+import type { ScriptProof } from '@totemsdk/kissvm';
 import type { PolicyAction, PolicyRole } from './policy-manifest.js';
 
 // ─── Request / Response ────────────────────────────────────────────────────
@@ -35,6 +36,12 @@ export interface ScriptDisclosure {
   script: string;
   /** MMR proof that this script is in the policy root. */
   mmrProof: string;
+  /**
+   * The policy root (canonical MMR root) this script is a leaf of. Required for
+   * canonical MAST witness materialization (RFC-016 P2); without it the proof
+   * cannot be verified against a root.
+   */
+  policyRoot?: string;
 }
 
 export interface SignedEvidence {
@@ -371,13 +378,20 @@ export function buildRecursiveWitnessPlan(
   selectedPath: PolicyPathDescriptor,
   disclosedScripts: ScriptDisclosure[],
   collectedSignatures: Map<string, string>,
-): { mastBranches: Map<string, string>; signatures: Map<string, string> } {
+): { mastBranches: Map<string, string>; signatures: Map<string, string>; scriptProofs: ScriptProof[] } {
   const mastBranches = new Map<string, string>();
   for (const ds of disclosedScripts) {
     mastBranches.set(ds.scriptHash, ds.script);
   }
 
-  return { mastBranches, signatures: collectedSignatures };
+  // RFC-016 P2: carry canonical ScriptProofs (script + MMR proof + the root it
+  // is proven against) so the evaluator can verify MAST membership. Discarding
+  // the proof and indexing by leaf hash alone is not a canonical witness.
+  const scriptProofs: ScriptProof[] = disclosedScripts
+    .filter((ds) => typeof ds.policyRoot === 'string' && ds.policyRoot.length > 0)
+    .map((ds) => ({ script: ds.script, proofHex: ds.mmrProof, address: ds.policyRoot as string }));
+
+  return { mastBranches, signatures: collectedSignatures, scriptProofs };
 }
 
 /**

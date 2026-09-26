@@ -8,14 +8,15 @@
  * has been removed — all verification now uses Minima-compatible MMR proofs.
  */
 
-import { sha3_256, bytesToHex } from '@totemsdk/core';
 import { MiniNumber } from '../MiniNumber.js';
-import { verifyScriptMembership } from './mast-compiler.js';
+import { verifyScriptMembership, computeCanonicalScriptHash } from './mast-compiler.js';
 import type { ProofLink, ProofChain, VerificationResult } from './types.js';
 export type { ProofLink, ProofChain, VerificationResult };
 
+// RFC-016 P2: script hashes are canonical MMR leaf hashes, matching the PROOF
+// verification path — not raw SHA3(utf8).
 function hashScript(script: string): string {
-  return bytesToHex(sha3_256(new TextEncoder().encode(script)));
+  return computeCanonicalScriptHash(script);
 }
 
 export function buildProofChain(links: ProofLink[]): ProofChain {
@@ -126,7 +127,10 @@ export function toProofExpression(link: ProofLink): string {
  * @returns KISSVM script with nested MAST expressions.
  */
 export function toNestedMastScript(chain: ProofChain): string {
-  if (chain.links.length === 0) return 'RETURN TRUE';
+  // RFC-016 I4: an empty chain must fail construction, not compile to allow-all.
+  if (chain.links.length === 0) {
+    throw new Error('toNestedMastScript: empty proof chain');
+  }
 
   let script = chain.links[chain.links.length - 1].script;
 

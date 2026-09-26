@@ -5,11 +5,12 @@
  * contracts that evolve across transactions.
  */
 
-import { sha3_256, bytesToHex } from '@totemsdk/core';
+import { computeCanonicalScriptHash } from './mast-compiler.js';
 import type { StateTransition, PrevStateWorkflow } from './types.js';
 
+// RFC-016 P2: canonical MMR leaf hash.
 function hashScript(script: string): string {
-  return bytesToHex(sha3_256(new TextEncoder().encode(script)));
+  return computeCanonicalScriptHash(script);
 }
 
 /**

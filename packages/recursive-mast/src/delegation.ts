@@ -7,12 +7,13 @@
  *   Government → Agency → Department → Officer
  */
 
-import { sha3_256, bytesToHex } from '@totemsdk/core';
+import { computeCanonicalScriptHash, verifyScriptMembership } from '@totemsdk/kissvm';
 import type { DelegationLink, DelegationChain, DelegationConstraints } from './types.js';
 export type { DelegationLink, DelegationChain, DelegationConstraints };
 
 function hashScript(script: string): string {
-  return bytesToHex(sha3_256(new TextEncoder().encode(script)));
+  // RFC-016 P2: canonical MMR leaf hash
+  return computeCanonicalScriptHash(script);
 }
 
 /**
@@ -126,6 +127,20 @@ export function verifyDelegationChain(chain: DelegationChain): { valid: boolean;
       return {
         valid: false,
         reason: `Script hash mismatch at link ${i}: expected ${expectedHash.slice(0, 16)}…, got ${actualHash.slice(0, 16)}…`,
+      };
+    }
+
+    // RFC-016 P2: actually verify the MMR proof against the link's policy root.
+    // Previously the chain was marked verified after a structural/hash check
+    // alone, so an unproven chain could be labelled valid.
+    if (!link.proof || !link.policyRoot) {
+      return { valid: false, reason: `Delegation link ${i} is missing a proof or policyRoot` };
+    }
+    const membership = verifyScriptMembership(link.script, link.proof, link.policyRoot);
+    if (!membership.valid) {
+      return {
+        valid: false,
+        reason: `Delegation proof invalid at link ${i}: ${membership.reason ?? 'membership check failed'}`,
       };
     }
   }

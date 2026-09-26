@@ -4,7 +4,7 @@
  * and may delegate to child policy roots.
  */
 
-import { sha3_256, bytesToHex } from '@totemsdk/core';
+import { compileMastTree, computeCanonicalScriptHash } from './mast-compiler.js';
 import type { PolicyNode, PolicyTree } from './types.js';
 
 export interface PolicyNodeInput {
@@ -15,35 +15,18 @@ export interface PolicyNodeInput {
   metadata?: Record<string, unknown>;
 }
 
+// RFC-016 P2: canonical MAST only. Script hashes and policy roots use the
+// canonical Minima MMR construction in mast-compiler.ts; the previous
+// SHA3(raw-utf8) + home-grown binary Merkle root is removed.
 function hashScript(script: string): string {
-  return bytesToHex(sha3_256(new TextEncoder().encode(script)));
+  return computeCanonicalScriptHash(script);
 }
 
 function computePolicyRoot(scripts: string[]): string {
-  if (scripts.length === 0) return hashScript('');
-  if (scripts.length === 1) return hashScript(scripts[0]);
-  const leaves = scripts.map(s => sha3_256(new TextEncoder().encode(s)));
-  return buildMerkleRoot(leaves);
-}
-
-function buildMerkleRoot(leaves: Uint8Array[]): string {
-  if (leaves.length === 0) return bytesToHex(sha3_256(new Uint8Array(0)));
-  if (leaves.length === 1) return bytesToHex(leaves[0]);
-
-  let level = leaves;
-  while (level.length > 1) {
-    const next: Uint8Array[] = [];
-    for (let i = 0; i < level.length; i += 2) {
-      const left = level[i];
-      const right = level[i + 1] ?? left;
-      const pair = new Uint8Array(left.length + right.length);
-      pair.set(left);
-      pair.set(right, left.length);
-      next.push(sha3_256(pair));
-    }
-    level = next;
+  if (scripts.length === 0) {
+    throw new Error('computePolicyRoot: refusing to build an empty (allow-all) policy root');
   }
-  return bytesToHex(level[0]);
+  return compileMastTree(scripts).rootHex;
 }
 
 /**

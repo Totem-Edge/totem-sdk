@@ -1,12 +1,12 @@
 {
   "note": "Per-package exported-symbol counts + total, used by scripts/verify-mcp-index.mjs to catch a package silently losing exports. Regenerate with: node scripts/verify-mcp-index.mjs --update",
-  "totalSymbols": 3590,
+  "totalSymbols": 3661,
   "packages": {
     "@totemsdk/agent-policy": 92,
     "@totemsdk/authority": 29,
-    "@totemsdk/chain-provider": 24,
-    "@totemsdk/connect": 192,
-    "@totemsdk/core": 329,
+    "@totemsdk/chain-provider": 33,
+    "@totemsdk/connect": 228,
+    "@totemsdk/core": 335,
     "@totemsdk/core-wasm": 0,
     "@totemsdk/decision": 109,
     "@totemsdk/edge": 237,
@@ -28,7 +28,7 @@
     "@totemsdk/identity": 36,
     "@totemsdk/industrial-action": 165,
     "@totemsdk/intelligence": 35,
-    "@totemsdk/kissvm": 166,
+    "@totemsdk/kissvm": 179,
     "@totemsdk/liquidity-bond": 176,
     "@totemsdk/location-proof": 43,
     "@totemsdk/lookup-client": 11,
@@ -64,6 +64,6 @@
     "@totemsdk/tx-builder": 48,
     "@totemsdk/txpow": 84,
     "@totemsdk/wallet-adapter": 17,
-    "@totemsdk/wots-lease": 47
+    "@totemsdk/wots-lease": 54
   }
 }

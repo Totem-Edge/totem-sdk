@@ -638,6 +638,47 @@
         "CompositeProvider": {
           "kind": "class",
           "signature": "export class CompositeProvider implements ChainStateProvider"
+        },
+        "resolveChainProvider": {
+          "kind": "function",
+          "signature": "resolveChainProvider(config: ChainProviderConfig, options: ResolveChainProviderOptions): ChainStateProvider",
+          "doc": "Resolve a {@link ChainStateProvider} from the persisted config.\n\n- `axia` → the hosted relay (default).\n- `minima-rpc` → the user's own node.\n- `composite` → node first, hosted fallback (unless `fallbackToAxia === false`)."
+        },
+        "parseMinimaRpcUrl": {
+          "kind": "function",
+          "signature": "parseMinimaRpcUrl(url: string): ParsedMinimaRpcUrl",
+          "doc": "Parse `http(s)://host:port` into the minima-rpc client config shape."
+        },
+        "assertConsentedNodeUrl": {
+          "kind": "function",
+          "signature": "assertConsentedNodeUrl(url: string): void",
+          "doc": "Consent guard (RFC-013 §11): HTTPS is required for remote hosts; plain `http`\nis permitted only for loopback. Never ships a build-time localhost bypass."
+        },
+        "isSelfHosted": {
+          "kind": "function",
+          "signature": "isSelfHosted(config: ChainProviderConfig): boolean",
+          "doc": "True when the config routes reads/broadcast away from the hosted relay."
+        },
+        "ChainProviderMode": {
+          "kind": "type",
+          "signature": "export type ChainProviderMode = 'axia' | 'minima-rpc' | 'composite'"
+        },
+        "ChainProviderConfig": {
+          "kind": "interface",
+          "signature": "export interface ChainProviderConfig",
+          "doc": "Persisted, user-selectable chain access config."
+        },
+        "HostedRelayConfig": {
+          "kind": "interface",
+          "signature": "export interface HostedRelayConfig"
+        },
+        "ResolveChainProviderOptions": {
+          "kind": "interface",
+          "signature": "export interface ResolveChainProviderOptions"
+        },
+        "ParsedMinimaRpcUrl": {
+          "kind": "interface",
+          "signature": "export interface ParsedMinimaRpcUrl"
         }
       }
     },
@@ -1413,6 +1454,161 @@
         "TotemGetTxPermissionsResponse": {
           "kind": "type",
           "signature": "export type TotemGetTxPermissionsResponse = SitePermissionEntry[]"
+        },
+        "isConnectMethod": {
+          "kind": "function",
+          "signature": "isConnectMethod(method: string): boolean",
+          "doc": "True for any canonical connect method (legacy `TOTEM_*` or `totem_*`)."
+        },
+        "methodDescriptor": {
+          "kind": "function",
+          "signature": "methodDescriptor(method: string): WalletMethodDescriptor | undefined"
+        },
+        "createDefaultHandlers": {
+          "kind": "function",
+          "signature": "createDefaultHandlers(): WalletMethodHandler[]",
+          "doc": "Every connect method gets a handler; unsupported ones return an explicit reason."
+        },
+        "isMethodSupported": {
+          "kind": "function",
+          "signature": "isMethodSupported(descriptor: WalletMethodDescriptor, ctx: WalletHandlerContext): boolean"
+        },
+        "buildWalletCapabilityManifest": {
+          "kind": "function",
+          "signature": "buildWalletCapabilityManifest(ctx: WalletHandlerContext, overrides?: Record<string, \"supported\" | \"unsupported\">): WalletCapabilityManifest",
+          "doc": "Build the capability/method-support manifest for a context."
+        },
+        "createWalletRuntime": {
+          "kind": "function",
+          "signature": "createWalletRuntime(ctx: WalletHandlerContext, options?: WalletRuntimeOptions): WalletRuntime",
+          "doc": "Compose a wallet runtime over the shared handlers. Every canonical connect\nmethod is addressable; methods whose ports are absent resolve to an explicit\n`unsupported` response (and are listed in the manifest), never a silent no-op."
+        },
+        "LEGACY_METHODS": {
+          "kind": "const",
+          "signature": "LEGACY_METHODS = [ 'TOTEM_CONNECT', 'TOTEM_VERIFY', 'TOTEM_GET_ACCOUNTS', 'TOTEM_SEND_TRANSACTION', 'TOTEM_GET_COINS', 'TOTEM_SEND_COMPLEX', 'TOTEM_SIGN_DATA', 'TOTEM_BROADCAST_HEX', 'TOTEM_GRANT_TX_P",
+          "doc": "Legacy uppercase wire methods."
+        },
+        "TOTEM_METHODS": {
+          "kind": "const",
+          "signature": "TOTEM_METHODS = [ 'totem_getCapabilities', 'totem_getProviderStatus', 'totem_setChainProvider', 'totem_getWotsStatus', 'totem_reserveWotsLease', 'totem_releaseWotsLease', 'totem_signTransaction', 'tot",
+          "doc": "Newer lowercase `totem_*` methods."
+        },
+        "CONNECT_METHODS": {
+          "kind": "const",
+          "signature": "CONNECT_METHODS = [...LEGACY_METHODS, ...TOTEM_METHODS] as const",
+          "doc": "Every canonical connect method (46)."
+        },
+        "LegacyMethod": {
+          "kind": "type",
+          "signature": "export type LegacyMethod = (typeof LEGACY_METHODS)[number]"
+        },
+        "TotemMethod": {
+          "kind": "type",
+          "signature": "export type TotemMethod = (typeof TOTEM_METHODS)[number]"
+        },
+        "ConnectMethod": {
+          "kind": "type",
+          "signature": "export type ConnectMethod = (typeof CONNECT_METHODS)[number]"
+        },
+        "WALLET_INTERNAL_METHODS": {
+          "kind": "const",
+          "signature": "WALLET_INTERNAL_METHODS = [ 'TOTEM_CONNECT_APPROVE', 'TOTEM_DISCONNECT', 'TOTEM_PROVE_OWNERSHIP', 'WOTS_SEND', 'WOTS_SIGN_DATA', 'RPC_COMMAND', 'START_STREAM', 'STOP_STREAM', 'GET_SNAPSHOT', 'GET_BALA",
+          "doc": "Wallet-internal verbs that are intentionally not connect methods.\nMirrors `scripts/audit-wallet-connect-parity.mjs` `WALLET_INTERNAL`."
+        },
+        "WalletMethodDisposition": {
+          "kind": "type",
+          "signature": "export type WalletMethodDisposition = 'local' | 'edge' | 'sdk' | 'unsupported'"
+        },
+        "WalletPortKey": {
+          "kind": "type",
+          "signature": "export type WalletPortKey = | 'info' | 'signer' | 'approvals' | 'chain' | 'lease' | 'edge' | 'statechain' | 'kissvm' | 'agent' | 'receipts' | 'paymentRequests' | 'selfHosted'"
+        },
+        "WalletMethodDescriptor": {
+          "kind": "interface",
+          "signature": "export interface WalletMethodDescriptor"
+        },
+        "WALLET_METHODS": {
+          "kind": "const",
+          "signature": "WALLET_METHODS: readonly WalletMethodDescriptor[] = [ // Legacy core — wallet-owned, user-approved. d('TOTEM_CONNECT', 'local', 'connect', ['signer', 'approvals'], [], { requiresApproval: true }), d('",
+          "doc": "Frozen disposition table (RFC-014 §6.3)."
+        },
+        "OMNIA_ACTION_BY_METHOD": {
+          "kind": "const",
+          "signature": "OMNIA_ACTION_BY_METHOD: Readonly<Record<string, string>> = { totem_omniaGetChannels: 'omnia:getChannels', totem_omniaOpenChannel: 'omnia:channel:open', totem_omniaPay: 'omnia:pay', totem_omniaSettle: ",
+          "doc": "Omnia connect method → governed edge action id."
+        },
+        "WalletInfoPort": {
+          "kind": "interface",
+          "signature": "export interface WalletInfoPort"
+        },
+        "WalletSignerPort": {
+          "kind": "interface",
+          "signature": "export interface WalletSignerPort"
+        },
+        "ApprovalPort": {
+          "kind": "interface",
+          "signature": "export interface ApprovalPort"
+        },
+        "ChainStateProviderPort": {
+          "kind": "interface",
+          "signature": "export interface ChainStateProviderPort"
+        },
+        "WotsLeasePort": {
+          "kind": "interface",
+          "signature": "export interface WotsLeasePort"
+        },
+        "EdgeDispatchPort": {
+          "kind": "interface",
+          "signature": "export interface EdgeDispatchPort",
+          "doc": "Injected execution dispatch seam.\n\nThis is a **host-supplied** port. A consent wallet supplies a plain dispatch\nadapter over its SDK/chain clients (consent-gated by the approval port). A\nhost that runs an autonomous runtime (an agent or industrial edge device) may\nsupply a governed edge dispatch instead. The browser wallets never construct a\nmandate-bound governed runtime themselves (RFC-014 §6.4)."
+        },
+        "StatechainClientPort": {
+          "kind": "interface",
+          "signature": "export interface StatechainClientPort"
+        },
+        "KissvmClientPort": {
+          "kind": "interface",
+          "signature": "export interface KissvmClientPort"
+        },
+        "AgentBridgePort": {
+          "kind": "interface",
+          "signature": "export interface AgentBridgePort"
+        },
+        "ReceiptStorePort": {
+          "kind": "interface",
+          "signature": "export interface ReceiptStorePort"
+        },
+        "PaymentRequestPort": {
+          "kind": "interface",
+          "signature": "export interface PaymentRequestPort"
+        },
+        "SelfHostedPort": {
+          "kind": "interface",
+          "signature": "export interface SelfHostedPort"
+        },
+        "WalletHandlerContext": {
+          "kind": "interface",
+          "signature": "export interface WalletHandlerContext"
+        },
+        "WalletMethodHandler": {
+          "kind": "interface",
+          "signature": "export interface WalletMethodHandler"
+        },
+        "WalletCapabilityManifest": {
+          "kind": "interface",
+          "signature": "export interface WalletCapabilityManifest"
+        },
+        "WalletRuntimeOptions": {
+          "kind": "interface",
+          "signature": "export interface WalletRuntimeOptions"
+        },
+        "WalletRuntimeMeta": {
+          "kind": "interface",
+          "signature": "export interface WalletRuntimeMeta"
+        },
+        "WalletRuntime": {
+          "kind": "interface",
+          "signature": "export interface WalletRuntime"
         }
       }
     },
@@ -1887,6 +2083,16 @@
           "signature": "writeMMREntryNumber(value: bigint, scale?: number): Uint8Array",
           "doc": "Encode an MMREntryNumber per Java MMREntryNumber.writeDataStream()\n\nJava source (MMREntryNumber.java):\n  MiniNumber.WriteToStream(zOut, mNumber.scale());   // scale as MiniNumber\n  MiniData.WriteToStream(zOut, mNumber.unscaledValue().toByteArray()); // unscaled as MiniData\n\nFormat:\n  - MiniNumber for scale (always 0 for integer values)\n  - MiniData for unscaled BigInteger value\n\nFor integer MMREntryNumber (scale=0), this encodes as:\n  [00 01 00]        - MiniNumber: scale=0, len=1, data=0x00\n  [00 00 00 LL ...] - MiniData: 4-byte len + BigInteger bytes"
         },
+        "writeSignature": {
+          "kind": "function",
+          "signature": "writeSignature(sig: Signature): Uint8Array",
+          "doc": "Write Signature per Java Signature.writeDataStream()\n\nJava source (Signature.java):\n  MiniNumber.WriteToStream(zOut, mSignatures.size());\n  for each sig: sig.writeDataStream(zOut);"
+        },
+        "writeSignatureProof": {
+          "kind": "function",
+          "signature": "writeSignatureProof(sigProof: SignatureProof): Uint8Array",
+          "doc": "Write SignatureProof per Java SignatureProof.writeDataStream()\n\nJava source (SignatureProof.java):\n  mPublicKey.writeDataStream(zOut);  // MiniData\n  mSignature.writeDataStream(zOut);  // MiniData\n  mProof.writeDataStream(zOut);      // MMRProof"
+        },
         "concat": {
           "kind": "function",
           "signature": "concat(...arrays: Uint8Array[]): Uint8Array"
@@ -2039,6 +2245,16 @@
           "signature": "createPerAddressTreeKeyAsync(baseSeed: Bytes, addressIndex: number, onProgress?: ProgressCallback): Promise<TreeKey>",
           "deprecated": true
         },
+        "setTreeKeyLogger": {
+          "kind": "function",
+          "signature": "setTreeKeyLogger(logger: LoggerAdapter): void",
+          "doc": "Enable TreeKey debug logging with a custom logger\nUse this for parity testing to capture wallet init intermediate values\n\nWARNING: Debug logging outputs sensitive cryptographic material including\nseeds and private key derivation. NEVER enable in production builds.\nThis is intended for development/testing parity verification only."
+        },
+        "disableTreeKeyLogger": {
+          "kind": "function",
+          "signature": "disableTreeKeyLogger(): void",
+          "doc": "Disable TreeKey debug logging"
+        },
         "KeyGenProgress": {
           "kind": "interface",
           "signature": "export interface KeyGenProgress",
@@ -2077,6 +2293,16 @@
         "fromHex": {
           "kind": "const",
           "signature": "fromHex = (h: string): Uint8Array => { const s = h.replace(/^0x/, ''); const out = new Uint8Array(s.length >> 1); for (let i = 0; i < out.length; i++) out[i] = parseInt(s.slice(i * 2, i * 2 + 2), 16);"
+        },
+        "setWotsLogger": {
+          "kind": "function",
+          "signature": "setWotsLogger(logger: LoggerAdapter): void",
+          "doc": "Enable WOTS debug logging with a custom logger\nUse this for parity testing to capture all intermediate values\n\nWARNING: Debug logging outputs sensitive cryptographic material including\nprivate key chains and seeds. NEVER enable in production builds.\nThis is intended for development/testing parity verification only."
+        },
+        "disableWotsLogger": {
+          "kind": "function",
+          "signature": "disableWotsLogger(): void",
+          "doc": "Disable WOTS debug logging"
         },
         "u16be": {
           "kind": "const",
@@ -7074,7 +7300,13 @@
         },
         "buildTxPoWValidationScript": {
           "kind": "function",
-          "signature": "buildTxPoWValidationScript(config: TxPoWValidationConfig): string"
+          "signature": "buildTxPoWValidationScript(config: TxPoWValidationConfig): string",
+          "deprecated": true
+        },
+        "buildAttestedTxPoWMetaScript": {
+          "kind": "function",
+          "signature": "buildAttestedTxPoWMetaScript(config: TxPoWValidationConfig): string",
+          "doc": "RFC-016: renamed from `buildTxPoWValidationScript`. This constrains\n**attested TxPoW metadata** carried in state; it does not introspect real\nTxPoW, and it is authorized by a fixed attestor."
         },
         "buildMagicConstantsScript": {
           "kind": "function",
@@ -7167,6 +7399,63 @@
         "FactoryConfig": {
           "kind": "interface",
           "signature": "export interface FactoryConfig"
+        },
+        "assertNonEmpty": {
+          "kind": "function",
+          "signature": "assertNonEmpty(items: readonly unknown[], label: string): void",
+          "doc": "I4: fail construction rather than compile to an allow-all script."
+        },
+        "authorizeFixed": {
+          "kind": "function",
+          "signature": "authorizeFixed(authority: { key: string; } | { prevStatePort: number; }): string",
+          "doc": "I1: authorize against a **fixed** key or a **previously committed** authority\n(`PREVSTATE(port)`). Never pass a value read from mutable current `STATE`."
+        },
+        "authorizeMultisig": {
+          "kind": "function",
+          "signature": "authorizeMultisig(n: number, keys: readonly string[]): string",
+          "doc": "I1: require n-of-m signatures over a fixed key set."
+        },
+        "assertStateUnchanged": {
+          "kind": "function",
+          "signature": "assertStateUnchanged(port: number): string",
+          "doc": "I3: an immutable field must be carried forward unchanged."
+        },
+        "assertMonotonic": {
+          "kind": "function",
+          "signature": "assertMonotonic(port: number): string",
+          "doc": "I3: a transition counter must strictly increase."
+        },
+        "payExact": {
+          "kind": "function",
+          "signature": "payExact(address: string, amount: string, tokenExpr?: string): string",
+          "doc": "I2: bind a payment to the **actual output** (not the input claims).\n`@AMOUNT`/`@ADDRESS`/`@TOKENID` describe the input coin and are not a payment."
+        },
+        "branch": {
+          "kind": "function",
+          "signature": "branch(selector: string, cases: readonly { when: string; then: readonly string[]; }[], opts?: { elseReturnFalse?: boolean; }): string",
+          "doc": "I4: exhaustive selection; an unmatched selector returns FALSE."
+        },
+        "auditScriptInvariants": {
+          "kind": "function",
+          "signature": "auditScriptInvariants(input: InvariantAuditInput): InvariantViolation[]",
+          "doc": "Static, deterministic detector of the RFC-016 invariants. Heuristic: it flags\nthe confirmed anti-patterns (authority from mutable state, missing output\nbinding, unmatched authorizing branches). It is the gate for the adversarial\nharness, not a substitute for dynamic evaluation."
+        },
+        "satisfiesInvariants": {
+          "kind": "function",
+          "signature": "satisfiesInvariants(input: InvariantAuditInput): boolean",
+          "doc": "True when a script satisfies every applicable invariant."
+        },
+        "InvariantId": {
+          "kind": "type",
+          "signature": "export type InvariantId = 'I1' | 'I2' | 'I3' | 'I4'"
+        },
+        "InvariantAuditInput": {
+          "kind": "interface",
+          "signature": "export interface InvariantAuditInput"
+        },
+        "InvariantViolation": {
+          "kind": "interface",
+          "signature": "export interface InvariantViolation"
         }
       }
     },
@@ -13370,7 +13659,7 @@
         },
         "buildRecursiveWitnessPlan": {
           "kind": "function",
-          "signature": "buildRecursiveWitnessPlan(selectedPath: PolicyPathDescriptor, disclosedScripts: ScriptDisclosure[], collectedSignatures: Map<string, string>): { mastBranches: Map<string, string>; signatures: Map<string, string>; }",
+          "signature": "buildRecursiveWitnessPlan(selectedPath: PolicyPathDescriptor, disclosedScripts: ScriptDisclosure[], collectedSignatures: Map<string, string>): { mastBranches: Map<string, string>; signatures: Map<string, string>; scriptProofs: ScriptProof[]; }",
           "doc": "Build a recursive MAST witness plan from collected signatures and\ndisclosed scripts. The plan describes what the witness should contain;\nuse materializeRecursiveWitness() from"
         },
         "verifySigningRequest": {
@@ -14574,6 +14863,16 @@
           "signature": "writeMMREntryNumber(value: bigint, scale?: number): Uint8Array",
           "doc": "Encode an MMREntryNumber per Java MMREntryNumber.writeDataStream()\n\nJava source (MMREntryNumber.java):\n  MiniNumber.WriteToStream(zOut, mNumber.scale());   // scale as MiniNumber\n  MiniData.WriteToStream(zOut, mNumber.unscaledValue().toByteArray()); // unscaled as MiniData\n\nFormat:\n  - MiniNumber for scale (always 0 for integer values)\n  - MiniData for unscaled BigInteger value\n\nFor integer MMREntryNumber (scale=0), this encodes as:\n  [00 01 00]        - MiniNumber: scale=0, len=1, data=0x00\n  [00 00 00 LL ...] - MiniData: 4-byte len + BigInteger bytes"
         },
+        "writeSignature": {
+          "kind": "function",
+          "signature": "writeSignature(sig: Signature): Uint8Array",
+          "doc": "Write Signature per Java Signature.writeDataStream()\n\nJava source (Signature.java):\n  MiniNumber.WriteToStream(zOut, mSignatures.size());\n  for each sig: sig.writeDataStream(zOut);"
+        },
+        "writeSignatureProof": {
+          "kind": "function",
+          "signature": "writeSignatureProof(sigProof: SignatureProof): Uint8Array",
+          "doc": "Write SignatureProof per Java SignatureProof.writeDataStream()\n\nJava source (SignatureProof.java):\n  mPublicKey.writeDataStream(zOut);  // MiniData\n  mSignature.writeDataStream(zOut);  // MiniData\n  mProof.writeDataStream(zOut);      // MMRProof"
+        },
         "concat": {
           "kind": "function",
           "signature": "concat(...arrays: Uint8Array[]): Uint8Array"
@@ -14726,6 +15025,16 @@
           "signature": "createPerAddressTreeKeyAsync(baseSeed: Bytes, addressIndex: number, onProgress?: ProgressCallback): Promise<TreeKey>",
           "deprecated": true
         },
+        "setTreeKeyLogger": {
+          "kind": "function",
+          "signature": "setTreeKeyLogger(logger: LoggerAdapter): void",
+          "doc": "Enable TreeKey debug logging with a custom logger\nUse this for parity testing to capture wallet init intermediate values\n\nWARNING: Debug logging outputs sensitive cryptographic material including\nseeds and private key derivation. NEVER enable in production builds.\nThis is intended for development/testing parity verification only."
+        },
+        "disableTreeKeyLogger": {
+          "kind": "function",
+          "signature": "disableTreeKeyLogger(): void",
+          "doc": "Disable TreeKey debug logging"
+        },
         "KeyGenProgress": {
           "kind": "interface",
           "signature": "export interface KeyGenProgress",
@@ -14764,6 +15073,16 @@
         "fromHex": {
           "kind": "const",
           "signature": "fromHex: (h: string) => Uint8Array"
+        },
+        "setWotsLogger": {
+          "kind": "function",
+          "signature": "setWotsLogger(logger: LoggerAdapter): void",
+          "doc": "Enable WOTS debug logging with a custom logger\nUse this for parity testing to capture all intermediate values\n\nWARNING: Debug logging outputs sensitive cryptographic material including\nprivate key chains and seeds. NEVER enable in production builds.\nThis is intended for development/testing parity verification only."
+        },
+        "disableWotsLogger": {
+          "kind": "function",
+          "signature": "disableWotsLogger(): void",
+          "doc": "Disable WOTS debug logging"
         },
         "u16be": {
           "kind": "const",
@@ -16771,6 +17090,15 @@
           "kind": "interface",
           "signature": "export interface LocalWatermark"
         },
+        "WatermarkSeed": {
+          "kind": "interface",
+          "signature": "export interface WatermarkSeed",
+          "doc": "A portable, self-describing watermark snapshot (RFC-013 §9). Used to seed a\nfreshly-provisioned local watermark from an exported blob, an operator-supplied\nhigh-water mark, or the on-chain cursor, so a restored wallet never starts\nbelow the true high-water mark and reissues a spent leaf."
+        },
+        "SeedWatermarkOptions": {
+          "kind": "interface",
+          "signature": "export interface SeedWatermarkOptions"
+        },
         "ConflictRecord": {
           "kind": "interface",
           "signature": "export interface ConflictRecord"
@@ -16838,6 +17166,20 @@
           "kind": "class",
           "signature": "export class LocalLeaseProvider implements WotsLeaseProvider"
         },
+        "seedLeaseWatermark": {
+          "kind": "function",
+          "signature": "seedLeaseWatermark(params: SeedLeaseWatermarkParams): Promise<LocalWatermark>",
+          "doc": "Seed a local watermark from the best available source, requiring at least one\nsource unless `fresh` is set. Returns the resulting local watermark."
+        },
+        "exportLeaseWatermark": {
+          "kind": "function",
+          "signature": "exportLeaseWatermark(local: LocalLeaseProvider, treeId: string): Promise<WatermarkSeed>",
+          "doc": "Export a portable watermark blob for backup/restore."
+        },
+        "SeedLeaseWatermarkParams": {
+          "kind": "interface",
+          "signature": "export interface SeedLeaseWatermarkParams"
+        },
         "AxiaLeaseProvider": {
           "kind": "class",
           "signature": "export class AxiaLeaseProvider implements WotsLeaseProvider"
@@ -16890,6 +17232,16 @@
         "WatermarkExhaustedError": {
           "kind": "class",
           "signature": "export class WatermarkExhaustedError extends Error"
+        },
+        "WatermarkSeedRegressionError": {
+          "kind": "class",
+          "signature": "export class WatermarkSeedRegressionError extends Error",
+          "doc": "Raised when seeding would move the local watermark cursor backwards. This is\nthe fail-closed guard against restoring a wallet below its true high-water\nmark and reusing a WOTS leaf (RFC-013 §9)."
+        },
+        "WatermarkSeedRequiredError": {
+          "kind": "class",
+          "signature": "export class WatermarkSeedRequiredError extends Error",
+          "doc": "Raised when a restore/import has no usable watermark source and the caller has\nnot declared the keyspace fresh. Failing closed is required: starting at 0\nwould reissue spent leaves (RFC-013 §9)."
         },
         "LeaseNotFoundError": {
           "kind": "class",

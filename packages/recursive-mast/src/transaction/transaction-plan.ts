@@ -81,6 +81,16 @@ function witnessPlanToDescriptor(plan: RecursiveWitnessPlan): {
     });
   }
 
+  // RFC-016 P2: canonical ScriptProofs (script + proof + root it is proven
+  // against), not a leaf-hash → script map with an empty expected root.
+  if (plan.scriptProofs && plan.scriptProofs.length > 0) {
+    descriptor.scriptProofs = plan.scriptProofs.map((p) => ({
+      script: p.script,
+      scriptProof: p.proofHex,
+      expectedRoot: p.address,
+    }));
+  }
+
   return descriptor;
 }
 
@@ -90,7 +100,7 @@ function disclosedScriptsToProofs(
   return disclosedScripts.map(ds => ({
     script: ds.script,
     scriptProof: ds.mmrProof,
-    expectedRoot: '',
+    expectedRoot: ds.policyRoot ?? '',
   }));
 }
 
@@ -128,7 +138,11 @@ export function toEnhancedBuildParams(plan: PolicyTransactionPlan): {
       ? witnessPlanToDescriptor(input.witnessPlan)
       : undefined;
 
-    if (witness && input.disclosedScripts) {
+    if (
+      witness &&
+      input.disclosedScripts &&
+      (!witness.scriptProofs || witness.scriptProofs.length === 0)
+    ) {
       witness.scriptProofs = disclosedScriptsToProofs(input.disclosedScripts);
     }
 

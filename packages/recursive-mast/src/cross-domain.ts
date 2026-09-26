@@ -4,12 +4,13 @@
  * trust: one country's identity system → another country's acceptance rules.
  */
 
-import { sha3_256, bytesToHex } from '@totemsdk/core';
+import { computeCanonicalScriptHash } from '@totemsdk/kissvm';
 import type { CrossDomainBridge, CrossDomainConstraints } from './types.js';
 export type { CrossDomainBridge, CrossDomainConstraints };
 
 function hashScript(script: string): string {
-  return bytesToHex(sha3_256(new TextEncoder().encode(script)));
+  // RFC-016 P2: canonical MMR leaf hash
+  return computeCanonicalScriptHash(script);
 }
 
 /**

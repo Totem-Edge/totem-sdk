@@ -10,10 +10,10 @@
  * a maintenance command might traverse only 3.
  */
 
-import { sha3_256, bytesToHex } from '@totemsdk/core';
 import type { PolicyNode, PolicyTree, ProofLink } from './types.js';
 import { buildPolicyTree, type PolicyNodeInput } from './policy-tree.js';
 import { buildProofChain } from './proof-chain.js';
+import { computeCanonicalScriptHash } from './mast-compiler.js';
 
 // ─── Layer definitions ─────────────────────────────────────────────────────
 
@@ -83,7 +83,7 @@ export function buildLayeredPolicy(config: LayeredPolicyConfig): {
   const tree = buildPolicyTree(nodes);
 
   const proofLinks: ProofLink[] = config.layers.map((layer) => ({
-    scriptHash: bytesToHex(sha3_256(new TextEncoder().encode(layer.script))),
+    scriptHash: computeCanonicalScriptHash(layer.script),
     policyRoot: tree.nodeMap.get(layer.id)?.policyRoot ?? '',
     proof: '',
     script: layer.script,
@@ -111,9 +111,9 @@ export function buildLayeredMastScript(config: LayeredPolicyConfig): string {
   let script = config.layers[config.layers.length - 1].script;
 
   for (let i = config.layers.length - 2; i >= 0; i--) {
-    const nextRoot = bytesToHex(sha3_256(new TextEncoder().encode(
-      script.trim().toUpperCase()
-    )));
+    // RFC-016 P2: the MAST root must be the canonical MMR script hash so the
+    // evaluator's witness lookup matches the proof the VM computes.
+    const nextRoot = computeCanonicalScriptHash(script);
     script = `${config.layers[i].script}\nMAST 0x${nextRoot}`;
   }
 
