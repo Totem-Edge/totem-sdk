@@ -14,6 +14,8 @@ export interface MandateEnforcementConfig {
 }
 
 export interface ActionAuthorizationConfig {
+  /** Fixed authority permitted to authorize the action (I1). */
+  authorityPk: string
   actionHash: string
   windowEnd: bigint
   noncePort: number
@@ -83,9 +85,14 @@ export function buildMandateEnforcementScript(config: MandateEnforcementConfig):
 }
 
 export function buildActionAuthorizationScript(config: ActionAuthorizationConfig): string {
+  const authority = config.authorityPk.replace(/^0x/i, '')
   return [
     `LET nonce = STATE(${config.noncePort})`,
-    `ASSERT PREVSTATE(${config.noncePort}) NEQ nonce`,
+    // I3: the nonce must strictly increase — `NEQ` alone can oscillate.
+    `ASSERT nonce GT PREVSTATE(${config.noncePort})`,
+    ``,
+    // I1: a fixed authority must authorize the action.
+    `ASSERT SIGNEDBY(0x${authority})`,
     ``,
     `LET actionHash = 0x${config.actionHash.replace(/^0x/i, '')}`,
     `ASSERT STATE(${config.actionPort}) EQ actionHash`,

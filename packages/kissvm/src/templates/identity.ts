@@ -49,11 +49,17 @@ export function buildIdentityVerificationScript(config: IdentityVerificationConf
 }
 
 export function buildDelegationProofScript(config: DelegationProofConfig): string {
+  const delegator = config.delegatorPk.replace(/^0x/i, '')
   const lines: string[] = [
     `LET delegatorPk = STATE(0)`,
     `LET delegatePk = STATE(1)`,
     ``,
     `ASSERT SAMESTATE(0 2)`,
+    // RFC-016 I1: the configured delegator must authorize, and delegator state
+    // must be committed (unchanged) so a spender cannot substitute it.
+    `ASSERT delegatorPk EQ 0x${delegator}`,
+    `ASSERT delegatorPk EQ PREVSTATE(0)`,
+    `ASSERT SIGNEDBY(0x${delegator})`,
   ]
 
   if (config.delegationRoot) {

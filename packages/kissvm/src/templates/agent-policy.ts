@@ -1,4 +1,6 @@
 export interface PaymentIntentConfig {
+  /** Fixed authority permitted to execute the intent (I1). */
+  authorityPk: string
   riskLimit: string
   allowedRecipient: string
   expiresAt: bigint
@@ -15,16 +17,27 @@ function requireHex(value: string, field: string): string {
 
 export function buildPaymentIntentScript(config: PaymentIntentConfig): string {
   const recipient = requireHex(config.allowedRecipient, 'allowedRecipient')
+  const authority = requireHex(config.authorityPk, 'authorityPk')
+  const token = config.tokenId !== undefined ? requireHex(config.tokenId, 'tokenId') : '00'
   const lines: string[] = [
     `LET amount = STATE(20)`,
+    `LET recipient = STATE(21)`,
     `LET limit = ${config.riskLimit}`,
+    // I3: the committed intent (amount + recipient) cannot be altered by the
+    // executing transaction.
+    `ASSERT amount EQ PREVSTATE(20)`,
+    `ASSERT recipient EQ PREVSTATE(21)`,
     `ASSERT amount LTE limit`,
-    `ASSERT STATE(21) EQ 0x${recipient}`,
+    `ASSERT recipient EQ 0x${recipient}`,
+    // I1: only the fixed authority may execute the intent.
+    `ASSERT SIGNEDBY(0x${authority})`,
+    // I2: bind the payment to the actual output, not to the input claims.
+    `ASSERT VERIFYOUT(@INPUT recipient amount 0x${token} TRUE)`,
     `ASSERT @BLOCK LTE ${config.expiresAt.toString()}`,
   ]
 
   if (config.tokenId !== undefined) {
-    lines.push(`ASSERT @TOKENID EQ 0x${requireHex(config.tokenId, 'tokenId')}`)
+    lines.push(`ASSERT @TOKENID EQ 0x${token}`)
   }
 
   lines.push(`RETURN TRUE`)

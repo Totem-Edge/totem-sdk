@@ -226,6 +226,7 @@ export type { ProviderBondConfig } from './templates/provider-bond.js';
 
 export {
   buildTxPoWValidationScript,
+  buildAttestedTxPoWMetaScript,
   buildMagicConstantsScript,
 } from './templates/txpow.js';
 export type { TxPoWValidationConfig } from './templates/txpow.js';

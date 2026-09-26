@@ -10,12 +10,17 @@ export function buildStatechainScript(config: StateChainConfig): string {
   const ownerPort = config.ownerPort ?? 0
   const timelock = config.reclaimTimelock
 
+  // I1 (RFC-016): the reclaim branch authenticates the *committed* owner
+  // (`PREVSTATE`), never a mutable current-state value, and requires owner
+  // continuity so an attacker cannot substitute their own key after the timelock.
   return [
-    `LET OWNER = STATE(${ownerPort})`,
+    `LET prevOwner = PREVSTATE(${ownerPort})`,
     `IF @COINAGE GTE ${timelock.toString()} THEN`,
-    `  RETURN SIGNEDBY(OWNER)`,
+    `  ASSERT SIGNEDBY(prevOwner)`,
+    `  ASSERT STATE(${ownerPort}) EQ prevOwner`,
+    `  RETURN TRUE`,
     `ENDIF`,
-    `ASSERT MULTISIG(2 OWNER 0x${config.sePk})`,
+    `ASSERT MULTISIG(2 STATE(${ownerPort}) 0x${config.sePk})`,
     `RETURN TRUE`,
   ].join('\n')
 }

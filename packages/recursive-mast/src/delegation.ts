@@ -139,7 +139,10 @@ export function verifyDelegationChain(chain: DelegationChain): { valid: boolean;
  * Each level delegates to the next via MAST.
  */
 export function toDelegationChainScript(chain: DelegationChain): string {
-  if (chain.links.length === 0) return 'RETURN TRUE';
+  // RFC-016 I4: an empty delegation chain must fail construction.
+  if (chain.links.length === 0) {
+    throw new Error('toDelegationChainScript: empty delegation chain');
+  }
 
   let script = chain.links[chain.links.length - 1].script;
 

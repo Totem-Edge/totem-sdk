@@ -103,7 +103,10 @@ export function buildLayeredPolicy(config: LayeredPolicyConfig): {
  * Each layer delegates to the next via MAST.
  */
 export function buildLayeredMastScript(config: LayeredPolicyConfig): string {
-  if (config.layers.length === 0) return 'RETURN TRUE';
+  // RFC-016 I4: an empty policy must fail construction, not become allow-all.
+  if (config.layers.length === 0) {
+    throw new Error('buildLayeredMastScript: empty layers (refusing to build an allow-all policy)');
+  }
 
   let script = config.layers[config.layers.length - 1].script;
 

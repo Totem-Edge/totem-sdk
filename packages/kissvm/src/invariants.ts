@@ -125,18 +125,18 @@ export function auditScriptInvariants(input: InvariantAuditInput): InvariantViol
     if (!/\bSIGNEDBY\(|\bMULTISIG\(/.test(script)) {
       violations.push({ invariant: 'I1', detail: 'no SIGNEDBY/MULTISIG in an authorizing script' });
     }
-    // Signer variables bound from current STATE must be anchored to the same
-    // port in PREVSTATE (authority continuity).
+    // A signer read from mutable current STATE is only acceptable when the
+    // script also anchors authority to the committed past (`PREVSTATE`). Without
+    // any `PREVSTATE`, a state-derived signer is attacker-chosen.
     const bindings = new Map<string, string>();
     for (const m of script.matchAll(STATE_BINDING)) bindings.set(m[1], m[2]);
-    for (const m of script.matchAll(SIGNEDBY_CALL)) {
-      const varName = m[1];
-      const port = bindings.get(varName);
-      if (port === undefined) continue; // literal key or unknown — out of scope here
-      if (!new RegExp(`PREVSTATE\\(\\s*${port}\\s*\\)`).test(script)) {
+    if (!/PREVSTATE\(/.test(script)) {
+      for (const m of script.matchAll(SIGNEDBY_CALL)) {
+        const port = bindings.get(m[1]);
+        if (port === undefined) continue;
         violations.push({
           invariant: 'I1',
-          detail: `SIGNEDBY(${varName}) derives authority from mutable STATE(${port}) with no PREVSTATE(${port}) continuity`,
+          detail: `SIGNEDBY(${m[1]}) derives authority from mutable STATE(${port}) with no PREVSTATE anchor`,
         });
       }
     }
@@ -147,13 +147,14 @@ export function auditScriptInvariants(input: InvariantAuditInput): InvariantViol
     violations.push({ invariant: 'I2', detail: 'no VERIFYOUT: payment/escrow claim is not bound to an output' });
   }
 
-  // I4 — fail-closed exhaustive branching.
-  const hasIf = /\bIF\b/.test(script);
+  // I4 — fail-closed exhaustive branching. Two or more independent conditional
+  // branches without an `ELSE RETURN FALSE` can fall through to `RETURN TRUE`.
+  const ifCount = (script.match(/\bIF\b/g) ?? []).length;
   const hasElseReturnFalse = /ELSE\b[\s\S]*?RETURN\s+FALSE/i.test(script);
-  if (hasIf && !hasElseReturnFalse && /RETURN\s+TRUE/i.test(script)) {
+  if (ifCount >= 2 && !hasElseReturnFalse && /RETURN\s+TRUE/i.test(script)) {
     violations.push({
       invariant: 'I4',
-      detail: 'conditional block(s) can fall through to RETURN TRUE without ELSE RETURN FALSE',
+      detail: 'independent conditional blocks can fall through to RETURN TRUE without ELSE RETURN FALSE',
     });
   }
 

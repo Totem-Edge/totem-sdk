@@ -37,6 +37,7 @@ import {
 } from '../templates/temporal';
 import {
   buildTxPoWValidationScript,
+  buildAttestedTxPoWMetaScript,
   buildMagicConstantsScript,
 } from '../templates/txpow';
 import {
@@ -231,8 +232,19 @@ describe('stable template: statechain', () => {
     const result = run(script, ctx({
       inputs: [coin(100, 100)],
       state: s({ 0: pkAA }),
+      prevState: s({ 0: pkAA }),
     }), { [pkAA]: 'owner' });
     expect(result.success).toBe(true);
+  });
+
+  it('rejects owner substitution after the timelock (RFC-016 I1)', () => {
+    const script = buildStatechainScript(cfg);
+    const result = run(script, ctx({
+      inputs: [coin(100, 100)],
+      state: s({ 0: pkBB }),      // attacker sets current state to their own key
+      prevState: s({ 0: pkAA }),  // committed owner is pkAA
+    }), { [pkBB]: 'attacker' });
+    expect(result.success).toBe(false);
   });
 
   it('owner alone cannot spend before the timelock', () => {
@@ -468,6 +480,7 @@ describe('stable template: temporal', () => {
 
 describe('stable template: txpow', () => {
   const cfg = {
+    attestorPk: pkAA,
     maxTxPoWSize: 1000n,
     maxKISSVMOps: 500n,
     minTxPoWWork: 10n,
@@ -476,18 +489,23 @@ describe('stable template: txpow', () => {
     workPort: 3,
   };
 
-  it('validation passes within limits and fails beyond them', () => {
-    const script = buildTxPoWValidationScript(cfg);
-    expect(run(script, ctx({ state: s({ 1: 100, 2: 10, 3: 10 }) })).success).toBe(true);
-    expect(run(script, ctx({ state: s({ 1: 2000, 2: 10, 3: 10 }) })).success).toBe(false);
-    expect(run(script, ctx({ state: s({ 1: 100, 2: 600, 3: 10 }) })).success).toBe(false);
-    expect(run(script, ctx({ state: s({ 1: 100, 2: 10, 3: 5 }) })).success).toBe(false);
+  it('attested metadata validation passes within limits and fails beyond them', () => {
+    const script = buildAttestedTxPoWMetaScript(cfg);
+    // deprecated alias resolves to the attested script
+    expect(buildTxPoWValidationScript(cfg)).toBe(script);
+    expect(run(script, ctx({ state: s({ 1: 100, 2: 10, 3: 10 }) }), { [pkAA]: 'attestor' }).success).toBe(true);
+    expect(run(script, ctx({ state: s({ 1: 2000, 2: 10, 3: 10 }) }), { [pkAA]: 'attestor' }).success).toBe(false);
+    expect(run(script, ctx({ state: s({ 1: 100, 2: 600, 3: 10 }) }), { [pkAA]: 'attestor' }).success).toBe(false);
+    expect(run(script, ctx({ state: s({ 1: 100, 2: 10, 3: 5 }) }), { [pkAA]: 'attestor' }).success).toBe(false);
+    // RFC-016 I1: without the fixed attestor's signature the script fails.
+    expect(run(script, ctx({ state: s({ 1: 100, 2: 10, 3: 10 }) })).success).toBe(false);
   });
 
-  it('magic constants script requires exact committed values', () => {
+  it('magic constants script requires exact committed values and the attestor', () => {
     const script = buildMagicConstantsScript(cfg);
-    expect(run(script, ctx({ state: s({ 1: 1000, 2: 500, 3: 10 }) })).success).toBe(true);
-    expect(run(script, ctx({ state: s({ 1: 999, 2: 500, 3: 10 }) })).success).toBe(false);
+    expect(run(script, ctx({ state: s({ 1: 1000, 2: 500, 3: 10 }) }), { [pkAA]: 'attestor' }).success).toBe(true);
+    expect(run(script, ctx({ state: s({ 1: 999, 2: 500, 3: 10 }) }), { [pkAA]: 'attestor' }).success).toBe(false);
+    expect(run(script, ctx({ state: s({ 1: 1000, 2: 500, 3: 10 }) })).success).toBe(false);
   });
 });
 
@@ -511,18 +529,25 @@ describe('stable template: identity', () => {
     expect(bad.success).toBe(false);
   });
 
-  it('delegation proof requires the delegate to match', () => {
+  it('delegation proof requires the delegate to match and the delegator to sign', () => {
     const script = buildDelegationProofScript({ delegatorPk: pkAA, delegatePk: pkBB });
     const ok = run(script, ctx({
       state: s({ 0: '0x' + pkAA, 1: '0x' + pkBB }),
       prevState: s({ 0: '0x' + pkAA, 1: '0x' + pkBB }),
-    }));
+    }), { [pkAA]: 'delegator' });
     expect(ok.success).toBe(true);
+
+    // RFC-016 I1: without the configured delegator's signature it fails.
+    const unsigned = run(script, ctx({
+      state: s({ 0: '0x' + pkAA, 1: '0x' + pkBB }),
+      prevState: s({ 0: '0x' + pkAA, 1: '0x' + pkBB }),
+    }));
+    expect(unsigned.success).toBe(false);
 
     const wrongDelegate = run(script, ctx({
       state: s({ 0: '0x' + pkAA, 1: '0x' + pkAA }),
       prevState: s({ 0: '0x' + pkAA, 1: '0x' + pkAA }),
-    }));
+    }), { [pkAA]: 'delegator' });
     expect(wrongDelegate.success).toBe(false);
   });
 
@@ -627,18 +652,27 @@ describe('stable template: authority', () => {
     expect(bad.success).toBe(false);
   });
 
-  it('action authorization enforces the action hash and window', () => {
+  it('action authorization enforces the authority, monotonic nonce, action hash and window', () => {
     const script = buildActionAuthorizationScript({
+      authorityPk: pkAA,
       actionHash: 'ab'.repeat(32),
       windowEnd: 1500n,
       noncePort: 5,
       actionPort: 6,
       windowEndPort: 7,
     });
-    const ok = run(script, ctx({ block: 1000, state: s({ 5: 2, 6: '0x' + 'ab'.repeat(32) }), prevState: s({ 5: 1 }) }));
+    const ok = run(script, ctx({ block: 1000, state: s({ 5: 2, 6: '0x' + 'ab'.repeat(32) }), prevState: s({ 5: 1 }) }), { [pkAA]: 'authority' });
     expect(ok.success).toBe(true);
 
-    const wrongAction = run(script, ctx({ block: 1000, state: s({ 5: 2, 6: '0x' + 'cd'.repeat(32) }), prevState: s({ 5: 1 }) }));
+    // Missing the fixed authority's signature fails (RFC-016 I1).
+    const noAuth = run(script, ctx({ block: 1000, state: s({ 5: 2, 6: '0x' + 'ab'.repeat(32) }), prevState: s({ 5: 1 }) }));
+    expect(noAuth.success).toBe(false);
+
+    // Nonce must strictly increase (RFC-016 I3).
+    const nonMonotonic = run(script, ctx({ block: 1000, state: s({ 5: 1, 6: '0x' + 'ab'.repeat(32) }), prevState: s({ 5: 1 }) }), { [pkAA]: 'authority' });
+    expect(nonMonotonic.success).toBe(false);
+
+    const wrongAction = run(script, ctx({ block: 1000, state: s({ 5: 2, 6: '0x' + 'cd'.repeat(32) }), prevState: s({ 5: 1 }) }), { [pkAA]: 'authority' });
     expect(wrongAction.success).toBe(false);
   });
 
@@ -660,20 +694,32 @@ describe('stable template: authority', () => {
 });
 
 describe('stable template: agent-policy', () => {
-  it('payment intent enforces the risk limit and recipient', () => {
+  it('payment intent binds the committed amount/recipient to the actual output', () => {
     const script = buildPaymentIntentScript({
+      authorityPk: pkAA,
       riskLimit: '100',
       allowedRecipient: pkBB,
       expiresAt: 2000n,
     });
-    const ok = run(script, ctx({ block: 1000, state: s({ 20: 50, 21: '0x' + pkBB }) }));
+    const good = s({ 20: 50, 21: '0x' + pkBB });
+    const ok = run(script, ctx({ block: 1000, state: good, prevState: good, outputs: [outputTo('0x' + pkBB, 50, true)] }), { [pkAA]: 'authority' });
     expect(ok.success).toBe(true);
 
-    const overLimit = run(script, ctx({ block: 1000, state: s({ 20: 150, 21: '0x' + pkBB }) }));
+    const over = s({ 20: 150, 21: '0x' + pkBB });
+    const overLimit = run(script, ctx({ block: 1000, state: over, prevState: over, outputs: [outputTo('0x' + pkBB, 150, true)] }), { [pkAA]: 'authority' });
     expect(overLimit.success).toBe(false);
 
-    const wrongRecipient = run(script, ctx({ block: 1000, state: s({ 20: 50, 21: '0x' + pkAA }) }));
+    const wrong = s({ 20: 50, 21: '0x' + pkAA });
+    const wrongRecipient = run(script, ctx({ block: 1000, state: wrong, prevState: wrong, outputs: [outputTo('0x' + pkAA, 50, true)] }), { [pkAA]: 'authority' });
     expect(wrongRecipient.success).toBe(false);
+
+    // RFC-016 I2: the output must actually pay the recipient, not just claim it.
+    const wrongOutput = run(script, ctx({ block: 1000, state: good, prevState: good, outputs: [outputTo('0x' + pkAA, 50, true)] }), { [pkAA]: 'authority' });
+    expect(wrongOutput.success).toBe(false);
+
+    // RFC-016 I1: the fixed authority must sign.
+    const unsigned = run(script, ctx({ block: 1000, state: good, prevState: good, outputs: [outputTo('0x' + pkBB, 50, true)] }));
+    expect(unsigned.success).toBe(false);
   });
 
   it('agent proposal enforces the allowed transition table', () => {
@@ -797,12 +843,14 @@ describe('stable template: proof', () => {
     expect(wrongEpoch.success).toBe(false);
   });
 
-  it('proof delegation requires both signatures', () => {
+  it('proof delegation requires both signatures and the root authority (RFC-016)', () => {
     const script = buildProofDelegationScript(proofCfg);
-    const ok = run(script, ctx({ block: 1000, state: s({ 0: pkAA, 1: pkBB }) }), { [pkAA]: 'delegator', [pkBB]: 'delegate' });
+    const ok = run(script, ctx({ block: 1000, state: s({ 1: pkBB }), prevState: s({ 0: pkAA }) }), { [pkAA]: 'authority', [pkBB]: 'delegate' });
     expect(ok.success).toBe(true);
-    const oneSig = run(script, ctx({ block: 1000, state: s({ 0: pkAA, 1: pkBB }) }), { [pkAA]: 'delegator' });
+    const oneSig = run(script, ctx({ block: 1000, state: s({ 1: pkBB }), prevState: s({ 0: pkAA }) }), { [pkBB]: 'delegate' });
     expect(oneSig.success).toBe(false);
+    const noAuthority = run(script, ctx({ block: 1000, state: s({ 1: pkBB }), prevState: s({ 0: pkBB }) }), { [pkBB]: 'delegate' });
+    expect(noAuthority.success).toBe(false);
   });
 });
 
@@ -967,6 +1015,7 @@ describe('stable template: provider-bond', () => {
     releaseRequestPort: 7,
     claimedPort: 8,
     challengeDeadlineBlock: 3000n,
+    probeSignerPk: pkAA,
   };
 
   it('bond lockup enforces amount, cliff, expiry, and provider signature', () => {
@@ -986,21 +1035,29 @@ describe('stable template: provider-bond', () => {
     expect(beforeCliff.success).toBe(false);
   });
 
-  it('heartbeat enforces the max gap', () => {
+  it('heartbeat enforces the max gap and the fixed probe signer', () => {
     const script = buildHeartbeatScript(cfg);
     const ok = run(script, ctx({
       block: 1000,
       state: s({ 3: 1000 }),
       prevState: s({ 3: 950 }),
-    }));
+    }), { [pkAA]: 'probe' });
     expect(ok.success).toBe(true);
 
     const tooLate = run(script, ctx({
       block: 1000,
       state: s({ 3: 1000 }),
       prevState: s({ 3: 800 }),
-    }));
+    }), { [pkAA]: 'probe' });
     expect(tooLate.success).toBe(false);
+
+    // RFC-016 I1: an unsigned heartbeat fails even when the gap is valid.
+    const unsigned = run(script, ctx({
+      block: 1000,
+      state: s({ 3: 1000 }),
+      prevState: s({ 3: 950 }),
+    }));
+    expect(unsigned.success).toBe(false);
   });
 
   it('bond state machine enforces the lifecycle', () => {

@@ -60,8 +60,13 @@ export function buildBondLockupScript(config: ProviderBondConfig): string {
 }
 
 export function buildHeartbeatScript(config: ProviderBondConfig): string {
-  const probeSignerPk = config.probeSignerPk ?? ''
-  const probeSignerPort = config.probeSignerPort ?? 6
+  const probeSignerPk = (config.probeSignerPk ?? '').replace(/^0x/i, '')
+  // I1 (RFC-016): a heartbeat must be authorized by the *configured* probe
+  // signer. Deriving the signer from mutable state (or omitting it) lets an
+  // attacker heartbeat on the provider's behalf.
+  if (!probeSignerPk) {
+    throw new Error('buildHeartbeatScript: probeSignerPk is required (RFC-016 I1)')
+  }
 
   const lines: string[] = [
     `LET prevHeartbeat = PREVSTATE(${config.heartbeatPort})`,
@@ -73,17 +78,10 @@ export function buildHeartbeatScript(config: ProviderBondConfig): string {
     ``,
     `LET newHeartbeat = @BLOCK`,
     `ASSERT STATE(${config.heartbeatPort}) EQ newHeartbeat`,
+    ``,
+    `// Probe signer must authorize (fixed key)`,
+    `ASSERT SIGNEDBY(0x${probeSignerPk})`,
   ]
-
-  if (probeSignerPk) {
-    lines.push(
-      ``,
-      `// Probe signer must authorize`,
-      `LET probeSigner = STATE(${probeSignerPort})`,
-      `ASSERT probeSigner NEQ 0x00`,
-      `ASSERT SIGNEDBY(probeSigner)`,
-    )
-  }
 
   lines.push(
     ``,
