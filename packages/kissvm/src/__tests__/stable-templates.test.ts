@@ -920,18 +920,34 @@ describe('stable template: industrial-action', () => {
     expect(bad.success).toBe(false);
   });
 
-  it('escrow enforcement enforces the condition hash and amount', () => {
-    const script = buildEscrowEnforcementScript({ conditionHash: 'ab'.repeat(32), amount: '100', conditionPort: 1, amountPort: 2 });
+  it('escrow enforcement enforces the condition hash, authority and payout', () => {
+    const script = buildEscrowEnforcementScript({
+      conditionHash: 'ab'.repeat(32),
+      amount: '100',
+      conditionPort: 1,
+      amountPort: 2,
+      authorityPk: pkAA,
+      beneficiaryPkd: pkBB,
+    });
     const ok = run(script, ctx({
       state: s({ 1: '0x' + 'ab'.repeat(32), 2: 100 }),
       prevState: s({ 1: '0x' + 'ab'.repeat(32), 2: 100 }),
-    }));
+      outputs: [outputTo('0x' + pkBB, 100, true)],
+    }), { [pkAA]: 'authority' });
     expect(ok.success).toBe(true);
     const wrongAmount = run(script, ctx({
       state: s({ 1: '0x' + 'ab'.repeat(32), 2: 200 }),
       prevState: s({ 1: '0x' + 'ab'.repeat(32), 2: 200 }),
-    }));
+      outputs: [outputTo('0x' + pkBB, 100, true)],
+    }), { [pkAA]: 'authority' });
     expect(wrongAmount.success).toBe(false);
+    // RFC-016 I1: without the fixed authority the escrow cannot be released.
+    const unsigned = run(script, ctx({
+      state: s({ 1: '0x' + 'ab'.repeat(32), 2: 100 }),
+      prevState: s({ 1: '0x' + 'ab'.repeat(32), 2: 100 }),
+      outputs: [outputTo('0x' + pkBB, 100, true)],
+    }));
+    expect(unsigned.success).toBe(false);
   });
 });
 

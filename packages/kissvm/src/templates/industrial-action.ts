@@ -31,6 +31,10 @@ export interface EscrowEnforcementConfig {
   amount: string
   conditionPort: number
   amountPort: number
+  /** Fixed authority that releases the escrow (RFC-016 I1). */
+  authorityPk: string
+  /** Beneficiary paid on release (RFC-016 I2). */
+  beneficiaryPkd: string
 }
 
 /**
@@ -155,7 +159,10 @@ export function buildEscrowEnforcementScript(config: EscrowEnforcementConfig): s
     `ASSERT condition EQ 0x${config.conditionHash}`,
     `ASSERT amount EQ ${config.amount}`,
     ``,
-    `ASSERT SAMESTATE(${config.conditionPort} ${config.amountPort})`,
+    // RFC-016 I1/I2: the escrow release is authorized by a fixed authority and
+    // actually pays the beneficiary (previously a pure metadata check).
+    `ASSERT SIGNEDBY(0x${config.authorityPk.replace(/^0x/i, '')})`,
+    `ASSERT VERIFYOUT(@INPUT 0x${config.beneficiaryPkd.replace(/^0x/i, '')} amount @TOKENID TRUE)`,
     ``,
     `RETURN TRUE`,
   ].join('\n')
