@@ -1,6 +1,6 @@
 # RFC-014: Wallet Connect Parity & Shared Execution Bridge
 
-**Status:** Landed — P1–P6 (structural parity) + first execution-wiring increment. `@totemsdk/connect/wallet` introduces the canonical `CONNECT_METHODS` (46) + `WALLET_INTERNAL_METHODS`, the frozen disposition table, structural ports, `createWalletRuntime`, and `buildWalletCapabilityManifest` (13-test conformance). Both wallets adopt the shared runtime at their dispatch boundary; the parity audit is runtime-aware, `KNOWN_GAPS` is empty, and both wallets report **46/46 served**. **Execution wiring landed (extension):** the `signer` port bridges lowercase `totem_*` methods to the extension's existing legacy handlers (`totem_signTransaction`, `totem_broadcastTxPoW`, `totem_getWotsStatus`, `totem_getAccounts`-class, …); `selfHosted` handles `totem_setChainProvider` (Axia-only; self-hosted node selection is user-driven); `receipts` serves `totem_getTransactionStatus`/`totem_getReceipt` from the persisted receipt store; and `lease` serves `totem_reserveWotsLease`/`totem_releaseWotsLease` from the RFC-013 self-hosted lease provider (Axia mode returns explicit `unsupported`). **Remaining (non-blocking):** PWA execution ports (approval-page bridge), and constructing the governed Edge runtime + omnia/payment/statechain/kissvm/agent ports so those families execute rather than return explicit `unsupported`. Open questions Q1–Q4 resolved (§13).
+**Status:** Landed — P1–P6 (structural parity) + first execution-wiring increment. `@totemsdk/connect/wallet` introduces the canonical `CONNECT_METHODS` (46) + `WALLET_INTERNAL_METHODS`, the frozen disposition table, structural ports, `createWalletRuntime`, and `buildWalletCapabilityManifest` (13-test conformance). Both wallets adopt the shared runtime at their dispatch boundary; the parity audit is runtime-aware, `KNOWN_GAPS` is empty, and both wallets report **46/46 served**. **Execution wiring landed (extension):** the `signer` port bridges lowercase `totem_*` methods to the extension's existing legacy handlers (`totem_signTransaction`, `totem_broadcastTxPoW`, `totem_getWotsStatus`, `totem_getAccounts`-class, …); `selfHosted` handles `totem_setChainProvider` (Axia-only; self-hosted node selection is user-driven); `receipts` serves `totem_getTransactionStatus`/`totem_getReceipt` from the persisted receipt store; and `lease` serves `totem_reserveWotsLease`/`totem_releaseWotsLease` from the RFC-013 self-hosted lease provider (Axia mode returns explicit `unsupported`). **Remaining (non-blocking):** wire the execution families (Omnia/statechain/kissvm) as **approval-gated SDK/chain calls** in each wallet; PWA execution ports (approval-page bridge). The wallet does **not** construct a governed Edge runtime — mandate-bound autonomy stays in autonomous hosts and is supplied via the optional `edge` port (§6.4). Open questions Q1–Q4 resolved (§13).
 **Created:** 2026-09-24
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]
@@ -124,30 +124,45 @@ Every connect method is classified as one of: **local** (wallet-owned),
 | `totem_signTransaction`, `totem_broadcastTxPoW`, `totem_mineTxPoW` | **local** | signer + chain provider |
 | `totem_setChainProvider` | **local** | RFC-013 config |
 | `totem_getTransactionStatus`, `totem_getReceipt` | **local** (persisted) | wallet store; optional Axia source (§8) |
-| `totem_omnia*` (13) | **edge-dispatched** | `@totemsdk/edge` `omnia:*` actions over `EdgeRuntimePorts.omnia` |
-| `TOTEM_SEND_TRANSACTION` payment path, `totem_createPaymentRequest`, `totem_payPaymentRequest` | **edge-dispatched** | `payment:send` + `@totemsdk/agent-policy` intent |
-| `totem_statechain*` (4) | **sdk-client** | `@totemsdk/statechain` client + SE (RFC-008) |
+| `totem_omnia*` (13) | **consent-gated SDK** | `@totemsdk/omnia` client behind the approval port |
+| `TOTEM_SEND_TRANSACTION` payment path, `totem_createPaymentRequest`, `totem_payPaymentRequest` | **consent-gated SDK** | payment/send path behind the approval port |
+| `totem_statechain*` (4) | **consent-gated SDK** | `@totemsdk/statechain` client + SE (RFC-008) |
 | `totem_kissvmSimulate`, `totem_kissvmValidate` | **sdk-client** | `@totemsdk/kissvm` |
-| `totem_agent*` (3) | **edge-dispatched** | `@totemsdk/agent-policy` / governance bridge |
+| `totem_agent*` (3) | **host-supplied** | an autonomous host's governed/agent bridge (never built in the wallet) |
 
 Extension-internal verbs (`RPC_COMMAND`, `START/STOP_STREAM`, snapshots, site
 management, `WOTS_SEND`/`WOTS_SIGN_DATA`) become part of the shared runtime too,
 so the PWA reaches extension parity by construction (T3).
 
-### 6.4 Governed execution boundary (T4)
+### 6.4 Execution boundary: consent vs autonomy (T4)
 
-Execution families are routed through the governed runtime, exactly as
-industrial-action and (RFC-012) decision are:
+A wallet is a **consent + signing surface** (MetaMask model), not an autonomous
+executor. The two authorization models in the SDK must not be conflated:
+
+- **Consent (wallet, default):** dApp proposes → approval port resolves → SDK
+  client call (Omnia/Statechain/KISSVM) or chain action → sign via the signer /
+  RFC-013 lease → broadcast. Authority is the **human approval**.
+- **Governed autonomy (agents/edge devices):** `GrantBoundAutonomyPolicy`
+  mandate → `authorizeAndReserve` → execute → `commit`/`abort`. Authority is a
+  **pre-delegated mandate**, for contexts where no human is in the loop
+  (RFC-010/011, `@totemsdk/edge` agent runtimes, `se-server`).
+
+The wallet therefore does **not** construct a governed Edge runtime and has no
+mandate/run-state store. Execution families are served as:
 
 ```text
-connect method → shared wallet handler → EdgeDispatch.executeAction(canonical action)
-   → ungrantable deny → capability → prepare → deriveEffects
-   → GrantBoundAutonomyPolicy.authorizeAndReserve → execute → commit/abort
+connect method → shared wallet handler → approval port (user consent)
+   → SDK client / chain action (Omnia / Statechain / KISSVM / payment)
+   → sign via signer + RFC-013 lease → broadcast
 ```
 
-The wallet **never** receives raw keys for these paths and never executes
-directly; it supplies ports and the approval surface. This keeps Omnia/Statechain/
-KISSVM/Agent logic in the SDK, not in two wallets.
+An injected `edge` dispatch port remains part of the handler context so a
+**host** that genuinely runs an autonomous runtime (an agent, an industrial
+edge device) can route governed actions — but that port is supplied by the host,
+never built into the browser wallet. This keeps Omnia/Statechain/KISSVM logic in
+the SDK (not duplicated per wallet) while keeping mandate-bound authority out of
+the extension's dApp-reachable surface. The wallet still never receives raw keys:
+it supplies ports and the approval surface.
 
 ### 6.5 Capability / method-support manifest (T5 §6.1)
 
@@ -200,10 +215,10 @@ audit §6 details them:
 ## 10. Dependency graph
 
 ```text
-wallets → connect (constants/types) [+ connect/wallet or wallet-runtime]
-wallets → edge (dispatch + ports)
-wallets → statechain, kissvm, minima-rpc, chain-provider (RFC-013), wots-lease
-connect/wallet → edge, statechain, kissvm, agent-policy (no cycles)
+wallets → connect (constants/types) + connect/wallet (shared runtime)
+wallets → statechain, kissvm, chain-provider (RFC-013), wots-lease, storage
+connect/wallet → (no concrete runtime deps; structural ports only, cycle-free)
+hosts that run autonomy → edge, agent-policy   (not the wallets)
 ```
 
 `@totemsdk/connect` stays dApp-focused; if a `connect/wallet` subpath is added it
@@ -215,8 +230,10 @@ must not import the wallets.
 - **P1** — T1: `@totemsdk/connect` dep + shared method registry + conformance test.
 - **P2** — shared `connect/wallet` runtime (or `wallet-runtime`) + local families;
   extension adopts it (closes T2 local set + lowercase namespace).
-- **P3** — `EdgeDispatch` + execution families (Omnia/payments; then statechain/
-  kissvm/agent) via the governed runtime (T4).
+- **P3** — execution families via **approval-gated SDK/chain calls** (Omnia/
+  payments; then statechain/kissvm); the injected `edge` port exists but is
+  supplied only by hosts that run an autonomous runtime, never built in the
+  wallet (T4, §6.4).
 - **P4** — capability manifest + `totem_getCapabilities`/status parity (T5 §6.1).
 - **P5** — PWA parity: adopt the shared runtime + add extension's non-connect
   surface (T3).
@@ -227,7 +244,11 @@ must not import the wallets.
 
 - One shared wallet handler implementation; no per-wallet duplication.
 - `@totemsdk/connect` is the source of truth for methods/types.
-- Execution families route through the governed Edge runtime / SDK clients.
+- The wallet is a **consent + signing surface**, not an autonomous executor.
+  Execution families are **approval-gated SDK/chain calls** by default; the
+  governed Edge runtime (mandate-bound autonomy) is **not constructed in the
+  wallet** and is supplied via the injected `edge` port only by hosts that run
+  autonomous agents/devices (§6.4).
 - One capability manifest drives `getCapabilities` and the gate.
 - The extension's non-connect surface is brought into the shared runtime (PWA
   parity by construction).
@@ -240,11 +261,12 @@ must not import the wallets.
 - **Q2** tx status/receipts → **persist in-wallet** via an injected
   `ReceiptStorePort`; Axia endpoints stay RFC-015. When no store is wired the
   method is explicitly `unsupported` (reason), never a silent stub.
-- **Q3** Omnia/payments/agent → **Edge-dispatched** through an injected
-  `EdgeDispatch` (the governed `createAgentEdgeRuntime`). Statechain/KISSVM have
-  no Edge ports, so they are **sdk-client** handlers over injected clients.
-  `@totemsdk/connect/wallet` depends on **none** of these concretely — it defines
-  structural ports and stays cycle-free (edge already peer-depends on connect).
+- **Q3** Omnia/payments/statechain/kissvm/agent → **consent-gated SDK/chain
+  calls** over injected clients (model B), *not* a wallet-hosted governed
+  runtime. The `edge` dispatch port stays part of the context as an **optional,
+  host-supplied** seam for autonomous runtimes; a browser wallet does not wire
+  it. `@totemsdk/connect/wallet` depends on **none** of these concretely — it
+  defines structural ports and stays cycle-free.
 - **Q4** streaming/snapshot surface → **not required for PWA parity in v1**; those
   remain local wallet handlers. Only connect methods are gated.
 
@@ -258,6 +280,11 @@ must not import the wallets.
 - The parity audit becomes **runtime-aware**: a wallet that creates the shared
   runtime is scored from its served manifest, not from hand-scraped `case`
   strings.
+- **Consent vs autonomy (locked):** mandate-bound governance
+  (`GrantBoundAutonomyPolicy`) lives in autonomous runtimes
+  (`@totemsdk/edge` agent/industrial, `se-server`), not in the browser wallets.
+  The wallets expose an approval port; an autonomous agent uses the wallet as its
+  signer/approver through connect, keeping authority and consent separated.
 
 ## 14. References
 
