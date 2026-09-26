@@ -1,7 +1,21 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useWallet } from '../core/WalletContext';
 import { WalletManager } from '../core/WalletManager';
 import type { AccountRecord } from '../stores/VaultStore';
+import type { ChainProviderMode } from '@totemsdk/chain-provider';
+import {
+  DEFAULT_WALLET_NETWORK_CONFIG,
+  createLocalStorageStore,
+  loadWalletNetworkConfig,
+  saveWalletNetworkConfig,
+  recordSelfHostedConsent,
+  buildWalletChainProvider,
+  type LeaseProviderMode,
+  type WalletNetworkConfig,
+} from '../core/config/selfHosted';
+
+const AXIA_BASE = import.meta.env.VITE_AXIA_API_BASE ?? 'https://api.axia.to';
+const AXIA_PROJECT_ID = import.meta.env.VITE_AXIA_PROJECT_ID ?? 'totem-shared';
 
 export function Settings() {
   const { session, activeAccount, lock, setRoute, addNextAddress } = useWallet();
@@ -10,6 +24,66 @@ export function Settings() {
   const [addingAddress, setAddingAddress] = useState(false);
   const [newAccount, setNewAccount] = useState<AccountRecord | null>(null);
   const [error, setError] = useState('');
+
+  // ── Network & key-use selection (RFC-013) ───────────────────────────────────
+  const [netConfig, setNetConfig] = useState<WalletNetworkConfig>(DEFAULT_WALLET_NETWORK_CONFIG);
+  const [nodeUrl, setNodeUrl] = useState('');
+  const [nodeUser, setNodeUser] = useState('');
+  const [nodePass, setNodePass] = useState('');
+  const [netStatus, setNetStatus] = useState('');
+  const [netBusy, setNetBusy] = useState(false);
+
+  useEffect(() => {
+    loadWalletNetworkConfig(createLocalStorageStore())
+      .then(cfg => {
+        setNetConfig(cfg);
+        if (cfg.chain.minimaRpcUrl) setNodeUrl(cfg.chain.minimaRpcUrl);
+      })
+      .catch(() => undefined);
+  }, []);
+
+  function chainConfig() {
+    return {
+      ...netConfig.chain,
+      ...(nodeUrl ? { minimaRpcUrl: nodeUrl } : {}),
+      ...(nodeUser ? { minimaRpcUser: nodeUser } : {}),
+      ...(nodePass ? { minimaRpcPass: nodePass } : {}),
+    };
+  }
+
+  async function handleTestConnection() {
+    setNetBusy(true);
+    setNetStatus('');
+    try {
+      const provider = buildWalletChainProvider(chainConfig(), {
+        hosted: { baseUrl: AXIA_BASE, apiKey: AXIA_PROJECT_ID },
+      });
+      const tip = await provider.getTip();
+      setNetStatus(`Connected — block ${tip.block}`);
+    } catch (e) {
+      setNetStatus(`Failed: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setNetBusy(false);
+    }
+  }
+
+  async function handleSaveNetwork() {
+    setNetBusy(true);
+    setNetStatus('');
+    try {
+      const store = createLocalStorageStore();
+      const chain = chainConfig();
+      if (chain.minimaRpcUrl) await recordSelfHostedConsent(store, chain.minimaRpcUrl);
+      const next: WalletNetworkConfig = { chain, lease: netConfig.lease };
+      await saveWalletNetworkConfig(store, next);
+      setNetConfig(next);
+      setNetStatus('Saved. Reversible at any time.');
+    } catch (e) {
+      setNetStatus(`Failed: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setNetBusy(false);
+    }
+  }
 
   // ── Show Seed Phrase flow ──────────────────────────────────────────────────
   const [phraseStep, setPhraseStep] = useState<'idle' | 'password' | 'revealed'>('idle');
@@ -119,6 +193,69 @@ export function Settings() {
               </span>
             ) : '+ Add Next Address'}
           </button>
+        </div>
+
+        <div className="card">
+          <p className="label" style={{ marginBottom: 'var(--space-2)' }}>Network & Key Use</p>
+
+          <label className="label">Chain provider</label>
+          <select
+            className="input"
+            style={{ marginBottom: 'var(--space-2)' }}
+            value={netConfig.chain.mode}
+            onChange={e => setNetConfig(c => ({ ...c, chain: { ...c.chain, mode: e.target.value as ChainProviderMode } }))}
+          >
+            <option value="axia">Axia (recommended)</option>
+            <option value="minima-rpc">My own node</option>
+            <option value="composite">Advanced (node + Axia fallback)</option>
+          </select>
+
+          {netConfig.chain.mode !== 'axia' && (
+            <>
+              <input
+                className="input"
+                style={{ marginBottom: 'var(--space-1)' }}
+                value={nodeUrl}
+                onChange={e => setNodeUrl(e.target.value)}
+                placeholder="https://node.example.com:9005"
+              />
+              <div style={{ display: 'flex', gap: 'var(--space-1)', marginBottom: 'var(--space-2)' }}>
+                <input className="input" value={nodeUser} onChange={e => setNodeUser(e.target.value)} placeholder="RPC user (optional)" />
+                <input className="input" type="password" value={nodePass} onChange={e => setNodePass(e.target.value)} placeholder="RPC password" />
+              </div>
+            </>
+          )}
+
+          <label className="label">WOTS key use</label>
+          <select
+            className="input"
+            style={{ marginBottom: 'var(--space-2)' }}
+            value={netConfig.lease.mode}
+            onChange={e => setNetConfig(c => ({ ...c, lease: { ...c.lease, mode: e.target.value as LeaseProviderMode } }))}
+          >
+            <option value="axia">Managed by Axia</option>
+            <option value="local">On this device (self-hosted)</option>
+            <option value="hybrid">Hybrid (device + on-chain anchor)</option>
+          </select>
+
+          <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-xs)', marginBottom: 'var(--space-2)' }}>
+            Statechain SE co-signatures still require an SE (Axia-hosted or a self-hosted se-server).
+          </p>
+
+          {netStatus && (
+            <div style={{ fontSize: 'var(--text-xs)', marginBottom: 'var(--space-2)', color: 'var(--text-secondary)' }}>
+              {netStatus}
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
+            <button className="btn btn-secondary" style={{ flex: 1 }} onClick={handleTestConnection} disabled={netBusy}>
+              Test connection
+            </button>
+            <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleSaveNetwork} disabled={netBusy}>
+              Save
+            </button>
+          </div>
         </div>
 
         <button className="btn btn-secondary btn-full" onClick={lock}>

@@ -143,7 +143,7 @@ export class ChromeStorageAdapter implements StorageAdapter {
   async get<T>(key: string): Promise<T | null> {
     try {
       const fullKey = this.getKey(key);
-      const result = await chrome.storage.local.get(fullKey);
+      const result = await chrome.storage.local.getTyped(fullKey);
       return result[fullKey] ?? null;
     } catch (error) {
       console.error(`[ChromeStorageAdapter] Failed to get ${key}:`, error);
@@ -174,7 +174,7 @@ export class ChromeStorageAdapter implements StorageAdapter {
   async clear(): Promise<void> {
     try {
       const allItems: Record<string, unknown> = await new Promise((resolve) => {
-        chrome.storage.local.get(null, (items) => resolve(items || {}));
+        chrome.storage.local.getTyped(null, (items) => resolve(items || {}));
       });
       const keysToRemove = Object.keys(allItems).filter(k => k.startsWith(this.prefix));
       if (keysToRemove.length > 0) {
@@ -189,7 +189,7 @@ export class ChromeStorageAdapter implements StorageAdapter {
   async keys(): Promise<string[]> {
     try {
       const allItems: Record<string, unknown> = await new Promise((resolve) => {
-        chrome.storage.local.get(null, (items) => resolve(items || {}));
+        chrome.storage.local.getTyped(null, (items) => resolve(items || {}));
       });
       return Object.keys(allItems)
         .filter(k => k.startsWith(this.prefix))

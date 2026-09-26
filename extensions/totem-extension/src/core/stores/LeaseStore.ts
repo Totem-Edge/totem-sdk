@@ -77,7 +77,7 @@ export class LeaseStore {
 
   private async _loadUnsafe(): Promise<void> {
     try {
-      const result = await chrome.storage.local.get(STORAGE_KEY);
+      const result = await chrome.storage.local.getTyped(STORAGE_KEY);
       if (result[STORAGE_KEY]) {
         const leasesArray: (StoredLease | LegacyStoredLease)[] = result[STORAGE_KEY];
         

@@ -91,7 +91,7 @@ async function fingerprintKey(publicKeyBase64: string): Promise<string> {
 async function fetchAndCachePublicKey(baseUrl: string): Promise<string> {
   // Check chrome.storage cache first
   try {
-    const cached = await chrome.storage.local.get(PUBKEY_CACHE_KEY);
+    const cached = await chrome.storage.local.getTyped(PUBKEY_CACHE_KEY);
     const entry = cached[PUBKEY_CACHE_KEY];
     if (entry && entry.publicKey && entry.cachedAt && (Date.now() - entry.cachedAt) < PUBKEY_CACHE_TTL_MS) {
       return entry.publicKey;
@@ -271,7 +271,7 @@ export async function persistConfig(config: BootstrapConfig): Promise<void> {
  * Load configuration from chrome.storage
  */
 export async function loadConfig(): Promise<StoredConfig | null> {
-  const result = await chrome.storage.local.get(CONFIG_STORAGE_KEY);
+  const result = await chrome.storage.local.getTyped(CONFIG_STORAGE_KEY);
   return result[CONFIG_STORAGE_KEY] || null;
 }
 

@@ -1,5 +1,7 @@
 // Mock chrome API for testing
 Object.assign(global, {
+  // Allow-list normally injected by webpack.DefinePlugin at build time.
+  __ALLOWED_HOSTS__: ['api.axia.to', 'rpc.axia.to', 'localhost', '127.0.0.1'],
   chrome: {
     storage: {
       local: {
@@ -30,8 +32,8 @@ Object.assign(global, {
     }
   },
   TextDecoder: class TextDecoder {
-    decode(arr: Uint8Array): string {
-      return Buffer.from(arr).toString('utf-8');
+    decode(arr?: Uint8Array): string {
+      return Buffer.from(arr ?? new Uint8Array()).toString('utf-8');
     }
   }
 });

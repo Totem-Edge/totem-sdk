@@ -1,18 +1,18 @@
 export async function getApiBase(): Promise<string> {
-  const { AXIA_BASE } = await chrome.storage.local.get("AXIA_BASE");
+  const { AXIA_BASE } = await chrome.storage.local.getTyped("AXIA_BASE");
   // Default to production RPC endpoint for consistency
   return AXIA_BASE || "https://api.axia.to";
 }
 
 export async function getApiBypassBase(): Promise<string> {
-  const { AXIA_BYPASS_BASE } = await chrome.storage.local.get("AXIA_BYPASS_BASE");
+  const { AXIA_BYPASS_BASE } = await chrome.storage.local.getTyped("AXIA_BYPASS_BASE");
   // Bypass URL for endpoints that trigger Cloudflare WAF (finalize with large payloads)
   // api2.axia.to is DNS-only (no Cloudflare proxy) so large tx payloads bypass WAF
   return AXIA_BYPASS_BASE || "https://api2.axia.to";
 }
 
 export async function getProjectId(): Promise<string> {
-  const { AXIA_PROJECT_ID } = await chrome.storage.local.get("AXIA_PROJECT_ID");
+  const { AXIA_PROJECT_ID } = await chrome.storage.local.getTyped("AXIA_PROJECT_ID");
   // Use totem-shared as default public project
   return AXIA_PROJECT_ID || "totem-shared";
 }
@@ -20,7 +20,7 @@ export async function getProjectId(): Promise<string> {
 // Legacy function - DEPRECATED: PROJECT_ID system no longer uses API keys
 // Only kept for backward compatibility during migration
 export async function getApiKey(): Promise<string> {
-  const { AXIA_KEY } = await chrome.storage.local.get("AXIA_KEY");
+  const { AXIA_KEY } = await chrome.storage.local.getTyped("AXIA_KEY");
   // Return empty string - API keys not used in PROJECT_ID system
   return AXIA_KEY || "";
 }

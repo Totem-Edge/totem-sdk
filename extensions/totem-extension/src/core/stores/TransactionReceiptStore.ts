@@ -46,7 +46,7 @@ export class TransactionReceiptStore {
 
   async load(): Promise<void> {
     try {
-      const result = await chrome.storage.local.get(STORAGE_KEY);
+      const result = await chrome.storage.local.getTyped(STORAGE_KEY);
       if (result[STORAGE_KEY]) {
         this.receipts = result[STORAGE_KEY];
       }

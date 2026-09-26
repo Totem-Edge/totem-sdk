@@ -54,6 +54,17 @@ export class HybridLeaseProvider implements WotsLeaseProvider {
   }
 
   async reserveKeyUse(params: ReserveParams): Promise<LeaseReservation> {
+    // Cross-instance/restore safety (RFC-013 §8/§9): before a high-value
+    // reservation, anchor the local cursor to the on-chain watermark so a second
+    // instance of the same seed cannot be handed a leaf we already used.
+    if (this.isHighValue(params) && this.onchain) {
+      try {
+        await this.onchain.syncLeaseJournal();
+      } catch {
+        // Chain unreachable — local monotonic watermark still guards reuse.
+      }
+    }
+
     const reservation = await this.local.reserveKeyUse(params);
 
     if (this.isHighValue(params)) {
@@ -110,16 +121,44 @@ export class HybridLeaseProvider implements WotsLeaseProvider {
     return this.local.getLocalWatermark(treeId);
   }
 
-  publishWatermark(treeId: string): Promise<void> {
-    if (this.node) {
-      return this.node.publishWatermark(treeId).catch(() => this.local.publishWatermark(treeId));
+  async publishWatermark(treeId: string): Promise<void> {
+    // Anchor to the chain first (authoritative cross-instance cursor), then the
+    // personal node, then the local no-op.
+    if (this.onchain) {
+      try {
+        await this.onchain.publishWatermark(treeId);
+        return;
+      } catch {
+        // fall through
+      }
     }
-    return this.local.publishWatermark(treeId);
+    if (this.node) {
+      try {
+        await this.node.publishWatermark(treeId);
+        return;
+      } catch {
+        // fall through
+      }
+    }
+    await this.local.publishWatermark(treeId);
   }
 
-  syncLeaseJournal(): Promise<SyncResult> {
+  async syncLeaseJournal(): Promise<SyncResult> {
+    // Read the authoritative on-chain cursor first so a restore/second instance
+    // advances past every leaf published by anyone holding this seed.
+    if (this.onchain) {
+      try {
+        return await this.onchain.syncLeaseJournal();
+      } catch {
+        // fall through
+      }
+    }
     if (this.node) {
-      return this.node.syncLeaseJournal().catch(() => this.local.syncLeaseJournal());
+      try {
+        return await this.node.syncLeaseJournal();
+      } catch {
+        // fall through
+      }
     }
     return this.local.syncLeaseJournal();
   }

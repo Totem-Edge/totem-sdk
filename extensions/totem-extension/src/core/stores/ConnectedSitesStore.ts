@@ -93,7 +93,7 @@ export class ConnectedSitesStore {
 
   async load(): Promise<void> {
     try {
-      const result = await chrome.storage.local.get([SITES_STORAGE_KEY, VERIFICATIONS_STORAGE_KEY]);
+      const result = await chrome.storage.local.getTyped([SITES_STORAGE_KEY, VERIFICATIONS_STORAGE_KEY]);
       
       if (result[SITES_STORAGE_KEY]) {
         const sitesArray: ConnectedSite[] = result[SITES_STORAGE_KEY];

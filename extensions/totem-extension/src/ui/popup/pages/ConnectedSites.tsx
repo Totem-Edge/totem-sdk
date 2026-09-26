@@ -80,7 +80,7 @@ export function ConnectedSites({ onBack }: ConnectedSitesProps) {
 
   useEffect(() => {
     loadSites();
-    chrome.storage.local.get(['selectedAccountIndex'], (result) => {
+    chrome.storage.local.getTyped(['selectedAccountIndex'], (result) => {
       setActiveAccountIndex(result.selectedAccountIndex ?? 0);
     });
   }, []);

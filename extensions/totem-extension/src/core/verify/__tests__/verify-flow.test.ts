@@ -322,7 +322,7 @@ describe('Connected Sites Flow', () => {
 
     storage['connectedSites'] = [site];
 
-    const result = await chrome.storage.local.get(['connectedSites']);
+    const result = await chrome.storage.local.getTyped(['connectedSites']);
     expect(result.connectedSites).toHaveLength(1);
     expect(result.connectedSites[0].origin).toBe('https://example.com');
   });

@@ -188,7 +188,7 @@ export class AxiaRpcClient {
    */
   private async loadBootstrapConfig(): Promise<void> {
     try {
-      let stored = await chrome.storage.local.get([
+      let stored = await chrome.storage.local.getTyped([
         'AXIA_BASE',
         'AXIA_PROJECT_ID',
         'AXIA_QUOTAS',
@@ -205,7 +205,7 @@ export class AxiaRpcClient {
           await initializeBootstrap();
           
           // Re-read from storage after fetching
-          stored = await chrome.storage.local.get([
+          stored = await chrome.storage.local.getTyped([
             'AXIA_BASE',
             'AXIA_PROJECT_ID',
             'AXIA_QUOTAS',

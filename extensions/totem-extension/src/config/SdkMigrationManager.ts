@@ -55,7 +55,7 @@ export class SdkMigrationManager {
   private static cachedTelemetry: SdkTelemetryState | null = null;
 
   static async getConfig(): Promise<SdkMigrationConfig> {
-    const result = await chrome.storage.local.get([
+    const result = await chrome.storage.local.getTyped([
       STORAGE_KEYS.SDK_INIT_MODE,
       STORAGE_KEYS.SDK_ROLLOUT_GROUP,
       STORAGE_KEYS.SDK_DISABLED_REASON,
@@ -275,7 +275,7 @@ export class SdkMigrationManager {
       return this.cachedTelemetry;
     }
 
-    const result = await chrome.storage.local.get(STORAGE_KEYS.SDK_TELEMETRY);
+    const result = await chrome.storage.local.getTyped(STORAGE_KEYS.SDK_TELEMETRY);
     const stored = result[STORAGE_KEYS.SDK_TELEMETRY] as SdkTelemetryState | undefined;
 
     const telemetry: SdkTelemetryState = stored || {

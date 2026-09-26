@@ -1,7 +1,8 @@
 # RFC-013: Wallet Self-Hosted Mode — Chain Provider Selection & Wallet-Side WOTS Lease
 
-**Status:** Draft — not started
+**Status:** Landed — P1–P7 complete. SDK: `@totemsdk/storage/idb` IndexedDB adapter (durable/atomic/CAS, conformance-tested); `@totemsdk/chain-provider` `resolveChainProvider` + `assertConsentedNodeUrl`; `@totemsdk/wots-lease` watermark export/seed (fail-closed) + `seedLeaseWatermark` + `HybridLeaseProvider` on-chain composition. Wallets: extension + PWA self-hosted config modules, consent registry, Settings UI (chain + lease selection, test-connection, save), optional-host permissions, coin reads routed through the resolved provider (`resolveActiveChainProvider`), and a dedicated `npm run verify:wallets` gate (extension `tsc --noEmit` + self-hosted tests + PWA typecheck + self-hosted safety policy). Extension typecheck is now clean (was 105 errors).
 **Created:** 2026-09-24
+**Revised:** 2026-09-26
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]
 **Depends on:** RFC-008 (federated statechain — SE identity/lease), RFC-010 (TreeKey owner migration)
@@ -247,15 +248,41 @@ No cycles; Axia remains an external HTTP dependency, never a package dependency.
 - The SE co-signature is out of scope and remains a separate signer.
 - Browser persistence is a new `@totemsdk/storage/idb` adapter.
 
-## 18. Open questions
+## 18. Open questions — resolved for v1
 
-- **Q1** IndexedDB adapter in `@totemsdk/storage` vs a wallet-local adapter?
-- **Q2** On-chain watermark publication cadence (per-signature vs batched)?
-- **Q3** Single-active-instance enforcement mechanism (advisory lock + on-chain
-  cursor vs on-chain only)?
-- **Q4** Node credential storage: `chrome.storage.local` vs wallet-key sealing?
-- **Q5** Does self-hosted mode also allow a self-hosted **SE** in the same UX, or
-  is that RFC-008 Phase 6?
+- **Q1** IndexedDB adapter in `@totemsdk/storage` → **yes**
+  (`@totemsdk/storage/idb`, isolated subpath).
+- **Q2** On-chain watermark publication cadence → **coarse**: publish on
+  `publishWatermark` (rate-limited in `OnchainWatermarkProvider` by
+  `minBlocksBetweenPublishes`) plus a startup/high-value `syncLeaseJournal`;
+  never per-signature.
+- **Q3** Single-active-instance enforcement → **on-chain cursor + local CAS**
+  (per-key claim in `LocalLeaseProvider`); no separate advisory lock in v1.
+- **Q4** Node credential storage → `chrome.storage.local` (extension) /
+  `localStorage` (PWA) for v1; never logged, never sent to Axia. OS/extension
+  secret sealing is a follow-up.
+- **Q5** Self-hosted **SE** in the same UX → **out of scope**; it remains
+  RFC-008 Phase 6 (the UX states that SE co-signatures still require an SE).
+
+### 18.1 Verification / gating (added)
+
+`npm run verify:wallets` (`scripts/verify-wallets.mjs`) runs:
+1. extension `tsc --noEmit` (now clean), extension unit tests (`test:unit`), and
+   the extension self-hosted unit tests;
+2. PWA `tsc --noEmit`;
+3. self-hosted safety policy checks — required host permissions stay
+   Axia-scoped, self-hosted hosts are optional-permission only, and the PWA CSP
+   `connect-src` carries no bare wildcard;
+4. presence of the self-hosted config/consent seams in both wallets.
+
+`npm run verify` now runs the workspace gates followed by the wallet gate.
+
+**Chain routing (P2, wallet side):** `resolveActiveChainProvider()` reads the
+persisted config + consent and returns a `ChainStateProvider` when not in Axia
+mode (fail-closed to Axia if the node URL is unconsented). The extension routes
+its coin reads through it (`CoinSelectionService.fetchSpendableCoins`); Axia-only
+routes (portfolio, tx history, txpow-params, wots-hardened prepare/finalize,
+quota, telemetry, SE registry) intentionally remain on Axia per §7.
 
 ## 19. References
 

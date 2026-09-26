@@ -71,7 +71,7 @@ export class MultisigManager {
   private async load(): Promise<void> {
     try {
       if (typeof chrome !== 'undefined' && chrome.storage?.local) {
-        const result = await chrome.storage.local.get(PENDING_MULTISIG_KEY);
+        const result = await chrome.storage.local.getTyped(PENDING_MULTISIG_KEY);
         const data = result[PENDING_MULTISIG_KEY];
         if (data) {
           for (const tx of data.transactions || []) {

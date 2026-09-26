@@ -10,6 +10,7 @@ import { walletManager } from '../core/wallet';
 import { initializeBootstrap } from '../core/config/bootstrap';
 import { performStartupRecovery, saveRecoveryStatus } from '../core/recovery/startup';
 import { leaseMonitor } from '../core/monitoring/lease';
+import { startAnnouncementSubscription } from '../core/announcements/wsSubscriber';
 import { SdkMigrationManager } from '../config/SdkMigrationManager';
 import { sdkTelemetry } from '../config/SdkTelemetry';
 import { initSdkWallet, createExtensionAdapters } from '../core/sdk/SdkWalletInit';
@@ -33,7 +34,7 @@ import { serializeTreeSignature, getRootPublicKey, type TreeSignature } from '@t
 import { serializeMMRProof } from '@totemsdk/core';
 import { scriptFromWotsPk } from '@totemsdk/core';
 import { scriptToAddress } from '@totemsdk/core';
-import { makeMinimaAddress } from '@totemsdk/core';
+import { encodeMx, hexToBytes } from '@totemsdk/core';
 import { TxSendLogger, TxSignLogger, generateTxCorrelationId } from '../core/transaction/TxLogger';
 import { quotaTracker } from '../core/api/QuotaTracker';
 
@@ -214,7 +215,7 @@ async function pollTransactionConfirmation(txpowid: string): Promise<void> {
     }
     
     try {
-      const storage = await chrome.storage.local.get(['AXIA_BASE', 'AXIA_PROJECT_ID']);
+      const storage = await chrome.storage.local.getTyped(['AXIA_BASE', 'AXIA_PROJECT_ID']);
       const baseUrl = storage.AXIA_BASE || 'https://api.axia.to';
       const projectId = storage.AXIA_PROJECT_ID || 'totem-shared';
       
@@ -1130,7 +1131,7 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
 
     case 'wallet:getActiveAccount':
       try {
-        const s = await chrome.storage.local.get(['selectedAccountIndex', 'walletAddresses']);
+        const s = await chrome.storage.local.getTyped(['selectedAccountIndex', 'walletAddresses']);
         const idx = (s.selectedAccountIndex as number) ?? 0;
         const accs = (s.walletAddresses as any[]) || [];
         return { ok: true, account: accs[idx] ?? accs[0] ?? null, index: idx, id };
@@ -1140,7 +1141,7 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
 
     case 'activity:getTransactions':
       try {
-        const txStorage = await chrome.storage.local.get(['walletAddresses', 'AXIA_PROJECT_ID', 'AXIA_API_BASE_URL']);
+        const txStorage = await chrome.storage.local.getTyped(['walletAddresses', 'AXIA_PROJECT_ID', 'AXIA_API_BASE_URL']);
         const txAddresses: string[] = ((txStorage.walletAddresses as any[]) || []).map((a: any) => a.address);
         const txProjectId = (txStorage.AXIA_PROJECT_ID as string) || 'totem-shared';
         const txBaseUrl = (txStorage.AXIA_API_BASE_URL as string) || 'https://api.axia.to';
@@ -1958,7 +1959,7 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
                 // Convert coin hex address to Mx format for proper comparison
                 // (scriptToAddress returns Mx format, coin.address is hex)
                 const coinHexClean = coinHex.startsWith('0x') ? coinHex.slice(2) : coinHex;
-                const coinAsMx = makeMinimaAddress(coinHexClean);
+                const coinAsMx = encodeMx(hexToBytes(coinHexClean));
                 
                 const storedMatchesCoin = coinAsMx === addressFromStored;
                 const derivedMatchesCoin = coinAsMx === addressFromDerived;
@@ -2298,7 +2299,7 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
           // the outer catch falls through to MEG-side mining immediately.
           const diffNow = Date.now();
           if (!cachedTxPowDifficulty || diffNow - cachedTxPowDifficulty.fetchedAt > TXPOW_DIFFICULTY_CACHE_MS) {
-            const storageVals = await chrome.storage.local.get(['AXIA_BASE']);
+            const storageVals = await chrome.storage.local.getTyped(['AXIA_BASE']);
             const apiBase = ((storageVals.AXIA_BASE as string | undefined) || 'https://api.axia.to').replace(/\/$/, '');
             const diffCtrl = new AbortController();
             const diffTimer = setTimeout(() => diffCtrl.abort(), 5_000);
@@ -4426,7 +4427,7 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
         console.log('[Background] RPC_COMMAND:', command);
         
         // Get config for authenticated API calls
-        const storage = await chrome.storage.local.get(['AXIA_BASE', 'AXIA_PROJECT_ID']);
+        const storage = await chrome.storage.local.getTyped(['AXIA_BASE', 'AXIA_PROJECT_ID']);
         const baseUrl = storage.AXIA_BASE || 'https://api.axia.to';
         const projectId = storage.AXIA_PROJECT_ID || 'totem-shared';
         
@@ -4526,7 +4527,7 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
         
         // Cache empty — fetch all addresses from portfolio REST endpoint
         console.log('[Background] balances:getBulkSnapshot - cache empty, fetching from portfolio API');
-        const storage = await chrome.storage.local.get(['AXIA_BASE', 'AXIA_PROJECT_ID']);
+        const storage = await chrome.storage.local.getTyped(['AXIA_BASE', 'AXIA_PROJECT_ID']);
         const baseUrl = storage.AXIA_BASE || 'https://api.axia.to';
         const projectId = storage.AXIA_PROJECT_ID || 'totem-shared';
 
@@ -4597,7 +4598,7 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
           return { ok: false, error: 'Address required', id };
         }
 
-        const atStorage = await chrome.storage.local.get(['AXIA_BASE', 'AXIA_PROJECT_ID']);
+        const atStorage = await chrome.storage.local.getTyped(['AXIA_BASE', 'AXIA_PROJECT_ID']);
         const atBaseUrl = atStorage.AXIA_BASE || 'https://api.axia.to';
         const atProjectId = atStorage.AXIA_PROJECT_ID || 'totem-shared';
 
@@ -4690,7 +4691,7 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
           return { ok: false, error: 'Addresses required', tokens: [], id };
         }
 
-        const tlStorage = await chrome.storage.local.get(['AXIA_BASE', 'AXIA_PROJECT_ID']);
+        const tlStorage = await chrome.storage.local.getTyped(['AXIA_BASE', 'AXIA_PROJECT_ID']);
         const tlBaseUrl = tlStorage.AXIA_BASE || 'https://api.axia.to';
         const tlProjectId = tlStorage.AXIA_PROJECT_ID || 'totem-shared';
 
@@ -4813,7 +4814,7 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
         
         // Production mode: Fetch balance from real API
         try {
-          const storage = await chrome.storage.local.get(['AXIA_BASE', 'AXIA_PROJECT_ID']);
+          const storage = await chrome.storage.local.getTyped(['AXIA_BASE', 'AXIA_PROJECT_ID']);
           const baseUrl = storage.AXIA_BASE || 'https://api.axia.to';
           const projectId = storage.AXIA_PROJECT_ID || 'totem-shared';
           

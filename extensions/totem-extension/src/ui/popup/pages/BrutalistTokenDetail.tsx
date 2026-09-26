@@ -96,7 +96,7 @@ export function BrutalistTokenDetail({ token, onNavigate, onSendToken, onBack }:
   useEffect(() => {
     const loadAddress = async () => {
       try {
-        const stored = await chrome.storage.local.get('walletAddresses');
+        const stored = await chrome.storage.local.getTyped('walletAddresses');
         if (stored.walletAddresses?.length > 0) {
           setCurrentAddress(stored.walletAddresses[0].address);
         }

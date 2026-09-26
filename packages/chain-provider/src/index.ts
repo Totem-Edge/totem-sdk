@@ -31,3 +31,17 @@ export { LookupClientProvider } from './providers/lookup-client.js';
 export type { LookupClientLike } from './providers/lookup-client.js';
 
 export { CompositeProvider } from './providers/composite.js';
+
+export {
+  resolveChainProvider,
+  parseMinimaRpcUrl,
+  assertConsentedNodeUrl,
+  isSelfHosted,
+} from './resolve.js';
+export type {
+  ChainProviderMode,
+  ChainProviderConfig,
+  HostedRelayConfig,
+  ResolveChainProviderOptions,
+  ParsedMinimaRpcUrl,
+} from './resolve.js';

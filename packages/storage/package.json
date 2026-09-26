@@ -40,6 +40,11 @@
       "require": "./dist/adapters/file-store.js",
       "import": "./dist/adapters/file-store.js"
     },
+    "./idb": {
+      "types": "./dist/adapters/idb-store.d.ts",
+      "require": "./dist/adapters/idb-store.js",
+      "import": "./dist/adapters/idb-store.js"
+    },
     "./memory": {
       "types": "./dist/adapters/memory-store.d.ts",
       "require": "./dist/adapters/memory-store.js",
@@ -97,11 +102,11 @@
     "@types/better-sqlite3": "^7.6.13",
     "@types/jest": "^30.0.0",
     "@types/node": "^20.0.0",
+    "fake-indexeddb": "^6.2.5",
     "jest": "^30.4.2",
     "ts-jest": "^29.0.0",
     "typescript": "^7.0.2"
   },
-  "peerDependencies": {},
   "engines": {
     "node": ">=18.0.0"
   },

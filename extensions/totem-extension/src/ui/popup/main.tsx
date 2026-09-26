@@ -17,7 +17,7 @@ function applyThemeImmediately() {
     
     // Then try to load saved theme from storage (async, will override if different)
     if (typeof chrome !== 'undefined' && chrome?.storage?.local) {
-      chrome.storage.local.get(THEME_STORAGE_KEY).then((result) => {
+      chrome.storage.local.getTyped(THEME_STORAGE_KEY).then((result) => {
         const savedTheme = result[THEME_STORAGE_KEY] as ThemeId;
         if (savedTheme && themes[savedTheme]) {
           applyTheme(savedTheme);

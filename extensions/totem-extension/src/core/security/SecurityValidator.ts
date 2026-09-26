@@ -30,7 +30,10 @@ ed25519.hashes.sha512 = sha512;
  */
 // @ts-ignore - webpack.DefinePlugin injects this as a JSON-serialized array
 declare const __ALLOWED_HOSTS__: string[];
-const ALLOWED_HOSTS: string[] = __ALLOWED_HOSTS__;
+// Fail closed when the define is absent (e.g. unit tests): no host is allowed
+// until the build or a caller supplies the allow-list.
+const ALLOWED_HOSTS: string[] =
+  typeof __ALLOWED_HOSTS__ !== 'undefined' ? __ALLOWED_HOSTS__ : [];
 
 /**
  * Session cache for validated configurations
@@ -44,16 +47,22 @@ interface ValidatedConfig {
 
 let sessionCache: ValidatedConfig | null = null;
 
-/**
- * Extract hostname from URL for validation
- */
-function extractHostname(url: string): string {
-  try {
-    const urlObj = new URL(url);
-    return urlObj.hostname;
-  } catch {
-    throw new Error(`Invalid URL format: ${url}`);
-  }
+// Runtime-consented self-hosted node hosts live in a dependency-free registry
+// (RFC-013 §11) so wallet config modules can use them without the signature stack.
+export {
+  registerConsentedHost,
+  unregisterConsentedHost,
+  clearConsentedHosts,
+  isConsentedHost,
+  validateNodeUrl,
+  extractHostname,
+  isLoopbackHostname,
+} from './consentRegistry';
+import { extractHostname, isConsentedHost } from './consentRegistry';
+
+/** True when `url` is either an approved Axia host or a consented node host. */
+export function isAllowedOrConsentedHost(url: string): boolean {
+  return isAllowedHost(url) || isConsentedHost(url);
 }
 
 /**

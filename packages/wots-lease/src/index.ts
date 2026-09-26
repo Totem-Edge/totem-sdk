@@ -8,6 +8,8 @@ export type {
   LeaseReservation,
   ReserveParams,
   LocalWatermark,
+  WatermarkSeed,
+  SeedWatermarkOptions,
   ConflictRecord,
   SyncResult,
   WotsLeaseProvider,
@@ -31,6 +33,9 @@ export { LeaseJournal } from './journal.js';
 
 export { LocalLeaseProvider } from './local.js';
 
+export { seedLeaseWatermark, exportLeaseWatermark } from './seed.js';
+export type { SeedLeaseWatermarkParams } from './seed.js';
+
 export { AxiaLeaseProvider } from './axia.js';
 export type { AxiaLeaseProviderConfig } from './axia.js';
 
@@ -51,6 +56,8 @@ export { allocateDeviceRange, deviceSlotForAddressIndex } from './device.js';
 export {
   WatermarkMonotonicityError,
   WatermarkExhaustedError,
+  WatermarkSeedRegressionError,
+  WatermarkSeedRequiredError,
   LeaseNotFoundError,
   IndicesUnavailableError,
   PersonalLeaseNodeNotConfiguredError,

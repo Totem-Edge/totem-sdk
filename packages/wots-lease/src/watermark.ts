@@ -15,8 +15,14 @@ import type {
   SigningIndices,
   UnavailableReason,
   LocalWatermark,
+  WatermarkSeed,
+  SeedWatermarkOptions,
 } from './types.js';
-import { WatermarkMonotonicityError, WatermarkExhaustedError } from './errors.js';
+import {
+  WatermarkMonotonicityError,
+  WatermarkExhaustedError,
+  WatermarkSeedRegressionError,
+} from './errors.js';
 
 const STORAGE_KEY = 'totem_wots_watermark';
 const MAX_L = 64;
@@ -283,6 +289,71 @@ export class WotsWatermarkStore {
       capacity: CAPACITY_PER_TREE,
       lastSyncTimestamp: tree.lastSyncTimestamp,
     };
+  }
+
+  /**
+   * Export a portable seed for a tree (RFC-013 §9). Includes the cursor and the
+   * flat indices already consumed, so it can rebuild the no-reuse state exactly.
+   */
+  exportSeed(treeId: string): WatermarkSeed {
+    const s = this.ensureInit();
+    const tree = s.trees[treeId] ?? emptyTree(treeId);
+    const unavailable = Object.keys(tree.unavailable)
+      .map((k) => Number(k))
+      .filter((f) => Number.isSafeInteger(f))
+      .sort((a, b) => a - b);
+    return {
+      version: 1,
+      treeId,
+      addressCursor: tree.addressCursor,
+      l1Cursor: tree.l1Cursor,
+      l2Cursor: tree.l2Cursor,
+      unavailable,
+    };
+  }
+
+  /**
+   * Seed the watermark from an exported/operator/on-chain snapshot. Forward-only
+   * by default: a seed behind the current cursor raises
+   * {@link WatermarkSeedRegressionError} so a restore can never re-expose used
+   * leaves. The unavailable set is unioned, never shrunk.
+   */
+  async seed(seed: WatermarkSeed, options: SeedWatermarkOptions = {}): Promise<void> {
+    const s = this.ensureInit();
+    const existing = s.trees[seed.treeId] ?? emptyTree(seed.treeId);
+
+    const seedCursor = flatIndex({
+      addressIndex: seed.addressCursor,
+      l1: seed.l1Cursor,
+      l2: seed.l2Cursor,
+    });
+    const existingCursor = flatIndex({
+      addressIndex: existing.addressCursor,
+      l1: existing.l1Cursor,
+      l2: existing.l2Cursor,
+    });
+    if (!options.allowRegression && seedCursor < existingCursor) {
+      throw new WatermarkSeedRegressionError(seed.treeId, existingCursor, seedCursor);
+    }
+
+    const unavailable: Record<number, UnavailableReason> = { ...existing.unavailable };
+    for (const flat of seed.unavailable ?? []) {
+      if (!Number.isSafeInteger(flat) || flat < 0 || flat >= CAPACITY_PER_TREE) {
+        throw new RangeError(`Seed unavailable index must be an integer in [0, ${CAPACITY_PER_TREE - 1}]`);
+      }
+      if (!(flat in unavailable)) unavailable[flat] = 'committed';
+    }
+
+    s.trees[seed.treeId] = {
+      ...existing,
+      treeId: seed.treeId,
+      addressCursor: seed.addressCursor,
+      l1Cursor: seed.l1Cursor,
+      l2Cursor: seed.l2Cursor,
+      unavailable,
+      lastSyncTimestamp: Date.now(),
+    };
+    await this.persist();
   }
 
   getRawState(): WotsWatermarkState {

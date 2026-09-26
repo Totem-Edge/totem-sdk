@@ -14,7 +14,7 @@ export function useTheme() {
     async function loadTheme() {
       try {
         if (chrome?.storage?.local) {
-          const result = await chrome.storage.local.get(THEME_STORAGE_KEY);
+          const result = await chrome.storage.local.getTyped(THEME_STORAGE_KEY);
           const savedTheme = result[THEME_STORAGE_KEY] as ThemeId;
           if (savedTheme && themes[savedTheme]) {
             setCurrentTheme(savedTheme);

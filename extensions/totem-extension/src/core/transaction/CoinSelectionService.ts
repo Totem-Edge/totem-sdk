@@ -1,3 +1,5 @@
+import { resolveActiveChainProvider } from '../config/activeChainProvider';
+
 export class CoinSelectionError extends Error {
   constructor(
     message: string,
@@ -92,6 +94,23 @@ function isPositive(value: string): boolean {
 function normAddr(a: string): string { return (a || '').toLowerCase(); }
 function normToken(t: string): string { return (t || '').toLowerCase(); }
 
+/** Map a chain-provider coin to the wallet's SpendableCoin shape. */
+function mapProviderCoin(coin: { coinid?: string; coinId?: string; address?: string; amount?: string; tokenid?: string; tokenId?: string; created?: number | string }): SpendableCoin | null {
+  const rawId = coin.coinid ?? coin.coinId;
+  if (typeof rawId !== 'string' || rawId.length === 0) return null;
+  if (typeof coin.address !== 'string' || coin.address.length === 0) return null;
+  if (typeof coin.amount !== 'string' || coin.amount.length === 0) return null;
+  const coinId = rawId.startsWith('0x') ? rawId : `0x${rawId}`;
+  const tokenid = coin.tokenid ?? coin.tokenId ?? '0x00';
+  return {
+    coinId,
+    address: coin.address,
+    amount: coin.amount,
+    tokenid,
+    created: typeof coin.created === 'number' ? coin.created : Number(coin.created ?? 0) || 0,
+  };
+}
+
 class CoinSelectionService {
   private apiKey: string | null = null;
   private excludedAddresses: Set<string> = new Set();
@@ -103,7 +122,7 @@ class CoinSelectionService {
   async loadExcludedAddresses(): Promise<void> {
     if (typeof chrome !== 'undefined' && chrome.storage?.local) {
       return new Promise((resolve) => {
-        chrome.storage.local.get(['excludedAddresses'], (result) => {
+        chrome.storage.local.getTyped(['excludedAddresses'], (result) => {
           if (result.excludedAddresses && Array.isArray(result.excludedAddresses)) {
             this.excludedAddresses = new Set(result.excludedAddresses);
           }
@@ -144,7 +163,7 @@ class CoinSelectionService {
   async getApiBaseUrl(): Promise<string> {
     if (typeof chrome !== 'undefined' && chrome.storage?.local) {
       return new Promise((resolve) => {
-        chrome.storage.local.get(['AXIA_BASE'], (result) => {
+        chrome.storage.local.getTyped(['AXIA_BASE'], (result) => {
           resolve(result.AXIA_BASE || 'https://api.axia.to');
         });
       });
@@ -156,6 +175,29 @@ class CoinSelectionService {
     addresses: string[],
     tokenId: string = '0x00'
   ): Promise<SpendableCoin[]> {
+    // Self-hosted mode routes chain reads through the user's node (RFC-013 §7).
+    // Axia mode (null) keeps the existing REST path below.
+    try {
+      const active = await resolveActiveChainProvider();
+      if (active) {
+        const byId = new Map<string, SpendableCoin>();
+        for (const address of addresses) {
+          const coins = await active.provider.getCoins({
+            address,
+            ...(tokenId ? { tokenId } : {}),
+            sendable: true,
+          });
+          for (const coin of coins) {
+            const mapped = mapProviderCoin(coin);
+            if (mapped && !byId.has(mapped.coinId)) byId.set(mapped.coinId, mapped);
+          }
+        }
+        return [...byId.values()];
+      }
+    } catch (err) {
+      console.warn('[CoinSelection] self-hosted provider failed; falling back to Axia:', err);
+    }
+
     const baseUrl = await this.getApiBaseUrl();
     
     // Use x-project-id for Totem-specific endpoints (bypasses credits, uses MegaMMR)

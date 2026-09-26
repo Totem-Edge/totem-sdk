@@ -94,7 +94,7 @@ export class ConnectionMonitor {
 
   private async getBootstrapConfig(): Promise<{ AXIA_BASE?: string; AXIA_PROJECT_ID?: string }> {
     return new Promise((resolve) => {
-      chrome.storage.local.get(['AXIA_BASE', 'AXIA_PROJECT_ID'], (result) => {
+      chrome.storage.local.getTyped(['AXIA_BASE', 'AXIA_PROJECT_ID'], (result) => {
         resolve(result as { AXIA_BASE?: string; AXIA_PROJECT_ID?: string });
       });
     });
@@ -191,7 +191,7 @@ export class ConnectionMonitor {
 
   async getCurrentStatus(): Promise<ConnectionState> {
     return new Promise((resolve) => {
-      chrome.storage.local.get([CONNECTION_STATUS_KEY], (result) => {
+      chrome.storage.local.getTyped([CONNECTION_STATUS_KEY], (result) => {
         resolve(result[CONNECTION_STATUS_KEY] || { ...DEFAULT_CONNECTION_STATE });
       });
     });

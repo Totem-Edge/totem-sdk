@@ -27,7 +27,7 @@ import type {
 const chromeStorageAdapter: StorageAdapter = {
   async get<T>(key: string): Promise<T | null> {
     try {
-      const result = await chrome.storage.local.get([key]);
+      const result = await chrome.storage.local.getTyped([key]);
       return result[key] as T ?? null;
     } catch { return null; }
   },
@@ -36,7 +36,7 @@ const chromeStorageAdapter: StorageAdapter = {
   },
   async remove(key: string): Promise<boolean> {
     try {
-      const result = await chrome.storage.local.get([key]);
+      const result = await chrome.storage.local.getTyped([key]);
       const had = key in result;
       await chrome.storage.local.remove([key]);
       return had;
@@ -47,13 +47,13 @@ const chromeStorageAdapter: StorageAdapter = {
   },
   async keys(): Promise<string[]> {
     try {
-      const raw = await chrome.storage.local.get(null);
+      const raw = await chrome.storage.local.getTyped(null);
       return Object.keys((raw as unknown as Record<string, unknown>) || {});
     } catch { return []; }
   },
   async has(key: string): Promise<boolean> {
     try {
-      const result = await chrome.storage.local.get([key]);
+      const result = await chrome.storage.local.getTyped([key]);
       return key in result;
     } catch { return false; }
   },

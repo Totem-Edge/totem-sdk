@@ -48,7 +48,7 @@ export function AddTokenDialog({ isOpen, onClose, onAdd }: AddTokenDialogProps) 
       };
 
       // Save to storage
-      const stored = await chrome.storage.local.get('customTokens');
+      const stored = await chrome.storage.local.getTyped('customTokens');
       const customTokens = stored.customTokens || [];
       customTokens.push(tokenData);
       await chrome.storage.local.set({ customTokens });

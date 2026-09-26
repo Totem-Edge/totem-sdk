@@ -38,7 +38,7 @@ export function AccountSwitcher({ onViewChange }: AccountSwitcherProps) {
 
   const loadSettings = async () => {
     try {
-      const result = await chrome.storage.local.get(['excludedAddresses', 'addressNames']);
+      const result = await chrome.storage.local.getTyped(['excludedAddresses', 'addressNames']);
       setExcludedAddresses(result.excludedAddresses || []);
       setAddressNames(result.addressNames || {});
     } catch (error) {

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Totem SDK Package Manifest",
-  "description": "Machine-readable index of all @totemsdk packages — for AI agents, tooling, and developers. Updated 2026-08-18.",
+  "description": "Machine-readable index of all @totemsdk packages \u2014 for AI agents, tooling, and developers. Updated 2026-08-18.",
   "org": "@totemsdk",
   "total": 63,
   "domains": {
@@ -17,7 +17,7 @@
       ]
     },
     "sovereignty-stack": {
-      "description": "Personal infrastructure — lookup nodes, chain queries, P2P data, real-time streaming",
+      "description": "Personal infrastructure \u2014 lookup nodes, chain queries, P2P data, real-time streaming",
       "packages": [
         "@totemsdk/lookup-node",
         "@totemsdk/lookup-client",
@@ -44,7 +44,7 @@
       ]
     },
     "edge-computing": {
-      "description": "IoT/industrial runtime — transport connectors, MQTT, P2P, gateways, runtime harnesses",
+      "description": "IoT/industrial runtime \u2014 transport connectors, MQTT, P2P, gateways, runtime harnesses",
       "packages": [
         "@totemsdk/edge",
         "@totemsdk/edge-adapters",
@@ -90,20 +90,20 @@
       ]
     },
     "intelligence": {
-      "description": "Provider-neutral intelligence contracts and the QVAC in-situ inference adapter — capabilities, operations, usage receipts for local self-hosted AI",
+      "description": "Provider-neutral intelligence contracts and the QVAC in-situ inference adapter \u2014 capabilities, operations, usage receipts for local self-hosted AI",
       "packages": [
         "@totemsdk/intelligence",
         "@totemsdk/qvac"
       ]
     },
     "decision": {
-      "description": "Provider-neutral decision runtime — typed, constrained, provenance-bound proposals over dynamic candidate spaces (AI proposes, Totem authorizes)",
+      "description": "Provider-neutral decision runtime \u2014 typed, constrained, provenance-bound proposals over dynamic candidate spaces (AI proposes, Totem authorizes)",
       "packages": [
         "@totemsdk/decision"
       ]
     },
     "storage": {
-      "description": "Provider-neutral storage contracts and adapters — StorageError taxonomy, versioned codec, namespaces, transactions + CAS, and the pluggable ArtifactStoreBackend artifact port",
+      "description": "Provider-neutral storage contracts and adapters \u2014 StorageError taxonomy, versioned codec, namespaces, transactions + CAS, and the pluggable ArtifactStoreBackend artifact port",
       "packages": [
         "@totemsdk/storage"
       ]
@@ -113,7 +113,7 @@
     {
       "name": "@totemsdk/agent-policy",
       "version": "0.3.0",
-      "description": "Protobuf-based interface contracts for AI agent ↔ wallet communication",
+      "description": "Protobuf-based interface contracts for AI agent \u2194 wallet communication",
       "domain": "verifiable-claims",
       "keywords": [
         "ai",
@@ -138,7 +138,7 @@
     {
       "name": "@totemsdk/authority",
       "version": "1.0.0",
-      "description": "Deterministic authority engine — mandate verification, scope matching, usage tracking",
+      "description": "Deterministic authority engine \u2014 mandate verification, scope matching, usage tracking",
       "domain": "verifiable-claims",
       "keywords": [
         "authority",
@@ -158,7 +158,7 @@
     {
       "name": "@totemsdk/chain-provider",
       "version": "0.2.0",
-      "description": "Unified ChainStateProvider interface — Hosted, PureMinima, and Composite strategies",
+      "description": "Unified ChainStateProvider interface \u2014 Hosted, PureMinima, and Composite strategies",
       "domain": "sovereignty-stack",
       "keywords": [
         "chain-provider",
@@ -179,7 +179,7 @@
     {
       "name": "@totemsdk/connect",
       "version": "2.1.0",
-      "description": "Client-side SDK for Totem wallet browser extension — includes Edge capability layer",
+      "description": "Client-side SDK for Totem wallet browser extension \u2014 includes Edge capability layer",
       "domain": "edge-computing",
       "keywords": [
         "connect",
@@ -209,7 +209,7 @@
     {
       "name": "@totemsdk/core",
       "version": "1.2.10",
-      "description": "Core cryptographic primitives — WOTS+, SHA3-256, TreeKey, BIP39, backed by Rust/WASM",
+      "description": "Core cryptographic primitives \u2014 WOTS+, SHA3-256, TreeKey, BIP39, backed by Rust/WASM",
       "domain": "cryptographic-foundation",
       "keywords": [
         "wots",
@@ -259,12 +259,12 @@
       "exports": {
         ".": "pkg/{totemsdk_core_wasm.js, totemsdk_core_wasm.d.ts}"
       },
-      "exportsDescription": "Low-level WASM bindings — used internally by @totemsdk/core"
+      "exportsDescription": "Low-level WASM bindings \u2014 used internally by @totemsdk/core"
     },
     {
       "name": "@totemsdk/edge",
       "version": "1.2.0",
-      "description": "Unified developer-facing runtime — composes identity, manifest, wallet, payment, proof, lookup, and policy via injected ports",
+      "description": "Unified developer-facing runtime \u2014 composes identity, manifest, wallet, payment, proof, lookup, and policy via injected ports",
       "domain": "edge-computing",
       "keywords": [
         "edge",
@@ -315,12 +315,12 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "InMemoryAdapter, NodeAdapter, PearAdapter — port implementations"
+      "exportsDescription": "InMemoryAdapter, NodeAdapter, PearAdapter \u2014 port implementations"
     },
     {
       "name": "@totemsdk/edge-bacnet",
       "version": "0.2.0",
-      "description": "Edge runtime adapter for BACnet — building automation, HVAC, device properties",
+      "description": "Edge runtime adapter for BACnet \u2014 building automation, HVAC, device properties",
       "domain": "edge-computing",
       "keywords": [
         "bacnet",
@@ -338,7 +338,7 @@
     {
       "name": "@totemsdk/edge-ble",
       "version": "0.2.0",
-      "description": "Edge runtime adapter for BLE — wearables, beacons, proximity tracking",
+      "description": "Edge runtime adapter for BLE \u2014 wearables, beacons, proximity tracking",
       "domain": "edge-computing",
       "keywords": [
         "ble",
@@ -357,7 +357,7 @@
     {
       "name": "@totemsdk/edge-can",
       "version": "0.2.0",
-      "description": "Edge runtime adapter for CAN bus — automotive, heavy machinery, socketcan",
+      "description": "Edge runtime adapter for CAN bus \u2014 automotive, heavy machinery, socketcan",
       "domain": "edge-computing",
       "keywords": [
         "can",
@@ -376,7 +376,7 @@
     {
       "name": "@totemsdk/edge-coap",
       "version": "0.2.0",
-      "description": "Edge runtime adapter for CoAP — constrained devices, RFC 7252, UDP transport",
+      "description": "Edge runtime adapter for CoAP \u2014 constrained devices, RFC 7252, UDP transport",
       "domain": "edge-computing",
       "keywords": [
         "coap",
@@ -395,7 +395,7 @@
     {
       "name": "@totemsdk/edge-grpc",
       "version": "0.2.0",
-      "description": "Edge runtime adapter for gRPC — service-to-service, cloud-to-edge control planes",
+      "description": "Edge runtime adapter for gRPC \u2014 service-to-service, cloud-to-edge control planes",
       "domain": "edge-computing",
       "keywords": [
         "grpc",
@@ -414,7 +414,7 @@
     {
       "name": "@totemsdk/edge-lorawan",
       "version": "0.2.0",
-      "description": "Edge runtime adapter for LoRaWAN — agriculture, asset tracking, long-range sensors",
+      "description": "Edge runtime adapter for LoRaWAN \u2014 agriculture, asset tracking, long-range sensors",
       "domain": "edge-computing",
       "keywords": [
         "lorawan",
@@ -433,7 +433,7 @@
     {
       "name": "@totemsdk/edge-matter",
       "version": "0.2.0",
-      "description": "Edge runtime adapter for Matter — smart home, multi-transport, fabric management",
+      "description": "Edge runtime adapter for Matter \u2014 smart home, multi-transport, fabric management",
       "domain": "edge-computing",
       "keywords": [
         "matter",
@@ -451,7 +451,7 @@
     {
       "name": "@totemsdk/edge-modbus",
       "version": "0.2.0",
-      "description": "Edge runtime adapter for Modbus — PLCs, RTUs, industrial sensors over serial/TCP",
+      "description": "Edge runtime adapter for Modbus \u2014 PLCs, RTUs, industrial sensors over serial/TCP",
       "domain": "edge-computing",
       "keywords": [
         "modbus",
@@ -471,7 +471,7 @@
     {
       "name": "@totemsdk/edge-mqtt",
       "version": "0.2.4",
-      "description": "MQTT adapter — Rust/WASM-backed canonicalization, topic matching, MachinePay arithmetic",
+      "description": "MQTT adapter \u2014 Rust/WASM-backed canonicalization, topic matching, MachinePay arithmetic",
       "domain": "edge-computing",
       "keywords": [
         "mqtt",
@@ -499,7 +499,7 @@
     {
       "name": "@totemsdk/edge-nfc",
       "version": "0.1.0",
-      "description": "Edge runtime adapter for NFC — NDEF read/write/erase, ISO 14443-4 APDU transceive, P2P, and Host Card Emulation",
+      "description": "Edge runtime adapter for NFC \u2014 NDEF read/write/erase, ISO 14443-4 APDU transceive, P2P, and Host Card Emulation",
       "domain": "edge-computing",
       "keywords": [
         "nfc",
@@ -520,7 +520,7 @@
     {
       "name": "@totemsdk/edge-opcua",
       "version": "0.2.0",
-      "description": "Edge runtime adapter for OPC-UA — SCADA, factory floors, industrial automation",
+      "description": "Edge runtime adapter for OPC-UA \u2014 SCADA, factory floors, industrial automation",
       "domain": "edge-computing",
       "keywords": [
         "opcua",
@@ -539,7 +539,7 @@
     {
       "name": "@totemsdk/edge-ros2",
       "version": "0.2.0",
-      "description": "Edge runtime adapter for ROS 2 — robotics, DDS middleware, typed topics",
+      "description": "Edge runtime adapter for ROS 2 \u2014 robotics, DDS middleware, typed topics",
       "domain": "edge-computing",
       "keywords": [
         "ros2",
@@ -557,7 +557,7 @@
     {
       "name": "@totemsdk/governance",
       "version": "0.2.0",
-      "description": "Deterministic governance engine — quadratic voting, liquid democracy, delegation, mandate-bound proposal execution",
+      "description": "Deterministic governance engine \u2014 quadratic voting, liquid democracy, delegation, mandate-bound proposal execution",
       "domain": "verifiable-claims",
       "keywords": [
         "governance",
@@ -580,7 +580,7 @@
     {
       "name": "@totemsdk/identity",
       "version": "1.0.0",
-      "description": "Canonical identity and claims layer — who controls a manifest, device, or agent",
+      "description": "Canonical identity and claims layer \u2014 who controls a manifest, device, or agent",
       "domain": "verifiable-claims",
       "keywords": [
         "identity",
@@ -599,7 +599,7 @@
     {
       "name": "@totemsdk/kissvm",
       "version": "1.2.0",
-      "description": "KISSVM v1 evaluator for Minima scripting — lexer, parser, VM, all opcodes, backed by Rust/WASM",
+      "description": "KISSVM v1 evaluator for Minima scripting \u2014 lexer, parser, VM, all opcodes, backed by Rust/WASM",
       "domain": "cryptographic-foundation",
       "keywords": [
         "kissvm",
@@ -648,7 +648,7 @@
     {
       "name": "@totemsdk/lookup-client",
       "version": "0.2.0",
-      "description": "Hyperswarm client for Totem lookup nodes — chain queries, real-time coin updates, TxPoW broadcast",
+      "description": "Hyperswarm client for Totem lookup nodes \u2014 chain queries, real-time coin updates, TxPoW broadcast",
       "domain": "sovereignty-stack",
       "keywords": [
         "hyperswarm",
@@ -670,7 +670,7 @@
     {
       "name": "@totemsdk/lookup-node",
       "version": "0.2.0",
-      "description": "Always-on personal lookup node — Hyperswarm, chain queries, COIN_UPDATE push, WOTS lease coordination",
+      "description": "Always-on personal lookup node \u2014 Hyperswarm, chain queries, COIN_UPDATE push, WOTS lease coordination",
       "domain": "sovereignty-stack",
       "keywords": [
         "hyperswarm",
@@ -696,7 +696,7 @@
     {
       "name": "@totemsdk/lookup-protocol",
       "version": "0.2.0",
-      "description": "Wire protocol definitions for lookup node ↔ client communication",
+      "description": "Wire protocol definitions for lookup node \u2194 client communication",
       "domain": "sovereignty-stack",
       "keywords": [
         "protocol",
@@ -715,7 +715,7 @@
     {
       "name": "@totemsdk/manifest",
       "version": "1.0.0",
-      "description": "Canonical signed declaration format — apps, agent capabilities, dApps, edge services",
+      "description": "Canonical signed declaration format \u2014 apps, agent capabilities, dApps, edge services",
       "domain": "verifiable-claims",
       "keywords": [
         "manifest",
@@ -733,7 +733,7 @@
     {
       "name": "@totemsdk/omnia",
       "version": "1.0.1",
-      "description": "Omnia eltoo payment channel state machine — transport-agnostic, WOTS-safe, HTLC-ready",
+      "description": "Omnia eltoo payment channel state machine \u2014 transport-agnostic, WOTS-safe, HTLC-ready",
       "domain": "payment-network",
       "keywords": [
         "omnia",
@@ -762,7 +762,7 @@
     {
       "name": "@totemsdk/omnia-factory",
       "version": "0.2.0",
-      "description": "Channel factory — N-of-N MULTISIG funding, virtual channel management, factory settlement",
+      "description": "Channel factory \u2014 N-of-N MULTISIG funding, virtual channel management, factory settlement",
       "domain": "payment-network",
       "keywords": [
         "omnia",
@@ -787,7 +787,7 @@
     {
       "name": "@totemsdk/omnia-router",
       "version": "0.2.0",
-      "description": "Multi-hop payment routing — single-token and cross-token paths over Omnia channels",
+      "description": "Multi-hop payment routing \u2014 single-token and cross-token paths over Omnia channels",
       "domain": "payment-network",
       "keywords": [
         "omnia",
@@ -809,7 +809,7 @@
     {
       "name": "@totemsdk/omnia-splice",
       "version": "0.2.0",
-      "description": "Channel splicing — resize eltoo channels without close+reopen",
+      "description": "Channel splicing \u2014 resize eltoo channels without close+reopen",
       "domain": "payment-network",
       "keywords": [
         "omnia",
@@ -832,7 +832,7 @@
     {
       "name": "@totemsdk/omnia-vtxo",
       "version": "0.2.0",
-      "description": "Virtual UTXO / payment-pool claim layer — cash-like off-chain balance primitive",
+      "description": "Virtual UTXO / payment-pool claim layer \u2014 cash-like off-chain balance primitive",
       "domain": "payment-network",
       "keywords": [
         "omnia",
@@ -853,7 +853,7 @@
     {
       "name": "@totemsdk/pear",
       "version": "0.2.0",
-      "description": "Bare/Pear runtime integration — storage, networking, lifecycle, Hyperdrive adapters",
+      "description": "Bare/Pear runtime integration \u2014 storage, networking, lifecycle, Hyperdrive adapters",
       "domain": "edge-computing",
       "keywords": [
         "pear",
@@ -882,7 +882,7 @@
     {
       "name": "@totemsdk/proof",
       "version": "1.0.0",
-      "description": "Portable proof layer — create, sign, verify, and anchor WOTS-signed proof envelopes on Minima",
+      "description": "Portable proof layer \u2014 create, sign, verify, and anchor WOTS-signed proof envelopes on Minima",
       "domain": "verifiable-claims",
       "keywords": [
         "proof",
@@ -903,7 +903,7 @@
     {
       "name": "@totemsdk/proof-integritas",
       "version": "1.0.0",
-      "description": "Integritas v2 proof provider — hash stamping, checking, on-chain verification on Minima",
+      "description": "Integritas v2 proof provider \u2014 hash stamping, checking, on-chain verification on Minima",
       "domain": "verifiable-claims",
       "keywords": [
         "integritas",
@@ -922,7 +922,7 @@
     {
       "name": "@totemsdk/proofgraph",
       "version": "1.0.0",
-      "description": "Local deterministic proof relationship graph — indexes proofs, identities, manifests into a content-addressed DAG",
+      "description": "Local deterministic proof relationship graph \u2014 indexes proofs, identities, manifests into a content-addressed DAG",
       "domain": "verifiable-claims",
       "keywords": [
         "proof",
@@ -946,7 +946,7 @@
     {
       "name": "@totemsdk/provider-bond",
       "version": "0.2.0",
-      "description": "Provider trust layer — prove, record, score and filter infrastructure providers",
+      "description": "Provider trust layer \u2014 prove, record, score and filter infrastructure providers",
       "domain": "verifiable-claims",
       "keywords": [
         "provider",
@@ -969,7 +969,7 @@
     {
       "name": "@totemsdk/pubsub-transport",
       "version": "0.2.0",
-      "description": "Pub/sub transport interfaces — IPubSubTransport, EventEmitterTransport, MockPubSubTransport",
+      "description": "Pub/sub transport interfaces \u2014 IPubSubTransport, EventEmitterTransport, MockPubSubTransport",
       "domain": "edge-computing",
       "keywords": [
         "transport",
@@ -986,7 +986,7 @@
     {
       "name": "@totemsdk/minima-rpc",
       "version": "0.2.1",
-      "description": "Fetch-based PureMinima RPC client — Bare/Pear/Node/browser compatible",
+      "description": "Fetch-based PureMinima RPC client \u2014 Bare/Pear/Node/browser compatible",
       "domain": "sovereignty-stack",
       "keywords": [
         "rpc",
@@ -1004,7 +1004,7 @@
     {
       "name": "@totemsdk/realtime",
       "version": "0.2.0",
-      "description": "Real-time balance streaming — WebSocket and HTTP fallback",
+      "description": "Real-time balance streaming \u2014 WebSocket and HTTP fallback",
       "domain": "sovereignty-stack",
       "keywords": [
         "realtime",
@@ -1024,7 +1024,7 @@
     {
       "name": "@totemsdk/recursive-mast",
       "version": "0.2.6",
-      "description": "Recursive MAST + PREVSTATE — composable policy trees, proof chains, state transitions, delegation",
+      "description": "Recursive MAST + PREVSTATE \u2014 composable policy trees, proof chains, state transitions, delegation",
       "domain": "cryptographic-foundation",
       "keywords": [
         "mast",
@@ -1049,7 +1049,7 @@
     {
       "name": "@totemsdk/root-identity",
       "version": "1.0.8",
-      "description": "Single root identity controlling up to 64 on-chain addresses — cryptographically linked via 3-level TreeKeys",
+      "description": "Single root identity controlling up to 64 on-chain addresses \u2014 cryptographically linked via 3-level TreeKeys",
       "domain": "verifiable-claims",
       "keywords": [
         "identity",
@@ -1069,7 +1069,7 @@
     {
       "name": "@totemsdk/se-server",
       "version": "0.5.0",
-      "description": "Self-hostable Statechain Entity (SE) server — Mercury-protocol co-signer as Express app",
+      "description": "Self-hostable Statechain Entity (SE) server \u2014 Mercury-protocol co-signer as Express app",
       "domain": "payment-network",
       "keywords": [
         "statechain",
@@ -1095,7 +1095,7 @@
     {
       "name": "@totemsdk/server",
       "version": "1.0.2",
-      "description": "Server-side SDK — signing, transaction building and submission via Axia",
+      "description": "Server-side SDK \u2014 signing, transaction building and submission via Axia",
       "domain": "edge-computing",
       "keywords": [
         "server",
@@ -1118,7 +1118,7 @@
     {
       "name": "@totemsdk/statechain",
       "version": "0.2.0",
-      "description": "Mercury-protocol state chain — privacy-preserving off-chain UTXO custody transfer with blind SE co-signatures",
+      "description": "Mercury-protocol state chain \u2014 privacy-preserving off-chain UTXO custody transfer with blind SE co-signatures",
       "domain": "payment-network",
       "keywords": [
         "statechain",
@@ -1143,7 +1143,7 @@
     {
       "name": "@totemsdk/stream-transport",
       "version": "0.2.0",
-      "description": "Transport adapters — IStreamTransport, NodeStream, WebSocket, WebRTC, Stdio, Hyperswarm, in-memory",
+      "description": "Transport adapters \u2014 IStreamTransport, NodeStream, WebSocket, WebRTC, Stdio, Hyperswarm, in-memory",
       "domain": "edge-computing",
       "keywords": [
         "transport",
@@ -1164,7 +1164,7 @@
     {
       "name": "@totemsdk/tx-builder",
       "version": "0.2.0",
-      "description": "Transaction builder for Minima — coin selection, multisig, WOTS signing",
+      "description": "Transaction builder for Minima \u2014 coin selection, multisig, WOTS signing",
       "domain": "payment-network",
       "keywords": [
         "transaction",
@@ -1207,7 +1207,7 @@
     {
       "name": "@totemsdk/wallet-adapter",
       "version": "1.0.0",
-      "description": "Abstract base class for Totem-compatible wallets — hardware bridges, mobile companions, institutional custody",
+      "description": "Abstract base class for Totem-compatible wallets \u2014 hardware bridges, mobile companions, institutional custody",
       "domain": "edge-computing",
       "keywords": [
         "wallet-adapter",
@@ -1226,7 +1226,7 @@
     {
       "name": "@totemsdk/wots-lease",
       "version": "1.0.0",
-      "description": "WOTS key-use coordination — canonical v3 watermark, provider-based lease safety",
+      "description": "WOTS key-use coordination \u2014 canonical v3 watermark, provider-based lease safety",
       "domain": "cryptographic-foundation",
       "keywords": [
         "wots",
@@ -1248,7 +1248,7 @@
     {
       "name": "@totemsdk/edge-email",
       "version": "0.2.0",
-      "description": "Edge runtime adapter for email — IMAP/SMTP polling, notification delivery, command parsing, and sensor ingestion via email",
+      "description": "Edge runtime adapter for email \u2014 IMAP/SMTP polling, notification delivery, command parsing, and sensor ingestion via email",
       "domain": "edge-computing",
       "keywords": [
         "email",
@@ -1269,7 +1269,7 @@
     {
       "name": "@totemsdk/industrial-action",
       "version": "0.2.0",
-      "description": "Deterministic industrial action lifecycle for Totem Edge — converts governed intent into context-aware, bounded, verifiably executed operations on field devices and protocols",
+      "description": "Deterministic industrial action lifecycle for Totem Edge \u2014 converts governed intent into context-aware, bounded, verifiably executed operations on field devices and protocols",
       "domain": "edge-computing",
       "keywords": [
         "industrial",
@@ -1295,7 +1295,7 @@
     {
       "name": "@totemsdk/mcp-server",
       "version": "0.2.0",
-      "description": "MCP server exposing the full Totem SDK package set — metadata, types, exports, dependency graphs, and scaffolding tools",
+      "description": "MCP server exposing the full Totem SDK package set \u2014 metadata, types, exports, dependency graphs, and scaffolding tools",
       "domain": "sovereignty-stack",
       "keywords": [
         "mcp",
@@ -1347,7 +1347,7 @@
     {
       "name": "@totemsdk/location-proof",
       "version": "1.0.0",
-      "description": "Generic location and movement proof primitives — device-neutral GPS/GNSS claims, confidence scoring, motion trails, and proof envelope integration",
+      "description": "Generic location and movement proof primitives \u2014 device-neutral GPS/GNSS claims, confidence scoring, motion trails, and proof envelope integration",
       "domain": "verifiable-claims",
       "keywords": [
         "location",
@@ -1374,7 +1374,7 @@
     {
       "name": "@totemsdk/spatial-proof",
       "version": "1.0.0",
-      "description": "Generic spatial relationship proof primitives — geometry hashes, geofence relations, route checks, and proof envelope integration",
+      "description": "Generic spatial relationship proof primitives \u2014 geometry hashes, geofence relations, route checks, and proof envelope integration",
       "domain": "verifiable-claims",
       "keywords": [
         "spatial",
@@ -1401,7 +1401,7 @@
     {
       "name": "@totemsdk/raster-proof",
       "version": "1.0.0",
-      "description": "Edge-capable raster and visual evidence proof primitives — asset hashes, tile Merkle roots, raster manifests, derived-layer provenance, and proof envelope integration",
+      "description": "Edge-capable raster and visual evidence proof primitives \u2014 asset hashes, tile Merkle roots, raster manifests, derived-layer provenance, and proof envelope integration",
       "domain": "verifiable-claims",
       "keywords": [
         "totem",
@@ -1472,7 +1472,7 @@
     {
       "name": "@totemsdk/intelligence",
       "version": "0.1.0",
-      "description": "Provider-neutral intelligence contracts — capabilities, operations, receipts, errors for local self-hosted AI inference",
+      "description": "Provider-neutral intelligence contracts \u2014 capabilities, operations, receipts, errors for local self-hosted AI inference",
       "domain": "intelligence",
       "keywords": [
         "totem",
@@ -1502,7 +1502,7 @@
     {
       "name": "@totemsdk/decision",
       "version": "0.1.0",
-      "description": "Provider-neutral decision runtime — typed, constrained, provenance-bound proposals over dynamic candidate spaces (AI proposes, Totem authorizes)",
+      "description": "Provider-neutral decision runtime \u2014 typed, constrained, provenance-bound proposals over dynamic candidate spaces (AI proposes, Totem authorizes)",
       "domain": "decision",
       "keywords": [
         "totem",
@@ -1566,7 +1566,7 @@
     {
       "name": "@totemsdk/qvac",
       "version": "0.1.0",
-      "description": "QVAC intelligence adapter — wraps @qvac/sdk into @totemsdk/intelligence provider-neutral contracts (with /edge and /raw subpaths)",
+      "description": "QVAC intelligence adapter \u2014 wraps @qvac/sdk into @totemsdk/intelligence provider-neutral contracts (with /edge and /raw subpaths)",
       "domain": "intelligence",
       "keywords": [
         "totem",
@@ -1607,12 +1607,12 @@
         "./vla": "dist/domains/vla.{js,d.ts}",
         "./world": "dist/domains/world.{js,d.ts}"
       },
-      "exportsDescription": "createQvacIntelligenceProvider (runtime capability discovery), QvacSdkLike structural injection seam, /edge EdgeIntelligencePort binding, /raw genuine SDK passthrough, per-domain typed adapters /llm…/plugins"
+      "exportsDescription": "createQvacIntelligenceProvider (runtime capability discovery), QvacSdkLike structural injection seam, /edge EdgeIntelligencePort binding, /raw genuine SDK passthrough, per-domain typed adapters /llm\u2026/plugins"
     },
     {
       "name": "@totemsdk/storage",
       "version": "0.1.0",
-      "description": "Provider-neutral storage contracts and adapters — StorageError taxonomy, versioned codec, namespaces, transactions + CAS, artifact-boundary types with a pluggable ArtifactStoreBackend port",
+      "description": "Provider-neutral storage contracts and adapters \u2014 StorageError taxonomy, versioned codec, namespaces, transactions + CAS, artifact-boundary types with a pluggable ArtifactStoreBackend port",
       "domain": "storage",
       "keywords": [
         "totem",
@@ -1639,6 +1639,7 @@
         "./conformance": "dist/conformance/index.{js,d.ts}",
         "./errors": "dist/errors.{js,d.ts}",
         "./fs": "dist/adapters/file-store.{js,d.ts}",
+        "./idb": "dist/adapters/idb-store.{js,d.ts}",
         "./journal": "dist/journal.{js,d.ts}",
         "./memory": "dist/adapters/memory-store.{js,d.ts}",
         "./namespace": "dist/namespace.{js,d.ts}",

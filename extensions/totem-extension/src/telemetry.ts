@@ -28,7 +28,7 @@ let telemetryEnabled = false;
 export async function initTelemetry(): Promise<void> {
   try {
     if (typeof chrome !== 'undefined' && chrome.storage?.local) {
-      const result = await chrome.storage.local.get(TELEMETRY_CONSENT_KEY);
+      const result = await chrome.storage.local.getTyped(TELEMETRY_CONSENT_KEY);
       telemetryEnabled = result[TELEMETRY_CONSENT_KEY] === true;
 
       chrome.storage.onChanged.addListener((changes, area) => {

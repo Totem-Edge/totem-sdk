@@ -107,6 +107,31 @@ export interface LocalWatermark {
   lastSyncTimestamp?: number;
 }
 
+/**
+ * A portable, self-describing watermark snapshot (RFC-013 §9). Used to seed a
+ * freshly-provisioned local watermark from an exported blob, an operator-supplied
+ * high-water mark, or the on-chain cursor, so a restored wallet never starts
+ * below the true high-water mark and reissues a spent leaf.
+ */
+export interface WatermarkSeed {
+  readonly version: 1;
+  readonly treeId: string;
+  readonly addressCursor: number;
+  readonly l1Cursor: number;
+  readonly l2Cursor: number;
+  /** Flat indices already consumed (reserved/committed/burned). */
+  readonly unavailable?: readonly number[];
+}
+
+export interface SeedWatermarkOptions {
+  /**
+   * Permit a seed whose cursor is behind the current local cursor. Defaults to
+   * `false` — regression re-exposes used leaves, so seeding fails closed.
+   */
+  readonly allowRegression?: boolean;
+}
+
+
 export interface ConflictRecord {
   treeId: string;
   localIndex: number;

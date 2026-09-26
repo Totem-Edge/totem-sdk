@@ -17,6 +17,8 @@ import type {
   LocalWatermark,
   SyncResult,
   SigningIndices,
+  WatermarkSeed,
+  SeedWatermarkOptions,
 } from './types.js';
 import { WotsWatermarkStore, flatIndex } from './watermark.js';
 import { LeaseJournal } from './journal.js';
@@ -421,6 +423,26 @@ export class LocalLeaseProvider implements WotsLeaseProvider {
   async getLocalWatermark(treeId: string): Promise<LocalWatermark> {
     if (!this._initialized) await this.initialize();
     return this.watermark.getLocalWatermark(treeId);
+  }
+
+  /**
+   * Export a portable watermark seed for restore (RFC-013 §9).
+   */
+  async exportWatermark(treeId: string): Promise<WatermarkSeed> {
+    if (!this._initialized) await this.initialize();
+    return this.watermark.exportSeed(treeId);
+  }
+
+  /**
+   * Seed the local watermark from an exported/operator/on-chain snapshot.
+   * Forward-only by default; refuses to start below the true high-water mark.
+   */
+  async seedWatermark(seed: WatermarkSeed, options?: SeedWatermarkOptions): Promise<void> {
+    return this.withMutationLock(async () => {
+      if (!this._initialized) await this.initialize();
+      await this.watermark.refresh();
+      await this.watermark.seed(seed, options);
+    });
   }
 
   /** List all tree IDs known to the local watermark store. */

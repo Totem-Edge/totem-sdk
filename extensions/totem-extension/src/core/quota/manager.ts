@@ -219,7 +219,7 @@ class QuotaManager {
    */
   private async loadFromStorage(): Promise<void> {
     try {
-      const result = await chrome.storage.local.get(this.storageKey);
+      const result = await chrome.storage.local.getTyped(this.storageKey);
       const stored = result[this.storageKey];
       
       if (stored?.quota) {

@@ -86,7 +86,7 @@ export function QuotaExceededModal() {
     });
 
     // Load upgrade message from bootstrap config
-    chrome.storage.local.get('totem_config', (result) => {
+    chrome.storage.local.getTyped('totem_config', (result) => {
       const config = result.totem_config;
       if (config?.config?.upgrade_messaging) {
         setUpgradeMessage(config.config.upgrade_messaging);

@@ -24,7 +24,7 @@ function getReconnectDelay(): number {
  */
 async function resolveWsUrl(): Promise<string> {
   try {
-    const stored = await chrome.storage.local.get(['AXIA_BASE']);
+    const stored = await chrome.storage.local.getTyped(['AXIA_BASE']);
     const rpcEndpoint = stored.AXIA_BASE as string | undefined;
     if (rpcEndpoint) {
       const base = rpcEndpoint.replace(/\/$/, '');

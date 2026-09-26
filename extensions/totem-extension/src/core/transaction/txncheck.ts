@@ -5,7 +5,7 @@ import {
   getRootPublicKey
 } from '@totemsdk/core';
 import { deserializeMMRProof } from '@totemsdk/core';
-import { convertMinimaAddress } from '@totemsdk/core';
+import { mxToHex } from '@totemsdk/core';
 
 /**
  * Client-side TxnCheck Simulator (Preflight Validation)
@@ -788,7 +788,7 @@ function validateWitnessOrdering(ctx: TxnCheckContext): ValidationError[] {
     let inputAddressHex: string;
     if (input.address?.toLowerCase().startsWith('mx')) {
       try {
-        inputAddressHex = convertMinimaAddress(input.address).toLowerCase().replace(/^0x/, '');
+        inputAddressHex = mxToHex(input.address).toLowerCase().replace(/^0x/, '');
       } catch (e: any) {
         errors.push({
           stage: 'WITNESS_ORDERING',

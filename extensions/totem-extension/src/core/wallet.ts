@@ -235,7 +235,7 @@ export class WalletManager {
   private async wasSessionActive(): Promise<boolean> {
     try {
       if (typeof chrome !== 'undefined' && chrome.storage?.session) {
-        const result = await chrome.storage.session.get(['sessionActive']);
+        const result = await chrome.storage.session.getTyped(['sessionActive']);
         return result.sessionActive === true;
       }
     } catch (error) {
@@ -262,9 +262,9 @@ export class WalletManager {
       return 'active';
     }
     
-    const sessionData = await chrome.storage.session.get(['lastActivity']);
+    const sessionData = await chrome.storage.session.getTyped(['lastActivity']);
     const lastActivity = sessionData?.lastActivity || 0;
-    const storageResult = await chrome.storage.local.get(['auto_lock_enabled', 'auto_lock_minutes']);
+    const storageResult = await chrome.storage.local.getTyped(['auto_lock_enabled', 'auto_lock_minutes']);
     const autoLockEnabled = storageResult.auto_lock_enabled !== false;
     const rawMinutes = Number(storageResult.auto_lock_minutes);
     const autoLockMinutes = (rawMinutes > 0 && rawMinutes <= 60) ? rawMinutes : 30;
@@ -597,7 +597,7 @@ export class WalletManager {
    */
   async hasEncryptedSeed(): Promise<boolean> {
     try {
-      const stored = await chrome.storage.local.get('encryptedSeed');
+      const stored = await chrome.storage.local.getTyped('encryptedSeed');
       if (!stored.encryptedSeed) return false;
       
       const { iv, ct } = stored.encryptedSeed;
@@ -633,7 +633,7 @@ export class WalletManager {
    */
   async unlock(password: string): Promise<boolean> {
     try {
-      const stored = await chrome.storage.local.get(['encryptedSeed', 'seedFingerprint', 'accounts']);
+      const stored = await chrome.storage.local.getTyped(['encryptedSeed', 'seedFingerprint', 'accounts']);
       if (!stored.encryptedSeed) return false;
       
       const { iv, ct } = stored.encryptedSeed;
@@ -834,7 +834,7 @@ export class WalletManager {
       throw new Error('Invalid address index. Must be between 0 and 63.');
     }
     
-    const stored = await chrome.storage.local.get('excludedAddresses');
+    const stored = await chrome.storage.local.getTyped('excludedAddresses');
     const excludedAddresses: number[] = stored.excludedAddresses || [];
     
     if (!excludedAddresses.includes(index)) {
@@ -851,7 +851,7 @@ export class WalletManager {
       throw new Error('Invalid address index. Must be between 0 and 63.');
     }
     
-    const stored = await chrome.storage.local.get('excludedAddresses');
+    const stored = await chrome.storage.local.getTyped('excludedAddresses');
     const excludedAddresses: number[] = stored.excludedAddresses || [];
     
     const filteredExcluded = excludedAddresses.filter(i => i !== index);
@@ -862,7 +862,7 @@ export class WalletManager {
    * Check if address is excluded
    */
   async isAddressExcluded(index: number): Promise<boolean> {
-    const stored = await chrome.storage.local.get('excludedAddresses');
+    const stored = await chrome.storage.local.getTyped('excludedAddresses');
     const excludedAddresses: number[] = stored.excludedAddresses || [];
     return excludedAddresses.includes(index);
   }
@@ -892,7 +892,7 @@ export class WalletManager {
    * Get all non-excluded addresses
    */
   async getNonExcludedAddresses(): Promise<Account[]> {
-    const stored = await chrome.storage.local.get('excludedAddresses');
+    const stored = await chrome.storage.local.getTyped('excludedAddresses');
     const excludedAddresses: number[] = stored.excludedAddresses || [];
     
     return this.state.accounts.filter(
@@ -904,7 +904,7 @@ export class WalletManager {
    * Get all excluded addresses
    */
   async getExcludedAddresses(): Promise<Account[]> {
-    const stored = await chrome.storage.local.get('excludedAddresses');
+    const stored = await chrome.storage.local.getTyped('excludedAddresses');
     const excludedAddresses: number[] = stored.excludedAddresses || [];
     
     return this.state.accounts.filter(
@@ -1603,7 +1603,7 @@ export class WalletManager {
    * Load address metadata (names) from storage
    */
   private async loadAddressMetadata(): Promise<void> {
-    const stored = await chrome.storage.local.get('addressNames');
+    const stored = await chrome.storage.local.getTyped('addressNames');
     if (stored.addressNames) {
       const addressNames = stored.addressNames as Record<number, string>;
       this.state.accounts.forEach(account => {
@@ -1620,7 +1620,7 @@ export class WalletManager {
    */
   private async restoreAddressesFromStorage(): Promise<void> {
     WalletLogger.info(' Restoring addresses from storage...');
-    const stored = await chrome.storage.local.get(['walletAddresses', 'addressGenerationComplete']);
+    const stored = await chrome.storage.local.getTyped(['walletAddresses', 'addressGenerationComplete']);
     
     if (stored.walletAddresses && Array.isArray(stored.walletAddresses)) {
       this.state.accounts = stored.walletAddresses as Account[];
@@ -1657,7 +1657,7 @@ export class WalletManager {
     this.backgroundGenerationActive = false;
     this.backgroundGenerationCancelled = false;
 
-    const stored = await chrome.storage.local.get(['walletAddresses']);
+    const stored = await chrome.storage.local.getTyped(['walletAddresses']);
     const existingAddresses = stored.walletAddresses as Account[] | undefined;
     const addressCount = existingAddresses?.length ?? 0;
 
@@ -1843,7 +1843,7 @@ export class WalletManager {
   }
 
   async exportMnemonic(password: string): Promise<string> {
-    const stored = await chrome.storage.local.get('encryptedMnemonic');
+    const stored = await chrome.storage.local.getTyped('encryptedMnemonic');
     
     if (!stored.encryptedMnemonic) {
       throw new Error('No mnemonic stored');
@@ -2016,7 +2016,7 @@ export class WalletManager {
       throw new Error('Wallet locked — unlock before generating ownership proof');
     }
     const riw = new RootIdentityWallet(this.sessionSeed, 64);
-    const stored = await chrome.storage.local.get('rootTreeRootUses');
+    const stored = await chrome.storage.local.getTyped('rootTreeRootUses');
     if (stored.rootTreeRootUses != null) {
       riw.setRootUses(Number(stored.rootTreeRootUses));
     }

@@ -106,7 +106,7 @@ export function BrutalistApp() {
       
       // Fallback: check storage directly instead of giving up
       try {
-        const stored = await chrome.storage.local.get('encryptedSeed');
+        const stored = await chrome.storage.local.getTyped('encryptedSeed');
         const hasWallet = !!(stored.encryptedSeed?.iv && stored.encryptedSeed?.ct);
         console.log(`[BrutalistApp] Storage fallback check: hasWallet=${hasWallet}`);
         setInited(hasWallet);
@@ -164,7 +164,7 @@ export function BrutalistApp() {
     const tryLoadActiveAccount = async () => {
       // Fast path: read from storage directly
       try {
-        const stored = await chrome.storage.local.get(['walletAddresses', 'selectedAccountIndex']);
+        const stored = await chrome.storage.local.getTyped(['walletAddresses', 'selectedAccountIndex']);
         const accounts: { address: string; index: number; name?: string }[] = stored.walletAddresses || [];
         if (!cancelled && accounts.length > 0) {
           const idx = (stored.selectedAccountIndex as number) ?? 0;
@@ -189,7 +189,7 @@ export function BrutalistApp() {
           if (response?.account) {
             const idx = response.index ?? 0;
             // Also load full account list
-            const stored2 = await chrome.storage.local.get('walletAddresses');
+            const stored2 = await chrome.storage.local.getTyped('walletAddresses');
             const accounts2: { address: string; index: number; name?: string }[] = stored2.walletAddresses || [];
             if (!cancelled) {
               setWalletAccounts(accounts2.length > 0 ? accounts2 : [response.account]);
@@ -219,7 +219,7 @@ export function BrutalistApp() {
   useEffect(() => {
     console.log('[BrutalistApp] Setting up connection status monitoring...');
 
-    chrome.storage.local.get([CONNECTION_STATUS_KEY], (result) => {
+    chrome.storage.local.getTyped([CONNECTION_STATUS_KEY], (result) => {
       const connectionState = result[CONNECTION_STATUS_KEY] as ConnectionState | undefined;
       if (connectionState) {
         updateNetworkStatus(connectionState);
@@ -261,7 +261,7 @@ export function BrutalistApp() {
   const handleAccountSwitch = async (index: number) => {
     try {
       await chrome.runtime.sendMessage({ method: 'wallet:setActiveAccount', index });
-      const stored = await chrome.storage.local.get(['walletAddresses', 'selectedAccountIndex']);
+      const stored = await chrome.storage.local.getTyped(['walletAddresses', 'selectedAccountIndex']);
       const accounts: { address: string; index: number; name?: string }[] = stored.walletAddresses || [];
       const safeIdx = Math.min(index, accounts.length - 1);
       setActiveAccountIndex(safeIdx);
@@ -274,7 +274,7 @@ export function BrutalistApp() {
   // Called from Settings when a new address is added
   const handleAccountsUpdated = async () => {
     try {
-      const stored = await chrome.storage.local.get(['walletAddresses', 'selectedAccountIndex']);
+      const stored = await chrome.storage.local.getTyped(['walletAddresses', 'selectedAccountIndex']);
       const accounts: { address: string; index: number; name?: string }[] = stored.walletAddresses || [];
       setWalletAccounts(accounts);
     } catch (e) {

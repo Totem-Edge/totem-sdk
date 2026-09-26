@@ -86,7 +86,7 @@ export function SendModeSelector({ selectedMode, onModeChange }: SendModeSelecto
         return;
       }
 
-      const result = await chrome.storage.local.get(['excludedAddresses', 'addressNames']);
+      const result = await chrome.storage.local.getTyped(['excludedAddresses', 'addressNames']);
       setExcludedAddresses(result.excludedAddresses || []);
       setAddressNames(result.addressNames || {});
     } catch (error) {

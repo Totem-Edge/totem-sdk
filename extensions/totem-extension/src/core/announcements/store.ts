@@ -20,7 +20,7 @@ const STORAGE_KEY = 'totem_announcements_store';
 
 async function getStore(): Promise<AnnouncementStore> {
   try {
-    const result = await chrome.storage.local.get(STORAGE_KEY);
+    const result = await chrome.storage.local.getTyped(STORAGE_KEY);
     return result[STORAGE_KEY] || {
       announcements: [],
       dismissed: {},

@@ -7,6 +7,38 @@ export class WatermarkMonotonicityError extends Error {
   }
 }
 
+/**
+ * Raised when seeding would move the local watermark cursor backwards. This is
+ * the fail-closed guard against restoring a wallet below its true high-water
+ * mark and reusing a WOTS leaf (RFC-013 §9).
+ */
+export class WatermarkSeedRegressionError extends Error {
+  constructor(public readonly treeId: string, public readonly currentCursor: number, public readonly seedCursor: number) {
+    super(
+      `Refusing to seed watermark for ${treeId} below the current cursor ` +
+        `(${seedCursor} < ${currentCursor}); this would re-expose used WOTS leaves.`,
+    );
+    this.name = 'WatermarkSeedRegressionError';
+  }
+}
+
+/**
+ * Raised when a restore/import has no usable watermark source and the caller has
+ * not declared the keyspace fresh. Failing closed is required: starting at 0
+ * would reissue spent leaves (RFC-013 §9).
+ */
+export class WatermarkSeedRequiredError extends Error {
+  constructor(public readonly treeId: string) {
+    super(
+      `No watermark source available for ${treeId}. Provide an on-chain cursor, an ` +
+        'exported watermark, or an operator high-water mark — or declare the keyspace fresh. ' +
+        'Refusing to start at 0.',
+    );
+    this.name = 'WatermarkSeedRequiredError';
+  }
+}
+
+
 export class WatermarkExhaustedError extends Error {
   constructor(public readonly treeId: string) {
     super(`WOTS keyspace exhausted for tree: ${treeId}`);

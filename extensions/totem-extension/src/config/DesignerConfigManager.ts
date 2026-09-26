@@ -20,7 +20,7 @@ export class DesignerConfigManager {
    * Get current Designer mode configuration from storage
    */
   static async getConfig(): Promise<DesignerConfig> {
-    const result = await chrome.storage.local.get([
+    const result = await chrome.storage.local.getTyped([
       STORAGE_KEYS.DESIGNER_MODE,
       STORAGE_KEYS.DESIGNER_API_URL,
       STORAGE_KEYS.DESIGNER_PROJECT_ID,

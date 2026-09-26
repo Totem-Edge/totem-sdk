@@ -100,7 +100,7 @@ export async function performStartupRecovery(): Promise<RecoveryReport> {
 
 export async function getRecoveryStatus(): Promise<RecoveryReport | null> {
   try {
-    const result = await chrome.storage.local.get('totem_last_recovery');
+    const result = await chrome.storage.local.getTyped('totem_last_recovery');
     return result.totem_last_recovery || null;
   } catch (error) {
     console.error('[StartupRecovery] Failed to get recovery status:', error);

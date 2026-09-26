@@ -52,7 +52,7 @@ export class QuotaTracker {
    */
   private async loadPersistedState(): Promise<void> {
     try {
-      const stored = await chrome.storage.local.get(this.storageKey);
+      const stored = await chrome.storage.local.getTyped(this.storageKey);
       if (stored[this.storageKey]) {
         this.state = stored[this.storageKey] as QuotaState;
         console.log('[QuotaTracker] Loaded persisted state:', this.state);
@@ -250,7 +250,7 @@ export class QuotaTracker {
 
   async fetchFromServer(userIdentityHash: string): Promise<QuotaState | null> {
     try {
-      const stored = await chrome.storage.local.get(['AXIA_BASE', 'AXIA_PROJECT_ID']);
+      const stored = await chrome.storage.local.getTyped(['AXIA_BASE', 'AXIA_PROJECT_ID']);
       const base = stored.AXIA_BASE;
       const projectId = stored.AXIA_PROJECT_ID;
       if (!base || !projectId) {

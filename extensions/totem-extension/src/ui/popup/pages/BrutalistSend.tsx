@@ -163,15 +163,16 @@ export function BrutalistSend({ initialToken, onTokenConsumed, activeAccountInde
   useEffect(() => { excludedAddressesRef.current = excludedAddresses; }, [excludedAddresses]);
 
   useEffect(() => {
-    chrome.storage.session.get(['pendingQRScan']).then((result) => {
+    chrome.storage.session.getTyped(['pendingQRScan']).then((result) => {
       if (result.pendingQRScan?.address) {
         setRecipient(result.pendingQRScan.address);
         chrome.storage.session.remove('pendingQRScan');
       }
     });
     const listener = (changes: { [key: string]: chrome.storage.StorageChange }) => {
-      if (changes.pendingQRScan?.newValue?.address) {
-        setRecipient(changes.pendingQRScan.newValue.address);
+      const qr = changes.pendingQRScan?.newValue as { address?: string } | undefined;
+      if (qr?.address) {
+        setRecipient(qr.address);
       }
     };
     chrome.storage.session.onChanged.addListener(listener);
@@ -199,13 +200,13 @@ export function BrutalistSend({ initialToken, onTokenConsumed, activeAccountInde
         if (accounts.length > 0) {
           setAddresses(accounts);
         } else {
-          const stored = await chrome.storage.local.get('walletAddresses');
+          const stored = await chrome.storage.local.getTyped('walletAddresses');
           const walletAddresses = stored.walletAddresses || [];
           if (walletAddresses.length > 0) {
             setAddresses(walletAddresses);
           }
         }
-        const stored = await chrome.storage.local.get(['excludedAddresses']);
+        const stored = await chrome.storage.local.getTyped(['excludedAddresses']);
         setExcludedAddresses(stored.excludedAddresses || []);
       } catch (error) {
         console.error('[BrutalistSend] Failed to load wallet state:', error);

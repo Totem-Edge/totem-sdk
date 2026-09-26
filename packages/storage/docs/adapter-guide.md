@@ -27,6 +27,24 @@ const describeAdapter = runCoreConformance('MyStore', () =>
 The core suite exercises every vocabulary op on your adapter, verifying the
 same contract as `SqliteStore`/`FileStore`/`MemoryStore`.
 
+### Browser adapter (`@totemsdk/storage/idb`)
+
+`IdbStore` is the IndexedDB adapter for extension service workers and PWAs. It
+stays behind the isolated `@totemsdk/storage/idb` subpath, commits values through
+the same versioned codec as `FileStore`/`SqliteStore`, and declares
+`{ acknowledge: 'durably-acknowledged', atomic: true, conditional: true }`.
+Concurrent `conditionalUpdate` calls are serialized by IndexedDB's per-store
+`readwrite` transactions. Tests run against `fake-indexeddb` under the
+`testEnvironment: 'node'` Jest project:
+
+```ts
+import { IDBFactory } from 'fake-indexeddb';
+import { IdbStore } from '@totemsdk/storage/idb';
+import { runCoreConformance } from '@totemsdk/storage/conformance';
+
+runCoreConformance('IdbStore', async () => new IdbStore({ factory: new IDBFactory() }));
+```
+
 ## 2. Adding an artifact backend
 
 Implement `ArtifactStoreBackend`:

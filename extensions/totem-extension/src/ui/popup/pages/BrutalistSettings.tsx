@@ -10,6 +10,17 @@ import { DesignerConfigManager, type DesignerMode } from '../../../config/Design
 import { isDesignerMode } from '../../../config/constants';
 import { AUTO_LOCK_OPTIONS_MINUTES, DEFAULT_AUTO_LOCK_MINUTES } from '../../../constants';
 import { axiaRpcClient } from '../../../core/api/AxiaRpcClient';
+import { getApiBase, getProjectId } from '../../../core/api/base';
+import type { ChainProviderMode } from '@totemsdk/chain-provider';
+import {
+  loadWalletNetworkConfig,
+  saveWalletNetworkConfig,
+  recordSelfHostedConsent,
+  restoreSelfHostedConsent,
+  buildWalletChainProvider,
+  type LeaseProviderMode,
+  type WalletKeyValueStore,
+} from '../../../core/config/selfHosted';
 import { getPQStatusMessage, browserSupportsPQ } from '../../../utils/pqDetection';
 import { useTheme } from '../../theme/useTheme';
 import { useAnnouncements } from '../../hooks/useAnnouncements';
@@ -84,6 +95,26 @@ interface BrutalistSettingsProps {
   onAccountsUpdated?: () => void;
 }
 
+/** chrome.storage.local-backed key/value store for wallet network config. */
+const networkConfigStore: WalletKeyValueStore = {
+  get: <T,>(key: string) =>
+    new Promise<T | null>((resolve) => chrome.storage.local.getTyped([key], (r) => resolve((r[key] as T) ?? null))),
+  set: <T,>(key: string, value: T) =>
+    new Promise<void>((resolve) => chrome.storage.local.set({ [key]: value }, () => resolve())),
+  remove: (key: string) =>
+    new Promise<boolean>((resolve) => chrome.storage.local.remove(key, () => resolve(true))),
+};
+
+/** Request the optional host permission needed to reach a self-hosted node. */
+async function requestNodeOriginPermission(url: string): Promise<void> {
+  const parsed = new URL(url);
+  const origin = `${parsed.protocol}//${parsed.host}/*`;
+  const granted = await new Promise<boolean>((resolve) =>
+    chrome.permissions.request({ origins: [origin] }, (ok) => resolve(Boolean(ok))),
+  );
+  if (!granted) throw new Error('Host permission for the node was not granted.');
+}
+
 export function BrutalistSettings({ onAccountsUpdated }: BrutalistSettingsProps = {}) {
   const { currentTheme, setTheme } = useTheme();
   const { showAnnouncements, toggleShowAnnouncements } = useAnnouncements();
@@ -126,6 +157,71 @@ export function BrutalistSettings({ onAccountsUpdated }: BrutalistSettingsProps 
   const [axiaApiKeySaving, setAxiaApiKeySaving] = useState<boolean>(false);
   const [axiaApiKeyStatus, setAxiaApiKeyStatus] = useState<string | null>(null);
 
+  // Self-hosted mode (RFC-013)
+  const [chainMode, setChainMode] = useState<ChainProviderMode>('axia');
+  const [leaseMode, setLeaseMode] = useState<LeaseProviderMode>('axia');
+  const [nodeUrl, setNodeUrl] = useState<string>('');
+  const [nodeUser, setNodeUser] = useState<string>('');
+  const [nodePass, setNodePass] = useState<string>('');
+  const [selfHostedBusy, setSelfHostedBusy] = useState<boolean>(false);
+  const [selfHostedStatus, setSelfHostedStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadWalletNetworkConfig(networkConfigStore)
+      .then((cfg) => {
+        setChainMode(cfg.chain.mode);
+        setLeaseMode(cfg.lease.mode);
+        if (cfg.chain.minimaRpcUrl) {
+          setNodeUrl(cfg.chain.minimaRpcUrl);
+          setNodeUser(cfg.chain.minimaRpcUser ?? '');
+        }
+        return restoreSelfHostedConsent(networkConfigStore);
+      })
+      .catch(() => undefined);
+  }, []);
+
+  function buildChainConfig() {
+    return {
+      mode: chainMode,
+      ...(nodeUrl ? { minimaRpcUrl: nodeUrl } : {}),
+      ...(nodeUser ? { minimaRpcUser: nodeUser } : {}),
+      ...(nodePass ? { minimaRpcPass: nodePass } : {}),
+    };
+  }
+
+  async function handleTestSelfHosted() {
+    setSelfHostedBusy(true);
+    setSelfHostedStatus(null);
+    try {
+      const [baseUrl, apiKey] = await Promise.all([getApiBase(), getProjectId()]);
+      const provider = buildWalletChainProvider(buildChainConfig(), { hosted: { baseUrl, apiKey } });
+      const tip = await provider.getTip();
+      setSelfHostedStatus(`Connected — block ${tip.block}`);
+    } catch (e) {
+      setSelfHostedStatus(`Failed: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setSelfHostedBusy(false);
+    }
+  }
+
+  async function handleSaveSelfHosted() {
+    setSelfHostedBusy(true);
+    setSelfHostedStatus(null);
+    try {
+      const chain = buildChainConfig();
+      if (chain.minimaRpcUrl) {
+        await requestNodeOriginPermission(chain.minimaRpcUrl);
+        await recordSelfHostedConsent(networkConfigStore, chain.minimaRpcUrl);
+      }
+      await saveWalletNetworkConfig(networkConfigStore, { chain, lease: { mode: leaseMode } });
+      setSelfHostedStatus('Saved. Reversible at any time.');
+    } catch (e) {
+      setSelfHostedStatus(`Failed: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setSelfHostedBusy(false);
+    }
+  }
+
   // Designer mode state
   const [designerMode, setDesignerMode] = useState<DesignerMode>('mock');
   const [designerApiUrl, setDesignerApiUrl] = useState<string>('');
@@ -135,7 +231,7 @@ export function BrutalistSettings({ onAccountsUpdated }: BrutalistSettingsProps 
 
   // Load account count and full list from storage
   useEffect(() => {
-    chrome.storage.local.get(['walletAddresses'], (result) => {
+    chrome.storage.local.getTyped(['walletAddresses'], (result) => {
       const addrs: any[] = result.walletAddresses || [];
       setWalletAccountCount(addrs.length || 1);
       setAccounts(addrs);
@@ -193,7 +289,7 @@ export function BrutalistSettings({ onAccountsUpdated }: BrutalistSettingsProps 
     }
 
     if (chrome?.storage?.local) {
-      chrome.storage.local.get([
+      chrome.storage.local.getTyped([
         'auto_lock_enabled', 
         'auto_lock_minutes',
         'biometric_enabled',
@@ -939,6 +1035,90 @@ export function BrutalistSettings({ onAccountsUpdated }: BrutalistSettingsProps 
                     ✗ Error
                   </Typography>
                 )}
+              </div>
+            </div>
+
+            {/* Self-Hosted Mode */}
+            <div style={{
+              padding: 'var(--space-2)',
+              borderTop: '1px solid var(--border-subtle)',
+            }}>
+              <Typography variant="caption" bold uppercase style={{ fontSize: 'var(--text-xs)', marginBottom: '4px', display: 'block' }}>
+                Self-Hosted Mode
+              </Typography>
+              <Typography variant="caption" style={{ opacity: 0.6, fontSize: '11px', display: 'block', marginBottom: '8px' }}>
+                Bypass Axia for chain reads/broadcast and key-use coordination. Reversible at any time.
+              </Typography>
+
+              <Typography variant="caption" bold style={{ fontSize: '11px', display: 'block', marginBottom: '4px' }}>
+                Chain provider
+              </Typography>
+              <select
+                value={chainMode}
+                onChange={(e) => setChainMode(e.target.value as ChainProviderMode)}
+                style={{ width: '100%', padding: 'var(--space-1)', marginBottom: '8px', background: 'var(--bg-base)', border: '2px solid var(--border-default)', color: 'var(--text-primary)', fontSize: '12px', boxSizing: 'border-box' }}
+              >
+                <option value="axia">Axia (recommended)</option>
+                <option value="minima-rpc">My own node</option>
+                <option value="composite">Advanced (node + Axia fallback)</option>
+              </select>
+
+              {chainMode !== 'axia' && (
+                <>
+                  <input
+                    value={nodeUrl}
+                    onChange={(e) => setNodeUrl(e.target.value)}
+                    placeholder="https://node.example.com:9005"
+                    style={{ width: '100%', padding: 'var(--space-1)', marginBottom: '4px', background: 'var(--bg-base)', border: '2px solid var(--border-default)', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', fontSize: '12px', boxSizing: 'border-box' }}
+                  />
+                  <div style={{ display: 'flex', gap: 'var(--space-1)', marginBottom: '8px' }}>
+                    <input
+                      value={nodeUser}
+                      onChange={(e) => setNodeUser(e.target.value)}
+                      placeholder="RPC user (optional)"
+                      style={{ flex: 1, padding: 'var(--space-1)', background: 'var(--bg-base)', border: '2px solid var(--border-default)', color: 'var(--text-primary)', fontSize: '12px', boxSizing: 'border-box' }}
+                    />
+                    <input
+                      type="password"
+                      value={nodePass}
+                      onChange={(e) => setNodePass(e.target.value)}
+                      placeholder="RPC password"
+                      style={{ flex: 1, padding: 'var(--space-1)', background: 'var(--bg-base)', border: '2px solid var(--border-default)', color: 'var(--text-primary)', fontSize: '12px', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </>
+              )}
+
+              <Typography variant="caption" bold style={{ fontSize: '11px', display: 'block', marginBottom: '4px' }}>
+                WOTS key use
+              </Typography>
+              <select
+                value={leaseMode}
+                onChange={(e) => setLeaseMode(e.target.value as LeaseProviderMode)}
+                style={{ width: '100%', padding: 'var(--space-1)', marginBottom: '8px', background: 'var(--bg-base)', border: '2px solid var(--border-default)', color: 'var(--text-primary)', fontSize: '12px', boxSizing: 'border-box' }}
+              >
+                <option value="axia">Managed by Axia</option>
+                <option value="local">On this device (self-hosted)</option>
+                <option value="hybrid">Hybrid (device + on-chain anchor)</option>
+              </select>
+
+              <Typography variant="caption" style={{ opacity: 0.6, fontSize: '11px', display: 'block', marginBottom: '8px' }}>
+                Statechain SE co-signatures still require an SE (Axia-hosted or a self-hosted se-server).
+              </Typography>
+
+              {selfHostedStatus && (
+                <Typography variant="caption" style={{ display: 'block', marginBottom: '8px', fontSize: '11px', color: 'var(--text-secondary)' }}>
+                  {selfHostedStatus}
+                </Typography>
+              )}
+
+              <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
+                <Button variant="secondary" onClick={handleTestSelfHosted} disabled={selfHostedBusy} style={{ flex: 1 }}>
+                  {selfHostedBusy ? '…' : 'TEST'}
+                </Button>
+                <Button variant="primary" onClick={handleSaveSelfHosted} disabled={selfHostedBusy} style={{ flex: 1 }}>
+                  SAVE
+                </Button>
               </div>
             </div>
           </>
