@@ -13,6 +13,11 @@ import { leaseMonitor } from '../core/monitoring/lease';
 import { startAnnouncementSubscription } from '../core/announcements/wsSubscriber';
 import { isSharedConnectMethod, dispatchSharedConnectMethod, isConnectMethod, configureExtensionWalletRuntime } from '../core/connect/walletRuntime';
 import type { WalletHandlerContext } from '@totemsdk/connect';
+import { buildWalletLeaseProvider, loadWalletNetworkConfig } from '../core/config/selfHosted';
+import { activeChainProviderStore } from '../core/config/activeChainProvider';
+// @ts-ignore - subpath export resolves via package "exports" at bundle time; the
+// extension's legacy "node" moduleResolution cannot see it.
+import { IdbStore } from '@totemsdk/storage/idb';
 import { SdkMigrationManager } from '../config/SdkMigrationManager';
 import { sdkTelemetry } from '../config/SdkTelemetry';
 import { initSdkWallet, createExtensionAdapters } from '../core/sdk/SdkWalletInit';
@@ -962,6 +967,28 @@ void ensureStartup();
 startAnnouncementSubscription();
 
 /**
+ * Lazily construct the self-hosted WOTS lease provider (RFC-013). Returns
+ * `null` when the wallet is in the default Axia lease mode.
+ */
+let extensionLeasePromise: Promise<import('@totemsdk/wots-lease').WotsLeaseProvider | null> | undefined;
+function getExtensionLease(): Promise<import('@totemsdk/wots-lease').WotsLeaseProvider | null> {
+  if (!extensionLeasePromise) {
+    extensionLeasePromise = (async () => {
+      try {
+        const store = activeChainProviderStore();
+        const config = await loadWalletNetworkConfig(store);
+        const storage = new IdbStore({ databaseName: 'totem-extension-lease', storeName: 'kv' });
+        return buildWalletLeaseProvider(config.lease, { storage, deviceId: 'extension' });
+      } catch (err) {
+        console.warn('[connect] failed to construct self-hosted lease provider:', err);
+        return null;
+      }
+    })();
+  }
+  return extensionLeasePromise;
+}
+
+/**
  * Execution ports for the shared connect runtime (RFC-014 P3). The `signer`
  * port bridges to the extension's existing legacy handlers so lowercase
  * `totem_*` methods execute real wallet logic; `selfHosted` only permits
@@ -1013,6 +1040,69 @@ function buildExtensionConnectPorts(): Partial<WalletHandlerContext> {
           };
         }
         return { success: true, providerType: 'hosted' };
+      },
+    },
+    receipts: {
+      async getStatus(txpowid: string) {
+        await transactionReceiptStore.initialize();
+        const receipt = transactionReceiptStore.getByTxpowid(txpowid);
+        if (!receipt) return { txpowid, status: 'unknown' };
+        return {
+          txpowid,
+          status: receipt.status,
+          ...(receipt.blockHeight !== undefined ? { blockNumber: receipt.blockHeight } : {}),
+          ...(receipt.updatedAt !== undefined ? { confirmedAt: receipt.updatedAt } : {}),
+        };
+      },
+      async getReceipt(txpowid: string) {
+        await transactionReceiptStore.initialize();
+        const receipt = transactionReceiptStore.getByTxpowid(txpowid);
+        if (!receipt) {
+          return { success: false, error: `Receipt not found: ${txpowid}`, errorCode: 'NOT_FOUND' };
+        }
+        return {
+          txpowid: receipt.txpowid,
+          amount: receipt.amount,
+          tokenId: receipt.tokenId,
+          from: receipt.from ?? '',
+          to: receipt.to,
+          timestamp: receipt.timestamp,
+          ...(receipt.blockHeight !== undefined ? { blockNumber: receipt.blockHeight } : {}),
+          ...(receipt.memo !== undefined ? { description: receipt.memo } : {}),
+        };
+      },
+    },
+    lease: {
+      async reserveKeyUse(params: Record<string, unknown>) {
+        const lease = await getExtensionLease();
+        if (!lease) {
+          return {
+            success: false,
+            error: 'WOTS key use is managed by Axia; enable self-hosted key use in Network Settings.',
+            errorCode: 'UNSUPPORTED',
+          };
+        }
+        const reservation = await lease.reserveKeyUse({
+          treeId: 'default',
+          ...(params.purpose !== undefined ? { purpose: String(params.purpose) } : {}),
+          ...(params.ttlMs !== undefined ? { ttlMs: Number(params.ttlMs) } : {}),
+          deviceId: 'extension',
+        });
+        return {
+          reservationId: reservation.reservationId,
+          addressIndex: reservation.indices.addressIndex,
+          l1: reservation.indices.l1,
+          l2: reservation.indices.l2,
+          expiresAt: reservation.expiresAt,
+        };
+      },
+      async releaseReservation(reservationId: string, reason?: string) {
+        const lease = await getExtensionLease();
+        if (!lease) {
+          return { success: false, error: 'WOTS key use is managed by Axia.', errorCode: 'UNSUPPORTED' };
+        }
+        await lease.burnReservation(reservationId, reason ?? 'released');
+        return { success: true, reservationId };
       },
     },
   };

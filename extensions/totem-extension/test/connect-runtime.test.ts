@@ -52,4 +52,48 @@ describe('extension shared connect runtime', () => {
     const result = (await dispatchSharedConnectMethod('totem_omniaPay', {})) as { errorCode?: string };
     expect(result.errorCode).toBe('UNSUPPORTED');
   });
+
+  it('serves tx status/receipt methods when a receipts store is wired', async () => {
+    configureExtensionWalletRuntime({
+      receipts: {
+        getStatus: async (id: string) => ({ txpowid: id, status: 'confirmed', blockNumber: 42 }),
+        getReceipt: async (id: string) => ({
+          txpowid: id,
+          amount: '1',
+          tokenId: '0x00',
+          from: 'MxFrom',
+          to: 'MxTo',
+          timestamp: 123,
+        }),
+      },
+    });
+
+    expect(await dispatchSharedConnectMethod('totem_getTransactionStatus', { txpowid: 't1' })).toMatchObject({
+      status: 'confirmed',
+      blockNumber: 42,
+    });
+    expect(await dispatchSharedConnectMethod('totem_getReceipt', { txpowid: 't1' })).toMatchObject({
+      amount: '1',
+      to: 'MxTo',
+    });
+
+    const manifest = sharedConnectManifest();
+    expect(manifest.methods.totem_getTransactionStatus).toBe('supported');
+    expect(manifest.methods.totem_getReceipt).toBe('supported');
+  });
+
+  it('serves WOTS lease methods when a lease port is wired', async () => {
+    configureExtensionWalletRuntime({
+      lease: {
+        reserveKeyUse: async () => ({ reservationId: 'r1', addressIndex: 0, l1: 1, l2: 2, expiresAt: 99 }),
+        releaseReservation: async () => ({ success: true }),
+      },
+    });
+    expect(await dispatchSharedConnectMethod('totem_reserveWotsLease', {})).toMatchObject({ reservationId: 'r1' });
+    expect(await dispatchSharedConnectMethod('totem_releaseWotsLease', { reservationId: 'r1' })).toMatchObject({ success: true });
+
+    const manifest = sharedConnectManifest();
+    expect(manifest.methods.totem_reserveWotsLease).toBe('supported');
+    expect(manifest.methods.totem_releaseWotsLease).toBe('supported');
+  });
 });
