@@ -75,6 +75,10 @@ if (!skipPwa) {
   run(PWA, 'npx tsc --noEmit -p tsconfig.json', 'pwa typecheck');
 }
 
+// ── 2b. Shared connect wallet runtime conformance (RFC-014) ────────────────
+console.log('\n── shared connect wallet runtime ──────────────────────────');
+run(join(ROOT, 'packages/connect'), 'npx jest src/__tests__/wallet.test.ts --reporters=default', 'connect/wallet conformance');
+
 // ── 3. Manifest / CSP policy ───────────────────────────────────────────────
 console.log('\n── self-hosted safety policy ─────────────────────────────');
 const manifestPath = join(EXT, 'manifest.json');

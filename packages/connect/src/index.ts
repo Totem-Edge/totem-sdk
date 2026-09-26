@@ -862,3 +862,6 @@ export async function agentCreateReceipt(origin: string, params: {
   });
   return response as TotemAgentCreateReceiptResponse;
 }
+
+// ── Wallet-side runtime (RFC-014) ──────────────────────────────────────────
+export * from './wallet.js';

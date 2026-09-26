@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/connect",
   "version": "2.1.0",
-  "description": "Client-side SDK for connecting to the Totem wallet browser extension — includes Totem Edge capability layer",
+  "description": "Client-side SDK for connecting to the Totem wallet browser extension \u2014 includes Totem Edge capability layer",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -9,6 +9,11 @@
       "types": "./dist/index.d.ts",
       "require": "./dist/index.js",
       "import": "./dist/index.js"
+    },
+    "./wallet": {
+      "types": "./dist/wallet.d.ts",
+      "require": "./dist/wallet.js",
+      "import": "./dist/wallet.js"
     }
   },
   "scripts": {

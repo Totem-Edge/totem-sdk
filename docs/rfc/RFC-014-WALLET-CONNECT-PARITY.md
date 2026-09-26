@@ -1,6 +1,6 @@
 # RFC-014: Wallet Connect Parity & Shared Execution Bridge
 
-**Status:** Draft — not started
+**Status:** Landed — P1–P6 (structural parity). `@totemsdk/connect/wallet` introduces the canonical `CONNECT_METHODS` (46) + `WALLET_INTERNAL_METHODS`, the frozen disposition table, structural ports, `createWalletRuntime`, and `buildWalletCapabilityManifest` (13-test conformance). Both wallets adopt the shared runtime at their dispatch boundary: the extension serves the lowercase `totem_*` namespace through it (legacy `TOTEM_*` keep their handlers), the PWA routes unhandled canonical methods through it (replacing its silent-stub set). The parity audit is now runtime-aware; both wallets report **46/46 served** (handled or explicit `unsupported`) and `KNOWN_GAPS` is empty, with a green gate. **Remaining wiring (not blocking):** actually constructing the governed Edge runtime + omnia/payment/statechain/kissvm/agent ports inside each wallet so those methods execute rather than return explicit `unsupported`; tx-status/receipt persistence stores. Open questions Q1–Q4 resolved (§13).
 **Created:** 2026-09-24
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]
@@ -232,15 +232,32 @@ must not import the wallets.
 - The extension's non-connect surface is brought into the shared runtime (PWA
   parity by construction).
 
-## 13. Open questions
+## 13. Open questions — resolved for v1
 
-- **Q1** Placement: `@totemsdk/connect/wallet` subpath vs a new
-  `@totemsdk/wallet-runtime` package?
-- **Q2** tx status/receipts: persist in-wallet vs Axia endpoint (or both)?
-- **Q3** For Omnia/Statechain, does the wallet hold an Edge runtime with ports, or
-  call an SDK client directly (RFC-013 §6.4 model B)?
-- **Q4** How much of the extension's streaming/snapshot surface is required for
-  PWA parity vs deprecating it in favour of connect methods?
+- **Q1** Placement → **`@totemsdk/connect/wallet` subpath**. No new top-level
+  package; the wallet-side counterpart to the dApp client. It must not import the
+  wallets.
+- **Q2** tx status/receipts → **persist in-wallet** via an injected
+  `ReceiptStorePort`; Axia endpoints stay RFC-015. When no store is wired the
+  method is explicitly `unsupported` (reason), never a silent stub.
+- **Q3** Omnia/payments/agent → **Edge-dispatched** through an injected
+  `EdgeDispatch` (the governed `createAgentEdgeRuntime`). Statechain/KISSVM have
+  no Edge ports, so they are **sdk-client** handlers over injected clients.
+  `@totemsdk/connect/wallet` depends on **none** of these concretely — it defines
+  structural ports and stays cycle-free (edge already peer-depends on connect).
+- **Q4** streaming/snapshot surface → **not required for PWA parity in v1**; those
+  remain local wallet handlers. Only connect methods are gated.
+
+### 13.1 Additional resolved decisions
+
+- The method registry is derived from a canonical `CONNECT_METHODS` array
+  introduced in `@totemsdk/connect/wallet` (none existed in `connect`).
+- `createWalletRuntime(handlers?, ctx)` returns a `TotemProvider`-compatible
+  object; each method resolves to `handled` or `unsupported` (with a reason) from
+  the shared manifest — the wallet never silently ignores a method.
+- The parity audit becomes **runtime-aware**: a wallet that creates the shared
+  runtime is scored from its served manifest, not from hand-scraped `case`
+  strings.
 
 ## 14. References
 

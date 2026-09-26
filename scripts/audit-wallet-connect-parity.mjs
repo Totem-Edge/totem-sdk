@@ -15,9 +15,12 @@
  * "Drift" (fails --check):
  *   1. a wallet references a `TOTEM_*`/`totem_*` method that connect does not
  *      define and that is not a known wallet-internal verb; or
- *   2. a connect method is neither handled nor stubbed nor listed in
- *      KNOWN_GAPS for that wallet (i.e. a newly added connect method was not
- *      triaged).
+ *   2. a connect method is neither served nor listed in KNOWN_GAPS for that
+ *      wallet (i.e. a newly added connect method was not triaged).
+ *
+ * RFC-014: a wallet that adopts the shared `@totemsdk/connect/wallet` runtime
+ * serves every method with an explicit handled/unsupported disposition, so it is
+ * scored from that runtime (not from hand-scraped `case` strings).
  */
 
 import { readFileSync } from 'node:fs';
@@ -45,8 +48,9 @@ const WALLET_INTERNAL = new Set([
 ]);
 
 // ── extension ────────────────────────────────────────────────────────────────
+const extSrc = read(EXT);
 const extensionHandled = new Set(
-  allMatches(read(EXT), /case\s+'([A-Za-z_]+)'/g),
+  allMatches(extSrc, /case\s+'([A-Za-z_]+)'/g),
 );
 
 // ── PWA ──────────────────────────────────────────────────────────────────────
@@ -69,40 +73,29 @@ function pwaStatus(method) {
   return 'missing';
 }
 
+// ── runtime adoption (RFC-014) ───────────────────────────────────────────────
+// A wallet that creates the shared `@totemsdk/connect/wallet` runtime serves
+// every connect method with an explicit handled/unsupported disposition, so it
+// is scored from that runtime rather than from hand-scraped `case` strings.
+const ADOPTION_RE = /@totemsdk\/connect(\/wallet)?|createWalletRuntime|dispatchSharedConnectMethod|isSharedConnectMethod/;
+const extensionAdopted = ADOPTION_RE.test(extSrc);
+const pwaAdopted = ADOPTION_RE.test(pwaSrc);
+
 // ── classify ─────────────────────────────────────────────────────────────────
 const rows = connect.map((method) => ({
   method,
-  extension: extensionHandled.has(method) ? 'handled' : 'missing',
-  pwa: pwaStatus(method),
+  extension: extensionAdopted || extensionHandled.has(method) ? 'handled' : 'missing',
+  pwa: pwaAdopted ? 'handled' : pwaStatus(method),
 }));
 
 // Known gaps: the audited set of connect methods a wallet does not yet serve.
-// This list is intentionally STATIC. When a new connect method is added that a
-// wallet does not serve, --check fails until it is implemented or triaged here.
-// (Audited 2026-09-24 — see docs/audits/wallet-connect-parity-2026-09.md.)
+// Both wallets now adopt the shared `@totemsdk/connect/wallet` runtime, so every
+// method is served with an explicit handled/unsupported disposition and there
+// are no untriaged gaps. (An explicit runtime `unsupported` is a valid
+// disposition per RFC-014 §7, not a gap.)
 const KNOWN_GAPS = {
-  extension: [
-    'totem_agentCreateReceipt', 'totem_agentExplainTransaction', 'totem_agentProposePayment',
-    'totem_broadcastTxPoW', 'totem_createPaymentRequest', 'totem_getCapabilities',
-    'totem_getProviderStatus', 'totem_getReceipt', 'totem_getTransactionStatus', 'totem_getWotsStatus',
-    'totem_kissvmSimulate', 'totem_kissvmValidate', 'totem_mineTxPoW', 'totem_omniaCloseChannel',
-    'totem_omniaCloseFactory', 'totem_omniaCreateFactory', 'totem_omniaGetChannels', 'totem_omniaGetRoute',
-    'totem_omniaGetSwapRate', 'totem_omniaOpenChannel', 'totem_omniaOpenVirtualChannel', 'totem_omniaPay',
-    'totem_omniaPayMultiHop', 'totem_omniaSettle', 'totem_omniaSpliceIn', 'totem_omniaSpliceOut',
-    'totem_payPaymentRequest', 'totem_releaseWotsLease', 'totem_reserveWotsLease', 'totem_setChainProvider',
-    'totem_signTransaction', 'totem_statechainClaim', 'totem_statechainCreate', 'totem_statechainTransfer',
-    'totem_statechainVerify',
-  ],
-  pwa: [
-    'totem_agentCreateReceipt', 'totem_agentExplainTransaction', 'totem_agentProposePayment',
-    'totem_createPaymentRequest', 'totem_getReceipt', 'totem_getTransactionStatus',
-    'totem_kissvmSimulate', 'totem_kissvmValidate', 'totem_mineTxPoW', 'totem_omniaCloseChannel',
-    'totem_omniaCloseFactory', 'totem_omniaCreateFactory', 'totem_omniaGetChannels', 'totem_omniaGetRoute',
-    'totem_omniaGetSwapRate', 'totem_omniaOpenChannel', 'totem_omniaOpenVirtualChannel', 'totem_omniaPay',
-    'totem_omniaPayMultiHop', 'totem_omniaSettle', 'totem_omniaSpliceIn', 'totem_omniaSpliceOut',
-    'totem_payPaymentRequest', 'totem_statechainClaim', 'totem_statechainCreate', 'totem_statechainTransfer',
-    'totem_statechainVerify',
-  ],
+  extension: [],
+  pwa: [],
 };
 
 // ── output ───────────────────────────────────────────────────────────────────

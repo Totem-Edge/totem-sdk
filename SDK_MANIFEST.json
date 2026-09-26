@@ -202,7 +202,8 @@
         "@totemsdk/wots-lease": "^1.0.0"
       },
       "exports": {
-        ".": "dist/index.{js,d.ts}"
+        ".": "dist/index.{js,d.ts}",
+        "./wallet": "dist/wallet.{js,d.ts}"
       },
       "exportsDescription": "WalletDiscovery, TotemProvider, request, TOTEM_CONNECT, TOTEM_SIGN"
     },

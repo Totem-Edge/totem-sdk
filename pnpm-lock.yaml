@@ -101,6 +101,9 @@ importers:
       '@totemsdk/chain-provider':
         specifier: workspace:^
         version: link:../../packages/chain-provider
+      '@totemsdk/connect':
+        specifier: workspace:^
+        version: link:../../packages/connect
       '@totemsdk/core':
         specifier: workspace:^
         version: link:../../packages/core
@@ -264,6 +267,9 @@ importers:
       '@totemsdk/chain-provider':
         specifier: workspace:^
         version: link:../../packages/chain-provider
+      '@totemsdk/connect':
+        specifier: workspace:^
+        version: link:../../packages/connect
       '@totemsdk/core':
         specifier: workspace:^
         version: link:../../packages/core

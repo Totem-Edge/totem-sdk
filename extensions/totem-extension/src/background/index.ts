@@ -11,6 +11,7 @@ import { initializeBootstrap } from '../core/config/bootstrap';
 import { performStartupRecovery, saveRecoveryStatus } from '../core/recovery/startup';
 import { leaseMonitor } from '../core/monitoring/lease';
 import { startAnnouncementSubscription } from '../core/announcements/wsSubscriber';
+import { isSharedConnectMethod, dispatchSharedConnectMethod, isConnectMethod } from '../core/connect/walletRuntime';
 import { SdkMigrationManager } from '../config/SdkMigrationManager';
 import { sdkTelemetry } from '../config/SdkTelemetry';
 import { initSdkWallet, createExtensionAdapters } from '../core/sdk/SdkWalletInit';
@@ -1069,7 +1070,7 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
   const messageType = type || method; // Support both 'type' and 'method' for compatibility
 
   if (isDAppSender(sender)) {
-    if (!DAPP_ALLOWED_METHODS.has(messageType)) {
+    if (!DAPP_ALLOWED_METHODS.has(messageType) && !isConnectMethod(messageType)) {
       console.warn('[Background] Blocked DApp message:', messageType, 'from tab:', sender.tab?.url);
       return { ok: false, error: 'Method not allowed for DApp callers', id };
     }
@@ -1090,7 +1091,18 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
 
     params = { ...(params && typeof params === 'object' ? params : {}), origin: trustedOrigin };
   }
-  
+
+  // RFC-014: the lowercase `totem_*` connect namespace is served by the shared
+  // wallet runtime (single source of truth + explicit handled/unsupported).
+  // Legacy uppercase `TOTEM_*` methods keep their existing handlers below.
+  if (isSharedConnectMethod(messageType)) {
+    const result = await dispatchSharedConnectMethod(
+      messageType,
+      params && typeof params === 'object' ? params : {},
+    );
+    return { ok: true, result, id };
+  }
+
   switch (messageType) {
     case 'balance:replay':
       await portfolioStreamManager.triggerReplay();

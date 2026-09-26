@@ -34,6 +34,7 @@
   "dependencies": {
     "@noble/hashes": "^2.2.0",
     "@totemsdk/core": "workspace:^",
+    "@totemsdk/connect": "workspace:^",
     "@totemsdk/realtime": "workspace:^",
     "@totemsdk/root-identity": "workspace:^",
     "@totemsdk/chain-provider": "workspace:^",

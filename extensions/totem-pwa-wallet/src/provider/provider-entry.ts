@@ -1,3 +1,5 @@
+import { isSharedConnectMethod, dispatchSharedConnectMethod } from '../core/connect/walletRuntime';
+
 /**
  * provider.js — Totem PWA cross-origin embed script
  *
@@ -532,6 +534,12 @@
           availableSlots: 262144,
           nearExhaustion: false,
         });
+      }
+
+      // RFC-014: canonical `totem_*` methods not handled inline/approved above
+      // are served by the shared wallet runtime (explicit handled/unsupported).
+      if (isSharedConnectMethod(method)) {
+        return dispatchSharedConnectMethod(method, (params ?? {}) as Record<string, unknown>);
       }
 
       const unsupportedMethods = new Set([
