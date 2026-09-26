@@ -61,9 +61,12 @@ if (!skipTests) {
   console.log('\n── extension: unit tests ──────────────────────────────────');
   run(EXT, 'npm run test:unit', 'extension unit tests');
 
-  console.log('\n── extension: self-hosted unit tests ─────────────────────');
-  if (existsSync(join(EXT, 'test/self-hosted.test.ts'))) {
-    run(EXT, 'npx jest test/self-hosted.test.ts --reporters=default', 'extension self-hosted tests');
+  console.log('\n── extension: self-hosted + connect-runtime tests ────────');
+  const extTests = ['test/self-hosted.test.ts', 'test/connect-runtime.test.ts'].filter((f) =>
+    existsSync(join(EXT, f)),
+  );
+  if (extTests.length > 0) {
+    run(EXT, `npx jest ${extTests.join(' ')} --reporters=default`, 'extension self-hosted + connect-runtime tests');
   } else {
     fail('extension self-hosted test missing');
   }

@@ -11,7 +11,8 @@ import { initializeBootstrap } from '../core/config/bootstrap';
 import { performStartupRecovery, saveRecoveryStatus } from '../core/recovery/startup';
 import { leaseMonitor } from '../core/monitoring/lease';
 import { startAnnouncementSubscription } from '../core/announcements/wsSubscriber';
-import { isSharedConnectMethod, dispatchSharedConnectMethod, isConnectMethod } from '../core/connect/walletRuntime';
+import { isSharedConnectMethod, dispatchSharedConnectMethod, isConnectMethod, configureExtensionWalletRuntime } from '../core/connect/walletRuntime';
+import type { WalletHandlerContext } from '@totemsdk/connect';
 import { SdkMigrationManager } from '../config/SdkMigrationManager';
 import { sdkTelemetry } from '../config/SdkTelemetry';
 import { initSdkWallet, createExtensionAdapters } from '../core/sdk/SdkWalletInit';
@@ -959,6 +960,65 @@ void ensureStartup();
 // This ensures real-time updates for existing sessions after extension updates
 // Uses internal idempotency guard to prevent duplicate subscriptions
 startAnnouncementSubscription();
+
+/**
+ * Execution ports for the shared connect runtime (RFC-014 P3). The `signer`
+ * port bridges to the extension's existing legacy handlers so lowercase
+ * `totem_*` methods execute real wallet logic; `selfHosted` only permits
+ * returning to the Axia default (self-hosted node selection stays user-driven
+ * in Network Settings, never dApp-driven).
+ */
+function buildExtensionConnectPorts(): Partial<WalletHandlerContext> {
+  const legacy =
+    (method: string, mapParams?: (p: Record<string, unknown>) => Record<string, unknown>) =>
+    async (params: Record<string, unknown>): Promise<unknown> => {
+      const res = await handleMessage(
+        { method, params: mapParams ? mapParams(params) : params, id: `bridge:${method}` },
+        {} as chrome.runtime.MessageSender,
+      );
+      if (res && typeof res === 'object' && 'result' in (res as Record<string, unknown>)) {
+        return (res as { result: unknown }).result;
+      }
+      return res;
+    };
+
+  return {
+    signer: {
+      connect: legacy('TOTEM_CONNECT'),
+      verify: legacy('TOTEM_VERIFY'),
+      getAccounts: legacy('TOTEM_GET_ACCOUNTS'),
+      getCoins: legacy('TOTEM_GET_COINS'),
+      sendTransaction: legacy('TOTEM_SEND_TRANSACTION'),
+      sendComplex: legacy('TOTEM_SEND_COMPLEX'),
+      signData: legacy('TOTEM_SIGN_DATA'),
+      broadcastHex: legacy('TOTEM_BROADCAST_HEX'),
+      grantTxPermission: legacy('TOTEM_GRANT_TX_PERMISSION'),
+      revokeTxPermission: legacy('TOTEM_REVOKE_TX_PERMISSION'),
+      getTxPermissions: legacy('TOTEM_GET_TX_PERMISSIONS'),
+      signTransaction: legacy('TOTEM_SIGN_DATA'),
+      broadcastTxPoW: legacy('TOTEM_BROADCAST_HEX', (p) => ({
+        ...p,
+        signedHex: p.minedHex ?? p.signedHex,
+        expectedDigestTx: p.expectedTxpowId,
+      })),
+      getWotsStatus: legacy('wallet:getWotsHealth'),
+    },
+    selfHosted: {
+      async setChainProvider(params: Record<string, unknown>) {
+        if (String(params.providerType ?? 'hosted') !== 'hosted') {
+          return {
+            success: false,
+            error: 'Use Network Settings to configure a self-hosted node.',
+            errorCode: 'UNSUPPORTED',
+          };
+        }
+        return { success: true, providerType: 'hosted' };
+      },
+    },
+  };
+}
+
+configureExtensionWalletRuntime(buildExtensionConnectPorts());
 
 // Extension lifecycle handlers
 chrome.runtime.onInstalled.addListener(async (details) => {
