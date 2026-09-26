@@ -32,6 +32,8 @@ export function assetLayer(
     name: assetName,
     script: [
       `// Asset: ${assetName}`,
+      `// PERMISSIONLESS: the asset-identity layer has no signing authority;`,
+      `// it only pins the committed subject id and delegates to the next layer.`,
       `LET assetId = [${assetId}]`,
       `ASSERT STATE(0) EQ assetId`,
       `RETURN TRUE`,
@@ -49,6 +51,8 @@ export function manufacturerLayer(
     modelId?: string;
     maxFirmwareVersion?: number;
     requiredSignatures?: number;
+    /** Additional signer key digests for a multi-signature policy. */
+    additionalSignerPkds?: string[];
   },
 ): PolicyLayer {
   const lines = [
@@ -64,7 +68,13 @@ export function manufacturerLayer(
     lines.push(`ASSERT STATE(2) LTE ${options.maxFirmwareVersion}`);
   }
   if (options?.requiredSignatures && options.requiredSignatures > 1) {
-    lines.push(`ASSERT MULTISIG(${options.requiredSignatures} mfg)`);
+    // RFC-016 P4: a MULTISIG threshold above the number of supplied keys is
+    // malformed/unsatisfiable. Require enough real signer keys.
+    const keys = [`0x${manufacturerPkd}`, ...(options.additionalSignerPkds ?? []).map(k => `0x${k}`)];
+    if (keys.length < options.requiredSignatures) {
+      throw new Error(`manufacturerLayer: requiredSignatures=${options.requiredSignatures} but only ${keys.length} keys supplied`);
+    }
+    lines.push(`ASSERT MULTISIG(${options.requiredSignatures} ${keys.join(' ')})`);
   }
   lines.push(`RETURN TRUE`);
 
@@ -121,9 +131,11 @@ export function regulatoryLayer(
     lines.push(`ASSERT @BLOCK LTE ${options.expiryBlock}`);
   }
   if (options?.requiredStandards) {
-    for (const std of options.requiredStandards) {
-      lines.push(`ASSERT STATE(4) EQ [${std}]`);
-    }
+    // RFC-016 P4: each standard gets its own state port (one port cannot equal
+    // multiple distinct values).
+    options.requiredStandards.forEach((std, i) => {
+      lines.push(`ASSERT STATE(${4 + i}) EQ [${std}]`);
+    });
   }
   lines.push(`RETURN TRUE`);
 
@@ -258,6 +270,8 @@ export function emergencyLayer(
     vulnerabilityId?: string;
     maxDuration?: number;
     requiresTwoPerson?: boolean;
+    /** Second security key for the two-person rule. */
+    secondSecurityPk?: string;
   },
 ): PolicyLayer {
   const lines = [
@@ -272,7 +286,11 @@ export function emergencyLayer(
     lines.push(`ASSERT STATE(15) LTE ${options.maxDuration}`);
   }
   if (options?.requiresTwoPerson) {
-    lines.push(`ASSERT MULTISIG(2 security)`);
+    // RFC-016 P4: MULTISIG(2 security) with a single key is unsatisfiable.
+    if (!options.secondSecurityPk) {
+      throw new Error('emergencyLayer: requiresTwoPerson needs secondSecurityPk');
+    }
+    lines.push(`ASSERT MULTISIG(2 security 0x${options.secondSecurityPk})`);
   }
   lines.push(`RETURN TRUE`);
 
