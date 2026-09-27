@@ -20,12 +20,12 @@ import {
   createDecisionRuntime,
 } from '@totemsdk/decision';
 import { createMockDecisionProvider } from '@totemsdk/decision/testing';
-import type { DecisionRequest } from '@totemsdk/decision';
+import type { DecisionProviderRequest, DecisionRequest } from '@totemsdk/decision';
 
 function makeDecisionPort(): EdgeDecisionPort {
   const provider = createMockDecisionProvider({
     id: 'mock-decision',
-    decide: (req) => ({
+    decide: (req: DecisionProviderRequest) => ({
       ok: true,
       requestId: req.requestId,
       decision: { kind: 'questions', answers: [{ type: 'choice', questionId: 'q1', selected: 'heat', confidence: { value: 0.9, source: 'provider' } }] },

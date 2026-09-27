@@ -153,9 +153,9 @@ describe('intelligence fallback', () => {
     version: '9.9.9',
     capabilities: ['intelligence:llm'],
     isReady: true,
-    invoke: async () => ({ ok: true, requestId: 'x', data }),
+    invoke: async <T,>() => ({ ok: true, requestId: 'x', data: data as T }),
     invokeStream: () => { throw new Error('not implemented'); },
-    cancel: async () => ({ ok: true, requestId: 'x' }),
+    cancel: async () => ({ ok: true, requestId: 'x', data: undefined }),
     close: async () => undefined,
   });
 

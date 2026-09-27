@@ -47,6 +47,8 @@ module.exports = {
     '^@totemsdk/identity$': '<rootDir>/../identity/src/index.ts',
     '^@totemsdk/agent-policy$': '<rootDir>/../agent-policy/src/index.ts',
     '^@totemsdk/intelligence$': '<rootDir>/../intelligence/src/index.ts',
+    '^@totemsdk/decision$': '<rootDir>/../decision/src/index.ts',
+    '^@totemsdk/decision/testing$': '<rootDir>/../decision/src/testing/mock-provider.ts',
     '^@totemsdk/authority$': '<rootDir>/../authority/src/index.ts',
     '^@totemsdk/proof$': '<rootDir>/../proof/src/index.ts',
     '^@totemsdk/connect$': '<rootDir>/../connect/src/index.ts',
