@@ -38,10 +38,10 @@ export interface ScriptDisclosure {
   mmrProof: string;
   /**
    * The policy root (canonical MMR root) this script is a leaf of. Required for
-   * canonical MAST witness materialization (RFC-016 P2); without it the proof
-   * cannot be verified against a root.
+   * canonical MAST witness materialization (RFC-016): without it the proof
+   * cannot be verified against a root, so it is mandatory and never defaulted.
    */
-  policyRoot?: string;
+  policyRoot: string;
 }
 
 export interface SignedEvidence {
@@ -397,12 +397,18 @@ export function buildRecursiveWitnessPlan(
     mastBranches.set(ds.scriptHash, ds.script);
   }
 
-  // RFC-016 P2: carry canonical ScriptProofs (script + MMR proof + the root it
-  // is proven against) so the evaluator can verify MAST membership. Discarding
-  // the proof and indexing by leaf hash alone is not a canonical witness.
-  const scriptProofs: ScriptProof[] = disclosedScripts
-    .filter((ds) => typeof ds.policyRoot === 'string' && ds.policyRoot.length > 0)
-    .map((ds) => ({ script: ds.script, proofHex: ds.mmrProof, address: ds.policyRoot as string }));
+  // RFC-016: carry canonical ScriptProofs (script + MMR proof + the root it is
+  // proven against). A disclosure without a policy root cannot produce a
+  // verifiable proof, so fail closed rather than silently dropping it.
+  const missingRoot = disclosedScripts.find((ds) => typeof ds.policyRoot !== 'string' || ds.policyRoot.length === 0);
+  if (missingRoot) {
+    throw new Error(`buildRecursiveWitnessPlan: disclosure for ${missingRoot.scriptHash} has no policyRoot`);
+  }
+  const scriptProofs: ScriptProof[] = disclosedScripts.map((ds) => ({
+    script: ds.script,
+    proofHex: ds.mmrProof,
+    address: ds.policyRoot,
+  }));
 
   return { mastBranches, signatures: collectedSignatures, scriptProofs };
 }

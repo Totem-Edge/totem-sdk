@@ -97,11 +97,16 @@ function witnessPlanToDescriptor(plan: RecursiveWitnessPlan): {
 function disclosedScriptsToProofs(
   disclosedScripts: ScriptDisclosure[],
 ): Array<{ script: string; scriptProof: string; expectedRoot: string }> {
-  return disclosedScripts.map(ds => ({
-    script: ds.script,
-    scriptProof: ds.mmrProof,
-    expectedRoot: ds.policyRoot ?? '',
-  }));
+  return disclosedScripts.map(ds => {
+    if (typeof ds.policyRoot !== 'string' || ds.policyRoot.length === 0) {
+      throw new Error(`disclosedScriptsToProofs: disclosure for ${ds.scriptHash} has no policyRoot`);
+    }
+    return {
+      script: ds.script,
+      scriptProof: ds.mmrProof,
+      expectedRoot: ds.policyRoot,
+    };
+  });
 }
 
 /**

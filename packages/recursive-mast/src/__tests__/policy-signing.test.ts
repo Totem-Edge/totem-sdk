@@ -1,4 +1,4 @@
-import { createSigningRequest, collectSigningResponses, type CreateSigningRequestConfig, type PolicySigningResponse } from '../policy-signing.js';
+import { createSigningRequest, collectSigningResponses, buildRecursiveWitnessPlan, type CreateSigningRequestConfig, type PolicySigningResponse, type ScriptDisclosure } from '../policy-signing.js';
 
 function baseConfig(): CreateSigningRequestConfig {
   return {
@@ -79,5 +79,12 @@ describe('RFC-016 hardening: signing request canonicalization', () => {
     // A rejected required role is not complete.
     const rejected = collectSigningResponses(['a'], [resp('s1', 'a', 'rejected')]);
     expect(rejected.complete).toBe(false);
+  });
+
+  it('fails closed when a disclosure lacks a policy root', () => {
+    const bad = { scriptHash: 'aa', script: 'RETURN TRUE', mmrProof: '' } as unknown as ScriptDisclosure;
+    expect(() =>
+      buildRecursiveWitnessPlan({ roots: [], action: 'a', executionRoot: 'r' }, [bad], new Map()),
+    ).toThrow(/no policyRoot/);
   });
 });
