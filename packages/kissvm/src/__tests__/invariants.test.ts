@@ -225,6 +225,18 @@ describe('RFC-016 P4 wave 3: cumulative counters + recipient binding', () => {
   });
 });
 
+describe('RFC-016 hardening: I3 state-continuity detection', () => {
+  it('flags constraint state read without committed continuity', () => {
+    const script = ['LET unlock = STATE(1)', 'ASSERT @BLOCK GTE unlock', 'RETURN TRUE'].join('\n');
+    expect(auditScriptInvariants({ name: 'lock', script, immutablePorts: [1] }).map((v) => v.invariant)).toContain('I3');
+  });
+
+  it('accepts a constraint port that is carried from PREVSTATE', () => {
+    const script = ['ASSERT STATE(1) EQ PREVSTATE(1)', 'LET unlock = STATE(1)', 'ASSERT @BLOCK GTE unlock', 'RETURN TRUE'].join('\n');
+    expect(auditScriptInvariants({ name: 'lock', script, immutablePorts: [1] })).toEqual([]);
+  });
+});
+
 describe('RFC-016 P4 wave 4: compliance, healthcare, sensor-proof', () => {
   const pkA = 'aa'.repeat(32);
   const root = 'cc'.repeat(32);

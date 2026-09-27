@@ -96,6 +96,11 @@ export interface InvariantAuditInput {
   /** I2 applies (payment/escrow/etc.). */
   readonly expectsPayment?: boolean;
   /**
+   * I3 applies: ports whose value constrains the spend (lock/rate/recipient/
+   * timing) and must therefore be committed (carried unchanged from PREVSTATE).
+   */
+  readonly immutablePorts?: readonly number[];
+  /**
    * The template is intentionally permissionless; I1 is then satisfied by an
    * explicit `RETURN TRUE`-style permissionless marker rather than a signer.
    */
@@ -145,6 +150,25 @@ export function auditScriptInvariants(input: InvariantAuditInput): InvariantViol
   // I2 — economic binding to the actual output.
   if (input.expectsPayment && !/\bVERIFYOUT\(/.test(script)) {
     violations.push({ invariant: 'I2', detail: 'no VERIFYOUT: payment/escrow claim is not bound to an output' });
+  }
+
+  // I3 — immutable/constraint state must be committed (carried from PREVSTATE).
+  // RFC-016: a lock/rate/recipient/timing parameter read from mutable STATE can
+  // be altered by the spender unless continuity is asserted.
+  if (input.immutablePorts && input.immutablePorts.length > 0) {
+    for (const port of input.immutablePorts) {
+      const readsState = new RegExp(`STATE\\(\\s*${port}\\s*\\)`).test(script);
+      const preserves =
+        new RegExp(`STATE\\(\\s*${port}\\s*\\)\\s*EQ\\s*PREVSTATE\\(\\s*${port}\\s*\\)`).test(script) ||
+        new RegExp(`PREVSTATE\\(\\s*${port}\\s*\\)\\s*EQ\\s*STATE\\(\\s*${port}\\s*\\)`).test(script) ||
+        new RegExp(`SAMESTATE\\(\\s*${port}\\s+${port}\\s*\\)`).test(script);
+      if (readsState && !preserves) {
+        violations.push({
+          invariant: 'I3',
+          detail: `STATE(${port}) constrains the spend but is not committed (missing STATE(${port}) EQ PREVSTATE(${port}))`,
+        });
+      }
+    }
   }
 
   // I4 — fail-closed exhaustive branching. Two or more independent conditional
