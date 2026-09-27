@@ -51,6 +51,29 @@ function assertUnique(ids: readonly string[], what: string): void {
   }
 }
 
+function assertId(value: unknown, label: string): asserts value is string {
+  if (typeof value !== 'string' || value.length === 0) {
+    throw new DecisionError('INVALID_REQUEST', `${label} must be a non-empty string.`);
+  }
+}
+
+function assertOptionalString(value: unknown, label: string): void {
+  if (value !== undefined && typeof value !== 'string') {
+    throw new DecisionError('INVALID_REQUEST', `${label} must be a string when present.`);
+  }
+}
+
+/** RFC-012 hardening #5: metadata is digest-bound, so it must be canonical. */
+function assertMetadata(value: unknown, label: string): void {
+  if (value === undefined) return;
+  try {
+    assertDecisionValue(value, label);
+  } catch (err) {
+    const e = err instanceof DecisionError ? err : new DecisionError('INVALID_REQUEST', String(err));
+    throw new DecisionError('INVALID_REQUEST', `${label} is not a canonical decision value: ${e.message}`);
+  }
+}
+
 /**
  * Validate a caller request. Throws on malformed shape, duplicate/missing IDs,
  * empty candidate sets, or limit violations.
@@ -77,7 +100,11 @@ export function validateDecisionRequest(
       throw new DecisionError('LIMIT_EXCEEDED', `Operations exceed maxOperations (${l.maxOperations}).`);
     }
     assertUnique(request.operations.map((o) => o.id), 'operation');
+    assertOptionalString(request.goal, 'goal');
     for (const op of request.operations) {
+      assertId(op.id, 'operation.id');
+      assertOptionalString(op.description, `operation "${op.id}".description`);
+      assertMetadata(op.metadata, `operation "${op.id}".metadata`);
       const targets = op.targets ?? [];
       if (targets.length > l.maxTargetsPerOperation) {
         throw new DecisionError(
@@ -86,6 +113,11 @@ export function validateDecisionRequest(
         );
       }
       assertUnique(targets.map((t: DecisionTarget) => t.id), 'target');
+      for (const t of targets) {
+        assertId(t.id, `target.id (operation "${op.id}")`);
+        assertOptionalString(t.description, `target "${t.id}".description`);
+        assertMetadata(t.metadata, `target "${t.id}".metadata`);
+      }
     }
     return;
   }
@@ -99,12 +131,14 @@ export function validateDecisionRequest(
   assertUnique(request.questions.map((q) => q.id), 'question');
 
   for (const q of request.questions) {
+    assertId(q.id, 'question.id');
     if (q.type === 'probability') {
       if (typeof q.proposition !== 'string' || q.proposition.length === 0) {
         throw new DecisionError('INVALID_REQUEST', `Probability question "${q.id}" needs a proposition.`);
       }
       continue;
     }
+    assertOptionalString(q.instruction, `question "${q.id}".instruction`);
     const candidates = q.type === 'score' ? q.rubric : q.criteria;
     if (!Array.isArray(candidates) || candidates.length === 0) {
       throw new DecisionError('EMPTY_CANDIDATE_SET', `Question "${q.id}" offered no candidates.`);
@@ -116,6 +150,11 @@ export function validateDecisionRequest(
       );
     }
     assertUnique(candidates.map((c) => c.id), 'criterion');
+    for (const c of candidates) {
+      assertId(c.id, `criterion.id (question "${q.id}")`);
+      assertOptionalString(c.description, `criterion "${c.id}".description`);
+      assertMetadata(c.metadata, `criterion "${c.id}".metadata`);
+    }
   }
 }
 

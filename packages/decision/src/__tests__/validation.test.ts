@@ -69,6 +69,43 @@ describe('validateDecisionRequest', () => {
     ).toThrow(/maxCandidatesPerQuestion/);
   });
 
+  it('rejects non-canonical metadata on a digest-bound candidate (NaN)', () => {
+    expect(() =>
+      validateDecisionRequest({
+        kind: 'questions',
+        state: {},
+        questions: [{ type: 'choice', id: 'q1', criteria: [{ id: 'a', metadata: { risk: Number.NaN } }] }],
+      }),
+    ).toThrow(DecisionError);
+    expect(() =>
+      validateDecisionRequest({
+        kind: 'action',
+        state: {},
+        operations: [{ id: 'follow', metadata: { distance: Infinity } }],
+      }),
+    ).toThrow(DecisionError);
+  });
+
+  it('rejects empty ids and non-string instructions/descriptions', () => {
+    expect(() =>
+      validateDecisionRequest({ kind: 'questions', state: {}, questions: [{ type: 'choice', id: 'q1', criteria: [{ id: '' }] }] }),
+    ).toThrow(/non-empty string/);
+    expect(() =>
+      validateDecisionRequest({
+        kind: 'questions',
+        state: {},
+        questions: [{ type: 'choice', id: 'q1', instruction: 42 as never, criteria: [{ id: 'a' }] }],
+      }),
+    ).toThrow(/instruction/);
+    expect(() =>
+      validateDecisionRequest({
+        kind: 'action',
+        state: {},
+        operations: [{ id: 'follow', targets: [{ id: 't1', description: 7 as never }] }],
+      }),
+    ).toThrow(/description/);
+  });
+
   it('derives the de-duplicated required capability union', () => {
     expect(deriveRequiredCapabilities(choiceRequest)).toEqual(['decision:choice', 'decision:probability']);
     expect(deriveRequiredCapabilities(actionRequest)).toEqual(['decision:action']);
