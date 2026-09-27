@@ -60,26 +60,57 @@ export function buildIntelligenceDecisionPrompt(
     'You MUST choose only from the offered candidate IDs. Never invent IDs.',
   ];
   if (request.kind === 'action') {
-    lines.push(`Goal: ${request.goal ?? '(none)'}`);
     lines.push(`State: ${JSON.stringify(request.state)}`);
-    lines.push('Operations (choose exactly one operation; choose a target only from that operation\'s targets):');
-    lines.push(JSON.stringify(request.operations.map((op) => ({
-      id: op.id,
-      targets: (op.targets ?? []).map((t) => t.id),
-    }))));
+    lines.push(
+      'Choose exactly one operation and, when it lists targets, exactly one target from that operation.',
+    );
+    // RFC-012 §31.4: the fallback sees the same semantic representation as typed
+    // providers (descriptions/metadata/goal) — candidate validation prevents
+    // invented executable IDs regardless, so hiding meaning has no safety value.
+    lines.push(
+      JSON.stringify({
+        ...(request.goal !== undefined ? { goal: request.goal } : {}),
+        operations: request.operations.map((op) => ({
+          id: op.id,
+          ...(op.description !== undefined ? { description: op.description } : {}),
+          ...(op.metadata !== undefined ? { metadata: op.metadata } : {}),
+          ...((op.targets ?? []).length > 0
+            ? {
+                targets: (op.targets ?? []).map((t) => ({
+                  id: t.id,
+                  ...(t.description !== undefined ? { description: t.description } : {}),
+                  ...(t.metadata !== undefined ? { metadata: t.metadata } : {}),
+                })),
+              }
+            : {}),
+        })),
+      }),
+    );
     lines.push('Respond as {"answer":{"operation":"<id>","target":"<id or omitted>"}}');
   } else {
     lines.push(`State: ${JSON.stringify(request.state)}`);
-    lines.push('Questions:');
-    lines.push(JSON.stringify(request.questions.map((q) => {
-      if (q.type === 'probability') {
-        return { id: q.id, type: 'probability', proposition: q.proposition };
-      }
-      if (q.type === 'score') {
-        return { id: q.id, type: 'score', rubric: q.rubric.map((c) => c.id), order: 'increasing' };
-      }
-      return { id: q.id, type: 'choice', criteria: q.criteria.map((c) => c.id) };
-    })));
+    lines.push(
+      JSON.stringify({
+        questions: request.questions.map((q) => {
+          if (q.type === 'probability') {
+            return { id: q.id, type: 'probability', proposition: q.proposition };
+          }
+          const candidates = (q.type === 'score' ? q.rubric : q.criteria).map((c) => ({
+            id: c.id,
+            ...(c.description !== undefined ? { description: c.description } : {}),
+            ...(c.metadata !== undefined ? { metadata: c.metadata } : {}),
+          }));
+          return {
+            id: q.id,
+            type: q.type,
+            ...(q.instruction !== undefined ? { instruction: q.instruction } : {}),
+            ...(q.type === 'score'
+              ? { rubric: candidates, order: 'increasing' }
+              : { criteria: candidates }),
+          };
+        }),
+      }),
+    );
     lines.push('Respond as {"answers":[{"questionId":"<id>","type":"choice|score|probability","selected":"<id>","probabilityTrue":<0..1>}]}');
   }
   return lines.join('\n');

@@ -1,6 +1,6 @@
 # RFC-012: Decision Runtime — Bounded Semantic Choice as a First-Class Edge Service
 
-**Status:** Landed — P1–P6 complete; post-landing hardening pass complete (11 commits): CI wiring so the decision suites actually run; full model semantics preserved into Laya/Jev (instruction/descriptions/metadata/goal); target-bearing operations require a target; target-head evidence (distribution/confidence) preserved so `minTargetConfidence` works; every digest-bound field validated; acceptance confidence computed from canonical answers; shortlisting deferred (interface kept); hard timeout + duplicate-request-id rejection; call-specific provenance + `runtime.close()`; truthful runtime capabilities + Edge validation/cancel ordering. Left as follow-ups: receipt signing (Q2) and embedding shortlisting (Q3).
+**Status:** Landed — P1–P6 complete; post-landing hardening pass complete (11 commits): CI wiring so the decision suites actually run; full model semantics preserved into Laya/Jev (instruction/descriptions/metadata/goal); target-bearing operations require a target; target-head evidence (distribution/confidence) preserved so `minTargetConfidence` works; every digest-bound field validated; acceptance confidence computed from canonical answers; shortlisting deferred (interface kept); hard timeout + duplicate-request-id rejection; call-specific provenance + `runtime.close()`; truthful runtime capabilities + Edge validation/cancel ordering. Second post-landing correctness pass: runtime-owned hard cancellation (caller abort, `decision:cancel`, and timeout all race the provider and abort the same controller); operation vs target confidence split (`operationConfidence` / `targetConfidence`, `confidence` retained as the operation alias); action operation/target distribution completeness (`…Complete` markers; Laya/Jev full distributions are validated); target heads receive the goal + operation context; intelligence fallback preserves descriptions/instructions/metadata; Edge port returns failure provenance and rejects capability expansion; provenance normalised so result and receipt agree (receipt carries `upstreamRequestId`); closed-set `isDecisionCapability`; non-empty request-id validation. Left as follow-ups: receipt signing (Q2) and embedding shortlisting (Q3).
 **Created:** 2026-09-24
 **Revised:** 2026-09-26
 **Authors:** Totem SDK Contributors
@@ -498,6 +498,22 @@ Validate: finite; `0 ≤ p ≤ 1`; keys are valid candidate IDs; selected presen
   distribution is complete**. It is never applied to partial distributions, so
   values are comparable across 2-way and 20-way choices. `n ≤ 1` yields `0`.
 
+Action answers mirror the same rule for both heads:
+`operationProbabilitiesComplete` / `targetProbabilitiesComplete` mark a full
+operation / target distribution; only then is coverage, `sum ≈ 1`, and
+`maxEntropy` enforced. The Laya/Jev adapters mark their choice heads complete
+(their contracts emit every label), so a malformed full distribution is rejected
+rather than silently accepted as provenance.
+
+### 19.1 Operation vs target confidence
+
+`ActionAnswer` carries **`operationConfidence`** and **`targetConfidence`
+separately** (with `confidence` retained as the 0.x alias for
+`operationConfidence`). Confidence and probability are never interchanged:
+`minOperationConfidence` reads `operationConfidence` → selected operation
+probability; `minTargetConfidence` reads `targetConfidence` → selected target
+probability. A target head's confidence is never converted into a probability.
+
 ## 21. Provider contract
 
 ```ts
@@ -614,6 +630,15 @@ Three distinct events, three distinct behaviours:
 There is no `escalateOnCancel`. A user cancelling an operation must never
 silently launch another model. Timeouts must not orphan requests; races are
 tested.
+
+**Hard cancellation (locked).** The runtime owns the stop path. The in-flight
+entry holds the provider **and its `AbortController`**. Caller `AbortSignal`,
+`runtime.cancel(requestId)`, and route timeout all invoke the same `stop()`:
+abort the controller, best-effort call `provider.cancel`, and win the race via
+`Promise.race([provider.decide, stopSignal])`. A provider that ignores its
+signal can never keep the runtime waiting, and `runtime.cancel` returns
+`{ ok: true }` regardless of whether the provider cooperates. `stopReason` takes
+precedence over a provider that resolves while being stopped.
 
 ## 28. Determinism
 

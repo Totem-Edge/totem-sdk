@@ -33,11 +33,26 @@ export function createEdgeDecisionPort(
   runtime: DecisionRuntime,
   options: CreateEdgeDecisionPortOptions = {},
 ): EdgeDecisionPort {
+  // RFC-012 hardening #11: advertise the runtime's actual capabilities. An
+  // override may narrow the set but never expand it (truthful capabilities).
+  const runtimeCapabilities = runtime.capabilities ?? DECISION_CAPABILITIES;
+  let capabilities: readonly DecisionCapability[];
+  if (options.capabilities) {
+    const allowed = new Set<string>(runtimeCapabilities);
+    const expanded = options.capabilities.filter((c) => !allowed.has(c));
+    if (expanded.length > 0) {
+      throw new Error(
+        `createEdgeDecisionPort: cannot advertise capabilities the runtime does not provide: ${expanded.join(', ')}.`,
+      );
+    }
+    capabilities = [...new Set(options.capabilities)];
+  } else {
+    capabilities = runtimeCapabilities;
+  }
+
   const port: EdgeDecisionPort = {
     runtimeId: options.runtimeId ?? 'decision',
-    // RFC-012 hardening #10: advertise the runtime's actual capabilities unless
-    // the caller explicitly overrides them.
-    capabilities: options.capabilities ?? runtime.capabilities ?? DECISION_CAPABILITIES,
+    capabilities,
 
     async decide(params): Promise<DecisionPortResult> {
       try {
@@ -45,7 +60,9 @@ export function createEdgeDecisionPort(
         if (outcome.ok) {
           return { ok: true, data: outcome };
         }
-        return { ok: false, error: outcome.message, errorCode: outcome.code };
+        // RFC-012 hardening #11: preserve the failure (attempt chain, bindings,
+        // provider escalation history) so Edge callers can distinguish causes.
+        return { ok: false, data: outcome, error: outcome.message, errorCode: outcome.code };
       } catch (err) {
         return {
           ok: false,
@@ -60,8 +77,8 @@ export function createEdgeDecisionPort(
         return { ok: false, error: 'Runtime does not support cancel.', errorCode: 'NOT_IMPLEMENTED' };
       }
       const result = await runtime.cancel(requestId);
-      if (result.ok) return { ok: true };
-      return { ok: false, error: result.message, errorCode: result.code };
+      if (result.ok) return { ok: true, data: result };
+      return { ok: false, data: result, error: result.message, errorCode: result.code };
     },
 
     async close(): Promise<void> {

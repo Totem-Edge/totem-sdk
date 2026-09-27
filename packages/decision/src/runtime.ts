@@ -23,6 +23,7 @@ import type {
   DecisionFailure,
   DecisionOutcome,
   DecisionRequestBindings,
+  DecisionProvenance,
 } from './types.js';
 import { DecisionError, type DecisionEscalationReason } from './errors.js';
 import { DECISION_TYPES, type DecisionCapability } from './constants.js';
@@ -154,11 +155,21 @@ export function createDecisionRuntime(
   const generateRequestId = options.generateRequestId !== false;
   const includeRaw = options.includeRawProviderOutput === true;
 
-  /** requestId -> provider currently handling it (for cancellation). */
-  const inFlight = new Map<string, DecisionProvider>();
+  /** requestId -> in-flight decision (for hard cancellation). */
+  const inFlight = new Map<string, InFlightDecision>();
 
   async function decide(request: DecisionRequest): Promise<DecisionOutcome> {
-    const requestId = request.requestId ?? (generateRequestId ? nextRequestId() : '');
+    // RFC-012 hardening #12: a request id must be a real identifier. An empty
+    // string is never a cancellation/receipt handle, and when generation is
+    // disabled the caller must supply one.
+    const providedId = request.requestId;
+    if (providedId !== undefined && (typeof providedId !== 'string' || providedId.trim().length === 0)) {
+      return { ok: false, requestId: '', code: 'INVALID_REQUEST', message: 'requestId must be a non-empty string.', attempts: [] };
+    }
+    if (providedId === undefined && !generateRequestId) {
+      return { ok: false, requestId: '', code: 'INVALID_REQUEST', message: 'requestId is required when request-id generation is disabled.', attempts: [] };
+    }
+    const requestId = providedId ?? nextRequestId();
 
     let requestBindings: DecisionRequestBindings;
     try {
@@ -208,14 +219,26 @@ export function createDecisionRuntime(
       }
 
       const controller = new AbortController();
-      let timedOut = false;
       const timeoutMs = route.timeoutMs ?? options.defaultTimeoutMs;
+      let stopReason: 'CANCELLED' | 'TIMEOUT' | null = null;
+      let resolveStop!: () => void;
+      const stopSignal = new Promise<null>((resolve) => {
+        resolveStop = () => resolve(null);
+      });
 
-      const onOuterAbort = (): void => {
+      // RFC-012 hardening #12: the runtime owns the stop path. Caller abort,
+      // explicit cancel, and timeout all abort the same controller, best-effort
+      // cancel the provider, and win the race — so a provider that ignores its
+      // AbortSignal can never keep the runtime waiting.
+      const stop = (reason: 'CANCELLED' | 'TIMEOUT'): void => {
+        if (stopReason !== null) return;
+        stopReason = reason;
         controller.abort();
-        // Best-effort cancellation of the active provider.
         void provider.cancel?.(requestId).catch(() => undefined);
+        resolveStop();
       };
+
+      const onOuterAbort = (): void => stop('CANCELLED');
       if (request.signal) request.signal.addEventListener('abort', onOuterAbort, { once: true });
 
       // RFC-012 hardening #7: shortlisting is deferred for v0.1 (interface kept
@@ -223,8 +246,9 @@ export function createDecisionRuntime(
       // receipt's candidateSetDigest matches what the provider saw.
       const providerRequest = toProviderRequest(request, requestId, controller.signal);
 
-      inFlight.set(requestId, provider);
+      inFlight.set(requestId, { provider, controller, cancel: () => stop('CANCELLED') });
       let providerOutcome: DecisionProviderOutcome;
+      let timer: ReturnType<typeof setTimeout> | undefined;
       try {
         const call = provider.decide(providerRequest).catch((err): DecisionProviderOutcome => ({
           ok: false,
@@ -235,38 +259,31 @@ export function createDecisionRuntime(
         }));
 
         if (timeoutMs !== undefined && timeoutMs > 0) {
-          // RFC-012 hardening #8: the runtime owns the timeout. Race the call so
-          // a provider that ignores AbortSignal cannot hang the runtime; its late
-          // completion is ignored.
-          let timer: ReturnType<typeof setTimeout> | undefined;
-          const timeout = new Promise<null>((resolve) => {
-            timer = setTimeout(() => {
-              timedOut = true;
-              controller.abort();
-              resolve(null);
-            }, timeoutMs);
-          });
-          const raced = await Promise.race([call, timeout]);
-          if (timer) clearTimeout(timer);
-          if (raced === null) {
-            void call.catch(() => undefined);
-            void provider.cancel?.(requestId).catch(() => undefined);
-            providerOutcome = { ok: false, requestId, code: 'TIMEOUT', message: 'Provider timed out.', retryable: true };
-          } else {
-            providerOutcome = raced;
-          }
+          timer = setTimeout(() => stop('TIMEOUT'), timeoutMs);
+        }
+
+        const raced = await Promise.race([call, stopSignal]);
+        // `stopReason` is always set before `stopSignal` resolves, so a stop
+        // takes precedence over a provider that resolved while being stopped.
+        if (stopReason === 'TIMEOUT') {
+          void call.catch(() => undefined);
+          providerOutcome = { ok: false, requestId, code: 'TIMEOUT', message: 'Provider timed out.', retryable: true };
+        } else if (stopReason === 'CANCELLED') {
+          void call.catch(() => undefined);
+          providerOutcome = { ok: false, requestId, code: 'CANCELLED', message: 'Cancelled.', retryable: false };
         } else {
-          providerOutcome = await call;
+          providerOutcome = raced as DecisionProviderOutcome;
         }
       } finally {
+        if (timer) clearTimeout(timer);
         inFlight.delete(requestId);
         if (request.signal) request.signal.removeEventListener('abort', onOuterAbort);
       }
 
       const durationMs = now() - startedAt;
 
-      // Caller cancellation is terminal and never escalates (RFC-012 §27).
-      if (request.signal?.aborted) {
+      // Caller/explicit cancellation is terminal and never escalates (RFC-012 §27).
+      if (stopReason === 'CANCELLED') {
         const attempt: DecisionAttempt = {
           providerId: provider.id,
           providerVersion: provider.version,
@@ -275,11 +292,11 @@ export function createDecisionRuntime(
           accepted: false,
           reason: 'UNAVAILABLE',
           errorCode: 'CANCELLED',
-          message: 'Cancelled by caller.',
+          message: 'Cancelled.',
         };
         attempts.push(attempt);
         options.onAttempt?.(attempt);
-        return { ok: false, requestId, code: 'CANCELLED', message: 'Cancelled by caller.', attempts, bindings: requestBindings };
+        return { ok: false, requestId, code: 'CANCELLED', message: 'Cancelled.', attempts, bindings: requestBindings };
       }
 
       if (!providerOutcome.ok) {
@@ -295,7 +312,7 @@ export function createDecisionRuntime(
         };
         attempts.push(attempt);
         options.onAttempt?.(attempt);
-        if (timedOut && route.escalateOnTimeout === false) {
+        if (stopReason === 'TIMEOUT' && route.escalateOnTimeout === false) {
           return { ok: false, requestId, code: 'TIMEOUT', message: providerOutcome.message, attempts, bindings: requestBindings };
         }
         continue;
@@ -319,25 +336,6 @@ export function createDecisionRuntime(
         };
         attempts.push(attempt);
         options.onAttempt?.(attempt);
-        continue;
-      }
-
-      if (timedOut) {
-        const attempt: DecisionAttempt = {
-          providerId: provider.id,
-          providerVersion: provider.version,
-          startedAt,
-          durationMs,
-          accepted: false,
-          reason: 'TIMEOUT',
-          errorCode: 'TIMEOUT',
-          message: 'Provider timed out.',
-        };
-        attempts.push(attempt);
-        options.onAttempt?.(attempt);
-        if (route.escalateOnTimeout === false) {
-          return { ok: false, requestId, code: 'TIMEOUT', message: 'Provider timed out.', attempts, bindings: requestBindings };
-        }
         continue;
       }
 
@@ -373,19 +371,32 @@ export function createDecisionRuntime(
       const bindings = { ...requestBindings, outputDigest };
       const finalConfidence = evaluation.confidence ?? aggregateConfidence(decision);
 
-      // RFC-012 hardening #9: prefer call-specific provenance (underlying model /
-      // runtime) over static provider info; the runtime-known provider identity is
-      // kept distinct in `provider`.
-      const provenance = providerOutcome.provenance;
-      const model = provenance?.model ?? provider.info?.model;
-      const runtime = provenance?.runtime ?? provider.info?.runtime;
+      // RFC-012 hardening #10: the runtime normalizes one final provenance
+      // object, merging the trusted route provider identity, static declared
+      // metadata, and call-specific provider metadata (call-specific wins) so
+      // the result and the receipt tell the same story.
+      const callProvenance = providerOutcome.provenance;
+      const declared = provider.info;
+      const model = callProvenance?.model ?? declared?.model;
+      const runtimeRef = callProvenance?.runtime ?? declared?.runtime;
+      const locality = callProvenance?.locality ?? declared?.locality;
+      const upstreamRequestId = providerOutcome.upstreamRequestId ?? callProvenance?.upstreamRequestId;
+      const finalProvenance: DecisionProvenance = {
+        providerId: provider.id,
+        providerVersion: provider.version,
+        ...(model ? { model } : {}),
+        ...(runtimeRef ? { runtime: runtimeRef } : {}),
+        ...(locality ? { locality } : {}),
+        ...(upstreamRequestId ? { upstreamRequestId } : {}),
+        source: callProvenance?.source ?? 'declared',
+      };
 
       const receipt = createDecisionReceipt({
         version: 1,
         requestId,
         provider: { id: provider.id, version: provider.version },
         ...(model ? { model } : {}),
-        ...(runtime ? { runtime } : {}),
+        ...(runtimeRef ? { runtime: runtimeRef } : {}),
         stateDigest: bindings.stateDigest,
         candidateSetDigest: bindings.candidateSetDigest,
         requestDigest: bindings.requestDigest,
@@ -394,6 +405,7 @@ export function createDecisionRuntime(
         issuedAt: now(),
         durationMs,
         ...(finalConfidence !== undefined ? { confidence: finalConfidence } : {}),
+        ...(upstreamRequestId ? { upstreamRequestId } : {}),
       });
       options.onReceipt?.(receipt);
 
@@ -407,8 +419,8 @@ export function createDecisionRuntime(
         attempts,
         ...(providerOutcome.usage ? { usage: providerOutcome.usage } : {}),
         ...(finalConfidence !== undefined ? { confidence: finalConfidence } : {}),
-        ...(provenance ? { provenance } : {}),
-        ...(providerOutcome.upstreamRequestId ? { upstreamRequestId: providerOutcome.upstreamRequestId } : {}),
+        provenance: finalProvenance,
+        ...(upstreamRequestId ? { upstreamRequestId } : {}),
         ...(includeRaw && providerOutcome.rawProviderOutput !== undefined
           ? { rawProviderOutput: providerOutcome.rawProviderOutput }
           : {}),
@@ -427,11 +439,14 @@ export function createDecisionRuntime(
   }
 
   async function cancel(requestId: string): Promise<DecisionProviderOutcome<void>> {
-    const provider = inFlight.get(requestId);
-    if (!provider?.cancel) {
+    // RFC-012 hardening #12: hard cancellation. The runtime aborts its own wait
+    // and best-effort cancels the provider regardless of whether it cooperates.
+    const entry = inFlight.get(requestId);
+    if (!entry) {
       return { ok: false, requestId, code: 'NOT_IMPLEMENTED', message: 'No cancellable operation for request id.', retryable: false };
     }
-    return provider.cancel(requestId);
+    entry.cancel();
+    return { ok: true, requestId };
   }
 
   async function close(): Promise<void> {
@@ -492,6 +507,14 @@ function skippedAttempt(
     reason,
     ...(message ? { message } : {}),
   };
+}
+
+/** An in-flight decision the runtime owns and can hard-cancel. */
+interface InFlightDecision {
+  readonly provider: DecisionProvider;
+  readonly controller: AbortController;
+  /** Abort the runtime's wait and best-effort cancel the provider. */
+  readonly cancel: () => void;
 }
 
 export type { DecisionAcceptanceRule, DecisionFailure };

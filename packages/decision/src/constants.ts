@@ -46,9 +46,9 @@ export const DECISION_CAPABILITIES: readonly DecisionCapability[] = [
   'decision:action',
 ] as const;
 
-/** True when `cap` is any `decision:*` capability. */
+/** True when `cap` is one of the closed v1 decision capabilities. */
 export function isDecisionCapability(cap: string): boolean {
-  return cap.startsWith('decision:');
+  return (DECISION_CAPABILITIES as readonly string[]).includes(cap);
 }
 
 /** True when the capability list contains `cap`. */
