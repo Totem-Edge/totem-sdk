@@ -9,9 +9,11 @@
 
 import type { ScriptDescriptor, StateValue } from '@totemsdk/core/scripts';
 import { createPolicyTransactionPlan } from './transaction-plan.js';
-import type { PolicyTransactionPlan } from './transaction-plan.js';
+import type { PolicyTransactionPlan, PolicyTransactionInput } from './transaction-plan.js';
 import type { PolicyAnchorConfig } from '../policy-anchor.js';
 import { buildRootRotationScript, buildEpochAdvancementScript } from '../policy-anchor.js';
+import type { ScriptDisclosure } from '../policy-signing.js';
+import type { RecursiveWitnessPlan } from '../kissvm/witness-adapter.js';
 
 export interface RotationTransactionConfig {
   anchorCoinId: string;
@@ -25,6 +27,9 @@ export interface RotationTransactionConfig {
   newEpoch?: number;
   authorizerPkd: string;
   reason: string;
+  /** Revealed rotation branch (owner-root MAST) — wires the authorizer. */
+  disclosedScripts?: ScriptDisclosure[];
+  witnessPlan?: RecursiveWitnessPlan;
 }
 
 export function createRootRotationTransactionPlan(
@@ -65,15 +70,19 @@ export function createRootRotationTransactionPlan(
     type: 'string' as const,
   }));
 
+  // RFC-016 hardening: wire the rotation authorizer into the witness — the
+  // revealed owner-root branch (with its proof) plus the call-specific witness.
+  const anchorInput: PolicyTransactionInput = {
+    coinId: config.anchorCoinId,
+    address: config.anchorAddress,
+    amount: config.anchorAmount,
+    scriptDescriptor: config.anchorScriptDescriptor,
+    ...(config.disclosedScripts ? { disclosedScripts: config.disclosedScripts } : {}),
+    ...(config.witnessPlan ? { witnessPlan: config.witnessPlan } : {}),
+  };
+
   return createPolicyTransactionPlan({
-    inputs: [
-      {
-        coinId: config.anchorCoinId,
-        address: config.anchorAddress,
-        amount: config.anchorAmount,
-        scriptDescriptor: config.anchorScriptDescriptor,
-      },
-    ],
+    inputs: [anchorInput],
     outputs: [
       {
         address: config.anchorAddress,

@@ -19,8 +19,10 @@ export interface ActionTransactionConfig {
   anchorScriptDescriptor: ScriptDescriptor;
   action: string;
   subjectId: string;
-  /** Anchor action-selector port (state). When set, the plan selects the normal-action branch (0). */
+  /** Anchor action-selector port (state). Required to bind the normal-action branch (0). */
   actionSelectorPort?: number;
+  /** Anchor execution root; recorded as the action argument when present. */
+  executionRoot?: string;
   disclosedScripts: ScriptDisclosure[];
   witnessPlan: RecursiveWitnessPlan;
   outputs: PolicyTransactionOutput[];
@@ -30,11 +32,19 @@ export interface ActionTransactionConfig {
 export function createActionTransactionPlan(
   config: ActionTransactionConfig,
 ): PolicyTransactionPlan {
-  // RFC-016 P3: bind the plan to the action selector (normal action = 0) so the
-  // anchor script cannot silently select a different branch.
+  // RFC-016 hardening: the plan must bind the action (selector) and subject
+  // identity, rather than silently omitting them.
+  if (!config.action) throw new Error('createActionTransactionPlan: action is required');
+  if (config.actionSelectorPort === undefined) {
+    throw new Error('createActionTransactionPlan: actionSelectorPort is required to bind the action');
+  }
   const stateChanges: Record<number, string> = { ...(config.stateChanges ?? {}) };
-  if (config.actionSelectorPort !== undefined) {
-    stateChanges[config.actionSelectorPort] = '0';
+  // State 0 is the reserved subject identity (policy-anchor).
+  stateChanges[0] = config.subjectId;
+  // Select the normal-action branch (0); carry the execution root as argument.
+  stateChanges[config.actionSelectorPort] = '0';
+  if (config.executionRoot !== undefined) {
+    stateChanges[config.actionSelectorPort + 1] = config.executionRoot;
   }
 
   const anchorInput: PolicyTransactionInput = {

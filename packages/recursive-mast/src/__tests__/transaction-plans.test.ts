@@ -124,5 +124,23 @@ describe('RFC-016 P3: recursive transaction plans', () => {
     });
     const out = plan.outputs[0].state as Record<number, string>;
     expect(out[anchorConfig.ports.actionRoot]).toBe('0');
+    // Subject identity is bound into the successor state.
+    expect(out[0]).toBe('veh-1');
+  });
+
+  it('action plan requires the selector port to bind the action', () => {
+    expect(() =>
+      createActionTransactionPlan({
+        anchorCoinId: '0xa',
+        anchorAddress: 'Mx',
+        anchorAmount: '1',
+        anchorScriptDescriptor: descriptor,
+        action: 'x',
+        subjectId: 'veh-1',
+        disclosedScripts: [],
+        witnessPlan: { mastBranches: new Map(), signatures: new Map(), scriptProofs: [] },
+        outputs: [],
+      }),
+    ).toThrow(/actionSelectorPort/);
   });
 });
