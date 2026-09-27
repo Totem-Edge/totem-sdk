@@ -56,14 +56,19 @@ export function buildMultiSigTreasuryScript(
       `LET spent = PREVSTATE(${options.spentThisPeriodPort})`,
       `LET elapsed = @BLOCK SUB periodStart`,
       ``,
-      `// Reset period if elapsed`,
+      // RFC-016 hardening: on period expiry, reset the counter AND advance the
+      // committed period start. Previously periodStart never moved, so every
+      // later transaction reset again (per-transaction limit, not per-period).
       `IF elapsed GTE ${options.periodBlocks} THEN`,
-      `  LET spent = 0`,
+      `  ASSERT @AMOUNT LTE ${options.maxSpendPerPeriod}`,
+      `  ASSERT STATE(${options.periodStartPort}) EQ @BLOCK`,
+      `  ASSERT STATE(${options.spentThisPeriodPort}) EQ @AMOUNT`,
+      `ELSE`,
+      `  ASSERT spent ADD @AMOUNT LTE ${options.maxSpendPerPeriod}`,
+      `  ASSERT STATE(${options.periodStartPort}) EQ periodStart`,
+      `  ASSERT STATE(${options.spentThisPeriodPort}) EQ spent ADD @AMOUNT`,
       `ENDIF`,
       ``,
-      `ASSERT spent ADD @AMOUNT LTE ${options.maxSpendPerPeriod}`,
-      // RFC-016 P4: actually record the spend so the period limit is enforced.
-      `ASSERT STATE(${options.spentThisPeriodPort}) EQ spent ADD @AMOUNT`,
       spendCheck,
       `RETURN TRUE`,
     ].join('\n'),
