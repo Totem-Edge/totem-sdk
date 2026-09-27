@@ -372,6 +372,10 @@ export interface DecisionSuccess<
   readonly usage?: DecisionUsage;
   /** Aggregate confidence (min across answers when batched). `undefined` if unknown. */
   readonly confidence?: number;
+  /** Call-specific provider provenance (underlying model/runtime), if reported. */
+  readonly provenance?: DecisionProvenance;
+  /** Provider-side (upstream) request id, when reported. */
+  readonly upstreamRequestId?: string;
   /** Raw provider output, only when `includeRawProviderOutput` is enabled. */
   readonly rawProviderOutput?: unknown;
 }

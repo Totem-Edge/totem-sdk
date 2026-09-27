@@ -54,6 +54,7 @@ export function createLayaDecisionProvider(
     ...(options.isReady !== undefined ? { isReady: options.isReady } : {}),
     info: {
       locality: 'local',
+      ...(options.model ? { model: { id: options.model, provenance: 'declared' as const } } : {}),
       ...(options.runtime ? { runtime: options.runtime } : {}),
       ...(options.info ?? {}),
     },

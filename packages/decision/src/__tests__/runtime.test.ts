@@ -338,6 +338,41 @@ describe('createDecisionRuntime', () => {
     await first;
   });
 
+  it('threads call provenance/upstream id and closes each unique provider once', async () => {
+    const closeA = jest.fn(async () => undefined);
+    const closeB = jest.fn(async () => undefined);
+    const provider = createMockDecisionProvider({
+      id: 'p1',
+      close: closeA,
+      decide: (req) => ({
+        ok: true,
+        requestId: req.requestId,
+        decision: choiceDecision('heat'),
+        provenance: {
+          providerId: 'p1',
+          model: { id: 'laya-typed', provenance: 'provider-reported' },
+          runtime: { id: 'mlx' },
+        },
+        upstreamRequestId: 'upstream-1',
+      }),
+    });
+    const other = createMockDecisionProvider({ id: 'p2', close: closeB, decision: choiceDecision('cool') });
+    const runtime = createDecisionRuntime({ routes: [{ provider }, { provider }], providers: { p2: other } });
+
+    const outcome = await runtime.decide(choiceRequest('prov'));
+    expect(outcome.ok).toBe(true);
+    if (outcome.ok) {
+      expect(outcome.provenance?.model?.id).toBe('laya-typed');
+      expect(outcome.upstreamRequestId).toBe('upstream-1');
+      expect(outcome.receipt.model?.id).toBe('laya-typed');
+      expect(outcome.receipt.provider).toEqual({ id: 'p1', version: '0.0.0' });
+    }
+
+    await runtime.close?.();
+    expect(closeA).toHaveBeenCalledTimes(1);
+    expect(closeB).toHaveBeenCalledTimes(1);
+  });
+
   it('defaults missing request ids and rejects malformed requests', async () => {
     const runtime = createDecisionRuntime({ routes: [{ provider: staticProvider('p', 'heat') }] });
     const outcome = await runtime.decide({ kind: 'questions', state: {}, questions: [{ type: 'choice', id: 'q1', criteria: [{ id: 'heat' }, { id: 'cool' }] }] });

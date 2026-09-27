@@ -372,12 +372,19 @@ export function createDecisionRuntime(
       const bindings = { ...requestBindings, outputDigest };
       const finalConfidence = evaluation.confidence ?? aggregateConfidence(decision);
 
+      // RFC-012 hardening #9: prefer call-specific provenance (underlying model /
+      // runtime) over static provider info; the runtime-known provider identity is
+      // kept distinct in `provider`.
+      const provenance = providerOutcome.provenance;
+      const model = provenance?.model ?? provider.info?.model;
+      const runtime = provenance?.runtime ?? provider.info?.runtime;
+
       const receipt = createDecisionReceipt({
         version: 1,
         requestId,
         provider: { id: provider.id, version: provider.version },
-        ...(provider.info?.model ? { model: provider.info.model } : {}),
-        ...(provider.info?.runtime ? { runtime: provider.info.runtime } : {}),
+        ...(model ? { model } : {}),
+        ...(runtime ? { runtime } : {}),
         stateDigest: bindings.stateDigest,
         candidateSetDigest: bindings.candidateSetDigest,
         requestDigest: bindings.requestDigest,
@@ -399,6 +406,8 @@ export function createDecisionRuntime(
         attempts,
         ...(providerOutcome.usage ? { usage: providerOutcome.usage } : {}),
         ...(finalConfidence !== undefined ? { confidence: finalConfidence } : {}),
+        ...(provenance ? { provenance } : {}),
+        ...(providerOutcome.upstreamRequestId ? { upstreamRequestId: providerOutcome.upstreamRequestId } : {}),
         ...(includeRaw && providerOutcome.rawProviderOutput !== undefined
           ? { rawProviderOutput: providerOutcome.rawProviderOutput }
           : {}),
@@ -424,7 +433,24 @@ export function createDecisionRuntime(
     return provider.cancel(requestId);
   }
 
-  return { decide, cancel };
+  async function close(): Promise<void> {
+    // RFC-012 hardening #9: close each unique configured provider once.
+    const providers = new Set<DecisionProvider>();
+    for (const route of options.routes) {
+      const p = resolveProvider(route, options.providers);
+      if (p) providers.add(p);
+    }
+    if (options.providers) for (const p of Object.values(options.providers)) providers.add(p);
+    for (const p of providers) {
+      try {
+        await p.close?.();
+      } catch {
+        // A failing provider close must not block the others.
+      }
+    }
+  }
+
+  return { decide, cancel, close };
 }
 
 function skippedAttempt(

@@ -51,6 +51,7 @@ export function createJevDecisionProvider(
     ...(options.isReady !== undefined ? { isReady: options.isReady } : {}),
     info: {
       locality: 'unknown',
+      ...(options.model ? { model: { id: options.model, provenance: 'declared' as const } } : {}),
       ...(options.runtime ? { runtime: options.runtime } : {}),
       ...(options.info ?? {}),
     },
