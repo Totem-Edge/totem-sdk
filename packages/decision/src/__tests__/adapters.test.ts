@@ -1,4 +1,5 @@
 import { createTypedDecisionProvider, translateBackendResult } from '../typed-backend.js';
+import type { DecisionClientQuestion } from '../typed-backend.js';
 import { createLayaDecisionProvider } from '../adapters/laya.js';
 import { createJevDecisionProvider } from '../adapters/jev.js';
 import { createDecisionRuntime } from '../runtime.js';
@@ -100,6 +101,61 @@ describe('createTypedDecisionProvider', () => {
 });
 
 describe('Laya adapter', () => {
+  it('preserves instruction, descriptions, metadata and action goal into the client call', async () => {
+    let seen: DecisionClientQuestion[] = [];
+    const client = {
+      async predict({ questions }: { questions: readonly DecisionClientQuestion[] }) {
+        seen = [...questions];
+        return {
+          predictions: {
+            q1: { selected: 'b' },
+            __operation: { selected: 'throttle' },
+            '__target:throttle': { selected: '1kw' },
+          },
+        };
+      },
+    };
+    const provider = createLayaDecisionProvider({ client });
+
+    await provider.decide({
+      kind: 'questions',
+      requestId: 'r',
+      state: {},
+      questions: [
+        {
+          type: 'choice',
+          id: 'q1',
+          instruction: 'Pick a department',
+          criteria: [
+            { id: 'a', description: 'A desc' },
+            { id: 'b', description: 'B desc', metadata: { risk: 1 } },
+          ],
+        },
+      ],
+    });
+    const q1 = seen.find((q) => q.id === 'q1')!;
+    expect(q1.instruction).toBe('Pick a department');
+    expect(q1.candidates?.[1]).toMatchObject({ id: 'b', description: 'B desc', metadata: { risk: 1 } });
+
+    seen = [];
+    await provider.decide({
+      kind: 'action',
+      requestId: 'a',
+      state: {},
+      goal: 'Maintain service while reducing thermal risk',
+      operations: [
+        {
+          id: 'throttle',
+          description: 'Reduce charging power safely',
+          targets: [{ id: '1kw', description: '7kW charging channel' }],
+        },
+      ],
+    });
+    expect(seen.find((q) => q.id === '__operation')!.instruction).toBe('Maintain service while reducing thermal risk');
+    expect(seen.find((q) => q.id === '__operation')!.candidates?.[0]).toMatchObject({ id: 'throttle', description: 'Reduce charging power safely' });
+    expect(seen.find((q) => q.id === '__target:throttle')!.candidates?.[0]).toMatchObject({ id: '1kw', description: '7kW charging channel' });
+  });
+
   it('translates probability to/from noul without leaking the vocabulary', async () => {
     const seen: string[] = [];
     const provider = createLayaDecisionProvider({

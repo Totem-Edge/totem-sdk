@@ -21,6 +21,7 @@ import type {
   DecisionResult,
   DecisionUsage,
   DecisionValue,
+  TypedBackendCandidate,
   TypedBackendPrediction,
   TypedBackendQuestion,
   TypedDecisionBackend,
@@ -49,20 +50,37 @@ function buildBackendQuestions(request: DecisionProviderRequest): {
       if (q.type === 'probability') {
         questions[q.id] = { id: q.id, type: 'probability', proposition: q.proposition };
       } else if (q.type === 'score') {
-        questions[q.id] = { id: q.id, type: 'score', rubric: q.rubric.map((c) => c.id) };
+        questions[q.id] = {
+          id: q.id,
+          type: 'score',
+          ...(q.instruction !== undefined ? { instruction: q.instruction } : {}),
+          rubric: q.rubric.map((c) => ({ id: c.id, description: c.description, metadata: c.metadata })),
+        };
       } else {
-        questions[q.id] = { id: q.id, type: 'choice', candidates: q.criteria.map((c) => c.id) };
+        questions[q.id] = {
+          id: q.id,
+          type: 'choice',
+          ...(q.instruction !== undefined ? { instruction: q.instruction } : {}),
+          candidates: q.criteria.map((c) => ({ id: c.id, description: c.description, metadata: c.metadata })),
+        };
       }
     }
     return { questions };
   }
+  // RFC-012 §24: retain the goal, operation/target descriptions and metadata so
+  // the adapter can format a semantically complete provider request.
   questions.__action = {
     id: '__action',
     type: 'action',
-    operations: request.operations.map((op) => ({
-      id: op.id,
-      targets: (op.targets ?? []).map((t) => t.id),
-    })),
+    action: {
+      ...(request.goal !== undefined ? { goal: request.goal } : {}),
+      operations: request.operations.map((op) => ({
+        id: op.id,
+        description: op.description,
+        metadata: op.metadata,
+        targets: (op.targets ?? []).map((t) => ({ id: t.id, description: t.description, metadata: t.metadata })),
+      })),
+    },
   };
   return { questions };
 }
@@ -215,8 +233,9 @@ export function createTypedDecisionProvider(
 export interface DecisionClientQuestion {
   readonly id: string;
   readonly type: string;
-  readonly candidates?: readonly string[];
-  readonly rubric?: readonly string[];
+  readonly instruction?: string;
+  readonly candidates?: readonly TypedBackendCandidate[];
+  readonly rubric?: readonly TypedBackendCandidate[];
   readonly proposition?: string;
 }
 
@@ -271,9 +290,17 @@ function clientQuestionsFromTyped(
 ): DecisionClientQuestion[] {
   const out: DecisionClientQuestion[] = [];
   for (const [id, q] of Object.entries(questions)) {
-    if (id === '__action' && q.operations) {
-      out.push({ id: OPERATION_HEAD, type: 'choice', candidates: q.operations.map((o) => o.id) });
-      for (const op of q.operations) {
+    if (id === '__action' && q.action) {
+      // RFC-012 §24: the operation head carries the goal (as its instruction)
+      // plus full operation descriptions/metadata; target heads carry full
+      // target objects. Adapters format this into their native shape.
+      out.push({
+        id: OPERATION_HEAD,
+        type: 'choice',
+        ...(q.action.goal !== undefined ? { instruction: q.action.goal } : {}),
+        candidates: q.action.operations.map((o) => ({ id: o.id, description: o.description, metadata: o.metadata })),
+      });
+      for (const op of q.action.operations) {
         if (op.targets && op.targets.length > 0) {
           out.push({ id: `${TARGET_HEAD_PREFIX}${op.id}`, type: 'choice', candidates: op.targets });
         }
@@ -283,9 +310,9 @@ function clientQuestionsFromTyped(
     if (q.type === 'probability') {
       out.push({ id, type: probabilityType, proposition: q.proposition });
     } else if (q.type === 'score') {
-      out.push({ id, type: 'score', rubric: q.rubric });
+      out.push({ id, type: 'score', ...(q.instruction !== undefined ? { instruction: q.instruction } : {}), rubric: q.rubric });
     } else {
-      out.push({ id, type: 'choice', candidates: q.candidates });
+      out.push({ id, type: 'choice', ...(q.instruction !== undefined ? { instruction: q.instruction } : {}), candidates: q.candidates });
     }
   }
   return out;
@@ -310,10 +337,10 @@ function clientPredictionsToTyped(
   const out: Record<string, TypedBackendPrediction> = {};
   for (const [id, q] of Object.entries(questions)) {
     const p = client[id];
-    if (id === '__action' && q.operations) {
+    if (id === '__action' && q.action) {
       const opPred = client[OPERATION_HEAD];
       const targetHeads: Record<string, { target: string; probability?: number }> = {};
-      for (const op of q.operations) {
+      for (const op of q.action.operations) {
         if (!op.targets || op.targets.length === 0) continue;
         const head = client[`${TARGET_HEAD_PREFIX}${op.id}`];
         if (head?.selected !== undefined) {

@@ -576,18 +576,46 @@ export interface EdgeDecisionPort {
 
 // ── Typed backend seam ─────────────────────────────────────────────────────
 
-/** A backend question in canonical form (provider peculiarities already removed). */
+/** A structured candidate in the typed backend representation (RFC-012 §24). */
+export interface TypedBackendCandidate {
+  readonly id: string;
+  readonly description?: string;
+  readonly metadata?: DecisionValue;
+}
+
+export interface TypedBackendTarget {
+  readonly id: string;
+  readonly description?: string;
+  readonly metadata?: DecisionValue;
+}
+
+export interface TypedBackendOperation {
+  readonly id: string;
+  readonly description?: string;
+  readonly metadata?: DecisionValue;
+  readonly targets?: readonly TypedBackendTarget[];
+}
+
+export interface TypedBackendAction {
+  readonly goal?: string;
+  readonly operations: readonly TypedBackendOperation[];
+}
+
+/**
+ * A backend question in canonical form. Preserves the full semantic request
+ * (instruction, descriptions, metadata, action goal/operations/targets) so
+ * provider adapters format their native shape from complete information rather
+ * than from bare IDs.
+ */
 export interface TypedBackendQuestion {
   readonly id: string;
   readonly type: DecisionType;
-  readonly candidates?: readonly string[];
+  readonly instruction?: string;
+  readonly candidates?: readonly TypedBackendCandidate[];
   /** Ordered increasing. */
-  readonly rubric?: readonly string[];
+  readonly rubric?: readonly TypedBackendCandidate[];
   readonly proposition?: string;
-  readonly operations?: readonly {
-    readonly id: string;
-    readonly targets?: readonly string[];
-  }[];
+  readonly action?: TypedBackendAction;
 }
 
 export interface TypedBackendPrediction {
