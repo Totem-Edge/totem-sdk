@@ -257,6 +257,26 @@ describe('createDecisionRuntime', () => {
     await pending;
   });
 
+  it('rejects a target-bearing operation that omits the target', async () => {
+    const provider = createMockDecisionProvider({
+      id: 'omit-target',
+      decide: (req) => ({
+        ok: true,
+        requestId: req.requestId,
+        decision: { kind: 'action', answer: { type: 'action', operation: 'follow' } },
+      }),
+    });
+    const runtime = createDecisionRuntime({ routes: [{ provider }, { provider: staticProvider('backstop', 'heat') }] });
+    const outcome = await runtime.decide({
+      kind: 'action',
+      requestId: 'a1',
+      state: {},
+      operations: [{ id: 'follow', targets: [{ id: 't1' }, { id: 't2' }] }],
+    });
+    expect(outcome.attempts[0].reason).toBe('INVALID_OUTPUT');
+    expect(outcome.attempts[0].errorCode).toBe('INVALID_OUTPUT');
+  });
+
   it('defaults missing request ids and rejects malformed requests', async () => {
     const runtime = createDecisionRuntime({ routes: [{ provider: staticProvider('p', 'heat') }] });
     const outcome = await runtime.decide({ kind: 'questions', state: {}, questions: [{ type: 'choice', id: 'q1', criteria: [{ id: 'heat' }, { id: 'cool' }] }] });

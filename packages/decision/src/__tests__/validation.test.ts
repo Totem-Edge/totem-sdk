@@ -214,6 +214,12 @@ describe('validateProviderDecision (action)', () => {
     expect(() => validateProviderDecision(actionProviderRequest, { kind: 'action', answer: { operation: 'nuke' } })).toThrow(/not offered/);
   });
 
+  it('rejects a target-bearing operation that omits the target', () => {
+    expect(() =>
+      validateProviderDecision(actionProviderRequest, { kind: 'action', answer: { operation: 'throttle' } }),
+    ).toThrow(/requires a target/);
+  });
+
   it('rejects a target incompatible with the selected operation', () => {
     expect(() =>
       validateProviderDecision(actionProviderRequest, { kind: 'action', answer: { operation: 'throttle', target: '5mw' } }),

@@ -410,6 +410,10 @@ function validateActionAnswer(
       throw new DecisionError('INVALID_CANDIDATE', `Target "${raw.target}" is not compatible with operation "${operation.id}".`);
     }
     target = raw.target;
+  } else if (targetIds.length > 0) {
+    // RFC-012 §15: a target-bearing operation MUST select a compatible target.
+    // "FOLLOW" without a target is not a complete decision.
+    throw new DecisionError('INVALID_OUTPUT', `Operation "${operation.id}" requires a target to be selected.`);
   }
 
   const operationProbabilities = normalizeNumberMap(raw.operationProbabilities, 'operationProbabilities');
