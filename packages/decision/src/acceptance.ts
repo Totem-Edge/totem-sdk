@@ -98,6 +98,23 @@ export function evaluateAcceptance(
     if (!ok) return { accepted: false, reason: 'LOW_SELECTED_PROBABILITY', confidence };
   }
 
+  if (rule?.minOperationProbability !== undefined && decision.kind === 'action') {
+    const p = decision.answer.operationProbabilities?.[decision.answer.operation];
+    if (p === undefined || p < rule.minOperationProbability) {
+      return { accepted: false, reason: 'LOW_SELECTED_PROBABILITY', confidence };
+    }
+  }
+
+  if (rule?.minTargetProbability !== undefined && decision.kind === 'action') {
+    const t = decision.answer.target;
+    if (t !== undefined) {
+      const p = decision.answer.targetProbabilities?.[t];
+      if (p === undefined || p < rule.minTargetProbability) {
+        return { accepted: false, reason: 'LOW_SELECTED_PROBABILITY', confidence };
+      }
+    }
+  }
+
   if (rule?.requireProbabilities === true) {
     if (!hasRequiredProbabilities(decision)) {
       return { accepted: false, reason: 'LOW_SELECTED_PROBABILITY', confidence };
@@ -142,11 +159,16 @@ export function evaluateAcceptance(
 
 function selectedProbabilitiesMeet(decision: DecisionResult, threshold: number): boolean {
   if (decision.kind === 'action') {
+    // `minSelectedProbability` covers every selected part of an action: the
+    // operation and (when a target exists) the target. Never operation-only.
     const a = decision.answer;
-    if (a.operationProbabilities && a.operation in a.operationProbabilities) {
-      return a.operationProbabilities[a.operation] >= threshold;
+    if (!a.operationProbabilities || !(a.operation in a.operationProbabilities)) return false;
+    if (a.operationProbabilities[a.operation] < threshold) return false;
+    if (a.target !== undefined) {
+      if (!a.targetProbabilities || !(a.target in a.targetProbabilities)) return false;
+      if (a.targetProbabilities[a.target] < threshold) return false;
     }
-    return false;
+    return true;
   }
   for (const answer of decision.answers) {
     if (answer.type === 'choice' && answer.probabilities) {
@@ -163,7 +185,12 @@ function selectedProbabilitiesMeet(decision: DecisionResult, threshold: number):
 function hasRequiredProbabilities(decision: DecisionResult): boolean {
   if (decision.kind === 'action') {
     const a = decision.answer;
-    return a.operationProbabilities !== undefined && a.operation in a.operationProbabilities;
+    return (
+      a.operationProbabilities !== undefined &&
+      a.operation in a.operationProbabilities &&
+      (a.target === undefined ||
+        (a.targetProbabilities !== undefined && a.target in a.targetProbabilities))
+    );
   }
   for (const answer of decision.answers) {
     if (answer.type === 'choice' && !answer.probabilities) return false;

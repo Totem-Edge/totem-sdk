@@ -99,4 +99,6 @@ export const DECISION_DEFAULTS = {
   maxTargetsPerOperation: 64,
   /** Fractional tolerance when validating a complete distribution sums to 1. */
   distributionTolerance: 1e-6,
+  /** Numeric slack when asserting the selected candidate is the distribution argmax. */
+  argmaxTolerance: 1e-6,
 } as const;

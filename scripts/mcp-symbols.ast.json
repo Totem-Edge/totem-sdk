@@ -2897,7 +2897,7 @@
         "isDecisionCapability": {
           "kind": "function",
           "signature": "isDecisionCapability(cap: string): boolean",
-          "doc": "True when `cap` is any `decision:*` capability."
+          "doc": "True when `cap` is one of the closed v1 decision capabilities."
         },
         "hasDecisionCapability": {
           "kind": "function",
@@ -3257,7 +3257,7 @@
         },
         "validateProviderDecision": {
           "kind": "function",
-          "signature": "validateProviderDecision(providerRequest: DecisionProviderRequest, decision: unknown): DecisionResult",
+          "signature": "validateProviderDecision(providerRequest: DecisionProviderRequest, decision: unknown, options?: ProviderDecisionValidationOptions): DecisionResult",
           "doc": "Validate and normalize a provider-proposed decision against the offered\ncandidate space. Returns a clean canonical {@link DecisionResult}; unknown\nfields are dropped. Providers cannot invent IDs or malformed distributions."
         },
         "validateDistribution": {
@@ -3287,6 +3287,11 @@
         "DistributionValidationOptions": {
           "kind": "interface",
           "signature": "export interface DistributionValidationOptions"
+        },
+        "ProviderDecisionValidationOptions": {
+          "kind": "interface",
+          "signature": "export interface ProviderDecisionValidationOptions",
+          "doc": "Provider-decision validation options derived from the provider's declared\ncontract (`DecisionProviderInfo`)."
         },
         "computeReceiptId": {
           "kind": "function",

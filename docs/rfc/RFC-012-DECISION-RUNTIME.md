@@ -1,6 +1,6 @@
 # RFC-012: Decision Runtime — Bounded Semantic Choice as a First-Class Edge Service
 
-**Status:** Landed — P1–P6 complete; post-landing hardening pass complete (11 commits): CI wiring so the decision suites actually run; full model semantics preserved into Laya/Jev (instruction/descriptions/metadata/goal); target-bearing operations require a target; target-head evidence (distribution/confidence) preserved so `minTargetConfidence` works; every digest-bound field validated; acceptance confidence computed from canonical answers; shortlisting deferred (interface kept); hard timeout + duplicate-request-id rejection; call-specific provenance + `runtime.close()`; truthful runtime capabilities + Edge validation/cancel ordering. Second post-landing correctness pass: runtime-owned hard cancellation (caller abort, `decision:cancel`, and timeout all race the provider and abort the same controller); operation vs target confidence split (`operationConfidence` / `targetConfidence`, `confidence` retained as the operation alias); action operation/target distribution completeness (`…Complete` markers; Laya/Jev full distributions are validated); target heads receive the goal + operation context; intelligence fallback preserves descriptions/instructions/metadata; Edge port returns failure provenance and rejects capability expansion; provenance normalised so result and receipt agree (receipt carries `upstreamRequestId`); closed-set `isDecisionCapability`; non-empty request-id validation. Left as follow-ups: receipt signing (Q2) and embedding shortlisting (Q3).
+**Status:** Landed — P1–P6 complete; post-landing hardening pass complete (11 commits): CI wiring so the decision suites actually run; full model semantics preserved into Laya/Jev (instruction/descriptions/metadata/goal); target-bearing operations require a target; target-head evidence (distribution/confidence) preserved so `minTargetConfidence` works; every digest-bound field validated; acceptance confidence computed from canonical answers; shortlisting deferred (interface kept); hard timeout + duplicate-request-id rejection; call-specific provenance + `runtime.close()`; truthful runtime capabilities + Edge validation/cancel ordering. Second post-landing correctness pass: runtime-owned hard cancellation (caller abort, `decision:cancel`, and timeout all race the provider and abort the same controller); operation vs target confidence split (`operationConfidence` / `targetConfidence`, `confidence` retained as the operation alias); action operation/target distribution completeness (`…Complete` markers; Laya/Jev full distributions are validated); target heads receive the goal + operation context; intelligence fallback preserves descriptions/instructions/metadata; Edge port returns failure provenance and rejects capability expansion; provenance normalised so result and receipt agree (receipt carries `upstreamRequestId`); closed-set `isDecisionCapability`; non-empty request-id validation. Provider-contract precision pass: provider-declared `distributionTolerance` (Laya/Jev 0.02) and `choiceSelection: argmax` enforcement; explicit `minOperationProbability`/`minTargetProbability` (with `minSelectedProbability`/`requireProbabilities` covering operation **and** target); `CANCELLED` attempt reason. Left as follow-ups: receipt signing (Q2) and embedding shortlisting (Q3).
 **Created:** 2026-09-24
 **Revised:** 2026-09-26
 **Authors:** Totem SDK Contributors
@@ -505,7 +505,15 @@ operation / target distribution; only then is coverage, `sum ≈ 1`, and
 (their contracts emit every label), so a malformed full distribution is rejected
 rather than silently accepted as provenance.
 
-### 19.1 Operation vs target confidence
+**Tolerance and argmax are provider-contract metadata.** The default sum
+tolerance is `1e-6`, but typed clients whose contract rounds declare
+`info.distributionTolerance` (Laya 4 dp / Jev `< 0.02` → `0.02`). When
+`info.choiceSelection === 'argmax'` (Laya/Jev), validation also requires the
+selected candidate to be the distribution maximum within `argmaxTolerance`, so
+an injected client cannot select a non-maximal candidate under a valid complete
+distribution.
+
+### 20.1 Operation vs target confidence
 
 `ActionAnswer` carries **`operationConfidence`** and **`targetConfidence`
 separately** (with `confidence` retained as the 0.x alias for
@@ -513,6 +521,13 @@ separately** (with `confidence` retained as the 0.x alias for
 `minOperationConfidence` reads `operationConfidence` → selected operation
 probability; `minTargetConfidence` reads `targetConfidence` → selected target
 probability. A target head's confidence is never converted into a probability.
+
+Acceptance probabilities for actions are explicit:
+`minOperationProbability` / `minTargetProbability` gate the selected operation
+and target respectively, while `minSelectedProbability` covers **every selected
+part** (operation and, when a target exists, target) and `requireProbabilities`
+requires the operation distribution **and** the target distribution when a
+target exists.
 
 ## 21. Provider contract
 
@@ -543,7 +558,7 @@ type DecisionCapability =
   | 'decision:action';
 
 const DECISION_CAPABILITIES: readonly DecisionCapability[] = [/* the four above */];
-function isDecisionCapability(cap: string): boolean;      // prefix check
+function isDecisionCapability(cap: string): boolean;      // closed-set membership
 function hasDecisionCapability(caps: readonly string[], cap: DecisionCapability): boolean;
 ```
 
@@ -554,9 +569,10 @@ Closed in v1 (§4.2).
 
 `info`: `locality: local|remote|hybrid|unknown`, `maxQuestions`,
 **`maxCandidatesPerQuestion`**, **`maxOperations`**, `maxTargetsPerOperation`,
-`maxStateBytes`, `supportedTypes`, `runtime`, `model`. Aids routing; grants
-nothing. Missing fields are omitted, never invented. `maxCandidates` (ambiguous
-for batched questions) is replaced by `maxCandidatesPerQuestion`.
+`maxStateBytes`, `supportedTypes`, `runtime`, `model`, `distributionTolerance`,
+`choiceSelection: argmax|provider`. Aids routing; grants nothing. Missing fields
+are omitted, never invented. `maxCandidates` (ambiguous for batched questions)
+is replaced by `maxCandidatesPerQuestion`.
 
 ## 24. Typed-decision backend (shared Laya/Jev seam)
 
@@ -579,7 +595,7 @@ adapters only translate backend peculiarities. All outputs are still
 ## 25. Runtime and deterministic routing
 
 ```ts
-createDecisionRuntime({ routes: DecisionRoute[], providers?, shortlister?, onReceipt?, onAttempt? });
+createDecisionRuntime({ routes: DecisionRoute[], providers?, onReceipt?, onAttempt? });
 ```
 
 Routes are explicit and **deterministic** (ordered array; no hidden AI router, no
@@ -805,7 +821,8 @@ DecisionReceipt ≠ cryptographic authorization ≠ signed attestation
 
 Fields: `version`, `receiptId`, `requestId`, `provider`, `model?`, `runtime?`,
 `stateDigest`, `candidateSetDigest`, `requestDigest`, `outputDigest`,
-`decisionKind`, `issuedAt`, `durationMs?`, `confidence?`. `receiptId` derivation
+`decisionKind`, `issuedAt`, `durationMs?`, `confidence?`, `upstreamRequestId?`.
+`receiptId` derivation
 is fixed in §29.1. A future trusted layer may sign/attest; v1 makes no such claim
 (§45 Q2).
 

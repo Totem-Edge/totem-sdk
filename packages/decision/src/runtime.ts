@@ -290,7 +290,7 @@ export function createDecisionRuntime(
           startedAt,
           durationMs,
           accepted: false,
-          reason: 'UNAVAILABLE',
+          reason: 'CANCELLED',
           errorCode: 'CANCELLED',
           message: 'Cancelled.',
         };
@@ -321,7 +321,10 @@ export function createDecisionRuntime(
       // Validate + normalize against the offered candidate space.
       let decision: DecisionResult;
       try {
-        decision = validateProviderDecision(providerRequest, providerOutcome.decision);
+        decision = validateProviderDecision(providerRequest, providerOutcome.decision, {
+          ...(provider.info?.distributionTolerance !== undefined ? { tolerance: provider.info.distributionTolerance } : {}),
+          ...(provider.info?.choiceSelection !== undefined ? { choiceSelection: provider.info.choiceSelection } : {}),
+        });
       } catch (err) {
         const e = err instanceof DecisionError ? err : new DecisionError('INVALID_OUTPUT', String(err));
         const attempt: DecisionAttempt = {

@@ -1,6 +1,6 @@
 {
   "note": "Per-package exported-symbol counts + total, used by scripts/verify-mcp-index.mjs to catch a package silently losing exports. Regenerate with: node scripts/verify-mcp-index.mjs --update",
-  "totalSymbols": 3662,
+  "totalSymbols": 3663,
   "packages": {
     "@totemsdk/agent-policy": 92,
     "@totemsdk/authority": 29,
@@ -8,7 +8,7 @@
     "@totemsdk/connect": 228,
     "@totemsdk/core": 335,
     "@totemsdk/core-wasm": 0,
-    "@totemsdk/decision": 109,
+    "@totemsdk/decision": 110,
     "@totemsdk/edge": 237,
     "@totemsdk/edge-adapters": 44,
     "@totemsdk/edge-bacnet": 13,

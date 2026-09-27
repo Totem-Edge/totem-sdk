@@ -66,6 +66,7 @@ export type DecisionEscalationReason =
   | 'LIMIT_EXCEEDED'
   | 'INELIGIBLE'
   | 'NOT_IMPLEMENTED'
+  | 'CANCELLED'
   | 'CUSTOM_REJECTION';
 
 /** Base error for the decision surface. */

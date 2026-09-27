@@ -180,6 +180,8 @@ export interface DistributionValidationOptions {
   readonly selected?: string;
   readonly requireComplete?: boolean;
   readonly tolerance?: number;
+  /** When true, `selected` must be the distribution maximum (within tolerance). */
+  readonly requireArgmax?: boolean;
 }
 
 /**
@@ -221,6 +223,23 @@ export function validateDistribution(
   }
   if (options.selected !== undefined && !allowed.has(options.selected)) {
     throw new DecisionError('INVALID_CANDIDATE', `Selected candidate "${options.selected}" is not valid.`);
+  }
+
+  // Provider-contract argmax enforcement (RFC-012 §20): Laya/Jev select the
+  // distribution maximum, so a malformed/injected client cannot pick a
+  // non-maximal candidate while still supplying a valid complete distribution.
+  if (options.requireArgmax === true && options.selected !== undefined) {
+    const selectedValue = distribution[options.selected];
+    if (selectedValue === undefined) {
+      throw new DecisionError('INVALID_DISTRIBUTION', `Selected "${options.selected}" is absent from the distribution.`);
+    }
+    const maxValue = Math.max(...Object.values(distribution));
+    if (selectedValue < maxValue - DECISION_DEFAULTS.argmaxTolerance) {
+      throw new DecisionError(
+        'INVALID_DISTRIBUTION',
+        `Selected "${options.selected}" (${selectedValue}) is not the distribution maximum (${maxValue}).`,
+      );
+    }
   }
 }
 
@@ -286,6 +305,17 @@ function candidateIdsOf(q: { type: string; criteria?: readonly { id: string }[];
 }
 
 /**
+ * Provider-decision validation options derived from the provider's declared
+ * contract (`DecisionProviderInfo`).
+ */
+export interface ProviderDecisionValidationOptions {
+  /** Tolerance for a complete distribution's sum. Defaults to 1e-6. */
+  readonly tolerance?: number;
+  /** Enforce argmax selection when the provider contract requires it. */
+  readonly choiceSelection?: 'argmax' | 'provider';
+}
+
+/**
  * Validate and normalize a provider-proposed decision against the offered
  * candidate space. Returns a clean canonical {@link DecisionResult}; unknown
  * fields are dropped. Providers cannot invent IDs or malformed distributions.
@@ -295,6 +325,7 @@ function candidateIdsOf(q: { type: string; criteria?: readonly { id: string }[];
 export function validateProviderDecision(
   providerRequest: DecisionProviderRequest,
   decision: unknown,
+  options: ProviderDecisionValidationOptions = {},
 ): DecisionResult {
   if (!isPlainObject(decision)) {
     throw new DecisionError('INVALID_OUTPUT', 'Provider decision must be an object.');
@@ -307,18 +338,19 @@ export function validateProviderDecision(
     if (!Array.isArray(decision.answers)) {
       throw new DecisionError('INVALID_OUTPUT', 'Provider questions decision must include answers[].');
     }
-    return validateQuestionAnswers(providerRequest, decision.answers);
+    return validateQuestionAnswers(providerRequest, decision.answers, options);
   }
 
   if (!isPlainObject(decision.answer)) {
     throw new DecisionError('INVALID_OUTPUT', 'Provider action decision must include answer.');
   }
-  return validateActionAnswer(providerRequest, decision.answer);
+  return validateActionAnswer(providerRequest, decision.answer, options);
 }
 
 function validateQuestionAnswers(
   request: QuestionDecisionRequest | Extract<DecisionProviderRequest, { kind: 'questions' }>,
   rawAnswers: readonly unknown[],
+  options: ProviderDecisionValidationOptions,
 ): QuestionDecisionResult {
   const byId = new Map(request.questions.map((q) => [q.id, q]));
   if (rawAnswers.length !== request.questions.length) {
@@ -358,6 +390,8 @@ function validateQuestionAnswers(
           candidateIds: ids,
           selected: raw.selected,
           requireComplete: raw.complete === true || undefined,
+          tolerance: options.tolerance,
+          requireArgmax: options.choiceSelection === 'argmax' || undefined,
         });
       }
       answers.push({
@@ -382,6 +416,7 @@ function validateQuestionAnswers(
           candidateIds: ids,
           selected: raw.selected,
           requireComplete: raw.complete === true || undefined,
+          tolerance: options.tolerance,
         });
       }
       let expectedScore: number | undefined;
@@ -427,6 +462,7 @@ function validateQuestionAnswers(
 function validateActionAnswer(
   request: Extract<DecisionProviderRequest, { kind: 'action' }>,
   raw: Record<string, unknown>,
+  options: ProviderDecisionValidationOptions,
 ): ActionDecisionResult {
   const operations: readonly DecisionOperation[] = request.operations;
   const operationIds = operations.map((o) => o.id);
@@ -459,7 +495,10 @@ function validateActionAnswer(
   if (operationProbabilities) {
     validateDistribution(operationProbabilities, {
       candidateIds: operationIds,
+      selected: raw.operation,
       requireComplete: raw.operationProbabilitiesComplete === true || undefined,
+      tolerance: options.tolerance,
+      requireArgmax: options.choiceSelection === 'argmax' || undefined,
     });
   }
 
@@ -472,6 +511,8 @@ function validateActionAnswer(
       candidateIds: targetIds,
       selected: target,
       requireComplete: raw.targetProbabilitiesComplete === true || undefined,
+      tolerance: options.tolerance,
+      requireArgmax: options.choiceSelection === 'argmax' || undefined,
     });
   }
 

@@ -18,7 +18,10 @@ import type {
 export interface CreateEdgeDecisionPortOptions {
   /** Stable runtime id. Defaults to `'decision'`. */
   readonly runtimeId?: string;
-  /** Advertised capabilities. Defaults to the four canonical capabilities. */
+  /**
+   * Advertised capabilities. Defaults to the runtime's actual capabilities; an
+   * override may narrow that set but must not expand it.
+   */
   readonly capabilities?: readonly DecisionCapability[];
 }
 

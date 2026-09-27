@@ -12,6 +12,7 @@ import { createMockDecisionProvider } from '../testing/mock-provider.js';
 import { isDecisionCapability } from '../constants.js';
 import { translateBackendResult } from '../typed-backend.js';
 import { buildIntelligenceDecisionPrompt } from '../adapters/intelligence.js';
+import { createLayaDecisionProvider } from '../adapters/laya.js';
 import type {
   ActionDecisionRequest,
   DecisionProviderOutcome,
@@ -84,7 +85,11 @@ describe('hard cancellation', () => {
     expect(cancelled?.ok).toBe(true);
     const outcome = await pending;
     expect(outcome.ok).toBe(false);
-    if (!outcome.ok) expect(outcome.code).toBe('CANCELLED');
+    if (!outcome.ok) {
+      expect(outcome.code).toBe('CANCELLED');
+      expect(outcome.attempts[0].reason).toBe('CANCELLED');
+      expect(outcome.attempts[0].errorCode).toBe('CANCELLED');
+    }
   });
 });
 
@@ -285,5 +290,112 @@ describe('capabilities and request ids', () => {
     const outcome = await runtime.decide(qReq());
     expect(outcome.ok).toBe(false);
     if (!outcome.ok) expect(outcome.code).toBe('INVALID_REQUEST');
+  });
+});
+
+// ── provider-contract precision ────────────────────────────────────────────
+
+function actionTwoTargets(requestId: string): ActionDecisionRequest {
+  return {
+    kind: 'action',
+    requestId,
+    state: {},
+    operations: [{ id: 'follow', targets: [{ id: 't1' }, { id: 't2' }] }],
+  };
+}
+
+function answerProvider(id: string, answer: Record<string, unknown>) {
+  return createMockDecisionProvider({
+    id,
+    decide: (req) => ({ ok: true, requestId: req.requestId, decision: { kind: 'action', answer: answer as never } }),
+  });
+}
+
+describe('provider contract: tolerance and argmax', () => {
+  it('accepts a Laya complete distribution that rounds to 0.9999 (0.02 tolerance)', async () => {
+    const provider = createLayaDecisionProvider({
+      client: {
+        async predict() {
+          return {
+            predictions: {
+              __operation: { selected: 'follow' },
+              '__target:follow': { selected: 't2', probabilities: { t1: 0.06, t2: 0.9399 } },
+            },
+          };
+        },
+      },
+    });
+    const outcome = await createDecisionRuntime({ routes: [{ provider }] }).decide(actionTwoTargets('tol'));
+    expect(outcome.ok).toBe(true);
+  });
+
+  it('rejects the same drift at the default 1e-6 tolerance', async () => {
+    const provider = answerProvider('strict', {
+      type: 'action', operation: 'follow', target: 't2',
+      targetProbabilities: { t1: 0.06, t2: 0.9399 }, targetProbabilitiesComplete: true,
+    });
+    const outcome = await createDecisionRuntime({ routes: [{ provider }] }).decide(actionTwoTargets('strict'));
+    expect(outcome.ok).toBe(false);
+    expect(outcome.attempts[0].errorCode).toBe('INVALID_DISTRIBUTION');
+  });
+
+  it('rejects a non-argmax Laya selection under a valid complete distribution', async () => {
+    const provider = createLayaDecisionProvider({
+      client: {
+        async predict() {
+          return {
+            predictions: {
+              __operation: { selected: 'follow' },
+              '__target:follow': { selected: 't2', probabilities: { t1: 0.94, t2: 0.06 } },
+            },
+          };
+        },
+      },
+    });
+    const outcome = await createDecisionRuntime({ routes: [{ provider }] }).decide(actionTwoTargets('argmax'));
+    expect(outcome.ok).toBe(false);
+    expect(outcome.attempts[0].errorCode).toBe('INVALID_DISTRIBUTION');
+  });
+});
+
+describe('action probability acceptance semantics', () => {
+  const answer = {
+    type: 'action', operation: 'follow', target: 't1',
+    operationProbabilities: { follow: 0.93 },
+    targetProbabilities: { t1: 0.21, t2: 0.79 },
+  };
+
+  it('minSelectedProbability covers the target too', async () => {
+    const outcome = await createDecisionRuntime({
+      routes: [{ provider: answerProvider('a', answer), accept: { minSelectedProbability: 0.8 } }],
+    }).decide(actionTwoTargets('sel'));
+    expect(outcome.ok).toBe(false);
+    if (!outcome.ok) expect(outcome.attempts[0].reason).toBe('LOW_SELECTED_PROBABILITY');
+  });
+
+  it('minOperationProbability and minTargetProbability are explicit', async () => {
+    const opOnly = await createDecisionRuntime({
+      routes: [{ provider: answerProvider('a', answer), accept: { minOperationProbability: 0.8 } }],
+    }).decide(actionTwoTargets('op'));
+    expect(opOnly.ok).toBe(true);
+
+    const target = await createDecisionRuntime({
+      routes: [{ provider: answerProvider('a', answer), accept: { minTargetProbability: 0.8 } }],
+    }).decide(actionTwoTargets('tgt'));
+    expect(target.ok).toBe(false);
+  });
+
+  it('requireProbabilities on an action requires the target distribution when a target exists', async () => {
+    const noTarget = { type: 'action', operation: 'follow', target: 't1', operationProbabilities: { follow: 1 } };
+    const r1 = await createDecisionRuntime({
+      routes: [{ provider: answerProvider('b', noTarget), accept: { requireProbabilities: true } }],
+    }).decide(actionTwoTargets('req'));
+    expect(r1.ok).toBe(false);
+
+    const withTarget = { ...noTarget, targetProbabilities: { t1: 0.4, t2: 0.6 } };
+    const r2 = await createDecisionRuntime({
+      routes: [{ provider: answerProvider('b', withTarget), accept: { requireProbabilities: true } }],
+    }).decide(actionTwoTargets('req2'));
+    expect(r2.ok).toBe(true);
   });
 });

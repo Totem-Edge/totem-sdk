@@ -53,6 +53,10 @@ export function createLayaDecisionProvider(
     // Laya emits a probability for every choice label, so choice heads are
     // complete distributions the runtime can validate (coverage + sum ≈ 1).
     choiceComplete: true,
+    // Laya rounds probabilities to 4 dp, so a valid sum can drift from 1.
+    distributionTolerance: 0.02,
+    // Laya selects the argmax label.
+    choiceSelection: 'argmax',
     ...(options.capabilities ? { capabilities: options.capabilities } : {}),
     ...(options.isReady !== undefined ? { isReady: options.isReady } : {}),
     info: {

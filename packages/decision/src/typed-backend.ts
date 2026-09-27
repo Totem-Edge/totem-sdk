@@ -312,6 +312,14 @@ export interface ClientDecisionProviderOptions {
    * label (Laya/Jev choice heads). The runtime then enforces coverage + sum ≈ 1.
    */
   readonly choiceComplete?: boolean;
+  /**
+   * Client-contract sum tolerance for complete distributions. Laya rounds to
+   * 4 dp and Jev accepts < 0.02, so typed clients declare ~0.02; deterministic
+   * providers keep the 1e-6 default.
+   */
+  readonly distributionTolerance?: number;
+  /** Client-contract selection rule. Laya/Jev select the argmax. */
+  readonly choiceSelection?: 'argmax' | 'provider';
   readonly capabilities?: readonly DecisionCapability[];
   readonly isReady?: boolean;
   readonly info?: DecisionProviderInfo;
@@ -505,6 +513,12 @@ export function createClientDecisionProvider(
     },
   };
 
+  const info: DecisionProviderInfo = {
+    ...(options.info ?? {}),
+    ...(options.distributionTolerance !== undefined ? { distributionTolerance: options.distributionTolerance } : {}),
+    ...(options.choiceSelection !== undefined ? { choiceSelection: options.choiceSelection } : {}),
+  };
+
   return createTypedDecisionProvider({
     backend,
     id: options.id,
@@ -512,6 +526,6 @@ export function createClientDecisionProvider(
     version: options.version,
     capabilities: options.capabilities,
     isReady: options.isReady,
-    info: options.info,
+    ...(Object.keys(info).length > 0 ? { info } : {}),
   });
 }

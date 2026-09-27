@@ -116,7 +116,7 @@ export {
   deriveRequestedTypes,
   deriveRequiredCapabilities,
 } from './validation.js';
-export type { DecisionLimits, DistributionValidationOptions } from './validation.js';
+export type { DecisionLimits, DistributionValidationOptions, ProviderDecisionValidationOptions } from './validation.js';
 
 export {
   computeReceiptId,

@@ -455,6 +455,18 @@ export interface DecisionProviderInfo {
   readonly supportedTypes?: readonly DecisionType[];
   readonly runtime?: DecisionRuntimeRef;
   readonly model?: DecisionModelRef;
+  /**
+   * Provider-specific tolerance for a complete distribution's sum ≈ 1. Typed
+   * clients whose contract rounds (e.g. Laya at 4 dp, Jev < 0.02) declare a
+   * contract-appropriate value; deterministic providers keep the 1e-6 default.
+   */
+  readonly distributionTolerance?: number;
+  /**
+   * Provider contract for choice selection. `'argmax'` requires the selected
+   * candidate to be the distribution maximum (Laya/Jev); `'provider'` (default)
+   * trusts the provider's selection.
+   */
+  readonly choiceSelection?: 'argmax' | 'provider';
 }
 
 // ── Provider contract ──────────────────────────────────────────────────────
@@ -500,9 +512,21 @@ export interface DecisionAcceptanceEvaluation {
 export interface DecisionAcceptanceRule {
   /** Every answer (batched) must meet the threshold. */
   readonly minConfidence?: number;
-  /** Selected candidate probability must meet the threshold. */
+  /**
+   * Selected-candidate probability threshold. Questions: the selected
+   * candidate. Action: the selected operation **and**, when a target exists,
+   * the selected target (never just the operation).
+   */
   readonly minSelectedProbability?: number;
-  /** Require an explicit distribution on choice questions. */
+  /** Action: minimum probability of the selected operation. */
+  readonly minOperationProbability?: number;
+  /** Action: minimum probability of the selected target (ignored when no target is required). */
+  readonly minTargetProbability?: number;
+  /**
+   * Require explicit probabilities. Questions: each choice question. Action:
+   * the operation distribution **and** the target distribution when a target
+   * exists.
+   */
   readonly requireProbabilities?: boolean;
   /**
    * Maximum **normalized** Shannon entropy in `[0,1]`. Applies only when the

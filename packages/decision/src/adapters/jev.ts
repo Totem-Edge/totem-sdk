@@ -50,6 +50,10 @@ export function createJevDecisionProvider(
     // jev-ultrafast validates full choice distributions (keys == candidates,
     // sum ≈ 1), so choice heads are complete distributions.
     choiceComplete: true,
+    // Jev's own validation accepts |sum - 1| < 0.02.
+    distributionTolerance: 0.02,
+    // Jev selects the argmax label.
+    choiceSelection: 'argmax',
     ...(options.capabilities ? { capabilities: options.capabilities } : {}),
     ...(options.isReady !== undefined ? { isReady: options.isReady } : {}),
     info: {
