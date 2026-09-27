@@ -33,6 +33,12 @@ export interface FirmwareUpdateConfig {
   policyRoot: string;
   /** Merkle proof that the update script is in the policy root. */
   updateProof: string;
+  /**
+   * The exact script leaf committed in `policyRoot` that authorizes this
+   * update (the PROOF preimage). Defaults to
+   * `ASSERT SIGNEDBY(0x<ownerPkd>) RETURN TRUE`.
+   */
+  leafScript?: string;
 }
 
 /**
@@ -46,6 +52,8 @@ export interface FirmwareUpdateConfig {
  *   5. Preserves new version and hash in STATE
  */
 export function buildFirmwareUpdateScript(config: FirmwareUpdateConfig): string {
+  // RFC-016: PROOF preimage is the authorizing leaf script; MAST targets the root.
+  const leafScript = config.leafScript ?? `ASSERT SIGNEDBY(0x${config.ownerPkd}) RETURN TRUE`;
   return [
     `// Firmware update for device owned by ${config.ownerPkd.slice(0, 16)}…`,
     `LET prevVersion = PREVSTATE(${config.versionPort})`,
@@ -61,8 +69,8 @@ export function buildFirmwareUpdateScript(config: FirmwareUpdateConfig): string 
     `ASSERT SIGNEDBY(manufacturer)`,
     ``,
     `// 3. Owner must authorize via policy`,
-    `ASSERT PROOF(0x${config.ownerPkd} 0 0x${config.policyRoot} 0 0x${config.updateProof})`,
-    `MAST 0x${config.ownerPkd}`,
+    `ASSERT PROOF([${leafScript}] 0 0x${config.policyRoot} 0 0x${config.updateProof})`,
+    `MAST 0x${config.policyRoot}`,
     ``,
     `// 4. Preserve new state`,
     `ASSERT VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID TRUE)`,
@@ -99,8 +107,11 @@ export function buildMultiSigFirmwareUpdateScript(
   ownerPkd: string,
   policyRoot: string,
   updateProof: string,
+  leafScript?: string,
 ): string {
   const signerChecks = manufacturerPkds.map(pk => `SIGNEDBY(0x${pk})`).join(', ');
+  // RFC-016: PROOF preimage is the authorizing leaf script; MAST targets the root.
+  const ownerLeaf = leafScript ?? `ASSERT SIGNEDBY(0x${ownerPkd}) RETURN TRUE`;
   return [
     `// Multi-sig firmware update (${threshold} of ${manufacturerPkds.length})`,
     `LET prevVersion = PREVSTATE(${versionPort})`,
@@ -109,8 +120,8 @@ export function buildMultiSigFirmwareUpdateScript(
     ``,
     `ASSERT newVersion GT prevVersion`,
     `ASSERT MULTISIG(${threshold} ${signerChecks})`,
-    `ASSERT PROOF(0x${ownerPkd} 0 0x${policyRoot} 0 0x${updateProof})`,
-    `MAST 0x${ownerPkd}`,
+    `ASSERT PROOF([${ownerLeaf}] 0 0x${policyRoot} 0 0x${updateProof})`,
+    `MAST 0x${policyRoot}`,
     `ASSERT VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID TRUE)`,
     `RETURN TRUE`,
   ].join('\n');

@@ -26,6 +26,12 @@ export interface SensorProofConfig {
   policyRoot: string;
   /** Merkle proof that the device is in the policy root. */
   deviceProof: string;
+  /**
+   * The exact script leaf committed in `policyRoot` that authorizes this
+   * device (the PROOF preimage). Defaults to
+   * `ASSERT SIGNEDBY(0x<devicePkd>) RETURN TRUE`.
+   */
+  leafScript?: string;
   /** Maximum age of the reading in seconds. */
   maxAgeSeconds: number;
   /** The sensor reading value. */
@@ -46,14 +52,17 @@ export interface SensorProofConfig {
  *   4. Verifies the output preserves the reading as state
  */
 export function buildSensorProofScript(config: SensorProofConfig): string {
+  // RFC-016: PROOF takes the authorizing leaf script (SCRIPT literal), and MAST
+  // targets the policy root — not the device key bytes.
+  const leafScript = config.leafScript ?? `ASSERT SIGNEDBY(0x${config.devicePkd}) RETURN TRUE`;
   return [
     `// Sensor proof: device ${config.deviceId}`,
     `LET devicePkd = 0x${config.devicePkd}`,
     `LET maxAge = ${config.maxAgeSeconds}`,
     ``,
     `// 1. Device is authorized by policy root`,
-    `ASSERT PROOF(0x${config.devicePkd} 0 0x${config.policyRoot} 0 0x${config.deviceProof})`,
-    `MAST 0x${config.devicePkd}`,
+    `ASSERT PROOF([${leafScript}] 0 0x${config.policyRoot} 0 0x${config.deviceProof})`,
+    `MAST 0x${config.policyRoot}`,
     ``,
     `// 2. Reading is signed by the device`,
     `LET reading = STATE(0)`,

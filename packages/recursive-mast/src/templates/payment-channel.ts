@@ -118,7 +118,7 @@ export function buildChannelFactoryScript(
     ``,
     `// Channel creation governed by factory policy`,
     `ASSERT PROOF(STATE(0) 0 0x${policyRoot} 0 0x${factoryProof})`,
-    `MAST 0x0000000000000000000000000000000000000000000000000000000000000000`,
+    `MAST 0x${policyRoot}`,
     ``,
     `ASSERT VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID TRUE)`,
     `RETURN TRUE`,

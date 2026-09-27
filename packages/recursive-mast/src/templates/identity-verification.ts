@@ -30,6 +30,12 @@ export interface IdentityVerificationConfig {
   issuerPolicyRoot: string;
   /** Merkle proof that the issuer is in the policy root. */
   issuerProof: string;
+  /**
+   * The exact script leaf committed in `issuerPolicyRoot` that authorizes this
+   * issuer (the PROOF preimage). Defaults to
+   * `ASSERT SIGNEDBY(0x<issuerPkd>) RETURN TRUE`.
+   */
+  leafScript?: string;
   /** State port tracking revocation (0 = valid, non-zero = revoked). */
   revocationPort: number;
   /** Claims to verify. */
@@ -49,6 +55,8 @@ export function buildIdentityVerificationScript(config: IdentityVerificationConf
   const claimChecks = Object.entries(config.claims).map(([key, value]) =>
     `ASSERT STATE(${key}) EQ [${value}]`,
   );
+  // RFC-016: PROOF takes the authorizing leaf script (SCRIPT literal).
+  const leafScript = config.leafScript ?? `ASSERT SIGNEDBY(0x${config.issuerPkd}) RETURN TRUE`;
 
   return [
     `// Identity verification: ${config.documentId}`,
@@ -56,7 +64,7 @@ export function buildIdentityVerificationScript(config: IdentityVerificationConf
     `LET subject = 0x${config.subjectPkd}`,
     ``,
     `// 1. Issuer is authorized by the committed policy root`,
-    `ASSERT PROOF(0x${config.issuerPkd} 0 0x${config.issuerPolicyRoot} 0 0x${config.issuerProof})`,
+    `ASSERT PROOF([${leafScript}] 0 0x${config.issuerPolicyRoot} 0 0x${config.issuerProof})`,
     ``,
     `// 2. Document is not revoked (state continuity)`,
     `ASSERT PREVSTATE(${config.revocationPort}) EQ 0`,

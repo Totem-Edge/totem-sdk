@@ -30,6 +30,12 @@ export interface AccessControlConfig {
   policyRoot: string;
   /** Merkle proof that the operator is in the policy root. */
   operatorProof: string;
+  /**
+   * The exact script leaf committed in `policyRoot` that authorizes this
+   * operator (the PROOF preimage). Defaults to
+   * `ASSERT SIGNEDBY(0x<operatorPkd>) RETURN TRUE`.
+   */
+  leafScript?: string;
   /** Allowed scopes for this operator. */
   scopes: string[];
   /** Maximum block height for this authorization. */
@@ -48,6 +54,9 @@ export interface AccessControlConfig {
  */
 export function buildAccessControlScript(config: AccessControlConfig): string {
   const scopeList = config.scopes.map(s => s).join(' ');
+  // RFC-016: PROOF takes the authorizing leaf script (SCRIPT literal), not the
+  // operator key bytes; a script MAST can only be proven by the script itself.
+  const leafScript = config.leafScript ?? `ASSERT SIGNEDBY(0x${config.operatorPkd}) RETURN TRUE`;
   // RFC-016 hardening: MAST is terminal (ReturnSignal) and must target the
   // policy root (the root PROOF verifies against), not the operator key. All
   // authorization/scope/time/signature checks must run BEFORE the terminal MAST.
@@ -58,7 +67,7 @@ export function buildAccessControlScript(config: AccessControlConfig): string {
     `LET target = STATE(1)`,
     ``,
     `// 1. Operator is authorized by the committed policy root`,
-    `ASSERT PROOF(0x${config.operatorPkd} 0 0x${config.policyRoot} 0 0x${config.operatorProof})`,
+    `ASSERT PROOF([${leafScript}] 0 0x${config.policyRoot} 0 0x${config.operatorProof})`,
     ``,
     `// 2. Action is in allowed scopes`,
     `ASSERT CONTAINS([${scopeList}] action)`,

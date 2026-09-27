@@ -4,6 +4,8 @@ export interface IdentityVerificationConfig {
   identityPk: string
   claimHash: string
   policyRoot?: string
+  /** The exact authorizing leaf script committed in `policyRoot` (PROOF preimage). */
+  leafScript?: string
 }
 
 export interface DelegationProofConfig {
@@ -11,6 +13,8 @@ export interface DelegationProofConfig {
   delegatePk: string
   expiryBlock?: bigint
   delegationRoot?: string
+  /** The exact authorizing leaf script committed in `delegationRoot` (PROOF preimage). */
+  leafScript?: string
 }
 
 export interface RotationConfig {
@@ -37,9 +41,11 @@ export function buildIdentityVerificationScript(config: IdentityVerificationConf
   ]
 
   if (config.policyRoot) {
+    // RFC-016: PROOF preimage is the authorizing leaf script (SCRIPT literal).
+    const leaf = config.leafScript ?? `ASSERT SIGNEDBY(0x${config.identityPk}) RETURN TRUE`
     lines.push(
       ``,
-      `ASSERT PROOF(identityPk 0 0x${config.policyRoot} 0 STATE(3))`,
+      `ASSERT PROOF([${leaf}] 0 0x${config.policyRoot} 0 STATE(3))`,
       `MAST 0x${config.policyRoot}`,
     )
   }
@@ -63,9 +69,11 @@ export function buildDelegationProofScript(config: DelegationProofConfig): strin
   ]
 
   if (config.delegationRoot) {
+    // RFC-016: PROOF preimage is the authorizing leaf script (SCRIPT literal).
+    const leaf = config.leafScript ?? `ASSERT SIGNEDBY(0x${config.delegatePk}) RETURN TRUE`
     lines.push(
       ``,
-      `ASSERT PROOF(delegatePk 0 0x${config.delegationRoot} 0 STATE(3))`,
+      `ASSERT PROOF([${leaf}] 0 0x${config.delegationRoot} 0 STATE(3))`,
     )
   } else {
     lines.push(
