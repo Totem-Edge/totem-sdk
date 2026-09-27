@@ -1,4 +1,4 @@
-import { createSigningRequest, type CreateSigningRequestConfig } from '../policy-signing.js';
+import { createSigningRequest, collectSigningResponses, type CreateSigningRequestConfig, type PolicySigningResponse } from '../policy-signing.js';
 
 function baseConfig(): CreateSigningRequestConfig {
   return {
@@ -49,5 +49,35 @@ describe('RFC-016 hardening: signing request canonicalization', () => {
     expect(a).toContain('executionRoot');
     expect(a).toContain('expectedOutputs');
     expect(a).toContain('subjectPkd');
+  });
+
+  it('requires an approved signature for every required role', () => {
+    const resp = (
+      signer: string,
+      role: string,
+      status: PolicySigningResponse['status'] = 'approved',
+    ): PolicySigningResponse => ({
+      requestId: 'r',
+      responseId: `${signer}:${role}`,
+      status,
+      signerIdentityId: signer,
+      actingAddress: 'Mx',
+      role,
+      signature: status === 'approved' ? '0xsig' : undefined,
+      signedAt: 1,
+    });
+
+    // An unrelated approved role must not satisfy a missing required role.
+    const unrelated = collectSigningResponses(['a', 'b'], [resp('s1', 'a'), resp('s2', 'c')]);
+    expect(unrelated.complete).toBe(false);
+    expect(unrelated.errors.join(' ')).toContain('Missing required role');
+
+    // Every required role approved → complete.
+    const ok = collectSigningResponses(['a', 'b'], [resp('s1', 'a'), resp('s2', 'b')]);
+    expect(ok.complete).toBe(true);
+
+    // A rejected required role is not complete.
+    const rejected = collectSigningResponses(['a'], [resp('s1', 'a', 'rejected')]);
+    expect(rejected.complete).toBe(false);
   });
 });

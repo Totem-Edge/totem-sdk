@@ -355,8 +355,16 @@ export function collectSigningResponses(
     errors.push(`${rejected.length} response(s) rejected`);
   }
 
+  // RFC-016 hardening: completion requires an approved signature for *every*
+  // required role. Counting signatures (possibly from unrelated roles) let a
+  // required role be absent while the round still reported complete.
+  const missingRequired = requiredRoles.filter((role) => !(role in signatures));
+  if (missingRequired.length > 0) {
+    errors.push(`Missing required role signature(s): ${missingRequired.join(', ')}`);
+  }
+
   return {
-    complete: Object.keys(signatures).length >= requiredRoles.length && errors.length === 0,
+    complete: missingRequired.length === 0 && errors.length === 0,
     signatures,
     approved,
     rejected,
