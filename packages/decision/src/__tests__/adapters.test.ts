@@ -84,6 +84,7 @@ describe('createTypedDecisionProvider', () => {
         operation: 'throttle',
         target: '1kw',
         operationProbabilities: { throttle: 0.8, stop: 0.2 },
+        targetProbabilities: { '1kw': 0.6 },
       },
     });
   });
@@ -154,6 +155,35 @@ describe('Laya adapter', () => {
     expect(seen.find((q) => q.id === '__operation')!.instruction).toBe('Maintain service while reducing thermal risk');
     expect(seen.find((q) => q.id === '__operation')!.candidates?.[0]).toMatchObject({ id: 'throttle', description: 'Reduce charging power safely' });
     expect(seen.find((q) => q.id === '__target:throttle')!.candidates?.[0]).toMatchObject({ id: '1kw', description: '7kW charging channel' });
+  });
+
+  it('preserves the selected target head probability so minTargetConfidence works', async () => {
+    const provider = createLayaDecisionProvider({
+      client: {
+        async predict() {
+          return {
+            predictions: {
+              __operation: { selected: 'follow', probabilities: { follow: 0.9 } },
+              '__target:follow': { selected: 'track-24', probabilities: { 'track-17': 0.05, 'track-24': 0.94 } },
+            },
+          };
+        },
+      },
+    });
+    const runtime = createDecisionRuntime({ routes: [{ provider, accept: { minTargetConfidence: 0.8 } }] });
+    const outcome = await runtime.decide({
+      kind: 'action',
+      requestId: 'a',
+      state: {},
+      operations: [{ id: 'follow', targets: [{ id: 'track-17' }, { id: 'track-24' }] }],
+    });
+    expect(outcome.ok).toBe(true);
+    if (outcome.ok) {
+      expect(outcome.decision).toMatchObject({
+        kind: 'action',
+        answer: { operation: 'follow', target: 'track-24', targetProbabilities: { 'track-24': 0.94 } },
+      });
+    }
   });
 
   it('translates probability to/from noul without leaking the vocabulary', async () => {

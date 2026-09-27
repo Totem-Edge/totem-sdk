@@ -144,10 +144,17 @@ export function translateBackendResult(
   // Only the selected operation's target head is semantically active.
   const selectedHead = p?.targetHeads?.[selectedOperation];
   let target: string | undefined;
+  let targetProbabilities: Record<string, number> | undefined;
   if (p?.target !== undefined) {
     target = p.target;
+    targetProbabilities = p.targetProbabilities;
   } else if (selectedHead && targetIds.includes(selectedHead.target)) {
     target = selectedHead.target;
+    const selected = selectedHead.probability ?? selectedHead.confidence;
+    targetProbabilities =
+      selectedHead.probabilities ??
+      p?.targetProbabilities ??
+      (selected !== undefined ? { [selectedHead.target]: selected } : undefined);
   }
 
   const conf = predictionConfidence(p);
@@ -156,7 +163,7 @@ export function translateBackendResult(
     operation: selectedOperation,
     ...(target !== undefined ? { target } : {}),
     ...(p?.operationProbabilities ? { operationProbabilities: p.operationProbabilities } : {}),
-    ...(p?.targetProbabilities ? { targetProbabilities: p.targetProbabilities } : {}),
+    ...(targetProbabilities ? { targetProbabilities } : {}),
     ...(conf ? { confidence: { value: conf.value, source: 'provider', ...(conf.calibrated !== undefined ? { calibrated: conf.calibrated } : {}) } } : {}),
   };
   return { kind: 'action', answer };
@@ -339,16 +346,21 @@ function clientPredictionsToTyped(
     const p = client[id];
     if (id === '__action' && q.action) {
       const opPred = client[OPERATION_HEAD];
-      const targetHeads: Record<string, { target: string; probability?: number }> = {};
+      const targetHeads: NonNullable<TypedBackendPrediction['targetHeads']> = {};
       for (const op of q.action.operations) {
         if (!op.targets || op.targets.length === 0) continue;
         const head = client[`${TARGET_HEAD_PREFIX}${op.id}`];
         if (head?.selected !== undefined) {
+          // RFC-012 hardening #4: retain the selected operation's target head
+          // evidence (distribution + confidence) so minTargetConfidence works.
           targetHeads[op.id] = {
             target: head.selected,
             ...(selectedProbability(head.probabilities, head.selected) !== undefined
               ? { probability: selectedProbability(head.probabilities, head.selected) }
               : {}),
+            ...(head.probabilities ? { probabilities: head.probabilities } : {}),
+            ...(typeof head.confidence === 'number' ? { confidence: head.confidence } : {}),
+            ...(typeof head.calibrated === 'boolean' ? { calibrated: head.calibrated } : {}),
           };
         }
       }

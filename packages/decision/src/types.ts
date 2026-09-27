@@ -629,7 +629,13 @@ export interface TypedBackendPrediction {
   readonly operation?: string;
   readonly target?: string;
   /** One target head per operation key. Only the selected operation's head is used. */
-  readonly targetHeads?: Record<string, { readonly target: string; readonly probability?: number }>;
+  readonly targetHeads?: Record<string, {
+    readonly target: string;
+    readonly probability?: number;
+    readonly probabilities?: Record<string, number>;
+    readonly confidence?: number;
+    readonly calibrated?: boolean;
+  }>;
   readonly operationProbabilities?: Record<string, number>;
   readonly targetProbabilities?: Record<string, number>;
   readonly confidence?: number;
