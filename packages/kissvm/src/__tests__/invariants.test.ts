@@ -177,7 +177,7 @@ describe('RFC-016 P4: high-severity families hardened', () => {
   it('liquidity/provider payouts bind the output to a recipient, not @ADDRESS/@AMOUNT', () => {
     const fee = buildFeeAccrualScript({ providerPk: pkA, amount: '100', tokenId: '00', unlockBlock: 1n });
     expect(fee).not.toContain('@AMOUNT LTE claimable');
-    expect(fee).toContain('VERIFYOUT(@INPUT STATE(3) claimable @TOKENID TRUE)');
+    expect(fee).toContain('VERIFYOUT(@INPUT PREVSTATE(3) claimable @TOKENID TRUE)');
 
     const withdrawal = buildWithdrawalScript({ providerPk: pkA, amount: '100', tokenId: '00', unlockBlock: 1n });
     expect(withdrawal).toContain('VERIFYOUT(@INPUT provider @AMOUNT @TOKENID TRUE)');

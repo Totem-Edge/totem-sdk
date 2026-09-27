@@ -964,6 +964,7 @@ describe('stable template: liquidity-bond', () => {
     const ok = run(script, ctx({
       block: 1000,
       state: s({ 0: 100, 1: 500, 2: POSITION_STATUS.ACTIVE }),
+      prevState: s({ 0: 100, 1: 500, 2: POSITION_STATUS.ACTIVE }),
       outputs: [outputTo('0xAA', 100, true)],
     }), { [pkAA]: 'provider' });
     expect(ok.success).toBe(true);
@@ -971,6 +972,7 @@ describe('stable template: liquidity-bond', () => {
     const beforeUnlock = run(script, ctx({
       block: 400,
       state: s({ 0: 100, 1: 500, 2: POSITION_STATUS.ACTIVE }),
+      prevState: s({ 0: 100, 1: 500, 2: POSITION_STATUS.ACTIVE }),
       outputs: [outputTo('0xAA', 100, true)],
     }), { [pkAA]: 'provider' });
     expect(beforeUnlock.success).toBe(false);
@@ -982,7 +984,7 @@ describe('stable template: liquidity-bond', () => {
       block: 1000,
       inputs: [coin(5)],
       state: s({ 10: 900, 11: 1100, 13: 10, 3: pkBB }),
-      prevState: s({ 10: 900, 12: 0 }),
+      prevState: s({ 10: 900, 11: 1100, 13: 10, 3: pkBB, 12: 0 }),
       outputs: [outputTo(pkBB, 5, true)],
     }), { [pkAA]: 'provider' });
     expect(ok.success).toBe(true);
@@ -991,7 +993,7 @@ describe('stable template: liquidity-bond', () => {
       block: 1200,
       inputs: [coin(5)],
       state: s({ 10: 900, 11: 1100, 13: 10, 3: pkBB }),
-      prevState: s({ 10: 900, 12: 0 }),
+      prevState: s({ 10: 900, 11: 1100, 13: 10, 3: pkBB, 12: 0 }),
       outputs: [outputTo(pkBB, 5, true)],
     }), { [pkAA]: 'provider' });
     expect(outsideWindow.success).toBe(false);
@@ -1002,7 +1004,7 @@ describe('stable template: liquidity-bond', () => {
     const ok = run(script, ctx({
       block: 1000,
       state: s({ 0: 100, 1: 500, 2: POSITION_STATUS.QUIESCING, 3: pkBB, 4: 1 }),
-      prevState: s({ 3: pkBB, 4: 0 }),
+      prevState: s({ 1: 500, 2: POSITION_STATUS.QUIESCING, 3: pkBB, 4: 0 }),
       outputs: [outputTo('0x' + pkAA, 100, true)],
     }), { [pkAA]: 'provider' });
     expect(ok.success).toBe(true);
@@ -1010,7 +1012,7 @@ describe('stable template: liquidity-bond', () => {
     const locked = run(script, ctx({
       block: 1000,
       state: s({ 0: 100, 1: 500, 2: POSITION_STATUS.COMMITTED, 3: pkBB, 4: 1 }),
-      prevState: s({ 3: pkBB, 4: 0 }),
+      prevState: s({ 1: 500, 2: POSITION_STATUS.COMMITTED, 3: pkBB, 4: 0 }),
       outputs: [outputTo('0x' + pkAA, 100, true)],
     }), { [pkAA]: 'provider' });
     expect(locked.success).toBe(false);
