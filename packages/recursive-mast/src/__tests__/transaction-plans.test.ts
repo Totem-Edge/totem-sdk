@@ -2,6 +2,8 @@ import { computeCanonicalScriptAddress, buildPolicyAnchorScript } from '@totemsd
 import { createAnchorTransactionPlan } from '../transaction/anchor-transaction.js';
 import { createRootRotationTransactionPlan } from '../transaction/rotation-transaction.js';
 import { createActionTransactionPlan } from '../transaction/action-transaction.js';
+import { buildAccessControlScript } from '../templates/access-control.js';
+import { buildIdentityVerificationScript } from '../templates/identity-verification.js';
 import type { PolicyAnchorConfig } from '../policy-anchor.js';
 
 const pkA = 'aa'.repeat(32);
@@ -75,6 +77,36 @@ describe('RFC-016 P3: recursive transaction plans', () => {
         reason: '',
       }),
     ).toThrow(/authorizer/i);
+  });
+
+  it('access-control checks before a terminal MAST of the policy root', () => {
+    const script = buildAccessControlScript({
+      operatorPkd: pkA,
+      action: 'read',
+      target: 'valve-1',
+      policyRoot: 'ff'.repeat(32),
+      operatorProof: 'aa',
+      scopes: ['read'],
+    });
+    const lines = script.split('\n').map((l) => l.trim()).filter(Boolean);
+    expect(lines[lines.length - 1]).toBe(`MAST 0x${'ff'.repeat(32)}`);
+    expect(script).not.toContain(`MAST 0x${pkA}`);
+    expect(script.indexOf('SIGNEDBY')).toBeLessThan(script.lastIndexOf('MAST'));
+  });
+
+  it('identity-verification checks before a terminal MAST of the issuer policy root', () => {
+    const script = buildIdentityVerificationScript({
+      documentId: 'doc-1',
+      issuerPkd: pkA,
+      subjectPkd: 'bb'.repeat(32),
+      issuerPolicyRoot: 'ff'.repeat(32),
+      issuerProof: 'aa',
+      revocationPort: 2,
+      claims: { 3: 'x' },
+    });
+    const lines = script.split('\n').map((l) => l.trim()).filter(Boolean);
+    expect(lines[lines.length - 1]).toBe(`MAST 0x${'ff'.repeat(32)}`);
+    expect(script.indexOf('SIGNEDBY')).toBeLessThan(script.lastIndexOf('MAST'));
   });
 
   it('action plan binds the normal-action selector', () => {

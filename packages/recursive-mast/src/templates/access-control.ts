@@ -48,15 +48,17 @@ export interface AccessControlConfig {
  */
 export function buildAccessControlScript(config: AccessControlConfig): string {
   const scopeList = config.scopes.map(s => s).join(' ');
+  // RFC-016 hardening: MAST is terminal (ReturnSignal) and must target the
+  // policy root (the root PROOF verifies against), not the operator key. All
+  // authorization/scope/time/signature checks must run BEFORE the terminal MAST.
   const lines: string[] = [
     `// Access control: ${config.action} on ${config.target}`,
     `LET operator = 0x${config.operatorPkd}`,
     `LET action = STATE(0)`,
     `LET target = STATE(1)`,
     ``,
-    `// 1. Operator is authorized by policy root`,
+    `// 1. Operator is authorized by the committed policy root`,
     `ASSERT PROOF(0x${config.operatorPkd} 0 0x${config.policyRoot} 0 0x${config.operatorProof})`,
-    `MAST 0x${config.operatorPkd}`,
     ``,
     `// 2. Action is in allowed scopes`,
     `ASSERT CONTAINS([${scopeList}] action)`,
@@ -72,7 +74,8 @@ export function buildAccessControlScript(config: AccessControlConfig): string {
   lines.push(
     `// 5. Operator signature`,
     `ASSERT SIGNEDBY(operator)`,
-    `RETURN TRUE`,
+    `// 6. Execute the authorized policy branch (terminal)`,
+    `MAST 0x${config.policyRoot}`,
   );
 
   return lines.join('\n');

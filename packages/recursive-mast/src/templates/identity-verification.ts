@@ -55,9 +55,8 @@ export function buildIdentityVerificationScript(config: IdentityVerificationConf
     `LET issuer = 0x${config.issuerPkd}`,
     `LET subject = 0x${config.subjectPkd}`,
     ``,
-    `// 1. Issuer is authorized`,
+    `// 1. Issuer is authorized by the committed policy root`,
     `ASSERT PROOF(0x${config.issuerPkd} 0 0x${config.issuerPolicyRoot} 0 0x${config.issuerProof})`,
-    `MAST 0x${config.issuerPkd}`,
     ``,
     `// 2. Document is not revoked (state continuity)`,
     `ASSERT PREVSTATE(${config.revocationPort}) EQ 0`,
@@ -68,7 +67,10 @@ export function buildIdentityVerificationScript(config: IdentityVerificationConf
     `// 4. Claim verification`,
     ...claimChecks,
     ``,
-    `RETURN TRUE`,
+    // RFC-016 hardening: MAST is terminal and targets the policy root; the
+    // checks above must run first.
+    `// 5. Execute the authorized issuer branch (terminal)`,
+    `MAST 0x${config.issuerPolicyRoot}`,
   ].join('\n');
 }
 
