@@ -308,6 +308,36 @@ describe('createDecisionRuntime', () => {
     expect(outcome.attempts[0].errorCode).toBe('INVALID_OUTPUT');
   });
 
+  it('times out even when the provider ignores AbortSignal', async () => {
+    let resolveLate: ((o: DecisionProviderOutcome) => void) | undefined;
+    const hanging = createMockDecisionProvider({
+      id: 'hang',
+      decide: () => new Promise<DecisionProviderOutcome>((resolve) => { resolveLate = resolve; }),
+    });
+    const runtime = createDecisionRuntime({ routes: [{ provider: hanging, timeoutMs: 20, escalateOnTimeout: false }] });
+    const outcome = await runtime.decide(choiceRequest('hard-timeout'));
+    expect(outcome.ok).toBe(false);
+    if (!outcome.ok) expect(outcome.code).toBe('TIMEOUT');
+    // Late completion is ignored.
+    resolveLate?.({ ok: true, requestId: 'hard-timeout', decision: choiceDecision('heat') });
+  });
+
+  it('rejects a concurrent duplicate request id', async () => {
+    let resolveFirst: ((o: DecisionProviderOutcome) => void) | undefined;
+    const provider = createMockDecisionProvider({
+      id: 'hold',
+      decide: () => new Promise<DecisionProviderOutcome>((resolve) => { resolveFirst = resolve; }),
+    });
+    const runtime = createDecisionRuntime({ routes: [{ provider }] });
+    const first = runtime.decide(choiceRequest('dup'));
+    await Promise.resolve();
+    const second = await runtime.decide(choiceRequest('dup'));
+    expect(second.ok).toBe(false);
+    if (!second.ok) expect(second.code).toBe('DUPLICATE_REQUEST_ID');
+    resolveFirst?.({ ok: true, requestId: 'dup', decision: choiceDecision('heat') });
+    await first;
+  });
+
   it('defaults missing request ids and rejects malformed requests', async () => {
     const runtime = createDecisionRuntime({ routes: [{ provider: staticProvider('p', 'heat') }] });
     const outcome = await runtime.decide({ kind: 'questions', state: {}, questions: [{ type: 'choice', id: 'q1', criteria: [{ id: 'heat' }, { id: 'cool' }] }] });

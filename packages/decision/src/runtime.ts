@@ -171,6 +171,19 @@ export function createDecisionRuntime(
     const attempts: DecisionAttempt[] = [];
     const requiredCaps = deriveRequiredCapabilities(request);
 
+    // RFC-012 hardening #8: reject concurrent duplicate request ids. Cancellation
+    // accepts only a requestId, so duplicates would make it ambiguous.
+    if (inFlight.has(requestId)) {
+      return {
+        ok: false,
+        requestId,
+        code: 'DUPLICATE_REQUEST_ID',
+        message: new DecisionError('DUPLICATE_REQUEST_ID').message,
+        attempts: [],
+        bindings: requestBindings,
+      };
+    }
+
     for (const route of options.routes) {
       const provider = resolveProvider(route, options.providers);
       if (!provider) {
@@ -196,12 +209,6 @@ export function createDecisionRuntime(
       const controller = new AbortController();
       let timedOut = false;
       const timeoutMs = route.timeoutMs ?? options.defaultTimeoutMs;
-      const timer = timeoutMs !== undefined && timeoutMs > 0
-        ? setTimeout(() => {
-            timedOut = true;
-            controller.abort();
-          }, timeoutMs)
-        : undefined;
 
       const onOuterAbort = (): void => {
         controller.abort();
@@ -218,18 +225,40 @@ export function createDecisionRuntime(
       inFlight.set(requestId, provider);
       let providerOutcome: DecisionProviderOutcome;
       try {
-        providerOutcome = await provider.decide(providerRequest);
-      } catch (err) {
-        providerOutcome = {
+        const call = provider.decide(providerRequest).catch((err): DecisionProviderOutcome => ({
           ok: false,
           requestId,
           code: 'PROVIDER_ERROR',
           message: err instanceof Error ? err.message : String(err),
           retryable: true,
-        };
+        }));
+
+        if (timeoutMs !== undefined && timeoutMs > 0) {
+          // RFC-012 hardening #8: the runtime owns the timeout. Race the call so
+          // a provider that ignores AbortSignal cannot hang the runtime; its late
+          // completion is ignored.
+          let timer: ReturnType<typeof setTimeout> | undefined;
+          const timeout = new Promise<null>((resolve) => {
+            timer = setTimeout(() => {
+              timedOut = true;
+              controller.abort();
+              resolve(null);
+            }, timeoutMs);
+          });
+          const raced = await Promise.race([call, timeout]);
+          if (timer) clearTimeout(timer);
+          if (raced === null) {
+            void call.catch(() => undefined);
+            void provider.cancel?.(requestId).catch(() => undefined);
+            providerOutcome = { ok: false, requestId, code: 'TIMEOUT', message: 'Provider timed out.', retryable: true };
+          } else {
+            providerOutcome = raced;
+          }
+        } else {
+          providerOutcome = await call;
+        }
       } finally {
         inFlight.delete(requestId);
-        if (timer) clearTimeout(timer);
         if (request.signal) request.signal.removeEventListener('abort', onOuterAbort);
       }
 

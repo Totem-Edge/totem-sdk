@@ -28,6 +28,7 @@ export type DecisionErrorCode =
   | 'CANCELLED'
   | 'PROVIDER_ERROR'
   | 'STALE_DECISION'
+  | 'DUPLICATE_REQUEST_ID'
   | 'INTERNAL';
 
 /** Human-readable descriptions for each error code. */
@@ -47,6 +48,7 @@ export const DECISION_ERROR_MESSAGES: Record<DecisionErrorCode, string> = {
   CANCELLED: 'The decision was cancelled.',
   PROVIDER_ERROR: 'The decision provider raised an unexpected error.',
   STALE_DECISION: 'The decision result is stale relative to the current request.',
+  DUPLICATE_REQUEST_ID: 'A decision with this request id is already in flight.',
   INTERNAL: 'An internal decision runtime error occurred.',
 };
 
