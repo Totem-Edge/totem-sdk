@@ -13,7 +13,7 @@
 import type { PolicyNode, PolicyTree, ProofLink } from './types.js';
 import { buildPolicyTree, type PolicyNodeInput } from './policy-tree.js';
 import { buildProofChain } from './proof-chain.js';
-import { computeCanonicalScriptHash } from './mast-compiler.js';
+import { computeCanonicalScriptHash, compileMastTree } from './mast-compiler.js';
 
 // ─── Layer definitions ─────────────────────────────────────────────────────
 
@@ -82,18 +82,31 @@ export function buildLayeredPolicy(config: LayeredPolicyConfig): {
 
   const tree = buildPolicyTree(nodes);
 
-  const proofLinks: ProofLink[] = config.layers.map((layer) => ({
-    scriptHash: computeCanonicalScriptHash(layer.script),
-    policyRoot: tree.nodeMap.get(layer.id)?.policyRoot ?? '',
-    proof: '',
-    script: layer.script,
-    label: layer.name,
-    metadata: { layerId: layer.id, authorityPkd: layer.authorityPkd },
-  }));
+  // RFC-016 hardening: derive the proof chain from the *composed* nested
+  // scripts (the ones actually executed), not the original layer scripts with
+  // empty proofs. Each link proves its composed script against its own
+  // canonical MMR root, and link[i].script contains `MAST <link[i+1].root>`.
+  const composed: string[] = new Array(config.layers.length);
+  composed[config.layers.length - 1] = config.layers[config.layers.length - 1].script;
+  for (let i = config.layers.length - 2; i >= 0; i--) {
+    composed[i] = `${stripTrailingReturn(config.layers[i].script)}\nMAST 0x${computeCanonicalScriptHash(composed[i + 1])}`;
+  }
+
+  const proofLinks: ProofLink[] = composed.map((script, i) => {
+    const mast = compileMastTree([script]);
+    return {
+      scriptHash: computeCanonicalScriptHash(script),
+      policyRoot: mast.rootHex,
+      proof: mast.scripts[0].proofHex,
+      script,
+      label: config.layers[i].name,
+      metadata: { layerId: config.layers[i].id, authorityPkd: config.layers[i].authorityPkd },
+    };
+  });
 
   const proofChain = buildProofChain(proofLinks);
 
-  const mastScript = buildLayeredMastScript(config);
+  const mastScript = composed[0];
 
   return { tree, proofChain, mastScript };
 }

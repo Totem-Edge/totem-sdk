@@ -4,6 +4,8 @@ import {
   verifyScriptMembership,
   computeCanonicalScriptHash,
   buildLayeredMastScript,
+  buildLayeredPolicy,
+  verifyProofChain,
   toNestedMastScript,
   type ProofChain,
 } from '../index.js';
@@ -62,6 +64,22 @@ describe('RFC-016 P2: canonical MAST roots', () => {
     expect(lines).toContain('ASSERT STATE(0) EQ [a]');
     expect(lines.filter((l) => /^RETURN TRUE$/i.test(l))).toHaveLength(0);
     expect(lines[lines.length - 1]).toBe(`MAST 0x${computeCanonicalScriptHash(b)}`);
+  });
+
+  it('buildLayeredPolicy proofChain verifies against the returned mastScript', () => {
+    const a = `ASSERT STATE(0) EQ [a]\nRETURN TRUE`;
+    const b = `ASSERT SIGNEDBY(0x${pkB})\nRETURN TRUE`;
+    const { proofChain, mastScript } = buildLayeredPolicy({
+      assetId: 'x',
+      assetName: 'X',
+      layers: [
+        { id: 'a', name: 'A', script: a, authorityPkd: pkA },
+        { id: 'b', name: 'B', script: b, authorityPkd: pkB },
+      ],
+    });
+    expect(proofChain.links[0].script).toBe(mastScript);
+    expect(proofChain.links[0].script).toContain(`MAST 0x${proofChain.links[1].policyRoot}`);
+    expect(verifyProofChain(proofChain).valid).toBe(true);
   });
 
   it('rejects an empty proof chain instead of compiling to allow-all', () => {
