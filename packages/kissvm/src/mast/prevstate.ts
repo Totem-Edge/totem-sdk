@@ -98,28 +98,44 @@ export function counterWorkflow(port: number, maxValue?: number): PrevStateWorkf
  */
 export function vestingWorkflow(
   startPort: number,
+  endPort: number,
   totalPort: number,
   claimedPort: number,
   beneficiaryPk: string,
 ): PrevStateWorkflow {
+  // RFC-016 hardening: correct linear vesting. Previously `vested = total *
+  // elapsed / total` reduced to `elapsed`, ignored an end/duration, and never
+  // enforced the claimed-state transition it advertises.
   const script = [
     `LET vestStart = PREVSTATE(${startPort})`,
+    `LET vestEnd = PREVSTATE(${endPort})`,
     `LET total = PREVSTATE(${totalPort})`,
+    `ASSERT STATE(${startPort}) EQ vestStart`,
+    `ASSERT STATE(${endPort}) EQ vestEnd`,
+    `ASSERT STATE(${totalPort}) EQ total`,
     `LET prevClaimed = PREVSTATE(${claimedPort})`,
-    `LET elapsed = SUB(@BLOCK vestStart)`,
-    `LET vested = DIV(MUL(total elapsed) total)`,
-    `LET claimable = SUB(vested prevClaimed)`,
+    `LET elapsed = @BLOCK SUB vestStart`,
+    `LET duration = vestEnd SUB vestStart`,
+    `IF elapsed GTE duration THEN`,
+    `  LET vested = total`,
+    `ELSE`,
+    `  LET vested = total MUL elapsed DIV duration`,
+    `ENDIF`,
+    `LET claimable = vested SUB prevClaimed`,
     `ASSERT @BLOCK GT vestStart`,
     `ASSERT claimable GT 0`,
+    `ASSERT prevClaimed ADD claimable LTE total`,
     `ASSERT SIGNEDBY(0x${beneficiaryPk})`,
     `ASSERT VERIFYOUT(@INPUT 0x${beneficiaryPk} claimable @TOKENID TRUE)`,
+    `ASSERT STATE(${claimedPort}) EQ prevClaimed ADD claimable`,
   ].join('\n');
 
   return {
     id: `vesting-${startPort}`,
-    name: `Vesting schedule at ports ${startPort}/${totalPort}/${claimedPort}`,
+    name: `Vesting schedule at ports ${startPort}/${endPort}/${totalPort}/${claimedPort}`,
     transitions: [
       buildStateTransition(startPort, 'vestStart', 'vestStart', 'vestStart', 'vestStart'),
+      buildStateTransition(endPort, 'vestEnd', 'vestEnd', 'vestEnd', 'vestEnd'),
       buildStateTransition(totalPort, 'total', 'total', 'total', 'total'),
       buildStateTransition(claimedPort, 'claimed', 'INC(prevClaimed)', 'prevClaimed', 'INC(prevClaimed)'),
     ],

@@ -130,15 +130,27 @@ export function buildWindowScript(config: TemporalConfig): string {
 }
 
 export function buildRateLimitScript(config: TemporalConfig): string {
+  const startPort = config.startPort
   const beneficiaryPort = requirePort(config, config.beneficiaryPort, 'beneficiaryPort')
-  const lines: string[] = [
-    `LET maxUsed = ${config.maxPerPeriod!.toString()}`,
+  // RFC-016 hardening: rate limiting is per-period. Require the period length
+  // and advance the committed period start, so the cap is not a lifetime count.
+  if (config.maxPerPeriod === undefined || config.periodBlocks === undefined) {
+    throw new Error("buildRateLimitScript: 'maxPerPeriod' and 'periodBlocks' are required")
+  }
+  return [
+    `LET periodStart = PREVSTATE(${startPort})`,
     `LET used = PREVSTATE(${beneficiaryPort})`,
-    `ASSERT used LT maxUsed`,
-    `STORE STATE(${beneficiaryPort}) WITH used ADD 1`,
+    `LET elapsed = @BLOCK SUB periodStart`,
+    `IF elapsed GTE ${config.periodBlocks.toString()} THEN`,
+    `  ASSERT STATE(${startPort}) EQ @BLOCK`,
+    `  ASSERT STATE(${beneficiaryPort}) EQ 1`,
+    `ELSE`,
+    `  ASSERT used LT ${config.maxPerPeriod.toString()}`,
+    `  ASSERT STATE(${startPort}) EQ periodStart`,
+    `  ASSERT STATE(${beneficiaryPort}) EQ used ADD 1`,
+    `ENDIF`,
     `RETURN TRUE`,
-  ]
-  return lines.join('\n')
+  ].join('\n')
 }
 
 export function buildDecayScript(config: TemporalConfig): string {
@@ -197,7 +209,8 @@ export function computeRelease(
       const elapsed = block - vestStart
       const duration = vestEnd - vestStart
       if (duration <= 0n) return 0n
-      const vested = total * elapsed / duration
+      // RFC-016 hardening: clamp at `total` to match the on-chain linear clamp.
+      const vested = elapsed >= duration ? total : total * elapsed / duration
       const claimable = vested - prevClaimed
       return claimable > 0n ? claimable : 0n
     }
@@ -210,7 +223,7 @@ export function computeRelease(
       const cliffElapsed = block - cliffBlock
       const duration = vestEnd - cliffBlock
       if (duration <= 0n) return 0n
-      const vested = total * cliffElapsed / duration
+      const vested = cliffElapsed >= duration ? total : total * cliffElapsed / duration
       const claimable = vested - prevClaimed
       return claimable > 0n ? claimable : 0n
     }

@@ -435,18 +435,23 @@ describe('stable template: temporal', () => {
     expect(run(script, ctx({ block: 1300, state: s({ 1: 800 }) })).success).toBe(false);
   });
 
-  it('rate limit script enforces the per-period cap', () => {
+  it('rate limit script enforces the per-period cap and resets each period', () => {
     const script = buildRateLimitScript({
       curve: 'rate-limit',
       startPort: 1,
+      periodBlocks: 100n,
       maxPerPeriod: 50n,
       beneficiaryPort: 3,
     });
-    const ok = run(script, ctx({ state: s({ 1: 900 }), prevState: s({ 3: 10 }) }));
+    const ok = run(script, ctx({ block: 950, state: s({ 1: 900, 3: 11 }), prevState: s({ 1: 900, 3: 10 }) }));
     expect(ok.success).toBe(true);
 
-    const over = run(script, ctx({ state: s({ 1: 900 }), prevState: s({ 3: 60 }) }));
+    const over = run(script, ctx({ block: 950, state: s({ 1: 900, 3: 61 }), prevState: s({ 1: 900, 3: 60 }) }));
     expect(over.success).toBe(false);
+
+    // A new period advances the committed period start and resets the count.
+    const reset = run(script, ctx({ block: 1000, state: s({ 1: 1000, 3: 1 }), prevState: s({ 1: 900, 3: 60 }) }));
+    expect(reset.success).toBe(true);
   });
 
   it('decay script computes the decayed value and pays the beneficiary', () => {
@@ -488,6 +493,8 @@ describe('stable template: temporal', () => {
   it('computeRelease returns the expected curve amounts', () => {
     const linearState = new Map<number, bigint>([[1, 1000n], [2, 2000n], [3, 100n], [4, 0n]]);
     expect(computeRelease({ curve: 'linear', startPort: 1, endPort: 2, totalPort: 3, beneficiaryPort: 4 }, 1100n, linearState)).toBe(10n);
+    // RFC-016: clamped at total after vest end (never over-vests).
+    expect(computeRelease({ curve: 'linear', startPort: 1, endPort: 2, totalPort: 3, beneficiaryPort: 4 }, 3000n, linearState)).toBe(100n);
     const cliffState = new Map<number, bigint>([[1, 900n], [2, 2000n], [5, 1100n], [3, 100n], [4, 0n]]);
     expect(computeRelease({ curve: 'cliff', startPort: 1, endPort: 2, cliffPort: 5, totalPort: 3, beneficiaryPort: 4 }, 1000n, cliffState)).toBe(0n);
     expect(computeRelease({ curve: 'deadline', startPort: 1, deadlineBlock: 900n, beneficiaryPort: 3 }, 1000n, new Map())).toBe(0n);
