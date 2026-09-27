@@ -102,6 +102,17 @@ export function buildLayeredPolicy(config: LayeredPolicyConfig): {
  * Build the nested MAST KISSVM script for a layered policy.
  * Each layer delegates to the next via MAST.
  */
+/**
+ * RFC-016 hardening: `MAST` is terminal in the evaluator (it throws a
+ * ReturnSignal). A delegating script must therefore end with `MAST <childRoot>`;
+ * a trailing `RETURN` would make the nested branch unreachable.
+ */
+function stripTrailingReturn(script: string): string {
+  const trimmed = script.replace(/\s+$/, '');
+  const match = trimmed.match(/(?:^|\s)RETURN\b[^\n]*$/i);
+  return match ? trimmed.slice(0, match.index).replace(/\s+$/, '') : trimmed;
+}
+
 export function buildLayeredMastScript(config: LayeredPolicyConfig): string {
   // RFC-016 I4: an empty policy must fail construction, not become allow-all.
   if (config.layers.length === 0) {
@@ -114,7 +125,7 @@ export function buildLayeredMastScript(config: LayeredPolicyConfig): string {
     // RFC-016 P2: the MAST root must be the canonical MMR script hash so the
     // evaluator's witness lookup matches the proof the VM computes.
     const nextRoot = computeCanonicalScriptHash(script);
-    script = `${config.layers[i].script}\nMAST 0x${nextRoot}`;
+    script = `${stripTrailingReturn(config.layers[i].script)}\nMAST 0x${nextRoot}`;
   }
 
   return script;

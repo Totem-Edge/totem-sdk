@@ -163,8 +163,17 @@ export function toDelegationChainScript(chain: DelegationChain): string {
 
   for (let i = chain.links.length - 2; i >= 0; i--) {
     const nextRoot = chain.links[i + 1].policyRoot;
-    script = `${chain.links[i].script}\nMAST 0x${nextRoot}`;
+    // RFC-016 hardening: MAST is terminal, so strip the delegating script's
+    // trailing RETURN (otherwise the nested branch is unreachable).
+    script = `${stripTrailingReturn(chain.links[i].script)}\nMAST 0x${nextRoot}`;
   }
 
   return script;
+}
+
+/** Strip a trailing `RETURN ...` so a terminal `MAST` is reachable. */
+function stripTrailingReturn(script: string): string {
+  const trimmed = script.replace(/\s+$/, '');
+  const match = trimmed.match(/(?:^|\s)RETURN\b[^\n]*$/i);
+  return match ? trimmed.slice(0, match.index).replace(/\s+$/, '') : trimmed;
 }

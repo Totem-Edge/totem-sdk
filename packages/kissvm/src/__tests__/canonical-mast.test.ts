@@ -46,6 +46,24 @@ describe('RFC-016 P2: canonical MAST roots', () => {
     expect(() => buildLayeredMastScript({ assetId: 'x', assetName: 'X', layers: [] })).toThrow(/empty/i);
   });
 
+  it('composes MAST as a terminal statement so the nested branch is reachable', () => {
+    const a = `ASSERT STATE(0) EQ [a] RETURN TRUE`;
+    const b = `ASSERT SIGNEDBY(0x${pkB}) RETURN TRUE`;
+    const script = buildLayeredMastScript({
+      assetId: 'x',
+      assetName: 'X',
+      layers: [
+        { id: 'a', name: 'A', script: a, authorityPkd: pkA },
+        { id: 'b', name: 'B', script: b, authorityPkd: pkB },
+      ],
+    });
+    const lines = script.split('\n').map((l) => l.trim()).filter(Boolean);
+    // parent's trailing RETURN is stripped and MAST is the final statement
+    expect(lines).toContain('ASSERT STATE(0) EQ [a]');
+    expect(lines.filter((l) => /^RETURN TRUE$/i.test(l))).toHaveLength(0);
+    expect(lines[lines.length - 1]).toBe(`MAST 0x${computeCanonicalScriptHash(b)}`);
+  });
+
   it('rejects an empty proof chain instead of compiling to allow-all', () => {
     const empty: ProofChain = { links: [], depth: 0, verified: false, leafScriptHash: '' };
     expect(() => toNestedMastScript(empty)).toThrow(/empty/i);

@@ -10,10 +10,17 @@
  * a maintenance command might traverse only 3.
  */
 
-import { sha3_256, bytesToHex } from '@totemsdk/core';
+import { computeCanonicalScriptHash } from '@totemsdk/kissvm';
 import type { PolicyNode, PolicyTree, ProofLink } from './types.js';
 import { buildPolicyTree, type PolicyNodeInput } from './policy-tree.js';
 import { buildProofChain } from './proof-chain.js';
+
+/** Strip a trailing `RETURN ...` so a terminal `MAST` is reachable. */
+function stripTrailingReturn(script: string): string {
+  const trimmed = script.replace(/\s+$/, '');
+  const match = trimmed.match(/(?:^|\s)RETURN\b[^\n]*$/i);
+  return match ? trimmed.slice(0, match.index).replace(/\s+$/, '') : trimmed;
+}
 
 // ─── Layer definitions ─────────────────────────────────────────────────────
 
@@ -83,7 +90,7 @@ export function buildLayeredPolicy(config: LayeredPolicyConfig): {
   const tree = buildPolicyTree(nodes);
 
   const proofLinks: ProofLink[] = config.layers.map((layer) => ({
-    scriptHash: bytesToHex(sha3_256(new TextEncoder().encode(layer.script))),
+    scriptHash: computeCanonicalScriptHash(layer.script),
     policyRoot: tree.nodeMap.get(layer.id)?.policyRoot ?? '',
     proof: '',
     script: layer.script,
@@ -111,10 +118,8 @@ export function buildLayeredMastScript(config: LayeredPolicyConfig): string {
   let script = config.layers[config.layers.length - 1].script;
 
   for (let i = config.layers.length - 2; i >= 0; i--) {
-    const nextRoot = bytesToHex(sha3_256(new TextEncoder().encode(
-      script.trim().toUpperCase()
-    )));
-    script = `${config.layers[i].script}\nMAST 0x${nextRoot}`;
+    const nextRoot = computeCanonicalScriptHash(script);
+    script = `${stripTrailingReturn(config.layers[i].script)}\nMAST 0x${nextRoot}`;
   }
 
   return script;
