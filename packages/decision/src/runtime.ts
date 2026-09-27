@@ -210,16 +210,10 @@ export function createDecisionRuntime(
       };
       if (request.signal) request.signal.addEventListener('abort', onOuterAbort, { once: true });
 
-      // Optional deterministic shortlisting.
-      let providerRequest = toProviderRequest(request, requestId, controller.signal);
-      if (options.shortlister) {
-        try {
-          providerRequest = await options.shortlister.shortlist({ request: providerRequest, provider });
-        } catch {
-          // A failing shortlister must not silently alter semantics.
-          providerRequest = toProviderRequest(request, requestId, controller.signal);
-        }
-      }
+      // RFC-012 hardening #7: shortlisting is deferred for v0.1 (interface kept
+      // as a future seam). The runtime sends the exact candidate space and the
+      // receipt's candidateSetDigest matches what the provider saw.
+      const providerRequest = toProviderRequest(request, requestId, controller.signal);
 
       inFlight.set(requestId, provider);
       let providerOutcome: DecisionProviderOutcome;

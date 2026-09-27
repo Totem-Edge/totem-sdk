@@ -519,7 +519,13 @@ export interface DecisionRoute {
   readonly escalateOnTimeout?: boolean;
 }
 
-/** Optional candidate shortlister. Deterministic by contract. Deferred v1. */
+/**
+ * Optional candidate shortlister seam (RFC-012 §25). **Deferred for v0.1** —
+ * exported as the future extension point but not invoked by the runtime. When
+ * implemented it must run before provider-limit eligibility and must record the
+ * original candidate-set digest, the effective candidate-set digest, the
+ * shortlister identity, and the kept candidate IDs.
+ */
 export interface DecisionShortlister {
   shortlist(params: {
     request: DecisionProviderRequest;
@@ -530,7 +536,6 @@ export interface DecisionShortlister {
 export interface DecisionRuntimeOptions {
   readonly routes: readonly DecisionRoute[];
   readonly providers?: Record<string, DecisionProvider>;
-  readonly shortlister?: DecisionShortlister;
   readonly onReceipt?: (receipt: DecisionReceipt) => void;
   readonly onAttempt?: (attempt: DecisionAttempt) => void;
   readonly now?: () => number;
