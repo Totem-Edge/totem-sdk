@@ -199,6 +199,37 @@ describe('createDecisionRuntime', () => {
     expect(secondCalled).toBe(false);
   });
 
+  it('does not let provider-level confidence mask a low-confidence answer', async () => {
+    const provider = createMockDecisionProvider({
+      id: 'overclaim',
+      decide: (req) => ({
+        ok: true,
+        requestId: req.requestId,
+        confidence: { value: 0.99, source: 'provider' },
+        decision: {
+          kind: 'questions',
+          answers: [
+            { type: 'choice', questionId: 'q1', selected: 'heat', confidence: { value: 0.99, source: 'provider' } },
+            { type: 'choice', questionId: 'q2', selected: 'cool', confidence: { value: 0.2, source: 'provider' } },
+          ],
+        },
+      }),
+    });
+    const runtime = createDecisionRuntime({ routes: [{ provider, accept: { minConfidence: 0.9 } }] });
+    const outcome = await runtime.decide({
+      kind: 'questions',
+      requestId: 'batched-overclaim',
+      state: {},
+      questions: [
+        { type: 'choice', id: 'q1', criteria: [{ id: 'heat' }, { id: 'cool' }] },
+        { type: 'choice', id: 'q2', criteria: [{ id: 'heat' }, { id: 'cool' }] },
+      ],
+    });
+    expect(outcome.ok).toBe(false);
+    if (!outcome.ok) expect(outcome.code).toBe('NO_ACCEPTABLE_RESULT');
+    expect(outcome.attempts[0].reason).toBe('LOW_CONFIDENCE');
+  });
+
   it('requires every batched answer to meet minConfidence', async () => {
     const twoQuestionDecision = (): DecisionResult => ({
       kind: 'questions',

@@ -317,8 +317,11 @@ export function createDecisionRuntime(
         continue;
       }
 
-      // Acceptance (not authorization).
-      const confidence = providerOutcome.confidence?.value ?? aggregateConfidence(decision);
+      // RFC-012 hardening #6: acceptance is computed from the canonical answers
+      // (min across answers for batched questions). A provider-level aggregate
+      // confidence is reporting metadata and must not override a low-confidence
+      // individual answer.
+      const confidence = aggregateConfidence(decision);
       const evaluation = evaluateAcceptance(route.accept, {
         request: providerRequest,
         provider,
