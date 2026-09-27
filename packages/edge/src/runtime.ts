@@ -11,7 +11,7 @@ import {
 } from './capabilities.js';
 import type { EdgeRuntimePorts } from './ports.js';
 import type { EdgeRuntime, EdgeActionParams, EdgeActionResult } from './types.js';
-import { deriveRequiredCapabilities } from '@totemsdk/decision';
+import { deriveRequiredCapabilities, validateDecisionRequest, DecisionError } from '@totemsdk/decision';
 import type { DecisionRequest } from '@totemsdk/decision';
 
 export function createEdgeRuntime(opts: {
@@ -24,9 +24,12 @@ export function createEdgeRuntime(opts: {
   async function executeAction(params: EdgeActionParams): Promise<EdgeActionResult> {
     const { action, subject, payload, context } = params;
 
-    // 1. Policy gate — if a policy port is configured, check before executing
+    // 1. Policy gate — if a policy port is configured, check before executing.
+    // RFC-012 #10: decision:cancel is control-plane and bypasses the gate so a
+    // user can always cancel an in-flight computation.
     let policyResult: { allowed: boolean; reason?: string } | undefined;
-    if (ports.policy) {
+    const isControlPlaneCancel = action.startsWith('decision:cancel');
+    if (ports.policy && !isControlPlaneCancel) {
       const result = await ports.policy.check({ action, subject, context });
       if (!result.ok) {
         return {
@@ -141,6 +144,19 @@ export function createEdgeRuntime(opts: {
       const request = payload?.request as DecisionRequest | undefined;
       if (!request || typeof request !== 'object' || (request.kind !== 'questions' && request.kind !== 'action')) {
         return { ok: false, action, policyResult, error: 'decision:decide requires a valid request payload', errorCode: 'INVALID_REQUEST' };
+      }
+      // RFC-012 #10: fully validate the request before deriving capabilities so
+      // a malformed request returns INVALID_REQUEST instead of throwing.
+      try {
+        validateDecisionRequest(request);
+      } catch (err) {
+        return {
+          ok: false,
+          action,
+          policyResult,
+          error: err instanceof DecisionError ? err.message : String(err),
+          errorCode: err instanceof DecisionError ? err.code : 'INVALID_REQUEST',
+        };
       }
       // Gate on the union (de-duplicated) of the request's decision types.
       const required = deriveRequiredCapabilities(request);

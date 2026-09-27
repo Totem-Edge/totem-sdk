@@ -25,6 +25,7 @@ import type {
   DecisionRequestBindings,
 } from './types.js';
 import { DecisionError, type DecisionEscalationReason } from './errors.js';
+import { DECISION_TYPES, type DecisionCapability } from './constants.js';
 import { aggregateConfidence, evaluateAcceptance } from './acceptance.js';
 import {
   computeDecisionBindings,
@@ -450,7 +451,26 @@ export function createDecisionRuntime(
     }
   }
 
-  return { decide, cancel, close };
+  // RFC-012 hardening #10: advertise only the capabilities actually reachable
+  // through the configured routes (respecting route.types and provider
+  // capability declarations).
+  function capabilities(): DecisionCapability[] {
+    const out = new Set<DecisionCapability>();
+    for (const route of options.routes) {
+      const p = resolveProvider(route, options.providers);
+      if (!p) continue;
+      const declared = DECISION_TYPES.filter((t) =>
+        p.capabilities.includes(`decision:${t}` as DecisionCapability),
+      );
+      for (const t of route.types ?? declared) {
+        const cap = `decision:${t}` as DecisionCapability;
+        if (p.capabilities.includes(cap)) out.add(cap);
+      }
+    }
+    return [...out];
+  }
+
+  return { capabilities: capabilities(), decide, cancel, close };
 }
 
 function skippedAttempt(

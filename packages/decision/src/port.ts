@@ -35,7 +35,9 @@ export function createEdgeDecisionPort(
 ): EdgeDecisionPort {
   const port: EdgeDecisionPort = {
     runtimeId: options.runtimeId ?? 'decision',
-    capabilities: options.capabilities ?? DECISION_CAPABILITIES,
+    // RFC-012 hardening #10: advertise the runtime's actual capabilities unless
+    // the caller explicitly overrides them.
+    capabilities: options.capabilities ?? runtime.capabilities ?? DECISION_CAPABILITIES,
 
     async decide(params): Promise<DecisionPortResult> {
       try {

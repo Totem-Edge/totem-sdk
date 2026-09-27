@@ -134,6 +134,48 @@ describe('edge runtime decision routing', () => {
     expect(cancelled).toBe('req-edge-1');
   });
 
+  it('returns INVALID_REQUEST (not a throw) for a structurally invalid request', async () => {
+    const runtime = createEdgeRuntime({ deviceId: 'dev-bad', capabilities, ports: { decision: makeDecisionPort() } });
+    const result = await runtime.executeAction({
+      action: 'decision:decide',
+      subject: 'q',
+      payload: { request: { kind: 'questions', state: {}, questions: [{ type: 'choice', id: 'q1', criteria: [] }] } },
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.errorCode).toBe('EMPTY_CANDIDATE_SET');
+  });
+
+  it('decision:cancel bypasses the policy gate', async () => {
+    let cancelled = false;
+    const port: EdgeDecisionPort = {
+      runtimeId: 'd',
+      capabilities: ['decision:choice'],
+      async decide() { return { ok: true }; },
+      async cancel(requestId: string) { cancelled = requestId.length > 0; return { ok: true }; },
+    };
+    const runtime = createEdgeRuntime({
+      deviceId: 'dev-cancel',
+      capabilities: createCapabilitySet([]),
+      ports: {
+        decision: port,
+        policy: { async check() { return { ok: true, data: { allowed: false, reason: 'blocked' } }; } },
+      },
+    });
+    const result = await runtime.executeAction({ action: 'decision:cancel', subject: 'x', payload: { requestId: 'r1' } });
+    expect(result.ok).toBe(true);
+    expect(cancelled).toBe(true);
+  });
+
+  it('EdgeDecisionPort advertises the runtime capabilities', () => {
+    const provider = createMockDecisionProvider({
+      id: 'choice-only',
+      capabilities: ['decision:choice'],
+      decision: { kind: 'questions', answers: [] },
+    });
+    const port = createEdgeDecisionPort(createDecisionRuntime({ routes: [{ provider }] }));
+    expect(port.capabilities).toEqual(['decision:choice']);
+  });
+
   it('coexists with the intelligence port', async () => {
     const ports: EdgeRuntimePorts = {
       decision: makeDecisionPort(),

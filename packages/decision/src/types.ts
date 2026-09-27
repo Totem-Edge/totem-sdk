@@ -553,6 +553,8 @@ export interface DecisionRuntimeOptions {
 // ── Runtime / port ─────────────────────────────────────────────────────────
 
 export interface DecisionRuntime {
+  /** Capabilities actually reachable through the configured routes. */
+  readonly capabilities: readonly DecisionCapability[];
   decide(request: DecisionRequest): Promise<DecisionOutcome>;
   cancel?(requestId: string): Promise<DecisionProviderOutcome<void>>;
   close?(): Promise<void>;
