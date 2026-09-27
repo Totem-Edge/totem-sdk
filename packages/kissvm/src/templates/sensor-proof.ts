@@ -16,6 +16,7 @@ import { sha3_256, bytesToHex } from '@totemsdk/core';
 import type { PolicyTree } from '../mast/types.js';
 import { buildPolicyTree, type PolicyNodeInput } from '../mast/policy-tree.js';
 import { buildProofChain, verifyProofChain, type ProofLink } from '../mast/proof-chain.js';
+import { compileMastTree } from '../mast/mast-compiler.js';
 
 export interface SensorProofConfig {
   /** Sensor/device identifier. */
@@ -129,19 +130,28 @@ export function buildSensorProofChain(
   );
   if (!deviceNode) throw new Error(`Device ${devicePkd} not found in fleet policy`);
 
-  const path = [fleetPolicy.root];
-  let current = deviceNode;
-  while (current.parentId) {
-    path.push(current);
-    current = fleetPolicy.nodeMap.get(current.parentId)!;
+  // The fleet policy is flat: the root's policyRoot commits the root script and
+  // every direct child (device) script as MMR leaves. Produce a real canonical
+  // MMR proof of the device leaf against that root (previously this emitted the
+  // script *hash* as the proof, which can never verify).
+  const siblings = fleetPolicy.root.children;
+  const childIndex = siblings.indexOf(deviceNode);
+  if (childIndex < 0) {
+    throw new Error(`Device ${devicePkd} is not a direct child of the fleet policy root`);
+  }
+  const scripts = [fleetPolicy.root.script, ...siblings.map(c => c.script)];
+  const mast = compileMastTree(scripts);
+  if (mast.rootHex !== fleetPolicy.root.policyRoot) {
+    throw new Error('buildSensorProofChain: fleet policy root does not match the compiled MMR root');
   }
 
-  return path.map((node, i) => ({
-    scriptHash: node.scriptHash,
-    policyRoot: node.policyRoot,
-    proof: i === 0 ? '' : node.scriptHash, // Simplified: real impl uses Merkle proof
-    script: node.script,
-    label: node.name,
+  const leafIndex = childIndex + 1;
+  return [{
+    scriptHash: deviceNode.scriptHash,
+    policyRoot: mast.rootHex,
+    proof: mast.scripts[leafIndex].proofHex,
+    script: deviceNode.script,
+    label: deviceNode.name,
     metadata: { reading, timestamp },
-  }));
+  }];
 }

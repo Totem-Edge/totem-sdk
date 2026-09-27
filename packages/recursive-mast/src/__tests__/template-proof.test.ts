@@ -7,11 +7,12 @@
 import { evaluateScript } from '@totemsdk/kissvm';
 import type { TxContext } from '@totemsdk/kissvm';
 import { compileMastTree } from '@totemsdk/kissvm';
+import { buildProofChain, verifyProofChain } from '../proof-chain.js';
 import { buildAccessControlScript } from '../templates/access-control.js';
 import { buildIdentityVerificationScript } from '../templates/identity-verification.js';
-import { buildSensorProofScript } from '../templates/sensor-proof.js';
+import { buildSensorProofScript, buildSensorFleetPolicy, buildSensorProofChain } from '../templates/sensor-proof.js';
 import { buildFirmwareUpdateScript } from '../templates/firmware-update.js';
-import { buildChannelFactoryScript } from '../templates/payment-channel.js';
+import { buildChannelFactoryScript, buildPaymentChannelScript } from '../templates/payment-channel.js';
 
 const pkd = 'aa'.repeat(32);
 
@@ -90,5 +91,31 @@ describe('RFC-016: recursive-mast template PROOF leaf preimages', () => {
     const script = buildChannelFactoryScript([pkd], 'ab'.repeat(32), 'cd'.repeat(32));
     expect(script).toContain(`MAST 0x${'ab'.repeat(32)}`);
     expect(script).not.toContain(`MAST 0x${'0'.repeat(64)}`);
+  });
+
+  it('sensor proof chain emits a real MMR proof that verifies', () => {
+    const pkB = 'bb'.repeat(32);
+    const fleet = buildSensorFleetPolicy([pkd, pkB], 'fleet');
+    const chain = buildSensorProofChain(pkd, fleet, '42', 1700000000000);
+    expect(chain).toHaveLength(1);
+    const link = chain[0];
+    expect(link.proof).not.toBe(link.scriptHash);
+    expect(link.policyRoot).toBe(fleet.root.policyRoot);
+    const built = buildProofChain(chain);
+    expect(verifyProofChain(built).valid).toBe(true);
+  });
+
+  it('payment channel consumes channelProof when a leaf script is supplied', () => {
+    const leaf = `ASSERT SIGNEDBY(0x${pkd}) RETURN TRUE`;
+    const mast = compileMastTree([leaf]);
+    const script = buildPaymentChannelScript({
+      channelId: 'c1', partyAPkd: pkd, partyBPkd: 'bb'.repeat(32),
+      sequencePort: 0, settlementPort: 1, policyRoot: mast.rootHex,
+      channelProof: mast.scripts[0].proofHex, channelLeafScript: leaf,
+    });
+    expect(script).toContain(`ASSERT PROOF([${leaf}] 0 0x${mast.rootHex} 0 0x${mast.scripts[0].proofHex})`);
+    expect(script.indexOf('ASSERT VERIFYOUT(@INPUT @ADDRESS')).toBeLessThan(script.lastIndexOf('MAST 0x'));
+    expect(script.indexOf('ASSERT PROOF(')).toBeLessThan(script.lastIndexOf('MAST 0x'));
+    expect(evalLine(proofLine(script))).toBe(true);
   });
 });

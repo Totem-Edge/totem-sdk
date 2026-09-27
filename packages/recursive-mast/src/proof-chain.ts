@@ -8,13 +8,15 @@
  * has been removed — all verification now uses Minima-compatible MMR proofs.
  */
 
-import { sha3_256, bytesToHex, MiniNumber } from '@totemsdk/core';
+import { MiniNumber } from '@totemsdk/core';
 import { verifyScriptMembership, computeCanonicalScriptHash } from './mast-compiler.js';
 import type { ProofLink, ProofChain, VerificationResult } from './types.js';
 export type { ProofLink, ProofChain, VerificationResult };
 
+// RFC-016: canonical MMR leaf hashes (matches mast-compiler / kissvm), not
+// SHA3(raw-utf8) which cannot verify against a MAST root.
 function hashScript(script: string): string {
-  return bytesToHex(sha3_256(new TextEncoder().encode(script)));
+  return computeCanonicalScriptHash(script);
 }
 
 export function buildProofChain(links: ProofLink[]): ProofChain {

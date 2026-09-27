@@ -42,6 +42,13 @@ export interface PaymentChannelConfig {
   policyRoot: string;
   /** Merkle proof that the channel script is in the policy root. */
   channelProof: string;
+  /**
+   * The exact authorizing leaf script committed in `policyRoot` (the PROOF
+   * preimage). When set, the update path asserts on-chain that this leaf is in
+   * `policyRoot` using `channelProof`; when omitted, authorization relies on
+   * the terminal `MAST` witness only.
+   */
+  channelLeafScript?: string;
 }
 
 /**
@@ -57,7 +64,7 @@ export interface PaymentChannelConfig {
  *   5. Delegates to policy root for governance rules
  */
 export function buildPaymentChannelScript(config: PaymentChannelConfig): string {
-  return [
+  const lines: string[] = [
     `// Payment channel: ${config.channelId}`,
     `LET prevSeq = PREVSTATE(${config.sequencePort})`,
     `LET newSeq = STATE(${config.sequencePort})`,
@@ -79,12 +86,24 @@ export function buildPaymentChannelScript(config: PaymentChannelConfig): string 
     `  RETURN TRUE`,
     `ENDIF`,
     ``,
-    `// 4. Update path — delegate to governance policy`,
-    `MAST 0x${config.policyRoot}`,
-    ``,
+    `// 4. Update path — output shape is checked here (MAST below is terminal)`,
     `ASSERT VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID TRUE)`,
-    `RETURN TRUE`,
-  ].join('\n');
+  ];
+
+  // RFC-016: explicitly prove the authorizing leaf script is committed in the
+  // policy root (otherwise `channelProof` was silently ignored).
+  if (config.channelLeafScript !== undefined) {
+    lines.push(
+      `ASSERT PROOF([${config.channelLeafScript}] 0 0x${config.policyRoot} 0 0x${config.channelProof})`,
+    );
+  }
+
+  lines.push(
+    `// 5. Delegate to the governance policy (terminal)`,
+    `MAST 0x${config.policyRoot}`,
+  );
+
+  return lines.join('\n');
 }
 
 /**

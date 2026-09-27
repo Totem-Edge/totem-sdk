@@ -5,13 +5,13 @@
  * then evaluates the template's emitted `ASSERT PROOF( … )` line against that
  * root — it must pass.
  */
-import { evaluateScript } from '../index';
+import { evaluateScript, buildProofChain, verifyProofChain } from '../index';
 import type { TxContext } from '../index';
 import { compileMastTree } from '../mast/mast-compiler';
-import { buildSensorProofScript } from '../templates/sensor-proof.js';
+import { buildSensorProofScript, buildSensorFleetPolicy, buildSensorProofChain } from '../templates/sensor-proof.js';
 import { buildFirmwareUpdateScript, buildMultiSigFirmwareUpdateScript } from '../templates/firmware-update.js';
 import { buildIdentityVerificationScript, buildDelegationProofScript } from '../templates/identity.js';
-import { buildChannelFactoryScript } from '../templates/payment-channel.js';
+import { buildChannelFactoryScript, buildPaymentChannelScript } from '../templates/payment-channel.js';
 
 const pkd = 'aa'.repeat(32);
 
@@ -101,5 +101,32 @@ describe('RFC-016: template PROOF leaf preimages are the authorizing script', ()
     const script = buildChannelFactoryScript([pkd], 'ab'.repeat(32), 'cd'.repeat(32));
     expect(script).toContain(`MAST 0x${'ab'.repeat(32)}`);
     expect(script).not.toContain(`MAST 0x${'0'.repeat(64)}`);
+  });
+
+  it('sensor proof chain emits a real MMR proof that verifies', () => {
+    const pkB = 'bb'.repeat(32);
+    const fleet = buildSensorFleetPolicy([pkd, pkB], 'fleet');
+    const chain = buildSensorProofChain(pkd, fleet, '42', 1700000000000);
+    expect(chain).toHaveLength(1);
+    const link = chain[0];
+    expect(link.proof).not.toBe(link.scriptHash);
+    expect(link.policyRoot).toBe(fleet.root.policyRoot);
+    const built = buildProofChain(chain);
+    expect(verifyProofChain(built).valid).toBe(true);
+  });
+
+  it('payment channel consumes channelProof when a leaf script is supplied', () => {
+    const leaf = `ASSERT SIGNEDBY(0x${pkd}) RETURN TRUE`;
+    const mast = compileMastTree([leaf]);
+    const script = buildPaymentChannelScript({
+      channelId: 'c1', partyAPkd: pkd, partyBPkd: 'bb'.repeat(32),
+      sequencePort: 0, settlementPort: 1, policyRoot: mast.rootHex,
+      channelProof: mast.scripts[0].proofHex, channelLeafScript: leaf,
+    });
+    expect(script).toContain(`ASSERT PROOF([${leaf}] 0 0x${mast.rootHex} 0 0x${mast.scripts[0].proofHex})`);
+    // The VERIFYOUT and PROOF checks must precede the terminal MAST.
+    expect(script.indexOf('ASSERT VERIFYOUT(@INPUT @ADDRESS')).toBeLessThan(script.lastIndexOf('MAST 0x'));
+    expect(script.indexOf('ASSERT PROOF(')).toBeLessThan(script.lastIndexOf('MAST 0x'));
+    expect(evalLine(proofLine(script))).toBe(true);
   });
 });
