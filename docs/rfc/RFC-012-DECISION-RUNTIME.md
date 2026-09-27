@@ -1,6 +1,6 @@
 # RFC-012: Decision Runtime — Bounded Semantic Choice as a First-Class Edge Service
 
-**Status:** Landed — P1–P6 complete: core contracts with the provider/runtime trust split, `createDecisionRuntime` (eligibility, deterministic routing, acceptance, escalation, timeout, terminal cancellation, freshness), typed backend + Laya/Jev adapters, Intelligence fallback, Edge surface (`decision:*` capabilities + `decision:decide`/`decision:cancel` + `EdgeRuntimePorts.decision`), manifest `decision` domain + catalogs, and 64 offline tests. Left as follow-ups: receipt signing (Q2) and embedding shortlisting (Q3).
+**Status:** Landed — P1–P6 complete; post-landing hardening pass complete (11 commits): CI wiring so the decision suites actually run; full model semantics preserved into Laya/Jev (instruction/descriptions/metadata/goal); target-bearing operations require a target; target-head evidence (distribution/confidence) preserved so `minTargetConfidence` works; every digest-bound field validated; acceptance confidence computed from canonical answers; shortlisting deferred (interface kept); hard timeout + duplicate-request-id rejection; call-specific provenance + `runtime.close()`; truthful runtime capabilities + Edge validation/cancel ordering. Left as follow-ups: receipt signing (Q2) and embedding shortlisting (Q3).
 **Created:** 2026-09-24
 **Revised:** 2026-09-26
 **Authors:** Totem SDK Contributors

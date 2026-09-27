@@ -514,7 +514,7 @@ docs/                       # SDK documentation
 | [RFC-009](docs/rfc/RFC-009-KISSVM-SIGNATURE-FIDELITY.md) | KISSVM signature fidelity — Minima-faithful TreeKey `SignatureProof` verification (draft) |
 | [RFC-010](docs/rfc/RFC-010-INDUSTRIAL-ACTION-RC.md) | Industrial action to RC — industrial action definitions on the governed edge runtime (idempotency, authority-proof binding, retry/timeout/rollback) (draft) |
 | [RFC-011](docs/rfc/RFC-011-INDUSTRIAL-ACTION-DOMAIN-MODEL.md) | Industrial action domain model — units, resources/interlocks, composition, versioning, events, and vertical profiles (draft) |
-| [RFC-012](docs/rfc/RFC-012-DECISION-RUNTIME.md) | Decision runtime — bounded semantic choice as a first-class Edge service (`@totemsdk/decision`), sibling to Intelligence (draft) |
+| [RFC-012](docs/rfc/RFC-012-DECISION-RUNTIME.md) | Decision runtime — bounded semantic choice as a first-class Edge service (`@totemsdk/decision`), sibling to Intelligence (landed) |
 | [RFC-013](docs/rfc/RFC-013-WALLET-SELF-HOSTED-MODE.md) | Wallet self-hosted mode — Axia-relay default with chain-provider opt-out + wallet-side WOTS lease (draft) |
 | [RFC-014](docs/rfc/RFC-014-WALLET-CONNECT-PARITY.md) | Wallet connect parity & shared execution bridge — one method implementation for extension + PWA, Edge-routed families (draft) |
 | [RFC-015](docs/rfc/RFC-015-AXIA-API-ALIGNMENT.md) | Axia API alignment — wallet capability manifest, SE registry RFC-008 shape, lease model, status/receipts, quota/telemetry (draft) |
