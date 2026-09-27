@@ -47,6 +47,9 @@ export function createJevDecisionProvider(
     ...(options.model ? { model: options.model } : {}),
     probabilityType: 'probability',
     probabilityField: 'probability',
+    // jev-ultrafast validates full choice distributions (keys == candidates,
+    // sum ≈ 1), so choice heads are complete distributions.
+    choiceComplete: true,
     ...(options.capabilities ? { capabilities: options.capabilities } : {}),
     ...(options.isReady !== undefined ? { isReady: options.isReady } : {}),
     info: {

@@ -457,7 +457,10 @@ function validateActionAnswer(
 
   const operationProbabilities = normalizeNumberMap(raw.operationProbabilities, 'operationProbabilities');
   if (operationProbabilities) {
-    validateDistribution(operationProbabilities, { candidateIds: operationIds });
+    validateDistribution(operationProbabilities, {
+      candidateIds: operationIds,
+      requireComplete: raw.operationProbabilitiesComplete === true || undefined,
+    });
   }
 
   const targetProbabilities = normalizeNumberMap(raw.targetProbabilities, 'targetProbabilities');
@@ -465,18 +468,32 @@ function validateActionAnswer(
     if (targetIds.length === 0) {
       throw new DecisionError('INVALID_CANDIDATE', `targetProbabilities supplied for targetless operation "${operation.id}".`);
     }
-    validateDistribution(targetProbabilities, { candidateIds: targetIds, selected: target });
+    validateDistribution(targetProbabilities, {
+      candidateIds: targetIds,
+      selected: target,
+      requireComplete: raw.targetProbabilitiesComplete === true || undefined,
+    });
   }
 
-  const confidence = normalizeConfidence(raw.confidence);
+  // RFC-012 §20: operation and target confidence are distinct. `confidence` is
+  // retained as the 0.x alias for operation confidence.
+  const operationConfidence = normalizeConfidence(raw.operationConfidence ?? raw.confidence);
+  const targetConfidence = normalizeConfidence(raw.targetConfidence);
 
   const answer: ActionAnswer = {
     type: 'action',
     operation: raw.operation,
     ...(target !== undefined ? { target } : {}),
     ...(operationProbabilities ? { operationProbabilities } : {}),
+    ...(typeof raw.operationProbabilitiesComplete === 'boolean'
+      ? { operationProbabilitiesComplete: raw.operationProbabilitiesComplete }
+      : {}),
     ...(targetProbabilities ? { targetProbabilities } : {}),
-    ...(confidence ? { confidence } : {}),
+    ...(typeof raw.targetProbabilitiesComplete === 'boolean'
+      ? { targetProbabilitiesComplete: raw.targetProbabilitiesComplete }
+      : {}),
+    ...(operationConfidence ? { operationConfidence, confidence: operationConfidence } : {}),
+    ...(targetConfidence ? { targetConfidence } : {}),
   };
   return { kind: 'action', answer };
 }

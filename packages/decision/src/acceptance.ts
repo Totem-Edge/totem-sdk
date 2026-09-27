@@ -45,6 +45,7 @@ function answerConfidence(answer: DecisionAnswer): number | undefined {
 function actionOperationConfidence(decision: DecisionResult): number | undefined {
   if (decision.kind !== 'action') return undefined;
   const a = decision.answer;
+  if (a.operationConfidence) return a.operationConfidence.value;
   if (a.confidence) return a.confidence.value;
   return a.operationProbabilities?.[a.operation];
 }
@@ -53,6 +54,7 @@ function actionTargetConfidence(decision: DecisionResult): number | undefined {
   if (decision.kind !== 'action') return undefined;
   const a = decision.answer;
   if (a.target === undefined) return undefined;
+  if (a.targetConfidence) return a.targetConfidence.value;
   return a.targetProbabilities?.[a.target];
 }
 
@@ -177,9 +179,10 @@ function maxCompleteEntropy(decision: DecisionResult): number | undefined {
     max = max === undefined ? entropy : Math.max(max, entropy);
   };
   if (decision.kind === 'action') {
-    // Action distributions carry no explicit completeness marker, so normalized
-    // entropy (which is only meaningful for complete distributions) is not
-    // applied to actions. See RFC-012 §20.
+    // RFC-012 §20: action operation/target distributions carry explicit
+    // completeness markers, so entropy applies only when they are complete.
+    consider(decision.answer.operationProbabilities, decision.answer.operationProbabilitiesComplete);
+    consider(decision.answer.targetProbabilities, decision.answer.targetProbabilitiesComplete);
     return max;
   }
   for (const answer of decision.answers) {

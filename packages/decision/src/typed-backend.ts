@@ -14,6 +14,7 @@ import {
 import { aggregateConfidence } from './acceptance.js';
 import type {
   ActionAnswer,
+  DecisionConfidence,
   DecisionProvider,
   DecisionProviderInfo,
   DecisionProviderOutcome,
@@ -22,6 +23,7 @@ import type {
   DecisionUsage,
   DecisionValue,
   TypedBackendCandidate,
+  TypedBackendOperation,
   TypedBackendPrediction,
   TypedBackendQuestion,
   TypedDecisionBackend,
@@ -93,6 +95,13 @@ function predictionConfidence(
   return { value: prediction.confidence, ...(prediction.calibrated !== undefined ? { calibrated: prediction.calibrated } : {}) };
 }
 
+function toDecisionConfidence(
+  c: { value: number; calibrated?: boolean } | undefined,
+): DecisionConfidence | undefined {
+  if (!c) return undefined;
+  return { value: c.value, source: 'provider', ...(c.calibrated !== undefined ? { calibrated: c.calibrated } : {}) };
+}
+
 /** Translate backend predictions into a canonical (untrusted) decision result. */
 export function translateBackendResult(
   request: DecisionProviderRequest,
@@ -150,21 +159,30 @@ export function translateBackendResult(
     targetProbabilities = p.targetProbabilities;
   } else if (selectedHead && targetIds.includes(selectedHead.target)) {
     target = selectedHead.target;
-    const selected = selectedHead.probability ?? selectedHead.confidence;
+    // RFC-012 §20: never convert target *confidence* into a probability. Prefer
+    // the head distribution; fall back to the head probability, then nothing.
     targetProbabilities =
       selectedHead.probabilities ??
       p?.targetProbabilities ??
-      (selected !== undefined ? { [selectedHead.target]: selected } : undefined);
+      (selectedHead.probability !== undefined ? { [selectedHead.target]: selectedHead.probability } : undefined);
   }
 
-  const conf = predictionConfidence(p);
+  const operationConfidence = toDecisionConfidence(predictionConfidence(p));
+  const targetConfidence =
+    selectedHead && typeof selectedHead.confidence === 'number' && Number.isFinite(selectedHead.confidence)
+      ? toDecisionConfidence({ value: selectedHead.confidence, calibrated: selectedHead.calibrated })
+      : undefined;
+
   const answer: ActionAnswer = {
     type: 'action',
     operation: selectedOperation,
     ...(target !== undefined ? { target } : {}),
     ...(p?.operationProbabilities ? { operationProbabilities: p.operationProbabilities } : {}),
+    ...(typeof p?.complete === 'boolean' ? { operationProbabilitiesComplete: p.complete } : {}),
     ...(targetProbabilities ? { targetProbabilities } : {}),
-    ...(conf ? { confidence: { value: conf.value, source: 'provider', ...(conf.calibrated !== undefined ? { calibrated: conf.calibrated } : {}) } } : {}),
+    ...(typeof selectedHead?.complete === 'boolean' ? { targetProbabilitiesComplete: selectedHead.complete } : {}),
+    ...(operationConfidence ? { operationConfidence, confidence: operationConfidence } : {}),
+    ...(targetConfidence ? { targetConfidence } : {}),
   };
   return { kind: 'action', answer };
 }
@@ -241,6 +259,10 @@ export interface DecisionClientQuestion {
   readonly id: string;
   readonly type: string;
   readonly instruction?: string;
+  /** Action goal, when the question is an action head (RFC-012 §24). */
+  readonly goal?: string;
+  /** The operation this head selects for / belongs to, when applicable. */
+  readonly operation?: TypedBackendOperation;
   readonly candidates?: readonly TypedBackendCandidate[];
   readonly rubric?: readonly TypedBackendCandidate[];
   readonly proposition?: string;
@@ -254,6 +276,8 @@ export interface DecisionClientPrediction {
   readonly probability?: number;
   readonly confidence?: number;
   readonly calibrated?: boolean;
+  /** When true, `probabilities`/`distribution` covers the candidate set and sums ≈ 1. */
+  readonly complete?: boolean;
   readonly [key: string]: unknown;
 }
 
@@ -283,6 +307,11 @@ export interface ClientDecisionProviderOptions {
   readonly probabilityType?: string;
   /** Provider client's probability value field (e.g. `'noul'`). Default `'probability'`. */
   readonly probabilityField?: string;
+  /**
+   * Set when the client always returns a full distribution over every choice
+   * label (Laya/Jev choice heads). The runtime then enforces coverage + sum ≈ 1.
+   */
+  readonly choiceComplete?: boolean;
   readonly capabilities?: readonly DecisionCapability[];
   readonly isReady?: boolean;
   readonly info?: DecisionProviderInfo;
@@ -309,7 +338,16 @@ function clientQuestionsFromTyped(
       });
       for (const op of q.action.operations) {
         if (op.targets && op.targets.length > 0) {
-          out.push({ id: `${TARGET_HEAD_PREFIX}${op.id}`, type: 'choice', candidates: op.targets });
+          // RFC-012 §24: a target head needs the goal and the selected-operation
+          // context to decide *why* it is choosing a target, not just from IDs.
+          out.push({
+            id: `${TARGET_HEAD_PREFIX}${op.id}`,
+            type: 'choice',
+            ...(q.action.goal !== undefined ? { goal: q.action.goal } : {}),
+            operation: op,
+            instruction: `Select the most appropriate ${op.id} target.${q.action.goal ? ` Goal: ${q.action.goal}` : ''}`,
+            candidates: op.targets,
+          });
         }
       }
       continue;
@@ -336,10 +374,25 @@ function readProbability(
   return undefined;
 }
 
+/**
+ * Resolve distribution completeness. Explicit client metadata wins; otherwise a
+ * client whose contract guarantees full choice distributions (Laya/Jev) is
+ * marked complete whenever it returns probabilities.
+ */
+function resolveComplete(
+  p: DecisionClientPrediction | undefined,
+  choiceComplete: boolean,
+): boolean | undefined {
+  if (typeof p?.complete === 'boolean') return p.complete;
+  if (choiceComplete && p?.probabilities) return true;
+  return undefined;
+}
+
 function clientPredictionsToTyped(
   questions: Record<string, TypedBackendQuestion>,
   client: Record<string, DecisionClientPrediction>,
   probabilityField: string,
+  choiceComplete: boolean,
 ): Record<string, TypedBackendPrediction> {
   const out: Record<string, TypedBackendPrediction> = {};
   for (const [id, q] of Object.entries(questions)) {
@@ -352,7 +405,9 @@ function clientPredictionsToTyped(
         const head = client[`${TARGET_HEAD_PREFIX}${op.id}`];
         if (head?.selected !== undefined) {
           // RFC-012 hardening #4: retain the selected operation's target head
-          // evidence (distribution + confidence) so minTargetConfidence works.
+          // evidence (distribution + confidence + completeness) so
+          // minTargetConfidence and entropy checks work.
+          const complete = resolveComplete(head, choiceComplete);
           targetHeads[op.id] = {
             target: head.selected,
             ...(selectedProbability(head.probabilities, head.selected) !== undefined
@@ -361,9 +416,11 @@ function clientPredictionsToTyped(
             ...(head.probabilities ? { probabilities: head.probabilities } : {}),
             ...(typeof head.confidence === 'number' ? { confidence: head.confidence } : {}),
             ...(typeof head.calibrated === 'boolean' ? { calibrated: head.calibrated } : {}),
+            ...(complete !== undefined ? { complete } : {}),
           };
         }
       }
+      const opComplete = resolveComplete(opPred, choiceComplete);
       out.__action = {
         type: 'action',
         ...(opPred?.selected !== undefined ? { operation: opPred.selected } : {}),
@@ -371,6 +428,7 @@ function clientPredictionsToTyped(
         ...(Object.keys(targetHeads).length > 0 ? { targetHeads } : {}),
         ...(typeof opPred?.confidence === 'number' ? { confidence: opPred.confidence } : {}),
         ...(typeof opPred?.calibrated === 'boolean' ? { calibrated: opPred.calibrated } : {}),
+        ...(opComplete !== undefined ? { complete: opComplete } : {}),
       };
       continue;
     }
@@ -389,16 +447,19 @@ function clientPredictionsToTyped(
         type: 'score',
         ...(p?.selected !== undefined ? { selected: p.selected } : {}),
         ...(p?.distribution ? { distribution: p.distribution } : {}),
+        ...(typeof p?.complete === 'boolean' ? { complete: p.complete } : {}),
         ...(p?.expectedScore !== undefined ? { expectedScore: p.expectedScore } : {}),
         ...(typeof p?.confidence === 'number' ? { confidence: p.confidence } : {}),
         ...(typeof p?.calibrated === 'boolean' ? { calibrated: p.calibrated } : {}),
       };
       continue;
     }
+    const choiceCompleteness = resolveComplete(p, choiceComplete);
     out[id] = {
       type: 'choice',
       ...(p?.selected !== undefined ? { selected: p.selected } : {}),
       ...(p?.probabilities ? { probabilities: p.probabilities } : {}),
+      ...(choiceCompleteness !== undefined ? { complete: choiceCompleteness } : {}),
       ...(typeof p?.confidence === 'number' ? { confidence: p.confidence } : {}),
       ...(typeof p?.calibrated === 'boolean' ? { calibrated: p.calibrated } : {}),
     };
@@ -423,6 +484,7 @@ export function createClientDecisionProvider(
 ): DecisionProvider {
   const probabilityType = options.probabilityType ?? 'probability';
   const probabilityField = options.probabilityField ?? 'probability';
+  const choiceComplete = options.choiceComplete === true;
   const backend: TypedDecisionBackend = {
     id: options.id,
     version: options.version,
@@ -435,7 +497,7 @@ export function createClientDecisionProvider(
         ...(signal ? { signal } : {}),
       });
       return {
-        predictions: clientPredictionsToTyped(questions, result.predictions, probabilityField),
+        predictions: clientPredictionsToTyped(questions, result.predictions, probabilityField, choiceComplete),
         ...(result.usage ? { usage: result.usage } : {}),
         ...(result.upstreamRequestId ? { upstreamRequestId: result.upstreamRequestId } : {}),
         ...(result.raw !== undefined ? { raw: result.raw } : {}),

@@ -27,8 +27,8 @@ describe('SAPIENT acceptance fixture', () => {
           return {
             upstreamRequestId: 'up-1',
             predictions: {
-              __operation: { selected: 'FOLLOW', probabilities: { FOLLOW: 0.7, WAIT: 0.3 }, confidence: 0.7 },
-              '__target:FOLLOW': { selected: 'track-24', probabilities: { 'track-17': 0.52, 'track-24': 0.94 }, confidence: 0.94 },
+              __operation: { selected: 'FOLLOW', probabilities: { FOLLOW: 0.6, LOOK_AT: 0.1, WAIT: 0.3 }, confidence: 0.7 },
+              '__target:FOLLOW': { selected: 'track-24', probabilities: { 'track-17': 0.06, 'track-24': 0.94 }, confidence: 0.94 },
             },
           };
         },
@@ -65,6 +65,10 @@ describe('SAPIENT acceptance fixture', () => {
     expect(opHead.candidates?.[0]).toMatchObject({ id: 'FOLLOW', description: 'Follow a track' });
     const targetHead = receivedQuestions.find((q) => q.id === '__target:FOLLOW')!;
     expect(targetHead.candidates?.[1]).toMatchObject({ id: 'track-24', description: 'UAV moving toward protected zone' });
+    // Target head also receives the goal + selected-operation context.
+    expect(targetHead.goal).toBe('Maintain custody of the highest-risk track');
+    expect(targetHead.operation).toMatchObject({ id: 'FOLLOW', description: 'Follow a track' });
+    expect(targetHead.instruction).toContain('FOLLOW');
 
     // The runtime retained the full decision + provenance + exact bindings.
     expect(outcome.ok).toBe(true);
@@ -75,8 +79,12 @@ describe('SAPIENT acceptance fixture', () => {
         type: 'action',
         operation: 'FOLLOW',
         target: 'track-24',
-        operationProbabilities: { FOLLOW: 0.7, WAIT: 0.3 },
-        targetProbabilities: { 'track-17': 0.52, 'track-24': 0.94 },
+        operationProbabilities: { FOLLOW: 0.6, LOOK_AT: 0.1, WAIT: 0.3 },
+        operationProbabilitiesComplete: true,
+        targetProbabilities: { 'track-17': 0.06, 'track-24': 0.94 },
+        targetProbabilitiesComplete: true,
+        operationConfidence: { value: 0.7, source: 'provider' },
+        targetConfidence: { value: 0.94, source: 'provider' },
         confidence: { value: 0.7, source: 'provider' },
       },
     });

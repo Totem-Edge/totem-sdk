@@ -236,6 +236,21 @@ export interface ActionAnswer {
   readonly target?: string;
   readonly operationProbabilities?: Record<string, number>;
   readonly targetProbabilities?: Record<string, number>;
+  /** When true, `operationProbabilities` covers every operation and sums ≈ 1. */
+  readonly operationProbabilitiesComplete?: boolean;
+  /** When true, `targetProbabilities` covers every target and sums ≈ 1. */
+  readonly targetProbabilitiesComplete?: boolean;
+  /**
+   * Operation confidence. `confidence` is the 0.x alias retained for
+   * compatibility; prefer this field.
+   */
+  readonly operationConfidence?: DecisionConfidence;
+  /**
+   * Target-head confidence. Distinct from the target *probability* — a target
+   * head can be uncertain (low probability) yet high-confidence, or vice versa.
+   */
+  readonly targetConfidence?: DecisionConfidence;
+  /** @deprecated 0.x alias for {@link ActionAnswer.operationConfidence}. */
   readonly confidence?: DecisionConfidence;
 }
 
@@ -417,6 +432,8 @@ export interface DecisionReceipt {
   readonly issuedAt: number;
   readonly durationMs?: number;
   readonly confidence?: number;
+  /** Provider-side (upstream) request id, when reported (durable audit ref). */
+  readonly upstreamRequestId?: string;
 }
 
 /** Receipt body (everything except `receiptId`) used to derive `receiptId`. */
@@ -646,6 +663,8 @@ export interface TypedBackendPrediction {
     readonly probabilities?: Record<string, number>;
     readonly confidence?: number;
     readonly calibrated?: boolean;
+    /** When true, `probabilities` covers every target and sums ≈ 1. */
+    readonly complete?: boolean;
   }>;
   readonly operationProbabilities?: Record<string, number>;
   readonly targetProbabilities?: Record<string, number>;

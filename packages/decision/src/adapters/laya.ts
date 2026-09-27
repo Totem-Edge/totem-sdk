@@ -50,6 +50,9 @@ export function createLayaDecisionProvider(
     ...(options.model ? { model: options.model } : {}),
     probabilityType: 'noul',
     probabilityField: 'noul',
+    // Laya emits a probability for every choice label, so choice heads are
+    // complete distributions the runtime can validate (coverage + sum ≈ 1).
+    choiceComplete: true,
     ...(options.capabilities ? { capabilities: options.capabilities } : {}),
     ...(options.isReady !== undefined ? { isReady: options.isReady } : {}),
     info: {

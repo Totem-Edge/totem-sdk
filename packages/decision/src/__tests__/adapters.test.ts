@@ -163,8 +163,8 @@ describe('Laya adapter', () => {
         async predict() {
           return {
             predictions: {
-              __operation: { selected: 'follow', probabilities: { follow: 0.9 } },
-              '__target:follow': { selected: 'track-24', probabilities: { 'track-17': 0.05, 'track-24': 0.94 } },
+              __operation: { selected: 'follow', probabilities: { follow: 1 } },
+              '__target:follow': { selected: 'track-24', probabilities: { 'track-17': 0.06, 'track-24': 0.94 } },
             },
           };
         },
