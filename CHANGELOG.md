@@ -26,6 +26,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `prepared-effects` — effects derived from the **real built transaction** (change and channel-internal outputs excluded from spends); the committed receipt reflects the real spend, not the agent's claimed amount.
   - Key-lease lifecycle (`reserve → sign → commit/burn`) is an internal consequence of authorized signing actions, never an agent-callable action.
 
+### Changed
+
+- **`@totemsdk/decision` 0.2.0** — bounded-decisions hardening: runtime-owned hard cancellation (caller abort / `decision:cancel` / timeout all race the provider); operation vs target confidence split (`operationConfidence`/`targetConfidence`, `confidence` retained as the operation alias); action operation/target distribution completeness with provider-declared `distributionTolerance` (Laya/Jev 0.02) and `choiceSelection: 'argmax'` enforcement; target-head goal/operation context; intelligence-fallback semantic preservation; Edge failure provenance + capability narrowing; normalized provenance (result == receipt, receipt carries `upstreamRequestId`); closed-set `isDecisionCapability`; non-empty request-id validation; explicit `minOperationProbability`/`minTargetProbability`.
+  - **Breaking within 0.x:** for actions, `minSelectedProbability` and `requireProbabilities` now cover the selected target as well as the operation; Laya/Jev complete distributions are validated strictly (coverage, sum, argmax).
+
 ### Fixed
 
 - **`scripts/workspace-gates.config.json`** — removed stale `pureminima-rpc` entry (package removed in `9440d2b`); workspace gates now pass 58/58.

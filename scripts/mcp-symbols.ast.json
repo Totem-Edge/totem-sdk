@@ -2868,7 +2868,7 @@
       "symbols": {
         "DECISION_VERSION": {
           "kind": "const",
-          "signature": "DECISION_VERSION = '0.1.0'"
+          "signature": "DECISION_VERSION = '0.2.0'"
         },
         "DECISION_TYPES": {
           "kind": "const",

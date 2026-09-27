@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/decision",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Provider-neutral decision runtime — typed, constrained, provenance-bound proposals over dynamic candidate spaces (AI proposes, Totem authorizes)",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

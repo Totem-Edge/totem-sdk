@@ -9,7 +9,7 @@
  * capability and is never emitted.
  */
 
-export const DECISION_VERSION = '0.1.0';
+export const DECISION_VERSION = '0.2.0';
 
 /** The four canonical decision semantics. */
 export type DecisionType = 'choice' | 'score' | 'probability' | 'action';

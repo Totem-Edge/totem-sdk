@@ -1502,7 +1502,7 @@
     },
     {
       "name": "@totemsdk/decision",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "description": "Provider-neutral decision runtime \u2014 typed, constrained, provenance-bound proposals over dynamic candidate spaces (AI proposes, Totem authorizes)",
       "domain": "decision",
       "keywords": [
