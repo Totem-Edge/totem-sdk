@@ -14,7 +14,7 @@
  *   5. The witness is materialized via @totemsdk/recursive-mast/kissvm
  */
 
-import { sha3_256, bytesToHex, hexToBytes } from '@totemsdk/core';
+import { sha3_256, bytesToHex, hexToBytes, canonicalJson } from '@totemsdk/core';
 import type { ScriptProof } from '@totemsdk/kissvm';
 import type { PolicyAction, PolicyRole } from './policy-manifest.js';
 
@@ -240,7 +240,12 @@ function canonicalRequest(req: PolicySigningRequest): string {
     replyEndpoint: req.replyEndpoint,
     requesterIdentity: req.requesterIdentity,
   };
-  return JSON.stringify(canonical, Object.keys(canonical).sort());
+  // RFC-016 hardening: use recursive canonical JSON (sorted keys at every
+  // level, arrays preserved). The previous `JSON.stringify(canonical,
+  // Object.keys(canonical).sort())` replacer applied to nested objects too, so
+  // nested fields (selectedPath/expectedInputs/expectedOutputs/requesterIdentity)
+  // were silently dropped from the signed form.
+  return canonicalJson(canonical);
 }
 
 // ─── Response creation ─────────────────────────────────────────────────────
