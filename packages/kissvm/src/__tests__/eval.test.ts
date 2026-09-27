@@ -1211,4 +1211,24 @@ describe('PROOF() expression', () => {
     const res = evaluateScript(script, mkWitness(), mkCtx({}));
     expect(res.passed).toBe(true);
   });
+
+  test('STATE operand is typed from its runtime value, not the AST node kind (HEX)', () => {
+    // Java: Contract.getState → Value.getValue('0x01') → HexValue.
+    const leafData = createMMRDataLeafNode(hexToBytes('01'), 0n);
+    const rootHex = '0x' + bytesToHex(leafData.data);
+    const script = `RETURN PROOF(STATE(0) 0 ${rootHex} 0 0x)`;
+    expect(evaluateScript(script, mkWitness(), mkCtx({ state: { 0: '0x01' } })).passed).toBe(true);
+    // The utf8-script interpretation of '0x01' must NOT match the hex root.
+    const wrongRoot = '0x' + bytesToHex(mmrLeafExact('0x01'));
+    const wrong = `RETURN PROOF(STATE(0) 0 ${wrongRoot} 0 0x)`;
+    expect(evaluateScript(wrong, mkWitness(), mkCtx({ state: { 0: '0x01' } })).passed).toBe(false);
+  });
+
+  test('bracketed SCRIPT operand is hashed as a script with brackets stripped', () => {
+    const scriptText = `RETURN SIGNEDBY(${mockPk(1)})`;
+    const rootHex = '0x' + bytesToHex(mmrLeafExact(scriptText));
+    const script = `RETURN PROOF(STATE(0) 0 ${rootHex} 0 0x)`;
+    const res = evaluateScript(script, mkWitness(), mkCtx({ state: { 0: `[${scriptText}]` } }));
+    expect(res.passed).toBe(true);
+  });
 });

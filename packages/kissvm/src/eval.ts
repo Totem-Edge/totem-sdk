@@ -414,12 +414,20 @@ function evalExpr(node: ASTNode, vm: VMState): Value {
     }
     case 'EXEC_MAST': return execMastBlockVm(vm) as Value;
     case 'PROOF': {
-      const dataVal    = String(evalExpr(node.data, vm));
-      const leafSumVal = asMiniNumber(evalExpr(node.leafSum, vm));
+      // Java's PROOF inspects the runtime Value type
+      // (org.minima.kissvm.functions.sha.PROOF + Contract.getState → Value.getValue):
+      // a `[ … ]` value is a SCRIPT leaf (outer brackets stripped), a `0x…` value is
+      // a HEX leaf (hashed from its raw bytes), everything else is a SCRIPT. Derive
+      // this from the evaluated value, not the AST node kind, so STATE/variable
+      // operands type the same way they do on a Minima node.
+      const dataRaw     = String(evalExpr(node.data, vm));
+      const leafSumVal  = asMiniNumber(evalExpr(node.leafSum, vm));
       const rootHashVal = String(evalExpr(node.rootHash, vm));
       const rootSumVal  = asMiniNumber(evalExpr(node.rootSum, vm));
       const proofVal    = String(evalExpr(node.proof, vm));
-      const isHex = (node.data as { kind?: string }).kind === 'HEX';
+      const bracketed   = dataRaw.startsWith('[') && dataRaw.endsWith(']');
+      const isHex       = !bracketed && (dataRaw.startsWith('0x') || dataRaw.startsWith('0X'));
+      const dataVal     = bracketed ? dataRaw.slice(1, -1) : dataRaw;
       return evalProof(dataVal, leafSumVal, rootHashVal, rootSumVal, proofVal, isHex, vm);
     }
 

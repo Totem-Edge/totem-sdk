@@ -107,10 +107,11 @@ const CASES: Case[] = [
   { name: '20_mmr',
     script: 'LET a = STATE(0) LET b = STATE(1) LET c = PREVSTATE(0) LET d = PREVSTATE(1) LET e = STATE(2) RETURN PROOF(a b c d e)',
     expect: true,
-    // data=0x01, leafSum=0, rootHash=0xAA, rootSum=0, proof=0x02 (empty: single-leaf tree)
+    // data=0x01 (HEX — runtime value starts with 0x, matching Java's HexValue),
+    // leafSum=0, rootHash=leaf, rootSum=0, proof=0x (empty: single-leaf tree)
     state: { 0: '0x01', 1: '0x00', 2: '0x' },
-    // Leaf for data='0x01' as string, sum=0 → createMMRDataLeafNode(utf8('0x01'), 0)
-    prevState: { 0: '0xB81AAC9B83C36B21446A2257A4703FE2D8C54E3EF1B11AFF59B58F9BB66E6771', 1: '0x00' } },
+    // Leaf for data=bytes(0x01) as HEX, sum=0 → createMMRDataLeafNode([0x01], 0)
+    prevState: { 0: '0xD52C05B171799D82057D10A4876AC1685A5417830D7C4E8230F8AA455D88B60D', 1: '0x00' } },
   { name: '21_allowlist',
     script: 'LET (0) = 0xAA LET (1) = 0xBB LET c = STATE(0) LET i = 0 LET f = FALSE WHILE i LT 2 DO IF GET(i) EQ c THEN LET f = TRUE ENDIF LET i = INC(i) ENDWHILE RETURN f AND SIGNEDBY(c)',
     expect: true, state: { 0: '0xBB' }, sigs: { bb: 'sig' } },
