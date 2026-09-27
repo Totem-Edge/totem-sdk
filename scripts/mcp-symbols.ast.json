@@ -3166,7 +3166,7 @@
         "DecisionShortlister": {
           "kind": "interface",
           "signature": "export interface DecisionShortlister",
-          "doc": "Optional candidate shortlister. Deterministic by contract. Deferred v1."
+          "doc": "Optional candidate shortlister seam (RFC-012 §25). **Deferred for v0.1** —\nexported as the future extension point but not invoked by the runtime. When\nimplemented it must run before provider-limit eligibility and must record the\noriginal candidate-set digest, the effective candidate-set digest, the\nshortlister identity, and the kept candidate IDs."
         },
         "DecisionRuntimeOptions": {
           "kind": "interface",
@@ -3189,7 +3189,7 @@
         "TypedBackendQuestion": {
           "kind": "interface",
           "signature": "export interface TypedBackendQuestion",
-          "doc": "A backend question in canonical form (provider peculiarities already removed)."
+          "doc": "A backend question in canonical form. Preserves the full semantic request\n(instruction, descriptions, metadata, action goal/operations/targets) so\nprovider adapters format their native shape from complete information rather\nthan from bare IDs."
         },
         "TypedBackendPrediction": {
           "kind": "interface",
@@ -6874,8 +6874,8 @@
         },
         "toMinimaProofExpression": {
           "kind": "function",
-          "signature": "toMinimaProofExpression(link: ProofLink): string",
-          "doc": "Generate a canonical Minima 5-argument PROOF expression.\n\nCanonical Minima syntax: PROOF(data, leafSum, rootHash, rootSum, proofHex)"
+          "signature": "toMinimaProofExpression(link: ProofLink, data?: string): string",
+          "doc": "Generate a canonical Minima 5-argument PROOF expression.\n\nCanonical Minima syntax: PROOF(data, leafSum, rootHash, rootSum, proofHex)\n\n`PROOF` **hashes its data argument into the leaf**, so `data` must be the leaf\npreimage (the script / raw data), **not** the precomputed leaf hash — passing\nthe hash would double-hash and verify a different leaf than `compileMastTree`\nproduced. Callers must therefore supply the leaf preimage explicitly."
         },
         "toTotemProofExpression": {
           "kind": "function",
@@ -6909,7 +6909,7 @@
         },
         "vestingWorkflow": {
           "kind": "function",
-          "signature": "vestingWorkflow(startPort: number, totalPort: number, claimedPort: number, beneficiaryPk: string): PrevStateWorkflow",
+          "signature": "vestingWorkflow(startPort: number, endPort: number, totalPort: number, claimedPort: number, beneficiaryPk: string): PrevStateWorkflow",
           "doc": "Generate a KISSVM script for a vesting schedule."
         },
         "roundBasedWorkflow": {
@@ -6929,8 +6929,7 @@
         },
         "buildLayeredMastScript": {
           "kind": "function",
-          "signature": "buildLayeredMastScript(config: LayeredPolicyConfig): string",
-          "doc": "Build the nested MAST KISSVM script for a layered policy.\nEach layer delegates to the next via MAST."
+          "signature": "buildLayeredMastScript(config: LayeredPolicyConfig): string"
         },
         "buildLayerSubset": {
           "kind": "function",
