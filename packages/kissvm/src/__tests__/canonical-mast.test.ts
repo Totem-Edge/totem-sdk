@@ -6,6 +6,7 @@ import {
   buildLayeredMastScript,
   buildLayeredPolicy,
   verifyProofChain,
+  toMinimaProofExpression,
   toNestedMastScript,
   type ProofChain,
 } from '../index.js';
@@ -80,6 +81,35 @@ describe('RFC-016 P2: canonical MAST roots', () => {
     expect(proofChain.links[0].script).toBe(mastScript);
     expect(proofChain.links[0].script).toContain(`MAST 0x${proofChain.links[1].policyRoot}`);
     expect(verifyProofChain(proofChain).valid).toBe(true);
+  });
+
+  it('PROOF formats the script argument as a bracketed SCRIPT literal', () => {
+    const script = 'RETURN TRUE';
+    const mast = compileMastTree([script]);
+    const link = {
+      scriptHash: computeCanonicalScriptHash(script),
+      policyRoot: mast.rootHex,
+      proof: mast.scripts[0].proofHex,
+      script,
+    };
+    // Defaults to the link's script, wrapped in [ ] per Minima's SCRIPT literal.
+    expect(toMinimaProofExpression(link)).toMatch(/^PROOF\(\[RETURN TRUE\] 0 0x[0-9a-f]+ 0 0x[0-9a-f]*\)$/);
+    expect(toMinimaProofExpression(link, script)).toContain('PROOF([RETURN TRUE]');
+    // An explicit hex preimage is passed through, never bracketed.
+    expect(toMinimaProofExpression(link, 'deadbeef', { dataType: 'hex' })).toContain('PROOF(0xdeadbeef');
+  });
+
+  it('PROOF refuses to double-hash and rejects a mismatched preimage', () => {
+    const script = 'RETURN TRUE';
+    const link = {
+      scriptHash: computeCanonicalScriptHash(script),
+      policyRoot: compileMastTree([script]).rootHex,
+      proof: '',
+      script,
+    };
+    expect(() => toMinimaProofExpression(link, link.scriptHash)).toThrow(/double-hash/);
+    expect(() => toMinimaProofExpression(link, `0x${link.scriptHash}`)).toThrow(/double-hash/);
+    expect(() => toMinimaProofExpression(link, 'RETURN FALSE')).toThrow(/does not hash to the link leaf/);
   });
 
   it('rejects an empty proof chain instead of compiling to allow-all', () => {

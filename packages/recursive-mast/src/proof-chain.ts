@@ -9,7 +9,7 @@
  */
 
 import { sha3_256, bytesToHex, MiniNumber } from '@totemsdk/core';
-import { verifyScriptMembership } from './mast-compiler.js';
+import { verifyScriptMembership, computeCanonicalScriptHash } from './mast-compiler.js';
 import type { ProofLink, ProofChain, VerificationResult } from './types.js';
 export type { ProofLink, ProofChain, VerificationResult };
 
@@ -83,17 +83,81 @@ export function verifyProofChain(
   return { valid: true, chain };
 }
 
+/** How a PROOF leaf preimage is rendered as a KISSVM argument. */
+export type ProofDataType = 'script' | 'hex';
+
+export interface ProofExpressionOptions {
+  /**
+   * Force the leaf-preimage argument type. Defaults to inference: a `0x…`
+   * value is treated as HEX, anything else as a SCRIPT literal.
+   */
+  dataType?: ProofDataType;
+}
+
+function stripHexPrefix(value: string): string {
+  return value.replace(/^0x/i, '');
+}
+
 /**
- * Generate a canonical Minima 5-argument PROOF expression.
- *
- * Canonical Minima syntax: PROOF(data, leafSum, rootHash, rootSum, proofHex)
- *
- * @returns Minima expression: `PROOF(0x<scriptHash> <leafSum> 0x<policyRoot> <rootSum> 0x<proof>)`
+ * Render a PROOF leaf preimage as a KISSVM argument. Minima's `PROOF` accepts
+ * its data argument as HEX (`0x…`) or as a `[ … ]` SCRIPT literal; an
+ * unbracketed script is mis-tokenised, so scripts are always wrapped.
  */
-export function toMinimaProofExpression(link: ProofLink): string {
+function formatProofData(preimage: string, dataType: ProofDataType): string {
+  if (dataType === 'hex') {
+    return /^0x/i.test(preimage) ? preimage : `0x${preimage}`;
+  }
+  return preimage.startsWith('[') && preimage.endsWith(']') ? preimage : `[${preimage}]`;
+}
+
+/**
+ * Generate a canonical Minima 5-argument PROOF expression:
+ * `PROOF(data leafSum rootHash rootSum proofHex)`.
+ *
+ * `PROOF` hashes its **data** argument into the leaf, so `data` must be the
+ * leaf preimage (default `link.script`), not the precomputed leaf hash. Script
+ * preimages are auto-formatted as `[ … ]`; at leaf-sum 0 a script preimage that
+ * does not hash to `link.scriptHash` fails closed.
+ */
+export function toMinimaProofExpression(
+  link: ProofLink,
+  data?: string,
+  options?: ProofExpressionOptions,
+): string {
+  const preimage = data ?? link.script;
+  if (!preimage) {
+    throw new Error(
+      'toMinimaProofExpression: PROOF data (the leaf preimage, not the leaf hash) is required.',
+    );
+  }
+
+  const dataType: ProofDataType =
+    options?.dataType ?? (/^0x[0-9a-fA-F]+$/.test(preimage) ? 'hex' : 'script');
+
+  const preimageHex = stripHexPrefix(preimage).toLowerCase();
+  const scriptHashHex = stripHexPrefix(link.scriptHash ?? '').toLowerCase();
+  if (scriptHashHex && preimageHex === scriptHashHex) {
+    throw new Error(
+      'toMinimaProofExpression: PROOF hashes its data into the leaf; passing the leaf hash double-hashes. Pass the script/preimage.',
+    );
+  }
+
   const leafSum = link.leafSum ?? MiniNumber.ZERO;
   const rootSum = link.rootSum ?? MiniNumber.ZERO;
-  return `PROOF(0x${link.scriptHash} ${leafSum} 0x${link.policyRoot} ${rootSum} 0x${link.proof})`;
+
+  const zeroSum = link.leafSum === undefined || link.leafSum.unscaled === 0n;
+  if (dataType === 'script' && zeroSum && scriptHashHex) {
+    const computed = stripHexPrefix(computeCanonicalScriptHash(preimage)).toLowerCase();
+    if (computed !== scriptHashHex) {
+      throw new Error(
+        `toMinimaProofExpression: script preimage does not hash to the link leaf (expected ${scriptHashHex.slice(0, 16)}…, got ${computed.slice(0, 16)}…).`,
+      );
+    }
+  }
+
+  const root = stripHexPrefix(link.policyRoot);
+  const proof = stripHexPrefix(link.proof);
+  return `PROOF(${formatProofData(preimage, dataType)} ${leafSum} 0x${root} ${rootSum} 0x${proof})`;
 }
 
 /**
