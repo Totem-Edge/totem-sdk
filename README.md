@@ -508,7 +508,7 @@ docs/                       # SDK documentation
 | [RFC-002](docs/rfc/RFC-002-OMNIA-RUST-WASM-PARITY.md) | Omnia Rust/WASM channel parity (implemented) |
 | [RFC-003](docs/rfc/RFC-003-OMNIA-BUILT-IN-PROGRAMS.md) | Omnia built-in channel programs (implemented) |
 | [RFC-004](docs/rfc/RFC-004-EDGE-SDK-V1-PROMOTION.md) | Edge SDK v1 promotion |
-| [RFC-005](docs/rfc/RFC-005-SDK-WALLET-GAP-FIXES.md) | SDK wallet gap fixes — re-triaged 2026-09 (token creation, stateful send, UTXO inspection and tx-builder serialization resolved; PWA token mint + on-node validation pending) (draft) |
+| [RFC-005](docs/rfc/RFC-005-SDK-WALLET-GAP-FIXES.md) | SDK wallet gap fixes — re-triaged 2026-09 (token creation in both wallets + on-node validated, stateful send, UTXO inspection and tx-builder serialization resolved) (draft) |
 | [RFC-006](docs/rfc/RFC-006-SDK-INTELLIGENCE-QVAC-INTEGRATION.md) | SDK intelligence/QVAC integration (implemented) |
 | [RFC-007](docs/rfc/RFC-007-STORAGE-CONSOLIDATION.md) | Storage consolidation & durable guarantees — Phases 0–3 landed (`@totemsdk/storage` adopted by 20 packages); 3a/4 partial (se-server volatile-default risk); 5 open (draft) |
 | [RFC-008](docs/rfc/RFC-008-FEDERATED-STATECHAIN.md) | Federated statechain — leased WOTS identity & threshold SE federation (draft) |
