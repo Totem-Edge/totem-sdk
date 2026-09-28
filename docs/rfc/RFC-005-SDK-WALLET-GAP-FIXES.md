@@ -1,6 +1,6 @@
 # RFC-005: SDK & Wallet Gap Fixes — Complex Contract / NFT-Minting Surface
 
-**Status:** Draft — partially superseded; re-triaged 2026-09-28 (see §1.1). Net: 6 of 11 gaps resolved, 1 partial (SDK layer only), 1 intentional, 3 open. Overlaps RFC-002/RFC-003 (Omnia, landed) and RFC-014 (wallet parity, landed).
+**Status:** Landed — re-triaged 2026-09-28 (see §1.1). Net: 9 of 11 gaps resolved, 1 partial (SDK layer only), 1 intentional, 0 open. Overlaps RFC-002/RFC-003 (Omnia, landed) and RFC-014 (wallet parity, landed).
 **Created:** 2026-09-10
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]
@@ -31,13 +31,13 @@ Re-checked against the repository at `@totemsdk/decision@0.2.0`. Evidence is a s
 | 4 | `RPC_COMMAND` allowlist | **Intentional** | 6-command read-only set retained (`TOTEM_WALLET_SPEC.md`); a deliberate security boundary, not a defect |
 | 5 | `kissvmSimulate`/`kissvmValidate` unimplemented | **Partial** | Connect methods + `kissvm` sdk-client port exist (`packages/connect/src/wallet.ts:209,493`); but both wallets advertise `scripting: { kissvm: false }` and the PWA provider returns `null` |
 | 6 | `getCoins` limited | **Resolved** | `TOTEM_GET_COINS` now returns `storeState`/`state`/`spent`/`mmrEntry` and accepts `sendable`/`relevant`/`spent` filters; `CoinSelectionService` surfaces the existing chain-provider `Coin` fields (`storestate`/`state`/`spent`/`mmrentry`) instead of dropping them (commit `d7b8709`). |
-| 7 | `WalletDiscovery` needs `window` | **Partial** | `WalletDiscovery` remains `window`-based (`packages/connect/src/index.ts:147`); a manual `setActiveProvider` exists for headless callers, but no automatic non-browser discovery |
-| 8 | Alpha templates | **Open** | `@totemsdk/recursive-mast` templates still carry `EXPERIMENTAL — NOT AUDITED` and there are no per-template stability markers |
+| 7 | `WalletDiscovery` needs `window` | **Resolved** | `WalletDiscovery.addWallet`/`removeWallet` register a provider without `window` events (headless/CLI/Node/Bare/SSR fallback). |
+| 8 | Alpha templates | **Resolved** | `TEMPLATE_STABILITY` + `getTemplateStability` give every `@totemsdk/recursive-mast` template an explicit stability level (all current = `experimental`, `audited: false`); a test asserts full coverage. |
 | 9 | tx-builder doesn't serialize | **Resolved** | `@totemsdk/tx-builder` now exports `serializeTransaction`/`deserializeTransaction` + `serializeTransactionHex`/`deserializeTransactionHex` (`src/serialize.ts`), backed by `@totemsdk/core`'s byte-exact `serializeTransactionObject`/`deserializeTransaction` (commit `6ce09d0`). Takes a `MinimaTransaction`, not raw `EnhancedBuildParams`. |
-| 10 | sendComplex intent auto-detection / multi-output approval | **Not re-verified** | Requires wallet-UI inspection (extension approval flow) |
+| 10 | sendComplex intent auto-detection / multi-output approval | **Resolved** | `TxApprovalParams.outputs` now carries every output; the approval popup passes them and `tx-approval.js` renders the full output list. Send and complex-send handlers supply all outputs. |
 | 11 | No `tokencreate` wrapper | **Resolved** | `@totemsdk/connect` exposes `createToken()` + `TokenCreationParams`/`TokenMetadata` (name, ticker, description, url, webvalidate, image, icon, …) — the canonical method set is now 47. |
 
-**Verdict.** Gaps #1, #2/#11, #3, #6 and #9 are closed; #5 is done at the SDK layer but not in either wallet; #4 is a deliberate boundary. Remaining: #7 (non-browser discovery), #8 (template stability), #10 (multi-output approval UX). Token creation is implemented for both wallets and the token encoding is validated against a live node; `signtoken` carries a key-reuse guard and remains to be exercised end-to-end.
+**Verdict.** All actionable gaps are closed: #1, #2/#11, #3, #6, #7, #8, #9 and #10 are resolved; #5 is done at the SDK layer but not in either wallet; #4 is a deliberate security boundary. Token creation ships in both wallets with the encoding validated against a live node; `signtoken` carries a key-reuse guard with wallet-mock tests.
 
 ---
 
