@@ -1440,7 +1440,8 @@ function createOutputCoin(
   amount: string,  // Decimal string for correct scale serialization
   tokenId: Uint8Array = MINIMA_TOKEN_ID,
   storeState: boolean = true,  // true for recipient output, false for change output (matches Java)
-  rawTokenData?: Uint8Array    // Token bytes from input CoinProof; undefined for native Minima
+  rawTokenData?: Uint8Array,   // Token bytes from input CoinProof; undefined for native Minima
+  state: StateVariable[] = []  // Output state variables (RFC-005 #3: stateful send)
 ): MinimaCoin {
   // Java's Coin constructor: new Coin(address, amount, tokenId) → storeState=true (default)
   //                          new Coin(address, amount, tokenId, false) → storeState=false (change)
@@ -1455,7 +1456,7 @@ function createOutputCoin(
     tokenId: tokenId,
     token: null,
     storeState,
-    state: [],
+    state,
     mmrEntryNumber: 0n,
     spent: false,
     created: 0n,
@@ -1474,6 +1475,12 @@ export interface BuildTransactionParams {
   amount: string;  // BASE UNITS as string (NOT decimal)
   tokenId?: string;
   changeAddress?: string;
+  /** Output state variables attached to the recipient coin (RFC-005 #3). */
+  state?: StateVariable[];
+  /** Whether the recipient output keeps state. Default true (matches Java). */
+  storeState?: boolean;
+  /** Transaction-level state variables. */
+  transactionState?: StateVariable[];
 }
 
 /**
@@ -1964,7 +1971,14 @@ export function buildTransaction(params: BuildTransactionParams): TransactionBui
   // token amount → basic=false. The previous NPE was from the brute-force byte scanner
   // corrupting the token name field — that scanner is now disabled, so clean bytes are safe.
   const outputs: MinimaCoin[] = [
-    createOutputCoin(paddedRecipient, amount || '0', tokenIdBytes, true, inputRawTokenData)
+    createOutputCoin(
+      paddedRecipient,
+      amount || '0',
+      tokenIdBytes,
+      params.storeState ?? true,
+      inputRawTokenData,
+      params.state ?? []
+    )
   ];
   
   if (changeBaseUnits > 0n) {
@@ -1986,7 +2000,7 @@ export function buildTransaction(params: BuildTransactionParams): TransactionBui
     linkHash: ZERO_TXPOWID,  // 1 byte (0x00), matches Java's MiniData.ZERO_TXPOWID
     inputs: inputCoins,
     outputs: outputs,
-    state: []
+    state: params.transactionState ?? []
   };
   
   precomputeTransactionCoinID(transaction);

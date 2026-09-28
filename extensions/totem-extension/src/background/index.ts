@@ -1651,7 +1651,10 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
           tokenSymbol, 
           sourceAddress,
           sendMode = 'global',
-          excludedAddresses
+          excludedAddresses,
+          state,
+          storeState,
+          transactionState
         } = params || {};
         
         if (!to || !amount) {
@@ -1893,7 +1896,10 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
           recipientAddress: recipientHex,
           amount: sendAmountBaseUnits,  // Integer units with scale=0
           tokenId: tokenid,
-          changeAddress: builderInputs[0]?.address
+          changeAddress: builderInputs[0]?.address,
+          ...(Array.isArray(state) ? { state } : {}),
+          ...(typeof storeState === 'boolean' ? { storeState } : {}),
+          ...(Array.isArray(transactionState) ? { transactionState } : {})
         });
         
         txLog.info(' Step 2 complete: Transaction built locally', {
@@ -3373,6 +3379,28 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
         const primaryOutput = txRequest.outputs[0];
         const tokenId = primaryOutput.tokenId || '0x00';
         const amount = primaryOutput.amount;
+
+        // RFC-005 #3: stateful simple send. State is supported on the primary
+        // (single) recipient output and as transaction-level state. Multi-output
+        // requests with per-output state are not representable by the single-send
+        // builder, so reject rather than silently dropping state.
+        const transactionState = Array.isArray(txRequest.transactionState) ? txRequest.transactionState : undefined;
+        const outputState = Array.isArray(primaryOutput.state) ? primaryOutput.state : undefined;
+        const storeState = typeof primaryOutput.storeState === 'boolean' ? primaryOutput.storeState : undefined;
+        for (let i = 1; i < txRequest.outputs.length; i++) {
+          const o = txRequest.outputs[i];
+          if (o && (o.state !== undefined || o.storeState !== undefined)) {
+            return {
+              ok: true,
+              result: {
+                success: false,
+                error: `outputs[${i}] carries state; stateful multi-output sends require TOTEM_SEND_COMPLEX`,
+                errorCode: 'UNSUPPORTED_STATEFUL_SEND'
+              },
+              id
+            };
+          }
+        }
         
         const permissionCheck = connectedSitesStore.canExecuteTransaction(
           origin,
@@ -3456,7 +3484,10 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
             amount: amount,
             tokenid: tokenId,
             sourceAddress: account.address,
-            sendMode: 'single'
+            sendMode: 'single',
+            ...(outputState ? { state: outputState } : {}),
+            ...(storeState !== undefined ? { storeState } : {}),
+            ...(transactionState ? { transactionState } : {})
           },
           id: `wots-send-${Date.now()}`
         }, internalSender);

@@ -17,6 +17,7 @@ import type {
   EnhancedBuildParams,
   DAppTransactionIntent,
   TokenSpendingLimit,
+  StateVariable,
   TotemGetCapabilitiesResponse,
   TotemGetProviderStatusResponse,
   TotemSetChainProviderResponse,
@@ -235,7 +236,13 @@ export async function sendTransaction(origin: string, request: {
     address: string;
     amount: string;
     tokenId?: string;
+    /** Output state variables (RFC-005 #3). Supported on the primary output. */
+    state?: StateVariable[];
+    /** Whether the output keeps state. Default true. */
+    storeState?: boolean;
   }>;
+  /** Transaction-level state variables. */
+  transactionState?: StateVariable[];
 }): Promise<TotemSendTransactionResponse> {
   const provider = getProvider();
   return await provider.request({
