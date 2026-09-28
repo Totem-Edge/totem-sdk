@@ -1,6 +1,6 @@
 # RFC-002: Omnia Rust/WASM Parity With TypeScript
 
-**Status:** Draft  
+**Status:** Landed — Rust/WASM parity with the TypeScript channel state machine. `@totemsdk/omnia` v1.0.0 ships TS + Rust + WASM with golden fixtures and 11 WASM-parity suites (27 Rust tests).
 **Created:** 2026-08-13  
 **Authors:** Totem SDK Contributors  
 **Reviewers:** [Pending stakeholder assignment]

@@ -1,6 +1,6 @@
 # RFC-003: Omnia Built-In Channel Programs
 
-**Status:** Draft
+**Status:** Landed — the built-in channel programs (atomic-payment, settlement, treasury, membership, tokenized-asset) ship in `@totemsdk/omnia` (8 built-in programs) with TS/Rust/WASM golden fixtures and TS/WASM parity tests.
 **Created:** 2026-08-14
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]

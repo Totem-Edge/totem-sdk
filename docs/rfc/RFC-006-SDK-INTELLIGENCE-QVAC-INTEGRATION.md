@@ -1,6 +1,6 @@
 # RFC-006: SDK Intelligence & QVAC Integration
 
-**Status:** Draft
+**Status:** Landed — P0–P7 shipped (see the §6 status note and the §4.3/§4.4 deviations). P5 shipped in the TypeScript layer; the protobuf `oneof intent` generalization stays out of scope per Open Question 4. `@totemsdk/qvac` adds runtime capability discovery.
 **Created:** 2026-09-12
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]

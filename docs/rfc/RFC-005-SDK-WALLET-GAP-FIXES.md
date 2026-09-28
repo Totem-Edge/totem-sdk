@@ -1,6 +1,6 @@
 # RFC-005: SDK & Wallet Gap Fixes — Complex Contract / NFT-Minting Surface
 
-**Status:** Draft
+**Status:** Draft — partially superseded; needs re-triage against RFC-014 and current packages. Verified resolved since drafting: Gap #1 (`WOTS_BUILD_UNSIGNED`/`WOTS_SEND_COMPLEX`) implemented in the extension; Gap #5 (`totem_kissvmSimulate`/`totem_kissvmValidate`) wired through `@totemsdk/connect` with a `kissvm` sdk-client port (the PWA provider still returns `null`). Verified still open: token creation (#2/#11 — no `createToken`), `@totemsdk/tx-builder` binary serialization (#9 — no `serializeTransaction`). Remaining gaps (#3/#4/#6/#7/#8/#10) require a fresh audit before their status is claimed; #4 (RPC allowlist) is an intentional security boundary.
 **Created:** 2026-09-10
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]

@@ -1,6 +1,6 @@
 # RFC-007: Storage Consolidation & Durable Guarantees
 
-**Status:** Draft
+**Status:** Draft — Phase 0 landed (`@totemsdk/storage` scaffold: `StorageError`, codec, `Namespace`, `Transaction`/CAS, `FileStore`/`MemoryStore`/`SqliteStore`, conformance suites, and the reference `ArtifactStoreBackend` adapter). Phases 1–5 outstanding: consolidate transactional backends (Phase 1), harden runtime adapters (Phase 2), fill durability gaps G3–G10 (Phase 3) and intelligence accounting/content access (Phase 3a), and security-critical surfaces (Phase 4) plus gated content (Phase 5). Phase 6 (browser/application pass) is an explicit recorded deferral owned by the wallet extension, not committed by this RFC.
 **Created:** 2026-09-15
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]
