@@ -173,6 +173,22 @@ export class WalletDiscovery {
     return [...this._wallets.values()];
   }
 
+  /**
+   * Register a wallet manually. This is the non-browser / headless fallback:
+   * callers (CLI, Node, Bare, SSR) that have no `totem:announce` event source
+   * can inject a provider directly instead of relying on `window` CustomEvents.
+   */
+  addWallet(wallet: DiscoveredWallet): void {
+    if (!wallet?.info?.id || !wallet?.provider) return;
+    this._wallets.set(wallet.info.id, { info: wallet.info, provider: wallet.provider });
+    this._notify();
+  }
+
+  /** Remove a manually-registered (or announced) wallet by id. */
+  removeWallet(id: string): void {
+    if (this._wallets.delete(id)) this._notify();
+  }
+
   onChange(
     callback: (wallets: ReadonlyArray<DiscoveredWallet>) => void,
   ): () => void {

@@ -381,3 +381,7 @@ export type {
   EncryptionEnvelope,
   KeyWrappingEnvelope,
 } from './encryption-envelope.js';
+
+// Template stability registry (RFC-005 #8)
+export { TEMPLATE_STABILITY, getTemplateStability } from './template-stability.js';
+export type { TemplateStability, TemplateStabilityEntry } from './template-stability.js';

@@ -63,6 +63,38 @@ if (tokenId !== '0x00' && tokenId) {
   document.getElementById('token-id').textContent = tokenId;
 }
 
+// RFC-005 #10: multi-output transactions show every output, not just the first.
+const outputsRaw = urlParams.get('outputs');
+if (outputsRaw) {
+  try {
+    const outputs = JSON.parse(outputsRaw);
+    if (Array.isArray(outputs) && outputs.length > 1) {
+      const amountEl = document.getElementById('amount');
+      const card = amountEl && (amountEl.closest('.card') || amountEl.parentElement);
+      if (card) {
+        const wrap = document.createElement('div');
+        wrap.style.marginTop = '8px';
+        wrap.innerHTML =
+          '<div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">Outputs (' +
+          outputs.length +
+          ')</div>' +
+          outputs
+            .map(
+              (o, i) =>
+                '<div style="display:flex;justify-content:space-between;font-size:12px;gap:8px;">' +
+                '<span>#' + i + ' ' + truncateAddress(String(o.address || '')) + '</span>' +
+                '<span>' + formatAmount(String(o.amount || '0')) + ' ' + getTokenName(o.tokenId || '0x00') + '</span>' +
+                '</div>',
+            )
+            .join('');
+        card.appendChild(wrap);
+      }
+    }
+  } catch (e) {
+    // Ignore malformed outputs — fall back to the single-output display.
+  }
+}
+
 let isValid = true;
 let hasBalance = true;
 

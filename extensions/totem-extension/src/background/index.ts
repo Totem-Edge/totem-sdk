@@ -284,6 +284,8 @@ interface TxApprovalParams {
   tokenId: string;
   intent?: string;
   mode?: 'build' | 'submit' | 'broadcast';
+  /** All outputs (RFC-005 #10), so multi-output transactions are shown in full. */
+  outputs?: Array<{ address: string; amount: string; tokenId?: string }>;
 }
 
 const pendingApprovalCallbacks = new Map<number, (approved: boolean) => void>();
@@ -559,6 +561,11 @@ async function showTransactionApprovalPopup(params: TxApprovalParams): Promise<b
       intent: params.intent || 'send',
       mode: params.mode || 'submit'
     });
+    // RFC-005 #10: pass every output so the approval shows the full transaction,
+    // not just the first output.
+    if (params.outputs && params.outputs.length > 1) {
+      urlParams.set('outputs', JSON.stringify(params.outputs));
+    }
     
     chrome.windows.create({
       url: `${approvalUrl}?${urlParams.toString()}`,
@@ -3505,7 +3512,8 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
           to: primaryOutput.address,
           amount: amount,
           tokenId: tokenId,
-          intent: intent
+          intent: intent,
+          outputs: txRequest.outputs.map((o: any) => ({ address: o.address, amount: o.amount, tokenId: o.tokenId })),
         });
         
         if (!approved) {
@@ -4092,7 +4100,8 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
           amount: totalOutputAmount,
           tokenId: primaryTokenId,
           intent: detectedIntent,
-          mode
+          mode,
+          outputs: bp.outputs.map((o: any) => ({ address: o.address, amount: o.amount, tokenId: o.tokenId })),
         };
         
         console.log(`[TOTEM_SEND_COMPLEX] Showing approval popup (mode=${mode}):`, {
