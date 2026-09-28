@@ -714,7 +714,7 @@
         },
         "sendTransaction": {
           "kind": "function",
-          "signature": "sendTransaction(origin: string, request: { version: 1; intent?: DAppTransactionIntent; outputs: Array<{ address: string; amount: string; tokenId?: string; }>; }): Promise<TotemSendTransactionResponse>"
+          "signature": "sendTransaction(origin: string, request: { version: 1; intent?: DAppTransactionIntent; outputs: Array<{ address: string; amount: string; tokenId?: string; state?: StateVariable[]; storeState?: boolean; }>; transactionState?: StateVariable[]; }): Promise<TotemSendTransactionResponse>"
         },
         "getCoins": {
           "kind": "function",
@@ -1940,6 +1940,11 @@
           "kind": "const",
           "signature": "computeTransactionDigest = compute_transaction_digest_wasm"
         },
+        "deserializeTransaction": {
+          "kind": "function",
+          "signature": "deserializeTransaction(bytes: Uint8Array): MinimaTransaction",
+          "doc": "Deserialize a transaction produced by {@link serializeTransaction}. The\ninverse is byte-exact for canonically-encoded transactions (outputs/inputs\nwritten from decimal amounts, MMR entry numbers and tokens)."
+        },
         "timingSafeEqual": {
           "kind": "const",
           "signature": "timingSafeEqual = timing_safe_equal_wasm"
@@ -2040,6 +2045,10 @@
         "serializeCoin": {
           "kind": "function",
           "signature": "serializeCoin(coin: MinimaCoin): Uint8Array"
+        },
+        "serializeTransactionObject": {
+          "kind": "function",
+          "signature": "serializeTransactionObject(tx: MinimaTransaction): Uint8Array"
         },
         "createDefaultTransaction": {
           "kind": "function",
@@ -13431,8 +13440,8 @@
         },
         "toMinimaProofExpression": {
           "kind": "function",
-          "signature": "toMinimaProofExpression(link: ProofLink): string",
-          "doc": "Generate a canonical Minima 5-argument PROOF expression.\n\nCanonical Minima syntax: PROOF(data, leafSum, rootHash, rootSum, proofHex)"
+          "signature": "toMinimaProofExpression(link: ProofLink, data?: string, options?: ProofExpressionOptions): string",
+          "doc": "Generate a canonical Minima 5-argument PROOF expression:\n\n  PROOF(data leafSum rootHash rootSum proofHex)\n\n`PROOF` hashes its **data** argument into the leaf via\n`MMRData.CreateMMRDataLeafNode`, so `data` must be the leaf preimage — the\nscript / raw data — **not** the precomputed leaf hash (passing the hash would\ndouble-hash and verify a different leaf than `compileMastTree` produced).\n\nDefaults to `link.script` and auto-formats it as a `[ … ]` SCRIPT literal\n(or, for `0x…` data, as HEX). When the preimage is a script at leaf-sum 0 the\ncall fails closed unless it hashes to `link.scriptHash`, so an unverifiable\nPROOF cannot be emitted."
         },
         "toTotemProofExpression": {
           "kind": "function",
@@ -13466,7 +13475,7 @@
         },
         "vestingWorkflow": {
           "kind": "function",
-          "signature": "vestingWorkflow(startPort: number, totalPort: number, claimedPort: number, beneficiaryPk: string): PrevStateWorkflow",
+          "signature": "vestingWorkflow(startPort: number, endPort: number, totalPort: number, claimedPort: number, beneficiaryPk: string): PrevStateWorkflow",
           "doc": "Generate a KISSVM script for a vesting schedule."
         },
         "roundBasedWorkflow": {
@@ -13566,8 +13575,7 @@
         },
         "buildLayeredMastScript": {
           "kind": "function",
-          "signature": "buildLayeredMastScript(config: LayeredPolicyConfig): string",
-          "doc": "Build the nested MAST KISSVM script for a layered policy.\nEach layer delegates to the next via MAST."
+          "signature": "buildLayeredMastScript(config: LayeredPolicyConfig): string"
         },
         "buildLayerSubset": {
           "kind": "function",
@@ -14723,6 +14731,11 @@
           "kind": "const",
           "signature": "computeTransactionDigest: typeof compute_transaction_digest_wasm"
         },
+        "deserializeTransaction": {
+          "kind": "function",
+          "signature": "deserializeTransaction(bytes: Uint8Array): MinimaTransaction",
+          "doc": "Deserialize a transaction produced by {@link serializeTransaction}. The\ninverse is byte-exact for canonically-encoded transactions (outputs/inputs\nwritten from decimal amounts, MMR entry numbers and tokens)."
+        },
         "timingSafeEqual": {
           "kind": "const",
           "signature": "timingSafeEqual: typeof timing_safe_equal_wasm"
@@ -14824,6 +14837,10 @@
         "serializeCoin": {
           "kind": "function",
           "signature": "serializeCoin(coin: MinimaCoin): Uint8Array"
+        },
+        "serializeTransactionObject": {
+          "kind": "function",
+          "signature": "serializeTransactionObject(tx: MinimaTransaction): Uint8Array"
         },
         "createDefaultTransaction": {
           "kind": "function",
@@ -16661,6 +16678,25 @@
           "kind": "function",
           "signature": "buildMinimaWitnessBytes(signatures: TreeSignature[]): Uint8Array",
           "doc": "Canonical Minima witness serializer for TreeKey signers (RFC-009).\n\nEmits the signatures section as a list of Minima `Signature` objects — each\nserialized via `serializeTreeSignature`, byte-identical to Java\n`Signature.writeDataStream()` — followed by the empty coin-proof and script\nsections:\n\n  `[MiniNumber(count)][Signature…][MiniNumber(0)][MiniNumber(0)]`\n\nThis is the witness shape a Minima node expects for a cooperative\n`MULTISIG`/`SIGNEDBY` spend when the signers are TreeKey roots. It is the\nsingle source of truth shared by `@totemsdk/statechain`."
+        },
+        "serializeTransactionHex": {
+          "kind": "function",
+          "signature": "serializeTransactionHex(tx: MinimaTransaction): string",
+          "doc": "Serialize a transaction to lowercase hex (no `0x` prefix)."
+        },
+        "deserializeTransactionHex": {
+          "kind": "function",
+          "signature": "deserializeTransactionHex(hex: string): MinimaTransaction",
+          "doc": "Deserialize a transaction from hex (with or without a `0x` prefix)."
+        },
+        "serializeTransaction": {
+          "kind": "function",
+          "signature": "serializeTransaction(tx: MinimaTransaction): Uint8Array"
+        },
+        "deserializeTransaction": {
+          "kind": "function",
+          "signature": "deserializeTransaction(bytes: Uint8Array): MinimaTransaction",
+          "doc": "Deserialize a transaction produced by {@link serializeTransaction}. The\ninverse is byte-exact for canonically-encoded transactions (outputs/inputs\nwritten from decimal amounts, MMR entry numbers and tokens)."
         }
       }
     },
