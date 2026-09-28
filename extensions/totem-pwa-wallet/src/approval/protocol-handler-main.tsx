@@ -69,6 +69,7 @@ function ProtocolHandler() {
       TOTEM_SEND_TRANSACTION: '/approval/send.html',
       TOTEM_SIGN_DATA: '/approval/verify.html',
       TOTEM_SEND_COMPLEX: '/approval/send.html',
+      TOTEM_TOKENCREATE: '/approval/tokencreate.html',
       TOTEM_PROVE_OWNERSHIP: '/approval/verify.html',
       TOTEM_BROADCAST_HEX: '/approval/send.html',
       TOTEM_GET_COINS: '/approval/connect.html',

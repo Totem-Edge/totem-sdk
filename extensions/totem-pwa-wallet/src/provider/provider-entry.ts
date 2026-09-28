@@ -63,7 +63,7 @@ import { isSharedConnectMethod, dispatchSharedConnectMethod } from '../core/conn
       case 'TOTEM_DISCONNECT':        return null;
       case 'TOTEM_SIGN_DATA':         return '/approval/verify.html';
       case 'TOTEM_SEND_COMPLEX':      return '/approval/send.html';
-      case 'TOTEM_TOKENCREATE':       return null; // PWA token mint is a follow-up (extension-only for now)
+      case 'TOTEM_TOKENCREATE':       return '/approval/tokencreate.html';
       case 'TOTEM_PROVE_OWNERSHIP':   return '/approval/verify.html';
       case 'TOTEM_BROADCAST_HEX':     return '/approval/send.html';
       case 'TOTEM_GET_COINS':         return '/approval/connect.html';
@@ -153,6 +153,16 @@ import { isSharedConnectMethod, dispatchSharedConnectMethod } from '../core/conn
       if (bp.amount) out.amount = String(bp.amount);
       if (bp.tokenId) out.tokenId = String(bp.tokenId);
       if (params.mode) out.mode = String(params.mode);
+    }
+
+    if (method === 'TOTEM_TOKENCREATE') {
+      const request = params.request as Record<string, unknown> | undefined;
+      if (request) {
+        if (request.metadata) out.metadata = JSON.stringify(request.metadata);
+        if (request.decimals !== undefined) out.decimals = String(request.decimals);
+        if (request.totalSupply !== undefined) out.totalSupply = String(request.totalSupply);
+        if (request.script !== undefined) out.script = String(request.script);
+      }
     }
 
     if (method === 'totem_signTransaction') {

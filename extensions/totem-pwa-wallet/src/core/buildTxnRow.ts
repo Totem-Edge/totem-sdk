@@ -244,6 +244,12 @@ interface OutputCoin {
   address: Uint8Array;    // 32-byte address hash
   amountDecimal: string;  // "1.5" etc.
   tokenId: Uint8Array;    // 0x00 for native MINIMA
+  /** Keep state on this output (token-create output = true). */
+  storeState?: boolean;
+  /** Exact amount bytes (overrides amountDecimal) — used for token create. */
+  rawAmountBytes?: Uint8Array;
+  /** Serialized Token descriptor (Java Token.writeDataStream) for token create. */
+  tokenData?: Uint8Array;
 }
 
 /** Parse decimal string to MiniNumber bytes (scale + len + value) */
@@ -284,18 +290,52 @@ function serializeInputCoin(c: ParsedInputCoin): Uint8Array {
 
 /** Serialize an output coin (constructed, no CoinProof) */
 function serializeOutputCoin(c: OutputCoin): Uint8Array {
-  return concat(
+  const parts: Uint8Array[] = [
     writeHashToStream(c.coinId),
     writeHashToStream(c.address),
-    writeMiniNumberFromDecimal(c.amountDecimal),
+    c.rawAmountBytes ?? writeMiniNumberFromDecimal(c.amountDecimal),
     writeMiniData(c.tokenId),
-    writeMiniByte(false),          // storeState
+    writeMiniByte(c.storeState ?? false),  // storeState
     writeMMREntryNumber(0n),       // mmrEntryNumber = 0
     writeMiniByte(false),          // spent
     writeMiniNumber(0n),           // blockCreated = 0
     writeMiniNumber(0n),           // state count = 0
-    writeMiniByte(false),          // hasToken
+  ];
+  if (c.tokenData && c.tokenData.length > 0) {
+    parts.push(writeMiniByte(true));
+    parts.push(c.tokenData);
+  } else {
+    parts.push(writeMiniByte(false));  // hasToken
+  }
+  return concat(...parts);
+}
+
+/**
+ * Serialize a Minima Token descriptor (Java `Token.writeDataStream()` order:
+ * coinId, script, scale, minimaAmount, name, created).
+ */
+function serializeTokenData(t: {
+  coinId: Uint8Array;
+  script: Uint8Array;
+  scale: number;
+  minimaUnscaled: bigint;
+  minimaScale: number;
+  name: Uint8Array;
+  created: bigint;
+}): Uint8Array {
+  return concat(
+    writeHashToStream(t.coinId),
+    writeMiniData(t.script),
+    writeMiniNumber(BigInt(t.scale)),
+    writeMiniNumber(t.minimaUnscaled, t.minimaScale),
+    writeMiniData(t.name),
+    writeMiniNumber(t.created),
   );
+}
+
+/** Token id = SHA3-256(MiniData(tokenData)) — Java `Token.calculateTokenID()`. */
+function computeTokenId(tokenData: Uint8Array): Uint8Array {
+  return new Uint8Array(sha3_256(writeMiniData(tokenData)));
 }
 
 // ─── Transaction serialization ────────────────────────────────────────────────
@@ -406,6 +446,17 @@ export interface BuildSendParams {
    * serialized Transaction (not a valid TxnRow) — used by "build" mode.
    */
   sign?: boolean;
+  /**
+   * Mint a token: output[0] becomes the token-create coin (0xFF marker +
+   * Token descriptor). `toAddressHex` receives the supply, `toAmount` is the
+   * Minima colorminima (tiny) and `changeAmount` the remainder.
+   */
+  tokenCreate?: {
+    name: string;
+    script?: string;
+    decimals: number;
+    totalSupply: string;
+  };
 }
 
 export interface BuildSendResult {
@@ -414,6 +465,8 @@ export interface BuildSendResult {
   digestTx: string;      // hex of SHA3-256(transaction bytes)
   /** Whether txnRowHex is a fully signed TxnRow. */
   signed: boolean;
+  /** Created token id (RFC-005 #2/#11), when tokenCreate was set. */
+  tokenId?: string;
 }
 
 /**
@@ -476,6 +529,33 @@ export async function buildTxnRowHex(params: BuildSendParams): Promise<BuildSend
     );
   }
 
+  // 2c. Token creation (RFC-005 #2/#11): output[0] becomes the token-create
+  // coin. Mirrors Minima tokencreate: scale = 44-decimals, the minima amount is
+  // MiniNumber(unscaled = totalSupply, scale = 44-decimals), token coinId 0x00.
+  let createdTokenId: string | undefined;
+  if (params.tokenCreate) {
+    const tc = params.tokenCreate;
+    if (!Number.isInteger(tc.decimals) || tc.decimals < 0 || tc.decimals > 44) {
+      throw new Error(`tokenCreate.decimals must be an integer 0..44 (got ${tc.decimals})`);
+    }
+    const scale = MINIMA_DECIMALS - tc.decimals;
+    const minimaUnscaled = BigInt(tc.totalSupply || '0');
+    const tokenData = serializeTokenData({
+      coinId: new Uint8Array([0x00]),
+      script: new TextEncoder().encode(tc.script ?? 'RETURN TRUE'),
+      scale,
+      minimaUnscaled,
+      minimaScale: scale,
+      name: new TextEncoder().encode(tc.name),
+      created: 0n,
+    });
+    createdTokenId = '0x' + bytesToHex(computeTokenId(tokenData));
+    outputs[0].tokenId = new Uint8Array([0xff]);
+    outputs[0].storeState = true;
+    outputs[0].rawAmountBytes = writeMiniNumber(minimaUnscaled, scale);
+    outputs[0].tokenData = tokenData;
+  }
+
   // 3. Precompute output coinIDs (must happen BEFORE digest computation)
   precomputeOutputCoinIds(inputs, outputs);
 
@@ -489,6 +569,7 @@ export async function buildTxnRowHex(params: BuildSendParams): Promise<BuildSend
       txnRowHex: '0x' + bytesToHex(txBytes),
       digestTx: '0x' + bytesToHex(digestTx),
       signed: false,
+      ...(createdTokenId ? { tokenId: createdTokenId } : {}),
     };
   }
 
@@ -513,6 +594,7 @@ export async function buildTxnRowHex(params: BuildSendParams): Promise<BuildSend
     txnRowHex: '0x' + bytesToHex(txnRow),
     digestTx: '0x' + bytesToHex(digestTx),
     signed: true,
+    ...(createdTokenId ? { tokenId: createdTokenId } : {}),
   };
 }
 
