@@ -716,6 +716,11 @@
           "kind": "function",
           "signature": "sendTransaction(origin: string, request: { version: 1; intent?: DAppTransactionIntent; outputs: Array<{ address: string; amount: string; tokenId?: string; state?: StateVariable[]; storeState?: boolean; }>; transactionState?: StateVariable[]; }): Promise<TotemSendTransactionResponse>"
         },
+        "createToken": {
+          "kind": "function",
+          "signature": "createToken(origin: string, request: TokenCreationParams): Promise<TotemTokenCreateResponse>",
+          "doc": "Create (mint) a custom token or NFT (RFC-005 #2/#11). `decimals: 0` mints a\nnon-fungible token. The wallet pops an approval; on success the created\n`tokenId` (`Token.getTokenID()`) is returned."
+        },
         "getCoins": {
           "kind": "function",
           "signature": "getCoins(origin: string, params?: { tokenId?: string; address?: string; minAmount?: string; sendable?: boolean; relevant?: boolean; spent?: boolean; }): Promise<TotemGetCoinsResponse>"
@@ -1335,6 +1340,31 @@
           "kind": "type",
           "signature": "export type TotemSendTransactionResponse = | TotemSendTransactionSuccessResponse | TotemSendTransactionErrorResponse"
         },
+        "TokenMetadata": {
+          "kind": "interface",
+          "signature": "export interface TokenMetadata",
+          "doc": "Rich token metadata, serialized into the on-chain token `name` as JSON."
+        },
+        "TokenCreationParams": {
+          "kind": "interface",
+          "signature": "export interface TokenCreationParams"
+        },
+        "TotemTokenCreateRequest": {
+          "kind": "interface",
+          "signature": "export interface TotemTokenCreateRequest"
+        },
+        "TotemTokenCreateSuccessResponse": {
+          "kind": "interface",
+          "signature": "export interface TotemTokenCreateSuccessResponse"
+        },
+        "TotemTokenCreateErrorResponse": {
+          "kind": "interface",
+          "signature": "export interface TotemTokenCreateErrorResponse"
+        },
+        "TotemTokenCreateResponse": {
+          "kind": "type",
+          "signature": "export type TotemTokenCreateResponse = | TotemTokenCreateSuccessResponse | TotemTokenCreateErrorResponse"
+        },
         "TotemGetCoinsRequest": {
           "kind": "interface",
           "signature": "export interface TotemGetCoinsRequest"
@@ -1485,7 +1515,7 @@
         },
         "LEGACY_METHODS": {
           "kind": "const",
-          "signature": "LEGACY_METHODS = [ 'TOTEM_CONNECT', 'TOTEM_VERIFY', 'TOTEM_GET_ACCOUNTS', 'TOTEM_SEND_TRANSACTION', 'TOTEM_GET_COINS', 'TOTEM_SEND_COMPLEX', 'TOTEM_SIGN_DATA', 'TOTEM_BROADCAST_HEX', 'TOTEM_GRANT_TX_P",
+          "signature": "LEGACY_METHODS = [ 'TOTEM_CONNECT', 'TOTEM_VERIFY', 'TOTEM_GET_ACCOUNTS', 'TOTEM_SEND_TRANSACTION', 'TOTEM_GET_COINS', 'TOTEM_SEND_COMPLEX', 'TOTEM_TOKENCREATE', 'TOTEM_SIGN_DATA', 'TOTEM_BROADCAST_HE",
           "doc": "Legacy uppercase wire methods."
         },
         "TOTEM_METHODS": {
@@ -2049,6 +2079,16 @@
         "serializeTransactionObject": {
           "kind": "function",
           "signature": "serializeTransactionObject(tx: MinimaTransaction): Uint8Array"
+        },
+        "computeTokenId": {
+          "kind": "function",
+          "signature": "computeTokenId(token: MinimaToken): Uint8Array",
+          "doc": "Compute a Minima **token id** — SHA3-256 of the MiniData-wrapped serialized\nToken, matching Java `Token.calculateTokenID()`. A newly created token's coins\ncarry this value as their `tokenId`; token creation returns it."
+        },
+        "serializeTokenDescriptor": {
+          "kind": "function",
+          "signature": "serializeTokenDescriptor(token: MinimaToken): Uint8Array",
+          "doc": "Serialize a token descriptor (Java `Token.writeDataStream()` order)."
         },
         "createDefaultTransaction": {
           "kind": "function",
@@ -14841,6 +14881,16 @@
         "serializeTransactionObject": {
           "kind": "function",
           "signature": "serializeTransactionObject(tx: MinimaTransaction): Uint8Array"
+        },
+        "computeTokenId": {
+          "kind": "function",
+          "signature": "computeTokenId(token: MinimaToken): Uint8Array",
+          "doc": "Compute a Minima **token id** — SHA3-256 of the MiniData-wrapped serialized\nToken, matching Java `Token.calculateTokenID()`. A newly created token's coins\ncarry this value as their `tokenId`; token creation returns it."
+        },
+        "serializeTokenDescriptor": {
+          "kind": "function",
+          "signature": "serializeTokenDescriptor(token: MinimaToken): Uint8Array",
+          "doc": "Serialize a token descriptor (Java `Token.writeDataStream()` order)."
         },
         "createDefaultTransaction": {
           "kind": "function",
