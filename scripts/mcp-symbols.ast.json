@@ -6943,8 +6943,7 @@
         },
         "toNestedMastScript": {
           "kind": "function",
-          "signature": "toNestedMastScript(chain: ProofChain): string",
-          "doc": "Generate the full nested MAST KISSVM script for a proof chain.\n\nEach level uses `MAST 0x<root>` to auto-load the next script from the\ntransaction witness. The VM looks up the witness ScriptProof whose\ncalculated address equals the given root, parses it, and executes it\nin the same contract context.\n\nVM limits: 64 stack depth, 1,024 instructions shared across all frames."
+          "signature": "toNestedMastScript(chain: ProofChain): string"
         },
         "buildStateTransition": {
           "kind": "function",
@@ -13495,8 +13494,7 @@
         },
         "toNestedMastScript": {
           "kind": "function",
-          "signature": "toNestedMastScript(chain: ProofChain): string",
-          "doc": "Generate the full nested MAST KISSVM script for a proof chain.\n\nEach level uses `MAST 0x<root>` to auto-load the next script from the\ntransaction witness. The VM looks up the witness ScriptProof whose\ncalculated address equals the given root, parses it, and executes it\nin the same contract context.\n\nVM limits: 64 stack depth, 1,024 instructions shared across all frames."
+          "signature": "toNestedMastScript(chain: ProofChain): string"
         },
         "buildStateTransition": {
           "kind": "function",
@@ -13707,7 +13705,7 @@
         },
         "collectSigningResponses": {
           "kind": "function",
-          "signature": "collectSigningResponses(requiredRoles: string[], responses: PolicySigningResponse[], options?: { requestId?: string; allowOneSignerMultipleRoles?: boolean; }): SigningRoundResult"
+          "signature": "collectSigningResponses(requiredRoles: string[], responses: PolicySigningResponse[], options?: { requestId?: string; allowOneSignerMultipleRoles?: boolean; roleKeys?: Record<string, string>; signatureVerifier?: (message: Uint8Array, signatureHex: string, subjectPkd: string) => boolean; }): SigningRoundResult"
         },
         "buildRecursiveWitnessPlan": {
           "kind": "function",
@@ -13774,8 +13772,8 @@
         },
         "acceptResponse": {
           "kind": "function",
-          "signature": "acceptResponse(session: SigningSession, response: PolicySigningResponse): SigningSession",
-          "doc": "Accept a signing response into the session."
+          "signature": "acceptResponse(session: SigningSession, response: PolicySigningResponse, options?: AcceptResponseOptions): SigningSession",
+          "doc": "Accept a signing response into the session.\n\nRFC-018 P1-2: the response is bound to the session (`requestId`), its role\nmust be part of the session, one signer may not fill several roles, and —\nwhen `roleKeys` is supplied — the signature is verified against the\nauthorized key for that role. Invalid responses throw rather than silently\nadvancing the session."
         },
         "recordEvidence": {
           "kind": "function",
@@ -13802,6 +13800,11 @@
           "signature": "sessionSummary(session: SigningSession): { status: SigningSessionStatus; signedCount: number; requiredCount: number; evidenceCollected: number; evidenceRequired: number; pendingRoles: string[]; remainingEvidence: string[]; }",
           "doc": "Get the session's readiness summary."
         },
+        "canonicalSigningResponseMessage": {
+          "kind": "function",
+          "signature": "canonicalSigningResponseMessage(session: SigningSession, response: PolicySigningResponse): Uint8Array",
+          "doc": "RFC-018 P1-2: the canonical bytes a signer signs for a session response.\nExcludes `signature` itself; binds the response to the session, action,\nepoch and transaction digest."
+        },
         "SigningSessionStatus": {
           "kind": "type",
           "signature": "export type SigningSessionStatus = | 'draft' | 'resolving' | 'awaiting-evidence' | 'awaiting-signatures' | 'ready' | 'expired' | 'rejected' | 'cancelled' | 'submitted' | 'confirmed'"
@@ -13821,6 +13824,10 @@
         "SigningSessionConfig": {
           "kind": "interface",
           "signature": "export interface SigningSessionConfig"
+        },
+        "AcceptResponseOptions": {
+          "kind": "interface",
+          "signature": "export interface AcceptResponseOptions"
         },
         "announcePolicy": {
           "kind": "function",
@@ -14269,6 +14276,25 @@
         "KeyWrappingEnvelope": {
           "kind": "interface",
           "signature": "export interface KeyWrappingEnvelope"
+        },
+        "TEMPLATE_STABILITY": {
+          "kind": "const",
+          "signature": "TEMPLATE_STABILITY: Readonly<Record<string, TemplateStabilityEntry>> = Object.freeze({ 'access-control': experimental('access-control', 'Policy-gated operation authorization.'), commercial: experiment",
+          "doc": "Stability metadata for every template shipped by this package."
+        },
+        "getTemplateStability": {
+          "kind": "function",
+          "signature": "getTemplateStability(template: string): TemplateStabilityEntry | undefined",
+          "doc": "Stability metadata for a template slug, or `undefined` if unknown."
+        },
+        "TemplateStability": {
+          "kind": "type",
+          "signature": "export type TemplateStability = 'experimental' | 'stable' | 'deprecated'",
+          "doc": "Template stability registry (RFC-005 #8).\n\nEvery `@totemsdk/recursive-mast` template declares an explicit stability\nlevel so consumers can gate on it instead of relying on an in-file comment.\nAll current templates are unaudited experiments."
+        },
+        "TemplateStabilityEntry": {
+          "kind": "interface",
+          "signature": "export interface TemplateStabilityEntry"
         }
       }
     },
