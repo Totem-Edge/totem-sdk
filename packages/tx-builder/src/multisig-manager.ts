@@ -85,6 +85,39 @@ function recomputeDigest(transactionHex: string): string {
   return Array.from(sha3_256(txBytes)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+function normalizePk(pk: string): string {
+  return pk.replace(/^0x/i, '').toLowerCase();
+}
+
+/**
+ * RFC-018 P1-4: a multisig config is only meaningful if the keys are distinct
+ * (Minima's MULTISIG counts positions, so a duplicate collapses the threshold),
+ * the own key is actually a signer, and the threshold is in range.
+ */
+function assertValidConfig(config: MultisigConfig): void {
+  if (!Array.isArray(config.publicKeys) || config.publicKeys.length === 0) {
+    throw new Error('multisig requires at least one public key');
+  }
+  const keys = config.publicKeys.map(normalizePk);
+  const unique = new Set(keys);
+  if (unique.size !== keys.length) {
+    throw new Error('multisig publicKeys must be distinct (duplicate keys collapse MULTISIG positions)');
+  }
+  if (!config.ownPublicKey || !unique.has(normalizePk(config.ownPublicKey))) {
+    throw new Error('multisig ownPublicKey must be one of publicKeys');
+  }
+  if (config.type === '2of2') {
+    if (config.publicKeys.length !== 2) {
+      throw new Error('2-of-2 multisig requires exactly 2 public keys');
+    }
+    if (config.threshold !== 2) {
+      throw new Error('2-of-2 multisig requires threshold 2');
+    }
+  } else if (!Number.isInteger(config.threshold) || config.threshold < 1 || config.threshold > unique.size) {
+    throw new Error(`m-of-n multisig threshold must satisfy 1 <= threshold <= ${unique.size}`);
+  }
+}
+
 export class MultisigManager {
   private pendingTransactions: Map<string, PendingMultisigTransaction> = new Map();
   readonly ready: Promise<void>;
@@ -151,7 +184,22 @@ export class MultisigManager {
         if (typeof record.signatures === 'object' && record.signatures !== null) {
           record.signatures = new Map(Object.entries(record.signatures as Record<string, unknown>));
         }
-        this.pendingTransactions.set(String(record.id), record as unknown as PendingMultisigTransaction);
+        // RFC-018 TXB-MULTISIG-002: never trust persisted `validated`; re-verify
+        // every signature against the stored digest and recompute status.
+        const loaded = record as unknown as PendingMultisigTransaction;
+        assertValidConfig(loaded.config);
+        if (loaded.signatures instanceof Map) {
+          for (const [key, sig] of loaded.signatures) {
+            const s = sig as ExternalSignature;
+            const valid =
+              s.signatureType === 'wots' && typeof loaded.transactionDigest === 'string'
+                ? verifyWotsSignature(s.signature, loaded.transactionDigest, s.publicKey)
+                : false;
+            loaded.signatures.set(key, { ...s, validated: valid });
+          }
+        }
+        this.updateStatus(loaded);
+        this.pendingTransactions.set(String(record.id), loaded);
       }
       // Persist a migrated legacy record so a subsequent open is clean v1.
       if (migrated) await this.save();
@@ -181,10 +229,8 @@ export class MultisigManager {
   }
   
   createMultisigScript(config: MultisigConfig): ScriptDescriptor {
+    assertValidConfig(config);
     if (config.type === '2of2') {
-      if (config.publicKeys.length !== 2) {
-        throw new Error('2-of-2 multisig requires exactly 2 public keys');
-      }
       return createMultisigDescriptor(
         config.address || '',
         config.publicKeys[0],
@@ -215,6 +261,7 @@ export class MultisigManager {
     expirationHours: number = 24
   ): Promise<PendingMultisigTransaction> {
     await this.ready;
+    assertValidConfig(config);
     // RFC-016 P5: the local-create path must verify the digest too (the import
     // path already did), so signers cannot sign a mismatched authorizing digest.
     const recomputed = recomputeDigest(transactionHex);
@@ -325,6 +372,8 @@ export class MultisigManager {
   }
   
   private updateStatus(tx: PendingMultisigTransaction): void {
+    // RFC-018 TXB-MULTISIG-003: terminal statuses are never rewritten.
+    if (tx.status === 'broadcast' || tx.status === 'failed') return;
     if (Date.now() > tx.expiresAt) {
       tx.status = 'expired';
       return;
@@ -333,7 +382,7 @@ export class MultisigManager {
     // RFC-016 P5: only *validated* signatures from unique configured signers
     // count toward the threshold. Counting map size let an invalid signature
     // (or a non-signer) mark a transaction `ready`.
-    const configured = new Set(tx.config.publicKeys.map((pk) => pk.toLowerCase()));
+    const configured = new Set(tx.config.publicKeys.map(normalizePk));
     const validSigners = new Set(
       [...tx.signatures.entries()]
         .filter(([key, sig]) => sig.validated && configured.has(key))
@@ -380,16 +429,17 @@ export class MultisigManager {
     }
     
     this.updateStatus(tx);
-    
-    const collected = tx.signatures.size;
+
+    // RFC-018 P1-4: report only validated signatures from configured signers.
+    const configured = new Set(tx.config.publicKeys.map(normalizePk));
+    const validSigners = new Set(
+      [...tx.signatures.entries()]
+        .filter(([key, sig]) => sig.validated && configured.has(key))
+        .map(([key]) => key),
+    );
+    const collected = validSigners.size;
     const required = tx.config.threshold;
-    const missing: string[] = [];
-    
-    for (const pk of tx.config.publicKeys) {
-      if (!tx.signatures.has(pk.toLowerCase())) {
-        missing.push(pk);
-      }
-    }
+    const missing = tx.config.publicKeys.filter((pk) => !validSigners.has(normalizePk(pk)));
     
     return {
       required,
@@ -423,6 +473,7 @@ export class MultisigManager {
   
   async importTransaction(data: MultisigExportData): Promise<PendingMultisigTransaction> {
     await this.ready;
+    assertValidConfig(data.config);
     const existing = this.pendingTransactions.get(data.id);
     if (existing) {
       for (const sig of data.signatures) {
