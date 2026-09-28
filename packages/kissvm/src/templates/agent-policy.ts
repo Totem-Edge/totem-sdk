@@ -48,12 +48,28 @@ export interface AgentProposalConfig {
   minConfidence: number
   allowedTransitions: Record<string, string[]>
   expiresAt: bigint
+  /** RFC-018 P1-3: authority permitted to submit the proposal. */
+  authorityPk: string
 }
 
 export function buildAgentProposalScript(config: AgentProposalConfig): string {
+  // RFC-018 KISSVM-TEMPLATE-AGENT-001: an empty transition table must fail
+  // construction, not emit an invalid `ASSERT ` (or allow-all) script.
+  const transitions = Object.entries(config.allowedTransitions).flatMap(([from, tos]) =>
+    tos.map((to) => ({ from, to })),
+  )
+  if (transitions.length === 0) {
+    throw new Error('buildAgentProposalScript: allowedTransitions must be non-empty')
+  }
+
+  const authority = config.authorityPk.replace(/^0x/i, '')
   const lines: string[] = [
     `LET oldStatus = PREVSTATE(20)`,
     `LET newStatus = STATE(20)`,
+    // RFC-018: only the fixed authority may propose, and the confidence is
+    // committed (a spender cannot inflate it to pass the threshold).
+    `ASSERT SIGNEDBY(0x${authority})`,
+    `ASSERT STATE(21) EQ PREVSTATE(21)`,
   ]
 
   const checks: string[] = []
@@ -64,7 +80,7 @@ export function buildAgentProposalScript(config: AgentProposalConfig): string {
   }
 
   lines.push(`ASSERT ${checks.join(' OR ')}`)
-  lines.push(`ASSERT STATE(21) GTE ${config.minConfidence}`)
+  lines.push(`ASSERT PREVSTATE(21) GTE ${config.minConfidence}`)
   lines.push(`ASSERT @BLOCK LTE ${config.expiresAt.toString()}`)
   lines.push(`RETURN TRUE`)
   return lines.join('\n')

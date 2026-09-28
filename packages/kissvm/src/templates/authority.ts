@@ -36,6 +36,8 @@ export interface UsageTrackingConfig {
   countPort: number
   amountPort: number
   windowEndPort: number
+  /** RFC-018 P1-3: authority permitted to spend under this usage policy. */
+  authorityPk: string
   /** Port for a nonce to prevent replay (default 10). */
   noncePort?: number
 }
@@ -64,17 +66,23 @@ export function buildMandateEnforcementScript(config: MandateEnforcementConfig):
     `LET grantor = 0x${grantor}`,
     `ASSERT SIGNEDBY(grantor)`,
     ``,
-    `// Scope must match`,
-    `LET scope = STATE(${config.scopePort})`,
+    `// RFC-018 KISSVM-TEMPLATE-AUTH-001: scope, expiry and revocation epoch are`,
+    `// read from the *committed* state and must not change in this transaction,`,
+    `// so the grantor cannot widen scope or extend its own mandate.`,
+    `LET scope = PREVSTATE(${config.scopePort})`,
     `ASSERT scope EQ 0x${scope}`,
+    `ASSERT STATE(${config.scopePort}) EQ scope`,
     ``,
-    `// Not expired`,
-    `LET expiresAt = STATE(${expiryPort})`,
+    `// Not expired (committed expiry, pinned to config)`,
+    `LET expiresAt = PREVSTATE(${expiryPort})`,
+    `ASSERT expiresAt EQ ${config.expiresAtBlock.toString()}`,
+    `ASSERT STATE(${expiryPort}) EQ expiresAt`,
     `ASSERT @BLOCK LTE expiresAt`,
     ``,
-    `// Not revoked (current epoch <= revocation epoch)`,
-    `LET revocationEpoch = STATE(${config.revocationEpochPort})`,
-    `ASSERT revocationEpoch LTE ${config.revocationEpoch.toString()}`,
+    `// Not revoked (committed epoch, pinned to config)`,
+    `LET revocationEpoch = PREVSTATE(${config.revocationEpochPort})`,
+    `ASSERT revocationEpoch EQ ${config.revocationEpoch.toString()}`,
+    `ASSERT STATE(${config.revocationEpochPort}) EQ revocationEpoch`,
     ``,
     `// Replay protection`,
     `LET nonce = STATE(${noncePort})`,
@@ -138,11 +146,17 @@ export function buildRevocationScript(config: RevocationConfig): string {
  */
 export function buildUsageTrackingScript(config: UsageTrackingConfig): string {
   const noncePort = config.noncePort ?? 10
+  const authority = config.authorityPk.replace(/^0x/i, '')
 
   return [
+    // RFC-018 KISSVM-TEMPLATE-AUTH-002: the policy is authorized and its window
+    // is committed (a spender cannot choose or extend the window).
+    `ASSERT SIGNEDBY(0x${authority})`,
+    ``,
     `LET maxCount = ${config.maxCount.toString()}`,
     `LET maxAmount = ${config.maxAmount}`,
-    `LET windowEnd = STATE(${config.windowEndPort})`,
+    `LET windowEnd = PREVSTATE(${config.windowEndPort})`,
+    `ASSERT STATE(${config.windowEndPort}) EQ windowEnd`,
     ``,
     `// Window reset: if past window end, reset to current values`,
     `IF @BLOCK GT windowEnd THEN`,

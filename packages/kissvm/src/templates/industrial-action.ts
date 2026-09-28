@@ -93,8 +93,9 @@ export function buildActionStateMachineScript(config: ActionStateMachineConfig):
     ``,
     `  CASE ${IA_STATUS.PROPOSED}`,
     `    IF STATE(0) EQ ${IA_STATUS.NOTICED} THEN`,
-    `      LET noticeBlock = STATE(${config.noticePort})`,
-    `      ASSERT @BLOCK GTE noticeBlock`,
+    // RFC-018 KISSVM-TEMPLATE-IA-001: the notice is recorded at the current
+    // block, so it cannot be backdated to bypass the minimum notice period.
+    `      ASSERT STATE(${config.noticePort}) EQ @BLOCK`,
     `    ELSE`,
     `      RETURN FALSE`,
     `    ENDIF`,

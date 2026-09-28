@@ -653,11 +653,14 @@ describe('stable template: manifest', () => {
   });
 
   it('manifest expiry fails after expiresAt', () => {
-    const script = buildManifestExpiryScript({ signedAt: 100n, expiresAt: 500n, subscriptionInterval: 100n });
-    const ok = run(script, ctx({ block: 300, state: s({ 0: 100, 1: 500 }), prevState: s({ 2: 0 }) }));
+    const script = buildManifestExpiryScript({ signedAt: 100n, expiresAt: 500n, subscriptionInterval: 100n, publisherPk: pkAA });
+    const ok = run(script, ctx({ block: 300, state: s({ 0: 100, 1: 500, 2: 300 }), prevState: s({ 2: 0 }) }), { [pkAA]: 'publisher' });
     expect(ok.success).toBe(true);
-    const expired = run(script, ctx({ block: 600, state: s({ 0: 100, 1: 500 }), prevState: s({ 2: 0 }) }));
+    const expired = run(script, ctx({ block: 600, state: s({ 0: 100, 1: 500, 2: 600 }), prevState: s({ 2: 0 }) }), { [pkAA]: 'publisher' });
     expect(expired.success).toBe(false);
+    // RFC-018 P1-3: the expiry must be signed by the publisher.
+    const unsigned = run(script, ctx({ block: 300, state: s({ 0: 100, 1: 500, 2: 300 }), prevState: s({ 2: 0 }) }));
+    expect(unsigned.success).toBe(false);
   });
 });
 
@@ -675,7 +678,7 @@ describe('stable template: authority', () => {
     const ok = run(script, ctx({
       block: 1000,
       state: s({ 1: '0x' + hx('totem:gov:vote'), 2: 1, 4: 2000, 3: 5 }),
-      prevState: s({ 3: 4 }),
+      prevState: s({ 1: '0x' + hx('totem:gov:vote'), 2: 1, 4: 2000, 3: 4 }),
     }), { [pkAA]: 'grantor' });
     expect(ok.success).toBe(true);
   });
@@ -693,9 +696,27 @@ describe('stable template: authority', () => {
     const bad = run(script, ctx({
       block: 1000,
       state: s({ 1: '0x' + hx('totem:gov:spend'), 2: 1, 4: 2000, 3: 5 }),
-      prevState: s({ 3: 4 }),
+      prevState: s({ 1: '0x' + hx('totem:gov:vote'), 2: 1, 4: 2000, 3: 4 }),
     }), { [pkAA]: 'grantor' });
     expect(bad.success).toBe(false);
+  });
+
+  it('mandate enforcement rejects an extended expiry (RFC-018 P1-3)', () => {
+    const script = buildMandateEnforcementScript({
+      grantor: pkAA,
+      scope: hx('totem:gov:vote'),
+      revocationEpoch: 1n,
+      scopePort: 1,
+      revocationEpochPort: 2,
+      expiryPort: 4,
+      expiresAtBlock: 2000n,
+    });
+    const extended = run(script, ctx({
+      block: 1000,
+      state: s({ 1: '0x' + hx('totem:gov:vote'), 2: 1, 4: 9000, 3: 5 }),
+      prevState: s({ 1: '0x' + hx('totem:gov:vote'), 2: 1, 4: 2000, 3: 4 }),
+    }), { [pkAA]: 'grantor' });
+    expect(extended.success).toBe(false);
   });
 
   it('action authorization enforces the authority, monotonic nonce, action hash and window', () => {
@@ -730,12 +751,21 @@ describe('stable template: authority', () => {
       countPort: 1,
       amountPort: 2,
       windowEndPort: 3,
+      authorityPk: pkAA,
     });
-    const ok = run(script, ctx({ block: 1000, state: s({ 1: 3, 2: 50, 3: 1100, 10: 2 }), prevState: s({ 1: 2, 2: 40, 10: 1 }) }));
+    const ok = run(script, ctx({ block: 1000, state: s({ 1: 3, 2: 50, 3: 1100, 10: 2 }), prevState: s({ 1: 2, 2: 40, 3: 1100, 10: 1 }) }), { [pkAA]: 'authority' });
     expect(ok.success).toBe(true);
 
-    const overCount = run(script, ctx({ block: 1000, state: s({ 1: 6, 2: 50, 3: 1100, 10: 2 }), prevState: s({ 1: 2, 2: 40, 10: 1 }) }));
+    const overCount = run(script, ctx({ block: 1000, state: s({ 1: 6, 2: 50, 3: 1100, 10: 2 }), prevState: s({ 1: 2, 2: 40, 3: 1100, 10: 1 }) }), { [pkAA]: 'authority' });
     expect(overCount.success).toBe(false);
+
+    // RFC-018 P1-3: the usage policy is authorized.
+    const unsigned = run(script, ctx({ block: 1000, state: s({ 1: 3, 2: 50, 3: 1100, 10: 2 }), prevState: s({ 1: 2, 2: 40, 3: 1100, 10: 1 }) }));
+    expect(unsigned.success).toBe(false);
+
+    // RFC-018 P1-3: the window is committed and cannot be moved by the spender.
+    const movedWindow = run(script, ctx({ block: 1000, state: s({ 1: 3, 2: 50, 3: 99999, 10: 2 }), prevState: s({ 1: 2, 2: 40, 3: 1100, 10: 1 }) }), { [pkAA]: 'authority' });
+    expect(movedWindow.success).toBe(false);
   });
 });
 
@@ -773,12 +803,19 @@ describe('stable template: agent-policy', () => {
       minConfidence: 0,
       allowedTransitions: { 0: ['1'], 1: ['2'] },
       expiresAt: 2000n,
+      authorityPk: pkAA,
     });
-    const ok = run(script, ctx({ block: 1000, state: s({ 20: 1, 21: 0 }), prevState: s({ 20: 0 }) }));
+    const ok = run(script, ctx({ block: 1000, state: s({ 20: 1, 21: 0 }), prevState: s({ 20: 0, 21: 0 }) }), { [pkAA]: 'authority' });
     expect(ok.success).toBe(true);
 
-    const bad = run(script, ctx({ block: 1000, state: s({ 20: 2, 21: 0 }), prevState: s({ 20: 0 }) }));
+    const bad = run(script, ctx({ block: 1000, state: s({ 20: 2, 21: 0 }), prevState: s({ 20: 0, 21: 0 }) }), { [pkAA]: 'authority' });
     expect(bad.success).toBe(false);
+
+    // RFC-018 P1-3: only the authority may propose, and confidence is committed.
+    const unsigned = run(script, ctx({ block: 1000, state: s({ 20: 1, 21: 0 }), prevState: s({ 20: 0, 21: 0 }) }));
+    expect(unsigned.success).toBe(false);
+    const inflated = run(script, ctx({ block: 1000, state: s({ 20: 1, 21: 999 }), prevState: s({ 20: 0, 21: 0 }) }), { [pkAA]: 'authority' });
+    expect(inflated.success).toBe(false);
   });
 
   it('policy enforcement requires the policy signature', () => {

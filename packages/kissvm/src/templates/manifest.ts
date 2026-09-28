@@ -13,6 +13,8 @@ export interface ManifestExpiryConfig {
   signedAt: bigint
   expiresAt: bigint
   subscriptionInterval: bigint
+  /** RFC-018 P1-3: publisher permitted to renew/attest the manifest. */
+  publisherPk: string
 }
 
 export function buildManifestBindingScript(config: ManifestBindingConfig): string {
@@ -55,12 +57,18 @@ export function buildCapabilityScript(config: CapabilityConfig): string {
 
 export function buildManifestExpiryScript(config: ManifestExpiryConfig): string {
   return [
+    // RFC-018 KISSVM-TEMPLATE-MANIFEST-001: the expiry must be signed by the
+    // publisher, and the renewal block is committed to the current block.
+    `LET publisher = 0x${config.publisherPk.replace(/^0x/i, '')}`,
+    `ASSERT SIGNEDBY(publisher)`,
+    ``,
     `LET signedAt = ${config.signedAt.toString()}`,
     `LET expiresAt = ${config.expiresAt.toString()}`,
     `LET interval = ${config.subscriptionInterval.toString()}`,
     ``,
     `ASSERT STATE(0) EQ signedAt`,
     `ASSERT STATE(1) EQ expiresAt`,
+    `ASSERT STATE(2) EQ @BLOCK`,
     ``,
     `ASSERT @BLOCK GTE signedAt`,
     `ASSERT @BLOCK LTE expiresAt`,
