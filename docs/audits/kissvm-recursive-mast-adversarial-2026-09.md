@@ -36,7 +36,9 @@ fixes exist only in source, not in the locally-built artifact.
 Most consequential results:
 
 - **MULTISIG does not de-duplicate keys** → the statechain normal branch collapses
-  from 2-of-2 to 1-of-1 (SE alone spends). Reproduced.
+  from 2-of-2 to 1-of-1 (SE alone spends). Reproduced. **Oracle-verified:** the
+  C++ node (`m_u_l_t_i_s_i_g.cpp`) also counts positions, so the evaluator is
+  consensus-correct and the fix is **template-level** (RFC-018 P0-1).
 - **`toNestedMastScript` places a terminal MAST after a `RETURN`** (both packages)
   → composed delegation/proof chains skip downstream layers. Reproduced.
 - **The RFC-016 invariant detector is opt-in and under-specified** — it accepts
@@ -55,7 +57,7 @@ Most consequential results:
 
 | ID | File | Problem |
 |----|------|---------|
-| **KISSVM-MULTISIG-001** | `kissvm/src/eval.ts:348-356`, `kissvm/src/templates/statechain.ts:23` | `MULTISIG` counts duplicate key positions; `MULTISIG(2 STATE(ownerPort) 0xSE)` with successor `STATE(ownerPort)=sePk` lets one SE signature satisfy a 2-of-2. Same flaw in `rust/src/eval.rs`. |
+| **KISSVM-MULTISIG-001** | `kissvm/src/templates/statechain.ts:23` | `MULTISIG` counts duplicate key positions; `MULTISIG(2 STATE(ownerPort) 0xSE)` with successor `STATE(ownerPort)=sePk` lets one SE signature satisfy a 2-of-2. **Oracle-verified:** the C++ node also counts positions (no de-dup), so the evaluator is left unchanged; the fix is template-level (RFC-018 P0-1). |
 | **RM-COMPOSE-001** | `kissvm/src/mast/proof-chain.ts:208-222`, `recursive-mast/src/proof-chain.ts:193-204` | `toNestedMastScript` appends `MAST 0x<child>` after a layer script that still ends in `RETURN`; MAST is terminal, so the child is dead. |
 | **RM-LAYER-001** | `recursive-mast/src/layered-policy.ts:19-23`, `delegation.ts:175-179`, `kissvm/src/mast/layered-policy.ts:123` | `stripTrailingReturn` matches any terminal `RETURN …`, including `RETURN FALSE`, turning an explicit deny into "authorize + delegate". A trailing comment/blank after `RETURN TRUE` also defeats the strip. |
 
@@ -149,7 +151,8 @@ contract):
 
 - zero open Critical findings;
 - zero open High authorization/economic findings on the stable export surface;
-- `MULTISIG` proven distinct-key-only, with adversarial tests in both evaluators;
+- every authorizing template that feeds a mutable/derived key into `MULTISIG`
+  proves the keys are distinct (statechain asserts owner ≠ SE);
 - every recursive/layered/proof chain demonstrated end-to-end with the child
   branch enforced (negative test: sign only layer 1 ⇒ overall false);
 - every exported authorizing template has an adversarial negative test executed

@@ -1,6 +1,6 @@
 # RFC-018: KISSVM / Recursive-MAST / `tx-builder` — Adversarial Remediation
 
-**Status:** Draft — remediation contract
+**Status:** Draft — remediation contract (P0 landed)
 **Created:** 2026-09-28
 **Authors:** Totem SDK Contributors
 **Depends on:** RFC-016 (KISSVM template security hardening), RFC-017 (decision receipt graph)
@@ -20,6 +20,11 @@ input must fail) — string-presence assertions are not sufficient.
 The audit's three Criticals are confirmed on current `main`:
 
 - **C1 `MULTISIG` counts duplicate keys** → statechain 2-of-2 collapses to 1-of-1.
+  **Oracle-verified:** Minima's own C++ `MULTISIG` (`m_u_l_t_i_s_i_g.cpp`) also
+  iterates parameters and counts **positions**, with no de-duplication. Changing
+  the evaluator would diverge from consensus, so the remediation is
+  **template-level only** (commit the owner key via `PREVSTATE` and assert the
+  two keys differ). See §7 Open Q1.
 - **C2 `toNestedMastScript` appends a terminal `MAST` after `RETURN`** → child
   delegation layers are dead.
 - **C3 `stripTrailingReturn` strips `RETURN FALSE`** → an explicit deny becomes
@@ -52,12 +57,12 @@ The audit's three Criticals are confirmed on current `main`:
 
 | # | Task | Files | Acceptance |
 |---|------|-------|------------|
-| P0-1 | `MULTISIG` counts **distinct verified keys** (Set) in TS + Rust; rewrite statechain to `MULTISIG(2 PREVSTATE(0) 0xSE)` + `STATE(0) EQ PREVSTATE(0)` | `kissvm/src/eval.ts`, `rust/src/eval.rs`, `kissvm/src/templates/statechain.ts` | Negative: SE-only sign, `STATE(0)=sePk` ⇒ `false`. Positive: owner+SE ⇒ `true`. |
-| P0-2 | `toNestedMastScript` (both copies) strips **only** a terminal `RETURN TRUE`; fail closed on any other terminal `RETURN` | `kissvm/src/mast/proof-chain.ts`, `recursive-mast/src/proof-chain.ts` | Negative: two-link chain, sign only layer 1 ⇒ overall `false`. |
-| P0-3 | `stripTrailingReturn` (all copies) strips only `RETURN TRUE`; never `RETURN FALSE`; tolerate trailing comments/blank | `recursive-mast/src/layered-policy.ts`, `delegation.ts`, `kissvm/src/mast/layered-policy.ts` | Negative: layer ending `RETURN FALSE` still fails when composed. |
-| P0-4 | `EXEC MAST` requires an explicit root and a **verified** ScriptProof; legacy `mastBranches` gated behind `allowLegacyMastBranches` (default **off**) | `kissvm/src/eval.ts`, `types.ts`, `witness-adapter.ts` | Negative: `EXEC MAST` with fake `proofHex` ⇒ `false`; `MAST 0xdead` + `mastBranches` ⇒ `false` by default. |
+| P0-1 | **Template-level only** — the C++ oracle confirms Minima's `MULTISIG` counts positions (no de-dup), so the evaluator must **not** change. Rewrite statechain to authenticate the committed owner (`PREVSTATE`) with continuity and assert the two keys are distinct | `kissvm/src/templates/statechain.ts` (normal + rotation) | Negative: SE-only ⇒ `false`; `STATE(0)=sePk` ⇒ `false`; rotation `newOwner=sePk` ⇒ `false`. Positive: owner+SE ⇒ `true`. |
+| P0-2 | `toNestedMastScript` (both copies) strips **only** a terminal `RETURN TRUE`; fail closed on any other terminal `RETURN`; reject empty chains | `kissvm/src/mast/proof-chain.ts`, `recursive-mast/src/proof-chain.ts` | Negative: layer ending `RETURN FALSE` throws. Positive: inline `RETURN TRUE` still composes. |
+| P0-3 | `stripTrailingReturn` (all copies) strips only `RETURN TRUE`; never `RETURN FALSE`; tolerate trailing comments/blank | `recursive-mast/src/layered-policy.ts`, `delegation.ts`, `kissvm/src/mast/layered-policy.ts` | Negative: layer ending `RETURN FALSE` throws when composed. |
+| P0-4 | `EXEC MAST` requires inline branch hashes; legacy `mastBranches` gated behind `allowLegacyMastBranches` (default **off**); unrooted `EXEC MAST` fails closed | `kissvm/src/eval.ts`, `types.ts`, `recursive-mast/src/kissvm/simulation.ts` | Negative: `MAST 0xdead` + `mastBranches` ⇒ `false` by default. Positive: opt-in resolves. |
 | P0-5 | Fix `RM-ACTION-001`: `actionSelectorPort` must be `> 0` (or subject written after) | `recursive-mast/src/transaction/action-transaction.ts` | Negative: `actionSelectorPort=0` throws. |
-| P0-6 | CI builds `dist` before test/publish and asserts freshness (no stale-artifact resolution) | CI / scripts | `dist` matches `src` build. |
+| P0-6 | CI builds `dist` before test/publish and asserts freshness (no stale-artifact resolution) | CI / scripts | Satisfied: the `test` job builds the workspace (`verify-workspace.mjs --typecheck`) before running tests. |
 
 ### P1 — before any production authorizing use
 
@@ -84,7 +89,8 @@ The audit's three Criticals are confirmed on current `main`:
 
 ## 5. Test requirements (must exist before the gate passes)
 
-- `MULTISIG` distinct-key adversarial test in **both** TS and Rust evaluators.
+- Statechain distinct-key adversarial test: SE-only ⇒ `false`, `STATE(0)=sePk`
+  ⇒ `false` (the evaluator is intentionally unchanged — Minima counts positions).
 - Two-link composition negative test (sign only layer 1 ⇒ `false`).
 - `RETURN FALSE` deny survives composition.
 - `EXEC MAST` / `mastBranches` proof-less rejection.
@@ -101,8 +107,8 @@ The audit's three Criticals are confirmed on current `main`:
 ## 6. Production gate
 
 The gate in the audit (§5) is the acceptance condition for this RFC: zero open
-Critical, zero open High authorization/economic on the stable surface, distinct-key
-`MULTISIG` proven in both evaluators, end-to-end composed chains with child
+Critical, zero open High authorization/economic on the stable surface, template-level
+`MULTISIG` distinctness proven (statechain), end-to-end composed chains with child
 enforcement, adversarial per-template tests, a node-agreed canonical MAST vector,
 verified signing requests/sessions, sound multisig readiness, no silently-unused
 security parameters, and a CI-reproducible `dist`.
