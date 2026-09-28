@@ -1516,6 +1516,13 @@ export interface TokenCreateParams {
   decimals: number;
   /** Total supply in display units (e.g. `1000000`; `1` for an NFT). */
   totalSupply: string;
+  /**
+   * Public key to sign the token creation with (Minima `signtoken`). Signed
+   * off-band over the token coinId by the background; consumed here only to be
+   * recorded in the token metadata (the signature itself is injected into
+   * `name` before the final build).
+   */
+  signtoken?: string;
 }
 
 /**

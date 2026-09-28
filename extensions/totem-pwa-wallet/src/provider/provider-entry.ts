@@ -63,6 +63,7 @@ import { isSharedConnectMethod, dispatchSharedConnectMethod } from '../core/conn
       case 'TOTEM_DISCONNECT':        return null;
       case 'TOTEM_SIGN_DATA':         return '/approval/verify.html';
       case 'TOTEM_SEND_COMPLEX':      return '/approval/send.html';
+      case 'TOTEM_TOKENCREATE':       return null; // PWA token mint is a follow-up (extension-only for now)
       case 'TOTEM_PROVE_OWNERSHIP':   return '/approval/verify.html';
       case 'TOTEM_BROADCAST_HEX':     return '/approval/send.html';
       case 'TOTEM_GET_COINS':         return '/approval/connect.html';

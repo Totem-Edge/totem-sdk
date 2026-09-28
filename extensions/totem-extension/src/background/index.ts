@@ -1890,7 +1890,59 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
         
         // Convert recipient address if Mx format
         const recipientHex = mxToHex(to);
-        
+
+        // RFC-005 #2/#11: optional token authorship signature (`signtoken`).
+        // Signing the token coinId is a DIFFERENT message than the transaction
+        // digest, so it MUST consume a distinct WOTS leaf — reusing the tx leaf
+        // would be catastrophic key reuse. Mirrors Minima tokencreate, which
+        // signs the token coinId with a fresh key and embeds the proof in the
+        // token metadata.
+        let effectiveTokenCreate: any = tokenCreate;
+        if (tokenCreate && typeof tokenCreate === 'object' && (tokenCreate as any).signtoken) {
+          try {
+            const probe = buildTransaction({
+              inputs: builderInputs,
+              recipientAddress: recipientHex,
+              amount: sendAmountBaseUnits,
+              tokenId: tokenid,
+              changeAddress: builderInputs[0]?.address,
+              ...(Array.isArray(state) ? { state } : {}),
+              ...(typeof storeState === 'boolean' ? { storeState } : {}),
+              ...(Array.isArray(transactionState) ? { transactionState } : {}),
+              tokenCreate
+            });
+            const tokenCoinId = probe.transaction.outputs[0].coinId;
+            const tokenCoinIdHex = '0x' + Array.from(tokenCoinId).map(b => b.toString(16).padStart(2, '0')).join('');
+
+            const signerPk = String((tokenCreate as any).signtoken).toLowerCase().replace(/^0x/, '');
+            const signAccount = walletManager.getAccountByIndex(Number(prepareResult.addressIndex));
+            const accountPk = String(signAccount?.publicKey || '').toLowerCase().replace(/^0x/, '');
+            if (!accountPk || signerPk !== accountPk) {
+              return { ok: false, error: 'signtoken must match the connected account public key', stage: 'token_sign', id };
+            }
+
+            const tokenLease = await walletManager.requestLease({
+              txId: `tokensign-${txId}`,
+              addressIndex: Number(prepareResult.addressIndex)
+            });
+            const tokenSig = await walletManager.signTransactionPerAddress({
+              addressIndex: Number(tokenLease.addressIndex),
+              l1: Number(tokenLease.l1),
+              l2: Number(tokenLease.l2),
+              digestTx: tokenCoinIdHex
+            });
+
+            const meta = JSON.parse(String((tokenCreate as any).name));
+            meta.signtype = 'minima';
+            meta.signedby = (tokenCreate as any).signtoken;
+            meta.signature = tokenSig.signedHex;
+            effectiveTokenCreate = { ...(tokenCreate as any), name: JSON.stringify(meta) };
+            txLog.info(' signtoken: token authorship signature attached');
+          } catch (e: any) {
+            return { ok: false, error: `signtoken failed: ${e?.message || String(e)}`, stage: 'token_sign', id };
+          }
+        }
+
         // Build transaction and compute digest locally
         // All amounts are INTEGER UNITS with scale=0 (matching Java serialization)
         const buildResult = buildTransaction({
@@ -1902,7 +1954,7 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
           ...(Array.isArray(state) ? { state } : {}),
           ...(typeof storeState === 'boolean' ? { storeState } : {}),
           ...(Array.isArray(transactionState) ? { transactionState } : {}),
-          ...(tokenCreate && typeof tokenCreate === 'object' ? { tokenCreate } : {})
+          ...(effectiveTokenCreate && typeof effectiveTokenCreate === 'object' ? { tokenCreate: effectiveTokenCreate } : {})
         });
         
         txLog.info(' Step 2 complete: Transaction built locally', {
@@ -3748,9 +3800,6 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
         if (typeof totalSupply !== 'string' || !/^\d+$/.test(totalSupply) || BigInt(totalSupply) <= 0n) {
           return { ok: true, result: { success: false, error: 'totalSupply must be a positive integer string', errorCode: 'INVALID_REQUEST' }, id };
         }
-        if (signtoken !== undefined) {
-          return { ok: true, result: { success: false, error: 'signtoken is not yet supported by the wallet', errorCode: 'NOT_IMPLEMENTED' }, id };
-        }
 
         const account = walletManager.getAccountByIndex(site.addressIndex);
         if (!account) {
@@ -3789,7 +3838,13 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
             tokenid: '0x00',
             sourceAddress: account.address,
             sendMode: 'single',
-            tokenCreate: { name: tokenNameJson, script: script ?? 'RETURN TRUE', decimals, totalSupply }
+            tokenCreate: {
+              name: tokenNameJson,
+              script: script ?? 'RETURN TRUE',
+              decimals,
+              totalSupply,
+              ...(typeof signtoken === 'string' && signtoken.length > 0 ? { signtoken } : {})
+            }
           },
           id: `wots-tokencreate-${Date.now()}`
         }, internalSender);
