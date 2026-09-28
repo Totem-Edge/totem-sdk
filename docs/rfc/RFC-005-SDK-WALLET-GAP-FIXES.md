@@ -1,6 +1,6 @@
 # RFC-005: SDK & Wallet Gap Fixes — Complex Contract / NFT-Minting Surface
 
-**Status:** Landed — re-triaged 2026-09-28 (see §1.1). Net: 9 of 11 gaps resolved, 1 partial (SDK layer only), 1 intentional, 0 open. Overlaps RFC-002/RFC-003 (Omnia, landed) and RFC-014 (wallet parity, landed).
+**Status:** Landed — re-triaged 2026-09-28 (see §1.1). Net: 9 of 11 gaps resolved, 2 deferred/intentional (by design), 0 open. Overlaps RFC-002/RFC-003 (Omnia, landed) and RFC-014 (wallet parity, landed).
 **Created:** 2026-09-10
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]
@@ -29,7 +29,7 @@ Re-checked against the repository at `@totemsdk/decision@0.2.0`. Evidence is a s
 | 2 | No token creation via wallet | **Resolved** | `TOTEM_TOKENCREATE` implemented in **both** wallets (extension + PWA approval flow). Encoding validated byte-for-byte against the live C++ `totem-node` (NFT + fungible tokenids). Optional `burn` and guarded `signtoken` (dedicated WOTS leaf + key-reuse guard). |
 | 3 | send wrapper drops `state`/`storestate` | **Resolved** | `sendTransaction` accepts `outputs[].state`/`storeState` + `transactionState`; extension `WOTS_SEND`/`TOTEM_SEND_TRANSACTION`/`buildTransaction` carry them to the output coin (commit `e2089a8`). Stateful multi-output rejects with `UNSUPPORTED_STATEFUL_SEND`. PWA send page not yet wired. |
 | 4 | `RPC_COMMAND` allowlist | **Intentional** | 6-command read-only set retained (`TOTEM_WALLET_SPEC.md`); a deliberate security boundary, not a defect |
-| 5 | `kissvmSimulate`/`kissvmValidate` unimplemented | **Partial** | Connect methods + `kissvm` sdk-client port exist (`packages/connect/src/wallet.ts:209,493`); but both wallets advertise `scripting: { kissvm: false }` and the PWA provider returns `null` |
+| 5 | `kissvmSimulate`/`kissvmValidate` unimplemented | **Deferred — intentional** | The SDK exposes the evaluator (`@totemsdk/kissvm`) and connect wires a `kissvm` client port; wallets deliberately advertise `scripting: { kissvm: false }` (RFC-014). Not bundled into the wallets to avoid pulling the full evaluator into security-sensitive extensions; a host can supply the port. Revisit only if wallet-context simulation is concretely needed. |
 | 6 | `getCoins` limited | **Resolved** | `TOTEM_GET_COINS` now returns `storeState`/`state`/`spent`/`mmrEntry` and accepts `sendable`/`relevant`/`spent` filters; `CoinSelectionService` surfaces the existing chain-provider `Coin` fields (`storestate`/`state`/`spent`/`mmrentry`) instead of dropping them (commit `d7b8709`). |
 | 7 | `WalletDiscovery` needs `window` | **Resolved** | `WalletDiscovery.addWallet`/`removeWallet` register a provider without `window` events (headless/CLI/Node/Bare/SSR fallback). |
 | 8 | Alpha templates | **Resolved** | `TEMPLATE_STABILITY` + `getTemplateStability` give every `@totemsdk/recursive-mast` template an explicit stability level (all current = `experimental`, `audited: false`); a test asserts full coverage. |
@@ -37,7 +37,7 @@ Re-checked against the repository at `@totemsdk/decision@0.2.0`. Evidence is a s
 | 10 | sendComplex intent auto-detection / multi-output approval | **Resolved** | `TxApprovalParams.outputs` now carries every output; the approval popup passes them and `tx-approval.js` renders the full output list. Send and complex-send handlers supply all outputs. |
 | 11 | No `tokencreate` wrapper | **Resolved** | `@totemsdk/connect` exposes `createToken()` + `TokenCreationParams`/`TokenMetadata` (name, ticker, description, url, webvalidate, image, icon, …) — the canonical method set is now 47. |
 
-**Verdict.** All actionable gaps are closed: #1, #2/#11, #3, #6, #7, #8, #9 and #10 are resolved; #5 is done at the SDK layer but not in either wallet; #4 is a deliberate security boundary. Token creation ships in both wallets with the encoding validated against a live node; `signtoken` carries a key-reuse guard with wallet-mock tests.
+**Verdict.** All actionable gaps are closed: #1, #2/#11, #3, #6, #7, #8, #9 and #10 are resolved. Two items are intentional by design: #4 (RPC allowlist is a security boundary) and #5 (wallet-side KISSVM is deferred — the SDK provides simulation and connect exposes an opt-in `kissvm` port; wallets do not bundle the evaluator). Token creation ships in both wallets with the encoding validated against a live node; `signtoken` carries a key-reuse guard with wallet-mock tests.
 
 ---
 
@@ -70,7 +70,7 @@ The first five are critical path. Without them, the SDK is limited to simple sen
 | 2 | No token creation via wallet | **CRITICAL** | No `TOTEM_TOKENCREATE` message type, handler, SDK method, or UI | NFT/token/RWA apps cannot mint through extension |
 | 3 | send wrapper drops state/storestate | **HIGH** | `sendTransaction()` sends `{address, amount, tokenId?}` — no `state`/`storestate` fields | Stateful-contract apps cannot use simple send |
 | 4 | RPC_COMMAND allowlist | **MEDIUM** | Hardcoded 6-command set, no config mechanism | Apps needing additional read-only queries blocked |
-| 5 | kissvmSimulate/kissvmValidate unimplemented | **HIGH** | Connect SDK functions are dead-ends; no handler in extension or PWA wallet | Contract apps cannot simulate scripts in wallet |
+| 5 | kissvmSimulate/kissvmValidate unimplemented | **HIGH (deferred — see §1.1)** | Connect SDK functions are dead-ends; no handler in extension or PWA wallet | Contract apps cannot simulate scripts in wallet |
 | 6 | getCoins limited | **HIGH** | Extension strips `storestate`, `state`, `mmrentry`, `spent`; no `sendable`/`relevant` filter | UTXO inspection apps blocked |
 | 7 | WalletDiscovery needs window | **MEDIUM** | `WalletDiscovery` uses `window` CustomEvents only; no non-browser fallback | Headless/CLI/Bare-only apps cannot discover wallets |
 | 8 | Alpha templates | **LOW** | 19 recursive-mast templates marked "EXPERIMENTAL"; no per-template stability markers | Apps relying on templates lack stability guarantees |
