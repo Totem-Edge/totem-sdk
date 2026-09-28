@@ -33,6 +33,7 @@ import { parseTxInputs } from '../core/transaction/txParser';
 import { setWasmUrl } from '@totemsdk/txpow';
 import { validateSignData, computeManifestBlobHash, normalizeAddrToHex as normalizeSignAddr } from '../core/signing/signDataValidator';
 import { buildTransaction, type BuildTransactionParams, type SpendableCoinInput, type CoinProofData, parseDecimalToBaseUnits, extractAmountBytesFromCoinProof, extractCoinDataFromCoinProof } from '../core/transaction/MinimaTransactionBuilder';
+import { signTokenCoinId } from '../core/transaction/signtoken';
 import { mxToHex, hexToMx } from '../core/utils/minima-base32';
 import { connectedSitesStore } from '../core/stores/ConnectedSitesStore';
 import { ChallengeBuilder, type VerifyChallenge } from '../core/verify/ChallengeBuilder';
@@ -1921,31 +1922,21 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
               return { ok: false, error: 'signtoken must match the connected account public key', stage: 'token_sign', id };
             }
 
-            const tokenLease = await walletManager.requestLease({
-              txId: `tokensign-${txId}`,
+            // Dedicated fresh WOTS leaf for the token signature (never the tx
+            // leaf); the helper enforces the key-reuse guard.
+            const tokenSignatureHex = await signTokenCoinId({
+              txLeaf: { addressIndex: validatedAddressIndex, l1: validatedL1, l2: validatedL2 },
+              requestLease: (p) => walletManager.requestLease(p),
+              signTransactionPerAddress: (p) => walletManager.signTransactionPerAddress(p),
+              tokenCoinIdHex,
+              txId,
               addressIndex: Number(prepareResult.addressIndex)
-            });
-
-            // KEY-REUSE GUARD (RFC-005 #2/#11): the token coinId is a different
-            // message than the transaction digest, so it MUST be signed with a
-            // different WOTS leaf. Refuse if the lease returned the tx leaf.
-            const txLeaf = `${validatedAddressIndex}:${validatedL1}:${validatedL2}`;
-            const tokenLeaf = `${Number(tokenLease.addressIndex)}:${Number(tokenLease.l1)}:${Number(tokenLease.l2)}`;
-            if (tokenLeaf === txLeaf) {
-              return { ok: false, error: 'signtoken refused: token signature would reuse the transaction WOTS leaf (key reuse)', stage: 'token_sign', id };
-            }
-
-            const tokenSig = await walletManager.signTransactionPerAddress({
-              addressIndex: Number(tokenLease.addressIndex),
-              l1: Number(tokenLease.l1),
-              l2: Number(tokenLease.l2),
-              digestTx: tokenCoinIdHex
             });
 
             const meta = JSON.parse(String((tokenCreate as any).name));
             meta.signtype = 'minima';
             meta.signedby = (tokenCreate as any).signtoken;
-            meta.signature = tokenSig.signedHex;
+            meta.signature = tokenSignatureHex;
             effectiveTokenCreate = { ...(tokenCreate as any), name: JSON.stringify(meta) };
             txLog.info(' signtoken: token authorship signature attached');
           } catch (e: any) {
