@@ -91,7 +91,7 @@ export type {
   FoldUsageStatementsReport,
   FoldCompletedDispatchInput,
 } from './commerce-accounting.js';
-export { createEdge, type CreateEdgeOptions, type EdgeCommerceRuntime } from './create-edge.js';
+export { createEdge, type CreateEdgeOptions, type EdgeCommerceRuntime, type TrustedCommerceRuntime } from './create-edge.js';
 
 // ── Universal action registry + governed agent facade ──────────────────────
 export { createEdgeActionRegistry, isUngrantableAction, UNGRANTABLE_ACTIONS } from './action-registry.js';
@@ -112,6 +112,11 @@ export {
 export type { BuiltTransaction, BuiltTxInput, BuiltTxOutput } from './prepared-effects.js';
 export { createAgentEdgeRuntime } from './agent-runtime.js';
 export type { AgentEdgeRuntime, AgentEdgeRuntimeOptions } from './agent-runtime.js';
+
+// RFC-019: governed commerce actions — agents reach purchasing only via
+// executeAction('purchase:buy' | 'purchase:negotiate').
+export { createGovernedPurchaseActions } from './governed-commerce.js';
+export type { GovernedCommerceConfig } from './governed-commerce.js';
 
 export { createEdgeReceipt, verifyEdgeReceipt } from './receipts.js';
 
@@ -168,6 +173,7 @@ export {
   type UsageEvent,
   type BuyerOptions,
   type BuyOptions,
+  type PreparedPurchase,
   createEdgeSeller,
   type EdgeSeller,
   type SellerServiceOptions,

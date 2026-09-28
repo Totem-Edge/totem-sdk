@@ -147,6 +147,19 @@ export interface BuyOptions {
   context?: Record<string, unknown>;
 }
 
+/**
+ * RFC-019: the result of discovery/negotiation/agreement preparation, BEFORE
+ * any economic commitment. A governed action authorizes the canonical effects
+ * of this prepared purchase, then `executePrepared()` performs exactly it.
+ */
+export interface PreparedPurchase {
+  purchaseId: string;
+  intent: PurchaseIntent;
+  agreement: TradeAgreement;
+  options: BuyOptions;
+  record: PurchaseRecord;
+}
+
 export class EdgeBuyer {
   private readonly _engine: NegotiationEngine;
   private readonly purchaseStore: PurchaseStore;
@@ -357,6 +370,17 @@ export class EdgeBuyer {
    * edge.buy() — resource-generic demand orchestration.
    */
   async buy(options: BuyOptions): Promise<PurchaseResult> {
+    const prepared = await this.prepareBuy(options);
+    return this.executePrepared(prepared);
+  }
+
+  /**
+   * RFC-019: discovery + negotiation + agreement preparation, WITHOUT any
+   * economic commitment (no authority approval, no payment). A governed action
+   * authorizes the canonical effects of the returned purchase, then calls
+   * `executePrepared()`.
+   */
+  async prepareBuy(options: BuyOptions): Promise<PreparedPurchase> {
     const { intent } = options;
     this.emit({ type: 'purchase.requested', intent });
 
@@ -390,7 +414,7 @@ export class EdgeBuyer {
     // 3. Fast path: fixed terms acceptable?
     const fixed = verified.find((c) => this.termsAcceptable(intent, c.manifest));
     if (fixed && !intent.negotiate) {
-      return this.executeDirect(intent, fixed.manifest, options, current);
+      return { purchaseId, intent, agreement: this.directAgreement(intent, fixed.manifest), options, record: current };
     }
 
     // 4. Negotiated path.
@@ -399,11 +423,23 @@ export class EdgeBuyer {
       if (selected) {
         const negotiating = await this.casPurchase(current, (r) => { r.status = 'NEGOTIATING'; });
         const agreement = await this.negotiateWith(intent, selected.manifest, options);
-        return this.executeAgreement(intent, agreement, options, negotiating);
+        return { purchaseId, intent, agreement, options, record: negotiating };
       }
     }
 
     throw new Error('no acceptable provider found');
+  }
+
+  /**
+   * RFC-019: execute exactly a prepared purchase. When `skipAuthority` is set
+   * (a governed action already authorized + reserved), the buyer's own authority
+   * approval is skipped and the prepared agreement is executed as-is.
+   */
+  async executePrepared(
+    prepared: PreparedPurchase,
+    opts: { skipAuthority?: boolean } = {},
+  ): Promise<PurchaseResult> {
+    return this.executeAgreement(prepared.intent, prepared.agreement, prepared.options, prepared.record, opts);
   }
 
   /**
@@ -672,14 +708,9 @@ export class EdgeBuyer {
     await this.enqueueOutbound(recipient, message);
   }
 
-  private async executeDirect(
-    intent: PurchaseIntent,
-    manifest: SignedManifest,
-    options: BuyOptions,
-    record: PurchaseRecord,
-  ): Promise<PurchaseResult> {
+  private directAgreement(intent: PurchaseIntent, manifest: SignedManifest): TradeAgreement {
     const terms = this.intentToTerms(intent);
-    const agreement: TradeAgreement = {
+    return {
       version: PURCHASING_VERSION,
       agreementId: `edge:agreement:direct:${intent.id}`,
       negotiationId: `edge:direct:${intent.id}`,
@@ -693,7 +724,15 @@ export class EdgeBuyer {
       buyerSignature: '',
       sellerSignature: manifest.signature,
     };
-    return this.executeAgreement(intent, agreement, options, record);
+  }
+
+  private async executeDirect(
+    intent: PurchaseIntent,
+    manifest: SignedManifest,
+    options: BuyOptions,
+    record: PurchaseRecord,
+  ): Promise<PurchaseResult> {
+    return this.executeAgreement(intent, this.directAgreement(intent, manifest), options, record);
   }
 
   private async executeAgreement(
@@ -701,6 +740,7 @@ export class EdgeBuyer {
     agreement: TradeAgreement,
     options: BuyOptions,
     record: PurchaseRecord,
+    opts: { skipAuthority?: boolean } = {},
   ): Promise<PurchaseResult> {
     // ── Economic commit barrier ─────────────────────────────────────────────
     // Reload the latest durable state and revalidate before any irreversible
@@ -708,14 +748,17 @@ export class EdgeBuyer {
     let current = (await this.purchaseStore.get(record.purchaseId)) ?? record;
     this.revalidateBeforeCommit(intent, agreement, current);
 
-    // Authority / policy approval.
-    current = await this.casPurchase(current, (r) => { r.status = 'AUTHORIZING'; r.agreement = agreement; });
-    const auth = await this.opts.authority.approve({ agreement, intent });
-    if (!auth.ok || !auth.data?.allowed) {
-      throw new PurchaseError('AUTHORITY_DENIED', auth.data?.reason ?? 'authority denied purchase');
+    // Authority / policy approval. Skipped when a governed action already
+    // authorized + reserved the canonical effects of this prepared purchase.
+    if (!opts.skipAuthority) {
+      current = await this.casPurchase(current, (r) => { r.status = 'AUTHORIZING'; r.agreement = agreement; });
+      const auth = await this.opts.authority.approve({ agreement, intent });
+      if (!auth.ok || !auth.data?.allowed) {
+        throw new PurchaseError('AUTHORITY_DENIED', auth.data?.reason ?? 'authority denied purchase');
+      }
+      current = await this.casPurchase(current, (r) => { r.status = 'AUTHORIZED'; });
+      this.emit({ type: 'purchase.authorized', agreementId: agreement.agreementId });
     }
-    current = await this.casPurchase(current, (r) => { r.status = 'AUTHORIZED'; });
-    this.emit({ type: 'purchase.authorized', agreementId: agreement.agreementId });
 
     // Payment (idempotent — stable key, never double-pay).
     if (agreement.terms.price !== '0' && agreement.terms.paymentMethod !== 'free') {

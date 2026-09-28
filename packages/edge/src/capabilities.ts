@@ -65,6 +65,8 @@ export type EdgeCapability =
   | 'manifest:sign'
   | 'manifest:verify'
   | 'payment:send'
+  | 'purchase:buy'
+  | 'purchase:negotiate'
   | 'policy:check'
   | 'location:claim'
   | 'location:trail'

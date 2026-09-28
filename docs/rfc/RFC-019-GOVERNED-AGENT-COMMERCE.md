@@ -1,6 +1,6 @@
 # RFC-019: Governed Agent Commerce — close the `createEdge()` privilege-escalation path
 
-**Status:** Draft — remediation contract
+**Status:** Draft — remediation contract (P0 landed)
 **Created:** 2026-09-28
 **Authors:** Totem SDK Contributors
 **Depends on:** RFC-004 (Edge SDK v1), RFC-010 (Industrial Action RC), RFC-007 (storage/durability)
@@ -214,6 +214,34 @@ Document the final flow and why capability checks are not authorization.
   trusted-host commerce API.
 - Authorize canonical effects: build the real operation, derive effects, then
   `authorizeAndReserve`; execute exactly the authorized operation.
+
+#### P0 landed — implementation notes
+
+- **Architecture:** governed actions (not a second framework).
+  `createGovernedPurchaseActions({ buyer, strategy?, negotiation? })` in
+  `edge/src/governed-commerce.ts` returns `purchase:buy` / `purchase:negotiate`
+  `EdgeActionDefinition`s for the existing registry, so they run through
+  `createAgentEdgeRuntime().executeAction` and `GrantBoundAutonomyPolicy`.
+- **Buyer split (no TOCTOU):** `EdgeBuyer.prepareBuy()` does discovery +
+  negotiation + agreement preparation only (no approval, no payment);
+  `EdgeBuyer.executePrepared(prepared, { skipAuthority: true })` executes exactly
+  the prepared agreement. `buy()` is now `prepareBuy()` + `executePrepared()`, so
+  trusted-host behaviour is unchanged (170 existing tests pass).
+- **Canonical effects:** derived from the PREPARED agreement
+  (`seller`/`price`/`tokenId`), never from agent payload claims; the same
+  prepared agreement is what `executePrepared` pays.
+- **`authorizeAndReserve`:** remains in the governed runtime
+  (`agent-runtime.ts`), now covering `purchase:buy`; the buyer's own
+  `authority.approve` is skipped on the governed path.
+- **Agent surface:** `createAgentEdgeRuntime` exposes only
+  `version`/`deviceId`/`executeAction` (no buyer, no ports). `createEdge()` keeps
+  its trusted-host API, now aliased as `TrustedCommerceRuntime`.
+- **Tests:** `edge/src/__tests__/governed-commerce.test.ts` (canonical effects,
+  budget rejection with no execution, no raw buyer/ports, fail-closed when
+  unregistered).
+- **Residual (P1):** binding negotiation acceptance is signed during
+  `prepare`; making the acceptance itself post-authorization, and full
+  commit/abort/held + idempotency recovery, remain P1.
 
 ### P1 — lifecycle & correctness
 - Own the reservation lifecycle end-to-end (commit/abort/held) in the governed
