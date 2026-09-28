@@ -128,6 +128,8 @@ export interface MinimaToken {
   name: Uint8Array;
   script: Uint8Array;
   created?: bigint;
+  /** MiniNumber scale of `totalAmount` in the serialized Token (default 44). */
+  totalAmountScale?: number;
 }
 
 /**
@@ -915,7 +917,8 @@ function serializeToken(token: MinimaToken): Uint8Array {
   parts.push(writeHashToStream(token.coinId));
   parts.push(writeMiniData(token.script));
   parts.push(writeMiniNumber(BigInt(token.scale)));
-  parts.push(writeMiniNumber(token.totalAmount, 0));
+  // Minima's tokencreate builds the minima amount from MINI_UNIT (scale 44).
+  parts.push(writeMiniNumber(token.totalAmount, token.totalAmountScale ?? 44));
   parts.push(writeMiniData(token.name));
   parts.push(writeMiniNumber(token.created ?? 0n));
   return concat(...parts);
@@ -1500,25 +1503,19 @@ export interface BuildTransactionParams {
 export interface TokenCreateParams {
   /**
    * Token name / description — a plain string, or a JSON string carrying richer
-   * metadata (ticker, description, image, web-verification URL, …). This is the
-   * Java `Token.mTokenName` field ("can be a string / JSON").
+   * metadata (ticker, description, image, web-verification URL, signature, …).
+   * This is the Java `Token.mTokenName` field ("can be a string / JSON").
    */
   name: string;
   /** Token script (Java `Token.mTokenScript`). Defaults to `RETURN TRUE`. */
   script?: string;
   /**
-   * On-chain scale. Java `Token.getDecimalPlaces() = 44 - scale`, so:
-   *   decimals = 0  → scale = 44 (non-fungible / NFT, totalSupply 1)
-   *   decimals = 2  → scale = 42
-   *   decimals = 18 → scale = 26
+   * Decimal places, 0..44. Java `scale = 44 - decimals`; `0` is a non-fungible
+   * token (NFT). Minima's `tokencreate` defaults to 8 and caps at 16.
    */
-  scale: number;
-  /**
-   * Total Minima backing in base units as a decimal string (the amount locked in
-   * the token-create output). For a token with total supply T and scale S this is
-   * `T / 10^S`; e.g. an NFT (S=44, T=1) is `1e-44` (one base unit).
-   */
-  totalMinima: string;
+  decimals: number;
+  /** Total supply in display units (e.g. `1000000`; `1` for an NFT). */
+  totalSupply: string;
 }
 
 /**
@@ -2035,16 +2032,23 @@ export function buildTransaction(params: BuildTransactionParams): TransactionBui
   }
   
   // RFC-005 #2/#11: token creation. Output[0] becomes the token-create coin: a
-  // 0xFF marker tokenId (Java Token.TOKENID_CREATE) whose Token descriptor is
-  // attached after the output coinId is computed.
+  // 0xFF marker tokenId (Java Token.TOKENID_CREATE). Mirror's Minima's
+  // tokencreate: colorminima = MINI_UNIT * 10^decimals * totalSupply, i.e. a
+  // MiniNumber with scale 44 and unscaled = totalSupply * 10^decimals.
   let createdTokenId: string | undefined;
+  let tokenCreateUnscaled: bigint | undefined;
+  let tokenCreateScale: number | undefined;
   if (params.tokenCreate) {
     const tc = params.tokenCreate;
-    if (!Number.isInteger(tc.scale) || tc.scale < 0 || tc.scale > 44) {
-      throw new Error(`tokenCreate.scale must be an integer 0..44 (got ${tc.scale})`);
+    if (!Number.isInteger(tc.decimals) || tc.decimals < 0 || tc.decimals > 44) {
+      throw new Error(`tokenCreate.decimals must be an integer 0..44 (got ${tc.decimals})`);
     }
+    tokenCreateScale = MINIMA_DECIMALS - tc.decimals;
+    tokenCreateUnscaled = BigInt(tc.totalSupply || '0') * (10n ** BigInt(tc.decimals));
     outputs[0].tokenId = TOKEN_CREATE_ID;
     outputs[0].token = null;
+    // Exact create-output amount: MiniNumber(scale 44, unscaled).
+    outputs[0].rawAmountBytes = writeMiniNumber(tokenCreateUnscaled, MINIMA_DECIMALS);
   }
 
   const transaction: MinimaTransaction = {
@@ -2056,12 +2060,15 @@ export function buildTransaction(params: BuildTransactionParams): TransactionBui
 
   precomputeTransactionCoinID(transaction);
 
-  if (params.tokenCreate) {
+  if (params.tokenCreate && tokenCreateUnscaled !== undefined && tokenCreateScale !== undefined) {
     const tc = params.tokenCreate;
     const token: MinimaToken = {
-      coinId: transaction.outputs[0].coinId,
-      scale: tc.scale,
-      totalAmount: parseDecimalToBaseUnits(tc.totalMinima || '0'),
+      // Java tokencreate passes Coin::COINID_OUTPUT (0x00) as the token coinId,
+      // not the computed output coinId.
+      coinId: COINID_OUTPUT,
+      scale: tokenCreateScale,
+      totalAmount: tokenCreateUnscaled,
+      totalAmountScale: MINIMA_DECIMALS,
       name: new TextEncoder().encode(tc.name),
       script: new TextEncoder().encode(tc.script ?? 'RETURN TRUE'),
       created: 0n

@@ -1075,6 +1075,95 @@ export type TotemSendTransactionResponse =
   | TotemSendTransactionSuccessResponse
   | TotemSendTransactionErrorResponse;
 
+// ─── Token creation (RFC-005 #2/#11) ────────────────────────────────────────
+//
+// Minima token metadata lives in the token `name` MiniString (Java
+// `Token.mTokenName`, "can be a string / JSON"); richer fields (images, web
+// verification links, …) are encoded as a JSON string there. On-chain the token
+// also has a `script` (Java `Token.mTokenScript`) and a `scale`; Java
+// `Token.getDecimalPlaces() = 44 - scale`, so:
+//
+//   decimals 0  → scale 44  → non-fungible (NFT); supply is typically 1
+//   decimals 2  → scale 42
+//   decimals 18 → scale 26
+//
+// `@totemsdk/connect` exposes the full creation surface. Wiring to the wallet
+// handler (`TOTEM_TOKENCREATE`) is pending on-node validation of the
+// decimals↔scale↔base-unit mapping so a wrong-supply token is never minted.
+
+/** Rich token metadata, serialized into the on-chain token `name` as JSON. */
+export interface TokenMetadata {
+  /** Token display name (required). */
+  name: string;
+  /** Short ticker/symbol (e.g. "TOTEM"). */
+  ticker?: string;
+  /** Longer description. */
+  description?: string;
+  /** Website / project URL. */
+  url?: string;
+  /**
+   * Web-verification link used by explorers/wallets to validate the token
+   * (Minima's `webvalidate` convention).
+   */
+  webvalidate?: string;
+  /** Image as a URL. */
+  image?: string;
+  /** Image as an inline data URI (e.g. `data:image/png;base64,...`). */
+  imageData?: string;
+  /** Small icon URL or data URI. */
+  icon?: string;
+  /** External/canonical URL for the token. */
+  externalUrl?: string;
+  /** Arbitrary structured attributes (traits for NFTs). */
+  attributes?: Array<{ trait_type: string; value: string | number }>;
+  /** Any additional metadata fields, merged verbatim. */
+  extra?: Record<string, unknown>;
+}
+
+export interface TokenCreationParams {
+  /** Token metadata (name, ticker, description, images, web links, traits, …). */
+  metadata: TokenMetadata;
+  /**
+   * Decimal places, 0..44. `0` denotes a non-fungible token (NFT); Java
+   * `scale = 44 - decimals`.
+   */
+  decimals: number;
+  /** Total supply in display units (e.g. "1000000"; "1" for an NFT). */
+  totalSupply: string;
+  /** Optional token script (defaults to `RETURN TRUE`). */
+  script?: string;
+  /** Address to receive the created token supply; defaults to the wallet's primary address. */
+  recipientAddress?: string;
+}
+
+export interface TotemTokenCreateRequest {
+  method: 'TOTEM_TOKENCREATE';
+  params: {
+    origin: string;
+    request: TokenCreationParams;
+  };
+}
+
+export interface TotemTokenCreateSuccessResponse {
+  success: true;
+  /** The created token id (`Token.getTokenID()`). */
+  tokenId: string;
+  tokenName?: string;
+  txpowid: string;
+  status: 'submitted';
+}
+
+export interface TotemTokenCreateErrorResponse {
+  success: false;
+  error: string;
+  errorCode: string;
+  requiredIntent?: string;
+}
+
+export type TotemTokenCreateResponse =
+  | TotemTokenCreateSuccessResponse
+  | TotemTokenCreateErrorResponse;
+
 export interface TotemGetCoinsRequest {
   method: 'TOTEM_GET_COINS';
   params: {

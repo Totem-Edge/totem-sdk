@@ -66,6 +66,12 @@ export interface MinimaToken {
   name: Uint8Array;
   script: Uint8Array;
   created?: bigint;
+  /**
+   * MiniNumber scale of `totalAmount` in the serialized Token. Minima's
+   * `tokencreate` builds the minima amount from `MINI_UNIT` (1E-44) times
+   * integers, so its scale is always 44; default accordingly.
+   */
+  totalAmountScale?: number;
 }
 
 export interface StateVariable {
@@ -249,7 +255,10 @@ function serializeToken(token: MinimaToken): Uint8Array {
   parts.push(writeHashToStream(token.coinId));
   parts.push(writeMiniData(token.script));
   parts.push(writeMiniNumber(BigInt(token.scale), 0));
-  parts.push(writeMiniNumber(token.totalAmount, 0));
+  // The minima amount is a MiniNumber carrying its own scale (Java
+  // Token.writeDataStream → mTokenMinimaAmount.writeDataStream). Minima's
+  // tokencreate always builds it from MINI_UNIT (scale 44).
+  parts.push(writeMiniNumber(token.totalAmount, token.totalAmountScale ?? 44));
   parts.push(writeMiniData(token.name));
   parts.push(writeMiniNumber(token.created ?? 0n, 0));
   return concat(...parts);
