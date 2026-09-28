@@ -1,6 +1,6 @@
 # RFC-018: KISSVM / Recursive-MAST / `tx-builder` — Adversarial Remediation
 
-**Status:** Draft — remediation contract (P0 landed)
+**Status:** Draft — remediation contract (P0 + P1 landed)
 **Created:** 2026-09-28
 **Authors:** Totem SDK Contributors
 **Depends on:** RFC-016 (KISSVM template security hardening), RFC-017 (decision receipt graph)
