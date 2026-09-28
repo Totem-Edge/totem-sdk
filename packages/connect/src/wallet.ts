@@ -32,6 +32,7 @@ export const LEGACY_METHODS = [
   'TOTEM_SEND_TRANSACTION',
   'TOTEM_GET_COINS',
   'TOTEM_SEND_COMPLEX',
+  'TOTEM_TOKENCREATE',
   'TOTEM_SIGN_DATA',
   'TOTEM_BROADCAST_HEX',
   'TOTEM_GRANT_TX_PERMISSION',
@@ -157,6 +158,7 @@ export const WALLET_METHODS: readonly WalletMethodDescriptor[] = [
   d('TOTEM_SEND_TRANSACTION', 'local', 'payment', ['signer', 'approvals'], ['payment:send'], { requiresApproval: true }),
   d('TOTEM_GET_COINS', 'local', 'chain', ['signer']),
   d('TOTEM_SEND_COMPLEX', 'local', 'complex', ['signer', 'approvals'], [], { requiresApproval: true }),
+  d('TOTEM_TOKENCREATE', 'local', 'token', ['signer', 'approvals'], [], { requiresApproval: true }),
   d('TOTEM_SIGN_DATA', 'local', 'sign', ['signer', 'approvals'], [], { requiresApproval: true }),
   d('TOTEM_BROADCAST_HEX', 'local', 'broadcast', ['signer', 'approvals'], [], { requiresApproval: true }),
   d('TOTEM_GRANT_TX_PERMISSION', 'local', 'permissions', ['signer', 'approvals'], [], { requiresApproval: true }),
@@ -263,6 +265,7 @@ export interface WalletSignerPort {
   getCoins?(params: Record<string, unknown>): Promise<unknown>;
   sendTransaction?(params: Record<string, unknown>): Promise<unknown>;
   sendComplex?(params: Record<string, unknown>): Promise<unknown>;
+  createToken?(params: Record<string, unknown>): Promise<unknown>;
   signData?(params: Record<string, unknown>): Promise<unknown>;
   broadcastHex?(params: Record<string, unknown>): Promise<unknown>;
   proveOwnership?(params: Record<string, unknown>): Promise<unknown>;
@@ -418,6 +421,7 @@ export function createDefaultHandlers(): WalletMethodHandler[] {
     delegate('TOTEM_SEND_TRANSACTION', (c) => c.signer?.sendTransaction?.bind(c.signer), 'Wallet does not expose a transaction signer port.'),
     delegate('TOTEM_GET_COINS', (c) => c.signer?.getCoins?.bind(c.signer), 'Wallet does not expose a chain read port.'),
     delegate('TOTEM_SEND_COMPLEX', (c) => c.signer?.sendComplex?.bind(c.signer), 'Wallet does not expose a complex-transaction builder.'),
+    delegate('TOTEM_TOKENCREATE', (c) => c.signer?.createToken?.bind(c.signer), 'Wallet does not expose a token creation port.'),
     delegate('TOTEM_SIGN_DATA', (c) => c.signer?.signData?.bind(c.signer), 'Wallet does not expose a data signer port.'),
     delegate('TOTEM_BROADCAST_HEX', (c) => c.signer?.broadcastHex?.bind(c.signer), 'Wallet does not expose a broadcast port.'),
     delegate('TOTEM_GRANT_TX_PERMISSION', (c) => c.signer?.grantTxPermission?.bind(c.signer), 'Wallet does not manage tx permissions.'),
@@ -646,6 +650,9 @@ export function createWalletRuntime(
     },
     async sendComplex(buildParams: Record<string, unknown>, mode?: 'build' | 'submit'): Promise<unknown> {
       return dispatch('TOTEM_SEND_COMPLEX', { ...buildParams, ...(mode ? { mode } : {}) });
+    },
+    async createToken(request: Record<string, unknown>): Promise<unknown> {
+      return dispatch('TOTEM_TOKENCREATE', asRecord(request));
     },
     async signData(params: Record<string, unknown>): Promise<unknown> {
       return dispatch('TOTEM_SIGN_DATA', params);

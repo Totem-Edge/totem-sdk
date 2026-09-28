@@ -27,7 +27,7 @@ import { transactionReceiptStore } from '../core/stores/TransactionReceiptStore'
 import { watermarkStore } from '../core/stores/WatermarkStore';
 import { leaseStore } from '../core/stores/LeaseStore';
 import { coinSelectionService, CoinSelectionError } from '../core/transaction/CoinSelectionService';
-import { formatMinimaAmount, MINIMA_DECIMALS, TOTEM_CHAIN_ID } from '../constants';
+import { formatMinimaAmount, parseMinimaAmount, MINIMA_DECIMALS, TOTEM_CHAIN_ID } from '../constants';
 import { sha3_256 } from '@noble/hashes/sha3.js';
 import { parseTxInputs } from '../core/transaction/txParser';
 import { setWasmUrl } from '@totemsdk/txpow';
@@ -1017,6 +1017,7 @@ function buildExtensionConnectPorts(): Partial<WalletHandlerContext> {
       getCoins: legacy('TOTEM_GET_COINS'),
       sendTransaction: legacy('TOTEM_SEND_TRANSACTION'),
       sendComplex: legacy('TOTEM_SEND_COMPLEX'),
+      createToken: legacy('TOTEM_TOKENCREATE'),
       signData: legacy('TOTEM_SIGN_DATA'),
       broadcastHex: legacy('TOTEM_BROADCAST_HEX'),
       grantTxPermission: legacy('TOTEM_GRANT_TX_PERMISSION'),
@@ -3713,6 +3714,109 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
       }
     }
     
+    case 'TOTEM_TOKENCREATE': {
+      try {
+        const { origin, request } = params || {};
+
+        if (!origin) {
+          return { ok: true, result: { success: false, error: 'Origin is required', errorCode: 'INVALID_REQUEST' }, id };
+        }
+
+        const site = connectedSitesStore.getSite(origin);
+        if (!site) {
+          return { ok: true, result: { success: false, error: 'Site not connected. Call TOTEM_CONNECT first.', errorCode: 'SITE_NOT_CONNECTED' }, id };
+        }
+
+        if (!request || typeof request !== 'object') {
+          return { ok: true, result: { success: false, error: 'Invalid token creation request', errorCode: 'INVALID_REQUEST' }, id };
+        }
+
+        const metadata = (request as any).metadata;
+        const decimals = Number((request as any).decimals);
+        const totalSupply = (request as any).totalSupply;
+        const script = (request as any).script;
+        const burn = (request as any).burn;
+        const signtoken = (request as any).signtoken;
+        const recipientAddress = (request as any).recipientAddress;
+
+        if (!metadata || typeof metadata !== 'object' || typeof metadata.name !== 'string' || metadata.name.length === 0) {
+          return { ok: true, result: { success: false, error: 'metadata.name is required', errorCode: 'INVALID_REQUEST' }, id };
+        }
+        if (!Number.isInteger(decimals) || decimals < 0 || decimals > 44) {
+          return { ok: true, result: { success: false, error: 'decimals must be an integer 0..44', errorCode: 'INVALID_REQUEST' }, id };
+        }
+        if (typeof totalSupply !== 'string' || !/^\d+$/.test(totalSupply) || BigInt(totalSupply) <= 0n) {
+          return { ok: true, result: { success: false, error: 'totalSupply must be a positive integer string', errorCode: 'INVALID_REQUEST' }, id };
+        }
+        if (signtoken !== undefined) {
+          return { ok: true, result: { success: false, error: 'signtoken is not yet supported by the wallet', errorCode: 'NOT_IMPLEMENTED' }, id };
+        }
+
+        const account = walletManager.getAccountByIndex(site.addressIndex);
+        if (!account) {
+          return { ok: true, result: { success: false, error: 'Connected address not found in wallet', errorCode: 'BUILD_FAILED' }, id };
+        }
+
+        // colorminima (base units) = totalSupply * 10^decimals; plus optional burn.
+        let burnBase = 0n;
+        if (typeof burn === 'string' && burn.length > 0 && burn !== '0') {
+          if (!/^\d+(\.\d+)?$/.test(burn)) {
+            return { ok: true, result: { success: false, error: 'burn must be a decimal string', errorCode: 'INVALID_REQUEST' }, id };
+          }
+          burnBase = BigInt(parseMinimaAmount(burn));
+        }
+        const colorminima = BigInt(totalSupply) * (10n ** BigInt(decimals));
+        const amountBaseUnits = (colorminima + burnBase).toString();
+
+        const approved = await showTransactionApprovalPopup({
+          origin,
+          to: recipientAddress || account.address,
+          amount: totalSupply,
+          tokenId: '0x00',
+          intent: 'tokencreate'
+        });
+        if (!approved) {
+          return { ok: true, result: { success: false, error: 'Token creation rejected by user', errorCode: 'USER_REJECTED' }, id };
+        }
+
+        const internalSender: chrome.runtime.MessageSender = { id: chrome.runtime.id };
+        const tokenNameJson = JSON.stringify(metadata);
+        const wotsResult = await handleMessage({
+          method: 'WOTS_SEND',
+          params: {
+            to: recipientAddress || account.address,
+            amount: amountBaseUnits,
+            tokenid: '0x00',
+            sourceAddress: account.address,
+            sendMode: 'single',
+            tokenCreate: { name: tokenNameJson, script: script ?? 'RETURN TRUE', decimals, totalSupply }
+          },
+          id: `wots-tokencreate-${Date.now()}`
+        }, internalSender);
+
+        if (wotsResult.error || !wotsResult.tokenId) {
+          return { ok: true, result: { success: false, error: wotsResult.error || 'Token creation failed', errorCode: 'BUILD_FAILED' }, id };
+        }
+
+        await connectedSitesStore.updateLastUsed(origin);
+
+        return {
+          ok: true,
+          result: {
+            success: true,
+            tokenId: wotsResult.tokenId,
+            tokenName: metadata.name,
+            txpowid: wotsResult.txpowid,
+            status: 'submitted'
+          },
+          id
+        };
+      } catch (error: any) {
+        console.error('[TOTEM_TOKENCREATE] Error:', error);
+        return { ok: false, error: error.message, id };
+      }
+    }
+
     case 'TOTEM_GET_COINS': {
       try {
         const { tokenId, address: filterAddress, minAmount, sendable, relevant, spent } = params || {};

@@ -895,6 +895,7 @@ export interface TotemProvider {
   request(args: TotemGetAccountsRequest): Promise<TotemGetAccountsResponse>;
   request(args: TotemSendTransactionRequest): Promise<TotemSendTransactionResponse>;
   request(args: TotemGetCoinsRequest): Promise<TotemGetCoinsResponse>;
+  request(args: TotemTokenCreateRequest): Promise<TotemTokenCreateResponse>;
   request(args: TotemSendComplexRequest & { params: { mode: 'build' } }): Promise<TotemSendComplexBuildResponse>;
   request(args: TotemSendComplexRequest & { params: { mode?: 'submit' } }): Promise<TotemSendComplexSubmitResponse>;
   request(args: TotemSendComplexRequest): Promise<TotemSendComplexBuildResponse | TotemSendComplexSubmitResponse>;
@@ -1132,6 +1133,17 @@ export interface TokenCreationParams {
   totalSupply: string;
   /** Optional token script (defaults to `RETURN TRUE`). */
   script?: string;
+  /**
+   * Amount of MINIMA to burn with the minting transaction (display units, e.g.
+   * "0.1"). Matches Minima's `tokencreate burn:`.
+   */
+  burn?: string;
+  /**
+   * Public key to sign the token creation with (Minima's `signtoken:`), proving
+   * authorship. The signature over the token coin id is added to the token
+   * metadata. NOTE: not yet implemented by the wallet handler.
+   */
+  signtoken?: string;
   /** Address to receive the created token supply; defaults to the wallet's primary address. */
   recipientAddress?: string;
 }

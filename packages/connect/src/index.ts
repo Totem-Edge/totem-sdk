@@ -7,6 +7,8 @@ import type {
   TotemGetAccountsResponse,
   TotemSendTransactionResponse,
   TotemGetCoinsResponse,
+  TokenCreationParams,
+  TotemTokenCreateResponse,
   TotemSendComplexBuildResponse,
   TotemSendComplexSubmitResponse,
   TotemSignDataResponse,
@@ -247,6 +249,19 @@ export async function sendTransaction(origin: string, request: {
   const provider = getProvider();
   return await provider.request({
     method: 'TOTEM_SEND_TRANSACTION',
+    params: { origin, request }
+  });
+}
+
+/**
+ * Create (mint) a custom token or NFT (RFC-005 #2/#11). `decimals: 0` mints a
+ * non-fungible token. The wallet pops an approval; on success the created
+ * `tokenId` (`Token.getTokenID()`) is returned.
+ */
+export async function createToken(origin: string, request: TokenCreationParams): Promise<TotemTokenCreateResponse> {
+  const provider = getProvider();
+  return await provider.request({
+    method: 'TOTEM_TOKENCREATE',
     params: { origin, request }
   });
 }
