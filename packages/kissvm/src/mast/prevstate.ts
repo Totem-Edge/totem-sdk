@@ -46,6 +46,11 @@ export function buildPrevStateWorkflow(
   transitions: StateTransition[],
   additionalScript: string = '',
 ): PrevStateWorkflow {
+  // RFC-018 P2-2: an empty workflow must fail construction, not emit allow-all.
+  if (transitions.length === 0 && !additionalScript) {
+    throw new Error('buildPrevStateWorkflow: requires at least one transition or an additional script');
+  }
+
   const scriptLines: string[] = [];
 
   for (const t of transitions) {
@@ -58,7 +63,12 @@ export function buildPrevStateWorkflow(
     scriptLines.push(additionalScript);
   }
 
-  const script = scriptLines.join('\n');
+  // RFC-018 P2-2: a workflow script must be a complete, terminal script.
+  // Append only if the additional script does not already terminate in RETURN
+  // (avoids a double RETURN that would make an appended child MAST unreachable).
+  const body = scriptLines.join('\n');
+  const script = /(?:^|\n)\s*RETURN\b[^\n]*\s*$/i.test(body) ? body : `${body}\nRETURN TRUE`;
+
   const scriptHash = hashScript(script);
 
   return { id, name, transitions, script, scriptHash };
@@ -77,6 +87,7 @@ export function counterWorkflow(port: number, maxValue?: number): PrevStateWorkf
     `LET curr = STATE(${port})`,
     `ASSERT curr EQ INC(prev)`,
     maxCheck,
+    `RETURN TRUE`,
   ].filter(Boolean).join('\n');
 
   return {
@@ -128,6 +139,7 @@ export function vestingWorkflow(
     `ASSERT SIGNEDBY(0x${beneficiaryPk})`,
     `ASSERT VERIFYOUT(@INPUT 0x${beneficiaryPk} claimable @TOKENID TRUE)`,
     `ASSERT STATE(${claimedPort}) EQ prevClaimed ADD claimable`,
+    `RETURN TRUE`,
   ].join('\n');
 
   return {
@@ -162,6 +174,7 @@ export function roundBasedWorkflow(
     `ASSERT round EQ INC(prevRound)`,
     `ASSERT SIGNEDBY(0x${pk1}) OR SIGNEDBY(0x${pk2})`,
     `ASSERT VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID TRUE)`,
+    `RETURN TRUE`,
   ].join('\n');
 
   return {
@@ -188,6 +201,7 @@ export function timelockWorkflow(
     `ASSERT @BLOCK GTE lockBlock`,
     `ASSERT SIGNEDBY(0x${ownerPk})`,
     `ASSERT VERIFYOUT(@INPUT 0x${ownerPk} @AMOUNT @TOKENID TRUE)`,
+    `RETURN TRUE`,
   ].join('\n');
 
   return {

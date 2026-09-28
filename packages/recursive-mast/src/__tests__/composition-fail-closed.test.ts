@@ -9,6 +9,12 @@ import {
   toNestedMastScript,
   computeCanonicalScriptHash,
   compileMastTree,
+  buildPrevStateWorkflow,
+  counterWorkflow,
+  buildMigrationStep,
+  buildMigrationPath,
+  buildMigrationScript,
+  toMigrationPathScript,
   type ProofChain,
 } from '../index.js';
 
@@ -57,5 +63,33 @@ describe('RFC-018 RM-COMPOSE-001: composition fails closed', () => {
     expect(lines).toContain('ASSERT STATE(0) EQ [a]');
     expect(lines.filter((l) => /RETURN TRUE/i.test(l))).toHaveLength(0);
     expect(lines[lines.length - 1]).toBe(`MAST 0x${chain.links[1].policyRoot}`);
+  });
+});
+
+describe('RFC-018 P2-2: prevstate workflows terminate', () => {
+  it('rejects an empty workflow instead of allow-all', () => {
+    expect(() => buildPrevStateWorkflow('x', 'X', [])).toThrow(/at least one transition/);
+  });
+
+  it('emits a terminal RETURN for generated workflows', () => {
+    expect(/(?:^|\n)\s*RETURN\b/i.test(counterWorkflow(1, 10).script.trim())).toBe(true);
+  });
+});
+
+describe('RFC-018 P2-2: migration path composition', () => {
+  it('rejects an empty migration path', () => {
+    expect(() =>
+      toMigrationPathScript({ steps: [], originalRoot: '', currentRoot: '', complete: false }),
+    ).toThrow(/empty migration path/);
+  });
+
+  it('delegates each step to the next composed script', () => {
+    const path = buildMigrationPath([
+      buildMigrationStep('aa', 'bb', 10, 20, ''),
+      buildMigrationStep('bb', 'cc', 20, 30, ''),
+    ]);
+    const script = toMigrationPathScript(path);
+    const inner = buildMigrationScript('bb', 'cc', 20, 30);
+    expect(script).toContain(`MAST 0x${computeCanonicalScriptHash(inner)}`);
   });
 });

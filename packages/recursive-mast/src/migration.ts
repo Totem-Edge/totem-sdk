@@ -129,19 +129,31 @@ export function getActivePolicyRoot(path: MigrationPath, currentBlock: number): 
 
 /**
  * Generate the full nested MAST script for a migration path.
- * Each step wraps the next in a migration transition.
+ *
+ * RFC-018 P2-2: each step delegates to the *next composed script* (its
+ * canonical root), not merely its `toPolicyRoot` — the previous form appended a
+ * terminal `MAST` after a `RETURN TRUE`, leaving the child unreachable. An empty
+ * path fails closed rather than compiling to allow-all.
  */
 export function toMigrationPathScript(path: MigrationPath): string {
-  if (path.steps.length === 0) return 'RETURN TRUE';
+  if (path.steps.length === 0) {
+    throw new Error('toMigrationPathScript: empty migration path (refusing to build allow-all)');
+  }
 
-  let script = `// Final policy: ${path.currentRoot.slice(0, 16)}…\nRETURN TRUE`;
+  let nextScript: string | undefined;
+  let composed = '';
 
   for (let i = path.steps.length - 1; i >= 0; i--) {
     const step = path.steps[i];
-    script = buildMigrationScript(step.fromPolicyRoot, step.toPolicyRoot, step.activationBlock, step.deprecationBlock)
-      + `\n\n// Delegates to next step\n`
-      + `MAST 0x${step.toPolicyRoot}`;
+    const target = nextScript ? computeCanonicalScriptHash(nextScript) : step.toPolicyRoot;
+    composed = buildMigrationScript(
+      step.fromPolicyRoot,
+      target,
+      step.activationBlock,
+      step.deprecationBlock,
+    );
+    nextScript = composed;
   }
 
-  return script;
+  return composed;
 }
