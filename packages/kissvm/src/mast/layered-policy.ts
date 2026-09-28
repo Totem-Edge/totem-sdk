@@ -121,9 +121,19 @@ export function buildLayeredPolicy(config: LayeredPolicyConfig): {
  * a trailing `RETURN` would make the nested branch unreachable.
  */
 function stripTrailingReturn(script: string): string {
-  const trimmed = script.replace(/\s+$/, '');
-  const match = trimmed.match(/(?:^|\s)RETURN\b[^\n]*$/i);
-  return match ? trimmed.slice(0, match.index).replace(/\s+$/, '') : trimmed;
+  // RFC-018 RM-LAYER-001: only a terminal `RETURN TRUE` may be stripped. A
+  // terminal `RETURN FALSE` (an explicit deny) must fail closed, not become a
+  // delegation; trailing blank/comment lines are tolerated.
+  let t = script.replace(/\s+$/, '');
+  // Drop trailing blank / comment-only lines so an inline RETURN is terminal.
+  t = t.replace(/(?:\n[ \t]*(?:\/\/[^\n]*)?)+$/, '');
+  const retTrue = t.match(/(?:^|\s)RETURN\s+TRUE\s*(?:\/\/[^\n]*)?$/i);
+  if (retTrue) return t.slice(0, retTrue.index).replace(/\s+$/, '');
+  const anyRet = t.match(/(?:^|\s)RETURN\b[^\n]*$/i);
+  if (anyRet) {
+    throw new Error('stripTrailingReturn: refusing to strip a terminal RETURN that is not RETURN TRUE');
+  }
+  return t;
 }
 
 export function buildLayeredMastScript(config: LayeredPolicyConfig): string {

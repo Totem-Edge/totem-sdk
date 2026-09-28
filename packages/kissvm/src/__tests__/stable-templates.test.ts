@@ -223,8 +223,29 @@ describe('stable template: statechain', () => {
     const result = run(script, ctx({
       inputs: [coin(100, 900)],
       state: s({ 0: pkAA }),
+      prevState: s({ 0: pkAA }),
     }), { [pkAA]: 'owner', [pkBB]: 'se' });
     expect(result.success).toBe(true);
+  });
+
+  it('SE alone cannot satisfy the 2-of-2 (RFC-018 KISSVM-MULTISIG-001)', () => {
+    const script = buildStatechainScript(cfg);
+    const result = run(script, ctx({
+      inputs: [coin(100, 900)],
+      state: s({ 0: pkAA }),
+      prevState: s({ 0: pkAA }),
+    }), { [pkBB]: 'se' });
+    expect(result.success).toBe(false);
+  });
+
+  it('cannot substitute the SE key into the owner position to collapse the multisig (RFC-018)', () => {
+    const script = buildStatechainScript(cfg);
+    const result = run(script, ctx({
+      inputs: [coin(100, 900)],
+      state: s({ 0: pkBB }),      // attacker sets the owner position to the SE key
+      prevState: s({ 0: pkAA }),  // committed owner is pkAA
+    }), { [pkBB]: 'se' });
+    expect(result.success).toBe(false);
   });
 
   it('owner alone can reclaim after the timelock', () => {

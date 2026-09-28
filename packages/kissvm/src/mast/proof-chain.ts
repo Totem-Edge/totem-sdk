@@ -205,6 +205,26 @@ export function toProofExpression(link: ProofLink): string {
  *
  * @returns KISSVM script with nested MAST expressions.
  */
+/**
+ * Strip a terminal `RETURN TRUE` so an appended terminal `MAST` is reachable.
+ * RFC-018 RM-COMPOSE-001: MAST is terminal, so a layer ending in `RETURN` makes
+ * the appended `MAST <child>` dead. Only `RETURN TRUE` may be stripped; any other
+ * terminal `RETURN` (e.g. `RETURN FALSE`) fails closed rather than silently
+ * becoming a delegation.
+ */
+function stripTerminalReturnTrue(script: string): string {
+  let t = script.replace(/\s+$/, '');
+  // Drop trailing blank / comment-only lines so an inline RETURN is terminal.
+  t = t.replace(/(?:\n[ \t]*(?:\/\/[^\n]*)?)+$/, '');
+  const retTrue = t.match(/(?:^|\s)RETURN\s+TRUE\s*(?:\/\/[^\n]*)?$/i);
+  if (retTrue) return t.slice(0, retTrue.index).replace(/\s+$/, '');
+  const anyRet = t.match(/(?:^|\s)RETURN\b[^\n]*$/i);
+  if (anyRet) {
+    throw new Error('toNestedMastScript: refusing to compose a layer with a terminal RETURN that is not RETURN TRUE');
+  }
+  return t;
+}
+
 export function toNestedMastScript(chain: ProofChain): string {
   // RFC-016 I4: an empty chain must fail construction, not compile to allow-all.
   if (chain.links.length === 0) {
@@ -215,7 +235,8 @@ export function toNestedMastScript(chain: ProofChain): string {
 
   for (let i = chain.links.length - 2; i >= 0; i--) {
     const nextRoot = chain.links[i + 1].policyRoot;
-    script = `${chain.links[i].script}\nMAST 0x${nextRoot}`;
+    // RFC-018 RM-COMPOSE-001: strip a trailing RETURN TRUE so the child MAST runs.
+    script = `${stripTerminalReturnTrue(chain.links[i].script)}\nMAST 0x${nextRoot}`;
   }
 
   return script;

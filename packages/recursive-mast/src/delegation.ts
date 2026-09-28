@@ -171,9 +171,20 @@ export function toDelegationChainScript(chain: DelegationChain): string {
   return script;
 }
 
-/** Strip a trailing `RETURN ...` so a terminal `MAST` is reachable. */
+/**
+ * Strip a terminal `RETURN TRUE` so an appended terminal `MAST` is reachable.
+ * RFC-018 RM-LAYER-001: only `RETURN TRUE` may be stripped; a terminal
+ * `RETURN FALSE` fails closed.
+ */
 function stripTrailingReturn(script: string): string {
-  const trimmed = script.replace(/\s+$/, '');
-  const match = trimmed.match(/(?:^|\s)RETURN\b[^\n]*$/i);
-  return match ? trimmed.slice(0, match.index).replace(/\s+$/, '') : trimmed;
+  let t = script.replace(/\s+$/, '');
+  // Drop trailing blank / comment-only lines so an inline RETURN is terminal.
+  t = t.replace(/(?:\n[ \t]*(?:\/\/[^\n]*)?)+$/, '');
+  const retTrue = t.match(/(?:^|\s)RETURN\s+TRUE\s*(?:\/\/[^\n]*)?$/i);
+  if (retTrue) return t.slice(0, retTrue.index).replace(/\s+$/, '');
+  const anyRet = t.match(/(?:^|\s)RETURN\b[^\n]*$/i);
+  if (anyRet) {
+    throw new Error('stripTrailingReturn: refusing to strip a terminal RETURN that is not RETURN TRUE');
+  }
+  return t;
 }

@@ -190,14 +190,29 @@ export function toProofExpression(link: ProofLink): string {
  *
  * @returns KISSVM script with nested MAST expressions.
  */
+function stripTerminalReturnTrue(script: string): string {
+  let t = script.replace(/\s+$/, '');
+  // Drop trailing blank / comment-only lines so an inline RETURN is terminal.
+  t = t.replace(/(?:\n[ \t]*(?:\/\/[^\n]*)?)+$/, '');
+  const retTrue = t.match(/(?:^|\s)RETURN\s+TRUE\s*(?:\/\/[^\n]*)?$/i);
+  if (retTrue) return t.slice(0, retTrue.index).replace(/\s+$/, '');
+  const anyRet = t.match(/(?:^|\s)RETURN\b[^\n]*$/i);
+  if (anyRet) {
+    throw new Error('toNestedMastScript: refusing to compose a layer with a terminal RETURN that is not RETURN TRUE');
+  }
+  return t;
+}
+
 export function toNestedMastScript(chain: ProofChain): string {
-  if (chain.links.length === 0) return 'RETURN TRUE';
+  // RFC-016 I4: an empty chain must fail construction, not compile to allow-all.
+  if (chain.links.length === 0) throw new Error('toNestedMastScript: empty proof chain');
 
   let script = chain.links[chain.links.length - 1].script;
 
   for (let i = chain.links.length - 2; i >= 0; i--) {
     const nextRoot = chain.links[i + 1].policyRoot;
-    script = `${chain.links[i].script}\nMAST 0x${nextRoot}`;
+    // RFC-018 RM-COMPOSE-001: strip a trailing RETURN TRUE so the child MAST runs.
+    script = `${stripTerminalReturnTrue(chain.links[i].script)}\nMAST 0x${nextRoot}`;
   }
 
   return script;

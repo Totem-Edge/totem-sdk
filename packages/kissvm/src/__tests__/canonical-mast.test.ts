@@ -116,4 +116,35 @@ describe('RFC-016 P2: canonical MAST roots', () => {
     const empty: ProofChain = { links: [], depth: 0, verified: false, leafScriptHash: '' };
     expect(() => toNestedMastScript(empty)).toThrow(/empty/i);
   });
+
+  it('refuses to compose a layer whose terminal RETURN is not TRUE (RFC-018 RM-COMPOSE-001)', () => {
+    const a = `ASSERT STATE(0) EQ [a]\nRETURN FALSE`;
+    const b = `ASSERT SIGNEDBY(0x${pkB})\nRETURN TRUE`;
+    expect(() =>
+      buildLayeredMastScript({
+        assetId: 'x',
+        assetName: 'X',
+        layers: [
+          { id: 'a', name: 'A', script: a, authorityPkd: pkA },
+          { id: 'b', name: 'B', script: b, authorityPkd: pkB },
+        ],
+      }),
+    ).toThrow(/RETURN TRUE/);
+  });
+
+  it('refuses to compose a proof chain whose parent ends in RETURN FALSE (RFC-018)', () => {
+    const parentScript = `ASSERT STATE(0) EQ [a]\nRETURN FALSE`;
+    const childScript = `ASSERT SIGNEDBY(0x${pkB})\nRETURN TRUE`;
+    const childMast = compileMastTree([childScript]);
+    const chain: ProofChain = {
+      links: [
+        { scriptHash: computeCanonicalScriptHash(parentScript), policyRoot: computeCanonicalScriptHash(parentScript), proof: '', script: parentScript },
+        { scriptHash: computeCanonicalScriptHash(childScript), policyRoot: childMast.rootHex, proof: '', script: childScript },
+      ],
+      depth: 2,
+      verified: false,
+      leafScriptHash: '',
+    };
+    expect(() => toNestedMastScript(chain)).toThrow(/RETURN TRUE/);
+  });
 });
