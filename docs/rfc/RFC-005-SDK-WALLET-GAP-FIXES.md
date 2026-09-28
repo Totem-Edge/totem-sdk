@@ -1,6 +1,6 @@
 # RFC-005: SDK & Wallet Gap Fixes — Complex Contract / NFT-Minting Surface
 
-**Status:** Draft — partially superseded; re-triaged 2026-09-28 (see §1.1). Net: 2 of 11 gaps resolved, 1 partial (SDK layer only), 1 intentional, 7 open. Overlaps RFC-002/RFC-003 (Omnia, landed) and RFC-014 (wallet parity, landed).
+**Status:** Draft — partially superseded; re-triaged 2026-09-28 (see §1.1). Net: 3 of 11 gaps resolved, 1 partial (SDK layer only), 1 intentional, 6 open. Overlaps RFC-002/RFC-003 (Omnia, landed) and RFC-014 (wallet parity, landed).
 **Created:** 2026-09-10
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]
@@ -27,7 +27,7 @@ Re-checked against the repository at `@totemsdk/decision@0.2.0`. Evidence is a s
 |---|-----|--------|----------|
 | 1 | `TOTEM_SEND_COMPLEX` broken | **Resolved** | Extension background dispatches `WOTS_BUILD_UNSIGNED` and `WOTS_SEND_COMPLEX` (`extensions/totem-extension/src/background/index.ts:3918,4063`); `@totemsdk/connect` exposes `sendComplex` (`packages/connect/src/index.ts`, `wallet.ts:647`) |
 | 2 | No token creation via wallet | **Open** | No `TOTEM_TOKENCREATE` message type / handler / UI in the extension or connect |
-| 3 | send wrapper drops `state`/`storestate` | **Open** | `sendTransaction()` request is still `{ address, amount, tokenId? }` only (`packages/connect/src/index.ts:231`) |
+| 3 | send wrapper drops `state`/`storestate` | **Resolved** | `sendTransaction` accepts `outputs[].state`/`storeState` + `transactionState`; extension `WOTS_SEND`/`TOTEM_SEND_TRANSACTION`/`buildTransaction` carry them to the output coin (commit `e2089a8`). Stateful multi-output rejects with `UNSUPPORTED_STATEFUL_SEND`. PWA send page not yet wired. |
 | 4 | `RPC_COMMAND` allowlist | **Intentional** | 6-command read-only set retained (`TOTEM_WALLET_SPEC.md`); a deliberate security boundary, not a defect |
 | 5 | `kissvmSimulate`/`kissvmValidate` unimplemented | **Partial** | Connect methods + `kissvm` sdk-client port exist (`packages/connect/src/wallet.ts:209,493`); but both wallets advertise `scripting: { kissvm: false }` and the PWA provider returns `null` |
 | 6 | `getCoins` limited | **Open** | `TOTEM_GET_COINS` returns only `{ coinId, address, amount, tokenId, created }` — no `state`/`storestate`/`mmrentry`/`spent`, no `sendable`/`relevant` filter (`background/index.ts:3750`) |
@@ -37,7 +37,7 @@ Re-checked against the repository at `@totemsdk/decision@0.2.0`. Evidence is a s
 | 10 | sendComplex intent auto-detection / multi-output approval | **Not re-verified** | Requires wallet-UI inspection (extension approval flow) |
 | 11 | No `tokencreate` wrapper | **Open** | No `createToken()` in `@totemsdk/connect` |
 
-**Verdict.** Gaps #1 and #9 are closed; #5 is done at the SDK layer but not in either wallet; #4 is a deliberate boundary. The remaining critical-path items are #2/#11 (token creation), #3 (stateful send) and #6 (UTXO inspection). This RFC should be re-scoped against RFC-014's landed wallet parity before further work.
+**Verdict.** Gaps #1, #3 and #9 are closed; #5 is done at the SDK layer but not in either wallet; #4 is a deliberate boundary. The remaining critical-path items are #2/#11 (token creation) and #6 (UTXO inspection). This RFC should be re-scoped against RFC-014's landed wallet parity before further work.
 
 ---
 
