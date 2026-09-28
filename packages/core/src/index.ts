@@ -145,6 +145,9 @@ export {
   computeTransactionDigest,
 } from './wasm-sync.js';
 
+// Transaction deserialization (byte-exact inverse of the TS serializer)
+export { deserializeTransaction } from './transaction.js';
+
 // Verification
 export {
   timingSafeEqual,
@@ -203,6 +206,7 @@ export {
   type TransactionBuildResult,
   parseDecimalToMiniNumber,
   serializeCoin,
+  serializeTransaction as serializeTransactionObject,
   createDefaultTransaction,
   buildMinimaCoin,
 } from './transaction.js';

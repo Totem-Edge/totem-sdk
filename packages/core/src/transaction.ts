@@ -349,6 +349,153 @@ export function computeTransactionDigest(tx: MinimaTransaction): Uint8Array {
   return sha3_256(serialized);
 }
 
+// ─── Deserialization (byte-exact inverse of serializeTransaction) ───────────
+//
+// Mirrors Minima Java's Transaction.readDataStream()/Coin.readDataStream().
+// Used for round-trip verification and for consumers (e.g. @totemsdk/tx-builder)
+// that receive serialized transactions and need the structured form.
+
+interface TxCursor {
+  offset: number;
+}
+
+function txReadBytes(data: Uint8Array, c: TxCursor, n: number): Uint8Array {
+  if (n < 0 || c.offset + n > data.length) {
+    throw new Error(`deserializeTransaction: unexpected end of input at offset ${c.offset} (need ${n})`);
+  }
+  const out = data.slice(c.offset, c.offset + n);
+  c.offset += n;
+  return out;
+}
+
+function txReadMiniByte(data: Uint8Array, c: TxCursor): number {
+  return txReadBytes(data, c, 1)[0];
+}
+
+/** MiniData / hash: 4-byte big-endian length + bytes. */
+function txReadMiniData(data: Uint8Array, c: TxCursor): Uint8Array {
+  const lenBytes = txReadBytes(data, c, 4);
+  const len = ((lenBytes[0] << 24) | (lenBytes[1] << 16) | (lenBytes[2] << 8) | lenBytes[3]) >>> 0;
+  return txReadBytes(data, c, len);
+}
+
+/** MiniNumber: 1-byte scale + 1-byte length + two's-complement unscaled bytes. */
+function txReadMiniNumber(data: Uint8Array, c: TxCursor): { value: bigint; scale: number } {
+  const scale = txReadBytes(data, c, 1)[0];
+  const len = txReadBytes(data, c, 1)[0];
+  const bytes = txReadBytes(data, c, len);
+  let value = 0n;
+  for (const b of bytes) value = (value << 8n) | BigInt(b);
+  return { value, scale };
+}
+
+function txBytesToBigInt(bytes: Uint8Array): bigint {
+  let value = 0n;
+  for (const b of bytes) value = (value << 8n) | BigInt(b);
+  return value;
+}
+
+/** MMREntryNumber: MiniNumber(scale) followed by MiniData(unscaled). */
+function txReadMMREntryNumber(data: Uint8Array, c: TxCursor): bigint {
+  txReadMiniNumber(data, c); // scale (always 0 for integer entry numbers)
+  return txBytesToBigInt(txReadMiniData(data, c));
+}
+
+function miniNumberToDecimal(value: bigint, scale: number): string {
+  if (scale === 0) return value.toString();
+  const digits = value.toString().padStart(scale + 1, '0');
+  const whole = digits.slice(0, digits.length - scale);
+  const frac = digits.slice(digits.length - scale);
+  return `${whole}.${frac}`;
+}
+
+function txReadStateVariable(data: Uint8Array, c: TxCursor): StateVariable {
+  const port = txReadBytes(data, c, 1)[0];
+  const type = txReadBytes(data, c, 1)[0];
+  switch (type) {
+    case STATETYPE_HEX:
+      return { port, type: 'hex', value: txReadMiniData(data, c) };
+    case STATETYPE_NUMBER:
+      return { port, type: 'number', value: txReadMiniNumber(data, c).value };
+    case STATETYPE_STRING:
+      return { port, type: 'string', value: new TextDecoder().decode(txReadMiniData(data, c)) };
+    case STATETYPE_BOOL:
+      return { port, type: 'bool', value: txReadMiniByte(data, c) === 1 };
+    default:
+      throw new Error(`deserializeTransaction: unknown StateVariable type ${type}`);
+  }
+}
+
+function txReadToken(data: Uint8Array, c: TxCursor): MinimaToken {
+  const coinId = txReadMiniData(data, c);
+  const script = txReadMiniData(data, c);
+  const { value: scale } = txReadMiniNumber(data, c);
+  const { value: totalAmount } = txReadMiniNumber(data, c);
+  const name = txReadMiniData(data, c);
+  const { value: created } = txReadMiniNumber(data, c);
+  return { coinId, script, scale: Number(scale), totalAmount, name, created };
+}
+
+function txReadCoin(data: Uint8Array, c: TxCursor): MinimaCoin {
+  const coinId = txReadMiniData(data, c);
+  const address = txReadMiniData(data, c);
+  const { value: amountUnscaled, scale } = txReadMiniNumber(data, c);
+  const tokenId = txReadMiniData(data, c);
+  const storeState = txReadMiniByte(data, c) === 1;
+  const mmrEntryNumber = txReadMMREntryNumber(data, c);
+  const spent = txReadMiniByte(data, c) === 1;
+  const { value: created } = txReadMiniNumber(data, c);
+
+  const stateCount = Number(txReadMiniNumber(data, c).value);
+  const state: StateVariable[] = [];
+  for (let i = 0; i < stateCount; i++) state.push(txReadStateVariable(data, c));
+
+  const hasToken = txReadMiniByte(data, c) === 1;
+  const token = hasToken ? txReadToken(data, c) : null;
+
+  return {
+    coinId,
+    address,
+    amount: miniNumberToDecimal(amountUnscaled, scale),
+    tokenId,
+    token,
+    storeState,
+    state,
+    mmrEntryNumber,
+    spent,
+    created,
+  };
+}
+
+/**
+ * Deserialize a transaction produced by {@link serializeTransaction}. The
+ * inverse is byte-exact for canonically-encoded transactions (outputs/inputs
+ * written from decimal amounts, MMR entry numbers and tokens).
+ */
+export function deserializeTransaction(bytes: Uint8Array): MinimaTransaction {
+  const c: TxCursor = { offset: 0 };
+
+  const inputCount = Number(txReadMiniNumber(bytes, c).value);
+  const inputs: MinimaCoin[] = [];
+  for (let i = 0; i < inputCount; i++) inputs.push(txReadCoin(bytes, c));
+
+  const outputCount = Number(txReadMiniNumber(bytes, c).value);
+  const outputs: MinimaCoin[] = [];
+  for (let i = 0; i < outputCount; i++) outputs.push(txReadCoin(bytes, c));
+
+  const stateCount = Number(txReadMiniNumber(bytes, c).value);
+  const state: StateVariable[] = [];
+  for (let i = 0; i < stateCount; i++) state.push(txReadStateVariable(bytes, c));
+
+  const linkHash = txReadMiniData(bytes, c);
+
+  if (c.offset !== bytes.length) {
+    throw new Error(`deserializeTransaction: ${bytes.length - c.offset} trailing byte(s) after transaction`);
+  }
+
+  return { linkHash, inputs, outputs, state };
+}
+
 export function precomputeTransactionCoinID(tx: MinimaTransaction): void {
   if (tx.inputs.length === 0) return;
 
