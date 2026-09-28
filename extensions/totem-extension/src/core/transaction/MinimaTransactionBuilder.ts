@@ -2040,8 +2040,9 @@ export function buildTransaction(params: BuildTransactionParams): TransactionBui
   
   // RFC-005 #2/#11: token creation. Output[0] becomes the token-create coin: a
   // 0xFF marker tokenId (Java Token.TOKENID_CREATE). Mirror's Minima's
-  // tokencreate: colorminima = MINI_UNIT * 10^decimals * totalSupply, i.e. a
-  // MiniNumber with scale 44 and unscaled = totalSupply * 10^decimals.
+  // tokencreate: colorminima = MINI_UNIT * 10^decimals * totalSupply is a
+  // MiniNumber with scale (44 - decimals) and unscaled value == totalSupply
+  // (Minima's TEN = 1E1 has scale -1, so the scale lands on 44-decimals, not 44).
   let createdTokenId: string | undefined;
   let tokenCreateUnscaled: bigint | undefined;
   let tokenCreateScale: number | undefined;
@@ -2051,11 +2052,11 @@ export function buildTransaction(params: BuildTransactionParams): TransactionBui
       throw new Error(`tokenCreate.decimals must be an integer 0..44 (got ${tc.decimals})`);
     }
     tokenCreateScale = MINIMA_DECIMALS - tc.decimals;
-    tokenCreateUnscaled = BigInt(tc.totalSupply || '0') * (10n ** BigInt(tc.decimals));
+    tokenCreateUnscaled = BigInt(tc.totalSupply || '0');
     outputs[0].tokenId = TOKEN_CREATE_ID;
     outputs[0].token = null;
-    // Exact create-output amount: MiniNumber(scale 44, unscaled).
-    outputs[0].rawAmountBytes = writeMiniNumber(tokenCreateUnscaled, MINIMA_DECIMALS);
+    // Exact create-output amount: MiniNumber(unscaled = totalSupply, scale = 44-decimals).
+    outputs[0].rawAmountBytes = writeMiniNumber(tokenCreateUnscaled, tokenCreateScale);
   }
 
   const transaction: MinimaTransaction = {
@@ -2075,7 +2076,7 @@ export function buildTransaction(params: BuildTransactionParams): TransactionBui
       coinId: COINID_OUTPUT,
       scale: tokenCreateScale,
       totalAmount: tokenCreateUnscaled,
-      totalAmountScale: MINIMA_DECIMALS,
+      totalAmountScale: tokenCreateScale,
       name: new TextEncoder().encode(tc.name),
       script: new TextEncoder().encode(tc.script ?? 'RETURN TRUE'),
       created: 0n

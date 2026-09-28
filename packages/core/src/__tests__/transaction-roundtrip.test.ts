@@ -121,4 +121,22 @@ describe('token id computation', () => {
       '00000001000000000b52455455524e205452554500012c2c0101000000107b226e616d65223a226d796e6674227d000100',
     );
   });
+
+  it('matches the totem-node tokenid for a fungible token (testcoin, decimals 8)', () => {
+    // Node: tokencreate name:testcoin amount:1000000 → scale 36, totalamount 1e-30
+    // (unscaled == totalSupply, scale == 44-decimals), tokenid below.
+    const enc = (s: string) => new TextEncoder().encode(s);
+    const token = {
+      coinId: new Uint8Array([0x00]),
+      scale: 36,
+      totalAmount: 1000000n,
+      totalAmountScale: 36,
+      name: enc('{"name":"testcoin"}'),
+      script: enc('RETURN TRUE'),
+      created: 0n,
+    };
+    expect(bytesToHex(computeTokenId(token)).toLowerCase()).toBe(
+      '964060c8a73407654950bc3ebb87593cfa497179ebdd589ff66c0b64c10f04aa',
+    );
+  });
 });
