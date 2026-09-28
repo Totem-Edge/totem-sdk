@@ -1,6 +1,6 @@
 # RFC-005: SDK & Wallet Gap Fixes — Complex Contract / NFT-Minting Surface
 
-**Status:** Draft — partially superseded; re-triaged 2026-09-28 (see §1.1). Net: 4 of 11 gaps resolved, 1 partial (SDK layer only), 1 intentional, 5 open. Overlaps RFC-002/RFC-003 (Omnia, landed) and RFC-014 (wallet parity, landed).
+**Status:** Draft — partially superseded; re-triaged 2026-09-28 (see §1.1). Net: 6 of 11 gaps resolved, 1 partial (SDK layer only), 1 intentional, 3 open. Overlaps RFC-002/RFC-003 (Omnia, landed) and RFC-014 (wallet parity, landed).
 **Created:** 2026-09-10
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]
@@ -26,7 +26,7 @@ Re-checked against the repository at `@totemsdk/decision@0.2.0`. Evidence is a s
 | # | Gap | Status | Evidence |
 |---|-----|--------|----------|
 | 1 | `TOTEM_SEND_COMPLEX` broken | **Resolved** | Extension background dispatches `WOTS_BUILD_UNSIGNED` and `WOTS_SEND_COMPLEX` (`extensions/totem-extension/src/background/index.ts:3918,4063`); `@totemsdk/connect` exposes `sendComplex` (`packages/connect/src/index.ts`, `wallet.ts:647`) |
-| 2 | No token creation via wallet | **Open** | No `TOTEM_TOKENCREATE` message type / handler / UI in the extension or connect |
+| 2 | No token creation via wallet | **Resolved** | `TOTEM_TOKENCREATE` message + handler implemented (extension), reusing the WOTS_SEND path; token encoding validated byte-for-byte against the C++ `totem-node` `tokencreate`/`Token` oracle (core golden test). Optional `burn` and guarded `signtoken` (dedicated WOTS leaf). PWA mint deferred. |
 | 3 | send wrapper drops `state`/`storestate` | **Resolved** | `sendTransaction` accepts `outputs[].state`/`storeState` + `transactionState`; extension `WOTS_SEND`/`TOTEM_SEND_TRANSACTION`/`buildTransaction` carry them to the output coin (commit `e2089a8`). Stateful multi-output rejects with `UNSUPPORTED_STATEFUL_SEND`. PWA send page not yet wired. |
 | 4 | `RPC_COMMAND` allowlist | **Intentional** | 6-command read-only set retained (`TOTEM_WALLET_SPEC.md`); a deliberate security boundary, not a defect |
 | 5 | `kissvmSimulate`/`kissvmValidate` unimplemented | **Partial** | Connect methods + `kissvm` sdk-client port exist (`packages/connect/src/wallet.ts:209,493`); but both wallets advertise `scripting: { kissvm: false }` and the PWA provider returns `null` |
@@ -35,9 +35,9 @@ Re-checked against the repository at `@totemsdk/decision@0.2.0`. Evidence is a s
 | 8 | Alpha templates | **Open** | `@totemsdk/recursive-mast` templates still carry `EXPERIMENTAL — NOT AUDITED` and there are no per-template stability markers |
 | 9 | tx-builder doesn't serialize | **Resolved** | `@totemsdk/tx-builder` now exports `serializeTransaction`/`deserializeTransaction` + `serializeTransactionHex`/`deserializeTransactionHex` (`src/serialize.ts`), backed by `@totemsdk/core`'s byte-exact `serializeTransactionObject`/`deserializeTransaction` (commit `6ce09d0`). Takes a `MinimaTransaction`, not raw `EnhancedBuildParams`. |
 | 10 | sendComplex intent auto-detection / multi-output approval | **Not re-verified** | Requires wallet-UI inspection (extension approval flow) |
-| 11 | No `tokencreate` wrapper | **Open** | No `createToken()` in `@totemsdk/connect` |
+| 11 | No `tokencreate` wrapper | **Resolved** | `@totemsdk/connect` exposes `createToken()` + `TokenCreationParams`/`TokenMetadata` (name, ticker, description, url, webvalidate, image, icon, …) — the canonical method set is now 47. |
 
-**Verdict.** Gaps #1, #3, #6 and #9 are closed; #5 is done at the SDK layer but not in either wallet; #4 is a deliberate boundary. The remaining critical-path item is #2/#11 (token creation). This RFC should be re-scoped against RFC-014's landed wallet parity before further work.
+**Verdict.** Gaps #1, #2/#11, #3, #6 and #9 are closed; #5 is done at the SDK layer but not in either wallet; #4 is a deliberate boundary. Remaining: #7 (non-browser discovery), #8 (template stability), #10 (multi-output approval UX). Token creation is implemented for the extension; PWA mint and on-node validation of the full minted transaction remain follow-ups. This RFC should be re-scoped against RFC-014's landed wallet parity.
 
 ---
 
