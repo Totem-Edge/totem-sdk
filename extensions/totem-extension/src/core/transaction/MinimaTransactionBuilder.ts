@@ -11,6 +11,7 @@ import {
   concat as streamableConcat,
   hexToBytes as streamableHexToBytes,
   bytesToHex as streamableBytesToHex,
+  computeTokenId,
 } from '@totemsdk/core';
 
 const BUILD_VERSION = 'v2025.06.28.FIX12-mx-address-support';
@@ -212,6 +213,8 @@ export interface TransactionBuildResult {
   digestTxHex: string;
   serialized: Uint8Array;
   serializedHex: string;
+  /** Set when the transaction creates a token (RFC-005 #2/#11). */
+  tokenId?: string;
 }
 
 function hexToBytes(hex: string): Uint8Array {
@@ -1430,6 +1433,11 @@ function convertInputCoin(input: SpendableCoinInput): MinimaCoin {
 // Native MINIMA tokenId is 0x00 (1 byte, not 32)
 const MINIMA_TOKEN_ID = new Uint8Array([0x00]);
 
+// RFC-005 #2/#11: Java Token.TOKENID_CREATE = new MiniData("0xFF") is 1 BYTE.
+// An output coin with this tokenId carries the Token descriptor; its resulting
+// token id is Token.getTokenID() (see @totemsdk/core computeTokenId).
+const TOKEN_CREATE_ID = new Uint8Array([0xff]);
+
 // CRITICAL: Java's COINID_OUTPUT is 0x00 (1 byte), NOT 32 zero bytes!
 // Output coins must use this 1-byte coinId to match Java's Transaction.writeDataStream()
 // See Coin.java line 24: public static final MiniData COINID_OUTPUT = new MiniData("0x00");
@@ -1481,6 +1489,36 @@ export interface BuildTransactionParams {
   storeState?: boolean;
   /** Transaction-level state variables. */
   transactionState?: StateVariable[];
+  /** Create a token (RFC-005 #2/#11): output[0] becomes the token-create coin. */
+  tokenCreate?: TokenCreateParams;
+}
+
+/**
+ * Token-creation parameters. Mirrors the Minima Java `Token` descriptor plus the
+ * create-output amount (the Minima backing sent into the token).
+ */
+export interface TokenCreateParams {
+  /**
+   * Token name / description — a plain string, or a JSON string carrying richer
+   * metadata (ticker, description, image, web-verification URL, …). This is the
+   * Java `Token.mTokenName` field ("can be a string / JSON").
+   */
+  name: string;
+  /** Token script (Java `Token.mTokenScript`). Defaults to `RETURN TRUE`. */
+  script?: string;
+  /**
+   * On-chain scale. Java `Token.getDecimalPlaces() = 44 - scale`, so:
+   *   decimals = 0  → scale = 44 (non-fungible / NFT, totalSupply 1)
+   *   decimals = 2  → scale = 42
+   *   decimals = 18 → scale = 26
+   */
+  scale: number;
+  /**
+   * Total Minima backing in base units as a decimal string (the amount locked in
+   * the token-create output). For a token with total supply T and scale S this is
+   * `T / 10^S`; e.g. an NFT (S=44, T=1) is `1e-44` (one base unit).
+   */
+  totalMinima: string;
 }
 
 /**
@@ -1996,15 +2034,42 @@ export function buildTransaction(params: BuildTransactionParams): TransactionBui
     outputs.push(createOutputCoin(paddedChangeAddr, changeDecimal, tokenIdBytes, false, inputRawTokenData));
   }
   
+  // RFC-005 #2/#11: token creation. Output[0] becomes the token-create coin: a
+  // 0xFF marker tokenId (Java Token.TOKENID_CREATE) whose Token descriptor is
+  // attached after the output coinId is computed.
+  let createdTokenId: string | undefined;
+  if (params.tokenCreate) {
+    const tc = params.tokenCreate;
+    if (!Number.isInteger(tc.scale) || tc.scale < 0 || tc.scale > 44) {
+      throw new Error(`tokenCreate.scale must be an integer 0..44 (got ${tc.scale})`);
+    }
+    outputs[0].tokenId = TOKEN_CREATE_ID;
+    outputs[0].token = null;
+  }
+
   const transaction: MinimaTransaction = {
     linkHash: ZERO_TXPOWID,  // 1 byte (0x00), matches Java's MiniData.ZERO_TXPOWID
     inputs: inputCoins,
     outputs: outputs,
     state: params.transactionState ?? []
   };
-  
+
   precomputeTransactionCoinID(transaction);
-  
+
+  if (params.tokenCreate) {
+    const tc = params.tokenCreate;
+    const token: MinimaToken = {
+      coinId: transaction.outputs[0].coinId,
+      scale: tc.scale,
+      totalAmount: parseDecimalToBaseUnits(tc.totalMinima || '0'),
+      name: new TextEncoder().encode(tc.name),
+      script: new TextEncoder().encode(tc.script ?? 'RETURN TRUE'),
+      created: 0n
+    };
+    transaction.outputs[0].token = token;
+    createdTokenId = bytesToHex(computeTokenId(token));
+  }
+
   const digestTx = computeTransactionDigest(transaction);
   const serialized = serializeTransaction(transaction);
   
@@ -2013,7 +2078,8 @@ export function buildTransaction(params: BuildTransactionParams): TransactionBui
     digestTx,
     digestTxHex: bytesToHex(digestTx),
     serialized,
-    serializedHex: bytesToHex(serialized)
+    serializedHex: bytesToHex(serialized),
+    ...(createdTokenId !== undefined ? { tokenId: createdTokenId } : {})
   };
 }
 

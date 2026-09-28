@@ -1654,7 +1654,8 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
           excludedAddresses,
           state,
           storeState,
-          transactionState
+          transactionState,
+          tokenCreate
         } = params || {};
         
         if (!to || !amount) {
@@ -1899,7 +1900,8 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
           changeAddress: builderInputs[0]?.address,
           ...(Array.isArray(state) ? { state } : {}),
           ...(typeof storeState === 'boolean' ? { storeState } : {}),
-          ...(Array.isArray(transactionState) ? { transactionState } : {})
+          ...(Array.isArray(transactionState) ? { transactionState } : {}),
+          ...(tokenCreate && typeof tokenCreate === 'object' ? { tokenCreate } : {})
         });
         
         txLog.info(' Step 2 complete: Transaction built locally', {
@@ -2582,6 +2584,7 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
             l2: prepareResult.l2,
             miningSource: 'local' as const,
             stage: 'complete',
+            ...(buildResult.tokenId ? { tokenId: buildResult.tokenId } : {}),
             id
           };
 
@@ -2800,6 +2803,7 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
           l2: prepareResult.l2,
           miningSource: 'meg' as const,
           stage: 'complete',
+          ...(buildResult.tokenId ? { tokenId: buildResult.tokenId } : {}),
           id
         };
         

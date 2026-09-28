@@ -110,6 +110,8 @@ export interface TransactionBuildResult {
   digestTxHex: string;
   serialized: Uint8Array;
   serializedHex: string;
+  /** Set when the transaction creates a token (RFC-005 #2/#11). */
+  tokenId?: string;
 }
 
 export function parseDecimalToMiniNumber(decimal: string): ParsedMiniNumber {
