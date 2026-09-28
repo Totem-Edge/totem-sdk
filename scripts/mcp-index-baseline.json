@@ -56,7 +56,7 @@
     "@totemsdk/recursive-mast": 199,
     "@totemsdk/root-identity": 5,
     "@totemsdk/se-server": 27,
-    "@totemsdk/server": 324,
+    "@totemsdk/server": 326,
     "@totemsdk/spatial-proof": 53,
     "@totemsdk/statechain": 35,
     "@totemsdk/storage": 51,

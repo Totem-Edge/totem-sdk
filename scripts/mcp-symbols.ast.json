@@ -718,7 +718,7 @@
         },
         "getCoins": {
           "kind": "function",
-          "signature": "getCoins(origin: string, params?: { tokenId?: string; address?: string; minAmount?: string; }): Promise<TotemGetCoinsResponse>"
+          "signature": "getCoins(origin: string, params?: { tokenId?: string; address?: string; minAmount?: string; sendable?: boolean; relevant?: boolean; spent?: boolean; }): Promise<TotemGetCoinsResponse>"
         },
         "sendComplex": {
           "kind": "function",
