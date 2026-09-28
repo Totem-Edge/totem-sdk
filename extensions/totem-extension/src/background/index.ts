@@ -1925,6 +1925,16 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
               txId: `tokensign-${txId}`,
               addressIndex: Number(prepareResult.addressIndex)
             });
+
+            // KEY-REUSE GUARD (RFC-005 #2/#11): the token coinId is a different
+            // message than the transaction digest, so it MUST be signed with a
+            // different WOTS leaf. Refuse if the lease returned the tx leaf.
+            const txLeaf = `${validatedAddressIndex}:${validatedL1}:${validatedL2}`;
+            const tokenLeaf = `${Number(tokenLease.addressIndex)}:${Number(tokenLease.l1)}:${Number(tokenLease.l2)}`;
+            if (tokenLeaf === txLeaf) {
+              return { ok: false, error: 'signtoken refused: token signature would reuse the transaction WOTS leaf (key reuse)', stage: 'token_sign', id };
+            }
+
             const tokenSig = await walletManager.signTransactionPerAddress({
               addressIndex: Number(tokenLease.addressIndex),
               l1: Number(tokenLease.l1),
