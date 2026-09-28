@@ -5,6 +5,8 @@
 import {
   serializeTransactionObject as serializeTransaction,
   deserializeTransaction,
+  computeTokenId,
+  serializeTokenDescriptor,
   hexToBytes,
   bytesToHex,
 } from '../index.js';
@@ -82,5 +84,24 @@ describe('transaction serialization round-trip', () => {
   it('round-trips an empty transaction', () => {
     const empty: MinimaTransaction = { linkHash: hexToBytes('00'), inputs: [], outputs: [], state: [] };
     expect(deserializeTransaction(serializeTransaction(empty))).toEqual(empty);
+  });
+});
+
+describe('token id computation', () => {
+  it('is a deterministic 32-byte hash of the token descriptor', () => {
+    const id = computeTokenId(token);
+    expect(id.length).toBe(32);
+    expect(bytesToHex(computeTokenId(token))).toBe(bytesToHex(id));
+    expect(serializeTokenDescriptor(token).length).toBeGreaterThan(0);
+  });
+
+  it('changes when metadata changes', () => {
+    const a = computeTokenId(token);
+    const b = computeTokenId({ ...token, name: new TextEncoder().encode('{"name":"Other"}') });
+    expect(bytesToHex(a)).not.toBe(bytesToHex(b));
+  });
+
+  it('NFT (scale 44) and fungible (scale 2) ids differ', () => {
+    expect(bytesToHex(computeTokenId({ ...token, scale: 44 }))).not.toBe(bytesToHex(computeTokenId({ ...token, scale: 2 })));
   });
 });

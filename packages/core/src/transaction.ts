@@ -349,6 +349,20 @@ export function computeTransactionDigest(tx: MinimaTransaction): Uint8Array {
   return sha3_256(serialized);
 }
 
+/**
+ * Compute a Minima **token id** — SHA3-256 of the MiniData-wrapped serialized
+ * Token, matching Java `Token.calculateTokenID()`. A newly created token's coins
+ * carry this value as their `tokenId`; token creation returns it.
+ */
+export function computeTokenId(token: MinimaToken): Uint8Array {
+  return sha3_256(writeMiniData(serializeToken(token)));
+}
+
+/** Serialize a token descriptor (Java `Token.writeDataStream()` order). */
+export function serializeTokenDescriptor(token: MinimaToken): Uint8Array {
+  return serializeToken(token);
+}
+
 // ─── Deserialization (byte-exact inverse of serializeTransaction) ───────────
 //
 // Mirrors Minima Java's Transaction.readDataStream()/Coin.readDataStream().

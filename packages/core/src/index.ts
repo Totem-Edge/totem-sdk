@@ -207,6 +207,8 @@ export {
   parseDecimalToMiniNumber,
   serializeCoin,
   serializeTransaction as serializeTransactionObject,
+  computeTokenId,
+  serializeTokenDescriptor,
   createDefaultTransaction,
   buildMinimaCoin,
 } from './transaction.js';
