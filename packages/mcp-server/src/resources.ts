@@ -51,6 +51,12 @@ const PAPERS: Array<{ uri: string; name: string; description: string; file: stri
     description: 'Progressive decentralisation; MINIMA as settlement/native collateral where appropriate; $TOTEM as a potential network coordination and service-assurance asset (provider bonding, DAO stewardship, community-heavy genesis); no token assumed — network must earn the right to need one',
     file: 'TOTEM_NETWORK_ECONOMICS_GOLD_PAPER.md',
   },
+  {
+    uri: 'totemsdk://papers/purple',
+    name: 'Intelligence & Decision Purple Paper',
+    description: 'Bounded intelligence for autonomous systems — Intelligence vs Decision separation, bounded candidate spaces, the deterministic shell around probabilistic models, effective authority, governed Edge runtime, receipts and the Physical AI trust stack',
+    file: 'TOTEM_INTELLIGENCE_DECISION_PURPLE_PAPER.md',
+  },
 ]
 
 /** Derive a name/description for a doc from its first heading + first paragraph. */

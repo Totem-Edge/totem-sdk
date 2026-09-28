@@ -503,6 +503,7 @@ docs/                       # SDK documentation
 | [Governance Green Paper](TOTEM_GOVERNANCE_GREEN_PAPER.md) | Authority mandates, recursive MAST policy trees, quadratic voting |
 | [Edge Grey Paper](TOTEM_EDGE_GREY_PAPER.md) | Port-injected, transport-agnostic edge runtime |
 | [Network Economics Gold Paper](TOTEM_NETWORK_ECONOMICS_GOLD_PAPER.md) | Progressive decentralisation; MINIMA settlement/collateral where appropriate; `$TOTEM` network coordination & service assurance (gated); DAO stewardship & community-heavy genesis |
+| [Intelligence & Decision Purple Paper](TOTEM_INTELLIGENCE_DECISION_PURPLE_PAPER.md) | Decision-first bounded semantics, Intelligence on demand, explicit authority, governed execution and evidence (v0.3) |
 | [RFC-001](docs/rfc/RFC-001-SDK-UPGRADE.md) | SDK upgrade process |
 | [RFC-002](docs/rfc/RFC-002-OMNIA-RUST-WASM-PARITY.md) | Omnia Rust/WASM channel parity (implemented) |
 | [RFC-003](docs/rfc/RFC-003-OMNIA-BUILT-IN-PROGRAMS.md) | Omnia built-in channel programs (implemented) |
@@ -518,6 +519,8 @@ docs/                       # SDK documentation
 | [RFC-013](docs/rfc/RFC-013-WALLET-SELF-HOSTED-MODE.md) | Wallet self-hosted mode — Axia-relay default with chain-provider opt-out + wallet-side WOTS lease (draft) |
 | [RFC-014](docs/rfc/RFC-014-WALLET-CONNECT-PARITY.md) | Wallet connect parity & shared execution bridge — one method implementation for extension + PWA, Edge-routed families (draft) |
 | [RFC-015](docs/rfc/RFC-015-AXIA-API-ALIGNMENT.md) | Axia API alignment — wallet capability manifest, SE registry RFC-008 shape, lease model, status/receipts, quota/telemetry (draft) |
+| [RFC-016](docs/rfc/RFC-016-KISSVM-TEMPLATE-SECURITY-HARDENING.md) | KISSVM template security hardening — MAST/PROOF fidelity, committed prevstate, fail-closed witness bridge, transaction planners (landed) |
+| [RFC-017](docs/rfc/RFC-017-DECISION-RECEIPT-GRAPH.md) | Decision receipt graph — link semantic `@totemsdk/decision` receipts into governed Edge/run/industrial evidence without conflating semantic, authority or governance decisions (draft) |
 | [SDK Audit (archived)](docs/archive/SDK_AUDIT-2026-02-ARCHIVED.md) | Historical Feb 2026 audit; current maturity lives in the table above |
 | [SDK Manifest](SDK_MANIFEST.json) | Machine-readable package index — 55 packages, for AI agents and tooling |
 | [API Reference](https://totem.ing) | Full TypeDoc-generated API reference |

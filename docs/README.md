@@ -26,6 +26,7 @@
 | [../TOTEM_GOVERNANCE_GREEN_PAPER.md](../TOTEM_GOVERNANCE_GREEN_PAPER.md) | Governance Green Paper — authority mandates, recursive MAST policy trees, quadratic voting, liquid democracy, QVAC agent policy |
 | [../TOTEM_EDGE_GREY_PAPER.md](../TOTEM_EDGE_GREY_PAPER.md) | Edge Grey Paper — port-injected, transport-agnostic runtime, protocol adapters, MachinePay, offline operation |
 | [../TOTEM_NETWORK_ECONOMICS_GOLD_PAPER.md](../TOTEM_NETWORK_ECONOMICS_GOLD_PAPER.md) | Network Economics Gold Paper — progressive decentralisation; MINIMA as settlement/native collateral where appropriate; `$TOTEM` as a potential network coordination & service-assurance asset; provider bonding, DAO stewardship and community-heavy genesis |
+| [../TOTEM_INTELLIGENCE_DECISION_PURPLE_PAPER.md](../TOTEM_INTELLIGENCE_DECISION_PURPLE_PAPER.md) | Intelligence & Decision Purple Paper — Decision-first bounded semantics, Intelligence on demand, explicit authority, governed execution and the evidence graph (v0.3) |
 | [../TOTEM_PRIVACY_NOTE.md](../TOTEM_PRIVACY_NOTE.md) | Privacy considerations for Totem SDK users |
 
 ---
@@ -156,6 +157,8 @@
 | [rfc/RFC-013-WALLET-SELF-HOSTED-MODE.md](rfc/RFC-013-WALLET-SELF-HOSTED-MODE.md) | Wallet self-hosted mode — Axia relay default with a user-selectable `ChainStateProvider` opt-out (`@totemsdk/chain-provider`) and wallet-side WOTS lease (`@totemsdk/wots-lease` local + on-chain watermark) with a browser storage adapter; extension + PWA parity (draft) |
 | [rfc/RFC-014-WALLET-CONNECT-PARITY.md](rfc/RFC-014-WALLET-CONNECT-PARITY.md) | Wallet connect parity & shared execution bridge — one shared wallet handler implementation (source of truth `@totemsdk/connect`), Edge-routed Omnia/Statechain/KISSVM/Agent families, one capability manifest; closes the audit's T1–T4 (draft) |
 | [rfc/RFC-015-AXIA-API-ALIGNMENT.md](rfc/RFC-015-AXIA-API-ALIGNMENT.md) | Axia API alignment — wallet capability/method-support manifest, SE registry RFC-008 shape (per-member identity + federation), WOTS lease model, transaction status/receipts, quota/telemetry for the new families (draft) |
+| [rfc/RFC-016-KISSVM-TEMPLATE-SECURITY-HARDENING.md](rfc/RFC-016-KISSVM-TEMPLATE-SECURITY-HARDENING.md) | KISSVM template security hardening — MAST terminality, PROOF leaf-preimage fidelity, committed prevstate, fail-closed witness bridge, transaction planners, data-consent retention (landed) |
+| [rfc/RFC-017-DECISION-RECEIPT-GRAPH.md](rfc/RFC-017-DECISION-RECEIPT-GRAPH.md) | Decision receipt graph — link semantic `@totemsdk/decision` receipts into governed Edge/run/industrial evidence via an inert, verifiable `DecisionRef`, keeping semantic, authority and governance decisions distinct (draft) |
 
 ---
 

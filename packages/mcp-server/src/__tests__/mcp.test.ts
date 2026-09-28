@@ -219,15 +219,19 @@ describe('resources — real index', () => {
   it('serves RFCs, the audit, and the renamed Gold Paper', () => {
     expect(handleResourceRead('totemsdk://rfc/014', index)).toContain('Wallet Connect Parity')
     expect(handleResourceRead('totemsdk://rfc/015', index)).toContain('Axia API Alignment')
+    expect(handleResourceRead('totemsdk://rfc/017', index)).toContain('Decision Receipt Graph')
     expect(handleResourceRead('totemsdk://audit/wallet-connect-parity', index)).toContain('parity')
     expect(handleResourceRead('totemsdk://papers/gold', index)).toContain('Network Economics')
+    expect(handleResourceRead('totemsdk://papers/purple', index)).toContain('Decision First')
   })
 
   it('lists doc resources and derives the template count at runtime', () => {
     const resources = listResources(index)
     const uris = resources.map(r => r.uri)
     expect(uris).toContain('totemsdk://rfc/013')
+    expect(uris).toContain('totemsdk://rfc/017')
     expect(uris).toContain('totemsdk://audit/wallet-connect-parity')
+    expect(uris).toContain('totemsdk://papers/purple')
     const tpl = resources.find(r => r.uri === 'totemsdk://templates')
     expect(tpl?.description).toContain(String(getAllTemplates().length))
   })
