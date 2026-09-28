@@ -104,4 +104,21 @@ describe('token id computation', () => {
   it('NFT (scale 44) and fungible (scale 2) ids differ', () => {
     expect(bytesToHex(computeTokenId({ ...token, scale: 44 }))).not.toBe(bytesToHex(computeTokenId({ ...token, scale: 2 })));
   });
+
+  it('matches the C++ node oracle token descriptor bytes (mynft, decimals 0)', () => {
+    // Oracle: totem-node tests/test_serialization.cpp §6 (Token.writeDataStream)
+    const enc = (s: string) => new TextEncoder().encode(s);
+    const nft = {
+      coinId: new Uint8Array([0x00]),
+      scale: 44,
+      totalAmount: 1n,
+      totalAmountScale: 44,
+      name: enc('{"name":"mynft"}'),
+      script: enc('RETURN TRUE'),
+      created: 0n,
+    };
+    expect(bytesToHex(serializeTokenDescriptor(nft)).toLowerCase()).toBe(
+      '00000001000000000b52455455524e205452554500012c2c0101000000107b226e616d65223a226d796e6674227d000100',
+    );
+  });
 });
