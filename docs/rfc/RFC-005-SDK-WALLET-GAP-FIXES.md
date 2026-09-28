@@ -1,6 +1,6 @@
 # RFC-005: SDK & Wallet Gap Fixes — Complex Contract / NFT-Minting Surface
 
-**Status:** Draft — partially superseded; re-triaged 2026-09-28 (see §1.1). Net: 1 of 11 gaps resolved, 1 partial (SDK layer only), 1 intentional, 8 open. Overlaps RFC-002/RFC-003 (Omnia, landed) and RFC-014 (wallet parity, landed).
+**Status:** Draft — partially superseded; re-triaged 2026-09-28 (see §1.1). Net: 2 of 11 gaps resolved, 1 partial (SDK layer only), 1 intentional, 7 open. Overlaps RFC-002/RFC-003 (Omnia, landed) and RFC-014 (wallet parity, landed).
 **Created:** 2026-09-10
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]
@@ -33,11 +33,11 @@ Re-checked against the repository at `@totemsdk/decision@0.2.0`. Evidence is a s
 | 6 | `getCoins` limited | **Open** | `TOTEM_GET_COINS` returns only `{ coinId, address, amount, tokenId, created }` — no `state`/`storestate`/`mmrentry`/`spent`, no `sendable`/`relevant` filter (`background/index.ts:3750`) |
 | 7 | `WalletDiscovery` needs `window` | **Partial** | `WalletDiscovery` remains `window`-based (`packages/connect/src/index.ts:147`); a manual `setActiveProvider` exists for headless callers, but no automatic non-browser discovery |
 | 8 | Alpha templates | **Open** | `@totemsdk/recursive-mast` templates still carry `EXPERIMENTAL — NOT AUDITED` and there are no per-template stability markers |
-| 9 | tx-builder doesn't serialize | **Open** | No `serializeTransaction`/`deserializeTransaction` in `@totemsdk/tx-builder` |
+| 9 | tx-builder doesn't serialize | **Resolved** | `@totemsdk/tx-builder` now exports `serializeTransaction`/`deserializeTransaction` + `serializeTransactionHex`/`deserializeTransactionHex` (`src/serialize.ts`), backed by `@totemsdk/core`'s byte-exact `serializeTransactionObject`/`deserializeTransaction` (commit `6ce09d0`). Takes a `MinimaTransaction`, not raw `EnhancedBuildParams`. |
 | 10 | sendComplex intent auto-detection / multi-output approval | **Not re-verified** | Requires wallet-UI inspection (extension approval flow) |
 | 11 | No `tokencreate` wrapper | **Open** | No `createToken()` in `@totemsdk/connect` |
 
-**Verdict.** Only gap #1 is fully closed; #5 is done at the SDK layer but not in either wallet; #4 is a deliberate boundary. The critical-path items #2/#11 (token creation), #3 (stateful send), #6 (UTXO inspection) and #9 (tx-builder serialization) remain open. This RFC should be re-scoped against RFC-014's landed wallet parity before further work.
+**Verdict.** Gaps #1 and #9 are closed; #5 is done at the SDK layer but not in either wallet; #4 is a deliberate boundary. The remaining critical-path items are #2/#11 (token creation), #3 (stateful send) and #6 (UTXO inspection). This RFC should be re-scoped against RFC-014's landed wallet parity before further work.
 
 ---
 

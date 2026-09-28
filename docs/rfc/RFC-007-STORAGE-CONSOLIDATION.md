@@ -42,7 +42,7 @@ the storage layer depends on core one-way, never the reverse.
 
 ### 1.1 Status re-triage (2026-09-28)
 
-The earlier "Phase 0 only" reading was wrong: `@totemsdk/storage` is now imported by **22 packages** (`agent-policy`, `edge`, `edge-adapters`, `edge-mqtt`, `industrial-action`, `liquidity-bond`, the `omnia-*` family, `pear`, `proofgraph`, `provider-bond`, `qvac`, `se-server`, `server`, `statechain`, `tx-builder`, `wots-lease`, …). Source inspection (not an acceptance-gate run):
+The earlier "Phase 0 only" reading was wrong: `@totemsdk/storage` is now declared by **20 consumer packages** (21 including `@totemsdk/storage` itself) — `agent-policy`, `edge`, `edge-adapters`, `edge-mqtt`, `industrial-action`, `liquidity-bond`, the `omnia-*` family (`factory`/`host`/`pool`/`router`/`splice`/`vtxo`), `pear`, `proofgraph`, `provider-bond`, `se-server`, `server`, `statechain`, `tx-builder`, `wots-lease`. Source inspection (not an acceptance-gate run); a 2026-09 gate audit corrected the earlier count (`qvac` references storage only in comments).
 
 | Phase | Status | Evidence |
 |-------|--------|----------|
@@ -51,11 +51,19 @@ The earlier "Phase 0 only" reading was wrong: `@totemsdk/storage` is now importe
 | **2** Harden runtime adapters | **Landed** | `packages/server/src/adapters/storage.ts`, `packages/pear/src/storage/BareFileStore.ts` now use the shared store |
 | **3** Durability gaps G3–G10 | **Largely landed** | WOTS journal + reservation-recovery (`wots-lease/src/journal.ts`, `__tests__/reservation-recovery.test.ts`); MQTT durable queue (`edge-mqtt/src/durable-queue.ts` + `__tests__/durable-queue.test.ts`); tx-builder StorageAdapter dissolution (`tx-builder/src/adapters.ts` + `__tests__/durable-storage.test.ts`); ProofGraph durable store (`proofgraph/src/durable-store.ts` + tests); durable stores in `liquidity-bond`, `provider-bond`, `omnia-factory/router/splice/vtxo/pool` |
 | **3a** Intelligence accounting + content access | **Partial** | `edge/src/inference-accounting.ts` exists and `qvac` imports storage; enforceable content-level retrieval gating and revocation-without-cleanup gates not confirmed |
-| **4** Security-critical surfaces | **Partial** | `statechain` + `se-server` import storage; `root-identity` watermark present (`UnifiedIdentityWallet.ts`, `__tests__/watermark.test.ts`); core `LeaseStore`/`WatermarkStore`/`TransactionReceiptStore` consumer conformance not confirmed |
-| **5** Gated content | **Outstanding** | `recursive-mast` availability exists (`availability.ts`, `availability-gate.ts`) but has no storage adoption; purchase/authority shared accounting above the backend not confirmed |
+| **4** Security-critical surfaces | **Partial (gate audit)** | Core consumer conformance **present**: `core/src/adapters` defines the canonical `StorageAdapter`; `core/src/__tests__/{lease-store,watermark-store,transaction-receipt-store,transaction-lifecycle}.conformance.test.ts` exercise durable disk-backed stores. `statechain` durable store carries `reclaimTx` + recover-without-SE tests. `se-server` relational contract documented (`docs/statechain-relational-contract.md`) but conformance is **mock-only**. `root-identity` watermark is **caller-persisted** (no `StorageAdapter` integration). |
+| **5** Gated content | **Outstanding** | `recursive-mast` availability exists (`availability.ts`, `availability-gate.ts`) but has no storage adoption; purchase/authority shared accounting (`edge/src/purchasing/accounted-authority.ts`) not storage-backed |
 | **6** Browser/application pass | **Deferred** | Recorded deferral owned by the wallet extension (per §6) |
 
-**Verdict.** RFC-007 is substantially landed through Phase 3. The remaining work is concentrated in Phase 3a (intelligence accounting/content gating), Phase 4 (core consumer conformance) and Phase 5 (gated content); Phase 6 stays deferred. The acceptance gates in §6 have not been re-run here — this is a source-level re-triage.
+**Known red risks (2026-09 gate audit).** Source-level findings on spending/key-index surfaces, in priority order:
+
+1. **`se-server` one-time WOTS leaf lease defaults to volatile memory.** `createSeRouter` uses `config.seStorage ?? new MemoryStore()` (`packages/se-server/src/router.ts`), and `loadConfigFromEnv()` never sets `seStorage`, so the default deployment path loses the leased-leaf watermark on restart — a key-index re-exposure risk. The only "restart" test reuses the same in-process store. Operators must inject durable storage; the default should fail closed in non-dev.
+2. **Accounting reconciliation tested only against a stub authority.** `reconcileInferenceAccounting` is the journal↔domain-authority boundary but is not wired to the real `SqliteRunStateStore`/`GrantUsageStore` in tests.
+3. **SE relational success path untested.** `revokeOwnerTransactional` (atomic nonce + row-lock + version-CAS + revocation) is exercised only through a mocked pool on invalid input; a successful revoke / `stale-owner` conflict is not covered.
+
+Gates 1 (reservation survival), 2 (accounting mechanism), 3 (core consumer conformance), 5 (statechain reclaim), and 7 (Phase 3a content gating) were assessed **green**; Phase 3a's provider gate is opt-in composition (not applied by default in `createQvacEdgeIntelligencePort`).
+
+**Verdict.** RFC-007 is substantially landed through Phase 3. Remaining work: Phase 3a content-access enforcement is opt-in; Phase 4 carries the `se-server` volatile-default red risk and mock-only relational conformance; Phase 5 is outstanding; Phase 6 is deferred. The §6 acceptance gates have not been re-run for every surface.
 
 ---
 
