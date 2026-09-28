@@ -818,7 +818,8 @@ function evalChecksig(args: ASTNode[], vm: VMState): boolean {
  *  1. Look in the witness scriptProofs array for proofs that match the
  *     requested root (verified via MMR proof).
  *  2. Only execute a script whose MMR proof confirms membership in the root.
- *  3. Fall back to mastBranches (TxContext) for backward compatibility.
+ *  3. Fall back to mastBranches (TxContext) only when explicitly opted in
+ *     via `allowLegacyMastBranches` (RFC-018 KISSVM-MAST-001).
  *  4. No uppercase-hash fallback — that is non-canonical.
  */
 function evalMastExpr(rootHash: string, vm: VMState): boolean {
@@ -836,8 +837,8 @@ function evalMastExpr(rootHash: string, vm: VMState): boolean {
     throw new KissvmRuntimeError(`MAST: no verified ScriptProof found for root ${norm.slice(0, 20)}…`);
   }
 
-  // 2. Fallback: legacy mastBranches (TxContext)
-  const branches = vm.txCtx.mastBranches;
+  // 2. Fallback: legacy mastBranches (TxContext), opt-in only (RFC-018).
+  const branches = vm.txCtx.allowLegacyMastBranches ? vm.txCtx.mastBranches : undefined;
   if (branches) {
     if (branches.has(norm)) {
       vm.addTrace(`MAST branch found (legacy mastBranches) for ${norm.slice(0, 14)}…`);
@@ -886,24 +887,24 @@ function verifyScriptProof(sp: { script: string; proofHex: string }, expectedRoo
 function execMastBlockVm(vm: VMState): boolean {
   const defined = vm.mastBlock;
   if (!defined || defined.length === 0) {
-    // No inline branches — try witness ScriptProofs, then legacy mastBranches
+    // RFC-018 KISSVM-MAST-001: without inline branch hashes there is no root to
+    // bind a ScriptProof to, so an unrooted `EXEC MAST` fails closed.
     const scriptProofs = vm.witness.scriptProofs;
     if (scriptProofs && scriptProofs.length > 0) {
-      vm.addTrace('EXEC MAST: executing first verified ScriptProof');
-      return executeSubScript(scriptProofs[0].script, vm);
+      throw new KissvmRuntimeError('EXEC MAST: cannot bind ScriptProofs without inline branch hashes');
     }
-    const branches = vm.txCtx.mastBranches;
+    const branches = vm.txCtx.allowLegacyMastBranches ? vm.txCtx.mastBranches : undefined;
     if (branches && branches.size > 0) {
       const [, script] = [...branches.entries()][0];
-      vm.addTrace('EXEC MAST (fallback to mastBranches)');
+      vm.addTrace('EXEC MAST (legacy mastBranches)');
       return executeSubScript(script, vm);
     }
-    throw new KissvmRuntimeError('EXEC MAST: no branches available in witness or mastBranches');
+    throw new KissvmRuntimeError('EXEC MAST: no inline branches, verified ScriptProof, or enabled legacy mastBranches');
   }
 
-  // Inline branches — verify against ScriptProofs, then legacy mastBranches
+  // Inline branches — verify against ScriptProofs, then opt-in legacy mastBranches
   const scriptProofs = vm.witness.scriptProofs;
-  const revealed = vm.txCtx.mastBranches;
+  const revealed = vm.txCtx.allowLegacyMastBranches ? vm.txCtx.mastBranches : undefined;
 
   for (const branch of defined) {
     const norm = normalizeHex(branch.hash);

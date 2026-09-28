@@ -30,6 +30,8 @@ function mkCtx(overrides: Partial<TxContext> = {}): TxContext {
     // without a txDigest.  Unit tests of script LOGIC use this.
     // Never set in production or in simulateSpend.
     simulationMode: true,
+    // RFC-018 KISSVM-MAST-001: tests opt in to the legacy mastBranches path.
+    allowLegacyMastBranches: true,
     ...overrides,
   };
 }
@@ -766,6 +768,18 @@ describe('recursive MAST', () => {
       ]),
     });
     const res = evaluateScript(topScript, mkWitness(), ctx);
+    expect(res.passed).toBe(false);
+  });
+
+  test('legacy mastBranches is ignored unless allowLegacyMastBranches is set (RFC-018 KISSVM-MAST-001)', () => {
+    const ctx = mkCtx({
+      allowLegacyMastBranches: false,
+      mastBranches: new Map([
+        [midHash, midScript],
+        [leafHash, leafScript],
+      ]),
+    });
+    const res = evaluateScript(topScript, mkWitness({ [pkKey(leafPk)]: mockSig(90) }), ctx);
     expect(res.passed).toBe(false);
   });
 });

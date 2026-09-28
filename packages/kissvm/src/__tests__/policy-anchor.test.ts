@@ -63,6 +63,8 @@ function baseCtx(overrides: Partial<TxContext> = {}): TxContext {
     state: {},
     prevState: {},
     simulationMode: true,
+    // RFC-018 KISSVM-MAST-001: tests opt in to the legacy mastBranches path.
+    allowLegacyMastBranches: true,
     ...overrides,
   };
 }

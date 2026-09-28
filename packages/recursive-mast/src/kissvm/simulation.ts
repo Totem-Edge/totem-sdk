@@ -29,6 +29,10 @@ export async function simulatePolicyTransaction(
   const ctx: TxContext = {
     ...txContext,
     mastBranches,
+    // RFC-018 KISSVM-MAST-001: the witness plan is produced by the SDK's own
+    // trusted builder; the canonical path (ScriptProofs) is preferred, and this
+    // opts in to the legacy mastBranches fallback for plans without proofs.
+    allowLegacyMastBranches: true,
   };
 
   const result: EvalResult = await simulateSpend(anchorScript, coinData, ctx, witness);
