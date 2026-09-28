@@ -1,6 +1,6 @@
 # RFC-007: Storage Consolidation & Durable Guarantees
 
-**Status:** Draft — Phase 0 landed (`@totemsdk/storage` scaffold: `StorageError`, codec, `Namespace`, `Transaction`/CAS, `FileStore`/`MemoryStore`/`SqliteStore`, conformance suites, and the reference `ArtifactStoreBackend` adapter). Phases 1–5 outstanding: consolidate transactional backends (Phase 1), harden runtime adapters (Phase 2), fill durability gaps G3–G10 (Phase 3) and intelligence accounting/content access (Phase 3a), and security-critical surfaces (Phase 4) plus gated content (Phase 5). Phase 6 (browser/application pass) is an explicit recorded deferral owned by the wallet extension, not committed by this RFC.
+**Status:** Landing in progress — re-triaged 2026-09-28 (see §1.1). Phases 0–3 landed; Phase 3a and Phase 4 partial; Phase 5 outstanding; Phase 6 is the RFC's own recorded deferral. `@totemsdk/storage` is now adopted by 22 packages.
 **Created:** 2026-09-15
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]
@@ -39,6 +39,25 @@ The SDK is **pre-release**: nothing in this RFC preserves backwards compatibilit
 We unify and dissolve freely, with one hard external constraint — hashing stays in
 `@totemsdk/core` (it underwrites blockchain transactions unrelated to storage), and
 the storage layer depends on core one-way, never the reverse.
+
+### 1.1 Status re-triage (2026-09-28)
+
+The earlier "Phase 0 only" reading was wrong: `@totemsdk/storage` is now imported by **22 packages** (`agent-policy`, `edge`, `edge-adapters`, `edge-mqtt`, `industrial-action`, `liquidity-bond`, the `omnia-*` family, `pear`, `proofgraph`, `provider-bond`, `qvac`, `se-server`, `server`, `statechain`, `tx-builder`, `wots-lease`, …). Source inspection (not an acceptance-gate run):
+
+| Phase | Status | Evidence |
+|-------|--------|----------|
+| **0** Scaffold | **Landed** | `packages/storage/src`: `codec`, `namespace`, `transaction`/CAS, `journal`, `snapshot`, `artifacts` (+ `local-fs-backend`), `conformance`, and `memory`/`file`/`sqlite`/`idb` adapters with subpath exports |
+| **1** Consolidate transactional backends | **Landed** | `@totemsdk/agent-policy` `sqlite-run-state-store.ts` + `receipt-store.ts`; `@totemsdk/edge` `commerce-accounting.ts` + `inference-accounting.ts`; both on shared primitives |
+| **2** Harden runtime adapters | **Landed** | `packages/server/src/adapters/storage.ts`, `packages/pear/src/storage/BareFileStore.ts` now use the shared store |
+| **3** Durability gaps G3–G10 | **Largely landed** | WOTS journal + reservation-recovery (`wots-lease/src/journal.ts`, `__tests__/reservation-recovery.test.ts`); MQTT durable queue (`edge-mqtt/src/durable-queue.ts` + `__tests__/durable-queue.test.ts`); tx-builder StorageAdapter dissolution (`tx-builder/src/adapters.ts` + `__tests__/durable-storage.test.ts`); ProofGraph durable store (`proofgraph/src/durable-store.ts` + tests); durable stores in `liquidity-bond`, `provider-bond`, `omnia-factory/router/splice/vtxo/pool` |
+| **3a** Intelligence accounting + content access | **Partial** | `edge/src/inference-accounting.ts` exists and `qvac` imports storage; enforceable content-level retrieval gating and revocation-without-cleanup gates not confirmed |
+| **4** Security-critical surfaces | **Partial** | `statechain` + `se-server` import storage; `root-identity` watermark present (`UnifiedIdentityWallet.ts`, `__tests__/watermark.test.ts`); core `LeaseStore`/`WatermarkStore`/`TransactionReceiptStore` consumer conformance not confirmed |
+| **5** Gated content | **Outstanding** | `recursive-mast` availability exists (`availability.ts`, `availability-gate.ts`) but has no storage adoption; purchase/authority shared accounting above the backend not confirmed |
+| **6** Browser/application pass | **Deferred** | Recorded deferral owned by the wallet extension (per §6) |
+
+**Verdict.** RFC-007 is substantially landed through Phase 3. The remaining work is concentrated in Phase 3a (intelligence accounting/content gating), Phase 4 (core consumer conformance) and Phase 5 (gated content); Phase 6 stays deferred. The acceptance gates in §6 have not been re-run here — this is a source-level re-triage.
+
+---
 
 ## 2. Motivation
 
