@@ -176,6 +176,7 @@ export {
   confirmSession,
   cancelSession,
   sessionSummary,
+  canonicalSigningResponseMessage,
 } from './signing-session.js';
 export type {
   SigningSessionStatus,
@@ -183,6 +184,7 @@ export type {
   EvidenceState,
   SigningSession,
   SigningSessionConfig,
+  AcceptResponseOptions,
 } from './signing-session.js';
 
 // ─── Policy Discovery ──────────────────────────────────────────────────────

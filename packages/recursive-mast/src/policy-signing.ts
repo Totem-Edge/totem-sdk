@@ -14,7 +14,7 @@
  *   5. The witness is materialized via @totemsdk/recursive-mast/kissvm
  */
 
-import { sha3_256, bytesToHex, hexToBytes, canonicalJson } from '@totemsdk/core';
+import { sha3_256, bytesToHex, hexToBytes, canonicalJson, wotsVerifyDigest } from '@totemsdk/core';
 import type { ScriptProof } from '@totemsdk/kissvm';
 import type { PolicyAction, PolicyRole } from './policy-manifest.js';
 
@@ -285,6 +285,37 @@ export function createSigningResponse(config: CreateSigningResponseConfig): Poli
 
 // ─── Response collection ───────────────────────────────────────────────────
 
+/** RFC-018 P1-2: canonical bytes a signer signs for a response. */
+function canonicalResponseBytes(response: PolicySigningResponse): Uint8Array {
+  return new TextEncoder().encode(
+    canonicalJson({
+      requestId: response.requestId,
+      responseId: response.responseId,
+      status: response.status,
+      signerIdentityId: response.signerIdentityId,
+      actingAddress: response.actingAddress,
+      role: response.role,
+      signedAt: response.signedAt,
+    }),
+  );
+}
+
+function defaultResponseVerifier(
+  message: Uint8Array,
+  signatureHex: string,
+  subjectPkd: string,
+): boolean {
+  try {
+    return wotsVerifyDigest(
+      hexToBytes(signatureHex.replace(/^0x/i, '')),
+      message,
+      hexToBytes(subjectPkd.replace(/^0x/i, '')),
+    );
+  } catch {
+    return false;
+  }
+}
+
 export interface SigningRoundResult {
   complete: boolean;
   signatures: Record<string, string>;
@@ -301,6 +332,9 @@ export function collectSigningResponses(
   options?: {
     requestId?: string;
     allowOneSignerMultipleRoles?: boolean;
+    /** RFC-018 P1-2: role → authorized signer public-key digest (from the manifest). */
+    roleKeys?: Record<string, string>;
+    signatureVerifier?: (message: Uint8Array, signatureHex: string, subjectPkd: string) => boolean;
   },
 ): SigningRoundResult {
   const signatures: Record<string, string> = {};
@@ -336,6 +370,20 @@ export function collectSigningResponses(
     respondedRoles.add(resp.role);
 
     if (resp.status === 'approved' && resp.signature) {
+      // RFC-018 P1-2: when role keys are supplied, verify the signature against
+      // the authorized key for the role before counting it.
+      if (options?.roleKeys) {
+        const pkd = options.roleKeys[resp.role];
+        if (!pkd) {
+          errors.push(`No authorized key for role ${resp.role}`);
+          continue;
+        }
+        const verify = options.signatureVerifier ?? defaultResponseVerifier;
+        if (!verify(canonicalResponseBytes(resp), resp.signature, pkd)) {
+          errors.push(`Invalid signature for role ${resp.role}`);
+          continue;
+        }
+      }
       signatures[resp.role] = resp.signature;
       approved.push(resp);
     } else if (resp.status === 'rejected') {
@@ -444,6 +492,13 @@ export interface SigningRequestVerificationOptions {
     actions: Array<{ action: string; requiredRoles: string[] }>;
   };
   branchVerifier?: (scriptHash: string, policyRoot: string) => boolean;
+  /**
+   * RFC-018 P1-1: verify the requester's signature over the canonical request
+   * bytes. Defaults to WOTS verification against `requesterIdentity.subjectPkd`.
+   */
+  requesterSignatureVerifier?: (message: Uint8Array, signatureHex: string, subjectPkd: string) => boolean;
+  /** RFC-018 P1-1: actual transaction outputs, compared against `expectedOutputs`. */
+  actualOutputs?: ExpectedOutput[];
   replayStore?: {
     hasBeenProcessed(requestId: string): boolean;
     markProcessed(requestId: string): void;
@@ -458,6 +513,7 @@ export interface SigningRequestVerificationReport {
     notExpired: boolean;
     epochCurrent: boolean;
     requesterTrusted: boolean;
+    requesterSignature?: boolean;
     digestPresent: boolean;
     digestMatchesTemplate?: boolean;
     scriptsBelongToRoots?: boolean;
@@ -467,6 +523,24 @@ export interface SigningRequestVerificationReport {
     notReplayed?: boolean;
   };
   errors: string[];
+}
+
+/**
+ * RFC-018 P1-1: default requester-signature verifier (WOTS over the canonical
+ * request bytes, keyed by the identity claim's subject public-key digest).
+ */
+function defaultRequesterSignatureVerifier(
+  message: Uint8Array,
+  signatureHex: string,
+  subjectPkd: string,
+): boolean {
+  try {
+    const sig = hexToBytes(signatureHex.replace(/^0x/i, ''));
+    const pkd = hexToBytes(subjectPkd.replace(/^0x/i, ''));
+    return wotsVerifyDigest(sig, message, pkd);
+  } catch {
+    return false;
+  }
 }
 
 export function verifySigningRequest(
@@ -501,6 +575,22 @@ export function verifySigningRequest(
     errors.push('Missing transaction digest');
   }
 
+  // RFC-018 P1-1: the request must be signed by the claimed requester.
+  {
+    const verify = options.requesterSignatureVerifier ?? defaultRequesterSignatureVerifier;
+    const sig = request.requesterSignature;
+    const pkd = request.requesterIdentity?.subjectPkd;
+    if (!sig || !pkd) {
+      checks.requesterSignature = false;
+      errors.push('Missing requester signature or subject public key');
+    } else {
+      const message = new TextEncoder().encode(canonicalRequest(request));
+      const ok = verify(message, sig, pkd);
+      checks.requesterSignature = ok;
+      if (!ok) errors.push('Requester signature is invalid');
+    }
+  }
+
   if (options.transactionDigestVerifier && request.transactionTemplate && request.transactionDigest) {
     const digestMatches = options.transactionDigestVerifier(
       request.transactionTemplate,
@@ -517,11 +607,24 @@ export function verifySigningRequest(
       checks.epochCurrent = false;
       errors.push(`Policy epoch ${request.policyEpoch} does not match anchor coin epoch ${options.anchorCoin.epoch}`);
     }
+    // RFC-018 P1-1: the selected path must start at the anchor's policy root.
+    const norm = (h: string) => h.replace(/^0x/i, '').toLowerCase();
+    const roots = request.selectedPath?.roots ?? [];
+    const pathRoot = roots[0] ?? request.selectedPath?.executionRoot;
+    const startsAtAnchor = !!pathRoot && norm(pathRoot) === norm(options.anchorCoin.policyRoot);
+    checks.pathStartsAtAnchor = startsAtAnchor;
+    if (!startsAtAnchor) {
+      errors.push('Selected path does not start at the anchor policy root');
+    }
   }
 
   if (options.policyManifest) {
     const action = options.policyManifest.actions.find(a => a.action === request.action);
-    if (action && !action.requiredRoles.includes(request.requestedRole)) {
+    if (!action) {
+      // RFC-018 P1-1: fail closed on an action the manifest does not define.
+      checks.roleRequired = false;
+      errors.push(`Unknown action "${request.action}"`);
+    } else if (!action.requiredRoles.includes(request.requestedRole)) {
       checks.roleRequired = false;
       errors.push(`Role "${request.requestedRole}" is not required for action "${request.action}"`);
     } else {
@@ -530,13 +633,22 @@ export function verifySigningRequest(
   }
 
   if (options.branchVerifier) {
+    // RFC-018 P1-1: verify each disclosure against *its own* policy root.
     const allScriptsValid = request.disclosedScripts.every(ds =>
-      options.branchVerifier!(ds.scriptHash, request.selectedPath.executionRoot),
+      options.branchVerifier!(ds.scriptHash, ds.policyRoot),
     );
     checks.scriptsBelongToRoots = allScriptsValid;
     if (!allScriptsValid) {
       errors.push('One or more disclosed scripts do not belong to the stated roots');
     }
+  }
+
+  if (options.actualOutputs) {
+    // RFC-018 P1-1: compare expected vs actual outputs.
+    const match =
+      canonicalJson(request.expectedOutputs ?? []) === canonicalJson(options.actualOutputs);
+    checks.outputsMatch = match;
+    if (!match) errors.push('Expected outputs do not match actual outputs');
   }
 
   if (options.replayStore) {

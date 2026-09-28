@@ -9,7 +9,7 @@
  * independently verifies the transaction before signing.
  */
 
-import { sha3_256, bytesToHex } from '@totemsdk/core';
+import { sha3_256, bytesToHex, hexToBytes, canonicalJson, wotsVerifyDigest } from '@totemsdk/core';
 import type { PolicyAction } from './policy-manifest.js';
 import type { PolicySigningRequest, PolicySigningResponse, SignedEvidence, ScriptDisclosure, PolicyPathDescriptor } from './policy-signing.js';
 
@@ -141,12 +141,105 @@ export function advanceSession(session: SigningSession): SigningSession {
 }
 
 /**
+ * RFC-018 P1-2: the canonical bytes a signer signs for a session response.
+ * Excludes `signature` itself; binds the response to the session, action,
+ * epoch and transaction digest.
+ */
+export function canonicalSigningResponseMessage(
+  session: SigningSession,
+  response: PolicySigningResponse,
+): Uint8Array {
+  return new TextEncoder().encode(
+    canonicalJson({
+      requestId: session.requestId,
+      transactionDigest: session.transactionDigest,
+      policyId: session.policyId,
+      policyVersion: session.policyVersion,
+      policyEpoch: session.policyEpoch,
+      action: session.action,
+      role: response.role,
+      signerIdentityId: response.signerIdentityId,
+      actingAddress: response.actingAddress,
+      status: response.status,
+      signedAt: response.signedAt,
+    }),
+  );
+}
+
+function defaultResponseSignatureVerifier(
+  message: Uint8Array,
+  signatureHex: string,
+  subjectPkd: string,
+): boolean {
+  try {
+    return wotsVerifyDigest(
+      hexToBytes(signatureHex.replace(/^0x/i, '')),
+      message,
+      hexToBytes(subjectPkd.replace(/^0x/i, '')),
+    );
+  } catch {
+    return false;
+  }
+}
+
+export interface AcceptResponseOptions {
+  /** RFC-018 P1-2: role → authorized signer public-key digest (from the manifest). */
+  roleKeys?: Record<string, string>;
+  /** Override the default WOTS verifier. */
+  signatureVerifier?: (message: Uint8Array, signatureHex: string, subjectPkd: string) => boolean;
+  /** Allow a single signer to fill more than one role (default false). */
+  allowOneSignerMultipleRoles?: boolean;
+}
+
+/**
  * Accept a signing response into the session.
+ *
+ * RFC-018 P1-2: the response is bound to the session (`requestId`), its role
+ * must be part of the session, one signer may not fill several roles, and —
+ * when `roleKeys` is supplied — the signature is verified against the
+ * authorized key for that role. Invalid responses throw rather than silently
+ * advancing the session.
  */
 export function acceptResponse(
   session: SigningSession,
   response: PolicySigningResponse,
+  options: AcceptResponseOptions = {},
 ): SigningSession {
+  if (response.requestId !== session.requestId) {
+    throw new Error(
+      `Response requestId ${response.requestId} does not match session ${session.requestId}`,
+    );
+  }
+  const roleState = session.requiredRoles.find(r => r.role === response.role);
+  if (!roleState) {
+    throw new Error(`Response role "${response.role}" is not part of the session`);
+  }
+
+  if (response.status === 'approved') {
+    if (!response.signature) {
+      throw new Error(`Approved response for role "${response.role}" has no signature`);
+    }
+    if (roleState.signerIdentityId && roleState.signerIdentityId !== response.signerIdentityId) {
+      throw new Error(`Role "${response.role}" is already signed by ${roleState.signerIdentityId}`);
+    }
+    const otherRole = session.requiredRoles.find(
+      r => r.role !== response.role && r.signerIdentityId === response.signerIdentityId,
+    );
+    if (otherRole && !options.allowOneSignerMultipleRoles) {
+      throw new Error(`Signer ${response.signerIdentityId} already signed role "${otherRole.role}"`);
+    }
+    if (options.roleKeys) {
+      const pkd = options.roleKeys[response.role];
+      if (!pkd) {
+        throw new Error(`No authorized key for role "${response.role}"`);
+      }
+      const verify = options.signatureVerifier ?? defaultResponseSignatureVerifier;
+      if (!verify(canonicalSigningResponseMessage(session, response), response.signature, pkd)) {
+        throw new Error(`Signature for role "${response.role}" is invalid`);
+      }
+    }
+  }
+
   const updated = { ...session, responses: [...session.responses, response] };
 
   if (response.status === 'approved' && response.signature) {
