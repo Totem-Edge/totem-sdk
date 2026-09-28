@@ -123,6 +123,16 @@ export function createSeRouter(config: SeServerConfig, pool: Pool): Router {
   // RFC-008 Phase 1: the SE identity is a root identity (root-identity) whose
   // one-time WOTS leaves are leased through wots-lease. No index-0 reuse, and
   // the published identity is the actual signer's root.
+  //
+  // Fail closed: losing the leased-leaf watermark on restart can re-expose a WOTS
+  // key index, so a durable store is required unless explicitly opted out (dev).
+  if (!config.seStorage && config.allowEphemeralStorage !== true) {
+    throw new Error(
+      '[se-server] Durable seStorage is required for the SE identity watermark and the one-time WOTS leaf lease. ' +
+        'Provide config.seStorage (durable StorageAdapter), or set allowEphemeralStorage: true ' +
+        '(or SE_ALLOW_EPHEMERAL_STORAGE=true) for dev/test only — otherwise WOTS key indices may be reused after restart.',
+    );
+  }
   const seStorage = config.seStorage ?? new MemoryStore();
   const identityPromise = SeIdentity.create({ seed, storage: seStorage });
 

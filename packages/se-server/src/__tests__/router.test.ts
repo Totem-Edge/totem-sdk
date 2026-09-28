@@ -103,6 +103,7 @@ function makeApp(pool: MockPool, betaMode = false): express.Express {
     databaseUrl: 'postgres://localhost/db',
     reclaimTimelock: 256,
     betaMode,
+    allowEphemeralStorage: true,
   };
   const app = express();
   app.use(express.json({ limit: '1mb' }));
@@ -161,6 +162,11 @@ function httpRequest(
 }
 
 describe('se-server router', () => {
+  it('fails closed without durable seStorage or an explicit ephemeral opt-in', () => {
+    const config: SeServerConfig = { seSeed: SEED, databaseUrl: 'postgres://localhost/db' };
+    expect(() => createSeRouter(config, makePool() as unknown as import('pg').Pool)).toThrow(/Durable seStorage/);
+  });
+
   it('GET /se-public-key returns the SE root identity and timelock', async () => {
     const app = makeApp(makePool());
     const res = await httpRequest(app, 'GET', '/statechain/se-public-key');

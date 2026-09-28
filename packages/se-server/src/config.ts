@@ -1,4 +1,5 @@
 import type { StorageAdapter } from '@totemsdk/core';
+import { FileStore } from '@totemsdk/storage/fs';
 
 export interface SeSignEvent {
   chainId: string;
@@ -19,11 +20,23 @@ export interface SeServerConfig {
   betaMode?: boolean;
   /**
    * Durable storage for the SE identity watermark and the one-time WOTS leaf
-   * lease (RFC-008). Operators should provide a durable backing store; when
-   * omitted an in-memory store is used (dev only — leaf-use watermarks are lost
-   * on restart).
+   * lease (RFC-008). Required — `createSeRouter` fails closed without it unless
+   * `allowEphemeralStorage` is explicitly set. Losing this store on restart can
+   * re-expose WOTS key indices.
    */
   seStorage?: StorageAdapter;
+  /**
+   * Dev/test escape hatch: permit the in-memory SE storage when `seStorage` is
+   * omitted. NEVER enable in production — leaf-use watermarks are lost on
+   * restart. Env: `SE_ALLOW_EPHEMERAL_STORAGE=true`.
+   */
+  allowEphemeralStorage?: boolean;
+  /**
+   * Directory for the durable SE store. When `seStorage` is not supplied and
+   * this is set, `loadConfigFromEnv` builds a `FileStore` here. Env:
+   * `SE_STORAGE_PATH`.
+   */
+  seStoragePath?: string;
   /**
    * Called after every SE signing event. Lets operators hook in billing,
    * audit logging, or rate limiting without patching this package.
@@ -59,6 +72,8 @@ export function loadConfigFromEnv(): SeServerConfig {
     throw new Error('[se-server] DATABASE_URL environment variable is required');
   }
 
+  const storagePath = process.env.SE_STORAGE_PATH;
+
   return {
     seSeed: new Uint8Array(buf),
     databaseUrl: dbUrl,
@@ -67,5 +82,7 @@ export function loadConfigFromEnv(): SeServerConfig {
       ? parseInt(process.env.SE_RECLAIM_TIMELOCK, 10)
       : 256,
     betaMode: process.env.SE_BETA_MODE === 'true',
+    allowEphemeralStorage: process.env.SE_ALLOW_EPHEMERAL_STORAGE === 'true',
+    ...(storagePath ? { seStoragePath: storagePath, seStorage: new FileStore(storagePath) } : {}),
   };
 }

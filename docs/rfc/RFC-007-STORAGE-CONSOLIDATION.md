@@ -57,7 +57,7 @@ The earlier "Phase 0 only" reading was wrong: `@totemsdk/storage` is now declare
 
 **Known red risks (2026-09 gate audit).** Source-level findings on spending/key-index surfaces, in priority order:
 
-1. **`se-server` one-time WOTS leaf lease defaults to volatile memory.** `createSeRouter` uses `config.seStorage ?? new MemoryStore()` (`packages/se-server/src/router.ts`), and `loadConfigFromEnv()` never sets `seStorage`, so the default deployment path loses the leased-leaf watermark on restart — a key-index re-exposure risk. The only "restart" test reuses the same in-process store. Operators must inject durable storage; the default should fail closed in non-dev.
+1. **`se-server` one-time WOTS leaf lease no longer defaults to volatile memory — FIXED (2026-09-28).** `createSeRouter` now **fails closed** unless a durable `seStorage` is supplied or `allowEphemeralStorage` / `SE_ALLOW_EPHEMERAL_STORAGE=true` is explicitly set (dev/test only); `loadConfigFromEnv` builds a durable `FileStore` from `SE_STORAGE_PATH` (`@totemsdk/storage/fs`). Original risk: `config.seStorage ?? new MemoryStore()` lost the leased-leaf watermark on restart, re-exposing WOTS key indices.
 2. **Accounting reconciliation tested only against a stub authority.** `reconcileInferenceAccounting` is the journal↔domain-authority boundary but is not wired to the real `SqliteRunStateStore`/`GrantUsageStore` in tests.
 3. **SE relational success path untested.** `revokeOwnerTransactional` (atomic nonce + row-lock + version-CAS + revocation) is exercised only through a mocked pool on invalid input; a successful revoke / `stale-owner` conflict is not covered.
 
