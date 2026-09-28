@@ -94,6 +94,20 @@ export function createGovernedPurchaseActions(config: GovernedCommerceConfig): B
           const result = await buyer.executePrepared(prepared as PreparedPurchase, { skipAuthority: true });
           return { ok: true, data: result };
         },
+        // RFC-019 P1: pre-payment failures provably did not spend; anything
+        // after dispatch (payment/resource) is ambiguous and held.
+        classifyFailure: (error) => {
+          const code = (error as { code?: string } | undefined)?.code;
+          const definite = new Set([
+            'AUTHORITY_DENIED',
+            'AGREEMENT_EXPIRED',
+            'SPEND_EXCEEDED',
+            'PURCHASE_DEADLINE_EXPIRED',
+            'PAYMENT_FAILED',
+            'STALE_REVISION',
+          ]);
+          return code && definite.has(code) ? 'definitely-not-executed' : 'unknown';
+        },
       },
     },
     {

@@ -137,23 +137,47 @@ export function createAgentEdgeRuntime(options: AgentEdgeRuntimeOptions): AgentE
     // 6. Execute through the private port.
     try {
       const result = await def.execute(prepared);
+      if (!result.ok) {
+        // RFC-019 P1: a port that reports failure without dispatching did not
+        // take effect — release the reservation rather than consuming budget.
+        await policy.abort(authorization.reservationId, result.error ?? 'execution reported failure');
+        return {
+          ok: false,
+          action,
+          error: result.error,
+          errorCode: result.errorCode ?? 'EXECUTION_FAILED',
+          policyResult: { allowed: true },
+        };
+      }
       // 7. Commit the reservation (execution proof = the port result).
       await policy.commit({
         reservationId: authorization.reservationId,
         executionProof: result.data ?? { ok: result.ok },
       });
       return {
-        ok: result.ok,
+        ok: true,
         action,
         data: result.data,
-        error: result.error,
-        errorCode: result.errorCode,
         policyResult: { allowed: true },
       };
     } catch (error) {
-      // 8. Abort the reservation on failure.
-      await policy.abort(authorization.reservationId, error);
-      return { ok: false, action, error: error instanceof Error ? error.message : String(error), errorCode: 'EXECUTION_FAILED' };
+      // 8. Classify the failure. Definitions with genuinely ambiguous dispatch
+      //    (e.g. commerce after payment) override `classifyFailure` to return
+      //    `'unknown'`, which HELDS the reservation (never auto-releases) so a
+      //    retry cannot double-spend. The default preserves the historic
+      //    release-on-failure semantics for non-dispatching port actions.
+      const outcome = def.classifyFailure?.(error, prepared) ?? 'definitely-not-executed';
+      if (outcome === 'definitely-not-executed') {
+        await policy.abort(authorization.reservationId, error);
+        return { ok: false, action, error: error instanceof Error ? error.message : String(error), errorCode: 'EXECUTION_FAILED' };
+      }
+      return {
+        ok: false,
+        action,
+        error: error instanceof Error ? error.message : String(error),
+        errorCode: 'EXECUTION_UNCERTAIN',
+        policyResult: { allowed: true, reason: 'reservation held for reconciliation' },
+      };
     }
   }
 

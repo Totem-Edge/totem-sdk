@@ -63,6 +63,14 @@ export interface EdgeActionDefinition {
   deriveEffects(prepared: unknown): StepEffects;
   /** Execute the prepared operation through the private port. */
   execute(prepared: unknown): Promise<EdgeOperationResult>;
+  /**
+   * RFC-019 P1: classify an execution failure. Return `'definitely-not-executed'`
+   * only when the operation provably did not take effect (the reservation may be
+   * released — this is the default for non-dispatching port actions); return
+   * `'unknown'` for ambiguous post-dispatch outcomes, where the reservation is
+   * held for reconciliation rather than released.
+   */
+  classifyFailure?(error: unknown, prepared: unknown): 'definitely-not-executed' | 'unknown';
 }
 
 export interface EdgeActionRegistry {

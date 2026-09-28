@@ -207,3 +207,35 @@ describe('RFC-019 P0: governed purchase:buy', () => {
     expect(result.errorCode).toBe('UNKNOWN_ACTION');
   });
 });
+
+describe('RFC-019 P1: reservation lifecycle on failure', () => {
+  it('releases the reservation on a definite pre-execution failure', async () => {
+    const policy = await makePolicy('500');
+    const { buyer, executePrepared } = makeStubBuyer(agreementAt('100'));
+    executePrepared.mockRejectedValueOnce(Object.assign(new Error('agreement expired'), { code: 'AGREEMENT_EXPIRED' }));
+    const runtime = makeRuntime(policy, buyer);
+
+    const result = await runtime.executeAction({ action: 'purchase:buy', subject: 'SELLER_ADDR', payload: { intent } });
+    expect(result.ok).toBe(false);
+    expect(result.errorCode).toBe('EXECUTION_FAILED');
+
+    const graph = await policy.getRunReceiptGraph('run-1');
+    expect(graph?.totals.abortedSteps).toBe(1);
+    expect(graph?.totals.committedSteps).toBe(0);
+  });
+
+  it('holds (never releases) the reservation on an ambiguous post-dispatch failure', async () => {
+    const policy = await makePolicy('500');
+    const { buyer, executePrepared } = makeStubBuyer(agreementAt('100'));
+    executePrepared.mockRejectedValueOnce(Object.assign(new Error('connection reset'), { code: 'ECONNRESET' }));
+    const runtime = makeRuntime(policy, buyer);
+
+    const result = await runtime.executeAction({ action: 'purchase:buy', subject: 'SELLER_ADDR', payload: { intent } });
+    expect(result.ok).toBe(false);
+    expect(result.errorCode).toBe('EXECUTION_UNCERTAIN');
+
+    const graph = await policy.getRunReceiptGraph('run-1');
+    expect(graph?.totals.abortedSteps).toBe(0);
+    expect(graph?.totals.committedSteps).toBe(0);
+  });
+});

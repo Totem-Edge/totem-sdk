@@ -130,6 +130,8 @@ export function createBuiltinActionDefinitions(
         const p = prepared as { recipient: string; amount: string; tokenId?: string; memo?: string };
         return ports.payment.pay({ recipient: p.recipient, amount: p.amount, tokenId: p.tokenId, memo: p.memo });
       },
+      // RFC-019 P1: a payment port that rejects/throws did not dispatch.
+      classifyFailure: () => 'definitely-not-executed',
     },
   });
 
