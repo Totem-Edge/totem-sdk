@@ -17,6 +17,24 @@ export interface SpendableCoin {
   amount: string;
   tokenid: string;
   created: number;
+  /** Coin keeps state (RFC-005 #6). */
+  storeState?: boolean;
+  /** Coin state variables, when reported. */
+  state?: unknown[];
+  /** Whether the coin is spent (for UTXO inspection). */
+  spent?: boolean;
+  /** MMR entry, when reported. */
+  mmrEntry?: string;
+}
+
+/** Optional chain filters for coin queries (RFC-005 #6). */
+export interface CoinQueryOptions {
+  /** Only spendable coins (default true for the send path). */
+  sendable?: boolean;
+  /** Only coins relevant to the wallet. */
+  relevant?: boolean;
+  /** Use the MegaMMR endpoint on the Axia path. */
+  megammr?: boolean;
 }
 
 export interface CoinSelectionResult {
@@ -95,19 +113,39 @@ function normAddr(a: string): string { return (a || '').toLowerCase(); }
 function normToken(t: string): string { return (t || '').toLowerCase(); }
 
 /** Map a chain-provider coin to the wallet's SpendableCoin shape. */
-function mapProviderCoin(coin: { coinid?: string; coinId?: string; address?: string; amount?: string; tokenid?: string; tokenId?: string; created?: number | string }): SpendableCoin | null {
+function mapProviderCoin(coin: {
+  coinid?: string;
+  coinId?: string;
+  address?: string;
+  amount?: string;
+  tokenid?: string;
+  tokenId?: string;
+  created?: number | string;
+  storestate?: boolean;
+  storeState?: boolean;
+  state?: unknown[];
+  spent?: boolean;
+  mmrentry?: string;
+  mmrEntry?: string;
+}): SpendableCoin | null {
   const rawId = coin.coinid ?? coin.coinId;
   if (typeof rawId !== 'string' || rawId.length === 0) return null;
   if (typeof coin.address !== 'string' || coin.address.length === 0) return null;
   if (typeof coin.amount !== 'string' || coin.amount.length === 0) return null;
   const coinId = rawId.startsWith('0x') ? rawId : `0x${rawId}`;
   const tokenid = coin.tokenid ?? coin.tokenId ?? '0x00';
+  const storeState = coin.storestate ?? coin.storeState;
+  const mmrEntry = coin.mmrentry ?? coin.mmrEntry;
   return {
     coinId,
     address: coin.address,
     amount: coin.amount,
     tokenid,
     created: typeof coin.created === 'number' ? coin.created : Number(coin.created ?? 0) || 0,
+    ...(typeof storeState === 'boolean' ? { storeState } : {}),
+    ...(Array.isArray(coin.state) ? { state: coin.state } : {}),
+    ...(typeof coin.spent === 'boolean' ? { spent: coin.spent } : {}),
+    ...(mmrEntry !== undefined ? { mmrEntry: String(mmrEntry) } : {}),
   };
 }
 
@@ -173,7 +211,8 @@ class CoinSelectionService {
   
   async fetchSpendableCoins(
     addresses: string[],
-    tokenId: string = '0x00'
+    tokenId: string = '0x00',
+    options?: CoinQueryOptions
   ): Promise<SpendableCoin[]> {
     // Self-hosted mode routes chain reads through the user's node (RFC-013 §7).
     // Axia mode (null) keeps the existing REST path below.
@@ -185,7 +224,9 @@ class CoinSelectionService {
           const coins = await active.provider.getCoins({
             address,
             ...(tokenId ? { tokenId } : {}),
-            sendable: true,
+            sendable: options?.sendable ?? true,
+            ...(options?.relevant !== undefined ? { relevant: options.relevant } : {}),
+            ...(options?.megammr !== undefined ? { megammr: options.megammr } : {}),
           });
           for (const coin of coins) {
             const mapped = mapProviderCoin(coin);
@@ -212,7 +253,13 @@ class CoinSelectionService {
       response = await fetch(`${baseUrl}/v1/wallet/coins`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ addresses, tokenId })
+        body: JSON.stringify({
+          addresses,
+          tokenId,
+          ...(options?.sendable !== undefined ? { sendable: options.sendable } : {}),
+          ...(options?.relevant !== undefined ? { relevant: options.relevant } : {}),
+          ...(options?.megammr !== undefined ? { megammr: options.megammr } : {}),
+        })
       });
     } catch (networkError: any) {
       throw new CoinSelectionError(
@@ -294,13 +341,19 @@ class CoinSelectionService {
       }
       
       const tokenId = coin.tokenId || coin.tokenid || '0x00';
-      
+      const storeState = coin.storeState ?? coin.storestate;
+      const mmrEntry = coin.mmrEntry ?? coin.mmrentry;
+
       validatedCoins.push({
         coinId: coinId,
         address: coin.address,
         amount: coin.amount,
         tokenid: tokenId,
-        created: typeof coin.created === 'number' ? coin.created : 0
+        created: typeof coin.created === 'number' ? coin.created : 0,
+        ...(typeof storeState === 'boolean' ? { storeState } : {}),
+        ...(Array.isArray(coin.state) ? { state: coin.state } : {}),
+        ...(typeof coin.spent === 'boolean' ? { spent: coin.spent } : {}),
+        ...(mmrEntry !== undefined ? { mmrEntry: String(mmrEntry) } : {}),
       });
     }
     

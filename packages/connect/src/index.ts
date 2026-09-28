@@ -255,6 +255,12 @@ export async function getCoins(origin: string, params?: {
   tokenId?: string;
   address?: string;
   minAmount?: string;
+  /** Only spendable coins. */
+  sendable?: boolean;
+  /** Only coins relevant to the wallet. */
+  relevant?: boolean;
+  /** Filter by spent status (UTXO inspection). */
+  spent?: boolean;
 }): Promise<TotemGetCoinsResponse> {
   const provider = getProvider();
   return await provider.request({

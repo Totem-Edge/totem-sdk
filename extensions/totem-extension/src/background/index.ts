@@ -3711,7 +3711,7 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
     
     case 'TOTEM_GET_COINS': {
       try {
-        const { tokenId, address: filterAddress, minAmount } = params || {};
+        const { tokenId, address: filterAddress, minAmount, sendable, relevant, spent } = params || {};
 
         // SECURITY: derive trusted origin from browser-verified sender.tab.url,
         // NOT from params.origin which the dApp could spoof.
@@ -3761,13 +3761,20 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
         await coinSelectionService.loadExcludedAddresses();
         const coins = await coinSelectionService.fetchSpendableCoins(
           addressesToQuery,
-          (tokenId as string) || '0x00'
+          (tokenId as string) || '0x00',
+          {
+            ...(typeof sendable === 'boolean' ? { sendable } : {}),
+            ...(typeof relevant === 'boolean' ? { relevant } : {}),
+          }
         );
         
         let filteredCoins = coins;
         if (minAmount && typeof minAmount === 'string') {
           const { compareDecimal } = await import('../core/transaction/CoinSelectionService');
-          filteredCoins = coins.filter(c => compareDecimal(c.amount, minAmount as string) >= 0);
+          filteredCoins = filteredCoins.filter(c => compareDecimal(c.amount, minAmount as string) >= 0);
+        }
+        if (typeof spent === 'boolean') {
+          filteredCoins = filteredCoins.filter(c => (c.spent ?? false) === spent);
         }
         
         const sanitizedCoins = filteredCoins.map(c => ({
@@ -3775,7 +3782,11 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
           address: ensureMx(c.address),
           amount: c.amount,
           tokenId: c.tokenid,
-          created: c.created
+          created: c.created,
+          ...(c.storeState !== undefined ? { storeState: c.storeState } : {}),
+          ...(c.state !== undefined ? { state: c.state } : {}),
+          ...(c.spent !== undefined ? { spent: c.spent } : {}),
+          ...(c.mmrEntry !== undefined ? { mmrEntry: c.mmrEntry } : {})
         }));
         
         console.log(`[TOTEM_GET_COINS] Returning ${sanitizedCoins.length} coins for ${origin}`);

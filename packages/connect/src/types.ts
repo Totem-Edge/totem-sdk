@@ -1082,6 +1082,12 @@ export interface TotemGetCoinsRequest {
     tokenId?: string;
     address?: string;
     minAmount?: string;
+    /** Only spendable coins. */
+    sendable?: boolean;
+    /** Only coins relevant to the wallet. */
+    relevant?: boolean;
+    /** Filter by spent status (UTXO inspection). */
+    spent?: boolean;
   };
 }
 
@@ -1093,6 +1099,14 @@ export interface TotemGetCoinsSuccessResponse {
     amount: string;
     tokenId: string;
     created: string;
+    /** Coin keeps state, when reported. */
+    storeState?: boolean;
+    /** Coin state variables, when reported. */
+    state?: unknown[];
+    /** Whether the coin is spent, when reported. */
+    spent?: boolean;
+    /** MMR entry, when reported. */
+    mmrEntry?: string;
   }>;
   totalCoins: number;
   queriedAddresses: number;
