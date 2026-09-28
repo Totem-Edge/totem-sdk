@@ -521,6 +521,8 @@ docs/                       # SDK documentation
 | [RFC-015](docs/rfc/RFC-015-AXIA-API-ALIGNMENT.md) | Axia API alignment — wallet capability manifest, SE registry RFC-008 shape, lease model, status/receipts, quota/telemetry (draft) |
 | [RFC-016](docs/rfc/RFC-016-KISSVM-TEMPLATE-SECURITY-HARDENING.md) | KISSVM template security hardening — MAST/PROOF fidelity, committed prevstate, fail-closed witness bridge, transaction planners (landed) |
 | [RFC-017](docs/rfc/RFC-017-DECISION-RECEIPT-GRAPH.md) | Decision receipt graph — link semantic `@totemsdk/decision` receipts into governed Edge/run/industrial evidence without conflating semantic, authority or governance decisions (draft) |
+| [RFC-018](docs/rfc/RFC-018-KISSVM-ADVERSARIAL-REMEDIATION.md) | KISSVM / recursive-MAST / tx-builder adversarial remediation — close second-order composition/verification holes (MULTISIG de-dup, terminal-MAST-after-RETURN, signing verification, invariant detector, proof-mandatory MAST) (draft) |
+| [RFC-019](docs/rfc/RFC-019-GOVERNED-AGENT-COMMERCE.md) | Governed agent commerce — close the `createEdge()` privilege-escalation path; agents reach commerce only via governed `purchase:*` actions with canonical-effect authorization and atomic reservation (draft) |
 | [SDK Audit (archived)](docs/archive/SDK_AUDIT-2026-02-ARCHIVED.md) | Historical Feb 2026 audit; current maturity lives in the table above |
 | [SDK Manifest](SDK_MANIFEST.json) | Machine-readable package index — 55 packages, for AI agents and tooling |
 | [API Reference](https://totem.ing) | Full TypeDoc-generated API reference |
