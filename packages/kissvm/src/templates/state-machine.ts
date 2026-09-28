@@ -46,29 +46,40 @@ export interface StateMachineConfig {
  *   5. Preserves the new state
  */
 export function buildStateMachineScript(config: StateMachineConfig): string {
+  // RFC-018 P1-6: an optional operator silently produced an unauthorized state
+  // machine; require authorization rather than fail open.
+  if (!config.operatorPkd) {
+    throw new Error(
+      'buildStateMachineScript: operatorPkd is required (refusing to build an unauthorized state machine)',
+    )
+  }
+
+  const transitionChecks: string[] = [];
+  for (const [from, tos] of Object.entries(config.transitions)) {
+    for (const to of tos) {
+      transitionChecks.push(`oldState EQ [${from}] AND curState EQ [${to}]`)
+    }
+  }
+  if (transitionChecks.length === 0) {
+    throw new Error('buildStateMachineScript: transitions must be non-empty')
+  }
+
   const lines: string[] = [
     `// State machine: ${config.name}`,
     `LET oldState = PREVSTATE(${config.statePort})`,
     `LET curState = STATE(${config.statePort})`,
     ``,
     `// Validate transition`,
-  ];
+    `ASSERT ${transitionChecks.join(' OR ')}`,
+    ``,
+    `// Operator authorization`,
+    `ASSERT SIGNEDBY(0x${config.operatorPkd})`,
+    ``,
+    `ASSERT VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID TRUE)`,
+    `RETURN TRUE`,
+  ]
 
-  const transitionChecks: string[] = [];
-  for (const [from, tos] of Object.entries(config.transitions)) {
-    for (const to of tos) {
-      transitionChecks.push(`oldState EQ [${from}] AND curState EQ [${to}]`);
-    }
-  }
-  lines.push(`ASSERT ${transitionChecks.join(' OR ')}`);
-
-  if (config.operatorPkd) {
-    lines.push(``, `// Operator authorization`, `ASSERT SIGNEDBY(0x${config.operatorPkd})`);
-  }
-
-  lines.push(``, `ASSERT VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID TRUE)`, `RETURN TRUE`);
-
-  return lines.join('\n');
+  return lines.join('\n')
 }
 
 /**

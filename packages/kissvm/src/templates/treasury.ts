@@ -92,9 +92,12 @@ export function buildBudgetAllocationScript(
     periodStartPort: number;
   },
 ): PolicyLayer {
-  const categoryChecks = options.categories.map(cat =>
+  // RFC-018 P1-6: enforce the cap against committed spend and advance each
+  // category counter so repeated spends cannot exceed the cap.
+  const categoryChecks = options.categories.flatMap(cat => [
     `ASSERT PREVSTATE(${cat.spentPort}) ADD @AMOUNT LTE ${cat.cap}`,
-  );
+    `ASSERT STATE(${cat.spentPort}) EQ PREVSTATE(${cat.spentPort}) ADD @AMOUNT`,
+  ]);
 
   return {
     id: 'budget',
@@ -148,12 +151,17 @@ export function buildTimeLockedReserveScript(
       ``,
       `// Vesting: linear release over vestingBlocks`,
       `LET elapsed = @BLOCK SUB reserveStart`,
-      `LET vested = ${options.totalReserve} MUL elapsed DIV ${options.vestingBlocks}`,
+      // RFC-018 P1-6: clamp vested to the total reserve (elapsed can exceed
+      // vestingBlocks, which previously over-released) and advance the claimed
+      // counter so it cannot be re-claimed.
+      `LET vestedRaw = ${options.totalReserve} MUL elapsed DIV ${options.vestingBlocks}`,
+      `LET vested = MIN(vestedRaw ${options.totalReserve})`,
       `LET prevClaimed = PREVSTATE(${options.claimedPort})`,
       `LET claimable = vested SUB prevClaimed`,
       ``,
       `ASSERT claimable GT 0`,
       `ASSERT @AMOUNT LTE claimable`,
+      `ASSERT STATE(${options.claimedPort}) EQ prevClaimed ADD @AMOUNT`,
       `ASSERT SIGNEDBY(governance)`,
       `ASSERT VERIFYOUT(@INPUT beneficiary @AMOUNT @TOKENID TRUE)`,
       `RETURN TRUE`,
@@ -250,6 +258,8 @@ export function buildStreamingPaymentScript(
     ``,
     `ASSERT claimable GT 0`,
     `ASSERT @AMOUNT LTE claimable`,
+    // RFC-018 P1-6: advance the streamed counter so it cannot be re-claimed.
+    `ASSERT STATE(${options.totalStreamedPort}) EQ prevClaimed ADD @AMOUNT`,
     `ASSERT SIGNEDBY(payer)`,
     `ASSERT VERIFYOUT(@INPUT payee @AMOUNT @TOKENID TRUE)`,
     `RETURN TRUE`,
