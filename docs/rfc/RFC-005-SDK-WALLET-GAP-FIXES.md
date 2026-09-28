@@ -1,6 +1,6 @@
 # RFC-005: SDK & Wallet Gap Fixes — Complex Contract / NFT-Minting Surface
 
-**Status:** Draft — partially superseded; re-triaged 2026-09-28 (see §1.1). Net: 3 of 11 gaps resolved, 1 partial (SDK layer only), 1 intentional, 6 open. Overlaps RFC-002/RFC-003 (Omnia, landed) and RFC-014 (wallet parity, landed).
+**Status:** Draft — partially superseded; re-triaged 2026-09-28 (see §1.1). Net: 4 of 11 gaps resolved, 1 partial (SDK layer only), 1 intentional, 5 open. Overlaps RFC-002/RFC-003 (Omnia, landed) and RFC-014 (wallet parity, landed).
 **Created:** 2026-09-10
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]
@@ -30,14 +30,14 @@ Re-checked against the repository at `@totemsdk/decision@0.2.0`. Evidence is a s
 | 3 | send wrapper drops `state`/`storestate` | **Resolved** | `sendTransaction` accepts `outputs[].state`/`storeState` + `transactionState`; extension `WOTS_SEND`/`TOTEM_SEND_TRANSACTION`/`buildTransaction` carry them to the output coin (commit `e2089a8`). Stateful multi-output rejects with `UNSUPPORTED_STATEFUL_SEND`. PWA send page not yet wired. |
 | 4 | `RPC_COMMAND` allowlist | **Intentional** | 6-command read-only set retained (`TOTEM_WALLET_SPEC.md`); a deliberate security boundary, not a defect |
 | 5 | `kissvmSimulate`/`kissvmValidate` unimplemented | **Partial** | Connect methods + `kissvm` sdk-client port exist (`packages/connect/src/wallet.ts:209,493`); but both wallets advertise `scripting: { kissvm: false }` and the PWA provider returns `null` |
-| 6 | `getCoins` limited | **Open** | `TOTEM_GET_COINS` returns only `{ coinId, address, amount, tokenId, created }` — no `state`/`storestate`/`mmrentry`/`spent`, no `sendable`/`relevant` filter (`background/index.ts:3750`) |
+| 6 | `getCoins` limited | **Resolved** | `TOTEM_GET_COINS` now returns `storeState`/`state`/`spent`/`mmrEntry` and accepts `sendable`/`relevant`/`spent` filters; `CoinSelectionService` surfaces the existing chain-provider `Coin` fields (`storestate`/`state`/`spent`/`mmrentry`) instead of dropping them (commit `d7b8709`). |
 | 7 | `WalletDiscovery` needs `window` | **Partial** | `WalletDiscovery` remains `window`-based (`packages/connect/src/index.ts:147`); a manual `setActiveProvider` exists for headless callers, but no automatic non-browser discovery |
 | 8 | Alpha templates | **Open** | `@totemsdk/recursive-mast` templates still carry `EXPERIMENTAL — NOT AUDITED` and there are no per-template stability markers |
 | 9 | tx-builder doesn't serialize | **Resolved** | `@totemsdk/tx-builder` now exports `serializeTransaction`/`deserializeTransaction` + `serializeTransactionHex`/`deserializeTransactionHex` (`src/serialize.ts`), backed by `@totemsdk/core`'s byte-exact `serializeTransactionObject`/`deserializeTransaction` (commit `6ce09d0`). Takes a `MinimaTransaction`, not raw `EnhancedBuildParams`. |
 | 10 | sendComplex intent auto-detection / multi-output approval | **Not re-verified** | Requires wallet-UI inspection (extension approval flow) |
 | 11 | No `tokencreate` wrapper | **Open** | No `createToken()` in `@totemsdk/connect` |
 
-**Verdict.** Gaps #1, #3 and #9 are closed; #5 is done at the SDK layer but not in either wallet; #4 is a deliberate boundary. The remaining critical-path items are #2/#11 (token creation) and #6 (UTXO inspection). This RFC should be re-scoped against RFC-014's landed wallet parity before further work.
+**Verdict.** Gaps #1, #3, #6 and #9 are closed; #5 is done at the SDK layer but not in either wallet; #4 is a deliberate boundary. The remaining critical-path item is #2/#11 (token creation). This RFC should be re-scoped against RFC-014's landed wallet parity before further work.
 
 ---
 
