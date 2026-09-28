@@ -35,8 +35,13 @@ export function createActionTransactionPlan(
   // RFC-016 hardening: the plan must bind the action (selector) and subject
   // identity, rather than silently omitting them.
   if (!config.action) throw new Error('createActionTransactionPlan: action is required');
-  if (config.actionSelectorPort === undefined) {
-    throw new Error('createActionTransactionPlan: actionSelectorPort is required to bind the action');
+  // RFC-018 RM-ACTION-001: port 0 is the reserved subject identity, so the
+  // selector must live on a positive port — otherwise the selector write below
+  // would clobber `stateChanges[0] = subjectId`.
+  if (config.actionSelectorPort === undefined || config.actionSelectorPort <= 0) {
+    throw new Error(
+      'createActionTransactionPlan: actionSelectorPort must be a positive port (> 0); port 0 is reserved for the subject identity',
+    );
   }
   const stateChanges: Record<number, string> = { ...(config.stateChanges ?? {}) };
   // State 0 is the reserved subject identity (policy-anchor).

@@ -143,4 +143,21 @@ describe('RFC-016 P3: recursive transaction plans', () => {
       }),
     ).toThrow(/actionSelectorPort/);
   });
+
+  it('action plan rejects port 0 so the selector cannot clobber the subject identity (RFC-018 RM-ACTION-001)', () => {
+    expect(() =>
+      createActionTransactionPlan({
+        anchorCoinId: '0xa',
+        anchorAddress: 'Mx',
+        anchorAmount: '1',
+        anchorScriptDescriptor: descriptor,
+        action: 'x',
+        subjectId: 'veh-1',
+        actionSelectorPort: 0,
+        disclosedScripts: [],
+        witnessPlan: { mastBranches: new Map(), signatures: new Map(), scriptProofs: [] },
+        outputs: [],
+      }),
+    ).toThrow(/positive port/);
+  });
 });
