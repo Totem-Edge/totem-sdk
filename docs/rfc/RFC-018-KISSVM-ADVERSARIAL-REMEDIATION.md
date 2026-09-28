@@ -72,7 +72,7 @@ The audit's three Criticals are confirmed on current `main`:
 | P1-2 | Signing session / `collectSigningResponses`: verify signatures; bind `requestId`; bind role→authorized key from the manifest; reject self-asserted roles | `recursive-mast/src/{signing-session,policy-signing}.ts` |
 | P1-3 | Stable templates: `authority` mandate commits expiry/epoch/scope (or `STATE EQ PREVSTATE`); `buildUsageTrackingScript` gains authorization + committed window; industrial-action notice committed; manifest expiry signed; agent-proposal authorized | `kissvm/src/templates/{authority,industrial-action,manifest,agent-policy}.ts` |
 | P1-4 | `tx-builder`: validate threshold (`1 ≤ t ≤ unique(keys)`), reject duplicates/unconfigured keys, stop trusting persisted `validated`, stop clobbering terminal statuses | `tx-builder/src/multisig-manager.ts` |
-| P1-5 | Implement `CONTAINS` in the evaluator **or** reject unknown builtins at build time | `kissvm/src/eval.ts` / parser |
+| P1-5 | `CONTAINS` is **rejected at parse time** (the parser refuses unknown functions). The C++ oracle confirms Minima has no `CONTAINS`, so implementing it would diverge from consensus; the 14 affected experimental templates stay fail-closed until rewritten with consensus constructs | `kissvm/src/parser.ts` | `parseScript('CONTAINS(...)')` throws `/Unknown function/`. |
 | P1-6 | Fix experimental economics: treasury counters/clamps, liquid-democracy delegate continuity, optional operator | `kissvm/src/templates/{treasury,voting,state-machine}.ts` |
 
 ### P2 — hardening / consistency
@@ -121,7 +121,9 @@ security parameters, and a CI-reproducible `dist`.
   Java `MULTISIG` (which may also count positions)? Verify against the Java/C++
   source before changing semantics — if Java counts positions too, the fix is in
   the *template* (`PREVSTATE` continuity) rather than the evaluator.
-- **Q2** Implement `CONTAINS` (broader surface) or reject at parse time (safer,
-  but breaks 14 templates until rewritten)?
+- **Q2** `CONTAINS` — **resolved: reject at parse time.** The C++ node has no
+  `CONTAINS`, so implementing it would diverge from consensus. The parser already
+  rejects unknown functions (locked by a regression test); the 14 affected
+  experimental templates must be rewritten with consensus constructs (P2).
 - **Q3** Legacy `mastBranches`: remove entirely, or keep behind an off-by-default
   dev flag?

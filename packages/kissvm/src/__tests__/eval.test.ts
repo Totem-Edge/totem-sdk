@@ -899,6 +899,10 @@ describe('parseScript', () => {
     expect(() => parseScript('RETURN MAYBE(1)')).toThrow();
   });
 
+  test('rejects CONTAINS — not a Minima consensus builtin (RFC-018 P1-5)', () => {
+    expect(() => parseScript('ASSERT CONTAINS([a b] STATE(0)) RETURN TRUE')).toThrow(/Unknown function/);
+  });
+
   test('accepts declared LET variables', () => {
     expect(() => parseScript('LET X = 5\nRETURN X EQ 5')).not.toThrow();
   });
