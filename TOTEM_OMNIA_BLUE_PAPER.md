@@ -1058,6 +1058,14 @@ ASSERT MULTISIG(N pk1 pk2 ... pkN)
 RETURN TRUE
 ```
 
+## Related Specifications
+
+- [Core Yellow Paper](TOTEM_CORE_YELLOW_PAPER.md) — WOTS+ parameters, TreeKey hierarchy and MMR proofs
+- [Edge Grey Paper](TOTEM_EDGE_GREY_PAPER.md) — port-injected edge runtime and the sensor-to-settlement bridge
+- [Governance Green Paper](TOTEM_GOVERNANCE_GREEN_PAPER.md) — authority mandates and recursive MAST policy
+- [Intelligence & Decision Purple Paper](TOTEM_INTELLIGENCE_DECISION_PURPLE_PAPER.md) — Decision-first bounded semantics and governed execution (AI proposes, Totem authorizes)
+- [Network Economics Gold Paper](TOTEM_NETWORK_ECONOMICS_GOLD_PAPER.md) — progressive decentralisation and settlement policy
+
 ---
 
 *The Omnia Payment Network Blue Paper. P2P payment channels that scale to billions of devices — the financial infrastructure for the machine economy.*

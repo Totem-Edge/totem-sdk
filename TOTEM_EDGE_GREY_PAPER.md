@@ -566,6 +566,14 @@ Guest presents statechain to lock. Lock verifies chain of custody off-chain. Loc
 | `createReceipt(execution)` | Create verifiable action receipt |
 | `createGovernanceBridge(config)` | Reserve/commit/abort for governance integration |
 
+## Related Specifications
+
+- [Intelligence & Decision Purple Paper](TOTEM_INTELLIGENCE_DECISION_PURPLE_PAPER.md) — Decision-first bounded semantics; governed execution and the evidence graph
+- [Governance Green Paper](TOTEM_GOVERNANCE_GREEN_PAPER.md) — authority mandates, policy and autonomy budgets
+- [Omnia Blue Paper](TOTEM_OMNIA_BLUE_PAPER.md) — channels, settlement and economic coordination
+- [Connect Red Paper](TOTEM_CONNECT_RED_PAPER.md) — dApp-wallet protocol
+- [Core Yellow Paper](TOTEM_CORE_YELLOW_PAPER.md) — WOTS+/TreeKey signing
+
 ---
 
 *The Totem Edge Runtime Grey Paper. Port-injected, transport-agnostic, offline-capable — the bridge between physical devices and cryptographic finance.*

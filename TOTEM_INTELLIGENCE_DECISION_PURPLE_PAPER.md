@@ -638,6 +638,16 @@ The central commitments are:
 
 ---
 
+## Related Specifications
+
+- [Core Yellow Paper](TOTEM_CORE_YELLOW_PAPER.md) — keys, signatures and the signing boundary
+- [Governance Green Paper](TOTEM_GOVERNANCE_GREEN_PAPER.md) — authority mandates and policy
+- [Edge Grey Paper](TOTEM_EDGE_GREY_PAPER.md) — edge runtime and industrial action
+- [Omnia Blue Paper](TOTEM_OMNIA_BLUE_PAPER.md) — channels, settlement and economic coordination
+- [Connect Red Paper](TOTEM_CONNECT_RED_PAPER.md) — wallet/dApp protocol and agent-facing interfaces
+- [Network Economics Gold Paper](TOTEM_NETWORK_ECONOMICS_GOLD_PAPER.md) — progressive decentralisation and settlement policy
+- [RFC-017: Decision Receipt Graph](docs/rfc/RFC-017-DECISION-RECEIPT-GRAPH.md) — linking semantic decision receipts into governed run evidence
+
 ## Source and Editorial Notes
 
 Version 0.2 replaced the original draft's mandatory Intelligence-before-Decision diagrams with optional interpretation and configured provider escalation. Version 0.3 broadens that treatment to advisory analysis, discovery, purchasing, payments, Omnia, identity and evidence review, location and network publication. It distinguishes existing action surfaces from suggested Decision compositions and adds the payment-binding and software-effect qualifications found during the expanded source review.

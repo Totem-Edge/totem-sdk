@@ -1005,6 +1005,13 @@ In multisig scenarios, the `MultisigManager` coordinates leases across multiple 
 
 ---
 
+## Related Specifications
+
+- [Intelligence & Decision Purple Paper](TOTEM_INTELLIGENCE_DECISION_PURPLE_PAPER.md) — how intelligence and bounded decisions stay outside the signing boundary
+- [Governance Green Paper](TOTEM_GOVERNANCE_GREEN_PAPER.md) — mandates, policy trees and authority
+- [Connect Red Paper](TOTEM_CONNECT_RED_PAPER.md) — wallet/dApp protocol
+- [Edge Grey Paper](TOTEM_EDGE_GREY_PAPER.md) — edge runtime and industrial action
+
 ## Version History
 
 | Version | Date | Changes |

@@ -1630,6 +1630,13 @@ and
 
 **network utility before token liquidity.**
 
+## Related Specifications
+
+- [Intelligence & Decision Purple Paper](TOTEM_INTELLIGENCE_DECISION_PURPLE_PAPER.md) — bounded autonomy and the AI-proposes/Totem-authorizes boundary for the machine economy
+- [Omnia Blue Paper](TOTEM_OMNIA_BLUE_PAPER.md) — payment channels and settlement
+- [Governance Green Paper](TOTEM_GOVERNANCE_GREEN_PAPER.md) — mandates, provider bonding and DAO stewardship
+- [Edge Grey Paper](TOTEM_EDGE_GREY_PAPER.md) — machine-side execution and the sensor-to-settlement bridge
+
 ---
 
 **Totem Network Economics — Gold Paper v2.0**

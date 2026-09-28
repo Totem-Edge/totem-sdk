@@ -601,6 +601,14 @@ The stack is a toolbox, not a framework. Pick the tools you need. Leave the rest
 | `AgentReceipt` | Cryptographically linkable audit record |
 | `PaymentIntent` | What the agent wants to pay and why |
 
+## Related Specifications
+
+- [Intelligence & Decision Purple Paper](TOTEM_INTELLIGENCE_DECISION_PURPLE_PAPER.md) — Decision proposes within explicit bounds; authority authorizes the derived effects of prepared operations
+- [Core Yellow Paper](TOTEM_CORE_YELLOW_PAPER.md) — keys, signatures and the signing boundary
+- [Connect Red Paper](TOTEM_CONNECT_RED_PAPER.md) — wallet protocol and agent-facing interfaces
+- [Edge Grey Paper](TOTEM_EDGE_GREY_PAPER.md) — governed execution and industrial action
+- [Omnia Blue Paper](TOTEM_OMNIA_BLUE_PAPER.md) — channels, settlement and economic coordination
+
 ---
 
 *The Totem Governance & Authority Green Paper. Modular, composable, cryptographically provable — the control plane for the machine economy.*
