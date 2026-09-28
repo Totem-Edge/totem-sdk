@@ -13,7 +13,7 @@
  * recursive MAST: each stage proves the next stage's script is authorized.
  */
 
-import { sha3_256, bytesToHex } from '@totemsdk/core';
+import { computeCanonicalScriptHash } from '../mast-compiler.js';
 import type { PolicyTree } from '../types.js';
 import { buildPolicyTree, type PolicyNodeInput } from '../policy-tree.js';
 import { buildProofChain, type ProofLink } from '../proof-chain.js';
@@ -46,7 +46,7 @@ export interface CompliancePipelineConfig {
  */
 export function buildCompliancePipeline(config: CompliancePipelineConfig): ReturnType<typeof buildProofChain> {
   const links: ProofLink[] = config.stages.map((stage, i) => ({
-    scriptHash: bytesToHex(sha3_256(new TextEncoder().encode(stage.script))),
+    scriptHash: computeCanonicalScriptHash(stage.script),
     policyRoot: stage.policyRoot,
     proof: stage.proof,
     script: stage.script,

@@ -13,6 +13,7 @@
  */
 
 import { sha3_256, bytesToHex } from '@totemsdk/core';
+import { computeCanonicalScriptHash } from './mast-compiler.js';
 
 export const KEY_PREFIX = {
   POLICY_MANIFEST: 'policy',
@@ -81,5 +82,6 @@ export function computeBundleHash(manifest: Uint8Array, branches: Uint8Array[]):
 }
 
 export function computeScriptHash(script: string): string {
-  return bytesToHex(sha3_256(new TextEncoder().encode(script)));
+  // RFC-018 P2-1: canonical MMR leaf hash so content keys match the MAST compiler.
+  return computeCanonicalScriptHash(script);
 }
