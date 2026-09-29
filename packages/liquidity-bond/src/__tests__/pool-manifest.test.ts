@@ -37,7 +37,7 @@ const OPERATOR_SEED = new Uint8Array(32).fill(11);
 async function poolWithBond(index = 0): Promise<LiquidityPoolManifest> {
   const signer = makeOperatorSigner(OPERATOR_SEED, index);
   const pool = makePool({ operatorAddress: signer.address });
-  const bond = await buildOperatorAutobond(pool, signer, 1500);
+  const bond = await buildOperatorAutobond(pool, signer, { addressIndex: index, l1: 0, l2: 0 }, 1500);
   return { ...pool, operatorBond: bond };
 }
 
@@ -110,7 +110,7 @@ describe('pool-manifest', () => {
     it('rejects a bond forged by a different key', async () => {
       const attackerSigner = makeOperatorSigner(new Uint8Array(32).fill(99));
       const pool = makePool({ operatorAddress: attackerSigner.address });
-      const forged = await buildOperatorAutobond(pool, attackerSigner, 1500);
+      const forged = await buildOperatorAutobond(pool, attackerSigner, { addressIndex: 0, l1: 0, l2: 0 }, 1500);
       // claim the operator IS the victim pool operator, but bind with attacker key
       const claimant = { ...pool, operatorAddress: attackerSigner.address };
       expect(verifyOperatorAutobond(forged, claimant)).toBe(true);
@@ -126,6 +126,20 @@ describe('pool-manifest', () => {
       expect(verifyLiquidityPoolManifest({ manifest: makePool(), requireOperatorBond: true }).ok).toBe(false);
       const bonded = await poolWithBond();
       expect(verifyLiquidityPoolManifest({ manifest: bonded, requireOperatorBond: true }).ok).toBe(true);
+    });
+
+    it('passes the caller-supplied indices to the signer (RFC-020 C1)', async () => {
+      let seen: unknown;
+      const signer: OperatorAutobondSigner = {
+        publicKeyDigest: '0x' + 'aa'.repeat(32),
+        address: 'MxOP',
+        sign: (_payload, indices) => {
+          seen = indices;
+          return new Uint8Array(1088);
+        },
+      };
+      await buildOperatorAutobond(makePool(), signer, { addressIndex: 2, l1: 3, l2: 4 }, 1000);
+      expect(seen).toEqual({ addressIndex: 2, l1: 3, l2: 4 });
     });
   });
 });

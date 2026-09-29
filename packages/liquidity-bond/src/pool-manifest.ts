@@ -46,11 +46,14 @@ export interface OperatorAutobondSigner {
 export async function buildOperatorAutobond(
   manifest: LiquidityPoolManifest,
   signer: OperatorAutobondSigner,
+  indices: import('@totemsdk/wots-lease').SigningIndices,
   now?: number,
 ): Promise<OperatorAutobond> {
   const ts = now ?? Date.now();
   const payloadHash = computeOperatorAutobondPayloadHash(manifest);
-  const signature = await signer.sign(hexToBytes(payloadHash), { addressIndex: 0, l1: 0, l2: 0 });
+  // RFC-020 C1: indices are caller-supplied (a lease reservation), never a
+  // hardcoded (0,0,0) that would reuse the same WOTS leaf for every autobond.
+  const signature = await signer.sign(hexToBytes(payloadHash), indices);
   return {
     autobondId: `autobond-${manifest.poolId}-${ts}`,
     address: signer.address,

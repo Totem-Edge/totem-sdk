@@ -7979,7 +7979,7 @@
         },
         "buildOperatorAutobond": {
           "kind": "function",
-          "signature": "buildOperatorAutobond(manifest: LiquidityPoolManifest, signer: OperatorAutobondSigner, now?: number): Promise<OperatorAutobond>"
+          "signature": "buildOperatorAutobond(manifest: LiquidityPoolManifest, signer: OperatorAutobondSigner, indices: import(\"@totemsdk/wots-lease\").SigningIndices, now?: number): Promise<OperatorAutobond>"
         },
         "verifyOperatorAutobond": {
           "kind": "function",

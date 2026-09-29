@@ -30,8 +30,24 @@ describe('createHostSigning', () => {
     expect(wotsVerifyDigest(sig, payload, hexToBytes(signing.publicKeyDigest))).toBe(true);
   });
 
-  it('accepts both mnemonic and hex seed forms', () => {
-    const mnemonic = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
+  it('honors the reserved leaf and rejects a foreign address (RFC-020 C1)', async () => {
+    const dbPath = tmpDbPath();
+    const signing = createHostSigning(loadConfigFromEnv({
+      OMNIA_HOST_SEED: HEX_SEED,
+      OMNIA_HOST_DB: dbPath,
+      OMNIA_LOCAL_ADDRESS_INDEX: '0',
+    }));
+    const payload = new Uint8Array(32).fill(3);
+    const leaf0 = await signing.signer.sign(payload, { addressIndex: 0, l1: 0, l2: 0 });
+    const leaf1 = await signing.signer.sign(payload, { addressIndex: 0, l1: 0, l2: 1 });
+    // A different reserved leaf produces a different signature (index no longer hardcoded).
+    expect(Buffer.from(leaf0).toString('hex')).not.toBe(Buffer.from(leaf1).toString('hex'));
+    await expect(
+      signing.signer.sign(payload, { addressIndex: 1, l1: 0, l2: 0 }),
+    ).rejects.toThrow(/cannot sign reserved address/);
+  });
+
+  it('accepts both mnemonic and hex seed forms', () => {    const mnemonic = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
     const fromMnemonic = createHostSigning(loadConfigFromEnv({
       OMNIA_HOST_SEED: mnemonic,
       OMNIA_HOST_DB: tmpDbPath(),

@@ -345,7 +345,12 @@ export class UnifiedIdentityWallet {
 
   /** Restore root watermark from a previously persisted value. */
   setRootUses(uses: number): void {
-    if (uses < 0) throw new Error('uses must be non-negative');
+    if (!Number.isSafeInteger(uses) || uses < 0) throw new Error('uses must be a non-negative safe integer');
+    // RFC-020 C1: the cursor may only advance — lowering it would re-expose
+    // already-spent WOTS leaves.
+    if (uses < this.rootUses) {
+      throw new Error(`Refusing to lower root uses from ${this.rootUses} to ${uses} (would reuse a WOTS leaf)`);
+    }
     this.rootUses = uses;
   }
 
@@ -358,7 +363,11 @@ export class UnifiedIdentityWallet {
   /** Restore child watermark from a previously persisted value. */
   setChildUses(index: number, uses: number): void {
     this.assertChildIndex(index);
-    if (uses < 0) throw new Error('uses must be non-negative');
+    if (!Number.isSafeInteger(uses) || uses < 0) throw new Error('uses must be a non-negative safe integer');
+    const current = this.childUsesMap.get(index) ?? 0;
+    if (uses < current) {
+      throw new Error(`Refusing to lower child ${index} uses from ${current} to ${uses} (would reuse a WOTS leaf)`);
+    }
     this.childUsesMap.set(index, uses);
   }
 
@@ -390,17 +399,40 @@ export class UnifiedIdentityWallet {
    * across sessions. Out-of-range or invalid entries are silently skipped.
    */
   restoreWatermarkState(state: { rootUses?: number; childUses?: Record<number, number> }): void {
-    if (typeof state?.rootUses === 'number' && state.rootUses >= 0) {
-      this.rootUses = Math.floor(state.rootUses);
+    // RFC-020 C1: restore is forward-only. A stale or tampered snapshot that
+    // moves a cursor backwards would re-expose spent leaves, so it throws.
+    const nextRoot = typeof state?.rootUses === 'number'
+      && Number.isSafeInteger(state.rootUses)
+      && state.rootUses >= 0
+      ? state.rootUses
+      : undefined;
+    if (nextRoot !== undefined && nextRoot < this.rootUses) {
+      throw new Error(
+        `Refusing to restore root uses below the current cursor (${nextRoot} < ${this.rootUses})`,
+      );
     }
+
+    const childNext: Array<[number, number]> = [];
     if (state?.childUses && typeof state.childUses === 'object') {
       for (const [key, uses] of Object.entries(state.childUses)) {
         const index = Number(key);
-        if (Number.isInteger(index) && index >= 0 && index < this.childCount && typeof uses === 'number' && uses >= 0) {
-          this.childUsesMap.set(index, Math.floor(uses));
+        if (
+          Number.isInteger(index) && index >= 0 && index < this.childCount
+          && typeof uses === 'number' && Number.isSafeInteger(uses) && uses >= 0
+        ) {
+          const current = this.childUsesMap.get(index) ?? 0;
+          if (uses < current) {
+            throw new Error(
+              `Refusing to restore child ${index} uses below the current cursor (${uses} < ${current})`,
+            );
+          }
+          childNext.push([index, uses]);
         }
       }
     }
+
+    if (nextRoot !== undefined) this.rootUses = nextRoot;
+    for (const [index, uses] of childNext) this.childUsesMap.set(index, uses);
   }
 
   // ── Private helpers ──────────────────────────────────────────────────────────

@@ -220,15 +220,25 @@ export function createHostSigning(config: OmniaHostConfig): HostSigning {
   const publicKeyDigest = `0x${bytesToHex(kp.pk)}`;
   const address = wotsAddressFromKeypair(kp);
 
-  const signer: ChannelSigner = {
-    publicKeyDigest,
-    async sign(payload: Uint8Array, _indices: SigningIndices): Promise<Uint8Array> {
-      return wotsSign(perAddressSeed, 0, payload);
-    },
-  };
-
   const storage = new JsonFileStorageAdapter(leaseStorageDir(config.dbPath));
   const leaseProvider = new LocalLeaseProvider(storage, undefined, deviceId);
+
+  const signer: ChannelSigner = {
+    publicKeyDigest,
+    async sign(payload: Uint8Array, indices: SigningIndices): Promise<Uint8Array> {
+      // RFC-020 C1: honor the reserved leaf instead of hardcoding index 0. The
+      // reservation must belong to this signer's address; the leaf within the
+      // per-address seed is (l1*64 + l2). Callers must supply the pk digest for
+      // the leaf they reserved (the default reservation is leaf (0,0)).
+      if (indices.addressIndex !== addressIndex) {
+        throw new Error(
+          `omnia-host signer address ${addressIndex} cannot sign reserved address ${indices.addressIndex}`,
+        );
+      }
+      const leafIndex = indices.l1 * 64 + indices.l2;
+      return wotsSign(perAddressSeed, leafIndex, payload);
+    },
+  };
 
   return {
     signer,

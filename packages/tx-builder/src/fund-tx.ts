@@ -43,7 +43,12 @@ export interface BuildPoolFundTxParams {
   lpAddress: string;
   recipientAddress: string;
   lpSeed: Uint8Array;
-  lpKeyIndex?: number;
+  /**
+   * RFC-020 C1: the WOTS leaf index to sign with. Required — never defaulted —
+   * so a caller must obtain it from a lease/watermark reservation and cannot
+   * silently reuse leaf 0.
+   */
+  lpKeyIndex: number;
   nonce?: string;
 }
 
@@ -100,7 +105,10 @@ export function hashPoolFundTx(tx: PoolFundTx): Uint8Array {
  * left to the caller (which then proves the coin spent into the pool script).
  */
 export function buildPoolFundTx(params: BuildPoolFundTxParams): PoolFundBuildResult {
-  const lpKeyIndex = params.lpKeyIndex ?? 0;
+  const lpKeyIndex = params.lpKeyIndex;
+  if (!Number.isSafeInteger(lpKeyIndex) || lpKeyIndex < 0) {
+    throw new Error('buildPoolFundTx: lpKeyIndex must be a non-negative safe integer from a lease reservation');
+  }
   const tx: PoolFundTx = {
     version: 1,
     domain: POOL_FUND_DOMAIN,

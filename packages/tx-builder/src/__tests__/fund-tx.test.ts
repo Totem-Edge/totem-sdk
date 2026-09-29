@@ -48,6 +48,7 @@ describe('buildPoolFundTx', () => {
         lpAddress: attacker,
         recipientAddress: attacker,
         lpSeed: SEED,
+        lpKeyIndex: 0,
       }),
     ).toThrow(/do not own lpAddress/);
   });
@@ -147,5 +148,20 @@ describe('deep proof determinism', () => {
     });
     expect(hashPoolFundTx(b.tx)).toEqual(hashPoolFundTx(a.tx));
     expect(toProofHex(b.proof)).toBe(toProofHex(a.proof));
+  });
+});
+describe('RFC-020 C1: fund-tx requires an explicit WOTS index', () => {
+  it('refuses to build without an lpKeyIndex (no leaf-0 default)', () => {
+    const { lpAddress } = lpFixture(0);
+    expect(() =>
+      buildPoolFundTx({
+        poolId: 'pool-1',
+        fundingCoinId: '0xFUND',
+        amount: '1',
+        lpAddress,
+        recipientAddress: lpAddress,
+        lpSeed: SEED,
+      } as never),
+    ).toThrow(/lpKeyIndex/);
   });
 });

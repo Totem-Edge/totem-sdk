@@ -73,6 +73,21 @@ describe('UnifiedIdentityWallet — getWatermarkState / restoreWatermarkState', 
     expect(wallet.getChildUses(0)).toBe(0);
   });
 
+  it('refuses a backward cursor restore or set (RFC-020 C1)', () => {
+    const wallet = new UnifiedIdentityWallet(SEED_32, 2);
+    wallet.signFromRoot('a');
+    wallet.signFromRoot('b');
+    wallet.signFromChild(0, 'x');
+    expect(() => wallet.setRootUses(1)).toThrow(/lower root uses/);
+    expect(() => wallet.setChildUses(0, 0)).toThrow(/lower child/);
+    expect(() => wallet.restoreWatermarkState({ rootUses: 1 })).toThrow(/below the current cursor/);
+    expect(() => wallet.restoreWatermarkState({ childUses: { 0: 0 } })).toThrow(/below the current cursor/);
+    // Forward restores are still allowed.
+    wallet.restoreWatermarkState({ rootUses: 5, childUses: { 0: 3 } });
+    expect(wallet.getRootUses()).toBe(5);
+    expect(wallet.getChildUses(0)).toBe(3);
+  });
+
   it('round-trips through JSON serialization', () => {
     const wallet1 = new UnifiedIdentityWallet(SEED_32, 4);
     wallet1.signFromRoot('x');
