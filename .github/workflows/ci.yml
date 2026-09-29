@@ -42,6 +42,12 @@ jobs:
       - name: Build core-wasm (prerequisite)
         working-directory: packages/core-wasm
         run: npm run build
+      - name: WASM provenance — committed pkg/pkg-node must match source (RFC-018 P2-5)
+        run: |
+          if ! git diff --exit-code -- packages/core-wasm/pkg packages/core-wasm/pkg-node; then
+            echo "::error::committed core-wasm artifacts are stale; run 'npm run build' in packages/core-wasm and commit the result"
+            exit 1
+          fi
       - name: Typecheck + build (workspace)
         run: node scripts/verify-workspace.mjs --typecheck
       - name: QVAC API drift audit (against real @qvac/sdk)
