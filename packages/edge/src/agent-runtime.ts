@@ -94,8 +94,12 @@ export function createAgentEdgeRuntime(options: AgentEdgeRuntimeOptions): AgentE
     const effects = def.deriveEffects(prepared);
 
     // 5. Authorize + reserve atomically (mandate usage + run budgets + nonce).
-    const stepId = `${action}:${now()}`;
-    const nonce = `${runId}:${stepId}:${now()}`;
+    // RFC-019 P1-3: a caller-supplied idempotency key yields a stable step id +
+    // nonce, so a retry maps to the same logical operation and is rejected as a
+    // duplicate rather than reserving/paying twice.
+    const idempotencyKey = input.idempotencyKey;
+    const stepId = idempotencyKey ? `${action}:${idempotencyKey}` : `${action}:${now()}`;
+    const nonce = idempotencyKey ? `${runId}:${action}:${idempotencyKey}` : `${runId}:${stepId}:${now()}`;
     const canonical: CanonicalAgentAction = {
       action,
       principal,
@@ -121,11 +125,16 @@ export function createAgentEdgeRuntime(options: AgentEdgeRuntimeOptions): AgentE
     });
 
     if (authorization.outcome !== 'approved') {
+      const idempotentReplay = /nonce .*already used/i.test(authorization.reason ?? '');
       return {
         ok: false,
         action,
         error: authorization.reason,
-        errorCode: authorization.outcome === 'requires_human' ? 'REQUIRES_HUMAN' : 'POLICY_REJECTED',
+        errorCode: idempotentReplay
+          ? 'IDEMPOTENT_REPLAY'
+          : authorization.outcome === 'requires_human'
+            ? 'REQUIRES_HUMAN'
+            : 'POLICY_REJECTED',
         policyResult: {
           allowed: false,
           reason: authorization.reason,

@@ -300,3 +300,29 @@ describe('RFC-019 P1-2: binding negotiation is signed only after authorization',
     expect(finalizeNegotiation).not.toHaveBeenCalled();
   });
 });
+
+describe('RFC-019 P1-3: idempotent retries', () => {
+  it('rejects a retry with the same idempotency key instead of double-reserving', async () => {
+    const policy = await makePolicy('500');
+    const { buyer, executePrepared } = makeStubBuyer(agreementAt('100'));
+    const runtime = makeRuntime(policy, buyer);
+
+    const first = await runtime.executeAction({
+      action: 'purchase:buy',
+      subject: 'SELLER_ADDR',
+      payload: { intent },
+      idempotencyKey: 'retry-1',
+    });
+    expect(first.ok).toBe(true);
+
+    const second = await runtime.executeAction({
+      action: 'purchase:buy',
+      subject: 'SELLER_ADDR',
+      payload: { intent },
+      idempotencyKey: 'retry-1',
+    });
+    expect(second.ok).toBe(false);
+    expect(second.errorCode).toBe('IDEMPOTENT_REPLAY');
+    expect(executePrepared).toHaveBeenCalledTimes(1);
+  });
+});

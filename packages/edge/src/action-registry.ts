@@ -50,6 +50,12 @@ export interface EdgeActionInput {
    * (RFC-010 §6.8 temporal deadline). Evaluated against the adapter's clock.
    */
   deadlineAt?: number;
+  /**
+   * RFC-019 P1-3: a stable idempotency key. Retries that reuse it map to the
+   * same step id + nonce, so the governed runtime cannot double-reserve or
+   * double-pay the same logical operation (the duplicate nonce is rejected).
+   */
+  idempotencyKey?: string;
 }
 
 export interface EdgeActionDefinition {
