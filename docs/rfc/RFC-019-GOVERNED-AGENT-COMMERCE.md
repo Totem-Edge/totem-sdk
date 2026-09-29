@@ -1,6 +1,6 @@
 # RFC-019: Governed Agent Commerce — close the `createEdge()` privilege-escalation path
 
-**Status:** Draft — remediation contract (P0 landed)
+**Status:** Draft — remediation contract (P0 + P1 landed; P1-3 idempotency open)
 **Created:** 2026-09-28
 **Authors:** Totem SDK Contributors
 **Depends on:** RFC-004 (Edge SDK v1), RFC-010 (Industrial Action RC), RFC-007 (storage/durability)
@@ -248,6 +248,23 @@ Document the final flow and why capability checks are not authorization.
   path; wire `recover`/`reconcile` into `recoverPurchases()`.
 - Govern consequential negotiation (binding acceptance).
 - Enforce idempotency across retries/recovery with stable ids.
+
+#### P1 landed — implementation notes
+
+- **Reservation lifecycle (P1-1):** the governed runtime now aborts on a port
+  `ok:false`, classifies thrown failures via `EdgeActionDefinition.classifyFailure`
+  (default `'definitely-not-executed'`), and **holds** ambiguous post-dispatch
+  failures (`EXECUTION_UNCERTAIN`) instead of releasing them. `purchase:buy`
+  classifies pre-payment errors as definite and post-dispatch (payment/resource)
+  errors as held. Recovery/reconciliation remains host-side via
+  `GrantBoundAutonomyPolicy.recoverReservations` / `reconcileReservation`.
+- **Binding negotiation (P1-2):** `EdgeBuyer.previewNegotiation()` runs a
+  negotiation to the decision point without signing an acceptance (fails closed
+  on the transport path); the governed `purchase:negotiate` action previews in
+  `prepare`, authorizes the previewed terms, and signs the acceptance only in
+  `execute` via `finalizeNegotiation()`. A binding obligation can no longer be
+  created before `authorizeAndReserve`.
+- **Residual (P1-3):** cross-retry idempotency with stable ids remains open.
 
 ### P2 — hardening
 - Repository-wide bypass sweep + examples/docs.
