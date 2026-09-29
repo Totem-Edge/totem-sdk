@@ -234,13 +234,18 @@ fn write_mini_number_from_str(s: &str) -> Result<Vec<u8>, String> {
 }
 
 /// Write an MMREntryNumber from a decimal string.
+///
+/// Java `MMREntryNumber.writeDataStream()` writes the *scale* as a MiniNumber
+/// followed by the unscaled value as MiniData. The scale MiniNumber must encode
+/// the scale (normally 0), not the unscaled value.
 fn write_mmr_entry_from_str(s: &str) -> Result<Vec<u8>, String> {
     let (unscaled, scale) = parse_decimal(s)?;
     let mut buf = Vec::new();
-    // Scale as MiniNumber
+    // Scale as MiniNumber(scale, 0): MiniByte scale-of-scale (0), MiniByte length
+    // (1), then the scale value.
+    buf.push(0);
+    buf.push(1);
     buf.push(scale);
-    buf.push(unscaled.len() as u8);
-    buf.extend_from_slice(&unscaled);
     // Unscaled value as MiniData
     buf.extend_from_slice(&write_mini_data(&unscaled));
     Ok(buf)

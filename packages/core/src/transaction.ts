@@ -231,11 +231,11 @@ function serializeStateVariable(sv: StateVariable): Uint8Array {
     case 'string':
       typeByte = new Uint8Array([STATETYPE_STRING]);
       if (typeof sv.value === 'string') {
-        let bracketedValue = sv.value;
-        if (!sv.value.startsWith('[') || !sv.value.endsWith(']')) {
-          bracketedValue = `[${sv.value}]`;
-        }
-        const utf8Bytes = new TextEncoder().encode(bracketedValue);
+        // Minima stores a string state variable as MiniString: MiniData of the
+        // raw UTF-8 bytes. The `[ … ]` form is KISSVM literal syntax, NOT part
+        // of the stored value (the C++ StateVariable::writeDataStream writes
+        // mData directly; the deserializer likewise strips no brackets).
+        const utf8Bytes = new TextEncoder().encode(sv.value);
         dataBytes = writeMiniData(utf8Bytes);
       } else {
         throw new Error(`Invalid string StateVariable value: ${sv.value}`);
