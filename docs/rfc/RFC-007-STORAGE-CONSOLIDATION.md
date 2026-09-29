@@ -65,6 +65,8 @@ Gates 1 (reservation survival), 2 (accounting mechanism), 3 (core consumer confo
 
 **Verdict.** RFC-007 is substantially landed through Phase 3. Remaining work: Phase 3a content-access enforcement is opt-in; Phase 4 carries the `se-server` volatile-default red risk and mock-only relational conformance; Phase 5 is outstanding; Phase 6 is deferred. The §6 acceptance gates have not been re-run for every surface.
 
+**Amendment A (proposed, 2026-09-28).** A focused amendment — *Edge persistence injection point & evidence-byte ownership* — is tracked in `docs/rfc/RFC-007-AMENDMENT-A-EDGE-PERSISTENCE.md`. It (a) adds two optional `EdgeRuntimePorts` slots (`storage` + `artifacts`) with a neutral `assertPersistence()` no-silent-downgrade gate, (b) makes adapter `failurePolicy` observable so strict consumers can reject lenient adapters before `corrupt` is collapsed into `not-found`, and (c) makes original-byte ownership **mandatory and verified** — captured originals route into the `ArtifactStore`-backed evidence layer and the claim → `contentHash` → `ArtifactRef` binding is enforced, with ProofGraph as the reference consumer, the proof primitives remaining storage-free, and chunked-artifact retention named as a follow-on RFC/phase. Its phases are labelled A0–A3 to avoid colliding with this RFC's Landed Phases 0–3.
+
 ---
 
 ## 2. Motivation
@@ -575,3 +577,4 @@ snapshots, proof/raster/spatial primitives, and Hyperbee replication policy.
   - Test suites: `packages/edge-adapters/src/__tests__/commerce-store.conformance.test.ts`, `packages/agent-policy/src/__tests__/sqlite-run-state-store.test.ts`
   - Intelligence/QVAC surfaces: `packages/intelligence/src/{types,index,port}.ts` (unsigned v1 receipts, `usage`/`receipt` on results), `packages/qvac/src/api-snapshot.ts` (RAG + models operation catalog), `packages/qvac/src/vendor/qvac-sdk.d.ts` (provider-owned RAG/workspace/model surface), `scripts/verify-qvac-api-drift.mjs`
   - Prior art: RFC-006 (intelligence domains/capabilities), `docs/rfc/RFC-006-SDK-INTELLIGENCE-QVAC-INTEGRATION.md`
+  - Amendment: `docs/rfc/RFC-007-AMENDMENT-A-EDGE-PERSISTENCE.md` (Edge persistence injection point & evidence-byte ownership)
