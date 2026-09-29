@@ -371,6 +371,41 @@ function createAgentEdgeRuntime(opts: {
 }): AgentEdgeRuntime;
 ```
 
+### `createGovernedPurchaseActions(config)`
+
+Governed commerce action definitions (`purchase:buy`, `purchase:negotiate`) for the
+action registry. Register them alongside the built-ins and the agent reaches
+commerce **only** through `executeAction`:
+
+```typescript
+import { createGovernedPurchaseActions } from '@totemsdk/edge';
+
+for (const reg of createGovernedPurchaseActions({ buyer, strategy })) {
+  registry.register(reg.def, reg.action);
+}
+// agent → runtime.executeAction({ action: 'purchase:buy', payload: { intent }, idempotencyKey })
+```
+
+The action derives canonical effects from the **prepared agreement** (not agent
+claims), authorizes them via `GrantBoundAutonomyPolicy.authorizeAndReserve`, then
+executes exactly that agreement. A binding negotiation acceptance is signed only
+after authorization (`previewNegotiation` → `finalizeNegotiation`). Reusing an
+`idempotencyKey` on a retry is rejected (`IDEMPOTENT_REPLAY`) rather than
+reserving/paying twice.
+
+### Trusted-host commerce vs governed agent commerce
+
+> `createEdge()` is a **trusted-host** commerce primitive. Autonomous agents
+> receive only the governed agent/commerce facade. Possession of
+> `EdgeCommerceRuntime`, `EdgeBuyer`, a raw payment port, or a signer is
+> privileged host authority.
+
+Capability checks are **support checks, not authorization**. A capability grants
+the *ability* to invoke an action; the `GrantBoundAutonomyPolicy` decides whether
+it is *allowed*. Never hand `createEdge()`, its `.buyer`, `.buy()`, `.negotiate()`,
+`runtime.ports.payment`, or a raw signer to an agent, LLM tool collection, MCP
+tool, or plugin surface — route commerce through `createAgentEdgeRuntime`.
+
 ### `deriveEffectsFromBuiltTx` / `deriveSpendsFromBuiltTx`
 
 Derive canonical security facts from a real built transaction. Change outputs (back to the wallet's own addresses) and channel-internal outputs (back to the channel script) are excluded from spends.

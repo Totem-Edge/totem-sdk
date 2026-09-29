@@ -1,6 +1,6 @@
 # RFC-019: Governed Agent Commerce — close the `createEdge()` privilege-escalation path
 
-**Status:** Draft — remediation contract (P0 + P1 landed; P1-3 idempotency open)
+**Status:** Draft — remediation contract (P0 + P1 landed; P2 open)
 **Created:** 2026-09-28
 **Authors:** Totem SDK Contributors
 **Depends on:** RFC-004 (Edge SDK v1), RFC-010 (Industrial Action RC), RFC-007 (storage/durability)
@@ -264,7 +264,11 @@ Document the final flow and why capability checks are not authorization.
   `prepare`, authorizes the previewed terms, and signs the acceptance only in
   `execute` via `finalizeNegotiation()`. A binding obligation can no longer be
   created before `authorizeAndReserve`.
-- **Residual (P1-3):** cross-retry idempotency with stable ids remains open.
+- **Idempotency (P1-3):** `EdgeActionInput.idempotencyKey` yields a stable
+  `stepId` + `nonce`, so a retry maps to the same logical operation; the duplicate
+  nonce is rejected as `IDEMPOTENT_REPLAY` rather than reserving/paying twice.
+  The buyer's durable payment idempotency keys (`purchaseId`/`agreementId`) remain
+  the second layer against double-pay.
 
 ### P2 — hardening
 - Repository-wide bypass sweep + examples/docs.

@@ -115,6 +115,13 @@ runtime.assertCapability('payment:send');  // throws EdgeCapabilityError if miss
 await runtime.ports.payment.pay({ recipient, amount });
 ```
 
+> **Trusted-host only.** `runtime.ports.*` (payment, signer, authority, commerce)
+> is privileged host authority. Do **not** hand it — or `createEdge()`, `EdgeBuyer`,
+> `.buy()`, `.negotiate()` — to an autonomous agent, LLM tool collection, MCP tool,
+> or plugin surface. Agents receive only `createAgentEdgeRuntime().executeAction`,
+> and commerce reaches them only through governed `purchase:*` actions
+> (RFC-019). Capability checks are support checks, not authorization.
+
 ### 3.3 Port Interfaces
 
 The runtime accepts up to 10 port interfaces. You inject only what you need:
