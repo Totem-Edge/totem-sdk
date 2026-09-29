@@ -1,3 +1,6 @@
+import { resolveIdentityGraph } from '@totemsdk/identity';
+import type { IdentityGraph } from '@totemsdk/identity';
+import { verifyManifest } from '@totemsdk/manifest';
 import type {
   ProviderBondManifest,
   ProviderBondVerifyResult,
@@ -7,30 +10,44 @@ import type {
   AssertProviderControlsAddressParams,
 } from './types.js';
 
-function isIdentityGraph(value: unknown): value is {
-  document: { rootAddress: string; controllerAddress: string };
-  claims: Array<{
-    claim: { type: string; issuer: string; subject: string; object: string };
-    proof: { address: string };
-  }>;
-} {
-  if (!value || typeof value !== 'object') return false;
-  const g = value as Record<string, unknown>;
-  return typeof g.document === 'object' && g.document !== null && Array.isArray(g.claims);
+interface AuthorisedIdentity {
+  rootAddress: string;
+  controllerAddress: string;
+  /** root/controller + delegates with manifest:sign or * scope. */
+  authorised: string[];
+  /** root/controller + any signature-verified delegate. */
+  controlled: string[];
 }
 
-function getAuthorisedAddresses(identityGraph: unknown): string[] {
-  if (!isIdentityGraph(identityGraph)) return [];
-  const addresses = new Set<string>();
-  const doc = identityGraph.document;
-  if (doc.rootAddress) addresses.add(doc.rootAddress);
-  if (doc.controllerAddress) addresses.add(doc.controllerAddress);
-  for (const c of identityGraph.claims) {
-    if (c.claim.type === 'delegates_to' && c.proof?.address) {
-      addresses.add(c.proof.address);
-    }
+type ResolveResult = { ok: true; identity: AuthorisedIdentity } | { ok: false; reason: string };
+
+/**
+ * RFC-020 C4: never trust an attacker-supplied identity graph. Claims are
+ * signature-verified through `@totemsdk/identity`'s resolver, and a non-active
+ * identity (revoked/rotated) is rejected.
+ */
+function resolveAuthorised(identityGraph: unknown): ResolveResult {
+  if (!identityGraph || typeof identityGraph !== 'object') {
+    return { ok: false, reason: 'Invalid identity graph' };
   }
-  return Array.from(addresses);
+  try {
+    const { resolved } = resolveIdentityGraph(identityGraph as IdentityGraph);
+    if (!resolved) return { ok: false, reason: 'Identity graph could not be resolved' };
+    if (resolved.status !== 'active') {
+      return { ok: false, reason: `Identity is ${resolved.status}` };
+    }
+    return {
+      ok: true,
+      identity: {
+        rootAddress: resolved.rootAddress,
+        controllerAddress: resolved.controllerAddress,
+        authorised: [resolved.rootAddress, resolved.controllerAddress, ...resolved.authorizedAddresses],
+        controlled: [resolved.rootAddress, resolved.controllerAddress, ...resolved.controlledAddresses],
+      },
+    };
+  } catch (err) {
+    return { ok: false, reason: `Identity graph failed to resolve: ${(err as Error).message}` };
+  }
 }
 
 export function bindProviderManifestToIdentity(params: BindProviderManifestToIdentityParams): unknown {
@@ -44,17 +61,24 @@ export function bindProviderManifestToIdentity(params: BindProviderManifestToIde
 export function verifyProviderManifestIdentity(params: VerifyProviderManifestIdentityParams): ProviderBondVerifyResult {
   const { manifest, identityGraph } = params;
 
-  if (!isIdentityGraph(identityGraph)) {
-    return { ok: false, reason: 'Invalid identity graph', code: 'IDENTITY_NOT_AUTHORISED' };
+  const auth = resolveAuthorised(identityGraph);
+  if (!auth.ok) {
+    return { ok: false, reason: auth.reason, code: 'IDENTITY_NOT_AUTHORISED' };
   }
 
-  const signerAddress = manifest.signedEdgeService?.authorAddress;
-  if (!signerAddress) {
-    return { ok: false, reason: 'No signer address in manifest', code: 'IDENTITY_NOT_AUTHORISED' };
+  const signed = manifest.signedEdgeService;
+  if (!signed) {
+    return { ok: false, reason: 'No signed edge-service manifest', code: 'IDENTITY_NOT_AUTHORISED' };
   }
 
-  const authorised = getAuthorisedAddresses(identityGraph);
-  if (!authorised.includes(signerAddress)) {
+  // RFC-020 C4: cryptographically verify the manifest signature, then require
+  // the verified signer to be an authorized manifest signer.
+  const verify = verifyManifest(signed);
+  if (!verify.valid) {
+    return { ok: false, reason: `Manifest signature invalid: ${verify.reason ?? 'unknown'}`, code: 'BOND_PROOF_INVALID' };
+  }
+
+  if (!auth.identity.authorised.includes(signed.authorAddress)) {
     return { ok: false, reason: 'Manifest signer is not authorised by identity', code: 'IDENTITY_NOT_AUTHORISED' };
   }
 
@@ -64,11 +88,12 @@ export function verifyProviderManifestIdentity(params: VerifyProviderManifestIde
 export function verifyProviderBondAddresses(params: VerifyProviderBondAddressesParams): ProviderBondVerifyResult {
   const { manifest, identityGraph } = params;
 
-  if (!isIdentityGraph(identityGraph)) {
-    return { ok: false, reason: 'Invalid identity graph', code: 'IDENTITY_NOT_AUTHORISED' };
+  const auth = resolveAuthorised(identityGraph);
+  if (!auth.ok) {
+    return { ok: false, reason: auth.reason, code: 'IDENTITY_NOT_AUTHORISED' };
   }
 
-  const authorised = getAuthorisedAddresses(identityGraph);
+  const controlled = auth.identity.controlled;
   const pb = manifest.providerBond;
 
   const checks: Array<{ address: string | undefined; code: string; label: string }> = [
@@ -80,7 +105,7 @@ export function verifyProviderBondAddresses(params: VerifyProviderBondAddressesP
   ];
 
   for (const check of checks) {
-    if (check.address && !authorised.includes(check.address)) {
+    if (check.address && !controlled.includes(check.address)) {
       return {
         ok: false,
         reason: `${check.label} address is not authorised by identity`,
@@ -93,14 +118,14 @@ export function verifyProviderBondAddresses(params: VerifyProviderBondAddressesP
 }
 
 export function assertProviderControlsAddress(params: AssertProviderControlsAddressParams): ProviderBondVerifyResult {
-  const { manifest, address, identityGraph } = params;
+  const { address, identityGraph } = params;
 
-  if (!isIdentityGraph(identityGraph)) {
-    return { ok: false, reason: 'Invalid identity graph', code: 'IDENTITY_NOT_AUTHORISED' };
+  const auth = resolveAuthorised(identityGraph);
+  if (!auth.ok) {
+    return { ok: false, reason: auth.reason, code: 'IDENTITY_NOT_AUTHORISED' };
   }
 
-  const authorised = getAuthorisedAddresses(identityGraph);
-  if (!authorised.includes(address)) {
+  if (!auth.identity.controlled.includes(address)) {
     return { ok: false, reason: 'Address is not authorised by identity', code: 'IDENTITY_NOT_AUTHORISED' };
   }
 

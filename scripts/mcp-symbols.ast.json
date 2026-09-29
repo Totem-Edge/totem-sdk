@@ -12279,7 +12279,8 @@
         },
         "verifyBondProof": {
           "kind": "function",
-          "signature": "verifyBondProof(proof: BondProofRef, verifier?: BondProofVerifier): ProviderBondVerifyResult"
+          "signature": "verifyBondProof(proof: BondProofRef, verifier?: BondProofVerifier): Promise<ProviderBondVerifyResult>",
+          "doc": "RFC-020 C4: a bond proof is only meaningful when independently verified.\nEvery proof type (including self-declared `manual`/`declared`) must be\nverified by the supplied {@link BondProofVerifier}; without one it fails\nclosed rather than asserting an unbacked `ok`."
         },
         "assertBondMeetsMinimum": {
           "kind": "function",
@@ -12287,7 +12288,7 @@
         },
         "verifyBondStack": {
           "kind": "function",
-          "signature": "verifyBondStack(params: VerifyBondStackParams): ProviderBondVerifyResult"
+          "signature": "verifyBondStack(params: VerifyBondStackParams): Promise<ProviderBondVerifyResult>"
         },
         "recordProbe": {
           "kind": "function",
@@ -15580,7 +15581,7 @@
         },
         "aggregateSignatures": {
           "kind": "function",
-          "signature": "aggregateSignatures(totemSignature: { publicKey: Uint8Array; signature: Uint8Array; }, externalSignatures: ExternalSignature[]): Uint8Array[]"
+          "signature": "aggregateSignatures(totemSignature: { publicKey: Uint8Array; signature: Uint8Array; }, externalSignatures: ExternalSignature[], transactionDigest: Uint8Array): Uint8Array[]"
         },
         "validateExternalSignature": {
           "kind": "function",

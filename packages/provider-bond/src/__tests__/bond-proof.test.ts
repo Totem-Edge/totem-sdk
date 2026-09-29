@@ -1,65 +1,61 @@
 import { verifyBondProof, assertBondMeetsMinimum, verifyBondStack } from '../bond-proof.js';
-import type { BondProofRef, BondProofVerifier } from '../types.js';
+import type { BondProofRef, BondProofVerifier, ProviderBondAssetDeclaration } from '../types.js';
+
+const okVerifier: BondProofVerifier = { verify: async () => ({ ok: true, code: 'OK' }) };
+
+function proof(overrides: Partial<BondProofRef> = {}): BondProofRef {
+  return {
+    proofId: 'p-1', bondId: 'b-1', providerId: 'prov-1',
+    proofType: 'manual', asset: 'MINIMA', amount: 1000n,
+    ...overrides,
+  };
+}
 
 describe('bond-proof', () => {
-  describe('verifyBondProof', () => {
-    it('verifies manual proof', () => {
-      const proof: BondProofRef = {
-        proofId: 'p-1', bondId: 'b-1', providerId: 'prov-1',
-        proofType: 'manual', asset: 'MINIMA', amount: 1000n,
-      };
-      const result = verifyBondProof(proof);
-      expect(result.ok).toBe(true);
+  describe('verifyBondProof (RFC-020 C4: fail closed without a verifier)', () => {
+    it('verifies a manual proof only with an independent verifier', async () => {
+      expect((await verifyBondProof(proof(), okVerifier)).ok).toBe(true);
+      const noVerifier = await verifyBondProof(proof());
+      expect(noVerifier.ok).toBe(false);
+      expect(noVerifier.code).toBe('REQUIRES_LIVE_VERIFIER');
     });
 
-    it('verifies declared proof', () => {
-      const proof: BondProofRef = {
-        proofId: 'p-1', bondId: 'b-1', providerId: 'prov-1',
-        proofType: 'declared', asset: 'MINIMA', amount: 1000n,
-      };
-      const result = verifyBondProof(proof);
-      expect(result.ok).toBe(true);
+    it('verifies a declared proof only with an independent verifier', async () => {
+      expect((await verifyBondProof(proof({ proofType: 'declared' }), okVerifier)).ok).toBe(true);
+      expect((await verifyBondProof(proof({ proofType: 'declared' }))).ok).toBe(false);
     });
 
-    it('rejects manual proof with zero amount', () => {
-      const proof: BondProofRef = {
-        proofId: 'p-1', bondId: 'b-1', providerId: 'prov-1',
-        proofType: 'manual', asset: 'MINIMA', amount: 0n,
-      };
-      const result = verifyBondProof(proof);
+    it('rejects a manual proof with zero amount', async () => {
+      const result = await verifyBondProof(proof({ amount: 0n }));
       expect(result.ok).toBe(false);
       expect(result.code).toBe('BOND_AMOUNT_INSUFFICIENT');
     });
 
-    it('returns REQUIRES_LIVE_VERIFIER for future-live-chain without verifier', () => {
-      const proof: BondProofRef = {
-        proofId: 'p-1', bondId: 'b-1', providerId: 'prov-1',
-        proofType: 'future-live-chain', asset: 'MINIMA', amount: 1000n,
-      };
-      const result = verifyBondProof(proof);
+    it('requires a live verifier for future-live-chain', async () => {
+      const noVerifier = await verifyBondProof(proof({ proofType: 'future-live-chain' }));
+      expect(noVerifier.ok).toBe(false);
+      expect(noVerifier.code).toBe('REQUIRES_LIVE_VERIFIER');
+      expect(noVerifier.requiresLiveVerifier).toBe(true);
+      expect((await verifyBondProof(proof({ proofType: 'future-live-chain' }), okVerifier)).ok).toBe(true);
+    });
+
+    it('rejects a totem-proof without proof data', async () => {
+      const result = await verifyBondProof(proof({ proofType: 'totem-proof' }), okVerifier);
       expect(result.ok).toBe(false);
-      expect(result.code).toBe('REQUIRES_LIVE_VERIFIER');
-      expect(result.requiresLiveVerifier).toBe(true);
+      expect(result.code).toBe('BOND_PROOF_INVALID');
     });
 
-    it('uses injected verifier when supplied', async () => {
-      const verifier: BondProofVerifier = {
-        verify: async () => ({ ok: true, code: 'OK' }),
+    it('surfaces a verifier rejection', async () => {
+      const rejecting: BondProofVerifier = {
+        verify: async () => ({ ok: false, reason: 'forged', code: 'BOND_PROOF_INVALID' }),
       };
-      const proof: BondProofRef = {
-        proofId: 'p-1', bondId: 'b-1', providerId: 'prov-1',
-        proofType: 'future-live-chain', asset: 'MINIMA', amount: 1000n,
-      };
-      const result = verifyBondProof(proof, verifier);
-      expect(result.ok).toBe(true);
+      const result = await verifyBondProof(proof(), rejecting);
+      expect(result.ok).toBe(false);
+      expect(result.code).toBe('BOND_PROOF_INVALID');
     });
 
-    it('rejects unsupported proof type', () => {
-      const proof: BondProofRef = {
-        proofId: 'p-1', bondId: 'b-1', providerId: 'prov-1',
-        proofType: 'unknown-type' as any, asset: 'MINIMA', amount: 1000n,
-      };
-      const result = verifyBondProof(proof);
+    it('rejects an unsupported proof type', async () => {
+      const result = await verifyBondProof(proof({ proofType: 'unknown-type' as never }), okVerifier);
       expect(result.ok).toBe(false);
       expect(result.code).toBe('UNSUPPORTED_PROOF_TYPE');
     });
@@ -67,40 +63,45 @@ describe('bond-proof', () => {
 
   describe('assertBondMeetsMinimum', () => {
     it('passes when amount meets minimum', () => {
-      const proof: BondProofRef = {
-        proofId: 'p-1', bondId: 'b-1', providerId: 'prov-1',
-        proofType: 'manual', asset: 'MINIMA', amount: 1000n,
-      };
-      const result = assertBondMeetsMinimum(proof, 500n);
-      expect(result.ok).toBe(true);
+      expect(assertBondMeetsMinimum(proof(), 500n).ok).toBe(true);
     });
 
     it('rejects insufficient amount', () => {
-      const proof: BondProofRef = {
-        proofId: 'p-1', bondId: 'b-1', providerId: 'prov-1',
-        proofType: 'manual', asset: 'MINIMA', amount: 100n,
-      };
-      const result = assertBondMeetsMinimum(proof, 500n);
+      const result = assertBondMeetsMinimum(proof({ amount: 100n }), 500n);
       expect(result.ok).toBe(false);
       expect(result.code).toBe('BOND_AMOUNT_INSUFFICIENT');
     });
   });
 
-  describe('verifyBondStack', () => {
-    it('verifies a valid bond stack', () => {
-      const result = verifyBondStack({
-        bondStack: [
-          { bondId: 'b-1', asset: 'MINIMA', amount: 1000n, purpose: 'hard-collateral', lockType: 'manual-attestation', status: 'active' },
-        ],
-        bondProofs: [
-          { proofId: 'p-1', bondId: 'b-1', providerId: 'prov-1', proofType: 'manual', asset: 'MINIMA', amount: 1000n },
-        ],
+  describe('verifyBondStack (RFC-020 C4: a proof is required per declaration)', () => {
+    const declaration: ProviderBondAssetDeclaration = {
+      bondId: 'b-1', asset: 'MINIMA', amount: 1000n,
+      purpose: 'hard-collateral', lockType: 'manual-attestation', status: 'active',
+    };
+
+    it('verifies a valid bond stack with a proof and verifier', async () => {
+      const result = await verifyBondStack({
+        bondStack: [declaration],
+        bondProofs: [proof()],
+        verifier: okVerifier,
       });
       expect(result.ok).toBe(true);
     });
 
-    it('rejects empty bond stack', () => {
-      const result = verifyBondStack({ bondStack: [] });
+    it('rejects a declaration without an attached proof', async () => {
+      const result = await verifyBondStack({ bondStack: [declaration], verifier: okVerifier });
+      expect(result.ok).toBe(false);
+      expect(result.code).toBe('BOND_PROOF_INVALID');
+    });
+
+    it('rejects when no verifier is supplied', async () => {
+      const result = await verifyBondStack({ bondStack: [declaration], bondProofs: [proof()] });
+      expect(result.ok).toBe(false);
+      expect(result.code).toBe('REQUIRES_LIVE_VERIFIER');
+    });
+
+    it('rejects an empty bond stack', async () => {
+      const result = await verifyBondStack({ bondStack: [] });
       expect(result.ok).toBe(false);
       expect(result.code).toBe('BOND_AMOUNT_INSUFFICIENT');
     });
