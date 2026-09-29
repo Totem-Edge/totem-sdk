@@ -184,19 +184,37 @@ export class MultisigManager {
         if (typeof record.signatures === 'object' && record.signatures !== null) {
           record.signatures = new Map(Object.entries(record.signatures as Record<string, unknown>));
         }
-        // RFC-018 TXB-MULTISIG-002: never trust persisted `validated`; re-verify
-        // every signature against the stored digest and recompute status.
+        // RFC-018 TXB-MULTISIG-002 / RFC-020 TXB-MULTISIG-005+006: never trust
+        // persisted state. First rebind the digest to the transaction hex, then
+        // re-verify each signature against the *canonical signer identity* (its
+        // own publicKey), not the record-controlled Map key. Keying by publicKey
+        // means a duplicate key cannot inflate the signer count.
         const loaded = record as unknown as PendingMultisigTransaction;
         assertValidConfig(loaded.config);
+        if (
+          typeof loaded.transactionHex !== 'string' ||
+          typeof loaded.transactionDigest !== 'string' ||
+          normalizePk(recomputeDigest(loaded.transactionHex)) !== normalizePk(loaded.transactionDigest)
+        ) {
+          throw new MultisigStorageError(
+            'corrupt',
+            `multisig transaction ${String(record.id)} digest does not match transactionHex`,
+          );
+        }
         if (loaded.signatures instanceof Map) {
+          const rebuilt = new Map<string, ExternalSignature>();
           for (const [key, sig] of loaded.signatures) {
             const s = sig as ExternalSignature;
+            const pkNorm = normalizePk(s.publicKey);
+            // The persisted Map key must agree with the signature's publicKey.
+            const identityConsistent = pkNorm.length > 0 && normalizePk(key) === pkNorm;
             const valid =
-              s.signatureType === 'wots' && typeof loaded.transactionDigest === 'string'
+              identityConsistent && s.signatureType === 'wots'
                 ? verifyWotsSignature(s.signature, loaded.transactionDigest, s.publicKey)
                 : false;
-            loaded.signatures.set(key, { ...s, validated: valid });
+            rebuilt.set(pkNorm, { ...s, validated: valid });
           }
+          loaded.signatures = rebuilt;
         }
         this.updateStatus(loaded);
         this.pendingTransactions.set(String(record.id), loaded);

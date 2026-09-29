@@ -347,6 +347,9 @@ function evalExpr(node: ASTNode, vm: VMState): Value {
     }
     case 'MULTISIG': {
       const threshold = asPortInt(evalExpr(node.threshold, vm));
+      // RFC-020 KISSVM-MULTISIG-THRESHOLD-001: a non-positive threshold is
+      // unsatisfiable, never allow-all.
+      if (threshold <= 0) return false;
       let sigCount = 0;
       for (const k of node.keys) {
         if (verifySignedBy(String(evalExpr(k, vm)), vm)) sigCount++;
@@ -740,9 +743,8 @@ function verifyWitnessSignature(
 }
 
 function verifySignedBy(pkVal: string, vm: VMState): boolean {
-  const stripped = (pkVal.startsWith('0x') || pkVal.startsWith('0X'))
-    ? pkVal.slice(2).toLowerCase()
-    : pkVal.toLowerCase();
+  // RFC-020 KISSVM-KEYIDENT-001: canonical key identity (lowercase, no 0x).
+  const stripped = normalizeHex(pkVal);
 
   const sig = vm.witness.signatures.get(stripped);
   if (!sig) { vm.addTrace(`SIGNEDBY(${stripped.slice(0, 10)}…) → no sig`); return false; }
@@ -920,10 +922,15 @@ function execMastBlockVm(vm: VMState): boolean {
       }
     }
 
-    // Fallback: legacy mastBranches
-    if (revealed && revealed.has(norm)) {
-      vm.addTrace(`EXEC MAST: executing inline branch (legacy) ${norm.slice(0, 14)}…`);
-      return execInlineBody(branch.body, vm);
+    // Fallback: legacy mastBranches. Normalize both sides so `0x`-prefixed and
+    // bare-hex branch keys agree (RFC-020 KISSVM-KEYIDENT-001).
+    if (revealed) {
+      for (const [key, script] of revealed) {
+        if (normalizeHex(key) === norm) {
+          vm.addTrace(`EXEC MAST: executing inline branch (legacy) ${norm.slice(0, 14)}…`);
+          return execInlineBody(branch.body, vm);
+        }
+      }
     }
   }
 
@@ -1130,9 +1137,11 @@ function kissvmEq(a: Value, b: Value): boolean {
 
 function normalizeHex(s: string): string {
   if (typeof s !== 'string') return String(s);
-  return (s.startsWith('0x') || s.startsWith('0X'))
-    ? '0x' + s.slice(2).toLowerCase()
-    : s.toLowerCase();
+  // RFC-020 KISSVM-KEYIDENT-001: canonical hex identity is lowercase WITHOUT the
+  // `0x` prefix, so `<h>` and `0x<h>` compare equal and agree with SIGNEDBY's
+  // key lookup. Values that are not hex literals are only lowercased.
+  const lower = s.toLowerCase();
+  return lower.startsWith('0x') ? lower.slice(2) : lower;
 }
 
 function toBytes(v: Value): Uint8Array {

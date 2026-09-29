@@ -1250,3 +1250,14 @@ describe('PROOF() expression', () => {
     expect(res.passed).toBe(true);
   });
 });
+
+describe('RFC-020 KISSVM-KEYIDENT-001: canonical hex identity', () => {
+  const h = 'ab'.repeat(32);
+  test('EQ/NEQ treat bare and 0x-prefixed hex as equal', () => {
+    expect(evaluateScript(`RETURN [${h}] EQ 0x${h}`, mkWitness(), mkCtx()).passed).toBe(true);
+    expect(evaluateScript(`RETURN [${h}] NEQ 0x${h}`, mkWitness(), mkCtx()).passed).toBe(false);
+  });
+  test('EQ/NEQ are case-insensitive for hex', () => {
+    expect(evaluateScript(`RETURN [${h}] EQ 0x${h.toUpperCase()}`, mkWitness(), mkCtx()).passed).toBe(true);
+  });
+});

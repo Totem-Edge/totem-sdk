@@ -1,4 +1,4 @@
-import { sha3_256, hexToBytes, bytesToHex } from '@totemsdk/core';
+import { sha3_256, hexToBytes, bytesToHex, wotsKeypairFromSeed, wotsSign } from '@totemsdk/core';
 import { MemoryStore } from '@totemsdk/storage';
 import { MultisigManager, type MultisigConfig } from '../multisig-manager.js';
 import { CoinSelectionService, CoinSelectionError } from '../coin-selection.js';
@@ -88,5 +88,89 @@ describe('RFC-016 P5: coin selection rejects non-positive targets', () => {
     expect(() =>
       service.selectCoins([], { mode: 'global', targetAmount: '-1' }),
     ).toThrow(CoinSelectionError);
+  });
+});
+
+// ─── RFC-020 TXB-MULTISIG-005/006: load binding + digest rebind ──────────────
+
+const OWN_SEED = new Uint8Array(32).fill(1);
+const OTHER_SEED = new Uint8Array(32).fill(2);
+const ATTACKER_SEED = new Uint8Array(32).fill(9);
+const OWN_PK_REAL = '0x' + bytesToHex(wotsKeypairFromSeed(OWN_SEED, 0).pk);
+const OTHER_PK_REAL = '0x' + bytesToHex(wotsKeypairFromSeed(OTHER_SEED, 0).pk);
+const ATTACKER_PK = '0x' + bytesToHex(wotsKeypairFromSeed(ATTACKER_SEED, 0).pk);
+const DIGEST_BYTES = sha3_256(hexToBytes(TX_HEX));
+const sign = (seed: Uint8Array) => '0x' + bytesToHex(wotsSign(seed, 0, DIGEST_BYTES));
+
+function record(config: MultisigConfig, signatures: Record<string, unknown>, overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'rec-1',
+    config,
+    transactionHex: TX_HEX,
+    transactionDigest: '0x' + bytesToHex(DIGEST_BYTES),
+    signatures,
+    createdAt: Date.now(),
+    expiresAt: Date.now() + 60_000,
+    status: 'pending',
+    ...overrides,
+  };
+}
+
+async function loadRecord(rec: unknown): Promise<MultisigManager> {
+  const store = new MemoryStore();
+  await store.set('totem_pending_multisig', { version: 1, transactions: [rec] });
+  const mgr = new MultisigManager(store);
+  await mgr.ready;
+  return mgr;
+}
+
+describe('RFC-020 TXB-MULTISIG-005: load binds signature identity to its publicKey', () => {
+  const config: MultisigConfig = { type: '2of2', threshold: 2, publicKeys: [OWN_PK_REAL, OTHER_PK_REAL], ownPublicKey: OWN_PK_REAL };
+
+  it('does not count one attacker signature duplicated under two configured keys', async () => {
+    const attackerSig = sign(ATTACKER_SEED);
+    const mgr = await loadRecord(
+      record(config, {
+        [OWN_PK_REAL]: { publicKey: ATTACKER_PK, signature: attackerSig, signatureType: 'wots', validated: true },
+        [OTHER_PK_REAL]: { publicKey: ATTACKER_PK, signature: attackerSig, signatureType: 'wots', validated: true },
+      }),
+    );
+    expect(await mgr.isReady('rec-1')).toBe(false);
+  });
+
+  it('collapses a duplicated publicKey under two record keys to one signer', async () => {
+    const ownSig = sign(OWN_SEED);
+    const mgr = await loadRecord(
+      record(config, {
+        [OWN_PK_REAL]: { publicKey: OWN_PK_REAL, signature: ownSig, signatureType: 'wots', validated: true },
+        [OTHER_PK_REAL]: { publicKey: OWN_PK_REAL, signature: ownSig, signatureType: 'wots', validated: true },
+      }),
+    );
+    expect(await mgr.isReady('rec-1')).toBe(false);
+  });
+
+  it('accepts two distinct configured signers with valid signatures', async () => {
+    const mgr = await loadRecord(
+      record(config, {
+        [OWN_PK_REAL]: { publicKey: OWN_PK_REAL, signature: sign(OWN_SEED), signatureType: 'wots', validated: true },
+        [OTHER_PK_REAL]: { publicKey: OTHER_PK_REAL, signature: sign(OTHER_SEED), signatureType: 'wots', validated: true },
+      }),
+    );
+    expect(await mgr.isReady('rec-1')).toBe(true);
+  });
+});
+
+describe('RFC-020 TXB-MULTISIG-006: load rebinds the digest to transactionHex', () => {
+  it('rejects a record whose transactionHex does not hash to transactionDigest', async () => {
+    const config: MultisigConfig = { type: 'mofn', threshold: 1, publicKeys: [OWN_PK_REAL], ownPublicKey: OWN_PK_REAL };
+    const tampered = record(
+      config,
+      { [OWN_PK_REAL]: { publicKey: OWN_PK_REAL, signature: sign(OWN_SEED), signatureType: 'wots', validated: true } },
+      { transactionHex: '0x' + '02'.repeat(64) }, // does not match transactionDigest
+    );
+    const store = new MemoryStore();
+    await store.set('totem_pending_multisig', { version: 1, transactions: [tampered] });
+    const mgr = new MultisigManager(store);
+    await expect(mgr.ready).rejects.toThrow(/digest does not match/);
   });
 });

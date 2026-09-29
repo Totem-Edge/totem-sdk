@@ -26,6 +26,24 @@ export const STATUS = {
   EXPIRED: 6,
 } as const
 
+/**
+ * RFC-020 KISSVM-MULTISIG-THRESHOLD-001: a governance multisig config must be
+ * meaningful — non-empty, distinct keys, and an in-range threshold. A duplicate
+ * key collapses MULTISIG positions; a non-positive threshold is unsatisfiable.
+ */
+function assertGovernanceMultisig(pks: readonly string[], threshold: number, label: string): void {
+  if (!Array.isArray(pks) || pks.length === 0) {
+    throw new Error(`${label}: governancePks must be non-empty`)
+  }
+  const normalized = pks.map((pk) => pk.replace(/^0x/i, '').toLowerCase())
+  if (new Set(normalized).size !== normalized.length) {
+    throw new Error(`${label}: governancePks must be distinct (duplicate keys collapse MULTISIG positions)`)
+  }
+  if (!Number.isInteger(threshold) || threshold < 1 || threshold > normalized.length) {
+    throw new Error(`${label}: multisigThreshold must satisfy 1 <= threshold <= ${normalized.length}`)
+  }
+}
+
 export interface ProposalConfig {
   governancePks: string[]
   /** Number of governance keys required to sign execution (passed→executed). */
@@ -101,6 +119,7 @@ export interface ExecutionMandateConfig {
  *   4 — proposer pk hex
  */
 export function buildProposalStateMachineScript(config: ProposalConfig): string {
+  assertGovernanceMultisig(config.governancePks, config.multisigThreshold, 'buildProposalStateMachineScript')
   const multisigKeys = config.governancePks.map(pk => `0x${pk}`).join(', ')
   const proposerPort = config.proposerPort ?? 4
 
@@ -277,6 +296,7 @@ export function buildVoteSubmissionScript(config: VoteSubmissionConfig): string 
  *   5 — executionDelay (blocks, from proposal anchor)
  */
 export function buildExecutionMandateScript(config: ExecutionMandateConfig): string {
+  assertGovernanceMultisig(config.governancePks, config.multisigThreshold, 'buildExecutionMandateScript')
   const multisigKeys = config.governancePks.map(pk => `0x${pk}`).join(', ')
 
   return [
@@ -323,6 +343,7 @@ export function buildExecutionMandateScript(config: ExecutionMandateConfig): str
  *   4 — mandateNonce (for single-use replay protection)
  */
 export function buildTreasuryExecutionScript(config: TreasuryExecutionConfig): string {
+  assertGovernanceMultisig(config.governancePks, config.multisigThreshold, 'buildTreasuryExecutionScript')
   const multisigKeys = config.governancePks.map(pk => `0x${pk}`).join(', ')
 
   return [

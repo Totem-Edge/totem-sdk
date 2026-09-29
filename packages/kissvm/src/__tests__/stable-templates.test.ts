@@ -278,18 +278,38 @@ describe('stable template: statechain', () => {
   });
 
   it('owner rotation requires the previous owner signature', () => {
+    const pkCC = 'cc'.repeat(32);
     const script = buildStatechainOwnerRotationScript(cfg);
     const ok = run(script, ctx({
-      state: s({ 0: pkBB }),
+      state: s({ 0: pkCC }),
       prevState: s({ 0: pkAA }),
-    }), { [pkAA]: 'prev', [pkBB]: 'se' });
+    }), { [pkAA]: 'prev', [pkCC]: 'new', [pkBB]: 'se' });
     expect(ok.success).toBe(true);
 
     const noPrevSig = run(script, ctx({
-      state: s({ 0: pkBB }),
+      state: s({ 0: pkCC }),
       prevState: s({ 0: pkAA }),
-    }), { [pkBB]: 'se' });
+    }), { [pkCC]: 'new', [pkBB]: 'se' });
     expect(noPrevSig.success).toBe(false);
+  });
+
+  it('rejects rotating the owner to the SE key (RFC-020 KISSVM-KEYIDENT-001)', () => {
+    const script = buildStatechainOwnerRotationScript(cfg);
+    const toSe = run(script, ctx({
+      state: s({ 0: pkBB }), // new owner === sePk
+      prevState: s({ 0: pkAA }),
+    }), { [pkAA]: 'prev', [pkBB]: 'se' });
+    expect(toSe.success).toBe(false);
+  });
+
+  it('rejects a bare-hex owner equal to the SE key (RFC-020 KISSVM-KEYIDENT-001)', () => {
+    const script = buildStatechainScript(cfg); // cfg.sePk === pkBB (bare hex)
+    const res = run(script, ctx({
+      inputs: [coin(100, 900)],
+      state: s({ 0: pkBB }),
+      prevState: s({ 0: pkBB }),
+    }), { [pkBB]: 'se' });
+    expect(res.success).toBe(false);
   });
 });
 

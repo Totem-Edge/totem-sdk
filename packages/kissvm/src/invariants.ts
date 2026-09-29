@@ -48,7 +48,15 @@ export function authorizeFixed(authority: { key: string } | { prevStatePort: num
 /** I1: require n-of-m signatures over a fixed key set. */
 export function authorizeMultisig(n: number, keys: readonly string[]): string {
   assertNonEmpty(keys, 'authorizeMultisig.keys');
-  return `ASSERT MULTISIG(${n} ${keys.map((k) => `0x${k.replace(/^0x/i, '')}`).join(' ')})`;
+  // RFC-020 KISSVM-MULTISIG-THRESHOLD-001: enforce a meaningful threshold.
+  const normalized = keys.map((k) => k.replace(/^0x/i, '').toLowerCase());
+  if (new Set(normalized).size !== normalized.length) {
+    throw new Error('authorizeMultisig.keys: duplicate keys collapse MULTISIG positions');
+  }
+  if (!Number.isInteger(n) || n < 1 || n > normalized.length) {
+    throw new Error(`authorizeMultisig: n must satisfy 1 <= n <= ${normalized.length}`);
+  }
+  return `ASSERT MULTISIG(${n} ${normalized.map((k) => `0x${k}`).join(' ')})`;
 }
 
 /** I3: an immutable field must be carried forward unchanged. */

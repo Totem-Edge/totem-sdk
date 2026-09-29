@@ -1,6 +1,6 @@
 # RFC-020: Multi-Package Adversarial Hardening — Key Identity, WOTS Leasing, Verification Stubs, Composition & Serializer Parity
 
-**Status:** Draft — remediation contract (P0/P1/P2 to be landed)
+**Status:** Draft — remediation contract (P0 landed; P1/P2 pending)
 **Created:** 2026-09-29
 **Authors:** Totem SDK Contributors
 **Depends on:** RFC-009 (KISSVM signature fidelity), RFC-016 (template hardening), RFC-018 (adversarial remediation), SECURITY.md invariants
@@ -117,6 +117,8 @@ API**; string-presence assertions are not accepted as proof.
 | **P0-3** | **`TXB-MULTISIG-006`** — `load()` never rebinds digest to `transactionHex` | `multisig-manager.ts:189-201` | `if (normalize(recomputeDigest(transactionHex)) !== normalize(transactionDigest)) throw MultisigStorageError('corrupt')` before re-verification | Tamper only `transactionHex` ⇒ load rejects / `isReady===false` |
 | **P0-4** | **`KISSVM-MULTISIG-THRESHOLD-001`** — `MULTISIG(0 …)`/negative allow-all; governance builders don't validate | `eval.ts:348-356`; `governance.ts:104,137,305,351`; `invariants.ts:49-52` | Evaluator: reject `threshold <= 0` (throw or return false). Builders: validate `1 ≤ t ≤ unique(keys)` and reject duplicate/empty keys at construction | `ASSERT MULTISIG(0 …)` ⇒ `false`; treasury/mandate/proposal builders throw on `0`/`-1`/duplicate keys |
 | **P0-5** | **`RM-SIM-001`** — `simulatePolicyTransaction` forces `allowLegacyMastBranches:true`, so proof-less plans "simulate" but cannot execute | `recursive-mast/src/kissvm/simulation.ts:27-38` | Remove the forced flag; require `plan.scriptProofs` non-empty or fail with an explicit error; if a dev mode is retained, gate it on an explicit parameter and never default it | Plan without proofs ⇒ simulation and production both fail identically |
+
+**P0 landed.** `MultisigManager.load()` rebinds `transactionDigest` to `transactionHex`, re-verifies each signature against its **own `publicKey`**, and keys the map by the canonical identity (duplicates collapse). KISSVM key identity is canonical (`normalizeHex` → lowercase without `0x`; `SIGNEDBY`/`CHECKSIG`/`MULTISIG` and `EQ`/`NEQ` compare canonically, so the statechain distinctness guard is sound), and `MULTISIG(threshold <= 0)` is now unsatisfiable. Governance builders (proposal/treasury/mandate) and `authorizeMultisig` validate `1 ≤ t ≤ unique(keys)` and reject duplicate/empty keys. `simulatePolicyTransaction` no longer forces the legacy MAST path: a proof-less plan fails closed unless `allowLegacyMastBranches` is explicitly passed.
 
 ### 4.2 P1 — before any production authorizing use
 
