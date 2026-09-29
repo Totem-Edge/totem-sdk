@@ -2697,7 +2697,7 @@
         },
         "aggregateSignatures": {
           "kind": "function",
-          "signature": "aggregateSignatures(totemSignature: { publicKey: Uint8Array; signature: Uint8Array; }, externalSignatures: ExternalSignature[]): Uint8Array[]"
+          "signature": "aggregateSignatures(totemSignature: { publicKey: Uint8Array; signature: Uint8Array; }, externalSignatures: ExternalSignature[], transactionDigest: Uint8Array): Uint8Array[]"
         },
         "validateExternalSignature": {
           "kind": "function",
@@ -4060,6 +4060,11 @@
           "signature": "export interface PreparedPurchase",
           "doc": "RFC-019: the result of discovery/negotiation/agreement preparation, BEFORE\nany economic commitment. A governed action authorizes the canonical effects\nof this prepared purchase, then `executePrepared()` performs exactly it."
         },
+        "NegotiationPreview": {
+          "kind": "interface",
+          "signature": "export interface NegotiationPreview",
+          "doc": "RFC-019 P1-2: a negotiation run to the decision point, WITHOUT signing a\nbinding acceptance. A governed action authorizes the terms, then\n`finalizeNegotiation()` signs the acceptance."
+        },
         "createEdgeSeller": {
           "kind": "function",
           "signature": "createEdgeSeller(opts: SellerServiceOptions): EdgeSeller",
@@ -4438,6 +4443,19 @@
         "SQLiteCommerceStoreConfig": {
           "kind": "interface",
           "signature": "export interface SQLiteCommerceStoreConfig"
+        },
+        "createEdgeArtifactCache": {
+          "kind": "function",
+          "signature": "createEdgeArtifactCache(ports: PersistencePorts, requirement?: PersistenceRequirement, policy?: ArtifactCacheRetentionPolicy): EdgeArtifactCache"
+        },
+        "EdgeArtifactCache": {
+          "kind": "interface",
+          "signature": "export interface EdgeArtifactCache"
+        },
+        "ArtifactCacheRetentionPolicy": {
+          "kind": "interface",
+          "signature": "export interface ArtifactCacheRetentionPolicy",
+          "doc": "Per-object cache policy. Deliberately does NOT reuse the `retention:\n'fixed'|'managed'|'none'` vocabulary: that is a BACKEND capability, not a\nper-object request."
         }
       }
     },
@@ -11791,6 +11809,15 @@
           "kind": "function",
           "signature": "createProofGraphEvidenceStore(artifacts: ArtifactStore, index: StorageAdapter, options?: ProofGraphEvidenceStoreOptions): ProofGraphEvidenceStore"
         },
+        "assertEvidenceBinding": {
+          "kind": "function",
+          "signature": "assertEvidenceBinding(binding: EvidenceArtifactBinding): void",
+          "doc": "Throws `StorageError('corrupt')` unless `contentHash === artifact.digest`."
+        },
+        "normalizeEvidenceHash": {
+          "kind": "function",
+          "signature": "normalizeEvidenceHash(hash: string): string"
+        },
         "ProofGraphEvidenceStore": {
           "kind": "interface",
           "signature": "export interface ProofGraphEvidenceStore"
@@ -11803,6 +11830,15 @@
           "kind": "interface",
           "signature": "export interface ProofGraphEvidenceResult",
           "doc": "Per-evidence-node restore result."
+        },
+        "EvidenceArtifactBinding": {
+          "kind": "interface",
+          "signature": "export interface EvidenceArtifactBinding",
+          "doc": "RFC-007 Amendment A (A3): the enforced binding between a claim's commitment\nand the artifact that addresses it.\n\nInvariant: `contentHash === artifact.digest`. `assertEvidenceBinding` throws\n`StorageError('corrupt')` when it does not hold, so an unrecoverable\ncommitment cannot be constructed or restored."
+        },
+        "PutEvidenceOptions": {
+          "kind": "interface",
+          "signature": "export interface PutEvidenceOptions"
         },
         "toHex": {
           "kind": "function",
@@ -16351,6 +16387,41 @@
         "TransactionalStore": {
           "kind": "interface",
           "signature": "export interface TransactionalStore"
+        },
+        "createScopedStorage": {
+          "kind": "function",
+          "signature": "createScopedStorage(adapter: StorageAdapterWithCapabilities, scope: StorageScope): ScopedStorage"
+        },
+        "assertPersistence": {
+          "kind": "function",
+          "signature": "assertPersistence(ports: PersistencePorts, requirement: PersistenceRequirement, label: string): EffectivePersistence",
+          "doc": "Validate supplied ports against a declared requirement at construction.\nThrows `StorageError('unavailable')` on any capability/policy/config mismatch.\nNever downgrades silently."
+        },
+        "PersistencePorts": {
+          "kind": "interface",
+          "signature": "export interface PersistencePorts"
+        },
+        "StorageScope": {
+          "kind": "interface",
+          "signature": "export interface StorageScope",
+          "doc": "Scope identity. Namespacing avoids collisions only, NOT authorization."
+        },
+        "PersistenceRequirement": {
+          "kind": "interface",
+          "signature": "export interface PersistenceRequirement"
+        },
+        "PersistenceSurfaceGuarantee": {
+          "kind": "interface",
+          "signature": "export interface PersistenceSurfaceGuarantee"
+        },
+        "EffectivePersistence": {
+          "kind": "interface",
+          "signature": "export interface EffectivePersistence"
+        },
+        "ScopedStorage": {
+          "kind": "interface",
+          "signature": "export interface ScopedStorage extends StorageAdapterWithCapabilities",
+          "doc": "Scoped, capability-preserving view. No close(); lifecycle owned by caller."
         },
         "Namespace": {
           "kind": "class",

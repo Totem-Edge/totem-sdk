@@ -1,4 +1,5 @@
 import { sha3_256 } from '../wasm-sync.js';
+import { wotsVerifyDigest } from '../wots.js';
 import type { MMRProof, MMRProofChunk } from '../mmr.js';
 import { serializeMMRProof } from '../mmr.js';
 import type { ScriptDescriptor, StateValue, ExternalSignature, ScriptProofResult, FlatMMRProofChunk, LegacyMMRProof } from './types.js';
@@ -320,8 +321,23 @@ export function aggregateSignatures(
     publicKey: Uint8Array;
     signature: Uint8Array;
   },
-  externalSignatures: ExternalSignature[]
+  externalSignatures: ExternalSignature[],
+  transactionDigest: Uint8Array
 ): Uint8Array[] {
+  // RFC-020 C5: the aggregate must never include an unverified signature.
+  // The totem signature is verified against the transaction digest; external
+  // signatures are verified here as well as gated on their `validated` flag.
+  const totemValid = (() => {
+    try {
+      return wotsVerifyDigest(totemSignature.signature, transactionDigest, totemSignature.publicKey);
+    } catch {
+      return false;
+    }
+  })();
+  if (!totemValid) {
+    throw new Error('aggregateSignatures: the totem signature is invalid over the transaction digest');
+  }
+
   const allSigProofs: Uint8Array[] = [];
 
   allSigProofs.push(serializeSignatureProof(
@@ -331,8 +347,8 @@ export function aggregateSignatures(
   ));
 
   for (const extSig of externalSignatures) {
-    if (!extSig.validated) {
-      console.warn(`[AggregateSignatures] Skipping unvalidated signature from ${extSig.publicKey}`);
+    if (!extSig.validated || !validateExternalSignature(extSig, transactionDigest)) {
+      console.warn(`[AggregateSignatures] Skipping unverified signature from ${extSig.publicKey}`);
       continue;
     }
 
@@ -368,10 +384,19 @@ export function validateExternalSignature(
   if (!signature.publicKey || !signature.signature) {
     return false;
   }
-
-  console.log(`[ValidateSignature] Validating signature from ${signature.publicKey.substring(0, 16)}...`);
-
-  return true;
+  // RFC-020 C5: real WOTS verification (was an unconditional `true` stub).
+  if (signature.signatureType && signature.signatureType !== 'wots') {
+    return false;
+  }
+  try {
+    return wotsVerifyDigest(
+      hexToBytes(signature.signature),
+      transactionDigest,
+      hexToBytes(signature.publicKey),
+    );
+  } catch {
+    return false;
+  }
 }
 
 export function computeScriptAddress(script: string): string {
