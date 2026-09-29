@@ -60,11 +60,13 @@ export function buildRevocationProofScript(config: ProofConfig): string {
 export function buildProofDelegationScript(config: ProofConfig): string {
   const authority = config.authorityPk.replace(/^0x/i, '')
   const lines: string[] = [
-    // I1: the delegator is a committed authority, not a mutable current-state
-    // value; the delegate is the newly designated holder and both must sign,
-    // together with the configured root authority.
+    // I1: the delegator AND the designated delegate are committed authorities
+    // (`PREVSTATE`), not mutable current-state values — otherwise the spender
+    // could substitute their own key as the delegate. Both must sign, together
+    // with the configured root authority.
     `LET delegator = PREVSTATE(0)`,
-    `LET delegate = STATE(1)`,
+    `LET delegate = PREVSTATE(1)`,
+    `ASSERT STATE(1) EQ delegate`,
     ``,
     `ASSERT SIGNEDBY(delegator)`,
     `ASSERT SIGNEDBY(delegate)`,

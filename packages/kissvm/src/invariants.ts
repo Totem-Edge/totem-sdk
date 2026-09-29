@@ -21,6 +21,9 @@
  * generators without changing the codegen style.
  */
 
+import { parseScript } from './parser.js';
+import type { ASTNode, LetNode, IdentNode, SignedbyNode, ChecksigNode, MultisigNode } from './types.js';
+
 // ── Helpers (build-time) ────────────────────────────────────────────────────
 
 /** I4: fail construction rather than compile to an allow-all script. */
@@ -115,6 +118,63 @@ export interface InvariantViolation {
 const SIGNEDBY_CALL = /SIGNEDBY\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)/g;
 const STATE_BINDING = /LET\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*STATE\(\s*(\d+)\s*\)/g;
 
+function isAstNode(value: unknown): value is ASTNode {
+  return !!value && typeof value === 'object' && typeof (value as { type?: unknown }).type === 'string';
+}
+
+/** Collect `LET name = <expr>` bindings so authority can be traced structurally. */
+function collectLetBindings(ast: ASTNode[]): Map<string, ASTNode> {
+  const bindings = new Map<string, ASTNode>();
+  const visit = (node: unknown): void => {
+    if (Array.isArray(node)) { for (const c of node) visit(c); return; }
+    if (!isAstNode(node)) return;
+    if (node.type === 'LET') bindings.set((node as LetNode).name, (node as LetNode).value);
+    for (const [key, value] of Object.entries(node)) {
+      if (key === 'span') continue;
+      visit(value);
+    }
+  };
+  visit(ast);
+  return bindings;
+}
+
+/**
+ * RFC-018 P2-4: does this authority expression read mutable current `STATE`
+ * (directly, or through a chain of `LET` bindings)? A `PREVSTATE` anchor or a
+ * literal is not mutable-state authority.
+ */
+function derivesFromMutableState(
+  node: ASTNode,
+  bindings: Map<string, ASTNode>,
+  seen: Set<string> = new Set(),
+): boolean {
+  if (node.type === 'STATE') return true;
+  if (node.type === 'IDENT') {
+    const name = (node as IdentNode).name;
+    if (seen.has(name)) return false;
+    seen.add(name);
+    const bound = bindings.get(name);
+    return bound ? derivesFromMutableState(bound, bindings, seen) : false;
+  }
+  return false;
+}
+
+/** RFC-018 P2-4: statements after a terminal RETURN in the same block are dead. */
+function findUnreachableStatements(nodes: ASTNode[], out: InvariantViolation[]): void {
+  for (let i = 0; i < nodes.length - 1; i++) {
+    if (nodes[i].type === 'RETURN') {
+      out.push({ invariant: 'I4', detail: 'unreachable statement after RETURN in the same block' });
+      break;
+    }
+  }
+  for (const node of nodes) {
+    for (const [key, value] of Object.entries(node)) {
+      if (key === 'span' || !Array.isArray(value)) continue;
+      if (value.length > 0 && value.every(isAstNode)) findUnreachableStatements(value as ASTNode[], out);
+    }
+  }
+}
+
 /**
  * Static, deterministic detector of the RFC-016 invariants. Heuristic: it flags
  * the confirmed anti-patterns (authority from mutable state, missing output
@@ -150,6 +210,45 @@ export function auditScriptInvariants(input: InvariantAuditInput): InvariantViol
   // I2 — economic binding to the actual output.
   if (input.expectsPayment && !/\bVERIFYOUT\(/.test(script)) {
     violations.push({ invariant: 'I2', detail: 'no VERIFYOUT: payment/escrow claim is not bound to an output' });
+  }
+
+  // RFC-018 P2-4: structural AST checks (authority from mutable STATE, dead code).
+  let ast: ASTNode[] | undefined;
+  try {
+    ast = parseScript(script);
+  } catch {
+    ast = undefined;
+  }
+  if (ast) {
+    if (input.expectsAuthorization && !input.permissionless) {
+      const bindings = collectLetBindings(ast);
+      const visit = (node: unknown): void => {
+        if (Array.isArray(node)) { for (const c of node) visit(c); return; }
+        if (!isAstNode(node)) return;
+        if (node.type === 'SIGNEDBY') {
+          if (derivesFromMutableState((node as SignedbyNode).pubkey, bindings)) {
+            violations.push({ invariant: 'I1', detail: 'SIGNEDBY derives authority from mutable STATE' });
+          }
+        } else if (node.type === 'CHECKSIG') {
+          const arg = (node as ChecksigNode).args[0];
+          if (arg && derivesFromMutableState(arg, bindings)) {
+            violations.push({ invariant: 'I1', detail: 'CHECKSIG derives authority from mutable STATE' });
+          }
+        } else if (node.type === 'MULTISIG') {
+          for (const key of (node as MultisigNode).keys) {
+            if (derivesFromMutableState(key, bindings)) {
+              violations.push({ invariant: 'I1', detail: 'MULTISIG key derives authority from mutable STATE' });
+            }
+          }
+        }
+        for (const [key, value] of Object.entries(node)) {
+          if (key === 'span') continue;
+          visit(value);
+        }
+      };
+      visit(ast);
+    }
+    findUnreachableStatements(ast, violations);
   }
 
   // I3 — immutable/constraint state must be committed (carried from PREVSTATE).

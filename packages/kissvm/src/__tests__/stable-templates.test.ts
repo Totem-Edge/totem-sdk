@@ -928,11 +928,11 @@ describe('stable template: proof', () => {
 
   it('proof delegation requires both signatures and the root authority (RFC-016)', () => {
     const script = buildProofDelegationScript(proofCfg);
-    const ok = run(script, ctx({ block: 1000, state: s({ 1: pkBB }), prevState: s({ 0: pkAA }) }), { [pkAA]: 'authority', [pkBB]: 'delegate' });
+    const ok = run(script, ctx({ block: 1000, state: s({ 1: pkBB }), prevState: s({ 0: pkAA, 1: pkBB }) }), { [pkAA]: 'authority', [pkBB]: 'delegate' });
     expect(ok.success).toBe(true);
-    const oneSig = run(script, ctx({ block: 1000, state: s({ 1: pkBB }), prevState: s({ 0: pkAA }) }), { [pkBB]: 'delegate' });
+    const oneSig = run(script, ctx({ block: 1000, state: s({ 1: pkBB }), prevState: s({ 0: pkAA, 1: pkBB }) }), { [pkBB]: 'delegate' });
     expect(oneSig.success).toBe(false);
-    const noAuthority = run(script, ctx({ block: 1000, state: s({ 1: pkBB }), prevState: s({ 0: pkBB }) }), { [pkBB]: 'delegate' });
+    const noAuthority = run(script, ctx({ block: 1000, state: s({ 1: pkBB }), prevState: s({ 0: pkBB, 1: pkBB }) }), { [pkBB]: 'delegate' });
     expect(noAuthority.success).toBe(false);
   });
 });

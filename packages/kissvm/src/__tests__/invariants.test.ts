@@ -257,3 +257,26 @@ describe('RFC-016 P4 wave 4: compliance, healthcare, sensor-proof', () => {
     expect(script).toContain('LET sigTime = PREVSTATE(1)');
   });
 });
+
+describe('RFC-018 P2-4: structural (AST) invariant detection', () => {
+  it('flags SIGNEDBY(STATE(n)) even when a PREVSTATE anchor exists elsewhere', () => {
+    const script = ['ASSERT PREVSTATE(5) EQ 0', 'ASSERT SIGNEDBY(STATE(0))', 'RETURN TRUE'].join('\n');
+    const violations = auditScriptInvariants({ name: 'x', script, expectsAuthorization: true });
+    expect(violations.map((v) => v.invariant)).toContain('I1');
+  });
+
+  it('flags a MULTISIG key read from mutable STATE', () => {
+    const script = ['ASSERT MULTISIG(2 STATE(0) 0xaa)', 'RETURN TRUE'].join('\n');
+    expect(auditScriptInvariants({ name: 'x', script, expectsAuthorization: true }).map((v) => v.invariant)).toContain('I1');
+  });
+
+  it('flags unreachable code after a terminal RETURN', () => {
+    const script = ['RETURN TRUE', 'ASSERT SIGNEDBY(0xaa)'].join('\n');
+    expect(auditScriptInvariants({ name: 'x', script, expectsAuthorization: true }).map((v) => v.invariant)).toContain('I4');
+  });
+
+  it('accepts PREVSTATE authority and literal keys', () => {
+    const script = ['ASSERT SIGNEDBY(PREVSTATE(0))', 'ASSERT SIGNEDBY(0xaa)', 'RETURN TRUE'].join('\n');
+    expect(auditScriptInvariants({ name: 'x', script, expectsAuthorization: true })).toEqual([]);
+  });
+});
