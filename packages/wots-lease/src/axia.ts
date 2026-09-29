@@ -18,7 +18,8 @@ import type {
 } from './types.js';
 import { WotsWatermarkStore, flatIndex } from './watermark.js';
 import { LeaseJournal } from './journal.js';
-import { LeaseNotFoundError } from './errors.js';
+import { LeaseNotFoundError, IndicesUnavailableError } from './errors.js';
+import { StorageError } from '@totemsdk/storage/errors';
 
 export interface AxiaLeaseProviderConfig {
   apiUrl: string;
@@ -69,6 +70,14 @@ export class AxiaLeaseProvider implements WotsLeaseProvider {
     });
 
     const indices: SigningIndices = resp.lease;
+
+    // RFC-020 C2: never accept an index this tree has already consumed, even if
+    // a replaying/hostile lease server hands the same slot out again.
+    await this.watermark.refresh();
+    if (this.watermark.isUnavailable(params.treeId, indices)) {
+      throw new IndicesUnavailableError(params.treeId, indices);
+    }
+
     const expiresAt = Date.now() + (params.ttlMs ?? 120_000);
     const reservationId = resp.txId;
 
@@ -106,15 +115,21 @@ export class AxiaLeaseProvider implements WotsLeaseProvider {
     await finalizeLease(this.apiUrl, this.apiKey, lease.leaseToken, txId);
 
     const indices: SigningIndices = lease.indices;
+    // RFC-020 C2: key the watermark/journal by the real treeId, never the
+    // reservation id.
+    const treeId = lease.treeId;
+    if (!treeId) {
+      throw new StorageError(`AxiaLeaseProvider: lease ${reservationId} has no treeId`, 'corrupt');
+    }
     await this.watermark.markUnavailable(
-      lease.indices.addressIndex.toString(),
+      treeId,
       indices,
       'committed',
     );
     await this.leaseStore.updateStatus(reservationId, 'finalized');
 
     await this.journal.append({
-      treeId: reservationId,
+      treeId,
       branchId: 'default',
       wotsIndex: flatIndex(indices),
       indices,
@@ -131,8 +146,12 @@ export class AxiaLeaseProvider implements WotsLeaseProvider {
     if (!lease) throw new LeaseNotFoundError(reservationId);
 
     const indices: SigningIndices = lease.indices;
+    const treeId = lease.treeId;
+    if (!treeId) {
+      throw new StorageError(`AxiaLeaseProvider: lease ${reservationId} has no treeId`, 'corrupt');
+    }
     await this.watermark.markUnavailable(
-      lease.indices.addressIndex.toString(),
+      treeId,
       indices,
       'burned',
     );
@@ -140,7 +159,7 @@ export class AxiaLeaseProvider implements WotsLeaseProvider {
 
     this.logger.warn(`[AxiaLeaseProvider] Burning reservation ${reservationId}: ${reason}`);
     await this.journal.append({
-      treeId: reservationId,
+      treeId,
       branchId: 'default',
       wotsIndex: flatIndex(indices),
       indices,
@@ -163,8 +182,9 @@ export class AxiaLeaseProvider implements WotsLeaseProvider {
     return { synced: true, conflicts: [] };
   }
 
-  async verifyLeaseCertificate(cert?: LeaseCertificate): Promise<boolean> {
-    if (cert === undefined) return true;
+  async verifyLeaseCertificate(_cert?: LeaseCertificate): Promise<boolean> {
+    // RFC-020 C2: the Axia API does not return a server-signed certificate we
+    // can verify, so fail closed rather than asserting a trust we cannot prove.
     return false;
   }
 }
