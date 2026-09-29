@@ -1,6 +1,6 @@
 # RFC-007 Amendment A — Edge Persistence Injection Point & Evidence-Byte Ownership
 
-**Status:** Accepted — A0 + A1 + A2 landed (A3 pending) · **Date:** 2026-09-28 · **Amends:** RFC-007
+**Status:** Accepted — A0–A3 landed · **Date:** 2026-09-28 · **Amends:** RFC-007
 **Touches:** `@totemsdk/storage`, `@totemsdk/edge`, `@totemsdk/edge-adapters`, `@totemsdk/proofgraph`
 **Depends on:** RFC-007 §1.1, §3.5, §3.6, §4.1–§4.3, §5, §6
 **Depends on (design):** RFC-006 (intelligence/QVAC boundaries), RFC-017 / ProofGraph evidence lifecycle
@@ -229,7 +229,7 @@ uses its own labels to avoid collision.
 | **A0 ✅ landed** | Neutral helpers + observable `failurePolicy` in `@totemsdk/storage`; two `EdgeRuntimePorts` slots. No behavior change. | Typecheck/lint; adapters and doubles report `failurePolicy`; helper unit tests. |
 | **A1 ✅ landed** | First consumer: Edge artifact cache in `@totemsdk/edge-adapters`, over `PersistencePorts`. | Write → **process restart/reopen** → retrieve; scope isolation (`get`/`keys`/`clear`); expiry/invalidation; `corrupt` vs `not-found`; capability/policy rejection. |
 | **A2 ✅ landed** | Conformance + required durable-CI job integration; reuse ProofGraph's `ArtifactStore` conformance result rather than duplicating. | CI job fails when a deployed-gate backend cannot run. |
-| **A3** | Evidence-byte ownership: make the claim→artifact binding explicit; route captured originals through the ProofGraph evidence store; revisit chunking/GC in RFC-007 §4.3/OQ7. | Evidence restore test: commitment → resolvable artifact → bytes; `not-found` vs `corrupt`; byte-identity check. |
+| **A3 ✅ landed** | Evidence-byte ownership: make the claim→artifact binding explicit; route captured originals through the ProofGraph evidence store; revisit chunking/GC in RFC-007 §4.3/OQ7. | Evidence restore test: commitment → resolvable artifact → bytes; `not-found` vs `corrupt`; byte-identity check. |
 
 **Conformance ownership (A2).** `runBackendConformance` in `@totemsdk/storage` is
 the single reference artifact-backend conformance (exercised against
@@ -239,6 +239,15 @@ the single reference artifact-backend conformance (exercised against
 declaring a parallel backend suite. The CI `storage-durability` job runs the KV,
 reference-backend, persistence-helper, Edge-cache, and ProofGraph-evidence gates
 against real disk/sqlite, so a deployed-gate backend that cannot run fails the job.
+
+**A3 — enforced binding.** `addProof` now carries the claim commitment on each
+evidence node (`data.contentHash`). `createProofGraphEvidenceStore` enforces
+`sha3_256(bytes) === contentHash === artifact.digest` on write (throws
+`StorageError('corrupt')` on mismatch; `requireContentHash` makes the commitment
+mandatory) and re-checks the commitment→digest binding on restore (index-tamper
+guard). `EvidenceArtifactBinding` / `assertEvidenceBinding` / `normalizeEvidenceHash`
+are exported as the single invariant. Chunked-artifact retention remains the
+named follow-on (OQ7 reopened), unchanged by A3.
 
 ---
 

@@ -38,12 +38,16 @@ export type {
 
 export {
   createProofGraphEvidenceStore,
+  assertEvidenceBinding,
+  normalizeEvidenceHash,
 } from './evidence.js';
 
 export type {
   ProofGraphEvidenceStore,
   ProofGraphEvidenceStoreOptions,
   ProofGraphEvidenceResult,
+  EvidenceArtifactBinding,
+  PutEvidenceOptions,
 } from './evidence.js';
 
 export {

@@ -20,6 +20,7 @@ import type {
   AnchorInput,
 } from './types.js';
 import { computeNodeId, computeEdgeId, computeProofGraphId } from './canonical.js';
+import { normalizeEvidenceHash } from './evidence.js';
 
 function makeNode(
   type: ProofGraphNodeType,
@@ -193,7 +194,9 @@ export function addProof(graph: ProofGraph, signedProof: SignedProof): ProofGrap
 
   if (signedProof.evidence) {
     for (const ev of signedProof.evidence) {
-      newNodes.push(makeNode('evidence', ev.id));
+      // RFC-007 Amendment A (A3): carry the claim commitment on the evidence
+      // node so the evidence store can enforce claim→contentHash→artifact.
+      newNodes.push(makeNode('evidence', ev.id, ev.hash ? { contentHash: normalizeEvidenceHash(ev.hash) } : undefined));
       newEdges.push(makeEdge('references', signedProof.proofId, ev.id, signedProof.proofId));
     }
   }
