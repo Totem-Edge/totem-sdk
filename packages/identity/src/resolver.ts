@@ -39,6 +39,9 @@ export function resolveIdentityGraph(graph: IdentityGraph): IdentityResolutionRe
   const { document, claims } = graph;
   const { rootAddress, controllerAddress } = document;
 
+  const isRootOrController = (address: string): boolean =>
+    address === rootAddress || address === controllerAddress;
+
   // Step 1: signature-verify all claims upfront and collect the valid ones.
   // A claim is ONLY trusted when:
   //   (a) the WOTS signature is valid over the canonical claim bytes, AND
@@ -69,18 +72,25 @@ export function resolveIdentityGraph(graph: IdentityGraph): IdentityResolutionRe
     return allAuthorized.has(sc.claim.issuer) && sc.claim.subject === document.id;
   }
 
-  // Detect revocation
+  // Detect revocation — RFC-020 C3: only the root/controller may revoke.
   const revocationClaims = verifiedClaims.filter(
-    (sc) => sc.claim.type === 'revokes' && isAuthorized(sc),
+    (sc) =>
+      sc.claim.type === 'revokes' &&
+      sc.claim.subject === document.id &&
+      isRootOrController(sc.claim.issuer),
   );
   const isRevoked = revocationClaims.length > 0;
   const revokedAt = isRevoked
     ? Math.min(...revocationClaims.map((sc) => sc.claim.issuedAt))
     : undefined;
 
-  // Detect rotation
+  // Detect rotation — RFC-020 C3: only the root/controller may rotate.
   const rotationClaims = verifiedClaims.filter(
-    (sc) => sc.claim.type === 'rotates_to' && isAuthorized(sc) && !isExpired(sc.claim),
+    (sc) =>
+      sc.claim.type === 'rotates_to' &&
+      sc.claim.subject === document.id &&
+      isRootOrController(sc.claim.issuer) &&
+      !isExpired(sc.claim),
   );
   const rotationTarget = rotationClaims.length > 0 ? rotationClaims[0].claim.object : undefined;
 
@@ -119,12 +129,24 @@ export function resolveIdentityGraph(graph: IdentityGraph): IdentityResolutionRe
     ),
   ];
 
+  // RFC-020 C3: scope-aware authorization for consequential claims. The
+  // root/controller always qualify; a delegate only if it holds `*` or the
+  // required scope. A read-only delegate cannot redirect payments or endpoints.
+  const delegateScopes = new Map<string, Set<string>>();
+  for (const d of delegates) delegateScopes.set(d.delegatedAddress, new Set(d.scopes));
+  const hasScope = (address: string, scope: string): boolean => {
+    if (isRootOrController(address)) return true;
+    const scopes = delegateScopes.get(address);
+    return !!scopes && (scopes.has('*') || scopes.has(scope));
+  };
+
   // Payment recipients
   const paymentRecipients: PaymentRecipientClaim[] = verifiedClaims
     .filter(
       (sc) =>
         sc.claim.type === 'payment_recipient' &&
-        isAuthorized(sc) &&
+        sc.claim.subject === document.id &&
+        hasScope(sc.claim.issuer, 'identity:manage') &&
         !isExpired(sc.claim),
     )
     .map((sc) => ({
@@ -141,7 +163,8 @@ export function resolveIdentityGraph(graph: IdentityGraph): IdentityResolutionRe
     .filter(
       (sc) =>
         sc.claim.type === 'service_endpoint' &&
-        isAuthorized(sc) &&
+        sc.claim.subject === document.id &&
+        hasScope(sc.claim.issuer, 'identity:manage') &&
         !isExpired(sc.claim),
     )
     .map((sc) => ({

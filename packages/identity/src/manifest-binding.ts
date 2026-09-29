@@ -108,14 +108,14 @@ export async function verifyManifestIdentity(
   // Valid signers (per spec):
   //   1. rootAddress
   //   2. controllerAddress
-  //   3. controlledAddresses — all delegated addresses (any scope)
-  //   4. authorizedAddresses — subset with "manifest:sign" or "*" scope (already subset of above)
-  //   5. provenAddresses — from root-identity proof verifiers
+  //   3. authorizedAddresses — delegates with "manifest:sign" or "*" scope
+  //   4. provenAddresses — from root-identity proof verifiers
+  // RFC-020 C3: `controlledAddresses` (delegates with ANY scope, e.g. a
+  // read-only `data:read` delegate) are deliberately NOT manifest signers.
   const signerAddress = signedManifest.authorAddress;
   const validAddresses = new Set<string>([
     resolved.rootAddress,
     resolved.controllerAddress,
-    ...resolved.controlledAddresses,
     ...resolved.authorizedAddresses,
     ...provenAddresses,
   ]);

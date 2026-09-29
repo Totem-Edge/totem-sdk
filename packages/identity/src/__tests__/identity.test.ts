@@ -669,3 +669,74 @@ describe('package root export', () => {
     }
   });
 });
+
+// ─── RFC-020 C3: identity scope enforcement ───────────────────────────────────
+
+describe('RFC-020 C3: identity claim scopes', () => {
+  const rootAddr = deriveAddress(SEED_A, 0);
+  const delegateAddr = deriveAddress(SEED_B, 0);
+
+  async function graphWithDelegate(scopes: string[]): Promise<IdentityGraph> {
+    const doc = createIdentityDocument({ kind: 'person', rootAddress: rootAddr, controllerAddress: rootAddr });
+    const del = await signIdentityClaim(
+      createDelegationClaim({ issuer: rootAddr, subject: doc.id, delegatedAddress: delegateAddr, scopes, issuedAt: 1000 }),
+      SEED_A,
+      0,
+    );
+    return { document: doc, claims: [del] };
+  }
+
+  it('a data:read delegate cannot revoke or rotate', async () => {
+    const graph = await graphWithDelegate(['data:read']);
+    graph.claims.push(await signIdentityClaim(
+      revokeIdentity({ issuer: delegateAddr, subject: graph.document.id, reason: 'x', issuedAt: 2000 }), SEED_B, 0,
+    ));
+    graph.claims.push(await signIdentityClaim(
+      rotateIdentity({ issuer: delegateAddr, subject: graph.document.id, newAddress: 'MxNEW', issuedAt: 3000 }), SEED_B, 0,
+    ));
+    const result = resolveIdentityGraph(graph);
+    expect(result.resolved?.status).toBe('active');
+    expect(result.resolved?.revokedAt).toBeUndefined();
+    expect(result.resolved?.rotationTarget).toBeUndefined();
+  }, 30000);
+
+  it('a data:read delegate cannot redirect payments or endpoints', async () => {
+    const graph = await graphWithDelegate(['data:read']);
+    graph.claims.push(await signIdentityClaim(
+      createPaymentRecipientClaim({ issuer: delegateAddr, subject: graph.document.id, address: 'MxATTACKER', issuedAt: 2000 }), SEED_B, 0,
+    ));
+    graph.claims.push(await signIdentityClaim(
+      createServiceEndpointClaim({ issuer: delegateAddr, subject: graph.document.id, endpointType: 'https', uri: 'https://evil.example', issuedAt: 2000 }), SEED_B, 0,
+    ));
+    const result = resolveIdentityGraph(graph);
+    expect(result.resolved?.paymentRecipients).toHaveLength(0);
+    expect(result.resolved?.serviceEndpoints).toHaveLength(0);
+  }, 30000);
+
+  it('an identity:manage delegate may add a payment recipient', async () => {
+    const graph = await graphWithDelegate(['identity:manage']);
+    graph.claims.push(await signIdentityClaim(
+      createPaymentRecipientClaim({ issuer: delegateAddr, subject: graph.document.id, address: 'MxPAY', issuedAt: 2000 }), SEED_B, 0,
+    ));
+    const result = resolveIdentityGraph(graph);
+    expect(result.resolved?.paymentRecipients).toHaveLength(1);
+  }, 30000);
+
+  it('a data:read delegate is not a valid manifest signer', async () => {
+    const delegateWasm = deriveWasmAddress(SEED_B, 0);
+    const doc = createIdentityDocument({ kind: 'person', rootAddress: rootAddr, controllerAddress: rootAddr });
+    const del = await signIdentityClaim(
+      createDelegationClaim({ issuer: rootAddr, subject: doc.id, delegatedAddress: delegateWasm, scopes: ['data:read'], issuedAt: 1000 }),
+      SEED_A,
+      0,
+    );
+    const graph: IdentityGraph = { document: doc, claims: [del] };
+    const signed = await signManifest(
+      { type: 'app' as const, appId: 'a', name: 'n', version: '1', authorAddress: delegateWasm, pearTopicKey: 'p', price: '0', category: ['utility'], permissions: [], description: 'd', minTotemVersion: '1' },
+      SEED_B,
+      0,
+    );
+    const binding = await verifyManifestIdentity(signed, graph);
+    expect(binding.valid).toBe(false);
+  }, 30000);
+});
