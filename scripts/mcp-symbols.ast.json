@@ -3718,6 +3718,11 @@
           "kind": "interface",
           "signature": "export interface EdgeCommerceRuntime"
         },
+        "TrustedCommerceRuntime": {
+          "kind": "type",
+          "signature": "export type TrustedCommerceRuntime = EdgeCommerceRuntime",
+          "doc": "RFC-019: `createEdge()` returns a **trusted-host** commerce runtime. It holds\nthe raw buyer, payment port, authority port and seller — privileged host\nauthority that MUST NOT be handed to an autonomous agent. Agents reach\ncommerce only through `createAgentEdgeRuntime().executeAction('purchase:*')`.\n\nThis alias exists so trusted-host call sites can name the distinction\nexplicitly (`TrustedCommerceRuntime`) instead of the neutral\n`EdgeCommerceRuntime`."
+        },
         "createEdgeActionRegistry": {
           "kind": "function",
           "signature": "createEdgeActionRegistry(): EdgeActionRegistry"
@@ -3803,6 +3808,15 @@
         "AgentEdgeRuntimeOptions": {
           "kind": "interface",
           "signature": "export interface AgentEdgeRuntimeOptions"
+        },
+        "createGovernedPurchaseActions": {
+          "kind": "function",
+          "signature": "createGovernedPurchaseActions(config: GovernedCommerceConfig): BuiltinActionRegistration[]",
+          "doc": "Build the governed commerce action definitions.\n\nRegister these into the same `EdgeActionRegistry` used by\n`createAgentEdgeRuntime()`; the agent can then reach commerce only via\n`executeAction('purchase:buy' | 'purchase:negotiate')`."
+        },
+        "GovernedCommerceConfig": {
+          "kind": "interface",
+          "signature": "export interface GovernedCommerceConfig"
         },
         "createEdgeReceipt": {
           "kind": "function",
@@ -4040,6 +4054,11 @@
         "BuyOptions": {
           "kind": "interface",
           "signature": "export interface BuyOptions"
+        },
+        "PreparedPurchase": {
+          "kind": "interface",
+          "signature": "export interface PreparedPurchase",
+          "doc": "RFC-019: the result of discovery/negotiation/agreement preparation, BEFORE\nany economic commitment. A governed action authorizes the canonical effects\nof this prepared purchase, then `executePrepared()` performs exactly it."
         },
         "createEdgeSeller": {
           "kind": "function",
@@ -13604,7 +13623,7 @@
         "toMigrationPathScript": {
           "kind": "function",
           "signature": "toMigrationPathScript(path: MigrationPath): string",
-          "doc": "Generate the full nested MAST script for a migration path.\nEach step wraps the next in a migration transition."
+          "doc": "Generate the full nested MAST script for a migration path.\n\nRFC-018 P2-2: each step delegates to the *next composed script* (its\ncanonical root), not merely its `toPolicyRoot` — the previous form appended a\nterminal `MAST` after a `RETURN TRUE`, leaving the child unreachable. An empty\npath fails closed rather than compiling to allow-all."
         },
         "buildLayeredPolicy": {
           "kind": "function",
@@ -16713,7 +16732,7 @@
         },
         "verifyPoolFundTx": {
           "kind": "function",
-          "signature": "verifyPoolFundTx(tx: PoolFundTx, proof: SignedFundingIntent, expectedPoolAddress?: string): PoolFundVerification",
+          "signature": "verifyPoolFundTx(tx: PoolFundTx, proof: SignedFundingIntent, expectedPoolAddress: string): PoolFundVerification",
           "doc": "Verify a deep funding proof. `expectedPoolAddress` (the pool/channel script\naddress) is required to prove the spend target — without it the proof only\nproves the LP signed some tx, which is why acceptance must pass it."
         },
         "toProofHex": {
