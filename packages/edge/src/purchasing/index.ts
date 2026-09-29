@@ -9,7 +9,7 @@
  * are not exposed as top-level Edge methods.
  */
 
-export { EdgeBuyer, type BuyerOptions, type BuyOptions, type PreparedPurchase } from './buyer.js';
+export { EdgeBuyer, type BuyerOptions, type BuyOptions, type PreparedPurchase, type NegotiationPreview } from './buyer.js';
 export { createEdgeSeller, type EdgeSeller, type SellerServiceOptions, type SellerStrategy } from './seller.js';
 export {
   createAccountedPurchaseAuthority,

@@ -17,8 +17,8 @@ import type { SignedProof } from '@totemsdk/proof';
 import { createProof, signProof } from '@totemsdk/proof';
 import { createIdentityDocument, createDelegationClaim, signIdentityClaim } from '@totemsdk/identity';
 import { wotsKeypairFromSeed, scriptFromWotsPk, scriptToAddress } from '@totemsdk/core';
-import type { EdgeBuyer, PreparedPurchase } from '../purchasing/buyer.js';
-import type { TradeAgreement, PurchaseIntent } from '../purchasing/types.js';
+import type { EdgeBuyer, PreparedPurchase, NegotiationPreview } from '../purchasing/buyer.js';
+import type { TradeAgreement, PurchaseIntent, TradeProposal } from '../purchasing/types.js';
 
 function testSeed(n: number): Uint8Array {
   const s = new Uint8Array(32);
@@ -124,7 +124,22 @@ function makeStubBuyer(agreement: TradeAgreement) {
   const prepareBuy = jest.fn().mockResolvedValue(prepared);
   const executePrepared = jest.fn().mockResolvedValue({ agreement, session: { id: 'r1' }, negotiated: true });
   const negotiate = jest.fn();
-  return { buyer: { prepareBuy, executePrepared, negotiate } as unknown as EdgeBuyer, prepareBuy, executePrepared };
+  const preview: NegotiationPreview = {
+    negotiationId: 'n1',
+    sellerAddress: 'SELLER_ADDR',
+    proposal: { terms: agreement.terms } as unknown as TradeProposal,
+    history: [],
+  };
+  const previewNegotiation = jest.fn().mockResolvedValue(preview);
+  const finalizeNegotiation = jest.fn().mockResolvedValue({ agreement, history: [] });
+  const buyer = {
+    prepareBuy,
+    executePrepared,
+    negotiate,
+    previewNegotiation,
+    finalizeNegotiation,
+  } as unknown as EdgeBuyer;
+  return { buyer, prepareBuy, executePrepared, previewNegotiation, finalizeNegotiation };
 }
 
 function makeRuntime(policy: GrantBoundAutonomyPolicy, buyer: EdgeBuyer) {
@@ -237,5 +252,51 @@ describe('RFC-019 P1: reservation lifecycle on failure', () => {
     const graph = await policy.getRunReceiptGraph('run-1');
     expect(graph?.totals.abortedSteps).toBe(0);
     expect(graph?.totals.committedSteps).toBe(0);
+  });
+});
+
+describe('RFC-019 P1-2: binding negotiation is signed only after authorization', () => {
+  const negotiatePayload = {
+    manifest: {} as never,
+    desiredTerms: {} as never,
+    strategy: (() => ({ action: 'accept' })) as never,
+  };
+
+  it('authorizes previewed terms and signs the acceptance in execute', async () => {
+    const policy = await makePolicy('500');
+    const { buyer, previewNegotiation, finalizeNegotiation } = makeStubBuyer(agreementAt('100'));
+    const authorizeSpy = jest.spyOn(policy, 'authorizeAndReserve');
+    const runtime = makeRuntime(policy, buyer);
+
+    const result = await runtime.executeAction({
+      action: 'purchase:negotiate',
+      subject: 'SELLER_ADDR',
+      payload: negotiatePayload,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(previewNegotiation).toHaveBeenCalledTimes(1);
+    expect(finalizeNegotiation).toHaveBeenCalledTimes(1);
+
+    const canonical = authorizeSpy.mock.calls[0][0].action;
+    expect(canonical.effects.spends).toEqual([
+      { tokenId: '0x00', amount: '100', recipient: 'SELLER_ADDR' },
+    ]);
+  });
+
+  it('never signs the acceptance when the terms exceed the run budget', async () => {
+    const policy = await makePolicy('500');
+    const { buyer, finalizeNegotiation } = makeStubBuyer(agreementAt('600'));
+    const runtime = makeRuntime(policy, buyer);
+
+    const result = await runtime.executeAction({
+      action: 'purchase:negotiate',
+      subject: 'SELLER_ADDR',
+      payload: negotiatePayload,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(['REQUIRES_HUMAN', 'POLICY_REJECTED']).toContain(result.errorCode);
+    expect(finalizeNegotiation).not.toHaveBeenCalled();
   });
 });

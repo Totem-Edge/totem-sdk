@@ -174,6 +174,7 @@ export {
   type BuyerOptions,
   type BuyOptions,
   type PreparedPurchase,
+  type NegotiationPreview,
   createEdgeSeller,
   type EdgeSeller,
   type SellerServiceOptions,

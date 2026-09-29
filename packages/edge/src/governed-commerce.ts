@@ -15,7 +15,7 @@
  */
 
 import type { BuiltinActionRegistration } from './actions.js';
-import type { EdgeBuyer, BuyOptions, PreparedPurchase } from './purchasing/buyer.js';
+import type { EdgeBuyer, BuyOptions, PreparedPurchase, NegotiationPreview } from './purchasing/buyer.js';
 import type {
   NegotiationLimits,
   NegotiationStrategy,
@@ -32,10 +32,6 @@ export interface GovernedCommerceConfig {
   strategy?: NegotiationStrategy;
   /** Default negotiation limits. */
   negotiation?: Partial<NegotiationLimits>;
-}
-
-function noEffects(): StepEffects {
-  return { spends: [], fees: [], channels: [] };
 }
 
 function agreementEffects(terms: TradeTerms, seller: string): StepEffects {
@@ -127,7 +123,10 @@ export function createGovernedPurchaseActions(config: GovernedCommerceConfig): B
           }
           const strategy = payload.strategy ?? defaultStrategy;
           if (!strategy) throw new Error('purchase:negotiate requires a negotiation strategy');
-          return buyer.negotiate({
+          // RFC-019 P1-2: run to the decision point WITHOUT signing a binding
+          // acceptance; the acceptance is signed only in `execute`, after the
+          // governed runtime authorizes the resulting terms.
+          return buyer.previewNegotiation({
             manifest: payload.manifest,
             desiredTerms: payload.desiredTerms,
             limits: { ...defaultNegotiation, ...payload.limits },
@@ -135,11 +134,19 @@ export function createGovernedPurchaseActions(config: GovernedCommerceConfig): B
           });
         },
         deriveEffects: (prepared) => {
-          const result = prepared as { agreement?: { terms: TradeTerms; seller: string } };
-          if (!result.agreement) return noEffects();
-          return agreementEffects(result.agreement.terms, result.agreement.seller);
+          const preview = prepared as NegotiationPreview;
+          return agreementEffects(preview.proposal.terms, preview.sellerAddress);
         },
-        execute: async (prepared) => ({ ok: true, data: prepared }),
+        execute: async (prepared) => {
+          const result = await buyer.finalizeNegotiation(prepared as NegotiationPreview);
+          return { ok: true, data: result };
+        },
+        // RFC-019 P1: a rejection before acceptance is non-binding (no economic
+        // effect); anything after signing is ambiguous and held.
+        classifyFailure: (error) => {
+          const message = error instanceof Error ? error.message : String(error);
+          return message.includes('rejected') ? 'definitely-not-executed' : 'unknown';
+        },
       },
     },
   ];

@@ -160,6 +160,19 @@ export interface PreparedPurchase {
   record: PurchaseRecord;
 }
 
+/**
+ * RFC-019 P1-2: a negotiation run to the decision point, WITHOUT signing a
+ * binding acceptance. A governed action authorizes the terms, then
+ * `finalizeNegotiation()` signs the acceptance.
+ */
+export interface NegotiationPreview {
+  negotiationId: string;
+  sellerAddress: string;
+  /** The proposal we would accept. */
+  proposal: TradeProposal;
+  history: TradeProposal[];
+}
+
 export class EdgeBuyer {
   private readonly _engine: NegotiationEngine;
   private readonly purchaseStore: PurchaseStore;
@@ -440,6 +453,90 @@ export class EdgeBuyer {
     opts: { skipAuthority?: boolean } = {},
   ): Promise<PurchaseResult> {
     return this.executeAgreement(prepared.intent, prepared.agreement, prepared.options, prepared.record, opts);
+  }
+
+  /**
+   * RFC-019 P1-2: run a negotiation to the decision point WITHOUT signing a
+   * binding acceptance. A governed action authorizes the resulting terms, then
+   * `finalizeNegotiation()` signs the acceptance. Fails closed on the transport
+   * path (which cannot defer the signature).
+   */
+  async previewNegotiation(options: {
+    manifest: SignedManifest;
+    desiredTerms: TradeTerms;
+    limits: Partial<NegotiationLimits>;
+    strategy: NegotiationStrategy;
+  }): Promise<NegotiationPreview> {
+    if (this.negotiationTransport) {
+      throw new Error('previewNegotiation: binding negotiation over a transport requires a dedicated governed flow');
+    }
+    const { manifest, desiredTerms, limits, strategy } = options;
+    const manifestId = computeManifestId(manifest.manifest);
+    const negotiationId = `edge:negotiation:${this.now()}:${Math.random().toString(36).slice(2)}`;
+
+    await this._engine.openNegotiation({
+      negotiationId,
+      counterparty: manifest.authorAddress,
+      manifestId,
+      expiresAt: limits.expiresAt,
+    });
+
+    const initial = await this.buildProposal({
+      negotiationId,
+      round: 0,
+      manifestId,
+      proposer: this.opts.principal,
+      recipient: manifest.authorAddress,
+      terms: desiredTerms,
+      parentProposalId: undefined,
+    });
+    await this._engine.submitProposal(initial);
+
+    let current = initial;
+    let history = [initial];
+    for (let round = 1; round < (limits.maxRounds ?? 5); round++) {
+      const decision = await strategy.evaluate({
+        negotiationId,
+        proposal: current,
+        history,
+        termsHashes: await this._engine.getTermsHashes(negotiationId),
+      });
+
+      if (decision.action === 'accept') {
+        return { negotiationId, sellerAddress: manifest.authorAddress, proposal: current, history };
+      }
+      if (decision.action === 'reject') {
+        const rejection = await this.signRejection(negotiationId, current.proposalId, manifest.authorAddress, decision.reason);
+        await this._engine.rejectProposal(rejection);
+        throw new Error(`negotiation rejected: ${decision.reason ?? 'no reason'}`);
+      }
+      if (decision.action === 'counter') {
+        const counter = await this.buildProposal({
+          negotiationId,
+          round,
+          manifestId,
+          proposer: this.opts.principal,
+          recipient: manifest.authorAddress,
+          terms: decision.terms,
+          parentProposalId: current.proposalId,
+        });
+        await this._engine.submitProposal(counter);
+        current = counter;
+        history = [...history, counter];
+      }
+    }
+
+    throw new Error('negotiation exhausted maxRounds');
+  }
+
+  /**
+   * RFC-019 P1-2: sign the acceptance for a previewed negotiation and converge
+   * the agreement. Call only AFTER the governed action authorized the terms.
+   */
+  async finalizeNegotiation(preview: NegotiationPreview): Promise<NegotiationResult> {
+    const acceptance = await this.signAcceptance(preview.negotiationId, preview.proposal.proposalId, preview.sellerAddress);
+    const agreement = await this._engine.acceptProposal(acceptance);
+    return { agreement, history: preview.history };
   }
 
   /**
