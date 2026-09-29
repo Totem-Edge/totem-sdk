@@ -1,6 +1,6 @@
 # RFC-018: KISSVM / Recursive-MAST / `tx-builder` — Adversarial Remediation
 
-**Status:** Draft — remediation contract (P0 + P1 landed)
+**Status:** Draft — remediation contract (P0 + P1 + P2 landed)
 **Created:** 2026-09-28
 **Authors:** Totem SDK Contributors
 **Depends on:** RFC-016 (KISSVM template security hardening), RFC-017 (decision receipt graph)
@@ -84,6 +84,21 @@ The audit's three Criticals are confirmed on current `main`:
 | P2-3 | Coin-selection dedup + spent/expiry; funding-intent nonce/expiry + required pool address; WASM/TS serializer parity | `tx-builder/src/{coin-selection,fund-tx}.ts`, `core-wasm` |
 | P2-4 | Invariant detector: structural AST checks (detect `SIGNEDBY(STATE(…))`), I3 unconditional with per-template declared ports, unreachable-branch awareness | `kissvm/src/invariants.ts` |
 | P2-5 | Build the RFC-016 §7 adversarial mutation harness; add a dist provenance test | kissvm tests / CI |
+
+**P2 landed:**
+- **P2-1** canonical hashes in `prevstate`, `content-keys`, compliance pipeline.
+- **P2-2** terminal `RETURN` for prevstate workflows (idempotent) and reachable
+  migration composition.
+- **P2-3** coin-selection dedup; required pool address; **WASM/TS serializer
+  parity** — the Rust `MMREntryNumber` scale encoding and the TS string-state
+  brackets were fixed (both wrong vs. the C++ `writeDataStream`), with a
+  WASM↔TS parity test.
+- **P2-4** structural AST invariant detection (surfaced/fixed
+  `buildProofDelegationScript`).
+- **P2-5** `kissvm/src/__tests__/adversarial-mutation.test.ts` matrix, plus a CI
+  gate that fails if a `core-wasm` rebuild changes the committed `pkg`/`pkg-node`
+  artifacts (dist provenance).
+
 
 ---
 
