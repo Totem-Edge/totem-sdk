@@ -109,7 +109,7 @@ export class SqliteStore implements StorageAdapterWithCapabilities, CasStore, Tr
   };
 
   private readonly db: Database.Database;
-  private readonly failurePolicy: FailurePolicy;
+  readonly failurePolicy: FailurePolicy;
   private readonly txHandle: SqliteTx;
   private readonly createKvTable: boolean;
   private kvStmts: SqliteKvStatements | null = null;

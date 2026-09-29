@@ -28,6 +28,12 @@ export function artifactRefId(ref: ArtifactRef): string {
 
 export interface ArtifactBackendCapabilities {
   readonly writable: boolean;
+  /**
+   * RFC-007 Amendment A: whether `delete()` can actually remove/tombstone bytes.
+   * Retention policy (`retention`) and the ability to delete are related but not
+   * identical, so the ability is explicit.
+   */
+  readonly deletable: boolean;
   readonly acknowledge: WriteAckMode;
   readonly atomic: boolean;
   readonly retention: 'fixed' | 'managed' | 'none';

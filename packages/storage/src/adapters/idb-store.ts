@@ -63,7 +63,7 @@ export class IdbStore implements StorageAdapterWithCapabilities, CasStore, Trans
   private readonly databaseName: string;
   private readonly storeName: string;
   private readonly version: number;
-  private readonly failurePolicy: FailurePolicy;
+  readonly failurePolicy: FailurePolicy;
   private dbPromise: Promise<IDBDatabase> | null = null;
 
   constructor(options: IdbStoreOptions = {}) {

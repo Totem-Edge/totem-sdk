@@ -151,7 +151,7 @@ describe('createProofGraphEvidenceStore (artifact-restore contract)', () => {
 
   it('rejects a read-only artifact store at construction', () => {
     const readOnly = {
-      capabilities: { writable: false, acknowledge: 'durably-acknowledged', atomic: true, retention: 'managed', offlineReadable: true },
+      capabilities: { writable: false, deletable: false, acknowledge: 'durably-acknowledged', atomic: true, retention: 'managed', offlineReadable: true },
       async put() { throw new Error('read-only'); },
       async get() { return { status: 'not-found' as const }; },
     };

@@ -55,6 +55,11 @@
       "require": "./dist/namespace.js",
       "import": "./dist/namespace.js"
     },
+    "./persistence": {
+      "types": "./dist/persistence.d.ts",
+      "require": "./dist/persistence.js",
+      "import": "./dist/persistence.js"
+    },
     "./sqlite": {
       "types": "./dist/adapters/sqlite-store.d.ts",
       "require": "./dist/adapters/sqlite-store.js",

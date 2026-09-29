@@ -27,6 +27,7 @@ export function runBackendConformance(suiteName: string, makeStore: BackendConfo
     it('declares a complete capability set', async () => {
       const { backend } = await makeStore();
       expect(typeof backend.capabilities.writable).toBe('boolean');
+      expect(typeof backend.capabilities.deletable).toBe('boolean');
       expect(typeof backend.capabilities.atomic).toBe('boolean');
       expect(['durably-acknowledged', 'buffered', 'volatile']).toContain(backend.capabilities.acknowledge);
       expect(['fixed', 'managed', 'none']).toContain(backend.capabilities.retention);

@@ -151,7 +151,7 @@ export class FileStore implements StorageAdapterWithCapabilities, CasStore, Tran
     conditional: true,
   };
 
-  private readonly failurePolicy: FailurePolicy;
+  readonly failurePolicy: FailurePolicy;
   private readonly lockStaleMs: number;
 
   constructor(

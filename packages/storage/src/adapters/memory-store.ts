@@ -32,6 +32,9 @@ export class MemoryStore implements StorageAdapterWithCapabilities, CasStore, Tr
     conditional: true,
   };
 
+  /** RFC-007 Amendment A: an in-memory store cannot corrupt. */
+  readonly failurePolicy = 'strict' as const;
+
   private readonly entries = new Map<string, MemoryEntry>();
 
   async get<T>(key: string): Promise<T | null> {

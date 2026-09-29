@@ -1,6 +1,6 @@
 # RFC-007 Amendment A — Edge Persistence Injection Point & Evidence-Byte Ownership
 
-**Status:** Proposed (review) · **Date:** 2026-09-28 · **Amends:** RFC-007
+**Status:** Accepted — A0 landed (A1–A3 pending) · **Date:** 2026-09-28 · **Amends:** RFC-007
 **Touches:** `@totemsdk/storage`, `@totemsdk/edge`, `@totemsdk/edge-adapters`, `@totemsdk/proofgraph`
 **Depends on:** RFC-007 §1.1, §3.5, §3.6, §4.1–§4.3, §5, §6
 **Depends on (design):** RFC-006 (intelligence/QVAC boundaries), RFC-017 / ProofGraph evidence lifecycle
@@ -226,7 +226,7 @@ uses its own labels to avoid collision.
 
 | Label | Scope | Gate |
 |---|---|---|
-| **A0** | Neutral helpers + observable `failurePolicy` in `@totemsdk/storage`; two `EdgeRuntimePorts` slots. No behavior change. | Typecheck/lint; adapters and doubles report `failurePolicy`; helper unit tests. |
+| **A0 ✅ landed** | Neutral helpers + observable `failurePolicy` in `@totemsdk/storage`; two `EdgeRuntimePorts` slots. No behavior change. | Typecheck/lint; adapters and doubles report `failurePolicy`; helper unit tests. |
 | **A1** | First consumer: Edge artifact cache in `@totemsdk/edge-adapters`, over `PersistencePorts`. | Write → **process restart/reopen** → retrieve; scope isolation (`get`/`keys`/`clear`); expiry/invalidation; `corrupt` vs `not-found`; capability/policy rejection. |
 | **A2** | Conformance + required durable-CI job integration; reuse ProofGraph's `ArtifactStore` conformance result rather than duplicating. | CI job fails when a deployed-gate backend cannot run. |
 | **A3** | Evidence-byte ownership: make the claim→artifact binding explicit; route captured originals through the ProofGraph evidence store; revisit chunking/GC in RFC-007 §4.3/OQ7. | Evidence restore test: commitment → resolvable artifact → bytes; `not-found` vs `corrupt`; byte-identity check. |

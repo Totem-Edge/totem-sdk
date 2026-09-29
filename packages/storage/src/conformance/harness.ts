@@ -185,6 +185,10 @@ export function runCoreConformance(suiteName: string, makeStore: CoreConformance
         expect(typeof store.capabilities.atomic).toBe('boolean');
         expect(typeof store.capabilities.conditional).toBe('boolean');
       });
+
+      it('reports an observable failurePolicy (RFC-007 Amendment A)', () => {
+        expect(['strict', 'lenient']).toContain(store.failurePolicy);
+      });
     });
   });
 }

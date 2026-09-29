@@ -8,6 +8,7 @@
 import type { EdgeOperationResult } from './types.js';
 import type { EdgeIntelligencePort } from '@totemsdk/intelligence';
 import type { EdgeDecisionPort } from '@totemsdk/decision';
+import type { PersistencePorts } from '@totemsdk/storage';
 
 export type { EdgeIntelligencePort } from '@totemsdk/intelligence';
 export type { EdgeDecisionPort } from '@totemsdk/decision';
@@ -289,6 +290,17 @@ export interface EdgeRuntimePorts {
   stream?: EdgeStreamPort;
   /** Publish-subscribe transport (MQTT-compatible, protocol-agnostic). */
   pubsub?: EdgePubSubPort;
+  /**
+   * RFC-007 Amendment A: optional transactional KV substrate. Required when a
+   * configured feature declares `durable`/`needsArtifacts`; validated by
+   * `assertPersistence()` at construction.
+   */
+  storage?: PersistencePorts['storage'];
+  /**
+   * RFC-007 Amendment A: optional artifact byte store. Separate from `storage`
+   * (bytes vs. metadata); required when a feature declares `needsArtifacts`.
+   */
+  artifacts?: PersistencePorts['artifacts'];
 }
 
 /**

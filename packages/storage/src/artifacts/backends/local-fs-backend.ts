@@ -27,6 +27,7 @@ import type {
 export class LocalFileBackend implements ArtifactStoreBackend {
   readonly capabilities: ArtifactBackendCapabilities = {
     writable: true,
+    deletable: true,
     acknowledge: 'durably-acknowledged',
     atomic: true,
     retention: 'managed',

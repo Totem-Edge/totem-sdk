@@ -26,6 +26,13 @@ export interface StoreCapabilities {
 
 export interface StorageAdapterWithCapabilities extends StorageAdapter {
   readonly capabilities: StoreCapabilities;
+  /**
+   * RFC-007 Amendment A (§A.3.2): the adapter's corruption policy, observable
+   * **outside** `StoreCapabilities` so a strict consumer can reject a lenient
+   * adapter at construction — before a corrupt read is collapsed into `null`.
+   * `MemoryStore` reports `'strict'` (it cannot corrupt).
+   */
+  readonly failurePolicy: FailurePolicy;
   close?(): Promise<void>;
 }
 

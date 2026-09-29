@@ -86,7 +86,7 @@ describe('ArtifactStore', () => {
 
   it('refuses to write to a non-writable backend', async () => {
     const readOnly = new ArtifactStore({
-      capabilities: { writable: false, acknowledge: 'volatile', atomic: false, retention: 'none', offlineReadable: true },
+      capabilities: { writable: false, deletable: false, acknowledge: 'volatile', atomic: false, retention: 'none', offlineReadable: true },
       get: async () => ({ status: 'not-found' as const }),
       put: async () => { throw new Error('should not be called'); },
     });

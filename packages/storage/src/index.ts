@@ -17,6 +17,7 @@
 export * from './errors.js';
 export * from './codec.js';
 export * from './types.js';
+export * from './persistence.js';
 export * from './namespace.js';
 export * from './transaction.js';
 export * from './journal.js';
