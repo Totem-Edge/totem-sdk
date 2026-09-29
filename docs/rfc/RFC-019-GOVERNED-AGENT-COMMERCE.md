@@ -1,6 +1,6 @@
 # RFC-019: Governed Agent Commerce — close the `createEdge()` privilege-escalation path
 
-**Status:** Draft — remediation contract (P0 + P1 landed; P2 open)
+**Status:** Draft — remediation contract (P0 + P1 + P2 landed)
 **Created:** 2026-09-28
 **Authors:** Totem SDK Contributors
 **Depends on:** RFC-004 (Edge SDK v1), RFC-010 (Industrial Action RC), RFC-007 (storage/durability)
@@ -274,6 +274,22 @@ Document the final flow and why capability checks are not authorization.
 - Repository-wide bypass sweep + examples/docs.
 - Type branding / tool-discovery guardrails.
 - Adversarial test matrix in CI.
+
+#### P2 landed — implementation notes
+
+- **Bypass sweep:** no non-test source outside `@totemsdk/edge` hands
+  `createEdge()` / `EdgeBuyer` / raw payment ports to agents; the MCP template
+  catalog exposes no commerce/purchasing functions (agents cannot auto-discover
+  lower-level purchasing APIs).
+- **Docs:** the trusted-host vs governed-agent invariant and
+  `createGovernedPurchaseActions` usage are documented in `packages/edge/README.md`
+  and `TOTEM_EDGE_GREY_PAPER.md`.
+- **Adversarial tests:** `edge/src/__tests__/governed-commerce.test.ts` covers
+  raw-buyer/port non-exposure, canonical-effect authorization, budget denial
+  without execution, definite vs ambiguous failure lifecycle, post-authorization
+  acceptance signing, and idempotent-retry rejection.
+- **Residual:** a runtime type-brand guard against passing an `EdgeCommerceRuntime`
+  as an agent tool collection (no such collection type exists in-repo yet).
 
 ---
 
