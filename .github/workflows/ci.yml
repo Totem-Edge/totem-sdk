@@ -124,27 +124,43 @@ jobs:
         run: node scripts/audit-wallet-connect-parity.mjs --check
 
   storage-durability:
-    name: Storage durable-CI (sqlite + fs conformance)
+    name: Storage durable-CI (sqlite + fs + artifact conformance)
     runs-on: ubuntu-latest
     needs: install
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Setup filtered workspace
         uses: ./.github/actions/setup-pnpm
-      - name: Build core (dependency order)
-        working-directory: packages/core
+      - name: Setup Rust and WASM toolchain
+        uses: ./.github/actions/setup-rust-wasm
+      - name: Build core-wasm (prerequisite)
+        working-directory: packages/core-wasm
         run: npm run build
-      - name: Build storage
-        working-directory: packages/storage
-        run: npm run build
+      - name: Build workspace (dependency order)
+        run: node scripts/verify-workspace.mjs --typecheck
       - name: Rebuild native sqlite bindings (install uses --ignore-scripts)
         run: pnpm -r rebuild better-sqlite3
       - name: Fail if better-sqlite3 cannot run
         working-directory: packages/storage
         run: node -e "new (require('better-sqlite3'))(':memory:').close(); console.log('better-sqlite3 OK')"
-      - name: Run sqlite + fs conformance (durable gates)
+      - name: Run sqlite + fs KV conformance (durable gates)
         working-directory: packages/storage
         run: npx jest --testPathPatterns="sqlite-store.conformance|file-store.conformance"
+      # RFC-007 Amendment A (A2): artifact durable gates. The reference backend
+      # conformance is `runBackendConformance` in @totemsdk/storage (LocalFileBackend);
+      # the Edge cache and ProofGraph consume it rather than re-declaring a suite.
+      - name: Reference artifact backend conformance (LocalFileBackend)
+        working-directory: packages/storage
+        run: npx jest --testPathPatterns="artifact-store" --runInBand
+      - name: Persistence helper contract (assertPersistence)
+        working-directory: packages/storage
+        run: npx jest persistence --runInBand
+      - name: Edge artifact cache conformance (first consumer)
+        working-directory: packages/edge-adapters
+        run: npx jest artifact-cache --runInBand
+      - name: ProofGraph evidence conformance (reference ArtifactStore consumer)
+        working-directory: packages/proofgraph
+        run: npx jest evidence --runInBand
 
   pack:
     name: Pack validation (publishable packages)
