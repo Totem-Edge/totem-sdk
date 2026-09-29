@@ -53,3 +53,9 @@ export {
   type CommerceStore,
   type SQLiteCommerceStoreConfig,
 } from './sqlite-commerce-store.js';
+
+export {
+  createEdgeArtifactCache,
+  type EdgeArtifactCache,
+  type ArtifactCacheRetentionPolicy,
+} from './artifact-cache.js';

@@ -16,6 +16,7 @@ module.exports = {
           '@totemsdk/storage/types': ['../storage/src/index.ts'],
           '@totemsdk/storage/errors': ['../storage/src/errors.ts'],
           '@totemsdk/storage/journal': ['../storage/src/journal.ts'],
+          '@totemsdk/storage/artifacts/local-fs-backend': ['../storage/src/artifacts/backends/local-fs-backend.ts'],
         },
       },
       diagnostics: { ignoreCodes: [2307] }, // workspace subpath exports resolved by moduleNameMapper
@@ -31,6 +32,7 @@ module.exports = {
     '^@totemsdk/storage/snapshot$': '<rootDir>/../storage/src/snapshot.ts',
     '^@totemsdk/storage/types$': '<rootDir>/../storage/src/index.ts',
     '^@totemsdk/storage/errors$': '<rootDir>/../storage/src/errors.ts',
+    '^@totemsdk/storage/artifacts/local-fs-backend$': '<rootDir>/../storage/src/artifacts/backends/local-fs-backend.ts',
     '^@totemsdk/chain-provider$': '<rootDir>/../chain-provider/src/index.ts',
     '^@totemsdk/identity$': '<rootDir>/../identity/src/index.ts',
     '^@totemsdk/manifest$': '<rootDir>/../manifest/src/index.ts',
