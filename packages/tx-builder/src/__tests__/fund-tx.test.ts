@@ -33,7 +33,7 @@ describe('buildPoolFundTx', () => {
 
     expect(proof.lpAddress).toBe(lpAddress);
     expect(signature.length).toBeGreaterThan(0);
-    const check = verifyPoolFundTx(tx, proof);
+    const check = verifyPoolFundTx(tx, proof, tx.recipientAddress);
     expect(check.valid).toBe(true);
     expect(check.reasons).toEqual([]);
   });

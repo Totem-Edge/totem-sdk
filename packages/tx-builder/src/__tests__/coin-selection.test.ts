@@ -50,4 +50,12 @@ describe('CoinSelectionService.selectCoins token filtering (AUD-046)', () => {
     expect(result.insufficientFunds).toBe(true);
     expect(result.selectedCoins.every(c => c.tokenid !== '0xUSDT')).toBe(true);
   });
+
+  it('de-duplicates coins by coinId so a duplicate cannot fake sufficient funds (RFC-018 P2-3)', () => {
+    const duped = [coin('a', '5', '0x00'), coin('a', '5', '0x00')];
+    const result = service.selectCoins(duped, { mode: 'global', targetAmount: '8' });
+    expect(result.selectedCoins).toHaveLength(1);
+    expect(result.totalSelected).toBe('5');
+    expect(result.insufficientFunds).toBe(true);
+  });
 });

@@ -149,7 +149,14 @@ export class CoinSelectionService {
     coins: SpendableCoin[],
     options: CoinSelectionOptions
   ): CoinSelectionResult {
-    let availableCoins = [...coins];
+    // RFC-018 P2-3: de-duplicate by coinId so a duplicated entry cannot be
+    // counted twice (inflating the selected total / faking sufficient funds).
+    const seenCoinIds = new Set<string>();
+    let availableCoins = coins.filter((c) => {
+      if (seenCoinIds.has(c.coinId)) return false;
+      seenCoinIds.add(c.coinId);
+      return true;
+    });
     
     if (options.mode === 'focused' && options.focusedAddress) {
       availableCoins = availableCoins.filter(c => c.address === options.focusedAddress);

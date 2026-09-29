@@ -151,7 +151,7 @@ const empty = (reasons: string[]): PoolFundVerification => ({ valid: reasons.len
 export function verifyPoolFundTx(
   tx: PoolFundTx,
   proof: SignedFundingIntent,
-  expectedPoolAddress?: string,
+  expectedPoolAddress: string,
 ): PoolFundVerification {
   const reasons: string[] = [];
 
@@ -180,7 +180,7 @@ export function verifyPoolFundTx(
   if (proof.recipientAddress !== tx.recipientAddress) reasons.push('proof.recipientAddress differs from tx');
   if (proof.nonce !== tx.nonce) reasons.push('proof.nonce differs from tx');
 
-  if (expectedPoolAddress && proof.recipientAddress !== expectedPoolAddress) {
+  if (proof.recipientAddress !== expectedPoolAddress) {
     reasons.push(`recipient ${proof.recipientAddress} is not the expected pool address ${expectedPoolAddress}`);
   }
 
