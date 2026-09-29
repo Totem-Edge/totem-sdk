@@ -174,6 +174,22 @@ API**; string-presence assertions are not accepted as proof.
 | **C4** | **`provider-bond` trusts attacker-supplied identity graphs and bond proofs; verification is a stub V** — `identity.ts:22-34,44-62` reads `claim.proof.address` with no signature/issuer/scope/expiry check and never calls `verifyManifest`; `bond-proof.ts:9-39` accepts self-declared `manual`/`declared` amounts, and `visible-balance`/`future-live-chain` return `ok:true` without calling `verifier.verify`; `bond-proof.ts:66-71` passes `declared` with no attached proof | `provider-bond` | Resolve identities via `@totemsdk/identity`; always `await verifier.verify`; cryptographically verify `totem-proof`; require a proof per declaration; call `verifyManifest` | Forged identity graph / phantom bond ⇒ verification fails; `verifyBondStack` rejects a declaration without a proof |
 | **C5** | **`validateExternalSignature` always returns `true` V** — `core/src/scripts/witness-serializer.ts:364-375`; exported from `@totemsdk/core`; `aggregateSignatures` includes the `totemSignature` proof unconditionally | `core` | Implement real `wotsVerifyDigest`, or delete the export; gate `aggregateSignatures` on verification (**duplicate of P1-13**) | Junk signature ⇒ `false`; aggregate drops it |
 
+**Pass-2 criticals landed (C1–C5).**
+- **C1** — defaulted/hardcoded WOTS indices removed: `fund-tx` requires `lpKeyIndex`;
+  `omnia-host` honors the reserved leaf; `liquidity-bond` requires caller indices;
+  `root-identity` cursors are forward-only and validated.
+- **C2** — Axia lease provider rejects a replayed index (`IndicesUnavailableError`),
+  keys the watermark/journal by the real `treeId`, and fails closed on unverifiable
+  certificates.
+- **C3** — identity claim-type scope enforced: manifest signers exclude
+  `controlledAddresses`; revoke/rotate require root/controller; payment/endpoint
+  require `identity:manage`/`*`.
+- **C4** — `provider-bond` resolves identity graphs via `@totemsdk/identity`,
+  verifies the manifest signature, and requires an independent verifier plus an
+  attached proof for every bond declaration.
+- **C5** — `validateExternalSignature` performs real `wotsVerifyDigest`;
+  `aggregateSignatures` requires the digest and drops unverified signatures.
+
 ### 4.5 Pass 2 — SDK-wide High
 
 | # | Finding | File / symbol | Remediation | Acceptance |
