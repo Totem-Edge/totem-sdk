@@ -53,6 +53,15 @@ describe('position', () => {
       const pos = { ...createLiquidityPosition({ commitment: makeCommitment(), poolId: 'pool-1' }), allocatedAmount: 300n };
       expect(computeAvailableLiquidity(pos)).toBe(700n);
     });
+
+    it('subtracts allocated AND reserved (sum, not max) — RFC-020 H7', () => {
+      const pos = {
+        ...createLiquidityPosition({ commitment: makeCommitment(), poolId: 'pool-1' }),
+        allocatedAmount: 300n,
+        reservedAmount: 300n,
+      };
+      expect(computeAvailableLiquidity(pos)).toBe(400n);
+    });
   });
 
   describe('computeEffectiveLiquidityAmount', () => {

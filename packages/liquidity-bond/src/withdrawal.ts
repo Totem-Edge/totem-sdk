@@ -1,4 +1,5 @@
 import { F, bytesToHex } from '@totemsdk/core';
+import { computeAvailableLiquidity } from './position.js';
 import type {
   WithdrawalIntent,
   LiquidityBondVerifyResult,
@@ -55,8 +56,20 @@ export function verifyWithdrawalAllowed(params: VerifyWithdrawalAllowedParams): 
     return { ok: false, reason: 'Withdrawal amount must be positive', code: 'AMOUNT_TOO_SMALL' };
   }
 
-  if (intent.amount > position.amount) {
-    return { ok: false, reason: 'Withdrawal exceeds position amount', code: 'WITHDRAWAL_NOT_ALLOWED' };
+  // RFC-020 H7: only a chain-confirmed position has real withdrawable liquidity;
+  // a declared/absent funding proof is a phantom position.
+  if (position.amount <= 0n) {
+    return { ok: false, reason: 'Position has no committed amount', code: 'POSITION_INVALID' };
+  }
+  if (position.funding?.status !== 'chain-confirmed') {
+    return { ok: false, reason: 'Position funding is not chain-confirmed', code: 'WITHDRAWAL_NOT_ALLOWED' };
+  }
+
+  // Withdrawal is capped by unallocated (available) liquidity, not the gross
+  // amount, so allocations/reservations cannot be drained.
+  const available = computeAvailableLiquidity(position);
+  if (intent.amount > available) {
+    return { ok: false, reason: 'Withdrawal exceeds available liquidity', code: 'WITHDRAWAL_NOT_ALLOWED' };
   }
 
   if (intent.ownerAddress !== position.lpAddress) {

@@ -24,7 +24,12 @@ function makePosition(lockType: 'none' | 'fixed-duration' = 'none') {
     purpose: 'omnia-router-liquidity', terms: { lockType, unlockAfterMs: lockType === 'fixed-duration' ? 10000 : undefined },
     createdAt: 1000,
   });
-  return createLiquidityPosition({ commitment, poolId: 'pool-1', createdAt: 1000 });
+  return createLiquidityPosition({
+    commitment,
+    poolId: 'pool-1',
+    createdAt: 1000,
+    funding: { utxoRef: 'utxo-1', tokenId: '0x00', amount: 1000n, status: 'chain-confirmed', confirmedAt: 1000 },
+  });
 }
 
 describe('withdrawal', () => {
@@ -114,5 +119,29 @@ describe('withdrawal', () => {
       const result = verifyWithdrawalAllowed({ intent, position: pos, pool, now: 20000 });
       expect(result.ok).toBe(true);
     });
+  });
+});
+
+describe('RFC-020 H7: phantom positions', () => {
+  it('rejects withdrawal from a position without chain-confirmed funding', () => {
+    const pool = makePool();
+    const commitment = createLiquidityCommitment({
+      poolId: 'pool-1', lpAddress: 'MxLP', asset: 'MINIMA', amount: 1000n,
+      purpose: 'omnia-router-liquidity', terms: { lockType: 'none' }, createdAt: 1000,
+    });
+    const unfunded = createLiquidityPosition({ commitment, poolId: 'pool-1', createdAt: 1000 });
+    const intent = createWithdrawalIntent({ positionId: unfunded.positionId, poolId: 'pool-1', ownerAddress: 'MxLP', amount: 500n });
+    const result = verifyWithdrawalAllowed({ intent, position: unfunded, pool, now: 2000 });
+    expect(result.ok).toBe(false);
+    expect(result.code).toBe('WITHDRAWAL_NOT_ALLOWED');
+  });
+
+  it('caps withdrawal by available (allocated + reserved) liquidity', () => {
+    const pool = makePool();
+    const pos = { ...makePosition('none'), allocatedAmount: 400n, reservedAmount: 400n };
+    const intent = createWithdrawalIntent({ positionId: pos.positionId, poolId: 'pool-1', ownerAddress: 'MxLP', amount: 500n });
+    const result = verifyWithdrawalAllowed({ intent, position: pos, pool, now: 2000 });
+    expect(result.ok).toBe(false);
+    expect(result.code).toBe('WITHDRAWAL_NOT_ALLOWED');
   });
 });

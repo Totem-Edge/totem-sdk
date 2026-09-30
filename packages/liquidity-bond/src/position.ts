@@ -77,7 +77,9 @@ export function markLiquidityPositionInvalid(position: LiquidityPosition, reason
 export function computeAvailableLiquidity(position: LiquidityPosition): bigint {
   const allocated = position.allocatedAmount ?? 0n;
   const reserved = position.reservedAmount ?? 0n;
-  const used = allocated > reserved ? allocated : reserved;
+  // RFC-020 H7: both allocations AND reservations consume liquidity — the sum,
+  // not the max, so neither can be double-counted.
+  const used = allocated + reserved;
   const available = position.amount - used;
   return available > 0n ? available : 0n;
 }
