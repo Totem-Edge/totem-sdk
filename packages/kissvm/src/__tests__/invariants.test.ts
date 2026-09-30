@@ -304,3 +304,14 @@ describe('RFC-020 P1-7: sensor-proof has no dead code after MAST', () => {
     expect(auditScriptInvariants({ name: 'sensor', script }).map((v) => v.invariant)).not.toContain('I4');
   });
 });
+
+describe('RFC-020 P1-10: compliance attribute stage', () => {
+  const root = 'cc'.repeat(32);
+  it('commits the threshold, requires non-zero and an issuer signature', () => {
+    const chain = buildStandardCompliancePipeline(root, root, root, root, 'aa', 'bb', 'cc', 'dd');
+    const attr = chain.links[3].script;
+    expect(attr).toContain('LET threshold = PREVSTATE(6)');
+    expect(attr).toContain('ASSERT threshold GT 0');
+    expect(attr).toContain('ASSERT SIGNEDBY(attributeIssuer)');
+  });
+});

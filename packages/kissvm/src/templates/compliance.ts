@@ -120,9 +120,18 @@ export function buildStandardCompliancePipeline(
         id: 'attribute',
         name: 'Attribute Proof',
         script: [
-          `LET attribute = STATE(5)`,
-          `LET threshold = STATE(6)`,
+          // RFC-020 EXP-04: the threshold is a committed constraint (not
+          // mutable STATE), it must be non-zero, and the attribute issuer is a
+          // committed authority that must sign.
+          `LET attribute = PREVSTATE(5)`,
+          `LET threshold = PREVSTATE(6)`,
+          `ASSERT STATE(5) EQ attribute`,
+          `ASSERT STATE(6) EQ threshold`,
+          `ASSERT threshold GT 0`,
           `ASSERT attribute GTE threshold`,
+          `LET attributeIssuer = PREVSTATE(7)`,
+          `ASSERT STATE(7) EQ attributeIssuer`,
+          `ASSERT SIGNEDBY(attributeIssuer)`,
           `RETURN TRUE`,
         ].join('\n'),
         policyRoot: attributePolicyRoot,
