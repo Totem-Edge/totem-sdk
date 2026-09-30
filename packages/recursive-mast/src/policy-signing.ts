@@ -15,6 +15,7 @@
  */
 
 import { sha3_256, bytesToHex, hexToBytes, canonicalJson, wotsVerifyDigest } from '@totemsdk/core';
+import { computeCanonicalScriptHash } from '@totemsdk/kissvm';
 import type { ScriptProof } from '@totemsdk/kissvm';
 import type { PolicyAction, PolicyRole } from './policy-manifest.js';
 
@@ -217,8 +218,15 @@ function canonicalRequest(req: PolicySigningRequest): string {
   const templateHash = req.transactionTemplate
     ? bytesToHex(sha3_256(req.transactionTemplate))
     : '';
-  const scriptHashes = req.disclosedScripts.map(ds => ds.scriptHash).sort();
-  const evidenceHashes = req.evidence.map(e => e.evidenceId).sort();
+  // RFC-020 RM-SIGN-001: bind the FULL disclosed-script content (script, MMR
+  // proof, policy root) and evidence, not just their ids — otherwise mutating
+  // the script/proof/evidence after the requester signed goes undetected.
+  const disclosedScripts = req.disclosedScripts
+    .map(ds => ({ scriptHash: ds.scriptHash, script: ds.script, mmrProof: ds.mmrProof, policyRoot: ds.policyRoot }))
+    .sort((a, b) => a.scriptHash.localeCompare(b.scriptHash));
+  const evidence = req.evidence
+    .map(e => ({ evidenceId: e.evidenceId, type: e.type, data: e.data, signerPkd: e.signerPkd, signature: e.signature }))
+    .sort((a, b) => a.evidenceId.localeCompare(b.evidenceId));
 
   const canonical = {
     requestId: req.requestId,
@@ -231,8 +239,8 @@ function canonicalRequest(req: PolicySigningRequest): string {
     transactionDigest: req.transactionDigest,
     transactionTemplateHash: templateHash,
     selectedPath: req.selectedPath,
-    disclosedScriptHashes: scriptHashes,
-    evidenceHashes,
+    disclosedScripts,
+    evidence,
     expectedInputs: req.expectedInputs,
     expectedOutputs: req.expectedOutputs,
     requestedAt: req.requestedAt,
@@ -517,6 +525,7 @@ export interface SigningRequestVerificationReport {
     digestPresent: boolean;
     digestMatchesTemplate?: boolean;
     scriptsBelongToRoots?: boolean;
+    disclosedScriptContent?: boolean;
     pathStartsAtAnchor?: boolean;
     roleRequired?: boolean;
     outputsMatch?: boolean;
@@ -640,6 +649,21 @@ export function verifySigningRequest(
     checks.scriptsBelongToRoots = allScriptsValid;
     if (!allScriptsValid) {
       errors.push('One or more disclosed scripts do not belong to the stated roots');
+    }
+  }
+
+  // RFC-020 RM-SIGN-001: the disclosed script content must hash to its claimed
+  // scriptHash (the request binds full content, not only the hash).
+  {
+    const norm = (h: string) => h.replace(/^0x/i, '').toLowerCase();
+    const mismatch = request.disclosedScripts.find(
+      ds => norm(computeCanonicalScriptHash(ds.script)) !== norm(ds.scriptHash),
+    );
+    checks.disclosedScriptContent = mismatch === undefined;
+    if (mismatch) {
+      errors.push(
+        `Disclosed script does not hash to its scriptHash (${mismatch.scriptHash.slice(0, 16)}…)`,
+      );
     }
   }
 

@@ -8,6 +8,7 @@ import {
   canonicalSigningResponseMessage,
 } from '../index.js';
 import type { PolicySigningRequest, PolicySigningResponse } from '../index.js';
+import { computeCanonicalScriptHash } from '@totemsdk/kissvm';
 
 function makeRequest(overrides: Partial<PolicySigningRequest> = {}): PolicySigningRequest {
   const now = 1_000_000;
@@ -146,6 +147,21 @@ describe('RFC-018 P1-1: verifySigningRequest', () => {
     });
     expect(bad.checks.pathStartsAtAnchor).toBe(false);
     expect(bad.valid).toBe(false);
+  });
+
+  it('rejects a disclosure whose script does not hash to its scriptHash (RFC-020 P1-1)', () => {
+    const script = 'RETURN TRUE';
+    const good = makeRequest({
+      disclosedScripts: [{ scriptHash: computeCanonicalScriptHash(script), script, mmrProof: '', policyRoot: '0xroot' }],
+    });
+    expect(verifySigningRequest(good, baseOptions(good)).checks.disclosedScriptContent).toBe(true);
+
+    const tampered = makeRequest({
+      disclosedScripts: [{ scriptHash: '0x' + 'aa'.repeat(32), script, mmrProof: '', policyRoot: '0xroot' }],
+    });
+    const report = verifySigningRequest(tampered, baseOptions(tampered));
+    expect(report.checks.disclosedScriptContent).toBe(false);
+    expect(report.valid).toBe(false);
   });
 });
 
