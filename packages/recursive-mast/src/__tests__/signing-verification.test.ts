@@ -208,10 +208,19 @@ describe('RFC-018 P1-2: acceptResponse', () => {
 
   it('rejects one signer filling several roles', () => {
     const session = makeSession();
-    const afterOwner = acceptResponse(session, makeResponse(session.sessionId));
+    const opts = {
+      roleKeys: { owner: '0x' + '22'.repeat(32), se: '0x' + '33'.repeat(32) },
+      signatureVerifier: () => true,
+    };
+    const afterOwner = acceptResponse(session, makeResponse(session.sessionId), opts);
     expect(() =>
-      acceptResponse(afterOwner, makeResponse(session.sessionId, { role: 'se', responseId: 'resp-2' })),
+      acceptResponse(afterOwner, makeResponse(session.sessionId, { role: 'se', responseId: 'resp-2' }), opts),
     ).toThrow(/already signed role/);
+  });
+
+  it('requires roleKeys to accept an approved response (RFC-020 P1-2)', () => {
+    const session = makeSession();
+    expect(() => acceptResponse(session, makeResponse(session.sessionId))).toThrow(/roleKeys is required/);
   });
 
   it('verifies the signature against the authorized role key', () => {

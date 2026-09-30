@@ -67,18 +67,26 @@ describe('RFC-016 hardening: signing request canonicalization', () => {
       signedAt: 1,
     });
 
+    const keys = { a: '0xaa', b: '0xbb', c: '0xcc' };
+    const verify = { roleKeys: keys, signatureVerifier: () => true };
+
     // An unrelated approved role must not satisfy a missing required role.
-    const unrelated = collectSigningResponses(['a', 'b'], [resp('s1', 'a'), resp('s2', 'c')]);
+    const unrelated = collectSigningResponses(['a', 'b'], [resp('s1', 'a'), resp('s2', 'c')], verify);
     expect(unrelated.complete).toBe(false);
     expect(unrelated.errors.join(' ')).toContain('Missing required role');
 
     // Every required role approved → complete.
-    const ok = collectSigningResponses(['a', 'b'], [resp('s1', 'a'), resp('s2', 'b')]);
+    const ok = collectSigningResponses(['a', 'b'], [resp('s1', 'a'), resp('s2', 'b')], verify);
     expect(ok.complete).toBe(true);
 
     // A rejected required role is not complete.
     const rejected = collectSigningResponses(['a'], [resp('s1', 'a', 'rejected')]);
     expect(rejected.complete).toBe(false);
+
+    // RFC-020 P1-2: approved signatures without role keys are not accepted.
+    const noKeys = collectSigningResponses(['a'], [resp('s1', 'a')]);
+    expect(noKeys.complete).toBe(false);
+    expect(noKeys.errors.join(' ')).toContain('No role keys');
   });
 
   it('fails closed when a disclosure lacks a policy root', () => {

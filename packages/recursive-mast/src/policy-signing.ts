@@ -378,19 +378,21 @@ export function collectSigningResponses(
     respondedRoles.add(resp.role);
 
     if (resp.status === 'approved' && resp.signature) {
-      // RFC-018 P1-2: when role keys are supplied, verify the signature against
-      // the authorized key for the role before counting it.
-      if (options?.roleKeys) {
-        const pkd = options.roleKeys[resp.role];
-        if (!pkd) {
-          errors.push(`No authorized key for role ${resp.role}`);
-          continue;
-        }
-        const verify = options.signatureVerifier ?? defaultResponseVerifier;
-        if (!verify(canonicalResponseBytes(resp), resp.signature, pkd)) {
-          errors.push(`Invalid signature for role ${resp.role}`);
-          continue;
-        }
+      // RFC-020 P1-2: role keys are mandatory; an approved signature is only
+      // counted once it verifies against the authorized key for that role.
+      if (!options?.roleKeys) {
+        errors.push(`No role keys supplied to verify the signature for role ${resp.role}`);
+        continue;
+      }
+      const pkd = options.roleKeys[resp.role];
+      if (!pkd) {
+        errors.push(`No authorized key for role ${resp.role}`);
+        continue;
+      }
+      const verify = options.signatureVerifier ?? defaultResponseVerifier;
+      if (!verify(canonicalResponseBytes(resp), resp.signature, pkd)) {
+        errors.push(`Invalid signature for role ${resp.role}`);
+        continue;
       }
       signatures[resp.role] = resp.signature;
       approved.push(resp);

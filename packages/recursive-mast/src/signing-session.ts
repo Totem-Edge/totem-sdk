@@ -228,15 +228,18 @@ export function acceptResponse(
     if (otherRole && !options.allowOneSignerMultipleRoles) {
       throw new Error(`Signer ${response.signerIdentityId} already signed role "${otherRole.role}"`);
     }
-    if (options.roleKeys) {
-      const pkd = options.roleKeys[response.role];
-      if (!pkd) {
-        throw new Error(`No authorized key for role "${response.role}"`);
-      }
-      const verify = options.signatureVerifier ?? defaultResponseSignatureVerifier;
-      if (!verify(canonicalSigningResponseMessage(session, response), response.signature, pkd)) {
-        throw new Error(`Signature for role "${response.role}" is invalid`);
-      }
+    // RFC-020 P1-2: cryptographic verification against the manifest-bound role
+    // key is mandatory — never accept a self-asserted role/signature.
+    if (!options.roleKeys) {
+      throw new Error('acceptResponse: roleKeys is required to verify the response signature (RFC-020 P1-2)');
+    }
+    const pkd = options.roleKeys[response.role];
+    if (!pkd) {
+      throw new Error(`No authorized key for role "${response.role}"`);
+    }
+    const verify = options.signatureVerifier ?? defaultResponseSignatureVerifier;
+    if (!verify(canonicalSigningResponseMessage(session, response), response.signature, pkd)) {
+      throw new Error(`Signature for role "${response.role}" is invalid`);
     }
   }
 
