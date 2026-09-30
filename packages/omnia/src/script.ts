@@ -6,6 +6,12 @@ const ELTOO_CONTEST_DELAY_BLOCKS = 256;
 
 function kissHex(hex: string): string {
   const raw = hex.startsWith('0x') || hex.startsWith('0X') ? hex.slice(2) : hex;
+  // RFC-020 H9: a public-key digest is exactly 64 hex chars. Without this check
+  // a digest carrying newlines/opcodes would be interpolated into the script and
+  // could alter the `MULTISIG(2 …)` control flow.
+  if (!/^[0-9a-fA-F]{64}$/.test(raw)) {
+    throw new Error(`publicKeyDigest must be exactly 64 hex characters, got ${JSON.stringify(hex)}`);
+  }
   return '0X' + raw.toUpperCase();
 }
 

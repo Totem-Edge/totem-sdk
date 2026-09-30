@@ -105,7 +105,7 @@ import type {
 // ─────────────────────────────────────────────────
 
 const ALICE_PKD = 'aabbccddaabbccddaabbccddaabbccddaabbccddaabbccddaabbccddaabbccdd';
-const BOB_PKD   = '11223344112233441122334411223344112233441122334411223344112233441122334411223344112233441122334411223344112233441122334411223344';
+const BOB_PKD   = '1122334411223344112233441122334411223344112233441122334411223344';
 
 const alice: ChannelParticipant = {
   partyId: 'alice',
@@ -2671,5 +2671,18 @@ describe('@totemsdk/omnia — coloured coin support (custom tokenId)', () => {
     const ch1 = makeTestChannel({ tokenId: '0x00' });
     const ch2 = makeTestChannel({ tokenId: '0xSOMETOKEN' });
     expect(ch1.fundingScript).toBe(ch2.fundingScript);
+  });
+});
+
+// ─── RFC-020 H9: funding-script injection ─────────────────────────────────────
+
+describe('RFC-020 H9: funding-script key validation', () => {
+  it('rejects a publicKeyDigest that is not exactly 64 hex characters', () => {
+    expect(() =>
+      buildEltooScript([
+        { partyId: 'a', publicKeyDigest: ALICE_PKD, addressIndex: 0 },
+        { partyId: 'b', publicKeyDigest: 'aa\nRETURN TRUE', addressIndex: 1 },
+      ]),
+    ).toThrow(/64 hex/);
   });
 });

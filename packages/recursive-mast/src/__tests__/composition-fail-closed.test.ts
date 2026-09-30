@@ -15,6 +15,7 @@ import {
   buildMigrationPath,
   buildMigrationScript,
   toMigrationPathScript,
+  buildDelegationScript,
   type ProofChain,
 } from '../index.js';
 
@@ -91,5 +92,11 @@ describe('RFC-018 P2-2: migration path composition', () => {
     const script = toMigrationPathScript(path);
     const inner = buildMigrationScript('bb', 'cc', 20, 30);
     expect(script).toContain(`MAST 0x${computeCanonicalScriptHash(inner)}`);
+  });
+});
+
+describe('RFC-020 H9: delegation-script key validation', () => {
+  it('rejects a delegator that is not exactly 64 hex characters', () => {
+    expect(() => buildDelegationScript('aa\nRETURN TRUE', 'bb'.repeat(32))).toThrow(/64 hex/);
   });
 });

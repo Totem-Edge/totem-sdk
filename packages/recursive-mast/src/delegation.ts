@@ -16,6 +16,15 @@ function hashScript(script: string): string {
   return computeCanonicalScriptHash(script);
 }
 
+/** RFC-020 H9: a WOTS public-key digest is exactly 64 hex chars. */
+function requirePk64(pk: string, label: string): string {
+  const raw = pk.replace(/^0x/i, '');
+  if (!/^[0-9a-fA-F]{64}$/.test(raw)) {
+    throw new Error(`${label} must be exactly 64 hex characters, got ${JSON.stringify(pk)}`);
+  }
+  return raw;
+}
+
 /**
  * Build a single delegation link.
  *
@@ -48,7 +57,8 @@ export function buildDelegationScript(
 ): string {
   const lines: string[] = [];
 
-  lines.push(`ASSERT SIGNEDBY(0x${delegator})`);
+  // RFC-020 H9: validate public-key digests before interpolation.
+  lines.push(`ASSERT SIGNEDBY(0x${requirePk64(delegator, 'delegator')})`);
 
   if (constraints.maxBlock !== undefined) {
     lines.push(`ASSERT @BLOCK LTE ${constraints.maxBlock}`);
@@ -61,11 +71,11 @@ export function buildDelegationScript(
     lines.push(`ASSERT CONTAINS([${scopeList}] STATE(0))`);
   }
   if (constraints.coSigners && constraints.coSigners.length > 0) {
-    const signerChecks = constraints.coSigners.map(pk => `SIGNEDBY(0x${pk})`).join(' AND ');
+    const signerChecks = constraints.coSigners.map(pk => `SIGNEDBY(0x${requirePk64(pk, 'coSigners[]')})`).join(' AND ');
     lines.push(`ASSERT ${signerChecks}`);
   }
 
-  lines.push(`LET delegate = 0x${delegate}`);
+  lines.push(`LET delegate = 0x${requirePk64(delegate, 'delegate')}`);
   lines.push(`ASSERT VERIFYOUT(@INPUT delegate @AMOUNT @TOKENID TRUE)`);
   lines.push(`RETURN TRUE`);
 
