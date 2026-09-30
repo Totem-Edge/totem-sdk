@@ -207,6 +207,29 @@ API**; string-presence assertions are not accepted as proof.
 | **H11** | **`lookup-node` anonymous abuse reported** — `session.ts:139-193` ephemeral Ed25519 key treated as authenticated, per-session rate limit reset on reconnect, no concurrent-session cap; `lease.ts:90-99` first caller claims any `treeId` and can reserve/burn arbitrary indices; `watchlist.ts:49-93` anonymous monitoring of arbitrary addresses | `lookup-node` | Per-IP/identity fuzzy limits; max sessions; credential-scoped tree ownership; ownership proofs for watches | Reconnect does not reset budget; unowned `treeId` claim rejected; watch requires proof |
 | **H12** | **Storage codec prototype pollution V** — `storage/src/codec.ts:124-127` `out[unescapeKey(key)] = …` follows the `__proto__` setter; `jsonClean` (`snapshot.ts:97-101`) has the same pattern | `storage` | `Object.defineProperty` for own keys, or reject `__proto__`/`constructor`/`prototype` | Malicious key cannot alter `Object.prototype`; round-trip safe |
 
+**Pass-2 Highs landed (H1–H12).**
+- **H1** omnia-host control plane: browser origins default-deny; non-loopback bind
+  requires a control token; `application/json` required (text/plain CSRF rejected).
+- **H2** connect: approval is mandatory for approval-required methods; the
+  requesting origin is forwarded to the approval callback.
+- **H3** se-server: `/create` requires an owner-signed request bound to the coinId
+  and body.
+- **H4** txpow: block difficulty is taken from a trusted template (byte-match).
+- **H5** edge-mqtt: signed envelopes fail closed without a verifier and are
+  verified before the replay slot is marked.
+- **H6** governance/authority: proposal id binds the full action set; execution
+  tally must match the committed tally; authority amounts are validated.
+- **H7** liquidity-bond: unfunded positions cannot withdraw; liquidity is
+  `allocated + reserved`.
+- **H8** kissvm: `FUNCTION` binds args as values (no opcode injection) and shares
+  the parent instruction/call budget.
+- **H9** omnia/recursive-mast: WOTS digests validated before script interpolation.
+- **H10** storage: artifact digests validated (path traversal rejected).
+- **H11** lookup-node (partial): concurrent-session cap + reconnect-resistant
+  per-identity rate limit. **Residual:** credential-scoped tree ownership proofs
+  (lease) and watchlist ownership proofs.
+- **H12** storage: codec/snapshot define own properties (no prototype pollution).
+
 ### 4.6 Pass 2 — Medium, secret exposure, and clean areas
 
 **Medium (condensed):**
