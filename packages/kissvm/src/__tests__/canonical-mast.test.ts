@@ -148,3 +148,21 @@ describe('RFC-016 P2: canonical MAST roots', () => {
     expect(() => toNestedMastScript(chain)).toThrow(/RETURN TRUE/);
   });
 });
+
+describe('RFC-020 P1-5: verifyProofChain expected-root binding', () => {
+  it('rejects a self-consistent chain under an unexpected root', () => {
+    const a = `ASSERT STATE(0) EQ [a]\nRETURN TRUE`;
+    const b = `ASSERT SIGNEDBY(0x${pkB})\nRETURN TRUE`;
+    const { proofChain } = buildLayeredPolicy({
+      assetId: 'x',
+      assetName: 'X',
+      layers: [
+        { id: 'a', name: 'A', script: a, authorityPkd: pkA },
+        { id: 'b', name: 'B', script: b, authorityPkd: pkB },
+      ],
+    });
+    expect(verifyProofChain(proofChain).valid).toBe(true);
+    expect(verifyProofChain(proofChain, undefined, { expectedRoot: 'ff'.repeat(32) }).valid).toBe(false);
+    expect(verifyProofChain(proofChain, undefined, { expectedRoot: proofChain.links[0].policyRoot }).valid).toBe(true);
+  });
+});

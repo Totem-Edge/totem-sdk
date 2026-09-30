@@ -40,9 +40,23 @@ export function buildProofChain(links: ProofLink[]): ProofChain {
 export function verifyProofChain(
   chain: ProofChain,
   expectedLeafScriptHash?: string,
+  options?: { expectedRoot?: string },
 ): VerificationResult {
   if (chain.links.length === 0) {
     return { valid: false, reason: 'Empty proof chain' };
+  }
+
+  // RFC-020 RM-PROOF-001: bind the chain to the caller's expected root, so a
+  // self-consistent chain under an attacker-controlled root is rejected.
+  if (options?.expectedRoot !== undefined) {
+    const norm = (h: string) => h.replace(/^0x/i, '').toLowerCase();
+    if (norm(chain.links[0].policyRoot) !== norm(options.expectedRoot)) {
+      return {
+        valid: false,
+        failedAt: 0,
+        reason: `Root mismatch: expected ${options.expectedRoot.slice(0, 16)}…, got ${chain.links[0].policyRoot.slice(0, 16)}…`,
+      };
+    }
   }
 
   for (let i = 0; i < chain.links.length; i++) {
