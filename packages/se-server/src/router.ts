@@ -58,6 +58,10 @@ const CreateSchema = z.object({
   ownerPartyId:         z.string().min(1),
   reclaimTxHex:         z.string().min(1),
   tokenId:              z.string().default('0x00'),
+  // RFC-020 H3: /create is owner-authenticated (was unauthenticated → SE leaf
+  // exhaustion). The owner signs the canonical request bound to coinId + body.
+  nonce:                z.string().min(1),
+  ownerSignature:       z.string().min(1),
 });
 
 const BlindSignSchema = z.object({
@@ -163,7 +167,15 @@ export function createSeRouter(config: SeServerConfig, pool: Pool): Router {
     const body = CreateSchema.safeParse(req.body);
     if (!body.success) return res.status(400).json({ error: 'Invalid body', details: body.error.issues });
 
-    const { coinId, ownerPublicKeyDigest, ownerPartyId, reclaimTxHex, tokenId } = body.data;
+    const { coinId, ownerPublicKeyDigest, ownerPartyId, reclaimTxHex, tokenId, nonce, ownerSignature } = body.data;
+    // RFC-020 H3: require an authenticated owner before allocating a statechain
+    // (unauthenticated create burned SE WOTS leaves). The signature is bound to
+    // the coinId and the create body.
+    if (!await verifyOwnerRequest(ownerPublicKeyDigest, coinId, 'create', nonce, {
+      coinId, tokenId, ownerPartyId, reclaimTxHex,
+    }, ownerSignature)) {
+      return res.status(403).json({ error: 'Owner signature invalid' });
+    }
     const projectId = resolveProjectId(req);
     // Bind the SE root identity in the locking script; the claim co-signature
     // is a leased root-leaf signature verified against this key (RFC-008).

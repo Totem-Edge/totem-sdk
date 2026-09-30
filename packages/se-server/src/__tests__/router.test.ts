@@ -7,10 +7,19 @@
  */
 
 import express from 'express';
+import { TreeKey, bytesToHex, sha3_256, serializeTreeSignature } from '@totemsdk/core';
 import { createSeRouter } from '../router';
+import { seRequestMessage } from '../ownerAuth';
 import type { SeServerConfig } from '../config';
 
 const SEED = new Uint8Array(32).fill(0x5e);
+
+// RFC-020 H3: a real owner key to sign authenticated create requests.
+const OWNER = new TreeKey(new Uint8Array(32).fill(0x5a), 4, 2);
+const OWNER_PKD = bytesToHex(OWNER.getPublicKey());
+function signOwner(message: string): string {
+  return bytesToHex(serializeTreeSignature(OWNER.sign(sha3_256(new TextEncoder().encode(message)))));
+}
 
 // Building the SE identity (root/child TreeKeys) is CPU-heavy; give the suite
 // a realistic budget.
@@ -184,18 +193,47 @@ describe('se-server router', () => {
   it('POST /create inserts a statechain record and returns the locking script', async () => {
     const pool = makePool();
     const app = makeApp(pool);
+    const coinId = '0x' + '11'.repeat(32);
+    const reclaimTxHex = '0x' + 'ab'.repeat(100);
+    const body = { coinId, tokenId: '0x00', ownerPartyId: 'owner-1', reclaimTxHex };
+    const nonce = 'n1';
     const res = await httpRequest(app, 'POST', '/statechain/create', {
-      coinId: '0x' + '11'.repeat(32),
-      ownerPublicKeyDigest: '0x' + '33'.repeat(32),
+      coinId,
+      ownerPublicKeyDigest: '0x' + OWNER_PKD,
       ownerPartyId: 'owner-1',
-      reclaimTxHex: '0x' + 'ab'.repeat(100),
+      reclaimTxHex,
       tokenId: '0x00',
+      nonce,
+      ownerSignature: signOwner(seRequestMessage(coinId, 'create', nonce, body)),
     });
     expect(res.status).toBe(201);
     expect(res.json.chainId).toMatch(/^sc_/);
     expect(res.json.sePublicKey).toMatch(/^[0-9a-fA-F]{64}$/);
     expect(res.json.lockingAddress).toMatch(/^[0-9a-fA-F]{64}$/);
     expect(pool.query).toHaveBeenCalled();
+  });
+
+  it('POST /create rejects an unauthenticated request (RFC-020 H3)', async () => {
+    const app = makeApp(makePool());
+    const missing = await httpRequest(app, 'POST', '/statechain/create', {
+      coinId: '0x' + '11'.repeat(32),
+      ownerPublicKeyDigest: '0x' + OWNER_PKD,
+      ownerPartyId: 'owner-1',
+      reclaimTxHex: '0x' + 'ab'.repeat(100),
+      tokenId: '0x00',
+    });
+    expect(missing.status).toBe(400);
+
+    const badSig = await httpRequest(app, 'POST', '/statechain/create', {
+      coinId: '0x' + '11'.repeat(32),
+      ownerPublicKeyDigest: '0x' + OWNER_PKD,
+      ownerPartyId: 'owner-1',
+      reclaimTxHex: '0x' + 'ab'.repeat(100),
+      tokenId: '0x00',
+      nonce: 'n1',
+      ownerSignature: '0x' + '55'.repeat(100),
+    });
+    expect(badSig.status).toBe(403);
   });
 
   it('POST /create rejects invalid bodies', async () => {
@@ -331,10 +369,14 @@ describe('se-server router', () => {
 
     const created = await httpRequest(app, 'POST', '/v1/statechain/create', {
       coinId: '0x' + '11'.repeat(32),
-      ownerPublicKeyDigest: '0x' + '33'.repeat(32),
+      ownerPublicKeyDigest: '0x' + OWNER_PKD,
       ownerPartyId: 'owner-1',
       reclaimTxHex: '0x' + 'ab'.repeat(100),
       tokenId: '0x00',
+      nonce: 'n1',
+      ownerSignature: signOwner(seRequestMessage('0x' + '11'.repeat(32), 'create', 'n1', {
+        coinId: '0x' + '11'.repeat(32), tokenId: '0x00', ownerPartyId: 'owner-1', reclaimTxHex: '0x' + 'ab'.repeat(100),
+      })),
     });
     expect(created.status).toBe(201);
     expect(created.json.chainId).toMatch(/^sc_/);
