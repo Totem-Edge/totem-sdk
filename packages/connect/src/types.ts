@@ -978,6 +978,8 @@ export interface TotemProvider {
 export interface TotemRequest {
   method: string;
   params?: Record<string, unknown>;
+  /** RFC-020 H2: the requesting origin, forwarded to the approval callback. */
+  origin?: string;
 }
 
 export interface TotemConnectRequest {

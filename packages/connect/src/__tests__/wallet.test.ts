@@ -140,7 +140,7 @@ describe('connect/wallet dispatch', () => {
         return { ok: true, data: {} };
       },
     };
-    const { provider } = createWalletRuntime(ctx);
+    const { provider } = createWalletRuntime(ctx, { approve: async () => true });
     await provider.request({ method: 'totem_omniaPay', params: { channelId: 'c1', amount: '1' } });
     await provider.request({ method: 'totem_omniaCloseFactory', params: { factoryId: 'f1' } });
     expect(seen).toEqual([OMNIA_ACTION_BY_METHOD.totem_omniaPay, OMNIA_ACTION_BY_METHOD.totem_omniaCloseFactory]);
@@ -160,7 +160,7 @@ describe('connect/wallet dispatch', () => {
         return { ok: true, data: { txpowId: 't1' } };
       },
     };
-    const { provider } = createWalletRuntime(ctx);
+    const { provider } = createWalletRuntime(ctx, { approve: async () => true });
     const result = (await provider.request({ method: 'totem_payPaymentRequest', params: { paymentUri: 'totem://pay/1' } })) as { success: boolean };
     expect(seen).toEqual(['payment:send']);
     expect(result.success).toBe(true);
@@ -170,6 +170,27 @@ describe('connect/wallet dispatch', () => {
     const { provider } = createWalletRuntime(fullContext(), { approve: async () => false });
     const result = (await provider.request({ method: 'totem_omniaOpenChannel', params: {} })) as { errorCode: string };
     expect(result.errorCode).toBe('USER_REJECTED');
+  });
+
+  it('fails closed when an approval-required method has no approval callback (RFC-020 H2)', async () => {
+    let executed = false;
+    const ctx = fullContext();
+    (ctx as { edge: NonNullable<WalletHandlerContext['edge']> }).edge = {
+      executeAction: async () => { executed = true; return { ok: true, data: {} }; },
+    };
+    const { provider } = createWalletRuntime(ctx); // no approve
+    const result = (await provider.request({ method: 'totem_omniaPay', params: { channelId: 'c1', amount: '1' } })) as { errorCode: string };
+    expect(result.errorCode).toBe('APPROVAL_REQUIRED');
+    expect(executed).toBe(false);
+  });
+
+  it('forwards the requesting origin to the approval callback (RFC-020 H2)', async () => {
+    let seenOrigin: string | undefined;
+    const { provider } = createWalletRuntime(fullContext(), {
+      approve: async (req) => { seenOrigin = req.origin; return true; },
+    });
+    await provider.request({ method: 'totem_omniaOpenChannel', params: {}, origin: 'https://dapp.example' });
+    expect(seenOrigin).toBe('https://dapp.example');
   });
 
   it('normalizes handler errors to the connect error shape', async () => {

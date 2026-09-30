@@ -606,7 +606,16 @@ export function createWalletRuntime(
     if (descriptor && !isMethodSupported(descriptor, ctx)) {
       return unsupported(descriptor.reason ?? `${method} is not supported by this wallet.`);
     }
-    if (handler.requiresApproval && options.approve) {
+    if (handler.requiresApproval) {
+      // RFC-020 H2: approval is mandatory for approval-required methods — an
+      // absent approval callback must fail closed, never silently execute.
+      if (!options.approve) {
+        return {
+          success: false,
+          error: `Method ${method} requires an approval callback, but none is configured`,
+          errorCode: 'APPROVAL_REQUIRED',
+        };
+      }
       const approved = await options.approve({ method, params, ...(origin ? { origin } : {}) });
       if (!approved) return { success: false, error: 'User rejected the request', errorCode: 'USER_REJECTED' };
     }
@@ -630,7 +639,11 @@ export function createWalletRuntime(
       if (typeof method !== 'string') {
         return unsupported('Malformed request: missing method');
       }
-      return dispatch(method, asRecord(args.params));
+      // RFC-020 H2: forward the requesting origin to the approval callback.
+      const origin = typeof (args as { origin?: unknown })?.origin === 'string'
+        ? (args as { origin: string }).origin
+        : undefined;
+      return dispatch(method, asRecord(args.params), origin);
     },
     on(event: string, handler: (...args: unknown[]) => void): void {
       if (!listeners.has(event)) listeners.set(event, new Set());
