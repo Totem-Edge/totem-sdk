@@ -12,11 +12,11 @@ const BUILTIN_FUNCTIONS = new Set([
   'SIZE', 'REVERSE', 'INC', 'DEC', 'BITGET', 'BITSET', 'GET', 'FUNCTION',
 ]);
 
-export function parseScript(source: string): ASTNode[] {
+export function parseScript(source: string, options?: { declared?: Iterable<string> }): ASTNode[] {
   const tokens = tokenize(source);
   const parser = new Parser(tokens);
   const ast = parser.parseProgram();
-  validateAst(ast);
+  validateAst(ast, options?.declared);
   return ast;
 }
 
@@ -25,9 +25,13 @@ export function parseScript(source: string): ASTNode[] {
  * declared anywhere in the script (via LET / FOR / FOREACH / FUNC params)
  * and unknown function calls, so garbage like `RETURN MAYBE` fails at parse
  * time instead of surfacing only when the script executes.
+ *
+ * `extraDeclared` seeds bindings the caller will provide in the VM environment
+ * (used by RFC-020 H8 to bind `FUNCTION` arguments as values rather than by
+ * text substitution).
  */
-function validateAst(ast: ASTNode[]): void {
-  const declared = new Set<string>();
+function validateAst(ast: ASTNode[], extraDeclared?: Iterable<string>): void {
+  const declared = new Set<string>(extraDeclared ?? []);
   collectDeclarations(ast, declared);
 
   const funcNames = new Set<string>();

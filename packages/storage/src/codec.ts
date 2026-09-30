@@ -91,7 +91,13 @@ function tagValue(value: unknown): unknown {
           if (item === undefined) {
             throw new StorageError(`codec: undefined value for key "${key}"`, 'write-failed');
           }
-          out[escapeKey(key)] = tagValue(item);
+          // RFC-020 H12: own-property definition avoids the `__proto__` setter.
+          Object.defineProperty(out, escapeKey(key), {
+            value: tagValue(item),
+            enumerable: true,
+            writable: true,
+            configurable: true,
+          });
         }
         return out;
       }
@@ -123,7 +129,14 @@ function untagValue(value: unknown, v1: boolean): unknown {
   }
   const out: Record<string, unknown> = {};
   for (const [key, item] of Object.entries(record)) {
-    out[unescapeKey(key, v1)] = untagValue(item, v1);
+    // RFC-020 H12: define an OWN property rather than assigning, so a key such
+    // as `__proto__` cannot reach the `Object.prototype` setter.
+    Object.defineProperty(out, unescapeKey(key, v1), {
+      value: untagValue(item, v1),
+      enumerable: true,
+      writable: true,
+      configurable: true,
+    });
   }
   return out;
 }

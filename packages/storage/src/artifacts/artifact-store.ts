@@ -36,6 +36,22 @@ export interface ArtifactStoreOptions {
   readonly defaultRetentionMs?: number;
 }
 
+const DIGEST_PATTERN = /^[0-9a-f]{64}$/;
+
+/**
+ * RFC-020 H10: an `ArtifactRef.digest` is a content address, never a path. It
+ * must be exactly 64 lowercase hex chars — otherwise a crafted digest such as
+ * `../../../etc/passwd` could traverse a filesystem backend.
+ */
+function assertValidRef(ref: ArtifactRef): void {
+  if (typeof ref?.digest !== 'string' || !DIGEST_PATTERN.test(ref.digest)) {
+    throw new StorageError(`invalid artifact digest: ${String(ref?.digest)}`, 'unavailable');
+  }
+  if (ref.algorithm !== ARTIFACT_DEFAULT_ALGORITHM) {
+    throw new StorageError(`unsupported artifact algorithm: ${String(ref.algorithm)}`, 'unavailable');
+  }
+}
+
 export class ArtifactStore {
   private readonly backend: ArtifactStoreBackend;
   private readonly index?: StorageAdapter;
@@ -75,6 +91,7 @@ export class ArtifactStore {
   }
 
   async get(ref: ArtifactRef): Promise<ArtifactRead> {
+    assertValidRef(ref);
     const read = await this.backend.get(ref);
     if (read.status !== 'ok' || !read.bytes) return read;
     const actual = toHex(sha3_256(read.bytes));
@@ -85,6 +102,7 @@ export class ArtifactStore {
   }
 
   async delete(ref: ArtifactRef): Promise<void> {
+    assertValidRef(ref);
     if (!this.backend.delete) {
       throw new StorageError('backend does not support delete (immutable)', 'unavailable');
     }

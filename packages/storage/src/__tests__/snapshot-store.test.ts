@@ -9,7 +9,7 @@ import { join } from 'path';
 import { MemoryStore } from '../adapters/memory-store.js';
 import { FileStore } from '../adapters/file-store.js';
 import { SqliteStore } from '../adapters/sqlite-store.js';
-import { createRevisionedSnapshotStore, SNAPSHOT_RECORD_VERSION } from '../snapshot.js';
+import { createRevisionedSnapshotStore, SNAPSHOT_RECORD_VERSION, jsonClean } from '../snapshot.js';
 import { StorageError } from '../errors.js';
 
 interface CounterState {
@@ -215,5 +215,14 @@ describe('createRevisionedSnapshotStore', () => {
       expect((await store2.load()).value).toBe(5);
       expect((await store2.getRevision())).toBe(1);
     });
+  });
+});
+describe('RFC-020 H12: jsonClean prototype-pollution resistance', () => {
+  it('keeps a __proto__ key as an own property without polluting the prototype', () => {
+    const value = JSON.parse('{"__proto__":{"polluted":true},"safe":1}') as Record<string, unknown>;
+    const cleaned = jsonClean(value) as Record<string, unknown>;
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+    expect(Object.getPrototypeOf(cleaned)).toBe(Object.prototype);
+    expect(Object.getOwnPropertyDescriptor(cleaned, '__proto__')?.value).toEqual({ polluted: true });
   });
 });

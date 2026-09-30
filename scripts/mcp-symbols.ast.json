@@ -6784,7 +6784,7 @@
         },
         "parseScript": {
           "kind": "function",
-          "signature": "parseScript(source: string): ASTNode[]"
+          "signature": "parseScript(source: string, options?: { declared?: Iterable<string>; }): ASTNode[]"
         },
         "KissvmLimitError": {
           "kind": "class",

@@ -92,4 +92,12 @@ describe('ArtifactStore', () => {
     });
     await expect(readOnly.put('x', new Uint8Array([1]))).rejects.toMatchObject({ code: 'unavailable' });
   });
+
+  it('rejects a non-content-addressed digest (path traversal) — RFC-020 H10', async () => {
+    const evil = { namespace: 'evidence', algorithm: 'sha3-256' as const, digest: '../../../etc/passwd' };
+    await expect(store.get(evil as never)).rejects.toMatchObject({ code: 'unavailable' });
+    await expect(store.delete(evil as never)).rejects.toMatchObject({ code: 'unavailable' });
+    // The backend rejects directly too (defence in depth).
+    await expect(backend.get(evil as never)).rejects.toMatchObject({ code: 'unavailable' });
+  });
 });

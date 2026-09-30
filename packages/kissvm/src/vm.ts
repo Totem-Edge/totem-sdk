@@ -123,6 +123,24 @@ export class VMState {
     this.trace.push(msg);
   }
 
+  // ─── Shared execution budget (RFC-020 H8) ─────────────────────────────────
+
+  /**
+   * Adopt a parent frame's execution budget (shared instruction counter and call
+   * depth) so a sub-VM cannot reset the per-frame limits to exhaust CPU or the
+   * native stack.
+   */
+  adoptLimitsFrom(parent: VMState): void {
+    this.instructionCount = parent.instructionCount;
+    this.callDepth = parent.callDepth;
+  }
+
+  /** Flush the (possibly advanced) execution budget back to the parent. */
+  flushLimitsTo(parent: VMState): void {
+    parent.instructionCount = this.instructionCount;
+    parent.callDepth = Math.max(parent.callDepth, this.callDepth);
+  }
+
   // ─── Snapshot current scope for closures ─────────────────────────────────
 
   snapshotEnv(): Map<string, Value> {

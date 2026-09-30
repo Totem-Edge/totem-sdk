@@ -82,3 +82,15 @@ describe('codec', () => {
     }
   });
 });
+describe('RFC-020 H12: codec prototype-pollution resistance', () => {
+  it('does not pollute Object.prototype via a __proto__ key', () => {
+    const payload = JSON.parse('{"__proto__":{"polluted":true},"safe":1}') as Record<string, unknown>;
+    const decoded = codec.deserialize(codec.serialize(payload)) as Record<string, unknown>;
+
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+    expect(Object.prototype).not.toHaveProperty('polluted');
+    expect(Object.getPrototypeOf(decoded)).toBe(Object.prototype);
+    expect(Object.getOwnPropertyDescriptor(decoded, '__proto__')?.value).toEqual({ polluted: true });
+    expect(decoded.safe).toBe(1);
+  });
+});

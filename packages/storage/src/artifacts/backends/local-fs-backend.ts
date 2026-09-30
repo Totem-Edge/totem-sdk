@@ -37,6 +37,11 @@ export class LocalFileBackend implements ArtifactStoreBackend {
   constructor(private readonly root: string) {}
 
   private fileFor(ref: ArtifactRef): string {
+    // RFC-020 H10: never interpolate a non-content-addressed digest into a path
+    // (a digest like `../../../etc/passwd` would escape the root).
+    if (!/^[0-9a-f]{64}$/.test(ref.digest)) {
+      throw new StorageError(`LocalFileBackend: invalid digest ${String(ref.digest)}`, 'unavailable');
+    }
     const ns = Buffer.from(ref.namespace, 'utf8').toString('hex');
     return join(this.root, `${ns}.${ref.digest}.art`);
   }

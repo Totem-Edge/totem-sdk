@@ -684,13 +684,23 @@ function resolveBuiltinFunction(name: string, argNodes: ASTNode[], vm: VMState):
     case 'FUNCTION': {
       if (argNodes.length < 1) throw new KissvmRuntimeError('FUNCTION requires at least a body argument');
       const bodyVal = evalExpr(argNodes[0], vm);
-      let scriptlet = String(bodyVal);
-      const argValues = argNodes.slice(1).map(a => miniNumberToString(evalExpr(a, vm)));
-      for (let i = 0; i < argValues.length; i++) {
-        scriptlet = scriptlet.replaceAll(`$${i + 1}`, argValues[i]);
-      }
-      const ast = parseScript(scriptlet);
+      const scriptlet = String(bodyVal);
+      const argValues = argNodes.slice(1).map(a => evalExpr(a, vm));
+      // RFC-020 H8: bind arguments as variables, never text-substitute values
+      // into re-parsed code (a value containing opcodes must not become control
+      // flow). `$n` placeholders become identifiers declared to the parser and
+      // bound in the sub-VM environment.
+      const withNames = scriptlet.replace(/\$(\d+)/g, (_m, d: string) => `__fn_arg_${d}`);
+      const argNames = argValues.map((_v, i) => `__fn_arg_${i + 1}`);
+      const ast = parseScript(withNames, { declared: argNames });
       const subVm = new VMState(vm.witness, vm.txCtx);
+      // Share the parent's execution budget so this frame cannot reset the
+      // instruction/call-depth limits.
+      subVm.adoptLimitsFrom(vm);
+      subVm.pushCallFrame();
+      for (let i = 0; i < argValues.length; i++) {
+        subVm.set(`__fn_arg_${i + 1}`, argValues[i]);
+      }
       for (const [k, v] of vm.funcs) subVm.funcs.set(k, v);
       let returnVal: Value = MiniNumber.ZERO;
       try {
@@ -703,8 +713,11 @@ function resolveBuiltinFunction(name: string, argNodes: ASTNode[], vm: VMState):
         if (e instanceof ReturnSignal) {
           returnVal = e.value as Value;
         } else { throw e; }
+      } finally {
+        subVm.popCallFrame();
+        subVm.flushLimitsTo(vm);
+        for (const t of subVm.trace) vm.addTrace(`  [FUNCTION] ${t}`);
       }
-      for (const t of subVm.trace) vm.addTrace(`  [FUNCTION] ${t}`);
       return returnVal;
     }
   }

@@ -97,7 +97,13 @@ export function jsonClean(value: unknown): unknown {
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
     if (v === undefined) continue;
-    out[k] = jsonClean(v);
+    // RFC-020 H12: own-property definition avoids the `__proto__` setter.
+    Object.defineProperty(out, k, {
+      value: jsonClean(v),
+      enumerable: true,
+      writable: true,
+      configurable: true,
+    });
   }
   return out;
 }
