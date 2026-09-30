@@ -251,3 +251,29 @@ describe('command-handler.test — signed envelope enforcement (AUD-030 / AUD-03
     expect(result.errorCode).toBe('MQTT_POLICY_REJECTED');
   });
 });
+
+describe('RFC-020 H5: signed-envelope verification order', () => {
+  it('fails closed when a signed envelope is present but no verifier is configured', async () => {
+    const { client } = makeMockClient();
+    const handler = createMqttCommandHandler({ runtime: makeAllowedRuntime('h5-a'), client });
+    const result = await handler.handleCommand(makeSignedMessage({ action: 'run' }));
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/no verifyCommandSignature/i);
+  });
+
+  it('does not poison the replay slot when verification fails', async () => {
+    const { client } = makeMockClient();
+    let allow = false;
+    const handler = createMqttCommandHandler({
+      runtime: makeAllowedRuntime('h5-b'),
+      client,
+      verifyCommandSignature: async () => allow,
+      executor: { async execute() { return { ok: true }; } },
+    });
+    const first = await handler.handleCommand(makeSignedMessage({ action: 'run' }, 'replay-1'));
+    expect(first.ok).toBe(false);
+    allow = true;
+    const second = await handler.handleCommand(makeSignedMessage({ action: 'run' }, 'replay-1'));
+    expect(second.ok).toBe(true);
+  });
+});

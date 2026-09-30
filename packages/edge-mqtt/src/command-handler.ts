@@ -212,20 +212,28 @@ export function createMqttCommandHandler(config: MqttCommandHandlerConfig): Mqtt
         await emitRejected(command.commandId, reason);
         return { ok: false, error: reason, errorCode: 'MQTT_POLICY_REJECTED' };
       }
-      if (await ledger.mark(command.commandId)) {
-        const reason = 'Rejected: duplicate commandId — replay prevented';
-        await emitRejected(command.commandId, reason);
-        return { ok: false, error: reason, errorCode: 'MQTT_POLICY_REJECTED' };
-      }
 
-      // Cryptographic verification only exists for signed envelopes.
-      if (envelope && config.verifyCommandSignature) {
+      // RFC-020 H5: verify the signed envelope BEFORE marking its replay slot
+      // (a failed verification must not poison the slot), and fail closed when
+      // an envelope is present but no verifier is configured.
+      if (envelope) {
+        if (!config.verifyCommandSignature) {
+          const reason = 'Rejected: signed envelope present but no verifyCommandSignature configured';
+          await emitRejected(envelope.commandId, reason);
+          return { ok: false, error: reason, errorCode: 'MQTT_POLICY_REJECTED' };
+        }
         const valid = await config.verifyCommandSignature(envelope);
         if (!valid) {
           const reason = 'Rejected: invalid command signature';
           await emitRejected(envelope.commandId, reason);
           return { ok: false, error: reason, errorCode: 'MQTT_POLICY_REJECTED' };
         }
+      }
+
+      if (await ledger.mark(command.commandId)) {
+        const reason = 'Rejected: duplicate commandId — replay prevented';
+        await emitRejected(command.commandId, reason);
+        return { ok: false, error: reason, errorCode: 'MQTT_POLICY_REJECTED' };
       }
 
       const policyPort = config.runtime.ports.policy;
