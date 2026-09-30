@@ -335,7 +335,7 @@ export class MultisigManager {
       validated: valid
     };
 
-    tx.signatures.set(signingPublicKey.toLowerCase(), extSig);
+    tx.signatures.set(normalizePk(signingPublicKey), extSig);
     this.updateStatus(tx);
     await this.save();
   }
@@ -357,10 +357,10 @@ export class MultisigManager {
       return { valid: false, error: `Transaction ${transactionId} is ${tx.status}` };
     }
     
-    const normalizedKey = publicKey.toLowerCase();
-    const isValidSigner = tx.config.publicKeys.some(
-      pk => pk.toLowerCase() === normalizedKey
-    );
+    // RFC-020 TXB-MULTISIG-007: key by the canonical identity (lowercase, no
+    // 0x) so a `0x`-prefixed configured signer actually reaches readiness.
+    const normalizedKey = normalizePk(publicKey);
+    const isValidSigner = tx.config.publicKeys.some(pk => normalizePk(pk) === normalizedKey);
     
     if (!isValidSigner) {
       return { valid: false, error: 'Public key is not a valid signer for this transaction' };
@@ -495,7 +495,7 @@ export class MultisigManager {
     const existing = this.pendingTransactions.get(data.id);
     if (existing) {
       for (const sig of data.signatures) {
-        if (!existing.signatures.has(sig.publicKey.toLowerCase())) {
+        if (!existing.signatures.has(normalizePk(sig.publicKey))) {
           await this.importExternalSignature(
             data.id,
             sig.publicKey,
@@ -525,7 +525,7 @@ export class MultisigManager {
     };
     
     for (const sig of data.signatures) {
-      const key = sig.publicKey.toLowerCase();
+      const key = normalizePk(sig.publicKey);
       const verified = sig.signatureType === 'wots'
         ? verifyWotsSignature(sig.signature, data.transactionDigest, sig.publicKey)
         : false;

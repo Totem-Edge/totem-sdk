@@ -174,3 +174,16 @@ describe('RFC-020 TXB-MULTISIG-006: load rebinds the digest to transactionHex', 
     await expect(mgr.ready).rejects.toThrow(/digest does not match/);
   });
 });
+
+describe('RFC-020 TXB-MULTISIG-007: 0x-prefixed configs reach ready', () => {
+  it('counts genuine signatures for 0x-prefixed keys', async () => {
+    const config: MultisigConfig = { type: '2of2', threshold: 2, publicKeys: [OWN_PK_REAL, OTHER_PK_REAL], ownPublicKey: OWN_PK_REAL };
+    const mgr = new MultisigManager(new MemoryStore());
+    const tx = await mgr.createPendingTransaction(config, TX_HEX, DIGEST);
+    await mgr.addOwnSignature(tx.id, sign(OWN_SEED));
+    await mgr.importExternalSignature(tx.id, OTHER_PK_REAL, sign(OTHER_SEED));
+    expect(await mgr.isReady(tx.id)).toBe(true);
+    const status = await mgr.getSignatureStatus(tx.id);
+    expect(status.collected).toBe(2);
+  });
+});
