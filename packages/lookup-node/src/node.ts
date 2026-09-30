@@ -32,6 +32,8 @@ export class LookupNode implements NodeDispatcher {
   nodeId: string;
 
   private readonly _sessions = new Map<string, ClientSession>();
+  /** RFC-020 H11: per-identity rate counter that survives reconnects. */
+  private readonly _identityRpm = new Map<string, { count: number; windowStart: number }>();
   private _started = false;
 
   constructor(config: LookupNodeConfig) {
@@ -121,9 +123,31 @@ export class LookupNode implements NodeDispatcher {
    * In tests: inject a TestTransport (see __tests__/helpers.ts).
    */
   handleConnection(transport: ITransport): ClientSession {
+    // RFC-020 H11: cap concurrent sessions so one peer cannot exhaust the node.
+    const maxSessions = this.config.maxSessions ?? 64;
+    if (this._sessions.size >= maxSessions) {
+      try { transport.close(); } catch { /* ignore */ }
+      throw new Error(`lookup-node: max concurrent sessions (${maxSessions}) reached`);
+    }
     const session = new ClientSession(transport, this);
     this._sessions.set(session.sessionId, session);
     return session;
+  }
+
+  /**
+   * RFC-020 H11: a fuzzy per-identity rate limit that survives reconnects. The
+   * per-session counter reset whenever a client reconnected; this one is keyed
+   * by authenticated public key for a rolling minute.
+   */
+  checkIdentityRate(publicKeyHex: string | undefined, rpm: number, now = Date.now()): boolean {
+    if (!publicKeyHex) return true;
+    const entry = this._identityRpm.get(publicKeyHex);
+    if (!entry || now - entry.windowStart > 60_000) {
+      this._identityRpm.set(publicKeyHex, { count: 1, windowStart: now });
+      return true;
+    }
+    entry.count += 1;
+    return entry.count <= rpm;
   }
 
   onSessionClosed(sessionId: string): void {

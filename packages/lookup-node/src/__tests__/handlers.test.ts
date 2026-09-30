@@ -9,6 +9,7 @@ import { LookupNode } from '../node.js';
 import {
   makeMockProvider,
   connectTestClient,
+  TestTransport,
   DEFAULT_COIN,
   DEFAULT_TIP,
   DEFAULT_TOKEN,
@@ -172,5 +173,26 @@ describe('Query handlers', () => {
     const errorMsg = await buffer.waitFor((m) => m.type === 'ERROR');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((errorMsg.payload as any).code).toBe('AUTH_REQUIRED');
+  });
+});
+
+describe('RFC-020 H11: session + identity limits', () => {
+  it('caps concurrent sessions and closes the excess transport', () => {
+    const node = new LookupNode({ provider: makeMockProvider(), _skipAuth: true, maxSessions: 1 });
+    const t1 = new TestTransport();
+    const t2 = new TestTransport();
+    node.handleConnection(t1);
+    expect(() => node.handleConnection(t2)).toThrow(/max concurrent sessions/);
+    expect(t2._closed).toBe(true);
+    node.stop();
+  });
+
+  it('applies a per-identity rate limit that survives reconnects', () => {
+    const node = new LookupNode({ provider: makeMockProvider(), _skipAuth: true, rateLimitRpm: 2 });
+    expect(node.checkIdentityRate('pk', 2, 1000)).toBe(true); // 1
+    expect(node.checkIdentityRate('pk', 2, 1001)).toBe(true); // 2
+    expect(node.checkIdentityRate('pk', 2, 1002)).toBe(false); // 3 — over
+    expect(node.checkIdentityRate('pk', 2, 62_000)).toBe(true); // new window
+    node.stop();
   });
 });

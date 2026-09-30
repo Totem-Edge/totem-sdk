@@ -49,6 +49,8 @@ export interface NodeDispatcher {
   readonly agentRegistry?: AgentRegistry;
   readonly trustIndex?: TrustIndex;
   onSessionClosed(sessionId: string): void;
+  /** RFC-020 H11: per-identity rate limit that survives reconnects. */
+  checkIdentityRate(publicKeyHex: string | undefined, rpm: number, now?: number): boolean;
   nodeId: string;
   isMegaMMRMode: boolean;
 }
@@ -155,6 +157,12 @@ export class ClientSession {
     this._rpmCount++;
     if (this._rpmCount > rateLimitRpm) {
       sendError(this._sendFn, msg.id, 'RATE_LIMITED', 'Too many requests');
+      return;
+    }
+    // RFC-020 H11: a fuzzy per-identity limit that survives reconnect (the
+    // per-session counter resets on each new connection).
+    if (!this._dispatcher.checkIdentityRate(this.publicKeyHex, rateLimitRpm, now)) {
+      sendError(this._sendFn, msg.id, 'RATE_LIMITED', 'Too many requests for this identity');
       return;
     }
 

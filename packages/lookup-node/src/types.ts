@@ -116,6 +116,8 @@ export interface LookupNodeConfig {
   challengeTtlMs?: number;
   /** Max authenticated requests per minute per client. Default: 120 */
   rateLimitRpm?: number;
+  /** RFC-020 H11: max concurrent sessions. Default: 64. */
+  maxSessions?: number;
   /** Unique node identifier (hex string). Generated randomly if omitted. */
   nodeId?: string;
   /** SQLite persistence. Defaults to ':memory:' (always SQLite, never plain Maps). */
