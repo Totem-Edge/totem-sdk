@@ -162,4 +162,34 @@ describe('RFC-018 P2-3: WASM/TS serializer parity', () => {
     const wasm = wasmSerialize(JSON.stringify(tokenJson));
     expect(bytesToHex(wasm)).toBe(bytesToHex(serializeTransactionObject(tokenTx)));
   });
+
+  it('serializes a precomputed non-zero output coin id identically (RFC-020 P1-11)', () => {
+    const outCoinId = h32(0x33);
+    const tx: MinimaTransaction = {
+      linkHash: hexToBytes('00'),
+      inputs: [],
+      outputs: [{ ...outputFixture(), coinId: hexToBytes(outCoinId) }],
+      state: [],
+    };
+    const json = {
+      linkhash: '00',
+      inputs: [],
+      outputs: [
+        {
+          coinid: outCoinId,
+          amount: '0.25',
+          address: h32(0x44),
+          tokenid: '00',
+          state: [{ port: 7, type: 'number', data: '99' }],
+          storestate: false,
+          mmrentry: '0',
+          spent: false,
+          created: '0',
+        },
+      ],
+      state: [],
+    };
+    const wasm = wasmSerialize(JSON.stringify(json));
+    expect(bytesToHex(wasm)).toBe(bytesToHex(serializeTransactionObject(tx)));
+  });
 });

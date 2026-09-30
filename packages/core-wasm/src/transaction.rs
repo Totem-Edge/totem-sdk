@@ -102,6 +102,9 @@ pub struct TransactionInputJson {
 
 #[derive(Debug, Deserialize)]
 pub struct TransactionOutputJson {
+    /// RFC-020 P1-11: output coin id (0x00 placeholder until precomputed).
+    #[serde(default = "default_zero_hex")]
+    pub coinid: String,
     pub amount: String,
     pub address: String,
     pub tokenid: String,
@@ -400,8 +403,9 @@ fn serialize_coin_input(input: &TransactionInputJson) -> Result<Vec<u8>, String>
 }
 
 fn serialize_coin_output(output: &TransactionOutputJson) -> Result<Vec<u8>, String> {
-    // Output coins use COINID_OUTPUT (0x00) as coinId
-    let coinid = vec![0x00];
+    // Output coins carry the coin id from the JSON (0x00 placeholder or a
+    // precomputed id) — RFC-020 P1-11.
+    let coinid = hex_to_bytes(&output.coinid)?;
 
     let mut buf = Vec::new();
 
