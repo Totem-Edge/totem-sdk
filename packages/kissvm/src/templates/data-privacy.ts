@@ -287,28 +287,34 @@ export function buildDataEscrowScript(
     `// Release condition`,
   ];
 
+  // RFC-020 EXP-02: every release condition's parameters are mandatory — a
+  // missing parameter must fail construction, not silently omit the condition.
   switch (options.releaseCondition) {
     case 'time-lock':
-      if (options.releaseBlock !== undefined) {
-        lines.push(`ASSERT @BLOCK GTE ${options.releaseBlock}`);
+      if (options.releaseBlock === undefined) {
+        throw new Error('buildDataEscrowScript: releaseBlock is required for a time-lock escrow');
       }
+      lines.push(`ASSERT @BLOCK GTE ${options.releaseBlock}`);
       break;
     case 'event':
-      if (options.oraclePort !== undefined) {
-        lines.push(`ASSERT PREVSTATE(${options.oraclePort}) EQ 1`);
-      }
-      break;
-    case 'multi-sig':
-      if (options.custodianPkds && options.custodianThreshold) {
-        const custodianList = options.custodianPkds.map(c => `0x${c}`).join(' ');
-        lines.push(`ASSERT MULTISIG(${options.custodianThreshold} ${custodianList})`);
-      }
-      break;
     case 'oracle':
-      if (options.oraclePort !== undefined) {
-        lines.push(`ASSERT PREVSTATE(${options.oraclePort}) EQ 1`);
+      if (options.oraclePort === undefined) {
+        throw new Error(`buildDataEscrowScript: oraclePort is required for a ${options.releaseCondition} escrow`);
       }
+      lines.push(`ASSERT PREVSTATE(${options.oraclePort}) EQ 1`);
       break;
+    case 'multi-sig': {
+      if (!options.custodianPkds || options.custodianPkds.length === 0 || options.custodianThreshold === undefined) {
+        throw new Error('buildDataEscrowScript: custodianPkds and custodianThreshold are required for a multi-sig escrow');
+      }
+      const unique = new Set(options.custodianPkds.map(c => c.replace(/^0x/i, '').toLowerCase()));
+      if (options.custodianThreshold < 1 || options.custodianThreshold > unique.size) {
+        throw new Error(`buildDataEscrowScript: custodianThreshold must satisfy 1 <= threshold <= ${unique.size}`);
+      }
+      const custodianList = options.custodianPkds.map(c => `0x${c.replace(/^0x/i, '')}`).join(' ');
+      lines.push(`ASSERT MULTISIG(${options.custodianThreshold} ${custodianList})`);
+      break;
+    }
   }
 
   lines.push(
@@ -318,6 +324,9 @@ export function buildDataEscrowScript(
     ``,
     `// Arbiter can always release in dispute`,
     `ASSERT SIGNEDBY(depositor) OR SIGNEDBY(arbiter)`,
+    ``,
+    // RFC-020 EXP-02: the release must actually pay the beneficiary.
+    `ASSERT VERIFYOUT(@INPUT beneficiary @AMOUNT @TOKENID TRUE)`,
     ``,
     `RETURN TRUE`,
   );
