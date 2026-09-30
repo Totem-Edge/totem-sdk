@@ -32,16 +32,24 @@ export function buildMultiSigTreasuryScript(
     periodBlocks: number;
     periodStartPort: number;
     spentThisPeriodPort: number;
-    /** When set, a spend must pay this recipient (RFC-016 P4). */
-    recipientPkd?: string;
+    /** RFC-020 P1-9: the spend must pay this recipient (mandatory). */
+    recipientPkd: string;
   },
 ): PolicyLayer {
-  const custodianList = custodians.map(c => `0x${c}`).join(' ');
-  // RFC-016 P4: a spend that only asserts a same-address rollover is not a
-  // payment. When a recipient is configured, bind the output to them.
-  const spendCheck = options.recipientPkd
-    ? `ASSERT VERIFYOUT(@INPUT 0x${options.recipientPkd.replace(/^0x/i, '')} @AMOUNT @TOKENID TRUE)`
-    : `ASSERT VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID TRUE)`;
+  // RFC-020 P1-9: validate the custodian set and require a recipient binding so
+  // a "treasury spend" cannot be a same-address rollover.
+  const unique = new Set(custodians.map(c => c.replace(/^0x/i, '').toLowerCase()));
+  if (unique.size !== custodians.length) {
+    throw new Error('buildMultiSigTreasuryScript: custodians must be distinct');
+  }
+  if (!Number.isInteger(threshold) || threshold < 1 || threshold > unique.size) {
+    throw new Error(`buildMultiSigTreasuryScript: threshold must satisfy 1 <= threshold <= ${unique.size}`);
+  }
+  if (!options.recipientPkd) {
+    throw new Error('buildMultiSigTreasuryScript: recipientPkd is required');
+  }
+  const custodianList = custodians.map(c => `0x${c.replace(/^0x/i, '')}`).join(' ');
+  const spendCheck = `ASSERT VERIFYOUT(@INPUT 0x${options.recipientPkd.replace(/^0x/i, '')} @AMOUNT @TOKENID TRUE)`;
 
   return {
     id: 'treasury',

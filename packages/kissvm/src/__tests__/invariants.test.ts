@@ -200,7 +200,7 @@ describe('RFC-016 P4 wave 3: cumulative counters + recipient binding', () => {
     const bound = buildMultiSigTreasuryScript([pkA, pkB], 2, { ...base, recipientPkd: pkB }).script;
     expect(bound).toContain(`ASSERT VERIFYOUT(@INPUT 0x${pkB} @AMOUNT @TOKENID TRUE)`);
     expect(bound).toContain('ASSERT STATE(2) EQ spent ADD @AMOUNT');
-    expect(buildMultiSigTreasuryScript([pkA], 1, base).script).toContain('ASSERT VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID TRUE)');
+    expect(() => buildMultiSigTreasuryScript([pkA], 1, base as never)).toThrow(/recipientPkd/);
   });
 
   it('distribution and redemption consume their cumulative counters', () => {
