@@ -280,3 +280,15 @@ describe('RFC-018 P2-4: structural (AST) invariant detection', () => {
     expect(auditScriptInvariants({ name: 'x', script, expectsAuthorization: true })).toEqual([]);
   });
 });
+
+describe('RFC-020 P1-6: terminal-op awareness', () => {
+  it('flags dead code after a terminal MAST', () => {
+    const script = [
+      `MAST 0x${'ab'.repeat(32)}`,
+      `ASSERT SIGNEDBY(0x${'aa'.repeat(32)})`,
+      'RETURN TRUE',
+    ].join('\n');
+    const violations = auditScriptInvariants({ name: 'x', script, expectsAuthorization: true });
+    expect(violations.map((v) => v.invariant)).toContain('I4');
+  });
+});

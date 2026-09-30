@@ -167,11 +167,17 @@ function derivesFromMutableState(
   return false;
 }
 
-/** RFC-018 P2-4: statements after a terminal RETURN in the same block are dead. */
+/** RFC-020 INV-001: statements after any of these in the same block are dead. */
+const TERMINAL_STATEMENTS = new Set(['RETURN', 'EXEC', 'EXEC_MAST', 'MAST_STMT']);
+
+/** RFC-018 P2-4 / RFC-020 P1-6: statements after a terminal op in the same block are dead. */
 function findUnreachableStatements(nodes: ASTNode[], out: InvariantViolation[]): void {
   for (let i = 0; i < nodes.length - 1; i++) {
-    if (nodes[i].type === 'RETURN') {
-      out.push({ invariant: 'I4', detail: 'unreachable statement after RETURN in the same block' });
+    if (TERMINAL_STATEMENTS.has(nodes[i].type)) {
+      out.push({
+        invariant: 'I4',
+        detail: `unreachable statement after terminal ${nodes[i].type} in the same block`,
+      });
       break;
     }
   }
