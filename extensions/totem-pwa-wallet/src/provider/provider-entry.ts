@@ -158,6 +158,16 @@ import { isSharedConnectMethod, dispatchSharedConnectMethod } from '../core/conn
     if (method === 'TOTEM_TOKENCREATE') {
       const request = params.request as Record<string, unknown> | undefined;
       if (request) {
+        // Never silently drop a token-creation option the wallet cannot honor:
+        // doing so would mint a different token than the dApp requested.
+        for (const unsupported of ['burn', 'signtoken', 'recipientAddress'] as const) {
+          if (request[unsupported] !== undefined) {
+            throw new Error(
+              `Token creation option '${unsupported}' is not supported by this wallet; ` +
+                'remove it or use a wallet that supports it.',
+            );
+          }
+        }
         if (request.metadata) out.metadata = JSON.stringify(request.metadata);
         if (request.decimals !== undefined) out.decimals = String(request.decimals);
         if (request.totalSupply !== undefined) out.totalSupply = String(request.totalSupply);
@@ -596,7 +606,13 @@ import { isSharedConnectMethod, dispatchSharedConnectMethod } from '../core/conn
       }
 
       const id  = genId();
-      const qs  = paramsToQs(method, params);
+      let qs: Record<string, string>;
+      try {
+        qs = paramsToQs(method, params);
+      } catch (err) {
+        // Surface a forwarding error as a rejected request, not a sync throw.
+        return Promise.reject(err instanceof Error ? err : new Error(String(err)));
+      }
       const returnUrlOverride = (params?.returnUrl as string) || undefined;
 
       window.dispatchEvent(new CustomEvent('totem#connect-requested', {
