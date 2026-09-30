@@ -135,8 +135,22 @@ export async function verifyWorkAdmission(
     return { valid: false, reason: 'txpowId does not beat admission target' };
   }
 
-  // 5. Template freshness for admission
-  const freshness = templateFreshness(proof.template, options?.latestTemplate ?? null, {
+  // 5. Resolve a trusted template. Template fields — notably `blockDifficulty`,
+  //    which drives the Super-level claim — must come from a freshly-fetched
+  //    trusted template, never from the prover's copy (RFC-020 H4).
+  let trustedTemplate: MinimaWorkTemplate | null = options?.latestTemplate ?? null;
+  if (templateProvider) {
+    if (templateProvider.getLatestTemplate) {
+      trustedTemplate = await templateProvider.getLatestTemplate();
+    } else if (options?.latestTemplate) {
+      trustedTemplate = options.latestTemplate;
+    } else {
+      trustedTemplate = await templateProvider.getCurrentTemplate();
+    }
+  }
+
+  // 5a. Template freshness for admission (uses the proof's capture time).
+  const freshness = templateFreshness(proof.template, trustedTemplate, {
     admissionWindowMs: options?.admissionWindowMs,
     now: options?.now,
   });
@@ -144,24 +158,24 @@ export async function verifyWorkAdmission(
     return { valid: false, reason: 'proof template is stale for admission' };
   }
 
-  // 6. Level B: independently recompute the exact Minima Super level. Never
-  //    trust proof.superLevel / proof.isBlock / proof.qualifiesAsMinimaBlock.
-  const superLevel = computeSuperLevel(txpowId, proof.template.blockDifficulty);
-  const isBlock = superLevel >= 0;
+  // 5b. The prover's declared block difficulty must byte-match the trusted
+  //     template — otherwise a prover could set a max difficulty to fake a
+  //     Minima block.
+  if (trustedTemplate && trustedTemplate.blockDifficulty !== proof.template.blockDifficulty) {
+    return { valid: false, reason: 'proof template blockDifficulty does not match the trusted template' };
+  }
 
-  // 7. Level C: broadcastability requires a live template provider AND a
-  //    current template. Offline mode leaves broadcastable undefined.
+  // 6. Level B: recompute the exact Minima Super level from the TRUSTED block
+  //    difficulty and the re-derived txpowId. Without a trusted template we
+  //    cannot claim Minima block contribution (isBlock = false).
+  const superLevel = trustedTemplate ? computeSuperLevel(txpowId, trustedTemplate.blockDifficulty) : -1;
+  const isBlock = trustedTemplate ? superLevel >= 0 : false;
+
+  // 7. Level C: broadcastability requires a live template provider, a current
+  //    template, and isBlock. Offline mode leaves broadcastable undefined.
   let broadcastable: boolean | undefined;
   if (templateProvider) {
-    let latest: MinimaWorkTemplate;
-    if (templateProvider.getLatestTemplate) {
-      latest = await templateProvider.getLatestTemplate();
-    } else if (options?.latestTemplate) {
-      latest = options.latestTemplate;
-    } else {
-      latest = await templateProvider.getCurrentTemplate();
-    }
-    broadcastable = isBlock && latest.templateId === proof.template.templateId;
+    broadcastable = isBlock && trustedTemplate !== null && freshness.broadcastable;
   }
 
   return { valid: true, superLevel, isBlock, broadcastable };

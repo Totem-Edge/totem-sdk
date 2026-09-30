@@ -528,12 +528,26 @@ describe('mineWorkAdmission + verifyWorkAdmission', () => {
       now: 1700000001000,
     });
     expect(verification.valid).toBe(true);
-    // superLevel/isBlock are still computed (from the proof's own template),
-    // but broadcastable must be undefined — offline mode cannot claim Minima
-    // block contribution.
-    expect(verification.superLevel).toBeDefined();
-    expect(verification.isBlock).toBeDefined();
+    // RFC-020 H4: without a trusted template, no Minima block contribution can
+    // be claimed — isBlock is false (superLevel -1) and broadcastable undefined.
+    expect(verification.superLevel).toBe(-1);
+    expect(verification.isBlock).toBe(false);
     expect(verification.broadcastable).toBeUndefined();
+  }, 30_000);
+
+  it('rejects a proof whose template blockDifficulty does not match the trusted template (RFC-020 H4)', async () => {
+    const provider = makeProvider(); // hard block target
+    const proof = await mineWorkAdmission(ACTION, CHALLENGE, provider, {
+      _skipWorker: true,
+      forceJs: true,
+      maxIterations: 100_000,
+    });
+    const forged = { ...proof, template: { ...proof.template, blockDifficulty: EASY_TARGET } };
+    const verification = await verifyWorkAdmission(ACTION, CHALLENGE, forged, provider, {
+      now: 1700000001000,
+    });
+    expect(verification.valid).toBe(false);
+    expect(verification.reason).toMatch(/blockDifficulty/);
   }, 30_000);
 });
 
