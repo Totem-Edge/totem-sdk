@@ -10,6 +10,8 @@
 
 import { MiniNumber } from '../MiniNumber.js';
 import { verifyScriptMembership, computeCanonicalScriptHash } from './mast-compiler.js';
+import { parseScript } from '../parser.js';
+import type { ASTNode } from '../types.js';
 import type { ProofLink, ProofChain, VerificationResult } from './types.js';
 export type { ProofLink, ProofChain, VerificationResult };
 
@@ -231,12 +233,36 @@ function stripTerminalReturnTrue(script: string): string {
   // Drop trailing blank / comment-only lines so an inline RETURN is terminal.
   t = t.replace(/(?:\n[ \t]*(?:\/\/[^\n]*)?)+$/, '');
   const retTrue = t.match(/(?:^|\s)RETURN\s+TRUE\s*(?:\/\/[^\n]*)?$/i);
-  if (retTrue) return t.slice(0, retTrue.index).replace(/\s+$/, '');
-  const anyRet = t.match(/(?:^|\s)RETURN\b[^\n]*$/i);
-  if (anyRet) {
-    throw new Error('toNestedMastScript: refusing to compose a layer with a terminal RETURN that is not RETURN TRUE');
+  if (retTrue) {
+    t = t.slice(0, retTrue.index).replace(/\s+$/, '');
+  } else {
+    const anyRet = t.match(/(?:^|\s)RETURN\b[^\n]*$/i);
+    if (anyRet) {
+      throw new Error('toNestedMastScript: refusing to compose a layer with a terminal RETURN that is not RETURN TRUE');
+    }
+  }
+  // RFC-020 RM-COMPOSE-002: a RETURN nested in a taken branch (e.g. inside an
+  // IF) is not terminal at the text level but still makes the appended MAST
+  // unreachable. Parse the layer and reject any surviving RETURN.
+  let ast: ASTNode[];
+  try {
+    ast = parseScript(t);
+  } catch (err) {
+    throw new Error(`toNestedMastScript: layer does not parse: ${(err as Error).message}`);
+  }
+  if (walkHasReturn(ast)) {
+    throw new Error('toNestedMastScript: layer contains a RETURN before the appended MAST');
   }
   return t;
+}
+
+export function walkHasReturn(node: unknown): boolean {
+  if (Array.isArray(node)) return node.some(walkHasReturn);
+  if (!node || typeof node !== 'object') return false;
+  if ((node as { type?: string }).type === 'RETURN') return true;
+  return Object.entries(node as Record<string, unknown>).some(
+    ([key, value]) => key !== 'span' && walkHasReturn(value),
+  );
 }
 
 export function toNestedMastScript(chain: ProofChain): string {

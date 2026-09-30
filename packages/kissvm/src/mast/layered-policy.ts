@@ -12,8 +12,9 @@
 
 import type { PolicyNode, PolicyTree, ProofLink } from './types.js';
 import { buildPolicyTree, type PolicyNodeInput } from './policy-tree.js';
-import { buildProofChain } from './proof-chain.js';
+import { buildProofChain, walkHasReturn } from './proof-chain.js';
 import { computeCanonicalScriptHash, compileMastTree } from './mast-compiler.js';
+import { parseScript } from '../parser.js';
 
 // ─── Layer definitions ─────────────────────────────────────────────────────
 
@@ -128,10 +129,23 @@ function stripTrailingReturn(script: string): string {
   // Drop trailing blank / comment-only lines so an inline RETURN is terminal.
   t = t.replace(/(?:\n[ \t]*(?:\/\/[^\n]*)?)+$/, '');
   const retTrue = t.match(/(?:^|\s)RETURN\s+TRUE\s*(?:\/\/[^\n]*)?$/i);
-  if (retTrue) return t.slice(0, retTrue.index).replace(/\s+$/, '');
-  const anyRet = t.match(/(?:^|\s)RETURN\b[^\n]*$/i);
-  if (anyRet) {
-    throw new Error('stripTrailingReturn: refusing to strip a terminal RETURN that is not RETURN TRUE');
+  if (retTrue) {
+    t = t.slice(0, retTrue.index).replace(/\s+$/, '');
+  } else {
+    const anyRet = t.match(/(?:^|\s)RETURN\b[^\n]*$/i);
+    if (anyRet) {
+      throw new Error('stripTrailingReturn: refusing to strip a terminal RETURN that is not RETURN TRUE');
+    }
+  }
+  // RFC-020 RM-COMPOSE-002: a RETURN nested in a taken branch still makes the
+  // appended MAST unreachable — parse and reject any surviving RETURN.
+  try {
+    if (walkHasReturn(parseScript(t))) {
+      throw new Error('stripTrailingReturn: layer contains a RETURN before the appended MAST');
+    }
+  } catch (err) {
+    if (err instanceof Error && err.message.includes('RETURN before')) throw err;
+    throw new Error(`stripTrailingReturn: layer does not parse: ${(err as Error).message}`);
   }
   return t;
 }

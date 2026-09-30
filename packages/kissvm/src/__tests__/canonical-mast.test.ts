@@ -166,3 +166,20 @@ describe('RFC-020 P1-5: verifyProofChain expected-root binding', () => {
     expect(verifyProofChain(proofChain, undefined, { expectedRoot: proofChain.links[0].policyRoot }).valid).toBe(true);
   });
 });
+
+describe('RFC-020 P1-3: nested RETURN makes an appended MAST unreachable', () => {
+  it('rejects a parent layer whose branch RETURN survives the strip', () => {
+    const a = 'IF STATE(0) EQ [x] THEN\n  RETURN TRUE\nENDIF';
+    const b = `ASSERT SIGNEDBY(0x${pkB}) RETURN TRUE`;
+    expect(() =>
+      buildLayeredMastScript({
+        assetId: 'x',
+        assetName: 'X',
+        layers: [
+          { id: 'a', name: 'A', script: a, authorityPkd: pkA },
+          { id: 'b', name: 'B', script: b, authorityPkd: pkB },
+        ],
+      }),
+    ).toThrow(/RETURN/);
+  });
+});
