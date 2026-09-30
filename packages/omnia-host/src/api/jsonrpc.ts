@@ -97,10 +97,11 @@ function pathname(url: string | undefined): string {
 }
 
 function isOriginAllowed(req: http.IncomingMessage, allowedOrigins: string[] | undefined): boolean {
-  if (!allowedOrigins || allowedOrigins.length === 0) return true;
   const origin = req.headers.origin;
-  // Allow native clients (no browser Origin header).
+  // Native clients (no browser Origin header) are always allowed.
   if (!origin) return true;
+  // RFC-020 H1: browser requests require an explicit allowlist (default deny).
+  if (!allowedOrigins || allowedOrigins.length === 0) return false;
   return allowedOrigins.includes(origin);
 }
 
@@ -135,6 +136,15 @@ function safeTokenEqual(provided: string | undefined, expected: string): boolean
 }
 
 export function createControlServer(options: ControlServerOptions): ControlServer {
+  // RFC-020 H1: a non-loopback bind must be authenticated. Refuse to start a
+  // network-exposed control plane without a token.
+  const isLoopback = options.host === '127.0.0.1' || options.host === '::1' || options.host === 'localhost';
+  if (!isLoopback && (options.authToken === undefined || options.authToken.length === 0)) {
+    throw new Error(
+      `Refusing to bind the control plane to ${options.host} without a control token (OMNIA_CONTROL_TOKEN)`,
+    );
+  }
+
   const methods = options.methods ?? new Map();
   const wsPath = options.wsPath ?? '/rpc';
   const allowedOrigins = options.allowedOrigins;
@@ -155,6 +165,13 @@ export function createControlServer(options: ControlServerOptions): ControlServe
     }
     if (!isOriginAllowed(req, allowedOrigins)) {
       sendJson(res, 403, { error: 'Forbidden' });
+      return;
+    }
+    // RFC-020 H1: require application/json — a browser cross-origin `text/plain`
+    // POST (a classic CSRF vector that skips CORS preflight) must be rejected.
+    const contentType = String(req.headers['content-type'] ?? '').toLowerCase();
+    if (!contentType.startsWith('application/json')) {
+      sendJson(res, 415, { error: 'Unsupported Media Type: application/json required' });
       return;
     }
     if (authToken !== undefined && !safeTokenEqual(bearerToken(req), authToken)) {

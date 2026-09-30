@@ -177,3 +177,32 @@ describe('createControlServer control-plane access control (AUD-009)', () => {
     }
   });
 });
+
+describe('RFC-020 H1: control-plane hardening', () => {
+  it('denies browser origins when no allowlist is configured (default deny)', async () => {
+    const { server, port } = await start({ host: '127.0.0.1', port: 0, methods: pingMethods() });
+    try {
+      const denied = await post(port, { jsonrpc: '2.0', id: 1, method: 'ping' }, { origin: 'https://evil.example' });
+      expect(denied.status).toBe(403);
+    } finally {
+      await server.close();
+    }
+  });
+
+  it('requires application/json (rejects a text/plain CSRF body)', async () => {
+    const { server, port } = await start({ host: '127.0.0.1', port: 0, methods: pingMethods() });
+    try {
+      const res = await post(port, { jsonrpc: '2.0', id: 1, method: 'ping' }, { 'content-type': 'text/plain' });
+      expect(res.status).toBe(415);
+    } finally {
+      await server.close();
+    }
+  });
+
+  it('refuses a non-loopback bind without a control token', () => {
+    expect(() => createControlServer({ host: '0.0.0.0', port: 0, methods: pingMethods() })).toThrow(/control token/);
+    expect(() =>
+      createControlServer({ host: '0.0.0.0', port: 0, methods: pingMethods(), authToken: 'sekret' }),
+    ).not.toThrow();
+  });
+});
