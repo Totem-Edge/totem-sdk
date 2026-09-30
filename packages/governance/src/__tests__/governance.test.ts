@@ -33,6 +33,7 @@ import {
   isExecutionReady,
   isGovernanceError,
   computeVoteId,
+  computeProposalId,
 } from '../index'
 import type {
   GovernanceConfig,
@@ -1261,3 +1262,26 @@ describe('root index exports', () => {
     }
   })
 })
+
+describe('RFC-020 H6: proposal id binds the full action set', () => {
+  it('two same-length action sets produce different proposal ids', () => {
+    const a = computeProposalId('dao', 'proposer', 1000, [
+      { type: 'custom', payload: { to: 'X', amount: '1' }, description: 'd' },
+    ]);
+    const b = computeProposalId('dao', 'proposer', 1000, [
+      { type: 'custom', payload: { to: 'Y', amount: '1' }, description: 'd' },
+    ]);
+    expect(a).not.toBe(b);
+  });
+
+  it('executeProposal rejects a tally that does not match the committed tally', () => {
+    const tally = { proposalId: 'p', yes: 5, no: 0, abstain: 0, totalWeight: 5, quorumWeight: 1, thresholdBps: 5000, algorithm: 'weighted' };
+    const proposal = {
+      id: 'p', daoId: 'd', title: 't', description: '', proposer: 'pr',
+      actions: [{ type: 'custom', payload: {}, description: 'x' }],
+      status: 'passed', createdAt: 0, votingStartsAt: 0, votingEndsAt: 0, executionDelay: 0,
+      membershipSnapshotHash: 'h', voteTally: tally,
+    } as never;
+    expect(executeProposal(proposal, { ...tally, yes: 999 } as never, 'proof', 'gov', 'exec')).toEqual([]);
+  });
+});

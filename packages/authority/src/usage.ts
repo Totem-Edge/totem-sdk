@@ -6,6 +6,12 @@ import type {
   UsageLimit,
 } from './types.js';
 
+/** RFC-020 H6: amounts are non-negative integer strings; a negative delta must
+ *  never replenish a budget. */
+function isNonNegativeInteger(value: string): boolean {
+  return /^\d+$/.test(value);
+}
+
 export function checkUsageLimit(
   snapshot: AuthorityUsageSnapshot,
   limit: UsageLimit,
@@ -24,8 +30,18 @@ export function checkUsageLimit(
   }
 
   if (limit.maxTotal !== undefined) {
-    const current = BigInt(snapshot.totalAmount ?? '0');
-    const proposedAmount = proposed?.amount ? BigInt(proposed.amount) : 0n;
+    if (typeof limit.maxTotal !== 'string' || !isNonNegativeInteger(limit.maxTotal)) {
+      throw new Error(`limit.maxTotal must be a non-negative integer string; got ${JSON.stringify(limit.maxTotal)}`);
+    }
+    const current = snapshot.totalAmount !== undefined && isNonNegativeInteger(snapshot.totalAmount)
+      ? BigInt(snapshot.totalAmount)
+      : 0n;
+    // A negative or non-numeric proposed amount is rejected (not folded into
+    // the sum, which previously replenished the budget).
+    if (proposed?.amount !== undefined && !isNonNegativeInteger(proposed.amount)) {
+      return false;
+    }
+    const proposedAmount = proposed?.amount !== undefined ? BigInt(proposed.amount) : 0n;
     if (current + proposedAmount > BigInt(limit.maxTotal)) {
       return false;
     }
@@ -87,7 +103,12 @@ export function snapshotFromUsage(
     totalCount += u.countsToward?.count ?? 1;
 
     if (u.countsToward?.amount !== undefined) {
-      const current = BigInt(totalAmount ?? '0');
+      if (!isNonNegativeInteger(u.countsToward.amount)) {
+        throw new Error(
+          `usage amount must be a non-negative integer string; got ${JSON.stringify(u.countsToward.amount)}`,
+        );
+      }
+      const current = totalAmount !== undefined ? BigInt(totalAmount) : 0n;
       totalAmount = (current + BigInt(u.countsToward.amount)).toString();
     }
   }

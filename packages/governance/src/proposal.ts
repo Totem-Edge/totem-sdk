@@ -25,7 +25,7 @@ export function createProposal(params: {
     return { error: 'proposer is not a member' }
   }
 
-  const proposalId = computeProposalId(config.daoId, proposer, now, actions.length)
+  const proposalId = computeProposalId(config.daoId, proposer, now, actions)
 
   const votingStartsAt = now + config.voting.delayBeforeVotingMs
   const votingEndsAt = votingStartsAt + config.voting.votingPeriodMs

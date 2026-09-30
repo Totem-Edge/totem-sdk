@@ -148,3 +148,18 @@ describe('snapshotFromUsage', () => {
     expect(checkUsageLimit(snap, limit, 200, { count: 99, amount: '1000000' })).toBe(false);
   });
 });
+
+describe('RFC-020 H6: amount validation', () => {
+  it('rejects a negative or non-numeric proposed amount (no budget replenishment)', () => {
+    const snap: AuthorityUsageSnapshot = { mandateProofId: 'm1', totalCount: 0, totalAmount: '50' };
+    const limit: UsageLimit = { maxTotal: '100' };
+    expect(checkUsageLimit(snap, limit, 0, { count: 0, amount: '-10' })).toBe(false);
+    expect(checkUsageLimit(snap, limit, 0, { count: 0, amount: 'abc' })).toBe(false);
+    expect(checkUsageLimit(snap, limit, 0, { count: 0, amount: '10' })).toBe(true);
+  });
+
+  it('rejects a negative limit cap', () => {
+    const snap: AuthorityUsageSnapshot = { mandateProofId: 'm1', totalCount: 0 };
+    expect(() => checkUsageLimit(snap, { maxTotal: '-5' }, 0)).toThrow(/non-negative/);
+  });
+});

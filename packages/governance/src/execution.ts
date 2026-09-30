@@ -24,6 +24,12 @@ export function executeProposal(
     return []
   }
 
+  // RFC-020 H6: the executed tally must match the tally committed on the
+  // proposal — an independently passed tally cannot be substituted.
+  if (proposal.voteTally && computeTallyHash(proposal.voteTally) !== computeTallyHash(tally)) {
+    return []
+  }
+
   const executionDeadline = proposal.votingEndsAt + proposal.executionDelay
   if (now < executionDeadline) {
     return []

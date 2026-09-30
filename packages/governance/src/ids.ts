@@ -1,4 +1,4 @@
-import type { Proposal, Vote, VoteTally, Delegation, MembershipSnapshot, MembershipEntry, ProposalOutcome } from './types.js'
+import type { Proposal, ProposalAction, Vote, VoteTally, Delegation, MembershipSnapshot, MembershipEntry, ProposalOutcome } from './types.js'
 import { hashCanonical } from '@totemsdk/core'
 
 const DOMAIN_PROPOSAL = 'TOTEM_GOVERNANCE_PROPOSAL_V1'
@@ -8,8 +8,17 @@ const DOMAIN_DELEGATION = 'TOTEM_GOVERNANCE_DELEGATION_V1'
 const DOMAIN_SNAPSHOT = 'TOTEM_GOVERNANCE_SNAPSHOT_V1'
 const DOMAIN_OUTCOME = 'TOTEM_GOVERNANCE_OUTCOME_V1'
 
-export function computeProposalId(daoId: string, proposer: string, createdAt: number, actions: number): string {
-  return 'totem:gov:proposal:' + hashCanonical(DOMAIN_PROPOSAL, { daoId, proposer, createdAt, actionCount: actions })
+export function computeProposalId(daoId: string, proposer: string, createdAt: number, actions: ProposalAction[]): string {
+  // RFC-020 H6: bind the full action set, not just the action count. Binding
+  // only the count let a signed proposal (proof) be replayed against a
+  // different action set of the same length, changing what executes.
+  const normalized = actions.map((a) => ({
+    type: a.type,
+    target: a.target ?? null,
+    payload: a.payload,
+    description: a.description,
+  }))
+  return 'totem:gov:proposal:' + hashCanonical(DOMAIN_PROPOSAL, { daoId, proposer, createdAt, actions: normalized })
 }
 
 export function computeVoteId(proposalId: string, voter: string, choice: string, castAt: number): string {

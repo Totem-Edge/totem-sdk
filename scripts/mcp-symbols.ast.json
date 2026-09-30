@@ -5601,7 +5601,7 @@
         },
         "computeProposalId": {
           "kind": "function",
-          "signature": "computeProposalId(daoId: string, proposer: string, createdAt: number, actions: number): string"
+          "signature": "computeProposalId(daoId: string, proposer: string, createdAt: number, actions: ProposalAction[]): string"
         },
         "computeVoteId": {
           "kind": "function",
