@@ -292,3 +292,15 @@ describe('RFC-020 P1-6: terminal-op awareness', () => {
     expect(violations.map((v) => v.invariant)).toContain('I4');
   });
 });
+
+describe('RFC-020 P1-7: sensor-proof has no dead code after MAST', () => {
+  const pkA = 'aa'.repeat(32);
+  const root = 'cc'.repeat(32);
+  it('places every reading/freshness/output check before the terminal MAST', () => {
+    const script = buildSensorProofScript({
+      deviceId: 'dev-1', devicePkd: pkA, policyRoot: root, deviceProof: 'aa',
+      maxAgeSeconds: 60, reading: '0x1', timestamp: 0, signature: '0x',
+    });
+    expect(auditScriptInvariants({ name: 'sensor', script }).map((v) => v.invariant)).not.toContain('I4');
+  });
+});

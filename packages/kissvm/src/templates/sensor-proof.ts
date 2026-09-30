@@ -56,31 +56,29 @@ export function buildSensorProofScript(config: SensorProofConfig): string {
   // RFC-016: PROOF takes the *leaf preimage* — the authorizing script, rendered
   // as a Minima SCRIPT literal `[ … ]` — not the device key bytes. A script MAST
   // (see buildSensorFleetPolicy) can only be proven by the script itself.
+  //
+  // RFC-020 EXP-01: MAST is terminal, so every reading/signature/freshness/
+  // output check must run BEFORE the terminal `MAST` — otherwise it is dead code.
   const leafScript = config.leafScript ?? `ASSERT SIGNEDBY(0x${config.devicePkd}) RETURN TRUE`;
   return [
     `// Sensor proof: device ${config.deviceId}`,
     `LET devicePkd = 0x${config.devicePkd}`,
     `LET maxAge = ${config.maxAgeSeconds}`,
     ``,
-    `// 1. Device is authorized by policy root`,
-    `ASSERT PROOF([${leafScript}] 0 0x${config.policyRoot} 0 0x${config.deviceProof})`,
-    // RFC-016 P2/P4: MAST takes the *policy root* (the proof is verified against
-    // it), not the device public key.
-    `MAST 0x${config.policyRoot}`,
-    ``,
-    `// 2. Reading is signed by the device`,
-    // RFC-016 P4: freshness must use the committed observation, not a
-    // spender-supplied current-state value.
+    `// 1. Reading is signed by the device (committed observation)`,
     `LET reading = PREVSTATE(0)`,
     `LET sigTime = PREVSTATE(1)`,
     `ASSERT SIGDIG(2 reading)`,
     ``,
-    `// 3. Reading is fresh`,
+    `// 2. Reading is fresh`,
     `ASSERT @BLOCK SUB sigTime LTE maxAge`,
     ``,
-    `// 4. Output preserves the reading`,
+    `// 3. Output preserves the reading`,
     `ASSERT VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID TRUE)`,
-    `RETURN TRUE`,
+    ``,
+    `// 4. Device is authorized by the policy root (terminal MAST last)`,
+    `ASSERT PROOF([${leafScript}] 0 0x${config.policyRoot} 0 0x${config.deviceProof})`,
+    `MAST 0x${config.policyRoot}`,
   ].join('\n');
 }
 
