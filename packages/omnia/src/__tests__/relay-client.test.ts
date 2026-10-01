@@ -85,4 +85,17 @@ describe('createRelayOmniaClient', () => {
     await client.close();
     expect(swarm.close).toHaveBeenCalled();
   });
+
+  it('auto-builds local operations when wallet signing material is provided', async () => {
+    const client = createRelayOmniaClient({
+      swarm: fakeSwarm(),
+      localParticipant: { partyId: 'p1', publicKeyDigest: 'aa', addressIndex: 0 },
+      signer: { publicKeyDigest: 'aa', sign: async () => ({}) } as never,
+      leaseProvider: { reserveKeyUse: async () => ({}), releaseReservation: async () => ({}) } as never,
+      chainProvider: {} as never,
+    });
+    // Not UNSUPPORTED: the operation is wired and validates its parameters.
+    await expect(client.openChannel({})).rejects.toThrow(/remotePartyId/);
+    await client.close();
+  });
 });

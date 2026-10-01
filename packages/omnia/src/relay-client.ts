@@ -25,8 +25,13 @@
 
 import { HostedRelaySwarmImpl } from './relay.js';
 import { createOmniaIntegration } from './integration.js';
+import { createChannel, updateState } from './channel.js';
+import { proposeSettlement, markChannelClosing, markChannelClosed } from './settlement.js';
+import { hexToBytes } from '@totemsdk/core';
 import type { OmniaSwarm, OmniaSwarmConfig } from './messaging-types.js';
-import type { OmniaChannel } from './types.js';
+import type { ChannelParticipant, ChannelSigner, CreateChannelParams, OmniaChannel } from './types.js';
+import type { WotsLeaseProvider } from '@totemsdk/wots-lease';
+import type { ChainStateProvider } from '@totemsdk/chain-provider';
 
 /** Axia-hosted relay bridge (default). */
 export const AXIA_RELAY_URL = 'wss://api.axia.to/api/relay/ws';
@@ -65,16 +70,167 @@ export interface RelayOmniaOperations {
   closeChannel?(params: Record<string, unknown>): Promise<unknown>;
 }
 
+export interface RelayOmniaOperationsOptions {
+  swarm: OmniaSwarm;
+  channels: Map<string, OmniaChannel>;
+  /** The wallet's own channel participant (party id + WOTS public-key digest). */
+  localParticipant: ChannelParticipant;
+  /** Wallet signer (WOTS) — no raw keys leave the wallet. */
+  signer: ChannelSigner;
+  /** RFC-013 WOTS lease provider for signing-index allocation. */
+  leaseProvider: WotsLeaseProvider;
+  /** Chain provider used to broadcast the funding / settlement TxPoW. */
+  chainProvider: ChainStateProvider;
+}
+
+function reqString(params: Record<string, unknown>, key: string): string {
+  const value = params[key];
+  if (typeof value !== 'string' || value.length === 0) {
+    throw new Error(`Omnia: '${key}' must be a non-empty string`);
+  }
+  return value;
+}
+
+function reqBigInt(params: Record<string, unknown>, key: string): bigint {
+  const value = params[key];
+  if (typeof value === 'bigint') return value;
+  if (typeof value === 'number' && Number.isInteger(value)) return BigInt(value);
+  if (typeof value === 'string' && /^-?\d+$/.test(value)) return BigInt(value);
+  throw new Error(`Omnia: '${key}' must be an integer`);
+}
+
+/**
+ * Local channel operations backed by the wallet's signing material — the port of
+ * `@totemsdk/omnia-host`'s `openChannel`/`pay`/`settle`/`closeChannel` handlers
+ * (RFC-014 §6.3), browser-safe (no SQLite/RPC/Node builtins).
+ *
+ * `openChannel` expects the wallet/dApp to supply `fundingWitnessHex` (the signed
+ * funding-input witness) — the wallet signs the funding transaction itself.
+ */
+export function createRelayOmniaOperations(
+  options: RelayOmniaOperationsOptions,
+): RelayOmniaOperations {
+  const { swarm, channels, localParticipant, signer, leaseProvider, chainProvider } = options;
+
+  return {
+    async openChannel(params) {
+      const remote: ChannelParticipant = {
+        partyId: reqString(params, 'remotePartyId'),
+        publicKeyDigest: reqString(params, 'remotePublicKeyDigest'),
+        addressIndex: typeof params.remoteAddressIndex === 'number' ? params.remoteAddressIndex : 0,
+        ...(typeof params.remoteSettlementAddress === 'string'
+          ? { settlementAddress: params.remoteSettlementAddress }
+          : {}),
+      };
+      const createParams: CreateChannelParams = {
+        localParty: localParticipant,
+        remoteParty: remote,
+        localAmount: reqBigInt(params, 'localAmount'),
+        remoteAmount: reqBigInt(params, 'remoteAmount'),
+        ...(typeof params.tokenId === 'string' ? { tokenId: params.tokenId } : {}),
+        fundingCoinId: reqString(params, 'fundingCoinId'),
+        fundingWitnessBytes: hexToBytes(reqString(params, 'fundingWitnessHex').replace(/^0x/i, '')),
+      };
+      const created = await createChannel(createParams, chainProvider);
+      const channel: OmniaChannel = { ...created.channel, localSigner: signer };
+      channels.set(channel.channelId, channel);
+
+      const peer = await swarm.connectToPeer(remote.publicKeyDigest, channel.channelId);
+      await peer.sendMessage({
+        type: 'CHANNEL_PROPOSAL',
+        channelId: channel.channelId,
+        nonce: Date.now(),
+        payload: created.proposal,
+      });
+      return { success: true, channelId: channel.channelId, fundingTxId: channel.fundingTxId };
+    },
+
+    async pay(params) {
+      const channelId = reqString(params, 'channelId');
+      const amount = reqBigInt(params, 'amount');
+      const channel = channels.get(channelId);
+      if (!channel) throw new Error(`Channel ${channelId} not found`);
+      const localPartyId = localParticipant.partyId;
+      const remote = channel.parties.find((party) => party.partyId !== localPartyId);
+      if (!remote) throw new Error('Channel counterparty not found');
+      const localBalance = channel.balances[localPartyId] ?? 0n;
+      if (amount <= 0n || localBalance < amount) throw new Error('Insufficient channel balance');
+
+      const result = await updateState(
+        channel,
+        {
+          newBalances: {
+            ...channel.balances,
+            [localPartyId]: localBalance - amount,
+            [remote.partyId]: (channel.balances[remote.partyId] ?? 0n) + amount,
+          },
+        },
+        leaseProvider,
+        signer,
+      );
+      if (result.error) throw new Error(result.error);
+      channels.set(channelId, result.channel);
+
+      const peer = await swarm.connectToPeer(remote.publicKeyDigest, channelId);
+      await peer.sendMessage({ type: 'STATE_UPDATE', channelId, nonce: Date.now(), payload: result.signedState });
+      return {
+        success: true,
+        channelId,
+        sequence: result.channel.currentSequence,
+        localBalance: result.channel.balances[localPartyId]?.toString(),
+        remoteBalance: result.channel.balances[remote.partyId]?.toString(),
+      };
+    },
+
+    async settle(params) {
+      const channelId = reqString(params, 'channelId');
+      const channel = channels.get(channelId);
+      if (!channel) throw new Error(`Channel ${channelId} not found`);
+      const closing = markChannelClosing(channel, 'mutual');
+      const settlement = await proposeSettlement(closing, leaseProvider, {
+        signer,
+        chainProvider,
+        partyAddresses: Object.fromEntries(
+          closing.parties.map((party) => [party.partyId, party.settlementAddress ?? party.publicKeyDigest]),
+        ),
+      });
+      channels.set(channelId, markChannelClosed(closing));
+      return {
+        success: true,
+        channelId,
+        settlementTxId: settlement.settlementPayload.txpowId,
+        finalBalances: Object.fromEntries(
+          Object.entries(settlement.settlementPayload.balances).map(([key, value]) => [key, value.toString()]),
+        ),
+      };
+    },
+
+    async closeChannel(params) {
+      const channelId = reqString(params, 'channelId');
+      const channel = channels.get(channelId);
+      if (!channel) throw new Error(`Channel ${channelId} not found`);
+      channels.set(channelId, markChannelClosed(channel));
+      return { success: true, channelId };
+    },
+  };
+}
+
 export interface RelayOmniaClientOptions extends RelayOmniaSwarmOptions {
   /** Pre-built swarm (e.g. a host-managed relay connection). Defaults to one built from the relay URL. */
   swarm?: OmniaSwarm;
   /** Channel registry (defaults to a fresh in-memory Map). */
   channels?: Map<string, OmniaChannel>;
   /**
-   * Local channel operations. When absent, `openChannel`/`pay`/`settle`/
-   * `closeChannel` return an explicit `UNSUPPORTED` result.
+   * Local channel operations. When absent (and no signing material is supplied),
+   * `openChannel`/`pay`/`settle`/`closeChannel` return an explicit `UNSUPPORTED`
+   * result.
    */
   operations?: RelayOmniaOperations;
+  /** Wallet channel participant; with the ports below, auto-builds operations. */
+  localParticipant?: ChannelParticipant;
+  signer?: ChannelSigner;
+  leaseProvider?: WotsLeaseProvider;
+  chainProvider?: ChainStateProvider;
   /** Wire inbound CHANNEL_PROPOSAL/STATE_UPDATE/SETTLEMENT_PROPOSAL handling. Default true. */
   autoAccept?: boolean;
 }
@@ -129,6 +285,20 @@ export function createRelayOmniaClient(options: RelayOmniaClientOptions = {}): R
     unsubscribe = createOmniaIntegration(swarm, channels, {});
   }
 
+  // Auto-build local channel operations when the wallet supplies signing material.
+  const operations: RelayOmniaOperations | undefined =
+    options.operations
+    ?? (options.localParticipant && options.signer && options.leaseProvider && options.chainProvider
+      ? createRelayOmniaOperations({
+          swarm,
+          channels,
+          localParticipant: options.localParticipant,
+          signer: options.signer,
+          leaseProvider: options.leaseProvider,
+          chainProvider: options.chainProvider,
+        })
+      : undefined);
+
   const advanced = (name: string) => async (): Promise<unknown> =>
     unsupported(`Omnia ${name} is not supported by the relay client.`);
 
@@ -136,7 +306,7 @@ export function createRelayOmniaClient(options: RelayOmniaClientOptions = {}): R
     name: keyof RelayOmniaOperations,
     params: Record<string, unknown>,
   ): Promise<unknown> => {
-    const fn = options.operations?.[name];
+    const fn = operations?.[name];
     if (!fn) return unsupported(`Omnia ${name} requires wallet signing material that is not configured.`);
     return fn(params);
   };
