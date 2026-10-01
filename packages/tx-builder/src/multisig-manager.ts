@@ -90,6 +90,20 @@ function normalizePk(pk: string): string {
 }
 
 /**
+ * RFC-020 P2-13 (TXB-MULTISIG-008): return a detached read model so callers
+ * cannot mutate manager-internal state (config, signatures map) by reference.
+ */
+function toReadModel(tx: PendingMultisigTransaction): PendingMultisigTransaction {
+  return {
+    ...tx,
+    config: { ...tx.config, publicKeys: [...tx.config.publicKeys] },
+    signatures: new Map(
+      [...tx.signatures.entries()].map(([key, sig]) => [key, { ...sig }] as const),
+    ),
+  };
+}
+
+/**
  * RFC-018 P1-4: a multisig config is only meaningful if the keys are distinct
  * (Minima's MULTISIG counts positions, so a duplicate collapses the threshold),
  * the own key is actually a signer, and the threshold is in range.
@@ -303,7 +317,7 @@ export class MultisigManager {
     this.pendingTransactions.set(id, tx);
     await this.save();
     
-    return tx;
+    return toReadModel(tx);
   }
   
   async addOwnSignature(
@@ -317,7 +331,10 @@ export class MultisigManager {
       throw new Error(`Transaction ${transactionId} not found`);
     }
 
-    if (tx.status === 'expired' || tx.status === 'failed') {
+    // RFC-020 P2-13: refresh status (expiry/readiness) before accepting a
+    // signature, so a stale `pending` record cannot accept a signature after exp.
+    this.updateStatus(tx);
+    if (tx.status === 'expired' || tx.status === 'failed' || tx.status === 'broadcast') {
       throw new Error(`Transaction ${transactionId} is ${tx.status}`);
     }
 
@@ -422,7 +439,7 @@ export class MultisigManager {
     if (!tx) {
       return [];
     }
-    return Array.from(tx.signatures.values());
+    return Array.from(tx.signatures.values()).map((sig) => ({ ...sig }));
   }
   
   async isReady(transactionId: string): Promise<boolean> {
@@ -541,7 +558,7 @@ export class MultisigManager {
     this.pendingTransactions.set(data.id, tx);
     await this.save();
     
-    return tx;
+    return toReadModel(tx);
   }
   
   async markBroadcast(transactionId: string): Promise<void> {
@@ -564,20 +581,20 @@ export class MultisigManager {
   
   async getTransaction(transactionId: string): Promise<PendingMultisigTransaction | undefined> {
     await this.ready;
-    return this.pendingTransactions.get(transactionId);
+    const tx = this.pendingTransactions.get(transactionId);
+    return tx ? toReadModel(tx) : undefined;
   }
   
   async getAllPending(): Promise<PendingMultisigTransaction[]> {
     await this.ready;
-    const now = Date.now();
     const result: PendingMultisigTransaction[] = [];
     
     for (const tx of this.pendingTransactions.values()) {
-      if (tx.expiresAt < now) {
-        tx.status = 'expired';
-      }
+      // RFC-020 P2-13 (TXB-MULTISIG-009): use the guarded status transition so a
+      // terminal (`broadcast`/`failed`) status is never clobbered by expiry.
+      this.updateStatus(tx);
       if (tx.status === 'pending' || tx.status === 'ready') {
-        result.push(tx);
+        result.push(toReadModel(tx));
       }
     }
     

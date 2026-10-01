@@ -58,4 +58,26 @@ describe('CoinSelectionService.selectCoins token filtering (AUD-046)', () => {
     expect(result.totalSelected).toBe('5');
     expect(result.insufficientFunds).toBe(true);
   });
+
+  it('normalizes coinId case/0x and drops spent/expired coins (RFC-020 P2-12)', () => {
+    const coins: SpendableCoin[] = [
+      { coinId: '0xAABB', address: 'addr1', amount: '5', tokenid: '0x00', created: 0 },
+      { coinId: 'aabb', address: 'addr1', amount: '5', tokenid: '0x00', created: 0 },
+      { coinId: 'spent', address: 'addr1', amount: '100', tokenid: '0x00', created: 0, spent: true },
+      { coinId: 'expired', address: 'addr1', amount: '100', tokenid: '0x00', created: 0, expiresAt: Date.now() - 1 },
+    ];
+    const result = service.selectCoins(coins, { mode: 'global', targetAmount: '8' });
+    expect(result.selectedCoins).toHaveLength(1);
+    expect(result.totalSelected).toBe('5');
+    expect(result.insufficientFunds).toBe(true);
+  });
+
+  it('never selects a spent coin', () => {
+    const result = service.selectCoins(
+      [{ coinId: 's', address: 'addr1', amount: '100', tokenid: '0x00', created: 0, spent: true }],
+      { mode: 'global', targetAmount: '10' },
+    );
+    expect(result.selectedCoins).toHaveLength(0);
+    expect(result.insufficientFunds).toBe(true);
+  });
 });

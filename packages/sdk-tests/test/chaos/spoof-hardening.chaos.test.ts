@@ -84,6 +84,8 @@ describe('spoof-hardening conformance (A/B/C/D/E)', () => {
       lpAddress,
       recipientAddress: lpAddress,
       lpSeed: SEED,
+      lpKeyIndex: 0,
+      expiresAt: 9_999_999_999_999,
       nonce: 'n1',
     });
     expect(verifyPoolFundTx(tx, proof, tx.recipientAddress).valid).toBe(true);

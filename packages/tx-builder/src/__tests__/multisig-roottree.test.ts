@@ -51,8 +51,7 @@ describe('MultisigManager.addOwnSignature() — unified derivation', () => {
 
   it('throws when transaction is expired', async () => {
     const mgr = new MultisigManager();
-    const tx = await mgr.createPendingTransaction(makeConfig(), MOCK_TX_HEX, MOCK_DIGEST);
-    tx.status = 'expired';
+    const tx = await mgr.createPendingTransaction(makeConfig(), MOCK_TX_HEX, MOCK_DIGEST, -1);
     await expect(mgr.addOwnSignature(tx.id, MOCK_SIG)).rejects.toThrow('expired');
   });
 

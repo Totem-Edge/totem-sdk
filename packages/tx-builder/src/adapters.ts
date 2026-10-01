@@ -25,4 +25,8 @@ export interface SpendableCoin {
   amount: string;
   tokenid: string;
   created: number;
+  /** RFC-020 P2-12: when true the coin is already spent and must not be selected. */
+  spent?: boolean;
+  /** RFC-020 P2-12: absolute expiry (epoch ms); expired coins must not be selected. */
+  expiresAt?: number;
 }

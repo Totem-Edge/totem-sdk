@@ -33,6 +33,8 @@ export interface PoolFundTx {
   lpAddress: string;
   recipientAddress: string;
   nonce: string;
+  /** RFC-020 P2-11 (TXB-FUND-001): absolute expiry (epoch ms). */
+  expiresAt: number;
 }
 
 export interface BuildPoolFundTxParams {
@@ -49,6 +51,11 @@ export interface BuildPoolFundTxParams {
    * silently reuse leaf 0.
    */
   lpKeyIndex: number;
+  /**
+   * RFC-020 P2-11: absolute expiry (epoch ms) after which the intent must be
+   * rejected. Required so an intent cannot be replayed indefinitely.
+   */
+  expiresAt: number;
   nonce?: string;
 }
 
@@ -68,6 +75,8 @@ export interface SignedFundingIntent {
   signedDigest: string;
   lpSignature: string;
   nonce: string;
+  /** RFC-020 P2-11: mirrors `PoolFundTx.expiresAt`. */
+  expiresAt: number;
 }
 
 /** @deprecated Use {@link SignedFundingIntent} (RFC-016 P5). */
@@ -109,6 +118,10 @@ export function buildPoolFundTx(params: BuildPoolFundTxParams): PoolFundBuildRes
   if (!Number.isSafeInteger(lpKeyIndex) || lpKeyIndex < 0) {
     throw new Error('buildPoolFundTx: lpKeyIndex must be a non-negative safe integer from a lease reservation');
   }
+  // RFC-020 P2-11: an intent must expire; reject a missing/invalid expiry.
+  if (!Number.isSafeInteger(params.expiresAt) || params.expiresAt <= 0) {
+    throw new Error('buildPoolFundTx: expiresAt must be a positive epoch-ms integer');
+  }
   const tx: PoolFundTx = {
     version: 1,
     domain: POOL_FUND_DOMAIN,
@@ -119,6 +132,7 @@ export function buildPoolFundTx(params: BuildPoolFundTxParams): PoolFundBuildRes
     lpAddress: params.lpAddress,
     recipientAddress: params.recipientAddress,
     nonce: params.nonce ?? `${Date.now()}`,
+    expiresAt: params.expiresAt,
   };
 
   const digest = hashPoolFundTx(tx);
@@ -145,11 +159,23 @@ export function buildPoolFundTx(params: BuildPoolFundTxParams): PoolFundBuildRes
       signedDigest: bytesToHex(digest),
       lpSignature: bytesToHex(signature),
       nonce: tx.nonce,
+      expiresAt: tx.expiresAt,
     },
   };
 }
 
 const empty = (reasons: string[]): PoolFundVerification => ({ valid: reasons.length === 0, reasons });
+
+/** RFC-020 P2-11: acceptance-time replay/expiry inputs. */
+export interface PoolFundVerifyOptions {
+  /** Current time (epoch ms) for expiry evaluation. Defaults to `Date.now()`. */
+  now?: number;
+  /**
+   * Replay guard. Acceptance MUST pass the set of nonces already consumed (or an
+   * on-chain spent check); a nonce present here is rejected.
+   */
+  seenNonces?: ReadonlySet<string>;
+}
 
 /**
  * Verify a deep funding proof. `expectedPoolAddress` (the pool/channel script
@@ -160,6 +186,7 @@ export function verifyPoolFundTx(
   tx: PoolFundTx,
   proof: SignedFundingIntent,
   expectedPoolAddress: string,
+  opts: PoolFundVerifyOptions = {},
 ): PoolFundVerification {
   const reasons: string[] = [];
 
@@ -187,6 +214,18 @@ export function verifyPoolFundTx(
   if (proof.amount !== tx.amount) reasons.push('proof.amount differs from tx');
   if (proof.recipientAddress !== tx.recipientAddress) reasons.push('proof.recipientAddress differs from tx');
   if (proof.nonce !== tx.nonce) reasons.push('proof.nonce differs from tx');
+  if (proof.expiresAt !== tx.expiresAt) reasons.push('proof.expiresAt differs from tx');
+
+  // RFC-020 P2-11: expiry + replay are enforced at acceptance.
+  const now = opts.now ?? Date.now();
+  if (!Number.isSafeInteger(tx.expiresAt) || tx.expiresAt <= 0) {
+    reasons.push('tx has no valid expiry');
+  } else if (now > tx.expiresAt) {
+    reasons.push('funding intent has expired');
+  }
+  if (opts.seenNonces?.has(tx.nonce)) {
+    reasons.push('nonce has already been used (replay)');
+  }
 
   if (proof.recipientAddress !== expectedPoolAddress) {
     reasons.push(`recipient ${proof.recipientAddress} is not the expected pool address ${expectedPoolAddress}`);

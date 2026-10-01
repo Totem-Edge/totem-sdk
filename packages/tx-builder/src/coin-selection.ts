@@ -151,10 +151,17 @@ export class CoinSelectionService {
   ): CoinSelectionResult {
     // RFC-018 P2-3: de-duplicate by coinId so a duplicated entry cannot be
     // counted twice (inflating the selected total / faking sufficient funds).
+    // RFC-020 P2-12: normalise `coinId` (case/0x-insensitive), and drop spent or
+    // expired coins before selection.
+    const now = Date.now();
+    const normalizeCoinId = (id: string): string => id.replace(/^0x/i, '').toLowerCase();
     const seenCoinIds = new Set<string>();
     let availableCoins = coins.filter((c) => {
-      if (seenCoinIds.has(c.coinId)) return false;
-      seenCoinIds.add(c.coinId);
+      if (c.spent === true) return false;
+      if (c.expiresAt !== undefined && c.expiresAt < now) return false;
+      const key = normalizeCoinId(c.coinId);
+      if (seenCoinIds.has(key)) return false;
+      seenCoinIds.add(key);
       return true;
     });
     

@@ -10,6 +10,7 @@ import {
 import { wotsKeypairFromSeed } from '@totemsdk/core';
 
 const SEED = new Uint8Array(32).fill(7);
+const FAR_FUTURE = 9_999_999_999_999;
 
 function lpFixture(index = 0) {
   const { pk } = wotsKeypairFromSeed(SEED, index);
@@ -28,6 +29,7 @@ describe('buildPoolFundTx', () => {
       recipientAddress: addressFromPkDigest(wotsKeypairFromSeed(new Uint8Array(32).fill(9), 0).pk),
       lpSeed: SEED,
       lpKeyIndex,
+      expiresAt: FAR_FUTURE,
       nonce: 'n1',
     });
 
@@ -49,6 +51,7 @@ describe('buildPoolFundTx', () => {
         recipientAddress: attacker,
         lpSeed: SEED,
         lpKeyIndex: 0,
+        expiresAt: FAR_FUTURE,
       }),
     ).toThrow(/do not own lpAddress/);
   });
@@ -66,6 +69,7 @@ describe('verifyPoolFundTx', () => {
       recipientAddress: addressFromPkDigest(wotsKeypairFromSeed(new Uint8Array(32).fill(9), 0).pk),
       lpSeed: SEED,
       lpKeyIndex,
+      expiresAt: FAR_FUTURE,
       nonce: 'n1',
     });
     return { tx, proof, lpAddress };
@@ -134,6 +138,7 @@ describe('deep proof determinism', () => {
       recipientAddress: lpAddress,
       lpSeed: SEED,
       lpKeyIndex,
+      expiresAt: FAR_FUTURE,
       nonce: 'n1',
     });
     const b = buildPoolFundTx({
@@ -144,6 +149,7 @@ describe('deep proof determinism', () => {
       recipientAddress: lpAddress,
       lpSeed: SEED,
       lpKeyIndex,
+      expiresAt: FAR_FUTURE,
       nonce: 'n1',
     });
     expect(hashPoolFundTx(b.tx)).toEqual(hashPoolFundTx(a.tx));
@@ -163,5 +169,53 @@ describe('RFC-020 C1: fund-tx requires an explicit WOTS index', () => {
         lpSeed: SEED,
       } as never),
     ).toThrow(/lpKeyIndex/);
+  });
+});
+
+describe('RFC-020 P2-11: funding intents expire and cannot be replayed', () => {
+  function fixture() {
+    const { lpAddress, lpKeyIndex } = lpFixture();
+    return buildPoolFundTx({
+      poolId: 'pool-1',
+      fundingCoinId: '0xFUND',
+      tokenId: '0x00',
+      amount: '250000',
+      lpAddress,
+      recipientAddress: lpAddress,
+      lpSeed: SEED,
+      lpKeyIndex,
+      expiresAt: FAR_FUTURE,
+      nonce: 'n1',
+    });
+  }
+
+  it('refuses to build without an expiresAt', () => {
+    const { lpAddress } = lpFixture(0);
+    expect(() =>
+      buildPoolFundTx({
+        poolId: 'pool-1',
+        fundingCoinId: '0xFUND',
+        amount: '1',
+        lpAddress,
+        recipientAddress: lpAddress,
+        lpSeed: SEED,
+        lpKeyIndex: 0,
+      } as never),
+    ).toThrow(/expiresAt/);
+  });
+
+  it('rejects an expired intent and a replayed nonce', () => {
+    const { tx, proof } = fixture();
+
+    const expired = verifyPoolFundTx(tx, proof, tx.recipientAddress, { now: tx.expiresAt + 1 });
+    expect(expired.valid).toBe(false);
+    expect(expired.reasons).toContain('funding intent has expired');
+
+    const replayed = verifyPoolFundTx(tx, proof, tx.recipientAddress, { seenNonces: new Set([tx.nonce]) });
+    expect(replayed.valid).toBe(false);
+    expect(replayed.reasons).toContain('nonce has already been used (replay)');
+
+    const ok = verifyPoolFundTx(tx, proof, tx.recipientAddress, { now: tx.expiresAt - 1, seenNonces: new Set() });
+    expect(ok.valid).toBe(true);
   });
 });
