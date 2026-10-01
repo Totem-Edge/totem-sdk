@@ -1,7 +1,8 @@
 # RFC-020: Multi-Package Adversarial Hardening — Key Identity, WOTS Leasing, Verification Stubs, Composition & Serializer Parity
 
-**Status:** Draft — remediation contract (P0 landed; P1/P2 pending)
+**Status:** Draft — remediation contract (P0, P1 and P2 landed; P2-14 residual: unused security parameters in `provider-bond`/`wots-lease`/`recovery` remain informational)
 **Created:** 2026-09-29
+**Revised:** 2026-10-01
 **Authors:** Totem SDK Contributors
 **Depends on:** RFC-009 (KISSVM signature fidelity), RFC-016 (template hardening), RFC-018 (adversarial remediation), SECURITY.md invariants
 **Touches:** `@totemsdk/kissvm`, `@totemsdk/recursive-mast`, `@totemsdk/tx-builder`, `@totemsdk/core`, `@totemsdk/core-wasm`, `@totemsdk/wots-lease`, `@totemsdk/identity`, `@totemsdk/provider-bond`, `@totemsdk/liquidity-bond`, `@totemsdk/governance`, `@totemsdk/authority`, `@totemsdk/agent-policy`, `@totemsdk/omnia`, `@totemsdk/omnia-host`, `@totemsdk/connect`, `@totemsdk/se-server`, `@totemsdk/txpow`, `@totemsdk/edge-mqtt`, `@totemsdk/root-identity`, `@totemsdk/storage`, `@totemsdk/lookup-node`, `@totemsdk/intelligence`, `@totemsdk/server`, `@totemsdk/realtime`, `@totemsdk/minima-rpc`, `@totemsdk/mcp-server`, `@totemsdk/statechain`
