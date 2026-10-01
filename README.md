@@ -523,6 +523,17 @@ docs/                       # SDK documentation
 | [RFC-017](docs/rfc/RFC-017-DECISION-RECEIPT-GRAPH.md) | Decision receipt graph — link semantic `@totemsdk/decision` receipts into governed Edge/run/industrial evidence without conflating semantic, authority or governance decisions (draft) |
 | [RFC-018](docs/rfc/RFC-018-KISSVM-ADVERSARIAL-REMEDIATION.md) | KISSVM / recursive-MAST / tx-builder adversarial remediation — close second-order composition/verification holes (MULTISIG de-dup, terminal-MAST-after-RETURN, signing verification, invariant detector, proof-mandatory MAST) (draft) |
 | [RFC-019](docs/rfc/RFC-019-GOVERNED-AGENT-COMMERCE.md) | Governed agent commerce — close the `createEdge()` privilege-escalation path; agents reach commerce only via governed `purchase:*` actions with canonical-effect authorization and atomic reservation (draft) |
+| [RFC-020](docs/rfc/RFC-020-MULTIPACKAGE-ADVERSARIAL-HARDENING.md) | Multi-package adversarial hardening — close cross-package composition holes (draft) |
+| [RFC-021](docs/rfc/RFC-021-INDUSTRIAL-CATALOGUE-DECISION-BINDING.md) | Industrial action catalogue & decision binding — registered definitions/resources as pinned Decision candidates with explicit bounded parameter selection (draft) |
+| [RFC-022](docs/rfc/RFC-022-PREPARED-COMMAND-BINDING-ASYNC-LIFECYCLE.md) | Prepared-command binding & async operation lifecycle — commit the prepared command/target; accepted→running→reconciled over RFC-019 reservation holds (draft) |
+| [RFC-023](docs/rfc/RFC-023-PHYSICAL-EFFECT-POLICY-ENFORCEMENT.md) | Physical-effect policy enforcement — typed power/energy/speed/duration/envelope effects with matching enforced `RunLimits` (draft) |
+| [RFC-024](docs/rfc/RFC-024-OCPP-EV-CHARGING-PROFILE.md) | OCPP / EV charging profile — governed start/stop, charging limits, reservation, session/meter reconciliation (draft) |
+| [RFC-025](docs/rfc/RFC-025-MAVLINK-AUTONOMOUS-FLIGHT-PROFILE.md) | MAVLink / autonomous flight profile — bounded mission envelopes, hold/RTL/land, telemetry reconciliation (draft) |
+| [RFC-026](docs/rfc/RFC-026-ROS2-ACTION-NAV2-PROFILE.md) | ROS 2 action semantics & Nav2 profile — goal/feedback/result/cancel action contract + Nav2 profile (draft) |
+| [RFC-027](docs/rfc/RFC-027-AUTOWARE-AUTONOMOUS-DRIVING-PROFILE.md) | Autoware autonomous-driving profile — routes, permitted mode changes and monitoring over the RFC-026 action contract (draft) |
+| [RFC-028](docs/rfc/RFC-028-DECISION-OUTPUT-CORRECTNESS-NATIVE-BRIDGES.md) | Decision output correctness & native bridges — missing-output errors, score/distribution agreement, compiled-count limits, tested Jev/Laya bridges (draft) |
+| [RFC-029](docs/rfc/RFC-029-PER-QUESTION-ACCEPTANCE-MULTI-PROVIDER.md) | Per-question acceptance & multi-provider assembly — type-keyed rules, partial acceptance with selective escalation (draft) |
+| [RFC-030](docs/rfc/RFC-030-MODEL-AWARE-PREFLIGHT-SHORTLISTING-BATCHING.md) | Model-aware preflight, shortlisting & batching — compiled-request budgets, hard ceilings, transformation recording (draft) |
 | [SDK Audit (archived)](docs/archive/SDK_AUDIT-2026-02-ARCHIVED.md) | Historical Feb 2026 audit; current maturity lives in the table above |
 | [SDK Manifest](SDK_MANIFEST.json) | Machine-readable package index — 55 packages, for AI agents and tooling |
 | [API Reference](https://totem.ing) | Full TypeDoc-generated API reference |
