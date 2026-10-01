@@ -298,6 +298,7 @@ export class MemoryRunStateStore implements RunStateStore {
       mandateIds: res.mandateIds ?? [],
       decisionIds: res.decisionIds ?? [],
       effects: res.effects,
+      ...(res.evidence !== undefined ? { evidence: res.evidence } : {}),
     };
     res.status = 'committed';
     res.receipt = receipt;

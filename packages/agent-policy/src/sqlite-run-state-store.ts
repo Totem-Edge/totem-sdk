@@ -458,6 +458,7 @@ export class SqliteRunStateStore implements RunStateStore, GrantUsageStore {
         mandateIds: res.mandateIds ?? [],
         decisionIds: res.decisionIds ?? [],
         effects: res.effects,
+        ...(res.evidence !== undefined ? { evidence: res.evidence } : {}),
       } satisfies RunStepReceipt;
     }
     const auth = record as StepAuthorization;
