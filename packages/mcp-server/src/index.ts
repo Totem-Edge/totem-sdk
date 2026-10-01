@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { Server } from '@modelcontextprotocol/sdk/server/index.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import {
@@ -8,7 +9,7 @@ import {
   ListPromptsRequestSchema,
   GetPromptRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js'
-import { getIndex } from './index-store.js'
+import { getIndex, getIndexState } from './index-store.js'
 import { handleResourceRead, listResources, resourceMimeType } from './resources.js'
 import { handleToolCall, TOOL_DEFINITIONS } from './tools.js'
 import * as fs from 'fs'
@@ -27,13 +28,20 @@ const server = new Server(
   { capabilities: { resources: {}, tools: {}, prompts: {} } },
 )
 
-server.setRequestHandler(ListResourcesRequestSchema, async () => ({
-  resources: listResources(getIndex()),
-}))
+server.setRequestHandler(ListResourcesRequestSchema, async () => {
+  const state = getIndexState()
+  // Still advertise resources when the index is unavailable so clients see the
+  // server is alive; reads then fail with an actionable message.
+  return { resources: listResources(state.ok ? state.index : ({} as any)) }
+})
 
 server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
   const { uri } = request.params
-  const text = handleResourceRead(uri, getIndex())
+  const state = getIndexState()
+  if (!state.ok) {
+    throw new Error(`Resource unavailable: ${state.error}`)
+  }
+  const text = handleResourceRead(uri, state.index)
   if (text === null) {
     throw new Error(`Resource not found: ${uri}`)
   }
@@ -44,9 +52,35 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: TOOL_DEFINITIONS,
 }))
 
+/**
+ * Tools that read the SDK index. The rest (scaffolding, template suggestions)
+ * work without it, so a missing index degrades honestly instead of failing
+ * everything.
+ */
+const INDEX_REQUIRED_TOOLS = new Set([
+  'search-symbol',
+  'find-type',
+  'dependency-graph',
+  'validate-import',
+  'package-stats',
+  'list-exports',
+  'read-source',
+  'list-packages',
+  'search-packages',
+  'refresh-index',
+])
+
 server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
   const { name, arguments: args } = request.params
-  return handleToolCall(name, args || {}, getIndex()) as any
+  const state = getIndexState()
+  if (!state.ok && INDEX_REQUIRED_TOOLS.has(name)) {
+    return {
+      content: [{ type: 'text', text: `SDK index unavailable: ${state.error}` }],
+      isError: true,
+    } as any
+  }
+  // Index-free tools ignore the index argument; pass the real one when present.
+  return handleToolCall(name, args || {}, state.ok ? state.index : ({} as any)) as any
 })
 
 server.setRequestHandler(ListPromptsRequestSchema, async () => ({
@@ -72,11 +106,17 @@ server.setRequestHandler(ListPromptsRequestSchema, async () => ({
 server.setRequestHandler(GetPromptRequestSchema, async (request: any) => {
   const { name, arguments: args } = request.params
 
+  const indexState = getIndexState()
+  if (!indexState.ok) {
+    throw new Error(`SDK index unavailable: ${indexState.error}`)
+  }
+  const index = indexState.index
+
   if (name === 'analyze-cross-package') {
     const from: string = args?.from
     const to: string = args?.to
-    const fromPkg = from ? getIndex().packages[from] : null
-    const toPkg = to ? getIndex().packages[to] : null
+    const fromPkg = from ? index.packages[from] : null
+    const toPkg = to ? index.packages[to] : null
     if (!fromPkg || !toPkg) {
       throw new Error(`Packages not found: ${!fromPkg ? from : ''} ${!toPkg ? to : ''}`)
     }
@@ -114,7 +154,7 @@ server.setRequestHandler(GetPromptRequestSchema, async (request: any) => {
 
   if (name === 'new-edge-adapter') {
     const protocol: string = args?.protocol || 'UnknownProtocol'
-    const existingAdapters = Object.values(getIndex().packages).filter(p => p.domain === 'edge/protocols' && p.dir.startsWith('edge-'))
+    const existingAdapters = Object.values(index.packages).filter(p => p.domain === 'edge/protocols' && p.dir.startsWith('edge-'))
     const lines = [
       `You are scaffolding a new **${protocol}** edge protocol adapter for Totem SDK.`,
       '',
@@ -152,7 +192,14 @@ export const SERVER_INFO = {
   capabilities: { resources: {}, tools: {}, prompts: {} },
 } as const
 
-export const sdkIndex = getIndex()
+/**
+ * @deprecated Importing this at module load forces index construction. Prefer
+ * `getIndexState()`/`getIndex()` so a missing index is handled, not thrown.
+ */
+export const sdkIndex = (() => {
+  const state = getIndexState()
+  return state.ok ? state.index : ({ generatedAt: 0, packages: {}, symbolIndex: {}, domainMap: {} } as ReturnType<typeof getIndex>)
+})()
 
 async function main() {
   const transport = new StdioServerTransport()

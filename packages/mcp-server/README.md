@@ -1,6 +1,6 @@
 # @totemsdk/mcp-server
 
-Model Context Protocol server exposing the full Totem SDK package set — 53 packages, 13k+ exports, cross-package dependency graphs, and scaffolding tools.
+Model Context Protocol server exposing the full Totem SDK package set — packages, exports, cross-package dependency graphs, and scaffolding tools.
 
 ## Usage
 
@@ -52,6 +52,11 @@ The server runs on stdio and communicates via JSON-RPC.
 | `scaffold-package` | Generate new package boilerplate |
 | `package-stats` | Export counts, Rust/Go, tests, deps |
 | `list-exports` | List exports filtered by kind and name |
+| `suggest-template` | Suggest KISSVM templates matching a use case |
+| `read-source` | Read a source file from a package's `src/` |
+| `list-packages` | List packages filtered by domain or name |
+| `search-packages` | Free-text package search |
+| `refresh-index` | Rebuild the SDK index (development only) |
 
 ## Prompts
 
@@ -62,7 +67,9 @@ The server runs on stdio and communicates via JSON-RPC.
 
 ## How it works
 
-At startup, the server scans all `@totemsdk/*` packages in the monorepo, parses `package.json` and `src/index.ts` to build an in-memory index of 53 packages and their exports. No runtime dependency on any `@totemsdk/*` package.
+At startup, the server builds an in-memory index of every `@totemsdk/*` package and its exports. When run inside the SDK monorepo it scans `packages/*` live; when installed from npm (e.g. via `npx`) it loads the prebuilt index shipped in `data/sdk-index.json`. No runtime dependency on any `@totemsdk/*` package.
+
+If neither is available the server stays running but index-backed tools return an explicit **"SDK index unavailable"** error — never an empty result that looks like a real answer.
 
 ## License
 

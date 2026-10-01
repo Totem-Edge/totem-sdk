@@ -19,3 +19,7 @@ runs:
     - name: Verify packed consumer
       shell: bash
       run: node scripts/verify-consumer-pack.mjs "${{ inputs.package-dir }}"
+    - name: Verify MCP packed artifact
+      if: inputs.package-name == '@totemsdk/mcp-server'
+      shell: bash
+      run: node scripts/verify-mcp-pack.mjs

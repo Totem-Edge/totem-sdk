@@ -1,6 +1,8 @@
 attached_assets/
 node_modules/
 dist/
+# Generated bundled MCP index (built into the tarball at pack time)
+packages/mcp-server/data/
 .env
 .env.local
 *.log

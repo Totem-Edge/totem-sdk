@@ -1,10 +1,11 @@
+import * as path from 'path'
 import {
   getAllTemplates,
   getTemplatesForPackage,
   searchTemplates,
 } from '../template-catalog.js'
 import { handleToolCall, TOOL_DEFINITIONS } from '../tools.js'
-import { buildIndex, readSourceFile } from '../indexer.js'
+import { buildIndex, buildFromMonorepo, readSourceFile, IndexUnavailableError } from '../indexer.js'
 import { handleResourceRead, listResources, resourceMimeType } from '../resources.js'
 import type { SdkIndex } from '../types.js'
 
@@ -255,6 +256,28 @@ describe('new tools — real index', () => {
     const res = handleToolCall('list-packages', { domain: 'intelligence' }, index)
     expect(res.isError).toBeFalsy()
     expect(res.content[0].text).toContain('@totemsdk/qvac')
+  })
+})
+
+describe('index availability — never silently empty', () => {
+  it('buildIndex auto-detects the monorepo and indexes it', () => {
+    const index = buildIndex()
+    expect(Object.keys(index.packages).length).toBeGreaterThan(50)
+  })
+
+  it('buildFromMonorepo scans an explicit root', () => {
+    const repoRoot = path.resolve(__dirname, '..', '..', '..', '..')
+    const index = buildFromMonorepo(repoRoot)
+    expect(Object.keys(index.packages).length).toBeGreaterThan(50)
+  })
+
+  it('buildIndex throws when there is no monorepo and no bundled index', () => {
+    expect(() => buildIndex({ rootDir: null, noBundled: true })).toThrow(IndexUnavailableError)
+  })
+
+  it('buildIndex falls back to the bundled index outside the monorepo', () => {
+    const index = buildIndex({ rootDir: null })
+    expect(Object.keys(index.packages).length).toBeGreaterThan(0)
   })
 })
 
