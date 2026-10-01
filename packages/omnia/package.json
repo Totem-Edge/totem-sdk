@@ -9,6 +9,11 @@
       "types": "./dist/index.d.ts",
       "require": "./dist/index.js",
       "import": "./dist/index.js"
+    },
+    "./relay": {
+      "types": "./dist/relay-client.d.ts",
+      "require": "./dist/relay-client.js",
+      "import": "./dist/relay-client.js"
     }
   },
   "scripts": {

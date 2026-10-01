@@ -756,9 +756,10 @@
         "@totemsdk/wots-lease": "^1.0.0"
       },
       "exports": {
-        ".": "dist/index.{js,d.ts}"
+        ".": "dist/index.{js,d.ts}",
+        "./relay": "dist/relay-client.{js,d.ts}"
       },
-      "exportsDescription": "Channel, ChannelState, openChannel, closeChannel, updateChannel, HTLC, addHTLC, fulfillHTLC"
+      "exportsDescription": "Channel, ChannelState, openChannel, closeChannel, updateChannel, HTLC, addHTLC, fulfillHTLC; ./relay — browser-safe Axia/self-hosted relay client (no Hyperswarm)"
     },
     {
       "name": "@totemsdk/omnia-factory",
