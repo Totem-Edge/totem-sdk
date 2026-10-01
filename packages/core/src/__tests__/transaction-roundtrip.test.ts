@@ -17,6 +17,7 @@ const token: MinimaToken = {
   script: hexToBytes('ff'.repeat(8)),
   scale: 2,
   totalAmount: 100000n,
+  totalAmountScale: 44,
   name: new TextEncoder().encode('Demo Token'),
   created: 12345n,
 };
@@ -84,6 +85,33 @@ describe('transaction serialization round-trip', () => {
   it('round-trips an empty transaction', () => {
     const empty: MinimaTransaction = { linkHash: hexToBytes('00'), inputs: [], outputs: [], state: [] };
     expect(deserializeTransaction(serializeTransaction(empty))).toEqual(empty);
+  });
+
+  it('preserves a non-default totalAmountScale across a round-trip (RFC-020 P2-10)', () => {
+    const scaled: MinimaTransaction = {
+      linkHash: hexToBytes('00'),
+      inputs: [],
+      outputs: [{ ...output, token: { ...token, totalAmountScale: 8 } }],
+      state: [],
+    };
+    const bytes = serializeTransaction(scaled);
+    const back = deserializeTransaction(bytes);
+    expect(back.outputs[0].token?.totalAmountScale).toBe(8);
+    expect(bytesToHex(serializeTransaction(back))).toBe(bytesToHex(bytes));
+  });
+
+  it('decodes a negative two\'s-complement MiniNumber (RFC-020 P2-10)', () => {
+    // Minimal transaction: 0 inputs, 0 outputs, 1 number state (port 0 = -1).
+    const bytes = new Uint8Array([
+      0x00, 0x01, 0x00, // input count 0
+      0x00, 0x01, 0x00, // output count 0
+      0x00, 0x01, 0x01, // state count 1
+      0x00, 0x02, // port 0, type number
+      0x00, 0x01, 0xff, // MiniNumber scale 0, len 1, unscaled 0xFF (two's complement -1)
+      0x00, 0x00, 0x00, 0x00, // linkHash MiniData (empty)
+    ]);
+    const parsed = deserializeTransaction(bytes);
+    expect(parsed.state[0]).toEqual({ port: 0, type: 'number', value: -1n });
   });
 });
 

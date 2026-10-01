@@ -411,6 +411,12 @@ function txReadMiniNumber(data: Uint8Array, c: TxCursor): { value: bigint; scale
   const bytes = txReadBytes(data, c, len);
   let value = 0n;
   for (const b of bytes) value = (value << 8n) | BigInt(b);
+  // RFC-020 P2-10 (TXB-SERIAL-003): Java's BigInteger.toByteArray() (and the
+  // canonical writers here) use two's-complement big-endian; a set high bit
+  // means the value is negative. Previously this was read as unsigned.
+  if (bytes.length > 0 && (bytes[0] & 0x80) !== 0) {
+    value -= 1n << BigInt(8 * bytes.length);
+  }
   return { value, scale };
 }
 
@@ -455,10 +461,13 @@ function txReadToken(data: Uint8Array, c: TxCursor): MinimaToken {
   const coinId = txReadMiniData(data, c);
   const script = txReadMiniData(data, c);
   const { value: scale } = txReadMiniNumber(data, c);
-  const { value: totalAmount } = txReadMiniNumber(data, c);
+  // RFC-020 P2-10 (TXB-SERIAL-002): carry the totalAmount's own scale so a
+  // serialize→deserialize→serialize round-trip is byte-exact (previously the
+  // scale was dropped and re-defaulted to 44).
+  const { value: totalAmount, scale: totalAmountScale } = txReadMiniNumber(data, c);
   const name = txReadMiniData(data, c);
   const { value: created } = txReadMiniNumber(data, c);
-  return { coinId, script, scale: Number(scale), totalAmount, name, created };
+  return { coinId, script, scale: Number(scale), totalAmount, totalAmountScale, name, created };
 }
 
 function txReadCoin(data: Uint8Array, c: TxCursor): MinimaCoin {
