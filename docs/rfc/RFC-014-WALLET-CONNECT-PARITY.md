@@ -1,6 +1,6 @@
 # RFC-014: Wallet Connect Parity & Shared Execution Bridge
 
-**Status:** Landed — P1–P6 (structural parity) + first execution-wiring increment. `@totemsdk/connect/wallet` introduces the canonical `CONNECT_METHODS` (46) + `WALLET_INTERNAL_METHODS`, the frozen disposition table, structural ports, `createWalletRuntime`, and `buildWalletCapabilityManifest` (13-test conformance). Both wallets adopt the shared runtime at their dispatch boundary; the parity audit is runtime-aware, `KNOWN_GAPS` is empty, and both wallets report **46/46 served**. **Execution wiring landed (extension):** the `signer` port bridges lowercase `totem_*` methods to the extension's existing legacy handlers (`totem_signTransaction`, `totem_broadcastTxPoW`, `totem_getWotsStatus`, `totem_getAccounts`-class, …); `selfHosted` handles `totem_setChainProvider` (Axia-only; self-hosted node selection is user-driven); `receipts` serves `totem_getTransactionStatus`/`totem_getReceipt` from the persisted receipt store; and `lease` serves `totem_reserveWotsLease`/`totem_releaseWotsLease` from the RFC-013 self-hosted lease provider (Axia mode returns explicit `unsupported`). **Remaining (non-blocking):** wire the execution families (Omnia/statechain/kissvm) as **approval-gated SDK/chain calls** in each wallet; PWA execution ports (approval-page bridge). The wallet does **not** construct a governed Edge runtime — mandate-bound autonomy stays in autonomous hosts and is supplied via the optional `edge` port (§6.4). Open questions Q1–Q4 resolved (§13).
+**Status:** Landed — P1–P6 (structural parity) + first execution-wiring increment. `@totemsdk/connect/wallet` introduces the canonical `CONNECT_METHODS` (47) + `WALLET_INTERNAL_METHODS`, the frozen disposition table, structural ports, `createWalletRuntime`, and `buildWalletCapabilityManifest` (13-test conformance). Both wallets adopt the shared runtime at their dispatch boundary; the parity audit is runtime-aware, `KNOWN_GAPS` is empty, and both wallets report **47/47 served**. **Execution wiring landed (extension):** the `signer` port bridges lowercase `totem_*` methods to the extension's existing legacy handlers (`totem_signTransaction`, `totem_broadcastTxPoW`, `totem_getWotsStatus`, `totem_getAccounts`-class, …); `selfHosted` handles `totem_setChainProvider` (Axia-only; self-hosted node selection is user-driven); `receipts` serves `totem_getTransactionStatus`/`totem_getReceipt` from the persisted receipt store; and `lease` serves `totem_reserveWotsLease`/`totem_releaseWotsLease` from the RFC-013 self-hosted lease provider (Axia mode returns explicit `unsupported`). **Remaining (non-blocking):** wire the execution families (Omnia/statechain/kissvm) as **approval-gated SDK/chain calls** in each wallet; PWA execution ports (approval-page bridge). Note: even where the first-class execution methods are unwired, the wallet can still **sign a pre-built** Omnia/statechain/KISSVM transaction through its generic transaction surface (`TOTEM_SEND_COMPLEX`/`TOTEM_SEND_TRANSACTION`/`TOTEM_SIGN_DATA`) — what is missing is first-class construction, Omnia/KISSVM-specific policy, and state reconciliation, not raw signing. The wallet does **not** construct a governed Edge runtime — mandate-bound autonomy stays in autonomous hosts and is supplied via the optional `edge` port (§6.4). Open questions Q1–Q4 resolved (§13).
 **Created:** 2026-09-24
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]
@@ -15,8 +15,9 @@ The parity audit found the Totem Extension and Totem PWA both re-implement the
 `@totemsdk/connect` wire protocol by hand and have drifted: **extension 11/46**
 methods handled, **PWA 19/46**, and the entire **Omnia, Statechain, KISSVM,
 Agent, payment-request, mining, and receipt/status** families are served by
-neither. This RFC closes those gaps and makes parity **structural rather than
-manual** by:
+neither. (The audit measured the then-46-method surface; `TOTEM_TOKENCREATE` was
+added afterwards, so the canonical `CONNECT_METHODS` is now **47**.) This RFC
+closes those gaps and makes parity **structural rather than manual** by:
 
 1. making `@totemsdk/connect` the single source of truth for method/type constants;
 2. introducing a **shared wallet handler module** used by both wallets, so a
@@ -65,7 +66,7 @@ and key use come from*; RFC-014 decides *how every connect method is served*.
 | Surface | Extension | PWA |
 |---|---|---|
 | Method dispatch | `case 'TOTEM_*'` switch | `methodToPath` + inline `if` + `unsupportedMethods` |
-| Handled / 46 | 11 | 19 |
+| Handled / 46 (audited surface) | 11 | 19 |
 | Missing/stub | 35 | 27 |
 | `@totemsdk/connect` dep | ❌ (comment only) | ❌ (comment only) |
 | Edge/SDK family deps | ❌ | ❌ |

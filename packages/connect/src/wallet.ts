@@ -79,7 +79,7 @@ export const TOTEM_METHODS = [
   'totem_agentCreateReceipt',
 ] as const;
 
-/** Every canonical connect method (46). */
+/** Every canonical connect method (47). */
 export const CONNECT_METHODS = [...LEGACY_METHODS, ...TOTEM_METHODS] as const;
 
 export type LegacyMethod = (typeof LEGACY_METHODS)[number];
