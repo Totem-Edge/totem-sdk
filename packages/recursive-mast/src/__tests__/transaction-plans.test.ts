@@ -2,6 +2,7 @@ import { computeCanonicalScriptAddress, buildPolicyAnchorScript } from '@totemsd
 import { createAnchorTransactionPlan } from '../transaction/anchor-transaction.js';
 import { createRootRotationTransactionPlan } from '../transaction/rotation-transaction.js';
 import { createActionTransactionPlan } from '../transaction/action-transaction.js';
+import { createPolicyTransactionPlan, toEnhancedBuildParams } from '../transaction/transaction-plan.js';
 import { buildAccessControlScript } from '../templates/access-control.js';
 import { buildIdentityVerificationScript } from '../templates/identity-verification.js';
 import type { PolicyAnchorConfig } from '../policy-anchor.js';
@@ -63,6 +64,9 @@ describe('RFC-016 P3: recursive transaction plans', () => {
     const out = plan.outputs[0].state as Record<number, string>;
     expect(out[anchorConfig.ports.actionRoot]).toBe('1');
     expect(out[anchorConfig.ports.actionRoot + 1]).toBe(String(anchorConfig.ports.ownerRoot));
+    // RFC-020 P2-9: authorizer + reason are committed, not merely comments.
+    expect(out[anchorConfig.ports.actionRoot + 2]).toBe(pkA);
+    expect(out[anchorConfig.ports.actionRoot + 3]).toBe('owner change');
 
     expect(() =>
       createRootRotationTransactionPlan({
@@ -77,6 +81,21 @@ describe('RFC-016 P3: recursive transaction plans', () => {
         reason: '',
       }),
     ).toThrow(/authorizer/i);
+
+    expect(() =>
+      createRootRotationTransactionPlan({
+        anchorCoinId: '0xanchor',
+        anchorAddress: 'MxANCHOR',
+        anchorAmount: '1',
+        anchorScriptDescriptor: descriptor,
+        anchorConfig,
+        rotationType: 'root',
+        port: anchorConfig.ports.ownerRoot,
+        newRoot: 'ff'.repeat(32),
+        authorizerPkd: pkA,
+        reason: '',
+      }),
+    ).toThrow(/reason/i);
   });
 
   it('access-control checks before a terminal MAST of the policy root', () => {
@@ -126,6 +145,8 @@ describe('RFC-016 P3: recursive transaction plans', () => {
     expect(out[anchorConfig.ports.actionRoot]).toBe('0');
     // Subject identity is bound into the successor state.
     expect(out[0]).toBe('veh-1');
+    // RFC-020 P2-9: the executed action is committed.
+    expect(out[anchorConfig.ports.actionRoot + 2]).toBe('firmware:install');
   });
 
   it('action plan requires the selector port to bind the action', () => {
@@ -159,5 +180,30 @@ describe('RFC-016 P3: recursive transaction plans', () => {
         outputs: [],
       }),
     ).toThrow(/positive port/);
+  });
+});
+
+describe('RFC-020 P2-8: witness signature serialization', () => {
+  it('parses a 0x-prefixed signature byte-exactly with hexToBytes', () => {
+    const plan = createPolicyTransactionPlan({
+      inputs: [
+        {
+          coinId: '0xc',
+          address: 'Mx',
+          amount: '1',
+          scriptDescriptor: descriptor,
+          witnessPlan: {
+            mastBranches: new Map(),
+            signatures: new Map([[pkA, '0xcafe']]),
+            scriptProofs: [],
+          },
+        },
+      ],
+      outputs: [],
+    });
+    const params = toEnhancedBuildParams(plan);
+    const sig = params.inputs[0].witness?.signatures?.[0];
+    expect(sig?.pubkeyHex).toBe(pkA);
+    expect(Array.from(sig?.signature ?? [])).toEqual([0xca, 0xfe]);
   });
 });

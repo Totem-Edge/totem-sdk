@@ -14,6 +14,7 @@
  */
 
 import type { ScriptDescriptor, StateValue } from '@totemsdk/core/scripts';
+import { hexToBytes } from '@totemsdk/core';
 import type { RecursiveWitnessPlan } from '../kissvm/witness-adapter.js';
 import type { ScriptDisclosure } from '../policy-signing.js';
 
@@ -76,8 +77,9 @@ function witnessPlanToDescriptor(plan: RecursiveWitnessPlan): {
 
   if (plan.signatures.size > 0) {
     descriptor.signatures = Array.from(plan.signatures.entries()).map(([pubkeyHex, sigHex]) => {
-      const sigBytes = new Uint8Array(sigHex.match(/.{1,2}/g)?.map(b => parseInt(b, 16)) ?? []);
-      return { pubkeyHex, signature: sigBytes };
+      // RFC-020 P2-8: parse hex with hexToBytes (the prior regex pair-split
+      // misparsed a `0x`-prefixed signature and otherwise lost bytes).
+      return { pubkeyHex, signature: hexToBytes(sigHex) };
     });
   }
 

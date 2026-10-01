@@ -95,4 +95,16 @@ describe('RFC-016 hardening: signing request canonicalization', () => {
       buildRecursiveWitnessPlan({ roots: [], action: 'a', executionRoot: 'r' }, [bad], new Map()),
     ).toThrow(/no policyRoot/);
   });
+
+  it('keys witness signatures by the authorized signer digest, not the role (RFC-020 P2-8)', () => {
+    const ds: ScriptDisclosure = { scriptHash: 'h', script: 'RETURN TRUE', mmrProof: 'p', policyRoot: '0xroot' } as ScriptDisclosure;
+    const plan = buildRecursiveWitnessPlan(
+      { roots: [], action: 'a', executionRoot: 'r' },
+      [ds],
+      new Map([['admin', '0xdeadbeef']]),
+      { admin: '0x' + 'ab'.repeat(32) },
+    );
+    expect([...plan.signatures.keys()]).toEqual(['ab'.repeat(32)]);
+    expect(plan.signatures.get('ab'.repeat(32))).toBe('deadbeef');
+  });
 });

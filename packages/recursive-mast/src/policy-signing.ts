@@ -448,8 +448,10 @@ export function collectSigningResponses(
 export function buildRecursiveWitnessPlan(
   selectedPath: PolicyPathDescriptor,
   disclosedScripts: ScriptDisclosure[],
-  collectedSignatures: Map<string, string>,
+  collectedSignatures: Map<string, string> | Record<string, string>,
+  roleKeys?: Record<string, string>,
 ): { mastBranches: Map<string, string>; signatures: Map<string, string>; scriptProofs: ScriptProof[] } {
+  void selectedPath;
   const mastBranches = new Map<string, string>();
   for (const ds of disclosedScripts) {
     mastBranches.set(ds.scriptHash, ds.script);
@@ -468,7 +470,26 @@ export function buildRecursiveWitnessPlan(
     address: ds.policyRoot,
   }));
 
-  return { mastBranches, signatures: collectedSignatures, scriptProofs };
+  // RFC-020 P2-8: a witness signature must be keyed by the signer's actual
+  // public-key digest (what SIGNEDBY verifies), not the role string. Translate
+  // role → signature using the manifest's role → key map when supplied.
+  const normalizedRoleKeys = roleKeys
+    ? Object.fromEntries(Object.entries(roleKeys).map(([role, key]) => [role, key.replace(/^0x/i, '').toLowerCase()]))
+    : undefined;
+  const entries: Array<[string, string]> = collectedSignatures instanceof Map
+    ? [...collectedSignatures.entries()]
+    : Object.entries(collectedSignatures);
+  const signatures = new Map<string, string>();
+  for (const [role, sig] of entries) {
+    const pkd = normalizedRoleKeys?.[role];
+    if (normalizedRoleKeys && !pkd) {
+      throw new Error(`buildRecursiveWitnessPlan: no authorized key for signature role '${role}'`);
+    }
+    const key = (pkd ?? role).replace(/^0x/i, '').toLowerCase();
+    signatures.set(key, sig.replace(/^0x/i, '').toLowerCase());
+  }
+
+  return { mastBranches, signatures, scriptProofs };
 }
 
 /**

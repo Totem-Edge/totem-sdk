@@ -48,6 +48,19 @@ export function createRootRotationTransactionPlan(
   if (!config.authorizerPkd) {
     throw new Error('Rotation requires authorizerPkd');
   }
+  // RFC-020 P2-9: the reason is committed (not merely a script comment).
+  if (!config.reason || config.reason.trim().length === 0) {
+    throw new Error('Rotation requires a non-empty reason');
+  }
+  const authorizerPkd = config.authorizerPkd.replace(/^0x/i, '').toLowerCase();
+  // RFC-020 P2-9: when a witness is supplied it must actually carry the
+  // authorizer's signature, so the branch cannot be selected by an unrelated key.
+  if (config.witnessPlan && config.witnessPlan.signatures.size > 0) {
+    const keys = [...config.witnessPlan.signatures.keys()].map((k) => k.replace(/^0x/i, '').toLowerCase());
+    if (!keys.includes(authorizerPkd)) {
+      throw new Error('Rotation witness does not contain a signature for authorizerPkd');
+    }
+  }
 
   const ports = config.anchorConfig.ports;
   const stateChanges: Record<number, string> = {};
@@ -57,11 +70,16 @@ export function createRootRotationTransactionPlan(
     // the rotated port as the action argument.
     stateChanges[ports.actionRoot] = '1';
     stateChanges[ports.actionRoot + 1] = String(config.port);
+    // RFC-020 P2-9: commit the authorizer + reason into the successor state.
+    stateChanges[ports.actionRoot + 2] = authorizerPkd;
+    stateChanges[ports.actionRoot + 3] = config.reason;
   } else if (config.rotationType === 'epoch' && config.newEpoch !== undefined) {
     stateChanges[ports.epoch] = String(config.newEpoch);
     // Select the epoch-advancement branch (action 2).
     stateChanges[ports.actionRoot] = '2';
     stateChanges[ports.actionRoot + 1] = String(config.newEpoch);
+    stateChanges[ports.actionRoot + 2] = authorizerPkd;
+    stateChanges[ports.actionRoot + 3] = config.reason;
   }
 
   const stateValues: StateValue[] = Object.entries(stateChanges).map(([port, value]) => ({

@@ -51,6 +51,9 @@ export function createActionTransactionPlan(
   if (config.executionRoot !== undefined) {
     stateChanges[config.actionSelectorPort + 1] = config.executionRoot;
   }
+  // RFC-020 P2-9: commit the executed action into the successor state so the
+  // action is bound, rather than validated and then discarded.
+  stateChanges[config.actionSelectorPort + 2] = config.action;
 
   const anchorInput: PolicyTransactionInput = {
     coinId: config.anchorCoinId,
