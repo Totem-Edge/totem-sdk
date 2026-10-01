@@ -1,6 +1,6 @@
 # RFC-020: Multi-Package Adversarial Hardening — Key Identity, WOTS Leasing, Verification Stubs, Composition & Serializer Parity
 
-**Status:** Draft — remediation contract (P0, P1 and P2 landed; P2-14 residual: unused security parameters in `provider-bond`/`wots-lease`/`recovery` remain informational)
+**Status:** Draft — remediation contract (P0, P1 and P2 landed)
 **Created:** 2026-09-29
 **Revised:** 2026-10-01
 **Authors:** Totem SDK Contributors
