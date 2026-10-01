@@ -46,6 +46,10 @@ export function buildLinearRelease(config: TemporalConfig): string {
     `ASSERT vestStart EQ PREVSTATE(${startPort})`,
     `ASSERT vestEnd EQ PREVSTATE(${endPort})`,
     `ASSERT total EQ PREVSTATE(${totalPort})`,
+    // RFC-020 P2-2 (STABLE-004): fail closed on a zero/negative schedule so the
+    // on-chain branch matches `computeRelease` (which returns 0). Without this,
+    // `elapsed GTE duration` is trivially true and pays the full amount.
+    `ASSERT vestEnd GT vestStart`,
     `LET prevClaimed = PREVSTATE(${beneficiaryPort})`,
     `LET elapsed = @BLOCK SUB vestStart`,
     `LET duration = vestEnd SUB vestStart`,
@@ -89,6 +93,8 @@ export function buildCliffRelease(config: TemporalConfig): string {
     `ASSERT vestEnd EQ PREVSTATE(${endPort})`,
     `ASSERT cliffBlock EQ PREVSTATE(${cliffPort})`,
     `ASSERT total EQ PREVSTATE(${totalPort})`,
+    // RFC-020 P2-2 (STABLE-004): fail closed on a zero/negative vesting window.
+    `ASSERT vestEnd GT cliffBlock`,
     `LET prevClaimed = PREVSTATE(${beneficiaryPort})`,
     `ASSERT @BLOCK GT cliffBlock`,
     `LET cliffElapsed = @BLOCK SUB cliffBlock`,
@@ -137,6 +143,10 @@ export function buildRateLimitScript(config: TemporalConfig): string {
   if (config.maxPerPeriod === undefined || config.periodBlocks === undefined) {
     throw new Error("buildRateLimitScript: 'maxPerPeriod' and 'periodBlocks' are required")
   }
+  // RFC-020 P2-3 (STABLE-005): the rate-limited claim must be authorized by the
+  // committed beneficiary; previously the script was permissionless.
+  const beneficiary = config.beneficiary
+  if (!beneficiary) throw new Error("buildRateLimitScript: 'beneficiary' is required")
   return [
     `LET periodStart = PREVSTATE(${startPort})`,
     `LET used = PREVSTATE(${beneficiaryPort})`,
@@ -149,6 +159,7 @@ export function buildRateLimitScript(config: TemporalConfig): string {
     `  ASSERT STATE(${startPort}) EQ periodStart`,
     `  ASSERT STATE(${beneficiaryPort}) EQ used ADD 1`,
     `ENDIF`,
+    `ASSERT SIGNEDBY(0x${beneficiary})`,
     `RETURN TRUE`,
   ].join('\n')
 }

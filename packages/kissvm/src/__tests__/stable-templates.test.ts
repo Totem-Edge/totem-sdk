@@ -483,16 +483,46 @@ describe('stable template: temporal', () => {
       periodBlocks: 100n,
       maxPerPeriod: 50n,
       beneficiaryPort: 3,
+      beneficiary: pkAA,
     });
-    const ok = run(script, ctx({ block: 950, state: s({ 1: 900, 3: 11 }), prevState: s({ 1: 900, 3: 10 }) }));
+    const sig = { [pkAA]: 'x' };
+    const ok = run(script, ctx({ block: 950, state: s({ 1: 900, 3: 11 }), prevState: s({ 1: 900, 3: 10 }) }), sig);
     expect(ok.success).toBe(true);
 
-    const over = run(script, ctx({ block: 950, state: s({ 1: 900, 3: 61 }), prevState: s({ 1: 900, 3: 60 }) }));
+    const over = run(script, ctx({ block: 950, state: s({ 1: 900, 3: 61 }), prevState: s({ 1: 900, 3: 60 }) }), sig);
     expect(over.success).toBe(false);
 
     // A new period advances the committed period start and resets the count.
-    const reset = run(script, ctx({ block: 1000, state: s({ 1: 1000, 3: 1 }), prevState: s({ 1: 900, 3: 60 }) }));
+    const reset = run(script, ctx({ block: 1000, state: s({ 1: 1000, 3: 1 }), prevState: s({ 1: 900, 3: 60 }) }), sig);
     expect(reset.success).toBe(true);
+
+    // RFC-020 P2-3: the claim is bound to the committed beneficiary.
+    const unsigned = run(script, ctx({ block: 950, state: s({ 1: 900, 3: 11 }), prevState: s({ 1: 900, 3: 10 }) }), {});
+    expect(unsigned.success).toBe(false);
+    expect(() => buildRateLimitScript({ curve: 'rate-limit', startPort: 1, periodBlocks: 100n, maxPerPeriod: 50n, beneficiaryPort: 3 })).toThrow();
+  });
+
+  it('linear/cliff releases fail closed on a zero or negative schedule (RFC-020 P2-2)', () => {
+    const linear = buildLinearRelease({ curve: 'linear', startPort: 1, endPort: 2, totalPort: 3, beneficiaryPort: 4, beneficiary: pkAA });
+    const flatSchedule = run(linear, ctx({
+      block: 2000,
+      state: s({ 1: 1000, 2: 1000, 3: 100 }),
+      prevState: s({ 1: 1000, 2: 1000, 3: 100, 4: 0 }),
+      outputs: [outputTo('0x' + pkAA, 100, true)],
+    }), { [pkAA]: 'beneficiary' });
+    expect(flatSchedule.success).toBe(false);
+
+    const cliff = buildCliffRelease({ curve: 'cliff', startPort: 1, endPort: 2, cliffPort: 5, totalPort: 3, beneficiaryPort: 4, beneficiary: pkAA });
+    const zeroWindow = run(cliff, ctx({
+      block: 2000,
+      state: s({ 1: 900, 2: 1100, 5: 1100, 3: 90 }),
+      prevState: s({ 1: 900, 2: 1100, 5: 1100, 3: 90, 4: 0 }),
+      outputs: [outputTo('0x' + pkAA, 90, true)],
+    }), { [pkAA]: 'beneficiary' });
+    expect(zeroWindow.success).toBe(false);
+
+    const state = new Map<number, bigint>([[1, 1000n], [2, 1000n], [3, 100n], [4, 0n]]);
+    expect(computeRelease({ curve: 'linear', startPort: 1, endPort: 2, totalPort: 3, beneficiaryPort: 4 }, 2000n, state)).toBe(0n);
   });
 
   it('decay script computes the decayed value and pays the beneficiary', () => {

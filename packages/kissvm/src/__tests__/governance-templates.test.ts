@@ -248,6 +248,19 @@ describe('buildVoteTallyScript', () => {
     const result = run(script, mkCtx({ yes: 0, no: 0, abstain: 0, total: 0 }, { yes: 60, no: 0, abstain: 0, total: 60 }))
     expect(result.success).toBe(true)
   })
+
+  test('enforces quorum as a percentage of the committed electorate (RFC-020 P2-4)', () => {
+    const pctCfg: VoteTallyConfig = { quorumPct: 51, minVoteBlocks: BigInt(0), governancePk: pkAA, eligiblePort: 12 }
+    const script = buildVoteTallyScript(pctCfg)
+    const mk = (total: number): TxContext => ctx({
+      block: 700,
+      prevState: s({ 0: 0, 1: 0, 2: 0, 3: 0, 12: 100 }),
+      state: s({ 0: total, 1: 0, 2: 0, 3: total, 10: 600, 11: 900, 12: 100 }),
+      signatures: new Map([[pkAA, mockSig('sig')]]),
+    })
+    expect(run(script, mk(50)).success).toBe(false)
+    expect(run(script, mk(55)).success).toBe(true)
+  })
 })
 
 describe('buildVoteSubmissionScript', () => {
@@ -265,7 +278,7 @@ describe('buildVoteSubmissionScript', () => {
   function mkCtx(voterPk: string, nonce: number, prevNonce: number, weight: number, choice: number, block = 700, gSigs?: Record<string, string>): TxContext {
     return ctx({
       block,
-      prevState: s({ 1: prevNonce }),
+      prevState: s({ 0: voterPk, 1: prevNonce, 2: weight, 5: snapshotHash }),
       state: s({ 0: voterPk, 1: nonce, 2: weight, 3: choice, 4: weight, 5: snapshotHash }),
       signatures: new Map(Object.entries(gSigs ?? { [voterPk]: 'v', [pkAA]: 'sig' }).map(([k, v]) => [k, mockSig(v)])),
     })
@@ -318,6 +331,17 @@ describe('buildVoteSubmissionScript', () => {
     const result = run(script, mkCtx(pkBB, 2, 1, 10, 0, 700, {}))
     expect(result.success).toBe(false)
   })
+
+  test('fails when the voter is self-declared rather than committed (RFC-020 P2-4)', () => {
+    const script = buildVoteSubmissionScript(cfg)
+    const result = run(script, ctx({
+      block: 700,
+      prevState: s({ 0: pkCC, 1: 1, 2: 10, 5: snapshotHash }),
+      state: s({ 0: pkBB, 1: 2, 2: 10, 3: 0, 4: 10, 5: snapshotHash }),
+      signatures: new Map([[pkBB, mockSig('v')], [pkAA, mockSig('sig')]]),
+    }))
+    expect(result.success).toBe(false)
+  })
 })
 
 describe('buildExecutionMandateScript', () => {
@@ -337,7 +361,7 @@ describe('buildExecutionMandateScript', () => {
   function mkCtx(nonce: number, prevNonce: number, block = 1000, mSigs?: Record<string, string>): TxContext {
     return ctx({
       block,
-      prevState: s({ 0: prevNonce }),
+      prevState: s({ 0: prevNonce, 1: outcomeProof, 2: tallyHash, 3: snapHash, 4: 900, 5: 10 }),
       state: s({ 0: nonce, 1: outcomeProof, 2: tallyHash, 3: snapHash, 4: 900, 5: 10 }),
       signatures: new Map(Object.entries(mSigs ?? { [pkAA]: 's1', [pkBB]: 's2' }).map(([k, v]) => [k, mockSig(v)])),
     })
@@ -377,7 +401,7 @@ describe('buildExecutionMandateScript', () => {
     const script = buildExecutionMandateScript(cfg)
     const result = run(script, ctx({
       block: 911,
-      prevState: s({ 0: 0 }),
+      prevState: s({ 0: 0, 1: '0x00', 2: tallyHash, 3: snapHash, 4: 900, 5: 10 }),
       state: s({ 0: 1, 1: '0x00', 2: tallyHash, 3: snapHash, 4: 900, 5: 10 }),
       signatures: new Map([[pkAA, mockSig('s1')], [pkBB, mockSig('s2')]]),
     }))
@@ -388,8 +412,19 @@ describe('buildExecutionMandateScript', () => {
     const script = buildExecutionMandateScript(cfg)
     const result = run(script, ctx({
       block: 911,
-      prevState: s({ 0: 0 }),
+      prevState: s({ 0: 0, 1: outcomeProof, 2: '0x00', 3: snapHash, 4: 900, 5: 10 }),
       state: s({ 0: 1, 1: outcomeProof, 2: '0x00', 3: snapHash, 4: 900, 5: 10 }),
+      signatures: new Map([[pkAA, mockSig('s1')], [pkBB, mockSig('s2')]]),
+    }))
+    expect(result.success).toBe(false)
+  })
+
+  test('fails when the committed tally is rewritten at execution (RFC-020 P2-1)', () => {
+    const script = buildExecutionMandateScript(cfg)
+    const result = run(script, ctx({
+      block: 911,
+      prevState: s({ 0: 0, 1: outcomeProof, 2: tallyHash, 3: snapHash, 4: 900, 5: 10 }),
+      state: s({ 0: 1, 1: outcomeProof, 2: '0x' + 'dd'.repeat(32), 3: snapHash, 4: 900, 5: 10 }),
       signatures: new Map([[pkAA, mockSig('s1')], [pkBB, mockSig('s2')]]),
     }))
     expect(result.success).toBe(false)

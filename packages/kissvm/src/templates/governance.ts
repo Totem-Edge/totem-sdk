@@ -1,9 +1,11 @@
-import { sha3_256, bytesToHex } from '@totemsdk/core'
+import { computeCanonicalScriptHash } from '../mast/mast-compiler.js'
 
+/**
+ * RFC-020 P2-6 (STABLE-009): script hashes must be the canonical on-chain MMR
+ * leaf hash, not a bare SHA3 of the source string.
+ */
 export function computeScriptHash(script: string): string {
-  const bytes = new TextEncoder().encode(script)
-  const hash = sha3_256(bytes)
-  return bytesToHex(hash)
+  return computeCanonicalScriptHash(script)
 }
 
 /*
@@ -68,6 +70,13 @@ export interface VoteTallyConfig {
   noPort?: number
   abstainPort?: number
   totalPort?: number
+  /**
+   * RFC-020 P2-4 (STABLE-013): committed port holding the eligible-voter /
+   * weight total. When set, `quorumPct` is enforced as a true percentage of it
+   * (`total * 100 >= quorumPct * eligible`). When omitted, `quorumPct` is
+   * treated as an absolute minimum vote count.
+   */
+  eligiblePort?: number
 }
 
 export interface TreasuryExecutionConfig {
@@ -124,6 +133,13 @@ export function buildProposalStateMachineScript(config: ProposalConfig): string 
   const proposerPort = config.proposerPort ?? 4
 
   return [
+    `// RFC-020 P2-4 (STABLE-007): the proposal timing/proposer anchors are`,
+    `// committed; no state transition may rewrite them.`,
+    `ASSERT STATE(1) EQ PREVSTATE(1)`,
+    `ASSERT STATE(2) EQ PREVSTATE(2)`,
+    `ASSERT STATE(3) EQ PREVSTATE(3)`,
+    `ASSERT STATE(${proposerPort}) EQ PREVSTATE(${proposerPort})`,
+    ``,
     `SWITCH PREVSTATE(0)`,
     ``,
     `  CASE ${STATUS.DRAFT}`,
@@ -220,7 +236,17 @@ export function buildVoteTallyScript(config: VoteTallyConfig): string {
     ``,
     `ASSERT totalDelta GT 0`,
     ``,
-    `ASSERT currTotal GTE ${config.quorumPct}`,
+    ...(config.eligiblePort !== undefined
+      ? [
+          `// Quorum as a percentage of the committed electorate (RFC-020 P2-4)`,
+          `LET eligible = PREVSTATE(${config.eligiblePort})`,
+          `ASSERT eligible GT 0`,
+          `ASSERT currTotal MUL 100 GTE ${config.quorumPct} MUL eligible`,
+        ]
+      : [
+          `// Quorum as an absolute minimum vote count (no eligiblePort configured)`,
+          `ASSERT currTotal GTE ${config.quorumPct}`,
+        ]),
     `ASSERT SIGNEDBY(0x${config.governancePk})`,
     `RETURN TRUE`,
   ].join('\n')
@@ -248,17 +274,20 @@ export function buildVoteSubmissionScript(config: VoteSubmissionConfig): string 
     `ASSERT @BLOCK GTE ${config.votingStartBlock.toString()}`,
     `ASSERT @BLOCK LTE ${config.votingEndBlock.toString()}`,
     ``,
-    `// Voter identity`,
-    `LET voter = STATE(0)`,
+    `// RFC-020 P2-4 (STABLE-006): voter identity, membership weight and the`,
+    `// snapshot anchor are committed in PREVSTATE, not self-declared in STATE.`,
+    `LET voter = PREVSTATE(0)`,
     `ASSERT voter NEQ 0x00`,
+    `ASSERT STATE(0) EQ voter`,
     `ASSERT SIGNEDBY(voter)`,
     ``,
     `// Nonce: prevent double voting via INC`,
     `ASSERT STATE(${config.noncePort}) EQ INC(PREVSTATE(${config.noncePort}))`,
     ``,
-    `// Membership weight must be positive`,
-    `LET weight = STATE(${config.weightPort})`,
+    `// Membership weight must be positive and committed`,
+    `LET weight = PREVSTATE(${config.weightPort})`,
     `ASSERT weight GT 0`,
+    `ASSERT STATE(${config.weightPort}) EQ weight`,
     ``,
     `// Choice must be valid (0=yes, 1=no, 2=abstain)`,
     `LET choice = STATE(3)`,
@@ -269,9 +298,10 @@ export function buildVoteSubmissionScript(config: VoteSubmissionConfig): string 
     `LET voteWeight = STATE(4)`,
     `ASSERT voteWeight EQ weight`,
     ``,
-    `// Membership snapshot hash anchor`,
-    `LET snapshotHash = STATE(${config.snapshotPort})`,
+    `// Membership snapshot hash committed and unchanged`,
+    `LET snapshotHash = PREVSTATE(${config.snapshotPort})`,
     `ASSERT snapshotHash NEQ 0x00`,
+    `ASSERT STATE(${config.snapshotPort}) EQ snapshotHash`,
     ``,
     `ASSERT SIGNEDBY(0x${config.governancePk})`,
     `RETURN TRUE`,
@@ -300,22 +330,32 @@ export function buildExecutionMandateScript(config: ExecutionMandateConfig): str
   const multisigKeys = config.governancePks.map(pk => `0x${pk}`).join(', ')
 
   return [
-    `// Timelock`,
-    `LET votingEndsAt = STATE(4)`,
-    `LET executionDelay = STATE(5)`,
+    `// RFC-020 P2-1 (STABLE-003): the timelock and all anchors are read from the`,
+    `// committed PREVSTATE and preserved, so a caller cannot inject new values at`,
+    `// execution time (the previous script trusted mutable STATE and only checked`,
+    `// the anchors were non-zero).`,
+    `LET votingEndsAt = PREVSTATE(4)`,
+    `LET executionDelay = PREVSTATE(5)`,
     `ASSERT @BLOCK GT votingEndsAt ADD executionDelay`,
     ``,
-    `// Outcome proof must be committed`,
-    `LET outcomeProof = STATE(${config.outcomeProofPort})`,
+    `// Committed anchors must be carried forward unchanged`,
+    `ASSERT STATE(4) EQ votingEndsAt`,
+    `ASSERT STATE(5) EQ executionDelay`,
+    ``,
+    `// Outcome proof must be committed and preserved`,
+    `LET outcomeProof = PREVSTATE(${config.outcomeProofPort})`,
     `ASSERT outcomeProof NEQ 0x00`,
+    `ASSERT STATE(${config.outcomeProofPort}) EQ outcomeProof`,
     ``,
-    `// Vote tally hash must match`,
-    `LET tallyHash = STATE(${config.tallyHashPort})`,
+    `// Vote tally hash must be committed and preserved`,
+    `LET tallyHash = PREVSTATE(${config.tallyHashPort})`,
     `ASSERT tallyHash NEQ 0x00`,
+    `ASSERT STATE(${config.tallyHashPort}) EQ tallyHash`,
     ``,
-    `// Membership snapshot hash must match`,
-    `LET snapshotHash = STATE(${config.snapshotPort})`,
+    `// Membership snapshot hash must be committed and preserved`,
+    `LET snapshotHash = PREVSTATE(${config.snapshotPort})`,
     `ASSERT snapshotHash NEQ 0x00`,
+    `ASSERT STATE(${config.snapshotPort}) EQ snapshotHash`,
     ``,
     `// Replay protection via INC`,
     `LET nonce = STATE(0)`,
