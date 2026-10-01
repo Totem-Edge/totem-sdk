@@ -1243,6 +1243,24 @@ describe('stable template: provider-bond', () => {
       outputs: [outputTo('0x' + pkAA, 100, true)],
     }), { [pkBB]: 'governance' });
     expect(noRequest.success).toBe(false);
+
+    // RFC-020 P2-5: vesting is clamped at the bond amount (no unbounded growth).
+    const overElapsed = run(script, ctx({
+      block: 1200,
+      state: s({ 5: BOND_STATUS.EXPIRING }),
+      prevState: s({ 7: 900, 1: 100, 8: 0 }),
+      outputs: [outputTo('0x' + pkAA, 100, true)],
+    }), { [pkAA]: 'provider' });
+    expect(overElapsed.success).toBe(true);
+
+    // RFC-020 P2-5: a fully-vested release now requires provider/governance auth.
+    const unsigned = run(script, ctx({
+      block: 1000,
+      state: s({ 5: BOND_STATUS.EXPIRING }),
+      prevState: s({ 7: 900, 1: 100, 8: 0 }),
+      outputs: [outputTo('0x' + pkAA, 100, true)],
+    }));
+    expect(unsigned.success).toBe(false);
   });
 
   it('challenge enforces the dispute bond and adjudication deadline', () => {

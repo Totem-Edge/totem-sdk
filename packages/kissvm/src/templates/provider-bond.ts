@@ -249,11 +249,20 @@ export function buildBondReleaseScript(config: ProviderBondConfig): string {
     `ENDIF`,
     ``,
     `LET bondAmount = PREVSTATE(${config.bondPort})`,
-    `LET vested = bondAmount MUL elapsed DIV unbondingDuration`,
+    // RFC-020 P2-5 (STABLE-008): clamp vesting at the bond amount; previously
+    // `vested` grew without bound once elapsed exceeded the unbonding duration.
+    `IF elapsed GTE unbondingDuration THEN`,
+    `  LET vested = bondAmount`,
+    `ELSE`,
+    `  LET vested = bondAmount MUL elapsed DIV unbondingDuration`,
+    `ENDIF`,
     `LET prevClaimed = PREVSTATE(${config.claimedPort})`,
     `LET claimable = vested SUB prevClaimed`,
     ``,
     `ASSERT claimable GT 0`,
+    `// RFC-020 P2-5: release requires the provider (or governance) to authorize it;`,
+    `// previously a fully-vested bond could be released by anyone.`,
+    `ASSERT SIGNEDBY(0x${config.providerPk.replace(/^0x/i, '')}) OR SIGNEDBY(governance)`,
     // RFC-016 I2: release pays the provider the claimable amount (not a
     // same-address rollover), and records the amount claimed.
     `ASSERT VERIFYOUT(@INPUT 0x${config.providerPk.replace(/^0x/i, '')} claimable @TOKENID TRUE)`,
