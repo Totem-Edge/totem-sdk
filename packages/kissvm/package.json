@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/kissvm",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "KISSVM v1 evaluator for Minima scripting language — backed by Rust/WASM",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

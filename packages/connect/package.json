@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/connect",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Client-side SDK for connecting to the Totem wallet browser extension \u2014 includes Totem Edge capability layer",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

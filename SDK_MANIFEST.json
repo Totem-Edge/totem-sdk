@@ -112,7 +112,7 @@
   "packages": [
     {
       "name": "@totemsdk/agent-policy",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "description": "Protobuf-based interface contracts for AI agent ↔ wallet communication",
       "domain": "verifiable-claims",
       "keywords": [
@@ -124,9 +124,9 @@
       ],
       "dependencies": {
         "@protobuf-ts/runtime": "^2.11.1",
-        "@totemsdk/authority": "^1.0.0",
-        "@totemsdk/core": "^1.2.10",
-        "@totemsdk/intelligence": "^0.1.0",
+        "@totemsdk/authority": "^1.0.1",
+        "@totemsdk/core": "^1.2.11",
+        "@totemsdk/intelligence": "^0.1.1",
         "@totemsdk/proof": "^1.0.0",
         "@totemsdk/storage": "^0.1.0"
       },
@@ -137,7 +137,7 @@
     },
     {
       "name": "@totemsdk/authority",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "description": "Deterministic authority engine — mandate verification, scope matching, usage tracking",
       "domain": "verifiable-claims",
       "keywords": [
@@ -147,7 +147,7 @@
         "edge-computing"
       ],
       "dependencies": {
-        "@totemsdk/identity": "^1.0.0",
+        "@totemsdk/identity": "^1.0.1",
         "@totemsdk/proof": "^1.0.0"
       },
       "exports": {
@@ -157,7 +157,7 @@
     },
     {
       "name": "@totemsdk/chain-provider",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "description": "Unified ChainStateProvider interface — Hosted, PureMinima, and Composite strategies",
       "domain": "sovereignty-stack",
       "keywords": [
@@ -168,8 +168,8 @@
         "strategy-pattern"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.2.10",
-        "@totemsdk/minima-rpc": "^0.2.1"
+        "@totemsdk/core": "^1.2.11",
+        "@totemsdk/minima-rpc": "^0.2.2"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -178,7 +178,7 @@
     },
     {
       "name": "@totemsdk/connect",
-      "version": "2.1.0",
+      "version": "2.1.1",
       "description": "Client-side SDK for Totem wallet browser extension — includes Edge capability layer",
       "domain": "edge-computing",
       "keywords": [
@@ -188,18 +188,18 @@
         "dapp"
       ],
       "dependencies": {
-        "@totemsdk/agent-policy": "^0.3.0",
-        "@totemsdk/chain-provider": "^0.2.0",
-        "@totemsdk/kissvm": "^1.2.0",
+        "@totemsdk/agent-policy": "^0.3.1",
+        "@totemsdk/chain-provider": "^0.2.1",
+        "@totemsdk/kissvm": "^1.2.1",
         "@totemsdk/lookup-client": "^0.2.0",
-        "@totemsdk/omnia": "^1.0.1",
-        "@totemsdk/omnia-factory": "^0.2.0",
-        "@totemsdk/omnia-router": "^0.2.0",
-        "@totemsdk/omnia-splice": "^0.2.0",
-        "@totemsdk/pear": "^0.2.0",
-        "@totemsdk/statechain": "^0.2.0",
-        "@totemsdk/txpow": "^1.0.1",
-        "@totemsdk/wots-lease": "^1.0.0"
+        "@totemsdk/omnia": "^1.0.2",
+        "@totemsdk/omnia-factory": "^0.2.1",
+        "@totemsdk/omnia-router": "^0.2.1",
+        "@totemsdk/omnia-splice": "^0.2.1",
+        "@totemsdk/pear": "^0.2.1",
+        "@totemsdk/statechain": "^0.2.1",
+        "@totemsdk/txpow": "^1.0.2",
+        "@totemsdk/wots-lease": "^1.0.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}",
@@ -209,7 +209,7 @@
     },
     {
       "name": "@totemsdk/core",
-      "version": "1.2.10",
+      "version": "1.2.11",
       "description": "Core cryptographic primitives — WOTS+, SHA3-256, TreeKey, BIP39, backed by Rust/WASM",
       "domain": "cryptographic-foundation",
       "keywords": [
@@ -221,7 +221,7 @@
         "wasm"
       ],
       "dependencies": {
-        "@totemsdk/core-wasm": "^1.0.0"
+        "@totemsdk/core-wasm": "^1.0.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}",
@@ -247,7 +247,7 @@
     },
     {
       "name": "@totemsdk/core-wasm",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "description": "WOTS+ cryptographic engine compiled from Rust to WASM",
       "domain": "cryptographic-foundation",
       "keywords": [
@@ -274,15 +274,15 @@
         "ports"
       ],
       "dependencies": {
-        "@totemsdk/agent-policy": "^0.3.0",
-        "@totemsdk/connect": "^2.1.0",
-        "@totemsdk/core": "^1.2.10",
+        "@totemsdk/agent-policy": "^0.3.1",
+        "@totemsdk/connect": "^2.1.1",
+        "@totemsdk/core": "^1.2.11",
         "@totemsdk/decision": "^0.2.0",
-        "@totemsdk/identity": "^1.0.0",
-        "@totemsdk/intelligence": "^0.1.0",
+        "@totemsdk/identity": "^1.0.1",
+        "@totemsdk/intelligence": "^0.1.1",
         "@totemsdk/manifest": "^1.0.0",
         "@totemsdk/storage": "^0.1.0",
-        "@totemsdk/txpow": "^1.0.1"
+        "@totemsdk/txpow": "^1.0.2"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -291,7 +291,7 @@
     },
     {
       "name": "@totemsdk/edge-adapters",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "description": "Reference adapters bridging SDK packages to @totemsdk/edge port interfaces",
       "domain": "edge-computing",
       "keywords": [
@@ -300,16 +300,16 @@
         "ports"
       ],
       "dependencies": {
-        "@totemsdk/agent-policy": "^0.3.0",
-        "@totemsdk/chain-provider": "^0.2.0",
-        "@totemsdk/identity": "^1.0.0",
+        "@totemsdk/agent-policy": "^0.3.1",
+        "@totemsdk/chain-provider": "^0.2.1",
+        "@totemsdk/identity": "^1.0.1",
         "@totemsdk/location-proof": "^1.0.0",
         "@totemsdk/lookup-client": "^0.2.0",
         "@totemsdk/manifest": "^1.0.0",
-        "@totemsdk/omnia-router": "^0.2.0",
+        "@totemsdk/omnia-router": "^0.2.1",
         "@totemsdk/proof": "^1.0.0",
         "@totemsdk/pubsub-transport": "^0.2.0",
-        "@totemsdk/root-identity": "^1.0.8",
+        "@totemsdk/root-identity": "^1.0.9",
         "@totemsdk/storage": "^0.1.0",
         "@totemsdk/stream-transport": "^0.2.0"
       },
@@ -471,7 +471,7 @@
     },
     {
       "name": "@totemsdk/edge-mqtt",
-      "version": "0.2.4",
+      "version": "0.2.5",
       "description": "MQTT adapter — Rust/WASM-backed canonicalization, topic matching, MachinePay arithmetic",
       "domain": "edge-computing",
       "keywords": [
@@ -483,10 +483,10 @@
         "wasm"
       ],
       "dependencies": {
-        "@totemsdk/agent-policy": "^0.3.0",
-        "@totemsdk/core": "^1.2.10",
+        "@totemsdk/agent-policy": "^0.3.1",
+        "@totemsdk/core": "^1.2.11",
         "@totemsdk/edge": "^1.2.0",
-        "@totemsdk/identity": "^1.0.0",
+        "@totemsdk/identity": "^1.0.1",
         "@totemsdk/manifest": "^1.0.0",
         "@totemsdk/proof": "^1.0.0",
         "@totemsdk/pubsub-transport": "^0.2.0",
@@ -557,7 +557,7 @@
     },
     {
       "name": "@totemsdk/governance",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "description": "Deterministic governance engine — quadratic voting, liquid democracy, delegation, mandate-bound proposal execution",
       "domain": "verifiable-claims",
       "keywords": [
@@ -568,9 +568,9 @@
         "delegation"
       ],
       "dependencies": {
-        "@totemsdk/authority": "^1.0.0",
-        "@totemsdk/core": "^1.2.10",
-        "@totemsdk/identity": "^1.0.0",
+        "@totemsdk/authority": "^1.0.1",
+        "@totemsdk/core": "^1.2.11",
+        "@totemsdk/identity": "^1.0.1",
         "@totemsdk/proof": "^1.0.0"
       },
       "exports": {
@@ -580,7 +580,7 @@
     },
     {
       "name": "@totemsdk/identity",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "description": "Canonical identity and claims layer — who controls a manifest, device, or agent",
       "domain": "verifiable-claims",
       "keywords": [
@@ -589,7 +589,7 @@
         "claims"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.2.10",
+        "@totemsdk/core": "^1.2.11",
         "@totemsdk/manifest": "^1.0.0"
       },
       "exports": {
@@ -599,7 +599,7 @@
     },
     {
       "name": "@totemsdk/kissvm",
-      "version": "1.2.0",
+      "version": "1.2.1",
       "description": "KISSVM v1 evaluator for Minima scripting — lexer, parser, VM, all opcodes, backed by Rust/WASM",
       "domain": "cryptographic-foundation",
       "keywords": [
@@ -610,7 +610,7 @@
         "wasm"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.2.10"
+        "@totemsdk/core": "^1.2.11"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}",
@@ -624,7 +624,7 @@
     },
     {
       "name": "@totemsdk/liquidity-bond",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "description": "Deterministic, non-custodial LP position and productive liquidity record",
       "domain": "verifiable-claims",
       "keywords": [
@@ -634,12 +634,12 @@
         "pool"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.2.10",
-        "@totemsdk/identity": "^1.0.0",
+        "@totemsdk/core": "^1.2.11",
+        "@totemsdk/identity": "^1.0.1",
         "@totemsdk/manifest": "^1.0.0",
         "@totemsdk/proof": "^1.0.0",
         "@totemsdk/storage": "^0.1.0",
-        "@totemsdk/wots-lease": "^1.0.0"
+        "@totemsdk/wots-lease": "^1.0.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -658,8 +658,8 @@
         "client"
       ],
       "dependencies": {
-        "@totemsdk/chain-provider": "^0.2.0",
-        "@totemsdk/core": "^1.2.10",
+        "@totemsdk/chain-provider": "^0.2.1",
+        "@totemsdk/core": "^1.2.11",
         "@totemsdk/lookup-protocol": "^0.2.0",
         "@totemsdk/stream-transport": "^0.2.0"
       },
@@ -670,7 +670,7 @@
     },
     {
       "name": "@totemsdk/lookup-node",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "description": "Always-on personal lookup node — Hyperswarm, chain queries, COIN_UPDATE push, WOTS lease coordination",
       "domain": "sovereignty-stack",
       "keywords": [
@@ -682,12 +682,12 @@
       ],
       "dependencies": {
         "better-sqlite3": "^12.2.0",
-        "@totemsdk/chain-provider": "^0.2.0",
-        "@totemsdk/core": "^1.2.10",
+        "@totemsdk/chain-provider": "^0.2.1",
+        "@totemsdk/core": "^1.2.11",
         "@totemsdk/lookup-protocol": "^0.2.0",
-        "@totemsdk/minima-rpc": "^0.2.1",
-        "@totemsdk/txpow": "^1.0.1",
-        "@totemsdk/wots-lease": "^1.0.0"
+        "@totemsdk/minima-rpc": "^0.2.2",
+        "@totemsdk/txpow": "^1.0.2",
+        "@totemsdk/wots-lease": "^1.0.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -706,7 +706,7 @@
         "wire"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.2.10"
+        "@totemsdk/core": "^1.2.11"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -724,7 +724,7 @@
         "signed"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.2.10"
+        "@totemsdk/core": "^1.2.11"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -733,7 +733,7 @@
     },
     {
       "name": "@totemsdk/omnia",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "description": "Omnia eltoo payment channel state machine — transport-agnostic, WOTS-safe, HTLC-ready",
       "domain": "payment-network",
       "keywords": [
@@ -745,15 +745,15 @@
         "state-machine"
       ],
       "dependencies": {
-        "@totemsdk/agent-policy": "^0.3.0",
-        "@totemsdk/chain-provider": "^0.2.0",
-        "@totemsdk/core": "^1.2.10",
-        "@totemsdk/kissvm": "^1.2.0",
+        "@totemsdk/agent-policy": "^0.3.1",
+        "@totemsdk/chain-provider": "^0.2.1",
+        "@totemsdk/core": "^1.2.11",
+        "@totemsdk/kissvm": "^1.2.1",
         "@totemsdk/lookup-protocol": "^0.2.0",
         "@totemsdk/stream-transport": "^0.2.0",
-        "@totemsdk/tx-builder": "^0.2.0",
-        "@totemsdk/txpow": "^1.0.1",
-        "@totemsdk/wots-lease": "^1.0.0"
+        "@totemsdk/tx-builder": "^0.2.1",
+        "@totemsdk/txpow": "^1.0.2",
+        "@totemsdk/wots-lease": "^1.0.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}",
@@ -763,7 +763,7 @@
     },
     {
       "name": "@totemsdk/omnia-factory",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "description": "Channel factory — N-of-N MULTISIG funding, virtual channel management, factory settlement",
       "domain": "payment-network",
       "keywords": [
@@ -773,13 +773,13 @@
         "virtual-channel"
       ],
       "dependencies": {
-        "@totemsdk/chain-provider": "^0.2.0",
-        "@totemsdk/core": "^1.2.10",
-        "@totemsdk/omnia": "^1.0.1",
+        "@totemsdk/chain-provider": "^0.2.1",
+        "@totemsdk/core": "^1.2.11",
+        "@totemsdk/omnia": "^1.0.2",
         "@totemsdk/storage": "^0.1.0",
-        "@totemsdk/tx-builder": "^0.2.0",
-        "@totemsdk/txpow": "^1.0.1",
-        "@totemsdk/wots-lease": "^1.0.0"
+        "@totemsdk/tx-builder": "^0.2.1",
+        "@totemsdk/txpow": "^1.0.2",
+        "@totemsdk/wots-lease": "^1.0.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -788,7 +788,7 @@
     },
     {
       "name": "@totemsdk/omnia-router",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "description": "Multi-hop payment routing — single-token and cross-token paths over Omnia channels",
       "domain": "payment-network",
       "keywords": [
@@ -799,8 +799,8 @@
         "dijkstra"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.2.10",
-        "@totemsdk/omnia": "^1.0.1",
+        "@totemsdk/core": "^1.2.11",
+        "@totemsdk/omnia": "^1.0.2",
         "@totemsdk/storage": "^0.1.0"
       },
       "exports": {
@@ -810,7 +810,7 @@
     },
     {
       "name": "@totemsdk/omnia-splice",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "description": "Channel splicing — resize eltoo channels without close+reopen",
       "domain": "payment-network",
       "keywords": [
@@ -819,12 +819,12 @@
         "channel-resize"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.2.10",
-        "@totemsdk/omnia": "^1.0.1",
+        "@totemsdk/core": "^1.2.11",
+        "@totemsdk/omnia": "^1.0.2",
         "@totemsdk/storage": "^0.1.0",
-        "@totemsdk/tx-builder": "^0.2.0",
-        "@totemsdk/txpow": "^1.0.1",
-        "@totemsdk/wots-lease": "^1.0.0"
+        "@totemsdk/tx-builder": "^0.2.1",
+        "@totemsdk/txpow": "^1.0.2",
+        "@totemsdk/wots-lease": "^1.0.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -833,7 +833,7 @@
     },
     {
       "name": "@totemsdk/omnia-vtxo",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "description": "Virtual UTXO / payment-pool claim layer — cash-like off-chain balance primitive",
       "domain": "payment-network",
       "keywords": [
@@ -844,7 +844,7 @@
         "ark"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.2.10",
+        "@totemsdk/core": "^1.2.11",
         "@totemsdk/storage": "^0.1.0"
       },
       "exports": {
@@ -854,7 +854,7 @@
     },
     {
       "name": "@totemsdk/pear",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "description": "Bare/Pear runtime integration — storage, networking, lifecycle, Hyperdrive adapters",
       "domain": "edge-computing",
       "keywords": [
@@ -893,8 +893,8 @@
         "verification"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.2.10",
-        "@totemsdk/identity": "^1.0.0",
+        "@totemsdk/core": "^1.2.11",
+        "@totemsdk/identity": "^1.0.1",
         "@totemsdk/manifest": "^1.0.0"
       },
       "exports": {
@@ -923,7 +923,7 @@
     },
     {
       "name": "@totemsdk/proofgraph",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "description": "Local deterministic proof relationship graph — indexes proofs, identities, manifests into a content-addressed DAG",
       "domain": "verifiable-claims",
       "keywords": [
@@ -934,8 +934,8 @@
         "content-addressed"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.2.10",
-        "@totemsdk/identity": "^1.0.0",
+        "@totemsdk/core": "^1.2.11",
+        "@totemsdk/identity": "^1.0.1",
         "@totemsdk/manifest": "^1.0.0",
         "@totemsdk/proof": "^1.0.0",
         "@totemsdk/storage": "^0.1.0"
@@ -947,7 +947,7 @@
     },
     {
       "name": "@totemsdk/provider-bond",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "description": "Provider trust layer — prove, record, score and filter infrastructure providers",
       "domain": "verifiable-claims",
       "keywords": [
@@ -957,8 +957,8 @@
         "trust"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.2.10",
-        "@totemsdk/identity": "^1.0.0",
+        "@totemsdk/core": "^1.2.11",
+        "@totemsdk/identity": "^1.0.1",
         "@totemsdk/manifest": "^1.0.0",
         "@totemsdk/proof": "^1.0.0",
         "@totemsdk/storage": "^0.1.0"
@@ -987,7 +987,7 @@
     },
     {
       "name": "@totemsdk/minima-rpc",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "description": "Fetch-based PureMinima RPC client — Bare/Pear/Node/browser compatible",
       "domain": "sovereignty-stack",
       "keywords": [
@@ -1016,7 +1016,7 @@
       ],
       "dependencies": {
         "typescript": ">=5.0.0",
-        "@totemsdk/core": "^1.2.10"
+        "@totemsdk/core": "^1.2.11"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1025,7 +1025,7 @@
     },
     {
       "name": "@totemsdk/recursive-mast",
-      "version": "0.2.6",
+      "version": "0.2.7",
       "description": "Recursive MAST + PREVSTATE — composable policy trees, proof chains, state transitions, delegation",
       "domain": "cryptographic-foundation",
       "keywords": [
@@ -1036,9 +1036,9 @@
         "governance"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.2.10",
-        "@totemsdk/kissvm": "^1.2.0",
-        "@totemsdk/tx-builder": "^0.2.0"
+        "@totemsdk/core": "^1.2.11",
+        "@totemsdk/kissvm": "^1.2.1",
+        "@totemsdk/tx-builder": "^0.2.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}",
@@ -1050,7 +1050,7 @@
     },
     {
       "name": "@totemsdk/root-identity",
-      "version": "1.0.8",
+      "version": "1.0.9",
       "description": "Single root identity controlling up to 64 on-chain addresses — cryptographically linked via 3-level TreeKeys",
       "domain": "verifiable-claims",
       "keywords": [
@@ -1061,7 +1061,7 @@
         "kyc"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.2.10"
+        "@totemsdk/core": "^1.2.11"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1070,7 +1070,7 @@
     },
     {
       "name": "@totemsdk/se-server",
-      "version": "0.5.0",
+      "version": "0.5.1",
       "description": "Self-hostable Statechain Entity (SE) server — Mercury-protocol co-signer as Express app",
       "domain": "payment-network",
       "keywords": [
@@ -1084,10 +1084,10 @@
         "express": "^5.2.1",
         "pg": "^8.11.3",
         "zod": "^4.4.3",
-        "@totemsdk/core": "^1.2.10",
-        "@totemsdk/root-identity": "^1.0.8",
+        "@totemsdk/core": "^1.2.11",
+        "@totemsdk/root-identity": "^1.0.9",
         "@totemsdk/storage": "^0.1.0",
-        "@totemsdk/wots-lease": "^1.0.0"
+        "@totemsdk/wots-lease": "^1.0.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1096,7 +1096,7 @@
     },
     {
       "name": "@totemsdk/server",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "description": "Server-side SDK — signing, transaction building and submission via Axia",
       "domain": "edge-computing",
       "keywords": [
@@ -1108,9 +1108,9 @@
       "dependencies": {
         "node-fetch": "^2.6.9",
         "ws": "^8.21.1",
-        "@totemsdk/core": "^1.2.10",
+        "@totemsdk/core": "^1.2.11",
         "@totemsdk/storage": "^0.1.0",
-        "@totemsdk/txpow": "^1.0.1"
+        "@totemsdk/txpow": "^1.0.2"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1119,7 +1119,7 @@
     },
     {
       "name": "@totemsdk/statechain",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "description": "Mercury-protocol state chain — privacy-preserving off-chain UTXO custody transfer with blind SE co-signatures",
       "domain": "payment-network",
       "keywords": [
@@ -1130,12 +1130,12 @@
         "custody-transfer"
       ],
       "dependencies": {
-        "@totemsdk/chain-provider": "^0.2.0",
-        "@totemsdk/core": "^1.2.10",
+        "@totemsdk/chain-provider": "^0.2.1",
+        "@totemsdk/core": "^1.2.11",
         "@totemsdk/storage": "^0.1.0",
-        "@totemsdk/tx-builder": "^0.2.0",
-        "@totemsdk/txpow": "^1.0.1",
-        "@totemsdk/wots-lease": "^1.0.0"
+        "@totemsdk/tx-builder": "^0.2.1",
+        "@totemsdk/txpow": "^1.0.2",
+        "@totemsdk/wots-lease": "^1.0.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1156,7 +1156,7 @@
       ],
       "dependencies": {
         "hyperswarm": ">=4.0.0",
-        "@totemsdk/core": "^1.2.10"
+        "@totemsdk/core": "^1.2.11"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1165,7 +1165,7 @@
     },
     {
       "name": "@totemsdk/tx-builder",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "description": "Transaction builder for Minima — coin selection, multisig, WOTS signing",
       "domain": "payment-network",
       "keywords": [
@@ -1175,7 +1175,7 @@
         "multisig"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.2.10"
+        "@totemsdk/core": "^1.2.11"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1184,7 +1184,7 @@
     },
     {
       "name": "@totemsdk/txpow",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "description": "TxPoW envelope serialization and proof-of-work mining for Minima",
       "domain": "cryptographic-foundation",
       "keywords": [
@@ -1194,7 +1194,7 @@
         "serialization"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.2.10"
+        "@totemsdk/core": "^1.2.11"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}",
@@ -1218,7 +1218,7 @@
         "multi-wallet"
       ],
       "dependencies": {
-        "@totemsdk/chain-provider": "^0.2.0"
+        "@totemsdk/chain-provider": "^0.2.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1227,7 +1227,7 @@
     },
     {
       "name": "@totemsdk/wots-lease",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "description": "WOTS key-use coordination — canonical v3 watermark, provider-based lease safety",
       "domain": "cryptographic-foundation",
       "keywords": [
@@ -1237,10 +1237,10 @@
         "key-coordination"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.2.10",
+        "@totemsdk/core": "^1.2.11",
         "@totemsdk/lookup-protocol": "^0.2.0",
         "@totemsdk/storage": "^0.1.0",
-        "@totemsdk/txpow": "^1.0.1"
+        "@totemsdk/txpow": "^1.0.2"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1270,7 +1270,7 @@
     },
     {
       "name": "@totemsdk/industrial-action",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "description": "Deterministic industrial action lifecycle for Totem Edge — converts governed intent into context-aware, bounded, verifiably executed operations on field devices and protocols",
       "domain": "edge-computing",
       "keywords": [
@@ -1282,9 +1282,9 @@
         "opcua"
       ],
       "dependencies": {
-        "@totemsdk/agent-policy": "^0.3.0",
-        "@totemsdk/authority": "^1.0.0",
-        "@totemsdk/core": "^1.2.10",
+        "@totemsdk/agent-policy": "^0.3.1",
+        "@totemsdk/authority": "^1.0.1",
+        "@totemsdk/core": "^1.2.11",
         "@totemsdk/edge": "^1.2.0",
         "@totemsdk/proof": "^1.0.0",
         "@totemsdk/storage": "^0.1.0"
@@ -1296,7 +1296,7 @@
     },
     {
       "name": "@totemsdk/mcp-server",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "description": "MCP server exposing the full Totem SDK package set — metadata, types, exports, dependency graphs, and scaffolding tools",
       "domain": "sovereignty-stack",
       "keywords": [
@@ -1316,7 +1316,7 @@
     },
     {
       "name": "@totemsdk/omnia-host",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "description": "Durable Omnia node daemon for channel lifecycle, routing, and control APIs",
       "domain": "payment-network",
       "keywords": [
@@ -1328,18 +1328,18 @@
       "dependencies": {
         "better-sqlite3": "^12.2.0",
         "ws": "^8.21.1",
-        "@totemsdk/chain-provider": "^0.2.0",
-        "@totemsdk/core": "^1.2.10",
-        "@totemsdk/identity": "^1.0.0",
+        "@totemsdk/chain-provider": "^0.2.1",
+        "@totemsdk/core": "^1.2.11",
+        "@totemsdk/identity": "^1.0.1",
         "@totemsdk/manifest": "^1.0.0",
-        "@totemsdk/minima-rpc": "^0.2.1",
-        "@totemsdk/omnia": "^1.0.1",
-        "@totemsdk/omnia-factory": "^0.2.0",
-        "@totemsdk/omnia-router": "^0.2.0",
-        "@totemsdk/omnia-splice": "^0.2.0",
-        "@totemsdk/omnia-vtxo": "^0.2.0",
+        "@totemsdk/minima-rpc": "^0.2.2",
+        "@totemsdk/omnia": "^1.0.2",
+        "@totemsdk/omnia-factory": "^0.2.1",
+        "@totemsdk/omnia-router": "^0.2.1",
+        "@totemsdk/omnia-splice": "^0.2.1",
+        "@totemsdk/omnia-vtxo": "^0.2.1",
         "@totemsdk/storage": "^0.1.0",
-        "@totemsdk/wots-lease": "^1.0.0"
+        "@totemsdk/wots-lease": "^1.0.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1364,9 +1364,9 @@
         "autonomous-devices"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.2.10",
+        "@totemsdk/core": "^1.2.11",
         "@totemsdk/proof": "^1.0.0",
-        "@totemsdk/proofgraph": "^1.0.0"
+        "@totemsdk/proofgraph": "^1.0.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1390,10 +1390,10 @@
         "autonomous-devices"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.2.10",
+        "@totemsdk/core": "^1.2.11",
         "@totemsdk/location-proof": "^1.0.0",
         "@totemsdk/proof": "^1.0.0",
-        "@totemsdk/proofgraph": "^1.0.0"
+        "@totemsdk/proofgraph": "^1.0.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1421,9 +1421,9 @@
         "autonomous-devices"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.2.10",
+        "@totemsdk/core": "^1.2.11",
         "@totemsdk/proof": "^1.0.0",
-        "@totemsdk/proofgraph": "^1.0.0",
+        "@totemsdk/proofgraph": "^1.0.1",
         "@totemsdk/spatial-proof": "^1.0.0"
       },
       "exports": {
@@ -1433,7 +1433,7 @@
     },
     {
       "name": "@totemsdk/omnia-pool",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "description": "Generic Omnia liquidity pool orchestration primitive for Totem SDK",
       "domain": "payment-network",
       "keywords": [
@@ -1446,18 +1446,18 @@
         "minima"
       ],
       "dependencies": {
-        "@totemsdk/agent-policy": "^0.3.0",
-        "@totemsdk/chain-provider": "^0.2.0",
-        "@totemsdk/core": "^1.2.10",
-        "@totemsdk/liquidity-bond": "^0.3.0",
-        "@totemsdk/omnia": "^1.0.1",
-        "@totemsdk/omnia-factory": "^0.2.0",
-        "@totemsdk/omnia-router": "^0.2.0",
-        "@totemsdk/omnia-splice": "^0.2.0",
-        "@totemsdk/omnia-vtxo": "^0.2.0",
+        "@totemsdk/agent-policy": "^0.3.1",
+        "@totemsdk/chain-provider": "^0.2.1",
+        "@totemsdk/core": "^1.2.11",
+        "@totemsdk/liquidity-bond": "^0.3.1",
+        "@totemsdk/omnia": "^1.0.2",
+        "@totemsdk/omnia-factory": "^0.2.1",
+        "@totemsdk/omnia-router": "^0.2.1",
+        "@totemsdk/omnia-splice": "^0.2.1",
+        "@totemsdk/omnia-vtxo": "^0.2.1",
         "@totemsdk/storage": "^0.1.0",
-        "@totemsdk/tx-builder": "^0.2.0",
-        "@totemsdk/wots-lease": "^1.0.0"
+        "@totemsdk/tx-builder": "^0.2.1",
+        "@totemsdk/wots-lease": "^1.0.1"
       },
       "peerDependencies": {
         "@totemsdk/omnia": "^1.0.1",
@@ -1473,7 +1473,7 @@
     },
     {
       "name": "@totemsdk/intelligence",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "description": "Provider-neutral intelligence contracts — capabilities, operations, receipts, errors for local self-hosted AI inference",
       "domain": "intelligence",
       "keywords": [
@@ -1518,8 +1518,8 @@
         "governance"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.2.10",
-        "@totemsdk/intelligence": "^0.1.0"
+        "@totemsdk/core": "^1.2.11",
+        "@totemsdk/intelligence": "^0.1.1"
       },
       "exports": {
         ".": {
@@ -1567,7 +1567,7 @@
     },
     {
       "name": "@totemsdk/qvac",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "description": "QVAC intelligence adapter — wraps @qvac/sdk into @totemsdk/intelligence provider-neutral contracts (with /edge and /raw subpaths)",
       "domain": "intelligence",
       "keywords": [
@@ -1586,7 +1586,7 @@
         "edge-ai"
       ],
       "dependencies": {
-        "@totemsdk/intelligence": "^0.1.0"
+        "@totemsdk/intelligence": "^0.1.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}",
@@ -1631,7 +1631,7 @@
         "provider-neutral"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.2.10"
+        "@totemsdk/core": "^1.2.11"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}",
