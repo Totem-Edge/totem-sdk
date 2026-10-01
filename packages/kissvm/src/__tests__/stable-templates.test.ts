@@ -816,6 +816,12 @@ describe('stable template: authority', () => {
     // RFC-018 P1-3: the window is committed and cannot be moved by the spender.
     const movedWindow = run(script, ctx({ block: 1000, state: s({ 1: 3, 2: 50, 3: 99999, 10: 2 }), prevState: s({ 1: 2, 2: 40, 3: 1100, 10: 1 }) }), { [pkAA]: 'authority' });
     expect(movedWindow.success).toBe(false);
+
+    // RFC-020 P2-14: past the window end, the window rolls forward by windowBlocks.
+    const rolled = run(script, ctx({ block: 1200, state: s({ 1: 1, 2: 10, 3: 1200, 10: 2 }), prevState: s({ 1: 5, 2: 100, 3: 1100, 10: 1 }) }), { [pkAA]: 'authority' });
+    expect(rolled.success).toBe(true);
+    const wrongAdvance = run(script, ctx({ block: 1200, state: s({ 1: 1, 2: 10, 3: 1300, 10: 2 }), prevState: s({ 1: 5, 2: 100, 3: 1100, 10: 1 }) }), { [pkAA]: 'authority' });
+    expect(wrongAdvance.success).toBe(false);
   });
 });
 
@@ -1033,6 +1039,20 @@ describe('stable template: industrial-action', () => {
       prevState: s({ 0: IA_STATUS.PROPOSED }),
     }));
     expect(bad.success).toBe(false);
+
+    // RFC-020 P2-14: the per-action duration port is bound and capped.
+    const active = run(script, ctx({
+      block: 940,
+      state: s({ 0: IA_STATUS.ACTIVE }),
+      prevState: s({ 0: IA_STATUS.NOTICED, 1: 900, 2: 50 }),
+    }));
+    expect(active.success).toBe(true);
+    const tooLong = run(script, ctx({
+      block: 940,
+      state: s({ 0: IA_STATUS.ACTIVE }),
+      prevState: s({ 0: IA_STATUS.NOTICED, 1: 900, 2: 101 }),
+    }));
+    expect(tooLong.success).toBe(false);
   });
 
   it('escrow enforcement enforces the condition hash, authority and payout', () => {

@@ -43,11 +43,14 @@ export function buildIdentityVerificationScript(config: IdentityVerificationConf
   if (config.policyRoot) {
     // RFC-016: PROOF preimage is the authorizing leaf script (SCRIPT literal).
     const leaf = config.leafScript ?? `ASSERT SIGNEDBY(0x${config.identityPk}) RETURN TRUE`
+    // RFC-020 P2-14 (STABLE-010): `MAST` is terminal, so a trailing RETURN would
+    // be dead code. The MAST branch is the script's terminator.
     lines.push(
       ``,
       `ASSERT PROOF([${leaf}] 0 0x${config.policyRoot} 0 STATE(3))`,
       `MAST 0x${config.policyRoot}`,
     )
+    return lines.join('\n')
   }
 
   lines.push(``, `RETURN TRUE`)

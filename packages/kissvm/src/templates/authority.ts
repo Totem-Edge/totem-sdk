@@ -156,15 +156,19 @@ export function buildUsageTrackingScript(config: UsageTrackingConfig): string {
     `LET maxCount = ${config.maxCount.toString()}`,
     `LET maxAmount = ${config.maxAmount}`,
     `LET windowEnd = PREVSTATE(${config.windowEndPort})`,
-    `ASSERT STATE(${config.windowEndPort}) EQ windowEnd`,
     ``,
-    `// Window reset: if past window end, reset to current values`,
+    // RFC-020 P2-14 (STABLE-011): `windowBlocks` was declared but unused, and the
+    // committed window end could never advance (reset was dead). The window now
+    // rolls over: past skew, the end advances by exactly `windowBlocks`.
+    `// Window reset: if past window end, roll the window forward`,
     `IF @BLOCK GT windowEnd THEN`,
+    `  ASSERT STATE(${config.windowEndPort}) EQ windowEnd ADD ${config.windowBlocks.toString()}`,
     `  LET count = STATE(${config.countPort})`,
     `  LET amount = STATE(${config.amountPort})`,
     `  ASSERT count LTE maxCount`,
     `  ASSERT amount LTE maxAmount`,
     `ELSE`,
+    `  ASSERT STATE(${config.windowEndPort}) EQ windowEnd`,
     `  LET prevCount = PREVSTATE(${config.countPort})`,
     `  LET prevAmount = PREVSTATE(${config.amountPort})`,
     `  LET count = STATE(${config.countPort})`,
