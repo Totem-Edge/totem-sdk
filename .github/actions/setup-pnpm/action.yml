@@ -39,11 +39,12 @@ runs:
         fi
 
     # `--ignore-scripts` skips lifecycle scripts for ALL packages, including the
-    # allow-listed native deps (see pnpm-workspace.yaml `allowBuilds`). Without
-    # this, better-sqlite3 ships no prebuilt binding on the runner and every
-    # sqlite-backed package (storage, agent-policy, lookup-node, omnia-host)
-    # fails its test gate with "Could not locate the bindings file". Rebuild only
-    # the allow-listed native dependencies so their bindings exist.
+    # native deps that need compiling. Without this, better-sqlite3 ships no
+    # prebuilt binding on the runner and every sqlite-backed package (storage,
+    # agent-policy, lookup-node, omnia-host) fails its test gate with
+    # "Could not locate the bindings file". `pnpm rebuild` (non-recursive) is a
+    # no-op for transitive deps, so use the recursive form, which force-runs the
+    # install scripts (prebuild-install || node-gyp rebuild).
     - name: Rebuild native dependencies
       shell: bash
-      run: pnpm rebuild better-sqlite3
+      run: pnpm rebuild -r
