@@ -7509,7 +7509,8 @@
         },
         "computeScriptHash": {
           "kind": "function",
-          "signature": "computeScriptHash(script: string): string"
+          "signature": "computeScriptHash(script: string): string",
+          "doc": "RFC-020 P2-6 (STABLE-009): script hashes must be the canonical on-chain MMR\nleaf hash, not a bare SHA3 of the source string."
         },
         "ProposalConfig": {
           "kind": "interface",
@@ -13831,7 +13832,7 @@
         },
         "buildRecursiveWitnessPlan": {
           "kind": "function",
-          "signature": "buildRecursiveWitnessPlan(selectedPath: PolicyPathDescriptor, disclosedScripts: ScriptDisclosure[], collectedSignatures: Map<string, string>): { mastBranches: Map<string, string>; signatures: Map<string, string>; scriptProofs: ScriptProof[]; }",
+          "signature": "buildRecursiveWitnessPlan(selectedPath: PolicyPathDescriptor, disclosedScripts: ScriptDisclosure[], collectedSignatures: Map<string, string> | Record<string, string>, roleKeys?: Record<string, string>): { mastBranches: Map<string, string>; signatures: Map<string, string>; scriptProofs: ScriptProof[]; }",
           "doc": "Build a recursive MAST witness plan from collected signatures and\ndisclosed scripts. The plan describes what the witness should contain;\nuse materializeRecursiveWitness() from"
         },
         "verifySigningRequest": {
@@ -16870,7 +16871,7 @@
         },
         "verifyPoolFundTx": {
           "kind": "function",
-          "signature": "verifyPoolFundTx(tx: PoolFundTx, proof: SignedFundingIntent, expectedPoolAddress: string): PoolFundVerification",
+          "signature": "verifyPoolFundTx(tx: PoolFundTx, proof: SignedFundingIntent, expectedPoolAddress: string, opts?: PoolFundVerifyOptions): PoolFundVerification",
           "doc": "Verify a deep funding proof. `expectedPoolAddress` (the pool/channel script\naddress) is required to prove the spend target — without it the proof only\nproves the LP signed some tx, which is why acceptance must pass it."
         },
         "toProofHex": {
@@ -16906,6 +16907,11 @@
         "PoolFundVerification": {
           "kind": "interface",
           "signature": "export interface PoolFundVerification"
+        },
+        "PoolFundVerifyOptions": {
+          "kind": "interface",
+          "signature": "export interface PoolFundVerifyOptions",
+          "doc": "RFC-020 P2-11: acceptance-time replay/expiry inputs."
         },
         "buildMinimaWitnessBytes": {
           "kind": "function",
