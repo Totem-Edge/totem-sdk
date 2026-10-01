@@ -56,26 +56,18 @@ export function buildMigrationScript(
 ): string {
   return [
     `// Migration: ${fromPolicyRoot.slice(0, 16)}… → ${toPolicyRoot.slice(0, 16)}…`,
-    `LET oldRoot = 0x${fromPolicyRoot}`,
-    `LET newRoot = 0x${toPolicyRoot}`,
     `LET activation = ${activationBlock}`,
-    `LET deprecation = ${deprecationBlock}`,
     ``,
-    `// Before activation: only old policy`,
+    // RFC-020 P2-7: `MAST` is terminal, so the previous `MAST … / RETURN TRUE`
+    // pairs made the RETURN (and any following MAST) unreachable. Each window now
+    // terminates in exactly one MAST: before activation the old policy governs;
+    // from activation the new policy governs (the old root remains valid through
+    // its own committed branch until it is deprecated).
     `IF @BLOCK LT activation THEN`,
     `  MAST 0x${fromPolicyRoot}`,
-    `  RETURN TRUE`,
+    `ELSE`,
+    `  MAST 0x${toPolicyRoot}`,
     `ENDIF`,
-    ``,
-    `// During transition: both policies accepted`,
-    `IF @BLOCK LT deprecation THEN`,
-    `  MAST 0x${fromPolicyRoot}`,
-    `  RETURN TRUE`,
-    `ENDIF`,
-    ``,
-    `// After deprecation: only new policy`,
-    `MAST 0x${toPolicyRoot}`,
-    `RETURN TRUE`,
   ].join('\n');
 }
 

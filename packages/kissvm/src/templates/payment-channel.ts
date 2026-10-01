@@ -80,6 +80,11 @@ export function buildPaymentChannelScript(config: PaymentChannelConfig): string 
     ``,
     `// 3. Settlement path`,
     `IF settlement THEN`,
+    // RFC-020 P2-7 (EXP-07): settlement fields must be committed, not chosen
+    // from mutable STATE at settlement time.
+    `  ASSERT STATE(102) EQ PREVSTATE(102)`,
+    `  ASSERT STATE(103) EQ PREVSTATE(103)`,
+    `  ASSERT STATE(104) EQ PREVSTATE(104)`,
     `  ASSERT @BLOCK GTE STATE(102)`,
     `  ASSERT VERIFYOUT(@INPUT partyA STATE(103) @TOKENID TRUE)`,
     `  ASSERT VERIFYOUT(INC(@INPUT) partyB STATE(104) @TOKENID TRUE)`,
@@ -114,8 +119,10 @@ export function buildPaymentChannelWorkflow(config: PaymentChannelConfig): PrevS
     `channel-${config.channelId}`,
     `Payment Channel ${config.channelId}`,
     [
-      buildStateTransition(config.sequencePort, 'sequence', 'newSeq', 'prevSeq', 'newSeq'),
-      buildStateTransition(config.settlementPort, 'settlement', 'settlement', 'prevSettlement', 'settlement'),
+      // RFC-020 P2-7: reference the generated locals (`curr_sequence`/
+      // `curr_settlement`) instead of undefined identifiers.
+      buildStateTransition(config.sequencePort, 'sequence', 'curr_sequence', 'prev_sequence', 'curr_sequence'),
+      buildStateTransition(config.settlementPort, 'settlement', 'curr_settlement', 'prev_settlement', 'curr_settlement'),
     ],
     buildPaymentChannelScript(config),
   );
@@ -136,10 +143,11 @@ export function buildChannelFactoryScript(
     `ASSERT MULTISIG(${partyPkds.length} ${pkList})`,
     ``,
     `// Channel creation governed by factory policy`,
+    // RFC-020 P2-7 (EXP-08): the PROOF preimage must be committed (PREVSTATE),
+    // and output preservation must precede the terminal MAST.
+    `ASSERT STATE(0) EQ PREVSTATE(0)`,
     `ASSERT PROOF(STATE(0) 0 0x${policyRoot} 0 0x${factoryProof})`,
-    `MAST 0x${policyRoot}`,
-    ``,
     `ASSERT VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID TRUE)`,
-    `RETURN TRUE`,
+    `MAST 0x${policyRoot}`,
   ].join('\n');
 }

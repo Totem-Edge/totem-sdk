@@ -71,11 +71,10 @@ export function buildFirmwareUpdateScript(config: FirmwareUpdateConfig): string 
     ``,
     `// 3. Owner must authorize via policy`,
     `ASSERT PROOF([${leafScript}] 0 0x${config.policyRoot} 0 0x${config.updateProof})`,
-    `MAST 0x${config.policyRoot}`,
-    ``,
-    `// 4. Preserve new state`,
+    // RFC-020 P2-7 (EXP-06): output preservation must be checked BEFORE the
+    // terminal MAST (statements after MAST were dead code).
     `ASSERT VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID TRUE)`,
-    `RETURN TRUE`,
+    `MAST 0x${config.policyRoot}`,
   ].join('\n');
 }
 
@@ -87,8 +86,10 @@ export function buildFirmwareUpdateWorkflow(config: FirmwareUpdateConfig): PrevS
     'firmware-update',
     'Firmware Update',
     [
-      buildStateTransition(config.versionPort, 'version', 'newVersion', 'prevVersion', 'newVersion'),
-      buildStateTransition(config.hashPort, 'hash', 'newHash', 'prevHash', 'newHash'),
+      // RFC-020 P2-7: reference the generated locals (`curr_version`/`curr_hash`)
+      // instead of undefined `newVersion`/`newHash` identifiers.
+      buildStateTransition(config.versionPort, 'version', 'curr_version', 'prev_version', 'curr_version'),
+      buildStateTransition(config.hashPort, 'hash', 'curr_hash', 'prev_hash', 'curr_hash'),
     ],
     buildFirmwareUpdateScript(config),
   );
@@ -122,8 +123,8 @@ export function buildMultiSigFirmwareUpdateScript(
     `ASSERT newVersion GT prevVersion`,
     `ASSERT MULTISIG(${threshold} ${signerChecks})`,
     `ASSERT PROOF([${ownerLeaf}] 0 0x${policyRoot} 0 0x${updateProof})`,
-    `MAST 0x${policyRoot}`,
+    // RFC-020 P2-7 (EXP-06): output preservation precedes the terminal MAST.
     `ASSERT VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID TRUE)`,
-    `RETURN TRUE`,
+    `MAST 0x${policyRoot}`,
   ].join('\n');
 }

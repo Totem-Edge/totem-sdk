@@ -255,10 +255,21 @@ export function buildMultiJurisdictionScript(
     apostilleHash?: string;
   },
 ): PolicyLayer {
+  // RFC-020 P2-7: fail closed on an unrecognised jurisdiction — every listed
+  // foreign jurisdiction must have a real authority key, otherwise the previous
+  // build emitted `SIGNEDBY(0x00)` for it.
+  if (options.foreignJurisdictions.length !== options.foreignAuthorityPkds.length) {
+    throw new Error('buildMultiJurisdictionScript: each foreign jurisdiction requires an authority pkd');
+  }
   const jurisdictionChecks = options.foreignJurisdictions.map((j, i) => {
-    const pkd = options.foreignAuthorityPkds[i] ?? '0x00';
+    const pkd = options.foreignAuthorityPkds[i];
+    if (!pkd || pkd.replace(/^0x/i, '').replace(/^0+$/, '').length === 0) {
+      throw new Error(`buildMultiJurisdictionScript: no authority key for jurisdiction '${j}'`);
+    }
     return [
       `// Recognition by ${j}`,
+      // Fail closed on an unrecognised flag value, then require the authority.
+      `ASSERT STATE(${options.recognitionPort + i}) EQ 0 OR STATE(${options.recognitionPort + i}) EQ 1`,
       `IF STATE(${options.recognitionPort + i}) EQ 1 THEN`,
       `  ASSERT SIGNEDBY(0x${pkd})`,
       `ENDIF`,

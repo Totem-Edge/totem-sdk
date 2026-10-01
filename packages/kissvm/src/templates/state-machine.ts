@@ -90,9 +90,12 @@ export function buildStateMachineWorkflow(config: StateMachineConfig): PrevState
     buildStateTransition(
       config.statePort,
       'state',
-      'newState',
-      'prevState',
-      'newState',
+      // RFC-020 P2-7: reference the generated local (`curr_state`) rather than an
+      // undefined `newState` identifier. Transition validity is enforced by the
+      // additional script's transition table.
+      'curr_state',
+      'prev_state',
+      'curr_state',
     ),
   ];
 

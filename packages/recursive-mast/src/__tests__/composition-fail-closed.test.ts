@@ -93,6 +93,15 @@ describe('RFC-018 P2-2: migration path composition', () => {
     const inner = buildMigrationScript('bb', 'cc', 20, 30);
     expect(script).toContain(`MAST 0x${computeCanonicalScriptHash(inner)}`);
   });
+
+  it('terminates each window with a single MAST and no dead RETURN (RFC-020 P2-7)', () => {
+    const script = buildMigrationScript('aa', 'bb', 10, 20);
+    expect(script).toContain('MAST 0xaa');
+    expect(script).toContain('MAST 0xbb');
+    // No RETURN after a terminal MAST.
+    expect(script).not.toMatch(/MAST 0x[0-9a-f]+[^\n]*\n\s*RETURN/i);
+    expect(script).not.toContain('deprecation');
+  });
 });
 
 describe('RFC-020 H9: delegation-script key validation', () => {
