@@ -14,7 +14,8 @@ export interface LeaseCertificateConfig {
   purpose: string
   payloadHash: string
   issuedAt: bigint
-  signature: string
+  /** Optional authority signature over the certificate; committed when present. */
+  signature?: string
   expiresAt: bigint
   authorityPk: string
   statePort: number
@@ -44,7 +45,11 @@ export function buildLeaseCertificateScript(config: LeaseCertificateConfig): str
   const branchId = requireHex(config.branchId, 'branchId')
   const purpose = requireHex(config.purpose, 'purpose')
   const payloadHash = requireHex(config.payloadHash, 'payloadHash')
-  return [
+  // RFC-020 P2-14: commit the leased WOTS indices (and, when supplied, the
+  // certificate signature) instead of ignoring them.
+  const hasSignature = typeof config.signature === 'string' && config.signature.replace(/^0x/i, '').length > 0
+  const certEnd = config.statePort + (hasSignature ? 6 : 5)
+  const lines: string[] = [
     `LET authority = 0x${authorityPk}`,
     `ASSERT SIGNEDBY(authority)`,
     ``,
@@ -53,19 +58,30 @@ export function buildLeaseCertificateScript(config: LeaseCertificateConfig): str
     `LET certBranchId = STATE(${config.statePort + 2})`,
     `LET certPurpose = STATE(${config.statePort + 3})`,
     `LET certPayload = STATE(${config.statePort + 4})`,
+    `LET certIndices = STATE(${config.statePort + 5})`,
     ``,
     `ASSERT certTreeId EQ 0x${treeId}`,
     `ASSERT certDeviceId EQ 0x${deviceId}`,
     `ASSERT certBranchId EQ 0x${branchId}`,
     `ASSERT certPurpose EQ 0x${purpose}`,
     `ASSERT certPayload EQ 0x${payloadHash}`,
+    `ASSERT certIndices EQ [${config.indices}]`,
     ``,
+  ]
+  if (hasSignature) {
+    lines.push(
+      `ASSERT STATE(${config.statePort + 6}) EQ 0x${requireHex(config.signature!, 'signature')}`,
+      ``,
+    )
+  }
+  lines.push(
     `ASSERT @BLOCK LT ${config.expiresAt.toString()}`,
     ``,
-    `ASSERT SAMESTATE(${config.statePort} ${config.statePort + 5})`,
+    `ASSERT SAMESTATE(${config.statePort} ${certEnd})`,
     ``,
     `RETURN TRUE`,
-  ].join('\n')
+  )
+  return lines.join('\n')
 }
 
 /**

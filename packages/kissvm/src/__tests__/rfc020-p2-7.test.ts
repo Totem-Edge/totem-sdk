@@ -26,6 +26,8 @@ describe('RFC-020 P2-7: firmware / channel checks precede the terminal MAST', ()
     });
     expect(script.indexOf('ASSERT VERIFYOUT')).toBeLessThan(script.lastIndexOf('MAST 0x'));
     expect(script).not.toMatch(/MAST 0x[0-9a-f]+[^\n]*\n\s*RETURN/i);
+    // RFC-020 P2-14: the manufacturer port is bound.
+    expect(script).toContain('ASSERT STATE(2) EQ manufacturer');
   });
 
   it('channel factory verifies the output before MAST and has no dead RETURN', () => {

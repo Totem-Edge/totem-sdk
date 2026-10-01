@@ -40,6 +40,8 @@ export function buildBondLockupScript(config: ProviderBondConfig): string {
     `LET governance = 0x${config.governancePk}`,
     ``,
     `ASSERT @AMOUNT EQ ${config.amount}`,
+    // RFC-020 P2-14: bind the bond to the declared token.
+    `ASSERT @TOKENID EQ 0x${config.tokenId.replace(/^0x/i, '')}`,
     ``,
     `LET expiresAt = ${config.expiresAtBlock.toString()}`,
     `ASSERT @BLOCK LT expiresAt`,
@@ -81,6 +83,8 @@ export function buildHeartbeatScript(config: ProviderBondConfig): string {
     ``,
     `// Probe signer must authorize (fixed key)`,
     `ASSERT SIGNEDBY(0x${probeSignerPk})`,
+    // RFC-020 P2-14: the committed probe-signer port must match the configured key.
+    `ASSERT STATE(${config.probeSignerPort ?? 6}) EQ 0x${probeSignerPk}`,
   ]
 
   lines.push(
@@ -107,6 +111,9 @@ export function buildHeartbeatScript(config: ProviderBondConfig): string {
  */
 export function buildBondStateMachineScript(config: ProviderBondConfig): string {
   return [
+    // RFC-020 P2-14: the SLA anchor is committed across every lifecycle step.
+    `ASSERT STATE(${config.slaPort}) EQ PREVSTATE(${config.slaPort})`,
+    ``,
     `SWITCH PREVSTATE(0)`,
     ``,
     `  CASE ${BOND_STATUS.DECLARED}`,

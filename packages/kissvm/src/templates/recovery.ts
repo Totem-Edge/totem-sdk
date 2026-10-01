@@ -46,7 +46,12 @@ export interface ThresholdRecoveryConfig {
  * controller or another guardian can veto.
  */
 export function buildThresholdRecoveryScript(config: ThresholdRecoveryConfig): string {
-  const custodianList = config.custodians.map(c => `0x${c}`).join(' ');
+  const custodianList = config.custodians.map(c => `0x${c}`).join(' ')
+  // RFC-020 P2-14: when a public-notice endpoint is supplied it is committed
+  // into the successor state (port 53), not silently ignored.
+  const noticeLine = config.noticeEndpoint !== undefined
+    ? [`ASSERT STATE(53) EQ [${config.noticeEndpoint}]`]
+    : []
 
   return [
     `// Threshold recovery: ${config.recoveryId}`,
@@ -67,9 +72,10 @@ export function buildThresholdRecoveryScript(config: ThresholdRecoveryConfig): s
     ``,
     `// 4. Public notice`,
     `ASSERT STATE(52) EQ [${config.recoveryId}]`,
+    ...noticeLine,
     ``,
     `RETURN TRUE`,
-  ].join('\n');
+  ].join('\n')
 }
 
 // ─── Epoch-based policy rotation ───────────────────────────────────────────
@@ -225,6 +231,10 @@ export function buildInstitutionalHierarchy(config: InstitutionalHierarchyConfig
   const governancePks = (config.governancePks ?? []).map((pk) => pk.replace(/^0x/i, ''));
   if (governancePks.length < config.governanceThreshold || governancePks.some((pk) => pk.length === 0 || /^0+$/.test(pk))) {
     throw new Error('buildInstitutionalHierarchy: governancePks must provide at least `governanceThreshold` real keys (RFC-016 P4)');
+  }
+  // RFC-020 P2-14: `governanceCustodians` must agree with the key set, not be ignored.
+  if (config.governanceCustodians !== governancePks.length) {
+    throw new Error(`buildInstitutionalHierarchy: governanceCustodians (${config.governanceCustodians}) must equal governancePks.length (${governancePks.length})`);
   }
 
   const governanceScript = [

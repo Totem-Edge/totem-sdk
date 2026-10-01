@@ -68,6 +68,8 @@ export function buildFirmwareUpdateScript(config: FirmwareUpdateConfig): string 
     ``,
     `// 2. Manufacturer must sign the firmware hash`,
     `ASSERT SIGNEDBY(manufacturer)`,
+    // RFC-020 P2-14: the committed manufacturer port must match the configured key.
+    `ASSERT STATE(${config.manufacturerPort}) EQ manufacturer`,
     ``,
     `// 3. Owner must authorize via policy`,
     `ASSERT PROOF([${leafScript}] 0 0x${config.policyRoot} 0 0x${config.updateProof})`,

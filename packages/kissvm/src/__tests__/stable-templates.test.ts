@@ -357,6 +357,20 @@ describe('stable template: wots-lease', () => {
     expect(result.success).toBe(false);
   });
 
+  it('lease certificate commits indices and an optional signature (RFC-020 P2-14)', () => {
+    const withSig = { ...baseCfg, signature: 'cd'.repeat(32) };
+    const script = buildLeaseCertificateScript(withSig);
+    expect(script).toContain('ASSERT certIndices EQ [0]');
+    expect(script).toContain('SAMESTATE(10 16)');
+    expect(script).toContain(`ASSERT STATE(16) EQ 0x${'cd'.repeat(32)}`);
+
+    const state = { ...certState, 16: '0x' + 'cd'.repeat(32) };
+    expect(run(script, ctx({ block: 1000, state, prevState: state }), { [pkAA]: 'authority' }).success).toBe(true);
+
+    const tampered = { ...state, 16: '0x' + 'ef'.repeat(32) };
+    expect(run(script, ctx({ block: 1000, state: tampered, prevState: tampered }), { [pkAA]: 'authority' }).success).toBe(false);
+  });
+
   it('watermark tracking enforces monotonic cursor and min interval', () => {
     const script = buildWatermarkTrackingScript({ ...baseCfg, issuedAt: 10n });
     const ok = run(script, ctx({
@@ -1187,6 +1201,7 @@ describe('stable template: provider-bond', () => {
     claimedPort: 8,
     challengeDeadlineBlock: 3000n,
     probeSignerPk: pkAA,
+    probeSignerPort: 6,
   };
 
   it('bond lockup enforces amount, cliff, expiry, and provider signature', () => {
@@ -1210,14 +1225,14 @@ describe('stable template: provider-bond', () => {
     const script = buildHeartbeatScript(cfg);
     const ok = run(script, ctx({
       block: 1000,
-      state: s({ 3: 1000 }),
+      state: s({ 3: 1000, 6: pkAA }),
       prevState: s({ 3: 950 }),
     }), { [pkAA]: 'probe' });
     expect(ok.success).toBe(true);
 
     const tooLate = run(script, ctx({
       block: 1000,
-      state: s({ 3: 1000 }),
+      state: s({ 3: 1000, 6: pkAA }),
       prevState: s({ 3: 800 }),
     }), { [pkAA]: 'probe' });
     expect(tooLate.success).toBe(false);
@@ -1225,10 +1240,18 @@ describe('stable template: provider-bond', () => {
     // RFC-016 I1: an unsigned heartbeat fails even when the gap is valid.
     const unsigned = run(script, ctx({
       block: 1000,
-      state: s({ 3: 1000 }),
+      state: s({ 3: 1000, 6: pkAA }),
       prevState: s({ 3: 950 }),
     }));
     expect(unsigned.success).toBe(false);
+
+    // RFC-020 P2-14: the committed probe-signer port must match the key.
+    const wrongProbe = run(script, ctx({
+      block: 1000,
+      state: s({ 3: 1000, 6: pkBB }),
+      prevState: s({ 3: 950 }),
+    }), { [pkAA]: 'probe' });
+    expect(wrongProbe.success).toBe(false);
   });
 
   it('bond state machine enforces the lifecycle', () => {
