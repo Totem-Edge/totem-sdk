@@ -14,6 +14,7 @@ import {
 } from '@totemsdk/agent-policy';
 import type { AuthorityIdentityResolver } from '@totemsdk/authority';
 import type { SignedProof } from '@totemsdk/proof';
+import type { DecisionRefRecord } from '@totemsdk/decision';
 import { createAgentMandate } from '@totemsdk/authority';
 import { createProof, signProof } from '@totemsdk/proof';
 import { createIdentityDocument, createDelegationClaim, signIdentityClaim } from '@totemsdk/identity';
@@ -81,6 +82,19 @@ const PROFILE: AutonomyProfile = {
     maxFees: { tokenId: '0x00', amount: '10' },
   },
   boundaryFailure: 'request_narrow_grant',
+};
+
+const DECISION_REF: DecisionRefRecord = {
+  kind: 'decision',
+  receiptId: 'decision:receipt:abc',
+  decisionKind: 'action',
+  providerId: 'provider-1',
+  issuedAt: 999,
+  requestDigest: 'rd',
+  stateDigest: 'sd',
+  candidateSetDigest: 'cd',
+  outputDigest: 'od',
+  verification: 'verified',
 };
 
 async function makePolicy() {
@@ -348,6 +362,67 @@ describe('agent edge runtime', () => {
     expect(result.errorCode).toBe('REQUIRES_HUMAN');
     expect(result.policyResult?.suggestedGrant?.bindToRunId).toBe('run-1');
     expect(ports.payment?.pay).not.toHaveBeenCalled();
+  });
+
+  it('records an RFC-017 decision ref on the run receipt graph', async () => {
+    const policy = await makePolicy();
+    const ports = makePorts();
+    const registry = createEdgeActionRegistry();
+    for (const { action, def } of createBuiltinActionDefinitions(ports)) {
+      registry.register(def, action);
+    }
+    const runtime = createAgentEdgeRuntime({
+      deviceId: 'dev-1',
+      capabilities: createCapabilitySet(['payment:send']),
+      registry,
+      policy,
+      runId: 'run-1',
+      principal: PRINCIPAL_ID,
+      agentId: ADDR_AGENT,
+    });
+
+    const result = await runtime.executeAction({
+      action: 'payment:send',
+      subject: 'MxR',
+      payload: { amount: '10' },
+      decisionRef: DECISION_REF,
+    });
+    expect(result.ok).toBe(true);
+
+    const graph = await policy.getRunReceiptGraph('run-1');
+    const step = graph?.stepReceipts[0];
+    expect(step?.evidence?.decisionRef).toEqual(DECISION_REF);
+    // The semantic receipt id must never leak into the authority decision ids.
+    expect(step?.decisionIds ?? []).not.toContain(DECISION_REF.receiptId);
+  });
+
+  it('records two steps citing one decision and omits the ref when absent', async () => {
+    const policy = await makePolicy();
+    const ports = makePorts();
+    const registry = createEdgeActionRegistry();
+    for (const { action, def } of createBuiltinActionDefinitions(ports)) {
+      registry.register(def, action);
+    }
+    const runtime = createAgentEdgeRuntime({
+      deviceId: 'dev-1',
+      capabilities: createCapabilitySet(['payment:send']),
+      registry,
+      policy,
+      runId: 'run-1',
+      principal: PRINCIPAL_ID,
+      agentId: ADDR_AGENT,
+    });
+
+    await runtime.executeAction({ action: 'payment:send', subject: 'MxR', payload: { amount: '10' }, idempotencyKey: 'k1', decisionRef: DECISION_REF });
+    await runtime.executeAction({ action: 'payment:send', subject: 'MxR', payload: { amount: '10' }, idempotencyKey: 'k2', decisionRef: DECISION_REF });
+    await runtime.executeAction({ action: 'payment:send', subject: 'MxR', payload: { amount: '10' }, idempotencyKey: 'k3' });
+
+    const graph = await policy.getRunReceiptGraph('run-1');
+    expect(graph?.stepReceipts).toHaveLength(3);
+    const refs = graph?.stepReceipts.map((s) => s.evidence?.decisionRef?.receiptId) ?? [];
+    expect(refs[0]).toBe(DECISION_REF.receiptId);
+    expect(refs[1]).toBe(DECISION_REF.receiptId);
+    expect(refs[2]).toBeUndefined();
   });
 
   it('does not expose raw ports to the agent', async () => {

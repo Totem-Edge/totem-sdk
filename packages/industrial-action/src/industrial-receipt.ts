@@ -35,7 +35,14 @@ export interface IndustrialReceiptFields {
   proposalId?: string;
   resourceId?: string;
   mandateProofId?: string;
+  /** Authority/organization decision id (folded into authorityBinding). */
   decisionId?: string;
+  /**
+   * RFC-017: the semantic DecisionReceipt.receiptId that motivated this action.
+   * Distinct from `decisionId` (authority); grants nothing and is NOT part of
+   * the authority binding.
+   */
+  semanticDecisionId?: string;
   effects?: StepEffects;
   error?: ActionError;
   rollback?: boolean;
@@ -50,6 +57,8 @@ export interface IndustrialReceiptPayload extends IndustrialReceiptFields {
 
 export interface IndustrialReceiptExtras {
   decisionId?: string;
+  /** RFC-017: semantic DecisionReceipt.receiptId (distinct from `decisionId`). */
+  semanticDecisionId?: string;
   effects?: StepEffects;
   error?: ActionError;
   rollback?: boolean;
@@ -76,6 +85,7 @@ export function createIndustrialReceipt(
     ...(op.resourceId !== undefined ? { resourceId: op.resourceId } : {}),
     ...(op.mandateProofId !== undefined ? { mandateProofId: op.mandateProofId } : {}),
     ...(extras.decisionId !== undefined ? { decisionId: extras.decisionId } : {}),
+    ...(extras.semanticDecisionId !== undefined ? { semanticDecisionId: extras.semanticDecisionId } : {}),
     ...(extras.effects !== undefined ? { effects: extras.effects } : {}),
     ...(extras.error !== undefined ? { error: extras.error } : {}),
     ...(extras.rollback !== undefined ? { rollback: extras.rollback } : {}),

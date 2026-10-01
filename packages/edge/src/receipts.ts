@@ -17,12 +17,14 @@ export function createEdgeReceipt(opts: {
   payload: Record<string, unknown>;
   relatedManifestId?: string;
   relatedIdentityId?: string;
+  /** RFC-017: the semantic DecisionReceipt.receiptId this action cites. */
+  relatedDecisionId?: string;
   issuedAt?: number;
 }): EdgeReceipt {
-  const { kind, payload, relatedManifestId, relatedIdentityId } = opts;
+  const { kind, payload, relatedManifestId, relatedIdentityId, relatedDecisionId } = opts;
   const issuedAt = opts.issuedAt ?? Date.now();
 
-  const canonical = canonicalJson({ kind, payload, relatedManifestId, relatedIdentityId, issuedAt });
+  const canonical = canonicalJson({ kind, payload, relatedManifestId, relatedIdentityId, relatedDecisionId, issuedAt });
   const hash = sha3_256(new TextEncoder().encode(canonical));
   const receiptId = `edge:receipt:${toHex(hash)}`;
 
@@ -32,6 +34,7 @@ export function createEdgeReceipt(opts: {
     issuedAt,
     ...(relatedManifestId !== undefined ? { relatedManifestId } : {}),
     ...(relatedIdentityId !== undefined ? { relatedIdentityId } : {}),
+    ...(relatedDecisionId !== undefined ? { relatedDecisionId } : {}),
     payload,
   };
 }

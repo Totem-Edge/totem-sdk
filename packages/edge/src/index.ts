@@ -59,6 +59,14 @@ export {
   hasDecisionCapability,
 } from './capabilities.js';
 export { createEdgeDecisionPort } from './decision.js';
+// RFC-017: re-export the Decision Receipt Graph reference types for governed runs.
+export {
+  toDecisionRef,
+  verifyDecisionRef,
+  toDecisionRefRecord,
+  isDecisionRefFreshResult,
+} from '@totemsdk/decision';
+export type { DecisionRef, DecisionRefRecord } from '@totemsdk/decision';
 export { createAccountedIntelligencePort } from './intelligence-usage-journal.js';
 export type {
   InferenceAuditEvent,

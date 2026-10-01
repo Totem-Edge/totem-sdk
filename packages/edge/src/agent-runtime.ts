@@ -121,6 +121,8 @@ export function createAgentEdgeRuntime(options: AgentEdgeRuntimeOptions): AgentE
         quoteTimestamp: context?.quoteTimestamp as number | undefined,
         executionReceipt: context?.executionReceipt,
         postconditionsVerified: context?.postconditionsVerified as boolean | undefined,
+        // RFC-017: record the semantic decision reference as inert evidence.
+        decisionRef: input.decisionRef,
       },
     });
 

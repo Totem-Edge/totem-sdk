@@ -109,6 +109,8 @@ export interface EdgeReceipt {
   issuedAt: number;
   relatedManifestId?: string;
   relatedIdentityId?: string;
+  /** RFC-017: the semantic DecisionReceipt.receiptId this action cites. */
+  relatedDecisionId?: string;
   payload: Record<string, unknown>;
 }
 

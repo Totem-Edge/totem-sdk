@@ -16,6 +16,7 @@ import {
   type RunReservation,
   type RunStateSnapshot,
   type RunStateStore,
+  type RunStepEvidence,
   type RunStepReceipt,
 } from './run-state-store.js';
 
@@ -36,12 +37,8 @@ export interface AuthorizeAndReserveParams {
   nonce: string;
   /** The PREPARED operation reduced to canonical security facts. */
   action: CanonicalAgentAction;
-  evidence?: {
-    simulation?: unknown;
-    quoteTimestamp?: number;
-    executionReceipt?: unknown;
-    postconditionsVerified?: boolean;
-  };
+  /** Evidence captured during preparation; recorded on the run step receipt. */
+  evidence?: RunStepEvidence;
 }
 
 export interface RunAuthorization {
@@ -269,6 +266,7 @@ export class GrantBoundAutonomyPolicy {
       mandateIds: authorizedGrantIds,
       decisionIds,
       usageDeltas,
+      evidence: params.evidence,
     };
     await this.stateStore.reserveStep(reservation);
 
@@ -297,6 +295,7 @@ export class GrantBoundAutonomyPolicy {
       mandateIds: reservation.mandateIds ?? [],
       decisionIds: reservation.decisionIds ?? [],
       effects: params.effects ?? reservation.effects,
+      evidence: reservation.evidence,
     };
     await this.stateStore.commitStep(reservation.reservationId, receipt);
     return receipt;

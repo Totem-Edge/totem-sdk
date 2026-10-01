@@ -25,6 +25,7 @@
 import type { EdgeCapability } from './capabilities.js';
 import type { EdgeOperationResult } from './types.js';
 import type { StepEffects } from '@totemsdk/agent-policy';
+import type { DecisionRefRecord } from '@totemsdk/decision';
 
 export type EdgeActionEffect = 'read' | 'write' | 'sign' | 'spend' | 'publish' | 'admin';
 
@@ -56,6 +57,12 @@ export interface EdgeActionInput {
    * double-pay the same logical operation (the duplicate nonce is rejected).
    */
   idempotencyKey?: string;
+  /**
+   * RFC-017: the semantic decision that motivated this action. Inert input
+   * context — never a capability, never fed to effect derivation, and never a
+   * substitute for preparation, policy or authority.
+   */
+  decisionRef?: DecisionRefRecord;
 }
 
 export interface EdgeActionDefinition {

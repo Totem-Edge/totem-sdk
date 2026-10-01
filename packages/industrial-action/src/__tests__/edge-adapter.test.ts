@@ -345,6 +345,43 @@ describe('industrial receipts (RFC-010 P4)', () => {
     expect(payload.decisionId).toBe('decision:9');
     expect(verifyIndustrialReceipt(receipt).ok).toBe(true);
   });
+
+  it('records a semantic decision id distinct from the authority decision id (RFC-017)', async () => {
+    const edgeDef = toEdgeActionDefinition(makeDefinition());
+    const decisionRef = {
+      kind: 'decision' as const,
+      receiptId: 'decision:receipt:sem-1',
+      decisionKind: 'action' as const,
+      providerId: 'p1',
+      issuedAt: 1000,
+      requestDigest: 'rd',
+      stateDigest: 'sd',
+      candidateSetDigest: 'cd',
+      outputDigest: 'od',
+      verification: 'verified' as const,
+    };
+    const prepared = (await edgeDef.prepare({ ...INPUT, mandateProofId: 'mandate:1', decisionRef })) as PreparedDeviceOp;
+    const result = (await edgeDef.execute(prepared)) as IndustrialExecutionResult;
+
+    const payload = result.receipt!.payload as unknown as {
+      semanticDecisionId?: string;
+      decisionId?: string;
+    };
+    expect(payload.semanticDecisionId).toBe('decision:receipt:sem-1');
+    expect(payload.decisionId).toBeUndefined();
+    expect(verifyIndustrialReceipt(result.receipt).ok).toBe(true);
+
+    // Semantic and authority decision ids coexist without ambiguity, and the
+    // semantic id is never folded into the authority binding.
+    const withAuthority = createIndustrialReceipt(prepared, result, {
+      decisionId: 'decision:authority:9',
+      semanticDecisionId: 'decision:receipt:sem-1',
+    });
+    const both = withAuthority.payload as unknown as { semanticDecisionId?: string; decisionId?: string };
+    expect(both.decisionId).toBe('decision:authority:9');
+    expect(both.semanticDecisionId).toBe('decision:receipt:sem-1');
+    expect(verifyIndustrialReceipt(withAuthority).ok).toBe(true);
+  });
 });
 
 describe('temporal deadline (RFC-010 P4)', () => {

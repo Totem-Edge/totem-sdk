@@ -239,6 +239,16 @@
           "kind": "interface",
           "signature": "export interface RunStepReceipt"
         },
+        "RunStepEvidence": {
+          "kind": "interface",
+          "signature": "export interface RunStepEvidence",
+          "doc": "Evidence captured during preparation/execution and recorded on the receipt."
+        },
+        "DecisionRefEvidence": {
+          "kind": "interface",
+          "signature": "export interface DecisionRefEvidence",
+          "doc": "RFC-017: a semantic decision reference recorded as inert run evidence. The\nshape mirrors `@totemsdk/decision`'s `DecisionRefRecord` so `@totemsdk/edge`\ncan pass a verified ref through while agent-policy stays free of a decision\nruntime dependency. A ref grants nothing and is never evaluated as policy."
+        },
         "RunSessionTotals": {
           "kind": "interface",
           "signature": "export interface RunSessionTotals"
@@ -3418,6 +3428,34 @@
         "CreateEdgeDecisionPortOptions": {
           "kind": "interface",
           "signature": "export interface CreateEdgeDecisionPortOptions"
+        },
+        "toDecisionRef": {
+          "kind": "function",
+          "signature": "toDecisionRef(success: DecisionSuccess): DecisionRef",
+          "doc": "Build a ref from a runtime-owned `DecisionSuccess`. Never construct a ref from\nan untrusted provider payload."
+        },
+        "verifyDecisionRef": {
+          "kind": "function",
+          "signature": "verifyDecisionRef(ref: DecisionRef, receipt: DecisionReceipt): boolean",
+          "doc": "Verify a ref against the runtime-owned receipt. Returns false on any mismatch\n(receipt id, kind, provider, issuedAt or any of the four digests)."
+        },
+        "toDecisionRefRecord": {
+          "kind": "function",
+          "signature": "toDecisionRefRecord(ref: DecisionRef, receipt?: DecisionReceipt): DecisionRefRecord",
+          "doc": "Mark a ref verified/unverified against an optional receipt."
+        },
+        "isDecisionRefFreshResult": {
+          "kind": "function",
+          "signature": "isDecisionRefFreshResult(success: DecisionSuccess, currentRequest: DecisionRequest): boolean",
+          "doc": "RFC-017 §5.5: a thin, typed convenience over `isDecisionFresh` for the\napplication handoff. The governed runtime never calls this automatically."
+        },
+        "DecisionRef": {
+          "kind": "interface",
+          "signature": "export interface DecisionRef"
+        },
+        "DecisionRefRecord": {
+          "kind": "interface",
+          "signature": "export interface DecisionRefRecord extends DecisionRef"
         }
       }
     },
@@ -3593,6 +3631,34 @@
           "kind": "function",
           "signature": "createEdgeDecisionPort(runtime: DecisionRuntime, options?: CreateEdgeDecisionPortOptions): EdgeDecisionPort",
           "doc": "Bind a decision runtime to an edge-compatible port."
+        },
+        "toDecisionRef": {
+          "kind": "function",
+          "signature": "toDecisionRef(success: DecisionSuccess): DecisionRef",
+          "doc": "Build a ref from a runtime-owned `DecisionSuccess`. Never construct a ref from\nan untrusted provider payload."
+        },
+        "verifyDecisionRef": {
+          "kind": "function",
+          "signature": "verifyDecisionRef(ref: DecisionRef, receipt: DecisionReceipt): boolean",
+          "doc": "Verify a ref against the runtime-owned receipt. Returns false on any mismatch\n(receipt id, kind, provider, issuedAt or any of the four digests)."
+        },
+        "toDecisionRefRecord": {
+          "kind": "function",
+          "signature": "toDecisionRefRecord(ref: DecisionRef, receipt?: DecisionReceipt): DecisionRefRecord",
+          "doc": "Mark a ref verified/unverified against an optional receipt."
+        },
+        "isDecisionRefFreshResult": {
+          "kind": "function",
+          "signature": "isDecisionRefFreshResult(success: DecisionSuccess, currentRequest: DecisionRequest): boolean",
+          "doc": "RFC-017 §5.5: a thin, typed convenience over `isDecisionFresh` for the\napplication handoff. The governed runtime never calls this automatically."
+        },
+        "DecisionRef": {
+          "kind": "interface",
+          "signature": "export interface DecisionRef"
+        },
+        "DecisionRefRecord": {
+          "kind": "interface",
+          "signature": "export interface DecisionRefRecord extends DecisionRef"
         },
         "createAccountedIntelligencePort": {
           "kind": "function",
@@ -3820,7 +3886,7 @@
         },
         "createEdgeReceipt": {
           "kind": "function",
-          "signature": "createEdgeReceipt(opts: { kind: string; payload: Record<string, unknown>; relatedManifestId?: string; relatedIdentityId?: string; issuedAt?: number; }): EdgeReceipt"
+          "signature": "createEdgeReceipt(opts: { kind: string; payload: Record<string, unknown>; relatedManifestId?: string; relatedIdentityId?: string; relatedDecisionId?: string; issuedAt?: number; }): EdgeReceipt"
         },
         "verifyEdgeReceipt": {
           "kind": "function",
@@ -5293,7 +5359,7 @@
         },
         "createEdgeReceipt": {
           "kind": "function",
-          "signature": "createEdgeReceipt(opts: { kind: string; payload: Record<string, unknown>; relatedManifestId?: string; relatedIdentityId?: string; issuedAt?: number; }): EdgeReceipt"
+          "signature": "createEdgeReceipt(opts: { kind: string; payload: Record<string, unknown>; relatedManifestId?: string; relatedIdentityId?: string; relatedDecisionId?: string; issuedAt?: number; }): EdgeReceipt"
         },
         "verifyEdgeReceipt": {
           "kind": "function",
@@ -13531,7 +13597,7 @@
         },
         "verifyProofChain": {
           "kind": "function",
-          "signature": "verifyProofChain(chain: ProofChain, expectedLeafScriptHash?: string): VerificationResult"
+          "signature": "verifyProofChain(chain: ProofChain, expectedLeafScriptHash?: string, options?: { expectedRoot?: string; }): VerificationResult"
         },
         "toMinimaProofExpression": {
           "kind": "function",

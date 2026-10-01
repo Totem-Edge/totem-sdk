@@ -89,6 +89,8 @@ export type {
   RunStateSnapshot,
   RunReservation,
   RunStepReceipt,
+  RunStepEvidence,
+  DecisionRefEvidence,
   RunSessionTotals,
   OutOfBandReservation,
   ReservationSettlementOutcome,

@@ -149,3 +149,12 @@ export {
   createEdgeDecisionPort,
 } from './port.js';
 export type { CreateEdgeDecisionPortOptions } from './port.js';
+
+// ─── RFC-017: Decision Receipt Graph ────────────────────────────────────────
+export {
+  toDecisionRef,
+  verifyDecisionRef,
+  toDecisionRefRecord,
+  isDecisionRefFreshResult,
+} from './decision-ref.js';
+export type { DecisionRef, DecisionRefRecord } from './decision-ref.js';

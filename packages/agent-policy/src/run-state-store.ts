@@ -31,6 +31,36 @@ export interface RunStateSnapshot {
   totals: RunSessionTotals;
 }
 
+/**
+ * RFC-017: a semantic decision reference recorded as inert run evidence. The
+ * shape mirrors `@totemsdk/decision`'s `DecisionRefRecord` so `@totemsdk/edge`
+ * can pass a verified ref through while agent-policy stays free of a decision
+ * runtime dependency. A ref grants nothing and is never evaluated as policy.
+ */
+export interface DecisionRefEvidence {
+  readonly kind: 'decision';
+  readonly receiptId: string;
+  readonly decisionKind: 'questions' | 'action';
+  readonly providerId: string;
+  readonly issuedAt: number;
+  readonly requestDigest: string;
+  readonly stateDigest: string;
+  readonly candidateSetDigest: string;
+  readonly outputDigest: string;
+  readonly selected?: { readonly operation?: string; readonly target?: string };
+  readonly verification: 'verified' | 'unverified';
+}
+
+/** Evidence captured during preparation/execution and recorded on the receipt. */
+export interface RunStepEvidence {
+  simulation?: unknown;
+  quoteTimestamp?: number;
+  executionReceipt?: unknown;
+  postconditionsVerified?: boolean;
+  /** RFC-017: the semantic decision that motivated this step. */
+  decisionRef?: DecisionRefEvidence;
+}
+
 export interface RunReservation {
   reservationId: string;
   runId: string;
@@ -49,6 +79,8 @@ export interface RunReservation {
   status: 'reserved' | 'committed' | 'aborted' | 'unknown';
   abortReason?: string;
   receipt?: RunStepReceipt;
+  /** RFC-017: preparation/execution evidence captured with the reservation. */
+  evidence?: RunStepEvidence;
   /** Mandates/decisions that authorized this step. */
   mandateIds?: string[];
   decisionIds?: string[];
@@ -69,6 +101,8 @@ export interface RunStepReceipt {
   decisionIds: string[];
   /** Verified effects — folded into run totals on commit. */
   effects?: import('./run.js').StepEffects;
+  /** RFC-017: preparation/execution evidence recorded with this step. */
+  evidence?: RunStepEvidence;
 }
 
 export interface RunStateStore {

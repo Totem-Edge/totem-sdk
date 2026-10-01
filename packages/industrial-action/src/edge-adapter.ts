@@ -87,6 +87,8 @@ export interface PreparedDeviceOp extends DeviceOpBase {
   mandateProofId?: string;
   /** Industrial proposal id, when supplied. */
   proposalId?: string;
+  /** RFC-017: semantic DecisionReceipt.receiptId that motivated this operation. */
+  semanticDecisionId?: string;
 }
 
 /**
@@ -319,6 +321,7 @@ export function toEdgeActionDefinition<TResult = unknown>(
         operationId,
         ...(input.mandateProofId !== undefined ? { mandateProofId: input.mandateProofId } : {}),
         ...(input.proposalId !== undefined ? { proposalId: input.proposalId } : {}),
+        ...(input.decisionRef !== undefined ? { semanticDecisionId: input.decisionRef.receiptId } : {}),
       };
     },
 
@@ -347,13 +350,13 @@ export function toEdgeActionDefinition<TResult = unknown>(
 
       if (!store) {
         const result = await run();
-        return { ...result, receipt: createIndustrialReceipt(op, result, { startedAt, completedAt: now() }) };
+        return { ...result, receipt: createIndustrialReceipt(op, result, { startedAt, completedAt: now(), ...(op.semanticDecisionId !== undefined ? { semanticDecisionId: op.semanticDecisionId } : {}) }) };
       }
 
       const claim = await store.claimOperation(op.operationId, op.proposalId, now());
       if (!claim.claimed) {
         const existing = resolveExisting(def, claim.record);
-        return { ...existing, receipt: createIndustrialReceipt(op, existing, { startedAt, completedAt: now() }) };
+        return { ...existing, receipt: createIndustrialReceipt(op, existing, { startedAt, completedAt: now(), ...(op.semanticDecisionId !== undefined ? { semanticDecisionId: op.semanticDecisionId } : {}) }) };
       }
 
       const result = await run();
@@ -367,7 +370,7 @@ export function toEdgeActionDefinition<TResult = unknown>(
         ...(result.data !== undefined ? { result: result.data } : {}),
       };
       await store.transitionOperation(next);
-      return { ...result, receipt: createIndustrialReceipt(op, result, { startedAt, completedAt: now() }) };
+      return { ...result, receipt: createIndustrialReceipt(op, result, { startedAt, completedAt: now(), ...(op.semanticDecisionId !== undefined ? { semanticDecisionId: op.semanticDecisionId } : {}) }) };
     },
   };
 }
