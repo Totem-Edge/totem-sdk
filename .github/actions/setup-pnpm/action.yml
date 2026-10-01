@@ -42,9 +42,13 @@ runs:
     # native deps that need compiling. Without this, better-sqlite3 ships no
     # prebuilt binding on the runner and every sqlite-backed package (storage,
     # agent-policy, lookup-node, omnia-host) fails its test gate with
-    # "Could not locate the bindings file". `pnpm rebuild` (non-recursive) is a
-    # no-op for transitive deps, so use the recursive form, which force-runs the
-    # install scripts (prebuild-install || node-gyp rebuild).
+    # "Could not locate the bindings file".
+    #
+    # `pnpm rebuild <pkg>` (non-recursive) is a no-op for transitive deps; the
+    # recursive form with an explicit package name force-runs only that dep's
+    # install script (prebuild-install || node-gyp rebuild). Without the name,
+    # `-r` also runs every workspace package's `prepare`, which fails for
+    # packages whose deps are absent in this filtered workspace (e.g. mcp-server).
     - name: Rebuild native dependencies
       shell: bash
-      run: pnpm rebuild -r
+      run: pnpm rebuild -r better-sqlite3
