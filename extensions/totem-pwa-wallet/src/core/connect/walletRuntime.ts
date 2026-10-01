@@ -8,7 +8,7 @@
  */
 
 import { createWalletRuntime, isConnectMethod } from '@totemsdk/connect';
-import type { WalletHandlerContext, WalletCapabilityManifest } from '@totemsdk/connect';
+import type { WalletHandlerContext, WalletCapabilityManifest, WalletRuntime } from '@totemsdk/connect';
 import type { TotemCapabilities, TotemProviderStatus } from '@totemsdk/connect';
 
 const PWA_CAPABILITIES: TotemCapabilities = {
@@ -56,16 +56,29 @@ const PWA_STATUS: TotemProviderStatus = {
   lookupLatencyMs: null,
 };
 
-const context: WalletHandlerContext = {
-  info: {
-    wallet: 'totem-pwa',
-    version: '1.0.0',
-    capabilities: PWA_CAPABILITIES,
-    status: PWA_STATUS,
-  },
-};
+const PWA_INFO = {
+  wallet: 'totem-pwa',
+  version: '1.0.0',
+  capabilities: PWA_CAPABILITIES,
+  status: PWA_STATUS,
+} as const;
 
-const runtime = createWalletRuntime(context);
+let runtime: WalletRuntime | undefined;
+
+/**
+ * Install execution ports (RFC-014 P5). Called from the PWA bootstrap with its
+ * signer/approval/chain/Omnia clients so execution families execute real wallet
+ * logic instead of resolving `unsupported`. Until then the runtime is
+ * discovery-only (info), never a silent stub.
+ */
+export function configurePwaWalletRuntime(ports: Partial<WalletHandlerContext> = {}): void {
+  runtime = createWalletRuntime({ info: PWA_INFO, ...ports });
+}
+
+function getRuntime(): WalletRuntime {
+  if (!runtime) runtime = createWalletRuntime({ info: PWA_INFO });
+  return runtime;
+}
 
 /** True when `method` is a canonical connect method served via the shared runtime. */
 export function isSharedConnectMethod(method: string): boolean {
@@ -76,11 +89,11 @@ export function dispatchSharedConnectMethod(
   method: string,
   params: Record<string, unknown>,
 ): Promise<unknown> {
-  return runtime.provider.request({ method, params });
+  return getRuntime().provider.request({ method, params });
 }
 
 export function sharedConnectManifest(): WalletCapabilityManifest {
-  return runtime.meta().manifest;
+  return getRuntime().meta().manifest;
 }
 
 export { isConnectMethod };

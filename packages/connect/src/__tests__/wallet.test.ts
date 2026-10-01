@@ -47,6 +47,21 @@ function fullContext(): WalletHandlerContext {
     chain: { getCoins: noop, getTip: async () => ({ block: 1 }) },
     lease: { reserveKeyUse: noop, releaseReservation: noop },
     edge: { executeAction: async ({ action }) => ({ ok: true, data: { action } }) },
+    omnia: {
+      getChannels: noop,
+      openChannel: noop,
+      pay: noop,
+      settle: noop,
+      closeChannel: noop,
+      getRoute: noop,
+      payMultiHop: noop,
+      getSwapRate: noop,
+      createFactory: noop,
+      openVirtualChannel: noop,
+      closeFactory: noop,
+      spliceIn: noop,
+      spliceOut: noop,
+    },
     statechain: { create: noop, transfer: noop, claim: noop, verify: noop },
     kissvm: { simulate: noop, validate: noop },
     agent: { propose: noop, explain: noop, createReceipt: noop },
@@ -101,6 +116,34 @@ describe('connect/wallet manifest', () => {
     expect(manifest.reasons?.totem_omniaPay).toBeTruthy();
     expect(manifest.reasons?.totem_statechainCreate).toBeTruthy();
   });
+
+  it('supports Omnia via a host edge port alone (orRequires) and via a consent client', () => {
+    const edgeOnly: WalletHandlerContext = {
+      ...emptyContext(),
+      edge: { executeAction: async () => ({ ok: true }) },
+    };
+    expect(buildWalletCapabilityManifest(edgeOnly).methods.totem_omniaPay).toBe('supported');
+
+    // Support is port-presence: a client port marks the family supported, and a
+    // method the client does not implement returns an explicit reason.
+    const clientOnly: WalletHandlerContext = {
+      ...emptyContext(),
+      omnia: { pay: async () => ({ success: true }) },
+    };
+    expect(buildWalletCapabilityManifest(clientOnly).methods.totem_omniaPay).toBe('supported');
+  });
+
+  it('returns an explicit reason when the consent client lacks the method', async () => {
+    const ctx: WalletHandlerContext = {
+      ...emptyContext(),
+      omnia: { pay: async () => ({ success: true }) },
+    };
+    const { provider } = createWalletRuntime(ctx);
+    const result = (await provider.request({ method: 'totem_omniaGetChannels', params: {} })) as { success: boolean; errorCode: string; error: string };
+    expect(result.success).toBe(false);
+    expect(result.errorCode).toBe('UNSUPPORTED');
+    expect(result.error).toContain('does not implement getChannels');
+  });
 });
 
 describe('connect/wallet dispatch', () => {
@@ -131,9 +174,23 @@ describe('connect/wallet dispatch', () => {
     expect(result.errorCode).toBe('UNSUPPORTED');
   });
 
-  it('routes omnia methods to the governed edge action ids', async () => {
+  it('routes omnia methods to the consent Omnia client (RFC-014 §6.3)', async () => {
     const seen: string[] = [];
     const ctx = fullContext();
+    (ctx as { omnia: NonNullable<WalletHandlerContext['omnia']> }).omnia = {
+      pay: async () => { seen.push('pay'); return { success: true, txpowId: 't1' }; },
+      closeFactory: async () => { seen.push('closeFactory'); return { success: true }; },
+    };
+    const { provider } = createWalletRuntime(ctx, { approve: async () => true });
+    await provider.request({ method: 'totem_omniaPay', params: { channelId: 'c1', amount: '1' } });
+    await provider.request({ method: 'totem_omniaCloseFactory', params: { factoryId: 'f1' } });
+    expect(seen).toEqual(['pay', 'closeFactory']);
+  });
+
+  it('routes omnia methods through a host edge port when no consent client is present', async () => {
+    const seen: string[] = [];
+    const ctx = fullContext();
+    (ctx as { omnia?: undefined }).omnia = undefined;
     (ctx as { edge: NonNullable<WalletHandlerContext['edge']> }).edge = {
       executeAction: async ({ action }) => {
         seen.push(action);

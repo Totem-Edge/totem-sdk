@@ -1536,7 +1536,7 @@
         "CONNECT_METHODS": {
           "kind": "const",
           "signature": "CONNECT_METHODS = [...LEGACY_METHODS, ...TOTEM_METHODS] as const",
-          "doc": "Every canonical connect method (46)."
+          "doc": "Every canonical connect method (47)."
         },
         "LegacyMethod": {
           "kind": "type",
@@ -1561,7 +1561,7 @@
         },
         "WalletPortKey": {
           "kind": "type",
-          "signature": "export type WalletPortKey = | 'info' | 'signer' | 'approvals' | 'chain' | 'lease' | 'edge' | 'statechain' | 'kissvm' | 'agent' | 'receipts' | 'paymentRequests' | 'selfHosted'"
+          "signature": "export type WalletPortKey = | 'info' | 'signer' | 'approvals' | 'chain' | 'lease' | 'edge' | 'omnia' | 'statechain' | 'kissvm' | 'agent' | 'receipts' | 'paymentRequests' | 'selfHosted'"
         },
         "WalletMethodDescriptor": {
           "kind": "interface",
@@ -1576,6 +1576,11 @@
           "kind": "const",
           "signature": "OMNIA_ACTION_BY_METHOD: Readonly<Record<string, string>> = { totem_omniaGetChannels: 'omnia:getChannels', totem_omniaOpenChannel: 'omnia:channel:open', totem_omniaPay: 'omnia:pay', totem_omniaSettle: ",
           "doc": "Omnia connect method → governed edge action id."
+        },
+        "OMNIA_CLIENT_METHOD_BY_METHOD": {
+          "kind": "const",
+          "signature": "OMNIA_CLIENT_METHOD_BY_METHOD: Readonly<Record<string, keyof OmniaClientPort>> = { totem_omniaGetChannels: 'getChannels', totem_omniaOpenChannel: 'openChannel', totem_omniaPay: 'pay', totem_omniaSettl",
+          "doc": "Omnia connect method → consent Omnia client method (RFC-014 §6.3)."
         },
         "WalletInfoPort": {
           "kind": "interface",
@@ -1605,6 +1610,11 @@
         "StatechainClientPort": {
           "kind": "interface",
           "signature": "export interface StatechainClientPort"
+        },
+        "OmniaClientPort": {
+          "kind": "interface",
+          "signature": "export interface OmniaClientPort",
+          "doc": "Consent-gated Omnia construction/execution client (RFC-014 §6.3). The wallet\nsupplies this (or a host injects it); `@totemsdk/connect/wallet` depends on no\nconcrete Omnia runtime. Each method builds/signs/broadcasts via the wallet's\nsigner + approval surface."
         },
         "KissvmClientPort": {
           "kind": "interface",

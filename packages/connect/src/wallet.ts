@@ -119,6 +119,7 @@ export type WalletPortKey =
   | 'chain'
   | 'lease'
   | 'edge'
+  | 'omnia'
   | 'statechain'
   | 'kissvm'
   | 'agent'
@@ -133,6 +134,11 @@ export interface WalletMethodDescriptor {
   readonly requiredCapabilities: readonly string[];
   /** Ports that must be present for the method to be `supported`. */
   readonly requires: readonly WalletPortKey[];
+  /**
+   * Alternative port set: the method is also `supported` when every one of
+   * these is present (e.g. Omnia via a consent client *or* a host edge port).
+   */
+  readonly orRequires?: readonly WalletPortKey[];
   readonly requiresApproval?: boolean;
   /** Reason shown when the method is `unsupported`. */
   readonly reason?: string;
@@ -186,20 +192,21 @@ export const WALLET_METHODS: readonly WalletMethodDescriptor[] = [
   d('totem_getTransactionStatus', 'local', 'receipts', ['receipts']),
   d('totem_getReceipt', 'local', 'receipts', ['receipts']),
 
-  // Omnia — edge-dispatched.
-  d('totem_omniaGetChannels', 'edge', 'omnia', ['edge'], ['omnia:channels']),
-  d('totem_omniaOpenChannel', 'edge', 'omnia', ['edge'], ['omnia:channels'], { requiresApproval: true }),
-  d('totem_omniaPay', 'edge', 'omnia', ['edge'], ['omnia:routing'], { requiresApproval: true }),
-  d('totem_omniaSettle', 'edge', 'omnia', ['edge'], ['omnia:channels'], { requiresApproval: true }),
-  d('totem_omniaCloseChannel', 'edge', 'omnia', ['edge'], ['omnia:channels'], { requiresApproval: true }),
-  d('totem_omniaGetRoute', 'edge', 'omnia', ['edge'], ['omnia:routing']),
-  d('totem_omniaPayMultiHop', 'edge', 'omnia', ['edge'], ['omnia:multi-hop'], { requiresApproval: true }),
-  d('totem_omniaGetSwapRate', 'edge', 'omnia', ['edge'], ['omnia:cross-token-swap']),
-  d('totem_omniaCreateFactory', 'edge', 'omnia', ['edge'], ['omnia:factory'], { requiresApproval: true }),
-  d('totem_omniaOpenVirtualChannel', 'edge', 'omnia', ['edge'], ['omnia:virtual-channels'], { requiresApproval: true }),
-  d('totem_omniaCloseFactory', 'edge', 'omnia', ['edge'], ['omnia:factory'], { requiresApproval: true }),
-  d('totem_omniaSpliceIn', 'edge', 'omnia', ['edge'], ['omnia:splicing'], { requiresApproval: true }),
-  d('totem_omniaSpliceOut', 'edge', 'omnia', ['edge'], ['omnia:splicing'], { requiresApproval: true }),
+  // Omnia — consent-gated SDK client (RFC-014 §6.3); an autonomous host may
+  // instead route the same methods through its governed `edge` port.
+  d('totem_omniaGetChannels', 'sdk', 'omnia', ['omnia'], ['omnia:channels'], { orRequires: ['edge'] }),
+  d('totem_omniaOpenChannel', 'sdk', 'omnia', ['omnia'], ['omnia:channels'], { requiresApproval: true, orRequires: ['edge'] }),
+  d('totem_omniaPay', 'sdk', 'omnia', ['omnia'], ['omnia:routing'], { requiresApproval: true, orRequires: ['edge'] }),
+  d('totem_omniaSettle', 'sdk', 'omnia', ['omnia'], ['omnia:channels'], { requiresApproval: true, orRequires: ['edge'] }),
+  d('totem_omniaCloseChannel', 'sdk', 'omnia', ['omnia'], ['omnia:channels'], { requiresApproval: true, orRequires: ['edge'] }),
+  d('totem_omniaGetRoute', 'sdk', 'omnia', ['omnia'], ['omnia:routing'], { orRequires: ['edge'] }),
+  d('totem_omniaPayMultiHop', 'sdk', 'omnia', ['omnia'], ['omnia:multi-hop'], { requiresApproval: true, orRequires: ['edge'] }),
+  d('totem_omniaGetSwapRate', 'sdk', 'omnia', ['omnia'], ['omnia:cross-token-swap'], { orRequires: ['edge'] }),
+  d('totem_omniaCreateFactory', 'sdk', 'omnia', ['omnia'], ['omnia:factory'], { requiresApproval: true, orRequires: ['edge'] }),
+  d('totem_omniaOpenVirtualChannel', 'sdk', 'omnia', ['omnia'], ['omnia:virtual-channels'], { requiresApproval: true, orRequires: ['edge'] }),
+  d('totem_omniaCloseFactory', 'sdk', 'omnia', ['omnia'], ['omnia:factory'], { requiresApproval: true, orRequires: ['edge'] }),
+  d('totem_omniaSpliceIn', 'sdk', 'omnia', ['omnia'], ['omnia:splicing'], { requiresApproval: true, orRequires: ['edge'] }),
+  d('totem_omniaSpliceOut', 'sdk', 'omnia', ['omnia'], ['omnia:splicing'], { requiresApproval: true, orRequires: ['edge'] }),
 
   // Statechain — sdk-client.
   d('totem_statechainCreate', 'sdk', 'statechain', ['statechain', 'approvals'], ['statechain:supported'], { requiresApproval: true }),
@@ -247,6 +254,23 @@ export const OMNIA_ACTION_BY_METHOD: Readonly<Record<string, string>> = {
   totem_omniaCloseFactory: 'omnia:factory:close',
   totem_omniaSpliceIn: 'omnia:splice-in',
   totem_omniaSpliceOut: 'omnia:splice-out',
+};
+
+/** Omnia connect method → consent Omnia client method (RFC-014 §6.3). */
+export const OMNIA_CLIENT_METHOD_BY_METHOD: Readonly<Record<string, keyof OmniaClientPort>> = {
+  totem_omniaGetChannels: 'getChannels',
+  totem_omniaOpenChannel: 'openChannel',
+  totem_omniaPay: 'pay',
+  totem_omniaSettle: 'settle',
+  totem_omniaCloseChannel: 'closeChannel',
+  totem_omniaGetRoute: 'getRoute',
+  totem_omniaPayMultiHop: 'payMultiHop',
+  totem_omniaGetSwapRate: 'getSwapRate',
+  totem_omniaCreateFactory: 'createFactory',
+  totem_omniaOpenVirtualChannel: 'openVirtualChannel',
+  totem_omniaCloseFactory: 'closeFactory',
+  totem_omniaSpliceIn: 'spliceIn',
+  totem_omniaSpliceOut: 'spliceOut',
 };
 
 // ── Structural ports ───────────────────────────────────────────────────────
@@ -326,6 +350,28 @@ export interface StatechainClientPort {
   verify?(params: Record<string, unknown>): Promise<unknown>;
 }
 
+/**
+ * Consent-gated Omnia construction/execution client (RFC-014 §6.3). The wallet
+ * supplies this (or a host injects it); `@totemsdk/connect/wallet` depends on no
+ * concrete Omnia runtime. Each method builds/signs/broadcasts via the wallet's
+ * signer + approval surface.
+ */
+export interface OmniaClientPort {
+  getChannels?(params: Record<string, unknown>): Promise<unknown>;
+  openChannel?(params: Record<string, unknown>): Promise<unknown>;
+  pay?(params: Record<string, unknown>): Promise<unknown>;
+  settle?(params: Record<string, unknown>): Promise<unknown>;
+  closeChannel?(params: Record<string, unknown>): Promise<unknown>;
+  getRoute?(params: Record<string, unknown>): Promise<unknown>;
+  payMultiHop?(params: Record<string, unknown>): Promise<unknown>;
+  getSwapRate?(params: Record<string, unknown>): Promise<unknown>;
+  createFactory?(params: Record<string, unknown>): Promise<unknown>;
+  openVirtualChannel?(params: Record<string, unknown>): Promise<unknown>;
+  closeFactory?(params: Record<string, unknown>): Promise<unknown>;
+  spliceIn?(params: Record<string, unknown>): Promise<unknown>;
+  spliceOut?(params: Record<string, unknown>): Promise<unknown>;
+}
+
 export interface KissvmClientPort {
   simulate?(params: Record<string, unknown>): Promise<unknown>;
   validate?(params: Record<string, unknown>): Promise<unknown>;
@@ -358,6 +404,7 @@ export interface WalletHandlerContext {
   readonly chain?: ChainStateProviderPort;
   readonly lease?: WotsLeasePort;
   readonly edge?: EdgeDispatchPort;
+  readonly omnia?: OmniaClientPort;
   readonly statechain?: StatechainClientPort;
   readonly kissvm?: KissvmClientPort;
   readonly agent?: AgentBridgePort;
@@ -478,16 +525,34 @@ export function createDefaultHandlers(): WalletMethodHandler[] {
     delegate('totem_getTransactionStatus', (c) => (c.receipts ? (p) => c.receipts!.getStatus(String(p.txpowId)) : undefined), 'Wallet does not persist transaction status.'),
     delegate('totem_getReceipt', (c) => (c.receipts ? (p) => c.receipts!.getReceipt(String(p.txpowId)) : undefined), 'Wallet does not persist receipts.'),
 
-    // Omnia — all edge-dispatched through the governed runtime.
-    ...Object.keys(OMNIA_ACTION_BY_METHOD).map<WalletMethodHandler>((method) => ({
-      method,
-      requiredCapabilities: DESCRIPTOR_BY_METHOD.get(method)?.requiredCapabilities ?? [],
-      ...(DESCRIPTOR_BY_METHOD.get(method)?.requiresApproval ? { requiresApproval: true } : {}),
-      async handle(params, ctx) {
-        if (!ctx.edge) return unsupported('No governed Edge dispatch available for Omnia.');
-        return edgeResult(await ctx.edge.executeAction({ action: OMNIA_ACTION_BY_METHOD[method], subject: String(params.channelId ?? params.remotePartyId ?? ''), payload: params }));
-      },
-    })),
+    // Omnia — consent-gated SDK client (RFC-014 §6.3); a host that runs an
+    // autonomous runtime may route the same methods through its governed `edge`
+    // port instead.
+    ...Object.keys(OMNIA_ACTION_BY_METHOD).map<WalletMethodHandler>((method) => {
+      const descriptor = DESCRIPTOR_BY_METHOD.get(method) as WalletMethodDescriptor;
+      const clientMethod = OMNIA_CLIENT_METHOD_BY_METHOD[method];
+      return {
+        method,
+        requiredCapabilities: descriptor.requiredCapabilities,
+        ...(descriptor.requiresApproval ? { requiresApproval: true } : {}),
+        async handle(params, ctx) {
+          const fn = ctx.omnia?.[clientMethod];
+          if (fn) return fn(params);
+          if (ctx.edge) {
+            return edgeResult(await ctx.edge.executeAction({
+              action: OMNIA_ACTION_BY_METHOD[method],
+              subject: String(params.channelId ?? params.remotePartyId ?? ''),
+              payload: params,
+            }));
+          }
+          return unsupported(
+            ctx.omnia
+              ? `Omnia client does not implement ${String(clientMethod)}.`
+              : 'Omnia client not configured.',
+          );
+        },
+      };
+    }),
 
     delegate('totem_statechainCreate', (c) => c.statechain?.create?.bind(c.statechain), 'Statechain client not configured.'),
     delegate('totem_statechainTransfer', (c) => c.statechain?.transfer?.bind(c.statechain), 'Statechain client not configured.'),
@@ -527,7 +592,10 @@ export function isMethodSupported(
   ctx: WalletHandlerContext,
 ): boolean {
   if (descriptor.disposition === 'unsupported') return false;
-  return descriptor.requires.every((key) => ctx[key] !== undefined);
+  if (descriptor.requires.every((key) => ctx[key] !== undefined)) return true;
+  // Alternative port set (e.g. Omnia via a consent client *or* a host edge port).
+  const alt = descriptor.orRequires;
+  return !!alt && alt.length > 0 && alt.every((key) => ctx[key] !== undefined);
 }
 
 /** Build the capability/method-support manifest for a context. */
