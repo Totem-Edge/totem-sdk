@@ -25,6 +25,8 @@ import {
   validatePhrase,
   wotsAddressFromKeypair as wasmWotsAddress,
   wotsKeypairFromSeed as wasmWotsKeypair,
+  mineTxPoW,
+  mineTxPoWChunk,
 } from '../wasm-sync.js';
 import { wotsAddressFromKeypair as jsWotsAddress } from '../script.js';
 import { wotsKeypairFromSeed as jsWotsKeypair } from '../wots.js';
@@ -105,5 +107,24 @@ describe('RFC-031 P2: WASM functional kernels', () => {
     const jsAddr = jsWotsAddress(jsWotsKeypair(seed, 0));
     expect(wasmAddr).toBe(jsAddr);
     expect(wasmAddr).toBe(wasmWotsAddress(wasmWotsKeypair(seed, 0)));
+  });
+
+  it('mineTxPoW / mineTxPoWChunk produce a valid result at an easy target', () => {
+    const body = new Uint8Array(64).fill(0x42);
+    const easyTarget = new Uint8Array(32).fill(0xff); // any hash is below it
+    const timeMs = 1_700_000_000_000;
+
+    const json = JSON.parse(mineTxPoW(body, easyTarget, timeMs, 0)) as {
+      minedHeaderBytes: string;
+      txpowId: string;
+      nonce: string;
+      iterations: string;
+    };
+    expect(json.minedHeaderBytes).toMatch(/^[0-9a-fA-F]+$/);
+    expect(json.txpowId).toMatch(/^[0-9a-fA-F]{64}$/);
+    expect(BigInt(json.nonce)).toBe(0n);
+
+    const chunkNonce = mineTxPoWChunk(body, easyTarget, timeMs, 0, 100);
+    expect(chunkNonce).toBe('0');
   });
 });

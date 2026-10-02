@@ -64,6 +64,8 @@ const PARITY = {
   wasmTreeKeyNew: 'wasm-functional',
   wasmTreeKeySetUses: 'wasm-functional',
   wasmTreeKeySign: 'wasm-functional',
+  mineTxPoW: 'wasm-functional',
+  mineTxPoWChunk: 'wasm-functional',
 };
 
 let previous = {};

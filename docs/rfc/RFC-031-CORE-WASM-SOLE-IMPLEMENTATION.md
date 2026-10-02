@@ -198,7 +198,7 @@ The JS kernels are removed **only when all four gates are green**:
   and making the `@totemsdk/core` root wasm-free by default. *(Gate G1.)*
 - **P2 — Parity hardening (in progress).** Kernel **coverage matrix** landed:
   `packages/core/test/kernel-baseline.json` triages all 52 WASM kernels
-  (48 covered by parity suites, 4 `pending`), enforced by
+  (50 covered by parity suites, 2 `pending`), enforced by
   `kernel-coverage.test.mjs` (new/removed/renamed kernels and dangling parity
   references fail; regeneration preserves annotations via
   `gen-kernel-baseline.mjs`). Added a **WASM ↔ JS-kernel differential** suite
@@ -207,9 +207,9 @@ The JS kernels are removed **only when all four gates are green**:
   challenge, stateful WasmTreeKey, timingSafeEqual, getParams, hashChain,
   expandPrivateKey, MMR root, generateWordList, wotsAddressFromKeypair), and a
   **serialization fuzz** (`serialization-fuzz.parity.test.ts`). Remaining `pending`:
-  `mineTxPoW`, `mineTxPoWChunk`, `verifyMMRProof`, `verifyTreeSignature` (the last
-  because `wasm_tree_key_sign` emits byte arrays while `verify_tree_signature_wasm`
-  expects hex-string JSON — a schema mismatch to resolve before sunset). *(Gate G2.)*
+  `verifyTreeSignature` and `verifyMMRProof` — both because the JSON schema emitted
+  by the WASM sign/tree path (byte arrays) does not match what the WASM verify
+  functions parse (hex strings); align the serde representation before sunset. *(Gate G2.)*
   **Portability fix (found by the functional suite):** `create_challenge` /
   `validate_challenge` used `std::time::SystemTime`, which panics on
   `wasm32-unknown-unknown`; the clock is now supplied from JS (as `txpow_mine`
