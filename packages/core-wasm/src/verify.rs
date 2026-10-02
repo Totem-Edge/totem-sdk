@@ -206,16 +206,15 @@ pub struct Challenge {
 /// Create a Sign-In With Wallet challenge.
 ///
 /// Generates a time-limited challenge with a random nonce for replay protection.
-pub fn create_challenge(domain: &str, statement: &str) -> Result<String, String> {
+/// `now_secs` is passed from the caller because `SystemTime` panics on
+/// `wasm32-unknown-unknown`.
+pub fn create_challenge(domain: &str, statement: &str, now_secs: u64) -> Result<String, String> {
     let mut nonce_bytes = [0u8; 16];
     getrandom::getrandom(&mut nonce_bytes)
         .map_err(|e| format!("Failed to generate nonce: {}", e))?;
 
     let nonce = hex::encode(nonce_bytes);
-    let now = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map_err(|e| format!("System time error: {}", e))?
-        .as_secs();
+    let now = now_secs;
 
     let challenge = Challenge {
         domain: domain.to_string(),
@@ -235,7 +234,10 @@ pub fn create_challenge(domain: &str, statement: &str) -> Result<String, String>
 /// - Domain matches
 /// - Nonce is at least 8 characters
 /// - Challenge has not expired
-pub fn validate_challenge(challenge_json: &str, domain: &str) -> Result<bool, String> {
+///
+/// `now_secs` is passed from the caller because `SystemTime` panics on
+/// `wasm32-unknown-unknown`.
+pub fn validate_challenge(challenge_json: &str, domain: &str, now_secs: u64) -> Result<bool, String> {
     let challenge: Challenge = serde_json::from_str(challenge_json)
         .map_err(|e| format!("Invalid challenge JSON: {}", e))?;
 
@@ -250,10 +252,7 @@ pub fn validate_challenge(challenge_json: &str, domain: &str) -> Result<bool, St
     }
 
     // Challenge must not be expired
-    let now = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map_err(|e| format!("System time error: {}", e))?
-        .as_secs();
+    let now = now_secs;
 
     if now > challenge.expiry {
         return Ok(false);
@@ -287,19 +286,19 @@ mod tests {
 
     #[test]
     fn test_create_and_validate_challenge() {
-        let challenge_json = create_challenge("test.totem.ing", "Sign in to TestApp").unwrap();
-        assert!(validate_challenge(&challenge_json, "test.totem.ing").unwrap());
+        let challenge_json = create_challenge("test.totem.ing", "Sign in to TestApp", 1_700_000_000).unwrap();
+        assert!(validate_challenge(&challenge_json, "test.totem.ing", 1_700_000_001).unwrap());
     }
 
     #[test]
     fn test_validate_challenge_wrong_domain() {
-        let challenge_json = create_challenge("test.totem.ing", "Sign in").unwrap();
-        assert!(!validate_challenge(&challenge_json, "evil.example.com").unwrap());
+        let challenge_json = create_challenge("test.totem.ing", "Sign in", 1_700_000_000).unwrap();
+        assert!(!validate_challenge(&challenge_json, "evil.example.com", 1_700_000_001).unwrap());
     }
 
     #[test]
     fn test_validate_challenge_invalid_json() {
-        assert!(validate_challenge("not json", "test.totem.ing").is_err());
+        assert!(validate_challenge("not json", "test.totem.ing", 1_700_000_000).is_err());
     }
 
     #[test]

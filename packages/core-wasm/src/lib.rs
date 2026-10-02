@@ -235,14 +235,14 @@ pub fn timing_safe_equal_wasm(a: &[u8], b: &[u8]) -> bool {
 
 /// Create a Sign-In With Wallet challenge.
 #[wasm_bindgen]
-pub fn create_challenge_wasm(domain: &str, statement: &str) -> Result<String, JsValue> {
-    verify::create_challenge(domain, statement).map_err(|e| JsValue::from_str(&e))
+pub fn create_challenge_wasm(domain: &str, statement: &str, now_secs: f64) -> Result<String, JsValue> {
+    verify::create_challenge(domain, statement, now_secs as u64).map_err(|e| JsValue::from_str(&e))
 }
 
 /// Validate a Sign-In With Wallet challenge.
 #[wasm_bindgen]
-pub fn validate_challenge_wasm(challenge_json: &str, domain: &str) -> Result<bool, JsValue> {
-    verify::validate_challenge(challenge_json, domain).map_err(|e| JsValue::from_str(&e))
+pub fn validate_challenge_wasm(challenge_json: &str, domain: &str, now_secs: f64) -> Result<bool, JsValue> {
+    verify::validate_challenge(challenge_json, domain, now_secs as u64).map_err(|e| JsValue::from_str(&e))
 }
 
 /// Write MiniNumber (Java-compatible serialization) from an arbitrary-size decimal integer.

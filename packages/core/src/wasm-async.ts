@@ -123,8 +123,13 @@ export const precomputeTransactionCoinID = precompute_transaction_coin_id_wasm;
 
 export const verifyTreeSignature = verify_tree_signature_wasm;
 export const timingSafeEqual = timing_safe_equal_wasm;
-export const createChallenge = create_challenge_wasm;
-export const validateChallenge = validate_challenge_wasm;
+// SystemTime panics on wasm32-unknown-unknown; supply the clock from JS.
+export function createChallenge(domain: string, statement: string): string {
+  return create_challenge_wasm(domain, statement, Math.floor(Date.now() / 1000));
+}
+export function validateChallenge(challengeJson: string, domain: string): boolean {
+  return validate_challenge_wasm(challengeJson, domain, Math.floor(Date.now() / 1000));
+}
 
 export function writeMiniNumber(value: bigint, scale = 0): Uint8Array {
   return write_mini_number_wasm(value.toString(), scale);

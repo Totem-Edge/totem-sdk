@@ -79,9 +79,10 @@ exports.concat_bytes_wasm = concat_bytes_wasm;
  * Create a Sign-In With Wallet challenge.
  * @param {string} domain
  * @param {string} statement
+ * @param {number} now_secs
  * @returns {string}
  */
-function create_challenge_wasm(domain, statement) {
+function create_challenge_wasm(domain, statement, now_secs) {
     let deferred4_0;
     let deferred4_1;
     try {
@@ -89,7 +90,7 @@ function create_challenge_wasm(domain, statement) {
         const len0 = WASM_VECTOR_LEN;
         const ptr1 = passStringToWasm0(statement, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len1 = WASM_VECTOR_LEN;
-        const ret = wasm.create_challenge_wasm(ptr0, len0, ptr1, len1);
+        const ret = wasm.create_challenge_wasm(ptr0, len0, ptr1, len1, now_secs);
         var ptr3 = ret[0];
         var len3 = ret[1];
         if (ret[3]) {
@@ -569,14 +570,15 @@ exports.timing_safe_equal_wasm = timing_safe_equal_wasm;
  * Validate a Sign-In With Wallet challenge.
  * @param {string} challenge_json
  * @param {string} domain
+ * @param {number} now_secs
  * @returns {boolean}
  */
-function validate_challenge_wasm(challenge_json, domain) {
+function validate_challenge_wasm(challenge_json, domain, now_secs) {
     const ptr0 = passStringToWasm0(challenge_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
     const len0 = WASM_VECTOR_LEN;
     const ptr1 = passStringToWasm0(domain, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
     const len1 = WASM_VECTOR_LEN;
-    const ret = wasm.validate_challenge_wasm(ptr0, len0, ptr1, len1);
+    const ret = wasm.validate_challenge_wasm(ptr0, len0, ptr1, len1, now_secs);
     if (ret[2]) {
         throw takeFromExternrefTable0(ret[1]);
     }

@@ -24,7 +24,7 @@ export function concat_bytes_wasm(a: Uint8Array, b: Uint8Array): Uint8Array;
 /**
  * Create a Sign-In With Wallet challenge.
  */
-export function create_challenge_wasm(domain: string, statement: string): string;
+export function create_challenge_wasm(domain: string, statement: string, now_secs: number): string;
 
 /**
  * Create a unified child TreeKey for a spend address.
@@ -165,7 +165,7 @@ export function timing_safe_equal_wasm(a: Uint8Array, b: Uint8Array): boolean;
 /**
  * Validate a Sign-In With Wallet challenge.
  */
-export function validate_challenge_wasm(challenge_json: string, domain: string): boolean;
+export function validate_challenge_wasm(challenge_json: string, domain: string, now_secs: number): boolean;
 
 /**
  * Validate a BIP39 mnemonic phrase.

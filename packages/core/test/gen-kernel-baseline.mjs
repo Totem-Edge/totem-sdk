@@ -47,6 +47,23 @@ const PARITY = {
   phraseToSeed: 'legacy-differential.parity',
   validatePhrase: 'legacy-differential.parity',
   wotsKeypairFromSeed: 'legacy-differential.parity',
+  // WASM functional / self-consistency.
+  createChallenge: 'wasm-functional',
+  validateChallenge: 'wasm-functional',
+  getParams: 'wasm-functional',
+  timingSafeEqual: 'wasm-functional',
+  hashChain: 'wasm-functional',
+  expandPrivateKey: 'wasm-functional',
+  mmrRootFromPublicKeys: 'wasm-functional',
+  generateWordList: 'wasm-functional',
+  wotsAddressFromKeypair: 'wasm-functional',
+  wasmTreeKeyFree: 'wasm-functional',
+  wasmTreeKeyGetMaxUses: 'wasm-functional',
+  wasmTreeKeyGetPublicKey: 'wasm-functional',
+  wasmTreeKeyGetUses: 'wasm-functional',
+  wasmTreeKeyNew: 'wasm-functional',
+  wasmTreeKeySetUses: 'wasm-functional',
+  wasmTreeKeySign: 'wasm-functional',
 };
 
 let previous = {};

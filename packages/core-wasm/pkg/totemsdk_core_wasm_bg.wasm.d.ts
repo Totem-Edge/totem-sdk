@@ -5,7 +5,7 @@ export const bytes_to_hex_wasm: (a: number, b: number) => [number, number];
 export const clean_seed_phrase_wasm: (a: number, b: number) => [number, number];
 export const compute_transaction_digest_wasm: (a: number, b: number) => [number, number];
 export const concat_bytes_wasm: (a: number, b: number, c: number, d: number) => [number, number];
-export const create_challenge_wasm: (a: number, b: number, c: number, d: number) => [number, number, number, number];
+export const create_challenge_wasm: (a: number, b: number, c: number, d: number, e: number) => [number, number, number, number];
 export const create_unified_child_tree_key_wasm: (a: number, b: number, c: number) => [number, number, number, number];
 export const create_unified_root_tree_key_wasm: (a: number, b: number) => [number, number, number, number];
 export const derive_chain_seed_wasm: (a: number, b: number, c: number) => [number, number];
@@ -32,7 +32,7 @@ export const precompute_transaction_coin_id_wasm: (a: number, b: number, c: numb
 export const serialize_transaction_wasm: (a: number, b: number) => [number, number, number, number];
 export const sha3_256_wasm: (a: number, b: number) => [number, number];
 export const timing_safe_equal_wasm: (a: number, b: number, c: number, d: number) => number;
-export const validate_challenge_wasm: (a: number, b: number, c: number, d: number) => [number, number, number];
+export const validate_challenge_wasm: (a: number, b: number, c: number, d: number, e: number) => [number, number, number];
 export const validate_phrase_wasm: (a: number, b: number) => number;
 export const verify_mmr_proof_wasm: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number];
 export const verify_tree_signature_wasm: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number];

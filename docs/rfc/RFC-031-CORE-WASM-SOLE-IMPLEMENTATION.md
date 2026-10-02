@@ -198,14 +198,22 @@ The JS kernels are removed **only when all four gates are green**:
   and making the `@totemsdk/core` root wasm-free by default. *(Gate G1.)*
 - **P2 — Parity hardening (in progress).** Kernel **coverage matrix** landed:
   `packages/core/test/kernel-baseline.json` triages all 52 WASM kernels
-  (32 covered by parity suites, 20 `pending`), enforced by
+  (48 covered by parity suites, 4 `pending`), enforced by
   `kernel-coverage.test.mjs` (new/removed/renamed kernels and dangling parity
   references fail; regeneration preserves annotations via
   `gen-kernel-baseline.mjs`). Added a **WASM ↔ JS-kernel differential** suite
   (`legacy-differential.parity.test.ts`: BIP39, address codec, WOTS keypair,
-  concat, hex round-trip) and a **serialization fuzz**
-  (`serialization-fuzz.parity.test.ts`). Remaining: oracle golden vectors for the
-  20 pending kernels, more fuzz, and CI wiring. *(Gate G2.)*
+  concat, hex round-trip), a **WASM functional** suite (`wasm-functional.test.ts`:
+  challenge, stateful WasmTreeKey, timingSafeEqual, getParams, hashChain,
+  expandPrivateKey, MMR root, generateWordList, wotsAddressFromKeypair), and a
+  **serialization fuzz** (`serialization-fuzz.parity.test.ts`). Remaining `pending`:
+  `mineTxPoW`, `mineTxPoWChunk`, `verifyMMRProof`, `verifyTreeSignature` (the last
+  because `wasm_tree_key_sign` emits byte arrays while `verify_tree_signature_wasm`
+  expects hex-string JSON — a schema mismatch to resolve before sunset). *(Gate G2.)*
+  **Portability fix (found by the functional suite):** `create_challenge` /
+  `validate_challenge` used `std::time::SystemTime`, which panics on
+  `wasm32-unknown-unknown`; the clock is now supplied from JS (as `txpow_mine`
+  already does).
   **Fuzz caught a real drift (fixed):** randomized serialization parity found the
   Rust `parse_decimal` omitting Java's two's-complement leading `0x00` for
   positive values with a set top bit, so WASM diverged from TS/Java for

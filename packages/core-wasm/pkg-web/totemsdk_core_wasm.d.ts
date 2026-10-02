@@ -24,7 +24,7 @@ export function concat_bytes_wasm(a: Uint8Array, b: Uint8Array): Uint8Array;
 /**
  * Create a Sign-In With Wallet challenge.
  */
-export function create_challenge_wasm(domain: string, statement: string): string;
+export function create_challenge_wasm(domain: string, statement: string, now_secs: number): string;
 
 /**
  * Create a unified child TreeKey for a spend address.
@@ -165,7 +165,7 @@ export function timing_safe_equal_wasm(a: Uint8Array, b: Uint8Array): boolean;
 /**
  * Validate a Sign-In With Wallet challenge.
  */
-export function validate_challenge_wasm(challenge_json: string, domain: string): boolean;
+export function validate_challenge_wasm(challenge_json: string, domain: string, now_secs: number): boolean;
 
 /**
  * Validate a BIP39 mnemonic phrase.
@@ -274,7 +274,7 @@ export interface InitOutput {
     readonly clean_seed_phrase_wasm: (a: number, b: number) => [number, number];
     readonly compute_transaction_digest_wasm: (a: number, b: number) => [number, number];
     readonly concat_bytes_wasm: (a: number, b: number, c: number, d: number) => [number, number];
-    readonly create_challenge_wasm: (a: number, b: number, c: number, d: number) => [number, number, number, number];
+    readonly create_challenge_wasm: (a: number, b: number, c: number, d: number, e: number) => [number, number, number, number];
     readonly create_unified_child_tree_key_wasm: (a: number, b: number, c: number) => [number, number, number, number];
     readonly create_unified_root_tree_key_wasm: (a: number, b: number) => [number, number, number, number];
     readonly derive_chain_seed_wasm: (a: number, b: number, c: number) => [number, number];
@@ -301,7 +301,7 @@ export interface InitOutput {
     readonly serialize_transaction_wasm: (a: number, b: number) => [number, number, number, number];
     readonly sha3_256_wasm: (a: number, b: number) => [number, number];
     readonly timing_safe_equal_wasm: (a: number, b: number, c: number, d: number) => number;
-    readonly validate_challenge_wasm: (a: number, b: number, c: number, d: number) => [number, number, number];
+    readonly validate_challenge_wasm: (a: number, b: number, c: number, d: number, e: number) => [number, number, number];
     readonly validate_phrase_wasm: (a: number, b: number) => number;
     readonly verify_mmr_proof_wasm: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number];
     readonly verify_tree_signature_wasm: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number];
