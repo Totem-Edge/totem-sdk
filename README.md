@@ -534,6 +534,7 @@ docs/                       # SDK documentation
 | [RFC-028](docs/rfc/RFC-028-DECISION-OUTPUT-CORRECTNESS-NATIVE-BRIDGES.md) | Decision output correctness & native bridges — missing-output errors, score/distribution agreement, compiled-count limits, tested Jev/Laya bridges (draft) |
 | [RFC-029](docs/rfc/RFC-029-PER-QUESTION-ACCEPTANCE-MULTI-PROVIDER.md) | Per-question acceptance & multi-provider assembly — type-keyed rules, partial acceptance with selective escalation (draft) |
 | [RFC-030](docs/rfc/RFC-030-MODEL-AWARE-PREFLIGHT-SHORTLISTING-BATCHING.md) | Model-aware preflight, shortlisting & batching — compiled-request budgets, hard ceilings, transformation recording (draft) |
+| [RFC-031](docs/rfc/RFC-031-CORE-WASM-SOLE-IMPLEMENTATION.md) | Core-Wasm sole-implementation — portable WASM (async init), oracle parity gates, provenance, and the gated/phased sunset of the JS crypto kernels (draft) |
 | [SDK Audit (archived)](docs/archive/SDK_AUDIT-2026-02-ARCHIVED.md) | Historical Feb 2026 audit; current maturity lives in the table above |
 | [SDK Manifest](SDK_MANIFEST.json) | Machine-readable package index — 55 packages, for AI agents and tooling |
 | [API Reference](https://totem.ing) | Full TypeDoc-generated API reference |

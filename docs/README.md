@@ -174,6 +174,7 @@
 | [rfc/RFC-028-DECISION-OUTPUT-CORRECTNESS-NATIVE-BRIDGES.md](rfc/RFC-028-DECISION-OUTPUT-CORRECTNESS-NATIVE-BRIDGES.md) | Decision output correctness & native bridges — missing-output errors, `expectedScore`/distribution agreement, compiled-count limit enforcement, tested Jev/Laya bridges (draft) |
 | [rfc/RFC-029-PER-QUESTION-ACCEPTANCE-MULTI-PROVIDER.md](rfc/RFC-029-PER-QUESTION-ACCEPTANCE-MULTI-PROVIDER.md) | Per-question acceptance & multi-provider assembly — type-keyed rules, partial acceptance with selective escalation, per-answer provider/bindings (draft) |
 | [rfc/RFC-030-MODEL-AWARE-PREFLIGHT-SHORTLISTING-BATCHING.md](rfc/RFC-030-MODEL-AWARE-PREFLIGHT-SHORTLISTING-BATCHING.md) | Model-aware preflight, shortlisting & batching — compiled-request budgets, hard ceilings, shortlist/split recording, extended batching (draft) |
+| [rfc/RFC-031-CORE-WASM-SOLE-IMPLEMENTATION.md](rfc/RFC-031-CORE-WASM-SOLE-IMPLEMENTATION.md) | Core-Wasm sole-implementation — portable WASM (async init), oracle parity gates, provenance, and the gated/phased sunset of the JS crypto kernels (draft) |
 
 ---
 
