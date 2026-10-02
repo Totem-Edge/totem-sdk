@@ -48,6 +48,9 @@ jobs:
             echo "::error::committed core-wasm artifacts are stale; run 'npm run build' in packages/core-wasm and commit the result"
             exit 1
           fi
+      - name: WASM artifact hash provenance (RFC-031 P3)
+        working-directory: packages/core-wasm
+        run: npm run artifacts:verify
       - name: Typecheck + build (workspace)
         run: node scripts/verify-workspace.mjs --typecheck
       - name: QVAC API drift audit (against real @qvac/sdk)

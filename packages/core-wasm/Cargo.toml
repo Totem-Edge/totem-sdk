@@ -12,7 +12,7 @@ homepage = "https://totem.ing"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-wasm-bindgen = "0.2"
+wasm-bindgen = "=0.2.126"
 sha3 = "0.10"
 serde = { version = "1", features = ["derive"] }
 serde-wasm-bindgen = "0.6"

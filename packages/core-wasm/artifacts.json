@@ -1,0 +1,11 @@
+{
+  "note": "RFC-031 P3 WASM artifact provenance. Verify with: node scripts/verify-artifacts.mjs",
+  "rustc": "rustc 1.97.0 (2d8144b78 2026-07-07)",
+  "wasmPack": "wasm-pack 0.15.0",
+  "wasmBindgen": "0.2.126",
+  "artifacts": {
+    "pkg/totemsdk_core_wasm_bg.wasm": "e92b762774ce0e41b848bd9faa4e2510c82990365c15ec4d6f217a6ef986fd65",
+    "pkg-node/totemsdk_core_wasm_bg.wasm": "e92b762774ce0e41b848bd9faa4e2510c82990365c15ec4d6f217a6ef986fd65",
+    "pkg-web/totemsdk_core_wasm_bg.wasm": "e92b762774ce0e41b848bd9faa4e2510c82990365c15ec4d6f217a6ef986fd65"
+  }
+}

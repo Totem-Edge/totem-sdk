@@ -1,6 +1,6 @@
 # RFC-031: Core-Wasm Sole-Implementation — Portable WASM, Parity Gates, and the Sunset of the JS Crypto Kernels
 
-**Status:** Draft — P1 (portable WASM) + P2 (parity + 52/52 kernel coverage) substantially landed
+**Status:** Draft — P1 (portable WASM) + P2 (parity + 52/52 kernel coverage) + P3 (provenance/reproducibility) substantially landed
 **Created:** 2026-10-02
 **Authors:** Totem SDK Contributors
 **Depends on:** RFC-018 (WASM/TS serializer parity + provenance gate), RFC-020 (multi-package adversarial hardening), RFC-014 (wallet/edge bundling), `SECURITY.md` invariants
@@ -223,8 +223,14 @@ The JS kernels are removed **only when all four gates are green**:
   positive values with a set top bit, so WASM diverged from TS/Java for
   amounts/token totals/entry-numbers ≥ `0x80` in the top byte
   (`packages/core-wasm/src/transaction.rs`; `serialization-fuzz.parity.test.ts`).
-- **P3 — Provenance.** Reproducible/pinned/signed artifacts; SBOM; drift gate.
-  *(Gate G3.)*
+- **P3 — Provenance (substantially landed).** Pinned `rust-toolchain.toml`
+  (rustc `1.97.0`) and `wasm-bindgen = "=0.2.126"`; committed
+  `packages/core-wasm/artifacts.json` records the SHA-256 of each target's wasm
+  plus toolchain versions, enforced by `verify-artifacts.mjs` (also asserts the
+  three targets share one wasm core). Verified **byte-for-byte reproducible**: a
+  clean rebuild leaves `pkg`/`pkg-node`/`pkg-web` unchanged. CI installs the
+  pinned toolchain, asserts the pinned wasm-pack (`0.15.0`), and runs the hash
+  gate. Remaining: artifact signing and a Cargo.lock-derived SBOM. *(Gate G3.)*
 - **P4 — Deprecate `/legacy`.** Default crypto = `./wasm` where supported; `legacy`
   frozen + warned; migrate internal consumers; budgets measured. *(Gate G4.)*
 - **P5 — Remove.** Delete the JS kernels; `@totemsdk/core` = API + single WASM

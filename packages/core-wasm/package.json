@@ -32,6 +32,8 @@
     "test": "wasm-pack test --node",
     "test:web": "node tests/web-init.test.mjs && node tests/web-worker.mjs",
     "test:web:bun": "bun tests/web-init.test.mjs && bun tests/web-worker.mjs",
+    "artifacts:write": "node scripts/write-artifacts.mjs",
+    "artifacts:verify": "node scripts/verify-artifacts.mjs",
     "clean": "rm -rf pkg pkg-node pkg-web target"
   },
   "repository": {
