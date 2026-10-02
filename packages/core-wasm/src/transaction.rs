@@ -217,6 +217,15 @@ fn parse_decimal(s: &str) -> Result<(Vec<u8>, u8), String> {
         bytes.remove(0);
     }
 
+    // Java BigInteger.toByteArray(): a positive value whose top bit is set is
+    // prefixed with 0x00 so it stays positive in two's complement. Without this,
+    // the WASM serializer diverges from the TS serializer and the Minima Java
+    // node for amounts/entry-numbers/token totals >= 0x80 in the top byte
+    // (caught by the RFC-031 P2 serialization fuzz).
+    if bytes[0] & 0x80 != 0 {
+        bytes.insert(0, 0);
+    }
+
     Ok((bytes, scale))
 }
 

@@ -203,6 +203,11 @@ The JS kernels are removed **only when all four gates are green**:
   references fail; regeneration preserves annotations via
   `gen-kernel-baseline.mjs`). Remaining: oracle golden vectors for the pending
   kernels, fuzz/property tests, and CI wiring. *(Gate G2.)*
+  **Fuzz caught a real drift (fixed):** randomized serialization parity found the
+  Rust `parse_decimal` omitting Java's two's-complement leading `0x00` for
+  positive values with a set top bit, so WASM diverged from TS/Java for
+  amounts/token totals/entry-numbers ≥ `0x80` in the top byte
+  (`packages/core-wasm/src/transaction.rs`; `serialization-fuzz.parity.test.ts`).
 - **P3 — Provenance.** Reproducible/pinned/signed artifacts; SBOM; drift gate.
   *(Gate G3.)*
 - **P4 — Deprecate `/legacy`.** Default crypto = `./wasm` where supported; `legacy`
