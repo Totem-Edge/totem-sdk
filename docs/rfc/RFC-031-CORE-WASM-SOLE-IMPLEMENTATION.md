@@ -209,9 +209,11 @@ The JS kernels are removed **only when all four gates are green**:
   **serialization fuzz** (`serialization-fuzz.parity.test.ts`). All 52 kernels are
   triaged; the WASM sign↔verify JSON schema was unified (verify now accepts the
   byte-array form emitted by sign and delegates to the canonical tree verifier),
-  so `verifyTreeSignature`/`verifyMMRProof` are covered too. Remaining G2 work:
-  wire the async/coverage/fuzz suites into CI and add oracle golden vectors where
-  the JS side is a drift guard rather than the reference. *(Gate G2.)*
+  so `verifyTreeSignature`/`verifyMMRProof` are covered too. CI wiring landed:
+  `test:wasm-async` (async entry + surface parity + coverage) and `test:web`
+  (async init + parity + isolate) run in the unit-test job, and the WASM
+  provenance gate now covers `pkg-web`. Remaining G2 work: oracle golden vectors
+  where the JS side is a drift guard rather than the reference. *(Gate G2.)*
   **Portability fix (found by the functional suite):** `create_challenge` /
   `validate_challenge` used `std::time::SystemTime`, which panics on
   `wasm32-unknown-unknown`; the clock is now supplied from JS (as `txpow_mine`

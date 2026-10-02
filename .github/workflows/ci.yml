@@ -42,9 +42,9 @@ jobs:
       - name: Build core-wasm (prerequisite)
         working-directory: packages/core-wasm
         run: npm run build
-      - name: WASM provenance — committed pkg/pkg-node must match source (RFC-018 P2-5)
+      - name: WASM provenance — committed pkg/pkg-node/pkg-web must match source (RFC-018 P2-5, RFC-031)
         run: |
-          if ! git diff --exit-code -- packages/core-wasm/pkg packages/core-wasm/pkg-node; then
+          if ! git diff --exit-code -- packages/core-wasm/pkg packages/core-wasm/pkg-node packages/core-wasm/pkg-web; then
             echo "::error::committed core-wasm artifacts are stale; run 'npm run build' in packages/core-wasm and commit the result"
             exit 1
           fi
@@ -76,6 +76,12 @@ jobs:
         env:
           SKIP_PREREQUISITE_BUILD: '1'
         run: node scripts/verify-workspace.mjs --test
+      - name: Core async WASM entry + kernel coverage + fuzz (RFC-031 P1/P2)
+        working-directory: packages/core
+        run: npm run test:wasm-async
+      - name: core-wasm portable web target (RFC-031 G1)
+        working-directory: packages/core-wasm
+        run: npm run test:web
 
   omnia-parity:
     name: Omnia Rust/WASM parity
