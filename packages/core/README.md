@@ -10,6 +10,33 @@ Zero production dependencies (only `@noble/hashes` as a peer). Provides WOTS (Wi
 npm install @totemsdk/core @noble/hashes
 ```
 
+## Bundling for edge / Workers
+
+The root entry (`@totemsdk/core`) re-exports the synchronous WASM crypto bridge
+(`@totemsdk/core/wasm`), which imports `@totemsdk/core-wasm` at module load. That
+glue uses a bundler-target `import * as wasm from "./….wasm"` (and, on the Node
+path, `fs`/`__dirname`), so a stock `esbuild` build targeting Cloudflare Workers
+(or any async-WASM edge runtime) fails to resolve or instantiate it.
+
+Import a wasm-free subpath instead of the root when you don't need the WASM
+crypto:
+
+| Need | Import | Notes |
+|---|---|---|
+| Adapter contracts / types (`StorageAdapter`, `WebSocketFactory`, `WebSocketReadyState`, …) | `@totemsdk/core/adapters` | Same names as the root — safe drop-in. |
+| Pure-JS crypto | `@totemsdk/core/legacy` | JS implementations are **`legacy`-prefixed** (`legacyWotsSign`, `legacyWotsVerify`, `legacyWotsKeypairFromSeed`, …); `verifySignature*` are unprefixed. **Not** a drop-in for the root's `wotsSign`. |
+| WASM crypto (explicit opt-in) | `@totemsdk/core/wasm` | Same names as the root. |
+
+Immediate unblock without an SDK change (adapter-only consumers):
+
+```bash
+esbuild --alias:@totemsdk/core=@totemsdk/core/adapters
+```
+
+`@totemsdk/core` does not set `"sideEffects": false` (the WASM bridge
+initializes at import), so bundlers will not tree-shake the WASM re-export away;
+prefer explicit subpath imports over relying on tree-shaking.
+
 ## What's inside
 
 | Module | What it does |

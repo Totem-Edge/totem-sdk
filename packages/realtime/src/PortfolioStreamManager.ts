@@ -27,8 +27,8 @@ import type {
   TimerAdapter,
   TimerHandle,
   LifecycleAdapter,
-} from '@totemsdk/core';
-import { WebSocketReadyState } from '@totemsdk/core';
+} from '@totemsdk/core/adapters';
+import { WebSocketReadyState } from '@totemsdk/core/adapters';
 import { PortfolioCache, type PortfolioCacheDependencies, type PortfolioCacheConfig } from './PortfolioCache.js';
 import type {
   PortfolioEntry,
@@ -838,7 +838,7 @@ export class PortfolioStreamManager {
 
 export function createPortfolioStreamManager(
   deps: Omit<PortfolioStreamDependencies, 'portfolioCache'> & {
-    storage: import('@totemsdk/core').StorageAdapter;
+    storage: import('@totemsdk/core/adapters').StorageAdapter;
   },
   config: PortfolioStreamConfig
 ): PortfolioStreamManager {

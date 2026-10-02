@@ -5,7 +5,7 @@
  * Uses injected StorageAdapter for platform independence.
  */
 
-import type { StorageAdapter, LoggerAdapter } from '@totemsdk/core';
+import type { StorageAdapter, LoggerAdapter } from '@totemsdk/core/adapters';
 import type { PortfolioEntry } from './types.js';
 
 const CACHE_PREFIX = 'portfolio_cache_';
