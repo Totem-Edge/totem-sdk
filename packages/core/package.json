@@ -26,6 +26,12 @@
         "default": "./dist/cjs/wasm-sync.js"
       }
     },
+    "./wasm-async": {
+      "import": {
+        "types": "./dist/wasm-async.d.ts",
+        "default": "./dist/wasm-async.js"
+      }
+    },
     "./legacy": {
       "import": {
         "types": "./dist/legacy.d.ts",
@@ -118,6 +124,7 @@
     "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist",
     "test": "jest",
+    "test:wasm-async": "tsc -p tsconfig.json && node test/wasm-async.test.mjs",
     "gen:pkdigest": "node scripts/gen_wots_pkdigest_vectors.cjs"
   },
   "files": [

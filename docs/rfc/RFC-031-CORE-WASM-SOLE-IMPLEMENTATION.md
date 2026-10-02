@@ -186,10 +186,13 @@ The JS kernels are removed **only when all four gates are green**:
   pending** (part of P1/P4).
 - **P1 — Portable WASM (in progress).** `core-wasm` now builds a `--target web`
   artifact (`pkg-web`) exposing async `init()`; exported as `@totemsdk/core-wasm/web`.
-  Proven locally: async init with explicit wasm bytes (no fetch/`fs` in glue) and
-  byte-parity with the Node target (`packages/core-wasm/tests/web-init.test.mjs`).
-  Remaining: runtime matrix (browser/Worker/Deno/Bun), embedded-bytes entry, and
-  making the `@totemsdk/core` root wasm-free by default. *(Gate G1.)*
+  `@totemsdk/core/wasm-async` exposes the async crypto surface (same names as the
+  root, `await init()` once). Proven locally: async init with explicit wasm bytes
+  (no fetch/`fs` in glue), byte-parity with the Node target
+  (`packages/core-wasm/tests/web-init.test.mjs`), and the core async entry under
+  Node ESM (`packages/core/test/wasm-async.test.mjs`). Remaining: runtime matrix
+  (browser/Worker/Deno/Bun), embedded-bytes entry, and making the `@totemsdk/core`
+  root wasm-free by default. *(Gate G1.)*
 - **P2 — Parity hardening.** Oracle golden vectors for every kernel; fuzz;
   coverage matrix; wire into CI. *(Gate G2.)*
 - **P3 — Provenance.** Reproducible/pinned/signed artifacts; SBOM; drift gate.

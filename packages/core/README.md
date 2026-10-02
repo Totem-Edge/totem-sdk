@@ -25,7 +25,8 @@ crypto:
 |---|---|---|
 | Adapter contracts / types (`StorageAdapter`, `WebSocketFactory`, `WebSocketReadyState`, …) | `@totemsdk/core/adapters` | Same names as the root — safe drop-in. |
 | Pure-JS crypto | `@totemsdk/core/legacy` | JS implementations are **`legacy`-prefixed** (`legacyWotsSign`, `legacyWotsVerify`, `legacyWotsKeypairFromSeed`, …); `verifySignature*` are unprefixed. **Not** a drop-in for the root's `wotsSign`. |
-| WASM crypto (explicit opt-in) | `@totemsdk/core/wasm` | Same names as the root. |
+| WASM crypto (sync, bundler loader required) | `@totemsdk/core/wasm` | Same names as the root; initializes at import. |
+| WASM crypto (async, portable to edge/Workers) | `@totemsdk/core/wasm-async` | ESM-only; `await init()` once (optionally with explicit wasm bytes), then call synchronously. Use this where there is no sync `.wasm` module loader. |
 
 Immediate unblock without an SDK change (adapter-only consumers):
 
