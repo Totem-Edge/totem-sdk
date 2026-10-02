@@ -198,11 +198,14 @@ The JS kernels are removed **only when all four gates are green**:
   and making the `@totemsdk/core` root wasm-free by default. *(Gate G1.)*
 - **P2 — Parity hardening (in progress).** Kernel **coverage matrix** landed:
   `packages/core/test/kernel-baseline.json` triages all 52 WASM kernels
-  (23 covered by existing parity suites, 29 `pending`), enforced by
+  (32 covered by parity suites, 20 `pending`), enforced by
   `kernel-coverage.test.mjs` (new/removed/renamed kernels and dangling parity
   references fail; regeneration preserves annotations via
-  `gen-kernel-baseline.mjs`). Remaining: oracle golden vectors for the pending
-  kernels, fuzz/property tests, and CI wiring. *(Gate G2.)*
+  `gen-kernel-baseline.mjs`). Added a **WASM ↔ JS-kernel differential** suite
+  (`legacy-differential.parity.test.ts`: BIP39, address codec, WOTS keypair,
+  concat, hex round-trip) and a **serialization fuzz**
+  (`serialization-fuzz.parity.test.ts`). Remaining: oracle golden vectors for the
+  20 pending kernels, more fuzz, and CI wiring. *(Gate G2.)*
   **Fuzz caught a real drift (fixed):** randomized serialization parity found the
   Rust `parse_decimal` omitting Java's two's-complement leading `0x00` for
   positive values with a set top bit, so WASM diverged from TS/Java for

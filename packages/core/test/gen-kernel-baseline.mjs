@@ -37,6 +37,16 @@ const PARITY = {
   createUnifiedChildTreeKey: 'perAddressDerivation.parity',
   createUnifiedRootTreeKey: 'perAddressDerivation.parity',
   deriveUnifiedAddressPublicKey: 'perAddressDerivation.parity',
+  // WASM ↔ JS-kernel differential parity.
+  bytesToHex: 'legacy-differential.parity',
+  hexToBytes: 'legacy-differential.parity',
+  concatBytes: 'legacy-differential.parity',
+  cleanSeedPhrase: 'legacy-differential.parity',
+  makeMxAddress: 'legacy-differential.parity',
+  parseMxAddress: 'legacy-differential.parity',
+  phraseToSeed: 'legacy-differential.parity',
+  validatePhrase: 'legacy-differential.parity',
+  wotsKeypairFromSeed: 'legacy-differential.parity',
 };
 
 let previous = {};
