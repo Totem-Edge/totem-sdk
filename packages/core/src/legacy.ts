@@ -1,12 +1,21 @@
 /**
- * Legacy JS implementations — backward compatibility.
+ * Legacy JS crypto kernels — **deprecated (RFC-031 P4), frozen**.
  *
- * These are the original TypeScript implementations preserved for
- * environments where WASM is not available. The main entry point
- * (`@totemsdk/core`) now delegates to WASM by default.
+ * @deprecated The pure-JS kernels are scheduled for removal (RFC-031 P5). Use
+ * the WASM surface instead:
+ *   - `@totemsdk/core` / `@totemsdk/core/wasm` — synchronous WASM (bundler loader required)
+ *   - `@totemsdk/core/wasm-async` — async-init WASM (portable to edge/Workers)
  *
- * Import legacy implementations directly:
- *   import { wotsSign } from '@totemsdk/core/legacy';
+ * This entry stays only as a migration bridge for environments that cannot run
+ * WASM yet; it is **frozen** (no new kernels are added here) and will be deleted
+ * in a major release. Exports are `legacy`-prefixed where they collide with the
+ * WASM names (`legacyWotsSign`, …).
+ *
+ *   // before
+ *   import { legacyWotsSign } from '@totemsdk/core/legacy';
+ *   // after
+ *   import { init, wotsSign } from '@totemsdk/core/wasm-async';
+ *   await init();
  */
 
 // WOTS — unique exports

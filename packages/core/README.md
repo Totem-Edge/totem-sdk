@@ -38,6 +38,24 @@ esbuild --alias:@totemsdk/core=@totemsdk/core/adapters
 initializes at import), so bundlers will not tree-shake the WASM re-export away;
 prefer explicit subpath imports over relying on tree-shaking.
 
+### Deprecation & migration (RFC-031)
+
+`@totemsdk/core/legacy` is **deprecated and frozen** — the pure-JS kernels will be
+removed in a major release; no new kernels are added there. Prefer the WASM
+surface (`@totemsdk/core/wasm` for synchronous use, `@totemsdk/core/wasm-async`
+for edge/Workers). Typical migration:
+
+```ts
+// before — pure-JS, legacy-prefixed
+import { legacyWotsSign, legacyWotsVerify } from '@totemsdk/core/legacy';
+// after — async-init WASM, same names as the root
+import { init, wotsSign, wotsVerify } from '@totemsdk/core/wasm-async';
+await init();
+```
+
+Use `/legacy` only where WASM genuinely cannot run; `verifySignature*` and the
+adapter contracts are unaffected.
+
 ## What's inside
 
 | Module | What it does |

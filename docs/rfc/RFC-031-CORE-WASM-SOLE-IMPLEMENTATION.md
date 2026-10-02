@@ -1,6 +1,6 @@
 # RFC-031: Core-Wasm Sole-Implementation — Portable WASM, Parity Gates, and the Sunset of the JS Crypto Kernels
 
-**Status:** Draft — P1 (portable WASM) + P2 (parity + 52/52 kernel coverage) + P3 (provenance/reproducibility) substantially landed
+**Status:** Draft — P1 (portable WASM) + P2 (parity + 52/52 kernel coverage) + P3 (provenance/reproducibility) + P4 (deprecate/freeze `/legacy`) substantially landed
 **Created:** 2026-10-02
 **Authors:** Totem SDK Contributors
 **Depends on:** RFC-018 (WASM/TS serializer parity + provenance gate), RFC-020 (multi-package adversarial hardening), RFC-014 (wallet/edge bundling), `SECURITY.md` invariants
@@ -233,8 +233,13 @@ The JS kernels are removed **only when all four gates are green**:
   gate. A Cargo.lock-derived **SBOM** (`sbom.json`, 65 crates + checksums) is
   committed and CI-checked for staleness. Remaining: artifact signing (needs a
   release key). *(Gate G3.)*
-- **P4 — Deprecate `/legacy`.** Default crypto = `./wasm` where supported; `legacy`
-  frozen + warned; migrate internal consumers; budgets measured. *(Gate G4.)*
+- **P4 — Deprecate `/legacy` (substantially landed).** `@totemsdk/core/legacy` is
+  marked `@deprecated` and **frozen** (no new kernels), with a migration guide in
+  the core README (`legacy*` → `@totemsdk/core/wasm-async`). The root already
+  defaults to WASM; `./wasm-async` is the portable edge path. No runtime
+  deprecation warning is emitted yet (avoids test/log noise). Remaining: migrate
+  any remaining internal `/legacy` consumers, measure edge size/cold-start
+  budgets, and the **root wasm-free default (Fix A)**. *(Gate G4.)*
 - **P5 — Remove.** Delete the JS kernels; `@totemsdk/core` = API + single WASM
   implementation. Major version.
 
