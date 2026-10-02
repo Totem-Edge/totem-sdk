@@ -1,6 +1,6 @@
 # RFC-031: Core-Wasm Sole-Implementation — Portable WASM, Parity Gates, and the Sunset of the JS Crypto Kernels
 
-**Status:** Draft — P1 (portable WASM) + P2 (coverage matrix) in progress
+**Status:** Draft — P1 (portable WASM) + P2 (parity + 52/52 kernel coverage) substantially landed
 **Created:** 2026-10-02
 **Authors:** Totem SDK Contributors
 **Depends on:** RFC-018 (WASM/TS serializer parity + provenance gate), RFC-020 (multi-package adversarial hardening), RFC-014 (wallet/edge bundling), `SECURITY.md` invariants

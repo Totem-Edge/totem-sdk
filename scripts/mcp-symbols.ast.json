@@ -2000,12 +2000,12 @@
           "signature": "timingSafeEqual = timing_safe_equal_wasm"
         },
         "createChallenge": {
-          "kind": "const",
-          "signature": "createChallenge = create_challenge_wasm"
+          "kind": "function",
+          "signature": "createChallenge(domain: string, statement: string): string"
         },
         "validateChallenge": {
-          "kind": "const",
-          "signature": "validateChallenge = validate_challenge_wasm"
+          "kind": "function",
+          "signature": "validateChallenge(challengeJson: string, domain: string): boolean"
         },
         "scriptFromWotsPk": {
           "kind": "function",
@@ -14941,12 +14941,12 @@
           "signature": "timingSafeEqual: typeof timing_safe_equal_wasm"
         },
         "createChallenge": {
-          "kind": "const",
-          "signature": "createChallenge: typeof create_challenge_wasm"
+          "kind": "function",
+          "signature": "createChallenge(domain: string, statement: string): string"
         },
         "validateChallenge": {
-          "kind": "const",
-          "signature": "validateChallenge: typeof validate_challenge_wasm"
+          "kind": "function",
+          "signature": "validateChallenge(challengeJson: string, domain: string): boolean"
         },
         "scriptFromWotsPk": {
           "kind": "function",
