@@ -190,9 +190,12 @@ The JS kernels are removed **only when all four gates are green**:
   root, `await init()` once). Proven locally: async init with explicit wasm bytes
   (no fetch/`fs` in glue), byte-parity with the Node target
   (`packages/core-wasm/tests/web-init.test.mjs`), and the core async entry under
-  Node ESM (`packages/core/test/wasm-async.test.mjs`). Remaining: runtime matrix
-  (browser/Worker/Deno/Bun), embedded-bytes entry, and making the `@totemsdk/core`
-  root wasm-free by default. *(Gate G1.)*
+  Node ESM (`packages/core/test/wasm-async.test.mjs`). Runtime matrix so far:
+  **Node (ESM) and Bun both pass**, including an **isolate** run in a
+  `worker_threads` worker (`packages/core-wasm/tests/web-worker.mjs`) — a proxy
+  for edge/Worker runtimes (fresh module registry, bytes supplied, no fetch).
+  Remaining: browser (Vite) + actual Workers matrix in CI, embedded-bytes entry,
+  and making the `@totemsdk/core` root wasm-free by default. *(Gate G1.)*
 - **P2 — Parity hardening.** Oracle golden vectors for every kernel; fuzz;
   coverage matrix; wire into CI. *(Gate G2.)*
 - **P3 — Provenance.** Reproducible/pinned/signed artifacts; SBOM; drift gate.

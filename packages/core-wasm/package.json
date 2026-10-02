@@ -30,7 +30,8 @@
     "build:node": "wasm-pack build --target nodejs --out-dir pkg-node && node scripts/prepare-publish-assets.mjs",
     "build:web": "wasm-pack build --target web --out-dir pkg-web && node scripts/prepare-publish-assets.mjs",
     "test": "wasm-pack test --node",
-    "test:web": "node tests/web-init.test.mjs",
+    "test:web": "node tests/web-init.test.mjs && node tests/web-worker.mjs",
+    "test:web:bun": "bun tests/web-init.test.mjs && bun tests/web-worker.mjs",
     "clean": "rm -rf pkg pkg-node pkg-web target"
   },
   "repository": {
