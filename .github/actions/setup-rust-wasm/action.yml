@@ -22,7 +22,11 @@ runs:
           packages/**/target
           packages/**/rust/pkg
           packages/**/rust/pkg-node
-        key: ${{ runner.os }}-rust-wasm-${{ inputs.cache-key }}-${{ hashFiles('packages/**/Cargo.lock') }}
+        # Shallow globs only: `packages/**/Cargo.lock` traverses the installed
+        # node_modules trees and can exceed the 120s template-evaluation limit
+        # ("hashFiles(...) couldn't finish within 120 seconds"), failing the job.
+        # Locks live at packages/<pkg>/{rust/,}Cargo.lock.
+        key: ${{ runner.os }}-rust-wasm-${{ inputs.cache-key }}-${{ hashFiles('packages/*/rust/Cargo.lock', 'packages/*/Cargo.lock') }}
         restore-keys: |
           ${{ runner.os }}-rust-wasm-${{ inputs.cache-key }}-
           ${{ runner.os }}-rust-wasm-

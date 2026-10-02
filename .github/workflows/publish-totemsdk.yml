@@ -120,18 +120,19 @@ jobs:
 
       # Deploy is best-effort: without the Cloudflare secrets configured the
       # release must still go green (npm publish is the point of this workflow).
+      #
+      # `cloudflare/pages-action` was removed from the GitHub Marketplace and
+      # 404s on resolution, which failed this job (and therefore the whole run)
+      # on every release. `cloudflare/wrangler-action@v3` is the maintained
+      # replacement: `wrangler pages deploy` against the built site.
       - name: Deploy to Cloudflare Pages
         continue-on-error: true
-        uses: cloudflare/pages-action@f0a1cd58cd66095dee69bfa18fa5efd1dde93bca # v1
+        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3
         with:
           # CLOUDFLARE_API_TOKEN — Pages:Edit permission required
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           # CLOUDFLARE_ACCOUNT_ID — found in Cloudflare dashboard sidebar
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          # Must match the Pages project name in the Cloudflare dashboard
-          projectName: totem-edge-sdk-docs
-          directory: TotemEdgeSDKDocs/build
-          # branch: main forces a production deployment (not a Pages preview branch).
-          # Without this, a tag-triggered run would deploy as a preview URL only.
-          branch: main
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          # Must match the Pages project name in the Cloudflare dashboard.
+          # `--branch main` forces a production deployment (not a preview URL).
+          command: pages deploy TotemEdgeSDKDocs/build --project-name=totem-edge-sdk-docs --branch=main

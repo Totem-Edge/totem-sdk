@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/omnia-pool",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Generic Omnia liquidity pool orchestration primitive for Totem SDK",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -29,19 +29,16 @@
     "@totemsdk/storage": "workspace:^",
     "@totemsdk/tx-builder": "workspace:^",
     "@totemsdk/wots-lease": "workspace:^",
-    "@totemsdk/core": "workspace:^"
+    "@totemsdk/core": "workspace:^",
+    "@totemsdk/omnia": "workspace:^"
   },
   "peerDependencies": {
-    "@totemsdk/omnia": "workspace:^",
     "@totemsdk/omnia-factory": "workspace:^",
     "@totemsdk/omnia-router": "workspace:^",
     "@totemsdk/omnia-splice": "workspace:^",
     "@totemsdk/omnia-vtxo": "workspace:^"
   },
   "peerDependenciesMeta": {
-    "@totemsdk/omnia": {
-      "optional": true
-    },
     "@totemsdk/omnia-factory": {
       "optional": true
     },
