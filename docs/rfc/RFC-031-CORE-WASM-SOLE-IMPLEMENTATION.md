@@ -1,6 +1,6 @@
 # RFC-031: Core-Wasm Sole-Implementation — Portable WASM, Parity Gates, and the Sunset of the JS Crypto Kernels
 
-**Status:** Draft — P1 started (portable `web` target + async init + parity test landed)
+**Status:** Draft — P1 (portable WASM) + P2 (coverage matrix) in progress
 **Created:** 2026-10-02
 **Authors:** Totem SDK Contributors
 **Depends on:** RFC-018 (WASM/TS serializer parity + provenance gate), RFC-020 (multi-package adversarial hardening), RFC-014 (wallet/edge bundling), `SECURITY.md` invariants
@@ -196,8 +196,13 @@ The JS kernels are removed **only when all four gates are green**:
   for edge/Worker runtimes (fresh module registry, bytes supplied, no fetch).
   Remaining: browser (Vite) + actual Workers matrix in CI, embedded-bytes entry,
   and making the `@totemsdk/core` root wasm-free by default. *(Gate G1.)*
-- **P2 — Parity hardening.** Oracle golden vectors for every kernel; fuzz;
-  coverage matrix; wire into CI. *(Gate G2.)*
+- **P2 — Parity hardening (in progress).** Kernel **coverage matrix** landed:
+  `packages/core/test/kernel-baseline.json` triages all 52 WASM kernels
+  (23 covered by existing parity suites, 29 `pending`), enforced by
+  `kernel-coverage.test.mjs` (new/removed/renamed kernels and dangling parity
+  references fail; regeneration preserves annotations via
+  `gen-kernel-baseline.mjs`). Remaining: oracle golden vectors for the pending
+  kernels, fuzz/property tests, and CI wiring. *(Gate G2.)*
 - **P3 — Provenance.** Reproducible/pinned/signed artifacts; SBOM; drift gate.
   *(Gate G3.)*
 - **P4 — Deprecate `/legacy`.** Default crypto = `./wasm` where supported; `legacy`

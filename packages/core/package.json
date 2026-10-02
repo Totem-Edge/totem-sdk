@@ -124,7 +124,7 @@
     "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist",
     "test": "jest",
-    "test:wasm-async": "tsc -p tsconfig.json && node test/wasm-async.test.mjs && node test/wasm-surface-parity.test.mjs",
+    "test:wasm-async": "tsc -p tsconfig.json && node test/wasm-async.test.mjs && node test/wasm-surface-parity.test.mjs && node test/kernel-coverage.test.mjs",
     "gen:pkdigest": "node scripts/gen_wots_pkdigest_vectors.cjs"
   },
   "files": [
