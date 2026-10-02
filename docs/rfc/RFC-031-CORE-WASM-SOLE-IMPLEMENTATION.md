@@ -230,7 +230,9 @@ The JS kernels are removed **only when all four gates are green**:
   three targets share one wasm core). Verified **byte-for-byte reproducible**: a
   clean rebuild leaves `pkg`/`pkg-node`/`pkg-web` unchanged. CI installs the
   pinned toolchain, asserts the pinned wasm-pack (`0.15.0`), and runs the hash
-  gate. Remaining: artifact signing and a Cargo.lock-derived SBOM. *(Gate G3.)*
+  gate. A Cargo.lock-derived **SBOM** (`sbom.json`, 65 crates + checksums) is
+  committed and CI-checked for staleness. Remaining: artifact signing (needs a
+  release key). *(Gate G3.)*
 - **P4 — Deprecate `/legacy`.** Default crypto = `./wasm` where supported; `legacy`
   frozen + warned; migrate internal consumers; budgets measured. *(Gate G4.)*
 - **P5 — Remove.** Delete the JS kernels; `@totemsdk/core` = API + single WASM

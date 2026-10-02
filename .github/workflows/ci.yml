@@ -51,6 +51,13 @@ jobs:
       - name: WASM artifact hash provenance (RFC-031 P3)
         working-directory: packages/core-wasm
         run: npm run artifacts:verify
+      - name: SBOM up to date (RFC-031 P3)
+        run: |
+          (cd packages/core-wasm && npm run sbom:write)
+          if ! git diff --exit-code -- packages/core-wasm/sbom.json; then
+            echo "::error::sbom.json is stale; run 'npm run sbom:write' in packages/core-wasm and commit the result"
+            exit 1
+          fi
       - name: Typecheck + build (workspace)
         run: node scripts/verify-workspace.mjs --typecheck
       - name: QVAC API drift audit (against real @qvac/sdk)
