@@ -9,6 +9,7 @@
 import {
   createChallenge,
   validateChallenge,
+  verifyTreeSignature,
   wasmTreeKeyNew,
   wasmTreeKeySign,
   wasmTreeKeyGetPublicKey,
@@ -27,6 +28,7 @@ import {
   wotsKeypairFromSeed as wasmWotsKeypair,
   mineTxPoW,
   mineTxPoWChunk,
+  verifyMMRProof,
 } from '../wasm-sync.js';
 import { wotsAddressFromKeypair as jsWotsAddress } from '../script.js';
 import { wotsKeypairFromSeed as jsWotsKeypair } from '../wots.js';
@@ -50,11 +52,14 @@ describe('RFC-031 P2: WASM functional kernels', () => {
       expect(pk.length).toBe(32);
       wasmTreeKeySetUses(handle, 7);
       expect(wasmTreeKeyGetUses(handle)).toBe(7);
-      const signature = wasmTreeKeySign(handle, new Uint8Array(32).fill(0xab));
+      const message = new Uint8Array(32).fill(0xab);
+      const signature = wasmTreeKeySign(handle, message);
       expect(typeof signature).toBe('string');
       const parsed = JSON.parse(signature) as { proofs: Array<{ leafPubkey: number[] }> };
       expect(parsed.proofs).toHaveLength(3);
       expect(parsed.proofs[0].leafPubkey).toHaveLength(32);
+      // The WASM sign output is directly verifiable by the WASM verifier.
+      expect(verifyTreeSignature(pk, message, signature)).toBe(true);
     } finally {
       wasmTreeKeyFree(handle);
     }
@@ -126,5 +131,15 @@ describe('RFC-031 P2: WASM functional kernels', () => {
 
     const chunkNonce = mineTxPoWChunk(body, easyTarget, timeMs, 0, 100);
     expect(chunkNonce).toBe('0');
+  });
+
+  it('verifyMMRProof accepts a single-leaf proof and rejects a bad one', () => {
+    const pk = new Uint8Array(32).fill(0x11);
+    const root = mmrRootFromPublicKeys(pk, 1);
+    // Single-leaf MMR: an empty proof reconstructs the root from the leaf.
+    expect(verifyMMRProof(pk, JSON.stringify({ chunks: [] }), root)).toBe(true);
+    // A bogus chunk (byte-array `data`, exercising the flexible schema) fails.
+    const bogus = JSON.stringify({ chunks: [{ isLeft: true, mmrData: { data: Array.from(pk), value: 1 } }] });
+    expect(verifyMMRProof(pk, bogus, root)).toBe(false);
   });
 });

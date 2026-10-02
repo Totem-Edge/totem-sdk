@@ -198,7 +198,7 @@ The JS kernels are removed **only when all four gates are green**:
   and making the `@totemsdk/core` root wasm-free by default. *(Gate G1.)*
 - **P2 — Parity hardening (in progress).** Kernel **coverage matrix** landed:
   `packages/core/test/kernel-baseline.json` triages all 52 WASM kernels
-  (50 covered by parity suites, 2 `pending`), enforced by
+  (**52 covered, 0 pending**), enforced by
   `kernel-coverage.test.mjs` (new/removed/renamed kernels and dangling parity
   references fail; regeneration preserves annotations via
   `gen-kernel-baseline.mjs`). Added a **WASM ↔ JS-kernel differential** suite
@@ -206,10 +206,12 @@ The JS kernels are removed **only when all four gates are green**:
   concat, hex round-trip), a **WASM functional** suite (`wasm-functional.test.ts`:
   challenge, stateful WasmTreeKey, timingSafeEqual, getParams, hashChain,
   expandPrivateKey, MMR root, generateWordList, wotsAddressFromKeypair), and a
-  **serialization fuzz** (`serialization-fuzz.parity.test.ts`). Remaining `pending`:
-  `verifyTreeSignature` and `verifyMMRProof` — both because the JSON schema emitted
-  by the WASM sign/tree path (byte arrays) does not match what the WASM verify
-  functions parse (hex strings); align the serde representation before sunset. *(Gate G2.)*
+  **serialization fuzz** (`serialization-fuzz.parity.test.ts`). All 52 kernels are
+  triaged; the WASM sign↔verify JSON schema was unified (verify now accepts the
+  byte-array form emitted by sign and delegates to the canonical tree verifier),
+  so `verifyTreeSignature`/`verifyMMRProof` are covered too. Remaining G2 work:
+  wire the async/coverage/fuzz suites into CI and add oracle golden vectors where
+  the JS side is a drift guard rather than the reference. *(Gate G2.)*
   **Portability fix (found by the functional suite):** `create_challenge` /
   `validate_challenge` used `std::time::SystemTime`, which panics on
   `wasm32-unknown-unknown`; the clock is now supplied from JS (as `txpow_mine`

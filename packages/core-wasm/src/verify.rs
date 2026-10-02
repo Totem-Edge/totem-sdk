@@ -53,82 +53,57 @@ pub fn verify_signature(
     Ok(address == expected_address)
 }
 
-/// Verify a tree signature (3-proof chain: Root→L1→L2→DATA).
+/// Accept either a hex string ("0x…" or bare) or a JSON array of bytes.
 ///
-/// This is a simplified verification that checks the structure
-/// of a hierarchical TreeKey signature.
+/// The WASM sign/tree path serialises byte fields as arrays; the verify path
+/// historically expected hex strings. Accept both so the sign output is directly
+/// verifiable (RFC-031 P2).
+fn de_bytes<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::de::{self, Visitor};
+    struct BytesVisitor;
+    impl<'de> Visitor<'de> for BytesVisitor {
+        type Value = Vec<u8>;
+        fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+            f.write_str("a hex string or an array of bytes")
+        }
+        fn visit_str<E: de::Error>(self, v: &str) -> Result<Self::Value, E> {
+            hex::decode(v.trim_start_matches("0x")).map_err(E::custom)
+        }
+        fn visit_string<E: de::Error>(self, v: String) -> Result<Self::Value, E> {
+            self.visit_str(&v)
+        }
+        fn visit_seq<A: de::SeqAccess<'de>>(self, mut seq: A) -> Result<Self::Value, A::Error> {
+            let mut out = Vec::new();
+            while let Some(b) = seq.next_element::<u8>()? {
+                out.push(b);
+            }
+            Ok(out)
+        }
+    }
+    deserializer.deserialize_any(BytesVisitor)
+}
+
+/// Verify a tree signature (JSON produced by the WASM/JS TreeKey signer).
+///
+/// Delegates to the canonical `treekey::verify_tree_signature` over the
+/// deserialized `TreeSignature`, so the sign and verify paths share one
+/// implementation (RFC-031 P2).
 pub fn verify_tree_signature(
     root_public_key: &[u8],
     message: &[u8],
     signature_json: &str,
 ) -> Result<bool, String> {
-    #[derive(Deserialize)]
-    struct TreeSignature {
-        proofs: Vec<SignatureProofData>,
-    }
-
-    #[derive(Deserialize)]
-    struct SignatureProofData {
-        #[serde(rename = "leafPubkey")]
-        leaf_pubkey: String,
-        signature: String,
-        #[serde(rename = "mmrProof")]
-        _mmr_proof: MmrProofData,
-    }
-
-    #[derive(Deserialize)]
-    struct MmrProofData {
-        _chunks: Vec<MmrChunkData>,
-    }
-
-    #[derive(Deserialize)]
-    struct MmrChunkData {
-        #[serde(rename = "isLeft")]
-        _is_left: bool,
-        #[serde(rename = "mmrData")]
-        _mmr_data: MmrEntryData,
-    }
-
-    #[derive(Deserialize)]
-    struct MmrEntryData {
-        _data: String,
-        _value: String,
-    }
-
-    let sig: TreeSignature = serde_json::from_str(signature_json)
+    let signature: crate::treekey::TreeSignature = serde_json::from_str(signature_json)
         .map_err(|e| format!("Invalid signature JSON: {}", e))?;
 
-    if sig.proofs.is_empty() {
+    if signature.proofs.is_empty() {
         return Err("No proofs in signature".to_string());
     }
 
-    // Verify the data-level proof (last proof in chain)
-    let data_proof = sig.proofs.last().unwrap();
-    let leaf_pubkey = hex::decode(data_proof.leaf_pubkey.trim_start_matches("0x"))
-        .map_err(|e| format!("Invalid leaf pubkey hex: {}", e))?;
-    let sig_bytes = hex::decode(data_proof.signature.trim_start_matches("0x"))
-        .map_err(|e| format!("Invalid signature hex: {}", e))?;
-
-    // Verify the WOTS signature against the leaf public key DIGEST (32 bytes)
-    if !crate::wots::wots_verify_digest(&sig_bytes, message, &leaf_pubkey) {
-        return Ok(false);
-    }
-
-    // Verify the chain of proofs up to the root
-    let mut current_pk = leaf_pubkey;
-    for proof in sig.proofs.iter().rev().skip(1) {
-        let parent_pubkey = hex::decode(proof.leaf_pubkey.trim_start_matches("0x"))
-            .map_err(|e| format!("Invalid parent pubkey hex: {}", e))?;
-        let parent_sig = hex::decode(proof.signature.trim_start_matches("0x"))
-            .map_err(|e| format!("Invalid parent signature hex: {}", e))?;
-
-        if !crate::wots::wots_verify_digest(&parent_sig, &current_pk, &parent_pubkey) {
-            return Ok(false);
-        }
-        current_pk = parent_pubkey;
-    }
-
-    Ok(timing_safe_equal(&current_pk, root_public_key))
+    Ok(crate::treekey::verify_tree_signature(root_public_key, message, &signature))
 }
 
 /// Verify an MMR proof from JSON.
@@ -144,7 +119,7 @@ pub fn verify_mmr_proof_from_json(
 
     #[derive(Deserialize)]
     struct MmrChunkData {
-        #[serde(rename = "isLeft")]
+        #[serde(rename = "isLeft", default)]
         is_left: bool,
         #[serde(rename = "mmrData")]
         mmr_data: MmrEntryData,
@@ -152,8 +127,10 @@ pub fn verify_mmr_proof_from_json(
 
     #[derive(Deserialize)]
     struct MmrEntryData {
-        data: String,
-        value: String,
+        #[serde(deserialize_with = "de_bytes")]
+        data: Vec<u8>,
+        #[serde(default)]
+        value: serde_json::Value,
     }
 
     let proof_data: MmrProofData =
@@ -163,8 +140,12 @@ pub fn verify_mmr_proof_from_json(
         .chunks
         .iter()
         .map(|c| {
-            let data = hex::decode(c.mmr_data.data.trim_start_matches("0x")).unwrap_or_default();
-            let value = c.mmr_data.value.parse::<u64>().unwrap_or(0);
+            let data = c.mmr_data.data.clone();
+            let value = match &c.mmr_data.value {
+                serde_json::Value::Number(n) => n.as_u64().unwrap_or(0),
+                serde_json::Value::String(s) => s.parse::<u64>().unwrap_or(0),
+                _ => 0,
+            };
             crate::mmr::MMRProofChunk {
                 is_left: c.is_left,
                 mmr_data: crate::mmr::MMRData { data, value },
