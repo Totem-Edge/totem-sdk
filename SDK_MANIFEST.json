@@ -258,7 +258,12 @@
       ],
       "dependencies": {},
       "exports": {
-        ".": "pkg/{totemsdk_core_wasm.js, totemsdk_core_wasm.d.ts}"
+        ".": "pkg/{totemsdk_core_wasm.js, totemsdk_core_wasm.d.ts}",
+        "./web": {
+          "types": "./pkg-web/totemsdk_core_wasm.d.ts",
+          "import": "./pkg-web/totemsdk_core_wasm.js",
+          "default": "./pkg-web/totemsdk_core_wasm.js"
+        }
       },
       "exportsDescription": "Low-level WASM bindings — used internally by @totemsdk/core"
     },
@@ -1433,7 +1438,7 @@
     },
     {
       "name": "@totemsdk/omnia-pool",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "description": "Generic Omnia liquidity pool orchestration primitive for Totem SDK",
       "domain": "payment-network",
       "keywords": [

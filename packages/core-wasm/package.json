@@ -10,20 +10,28 @@
       "require": "./pkg-node/totemsdk_core_wasm.js",
       "import": "./pkg/totemsdk_core_wasm.js",
       "default": "./pkg-node/totemsdk_core_wasm.js"
+    },
+    "./web": {
+      "types": "./pkg-web/totemsdk_core_wasm.d.ts",
+      "import": "./pkg-web/totemsdk_core_wasm.js",
+      "default": "./pkg-web/totemsdk_core_wasm.js"
     }
   },
   "files": [
     "pkg/",
     "pkg-node/",
+    "pkg-web/",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
-    "build": "npm run build:bundler && npm run build:node",
+    "build": "npm run build:bundler && npm run build:node && npm run build:web",
     "build:bundler": "wasm-pack build --target bundler --out-dir pkg && node scripts/prepare-publish-assets.mjs",
     "build:node": "wasm-pack build --target nodejs --out-dir pkg-node && node scripts/prepare-publish-assets.mjs",
+    "build:web": "wasm-pack build --target web --out-dir pkg-web && node scripts/prepare-publish-assets.mjs",
     "test": "wasm-pack test --node",
-    "clean": "rm -rf pkg pkg-node target"
+    "test:web": "node tests/web-init.test.mjs",
+    "clean": "rm -rf pkg pkg-node pkg-web target"
   },
   "repository": {
     "type": "git",

@@ -14,7 +14,7 @@ const ignoreRules = [
   '',
 ].join('\n');
 
-for (const directory of ['pkg', 'pkg-node']) {
+for (const directory of ['pkg', 'pkg-node', 'pkg-web']) {
   const outputDir = join(process.cwd(), directory);
   if (existsSync(outputDir)) {
     writeFileSync(join(outputDir, '.gitignore'), ignoreRules);

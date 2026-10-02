@@ -9041,7 +9041,8 @@
         },
         "sdkIndex": {
           "kind": "const",
-          "signature": "sdkIndex = getIndex()"
+          "signature": "sdkIndex = (() => { const state = getIndexState() return state.ok ? state.index : ({ generatedAt: 0, packages: {}, symbolIndex: {}, domainMap: {} } as ReturnType<typeof getIndex>) })()",
+          "deprecated": true
         }
       }
     },
@@ -13453,7 +13454,7 @@
         },
         "createPortfolioStreamManager": {
           "kind": "function",
-          "signature": "createPortfolioStreamManager(deps: Omit<PortfolioStreamDependencies, \"portfolioCache\"> & { storage: import(\"@totemsdk/core\").StorageAdapter; }, config: PortfolioStreamConfig): PortfolioStreamManager"
+          "signature": "createPortfolioStreamManager(deps: Omit<PortfolioStreamDependencies, \"portfolioCache\"> & { storage: import(\"@totemsdk/core/adapters\").StorageAdapter; }, config: PortfolioStreamConfig): PortfolioStreamManager"
         },
         "PortfolioStreamDependencies": {
           "kind": "interface",

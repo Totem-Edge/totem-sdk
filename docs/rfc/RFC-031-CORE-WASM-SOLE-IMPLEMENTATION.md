@@ -1,6 +1,6 @@
 # RFC-031: Core-Wasm Sole-Implementation — Portable WASM, Parity Gates, and the Sunset of the JS Crypto Kernels
 
-**Status:** Draft — design + phased plan (P0 prerequisites landed: root is wasm-free, `realtime` decoupled)
+**Status:** Draft — P1 started (portable `web` target + async init + parity test landed)
 **Created:** 2026-10-02
 **Authors:** Totem SDK Contributors
 **Depends on:** RFC-018 (WASM/TS serializer parity + provenance gate), RFC-020 (multi-package adversarial hardening), RFC-014 (wallet/edge bundling), `SECURITY.md` invariants
@@ -180,11 +180,16 @@ The JS kernels are removed **only when all four gates are green**:
 
 ## 8. Phases
 
-- **P0 — Decouple (landed).** Root stays wasm-free-by-default; `realtime` uses
-  `@totemsdk/core/adapters`; edge/Workers docs + esbuild alias guidance.
-  *(This RFC's prerequisite; see `packages/core/README.md`.)*
-- **P1 — Portable WASM.** Async `init()` entry + runtime matrix + embedded-bytes
-  option; no `fs` in bundled output. *(Gate G1.)*
+- **P0 — Decouple (landed).** `realtime` no longer imports the wasm-coupled root
+  (`@totemsdk/core/adapters`); edge/Workers bundling docs + esbuild alias guidance
+  added (`packages/core/README.md`). **Root wasm-free-by-default (Fix A) is still
+  pending** (part of P1/P4).
+- **P1 — Portable WASM (in progress).** `core-wasm` now builds a `--target web`
+  artifact (`pkg-web`) exposing async `init()`; exported as `@totemsdk/core-wasm/web`.
+  Proven locally: async init with explicit wasm bytes (no fetch/`fs` in glue) and
+  byte-parity with the Node target (`packages/core-wasm/tests/web-init.test.mjs`).
+  Remaining: runtime matrix (browser/Worker/Deno/Bun), embedded-bytes entry, and
+  making the `@totemsdk/core` root wasm-free by default. *(Gate G1.)*
 - **P2 — Parity hardening.** Oracle golden vectors for every kernel; fuzz;
   coverage matrix; wire into CI. *(Gate G2.)*
 - **P3 — Provenance.** Reproducible/pinned/signed artifacts; SBOM; drift gate.
