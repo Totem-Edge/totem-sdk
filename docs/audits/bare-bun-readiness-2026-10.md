@@ -82,6 +82,15 @@ Replacing `node:crypto` with the WASM core (`sha3_256`, `timingSafeEqual`, and a
 **Why first:** kills the biggest leak, unblocks 9 packages for Bare, and is shared with the
 root-wasm-free migration. **Effort: ~1–2 weeks.**
 
+**Status (2026-10-03): non-consensus scope complete.** Migrated off `node:crypto`:
+`agent-policy` (sha256), `tx-builder` (random), `edge`/`proof-integritas` (randomUUID),
+`wots-lease` (sha256 journal), `omnia` (sha256 idempotency). Remaining `node:crypto` is
+**only** consensus-critical (`core/scripts/contract-helpers`, `kissvm/eval`, `kissvm/simulate`),
+**server-only** (`omnia-host`, `lookup-node`, `server`, `se-server`), or **test mocks**
+(`kissvm/__mocks__`, `edge-mqtt/wasm-jest-mock`). Consensus hashing stays on the oracle-parity WASM
+core; a KISSVM `SHA2`/`SHA3` oracle-vector guard now pins the opcodes
+(`packages/kissvm/src/__tests__/hash-opcodes.oracle.test.ts`).
+
 ### P2 — transport / fs / worker ports
 **Packages:** minima-rpc (`net`/`tls` → `bare-net`/`bare-tls`), txpow (`worker_threads`/`fs`/`path` →
 `bare-worker`/`bare-fs`), storage (Node adapters behind the existing `StorageAdapter` port; Bare
