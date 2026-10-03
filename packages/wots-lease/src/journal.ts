@@ -6,7 +6,8 @@
  * The SHA-256 chain format is intentionally unchanged (RFC-007 OQ3).
  */
 
-import { createHash } from 'crypto';
+import { sha256 } from '@noble/hashes/sha256.js';
+import { bytesToHex } from '@noble/hashes/utils.js';
 import type { StorageAdapter, LoggerAdapter } from '@totemsdk/core';
 import { NoopLogger } from '@totemsdk/core';
 import { StorageError } from '@totemsdk/storage/errors';
@@ -60,7 +61,7 @@ function hashEntry(entry: JournalEntry): string {
     d: entry.deviceId,
   };
   const bytes = encoder.encode(JSON.stringify(data));
-  return createHash('sha256').update(bytes).digest('hex');
+  return bytesToHex(sha256(bytes));
 }
 
 function cloneEntry(entry: JournalEntry): JournalEntry {

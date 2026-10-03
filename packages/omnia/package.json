@@ -32,15 +32,16 @@
     "LICENSE"
   ],
   "dependencies": {
+    "@noble/hashes": "^1.8.0",
+    "@totemsdk/agent-policy": "workspace:^",
+    "@totemsdk/chain-provider": "workspace:^",
     "@totemsdk/core": "workspace:^",
+    "@totemsdk/kissvm": "workspace:^",
+    "@totemsdk/lookup-protocol": "workspace:^",
+    "@totemsdk/stream-transport": "workspace:^",
     "@totemsdk/tx-builder": "workspace:^",
     "@totemsdk/txpow": "workspace:^",
     "@totemsdk/wots-lease": "workspace:^",
-    "@totemsdk/chain-provider": "workspace:^",
-    "@totemsdk/agent-policy": "workspace:^",
-    "@totemsdk/kissvm": "workspace:^",
-    "@totemsdk/stream-transport": "workspace:^",
-    "@totemsdk/lookup-protocol": "workspace:^",
     "hyperswarm": ">=4.0.0"
   },
   "devDependencies": {

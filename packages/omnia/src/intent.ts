@@ -7,7 +7,8 @@ import type {
   UpdateDelta,
 } from './types.js';
 import { updateState } from './channel.js';
-import { createHash } from 'node:crypto';
+import { sha256 } from '@noble/hashes/sha256.js';
+import { bytesToHex } from '@noble/hashes/utils.js';
 
 export interface ExecuteIntentOptions {
   /** Stable caller-supplied idempotency key. */
@@ -41,13 +42,11 @@ export async function executeIntent(
 ): Promise<IntentResult> {
   const effectiveSigner = signer ?? channel.localSigner;
   const createdAt = options?.createdAt ?? Date.now();
-  const stableOperationId = options?.operationId ?? createHash('sha256')
-    .update(JSON.stringify({
-      channelId: channel.channelId,
-      principal: effectiveSigner?.publicKeyDigest ?? null,
-      intent,
-    }))
-    .digest('hex');
+  const stableOperationId = options?.operationId ?? bytesToHex(sha256(new TextEncoder().encode(JSON.stringify({
+    channelId: channel.channelId,
+    principal: effectiveSigner?.publicKeyDigest ?? null,
+    intent,
+  }))));
 
   const proposal: AgentProposal = {
     id: `intent-${stableOperationId}`,

@@ -26,6 +26,7 @@
     "LICENSE"
   ],
   "dependencies": {
+    "@noble/hashes": "^1.8.0",
     "@totemsdk/core": "workspace:^",
     "@totemsdk/lookup-protocol": "workspace:^",
     "@totemsdk/storage": "workspace:^",

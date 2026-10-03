@@ -1328,6 +1328,9 @@ importers:
 
   packages/omnia:
     dependencies:
+      '@noble/hashes':
+        specifier: ^1.8.0
+        version: 1.8.0
       '@totemsdk/agent-policy':
         specifier: workspace:^
         version: link:../agent-policy
@@ -2236,6 +2239,9 @@ importers:
 
   packages/wots-lease:
     dependencies:
+      '@noble/hashes':
+        specifier: ^1.8.0
+        version: 1.8.0
       '@totemsdk/core':
         specifier: workspace:^
         version: link:../core
