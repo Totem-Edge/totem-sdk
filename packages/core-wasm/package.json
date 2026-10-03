@@ -7,6 +7,7 @@
   "exports": {
     ".": {
       "types": "./pkg/totemsdk_core_wasm.d.ts",
+      "bun": "./pkg-node/totemsdk_core_wasm.js",
       "require": "./pkg-node/totemsdk_core_wasm.js",
       "import": "./pkg/totemsdk_core_wasm.js",
       "default": "./pkg-node/totemsdk_core_wasm.js"

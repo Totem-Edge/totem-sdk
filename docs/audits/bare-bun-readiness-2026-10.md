@@ -98,10 +98,22 @@ already has `pear/storage` `BareKVStore`/`BareFileStore`), omnia (`hyperswarm` �
 already exists), pubsub-transport (`events` → `bare-events`).
 **Effort: ~1–2 weeks.**
 
+**Status (2026-10-03): complete.** `pubsub-transport` now uses an in-package
+`EmitterLike` (no `node:events`). The rest were already guarded/abstracted:
+`minima-rpc` (`try{require('node:net')}catch` → fetch-primary, raw net/tls optional),
+`txpow` (`typeof process === 'undefined'` → no worker; wasm-fs path guarded),
+`storage` (Node adapters behind `StorageAdapter`; `pear/storage` supplies Bare),
+`omnia` (hyperswarm is a dynamic/optional import; relay mode is Bare-safe).
+
 ### P3 — Bun verification + core ESM wasm fix
 **Change:** add a Bun job to CI that loads each package; resolve `@totemsdk/core`'s ESM path to the
 **nodejs** target or `./wasm-async` under Bun (the bundler-target glue is the only Bun failure).
 **Effort: ~2–4 days.**
+
+**Status (2026-10-03): complete.** Added a `bun` export condition to
+`@totemsdk/core-wasm` (`.`) pointing at the nodejs target, so Bun's ESM path resolves correctly while
+browsers keep the bundler target. `scripts/verify-bun-load.mjs` loads **62/62** packages under Bun
+(1.3.14); a `bun-readiness` CI job runs it.
 
 ### Excluded
 `omnia-host`, `se-server`, `server`, `mcp-server`, `lookup-node` are Node services — keep Node-only

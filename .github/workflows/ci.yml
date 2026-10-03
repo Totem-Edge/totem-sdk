@@ -228,3 +228,25 @@ jobs:
       - name: cargo test
         working-directory: packages/core-wasm
         run: cargo test --all-targets --all-features
+
+  bun-readiness:
+    name: Bun readiness smoke
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Setup filtered workspace
+        uses: ./.github/actions/setup-pnpm
+      - name: Setup Rust and WASM toolchain
+        uses: ./.github/actions/setup-rust-wasm
+      - name: Build core-wasm (prerequisite)
+        working-directory: packages/core-wasm
+        run: npm run build
+      - name: Build workspace (dependency order)
+        run: node scripts/verify-workspace.mjs --typecheck
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.14'
+      - name: Bun load smoke (RFC-031 P3)
+        run: bun scripts/verify-bun-load.mjs
