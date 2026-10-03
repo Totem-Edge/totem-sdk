@@ -26,7 +26,6 @@
  * "verification levels"): this wrapper never fabricates one.
  */
 
-import { randomUUID } from 'crypto';
 import type { EdgeIntelligencePort } from '@totemsdk/intelligence';
 import { StorageError } from '@totemsdk/storage';
 import type { Journal, JournalEntry } from '@totemsdk/storage/journal';
@@ -129,7 +128,7 @@ export function createAccountedIntelligencePort(
 ): EdgeIntelligencePort {
   const { port, journal } = options;
   const now = options.now ?? (() => Date.now());
-  const requestIdGen = options.requestId ?? (() => randomUUID());
+  const requestIdGen = options.requestId ?? (() => globalThis.crypto.randomUUID());
 
   async function recordFinished(
     record: Omit<Extract<InferenceAuditEvent, { event: 'finished' }>, 'finishedAt'>,

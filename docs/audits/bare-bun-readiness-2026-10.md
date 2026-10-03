@@ -115,3 +115,33 @@ Pear/mobile goal; Bare alone is the real work and pulls Bun along.
 
 **Sequencing:** P1 (crypto swap) first — highest leverage, shared with the root-wasm-free migration —
 then P2 (transport/worker), then P3 (Bun CI). Gate each package with the full workspace verification.
+
+---
+
+## 7. Consensus classification of `node:crypto` call sites (P1 safety rule)
+
+**Rule:** only **non-consensus** hashing and randomness may move to `@noble/hashes` /
+`globalThis.crypto`. **Consensus-critical** hashing stays on the **oracle-parity WASM core**
+(`@totemsdk/core`); on Bare it is reached through `@totemsdk/core/wasm-async` (same WASM core, so
+parity is preserved). Changing a consensus site requires **C++/Java node oracle vectors**, not a
+`node:crypto` comparison. WOTS, TreeKey, MMR, address derivation and transaction serialization are
+**out of scope** for P1 and must not change.
+
+| Call site | Use | Class | Action |
+|---|---|---|---|
+| `agent-policy/receipt-store.ts` `sha256` | receipt store key (`rcpt-…`) | **non-consensus** | ✅ moved to `@noble/hashes` |
+| `tx-builder/multisig-manager.ts` `randomBytes` | local pending-tx id | **non-consensus** | ✅ moved to `globalThis.crypto` |
+| `edge/intelligence-usage-journal.ts` `randomUUID` | request id | **non-consensus** | move to `globalThis.crypto` |
+| `proof-integritas/provider.ts` `randomUUID` | request id | **non-consensus** | move to `globalThis.crypto` |
+| `wots-lease/journal.ts` `sha256` | journal hash-chain (`previousHash`) | **non-consensus** | move to `@noble/hashes` |
+| `omnia/intent.ts` `sha256` | idempotency `operationId` | **non-consensus** | move to `@noble/hashes` |
+| `edge-mqtt/wasm-jest-mock.ts` `sha3-256` | **test mock only** | n/a | leave |
+| `omnia` `createHash` / `getRandomValues` | audit each | **review** | classify before moving |
+| **`kissvm/eval.ts` `sha2` (line 366)** | **KISSVM `SHA2`/`SHA3` opcode** | **CONSENSUS** | **do not move to noble** — keep WASM core; add oracle-vector guard |
+| **`core/scripts/contract-helpers.ts` `sha256`** | **hashlock preimage → on-chain script** | **CONSENSUS** | **do not move** — WASM core / oracle vectors |
+| **`kissvm/simulate.ts` `computeSimulationDigest`** | simulation `txDigest` | **CONSENSUS-adjacent** | keep WASM core; review before any change |
+| `omnia-host/*`, `server/*`, `se-server/*`, `lookup-node/*` | server-only services | **SERVER** | excluded from Bare target |
+
+**Guard to add:** an oracle-vector test pinning the KISSVM `SHA2` (SHA-256) and `SHA3` (SHA3-256)
+opcodes against the C++/Java node, so a future refactor cannot silently diverge.
+

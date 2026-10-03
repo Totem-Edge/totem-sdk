@@ -6,7 +6,6 @@
  * through config.fetch so tests can inject a mock without patching globals.
  */
 
-import { randomUUID } from 'crypto';
 import { verifyProof as localVerifyProof } from '@totemsdk/proof';
 import type {
   ProofProvider,
@@ -46,7 +45,7 @@ const INTEGRITAS_CAPABILITIES: IntegritasCapability[] = [
 export function createIntegritasProofProvider(config: IntegritasConfig = {}): ProofProvider {
   const baseUrl = config.baseUrl ?? DEFAULT_BASE_URL;
   const apiKey = config.apiKey ?? '';
-  const requestIdFactory = config.requestIdFactory ?? (() => randomUUID());
+  const requestIdFactory = config.requestIdFactory ?? (() => globalThis.crypto.randomUUID());
   const fetchFn = config.fetch ?? globalThis.fetch;
 
   function buildHeaders(extra?: Record<string, string>): Record<string, string> {
