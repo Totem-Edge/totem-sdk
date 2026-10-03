@@ -1,5 +1,6 @@
 import type { AgentReceipt } from './types.js';
-import { createHash } from 'node:crypto';
+import { sha256 } from '@noble/hashes/sha256.js';
+import { bytesToHex } from '@noble/hashes/utils.js';
 
 /**
  * ReceiptStore — persists AgentReceipt objects for audit trail.
@@ -42,7 +43,7 @@ export class MemoryReceiptStore implements ReceiptStore {
 
   async save(receipt: AgentReceipt): Promise<string> {
     await this.ready;
-    const receiptId = `rcpt-${createHash('sha256').update(JSON.stringify(receipt)).digest('hex').slice(0, 32)}`;
+    const receiptId = `rcpt-${bytesToHex(sha256(new TextEncoder().encode(JSON.stringify(receipt)))).slice(0, 32)}`;
     this.receipts.set(receiptId, receipt);
     if (this.filePath) {
       await this.appendToFile(receiptId, receipt);
