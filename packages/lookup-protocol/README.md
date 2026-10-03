@@ -14,9 +14,13 @@ npm install @totemsdk/lookup-protocol
 
 ### Message families
 
+> **RFC-032 (v2):** authentication is post-quantum. There is no `AUTH_CHALLENGE`/
+> `AUTH_RESPONSE` handshake; authenticated messages carry a WOTS `auth` envelope
+> (`WotsAuthEnvelope`). This is a hard switch — v1 and v2 peers do not interoperate.
+
 | Family | Messages |
 |--------|----------|
-| **Auth** | `HelloMessage`, `AuthChallengeMessage`, `AuthResponseMessage` |
+| **Liveness** | `HelloMessage`, `PingMessage`, `PongMessage` |
 | **Chain queries** | `GetCoinsMessage`, `GetCoinMessage`, `GetProofMessage`, `GetTipMessage`, `GetTokenMessage` |
 | **Real-time** | `CoinUpdateMessage`, `WatchRegisterMessage`, `WatchRemoveMessage` |
 | **Relay** | `BroadcastTxPoWMessage` |
@@ -39,18 +43,34 @@ const len = peekFrameLength(buffer);
 const msg = decodeMessage(frame);
 ```
 
-### WOTS-signed message authentication
+### WOTS-signed message authentication (RFC-032)
+
+Authentication is hash-based WOTS — quantum-resistant. A signed message carries
+an `auth` envelope (`WotsAuthEnvelope`: `rootPublicKey`, `signature`, `nonce`,
+`expiresAt`, optional `rootIdentityProof`/`address`). The signature covers
+`sha3_256(canonicalJson({type,id,payload}) ‖ nonce ‖ expiresAt)`.
 
 ```typescript
-import { messageDigest, signMessage, verifyMessageAuth } from '@totemsdk/lookup-protocol';
+import { authDigest, signMessage, verifyMessageAuth } from '@totemsdk/lookup-protocol';
 
-// Sign a message with a WOTS key
-const digest = messageDigest(msg);
-const signed = signMessage(msg, wotsPrivateKey, wotsIndex);
+// Sign (async): `sign` is a WOTS signer, `rootPublicKey` is the hex PKdigest.
+const signed = await signMessage(msg, wotsSign, rootPublicKey, {
+  nonce,        // monotonic anti-replay value (the TreeKey use index)
+  expiresAt,    // absolute expiry (epoch ms)
+});
 
-// Verify on the receiving end
-const ok = verifyMessageAuth(signed);
+// Verify on the receiving end (async): `verify` is a WOTS verifier.
+const ok = await verifyMessageAuth(signed, wotsVerify);
 ```
+
+The lookup-node additionally enforces per-identity nonce monotonicity (replay
+rejection) — verification alone is not sufficient because WOTS signatures are
+static.
+
+## Post-quantum note
+
+v2 uses WOTS/TreeKey (hash-based) signatures throughout. Ed25519 has been
+removed from the lookup stack. See `docs/rfc/RFC-032-LOOKUP-STACK-POST-QUANTUM-IDENTITY.md`.
 
 ## See also
 

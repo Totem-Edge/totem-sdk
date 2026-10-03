@@ -229,6 +229,10 @@ API**; string-presence assertions are not accepted as proof.
 - **H11** lookup-node (partial): concurrent-session cap + reconnect-resistant
   per-identity rate limit. **Residual:** credential-scoped tree ownership proofs
   (lease) and watchlist ownership proofs.
+  **Superseded by RFC-032:** the "ephemeral Ed25519 key treated as authenticated"
+  root cause is removed — the lookup stack is now WOTS/TreeKey (post-quantum), the
+  node verifies identity + enforces per-identity nonce monotonicity (replay
+  rejection) on every message, and the ephemeral Ed25519 key is gone.
 - **H12** storage: codec/snapshot define own properties (no prototype pollution).
 
 ### 4.6 Pass 2 — Medium, secret exposure, and clean areas

@@ -1,19 +1,24 @@
 /**
- * ClientSession — manages one authenticated client connection.
+ * ClientSession — manages one post-quantum-authenticated client connection.
+ *
+ * RFC-032: there is no HELLO → AUTH_CHALLENGE → AUTH_RESPONSE handshake. Every
+ * non-liveness message carries a WOTS auth envelope (identity + nonce + expiry
+ * + signature). The session verifies it and enforces per-identity nonce
+ * monotonicity (replay rejection) before dispatching.
  *
  * Lifecycle:
- *   1. New connection arrives → session is created, AUTH_CHALLENGE is sent immediately.
- *   2. Client sends HELLO → session ignores (challenge already sent) or re-sends challenge.
- *   3. Client sends AUTH_RESPONSE → server verifies → authenticated = true → PONG sent.
- *   4. All subsequent messages are rate-limited and dispatched to the appropriate handler.
- *   5. On close: session is removed from the node's session map.
+ *   1. Connection arrives → session created (no challenge sent).
+ *   2. Client sends a message with a valid `auth` envelope → accepted; the
+ *      session records its public key and advances the identity nonce.
+ *   3. HELLO/PING are answered without authentication.
+ *   4. On close: session removed from the node's session map.
  */
 
 import { encodeMessage } from '@totemsdk/lookup-protocol';
 import { randomBytes } from 'node:crypto';
 import type { LookupMessage } from '@totemsdk/lookup-protocol';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
-import { generateChallenge, verifyAuthResponse } from './server-auth.js';
+import { verifyAuthEnvelope, ReplayGuard } from './auth-verify.js';
 import {
   handleGetCoins,
   handleGetCoin,
@@ -51,6 +56,8 @@ export interface NodeDispatcher {
   onSessionClosed(sessionId: string): void;
   /** RFC-020 H11: per-identity rate limit that survives reconnects. */
   checkIdentityRate(publicKeyHex: string | undefined, rpm: number, now?: number): boolean;
+  /** RFC-032: node-wide replay guard shared across sessions. */
+  readonly replayGuard: ReplayGuard;
   nodeId: string;
   isMegaMMRMode: boolean;
 }
@@ -69,8 +76,6 @@ export class ClientSession {
 
   private readonly _parser = new FrameParser();
   private readonly _sendFn: SendFn;
-  private _challenge: string;
-  private _challengeExpiresAt: number;
   private _destroyed = false;
 
   constructor(
@@ -80,19 +85,6 @@ export class ClientSession {
     this.sessionId = `session-${randomBytes(8).toString('hex')}-${Date.now()}`;
     this._sendFn = makeRawSender(_transport);
 
-    // Issue challenge immediately
-    const { challenge, expiresAt } = generateChallenge(
-      _dispatcher.config.challengeTtlMs ?? 30_000,
-    );
-    this._challenge = challenge;
-    this._challengeExpiresAt = expiresAt;
-    this._sendFn({
-      type: 'AUTH_CHALLENGE',
-      version: 1,
-      payload: { challenge, expiresAt },
-    });
-
-    // Wire transport events
     _transport.on('data', (chunk) => this._onData(chunk));
     _transport.on('close', () => this._onClose());
     _transport.on('error', (_err) => this._onClose());
@@ -127,24 +119,48 @@ export class ClientSession {
   }
 
   private async _handleMessage(msg: LookupMessage): Promise<void> {
-    if (msg.type === 'HELLO') {
-      // Re-send the challenge in case the client missed it
+    // Unauthenticated liveness: HELLO is acknowledged, PING is answered.
+    if (msg.type === 'PING') {
       this._sendFn({
-        type: 'AUTH_CHALLENGE',
-        version: 1,
+        type: 'PONG',
+        version: 2,
         id: msg.id,
-        payload: { challenge: this._challenge, expiresAt: this._challengeExpiresAt },
+        payload: { ts: Date.now(), echo: (msg.payload as { ts: number }).ts },
+      });
+      return;
+    }
+    if (msg.type === 'HELLO') {
+      this._sendFn({
+        type: 'PONG',
+        version: 2,
+        id: msg.id,
+        payload: { ts: Date.now(), echo: 0 },
       });
       return;
     }
 
-    if (!this.authenticated) {
-      if (msg.type === 'AUTH_RESPONSE') {
-        await this._handleAuthResponse(msg);
-      } else {
-        sendError(this._sendFn, msg.id, 'AUTH_REQUIRED', 'Not authenticated');
+    // RFC-032: verify the WOTS auth envelope on every authenticated message.
+    if (!this._dispatcher.config._skipAuth) {
+      const result = await verifyAuthEnvelope(msg);
+      if (!result.valid || result.publicKeyHex === undefined || result.nonce === undefined) {
+        sendError(this._sendFn, msg.id, 'AUTH_REQUIRED', result.reason ?? 'Not authenticated');
+        return;
       }
-      return;
+      // Replay rejection: nonce must be strictly increasing per identity.
+      if (!this._dispatcher.replayGuard.claim(result.publicKeyHex, result.nonce)) {
+        sendError(this._sendFn, msg.id, 'AUTH_REPLAY', 'Replayed or non-monotonic nonce');
+        return;
+      }
+      this.authenticated = true;
+      this.publicKeyHex = result.publicKeyHex;
+    } else {
+      // Test mode: accept without verification but adopt the envelope identity
+      // when present so identity-based limits still behave.
+      const auth = msg.auth;
+      if (auth) {
+        this.authenticated = true;
+        this.publicKeyHex = auth.rootPublicKey;
+      }
     }
 
     // Rate limiting
@@ -159,45 +175,13 @@ export class ClientSession {
       sendError(this._sendFn, msg.id, 'RATE_LIMITED', 'Too many requests');
       return;
     }
-    // RFC-020 H11: a fuzzy per-identity limit that survives reconnect (the
-    // per-session counter resets on each new connection).
+    // RFC-020 H11: a fuzzy per-identity limit that survives reconnect.
     if (!this._dispatcher.checkIdentityRate(this.publicKeyHex, rateLimitRpm, now)) {
       sendError(this._sendFn, msg.id, 'RATE_LIMITED', 'Too many requests for this identity');
       return;
     }
 
     await this._dispatch(msg);
-  }
-
-  private async _handleAuthResponse(
-    msg: Extract<LookupMessage, { type: 'AUTH_RESPONSE' }>,
-  ): Promise<void> {
-    let valid = true;
-    let publicKeyHex = msg.payload.publicKey;
-
-    if (!this._dispatcher.config._skipAuth) {
-      const result = await verifyAuthResponse(
-        msg.payload,
-        this._challenge,
-        this._challengeExpiresAt,
-      );
-      valid = result.valid;
-      publicKeyHex = result.publicKeyHex;
-      if (!valid) {
-        sendError(this._sendFn, msg.id, 'AUTH_FAILED', result.reason ?? 'invalid auth');
-        return;
-      }
-    }
-
-    this.authenticated = true;
-    this.publicKeyHex = publicKeyHex;
-
-    this._sendFn({
-      type: 'PONG',
-      version: 1,
-      id: msg.id,
-      payload: { ts: Date.now(), echo: 0 },
-    });
   }
 
   private async _dispatch(msg: LookupMessage): Promise<void> {
@@ -230,7 +214,7 @@ export class ClientSession {
           const result = await relay.process(msg.payload.txpowHex);
           this._sendFn({
             type: 'BROADCAST_RESPONSE',
-            version: 1,
+            version: 2,
             id: msg.id,
             payload: { success: result.success, message: result.message, txpowid: result.txpowid },
           });
@@ -329,15 +313,6 @@ export class ClientSession {
         }
         break;
       }
-
-      case 'PING':
-        this._sendFn({
-          type: 'PONG',
-          version: 1,
-          id: msg.id,
-          payload: { ts: Date.now(), echo: (msg.payload as { ts: number }).ts },
-        });
-        break;
 
       default:
         // Silently ignore unknown/server-only message types

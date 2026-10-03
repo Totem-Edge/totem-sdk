@@ -14,6 +14,7 @@ import { LeaseCoordinator } from './lease.js';
 import { AppRegistry, AgentRegistry } from './registry.js';
 import { TrustIndex } from './trust.js';
 import { ClientSession } from './session.js';
+import { ReplayGuard } from './auth-verify.js';
 import { SqliteStore, SqliteStorageAdapter } from './storage.js';
 import type { NodeDispatcher } from './session.js';
 import type { ITransport, LookupNodeConfig, ChainStateProvider } from './types.js';
@@ -30,6 +31,8 @@ export class LookupNode implements NodeDispatcher {
   readonly trustIndex?: TrustIndex;
 
   nodeId: string;
+  /** RFC-032: node-wide anti-replay guard (per-identity nonce monotonicity). */
+  readonly replayGuard = new ReplayGuard();
 
   private readonly _sessions = new Map<string, ClientSession>();
   /** RFC-020 H11: per-identity rate counter that survives reconnects. */

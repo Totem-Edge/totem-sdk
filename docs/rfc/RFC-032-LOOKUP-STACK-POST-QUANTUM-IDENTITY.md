@@ -1,6 +1,6 @@
 # RFC-032: Lookup-Stack Post-Quantum Identity — Replace Ed25519 with WOTS/TreeKey
 
-**Status:** Draft — design specification
+**Status:** Landed (TypeScript packages) — v2 hard switch implemented across `lookup-protocol`, `lookup-client`, `lookup-node`. Ed25519 removed; per-message WOTS `auth` envelope + nonce-monotonicity replay guard; registry verifies the WOTS-signed manifest; lease node identity is WOTS/TreeKey. Go mirrors (`lookup-*/go`) and generated TypeDoc are **not yet updated**. Live-key deployment should derive the identity from `@totemsdk/root-identity` and coordinate indices via `@totemsdk/wots-lease` (RFC-032 §9 Q1).
 **Created:** 2026-10-02
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]
@@ -201,6 +201,21 @@ The lookup digest is already SHA3-256 (`lookup-protocol/src/auth.ts:46`). The SD
 | **P4** | Node identity: `lease.ts` cert signer → WOTS; `nodeId` = pubkey digest. | Unit: cert verifies self-containedly |
 | **P5** | Session tickets (node-signed, TTL, request cap); `trust.ts` reviewer verifier → WOTS. | Unit: ticket issue/redeem/expire |
 | **P6** | End-to-end: announce/query/auth over v2 against a live node; adversarial suite (replay, forged proof, index reuse, expired, downgrade). | E2E + adversarial green |
+
+## 8a. Implementation status (TypeScript)
+
+Shipped (tests green: protocol 21, client 22, node 47):
+
+- **P1** `lookup-protocol` v2 — `PROTOCOL_VERSION = 2`; `AUTH_CHALLENGE`/`AUTH_RESPONSE` and Ed25519 fields removed; `WotsAuthEnvelope` on `BaseMessage`; `authDigest`/`signMessage`/`verifyMessageAuth` are async and WOTS-based; `canonicalJson` exported.
+- **P2** `lookup-client` — `LookupIdentity` (TreeKey) + `Authenticator`; `authenticateIdentityKeyPair`/`runAuthHandshake` removed; `RpcLayer` stamps every outgoing message; no handshake in `_connect`.
+- **P3** `lookup-node` — `server-auth.ts` deleted; `auth-verify.ts` verifies the envelope with `verifyTreeSignature`; `ReplayGuard` enforces per-identity nonce monotonicity; `session.ts` verifies per message; `registry.ts` verifies the WOTS-signed manifest via `verifyManifest`; storage schema uses `signerAddress` (Ed25519 `publicKey`/`signature` columns removed).
+- **P4** `lease.ts` node identity is now a WOTS/TreeKey; `nodeId` = WOTS public-key digest.
+- **P5** `trust.ts` unchanged — its reviewer verifier is already pluggable (`verifyReviewerSignature`), which is the required seam. Session tickets are **not** implemented; the client currently signs per message (one TreeKey use each). A client can raise `authTtlMs` but not amortise uses; ticket support remains open.
+
+Not done:
+- **Go mirrors** (`packages/lookup-*/go`) still speak v1/Ed25519 and must be updated to v2.
+- **Generated TypeDoc** under `TotemEdgeSDKDocs/docs/api/**` is stale; regenerate.
+- **Live-key derivation**: `LookupIdentity.fromSeed` is the primitive; wiring `@totemsdk/root-identity` + `@totemsdk/wots-lease` for the default identity (RFC-032 §9 Q1) is left to the deployment/wallet layer.
 
 ## 9. Resolved decisions & open questions
 

@@ -1,142 +1,89 @@
 /**
- * Identity keypair generation and auth handshake for lookup-client.
+ * RFC-032: post-quantum authentication for the lookup client.
  *
- * Crypto strategy (portable, no static Node-only imports):
- *   1. Try globalThis.crypto.subtle with Ed25519 — works in Node 18+, browsers, Pear/Bare.
- *   2. Fall back to dynamically-imported node:crypto if SubtleCrypto is unavailable
- *      or does not support Ed25519.
- *
- * Auth handshake uses @totemsdk/lookup-protocol helpers:
- *   - signMessage() adds the message-level `sig` field (SHA3-256 MAC)
- *   - payload.signature is the raw ed25519 signature over the challenge (identity proof)
+ * Replaces the Ed25519 HELLO → AUTH_CHALLENGE → AUTH_RESPONSE handshake. Every
+ * outgoing message is stamped with a {@link WotsAuthEnvelope}: the client signs
+ * `authDigest(msg, nonce, expiresAt)` with its WOTS/TreeKey identity. Each
+ * message consumes one TreeKey use (the anti-replay nonce).
  */
 
-import { PROTOCOL_VERSION, signMessage } from '@totemsdk/lookup-protocol';
-import type { SignFn } from '@totemsdk/lookup-protocol';
-import type { RpcLayer } from './rpc.js';
+import { authDigest } from '@totemsdk/lookup-protocol';
+import type { LookupMessage, WotsAuthEnvelope } from '@totemsdk/lookup-protocol';
+import { bytesToHex } from '@totemsdk/core';
+import type { LookupIdentity } from './identity.js';
 
-export interface IdentityKeyPair {
-  /** Ed25519 public key as a lowercase hex string (32 bytes = 64 chars). */
-  publicKeyHex: string;
-  /** Sign arbitrary bytes, returning a 64-byte ed25519 signature. Compatible with lookup-protocol's SignFn. */
-  signFn: SignFn;
-}
+export { LookupIdentity, verifyIdentitySignature } from './identity.js';
 
-function toHex(bytes: Uint8Array): string {
-  return Array.from(bytes)
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
+/** Default auth envelope lifetime. */
+export const DEFAULT_AUTH_TTL_MS = 60_000;
+
+export interface AuthenticatorOptions {
+  identity: LookupIdentity;
+  /** Auth envelope TTL in ms. Default {@link DEFAULT_AUTH_TTL_MS}. */
+  ttlMs?: number;
+  /** Injectable clock (defaults to Date.now). */
+  now?: () => number;
+  /** Optional root-identity proof binding (RFC-032 §5.1.1). */
+  rootIdentityProof?: string;
+  /** Optional Minima address (only trusted by the node when the proof verifies). */
+  address?: string;
 }
 
 /**
- * Generate an ephemeral ed25519 identity keypair for this session.
- *
- * Uses WebCrypto (Ed25519) where available — portable across Node 18+, browsers, Pear/Bare.
- * Falls back to dynamically imported node:crypto for older Node environments.
+ * Stamps WOTS auth envelopes onto outgoing messages. Stateful: each message
+ * consumes one identity use, and the use index is the wire nonce.
  */
-export async function generateIdentityKeyPair(): Promise<IdentityKeyPair> {
-  // ── Primary path: WebCrypto Ed25519 ──────────────────────────────────────
-  const subtle = globalThis.crypto?.subtle;
-  if (subtle != null) {
-    try {
-      const kp = await subtle.generateKey(
-        { name: 'Ed25519' } as EcKeyGenParams,
-        true,
-        ['sign', 'verify'],
-      );
-      const rawPub = await subtle.exportKey('raw', (kp as CryptoKeyPair).publicKey);
-      const pubHex = toHex(new Uint8Array(rawPub));
-      const privKey = (kp as CryptoKeyPair).privateKey;
+export class Authenticator {
+  private readonly _identity: LookupIdentity;
+  private readonly _ttlMs: number;
+  private readonly _now: () => number;
+  private readonly _proof?: string;
+  private readonly _address?: string;
 
-      return {
-        publicKeyHex: pubHex,
-        signFn: async (digest: Uint8Array): Promise<Uint8Array> => {
-          // Wrap in Buffer to guarantee a plain ArrayBuffer backing (TypeScript strict mode)
-          const sig = await subtle.sign(
-            { name: 'Ed25519' } as AlgorithmIdentifier,
-            privKey,
-            Buffer.from(digest),
-          );
-          return new Uint8Array(sig);
-        },
-      };
-    } catch {
-      // Ed25519 not supported in this WebCrypto implementation — fall through
-    }
+  constructor(options: AuthenticatorOptions) {
+    this._identity = options.identity;
+    this._ttlMs = options.ttlMs ?? DEFAULT_AUTH_TTL_MS;
+    this._now = options.now ?? (() => Date.now());
+    this._proof = options.rootIdentityProof;
+    this._address = options.address;
   }
 
-  // ── Fallback: dynamically-imported node:crypto ────────────────────────────
-  // Dynamic import keeps this import out of the static module graph so bundlers
-  // targeting browser/Pear runtimes can tree-shake it.
-  const nodeCrypto = await import('node:crypto');
-  const { privateKey, publicKey } = nodeCrypto.generateKeyPairSync('ed25519');
-  const jwk = publicKey.export({ format: 'jwk' }) as { x: string };
-  const pubHex = toHex(new Uint8Array(Buffer.from(jwk.x, 'base64url')));
+  get rootPublicKey(): string {
+    return this._identity.rootPublicKey;
+  }
 
-  return {
-    publicKeyHex: pubHex,
-    signFn: (digest: Uint8Array): Uint8Array => {
-      const sig = nodeCrypto.sign(null, Buffer.from(digest), privateKey);
-      return new Uint8Array(sig);
-    },
-  };
-}
+  get uses(): number {
+    return this._identity.uses;
+  }
 
-let _authIdCounter = 0;
+  get maxUses(): number {
+    return this._identity.maxUses;
+  }
 
-/**
- * Run the HELLO → AUTH_CHALLENGE → AUTH_RESPONSE handshake.
- *
- * AUTH_RESPONSE includes:
- *   - payload.signature: raw ed25519 signature over the challenge bytes (identity proof)
- *   - msg.sig: message-level MAC via signMessage() from @totemsdk/lookup-protocol
- *
- * Resolves when the server acknowledges AUTH_RESPONSE (any non-ERROR reply).
- */
-export async function runAuthHandshake(
-  rpc: RpcLayer,
-  keypair: IdentityKeyPair,
-  timeoutMs?: number,
-): Promise<void> {
-  // Step 1: HELLO → AUTH_CHALLENGE
-  const challengeMsg = await rpc.sendRequest(
-    {
-      type: 'HELLO',
-      version: PROTOCOL_VERSION,
-      payload: { clientVersion: PROTOCOL_VERSION },
-    },
-    timeoutMs,
-  );
-
-  if (challengeMsg.type !== 'AUTH_CHALLENGE') {
-    throw new Error(
-      `Auth handshake failed: expected AUTH_CHALLENGE, got ${challengeMsg.type}`,
+  /** Attach an auth envelope to a message (returns a new message object). */
+  stamp<T extends LookupMessage>(msg: Omit<T, 'auth'>): T {
+    const { auth: _ignored, ...unsigned } = msg as T & { auth?: unknown };
+    const expiresAt = this._now() + this._ttlMs;
+    // Compute the digest with a provisional nonce, then sign, then bind the
+    // actual nonce the identity consumed (they must match).
+    const provisionalNonce = this._identity.uses;
+    const digest = authDigest(
+      unsigned as Omit<LookupMessage, 'auth' | 'sig'>,
+      provisionalNonce,
+      expiresAt,
     );
+    const { signature, nonce } = this._identity.sign(digest);
+    if (nonce !== provisionalNonce) {
+      throw new Error('Authenticator: identity nonce advanced unexpectedly during signing');
+    }
+    const auth: WotsAuthEnvelope = {
+      rootPublicKey: this._identity.rootPublicKey,
+      signature: bytesToHex(signature).toLowerCase(),
+      nonce,
+      expiresAt,
+      ...(this._proof !== undefined ? { rootIdentityProof: this._proof } : {}),
+      ...(this._address !== undefined ? { address: this._address } : {}),
+    };
+    return { ...(unsigned as T), auth };
   }
-
-  const { challenge } = challengeMsg.payload as { challenge: string; expiresAt: number };
-
-  // Step 2: sign challenge bytes as identity proof (payload.signature)
-  const challengeSig = await keypair.signFn(new TextEncoder().encode(challenge));
-
-  // Pre-assign a request id so we can sign the complete message before sendRequest sees it.
-  // This ensures the message digest (which includes `id`) is stable.
-  const authId = `auth-${++_authIdCounter}`;
-
-  const authResponseUnsigned = {
-    type: 'AUTH_RESPONSE' as const,
-    version: PROTOCOL_VERSION,
-    id: authId,
-    payload: {
-      challenge,
-      publicKey: keypair.publicKeyHex,
-      signature: toHex(challengeSig),
-    },
-  };
-
-  // Add message-level sig using lookup-protocol helper (SHA3-256 digest, same sign function)
-  const signedAuthResponse = await signMessage(authResponseUnsigned, keypair.signFn);
-
-  // Step 3: send AUTH_RESPONSE — server replies with any non-ERROR message
-  await rpc.sendRequest(signedAuthResponse, timeoutMs);
 }

@@ -7,12 +7,17 @@
 
 import type { WotsIndices } from '@totemsdk/core';
 
-export const PROTOCOL_VERSION = 1;
+/**
+ * RFC-032: lookup-protocol v2 is post-quantum. Authentication uses WOTS
+ * (hash-based, quantum-resistant) instead of Ed25519. There is no separate
+ * AUTH_CHALLENGE/AUTH_RESPONSE handshake; each authenticated message carries a
+ * self-contained `auth` envelope (identity + nonce + expiry + WOTS signature).
+ * This is a hard switch — v1 and v2 peers do not interoperate.
+ */
+export const PROTOCOL_VERSION = 2;
 
 export type MessageType =
   | 'HELLO'
-  | 'AUTH_CHALLENGE'
-  | 'AUTH_RESPONSE'
   | 'WATCH_REGISTER'
   | 'WATCH_REMOVE'
   | 'GET_COINS'
@@ -55,11 +60,33 @@ export type MessageType =
   | 'PING'
   | 'PONG';
 
+/**
+ * RFC-032: post-quantum authentication envelope.
+ *
+ * Flat WOTS/TreeKey signature over `sha3_256(canonicalJson({type,id?,payload} ‖ nonce ‖ expiresAt))`.
+ * - `rootPublicKey`: hex of the signer's 32-byte WOTS PKdigest (what `wotsVerifyDigest` needs).
+ * - `signature`: hex WOTS signature.
+ * - `nonce`: monotonic per-identity anti-replay value.
+ * - `expiresAt`: absolute expiry (epoch ms); the node rejects stale messages.
+ * - `rootIdentityProof` (optional): opaque proof binding the signer to a root
+ *   identity, verified by a registered `proofVerifiers['root-identity']`.
+ * - `address` (optional): Minima address; only trusted when the proof verifies.
+ */
+export interface WotsAuthEnvelope {
+  rootPublicKey: string;
+  signature: string;
+  nonce: number;
+  expiresAt: number;
+  rootIdentityProof?: string;
+  address?: string;
+}
+
 interface BaseMessage {
   type: MessageType;
   version: number;
   id?: string;
-  sig?: string;
+  /** RFC-032 post-quantum authentication (present on authenticated messages). */
+  auth?: WotsAuthEnvelope;
 }
 
 export interface HelloMessage extends BaseMessage {
@@ -67,23 +94,6 @@ export interface HelloMessage extends BaseMessage {
   payload: {
     clientVersion: number;
     nodeId?: string;
-  };
-}
-
-export interface AuthChallengeMessage extends BaseMessage {
-  type: 'AUTH_CHALLENGE';
-  payload: {
-    challenge: string;
-    expiresAt: number;
-  };
-}
-
-export interface AuthResponseMessage extends BaseMessage {
-  type: 'AUTH_RESPONSE';
-  payload: {
-    challenge: string;
-    publicKey: string;
-    signature: string;
   };
 }
 
@@ -213,10 +223,12 @@ export interface AppAnnounceMessage extends BaseMessage {
     manifest: Uint8Array;
     appId: string;
     expiresAt: number;
-    /** Hex-encoded Ed25519 public key of the signer (required for signature verification) */
-    publicKey?: string;
-    /** Hex-encoded Ed25519 signature over manifest bytes */
-    signature?: string;
+    /**
+     * RFC-032: the manifest is a WOTS-signed `SignedManifest` (see @totemsdk/manifest),
+     * which already carries its own WOTS signature + signerPublicKey. The message-level
+     * `auth` envelope (BaseMessage) additionally binds the announcing identity.
+     * The former Ed25519 `publicKey`/`signature` fields are removed.
+     */
     /**
      * Minima address of the app author — stored as a filterable column for APP_QUERY.
      * Authoritative source is inside the manifest; this top-level field enables
@@ -256,10 +268,10 @@ export interface AgentAnnounceMessage extends BaseMessage {
     manifest: Uint8Array;
     capabilityId: string;
     expiresAt: number;
-    /** Hex-encoded Ed25519 public key of the signer */
-    publicKey?: string;
-    /** Hex-encoded Ed25519 signature over manifest bytes */
-    signature?: string;
+    /**
+     * RFC-032: the manifest is a WOTS-signed `SignedManifest`; the message-level
+     * `auth` envelope binds the announcing identity. Ed25519 fields removed.
+     */
     /** Capability tags for filtering (e.g. ['translation', 'gpt-4']) */
     tags?: string[];
     /** Price per RPC call in smallest unit (for maxPricePerCall filter) */
@@ -298,7 +310,10 @@ export interface TrustRecordMessage extends BaseMessage {
     rating: number;
     comment?: string;
     reviewerAddress: string;
+    /** Hex WOTS signature over the canonical review payload (RFC-032). */
     signature: string;
+    /** Hex WOTS PKdigest of the reviewer, when supplied (else derived via session). */
+    reviewerPublicKey?: string;
   };
 }
 
@@ -485,8 +500,6 @@ export interface PolicySignCancelMessage extends BaseMessage {
 
 export type LookupMessage =
   | HelloMessage
-  | AuthChallengeMessage
-  | AuthResponseMessage
   | WatchRegisterMessage
   | WatchRemoveMessage
   | GetCoinsMessage

@@ -158,28 +158,14 @@ export interface ConnectedClient {
   buffer: MessageBuffer;
 }
 
+/**
+ * RFC-032: there is no HELLO/AUTH handshake. With `_skipAuth` (the test default)
+ * the node accepts messages without a WOTS envelope, so no auth round-trip is
+ * needed — the session is simply bound to the connection.
+ */
 export async function connectTestClient(node: LookupNode): Promise<ConnectedClient> {
   const [clientTransport, serverTransport] = createTestPair();
   const buffer = new MessageBuffer(clientTransport);
   const session = node.handleConnection(serverTransport);
-
-  // Wait for AUTH_CHALLENGE (sent immediately on connection)
-  await buffer.waitFor((m) => m.type === 'AUTH_CHALLENGE');
-
-  // Send AUTH_RESPONSE (server has _skipAuth: true so any content is accepted)
-  buffer.send(clientTransport, {
-    type: 'AUTH_RESPONSE',
-    version: 1,
-    id: 'auth-1',
-    payload: {
-      challenge: 'any-challenge',
-      publicKey: '00'.repeat(32),
-      signature: '00'.repeat(64),
-    },
-  });
-
-  // Wait for PONG (auth success)
-  await buffer.waitFor((m) => m.type === 'PONG' && m.id === 'auth-1');
-
   return { clientTransport, serverTransport, session, buffer };
 }

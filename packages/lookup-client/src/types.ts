@@ -23,6 +23,22 @@ export interface LookupClientConfig {
   /** Maximum reconnect backoff delay in ms. Default: 30_000. */
   reconnectMaxMs?: number;
   /**
+   * RFC-032: 32-byte seed for the post-quantum (WOTS/TreeKey) lookup identity.
+   * Defaults to an all-zero seed for tests; production callers should derive
+   * this from `@totemsdk/root-identity`. Ignored when `identity` is provided.
+   */
+  identitySeed?: Uint8Array;
+  /** RFC-032: pre-built identity (takes precedence over `identitySeed`). */
+  identity?: import('./identity.js').LookupIdentity;
+  /** RFC-032: identity derivation options (address index, resume uses). */
+  identityOptions?: import('./identity.js').LookupIdentityOptions;
+  /** RFC-032: auth envelope TTL in ms. Default 60_000. */
+  authTtlMs?: number;
+  /** RFC-032: optional root-identity proof binding (verified by the node). */
+  rootIdentityProof?: string;
+  /** RFC-032: optional Minima address (trusted only when the proof verifies). */
+  address?: string;
+  /**
    * @internal — factory called on every connection attempt (for testing).
    * Bypasses Hyperswarm/HTTP transport creation entirely.
    * When provided, _transport is ignored.

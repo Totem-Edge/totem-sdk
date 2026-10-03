@@ -56,8 +56,8 @@ export interface AppRow {
   manifest: Buffer;
   nodeId: string;
   expiresAt: number;
-  publicKey?: string;
-  signature?: string;
+  /** RFC-032: WOTS signer address recovered from the SignedManifest. */
+  signerAddress?: string;
   authorAddress?: string;
   /** SQLite boolean: 1 = free, 0 = paid, null = unknown */
   isFree?: number;
@@ -68,8 +68,8 @@ export interface AgentRow {
   manifest: Buffer;
   nodeId: string;
   expiresAt: number;
-  publicKey?: string;
-  signature?: string;
+  /** RFC-032: WOTS signer address recovered from the SignedManifest. */
+  signerAddress?: string;
   tags?: string;        // JSON-serialized string[]
   pricePerCall?: number;
   latencyMs?: number;
@@ -122,22 +122,20 @@ export class SqliteStore {
         manifest      BLOB    NOT NULL,
         nodeId        TEXT    NOT NULL,
         expiresAt     INTEGER NOT NULL,
-        publicKey     TEXT,
-        signature     TEXT,
+        signerAddress TEXT,
         authorAddress TEXT,
         isFree        INTEGER
       );
 
       CREATE TABLE IF NOT EXISTS agent_registry (
-        capabilityId TEXT    PRIMARY KEY,
-        manifest     BLOB    NOT NULL,
-        nodeId       TEXT    NOT NULL,
-        expiresAt    INTEGER NOT NULL,
-        publicKey    TEXT,
-        signature    TEXT,
-        tags         TEXT,
-        pricePerCall REAL,
-        latencyMs    REAL
+        capabilityId  TEXT    PRIMARY KEY,
+        manifest      BLOB    NOT NULL,
+        nodeId        TEXT    NOT NULL,
+        expiresAt     INTEGER NOT NULL,
+        signerAddress TEXT,
+        tags          TEXT,
+        pricePerCall  REAL,
+        latencyMs     REAL
       );
 
       CREATE TABLE IF NOT EXISTS trust_index (
@@ -292,15 +290,14 @@ export class SqliteStore {
   appUpsert(row: AppRow): void {
     this._db.prepare(`
       INSERT OR REPLACE INTO app_registry
-        (appId, manifest, nodeId, expiresAt, publicKey, signature, authorAddress, isFree)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        (appId, manifest, nodeId, expiresAt, signerAddress, authorAddress, isFree)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `).run(
       row.appId,
       Buffer.from(row.manifest),
       row.nodeId,
       row.expiresAt,
-      row.publicKey ?? null,
-      row.signature ?? null,
+      row.signerAddress ?? null,
       row.authorAddress ?? null,
       row.isFree ?? null,
     );
@@ -333,15 +330,14 @@ export class SqliteStore {
   agentUpsert(row: AgentRow): void {
     this._db.prepare(`
       INSERT OR REPLACE INTO agent_registry
-        (capabilityId, manifest, nodeId, expiresAt, publicKey, signature, tags, pricePerCall, latencyMs)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (capabilityId, manifest, nodeId, expiresAt, signerAddress, tags, pricePerCall, latencyMs)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       row.capabilityId,
       Buffer.from(row.manifest),
       row.nodeId,
       row.expiresAt,
-      row.publicKey ?? null,
-      row.signature ?? null,
+      row.signerAddress ?? null,
       row.tags ?? null,
       row.pricePerCall ?? null,
       row.latencyMs ?? null,

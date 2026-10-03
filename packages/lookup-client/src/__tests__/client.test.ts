@@ -1,8 +1,8 @@
 /**
  * @totemsdk/lookup-client — integration tests using in-memory transport pairs.
  *
- * MockLookupServer simulates a real lookup node:
- *  - Runs the HELLO → AUTH_CHALLENGE → AUTH_RESPONSE handshake
+ * MockLookupServer simulates a real lookup node (RFC-032 / protocol v2):
+ *  - No handshake: authentication is a WOTS `auth` envelope on every message.
  *  - Responds to chain queries (GET_COINS, GET_COIN, GET_PROOF, GET_TIP, GET_TOKEN)
  *  - Handles BROADCAST_TXPOW
  *  - Accepts WATCH_REGISTER (fire-and-forget, no ACK)
@@ -13,6 +13,7 @@ import { encodeMessage } from '@totemsdk/lookup-protocol';
 import type { LookupMessage } from '@totemsdk/lookup-protocol';
 import { LookupClient } from '../client.js';
 import { LookupClientError } from '../rpc.js';
+import { LookupIdentity } from '../identity.js';
 import { FrameParser, InMemoryTransport, createInMemoryPair } from '../transport.js';
 import type { CoinUpdateEvent } from '../types.js';
 import { LookupClientProvider } from '../provider.js';
@@ -41,19 +42,10 @@ class MockLookupServer {
   private _handle(msg: LookupMessage): void {
     switch (msg.type) {
       case 'HELLO':
-        this._sendRaw({
-          type: 'AUTH_CHALLENGE',
-          version: 1,
-          id: msg.id,
-          payload: { challenge: 'test-challenge-xyz', expiresAt: Date.now() + 30_000 },
-        });
-        break;
-
-      case 'AUTH_RESPONSE':
-        // Accept without verifying signature; any message with matching id resolves the RPC call
+        // RFC-032: no challenge handshake — acknowledge liveness only.
         this._sendRaw({
           type: 'PONG',
-          version: 1,
+          version: 2,
           id: msg.id,
           payload: { ts: Date.now(), echo: 0 },
         });
@@ -217,43 +209,63 @@ async function makeConnectedClient(): Promise<{
 }
 
 // ---------------------------------------------------------------------------
-// Auth handshake
+// Post-quantum auth (RFC-032)
 // ---------------------------------------------------------------------------
 
-describe('Auth handshake', () => {
-  it('completes HELLO → AUTH_CHALLENGE → AUTH_RESPONSE successfully', async () => {
+describe('Post-quantum auth (RFC-032)', () => {
+  it('connects without a handshake (no HELLO/AUTH_CHALLENGE)', async () => {
     const { client, server } = await makeConnectedClient();
-    expect(server.getReceivedTypes()).toContain('HELLO');
-    expect(server.getReceivedTypes()).toContain('AUTH_RESPONSE');
+    expect(server.getReceivedTypes()).not.toContain('AUTH_CHALLENGE');
+    expect(server.getReceivedTypes()).not.toContain('AUTH_RESPONSE');
     client.disconnect();
   });
 
-  it('AUTH_RESPONSE carries a message-level sig field (lookup-protocol signMessage)', async () => {
-    const { client, server } = await makeConnectedClient();
-    // Verify server received AUTH_RESPONSE — the sig field is attached by signMessage()
-    const authIdx = server.getReceivedTypes().indexOf('AUTH_RESPONSE');
-    expect(authIdx).toBeGreaterThanOrEqual(0);
-    client.disconnect();
-  });
-
-  it('rejects when server sends wrong message type for HELLO', async () => {
+  it('carries a WOTS auth envelope on outgoing messages', async () => {
     const [clientTransport, serverTransport] = createInMemoryPair();
-
-    // Server sends GET_TIP instead of AUTH_CHALLENGE
     const sp = new FrameParser();
+    const seen: LookupMessage[] = [];
     serverTransport.onData((chunk) => {
-      const msgs = sp.push(chunk);
-      for (const msg of msgs) {
-        if (msg.type === 'HELLO') {
-          serverTransport.send(
-            encodeMessage({ type: 'GET_TIP', version: 1, id: msg.id, payload: {} }),
-          );
+      for (const msg of sp.push(chunk)) {
+        seen.push(msg);
+        if (msg.id) {
+          serverTransport.send(encodeMessage({ type: 'PING', version: 2, id: msg.id, payload: { coins: [] } as never }));
         }
       }
     });
+    const client = new LookupClient({ _transport: clientTransport, timeoutMs: 5_000 });
+    await client._connect(clientTransport);
+    await client.getCoins({ address: '0xADDR1' });
 
-    const client = new LookupClient({ _transport: clientTransport, timeoutMs: 2_000 });
-    await expect(client._connect(clientTransport)).rejects.toThrow(/AUTH_CHALLENGE/);
+    const query = seen.find((m) => m.type === 'GET_COINS');
+    expect(query).toBeDefined();
+    expect(query!.auth).toBeDefined();
+    expect(query!.auth!.rootPublicKey).toMatch(/^[0-9a-f]{64}$/);
+    expect(typeof query!.auth!.nonce).toBe('number');
+    expect(query!.auth!.expiresAt).toBeGreaterThan(Date.now());
+    expect(query!.auth!.signature).toMatch(/^[0-9a-f]+$/);
+    client.disconnect();
+  });
+
+  it('uses a distinct WOTS identity when given a different seed', async () => {
+    const [clientTransport, serverTransport] = createInMemoryPair();
+    const sp = new FrameParser();
+    const seen: LookupMessage[] = [];
+    serverTransport.onData((chunk) => {
+      for (const msg of sp.push(chunk)) {
+        seen.push(msg);
+        if (msg.id) serverTransport.send(encodeMessage({ type: 'PING', version: 2, id: msg.id, payload: { coins: [] } as never }));
+      }
+    });
+    const seed = new Uint8Array(32).fill(0x42);
+    const client = new LookupClient({ _transport: clientTransport, timeoutMs: 5_000, identitySeed: seed });
+    await client._connect(clientTransport);
+    await client.getCoins({ address: '0xADDR1' });
+
+    const query = seen.find((m) => m.type === 'GET_COINS');
+    // Default seed (all-zero) identity differs from the 0x42 seed.
+    const defaultIdentity = LookupIdentity.fromSeed(new Uint8Array(32).fill(0));
+    expect(query!.auth!.rootPublicKey).not.toBe(defaultIdentity.rootPublicKey);
+    client.disconnect();
   });
 });
 
@@ -491,32 +503,12 @@ describe('RPC timeout', () => {
   it('throws LookupClientError on timeout', async () => {
     const [ctr, str] = createInMemoryPair();
 
-    // Minimal auth-only server — handles HELLO and AUTH_RESPONSE, silently drops everything else
+    // RFC-032: no handshake; the server silently drops everything, so the
+    // request times out.
     const authParser = new FrameParser();
     str.onData((chunk) => {
-      const msgs = authParser.push(chunk);
-      for (const msg of msgs) {
-        if (msg.type === 'HELLO') {
-          str.send(
-            encodeMessage({
-              type: 'AUTH_CHALLENGE',
-              version: 1,
-              id: msg.id,
-              payload: { challenge: 'timeout-test', expiresAt: Date.now() + 30_000 },
-            } as Parameters<typeof encodeMessage>[0]),
-          );
-        } else if (msg.type === 'AUTH_RESPONSE') {
-          str.send(
-            encodeMessage({
-              type: 'PONG',
-              version: 1,
-              id: msg.id,
-              payload: { ts: Date.now(), echo: 0 },
-            }),
-          );
-        }
-        // GET_TIP and all other messages are silently dropped — causes timeout
-      }
+      authParser.push(chunk);
+      // All messages (including HELLO) are silently dropped — causes timeout.
     });
 
     const client = new LookupClient({ _transport: ctr, timeoutMs: 5_000 });

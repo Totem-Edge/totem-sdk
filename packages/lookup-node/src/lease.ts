@@ -12,7 +12,14 @@
  */
 
 import { LocalLeaseProvider } from '@totemsdk/wots-lease';
+import {
+  createPerAddressTreeKey,
+  serializeTreeSignature,
+  bytesToHex,
+  sha3_256,
+} from '@totemsdk/core';
 import type { StorageAdapter } from '@totemsdk/core';
+import type { TreeKey } from '@totemsdk/core';
 import type {
   LeaseReserveMessage,
   LeaseCommitMessage,
@@ -57,7 +64,9 @@ export class LeaseCoordinator {
   private readonly _provider: LocalLeaseProvider;
   private _initialized = false;
   private _nodeId: string;
-  private _signFn?: (data: Uint8Array) => Promise<Uint8Array>;
+  /** RFC-032: post-quantum (WOTS/TreeKey) node identity for cert issuance. */
+  private _nodeKey?: TreeKey;
+  private _signFn?: (data: Uint8Array) => Uint8Array;
   /** Track burned reservations to reject commit-after-burn */
   private readonly _burnedReservations = new Set<string>();
   /** treeId → authorised controller public key hex */
@@ -112,29 +121,21 @@ export class LeaseCoordinator {
   async initialize(): Promise<void> {
     if (this._initialized) return;
     await this._provider.initialize();
-    // Generate ephemeral Ed25519 signing key for certificate issuance
+    // RFC-032: derive a post-quantum (WOTS/TreeKey) node identity for cert
+    // issuance. The seed is derived from the node id so certs are verifiable
+    // against the published node identity; production deployments persist the
+    // use counter via @totemsdk/wots-lease (see RFC-032 §9 Q1).
     try {
-      const subtle = globalThis.crypto.subtle;
-      const { privateKey, publicKey } = (await subtle.generateKey(
-        { name: 'Ed25519' } as AlgorithmIdentifier,
-        true,
-        ['sign', 'verify'],
-      )) as CryptoKeyPair;
-      const rawPub = await subtle.exportKey('raw', publicKey);
-      this._nodeId = Array.from(new Uint8Array(rawPub))
-        .map((b) => b.toString(16).padStart(2, '0'))
-        .join('');
-      const capturedPriv = privateKey;
-      this._signFn = async (data: Uint8Array) => {
-        const sig = await subtle.sign(
-          { name: 'Ed25519' } as AlgorithmIdentifier,
-          capturedPriv,
-          Buffer.from(data),
-        );
-        return new Uint8Array(sig);
+      const seed = sha3_256(new TextEncoder().encode(`lookup-node-identity:${this._nodeId}`));
+      const treeKey = createPerAddressTreeKey(seed, 0);
+      this._nodeKey = treeKey;
+      this._nodeId = bytesToHex(treeKey.getPublicKey());
+      this._signFn = (data: Uint8Array) => {
+        const digest = sha3_256(data);
+        return serializeTreeSignature(treeKey.sign(digest));
       };
     } catch {
-      // Ed25519 not supported (unusual) — certs will have placeholder sig
+      // Identity construction failed — certs will have placeholder sig
     }
     this._initialized = true;
   }

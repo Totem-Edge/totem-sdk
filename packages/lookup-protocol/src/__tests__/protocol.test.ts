@@ -1,8 +1,8 @@
 import { encodeMessage, decodeMessage, FramingError } from '../framing';
 import { checkVersion } from '../version';
-import { messageDigest, signMessage, verifyMessageAuth } from '../auth';
+import { authDigest, signMessage, verifyMessageAuth } from '../auth';
 import { PROTOCOL_VERSION } from '../messages';
-import type { LookupMessage, PingMessage } from '../messages';
+import type { LookupMessage, PingMessage, GetCoinsMessage } from '../messages';
 
 describe('framing — encode / decode round-trips', () => {
   const cases: LookupMessage[] = [
@@ -95,57 +95,59 @@ describe('version negotiation', () => {
   });
 });
 
-describe('auth — digest + sign/verify', () => {
-  it('messageDigest produces Uint8Array', () => {
-    const msg: PingMessage = { type: 'PING', version: 1, payload: { ts: 1 } };
-    const d = messageDigest(msg);
+describe('auth — WOTS digest + sign/verify (RFC-032)', () => {
+  const PK = 'ab'.repeat(32);
+  const msg: GetCoinsMessage = { type: 'GET_COINS', version: 2, payload: { address: 'Mx1' } };
+
+  it('authDigest produces a 32-byte Uint8Array', () => {
+    const d = authDigest(msg, 0, Date.now() + 60_000);
     expect(d).toBeInstanceOf(Uint8Array);
     expect(d.length).toBe(32);
   });
 
-  it('digest excludes sig field', () => {
-    const msg: PingMessage = { type: 'PING', version: 1, payload: { ts: 1 } };
-    const d1 = messageDigest(msg);
-    const msgWithSig = { ...msg, sig: 'abc123' };
-    const d2 = messageDigest(msgWithSig as LookupMessage);
-    expect(Array.from(d1)).toEqual(Array.from(d2));
+  it('authDigest excludes auth/sig and binds nonce + expiry', () => {
+    const base = authDigest(msg, 1, 1000);
+    const withAuth = { ...msg, auth: { rootPublicKey: PK, signature: 'de', nonce: 1, expiresAt: 1000 } };
+    const d2 = authDigest(withAuth as unknown as Omit<LookupMessage, 'auth' | 'sig'>, 1, 1000);
+    expect(Array.from(base)).toEqual(Array.from(d2));
+    // Different nonce/expiry ⇒ different digest.
+    expect(Array.from(authDigest(msg, 2, 1000))).not.toEqual(Array.from(base));
+    expect(Array.from(authDigest(msg, 1, 2000))).not.toEqual(Array.from(base));
   });
 
-  it('signMessage attaches sig field', async () => {
-    const msg: PingMessage = { type: 'PING', version: 1, payload: { ts: 1 } };
+  it('signMessage attaches a WOTS auth envelope', async () => {
     const fakeSig = new Uint8Array(64).fill(0xab);
-    const signed = await signMessage(msg, async () => fakeSig);
-    expect(typeof signed.sig).toBe('string');
-    expect(signed.sig).toMatch(/^[0-9a-f]+$/);
+    const signed = await signMessage(msg, async () => fakeSig, PK, { nonce: 7, expiresAt: Date.now() + 60_000 });
+    expect(signed.auth?.rootPublicKey).toBe(PK);
+    expect(signed.auth?.signature).toBe('ab'.repeat(64));
+    expect(signed.auth?.nonce).toBe(7);
   });
 
-  it('verifyMessageAuth returns false when sig absent', async () => {
-    const msg: PingMessage = { type: 'PING', version: 1, payload: { ts: 1 } };
-    const result = await verifyMessageAuth(msg, new Uint8Array(32), async () => true);
-    expect(result).toBe(false);
+  it('verifyMessageAuth returns false when auth absent', async () => {
+    expect(await verifyMessageAuth(msg, async () => true)).toBe(false);
   });
 
-  it('verifyMessageAuth returns true when verify fn returns true', async () => {
-    const msg: PingMessage = { type: 'PING', version: 1, payload: { ts: 1 } };
-    const fakeSig = new Uint8Array(64).fill(0xcd);
-    const signed = await signMessage(msg, async () => fakeSig);
-    const result = await verifyMessageAuth(
-      signed as LookupMessage,
-      new Uint8Array(32),
-      async () => true,
-    );
-    expect(result).toBe(true);
+  it('verifyMessageAuth returns true when the verifier accepts and not expired', async () => {
+    const signed = await signMessage(msg, async () => new Uint8Array(64).fill(0xcd), PK, {
+      nonce: 1,
+      expiresAt: Date.now() + 60_000,
+    });
+    expect(await verifyMessageAuth(signed, async () => true)).toBe(true);
   });
 
-  it('verifyMessageAuth returns false when verify fn returns false', async () => {
-    const msg: PingMessage = { type: 'PING', version: 1, payload: { ts: 1 } };
-    const fakeSig = new Uint8Array(64).fill(0xcd);
-    const signed = await signMessage(msg, async () => fakeSig);
-    const result = await verifyMessageAuth(
-      signed as LookupMessage,
-      new Uint8Array(32),
-      async () => false,
-    );
-    expect(result).toBe(false);
+  it('verifyMessageAuth returns false when the verifier rejects', async () => {
+    const signed = await signMessage(msg, async () => new Uint8Array(64).fill(0xcd), PK, {
+      nonce: 1,
+      expiresAt: Date.now() + 60_000,
+    });
+    expect(await verifyMessageAuth(signed, async () => false)).toBe(false);
+  });
+
+  it('verifyMessageAuth returns false for an expired envelope', async () => {
+    const signed = await signMessage(msg, async () => new Uint8Array(64).fill(0xcd), PK, {
+      nonce: 1,
+      expiresAt: 1000,
+    });
+    expect(await verifyMessageAuth(signed, async () => true, 2000)).toBe(false);
   });
 });

@@ -2,9 +2,8 @@ export { PROTOCOL_VERSION } from './messages.js';
 export type {
   MessageType,
   LookupMessage,
+  WotsAuthEnvelope,
   HelloMessage,
-  AuthChallengeMessage,
-  AuthResponseMessage,
   WatchRegisterMessage,
   WatchRemoveMessage,
   GetCoinsMessage,
@@ -50,9 +49,10 @@ export {
 } from './framing.js';
 
 export {
-  messageDigest,
+  authDigest,
   signMessage,
   verifyMessageAuth,
+  canonicalJson,
 } from './auth.js';
 export type { SignFn, VerifyFn } from './auth.js';
 

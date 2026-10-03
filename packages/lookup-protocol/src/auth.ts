@@ -1,23 +1,41 @@
 /**
- * Message authentication for the lookup protocol.
+ * RFC-032: post-quantum message authentication for the lookup protocol.
  *
- * Uses SHA3-256 from @totemsdk/core to produce a digest over the canonical
- * message payload, then attaches/verifies a hex signature.
+ * Authentication is WOTS (hash-based, quantum-resistant), not Ed25519. A
+ * signed message carries a {@link WotsAuthEnvelope} (`auth`) whose signature is
+ * over:
  *
- * NOTE: Full ed25519 signing is intentionally deferred — this module provides
- * the digest surface so higher layers (lookup-node, lookup-client) can attach
- * their preferred signing backend without taking on a crypto dependency here.
- * `signMessage` accepts any sign function; `verifyMessageAuth` accepts any
- * verify function.
+ *   sha3_256( canonicalJson({ type, id, payload }) ‖ nonce ‖ expiresAt )
+ *
+ * The signing/verification itself is delegated to the caller via `SignFn` /
+ * `VerifyFn`, so this package keeps no concrete crypto dependency beyond the
+ * SHA3-256 digest. `@totemsdk/core` provides the WOTS implementation used by
+ * lookup-client (sign) and lookup-node (verify).
  */
 
 import { sha3_256 } from '@totemsdk/core';
-import type { LookupMessage } from './messages.js';
+import type { LookupMessage, WotsAuthEnvelope } from './messages.js';
 
+/** Deterministic canonical JSON (sorted keys, recursive) for stable digests. */
+export function canonicalJson(value: unknown): string {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) return '[' + value.map(canonicalJson).join(',') + ']';
+  if (value instanceof Uint8Array) return JSON.stringify(Array.from(value));
+  const obj = value as Record<string, unknown>;
+  const keys = Object.keys(obj).sort();
+  return (
+    '{' +
+    keys.map((k) => `${JSON.stringify(k)}:${canonicalJson(obj[k])}`).join(',') +
+    '}'
+  );
+}
+
+/** A WOTS signer: signs a 32-byte digest, returns the signature bytes. */
 export interface SignFn {
   (digest: Uint8Array): Uint8Array | Promise<Uint8Array>;
 }
 
+/** A WOTS verifier: verifies (digest, signature, pkDigest) → boolean. */
 export interface VerifyFn {
   (digest: Uint8Array, signature: Uint8Array, publicKey: Uint8Array): boolean | Promise<boolean>;
 }
@@ -38,42 +56,68 @@ function hexToBytes(hex: string): Uint8Array {
 }
 
 /**
- * Compute a canonical digest over the message for signing/verification.
- * Excludes the `sig` field so the digest is stable.
+ * Digest of the authenticated portion of a message: everything except `auth` and
+ * the legacy `sig`, plus the anti-replay nonce and expiry.
  */
-export function messageDigest(msg: LookupMessage): Uint8Array {
-  const { sig: _sig, ...rest } = msg as LookupMessage & { sig?: string };
-  const json = JSON.stringify(rest);
-  return sha3_256(new TextEncoder().encode(json));
+export function authDigest(
+  msg: Omit<LookupMessage, 'auth' | 'sig'>,
+  nonce: number,
+  expiresAt: number,
+): Uint8Array {
+  const { auth: _a, sig: _s, ...rest } = msg as LookupMessage & { auth?: unknown; sig?: string };
+  const canonical = canonicalJson(rest);
+  const preimage = new TextEncoder().encode(`${canonical}|${nonce}|${expiresAt}`);
+  return sha3_256(preimage);
 }
 
 /**
- * Attach a signature to a message.
- * Returns a new message object with the `sig` field set.
+ * Attach a WOTS auth envelope to a message. The signer signs the auth digest.
+ * `rootPublicKey` is the hex PKdigest; `rootIdentityProof`/`address` are optional.
  */
 export async function signMessage<T extends LookupMessage>(
-  msg: T,
+  msg: Omit<T, 'auth' | 'sig'>,
   sign: SignFn,
-): Promise<T & { sig: string }> {
-  const digest = messageDigest(msg);
+  rootPublicKey: string,
+  options: {
+    nonce: number;
+    expiresAt: number;
+    rootIdentityProof?: string;
+    address?: string;
+  },
+): Promise<T> {
+  const digest = authDigest(msg as Omit<LookupMessage, 'auth' | 'sig'>, options.nonce, options.expiresAt);
   const sigBytes = await sign(digest);
-  return { ...msg, sig: bytesToHex(sigBytes) };
+  const auth: WotsAuthEnvelope = {
+    rootPublicKey,
+    signature: bytesToHex(sigBytes),
+    nonce: options.nonce,
+    expiresAt: options.expiresAt,
+    ...(options.rootIdentityProof !== undefined ? { rootIdentityProof: options.rootIdentityProof } : {}),
+    ...(options.address !== undefined ? { address: options.address } : {}),
+  };
+  return { ...(msg as T), auth };
 }
 
 /**
- * Verify the `sig` field of a message against a known public key.
- * Returns false if `sig` is absent.
+ * Verify the `auth` envelope of a message. Returns false when absent, expired,
+ * or the signature does not verify. The caller is responsible for replay
+ * rejection (nonce/index uniqueness) — see lookup-node.
  */
 export async function verifyMessageAuth(
   msg: LookupMessage,
-  publicKey: Uint8Array,
   verify: VerifyFn,
+  now: number = Date.now(),
 ): Promise<boolean> {
-  if (!msg.sig) return false;
+  const auth = msg.auth;
+  if (!auth || typeof auth.signature !== 'string' || auth.signature.length === 0) return false;
+  if (typeof auth.expiresAt !== 'number' || now > auth.expiresAt) return false;
   try {
-    const digest = messageDigest(msg);
-    const sigBytes = hexToBytes(msg.sig);
-    return verify(digest, sigBytes, publicKey);
+    const digest = authDigest(
+      msg as Omit<LookupMessage, 'auth' | 'sig'>,
+      auth.nonce,
+      auth.expiresAt,
+    );
+    return await verify(digest, hexToBytes(auth.signature), hexToBytes(auth.rootPublicKey));
   } catch {
     return false;
   }

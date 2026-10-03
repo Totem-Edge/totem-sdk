@@ -15,8 +15,8 @@ import type {
   TokenSearchQuery,
 } from '@totemsdk/chain-provider';
 import { PROTOCOL_VERSION } from '@totemsdk/lookup-protocol';
-import { generateIdentityKeyPair, runAuthHandshake } from './auth.js';
-import type { IdentityKeyPair } from './auth.js';
+import { Authenticator, LookupIdentity } from './auth.js';
+import type { LookupIdentityOptions } from './identity.js';
 import { RpcLayer } from './rpc.js';
 import { SubscriptionManager } from './subscriptions.js';
 import { createHyperswarmTransport } from './transport.js';
@@ -28,10 +28,6 @@ function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function toHex(bytes: Uint8Array): string {
-  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
 let _announceIdCounter = 0;
 function announceId(): string {
   return `ann-${++_announceIdCounter}`;
@@ -40,8 +36,12 @@ function announceId(): string {
 export class LookupClient {
   private readonly _rpc: RpcLayer;
   private readonly _subscriptions: SubscriptionManager;
-  /** Keypair is generated once on construction and reused across reconnects. */
-  private readonly _keypairPromise: Promise<IdentityKeyPair>;
+  /**
+   * RFC-032: post-quantum (WOTS/TreeKey) identity. Built once on construction
+   * from `config.identitySeed` (or an injected `config.identity`) and reused
+   * across reconnects so the use counter (anti-replay nonce) stays monotonic.
+   */
+  private readonly _authenticator: Authenticator;
   private _activeTransport: ITransport | null = null;
   private _destroyed = false;
   private _reconnectAttempt = 0;
@@ -50,8 +50,16 @@ export class LookupClient {
   constructor(private readonly _config: LookupClientConfig) {
     this._rpc = new RpcLayer(_config.timeoutMs ?? 10_000);
     this._subscriptions = new SubscriptionManager(this._rpc);
-    // Start key generation immediately — awaited in _connect
-    this._keypairPromise = generateIdentityKeyPair();
+
+    const identity = _config.identity
+      ?? LookupIdentity.fromSeed(_config.identitySeed ?? new Uint8Array(32).fill(0), _config.identityOptions);
+    this._authenticator = new Authenticator({
+      identity,
+      ...(_config.authTtlMs !== undefined ? { ttlMs: _config.authTtlMs } : {}),
+      ...(_config.rootIdentityProof !== undefined ? { rootIdentityProof: _config.rootIdentityProof } : {}),
+      ...(_config.address !== undefined ? { address: _config.address } : {}),
+    });
+    this._rpc.setAuthenticator(this._authenticator);
   }
 
   // ---------------------------------------------------------------------------
@@ -60,6 +68,8 @@ export class LookupClient {
 
   async _connect(transport: ITransport): Promise<void> {
     this._activeTransport = transport;
+    // RFC-032: no handshake. Authentication is carried per-message by the RpcLayer
+    // (which stamps every outgoing message via the Authenticator).
     this._rpc.attach(transport);
 
     transport.onClose(() => {
@@ -74,8 +84,6 @@ export class LookupClient {
       // Errors always lead to 'close'; handled above
     });
 
-    const keypair = await this._keypairPromise;
-    await runAuthHandshake(this._rpc, keypair, this._config.timeoutMs);
     this._subscriptions.reRegisterAll();
     this._reconnectAttempt = 0;
     this._emit('reconnected');
@@ -332,8 +340,8 @@ export class LookupClient {
     authorAddress?: string;
     isFree?: boolean;
   }): Promise<void> {
-    const keypair = await this._keypairPromise;
-    const sigBytes = await keypair.signFn(params.manifest);
+    // RFC-032: the manifest is WOTS-signed by @totemsdk/manifest; the RpcLayer
+    // stamps the message-level WOTS auth envelope on send.
     this._rpc.sendRaw({
       type: 'APP_ANNOUNCE',
       version: PROTOCOL_VERSION,
@@ -342,8 +350,6 @@ export class LookupClient {
         manifest: params.manifest,
         appId: params.appId,
         expiresAt: params.expiresAt,
-        publicKey: keypair.publicKeyHex,
-        signature: toHex(sigBytes),
         authorAddress: params.authorAddress,
         isFree: params.isFree,
       },
@@ -359,8 +365,6 @@ export class LookupClient {
     pricePerCall?: number;
     latencyMs?: number;
   }): Promise<void> {
-    const keypair = await this._keypairPromise;
-    const sigBytes = await keypair.signFn(params.manifest);
     this._rpc.sendRaw({
       type: 'AGENT_ANNOUNCE',
       version: PROTOCOL_VERSION,
@@ -369,8 +373,6 @@ export class LookupClient {
         manifest: params.manifest,
         capabilityId: params.capabilityId,
         expiresAt: params.expiresAt,
-        publicKey: keypair.publicKeyHex,
-        signature: toHex(sigBytes),
         tags: params.tags,
         pricePerCall: params.pricePerCall,
         latencyMs: params.latencyMs,

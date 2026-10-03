@@ -3,10 +3,12 @@
  *
  * SQLite-backed stores for SignedManifest announcements.
  *
- * Signature verification:
- *   - Ed25519 signatures are verified on ingest using WebCrypto.
- *   - By default (`requireSignature: true`), announcements without a valid
- *     signature are REJECTED. Set `requireSignature: false` only for
+ * Signature verification (RFC-032):
+ *   - The `manifest` bytes are an encoded `SignedManifest` whose payload is
+ *     WOTS-signed (see @totemsdk/manifest). It is decoded and verified with
+ *     `verifyManifest` on ingest — post-quantum, self-contained, no Ed25519.
+ *   - By default (`requireSignature: true`), announcements whose manifest fails
+ *     verification are REJECTED. Set `requireSignature: false` only for
  *     private/trusted networks where all peers are known.
  *
  * App query supports filtering by `authorAddress`, `freeOnly`, and `limit`.
@@ -20,37 +22,26 @@ import type {
   AgentAnnounceMessage,
   AgentQueryMessage,
 } from '@totemsdk/lookup-protocol';
+import { decodeManifest, verifyManifest } from '@totemsdk/manifest';
 import type { SendFn } from './handlers.js';
 import type { SqliteStore, AppRow, AgentRow } from './storage.js';
 
 // ---------------------------------------------------------------------------
-// Ed25519 signature verification (WebCrypto, portable: Node 18+, browsers)
+// WOTS-signed manifest verification (RFC-032)
 // ---------------------------------------------------------------------------
 
-async function verifyEd25519(
-  data: Uint8Array,
-  signatureHex: string,
-  publicKeyHex: string,
-): Promise<boolean> {
+/**
+ * Decode an encoded SignedManifest and verify its WOTS signature. Returns the
+ * signer address on success, or null when the manifest is malformed or the
+ * signature is invalid.
+ */
+function verifySignedManifest(manifestBytes: Uint8Array): { valid: boolean; signerAddress?: string } {
   try {
-    const subtle = globalThis.crypto.subtle;
-    const pubKeyBytes = Uint8Array.from(Buffer.from(publicKeyHex, 'hex'));
-    const sigBytes = Uint8Array.from(Buffer.from(signatureHex, 'hex'));
-    const key = await subtle.importKey(
-      'raw',
-      pubKeyBytes,
-      { name: 'Ed25519' } as AlgorithmIdentifier,
-      false,
-      ['verify'],
-    );
-    return await subtle.verify(
-      { name: 'Ed25519' } as AlgorithmIdentifier,
-      key,
-      sigBytes,
-      data as unknown as ArrayBuffer,
-    );
+    const signed = decodeManifest(manifestBytes instanceof Uint8Array ? manifestBytes : Uint8Array.from(manifestBytes));
+    const result = verifyManifest(signed);
+    return result.valid ? { valid: true, signerAddress: result.signerAddress } : { valid: false };
   } catch {
-    return false;
+    return { valid: false };
   }
 }
 
@@ -74,16 +65,12 @@ export class AppRegistry {
   }
 
   async announce(msg: AppAnnounceMessage, nodeId: string): Promise<void> {
-    const { appId, manifest, expiresAt, publicKey, signature, authorAddress, isFree } = msg.payload;
+    const { appId, manifest, expiresAt, authorAddress, isFree } = msg.payload;
 
-    if (publicKey && signature) {
-      const valid = await verifyEd25519(manifest, signature, publicKey);
-      if (!valid) {
-        // Reject silently — malicious, corrupted, or replayed announcement
-        return;
-      }
-    } else if (this._requireSignature) {
-      // Missing signature in required mode — reject
+    // RFC-032: verify the WOTS-signed manifest. Reject silently on failure —
+    // malicious, corrupted, or replayed announcement.
+    const verification = verifySignedManifest(manifest);
+    if (this._requireSignature && !verification.valid) {
       return;
     }
 
@@ -92,8 +79,7 @@ export class AppRegistry {
       manifest: Buffer.from(manifest),
       nodeId,
       expiresAt,
-      publicKey,
-      signature,
+      signerAddress: verification.signerAddress,
       authorAddress,
       isFree: isFree === undefined ? undefined : isFree ? 1 : 0,
     };
@@ -150,14 +136,11 @@ export class AgentRegistry {
   }
 
   async announce(msg: AgentAnnounceMessage, nodeId: string): Promise<void> {
-    const { capabilityId, manifest, expiresAt, publicKey, signature, tags, pricePerCall, latencyMs } = msg.payload;
+    const { capabilityId, manifest, expiresAt, tags, pricePerCall, latencyMs } = msg.payload;
 
-    if (publicKey && signature) {
-      const valid = await verifyEd25519(manifest, signature, publicKey);
-      if (!valid) {
-        return;
-      }
-    } else if (this._requireSignature) {
+    // RFC-032: verify the WOTS-signed manifest.
+    const verification = verifySignedManifest(manifest);
+    if (this._requireSignature && !verification.valid) {
       return;
     }
 
@@ -166,8 +149,7 @@ export class AgentRegistry {
       manifest: Buffer.from(manifest),
       nodeId,
       expiresAt,
-      publicKey,
-      signature,
+      signerAddress: verification.signerAddress,
       tags: tags ? JSON.stringify(tags) : undefined,
       pricePerCall,
       latencyMs,

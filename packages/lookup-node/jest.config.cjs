@@ -26,6 +26,7 @@ module.exports = {
     '^@totemsdk/storage$': '<rootDir>/../storage/src/index.ts',
     '^@totemsdk/storage/errors$': '<rootDir>/../storage/src/errors.ts',
     '^@totemsdk/txpow$': '<rootDir>/../txpow/src/index.ts',
+    '^@totemsdk/manifest$': '<rootDir>/../manifest/src/index.ts',
     '^better-sqlite3$': '<rootDir>/src/better-sqlite3.mock.cjs',
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },

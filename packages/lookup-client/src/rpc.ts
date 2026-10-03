@@ -8,10 +8,11 @@
  *   (e.g. COIN_UPDATE) that arrive without a matching request id.
  */
 
-import { encodeMessage } from '@totemsdk/lookup-protocol';
+import { encodeMessage, PROTOCOL_VERSION } from '@totemsdk/lookup-protocol';
 import type { LookupMessage, MessageType } from '@totemsdk/lookup-protocol';
 import { FrameParser } from './transport.js';
 import type { ITransport } from './types.js';
+import type { Authenticator } from './auth.js';
 
 export class LookupClientError extends Error {
   constructor(
@@ -41,8 +42,23 @@ export class RpcLayer {
   private _pushHandlers = new Map<MessageType, MessageHandler[]>();
   private _transport: ITransport | null = null;
   private _parser = new FrameParser();
+  /** RFC-032: stamps a WOTS auth envelope on every outgoing message. */
+  private _authenticator: Authenticator | null = null;
 
   constructor(private readonly _defaultTimeoutMs = 10_000) {}
+
+  /** Set the post-quantum authenticator used to stamp outgoing messages. */
+  setAuthenticator(auth: Authenticator): void {
+    this._authenticator = auth;
+  }
+
+  /** Stamp `auth` onto a message when an authenticator is configured. */
+  private _stamp(msg: LookupMessage): LookupMessage {
+    if (!this._authenticator) return msg;
+    // HELLO / PING are unauthenticated pre-handshake liveness messages.
+    if (msg.type === 'HELLO' || msg.type === 'PING') return msg;
+    return this._authenticator.stamp(msg);
+  }
 
   // ---------------------------------------------------------------------------
   // Transport attachment
@@ -107,7 +123,7 @@ export class RpcLayer {
     if (msg.type === 'PING') {
       const { ts } = msg.payload as { ts: number };
       try {
-        this.sendRaw({ type: 'PONG', version: 1, payload: { ts: Date.now(), echo: ts } });
+        this.sendRaw({ type: 'PONG', version: PROTOCOL_VERSION, payload: { ts: Date.now(), echo: ts } });
       } catch {
         // Not connected — ignore
       }
@@ -146,10 +162,10 @@ export class RpcLayer {
     });
   }
 
-  /** Send a message without expecting a response. */
+  /** Send a message without expecting a response (stamped with WOTS auth). */
   sendRaw(msg: LookupMessage): void {
     if (!this._transport) throw new LookupClientError('NOT_CONNECTED', 'Not connected to lookup node');
-    this._transport.send(encodeMessage(msg));
+    this._transport.send(encodeMessage(this._stamp(msg)));
   }
 
   /**

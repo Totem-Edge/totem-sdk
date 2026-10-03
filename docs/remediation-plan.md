@@ -455,6 +455,13 @@
 
 ---
 
+> **Superseded by RFC-032.** The lookup protocol was hard-switched to v2:
+> Ed25519 auth (and `AUTH_CHALLENGE`/`AUTH_RESPONSE`) is removed in favour of a
+> per-message WOTS `auth` envelope with mandatory nonce-monotonicity replay
+> rejection and enforced `expiresAt`. The findings below record the pre-v2 state;
+> the auth-specific items are resolved by RFC-032, not by the mechanisms sketched
+> here. See `docs/rfc/RFC-032-LOOKUP-STACK-POST-QUANTUM-IDENTITY.md`.
+
 ## 6. `@totemsdk/lookup-protocol` — 42+ findings (High)
 
 ### Finding 1: `MessageType` — 44 literals, zero matched in any switch/case
@@ -465,8 +472,7 @@
   function handleMessage(msg: LookupMessage): void {
     switch (msg.type) {
       case 'HELLO': return handleHello(msg as HelloMessage);
-      case 'AUTH_CHALLENGE': return handleAuthChallenge(msg as AuthChallengeMessage);
-      // ... all 44 cases
+      // ... all remaining cases (v2: no AUTH_CHALLENGE/AUTH_RESPONSE)
       default: {
         const _exhaustive: never = msg.type;
         throw new Error(`Unhandled message type: ${_exhaustive}`);
@@ -477,15 +483,7 @@
 - **Rationale:** Without exhaustive matching, adding a new message type is silent — the handler never crashes. This is a maintenance hazard.
 
 ### Finding 2: `expiresAt` on `AuthChallengeMessage` — never enforced
-- **File:** `src/messages.ts` line 77
-- **Action:** implement + wire temporal
-- **Exact change:** In the auth handler, add:
-  ```typescript
-  import { buildDeadlineScript, evaluateScript } from '@totemsdk/kissvm/templates/temporal.js';
-  const script = buildDeadlineScript({ deadlinePort: 4 });
-  const allowed = evaluateScript(script, { block: currentBlock, state: [currently, expiresAt] });
-  ```
-- **Rationale:** `expiresAt` is a deadline. Without enforcement, stale auth challenges are accepted.
+- **Status:** Resolved by RFC-032 — `AuthChallengeMessage` no longer exists; every authenticated message carries `auth.expiresAt`, which the node enforces (`auth-verify.ts`).
 
 ### Finding 3: `expiresAt` on `AppAnnounceMessage` — never enforced
 - **File:** `src/messages.ts` line 153
