@@ -56,6 +56,18 @@ await init();
 Use `/legacy` only where WASM genuinely cannot run; `verifySignature*` and the
 adapter contracts are unaffected.
 
+### Bare / Pear
+
+Bare (Holepunch, V8-based) can run the portable `./wasm-async` entry, but does not
+provide the `TextEncoder`/`TextDecoder` globals the wasm-bindgen glue uses — import
+`bare-encoding/global` first:
+
+```ts
+import 'bare-encoding/global';           // Bare only
+import { init, sha3_256 } from '@totemsdk/core/wasm-async';
+await init();                            // optionally with explicit wasm bytes
+```
+
 ## What's inside
 
 | Module | What it does |

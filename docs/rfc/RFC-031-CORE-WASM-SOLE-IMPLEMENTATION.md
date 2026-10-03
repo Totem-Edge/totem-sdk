@@ -191,9 +191,14 @@ The JS kernels are removed **only when all four gates are green**:
   (no fetch/`fs` in glue), byte-parity with the Node target
   (`packages/core-wasm/tests/web-init.test.mjs`), and the core async entry under
   Node ESM (`packages/core/test/wasm-async.test.mjs`). Runtime matrix so far:
-  **Node (ESM) and Bun both pass**, including an **isolate** run in a
-  `worker_threads` worker (`packages/core-wasm/tests/web-worker.mjs`) — a proxy
-  for edge/Worker runtimes (fresh module registry, bytes supplied, no fetch).
+  **Node (ESM), Bun, and Bare/Pear** pass (Bare via `bare-encoding/global` for
+  `TextEncoder`/`TextDecoder`; `packages/core-wasm/tests/web-bare.mjs`), including
+  an **isolate** run in a `worker_threads` worker
+  (`packages/core-wasm/tests/web-worker.mjs`) — a proxy for edge/Worker runtimes
+  (fresh module registry, bytes supplied, no fetch). Note: `@totemsdk/pear` is
+  dependency-free (uses `@noble/hashes`, no `@totemsdk/core`), and the Android
+  starter pulls `core` transitively via `edge`/`omnia`, which still import the
+  sync root — pointing those at `./wasm-async` is part of the root migration.
   Remaining: browser (Vite) + actual Workers matrix in CI, embedded-bytes entry,
   and making the `@totemsdk/core` root wasm-free by default. *(Gate G1.)*
 - **P2 — Parity hardening (in progress).** Kernel **coverage matrix** landed:

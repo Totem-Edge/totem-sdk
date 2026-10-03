@@ -32,6 +32,7 @@
     "test": "wasm-pack test --node",
     "test:web": "node tests/web-init.test.mjs && node tests/web-worker.mjs",
     "test:web:bun": "bun tests/web-init.test.mjs && bun tests/web-worker.mjs",
+    "test:web:bare": "bare tests/web-bare.mjs",
     "artifacts:write": "node scripts/write-artifacts.mjs",
     "artifacts:verify": "node scripts/verify-artifacts.mjs",
     "sbom:write": "node scripts/write-sbom.mjs",
