@@ -241,8 +241,9 @@
         "./scripts": "dist/scripts/index.{js,d.ts}",
         "./test-vectors.json": "./test-vectors.json",
         "./tx": "dist/tx/index.{js,d.ts}",
-        "./wasm": "dist/wasm-sync.{js,d.ts}",
-        "./wasm-async": "dist/wasm-async.{js,d.ts}"
+        "./wasm": "dist/wasm-async.{js,d.ts}",
+        "./wasm-async": "dist/wasm-async.{js,d.ts}",
+        "./wasm-sync": "dist/wasm-sync.{js,d.ts}"
       },
       "exportsDescription": "wotsSign, wotsVerify, derivePKdigest, sha3_256, TreeKey, BIP39, Mnemonic, TxPoW mining"
     },

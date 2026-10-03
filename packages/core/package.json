@@ -18,18 +18,24 @@
     },
     "./wasm": {
       "import": {
-        "types": "./dist/wasm-sync.d.ts",
-        "default": "./dist/wasm-sync.js"
-      },
-      "require": {
-        "types": "./dist/cjs/wasm-sync.d.ts",
-        "default": "./dist/cjs/wasm-sync.js"
+        "types": "./dist/wasm-async.d.ts",
+        "default": "./dist/wasm-async.js"
       }
     },
     "./wasm-async": {
       "import": {
         "types": "./dist/wasm-async.d.ts",
         "default": "./dist/wasm-async.js"
+      }
+    },
+    "./wasm-sync": {
+      "import": {
+        "types": "./dist/wasm-sync.d.ts",
+        "default": "./dist/wasm-sync.js"
+      },
+      "require": {
+        "types": "./dist/cjs/wasm-sync.d.ts",
+        "default": "./dist/cjs/wasm-sync.js"
       }
     },
     "./legacy": {

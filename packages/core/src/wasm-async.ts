@@ -1,12 +1,12 @@
 /**
- * Async-first WASM crypto entry (RFC-031 P1).
+ * Async-first WASM crypto entry (RFC-031) — exported as `@totemsdk/core/wasm`.
  *
- * Unlike `@totemsdk/core/wasm` (the synchronous bridge, which initializes WASM
- * at import time and therefore needs a synchronous `.wasm` module loader), this
- * entry targets the wasm-bindgen **web** artifact and requires a one-time async
- * init:
+ * Unlike `@totemsdk/core/wasm-sync` (the synchronous bridge, which initializes
+ * WASM at import time and therefore needs a synchronous `.wasm` module loader),
+ * this entry targets the wasm-bindgen **web** artifact and requires a one-time
+ * async init:
  *
- *   import { init, sha3_256, wotsSign } from '@totemsdk/core/wasm-async';
+ *   import { init, sha3_256, wotsSign } from '@totemsdk/core/wasm';
  *   await init();                 // or init({ module_or_path: wasmBytes/URL })
  *   const digest = sha3_256(data); // synchronous thereafter
  *
