@@ -1,5 +1,14 @@
 import { sha3_256, wotsVerifyDigest, hexToBytes } from '@totemsdk/core';
-import { randomBytes } from 'node:crypto';
+
+/**
+ * Runtime-agnostic random hex (RFC-031 P1): uses the global WebCrypto available
+ * on Node 19+/Bun/browsers/Deno; Bare hosts provide it via `bare-crypto/global`.
+ */
+function randomHex(byteLength: number): string {
+  const bytes = new Uint8Array(byteLength);
+  (globalThis as { crypto: { getRandomValues(a: Uint8Array): Uint8Array } }).crypto.getRandomValues(bytes);
+  return Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
 import type {
   ScriptDescriptor,
   ExternalSignature,
@@ -65,8 +74,7 @@ export interface MultisigExportData {
 }
 
 function generateTransactionId(): string {
-  const bytes = randomBytes(16);
-  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+  return randomHex(16);
 }
 
 function verifyWotsSignature(signatureHex: string, digestHex: string, publicKeyHex: string): boolean {
