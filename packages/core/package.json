@@ -20,6 +20,10 @@
       "import": {
         "types": "./dist/wasm-async.d.ts",
         "default": "./dist/wasm-async.js"
+      },
+      "require": {
+        "types": "./dist/wasm-async.d.ts",
+        "default": "./dist/cjs/wasm-async.js"
       }
     },
     "./wasm-async": {
@@ -126,8 +130,8 @@
     }
   },
   "scripts": {
-    "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
-    "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
+    "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\" && node scripts/write-wasm-cjs-shim.mjs",
+    "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\" && node scripts/write-wasm-cjs-shim.mjs",
     "clean": "rm -rf dist",
     "test": "jest",
     "test:wasm-async": "tsc -p tsconfig.json && node test/wasm-async.test.mjs && node test/wasm-surface-parity.test.mjs && node test/kernel-coverage.test.mjs",
