@@ -22,7 +22,7 @@
         "default": "./dist/wasm-async.js"
       },
       "require": {
-        "types": "./dist/wasm-async.d.ts",
+        "types": "./dist/cjs/wasm-async.d.ts",
         "default": "./dist/cjs/wasm-async.js"
       }
     },

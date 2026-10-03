@@ -11,7 +11,7 @@
  *   EdgeServiceManifest → "edge-service" + operatorAddress + serviceType + name
  */
 
-import { sha3_256 } from '@totemsdk/core';
+import { sha3_256 } from '@totemsdk/core/wasm';
 import type { Manifest } from './types.js';
 
 function bytesToHex(b: Uint8Array): string {

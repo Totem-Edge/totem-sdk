@@ -15,13 +15,13 @@
  * this function. This package does NOT depend on @totemsdk/wots-lease.
  */
 
-import { sha3_256 } from '@totemsdk/core';
+import { sha3_256 } from '@totemsdk/core/wasm';
 import {
   wotsSign,
   wotsKeypairFromSeed,
   wotsAddressFromKeypair,
   bytesToHex,
-} from '@totemsdk/core';
+} from '@totemsdk/core/wasm';
 import type { Manifest, SignedManifest } from './types.js';
 
 /** Produce a deterministic canonical JSON string with sorted keys (recursive). */

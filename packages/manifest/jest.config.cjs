@@ -13,6 +13,9 @@ module.exports = {
   },
   moduleNameMapper: {
     '^@totemsdk/core$': '<rootDir>/../core/src/index.ts',
+    // RFC-031: tests use the sync WASM bridge (no async init); production uses
+    // the async `@totemsdk/core/wasm` entry.
+    '^@totemsdk/core/wasm$': '<rootDir>/../core/src/wasm-sync.ts',
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
 };

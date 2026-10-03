@@ -12,7 +12,7 @@
  * The full 1088-byte key is not stored in SignedManifest to keep it compact.
  */
 
-import { wotsVerifyDigest, hexToBytes } from '@totemsdk/core';
+import { wotsVerifyDigest, hexToBytes } from '@totemsdk/core/wasm';
 import type { SignedManifest, VerifyResult } from './types.js';
 import { manifestDigest } from './sign.js';
 
