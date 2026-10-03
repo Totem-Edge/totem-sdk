@@ -145,7 +145,7 @@ Failure semantics mirror the rest of the system: **fail closed** — an unverifi
 A self-authenticating request consumes a leaf index. A chatty client would burn leaves quickly (per-address capacity is finite; the crypto policy cites 262,144). To bound this without weakening PQ guarantees:
 
 - **Establish once with WOTS** (one leased index): the node verifies the identity and issues a **node-signed session ticket**, generalizing the existing lease-certificate pattern (`lookup-node/src/lease.ts:_issueCertificate`).
-- The ticket is signed by the **node’s own WOTS/TreeKey identity** (replacing the node’s ephemeral Ed25519 key, §5.5) and bound to the client’s `address`/`signerPublicKey` with a short TTL.
+- The ticket is signed by the **node’s own WOTS/TreeKey identity** (replacing the node’s ephemeral Ed25519 key, §5.5) and bound to the client’s `address`/`rootPublicKey` with a short TTL. The client’s single leased index (§9 Q1) is consumed once here, not per ticket redemption.
 - Subsequent requests present `{ ticket, request }`; the client’s root identity remains the authenticated principal, so identity is still attached to access requests.
 - Tickets are optional and node-policy-driven (`sessionTtlMs`, `maxRequestsPerTicket`); a node may require WOTS-per-request for high-value operations.
 
@@ -202,13 +202,32 @@ The lookup digest is already SHA3-256 (`lookup-protocol/src/auth.ts:46`). The SD
 | **P5** | Session tickets (node-signed, TTL, request cap); `trust.ts` reviewer verifier → WOTS. | Unit: ticket issue/redeem/expire |
 | **P6** | End-to-end: announce/query/auth over v2 against a live node; adversarial suite (replay, forged proof, index reuse, expired, downgrade). | E2E + adversarial green |
 
-## 9. Open questions
+## 9. Resolved decisions & open questions
 
-- **Q1** Lease authority for lookup clients: local `wots-lease`, Axia (RFC-013 default), or the lookup node itself? Affects offline signing.
-- **Q2** Index budget per identity: how many leaves may a lookup identity consume before re-keying? (`root-identity` allows 64 child addresses, each with a WOTS index space.)
-- **Q3** Session-ticket TTL and request cap defaults; whether any operation mandates WOTS-per-request.
+**Resolved**
+
+- **Q1 — Lease authority: reuse the client's RFC-013 provider; add no new authority.**
+  A WOTS signature consumes one leased key index, which needs a watermark
+  authority. The SDK already has three (RFC-013): local `LocalLeaseProvider`
+  (offline, client-owned), Axia (hosted default), on-chain/hybrid. The lookup
+  identity *is* the root identity, so it uses the **same** authority that root
+  identity already uses for every other signature. The client leases **one index
+  per session establishment** (§5.4 session tickets), not per request. The lookup
+  node only verifies signature + proof and enforces replay/uniqueness; it is
+  **not** the client's lease authority. Rationale: one identity, one watermark,
+  one lease provider across the SDK; the lookup node stays stateless w.r.t.
+  client watermarks; no bootstrap problem (rejected the alternative of the
+  lookup node acting as client lease authority, which would require identity to
+  obtain identity).
+- **Q5 — Rollout: hard switch, no migration window.** There are no existing
+  lookup users, so `lookup-protocol` goes straight to v2 with Ed25519 removed;
+  no dual-verify path, no sunset period.
+
+**Open**
+
+- **Q2** Index budget per identity: how many leaves may a lookup identity consume before re-keying? (`root-identity` allows 64 child addresses, each with a WOTS index space.) With one index per session, the practical budget is driven by session count.
+- **Q3** Session-ticket TTL and request-cap defaults; whether any operation mandates WOTS-per-request.
 - **Q4** Should `address` be required on the wire (verifiable) or always derived?
-- **Q5** Hard-switch rollout on a live P2P network: a coordinated cut-over date/flag, or a version-sunset window? (Hard switch chosen; this is the operational constraint.)
 
 ## 10. References
 
