@@ -52,25 +52,77 @@ export type MqttMessage = PubSubMessage;
 
 // ── EventEmitterTransport ──────────────────────────────────────────────────────
 
-import { EventEmitter } from 'events';
+/**
+ * Minimal emitter contract (Node `EventEmitter`-compatible). Using this instead
+ * of `node:events` keeps the in-process transport runtime-agnostic (RFC-031 P2):
+ * it works on Bare/Bun/browser/Node. A real Node `EventEmitter` can still be
+ * injected via the `bus` constructor argument.
+ */
+export interface EmitterLike {
+  on(event: string, listener: (...args: any[]) => void): unknown;
+  off(event: string, listener: (...args: any[]) => void): unknown;
+  emit(event: string, ...args: unknown[]): boolean;
+  removeAllListeners(): unknown;
+  listenerCount(event: string): number;
+  setMaxListeners?(n?: number): unknown;
+}
+
+class MiniEmitter implements EmitterLike {
+  private readonly _listeners = new Map<string, Set<(...args: unknown[]) => void>>();
+
+  on(event: string, listener: (...args: any[]) => void): this {
+    let set = this._listeners.get(event);
+    if (!set) {
+      set = new Set();
+      this._listeners.set(event, set);
+    }
+    set.add(listener);
+    return this;
+  }
+
+  off(event: string, listener: (...args: any[]) => void): this {
+    this._listeners.get(event)?.delete(listener);
+    return this;
+  }
+
+  emit(event: string, ...args: unknown[]): boolean {
+    const set = this._listeners.get(event);
+    if (!set || set.size === 0) return false;
+    for (const listener of [...set]) listener(...args);
+    return true;
+  }
+
+  removeAllListeners(): this {
+    this._listeners.clear();
+    return this;
+  }
+
+  listenerCount(event: string): number {
+    return this._listeners.get(event)?.size ?? 0;
+  }
+
+  setMaxListeners(_n?: number): this {
+    return this;
+  }
+}
 
 /**
- * In-process pub/sub transport backed by a Node.js EventEmitter.
+ * In-process pub/sub transport backed by a minimal emitter.
  * Useful for wiring together components in the same process without a broker.
  *
- * Two EventEmitterTransport instances sharing the same `bus` EventEmitter
+ * Two EventEmitterTransport instances sharing the same `bus` emitter
  * form a bidirectional pub/sub channel: what one publishes, the other receives.
  */
 export class EventEmitterTransport implements IPubSubTransport {
-  private readonly _bus: EventEmitter;
+  private readonly _bus: EmitterLike;
   private readonly _handlers: ((message: PubSubMessage) => void)[] = [];
 
-  constructor(bus?: EventEmitter) {
-    this._bus = bus ?? new EventEmitter();
-    this._bus.setMaxListeners(0);
+  constructor(bus?: EmitterLike) {
+    this._bus = bus ?? new MiniEmitter();
+    this._bus.setMaxListeners?.(0);
   }
 
-  get bus(): EventEmitter {
+  get bus(): EmitterLike {
     return this._bus;
   }
 
@@ -176,7 +228,7 @@ export class MockPubSubTransport implements IPubSubTransport {
  * What [0] publishes, [1] receives via onMessage, and vice-versa.
  */
 export function createPairedEventEmitterTransports(): [EventEmitterTransport, EventEmitterTransport] {
-  const bus = new EventEmitter();
+  const bus = new MiniEmitter();
   bus.setMaxListeners(0);
   return [
     new EventEmitterTransport(bus),
