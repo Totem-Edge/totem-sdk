@@ -35,6 +35,7 @@
     "artifacts:write": "node scripts/write-artifacts.mjs",
     "artifacts:verify": "node scripts/verify-artifacts.mjs",
     "sbom:write": "node scripts/write-sbom.mjs",
+    "budgets:check": "node scripts/check-budgets.mjs",
     "clean": "rm -rf pkg pkg-node pkg-web target"
   },
   "repository": {

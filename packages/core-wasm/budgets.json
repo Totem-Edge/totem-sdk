@@ -1,0 +1,6 @@
+{
+  "note": "RFC-031 G4 edge budgets. Size is gated in CI; initMs is reported (CI timing is noisy). Regenerate/ratchet deliberately.",
+  "wasmBytes": 380000,
+  "wasmGzipBytes": 155000,
+  "initMs": 500
+}

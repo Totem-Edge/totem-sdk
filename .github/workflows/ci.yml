@@ -58,6 +58,9 @@ jobs:
             echo "::error::sbom.json is stale; run 'npm run sbom:write' in packages/core-wasm and commit the result"
             exit 1
           fi
+      - name: Edge size/cold-start budgets (RFC-031 G4)
+        working-directory: packages/core-wasm
+        run: npm run budgets:check
       - name: Typecheck + build (workspace)
         run: node scripts/verify-workspace.mjs --typecheck
       - name: QVAC API drift audit (against real @qvac/sdk)

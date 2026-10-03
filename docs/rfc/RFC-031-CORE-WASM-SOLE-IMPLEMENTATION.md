@@ -237,9 +237,12 @@ The JS kernels are removed **only when all four gates are green**:
   marked `@deprecated` and **frozen** (no new kernels), with a migration guide in
   the core README (`legacy*` → `@totemsdk/core/wasm-async`). The root already
   defaults to WASM; `./wasm-async` is the portable edge path. No runtime
-  deprecation warning is emitted yet (avoids test/log noise). Remaining: migrate
-  any remaining internal `/legacy` consumers, measure edge size/cold-start
-  budgets, and the **root wasm-free default (Fix A)**. *(Gate G4.)*
+  deprecation warning is emitted yet (avoids test/log noise). Internal `/legacy`
+  audit: **zero runtime consumers** (all packages use the root/WASM). Edge
+  **budgets** landed: `budgets.json` gates the portable wasm size
+  (350 KB raw / 141 KB gzip, budget 380/155 KB) and reports init time
+  (`check-budgets.mjs`, CI). Remaining G4: the **root wasm-free default (Fix A)**
+  and real per-wallet bundle budgets. *(Gate G4.)*
 - **P5 — Remove.** Delete the JS kernels; `@totemsdk/core` = API + single WASM
   implementation. Major version.
 
