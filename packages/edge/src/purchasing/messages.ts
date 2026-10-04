@@ -6,7 +6,7 @@
  * or reconstruct the same prior result — never a second economic action.
  */
 
-import { sha3_256 } from '@totemsdk/core';
+import { sha3_256 } from '@totemsdk/core/wasm';
 import { canonicalJson, toHex } from '../canonical.js';
 import type { NegotiationMessage } from './types.js';
 

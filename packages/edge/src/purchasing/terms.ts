@@ -8,7 +8,7 @@
  *   - the Machine Work Admission action commitment can bind the proposal
  */
 
-import { sha3_256 } from '@totemsdk/core';
+import { sha3_256 } from '@totemsdk/core/wasm';
 import { canonicalJson, toHex } from '../canonical.js';
 import type { TradeProposal, TradeTerms, UsageStatement } from './types.js';
 

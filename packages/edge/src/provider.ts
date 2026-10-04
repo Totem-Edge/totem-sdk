@@ -6,7 +6,7 @@
  * @totemsdk/lookup-node and future @totemsdk/proofgraph.
  */
 
-import { sha3_256 } from '@totemsdk/core';
+import { sha3_256 } from '@totemsdk/core/wasm';
 import { toHex } from './canonical.js';
 import { signManifest, computeManifestId } from '@totemsdk/manifest';
 import type { EdgeServiceManifest, SignedManifest } from '@totemsdk/manifest';

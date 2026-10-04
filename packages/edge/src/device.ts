@@ -2,7 +2,7 @@
  * Edge device factory.
  */
 
-import { sha3_256 } from '@totemsdk/core';
+import { sha3_256 } from '@totemsdk/core/wasm';
 import { toHex } from './canonical.js';
 import type { EdgeDevice, EdgeDeviceKind } from './types.js';
 
