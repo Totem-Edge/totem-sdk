@@ -1,4 +1,4 @@
-import { concatBytes, wotsVerifyDigest, hexToBytes } from '@totemsdk/core';
+import { concatBytes, wotsVerifyDigest, hexToBytes } from '@totemsdk/core/wasm';
 import {
   serializeTxDraft,
   omniaDraftToMinimaBytes,

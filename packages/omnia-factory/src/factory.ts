@@ -1,5 +1,5 @@
-import { sha3_256 } from '@totemsdk/core';
-import { concatBytes, wotsVerifyDigest, hexToBytes } from '@totemsdk/core';
+import { sha3_256 } from '@totemsdk/core/wasm';
+import { concatBytes, wotsVerifyDigest, hexToBytes } from '@totemsdk/core/wasm';
 import {
   buildFundingTx,
   omniaDraftToMinimaBytes,

@@ -1,5 +1,5 @@
 import { DefaultEltooPaymentProgram, type OmniaChannel, type ChannelParticipant } from '@totemsdk/omnia';
-import { wotsVerifyDigest, hexToBytes } from '@totemsdk/core';
+import { wotsVerifyDigest, hexToBytes } from '@totemsdk/core/wasm';
 import type { ChannelFactory, FactoryLogEntry, WotsLeaseBundle } from './types.js';
 import { enforceConservation } from './factory.js';
 import { computeFactoryStateCommitment } from './commitment.js';

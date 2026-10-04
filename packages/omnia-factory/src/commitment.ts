@@ -1,4 +1,4 @@
-import { sha3_256 } from '@totemsdk/core';
+import { sha3_256 } from '@totemsdk/core/wasm';
 
 /**
  * Compute the canonical 32-byte state commitment for N-of-N factory signing.

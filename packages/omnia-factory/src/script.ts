@@ -1,4 +1,4 @@
-import { computeScriptAddress } from '@totemsdk/core';
+import { computeScriptAddress } from '@totemsdk/core/scripts';
 import type { FactoryParticipant } from './types.js';
 
 /**
