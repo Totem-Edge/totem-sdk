@@ -43,7 +43,7 @@ func main() {
 	}
 }
 
-func dispatch(graph *omniaRouter.ChannelGraph, method string, params map[string]any) (any, error) {
+func dispatch(graph *omniarouter.ChannelGraph, method string, params map[string]any) (any, error) {
 	switch method {
 	case "health":
 		return map[string]any{"ok": true}, nil
@@ -59,28 +59,36 @@ func dispatch(graph *omniaRouter.ChannelGraph, method string, params map[string]
 		return map[string]any{"ok": true}, nil
 	case "findRoute":
 		from, err := requiredStringParam(params, "from")
-		if err != nil { return nil, err }
+		if err != nil {
+			return nil, err
+		}
 		to, err := requiredStringParam(params, "to")
-		if err != nil { return nil, err }
+		if err != nil {
+			return nil, err
+		}
 		amount, err := requiredStringParam(params, "amount")
-		if err != nil { return nil, err }
+		if err != nil {
+			return nil, err
+		}
 		tokenID, err := requiredStringParam(params, "tokenId")
-		if err != nil { return nil, err }
+		if err != nil {
+			return nil, err
+		}
 		return omniarouter.FindRoute(
 			graph,
 			from,
 			to,
 			amount,
 			tokenID,
-			&omniaRouter.RouteOptions{MaxHops: intParam(params, "maxHops", 8)},
+			&omniarouter.RouteOptions{MaxHops: intParam(params, "maxHops", 8)},
 		), nil
 	default:
 		return nil, fmt.Errorf("unknown method: %s", method)
 	}
 }
 
-func channelEdge(params map[string]any) omniaRouter.ChannelGraphEdge {
-	return omniaRouter.ChannelGraphEdge{
+func channelEdge(params map[string]any) omniarouter.ChannelGraphEdge {
+	return omniarouter.ChannelGraphEdge{
 		ChannelID:        stringParam(params, "channelId"),
 		From:             stringParam(params, "from"),
 		To:               stringParam(params, "to"),

@@ -14,3 +14,16 @@ packages/core/test-vectors/java-parity/*.jar
 target/
 packages/*/rust/pkg/
 packages/*/rust/pkg-node/
+
+# Go build outputs (plain `go build ./...` writes a main-package binary in cwd)
+packages/*/go/bin/
+packages/*/go/edge-can
+packages/*/go/edge-coap
+packages/*/go/edge-grpc
+packages/*/go/edge-modbus
+packages/*/go/lookup-client
+packages/*/go/lookup-node
+packages/*/go/realtime
+packages/*/go/se-server
+packages/*/go/omnia-router
+packages/*/go/cmd/omnia-router/omnia-router

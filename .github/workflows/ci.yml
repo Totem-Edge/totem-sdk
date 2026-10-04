@@ -250,3 +250,21 @@ jobs:
           bun-version: '1.3.14'
       - name: Bun load smoke (RFC-031 P3)
         run: bun scripts/verify-bun-load.mjs
+
+  go:
+    name: Go mirrors (build/vet/test per module)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Setup Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          # Matches the `go 1.21` directive in every packages/*/go/go.mod.
+          go-version: '1.21'
+          cache: true
+          cache-dependency-path: 'packages/*/go/go.sum'
+      - name: Build / vet / test every Go module
+        # Go mirrors are standalone modules outside the pnpm workspace; this gate
+        # builds, vets and tests each (edge-can is Linux-only and compiles natively
+        # on this runner).
+        run: node scripts/verify-go.mjs

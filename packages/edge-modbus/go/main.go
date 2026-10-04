@@ -278,7 +278,7 @@ func (s *Server) sendRawFrame(frame []byte) ([]byte, error) {
 		if len(frame) >= 6 {
 			value = uint16(frame[4])<<8 | uint16(frame[5])
 		}
-		if err := s.client.WriteSingleCoil(addr, value == 0xFF00); err != nil {
+		if _, err := s.client.WriteSingleCoil(addr, value); err != nil {
 			return nil, fmt.Errorf("write single coil (unit=%d, addr=%d): %w", unitID, addr, err)
 		}
 		return frame, nil
@@ -292,7 +292,7 @@ func (s *Server) sendRawFrame(frame []byte) ([]byte, error) {
 		if len(frame) >= 6 {
 			value = uint16(frame[4])<<8 | uint16(frame[5])
 		}
-		if err := s.client.WriteSingleRegister(addr, value); err != nil {
+		if _, err := s.client.WriteSingleRegister(addr, value); err != nil {
 			return nil, fmt.Errorf("write single register (unit=%d, addr=%d): %w", unitID, addr, err)
 		}
 		return frame, nil
@@ -306,7 +306,7 @@ func (s *Server) sendRawFrame(frame []byte) ([]byte, error) {
 		byteCount := int(frame[6])
 		values := make([]byte, byteCount)
 		copy(values, frame[7:7+byteCount])
-		if err := s.client.WriteMultipleCoils(addr, quantity, values); err != nil {
+		if _, err := s.client.WriteMultipleCoils(addr, quantity, values); err != nil {
 			return nil, fmt.Errorf("write multiple coils (unit=%d, addr=%d, qty=%d): %w", unitID, addr, quantity, err)
 		}
 		return frame[:6], nil
@@ -320,7 +320,7 @@ func (s *Server) sendRawFrame(frame []byte) ([]byte, error) {
 		byteCount := int(frame[6])
 		values := make([]byte, byteCount)
 		copy(values, frame[7:7+byteCount])
-		if err := s.client.WriteMultipleRegisters(addr, quantity, values); err != nil {
+		if _, err := s.client.WriteMultipleRegisters(addr, quantity, values); err != nil {
 			return nil, fmt.Errorf("write multiple registers (unit=%d, addr=%d, qty=%d): %w", unitID, addr, quantity, err)
 		}
 		return frame[:6], nil

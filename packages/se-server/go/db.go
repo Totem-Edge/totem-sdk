@@ -1,7 +1,9 @@
 package seserver
 
 import (
+	"crypto/rand"
 	"database/sql"
+	"encoding/hex"
 	"time"
 )
 

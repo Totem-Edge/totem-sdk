@@ -38,7 +38,6 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -51,7 +50,7 @@ type Request struct {
 	Type     string `json:"type"`
 	Address  string `json:"address,omitempty"`
 	Path     string `json:"path,omitempty"`
-	Payload  string `json:"payload,omitempty"`  // base64-encoded protobuf
+	Payload  string `json:"payload,omitempty"` // base64-encoded protobuf
 	Deadline int    `json:"deadline_ms,omitempty"`
 	StreamID string `json:"stream_id,omitempty"`
 }
@@ -59,14 +58,14 @@ type Request struct {
 type Response struct {
 	ID       string `json:"id"`
 	OK       bool   `json:"ok"`
-	Data     string `json:"data,omitempty"`     // base64-encoded protobuf
+	Data     string `json:"data,omitempty"` // base64-encoded protobuf
 	Error    string `json:"error,omitempty"`
-	Code     int    `json:"code,omitempty"`     // gRPC status code
+	Code     int    `json:"code,omitempty"` // gRPC status code
 	StreamID string `json:"stream_id,omitempty"`
 }
 
 type PushMessage struct {
-	Type     string `json:"type"`               // "stream_data" | "stream_end" | "stream_error"
+	Type     string `json:"type"` // "stream_data" | "stream_end" | "stream_error"
 	StreamID string `json:"stream_id"`
 	Payload  string `json:"payload,omitempty"`
 	Error    string `json:"error,omitempty"`

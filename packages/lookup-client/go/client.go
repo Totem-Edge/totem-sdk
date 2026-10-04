@@ -68,11 +68,11 @@ type ITransport interface {
 }
 
 type LookupClientConfig struct {
-	HyperswarmTopic  string
-	NodeURL          string
-	TimeoutMs        time.Duration
-	ReconnectBaseMs  time.Duration
-	ReconnectMaxMs   time.Duration
+	HyperswarmTopic string
+	NodeURL         string
+	TimeoutMs       time.Duration
+	ReconnectBaseMs time.Duration
+	ReconnectMaxMs  time.Duration
 }
 
 type Coin struct {
@@ -130,7 +130,7 @@ type LookupClient struct {
 	subscriptions    *SubscriptionManager
 	signer           WotsSigner
 	authTTLMs        time.Duration
-	mu               sync.Mutex
+	mu               sync.RWMutex
 	destroyed        bool
 	reconnectAttempt int
 	handlers         map[string][]func(...interface{})
@@ -375,13 +375,13 @@ func (c *LookupClient) BroadcastTxPoW(txpowHex string) (*BroadcastResult, error)
 }
 
 type RpcLayer struct {
-	mu              sync.Mutex
-	pending         map[string]*pendingRequest
-	pushHandlers    map[string][]func(LookupMessage)
-	transport       ITransport
-	stamper         Stamper
-	defaultTimeout  time.Duration
-	idCounter       int
+	mu             sync.Mutex
+	pending        map[string]*pendingRequest
+	pushHandlers   map[string][]func(LookupMessage)
+	transport      ITransport
+	stamper        Stamper
+	defaultTimeout time.Duration
+	idCounter      int
 }
 
 type pendingRequest struct {
@@ -452,7 +452,9 @@ func (r *RpcLayer) route(msg LookupMessage) {
 	}
 
 	if msg.Type == "PING" {
-		var pingPayload struct{ TS int64 `json:"ts"` }
+		var pingPayload struct {
+			TS int64 `json:"ts"`
+		}
 		json.Unmarshal(msg.Payload, &pingPayload)
 		r.SendRaw(LookupMessage{
 			Type:    "PONG",

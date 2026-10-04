@@ -283,7 +283,9 @@ func NewClientSession(transport ITransport, node *LookupNode) *ClientSession {
 func (s *ClientSession) handleMessage(msg LookupMessage) {
 	// RFC-032: unauthenticated liveness.
 	if msg.Type == "PING" {
-		var p struct{ TS int64 `json:"ts"` }
+		var p struct {
+			TS int64 `json:"ts"`
+		}
 		json.Unmarshal(msg.Payload, &p)
 		s.sendMessage(LookupMessage{
 			Type:    "PONG",
@@ -379,7 +381,9 @@ func (s *ClientSession) dispatch(msg LookupMessage) {
 	case "WATCH_REMOVE":
 		s.handleWatchRemove(msg)
 	case "PING":
-		var p struct{ TS int64 `json:"ts"` }
+		var p struct {
+			TS int64 `json:"ts"`
+		}
 		json.Unmarshal(msg.Payload, &p)
 		s.sendMessage(LookupMessage{
 			Type:    "PONG",
@@ -425,7 +429,9 @@ func (s *ClientSession) handleGetCoins(msg LookupMessage, provider ChainStatePro
 }
 
 func (s *ClientSession) handleGetCoin(msg LookupMessage, provider ChainStateProvider, store *SqliteStore) {
-	var p struct{ CoinID string `json:"coinId"` }
+	var p struct {
+		CoinID string `json:"coinId"`
+	}
 	json.Unmarshal(msg.Payload, &p)
 
 	coin, err := provider.GetCoin(p.CoinID)
@@ -464,7 +470,9 @@ func (s *ClientSession) handleGetTip(msg LookupMessage, provider ChainStateProvi
 }
 
 func (s *ClientSession) handleGetToken(msg LookupMessage, provider ChainStateProvider, store *SqliteStore) {
-	var p struct{ TokenID string `json:"tokenId"` }
+	var p struct {
+		TokenID string `json:"tokenId"`
+	}
 	json.Unmarshal(msg.Payload, &p)
 
 	token, err := provider.GetToken(p.TokenID)
@@ -483,7 +491,9 @@ func (s *ClientSession) handleGetToken(msg LookupMessage, provider ChainStatePro
 }
 
 func (s *ClientSession) handleBroadcastTxPoW(msg LookupMessage, provider ChainStateProvider) {
-	var p struct{ TxpowHex string `json:"txpowHex"` }
+	var p struct {
+		TxpowHex string `json:"txpowHex"`
+	}
 	json.Unmarshal(msg.Payload, &p)
 
 	if s.node.relay != nil {
@@ -511,13 +521,17 @@ func (s *ClientSession) handleBroadcastTxPoW(msg LookupMessage, provider ChainSt
 }
 
 func (s *ClientSession) handleWatchRegister(msg LookupMessage) {
-	var p struct{ Addresses []string `json:"addresses"` }
+	var p struct {
+		Addresses []string `json:"addresses"`
+	}
 	json.Unmarshal(msg.Payload, &p)
 	s.node.watchlist.Register(s.SessionID, p.Addresses, s.transport)
 }
 
 func (s *ClientSession) handleWatchRemove(msg LookupMessage) {
-	var p struct{ Addresses []string `json:"addresses"` }
+	var p struct {
+		Addresses []string `json:"addresses"`
+	}
 	json.Unmarshal(msg.Payload, &p)
 	s.node.watchlist.Remove(s.SessionID, p.Addresses)
 }
@@ -537,16 +551,16 @@ func (s *ClientSession) sendError(requestID, code, message string) {
 }
 
 type WatchlistManager struct {
-	provider ChainStateProvider
-	interval time.Duration
-	store    *SqliteStore
-	watches  map[string]map[string]*subscriber
-	coinCache map[string]map[string]Coin
+	provider    ChainStateProvider
+	interval    time.Duration
+	store       *SqliteStore
+	watches     map[string]map[string]*subscriber
+	coinCache   map[string]map[string]Coin
 	sessionKeys map[string]map[string]struct{}
-	lastBlock int
-	mu        sync.RWMutex
-	ticker    *time.Ticker
-	stopCh    chan struct{}
+	lastBlock   int
+	mu          sync.RWMutex
+	ticker      *time.Ticker
+	stopCh      chan struct{}
 }
 
 type subscriber struct {

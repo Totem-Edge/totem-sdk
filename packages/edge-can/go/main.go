@@ -1,3 +1,5 @@
+//go:build linux
+
 package main
 
 import (
@@ -12,6 +14,7 @@ import (
 	"strconv"
 	"sync"
 	"syscall"
+	"time"
 	"unsafe"
 )
 

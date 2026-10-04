@@ -40,6 +40,7 @@
     "test:integration": "node scripts/verify-workspace.mjs --integration",
     "test:pack": "node scripts/verify-workspace.mjs --pack",
     "verify:mcp-pack": "node scripts/verify-mcp-pack.mjs",
+    "verify:go": "node scripts/verify-go.mjs",
     "verify": "node scripts/verify-workspace.mjs --all && node scripts/verify-wallets.mjs",
     "verify:wallets": "node scripts/verify-wallets.mjs",
     "smoke-test": "node scripts/smoke-test-imports.mjs",

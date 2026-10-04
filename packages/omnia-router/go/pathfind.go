@@ -81,7 +81,7 @@ func reconstruct(graph *ChannelGraph, from, to, amountStr, tokenID string, maxHo
 			copy(newPath, state.path)
 			newPath = append(newPath, hop)
 
-			dist[edge.To] = &bestDist{totalFees: new(big.Int{}).Set(newFees), hops: newHops, path: newPath}
+			dist[edge.To] = &bestDist{totalFees: new(big.Int).Set(newFees), hops: newHops, path: newPath}
 			enqueue(&queue, dijkstraState{node: edge.To, totalFees: newFees, hops: newHops, path: newPath})
 		}
 	}
