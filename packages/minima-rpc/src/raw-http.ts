@@ -18,46 +18,55 @@ export interface RawHttpResponse {
   bodyText: string;
 }
 
-let netModule: typeof import('node:net') | null = null;
-let tlsModule: typeof import('node:tls') | null = null;
+let netModule: typeof import('node:net') | null | undefined;
+let tlsModule: typeof import('node:tls') | null | undefined;
 
-try {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  netModule = require('node:net');
-} catch {
-  netModule = null;
-}
-try {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  tlsModule = require('node:tls');
-} catch {
-  tlsModule = null;
+async function loadNet(): Promise<typeof import('node:net') | null> {
+  if (netModule === undefined) {
+    try {
+      netModule = await import('node:net');
+    } catch {
+      netModule = null;
+    }
+  }
+  return netModule;
 }
 
-export const isRawHttpAvailable = (): boolean => netModule !== null;
+async function loadTls(): Promise<typeof import('node:tls') | null> {
+  if (tlsModule === undefined) {
+    try {
+      tlsModule = await import('node:tls');
+    } catch {
+      tlsModule = null;
+    }
+  }
+  return tlsModule;
+}
+
+export const isRawHttpAvailable = async (): Promise<boolean> => (await loadNet()) !== null;
 
 /**
  * POST a Minima-native command string and tolerantly parse the response even
  * when the server uses bare-LF line endings or unusual header values.
  */
-export function postCommandRaw(
+export async function postCommandRaw(
   config: MinimaRpcConfig,
   commandString: string,
 ): Promise<RawHttpResponse> {
-  return new Promise((resolve, reject) => {
-    if (!netModule) {
-      reject(new MinimaRpcError('raw HTTP transport unavailable (no node:net)', commandString));
-      return;
-    }
+  const net = await loadNet();
+  if (!net) {
+    throw new MinimaRpcError('raw HTTP transport unavailable (no node:net)', commandString);
+  }
+  const port = config.port;
+  const host = config.host;
+  const secure = config.ssl !== false;
+  const tls = secure ? await loadTls() : null;
+  if (secure && !tls) {
+    throw new MinimaRpcError('raw HTTPS transport unavailable (no node:tls)', commandString);
+  }
+  const sockModule = secure ? tls : net;
 
-    const port = config.port;
-    const host = config.host;
-    const secure = config.ssl !== false;
-    const sockModule = secure ? (tlsModule ?? undefined) : netModule;
-    if (secure && !sockModule) {
-      reject(new MinimaRpcError('raw HTTPS transport unavailable (no node:tls)', commandString));
-      return;
-    }
+  return new Promise((resolve, reject) => {
 
     const credential = `${config.username ?? 'minima'}:${config.password ?? ''}`;
     const auth = `Basic ${Buffer.from(credential).toString('base64')}`;

@@ -475,7 +475,7 @@ export async function postCommand(
 
   // Final attempt via the raw, tolerant transport so the SDK works against
   // servers that undici/node:http cannot parse.
-  if (isRawHttpAvailable()) {
+  if (await isRawHttpAvailable()) {
     const raw = await postCommandRaw(config, commandString);
     if (raw.statusCode === 401 || raw.statusCode === 403) {
       throw new MinimaRpcError(
