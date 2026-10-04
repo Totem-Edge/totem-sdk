@@ -4,6 +4,55 @@
   "description": "Provider-neutral storage contracts and adapters — StorageError taxonomy, versioned codec, namespaces, transactions + CAS, artifact-boundary types with a pluggable ArtifactStoreBackend port",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "artifacts": [
+        "dist/artifacts/index.d.ts"
+      ],
+      "artifacts/local-fs-backend": [
+        "dist/artifacts/backends/local-fs-backend.d.ts"
+      ],
+      "codec": [
+        "dist/codec.d.ts"
+      ],
+      "conformance": [
+        "dist/conformance/index.d.ts"
+      ],
+      "errors": [
+        "dist/errors.d.ts"
+      ],
+      "fs": [
+        "dist/adapters/file-store.d.ts"
+      ],
+      "idb": [
+        "dist/adapters/idb-store.d.ts"
+      ],
+      "memory": [
+        "dist/adapters/memory-store.d.ts"
+      ],
+      "namespace": [
+        "dist/namespace.d.ts"
+      ],
+      "persistence": [
+        "dist/persistence.d.ts"
+      ],
+      "sqlite": [
+        "dist/adapters/sqlite-store.d.ts"
+      ],
+      "journal": [
+        "dist/journal.d.ts"
+      ],
+      "snapshot": [
+        "dist/snapshot.d.ts"
+      ],
+      "transaction": [
+        "dist/transaction.d.ts"
+      ],
+      "types": [
+        "dist/types.d.ts"
+      ]
+    }
+  },
   "exports": {
     ".": {
       "import": {
