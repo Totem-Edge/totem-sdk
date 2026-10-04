@@ -2,33 +2,75 @@
   "name": "@totemsdk/pear",
   "version": "0.2.1",
   "description": "Bare/Pear runtime integration harness for @totemsdk — storage, networking, lifecycle, and Hyperdrive adapters for Pear apps",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "type": "module",
+  "main": "dist/cjs/index.js",
+  "types": "dist/cjs/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "storage": [
+        "dist/cjs/storage/index.d.ts"
+      ],
+      "network": [
+        "dist/cjs/network/index.d.ts"
+      ],
+      "lifecycle": [
+        "dist/cjs/lifecycle.d.ts"
+      ],
+      "hyperdrive": [
+        "dist/cjs/hyperdrive.d.ts"
+      ]
+    }
+  },
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "require": "./dist/index.js",
-      "import": "./dist/index.js"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
     },
     "./storage": {
-      "types": "./dist/storage/index.d.ts",
-      "require": "./dist/storage/index.js",
-      "import": "./dist/storage/index.js"
+      "import": {
+        "types": "./dist/storage/index.d.ts",
+        "default": "./dist/storage/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/storage/index.d.ts",
+        "default": "./dist/cjs/storage/index.js"
+      }
     },
     "./network": {
-      "types": "./dist/network/index.d.ts",
-      "require": "./dist/network/index.js",
-      "import": "./dist/network/index.js"
+      "import": {
+        "types": "./dist/network/index.d.ts",
+        "default": "./dist/network/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/network/index.d.ts",
+        "default": "./dist/cjs/network/index.js"
+      }
     },
     "./lifecycle": {
-      "types": "./dist/lifecycle.d.ts",
-      "require": "./dist/lifecycle.js",
-      "import": "./dist/lifecycle.js"
+      "import": {
+        "types": "./dist/lifecycle.d.ts",
+        "default": "./dist/lifecycle.js"
+      },
+      "require": {
+        "types": "./dist/cjs/lifecycle.d.ts",
+        "default": "./dist/cjs/lifecycle.js"
+      }
     },
     "./hyperdrive": {
-      "types": "./dist/hyperdrive.d.ts",
-      "require": "./dist/hyperdrive.js",
-      "import": "./dist/hyperdrive.js"
+      "import": {
+        "types": "./dist/hyperdrive.d.ts",
+        "default": "./dist/hyperdrive.js"
+      },
+      "require": {
+        "types": "./dist/cjs/hyperdrive.d.ts",
+        "default": "./dist/cjs/hyperdrive.js"
+      }
     }
   },
   "dependencies": {
@@ -37,8 +79,8 @@
     "@noble/hashes": "^2.2.0"
   },
   "scripts": {
-    "build": "tsc",
-    "prepare": "tsc",
+    "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
+    "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist",
     "test": "jest",
     "test:bare": "node src/__tests__/bare/run-bare.mjs"
