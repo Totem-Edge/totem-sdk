@@ -13,7 +13,7 @@
 
 import { verifyMessageAuth } from '@totemsdk/lookup-protocol';
 import type { LookupMessage } from '@totemsdk/lookup-protocol';
-import { verifyTreeSignature, deserializeTreeSignature, hexToBytes } from '@totemsdk/core';
+import { verifyTreeSignature, deserializeTreeSignature } from '@totemsdk/core';
 
 export interface AuthVerifyResult {
   valid: boolean;

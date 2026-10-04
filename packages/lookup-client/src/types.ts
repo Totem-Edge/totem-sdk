@@ -30,6 +30,15 @@ export interface LookupClientConfig {
   identitySeed?: Uint8Array;
   /** RFC-032: pre-built identity (takes precedence over `identitySeed`). */
   identity?: import('./identity.js').LookupIdentity;
+  /**
+   * RFC-032 §9 Q1: use a `@totemsdk/root-identity` `UnifiedIdentityWallet` as the
+   * lookup identity (its root key by default). Takes precedence over
+   * `identitySeed` but not over `identity`. Persist the wallet's watermark so
+   * the one-time counter survives restarts.
+   */
+  identityWallet?: import('@totemsdk/root-identity').UnifiedIdentityWallet;
+  /** RFC-032: wallet slot (`'root'` or child index). Default `'root'`. */
+  identitySlot?: import('./identity.js').IdentitySlot;
   /** RFC-032: identity derivation options (address index, resume uses). */
   identityOptions?: import('./identity.js').LookupIdentityOptions;
   /** RFC-032: auth envelope TTL in ms. Default 60_000. */

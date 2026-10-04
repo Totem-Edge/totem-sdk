@@ -1,25 +1,62 @@
 package lookupclient
 
 import (
-	"crypto/ed25519"
-	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"io"
 	"sync"
 	"time"
 
 	"golang.org/x/crypto/sha3"
 )
 
-const ProtocolVersion = 1
+// NOTE: this Go mirror has no byte-exact WOTS signer/verifier (same gap as
+// @totemsdk/se-server, AUD-045). A caller must supply a WotsSigner whose digest
+// preimage matches @totemsdk/lookup-protocol authDigest exactly; otherwise
+// requests fail closed. The TypeScript package is the supported implementation.
+
+// ProtocolVersion 2 is the RFC-032 hard switch: post-quantum WOTS auth, no
+// Ed25519, no HELLO/AUTH_CHALLENGE/AUTH_RESPONSE handshake.
+const ProtocolVersion = 2
+
+// ErrNotInteroperable marks the Go lookup-client signing surface as disabled.
+// There is no interoperable WOTS/TreeKey implementation in Go yet (the same
+// situation as @totemsdk/se-server AUD-045). Rather than emit placeholder
+// cryptography that a lookup node could mistake for a valid WOTS signature, the
+// signer fails closed. Use the TypeScript @totemsdk/lookup-client, or supply a
+// real WotsSigner once a byte-exact WOTS port with cross-language tests lands.
+var ErrNotInteroperable = errors.New(
+	"lookup-client(go): not an interoperable WOTS client (RFC-032); use the TypeScript @totemsdk/lookup-client",
+)
+
+// WotsAuthEnvelope is the RFC-032 post-quantum auth envelope carried per message.
+type WotsAuthEnvelope struct {
+	RootPublicKey     string `json:"rootPublicKey"`
+	Signature         string `json:"signature"`
+	Nonce             int64  `json:"nonce"`
+	ExpiresAt         int64  `json:"expiresAt"`
+	RootIdentityProof string `json:"rootIdentityProof,omitempty"`
+	Address           string `json:"address,omitempty"`
+}
+
+// WotsSigner signs the RFC-032 auth digest for an outgoing message. Implement
+// this with a real WOTS/TreeKey signer. The digest is
+// sha3_256(canonicalJson(message) ‖ nonce ‖ expiresAt); `Nonce()` must return
+// the next (strictly increasing) one-time index that `Sign` will consume, and
+// `Sign` must consume exactly that index.
+type WotsSigner interface {
+	RootPublicKey() string
+	Nonce() int64
+	Sign(digest []byte) (signature []byte, err error)
+}
 
 type LookupMessage struct {
-	Type    string          `json:"type"`
-	Version int             `json:"version"`
-	ID      string          `json:"id,omitempty"`
-	Payload json.RawMessage `json:"payload"`
+	Type    string            `json:"type"`
+	Version int               `json:"version"`
+	ID      string            `json:"id,omitempty"`
+	Auth    *WotsAuthEnvelope `json:"auth,omitempty"`
+	Payload json.RawMessage   `json:"payload"`
 }
 
 type ITransport interface {
@@ -87,20 +124,26 @@ type CoinUpdateCallback func(event CoinUpdateEvent)
 type Unsubscribe func()
 
 type LookupClient struct {
-	config        LookupClientConfig
-	transport     ITransport
-	rpc           *RpcLayer
-	subscriptions *SubscriptionManager
-	pubKey        ed25519.PublicKey
-	privKey       ed25519.PrivateKey
-	pubKeyHex     string
-	mu            sync.Mutex
-	destroyed     bool
+	config           LookupClientConfig
+	transport        ITransport
+	rpc              *RpcLayer
+	subscriptions    *SubscriptionManager
+	signer           WotsSigner
+	authTTLMs        time.Duration
+	mu               sync.Mutex
+	destroyed        bool
 	reconnectAttempt int
-	handlers      map[string][]func(...interface{})
+	handlers         map[string][]func(...interface{})
 }
 
 func NewLookupClient(config LookupClientConfig) (*LookupClient, error) {
+	return NewLookupClientWithSigner(config, nil)
+}
+
+// NewLookupClientWithSigner constructs a client with an explicit WOTS signer
+// (RFC-032). When signer is nil, signed requests fail closed with
+// ErrNotInteroperable rather than sending Ed25519.
+func NewLookupClientWithSigner(config LookupClientConfig, signer WotsSigner) (*LookupClient, error) {
 	if config.TimeoutMs == 0 {
 		config.TimeoutMs = 10 * time.Second
 	}
@@ -111,21 +154,45 @@ func NewLookupClient(config LookupClientConfig) (*LookupClient, error) {
 		config.ReconnectMaxMs = 30 * time.Second
 	}
 
-	pub, priv, err := ed25519.GenerateKey(rand.Reader)
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate identity keypair: %w", err)
-	}
-
 	c := &LookupClient{
 		config:    config,
-		pubKey:    pub,
-		privKey:   priv,
-		pubKeyHex: hex.EncodeToString(pub),
+		signer:    signer,
+		authTTLMs: time.Minute,
 		handlers:  make(map[string][]func(...interface{})),
 	}
 	c.rpc = NewRpcLayer(config.TimeoutMs)
+	c.rpc.SetSigner(c)
 	c.subscriptions = NewSubscriptionManager(c.rpc)
 	return c, nil
+}
+
+// Stamp attaches a RFC-032 WOTS auth envelope to an outgoing message. Fails
+// closed with ErrNotInteroperable when no signer is configured, or for
+// unauthenticated liveness messages (HELLO/PING) which carry no envelope.
+func (c *LookupClient) Stamp(msg *LookupMessage) error {
+	if msg.Type == "HELLO" || msg.Type == "PING" {
+		return nil
+	}
+	if c.signer == nil {
+		return ErrNotInteroperable
+	}
+	expiresAt := time.Now().Add(c.authTTLMs).UnixMilli()
+	nonce := c.signer.Nonce()
+	digest, err := AuthDigest(*msg, nonce, expiresAt)
+	if err != nil {
+		return err
+	}
+	sig, err := c.signer.Sign(digest)
+	if err != nil {
+		return err
+	}
+	msg.Auth = &WotsAuthEnvelope{
+		RootPublicKey: c.signer.RootPublicKey(),
+		Signature:     hex.EncodeToString(sig),
+		Nonce:         nonce,
+		ExpiresAt:     expiresAt,
+	}
+	return nil
 }
 
 func (c *LookupClient) Connect(transport ITransport) error {
@@ -149,50 +216,12 @@ func (c *LookupClient) Connect(transport ITransport) error {
 
 	transport.OnError(func(err error) {})
 
-	if err := c.runAuthHandshake(); err != nil {
-		return fmt.Errorf("auth handshake failed: %w", err)
-	}
-
+	// RFC-032: no handshake. Authentication is a WOTS auth envelope stamped on
+	// every outgoing message (see Stamp / RpcLayer.SendRaw).
 	c.subscriptions.ReRegisterAll()
 	c.reconnectAttempt = 0
 	c.emit("reconnected")
 	return nil
-}
-
-func (c *LookupClient) runAuthHandshake() error {
-	challengeMsg, err := c.rpc.SendRequest(LookupMessage{
-		Type:    "HELLO",
-		Version: ProtocolVersion,
-		Payload: mustMarshal(map[string]interface{}{"clientVersion": ProtocolVersion}),
-	})
-	if err != nil {
-		return err
-	}
-
-	if challengeMsg.Type != "AUTH_CHALLENGE" {
-		return fmt.Errorf("expected AUTH_CHALLENGE, got %s", challengeMsg.Type)
-	}
-
-	var challengePayload struct {
-		Challenge string `json:"challenge"`
-		ExpiresAt int64  `json:"expiresAt"`
-	}
-	json.Unmarshal(challengeMsg.Payload, &challengePayload)
-
-	sig := ed25519.Sign(c.privKey, []byte(challengePayload.Challenge))
-
-	authMsg := LookupMessage{
-		Type:    "AUTH_RESPONSE",
-		Version: ProtocolVersion,
-		Payload: mustMarshal(map[string]interface{}{
-			"challenge": challengePayload.Challenge,
-			"publicKey": c.pubKeyHex,
-			"signature": hex.EncodeToString(sig),
-		}),
-	}
-
-	_, err = c.rpc.SendRequest(authMsg)
-	return err
 }
 
 func (c *LookupClient) scheduleReconnect() {
@@ -350,6 +379,7 @@ type RpcLayer struct {
 	pending         map[string]*pendingRequest
 	pushHandlers    map[string][]func(LookupMessage)
 	transport       ITransport
+	stamper         Stamper
 	defaultTimeout  time.Duration
 	idCounter       int
 }
@@ -426,7 +456,7 @@ func (r *RpcLayer) route(msg LookupMessage) {
 		json.Unmarshal(msg.Payload, &pingPayload)
 		r.SendRaw(LookupMessage{
 			Type:    "PONG",
-			Version: 1,
+			Version: ProtocolVersion,
 			Payload: mustMarshal(map[string]interface{}{"ts": time.Now().UnixMilli(), "echo": pingPayload.TS}),
 		})
 		return
@@ -480,10 +510,29 @@ func (r *RpcLayer) SendRequest(msg LookupMessage) (LookupMessage, error) {
 	}
 }
 
+// Stamper attaches a RFC-032 WOTS auth envelope to an outgoing message. The
+// client implements it; the RPC layer calls it before every send.
+type Stamper interface {
+	Stamp(msg *LookupMessage) error
+}
+
+func (r *RpcLayer) SetSigner(s Stamper) {
+	r.mu.Lock()
+	r.stamper = s
+	r.mu.Unlock()
+}
+
 func (r *RpcLayer) SendRaw(msg LookupMessage) error {
 	r.mu.Lock()
 	t := r.transport
+	stamper := r.stamper
 	r.mu.Unlock()
+	// RFC-032: stamp a WOTS auth envelope before sending (fails closed if none).
+	if stamper != nil {
+		if err := stamper.Stamp(&msg); err != nil {
+			return err
+		}
+	}
 	if t == nil {
 		return fmt.Errorf("not connected")
 	}
@@ -581,7 +630,38 @@ func min(a, b int) int {
 	return b
 }
 
-func init() {
-	_ = sha3.New256()
-	_ = io.EOF
+// AuthDigest computes the RFC-032 signing digest:
+//
+//	sha3_256( canonicalJson({type,id,payload}) ‖ "|" ‖ nonce ‖ "|" ‖ expiresAt )
+//
+// It mirrors @totemsdk/lookup-protocol authDigest. The envelope is stripped
+// before canonicalisation. NOTE: byte-exact agreement with the TypeScript
+// canonicalJson is required for cross-language verification; this helper is a
+// reference for a real Go signer/verifier and is not exercised by any test here.
+func AuthDigest(msg LookupMessage, nonce int64, expiresAt int64) ([]byte, error) {
+	inner := struct {
+		Type    string          `json:"type"`
+		Version int             `json:"version"`
+		ID      string          `json:"id,omitempty"`
+		Payload json.RawMessage `json:"payload"`
+	}{msg.Type, msg.Version, msg.ID, msg.Payload}
+	canonical, err := canonicalJSON(inner)
+	if err != nil {
+		return nil, err
+	}
+	preimage := fmt.Sprintf("%s|%d|%d", canonical, nonce, expiresAt)
+	h := sha3.New256()
+	h.Write([]byte(preimage))
+	return h.Sum(nil), nil
+}
+
+// canonicalJSON marshals v with deterministic key ordering. json.Marshal of a
+// struct already emits fields in declaration order; for maps Go sorts keys, so
+// this is stable for the auth preimage shape.
+func canonicalJSON(v interface{}) (string, error) {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
 }

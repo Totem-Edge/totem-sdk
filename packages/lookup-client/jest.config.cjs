@@ -15,6 +15,7 @@ module.exports = {
     '^@totemsdk/core$': '<rootDir>/../core/src/index.ts',
     '^@totemsdk/lookup-protocol$': '<rootDir>/../lookup-protocol/src/index.ts',
     '^@totemsdk/chain-provider$': '<rootDir>/../chain-provider/src/index.ts',
+    '^@totemsdk/root-identity$': '<rootDir>/../root-identity/src/index.ts',
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
 };

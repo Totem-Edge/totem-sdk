@@ -27,6 +27,7 @@
     "@totemsdk/core": "workspace:^",
     "@totemsdk/lookup-protocol": "workspace:^",
     "@totemsdk/chain-provider": "workspace:^",
+    "@totemsdk/root-identity": "workspace:^",
     "@totemsdk/stream-transport": "workspace:^"
   },
   "devDependencies": {

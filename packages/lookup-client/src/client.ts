@@ -16,7 +16,6 @@ import type {
 } from '@totemsdk/chain-provider';
 import { PROTOCOL_VERSION } from '@totemsdk/lookup-protocol';
 import { Authenticator, LookupIdentity } from './auth.js';
-import type { LookupIdentityOptions } from './identity.js';
 import { RpcLayer } from './rpc.js';
 import { SubscriptionManager } from './subscriptions.js';
 import { createHyperswarmTransport } from './transport.js';
@@ -52,7 +51,9 @@ export class LookupClient {
     this._subscriptions = new SubscriptionManager(this._rpc);
 
     const identity = _config.identity
-      ?? LookupIdentity.fromSeed(_config.identitySeed ?? new Uint8Array(32).fill(0), _config.identityOptions);
+      ?? (_config.identityWallet
+        ? LookupIdentity.fromWallet(_config.identityWallet, { slot: _config.identitySlot ?? 'root' })
+        : LookupIdentity.fromSeed(_config.identitySeed ?? new Uint8Array(32).fill(0), _config.identityOptions));
     this._authenticator = new Authenticator({
       identity,
       ...(_config.authTtlMs !== undefined ? { ttlMs: _config.authTtlMs } : {}),

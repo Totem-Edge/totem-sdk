@@ -210,10 +210,11 @@ Shipped (tests green: protocol 21, client 22, node 47):
 - **P2** `lookup-client` — `LookupIdentity` (TreeKey) + `Authenticator`; `authenticateIdentityKeyPair`/`runAuthHandshake` removed; `RpcLayer` stamps every outgoing message; no handshake in `_connect`.
 - **P3** `lookup-node` — `server-auth.ts` deleted; `auth-verify.ts` verifies the envelope with `verifyTreeSignature`; `ReplayGuard` enforces per-identity nonce monotonicity; `session.ts` verifies per message; `registry.ts` verifies the WOTS-signed manifest via `verifyManifest`; storage schema uses `signerAddress` (Ed25519 `publicKey`/`signature` columns removed).
 - **P4** `lease.ts` node identity is now a WOTS/TreeKey; `nodeId` = WOTS public-key digest.
-- **P5** `trust.ts` unchanged — its reviewer verifier is already pluggable (`verifyReviewerSignature`), which is the required seam. Session tickets are **not** implemented; the client currently signs per message (one TreeKey use each). A client can raise `authTtlMs` but not amortise uses; ticket support remains open.
+- **P5** `trust.ts` unchanged — its reviewer verifier is already pluggable (`verifyReviewerSignature`), which is the required seam. Session tickets are **not** implemented; the client currently signs per message (one TreeKey use each). A client can raise `authTtlMs` but not amortise uses. **Plan:** `docs/rfc/RFC-032-AMENDMENT-A-SESSION-TICKETS.md`.
+- **Identity wiring** — `lookup-client` can derive its identity from `@totemsdk/root-identity` (`LookupIdentity.fromWallet`) with forward-only watermark advance (RFC-032 §9 Q1).
 
 Not done:
-- **Go mirrors** (`packages/lookup-*/go`) still speak v1/Ed25519 and must be updated to v2.
+- **Go mirrors** (`packages/lookup-*/go`) are updated to the v2 shape (handshake and Ed25519 removed, `WotsAuthEnvelope`, `ReplayGuard`, fail-closed `WotsSigner`/`WotsVerifier`), but there is **no byte-exact WOTS implementation in Go** in this repo (same as `se-server` AUD-045), so the Go signer/verifier fail closed until a cross-language-tested port lands. Not compiled/tested here (no Go toolchain).
 - **Generated TypeDoc** under `TotemEdgeSDKDocs/docs/api/**` is stale; regenerate.
 - **Live-key derivation**: `LookupIdentity.fromSeed` is the primitive; wiring `@totemsdk/root-identity` + `@totemsdk/wots-lease` for the default identity (RFC-032 §9 Q1) is left to the deployment/wallet layer.
 

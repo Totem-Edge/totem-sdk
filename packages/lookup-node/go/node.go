@@ -1,10 +1,8 @@
 package lookupnode
 
 import (
-	"crypto/ed25519"
 	"crypto/rand"
 	"database/sql"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -15,13 +13,16 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
-const ProtocolVersion = 1
+// ProtocolVersion 2 is the RFC-032 hard switch: post-quantum WOTS auth, no
+// Ed25519, no HELLO/AUTH_CHALLENGE/AUTH_RESPONSE handshake.
+const ProtocolVersion = 2
 
 type LookupMessage struct {
-	Type    string          `json:"type"`
-	Version int             `json:"version"`
-	ID      string          `json:"id,omitempty"`
-	Payload json.RawMessage `json:"payload"`
+	Type    string            `json:"type"`
+	Version int               `json:"version"`
+	ID      string            `json:"id,omitempty"`
+	Auth    *WotsAuthEnvelope `json:"auth,omitempty"`
+	Payload json.RawMessage   `json:"payload"`
 }
 
 type ITransport interface {
@@ -74,19 +75,24 @@ type BroadcastResult struct {
 }
 
 type LookupNodeConfig struct {
-	Provider        ChainStateProvider
-	PollIntervalMs  time.Duration
-	ChallengeTTLMs  time.Duration
-	RateLimitRPM    int
-	NodeID          string
-	DBPath          string
-	RelayEnabled    bool
-	LeaseEnabled    bool
-	AppRegistry     bool
-	AgentRegistry   bool
-	TrustIndex      bool
-	MegaMMR         bool
-	SkipAuth        bool
+	Provider       ChainStateProvider
+	PollIntervalMs time.Duration
+	// AuthTTLMs is the maximum accepted auth-envelope lifetime (informational;
+	// each envelope carries its own expiresAt).
+	AuthTTLMs     time.Duration
+	RateLimitRPM  int
+	NodeID        string
+	DBPath        string
+	RelayEnabled  bool
+	LeaseEnabled  bool
+	AppRegistry   bool
+	AgentRegistry bool
+	TrustIndex    bool
+	MegaMMR       bool
+	SkipAuth      bool
+	// Verifier is the RFC-032 WOTS verifier. When nil (or SkipAuth false), the
+	// node fails closed: signed messages are rejected rather than trusted.
+	Verifier WotsVerifier
 }
 
 type LookupNode struct {
@@ -101,6 +107,7 @@ type LookupNode struct {
 	trustIndex    *TrustIndex
 	nodeID        string
 	sessions      map[string]*ClientSession
+	replayGuard   *ReplayGuard
 	mu            sync.RWMutex
 	started       bool
 	stopCh        chan struct{}
@@ -110,8 +117,8 @@ func NewLookupNode(config LookupNodeConfig) (*LookupNode, error) {
 	if config.PollIntervalMs == 0 {
 		config.PollIntervalMs = 5 * time.Second
 	}
-	if config.ChallengeTTLMs == 0 {
-		config.ChallengeTTLMs = 30 * time.Second
+	if config.AuthTTLMs == 0 {
+		config.AuthTTLMs = time.Minute
 	}
 	if config.RateLimitRPM == 0 {
 		config.RateLimitRPM = 120
@@ -131,12 +138,13 @@ func NewLookupNode(config LookupNodeConfig) (*LookupNode, error) {
 	}
 
 	n := &LookupNode{
-		config:    config,
-		provider:  config.Provider,
-		store:     store,
-		nodeID:    config.NodeID,
-		sessions:  make(map[string]*ClientSession),
-		stopCh:    make(chan struct{}),
+		config:      config,
+		provider:    config.Provider,
+		store:       store,
+		nodeID:      config.NodeID,
+		sessions:    make(map[string]*ClientSession),
+		replayGuard: NewReplayGuard(),
+		stopCh:      make(chan struct{}),
 	}
 
 	n.watchlist = NewWatchlistManager(config.Provider, config.PollIntervalMs, store)
@@ -224,43 +232,28 @@ func (n *LookupNode) IsMegaMMRMode() bool {
 }
 
 type ClientSession struct {
-	SessionID       string
-	Authenticated   bool
-	PublicKeyHex    string
-	ConnectedAt     int64
-	transport       ITransport
-	node            *LookupNode
-	challenge       string
-	challengeExpiry int64
-	rpmCount        int
-	rpmWindowStart  int64
-	destroyed       bool
-	mu              sync.Mutex
+	SessionID      string
+	Authenticated  bool
+	PublicKeyHex   string
+	ConnectedAt    int64
+	transport      ITransport
+	node           *LookupNode
+	rpmCount       int
+	rpmWindowStart int64
+	destroyed      bool
+	mu             sync.Mutex
 }
 
 func NewClientSession(transport ITransport, node *LookupNode) *ClientSession {
-	challengeBytes := make([]byte, 32)
-	rand.Read(challengeBytes)
-	challenge := hex.EncodeToString(challengeBytes)
-	expiry := time.Now().Add(node.config.ChallengeTTLMs).UnixMilli()
+	idBytes := make([]byte, 8)
+	rand.Read(idBytes)
 
 	s := &ClientSession{
-		SessionID:       fmt.Sprintf("session-%x-%d", challengeBytes[:8], time.Now().UnixMilli()),
-		ConnectedAt:     time.Now().UnixMilli(),
-		transport:       transport,
-		node:            node,
-		challenge:       challenge,
-		challengeExpiry: expiry,
+		SessionID:   fmt.Sprintf("session-%x-%d", idBytes, time.Now().UnixMilli()),
+		ConnectedAt: time.Now().UnixMilli(),
+		transport:   transport,
+		node:        node,
 	}
-
-	s.sendMessage(LookupMessage{
-		Type:    "AUTH_CHALLENGE",
-		Version: ProtocolVersion,
-		Payload: mustMarshal(map[string]interface{}{
-			"challenge": challenge,
-			"expiresAt": expiry,
-		}),
-	})
 
 	transport.OnData(func(chunk []byte) {
 		var msg LookupMessage
@@ -288,26 +281,37 @@ func NewClientSession(transport ITransport, node *LookupNode) *ClientSession {
 }
 
 func (s *ClientSession) handleMessage(msg LookupMessage) {
-	if msg.Type == "HELLO" {
+	// RFC-032: unauthenticated liveness.
+	if msg.Type == "PING" {
+		var p struct{ TS int64 `json:"ts"` }
+		json.Unmarshal(msg.Payload, &p)
 		s.sendMessage(LookupMessage{
-			Type:    "AUTH_CHALLENGE",
+			Type:    "PONG",
 			Version: ProtocolVersion,
 			ID:      msg.ID,
-			Payload: mustMarshal(map[string]interface{}{
-				"challenge": s.challenge,
-				"expiresAt": s.challengeExpiry,
-			}),
+			Payload: mustMarshal(map[string]interface{}{"ts": time.Now().UnixMilli(), "echo": p.TS}),
+		})
+		return
+	}
+	if msg.Type == "HELLO" {
+		s.sendMessage(LookupMessage{
+			Type:    "PONG",
+			Version: ProtocolVersion,
+			ID:      msg.ID,
+			Payload: mustMarshal(map[string]interface{}{"ts": time.Now().UnixMilli(), "echo": 0}),
 		})
 		return
 	}
 
-	if !s.Authenticated {
-		if msg.Type == "AUTH_RESPONSE" {
-			s.handleAuthResponse(msg)
-		} else {
-			s.sendError(msg.ID, "AUTH_REQUIRED", "Not authenticated")
+	// RFC-032: verify the WOTS auth envelope on every authenticated message.
+	if !s.node.config.SkipAuth {
+		if !s.verifyAuth(msg) {
+			s.sendError(msg.ID, "AUTH_REQUIRED", "invalid or missing WOTS auth")
+			return
 		}
-		return
+	} else if msg.Auth != nil {
+		s.Authenticated = true
+		s.PublicKeyHex = msg.Auth.RootPublicKey
 	}
 
 	now := time.Now().UnixMilli()
@@ -324,60 +328,35 @@ func (s *ClientSession) handleMessage(msg LookupMessage) {
 	s.dispatch(msg)
 }
 
-func (s *ClientSession) handleAuthResponse(msg LookupMessage) {
-	var payload struct {
-		Challenge string `json:"challenge"`
-		PublicKey string `json:"publicKey"`
-		Signature string `json:"signature"`
+// verifyAuth verifies the RFC-032 WOTS auth envelope and enforces replay
+// rejection (per-identity nonce monotonicity). Fails closed when no verifier is
+// configured.
+func (s *ClientSession) verifyAuth(msg LookupMessage) bool {
+	auth := msg.Auth
+	if auth == nil || auth.Signature == "" || auth.RootPublicKey == "" {
+		return false
 	}
-	json.Unmarshal(msg.Payload, &payload)
-
-	if s.node.config.SkipAuth {
-		s.Authenticated = true
-		s.PublicKeyHex = payload.PublicKey
-		s.sendMessage(LookupMessage{
-			Type:    "PONG",
-			Version: ProtocolVersion,
-			ID:      msg.ID,
-			Payload: mustMarshal(map[string]interface{}{"ts": time.Now().UnixMilli(), "echo": 0}),
-		})
-		return
+	if time.Now().UnixMilli() > auth.ExpiresAt {
+		return false
 	}
-
-	if time.Now().UnixMilli() > s.challengeExpiry {
-		s.sendError(msg.ID, "AUTH_FAILED", "challenge expired")
-		return
+	verifier := s.node.config.Verifier
+	if verifier == nil {
+		// Fail closed: no WOTS verifier ⇒ signed messages are not trusted.
+		return false
 	}
-	if payload.Challenge != s.challenge {
-		s.sendError(msg.ID, "AUTH_FAILED", "challenge mismatch")
-		return
-	}
-
-	pubKeyBytes, err := hex.DecodeString(payload.PublicKey)
+	digest, err := AuthDigest(msg, auth.Nonce, auth.ExpiresAt)
 	if err != nil {
-		s.sendError(msg.ID, "AUTH_FAILED", "invalid public key")
-		return
+		return false
 	}
-	sigBytes, err := hex.DecodeString(payload.Signature)
-	if err != nil {
-		s.sendError(msg.ID, "AUTH_FAILED", "invalid signature")
-		return
+	if !verifier.Verify(auth.RootPublicKey, digest, auth.Signature) {
+		return false
 	}
-
-	if !ed25519.Verify(pubKeyBytes, []byte(payload.Challenge), sigBytes) {
-		s.sendError(msg.ID, "AUTH_FAILED", "bad signature")
-		return
+	if !s.node.replayGuard.Claim(auth.RootPublicKey, auth.Nonce) {
+		return false
 	}
-
 	s.Authenticated = true
-	s.PublicKeyHex = payload.PublicKey
-
-	s.sendMessage(LookupMessage{
-		Type:    "PONG",
-		Version: ProtocolVersion,
-		ID:      msg.ID,
-		Payload: mustMarshal(map[string]interface{}{"ts": time.Now().UnixMilli(), "echo": 0}),
-	})
+	s.PublicKeyHex = auth.RootPublicKey
+	return true
 }
 
 func (s *ClientSession) dispatch(msg LookupMessage) {
@@ -912,7 +891,65 @@ func min(a, b int) int {
 	return b
 }
 
+// WotsAuthEnvelope is the RFC-032 post-quantum auth envelope carried per message.
+type WotsAuthEnvelope struct {
+	RootPublicKey     string `json:"rootPublicKey"`
+	Signature         string `json:"signature"`
+	Nonce             int64  `json:"nonce"`
+	ExpiresAt         int64  `json:"expiresAt"`
+	RootIdentityProof string `json:"rootIdentityProof,omitempty"`
+	Address           string `json:"address,omitempty"`
+}
+
+// WotsVerifier verifies a RFC-032 WOTS signature. Implement with a byte-exact
+// WOTS/TreeKey verifier; `digest` is sha3_256(canonicalJson(message)‖nonce‖expiry).
+type WotsVerifier interface {
+	Verify(rootPublicKeyHex string, digest []byte, signatureHex string) bool
+}
+
+// ReplayGuard tracks the highest accepted nonce per identity and rejects
+// replays and non-monotonic reuse (RFC-032 §5.3).
+type ReplayGuard struct {
+	mu   sync.Mutex
+	seen map[string]int64
+}
+
+func NewReplayGuard() *ReplayGuard { return &ReplayGuard{seen: make(map[string]int64)} }
+
+func (g *ReplayGuard) Claim(publicKeyHex string, nonce int64) bool {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if last, ok := g.seen[publicKeyHex]; ok && nonce <= last {
+		return false
+	}
+	g.seen[publicKeyHex] = nonce
+	return true
+}
+
+// AuthDigest computes the RFC-032 signing digest, mirroring
+// @totemsdk/lookup-protocol authDigest:
+//
+//	sha3_256( canonicalJson({type,id,payload}) ‖ "|" ‖ nonce ‖ "|" ‖ expiresAt )
+//
+// Byte-exact agreement with the TypeScript canonicalJson is required for
+// cross-language verification.
+func AuthDigest(msg LookupMessage, nonce int64, expiresAt int64) ([]byte, error) {
+	inner := struct {
+		Type    string          `json:"type"`
+		Version int             `json:"version"`
+		ID      string          `json:"id,omitempty"`
+		Payload json.RawMessage `json:"payload"`
+	}{msg.Type, msg.Version, msg.ID, msg.Payload}
+	canonical, err := json.Marshal(inner)
+	if err != nil {
+		return nil, err
+	}
+	preimage := fmt.Sprintf("%s|%d|%d", string(canonical), nonce, expiresAt)
+	h := sha3.New256()
+	h.Write([]byte(preimage))
+	return h.Sum(nil), nil
+}
+
 func init() {
 	_ = sha3.New256()
-	_ = ed25519.PrivateKey{}
 }
