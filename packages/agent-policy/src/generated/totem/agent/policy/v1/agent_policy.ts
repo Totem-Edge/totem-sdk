@@ -10,7 +10,7 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
-import { Struct } from "../../../../google/protobuf/struct";
+import { Struct } from "../../../../google/protobuf/struct.js";
 /**
  * @generated from protobuf message totem.agent.policy.v1.PaymentIntent
  */

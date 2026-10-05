@@ -9,7 +9,7 @@
  * Run: node scripts/generate-proto.mjs
  */
 import { execSync } from 'child_process';
-import { existsSync, mkdirSync, renameSync, rmSync } from 'fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -18,6 +18,29 @@ const PKG_ROOT = join(__dirname, '..');
 const PROTO_DIR = join(PKG_ROOT, 'proto');
 const GEN_DIR = join(PKG_ROOT, 'src', 'generated');
 const PROTO_FILE = join(PROTO_DIR, 'totem', 'agent', 'policy', 'v1', 'agent_policy.proto');
+
+// protobuf-ts emits extensionless relative imports, which are invalid under
+// `module: node16` ESM. Append `.js` to relative specifiers that lack an
+// extension so the generated bindings type-check in both ESM and CJS builds.
+function addJsExtensions(dir) {
+  for (const entry of readdirSync(dir)) {
+    const full = join(dir, entry);
+    if (statSync(full).isDirectory()) {
+      addJsExtensions(full);
+      continue;
+    }
+    if (!entry.endsWith('.ts')) continue;
+    const src = readFileSync(full, 'utf8');
+    const out = src
+      .replace(/(from\s+['"])(\.\.?\/[^'"]+)(['"])/g, (m, a, spec, c) =>
+        /\.(js|json|mjs|cjs)$/.test(spec) ? m : `${a}${spec}.js${c}`,
+      )
+      .replace(/(import\s*\(\s*['"])(\.\.?\/[^'"]+)(['"])/g, (m, a, spec, c) =>
+        /\.(js|json|mjs|cjs)$/.test(spec) ? m : `${a}${spec}.js${c}`,
+      );
+    if (out !== src) writeFileSync(full, out);
+  }
+}
 
 if (!existsSync(PROTO_FILE)) {
   console.error(`[generate-proto] ERROR: proto file not found: ${PROTO_FILE}`);
@@ -56,6 +79,10 @@ try {
     process.exit(1);
   }
 }
+
+// Normalise relative import specifiers in the checked-in or freshly generated
+// bindings so they are valid under `module: node16` ESM.
+addJsExtensions(GEN_DIR);
 
 // ---------------------------------------------------------------------------
 // 2. Python (protoc --python_out)

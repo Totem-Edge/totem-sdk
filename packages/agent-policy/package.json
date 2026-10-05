@@ -2,18 +2,23 @@
   "name": "@totemsdk/agent-policy",
   "version": "0.3.1",
   "description": "Agent-policy interface contracts — language-agnostic Protobuf schema for AI agent ↔ wallet communication",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/cjs/index.js",
+  "types": "dist/cjs/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "require": "./dist/index.js",
-      "import": "./dist/index.js"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
     }
   },
   "scripts": {
-    "build": "npm run generate:proto && tsc",
-    "prepare": "npm run generate:proto && tsc",
+    "build": "npm run generate:proto && tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
+    "prepare": "npm run generate:proto && tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "generate:proto": "node scripts/generate-proto.mjs",
     "clean": "rm -rf dist src/generated",
     "test": "jest"
@@ -75,5 +80,6 @@
     "payment-intent",
     "automation",
     "types"
-  ]
+  ],
+  "type": "module"
 }
