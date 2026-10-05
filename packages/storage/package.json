@@ -2,54 +2,54 @@
   "name": "@totemsdk/storage",
   "version": "0.1.0",
   "description": "Provider-neutral storage contracts and adapters — StorageError taxonomy, versioned codec, namespaces, transactions + CAS, artifact-boundary types with a pluggable ArtifactStoreBackend port",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/cjs/index.js",
+  "types": "dist/cjs/index.d.ts",
   "typesVersions": {
     "*": {
       "artifacts": [
-        "dist/artifacts/index.d.ts"
+        "./dist/cjs/artifacts/index.d.ts"
       ],
       "artifacts/local-fs-backend": [
-        "dist/artifacts/backends/local-fs-backend.d.ts"
+        "./dist/cjs/artifacts/backends/local-fs-backend.d.ts"
       ],
       "codec": [
-        "dist/codec.d.ts"
+        "./dist/cjs/codec.d.ts"
       ],
       "conformance": [
-        "dist/conformance/index.d.ts"
+        "./dist/cjs/conformance/index.d.ts"
       ],
       "errors": [
-        "dist/errors.d.ts"
+        "./dist/cjs/errors.d.ts"
       ],
       "fs": [
-        "dist/adapters/file-store.d.ts"
+        "./dist/cjs/adapters/file-store.d.ts"
       ],
       "idb": [
-        "dist/adapters/idb-store.d.ts"
+        "./dist/cjs/adapters/idb-store.d.ts"
       ],
       "memory": [
-        "dist/adapters/memory-store.d.ts"
+        "./dist/cjs/adapters/memory-store.d.ts"
       ],
       "namespace": [
-        "dist/namespace.d.ts"
+        "./dist/cjs/namespace.d.ts"
       ],
       "persistence": [
-        "dist/persistence.d.ts"
+        "./dist/cjs/persistence.d.ts"
       ],
       "sqlite": [
-        "dist/adapters/sqlite-store.d.ts"
+        "./dist/cjs/adapters/sqlite-store.d.ts"
       ],
       "journal": [
-        "dist/journal.d.ts"
+        "./dist/cjs/journal.d.ts"
       ],
       "snapshot": [
-        "dist/snapshot.d.ts"
+        "./dist/cjs/snapshot.d.ts"
       ],
       "transaction": [
-        "dist/transaction.d.ts"
+        "./dist/cjs/transaction.d.ts"
       ],
       "types": [
-        "dist/types.d.ts"
+        "./dist/cjs/types.d.ts"
       ]
     }
   },
@@ -60,8 +60,8 @@
         "default": "./dist/index.js"
       },
       "require": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/index.js"
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
       }
     },
     "./artifacts": {
@@ -70,8 +70,8 @@
         "default": "./dist/artifacts/index.js"
       },
       "require": {
-        "types": "./dist/artifacts/index.d.ts",
-        "default": "./dist/artifacts/index.js"
+        "types": "./dist/cjs/artifacts/index.d.ts",
+        "default": "./dist/cjs/artifacts/index.js"
       }
     },
     "./artifacts/local-fs-backend": {
@@ -80,8 +80,8 @@
         "default": "./dist/artifacts/backends/local-fs-backend.js"
       },
       "require": {
-        "types": "./dist/artifacts/backends/local-fs-backend.d.ts",
-        "default": "./dist/artifacts/backends/local-fs-backend.js"
+        "types": "./dist/cjs/artifacts/backends/local-fs-backend.d.ts",
+        "default": "./dist/cjs/artifacts/backends/local-fs-backend.js"
       }
     },
     "./codec": {
@@ -90,8 +90,8 @@
         "default": "./dist/codec.js"
       },
       "require": {
-        "types": "./dist/codec.d.ts",
-        "default": "./dist/codec.js"
+        "types": "./dist/cjs/codec.d.ts",
+        "default": "./dist/cjs/codec.js"
       }
     },
     "./conformance": {
@@ -100,8 +100,8 @@
         "default": "./dist/conformance/index.js"
       },
       "require": {
-        "types": "./dist/conformance/index.d.ts",
-        "default": "./dist/conformance/index.js"
+        "types": "./dist/cjs/conformance/index.d.ts",
+        "default": "./dist/cjs/conformance/index.js"
       }
     },
     "./errors": {
@@ -110,8 +110,8 @@
         "default": "./dist/errors.js"
       },
       "require": {
-        "types": "./dist/errors.d.ts",
-        "default": "./dist/errors.js"
+        "types": "./dist/cjs/errors.d.ts",
+        "default": "./dist/cjs/errors.js"
       }
     },
     "./fs": {
@@ -120,8 +120,8 @@
         "default": "./dist/adapters/file-store.js"
       },
       "require": {
-        "types": "./dist/adapters/file-store.d.ts",
-        "default": "./dist/adapters/file-store.js"
+        "types": "./dist/cjs/adapters/file-store.d.ts",
+        "default": "./dist/cjs/adapters/file-store.js"
       }
     },
     "./idb": {
@@ -130,8 +130,8 @@
         "default": "./dist/adapters/idb-store.js"
       },
       "require": {
-        "types": "./dist/adapters/idb-store.d.ts",
-        "default": "./dist/adapters/idb-store.js"
+        "types": "./dist/cjs/adapters/idb-store.d.ts",
+        "default": "./dist/cjs/adapters/idb-store.js"
       }
     },
     "./memory": {
@@ -140,8 +140,8 @@
         "default": "./dist/adapters/memory-store.js"
       },
       "require": {
-        "types": "./dist/adapters/memory-store.d.ts",
-        "default": "./dist/adapters/memory-store.js"
+        "types": "./dist/cjs/adapters/memory-store.d.ts",
+        "default": "./dist/cjs/adapters/memory-store.js"
       }
     },
     "./namespace": {
@@ -150,8 +150,8 @@
         "default": "./dist/namespace.js"
       },
       "require": {
-        "types": "./dist/namespace.d.ts",
-        "default": "./dist/namespace.js"
+        "types": "./dist/cjs/namespace.d.ts",
+        "default": "./dist/cjs/namespace.js"
       }
     },
     "./persistence": {
@@ -160,8 +160,8 @@
         "default": "./dist/persistence.js"
       },
       "require": {
-        "types": "./dist/persistence.d.ts",
-        "default": "./dist/persistence.js"
+        "types": "./dist/cjs/persistence.d.ts",
+        "default": "./dist/cjs/persistence.js"
       }
     },
     "./sqlite": {
@@ -170,8 +170,8 @@
         "default": "./dist/adapters/sqlite-store.js"
       },
       "require": {
-        "types": "./dist/adapters/sqlite-store.d.ts",
-        "default": "./dist/adapters/sqlite-store.js"
+        "types": "./dist/cjs/adapters/sqlite-store.d.ts",
+        "default": "./dist/cjs/adapters/sqlite-store.js"
       }
     },
     "./journal": {
@@ -180,8 +180,8 @@
         "default": "./dist/journal.js"
       },
       "require": {
-        "types": "./dist/journal.d.ts",
-        "default": "./dist/journal.js"
+        "types": "./dist/cjs/journal.d.ts",
+        "default": "./dist/cjs/journal.js"
       }
     },
     "./snapshot": {
@@ -190,8 +190,8 @@
         "default": "./dist/snapshot.js"
       },
       "require": {
-        "types": "./dist/snapshot.d.ts",
-        "default": "./dist/snapshot.js"
+        "types": "./dist/cjs/snapshot.d.ts",
+        "default": "./dist/cjs/snapshot.js"
       }
     },
     "./transaction": {
@@ -200,8 +200,8 @@
         "default": "./dist/transaction.js"
       },
       "require": {
-        "types": "./dist/transaction.d.ts",
-        "default": "./dist/transaction.js"
+        "types": "./dist/cjs/transaction.d.ts",
+        "default": "./dist/cjs/transaction.js"
       }
     },
     "./types": {
@@ -210,14 +210,14 @@
         "default": "./dist/types.js"
       },
       "require": {
-        "types": "./dist/types.d.ts",
-        "default": "./dist/types.js"
+        "types": "./dist/cjs/types.d.ts",
+        "default": "./dist/cjs/types.js"
       }
     }
   },
   "scripts": {
-    "build": "tsc",
-    "prepare": "tsc",
+    "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
+    "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist",
     "test": "jest"
   },
@@ -271,5 +271,6 @@
   ],
   "bugs": {
     "url": "https://github.com/Totem-Edge/totem-sdk/issues"
-  }
+  },
+  "type": "module"
 }

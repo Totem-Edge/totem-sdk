@@ -2,53 +2,93 @@
   "name": "@totemsdk/decision",
   "version": "0.2.0",
   "description": "Provider-neutral decision runtime — typed, constrained, provenance-bound proposals over dynamic candidate spaces (AI proposes, Totem authorizes)",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/cjs/index.js",
+  "types": "dist/cjs/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "require": "./dist/index.js",
-      "import": "./dist/index.js"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
     },
     "./types": {
-      "types": "./dist/types.d.ts",
-      "require": "./dist/types.js",
-      "import": "./dist/types.js"
+      "import": {
+        "types": "./dist/types.d.ts",
+        "default": "./dist/types.js"
+      },
+      "require": {
+        "types": "./dist/cjs/types.d.ts",
+        "default": "./dist/cjs/types.js"
+      }
     },
     "./constants": {
-      "types": "./dist/constants.d.ts",
-      "require": "./dist/constants.js",
-      "import": "./dist/constants.js"
+      "import": {
+        "types": "./dist/constants.d.ts",
+        "default": "./dist/constants.js"
+      },
+      "require": {
+        "types": "./dist/cjs/constants.d.ts",
+        "default": "./dist/cjs/constants.js"
+      }
     },
     "./errors": {
-      "types": "./dist/errors.d.ts",
-      "require": "./dist/errors.js",
-      "import": "./dist/errors.js"
+      "import": {
+        "types": "./dist/errors.d.ts",
+        "default": "./dist/errors.js"
+      },
+      "require": {
+        "types": "./dist/cjs/errors.d.ts",
+        "default": "./dist/cjs/errors.js"
+      }
     },
     "./laya": {
-      "types": "./dist/adapters/laya.d.ts",
-      "require": "./dist/adapters/laya.js",
-      "import": "./dist/adapters/laya.js"
+      "import": {
+        "types": "./dist/adapters/laya.d.ts",
+        "default": "./dist/adapters/laya.js"
+      },
+      "require": {
+        "types": "./dist/cjs/adapters/laya.d.ts",
+        "default": "./dist/cjs/adapters/laya.js"
+      }
     },
     "./jev": {
-      "types": "./dist/adapters/jev.d.ts",
-      "require": "./dist/adapters/jev.js",
-      "import": "./dist/adapters/jev.js"
+      "import": {
+        "types": "./dist/adapters/jev.d.ts",
+        "default": "./dist/adapters/jev.js"
+      },
+      "require": {
+        "types": "./dist/cjs/adapters/jev.d.ts",
+        "default": "./dist/cjs/adapters/jev.js"
+      }
     },
     "./intelligence": {
-      "types": "./dist/adapters/intelligence.d.ts",
-      "require": "./dist/adapters/intelligence.js",
-      "import": "./dist/adapters/intelligence.js"
+      "import": {
+        "types": "./dist/adapters/intelligence.d.ts",
+        "default": "./dist/adapters/intelligence.js"
+      },
+      "require": {
+        "types": "./dist/cjs/adapters/intelligence.d.ts",
+        "default": "./dist/cjs/adapters/intelligence.js"
+      }
     },
     "./testing": {
-      "types": "./dist/testing/mock-provider.d.ts",
-      "require": "./dist/testing/mock-provider.js",
-      "import": "./dist/testing/mock-provider.js"
+      "import": {
+        "types": "./dist/testing/mock-provider.d.ts",
+        "default": "./dist/testing/mock-provider.js"
+      },
+      "require": {
+        "types": "./dist/cjs/testing/mock-provider.d.ts",
+        "default": "./dist/cjs/testing/mock-provider.js"
+      }
     }
   },
   "scripts": {
-    "build": "tsc",
-    "prepare": "tsc",
+    "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
+    "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist",
     "test": "jest"
   },
@@ -95,5 +135,31 @@
   ],
   "bugs": {
     "url": "https://github.com/Totem-Edge/totem-sdk/issues"
+  },
+  "type": "module",
+  "typesVersions": {
+    "*": {
+      "types": [
+        "./dist/cjs/types.d.ts"
+      ],
+      "constants": [
+        "./dist/cjs/constants.d.ts"
+      ],
+      "errors": [
+        "./dist/cjs/errors.d.ts"
+      ],
+      "laya": [
+        "./dist/cjs/adapters/laya.d.ts"
+      ],
+      "jev": [
+        "./dist/cjs/adapters/jev.d.ts"
+      ],
+      "intelligence": [
+        "./dist/cjs/adapters/intelligence.d.ts"
+      ],
+      "testing": [
+        "./dist/cjs/testing/mock-provider.d.ts"
+      ]
+    }
   }
 }

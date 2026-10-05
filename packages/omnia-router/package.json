@@ -1,20 +1,25 @@
 {
   "name": "@totemsdk/omnia-router",
   "version": "0.2.1",
-  "description": "Multi-hop payment routing over Omnia channels \u2014 single-token and cross-token paths",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "description": "Multi-hop payment routing over Omnia channels — single-token and cross-token paths",
+  "main": "dist/cjs/index.js",
+  "types": "dist/cjs/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "require": "./dist/index.js",
-      "import": "./dist/index.js"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
     }
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "build:go": "cd go && go build -o ../bin/omnia-router ./cmd/omnia-router",
-    "prepare": "tsc",
+    "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist bin",
     "test": "jest"
   },
@@ -75,5 +80,6 @@
     "multi-hop",
     "htlc",
     "dijkstra"
-  ]
+  ],
+  "type": "module"
 }

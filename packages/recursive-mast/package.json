@@ -2,34 +2,54 @@
   "name": "@totemsdk/recursive-mast",
   "version": "0.2.7",
   "description": "Recursive MAST + PREVSTATE library — composable policy trees, proof chains, state transitions, and delegation workflows for Minima KISSVM",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/cjs/index.js",
+  "types": "dist/cjs/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "require": "./dist/index.js",
-      "import": "./dist/index.js"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
     },
     "./templates/*": {
-      "types": "./dist/templates/*.d.ts",
-      "require": "./dist/templates/*.js",
-      "import": "./dist/templates/*.js"
+      "import": {
+        "types": "./dist/templates/*.d.ts",
+        "default": "./dist/templates/*.js"
+      },
+      "require": {
+        "types": "./dist/cjs/templates/*.d.ts",
+        "default": "./dist/cjs/templates/*.js"
+      }
     },
     "./kissvm": {
-      "types": "./dist/kissvm/index.d.ts",
-      "require": "./dist/kissvm/index.js",
-      "import": "./dist/kissvm/index.js"
+      "import": {
+        "types": "./dist/kissvm/index.d.ts",
+        "default": "./dist/kissvm/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/kissvm/index.d.ts",
+        "default": "./dist/cjs/kissvm/index.js"
+      }
     },
     "./transaction": {
-      "types": "./dist/transaction/index.d.ts",
-      "require": "./dist/transaction/index.js",
-      "import": "./dist/transaction/index.js"
+      "import": {
+        "types": "./dist/transaction/index.d.ts",
+        "default": "./dist/transaction/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/transaction/index.d.ts",
+        "default": "./dist/cjs/transaction/index.js"
+      }
     }
   },
   "scripts": {
-    "build": "npm run build:wasm && tsc && node ../../scripts/clean-wasm-output-ignores.mjs",
+    "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "build:wasm": "cd rust && wasm-pack build --target bundler --out-dir pkg && wasm-pack build --target nodejs --out-dir pkg-node",
-    "prepare": "npm run build:wasm && tsc && node ../../scripts/clean-wasm-output-ignores.mjs",
+    "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist rust/pkg rust/pkg-node rust/target",
     "test": "jest"
   },
@@ -84,5 +104,19 @@
   },
   "bugs": {
     "url": "https://github.com/Totem-Edge/totem-sdk/issues"
+  },
+  "type": "module",
+  "typesVersions": {
+    "*": {
+      "templates/*": [
+        "./dist/cjs/templates/*.d.ts"
+      ],
+      "kissvm": [
+        "./dist/cjs/kissvm/index.d.ts"
+      ],
+      "transaction": [
+        "./dist/cjs/transaction/index.d.ts"
+      ]
+    }
   }
 }

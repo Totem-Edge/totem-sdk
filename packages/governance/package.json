@@ -2,19 +2,24 @@
   "name": "@totemsdk/governance",
   "version": "0.2.1",
   "description": "Deterministic governance engine for Totem SDK — quadratic voting, liquid democracy, delegation, and mandate-bound proposal execution",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/cjs/index.js",
+  "types": "dist/cjs/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "require": "./dist/index.js",
-      "import": "./dist/index.js"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
     }
   },
   "scripts": {
-    "build": "npm run build:wasm && tsc && node ../../scripts/clean-wasm-output-ignores.mjs",
+    "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "build:wasm": "cd rust && wasm-pack build --target bundler --out-dir pkg && wasm-pack build --target nodejs --out-dir pkg-node",
-    "prepare": "npm run build:wasm && tsc && node ../../scripts/clean-wasm-output-ignores.mjs",
+    "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist rust/pkg rust/pkg-node rust/target",
     "test": "jest"
   },
@@ -66,5 +71,6 @@
     "type": "git",
     "url": "git+https://github.com/Totem-Edge/totem-sdk.git",
     "directory": "packages/governance"
-  }
+  },
+  "type": "module"
 }

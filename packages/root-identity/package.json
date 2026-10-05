@@ -2,20 +2,23 @@
   "name": "@totemsdk/root-identity",
   "version": "1.0.9",
   "description": "Single root identity controlling up to 64 on-chain addresses — all cryptographically linked via full independent 3-level TreeKeys",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/cjs/index.js",
+  "types": "dist/cjs/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "bare": "./dist/index.js",
-      "browser": "./dist/index.js",
-      "import": "./dist/index.js",
-      "require": "./dist/index.js"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
     }
   },
   "scripts": {
-    "build": "npm run build:wasm && tsc && node ../../scripts/clean-wasm-output-ignores.mjs",
-    "prepare": "npm run build:wasm && tsc && node ../../scripts/clean-wasm-output-ignores.mjs",
+    "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
+    "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist rust/pkg rust/pkg-node rust/target",
     "pretest": "cd ../core && npm run build",
     "test": "jest",
@@ -75,5 +78,6 @@
     "type": "git",
     "url": "git+https://github.com/Totem-Edge/totem-sdk.git",
     "directory": "packages/root-identity"
-  }
+  },
+  "type": "module"
 }
