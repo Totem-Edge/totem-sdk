@@ -91,6 +91,19 @@ root-wasm-free migration. **Effort: ~1–2 weeks.**
 core; a KISSVM `SHA2`/`SHA3` oracle-vector guard now pins the opcodes
 (`packages/kissvm/src/__tests__/hash-opcodes.oracle.test.ts`).
 
+**Status (2026-10-05): Fix A landed — wasm-free ESM root + consensus crypto ported.**
+The remaining consensus-critical `node:crypto` is gone: `core/scripts/contract-helpers`
+(SHA-256 → `@noble/hashes`, randomness → `globalThis.crypto`) and `kissvm` (SHA2 opcode →
+`@noble/hashes`, simulation digest → WASM `sha3_256`) — both byte-exact and guarded by
+`contract-helpers-crypto.test.ts` / `hash-opcodes.oracle.test.ts`. `@totemsdk/core` exposes
+wasm-free `./bytes` and `./canonical` subpaths, and its **ESM build routes every crypto call to
+the portable async bridge** (`packages/core/scripts/async-esm.mjs`), so the ESM root imports with
+no WASM binary and runs on edge/Workers/Bare after a one-time `await init()`; the CJS root stays
+sync. All non-server, non-test packages are dual ESM+CJS (the Node-only servers and `txpow`'s
+CJS worker are intentionally left CJS). Remaining `node:crypto` is **server-only**
+(`omnia-host`, `lookup-node`, `server`, `se-server`) or **test mocks**
+(`kissvm/__mocks__`, `edge-mqtt/wasm-jest-mock`).
+
 ### P2 — transport / fs / worker ports
 **Packages:** minima-rpc (`net`/`tls` → `bare-net`/`bare-tls`), txpow (`worker_threads`/`fs`/`path` →
 `bare-worker`/`bare-fs`), storage (Node adapters behind the existing `StorageAdapter` port; Bare

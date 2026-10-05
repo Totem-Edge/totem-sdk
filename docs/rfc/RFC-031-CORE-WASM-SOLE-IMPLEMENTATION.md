@@ -182,8 +182,12 @@ The JS kernels are removed **only when all four gates are green**:
 
 - **P0 — Decouple (landed).** `realtime` no longer imports the wasm-coupled root
   (`@totemsdk/core/adapters`); edge/Workers bundling docs + esbuild alias guidance
-  added (`packages/core/README.md`). **Root wasm-free-by-default (Fix A) is still
-  pending** (part of P1/P4).
+  added (`packages/core/README.md`). **Root wasm-free-by-default (Fix A) — landed
+  (2026-10-05).** The ESM build routes all crypto to the portable async bridge
+  (`packages/core/scripts/async-esm.mjs`); wasm-free `./bytes` + `./canonical`
+  subpaths added; `contract-helpers`/`kissvm` consensus `node:crypto` ported to
+  `@noble/hashes` (byte-exact, oracle-guarded); all non-server, non-test packages
+  are dual ESM+CJS.
 - **P1 — Portable WASM (in progress).** `core-wasm` now builds a `--target web`
   artifact (`pkg-web`) exposing async `init()`; exported as `@totemsdk/core-wasm/web`.
   `@totemsdk/core/wasm-async` exposes the async crypto surface (same names as the
@@ -197,10 +201,11 @@ The JS kernels are removed **only when all four gates are green**:
   (`packages/core-wasm/tests/web-worker.mjs`) — a proxy for edge/Worker runtimes
   (fresh module registry, bytes supplied, no fetch). Note: `@totemsdk/pear` is
   dependency-free (uses `@noble/hashes`, no `@totemsdk/core`), and the Android
-  starter pulls `core` transitively via `edge`/`omnia`, which still import the
-  sync root — pointing those at `./wasm-async` is part of the root migration.
-  Remaining: browser (Vite) + actual Workers matrix in CI, embedded-bytes entry,
-  and making the `@totemsdk/core` root wasm-free by default. *(Gate G1.)*
+  starter pulls `core` transitively via `edge`/`omnia` — **the ESM root is now
+  wasm-free** (Fix A, 2026-10-05): `edge`/`omnia`/`kissvm` ESM builds resolve the
+  async root, so no sync-root import remains.
+  Remaining: browser (Vite) + actual Workers matrix in CI, embedded-bytes entry.
+  *(Gate G1.)*
 - **P2 — Parity hardening (in progress).** Kernel **coverage matrix** landed:
   `packages/core/test/kernel-baseline.json` triages all 52 WASM kernels
   (**52 covered, 0 pending**), enforced by
@@ -246,8 +251,9 @@ The JS kernels are removed **only when all four gates are green**:
   audit: **zero runtime consumers** (all packages use the root/WASM). Edge
   **budgets** landed: `budgets.json` gates the portable wasm size
   (350 KB raw / 141 KB gzip, budget 380/155 KB) and reports init time
-  (`check-budgets.mjs`, CI). Remaining G4: the **root wasm-free default (Fix A)**
-  and real per-wallet bundle budgets. *(Gate G4.)*
+  (`check-budgets.mjs`, CI). **Root wasm-free default (Fix A) landed 2026-10-05**
+  (ESM root + `/bytes`/`/canonical`, consensus crypto ported). Remaining G4: real
+  per-wallet bundle budgets. *(Gate G4.)*
 - **P5 — Remove.** Delete the JS kernels; `@totemsdk/core` = API + single WASM
   implementation. Major version.
 
