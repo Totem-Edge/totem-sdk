@@ -26,9 +26,10 @@ type SeServerConfig struct {
 }
 
 type SeServer struct {
-	config SeServerConfig
-	db     *sql.DB
-	server *http.Server
+	config   SeServerConfig
+	db       *sql.DB
+	server   *http.Server
+	identity *SeIdentity
 }
 
 func NewSeServer(config SeServerConfig) (*SeServer, error) {
@@ -48,9 +49,17 @@ func NewSeServer(config SeServerConfig) (*SeServer, error) {
 		config.Port = 4000
 	}
 
+	// RFC-008: the SE identity is a root identity whose one-time WOTS leaves are
+	// leased from a durable, forward-only watermark (never a reused index-0 key).
+	identity, err := NewSeIdentity(db, config.SeSeed)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize SE identity: %w", err)
+	}
+
 	s := &SeServer{
-		config: config,
-		db:     db,
+		config:   config,
+		db:       db,
+		identity: identity,
 	}
 
 	mux := http.NewServeMux()
@@ -65,9 +74,9 @@ func NewSeServer(config SeServerConfig) (*SeServer, error) {
 }
 
 func (s *SeServer) Listen() error {
-	sePkd := getPublicKeyHex(s.config.SeSeed)
+	sePkd := s.identity.GetPublishedIdentity().RootPublicKey
 	log.Printf("[se-server] Listening on port %d", s.config.Port)
-	log.Printf("[se-server] SE public key: %s", sePkd)
+	log.Printf("[se-server] SE root public key: %s", sePkd)
 	return s.server.ListenAndServe()
 }
 
@@ -76,22 +85,11 @@ func (s *SeServer) Close() error {
 }
 
 func (s *SeServer) registerRoutes(mux *http.ServeMux) {
-	// This Go SE is NOT an interoperable WOTS SE (AUD-045). Identity and signing
-	// routes fail closed with HTTP 501; only non-signing read routes remain.
-	mux.HandleFunc("/statechain/se-public-key", notImplemented)
-	mux.HandleFunc("/statechain/create", notImplemented)
+	// RFC-008: identity and signing routes are backed by the leased one-time WOTS
+	// SE identity (byte-compatible with the TypeScript SE via RFC-033).
+	mux.HandleFunc("/statechain/se-public-key", s.handleSEPublicKey)
+	mux.HandleFunc("/statechain/create", s.handleCreate)
 	mux.HandleFunc("/statechain/", s.handleChainRoutes)
-}
-
-// notImplemented is the fail-closed response for every identity/signing route
-// (AUD-045). The TypeScript `@totemsdk/se-server` is the supported SE.
-func notImplemented(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusNotImplemented)
-	json.NewEncoder(w).Encode(map[string]string{
-		"error": "se-server(go): not an interoperable WOTS SE (AUD-045); use the TypeScript SE",
-		"code":  "not_implemented",
-	})
 }
 
 func (s *SeServer) betaHeaders(w http.ResponseWriter) {
@@ -104,10 +102,15 @@ func (s *SeServer) betaHeaders(w http.ResponseWriter) {
 
 func (s *SeServer) handleSEPublicKey(w http.ResponseWriter, r *http.Request) {
 	s.betaHeaders(w)
+	published := s.identity.GetPublishedIdentity()
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"sePublicKey":    getPublicKeyHex(s.config.SeSeed),
-		"reclaimTimelock": s.config.ReclaimTimelock,
-		"sla":            "99.5%",
+		"sePublicKey":       published.RootPublicKey,
+		"seRootPublicKey":   published.RootPublicKey,
+		"seRootAddress":     published.RootAddress,
+		"seOwnershipProof":  published.OwnershipProof,
+		"seProofVersion":    published.ProofVersion,
+		"reclaimTimelock":   s.config.ReclaimTimelock,
+		"sla":               "99.5%",
 	})
 }
 
@@ -133,7 +136,10 @@ func (s *SeServer) handleCreate(w http.ResponseWriter, r *http.Request) {
 		body.TokenID = "0x00"
 	}
 
-	sePkd := getPublicKeyHex(s.config.SeSeed)
+	// RFC-008: the published SE identity is the root public key (the actual
+	// signer's anchor), not a reused flat index-0 digest.
+	published := s.identity.GetPublishedIdentity()
+	sePkd := published.RootPublicKey
 	statechainScript := buildStatechainScript(sePkd, s.config.ReclaimTimelock)
 	lockingAddress := scriptAddress(statechainScript)
 
@@ -201,13 +207,13 @@ func (s *SeServer) handleChainRoutes(w http.ResponseWriter, r *http.Request) {
 	case subPath == "challenge" && r.Method == http.MethodGet:
 		s.handleChallenge(w, r, chainID)
 	case subPath == "blind-sign" && r.Method == http.MethodPost:
-		notImplemented(w, r)
+		s.handleBlindSign(w, r, chainID)
 	case subPath == "revoke-key" && r.Method == http.MethodPost:
-		notImplemented(w, r)
+		s.handleRevokeKey(w, r, chainID)
 	case subPath == "claim" && r.Method == http.MethodPost:
-		notImplemented(w, r)
+		s.handleClaim(w, r, chainID)
 	case subPath == "reclaim-tx" && r.Method == http.MethodGet:
-		notImplemented(w, r)
+		s.handleReclaimTx(w, r, chainID)
 	case subPath == "" && r.Method == http.MethodGet:
 		s.handleGetChain(w, r, chainID)
 	default:
@@ -276,13 +282,13 @@ func (s *SeServer) handleBlindSign(w http.ResponseWriter, r *http.Request, chain
 		return
 	}
 
-	commitmentBytes, err := hex.DecodeString(strings.TrimPrefix(body.BlindedCommitment, "0x"))
-	if err != nil {
+	if _, err := hex.DecodeString(strings.TrimPrefix(body.BlindedCommitment, "0x")); err != nil {
 		http.Error(w, `{"error":"blindedCommitment must be valid hex"}`, http.StatusBadRequest)
 		return
 	}
 
-	seSig, err := seSign(s.config.SeSeed, commitmentBytes)
+	// RFC-008: sign with a leased one-time child leaf (never reused).
+	sig, err := s.identity.Sign(body.BlindedCommitment)
 	if err != nil {
 		http.Error(w, `{"error":"signing failed"}`, http.StatusInternalServerError)
 		return
@@ -293,8 +299,9 @@ func (s *SeServer) handleBlindSign(w http.ResponseWriter, r *http.Request, chain
 		s.config.OnSign(chainID, "blind_sign", "default")
 	}
 
-	json.NewEncoder(w).Encode(map[string]string{
-		"blindSignature": hex.EncodeToString(seSig),
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"blindSignature": sig.Signature,
+		"seSignature":    sig,
 	})
 }
 
@@ -384,9 +391,14 @@ func (s *SeServer) handleClaim(w http.ResponseWriter, r *http.Request, chainID s
 
 	h := sha3.New256()
 	h.Write([]byte(body.ClaimTxHex))
-	claimDigest := h.Sum(nil)
+	_ = h.Sum(nil)
 
-	seClaimSig, _ := seSign(s.config.SeSeed, claimDigest)
+	// RFC-008: co-sign the claim with a leased one-time child leaf.
+	claimSig, err := s.identity.Sign(body.ClaimTxHex)
+	if err != nil {
+		http.Error(w, `{"error":"claim signing failed"}`, http.StatusInternalServerError)
+		return
+	}
 	updateStatechainStatus(s.db, chainID, "claimed")
 	logSignEvent(s.db, chainID, "claim")
 	if s.config.OnSign != nil {
@@ -398,7 +410,8 @@ func (s *SeServer) handleClaim(w http.ResponseWriter, r *http.Request, chainID s
 		"chainId":          chainID,
 		"claimAddress":     body.ClaimAddress,
 		"claimTxHex":       body.ClaimTxHex,
-		"seClaimSignature": hex.EncodeToString(seClaimSig),
+		"seClaimSignature": claimSig.Signature,
+		"seSignature":      claimSig,
 	})
 }
 

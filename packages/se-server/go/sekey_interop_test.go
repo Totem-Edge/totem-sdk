@@ -34,9 +34,6 @@ func TestSeSignInterop(t *testing.T) {
 	if !wotsVerifyDigest(sig, message, pkDigest) {
 		t.Fatal("self-verify failed")
 	}
-	if getPublicKeyHex(seed) != hex.EncodeToString(pkDigest) {
-		t.Fatal("getPublicKeyHex does not match DerivedPKDigest")
-	}
 
 	// Emit for the TS side to verify.
 	out := map[string]string{

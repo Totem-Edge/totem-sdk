@@ -62,6 +62,13 @@ func migrateStatechainTables(db *sql.DB) error {
 			event_type  TEXT NOT NULL,
 			logged_at   TIMESTAMP NOT NULL DEFAULT NOW()
 		)`,
+		// RFC-008: forward-only WOTS leaf watermark for the SE identity. Each
+		// SE signature leases the next one-time leaf; the counter never rewinds.
+		`CREATE TABLE IF NOT EXISTS se_identity_watermark (
+			slot      TEXT PRIMARY KEY,
+			next_use  BIGINT NOT NULL DEFAULT 0,
+			updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+		)`,
 		`CREATE INDEX IF NOT EXISTS idx_sc_records_project   ON statechain_records(project_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_sc_records_status    ON statechain_records(status)`,
 		`CREATE INDEX IF NOT EXISTS idx_sc_revocations_chain ON statechain_revocations(chain_id)`,
@@ -207,4 +214,29 @@ func getApproachingTimelockChains(db *sql.DB) ([]StatechainRecord, error) {
 		records = append(records, rec)
 	}
 	return records, rows.Err()
+}
+
+// allocateWatermark atomically leases the next one-time leaf for `slot` and
+// returns the previous (now-consumed) use index. The counter only ever moves
+// forward, so a WOTS leaf is never reused across restarts or concurrent calls
+// (RFC-008 / AUD-003/AUD-004/AUD-005).
+func allocateWatermark(db *sql.DB, slot string) (int64, error) {
+	var next int64
+	err := db.QueryRow(`
+		INSERT INTO se_identity_watermark (slot, next_use, updated_at)
+		VALUES ($1, 1, NOW())
+		ON CONFLICT (slot) DO UPDATE
+			SET next_use = se_identity_watermark.next_use + 1, updated_at = NOW()
+		RETURNING next_use - 1`, slot).Scan(&next)
+	return next, err
+}
+
+// peekWatermark returns the next-available leaf index for `slot` (0 if unused).
+func peekWatermark(db *sql.DB, slot string) (int64, error) {
+	var next int64
+	err := db.QueryRow(`SELECT next_use FROM se_identity_watermark WHERE slot = $1`, slot).Scan(&next)
+	if err == sql.ErrNoRows {
+		return 0, nil
+	}
+	return next, err
 }

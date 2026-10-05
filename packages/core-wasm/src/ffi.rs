@@ -463,14 +463,54 @@ pub extern "C" fn totem_verify_tree_signature_json(
     }
 }
 
-/// Derive the root private seed from a BIP39 base seed (`deriveRootPrivSeed`).
+fn sha3(data: &[u8]) -> Vec<u8> {
+    use sha3::{Digest, Sha3_256};
+    let mut h = Sha3_256::new();
+    h.update(data);
+    h.finalize().to_vec()
+}
+
+/// Minimal big-endian bytes of an index; 0 → [0x00] (TS `indexToMiniDataBytes`).
+fn index_to_mini_data_bytes(index: u32) -> Vec<u8> {
+    if index == 0 {
+        return vec![0x00];
+    }
+    let mut b = Vec::new();
+    let mut n = index;
+    while n > 0 {
+        b.insert(0, (n & 0xff) as u8);
+        n >>= 8;
+    }
+    b
+}
+
+/// TS `deriveRootPrivSeed` (javaStreamables): SHA3(MiniData(baseSeed) ‖ MiniData("ROOT_IDENTITY")).
+///
+/// NOTE: this deliberately differs from `java_streamables::derive_root_priv_seed`
+/// (which omits "ROOT_IDENTITY"). The TypeScript SE/root-identity uses *this*
+/// derivation, so Go must match it for cross-language parity.
+pub fn derive_root_priv_seed_ts(base_seed: &[u8]) -> Vec<u8> {
+    let mut buf = write_mini_data(base_seed);
+    buf.extend_from_slice(&write_mini_data(b"ROOT_IDENTITY"));
+    sha3(&buf)
+}
+
+/// TS `deriveUnifiedChildSeed`: SHA3(MiniData(rootPrivSeed) ‖ MiniData(indexBytes)).
+pub fn derive_unified_child_seed_ts(base_seed: &[u8], index: u32) -> Vec<u8> {
+    let root_priv = derive_root_priv_seed_ts(base_seed);
+    let mut buf = write_mini_data(&root_priv);
+    buf.extend_from_slice(&write_mini_data(&index_to_mini_data_bytes(index)));
+    sha3(&buf)
+}
+
+/// Derive the root identity private seed (TS-compatible).
 #[no_mangle]
 pub extern "C" fn totem_derive_root_priv_seed(seed: *const u8, seed_len: usize, out_len: *mut usize) -> *mut u8 {
     let seed = unsafe { as_slice(seed, seed_len) };
-    leak_bytes(crate::java_streamables::derive_root_priv_seed(seed), out_len)
+    leak_bytes(derive_root_priv_seed_ts(seed), out_len)
 }
 
-/// Derive a unified child seed (`deriveUnifiedChildSeed`) for an address index.
+/// Derive a unified child seed (TS-compatible) for an address index.
 #[no_mangle]
 pub extern "C" fn totem_derive_unified_child_seed(
     base_seed: *const u8,
@@ -479,7 +519,50 @@ pub extern "C" fn totem_derive_unified_child_seed(
     out_len: *mut usize,
 ) -> *mut u8 {
     let base_seed = unsafe { as_slice(base_seed, base_seed_len) };
-    leak_bytes(crate::java_streamables::derive_unified_child_seed(base_seed, 1, index), out_len)
+    leak_bytes(derive_unified_child_seed_ts(base_seed, index), out_len)
+}
+
+/// Create the unified **root** identity TreeKey (TS `createUnifiedRootTreeKey`).
+#[no_mangle]
+pub extern "C" fn totem_create_unified_root_tree_key(
+    base_seed: *const u8,
+    base_seed_len: usize,
+    err_out: *mut *mut std::os::raw::c_char,
+) -> u32 {
+    let base_seed = unsafe { as_slice(base_seed, base_seed_len) };
+    match treekey::TreeKey::new(&derive_root_priv_seed_ts(base_seed), 64, 3) {
+        Ok(tk) => {
+            let handle = NEXT_HANDLE.fetch_add(1, Ordering::SeqCst);
+            HANDLES.lock().unwrap().insert(handle, tk);
+            handle
+        }
+        Err(e) => {
+            if !err_out.is_null() { unsafe { *err_out = leak_cstring(e) }; }
+            0
+        }
+    }
+}
+
+/// Create a unified **child** TreeKey (TS `createUnifiedChildTreeKey`).
+#[no_mangle]
+pub extern "C" fn totem_create_unified_child_tree_key(
+    base_seed: *const u8,
+    base_seed_len: usize,
+    index: u32,
+    err_out: *mut *mut std::os::raw::c_char,
+) -> u32 {
+    let base_seed = unsafe { as_slice(base_seed, base_seed_len) };
+    match treekey::TreeKey::new(&derive_unified_child_seed_ts(base_seed, index), 64, 3) {
+        Ok(tk) => {
+            let handle = NEXT_HANDLE.fetch_add(1, Ordering::SeqCst);
+            HANDLES.lock().unwrap().insert(handle, tk);
+            handle
+        }
+        Err(e) => {
+            if !err_out.is_null() { unsafe { *err_out = leak_cstring(e) }; }
+            0
+        }
+    }
 }
 
 /// Derive the per-address seed (`derivePerAddressSeed`) for a root seed.
@@ -492,6 +575,46 @@ pub extern "C" fn totem_derive_per_address_seed(
 ) -> *mut u8 {
     let root_seed = unsafe { as_slice(root_seed, root_seed_len) };
     leak_bytes(crate::java_streamables::derive_per_address_seed(root_seed, address_index), out_len)
+}
+
+/// Derive a Minima Mx address from a 32-byte WOTS public-key digest
+/// (script `RETURN SIGNEDBY(0x..)` → MMR root → address), matching TS
+/// `scriptFromWotsPk` → `scriptToAddress`.
+#[no_mangle]
+pub extern "C" fn totem_address_from_pk_digest(
+    pk_digest: *const u8,
+    pk_digest_len: usize,
+    out_len: *mut usize,
+) -> *mut u8 {
+    let pk_digest = unsafe { as_slice(pk_digest, pk_digest_len) };
+    match catch_unwind(AssertUnwindSafe(|| {
+        let script = crate::script::script_from_wots_pk(pk_digest);
+        let root = crate::derive::script_to_address(&script);
+        crate::minima32::make_mx_address(&root)
+    })) {
+        Ok(Ok(addr)) => leak_bytes(addr.into_bytes(), out_len),
+        _ => std::ptr::null_mut(),
+    }
+}
+
+/// Derive a Minima Mx address directly from a full 1088-byte WOTS public key
+/// (hashes to the 32-byte digest first), matching TS `addressFromPublicKeyBytes`.
+#[no_mangle]
+pub extern "C" fn totem_address_from_full_public_key(
+    pk_full: *const u8,
+    pk_full_len: usize,
+    out_len: *mut usize,
+) -> *mut u8 {
+    let pk_full = unsafe { as_slice(pk_full, pk_full_len) };
+    let digest = sha3(pk_full);
+    match catch_unwind(AssertUnwindSafe(|| {
+        let script = crate::script::script_from_wots_pk(&digest);
+        let root = crate::derive::script_to_address(&script);
+        crate::minima32::make_mx_address(&root)
+    })) {
+        Ok(Ok(addr)) => leak_bytes(addr.into_bytes(), out_len),
+        _ => std::ptr::null_mut(),
+    }
 }
 
 /// Serialize any byte buffer as a MiniData (4-byte length + bytes), for tests.

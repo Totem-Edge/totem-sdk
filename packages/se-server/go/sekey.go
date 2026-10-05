@@ -22,28 +22,15 @@ const reclaimEncKeyInfo = "statechain-reclaim-tx-v1"
 // (RFC-033, via cgo) instead of failing closed.
 var ErrNotInteroperable = errors.New("se-server(go): not an interoperable WOTS SE (AUD-045); use the TypeScript SE")
 
-// getPublicKeyHex returns the WOTS public-key digest for the SE seed at index 0,
-// byte-exact with the TypeScript/Rust engine (RFC-033).
-func getPublicKeyHex(seed []byte) string {
-	pk, err := totemcrypto.DerivePKDigest(seed, 0)
-	if err != nil {
-		return ""
-	}
-	return hex.EncodeToString(pk)
-}
-
-// seSign signs `commitmentBytes` with flat WOTS (seed, index 0), returning the
-// 1088-byte signature. Byte-exact with the TypeScript/Rust engine (RFC-033).
-//
-// NOTE: the reference Go SE uses the flat WOTS primitive. The supported SE
-// identity (leased one-time leaves, `@totemsdk/root-identity` + `wots-lease`)
-// lives in the TypeScript `@totemsdk/se-server`.
+// seSign is retained for owner-signature helpers that verify flat WOTS. The SE's
+// own signing (blind-sign / claim) uses the leased one-time identity in
+// `seidentity.go` (RFC-008), not this flat primitive.
 func seSign(seed, commitmentBytes []byte) ([]byte, error) {
 	return totemcrypto.Sign(seed, 0, commitmentBytes)
 }
 
 // wotsVerifyDigest verifies a flat WOTS signature over `message` against a
-// 32-byte public-key digest (RFC-033).
+// 32-byte public-key digest (RFC-033). Used for owner request authentication.
 func wotsVerifyDigest(sig, message, pkDigest []byte) bool {
 	return totemcrypto.VerifyDigest(sig, message, pkDigest)
 }

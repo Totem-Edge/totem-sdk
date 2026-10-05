@@ -229,6 +229,31 @@ func NewTreeKey(seed []byte, keysPerLevel, levels uint32) (*TreeKey, error) {
 	return &TreeKey{handle: handle}, nil
 }
 
+// NewUnifiedRootTreeKey builds the root identity TreeKey (TS
+// createUnifiedRootTreeKey): 64 keys/level, 3 levels, derived with the
+// "ROOT_IDENTITY" domain separation the TypeScript SE uses.
+func NewUnifiedRootTreeKey(baseSeed []byte) (*TreeKey, error) {
+	var errOut *C.char
+	handle := C.totem_create_unified_root_tree_key(bytesPtr(baseSeed), C.size_t(len(baseSeed)), &errOut)
+	runtime.KeepAlive(baseSeed)
+	if handle == 0 {
+		return nil, fmt.Errorf("totemcrypto: unified root TreeKey failed: %s", takeString(errOut))
+	}
+	return &TreeKey{handle: handle}, nil
+}
+
+// NewUnifiedChildTreeKey builds a child (spend address) TreeKey (TS
+// createUnifiedChildTreeKey) for address `index`.
+func NewUnifiedChildTreeKey(baseSeed []byte, index uint32) (*TreeKey, error) {
+	var errOut *C.char
+	handle := C.totem_create_unified_child_tree_key(bytesPtr(baseSeed), C.size_t(len(baseSeed)), C.uint32_t(index), &errOut)
+	runtime.KeepAlive(baseSeed)
+	if handle == 0 {
+		return nil, fmt.Errorf("totemcrypto: unified child TreeKey failed: %s", takeString(errOut))
+	}
+	return &TreeKey{handle: handle}, nil
+}
+
 // Sign signs data, returning the TreeSignature as JSON bytes.
 func (t *TreeKey) Sign(data []byte) ([]byte, error) {
 	var outLen C.size_t
@@ -253,8 +278,15 @@ func (t *TreeKey) PublicKey() ([]byte, error) {
 // Uses returns the number of signatures consumed.
 func (t *TreeKey) Uses() uint32 { return uint32(C.totem_treekey_get_uses(t.handle)) }
 
-// SetUses restores the use counter (forward-only is the caller's responsibility).
-func (t *TreeKey) SetUses(uses uint32) { C.totem_treekey_set_uses(t.handle, C.uint32_t(uses)) }
+// SetUses restores the use counter, enforcing forward-only progress so a WOTS
+// leaf is never reused. It returns an error if `uses` would rewind the counter.
+func (t *TreeKey) SetUses(uses uint32) error {
+	if current := t.Uses(); uses < current {
+		return fmt.Errorf("totemcrypto: refusing to lower uses from %d to %d (would reuse a leaf)", current, uses)
+	}
+	C.totem_treekey_set_uses(t.handle, C.uint32_t(uses))
+	return nil
+}
 
 // MaxUses returns the maximum signatures this tree can produce.
 func (t *TreeKey) MaxUses() uint32 { return uint32(C.totem_treekey_get_max_uses(t.handle)) }
@@ -311,6 +343,28 @@ func DerivePerAddressSeed(rootSeed []byte, addressIndex uint32) ([]byte, error) 
 	}
 	runtime.KeepAlive(rootSeed)
 	return takeBytes(ptr, outLen), nil
+}
+
+// AddressFromPKDigest derives the Minima Mx address for a 32-byte pk digest.
+func AddressFromPKDigest(pkDigest []byte) (string, error) {
+	var outLen C.size_t
+	ptr := C.totem_address_from_pk_digest(bytesPtr(pkDigest), C.size_t(len(pkDigest)), &outLen)
+	if ptr == nil {
+		return "", ErrUnavailable
+	}
+	runtime.KeepAlive(pkDigest)
+	return string(takeBytes(ptr, outLen)), nil
+}
+
+// AddressFromFullPublicKey derives the Minima Mx address for a full 1088-byte pk.
+func AddressFromFullPublicKey(pkFull []byte) (string, error) {
+	var outLen C.size_t
+	ptr := C.totem_address_from_full_public_key(bytesPtr(pkFull), C.size_t(len(pkFull)), &outLen)
+	if ptr == nil {
+		return "", ErrUnavailable
+	}
+	runtime.KeepAlive(pkFull)
+	return string(takeBytes(ptr, outLen)), nil
 }
 
 // DeserializeTreeSignature converts Java Streamable bytes to TreeSignature JSON.
