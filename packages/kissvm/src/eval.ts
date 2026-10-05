@@ -13,7 +13,7 @@
  * KissvmRuntimeError is caught and converted to { passed:false, error }.
  */
 
-import { createHash } from 'node:crypto';
+import { sha256 as nobleSha256 } from '@noble/hashes/sha256.js';
 import { sha3_256, hexToBytes, wotsVerifyDigest, verifyTreeSignature, mmrLeafExact, parseMMRProofFromHex, createMMRDataParentNode, createMMRDataLeafNode, calculateProofRoot } from '@totemsdk/core';
 import type { MMRData, MMRProof, TreeSignature } from '@totemsdk/core';
 import { KissvmLimitError, KissvmRuntimeError, ReturnSignal } from './errors.js';
@@ -1222,11 +1222,9 @@ function miniNumberToString(v: Value): string {
   return String(v);
 }
 
-/** SHA-256 using Node.js built-in crypto (no external npm dep) */
+/** SHA-256 via @noble/hashes (Bare-safe; NIST-vector guarded). */
 function sha2(data: Uint8Array): Uint8Array {
-  const h = createHash('sha256');
-  h.update(data);
-  return new Uint8Array(h.digest());
+  return nobleSha256(data);
 }
 
 

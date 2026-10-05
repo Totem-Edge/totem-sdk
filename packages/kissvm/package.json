@@ -42,6 +42,7 @@
     "LICENSE"
   ],
   "dependencies": {
+    "@noble/hashes": "^1.8.0",
     "@totemsdk/core": "workspace:^"
   },
   "devDependencies": {

@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { sha3_256, concatBytes } from '@totemsdk/core';
 import { evaluateScript } from './eval.js';
 import type { EvalResult, ScriptWitness, CoinData, TxContext, OutputData } from './types.js';
 
@@ -19,23 +19,24 @@ function computeSimulationDigest(
   outputs: OutputData[],
   state: Record<number, string>,
 ): Uint8Array {
-  const h = createHash('sha3-256');
+  const enc = new TextEncoder();
+  const parts: Uint8Array[] = [];
   // block
   const blkBuf = Buffer.alloc(4);
   blkBuf.writeUInt32BE(block, 0);
-  h.update(blkBuf);
+  parts.push(blkBuf);
   // inputs
   for (const c of inputs) {
-    h.update(String(c.coinId) + ':' + String(c.amount) + ':' + String(c.tokenId) + ':' + String(c.address));
+    parts.push(enc.encode(String(c.coinId) + ':' + String(c.amount) + ':' + String(c.tokenId) + ':' + String(c.address)));
   }
   // outputs
   for (const o of outputs) {
-    h.update(String(o.address) + ':' + String(o.amount) + ':' + String(o.tokenId));
+    parts.push(enc.encode(String(o.address) + ':' + String(o.amount) + ':' + String(o.tokenId)));
   }
   // state
   const stateKeys = Object.keys(state).sort();
-  for (const k of stateKeys) h.update(k + '=' + state[Number(k)]);
-  return new Uint8Array(h.digest());
+  for (const k of stateKeys) parts.push(enc.encode(k + '=' + state[Number(k)]));
+  return sha3_256(concatBytes(...parts));
 }
 
 /**
