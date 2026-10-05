@@ -2,19 +2,24 @@
   "name": "@totemsdk/edge-opcua",
   "version": "0.2.0",
   "description": "Edge runtime adapter for OPC-UA — SCADA, factory floors, industrial automation",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/cjs/index.js",
+  "types": "dist/cjs/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "require": "./dist/index.js",
-      "import": "./dist/index.js"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
     }
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "build:rust": "cd rust && cargo build --release",
-    "prepare": "tsc",
+    "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist rust/target",
     "test": "jest"
   },
@@ -58,5 +63,6 @@
   ],
   "bugs": {
     "url": "https://github.com/Totem-Edge/totem-sdk/issues"
-  }
+  },
+  "type": "module"
 }

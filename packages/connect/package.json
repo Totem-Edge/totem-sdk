@@ -1,24 +1,34 @@
 {
   "name": "@totemsdk/connect",
   "version": "2.1.1",
-  "description": "Client-side SDK for connecting to the Totem wallet browser extension \u2014 includes Totem Edge capability layer",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "description": "Client-side SDK for connecting to the Totem wallet browser extension — includes Totem Edge capability layer",
+  "main": "dist/cjs/index.js",
+  "types": "dist/cjs/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "require": "./dist/index.js",
-      "import": "./dist/index.js"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
     },
     "./wallet": {
-      "types": "./dist/wallet.d.ts",
-      "require": "./dist/wallet.js",
-      "import": "./dist/wallet.js"
+      "import": {
+        "types": "./dist/wallet.d.ts",
+        "default": "./dist/wallet.js"
+      },
+      "require": {
+        "types": "./dist/cjs/wallet.d.ts",
+        "default": "./dist/cjs/wallet.js"
+      }
     }
   },
   "scripts": {
-    "build": "tsc",
-    "prepare": "tsc",
+    "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
+    "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist",
     "test": "jest",
     "test:typecheck": "tsc --noEmit"
@@ -111,5 +121,13 @@
     "quantum-resistant",
     "wots",
     "utxo"
-  ]
+  ],
+  "type": "module",
+  "typesVersions": {
+    "*": {
+      "wallet": [
+        "./dist/cjs/wallet.d.ts"
+      ]
+    }
+  }
 }

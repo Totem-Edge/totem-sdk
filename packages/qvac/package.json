@@ -2,108 +2,203 @@
   "name": "@totemsdk/qvac",
   "version": "0.1.1",
   "description": "QVAC intelligence adapter — wraps @qvac/sdk into @totemsdk/intelligence's provider-neutral contracts",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/cjs/index.js",
+  "types": "dist/cjs/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "require": "./dist/index.js",
-      "import": "./dist/index.js"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
     },
     "./edge": {
-      "types": "./dist/edge-adapter.d.ts",
-      "require": "./dist/edge-adapter.js",
-      "import": "./dist/edge-adapter.js"
+      "import": {
+        "types": "./dist/edge-adapter.d.ts",
+        "default": "./dist/edge-adapter.js"
+      },
+      "require": {
+        "types": "./dist/cjs/edge-adapter.d.ts",
+        "default": "./dist/cjs/edge-adapter.js"
+      }
     },
     "./raw": {
-      "types": "./dist/raw.d.ts",
-      "require": "./dist/raw.js",
-      "import": "./dist/raw.js"
+      "import": {
+        "types": "./dist/raw.d.ts",
+        "default": "./dist/raw.js"
+      },
+      "require": {
+        "types": "./dist/cjs/raw.d.ts",
+        "default": "./dist/cjs/raw.js"
+      }
     },
     "./llm": {
-      "types": "./dist/domains/llm.d.ts",
-      "require": "./dist/domains/llm.js",
-      "import": "./dist/domains/llm.js"
+      "import": {
+        "types": "./dist/domains/llm.d.ts",
+        "default": "./dist/domains/llm.js"
+      },
+      "require": {
+        "types": "./dist/cjs/domains/llm.d.ts",
+        "default": "./dist/cjs/domains/llm.js"
+      }
     },
     "./embed": {
-      "types": "./dist/domains/embed.d.ts",
-      "require": "./dist/domains/embed.js",
-      "import": "./dist/domains/embed.js"
+      "import": {
+        "types": "./dist/domains/embed.d.ts",
+        "default": "./dist/domains/embed.js"
+      },
+      "require": {
+        "types": "./dist/cjs/domains/embed.d.ts",
+        "default": "./dist/cjs/domains/embed.js"
+      }
     },
     "./rag": {
-      "types": "./dist/domains/rag.d.ts",
-      "require": "./dist/domains/rag.js",
-      "import": "./dist/domains/rag.js"
+      "import": {
+        "types": "./dist/domains/rag.d.ts",
+        "default": "./dist/domains/rag.js"
+      },
+      "require": {
+        "types": "./dist/cjs/domains/rag.d.ts",
+        "default": "./dist/cjs/domains/rag.js"
+      }
     },
     "./asr": {
-      "types": "./dist/domains/asr.d.ts",
-      "require": "./dist/domains/asr.js",
-      "import": "./dist/domains/asr.js"
+      "import": {
+        "types": "./dist/domains/asr.d.ts",
+        "default": "./dist/domains/asr.js"
+      },
+      "require": {
+        "types": "./dist/cjs/domains/asr.d.ts",
+        "default": "./dist/cjs/domains/asr.js"
+      }
     },
     "./translate": {
-      "types": "./dist/domains/translate.d.ts",
-      "require": "./dist/domains/translate.js",
-      "import": "./dist/domains/translate.js"
+      "import": {
+        "types": "./dist/domains/translate.d.ts",
+        "default": "./dist/domains/translate.js"
+      },
+      "require": {
+        "types": "./dist/cjs/domains/translate.d.ts",
+        "default": "./dist/cjs/domains/translate.js"
+      }
     },
     "./tts": {
-      "types": "./dist/domains/tts.d.ts",
-      "require": "./dist/domains/tts.js",
-      "import": "./dist/domains/tts.js"
+      "import": {
+        "types": "./dist/domains/tts.d.ts",
+        "default": "./dist/domains/tts.js"
+      },
+      "require": {
+        "types": "./dist/cjs/domains/tts.d.ts",
+        "default": "./dist/cjs/domains/tts.js"
+      }
     },
     "./diffusion": {
-      "types": "./dist/domains/diffusion.d.ts",
-      "require": "./dist/domains/diffusion.js",
-      "import": "./dist/domains/diffusion.js"
+      "import": {
+        "types": "./dist/domains/diffusion.d.ts",
+        "default": "./dist/domains/diffusion.js"
+      },
+      "require": {
+        "types": "./dist/cjs/domains/diffusion.d.ts",
+        "default": "./dist/cjs/domains/diffusion.js"
+      }
     },
     "./ocr": {
-      "types": "./dist/domains/ocr.d.ts",
-      "require": "./dist/domains/ocr.js",
-      "import": "./dist/domains/ocr.js"
+      "import": {
+        "types": "./dist/domains/ocr.d.ts",
+        "default": "./dist/domains/ocr.js"
+      },
+      "require": {
+        "types": "./dist/cjs/domains/ocr.d.ts",
+        "default": "./dist/cjs/domains/ocr.js"
+      }
     },
     "./classify": {
-      "types": "./dist/domains/classify.d.ts",
-      "require": "./dist/domains/classify.js",
-      "import": "./dist/domains/classify.js"
+      "import": {
+        "types": "./dist/domains/classify.d.ts",
+        "default": "./dist/domains/classify.js"
+      },
+      "require": {
+        "types": "./dist/cjs/domains/classify.d.ts",
+        "default": "./dist/cjs/domains/classify.js"
+      }
     },
     "./audiogen": {
-      "types": "./dist/domains/audiogen.d.ts",
-      "require": "./dist/domains/audiogen.js",
-      "import": "./dist/domains/audiogen.js"
+      "import": {
+        "types": "./dist/domains/audiogen.d.ts",
+        "default": "./dist/domains/audiogen.js"
+      },
+      "require": {
+        "types": "./dist/cjs/domains/audiogen.d.ts",
+        "default": "./dist/cjs/domains/audiogen.js"
+      }
     },
     "./video": {
-      "types": "./dist/domains/video.d.ts",
-      "require": "./dist/domains/video.js",
-      "import": "./dist/domains/video.js"
+      "import": {
+        "types": "./dist/domains/video.d.ts",
+        "default": "./dist/domains/video.js"
+      },
+      "require": {
+        "types": "./dist/cjs/domains/video.d.ts",
+        "default": "./dist/cjs/domains/video.js"
+      }
     },
     "./vla": {
-      "types": "./dist/domains/vla.d.ts",
-      "require": "./dist/domains/vla.js",
-      "import": "./dist/domains/vla.js"
+      "import": {
+        "types": "./dist/domains/vla.d.ts",
+        "default": "./dist/domains/vla.js"
+      },
+      "require": {
+        "types": "./dist/cjs/domains/vla.d.ts",
+        "default": "./dist/cjs/domains/vla.js"
+      }
     },
     "./world": {
-      "types": "./dist/domains/world.d.ts",
-      "require": "./dist/domains/world.js",
-      "import": "./dist/domains/world.js"
+      "import": {
+        "types": "./dist/domains/world.d.ts",
+        "default": "./dist/domains/world.js"
+      },
+      "require": {
+        "types": "./dist/cjs/domains/world.d.ts",
+        "default": "./dist/cjs/domains/world.js"
+      }
     },
     "./models": {
-      "types": "./dist/domains/models.d.ts",
-      "require": "./dist/domains/models.js",
-      "import": "./dist/domains/models.js"
+      "import": {
+        "types": "./dist/domains/models.d.ts",
+        "default": "./dist/domains/models.js"
+      },
+      "require": {
+        "types": "./dist/cjs/domains/models.d.ts",
+        "default": "./dist/cjs/domains/models.js"
+      }
     },
     "./system": {
-      "types": "./dist/domains/system.d.ts",
-      "require": "./dist/domains/system.js",
-      "import": "./dist/domains/system.js"
+      "import": {
+        "types": "./dist/domains/system.d.ts",
+        "default": "./dist/domains/system.js"
+      },
+      "require": {
+        "types": "./dist/cjs/domains/system.d.ts",
+        "default": "./dist/cjs/domains/system.js"
+      }
     },
     "./plugins": {
-      "types": "./dist/domains/plugins.d.ts",
-      "require": "./dist/domains/plugins.js",
-      "import": "./dist/domains/plugins.js"
+      "import": {
+        "types": "./dist/domains/plugins.d.ts",
+        "default": "./dist/domains/plugins.js"
+      },
+      "require": {
+        "types": "./dist/cjs/domains/plugins.d.ts",
+        "default": "./dist/cjs/domains/plugins.js"
+      }
     }
   },
   "scripts": {
-    "build": "tsc",
-    "prepare": "tsc",
+    "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
+    "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist",
     "test": "jest"
   },
@@ -154,5 +249,64 @@
   ],
   "bugs": {
     "url": "https://github.com/Totem-Edge/totem-sdk/issues"
+  },
+  "type": "module",
+  "typesVersions": {
+    "*": {
+      "edge": [
+        "./dist/cjs/edge-adapter.d.ts"
+      ],
+      "raw": [
+        "./dist/cjs/raw.d.ts"
+      ],
+      "llm": [
+        "./dist/cjs/domains/llm.d.ts"
+      ],
+      "embed": [
+        "./dist/cjs/domains/embed.d.ts"
+      ],
+      "rag": [
+        "./dist/cjs/domains/rag.d.ts"
+      ],
+      "asr": [
+        "./dist/cjs/domains/asr.d.ts"
+      ],
+      "translate": [
+        "./dist/cjs/domains/translate.d.ts"
+      ],
+      "tts": [
+        "./dist/cjs/domains/tts.d.ts"
+      ],
+      "diffusion": [
+        "./dist/cjs/domains/diffusion.d.ts"
+      ],
+      "ocr": [
+        "./dist/cjs/domains/ocr.d.ts"
+      ],
+      "classify": [
+        "./dist/cjs/domains/classify.d.ts"
+      ],
+      "audiogen": [
+        "./dist/cjs/domains/audiogen.d.ts"
+      ],
+      "video": [
+        "./dist/cjs/domains/video.d.ts"
+      ],
+      "vla": [
+        "./dist/cjs/domains/vla.d.ts"
+      ],
+      "world": [
+        "./dist/cjs/domains/world.d.ts"
+      ],
+      "models": [
+        "./dist/cjs/domains/models.d.ts"
+      ],
+      "system": [
+        "./dist/cjs/domains/system.d.ts"
+      ],
+      "plugins": [
+        "./dist/cjs/domains/plugins.d.ts"
+      ]
+    }
   }
 }
