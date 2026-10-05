@@ -15,6 +15,7 @@ import type {
   TokenSearchQuery,
 } from '@totemsdk/chain-provider';
 import { PROTOCOL_VERSION } from '@totemsdk/lookup-protocol';
+import type { SessionTicket } from '@totemsdk/lookup-protocol';
 import { Authenticator, LookupIdentity } from './auth.js';
 import { RpcLayer } from './rpc.js';
 import { SubscriptionManager } from './subscriptions.js';
@@ -31,6 +32,8 @@ let _announceIdCounter = 0;
 function announceId(): string {
   return `ann-${++_announceIdCounter}`;
 }
+
+let _sessionIdCounter = 0;
 
 export class LookupClient {
   private readonly _rpc: RpcLayer;
@@ -59,8 +62,16 @@ export class LookupClient {
       ...(_config.authTtlMs !== undefined ? { ttlMs: _config.authTtlMs } : {}),
       ...(_config.rootIdentityProof !== undefined ? { rootIdentityProof: _config.rootIdentityProof } : {}),
       ...(_config.address !== undefined ? { address: _config.address } : {}),
+      ...(_config.useSessionTickets !== undefined ? { useTickets: _config.useSessionTickets } : {}),
+      ...(_config.sessionTtlMs !== undefined ? { sessionTtlMs: _config.sessionTtlMs } : {}),
+      ...(_config.authRequiredTypes !== undefined ? { authRequiredTypes: _config.authRequiredTypes } : {}),
     });
     this._rpc.setAuthenticator(this._authenticator);
+    // RFC-032-A: re-open the session once when the node rejects an expired ticket.
+    this._rpc.setOnSessionExpired(() => {
+      if (!this._authenticator.useTickets) return;
+      void this._openSession().catch(() => { /* fall back to per-message WOTS */ });
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -85,9 +96,36 @@ export class LookupClient {
       // Errors always lead to 'close'; handled above
     });
 
+    // RFC-032-A: if tickets are enabled, drop any stale ticket and open a
+    // session (one WOTS use) before the first real request.
+    if (this._authenticator.useTickets) {
+      this._authenticator.clearTicket();
+      try {
+        await this._openSession();
+      } catch {
+        // Session open failed — fall back to per-message WOTS.
+      }
+    }
+
     this._subscriptions.reRegisterAll();
     this._reconnectAttempt = 0;
     this._emit('reconnected');
+  }
+
+  /** RFC-032-A: send SESSION_OPEN (one WOTS use) and cache the returned ticket. */
+  private async _openSession(): Promise<void> {
+    const resp = await this._rpc.sendRequest({
+      type: 'SESSION_OPEN',
+      version: PROTOCOL_VERSION,
+      id: `session-${++_sessionIdCounter}`,
+      payload: this._authenticator.sessionTtlMs !== undefined
+        ? { ttlMs: this._authenticator.sessionTtlMs }
+        : {},
+    });
+    if (resp.type !== 'SESSION_TICKET') {
+      throw new Error(`SESSION_OPEN did not return a ticket (got ${resp.type})`);
+    }
+    this._authenticator.setTicket(resp.payload as SessionTicket);
   }
 
   private async _getTransport(): Promise<ITransport> {

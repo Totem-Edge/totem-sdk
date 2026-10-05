@@ -18,7 +18,7 @@ jest.setTimeout(60_000);
  * manifest field; `verifyManifest` then requires the two to match. So the test
  * signs a manifest whose declared author is the real signer address.
  */
-async function signedManifestBytes(seedByte: number, signedAt: number): Promise<Uint8Array> {
+async function signedManifestBytes(seedByte: number): Promise<Uint8Array> {
   const seed = new Uint8Array(32).fill(seedByte);
   // First derive the address by signing a placeholder, then sign the real one.
   const placeholder = appManifest('MxPLACEHOLDER');
@@ -48,7 +48,7 @@ describe('AppRegistry — WOTS-signed manifest verification (RFC-032)', () => {
   it('accepts a valid WOTS-signed manifest and stores the signer address', async () => {
     const store = new SqliteStore(':memory:');
     const reg = new AppRegistry(store, true);
-    const bytes = await signedManifestBytes(0x11, Date.now());
+    const bytes = await signedManifestBytes(0x11);
 
     await reg.announce(
       { type: 'APP_ANNOUNCE', version: 2, payload: { manifest: bytes, appId: 'app-1', expiresAt: Date.now() + 60_000 } },
@@ -61,7 +61,7 @@ describe('AppRegistry — WOTS-signed manifest verification (RFC-032)', () => {
   it('rejects a tampered manifest', async () => {
     const store = new SqliteStore(':memory:');
     const reg = new AppRegistry(store, true);
-    const bytes = await signedManifestBytes(0x11, Date.now());
+    const bytes = await signedManifestBytes(0x11);
     // Flip a byte in the middle of the buffer so the signature no longer matches.
     bytes[Math.floor(bytes.length / 2)] ^= 0xff;
 

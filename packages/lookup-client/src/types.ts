@@ -48,6 +48,15 @@ export interface LookupClientConfig {
   /** RFC-032: optional Minima address (trusted only when the proof verifies). */
   address?: string;
   /**
+   * RFC-032-A: open a session on connect and reuse a node-issued ticket for
+   * non-high-value messages (amortises WOTS use). Default false (per-message WOTS).
+   */
+  useSessionTickets?: boolean;
+  /** RFC-032-A: requested session-ticket lifetime in ms (node clamps). */
+  sessionTtlMs?: number;
+  /** RFC-032-A: message types that must always carry a full WOTS envelope. */
+  authRequiredTypes?: readonly string[];
+  /**
    * @internal — factory called on every connection attempt (for testing).
    * Bypasses Hyperswarm/HTTP transport creation entirely.
    * When provided, _transport is ignored.

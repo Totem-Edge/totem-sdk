@@ -1,6 +1,6 @@
 # RFC-032 Amendment A — Lookup Session Tickets (P5 Plan)
 
-**Status:** Draft — plan, not started
+**Status:** Landed (TypeScript) — T0–T3 complete, T4 partial (node identity watermark persisted; ticket table is in-memory), T5 covered by unit + E2E tests. Go mirrors not updated.
 **Created:** 2026-10-02 · **Amends:** RFC-032
 **Touches:** `@totemsdk/lookup-protocol`, `@totemsdk/lookup-client`, `@totemsdk/lookup-node`
 **Depends on:** RFC-032 (lookup-stack post-quantum identity)
@@ -174,6 +174,21 @@ watermark; see RFC-032 §9 Q1).
 | **T3** | Policy: per-message-type requirement (`auth` required vs ticket-allowed). | Unit: `LEASE_*`/`BROADCAST_TXPOW` reject ticket-only. |
 | **T4** | Durability: persist node ticket table (SQLite `kv_store`) and node identity watermark; restart behaviour. | Unit: restart preserves tickets; lost identity fails closed. |
 | **T5** | Adversarial + E2E: ticket replay, cross-connection lift, watermark reuse, expiry storm, downgrade to WOTS. | Adversarial green; E2E over v2. |
+
+## A.7a Implementation status (TypeScript)
+
+Shipped (tests green: protocol 21, client 29, node 60):
+
+- **T0** `lookup-protocol`: `SESSION_OPEN`/`SESSION_TICKET`/`SESSION_CLOSE` messages, `SessionTicket` + `SessionTicketRef`, `ticket?` on `BaseMessage`, `sessionTicketDigest` (domain-separated); `authDigest` strips `ticket`.
+- **T1** `lookup-node`: `NodeIdentity` (WOTS/TreeKey, signs+verifies tickets), `SessionTicketStore` (lifetime, `maxRequests`, per-ticket `seq` monotonicity, revocation, subject binding); `SESSION_OPEN` verifies the envelope, guard-claims the nonce, mints a node-signed ticket.
+- **T2** `lookup-client`: `Authenticator` holds a ticket, stamps `ticket: { ticketId, seq }` for non-high-value messages, full WOTS otherwise; `LookupClient({ useSessionTickets: true })` opens one session on connect and re-opens on `SESSION_EXPIRED`/`AUTH_REPLAY`.
+- **T3** Per-type policy: `authRequiredTypes` (default `LEASE_*`, `BROADCAST_TXPOW`, `TRUST_RECORD`, `*_ANNOUNCE`, `POLICY_ANNOUNCE`) must carry a full envelope; ticket-only is rejected (`AUTH_REQUIRED`). Mirrored on the client.
+- **T4** The node identity's WOTS use counter is persisted to SQLite after each ticket signature and restored forward-only in `start()` (`nodeIdentityUses` override); lost/rewound state fails closed. The ticket table itself is in-memory (bounded/expiring) — durability of live tickets across restart is deferred.
+- **T5** Tests: ticket store (budget/expiry/replay/revocation/subject), `NodeIdentity` sign/verify + forged/tampered/different-node rejection, and a node E2E (real WOTS `SESSION_OPEN` → ticket → ticket-authenticated `GET_COINS`, auth-required rejection, replay rejection), plus client amortisation (one `SESSION_OPEN`, monotonic `seq`) and default per-message WOTS.
+
+Not done:
+- **Go mirrors** (`lookup-*/go`) still lack WOTS and do not implement tickets.
+- Live-ticket durability across restart (T4 remainder).
 
 ## A.8 Open questions
 

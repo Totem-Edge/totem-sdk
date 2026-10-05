@@ -44,12 +44,19 @@ export class RpcLayer {
   private _parser = new FrameParser();
   /** RFC-032: stamps a WOTS auth envelope on every outgoing message. */
   private _authenticator: Authenticator | null = null;
+  /** RFC-032-A: invoked once when the node reports an expired/rejected ticket. */
+  private _onSessionExpired: (() => void) | null = null;
 
   constructor(private readonly _defaultTimeoutMs = 10_000) {}
 
   /** Set the post-quantum authenticator used to stamp outgoing messages. */
   setAuthenticator(auth: Authenticator): void {
     this._authenticator = auth;
+  }
+
+  /** RFC-032-A: register a callback fired when a ticket is rejected as expired. */
+  setOnSessionExpired(cb: () => void): void {
+    this._onSessionExpired = cb;
   }
 
   /** Stamp `auth` onto a message when an authenticator is configured. */
@@ -105,6 +112,12 @@ export class RpcLayer {
           pending.reject(new LookupClientError(code, message));
           return;
         }
+      }
+      // RFC-032-A: a rejected/expired ticket invalidates the session; drop it and
+      // let the client re-open. (In-flight callers see SESSION_EXPIRED and may retry.)
+      if (code === 'SESSION_EXPIRED' || code === 'AUTH_REPLAY') {
+        this._authenticator?.clearTicket();
+        this._onSessionExpired?.();
       }
     }
 

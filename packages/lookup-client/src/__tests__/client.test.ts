@@ -27,6 +27,9 @@ class MockLookupServer {
   readonly transport: InMemoryTransport;
   private _receivedTypes: string[] = [];
   private _watchedAddresses: string[] = [];
+  _issuedTicketId?: string;
+  /** Full messages received, for asserting ticket vs. auth usage. */
+  readonly received: LookupMessage[] = [];
 
   constructor(serverTransport: InMemoryTransport) {
     this.transport = serverTransport;
@@ -34,6 +37,7 @@ class MockLookupServer {
       const msgs = this._parser.push(chunk);
       for (const msg of msgs) {
         this._receivedTypes.push(msg.type);
+        this.received.push(msg);
         this._handle(msg);
       }
     });
@@ -50,6 +54,26 @@ class MockLookupServer {
           payload: { ts: Date.now(), echo: 0 },
         });
         break;
+
+      case 'SESSION_OPEN': {
+        // RFC-032-A: mint a ticket bound to the caller's envelope identity.
+        this._issuedTicketId = 'tkt-mock-1';
+        this._sendRaw({
+          type: 'SESSION_TICKET',
+          version: 2,
+          id: msg.id,
+          payload: {
+            ticketId: this._issuedTicketId,
+            subject: msg.auth?.rootPublicKey ?? '',
+            nodeId: 'mock-node',
+            issuedAt: Date.now(),
+            expiresAt: Date.now() + 60_000,
+            maxRequests: 1000,
+            signature: '00'.repeat(64),
+          },
+        });
+        break;
+      }
 
       case 'GET_COINS':
         this._sendRaw({
@@ -243,6 +267,45 @@ describe('Post-quantum auth (RFC-032)', () => {
     expect(typeof query!.auth!.nonce).toBe('number');
     expect(query!.auth!.expiresAt).toBeGreaterThan(Date.now());
     expect(query!.auth!.signature).toMatch(/^[0-9a-f]+$/);
+    client.disconnect();
+  });
+
+  it('amortises WOTS: one SESSION_OPEN, subsequent requests carry a ticket', async () => {
+    const [clientTransport, serverTransport] = createInMemoryPair();
+    const server = new MockLookupServer(serverTransport);
+    const client = new LookupClient({
+      _transport: clientTransport,
+      timeoutMs: 5_000,
+      useSessionTickets: true,
+      identitySeed: new Uint8Array(32).fill(0x7a),
+    });
+    await client._connect(clientTransport);
+
+    await client.getCoins({ address: '0xADDR1' });
+    await client.getCoins({ address: '0xADDR1' });
+
+    // Exactly one SESSION_OPEN (one WOTS use), and the queries carry tickets.
+    expect(server.getReceivedTypes().filter((t) => t === 'SESSION_OPEN')).toHaveLength(1);
+    const queries = server.received.filter((m) => m.type === 'GET_COINS');
+    expect(queries).toHaveLength(2);
+    expect(queries[0].auth).toBeUndefined();
+    expect(queries[0].ticket?.ticketId).toBe('tkt-mock-1');
+    expect(queries[0].ticket?.seq).toBe(0);
+    expect(queries[1].ticket?.seq).toBe(1);
+    client.disconnect();
+  });
+
+  it('uses per-message WOTS when tickets are disabled (default)', async () => {
+    const [clientTransport, serverTransport] = createInMemoryPair();
+    const server = new MockLookupServer(serverTransport);
+    const client = new LookupClient({ _transport: clientTransport, timeoutMs: 5_000 });
+    await client._connect(clientTransport);
+    await client.getCoins({ address: '0xADDR1' });
+
+    expect(server.getReceivedTypes()).not.toContain('SESSION_OPEN');
+    const query = server.received.find((m) => m.type === 'GET_COINS');
+    expect(query?.auth).toBeDefined();
+    expect(query?.ticket).toBeUndefined();
     client.disconnect();
   });
 

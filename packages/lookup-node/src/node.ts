@@ -14,7 +14,8 @@ import { LeaseCoordinator } from './lease.js';
 import { AppRegistry, AgentRegistry } from './registry.js';
 import { TrustIndex } from './trust.js';
 import { ClientSession } from './session.js';
-import { ReplayGuard } from './auth-verify.js';
+import { ReplayGuard, NodeIdentity } from './auth-verify.js';
+import { SessionTicketStore } from './ticket-store.js';
 import { SqliteStore, SqliteStorageAdapter } from './storage.js';
 import type { NodeDispatcher } from './session.js';
 import type { ITransport, LookupNodeConfig, ChainStateProvider } from './types.js';
@@ -33,6 +34,12 @@ export class LookupNode implements NodeDispatcher {
   nodeId: string;
   /** RFC-032: node-wide anti-replay guard (per-identity nonce monotonicity). */
   readonly replayGuard = new ReplayGuard();
+  /** RFC-032-A: issued session tickets (lifetime, budget, seq replay). */
+  readonly tickets = new SessionTicketStore();
+  /** Lazily-built node WOTS identity (TreeKey derivation is expensive). */
+  private _nodeIdentity?: NodeIdentity;
+  /** RFC-032-A: persisted node-identity use counter, restored in start(). */
+  private _restoredIdentityUses = 0;
 
   private readonly _sessions = new Map<string, ClientSession>();
   /** RFC-020 H11: per-identity rate counter that survives reconnects. */
@@ -47,6 +54,11 @@ export class LookupNode implements NodeDispatcher {
     // SQLite store — always on (defaults to ':memory:' for lightweight/test deployments)
     const dbPath = config.sqlite?.dbPath ?? ':memory:';
     this.store = new SqliteStore(dbPath);
+
+    // RFC-032-A: the node identity is built lazily (TreeKey derivation is
+    // expensive) on first ticket minting. Its WOTS use counter is persisted to
+    // SQLite after every ticket signature and restored forward-only in start(),
+    // so a restart can never re-use a ticket-signing leaf.
 
     // Watchlist uses the same store for address persistence
     this.watchlist = new WatchlistManager({
@@ -95,6 +107,19 @@ export class LookupNode implements NodeDispatcher {
   async start(): Promise<void> {
     if (this._started) return;
     this._started = true;
+
+    // RFC-032-A: restore the node identity's WOTS use counter forward-only so a
+    // restart cannot re-use a ticket-signing leaf. A caller-supplied
+    // `nodeIdentityUses` wins; otherwise fall back to the persisted value.
+    if (this.config.nodeIdentityUses !== undefined) {
+      this._restoredIdentityUses = this.config.nodeIdentityUses;
+    } else {
+      const saved = this.store.kvGet('totem_lookup_node_identity_uses:v1');
+      if (saved !== null) {
+        const uses = Number.parseInt(saved, 10);
+        if (Number.isSafeInteger(uses) && uses >= 0) this._restoredIdentityUses = uses;
+      }
+    }
 
     if (this.lease) {
       await this.lease.initialize();
@@ -151,6 +176,16 @@ export class LookupNode implements NodeDispatcher {
     }
     entry.count += 1;
     return entry.count <= rpm;
+  }
+
+  /** RFC-032-A: node WOTS identity (built lazily on first use). */
+  get nodeIdentity(): NodeIdentity {
+    if (!this._nodeIdentity) {
+      this._nodeIdentity = NodeIdentity.fromNodeId(this.nodeId, this._restoredIdentityUses, (uses) => {
+        try { this.store.kvSet('totem_lookup_node_identity_uses:v1', String(uses)); } catch { /* non-fatal */ }
+      });
+    }
+    return this._nodeIdentity;
   }
 
   onSessionClosed(sessionId: string): void {

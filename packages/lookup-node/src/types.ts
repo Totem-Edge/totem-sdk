@@ -112,10 +112,24 @@ export interface LookupNodeConfig {
   provider: ChainStateProvider;
   /** Block polling interval in ms. Default: 5_000 */
   pollIntervalMs?: number;
-  /** Auth challenge TTL in ms. Default: 30_000 */
-  challengeTtlMs?: number;
   /** Max authenticated requests per minute per client. Default: 120 */
   rateLimitRpm?: number;
+  /** RFC-032-A: issued session-ticket lifetime in ms. Default: 60_000 */
+  sessionTtlMs?: number;
+  /** RFC-032-A: max requests per session ticket. Default: 1000 */
+  sessionMaxRequests?: number;
+  /**
+   * RFC-032-A: message types that must carry a full WOTS `auth` envelope and may
+   * NOT be authenticated by a session ticket alone. Defaults to the high-value
+   * mutating families (LEASE_*, BROADCAST_TXPOW, TRUST_RECORD, *_ANNOUNCE).
+   */
+  authRequiredTypes?: readonly string[];
+  /**
+   * RFC-032-A: restore value for the node identity's WOTS use counter (tickets
+   * signed so far). Persist `nodeIdentity.uses` and pass it back to avoid reusing
+   * a signing leaf across restarts. Default 0.
+   */
+  nodeIdentityUses?: number;
   /** RFC-020 H11: max concurrent sessions. Default: 64. */
   maxSessions?: number;
   /** Unique node identifier (hex string). Generated randomly if omitted. */

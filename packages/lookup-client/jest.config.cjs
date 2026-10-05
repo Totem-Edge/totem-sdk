@@ -11,6 +11,10 @@ module.exports = {
       },
     }],
   },
+  // TreeKey/WOTS derivation is CPU-heavy; cap parallelism so identity/ticket
+  // tests are not starved by other workers.
+  maxWorkers: 2,
+  testTimeout: 20_000,
   moduleNameMapper: {
     '^@totemsdk/core$': '<rootDir>/../core/src/index.ts',
     '^@totemsdk/lookup-protocol$': '<rootDir>/../lookup-protocol/src/index.ts',

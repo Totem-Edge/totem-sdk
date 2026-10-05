@@ -18,7 +18,9 @@ import { encodeMessage } from '@totemsdk/lookup-protocol';
 import { randomBytes } from 'node:crypto';
 import type { LookupMessage } from '@totemsdk/lookup-protocol';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
-import { verifyAuthEnvelope, ReplayGuard } from './auth-verify.js';
+import { verifyAuthEnvelope, ReplayGuard, NodeIdentity } from './auth-verify.js';
+import { SessionTicketStore } from './ticket-store.js';
+import type { SessionTicket } from '@totemsdk/lookup-protocol';
 import {
   handleGetCoins,
   handleGetCoin,
@@ -58,9 +60,28 @@ export interface NodeDispatcher {
   checkIdentityRate(publicKeyHex: string | undefined, rpm: number, now?: number): boolean;
   /** RFC-032: node-wide replay guard shared across sessions. */
   readonly replayGuard: ReplayGuard;
+  /** RFC-032-A: node WOTS identity (signs session tickets). */
+  readonly nodeIdentity: NodeIdentity;
+  /** RFC-032-A: session ticket store (lifetime/budget/seq). */
+  readonly tickets: SessionTicketStore;
   nodeId: string;
   isMegaMMRMode: boolean;
 }
+
+/**
+ * RFC-032-A: high-value/mutating message types that must carry a full WOTS
+ * `auth` envelope and may never rely on a session ticket alone (§A.5).
+ */
+const DEFAULT_AUTH_REQUIRED_TYPES: readonly string[] = [
+  'LEASE_RESERVE',
+  'LEASE_COMMIT',
+  'LEASE_BURN',
+  'BROADCAST_TXPOW',
+  'TRUST_RECORD',
+  'APP_ANNOUNCE',
+  'AGENT_ANNOUNCE',
+  'POLICY_ANNOUNCE',
+];
 
 // ---------------------------------------------------------------------------
 // ClientSession
@@ -139,28 +160,26 @@ export class ClientSession {
       return;
     }
 
-    // RFC-032: verify the WOTS auth envelope on every authenticated message.
+    // RFC-032-A: session establishment (one WOTS use) and teardown.
+    if (msg.type === 'SESSION_OPEN') {
+      await this._handleSessionOpen(msg);
+      return;
+    }
+    if (msg.type === 'SESSION_CLOSE') {
+      this._dispatcher.tickets.revoke((msg.payload as { ticketId: string }).ticketId);
+      this._sendFn({ type: 'PONG', version: 2, id: msg.id, payload: { ts: Date.now(), echo: 0 } });
+      return;
+    }
+
+    // RFC-032 / RFC-032-A: authenticate via the full WOTS envelope, or (for
+    // non-high-value types) a node-issued session ticket.
     if (!this._dispatcher.config._skipAuth) {
-      const result = await verifyAuthEnvelope(msg);
-      if (!result.valid || result.publicKeyHex === undefined || result.nonce === undefined) {
-        sendError(this._sendFn, msg.id, 'AUTH_REQUIRED', result.reason ?? 'Not authenticated');
-        return;
-      }
-      // Replay rejection: nonce must be strictly increasing per identity.
-      if (!this._dispatcher.replayGuard.claim(result.publicKeyHex, result.nonce)) {
-        sendError(this._sendFn, msg.id, 'AUTH_REPLAY', 'Replayed or non-monotonic nonce');
-        return;
-      }
+      const ok = await this._authenticate(msg);
+      if (!ok) return; // an error was already sent
+    } else if (msg.auth) {
+      // Test mode: adopt the envelope identity for identity-based limits.
       this.authenticated = true;
-      this.publicKeyHex = result.publicKeyHex;
-    } else {
-      // Test mode: accept without verification but adopt the envelope identity
-      // when present so identity-based limits still behave.
-      const auth = msg.auth;
-      if (auth) {
-        this.authenticated = true;
-        this.publicKeyHex = auth.rootPublicKey;
-      }
+      this.publicKeyHex = msg.auth.rootPublicKey;
     }
 
     // Rate limiting
@@ -182,6 +201,100 @@ export class ClientSession {
     }
 
     await this._dispatch(msg);
+  }
+
+  /**
+   * RFC-032-A: verify a SESSION_OPEN (one WOTS use) and mint a node-signed
+   * ticket bound to the authenticated identity.
+   */
+  private async _handleSessionOpen(msg: LookupMessage): Promise<void> {
+    const result = await verifyAuthEnvelope(msg);
+    if (!result.valid || result.publicKeyHex === undefined || result.nonce === undefined) {
+      sendError(this._sendFn, msg.id, 'AUTH_REQUIRED', result.reason ?? 'invalid SESSION_OPEN');
+      return;
+    }
+    if (!this._dispatcher.replayGuard.claim(result.publicKeyHex, result.nonce)) {
+      sendError(this._sendFn, msg.id, 'AUTH_REPLAY', 'Replayed or non-monotonic nonce');
+      return;
+    }
+    this.authenticated = true;
+    this.publicKeyHex = result.publicKeyHex;
+
+    const cfg = this._dispatcher.config;
+    const now = Date.now();
+    const ttlMs = Math.min(
+      (msg.payload as { ttlMs?: number }).ttlMs ?? cfg.sessionTtlMs ?? 60_000,
+      cfg.sessionTtlMs ?? 60_000,
+    );
+    const ticket: SessionTicket = {
+      ticketId: `tkt-${randomBytes(16).toString('hex')}`,
+      subject: result.publicKeyHex,
+      nodeId: this._dispatcher.nodeId,
+      issuedAt: now,
+      expiresAt: now + ttlMs,
+      maxRequests: cfg.sessionMaxRequests ?? 1000,
+      signature: '',
+    };
+    ticket.signature = this._dispatcher.nodeIdentity.signTicket({
+      ticketId: ticket.ticketId,
+      subject: ticket.subject,
+      nodeId: ticket.nodeId,
+      issuedAt: ticket.issuedAt,
+      expiresAt: ticket.expiresAt,
+      maxRequests: ticket.maxRequests,
+    });
+    this._dispatcher.tickets.issue(ticket);
+    this._sendFn({ type: 'SESSION_TICKET', version: 2, id: msg.id, payload: ticket });
+  }
+
+  /**
+   * Authenticate a message. Returns true on success; on failure an error has
+   * been sent and the caller must stop. Prefers the full WOTS envelope; falls
+   * back to a session ticket unless the type is in `authRequiredTypes`.
+   */
+  private async _authenticate(msg: LookupMessage): Promise<boolean> {
+    if (msg.auth) {
+      const result = await verifyAuthEnvelope(msg);
+      if (!result.valid || result.publicKeyHex === undefined || result.nonce === undefined) {
+        sendError(this._sendFn, msg.id, 'AUTH_REQUIRED', result.reason ?? 'invalid auth');
+        return false;
+      }
+      if (!this._dispatcher.replayGuard.claim(result.publicKeyHex, result.nonce)) {
+        sendError(this._sendFn, msg.id, 'AUTH_REPLAY', 'Replayed or non-monotonic nonce');
+        return false;
+      }
+      this.authenticated = true;
+      this.publicKeyHex = result.publicKeyHex;
+      return true;
+    }
+
+    // No envelope. A ticket is acceptable only when the type allows it.
+    if (this._isAuthRequired(msg.type)) {
+      sendError(this._sendFn, msg.id, 'AUTH_REQUIRED', `'${msg.type}' requires a WOTS auth envelope`);
+      return false;
+    }
+    const ref = msg.ticket;
+    if (!ref) {
+      sendError(this._sendFn, msg.id, 'AUTH_REQUIRED', 'Not authenticated');
+      return false;
+    }
+    const verdict = this._dispatcher.tickets.consume(ref.ticketId, ref.seq);
+    if (!verdict.ok) {
+      const code = verdict.reason === 'replay' ? 'AUTH_REPLAY'
+        : verdict.reason === 'expired' || verdict.reason === 'exhausted' || verdict.reason === 'unknown'
+          ? 'SESSION_EXPIRED'
+          : 'AUTH_REQUIRED';
+      sendError(this._sendFn, msg.id, code, `session ticket rejected: ${verdict.reason}`);
+      return false;
+    }
+    this.authenticated = true;
+    this.publicKeyHex = verdict.subject;
+    return true;
+  }
+
+  private _isAuthRequired(type: string): boolean {
+    const list = this._dispatcher.config.authRequiredTypes ?? DEFAULT_AUTH_REQUIRED_TYPES;
+    return list.includes(type);
   }
 
   private async _dispatch(msg: LookupMessage): Promise<void> {

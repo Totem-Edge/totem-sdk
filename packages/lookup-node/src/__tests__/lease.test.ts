@@ -35,7 +35,7 @@ describe('Lease coordinator', () => {
       payload: { treeId: 'tree-alpha', ttlMs: 60_000 },
     });
 
-    const response = await buffer.waitFor((m) => m.id === 'lr-1', 2_000);
+    const response = await buffer.waitFor((m) => m.id === 'lr-1', 10_000);
     expect(response.type).not.toBe('ERROR');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { reservation } = response.payload as { reservation: LeaseReservation & { certificate: unknown } };
@@ -60,7 +60,7 @@ describe('Lease coordinator', () => {
       id: 'lc-reserve',
       payload: { treeId: 'tree-beta' },
     });
-    const reserveResponse = await buffer.waitFor((m) => m.id === 'lc-reserve', 2_000);
+    const reserveResponse = await buffer.waitFor((m) => m.id === 'lc-reserve', 10_000);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { reservation } = reserveResponse.payload as { reservation: LeaseReservation };
     const { reservationId, indices } = reservation;
@@ -73,7 +73,7 @@ describe('Lease coordinator', () => {
       payload: { reservationId, txId: '0xTX123', indices },
     });
 
-    const commitResponse = await buffer.waitFor((m) => m.id === 'lc-commit', 2_000);
+    const commitResponse = await buffer.waitFor((m) => m.id === 'lc-commit', 10_000);
     expect(commitResponse.type).toBe('LEASE_RESPONSE');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((commitResponse.payload as any).action).toBe('committed');
@@ -93,7 +93,7 @@ describe('Lease coordinator', () => {
       id: 'lb-reserve',
       payload: { treeId: 'tree-gamma' },
     });
-    const reserveResponse = await buffer.waitFor((m) => m.id === 'lb-reserve', 2_000);
+    const reserveResponse = await buffer.waitFor((m) => m.id === 'lb-reserve', 10_000);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { reservation } = reserveResponse.payload as { reservation: LeaseReservation };
     const { reservationId, indices } = reservation;
@@ -106,7 +106,7 @@ describe('Lease coordinator', () => {
       payload: { reservationId, reason: 'test cancellation', indices },
     });
 
-    const burnResponse = await buffer.waitFor((m) => m.id === 'lb-burn', 2_000);
+    const burnResponse = await buffer.waitFor((m) => m.id === 'lb-burn', 10_000);
     expect(burnResponse.type).toBe('LEASE_RESPONSE');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((burnResponse.payload as any).action).toBe('burned');
@@ -126,7 +126,7 @@ describe('Lease coordinator', () => {
       id: 'lbc-reserve',
       payload: { treeId: 'tree-delta' },
     });
-    const reserveResponse = await buffer.waitFor((m) => m.id === 'lbc-reserve', 2_000);
+    const reserveResponse = await buffer.waitFor((m) => m.id === 'lbc-reserve', 10_000);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { reservation } = reserveResponse.payload as { reservation: LeaseReservation };
     const { reservationId, indices } = reservation;
@@ -138,7 +138,7 @@ describe('Lease coordinator', () => {
       id: 'lbc-burn',
       payload: { reservationId, reason: 'cancel early', indices },
     });
-    await buffer.waitFor((m) => m.id === 'lbc-burn', 2_000);
+    await buffer.waitFor((m) => m.id === 'lbc-burn', 10_000);
 
     // Then try to commit the same reservation
     buffer.send(clientTransport, {
@@ -148,7 +148,7 @@ describe('Lease coordinator', () => {
       payload: { reservationId, txId: '0xTXLATE', indices },
     });
 
-    const commitResponse = await buffer.waitFor((m) => m.id === 'lbc-commit', 2_000);
+    const commitResponse = await buffer.waitFor((m) => m.id === 'lbc-commit', 10_000);
     expect(commitResponse.type).toBe('ERROR');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((commitResponse.payload as any).code).toBe('LEASE_COMMIT_FAILED');
@@ -171,7 +171,7 @@ describe('Lease coordinator', () => {
       payload: { treeId: 'tree-x' },
     });
 
-    const response = await buffer.waitFor((m) => m.id === 'lease-ns');
+    const response = await buffer.waitFor((m) => m.id === 'lease-ns', 10_000);
     expect(response.type).toBe('ERROR');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((response.payload as any).code).toBe('NOT_SUPPORTED');
@@ -193,7 +193,7 @@ describe('Lease coordinator', () => {
         id: `seq-r-${i}`,
         payload: { treeId: 'tree-seq' },
       });
-      const resp = await buffer.waitFor((m) => m.id === `seq-r-${i}`, 2_000);
+      const resp = await buffer.waitFor((m) => m.id === `seq-r-${i}`, 10_000);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const reservation = (resp.payload as any).reservation as LeaseReservation;
       reservations.push(reservation);
@@ -205,7 +205,7 @@ describe('Lease coordinator', () => {
         id: `seq-c-${i}`,
         payload: { reservationId: reservation.reservationId, txId: `0xTX${i}`, indices: reservation.indices },
       });
-      await buffer.waitFor((m) => m.id === `seq-c-${i}`, 2_000);
+      await buffer.waitFor((m) => m.id === `seq-c-${i}`, 10_000);
     }
 
     // The composite flatIndex must be strictly increasing across reserve→commit cycles.
@@ -229,7 +229,7 @@ describe('Lease coordinator', () => {
       payload: { treeId: 'tree-explicit', indices: requested },
     });
 
-    const response = await buffer.waitFor((m) => m.id === 'lr-explicit', 2_000);
+    const response = await buffer.waitFor((m) => m.id === 'lr-explicit', 10_000);
     expect(response.type).not.toBe('ERROR');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { reservation } = response.payload as { reservation: LeaseReservation };
@@ -242,7 +242,7 @@ describe('Lease coordinator', () => {
       id: 'lr-explicit-dup',
       payload: { treeId: 'tree-explicit', indices: requested },
     });
-    const dupResponse = await buffer.waitFor((m) => m.id === 'lr-explicit-dup', 2_000);
+    const dupResponse = await buffer.waitFor((m) => m.id === 'lr-explicit-dup', 10_000);
     expect(dupResponse.type).toBe('ERROR');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((dupResponse.payload as any).code).toBe('LEASE_RESERVE_FAILED');

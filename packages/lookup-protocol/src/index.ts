@@ -3,7 +3,12 @@ export type {
   MessageType,
   LookupMessage,
   WotsAuthEnvelope,
+  SessionTicketRef,
+  SessionTicket,
   HelloMessage,
+  SessionOpenMessage,
+  SessionTicketMessage,
+  SessionCloseMessage,
   WatchRegisterMessage,
   WatchRemoveMessage,
   GetCoinsMessage,
@@ -50,6 +55,7 @@ export {
 
 export {
   authDigest,
+  sessionTicketDigest,
   signMessage,
   verifyMessageAuth,
   canonicalJson,

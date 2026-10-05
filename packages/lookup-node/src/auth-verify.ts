@@ -11,9 +11,18 @@
  * signing indices are one-time.
  */
 
-import { verifyMessageAuth } from '@totemsdk/lookup-protocol';
-import type { LookupMessage } from '@totemsdk/lookup-protocol';
-import { verifyTreeSignature, deserializeTreeSignature } from '@totemsdk/core';
+import { verifyMessageAuth, sessionTicketDigest } from '@totemsdk/lookup-protocol';
+import type { LookupMessage, SessionTicket } from '@totemsdk/lookup-protocol';
+import {
+  verifyTreeSignature,
+  deserializeTreeSignature,
+  serializeTreeSignature,
+  createPerAddressTreeKey,
+  bytesToHex,
+  hexToBytes,
+  sha3_256,
+} from '@totemsdk/core';
+import type { TreeKey } from '@totemsdk/core';
 
 export interface AuthVerifyResult {
   valid: boolean;
@@ -81,5 +90,80 @@ export class ReplayGuard {
   /** Highest accepted nonce for an identity, if any. */
   highWatermark(publicKeyHex: string): number | undefined {
     return this._seen.get(publicKeyHex);
+  }
+}
+
+// ── Node identity + session tickets (RFC-032-A) ─────────────────────────────
+
+function toHexLower(bytes: Uint8Array): string {
+  return bytesToHex(bytes).toLowerCase();
+}
+
+/**
+ * The node's post-quantum (WOTS/TreeKey) identity, used to sign session tickets.
+ *
+ * Derivation: `sha3_256("lookup-node-identity:" + nodeId)` → TreeKey. Stable for
+ * a given `nodeId`; the use counter (one leaf per ticket) must be persisted and
+ * restored forward-only across restarts (see `watermark` in the constructor), or
+ * a restart could re-use a signing leaf.
+ */
+export class NodeIdentity {
+  private readonly _treeKey: TreeKey;
+
+  private constructor(
+    treeKey: TreeKey,
+    readonly nodeId: string,
+    /** Called with the new use count after each ticket signature (persistence). */
+    private readonly _persist?: (uses: number) => void,
+  ) {
+    this._treeKey = treeKey;
+  }
+
+  static fromNodeId(
+    nodeId: string,
+    startUses = 0,
+    persist?: (uses: number) => void,
+  ): NodeIdentity {
+    const seed = sha3_256(new TextEncoder().encode(`lookup-node-identity:${nodeId}`));
+    const treeKey = createPerAddressTreeKey(seed, 0);
+    if (startUses > 0) treeKey.setUses(startUses);
+    return new NodeIdentity(treeKey, nodeId, persist);
+  }
+
+  /** Hex root public key of the node identity (what clients verify tickets against). */
+  get publicKey(): string {
+    return toHexLower(this._treeKey.getPublicKey());
+  }
+
+  /** Number of tickets signed so far (persist this; never rewind). */
+  get uses(): number {
+    return this._treeKey.getUses();
+  }
+
+  /** Restore the use counter forward-only (never below the current value). */
+  setUses(uses: number): void {
+    if (!Number.isSafeInteger(uses) || uses < this._treeKey.getUses()) {
+      throw new Error(`Refusing to set node identity uses to ${uses} (would reuse a signing leaf)`);
+    }
+    this._treeKey.setUses(uses);
+  }
+
+  /** Sign a session ticket payload (payload minus `signature`). */
+  signTicket(ticket: Omit<SessionTicket, 'signature'>): string {
+    const digest = sessionTicketDigest(ticket);
+    const sig = toHexLower(serializeTreeSignature(this._treeKey.sign(digest)));
+    this._persist?.(this._treeKey.getUses());
+    return sig;
+  }
+
+  /** Verify a ticket's signature against this node identity. */
+  verifyTicket(ticket: SessionTicket): boolean {
+    try {
+      const { signature, ...rest } = ticket;
+      const digest = sessionTicketDigest(rest);
+      return verifyTreeSignature(this._treeKey.getPublicKey(), digest, deserializeTreeSignature(hexToBytes(signature)));
+    } catch {
+      return false;
+    }
   }
 }

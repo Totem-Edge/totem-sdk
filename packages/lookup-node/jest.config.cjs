@@ -17,6 +17,10 @@ module.exports = {
       diagnostics: { ignoreCodes: [2307] }, // workspace subpath exports resolved by moduleNameMapper
     }],
   },
+  // The session-ticket/adversarial suites do real TreeKey derivation (WOTS), which
+  // is CPU-heavy; running them alongside the timing-sensitive lease tests starves
+  // those 1–2s waits. Cap parallelism so the suite is deterministic.
+  maxWorkers: 2,
   moduleNameMapper: {
     '^@totemsdk/core$': '<rootDir>/../core/src/index.ts',
     '^@totemsdk/lookup-protocol$': '<rootDir>/../lookup-protocol/src/index.ts',

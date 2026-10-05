@@ -18,6 +18,9 @@ export const PROTOCOL_VERSION = 2;
 
 export type MessageType =
   | 'HELLO'
+  | 'SESSION_OPEN'
+  | 'SESSION_TICKET'
+  | 'SESSION_CLOSE'
   | 'WATCH_REGISTER'
   | 'WATCH_REMOVE'
   | 'GET_COINS'
@@ -81,12 +84,27 @@ export interface WotsAuthEnvelope {
   address?: string;
 }
 
+/**
+ * RFC-032 Amendment A: reference to a node-issued session ticket, used to
+ * amortise one-time WOTS use. `seq` is a client-monotonic counter that provides
+ * anti-replay for ticket-authenticated messages.
+ */
+export interface SessionTicketRef {
+  ticketId: string;
+  seq: number;
+}
+
 interface BaseMessage {
   type: MessageType;
   version: number;
   id?: string;
   /** RFC-032 post-quantum authentication (present on authenticated messages). */
   auth?: WotsAuthEnvelope;
+  /**
+   * RFC-032-A: node-issued session ticket (alternative to per-message `auth`).
+   * Not used on SESSION_OPEN/TICKET/CLOSE or liveness messages.
+   */
+  ticket?: SessionTicketRef;
 }
 
 export interface HelloMessage extends BaseMessage {
@@ -95,6 +113,43 @@ export interface HelloMessage extends BaseMessage {
     clientVersion: number;
     nodeId?: string;
   };
+}
+
+/**
+ * RFC-032-A: establish a session, consuming exactly one WOTS use. Carries the
+ * RFC-032 `auth` envelope; the node verifies it and mints a session ticket.
+ */
+export interface SessionOpenMessage extends BaseMessage {
+  type: 'SESSION_OPEN';
+  payload: {
+    /** Requested ticket lifetime in ms (node clamps to its max). */
+    ttlMs?: number;
+  };
+}
+
+/** RFC-032-A: node → client ticket grant after a verified SESSION_OPEN. */
+export interface SessionTicketMessage extends BaseMessage {
+  type: 'SESSION_TICKET';
+  payload: SessionTicket;
+}
+
+/** RFC-032-A: client → node best-effort session teardown. */
+export interface SessionCloseMessage extends BaseMessage {
+  type: 'SESSION_CLOSE';
+  payload: { ticketId: string };
+}
+
+/** RFC-032-A: a node-signed session ticket. */
+export interface SessionTicket {
+  ticketId: string;
+  /** Root public key (hex) the ticket is bound to. */
+  subject: string;
+  nodeId: string;
+  issuedAt: number;
+  expiresAt: number;
+  maxRequests: number;
+  /** Node WOTS signature (hex) over {@link sessionTicketDigest}. */
+  signature: string;
 }
 
 export interface WatchRegisterMessage extends BaseMessage {
@@ -500,6 +555,9 @@ export interface PolicySignCancelMessage extends BaseMessage {
 
 export type LookupMessage =
   | HelloMessage
+  | SessionOpenMessage
+  | SessionTicketMessage
+  | SessionCloseMessage
   | WatchRegisterMessage
   | WatchRemoveMessage
   | GetCoinsMessage

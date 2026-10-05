@@ -4,7 +4,7 @@ export { LookupClientError } from './rpc.js';
 export { FrameParser, createInMemoryPair } from './transport.js';
 export { LookupIdentity, verifyIdentitySignature, digestBytes } from './identity.js';
 export type { LookupIdentityOptions, IdentitySlot, FromWalletOptions } from './identity.js';
-export { Authenticator, DEFAULT_AUTH_TTL_MS } from './auth.js';
+export { Authenticator, DEFAULT_AUTH_TTL_MS, DEFAULT_AUTH_REQUIRED_TYPES } from './auth.js';
 export type { AuthenticatorOptions } from './auth.js';
 export type {
   ITransport,

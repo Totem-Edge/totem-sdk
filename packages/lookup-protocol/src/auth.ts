@@ -14,7 +14,7 @@
  */
 
 import { sha3_256 } from '@totemsdk/core';
-import type { LookupMessage, WotsAuthEnvelope } from './messages.js';
+import type { LookupMessage, SessionTicket, WotsAuthEnvelope } from './messages.js';
 
 /** Deterministic canonical JSON (sorted keys, recursive) for stable digests. */
 export function canonicalJson(value: unknown): string {
@@ -56,15 +56,16 @@ function hexToBytes(hex: string): Uint8Array {
 }
 
 /**
- * Digest of the authenticated portion of a message: everything except `auth` and
- * the legacy `sig`, plus the anti-replay nonce and expiry.
+ * Digest of the authenticated portion of a message: everything except `auth`,
+ * the optional `ticket` reference, and the legacy `sig`, plus the anti-replay
+ * nonce and expiry.
  */
 export function authDigest(
-  msg: Omit<LookupMessage, 'auth' | 'sig'>,
+  msg: Omit<LookupMessage, 'auth' | 'ticket' | 'sig'>,
   nonce: number,
   expiresAt: number,
 ): Uint8Array {
-  const { auth: _a, sig: _s, ...rest } = msg as LookupMessage & { auth?: unknown; sig?: string };
+  const { auth: _a, ticket: _t, sig: _s, ...rest } = msg as LookupMessage & { auth?: unknown; ticket?: unknown; sig?: string };
   const canonical = canonicalJson(rest);
   const preimage = new TextEncoder().encode(`${canonical}|${nonce}|${expiresAt}`);
   return sha3_256(preimage);
@@ -75,7 +76,7 @@ export function authDigest(
  * `rootPublicKey` is the hex PKdigest; `rootIdentityProof`/`address` are optional.
  */
 export async function signMessage<T extends LookupMessage>(
-  msg: Omit<T, 'auth' | 'sig'>,
+  msg: Omit<T, 'auth' | 'ticket' | 'sig'>,
   sign: SignFn,
   rootPublicKey: string,
   options: {
@@ -85,7 +86,7 @@ export async function signMessage<T extends LookupMessage>(
     address?: string;
   },
 ): Promise<T> {
-  const digest = authDigest(msg as Omit<LookupMessage, 'auth' | 'sig'>, options.nonce, options.expiresAt);
+  const digest = authDigest(msg as Omit<LookupMessage, 'auth' | 'ticket' | 'sig'>, options.nonce, options.expiresAt);
   const sigBytes = await sign(digest);
   const auth: WotsAuthEnvelope = {
     rootPublicKey,
@@ -96,6 +97,16 @@ export async function signMessage<T extends LookupMessage>(
     ...(options.address !== undefined ? { address: options.address } : {}),
   };
   return { ...(msg as T), auth };
+}
+
+/**
+ * RFC-032-A: digest a session ticket signs/verifies — the ticket payload minus
+ * its `signature`, domain-separated so it can never be confused with an
+ * auth-envelope digest.
+ */
+export function sessionTicketDigest(ticket: Omit<SessionTicket, 'signature'>): Uint8Array {
+  const canonical = canonicalJson(ticket);
+  return sha3_256(new TextEncoder().encode(`totem:lookup:session-ticket:v1|${canonical}`));
 }
 
 /**
@@ -113,7 +124,7 @@ export async function verifyMessageAuth(
   if (typeof auth.expiresAt !== 'number' || now > auth.expiresAt) return false;
   try {
     const digest = authDigest(
-      msg as Omit<LookupMessage, 'auth' | 'sig'>,
+      msg as Omit<LookupMessage, 'auth' | 'ticket' | 'sig'>,
       auth.nonce,
       auth.expiresAt,
     );

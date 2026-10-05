@@ -5,7 +5,7 @@
  * identity rejected; replayed nonce rejected; lower nonce rejected.
  */
 
-import { createPerAddressTreeKey, serializeTreeSignature, bytesToHex, sha3_256 } from '@totemsdk/core';
+import { createPerAddressTreeKey, serializeTreeSignature, bytesToHex } from '@totemsdk/core';
 import { authDigest, signMessage } from '@totemsdk/lookup-protocol';
 import type { GetCoinsMessage, LookupMessage } from '@totemsdk/lookup-protocol';
 import { verifyAuthEnvelope, ReplayGuard } from '../auth-verify.js';
