@@ -15,7 +15,7 @@
 
 /* eslint-disable @typescript-eslint/no-var-requires */
 const { workerData, parentPort } = require('worker_threads') as typeof import('worker_threads');
-const { mineTxPoWInProcess } = require('../mine') as { mineTxPoWInProcess: typeof import('../mine').mineTxPoWInProcess };
+const { mineTxPoWInProcess } = require('../mine.js') as { mineTxPoWInProcess: typeof import('../mine.js').mineTxPoWInProcess };
 
 interface NodeWorkerInput {
   txBodyBytes: number[];

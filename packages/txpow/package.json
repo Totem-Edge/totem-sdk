@@ -2,26 +2,44 @@
   "name": "@totemsdk/txpow",
   "version": "1.0.2",
   "description": "TxPoW envelope serialization, proof-of-work mining, and Machine Work Admission for the Minima protocol",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "type": "module",
+  "main": "dist/cjs/index.js",
+  "types": "dist/cjs/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "admission": [
+        "dist/cjs/admission/index.d.ts"
+      ]
+    }
+  },
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "require": "./dist/index.js",
-      "import": "./dist/index.js"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
     },
     "./admission": {
-      "types": "./dist/admission/index.d.ts",
-      "require": "./dist/admission/index.js",
-      "import": "./dist/admission/index.js"
+      "import": {
+        "types": "./dist/admission/index.d.ts",
+        "default": "./dist/admission/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/admission/index.d.ts",
+        "default": "./dist/cjs/admission/index.js"
+      }
     }
   },
   "scripts": {
-    "build": "npm run build:wasm && tsc",
-    "postbuild": "node -e \"const fs=require('fs'),p=require('path');const src=p.join(__dirname,'src','wasm','miner.wasm');const dst=p.join(__dirname,'dist','wasm','miner.wasm');if(fs.existsSync(src)){fs.mkdirSync(p.dirname(dst),{recursive:true});fs.copyFileSync(src,dst);console.log('[@totemsdk/txpow] miner.wasm → dist/wasm/')}else{console.log('[@totemsdk/txpow] Note: miner.wasm not compiled — JS fallback only. Run npm run build:wasm with Emscripten to enable WASM acceleration.')}\"",
-    "compile:wasm": "node scripts/compile-wasm.js",
+    "build": "npm run build:wasm && tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
+    "postbuild": "node -e \"const fs=require('fs'),p=require('path');const src=p.join(__dirname,'src','wasm','miner.wasm');if(fs.existsSync(src)){for(const d of ['dist/wasm','dist/cjs/wasm']){const dst=p.join(__dirname,d,'miner.wasm');fs.mkdirSync(p.dirname(dst),{recursive:true});fs.copyFileSync(src,dst);}console.log('[@totemsdk/txpow] miner.wasm → dist/wasm/ + dist/cjs/wasm/')}else{console.log('[@totemsdk/txpow] Note: miner.wasm not compiled — JS fallback only. Run npm run build:wasm with Emscripten to enable WASM acceleration.')}\"",
+    "compile:wasm": "node scripts/compile-wasm.cjs",
     "build:wasm": "npm run compile:wasm",
-    "prepare": "npm run build:wasm && tsc",
+    "prepare": "npm run build:wasm && tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist",
     "test": "jest"
   },
