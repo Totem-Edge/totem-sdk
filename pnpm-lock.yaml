@@ -482,6 +482,9 @@ importers:
 
   packages/core:
     dependencies:
+      '@noble/hashes':
+        specifier: ^1.8.0
+        version: 1.8.0
       '@totemsdk/core-wasm':
         specifier: workspace:^
         version: link:../core-wasm

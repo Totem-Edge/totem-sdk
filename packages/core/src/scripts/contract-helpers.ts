@@ -15,10 +15,10 @@
  */
 
 import { sha3_256 } from '../wasm-sync.js';
-import { createHash, randomBytes } from 'node:crypto';
+import { sha256 as nobleSha256 } from '@noble/hashes/sha256.js';
 
 function sha256(data: Uint8Array): Uint8Array {
-  return new Uint8Array(createHash('sha256').update(data).digest());
+  return nobleSha256(data);
 }
 import type {
   ScriptDescriptor,
@@ -115,7 +115,7 @@ export class HTLCHelper {
    * Generate a random preimage and its hash.
    */
   static generateSecret(): { preimage: string; hash: string } {
-    const preimageBytes = randomBytes(32);
+    const preimageBytes = globalThis.crypto.getRandomValues(new Uint8Array(32));
     const preimage = bytesToHex(preimageBytes);
     
     const hashBytes = sha3_256(preimageBytes);
