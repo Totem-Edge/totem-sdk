@@ -19,6 +19,10 @@ pub mod verify;
 pub mod wasm_tree;
 pub mod wots;
 
+// RFC-033: native C ABI for the Go mirrors. Excluded from the wasm32 build.
+#[cfg(not(target_arch = "wasm32"))]
+pub mod ffi;
+
 use wasm_bindgen::prelude::*;
 
 // ---------------------------------------------------------------------------

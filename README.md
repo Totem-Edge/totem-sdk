@@ -536,6 +536,7 @@ docs/                       # SDK documentation
 | [RFC-030](docs/rfc/RFC-030-MODEL-AWARE-PREFLIGHT-SHORTLISTING-BATCHING.md) | Model-aware preflight, shortlisting & batching — compiled-request budgets, hard ceilings, transformation recording (draft) |
 | [RFC-031](docs/rfc/RFC-031-CORE-WASM-SOLE-IMPLEMENTATION.md) | Core-Wasm sole-implementation — portable WASM (async init), oracle parity gates, provenance, and the gated/phased sunset of the JS crypto kernels (draft) |
 | [RFC-032](docs/rfc/RFC-032-LOOKUP-STACK-POST-QUANTUM-IDENTITY.md) | Lookup-stack post-quantum identity — replace Ed25519 with the WOTS/TreeKey root identity (auth, announcements, lease certs, trust); hard switch to lookup-protocol v2 (draft) |
+| [RFC-033](docs/rfc/RFC-033-GO-WOTS-VIA-RUST-FFI.md) | Byte-exact WOTS for the Go mirrors via Rust FFI — reuse the pure-Rust core over a C ABI + cgo instead of a hand port; bidirectional TS⇄Go parity (draft) |
 | [SDK Audit (archived)](docs/archive/SDK_AUDIT-2026-02-ARCHIVED.md) | Historical Feb 2026 audit; current maturity lives in the table above |
 | [SDK Manifest](SDK_MANIFEST.json) | Machine-readable package index — 55 packages, for AI agents and tooling |
 | [API Reference](https://totem.ing) | Full TypeDoc-generated API reference |

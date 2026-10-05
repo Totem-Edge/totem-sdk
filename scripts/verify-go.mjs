@@ -81,6 +81,19 @@ if (!goVersion) {
 }
 console.log(`verify-go: ${goVersion}\n`);
 
+// RFC-033: the lookup/se-server Go modules link the native WOTS core via cgo.
+// Build (or reuse) the static library before compiling them. Skip with
+// SKIP_CORE_FFI=1 when only the pure-Go modules need checking.
+if (!process.env.SKIP_CORE_FFI) {
+  const profile = process.env.CORE_FFI_PROFILE ?? 'debug';
+  const ffi = run(ROOT, 'bash', [join('scripts', 'build-core-ffi.sh'), profile]);
+  if (!ffi.ok) {
+    console.error(`verify-go: failed to build the native core FFI (RFC-033):\n${ffi.out}`);
+    process.exit(1);
+  }
+  console.log(`verify-go: ${ffi.out.split('\n').pop()}\n`);
+}
+
 /** Remove binaries `go build ./...` drops into a module dir (keeps the tree clean). */
 function cleanBuildOutputs(dir) {
   try {

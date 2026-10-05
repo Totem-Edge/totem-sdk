@@ -8,3 +8,7 @@ require (
 )
 
 require golang.org/x/sys v0.21.0 // indirect
+
+require github.com/totem-sdk/core-ffi v0.0.0
+
+replace github.com/totem-sdk/core-ffi => ../../core/go

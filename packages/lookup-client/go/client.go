@@ -1,6 +1,7 @@
 package lookupclient
 
 import (
+	"bytes"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -8,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/totem-sdk/core-ffi"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -641,13 +643,25 @@ func min(a, b int) int {
 // canonicalJson is required for cross-language verification; this helper is a
 // reference for a real Go signer/verifier and is not exercised by any test here.
 func AuthDigest(msg LookupMessage, nonce int64, expiresAt int64) ([]byte, error) {
-	inner := struct {
-		Type    string          `json:"type"`
-		Version int             `json:"version"`
-		ID      string          `json:"id,omitempty"`
-		Payload json.RawMessage `json:"payload"`
-	}{msg.Type, msg.Version, msg.ID, msg.Payload}
-	canonical, err := canonicalJSON(inner)
+	// Match @totemsdk/lookup-protocol authDigest byte-for-byte: canonicalJson over
+	// {type, id, payload} (sorted keys), then "|nonce|expiresAt", then SHA3-256.
+	var payload interface{}
+	if len(msg.Payload) > 0 {
+		dec := json.NewDecoder(bytes.NewReader(msg.Payload))
+		dec.UseNumber()
+		if err := dec.Decode(&payload); err != nil {
+			return nil, err
+		}
+	}
+	inner := map[string]interface{}{
+		"type":    msg.Type,
+		"version": msg.Version,
+		"payload": payload,
+	}
+	if msg.ID != "" {
+		inner["id"] = msg.ID
+	}
+	canonical, err := totemcrypto.CanonicalJSON(inner)
 	if err != nil {
 		return nil, err
 	}
@@ -655,15 +669,4 @@ func AuthDigest(msg LookupMessage, nonce int64, expiresAt int64) ([]byte, error)
 	h := sha3.New256()
 	h.Write([]byte(preimage))
 	return h.Sum(nil), nil
-}
-
-// canonicalJSON marshals v with deterministic key ordering. json.Marshal of a
-// struct already emits fields in declaration order; for maps Go sorts keys, so
-// this is stable for the auth preimage shape.
-func canonicalJSON(v interface{}) (string, error) {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return "", err
-	}
-	return string(b), nil
 }

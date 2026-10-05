@@ -15,6 +15,11 @@ target/
 packages/*/rust/pkg/
 packages/*/rust/pkg-node/
 
+# RFC-033 native core FFI artifacts (built by scripts/build-core-ffi.sh)
+native/core-ffi/
+# Go test interop vectors (emitted transiently by Go→TS interop tests)
+packages/*/go/*-interop-vector.json
+
 # Go build outputs (plain `go build ./...` writes a main-package binary in cwd)
 packages/*/go/bin/
 packages/*/go/edge-can

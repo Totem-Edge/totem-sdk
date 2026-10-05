@@ -11,38 +11,41 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/totem-sdk/core-ffi"
 	"golang.org/x/crypto/sha3"
 )
 
 const reclaimEncKeyInfo = "statechain-reclaim-tx-v1"
 
-// ErrNotInteroperable marks the Go SE signing/identity surface as disabled
-// (AUD-045). This package is NOT a WOTS-compatible SE: the TypeScript
-// `@totemsdk/se-server` is the supported implementation. Until real
-// interoperable WOTS (with cross-language known-answer tests) lands here, the
-// signer/verifier fail closed rather than emitting placeholder cryptography
-// that a peer could mistake for a valid SE signature.
+// ErrNotInteroperable is retained for compatibility. It is no longer returned
+// by seSign/wotsVerifyDigest, which now use the byte-exact WOTS engine
+// (RFC-033, via cgo) instead of failing closed.
 var ErrNotInteroperable = errors.New("se-server(go): not an interoperable WOTS SE (AUD-045); use the TypeScript SE")
 
-// getPublicKeyHex returns the (non-interoperable) legacy hash. It is retained
-// only so the reference server still compiles; it is NOT the SE signing key and
-// MUST NOT be treated as an SE identity. See ErrNotInteroperable.
+// getPublicKeyHex returns the WOTS public-key digest for the SE seed at index 0,
+// byte-exact with the TypeScript/Rust engine (RFC-033).
 func getPublicKeyHex(seed []byte) string {
-	h := sha3.New256()
-	h.Write(append(seed, 0, 0, 0, 0))
-	return hex.EncodeToString(h.Sum(nil))
+	pk, err := totemcrypto.DerivePKDigest(seed, 0)
+	if err != nil {
+		return ""
+	}
+	return hex.EncodeToString(pk)
 }
 
-// seSign is disabled (AUD-045). The previous implementation returned an
-// HMAC-SHA256 value, which is not a WOTS signature and must never be presented
-// as one.
+// seSign signs `commitmentBytes` with flat WOTS (seed, index 0), returning the
+// 1088-byte signature. Byte-exact with the TypeScript/Rust engine (RFC-033).
+//
+// NOTE: the reference Go SE uses the flat WOTS primitive. The supported SE
+// identity (leased one-time leaves, `@totemsdk/root-identity` + `wots-lease`)
+// lives in the TypeScript `@totemsdk/se-server`.
 func seSign(seed, commitmentBytes []byte) ([]byte, error) {
-	return nil, ErrNotInteroperable
+	return totemcrypto.Sign(seed, 0, commitmentBytes)
 }
 
-// wotsVerifyDigest is disabled (AUD-045): never accept a non-WOTS signature.
+// wotsVerifyDigest verifies a flat WOTS signature over `message` against a
+// 32-byte public-key digest (RFC-033).
 func wotsVerifyDigest(sig, message, pkDigest []byte) bool {
-	return false
+	return totemcrypto.VerifyDigest(sig, message, pkDigest)
 }
 
 func getReclaimEncKey(seed []byte) []byte {

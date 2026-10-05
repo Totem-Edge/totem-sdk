@@ -1,6 +1,7 @@
 package lookupnode
 
 import (
+	"bytes"
 	"crypto/rand"
 	"database/sql"
 	"encoding/json"
@@ -9,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/totem-sdk/core-ffi"
 	_ "github.com/mattn/go-sqlite3"
 	"golang.org/x/crypto/sha3"
 )
@@ -948,17 +950,29 @@ func (g *ReplayGuard) Claim(publicKeyHex string, nonce int64) bool {
 // Byte-exact agreement with the TypeScript canonicalJson is required for
 // cross-language verification.
 func AuthDigest(msg LookupMessage, nonce int64, expiresAt int64) ([]byte, error) {
-	inner := struct {
-		Type    string          `json:"type"`
-		Version int             `json:"version"`
-		ID      string          `json:"id,omitempty"`
-		Payload json.RawMessage `json:"payload"`
-	}{msg.Type, msg.Version, msg.ID, msg.Payload}
-	canonical, err := json.Marshal(inner)
+	// Match @totemsdk/lookup-protocol authDigest byte-for-byte: canonicalJson over
+	// {type, id, payload} (sorted keys), then "|nonce|expiresAt", then SHA3-256.
+	var payload interface{}
+	if len(msg.Payload) > 0 {
+		dec := json.NewDecoder(bytes.NewReader(msg.Payload))
+		dec.UseNumber()
+		if err := dec.Decode(&payload); err != nil {
+			return nil, err
+		}
+	}
+	inner := map[string]interface{}{
+		"type":    msg.Type,
+		"version": msg.Version,
+		"payload": payload,
+	}
+	if msg.ID != "" {
+		inner["id"] = msg.ID
+	}
+	canonical, err := totemcrypto.CanonicalJSON(inner)
 	if err != nil {
 		return nil, err
 	}
-	preimage := fmt.Sprintf("%s|%d|%d", string(canonical), nonce, expiresAt)
+	preimage := fmt.Sprintf("%s|%d|%d", canonical, nonce, expiresAt)
 	h := sha3.New256()
 	h.Write([]byte(preimage))
 	return h.Sum(nil), nil
