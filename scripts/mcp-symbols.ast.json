@@ -1839,16 +1839,17 @@
           "signature": "export interface WotsIndices"
         },
         "bytesToHex": {
-          "kind": "const",
-          "signature": "bytesToHex = bytes_to_hex_wasm"
+          "kind": "function",
+          "signature": "bytesToHex(bytes: Uint8Array): string",
+          "doc": "Wasm-free byte utilities (RFC-031 Fix A).\n\nByte-exact equivalents of the WASM kernels `bytes_to_hex` (uppercase, via\n`hex::encode_upper`), `hex_to_bytes` (strips a leading lowercase `0x`),\nand `concat_bytes`. Living outside `wasm-sync` lets pure consumers and the\ncore root avoid loading the WASM artifact for hex/concat work."
         },
         "hexToBytes": {
-          "kind": "const",
-          "signature": "hexToBytes = hex_to_bytes_wasm"
+          "kind": "function",
+          "signature": "hexToBytes(hex: string): Uint8Array"
         },
         "concatBytes": {
-          "kind": "const",
-          "signature": "concatBytes = concat_bytes_wasm"
+          "kind": "function",
+          "signature": "concatBytes(...arrays: Uint8Array[]): Uint8Array"
         },
         "sha3_256": {
           "kind": "const",
@@ -2411,7 +2412,8 @@
         },
         "toHex": {
           "kind": "function",
-          "signature": "toHex(bytes: Uint8Array): string"
+          "signature": "toHex(bytes: Uint8Array): string",
+          "doc": "Canonical JSON + lowercase hex helpers (wasm-free).\n\n`hashCanonical` (which needs the WASM `sha3_256` kernel) lives in\n`canonical-hash.ts`."
         },
         "canonicalJson": {
           "kind": "function",
@@ -5661,7 +5663,8 @@
         },
         "toHex": {
           "kind": "function",
-          "signature": "toHex(bytes: Uint8Array): string"
+          "signature": "toHex(bytes: Uint8Array): string",
+          "doc": "Canonical JSON + lowercase hex helpers (wasm-free).\n\n`hashCanonical` (which needs the WASM `sha3_256` kernel) lives in\n`canonical-hash.ts`."
         },
         "canonicalJson": {
           "kind": "function",
@@ -6014,7 +6017,8 @@
         },
         "toHex": {
           "kind": "function",
-          "signature": "toHex(bytes: Uint8Array): string"
+          "signature": "toHex(bytes: Uint8Array): string",
+          "doc": "Canonical JSON + lowercase hex helpers (wasm-free).\n\n`hashCanonical` (which needs the WASM `sha3_256` kernel) lives in\n`canonical-hash.ts`."
         },
         "canonicalJson": {
           "kind": "function",
@@ -8594,6 +8598,52 @@
           "signature": "createInMemoryPair(): [InMemoryTransport, InMemoryTransport]",
           "doc": "Create a linked pair of in-memory transports.\nReturns [clientSide, serverSide] — messages sent from one arrive at the other."
         },
+        "LookupIdentity": {
+          "kind": "class",
+          "signature": "export class LookupIdentity"
+        },
+        "verifyIdentitySignature": {
+          "kind": "function",
+          "signature": "verifyIdentitySignature(rootPublicKeyHex: string, digest: Uint8Array, signatureHex: string): boolean",
+          "doc": "Verify a TreeKey signature against a root public key and digest."
+        },
+        "digestBytes": {
+          "kind": "function",
+          "signature": "digestBytes(bytes: Uint8Array): Uint8Array",
+          "doc": "SHA3-256 digest of arbitrary bytes (used as the signed value)."
+        },
+        "LookupIdentityOptions": {
+          "kind": "interface",
+          "signature": "export interface LookupIdentityOptions"
+        },
+        "IdentitySlot": {
+          "kind": "type",
+          "signature": "export type IdentitySlot = 'root' | number",
+          "doc": "Which key of the root identity signs lookup messages.\n - `'root'`  — the root identity key (off-chain attestation; never a spend key).\n - number    — child address index (0–63)."
+        },
+        "FromWalletOptions": {
+          "kind": "interface",
+          "signature": "export interface FromWalletOptions"
+        },
+        "Authenticator": {
+          "kind": "class",
+          "signature": "export class Authenticator",
+          "doc": "Stamps WOTS auth envelopes onto outgoing messages. Stateful: each message\nconsumes one identity use, and the use index is the wire nonce."
+        },
+        "DEFAULT_AUTH_TTL_MS": {
+          "kind": "const",
+          "signature": "DEFAULT_AUTH_TTL_MS = 60_000",
+          "doc": "Default auth envelope lifetime."
+        },
+        "DEFAULT_AUTH_REQUIRED_TYPES": {
+          "kind": "const",
+          "signature": "DEFAULT_AUTH_REQUIRED_TYPES: readonly string[] = [ 'LEASE_RESERVE', 'LEASE_COMMIT', 'LEASE_BURN', 'BROADCAST_TXPOW', 'TRUST_RECORD', 'APP_ANNOUNCE', 'AGENT_ANNOUNCE', 'POLICY_ANNOUNCE', ]",
+          "doc": "RFC-032-A: message types that must always carry a full WOTS `auth` envelope,\nnever a session ticket. Must mirror the node's `authRequiredTypes`."
+        },
+        "AuthenticatorOptions": {
+          "kind": "interface",
+          "signature": "export interface AuthenticatorOptions"
+        },
         "ITransport": {
           "kind": "interface",
           "signature": "export interface IStreamTransport",
@@ -8733,27 +8783,50 @@
       "symbols": {
         "PROTOCOL_VERSION": {
           "kind": "const",
-          "signature": "PROTOCOL_VERSION = 1"
+          "signature": "PROTOCOL_VERSION = 2",
+          "doc": "RFC-032: lookup-protocol v2 is post-quantum. Authentication uses WOTS\n(hash-based, quantum-resistant) instead of Ed25519. There is no separate\nAUTH_CHALLENGE/AUTH_RESPONSE handshake; each authenticated message carries a\nself-contained `auth` envelope (identity + nonce + expiry + WOTS signature).\nThis is a hard switch — v1 and v2 peers do not interoperate."
         },
         "MessageType": {
           "kind": "type",
-          "signature": "export type MessageType = | 'HELLO' | 'AUTH_CHALLENGE' | 'AUTH_RESPONSE' | 'WATCH_REGISTER' | 'WATCH_REMOVE' | 'GET_COINS' | 'GET_COIN' | 'GET_PROOF' | 'GET_TIP' | 'GET_TOKEN' | 'BROADCAST_TXPOW' | 'C"
+          "signature": "export type MessageType = | 'HELLO' | 'SESSION_OPEN' | 'SESSION_TICKET' | 'SESSION_CLOSE' | 'WATCH_REGISTER' | 'WATCH_REMOVE' | 'GET_COINS' | 'GET_COIN' | 'GET_PROOF' | 'GET_TIP' | 'GET_TOKEN' | 'BROA"
         },
         "LookupMessage": {
           "kind": "type",
-          "signature": "export type LookupMessage = | HelloMessage | AuthChallengeMessage | AuthResponseMessage | WatchRegisterMessage | WatchRemoveMessage | GetCoinsMessage | GetCoinMessage | GetProofMessage | GetTipMessage"
+          "signature": "export type LookupMessage = | HelloMessage | SessionOpenMessage | SessionTicketMessage | SessionCloseMessage | WatchRegisterMessage | WatchRemoveMessage | GetCoinsMessage | GetCoinMessage | GetProofMe"
+        },
+        "WotsAuthEnvelope": {
+          "kind": "interface",
+          "signature": "export interface WotsAuthEnvelope",
+          "doc": "RFC-032: post-quantum authentication envelope.\n\nFlat WOTS/TreeKey signature over `sha3_256(canonicalJson({type,id?,payload} ‖ nonce ‖ expiresAt))`.\n- `rootPublicKey`: hex of the signer's 32-byte WOTS PKdigest (what `wotsVerifyDigest` needs).\n- `signature`: hex WOTS signature.\n- `nonce`: monotonic per-identity anti-replay value.\n- `expiresAt`: absolute expiry (epoch ms); the node rejects stale messages.\n- `rootIdentityProof` (optional): opaque proof binding the signer to a root\n  identity, verified by a registered `proofVerifiers['root-identity']`.\n- `address` (optional): Minima address; only trusted when the proof verifies."
+        },
+        "SessionTicketRef": {
+          "kind": "interface",
+          "signature": "export interface SessionTicketRef",
+          "doc": "RFC-032 Amendment A: reference to a node-issued session ticket, used to\namortise one-time WOTS use. `seq` is a client-monotonic counter that provides\nanti-replay for ticket-authenticated messages."
+        },
+        "SessionTicket": {
+          "kind": "interface",
+          "signature": "export interface SessionTicket",
+          "doc": "RFC-032-A: a node-signed session ticket."
         },
         "HelloMessage": {
           "kind": "interface",
           "signature": "export interface HelloMessage extends BaseMessage"
         },
-        "AuthChallengeMessage": {
+        "SessionOpenMessage": {
           "kind": "interface",
-          "signature": "export interface AuthChallengeMessage extends BaseMessage"
+          "signature": "export interface SessionOpenMessage extends BaseMessage",
+          "doc": "RFC-032-A: establish a session, consuming exactly one WOTS use. Carries the\nRFC-032 `auth` envelope; the node verifies it and mints a session ticket."
         },
-        "AuthResponseMessage": {
+        "SessionTicketMessage": {
           "kind": "interface",
-          "signature": "export interface AuthResponseMessage extends BaseMessage"
+          "signature": "export interface SessionTicketMessage extends BaseMessage",
+          "doc": "RFC-032-A: node → client ticket grant after a verified SESSION_OPEN."
+        },
+        "SessionCloseMessage": {
+          "kind": "interface",
+          "signature": "export interface SessionCloseMessage extends BaseMessage",
+          "doc": "RFC-032-A: client → node best-effort session teardown."
         },
         "WatchRegisterMessage": {
           "kind": "interface",
@@ -8914,28 +8987,40 @@
           "kind": "const",
           "signature": "MAX_FRAME_BODY_LENGTH = 4_194_304"
         },
-        "messageDigest": {
+        "authDigest": {
           "kind": "function",
-          "signature": "messageDigest(msg: LookupMessage): Uint8Array",
-          "doc": "Compute a canonical digest over the message for signing/verification.\nExcludes the `sig` field so the digest is stable."
+          "signature": "authDigest(msg: Omit<LookupMessage, \"auth\" | \"ticket\" | \"sig\">, nonce: number, expiresAt: number): Uint8Array",
+          "doc": "Digest of the authenticated portion of a message: everything except `auth`,\nthe optional `ticket` reference, and the legacy `sig`, plus the anti-replay\nnonce and expiry."
+        },
+        "sessionTicketDigest": {
+          "kind": "function",
+          "signature": "sessionTicketDigest(ticket: Omit<SessionTicket, \"signature\">): Uint8Array",
+          "doc": "RFC-032-A: digest a session ticket signs/verifies — the ticket payload minus\nits `signature`, domain-separated so it can never be confused with an\nauth-envelope digest."
         },
         "signMessage": {
           "kind": "function",
-          "signature": "signMessage<T extends LookupMessage>(msg: T, sign: SignFn): Promise<T & { sig: string; }>",
-          "doc": "Attach a signature to a message.\nReturns a new message object with the `sig` field set."
+          "signature": "signMessage<T extends LookupMessage>(msg: Omit<T, \"auth\" | \"ticket\" | \"sig\">, sign: SignFn, rootPublicKey: string, options: { nonce: number; expiresAt: number; rootIdentityProof?: string; address?: string; }): Promise<T>",
+          "doc": "Attach a WOTS auth envelope to a message. The signer signs the auth digest.\n`rootPublicKey` is the hex PKdigest; `rootIdentityProof`/`address` are optional."
         },
         "verifyMessageAuth": {
           "kind": "function",
-          "signature": "verifyMessageAuth(msg: LookupMessage, publicKey: Uint8Array, verify: VerifyFn): Promise<boolean>",
-          "doc": "Verify the `sig` field of a message against a known public key.\nReturns false if `sig` is absent."
+          "signature": "verifyMessageAuth(msg: LookupMessage, verify: VerifyFn, now?: number): Promise<boolean>",
+          "doc": "Verify the `auth` envelope of a message. Returns false when absent, expired,\nor the signature does not verify. The caller is responsible for replay\nrejection (nonce/index uniqueness) — see lookup-node."
+        },
+        "canonicalJson": {
+          "kind": "function",
+          "signature": "canonicalJson(value: unknown): string",
+          "doc": "Deterministic canonical JSON (sorted keys, recursive) for stable digests."
         },
         "SignFn": {
           "kind": "interface",
-          "signature": "export interface SignFn"
+          "signature": "export interface SignFn",
+          "doc": "A WOTS signer: signs a 32-byte digest, returns the signature bytes."
         },
         "VerifyFn": {
           "kind": "interface",
-          "signature": "export interface VerifyFn"
+          "signature": "export interface VerifyFn",
+          "doc": "A WOTS verifier: verifies (digest, signature, pkDigest) → boolean."
         },
         "checkVersion": {
           "kind": "function",
@@ -12510,10 +12595,15 @@
           "signature": "export type MqttMessage = PubSubMessage",
           "doc": "Type alias for PubSubMessage (MQTT flavour)."
         },
+        "EmitterLike": {
+          "kind": "interface",
+          "signature": "export interface EmitterLike",
+          "doc": "Minimal emitter contract (Node `EventEmitter`-compatible). Using this instead\nof `node:events` keeps the in-process transport runtime-agnostic (RFC-031 P2):\nit works on Bare/Bun/browser/Node. A real Node `EventEmitter` can still be\ninjected via the `bus` constructor argument."
+        },
         "EventEmitterTransport": {
           "kind": "class",
           "signature": "export class EventEmitterTransport implements IPubSubTransport",
-          "doc": "In-process pub/sub transport backed by a Node.js EventEmitter.\nUseful for wiring together components in the same process without a broker.\n\nTwo EventEmitterTransport instances sharing the same `bus` EventEmitter\nform a bidirectional pub/sub channel: what one publishes, the other receives."
+          "doc": "In-process pub/sub transport backed by a minimal emitter.\nUseful for wiring together components in the same process without a broker.\n\nTwo EventEmitterTransport instances sharing the same `bus` emitter\nform a bidirectional pub/sub channel: what one publishes, the other receives."
         },
         "MockPubSubTransport": {
           "kind": "class",
@@ -14780,16 +14870,17 @@
           "signature": "export interface WotsIndices"
         },
         "bytesToHex": {
-          "kind": "const",
-          "signature": "bytesToHex: typeof bytes_to_hex_wasm"
+          "kind": "function",
+          "signature": "bytesToHex(bytes: Uint8Array): string",
+          "doc": "Wasm-free byte utilities (RFC-031 Fix A).\n\nByte-exact equivalents of the WASM kernels `bytes_to_hex` (uppercase, via\n`hex::encode_upper`), `hex_to_bytes` (strips a leading lowercase `0x`),\nand `concat_bytes`. Living outside `wasm-sync` lets pure consumers and the\ncore root avoid loading the WASM artifact for hex/concat work."
         },
         "hexToBytes": {
-          "kind": "const",
-          "signature": "hexToBytes: typeof hex_to_bytes_wasm"
+          "kind": "function",
+          "signature": "hexToBytes(hex: string): Uint8Array"
         },
         "concatBytes": {
-          "kind": "const",
-          "signature": "concatBytes: typeof concat_bytes_wasm"
+          "kind": "function",
+          "signature": "concatBytes(...arrays: Uint8Array[]): Uint8Array"
         },
         "sha3_256": {
           "kind": "const",
@@ -15353,7 +15444,8 @@
         },
         "toHex": {
           "kind": "function",
-          "signature": "toHex(bytes: Uint8Array): string"
+          "signature": "toHex(bytes: Uint8Array): string",
+          "doc": "Canonical JSON + lowercase hex helpers (wasm-free).\n\n`hashCanonical` (which needs the WASM `sha3_256` kernel) lives in\n`canonical-hash.ts`."
         },
         "canonicalJson": {
           "kind": "function",

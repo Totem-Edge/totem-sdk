@@ -236,6 +236,26 @@
             "default": "./dist/cjs/adapters/types.js"
           }
         },
+        "./bytes": {
+          "import": {
+            "types": "./dist/bytes.d.ts",
+            "default": "./dist/bytes.js"
+          },
+          "require": {
+            "types": "./dist/cjs/bytes.d.ts",
+            "default": "./dist/cjs/bytes.js"
+          }
+        },
+        "./canonical": {
+          "import": {
+            "types": "./dist/canonical.d.ts",
+            "default": "./dist/canonical.js"
+          },
+          "require": {
+            "types": "./dist/cjs/canonical.d.ts",
+            "default": "./dist/cjs/canonical.js"
+          }
+        },
         "./lease": "dist/lease/index.{js,d.ts}",
         "./legacy": "dist/legacy.{js,d.ts}",
         "./scripts": "dist/scripts/index.{js,d.ts}",
@@ -668,6 +688,7 @@
         "@totemsdk/chain-provider": "^0.2.1",
         "@totemsdk/core": "^1.2.11",
         "@totemsdk/lookup-protocol": "^0.2.0",
+        "@totemsdk/root-identity": "^1.0.9",
         "@totemsdk/stream-transport": "^0.2.0"
       },
       "exports": {
@@ -692,6 +713,7 @@
         "@totemsdk/chain-provider": "^0.2.1",
         "@totemsdk/core": "^1.2.11",
         "@totemsdk/lookup-protocol": "^0.2.0",
+        "@totemsdk/manifest": "^1.0.0",
         "@totemsdk/minima-rpc": "^0.2.2",
         "@totemsdk/txpow": "^1.0.2",
         "@totemsdk/wots-lease": "^1.0.1"
