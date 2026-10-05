@@ -68,8 +68,9 @@ export type { WotsIndices } from './tx/index.js';
 // ---------------------------------------------------------------------------
 
 // Utilities
-export { bytesToHex, hexToBytes, concatBytes } from './wasm-sync.js';
-import { bytesToHex, parseMxAddress } from './wasm-sync.js';
+export { bytesToHex, hexToBytes, concatBytes } from './bytes.js';
+import { bytesToHex } from './bytes.js';
+import { parseMxAddress } from './wasm-sync.js';
 
 // SHA3-256
 export { sha3_256 } from './wasm-sync.js';
@@ -295,7 +296,8 @@ export {
 } from './wots.js';
 
 // Canonical helpers (deterministic JSON + hashing)
-export { toHex, canonicalJson, hashCanonical } from './canonical.js';
+export { toHex, canonicalJson } from './canonical.js';
+export { hashCanonical } from './canonical-hash.js';
 
 // Byte/string utilities
 export { utf8ToBytes, bytesToUtf8 } from './utils.js';

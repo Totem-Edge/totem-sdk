@@ -1,9 +1,14 @@
-import { sha3_256 } from './wasm-sync.js'
+/**
+ * Canonical JSON + lowercase hex helpers (wasm-free).
+ *
+ * `hashCanonical` (which needs the WASM `sha3_256` kernel) lives in
+ * `canonical-hash.ts`.
+ */
 
 export function toHex(bytes: Uint8Array): string {
   return Array.from(bytes)
     .map((b) => b.toString(16).padStart(2, '0'))
-    .join('')
+    .join('');
 }
 
 export function canonicalJson(value: unknown): string {
@@ -17,9 +22,4 @@ export function canonicalJson(value: unknown): string {
   const keys = Object.keys(obj).sort()
   const pairs = keys.map((k) => `${JSON.stringify(k)}:${canonicalJson(obj[k])}`)
   return '{' + pairs.join(',') + '}'
-}
-
-export function hashCanonical(domain: string, value: unknown): string {
-  const input = domain + canonicalJson(value)
-  return toHex(sha3_256(new TextEncoder().encode(input)))
 }
