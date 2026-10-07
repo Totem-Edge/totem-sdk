@@ -2,19 +2,24 @@
   "name": "@totemsdk/lookup-client",
   "version": "0.2.0",
   "description": "Hyperswarm client for Totem lookup nodes — chain queries, real-time coin updates, and TxPoW broadcast without a local chain DB",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/cjs/index.js",
+  "types": "dist/cjs/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "require": "./dist/index.js",
-      "import": "./dist/index.js"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
     }
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "build:go": "cd go && go build -o ../bin/lookup-client .",
-    "prepare": "tsc",
+    "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist bin",
     "test": "jest"
   },
@@ -64,5 +69,6 @@
     "utxo",
     "hyperswarm",
     "p2p"
-  ]
+  ],
+  "type": "module"
 }
