@@ -565,6 +565,41 @@ pub extern "C" fn totem_create_unified_child_tree_key(
     }
 }
 
+/// TS `derivePerAddressSeed`: SHA3(MiniData(baseSeed) ‖ MiniData(indexBytes)).
+///
+/// NOTE: this differs from `java_streamables::derive_per_address_seed` (which is
+/// SHA3(MiniNumber(index) ‖ MiniData(seed))). TS `createPerAddressTreeKey` — used
+/// by `LookupIdentity.fromSeed` — uses *this* formula, so Go must match it.
+pub fn derive_per_address_seed_ts(base_seed: &[u8], address_index: u32) -> Vec<u8> {
+    let mut buf = write_mini_data(base_seed);
+    buf.extend_from_slice(&write_mini_data(&index_to_mini_data_bytes(address_index)));
+    sha3(&buf)
+}
+
+/// Create a **per-address** TreeKey (TS `createPerAddressTreeKey`): the derivation
+/// the TS `LookupIdentity.fromSeed` uses.
+#[no_mangle]
+pub extern "C" fn totem_create_per_address_tree_key(
+    base_seed: *const u8,
+    base_seed_len: usize,
+    address_index: u32,
+    err_out: *mut *mut std::os::raw::c_char,
+) -> u32 {
+    let base_seed = unsafe { as_slice(base_seed, base_seed_len) };
+    let seed = derive_per_address_seed_ts(base_seed, address_index);
+    match treekey::TreeKey::new(&seed, 64, 3) {
+        Ok(tk) => {
+            let handle = NEXT_HANDLE.fetch_add(1, Ordering::SeqCst);
+            HANDLES.lock().unwrap().insert(handle, tk);
+            handle
+        }
+        Err(e) => {
+            if !err_out.is_null() { unsafe { *err_out = leak_cstring(e) }; }
+            0
+        }
+    }
+}
+
 /// Derive the per-address seed (`derivePerAddressSeed`) for a root seed.
 #[no_mangle]
 pub extern "C" fn totem_derive_per_address_seed(

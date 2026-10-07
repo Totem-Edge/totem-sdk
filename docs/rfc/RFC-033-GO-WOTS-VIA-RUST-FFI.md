@@ -1,6 +1,6 @@
 # RFC-033: Byte-Exact WOTS for the Go Mirrors via Rust FFI
 
-**Status:** Draft — design specification
+**Status:** Landed — C-ABI FFI + Go cgo binding (`packages/core/go`); lookup-client/lookup-node defaults wired (client signs from `IdentitySeed`, node verifies by default); se-server Go uses the RFC-008 leased identity. Bidirectional TS⇄Go interop tests green (auth envelope + TreeSignature + flat SE signature + unified/per-address derivation). Go 10/10 modules; TS lookup/se-server suites green.
 **Created:** 2026-10-05
 **Authors:** Totem SDK Contributors
 **Depends on:** RFC-009 (TreeKey signature fidelity), RFC-031 (core-wasm sole implementation), RFC-032 (lookup post-quantum identity)

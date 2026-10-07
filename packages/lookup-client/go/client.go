@@ -13,23 +13,20 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
-// NOTE: this Go mirror has no byte-exact WOTS signer/verifier (same gap as
-// @totemsdk/se-server, AUD-045). A caller must supply a WotsSigner whose digest
-// preimage matches @totemsdk/lookup-protocol authDigest exactly; otherwise
-// requests fail closed. The TypeScript package is the supported implementation.
+// RFC-032/033: the byte-exact WOTS signer is CoreWotsSigner (totemwots.go),
+// backed by the shared Rust core via cgo and verified byte-for-byte against the
+// TypeScript engine. Set config.IdentitySeed (or inject a WotsSigner) and the
+// client signs real auth envelopes; without either, it fails closed.
 
 // ProtocolVersion 2 is the RFC-032 hard switch: post-quantum WOTS auth, no
 // Ed25519, no HELLO/AUTH_CHALLENGE/AUTH_RESPONSE handshake.
 const ProtocolVersion = 2
 
-// ErrNotInteroperable marks the Go lookup-client signing surface as disabled.
-// There is no interoperable WOTS/TreeKey implementation in Go yet (the same
-// situation as @totemsdk/se-server AUD-045). Rather than emit placeholder
-// cryptography that a lookup node could mistake for a valid WOTS signature, the
-// signer fails closed. Use the TypeScript @totemsdk/lookup-client, or supply a
-// real WotsSigner once a byte-exact WOTS port with cross-language tests lands.
+// ErrNotInteroperable is returned when no signer is configured (no
+// config.IdentitySeed and no injected WotsSigner). It is a configuration guard,
+// not a crypto limitation — the crypto is available via CoreWotsSigner.
 var ErrNotInteroperable = errors.New(
-	"lookup-client(go): not an interoperable WOTS client (RFC-032); use the TypeScript @totemsdk/lookup-client",
+	"lookup-client(go): no WOTS signer configured (set LookupClientConfig.IdentitySeed or inject a WotsSigner)",
 )
 
 // WotsAuthEnvelope is the RFC-032 post-quantum auth envelope carried per message.
@@ -75,6 +72,11 @@ type LookupClientConfig struct {
 	TimeoutMs       time.Duration
 	ReconnectBaseMs time.Duration
 	ReconnectMaxMs  time.Duration
+	// IdentitySeed (32 bytes) builds the RFC-032/033 WOTS lookup identity. When
+	// set, the client signs with the byte-exact core crypto automatically. When
+	// empty, the client fails closed (ErrNotInteroperable) unless a signer is
+	// supplied via NewLookupClientWithSigner.
+	IdentitySeed []byte
 }
 
 type Coin struct {
@@ -139,6 +141,15 @@ type LookupClient struct {
 }
 
 func NewLookupClient(config LookupClientConfig) (*LookupClient, error) {
+	// RFC-032/033: build the byte-exact WOTS signer from the seed when provided,
+	// so `NewLookupClient` is self-contained rather than fail-closed.
+	if config.IdentitySeed != nil {
+		signer, err := NewCoreWotsSigner(config.IdentitySeed)
+		if err != nil {
+			return nil, fmt.Errorf("lookup-client: build WOTS signer: %w", err)
+		}
+		return NewLookupClientWithSigner(config, signer)
+	}
 	return NewLookupClientWithSigner(config, nil)
 }
 

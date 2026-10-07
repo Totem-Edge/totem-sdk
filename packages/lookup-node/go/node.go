@@ -133,6 +133,11 @@ func NewLookupNode(config LookupNodeConfig) (*LookupNode, error) {
 	if config.DBPath == "" {
 		config.DBPath = ":memory:"
 	}
+	// RFC-032/033: default to the byte-exact WOTS verifier so the node can
+	// authenticate real client envelopes without extra wiring.
+	if config.Verifier == nil {
+		config.Verifier = CoreWotsVerifier{}
+	}
 
 	store, err := NewSqliteStore(config.DBPath)
 	if err != nil {

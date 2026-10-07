@@ -10,9 +10,8 @@ import (
 // TreeKey), backed by the core Rust crypto via cgo. It verifies the serialized
 // (Java-Streamable) TreeSignature the TS client produces.
 //
-// Wire it as `LookupNodeConfig.Verifier`:
-//
-//	cfg.Verifier = lookupnode.CoreWotsVerifier{}
+// LookupNode now defaults to this verifier, so no wiring is required; override
+// `LookupNodeConfig.Verifier` only for a custom backend.
 type CoreWotsVerifier struct{}
 
 // Verify verifies a hex serialized-TreeSignature over a 32-byte digest against
@@ -41,9 +40,10 @@ type CoreWotsSigner struct {
 	pub  string
 }
 
-// NewCoreWotsSigner builds a signer from a 32-byte seed.
+// NewCoreWotsSigner builds a signer from a 32-byte seed, using the same
+// per-address TreeKey derivation as the TypeScript `LookupIdentity`.
 func NewCoreWotsSigner(seed []byte) (*CoreWotsSigner, error) {
-	tree, err := totemcrypto.NewTreeKey(seed, 64, 3)
+	tree, err := totemcrypto.NewPerAddressTreeKey(seed, 0)
 	if err != nil {
 		return nil, err
 	}

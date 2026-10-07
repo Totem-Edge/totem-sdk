@@ -254,6 +254,18 @@ func NewUnifiedChildTreeKey(baseSeed []byte, index uint32) (*TreeKey, error) {
 	return &TreeKey{handle: handle}, nil
 }
 
+// NewPerAddressTreeKey builds a per-address TreeKey (TS createPerAddressTreeKey)
+// — the derivation `LookupIdentity.fromSeed` uses (64 keys/level, 3 levels).
+func NewPerAddressTreeKey(baseSeed []byte, addressIndex uint32) (*TreeKey, error) {
+	var errOut *C.char
+	handle := C.totem_create_per_address_tree_key(bytesPtr(baseSeed), C.size_t(len(baseSeed)), C.uint32_t(addressIndex), &errOut)
+	runtime.KeepAlive(baseSeed)
+	if handle == 0 {
+		return nil, fmt.Errorf("totemcrypto: per-address TreeKey failed: %s", takeString(errOut))
+	}
+	return &TreeKey{handle: handle}, nil
+}
+
 // Sign signs data, returning the TreeSignature as JSON bytes.
 func (t *TreeKey) Sign(data []byte) ([]byte, error) {
 	var outLen C.size_t

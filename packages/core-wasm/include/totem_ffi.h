@@ -60,6 +60,8 @@ uint8_t* totem_derive_per_address_seed(const uint8_t* root_seed, size_t root_see
 /* Unified root/child TreeKey factories (TS createUnified*TreeKey parity) */
 uint32_t totem_create_unified_root_tree_key(const uint8_t* base_seed, size_t base_seed_len, char** err_out);
 uint32_t totem_create_unified_child_tree_key(const uint8_t* base_seed, size_t base_seed_len, uint32_t index, char** err_out);
+/* Per-address TreeKey factory (TS createPerAddressTreeKey parity) */
+uint32_t totem_create_per_address_tree_key(const uint8_t* base_seed, size_t base_seed_len, uint32_t address_index, char** err_out);
 
 /* Address derivation from a WOTS public key (TS scriptFromWotsPk → scriptToAddress) */
 uint8_t* totem_address_from_pk_digest(const uint8_t* pk_digest, size_t pk_digest_len, size_t* out_len);

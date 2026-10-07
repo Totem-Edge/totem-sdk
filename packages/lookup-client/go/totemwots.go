@@ -18,10 +18,11 @@ type CoreWotsSigner struct {
 	pub  string // hex root public key
 }
 
-// NewCoreWotsSigner builds a signer from a 32-byte seed (64 keys/level, 3 levels,
-// matching the TS per-address TreeKey).
+// NewCoreWotsSigner builds a signer from a 32-byte seed, using the per-address
+// TreeKey derivation that TS `LookupIdentity.fromSeed` uses (address index 0),
+// so a Go client's identity matches a TS client's.
 func NewCoreWotsSigner(seed []byte) (*CoreWotsSigner, error) {
-	tree, err := totemcrypto.NewTreeKey(seed, 64, 3)
+	tree, err := totemcrypto.NewPerAddressTreeKey(seed, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -48,8 +49,8 @@ func (s *CoreWotsSigner) Sign(digest []byte) ([]byte, error) {
 	return totemcrypto.SerializeTreeSignature(sigJSON)
 }
 
-// SetUses restores the use counter (forward-only is the caller's responsibility).
-func (s *CoreWotsSigner) SetUses(uses uint32) { s.tree.SetUses(uses) }
+// SetUses restores the use counter; it errors if `uses` would rewind it.
+func (s *CoreWotsSigner) SetUses(uses uint32) error { return s.tree.SetUses(uses) }
 
 // Uses returns the current use counter.
 func (s *CoreWotsSigner) Uses() uint32 { return s.tree.Uses() }
