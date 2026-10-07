@@ -99,9 +99,10 @@ The remaining consensus-critical `node:crypto` is gone: `core/scripts/contract-h
 wasm-free `./bytes` and `./canonical` subpaths, and its **ESM build routes every crypto call to
 the portable async bridge** (`packages/core/scripts/async-esm.mjs`), so the ESM root imports with
 no WASM binary and runs on edge/Workers/Bare after a one-time `await init()`; the CJS root stays
-sync. All non-server, non-test packages are dual ESM+CJS (the Node-only servers and `txpow`'s
-CJS worker are intentionally left CJS). Remaining `node:crypto` is **server-only**
-(`omnia-host`, `lookup-node`, `server`, `se-server`) or **test mocks**
+sync. All publishable TypeScript client/runtime packages are dual ESM+CJS, including
+`lookup-client`, `lookup-protocol`, and `txpow` (whose Node worker remains CJS inside the dual
+package). Node-only servers, including `lookup-node`, remain CJS. Remaining `node:crypto` is
+**server-only** (`omnia-host`, `lookup-node`, `server`, `se-server`) or **test mocks**
 (`kissvm/__mocks__`, `edge-mqtt/wasm-jest-mock`).
 
 ### P2 — transport / fs / worker ports
@@ -178,4 +179,3 @@ parity is preserved). Changing a consensus site requires **C++/Java node oracle 
 
 **Guard to add:** an oracle-vector test pinning the KISSVM `SHA2` (SHA-256) and `SHA3` (SHA3-256)
 opcodes against the C++/Java node, so a future refactor cannot silently diverge.
-

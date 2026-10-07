@@ -186,8 +186,10 @@ The JS kernels are removed **only when all four gates are green**:
   (2026-10-05).** The ESM build routes all crypto to the portable async bridge
   (`packages/core/scripts/async-esm.mjs`); wasm-free `./bytes` + `./canonical`
   subpaths added; `contract-helpers`/`kissvm` consensus `node:crypto` ported to
-  `@noble/hashes` (byte-exact, oracle-guarded); all non-server, non-test packages
-  are dual ESM+CJS.
+  `@noble/hashes` (byte-exact, oracle-guarded). All publishable TypeScript
+  client/runtime packages are dual ESM+CJS, including `txpow` (CJS worker
+  retained), `lookup-client`, and `lookup-protocol`; Node-only servers, including
+  `lookup-node`, remain CJS.
 - **P1 — Portable WASM (in progress).** `core-wasm` now builds a `--target web`
   artifact (`pkg-web`) exposing async `init()`; exported as `@totemsdk/core-wasm/web`.
   `@totemsdk/core/wasm-async` exposes the async crypto surface (same names as the
