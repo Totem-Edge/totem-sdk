@@ -1,6 +1,9 @@
 // packages/totem-extension/src/telemetry_token.ts
-// Browser-safe: fetches a short-lived JWT from the Axia gateway and caches it in-memory.
-const TOKEN_URL = (globalThis as any).__AXIA_TOKEN_URL__ || 'https://api.axia.to/v1/tlm/token';
+// Browser-safe: fetches a short-lived JWT from the Axia telemetry issuer and
+// caches it in-memory. Kept on the telemetry host (not api.axia.to) so the
+// entire telemetry surface — token issuance and event ingest — is one host,
+// matching the deploy manifests in axia-platform/k8s/telemetry.
+const TOKEN_URL = (globalThis as any).__AXIA_TOKEN_URL__ || 'https://telemetry.axia.to/v1/tlm/token';
 const TTL_SAFE_MS = 30 * 1000; // refresh 30s before expiry
 
 type TokenState = { token: string; exp: number };
