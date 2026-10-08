@@ -75,13 +75,20 @@ npm run build
 
 ## Distribution (direct download)
 
-The extension is distributed as a **GitHub Release** (`totem-extension.zip` / `.crx`), not on npm. The build workflow (`.github/workflows/build-extension.yml`) runs on every change to `extensions/totem-extension/**`, and attaches the artifacts when an `extension-v<version>` Release is published — that publication is the approval gate.
+The extension is distributed as a **GitHub Release**, not on npm. The build
+workflow (`.github/workflows/build-extension.yml`) keeps a rolling
+`extension-latest` release updated on every change to
+`extensions/totem-extension/**`, and additionally publishes versioned
+`extension-v<version>` releases (the approval gate).
 
-`totem.ing` links to a stable URL, which resolves to the newest published Release:
+`totem.ing` links to the extension's own rolling release tag. This is
+deliberately **not** GitHub's repo-wide `releases/latest` feed — that feed is
+shared with the `@totemsdk/*` npm package releases, so it can point at an
+unrelated package. The dedicated tag is owned by the extension workflow:
 
 ```
-https://github.com/Totem-Edge/totem-sdk/releases/latest/download/totem-extension.zip
-https://github.com/Totem-Edge/totem-sdk/releases/latest/download/totem-extension.crx
+https://github.com/Totem-Edge/totem-sdk/releases/download/extension-latest/totem-extension.zip
+https://github.com/Totem-Edge/totem-sdk/releases/download/extension-latest/totem-extension.crx
 ```
 
 ### Signing

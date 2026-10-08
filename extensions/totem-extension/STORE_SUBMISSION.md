@@ -163,8 +163,8 @@ It triggers `.github/workflows/build-extension.yml`, which:
 1. builds the extension,
 2. signs `totem-extension.crx`, writes `totem-extension.zip` and the
    `totem-extension.xml` update manifest,
-3. attaches fixed-name assets to the Release (resolved by
-   `releases/latest/download/totem-extension.zip` on totem.ing),
+3. updates the rolling `extension-latest` release (resolved by
+   `releases/download/extension-latest/totem-extension.zip` on totem.ing),
 4. also uploads them as CI artifacts.
 
 ```bash

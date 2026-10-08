@@ -7,9 +7,9 @@ on:
       - 'extensions/totem-extension/**'
       - '.github/workflows/build-extension.yml'
   # Publishing a Release tagged `extension-v*` is the approval gate: it builds,
-  # signs, and attaches the fixed-name assets that totem.ing's download CTA
-  # resolves through `releases/latest/download/`. Mirrors the packages' model in
-  # publish-totemsdk.yml (release: types: [published]).
+  # signs, and attaches the fixed-name assets. The default branch also keeps a
+  # rolling `extension-latest` release updated for direct download. Mirrors the
+  # packages' model in publish-totemsdk.yml (release: types: [published]).
   release:
     types: [published]
   workflow_dispatch:
@@ -63,7 +63,7 @@ jobs:
           echo "Extension version: ${VERSION}"
 
       # Fixed-name artifacts (`totem-extension.zip` / `.crx`) are what the
-      # website links to via github.com/.../releases/latest/download/<name>.
+      # website links to via github.com/.../releases/download/extension-latest/<name>.
       # Version-stamped copies are kept alongside for auditing.
       - name: Package extension (zip + signed crx3 + update XML)
         env:
@@ -77,7 +77,7 @@ jobs:
           cd extensions/totem-extension
           VERSION="${{ steps.version.outputs.value }}"
           OUT="$GITHUB_WORKSPACE"
-          CRX_URL="https://github.com/Totem-Edge/totem-sdk/releases/latest/download/totem-extension.crx"
+          CRX_URL="https://github.com/Totem-Edge/totem-sdk/releases/download/extension-latest/totem-extension.crx"
 
           KEYFILE="$RUNNER_TEMP/extension-key.pem"
           if [ -n "${EXTENSION_CRX_KEY:-}" ]; then
@@ -132,9 +132,28 @@ jobs:
             totem-extension-build-*.zip
           retention-days: 90
 
-      # Publishing the Release IS the approval: only `extension-v<version>`
-      # (a published Release) attaches the fixed-name assets.
-      - name: Create release and upload
+      # Rolling "latest" channel for direct download. GitHub's repo-wide
+      # `releases/latest` feed is shared with the @totemsdk/* npm package
+      # releases, so it does NOT reliably point at the extension. Publish the
+      # fixed-name assets under a dedicated, extension-owned tag instead; the
+      # site links to releases/download/extension-latest/... which can never be
+      # hijacked by an npm release. Marked prerelease so it stays out of "latest".
+      - name: Publish rolling extension-latest release
+        uses: softprops/action-gh-release@c12583777ecdfd3be55c69cf75464299dc01057e # v3
+        with:
+          tag_name: extension-latest
+          name: Totem Extension (latest build)
+          prerelease: true
+          files: |
+            totem-extension.zip
+            totem-extension.crx
+            totem-extension.xml
+            SHA256SUMS.txt
+          generate_release_notes: false
+
+      # Approval gate for a *versioned* release: only an `extension-v<version>`
+      # release attaches the stable artifacts under that tag.
+      - name: Create versioned release
         uses: softprops/action-gh-release@c12583777ecdfd3be55c69cf75464299dc01057e # v3
         if: startsWith(github.event.release.tag_name, 'extension-v') || startsWith(github.ref, 'refs/tags/extension-v')
         with:

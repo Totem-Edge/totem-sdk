@@ -290,9 +290,19 @@ function collectExports(file: string, symbols: Map<string, SymbolMeta>, visited:
       const braceMatch = block.match(/\{([^}]+)\}/)
       if (braceMatch) {
         for (const part of braceMatch[1].split(',')) {
-          const name = part.trim().split(/\s+as\s+/).pop()?.trim() || ''
-          if (!name) continue
-          const kind: SymbolKind = isType || /^[A-Z]/.test(name) ? 'type' : 'function'
+          let clause = part.trim()
+          if (!clause) continue
+          // Inline type modifiers: `export { type Foo }` / `export { type Foo as Bar }`.
+          // Strip the leading `type` keyword before resolving the exposed name,
+          // otherwise the symbol is recorded literally as "type Foo".
+          let inlineType = false
+          const typeKw = clause.match(/^type\s+([\s\S]+)$/)
+          if (typeKw) { inlineType = true; clause = typeKw[1].trim() }
+          const name = clause.split(/\s+as\s+/).pop()?.trim() || ''
+          // Reject anything that isn't a plain identifier (guards against
+          // malformed fragments leaking in as fake symbols).
+          if (!/^[A-Za-z_$][\w$]*$/.test(name)) continue
+          const kind: SymbolKind = isType || inlineType || /^[A-Z]/.test(name) ? 'type' : 'function'
           setSymbol(symbols, name, { kind })
         }
       }

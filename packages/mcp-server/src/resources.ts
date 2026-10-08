@@ -72,7 +72,12 @@ function docMeta(file: string, fallbackName: string): { name: string; descriptio
     description = t.replace(/[*_`]/g, '').trim()
     break
   }
-  return { name: name || fallbackName, description: description || name || fallbackName }
+  const clean = description || name || fallbackName
+  // Cap at the first sentence / ~160 chars. Discovery must stay cheap: an
+  // unbounded first paragraph bloats every client's resource list.
+  const firstSentence = clean.split(/(?<=\.)\s/)[0]
+  const bounded = (firstSentence.length <= 160 ? firstSentence : clean.slice(0, 160)).trim()
+  return { name: name || fallbackName, description: bounded.length > 0 ? bounded : name || fallbackName }
 }
 
 /**
@@ -90,7 +95,14 @@ function discoverDocs(): Array<{ uri: string; name: string; description: string;
       if (!m) continue
       const file = path.join('docs', 'rfc', f)
       const meta = docMeta(file, `RFC-${m[1]}`)
-      docs.push({ uri: `totemsdk://rfc/${m[1]}`, ...meta, file })
+      // Amendments share an RFC number with the original; give them a distinct
+      // URI (`totemsdk://rfc/007/amendment-a`) so a reader never retrieves an
+      // amendment when they asked for the base specification.
+      const amend = m[2].match(/^AMENDMENT-([A-Z])/i)
+      const uri = amend
+        ? `totemsdk://rfc/${m[1]}/amendment-${amend[1].toLowerCase()}`
+        : `totemsdk://rfc/${m[1]}`
+      docs.push({ uri, ...meta, file })
     }
   }
 
@@ -168,7 +180,7 @@ function edgeCapabilities(): string[] {
 export function resourceMimeType(uri: string): string {
   const base = uri.split('#')[0]
   if (base === 'totemsdk://conventions' || base === 'totemsdk://templates') return 'text/markdown'
-  if (/^totemsdk:\/\/(papers|rfc|audit)\/[^/]+$/.test(base)) return 'text/markdown'
+  if (/^totemsdk:\/\/(papers|rfc|audit)\/[^/]+(\/[^/]+)?$/.test(base)) return 'text/markdown'
   if (base === 'totemsdk://packages' || base === 'totemsdk://domain-map' || base === 'totemsdk://rfc') return 'application/json'
   if (/^totemsdk:\/\/(packages|symbol|connect|edge)(\/|$)/.test(base)) return 'application/json'
   return 'text/plain'
@@ -346,10 +358,16 @@ export function listResources(index: SdkIndex): Array<{ uri: string; name: strin
     })
   }
 
-  const topSymbols = Object.entries(index.symbolIndex)
-    .filter(([_, v]) => v.length <= 3)
-    .slice(0, 200)
-  for (const [symbol, entries] of topSymbols) {
+  // Symbol lookups are served by the `search-symbol` tool (query-driven), which
+  // is far cheaper than enumerating ~3.7k symbols as resources. Only surface a
+  // small set of the most unambiguous symbols (exported by exactly one package)
+  // so `totemsdk://symbol/{name}` remains discoverable without bloating
+  // discovery to hundreds of entries.
+  const uniqueSymbols = Object.entries(index.symbolIndex)
+    .filter(([_, v]) => v.length === 1)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .slice(0, 50)
+  for (const [symbol, entries] of uniqueSymbols) {
     resources.push({
       uri: `totemsdk://symbol/${symbol}`,
       name: `Symbol: ${symbol}`,
