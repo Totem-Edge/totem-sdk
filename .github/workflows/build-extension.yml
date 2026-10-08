@@ -26,14 +26,34 @@ jobs:
       - name: Setup workspace
         uses: ./.github/actions/setup-pnpm
 
-      # The extension consumes @totemsdk/* workspace packages (workspace:^).
-      # Their compiled dist/ is gitignored, so it must be built here — webpack
-      # resolves into those dist/ files. Build the closure (`totem-extension...`),
-      # excluding @totemsdk/core-wasm: its pkg/ artifacts are committed and its
-      # build needs wasm-pack, which is not installed in CI (building it would
-      # also rewrite the committed WASM with non-deterministic output).
-      - name: Build extension and its workspace dependencies
-        run: pnpm --filter "totem-extension..." --filter "!@totemsdk/core-wasm" run build
+      # The extension consumes @totemsdk/* workspace packages (workspace:^),
+      # whose compiled dist/ is gitignored and so must be built here (webpack
+      # resolves into those dist/ files).
+      #
+      # Build the packages the extension actually imports, NOT its full
+      # dependency closure: the closure pulls in @totemsdk/omnia → tx-builder,
+      # whose dist build needs a gitignored Rust/wasm-pack artifact and whose
+      # code the extension never bundles. @totemsdk/core-wasm is likewise
+      # excluded — its pkg/ artifacts are committed and its build requires
+      # wasm-pack (and would rewrite the committed WASM nondeterministically).
+      - name: Build extension's SDK dependencies
+        run: |
+          pnpm \
+            --filter @totemsdk/core \
+            --filter @totemsdk/txpow \
+            --filter @totemsdk/connect \
+            --filter @totemsdk/realtime \
+            --filter @totemsdk/chain-provider \
+            --filter @totemsdk/wots-lease \
+            --filter @totemsdk/root-identity \
+            --filter @totemsdk/storage \
+            --filter @totemsdk/minima-rpc \
+            --filter @totemsdk/lookup-protocol \
+            run build
+
+      - name: Build extension
+        run: npm run build
+        working-directory: extensions/totem-extension
 
       - name: Read manifest version
         id: version
