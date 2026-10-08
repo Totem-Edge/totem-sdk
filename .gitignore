@@ -15,6 +15,10 @@ target/
 packages/*/rust/pkg/
 packages/*/rust/pkg-node/
 
+# Extension CRX signing keys — never commit (set as the EXTENSION_CRX_KEY secret)
+extension-key.pem
+*.crx.pem
+
 # RFC-033 native core FFI artifacts (built by scripts/build-core-ffi.sh)
 native/core-ffi/
 # Go test interop vectors (emitted transiently by Go→TS interop tests)

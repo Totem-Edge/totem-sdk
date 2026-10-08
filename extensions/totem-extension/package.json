@@ -49,6 +49,8 @@
     "test:e2e:import": "npx playwright test import-wallet",
     "test:e2e:unlock": "npx playwright test unlock-wallet",
     "test:e2e:recovery": "npx playwright test service-worker-recovery",
+    "manifest:key": "node scripts/set-manifest-key.js",
+    "manifest:key:id": "node scripts/print-extension-id.js",
     "clean": "rm -rf dist"
   },
   "dependencies": {

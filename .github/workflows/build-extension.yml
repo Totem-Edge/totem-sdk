@@ -65,7 +65,7 @@ jobs:
       # Fixed-name artifacts (`totem-extension.zip` / `.crx`) are what the
       # website links to via github.com/.../releases/latest/download/<name>.
       # Version-stamped copies are kept alongside for auditing.
-      - name: Package extension (zip + signed crx3)
+      - name: Package extension (zip + signed crx3 + update XML)
         env:
           # PEM private key used to sign the CRX. MUST stay stable across
           # releases or Chrome treats each build as a different extension and
@@ -77,17 +77,32 @@ jobs:
           cd extensions/totem-extension
           VERSION="${{ steps.version.outputs.value }}"
           OUT="$GITHUB_WORKSPACE"
+          CRX_URL="https://github.com/Totem-Edge/totem-sdk/releases/latest/download/totem-extension.crx"
 
           KEYFILE="$RUNNER_TEMP/extension-key.pem"
           if [ -n "${EXTENSION_CRX_KEY:-}" ]; then
             printf '%s' "$EXTENSION_CRX_KEY" > "$KEYFILE"
             echo "Signing with the configured EXTENSION_CRX_KEY."
+            # Pin the extension ID in the built manifest (dist/ only; the source
+            # manifest stays key-free). The `key` is the public half of the
+            # signing key — safe to ship — and makes the unpacked and .crx
+            # install paths share one ID, which updates and policies require.
+            node scripts/set-manifest-key.js "$KEYFILE" --manifest dist/manifest.json
+            echo "Extension ID: $(node scripts/print-extension-id.js "$KEYFILE")"
           else
-            echo "::warning::EXTENSION_CRX_KEY is not set — generating an ephemeral key. The resulting .crx will not support in-place updates; set the secret to fix this."
+            echo "::warning::EXTENSION_CRX_KEY is not set — generating an ephemeral key. The resulting .crx will not support in-place updates and the ID will change per build; set the secret to fix this."
           fi
 
-          # Signed CRX3 + plain ZIP from dist/.
-          npx --yes crx3@2 -p "$KEYFILE" -o "$OUT/totem-extension.crx" -z "$OUT/totem-extension.zip" -- dist
+          # Signed CRX3 + plain ZIP, plus the update-manifest XML used by
+          # enterprise policy (ExtensionInstallForcelist) and off-store updates.
+          npx --yes crx3@2 \
+            -p "$KEYFILE" \
+            -o "$OUT/totem-extension.crx" \
+            -z "$OUT/totem-extension.zip" \
+            -x "$OUT/totem-extension.xml" \
+            --appVersion "$VERSION" \
+            --crxURL "$CRX_URL" \
+            -- dist
 
           cp "$OUT/totem-extension.zip" "$OUT/totem-extension-v${VERSION}.zip"
           cp "$OUT/totem-extension.crx" "$OUT/totem-extension-v${VERSION}.crx"
@@ -110,6 +125,7 @@ jobs:
           path: |
             totem-extension.zip
             totem-extension.crx
+            totem-extension.xml
             totem-extension-v*.zip
             totem-extension-v*.crx
             SHA256SUMS.txt
@@ -125,6 +141,7 @@ jobs:
           files: |
             totem-extension.zip
             totem-extension.crx
+            totem-extension.xml
             totem-extension-v*.zip
             totem-extension-v*.crx
             SHA256SUMS.txt
