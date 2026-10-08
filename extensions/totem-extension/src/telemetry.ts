@@ -1,4 +1,16 @@
 // packages/totem-extension/src/telemetry.ts
+//
+// Opt-in, privacy-safe usage telemetry. Disabled by default and only active
+// after the user enables "Anonymous Usage Data" in Settings (Chrome Web Store
+// policy). The payload is a strict allowlist of non-identifying operational
+// fields — never wallet addresses, keys, page URLs, or origins.
+//
+// Delivery path: the extension authenticates to the Axia telemetry proxy with a
+// short-lived JWT (from api.axia.to/v1/tlm/token); the proxy verifies the JWT
+// and re-signs the batch with HMAC for the ingestor. So a batch is only accepted
+// with a valid bearer token.
+import { getTelemetryToken } from './telemetry_token';
+
 type TlmEvent = {
   project_id: string;
   method: string;
@@ -19,6 +31,15 @@ let timer: any = null;
 const TLM_URL = 'https://telemetry.axia.to/v1/telemetry';
 const FLUSH_MS = 4000;
 const MAX_BATCH = 50;
+// Bound the queue so a dead or misconfigured endpoint can never grow memory
+// without limit. When full, the oldest events are dropped (telemetry is
+// best-effort; losing samples is preferable to a leak).
+const MAX_QUEUE = 500;
+// Consecutive delivery failures before the client backs off. Prevents a
+// tight retry loop against an unreachable host.
+const MAX_CONSECUTIVE_FAILURES = 3;
+let consecutiveFailures = 0;
+let backoffUntil = 0;
 
 // Telemetry is opt-in only (Chrome Web Store policy). No data is collected
 // until the user explicitly enables it in Settings.
@@ -73,27 +94,63 @@ export function track(e: TlmEvent) {
     retry: e.retry,
     credits: e.credits
   });
+  // Drop oldest if the queue is full (best-effort delivery).
+  while (QUEUE.length > MAX_QUEUE) QUEUE.shift();
   schedule();
 }
 
 function schedule() {
   if (timer) return;
-  timer = setTimeout(flush, FLUSH_MS);
+  const delay = Math.max(0, backoffUntil - Date.now());
+  timer = setTimeout(flush, delay > 0 ? delay : FLUSH_MS);
+}
+
+/** Resolve the project id used for telemetry auth (defaults to the wallet). */
+async function getProjectId(): Promise<string> {
+  try {
+    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+      const s = await chrome.storage.local.getTyped(['AXIA_PROJECT_ID']);
+      if (s.AXIA_PROJECT_ID) return String(s.AXIA_PROJECT_ID);
+    }
+  } catch {
+    // fall through to default
+  }
+  return 'totem-extension';
 }
 
 async function flush() {
   timer = null;
   if (!QUEUE.length) return;
+  if (Date.now() < backoffUntil) { schedule(); return; }
+
   const batch = QUEUE.splice(0, MAX_BATCH);
   try {
-    await fetch(TLM_URL, {
+    // Authenticate with a short-lived JWT; the proxy turns it into the HMAC
+    // header the ingestor requires. (Static import: the background service
+    // worker disables chunk loading, so dynamic import() is unavailable.)
+    const projectId = await getProjectId();
+    const jwt = await getTelemetryToken(projectId);
+
+    const res = await fetch(TLM_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${jwt}`
+      },
       body: JSON.stringify({ events: batch })
     });
-  } catch (e) {
-    // Requeue on failure (basic)
-    QUEUE.unshift(...batch);
+
+    if (!res.ok) throw new Error(`telemetry ${res.status}`);
+    consecutiveFailures = 0;
+  } catch {
+    // Best-effort: do NOT requeue unboundedly. Drop this batch and back off
+    // after repeated failures so an unreachable endpoint can't cause a retry
+    // storm or leak memory.
+    consecutiveFailures += 1;
+    if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+      backoffUntil = Date.now() + 60_000;
+      consecutiveFailures = 0;
+    }
   } finally {
     if (QUEUE.length) schedule();
   }

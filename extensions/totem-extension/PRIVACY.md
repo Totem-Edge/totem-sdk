@@ -42,7 +42,7 @@ No user data is sold or shared with third parties. Network requests are limited 
 
 ### Data retention
 - Wallet data persists in `chrome.storage.local` until the user removes the extension or explicitly clears wallet data.
-- Telemetry logs are retained for 90 days on the Axia telemetry server.
+- Telemetry is aggregated into operational metrics (no individual events are stored) and retained for **30 days** on the Axia telemetry stack. See `https://axia.to/privacy` for the full policy.
 
 ## Changes
 This policy may be updated. Continued use after changes constitutes acceptance of the updated policy.
