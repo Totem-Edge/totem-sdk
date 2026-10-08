@@ -6,6 +6,12 @@ on:
     paths:
       - 'extensions/totem-extension/**'
       - '.github/workflows/build-extension.yml'
+  # Publishing a Release tagged `extension-v*` is the approval gate: it builds,
+  # signs, and attaches the fixed-name assets that totem.ing's download CTA
+  # resolves through `releases/latest/download/`. Mirrors the packages' model in
+  # publish-totemsdk.yml (release: types: [published]).
+  release:
+    types: [published]
   workflow_dispatch:
 
 jobs:
@@ -17,38 +23,89 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: extensions/totem-extension/package-lock.json
+      - name: Setup workspace
+        uses: ./.github/actions/setup-pnpm
 
-      - name: Install dependencies
-        run: npm install
-        working-directory: extensions/totem-extension
+      # The extension consumes @totemsdk/* workspace packages (workspace:^).
+      # Their compiled dist/ is gitignored, so it must be built here — webpack
+      # resolves into those dist/ files. Build the closure (`totem-extension...`),
+      # excluding @totemsdk/core-wasm: its pkg/ artifacts are committed and its
+      # build needs wasm-pack, which is not installed in CI (building it would
+      # also rewrite the committed WASM with non-deterministic output).
+      - name: Build extension and its workspace dependencies
+        run: pnpm --filter "totem-extension..." --filter "!@totemsdk/core-wasm" run build
 
-      - name: Build extension
-        run: npm run build
-        working-directory: extensions/totem-extension
-
-      - name: Package extension as zip
+      - name: Read manifest version
+        id: version
         run: |
-          cd extensions/totem-extension
-          TIMESTAMP=$(date -u +%Y%m%d-%H%M%S)
-          ZIPNAME="totem-extension-build-${TIMESTAMP}.zip"
-          cd dist && zip -r "../../../${ZIPNAME}" .
-          echo "ZIPNAME=${ZIPNAME}" >> $GITHUB_ENV
+          VERSION=$(node -p "require('./extensions/totem-extension/dist/manifest.json').version")
+          echo "value=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Extension version: ${VERSION}"
 
-      - name: Upload extension artifact
+      # Fixed-name artifacts (`totem-extension.zip` / `.crx`) are what the
+      # website links to via github.com/.../releases/latest/download/<name>.
+      # Version-stamped copies are kept alongside for auditing.
+      - name: Package extension (zip + signed crx3)
+        env:
+          # PEM private key used to sign the CRX. MUST stay stable across
+          # releases or Chrome treats each build as a different extension and
+          # will not offer in-place updates. Generate once with `npx crx3` and
+          # store the PEM contents as this secret.
+          EXTENSION_CRX_KEY: ${{ secrets.EXTENSION_CRX_KEY }}
+        run: |
+          set -euo pipefail
+          cd extensions/totem-extension
+          VERSION="${{ steps.version.outputs.value }}"
+          OUT="$GITHUB_WORKSPACE"
+
+          KEYFILE="$RUNNER_TEMP/extension-key.pem"
+          if [ -n "${EXTENSION_CRX_KEY:-}" ]; then
+            printf '%s' "$EXTENSION_CRX_KEY" > "$KEYFILE"
+            echo "Signing with the configured EXTENSION_CRX_KEY."
+          else
+            echo "::warning::EXTENSION_CRX_KEY is not set — generating an ephemeral key. The resulting .crx will not support in-place updates; set the secret to fix this."
+          fi
+
+          # Signed CRX3 + plain ZIP from dist/.
+          npx --yes crx3@2 -p "$KEYFILE" -o "$OUT/totem-extension.crx" -z "$OUT/totem-extension.zip" -- dist
+
+          cp "$OUT/totem-extension.zip" "$OUT/totem-extension-v${VERSION}.zip"
+          cp "$OUT/totem-extension.crx" "$OUT/totem-extension-v${VERSION}.crx"
+
+          TIMESTAMP=$(date -u +%Y%m%d-%H%M%S)
+          cp "$OUT/totem-extension.zip" "$OUT/totem-extension-build-${TIMESTAMP}.zip"
+
+          ( cd "$OUT" && sha256sum \
+              totem-extension.zip \
+              totem-extension-v${VERSION}.zip \
+              totem-extension.crx \
+              totem-extension-v${VERSION}.crx > SHA256SUMS.txt )
+          echo "--- SHA256SUMS.txt ---"
+          cat "$OUT/SHA256SUMS.txt"
+
+      - name: Upload build artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: totem-extension
-          path: totem-extension-build-*.zip
+          path: |
+            totem-extension.zip
+            totem-extension.crx
+            totem-extension-v*.zip
+            totem-extension-v*.crx
+            SHA256SUMS.txt
+            totem-extension-build-*.zip
           retention-days: 90
 
+      # Publishing the Release IS the approval: only `extension-v<version>`
+      # (a published Release) attaches the fixed-name assets.
       - name: Create release and upload
         uses: softprops/action-gh-release@c12583777ecdfd3be55c69cf75464299dc01057e # v3
-        if: startsWith(github.ref, 'refs/tags/extension-v')
+        if: startsWith(github.event.release.tag_name, 'extension-v') || startsWith(github.ref, 'refs/tags/extension-v')
         with:
-          files: totem-extension-build-*.zip
+          files: |
+            totem-extension.zip
+            totem-extension.crx
+            totem-extension-v*.zip
+            totem-extension-v*.crx
+            SHA256SUMS.txt
           generate_release_notes: true

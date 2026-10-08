@@ -73,6 +73,33 @@ if (isProduction) {
   console.log('   - Mock RPC excluded from build');
 }
 
+// Workspace packages (e.g. @totemsdk/minima-rpc) reach Node builtins only via
+// dynamic `import('node:net')` behind try/catch, for their Node-only raw HTTP
+// fallback. A browser extension never takes that path, but webpack still tries
+// to resolve the `node:` specifier at build time and throws UnhandledSchemeError.
+// `resolve.fallback` cannot intercept a URI scheme, so rewrite any `node:*`
+// request to an empty shim module.
+const NODE_SCHEME_ALIASES = [
+  'node:net',
+  'node:tls',
+  'node:crypto',
+  'node:stream',
+  'node:http',
+  'node:https',
+  'node:zlib',
+  'node:buffer',
+  'node:util',
+  'node:events',
+];
+const ignoreNodeSchemePlugins = () =>
+  NODE_SCHEME_ALIASES.map(
+    (scheme) =>
+      new webpack.NormalModuleReplacementPlugin(
+        new RegExp(`^${scheme.replace(':', '\\:')}$`),
+        require.resolve('./empty-node-module.js'),
+      ),
+  );
+
 // ============================================================================
 // SHARED CONFIGURATION
 // ============================================================================
@@ -116,7 +143,7 @@ const sharedConfig = {
       '@': path.resolve(__dirname, './src'),
     },
     fallback: {
-      "buffer": require.resolve("buffer"),
+      "buffer": require.resolve("buffer/"),
       "stream": require.resolve("stream-browserify"),
       "crypto": require.resolve("crypto-browserify"),
       "assert": require.resolve("assert"),
@@ -158,6 +185,7 @@ const backgroundConfig = {
   },
   plugins: [
     new BlockDevImportsPlugin(),
+    ...ignoreNodeSchemePlugins(),
     new webpack.ProvidePlugin({
       Buffer: ['buffer', 'Buffer'],
       process: 'process',
@@ -210,6 +238,7 @@ const uiConfig = {
   target: 'web',  // Browser DOM environment
   plugins: [
     new BlockDevImportsPlugin(),
+    ...ignoreNodeSchemePlugins(),
     new CopyWebpackPlugin({
       patterns: [
         { from: 'manifest.json', to: 'manifest.json' },

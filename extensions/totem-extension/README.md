@@ -73,6 +73,37 @@ npm run build
 
 ---
 
+## Distribution (direct download)
+
+The extension is distributed as a **GitHub Release** (`totem-extension.zip` / `.crx`), not on npm. The build workflow (`.github/workflows/build-extension.yml`) runs on every change to `extensions/totem-extension/**`, and attaches the artifacts when an `extension-v<version>` Release is published — that publication is the approval gate.
+
+`totem.ing` links to a stable URL, which resolves to the newest published Release:
+
+```
+https://github.com/Totem-Edge/totem-sdk/releases/latest/download/totem-extension.zip
+https://github.com/Totem-Edge/totem-sdk/releases/latest/download/totem-extension.crx
+```
+
+### Signing
+
+The `.crx` is signed (CRX3) so Chrome accepts it. The PEM key **must stay stable** across releases: a different key makes Chrome treat the build as a different extension and refuse in-place updates. Store the PEM contents as the `EXTENSION_CRX_KEY` Actions secret. Without it, CI generates an ephemeral key and warns.
+
+Generate the key once:
+
+```bash
+npx crx3 -p extension-key.pem -o /tmp/x.crx -z /tmp/x.zip -- dist
+gh secret set EXTENSION_CRX_KEY -R Totem-Edge/totem-sdk < extension-key.pem
+```
+
+To ship a release:
+
+```bash
+git tag extension-v1.0.0 && git push origin extension-v1.0.0
+# then publish a Release from that tag
+```
+
+---
+
 ## Project Structure
 
 ```
