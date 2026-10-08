@@ -6,6 +6,7 @@
  * between SDK and legacy initialization code paths.
  */
 
+import '../core/storage/typedStorage'; // runtime chrome.storage.*.getTyped (must run before storage reads)
 import { walletManager } from '../core/wallet';
 import { initializeBootstrap } from '../core/config/bootstrap';
 import { performStartupRecovery, saveRecoveryStatus } from '../core/recovery/startup';

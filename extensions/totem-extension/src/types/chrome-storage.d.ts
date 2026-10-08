@@ -6,6 +6,10 @@
  * settings reads. `getTyped` is an additive overload that preserves the old
  * `{[key: string]: any}` ergonomics at call sites that opt in, without changing
  * the typed `get` overloads for callers that want strictness.
+ *
+ * The matching runtime implementation lives in
+ * `src/core/storage/typedStorage.ts` and must be imported (side-effect) before
+ * any storage read; this file only declares the shape.
  */
 
 declare namespace chrome {

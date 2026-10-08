@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Totem",
   "short_name": "Totem",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Totem - Secure wallet for Minima blockchain with WOTS signatures (w=8)",
   "homepage_url": "https://totem.ing",
   "minimum_chrome_version": "116",

@@ -4,6 +4,7 @@
  * Uses theme system for consistent styling
  */
 
+import '../../core/storage/typedStorage'; // runtime chrome.storage.*.getTyped (must run first)
 import React, { useState, useEffect, useMemo } from 'react';
 import ReactDOM from 'react-dom/client';
 import { bootstrapPopupTheme } from '../theme/popupThemeBootstrap';
