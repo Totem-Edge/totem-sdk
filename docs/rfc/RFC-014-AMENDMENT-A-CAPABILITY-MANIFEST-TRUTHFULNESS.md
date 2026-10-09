@@ -95,35 +95,44 @@ export interface SupportProbe {
 ```
 
 `OmniaClientPort`, `WalletSignerPort`, `StatechainClientPort`, `KissvmClientPort`,
-`WotsLeasePort`, `ReceiptStorePort`, and `SelfHostedPort` all extend
-`SupportProbe`.
+`WotsLeasePort`, `ReceiptStorePort`, `PaymentRequestPort`, and `SelfHostedPort` all
+extend `SupportProbe`.
 
-`createRelayOmniaClient` implements it from its own truth table (single source).
-`@totemsdk/omnia` must **not** import `@totemsdk/connect` (connect is the
-dApp/wallet side; omnia is a lower-level package), so the client keys off its own
-method names, not connect's:
+The probe receives the **connect method name** (e.g. `totem_omniaCreateFactory`),
+i.e. the same key the manifest uses. This keeps one namespace for the manifest,
+the runtime dispatch, and the probe. It does **not** force a lower-level package
+like `@totemsdk/omnia` to import `@totemsdk/connect`: the probe is a *wallet-side*
+declaration authored by whoever assembles the context (the wallet bootstrap, which
+already knows both surfaces), and `@totemsdk/omnia` exports its unsupported set as
+plain **data** (`ADVANCED_UNSUPPORTED`) for that code to adapt.
 
 ```ts
-// packages/omnia/src/relay-client.ts
-const MUTATING = new Set(['openChannel', 'pay', 'settle', 'closeChannel']);
+// packages/omnia/src/relay-client.ts — exported data, no connect import
+export const ADVANCED_UNSUPPORTED = new Set([
+  'getRoute', 'getSwapRate', 'createFactory', 'openVirtualChannel',
+  'closeFactory', 'spliceIn', 'spliceOut',
+]);
 
-supports(method: string) {
-  // `method` here is the Omnia client method name (e.g. 'createFactory'),
-  // since the port is keyed by those names in OMNIA_CLIENT_METHOD_BY_METHOD.
-  if (ADVANCED_UNSUPPORTED.has(method)) {
-    return { supported: false, reason: `Omnia ${method} is not supported by the relay client.` };
-  }
-  if (!operations && MUTATING.has(method)) {
-    return { supported: false, reason: `Omnia ${method} requires wallet signing material.` };
-  }
-  return true;
-}
+// wallet bootstrap (imports both @totemsdk/connect and @totemsdk/omnia)
+const omniaMethod = (connectMethod: string): string =>
+  OMNIA_CLIENT_METHOD_BY_METHOD[connectMethod] ?? connectMethod;
+const omnia = {
+  ...createRelayOmniaClient(opts),
+  supports: (connectMethod: string) => {
+    const name = omniaMethod(connectMethod);
+    if (!options.operations && MUTATING.has(name)) {
+      return { supported: false, reason: `Omnia ${name} requires wallet signing material.` };
+    }
+    if (ADVANCED_UNSUPPORTED.has(name)) {
+      return { supported: false, reason: `Omnia ${name} is not supported by the relay client.` };
+    }
+    return true;
+  },
+};
 ```
 
-The connect layer maps `totem_omniaX → client method X` via
-`OMNIA_CLIENT_METHOD_BY_METHOD` (`packages/connect/src/wallet.ts:260`) and should
-invoke `port.supports(clientMethod)` with the **mapped** name. This keeps the
-dependency direction correct (`connect → omnia`, never the reverse).
+> A future refinement could have each port expose a neutral per-method capability
+> key so no name translation is needed, but that is not required for A0.
 
 ## A.5 Manifest derivation
 

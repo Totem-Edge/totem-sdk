@@ -124,8 +124,9 @@ describe('connect/wallet manifest', () => {
     };
     expect(buildWalletCapabilityManifest(edgeOnly).methods.totem_omniaPay).toBe('supported');
 
-    // Support is port-presence: a client port marks the family supported, and a
-    // method the client does not implement returns an explicit reason.
+    // Absent an explicit `supports()` probe, support is port-presence: a client
+    // port marks the family supported even if the client lacks the method (see
+    // the Amendment A probe tests for the corrected behaviour).
     const clientOnly: WalletHandlerContext = {
       ...emptyContext(),
       omnia: { pay: async () => ({ success: true }) },
@@ -143,6 +144,89 @@ describe('connect/wallet manifest', () => {
     expect(result.success).toBe(false);
     expect(result.errorCode).toBe('UNSUPPORTED');
     expect(result.error).toContain('does not implement getChannels');
+  });
+});
+
+describe('connect/wallet manifest — SupportProbe (RFC-014 Amendment A)', () => {
+  // A context with an `omnia` client but no `edge` port, so the Omnia
+  // `orRequires: ['edge']` fallback cannot mask the omnia probe.
+  function omniaOnly(omnia: NonNullable<WalletHandlerContext['omnia']>): WalletHandlerContext {
+    const ctx = fullContext();
+    return { ...ctx, edge: undefined, omnia };
+  }
+
+  it('marks a method unsupported when the port declares it (port presence is not capability)', () => {
+    const ctx = omniaOnly({
+      getChannels: async () => ({ success: true }),
+      pay: async () => ({ success: true }),
+      createFactory: async () => ({ success: true }),
+      // The probe is keyed by the *connect* method name the manifest describes.
+      supports: (method) =>
+        method === 'totem_omniaCreateFactory'
+          ? { supported: false, reason: 'factory topology not implemented by this client' }
+          : true,
+    });
+    const manifest = buildWalletCapabilityManifest(ctx);
+    expect(manifest.methods.totem_omniaCreateFactory).toBe('unsupported');
+    expect(manifest.reasons?.totem_omniaCreateFactory).toBe('factory topology not implemented by this client');
+    // Sibling methods the probe affirms stay supported.
+    expect(manifest.methods.totem_omniaPay).toBe('supported');
+  });
+
+  it('blocks dispatch and surfaces the probe reason before the handler runs', async () => {
+    let ran = false;
+    const ctx = omniaOnly({
+      pay: async () => { ran = true; return { success: true }; },
+      supports: (method) => (method === 'totem_omniaPay' ? { supported: false, reason: 'pay disabled by policy' } : true),
+    });
+    const { provider } = createWalletRuntime(ctx);
+    const result = (await provider.request({ method: 'totem_omniaPay', params: {} })) as { errorCode: string; error: string };
+    expect(result.errorCode).toBe('UNSUPPORTED');
+    expect(result.error).toBe('pay disabled by policy');
+    expect(ran).toBe(false);
+  });
+
+  it('falls back to the `orRequires` port when the primary port declines', () => {
+    // Omnia via client declines, but a host `edge` port is present: the method is
+    // supported through the alternative governed-edge path.
+    const ctx: WalletHandlerContext = {
+      ...fullContext(),
+      omnia: { supports: () => ({ supported: false, reason: 'no omnia client' }) },
+      edge: { executeAction: async () => ({ ok: true }) },
+    };
+    expect(buildWalletCapabilityManifest(ctx).methods.totem_omniaPay).toBe('supported');
+  });
+
+  it('requires every port in a set to affirm (AND over `requires`)', () => {
+    // TOTEM_SEND_COMPLEX requires signer + approvals. A declining signer probe
+    // must make the method unsupported even though both ports are present.
+    const ctx: WalletHandlerContext = {
+      ...fullContext(),
+      signer: {
+        ...(fullContext().signer as NonNullable<WalletHandlerContext['signer']>),
+        supports: (method) => (method === 'TOTEM_SEND_COMPLEX' ? { supported: false, reason: 'no complex sends' } : true),
+      },
+    };
+    const manifest = buildWalletCapabilityManifest(ctx);
+    expect(manifest.methods.TOTEM_SEND_COMPLEX).toBe('unsupported');
+    expect(manifest.reasons?.TOTEM_SEND_COMPLEX).toBe('no complex sends');
+  });
+
+  it('treats absence of a probe as supported (backward compatible)', () => {
+    const manifest = buildWalletCapabilityManifest(fullContext());
+    const unsupported = Object.entries(manifest.methods).filter(([, s]) => s === 'unsupported');
+    expect(unsupported).toEqual([]);
+  });
+
+  it('invokes the probe with the connect method name', () => {
+    const seen: string[] = [];
+    const ctx = omniaOnly({
+      pay: async () => ({ success: true }),
+      supports: (method) => { seen.push(method); return true; },
+    });
+    buildWalletCapabilityManifest(ctx);
+    expect(seen).toContain('totem_omniaPay');
+    expect(seen).not.toContain('pay');
   });
 });
 

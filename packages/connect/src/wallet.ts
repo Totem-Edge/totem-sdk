@@ -257,7 +257,9 @@ export const OMNIA_ACTION_BY_METHOD: Readonly<Record<string, string>> = {
 };
 
 /** Omnia connect method → consent Omnia client method (RFC-014 §6.3). */
-export const OMNIA_CLIENT_METHOD_BY_METHOD: Readonly<Record<string, keyof OmniaClientPort>> = {
+export const OMNIA_CLIENT_METHOD_BY_METHOD: Readonly<
+  Record<string, Exclude<keyof OmniaClientPort, 'supports'>>
+> = {
   totem_omniaGetChannels: 'getChannels',
   totem_omniaOpenChannel: 'openChannel',
   totem_omniaPay: 'pay',
@@ -282,7 +284,20 @@ export interface WalletInfoPort {
   readonly status: TotemProviderStatus;
 }
 
-export interface WalletSignerPort {
+/**
+ * Per-method capability declaration (RFC-014 Amendment A).
+ *
+ * Port presence is not capability: a port may exist but return UNSUPPORTED for a
+ * method (e.g. the Omnia relay client's advanced topology ops). A port implements
+ * `supports()` to report what it will actually attempt, so the manifest and the
+ * live dispatch describe reality rather than the port's existence. Absent ⇒ the
+ * method is assumed supported (pre-amendment behaviour).
+ */
+export interface SupportProbe {
+  supports?(method: string): boolean | { supported: boolean; reason?: string };
+}
+
+export interface WalletSignerPort extends SupportProbe {
   connect?(params: Record<string, unknown>): Promise<unknown>;
   verify?(params: Record<string, unknown>): Promise<unknown>;
   getAccounts?(params: Record<string, unknown>): Promise<unknown>;
@@ -311,7 +326,7 @@ export interface ApprovalPort {
   }): Promise<T>;
 }
 
-export interface ChainStateProviderPort {
+export interface ChainStateProviderPort extends SupportProbe {
   getCoins?(query: Record<string, unknown>): Promise<unknown>;
   getCoin?(coinId: string): Promise<unknown>;
   getProof?(coinId: string): Promise<unknown>;
@@ -319,7 +334,7 @@ export interface ChainStateProviderPort {
   broadcastTxPoW?(txpowHex: string): Promise<unknown>;
 }
 
-export interface WotsLeasePort {
+export interface WotsLeasePort extends SupportProbe {
   reserveKeyUse(params: Record<string, unknown>): Promise<unknown>;
   releaseReservation?(reservationId: string, reason?: string): Promise<unknown>;
   burnReservation?(reservationId: string, reason: string): Promise<unknown>;
@@ -343,7 +358,7 @@ export interface EdgeDispatchPort {
   }): Promise<{ ok: boolean; data?: unknown; error?: string; errorCode?: string }>;
 }
 
-export interface StatechainClientPort {
+export interface StatechainClientPort extends SupportProbe {
   create?(params: Record<string, unknown>): Promise<unknown>;
   transfer?(params: Record<string, unknown>): Promise<unknown>;
   claim?(params: Record<string, unknown>): Promise<unknown>;
@@ -356,7 +371,7 @@ export interface StatechainClientPort {
  * concrete Omnia runtime. Each method builds/signs/broadcasts via the wallet's
  * signer + approval surface.
  */
-export interface OmniaClientPort {
+export interface OmniaClientPort extends SupportProbe {
   getChannels?(params: Record<string, unknown>): Promise<unknown>;
   openChannel?(params: Record<string, unknown>): Promise<unknown>;
   pay?(params: Record<string, unknown>): Promise<unknown>;
@@ -372,28 +387,28 @@ export interface OmniaClientPort {
   spliceOut?(params: Record<string, unknown>): Promise<unknown>;
 }
 
-export interface KissvmClientPort {
+export interface KissvmClientPort extends SupportProbe {
   simulate?(params: Record<string, unknown>): Promise<unknown>;
   validate?(params: Record<string, unknown>): Promise<unknown>;
 }
 
-export interface AgentBridgePort {
+export interface AgentBridgePort extends SupportProbe {
   propose?(params: Record<string, unknown>): Promise<unknown>;
   explain?(params: Record<string, unknown>): Promise<unknown>;
   createReceipt?(params: Record<string, unknown>): Promise<unknown>;
 }
 
-export interface ReceiptStorePort {
+export interface ReceiptStorePort extends SupportProbe {
   getStatus(txpowId: string): Promise<unknown>;
   getReceipt(txpowId: string): Promise<unknown>;
 }
 
-export interface PaymentRequestPort {
+export interface PaymentRequestPort extends SupportProbe {
   create(params: Record<string, unknown>): Promise<unknown>;
   pay(params: Record<string, unknown>): Promise<unknown>;
 }
 
-export interface SelfHostedPort {
+export interface SelfHostedPort extends SupportProbe {
   setChainProvider(params: Record<string, unknown>): Promise<unknown>;
 }
 
@@ -587,15 +602,72 @@ export interface WalletCapabilityManifest {
   readonly reasons?: Record<string, string>;
 }
 
+/** A port that satisfies `key` refuses `method` (with an optional reason). */
+function portDeclines(
+  key: WalletPortKey,
+  method: string,
+  ctx: WalletHandlerContext,
+): { present: boolean; supported: boolean; reason?: string } {
+  const port = ctx[key] as SupportProbe | undefined;
+  if (port === undefined) return { present: false, supported: false };
+  if (typeof port.supports !== 'function') return { present: true, supported: true };
+  const verdict = port.supports(method);
+  return typeof verdict === 'boolean'
+    ? { present: true, supported: verdict }
+    : { present: true, supported: verdict.supported, reason: verdict.reason };
+}
+
+/**
+ * Evaluate one required port-set (RFC-014 Amendment A).
+ *
+ * Returns `undefined` when any port in the set is **absent** (set not satisfied),
+ * otherwise the affirmation verdict: satisfied only when **every** port in the
+ * set is present and affirms the method (AND). The first declining port's reason
+ * is retained.
+ */
+function setVerdict(
+  keys: readonly WalletPortKey[],
+  method: string,
+  ctx: WalletHandlerContext,
+): { satisfied: boolean; reason?: string } | undefined {
+  let reason: string | undefined;
+  let satisfied = true;
+  for (const key of keys) {
+    const v = portDeclines(key, method, ctx);
+    if (!v.present) return undefined;
+    if (!v.supported) {
+      satisfied = false;
+      if (reason === undefined && v.reason !== undefined) reason = v.reason;
+    }
+  }
+  return { satisfied, ...(reason !== undefined ? { reason } : {}) };
+}
+
 export function isMethodSupported(
   descriptor: WalletMethodDescriptor,
   ctx: WalletHandlerContext,
 ): boolean {
   if (descriptor.disposition === 'unsupported') return false;
-  if (descriptor.requires.every((key) => ctx[key] !== undefined)) return true;
+  const primary = setVerdict(descriptor.requires, descriptor.method, ctx);
+  if (primary?.satisfied) return true;
   // Alternative port set (e.g. Omnia via a consent client *or* a host edge port).
   const alt = descriptor.orRequires;
-  return !!alt && alt.length > 0 && alt.every((key) => ctx[key] !== undefined);
+  if (!alt || alt.length === 0) return false;
+  const altVerdict = setVerdict(alt, descriptor.method, ctx);
+  return altVerdict?.satisfied === true;
+}
+
+/** The first reason a required/alternative port declines `descriptor.method`. */
+function probeReason(
+  descriptor: WalletMethodDescriptor,
+  ctx: WalletHandlerContext,
+): string | undefined {
+  for (const keys of [descriptor.requires, descriptor.orRequires ?? []] as const) {
+    if (keys.length === 0) continue;
+    const verdict = setVerdict(keys, descriptor.method, ctx);
+    if (verdict && !verdict.satisfied && verdict.reason) return verdict.reason;
+  }
+  return undefined;
 }
 
 /** Build the capability/method-support manifest for a context. */
@@ -611,7 +683,9 @@ export function buildWalletCapabilityManifest(
     const supported = override ?? (isMethodSupported(descriptor, ctx) ? 'supported' : 'unsupported');
     methods[descriptor.method] = supported;
     if (supported === 'unsupported') {
-      reasons[descriptor.method] = descriptor.reason ?? 'Required wallet port not configured.';
+      reasons[descriptor.method] = probeReason(descriptor, ctx)
+        ?? descriptor.reason
+        ?? 'Required wallet port not configured.';
     } else {
       for (const cap of descriptor.requiredCapabilities) capabilities.add(cap);
     }
@@ -672,7 +746,9 @@ export function createWalletRuntime(
     }
     const descriptor = DESCRIPTOR_BY_METHOD.get(method);
     if (descriptor && !isMethodSupported(descriptor, ctx)) {
-      return unsupported(descriptor.reason ?? `${method} is not supported by this wallet.`);
+      return unsupported(
+        probeReason(descriptor, ctx) ?? descriptor.reason ?? `${method} is not supported by this wallet.`,
+      );
     }
     if (handler.requiresApproval) {
       // RFC-020 H2: approval is mandatory for approval-required methods — an
