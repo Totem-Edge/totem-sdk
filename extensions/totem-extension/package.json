@@ -1,6 +1,6 @@
 {
   "name": "totem-extension",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Totem browser extension — quantum-resistant wallet for the Minima network",
   "repository": {
     "type": "git",
