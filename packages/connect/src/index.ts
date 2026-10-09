@@ -909,3 +909,6 @@ export async function agentCreateReceipt(origin: string, params: {
 
 // ── Wallet-side runtime (RFC-014) ──────────────────────────────────────────
 export * from './wallet.js';
+
+// ── Axia public API contract (RFC-0002 P2) ─────────────────────────────────
+export * from './axia-contract.js';
