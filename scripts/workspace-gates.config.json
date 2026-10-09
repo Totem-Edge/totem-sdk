@@ -1,80 +1,294 @@
 {
   "schemaVersion": 2,
-  "comment": "Machine-readable publishability, verification, and maturity classification. Packages with status 'publishable' must pass every gate (build, typecheck, lint, unit tests). Packages with status 'excluded' are not published and are skipped by the verification gate with an explicit machine-readable reason. Maturity levels: alpha → beta → rc → v1. Each level activates additional required gates automatically via scripts/verify-workspace.mjs.",
+  "comment": "Machine-readable publishability, verification, and maturity classification. Packages with status 'publishable' must pass every gate (build, typecheck, lint, unit tests). Packages with status 'excluded' are not published and are skipped by the verification gate with an explicit machine-readable reason. Maturity levels: alpha \u2192 beta \u2192 rc \u2192 v1. Each level activates additional required gates automatically via scripts/verify-workspace.mjs.",
   "maturityGates": {
-    "alpha": ["typecheck", "lint", "test"],
-    "beta": ["typecheck", "lint", "test", "pack"],
-    "rc": ["typecheck", "lint", "test", "pack", "integration"],
-    "v1": ["typecheck", "lint", "test", "pack", "integration"]
+    "alpha": [
+      "typecheck",
+      "lint",
+      "test"
+    ],
+    "beta": [
+      "typecheck",
+      "lint",
+      "test",
+      "pack"
+    ],
+    "rc": [
+      "typecheck",
+      "lint",
+      "test",
+      "pack",
+      "integration"
+    ],
+    "v1": [
+      "typecheck",
+      "lint",
+      "test",
+      "pack",
+      "integration"
+    ]
   },
   "packages": {
-    "packages/agent-policy": { "status": "publishable", "maturity": "rc" },
-    "packages/authority": { "status": "publishable", "maturity": "v1" },
-    "packages/chain-provider": { "status": "publishable", "maturity": "rc" },
-    "packages/connect": { "status": "publishable", "maturity": "v1" },
-    "packages/core": { "status": "publishable", "maturity": "v1" },
-    "packages/core-wasm": { "status": "publishable", "maturity": "v1" },
-    "packages/decision": { "status": "publishable", "maturity": "beta" },
-    "packages/edge": { "status": "publishable", "maturity": "v1" },
-    "packages/edge-adapters": { "status": "publishable", "maturity": "rc" },
-    "packages/edge-bacnet": { "status": "publishable", "maturity": "rc" },
-    "packages/edge-ble": { "status": "publishable", "maturity": "rc" },
-    "packages/edge-can": { "status": "publishable", "maturity": "rc" },
-    "packages/edge-coap": { "status": "publishable", "maturity": "rc" },
-    "packages/edge-email": { "status": "publishable", "maturity": "rc" },
-    "packages/edge-grpc": { "status": "publishable", "maturity": "rc" },
-    "packages/edge-lorawan": { "status": "publishable", "maturity": "rc" },
-    "packages/edge-matter": { "status": "publishable", "maturity": "rc" },
-    "packages/edge-modbus": { "status": "publishable", "maturity": "rc" },
-    "packages/edge-mqtt": { "status": "publishable", "maturity": "rc" },
-    "packages/edge-nfc": { "status": "publishable", "maturity": "alpha" },
-    "packages/edge-opcua": { "status": "publishable", "maturity": "rc" },
-    "packages/edge-ros2": { "status": "publishable", "maturity": "rc" },
-    "packages/governance": { "status": "publishable", "maturity": "rc" },
-    "packages/identity": { "status": "publishable", "maturity": "v1" },
-    "packages/industrial-action": { "status": "publishable", "maturity": "rc" },
-    "packages/intelligence": { "status": "publishable", "maturity": "beta" },
-    "packages/kissvm": { "status": "publishable", "maturity": "v1" },
-    "packages/liquidity-bond": { "status": "publishable", "maturity": "rc" },
-    "packages/location-proof": { "status": "publishable", "maturity": "v1" },
-    "packages/spatial-proof": { "status": "publishable", "maturity": "v1" },
-    "packages/raster-proof": { "status": "publishable", "maturity": "v1" },
-    "packages/lookup-client": { "status": "publishable", "maturity": "rc" },
-    "packages/lookup-node": { "status": "publishable", "maturity": "rc" },
-    "packages/lookup-protocol": { "status": "publishable", "maturity": "rc" },
-    "packages/manifest": { "status": "publishable", "maturity": "v1" },
-    "packages/mcp-server": { "status": "publishable", "maturity": "rc" },
-    "packages/omnia": { "status": "publishable", "maturity": "v1" },
-    "packages/omnia-factory": { "status": "publishable", "maturity": "rc" },
-    "packages/omnia-host": { "status": "publishable", "maturity": "rc" },
-    "packages/omnia-pool": { "status": "publishable", "maturity": "rc" },
-    "packages/omnia-router": { "status": "publishable", "maturity": "rc" },
-    "packages/omnia-splice": { "status": "publishable", "maturity": "rc" },
-    "packages/omnia-vtxo": { "status": "publishable", "maturity": "rc" },
-    "packages/pear": { "status": "publishable", "maturity": "rc" },
-    "packages/proof": { "status": "publishable", "maturity": "v1" },
-    "packages/proof-integritas": { "status": "publishable", "maturity": "v1" },
-    "packages/proofgraph": { "status": "publishable", "maturity": "v1" },
-    "packages/provider-bond": { "status": "publishable", "maturity": "rc" },
-    "packages/minima-rpc": { "status": "publishable", "maturity": "rc" },
-    "packages/pubsub-transport": { "status": "publishable", "maturity": "rc" },
-    "packages/qvac": { "status": "publishable", "maturity": "beta" },
-    "packages/realtime": { "status": "publishable", "maturity": "rc" },
-    "packages/recursive-mast": { "status": "publishable", "maturity": "rc" },
-    "packages/root-identity": { "status": "publishable", "maturity": "v1" },
+    "packages/agent-policy": {
+      "status": "publishable",
+      "maturity": "rc"
+    },
+    "packages/authority": {
+      "status": "publishable",
+      "maturity": "v1"
+    },
+    "packages/chain-provider": {
+      "status": "publishable",
+      "maturity": "rc"
+    },
+    "packages/connect": {
+      "status": "publishable",
+      "maturity": "v1"
+    },
+    "packages/core": {
+      "status": "publishable",
+      "maturity": "v1"
+    },
+    "packages/core-wasm": {
+      "status": "publishable",
+      "maturity": "v1"
+    },
+    "packages/decision": {
+      "status": "publishable",
+      "maturity": "beta"
+    },
+    "packages/edge": {
+      "status": "publishable",
+      "maturity": "v1"
+    },
+    "packages/edge-adapters": {
+      "status": "publishable",
+      "maturity": "rc"
+    },
+    "packages/edge-bacnet": {
+      "status": "publishable",
+      "maturity": "rc"
+    },
+    "packages/edge-ble": {
+      "status": "publishable",
+      "maturity": "rc"
+    },
+    "packages/edge-can": {
+      "status": "publishable",
+      "maturity": "rc"
+    },
+    "packages/edge-coap": {
+      "status": "publishable",
+      "maturity": "rc"
+    },
+    "packages/edge-email": {
+      "status": "publishable",
+      "maturity": "rc"
+    },
+    "packages/edge-grpc": {
+      "status": "publishable",
+      "maturity": "rc"
+    },
+    "packages/edge-lorawan": {
+      "status": "publishable",
+      "maturity": "rc"
+    },
+    "packages/edge-matter": {
+      "status": "publishable",
+      "maturity": "rc"
+    },
+    "packages/edge-modbus": {
+      "status": "publishable",
+      "maturity": "rc"
+    },
+    "packages/edge-mqtt": {
+      "status": "publishable",
+      "maturity": "rc"
+    },
+    "packages/edge-nfc": {
+      "status": "publishable",
+      "maturity": "alpha"
+    },
+    "packages/edge-opcua": {
+      "status": "publishable",
+      "maturity": "rc"
+    },
+    "packages/edge-ros2": {
+      "status": "publishable",
+      "maturity": "rc"
+    },
+    "packages/governance": {
+      "status": "publishable",
+      "maturity": "rc"
+    },
+    "packages/identity": {
+      "status": "publishable",
+      "maturity": "v1"
+    },
+    "packages/industrial-action": {
+      "status": "publishable",
+      "maturity": "rc"
+    },
+    "packages/intelligence": {
+      "status": "publishable",
+      "maturity": "beta"
+    },
+    "packages/kissvm": {
+      "status": "publishable",
+      "maturity": "v1"
+    },
+    "packages/liquidity-bond": {
+      "status": "publishable",
+      "maturity": "rc"
+    },
+    "packages/location-proof": {
+      "status": "publishable",
+      "maturity": "v1"
+    },
+    "packages/spatial-proof": {
+      "status": "publishable",
+      "maturity": "v1"
+    },
+    "packages/raster-proof": {
+      "status": "publishable",
+      "maturity": "v1"
+    },
+    "packages/lookup-client": {
+      "status": "publishable",
+      "maturity": "rc"
+    },
+    "packages/lookup-node": {
+      "status": "publishable",
+      "maturity": "rc"
+    },
+    "packages/lookup-protocol": {
+      "status": "publishable",
+      "maturity": "rc"
+    },
+    "packages/manifest": {
+      "status": "publishable",
+      "maturity": "v1"
+    },
+    "packages/mcp-server": {
+      "status": "publishable",
+      "maturity": "rc"
+    },
+    "packages/omnia": {
+      "status": "publishable",
+      "maturity": "v1"
+    },
+    "packages/omnia-factory": {
+      "status": "publishable",
+      "maturity": "rc"
+    },
+    "packages/omnia-host": {
+      "status": "publishable",
+      "maturity": "rc"
+    },
+    "packages/omnia-pool": {
+      "status": "publishable",
+      "maturity": "rc"
+    },
+    "packages/omnia-relay": {
+      "status": "publishable",
+      "maturity": "alpha"
+    },
+    "packages/omnia-router": {
+      "status": "publishable",
+      "maturity": "rc"
+    },
+    "packages/omnia-splice": {
+      "status": "publishable",
+      "maturity": "rc"
+    },
+    "packages/omnia-vtxo": {
+      "status": "publishable",
+      "maturity": "rc"
+    },
+    "packages/pear": {
+      "status": "publishable",
+      "maturity": "rc"
+    },
+    "packages/proof": {
+      "status": "publishable",
+      "maturity": "v1"
+    },
+    "packages/proof-integritas": {
+      "status": "publishable",
+      "maturity": "v1"
+    },
+    "packages/proofgraph": {
+      "status": "publishable",
+      "maturity": "v1"
+    },
+    "packages/provider-bond": {
+      "status": "publishable",
+      "maturity": "rc"
+    },
+    "packages/minima-rpc": {
+      "status": "publishable",
+      "maturity": "rc"
+    },
+    "packages/pubsub-transport": {
+      "status": "publishable",
+      "maturity": "rc"
+    },
+    "packages/qvac": {
+      "status": "publishable",
+      "maturity": "beta"
+    },
+    "packages/realtime": {
+      "status": "publishable",
+      "maturity": "rc"
+    },
+    "packages/recursive-mast": {
+      "status": "publishable",
+      "maturity": "rc"
+    },
+    "packages/root-identity": {
+      "status": "publishable",
+      "maturity": "v1"
+    },
     "packages/sdk-tests": {
       "status": "excluded",
       "reason": "private test harness package; not intended for publication"
     },
-    "packages/se-server": { "status": "publishable", "maturity": "rc" },
-    "packages/server": { "status": "publishable", "maturity": "v1" },
-    "packages/statechain": { "status": "publishable", "maturity": "rc" },
-    "packages/storage": { "status": "publishable", "maturity": "alpha" },
-    "packages/stream-transport": { "status": "publishable", "maturity": "rc" },
-    "packages/tx-builder": { "status": "publishable", "maturity": "rc" },
-    "packages/txpow": { "status": "publishable", "maturity": "v1" },
-    "packages/wallet-adapter": { "status": "publishable", "maturity": "v1" },
-    "packages/wots-lease": { "status": "publishable", "maturity": "v1" },
+    "packages/se-server": {
+      "status": "publishable",
+      "maturity": "rc"
+    },
+    "packages/server": {
+      "status": "publishable",
+      "maturity": "v1"
+    },
+    "packages/statechain": {
+      "status": "publishable",
+      "maturity": "rc"
+    },
+    "packages/storage": {
+      "status": "publishable",
+      "maturity": "alpha"
+    },
+    "packages/stream-transport": {
+      "status": "publishable",
+      "maturity": "rc"
+    },
+    "packages/tx-builder": {
+      "status": "publishable",
+      "maturity": "rc"
+    },
+    "packages/txpow": {
+      "status": "publishable",
+      "maturity": "v1"
+    },
+    "packages/wallet-adapter": {
+      "status": "publishable",
+      "maturity": "v1"
+    },
+    "packages/wots-lease": {
+      "status": "publishable",
+      "maturity": "v1"
+    },
     "extensions/observability": {
       "status": "excluded",
       "reason": "private extension/observability scaffold (not an @totemsdk/* publishable)"

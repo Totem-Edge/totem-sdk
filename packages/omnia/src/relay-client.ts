@@ -240,12 +240,15 @@ function unsupported(message: string): { success: false; error: string; errorCod
 }
 
 /**
- * The Omnia methods this client does not implement (advanced topology ops). They
- * resolve to an explicit reason so the wallet manifest stays truthful.
+ * The Omnia methods this client does not implement (advanced topology ops /
+ * multi-party coordination). They resolve to an explicit reason so the wallet
+ * manifest stays truthful — including `payMultiHop`, which the base client does
+ * not implement at all (so it must still be reported unsupported, not absent).
  */
 export const ADVANCED_UNSUPPORTED = new Set([
   'getRoute',
   'getSwapRate',
+  'payMultiHop',
   'createFactory',
   'openVirtualChannel',
   'closeFactory',

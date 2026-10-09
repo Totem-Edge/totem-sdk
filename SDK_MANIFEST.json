@@ -3,7 +3,7 @@
   "title": "Totem SDK Package Manifest",
   "description": "Machine-readable index of all @totemsdk packages — for AI agents, tooling, and developers. Updated 2026-08-18.",
   "org": "@totemsdk",
-  "total": 63,
+  "total": 64,
   "domains": {
     "cryptographic-foundation": {
       "description": "WOTS+ signatures, TreeKey hierarchy, MMR proofs, KISSVM, MAST, TxPoW",
@@ -40,7 +40,8 @@
         "@totemsdk/se-server",
         "@totemsdk/tx-builder",
         "@totemsdk/omnia-host",
-        "@totemsdk/omnia-pool"
+        "@totemsdk/omnia-pool",
+        "@totemsdk/omnia-relay"
       ]
     },
     "edge-computing": {
@@ -1499,6 +1500,35 @@
         ".": "dist/index.{js,d.ts}"
       },
       "exportsDescription": "createOmniaPool, depositToPool, allocatePositionCapital, recordPoolFee, claimFees, withdrawLiquidity, executePoolPayout, computePoolNAV"
+    },
+    {
+      "name": "@totemsdk/omnia-relay",
+      "version": "0.1.0",
+      "description": "Wallet-side Omnia client — browser-safe relay transport + routing/factory/splice composition",
+      "domain": "payment-network",
+      "keywords": [
+        "omnia",
+        "relay",
+        "wallet",
+        "routing",
+        "multi-hop",
+        "factory",
+        "splice",
+        "browser"
+      ],
+      "dependencies": {
+        "@totemsdk/chain-provider": "^0.2.1",
+        "@totemsdk/core": "^1.2.11",
+        "@totemsdk/omnia": "^1.0.2",
+        "@totemsdk/omnia-factory": "^0.2.1",
+        "@totemsdk/omnia-router": "^0.2.1",
+        "@totemsdk/omnia-splice": "^0.2.1",
+        "@totemsdk/wots-lease": "^1.0.1"
+      },
+      "exports": {
+        ".": "dist/index.{js,d.ts}"
+      },
+      "exportsDescription": "createOmniaRelayClient, RoutingPort, channelGraphEdges, buildGraph, queryRoute, createRelayOmniaSwarm"
     },
     {
       "name": "@totemsdk/intelligence",

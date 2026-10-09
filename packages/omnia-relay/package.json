@@ -1,0 +1,76 @@
+{
+  "name": "@totemsdk/omnia-relay",
+  "version": "0.1.0",
+  "description": "Wallet-side Omnia client — browser-safe relay transport + routing/HTLC/factory/splice composition over @totemsdk/omnia",
+  "main": "dist/cjs/index.js",
+  "types": "dist/cjs/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
+    "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
+    "clean": "rm -rf dist",
+    "test": "jest"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "@totemsdk/chain-provider": "workspace:^",
+    "@totemsdk/core": "workspace:^",
+    "@totemsdk/omnia": "workspace:^",
+    "@totemsdk/omnia-factory": "workspace:^",
+    "@totemsdk/omnia-router": "workspace:^",
+    "@totemsdk/omnia-splice": "workspace:^",
+    "@totemsdk/wots-lease": "workspace:^"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20.0.0",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.0.0",
+    "typescript": "^7.0.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "author": "Totem SDK",
+  "homepage": "https://docs.totem.ing",
+  "bugs": {
+    "url": "https://github.com/Totem-Edge/totem-sdk/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Totem-Edge/totem-sdk.git",
+    "directory": "packages/omnia-relay"
+  },
+  "keywords": [
+    "totem",
+    "totemsdk",
+    "omnia",
+    "relay",
+    "wallet",
+    "routing",
+    "multi-hop",
+    "factory",
+    "splice",
+    "browser"
+  ],
+  "type": "module"
+}

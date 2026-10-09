@@ -1564,6 +1564,47 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
 
+  packages/omnia-relay:
+    dependencies:
+      '@totemsdk/chain-provider':
+        specifier: workspace:^
+        version: link:../chain-provider
+      '@totemsdk/core':
+        specifier: workspace:^
+        version: link:../core
+      '@totemsdk/omnia':
+        specifier: workspace:^
+        version: link:../omnia
+      '@totemsdk/omnia-factory':
+        specifier: workspace:^
+        version: link:../omnia-factory
+      '@totemsdk/omnia-router':
+        specifier: workspace:^
+        version: link:../omnia-router
+      '@totemsdk/omnia-splice':
+        specifier: workspace:^
+        version: link:../omnia-splice
+      '@totemsdk/wots-lease':
+        specifier: workspace:^
+        version: link:../wots-lease
+    devDependencies:
+      '@types/jest':
+        specifier: ^30.0.0
+        version: 30.0.0
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.43
+      jest:
+        specifier: ^30.4.2
+        version: 30.4.2(@types/node@20.19.43)
+      ts-jest:
+        specifier: ^29.0.0
+        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.1)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+
   packages/omnia-router:
     dependencies:
       '@totemsdk/core':

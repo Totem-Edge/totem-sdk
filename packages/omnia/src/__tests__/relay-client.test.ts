@@ -85,6 +85,9 @@ describe('createRelayOmniaClient', () => {
       const v = client.supports(name);
       expect(typeof v === 'boolean' ? v : v.supported).toBe(false);
     }
+    // payMultiHop is not implemented by the base client at all — it must still
+    // be reported unsupported (never silently absent/true).
+    expect((client.supports('payMultiHop') as { supported: boolean }).supported).toBe(false);
     // Mutations without signing material: unsupported.
     expect((client.supports('openChannel') as { supported: boolean }).supported).toBe(false);
     // Read-only channels query is always supported.

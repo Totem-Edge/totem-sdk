@@ -1,8 +1,8 @@
 # RFC-034 — Omnia Relay Method Parity (Phase A: Single-Party Operations)
 
-**Status:** Draft — design specification
+**Status:** Draft — Phase A A0/A1/A2/A3 landed in `@totemsdk/omnia-relay`; A4 (wallet wiring) next
 **Created:** 2026-10-08
-**Revised:** 2026-10-08 (corrected method taxonomy — see §1.1)
+**Revised:** 2026-10-09 (Phase A implemented; composition moved to `@totemsdk/omnia-relay` — see §7)
 **Authors:** Totem SDK Contributors
 **Depends on:** RFC-014 (wallet connect parity), RFC-014 Amendment A (manifest truthfulness), RFC-002 (Omnia Rust/WASM parity), RFC-013 (wallet self-hosted mode)
 **Touches:** `@totemsdk/omnia` (`relay` subpath), `@totemsdk/omnia-router`, `@totemsdk/omnia-factory`, `@totemsdk/omnia-splice`, `@totemsdk/connect` (`wallet`), wallet bootstraps
@@ -339,18 +339,30 @@ optional, so the current client already type-checks; the goal is that every meth
 
 ## 7. Dependency graph
 
+> **Correction (implemented).** An earlier revision of this RFC proposed wiring
+> the factory/splice methods **into `@totemsdk/omnia`'s `relay-client.ts`**. That
+> is impossible without a package cycle: `@totemsdk/omnia-factory` and
+> `@totemsdk/omnia-splice` **hard-depend on `@totemsdk/omnia`** and import back
+> into it at runtime (`DefaultEltooPaymentProgram`, `updateState`, `COINID_ELTOO`).
+> `omnia-router` alone would be safe (its `@totemsdk/omnia` reference is an
+> optional peer with no runtime import). The composition therefore lives in a new
+> package, **`@totemsdk/omnia-relay`**, which sits **above** `omnia`:
+
 ```text
-relay-client → omnia-router (graph, route, swap announcements)
-             → omnia-factory (createFactory)
-             → omnia-splice (proposeSpliceIn/Out, quiesce)
-             → omnia (channel, integration, relay)   [already]
-connect/wallet → (structural port only; no concrete dep)  [unchanged]
+@totemsdk/omnia-relay
+  → @totemsdk/omnia-router   (graph, route, swap announcements)
+  → @totemsdk/omnia-factory  (createFactory — single-party)
+  → @totemsdk/omnia-splice   (proposeSpliceIn/Out, quiesce — single-party)
+  → @totemsdk/omnia          (relay transport + channel lifecycle via ./relay)
+  → @totemsdk/chain-provider, @totemsdk/wots-lease (types)
+connect/wallet → the composed client as its `omnia` port (structural port only)
 ```
 
-`openVirtualChannel`/`closeFactory`/`payMultiHop` are **not** wired in Phase A and
-therefore add no `omnia-router`/`omnia-factory` execution dependency beyond
-`createFactory`. No new package, no new subpath. `@totemsdk/omnia/relay` already
-exists; its bundle grows by the browser-safe code the Phase A methods use.
+Nothing depends back on `omnia-relay`, so the graph stays acyclic and
+browser-safe. The **base** relay client stays in `@totemsdk/omnia/relay` (it needs
+only omnia internals); the new package **composes** it and overrides the advanced
+methods. `openVirtualChannel`/`closeFactory`/`payMultiHop` are not wired in Phase A
+and remain reasoned `UNSUPPORTED`.
 
 ## 8. Security & privacy
 
@@ -372,17 +384,20 @@ exists; its bundle grows by the browser-safe code the Phase A methods use.
 
 ## 9. Phasing
 
-- **A0** — `RoutingPort` + graph builder; `getRoute`/`getSwapRate`; response
-  serializers matching the Node host.
-- **A1** — `createFactory` (single-party, on-chain, approval-gated), returning an
-  `opening` factory.
-- **A2** — `spliceIn`/`spliceOut` proposers (quiesce + propose + burn-on-abandon).
-- **A3** — explicit reasoned `UNSUPPORTED` for all 8 Phase B methods (including a
-  present, non-absent `payMultiHop`); `supports()` truth table; flip the relay
-  tests from “UNSUPPORTED everywhere” to assertions on real output for Phase A and
-  reasons for Phase B.
-- **A4** — extension/PWA inject a routing source and their truth table; manifest
-  reflects Phase A support and Phase B gaps (RFC-014 Amendment A).
+- **A0 — landed.** New package `@totemsdk/omnia-relay` composes
+  `@totemsdk/omnia/relay` + `@totemsdk/omnia-router`: `RoutingPort` + graph
+  builder; `getRoute`/`getSwapRate` with wire serializers. Covered by
+  `packages/omnia-relay/src/__tests__/client.test.ts`.
+- **A1 / A2 — landed (single-party).** `createFactory` (on-chain funding) and the
+  `spliceIn`/`spliceOut` proposers are wired in the composed client; both return a
+  reasoned `UNSUPPORTED` without signing material.
+- **A3 — landed.** `supports()` truth table on the composed client; the base
+  relay client now reports `payMultiHop` (absent) as unsupported rather than
+  silently `true`.
+- **A4 — next.** Extension/PWA inject a routing source and their truth table;
+  manifest reflects Phase A support and Phase B gaps (RFC-014 Amendment A).
+  (Note: wiring the wallets pulls `omnia` + `tx-builder` into the extension
+  bundle — see the build-workflow filter — and is its own change.)
 
 ## 10. Acceptance / verification
 
