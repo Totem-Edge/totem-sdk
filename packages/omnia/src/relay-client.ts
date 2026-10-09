@@ -243,7 +243,7 @@ function unsupported(message: string): { success: false; error: string; errorCod
  * The Omnia methods this client does not implement (advanced topology ops). They
  * resolve to an explicit reason so the wallet manifest stays truthful.
  */
-const ADVANCED_UNSUPPORTED = new Set([
+export const ADVANCED_UNSUPPORTED = new Set([
   'getRoute',
   'getSwapRate',
   'createFactory',
@@ -251,6 +251,14 @@ const ADVANCED_UNSUPPORTED = new Set([
   'closeFactory',
   'spliceIn',
   'spliceOut',
+]);
+
+/** Methods that require wallet signing material to execute. */
+export const MUTATION_METHODS = new Set([
+  'openChannel',
+  'pay',
+  'settle',
+  'closeChannel',
 ]);
 
 export interface RelayOmniaClient {
@@ -268,6 +276,13 @@ export interface RelayOmniaClient {
   closeFactory(params: Record<string, unknown>): Promise<unknown>;
   spliceIn(params: Record<string, unknown>): Promise<unknown>;
   spliceOut(params: Record<string, unknown>): Promise<unknown>;
+  /**
+   * Per-method capability probe (RFC-014 Amendment A). Accepts either the Omnia
+   * client method name (`createFactory`) or the connect name
+   * (`totem_omniaCreateFactory`); returns a verdict so the wallet manifest
+   * reflects what this client will actually attempt.
+   */
+  supports(method: string): boolean | { supported: boolean; reason?: string };
   /** Tear down the relay connection + inbound handlers. */
   close(): Promise<void>;
 }
@@ -301,6 +316,24 @@ export function createRelayOmniaClient(options: RelayOmniaClientOptions = {}): R
 
   const advanced = (name: string) => async (): Promise<unknown> =>
     unsupported(`Omnia ${name} is not supported by the relay client.`);
+
+  // Normalise a connect name (`totem_omniaPay`) or a client name (`pay`) to the
+  // client method name used by the truth sets.
+  const clientName = (method: string): string =>
+    method.startsWith('totem_omnia')
+      ? method.slice('totem_omnia'.length).charAt(0).toLowerCase() + method.slice('totem_omnia'.length + 1)
+      : method;
+
+  const supports = (method: string): boolean | { supported: boolean; reason?: string } => {
+    const name = clientName(method);
+    if (ADVANCED_UNSUPPORTED.has(name)) {
+      return { supported: false, reason: `Omnia ${name} is not supported by the relay client.` };
+    }
+    if (!operations && MUTATION_METHODS.has(name)) {
+      return { supported: false, reason: `Omnia ${name} requires wallet signing material that is not configured.` };
+    }
+    return true;
+  };
 
   const runOp = async (
     name: keyof RelayOmniaOperations,
@@ -338,6 +371,7 @@ export function createRelayOmniaClient(options: RelayOmniaClientOptions = {}): R
     closeFactory: advanced('closeFactory'),
     spliceIn: advanced('spliceIn'),
     spliceOut: advanced('spliceOut'),
+    supports,
     async close() {
       unsubscribe?.();
       await swarm.close();
@@ -345,4 +379,4 @@ export function createRelayOmniaClient(options: RelayOmniaClientOptions = {}): R
   };
 }
 
-export { ADVANCED_UNSUPPORTED };
+export { ADVANCED_UNSUPPORTED as ADVANCED_UNSUPPORTED_SET };

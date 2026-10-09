@@ -78,6 +78,37 @@ describe('createRelayOmniaClient', () => {
     await client.close();
   });
 
+  it('reports support truthfully via supports() (RFC-014 Amendment A)', async () => {
+    const client = createRelayOmniaClient({ swarm: fakeSwarm() });
+    // Advanced ops: unsupported regardless of signing material.
+    for (const name of ['createFactory', 'spliceIn', 'getRoute', 'getSwapRate']) {
+      const v = client.supports(name);
+      expect(typeof v === 'boolean' ? v : v.supported).toBe(false);
+    }
+    // Mutations without signing material: unsupported.
+    expect((client.supports('openChannel') as { supported: boolean }).supported).toBe(false);
+    // Read-only channels query is always supported.
+    expect(client.supports('getChannels')).toBe(true);
+    // Accepts the connect name namespace too.
+    expect((client.supports('totem_omniaSpliceOut') as { supported: boolean }).supported).toBe(false);
+    expect(client.supports('totem_omniaGetChannels')).toBe(true);
+    await client.close();
+  });
+
+  it('affirms mutations once signing material is configured', async () => {
+    const client = createRelayOmniaClient({
+      swarm: fakeSwarm(),
+      localParticipant: { partyId: 'p1', publicKeyDigest: 'aa', addressIndex: 0 },
+      signer: { publicKeyDigest: 'aa', sign: async () => ({}) } as never,
+      leaseProvider: { reserveKeyUse: async () => ({}), releaseReservation: async () => ({}) } as never,
+      chainProvider: {} as never,
+    });
+    expect(client.supports('openChannel')).toBe(true);
+    // Advanced ops stay unsupported even with signing material.
+    expect((client.supports('createFactory') as { supported: boolean }).supported).toBe(false);
+    await client.close();
+  });
+
   it('wires inbound integration and tears down the swarm on close', async () => {
     const swarm = fakeSwarm();
     const client = createRelayOmniaClient({ swarm });
