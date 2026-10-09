@@ -1579,16 +1579,21 @@
         },
         "OMNIA_CLIENT_METHOD_BY_METHOD": {
           "kind": "const",
-          "signature": "OMNIA_CLIENT_METHOD_BY_METHOD: Readonly<Record<string, keyof OmniaClientPort>> = { totem_omniaGetChannels: 'getChannels', totem_omniaOpenChannel: 'openChannel', totem_omniaPay: 'pay', totem_omniaSettl",
+          "signature": "OMNIA_CLIENT_METHOD_BY_METHOD: Readonly< Record<string, Exclude<keyof OmniaClientPort, 'supports'>> > = { totem_omniaGetChannels: 'getChannels', totem_omniaOpenChannel: 'openChannel', totem_omniaPay: ",
           "doc": "Omnia connect method → consent Omnia client method (RFC-014 §6.3)."
         },
         "WalletInfoPort": {
           "kind": "interface",
           "signature": "export interface WalletInfoPort"
         },
+        "SupportProbe": {
+          "kind": "interface",
+          "signature": "export interface SupportProbe",
+          "doc": "Per-method capability declaration (RFC-014 Amendment A).\n\nPort presence is not capability: a port may exist but return UNSUPPORTED for a\nmethod (e.g. the Omnia relay client's advanced topology ops). A port implements\n`supports()` to report what it will actually attempt, so the manifest and the\nlive dispatch describe reality rather than the port's existence. Absent ⇒ the\nmethod is assumed supported (pre-amendment behaviour)."
+        },
         "WalletSignerPort": {
           "kind": "interface",
-          "signature": "export interface WalletSignerPort"
+          "signature": "export interface WalletSignerPort extends SupportProbe"
         },
         "ApprovalPort": {
           "kind": "interface",
@@ -1596,11 +1601,11 @@
         },
         "ChainStateProviderPort": {
           "kind": "interface",
-          "signature": "export interface ChainStateProviderPort"
+          "signature": "export interface ChainStateProviderPort extends SupportProbe"
         },
         "WotsLeasePort": {
           "kind": "interface",
-          "signature": "export interface WotsLeasePort"
+          "signature": "export interface WotsLeasePort extends SupportProbe"
         },
         "EdgeDispatchPort": {
           "kind": "interface",
@@ -1609,32 +1614,32 @@
         },
         "StatechainClientPort": {
           "kind": "interface",
-          "signature": "export interface StatechainClientPort"
+          "signature": "export interface StatechainClientPort extends SupportProbe"
         },
         "OmniaClientPort": {
           "kind": "interface",
-          "signature": "export interface OmniaClientPort",
+          "signature": "export interface OmniaClientPort extends SupportProbe",
           "doc": "Consent-gated Omnia construction/execution client (RFC-014 §6.3). The wallet\nsupplies this (or a host injects it); `@totemsdk/connect/wallet` depends on no\nconcrete Omnia runtime. Each method builds/signs/broadcasts via the wallet's\nsigner + approval surface."
         },
         "KissvmClientPort": {
           "kind": "interface",
-          "signature": "export interface KissvmClientPort"
+          "signature": "export interface KissvmClientPort extends SupportProbe"
         },
         "AgentBridgePort": {
           "kind": "interface",
-          "signature": "export interface AgentBridgePort"
+          "signature": "export interface AgentBridgePort extends SupportProbe"
         },
         "ReceiptStorePort": {
           "kind": "interface",
-          "signature": "export interface ReceiptStorePort"
+          "signature": "export interface ReceiptStorePort extends SupportProbe"
         },
         "PaymentRequestPort": {
           "kind": "interface",
-          "signature": "export interface PaymentRequestPort"
+          "signature": "export interface PaymentRequestPort extends SupportProbe"
         },
         "SelfHostedPort": {
           "kind": "interface",
-          "signature": "export interface SelfHostedPort"
+          "signature": "export interface SelfHostedPort extends SupportProbe"
         },
         "WalletHandlerContext": {
           "kind": "interface",
@@ -1659,6 +1664,52 @@
         "WalletRuntime": {
           "kind": "interface",
           "signature": "export interface WalletRuntime"
+        },
+        "isWalletCapabilityManifest": {
+          "kind": "function",
+          "signature": "isWalletCapabilityManifest(value: unknown): value is WalletCapabilityManifest",
+          "doc": "Structural check for the RFC-014 §6.5 / RFC-0002 §4.2a manifest. Mirrors the\n`WalletCapabilityManifest` schema in `@axia/contracts` and the Axia route's\n`ManifestSchema`."
+        },
+        "walletCapabilitiesUrl": {
+          "kind": "function",
+          "signature": "walletCapabilitiesUrl(wallet: string, version?: string, baseUrl?: string): string",
+          "doc": "Build the public read URL: `GET /public/wallet-capabilities?wallet=&version=`."
+        },
+        "fetchAxiaWalletCapabilities": {
+          "kind": "function",
+          "signature": "fetchAxiaWalletCapabilities(wallet: string, options?: AxiaContractClientOptions & { version?: string; }): Promise<WalletCapabilityManifest>",
+          "doc": "Read a wallet's capability manifest as mirrored by Axia. The wallet is the\nsource of truth; this is the discovery read used by dApps and by the wallet to\nverify its own mirror."
+        },
+        "publishAxiaWalletCapabilities": {
+          "kind": "function",
+          "signature": "publishAxiaWalletCapabilities(manifest: WalletCapabilityManifest, options?: AxiaContractClientOptions): Promise<PublishCapabilityResult>",
+          "doc": "Publish (mirror) a wallet's manifest to Axia. Admin-guarded on the server;\n`options.adminKey` is required and never logged."
+        },
+        "diffWalletCapabilityManifests": {
+          "kind": "function",
+          "signature": "diffWalletCapabilityManifests(local: WalletCapabilityManifest, remote: WalletCapabilityManifest): ManifestDrift[]",
+          "doc": "Compare the wallet's locally-built manifest (source of truth) with the one\nAxia serves. An empty result means the mirror is in sync. Used by the\nanti-drift gate and by wallets that re-publish on mismatch."
+        },
+        "AXIA_DEFAULT_API_BASE": {
+          "kind": "const",
+          "signature": "AXIA_DEFAULT_API_BASE = 'https://api.axia.to'",
+          "doc": "Default hosted Axia endpoint."
+        },
+        "AxiaContractClientOptions": {
+          "kind": "interface",
+          "signature": "export interface AxiaContractClientOptions"
+        },
+        "AxiaContractError": {
+          "kind": "class",
+          "signature": "export class AxiaContractError extends Error"
+        },
+        "PublishCapabilityResult": {
+          "kind": "interface",
+          "signature": "export interface PublishCapabilityResult"
+        },
+        "ManifestDrift": {
+          "kind": "interface",
+          "signature": "export interface ManifestDrift"
         }
       }
     },
@@ -10807,6 +10858,114 @@
         "RecordPoolFeeParams": {
           "kind": "type",
           "signature": "export type RecordPoolFeeParams = { pool: LiquidityPoolManifest"
+        }
+      }
+    },
+    "@totemsdk/omnia-relay": {
+      "symbols": {
+        "AXIA_RELAY_URL": {
+          "kind": "const",
+          "signature": "AXIA_RELAY_URL = \"wss://api.axia.to/api/relay/ws\"",
+          "doc": "Axia-hosted relay bridge (default)."
+        },
+        "relaySwarmUrl": {
+          "kind": "function",
+          "signature": "relaySwarmUrl(options?: RelayOmniaSwarmOptions): string",
+          "doc": "Resolve the relay WebSocket URL (Axia default, or a self-hosted sidecar)."
+        },
+        "createRelayOmniaSwarm": {
+          "kind": "function",
+          "signature": "createRelayOmniaSwarm(options?: RelayOmniaSwarmOptions): OmniaSwarm",
+          "doc": "Create a relay-backed Omnia swarm without importing the native Hyperswarm path."
+        },
+        "createRelayOmniaOperations": {
+          "kind": "function",
+          "signature": "createRelayOmniaOperations(options: RelayOmniaOperationsOptions): RelayOmniaOperations",
+          "doc": "Local channel operations backed by the wallet's signing material — the port of\n`@totemsdk/omnia-host`'s `openChannel`/`pay`/`settle`/`closeChannel` handlers\n(RFC-014 §6.3), browser-safe (no SQLite/RPC/Node builtins).\n\n`openChannel` expects the wallet/dApp to supply `fundingWitnessHex` (the signed\nfunding-input witness) — the wallet signs the funding transaction itself."
+        },
+        "createRelayOmniaClient": {
+          "kind": "function",
+          "signature": "createRelayOmniaClient(options?: RelayOmniaClientOptions): RelayOmniaClient",
+          "doc": "Build a relay-backed Omnia client. Assign the returned object as the wallet's\n`omnia` port: `configureExtensionWalletRuntime({ omnia })`."
+        },
+        "ADVANCED_UNSUPPORTED": {
+          "kind": "const",
+          "signature": "ADVANCED_UNSUPPORTED: Set<string>",
+          "doc": "The Omnia methods this client does not implement (advanced topology ops /\nmulti-party coordination). They resolve to an explicit reason so the wallet\nmanifest stays truthful — including `payMultiHop`, which the base client does\nnot implement at all (so it must still be reported unsupported, not absent)."
+        },
+        "MUTATION_METHODS": {
+          "kind": "const",
+          "signature": "MUTATION_METHODS: Set<string>",
+          "doc": "Methods that require wallet signing material to execute."
+        },
+        "RelayOmniaSwarmOptions": {
+          "kind": "interface",
+          "signature": "export interface RelayOmniaSwarmOptions"
+        },
+        "RelayOmniaOperations": {
+          "kind": "interface",
+          "signature": "export interface RelayOmniaOperations",
+          "doc": "Structural local channel operations supplied by the wallet (signing material)."
+        },
+        "RelayOmniaOperationsOptions": {
+          "kind": "interface",
+          "signature": "export interface RelayOmniaOperationsOptions"
+        },
+        "RelayOmniaClient": {
+          "kind": "interface",
+          "signature": "export interface RelayOmniaClient"
+        },
+        "RelayOmniaClientOptions": {
+          "kind": "interface",
+          "signature": "export interface RelayOmniaClientOptions extends RelayOmniaSwarmOptions"
+        },
+        "createOmniaRelayClient": {
+          "kind": "function",
+          "signature": "createOmniaRelayClient(options?: OmniaRelayClientOptions): RelayOmniaClient",
+          "doc": "Build the wallet-facing Omnia client: the base relay client plus the Phase A\nrouting and single-party operations, with a truthful `supports()`."
+        },
+        "OmniaRelayClientOptions": {
+          "kind": "interface",
+          "signature": "export interface OmniaRelayClientOptions extends RelayOmniaClientOptions"
+        },
+        "channelGraphEdges": {
+          "kind": "function",
+          "signature": "channelGraphEdges(channels: Iterable<OmniaChannel>): ChannelGraphEdge[]",
+          "doc": "Derive directed graph edges from a set of Omnia channels (single-node view)."
+        },
+        "buildGraph": {
+          "kind": "function",
+          "signature": "buildGraph(routing: RoutingPort | undefined, channels: Iterable<OmniaChannel>): ChannelGraph",
+          "doc": "Build a `ChannelGraph` from the injected routing source, or the wallet's own\nchannels when no source is configured."
+        },
+        "queryRoute": {
+          "kind": "function",
+          "signature": "queryRoute(graph: ChannelGraph, query: RouteQuery): Route | CrossTokenRoute | null",
+          "doc": "Pure routing query over a graph. Returns `null` when no route exists."
+        },
+        "serializeRoute": {
+          "kind": "function",
+          "signature": "serializeRoute(route: Route | CrossTokenRoute): Record<string, unknown>",
+          "doc": "Serialize a route for the wire (bigints → decimal strings)."
+        },
+        "serializeSwapAnnouncement": {
+          "kind": "function",
+          "signature": "serializeSwapAnnouncement(a: SwapAnnouncement): Record<string, unknown>",
+          "doc": "Serialize swap announcements for the wire."
+        },
+        "getSwapAnnouncements": {
+          "kind": "function",
+          "signature": "getSwapAnnouncements(graph: ChannelGraph, tokenIn: string, tokenOut: string): SwapAnnouncement[]",
+          "doc": "Return all swap announcements for a given token pair, or an empty array."
+        },
+        "RoutingPort": {
+          "kind": "interface",
+          "signature": "export interface RoutingPort",
+          "doc": "Source of routing topology for the relay client (RFC-034 §6.1). A thin wallet\nsees only its own channels, so a host (a self-hosted relay sidecar) or a\ngossip feed may inject a fuller graph."
+        },
+        "RouteQuery": {
+          "kind": "interface",
+          "signature": "export interface RouteQuery"
         }
       }
     },
