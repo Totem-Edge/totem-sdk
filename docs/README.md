@@ -177,6 +177,10 @@
 | [rfc/RFC-031-CORE-WASM-SOLE-IMPLEMENTATION.md](rfc/RFC-031-CORE-WASM-SOLE-IMPLEMENTATION.md) | Core-Wasm sole-implementation — portable WASM (async init), oracle parity gates, provenance, and the gated/phased sunset of the JS crypto kernels (draft) |
 | [rfc/RFC-032-LOOKUP-STACK-POST-QUANTUM-IDENTITY.md](rfc/RFC-032-LOOKUP-STACK-POST-QUANTUM-IDENTITY.md) | Lookup-stack post-quantum identity — replace Ed25519 with the WOTS/TreeKey root identity across auth, announcements, lease certs and trust records; hard switch to lookup-protocol v2 (draft) |
 | [rfc/RFC-033-GO-WOTS-VIA-RUST-FFI.md](rfc/RFC-033-GO-WOTS-VIA-RUST-FFI.md) | Byte-exact WOTS for the Go mirrors via Rust FFI — reuse the pure-Rust core over a C ABI + cgo instead of a hand port; bidirectional TS⇄Go parity (draft) |
+| [rfc/RFC-034-OMNIA-RELAY-METHOD-PARITY.md](rfc/RFC-034-OMNIA-RELAY-METHOD-PARITY.md) | Omnia relay method parity (Phase A) — serve the single-wallet Omnia methods (`getRoute`, `getSwapRate` read-only; `createFactory`, `spliceIn`, `spliceOut` single-party, `createFactory` on-chain); reasoned `UNSUPPORTED` for the multi-party Phase B methods (draft) |
+| [rfc/RFC-035-OMNIA-PEER-COORDINATION-PROTOCOL.md](rfc/RFC-035-OMNIA-PEER-COORDINATION-PROTOCOL.md) | Omnia peer coordination protocol (Phase B) — message kinds + verified, durable round-trips for the N-of-N/per-hop methods (`openVirtualChannel`, `closeFactory`, `payMultiHop`) and the factory/splice accept-finalize halves, over the relay (draft) |
+| [rfc/RFC-036-SERVER-SETTLEMENT-VERIFICATION.md](rfc/RFC-036-SERVER-SETTLEMENT-VERIFICATION.md) | Server settlement verification & package identity — explicit submission-vs-settlement contract, `awaitConfirmation` inclusion/balance/recoverability checks, and `@totemsdk/node` → `@totemsdk/server` doc/namespace correction (draft) |
+| [rfc/RFC-014-AMENDMENT-A-CAPABILITY-MANIFEST-TRUTHFULNESS.md](rfc/RFC-014-AMENDMENT-A-CAPABILITY-MANIFEST-TRUTHFULNESS.md) | RFC-014 Amendment A — capability manifest truthfulness: port presence is not capability; per-method `supports()` probes so the manifest reflects what the wallet actually serves (draft) |
 
 ---
 
