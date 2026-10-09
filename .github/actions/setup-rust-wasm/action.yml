@@ -30,14 +30,26 @@ runs:
         restore-keys: |
           ${{ runner.os }}-rust-wasm-${{ inputs.cache-key }}-
           ${{ runner.os }}-rust-wasm-
-    - name: Install wasm-pack
+    - name: Install wasm-pack (pinned 0.15.0)
       shell: bash
-      run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      run: |
+        set -euo pipefail
+        # Pin explicitly: the upstream `init.sh` installer has served a stale
+        # 0.13.1, tripping the RFC-031 P3 version check below. Download the
+        # exact release binary instead.
+        WPKG="0.15.0"
+        ASSET="wasm-pack-v${WPKG}-x86_64-unknown-linux-musl"
+        curl -sSfL \
+          "https://github.com/rustwasm/wasm-pack/releases/download/v${WPKG}/${ASSET}.tar.gz" \
+          | tar -xz -C /tmp
+        install -m 0755 "/tmp/${ASSET}/wasm-pack" "$HOME/.cargo/bin/wasm-pack"
     - name: Verify pinned wasm-pack version (RFC-031 P3)
       shell: bash
       run: |
+        expected="0.15.0"
         actual="$(wasm-pack --version | awk '{print $2}')"
-        if [ "$actual" != "0.15.0" ]; then
-          echo "::error::wasm-pack version drift: expected 0.15.0, got $actual"
+        if [ "$actual" != "$expected" ]; then
+          echo "::error::wasm-pack version drift: expected $expected, got $actual"
           exit 1
         fi
+        echo "wasm-pack $actual (pinned)"
