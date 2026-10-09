@@ -14,7 +14,7 @@ import { leaseMonitor } from '../core/monitoring/lease';
 import { startAnnouncementSubscription } from '../core/announcements/wsSubscriber';
 import { isSharedConnectMethod, dispatchSharedConnectMethod, isConnectMethod, configureExtensionWalletRuntime } from '../core/connect/walletRuntime';
 import type { WalletHandlerContext } from '@totemsdk/connect';
-import { buildWalletLeaseProvider, loadWalletNetworkConfig } from '../core/config/selfHosted';
+import { buildWalletLeaseProvider, loadWalletNetworkConfig, isSelfHostedLeaseActive } from '../core/config/selfHosted';
 import { activeChainProviderStore } from '../core/config/activeChainProvider';
 // @ts-ignore - subpath export resolves via package "exports" at bundle time; the
 // extension's legacy "node" moduleResolution cannot see it.
@@ -909,6 +909,14 @@ async function sdkStartupRecovery(projectId: string) {
 async function startupSequenceImpl() {
   const config = await bootstrapInit();
   const projectId = config?.AXIA_PROJECT_ID || 'totem-shared';
+
+  // Seed the synchronous network-config cache so capability probes (RFC-014
+  // Amendment A) can report the true self-hosted lease state without awaiting.
+  try {
+    await loadWalletNetworkConfig(activeChainProviderStore());
+  } catch (e) {
+    console.warn('[Background] Failed to seed network config cache:', e);
+  }
   
   // Telemetry is opt-in — load consent state before any tracking call.
   await initTelemetry();
@@ -1083,6 +1091,20 @@ function buildExtensionConnectPorts(): Partial<WalletHandlerContext> {
       },
     },
     lease: {
+      // RFC-014 Amendment A: in Axia mode the extension does not expose a
+      // dApp-reachable WOTS lease (the reserved-lease methods return
+      // UNSUPPORTED), so report it honestly rather than by port presence.
+      supports(method: string) {
+        if (method === 'totem_reserveWotsLease' || method === 'totem_releaseWotsLease') {
+          if (!isSelfHostedLeaseActive()) {
+            return {
+              supported: false,
+              reason: 'WOTS key use is managed by Axia; enable self-hosted key use in Network Settings.',
+            };
+          }
+        }
+        return true;
+      },
       async reserveKeyUse(params: Record<string, unknown>) {
         const lease = await getExtensionLease();
         if (!lease) {

@@ -8,6 +8,8 @@ import {
   restoreSelfHostedConsent,
   buildWalletChainProvider,
   buildWalletLeaseProvider,
+  peekWalletNetworkConfig,
+  isSelfHostedLeaseActive,
   type WalletKeyValueStore,
 } from '../src/core/config/selfHosted';
 import { clearConsentedHosts, validateNodeUrl } from '../src/core/security/consentRegistry';
@@ -60,6 +62,25 @@ describe('wallet network config persistence', () => {
         lease: { mode: 'axia' },
       }),
     ).rejects.toThrow(/HTTPS/);
+  });
+
+  it('exposes a synchronous cache for capability probes (RFC-014 Amendment A)', async () => {
+    const store = memoryKv();
+
+    await loadWalletNetworkConfig(store); // Axia default
+    expect(peekWalletNetworkConfig()).toEqual(DEFAULT_WALLET_NETWORK_CONFIG);
+    expect(isSelfHostedLeaseActive()).toBe(false);
+
+    await saveWalletNetworkConfig(store, {
+      chain: { mode: 'composite', minimaRpcUrl: 'https://node.example.com:9005', fallbackToAxia: true },
+      lease: { mode: 'hybrid', threshold: 100 },
+    });
+    expect(isSelfHostedLeaseActive()).toBe(true);
+    expect(peekWalletNetworkConfig()?.lease.mode).toBe('hybrid');
+
+    // Reverting to Axia clears the active-lease signal synchronously.
+    await saveWalletNetworkConfig(store, { chain: { mode: 'axia' }, lease: { mode: 'axia' } });
+    expect(isSelfHostedLeaseActive()).toBe(false);
   });
 });
 

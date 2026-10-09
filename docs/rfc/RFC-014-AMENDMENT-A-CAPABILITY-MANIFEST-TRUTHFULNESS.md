@@ -1,8 +1,8 @@
 # RFC-014 Amendment A — Capability Manifest Truthfulness
 
-**Status:** Draft — A0 + A1 landed; A2 (wallet bootstrap truth tables + truthfulness gate) next
+**Status:** Draft — A0, A1, A2 landed; A3 (Axia mirror re-publish) next
 **Created:** 2026-10-08
-**Revised:** 2026-10-08 (A0/A1 implemented)
+**Revised:** 2026-10-08 (A0/A1/A2 implemented)
 **Amends:** RFC-014 (Wallet Connect Parity)
 **Touches:** `@totemsdk/connect` (`wallet` subpath), `@totemsdk/omnia` (`relay` subpath), the extension + PWA wallet bootstraps
 **Depends on:** RFC-014 §6.3/§6.5, RFC-034 (Omnia relay method parity), RFC-035 (Omnia peer coordination)
@@ -240,12 +240,17 @@ that a `supported` claim is not contradicted by an immediate `UNSUPPORTED`.
 - **A1 — landed.** `createRelayOmniaClient.supports` + exported `ADVANCED_UNSUPPORTED`
   / `MUTATION_METHODS` truth sets (both name namespaces). Covered by
   `packages/omnia/src/__tests__/relay-client.test.ts`.
-- **A2 — next.** Wallet bootstraps pass their real truth tables (the extension/PWA
-  do not yet wire an `omnia` port, so the over-report is latent but real once they
-  do); and the truthfulness test (§A.7) replaces the `wallet.test.ts` “all
-  supported” invariant for the wired manifests.
-- **A3** — Axia mirror re-publish on manifest change (depends on the RFC-015 P2
-  publish path already landed).
+- **A2 — landed.** The extension supplies a real `lease` probe (Axia mode ⇒
+  `reserveWotsLease`/`releaseWotsLease` report `unsupported` with a reason), backed
+  by a synchronous network-config cache (`peekWalletNetworkConfig` /
+  `isSelfHostedLeaseActive`, seeded at startup) so the synchronously-built manifest
+  is honest. The §A.7 truthfulness test replaces the “all supported” invariant:
+  for every method, a `supported` claim must not be contradicted by an immediate
+  `UNSUPPORTED`. (`selfHosted`/`totem_setChainProvider` is deliberately **not**
+  probed — its hosted case genuinely works, and a per-method probe cannot capture
+  param-level partial support.)
+- **A3 — next.** Axia mirror re-publish on manifest change (depends on the RFC-015
+  P2 publish path already landed).
 
 ## A.9 Risks
 

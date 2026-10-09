@@ -228,6 +228,39 @@ describe('connect/wallet manifest — SupportProbe (RFC-014 Amendment A)', () =>
     expect(seen).toContain('totem_omniaPay');
     expect(seen).not.toContain('pay');
   });
+
+  it('manifest and dispatch agree for every method (RFC-014 Amendment A §A.7 truthfulness)', async () => {
+    // A representative wired context with one port that declines a subset: the
+    // manifest must never claim `supported` for a method the runtime refuses.
+    const ctx: WalletHandlerContext = {
+      ...fullContext(),
+      edge: undefined, // isolate omnia so the orRequires fallback cannot mask it
+      omnia: {
+        getChannels: async () => ({ success: true }),
+        pay: async () => ({ success: true }),
+        // The relay-client-shaped truth: advanced ops decline.
+        supports: (method) =>
+          method.startsWith('totem_omnia') && method !== 'totem_omniaGetChannels' && method !== 'totem_omniaPay'
+            ? { supported: false, reason: `${method} not implemented` }
+            : true,
+      },
+    };
+    const { provider, meta } = createWalletRuntime(ctx);
+    const manifest = meta().manifest;
+
+    for (const [method, verdict] of Object.entries(manifest.methods)) {
+      const result = (await provider.request({ method, params: { txpowId: 'x', channelId: 'c', script: 's', paymentUri: 'totem://pay/1' } })) as { errorCode?: string };
+      if (verdict === 'supported') {
+        expect(result.errorCode).not.toBe('UNSUPPORTED');
+      } else {
+        expect(manifest.reasons?.[method]).toBeTruthy();
+        // An unsupported method must refuse (absent signing material/approval may
+        // surface as APPROVAL_REQUIRED for approval-gated methods, so only assert
+        // that a supported claim isn't contradicted — the unsupported set may
+        // still fail for other reasons).
+      }
+    }
+  });
 });
 
 describe('connect/wallet dispatch', () => {

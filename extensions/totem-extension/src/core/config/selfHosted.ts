@@ -44,6 +44,26 @@ export const DEFAULT_WALLET_NETWORK_CONFIG: WalletNetworkConfig = {
 export const NETWORK_CONFIG_KEY = 'wallet_network_config';
 export const NODE_CONSENT_KEY = 'self_hosted_node_consent';
 
+/**
+ * Last-loaded network config, for **synchronous** reads (RFC-014 Amendment A).
+ * The capability manifest is built synchronously, so a port's `supports()` probe
+ * cannot `await` a storage read. `loadWalletNetworkConfig`/`saveWalletNetworkConfig`
+ * keep this in sync; until it is first loaded it is `null` and callers should
+ * treat the wallet as Axia-default.
+ */
+let cachedNetworkConfig: WalletNetworkConfig | null = null;
+
+/** Synchronous peek at the last-loaded network config, or `null` if never loaded. */
+export function peekWalletNetworkConfig(): WalletNetworkConfig | null {
+  return cachedNetworkConfig;
+}
+
+/** True when the wallet has an active self-hosted WOTS lease (non-Axia), as last loaded. */
+export function isSelfHostedLeaseActive(): boolean {
+  return cachedNetworkConfig?.lease.mode != null && cachedNetworkConfig.lease.mode !== 'axia';
+}
+
+
 /** Minimal key/value store (chrome.storage.local-like). */
 export interface WalletKeyValueStore {
   get<T>(key: string): Promise<T | null>;
@@ -55,11 +75,15 @@ export async function loadWalletNetworkConfig(
   store: WalletKeyValueStore,
 ): Promise<WalletNetworkConfig> {
   const stored = await store.get<Partial<WalletNetworkConfig>>(NETWORK_CONFIG_KEY);
-  if (!stored) return { ...DEFAULT_WALLET_NETWORK_CONFIG };
-  return {
+  if (!stored) {
+    cachedNetworkConfig = { ...DEFAULT_WALLET_NETWORK_CONFIG };
+    return cachedNetworkConfig;
+  }
+  cachedNetworkConfig = {
     chain: { ...DEFAULT_WALLET_NETWORK_CONFIG.chain, ...(stored.chain ?? {}) },
     lease: { ...DEFAULT_WALLET_NETWORK_CONFIG.lease, ...(stored.lease ?? {}) },
   };
+  return cachedNetworkConfig;
 }
 
 export async function saveWalletNetworkConfig(
@@ -73,6 +97,7 @@ export async function saveWalletNetworkConfig(
     assertConsentedNodeUrl(config.chain.minimaRpcUrl);
   }
   await store.set(NETWORK_CONFIG_KEY, config);
+  cachedNetworkConfig = config;
 }
 
 /**
