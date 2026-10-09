@@ -1,7 +1,8 @@
 # RFC-014 Amendment A — Capability Manifest Truthfulness
 
-**Status:** Draft — design specification
+**Status:** Draft — A0 + A1 landed; A2 (wallet bootstrap truth tables + truthfulness gate) next
 **Created:** 2026-10-08
+**Revised:** 2026-10-08 (A0/A1 implemented)
 **Amends:** RFC-014 (Wallet Connect Parity)
 **Touches:** `@totemsdk/connect` (`wallet` subpath), `@totemsdk/omnia` (`relay` subpath), the extension + PWA wallet bootstraps
 **Depends on:** RFC-014 §6.3/§6.5, RFC-034 (Omnia relay method parity), RFC-035 (Omnia peer coordination)
@@ -232,11 +233,17 @@ that a `supported` claim is not contradicted by an immediate `UNSUPPORTED`.
 
 ## A.8 Phasing
 
-- **A0** — `SupportProbe` interface + `isMethodSupported` probe pass + reason
-  propagation. Backward compatible (no probes ⇒ current behaviour).
-- **A1** — `createRelayOmniaClient.supports` + relay tests.
-- **A2** — extension/PWA bootstraps pass their real truth tables (e.g. hosted-mode
-  lease `unsupported`); replace the `wallet.test.ts` invariant with §A.7.
+- **A0 — landed.** `SupportProbe` interface + probe-aware `isMethodSupported` /
+  `buildWalletCapabilityManifest` + reason propagation into runtime dispatch.
+  Backward compatible (no probes ⇒ current behaviour). Covered by
+  `packages/connect/src/__tests__/wallet.test.ts`.
+- **A1 — landed.** `createRelayOmniaClient.supports` + exported `ADVANCED_UNSUPPORTED`
+  / `MUTATION_METHODS` truth sets (both name namespaces). Covered by
+  `packages/omnia/src/__tests__/relay-client.test.ts`.
+- **A2 — next.** Wallet bootstraps pass their real truth tables (the extension/PWA
+  do not yet wire an `omnia` port, so the over-report is latent but real once they
+  do); and the truthfulness test (§A.7) replaces the `wallet.test.ts` “all
+  supported” invariant for the wired manifests.
 - **A3** — Axia mirror re-publish on manifest change (depends on the RFC-015 P2
   publish path already landed).
 
