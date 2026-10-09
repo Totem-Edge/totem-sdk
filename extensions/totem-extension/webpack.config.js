@@ -100,6 +100,24 @@ const ignoreNodeSchemePlugins = () =>
       ),
   );
 
+// Bare Node-only packages reached through the Omnia dependency closure but never
+// taken by the browser relay path:
+//   - @totemsdk/omnia's `swarm.js` dynamically `import('hyperswarm')` (native,
+//     pulls sodium-native); the relay transport does not use it.
+//   - @totemsdk/stream-transport's Node path imports `ws`; the browser uses the
+//     relay-backed stream instead.
+// Rewrite them to the throw-on-load shim so the dynamic import rejects cleanly
+// (and the guarded fallback runs) instead of failing the browser build.
+const NODE_ONLY_PACKAGES = ['hyperswarm', 'sodium-native', 'sodium-universal', 'ws'];
+const ignoreNodeOnlyPackagesPlugins = () =>
+  NODE_ONLY_PACKAGES.map(
+    (name) =>
+      new webpack.NormalModuleReplacementPlugin(
+        new RegExp(`^${name.replace(/[/\\^$*+?.()|[\]{}]/g, '\\$&')}$`),
+        require.resolve('./empty-node-module.js'),
+      ),
+  );
+
 // ============================================================================
 // SHARED CONFIGURATION
 // ============================================================================
@@ -186,6 +204,7 @@ const backgroundConfig = {
   plugins: [
     new BlockDevImportsPlugin(),
     ...ignoreNodeSchemePlugins(),
+    ...ignoreNodeOnlyPackagesPlugins(),
     new webpack.ProvidePlugin({
       Buffer: ['buffer', 'Buffer'],
       process: 'process',
@@ -239,6 +258,7 @@ const uiConfig = {
   plugins: [
     new BlockDevImportsPlugin(),
     ...ignoreNodeSchemePlugins(),
+    ...ignoreNodeOnlyPackagesPlugins(),
     new CopyWebpackPlugin({
       patterns: [
         { from: 'manifest.json', to: 'manifest.json' },

@@ -394,10 +394,15 @@ and remain reasoned `UNSUPPORTED`.
 - **A3 — landed.** `supports()` truth table on the composed client; the base
   relay client now reports `payMultiHop` (absent) as unsupported rather than
   silently `true`.
-- **A4 — next.** Extension/PWA inject a routing source and their truth table;
-  manifest reflects Phase A support and Phase B gaps (RFC-014 Amendment A).
-  (Note: wiring the wallets pulls `omnia` + `tx-builder` into the extension
-  bundle — see the build-workflow filter — and is its own change.)
+- **A4 — extension wired (landed); PWA + signer bridge next.** The extension now
+  injects `createOmniaRelayClient({ autoAccept: false })` as its `omnia` port, so
+  `getChannels`/`getRoute`/`getSwapRate` are served and mutations report truthful
+  `UNSUPPORTED`. The extension webpack shims the Node-only closure members
+  (`hyperswarm`, `sodium-native`, `sodium-universal`, `ws`) that the relay path
+  never takes, and the build workflow builds the new closure. **Remaining:**
+  (a) bridge the wallet's signer/lease into the Omnia client so mutations
+  (`openChannel`/`pay`/`createFactory`/`splice*`) execute; (b) inject a routing
+  source; (c) wire the PWA (it does not yet configure any runtime ports).
 
 ## 10. Acceptance / verification
 

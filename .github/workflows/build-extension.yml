@@ -31,11 +31,16 @@ jobs:
       # resolves into those dist/ files).
       #
       # Build the packages the extension actually imports, NOT its full
-      # dependency closure: the closure pulls in @totemsdk/omnia → tx-builder,
-      # whose dist build needs a gitignored Rust/wasm-pack artifact and whose
-      # code the extension never bundles. @totemsdk/core-wasm is likewise
-      # excluded — its pkg/ artifacts are committed and its build requires
-      # wasm-pack (and would rewrite the committed WASM nondeterministically).
+      # dependency closure. Two closure members are intentionally excluded:
+      #   - @totemsdk/core-wasm: its pkg/ artifacts are committed and its build
+      #     requires wasm-pack (and would rewrite the committed WASM
+      #     nondeterministically).
+      #   - @totemsdk/tx-builder: needs a gitignored Rust/wasm-pack artifact and
+      #     its code is never imported by omnia/omnia-factory/omnia-splice (they
+      #     use local type mirrors), so it is not needed to build the closure.
+      # @totemsdk/omnia-relay brings in the router/factory/splice closure
+      # (agent-policy → authority/identity/proof/manifest, kissvm,
+      # stream-transport); those are listed explicitly.
       - name: Build extension's SDK dependencies
         run: |
           pnpm \
@@ -49,6 +54,19 @@ jobs:
             --filter @totemsdk/storage \
             --filter @totemsdk/minima-rpc \
             --filter @totemsdk/lookup-protocol \
+            --filter @totemsdk/omnia-relay \
+            --filter @totemsdk/omnia \
+            --filter @totemsdk/omnia-router \
+            --filter @totemsdk/omnia-factory \
+            --filter @totemsdk/omnia-splice \
+            --filter @totemsdk/agent-policy \
+            --filter @totemsdk/authority \
+            --filter @totemsdk/identity \
+            --filter @totemsdk/proof \
+            --filter @totemsdk/intelligence \
+            --filter @totemsdk/manifest \
+            --filter @totemsdk/kissvm \
+            --filter @totemsdk/stream-transport \
             run build
 
       - name: Build extension

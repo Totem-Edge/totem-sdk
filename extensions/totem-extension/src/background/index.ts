@@ -16,6 +16,7 @@ import { isSharedConnectMethod, dispatchSharedConnectMethod, isConnectMethod, co
 import type { WalletHandlerContext } from '@totemsdk/connect';
 import { buildWalletLeaseProvider, loadWalletNetworkConfig, isSelfHostedLeaseActive } from '../core/config/selfHosted';
 import { activeChainProviderStore } from '../core/config/activeChainProvider';
+import { createOmniaRelayClient } from '@totemsdk/omnia-relay';
 // @ts-ignore - subpath export resolves via package "exports" at bundle time; the
 // extension's legacy "node" moduleResolution cannot see it.
 import { IdbStore } from '@totemsdk/storage/idb';
@@ -1012,6 +1013,22 @@ function getExtensionLease(): Promise<import('@totemsdk/wots-lease').WotsLeasePr
  * returning to the Axia default (self-hosted node selection stays user-driven
  * in Network Settings, never dApp-driven).
  */
+let extensionOmniaClient: ReturnType<typeof createOmniaRelayClient> | undefined;
+
+/**
+ * Lazily build the wallet-side Omnia relay client (RFC-034 Phase A). Constructed
+ * with `autoAccept: false` so no relay socket is opened until a method that needs
+ * it is used; read-only routing (`getRoute`/`getSwapRate`) and the base channel
+ * registry need no signing material. Mutations report reasoned `UNSUPPORTED`
+ * until the wallet bridges its signer/lease (follow-up).
+ */
+function getExtensionOmniaClient(): ReturnType<typeof createOmniaRelayClient> {
+  if (!extensionOmniaClient) {
+    extensionOmniaClient = createOmniaRelayClient({ autoAccept: false });
+  }
+  return extensionOmniaClient;
+}
+
 function buildExtensionConnectPorts(): Partial<WalletHandlerContext> {
   const legacy =
     (method: string, mapParams?: (p: Record<string, unknown>) => Record<string, unknown>) =>
@@ -1137,6 +1154,10 @@ function buildExtensionConnectPorts(): Partial<WalletHandlerContext> {
         return { success: true, reservationId };
       },
     },
+    // RFC-034 Phase A: wallet-side Omnia relay client (read-only routing served;
+    // mutations reported unsupported until the signer/lease bridge lands). Its
+    // `supports()` probe keeps the capability manifest truthful.
+    omnia: getExtensionOmniaClient(),
   };
 }
 

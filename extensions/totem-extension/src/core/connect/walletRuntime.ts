@@ -43,7 +43,7 @@ const EXTENSION_CAPABILITIES: TotemCapabilities = {
   txpow: { localMining: false, progressEvents: true },
   omnia: {
     channels: false,
-    routing: false,
+    routing: true,
     multiHop: false,
     crossTokenSwap: false,
     factory: false,
