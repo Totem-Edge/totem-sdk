@@ -119,6 +119,58 @@ function checkHTML() {
     }
 }
 
+// Check 3b: Validate popup.html body class matches a sizing rule in popup.css.
+// A mismatch (e.g. `class="production"` with only `body.production-chrome`
+// rules) leaves the popup with no width and it collapses to a thin strip.
+function checkPopupSizing() {
+    console.log('\n📐 Validating popup viewport sizing (popup.html <-> popup.css)...');
+
+    const targets = [
+        { html: 'popup.html', css: 'popup.css' },
+        { html: 'scanner.html', css: 'scanner.css' },
+    ];
+
+    for (const { html: htmlName, css: cssName } of targets) {
+        const htmlPath = path.join(__dirname, 'dist', htmlName);
+        const cssPath = path.join(__dirname, 'dist', cssName);
+        if (!fs.existsSync(htmlPath) || !fs.existsSync(cssPath)) {
+            warnings.push(`⚠️  Missing ${htmlName} or ${cssName} for sizing check`);
+            continue;
+        }
+
+        const html = fs.readFileSync(htmlPath, 'utf8');
+        const css = fs.readFileSync(cssPath, 'utf8');
+
+        const bodyMatch = html.match(/<body\b[^>]*\bclass\s*=\s*"([^"]*)"/i);
+        if (!bodyMatch) {
+            warnings.push(`⚠️  ${htmlName} body has no class; expected a "production" sizing hook`);
+            continue;
+        }
+        const classes = bodyMatch[1].split(/\s+/).filter(Boolean);
+
+        // Every class on <body> that the CSS defines a `body.<class> { ... }`
+        // block for must set a width; and at least one body class must produce a
+        // width declaration, or the popup has no intrinsic size.
+        const sized = classes.some((cls) => {
+            const re = new RegExp(`body\\.${cls.replace(/[-]/g, '\\-')}\\s*\\{([^}]*)\\}`, 'g');
+            let m;
+            while ((m = re.exec(css)) !== null) {
+                if (/\bwidth\s*:/.test(m[1])) return true;
+            }
+            return false;
+        });
+
+        if (!sized) {
+            errors.push(
+                `❌ ${htmlName} <body class="${bodyMatch[1]}"> matches no CSS body rule with a width in ${cssName}. ` +
+                `The popup will collapse. Add a base rule (e.g. body.production { width: var(--viewport-chrome); }).`,
+            );
+        } else {
+            console.log(`✅ ${htmlName} body class "${bodyMatch[1]}" is sized by ${cssName}`);
+        }
+    }
+}
+
 // Check 4: Validate JavaScript bundle sizes
 function checkBundleSizes() {
     console.log('\n📦 Checking bundle sizes...');
@@ -168,6 +220,7 @@ function checkIcons() {
 checkDistStructure();
 checkManifest();
 checkHTML();
+checkPopupSizing();
 checkBundleSizes();
 checkIcons();
 

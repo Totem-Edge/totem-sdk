@@ -132,11 +132,9 @@
   /* ========================================
      VIEWPORT CONSTRAINTS (Extension popup)
      ======================================== */
-  --viewport-firefox: 380px;    /* Narrowest */
   --viewport-chrome: 360px;
-  --viewport-safari: 420px;
   --viewport-compact: 340px;    /* Stress test */
-  
+
   --viewport-height-min: 520px;
   --viewport-height-max: 620px;
 }
@@ -173,25 +171,18 @@ body {
   overflow: auto;
 }
 
-/* Production-only viewport constraints (applied per browser) */
-body.production-firefox {
-  width: var(--viewport-firefox);
-  min-height: var(--viewport-height-min);
-  max-height: var(--viewport-height-max);
-}
-
-body.production-chrome {
+/* Production viewport (popup + scanner). `popup-prod.html`/`scanner.html` set
+   `class="dark production"`. There was no base `.production` rule and no code
+   ever added a per-browser suffix (`production-chrome` etc.), so no width applied
+   and the popup collapsed to a thin strip. This base rule sizes it; per-browser
+   overrides were dead code and have been removed. */
+body.production {
   width: var(--viewport-chrome);
   min-height: var(--viewport-height-min);
   max-height: var(--viewport-height-max);
 }
 
-body.production-safari {
-  width: var(--viewport-safari);
-  min-height: var(--viewport-height-min);
-  max-height: var(--viewport-height-max);
-}
-
+/* Compact stress-test viewport (opt-in via `production-compact`). */
 body.production-compact {
   width: var(--viewport-compact);
   min-height: var(--viewport-height-min);
