@@ -1,4 +1,4 @@
-import { wotsVerifyDigest, hexToBytes } from '@totemsdk/core';
+import { hexToBytes } from '@totemsdk/core';
 import type { WotsLeaseProvider, SigningIndices } from '@totemsdk/wots-lease';
 import type {
   OmniaChannel,
@@ -21,6 +21,7 @@ import { addClosePackageSignature, buildUnsignedClosePackage, verifyClosePackage
 import { validateChannelStateWithKissvm } from './kissvm.js';
 import { buildProgramUpdateTx, resolveChannelProgram } from './program.js';
 import { canonicalizeProgramTransition } from './transition.js';
+import { verifyChannelSignature } from './wots.js';
 
 function resolveSignerOrThrow(channel: OmniaChannel, signer?: ChannelSigner): ChannelSigner {
   const effective = signer ?? channel.localSigner;
@@ -148,8 +149,9 @@ export async function signState(
 /**
  * Verify a channel state signature using off-chain WOTS verification.
  *
-  * Rebuilds the canonical Minima update transaction digest and uses
-  * `wotsVerifyDigest` to compare it against the party's stored public key digest.
+  * Rebuilds the canonical Minima update transaction digest and verifies it
+  * against the party's stored public key digest using `verifyChannelSignature`
+  * (the wallet's hierarchical TreeKey scheme, RFC-037).
  *
  * Because the commitment covers the full off-chain state (sequence + balance split +
  * pending HTLCs), any tampering with these fields after signing will cause verification
@@ -170,8 +172,7 @@ export function verifyStateSignature(
   try {
     const draft = buildProgramUpdateTx(channel, state.sequence, state.balances, state.pendingHTLCs, state.programTransition);
     const digest = computeOmniaTxDigest(draft);
-    const pkDigestBytes = hexToBytes(publicKeyDigest);
-    return wotsVerifyDigest(sig, digest, pkDigestBytes);
+    return verifyChannelSignature(sig, digest, publicKeyDigest);
   } catch {
     return false;
   }

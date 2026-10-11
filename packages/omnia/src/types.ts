@@ -3,7 +3,12 @@ import type { PaymentIntent, AgentPolicy, AgentReceipt } from '@totemsdk/agent-p
 
 export type { PaymentIntent, AgentPolicy, AgentReceipt };
 
-/** Flat WOTS signature bytes — output of wotsSign(). */
+/**
+ * Serialized WOTS channel signature. Canonically a serialized hierarchical
+ * `TreeSignature` (`serializeTreeSignature`) — the wallet's unified WOTS scheme
+ * (RFC-037). Legacy flat `wotsSign` output (1088 bytes) is still accepted during
+ * the RFC-037 migration (see `verifyChannelSignature`).
+ */
 export type ChannelSignature = Uint8Array;
 
 export type partyId = string;
@@ -302,7 +307,8 @@ export interface TxOutputDraft {
 
 export interface ChannelSigner {
   publicKeyDigest: string;
-  /** Returns flat WOTS signature bytes (output of wotsSign). */
+  /** Returns the WOTS signature over `payload` for the given indices (RFC-037:
+   *  serialized hierarchical TreeSignature). */
   sign(payload: Uint8Array, indices: SigningIndices): Promise<ChannelSignature>;
 }
 

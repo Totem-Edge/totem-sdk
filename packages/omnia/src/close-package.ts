@@ -1,4 +1,4 @@
-import { wotsVerifyDigest, hexToBytes } from '@totemsdk/core';
+import { hexToBytes } from '@totemsdk/core';
 import type { SigningIndices } from '@totemsdk/wots-lease';
 import type {
   ChannelSignature,
@@ -14,6 +14,7 @@ import {
   STATE_COMMITMENT_V2_PORT,
 } from './transactions.js';
 import { resolveChannelProgram } from './program.js';
+import { verifyChannelSignature } from './wots.js';
 
 function digestHex(digest: Uint8Array): string {
   return Buffer.from(digest).toString('hex');
@@ -170,11 +171,10 @@ export function verifyClosePackage(
     if (!settlementSig || !settlementIndices) errors.push(`missing settlement close artifact signature for ${party.partyId}`);
 
     try {
-      const pk = hexToBytes(party.publicKeyDigest);
-      if (updateSig && !wotsVerifyDigest(updateSig, hexToBytes(closePackage.update.txDigest), pk)) {
+      if (updateSig && !verifyChannelSignature(updateSig, hexToBytes(closePackage.update.txDigest), party.publicKeyDigest)) {
         errors.push(`invalid update close artifact signature for ${party.partyId}`);
       }
-      if (settlementSig && !wotsVerifyDigest(settlementSig, hexToBytes(closePackage.settlement.txDigest), pk)) {
+      if (settlementSig && !verifyChannelSignature(settlementSig, hexToBytes(closePackage.settlement.txDigest), party.publicKeyDigest)) {
         errors.push(`invalid settlement close artifact signature for ${party.partyId}`);
       }
     } catch {
@@ -226,11 +226,10 @@ export function verifyPartialClosePackage(
     if (!settlementSig || !settlementIndices) errors.push(`incomplete settlement close artifact signature for ${party.partyId}`);
 
     try {
-      const pk = hexToBytes(party.publicKeyDigest);
-      if (updateSig && !wotsVerifyDigest(updateSig, hexToBytes(closePackage.update.txDigest), pk)) {
+      if (updateSig && !verifyChannelSignature(updateSig, hexToBytes(closePackage.update.txDigest), party.publicKeyDigest)) {
         errors.push(`invalid update close artifact signature for ${party.partyId}`);
       }
-      if (settlementSig && !wotsVerifyDigest(settlementSig, hexToBytes(closePackage.settlement.txDigest), pk)) {
+      if (settlementSig && !verifyChannelSignature(settlementSig, hexToBytes(closePackage.settlement.txDigest), party.publicKeyDigest)) {
         errors.push(`invalid settlement close artifact signature for ${party.partyId}`);
       }
     } catch {
