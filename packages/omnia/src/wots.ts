@@ -1,34 +1,24 @@
 /**
  * Channel signature verification (RFC-037 — unified WOTS).
  *
- * Omnia channels must fit the wallet's WOTS scheme: the wallet signs with a
- * unified hierarchical `TreeKey` (`createUnifiedChildTreeKey`) whose root public
- * key is the address/Minima pubkey used in the on-chain `MULTISIG(2 pkA pkB)`
- * script. A channel signature is therefore a serialized `TreeSignature`
- * (`serializeTreeSignature`), verified against the party's `publicKeyDigest`
- * (the tree-root pubkey) with `verifyTreeSignature`.
+ * Omnia channels use the wallet's WOTS scheme: a channel signature is a
+ * serialized hierarchical `TreeSignature` (`serializeTreeSignature`), verified
+ * against the party's `publicKeyDigest` (the tree-root public key) with
+ * `verifyTreeSignature`. This is the same key the on-chain `MULTISIG(2 pkA pkB)`
+ * eltoo script embeds.
  *
- * During the migration the legacy flat scheme (`wotsSign` → `wotsVerifyDigest`,
- * used by `@totemsdk/omnia-host`'s signer) is still accepted: the advertised
- * `publicKeyDigest` selects the scheme, so a flat leaf pubkey only verifies the
- * flat scheme and a tree root only verifies the hierarchical scheme. Retiring
- * the flat path is RFC-037 Phase 2.
+ * The legacy flat `wotsSign`/`wotsVerifyDigest` scheme was retired in RFC-037
+ * Phase 3: hosts (`@totemsdk/omnia-host`) and wallets now sign channels with the
+ * unified child TreeKey.
  */
 
-import {
-  deserializeTreeSignature,
-  hexToBytes,
-  verifyTreeSignature,
-  wotsVerifyDigest,
-} from '@totemsdk/core';
+import { deserializeTreeSignature, hexToBytes, verifyTreeSignature } from '@totemsdk/core';
 import type { ChannelSignature } from './types.js';
-
-/** Length of a flat `wotsSign` signature (34 chains × 32 bytes). */
-export const FLAT_WOTS_SIGNATURE_LENGTH = 1088;
 
 /**
  * Verify a channel signature over `digest` for the party whose WOTS
- * `publicKeyDigest` (64 hex chars) is given. Fails closed on any error.
+ * `publicKeyDigest` (64 hex chars, tree-root public key) is given. Fails closed
+ * on any error.
  */
 export function verifyChannelSignature(
   signature: ChannelSignature,
@@ -45,22 +35,10 @@ export function verifyChannelSignature(
   }
   if (pk.length !== 32) return false;
 
-  // Hierarchical (wallet TreeKey) — the canonical scheme.
   try {
     const treeSignature = deserializeTreeSignature(signature);
-    if (verifyTreeSignature(pk, digest, treeSignature)) return true;
+    return verifyTreeSignature(pk, digest, treeSignature);
   } catch {
-    // Not a serialized TreeSignature — fall through to the legacy flat path.
+    return false;
   }
-
-  // Legacy flat WOTS (pre-RFC-037 host signer).
-  if (signature.length === FLAT_WOTS_SIGNATURE_LENGTH) {
-    try {
-      return wotsVerifyDigest(signature, digest, pk);
-    } catch {
-      return false;
-    }
-  }
-
-  return false;
 }

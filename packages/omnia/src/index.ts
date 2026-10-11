@@ -100,7 +100,7 @@ export {
   verifyStateForCoSign,
 } from './sign.js';
 
-export { verifyChannelSignature, FLAT_WOTS_SIGNATURE_LENGTH } from './wots.js';
+export { verifyChannelSignature } from './wots.js';
 
 export {
   validateChannelStateWithKissvm,

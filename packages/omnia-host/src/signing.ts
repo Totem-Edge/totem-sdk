@@ -2,16 +2,16 @@
  * Host signing material — derives the channel signer, WOTS lease provider,
  * and Minima address from env-provisioned key material.
  *
- * Key model (matches @totemsdk/omnia's verification path):
+ * Key model (RFC-037 unified WOTS):
  *   - `baseSeed` comes from OMNIA_HOST_SEED (BIP39 mnemonic or 32-byte hex)
  *     or from an OMNIA_HOST_KEYFILE JSON.
- *   - `perAddressSeed = derivePerAddressSeed(baseSeed, localAddressIndex)`.
- *   - The channel participant's `publicKeyDigest` is the flat WOTS PK digest
- *     `derivePKdigest(perAddressSeed, 0)` — omnia verifies signatures with
- *     `wotsVerifyDigest(sig, digest, pkDigest)`, which is key-index agnostic,
- *     so the signer always signs with key index 0 of the per-address seed.
- *   - The lease indices {addressIndex, l1, l2} are slot bookkeeping for
- *     double-sign prevention (watermark monotonicity), not key derivation.
+ *   - The channel key is the unified child TreeKey
+ *     `createUnifiedChildTreeKey(baseSeed, localAddressIndex)`; the participant's
+ *     `publicKeyDigest` is its tree-root public key — the same key the on-chain
+ *     `MULTISIG` eltoo script embeds.
+ *   - Signatures are serialized hierarchical `TreeSignature`s (`serializeTreeSignature`)
+ *     over the reserved leaf `(l1*64 + l2)`, verified by `verifyChannelSignature`.
+ *   - The lease indices {addressIndex, l1, l2} select the one-time leaf.
  *
  * The lease journal/watermark persist in a directory next to the channel DB
  * (`<dbPath>.lease/`) so they survive restarts together with the channel store.
@@ -22,13 +22,14 @@ import path from 'node:path';
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'node:crypto';
 import {
   bytesToHex,
-  derivePKdigest,
-  derivePerAddressSeed,
+  createUnifiedChildTreeKey,
+  deriveUnifiedChildSeed,
   hexToBytes,
   phraseToSeed,
+  serializeTreeSignature,
   wotsAddressFromKeypair,
   wotsKeypairFromSeed,
-  wotsSign,
+  type TreeKey,
 } from '@totemsdk/core';
 import type { StorageAdapter } from '@totemsdk/core';
 import { FileStore } from '@totemsdk/storage/fs';
@@ -41,12 +42,16 @@ import type { OmniaHostConfig } from './config.js';
 export interface HostSigning {
   signer: ChannelSigner;
   leaseProvider: WotsLeaseProvider;
+  /** Identity / Minima address (flat WOTS from the unified child seed). */
   address: string;
+  /** Channel participant key: the unified child TreeKey root pubkey (RFC-037). */
   publicKeyDigest: string;
   /** 32-byte base seed (used by the identity/manifest layer). */
   baseSeed: Uint8Array;
-  /** Per-address seed used for channel signing (key index 0). */
+  /** Unified child seed used for identity/manifest (flat) signing. */
   perAddressSeed: Uint8Array;
+  /** Unified child TreeKey used for channel signing (RFC-037). */
+  treeKey: TreeKey;
   addressIndex: number;
   deviceId: string;
 }
@@ -215,10 +220,15 @@ export function createHostSigning(config: OmniaHostConfig): HostSigning {
     );
   }
 
-  const perAddressSeed = derivePerAddressSeed(baseSeed, addressIndex);
-  const kp = wotsKeypairFromSeed(perAddressSeed, 0);
-  const publicKeyDigest = `0x${bytesToHex(kp.pk)}`;
-  const address = wotsAddressFromKeypair(kp);
+  const treeKey = createUnifiedChildTreeKey(baseSeed, addressIndex);
+  const publicKey = treeKey.getPublicKey();
+  const publicKeyDigest = `0x${bytesToHex(publicKey)}`;
+
+  // Identity / manifest signing uses the flat WOTS scheme (a separate signing
+  // domain from channels) seeded from the same unified child seed.
+  const perAddressSeed = deriveUnifiedChildSeed(baseSeed, addressIndex);
+  const identityKp = wotsKeypairFromSeed(perAddressSeed, 0);
+  const address = wotsAddressFromKeypair(identityKp);
 
   const storage = new JsonFileStorageAdapter(leaseStorageDir(config.dbPath));
   const leaseProvider = new LocalLeaseProvider(storage, undefined, deviceId);
@@ -228,15 +238,16 @@ export function createHostSigning(config: OmniaHostConfig): HostSigning {
     async sign(payload: Uint8Array, indices: SigningIndices): Promise<Uint8Array> {
       // RFC-020 C1: honor the reserved leaf instead of hardcoding index 0. The
       // reservation must belong to this signer's address; the leaf within the
-      // per-address seed is (l1*64 + l2). Callers must supply the pk digest for
-      // the leaf they reserved (the default reservation is leaf (0,0)).
+      // per-address tree is (l1*64 + l2). Signatures are serialized TreeSignatures
+      // (RFC-037), verified by verifyChannelSignature against the tree-root pubkey.
       if (indices.addressIndex !== addressIndex) {
         throw new Error(
           `omnia-host signer address ${addressIndex} cannot sign reserved address ${indices.addressIndex}`,
         );
       }
       const leafIndex = indices.l1 * 64 + indices.l2;
-      return wotsSign(perAddressSeed, leafIndex, payload);
+      treeKey.setUses(leafIndex);
+      return serializeTreeSignature(treeKey.sign(payload)) as Uint8Array;
     },
   };
 
@@ -247,6 +258,7 @@ export function createHostSigning(config: OmniaHostConfig): HostSigning {
     publicKeyDigest,
     baseSeed,
     perAddressSeed,
+    treeKey,
     addressIndex,
     deviceId,
   };

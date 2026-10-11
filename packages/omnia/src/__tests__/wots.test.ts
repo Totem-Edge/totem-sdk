@@ -12,10 +12,8 @@ import {
   bytesToHex,
   createUnifiedChildTreeKey,
   serializeTreeSignature,
-  wotsKeypairFromSeed,
-  wotsSign,
 } from '@totemsdk/core';
-import { verifyChannelSignature, FLAT_WOTS_SIGNATURE_LENGTH } from '../wots.js';
+import { verifyChannelSignature } from '../wots.js';
 
 function digestOf(seedByte: number): Uint8Array {
   const d = new Uint8Array(32);
@@ -50,25 +48,5 @@ describe('verifyChannelSignature — hierarchical (wallet TreeKey) scheme', () =
     treeKey.setUses(2);
     const sig = serializeTreeSignature(treeKey.sign(digest)) as Uint8Array;
     expect(verifyChannelSignature(sig, digest, 'abcd')).toBe(false);
-  });
-});
-
-describe('verifyChannelSignature — legacy flat scheme (migration window)', () => {
-  const seed = new Uint8Array(32).fill(9);
-  const kp = wotsKeypairFromSeed(seed, 0);
-  const flatPubkeyHex = bytesToHex(kp.pk);
-  const digest = digestOf(3);
-
-  it('verifies a flat wotsSign signature against the flat leaf pubkey', () => {
-    const flatSig = wotsSign(seed, 0, digest);
-    expect(flatSig.length).toBe(FLAT_WOTS_SIGNATURE_LENGTH);
-    expect(verifyChannelSignature(flatSig, digest, flatPubkeyHex)).toBe(true);
-  });
-
-  it('rejects a flat signature against a tree-root pubkey', () => {
-    const treeKey = createUnifiedChildTreeKey(seed, 0);
-    const treeRootHex = bytesToHex(treeKey.getPublicKey());
-    const flatSig = wotsSign(seed, 0, digest);
-    expect(verifyChannelSignature(flatSig, digest, treeRootHex)).toBe(false);
   });
 });

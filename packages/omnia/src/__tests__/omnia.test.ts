@@ -21,7 +21,12 @@ jest.mock('@totemsdk/core', () => {
   const actual = jest.requireActual('@totemsdk/core');
   return {
     ...actual,
+    // Tests use fake (non-cryptographic) signatures. Make both the retired flat
+    // scheme and the RFC-037 tree verification accept them so logical structure
+    // can be exercised without real WOTS material.
     wotsVerifyDigest: jest.fn(() => true),
+    deserializeTreeSignature: jest.fn(() => ({ proofs: [] })),
+    verifyTreeSignature: jest.fn(() => true),
   };
 });
 

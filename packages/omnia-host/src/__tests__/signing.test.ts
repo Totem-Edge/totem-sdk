@@ -1,7 +1,8 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { wotsVerifyDigest, hexToBytes } from '@totemsdk/core';
+import { hexToBytes } from '@totemsdk/core';
+import { verifyChannelSignature } from '@totemsdk/omnia';
 import { createHostSigning, encryptSeedForKeyfile, hasSigningMaterial, JsonFileStorageAdapter, leaseStorageDir } from '../signing.js';
 import { loadConfigFromEnv } from '../config.js';
 
@@ -26,8 +27,8 @@ describe('createHostSigning', () => {
 
     const payload = new Uint8Array(32).fill(7);
     const sig = await signing.signer.sign(payload, { addressIndex: 0, l1: 0, l2: 0 });
-    expect(sig.length).toBe(1088);
-    expect(wotsVerifyDigest(sig, payload, hexToBytes(signing.publicKeyDigest))).toBe(true);
+    expect(sig.length).toBeGreaterThan(0);
+    expect(verifyChannelSignature(sig, payload, signing.publicKeyDigest)).toBe(true);
   });
 
   it('honors the reserved leaf and rejects a foreign address (RFC-020 C1)', async () => {
