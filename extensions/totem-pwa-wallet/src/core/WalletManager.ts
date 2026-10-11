@@ -262,6 +262,19 @@ export const WalletManager = {
   },
 
   /**
+   * Derive the unified child TreeKey for a specific address index (RFC-037-A2).
+   * Used by the Omnia channel signing path, which uses the dedicated address
+   * index 0 independent of the active account.
+   */
+  async getTreeKeyAt(index: number): Promise<TreeKey> {
+    if (!_session) throw new Error('Wallet locked');
+    if (_treeKeyCache.has(index)) return _treeKeyCache.get(index)!;
+    const treeKey = await createUnifiedChildTreeKeyAsync(_session.seed, index);
+    _treeKeyCache.set(index, treeKey);
+    return treeKey;
+  },
+
+  /**
    * Reserve a unique WOTS `uses` index for the active account for signing paths
    * that are not driven by a server lease (message signing / TOTEM_VERIFY).
    *

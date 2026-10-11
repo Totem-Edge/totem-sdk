@@ -93,18 +93,18 @@ configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false })
       case 'totem_payPaymentRequest': return null;
       case 'totem_mineTxPoW':         return null;
       case 'totem_omniaGetChannels':  return null;
-      case 'totem_omniaOpenChannel':  return null;
-      case 'totem_omniaPay':          return null;
-      case 'totem_omniaSettle':       return null;
-      case 'totem_omniaCloseChannel': return null;
+      case 'totem_omniaOpenChannel':  return '/approval/omnia.html';
+      case 'totem_omniaPay':          return '/approval/omnia.html';
+      case 'totem_omniaSettle':       return '/approval/omnia.html';
+      case 'totem_omniaCloseChannel': return '/approval/omnia.html';
       case 'totem_omniaGetRoute':     return null;
       case 'totem_omniaPayMultiHop':  return null;
       case 'totem_omniaGetSwapRate':  return null;
-      case 'totem_omniaCreateFactory': return null;
+      case 'totem_omniaCreateFactory': return '/approval/omnia.html';
       case 'totem_omniaOpenVirtualChannel': return null;
       case 'totem_omniaCloseFactory': return null;
-      case 'totem_omniaSpliceIn':     return null;
-      case 'totem_omniaSpliceOut':    return null;
+      case 'totem_omniaSpliceIn':     return '/approval/omnia.html';
+      case 'totem_omniaSpliceOut':    return '/approval/omnia.html';
       case 'totem_statechainCreate':  return null;
       case 'totem_statechainTransfer': return null;
       case 'totem_statechainClaim':   return null;
@@ -118,9 +118,28 @@ configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false })
     }
   }
 
+  // RFC-037-A2: Omnia mutation methods must execute in the wallet app (the
+  // injected provider holds no keys), so they are routed to an approval page
+  // instead of the shared runtime. Read-only Omnia stays in the runtime.
+  const OMNIA_APPROVAL_METHODS = new Set([
+    'totem_omniaOpenChannel',
+    'totem_omniaPay',
+    'totem_omniaSettle',
+    'totem_omniaCloseChannel',
+    'totem_omniaCreateFactory',
+    'totem_omniaSpliceIn',
+    'totem_omniaSpliceOut',
+  ]);
+
   function paramsToQs(method: string, params?: Record<string, unknown>): Record<string, string> {
     if (!params) return {};
     const out: Record<string, string> = {};
+
+    if (method.startsWith('totem_omnia')) {
+      out.method = method;
+      out.params = JSON.stringify(params);
+      return out;
+    }
 
     if (method === 'TOTEM_VERIFY') {
       const challenge = params.challenge as Record<string, unknown> | undefined;
@@ -568,7 +587,9 @@ configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false })
 
       // RFC-014: canonical `totem_*` methods not handled inline/approved above
       // are served by the shared wallet runtime (explicit handled/unsupported).
-      if (isSharedConnectMethod(method)) {
+      // Omnia mutations are excluded — they require the wallet's keys and are
+      // routed to the approval page below (RFC-037-A2).
+      if (isSharedConnectMethod(method) && !OMNIA_APPROVAL_METHODS.has(method)) {
         return dispatchSharedConnectMethod(method, (params ?? {}) as Record<string, unknown>);
       }
 
@@ -576,11 +597,10 @@ configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false })
         'totem_setChainProvider',
         'totem_mineTxPoW', 'totem_createPaymentRequest', 'totem_payPaymentRequest',
         'totem_getTransactionStatus', 'totem_getReceipt',
-        'totem_omniaGetChannels', 'totem_omniaOpenChannel', 'totem_omniaPay',
-        'totem_omniaSettle', 'totem_omniaCloseChannel', 'totem_omniaGetRoute',
-        'totem_omniaPayMultiHop', 'totem_omniaGetSwapRate', 'totem_omniaCreateFactory',
-        'totem_omniaOpenVirtualChannel', 'totem_omniaCloseFactory', 'totem_omniaSpliceIn',
-        'totem_omniaSpliceOut', 'totem_statechainCreate', 'totem_statechainTransfer',
+        'totem_omniaGetChannels', 'totem_omniaGetRoute',
+        'totem_omniaPayMultiHop', 'totem_omniaGetSwapRate',
+        'totem_omniaOpenVirtualChannel', 'totem_omniaCloseFactory',
+        'totem_statechainCreate', 'totem_statechainTransfer',
         'totem_statechainClaim', 'totem_statechainVerify', 'totem_kissvmSimulate',
         'totem_kissvmValidate', 'totem_agentProposePayment', 'totem_agentExplainTransaction',
         'totem_agentCreateReceipt',

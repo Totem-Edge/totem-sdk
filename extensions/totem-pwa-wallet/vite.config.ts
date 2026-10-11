@@ -63,6 +63,14 @@ export default defineConfig({
         replacement: `${nobleHashesDir}/$1.js`,
       },
       { find: '@', replacement: resolve(__dirname, 'src') },
+      // Node-only modules reached through the Omnia closure but never taken by
+      // the browser relay path (RFC-034 A4 / RFC-037-A2). See vite.provider.config.ts.
+      { find: /^node:.*$/, replacement: resolve(__dirname, 'empty-node-module.js') },
+      {
+        find: /^(hyperswarm|sodium-native|sodium-universal|ws)$/,
+        replacement: resolve(__dirname, 'empty-node-module.js'),
+      },
+      { find: '../rust/pkg/kissvm_wasm.js', replacement: resolve(__dirname, 'empty-node-module.js') },
     ],
   },
   server: {
@@ -83,6 +91,7 @@ export default defineConfig({
         connect: resolve(__dirname, 'approval/connect.html'),
         verify: resolve(__dirname, 'approval/verify.html'),
         send: resolve(__dirname, 'approval/send.html'),
+        omnia: resolve(__dirname, 'approval/omnia.html'),
         tokencreate: resolve(__dirname, 'approval/tokencreate.html'),
         'protocol-handler': resolve(__dirname, 'approval/protocol-handler.html'),
       },
