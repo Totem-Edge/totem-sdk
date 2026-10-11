@@ -130,14 +130,41 @@ RFC-037 migration it defaults to optional.
   `createUnifiedRootTreeKey`. Do not conflate; Omnia identity uses the unified
   root identity. (The client-hash inconsistency is tracked separately.)
 
-## 7. Open questions
+## 7. Decisions (was: open questions)
 
-- **Resolved:** `partyId` is the identity id (not the child digest) so the wallet
-  identity is stable across address switching (§2.1); `publicKeyDigest` stays the
-  per-channel on-wire key.
-- Which address a *new* channel uses by default: the wallet's **active** address
-  at open time, or a dedicated Omnia address? (Leaning: active address, so the
-  settlement address matches what the user sees.)
-- Root-leaf leasing for ownership proofs: reuse the wallet's existing lease
-  provider with a dedicated `treeId` (e.g. `omnia-identity`) or a monotonic
-  persisted root cursor?
+- **`partyId`** is the identity id (not the child digest) so the wallet identity
+  is stable across address switching (§2.1); `publicKeyDigest` stays the
+  per-channel on-wire key. *(Decided.)*
+- **Default channel address = child index 0**, a dedicated Omnia channel address
+  independent of the user's active spend address. Rationale: the lease provider
+  allocates per `treeId` from its watermark, so a fresh `omnia-channel-*` treeId
+  starts at `addressIndex 0`; deriving the child key at index 0 keeps the signer
+  and lease consistent, and keeps the wallet identity stable as the user switches
+  spend addresses. Selecting a per-channel/active address would require
+  explicit-index leasing (`reserveSpecificKeyUse`) — future work, not A1/A2.
+  *(Decided.)*
+- **Root-leaf allocation for ownership proofs goes through the wallet's lease
+  provider** with a dedicated `treeId` (`omnia-identity`) — one watermark source,
+  no reuse. *(Decided — but see §8 prerequisite.)*
+
+## 8. Prerequisite: root-leaf usage is currently unsafe
+
+`UnifiedIdentityWallet.signFromRoot()` signs with an **in-memory** `rootUses`
+counter that is initialised per instance (`UnifiedIdentityWallet.ts:202-213`), and
+the extension constructs a fresh `RootIdentityWallet` for each ownership proof
+(`totem-extension/src/core/wallet.ts:2018`). Every proof therefore signs with
+**root leaf 0** — one-time-key reuse.
+
+A2 MUST NOT ship ownership proofs until root-leaf usage is persistent and
+lease-managed. Options (pick in A1):
+
+1. Add an explicit-use signing path to `UnifiedIdentityWallet`
+   (`signFromRootAt(message, flatIndex)` / seed `rootUses` from a persisted
+   watermark), and have the host reserve the root leaf via the lease provider
+   (`treeId: omnia-identity`) before proving ownership; or
+2. Persist the root `uses` cursor (lease journal / watermark) and seed the wallet
+   from it on construction.
+
+Until then, A1 ships only the schema + verification (no proof generation), and the
+existing ownership-proof reuse bug is tracked as its own fix.
+
