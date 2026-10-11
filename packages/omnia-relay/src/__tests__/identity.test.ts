@@ -67,3 +67,22 @@ describe('verifyChannelParticipantIdentity (RFC-037-A)', () => {
     expect(result.valid).toBe(false);
   });
 });
+
+describe('root-identity explicit leaf allocation (RFC-037-A §8)', () => {
+  const seed = new Uint8Array(32).fill(11);
+
+  it('proveOwnership({ rootUseIndex }) verifies and advances the cursor', () => {
+    const w = new UnifiedIdentityWallet(seed, 64);
+    const proof = w.proveOwnership([0], { rootUseIndex: 4 });
+    expect(UnifiedIdentityWallet.verifyOwnershipProof(proof)).toBe(true);
+    expect(w.getRootUses()).toBe(5);
+  });
+
+  it('distinct explicit indices produce distinct, valid root proofs', () => {
+    const a = new UnifiedIdentityWallet(seed, 64).proveOwnership([0], { rootUseIndex: 0 });
+    const b = new UnifiedIdentityWallet(seed, 64).proveOwnership([0], { rootUseIndex: 1 });
+    expect(a.rootProof.signature).not.toBe(b.rootProof.signature);
+    expect(UnifiedIdentityWallet.verifyOwnershipProof(a)).toBe(true);
+    expect(UnifiedIdentityWallet.verifyOwnershipProof(b)).toBe(true);
+  });
+});

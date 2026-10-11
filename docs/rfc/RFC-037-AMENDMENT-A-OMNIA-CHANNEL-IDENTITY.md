@@ -147,24 +147,27 @@ RFC-037 migration it defaults to optional.
   provider** with a dedicated `treeId` (`omnia-identity`) — one watermark source,
   no reuse. *(Decided — but see §8 prerequisite.)*
 
-## 8. Prerequisite: root-leaf usage is currently unsafe
+## 8. Prerequisite: root-leaf allocation must be serialised (DONE)
 
-`UnifiedIdentityWallet.signFromRoot()` signs with an **in-memory** `rootUses`
-counter that is initialised per instance (`UnifiedIdentityWallet.ts:202-213`), and
-the extension constructs a fresh `RootIdentityWallet` for each ownership proof
-(`totem-extension/src/core/wallet.ts:2018`). Every proof therefore signs with
-**root leaf 0** — one-time-key reuse.
+`UnifiedIdentityWallet.signFromRoot()` signs with an in-memory `rootUses` cursor
+initialised per instance (`UnifiedIdentityWallet.ts`). The extension already
+**persists** this cursor (`rootTreeRootUses` in `chrome.storage.local`,
+`wallet.ts` `generateOwnershipProof`), so sequential proofs do not reuse a leaf —
+but two **concurrent** proofs interleave `read → sign → write` and both sign the
+same root leaf, reusing a one-time key. Any host that constructs a fresh wallet
+without restoring the cursor has the same defect.
 
-A2 MUST NOT ship ownership proofs until root-leaf usage is persistent and
-lease-managed. Options (pick in A1):
+Fixed:
 
-1. Add an explicit-use signing path to `UnifiedIdentityWallet`
-   (`signFromRootAt(message, flatIndex)` / seed `rootUses` from a persisted
-   watermark), and have the host reserve the root leaf via the lease provider
-   (`treeId: omnia-identity`) before proving ownership; or
-2. Persist the root `uses` cursor (lease journal / watermark) and seed the wallet
-   from it on construction.
+1. **Explicit root-leaf allocation** — `UnifiedIdentityWallet.signFromRootAt(message, useIndex)`
+   and `proveOwnership(childIndices, { rootUseIndex })` let a host allocate the
+   one-time leaf itself (e.g. via the RFC-013 lease provider, `treeId:
+   omnia-identity`) so allocation is concurrency-safe and session-independent.
+   Covered by `root-identity/src/__tests__/signFromRootAt.test.ts`.
+2. **Extension single-flight** — `walletManager.generateOwnershipProof` is now
+   serialised by an `ownershipProofLock`, so concurrent proofs cannot reuse a leaf.
 
-Until then, A1 ships only the schema + verification (no proof generation), and the
-existing ownership-proof reuse bug is tracked as its own fix.
+A2 (host wiring) must allocate the root leaf via the lease provider (or the
+single-flight path) before generating an ownership proof.
+
 

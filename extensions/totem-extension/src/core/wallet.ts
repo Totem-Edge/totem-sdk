@@ -2001,6 +2001,13 @@ export class WalletManager {
 
 
   /**
+   * Single-flight guard for root-leaf allocation. Two concurrent ownership
+   * proofs would otherwise read the same persisted `rootTreeRootUses`, sign with
+   * the same root WOTS leaf, and reuse a one-time key (RFC-037-A §8).
+   */
+  private ownershipProofLock: Promise<unknown> = Promise.resolve();
+
+  /**
    * Generate an ownership proof for the given child address indices.
    *
    * Under unified derivation every wallet has a root identity key derived from
@@ -2009,6 +2016,18 @@ export class WalletManager {
    * network access.
    */
   async generateOwnershipProof(
+    message: string,
+    childIndices: number[]
+  ): Promise<OwnershipProof> {
+    const run = this.ownershipProofLock.then(
+      () => this.generateOwnershipProofUnlocked(message, childIndices),
+      () => this.generateOwnershipProofUnlocked(message, childIndices),
+    );
+    this.ownershipProofLock = run.then(() => undefined, () => undefined);
+    return run;
+  }
+
+  private async generateOwnershipProofUnlocked(
     _message: string,
     childIndices: number[]
   ): Promise<OwnershipProof> {

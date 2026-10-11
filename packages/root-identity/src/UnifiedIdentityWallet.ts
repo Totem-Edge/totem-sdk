@@ -213,6 +213,34 @@ export class UnifiedIdentityWallet {
   }
 
   /**
+   * Sign `message` with the root identity key at an explicit leaf index.
+   *
+   * Use this when the caller allocates the one-time leaf itself (e.g. via the
+   * RFC-013 WOTS lease provider) so a root leaf is never reused across sessions
+   * or concurrent callers. Advances the in-memory root cursor past `useIndex`.
+   *
+   * @throws if `useIndex` is not a non-negative integer or exceeds capacity.
+   */
+  signFromRootAt(message: string, useIndex: number): WotsProof {
+    if (!Number.isSafeInteger(useIndex) || useIndex < 0) {
+      throw new Error(`root useIndex must be a non-negative integer, got ${useIndex}`);
+    }
+    const treeKey = this.getRootTreeKey();
+    if (useIndex >= treeKey.getMaxUses()) {
+      throw new Error(`root useIndex ${useIndex} exceeds capacity ${treeKey.getMaxUses()}`);
+    }
+    treeKey.setUses(useIndex);
+    const sig = treeKey.sign(hashMessage(message));
+    if (useIndex >= this.rootUses) this.rootUses = useIndex + 1;
+    return {
+      address: this.getRootAddress(),
+      publicKey: this.getRootPublicKey(),
+      signature: bytesToHex(serializeTreeSignature(sig)),
+      message,
+    };
+  }
+
+  /**
    * Sign `message` with child key `index` (0-based) for on-chain transactions.
    * Each child maintains its own independent use counter.
    * @throws if child TreeKey is exhausted or index out of range
@@ -243,8 +271,10 @@ export class UnifiedIdentityWallet {
    * network access.
    *
    * @param childIndices - Which children to include (0-based)
+   * @param options.rootUseIndex - Allocate the root signature at this explicit
+   *   leaf index (e.g. from a WOTS lease) instead of the in-memory cursor.
    */
-  proveOwnership(childIndices: number[]): OwnershipProof {
+  proveOwnership(childIndices: number[], options: { rootUseIndex?: number } = {}): OwnershipProof {
     if (childIndices.length === 0) {
       throw new Error('childIndices must contain at least one index');
     }
@@ -262,7 +292,9 @@ export class UnifiedIdentityWallet {
     const rootPublicKey = this.getRootPublicKey();
 
     const message = buildOwnershipMessage(rootAddress, childPublicKeys, timestamp);
-    const rootProof = this.signFromRoot(message);
+    const rootProof = options.rootUseIndex !== undefined
+      ? this.signFromRootAt(message, options.rootUseIndex)
+      : this.signFromRoot(message);
 
     return { rootAddress, rootPublicKey, childAddresses, childPublicKeys, rootProof, timestamp };
   }
