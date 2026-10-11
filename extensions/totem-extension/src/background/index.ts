@@ -15,8 +15,10 @@ import { startAnnouncementSubscription } from '../core/announcements/wsSubscribe
 import { isSharedConnectMethod, dispatchSharedConnectMethod, isConnectMethod, configureExtensionWalletRuntime } from '../core/connect/walletRuntime';
 import type { WalletHandlerContext } from '@totemsdk/connect';
 import { buildWalletLeaseProvider, loadWalletNetworkConfig, isSelfHostedLeaseActive } from '../core/config/selfHosted';
-import { activeChainProviderStore } from '../core/config/activeChainProvider';
-import { createOmniaRelayClient } from '@totemsdk/omnia-relay';
+import { activeChainProviderStore, resolveActiveChainProvider } from '../core/config/activeChainProvider';
+import { createOmniaRelayClient, createWalletChannelSigningMaterial } from '@totemsdk/omnia-relay';
+import { computeIdentityId } from '@totemsdk/identity';
+import type { ChannelIdentity } from '@totemsdk/omnia';
 // @ts-ignore - subpath export resolves via package "exports" at bundle time; the
 // extension's legacy "node" moduleResolution cannot see it.
 import { IdbStore } from '@totemsdk/storage/idb';
@@ -926,7 +928,11 @@ async function startupSequenceImpl() {
   // This detects if wallet was unlocked when service worker died
   const sessionState = await walletManager.restoreSession();
   console.log(`[Background] Session restore result: ${sessionState}`);
-  
+
+  // RFC-037-A2: rebuild the Omnia port with signing material if the wallet is
+  // unlocked (the builder falls back to the read-only client otherwise).
+  void refreshExtensionOmniaPort();
+
   // Auto-resume interrupted address generation
   // This runs on every SW start to catch interrupted generation from previous session
   try {
@@ -1016,17 +1022,75 @@ function getExtensionLease(): Promise<import('@totemsdk/wots-lease').WotsLeasePr
 let extensionOmniaClient: ReturnType<typeof createOmniaRelayClient> | undefined;
 
 /**
- * Lazily build the wallet-side Omnia relay client (RFC-034 Phase A). Constructed
- * with `autoAccept: false` so no relay socket is opened until a method that needs
- * it is used; read-only routing (`getRoute`/`getSwapRate`) and the base channel
- * registry need no signing material. Mutations report reasoned `UNSUPPORTED`
- * until the wallet bridges its signer/lease (follow-up).
+ * Build the wallet-side Omnia relay client (RFC-034 Phase A / RFC-037).
+ *
+ * Always serves the read-only base client (`getChannels`/`getRoute`/`getSwapRate`)
+ * with `autoAccept:false`. When the wallet is unlocked AND a self-hosted WOTS
+ * lease is configured (RFC-013), it additionally bridges the wallet's signing
+ * material so mutations execute:
+ *   - child-key signer (`createWalletChannelSigningMaterial`, address 0),
+ *   - the wallet's root-identity anchor (RFC-037-A): `partyId` = the identity id
+ *     and an ownership proof binding the channel key to the root identity.
+ * In Axia mode (no lease provider) mutations stay a reasoned `UNSUPPORTED`.
  */
-function getExtensionOmniaClient(): ReturnType<typeof createOmniaRelayClient> {
-  if (!extensionOmniaClient) {
-    extensionOmniaClient = createOmniaRelayClient({ autoAccept: false });
+async function buildExtensionOmniaClient(): Promise<ReturnType<typeof createOmniaRelayClient>> {
+  const base = createOmniaRelayClient({ autoAccept: false });
+  try {
+    const leaseProvider = await getExtensionLease();
+    if (!leaseProvider) return base;
+    const chain = await resolveActiveChainProvider();
+    if (!chain) return base;
+    const addressIndex = 0;
+    const treeKey = walletManager.getPerAddressTreeKey(addressIndex);
+    if (!treeKey) return base; // wallet locked
+
+    const { signer, participant } = createWalletChannelSigningMaterial(treeKey, { addressIndex });
+
+    // Root-identity anchor (RFC-037 Amendment A). The ownership proof covers the
+    // channel key's child index; partyId becomes the stable wallet identity id.
+    const rootInfo = walletManager.getRootIdentityInfo();
+    if (rootInfo.rootAddress && rootInfo.rootPublicKey) {
+      const proof = await walletManager.generateOwnershipProof('', [addressIndex]);
+      const identity: ChannelIdentity = {
+        id: computeIdentityId('person', rootInfo.rootAddress),
+        rootAddress: rootInfo.rootAddress,
+        rootPublicKey: rootInfo.rootPublicKey,
+        ownershipProof: proof as unknown as ChannelIdentity['ownershipProof'],
+      };
+      participant.identity = identity;
+      participant.partyId = identity.id;
+    }
+
+    return createOmniaRelayClient({
+      autoAccept: false,
+      signer,
+      leaseProvider,
+      chainProvider: chain.provider,
+      localParticipant: participant,
+    });
+  } catch (err) {
+    console.warn('[connect] omnia signing material unavailable:', err);
+    return base;
   }
+}
+
+function getExtensionOmniaClient(): ReturnType<typeof createOmniaRelayClient> {
+  if (!extensionOmniaClient) extensionOmniaClient = createOmniaRelayClient({ autoAccept: false });
   return extensionOmniaClient;
+}
+
+/**
+ * (Re)build the Omnia client with signing material and re-install the shared
+ * runtime so the `omnia` port picks it up. Safe to call when locked (falls back
+ * to the read-only client). Call after unlock / session restore.
+ */
+async function refreshExtensionOmniaPort(): Promise<void> {
+  try {
+    extensionOmniaClient = await buildExtensionOmniaClient();
+  } catch (err) {
+    console.warn('[connect] failed to refresh omnia port:', err);
+  }
+  configureExtensionWalletRuntime(buildExtensionConnectPorts());
 }
 
 function buildExtensionConnectPorts(): Partial<WalletHandlerContext> {
@@ -1532,6 +1596,9 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
         const success = await walletManager.unlock(params[0]);
         // Pre-fetch price in background after unlock
         prefetchMinimaPrice().catch(e => console.warn('[Background] Price prefetch failed:', e));
+        // RFC-037-A2: rebuild the Omnia port with signing material now the wallet
+        // is unlocked (self-hosted lease mode only).
+        if (success) void refreshExtensionOmniaPort();
         return { ok: true, result: success, id };
       } catch (error: any) {
         return { ok: false, error: error.message, id };

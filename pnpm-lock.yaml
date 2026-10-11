@@ -107,6 +107,9 @@ importers:
       '@totemsdk/core':
         specifier: workspace:^
         version: link:../../packages/core
+      '@totemsdk/identity':
+        specifier: workspace:^
+        version: link:../../packages/identity
       '@totemsdk/omnia-relay':
         specifier: workspace:^
         version: link:../../packages/omnia-relay
