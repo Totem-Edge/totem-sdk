@@ -40,6 +40,25 @@ it by signing the child's public key, so any counterparty can verify the channel
 key is controlled by the wallet's root identity — without the root key ever
 entering a script. This mirrors `se-server/src/seIdentity.ts`.
 
+### 2.1 Address switching (identity is stable, the key rotates)
+
+Because the root identity anchors a whole family of **hierarchically derived
+child addresses** (`createUnifiedChildTreeKey(baseSeed, i)`, `i ∈ 0..63`), the
+wallet can present a **different channel key per channel** while the identity
+stays constant:
+
+- `partyId` = identity id — **unchanged** as the user switches active address.
+- `publicKeyDigest` / `addressIndex` = the child address used for **that** channel
+  (typically the wallet's active address at open time), with an ownership proof
+  covering that index.
+
+So "switch address" simply means *new* channels are anchored to a different
+child key; the counterparty still resolves them to the same wallet identity. An
+already-open channel keeps the child key it was opened with (changing it is a
+channel-level operation, out of scope). This is the reason `partyId` is the
+identity id rather than the child digest — the child digest is per-channel, the
+identity is per-wallet.
+
 ## 3. Schema
 
 Add an optional identity block to `ChannelParticipant` (`omnia/src/types.ts`):
@@ -113,9 +132,12 @@ RFC-037 migration it defaults to optional.
 
 ## 7. Open questions
 
-- Should `partyId` be the identity id (stable, readable) or remain the child
-  digest? This amendment uses the identity id, keeping `publicKeyDigest` as the
-  on-wire key.
+- **Resolved:** `partyId` is the identity id (not the child digest) so the wallet
+  identity is stable across address switching (§2.1); `publicKeyDigest` stays the
+  per-channel on-wire key.
+- Which address a *new* channel uses by default: the wallet's **active** address
+  at open time, or a dedicated Omnia address? (Leaning: active address, so the
+  settlement address matches what the user sees.)
 - Root-leaf leasing for ownership proofs: reuse the wallet's existing lease
   provider with a dedicated `treeId` (e.g. `omnia-identity`) or a monotonic
   persisted root cursor?
