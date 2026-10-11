@@ -1,5 +1,4 @@
-import { DefaultEltooPaymentProgram, type OmniaChannel, type ChannelParticipant } from '@totemsdk/omnia';
-import { wotsVerifyDigest, hexToBytes } from '@totemsdk/core/wasm';
+import { DefaultEltooPaymentProgram, verifyChannelSignature, type OmniaChannel, type ChannelParticipant } from '@totemsdk/omnia';
 import type { ChannelFactory, FactoryLogEntry, WotsLeaseBundle } from './types.js';
 import { enforceConservation } from './factory.js';
 import { computeFactoryStateCommitment } from './commitment.js';
@@ -36,8 +35,7 @@ async function leaseSign(
     throw err;
   }
 
-  const verifyFn = bundle.verify
-    ?? ((s: Uint8Array, c: Uint8Array, pkd: string) => wotsVerifyDigest(s, c, hexToBytes(pkd)));
+  const verifyFn = bundle.verify ?? verifyChannelSignature;
   if (!verifyFn(sig, commitment, publicKeyDigest)) {
     await bundle.leaseProvider.burnReservation(reservation.reservationId, 'verification-failed').catch(() => {});
     throw new Error(

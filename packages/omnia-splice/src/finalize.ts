@@ -1,5 +1,6 @@
-import { wotsVerifyDigest, hexToBytes, concatBytes } from '@totemsdk/core';
+import { concatBytes } from '@totemsdk/core';
 import { serializeTxBody, mineTxPoW, TX_POW_MIN_DIFFICULTY } from '@totemsdk/txpow';
+import { verifyChannelSignature } from '@totemsdk/omnia';
 import type { OmniaChannel } from '@totemsdk/omnia';
 import type { WotsLeaseProvider } from '@totemsdk/wots-lease';
 import type {
@@ -24,7 +25,7 @@ import {
  * @property mineDifficulty         - Override PoW difficulty (pass `MAX_HASH` in tests).
  * @property verifySignature        - Custom signature verifier called for both the
  *                                    proposer and acceptor signatures before state
- *                                    transition. Defaults to `wotsVerifyDigest`.
+ *                                    transition. Defaults to `verifyChannelSignature`.
  *                                    **Override in test environments** that use mock
  *                                    signers (mock signatures are not real WOTS sigs
  *                                    and will not pass the default verifier).
@@ -60,11 +61,7 @@ export interface FinalizeSpliceOptions {
 }
 
 function defaultWotsVerify(sig: Uint8Array, digest: Uint8Array, pkd: string): boolean {
-  try {
-    return wotsVerifyDigest(sig, digest, hexToBytes(pkd));
-  } catch {
-    return false;
-  }
+  return verifyChannelSignature(sig, digest, pkd);
 }
 
 function assembleSpliceWitness(sig1: Uint8Array, sig2: Uint8Array): Uint8Array {

@@ -41,3 +41,10 @@ export {
   getSwapAnnouncements,
 } from './routing.js';
 export type { RoutingPort, RouteQuery } from './routing.js';
+
+// Wallet channel-signing bridge (RFC-037 Phase 2).
+export { createWalletChannelSigningMaterial, KEYS_PER_LEVEL } from './signer.js';
+export type {
+  WalletChannelSigningMaterial,
+  WalletChannelSigningOptions,
+} from './signer.js';

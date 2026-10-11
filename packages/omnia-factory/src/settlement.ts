@@ -1,9 +1,10 @@
-import { concatBytes, wotsVerifyDigest, hexToBytes } from '@totemsdk/core/wasm';
+import { concatBytes } from '@totemsdk/core/wasm';
 import {
   serializeTxDraft,
   omniaDraftToMinimaBytes,
   computeTxDraftDigest,
   toRawMinima,
+  verifyChannelSignature,
 } from '@totemsdk/omnia';
 import type { OmniaTxDraft } from '@totemsdk/omnia';
 import { mineTxPoW, TX_POW_MIN_DIFFICULTY, serializeTxBody } from '@totemsdk/txpow';
@@ -118,8 +119,7 @@ export async function closeFactory(
       throw err;
     }
 
-    const verifyFn = bundle.verify
-      ?? ((s: Uint8Array, c: Uint8Array, pkd: string) => wotsVerifyDigest(s, c, hexToBytes(pkd)));
+    const verifyFn = bundle.verify ?? verifyChannelSignature;
     if (!verifyFn(sig, txDigest, p.publicKeyDigest)) {
       await bundle.leaseProvider.burnReservation(reservation.reservationId, 'verification-failed').catch(() => {});
       throw new Error(`Settlement signature verification failed for party '${p.partyId}'`);

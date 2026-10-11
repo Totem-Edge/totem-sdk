@@ -1,9 +1,10 @@
 import { sha3_256 } from '@totemsdk/core/wasm';
-import { concatBytes, wotsVerifyDigest, hexToBytes } from '@totemsdk/core/wasm';
+import { concatBytes } from '@totemsdk/core/wasm';
 import {
   buildFundingTx,
   omniaDraftToMinimaBytes,
   computeTxDraftDigest,
+  verifyChannelSignature,
 } from '@totemsdk/omnia';
 import { mineTxPoW, TX_POW_MIN_DIFFICULTY, serializeTxBody } from '@totemsdk/txpow';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
@@ -41,8 +42,8 @@ export function enforceConservation(factory: ChannelFactory): void {
  * Execute the full WOTS lease cycle for one party (reserve → sign → verify → commit).
  *
  * Verification uses the optional `bundle.verify` override first; falls back to
- * `wotsVerifyDigest` from `@totemsdk/core`.  If verification fails, the reservation
- * is burned and an error is thrown.
+ * `verifyChannelSignature` from `@totemsdk/omnia` (RFC-037: the wallet's unified
+ * WOTS scheme). If verification fails, the reservation is burned and an error is thrown.
  */
 async function leaseSign(
   factoryId: string,
@@ -67,8 +68,7 @@ async function leaseSign(
 
   // Verify the signature against the REGISTERED participant public key digest —
   // not self-reported from the signer, ensuring the signer matches the factory record.
-  const verifyFn = bundle.verify
-    ?? ((s: Uint8Array, c: Uint8Array, pkd: string) => wotsVerifyDigest(s, c, hexToBytes(pkd)));
+  const verifyFn = bundle.verify ?? verifyChannelSignature;
   if (!verifyFn(sig, commitment, participant.publicKeyDigest)) {
     await bundle.leaseProvider.burnReservation(reservation.reservationId, 'verification-failed').catch(() => {});
     throw new Error(
