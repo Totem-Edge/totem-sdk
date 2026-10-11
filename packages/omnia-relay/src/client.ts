@@ -42,6 +42,7 @@ import {
   serializeRoute,
   serializeSwapAnnouncement,
   getSwapAnnouncements,
+  type ChannelGraph,
   type RoutingPort,
 } from './routing.js';
 
@@ -118,8 +119,20 @@ export function createOmniaRelayClient(options: OmniaRelayClientOptions = {}): R
   const hasSignerMaterial = Boolean(signer && leaseProvider);
   const hasFactoryMaterial = Boolean(signer && leaseProvider && chainProvider);
 
+  // RFC-034 §6.1 source ladder: (1) an injected host graph, else (2) the
+  // wallet's own channels, else (3) no graph ⇒ explicit UNSUPPORTED (never an
+  // empty-graph "no route").
+  const hasRoutingGraph = (): boolean => Boolean(routing) || base.channels.size > 0;
+  const resolveGraph = (): ChannelGraph | null => {
+    if (routing) return buildGraph(routing, base.channels.values());
+    const own = [...base.channels.values()];
+    if (own.length === 0) return null;
+    return buildGraph(undefined, own);
+  };
+
   const getRoute = async (params: Record<string, unknown>): Promise<unknown> => {
-    const graph = buildGraph(routing, base.channels.values());
+    const graph = resolveGraph();
+    if (!graph) return unsupported('Omnia getRoute: no routing graph configured.');
     const route = queryRoute(graph, {
       from: reqString(params, 'fromPartyId'),
       to: reqString(params, 'toPartyId'),
@@ -133,7 +146,8 @@ export function createOmniaRelayClient(options: OmniaRelayClientOptions = {}): R
   };
 
   const getSwapRate = async (params: Record<string, unknown>): Promise<unknown> => {
-    const graph = buildGraph(routing, base.channels.values());
+    const graph = resolveGraph();
+    if (!graph) return unsupported('Omnia getSwapRate: no routing graph configured.');
     const announcements = getSwapAnnouncements(graph, reqString(params, 'tokenIn'), reqString(params, 'tokenOut'));
     return { success: true, announcements: announcements.map(serializeSwapAnnouncement) };
   };
@@ -184,7 +198,9 @@ export function createOmniaRelayClient(options: OmniaRelayClientOptions = {}): R
   const supports = (method: string): boolean | { supported: boolean; reason?: string } => {
     const name = clientName(method);
     if (name === 'getRoute' || name === 'getSwapRate') {
-      return true;
+      return hasRoutingGraph()
+        ? true
+        : { supported: false, reason: `Omnia ${name}: no routing graph configured.` };
     }
     if (name === 'createFactory') {
       return hasFactoryMaterial

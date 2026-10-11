@@ -23,6 +23,8 @@ import {
 } from '@totemsdk/omnia-router';
 import type { OmniaChannel } from '@totemsdk/omnia';
 
+export type { ChannelGraph } from '@totemsdk/omnia-router';
+
 /**
  * Source of routing topology for the relay client (RFC-034 §6.1). A thin wallet
  * sees only its own channels, so a host (a self-hosted relay sidecar) or a
@@ -31,8 +33,25 @@ import type { OmniaChannel } from '@totemsdk/omnia';
 export interface RoutingPort {
   /** Current known directed channel edges (own + announced). */
   snapshot(): Iterable<ChannelGraphEdge>;
+  /** Optional: subscribe to topology changes; returns an unsubscribe fn. */
+  subscribe?(onChange: () => void): () => void;
   /** Optional: announced cross-token swaps. */
   swaps?(): readonly SwapAnnouncement[];
+}
+
+/**
+ * Build a {@link RoutingPort} from a live channel source (RFC-034 §6.1 source
+ * #2: the wallet's own channels). Hosts that hold a fuller topology (a
+ * self-hosted relay sidecar) inject their own `RoutingPort` instead.
+ */
+export function createChannelRoutingPort(
+  getChannels: () => Iterable<OmniaChannel>,
+  options: { swaps?: () => readonly SwapAnnouncement[] } = {},
+): RoutingPort {
+  return {
+    snapshot: () => channelGraphEdges(getChannels()),
+    ...(options.swaps ? { swaps: options.swaps } : {}),
+  };
 }
 
 /** Derive directed graph edges from a set of Omnia channels (single-node view). */

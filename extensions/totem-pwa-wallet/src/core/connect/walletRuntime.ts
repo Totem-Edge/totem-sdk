@@ -34,7 +34,7 @@ const PWA_CAPABILITIES: TotemCapabilities = {
   txpow: { localMining: false, progressEvents: false },
   omnia: {
     channels: false,
-    routing: false,
+    routing: true,
     multiHop: false,
     crossTokenSwap: false,
     factory: false,

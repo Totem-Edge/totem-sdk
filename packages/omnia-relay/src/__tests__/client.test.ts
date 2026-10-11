@@ -3,8 +3,9 @@
  */
 
 import { createOmniaRelayClient } from '../client.js';
+import { createChannelRoutingPort } from '../routing.js';
 import type { RoutingPort } from '../routing.js';
-import type { OmniaSwarm, OmniaPeer } from '@totemsdk/omnia';
+import type { OmniaSwarm, OmniaPeer, OmniaChannel } from '@totemsdk/omnia';
 import type { ChannelGraphEdge, SwapAnnouncement } from '@totemsdk/omnia-router';
 
 function fakeSwarm(): OmniaSwarm {
@@ -101,6 +102,70 @@ describe('createOmniaRelayClient — getRoute / getSwapRate (RFC-034 A0)', () =>
     expect(result.announcements[0].rate).toBe('0.95');
     expect(result.announcements[0].maxAmountIn).toBe('1000');
     await client.close();
+  });
+});
+
+describe('createOmniaRelayClient — routing source ladder (RFC-034 §6.1)', () => {
+  const channel = (): OmniaChannel =>
+    ({
+      channelId: 'ch-own',
+      status: 'open',
+      tokenId: '0x00',
+      totalValue: 1_000_000n,
+      currentSequence: 1,
+      parties: [
+        { partyId: 'alice', publicKeyDigest: 'alice', addressIndex: 0 },
+        { partyId: 'bob', publicKeyDigest: 'bob', addressIndex: 1 },
+      ],
+      pendingHTLCs: [],
+      balances: { alice: 1_000_000n, bob: 0n },
+    }) as unknown as OmniaChannel;
+
+  it('returns explicit UNSUPPORTED when no graph source and no own channels', async () => {
+    const client = createOmniaRelayClient({ swarm: fakeSwarm() });
+    const route = (await client.getRoute({
+      fromPartyId: 'alice',
+      toPartyId: 'bob',
+      amount: 1n,
+      tokenId: '0x00',
+    })) as { success: boolean; errorCode: string; error: string };
+    expect(route.success).toBe(false);
+    expect(route.errorCode).toBe('UNSUPPORTED');
+    expect(route.error).toMatch(/no routing graph configured/);
+
+    const swap = (await client.getSwapRate({ tokenIn: '0x00', tokenOut: '0xFEED' })) as {
+      errorCode: string;
+    };
+    expect(swap.errorCode).toBe('UNSUPPORTED');
+
+    // supports() mirrors the refusal (RFC-014 Amendment A truthfulness).
+    const verdict = client.supports('getRoute');
+    expect(typeof verdict === 'boolean' ? verdict : verdict.supported).toBe(false);
+    await client.close();
+  });
+
+  it('falls back to the wallet\'s own channels (source #2)', async () => {
+    const client = createOmniaRelayClient({
+      swarm: fakeSwarm(),
+      channels: new Map([['ch-own', channel()]]),
+    });
+    const result = (await client.getRoute({
+      fromPartyId: 'alice',
+      toPartyId: 'bob',
+      amount: 100n,
+      tokenId: '0x00',
+    })) as { success: boolean; route: { hops: unknown[] } };
+    expect(result.success).toBe(true);
+    expect(result.route.hops).toHaveLength(1);
+    expect(client.supports('getRoute')).toBe(true);
+    await client.close();
+  });
+
+  it('createChannelRoutingPort adapts a live channel source', async () => {
+    const port = createChannelRoutingPort(() => [channel()]);
+    const edges = [...port.snapshot()];
+    expect(edges).toHaveLength(2);
+    expect(edges[0]).toMatchObject({ channelId: 'ch-own', from: 'alice', to: 'bob' });
   });
 });
 

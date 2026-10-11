@@ -33,6 +33,7 @@ export type { OmniaRelayClientOptions } from './client.js';
 // Routing seam + helpers.
 export {
   channelGraphEdges,
+  createChannelRoutingPort,
   buildGraph,
   queryRoute,
   serializeRoute,

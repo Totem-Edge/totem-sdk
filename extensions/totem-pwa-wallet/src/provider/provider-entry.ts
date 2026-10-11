@@ -1,4 +1,13 @@
-import { isSharedConnectMethod, dispatchSharedConnectMethod } from '../core/connect/walletRuntime';
+import { createOmniaRelayClient } from '@totemsdk/omnia-relay';
+import { isSharedConnectMethod, dispatchSharedConnectMethod, configurePwaWalletRuntime } from '../core/connect/walletRuntime';
+
+// RFC-034 A4: install execution ports so the shared connect runtime serves the
+// Omnia method family instead of resolving every method `unsupported`. The
+// wallet-side relay client answers read-only routing (`getRoute`/`getSwapRate`)
+// and the channel registry; mutations report a reasoned `UNSUPPORTED` until the
+// wallet's signer/lease bridge is supplied (see RFC-034 §9 A4). `autoAccept:false`
+// keeps the relay socket closed until a method actually needs it.
+configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false }) });
 
 /**
  * provider.js — Totem PWA cross-origin embed script
