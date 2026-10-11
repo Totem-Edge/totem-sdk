@@ -56,6 +56,16 @@ jobs:
         uses: ./.github/actions/setup-rust-wasm
         with:
           cache-key: ${{ matrix.pkg }}
+      # RFC-031 Fix A removed `build:wasm` from the `build` scripts so dev/build
+      # stays wasm-free, but packages still declare `rust/pkg*` in `files`. Build
+      # those artifacts here so the packed tarball matches what it declares.
+      - name: Build package WASM artifacts
+        if: matrix.build_wasm
+        run: pnpm --filter "${{ matrix.npm_name }}" run build:wasm
+      - name: Strip wasm-pack generated .gitignore files
+        if: matrix.build_wasm
+        run: node ../../scripts/clean-wasm-output-ignores.mjs
+        working-directory: ${{ matrix.dir }}
       - name: Verify package release
         uses: ./.github/actions/verify-package
         with:

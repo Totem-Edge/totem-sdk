@@ -55,6 +55,12 @@ const needsWasm = [...closure].some((name) => {
   return Object.values(scripts).some((script) => String(script).includes('wasm-pack'));
 });
 
+// Some packages declare rust wasm output (files: ["rust/pkg", ...]) and keep a
+// `build:wasm` script, but no longer invoke it from `build` (RFC-031 Fix A made
+// dev builds wasm-free). Publish must still produce those artifacts, or the
+// verify-consumer-pack gate rejects the tarball for a missing declared file.
+const buildWasm = Boolean(target.manifest.scripts?.['build:wasm']);
+
 process.stdout.write(JSON.stringify({
   include: [{
     pkg: slug,
@@ -62,5 +68,6 @@ process.stdout.write(JSON.stringify({
     npm_name: target.manifest.name,
     version,
     needs_wasm: needsWasm,
+    build_wasm: buildWasm,
   }],
 }));
