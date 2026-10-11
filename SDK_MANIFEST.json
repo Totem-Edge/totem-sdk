@@ -1519,10 +1519,12 @@
       "dependencies": {
         "@totemsdk/chain-provider": "^0.2.1",
         "@totemsdk/core": "^1.2.11",
+        "@totemsdk/identity": "^1.0.1",
         "@totemsdk/omnia": "^1.0.3",
         "@totemsdk/omnia-factory": "^0.2.1",
         "@totemsdk/omnia-router": "^0.2.1",
         "@totemsdk/omnia-splice": "^0.2.1",
+        "@totemsdk/root-identity": "^1.0.9",
         "@totemsdk/wots-lease": "^1.0.1"
       },
       "exports": {

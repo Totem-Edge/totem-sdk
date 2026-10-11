@@ -265,8 +265,8 @@ importers:
   extensions/totem-pwa-wallet:
     dependencies:
       '@noble/hashes':
-        specifier: ^2.2.0
-        version: 2.2.0
+        specifier: ^1.8.0
+        version: 1.8.0
       '@totemsdk/chain-provider':
         specifier: workspace:^
         version: link:../../packages/chain-provider
@@ -1578,6 +1578,9 @@ importers:
       '@totemsdk/core':
         specifier: workspace:^
         version: link:../core
+      '@totemsdk/identity':
+        specifier: workspace:^
+        version: link:../identity
       '@totemsdk/omnia':
         specifier: workspace:^
         version: link:../omnia
@@ -1590,6 +1593,9 @@ importers:
       '@totemsdk/omnia-splice':
         specifier: workspace:^
         version: link:../omnia-splice
+      '@totemsdk/root-identity':
+        specifier: workspace:^
+        version: link:../root-identity
       '@totemsdk/wots-lease':
         specifier: workspace:^
         version: link:../wots-lease
@@ -1609,7 +1615,6 @@ importers:
       typescript:
         specifier: 5.9.3
         version: 5.9.3
-
 
   packages/omnia-router:
     dependencies:

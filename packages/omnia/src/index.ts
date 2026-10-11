@@ -1,6 +1,8 @@
 export type {
   OmniaChannel,
   ChannelParticipant,
+  ChannelIdentity,
+  ChannelOwnershipProof,
   SignedChannelState,
   SignedClosePackage,
   ClosePackageArtifact,

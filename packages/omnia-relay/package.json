@@ -30,10 +30,12 @@
   "dependencies": {
     "@totemsdk/chain-provider": "workspace:^",
     "@totemsdk/core": "workspace:^",
+    "@totemsdk/identity": "workspace:^",
     "@totemsdk/omnia": "workspace:^",
     "@totemsdk/omnia-factory": "workspace:^",
     "@totemsdk/omnia-router": "workspace:^",
     "@totemsdk/omnia-splice": "workspace:^",
+    "@totemsdk/root-identity": "workspace:^",
     "@totemsdk/wots-lease": "workspace:^"
   },
   "devDependencies": {

@@ -31,7 +31,7 @@ Three separated roles:
 
 | Role | Key | Value |
 |---|---|---|
-| Wallet identity (stable, recognizable) | unified root identity | `partyId` = `computeIdentityId('wallet', rootAddress)` |
+| Wallet identity (stable, recognizable) | unified root identity | `partyId` = `computeIdentityId('person', rootAddress)` |
 | Channel signing key (spend-capable) | per-address **child** TreeKey | `publicKeyDigest` = child tree-root pubkey (lowercase, `0x`-prefixed) |
 | Binding | root-identity **ownership proof** | `UnifiedIdentityWallet.proveOwnership([addressIndex])` |
 
@@ -65,7 +65,7 @@ Add an optional identity block to `ChannelParticipant` (`omnia/src/types.ts`):
 
 ```ts
 export interface ChannelIdentity {
-  /** `@totemsdk/identity` id: `totem:id:wallet:<hex>`. */
+  /** `@totemsdk/identity` id: `totem:id:person:<hex>`. */
   id: string;
   rootAddress: string;
   rootPublicKey: string;      // lower-case hex (no 0x), as root-identity emits
@@ -90,7 +90,7 @@ Hex alignment: `OwnershipProof.childPublicKeys` are lower-case hex **without**
 ## 4. Verification
 
 New `verifyChannelParticipantIdentity(participant): { valid: boolean; errors: string[] }`
-in `@totemsdk/omnia`:
+in `@totemsdk/omnia-relay` (keeps `@totemsdk/omnia` free of an identity dependency):
 
 1. If `identity` is absent → `valid: true` (migration: identity is optional).
 2. `UnifiedIdentityWallet.verifyOwnershipProof(identity.ownershipProof)` must be true.
@@ -98,7 +98,7 @@ in `@totemsdk/omnia`:
    `identity.rootPublicKey` / `identity.rootAddress`.
 4. `participant.publicKeyDigest` (normalised) must be in
    `identity.ownershipProof.childPublicKeys`.
-5. `identity.id === computeIdentityId('wallet', identity.rootAddress)`.
+5. `identity.id === computeIdentityId('person', identity.rootAddress)`.
 
 A counterparty MAY require identity for new channels (policy flag); during the
 RFC-037 migration it defaults to optional.
@@ -106,7 +106,7 @@ RFC-037 migration it defaults to optional.
 ## 5. Phasing
 
 - **A1 — schema + verification.** `ChannelIdentity` on `ChannelParticipant`,
-  `verifyChannelParticipantIdentity`, exported from `@totemsdk/omnia`; unit tests
+  `verifyChannelParticipantIdentity` + `ChannelIdentity` type; `verifyChannelParticipantIdentity` lives in `@totemsdk/omnia-relay`, the structural type in `@totemsdk/omnia`; unit tests
   (valid proof, digest-not-in-proof, tampered root signature, missing identity).
 - **A2 — host wiring.** Extension/PWA build the participant on unlock via
   `UnifiedIdentityWallet` (root info + `proveOwnership([addressIndex])`) and the

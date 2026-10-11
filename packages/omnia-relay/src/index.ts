@@ -48,3 +48,10 @@ export type {
   WalletChannelSigningMaterial,
   WalletChannelSigningOptions,
 } from './signer.js';
+
+// Channel participant identity verification (RFC-037 Amendment A).
+export {
+  verifyChannelParticipantIdentity,
+  WALLET_IDENTITY_KIND,
+} from './identity.js';
+export type { IdentityVerificationResult } from './identity.js';

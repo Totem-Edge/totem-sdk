@@ -32,6 +32,39 @@ export interface ChannelParticipant {
   /** Address to receive funds on cooperative settlement. Derived from publicKeyDigest when not set. */
   settlementAddress?: string;
   relayEndpoint?: string;
+  /**
+   * Root-identity anchor (RFC-037 Amendment A). Optional during migration; when
+   * present, the participant's channel key is bound to a wallet root identity via
+   * an ownership proof. Verified by `verifyChannelParticipantIdentity`.
+   */
+  identity?: ChannelIdentity;
+}
+
+/**
+ * Structural mirror of `@totemsdk/root-identity`'s `OwnershipProof` (RFC-037-A).
+ * Kept structural so `@totemsdk/omnia` does not depend on the identity packages.
+ */
+export interface ChannelOwnershipProof {
+  rootAddress: string;
+  rootPublicKey: string;
+  childAddresses: string[];
+  childPublicKeys: string[];
+  rootProof: {
+    address: string;
+    publicKey: string;
+    signature: string;
+    message: string;
+  };
+  timestamp: string;
+}
+
+/** Wallet root-identity anchor for a channel participant (RFC-037-A). */
+export interface ChannelIdentity {
+  /** `@totemsdk/identity` id (`totem:id:person:<hex>`). */
+  id: string;
+  rootAddress: string;
+  rootPublicKey: string;
+  ownershipProof: ChannelOwnershipProof;
 }
 
 export interface HTLCRecord {
