@@ -9137,7 +9137,7 @@
         },
         "signManifest": {
           "kind": "function",
-          "signature": "signManifest<T extends Manifest>(manifest: T, seed: Uint8Array, keyIndex: number): Promise<SignedManifest<T>>"
+          "signature": "signManifest<T extends Manifest>(manifest: T, treeKey: TreeKey, useIndex: number): Promise<SignedManifest<T>>"
         },
         "verifyManifest": {
           "kind": "function",
@@ -9335,6 +9335,16 @@
           "kind": "interface",
           "signature": "export interface ChannelParticipant"
         },
+        "ChannelIdentity": {
+          "kind": "interface",
+          "signature": "export interface ChannelIdentity",
+          "doc": "Wallet root-identity anchor for a channel participant (RFC-037-A)."
+        },
+        "ChannelOwnershipProof": {
+          "kind": "interface",
+          "signature": "export interface ChannelOwnershipProof",
+          "doc": "Structural mirror of `@totemsdk/root-identity`'s `OwnershipProof` (RFC-037-A).\nKept structural so `@totemsdk/omnia` does not depend on the identity packages."
+        },
         "SignedChannelState": {
           "kind": "interface",
           "signature": "export interface SignedChannelState"
@@ -9414,7 +9424,7 @@
         "ChannelSignature": {
           "kind": "type",
           "signature": "export type ChannelSignature = Uint8Array",
-          "doc": "Flat WOTS signature bytes — output of wotsSign()."
+          "doc": "Serialized WOTS channel signature. Canonically a serialized hierarchical\n`TreeSignature` (`serializeTreeSignature`) — the wallet's unified WOTS scheme\n(RFC-037). Legacy flat `wotsSign` output (1088 bytes) is still accepted during\nthe RFC-037 migration (see `verifyChannelSignature`)."
         },
         "ChannelSigner": {
           "kind": "interface",
@@ -9659,7 +9669,7 @@
         "verifyStateSignature": {
           "kind": "function",
           "signature": "verifyStateSignature(channel: OmniaChannel, state: SignedChannelState, partyId: string, publicKeyDigest: string): boolean",
-          "doc": "Verify a channel state signature using off-chain WOTS verification.\n\n Rebuilds the canonical Minima update transaction digest and uses\n `wotsVerifyDigest` to compare it against the party's stored public key digest.\n\nBecause the commitment covers the full off-chain state (sequence + balance split +\npending HTLCs), any tampering with these fields after signing will cause verification\nto fail, preserving the integrity of dispute evidence."
+          "doc": "Verify a channel state signature using off-chain WOTS verification.\n\n Rebuilds the canonical Minima update transaction digest and verifies it\n against the party's stored public key digest using `verifyChannelSignature`\n (the wallet's hierarchical TreeKey scheme, RFC-037).\n\nBecause the commitment covers the full off-chain state (sequence + balance split +\npending HTLCs), any tampering with these fields after signing will cause verification\nto fail, preserving the integrity of dispute evidence."
         },
         "validateStateTransition": {
           "kind": "function",
@@ -9674,6 +9684,11 @@
           "kind": "function",
           "signature": "verifyStateForCoSign(channel: OmniaChannel, state: SignedChannelState): Promise<{ valid: boolean; errors: string[]; }>",
           "doc": "Validate a one-party state update before this node adds its co-signature.\n\nThis performs the sequence, conservation, V2 commitment, program-hook,\npartial close-package, and present-signature checks needed by the co-sign\npath. It intentionally does not require every channel party to have signed.\nAfter co-signing and merging, use `verifyState()` on the completed state."
+        },
+        "verifyChannelSignature": {
+          "kind": "function",
+          "signature": "verifyChannelSignature(signature: ChannelSignature, digest: Uint8Array, publicKeyDigest: string): boolean",
+          "doc": "Verify a channel signature over `digest` for the party whose WOTS\n`publicKeyDigest` (64 hex chars, tree-root public key) is given. Fails closed\non any error."
         },
         "validateChannelStateWithKissvm": {
           "kind": "function",
@@ -10933,6 +10948,11 @@
           "signature": "channelGraphEdges(channels: Iterable<OmniaChannel>): ChannelGraphEdge[]",
           "doc": "Derive directed graph edges from a set of Omnia channels (single-node view)."
         },
+        "createChannelRoutingPort": {
+          "kind": "function",
+          "signature": "createChannelRoutingPort(getChannels: () => Iterable<OmniaChannel>, options?: { swaps?: () => readonly SwapAnnouncement[]; }): RoutingPort",
+          "doc": "Build a {@link RoutingPort} from a live channel source (RFC-034 §6.1 source\n#2: the wallet's own channels). Hosts that hold a fuller topology (a\nself-hosted relay sidecar) inject their own `RoutingPort` instead."
+        },
         "buildGraph": {
           "kind": "function",
           "signature": "buildGraph(routing: RoutingPort | undefined, channels: Iterable<OmniaChannel>): ChannelGraph",
@@ -10966,6 +10986,38 @@
         "RouteQuery": {
           "kind": "interface",
           "signature": "export interface RouteQuery"
+        },
+        "createWalletChannelSigningMaterial": {
+          "kind": "function",
+          "signature": "createWalletChannelSigningMaterial(treeKey: TreeKey, options?: WalletChannelSigningOptions): WalletChannelSigningMaterial",
+          "doc": "Build the wallet's Omnia signing material from a unified WOTS `TreeKey`.\n`sign(payload, indices)` signs with the leaf reserved by the lease and returns\nthe serialized `TreeSignature` Omnia verifies (RFC-037)."
+        },
+        "KEYS_PER_LEVEL": {
+          "kind": "const",
+          "signature": "KEYS_PER_LEVEL = 64",
+          "doc": "Keys per tree level — the flat leaf index is `l1 * KEYS_PER_LEVEL + l2`."
+        },
+        "WalletChannelSigningMaterial": {
+          "kind": "interface",
+          "signature": "export interface WalletChannelSigningMaterial"
+        },
+        "WalletChannelSigningOptions": {
+          "kind": "interface",
+          "signature": "export interface WalletChannelSigningOptions"
+        },
+        "verifyChannelParticipantIdentity": {
+          "kind": "function",
+          "signature": "verifyChannelParticipantIdentity(participant: ChannelParticipant): IdentityVerificationResult",
+          "doc": "Verify a channel participant's root-identity anchor (RFC-037-A).\n\nFails closed: any malformed proof, mismatch, or missing child key ⇒ invalid.\nA participant without `identity` is valid (identity is optional)."
+        },
+        "WALLET_IDENTITY_KIND": {
+          "kind": "const",
+          "signature": "WALLET_IDENTITY_KIND = 'person' as const",
+          "doc": "Identity kind for a self-custody wallet (`@totemsdk/identity`)."
+        },
+        "IdentityVerificationResult": {
+          "kind": "interface",
+          "signature": "export interface IdentityVerificationResult"
         }
       }
     },
