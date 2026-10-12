@@ -9,7 +9,7 @@ describe('LeaseStore Chaos Tests', () => {
   const createTestLease = (id: string, status: LeaseStatus = 'active'): StoredLease => ({
     leaseId: id,
     leaseToken: `token_${id}`,
-    indices: { l1: 0, l2: 1, l3: 2 },
+    indices: { addressIndex: 0, l1: 0, l2: 1 },
     status,
     createdAt: Date.now(),
     expiresAt: Date.now() + 30000,

@@ -18,7 +18,6 @@ module.exports = {
   moduleNameMapper: {
     '^@totemsdk/core$': '<rootDir>/../core/src/index.ts',
     '^@totemsdk/realtime$': '<rootDir>/../realtime/src/index.ts',
-    '^@totem/sdk-client$': '<rootDir>/../client/src/index.ts',
     '^@totemsdk/identity$': '<rootDir>/../identity/src/index.ts',
     '^@totemsdk/edge$': '<rootDir>/../edge/src/index.ts',
     '^@totemsdk/manifest$': '<rootDir>/../manifest/src/index.ts',

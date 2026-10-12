@@ -17,7 +17,6 @@
     "paths": {
       "@totemsdk/core": ["../core/src/index"],
       "@totemsdk/realtime": ["../realtime/src/index"],
-      "@totem/sdk-client": ["../client/src/index"],
       "@totemsdk/identity": ["../identity/src/index"],
       "@totemsdk/edge": ["../edge/src/index"],
       "@totemsdk/manifest": ["../manifest/src/index"],

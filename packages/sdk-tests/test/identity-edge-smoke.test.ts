@@ -202,7 +202,7 @@ describe('@totemsdk/identity — basic semantics', () => {
     };
     const result = verifyIdentityClaim(tampered);
     expect(result.valid).toBe(false);
-    expect(result.reason).toMatch(/does not match address derived from proof\.publicKey/);
+    expect(result.reason).toMatch(/public key does not match declared address/);
   }, 30000);
 });
 
