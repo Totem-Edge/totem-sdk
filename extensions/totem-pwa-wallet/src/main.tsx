@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { App } from './App';
 import './theme/axia-tokens.css';
 import { init as initObs, track } from './core/observability';
+import { ensureWasm } from './core/wasm';
 
 initObs({
   dappId: import.meta.env.VITE_OBS_DAPP_ID ?? 'totem-pwa-wallet',
@@ -33,8 +34,18 @@ window.addEventListener('totem#result', (e) => {
   track(isError ? 'provider.connect.rejected' : 'provider.connect.approved', { method });
 });
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+// Initialise the WASM crypto core before the UI can call any @totemsdk/core
+// function (key derivation, signing, hashing). See src/core/wasm.ts.
+ensureWasm()
+  .then(() => {
+    ReactDOM.createRoot(document.getElementById('root')!).render(
+      <React.StrictMode>
+        <App />
+      </React.StrictMode>
+    );
+  })
+  .catch((err) => {
+    console.error('[PWA] WASM init failed', err);
+    const root = document.getElementById('root');
+    if (root) root.textContent = 'Failed to start Totem Wallet. Please reload.';
+  });
