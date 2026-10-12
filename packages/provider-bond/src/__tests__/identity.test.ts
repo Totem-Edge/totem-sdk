@@ -1,6 +1,6 @@
 import { signManifest } from '@totemsdk/manifest';
 import type { EdgeServiceManifest } from '@totemsdk/manifest';
-import { wotsAddressFromKeypair, wotsKeypairFromSeed } from '@totemsdk/core';
+import { createUnifiedChildTreeKey, scriptFromWotsPk, scriptToAddress } from '@totemsdk/core';
 import {
   verifyProviderManifestIdentity,
   verifyProviderBondAddresses,
@@ -10,8 +10,10 @@ import { createProviderBondManifest } from '../manifest.js';
 
 const SEED_ROOT = new Uint8Array(32).fill(1);
 const SEED_ATTACKER = new Uint8Array(32).fill(9);
-const rootAddr = wotsAddressFromKeypair(wotsKeypairFromSeed(SEED_ROOT, 0));
-const attackerAddr = wotsAddressFromKeypair(wotsKeypairFromSeed(SEED_ATTACKER, 0));
+const rootTree = createUnifiedChildTreeKey(SEED_ROOT, 0);
+const attackerTree = createUnifiedChildTreeKey(SEED_ATTACKER, 0);
+const rootAddr = scriptToAddress(scriptFromWotsPk(rootTree.getPublicKey()));
+const attackerAddr = scriptToAddress(scriptFromWotsPk(attackerTree.getPublicKey()));
 
 function makeEdgeService(overrides: Partial<EdgeServiceManifest> = {}): EdgeServiceManifest {
   return {
@@ -43,7 +45,7 @@ describe('identity (RFC-020 C4)', () => {
   describe('verifyProviderManifestIdentity', () => {
     it('verifies a real, authorised manifest signer', async () => {
       const edgeService = makeEdgeService({ operatorAddress: rootAddr });
-      const signed = await signManifest(edgeService, SEED_ROOT, 0);
+      const signed = await signManifest(edgeService, rootTree, 0);
       const manifest = createProviderBondManifest({ edgeService, signedEdgeService: signed, providerBond: { providerId: 'p-1' } });
       const result = verifyProviderManifestIdentity({ manifest, identityGraph: graph(rootAddr) });
       expect(result.ok).toBe(true);
@@ -51,7 +53,7 @@ describe('identity (RFC-020 C4)', () => {
 
     it('rejects an unauthorised manifest signer', async () => {
       const edgeService = makeEdgeService({ operatorAddress: attackerAddr });
-      const signed = await signManifest(edgeService, SEED_ATTACKER, 0);
+      const signed = await signManifest(edgeService, attackerTree, 0);
       const manifest = createProviderBondManifest({ edgeService, signedEdgeService: signed, providerBond: { providerId: 'p-1' } });
       const result = verifyProviderManifestIdentity({ manifest, identityGraph: graph(rootAddr) });
       expect(result.ok).toBe(false);

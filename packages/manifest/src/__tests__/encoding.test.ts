@@ -3,6 +3,7 @@
  * encode → decode round-trips for all four manifest types.
  */
 
+import { createUnifiedChildTreeKey } from '@totemsdk/core';
 import { signManifest } from '../sign.js';
 import { encodeManifest, decodeManifest } from '../encoding.js';
 import { MANIFEST_VERSION, MANIFEST_TYPE_BYTE } from '../constants.js';
@@ -17,6 +18,7 @@ jest.setTimeout(60_000);
 
 const TEST_SEED = new Uint8Array(32).fill(0x11);
 const KEY_INDEX = 0;
+const TEST_TREE = createUnifiedChildTreeKey(TEST_SEED, 0);
 
 let resolvedAddress: string;
 
@@ -35,7 +37,7 @@ beforeAll(async () => {
       description: '',
       minTotemVersion: '0.1.0',
     } satisfies AppManifest,
-    TEST_SEED,
+    TEST_TREE,
     KEY_INDEX,
   );
   resolvedAddress = tmp.authorAddress;
@@ -56,7 +58,7 @@ describe('encodeManifest / decodeManifest', () => {
       description: 'Test',
       minTotemVersion: '0.1.0',
     };
-    const signed = await signManifest(manifest, TEST_SEED, KEY_INDEX);
+    const signed = await signManifest(manifest, TEST_TREE, KEY_INDEX);
     const encoded = encodeManifest(signed);
     const decoded = decodeManifest(encoded);
 
@@ -80,7 +82,7 @@ describe('encodeManifest / decodeManifest', () => {
       expiresAt: Date.now() + 3600_000,
       tags: ['oracle'],
     };
-    const signed = await signManifest(manifest, TEST_SEED, KEY_INDEX);
+    const signed = await signManifest(manifest, TEST_TREE, KEY_INDEX);
     const encoded = encodeManifest(signed);
     const decoded = decodeManifest(encoded);
 
@@ -101,7 +103,7 @@ describe('encodeManifest / decodeManifest', () => {
       category: ['defi'],
       description: 'A swap contract',
     };
-    const signed = await signManifest(manifest, TEST_SEED, KEY_INDEX);
+    const signed = await signManifest(manifest, TEST_TREE, KEY_INDEX);
     const encoded = encodeManifest(signed);
     const decoded = decodeManifest(encoded);
 
@@ -121,7 +123,7 @@ describe('encodeManifest / decodeManifest', () => {
       capabilities: ['relay'],
       tags: ['infrastructure'],
     };
-    const signed = await signManifest(manifest, TEST_SEED, KEY_INDEX);
+    const signed = await signManifest(manifest, TEST_TREE, KEY_INDEX);
     const encoded = encodeManifest(signed);
     const decoded = decodeManifest(encoded);
 
@@ -143,7 +145,7 @@ describe('encodeManifest / decodeManifest', () => {
       description: '',
       minTotemVersion: '0.1.0',
     };
-    const signed = await signManifest(manifest, TEST_SEED, KEY_INDEX);
+    const signed = await signManifest(manifest, TEST_TREE, KEY_INDEX);
     const encoded = encodeManifest(signed);
     expect(encoded[0]).toBe(MANIFEST_VERSION);
   });
@@ -151,19 +153,19 @@ describe('encodeManifest / decodeManifest', () => {
   it('second byte is correct type discriminant', async () => {
     const appSigned = await signManifest(
       { type: 'app', appId: '', name: 'x', version: '1.0.0', authorAddress: resolvedAddress, pearTopicKey: 'a'.repeat(64), price: '0', category: [], permissions: [], description: '', minTotemVersion: '0.1.0' } satisfies AppManifest,
-      TEST_SEED, KEY_INDEX,
+      TEST_TREE, KEY_INDEX,
     );
     expect(encodeManifest(appSigned)[1]).toBe(MANIFEST_TYPE_BYTE.app);
 
     const capSigned = await signManifest(
       { type: 'capability', capabilityId: '', capabilityName: 'x', agentAddress: resolvedAddress, agentIdentityKey: 'e'.repeat(64), description: '', inputSchema: {}, outputSchema: {}, pricePerCall: '1', expiresAt: 0, tags: [] } satisfies CapabilityManifest,
-      TEST_SEED, KEY_INDEX,
+      TEST_TREE, KEY_INDEX,
     );
     expect(encodeManifest(capSigned)[1]).toBe(MANIFEST_TYPE_BYTE.capability);
 
     const edgeSigned = await signManifest(
       { type: 'edge-service', serviceId: '', name: 'x', version: '1.0.0', operatorAddress: resolvedAddress, serviceType: 'sensor', description: '', capabilities: [], tags: [] } satisfies EdgeServiceManifest,
-      TEST_SEED, KEY_INDEX,
+      TEST_TREE, KEY_INDEX,
     );
     expect(encodeManifest(edgeSigned)[1]).toBe(MANIFEST_TYPE_BYTE['edge-service']);
   });

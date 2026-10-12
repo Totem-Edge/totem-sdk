@@ -74,12 +74,15 @@ Security invariants are unchanged: one-time indices still come from the
   advertises the unified tree-root pubkey and returns `serializeTreeSignature`.
   Switch the `omnia-factory` / `omnia-splice` default `verify` callbacks to
   `verifyChannelSignature`. Wire `createOmniaRelayClient` signing material.
-- **Phase 3 — landed.** `@totemsdk/omnia-host`'s channel signer uses the unified
-  child TreeKey (`createUnifiedChildTreeKey`) and returns serialized
-  `TreeSignature`s; the identity/manifest address stays flat (a separate signing
-  domain, seeded from the unified child seed). The flat fallback is retired from
-  `verifyChannelSignature` (tree-only now). Tests: omnia 125, omnia-host 51,
-  omnia-relay 23, omnia-factory 84, omnia-splice 72, omnia-pool 37.
+- **Phase 3 — landed.** Everything uses the unified child TreeKey, no migration
+  (pre-release). `@totemsdk/omnia-host`'s channel signer derives
+  `createUnifiedChildTreeKey` and returns serialized `TreeSignature`s; its
+  identity/manifest address is the same tree root. `@totemsdk/manifest`
+  (`signManifest`/`verifyManifest`) and `@totemsdk/edge`'s
+  `createEdgeServiceManifest` sign/verify with the TreeKey. The flat fallback is
+  retired from `verifyChannelSignature` (tree-only). Tests: omnia 125,
+  omnia-host 51, omnia-relay 23, omnia-factory 84, omnia-splice 72, omnia-pool 37,
+  manifest 61, edge 183, edge-adapters 102, identity 36, proof 25, provider-bond 96.
 
 ## 5. Acceptance
 

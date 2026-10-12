@@ -42,7 +42,7 @@ import {
 } from '../index';
 import type { MinimaWorkRelay, MinimaWorkTemplate, WorkChallenge } from '@totemsdk/txpow';
 import { createWorkChallenge } from '@totemsdk/txpow';
-import { sha3_256, wotsKeypairFromSeed, wotsAddressFromKeypair } from '@totemsdk/core';
+import { sha3_256, createUnifiedChildTreeKey, scriptFromWotsPk, scriptToAddress } from '@totemsdk/core';
 import { signManifest } from '@totemsdk/manifest';
 import { canonicalJson, toHex } from '../canonical';
 
@@ -222,9 +222,12 @@ function makeAdapter(resource: string) {
 const SELLER_SEED = new Uint8Array(32).fill(0x5e);
 const SELLER_KEY_INDEX = 0;
 
+function sellerTree() {
+  return createUnifiedChildTreeKey(SELLER_SEED, 0);
+}
+
 function sellerAddress(): string {
-  const kp = wotsKeypairFromSeed(SELLER_SEED, SELLER_KEY_INDEX);
-  return wotsAddressFromKeypair(kp);
+  return scriptToAddress(scriptFromWotsPk(sellerTree().getPublicKey()));
 }
 
 async function makeSignedManifest(price: string, resource = 'compute') {
@@ -242,7 +245,7 @@ async function makeSignedManifest(price: string, resource = 'compute') {
     paymentMethods: ['omnia'] as Array<'omnia' | 'onchain' | 'invoice' | 'free'>,
     tags: [],
   };
-  return signManifest(manifest, SELLER_SEED, SELLER_KEY_INDEX);
+  return signManifest(manifest, sellerTree(), SELLER_KEY_INDEX);
 }
 
 function makeIntent(overrides?: Partial<PurchaseIntent>): PurchaseIntent {
@@ -358,6 +361,9 @@ async function signWorkRequired(
 // ─────────────────────────────────────────────────────────────────────────────
 // Durability
 // ─────────────────────────────────────────────────────────────────────────────
+
+// WOTS TreeKey signing is compute-intensive (RFC-037); allow longer than the default 5s.
+jest.setTimeout(60000);
 
 describe('durability', () => {
   it('proposal + head survive engine restart', async () => {

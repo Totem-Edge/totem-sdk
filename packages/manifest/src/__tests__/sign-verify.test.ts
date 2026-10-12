@@ -4,6 +4,7 @@
  * Also tests tamper detection.
  */
 
+import { createUnifiedChildTreeKey } from '@totemsdk/core';
 import { signManifest } from '../sign.js';
 import { verifyManifest } from '../verify.js';
 import type {
@@ -18,6 +19,7 @@ jest.setTimeout(60_000);
 
 const TEST_SEED = new Uint8Array(32).fill(0x42);
 const KEY_INDEX = 0;
+const TEST_TREE = createUnifiedChildTreeKey(TEST_SEED, 0);
 
 const APP: AppManifest = {
   type: 'app',
@@ -80,13 +82,13 @@ describe('signManifest + verifyManifest round-trips', () => {
   let signedAddress: string;
 
   beforeAll(async () => {
-    const tmp = await signManifest(APP, TEST_SEED, KEY_INDEX);
+    const tmp = await signManifest(APP, TEST_TREE, KEY_INDEX);
     signedAddress = tmp.authorAddress;
   });
 
   it('signs and verifies AppManifest', async () => {
     const app = { ...APP, authorAddress: signedAddress };
-    const signed = await signManifest(app, TEST_SEED, KEY_INDEX);
+    const signed = await signManifest(app, TEST_TREE, KEY_INDEX);
     expect(signed.manifest.type).toBe('app');
     expect(signed.authorAddress).toBe(signedAddress);
     expect(signed.signature).toBeTruthy();
@@ -99,7 +101,7 @@ describe('signManifest + verifyManifest round-trips', () => {
 
   it('signs and verifies CapabilityManifest', async () => {
     const cap = { ...CAPABILITY, agentAddress: signedAddress };
-    const signed = await signManifest(cap, TEST_SEED, KEY_INDEX);
+    const signed = await signManifest(cap, TEST_TREE, KEY_INDEX);
     expect(signed.manifest.type).toBe('capability');
 
     const result = verifyManifest(signed);
@@ -108,7 +110,7 @@ describe('signManifest + verifyManifest round-trips', () => {
 
   it('signs and verifies DAppManifest', async () => {
     const dapp = { ...DAPP, authorAddress: signedAddress };
-    const signed = await signManifest(dapp, TEST_SEED, KEY_INDEX);
+    const signed = await signManifest(dapp, TEST_TREE, KEY_INDEX);
     expect(signed.manifest.type).toBe('dapp');
 
     const result = verifyManifest(signed);
@@ -117,7 +119,7 @@ describe('signManifest + verifyManifest round-trips', () => {
 
   it('signs and verifies EdgeServiceManifest', async () => {
     const edge = { ...EDGE, operatorAddress: signedAddress };
-    const signed = await signManifest(edge, TEST_SEED, KEY_INDEX);
+    const signed = await signManifest(edge, TEST_TREE, KEY_INDEX);
     expect(signed.manifest.type).toBe('edge-service');
 
     const result = verifyManifest(signed);
@@ -126,7 +128,7 @@ describe('signManifest + verifyManifest round-trips', () => {
 
   it('detects manifest tampering — changed name field', async () => {
     const app = { ...APP, authorAddress: signedAddress };
-    const signed = await signManifest(app, TEST_SEED, KEY_INDEX);
+    const signed = await signManifest(app, TEST_TREE, KEY_INDEX);
 
     const tampered = {
       ...signed,
@@ -139,7 +141,7 @@ describe('signManifest + verifyManifest round-trips', () => {
 
   it('detects tampered authorAddress in SignedManifest wrapper', async () => {
     const app = { ...APP, authorAddress: signedAddress };
-    const signed = await signManifest(app, TEST_SEED, KEY_INDEX);
+    const signed = await signManifest(app, TEST_TREE, KEY_INDEX);
 
     const tampered = { ...signed, authorAddress: 'Mx999999999999999999' };
     const result = verifyManifest(tampered);
@@ -148,9 +150,10 @@ describe('signManifest + verifyManifest round-trips', () => {
 
   it('detects corrupted signature bytes', async () => {
     const app = { ...APP, authorAddress: signedAddress };
-    const signed = await signManifest(app, TEST_SEED, KEY_INDEX);
+    const signed = await signManifest(app, TEST_TREE, KEY_INDEX);
 
-    const corrupted = { ...signed, signature: 'ff' + signed.signature.slice(2) };
+    const mid = Math.floor(signed.signature.length / 2);
+    const corrupted = { ...signed, signature: signed.signature.slice(0, mid) + 'ff' + signed.signature.slice(mid + 2) };
     const result = verifyManifest(corrupted);
     expect(result.valid).toBe(false);
   });

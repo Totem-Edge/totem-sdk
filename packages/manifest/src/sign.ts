@@ -1,27 +1,29 @@
 /**
- * signManifest — signs a manifest with a WOTS key.
+ * signManifest — signs a manifest with the unified WOTS TreeKey (RFC-037).
  *
  * Steps:
  *   1. Canonicalise the manifest as deterministic JSON (sorted keys).
  *   2. SHA3-256 the UTF-8 bytes → 32-byte digest.
- *   3. Sign with wotsSign(seed, keyIndex, digest).
- *   4. Derive address + PKdigest via wotsKeypairFromSeed + wotsAddressFromKeypair.
+ *   3. Sign with the unified child TreeKey at `useIndex`:
+ *      `serializeTreeSignature(treeKey.sign(digest))`.
+ *   4. Derive the Minima address from the tree-root public key.
  *   5. Return SignedManifest<T>.
  *
- * signerPublicKey in SignedManifest is the 32-byte WOTS PKdigest (hex, 64 chars).
- * This is the exact value expected by verifyManifest (via wotsVerifyDigest).
+ * `signerPublicKey` is the tree-root public key (hex). verifyManifest verifies
+ * the serialized TreeSignature against it with `verifyTreeSignature`.
  *
- * The caller is responsible for reserving the WOTS key index before calling
- * this function. This package does NOT depend on @totemsdk/wots-lease.
+ * The caller is responsible for reserving `useIndex` (a one-time leaf) before
+ * calling this function. This package does NOT depend on @totemsdk/wots-lease.
  */
 
-import { sha3_256 } from '@totemsdk/core/wasm';
 import {
-  wotsSign,
-  wotsKeypairFromSeed,
-  wotsAddressFromKeypair,
   bytesToHex,
-} from '@totemsdk/core/wasm';
+  scriptFromWotsPk,
+  scriptToAddress,
+  serializeTreeSignature,
+  sha3_256,
+  type TreeKey,
+} from '@totemsdk/core';
 import type { Manifest, SignedManifest } from './types.js';
 
 /** Produce a deterministic canonical JSON string with sorted keys (recursive). */
@@ -45,18 +47,18 @@ export function manifestDigest(manifest: Manifest): Uint8Array {
 
 export async function signManifest<T extends Manifest>(
   manifest: T,
-  seed: Uint8Array,
-  keyIndex: number,
+  treeKey: TreeKey,
+  useIndex: number,
 ): Promise<SignedManifest<T>> {
   const digest = manifestDigest(manifest);
-  const sigBytes = wotsSign(seed, keyIndex, digest);
-  const kp = wotsKeypairFromSeed(seed, keyIndex);
-  const address = wotsAddressFromKeypair(kp);
+  const publicKey = treeKey.getPublicKey();
+  treeKey.setUses(useIndex);
+  const sigBytes = serializeTreeSignature(treeKey.sign(digest)) as Uint8Array;
 
   return {
     manifest,
-    authorAddress: address,
-    signerPublicKey: bytesToHex(kp.pk),
+    authorAddress: scriptToAddress(scriptFromWotsPk(publicKey)),
+    signerPublicKey: bytesToHex(publicKey),
     signedAt: Date.now(),
     signature: bytesToHex(sigBytes),
   };

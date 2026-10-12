@@ -50,7 +50,7 @@ import {
 import { createInMemoryPair, type IStreamTransport } from '@totemsdk/stream-transport';
 import { ComposablePolicy, RateLimitPolicy, AmountCapPolicy } from '@totemsdk/agent-policy';
 import { signManifest, type SignedManifest } from '@totemsdk/manifest';
-import { wotsKeypairFromSeed, wotsAddressFromKeypair } from '@totemsdk/core';
+import { createUnifiedChildTreeKey, scriptFromWotsPk, scriptToAddress } from '@totemsdk/core';
 import { type MinimaWorkTemplate, type MinimaWorkTemplateProvider } from '@totemsdk/txpow';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -60,9 +60,9 @@ import { type MinimaWorkTemplate, type MinimaWorkTemplateProvider } from '@totem
 const BUYER_SEED = new Uint8Array(32).fill(0x11);
 const SELLER_SEED = new Uint8Array(32).fill(0x22);
 
-function addressFor(seed: Uint8Array, keyIndex = 0): string {
-  const kp = wotsKeypairFromSeed(seed, keyIndex);
-  return wotsAddressFromKeypair(kp);
+function addressFor(seed: Uint8Array, _keyIndex = 0): string {
+  const tree = createUnifiedChildTreeKey(seed, 0);
+  return scriptToAddress(scriptFromWotsPk(tree.getPublicKey()));
 }
 
 function makeSigner(seed: Uint8Array) {
@@ -94,7 +94,7 @@ async function makeServiceManifest(price: string, resource = 'compute'): Promise
     paymentMethods: ['omnia'] as Array<'omnia' | 'onchain' | 'invoice' | 'free'>,
     tags: [],
   };
-  return signManifest(manifest, SELLER_SEED, 0);
+  return signManifest(manifest, createUnifiedChildTreeKey(SELLER_SEED, 0), 0);
 }
 
 /** A fake lookup that returns a list of manifests (one valid, optionally one tampered). */
@@ -383,6 +383,9 @@ async function createTwoMachineRuntimes(
 // ─────────────────────────────────────────────────────────────────────────────
 // Two-machine E2E
 // ─────────────────────────────────────────────────────────────────────────────
+
+// WOTS TreeKey signing is compute-intensive (RFC-037); allow longer than the default 5s.
+jest.setTimeout(60000);
 
 describe('two-machine E2E', () => {
   it('buyer discovers, negotiates over the wire, agrees, authorizes, pays, executes, receives', async () => {

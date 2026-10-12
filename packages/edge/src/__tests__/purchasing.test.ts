@@ -46,7 +46,7 @@ import {
 } from '../index';
 import type { MachineWorkAction, MinimaWorkRelay, MinimaWorkTemplate, WorkChallenge } from '@totemsdk/txpow';
 import { createWorkChallenge } from '@totemsdk/txpow';
-import { sha3_256, wotsKeypairFromSeed, wotsAddressFromKeypair } from '@totemsdk/core';
+import { sha3_256, createUnifiedChildTreeKey, scriptFromWotsPk, scriptToAddress } from '@totemsdk/core';
 import { signManifest } from '@totemsdk/manifest';
 import { canonicalJson, toHex } from '../canonical';
 
@@ -194,9 +194,12 @@ function makeAdapter(resource: string, opts?: { failStart?: boolean }) {
 const SELLER_SEED = new Uint8Array(32).fill(0x5e);
 const SELLER_KEY_INDEX = 0;
 
+function sellerTree() {
+  return createUnifiedChildTreeKey(SELLER_SEED, 0);
+}
+
 function sellerAddress(): string {
-  const kp = wotsKeypairFromSeed(SELLER_SEED, SELLER_KEY_INDEX);
-  return wotsAddressFromKeypair(kp);
+  return scriptToAddress(scriptFromWotsPk(sellerTree().getPublicKey()));
 }
 
 async function makeSignedManifest(price: string, resource = 'compute') {
@@ -214,7 +217,7 @@ async function makeSignedManifest(price: string, resource = 'compute') {
     paymentMethods: ['omnia'] as Array<'omnia' | 'onchain' | 'invoice' | 'free'>,
     tags: [],
   };
-  return signManifest(manifest, SELLER_SEED, SELLER_KEY_INDEX);
+  return signManifest(manifest, sellerTree(), SELLER_KEY_INDEX);
 }
 
 /** Build a buyer with default wiring. */
@@ -355,6 +358,9 @@ function makeIntent(overrides?: Partial<PurchaseIntent>): PurchaseIntent {
 // ─────────────────────────────────────────────────────────────────────────────
 // Fixed-price direct purchase
 // ─────────────────────────────────────────────────────────────────────────────
+
+// WOTS TreeKey signing is compute-intensive (RFC-037); allow longer than the default 5s.
+jest.setTimeout(60000);
 
 describe('fixed-price direct purchase', () => {
   it('buys without negotiation when manifest terms are acceptable', async () => {

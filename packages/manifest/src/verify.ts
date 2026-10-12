@@ -3,16 +3,12 @@
  *
  * Steps:
  *   1. Recompute the canonical manifest digest.
- *   2. Verify the WOTS signature against the stored 32-byte PKdigest
- *      (signerPublicKey field) using wotsVerifyDigest.
+ *   2. Verify the serialized TreeSignature against the stored tree-root public
+ *      key (signerPublicKey field) using `verifyTreeSignature` (RFC-037).
  *   3. Confirm authorAddress matches the manifest's address field.
- *
- * wotsVerifyDigest is used (rather than wotsVerify) because signerPublicKey
- * stores the 32-byte WOTS PKdigest as returned by wotsKeypairFromSeed.kp.pk.
- * The full 1088-byte key is not stored in SignedManifest to keep it compact.
  */
 
-import { wotsVerifyDigest, hexToBytes } from '@totemsdk/core/wasm';
+import { deserializeTreeSignature, hexToBytes, verifyTreeSignature } from '@totemsdk/core';
 import type { SignedManifest, VerifyResult } from './types.js';
 import { manifestDigest } from './sign.js';
 
@@ -45,7 +41,7 @@ export function verifyManifest(signed: SignedManifest): VerifyResult {
 
   let sigValid: boolean;
   try {
-    sigValid = wotsVerifyDigest(sigBytes, digest, pkDigest);
+    sigValid = verifyTreeSignature(pkDigest, digest, deserializeTreeSignature(sigBytes));
   } catch (e) {
     return { valid: false, reason: `WOTS verify threw: ${String(e)}`, signerAddress: authorAddress };
   }

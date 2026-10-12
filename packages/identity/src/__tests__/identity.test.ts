@@ -30,7 +30,7 @@ import type {
 
 // We need @totemsdk/manifest to sign manifests for binding tests
 import { signManifest } from '@totemsdk/manifest';
-import { wotsKeypairFromSeed, wotsAddressFromKeypair, scriptFromWotsPk, scriptToAddress } from '@totemsdk/core';
+import { wotsKeypairFromSeed, wotsAddressFromKeypair, scriptFromWotsPk, scriptToAddress, createUnifiedChildTreeKey } from '@totemsdk/core';
 
 // Generate a deterministic test seed
 function testSeed(n: number): Uint8Array {
@@ -53,6 +53,17 @@ function deriveAddress(seed: Uint8Array, keyIndex: number): string {
 function deriveWasmAddress(seed: Uint8Array, keyIndex: number): string {
   const kp = wotsKeypairFromSeed(seed, keyIndex);
   return wotsAddressFromKeypair(kp);
+}
+
+/** Unified child TreeKey for the manifest signing key (RFC-037). */
+function manifestTree(seed: Uint8Array) {
+  return createUnifiedChildTreeKey(seed, 0);
+}
+
+/** Tree-root Minima address for the manifest signing key (RFC-037). */
+function manifestAddress(seed: Uint8Array): string {
+  const tree = manifestTree(seed);
+  return scriptToAddress(scriptFromWotsPk(tree.getPublicKey()));
 }
 
 // ─── Document creation ────────────────────────────────────────────────────────
@@ -419,7 +430,7 @@ describe('address binding security', () => {
 
 describe('verifyManifestIdentity / bindManifestToIdentity', () => {
   async function makeEdgeServiceManifest(seed: Uint8Array, keyIndex: number) {
-    const signerAddr = deriveWasmAddress(seed, keyIndex);
+    const signerAddr = manifestAddress(seed);
     const manifest = {
       type: 'edge-service' as const,
       serviceId: 'svc-1',
@@ -431,7 +442,7 @@ describe('verifyManifestIdentity / bindManifestToIdentity', () => {
       capabilities: [],
       tags: [],
     };
-    return signManifest(manifest, seed, keyIndex);
+    return signManifest(manifest, manifestTree(seed), keyIndex);
   }
 
   it('binds EdgeServiceManifest to identity', async () => {
@@ -448,7 +459,7 @@ describe('verifyManifestIdentity / bindManifestToIdentity', () => {
   }, 30000);
 
   it('binds AppManifest to identity via root address', async () => {
-    const signerAddr = deriveWasmAddress(SEED_A, 0);
+    const signerAddr = manifestAddress(SEED_A);
     const appManifest = {
       type: 'app' as const,
       appId: 'app-1',
@@ -462,7 +473,7 @@ describe('verifyManifestIdentity / bindManifestToIdentity', () => {
       description: 'test app',
       minTotemVersion: '1.0.0',
     };
-    const signed = await signManifest(appManifest, SEED_A, 0);
+    const signed = await signManifest(appManifest, manifestTree(SEED_A), 0);
     const doc = createIdentityDocument({
       kind: 'person',
       rootAddress: signed.authorAddress,
@@ -474,7 +485,7 @@ describe('verifyManifestIdentity / bindManifestToIdentity', () => {
   }, 30000);
 
   it('binds CapabilityManifest to identity', async () => {
-    const signerAddr = deriveWasmAddress(SEED_A, 0);
+    const signerAddr = manifestAddress(SEED_A);
     const capManifest = {
       type: 'capability' as const,
       capabilityId: 'cap-1',
@@ -488,7 +499,7 @@ describe('verifyManifestIdentity / bindManifestToIdentity', () => {
       expiresAt: Date.now() + 99999,
       tags: [],
     };
-    const signed = await signManifest(capManifest, SEED_A, 0);
+    const signed = await signManifest(capManifest, manifestTree(SEED_A), 0);
     const doc = createIdentityDocument({
       kind: 'agent',
       rootAddress: signed.authorAddress,
@@ -500,7 +511,7 @@ describe('verifyManifestIdentity / bindManifestToIdentity', () => {
   }, 30000);
 
   it('binds DAppManifest to identity', async () => {
-    const signerAddr = deriveWasmAddress(SEED_A, 0);
+    const signerAddr = manifestAddress(SEED_A);
     const dappManifest = {
       type: 'dapp' as const,
       dappId: 'dapp-1',
@@ -513,7 +524,7 @@ describe('verifyManifestIdentity / bindManifestToIdentity', () => {
       category: ['defi'],
       description: 'test dapp',
     };
-    const signed = await signManifest(dappManifest, SEED_A, 0);
+    const signed = await signManifest(dappManifest, manifestTree(SEED_A), 0);
     const doc = createIdentityDocument({
       kind: 'person',
       rootAddress: signed.authorAddress,
@@ -567,7 +578,7 @@ describe('verifyManifestIdentity / bindManifestToIdentity', () => {
     // A manifest signed by the identity's root address (WASM-derived via
     // @totemsdk/manifest's signManifest) binds successfully when the identity
     // document uses the matching WASM address.
-    const rootAddr = deriveWasmAddress(SEED_A, 0);
+    const rootAddr = manifestAddress(SEED_A);
     const manifest = {
       type: 'edge-service' as const,
       serviceId: 'svc-root-bind',
@@ -579,7 +590,7 @@ describe('verifyManifestIdentity / bindManifestToIdentity', () => {
       capabilities: [],
       tags: [],
     };
-    const signed = await signManifest(manifest, SEED_A, 0);
+    const signed = await signManifest(manifest, manifestTree(SEED_A), 0);
     const doc = createIdentityDocument({
       kind: 'service',
       rootAddress: rootAddr,
@@ -723,7 +734,7 @@ describe('RFC-020 C3: identity claim scopes', () => {
   }, 30000);
 
   it('a data:read delegate is not a valid manifest signer', async () => {
-    const delegateWasm = deriveWasmAddress(SEED_B, 0);
+    const delegateWasm = manifestAddress(SEED_B);
     const doc = createIdentityDocument({ kind: 'person', rootAddress: rootAddr, controllerAddress: rootAddr });
     const del = await signIdentityClaim(
       createDelegationClaim({ issuer: rootAddr, subject: doc.id, delegatedAddress: delegateWasm, scopes: ['data:read'], issuedAt: 1000 }),
@@ -733,7 +744,7 @@ describe('RFC-020 C3: identity claim scopes', () => {
     const graph: IdentityGraph = { document: doc, claims: [del] };
     const signed = await signManifest(
       { type: 'app' as const, appId: 'a', name: 'n', version: '1', authorAddress: delegateWasm, pearTopicKey: 'p', price: '0', category: ['utility'], permissions: [], description: 'd', minTotemVersion: '1' },
-      SEED_B,
+      manifestTree(SEED_B),
       0,
     );
     const binding = await verifyManifestIdentity(signed, graph);

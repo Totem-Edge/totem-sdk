@@ -29,7 +29,7 @@ import {
   createDelegationClaim,
   createIdentityDocument,
 } from '@totemsdk/identity';
-import { wotsKeypairFromSeed, wotsAddressFromKeypair, scriptFromWotsPk, scriptToAddress } from '@totemsdk/core';
+import { wotsKeypairFromSeed, scriptFromWotsPk, scriptToAddress, createUnifiedChildTreeKey } from '@totemsdk/core';
 
 function testSeed(n: number): Uint8Array {
   const s = new Uint8Array(32);
@@ -46,8 +46,9 @@ function deriveAddress(seed: Uint8Array, keyIndex: number): string {
   return scriptToAddress(scriptFromWotsPk(kp.pk));
 }
 
-function deriveWasmAddress(seed: Uint8Array, keyIndex: number): string {
-  return wotsAddressFromKeypair(seed, keyIndex);
+function deriveWasmAddress(seed: Uint8Array, _keyIndex: number): string {
+  const tree = createUnifiedChildTreeKey(seed, 0);
+  return scriptToAddress(scriptFromWotsPk(tree.getPublicKey()));
 }
 
 // ─── 1. canonicalJson is stable across different key orderings ─────────────────
@@ -364,7 +365,7 @@ describe('verifyManifestProof', () => {
       capabilities: [],
       tags: [],
     };
-    const signedManifest = await signManifest(manifest, SEED_A, 0);
+    const signedManifest = await signManifest(manifest, createUnifiedChildTreeKey(SEED_A, 0), 0);
 
     const unsignedProof = createManifestProof({
       subject: { id: signedManifest.authorAddress, kind: 'manifest' },
@@ -391,7 +392,7 @@ describe('verifyManifestProof', () => {
       capabilities: [],
       tags: [],
     };
-    const signedManifest = await signManifest(manifest, SEED_A, 0);
+    const signedManifest = await signManifest(manifest, createUnifiedChildTreeKey(SEED_A, 0), 0);
     const tampered = { ...signedManifest, signature: '00'.repeat(134) };
 
     const unsignedProof = createManifestProof({

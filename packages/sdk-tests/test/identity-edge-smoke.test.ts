@@ -47,11 +47,12 @@ import {
 import type { EdgeCapability } from '@totemsdk/edge';
 import type { IdentityGraph } from '@totemsdk/identity';
 import type { TotemCapabilities } from '@totemsdk/connect';
-import { wotsKeypairFromSeed, wotsAddressFromKeypair } from '@totemsdk/core';
+import { createUnifiedChildTreeKey, scriptFromWotsPk, scriptToAddress } from '@totemsdk/core';
 
-function deriveAddress(seed: Uint8Array, keyIndex: number): string {
-  const kp = wotsKeypairFromSeed(seed, keyIndex);
-  return wotsAddressFromKeypair(kp);
+/** Tree-root Minima address for the manifest signing key (RFC-037). */
+function deriveAddress(seed: Uint8Array, _keyIndex: number): string {
+  const tree = createUnifiedChildTreeKey(seed, 0);
+  return scriptToAddress(scriptFromWotsPk(tree.getPublicKey()));
 }
 
 // ─── @totemsdk/identity — all required exports ────────────────────────────────

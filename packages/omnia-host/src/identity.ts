@@ -120,7 +120,21 @@ export async function createHostManifest(
     capabilities: ['omnia:open-channel', 'omnia:update-channel', 'omnia:route', 'omnia:settle'],
     tags: ['omnia', 'payment-channel', 'daemon'],
   };
-  return signManifest(manifest, signing.perAddressSeed, 0);
+  // RFC-037: sign the manifest with the unified child TreeKey. Allocate a
+  // one-time leaf via the lease so restarts never reuse a WOTS leaf.
+  const reservation = await signing.leaseProvider.reserveKeyUse({
+    treeId: 'omnia-manifest',
+    purpose: 'manifest',
+  });
+  const useIndex = reservation.indices.l1 * 64 + reservation.indices.l2;
+  try {
+    const signed = await signManifest(manifest, signing.treeKey, useIndex);
+    await signing.leaseProvider.commitKeyUse(reservation.reservationId, 'manifest');
+    return signed;
+  } catch (err) {
+    await signing.leaseProvider.burnReservation(reservation.reservationId, 'manifest-sign-failed').catch(() => {});
+    throw err;
+  }
 }
 
 /** Boot-time identity + manifest assembly. */

@@ -7,6 +7,7 @@
  */
 
 import { sha3_256 } from '@totemsdk/core/wasm';
+import { createUnifiedChildTreeKey } from '@totemsdk/core';
 import { toHex } from './canonical.js';
 import { signManifest, computeManifestId } from '@totemsdk/manifest';
 import type { EdgeServiceManifest, SignedManifest } from '@totemsdk/manifest';
@@ -63,7 +64,8 @@ export async function createEdgeServiceManifest(
   seed: Uint8Array,
   keyIndex: number,
 ): Promise<SignedManifest<EdgeServiceManifest>> {
-  return signManifest(manifest, seed, keyIndex);
+  // RFC-037: sign with the unified child TreeKey (address 0).
+  return signManifest(manifest, createUnifiedChildTreeKey(seed, 0), keyIndex);
 }
 
 export async function bindEdgeServiceIdentity(

@@ -23,12 +23,11 @@ import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'node:
 import {
   bytesToHex,
   createUnifiedChildTreeKey,
-  deriveUnifiedChildSeed,
   hexToBytes,
   phraseToSeed,
+  scriptFromWotsPk,
+  scriptToAddress,
   serializeTreeSignature,
-  wotsAddressFromKeypair,
-  wotsKeypairFromSeed,
   type TreeKey,
 } from '@totemsdk/core';
 import type { StorageAdapter } from '@totemsdk/core';
@@ -42,15 +41,13 @@ import type { OmniaHostConfig } from './config.js';
 export interface HostSigning {
   signer: ChannelSigner;
   leaseProvider: WotsLeaseProvider;
-  /** Identity / Minima address (flat WOTS from the unified child seed). */
+  /** Minima address for the unified child TreeKey (identity + channels). */
   address: string;
   /** Channel participant key: the unified child TreeKey root pubkey (RFC-037). */
   publicKeyDigest: string;
   /** 32-byte base seed (used by the identity/manifest layer). */
   baseSeed: Uint8Array;
-  /** Unified child seed used for identity/manifest (flat) signing. */
-  perAddressSeed: Uint8Array;
-  /** Unified child TreeKey used for channel signing (RFC-037). */
+  /** Unified child TreeKey used for channel + manifest signing (RFC-037). */
   treeKey: TreeKey;
   addressIndex: number;
   deviceId: string;
@@ -223,12 +220,7 @@ export function createHostSigning(config: OmniaHostConfig): HostSigning {
   const treeKey = createUnifiedChildTreeKey(baseSeed, addressIndex);
   const publicKey = treeKey.getPublicKey();
   const publicKeyDigest = `0x${bytesToHex(publicKey)}`;
-
-  // Identity / manifest signing uses the flat WOTS scheme (a separate signing
-  // domain from channels) seeded from the same unified child seed.
-  const perAddressSeed = deriveUnifiedChildSeed(baseSeed, addressIndex);
-  const identityKp = wotsKeypairFromSeed(perAddressSeed, 0);
-  const address = wotsAddressFromKeypair(identityKp);
+  const address = scriptToAddress(scriptFromWotsPk(publicKey));
 
   const storage = new JsonFileStorageAdapter(leaseStorageDir(config.dbPath));
   const leaseProvider = new LocalLeaseProvider(storage, undefined, deviceId);
@@ -257,7 +249,6 @@ export function createHostSigning(config: OmniaHostConfig): HostSigning {
     address,
     publicKeyDigest,
     baseSeed,
-    perAddressSeed,
     treeKey,
     addressIndex,
     deviceId,

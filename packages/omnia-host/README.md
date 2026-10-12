@@ -38,12 +38,13 @@ The daemon configuration is read from environment variables:
 
 ### Signing model
 
-`OMNIA_HOST_SEED` (or the keyfile) is the base seed. The host derives a
-per-address seed (`derivePerAddressSeed(baseSeed, localAddressIndex)`) and
-signs every channel state with the flat WOTS key at index 0 of that seed; the
-channel participant's `publicKeyDigest` is `derivePKdigest(perAddressSeed, 0)`.
-The WOTS lease journal and watermark persist in `<OMNIA_HOST_DB>.lease/` so
-they survive restarts together with the channel database.
+`OMNIA_HOST_SEED` (or the keyfile) is the base seed. The host derives the unified
+child TreeKey (`createUnifiedChildTreeKey(baseSeed, localAddressIndex)`) and signs
+every channel state (and the boot manifest) with serialized TreeSignatures; the
+channel participant's `publicKeyDigest` is that TreeKey's root public key, and the
+identity address is the matching Minima address. The WOTS lease journal and
+watermark persist in `<OMNIA_HOST_DB>.lease/` so they survive restarts together
+with the channel database.
 
 ### Read-only mode
 

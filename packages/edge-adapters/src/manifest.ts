@@ -1,6 +1,7 @@
 import { signManifest, verifyManifest } from '@totemsdk/manifest';
 import type { Manifest, SignedManifest } from '@totemsdk/manifest';
 import type { EdgeManifestPort, EdgeOperationResult } from '@totemsdk/edge';
+import { createUnifiedChildTreeKey } from '@totemsdk/core';
 
 /**
  * Wraps @totemsdk/manifest's signManifest / verifyManifest as an EdgeManifestPort.
@@ -19,7 +20,7 @@ export function createManifestPortAdapter(): EdgeManifestPort {
       keyIndex: number
     ): Promise<EdgeOperationResult<{ signed: unknown }>> {
       try {
-        const signed = await signManifest(manifest as Manifest, seed, keyIndex);
+        const signed = await signManifest(manifest as Manifest, createUnifiedChildTreeKey(seed, 0), keyIndex);
         return { ok: true, data: { signed } };
       } catch (err) {
         return { ok: false, error: err instanceof Error ? err.message : String(err) };
