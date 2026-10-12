@@ -42,6 +42,13 @@ export interface UTXO {
   state?: Record<string, any>;
 }
 
+/** Normalized txpow record (RFC-036). `isblock` + `header.block` = inclusion. */
+export interface TxPowStatus {
+  txpowid: string;
+  isblock?: boolean;
+  header?: { block?: number };
+}
+
 function sanitizeRpcParam(value: string, name: string): string {
   if (value.length > 1024) {
     throw new Error(`RPC parameter ${name} exceeds maximum length (1024)`);
@@ -157,6 +164,23 @@ export class MinimaClient extends EventEmitter {
   async getBlockHeight(): Promise<number> {
     const data = await this.rpc<{ chain?: { block?: number } }>('status');
     return data?.chain?.block ?? 0;
+  }
+
+  /**
+   * Fetch a txpow record via the Minima `txpow` RPC (RFC-036). Returns a
+   * normalized `{ txpowid, isblock, header }`, or `null` when the node does not
+   * serve the record.
+   */
+  async getTxPowStatus(txpowId: string): Promise<TxPowStatus | null> {
+    const clean = sanitizeRpcParam(txpowId, 'txpowId');
+    const data = await this.rpc<any>(`txpow txpowid:${clean}`);
+    const rec = data?.txpow ?? data;
+    if (!rec || typeof rec !== 'object') return null;
+    return {
+      txpowid: String(rec.txpowid ?? clean),
+      isblock: rec.isblock,
+      header: rec.header,
+    };
   }
 
   /**

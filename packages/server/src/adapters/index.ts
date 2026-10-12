@@ -1,5 +1,5 @@
 /**
- * @module @totemsdk/node/adapters
+ * @module @totemsdk/server/adapters
  * Node.js adapter implementations for Totem SDK
  * 
  * Provides platform-specific implementations of SDK adapter interfaces

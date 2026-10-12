@@ -1,6 +1,6 @@
 # RFC-036 — Server Settlement Verification & Package Identity
 
-**Status:** Draft — design specification
+**Status:** Landed (S0–S3)
 **Created:** 2026-10-08
 **Authors:** Totem SDK Contributors
 **Depends on:** RFC-005 (SDK & wallet gap fixes), RFC-014 (wallet connect parity, receipts), RFC-015 (Axia API alignment)
@@ -224,12 +224,14 @@ leave examples that cannot run).
 
 ## 8. Phasing
 
-- **S0** — rename status contract (`settlement: 'unverified'`) + README/`@module`
-  identity fixes + example fixes.
-- **S1** — `awaitConfirmation` (poll inclusion, timeout, abort) + tests against a
-  mocked provider (confirmed/timeout/abort).
-- **S2** — `expect` balance-delta + recoverability checks + tests.
-- **S3** — `sendAndConfirm` convenience + Canary wiring; docs cross-link RFC-015 P4.
+- **S0 — landed** — `settlement: 'unverified'` on `SendResult`; README/`@module`
+  identity corrected to `@totemsdk/server`; README examples corrected; README-H1
+  guard added to `validate-pkg-meta`.
+- **S1 — landed** — `awaitConfirmation` (poll inclusion, timeout, abort) in
+  `packages/server/src/confirmation.ts` + tests.
+- **S2 — landed** — `expect` balance-delta + `assertRecoverable` + tests.
+- **S3 — landed** — `sendAndConfirm` convenience; `MinimaProvider.getTxPowStatus`
+  / `minima_getTxPow` route; docs.
 
 ## 9. Acceptance / verification
 

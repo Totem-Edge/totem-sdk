@@ -92,6 +92,15 @@ for (const pkgDir of pkgDirs) {
   const readmePath = join(PACKAGES_DIR, pkgDir, 'README.md');
   if (!existsSync(readmePath)) {
     missing.push('README.md file on disk');
+  } else {
+    // README identity: the first H1 must name the package. Catches the
+    // `@totemsdk/node` vs `@totemsdk/server` drift class (RFC-036 §6.4).
+    const firstHeading = (readFileSync(readmePath, 'utf8').match(/^#\s+(.+)$/m)?.[1] ?? '')
+      .replace(/`/g, '')
+      .trim();
+    if (firstHeading !== pkg.name) {
+      missing.push(`README H1 ("${firstHeading}" ≠ ${pkg.name})`);
+    }
   }
 
   if (missing.length > 0) {

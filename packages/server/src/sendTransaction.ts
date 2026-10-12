@@ -1,5 +1,5 @@
 /**
- * sendTransaction — End-to-end Minima transaction send for @totemsdk/node.
+ * sendTransaction — End-to-end Minima transaction send for @totemsdk/server.
  *
  * Orchestrates: fetch coins → FIFO select → build tx → sign (WOTS via
  * per-address TreeKey) → fetch/cache difficulty → mine (worker_threads,
@@ -101,12 +101,18 @@ export interface SendParams {
 export interface SendResult {
   /** Canonical TxPoW ID assigned by the Minima network (hex). */
   txpowId: string;
-  /** Always `'submitted'` on success. */
+  /** The TxPoW was accepted for broadcast. NOT confirmation. */
   status: 'submitted';
   /** Mining engine: `'wasm'` when the pre-compiled binary was used. */
   miningSource: MineResult['source'];
   /** Wall-clock mining time in milliseconds (excludes API latency). */
   elapsedMs: number;
+  /**
+   * Always `'unverified'` here — `sendTransaction()` returns on **submission**,
+   * not settlement. Use `awaitConfirmation()` / `sendAndConfirm()` to observe
+   * inclusion before claiming the payment settled.
+   */
+  settlement: 'unverified';
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -338,7 +344,7 @@ function addressToBytes(addr: string): Uint8Array {
  *
  * @example
  * ```ts
- * import { sendTransaction } from '@totemsdk/node';
+ * import { sendTransaction } from '@totemsdk/server';
  *
  * const result = await sendTransaction({
  *   seed: 'word1 word2 ... word24',
@@ -506,5 +512,6 @@ export async function sendTransaction(params: SendParams): Promise<SendResult> {
     status: 'submitted',
     miningSource: mineResult.source,
     elapsedMs: mineResult.elapsedMs,
+    settlement: 'unverified',
   };
 }

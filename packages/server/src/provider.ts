@@ -41,10 +41,24 @@ export class MinimaProvider extends EventEmitter {
         return this.client.getBalance(params.address, params.tokenId);
       case 'minima_getUTXOs':
         return this.client.getUTXOs(params.address);
+      case 'minima_getTxPow':
+        return this.client.getTxPowStatus(params.txpowId);
       case 'minima_sendTransaction':
         return this.client.submitTransaction(params.transaction);
       default:
         throw new Error(`Unsupported method: ${method}`);
     }
+  }
+
+  // ── ConfirmationProvider (RFC-036) ──────────────────────────────────────────
+
+  /** Fetch a normalized txpow record; see `@totemsdk/server` `awaitConfirmation`. */
+  async getTxPowStatus(txpowId: string) {
+    return this.client.getTxPowStatus(txpowId);
+  }
+
+  /** Recipient balance lookup for the `expect` delta check. */
+  async getBalance(address: string, tokenId?: string): Promise<string> {
+    return this.client.getBalance(address, tokenId);
   }
 }
