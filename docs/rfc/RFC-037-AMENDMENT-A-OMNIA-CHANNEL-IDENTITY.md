@@ -1,6 +1,6 @@
 # RFC-037 Amendment A — Omnia channel identity (root-identity anchor)
 
-Status: Proposed
+Status: Landed (A1 schema/verification; A2 extension + PWA wiring)
 Relates: RFC-037 (unified WOTS signatures), RFC-013 (WOTS leases), RFC-014 §6.3
 
 ## 1. Context

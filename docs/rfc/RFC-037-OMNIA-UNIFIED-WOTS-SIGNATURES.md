@@ -1,6 +1,6 @@
 # RFC-037 — Omnia channels use the wallet's unified WOTS scheme
 
-Status: Phase 1 landed
+Status: Landed (Phases 1–3) + Amendment A landed
 Supersedes/relates: RFC-034 §9 A4 (signer bridge), RFC-013 (WOTS leases), RFC-020 (tree keys)
 
 ## 1. Problem

@@ -1,6 +1,6 @@
 # RFC-034 — Omnia Relay Method Parity (Phase A: Single-Party Operations)
 
-**Status:** Draft — Phase A A0/A1/A2/A3 landed in `@totemsdk/omnia-relay`; A4 (wallet wiring) next
+**Status:** Phase A landed (A0–A4) — package + wallet (extension/PWA) wiring; Phase B tracked in RFC-035
 **Created:** 2026-10-08
 **Revised:** 2026-10-09 (Phase A implemented; composition moved to `@totemsdk/omnia-relay` — see §7)
 **Authors:** Totem SDK Contributors
@@ -394,15 +394,15 @@ and remain reasoned `UNSUPPORTED`.
 - **A3 — landed.** `supports()` truth table on the composed client; the base
   relay client now reports `payMultiHop` (absent) as unsupported rather than
   silently `true`.
-- **A4 — extension wired (landed); PWA + signer bridge next.** The extension now
-  injects `createOmniaRelayClient({ autoAccept: false })` as its `omnia` port, so
-  `getChannels`/`getRoute`/`getSwapRate` are served and mutations report truthful
-  `UNSUPPORTED`. The extension webpack shims the Node-only closure members
-  (`hyperswarm`, `sodium-native`, `sodium-universal`, `ws`) that the relay path
-  never takes, and the build workflow builds the new closure. **Remaining:**
-  (a) bridge the wallet's signer/lease into the Omnia client so mutations
-  (`openChannel`/`pay`/`createFactory`/`splice*`) execute; (b) inject a routing
-  source; (c) wire the PWA (it does not yet configure any runtime ports).
+- **A4 — landed (extension + PWA + signer bridge).** Both wallets install the
+  `omnia` port. The extension rebuilds it on unlock with child-key signing material
+  + the root-identity anchor; the PWA routes Omnia mutations to an
+  `approval/omnia.html` page that executes them via `WalletManager`. Signer/lease
+  bridging and the routing source ladder landed via RFC-037 (+ Amendment A). The
+  Node-only closure members (`hyperswarm`, `sodium-native`, `sodium-universal`,
+  `ws`) are shimmed in both the extension (webpack) and PWA (Vite). **Remaining
+  (Phase B, RFC-035):** the structurally multi-party operations
+  (`openVirtualChannel`/`closeFactory`/`payMultiHop`, splice accept/finalize).
 
 ## 10. Acceptance / verification
 
