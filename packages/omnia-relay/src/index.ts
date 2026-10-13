@@ -27,7 +27,7 @@ export type {
 } from '@totemsdk/omnia/relay';
 
 // Composed wallet client (Phase A).
-export { createOmniaRelayClient } from './client.js';
+export { createOmniaRelayClient, fulfillMultiHop } from './client.js';
 export type { OmniaRelayClientOptions } from './client.js';
 
 // Routing seam + helpers.

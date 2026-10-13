@@ -22,7 +22,7 @@ import {
   type RelayOmniaClient,
   type RelayOmniaClientOptions,
 } from '@totemsdk/omnia/relay';
-import type { OmniaChannel } from '@totemsdk/omnia';
+import { addHTLC, fulfillHTLC, type OmniaChannel, type ChannelSigner, type OmniaSwarm } from '@totemsdk/omnia';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import type { WotsLeaseProvider } from '@totemsdk/wots-lease';
 import {
@@ -195,6 +195,71 @@ export function createOmniaRelayClient(options: OmniaRelayClientOptions = {}): R
     };
   };
 
+  /**
+   * Multi-hop payment (RFC-035 B4, wallet side). Routes over the injected graph
+   * and locks an HTLC on the **first-hop** channel this wallet is a party to,
+   * then forwards the STATE_UPDATE to that counterparty. The intermediary hops
+   * and the recipient's preimage reveal are peer-coordinated (the sender already
+   * holds/already generated the hashlock). `fulfillMultiHop` closes the receiving
+   * side.
+   */
+  const payMultiHop = async (params: Record<string, unknown>): Promise<unknown> => {
+    if (!hasSignerMaterial || !signer || !leaseProvider) {
+      return unsupported('Omnia payMultiHop requires wallet signing material.');
+    }
+    const graph = resolveGraph();
+    if (!graph) return unsupported('Omnia payMultiHop: no routing graph configured.');
+
+    const from = options.localParticipant?.publicKeyDigest ?? signer.publicKeyDigest;
+    const route = queryRoute(graph, {
+      from,
+      to: reqString(params, 'toPartyId'),
+      amount: reqBigInt(params, 'amount'),
+      tokenId: reqString(params, 'tokenId'),
+      ...(typeof params.maxHops === 'number' ? { maxHops: params.maxHops } : {}),
+    });
+    if (!route) return { success: false, error: 'No route found', errorCode: 'ROUTE_NOT_FOUND' };
+
+    const firstHop = route.hops[0] as { channelId: string; to: string; amount: bigint; isSwap?: boolean };
+    if (firstHop.isSwap) {
+      return unsupported('Omnia payMultiHop does not support cross-token swap hops.');
+    }
+    const channel = base.channels.get(firstHop.channelId) as OmniaChannel | undefined;
+    if (!channel) return notFound(`Channel ${firstHop.channelId} not found`);
+
+    const hashlock = reqString(params, 'hashlock');
+    const timeoutBlock = reqBigInt(params, 'timeoutBlock');
+    const result = await addHTLC(
+      channel,
+      {
+        amount: firstHop.amount,
+        hashlock,
+        timeoutBlock,
+        direction: 'offered',
+        counterpartPublicKeyDigest: firstHop.to,
+      },
+      leaseProvider,
+      signer,
+    );
+    base.channels.set(result.channel.channelId, result.channel);
+
+    const peer = await base.swarm.connectToPeer(firstHop.to, firstHop.channelId);
+    await peer.sendMessage({
+      type: 'STATE_UPDATE',
+      channelId: result.channel.channelId,
+      nonce: Date.now(),
+      payload: result.partialState,
+    });
+
+    return {
+      success: true,
+      route: serializeRoute(route),
+      firstHopChannelId: result.channel.channelId,
+      htlcId: result.htlcId,
+      hashlock,
+    };
+  };
+
   const supports = (method: string): boolean | { supported: boolean; reason?: string } => {
     const name = clientName(method);
     if (name === 'getRoute' || name === 'getSwapRate') {
@@ -212,8 +277,13 @@ export function createOmniaRelayClient(options: OmniaRelayClientOptions = {}): R
         ? true
         : { supported: false, reason: `Omnia ${name} requires wallet signing material.` };
     }
+    if (name === 'payMultiHop') {
+      return hasSignerMaterial && hasRoutingGraph()
+        ? true
+        : { supported: false, reason: 'Omnia payMultiHop requires wallet signing material and a routing graph.' };
+    }
     // Everything else defers to the base client (open/pay/settle/close are wired;
-    // openVirtualChannel/closeFactory/payMultiHop remain Phase B refusals).
+    // openVirtualChannel/closeFactory remain Phase B refusals).
     return base.supports(method);
   };
 
@@ -224,6 +294,35 @@ export function createOmniaRelayClient(options: OmniaRelayClientOptions = {}): R
     createFactory: createFactoryOp,
     spliceIn: splice('in'),
     spliceOut: splice('out'),
+    payMultiHop,
     supports,
   };
+}
+
+/**
+ * Reveal the preimage for an incoming multi-hop HTLC (RFC-035 B4, receiving side):
+ * fulfil the HTLC on `channel` and forward the updated STATE_UPDATE to the peer,
+ * so the preimage propagates back along the route.
+ */
+export async function fulfillMultiHop(params: {
+  channel: OmniaChannel;
+  htlcId: string;
+  preimage: string;
+  leaseProvider: WotsLeaseProvider;
+  signer: ChannelSigner;
+  swarm: OmniaSwarm;
+}): Promise<{ success: boolean; channel: OmniaChannel; htlcId: string }> {
+  const { channel, htlcId, preimage, leaseProvider, signer, swarm } = params;
+  const result = await fulfillHTLC(channel, htlcId, preimage, leaseProvider, signer);
+  const remote = channel.parties.find((p) => p.publicKeyDigest !== signer.publicKeyDigest);
+  if (remote) {
+    const peer = await swarm.connectToPeer(remote.publicKeyDigest, channel.channelId);
+    await peer.sendMessage({
+      type: 'STATE_UPDATE',
+      channelId: channel.channelId,
+      nonce: Date.now(),
+      payload: result.partialState,
+    });
+  }
+  return { success: true, channel: result.channel, htlcId };
 }

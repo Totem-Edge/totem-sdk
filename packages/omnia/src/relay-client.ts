@@ -279,6 +279,7 @@ export interface RelayOmniaClient {
   closeFactory(params: Record<string, unknown>): Promise<unknown>;
   spliceIn(params: Record<string, unknown>): Promise<unknown>;
   spliceOut(params: Record<string, unknown>): Promise<unknown>;
+  payMultiHop(params: Record<string, unknown>): Promise<unknown>;
   /**
    * Per-method capability probe (RFC-014 Amendment A). Accepts either the Omnia
    * client method name (`createFactory`) or the connect name
@@ -374,6 +375,7 @@ export function createRelayOmniaClient(options: RelayOmniaClientOptions = {}): R
     closeFactory: advanced('closeFactory'),
     spliceIn: advanced('spliceIn'),
     spliceOut: advanced('spliceOut'),
+    payMultiHop: advanced('payMultiHop'),
     supports,
     async close() {
       unsubscribe?.();

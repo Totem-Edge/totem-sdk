@@ -1,6 +1,6 @@
 # RFC-035 — Omnia Peer Coordination Protocol (Phase B: Factory, Virtual Channel & Splice Round-Trips)
 
-**Status:** In progress — B0–B3 landed (splice, factory open/close, virtual-channel open); B4–B5 next
+**Status:** In progress — B0–B4 landed (splice, factory open/close, VC open, multi-hop); B5 (recovery/wiring/manifest) next
 **Created:** 2026-10-08
 **Authors:** Totem SDK Contributors
 **Depends on:** RFC-014 (wallet connect parity), RFC-014 Amendment A (manifest truthfulness), RFC-034 (Omnia relay method parity, Phase A), RFC-002 (Omnia channel state machine), RFC-013 (wallet self-hosted mode)
@@ -348,9 +348,14 @@ under the purported party's digest and that party must be a member of the object
   commitment and comparing digests). `closeFactory`/`openVirtualChannel` reuse the
   new helpers (behaviour preserved). Tests in
   `packages/omnia-factory/src/__tests__/coordination.test.ts`.
-- **B4** — multi-hop payment (`payMultiHop` over the RFC-034 `RoutingPort` +
-  per-hop `STATE_UPDATE`), with `executeMultiHopPayment`'s existing cancellation
-  path on partial failure.
+- **B4 — landed (wallet side).** `@totemsdk/omnia-relay`'s composed client now
+  implements `payMultiHop`: route over the RFC-034 `RoutingPort`, lock an HTLC on
+  the **first-hop** channel the wallet is a party to (`addHTLC`), and forward the
+  `STATE_UPDATE` to that counterparty. `fulfillMultiHop` closes the receiving side
+  (reveal the preimage via `fulfillHTLC` + forward the update). `payMultiHop` is now
+  also on the base `RelayOmniaClient` (reasoned `UNSUPPORTED` until overridden).
+  Intermediary-hop propagation remains Phase B peer coordination. Tests in
+  `packages/omnia-relay/src/__tests__/client.test.ts`.
 - **B5** — reconnect/recovery tests; wallet wiring; manifest flips all 8 Phase B
   methods to `supported` (RFC-014 Amendment A).
 

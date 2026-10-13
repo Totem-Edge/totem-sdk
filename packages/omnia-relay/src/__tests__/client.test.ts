@@ -5,6 +5,7 @@
 import { createOmniaRelayClient } from '../client.js';
 import { createChannelRoutingPort } from '../routing.js';
 import type { RoutingPort } from '../routing.js';
+import { DefaultEltooPaymentProgram } from '@totemsdk/omnia';
 import type { OmniaSwarm, OmniaPeer, OmniaChannel } from '@totemsdk/omnia';
 import type { ChannelGraphEdge, SwapAnnouncement } from '@totemsdk/omnia-router';
 
@@ -215,5 +216,97 @@ describe('createOmniaRelayClient — supports() truth table (RFC-014 Amendment A
     expect(verdict(wired.supports('createFactory'))).toBe(true);
     expect(verdict(wired.supports('totem_omniaSpliceOut'))).toBe(true);
     await wired.close();
+  });
+});
+
+describe('createOmniaRelayClient — payMultiHop (RFC-035 B4)', () => {
+  const ALICE = '0x' + 'aa'.repeat(32);
+  const BOB = '0x' + 'bb'.repeat(32);
+
+  const activeChannel = (): OmniaChannel =>
+    ({
+      channelId: 'ch-1',
+      fundingTxId: '0x' + 'ef'.repeat(32),
+      fundingCoinId: '0x' + 'cc'.repeat(32),
+      fundingScript: 'RETURN TRUE',
+      programId: DefaultEltooPaymentProgram.id,
+      programVersion: DefaultEltooPaymentProgram.version,
+      fundingAddress: '0x' + 'dd'.repeat(32),
+      tokenId: '0x00',
+      tokenScale: 0,
+      totalValue: 1000n,
+      parties: [
+        { partyId: 'alice', publicKeyDigest: ALICE, addressIndex: 0 },
+        { partyId: 'bob', publicKeyDigest: BOB, addressIndex: 1 },
+      ],
+      balances: { alice: 600n, bob: 400n },
+      pendingHTLCs: [],
+      currentSequence: 1,
+      latestState: null,
+      stateLog: [],
+      status: 'active',
+      channelType: 'direct',
+      createdAt: 1,
+      updatedAt: 1,
+    }) as unknown as OmniaChannel;
+
+  function swarmWithPeer(sendMessage: jest.Mock): OmniaSwarm {
+    return {
+      advertise: jest.fn(),
+      connectToPeer: jest.fn(async () => ({ sendMessage }) as unknown as OmniaPeer),
+      listenForChannels: jest.fn(() => () => {}),
+      broadcast: jest.fn(async () => {}),
+      close: jest.fn(async () => {}),
+    } as unknown as OmniaSwarm;
+  }
+
+  const signer = { publicKeyDigest: ALICE, sign: jest.fn(async () => new Uint8Array(64).fill(1)) } as never;
+  const leaseProvider = {
+    reserveKeyUse: jest.fn(async () => ({ reservationId: 'r1', indices: { addressIndex: 0, l1: 0, l2: 0 }, expiresAt: Date.now() + 1000 })),
+    commitKeyUse: jest.fn(async () => {}),
+    burnReservation: jest.fn(async () => {}),
+  } as never;
+
+  it('locks an HTLC on the first hop and forwards the STATE_UPDATE', async () => {
+    const sendMessage = jest.fn(async (_m: unknown) => {});
+    const swarm = swarmWithPeer(sendMessage);
+    const channel = activeChannel();
+    const client = createOmniaRelayClient({
+      swarm,
+      channels: new Map([[channel.channelId, channel]]),
+      signer,
+      leaseProvider,
+      chainProvider: {} as never,
+      localParticipant: { partyId: 'alice', publicKeyDigest: ALICE, addressIndex: 0 },
+    });
+
+    expect(client.supports('payMultiHop')).toBe(true);
+    const result = (await client.payMultiHop({
+      toPartyId: BOB,
+      amount: 100n,
+      tokenId: '0x00',
+      hashlock: '0x' + '11'.repeat(32),
+      timeoutBlock: 100n,
+    })) as { success: boolean; htlcId: string; firstHopChannelId: string };
+    expect(result.success).toBe(true);
+    expect(result.htlcId).toBeTruthy();
+    expect(result.firstHopChannelId).toBe(channel.channelId);
+
+    const updated = client.channels.get(channel.channelId);
+    expect(updated?.pendingHTLCs.length).toBe(1);
+    expect(swarm.connectToPeer).toHaveBeenCalledWith(BOB, channel.channelId);
+    expect(sendMessage).toHaveBeenCalled();
+    const sent = sendMessage.mock.calls[0][0] as { type: string };
+    expect(sent.type).toBe('STATE_UPDATE');
+    await client.close();
+  });
+
+  it('reports reasoned UNSUPPORTED without signing material', async () => {
+    const client = createOmniaRelayClient({ swarm: swarmWithPeer(jest.fn()), channels: new Map([[activeChannel().channelId, activeChannel()]]) });
+    const verdict = client.supports('payMultiHop');
+    expect(typeof verdict === 'boolean' ? verdict : verdict.supported).toBe(false);
+    const result = (await client.payMultiHop({ toPartyId: BOB, amount: 1n, tokenId: '0x00' })) as { errorCode: string };
+    expect(result.errorCode).toBe('UNSUPPORTED');
+    await client.close();
   });
 });
