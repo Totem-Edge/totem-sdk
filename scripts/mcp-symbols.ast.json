@@ -10145,7 +10145,7 @@
         },
         "OmniaMessageType": {
           "kind": "type",
-          "signature": "export type OmniaMessageType = | 'CHANNEL_PROPOSAL' | 'STATE_UPDATE' | 'SETTLEMENT_PROPOSAL' | 'ACK' | 'ERROR'",
+          "signature": "export type OmniaMessageType = | 'CHANNEL_PROPOSAL' | 'STATE_UPDATE' | 'SETTLEMENT_PROPOSAL' | 'ACK' | 'ERROR' // RFC-035 Phase B — peer coordination (additive",
           "doc": "Messaging protocol types for Omnia P2P transport layer.\n\nThese types are used by framing.ts, stream.ts, peer.ts, swarm.ts, relay.ts,\nand integration.ts. They are exported from omnia's main index.ts for external\nconsumers (e.g."
         },
         "OmniaMessage": {
@@ -10273,6 +10273,74 @@
         "MinimalChainProvider": {
           "kind": "type",
           "signature": "export type MinimalChainProvider = any"
+        },
+        "createOmniaCoordination": {
+          "kind": "function",
+          "signature": "createOmniaCoordination(config?: OmniaCoordinationConfig): OmniaCoordination"
+        },
+        "OmniaCoordination": {
+          "kind": "interface",
+          "signature": "export interface OmniaCoordination"
+        },
+        "OmniaCoordinationConfig": {
+          "kind": "interface",
+          "signature": "export interface OmniaCoordinationConfig"
+        },
+        "SendProposalParams": {
+          "kind": "interface",
+          "signature": "export interface SendProposalParams"
+        },
+        "createMemoryCoordinationStore": {
+          "kind": "function",
+          "signature": "createMemoryCoordinationStore(): CoordinationStore"
+        },
+        "createStorageCoordinationStore": {
+          "kind": "function",
+          "signature": "createStorageCoordinationStore(adapter: StorageAdapter): CoordinationStore"
+        },
+        "isCoordinationKind": {
+          "kind": "function",
+          "signature": "isCoordinationKind(kind: OmniaMessageType): kind is CoordinationKind"
+        },
+        "COORDINATION_KINDS": {
+          "kind": "const",
+          "signature": "COORDINATION_KINDS: readonly CoordinationKind[] = [ 'FACTORY_PROPOSAL', 'FACTORY_ACCEPT', 'FACTORY_CLOSE_PROPOSAL', 'FACTORY_CLOSE_ACCEPT', 'VC_PROPOSAL', 'VC_ACCEPT', 'SPLICE_PROPOSAL', 'SPLICE_ACCEP"
+        },
+        "CoordinationKind": {
+          "kind": "type",
+          "signature": "export type CoordinationKind = Extract< OmniaMessageType, | 'FACTORY_PROPOSAL' | 'FACTORY_ACCEPT' | 'FACTORY_CLOSE_PROPOSAL' | 'FACTORY_CLOSE_ACCEPT' | 'VC_PROPOSAL' | 'VC_ACCEPT' | 'SPLICE_PROPOSAL' "
+        },
+        "CoordinationPolicy": {
+          "kind": "interface",
+          "signature": "export interface CoordinationPolicy"
+        },
+        "CoordinationStore": {
+          "kind": "interface",
+          "signature": "export interface CoordinationStore"
+        },
+        "CoordinationHandler": {
+          "kind": "type",
+          "signature": "export type CoordinationHandler = (ctx: CoordinationContext) => Promise<void>"
+        },
+        "CoordinationHandlers": {
+          "kind": "type",
+          "signature": "export type CoordinationHandlers = Partial<Record<CoordinationKind, CoordinationHandler>>"
+        },
+        "CoordinationContext": {
+          "kind": "interface",
+          "signature": "export interface CoordinationContext"
+        },
+        "ProposalRecord": {
+          "kind": "interface",
+          "signature": "export interface ProposalRecord"
+        },
+        "AcceptanceRecord": {
+          "kind": "interface",
+          "signature": "export interface AcceptanceRecord"
+        },
+        "ProposalState": {
+          "kind": "type",
+          "signature": "export type ProposalState = 'pending' | 'accepted' | 'committed' | 'abandoned'"
         }
       }
     },
@@ -11368,6 +11436,34 @@
         "DurableSpliceStoreOptions": {
           "kind": "interface",
           "signature": "export interface DurableSpliceStoreOptions"
+        },
+        "createSpliceCoordination": {
+          "kind": "function",
+          "signature": "createSpliceCoordination(deps: SpliceCoordinationDeps): SpliceCoordination"
+        },
+        "SpliceCoordination": {
+          "kind": "interface",
+          "signature": "export interface SpliceCoordination"
+        },
+        "SpliceCoordinationDeps": {
+          "kind": "interface",
+          "signature": "export interface SpliceCoordinationDeps"
+        },
+        "SpliceProposeParams": {
+          "kind": "interface",
+          "signature": "export interface SpliceProposeParams"
+        },
+        "SpliceApproval": {
+          "kind": "type",
+          "signature": "export type SpliceApproval = (request: SpliceApprovalRequest) => Promise<boolean>"
+        },
+        "SpliceApprovalRequest": {
+          "kind": "interface",
+          "signature": "export interface SpliceApprovalRequest"
+        },
+        "VerifySignature": {
+          "kind": "type",
+          "signature": "export type VerifySignature = (signature: Uint8Array, digest: Uint8Array, publicKeyDigest: string) => boolean"
         }
       }
     },
@@ -14905,6 +15001,42 @@
           "kind": "interface",
           "signature": "export interface SendResult",
           "doc": "Result returned by `sendTransaction()` on success."
+        },
+        "awaitConfirmation": {
+          "kind": "function",
+          "signature": "awaitConfirmation(params: ConfirmParams): Promise<ConfirmResult>",
+          "doc": "Poll the provider until `txpowId` is included in a block, the timeout elapses,\nor the signal aborts."
+        },
+        "sendAndConfirm": {
+          "kind": "function",
+          "signature": "sendAndConfirm(params: SendAndConfirmParams): Promise<SendResult & { confirmation: ConfirmResult; }>",
+          "doc": "`sendTransaction` + `awaitConfirmation`. `sendTransaction` stays non-blocking;\nthis is the explicit settled variant."
+        },
+        "ConfirmParams": {
+          "kind": "interface",
+          "signature": "export interface ConfirmParams"
+        },
+        "ConfirmResult": {
+          "kind": "interface",
+          "signature": "export interface ConfirmResult"
+        },
+        "ConfirmExpectation": {
+          "kind": "interface",
+          "signature": "export interface ConfirmExpectation"
+        },
+        "ConfirmationProvider": {
+          "kind": "interface",
+          "signature": "export interface ConfirmationProvider",
+          "doc": "Minimal provider the verifier polls. `MinimaProvider` implements this."
+        },
+        "SendAndConfirmParams": {
+          "kind": "interface",
+          "signature": "export interface SendAndConfirmParams extends SendParams, Omit<ConfirmParams, 'txpowId' | 'expect'>"
+        },
+        "TxPowStatus": {
+          "kind": "interface",
+          "signature": "export interface TxPowStatus",
+          "doc": "Normalized txpow record (RFC-036). `isblock` + `header.block` = inclusion."
         },
         "mxToHex": {
           "kind": "function",
