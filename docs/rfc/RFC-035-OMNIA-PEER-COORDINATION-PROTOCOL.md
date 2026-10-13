@@ -1,6 +1,6 @@
 # RFC-035 — Omnia Peer Coordination Protocol (Phase B: Factory, Virtual Channel & Splice Round-Trips)
 
-**Status:** In progress — B0 landed (message kinds + coordination transport/stores); B1–B5 next
+**Status:** In progress — B0 + B1 landed (splice round-trip with `SPLICE_FINALIZED` lease confirm); B2–B5 next
 **Created:** 2026-10-08
 **Authors:** Totem SDK Contributors
 **Depends on:** RFC-014 (wallet connect parity), RFC-014 Amendment A (manifest truthfulness), RFC-034 (Omnia relay method parity, Phase A), RFC-002 (Omnia channel state machine), RFC-013 (wallet self-hosted mode)
@@ -149,8 +149,17 @@ export type OmniaMessageType =
   | 'VC_PROPOSAL'           // party → counterparty: virtual-channel open
   | 'VC_ACCEPT'             // counterparty → party: signed VC open
   | 'SPLICE_PROPOSAL'       // proposer → acceptor: splice TX + proposer sig
-  | 'SPLICE_ACCEPT';        // acceptor → proposer: acceptor sig
+  | 'SPLICE_ACCEPT'         // acceptor → proposer: acceptor sig
+  | 'SPLICE_FINALIZED';     // proposer → acceptor: finalize confirmed (commit acceptor lease)
 ```
+
+A `*_ACCEPT` reserves a one-time WOTS leaf on the acceptor side, but the
+**proposer** is the one who calls `finalizeSplice`. Each party commits/burns its
+**own** lease (a wallet holds only its own `WotsLeaseProvider`). So after a
+successful finalize the proposer sends a **`*_FINALIZED`** confirmation; the
+acceptor commits its reservation on receipt and **burns** it if no confirmation
+arrives within the proposal TTL. (This closes the gap where the acceptor's leaf
+would otherwise stay reserved forever — §4 goal 5 / §9.)
 
 Every coordination message carries a `correlationId` (the `factoryId` /
 `virtualChannelId` / `spliceId`), a monotonically increasing `nonce`, the
@@ -317,8 +326,12 @@ under the purported party's digest and that party must be a member of the object
   (`createOmniaCoordination`, memory + `StorageAdapter` proposal/acceptance
   stores, idempotent records, peer binding, verify-before-sign context); tests in
   `packages/omnia/src/__tests__/coordination.test.ts`.
-- **B1** — splice round-trip (`SPLICE_PROPOSAL`/`SPLICE_ACCEPT` +
-  `finalizeSplice`), two-party, with approval.
+- **B1 — landed.** Splice round-trip (`packages/omnia-splice/src/coordination.ts`):
+  `createSpliceCoordination({ channels, leaseProvider, verifySignature?, approval,
+  onFinalized })` → `SPLICE_PROPOSAL` (verify proposer signature + mint acceptance)
+  → `SPLICE_ACCEPT` (proposer `finalizeSplice`) → `SPLICE_FINALIZED` (acceptor
+  commits its reservation; burns on TTL). Two-party, consent-gated; tests in
+  `packages/omnia-splice/src/__tests__/coordination.test.ts`.
 - **B2** — factory opening round-trip (`FACTORY_PROPOSAL`/`FACTORY_ACCEPT`, the
   Phase A `opening` factory → `active`), N-of-N, with expiry/burn.
 - **B3** — factory closing (`FACTORY_CLOSE_*`) and virtual-channel open (`VC_*`),

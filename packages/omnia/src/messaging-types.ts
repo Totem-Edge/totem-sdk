@@ -25,7 +25,8 @@ export type OmniaMessageType =
   | 'VC_PROPOSAL'
   | 'VC_ACCEPT'
   | 'SPLICE_PROPOSAL'
-  | 'SPLICE_ACCEPT';
+  | 'SPLICE_ACCEPT'
+  | 'SPLICE_FINALIZED';
 
 export interface OmniaMessage {
   type: OmniaMessageType;

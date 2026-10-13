@@ -19,6 +19,7 @@ export type CoordinationKind = Extract<
   | 'VC_ACCEPT'
   | 'SPLICE_PROPOSAL'
   | 'SPLICE_ACCEPT'
+  | 'SPLICE_FINALIZED'
 >;
 
 export const COORDINATION_KINDS: readonly CoordinationKind[] = [
@@ -30,6 +31,7 @@ export const COORDINATION_KINDS: readonly CoordinationKind[] = [
   'VC_ACCEPT',
   'SPLICE_PROPOSAL',
   'SPLICE_ACCEPT',
+  'SPLICE_FINALIZED',
 ];
 
 export function isCoordinationKind(kind: OmniaMessageType): kind is CoordinationKind {

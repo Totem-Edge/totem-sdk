@@ -41,3 +41,14 @@ export type {
   DurableSpliceStore,
   DurableSpliceStoreOptions,
 } from './durable-splice-store.js';
+
+// RFC-035 B1 — splice peer round-trip over the coordination transport.
+export {
+  createSpliceCoordination,
+  type SpliceCoordination,
+  type SpliceCoordinationDeps,
+  type SpliceProposeParams,
+  type SpliceApproval,
+  type SpliceApprovalRequest,
+  type VerifySignature,
+} from './coordination.js';
