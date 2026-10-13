@@ -10304,11 +10304,11 @@
         },
         "COORDINATION_KINDS": {
           "kind": "const",
-          "signature": "COORDINATION_KINDS: readonly CoordinationKind[] = [ 'FACTORY_PROPOSAL', 'FACTORY_ACCEPT', 'FACTORY_CLOSE_PROPOSAL', 'FACTORY_CLOSE_ACCEPT', 'VC_PROPOSAL', 'VC_ACCEPT', 'SPLICE_PROPOSAL', 'SPLICE_ACCEP"
+          "signature": "COORDINATION_KINDS: readonly CoordinationKind[] = [ 'FACTORY_PROPOSAL', 'FACTORY_ACCEPT', 'FACTORY_CLOSE_PROPOSAL', 'FACTORY_CLOSE_ACCEPT', 'FACTORY_FINALIZED', 'VC_PROPOSAL', 'VC_ACCEPT', 'SPLICE_PRO"
         },
         "CoordinationKind": {
           "kind": "type",
-          "signature": "export type CoordinationKind = Extract< OmniaMessageType, | 'FACTORY_PROPOSAL' | 'FACTORY_ACCEPT' | 'FACTORY_CLOSE_PROPOSAL' | 'FACTORY_CLOSE_ACCEPT' | 'VC_PROPOSAL' | 'VC_ACCEPT' | 'SPLICE_PROPOSAL' "
+          "signature": "export type CoordinationKind = Extract< OmniaMessageType, | 'FACTORY_PROPOSAL' | 'FACTORY_ACCEPT' | 'FACTORY_CLOSE_PROPOSAL' | 'FACTORY_CLOSE_ACCEPT' | 'FACTORY_FINALIZED' | 'VC_PROPOSAL' | 'VC_ACCEPT"
         },
         "CoordinationPolicy": {
           "kind": "interface",
@@ -10431,6 +10431,46 @@
           "kind": "function",
           "signature": "enforceConservation(factory: ChannelFactory): void",
           "doc": "Enforce the factory's balance conservation invariant:\n  sum(allocations) + sum(virtualChannel.totalValue) === totalValue\n\nThrows on violation. Called after every committed state transition."
+        },
+        "signFactoryOpening": {
+          "kind": "function",
+          "signature": "signFactoryOpening(factory: ChannelFactory, bundle: WotsLeaseBundle): Promise<FactoryOpeningSignature>",
+          "doc": "Produce this party's opening signature WITHOUT committing the lease\n(RFC-035 B2). The caller commits on `FACTORY_FINALIZED` or burns on expiry —\nmirroring the splice accept round so a peer can gather N-of-N signatures\nwithout stranding or prematurely committing one-time keys."
+        },
+        "verifyFactorySignature": {
+          "kind": "function",
+          "signature": "verifyFactorySignature(factory: ChannelFactory, partyId: string, signature: Uint8Array, verify?: (sig: Uint8Array, commitment: Uint8Array, pkd: string) => boolean): boolean",
+          "doc": "Verify a remote opening signature against a factory participant."
+        },
+        "applyFactorySignature": {
+          "kind": "function",
+          "signature": "applyFactorySignature(factory: ChannelFactory, partyId: string, signature: Uint8Array): ChannelFactory",
+          "doc": "Merge a co-signer's opening signature (RFC-035 B2). When all N participants\nhave signed, the opening commits (`'opening'` → `'active'`)."
+        },
+        "FactoryOpeningSignature": {
+          "kind": "interface",
+          "signature": "export interface FactoryOpeningSignature",
+          "doc": "A co-signer's opening signature, held until the opening is confirmed."
+        },
+        "createFactoryCoordination": {
+          "kind": "function",
+          "signature": "createFactoryCoordination(deps: FactoryCoordinationDeps): FactoryCoordination"
+        },
+        "FactoryCoordination": {
+          "kind": "interface",
+          "signature": "export interface FactoryCoordination"
+        },
+        "FactoryCoordinationDeps": {
+          "kind": "interface",
+          "signature": "export interface FactoryCoordinationDeps"
+        },
+        "FactoryApproval": {
+          "kind": "type",
+          "signature": "export type FactoryApproval = (request: FactoryApprovalRequest) => Promise<boolean>"
+        },
+        "FactoryApprovalRequest": {
+          "kind": "interface",
+          "signature": "export interface FactoryApprovalRequest"
         },
         "openVirtualChannel": {
           "kind": "function",
