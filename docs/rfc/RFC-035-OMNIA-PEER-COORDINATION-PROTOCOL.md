@@ -1,6 +1,6 @@
 # RFC-035 — Omnia Peer Coordination Protocol (Phase B: Factory, Virtual Channel & Splice Round-Trips)
 
-**Status:** In progress — B0 + B1 landed (splice round-trip with `SPLICE_FINALIZED` lease confirm); B2–B5 next
+**Status:** In progress — B0–B2 landed (splice + factory opening round-trips with lease confirm); B3–B5 next
 **Created:** 2026-10-08
 **Authors:** Totem SDK Contributors
 **Depends on:** RFC-014 (wallet connect parity), RFC-014 Amendment A (manifest truthfulness), RFC-034 (Omnia relay method parity, Phase A), RFC-002 (Omnia channel state machine), RFC-013 (wallet self-hosted mode)
@@ -332,8 +332,12 @@ under the purported party's digest and that party must be a member of the object
   → `SPLICE_ACCEPT` (proposer `finalizeSplice`) → `SPLICE_FINALIZED` (acceptor
   commits its reservation; burns on TTL). Two-party, consent-gated; tests in
   `packages/omnia-splice/src/__tests__/coordination.test.ts`.
-- **B2** — factory opening round-trip (`FACTORY_PROPOSAL`/`FACTORY_ACCEPT`, the
-  Phase A `opening` factory → `active`), N-of-N, with expiry/burn.
+- **B2 — landed.** Factory opening round-trip: `omnia-factory` gains
+  `signFactoryOpening` (reserve→sign→verify, **no** commit), `verifyFactorySignature`,
+  `applyFactorySignature` (merge + commit at N-of-N), and `createFactoryCoordination`
+  (`FACTORY_PROPOSAL` → `FACTORY_ACCEPT` → `FACTORY_FINALIZED` fan-out committing
+  each co-signer's held leaf; burns on TTL). Tests in
+  `packages/omnia-factory/src/__tests__/coordination.test.ts`.
 - **B3** — factory closing (`FACTORY_CLOSE_*`) and virtual-channel open (`VC_*`),
   N-of-N.
 - **B4** — multi-hop payment (`payMultiHop` over the RFC-034 `RoutingPort` +

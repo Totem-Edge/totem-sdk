@@ -90,6 +90,7 @@ export function createOmniaCoordination(config: OmniaCoordinationConfig = {}): O
     store,
     policy,
     send: (type, payload) => send(peer, type, message.channelId, correlationId, payload),
+    sendTo: (target, type, payload) => send(target, type, message.channelId, correlationId, payload),
   });
 
   const bindPeer = (peer: OmniaPeer): (() => void) =>

@@ -25,7 +25,20 @@ export {
   acceptFactory,
   reallocate,
   enforceConservation,
+  signFactoryOpening,
+  verifyFactorySignature,
+  applyFactorySignature,
 } from './factory.js';
+export type { FactoryOpeningSignature } from './factory.js';
+
+// RFC-035 B2 — factory opening round-trip over the coordination transport.
+export {
+  createFactoryCoordination,
+  type FactoryCoordination,
+  type FactoryCoordinationDeps,
+  type FactoryApproval,
+  type FactoryApprovalRequest,
+} from './coordination.js';
 
 export {
   openVirtualChannel,

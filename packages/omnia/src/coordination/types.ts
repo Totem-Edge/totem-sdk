@@ -15,6 +15,7 @@ export type CoordinationKind = Extract<
   | 'FACTORY_ACCEPT'
   | 'FACTORY_CLOSE_PROPOSAL'
   | 'FACTORY_CLOSE_ACCEPT'
+  | 'FACTORY_FINALIZED'
   | 'VC_PROPOSAL'
   | 'VC_ACCEPT'
   | 'SPLICE_PROPOSAL'
@@ -27,6 +28,7 @@ export const COORDINATION_KINDS: readonly CoordinationKind[] = [
   'FACTORY_ACCEPT',
   'FACTORY_CLOSE_PROPOSAL',
   'FACTORY_CLOSE_ACCEPT',
+  'FACTORY_FINALIZED',
   'VC_PROPOSAL',
   'VC_ACCEPT',
   'SPLICE_PROPOSAL',
@@ -88,6 +90,8 @@ export interface CoordinationContext {
   policy: Required<CoordinationPolicy>;
   /** Reply on the same peer/correlation. */
   send: (type: OmniaMessageType, payload: unknown) => Promise<void>;
+  /** Send on any peer (same correlationId) — e.g. FINALIZED fan-out to all signers. */
+  sendTo: (peer: OmniaPeer, type: OmniaMessageType, payload: unknown) => Promise<void>;
 }
 
 export type CoordinationHandler = (ctx: CoordinationContext) => Promise<void>;

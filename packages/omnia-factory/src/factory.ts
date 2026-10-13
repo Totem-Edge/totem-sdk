@@ -309,6 +309,113 @@ export async function acceptFactory(
   return updatedFactory;
 }
 
+// ─── Remote opening aggregation (RFC-035 B2) ──────────────────────────────────
+
+/** A co-signer's opening signature, held until the opening is confirmed. */
+export interface FactoryOpeningSignature {
+  factoryId: string;
+  partyId: string;
+  signature: Uint8Array;
+  reservationId: string;
+}
+
+/**
+ * Produce this party's opening signature WITHOUT committing the lease
+ * (RFC-035 B2). The caller commits on `FACTORY_FINALIZED` or burns on expiry —
+ * mirroring the splice accept round so a peer can gather N-of-N signatures
+ * without stranding or prematurely committing one-time keys.
+ */
+export async function signFactoryOpening(
+  factory: ChannelFactory,
+  bundle: WotsLeaseBundle,
+): Promise<FactoryOpeningSignature> {
+  if (factory.status !== 'opening' || !factory.pendingCommitment) {
+    throw new Error(`signFactoryOpening requires an 'opening' factory, got '${factory.status}'`);
+  }
+  const participant = factory.participants.find(
+    p => p.publicKeyDigest === bundle.signer.publicKeyDigest,
+  );
+  if (!participant) {
+    throw new Error('signer.publicKeyDigest does not match any registered factory participant');
+  }
+  if (factory.pendingSignatures[participant.partyId]) {
+    throw new Error(`Party '${participant.partyId}' has already co-signed this factory proposal`);
+  }
+
+  const commitment = Buffer.from(factory.pendingCommitment, 'hex');
+  const reservation = await bundle.leaseProvider.reserveKeyUse({
+    treeId: `omnia-factory-${factory.factoryId}`,
+    purpose: 'factory-open',
+    payloadHash: Buffer.from(commitment).toString('hex'),
+  });
+
+  let sig: Uint8Array;
+  try {
+    sig = await bundle.signer.sign(commitment, reservation.indices);
+  } catch (err) {
+    await bundle.leaseProvider.burnReservation(reservation.reservationId, 'sign-failed').catch(() => {});
+    throw err;
+  }
+
+  const verifyFn =
+    bundle.verify ?? ((s: Uint8Array, c: Uint8Array, pkd: string) => verifyChannelSignature(s, c, pkd));
+  if (!verifyFn(sig, commitment, participant.publicKeyDigest)) {
+    await bundle.leaseProvider.burnReservation(reservation.reservationId, 'verification-failed').catch(() => {});
+    throw new Error(`Signature verification failed for party '${participant.partyId}' — refusing to commit`);
+  }
+
+  return {
+    factoryId: factory.factoryId,
+    partyId: participant.partyId,
+    signature: sig,
+    reservationId: reservation.reservationId,
+  };
+}
+
+/** Verify a remote opening signature against a factory participant. */
+export function verifyFactorySignature(
+  factory: ChannelFactory,
+  partyId: string,
+  signature: Uint8Array,
+  verify?: (sig: Uint8Array, commitment: Uint8Array, pkd: string) => boolean,
+): boolean {
+  if (!factory.pendingCommitment) return false;
+  const participant = factory.participants.find(p => p.partyId === partyId);
+  if (!participant) return false;
+  const commitment = Buffer.from(factory.pendingCommitment, 'hex');
+  const verifyFn =
+    verify ?? ((s: Uint8Array, c: Uint8Array, pkd: string) => verifyChannelSignature(s, c, pkd));
+  try {
+    return verifyFn(signature, commitment, participant.publicKeyDigest);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Merge a co-signer's opening signature (RFC-035 B2). When all N participants
+ * have signed, the opening commits (`'opening'` → `'active'`).
+ */
+export function applyFactorySignature(
+  factory: ChannelFactory,
+  partyId: string,
+  signature: Uint8Array,
+): ChannelFactory {
+  if (factory.status !== 'opening') {
+    throw new Error(`applyFactorySignature requires factory status 'opening', got '${factory.status}'`);
+  }
+  if (!factory.participants.find(p => p.partyId === partyId)) {
+    throw new Error(`'${partyId}' is not a registered factory participant`);
+  }
+  if (factory.pendingSignatures[partyId]) {
+    throw new Error(`Party '${partyId}' has already co-signed this factory proposal`);
+  }
+  const newSigs = { ...factory.pendingSignatures, [partyId]: signature };
+  const updated: ChannelFactory = { ...factory, pendingSignatures: newSigs };
+  const allSigned = factory.participants.every(p => newSigs[p.partyId] !== undefined);
+  return allSigned ? commitOpening(updated) : updated;
+}
+
 function commitOpening(factory: ChannelFactory): ChannelFactory {
   const logEntry: FactoryLogEntry = {
     sequence:          1,
