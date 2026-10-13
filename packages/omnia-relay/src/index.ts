@@ -65,3 +65,9 @@ export type {
   WalletApprovalRequest,
   WalletApprovalKind,
 } from './coordination.js';
+
+// Host-facing re-exports (so a wallet only depends on @totemsdk/omnia-relay).
+export { createStorageCoordinationStore, createMemoryCoordinationStore } from '@totemsdk/omnia';
+export type { OmniaChannel } from '@totemsdk/omnia';
+export type { ChannelFactory } from '@totemsdk/omnia-factory';
+export type { QuiescedChannel, SplicedChannel } from '@totemsdk/omnia-splice';

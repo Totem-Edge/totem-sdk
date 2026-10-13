@@ -16,9 +16,9 @@ import { isSharedConnectMethod, dispatchSharedConnectMethod, isConnectMethod, co
 import type { WalletHandlerContext } from '@totemsdk/connect';
 import { buildWalletLeaseProvider, loadWalletNetworkConfig, isSelfHostedLeaseActive } from '../core/config/selfHosted';
 import { activeChainProviderStore, resolveActiveChainProvider } from '../core/config/activeChainProvider';
-import { createOmniaRelayClient, createWalletChannelSigningMaterial } from '@totemsdk/omnia-relay';
+import { createOmniaRelayClient, createWalletChannelSigningMaterial, createWalletCoordination, createStorageCoordinationStore, type WalletCoordination, type ChannelFactory, type QuiescedChannel } from '@totemsdk/omnia-relay';
 import { computeIdentityId } from '@totemsdk/identity';
-import type { ChannelIdentity } from '@totemsdk/omnia';
+import type { ChannelIdentity, OmniaChannel } from '@totemsdk/omnia';
 // @ts-ignore - subpath export resolves via package "exports" at bundle time; the
 // extension's legacy "node" moduleResolution cannot see it.
 import { IdbStore } from '@totemsdk/storage/idb';
@@ -1033,6 +1033,57 @@ let extensionOmniaClient: ReturnType<typeof createOmniaRelayClient> | undefined;
  *     and an ownership proof binding the channel key to the root identity.
  * In Axia mode (no lease provider) mutations stay a reasoned `UNSUPPORTED`.
  */
+/**
+ * RFC-035 B5 — wallet coordination runtime state.
+ *
+ * Proposals/acceptances persist durably; the factory registry is in-memory for
+ * now. The approval gate is fail-closed until a per-operation approval UI exists:
+ * auto-accepting a peer's proposal would make the wallet emit a WOTS signature it
+ * never consented to.
+ */
+let extensionOmniaCoordination: WalletCoordination | undefined;
+let extensionCoordinationUnsub: (() => void) | undefined;
+const extensionOmniaFactories = new Map<string, ChannelFactory>();
+
+function approveExtensionCoordination(): Promise<boolean> {
+  console.warn('[connect] omnia coordination: per-operation approval not yet wired — rejecting');
+  return Promise.resolve(false);
+}
+
+type OmniaCoordinationOptions = Parameters<typeof createWalletCoordination>[0];
+
+function wireExtensionCoordination(
+  client: ReturnType<typeof createOmniaRelayClient>,
+  signer: OmniaCoordinationOptions['signer'],
+  leaseProvider: OmniaCoordinationOptions['leaseProvider'],
+  chainProvider: OmniaCoordinationOptions['chainProvider'],
+): void {
+  try {
+    extensionCoordinationUnsub?.();
+    const store = createStorageCoordinationStore(
+      new IdbStore({ databaseName: 'totem-extension-omnia-coord', storeName: 'kv' }),
+    );
+    extensionOmniaCoordination = createWalletCoordination({
+      channels: client.channels as unknown as Map<string, OmniaChannel | QuiescedChannel>,
+      factories: extensionOmniaFactories,
+      signer,
+      leaseProvider,
+      store,
+      chainProvider,
+      approval: () => approveExtensionCoordination(),
+      policy: { autoAccept: false },
+      onFactoryOpened: (f) => {
+        extensionOmniaFactories.set(f.factoryId, f);
+      },
+    });
+    extensionCoordinationUnsub = client.swarm.listenForChannels((peer) => {
+      extensionOmniaCoordination?.bindPeer(peer);
+    });
+  } catch (err) {
+    console.warn('[connect] failed to wire omnia coordination:', err);
+  }
+}
+
 async function buildExtensionOmniaClient(): Promise<ReturnType<typeof createOmniaRelayClient>> {
   const base = createOmniaRelayClient({ autoAccept: false });
   try {
@@ -1061,13 +1112,17 @@ async function buildExtensionOmniaClient(): Promise<ReturnType<typeof createOmni
       participant.partyId = identity.id;
     }
 
-    return createOmniaRelayClient({
+    const client = createOmniaRelayClient({
       autoAccept: false,
       signer,
       leaseProvider,
       chainProvider: chain.provider,
       localParticipant: participant,
     });
+    // RFC-035 B5: wire peer coordination to this client's swarm (accepts fail
+    // closed until a per-operation approval UI exists).
+    wireExtensionCoordination(client, signer, leaseProvider, chain.provider);
+    return client;
   } catch (err) {
     console.warn('[connect] omnia signing material unavailable:', err);
     return base;
