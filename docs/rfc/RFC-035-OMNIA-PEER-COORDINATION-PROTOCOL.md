@@ -1,6 +1,6 @@
 # RFC-035 — Omnia Peer Coordination Protocol (Phase B: Factory, Virtual Channel & Splice Round-Trips)
 
-**Status:** In progress — B0–B4 + B5 (recovery + wallet coordination helper) landed; host hookup + manifest flips remain
+**Status:** In progress — B0–B4 + B5 (recovery, wallet helper, extension wiring) landed; PWA host + approval UI + manifest flips remain
 **Created:** 2026-10-08
 **Authors:** Totem SDK Contributors
 **Depends on:** RFC-014 (wallet connect parity), RFC-014 Amendment A (manifest truthfulness), RFC-034 (Omnia relay method parity, Phase A), RFC-002 (Omnia channel state machine), RFC-013 (wallet self-hosted mode)
@@ -356,15 +356,18 @@ under the purported party's digest and that party must be a member of the object
   also on the base `RelayOmniaClient` (reasoned `UNSUPPORTED` until overridden).
   Intermediary-hop propagation remains Phase B peer coordination. Tests in
   `packages/omnia-relay/src/__tests__/client.test.ts`.
-- **B5 — recovery tests + wallet coordination helper landed; host hookup pending.**
-  The durable store reloads proposals + acceptances after restart, and
-  `@totemsdk/omnia-relay`'s `createWalletCoordination({ channels, factories,
-  signer, leaseProvider, store, approval, chainProvider })` composes the
-  transport + splice/factory handlers with a `bindPeer(peer)` seam (tests in
-  `packages/omnia-relay/src/__tests__/coordination.test.ts`). Remaining: the
-  extension/PWA call it with an `IdbStore` store, an approval port, a factory
-  registry, and `swarm.listenForChannels(bindPeer)`; then flip the eight connect
-  methods' dispositions to `supported` (only once reachable — RFC-014 Amendment A).
+- **B5 — extension wired; PWA + manifest flips pending.** The durable store
+  reloads proposals/acceptances after restart, and `@totemsdk/omnia-relay`'s
+  `createWalletCoordination(...)` composes the transport + splice/factory handlers
+  with a `bindPeer(peer)` seam. The **extension** calls it in
+  `buildExtensionOmniaClient` (durable `IdbStore` store, factory registry, peer
+  binding via `swarm.listenForChannels`; approval fail-closed until a per-op UI
+  exists). **PWA gap:** its injected provider holds no keys and its approval page
+  is ephemeral + opens no peer connections, so coordination needs a **long-lived
+  PWA host** (wallet app + relay swarm + channel/factory registries) — a wallet-app
+  feature, decided separately. Manifest dispositions stay reasoned-`unsupported`
+  for the accept/finalize sides until that + the approval UI exist (RFC-014
+  Amendment A).
 
 ## 9. Acceptance / verification
 
