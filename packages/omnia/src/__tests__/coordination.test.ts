@@ -96,6 +96,26 @@ describe.each([
   });
 });
 
+describe('coordination store recovery (RFC-035 B5)', () => {
+  it('reloads proposals + acceptances from a shared durable store (reconnect)', async () => {
+    const adapter = fakeStorage();
+    const store1 = createStorageCoordinationStore(adapter);
+    await store1.putProposal(proposal());
+    await store1.recordAcceptance('splice-1', 'bob', {
+      type: 'SPLICE_ACCEPT',
+      channelId: 'c1',
+      correlationId: 'splice-1',
+      nonce: 1,
+      payload: {},
+    } as OmniaMessage);
+
+    // simulate a wallet restart: a fresh store over the same storage
+    const store2 = createStorageCoordinationStore(adapter);
+    expect((await store2.getProposal('splice-1'))?.kind).toBe('SPLICE_PROPOSAL');
+    expect(await store2.listAcceptances('splice-1')).toHaveLength(1);
+  });
+});
+
 describe('createOmniaCoordination', () => {
   it('routes a proposal to its handler and lets it reply', async () => {
     const { peer, emit, sent } = fakePeer('peerA');
