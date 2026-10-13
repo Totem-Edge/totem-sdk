@@ -1,6 +1,6 @@
 # RFC-035 — Omnia Peer Coordination Protocol (Phase B: Factory, Virtual Channel & Splice Round-Trips)
 
-**Status:** Draft — design specification
+**Status:** In progress — B0 landed (message kinds + coordination transport/stores); B1–B5 next
 **Created:** 2026-10-08
 **Authors:** Totem SDK Contributors
 **Depends on:** RFC-014 (wallet connect parity), RFC-014 Amendment A (manifest truthfulness), RFC-034 (Omnia relay method parity, Phase A), RFC-002 (Omnia channel state machine), RFC-013 (wallet self-hosted mode)
@@ -313,9 +313,10 @@ under the purported party's digest and that party must be a member of the object
 
 ## 8. Phasing
 
-- **B0** — message kinds + `coordination/` module skeleton + durable proposal
-  stores + verification helpers (`verify.ts`); no behaviour change while
-  `autoAccept` is off.
+- **B0 — landed.** Message kinds + `packages/omnia/src/coordination/`
+  (`createOmniaCoordination`, memory + `StorageAdapter` proposal/acceptance
+  stores, idempotent records, peer binding, verify-before-sign context); tests in
+  `packages/omnia/src/__tests__/coordination.test.ts`.
 - **B1** — splice round-trip (`SPLICE_PROPOSAL`/`SPLICE_ACCEPT` +
   `finalizeSplice`), two-party, with approval.
 - **B2** — factory opening round-trip (`FACTORY_PROPOSAL`/`FACTORY_ACCEPT`, the

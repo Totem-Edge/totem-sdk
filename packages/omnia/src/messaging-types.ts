@@ -16,7 +16,16 @@ export type OmniaMessageType =
   | 'STATE_UPDATE'
   | 'SETTLEMENT_PROPOSAL'
   | 'ACK'
-  | 'ERROR';
+  | 'ERROR'
+  // RFC-035 Phase B — peer coordination (additive; unknown kinds are dropped).
+  | 'FACTORY_PROPOSAL'
+  | 'FACTORY_ACCEPT'
+  | 'FACTORY_CLOSE_PROPOSAL'
+  | 'FACTORY_CLOSE_ACCEPT'
+  | 'VC_PROPOSAL'
+  | 'VC_ACCEPT'
+  | 'SPLICE_PROPOSAL'
+  | 'SPLICE_ACCEPT';
 
 export interface OmniaMessage {
   type: OmniaMessageType;
@@ -24,6 +33,8 @@ export interface OmniaMessage {
   nonce: number;
   payload: unknown;
   version?: number;
+  /** RFC-035: stable id of the coordination round-trip (factoryId / spliceId / vcId). */
+  correlationId?: string;
 }
 
 export type Unsubscribe = () => void;

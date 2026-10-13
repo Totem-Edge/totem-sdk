@@ -290,3 +290,28 @@ export type {
   WotsLeaseProviderLike,
   MinimalChainProvider,
 } from './integration.js';
+
+// RFC-035 Phase B — peer coordination transport (B0).
+export {
+  createOmniaCoordination,
+  type OmniaCoordination,
+  type OmniaCoordinationConfig,
+  type SendProposalParams,
+} from './coordination/index.js';
+export {
+  createMemoryCoordinationStore,
+  createStorageCoordinationStore,
+} from './coordination/proposals.js';
+export {
+  isCoordinationKind,
+  COORDINATION_KINDS,
+  type CoordinationKind,
+  type CoordinationPolicy,
+  type CoordinationStore,
+  type CoordinationHandler,
+  type CoordinationHandlers,
+  type CoordinationContext,
+  type ProposalRecord,
+  type AcceptanceRecord,
+  type ProposalState,
+} from './coordination/types.js';
