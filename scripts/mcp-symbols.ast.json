@@ -10304,11 +10304,11 @@
         },
         "COORDINATION_KINDS": {
           "kind": "const",
-          "signature": "COORDINATION_KINDS: readonly CoordinationKind[] = [ 'FACTORY_PROPOSAL', 'FACTORY_ACCEPT', 'FACTORY_CLOSE_PROPOSAL', 'FACTORY_CLOSE_ACCEPT', 'FACTORY_FINALIZED', 'VC_PROPOSAL', 'VC_ACCEPT', 'SPLICE_PRO"
+          "signature": "COORDINATION_KINDS: readonly CoordinationKind[] = [ 'FACTORY_PROPOSAL', 'FACTORY_ACCEPT', 'FACTORY_CLOSE_PROPOSAL', 'FACTORY_CLOSE_ACCEPT', 'FACTORY_CLOSE_FINALIZED', 'FACTORY_FINALIZED', 'VC_PROPOSAL"
         },
         "CoordinationKind": {
           "kind": "type",
-          "signature": "export type CoordinationKind = Extract< OmniaMessageType, | 'FACTORY_PROPOSAL' | 'FACTORY_ACCEPT' | 'FACTORY_CLOSE_PROPOSAL' | 'FACTORY_CLOSE_ACCEPT' | 'FACTORY_FINALIZED' | 'VC_PROPOSAL' | 'VC_ACCEPT"
+          "signature": "export type CoordinationKind = Extract< OmniaMessageType, | 'FACTORY_PROPOSAL' | 'FACTORY_ACCEPT' | 'FACTORY_CLOSE_PROPOSAL' | 'FACTORY_CLOSE_ACCEPT' | 'FACTORY_CLOSE_FINALIZED' | 'FACTORY_FINALIZED' "
         },
         "CoordinationPolicy": {
           "kind": "interface",
@@ -10474,23 +10474,81 @@
         },
         "openVirtualChannel": {
           "kind": "function",
-          "signature": "openVirtualChannel(factory: ChannelFactory, parties: [string, string], amounts: Record<string, bigint>, leaseProviders: Record<string, WotsLeaseBundle>, channelId?: string): Promise<{ factory: ChannelFactory; channel: OmniaChannel; }>",
-          "doc": "Open a virtual channel between two factory participants.\n\nALL N factory participants must agree (N-of-N WOTS signature collection)\nbefore the virtual channel is committed and allocations deducted. This ensures\nthe shared factory UTXO's off-chain state is consistent and dispute-provable.\n\nThe commitment is bound to `currentSequence + 1` — the post-commit sequence —\npreventing replay of the same openVC commitment against a future factory state.\n\nThe returned `OmniaChannel` has `channelType: 'virtual'` and `factoryRef` set.\nIts `fundingTxId`/`fundingCoinId` reference the factory's shared UTXO.\nIt is ready for off-chain state updates via `@totemsdk/omnia` primitives\n(`updateState`, `addHTLC`, `signState`, etc.)."
+          "signature": "openVirtualChannel(factory: ChannelFactory, parties: [string, string], amounts: Record<string, bigint>, leaseProviders: Record<string, WotsLeaseBundle>, channelId?: string): Promise<{ factory: ChannelFactory; channel: OmniaChannel; }>"
         },
         "closeVirtualChannel": {
           "kind": "function",
           "signature": "closeVirtualChannel(factory: ChannelFactory, channel: OmniaChannel, leaseProviders: Record<string, WotsLeaseBundle>): Promise<ChannelFactory>",
           "doc": "Close a virtual channel and return its final balances to factory allocations.\n\nALL N factory participants must agree (N-of-N WOTS signature collection).\nThe commitment is bound to `currentSequence + 1`.\n\nFinal balances are taken from `channel.latestState.balances` (the last agreed\noff-chain state from `@totemsdk/omnia`'s state machine) or fall back to\n`channel.balances` (the initial opening split) if no state updates have occurred.\n\nNo on-chain TX is needed: the factory's shared UTXO remains intact."
         },
+        "buildVirtualChannelOpen": {
+          "kind": "function",
+          "signature": "buildVirtualChannelOpen(factory: ChannelFactory, parties: [string, string], amounts: Record<string, bigint>, channelId?: string): VirtualChannelOpenPlan",
+          "doc": "Validate + build the VC-open plan (no signing). Exported so peers can bind."
+        },
+        "signVirtualChannelOpen": {
+          "kind": "function",
+          "signature": "signVirtualChannelOpen(factory: ChannelFactory, plan: VirtualChannelOpenPlan, bundle: WotsLeaseBundle): Promise<VirtualChannelOpenSignature>",
+          "doc": "Produce this party's VC-open signature WITHOUT committing the lease\n(RFC-035 B3). The caller commits on `VC_FINALIZED` or burns on expiry."
+        },
+        "verifyVirtualChannelOpenSignature": {
+          "kind": "function",
+          "signature": "verifyVirtualChannelOpenSignature(factory: ChannelFactory, commitment: Uint8Array, partyId: string, signature: Uint8Array, verify?: (sig: Uint8Array, digest: Uint8Array, pkd: string) => boolean): boolean"
+        },
+        "assembleVirtualChannelOpen": {
+          "kind": "function",
+          "signature": "assembleVirtualChannelOpen(factory: ChannelFactory, plan: VirtualChannelOpenPlan, signatures: Record<string, VirtualChannelOpenSignature>, verify?: (sig: Uint8Array, digest: Uint8Array, pkd: string) => boolean): { factory: ChannelFactory; channel: OmniaChannel; }",
+          "doc": "Assemble N-of-N VC-open signatures into the updated factory + virtual channel."
+        },
+        "VirtualChannelOpenPlan": {
+          "kind": "interface",
+          "signature": "export interface VirtualChannelOpenPlan",
+          "doc": "Deterministic virtual-channel open plan (RFC-035 B3)."
+        },
+        "VirtualChannelOpenSignature": {
+          "kind": "interface",
+          "signature": "export interface VirtualChannelOpenSignature",
+          "doc": "A participant's VC-open signature, held until the open is confirmed."
+        },
         "closeFactory": {
           "kind": "function",
           "signature": "closeFactory(factory: ChannelFactory, leaseProviders: Record<string, WotsLeaseBundle>, chainProvider?: ChainStateProvider): Promise<FactorySettlementPayload>",
-          "doc": "Cooperative N-of-N factory close.\n\nFlow:\n  1. Fail fast if `factory.fundingCoinId` is not set — settlement TX requires\n     a concrete input coin.\n  2. Build the settlement OmniaTxDraft (N outputs, one per participant with a\n     positive allocation) spending the factory's N-of-N MULTISIG input.\n  3. Compute the TX draft digest via `computeTxDraftDigest` from `@totemsdk/omnia`.\n  4. Collect N-of-N signatures — all participants sign + verify the TX digest\n     via the full WOTS lease cycle (reserve → sign → verify → commit).\n  5. Encode the concatenated WOTS signatures as the settlement TX witness.\n  6. When `chainProvider` is supplied: mine via `@totemsdk/txpow`'s `mineTxPoW`,\n     assemble the full TxPoW blob, and broadcast."
+          "doc": "Cooperative N-of-N factory close (central/local path).\n\nBuilds the settlement TX, collects all N signatures (each committing its own\nlease via the full WOTS cycle), assembles the witness, and — when a\n`chainProvider` is supplied — mines + broadcasts the settlement TxPoW."
         },
         "buildDisputePayload": {
           "kind": "function",
           "signature": "buildDisputePayload(factory: ChannelFactory, evidence: string): FactoryDisputePayload",
           "doc": "Build a unilateral factory close (dispute) payload.\n\nIncludes the full `stateLog` (with monotonically increasing `sequence` entries)\nfor on-chain or arbitration verification.  Virtual channels still open at\ndispute time are included by ID so the dispute resolver can adjudicate their\nbalances independently."
+        },
+        "buildFactorySettlement": {
+          "kind": "function",
+          "signature": "buildFactorySettlement(factory: ChannelFactory): FactorySettlementDraft",
+          "doc": "Build the cooperative settlement TX + digest (no signing). Exported so peers\ncan independently rebuild and bind a proposal (RFC-035 B3)."
+        },
+        "signFactorySettlement": {
+          "kind": "function",
+          "signature": "signFactorySettlement(factory: ChannelFactory, draft: FactorySettlementDraft, bundle: WotsLeaseBundle): Promise<FactorySettlementSignature>",
+          "doc": "Produce this party's settlement signature WITHOUT committing the lease\n(RFC-035 B3). The caller commits on `FACTORY_CLOSE_FINALIZED` or burns on expiry."
+        },
+        "verifyFactorySettlementSignature": {
+          "kind": "function",
+          "signature": "verifyFactorySettlementSignature(factory: ChannelFactory, txDigest: Uint8Array, partyId: string, signature: Uint8Array, verify?: (sig: Uint8Array, digest: Uint8Array, pkd: string) => boolean): boolean",
+          "doc": "Verify a remote settlement signature against a factory participant."
+        },
+        "assembleFactorySettlement": {
+          "kind": "function",
+          "signature": "assembleFactorySettlement(factory: ChannelFactory, draft: FactorySettlementDraft, signatures: Record<string, FactorySettlementSignature>, chainProvider?: ChainStateProvider, options?: { verify?: (sig: Uint8Array, digest: Uint8Array, pkd: string) => boolean; }): Promise<FactorySettlementPayload>",
+          "doc": "Assemble N-of-N settlement signatures into the MULTISIG witness + payload, and\n(when a `chainProvider` is given) mine + broadcast the settlement TxPoW."
+        },
+        "FactorySettlementDraft": {
+          "kind": "interface",
+          "signature": "export interface FactorySettlementDraft",
+          "doc": "Deterministic settlement TX material for a factory (RFC-035 B3)."
+        },
+        "FactorySettlementSignature": {
+          "kind": "interface",
+          "signature": "export interface FactorySettlementSignature",
+          "doc": "A participant's settlement signature, held until the close is confirmed."
         },
         "createDurableFactoryStore": {
           "kind": "function",
