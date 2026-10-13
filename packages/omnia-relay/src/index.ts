@@ -55,3 +55,13 @@ export {
   WALLET_IDENTITY_KIND,
 } from './identity.js';
 export type { IdentityVerificationResult } from './identity.js';
+
+// Wallet coordination composition (RFC-035 B5).
+export { createWalletCoordination } from './coordination.js';
+export type {
+  WalletCoordination,
+  WalletCoordinationOptions,
+  WalletApproval,
+  WalletApprovalRequest,
+  WalletApprovalKind,
+} from './coordination.js';
