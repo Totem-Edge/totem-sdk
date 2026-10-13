@@ -26,6 +26,7 @@ export type OmniaMessageType =
   | 'FACTORY_FINALIZED'
   | 'VC_PROPOSAL'
   | 'VC_ACCEPT'
+  | 'VC_FINALIZED'
   | 'SPLICE_PROPOSAL'
   | 'SPLICE_ACCEPT'
   | 'SPLICE_FINALIZED';

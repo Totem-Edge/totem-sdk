@@ -92,27 +92,39 @@ async function collectNofN(
  * @param leaseProviders - WOTS lease bundles for ALL N factory participants.
  * @param channelId      - Optional explicit channel ID; auto-generated if omitted.
  */
-export async function openVirtualChannel(
+/** Deterministic virtual-channel open plan (RFC-035 B3). */
+export interface VirtualChannelOpenPlan {
+  vcId: string;
+  parties: [string, string];
+  amounts: Record<string, bigint>;
+  newSequence: number;
+  newAllocations: Record<string, bigint>;
+  newVcIds: string[];
+  commitment: Uint8Array;
+}
+
+/** A participant's VC-open signature, held until the open is confirmed. */
+export interface VirtualChannelOpenSignature {
+  partyId: string;
+  signature: Uint8Array;
+  reservationId: string;
+}
+
+/** Validate + build the VC-open plan (no signing). Exported so peers can bind. */
+export function buildVirtualChannelOpen(
   factory: ChannelFactory,
   parties: [string, string],
   amounts: Record<string, bigint>,
-  leaseProviders: Record<string, WotsLeaseBundle>,
   channelId?: string,
-): Promise<{ factory: ChannelFactory; channel: OmniaChannel }> {
+): VirtualChannelOpenPlan {
   if (factory.status !== 'active') {
     throw new Error(`openVirtualChannel requires factory status 'active', got '${factory.status}'`);
   }
-
   const [partyAId, partyBId] = parties;
   const amountA = amounts[partyAId] ?? 0n;
   const amountB = amounts[partyBId] ?? 0n;
-
-  if (amountA < 0n || amountB < 0n) {
-    throw new Error('Virtual channel amounts must be non-negative');
-  }
-  if (amountA + amountB === 0n) {
-    throw new Error('Virtual channel must have positive total value');
-  }
+  if (amountA < 0n || amountB < 0n) throw new Error('Virtual channel amounts must be non-negative');
+  if (amountA + amountB === 0n) throw new Error('Virtual channel must have positive total value');
 
   const partyAMeta = factory.participants.find(p => p.partyId === partyAId);
   const partyBMeta = factory.participants.find(p => p.partyId === partyBId);
@@ -121,38 +133,102 @@ export async function openVirtualChannel(
 
   const allocA = factory.allocations[partyAId] ?? 0n;
   const allocB = factory.allocations[partyBId] ?? 0n;
-  if (allocA < amountA) {
-    throw new Error(`Party '${partyAId}' has insufficient allocation: ${allocA} < ${amountA}`);
-  }
-  if (allocB < amountB) {
-    throw new Error(`Party '${partyBId}' has insufficient allocation: ${allocB} < ${amountB}`);
-  }
+  if (allocA < amountA) throw new Error(`Party '${partyAId}' has insufficient allocation: ${allocA} < ${amountA}`);
+  if (allocB < amountB) throw new Error(`Party '${partyBId}' has insufficient allocation: ${allocB} < ${amountB}`);
 
-  const vcId        = channelId ?? generateChannelId(factory.factoryId, partyAId, partyBId);
+  const vcId = channelId ?? generateChannelId(factory.factoryId, partyAId, partyBId);
   const newSequence = factory.currentSequence + 1;
-
   const newAllocations: Record<string, bigint> = {
     ...factory.allocations,
     [partyAId]: allocA - amountA,
     [partyBId]: allocB - amountB,
   };
   const newVcIds = [...factory.virtualChannels.map(vc => vc.channelId), vcId];
+  const commitment = computeFactoryStateCommitment(factory.factoryId, newSequence, newAllocations, newVcIds);
 
-  const commitment = computeFactoryStateCommitment(
-    factory.factoryId,
+  return {
+    vcId,
+    parties,
+    amounts: { [partyAId]: amountA, [partyBId]: amountB },
     newSequence,
     newAllocations,
     newVcIds,
-  );
-
-  await collectNofN(
-    factory.factoryId,
     commitment,
-    'factory-vc-open',
-    factory.participants,
-    leaseProviders,
-  );
+  };
+}
 
+/**
+ * Produce this party's VC-open signature WITHOUT committing the lease
+ * (RFC-035 B3). The caller commits on `VC_FINALIZED` or burns on expiry.
+ */
+export async function signVirtualChannelOpen(
+  factory: ChannelFactory,
+  plan: VirtualChannelOpenPlan,
+  bundle: WotsLeaseBundle,
+): Promise<VirtualChannelOpenSignature> {
+  const participant = factory.participants.find(
+    p => p.publicKeyDigest === bundle.signer.publicKeyDigest,
+  );
+  if (!participant) {
+    throw new Error('signer.publicKeyDigest does not match any registered factory participant');
+  }
+  const reservation = await bundle.leaseProvider.reserveKeyUse({
+    treeId:      `omnia-factory-${factory.factoryId}`,
+    purpose:     'factory-vc-open',
+    payloadHash: Buffer.from(plan.commitment).toString('hex'),
+  });
+  let sig: Uint8Array;
+  try {
+    sig = await bundle.signer.sign(plan.commitment, reservation.indices);
+  } catch (err) {
+    await bundle.leaseProvider.burnReservation(reservation.reservationId, 'sign-failed').catch(() => {});
+    throw err;
+  }
+  const verifyFn = bundle.verify ?? verifyChannelSignature;
+  if (!verifyFn(sig, plan.commitment, participant.publicKeyDigest)) {
+    await bundle.leaseProvider.burnReservation(reservation.reservationId, 'verification-failed').catch(() => {});
+    throw new Error(`Virtual-channel signature verification failed for party '${participant.partyId}'`);
+  }
+  return { partyId: participant.partyId, signature: sig, reservationId: reservation.reservationId };
+}
+
+export function verifyVirtualChannelOpenSignature(
+  factory: ChannelFactory,
+  commitment: Uint8Array,
+  partyId: string,
+  signature: Uint8Array,
+  verify?: (sig: Uint8Array, digest: Uint8Array, pkd: string) => boolean,
+): boolean {
+  const participant = factory.participants.find(p => p.partyId === partyId);
+  if (!participant) return false;
+  const verifyFn = verify ?? verifyChannelSignature;
+  try {
+    return verifyFn(signature, commitment, participant.publicKeyDigest);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Assemble N-of-N VC-open signatures into the updated factory + virtual channel.
+ */
+export function assembleVirtualChannelOpen(
+  factory: ChannelFactory,
+  plan: VirtualChannelOpenPlan,
+  signatures: Record<string, VirtualChannelOpenSignature>,
+  verify?: (sig: Uint8Array, digest: Uint8Array, pkd: string) => boolean,
+): { factory: ChannelFactory; channel: OmniaChannel } {
+  for (const p of factory.participants) {
+    const s = signatures[p.partyId];
+    if (!s) throw new Error(`Missing virtual-channel signature for party '${p.partyId}' — open requires all N`);
+    if (!verifyVirtualChannelOpenSignature(factory, plan.commitment, p.partyId, s.signature, verify)) {
+      throw new Error(`Virtual-channel signature verification failed for party '${p.partyId}'`);
+    }
+  }
+
+  const [partyAId, partyBId] = plan.parties;
+  const partyAMeta = factory.participants.find(p => p.partyId === partyAId)!;
+  const partyBMeta = factory.participants.find(p => p.partyId === partyBId)!;
   const now = Date.now();
 
   const partyA: ChannelParticipant = {
@@ -168,10 +244,8 @@ export async function openVirtualChannel(
     settlementAddress: partyBMeta.settlementAddress,
   };
 
-  // Construct the virtual OmniaChannel — no new on-chain TX.
-  // The channel shares the factory's UTXO; its channelType marks it virtual.
   const channel: OmniaChannel = {
-    channelId:       vcId,
+    channelId:       plan.vcId,
     fundingTxId:     factory.fundingTxId ?? '',
     fundingCoinId:   factory.fundingCoinId ?? '',
     fundingScript:   factory.fundingScript,
@@ -180,9 +254,9 @@ export async function openVirtualChannel(
     fundingAddress:  factory.fundingAddress,
     tokenId:         factory.tokenId,
     tokenScale:      factory.tokenScale,
-    totalValue:      amountA + amountB,
+    totalValue:      plan.amounts[partyAId] + plan.amounts[partyBId],
     parties:         [partyA, partyB],
-    balances:        { [partyAId]: amountA, [partyBId]: amountB },
+    balances:        { [partyAId]: plan.amounts[partyAId], [partyBId]: plan.amounts[partyBId] },
     pendingHTLCs:    [],
     currentSequence: 0,
     latestState:     null,
@@ -195,23 +269,54 @@ export async function openVirtualChannel(
   };
 
   const logEntry: FactoryLogEntry = {
-    sequence:          newSequence,
+    sequence:          plan.newSequence,
     timestamp:         now,
     event:             'virtual_open',
-    allocations:       newAllocations,
-    virtualChannelIds: newVcIds,
+    allocations:       plan.newAllocations,
+    virtualChannelIds: plan.newVcIds,
   };
 
   const updated: ChannelFactory = {
     ...factory,
-    allocations:     newAllocations,
+    allocations:     plan.newAllocations,
     virtualChannels: [...factory.virtualChannels, channel],
-    currentSequence: newSequence,
+    currentSequence: plan.newSequence,
     stateLog:        [...factory.stateLog, logEntry],
   };
 
   enforceConservation(updated);
   return { factory: updated, channel };
+}
+
+export async function openVirtualChannel(
+  factory: ChannelFactory,
+  parties: [string, string],
+  amounts: Record<string, bigint>,
+  leaseProviders: Record<string, WotsLeaseBundle>,
+  channelId?: string,
+): Promise<{ factory: ChannelFactory; channel: OmniaChannel }> {
+  for (const p of factory.participants) {
+    if (!leaseProviders[p.partyId]) {
+      throw new Error(`Missing WotsLeaseBundle for party '${p.partyId}' — openVirtualChannel requires all N`);
+    }
+  }
+
+  const plan = buildVirtualChannelOpen(factory, parties, amounts, channelId);
+  const signatures: Record<string, VirtualChannelOpenSignature> = {};
+  for (const p of factory.participants) {
+    const sig = await signVirtualChannelOpen(factory, plan, leaseProviders[p.partyId]);
+    await leaseProviders[p.partyId].leaseProvider.commitKeyUse(
+      sig.reservationId,
+      `factory-vc-open-${factory.factoryId}`,
+    );
+    signatures[p.partyId] = sig;
+  }
+
+  return assembleVirtualChannelOpen(factory, plan, signatures, (sig, digest, pkd) => {
+    const participant = factory.participants.find(p => p.publicKeyDigest === pkd);
+    const bundle = participant ? leaseProviders[participant.partyId] : undefined;
+    return (bundle?.verify ?? verifyChannelSignature)(sig, digest, pkd);
+  });
 }
 
 // ─── closeVirtualChannel ─────────────────────────────────────────────────────

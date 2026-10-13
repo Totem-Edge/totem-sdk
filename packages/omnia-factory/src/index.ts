@@ -43,6 +43,14 @@ export {
 export {
   openVirtualChannel,
   closeVirtualChannel,
+  buildVirtualChannelOpen,
+  signVirtualChannelOpen,
+  verifyVirtualChannelOpenSignature,
+  assembleVirtualChannelOpen,
+} from './virtual.js';
+export type {
+  VirtualChannelOpenPlan,
+  VirtualChannelOpenSignature,
 } from './virtual.js';
 
 export {

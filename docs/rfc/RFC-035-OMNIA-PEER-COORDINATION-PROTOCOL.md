@@ -1,6 +1,6 @@
 # RFC-035 — Omnia Peer Coordination Protocol (Phase B: Factory, Virtual Channel & Splice Round-Trips)
 
-**Status:** In progress — B0–B2 + B3 (factory close) landed; virtual-channel open + B4–B5 next
+**Status:** In progress — B0–B3 landed (splice, factory open/close, virtual-channel open); B4–B5 next
 **Created:** 2026-10-08
 **Authors:** Totem SDK Contributors
 **Depends on:** RFC-014 (wallet connect parity), RFC-014 Amendment A (manifest truthfulness), RFC-034 (Omnia relay method parity, Phase A), RFC-002 (Omnia channel state machine), RFC-013 (wallet self-hosted mode)
@@ -338,14 +338,16 @@ under the purported party's digest and that party must be a member of the object
   (`FACTORY_PROPOSAL` → `FACTORY_ACCEPT` → `FACTORY_FINALIZED` fan-out committing
   each co-signer's held leaf; burns on TTL). Tests in
   `packages/omnia-factory/src/__tests__/coordination.test.ts`.
-- **B3 (factory close) — landed; virtual-channel open pending.** `omnia-factory`
-  gains `buildFactorySettlement` / `signFactorySettlement` (non-committing) /
-  `verifyFactorySettlementSignature` / `assembleFactorySettlement`, and
-  `createFactoryCoordination.closeFactory` (`FACTORY_CLOSE_PROPOSAL` →
-  `FACTORY_CLOSE_ACCEPT` → `assembleFactorySettlement` [+ mine/broadcast] →
-  `FACTORY_CLOSE_FINALIZED` committing each held leaf; burns on TTL).
-  `openVirtualChannel` still takes all N bundles centrally and needs the same
-  per-party sign/assemble split.
+- **B3 — landed.** `omnia-factory` gains per-party sign/assemble variants for both
+  settlement (`buildFactorySettlement` / `signFactorySettlement` /
+  `assembleFactorySettlement`) and virtual-channel open (`buildVirtualChannelOpen` /
+  `signVirtualChannelOpen` / `assembleVirtualChannelOpen`), with
+  `createFactoryCoordination` running `FACTORY_CLOSE_PROPOSAL`→`ACCEPT`→
+  `FACTORY_CLOSE_FINALIZED` and `VC_PROPOSAL`→`VC_ACCEPT`→`VC_FINALIZED` (each
+  held leaf committed on confirm, burned on TTL; proposals bound by rebuilding the
+  commitment and comparing digests). `closeFactory`/`openVirtualChannel` reuse the
+  new helpers (behaviour preserved). Tests in
+  `packages/omnia-factory/src/__tests__/coordination.test.ts`.
 - **B4** — multi-hop payment (`payMultiHop` over the RFC-034 `RoutingPort` +
   per-hop `STATE_UPDATE`), with `executeMultiHopPayment`'s existing cancellation
   path on partial failure.

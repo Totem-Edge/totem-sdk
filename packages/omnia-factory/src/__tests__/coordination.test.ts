@@ -218,3 +218,45 @@ describe('factory close coordination (RFC-035 B3)', () => {
   });
 });
 
+describe('virtual channel open coordination (RFC-035 B3)', () => {
+  async function makeActive(alice: ReturnType<typeof makeBundle>, bob: ReturnType<typeof makeBundle>): Promise<ChannelFactory> {
+    let f = await createFactory([ALICE, BOB], TOKEN_A, alice.bundle);
+    f = await acceptFactory(f, bob.bundle);
+    return { ...f, fundingCoinId: 'test-coin-001' };
+  }
+
+  it('opens N-of-N: gathers VC-open signatures and commits held leases', async () => {
+    const alice = makeBundle(PKD_ALICE);
+    const bob = makeBundle(PKD_BOB);
+    const { A, B } = createLink();
+    const factory = await makeActive(alice, bob);
+
+    let openedVc: { channelId: string; status: string; totalValue: bigint } | undefined;
+    const aliceFn = createFactoryCoordination({
+      factories: new Map([[factory.factoryId, factory]]),
+      bundle: alice.bundle,
+      verifySignature: () => true,
+      onVcOpened: (_f, channel) => {
+        openedVc = channel;
+      },
+    });
+    const bobFn = createFactoryCoordination({
+      factories: new Map([[factory.factoryId, factory]]),
+      bundle: bob.bundle,
+      verifySignature: () => true,
+    });
+    const aliceCoord = createOmniaCoordination({ policy: { autoAccept: true }, handlers: aliceFn.handlers });
+    const bobCoord = createOmniaCoordination({ policy: { autoAccept: true }, handlers: bobFn.handlers });
+    aliceCoord.bindPeer(A);
+    bobCoord.bindPeer(B);
+
+    await aliceFn.openVirtualChannel(A, aliceCoord, factory, ['alice', 'bob'], { alice: 100n, bob: 200n });
+    await waitFor(() => openedVc !== undefined);
+
+    expect(openedVc!.status).toBe('active');
+    expect(openedVc!.totalValue).toBe(300n);
+    expect(bob.lease.commitKeyUse).toHaveBeenCalled();
+    expect(bob.lease.burnReservation).not.toHaveBeenCalled();
+  });
+});
+

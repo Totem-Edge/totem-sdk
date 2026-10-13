@@ -487,7 +487,8 @@ describe('openVirtualChannel', () => {
     };
     const f = await makeActiveFactory([ALICE, BOB, CAROL]);
     await openVirtualChannel(f, ['alice', 'bob'], { alice: 100n, bob: 50n }, spyBundles);
-    expect(verifyCalls).toHaveLength(3);
+    // Each party is verified (at sign time and again at assemble); all N must appear.
+    expect(new Set(verifyCalls)).toEqual(new Set([ALICE.publicKeyDigest, BOB.publicKeyDigest, CAROL.publicKeyDigest]));
   });
 
   test('throws when party has insufficient allocation', async () => {

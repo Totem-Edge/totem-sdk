@@ -27,6 +27,7 @@ import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import type {
   ChannelFactory,
   FactorySettlementPayload,
+  OmniaChannel,
   WotsLeaseBundle,
 } from './types.js';
 import {
@@ -43,6 +44,14 @@ import {
   type FactorySettlementDraft,
   type FactorySettlementSignature,
 } from './settlement.js';
+import {
+  buildVirtualChannelOpen,
+  signVirtualChannelOpen,
+  verifyVirtualChannelOpenSignature,
+  assembleVirtualChannelOpen,
+  type VirtualChannelOpenPlan,
+  type VirtualChannelOpenSignature,
+} from './virtual.js';
 
 export type VerifySignature = (
   signature: Uint8Array,
@@ -68,6 +77,7 @@ export interface FactoryCoordinationDeps {
   approval?: FactoryApproval;
   onOpened?: (factory: ChannelFactory, peer: OmniaPeer) => void;
   onClosed?: (payload: FactorySettlementPayload, peer: OmniaPeer) => void;
+  onVcOpened?: (factory: ChannelFactory, channel: OmniaChannel, peer: OmniaPeer) => void;
   /** Initiator-only: mine + broadcast the settlement TxPoW. */
   chainProvider?: ChainStateProvider;
   ttlMs?: number;
@@ -79,6 +89,14 @@ export interface FactoryCoordination {
   openFactory(peer: OmniaPeer, coordination: OmniaCoordination, factory: ChannelFactory): Promise<void>;
   /** Send a FACTORY_CLOSE_PROPOSAL and gather N-of-N settlement signatures. */
   closeFactory(peer: OmniaPeer, coordination: OmniaCoordination, factory: ChannelFactory): Promise<void>;
+  /** Send a VC_PROPOSAL and gather N-of-N virtual-channel-open signatures. */
+  openVirtualChannel(
+    peer: OmniaPeer,
+    coordination: OmniaCoordination,
+    factory: ChannelFactory,
+    parties: [string, string],
+    amounts: Record<string, bigint>,
+  ): Promise<void>;
 }
 
 const DEFAULT_TTL_MS = 24 * 60 * 60 * 1000;
@@ -88,13 +106,14 @@ function toHex(bytes: Uint8Array): string {
 }
 
 export function createFactoryCoordination(deps: FactoryCoordinationDeps): FactoryCoordination {
-  const { factories, bundle, approval, onOpened, onClosed, chainProvider } = deps;
+  const { factories, bundle, approval, onOpened, onClosed, onVcOpened, chainProvider } = deps;
   const verify: VerifySignature =
     deps.verifySignature ?? ((sig, commitment, pkd) => verifyChannelSignature(sig, commitment, pkd));
   const ttlMs = deps.ttlMs ?? DEFAULT_TTL_MS;
 
   const pendingOpenings = new Map<string, FactoryOpeningSignature>();
   const pendingSettlements = new Map<string, FactorySettlementSignature>();
+  const pendingVcOpenings = new Map<string, VirtualChannelOpenSignature>();
   const burnTimers = new Map<string, ReturnType<typeof setTimeout>>();
   const factoryPeers = new Map<string, Set<OmniaPeer>>();
 
@@ -102,13 +121,22 @@ export function createFactoryCoordination(deps: FactoryCoordinationDeps): Factor
   const closeDrafts = new Map<string, FactorySettlementDraft>();
   const closeSignatures = new Map<string, Record<string, FactorySettlementSignature>>();
 
+  // Initiator-side VC-open state.
+  const vcPlans = new Map<string, VirtualChannelOpenPlan>();
+  const vcSignatures = new Map<string, Record<string, VirtualChannelOpenSignature>>();
+
   const scheduleBurn = (factoryId: string, reservationId: string, reason: string): void => {
     burnTimers.set(
       factoryId,
       setTimeout(() => {
-        if (!pendingOpenings.has(factoryId) && !pendingSettlements.has(factoryId)) return;
+        const had =
+          pendingOpenings.has(factoryId) ||
+          pendingSettlements.has(factoryId) ||
+          pendingVcOpenings.has(factoryId);
+        if (!had) return;
         pendingOpenings.delete(factoryId);
         pendingSettlements.delete(factoryId);
+        pendingVcOpenings.delete(factoryId);
         burnTimers.delete(factoryId);
         void bundle.leaseProvider.burnReservation(reservationId, reason).catch(() => {});
       }, ttlMs),
@@ -121,7 +149,7 @@ export function createFactoryCoordination(deps: FactoryCoordinationDeps): Factor
     factoryPeers.set(factoryId, set);
   };
 
-  const fanOut = async (ctx: CoordinationContext, factoryId: string, type: 'FACTORY_FINALIZED' | 'FACTORY_CLOSE_FINALIZED'): Promise<void> => {
+  const fanOut = async (ctx: CoordinationContext, factoryId: string, type: 'FACTORY_FINALIZED' | 'FACTORY_CLOSE_FINALIZED' | 'VC_FINALIZED'): Promise<void> => {
     const peers = factoryPeers.get(factoryId);
     if (!peers) return;
     for (const peer of peers) {
@@ -274,6 +302,75 @@ export function createFactoryCoordination(deps: FactoryCoordinationDeps): Factor
     await bundle.leaseProvider.commitKeyUse(pending.reservationId, `factory-settled:${factoryId}`);
   };
 
+  // ── Virtual channel open ─────────────────────────────────────────────────────
+
+  const handleVcProposal = async (ctx: CoordinationContext): Promise<void> => {
+    const { factoryId, plan } = ctx.message.payload as { factoryId: string; plan: VirtualChannelOpenPlan };
+    const factory = factories.get(factoryId);
+    if (!factory) throw new Error(`vc proposal for unknown factory ${factoryId}`);
+    if (!factory.participants.find((p) => p.publicKeyDigest === bundle.signer.publicKeyDigest)) {
+      throw new Error('local signer is not a factory participant');
+    }
+    const local = buildVirtualChannelOpen(factory, plan.parties, plan.amounts, plan.vcId);
+    if (toHex(local.commitment) !== toHex(plan.commitment)) {
+      throw new Error('vc proposal: commitment does not match local factory state');
+    }
+    if (!ctx.policy.autoAccept) {
+      const approved = approval
+        ? await approval({ factoryId, proposer: '', participants: factory.participants.length })
+        : false;
+      if (!approved) throw new Error('virtual channel open rejected: approval required');
+    }
+
+    const sig = await signVirtualChannelOpen(factory, local, bundle);
+    pendingVcOpenings.set(plan.vcId, sig);
+    scheduleBurn(plan.vcId, sig.reservationId, 'vc-open-timeout');
+    await ctx.send('VC_ACCEPT', { factoryId, partyId: sig.partyId, signature: sig.signature });
+  };
+
+  const handleVcAccept = async (ctx: CoordinationContext): Promise<void> => {
+    const { factoryId, partyId, signature } = ctx.message.payload as {
+      factoryId: string;
+      partyId: string;
+      signature: Uint8Array;
+    };
+    const factory = factories.get(factoryId);
+    if (!factory) throw new Error(`vc accept for unknown factory ${factoryId}`);
+    const plan = vcPlans.get(ctx.correlationId);
+    if (!plan) throw new Error(`no VC plan for ${ctx.correlationId}`);
+    if (!verifyVirtualChannelOpenSignature(factory, plan.commitment, partyId, signature, verify)) {
+      throw new Error(`vc accept: invalid signature from '${partyId}'`);
+    }
+
+    const sigs = vcSignatures.get(ctx.correlationId) ?? {};
+    sigs[partyId] = { partyId, signature, reservationId: '' };
+    vcSignatures.set(ctx.correlationId, sigs);
+
+    if (factory.participants.every((p) => sigs[p.partyId])) {
+      const { factory: updated, channel } = assembleVirtualChannelOpen(factory, plan, sigs, verify);
+      factories.set(factoryId, updated);
+      const own = Object.values(sigs).find((s) => s.reservationId);
+      if (own?.reservationId) {
+        await bundle.leaseProvider.commitKeyUse(own.reservationId, `vc-opened:${plan.vcId}`);
+      }
+      onVcOpened?.(updated, channel, ctx.peer);
+      await fanOut(ctx, factoryId, 'VC_FINALIZED');
+    }
+  };
+
+  const handleVcFinalized = async (ctx: CoordinationContext): Promise<void> => {
+    const vcId = ctx.correlationId;
+    const pending = pendingVcOpenings.get(vcId);
+    if (!pending) return;
+    pendingVcOpenings.delete(vcId);
+    const timer = burnTimers.get(vcId);
+    if (timer) {
+      clearTimeout(timer);
+      burnTimers.delete(vcId);
+    }
+    await bundle.leaseProvider.commitKeyUse(pending.reservationId, `vc-opened:${vcId}`);
+  };
+
   const handlers: CoordinationHandlers = {
     FACTORY_PROPOSAL: handleProposal,
     FACTORY_ACCEPT: handleAccept,
@@ -281,6 +378,9 @@ export function createFactoryCoordination(deps: FactoryCoordinationDeps): Factor
     FACTORY_CLOSE_PROPOSAL: handleCloseProposal,
     FACTORY_CLOSE_ACCEPT: handleCloseAccept,
     FACTORY_CLOSE_FINALIZED: handleCloseFinalized,
+    VC_PROPOSAL: handleVcProposal,
+    VC_ACCEPT: handleVcAccept,
+    VC_FINALIZED: handleVcFinalized,
   };
 
   const openFactory = async (peer: OmniaPeer, coordination: OmniaCoordination, factory: ChannelFactory): Promise<void> => {
@@ -315,5 +415,30 @@ export function createFactoryCoordination(deps: FactoryCoordinationDeps): Factor
     });
   };
 
-  return { handlers, openFactory, closeFactory };
+  const openVirtualChannel = async (
+    peer: OmniaPeer,
+    coordination: OmniaCoordination,
+    factory: ChannelFactory,
+    parties: [string, string],
+    amounts: Record<string, bigint>,
+  ): Promise<void> => {
+    if (factory.status !== 'active') throw new Error('openVirtualChannel requires an active factory');
+    factories.set(factory.factoryId, factory);
+    registerPeer(factory.factoryId, peer);
+
+    const plan = buildVirtualChannelOpen(factory, parties, amounts);
+    const own = await signVirtualChannelOpen(factory, plan, bundle);
+    vcPlans.set(plan.vcId, plan);
+    vcSignatures.set(plan.vcId, { [own.partyId]: own });
+
+    await coordination.sendProposal({
+      peer,
+      kind: 'VC_PROPOSAL',
+      correlationId: plan.vcId,
+      channelId: factory.factoryId,
+      payload: { factoryId: factory.factoryId, plan },
+    });
+  };
+
+  return { handlers, openFactory, closeFactory, openVirtualChannel };
 }

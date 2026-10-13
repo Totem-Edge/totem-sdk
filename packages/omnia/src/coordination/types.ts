@@ -19,6 +19,7 @@ export type CoordinationKind = Extract<
   | 'FACTORY_FINALIZED'
   | 'VC_PROPOSAL'
   | 'VC_ACCEPT'
+  | 'VC_FINALIZED'
   | 'SPLICE_PROPOSAL'
   | 'SPLICE_ACCEPT'
   | 'SPLICE_FINALIZED'
@@ -33,6 +34,7 @@ export const COORDINATION_KINDS: readonly CoordinationKind[] = [
   'FACTORY_FINALIZED',
   'VC_PROPOSAL',
   'VC_ACCEPT',
+  'VC_FINALIZED',
   'SPLICE_PROPOSAL',
   'SPLICE_ACCEPT',
   'SPLICE_FINALIZED',
