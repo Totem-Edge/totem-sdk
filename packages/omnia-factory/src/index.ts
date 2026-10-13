@@ -48,6 +48,14 @@ export {
 export {
   closeFactory,
   buildDisputePayload,
+  buildFactorySettlement,
+  signFactorySettlement,
+  verifyFactorySettlementSignature,
+  assembleFactorySettlement,
+} from './settlement.js';
+export type {
+  FactorySettlementDraft,
+  FactorySettlementSignature,
 } from './settlement.js';
 
 export {

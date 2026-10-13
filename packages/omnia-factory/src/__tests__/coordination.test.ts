@@ -5,9 +5,10 @@
 
 import { createOmniaCoordination } from '@totemsdk/omnia';
 import type { OmniaPeer, OmniaMessage } from '@totemsdk/omnia';
-import { createFactory } from '../factory.js';
+import { createFactory, acceptFactory } from '../factory.js';
+import { buildFactorySettlement } from '../settlement.js';
 import { createFactoryCoordination } from '../coordination.js';
-import type { ChannelFactory, FactoryParticipant, WotsLeaseBundle } from '../index.js';
+import type { ChannelFactory, FactoryParticipant, FactorySettlementPayload, WotsLeaseBundle } from '../index.js';
 
 const TOKEN_A = '0x00';
 const PKD_ALICE = '0x' + 'aa'.repeat(32);
@@ -58,7 +59,7 @@ function createLink() {
       return () => {};
     },
   });
-  return { A: make('A', 'B'), B: make('B', 'A') };
+  return { A: make('A', 'B'), B: make('B', 'A'), emit: (to: 'A' | 'B', m: OmniaMessage) => [...listeners[to]].forEach((l) => l(m)) };
 }
 
 async function waitFor(cond: () => boolean, ms = 15000): Promise<void> {
@@ -140,3 +141,80 @@ describe('factory opening coordination (RFC-035 B2)', () => {
     expect(bob.lease.reserveKeyUse).not.toHaveBeenCalled();
   });
 });
+
+describe('factory close coordination (RFC-035 B3)', () => {
+  async function makeActive(alice: ReturnType<typeof makeBundle>, bob: ReturnType<typeof makeBundle>): Promise<ChannelFactory> {
+    let f = await createFactory([ALICE, BOB], TOKEN_A, alice.bundle);
+    f = await acceptFactory(f, bob.bundle);
+    return { ...f, fundingCoinId: 'test-coin-001' };
+  }
+
+  it('closes N-of-N: gathers settlement signatures and commits held leases', async () => {
+    const alice = makeBundle(PKD_ALICE);
+    const bob = makeBundle(PKD_BOB);
+    const { A, B } = createLink();
+    const factory = await makeActive(alice, bob);
+    expect(factory.status).toBe('active');
+
+    let closed: FactorySettlementPayload | undefined;
+    const aliceFn = createFactoryCoordination({
+      factories: new Map([[factory.factoryId, factory]]),
+      bundle: alice.bundle,
+      verifySignature: () => true,
+      onClosed: (p) => {
+        closed = p;
+      },
+    });
+    const bobFn = createFactoryCoordination({
+      factories: new Map([[factory.factoryId, factory]]),
+      bundle: bob.bundle,
+      verifySignature: () => true,
+    });
+    const aliceCoord = createOmniaCoordination({ policy: { autoAccept: true }, handlers: aliceFn.handlers });
+    const bobCoord = createOmniaCoordination({ policy: { autoAccept: true }, handlers: bobFn.handlers });
+    aliceCoord.bindPeer(A);
+    bobCoord.bindPeer(B);
+
+    await aliceFn.closeFactory(A, aliceCoord, factory);
+    await waitFor(() => closed !== undefined);
+
+    expect(closed!.factoryId).toBe(factory.factoryId);
+    expect(closed!.settlementTxHex).toBeTruthy();
+    expect(alice.lease.commitKeyUse).toHaveBeenCalled();
+    expect(bob.lease.commitKeyUse).toHaveBeenCalled();
+    expect(bob.lease.burnReservation).not.toHaveBeenCalled();
+  });
+
+  it('rejects a close proposal whose settlement draft does not match local state (B3)', async () => {
+    const alice = makeBundle(PKD_ALICE);
+    const bob = makeBundle(PKD_BOB);
+    const { B, emit } = createLink();
+    const factory = await makeActive(alice, bob);
+
+    const bobFn = createFactoryCoordination({
+      factories: new Map([[factory.factoryId, factory]]),
+      bundle: bob.bundle,
+      verifySignature: () => true,
+    });
+    const bobCoord = createOmniaCoordination({ policy: { autoAccept: true }, handlers: bobFn.handlers });
+    bobCoord.bindPeer(B);
+
+    // A draft built from a DIFFERENT factory (tampered allocations) is rejected.
+    const tampered = { ...factory, allocations: { alice: 900n, bob: 1100n } };
+    const draft = buildFactorySettlement(tampered);
+
+    const reservesBefore = (bob.lease.reserveKeyUse as jest.Mock).mock.calls.length;
+    emit('B', {
+      type: 'FACTORY_CLOSE_PROPOSAL',
+      channelId: factory.factoryId,
+      correlationId: factory.factoryId,
+      nonce: 1,
+      payload: { factoryId: factory.factoryId, draft },
+    });
+    await new Promise((r) => setTimeout(r, 20));
+
+    // no settlement reservation was made for the tampered draft
+    expect((bob.lease.reserveKeyUse as jest.Mock).mock.calls.length).toBe(reservesBefore);
+  });
+});
+

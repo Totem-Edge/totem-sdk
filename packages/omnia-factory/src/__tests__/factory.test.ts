@@ -724,7 +724,8 @@ describe('closeFactory', () => {
     };
     const f = withFundingCoinId(await makeActiveFactory([ALICE, BOB]));
     await closeFactory(f, spyBundles);
-    expect(verifyCalls).toHaveLength(2);
+    // Each party is verified (at sign time and again at assemble); both must appear.
+    expect(new Set(verifyCalls)).toEqual(new Set([ALICE.publicKeyDigest, BOB.publicKeyDigest]));
   });
 
   test('throws when settlement signature verification fails', async () => {
