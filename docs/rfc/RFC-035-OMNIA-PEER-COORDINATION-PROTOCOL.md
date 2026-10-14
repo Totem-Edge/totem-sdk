@@ -1,6 +1,6 @@
 # RFC-035 — Omnia Peer Coordination Protocol (Phase B: Factory, Virtual Channel & Splice Round-Trips)
 
-**Status:** In progress — B0–B4 + B5 (recovery, wallet helper, extension + PWA hosts) landed; approval UI + manifest flips remain
+**Status:** In progress — B0–B4 + B5 (recovery, wallet helper, extension + PWA hosts, consent UI) landed; coarse capability-flag flips remain
 **Created:** 2026-10-08
 **Authors:** Totem SDK Contributors
 **Depends on:** RFC-014 (wallet connect parity), RFC-014 Amendment A (manifest truthfulness), RFC-034 (Omnia relay method parity, Phase A), RFC-002 (Omnia channel state machine), RFC-013 (wallet self-hosted mode)
@@ -367,9 +367,13 @@ under the purported party's digest and that party must be a member of the object
     host started on unlock / torn down on lock — it opens the relay swarm, loads
     durable channel/factory registries (`@totemsdk/storage/idb`), composes
     `createWalletCoordination`, and binds peers; gated to self-hosted lease mode.
-  - **Both hosts' approval gates are fail-closed** until a per-operation approval
-    UI exists. Manifest dispositions stay reasoned-`unsupported` for the
-    accept/finalize sides until that UI lands (RFC-014 Amendment A).
+  - **Consent UI landed.** The extension opens an `approval/omnia.html` popup and
+    the PWA shows an in-app modal; both name the operation, the channel/factory/
+    splice id, and the requesting peer, and gate on explicit Approve/Reject (the
+    per-method `supports()` on the omnia port stays the truthful runtime source).
+  - **Remaining:** flipping the coarse `omnia` capability flags in the wallets'
+    static manifests (which must not over-claim in Axia lease mode where there is
+    no signing material) — a decision, not a code gap.
 
 ## 9. Acceptance / verification
 
