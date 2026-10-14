@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Totem - Omnia Coordination</title>
+  <style>
+    :root {
+      --bg-base: #000; --bg-elevated: #111; --text-primary: #fff;
+      --text-muted: #888; --accent: #00D9B5; --border-default: #333; --warning: #f59e0b;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 16px; font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      background: var(--bg-base); color: var(--text-primary); width: 100%; min-height: 100vh; }
+    .header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .title { font-size: 16px; font-weight: 600; }
+    .subtitle { font-size: 12px; color: var(--text-muted); }
+    .card { background: var(--bg-elevated); border: 1px solid var(--border-default); border-radius: 8px;
+      padding: 12px; margin-bottom: 12px; }
+    .row { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; font-size: 13px; }
+    .row .label { color: var(--text-muted); }
+    .row .value { word-break: break-all; text-align: right; }
+    .warning { background: rgba(245, 158, 11, 0.1); border: 1px solid var(--warning); color: var(--warning);
+      border-radius: 8px; padding: 10px; font-size: 12px; margin-bottom: 12px; }
+    .actions { display: flex; gap: 8px; margin-top: 16px; }
+    button { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid var(--border-default);
+      background: var(--bg-elevated); color: var(--text-primary); font-family: inherit; font-size: 14px; cursor: pointer; }
+    #approve-btn { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
+    #reject-btn { color: var(--text-muted); }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="title">Omnia Coordination</div>
+      <div class="subtitle">A peer is requesting a channel operation</div>
+    </div>
+  </div>
+
+  <div class="warning">
+    <strong id="kind-label">Coordination</strong><br />
+    <span id="kind-caption">Approving makes your wallet sign this operation with its WOTS key.</span>
+  </div>
+
+  <div class="card">
+    <div class="row" id="row-channel" style="display:none"><span class="label">Channel</span><span class="value" id="channel-id"></span></div>
+    <div class="row" id="row-factory" style="display:none"><span class="label">Factory</span><span class="value" id="factory-id"></span></div>
+    <div class="row" id="row-splice" style="display:none"><span class="label">Splice</span><span class="value" id="splice-id"></span></div>
+    <div class="row" id="row-proposer" style="display:none"><span class="label">Requested by</span><span class="value" id="proposer"></span></div>
+  </div>
+
+  <div class="actions">
+    <button id="reject-btn">Reject</button>
+    <button id="approve-btn">Approve</button>
+  </div>
+
+  <script src="omnia-approval.js"></script>
+</body>
+</html>

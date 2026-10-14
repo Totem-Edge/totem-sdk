@@ -10,6 +10,7 @@ import { Send } from './pages/Send';
 import { Receive } from './pages/Receive';
 import { Settings } from './pages/Settings';
 import { Unlock } from './pages/Unlock';
+import { OmniaCoordinationApproval } from './components/OmniaCoordinationApproval';
 
 const AUTHED_ROUTES = new Set(['home', 'send', 'receive', 'settings', 'add-address']);
 
@@ -64,6 +65,7 @@ function AppInner() {
   return (
     <>
       <UpdateBanner />
+      <OmniaCoordinationApproval />
 
       {route === 'loading'          && <Loading message="Starting Totem Wallet…" />}
       {route === 'onboard'          && <Onboard />}

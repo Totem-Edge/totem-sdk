@@ -19,6 +19,7 @@ import {
   createWalletCoordination,
   createStorageCoordinationStore,
   type WalletCoordination,
+  type WalletApprovalRequest,
   type ChannelFactory,
   type OmniaChannel,
   type RelayOmniaClient,
@@ -26,6 +27,33 @@ import {
 import type { QuiescedChannel } from '@totemsdk/omnia-relay';
 import { buildPwaOmniaSigningMaterial } from './omnia';
 import { WalletManager } from './WalletManager';
+
+// ── Consent UI bridge (RFC-035 B5) ────────────────────────────────────────────
+// The host runs outside React; the modal subscribes here.
+
+type ApprovalListener = () => void;
+let pendingApproval: { req: WalletApprovalRequest; resolve: (approved: boolean) => void } | null = null;
+const approvalListeners = new Set<ApprovalListener>();
+
+export function subscribeOmniaApproval(listener: ApprovalListener): () => void {
+  approvalListeners.add(listener);
+  return () => approvalListeners.delete(listener);
+}
+export function getPendingOmniaApproval(): WalletApprovalRequest | null {
+  return pendingApproval?.req ?? null;
+}
+export function resolveOmniaApproval(approved: boolean): void {
+  const current = pendingApproval;
+  pendingApproval = null;
+  approvalListeners.forEach((l) => l());
+  current?.resolve(approved);
+}
+function requestOmniaApproval(req: WalletApprovalRequest): Promise<boolean> {
+  return new Promise((resolve) => {
+    pendingApproval = { req, resolve };
+    approvalListeners.forEach((l) => l());
+  });
+}
 
 interface OmniaHost {
   client: RelayOmniaClient;
@@ -100,10 +128,7 @@ export async function startPwaOmniaHost(): Promise<void> {
       store,
       chainProvider: material.chainProvider,
       policy: { autoAccept: false },
-      approval: async () => {
-        console.warn('[omnia] coordination approval not wired — rejecting');
-        return false;
-      },
+      approval: (req) => requestOmniaApproval(req),
       onFactoryOpened: async (factory) => {
         factoryRegistry.set(factory.factoryId, factory);
         await factoryStore().set(factory.factoryId, factory);

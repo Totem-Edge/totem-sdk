@@ -16,7 +16,7 @@ import { isSharedConnectMethod, dispatchSharedConnectMethod, isConnectMethod, co
 import type { WalletHandlerContext } from '@totemsdk/connect';
 import { buildWalletLeaseProvider, loadWalletNetworkConfig, isSelfHostedLeaseActive } from '../core/config/selfHosted';
 import { activeChainProviderStore, resolveActiveChainProvider } from '../core/config/activeChainProvider';
-import { createOmniaRelayClient, createWalletChannelSigningMaterial, createWalletCoordination, createStorageCoordinationStore, type WalletCoordination, type ChannelFactory, type QuiescedChannel } from '@totemsdk/omnia-relay';
+import { createOmniaRelayClient, createWalletChannelSigningMaterial, createWalletCoordination, createStorageCoordinationStore, type WalletCoordination, type WalletApprovalRequest, type ChannelFactory, type QuiescedChannel } from '@totemsdk/omnia-relay';
 import { computeIdentityId } from '@totemsdk/identity';
 import type { ChannelIdentity, OmniaChannel } from '@totemsdk/omnia';
 // @ts-ignore - subpath export resolves via package "exports" at bundle time; the
@@ -345,7 +345,8 @@ interface PendingProveOwnershipRequest {
 
 let pendingProveOwnershipRequest: PendingProveOwnershipRequest | null = null;
 const pendingProveOwnershipCallbacks = new Map<number, (approved: boolean) => void>();
-
+// RFC-035 B5 — pending Omnia peer-coordination approval windows.
+const pendingOmniaCallbacks = new Map<number, (approved: boolean) => void>();
 interface PendingConnection {
   origin: string;
   accounts: Array<{ index: number; address: string; balance: string; name?: string }>;
@@ -605,6 +606,60 @@ async function showTransactionApprovalPopup(params: TxApprovalParams): Promise<b
   });
 }
 
+interface OmniaApprovalParams {
+  kind: string;
+  channelId?: string;
+  factoryId?: string;
+  spliceId?: string;
+  proposer?: string;
+}
+
+/**
+ * RFC-035 B5 — consent screen for a peer's coordination proposal. Signing a
+ * factory/splice/VC acceptance is a `requiresApproval` action, so a user must
+ * explicitly approve before the wallet emits a WOTS signature.
+ */
+async function showOmniaApprovalPopup(params: OmniaApprovalParams): Promise<boolean> {
+  return new Promise((resolve) => {
+    const approvalUrl = chrome.runtime.getURL('approval/omnia.html');
+    const urlParams = new URLSearchParams({
+      kind: params.kind,
+      ...(params.channelId ? { channelId: params.channelId } : {}),
+      ...(params.factoryId ? { factoryId: params.factoryId } : {}),
+      ...(params.spliceId ? { spliceId: params.spliceId } : {}),
+      ...(params.proposer ? { proposer: params.proposer } : {}),
+    });
+    chrome.windows.create({
+      url: `${approvalUrl}?${urlParams.toString()}`,
+      type: 'popup',
+      width: 400,
+      height: 560,
+      focused: true,
+    }, (window) => {
+      if (window?.id) {
+        pendingOmniaCallbacks.set(window.id, resolve);
+        const removedListener = (windowId: number) => {
+          if (windowId === window.id) {
+            if (pendingOmniaCallbacks.has(windowId)) {
+              pendingOmniaCallbacks.delete(windowId);
+              resolve(false);
+            }
+            chrome.windows.onRemoved.removeListener(removedListener);
+            windowRemoveListeners.delete(windowId);
+          }
+        };
+        windowRemoveListeners.set(window.id, () => {
+          chrome.windows.onRemoved.removeListener(removedListener);
+        });
+        chrome.windows.onRemoved.addListener(removedListener);
+      } else {
+        console.error('[Background] Failed to open omnia approval popup');
+        resolve(false);
+      }
+    });
+  });
+}
+
 async function showPermissionApprovalPopup(req: PendingPermissionRequest): Promise<boolean> {
   return new Promise((resolve) => {
     pendingPermissionRequest = req;
@@ -700,6 +755,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       callback(message.approved === true);
     }
     pendingProveOwnershipRequest = null;
+  }
+
+  if (message.type === 'omnia-approval') {
+    const windowId = sender.tab?.windowId || message.windowId;
+    console.log('[Background] Received omnia-approval response:', { approved: message.approved, windowId });
+    const callback = pendingOmniaCallbacks.get(windowId);
+    if (callback) {
+      pendingOmniaCallbacks.delete(windowId);
+      const cleanupListener = windowRemoveListeners.get(windowId);
+      if (cleanupListener) {
+        cleanupListener();
+        windowRemoveListeners.delete(windowId);
+      }
+      callback(message.approved === true);
+    }
   }
 
   if (message.method === 'proveOwnership:getPending') {
@@ -1045,9 +1115,14 @@ let extensionOmniaCoordination: WalletCoordination | undefined;
 let extensionCoordinationUnsub: (() => void) | undefined;
 const extensionOmniaFactories = new Map<string, ChannelFactory>();
 
-function approveExtensionCoordination(): Promise<boolean> {
-  console.warn('[connect] omnia coordination: per-operation approval not yet wired — rejecting');
-  return Promise.resolve(false);
+function approveExtensionCoordination(req: WalletApprovalRequest): Promise<boolean> {
+  return showOmniaApprovalPopup({
+    kind: req.kind,
+    ...(req.channelId ? { channelId: req.channelId } : {}),
+    ...(req.factoryId ? { factoryId: req.factoryId } : {}),
+    ...(req.spliceId ? { spliceId: req.spliceId } : {}),
+    ...(req.proposer ? { proposer: req.proposer } : {}),
+  });
 }
 
 type OmniaCoordinationOptions = Parameters<typeof createWalletCoordination>[0];
@@ -1070,7 +1145,7 @@ function wireExtensionCoordination(
       leaseProvider,
       store,
       chainProvider,
-      approval: () => approveExtensionCoordination(),
+      approval: (req) => approveExtensionCoordination(req),
       policy: { autoAccept: false },
       onFactoryOpened: (f) => {
         extensionOmniaFactories.set(f.factoryId, f);
