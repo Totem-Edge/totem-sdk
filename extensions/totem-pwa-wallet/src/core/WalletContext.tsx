@@ -12,6 +12,7 @@ import React, {
   useCallback, useRef, type ReactNode,
 } from 'react';
 import { WalletManager, type SessionState } from './WalletManager';
+import { startPwaOmniaHost, stopPwaOmniaHost } from './omniaHost';
 import type { AccountRecord } from '../stores/VaultStore';
 import { track } from './observability';
 
@@ -63,6 +64,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       } else if (WalletManager.isUnlocked()) {
         const s = WalletManager.getSession();
         setSession(s);
+        void startPwaOmniaHost();
         const confirmed = await WalletManager.isBackupConfirmed();
         setRoute(confirmed ? 'home' : 'backup');
       } else {
@@ -81,6 +83,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         track('session.expired', { identityHash: session.identityHash });
         preExpiredRoute.current = route as AppRoute;
         setSession(null);
+        stopPwaOmniaHost();
         setRoute('session-expired');
       }
     }
@@ -98,6 +101,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     const s = WalletManager.getSession();
     setSession(s);
     WalletManager.startWatermarkSync();
+    void startPwaOmniaHost();
     track('session.unlocked', { identityHash: s?.identityHash });
     const confirmed = await WalletManager.isBackupConfirmed();
 
@@ -114,6 +118,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const lock = useCallback(() => {
     track('session.locked');
     WalletManager.stopWatermarkSync();
+    stopPwaOmniaHost();
     WalletManager.lock();
     setSession(null);
     preExpiredRoute.current = null;
@@ -124,6 +129,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     await WalletManager.createWallet(mnemonic, password);
     const s = WalletManager.getSession();
     setSession(s);
+    void startPwaOmniaHost();
     track('wallet.created', { identityHash: s?.identityHash });
     setRoute('backup');
   }, []);
@@ -132,6 +138,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     await WalletManager.importWallet(mnemonic, password);
     const s = WalletManager.getSession();
     setSession(s);
+    void startPwaOmniaHost();
     track('wallet.imported', { identityHash: s?.identityHash });
     setRoute('home'); // skip backup — user already has the phrase
   }, []);
