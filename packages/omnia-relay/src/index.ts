@@ -30,6 +30,17 @@ export type {
 export { createOmniaRelayClient, fulfillMultiHop } from './client.js';
 export type { OmniaRelayClientOptions } from './client.js';
 
+// Multi-hop HTLC forwarder (RFC-035 B4, intermediary role).
+export { createMultiHopForwarder } from './forwarder.js';
+export type {
+  MultiHopForwarder,
+  MultiHopForwarderOptions,
+  ForwardIncomingParams,
+  ForwardIncomingResult,
+  RevealPreimageResult,
+  HtlcLink,
+} from './forwarder.js';
+
 // Routing seam + helpers.
 export {
   channelGraphEdges,
@@ -43,8 +54,7 @@ export {
 export type { RoutingPort, RouteQuery } from './routing.js';
 
 // Wallet channel-signing bridge (RFC-037 Phase 2).
-export { createWalletChannelSigningMaterial, KEYS_PER_LEVEL } from './signer.js';
-export type {
+export { createWalletChannelSigningMaterial, KEYS_PER_LEVEL } from './signer.js';export type {
   WalletChannelSigningMaterial,
   WalletChannelSigningOptions,
 } from './signer.js';

@@ -1,6 +1,6 @@
 # RFC-035 — Omnia Peer Coordination Protocol (Phase B: Factory, Virtual Channel & Splice Round-Trips)
 
-**Status:** In progress — B0–B4 + B5 (recovery, wallet helper, extension + PWA hosts, consent UI) landed; coarse capability-flag flips remain
+**Status:** In progress — B0–B4 (incl. forwarding + routing-codec seam) + B5 landed; onion codec, forwarder integration hook + capability flips remain
 **Created:** 2026-10-08
 **Authors:** Totem SDK Contributors
 **Depends on:** RFC-014 (wallet connect parity), RFC-014 Amendment A (manifest truthfulness), RFC-034 (Omnia relay method parity, Phase A), RFC-002 (Omnia channel state machine), RFC-013 (wallet self-hosted mode)
@@ -356,6 +356,17 @@ under the purported party's digest and that party must be a member of the object
   also on the base `RelayOmniaClient` (reasoned `UNSUPPORTED` until overridden).
   Intermediary-hop propagation remains Phase B peer coordination. Tests in
   `packages/omnia-relay/src/__tests__/client.test.ts`.
+- **B4 (intermediary forwarding) — landed.** `@totemsdk/omnia-router` adds a
+  pluggable `RoutingEnvelopeCodec` + `createCleartextRoutingCodec` (the envelope
+  is opaque so an onion codec slots in behind the same seam; the sender-local
+  `Route` is unchanged). `@totemsdk/omnia-relay` adds `createMultiHopForwarder`:
+  `forwardIncoming` peels one hop, locks the outgoing HTLC (`addHTLC`, same
+  hashlock, decreasing timeout), records the in↔out link, and forwards the
+  smaller envelope; `revealPreimage` fulfils the incoming HTLC to propagate the
+  preimage backward. **Remaining:** an onion codec (X25519 keypair + AEAD +
+  per-node encryption keys advertised on graph edges) and the wallet
+  channel-handler hook that calls the forwarder on inbound `STATE_UPDATE`s
+  carrying `payload.forward`.
 - **B5 — extension + PWA hosts wired; approval UI + manifest flips pending.** The
   durable store reloads proposals/acceptances after restart, and
   `@totemsdk/omnia-relay`'s `createWalletCoordination(...)` composes the transport

@@ -49,6 +49,10 @@ export {
 } from './execute.js';
 export type { RouterFeeProof } from './types.js';
 
+// RFC-035 B4 — pluggable forwarding envelopes (cleartext now; onion behind the same seam).
+export { createCleartextRoutingCodec } from './forward.js';
+export type { RoutingEnvelopeCodec, ForwardHop, PeelResult } from './forward.js';
+
 export {
   createDurableRouterLedger,
 } from './durable-router-ledger.js';
