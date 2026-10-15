@@ -25,6 +25,15 @@ Provider trust layer for Totem Edge — prove, record, score and filter infrastr
 - A wallet or key manager
 - A transport/networking layer
 
+## Custody
+
+`@totemsdk/provider-bond` is **non-custodial data-only**: it records claims,
+proofs, probes and scores, but **holds no on-chain value** — a provider's
+"bond" is a claim verified by proof (`wotsVerifyDigest`), not an on-chain escrow.
+No value is locked and no slashing can move funds; enforceability via an on-chain
+bond script is a separate capability and is **not** provided here. See
+`docs/CUSTODY-POLICY.md`.
+
 ## Provider-bond vs liquidity-bond
 
 | | provider-bond | liquidity-bond (future) |

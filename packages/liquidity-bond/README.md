@@ -26,6 +26,15 @@ Deterministic, non-custodial LP position and productive liquidity record package
 - An AMM or order matching engine
 - A transport/networking layer
 
+## Custody
+
+`@totemsdk/liquidity-bond` is **non-custodial data-only**: it records and verifies
+LP position metadata but **holds no on-chain value** — there is no bond escrow
+script and no value lock. Lock terms (`unlockAfterMs`,
+`earlyWithdrawalAllowed`) are off-chain policy records; enforceability of a bond
+that actually locks value is a separate on-chain capability and is **not**
+provided here. See `docs/CUSTODY-POLICY.md`.
+
 ## Relationship to provider-bond
 
 `@totemsdk/provider-bond` scores providers. `@totemsdk/liquidity-bond` records productive liquidity supplied into pools/routes/positions associated with providers.
