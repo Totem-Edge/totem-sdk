@@ -30,8 +30,11 @@ export function markExiting(vtxo: OmniaVtxo, now?: number): OmniaVtxo {
  * Transitions an exiting VTXO to 'exited' status.
  * @param now - Timestamp in ms. Defaults to Date.now() if omitted — pass explicitly for determinism.
  */
-export function markExited(vtxo: OmniaVtxo, now?: number): OmniaVtxo {
-  const ts = now !== undefined ? now : Date.now();
+export function markExited(
+  vtxo: OmniaVtxo,
+  options: { txpowId?: string; now?: number } = {},
+): OmniaVtxo {
+  const ts = options.now !== undefined ? options.now : Date.now();
   if (vtxo.status !== 'exiting') {
     throw new VtxoStatusError(
       `Cannot mark VTXO ${vtxo.vtxoId} as exited: status is '${vtxo.status}'`,
@@ -42,9 +45,10 @@ export function markExited(vtxo: OmniaVtxo, now?: number): OmniaVtxo {
     ...vtxo,
     status: 'exited',
     updatedAt: ts,
+    ...(options.txpowId ? { exitTxpowId: options.txpowId } : {}),
     history: [
       ...vtxo.history,
-      { op: 'exit_complete', at: ts },
+      { op: 'exit_complete', at: ts, ...(options.txpowId ? { meta: { txpowId: options.txpowId } } : {}) },
     ],
   };
 }

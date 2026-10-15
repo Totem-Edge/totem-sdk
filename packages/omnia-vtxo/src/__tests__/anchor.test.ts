@@ -3,18 +3,25 @@
  */
 
 import { buildAndHashPoolScript, poolScriptAddress } from '../pool-script.js';
-import { buildBatchAnchorDraft, batchAnchorDigest, anchorBatch, poolStateVariables, verifyPoolFunding } from '../anchor.js';
+import {
+  buildBatchAnchorDraft,
+  batchAnchorDigest,
+  anchorBatch,
+  poolStateVariables,
+  checkPoolFunding,
+} from '../anchor.js';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 
 const OP = '0x' + 'aa'.repeat(32);
+const POOL = buildAndHashPoolScript(OP);
 
 const params = () => ({
   operatorPublicKeyDigest: OP,
   root: '0x' + 'bb'.repeat(32),
   epoch: 1,
   fundingCoinId: '0x' + 'cc'.repeat(32),
-  fundingAddress: '0x' + 'dd'.repeat(32),
-  fundingScript: 'RETURN TRUE',
+  fundingAddress: POOL.address,
+  fundingScript: POOL.script,
   amount: 1000n,
   tokenId: '0x00',
 });
@@ -26,6 +33,7 @@ describe('pool script (RFC-038 V1)', () => {
     expect(first.script).toBe(second.script);
     expect(first.script).toContain('STATE(100)');
     expect(first.script).toContain('STATE(101)');
+    expect(first.script).toContain('ASSERT EPOCH GT PREVSTATE(101)');
     expect(first.address).toBe(poolScriptAddress(first.script));
     expect(first.address).toBeTruthy();
   });
@@ -43,6 +51,11 @@ describe('anchorBatch (RFC-038 V1)', () => {
     const a = buildBatchAnchorDraft(params());
     const b = buildBatchAnchorDraft(params());
     expect(Buffer.from(batchAnchorDigest(a)).toString('hex')).toBe(Buffer.from(batchAnchorDigest(b)).toString('hex'));
+  });
+
+  it('rejects a funding input that is not the operator pool output', () => {
+    expect(() => buildBatchAnchorDraft({ ...params(), fundingScript: 'RETURN TRUE' })).toThrow(/pool script/);
+    expect(() => buildBatchAnchorDraft({ ...params(), fundingAddress: '0x' + '99'.repeat(32) })).toThrow(/pool address/);
   });
 
   it('does not broadcast without a chain provider', async () => {
@@ -65,7 +78,7 @@ describe('anchorBatch (RFC-038 V1)', () => {
   });
 });
 
-describe('verifyPoolFunding (RFC-038 V1)', () => {
+describe('checkPoolFunding (RFC-038 V1)', () => {
   const coin = {
     coinid: '0x' + 'cc'.repeat(32),
     address: '0x' + 'dd'.repeat(32),
@@ -73,15 +86,26 @@ describe('verifyPoolFunding (RFC-038 V1)', () => {
     tokenid: '0x00',
     spent: false,
   };
+  const expected = { address: coin.address, amount: '1000', tokenId: '0x00' };
 
-  it('accepts a matching, unspent pool coin with a proof', async () => {
+  it('accepts a matching, unspent pool coin; reports the proof is unverified by default', async () => {
     const chainProvider = {
       getCoin: jest.fn(async () => coin),
       getProof: jest.fn(async () => ({ ok: true })),
     } as unknown as ChainStateProvider;
-    const result = await verifyPoolFunding(coin.coinid, { address: coin.address, amount: '1000', tokenId: '0x00' }, chainProvider);
+    const result = await checkPoolFunding(coin.coinid, expected, chainProvider);
     expect(result.ok).toBe(true);
     expect(result.proof).toBeTruthy();
+    expect(result.proofVerified).toBe(false);
+  });
+
+  it('marks the proof verified when a verifyProof callback passes', async () => {
+    const chainProvider = {
+      getCoin: jest.fn(async () => coin),
+      getProof: jest.fn(async () => ({ ok: true })),
+    } as unknown as ChainStateProvider;
+    const result = await checkPoolFunding(coin.coinid, expected, chainProvider, { verifyProof: () => true });
+    expect(result.proofVerified).toBe(true);
   });
 
   it('rejects a mismatched amount', async () => {
@@ -89,7 +113,7 @@ describe('verifyPoolFunding (RFC-038 V1)', () => {
       getCoin: jest.fn(async () => coin),
       getProof: jest.fn(async () => ({ ok: true })),
     } as unknown as ChainStateProvider;
-    const result = await verifyPoolFunding(coin.coinid, { address: coin.address, amount: '999', tokenId: '0x00' }, chainProvider);
+    const result = await checkPoolFunding(coin.coinid, { ...expected, amount: '999' }, chainProvider);
     expect(result.ok).toBe(false);
   });
 });

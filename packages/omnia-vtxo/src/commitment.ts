@@ -201,7 +201,7 @@ export function buildVtxoProofSet(vtxos: OmniaVtxo[]): VtxoProofSet {
       siblings,
       positions,
       epoch: vtxo.epoch,
-      batchId: '',
+      batchId: root,
     };
   });
 

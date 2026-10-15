@@ -11930,13 +11930,110 @@
         },
         "signVtxoReceipt": {
           "kind": "function",
-          "signature": "signVtxoReceipt(operator: OmniaVtxoOperator, receipt: VtxoOperatorReceipt, root: string): Promise<VtxoOperatorReceipt>",
-          "doc": "Co-sign a receipt with the operator. `root` is the epoch batch root the\nreceipt's outputs were committed under."
+          "signature": "signVtxoReceipt(operator: OmniaVtxoOperator, receipt: VtxoOperatorReceipt, batch: VtxoReceiptBatch): Promise<VtxoOperatorReceipt>",
+          "doc": "Co-sign a receipt with the operator, after verifying the batch."
         },
         "verifyVtxoReceipt": {
           "kind": "function",
           "signature": "verifyVtxoReceipt(operator: OmniaVtxoOperator, receipt: VtxoOperatorReceipt, root: string): Promise<boolean>",
           "doc": "Verify a co-signed receipt against the operator and the batch root."
+        },
+        "VtxoReceiptBatch": {
+          "kind": "interface",
+          "signature": "export interface VtxoReceiptBatch",
+          "doc": "The batch the receipt belongs to — the operator's source of truth."
+        },
+        "buildPoolScript": {
+          "kind": "function",
+          "signature": "buildPoolScript(operatorPublicKeyDigest: string): string",
+          "doc": "Operator-controlled, epoch-monotone state-carrying pool script."
+        },
+        "poolScriptAddress": {
+          "kind": "function",
+          "signature": "poolScriptAddress(script: string): string"
+        },
+        "buildAndHashPoolScript": {
+          "kind": "function",
+          "signature": "buildAndHashPoolScript(operatorPublicKeyDigest: string): { script: string; address: string; }"
+        },
+        "poolStateVariables": {
+          "kind": "function",
+          "signature": "poolStateVariables(root: string, epoch: number): StateValue[]",
+          "doc": "State variables carried by the pool output: STATE(100)=root, STATE(101)=epoch."
+        },
+        "buildBatchAnchorDraft": {
+          "kind": "function",
+          "signature": "buildBatchAnchorDraft(params: BatchAnchorParams): OmniaTxDraft",
+          "doc": "Build the batch-anchor draft (input = pool coin, output = pool state output)."
+        },
+        "batchAnchorDigest": {
+          "kind": "function",
+          "signature": "batchAnchorDigest(draft: OmniaTxDraft): Uint8Array"
+        },
+        "anchorBatch": {
+          "kind": "function",
+          "signature": "anchorBatch(params: BatchAnchorParams, deps: BatchAnchorDeps): Promise<BatchAnchorResult>",
+          "doc": "Sign (and, when a chain provider is given, mine + broadcast) a batch anchor."
+        },
+        "checkPoolFunding": {
+          "kind": "function",
+          "signature": "checkPoolFunding(coinId: string, expected: PoolFundingExpectation, chainProvider: ChainStateProvider, options?: { verifyProof?: (proof: unknown, coinId: string) => boolean; }): Promise<PoolFundingCheck>",
+          "doc": "Check that the pool's on-chain coin exists, matches the expected\n(address, amount, token), is unspent, and that the node serves an MMR proof.\n\nNOTE: this is a **presence/shape check**, not a cryptographic proof\nverification, unless a `verifyProof` callback is supplied — see\n`PoolFundingCheck.proofVerified`."
+        },
+        "BatchAnchorParams": {
+          "kind": "interface",
+          "signature": "export interface BatchAnchorParams"
+        },
+        "BatchAnchorDeps": {
+          "kind": "interface",
+          "signature": "export interface BatchAnchorDeps"
+        },
+        "BatchAnchorResult": {
+          "kind": "interface",
+          "signature": "export interface BatchAnchorResult"
+        },
+        "PoolFundingExpectation": {
+          "kind": "interface",
+          "signature": "export interface PoolFundingExpectation"
+        },
+        "PoolFundingCheck": {
+          "kind": "interface",
+          "signature": "export interface PoolFundingCheck"
+        },
+        "buildExitTransactionDraft": {
+          "kind": "function",
+          "signature": "buildExitTransactionDraft(params: ExitTxParams): OmniaTxDraft",
+          "doc": "Draft that spends the pool coin to the VTXO owner with the exit delay encoded."
+        },
+        "exitTransactionDigest": {
+          "kind": "function",
+          "signature": "exitTransactionDigest(draft: OmniaTxDraft): Uint8Array"
+        },
+        "exitTransactionHex": {
+          "kind": "function",
+          "signature": "exitTransactionHex(draft: OmniaTxDraft): string"
+        },
+        "buildExitTransaction": {
+          "kind": "function",
+          "signature": "buildExitTransaction(params: ExitTxParams, deps: ExitTxDeps): Promise<ExitTxResult>",
+          "doc": "Build, sign (and optionally mine + broadcast) a VTXO exit transaction."
+        },
+        "EXIT_DELAY_PORT": {
+          "kind": "const",
+          "signature": "EXIT_DELAY_PORT = 102",
+          "doc": "State port carrying the exit delay."
+        },
+        "ExitTxParams": {
+          "kind": "interface",
+          "signature": "export interface ExitTxParams"
+        },
+        "ExitTxDeps": {
+          "kind": "interface",
+          "signature": "export interface ExitTxDeps"
+        },
+        "ExitTxResult": {
+          "kind": "interface",
+          "signature": "export interface ExitTxResult"
         },
         "createPool": {
           "kind": "function",
@@ -11995,7 +12092,7 @@
         },
         "markExited": {
           "kind": "function",
-          "signature": "markExited(vtxo: OmniaVtxo, now?: number): OmniaVtxo",
+          "signature": "markExited(vtxo: OmniaVtxo, options?: { txpowId?: string; now?: number; }): OmniaVtxo",
           "doc": "Transitions an exiting VTXO to 'exited' status."
         },
         "createExitDraft": {

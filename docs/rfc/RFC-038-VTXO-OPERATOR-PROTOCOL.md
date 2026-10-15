@@ -74,22 +74,31 @@ VTXO primitive.
 
 ### 3.3 On-chain anchoring
 
-- The pool is an on-chain output holding `totalCapacity`, spendable by
-  `MULTISIG(2 operator owner)` / covenant (eltoo-style), so an epoch root update
+- **Target** pool: an on-chain output holding `totalCapacity`, spendable by
+  `MULTISIG(2 operator owner)` / covenant (eltoo-style) so an epoch root update
   is a co-signed spend and an exit is a unilateral timelocked spend.
+- **As implemented (V1)**: the pool script is **operator-only**
+  (`SIGNEDBY(operator)`) and epoch-monotone
+  (`ASSERT EPOCH GT PREVSTATE(101)`) — so a stale/rolled-back root cannot be
+  re-anchored, but the pool output is *custodied by the operator* on-chain until
+  the V2 owner-unilateral timelock/covenant branch lands. This is a known
+  limitation (see §5).
 - `anchorBatch(pool, batch)`: build + sign + broadcast the batch tx that writes
   the new root/epoch (via `tx-builder` + `chain-provider`), mirroring the Omnia
-  factory funding flow (RFC-034 §6.4).
-- `fundingProof`: the deep proof of the pool output recorded at mint; verified on
-  receipt (`verifyMerkleProof` + on-chain proof check).
+  factory funding flow (RFC-034 §6.4). The draft validates that the funding
+  input's `fundingScript`/`fundingAddress` are the operator's own pool script.
+- `fundingProof`: the deep proof of the pool output recorded at mint. In V1 it is
+  **recorded but not verified**; on-chain verification (`verifyMerkleProof` +
+  proof check) is V3.
 
 ### 3.4 Exit
 
 - `createExitDraft(vtxo)` builds an exit tx spending the pool output to
   `vtxo.owner` with an absolute timelock = `now + policy.exitTimelockSeconds`
   (Minima `@COINAGE GTE`/timelock script), `draftType: 'vtxo-exit'`.
-- `markExiting` → the draft is broadcast; `markExited(txpowId)` records the
-  on-chain confirmation. The exit-receipt guard (double-exit prevention) stays.
+- `markExiting` → the draft is broadcast; `markExited(vtxo, { txpowId, now })`
+  records the on-chain confirmation (the txpowId is stored as `exitTxpowId` and in
+  the exit history). The exit-receipt guard (double-exit prevention) stays.
 
 ### 3.5 Owner↔operator transport
 
@@ -123,20 +132,29 @@ Reuse RFC-035's coordination transport and its invariants:
   canonical `computeBatchCommitment(poolId, epoch, root, orderedIds)`
   (lease-backed, one leaf per signature; `verify` against the tree root). The
   `MOCK_OPERATOR_SIGNATURE` / `MOCK_BATCH_ID` constants are **deleted**: mutations
-  now emit **unsigned** receipts (and empty proof `batchId`s), and
-  `signVtxoReceipt(operator, receipt, root)` / `verifyVtxoReceipt(...)` co-sign and
-  verify them. (Co-signing is a distinct operator step over the batch, rather than
-  a per-mutation async call; this keeps the state machine synchronous.)
+  now emit **unsigned** receipts, and
+  `signVtxoReceipt(operator, receipt, batch)` / `verifyVtxoReceipt(...)` co-sign and
+  verify them. `signVtxoReceipt` is **verify-before-sign**: it recomputes the batch
+  root from the leaves, checks the receipt's outputs are members, enforces epoch
+  monotonicity (`batch.epoch > batch.previousEpoch`) and value conservation, and
+  only then signs. Operator signing is serialized (a per-operator mutex guards the
+  shared `TreeKey`'s mutable `setUses`/`sign`). (Co-signing is a distinct operator
+  step over the batch, rather than a per-mutation async call; this keeps the state
+  machine synchronous.) A VTXO's proof `batchId` is set to the batch root.
   Tests: `operator.test.ts`, `receipt.test.ts`.
-- **V1 — anchoring landed; mint recording pending.** `pool-script.ts` builds the
-  operator-controlled state-carrying pool output (`STATE(100)=root`,
-  `STATE(101)=epoch`, `SIGNEDBY(operator)`); `anchor.ts` builds the batch-anchor
-  draft, exposes `batchAnchorDigest`, and `anchorBatch(...)` signs the digest
-  (injected signer), mines + broadcasts via a chain provider (injected miner), and
-  `verifyPoolFunding(coinId, expected, chainProvider)` verifies a real funding
-  proof (existence + address/amount/token match + unspent + MMR proof). **Pending:**
-  record the verified `fundingProof` on `mintVtxo` and add the owner exit path
-  (`STATE`/timelock) that shares this script. Tests: `anchor.test.ts`.
+- **V1 — anchoring landed; mint validation pending.** `pool-script.ts` builds the
+  operator-controlled, epoch-monotone state-carrying pool output (`STATE(100)=root`,
+  `STATE(101)=epoch`, `ASSERT EPOCH GT PREVSTATE(101)`, `SIGNEDBY(operator)`);
+  `anchor.ts` builds the batch-anchor draft (validating the funding input against
+  the operator pool script/address), exposes `batchAnchorDigest`, and
+  `anchorBatch(...)` signs the digest (injected signer), mines + broadcasts via a
+  chain provider (injected miner). `checkPoolFunding(coinId, expected, chainProvider,
+  opts?)` is a **presence/shape check** (existence + address/amount/token match +
+  unspent + MMR proof fetched); it reports `proofVerified: false` unless a
+  `verifyProof` callback is supplied. `mintVtxo` **records** the forwarded
+  `fundingProof` but does not yet verify it. **Pending:** cryptographically verify
+  the funding/MRR proof, and add the owner exit path (`STATE`/timelock) that shares
+  this script. Tests: `anchor.test.ts`.
 - **V2 — exit tx landed; owner covenant pending.** `exit-tx.ts` builds a real
   `vtxo-exit` transaction (spends the pool coin, pays the owner, carries the exit
   delay in `STATE(102)`), with a stable digest, `txHex`, and `buildExitTransaction`
@@ -149,14 +167,20 @@ Reuse RFC-035's coordination transport and its invariants:
 
 ## 5. Security
 
-| Threat | Control |
-|---|---|
-| Forged receipt | WOTS verify-before-accept (§3.1); operator identity is the tree root |
-| Double-spend a VTXO | Operator spent-set + batch root (§3.6) |
-| Stale/rolled-back root | Epoch monotonicity; refresh commits a new root on-chain |
-| Operator withholds an exit | Unilateral timelocked exit tx (§3.4) |
-| Lease reuse | One reservation per receipt; burn on abort (§3.5) |
-| Wrong-chain anchoring | fundingProof verified at mint (§3.3) |
+| Threat | Control | Landed |
+|---|---|---|
+| Forged receipt | WOTS verify-before-accept (§3.1); verify-before-**sign** recomputes the batch root; operator identity is the tree root | V0 |
+| Double-spend a VTXO | Batch-root membership + operator spent-set (§3.6) | V0 (membership) / V4 (spent-set) |
+| Stale/rolled-back root | Epoch monotonicity — operator-side on receipt, **and on-chain** (`ASSERT EPOCH GT PREVSTATE(101)`) | V1 |
+| Operator withholds an exit | Unilateral timelocked exit tx (§3.4) | ⚠️ V2 — not yet: the V1 pool script is operator-only, so the operator can currently veto exits |
+| Lease reuse | One reservation per receipt; burn on abort (§3.5) | V0 |
+| Wrong-chain anchoring | `fundingProof` recorded at mint; `checkPoolFunding` checks address/amount/token/unspent | ⚠️ V1 — proof is recorded, not cryptographically verified (`proofVerified: false` unless a `verifyProof` callback is supplied) |
+
+**Known V1 limitations.** (1) The pool output is custodied by the operator
+on-chain (`SIGNEDBY(operator)`, no owner/timelock branch) — the owner cannot
+unilaterally exit. (2) Batch signers/minters are injected; there is no
+network/chain enforcement yet. (3) Mint `fundingProof` is recorded but not
+verified. These are the driving items for V2–V4.
 
 ## 6. Non-goals
 

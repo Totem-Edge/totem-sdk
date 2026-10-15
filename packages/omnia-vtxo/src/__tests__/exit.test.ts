@@ -47,19 +47,19 @@ describe('markExited', () => {
   it('transitions exiting → exited', () => {
     const { vtxo } = setup();
     const exiting = markExiting(vtxo, NOW + 1);
-    const exited = markExited(exiting, NOW + 2);
+    const exited = markExited(exiting, { now: NOW + 2 });
     expect(exited.status).toBe('exited');
   });
 
   it('throws VtxoStatusError if not exiting', () => {
     const { vtxo } = setup();
-    expect(() => markExited(vtxo, NOW + 1)).toThrow(VtxoStatusError);
+    expect(() => markExited(vtxo, { now: NOW + 1 })).toThrow(VtxoStatusError);
   });
 
   it('adds exit_complete to history', () => {
     const { vtxo } = setup();
     const exiting = markExiting(vtxo, NOW + 1);
-    const exited = markExited(exiting, NOW + 2);
+    const exited = markExited(exiting, { now: NOW + 2 });
     const last = exited.history[exited.history.length - 1];
     expect(last.op).toBe('exit_complete');
   });
@@ -87,7 +87,7 @@ describe('createExitDraft', () => {
   it('throws VtxoExitError for invalid terminal status', () => {
     const { vtxo } = setup();
     const exiting = markExiting(vtxo, NOW + 1);
-    const exited = markExited(exiting, NOW + 2);
+    const exited = markExited(exiting, { now: NOW + 2 });
     expect(() => createExitDraft(exited, NOW + 3)).toThrow(VtxoExitError);
   });
 

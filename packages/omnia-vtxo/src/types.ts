@@ -64,6 +64,8 @@ export interface OmniaVtxo {
   /** Set when an exit draft consumed this VTXO — prevents double-exit. */
   exitConsumedAt?: number;
   exitReceiptId?: string;
+  /** The confirming exit transaction's txpowId (set on `markExited`). */
+  exitTxpowId?: string;
 }
 
 export interface VtxoTransfer {

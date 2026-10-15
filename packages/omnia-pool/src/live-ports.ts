@@ -148,7 +148,7 @@ export function createOmniaPoolLivePorts(deps: OmniaPoolLivePortsDeps): OmniaPoo
     },
     createExitDraft: async (v) => (await createExitDraft(v, now())).draft,
     markExiting: async (v, n) => markExiting(v, n ?? now()),
-    markExited: async (v, _txpowId, n) => markExited(v, n ?? now()),
+    markExited: async (v, txpowId, n) => markExited(v, { txpowId, now: n }),
   };
 
   return { omnia, factory, router, splice, vtxo };

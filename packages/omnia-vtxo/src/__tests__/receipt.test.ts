@@ -1,12 +1,13 @@
 /**
- * RFC-038 V0 — VTXO receipt co-signing.
+ * RFC-038 V0 — VTXO receipt co-signing (verify-before-sign).
  */
 
 import { createUnifiedChildTreeKey } from '@totemsdk/core';
 import type { WotsLeaseProvider } from '@totemsdk/wots-lease';
 import { createVtxoOperator } from '../operator.js';
 import { signVtxoReceipt, verifyVtxoReceipt } from '../receipt.js';
-import type { VtxoOperatorReceipt } from '../types.js';
+import { computeCommitmentRoot, computeVtxoLeaf } from '../commitment.js';
+import type { OmniaVtxo, VtxoOperatorReceipt } from '../types.js';
 
 function mockLease(): WotsLeaseProvider {
   let c = 0;
@@ -20,6 +21,23 @@ function mockLease(): WotsLeaseProvider {
     verifyLeaseCertificate: async () => true,
   } as unknown as WotsLeaseProvider;
 }
+
+const vtxo = (id: string, owner: string, amount: bigint, epoch = 1): OmniaVtxo => ({
+  vtxoId: id,
+  poolId: 'pool-1',
+  owner,
+  amount,
+  tokenId: '0x00',
+  status: 'active',
+  epoch,
+  proof: { leaf: '', root: '', siblings: [], positions: [], epoch, batchId: '' },
+  history: [],
+  createdAt: 1,
+  updatedAt: 1,
+});
+
+const outputs = [vtxo('v2', '0x' + '22'.repeat(32), 100n), vtxo('v3', '0x' + '33'.repeat(32), 200n)];
+const root = computeCommitmentRoot(outputs.map(computeVtxoLeaf));
 
 const receipt = (over: Partial<VtxoOperatorReceipt> = {}): VtxoOperatorReceipt => ({
   receiptId: 'rcpt-1',
@@ -35,20 +53,41 @@ const receipt = (over: Partial<VtxoOperatorReceipt> = {}): VtxoOperatorReceipt =
 
 describe('signVtxoReceipt / verifyVtxoReceipt (RFC-038 V0)', () => {
   const treeKey = createUnifiedChildTreeKey(new Uint8Array(32).fill(9), 0);
+  const operator = () => createVtxoOperator({ poolId: 'pool-1', treeKey, leaseProvider: mockLease() });
 
-  it('co-signs a receipt and verifies it against the batch root', async () => {
-    const operator = createVtxoOperator({ poolId: 'pool-1', treeKey, leaseProvider: mockLease() });
-    const signed = await signVtxoReceipt(operator, receipt(), 'root-1');
+  it('co-signs a receipt after verifying the batch, and verifies it', async () => {
+    const op = operator();
+    const signed = await signVtxoReceipt(op, receipt(), { outputs, root, epoch: 1 });
     expect(signed.signature).toBeTruthy();
+    expect(await verifyVtxoReceipt(op, signed, root)).toBe(true);
+    expect(await verifyVtxoReceipt(op, signed, '0x' + 'ff'.repeat(32))).toBe(false);
+  });
 
-    expect(await verifyVtxoReceipt(operator, signed, 'root-1')).toBe(true);
-    // a different batch root (or outputs) must not verify
-    expect(await verifyVtxoReceipt(operator, signed, 'root-2')).toBe(false);
-    expect(await verifyVtxoReceipt(operator, { ...signed, outputIds: ['vX'] }, 'root-1')).toBe(false);
+  it('rejects a root that does not commit the leaves', async () => {
+    await expect(
+      signVtxoReceipt(operator(), receipt(), { outputs, root: '0x' + '00'.repeat(32), epoch: 1 }),
+    ).rejects.toThrow(/commit/);
+  });
+
+  it('rejects a stale epoch (monotonicity)', async () => {
+    await expect(
+      signVtxoReceipt(operator(), receipt(), { outputs, root, epoch: 1, previousEpoch: 1 }),
+    ).rejects.toThrow(/not greater/);
+  });
+
+  it('rejects an output that is not in the batch', async () => {
+    await expect(
+      signVtxoReceipt(operator(), receipt({ outputIds: ['vX'] }), { outputs, root, epoch: 1 }),
+    ).rejects.toThrow(/not a VTXO/);
+  });
+
+  it('rejects a conservation violation', async () => {
+    await expect(
+      signVtxoReceipt(operator(), receipt(), { outputs, root, epoch: 1, inputsAmount: 100n }),
+    ).rejects.toThrow(/conservation/);
   });
 
   it('rejects an unsigned receipt', async () => {
-    const operator = createVtxoOperator({ poolId: 'pool-1', treeKey, leaseProvider: mockLease() });
-    expect(await verifyVtxoReceipt(operator, receipt(), 'root-1')).toBe(false);
+    expect(await verifyVtxoReceipt(operator(), receipt(), root)).toBe(false);
   });
 });

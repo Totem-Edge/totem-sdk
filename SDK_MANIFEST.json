@@ -863,7 +863,7 @@
     },
     {
       "name": "@totemsdk/omnia-vtxo",
-      "version": "0.2.1",
+      "version": "0.3.0",
       "description": "Virtual UTXO / payment-pool claim layer — cash-like off-chain balance primitive",
       "domain": "payment-network",
       "keywords": [
@@ -1371,7 +1371,7 @@
         "@totemsdk/omnia-factory": "^0.2.1",
         "@totemsdk/omnia-router": "^0.2.1",
         "@totemsdk/omnia-splice": "^0.2.1",
-        "@totemsdk/omnia-vtxo": "^0.2.1",
+        "@totemsdk/omnia-vtxo": "^0.3.0",
         "@totemsdk/storage": "^0.1.0",
         "@totemsdk/wots-lease": "^1.0.1"
       },
@@ -1467,7 +1467,7 @@
     },
     {
       "name": "@totemsdk/omnia-pool",
-      "version": "0.1.2",
+      "version": "0.2.0",
       "description": "Generic Omnia liquidity pool orchestration primitive for Totem SDK",
       "domain": "payment-network",
       "keywords": [
@@ -1488,7 +1488,7 @@
         "@totemsdk/omnia-factory": "^0.2.1",
         "@totemsdk/omnia-router": "^0.2.1",
         "@totemsdk/omnia-splice": "^0.2.1",
-        "@totemsdk/omnia-vtxo": "^0.2.1",
+        "@totemsdk/omnia-vtxo": "^0.3.0",
         "@totemsdk/storage": "^0.1.0",
         "@totemsdk/tx-builder": "^0.2.1",
         "@totemsdk/wots-lease": "^1.0.1"

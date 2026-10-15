@@ -2,9 +2,13 @@
  * VTXO pool on-chain script (RFC-038 V1).
  *
  * The pool is an on-chain state output holding `totalCapacity`; an epoch's batch
- * root is committed as STATE(100) with the epoch number in STATE(101). The output
- * is spendable by the operator (batch updates); the owner timelock exit path is
- * V2.
+ * root is committed as STATE(100) with the epoch number in STATE(101), and the
+ * update requires a strictly-greater epoch (`ASSERT EPOCH GT PREVSTATE(101)`) so a
+ * old root cannot be re-anchored (RFC-038 §5 "stale/rolled-back root").
+ *
+ * CUSTODY NOTE: this script is currently **operator-only** (`SIGNEDBY(operator)`),
+ * so until V2 lands the owner-unilateral timelock branch the pool output is
+ * custodied by the operator on-chain. This is surfaced in RFC-038 §3.3/§5.
  */
 
 import { computeScriptAddress } from '@totemsdk/core';
@@ -17,11 +21,12 @@ function operatorPkHex(operatorPublicKeyDigest: string): string {
   return '0X' + raw.toUpperCase();
 }
 
-/** Operator-controlled state-carrying pool script. */
+/** Operator-controlled, epoch-monotone state-carrying pool script. */
 export function buildPoolScript(operatorPublicKeyDigest: string): string {
   return [
     'LET ROOT=STATE(100)',
     'LET EPOCH=STATE(101)',
+    'ASSERT EPOCH GT PREVSTATE(101)',
     `RETURN SIGNEDBY(${operatorPkHex(operatorPublicKeyDigest)})`,
   ].join('\n');
 }

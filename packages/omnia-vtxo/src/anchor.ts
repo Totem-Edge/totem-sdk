@@ -43,7 +43,14 @@ export function poolStateVariables(root: string, epoch: number): StateValue[] {
 
 /** Build the batch-anchor draft (input = pool coin, output = pool state output). */
 export function buildBatchAnchorDraft(params: BatchAnchorParams): OmniaTxDraft {
-  const { address } = buildAndHashPoolScript(params.operatorPublicKeyDigest);
+  const { script, address } = buildAndHashPoolScript(params.operatorPublicKeyDigest);
+  // The input must be the operator's own pool output, not a foreign script.
+  if (params.fundingScript !== script) {
+    throw new Error('anchorBatch: fundingScript does not match the operator pool script');
+  }
+  if (params.fundingAddress !== address) {
+    throw new Error('anchorBatch: fundingAddress does not match the operator pool address');
+  }
   const stateVariables = poolStateVariables(params.root, params.epoch);
   return {
     type: 'settlement',
@@ -131,37 +138,52 @@ export interface PoolFundingCheck {
   ok: boolean;
   coinId: string;
   coin?: { address: string; amount: string; tokenId: string; spent: boolean };
+  /** The fetched MMR proof (present when `ok` and the node served one). */
   proof?: unknown;
+  /**
+   * Whether the MMR proof was cryptographically verified. `false` unless a
+   * `verifyProof` callback was supplied — this function checks existence,
+   * address/amount/token match, and unspent status, but does NOT itself verify the
+   * proof against the tip. Pass `verifyProof` to verify it (RFC-038 §3.3 open).
+   */
+  proofVerified: boolean;
   error?: string;
 }
 
 /**
- * Verify that the pool's on-chain coin exists, matches the expected (address,
- * amount, token), is unspent, and has an MMR proof — i.e. a real funding proof
- * (RFC-038 §3.3).
+ * Check that the pool's on-chain coin exists, matches the expected
+ * (address, amount, token), is unspent, and that the node serves an MMR proof.
+ *
+ * NOTE: this is a **presence/shape check**, not a cryptographic proof
+ * verification, unless a `verifyProof` callback is supplied — see
+ * `PoolFundingCheck.proofVerified`.
  */
-export async function verifyPoolFunding(
+export async function checkPoolFunding(
   coinId: string,
   expected: PoolFundingExpectation,
   chainProvider: ChainStateProvider,
+  options: { verifyProof?: (proof: unknown, coinId: string) => boolean } = {},
 ): Promise<PoolFundingCheck> {
   const coin = await chainProvider.getCoin(coinId);
-  if (!coin) return { ok: false, coinId, error: 'pool coin not found' };
-  if (coin.spent) return { ok: false, coinId, error: 'pool coin is already spent' };
+  if (!coin) return { ok: false, coinId, proofVerified: false, error: 'pool coin not found' };
+  if (coin.spent) return { ok: false, coinId, proofVerified: false, error: 'pool coin is already spent' };
 
   const matches =
     coin.address === expected.address &&
     String(coin.amount) === expected.amount &&
     (coin.tokenid ?? '0x00') === expected.tokenId;
-  if (!matches) return { ok: false, coinId, error: 'pool coin does not match expected address/amount/token' };
+  if (!matches) return { ok: false, coinId, proofVerified: false, error: 'pool coin does not match expected address/amount/token' };
 
   const proof = await chainProvider.getProof(coinId).catch(() => null);
-  if (!proof) return { ok: false, coinId, error: 'no MMR proof for pool coin' };
+  if (!proof) return { ok: false, coinId, proofVerified: false, error: 'no MMR proof for pool coin' };
+
+  const proofVerified = options.verifyProof ? options.verifyProof(proof, coinId) : false;
 
   return {
     ok: true,
     coinId,
     coin: { address: coin.address, amount: String(coin.amount), tokenId: coin.tokenid, spent: Boolean(coin.spent) },
     proof,
+    proofVerified,
   };
 }
