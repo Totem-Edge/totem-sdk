@@ -261,7 +261,15 @@ describe('omnia-pool', () => {
       reg,
     );
 
-    const channel = { channelId: 'rc-1' } as unknown as import('@totemsdk/omnia-router').RouterChannel;
+    const channel = {
+      channelId: 'rc-1',
+      from: 'a',
+      to: 'b',
+      tokenId: '0x00',
+      availableBalance: 1000n,
+      htlcCapacity: 1000n,
+      feeRate: 0n,
+    } as unknown as import('@totemsdk/omnia-router').ChannelGraphEdge;
     const result = await allocatePositionCapital(
       {
         position,

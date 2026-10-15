@@ -15,15 +15,20 @@ import type {
 import type { ChannelFactory, FactoryParticipant, FactorySettlementPayload } from '@totemsdk/omnia-factory';
 import type {
   ChannelGraph,
+  ChannelGraphEdge,
   ChannelOps,
+  LeaseProvider,
   PaymentRequest,
   PaymentResult,
   Route,
+  RouteOptions,
   RouterChannel,
 } from '@totemsdk/omnia-router';
 import type {
+  FinalizeSpliceOptions,
   QuiescedChannel,
   SpliceAcceptance,
+  SpliceLeaseProvider,
   SpliceParams,
   SpliceProposal,
   SplicedChannel,
@@ -187,29 +192,70 @@ export interface FactoryVirtualChannelParams {
 /** Minimal port wrapping live channel factory operations. */
 export interface FactoryExecutionPort {
   createFactory(params: FactoryCreationParams): Promise<ChannelFactory>;
-  reallocate(factory: ChannelFactory, allocation: Record<string, string>): Promise<ChannelFactory>;
+  reallocate(
+    factory: ChannelFactory,
+    fromPartyId: string,
+    toPartyId: string,
+    amount: bigint,
+    leaseProviders: Record<string, WotsLeaseBundle>,
+  ): Promise<ChannelFactory>;
   openVirtualChannel(
     factory: ChannelFactory,
     params: FactoryVirtualChannelParams,
   ): Promise<{ factory: ChannelFactory; channel: OmniaChannel }>;
-  closeVirtualChannel(factory: ChannelFactory, channelId: string): Promise<ChannelFactory>;
-  closeFactory(factory: ChannelFactory): Promise<FactorySettlementPayload>;
+  closeVirtualChannel(
+    factory: ChannelFactory,
+    channel: OmniaChannel,
+    leaseProviders: Record<string, WotsLeaseBundle>,
+  ): Promise<ChannelFactory>;
+  closeFactory(
+    factory: ChannelFactory,
+    leaseProviders: Record<string, WotsLeaseBundle>,
+    chainProvider?: ChainStateProvider,
+  ): Promise<FactorySettlementPayload>;
 }
 
 /** Minimal port wrapping live router operations. */
 export interface RouterExecutionPort {
   createChannelGraph(): ChannelGraph;
-  addChannel(graph: ChannelGraph, channel: RouterChannel): ChannelGraph;
-  findRoute(graph: ChannelGraph, request: PaymentRequest): Route | undefined;
-  executeMultiHopPayment(graph: ChannelGraph, route: Route, channelOps: ChannelOps): Promise<PaymentResult>;
+  addChannel(graph: ChannelGraph, edge: ChannelGraphEdge): void;
+  findRoute(
+    graph: ChannelGraph,
+    from: string,
+    to: string,
+    amount: bigint,
+    tokenId: string,
+    opts?: RouteOptions,
+  ): Route | undefined;
+  executeMultiHopPayment(
+    ops: ChannelOps,
+    channels: Map<string, RouterChannel>,
+    route: Route,
+    paymentRequest: PaymentRequest,
+    leaseProviders: Map<string, LeaseProvider>,
+  ): Promise<PaymentResult>;
 }
 
 /** Minimal port wrapping live splice operations. */
 export interface SpliceExecutionPort {
-  quiesceChannel(channel: OmniaChannel): Promise<QuiescedChannel>;
-  proposeSpliceOut(params: SpliceParams): Promise<SpliceProposal>;
-  acceptSplice(proposal: SpliceProposal): Promise<SpliceAcceptance>;
-  finalizeSplice(acceptance: SpliceAcceptance): Promise<SplicedChannel>;
+  quiesceChannel(channel: OmniaChannel, leaseProvider: SpliceLeaseProvider): Promise<QuiescedChannel>;
+  proposeSpliceOut(
+    channel: QuiescedChannel,
+    withdrawAmount: bigint,
+    withdrawAddress: string,
+    leaseProvider: SpliceLeaseProvider,
+  ): Promise<SpliceProposal>;
+  acceptSplice(
+    channel: OmniaChannel | QuiescedChannel,
+    proposal: SpliceProposal,
+    leaseProvider: SpliceLeaseProvider,
+  ): Promise<SpliceAcceptance>;
+  finalizeSplice(
+    channel: OmniaChannel | QuiescedChannel,
+    proposal: SpliceProposal,
+    acceptance: SpliceAcceptance,
+    options?: FinalizeSpliceOptions,
+  ): Promise<SplicedChannel>;
 }
 
 /** Minimal port wrapping live VTXO pool operations. */
@@ -224,8 +270,8 @@ export interface VtxoExecutionPort {
   }): Promise<OmniaVtxoPool>;
   mintVtxo(pool: OmniaVtxoPool, params: MintVtxoParams): Promise<{ pool: OmniaVtxoPool; vtxo: OmniaVtxo }>;
   createExitDraft(vtxo: OmniaVtxo): Promise<ExitDraft>;
-  markExiting(pool: OmniaVtxoPool, vtxoId: string): Promise<OmniaVtxoPool>;
-  markExited(pool: OmniaVtxoPool, vtxoId: string, txpowId: string): Promise<OmniaVtxoPool>;
+  markExiting(vtxo: OmniaVtxo, now?: number): Promise<OmniaVtxo>;
+  markExited(vtxo: OmniaVtxo, txpowId: string, now?: number): Promise<OmniaVtxo>;
 }
 
 export interface OmniaPoolFeeRecord {
@@ -263,7 +309,7 @@ export interface OmniaPool {
 export type AllocationTarget =
   | { type: 'channel'; params: CreateChannelParams }
   | { type: 'factory'; params: FactoryCreationParams }
-  | { type: 'router'; channel: RouterChannel }
+  | { type: 'router'; channel: ChannelGraphEdge }
   | { type: 'vtxo'; pool: OmniaVtxoPool; params: MintVtxoParams }
   | { type: 'reserve'; purpose: string };
 

@@ -25,11 +25,19 @@ describe('createOmniaPoolLivePorts', () => {
     expect(result.vtxo.poolId).toBe(pool.poolId);
   });
 
-  it('fails closed on execution-port shapes that diverged from the live API', () => {
-    expect(() => ports.router.createChannelGraph()).toThrow(/not wired/);
-    expect(() => ports.router.addChannel({} as never, {} as never)).toThrow(/not wired/);
-    expect(() => ports.factory.reallocate({} as never, {})).toThrow(/not wired/);
-    expect(() => ports.splice.acceptSplice({} as never)).toThrow(/not wired/);
-    expect(() => ports.vtxo.markExiting({} as never, 'v1')).toThrow(/not wired/);
+  it('delegates the router port to @totemsdk/omnia-router', () => {
+    const graph = ports.router.createChannelGraph();
+    ports.router.addChannel(graph, {
+      channelId: 'c1',
+      from: 'alice',
+      to: 'bob',
+      tokenId: '0x00',
+      availableBalance: 1000n,
+      htlcCapacity: 1000n,
+      feeRate: 0n,
+    });
+    const route = ports.router.findRoute(graph, 'alice', 'bob', 100n, '0x00');
+    expect(route).toBeDefined();
+    expect(route!.hops.length).toBeGreaterThanOrEqual(1);
   });
 });
