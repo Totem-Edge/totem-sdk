@@ -1,7 +1,7 @@
 import { OmniaVtxo, TransferVtxoParams, TransferResult, VtxoTransfer, VtxoOperatorReceipt } from './types.js';
 import { VtxoStatusError, VtxoAmountError } from './errors.js';
 import { computeVtxoId, buildVtxoProofSet, computeReceiptId } from './commitment.js';
-import { MOCK_BATCH_ID, MOCK_OPERATOR_SIGNATURE } from './constants.js';
+
 
 /**
  * Transfers a VTXO (fully or partially) to a recipient.
@@ -84,7 +84,7 @@ export function transferVtxo(
       siblings: [],
       positions: [],
       epoch: vtxo.epoch,
-      batchId: MOCK_BATCH_ID,
+      batchId: '',
     },
     history: [
       {
@@ -116,7 +116,7 @@ export function transferVtxo(
         siblings: [],
         positions: [],
         epoch: vtxo.epoch,
-        batchId: MOCK_BATCH_ID,
+        batchId: '',
       },
       history: [
         {
@@ -169,7 +169,7 @@ export function transferVtxo(
       outputIds,
       epoch: vtxo.epoch,
       at: ts,
-      signature: MOCK_OPERATOR_SIGNATURE,
+      signature: '',
     },
   };
 }

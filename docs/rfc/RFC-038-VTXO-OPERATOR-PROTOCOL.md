@@ -1,6 +1,6 @@
 # RFC-038 — VTXO Operator Protocol
 
-Status: In progress — V0 core landed (operator co-signature + batch commitment); mutation wiring + constants retirement next
+Status: In progress — V0 landed (operator co-signature + batch commitment + receipt co-signing); V1+ (on-chain anchoring, exit, transport) next
 Created: 2026-10-15
 Authors: Totem SDK Contributors
 Depends on: RFC-037 (unified WOTS), RFC-013 (WOTS leases), RFC-035 (peer coordination patterns), RFC-007 (storage durability)
@@ -118,13 +118,16 @@ Reuse RFC-035's coordination transport and its invariants:
 
 ## 4. Phasing
 
-- **V0 — core landed.** `createVtxoOperator({ poolId, treeKey, leaseProvider })`
+- **V0 — landed.** `createVtxoOperator({ poolId, treeKey, leaseProvider })`
   implements `OmniaVtxoOperator` with a real WOTS (RFC-037) signature over the
   canonical `computeBatchCommitment(poolId, epoch, root, orderedIds)`
-  (lease-backed, one leaf per signature; `verify` against the tree root).
-  **Remaining V0:** thread the operator through each mutation
-  (`mint`/`transfer`/`split`/`merge`/`refresh`/`exit`) so receipts carry the real
-  signature, and delete `MOCK_OPERATOR_SIGNATURE` / `MOCK_BATCH_ID`.
+  (lease-backed, one leaf per signature; `verify` against the tree root). The
+  `MOCK_OPERATOR_SIGNATURE` / `MOCK_BATCH_ID` constants are **deleted**: mutations
+  now emit **unsigned** receipts (and empty proof `batchId`s), and
+  `signVtxoReceipt(operator, receipt, root)` / `verifyVtxoReceipt(...)` co-sign and
+  verify them. (Co-signing is a distinct operator step over the batch, rather than
+  a per-mutation async call; this keeps the state machine synchronous.)
+  Tests: `operator.test.ts`, `receipt.test.ts`.
 - **V1 — on-chain anchoring.** Pool output script + batch tx (`anchorBatch`) via
   tx-builder/chain-provider; real `fundingProof` verify.
 - **V2 — real exit.** Timelock exit tx; retire `'mock-exit'`.

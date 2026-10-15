@@ -1,7 +1,7 @@
 import { OmniaVtxo, SplitVtxoParams, SplitResult, VtxoOperatorReceipt } from './types.js';
 import { VtxoStatusError, VtxoAmountError, VtxoSplitError } from './errors.js';
 import { computeVtxoId, buildVtxoProofSet, computeReceiptId } from './commitment.js';
-import { MOCK_BATCH_ID, MOCK_OPERATOR_SIGNATURE } from './constants.js';
+
 
 /**
  * Splits a VTXO into multiple outputs.
@@ -81,7 +81,7 @@ export function splitVtxo(
       siblings: [],
       positions: [],
       epoch: vtxo.epoch,
-      batchId: MOCK_BATCH_ID,
+      batchId: '',
     },
     history: [
       {
@@ -112,7 +112,7 @@ export function splitVtxo(
       outputIds,
       epoch: vtxo.epoch,
       at: ts,
-      signature: MOCK_OPERATOR_SIGNATURE,
+      signature: '',
     },
   };
 }

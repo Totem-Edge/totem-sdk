@@ -6,7 +6,7 @@ import {
   buildVtxoProofSet,
 } from '../commitment';
 import { OmniaVtxo } from '../types';
-import { EMPTY_LEAF, MOCK_BATCH_ID } from '../constants';
+import { EMPTY_LEAF } from '../constants';
 
 function makeVtxo(overrides: Partial<OmniaVtxo> = {}): OmniaVtxo {
   return {
@@ -17,7 +17,7 @@ function makeVtxo(overrides: Partial<OmniaVtxo> = {}): OmniaVtxo {
     tokenId: 'token-0',
     status: 'active',
     epoch: 0,
-    proof: { leaf: '', root: '', siblings: [], positions: [], epoch: 0, batchId: MOCK_BATCH_ID },
+    proof: { leaf: '', root: '', siblings: [], positions: [], epoch: 0, batchId: '' },
     history: [],
     createdAt: 1000,
     updatedAt: 1000,

@@ -11,7 +11,3 @@ export const DEFAULT_POLICY = {
   maxSplitOutputs: 8,
   exitTimelockSeconds: 86400,
 } as const;
-
-export const MOCK_OPERATOR_SIGNATURE = 'mock-operator-sig-v0';
-
-export const MOCK_BATCH_ID = 'batch-local-mvp';

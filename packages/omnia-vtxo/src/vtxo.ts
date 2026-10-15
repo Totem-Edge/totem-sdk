@@ -6,7 +6,7 @@ import {
   VtxoOperatorReceipt,
 } from './types.js';
 import { VtxoStatusError } from './errors.js';
-import { MOCK_BATCH_ID, MOCK_OPERATOR_SIGNATURE } from './constants.js';
+
 import { computeVtxoId, buildVtxoProofSet, computeReceiptId } from './commitment.js';
 import { assertPoolCanMint } from './pool.js';
 
@@ -50,7 +50,7 @@ export function mintVtxo(
       siblings: [],
       positions: [],
       epoch: pool.epoch,
-      batchId: MOCK_BATCH_ID,
+      batchId: '',
     },
     fundingProof: params.fundingProof,
     history: [
@@ -85,7 +85,7 @@ export function mintVtxo(
     outputIds: [vtxoId],
     epoch: pool.epoch,
     at: ts,
-    signature: MOCK_OPERATOR_SIGNATURE,
+    signature: '',
   };
 
   return { pool: updatedPool, vtxo: mintedVtxo, receipt };

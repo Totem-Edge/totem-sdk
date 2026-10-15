@@ -1,7 +1,7 @@
 import { OmniaVtxo, RefreshVtxoParams, RefreshResult, VtxoOperatorReceipt } from './types.js';
 import { VtxoStatusError, VtxoPolicyError } from './errors.js';
 import { computeVtxoId, buildVtxoProofSet, computeReceiptId } from './commitment.js';
-import { MOCK_BATCH_ID, MOCK_OPERATOR_SIGNATURE } from './constants.js';
+
 
 /**
  * Refreshes a VTXO to a new epoch.
@@ -64,7 +64,7 @@ export function refreshVtxo(
       siblings: [],
       positions: [],
       epoch: params.newEpoch,
-      batchId: MOCK_BATCH_ID,
+      batchId: '',
     },
     history: [
       {
@@ -97,7 +97,7 @@ export function refreshVtxo(
       outputIds: [refreshedId],
       epoch: params.newEpoch,
       at: ts,
-      signature: MOCK_OPERATOR_SIGNATURE,
+      signature: '',
     },
   };
 }

@@ -3,7 +3,7 @@
  *
  * The operator signs the canonical batch commitment with a unified WOTS
  * `TreeKey` (RFC-037), allocating one leaf per signature under a WOTS lease
- * (RFC-013). This retires the `MOCK_OPERATOR_SIGNATURE` placeholder: a receipt's
+ * (RFC-013). This retires the mock operator-signature placeholder: a receipt's
  * `signature` is now a real serialized `TreeSignature` over the commitment, and
  * `verify` checks it against the operator's tree-root public key.
  *

@@ -1,7 +1,7 @@
 import { OmniaVtxo, MergeVtxosParams, MergeResult, VtxoOperatorReceipt } from './types.js';
 import { VtxoStatusError, VtxoMergeError, VtxoOwnershipError } from './errors.js';
 import { computeVtxoId, buildVtxoProofSet, computeReceiptId } from './commitment.js';
-import { MOCK_BATCH_ID, MOCK_OPERATOR_SIGNATURE } from './constants.js';
+
 
 /**
  * Merges multiple VTXOs into one.
@@ -99,7 +99,7 @@ export function mergeVtxos(
       siblings: [],
       positions: [],
       epoch: vtxos[0].epoch,
-      batchId: MOCK_BATCH_ID,
+      batchId: '',
     },
     history: [
       {
@@ -128,7 +128,7 @@ export function mergeVtxos(
       outputIds: [outputId],
       epoch: vtxos[0].epoch,
       at: ts,
-      signature: MOCK_OPERATOR_SIGNATURE,
+      signature: '',
     },
   };
 }

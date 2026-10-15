@@ -3,6 +3,7 @@ export * from './errors.js';
 export * from './constants.js';
 export * from './commitment.js';
 export * from './operator.js';
+export * from './receipt.js';
 export * from './pool.js';
 export * from './vtxo.js';
 export * from './transfer.js';

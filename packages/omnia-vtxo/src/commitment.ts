@@ -1,6 +1,6 @@
 import { sha3_256, bytesToHex, hexToBytes } from '@totemsdk/core';
 import { OmniaVtxo, VtxoId, VtxoProof } from './types.js';
-import { EMPTY_LEAF, MOCK_BATCH_ID } from './constants.js';
+import { EMPTY_LEAF } from './constants.js';
 
 /** Domain-separated hash prefixes (#33) — a hash on one record cannot replay against another. */
 export const VTXO_ID_DOMAIN = 'totemsdk/omnia-vtxo/vtxo/v1';
@@ -201,7 +201,7 @@ export function buildVtxoProofSet(vtxos: OmniaVtxo[]): VtxoProofSet {
       siblings,
       positions,
       epoch: vtxo.epoch,
-      batchId: MOCK_BATCH_ID,
+      batchId: '',
     };
   });
 

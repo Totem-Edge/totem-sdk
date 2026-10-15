@@ -1,6 +1,6 @@
 import { OmniaVtxo, ExitDraft, VtxoOperatorReceipt } from './types.js';
 import { VtxoStatusError, VtxoExitError, VtxoProofError } from './errors.js';
-import { MOCK_OPERATOR_SIGNATURE } from './constants.js';
+
 import { computeReceiptId, computeVtxoLeaf } from './commitment.js';
 
 /**
@@ -112,7 +112,7 @@ export function createExitDraft(
     outputIds: [],
     epoch: vtxo.epoch,
     at: ts,
-    signature: MOCK_OPERATOR_SIGNATURE,
+    signature: '',
     draftType: 'mock-exit',
   };
 
