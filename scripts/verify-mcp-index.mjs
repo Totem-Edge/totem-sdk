@@ -9,7 +9,8 @@
  *   2. every indexed package has a domain declared in SDK_MANIFEST.domains (never 'other')
  *   3. every indexed package exposes at least one symbol (except allow-listed binary packages)
  *   4. global symbol floor (regression tripwire)
- *   5. every docs/rfc/RFC-*.md and docs/audits/*.md is discoverable as a resource
+ *   5. every docs/rfc/RFC-*.md, docs/audits/*.md and docs/examples/*.md is
+ *      discoverable as a resource
  *
  * Requires the mcp-server to be built (dist/ present) — run after
  * `verify-workspace --typecheck`.
@@ -182,6 +183,13 @@ if (existsSync(auditDir)) {
     if (!f.endsWith('.md')) continue
     const slug = f.replace(/\.md$/, '').replace(/-\d{4}-\d{2}$/, '')
     expectedDocUris.push(`totemsdk://audit/${slug}`)
+  }
+}
+const exampleDir = join(ROOT, 'docs', 'examples')
+if (existsSync(exampleDir)) {
+  for (const f of readdirSync(exampleDir)) {
+    if (!f.endsWith('.md')) continue
+    expectedDocUris.push(`totemsdk://example/${f.replace(/\.md$/, '')}`)
   }
 }
 for (const uri of expectedDocUris) {

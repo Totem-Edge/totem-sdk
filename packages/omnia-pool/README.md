@@ -2,6 +2,13 @@
 
 **Generic Omnia liquidity pool orchestration primitive.**
 
+> **Role:** the **fund manager**. It manages pooled *LP capital* — deploy,
+> deposit, allocate across execution backends (channels, factories, routers,
+> splices, VTXO pools), fees/NAV, rebalance, and approved withdrawal. It holds no
+> value itself; it directs `@totemsdk/liquidity-bond` (the position ledger) and the
+> execution packages. A VTXO *payment* pool (`@totemsdk/omnia-vtxo`) is one of its
+> allocation targets. See [`docs/examples/meridian-vtxo-payments.md`](../../docs/examples/meridian-vtxo-payments.md).
+
 Sits between [`@totemsdk/liquidity-bond`](../liquidity-bond) (deterministic LP accounting) and the live Omnia execution family — [`omnia`](../omnia), [`omnia-factory`](../omnia-factory), [`omnia-router`](../omnia-router), [`omnia-splice`](../omnia-splice), [`omnia-vtxo`](../omnia-vtxo) — to deploy, allocate, and withdraw pooled capital.
 
 ## Install

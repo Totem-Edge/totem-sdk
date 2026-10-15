@@ -2,6 +2,13 @@
 
 Deterministic, non-custodial LP position and productive liquidity record package for Totem Edge.
 
+> **Role:** the **receipt / ledger**. It records and verifies LP positions,
+> receipts, allocations, fee records, and withdrawal intents — "who supplied what
+> to which pool, and what proof proves it." It holds no value and executes
+> nothing; `@totemsdk/omnia-pool` drives it and the execution packages
+> (`@totemsdk/omnia`, `@totemsdk/omnia-vtxo`, …) hold the balances.
+> See [`docs/examples/meridian-vtxo-payments.md`](../../docs/examples/meridian-vtxo-payments.md).
+
 ## What liquidity-bond is
 
 `@totemsdk/liquidity-bond` is a **small, deterministic, non-custodial v0.1 package for recording and verifying productive bonded liquidity positions**. It answers:

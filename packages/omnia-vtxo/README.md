@@ -2,6 +2,14 @@
 
 Virtual UTXO (vTXO) / payment-pool claim layer for the Totem Edge ecosystem.
 
+> **Role:** the **spendable balances**. A VTXO is a cash-like off-chain bearer
+> claim on a pool's on-chain capacity. This package owns the pool output script,
+> the VTXO lifecycle (mint / transfer / split / merge / refresh / exit), the
+> operator co-signature, and the per-share exit. It is **not** the LP accounting
+> layer — that is `@totemsdk/liquidity-bond` + `@totemsdk/omnia-pool`, which
+> allocate capital *into* a VTXO pool. They compose; they don't overlap.
+> See [`docs/examples/meridian-vtxo-payments.md`](../../docs/examples/meridian-vtxo-payments.md).
+
 ## What is Omnia VTXO?
 
 `@totemsdk/omnia-vtxo` is a **cash-like off-chain balance primitive** that gives Totem Edge applications a way to hold, transfer, split, merge, and exit token balances without requiring a live Minima node for every operation. Each VTXO (Virtual Transaction Output) is a claim on a pool of on-chain capacity, backed by a deterministic Merkle commitment tree.

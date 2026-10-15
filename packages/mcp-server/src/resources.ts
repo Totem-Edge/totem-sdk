@@ -118,6 +118,19 @@ function discoverDocs(): Array<{ uri: string; name: string; description: string;
     }
   }
 
+  // Worked, runnable end-to-end scenarios (usually backed by a test under
+  // packages/sdk-tests). Discovered from disk like RFCs/audits.
+  const exampleDir = path.join(REPO_ROOT, 'docs', 'examples')
+  if (fs.existsSync(exampleDir)) {
+    for (const f of fs.readdirSync(exampleDir).sort()) {
+      if (!f.endsWith('.md')) continue
+      const slug = f.replace(/\.md$/, '')
+      const file = path.join('docs', 'examples', f)
+      const meta = docMeta(file, slug)
+      docs.push({ uri: `totemsdk://example/${slug}`, ...meta, file })
+    }
+  }
+
   return docs
 }
 
@@ -180,7 +193,7 @@ function edgeCapabilities(): string[] {
 export function resourceMimeType(uri: string): string {
   const base = uri.split('#')[0]
   if (base === 'totemsdk://conventions' || base === 'totemsdk://templates') return 'text/markdown'
-  if (/^totemsdk:\/\/(papers|rfc|audit)\/[^/]+(\/[^/]+)?$/.test(base)) return 'text/markdown'
+  if (/^totemsdk:\/\/(papers|rfc|audit|example)\/[^/]+(\/[^/]+)?$/.test(base)) return 'text/markdown'
   if (base === 'totemsdk://packages' || base === 'totemsdk://domain-map' || base === 'totemsdk://rfc') return 'application/json'
   if (/^totemsdk:\/\/(packages|symbol|connect|edge)(\/|$)/.test(base)) return 'application/json'
   return 'text/plain'

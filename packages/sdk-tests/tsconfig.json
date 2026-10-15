@@ -21,7 +21,15 @@
       "@totemsdk/edge": ["../edge/src/index"],
       "@totemsdk/manifest": ["../manifest/src/index"],
       "@totemsdk/agent-policy": ["../agent-policy/src/index"],
-      "@totemsdk/connect": ["../connect/src/index"]
+      "@totemsdk/connect": ["../connect/src/index"],
+      "@totemsdk/liquidity-bond": ["../liquidity-bond/src/index"],
+      "@totemsdk/omnia-pool": ["../omnia-pool/src/index"],
+      "@totemsdk/omnia-vtxo": ["../omnia-vtxo/src/index"],
+      "@totemsdk/omnia": ["../omnia/src/index"],
+      "@totemsdk/omnia-router": ["../omnia-router/src/index"],
+      "@totemsdk/chain-provider": ["../chain-provider/src/index"],
+      "@totemsdk/tx-builder": ["../tx-builder/src/index"],
+      "@totemsdk/wots-lease": ["../wots-lease/src/index"]
     }
   },
   "include": ["src/**/*", "test/**/*"],
