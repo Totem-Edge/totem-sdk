@@ -310,6 +310,9 @@ describe('@totemsdk/omnia — eltoo script builder', () => {
     expect(script).toContain('ASSERT SEQUENCE EQ PREVSEQUENCE');
     expect(script).toContain('ASSERT SEQUENCE GT PREVSEQUENCE');
     expect(script).not.toContain('ASSERT MULTISIG(2');
+    // The settlement branch is unilaterally closable by either party.
+    expect(script).toMatch(/IF SIGNEDBY\(0X[0-9A-F]{64}\) THEN RETURN TRUE ENDIF/);
+    expect(script).toMatch(/RETURN SIGNEDBY\(0X[0-9A-F]{64}\)/);
   });
 
   it('script contains both party public key digests', () => {

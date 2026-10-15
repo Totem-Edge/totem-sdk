@@ -15,6 +15,20 @@ function kissHex(hex: string): string {
   return '0X' + raw.toUpperCase();
 }
 
+/**
+ * Eltoo channel script (RFC-044, CUSTODY-POLICY §2).
+ *
+ * Two spend paths:
+ *   - **Update** (`SETTLEMENT` false): `MULTISIG(2 A B)` + `SEQUENCE GT
+ *     PREVSEQUENCE` — the optimistic off-chain state advance (both sign).
+ *   - **Settlement** (`SETTLEMENT` true): after `@COINAGE GTE
+ *     ELTOO_CONTEST_DELAY_BLOCKS`, **either party alone** may spend
+ *     (`IF SIGNEDBY(A) … RETURN SIGNEDBY(B)`) the pre-signed latest state. This
+ *     is the unilateral close: an unresponsive peer can no longer strand funds.
+ *
+ * Non-custodial: a party broadcasts the pre-signed latest state and exits after
+ * the contest delay without the counterparty's signature or liveness.
+ */
 export function buildEltooScript(parties: ChannelParticipant[]): string {
   if (parties.length !== 2) {
     throw new Error(`v0.1.0 supports exactly 2 parties, got ${parties.length}`);
@@ -29,10 +43,12 @@ export function buildEltooScript(parties: ChannelParticipant[]): string {
     'LET PREVSEQUENCE=PREVSTATE(101)',
     `LET BOTHSIGNED=MULTISIG(2 ${pkA} ${pkB})`,
     'IF SETTLEMENT THEN',
-    '    ASSERT BOTHSIGNED',
     '    ASSERT SEQUENCE EQ PREVSEQUENCE',
     `    ASSERT @COINAGE GTE ${ELTOO_CONTEST_DELAY_BLOCKS}`,
-    '    RETURN TRUE',
+    // Unilateral close: either party may broadcast the pre-signed latest state
+    // after the contest delay — no counterparty signature or liveness required.
+    `    IF SIGNEDBY(${pkA}) THEN RETURN TRUE ENDIF`,
+    `    RETURN SIGNEDBY(${pkB})`,
     'ENDIF',
     'ASSERT BOTHSIGNED',
     'ASSERT SEQUENCE GT PREVSEQUENCE',

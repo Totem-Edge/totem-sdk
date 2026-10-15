@@ -25,12 +25,18 @@ pub fn build_eltoo_script(parties: &[ChannelParticipant]) -> Result<String, Stri
         "LET SETTLEMENT=STATE(100)".to_string(),
         "LET SEQUENCE=STATE(101)".to_string(),
         "LET PREVSEQUENCE=PREVSTATE(101)".to_string(),
-        format!("ASSERT MULTISIG(2 {} {})", pk_a, pk_b),
+        format!("LET BOTHSIGNED=MULTISIG(2 {} {})", pk_a, pk_b),
         "IF SETTLEMENT THEN".to_string(),
-        "    IF SEQUENCE EQ PREVSEQUENCE AND @COINAGE GTE 256 THEN RETURN TRUE ENDIF".to_string(),
-        "ELSE".to_string(),
-        "    IF SEQUENCE GT PREVSEQUENCE THEN RETURN TRUE ENDIF".to_string(),
+        "    ASSERT SEQUENCE EQ PREVSEQUENCE".to_string(),
+        "    ASSERT @COINAGE GTE 256".to_string(),
+        // Unilateral close: either party may broadcast the pre-signed latest
+        // state after the contest delay — no counterparty liveness required.
+        format!("    IF SIGNEDBY({}) THEN RETURN TRUE ENDIF", pk_a),
+        format!("    RETURN SIGNEDBY({})", pk_b),
         "ENDIF".to_string(),
+        "ASSERT BOTHSIGNED".to_string(),
+        "ASSERT SEQUENCE GT PREVSEQUENCE".to_string(),
+        "RETURN TRUE".to_string(),
     ]
     .join("\n");
 
