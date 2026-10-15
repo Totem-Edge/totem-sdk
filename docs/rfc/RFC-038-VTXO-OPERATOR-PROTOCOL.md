@@ -1,6 +1,6 @@
 # RFC-038 — VTXO Operator Protocol
 
-Status: In progress — V0 landed; V1 anchoring landed; V2 exit tx landed (owner covenant pending); V3/V4 next
+Status: In progress — V0 landed; V1 anchoring landed; V2 non-custodial owner exit landed; V3/V4 next
 Created: 2026-10-15
 Authors: Totem SDK Contributors
 Depends on: RFC-037 (unified WOTS), RFC-013 (WOTS leases), RFC-035 (peer coordination patterns), RFC-007 (storage durability)

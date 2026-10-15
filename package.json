@@ -50,6 +50,7 @@
     "docs": "typedoc",
     "validate:meta": "node scripts/validate-pkg-meta.mjs",
     "validate:manifest": "node scripts/verify-sdk-manifest.mjs",
+    "validate:custody": "node scripts/validate-custody.mjs",
     "validate:qvac-drift": "node scripts/verify-qvac-api-drift.mjs"
   },
   "devDependencies": {

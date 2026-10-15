@@ -134,7 +134,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "AgentPolicy, PaymentIntent (incl. inference intents), PolicyEvaluation, InferenceReceiptLike, signAgentPolicy, verifyAgentPolicy"
+      "exportsDescription": "AgentPolicy, PaymentIntent (incl. inference intents), PolicyEvaluation, InferenceReceiptLike, signAgentPolicy, verifyAgentPolicy",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/authority",
@@ -154,7 +158,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "AuthorityEngine, Mandate, Scope, evaluateAuthority, verifyMandate"
+      "exportsDescription": "AuthorityEngine, Mandate, Scope, evaluateAuthority, verifyMandate",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/chain-provider",
@@ -175,7 +183,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "ChainStateProvider, HostedProvider, PureMinimaProvider, CompositeProvider"
+      "exportsDescription": "ChainStateProvider, HostedProvider, PureMinimaProvider, CompositeProvider",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/connect",
@@ -206,7 +218,11 @@
         ".": "dist/index.{js,d.ts}",
         "./wallet": "dist/wallet.{js,d.ts}"
       },
-      "exportsDescription": "WalletDiscovery, TotemProvider, request, TOTEM_CONNECT, TOTEM_SIGN"
+      "exportsDescription": "WalletDiscovery, TotemProvider, request, TOTEM_CONNECT, TOTEM_SIGN",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/core",
@@ -266,7 +282,11 @@
         "./wasm-async": "dist/wasm-async.{js,d.ts}",
         "./wasm-sync": "dist/wasm-sync.{js,d.ts}"
       },
-      "exportsDescription": "wotsSign, wotsVerify, derivePKdigest, sha3_256, TreeKey, BIP39, Mnemonic, TxPoW mining"
+      "exportsDescription": "wotsSign, wotsVerify, derivePKdigest, sha3_256, TreeKey, BIP39, Mnemonic, TxPoW mining",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/core-wasm",
@@ -288,7 +308,11 @@
           "default": "./pkg-web/totemsdk_core_wasm.js"
         }
       },
-      "exportsDescription": "Low-level WASM bindings — used internally by @totemsdk/core"
+      "exportsDescription": "Low-level WASM bindings — used internally by @totemsdk/core",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/edge",
@@ -315,7 +339,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "TotemEdge, EdgeConfig, createEdge, edge.getBalance, edge.sign, edge.connectWallet"
+      "exportsDescription": "TotemEdge, EdgeConfig, createEdge, edge.getBalance, edge.sign, edge.connectWallet",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/edge-adapters",
@@ -344,7 +372,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "InMemoryAdapter, NodeAdapter, PearAdapter — port implementations"
+      "exportsDescription": "InMemoryAdapter, NodeAdapter, PearAdapter — port implementations",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/edge-bacnet",
@@ -362,7 +394,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "createBacnetGateway, createBacnetSensorBridge, BacnetGatewayConfig, BacnetTransportPort"
+      "exportsDescription": "createBacnetGateway, createBacnetSensorBridge, BacnetGatewayConfig, BacnetTransportPort",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/edge-ble",
@@ -381,7 +417,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "createBleGateway, createBleSensorBridge, BleGatewayConfig, BleTransportPort"
+      "exportsDescription": "createBleGateway, createBleSensorBridge, BleGatewayConfig, BleTransportPort",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/edge-can",
@@ -400,7 +440,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "createCanGateway, createCanSensorBridge, CanGatewayConfig, CanTransportPort"
+      "exportsDescription": "createCanGateway, createCanSensorBridge, CanGatewayConfig, CanTransportPort",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/edge-coap",
@@ -419,7 +463,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "createCoapGateway, createCoapSensorBridge, CoapGatewayConfig, CoapTransportPort"
+      "exportsDescription": "createCoapGateway, createCoapSensorBridge, CoapGatewayConfig, CoapTransportPort",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/edge-grpc",
@@ -438,7 +486,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "createGrpcGateway, createGrpcSensorBridge, GrpcGatewayConfig, GrpcTransportPort"
+      "exportsDescription": "createGrpcGateway, createGrpcSensorBridge, GrpcGatewayConfig, GrpcTransportPort",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/edge-lorawan",
@@ -457,7 +509,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "createLorawanGateway, createLorawanSensorBridge, LorawanGatewayConfig, LorawanTransportPort"
+      "exportsDescription": "createLorawanGateway, createLorawanSensorBridge, LorawanGatewayConfig, LorawanTransportPort",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/edge-matter",
@@ -475,7 +531,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "createMatterGateway, createMatterSensorBridge, MatterGatewayConfig, MatterTransportPort"
+      "exportsDescription": "createMatterGateway, createMatterSensorBridge, MatterGatewayConfig, MatterTransportPort",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/edge-modbus",
@@ -495,7 +555,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "createModbusGateway, createModbusSensorBridge, ModbusGatewayConfig, ModbusTransportPort"
+      "exportsDescription": "createModbusGateway, createModbusSensorBridge, ModbusGatewayConfig, ModbusTransportPort",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/edge-mqtt",
@@ -523,7 +587,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "MqttGateway, MqttSensorBridge, MachinePay, createMqttGateway, createMqttSensorBridge"
+      "exportsDescription": "MqttGateway, MqttSensorBridge, MachinePay, createMqttGateway, createMqttSensorBridge",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/edge-nfc",
@@ -544,7 +612,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "createNfcGateway, NfcGatewayConfig, NfcTransportPort, encodeNdefMessage, decodeNdefMessage"
+      "exportsDescription": "createNfcGateway, NfcGatewayConfig, NfcTransportPort, encodeNdefMessage, decodeNdefMessage",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/edge-opcua",
@@ -563,7 +635,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "createOpcuaGateway, createOpcuaSensorBridge, OpcuaGatewayConfig, OpcuaTransportPort"
+      "exportsDescription": "createOpcuaGateway, createOpcuaSensorBridge, OpcuaGatewayConfig, OpcuaTransportPort",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/edge-ros2",
@@ -581,7 +657,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "createRos2Gateway, createRos2SensorBridge, Ros2GatewayConfig, Ros2TransportPort"
+      "exportsDescription": "createRos2Gateway, createRos2SensorBridge, Ros2GatewayConfig, Ros2TransportPort",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/governance",
@@ -604,7 +684,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "GovernanceEngine, Proposal, Vote, Delegation, Tally, Snapshot, createProposal, castVote"
+      "exportsDescription": "GovernanceEngine, Proposal, Vote, Delegation, Tally, Snapshot, createProposal, castVote",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/identity",
@@ -623,7 +707,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "Identity, createIdentity, signClaim, verifyClaim, getPublicKey, getAddress"
+      "exportsDescription": "Identity, createIdentity, signClaim, verifyClaim, getPublicKey, getAddress",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/kissvm",
@@ -648,7 +736,11 @@
           "import": "./dist/templates/experimental.js"
         }
       },
-      "exportsDescription": "evaluateScript, compileScript, parseScript, KISSVMResult, Opcode, Witness, TxContext"
+      "exportsDescription": "evaluateScript, compileScript, parseScript, KISSVMResult, Opcode, Witness, TxContext",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/liquidity-bond",
@@ -672,7 +764,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "LiquidityBond, createBond, verifyBond, claimBond"
+      "exportsDescription": "LiquidityBond, createBond, verifyBond, claimBond",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "data-only; no on-chain value held (disclaimed)"
+      }
     },
     {
       "name": "@totemsdk/lookup-client",
@@ -695,7 +791,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "LookupClient, createLookupClient, getCoin, getBalance, subscribeCoinUpdates"
+      "exportsDescription": "LookupClient, createLookupClient, getCoin, getBalance, subscribeCoinUpdates",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/lookup-node",
@@ -722,7 +822,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "LookupNode, createLookupNode, LookupNodeConfig"
+      "exportsDescription": "LookupNode, createLookupNode, LookupNodeConfig",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/lookup-protocol",
@@ -741,7 +845,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "LookupMessage, MessageType, serialize, deserialize, Request, Response"
+      "exportsDescription": "LookupMessage, MessageType, serialize, deserialize, Request, Response",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/manifest",
@@ -759,7 +867,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "Manifest, createManifest, signManifest, verifyManifest, ManifestType"
+      "exportsDescription": "Manifest, createManifest, signManifest, verifyManifest, ManifestType",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/omnia",
@@ -789,7 +901,15 @@
         ".": "dist/index.{js,d.ts}",
         "./relay": "dist/relay-client.{js,d.ts}"
       },
-      "exportsDescription": "Channel, ChannelState, openChannel, closeChannel, updateChannel, HTLC, addHTLC, fulfillHTLC; ./relay — browser-safe Axia/self-hosted relay client (no Hyperswarm)"
+      "exportsDescription": "Channel, ChannelState, openChannel, closeChannel, updateChannel, HTLC, addHTLC, fulfillHTLC; ./relay — browser-safe Axia/self-hosted relay client (no Hyperswarm)",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "unilateral eltoo broadcast branch after contest delay; update path is MULTISIG(2)",
+        "script": {
+          "file": "packages/omnia/src/script.ts",
+          "fn": "buildEltooScript"
+        }
+      }
     },
     {
       "name": "@totemsdk/omnia-factory",
@@ -814,7 +934,15 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "ChannelFactory, createFactory, openVirtualChannel, settleFactory"
+      "exportsDescription": "ChannelFactory, createFactory, openVirtualChannel, settleFactory",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "N-of-N cooperative close + per-party timeout escape",
+        "script": {
+          "file": "packages/omnia-factory/src/script.ts",
+          "fn": "buildFactoryScript"
+        }
+      }
     },
     {
       "name": "@totemsdk/omnia-router",
@@ -836,7 +964,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "Router, findPath, Route, Hop, sendPayment, receivePayment"
+      "exportsDescription": "Router, findPath, Route, Hop, sendPayment, receivePayment",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "routes over non-custodial channels; holds no value"
+      }
     },
     {
       "name": "@totemsdk/omnia-splice",
@@ -859,7 +991,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "spliceIn, spliceOut, SpliceConfig"
+      "exportsDescription": "spliceIn, spliceOut, SpliceConfig",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "splicing follows the non-custodial channel script"
+      }
     },
     {
       "name": "@totemsdk/omnia-vtxo",
@@ -884,7 +1020,15 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "VTXO, VtxoPool, createVtxo, claimVtxo, VtxoConfig"
+      "exportsDescription": "VTXO, VtxoPool, createVtxo, claimVtxo, VtxoConfig",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "owner-unilateral exit after exitTimelock; cooperative update MULTISIG(2 operator,owner)",
+        "script": {
+          "file": "packages/omnia-vtxo/src/pool-script.ts",
+          "fn": "buildPoolScript"
+        }
+      }
     },
     {
       "name": "@totemsdk/pear",
@@ -913,7 +1057,11 @@
         "./network": "dist/network/index.{js,d.ts}",
         "./storage": "dist/storage/index.{js,d.ts}"
       },
-      "exportsDescription": "PearRuntime, createStorage, createNetwork, createLifecycle, HyperdriveAdapter"
+      "exportsDescription": "PearRuntime, createStorage, createNetwork, createLifecycle, HyperdriveAdapter",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/proof",
@@ -934,7 +1082,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "Proof, ProofEnvelope, createProof, signProof, verifyProof, anchorProof"
+      "exportsDescription": "Proof, ProofEnvelope, createProof, signProof, verifyProof, anchorProof",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/proof-integritas",
@@ -953,7 +1105,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "IntegritasProvider, stampHash, checkStamp, verifyOnChain"
+      "exportsDescription": "IntegritasProvider, stampHash, checkStamp, verifyOnChain",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/proofgraph",
@@ -977,7 +1133,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "ProofGraph, addProof, queryProofs, queryByIdentity, GraphNode, GraphEdge"
+      "exportsDescription": "ProofGraph, addProof, queryProofs, queryByIdentity, GraphNode, GraphEdge",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/provider-bond",
@@ -1000,7 +1160,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "ProviderBond, createProviderBond, verifyProviderBond, calculateReputation"
+      "exportsDescription": "ProviderBond, createProviderBond, verifyProviderBond, calculateReputation",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "data-only; bond is a proof; no on-chain value held (disclaimed)"
+      }
     },
     {
       "name": "@totemsdk/pubsub-transport",
@@ -1017,7 +1181,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "IPubSubTransport, EventEmitterTransport, MockPubSubTransport, PublishOptions, SubscribeOptions"
+      "exportsDescription": "IPubSubTransport, EventEmitterTransport, MockPubSubTransport, PublishOptions, SubscribeOptions",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/minima-rpc",
@@ -1035,7 +1203,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "PureMinimaRPC, createClient, getChainstate, sendTransaction"
+      "exportsDescription": "PureMinimaRPC, createClient, getChainstate, sendTransaction",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/realtime",
@@ -1055,7 +1227,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "subscribeBalance, unsubscribeBalance, BalanceStream, BalanceUpdate"
+      "exportsDescription": "subscribeBalance, unsubscribeBalance, BalanceStream, BalanceUpdate",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/recursive-mast",
@@ -1080,7 +1256,11 @@
         "./templates/*": "dist/templates/*.{js,d.ts}",
         "./transaction": "dist/transaction/index.{js,d.ts}"
       },
-      "exportsDescription": "PolicyTree, ProofChain, PrevState, Delegation, compilePolicy, templates for access-control, commercial, compliance, data-privacy, device-lifecycle, energy, firmware-update, healthcare, identity-verification, layers, legal, payment-channel, recovery, rwa-lifecycle, sensor-proof, state-machine, supply-chain, treasury, voting"
+      "exportsDescription": "PolicyTree, ProofChain, PrevState, Delegation, compilePolicy, templates for access-control, commercial, compliance, data-privacy, device-lifecycle, energy, firmware-update, healthcare, identity-verification, layers, legal, payment-channel, recovery, rwa-lifecycle, sensor-proof, state-machine, supply-chain, treasury, voting",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/root-identity",
@@ -1100,7 +1280,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "RootIdentity, createRootIdentity, deriveChildIdentity, getAddress"
+      "exportsDescription": "RootIdentity, createRootIdentity, deriveChildIdentity, getAddress",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/se-server",
@@ -1126,7 +1310,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "SEServer, createSEServer, SEServerConfig, coSign, verifyStatechain"
+      "exportsDescription": "SEServer, createSEServer, SEServerConfig, coSign, verifyStatechain",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "statechain operator service; holds no value (owner reclaim path is on-chain)"
+      }
     },
     {
       "name": "@totemsdk/server",
@@ -1149,7 +1337,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "ServerTotem, createServerTotem, signTransaction, submitTransaction"
+      "exportsDescription": "ServerTotem, createServerTotem, signTransaction, submitTransaction",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/statechain",
@@ -1174,7 +1366,15 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "Statechain, createStatechain, transfer, close, StatechainConfig"
+      "exportsDescription": "Statechain, createStatechain, transfer, close, StatechainConfig",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "owner reclaim after RECLAIM_TIMELOCK (unilateral); cooperative MULTISIG(2 owner,SE)",
+        "script": {
+          "file": "packages/statechain/src/script.ts",
+          "fn": "buildStatechainScript"
+        }
+      }
     },
     {
       "name": "@totemsdk/stream-transport",
@@ -1195,7 +1395,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "IStreamTransport, NodeStreamAdapter, WebSocketAdapter, WebRTCAdapter, StdioAdapter, HyperswarmAdapter, InMemoryTransport"
+      "exportsDescription": "IStreamTransport, NodeStreamAdapter, WebSocketAdapter, WebRTCAdapter, StdioAdapter, HyperswarmAdapter, InMemoryTransport",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/tx-builder",
@@ -1214,7 +1418,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "TxBuilder, buildTransaction, selectCoins, addInput, addOutput, sign, MultiSigConfig"
+      "exportsDescription": "TxBuilder, buildTransaction, selectCoins, addInput, addOutput, sign, MultiSigConfig",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "builds transactions; holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/txpow",
@@ -1238,7 +1446,11 @@
           "import": "./dist/admission/index.js"
         }
       },
-      "exportsDescription": "TxPoW, mineTxPoW, serializeTxPoW, deserializeTxPoW, TxPoWConfig"
+      "exportsDescription": "TxPoW, mineTxPoW, serializeTxPoW, deserializeTxPoW, TxPoWConfig",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/wallet-adapter",
@@ -1257,7 +1469,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "WalletAdapter, WalletConfig, sign, getBalance, getAddresses, TotemAnnounce"
+      "exportsDescription": "WalletAdapter, WalletConfig, sign, getBalance, getAddresses, TotemAnnounce",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "keys never leave the wallet; exports no key material"
+      }
     },
     {
       "name": "@totemsdk/wots-lease",
@@ -1279,7 +1495,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "WotsLease, acquireLease, releaseLease, Watermark, WatermarkProvider"
+      "exportsDescription": "WotsLease, acquireLease, releaseLease, Watermark, WatermarkProvider",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/edge-email",
@@ -1300,7 +1520,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "createEmailGateway, createEmailSensorBridge, EmailGatewayConfig, EmailTransportPort"
+      "exportsDescription": "createEmailGateway, createEmailSensorBridge, EmailGatewayConfig, EmailTransportPort",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/industrial-action",
@@ -1326,7 +1550,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "IndustrialActionDefinition, toEdgeActionDefinition, ExecutionPolicy, FailureMode, createDurableDeviceOperationStore, createIndustrialReceipt, createProposal, evaluateConditions"
+      "exportsDescription": "IndustrialActionDefinition, toEdgeActionDefinition, ExecutionPolicy, FailureMode, createDurableDeviceOperationStore, createIndustrialReceipt, createProposal, evaluateConditions",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/mcp-server",
@@ -1346,7 +1574,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "TotemMcpServer, listPackages, getPackageMetadata, scaffold"
+      "exportsDescription": "TotemMcpServer, listPackages, getPackageMetadata, scaffold",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/omnia-host",
@@ -1378,7 +1610,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "OmniaHost, startOmniaHost, channelRouter, controlApi"
+      "exportsDescription": "OmniaHost, startOmniaHost, channelRouter, controlApi",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "signing host; TreeKey stays in-wallet; holds no value"
+      }
     },
     {
       "name": "@totemsdk/location-proof",
@@ -1405,7 +1641,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "createLocationClaim, scoreLocationClaim, createMovementTrail, createUnsignedLocationProof, signLocationProof, verifyLocationProof"
+      "exportsDescription": "createLocationClaim, scoreLocationClaim, createMovementTrail, createUnsignedLocationProof, signLocationProof, verifyLocationProof",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/spatial-proof",
@@ -1432,7 +1672,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "evaluateSpatialRelation, pointInPolygon, computeGeometryHash, spatialRelationFromLocationClaim, createUnsignedSpatialProof, signSpatialProof, verifySpatialProof"
+      "exportsDescription": "evaluateSpatialRelation, pointInPolygon, computeGeometryHash, spatialRelationFromLocationClaim, createUnsignedSpatialProof, signSpatialProof, verifySpatialProof",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/raster-proof",
@@ -1463,7 +1707,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "createRasterManifest, createRasterMerkleSummary, createMerkleProof, verifyMerkleProof, createDerivedRasterManifest, createUnsignedRasterProof, signRasterProof, verifyRasterProof"
+      "exportsDescription": "createRasterManifest, createRasterMerkleSummary, createMerkleProof, verifyMerkleProof, createDerivedRasterManifest, createUnsignedRasterProof, signRasterProof, verifyRasterProof",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/omnia-pool",
@@ -1503,7 +1751,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "createOmniaPool, depositToPool, allocatePositionCapital, recordPoolFee, claimFees, withdrawLiquidity, executePoolPayout, computePoolNAV"
+      "exportsDescription": "createOmniaPool, depositToPool, allocatePositionCapital, recordPoolFee, claimFees, withdrawLiquidity, executePoolPayout, computePoolNAV",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "pool backing is non-custodial VTXO/channel scripts; holds no funds itself"
+      }
     },
     {
       "name": "@totemsdk/omnia-relay",
@@ -1534,7 +1786,11 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "createOmniaRelayClient, RoutingPort, channelGraphEdges, buildGraph, queryRoute, createRelayOmniaSwarm"
+      "exportsDescription": "createOmniaRelayClient, RoutingPort, channelGraphEdges, buildGraph, queryRoute, createRelayOmniaSwarm",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "coordination transport; holds no value (liveness-only)"
+      }
     },
     {
       "name": "@totemsdk/intelligence",
@@ -1564,7 +1820,11 @@
         "./errors": "dist/errors.{js,d.ts}",
         "./types": "dist/types.{js,d.ts}"
       },
-      "exportsDescription": "IntelligenceProvider, IntelligenceOperation/Result/StreamChunk/Receipt, port contract (EdgeIntelligencePort, createEdgeIntelligencePort), domain/capability constants, error codes"
+      "exportsDescription": "IntelligenceProvider, IntelligenceOperation/Result/StreamChunk/Receipt, port contract (EdgeIntelligencePort, createEdgeIntelligencePort), domain/capability constants, error codes",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/decision",
@@ -1628,7 +1888,11 @@
           "import": "./dist/types.js"
         }
       },
-      "exportsDescription": "DecisionRequest/Result, DecisionProvider (DecisionProviderOutcome) + DecisionOutcome runtime trust split, createDecisionRuntime, canonical digests + freshness, DecisionReceipt, Laya/Jev/Intelligence adapters (/laya,/jev,/intelligence), EdgeDecisionPort + createEdgeDecisionPort, mock provider (/testing)"
+      "exportsDescription": "DecisionRequest/Result, DecisionProvider (DecisionProviderOutcome) + DecisionOutcome runtime trust split, createDecisionRuntime, canonical digests + freshness, DecisionReceipt, Laya/Jev/Intelligence adapters (/laya,/jev,/intelligence), EdgeDecisionPort + createEdgeDecisionPort, mock provider (/testing)",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/qvac",
@@ -1674,7 +1938,11 @@
         "./vla": "dist/domains/vla.{js,d.ts}",
         "./world": "dist/domains/world.{js,d.ts}"
       },
-      "exportsDescription": "createQvacIntelligenceProvider (runtime capability discovery), QvacSdkLike structural injection seam, /edge EdgeIntelligencePort binding, /raw genuine SDK passthrough, per-domain typed adapters /llm…/plugins"
+      "exportsDescription": "createQvacIntelligenceProvider (runtime capability discovery), QvacSdkLike structural injection seam, /edge EdgeIntelligencePort binding, /raw genuine SDK passthrough, per-domain typed adapters /llm…/plugins",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     },
     {
       "name": "@totemsdk/storage",
@@ -1720,7 +1988,11 @@
         "./transaction": "dist/transaction.{js,d.ts}",
         "./types": "dist/types.{js,d.ts}"
       },
-      "exportsDescription": "StorageError taxonomy, versioned codec, Namespace, Transaction/CAS + conditionalUpdate, WriteAckMode/FailurePolicy/StoreCapabilities, MemoryStore/FileStore/SqliteStore, ArtifactStore + pluggable ArtifactStoreBackend port, core + backend conformance harnesses"
+      "exportsDescription": "StorageError taxonomy, versioned codec, Namespace, Transaction/CAS + conditionalUpdate, WriteAckMode/FailurePolicy/StoreCapabilities, MemoryStore/FileStore/SqliteStore, ArtifactStore + pluggable ArtifactStoreBackend port, core + backend conformance harnesses",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
     }
   ]
 }

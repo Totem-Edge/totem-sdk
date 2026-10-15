@@ -102,6 +102,10 @@ function verify() {
     if (JSON.stringify(wantDeps) !== JSON.stringify(gotDeps)) {
       fail(`${label}: @totemsdk/* deps differ — package=[${wantDeps.join(',')}] manifest=[${gotDeps.join(',')}]`);
     }
+    const wantCustody = found.meta.custody?.classification;
+    if (wantCustody && entry.custody?.classification !== wantCustody) {
+      fail(`${label}: custody ${entry.custody?.classification ?? '(none)'} ≠ config ${wantCustody}`);
+    }
   }
 }
 
@@ -130,6 +134,12 @@ function repair() {
       repairedDeps[name] = `^${byName.get(name)?.pkg.version ?? ''}`;
     }
     entry.dependencies = repairedDeps;
+
+    if (found.meta.custody) {
+      entry.custody = found.meta.custody;
+    } else {
+      delete entry.custody;
+    }
   }
 }
 
