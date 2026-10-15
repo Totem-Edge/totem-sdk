@@ -44,12 +44,25 @@ RETURN TRUE
   4. `SDK_MANIFEST.json` custody matches the config.
 - `scripts/verify-sdk-manifest.mjs` surfaces `custody` into `SDK_MANIFEST.json`.
 
-### 3.2 omnia — unilateral close (landed)
+### 3.2 omnia — unilateral *broadcast* of the co-signed close (corrected)
 
-`buildEltooScript` settlement branch is now **either-party** spendable after the
-contest delay (`IF SIGNEDBY(A) … RETURN SIGNEDBY(B)`); the update path stays
-`MULTISIG(2 A B)`. An unresponsive peer can no longer strand funds. Rust mirror
-updated.
+`buildEltooScript` **keeps `ASSERT BOTHSIGNED` on both spend paths** (update and
+settlement). That is the output constraint: only a transaction both parties signed
+— i.e. the agreed state split — can be spent. Unilateral close is achieved by
+**broadcasting the co-signed close package**: each state carries a
+update + settlement tx pre-signed by *both* parties
+(`settlement.ts` `startUnilateralClose`/`finalizeUnilateralClose`); the witness
+already contains both signatures, so either party can relay it alone after the
+contest delay — no counterparty liveness, and no theft vector.
+
+> **Correction.** An earlier revision replaced the settlement `ASSERT BOTHSIGNED`
+> with a single-signer branch (`IF SIGNEDBY(A) … RETURN SIGNEDBY(B)`). That was a
+> critical regression: with no `VERIFYOUT`/committed-state constraint, one party
+> could broadcast a settlement paying itself everything. It was also unnecessary —
+> broadcasting a *both-signed* settlement is already permissionless. Reverted (and
+> mirrored in Rust). A single-signer settlement may only be reintroduced together
+> with an explicit output constraint (VERIFYOUT to committed shares, or a committed
+> state digest).
 
 ### 3.3 omnia-factory — per-party timeout escape (landed)
 
@@ -67,6 +80,15 @@ balances; `buildFundingTx` carries them.
 are `MULTISIG(2 operator owner)` with `SAMESTATE(102 102)` (the operator cannot
 push the owner's clock) and `VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID TRUE)`
 (the operator can never pay itself). The exit tx is owner-signed.
+
+> **Ownership model — open.** The escape is unconstrained
+> (`RETURN SIGNEDBY(OWNER)` may pay anywhere) and assumes a **single-owner pool**:
+> the `OWNER` is the sole beneficiary, so an unconstrained exit is a
+> self-withdrawal, not theft. If a pool backs **multiple holders' VTXOs** under
+> one `OWNER`, that owner can rug the other holders after `EXITBLOCK`. Shared
+> pools therefore require a **per-share, output-constrained** exit
+> (`VERIFYOUT` to each holder's committed share). Until that lands, pools must be
+> single-owner or shared pools are `trust-minimised`.
 
 ### 3.5 Bonds — disclaim (landed)
 

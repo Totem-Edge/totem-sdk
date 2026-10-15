@@ -22,9 +22,14 @@ const CONFIG = JSON.parse(readFileSync(join(__dirname, 'workspace-gates.config.j
 const MANIFEST_PATH = join(ROOT, 'SDK_MANIFEST.json');
 const VALID = new Set(['non-custodial', 'trust-minimised', 'custodial']);
 
-// A unilateral escape: a timelock/coinage gate plus a single-signer return.
+// A recovery path: a timelock/coinage gate plus an authorization condition.
+// Authorization may be single-signer (owner escape: SIGNEDBY) OR both-signer
+// (co-signed close package broadcast unilaterally: BOTHSIGNED). This is a coarse
+// existence check only — it cannot see a pre-signed close package, nor tell a
+// constrained exit from an unconstrained one. The dynamic canary owns real
+// conformance (see docs/CUSTODY-POLICY.md §4).
 const TIMELOCK_RE = /@COINAGE\s+GTE|@BLOCK\s+GTE|@BLOCK\s+GT/;
-const SIGNER_RE = /SIGNEDBY\(/;
+const SIGNER_RE = /SIGNEDBY\(|BOTHSIGNED/;
 
 const errors = [];
 let checked = 0;

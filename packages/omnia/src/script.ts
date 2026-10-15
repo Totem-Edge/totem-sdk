@@ -18,16 +18,21 @@ function kissHex(hex: string): string {
 /**
  * Eltoo channel script (RFC-044, CUSTODY-POLICY §2).
  *
- * Two spend paths:
- *   - **Update** (`SETTLEMENT` false): `MULTISIG(2 A B)` + `SEQUENCE GT
- *     PREVSEQUENCE` — the optimistic off-chain state advance (both sign).
- *   - **Settlement** (`SETTLEMENT` true): after `@COINAGE GTE
- *     ELTOO_CONTEST_DELAY_BLOCKS`, **either party alone** may spend
- *     (`IF SIGNEDBY(A) … RETURN SIGNEDBY(B)`) the pre-signed latest state. This
- *     is the unilateral close: an unresponsive peer can no longer strand funds.
+ * Two spend paths, **both requiring `MULTISIG(2 A B)`**:
+ *   - **Update** (`SETTLEMENT` false): `BOTHSIGNED` + `SEQUENCE GT
+ *     PREVSEQUENCE` — advance the off-chain state.
+ *   - **Settlement** (`SETTLEMENT` true): `BOTHSIGNED` + `SEQUENCE EQ
+ *     PREVSEQUENCE` after `@COINAGE GTE ELTOO_CONTEST_DELAY_BLOCKS` — close on the
+ *     pre-signed state.
  *
- * Non-custodial: a party broadcasts the pre-signed latest state and exits after
- * the contest delay without the counterparty's signature or liveness.
+ * Unilateral close is achieved by **broadcasting the co-signed close package**:
+ * each state carries an update + settlement transaction pre-signed by *both*
+ * parties (`settlement.ts` `startUnilateralClose`/`finalizeUnilateralClose`), and
+ * because the witness already contains both signatures, *either party can relay
+ * it alone* — no counterparty liveness. `BOTHSIGNED` here is therefore the output
+ * constraint: only a transaction both parties signed (the agreed split) can be
+ * spent. A single-signer settlement branch would let one party pay itself
+ * everything, so it must never be added without an explicit output constraint.
  */
 export function buildEltooScript(parties: ChannelParticipant[]): string {
   if (parties.length !== 2) {
@@ -43,12 +48,10 @@ export function buildEltooScript(parties: ChannelParticipant[]): string {
     'LET PREVSEQUENCE=PREVSTATE(101)',
     `LET BOTHSIGNED=MULTISIG(2 ${pkA} ${pkB})`,
     'IF SETTLEMENT THEN',
+    '    ASSERT BOTHSIGNED',
     '    ASSERT SEQUENCE EQ PREVSEQUENCE',
     `    ASSERT @COINAGE GTE ${ELTOO_CONTEST_DELAY_BLOCKS}`,
-    // Unilateral close: either party may broadcast the pre-signed latest state
-    // after the contest delay — no counterparty signature or liveness required.
-    `    IF SIGNEDBY(${pkA}) THEN RETURN TRUE ENDIF`,
-    `    RETURN SIGNEDBY(${pkB})`,
+    '    RETURN TRUE',
     'ENDIF',
     'ASSERT BOTHSIGNED',
     'ASSERT SEQUENCE GT PREVSEQUENCE',

@@ -76,9 +76,23 @@ machine-readable (see `scripts/verify-sdk-manifest.mjs`).
 2. `custodial` → **hard fail** (never shippable).
 3. `trust-minimised` → must have `reason` + `mitigation`.
 4. Value-bearing `non-custodial` (has `script`) → the script source must contain a
-   timer-escaped unilateral branch (`@COINAGE GTE` / `@BLOCK GT` adjacent to a
-   single-signer `RETURN SIGNEDBY(...)` or `RETURN TRUE`).
+   timer-escaped path (`@COINAGE GTE` / `@BLOCK GT`) **and** an authorization
+   condition — either a single-signer escape (`SIGNEDBY`) **or** a both-signer
+   close (`BOTHSIGNED`, broadcast unilaterally as a pre-signed package).
 5. `SDK_MANIFEST.json` `custody` must match the config.
+
+> **Rule 4 is necessary, not sufficient.** It is a grep-level *existence* check: it
+> cannot tell a **constrained** unilateral exit (e.g. `VERIFYOUT` to the owner's
+> committed share) from an **unconstrained** one (`RETURN SIGNEDBY(OWNER)` paying
+> anywhere). A single-signer spend path with no output/`VERIFYOUT`/committed-digest
+> constraint lets the signer sweep the output — the "malicious unilateral close"
+> class. Real conformance is owned by the **dynamic canary** (§6): recover funds
+> while the counterparty is offline **and** prove a malicious unilateral close
+> fails. Golden-script fixtures (static) are a worthwhile second check but do not
+> replace execution. Any script whose only spend paths require `MULTISIG(N …)` /
+> `BOTHSIGNED` still passes rule 4 only if it also carries a real escape; a
+> single-signer exit is **not** an improvement over a both-sign requirement unless
+> its outputs are constrained.
 
 ## 5. Cross-cutting invariants (all packages)
 
@@ -109,7 +123,7 @@ A `non-custodial` claim must be *proven*, not asserted:
 | Package | Custody | Note |
 |---|---|---|
 | `@totemsdk/statechain` | non-custodial ✅ | reference — owner reclaim after `RECLAIM_TIMELOCK` |
-| `@totemsdk/omnia` | non-custodial ✅ | unilateral eltoo broadcast branch after contest delay |
+| `@totemsdk/omnia` | non-custodial ✅ | co-signed close package (both-signed settlement) broadcast unilaterally after the contest delay; no single-signer spend path |
 | `@totemsdk/omnia-factory` | non-custodial ✅ | N-of-N close + per-party timeout escape |
 | `@totemsdk/omnia-vtxo` | non-custodial ✅ | owner exit branch after `exitTimelock`; root update co-signed |
 | `@totemsdk/omnia-pool` | non-custodial ✅ | inherits the VTXO pool script |

@@ -304,15 +304,16 @@ describe('@totemsdk/omnia — eltoo script builder', () => {
     expect(script.toUpperCase()).toBe(script); // fully uppercase
   });
 
-  it('keeps update and settlement branches explicit for unilateral close', () => {
+  it('requires both signatures on update and settlement (no single-signer spend)', () => {
     const script = buildEltooScript([alice, bob]);
     expect(script).toContain('LET BOTHSIGNED=MULTISIG(2');
     expect(script).toContain('ASSERT SEQUENCE EQ PREVSEQUENCE');
     expect(script).toContain('ASSERT SEQUENCE GT PREVSEQUENCE');
-    expect(script).not.toContain('ASSERT MULTISIG(2');
-    // The settlement branch is unilaterally closable by either party.
-    expect(script).toMatch(/IF SIGNEDBY\(0X[0-9A-F]{64}\) THEN RETURN TRUE ENDIF/);
-    expect(script).toMatch(/RETURN SIGNEDBY\(0X[0-9A-F]{64}\)/);
+    // Both branches require the 2-of-2 signatures — that is the settlement
+    // output constraint; neither party can pay itself unilaterally.
+    expect((script.match(/ASSERT BOTHSIGNED/g) ?? []).length).toBe(2);
+    expect(script).not.toMatch(/IF SIGNEDBY\(/);
+    expect(script).not.toMatch(/RETURN SIGNEDBY\(/);
   });
 
   it('script contains both party public key digests', () => {
