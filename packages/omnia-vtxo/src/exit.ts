@@ -96,7 +96,7 @@ export function createExitDraft(
     owner: vtxo.owner,
     amount: vtxo.amount,
     tokenId: vtxo.tokenId,
-    draftType: 'mock-exit',
+    draftType: 'vtxo-exit',
     timelockSeconds: 86400,
     createdAt: ts,
     verifiedShare: vtxo.amount,
@@ -113,7 +113,7 @@ export function createExitDraft(
     epoch: vtxo.epoch,
     at: ts,
     signature: '',
-    draftType: 'mock-exit',
+    draftType: 'vtxo-exit',
   };
 
   return { draft, receipt };

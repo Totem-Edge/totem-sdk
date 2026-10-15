@@ -66,10 +66,10 @@ describe('markExited', () => {
 });
 
 describe('createExitDraft', () => {
-  it('returns draftType mock-exit for active vtxo with valid proof', () => {
+  it('returns draftType vtxo-exit for active vtxo with valid proof', () => {
     const { vtxo } = setup();
     const { draft } = createExitDraft(vtxo, NOW + 1);
-    expect(draft.draftType).toBe('mock-exit');
+    expect(draft.draftType).toBe('vtxo-exit');
     expect(draft.vtxoId).toBe(vtxo.vtxoId);
     expect(draft.owner).toBe(vtxo.owner);
     expect(draft.amount).toBe(vtxo.amount);
@@ -77,11 +77,11 @@ describe('createExitDraft', () => {
     expect(draft.tokenId).toBe(vtxo.tokenId);
   });
 
-  it('returns draftType mock-exit for exiting vtxo', () => {
+  it('returns draftType vtxo-exit for exiting vtxo', () => {
     const { vtxo } = setup();
     const exiting = markExiting(vtxo, NOW + 1);
     const { draft } = createExitDraft(exiting, NOW + 2);
-    expect(draft.draftType).toBe('mock-exit');
+    expect(draft.draftType).toBe('vtxo-exit');
   });
 
   it('throws VtxoExitError for invalid terminal status', () => {
@@ -107,14 +107,14 @@ describe('createExitDraft', () => {
       proof: { ...vtxo.proof, leaf: '' },
     };
     const { draft } = createExitDraft(noProof, NOW + 1);
-    expect(draft.draftType).toBe('mock-exit');
+    expect(draft.draftType).toBe('vtxo-exit');
   });
 
   it('receipt has op=exit_initiated', () => {
     const { vtxo } = setup();
     const { receipt } = createExitDraft(vtxo, NOW + 1);
     expect(receipt.op).toBe('exit_initiated');
-    expect(receipt.draftType).toBe('mock-exit');
+    expect(receipt.draftType).toBe('vtxo-exit');
   });
 
   it('draft has timelockSeconds', () => {

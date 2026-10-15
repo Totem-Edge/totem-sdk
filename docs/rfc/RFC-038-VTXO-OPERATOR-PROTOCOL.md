@@ -1,6 +1,6 @@
 # RFC-038 — VTXO Operator Protocol
 
-Status: In progress — V0 landed; V1 landing (pool script + batch anchoring + funding-proof verify; mint record + exit next)
+Status: In progress — V0 landed; V1 anchoring landed; V2 exit tx landed (owner covenant pending); V3/V4 next
 Created: 2026-10-15
 Authors: Totem SDK Contributors
 Depends on: RFC-037 (unified WOTS), RFC-013 (WOTS leases), RFC-035 (peer coordination patterns), RFC-007 (storage durability)
@@ -137,7 +137,13 @@ Reuse RFC-035's coordination transport and its invariants:
   proof (existence + address/amount/token match + unspent + MMR proof). **Pending:**
   record the verified `fundingProof` on `mintVtxo` and add the owner exit path
   (`STATE`/timelock) that shares this script. Tests: `anchor.test.ts`.
-- **V2 — real exit.** Timelock exit tx; retire `'mock-exit'`.
+- **V2 — exit tx landed; owner covenant pending.** `exit-tx.ts` builds a real
+  `vtxo-exit` transaction (spends the pool coin, pays the owner, carries the exit
+  delay in `STATE(102)`), with a stable digest, `txHex`, and `buildExitTransaction`
+  (sign + optional mine/broadcast). The `'mock-exit'` label is retired. **Pending:**
+  the full owner-unilateral covenant — a timelock branch the owner can exercise
+  without the operator, or a pre-signed exit tx — and wiring `createExitDraft` to
+  carry the built tx. Tests: `exit-tx.test.ts`.
 - **V3 — transport.** Owner↔operator round-trips over the relay (RFC-035 seam).
 - **V4 — enforcement.** Operator spent-set + `omnia-pool` wiring.
 

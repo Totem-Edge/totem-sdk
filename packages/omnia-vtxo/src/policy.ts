@@ -18,7 +18,7 @@ export interface VtxoExitIntent {
   owner: string;
   amount: bigint;
   tokenId: string;
-  draftType: 'mock-exit';
+  draftType: 'vtxo-exit';
 }
 
 export function buildVtxoTransferIntent(
@@ -48,6 +48,6 @@ export function buildVtxoExitIntent(vtxo: OmniaVtxo): VtxoExitIntent {
     owner: vtxo.owner,
     amount: vtxo.amount,
     tokenId: vtxo.tokenId,
-    draftType: 'mock-exit',
+    draftType: 'vtxo-exit',
   };
 }

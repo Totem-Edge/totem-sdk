@@ -164,7 +164,7 @@ export interface ExitDraft {
   owner: string;
   amount: bigint;
   tokenId: string;
-  draftType: 'mock-exit';
+  draftType: 'vtxo-exit';
   timelockSeconds: number;
   createdAt: number;
   /** The verified share this exit is capped at (the VTXO's amount). */
