@@ -280,6 +280,7 @@ export function buildFundingTx(
   inputCoinIds: string[],
   inputAmounts: bigint[],
   inputAddresses: string[],
+  extraStateVariables: StateValue[] = [],
 ): OmniaTxDraft {
   // All TX amounts must be in raw Minima units.
   // Callers supply inputAmounts in the same scaled token units as totalValue;
@@ -293,12 +294,13 @@ export function buildFundingTx(
   }));
 
   const rawTotal = toRawMinima(totalValue, tokenScale);
+  const stateVariables = [...channelStateVars(false, 0), ...extraStateVariables];
   const output: TxOutputDraft = {
     address: fundingScriptAddress,
     amount: rawTotal,
     tokenId,
     storeState: true,
-    stateVariables: channelStateVars(false, 0),
+    stateVariables,
   };
 
   return {
@@ -306,7 +308,7 @@ export function buildFundingTx(
     inputs,
     outputs: [output],
     storeState: true,
-    stateVariables: channelStateVars(false, 0),
+    stateVariables,
   };
 }
 

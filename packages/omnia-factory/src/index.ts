@@ -14,6 +14,7 @@ export type {
 export {
   buildFactoryScript,
   buildAndHashFactoryScript,
+  factoryBalanceStateVariables,
   scriptAddress,
   normalizeScript,
 } from './script.js';

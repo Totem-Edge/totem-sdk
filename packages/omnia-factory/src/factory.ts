@@ -14,7 +14,7 @@ import type {
   WotsLeaseBundle,
   FactoryLogEntry,
 } from './types.js';
-import { buildAndHashFactoryScript } from './script.js';
+import { buildAndHashFactoryScript, factoryBalanceStateVariables } from './script.js';
 import { computeFactoryStateCommitment } from './commitment.js';
 
 // ─── Balance conservation ────────────────────────────────────────────────────
@@ -196,6 +196,7 @@ export async function createFactory(
       participants.map(p => p.fundingCoinId!),
       participants.map(p => p.contributionAmount),
       participants.map(p => p.settlementAddress ?? p.publicKeyDigest),
+      factoryBalanceStateVariables(participants),
     );
 
     // All parties co-sign the TX digest — the exact on-chain TX structure.

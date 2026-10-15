@@ -9520,7 +9520,8 @@
         },
         "buildEltooScript": {
           "kind": "function",
-          "signature": "buildEltooScript(parties: ChannelParticipant[]): string"
+          "signature": "buildEltooScript(parties: ChannelParticipant[]): string",
+          "doc": "Eltoo channel script (RFC-044, CUSTODY-POLICY §2).\n\nTwo spend paths:\n  - **Update** (`SETTLEMENT` false): `MULTISIG(2 A B)` + `SEQUENCE GT\n    PREVSEQUENCE` — the optimistic off-chain state advance (both sign).\n  - **Settlement** (`SETTLEMENT` true): after `@COINAGE GTE\n    ELTOO_CONTEST_DELAY_BLOCKS`, **either party alone** may spend\n    (`IF SIGNEDBY(A) … RETURN SIGNEDBY(B)`) the pre-signed latest state. This\n    is the unilateral close: an unresponsive peer can no longer strand funds.\n\nNon-custodial: a party broadcasts the pre-signed latest state and exits after\nthe contest delay without the counterparty's signature or liveness."
         },
         "normalizeScript": {
           "kind": "function",
@@ -9544,7 +9545,7 @@
         },
         "buildFundingTx": {
           "kind": "function",
-          "signature": "buildFundingTx(fundingScript: string, fundingScriptAddress: string, totalValue: bigint, tokenId: string, tokenScale: number, inputCoinIds: string[], inputAmounts: bigint[], inputAddresses: string[]): OmniaTxDraft"
+          "signature": "buildFundingTx(fundingScript: string, fundingScriptAddress: string, totalValue: bigint, tokenId: string, tokenScale: number, inputCoinIds: string[], inputAmounts: bigint[], inputAddresses: string[], extraStateVariables?: StateValue[]): OmniaTxDraft"
         },
         "buildUpdateTx": {
           "kind": "function",
@@ -10390,13 +10391,18 @@
         },
         "buildFactoryScript": {
           "kind": "function",
-          "signature": "buildFactoryScript(participants: FactoryParticipant[]): string",
-          "doc": "Build the N-of-N MULTISIG MAST funding script for a channel factory.\n\nSpending rules:\n  - Any cooperative close (SETTLEMENT=true): all N parties sign, spend after\n    minimal coinage (1 block) so the factory can be closed immediately after\n    a confirmed update.\n  - Non-settlement path: all N parties must still sign (ASSERT MULTISIG(N ...))\n    but can spend in the same block (no coinage requirement) — used for future\n    optimistic factory updates if desired.\n\n`storestate=true` is achieved by encoding STATE(100) in the output state\nvariables of every factory TX.\n\nMinimum 2 participants required."
+          "signature": "buildFactoryScript(participants: FactoryParticipant[], options?: FactoryScriptOptions): string",
+          "doc": "Build the N-of-N MULTISIG MAST funding script for a channel factory\n(RFC-044, CUSTODY-POLICY §2).\n\nSpend paths:\n  - **Cooperative / update** (any time): `MULTISIG(N …)` — all parties sign.\n    `SETTLEMENT=true` closes after minimal coinage (1 block).\n  - **Unilateral escape** (after `@COINAGE GTE timeoutBlocks`): any single\n    party k may withdraw its allocation `SHARE_k = STATE(200+k)` to its own\n    settlement address, zero its state (`STATE(200+k) EQ 0`), keep the other\n    parties' balances unchanged, and return the remainder to the factory\n    script. Repeated withdrawals cannot double-claim because each zeroes its\n    own port.\n\nMinimum 2 participants required."
         },
         "buildAndHashFactoryScript": {
           "kind": "function",
-          "signature": "buildAndHashFactoryScript(participants: FactoryParticipant[]): { script: string; address: string; }",
+          "signature": "buildAndHashFactoryScript(participants: FactoryParticipant[], options?: FactoryScriptOptions): { script: string; address: string; }",
           "doc": "Build the factory script and compute its canonical address in one step.\nThe address is used as the output address of the factory funding TX."
+        },
+        "factoryBalanceStateVariables": {
+          "kind": "function",
+          "signature": "factoryBalanceStateVariables(participants: FactoryParticipant[]): { port: number; value: bigint; type: \"number\"; }[]",
+          "doc": "Per-party allocation state variables (port 200+k = party k's balance), seeded\ninto the factory funding output so the timeout escape can pay each party its\ncommitted share."
         },
         "scriptAddress": {
           "kind": "function",
