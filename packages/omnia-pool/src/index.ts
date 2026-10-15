@@ -16,6 +16,10 @@ export {
   makeOmniaFeePolicy,
 } from './pool.js';
 
+// Live execution backends for the pool ports (RFC-035 B5 / RFC-038).
+export { createOmniaPoolLivePorts } from './live-ports.js';
+export type { OmniaPoolLivePorts, OmniaPoolLivePortsDeps } from './live-ports.js';
+
 export {
   commitToPool,
   acceptCommitment,
