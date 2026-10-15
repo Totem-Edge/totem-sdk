@@ -1,5 +1,5 @@
 /**
- * RFC-038 V1 — on-chain batch anchoring.
+ * RFC-038 V1/V2 — on-chain batch anchoring + non-custodial pool script.
  */
 
 import { buildAndHashPoolScript, poolScriptAddress } from '../pool-script.js';
@@ -13,10 +13,18 @@ import {
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 
 const OP = '0x' + 'aa'.repeat(32);
-const POOL = buildAndHashPoolScript(OP);
+const OWNER = '0x' + 'ab'.repeat(32);
+const EXIT_BLOCK = 1000;
+const POOL = buildAndHashPoolScript({
+  operatorPublicKeyDigest: OP,
+  ownerPublicKeyDigest: OWNER,
+  exitBlock: EXIT_BLOCK,
+});
 
 const params = () => ({
   operatorPublicKeyDigest: OP,
+  ownerPublicKeyDigest: OWNER,
+  exitBlock: EXIT_BLOCK,
   root: '0x' + 'bb'.repeat(32),
   epoch: 1,
   fundingCoinId: '0x' + 'cc'.repeat(32),
@@ -26,22 +34,39 @@ const params = () => ({
   tokenId: '0x00',
 });
 
-describe('pool script (RFC-038 V1)', () => {
-  it('builds a deterministic operator-controlled pool script + address', () => {
-    const first = buildAndHashPoolScript(OP);
-    const second = buildAndHashPoolScript(OP);
+describe('pool script (RFC-038 V2 — non-custodial)', () => {
+  it('builds a deterministic pool script + address', () => {
+    const first = buildAndHashPoolScript({ operatorPublicKeyDigest: OP, ownerPublicKeyDigest: OWNER, exitBlock: EXIT_BLOCK });
+    const second = buildAndHashPoolScript({ operatorPublicKeyDigest: OP, ownerPublicKeyDigest: OWNER, exitBlock: EXIT_BLOCK });
     expect(first.script).toBe(second.script);
-    expect(first.script).toContain('STATE(100)');
-    expect(first.script).toContain('STATE(101)');
-    expect(first.script).toContain('ASSERT EPOCH GT PREVSTATE(101)');
     expect(first.address).toBe(poolScriptAddress(first.script));
-    expect(first.address).toBeTruthy();
   });
 
-  it('carries root + epoch as state variables', () => {
-    expect(poolStateVariables('0xdead', 3)).toEqual([
+  it('has a unilateral owner-exit branch after the exit block', () => {
+    expect(POOL.script).toContain('IF @BLOCK GT EXITBLOCK THEN');
+    expect(POOL.script).toMatch(/RETURN SIGNEDBY\(0X[0-9A-F]+\)/);
+    expect(POOL.script).toContain('@BLOCK GT EXITBLOCK');
+  });
+
+  it('keeps cooperative updates co-signed, epoch-monotone, value-confined and exit-block-immutable', () => {
+    expect(POOL.script).toContain('ASSERT EPOCH GT PREVSTATE(101)');
+    expect(POOL.script).toContain('ASSERT SAMESTATE(102 102)');
+    expect(POOL.script).toContain('ASSERT VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID TRUE)');
+    expect(POOL.script).toContain('RETURN MULTISIG(2');
+    expect(POOL.script).toContain('STATE(101)');
+    expect(POOL.script).toContain('STATE(102)');
+  });
+
+  it('rejects a malformed key digest or exit block', () => {
+    expect(() => buildAndHashPoolScript({ operatorPublicKeyDigest: '0xZZ', ownerPublicKeyDigest: OWNER, exitBlock: 1 })).toThrow(/64 hex/);
+    expect(() => buildAndHashPoolScript({ operatorPublicKeyDigest: OP, ownerPublicKeyDigest: OWNER, exitBlock: -1 })).toThrow(/exitBlock/);
+  });
+
+  it('carries root + epoch + exit block as state variables', () => {
+    expect(poolStateVariables('0xdead', 3, 500)).toEqual([
       { port: 100, value: '0xdead', type: 'string' },
       { port: 101, value: 3n, type: 'number' },
+      { port: 102, value: 500n, type: 'number' },
     ]);
   });
 });
@@ -53,7 +78,7 @@ describe('anchorBatch (RFC-038 V1)', () => {
     expect(Buffer.from(batchAnchorDigest(a)).toString('hex')).toBe(Buffer.from(batchAnchorDigest(b)).toString('hex'));
   });
 
-  it('rejects a funding input that is not the operator pool output', () => {
+  it('rejects a funding input that is not the pool output', () => {
     expect(() => buildBatchAnchorDraft({ ...params(), fundingScript: 'RETURN TRUE' })).toThrow(/pool script/);
     expect(() => buildBatchAnchorDraft({ ...params(), fundingAddress: '0x' + '99'.repeat(32) })).toThrow(/pool address/);
   });

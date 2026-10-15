@@ -21,6 +21,9 @@ import { buildAndHashPoolScript } from './pool-script.js';
 
 export interface BatchAnchorParams {
   operatorPublicKeyDigest: string;
+  ownerPublicKeyDigest: string;
+  /** Absolute block height after which the owner may exit unilaterally (STATE(102)). */
+  exitBlock: number;
   /** The epoch's Merkle root (32-byte hex). */
   root: string;
   epoch: number;
@@ -33,25 +36,30 @@ export interface BatchAnchorParams {
   tokenId: string;
 }
 
-/** State variables carried by the pool output: STATE(100)=root, STATE(101)=epoch. */
-export function poolStateVariables(root: string, epoch: number): StateValue[] {
+/** Pool output state: STATE(100)=root, STATE(101)=epoch, STATE(102)=exitBlock. */
+export function poolStateVariables(root: string, epoch: number, exitBlock: number): StateValue[] {
   return [
     { port: 100, value: root, type: 'string' },
     { port: 101, value: BigInt(epoch), type: 'number' },
+    { port: 102, value: BigInt(exitBlock), type: 'number' },
   ];
 }
 
 /** Build the batch-anchor draft (input = pool coin, output = pool state output). */
 export function buildBatchAnchorDraft(params: BatchAnchorParams): OmniaTxDraft {
-  const { script, address } = buildAndHashPoolScript(params.operatorPublicKeyDigest);
+  const { script, address } = buildAndHashPoolScript({
+    operatorPublicKeyDigest: params.operatorPublicKeyDigest,
+    ownerPublicKeyDigest: params.ownerPublicKeyDigest,
+    exitBlock: params.exitBlock,
+  });
   // The input must be the operator's own pool output, not a foreign script.
   if (params.fundingScript !== script) {
-    throw new Error('anchorBatch: fundingScript does not match the operator pool script');
+    throw new Error('anchorBatch: fundingScript does not match the pool script');
   }
   if (params.fundingAddress !== address) {
-    throw new Error('anchorBatch: fundingAddress does not match the operator pool address');
+    throw new Error('anchorBatch: fundingAddress does not match the pool address');
   }
-  const stateVariables = poolStateVariables(params.root, params.epoch);
+  const stateVariables = poolStateVariables(params.root, params.epoch, params.exitBlock);
   return {
     type: 'settlement',
     inputs: [{

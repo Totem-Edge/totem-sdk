@@ -1,14 +1,16 @@
 /**
- * VTXO exit transaction (RFC-038 V2).
+ * VTXO exit transaction (RFC-038 V2 — owner-unilateral).
  *
- * Builds a real exit transaction: spend the pool's on-chain coin and pay the
- * VTXO's owner, carrying the exit delay in STATE(102). The digest is signed
+ * The exit spends the pool's on-chain coin and pays the VTXO's owner, carrying
+ * the exit delay in STATE(110). It is signed with the **owner's** key (not the
+ * operator's): the pool script's `IF @BLOCK GT EXITBLOCK THEN RETURN
+ * SIGNEDBY(OWNER)` branch authorizes it after the exit window, so the owner can
+ * broadcast it without any operator signature or liveness. The digest is signed
  * (injected signer) and, when a chain provider is supplied, mined + broadcast
- * (injected miner). This replaces the `'mock-exit'` draft with a concrete tx.
+ * (injected miner).
  *
- * NOTE (RFC-038 §3.4): the full owner-unilateral covenant (a timelock branch the
- * owner can exercise without the operator, or a pre-signed exit tx) is a
- * follow-on; this builds and broadcasts the transaction with the delay encoded.
+ * The caller must pass the owner signer; the operator cannot construct a valid
+ * exit witness for itself.
  */
 
 import {
@@ -23,8 +25,8 @@ import { concatBytes } from '@totemsdk/core';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import type { OmniaVtxo } from './types.js';
 
-/** State port carrying the exit delay. */
-export const EXIT_DELAY_PORT = 102;
+/** State port carrying the exit delay on the owner's output. */
+export const EXIT_DELAY_PORT = 110;
 
 export interface ExitTxParams {
   vtxo: OmniaVtxo;

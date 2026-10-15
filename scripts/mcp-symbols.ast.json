@@ -11945,8 +11945,8 @@
         },
         "buildPoolScript": {
           "kind": "function",
-          "signature": "buildPoolScript(operatorPublicKeyDigest: string): string",
-          "doc": "Operator-controlled, epoch-monotone state-carrying pool script."
+          "signature": "buildPoolScript(params: PoolScriptParams): string",
+          "doc": "Non-custodial, epoch-monotone, owner-escapable state-carrying pool script."
         },
         "poolScriptAddress": {
           "kind": "function",
@@ -11954,12 +11954,16 @@
         },
         "buildAndHashPoolScript": {
           "kind": "function",
-          "signature": "buildAndHashPoolScript(operatorPublicKeyDigest: string): { script: string; address: string; }"
+          "signature": "buildAndHashPoolScript(params: PoolScriptParams): { script: string; address: string; }"
+        },
+        "PoolScriptParams": {
+          "kind": "interface",
+          "signature": "export interface PoolScriptParams"
         },
         "poolStateVariables": {
           "kind": "function",
-          "signature": "poolStateVariables(root: string, epoch: number): StateValue[]",
-          "doc": "State variables carried by the pool output: STATE(100)=root, STATE(101)=epoch."
+          "signature": "poolStateVariables(root: string, epoch: number, exitBlock: number): StateValue[]",
+          "doc": "Pool output state: STATE(100)=root, STATE(101)=epoch, STATE(102)=exitBlock."
         },
         "buildBatchAnchorDraft": {
           "kind": "function",
@@ -12020,8 +12024,8 @@
         },
         "EXIT_DELAY_PORT": {
           "kind": "const",
-          "signature": "EXIT_DELAY_PORT = 102",
-          "doc": "State port carrying the exit delay."
+          "signature": "EXIT_DELAY_PORT = 110",
+          "doc": "State port carrying the exit delay on the owner's output."
         },
         "ExitTxParams": {
           "kind": "interface",

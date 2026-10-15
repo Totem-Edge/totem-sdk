@@ -1,6 +1,6 @@
 {
   "note": "Per-package exported-symbol counts + total, used by scripts/verify-mcp-index.mjs to catch a package silently losing exports. Regenerate with: node scripts/verify-mcp-index.mjs --update",
-  "totalSymbols": 3734,
+  "totalSymbols": 3735,
   "packages": {
     "@totemsdk/agent-policy": 94,
     "@totemsdk/authority": 29,
@@ -44,7 +44,7 @@
     "@totemsdk/omnia-relay": 50,
     "@totemsdk/omnia-router": 45,
     "@totemsdk/omnia-splice": 42,
-    "@totemsdk/omnia-vtxo": 118,
+    "@totemsdk/omnia-vtxo": 119,
     "@totemsdk/pear": 35,
     "@totemsdk/proof": 35,
     "@totemsdk/proof-integritas": 12,
