@@ -33,6 +33,12 @@ function kissHex(hex: string): string {
  * constraint: only a transaction both parties signed (the agreed split) can be
  * spent. A single-signer settlement branch would let one party pay itself
  * everything, so it must never be added without an explicit output constraint.
+ *
+ * The settlement `@COINAGE GTE ELTOO_CONTEST_DELAY_BLOCKS` is a *relative* contest
+ * delay and is deliberately not converted to an absolute `@BLOCK`: each update
+ * resets it by design. It cannot be weaponised to push the victim's clock because
+ * both update and settlement require `BOTHSIGNED` — no one can move the coin to
+ * reset coinage without the victim's signature.
  */
 export function buildEltooScript(parties: ChannelParticipant[]): string {
   if (parties.length !== 2) {

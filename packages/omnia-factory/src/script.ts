@@ -93,7 +93,13 @@ export function buildFactoryScript(
       lines.push(`      ASSERT STATE(${FACTORY_BALANCE_PORT_BASE + j}) EQ PREVSTATE(${FACTORY_BALANCE_PORT_BASE + j})`);
     }
     lines.push(`      ASSERT STATE(${port}) EQ 0`);
-    lines.push(`      RETURN VERIFYOUT(@INPUT @ADDRESS @AMOUNT SUB SHARE${k} @TOKENID TRUE)`);
+    // Whole-share guard (mirrors the VTXO script): when the withdrawing party's
+    // share is the entire output there is no remainder, so a 0-amount output is
+    // never required.
+    lines.push(`      IF @AMOUNT GT SHARE${k} THEN`);
+    lines.push(`        RETURN VERIFYOUT(@INPUT @ADDRESS @AMOUNT SUB SHARE${k} @TOKENID TRUE)`);
+    lines.push('      ENDIF');
+    lines.push('      RETURN TRUE');
     lines.push('    ENDIF');
     lines.push('  ENDIF');
   });

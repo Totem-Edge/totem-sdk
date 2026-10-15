@@ -177,7 +177,10 @@ describe('buildFactoryScript', () => {
     expect(script).toContain('ASSERT VERIFYOUT(0');
     expect(script).toContain('ASSERT STATE(200) EQ 0');
     expect(script).toContain('ASSERT STATE(201) EQ PREVSTATE(201)');
+    // Whole-share guard: no zero-remainder output when the share is the whole pool.
+    expect(script).toContain('IF @AMOUNT GT SHARE0 THEN');
     expect(script).toContain('RETURN VERIFYOUT(@INPUT @ADDRESS @AMOUNT SUB SHARE0 @TOKENID TRUE)');
+    expect(script).toContain('      RETURN TRUE');
   });
 
   test('seeds per-party allocation + escape-block state', () => {
