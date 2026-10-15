@@ -31,8 +31,11 @@
     "LICENSE"
   ],
   "dependencies": {
+    "@totemsdk/chain-provider": "workspace:^",
     "@totemsdk/core": "workspace:^",
+    "@totemsdk/omnia": "workspace:^",
     "@totemsdk/storage": "workspace:^",
+    "@totemsdk/txpow": "workspace:^",
     "@totemsdk/wots-lease": "workspace:^"
   },
   "devDependencies": {

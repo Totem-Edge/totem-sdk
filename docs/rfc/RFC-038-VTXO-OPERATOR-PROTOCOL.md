@@ -1,6 +1,6 @@
 # RFC-038 — VTXO Operator Protocol
 
-Status: In progress — V0 landed (operator co-signature + batch commitment + receipt co-signing); V1+ (on-chain anchoring, exit, transport) next
+Status: In progress — V0 landed; V1 landing (pool script + batch anchoring + funding-proof verify; mint record + exit next)
 Created: 2026-10-15
 Authors: Totem SDK Contributors
 Depends on: RFC-037 (unified WOTS), RFC-013 (WOTS leases), RFC-035 (peer coordination patterns), RFC-007 (storage durability)
@@ -128,8 +128,15 @@ Reuse RFC-035's coordination transport and its invariants:
   verify them. (Co-signing is a distinct operator step over the batch, rather than
   a per-mutation async call; this keeps the state machine synchronous.)
   Tests: `operator.test.ts`, `receipt.test.ts`.
-- **V1 — on-chain anchoring.** Pool output script + batch tx (`anchorBatch`) via
-  tx-builder/chain-provider; real `fundingProof` verify.
+- **V1 — anchoring landed; mint recording pending.** `pool-script.ts` builds the
+  operator-controlled state-carrying pool output (`STATE(100)=root`,
+  `STATE(101)=epoch`, `SIGNEDBY(operator)`); `anchor.ts` builds the batch-anchor
+  draft, exposes `batchAnchorDigest`, and `anchorBatch(...)` signs the digest
+  (injected signer), mines + broadcasts via a chain provider (injected miner), and
+  `verifyPoolFunding(coinId, expected, chainProvider)` verifies a real funding
+  proof (existence + address/amount/token match + unspent + MMR proof). **Pending:**
+  record the verified `fundingProof` on `mintVtxo` and add the owner exit path
+  (`STATE`/timelock) that shares this script. Tests: `anchor.test.ts`.
 - **V2 — real exit.** Timelock exit tx; retire `'mock-exit'`.
 - **V3 — transport.** Owner↔operator round-trips over the relay (RFC-035 seam).
 - **V4 — enforcement.** Operator spent-set + `omnia-pool` wiring.

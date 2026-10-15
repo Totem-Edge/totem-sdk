@@ -1689,12 +1689,21 @@ importers:
 
   packages/omnia-vtxo:
     dependencies:
+      '@totemsdk/chain-provider':
+        specifier: workspace:^
+        version: link:../chain-provider
       '@totemsdk/core':
         specifier: workspace:^
         version: link:../core
+      '@totemsdk/omnia':
+        specifier: workspace:^
+        version: link:../omnia
       '@totemsdk/storage':
         specifier: workspace:^
         version: link:../storage
+      '@totemsdk/txpow':
+        specifier: workspace:^
+        version: link:../txpow
       '@totemsdk/wots-lease':
         specifier: workspace:^
         version: link:../wots-lease
