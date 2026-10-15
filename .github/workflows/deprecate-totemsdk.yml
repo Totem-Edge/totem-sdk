@@ -1,0 +1,60 @@
+name: Deprecate @totemsdk package version
+
+# Manual, one-shot: mark a specific published version as deprecated (e.g. a
+# security regression like @totemsdk/omnia@2.0.0). npm versions are immutable —
+# a newer publish does not remove an older one — so a vulnerable version must be
+# deprecated (or unpublished) explicitly.
+#
+# Usage:
+#   gh workflow run deprecate-totemsdk.yml \
+#     -f package=@totemsdk/omnia -f version=2.0.0 \
+#     -f message="critical: use >= 2.0.1"
+#
+# Gated by the `npm-production` environment (approval required).
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: 'Full package name (e.g. @totemsdk/omnia)'
+        required: true
+        type: string
+      version:
+        description: 'Exact version to deprecate (e.g. 2.0.0)'
+        required: true
+        type: string
+      message:
+        description: 'Deprecation message shown to installers'
+        required: true
+        type: string
+
+jobs:
+  deprecate:
+    name: Deprecate ${{ inputs.package }}@${{ inputs.version }}
+    runs-on: ubuntu-latest
+    environment:
+      name: npm-production
+      url: https://www.npmjs.com/package/${{ inputs.package }}
+    steps:
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Guard inputs
+        run: |
+          case "${{ inputs.package }}" in
+            @totemsdk/*) ;;
+            *) echo "::error::package must be under @totemsdk/"; exit 1;;
+          esac
+          if ! [[ "${{ inputs.version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-+].*)?$ ]]; then
+            echo "::error::version must be an exact semver"; exit 1
+          fi
+
+      - name: npm deprecate
+        run: npm deprecate "${{ inputs.package }}@${{ inputs.version }}" "${{ inputs.message }}"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
