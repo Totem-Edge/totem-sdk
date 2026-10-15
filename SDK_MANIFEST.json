@@ -205,8 +205,8 @@
         "@totemsdk/chain-provider": "^0.2.1",
         "@totemsdk/kissvm": "^1.2.1",
         "@totemsdk/lookup-client": "^0.2.0",
-        "@totemsdk/omnia": "^1.0.3",
-        "@totemsdk/omnia-factory": "^0.2.1",
+        "@totemsdk/omnia": "^2.0.0",
+        "@totemsdk/omnia-factory": "^0.3.0",
         "@totemsdk/omnia-router": "^0.2.1",
         "@totemsdk/omnia-splice": "^0.2.1",
         "@totemsdk/pear": "^0.2.1",
@@ -875,7 +875,7 @@
     },
     {
       "name": "@totemsdk/omnia",
-      "version": "1.0.3",
+      "version": "2.0.0",
       "description": "Omnia eltoo payment channel state machine — transport-agnostic, WOTS-safe, HTLC-ready",
       "domain": "payment-network",
       "keywords": [
@@ -913,7 +913,7 @@
     },
     {
       "name": "@totemsdk/omnia-factory",
-      "version": "0.2.1",
+      "version": "0.3.0",
       "description": "Channel factory — N-of-N MULTISIG funding, virtual channel management, factory settlement",
       "domain": "payment-network",
       "keywords": [
@@ -925,7 +925,7 @@
       "dependencies": {
         "@totemsdk/chain-provider": "^0.2.1",
         "@totemsdk/core": "^1.2.11",
-        "@totemsdk/omnia": "^1.0.3",
+        "@totemsdk/omnia": "^2.0.0",
         "@totemsdk/storage": "^0.1.0",
         "@totemsdk/tx-builder": "^0.2.1",
         "@totemsdk/txpow": "^1.0.2",
@@ -958,7 +958,7 @@
       ],
       "dependencies": {
         "@totemsdk/core": "^1.2.11",
-        "@totemsdk/omnia": "^1.0.3",
+        "@totemsdk/omnia": "^2.0.0",
         "@totemsdk/storage": "^0.1.0"
       },
       "exports": {
@@ -982,7 +982,7 @@
       ],
       "dependencies": {
         "@totemsdk/core": "^1.2.11",
-        "@totemsdk/omnia": "^1.0.3",
+        "@totemsdk/omnia": "^2.0.0",
         "@totemsdk/storage": "^0.1.0",
         "@totemsdk/tx-builder": "^0.2.1",
         "@totemsdk/txpow": "^1.0.2",
@@ -999,7 +999,7 @@
     },
     {
       "name": "@totemsdk/omnia-vtxo",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "description": "Virtual UTXO / payment-pool claim layer — cash-like off-chain balance primitive",
       "domain": "payment-network",
       "keywords": [
@@ -1012,7 +1012,7 @@
       "dependencies": {
         "@totemsdk/chain-provider": "^0.2.1",
         "@totemsdk/core": "^1.2.11",
-        "@totemsdk/omnia": "^1.0.3",
+        "@totemsdk/omnia": "^2.0.0",
         "@totemsdk/storage": "^0.1.0",
         "@totemsdk/txpow": "^1.0.2",
         "@totemsdk/wots-lease": "^1.0.1"
@@ -1599,11 +1599,11 @@
         "@totemsdk/identity": "^1.0.1",
         "@totemsdk/manifest": "^1.0.0",
         "@totemsdk/minima-rpc": "^0.2.2",
-        "@totemsdk/omnia": "^1.0.3",
-        "@totemsdk/omnia-factory": "^0.2.1",
+        "@totemsdk/omnia": "^2.0.0",
+        "@totemsdk/omnia-factory": "^0.3.0",
         "@totemsdk/omnia-router": "^0.2.1",
         "@totemsdk/omnia-splice": "^0.2.1",
-        "@totemsdk/omnia-vtxo": "^0.3.0",
+        "@totemsdk/omnia-vtxo": "^0.4.0",
         "@totemsdk/storage": "^0.1.0",
         "@totemsdk/wots-lease": "^1.0.1"
       },
@@ -1732,11 +1732,11 @@
         "@totemsdk/chain-provider": "^0.2.1",
         "@totemsdk/core": "^1.2.11",
         "@totemsdk/liquidity-bond": "^0.3.1",
-        "@totemsdk/omnia": "^1.0.3",
-        "@totemsdk/omnia-factory": "^0.2.1",
+        "@totemsdk/omnia": "^2.0.0",
+        "@totemsdk/omnia-factory": "^0.3.0",
         "@totemsdk/omnia-router": "^0.2.1",
         "@totemsdk/omnia-splice": "^0.2.1",
-        "@totemsdk/omnia-vtxo": "^0.3.0",
+        "@totemsdk/omnia-vtxo": "^0.4.0",
         "@totemsdk/storage": "^0.1.0",
         "@totemsdk/tx-builder": "^0.2.1",
         "@totemsdk/wots-lease": "^1.0.1"
@@ -1776,8 +1776,8 @@
         "@totemsdk/chain-provider": "^0.2.1",
         "@totemsdk/core": "^1.2.11",
         "@totemsdk/identity": "^1.0.1",
-        "@totemsdk/omnia": "^1.0.3",
-        "@totemsdk/omnia-factory": "^0.2.1",
+        "@totemsdk/omnia": "^2.0.0",
+        "@totemsdk/omnia-factory": "^0.3.0",
         "@totemsdk/omnia-router": "^0.2.1",
         "@totemsdk/omnia-splice": "^0.2.1",
         "@totemsdk/root-identity": "^1.0.9",
