@@ -86,13 +86,11 @@ machine-readable (see `scripts/verify-sdk-manifest.mjs`).
 > committed share) from an **unconstrained** one (`RETURN SIGNEDBY(OWNER)` paying
 > anywhere). A single-signer spend path with no output/`VERIFYOUT`/committed-digest
 > constraint lets the signer sweep the output — the "malicious unilateral close"
-> class. Real conformance is owned by the **dynamic canary** (§6): recover funds
-> while the counterparty is offline **and** prove a malicious unilateral close
-> fails. Golden-script fixtures (static) are a worthwhile second check but do not
-> replace execution. Any script whose only spend paths require `MULTISIG(N …)` /
-> `BOTHSIGNED` still passes rule 4 only if it also carries a real escape; a
-> single-signer exit is **not** an improvement over a both-sign requirement unless
-> its outputs are constrained.
+> class. The **golden fixtures** (`scripts/custody-golden.mjs --check`, CI after
+> build) pin the exact built script so a custody-script change is always reviewed,
+> but they still don't prove liveness. Real conformance is owned by the **dynamic
+> canary** (§6): recover funds while the counterparty is offline **and** prove a
+> malicious unilateral close fails.
 
 ## 5. Cross-cutting invariants (all packages)
 
@@ -124,8 +122,8 @@ A `non-custodial` claim must be *proven*, not asserted:
 |---|---|---|
 | `@totemsdk/statechain` | non-custodial ✅ | reference — owner reclaim after `RECLAIM_TIMELOCK` |
 | `@totemsdk/omnia` | non-custodial ✅ | co-signed close package (both-signed settlement) broadcast unilaterally after the contest delay; no single-signer spend path |
-| `@totemsdk/omnia-factory` | non-custodial ✅ | N-of-N close + per-party timeout escape |
-| `@totemsdk/omnia-vtxo` | non-custodial ✅ | owner exit branch after `exitTimelock`; root update co-signed |
+| `@totemsdk/omnia-vtxo` | non-custodial ✅ | per-share constrained exit after `EXITBLOCK` (each holder withdraws only its committed share); cooperative update co-signed |
+| `@totemsdk/omnia-factory` | non-custodial ✅ | N-of-N close + per-party escape after the absolute block in `STATE(103)` |
 | `@totemsdk/omnia-pool` | non-custodial ✅ | inherits the VTXO pool script |
 | `@totemsdk/omnia-splice` | non-custodial ✅ | inherits the channel script |
 | `@totemsdk/liquidity-bond` | non-custodial ✅ | data-only (no value held) — disclaimed |

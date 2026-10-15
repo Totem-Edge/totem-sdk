@@ -1,6 +1,6 @@
 # RFC-038 — VTXO Operator Protocol
 
-Status: In progress — V0 landed; V1 anchoring landed; V2 non-custodial owner exit landed; V3/V4 next
+Status: In progress — V0 landed; V1 anchoring landed; V2/V3 per-share non-custodial exit landed; V4 next
 Created: 2026-10-15
 Authors: Totem SDK Contributors
 Depends on: RFC-037 (unified WOTS), RFC-013 (WOTS leases), RFC-035 (peer coordination patterns), RFC-007 (storage durability)
@@ -77,16 +77,16 @@ VTXO primitive.
 - **Target** pool: an on-chain output holding `totalCapacity`, spendable by
   `MULTISIG(2 operator owner)` / covenant (eltoo-style) so an epoch root update
   is a co-signed spend and an exit is a unilateral timelocked spend.
-- **As implemented (V2 — non-custodial)**: the pool script has a unilateral owner
-  exit branch — `IF @BLOCK GT EXITBLOCK THEN RETURN SIGNEDBY(OWNER)` (STATE(102) =
-  the owner's absolute exit block) — plus a co-signed cooperative update path
-  `MULTISIG(2 OPERATOR OWNER)` that is epoch-monotone
-  (`ASSERT EPOCH GT PREVSTATE(101)`), keeps the exit block immutable
-  (`ASSERT SAMESTATE(102 102)`) so the operator cannot push the owner's escape
-  clock, and confines value to the pool script
-  (`ASSERT VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID TRUE)`) so the operator can
-  never pay itself. The operator holds no unilateral path — it is a liveness-only
-  peer. The exit tx (`exit.ts`/`exit-tx.ts`) is **owner-signed**.
+- **As implemented (V3 — per-share non-custodial)**: the pool script has a
+  **per-holder** exit branch — after `@BLOCK GT EXITBLOCK` (STATE(102)) each holder
+  k may withdraw **only its committed share** `STATE(200+k)`, zeroing that share
+  and returning the remainder to the pool (`IF SIGNEDBY(holder) … VERIFYOUT(0
+  holder SHARE …)`) — so no holder can rug the others. Cooperative updates are
+  `MULTISIG(operator + all holders)`, epoch-monotone
+  (`ASSERT EPOCH GT PREVSTATE(101)`), exit-block-immutable (`ASSERT SAMESTATE(102
+  102)`), value-confined (`ASSERT VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID
+  TRUE)`). The operator holds no unilateral path. The exit tx (`exit-tx.ts`) is
+  **per-share, holder-signed**.
 - `anchorBatch(pool, batch)`: build + sign + broadcast the batch tx that writes
   the new root/epoch (via `tx-builder` + `chain-provider`), mirroring the Omnia
   factory funding flow (RFC-034 §6.4). The draft validates that the funding
@@ -97,14 +97,14 @@ VTXO primitive.
 
 ### 3.4 Exit
 
-- `createExitDraft(vtxo)` builds an exit tx spending the pool output to
-  `vtxo.owner` with an absolute timelock = `now + policy.exitTimelockSeconds`
-  (Minima `@COINAGE GTE`/timelock script), `draftType: 'vtxo-exit'`.
+- `createExitDraft(vtxo)` builds a **per-share** exit tx spending the pool output:
+  output 0 pays the exiting holder its committed share, the remainder returns to
+  the pool (with that holder's share state zeroed). `draftType: 'vtxo-exit'`.
 - `markExiting` → the draft is broadcast; `markExited(vtxo, { txpowId, now })`
   records the on-chain confirmation (the txpowId is stored as `exitTxpowId` and in
   the exit history). The exit-receipt guard (double-exit prevention) stays. The
-  exit tx is signed with the **owner's** key — the operator cannot build a valid
-  exit witness.
+  exit tx is signed with the **holder's** key — neither the operator nor another
+  holder can build a valid witness.
 
 ### 3.5 Owner↔operator transport
 
@@ -161,16 +161,16 @@ Reuse RFC-035's coordination transport and its invariants:
   `fundingProof` but does not yet verify it. **Pending:** cryptographically verify
   the funding/MRR proof, and add the owner exit path (`STATE`/timelock) that shares
   this script. Tests: `anchor.test.ts`.
-- **V2 — non-custodial exit landed.** The pool script (`pool-script.ts`) gained the
-  unilateral owner-exit branch (`IF @BLOCK GT EXITBLOCK THEN RETURN
-  SIGNEDBY(OWNER)`) and the cooperative update path became `MULTISIG(2 OPERATOR
-  OWNER)` with `SAMESTATE(102 102)` + `VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID
-  TRUE)` — the operator can neither move, freeze, nor push the owner's clock.
-  `exit-tx.ts` builds a real `vtxo-exit` transaction (spends the pool coin, pays
-  the owner, carries the exit delay in STATE(110)), owner-signed. **Pending:** the
-  owner-unilateral covenant as a *pre-signed* exit tx attached at funding; wiring
-  `createExitDraft` to carry the built tx; and cryptographic funding-proof
-  verification. Tests: `anchor.test.ts`, `exit-tx.test.ts`.
+- **V2/V3 — per-share non-custodial exit landed.** The pool script
+  (`pool-script.ts`) has a **per-holder** exit branch — after `@BLOCK GT EXITBLOCK`
+  each holder k withdraws **only** its committed share `STATE(200+k)`, zeroing it
+  and returning the remainder to the pool — plus a cooperative update path
+  `MULTISIG(operator + all holders)` with `SAMESTATE(102 102)` +
+  `VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID TRUE)` — the operator can neither
+  move, freeze, nor push the exit clock, and no holder can rug the others.
+  `exit-tx.ts` builds a real per-share `vtxo-exit` transaction, holder-signed.
+  **Pending:** pre-signed exit tx attached at funding; cryptographic
+  funding-proof verification. Tests: `anchor.test.ts`, `exit-tx.test.ts`.
 - **V3 — transport.** Owner↔operator round-trips over the relay (RFC-035 seam).
 - **V4 — enforcement.** Operator spent-set + `omnia-pool` wiring.
 
@@ -181,7 +181,8 @@ Reuse RFC-035's coordination transport and its invariants:
 | Forged receipt | WOTS verify-before-accept (§3.1); verify-before-**sign** recomputes the batch root; operator identity is the tree root | V0 |
 | Double-spend a VTXO | Batch-root membership + operator spent-set (§3.6) | V0 (membership) / V4 (spent-set) |
 | Stale/rolled-back root | Epoch monotonicity — operator-side on receipt, **and on-chain** (`ASSERT EPOCH GT PREVSTATE(101)`) | V1 |
-| Operator withholds an exit | Unilateral timelocked exit tx (§3.4) — `RETURN SIGNEDBY(OWNER)` after `EXITBLOCK`; owner-signed tx | V2 |
+| A holder rugs other holders | Per-share constrained exit — each holder withdraws only `STATE(200+k)` (§3.4) | V3 |
+| Operator withholds an exit | Per-share timelocked exit tx (§3.4) — holder-signed after `EXITBLOCK` | V3 |
 | Lease reuse | One reservation per receipt; burn on abort (§3.5) | V0 |
 | Wrong-chain anchoring | `fundingProof` recorded at mint; `checkPoolFunding` checks address/amount/token/unspent | ⚠️ V1 — proof is recorded, not cryptographically verified (`proofVerified: false` unless a `verifyProof` callback is supplied) |
 

@@ -83,6 +83,10 @@ jobs:
         run: npm run build
       - name: Build workspace (dependency order)
         run: node scripts/verify-workspace.mjs --typecheck
+      - name: Custody golden-script fixtures (RFC-039)
+        run: |
+          for p in statechain omnia omnia-factory omnia-vtxo; do (cd "packages/$p" && npx tsc); done
+          node scripts/custody-golden.mjs --check
       - name: Rebuild native sqlite bindings (install uses --ignore-scripts)
         run: pnpm -r rebuild better-sqlite3
       - name: Run unit tests (workspace)

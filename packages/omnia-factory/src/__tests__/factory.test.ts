@@ -10,6 +10,7 @@ import {
   buildFactoryScript,
   buildAndHashFactoryScript,
   factoryBalanceStateVariables,
+  factoryEscapeStateVariable,
   computeFactoryStateCommitment,
 } from '../index';
 import type {
@@ -167,9 +168,10 @@ describe('buildFactoryScript', () => {
     expect(script).toContain('CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC');
   });
 
-  test('adds a per-party unilateral escape after the timeout (RFC-039)', () => {
+  test('adds a per-party unilateral escape after the absolute escape block (RFC-039)', () => {
     const script = buildFactoryScript([ALICE, BOB]);
-    expect(script).toContain('IF @COINAGE GTE 256 THEN');
+    expect(script).toContain('ASSERT SAMESTATE(103 103)');
+    expect(script).toContain('IF @BLOCK GT STATE(103) THEN');
     expect(script).toContain('LET SHARE0=STATE(200)');
     expect(script).toContain('LET SHARE1=STATE(201)');
     expect(script).toContain('ASSERT VERIFYOUT(0');
@@ -178,11 +180,13 @@ describe('buildFactoryScript', () => {
     expect(script).toContain('RETURN VERIFYOUT(@INPUT @ADDRESS @AMOUNT SUB SHARE0 @TOKENID TRUE)');
   });
 
-  test('seeds per-party allocation state (port 200+k)', () => {
+  test('seeds per-party allocation + escape-block state', () => {
     expect(factoryBalanceStateVariables([ALICE, BOB])).toEqual([
       { port: 200, value: 1000n, type: 'number' },
       { port: 201, value: 500n, type: 'number' },
     ]);
+    expect(factoryEscapeStateVariable(5000)).toEqual({ port: 103, value: 5000n, type: 'number' });
+    expect(() => factoryEscapeStateVariable(-1)).toThrow(/escapeBlock/);
   });
 
   test('throws with fewer than 2 participants', () => {

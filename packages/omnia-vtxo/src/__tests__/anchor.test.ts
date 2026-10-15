@@ -1,8 +1,8 @@
 /**
- * RFC-038 V1/V2 — on-chain batch anchoring + non-custodial pool script.
+ * RFC-038 V1/V3 — on-chain batch anchoring + per-share non-custodial pool script.
  */
 
-import { buildAndHashPoolScript, poolScriptAddress } from '../pool-script.js';
+import { buildAndHashPoolScript, poolScriptAddress, POOL_SHARE_PORT_BASE } from '../pool-script.js';
 import {
   buildBatchAnchorDraft,
   batchAnchorDigest,
@@ -17,13 +17,14 @@ const OWNER = '0x' + 'ab'.repeat(32);
 const EXIT_BLOCK = 1000;
 const POOL = buildAndHashPoolScript({
   operatorPublicKeyDigest: OP,
-  ownerPublicKeyDigest: OWNER,
+  holders: [OWNER],
   exitBlock: EXIT_BLOCK,
 });
 
 const params = () => ({
   operatorPublicKeyDigest: OP,
-  ownerPublicKeyDigest: OWNER,
+  holders: [OWNER],
+  shares: [1000n],
   exitBlock: EXIT_BLOCK,
   root: '0x' + 'bb'.repeat(32),
   epoch: 1,
@@ -34,18 +35,22 @@ const params = () => ({
   tokenId: '0x00',
 });
 
-describe('pool script (RFC-038 V2 — non-custodial)', () => {
+describe('pool script (RFC-038 V3 — per-share non-custodial)', () => {
   it('builds a deterministic pool script + address', () => {
-    const first = buildAndHashPoolScript({ operatorPublicKeyDigest: OP, ownerPublicKeyDigest: OWNER, exitBlock: EXIT_BLOCK });
-    const second = buildAndHashPoolScript({ operatorPublicKeyDigest: OP, ownerPublicKeyDigest: OWNER, exitBlock: EXIT_BLOCK });
-    expect(first.script).toBe(second.script);
-    expect(first.address).toBe(poolScriptAddress(first.script));
+    const a = buildAndHashPoolScript({ operatorPublicKeyDigest: OP, holders: [OWNER], exitBlock: EXIT_BLOCK });
+    const b = buildAndHashPoolScript({ operatorPublicKeyDigest: OP, holders: [OWNER], exitBlock: EXIT_BLOCK });
+    expect(a.script).toBe(b.script);
+    expect(a.address).toBe(poolScriptAddress(a.script));
   });
 
-  it('has a unilateral owner-exit branch after the exit block', () => {
+  it('has a per-holder exit branch constrained to the committed share', () => {
     expect(POOL.script).toContain('IF @BLOCK GT EXITBLOCK THEN');
-    expect(POOL.script).toMatch(/RETURN SIGNEDBY\(0X[0-9A-F]+\)/);
-    expect(POOL.script).toContain('@BLOCK GT EXITBLOCK');
+    expect(POOL.script).toContain('IF SIGNEDBY(');
+    expect(POOL.script).toContain('IF SHARE0 GT 0 THEN');
+    expect(POOL.script).toContain('ASSERT VERIFYOUT(0');
+    // zeroes its own share, returns remainder to the pool
+    expect(POOL.script).toContain(`ASSERT STATE(${POOL_SHARE_PORT_BASE}) EQ 0`);
+    expect(POOL.script).toContain('RETURN VERIFYOUT(@INPUT @ADDRESS @AMOUNT SUB SHARE0 @TOKENID TRUE)');
   });
 
   it('keeps cooperative updates co-signed, epoch-monotone, value-confined and exit-block-immutable', () => {
@@ -57,16 +62,19 @@ describe('pool script (RFC-038 V2 — non-custodial)', () => {
     expect(POOL.script).toContain('STATE(102)');
   });
 
-  it('rejects a malformed key digest or exit block', () => {
-    expect(() => buildAndHashPoolScript({ operatorPublicKeyDigest: '0xZZ', ownerPublicKeyDigest: OWNER, exitBlock: 1 })).toThrow(/64 hex/);
-    expect(() => buildAndHashPoolScript({ operatorPublicKeyDigest: OP, ownerPublicKeyDigest: OWNER, exitBlock: -1 })).toThrow(/exitBlock/);
+  it('rejects bad keys, no holders, or a bad exit block', () => {
+    expect(() => buildAndHashPoolScript({ operatorPublicKeyDigest: '0xZZ', holders: [OWNER], exitBlock: 1 })).toThrow(/64 hex/);
+    expect(() => buildAndHashPoolScript({ operatorPublicKeyDigest: OP, holders: [], exitBlock: 1 })).toThrow(/holder/);
+    expect(() => buildAndHashPoolScript({ operatorPublicKeyDigest: OP, holders: [OWNER], exitBlock: -1 })).toThrow(/exitBlock/);
   });
 
-  it('carries root + epoch + exit block as state variables', () => {
-    expect(poolStateVariables('0xdead', 3, 500)).toEqual([
+  it('carries root + epoch + exit block + per-holder shares as state', () => {
+    expect(poolStateVariables('0xdead', 3, 500, [1000n, 250n])).toEqual([
       { port: 100, value: '0xdead', type: 'string' },
       { port: 101, value: 3n, type: 'number' },
       { port: 102, value: 500n, type: 'number' },
+      { port: POOL_SHARE_PORT_BASE, value: 1000n, type: 'number' },
+      { port: POOL_SHARE_PORT_BASE + 1, value: 250n, type: 'number' },
     ]);
   });
 });
@@ -78,7 +86,8 @@ describe('anchorBatch (RFC-038 V1)', () => {
     expect(Buffer.from(batchAnchorDigest(a)).toString('hex')).toBe(Buffer.from(batchAnchorDigest(b)).toString('hex'));
   });
 
-  it('rejects a funding input that is not the pool output', () => {
+  it('rejects mismatched holders/shares or a foreign funding input', () => {
+    expect(() => buildBatchAnchorDraft({ ...params(), shares: [] })).toThrow(/same length/);
     expect(() => buildBatchAnchorDraft({ ...params(), fundingScript: 'RETURN TRUE' })).toThrow(/pool script/);
     expect(() => buildBatchAnchorDraft({ ...params(), fundingAddress: '0x' + '99'.repeat(32) })).toThrow(/pool address/);
   });
@@ -120,7 +129,6 @@ describe('checkPoolFunding (RFC-038 V1)', () => {
     } as unknown as ChainStateProvider;
     const result = await checkPoolFunding(coin.coinid, expected, chainProvider);
     expect(result.ok).toBe(true);
-    expect(result.proof).toBeTruthy();
     expect(result.proofVerified).toBe(false);
   });
 

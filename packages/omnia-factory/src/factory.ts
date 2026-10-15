@@ -14,7 +14,7 @@ import type {
   WotsLeaseBundle,
   FactoryLogEntry,
 } from './types.js';
-import { buildAndHashFactoryScript, factoryBalanceStateVariables } from './script.js';
+import { buildAndHashFactoryScript, factoryBalanceStateVariables, factoryEscapeStateVariable, FACTORY_ESCAPE_DELAY_BLOCKS } from './script.js';
 import { computeFactoryStateCommitment } from './commitment.js';
 
 // ─── Balance conservation ────────────────────────────────────────────────────
@@ -187,6 +187,8 @@ export async function createFactory(
 
   const allHaveCoinId = participants.every(p => p.fundingCoinId);
   if (allHaveCoinId && chainProvider) {
+    const tip = await chainProvider.getTip();
+    const escapeBlock = tip.block + FACTORY_ESCAPE_DELAY_BLOCKS;
     const fundingDraft = buildFundingTx(
       script,
       address,
@@ -196,7 +198,7 @@ export async function createFactory(
       participants.map(p => p.fundingCoinId!),
       participants.map(p => p.contributionAmount),
       participants.map(p => p.settlementAddress ?? p.publicKeyDigest),
-      factoryBalanceStateVariables(participants),
+      [...factoryBalanceStateVariables(participants), factoryEscapeStateVariable(escapeBlock)],
     );
 
     // All parties co-sign the TX digest — the exact on-chain TX structure.

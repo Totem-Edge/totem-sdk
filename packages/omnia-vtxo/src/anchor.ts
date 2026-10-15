@@ -17,12 +17,15 @@ import {
 import { serializeTxBody, mineTxPoW, TX_POW_MIN_DIFFICULTY } from '@totemsdk/txpow';
 import { concatBytes } from '@totemsdk/core';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
-import { buildAndHashPoolScript } from './pool-script.js';
+import { buildAndHashPoolScript, POOL_SHARE_PORT_BASE } from './pool-script.js';
 
 export interface BatchAnchorParams {
   operatorPublicKeyDigest: string;
-  ownerPublicKeyDigest: string;
-  /** Absolute block height after which the owner may exit unilaterally (STATE(102)). */
+  /** Holder WOTS public-key digests (one per pool share). */
+  holders: string[];
+  /** Committed share per holder (aligned with `holders`); Σ = pool capacity. */
+  shares: bigint[];
+  /** Absolute block height after which holders may exit unilaterally (STATE(102)). */
   exitBlock: number;
   /** The epoch's Merkle root (32-byte hex). */
   root: string;
@@ -36,20 +39,29 @@ export interface BatchAnchorParams {
   tokenId: string;
 }
 
-/** Pool output state: STATE(100)=root, STATE(101)=epoch, STATE(102)=exitBlock. */
-export function poolStateVariables(root: string, epoch: number, exitBlock: number): StateValue[] {
+/** Pool output state: STATE(100)=root, STATE(101)=epoch, STATE(102)=exitBlock, STATE(300+k)=share k. */
+export function poolStateVariables(
+  root: string,
+  epoch: number,
+  exitBlock: number,
+  shares: bigint[] = [],
+): StateValue[] {
   return [
     { port: 100, value: root, type: 'string' },
     { port: 101, value: BigInt(epoch), type: 'number' },
     { port: 102, value: BigInt(exitBlock), type: 'number' },
+    ...shares.map((share, k) => ({ port: POOL_SHARE_PORT_BASE + k, value: share, type: 'number' as const })),
   ];
 }
 
 /** Build the batch-anchor draft (input = pool coin, output = pool state output). */
 export function buildBatchAnchorDraft(params: BatchAnchorParams): OmniaTxDraft {
+  if (params.holders.length !== params.shares.length) {
+    throw new Error('anchorBatch: holders and shares must be the same length');
+  }
   const { script, address } = buildAndHashPoolScript({
     operatorPublicKeyDigest: params.operatorPublicKeyDigest,
-    ownerPublicKeyDigest: params.ownerPublicKeyDigest,
+    holders: params.holders,
     exitBlock: params.exitBlock,
   });
   // The input must be the operator's own pool output, not a foreign script.
@@ -59,7 +71,7 @@ export function buildBatchAnchorDraft(params: BatchAnchorParams): OmniaTxDraft {
   if (params.fundingAddress !== address) {
     throw new Error('anchorBatch: fundingAddress does not match the pool address');
   }
-  const stateVariables = poolStateVariables(params.root, params.epoch, params.exitBlock);
+  const stateVariables = poolStateVariables(params.root, params.epoch, params.exitBlock, params.shares);
   return {
     type: 'settlement',
     inputs: [{

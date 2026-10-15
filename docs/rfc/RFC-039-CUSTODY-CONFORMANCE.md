@@ -67,28 +67,27 @@ contest delay — no counterparty liveness, and no theft vector.
 ### 3.3 omnia-factory — per-party timeout escape (landed)
 
 `buildFactoryScript` keeps the N-of-N cooperative path and adds, before it, a
-per-party branch after `@COINAGE GTE timeoutBlocks`: party k alone withdraws
-`SHARE_k = STATE(200+k)` to its settlement address, **zeroes** `STATE(200+k)`,
-keeps the others' balances unchanged (`STATE(j) EQ PREVSTATE(j)`), and returns
-the remainder to the factory script. `factoryBalanceStateVariables` seeds the
-balances; `buildFundingTx` carries them.
+per-party branch after the **absolute** escape block carried in `STATE(103)`
+(`IF @BLOCK GT STATE(103)`, immutable on every spend via `SAMESTATE(103 103)`):
+party k alone withdraws `SHARE_k = STATE(200+k)` to its settlement address,
+**zeroes** `STATE(200+k)`, keeps the others' balances unchanged (`STATE(j) EQ
+PREVSTATE(j)`), and returns the remainder to the factory script.
+`factoryBalanceStateVariables` + `factoryEscapeStateVariable` seed the state;
+`buildFundingTx` carries them (escape block = funding tip + `FACTORY_ESCAPE_DELAY_BLOCKS`).
 
 ### 3.4 omnia-vtxo — non-custodial pool (landed; RFC-038 V2)
 
-`buildPoolScript` gained the owner escape
-(`IF @BLOCK GT EXITBLOCK THEN RETURN SIGNEDBY(OWNER)`); cooperative root updates
-are `MULTISIG(2 operator owner)` with `SAMESTATE(102 102)` (the operator cannot
-push the owner's clock) and `VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID TRUE)`
-(the operator can never pay itself). The exit tx is owner-signed.
+`buildPoolScript` is now **per-share constrained**: after `@BLOCK GT EXITBLOCK`
+each holder k may withdraw **only its committed share** `STATE(200+k)` to its own
+key, zeroing that share and returning the remainder to the pool (mirrors the
+factory escape) — so no holder can rug the others. Cooperative root updates are
+`MULTISIG(operator + all holders)` with `SAMESTATE(102 102)` (no one can push the
+exit clock) and `VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID TRUE)`. The exit tx
+(`exit-tx.ts`) is per-share and holder-signed.
 
-> **Ownership model — open.** The escape is unconstrained
-> (`RETURN SIGNEDBY(OWNER)` may pay anywhere) and assumes a **single-owner pool**:
-> the `OWNER` is the sole beneficiary, so an unconstrained exit is a
-> self-withdrawal, not theft. If a pool backs **multiple holders' VTXOs** under
-> one `OWNER`, that owner can rug the other holders after `EXITBLOCK`. Shared
-> pools therefore require a **per-share, output-constrained** exit
-> (`VERIFYOUT` to each holder's committed share). Until that lands, pools must be
-> single-owner or shared pools are `trust-minimised`.
+> **Resolved.** An earlier revision's `RETURN SIGNEDBY(OWNER)` exit was
+> unconstrained and only safe for a single-owner pool. It is now per-share, so
+> shared pools are safe too.
 
 ### 3.5 Bonds — disclaim (landed)
 
@@ -106,7 +105,10 @@ custodial-capable path must fail closed once a non-custodial path exists).
 
 ## 5. Verification (in progress)
 
-- **Static:** rule 3 above asserts the unilateral path exists per script.
+- **Static (grep + golden):** `validate-custody.mjs` asserts the recovery path
+  exists per script; `custody-golden.mjs --check` (CI, after build) pins the
+  **exact** locking script each value-bearing package builds, so any change to a
+  custody script must be intentional and reviewed.
 - **Dynamic:** Canary custody scenarios — recover funds on a real isolated chain
   while the counterparty/operator/SE is **offline and withholding**, plus a
   rejected double-spend — and a proof-ladder L3+ `custody:*` requirement. Tracked

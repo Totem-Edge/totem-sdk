@@ -10,15 +10,18 @@ function kissHex(hex: string): string {
   return '0X' + raw.toUpperCase();
 }
 
-/** Default coinage (blocks) after which any party may unilaterally withdraw. */
-export const FACTORY_TIMEOUT_BLOCKS = 256;
+/** Blocks after the funding tip at which the unilateral escape opens. */
+export const FACTORY_ESCAPE_DELAY_BLOCKS = 256;
+
+/** State port carrying the absolute escape block (STATE(103)). */
+export const FACTORY_ESCAPE_PORT = 103;
 
 /** State port base for per-party allocations: party k ⇒ port 200+k. */
 export const FACTORY_BALANCE_PORT_BASE = 200;
 
 export interface FactoryScriptOptions {
-  /** Coinage threshold for the unilateral per-party escape (default 256). */
-  timeoutBlocks?: number;
+  /** Reserved for callers; the escape block is carried in STATE(103) at funding. */
+  escapeBlock?: number;
 }
 
 /**
@@ -36,6 +39,14 @@ export function factoryBalanceStateVariables(
   }));
 }
 
+/** Absolute escape-block state variable (STATE(103)) for the factory funding output. */
+export function factoryEscapeStateVariable(escapeBlock: number): { port: number; value: bigint; type: 'number' } {
+  if (!Number.isInteger(escapeBlock) || escapeBlock < 0) {
+    throw new Error(`escapeBlock must be a non-negative integer, got ${JSON.stringify(escapeBlock)}`);
+  }
+  return { port: FACTORY_ESCAPE_PORT, value: BigInt(escapeBlock), type: 'number' as const };
+}
+
 /**
  * Build the N-of-N MULTISIG MAST funding script for a channel factory
  * (RFC-039, CUSTODY-POLICY §2).
@@ -43,34 +54,32 @@ export function factoryBalanceStateVariables(
  * Spend paths:
  *   - **Cooperative / update** (any time): `MULTISIG(N …)` — all parties sign.
  *     `SETTLEMENT=true` closes after minimal coinage (1 block).
- *   - **Unilateral escape** (after `@COINAGE GTE timeoutBlocks`): any single
- *     party k may withdraw its allocation `SHARE_k = STATE(200+k)` to its own
- *     settlement address, zero its state (`STATE(200+k) EQ 0`), keep the other
- *     parties' balances unchanged, and return the remainder to the factory
+ *   - **Unilateral escape** (after the absolute block in `STATE(103)`): any
+ *     single party k may withdraw its allocation `SHARE_k = STATE(200+k)` to its
+ *     own settlement address, zero its state (`STATE(200+k) EQ 0`), keep the
+ *     other parties' balances unchanged, and return the remainder to the factory
  *     script. Repeated withdrawals cannot double-claim because each zeroes its
- *     own port.
+ *     own port. `STATE(103)` is immutable on every spend (`SAMESTATE(103 103)`),
+ *     so the escape clock cannot be pushed by any counterparty.
  *
  * Minimum 2 participants required.
  */
 export function buildFactoryScript(
   participants: FactoryParticipant[],
-  options: FactoryScriptOptions = {},
+  _options: FactoryScriptOptions = {},
 ): string {
   if (participants.length < 2) {
     throw new Error(`Factory requires at least 2 participants, got ${participants.length}`);
   }
   const count = participants.length;
-  const timeout = options.timeoutBlocks ?? FACTORY_TIMEOUT_BLOCKS;
-  if (!Number.isInteger(timeout) || timeout < 0) {
-    throw new Error(`timeoutBlocks must be a non-negative integer, got ${JSON.stringify(timeout)}`);
-  }
 
   const pks = participants.map((p) => kissHex(p.publicKeyDigest));
   const payouts = participants.map((p) => kissHex(p.settlementAddress ?? p.publicKeyDigest));
 
   const lines: string[] = [
     'LET SETTLEMENT=STATE(100)',
-    `IF @COINAGE GTE ${timeout} THEN`,
+    `ASSERT SAMESTATE(${FACTORY_ESCAPE_PORT} ${FACTORY_ESCAPE_PORT})`,
+    `IF @BLOCK GT STATE(${FACTORY_ESCAPE_PORT}) THEN`,
   ];
 
   participants.forEach((_, k) => {

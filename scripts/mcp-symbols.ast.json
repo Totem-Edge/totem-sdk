@@ -10391,8 +10391,8 @@
         },
         "buildFactoryScript": {
           "kind": "function",
-          "signature": "buildFactoryScript(participants: FactoryParticipant[], options?: FactoryScriptOptions): string",
-          "doc": "Build the N-of-N MULTISIG MAST funding script for a channel factory\n(RFC-039, CUSTODY-POLICY §2).\n\nSpend paths:\n  - **Cooperative / update** (any time): `MULTISIG(N …)` — all parties sign.\n    `SETTLEMENT=true` closes after minimal coinage (1 block).\n  - **Unilateral escape** (after `@COINAGE GTE timeoutBlocks`): any single\n    party k may withdraw its allocation `SHARE_k = STATE(200+k)` to its own\n    settlement address, zero its state (`STATE(200+k) EQ 0`), keep the other\n    parties' balances unchanged, and return the remainder to the factory\n    script. Repeated withdrawals cannot double-claim because each zeroes its\n    own port.\n\nMinimum 2 participants required."
+          "signature": "buildFactoryScript(participants: FactoryParticipant[], _options?: FactoryScriptOptions): string",
+          "doc": "Build the N-of-N MULTISIG MAST funding script for a channel factory\n(RFC-039, CUSTODY-POLICY §2).\n\nSpend paths:\n  - **Cooperative / update** (any time): `MULTISIG(N …)` — all parties sign.\n    `SETTLEMENT=true` closes after minimal coinage (1 block).\n  - **Unilateral escape** (after the absolute block in `STATE(103)`): any\n    single party k may withdraw its allocation `SHARE_k = STATE(200+k)` to its\n    own settlement address, zero its state (`STATE(200+k) EQ 0`), keep the\n    other parties' balances unchanged, and return the remainder to the factory\n    script. Repeated withdrawals cannot double-claim because each zeroes its\n    own port. `STATE(103)` is immutable on every spend (`SAMESTATE(103 103)`),\n    so the escape clock cannot be pushed by any counterparty.\n\nMinimum 2 participants required."
         },
         "buildAndHashFactoryScript": {
           "kind": "function",
@@ -10403,6 +10403,11 @@
           "kind": "function",
           "signature": "factoryBalanceStateVariables(participants: FactoryParticipant[]): { port: number; value: bigint; type: \"number\"; }[]",
           "doc": "Per-party allocation state variables (port 200+k = party k's balance), seeded\ninto the factory funding output so the timeout escape can pay each party its\ncommitted share."
+        },
+        "factoryEscapeStateVariable": {
+          "kind": "function",
+          "signature": "factoryEscapeStateVariable(escapeBlock: number): { port: number; value: bigint; type: \"number\"; }",
+          "doc": "Absolute escape-block state variable (STATE(103)) for the factory funding output."
         },
         "scriptAddress": {
           "kind": "function",
@@ -11952,7 +11957,7 @@
         "buildPoolScript": {
           "kind": "function",
           "signature": "buildPoolScript(params: PoolScriptParams): string",
-          "doc": "Non-custodial, epoch-monotone, owner-escapable state-carrying pool script."
+          "doc": "Per-share-constrained, epoch-monotone, state-carrying pool script."
         },
         "poolScriptAddress": {
           "kind": "function",
@@ -11962,14 +11967,19 @@
           "kind": "function",
           "signature": "buildAndHashPoolScript(params: PoolScriptParams): { script: string; address: string; }"
         },
+        "POOL_SHARE_PORT_BASE": {
+          "kind": "const",
+          "signature": "POOL_SHARE_PORT_BASE = 200",
+          "doc": "State port base for per-holder shares: holder k ⇒ port 200+k (ports are bytes, ≤255)."
+        },
         "PoolScriptParams": {
           "kind": "interface",
           "signature": "export interface PoolScriptParams"
         },
         "poolStateVariables": {
           "kind": "function",
-          "signature": "poolStateVariables(root: string, epoch: number, exitBlock: number): StateValue[]",
-          "doc": "Pool output state: STATE(100)=root, STATE(101)=epoch, STATE(102)=exitBlock."
+          "signature": "poolStateVariables(root: string, epoch: number, exitBlock: number, shares?: bigint[]): StateValue[]",
+          "doc": "Pool output state: STATE(100)=root, STATE(101)=epoch, STATE(102)=exitBlock, STATE(300+k)=share k."
         },
         "buildBatchAnchorDraft": {
           "kind": "function",
@@ -12013,7 +12023,7 @@
         "buildExitTransactionDraft": {
           "kind": "function",
           "signature": "buildExitTransactionDraft(params: ExitTxParams): OmniaTxDraft",
-          "doc": "Draft that spends the pool coin to the VTXO owner with the exit delay encoded."
+          "doc": "Draft that spends the pool coin: output 0 = holder's share, remainder = pool."
         },
         "exitTransactionDigest": {
           "kind": "function",
@@ -12026,12 +12036,12 @@
         "buildExitTransaction": {
           "kind": "function",
           "signature": "buildExitTransaction(params: ExitTxParams, deps: ExitTxDeps): Promise<ExitTxResult>",
-          "doc": "Build, sign (and optionally mine + broadcast) a VTXO exit transaction."
+          "doc": "Build, sign (and optionally mine + broadcast) a per-share VTXO exit transaction."
         },
         "EXIT_DELAY_PORT": {
           "kind": "const",
           "signature": "EXIT_DELAY_PORT = 110",
-          "doc": "State port carrying the exit delay on the owner's output."
+          "doc": "State port carrying an optional exit delay on the holder's output."
         },
         "ExitTxParams": {
           "kind": "interface",
