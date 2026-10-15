@@ -1,6 +1,6 @@
 # RFC-038 — VTXO Operator Protocol
 
-Status: Proposed
+Status: In progress — V0 core landed (operator co-signature + batch commitment); mutation wiring + constants retirement next
 Created: 2026-10-15
 Authors: Totem SDK Contributors
 Depends on: RFC-037 (unified WOTS), RFC-013 (WOTS leases), RFC-035 (peer coordination patterns), RFC-007 (storage durability)
@@ -118,9 +118,13 @@ Reuse RFC-035's coordination transport and its invariants:
 
 ## 4. Phasing
 
-- **V0 — operator port wired.** `createVtxoOperator`; mutations async + co-signed;
-  canonical `computeBatchCommitment`; delete `MOCK_OPERATOR_SIGNATURE` /
-  `MOCK_BATCH_ID`; keep the same state outputs (tests updated).
+- **V0 — core landed.** `createVtxoOperator({ poolId, treeKey, leaseProvider })`
+  implements `OmniaVtxoOperator` with a real WOTS (RFC-037) signature over the
+  canonical `computeBatchCommitment(poolId, epoch, root, orderedIds)`
+  (lease-backed, one leaf per signature; `verify` against the tree root).
+  **Remaining V0:** thread the operator through each mutation
+  (`mint`/`transfer`/`split`/`merge`/`refresh`/`exit`) so receipts carry the real
+  signature, and delete `MOCK_OPERATOR_SIGNATURE` / `MOCK_BATCH_ID`.
 - **V1 — on-chain anchoring.** Pool output script + batch tx (`anchorBatch`) via
   tx-builder/chain-provider; real `fundingProof` verify.
 - **V2 — real exit.** Timelock exit tx; retire `'mock-exit'`.

@@ -7,6 +7,30 @@ export const VTXO_ID_DOMAIN = 'totemsdk/omnia-vtxo/vtxo/v1';
 export const VTXO_POOL_ID_DOMAIN = 'totemsdk/omnia-vtxo/pool/v1';
 export const VTXO_LEAF_DOMAIN = 'totemsdk/omnia-vtxo/leaf/v1';
 export const VTXO_RECEIPT_DOMAIN = 'totemsdk/omnia-vtxo/receipt/v1';
+export const VTXO_BATCH_DOMAIN = 'totemsdk/omnia-vtxo/batch/v1';
+
+/**
+ * Canonical batch commitment (RFC-038 §3.2): the operator signs this over the
+ * pool, epoch, Merkle root, and the ordered VTXO ids in the batch.
+ */
+export function computeBatchCommitment(
+  poolId: string,
+  epoch: number,
+  root: string,
+  orderedIds: readonly string[],
+): string {
+  return sha3hex(`${VTXO_BATCH_DOMAIN}|${poolId}|${epoch}|${root}|${[...orderedIds].join(',')}`);
+}
+
+/** The 32-byte digest of a batch commitment, for signing. */
+export function computeBatchCommitmentBytes(
+  poolId: string,
+  epoch: number,
+  root: string,
+  orderedIds: readonly string[],
+): Uint8Array {
+  return hexToBytes(computeBatchCommitment(poolId, epoch, root, orderedIds));
+}
 
 function sha3hex(input: string): string {
   const bytes = new TextEncoder().encode(input);
