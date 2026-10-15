@@ -38,7 +38,7 @@ export function factoryBalanceStateVariables(
 
 /**
  * Build the N-of-N MULTISIG MAST funding script for a channel factory
- * (RFC-044, CUSTODY-POLICY §2).
+ * (RFC-039, CUSTODY-POLICY §2).
  *
  * Spend paths:
  *   - **Cooperative / update** (any time): `MULTISIG(N …)` — all parties sign.

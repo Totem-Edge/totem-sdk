@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Custody conformance gate (RFC-044 / docs/CUSTODY-POLICY.md).
+ * Custody conformance gate (RFC-039 / docs/CUSTODY-POLICY.md).
  *
  * A capability is non-custodial iff every holder has a unilateral, timelocked,
  * on-chain recovery path. This gate forbids `custodial` packages from shipping
@@ -46,7 +46,7 @@ function classify(dir, meta) {
     return;
   }
   if (c.classification === 'custodial') {
-    errors.push(`${dir}: CUSTODIAL — do not ship (RFC-044). Provide a unilateral owner path.`);
+    errors.push(`${dir}: CUSTODIAL — do not ship (RFC-039). Provide a unilateral owner path.`);
   }
   if (c.classification === 'trust-minimised' && (!c.reason || !c.mitigation)) {
     errors.push(`${dir}: trust-minimised requires both reason and mitigation`);

@@ -167,7 +167,7 @@ describe('buildFactoryScript', () => {
     expect(script).toContain('CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC');
   });
 
-  test('adds a per-party unilateral escape after the timeout (RFC-044)', () => {
+  test('adds a per-party unilateral escape after the timeout (RFC-039)', () => {
     const script = buildFactoryScript([ALICE, BOB]);
     expect(script).toContain('IF @COINAGE GTE 256 THEN');
     expect(script).toContain('LET SHARE0=STATE(200)');

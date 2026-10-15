@@ -1,4 +1,4 @@
-# RFC-044 — Custody Conformance
+# RFC-039 — Custody Conformance
 
 Status: Landed — policy + gate + the three structural script fixes (omnia, omnia-factory, omnia-vtxo)
 Created: 2026-10-15

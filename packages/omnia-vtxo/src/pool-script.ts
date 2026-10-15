@@ -5,7 +5,7 @@
  * root is committed as STATE(100), the epoch number in STATE(101), and the
  * owner's absolute exit-eligibility block in STATE(102).
  *
- * Custody (RFC-044 / CUSTODY-POLICY §2):
+ * Custody (RFC-039 / CUSTODY-POLICY §2):
  *   - **Unilateral owner exit.** After `@BLOCK GT EXITBLOCK` the owner alone may
  *     spend (`RETURN SIGNEDBY(OWNER)`) — no operator signature or liveness. This
  *     is exercised by the pre-signed exit tx (`exit-tx.ts`).

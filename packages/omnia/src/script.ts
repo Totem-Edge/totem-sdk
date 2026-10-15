@@ -16,7 +16,7 @@ function kissHex(hex: string): string {
 }
 
 /**
- * Eltoo channel script (RFC-044, CUSTODY-POLICY §2).
+ * Eltoo channel script (RFC-039, CUSTODY-POLICY §2).
  *
  * Two spend paths, **both requiring `MULTISIG(2 A B)`**:
  *   - **Update** (`SETTLEMENT` false): `BOTHSIGNED` + `SEQUENCE GT
