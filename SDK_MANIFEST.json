@@ -875,7 +875,8 @@
       ],
       "dependencies": {
         "@totemsdk/core": "^1.2.11",
-        "@totemsdk/storage": "^0.1.0"
+        "@totemsdk/storage": "^0.1.0",
+        "@totemsdk/wots-lease": "^1.0.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
