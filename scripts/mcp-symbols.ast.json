@@ -10754,6 +10754,18 @@
           "signature": "makeOmniaFeePolicy(lpFeeBps?: number, operatorFeeBps?: number, feeModel?: \"pro-rata\" | \"record-only\" | \"none\"): NonNullable<CreateOmniaPoolParams[\"feePolicy\"]>",
           "doc": "Convenience helper to build a default Omnia fee policy."
         },
+        "createOmniaPoolLivePorts": {
+          "kind": "function",
+          "signature": "createOmniaPoolLivePorts(deps: OmniaPoolLivePortsDeps): OmniaPoolLivePorts"
+        },
+        "OmniaPoolLivePorts": {
+          "kind": "interface",
+          "signature": "export interface OmniaPoolLivePorts"
+        },
+        "OmniaPoolLivePortsDeps": {
+          "kind": "interface",
+          "signature": "export interface OmniaPoolLivePortsDeps"
+        },
         "commitToPool": {
           "kind": "function",
           "signature": "commitToPool(params: CommitToPoolParams): { commitment: LiquidityCommitment; }",
@@ -11105,9 +11117,42 @@
           "signature": "createOmniaRelayClient(options?: OmniaRelayClientOptions): RelayOmniaClient",
           "doc": "Build the wallet-facing Omnia client: the base relay client plus the Phase A\nrouting and single-party operations, with a truthful `supports()`."
         },
+        "fulfillMultiHop": {
+          "kind": "function",
+          "signature": "fulfillMultiHop(params: { channel: OmniaChannel; htlcId: string; preimage: string; leaseProvider: WotsLeaseProvider; signer: ChannelSigner; swarm: OmniaSwarm; }): Promise<{ success: boolean; channel: OmniaChannel; htlcId: string; }>",
+          "doc": "Reveal the preimage for an incoming multi-hop HTLC (RFC-035 B4, receiving side):\nfulfil the HTLC on `channel` and forward the updated STATE_UPDATE to the peer,\nso the preimage propagates back along the route."
+        },
         "OmniaRelayClientOptions": {
           "kind": "interface",
           "signature": "export interface OmniaRelayClientOptions extends RelayOmniaClientOptions"
+        },
+        "createMultiHopForwarder": {
+          "kind": "function",
+          "signature": "createMultiHopForwarder(options: MultiHopForwarderOptions): MultiHopForwarder"
+        },
+        "MultiHopForwarder": {
+          "kind": "interface",
+          "signature": "export interface MultiHopForwarder"
+        },
+        "MultiHopForwarderOptions": {
+          "kind": "interface",
+          "signature": "export interface MultiHopForwarderOptions"
+        },
+        "ForwardIncomingParams": {
+          "kind": "interface",
+          "signature": "export interface ForwardIncomingParams"
+        },
+        "ForwardIncomingResult": {
+          "kind": "type",
+          "signature": "export type ForwardIncomingResult = | { status: 'final' } | { status: 'forwarded'"
+        },
+        "RevealPreimageResult": {
+          "kind": "type",
+          "signature": "export type RevealPreimageResult = | { status: 'settled'"
+        },
+        "HtlcLink": {
+          "kind": "interface",
+          "signature": "export interface HtlcLink"
         },
         "channelGraphEdges": {
           "kind": "function",
@@ -11184,6 +11229,56 @@
         "IdentityVerificationResult": {
           "kind": "interface",
           "signature": "export interface IdentityVerificationResult"
+        },
+        "createWalletCoordination": {
+          "kind": "function",
+          "signature": "createWalletCoordination(options: WalletCoordinationOptions): WalletCoordination"
+        },
+        "WalletCoordination": {
+          "kind": "interface",
+          "signature": "export interface WalletCoordination"
+        },
+        "WalletCoordinationOptions": {
+          "kind": "interface",
+          "signature": "export interface WalletCoordinationOptions"
+        },
+        "WalletApproval": {
+          "kind": "type",
+          "signature": "export type WalletApproval = (request: WalletApprovalRequest) => Promise<boolean>"
+        },
+        "WalletApprovalRequest": {
+          "kind": "interface",
+          "signature": "export interface WalletApprovalRequest"
+        },
+        "WalletApprovalKind": {
+          "kind": "type",
+          "signature": "export type WalletApprovalKind = 'splice-accept' | 'factory-open' | 'factory-close' | 'vc-open'"
+        },
+        "createStorageCoordinationStore": {
+          "kind": "function",
+          "signature": "createStorageCoordinationStore(adapter: StorageAdapter): CoordinationStore"
+        },
+        "createMemoryCoordinationStore": {
+          "kind": "function",
+          "signature": "createMemoryCoordinationStore(): CoordinationStore"
+        },
+        "OmniaChannel": {
+          "kind": "interface",
+          "signature": "export interface OmniaChannel"
+        },
+        "ChannelFactory": {
+          "kind": "interface",
+          "signature": "export interface ChannelFactory"
+        },
+        "QuiescedChannel": {
+          "kind": "type",
+          "signature": "export type QuiescedChannel = Omit<OmniaChannel, 'status'> & { status: 'quiesced'",
+          "doc": "A channel returned by `quiesceChannel`.\n\n- `status: 'quiesced'` — no new HTLCs may be added until the splice confirms.\n- `pendingHTLCs: []` — all resolved HTLCs are cleared from the active list.\n- `quiesceSignedState` — the local party's partial signed state over the\n  final pre-splice balance split (sequence incremented by one). Exchange this\n  with the counterparty to obtain their co-signature before finalizing the splice."
+        },
+        "SplicedChannel": {
+          "kind": "type",
+          "signature": "export type SplicedChannel = OmniaChannel & { splicedFrom: string",
+          "doc": "A channel returned by `finalizeSplice`.\n\nExtends OmniaChannel with splice provenance fields. The returned channel is\nimmediately usable for new payments: `status: 'active'`, `currentSequence: 0`,\nfresh WOTS budget. `splicedFrom` identifies the old channel and\n`spliceFundingCoinId` is the new on-chain UTXO.\n\n**Mutation side effect**: `finalizeSplice` mutates the `channel` argument\n(the `QuiescedChannel` passed in) by setting `status: 'spliced'` after the\nsplice TX is confirmed. This invalidates the old channel in-place; the\nreturned `SplicedChannel` (status: 'active') is the only valid live channel."
         }
       }
     },
@@ -11354,6 +11449,24 @@
           "kind": "interface",
           "signature": "export interface RouterFeeProof",
           "doc": "A verifiable fee-provenance record for a settled hop (#29): the artifact a\npool's `recordPoolFee` earn-proof consumes. Binds channel + HTLC + recipient\n+ amount so a fee record traces to a real fulfilled payment."
+        },
+        "createCleartextRoutingCodec": {
+          "kind": "function",
+          "signature": "createCleartextRoutingCodec(): RoutingEnvelopeCodec",
+          "doc": "Cleartext routing codec: the envelope is the JSON of the remaining hops.\nNo confidentiality — a forwarder sees the path. Suitable for the RFC-035\n\"known counterparties\" scope; swap for an onion codec when path privacy is\nrequired."
+        },
+        "RoutingEnvelopeCodec": {
+          "kind": "interface",
+          "signature": "export interface RoutingEnvelopeCodec"
+        },
+        "ForwardHop": {
+          "kind": "interface",
+          "signature": "export interface ForwardHop",
+          "doc": "Onward instruction the forwarder peels from an envelope."
+        },
+        "PeelResult": {
+          "kind": "type",
+          "signature": "export type PeelResult = /** This node is the recipient — no onward hop. */ | { kind: 'final' } /** Forward to `next`"
         },
         "createDurableRouterLedger": {
           "kind": "function",
@@ -11723,13 +11836,15 @@
           "kind": "const",
           "signature": "DEFAULT_POLICY = { minAmount: BigInt(1), maxAmount: BigInt(1_000_000_000_000_000), maxMergeInputs: 8, maxSplitOutputs: 8, exitTimelockSeconds: 86400, } as const"
         },
-        "MOCK_OPERATOR_SIGNATURE": {
-          "kind": "const",
-          "signature": "MOCK_OPERATOR_SIGNATURE = 'mock-operator-sig-v0'"
+        "computeBatchCommitment": {
+          "kind": "function",
+          "signature": "computeBatchCommitment(poolId: string, epoch: number, root: string, orderedIds: readonly string[]): string",
+          "doc": "Canonical batch commitment (RFC-038 §3.2): the operator signs this over the\npool, epoch, Merkle root, and the ordered VTXO ids in the batch."
         },
-        "MOCK_BATCH_ID": {
-          "kind": "const",
-          "signature": "MOCK_BATCH_ID = 'batch-local-mvp'"
+        "computeBatchCommitmentBytes": {
+          "kind": "function",
+          "signature": "computeBatchCommitmentBytes(poolId: string, epoch: number, root: string, orderedIds: readonly string[]): Uint8Array",
+          "doc": "The 32-byte digest of a batch commitment, for signing."
         },
         "computeVtxoLeaf": {
           "kind": "function",
@@ -11776,6 +11891,10 @@
           "kind": "const",
           "signature": "VTXO_RECEIPT_DOMAIN = 'totemsdk/omnia-vtxo/receipt/v1'"
         },
+        "VTXO_BATCH_DOMAIN": {
+          "kind": "const",
+          "signature": "VTXO_BATCH_DOMAIN = 'totemsdk/omnia-vtxo/batch/v1'"
+        },
         "ComputeVtxoIdParams": {
           "kind": "interface",
           "signature": "export interface ComputeVtxoIdParams"
@@ -11791,6 +11910,33 @@
         "VtxoProofSet": {
           "kind": "interface",
           "signature": "export interface VtxoProofSet"
+        },
+        "vtxoOperatorTreeId": {
+          "kind": "function",
+          "signature": "vtxoOperatorTreeId(poolId: string): string",
+          "doc": "Lease treeId for a pool's operator signatures."
+        },
+        "createVtxoOperator": {
+          "kind": "function",
+          "signature": "createVtxoOperator(options: VtxoOperatorOptions): VtxoOperatorWithIdentity"
+        },
+        "VtxoOperatorOptions": {
+          "kind": "interface",
+          "signature": "export interface VtxoOperatorOptions"
+        },
+        "VtxoOperatorWithIdentity": {
+          "kind": "interface",
+          "signature": "export interface VtxoOperatorWithIdentity extends OmniaVtxoOperator"
+        },
+        "signVtxoReceipt": {
+          "kind": "function",
+          "signature": "signVtxoReceipt(operator: OmniaVtxoOperator, receipt: VtxoOperatorReceipt, root: string): Promise<VtxoOperatorReceipt>",
+          "doc": "Co-sign a receipt with the operator. `root` is the epoch batch root the\nreceipt's outputs were committed under."
+        },
+        "verifyVtxoReceipt": {
+          "kind": "function",
+          "signature": "verifyVtxoReceipt(operator: OmniaVtxoOperator, receipt: VtxoOperatorReceipt, root: string): Promise<boolean>",
+          "doc": "Verify a co-signed receipt against the operator and the batch root."
         },
         "createPool": {
           "kind": "function",
