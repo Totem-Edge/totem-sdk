@@ -5,7 +5,7 @@ Created: 2026-10-16
 Authors: Totem SDK Contributors
 Depends on: RFC-007 (Storage), RFC-017 (Decision Receipt Graph), RFC-019 (Governed Commerce), RFC-021–030 (Decision/Industrial runtime)
 Touches (proposed): `@totemsdk/experience`; reads `@totemsdk/storage` (Journal + ArtifactStore), `@totemsdk/proofgraph`, `@totemsdk/core`
-Amended: §26–§30 (Physical-AI model activity & provenance, Fixture C, Phase-0 test delta, adversarial review, changelog)
+Amended: §26–§31 (Physical-AI model activity & provenance, Fixture C, Phase-0 test delta, adversarial review, Memory & Experience boundary, changelog)
 
 > **Numbering.** `RFC-020` belongs to Multi-Package Adversarial Hardening. `RFC-040` and
 > `RFC-041`–`046` are used by the Canary repository. This document is `RFC-047`; the number
@@ -741,7 +741,7 @@ link through existing refs and ProofGraph:
   release's `identity`/`evidence`/`receipt` node (existing node/edge types).
 - **Episode ↔ deployment** — an identity/attestation node reference.
 - **Collection / evaluation** — a frozen set of Episode IDs (Phase 5, §21).
-- **Skill registry / "Time-to-Skill"** — NEURA terminology, **not an SDK concept**. Representable
+- **Skill registry / "Time-to-Skill"** — vendor-marketing terminology, **not an SDK concept**. Representable
   only as *declared references* or a *derived metric*, never as authoritative committed types.
 - **Invariants:** "no undisclosed training" cannot be proven (inherited from the prior RFC §39);
   Time-to-Skill is a derived metric, not a committed fact. No training, evaluation, skill-registry
@@ -756,7 +756,8 @@ A third conformance fixture, independent of Fixture B's Decision runtime.
 **Input:** bounded multimodal observation windows (≥2 modalities, e.g. RGB + a state/IMU
 channel) with distinct clock domains and a calibration ref; a model/VLA inference producing a
 continuous or chunked action with **no Decision selection**; optional opaque model-memory
-state; optional embodiment-configuration refs; an environment (`mode`) and a control origin.
+state; optional embodiment-configuration refs; optionally a **retrieved memory revision**
+influencing the inference (§30.3); an environment (`mode`) and a control origin.
 
 **Expected output:** a bounded Episode over a durable Journal interval containing
 `model_action` / `action_chunk` activity with bounded input-window `StreamRef`s, referenced
@@ -788,6 +789,13 @@ Added to the §22.4 suite:
   recorded distinctly; a control handover within the Episode is preserved.
 - **C8** — Fixture C verifies **without** ProofGraph, and the root package loads no Decision,
   Intelligence, Edge or QVAC dependency.
+- **C9 — Memory-feedback conformance (the Memory↔Experience seam).** The agent observes an
+  object, completes an Episode, derives a **provisional** location memory, retrieves that
+  **exact revision** for a subsequent inference (bound into the digest-bound semantic state,
+  §30.3, not metadata), and later observes the object elsewhere. Verify: the revised memory
+  **supersedes** the original claim; **both** Episodes remain independently verifiable; and
+  forensic replay can identify **which memory revision** was used in the intervening decision.
+  This exercises the entire seam without building a general-purpose memory runtime.
 
 ---
 
@@ -802,17 +810,149 @@ Each requested change classified against the SDK and the RFC.
 | Environment ⊥ control origin | **Already two fields** | §8 already carries `mode` and `controlOrigin`; amendment adds orthogonality + handover invariants only — **no new storage**. |
 | Model-memory provenance | **New optional refs** | Opaque/unknown allowed; no engine; not a reasoning claim. |
 | Embodiment-configuration provenance | **New optional refs** | Reuses `manifest`/`identity`/artifacts; no competing manifest. |
-| Deferred learning lineage | **Documentation only** | Collections already deferred (§21); skill registry / Time-to-Skill = NEURA terms → no committed types; belongs to later phases + ProofGraph. |
+| Deferred learning lineage | **Documentation only** | Collections already deferred (§21); skill registry / Time-to-Skill = vendor-marketing terms → no committed types; belongs to later phases + ProofGraph. |
 | One-package direction | **Unchanged constraint** | Adapters remain `@totemsdk/experience/*` subpaths; repo already uses an `exports` map and MCP indexes subpaths — feasibility confirmed by Phase 0, not assumed. |
 | Constraints (Journal/ArtifactStore/Core/ProofGraph) | **Unchanged** | No new persistence, graph or codec. |
 
-**Explicitly rejected:** adding abstractions solely because NEURA marketing uses the term —
+**Explicitly rejected:** adding abstractions solely because a vendor's marketing uses the term —
 i.e. a "skill registry", "Time-to-Skill" as a committed type, or a "memory engine". These are
 at most declared references or derived metrics.
 
 ---
 
-## 30. Changelog
+## 30. Memory and Experience Boundary (proposed; Experience records, Memory remembers)
+
+Memory is a **derived, reusable** intelligence layer that sits **alongside** Experience — not
+inside the Experience recorder. The relationship:
+
+- **Experience records what happened** — observations, decisions, actions, outcomes, evidence;
+  immutable, autobiographical.
+- **Memory remembers what matters** — past experiences converted into retrievable knowledge;
+  evolving, working understanding.
+- **Intelligence interprets** memory; **Decision** and **Authority** determine what can be done.
+
+The loop: **Experience → Memory consolidation → Retrieval → Intelligence → Governed Action →
+New Experience.**
+
+This section defines a **boundary and its invariants only**. Memory is a *separate subsystem*
+with its own lifecycle; RFC-047 does not implement it, and the root Experience package does not
+gain a memory dependency.
+
+### 30.1 Invariants (normative)
+
+- Memory MAY derive from Episodes but **MUST NOT alter sealed Episodes**.
+- Experience records **native memory inputs/provenance only when actually available**; it never
+  invents a memory reference.
+- Memory **revisions MUST be distinguishable**, so forensic playback can reconstruct exactly
+  what information was accessible at the time (see 30.3).
+- A memory claim is **not** automatically physical truth, authority, or proof of a successful
+  skill.
+- Immutable evidence and mutable personal memories have **separate retention, access and
+  deletion semantics**; content-addressing alone does not satisfy privacy requirements.
+
+### 30.2 Boundary contract (proposed types — not implemented here)
+
+```ts
+// Experience side: evidence that a memory revision influenced or was produced.
+interface ExperienceMemoryReference {
+  memoryRef: ExperienceRef;
+  revisionRef: ExperienceRef;                 // the EXACT revision (30.3)
+  sourceEpisodes?: readonly ExperienceRef[];  // evidence supporting this revision
+  purpose?: 'retrieved-context' | 'model-state' | 'consolidation' | 'other';
+}
+
+// Memory side (owned by the future memory subsystem, not Experience).
+interface MemoryRevision {
+  revisionRef: ExperienceRef;
+  memoryId: string;
+  kind: 'episodic' | 'semantic' | 'procedural';
+  contentRef: ArtifactRef;                    // memory content bytes (ArtifactStore)
+  sourceEpisodeRefs: readonly ExperienceRef[];
+  supersedes?: ExperienceRef;
+  validUntil?: number;
+  epistemicStatus: 'observed' | 'inferred' | 'verified' | 'disputed';
+}
+```
+
+Memory kinds: **working** (transient task context), **episodic** (recollections of a specific
+task/place/incident — an indexed view of one or more Episodes), **semantic** (learned facts,
+correctable), **procedural** (strategies/skills — owned by the controller/skill system),
+**model-native** (hidden/recurrent/KV state — opaque, see 30.5).
+
+A mutable index points to the latest revision; historic revisions remain separately
+identifiable subject to retention/privacy. **Not every memory needs a source Episode** — an
+imported instruction, an explicitly supplied fact, or a preconfigured skill may have a
+different provenance source.
+
+### 30.3 Reverse connection: memory that *influenced* an action
+
+Recording that an experience *produced* a memory is not enough; Experience must record **which
+exact memory revision influenced a subsequent inference/action** — never "the latest value
+currently stored under that memory id". Otherwise a later review could retrieve a *corrected*
+memory and wrongly assume the agent held that information at the time.
+
+Crucially, this must be **more than metadata**. In `@totemsdk/decision`, `DecisionContext` is
+trace/governance metadata that **MUST NOT affect provider output** (RFC-012 §11.3); information
+that influences a decision must live in the **digest-bound semantic input** (`state`).
+Therefore the correct pattern is:
+
+```
+Retrieve memory revisions
+        ↓
+Construct validated semantic state (digest-bound)
+        ↓
+Decision request digest binds that state
+        ↓
+Decision result + native receipt
+        ↓
+Experience records the memory revision references
+```
+
+Attaching memory as post-hoc metadata would create a misleading audit trail (memory "influenced"
+a decision but was not bound into it). The memory references are provenance; the retrieved
+content must be bound into the decision input when it affects the result.
+
+### 30.4 Where existing packages fit
+
+| Package | Role |
+|---|---|
+| `@totemsdk/experience` | Immutable record of physical activity + native provenance |
+| `@totemsdk/storage` | Durable memory records (Journal) + content-addressed revision artifacts |
+| `@totemsdk/proofgraph` | Link memories to Episodes/revisions/evidence via existing edges (`derived_from`, `supports`, `contradicts`, `supersedes`, `references`) |
+| `@totemsdk/intelligence` | Consolidation, summarisation, retrieval preparation, inference |
+| `@totemsdk/qvac/rag` | Optional semantic-retrieval backend (chunk/ingest/embed/search/reindex) |
+| `@totemsdk/decision` | Consume retrieved information via its validated semantic request |
+| Future memory subsystem | Owns selection, consolidation, revision, retrieval, expiry, correction |
+
+There is **no `@totemsdk/agent-memory` package** today — this is a proposed integration, not an
+existing workflow. `@totemsdk/qvac/rag` is a useful building block, but RAG alone is not an
+agent-memory system: it lacks the revision lifecycle and epistemic rules above, which belong in
+a dedicated memory layer or application-owned service using the existing provider interfaces.
+
+### 30.5 Model-native memory provenance
+
+```ts
+interface ModelMemoryProvenance {
+  mode: 'none' | 'checkpointed' | 'provider-managed' | 'external' | 'unknown';
+  beforeRef?: ExperienceRef;
+  afterRef?: ExperienceRef;
+}
+```
+
+This belongs with the **inference activity**. Memory MUST NOT promise extraction or
+reconstruction of proprietary hidden state; when a provider exposes no checkpoint, recording
+`provider-managed` or `unknown` is the honest answer. This also means Experience and Memory work
+for robots that use no language model or RAG at all.
+
+### 30.6 Privacy boundary
+
+Immutable evidence (Experience/ArtifactStore) and mutable personal memories have **separate**
+retention, access and deletion semantics. A content hash proves integrity, not consent or
+permission to view the referenced material.
+
+---
+
+## 31. Changelog
 
 - **Added §26** — Physical-AI model activity & provenance: PLA/VLA action paths (26.1),
   inference-input provenance (26.2), environment⊥control-origin invariant (26.3), model-memory
@@ -820,6 +960,9 @@ at most declared references or derived metrics.
 - **Added §27** — Phase-0 Fixture C (multimodal Physical-AI inference/action without a Decision runtime).
 - **Added §28** — Phase-0 test delta (C1–C8).
 - **Added §29** — adversarial review classifying each change (new / already-covered / deferred / elsewhere).
+- **Added §30** — Memory and Experience Boundary: Experience (immutable) vs Memory (derived, evolvable); normative invariants; proposed `ExperienceMemoryReference`/`MemoryRevision` boundary contract; memory-influenced decisions bound into the digest-bound semantic state, not metadata; reuse mapping (Storage/ProofGraph/Intelligence/`qvac/rag`/Decision); model-native memory provenance; privacy separation. **Memory is a separate subsystem; not implemented here.**
+- **Added C9** — Phase-0 Memory-feedback conformance scenario (the Memory↔Experience seam).
+- **Removed** — vendor names from the RFC (generalised to "vendor-marketing terminology"); normative documents should not name a specific vendor.
 - **Amended** — header (amendment pointer) and §2 (added model-produced action streams); §19
   (added the environment⊥control-origin invariant).
 - **Unchanged** — §1–§25 reuse rules, package-boundary constraints and the Phase-0-only
