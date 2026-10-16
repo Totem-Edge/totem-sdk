@@ -25,12 +25,34 @@ interface OperationRow {
   request_digest: string | null;
 }
 
+/**
+ * CAN-001: operation requests/results can carry `bigint` amounts (e.g. a
+ * multi-hop route's hop amounts). `JSON.stringify` throws on bigint, so encode
+ * with a reversible tag and decode it back — the journal never sees a raw
+ * primitive it cannot persist.
+ */
+function bigintReplacer(_key: string, value: unknown): unknown {
+  return typeof value === 'bigint' ? { $bigint: value.toString() } : value;
+}
+
+function bigintReviver(_key: string, value: unknown): unknown {
+  if (
+    value !== null &&
+    typeof value === 'object' &&
+    typeof (value as { $bigint?: unknown }).$bigint === 'string' &&
+    Object.keys(value as Record<string, unknown>).length === 1
+  ) {
+    return BigInt((value as { $bigint: string }).$bigint);
+  }
+  return value;
+}
+
 function encode(value: unknown): string | null {
-  return value === undefined ? null : JSON.stringify(value);
+  return value === undefined ? null : JSON.stringify(value, bigintReplacer);
 }
 
 function decode(value: string | null): unknown {
-  return value === null ? undefined : JSON.parse(value);
+  return value === null ? undefined : JSON.parse(value, bigintReviver);
 }
 
 function toRecord(row: OperationRow): OperationRecord {
@@ -131,6 +153,7 @@ export class OperationStore {
 }
 
 function canonical(value: unknown): string {
+  if (typeof value === 'bigint') return `{"$bigint":${JSON.stringify(value.toString())}}`;
   if (value === null || typeof value !== 'object') return JSON.stringify(value);
   if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
   return `{${Object.keys(value as Record<string, unknown>).sort().map((key) => `${JSON.stringify(key)}:${canonical((value as Record<string, unknown>)[key])}`).join(',')}}`;

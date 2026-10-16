@@ -65,6 +65,51 @@ describeSqlite('SqliteChannelStore', () => {
     expect(store.size).toBe(1);
     store.close();
   });
+
+  it('rebinds the host signer on every recovered channel (CAN-002)', () => {
+    const store = new SqliteChannelStore(':memory:');
+    const signer = { publicKeyDigest: 'local-pkd', sign: jest.fn() } as never;
+    store.setLocalSigner(signer);
+    const channel = {
+      channelId: 'channel-2',
+      fundingTxId: 'tx',
+      fundingCoinId: 'coin',
+      fundingScript: 'script',
+      programId: 'eltoo-payment',
+      programVersion: 1,
+      fundingAddress: 'address',
+      tokenId: '0x00',
+      tokenScale: 0,
+      totalValue: 10n,
+      parties: [
+        { partyId: 'alice', publicKeyDigest: 'alice-pkd', addressIndex: 0 },
+        { partyId: 'bob', publicKeyDigest: 'bob-pkd', addressIndex: 1 },
+      ],
+      balances: { alice: 7n, bob: 3n },
+      pendingHTLCs: [],
+      currentSequence: 2,
+      latestState: {
+        sequence: 2,
+        balances: { alice: 7n, bob: 3n },
+        pendingHTLCs: [],
+        stateVariables: [],
+        transactionHex: '0x1234',
+        signatures: {},
+        signingIndices: {},
+      },
+      stateLog: [],
+      status: 'active',
+      channelType: 'direct',
+      createdAt: 1,
+      updatedAt: 2,
+    } as unknown as OmniaChannel;
+
+    store.set('channel-2', channel);
+    expect(store.get('channel-2')!.localSigner).toBe(signer);
+    const values = Array.from(store.values());
+    expect(values[0].localSigner).toBe(signer);
+    store.close();
+  });
 });
 
 describeSqlite('OperationStore', () => {
@@ -79,6 +124,19 @@ describeSqlite('OperationStore', () => {
     const committed = store.transition('op-1', 'executing', 'committed', { result: { ok: true } }, 300);
     expect(committed.result).toEqual({ ok: true });
     expect(() => store.transition('op-1', 'pending', 'failed')).toThrow('expected status pending');
+    store.close();
+  });
+
+  it('journals bigint-bearing requests/results without throwing (CAN-001)', () => {
+    const store = new OperationStore(':memory:');
+    const request = { route: { hops: [{ amount: 5000n, channelId: 'c-1' }] } };
+    const created = store.create('op-big', request, 100);
+    expect(created.request).toEqual(request);
+    expect(store.verifyRequest('op-big', request)).toBe(true);
+    expect(store.verifyRequest('op-big', { route: { hops: [{ amount: 6000n }] } })).toBe(false);
+
+    const committed = store.transition('op-big', 'pending', 'committed', { result: { paid: 5000n } });
+    expect(committed.result).toEqual({ paid: 5000n });
     store.close();
   });
 });

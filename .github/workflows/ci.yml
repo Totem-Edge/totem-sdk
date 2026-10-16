@@ -87,6 +87,8 @@ jobs:
         run: |
           for p in statechain omnia omnia-factory omnia-vtxo; do (cd "packages/$p" && npx tsc); done
           node scripts/custody-golden.mjs --check
+      - name: Upstream publish guard (CAN-003 / CAN-008a)
+        run: node scripts/check-upstream-published.mjs
       - name: Rebuild native sqlite bindings (install uses --ignore-scripts)
         run: pnpm -r rebuild better-sqlite3
       - name: Run unit tests (workspace)

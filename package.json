@@ -53,6 +53,8 @@
     "validate:custody": "node scripts/validate-custody.mjs",
     "custody:golden": "node scripts/custody-golden.mjs",
     "custody:golden:check": "node scripts/custody-golden.mjs --check",
+    "release:family-install": "node scripts/check-family-install.mjs",
+    "release:upstream": "node scripts/check-upstream-published.mjs",
     "validate:qvac-drift": "node scripts/verify-qvac-api-drift.mjs"
   },
   "devDependencies": {

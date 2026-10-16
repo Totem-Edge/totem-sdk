@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import { recoverChannel, serializeChannelSnapshot, type OmniaChannel } from '@totemsdk/omnia';
+import { recoverChannel, serializeChannelSnapshot, type OmniaChannel, type ChannelSigner } from '@totemsdk/omnia';
 
 function iterator<T>(values: T[]): MapIterator<T> {
   let index = 0;
@@ -23,6 +23,12 @@ export class SqliteChannelStore extends Map<string, OmniaChannel> {
   private readonly readStatement: Database.Statement;
   private readonly writeStatement: Database.Statement;
   private readonly deleteStatement: Database.Statement;
+  /**
+   * CAN-002: a recovered channel loses `localSigner` (it is not serializable),
+   * so the router's `counterpartPkd()` cannot tell which party is local and
+   * multi-hop payments loop back. Re-bind the host's signer on every read.
+   */
+  private localSigner?: ChannelSigner;
 
   constructor(dbPath: string) {
     super();
@@ -48,9 +54,18 @@ export class SqliteChannelStore extends Map<string, OmniaChannel> {
     this.deleteStatement = this.db.prepare('DELETE FROM omnia_channels WHERE channel_id = ?');
   }
 
+  /** Attach the host's signer so recovered channels carry it (CAN-002). */
+  setLocalSigner(signer?: ChannelSigner): void {
+    this.localSigner = signer;
+  }
+
+  private rebind(channel: OmniaChannel): OmniaChannel {
+    return this.localSigner ? { ...channel, localSigner: this.localSigner } : channel;
+  }
+
   override get(channelId: string): OmniaChannel | undefined {
     const row = this.readStatement.get(channelId) as { channel_json: string } | undefined;
-    return row ? recoverChannel(row.channel_json) : undefined;
+    return row ? this.rebind(recoverChannel(row.channel_json)) : undefined;
   }
 
   override set(channelId: string, channel: OmniaChannel): this {
@@ -81,7 +96,7 @@ export class SqliteChannelStore extends Map<string, OmniaChannel> {
     ).iterate() as Iterable<{ channel_id: string; channel_json: string }>;
     return iterator(Array.from(rows, (row) => [
       row.channel_id,
-      recoverChannel(row.channel_json),
+      this.rebind(recoverChannel(row.channel_json)),
     ]));
   }
 

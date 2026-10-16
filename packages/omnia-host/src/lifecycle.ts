@@ -89,6 +89,11 @@ export function createOmniaHost(
         ownedStore = new SqliteChannelStore(config.dbPath);
         channelStore = ownedStore;
       }
+      // CAN-002: recovered channels must carry the local signer so the router can
+      // identify the counterparty (otherwise multi-hop payments loop back).
+      if (channelStore instanceof SqliteChannelStore) {
+        channelStore.setLocalSigner(dependencies.signer);
+      }
       if (!operationStore && !injectedOperationStore) {
         ownedOperationStore = new OperationStore(config.dbPath);
         operationStore = ownedOperationStore;
