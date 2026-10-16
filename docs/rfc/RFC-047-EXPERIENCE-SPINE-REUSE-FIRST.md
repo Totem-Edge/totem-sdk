@@ -591,6 +591,10 @@ Any unproven safety invariant is a **blocker**, not an optimistic assumption.
 10. Can the root contract remain independent of ProofGraph and all execution packages?
 11. Does the abstraction add functionality genuinely absent from current packages?
 12. Is a separate package more coherent than a few small additions to existing owners?
+13. Can a memory-derived semantic input be expressed through Decision's existing digest-bound
+    `state` (RFC-012 §11.3) **without Decision depending on Memory** — i.e. the caller binds
+    retrieved memory into the semantic state, and Decision remains entirely oblivious to the
+    existence of Memory? (See §30.3.)
 
 ### 22.6 Decision rule
 
@@ -962,6 +966,7 @@ permission to view the referenced material.
 - **Added §29** — adversarial review classifying each change (new / already-covered / deferred / elsewhere).
 - **Added §30** — Memory and Experience Boundary: Experience (immutable) vs Memory (derived, evolvable); normative invariants; proposed `ExperienceMemoryReference`/`MemoryRevision` boundary contract; memory-influenced decisions bound into the digest-bound semantic state, not metadata; reuse mapping (Storage/ProofGraph/Intelligence/`qvac/rag`/Decision); model-native memory provenance; privacy separation. **Memory is a separate subsystem; not implemented here.**
 - **Added C9** — Phase-0 Memory-feedback conformance scenario (the Memory↔Experience seam).
+- **Added §22.5 Q13** — must a memory-derived semantic input be expressible through Decision's existing digest-bound `state` **without Decision depending on Memory** (§30.3)?
 - **Removed** — vendor names from the RFC (generalised to "vendor-marketing terminology"); normative documents should not name a specific vendor.
 - **Amended** — header (amendment pointer) and §2 (added model-produced action streams); §19
   (added the environment⊥control-origin invariant).
