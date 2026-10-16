@@ -5,6 +5,7 @@ Created: 2026-10-16
 Authors: Totem SDK Contributors
 Depends on: RFC-007 (Storage), RFC-017 (Decision Receipt Graph), RFC-019 (Governed Commerce), RFC-021–030 (Decision/Industrial runtime)
 Touches (proposed): `@totemsdk/experience`; reads `@totemsdk/storage` (Journal + ArtifactStore), `@totemsdk/proofgraph`, `@totemsdk/core`
+Amended: §26–§30 (Physical-AI model activity & provenance, Fixture C, Phase-0 test delta, adversarial review, changelog)
 
 > **Numbering.** `RFC-020` belongs to Multi-Package Adversarial Hardening. `RFC-040` and
 > `RFC-041`–`046` are used by the Canary repository. This document is `RFC-047`; the number
@@ -59,6 +60,7 @@ ProofGraph does not natively define:
 - Human demonstration vs autonomous control, and **control handovers**.
 - Recording **completeness** and missing-sample intervals.
 - **Episode sealing** over a bounded journal interval.
+- **Model-produced action streams (PLA/VLA)**, including chunked actions, that have no Decision selection.
 
 The package is justified only by this distinct responsibility.
 
@@ -484,6 +486,12 @@ autonomous → human takeover → teleoperation → autonomous). A human demonst
 invented Decision/Authority receipt; an autonomous action preserves available native Decision
 and Authority references.
 
+> **Orthogonality invariant.** Execution environment (`mode`: real/simulated/hybrid, §8) and
+> control origin are **independent dimensions**. Every combination is representable, each may
+> change during an Episode, and neither is ever inferred from the other. A simulation MUST NOT
+> masquerade as real, and a human demonstration MUST NOT imply autonomy (or vice versa).
+> Control handovers are recorded as transitions and preserved. See §26.3.
+
 ---
 
 ## 20. Transformation, Quality and ProofGraph
@@ -653,3 +661,166 @@ relationships, and introduce Experience only for the domain semantics those pack
 already provide.**
 
 **Define early. Prove the boundary. Build only what is missing.**
+
+---
+
+## 26. Amendment — Physical-AI Model Activity and Provenance
+
+This amendment adds physical-AI model activity to the Spine's domain semantics. It introduces
+**no new persistence, graph or artifact machinery**; the §4 reuse rules and the §1–§25
+constraints are unchanged. It is authored against the reviewed baseline and remains within the
+Phase-0-only authorisation of §25.
+
+### 26.1 Model-produced action paths (PLA/VLA) — no Decision required
+
+Experience MUST represent continuous or chunked **model-produced actions** even when there is
+no `@totemsdk/decision` selection.
+
+- New activity kinds: `model_action` (a model-produced action, or the boundary of an action
+  chunk) and `action_chunk` (a bounded sequence of actions produced by a policy/model).
+- **Invariant:** Experience MUST NOT fabricate Decision, Authority, Agent Policy or Industrial
+  Action receipts. Where those native semantics genuinely exist, they are **referenced,
+  unchanged**; where the model acts directly, their absence is recorded honestly.
+- A direct model action records: model/policy reference, bounded input-window reference(s)
+  (§26.2), the produced action as an ArtifactStore artifact (or a bounded chunk artifact),
+  control origin (§19), environment (`mode`), and clock-qualified timing (§17).
+- **Action-chunk semantics:** a chunk is a *bounded artifact* referenced by one activity, not
+  N per-step journal records. It carries a chunk id, clock-qualified first/last timestamps and
+  its sequence within the stream. The chunk boundary is meaningful and preserved.
+- Native VLA/inference primitives already exist (`@totemsdk/intelligence` VLA preprocessing
+  helpers; `@totemsdk/qvac` vendor VLA client results). Experience references those results; it
+  does not implement model execution.
+
+### 26.2 Inference-input provenance (no fusion engine)
+
+Reuse `ExperienceStreamRef` (§18) and ArtifactStore to associate **bounded multimodal input
+windows** with inference/action activity.
+
+- An input window is one or more `ExperienceStreamRef`s (each with its clock domain and
+  calibration ref), optionally accompanied by the native inference receipt reference.
+- **Invariants:** do **not** build a sensor-fusion engine; do **not** imply an input was
+  consumed without evidence. If only an unaligned or uncertain window is available, represent
+  it as such (clock uncertainty preserved, §17); if there is no evidence, record the input as
+  absent/unknown (`inputRefs: []` or `unknown`) rather than constructing a plausible window.
+- Native provider receipts (e.g. `@totemsdk/intelligence` / `@totemsdk/qvac` results) are
+  referenced, never reimplemented.
+
+### 26.3 Execution environment is orthogonal to control origin
+
+See the §19 orthogonality invariant. Environment (`mode`: real/simulated/hybrid) and control
+origin (human-demonstration / human-teleoperation / autonomous / scripted / simulation / mixed
+/ unknown) are independent and both may change within an Episode. This adds an **invariant**,
+not new storage: the RFC already carries both fields.
+
+### 26.4 Model-memory provenance (optional, opaque-friendly)
+
+Experience MAY reference **model-owned input/output state artifacts** where they are actually
+available (e.g. context/KV or latent-state blobs) as `ArtifactRef`s.
+
+- `opaque`, provider-managed, or `unknown` state is explicitly representable; absence is a
+  first-class value.
+- **Invariants:** do not implement a memory engine; do not claim to reconstruct internal model
+  reasoning. A memory reference is evidence about *state bytes*, not about *reasoning*.
+
+### 26.5 Embodiment-configuration provenance
+
+Experience MAY record **optional immutable references** to the hardware, software, sensors,
+effectors and calibration configuration relevant to an Episode.
+
+- Reuse existing `@totemsdk/manifest` (Manifest), `@totemsdk/identity` / `@totemsdk/root-identity`,
+  and ArtifactStore abstractions wherever appropriate.
+- **Invariants:** do NOT create a competing embodiment-manifest framework; a description of
+  physical action limits is NOT an Authority grant (§32 of the prior framing).
+
+### 26.6 Deferred learning lineage (documentation only)
+
+No implementation in the root package. The following describe how future capabilities *could*
+link through existing refs and ProofGraph:
+
+- **Episode ↔ model/skill release** — a ProofGraph edge between the Episode node and the
+  release's `identity`/`evidence`/`receipt` node (existing node/edge types).
+- **Episode ↔ deployment** — an identity/attestation node reference.
+- **Collection / evaluation** — a frozen set of Episode IDs (Phase 5, §21).
+- **Skill registry / "Time-to-Skill"** — NEURA terminology, **not an SDK concept**. Representable
+  only as *declared references* or a *derived metric*, never as authoritative committed types.
+- **Invariants:** "no undisclosed training" cannot be proven (inherited from the prior RFC §39);
+  Time-to-Skill is a derived metric, not a committed fact. No training, evaluation, skill-registry
+  or fleet-learning engine is built in the root package.
+
+---
+
+## 27. Phase-0 Fixture C — Multimodal Physical-AI Inference/Action (no mandatory Decision)
+
+A third conformance fixture, independent of Fixture B's Decision runtime.
+
+**Input:** bounded multimodal observation windows (≥2 modalities, e.g. RGB + a state/IMU
+channel) with distinct clock domains and a calibration ref; a model/VLA inference producing a
+continuous or chunked action with **no Decision selection**; optional opaque model-memory
+state; optional embodiment-configuration refs; an environment (`mode`) and a control origin.
+
+**Expected output:** a bounded Episode over a durable Journal interval containing
+`model_action` / `action_chunk` activity with bounded input-window `StreamRef`s, referenced
+native inference results, and honest completeness/outcome — with **no** fabricated Decision,
+Authority or Industrial Action receipts.
+
+**MUST NOT:** build a fusion engine; invent consumed inputs; expand an action chunk into
+per-step events; claim model reasoning from a memory blob; invent authorization.
+
+---
+
+## 28. Phase-0 Test Delta (Fixture C)
+
+Added to the §22.4 suite:
+
+- **C1** — a continuous model-produced action is recorded with **no** Decision/Authority
+  receipts, and verification confirms the *absence* rather than fabricating them.
+- **C2** — a chunked action is represented as bounded chunk artifacts with preserved boundaries;
+  it is not expanded into per-step journal records.
+- **C3** — incomplete inputs: a window with a missing modality or absent evidence is recorded as
+  incomplete/`unknown`; no input is implied to have been consumed without evidence.
+- **C4** — unaligned clocks across modalities stay in distinct clock domains with uncertainty
+  preserved; no silent synchronisation.
+- **C5** — opaque / provider-managed / unknown model-memory state is representable without a
+  memory engine; absence is allowed and explicit.
+- **C6** — an uncertain outcome (model claims success, no independent verification) remains
+  `unknown`/`partial`, distinct from verified.
+- **C7** — environment/origin orthogonality: simulated+autonomous and real+teleoperation are
+  recorded distinctly; a control handover within the Episode is preserved.
+- **C8** — Fixture C verifies **without** ProofGraph, and the root package loads no Decision,
+  Intelligence, Edge or QVAC dependency.
+
+---
+
+## 29. Adversarial Review of This Amendment
+
+Each requested change classified against the SDK and the RFC.
+
+| Change | Verdict | Rationale / grounding |
+|---|---|---|
+| PLA/VLA action path | **New activity kinds** | No such activity type exists; VLA *execution* is already owned by `intelligence`/`qvac` → reference, don't build. |
+| Inference-input provenance | **New invariant + reuse** | Reuses `StreamRef`+ArtifactStore; adds "no fusion engine / no implied consumption"; native receipts referenced. |
+| Environment ⊥ control origin | **Already two fields** | §8 already carries `mode` and `controlOrigin`; amendment adds orthogonality + handover invariants only — **no new storage**. |
+| Model-memory provenance | **New optional refs** | Opaque/unknown allowed; no engine; not a reasoning claim. |
+| Embodiment-configuration provenance | **New optional refs** | Reuses `manifest`/`identity`/artifacts; no competing manifest. |
+| Deferred learning lineage | **Documentation only** | Collections already deferred (§21); skill registry / Time-to-Skill = NEURA terms → no committed types; belongs to later phases + ProofGraph. |
+| One-package direction | **Unchanged constraint** | Adapters remain `@totemsdk/experience/*` subpaths; repo already uses an `exports` map and MCP indexes subpaths — feasibility confirmed by Phase 0, not assumed. |
+| Constraints (Journal/ArtifactStore/Core/ProofGraph) | **Unchanged** | No new persistence, graph or codec. |
+
+**Explicitly rejected:** adding abstractions solely because NEURA marketing uses the term —
+i.e. a "skill registry", "Time-to-Skill" as a committed type, or a "memory engine". These are
+at most declared references or derived metrics.
+
+---
+
+## 30. Changelog
+
+- **Added §26** — Physical-AI model activity & provenance: PLA/VLA action paths (26.1),
+  inference-input provenance (26.2), environment⊥control-origin invariant (26.3), model-memory
+  provenance (26.4), embodiment-configuration provenance (26.5), deferred learning lineage (26.6).
+- **Added §27** — Phase-0 Fixture C (multimodal Physical-AI inference/action without a Decision runtime).
+- **Added §28** — Phase-0 test delta (C1–C8).
+- **Added §29** — adversarial review classifying each change (new / already-covered / deferred / elsewhere).
+- **Amended** — header (amendment pointer) and §2 (added model-produced action streams); §19
+  (added the environment⊥control-origin invariant).
+- **Unchanged** — §1–§25 reuse rules, package-boundary constraints and the Phase-0-only
+  authorisation. No production implementation is authorised by this amendment.
