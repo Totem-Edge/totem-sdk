@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/edge-adapters",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Reference adapters bridging Totem SDK packages to @totemsdk/edge port interfaces",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
@@ -31,17 +31,17 @@
     "@totemsdk/storage": "workspace:^"
   },
   "peerDependencies": {
-    "@totemsdk/agent-policy": "workspace:^",
-    "@totemsdk/chain-provider": "workspace:^",
+    "@totemsdk/agent-policy": ">=0.3.1 <1.0.0",
+    "@totemsdk/chain-provider": ">=0.2.1 <1.0.0",
     "@totemsdk/identity": "workspace:^",
-    "@totemsdk/lookup-client": "workspace:^",
+    "@totemsdk/lookup-client": ">=0.2.0 <1.0.0",
     "@totemsdk/location-proof": "workspace:^",
     "@totemsdk/manifest": "workspace:^",
-    "@totemsdk/omnia-router": "workspace:^",
+    "@totemsdk/omnia-router": ">=0.3.0 <1.0.0",
     "@totemsdk/proof": "workspace:^",
-    "@totemsdk/pubsub-transport": "workspace:^",
+    "@totemsdk/pubsub-transport": ">=0.2.0 <1.0.0",
     "@totemsdk/root-identity": "workspace:^",
-    "@totemsdk/stream-transport": "workspace:^"
+    "@totemsdk/stream-transport": ">=0.2.0 <1.0.0"
   },
   "peerDependenciesMeta": {
     "@totemsdk/agent-policy": {
