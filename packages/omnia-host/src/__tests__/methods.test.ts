@@ -26,4 +26,47 @@ describe('omnia-host JSON-RPC methods', () => {
       }],
     });
   });
+
+  it('exposes a fully serializable channel state (CAN-006)', () => {
+    const channels = new Map<string, any>([['channel-1', {
+      channelId: 'channel-1',
+      status: 'active',
+      channelType: 'direct',
+      tokenId: '0x00',
+      tokenScale: 0,
+      totalValue: 10n,
+      currentSequence: 4,
+      fundingAddress: 'addr',
+      fundingTxId: 'tx',
+      fundingCoinId: 'coin',
+      parties: [
+        { partyId: 'alice', publicKeyDigest: 'a', addressIndex: 0 },
+        { partyId: 'bob', publicKeyDigest: 'b', addressIndex: 1 },
+      ],
+      balances: { alice: 7n, bob: 3n },
+      pendingHTLCs: [],
+      latestState: {
+        sequence: 4,
+        balances: { alice: 7n, bob: 3n },
+        pendingHTLCs: [],
+        stateVariables: [{ port: 101, value: 4n, type: 'number' }],
+        transactionHex: '0xabcd',
+        signatures: { alice: new Uint8Array([1, 2]) },
+        signingIndices: {},
+      },
+      stateLog: [],
+      createdAt: 1,
+      updatedAt: 2,
+    }]]);
+    const methods = createHostMethods({ channels, routing: new InProcessRoutingProvider() });
+    const view = methods.get('totem_omniaGetChannelState')!({ channelId: 'channel-1' }) as Record<string, any>;
+
+    expect(() => JSON.stringify(view)).not.toThrow();
+    expect(view.totalValue).toBe('10');
+    expect(view.balances).toEqual({ alice: '7', bob: '3' });
+    expect(view.currentSequence).toBe(4);
+    expect(view.latestState.signatures).toEqual(['alice']);
+    expect(view.latestState.stateVariables[0].value).toBe('4');
+    expect(() => methods.get('totem_omniaGetChannelState')!({ channelId: 'missing' })).toThrow(/not found/);
+  });
 });

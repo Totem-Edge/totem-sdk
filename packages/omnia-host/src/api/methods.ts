@@ -93,6 +93,55 @@ function channelSummary(channel: OmniaChannel): Record<string, unknown> {
   };
 }
 
+/** Recursively JSON-safe: bigint → decimal string, bytes → 0x-hex. */
+function jsonSafe(value: unknown): unknown {
+  if (typeof value === 'bigint') return value.toString();
+  if (value instanceof Uint8Array) return `0x${Buffer.from(value).toString('hex')}`;
+  if (Array.isArray(value)) return value.map(jsonSafe);
+  if (value && typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [key, val] of Object.entries(value as Record<string, unknown>)) out[key] = jsonSafe(val);
+    return out;
+  }
+  return value;
+}
+
+/**
+ * CAN-006: a fully serializable channel-state view so RPC/HTTP consumers can
+ * read everything they need without reaching into `getStore()`/`getMethods()`.
+ */
+export function channelStateView(channel: OmniaChannel): Record<string, unknown> {
+  return jsonSafe({
+    channelId: channel.channelId,
+    status: channel.status,
+    channelType: channel.channelType,
+    tokenId: channel.tokenId,
+    tokenScale: channel.tokenScale ?? 0,
+    totalValue: channel.totalValue,
+    currentSequence: channel.currentSequence,
+    fundingAddress: channel.fundingAddress,
+    fundingTxId: channel.fundingTxId,
+    fundingCoinId: channel.fundingCoinId,
+    parties: channel.parties,
+    balances: channel.balances,
+    pendingHTLCs: channel.pendingHTLCs,
+    latestState: channel.latestState
+      ? {
+          sequence: channel.latestState.sequence,
+          balances: channel.latestState.balances,
+          pendingHTLCs: channel.latestState.pendingHTLCs?.length ?? 0,
+          stateVariables: channel.latestState.stateVariables,
+          transactionHex: channel.latestState.transactionHex,
+          signatures: Object.keys(channel.latestState.signatures ?? {}),
+          signingIndices: channel.latestState.signingIndices,
+        }
+      : null,
+    stateLogLength: channel.stateLog?.length ?? 0,
+    createdAt: channel.createdAt,
+    updatedAt: channel.updatedAt,
+  }) as Record<string, unknown>;
+}
+
 function paramsObject(params: unknown): Record<string, unknown> {
   if (!params || typeof params !== 'object' || Array.isArray(params)) return {};
   return params as Record<string, unknown>;
@@ -238,6 +287,15 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
     return { channels };
   };
   register('totem_omniaGetChannels', getChannels, 'omnia/getChannels');
+
+  const getChannelState: JsonRpcHandler = (raw) => {
+    const params = paramsObject(raw);
+    const channelId = requiredString(params, 'channelId');
+    const channel = context.channels.get(channelId);
+    if (!channel) throw new Error(`Channel ${channelId} not found`);
+    return channelStateView(channel);
+  };
+  register('totem_omniaGetChannelState', getChannelState, 'omnia/getChannelState');
 
   const getRoute: JsonRpcHandler = async (raw) => {
     context.refreshRouting?.();
