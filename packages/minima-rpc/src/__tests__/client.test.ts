@@ -252,3 +252,46 @@ describe('postCommand — retry/fallback policy (AUD-011)', () => {
     expect(result).toEqual({ ok: true });
   });
 });
+
+describe('probeDeterministicAddress (CAN-005)', () => {
+  const config = { host: '127.0.0.1', port: 9002, password: 'pw' };
+
+  function fetchAddress(address: string) {
+    return {
+      ok: true,
+      status: 200,
+      text: () =>
+        Promise.resolve(
+          JSON.stringify({ command: 'newaddress', status: true, pending: false, response: { address } }),
+        ),
+    };
+  }
+
+  afterEach(() => jest.restoreAllMocks());
+
+  it('reports supported when the node returns the same address twice', async () => {
+    global.fetch = jest.fn()
+      .mockResolvedValueOnce(fetchAddress('MxSAME'))
+      .mockResolvedValueOnce(fetchAddress('MxSAME')) as unknown as typeof fetch;
+    const probe = await createMinimaRpcClient(config).probeDeterministicAddress('totem');
+    expect(probe.supported).toBe(true);
+    expect(probe.addresses).toEqual(['MxSAME', 'MxSAME']);
+  });
+
+  it('reports unsupported when the node returns different addresses (modifier ignored)', async () => {
+    global.fetch = jest.fn()
+      .mockResolvedValueOnce(fetchAddress('MxA'))
+      .mockResolvedValueOnce(fetchAddress('MxB')) as unknown as typeof fetch;
+    const probe = await createMinimaRpcClient(config).probeDeterministicAddress('totem');
+    expect(probe.supported).toBe(false);
+    expect(probe.addresses).toEqual(['MxA', 'MxB']);
+    expect(probe.reason).toMatch(/modifier/);
+  });
+
+  it('reports unsupported when the command is unavailable', async () => {
+    global.fetch = jest.fn().mockRejectedValue(new Error('unknown command')) as unknown as typeof fetch;
+    const probe = await createMinimaRpcClient(config).probeDeterministicAddress('totem');
+    expect(probe.supported).toBe(false);
+    expect(probe.reason).toMatch(/newaddress/);
+  });
+});

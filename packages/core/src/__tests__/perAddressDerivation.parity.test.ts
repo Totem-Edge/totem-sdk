@@ -14,6 +14,7 @@
  */
 
 import { derivePerAddressSeed, indexToMiniDataBytes } from '../javaStreamables';
+import { deriveDeterministicAddress, verifyDeterministicAddress } from '../address-derivation';
 import {
   TreeKey,
   getRootPublicKey,
@@ -90,6 +91,30 @@ describe('Per-Address Key Derivation (Minima Wallet Parity — migration referen
         const derivedPubKey = treeKey.getPublicKey();
         expect(toHex(derivedPubKey)).toBe(pubKey);
       });
+    });
+  });
+
+  describe('deriveDeterministicAddress (CAN-005)', () => {
+    javaExpected.forEach(({ index, pubKey }) => {
+      it(`derives the Wallet.java public key + an Mx address for index ${index}`, () => {
+        const derived = deriveDeterministicAddress(TEST_SEED, index);
+        expect(derived.publicKey).toBe(pubKey);
+        expect(derived.address.startsWith('Mx')).toBe(true);
+        expect(derived.scheme).toBe('per-address');
+      });
+    });
+
+    it('is deterministic and address-verifiable', () => {
+      const first = deriveDeterministicAddress(TEST_SEED, 7);
+      const again = deriveDeterministicAddress(TEST_SEED, 7);
+      expect(again.address).toBe(first.address);
+      expect(verifyDeterministicAddress(TEST_SEED, 7, first.address)).toBe(true);
+      expect(verifyDeterministicAddress(TEST_SEED, 7, 'MxNOTTHEDERVEDADDRESS')).toBe(false);
+    });
+
+    it('rejects a negative/non-integer index', () => {
+      expect(() => deriveDeterministicAddress(TEST_SEED, -1)).toThrow(/addressIndex/);
+      expect(() => deriveDeterministicAddress(TEST_SEED, 1.5)).toThrow(/addressIndex/);
     });
   });
 });

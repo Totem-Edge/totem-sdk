@@ -224,6 +224,16 @@ export {
   type VerificationResult,
 } from './verify.js';
 
+// Deterministic address derivation (CAN-005)
+export {
+  deriveDeterministicAddress,
+  deriveUnifiedAddress,
+  deriveAddress,
+  verifyDeterministicAddress,
+  type AddressScheme,
+  type DerivedAddress,
+} from './address-derivation.js';
+
 // Streamable primitives (low-level serialization building blocks)
 export {
   writeMiniByte,

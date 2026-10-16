@@ -77,6 +77,36 @@ export function createMinimaRpcClient(config: MinimaRpcConfig): MinimaRpcClient 
       return run('getaddress', undefined, true) as Promise<AddressInfo>;
     },
 
+    async newAddress(params?: { modifier?: string }) {
+      const p: Record<string, unknown> = {};
+      if (params?.modifier !== undefined) p.modifier = params.modifier;
+      return run('newaddress', p) as Promise<AddressInfo>;
+    },
+
+    async probeDeterministicAddress(modifier = 'totem-deterministic-address-probe') {
+      // Ask for the same modifier-derived address twice. A node that honours the
+      // modifier returns the same address both times; one that ignores it (or has
+      // no such command) returns different addresses or errors. (CAN-005)
+      try {
+        const first = await run('newaddress', { modifier }, true) as AddressInfo;
+        const second = await run('newaddress', { modifier }, true) as AddressInfo;
+        const addresses: [string, string] = [first.address, second.address];
+        if (first.address && first.address === second.address) {
+          return { supported: true, addresses };
+        }
+        return {
+          supported: false,
+          addresses,
+          reason: 'Node returned different addresses for the same `newaddress modifier:` (modifier not honoured).',
+        };
+      } catch (error) {
+        return {
+          supported: false,
+          reason: `Node does not support \`newaddress modifier:\`: ${error instanceof Error ? error.message : String(error)}`,
+        };
+      }
+    },
+
     async megammr() {
       return run('megammr', undefined, true) as Promise<MegaMMRInfo>;
     },

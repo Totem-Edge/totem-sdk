@@ -308,6 +308,14 @@ export interface WebhookEntry {
   filter?: string;
 }
 
+/** Result of probing whether the node derives a `newaddress modifier:` deterministically (CAN-005). */
+export interface AddressModifierProbe {
+  supported: boolean;
+  /** The two addresses returned for the same modifier (absent when the command failed). */
+  addresses?: [string, string];
+  reason?: string;
+}
+
 export interface MinimaRpcClient {
   runCommand(cmd: string, params?: Record<string, unknown>): Promise<unknown>;
   status(): Promise<NodeStatus>;
@@ -315,6 +323,15 @@ export interface MinimaRpcClient {
   coins(query?: CoinsQuery): Promise<Coin[]>;
   tokens(tokenId?: string, action?: string): Promise<TokenInfo[]>;
   getAddress(): Promise<AddressInfo>;
+  /** `newaddress` — optionally with a `modifier:` for deterministic derivation. */
+  newAddress(params?: { modifier?: string }): Promise<AddressInfo>;
+  /**
+   * Probe whether this node honours `newaddress modifier:` — i.e. returns the
+   * same address for the same modifier twice. `supported:false` means the node
+   * ignores the modifier (or has no such command), so callers must not trust a
+   * node-returned deterministic address (use `@totemsdk/core` derivation).
+   */
+  probeDeterministicAddress(modifier?: string): Promise<AddressModifierProbe>;
   megammr(): Promise<MegaMMRInfo>;
   history(params?: HistoryQuery): Promise<HistoryEntry[]>;
   burn(last?: number): Promise<BurnInfo>;

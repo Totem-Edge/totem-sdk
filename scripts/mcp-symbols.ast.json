@@ -2194,6 +2194,34 @@
           "kind": "interface",
           "signature": "export interface VerificationResult"
         },
+        "deriveDeterministicAddress": {
+          "kind": "function",
+          "signature": "deriveDeterministicAddress(baseSeed: Uint8Array, addressIndex: number): DerivedAddress",
+          "doc": "Minima Wallet.java parity: `baseSeed + index → privseed → TreeKey(64,3) → address`."
+        },
+        "deriveUnifiedAddress": {
+          "kind": "function",
+          "signature": "deriveUnifiedAddress(baseSeed: Uint8Array, addressIndex: number): DerivedAddress",
+          "doc": "RFC-037 unified hierarchical scheme: `baseSeed + index → child TreeKey → address`."
+        },
+        "deriveAddress": {
+          "kind": "function",
+          "signature": "deriveAddress(baseSeed: Uint8Array, addressIndex: number, scheme?: AddressScheme): DerivedAddress",
+          "doc": "Derive the address for a scheme (default: the node-parity per-address scheme)."
+        },
+        "verifyDeterministicAddress": {
+          "kind": "function",
+          "signature": "verifyDeterministicAddress(baseSeed: Uint8Array, addressIndex: number, expectedAddress: string, scheme?: AddressScheme): boolean",
+          "doc": "Fail-loud check: does the node-returned `expectedAddress` equal the address\nderived from the seed? Use this instead of trusting `newaddress` blindly."
+        },
+        "AddressScheme": {
+          "kind": "type",
+          "signature": "export type AddressScheme = 'per-address' | 'unified'"
+        },
+        "DerivedAddress": {
+          "kind": "interface",
+          "signature": "export interface DerivedAddress"
+        },
         "writeMiniByte": {
           "kind": "function",
           "signature": "writeMiniByte(value: number | boolean): Uint8Array",
