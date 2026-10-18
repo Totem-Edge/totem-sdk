@@ -171,9 +171,9 @@ describe('buildFactoryScript', () => {
   test('adds a per-party unilateral escape after the absolute escape block (RFC-039)', () => {
     const script = buildFactoryScript([ALICE, BOB]);
     expect(script).toContain('ASSERT SAMESTATE(103 103)');
-    expect(script).toContain('IF @BLOCK GT STATE(103) THEN');
-    expect(script).toContain('LET SHARE0=STATE(200)');
-    expect(script).toContain('LET SHARE1=STATE(201)');
+    expect(script).toContain('IF @BLOCK GT PREVSTATE(103) THEN');
+    expect(script).toContain('LET SHARE0=PREVSTATE(200)');
+    expect(script).toContain('LET SHARE1=PREVSTATE(201)');
     expect(script).toContain('ASSERT VERIFYOUT(0');
     expect(script).toContain('ASSERT STATE(200) EQ 0');
     expect(script).toContain('ASSERT STATE(201) EQ PREVSTATE(201)');

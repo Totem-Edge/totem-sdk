@@ -87,6 +87,10 @@ jobs:
         run: |
           for p in statechain omnia omnia-factory omnia-vtxo; do (cd "packages/$p" && npx tsc); done
           node scripts/custody-golden.mjs --check
+      - name: Custody execution gate — escape branches execute (RFC-039)
+        run: |
+          for p in core kissvm omnia omnia-vtxo omnia-factory; do (cd "packages/$p" && npx tsc); done
+          node scripts/custody-exec.mjs
       - name: Upstream publish guard (CAN-003 / CAN-008a)
         run: node scripts/check-upstream-published.mjs
       - name: Rebuild native sqlite bindings (install uses --ignore-scripts)

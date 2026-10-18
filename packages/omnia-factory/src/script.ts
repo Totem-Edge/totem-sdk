@@ -55,11 +55,11 @@ export function factoryEscapeStateVariable(escapeBlock: number): { port: number;
  *   - **Cooperative / update** (any time): `MULTISIG(N …)` — all parties sign.
  *     `SETTLEMENT=true` closes after minimal coinage (1 block).
  *   - **Unilateral escape** (after the absolute block in `STATE(103)`): any
- *     single party k may withdraw its allocation `SHARE_k = STATE(200+k)` to its
- *     own settlement address, zero its state (`STATE(200+k) EQ 0`), keep the
- *     other parties' balances unchanged, and return the remainder to the factory
- *     script. Repeated withdrawals cannot double-claim because each zeroes its
- *     own port. `STATE(103)` is immutable on every spend (`SAMESTATE(103 103)`),
+ *     single party k may withdraw its allocation `SHARE_k = PREVSTATE(200+k)`
+ *     (the spent coin's share) to its own settlement address, zero its state in
+ *     the successor (`STATE(200+k) EQ 0`), keep the other parties' balances
+ *     unchanged, and return the remainder to the factory script. Repeated
+ *     withdrawals cannot double-claim because each zeroes its own port. `STATE(103)` is immutable on every spend (`SAMESTATE(103 103)`),
  *     so the escape clock cannot be pushed by any counterparty.
  *
  * Minimum 2 participants required.
@@ -79,12 +79,12 @@ export function buildFactoryScript(
   const lines: string[] = [
     'LET SETTLEMENT=STATE(100)',
     `ASSERT SAMESTATE(${FACTORY_ESCAPE_PORT} ${FACTORY_ESCAPE_PORT})`,
-    `IF @BLOCK GT STATE(${FACTORY_ESCAPE_PORT}) THEN`,
+    `IF @BLOCK GT PREVSTATE(${FACTORY_ESCAPE_PORT}) THEN`,
   ];
 
   participants.forEach((_, k) => {
     const port = FACTORY_BALANCE_PORT_BASE + k;
-    lines.push(`  LET SHARE${k}=STATE(${port})`);
+    lines.push(`  LET SHARE${k}=PREVSTATE(${port})`);
     lines.push(`  IF SIGNEDBY(${pks[k]}) THEN`);
     lines.push(`    IF SHARE${k} GT 0 THEN`);
     lines.push(`      ASSERT VERIFYOUT(0 ${payouts[k]} SHARE${k} @TOKENID FALSE)`);

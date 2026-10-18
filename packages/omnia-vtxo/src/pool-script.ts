@@ -4,13 +4,14 @@
  * The pool is an on-chain state output holding `totalCapacity`. An epoch's batch
  * root is committed as STATE(100), the epoch number in STATE(101), the absolute
  * exit-eligibility block in STATE(102), and each holder's committed share in
- * STATE(300+k).
+ * STATE(200+k).
  *
  * Custody (RFC-039 / CUSTODY-POLICY §2):
- *   - **Per-share unilateral exit.** After `@BLOCK GT EXITBLOCK` each holder may
- *     withdraw **only its own committed share** (`STATE(300+k)`), to its own key,
- *     zeroing that share and returning the remainder to the pool. A holder cannot
- *     pay itself more than its share, so one holder can never rug the others.
+ *   - **Per-share unilateral exit.** After `@BLOCK GT PREVSTATE(102)` each holder
+ *     may withdraw **only its own committed share** (`PREVSTATE(200+k)`, the spent
+ *     coin's share), to its own key, zeroing that share in the successor
+ *     (`STATE(200+k) EQ 0`) and returning the remainder to the pool. A holder
+ *     cannot pay itself more than its share, so one holder can never rug the others.
  *   - **Cooperative update.** Before the exit window the pool may only move by
  *     `MULTISIG(operator + all holders)`, epoch-monotone (`ASSERT EPOCH GT
  *     PREVSTATE(101)`), with the exit block immutable (`ASSERT SAMESTATE(102
@@ -57,13 +58,13 @@ export function buildPoolScript(params: PoolScriptParams): string {
 
   const lines: string[] = [
     'LET EPOCH=STATE(101)',
-    'LET EXITBLOCK=STATE(102)',
+    'LET EXITBLOCK=PREVSTATE(102)',
     'IF @BLOCK GT EXITBLOCK THEN',
   ];
 
   holders.forEach((holder, k) => {
     const port = POOL_SHARE_PORT_BASE + k;
-    lines.push(`  LET SHARE${k}=STATE(${port})`);
+    lines.push(`  LET SHARE${k}=PREVSTATE(${port})`);
     lines.push(`  IF SIGNEDBY(${holder}) THEN`);
     lines.push(`    IF SHARE${k} GT 0 THEN`);
     lines.push(`      ASSERT VERIFYOUT(0 ${holder} SHARE${k} @TOKENID FALSE)`);
