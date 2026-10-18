@@ -3,7 +3,7 @@
 Status: Draft for architectural review — proposed, not merged for implementation
 Created: 2026-10-18
 Authors: Totem SDK Contributors
-Depends on: RFC-007 (Storage), RFC-017 (Decision Receipt Graph), RFC-019 (Governed Commerce), RFC-021–023 (Industrial/Physical), RFC-035 (Peer Coordination), RFC-036 (Settlement Verification), RFC-039 (Custody Conformance), RFC-047 (Experience), RFC-048 (Omnia Primitive Completeness), RFC-049 (MASH × Omnia × Eefi)
+Depends on: RFC-007 (Storage), RFC-017 (Decision Receipt Graph), RFC-019 (Governed Commerce), RFC-021–023 (Industrial/Physical), RFC-035 (Peer Coordination), RFC-036 (Settlement Verification), RFC-039 (Custody Conformance), RFC-047 (Experience), RFC-048 (Omnia Primitive Completeness), RFC-049 (MASH × Omnia × Eefi), RFC-051 (AI-Proposed Committed Facts)
 Touches (proposed): generic contracts in `kissvm`/`recursive-mast`, `omnia`/`omnia-pool`, `authority`/`agent-policy`, `proof`/`proofgraph`, `identity`/`manifest`, `lookup-*`, `storage`; the Eefi product layer above them
 
 > **Positioning.** RFC-047/048/049 are **preconditions**, not the Eefi product specification.
@@ -288,6 +288,37 @@ Derivative mathematics, margin engines, price discovery, AMMs, auctions and nett
 product-level protocols, not SDK packages. This RFC authorises **no implementation**; it defines
 the boundary, the generic contract surface, the gating primitives (P-EXIT, oracle witness,
 collateral/liquidation covenant, reservation, RFQ binding) and the sequence.
+
+---
+
+## 13. Integration seams (Eefi composition, with the rest of the SDK)
+
+RFC-050's core (stages, models, contracts, sequencing) is completed by the **SDK seams** below —
+the places Eefi touches other packages. The **AI-side seams** (Decision/Inference/Memory/Mandate)
+are defined in **RFC-051** (a dependency of this RFC); the seams here are the Eefi-specific
+composition. A seam earns "establish now" if it is committed to on-chain state/digests, touches
+identity/authorization, or is an inter-package message the two sides must agree on.
+
+| Seam | Packages | Contract | Invariant | Why now |
+|---|---|---|---|---|
+| LP capital → Eefi treasury | `liquidity-bond`, `storage` | `LiquidityPosition ↔ EefiCapitalAgreement ↔` treasury vaults | **one** LP ledger | entitlement is the source of truth; avoid two ledgers |
+| Operator / oracle accountability | `provider-bond`, `kissvm` | bond covenant (OMP-21) | slashing/liquidation by **objective covenant**, never discretion | interacts with capital authorization |
+| Machine Prepaid Accounts | `statechain`, `se-server` | prepaid-pass lifecycle ↔ product | non-custodial owner reclaim | protocol-level; Eefi doc §4 |
+| Physical → revenue finance | `location-proof`, `spatial-proof`, `raster-proof`, `industrial-action` | attestation → settlement condition (OMP-18/19) | exact-integer units; attestation is **provenance, not truth** | Gen-2 has no proof path otherwise |
+| Transport / message envelope | `edge` purchasing, `pubsub-transport`, `stream-transport`, `realtime`, `pear` | **one** signed financial message envelope | no second negotiation protocol (RFC-048 §3.2) | fragmentation risk |
+| Finality | `chain-provider`, `minima-rpc`, `server`, `realtime` | `SettlementEvidencePort` (RFC-048 §7) | prepared ≠ broadcast ≠ confirmed ≠ offchain-final | every product needs it |
+| Covenant construction | `tx-builder`, `kissvm` | covenant drafts (exercise / liquidation / settlement) | P-EXIT **reused**, not hand-rolled | enables P-EXIT across products |
+| Multi-branch policy | `recursive-mast` | drawdown / recovery / liquidation / emergency branches | no operator-discretion path | P-EXIT shape |
+| Product governance | `governance` | `governanceRef` in the settlement policy | governs the **product**, not the network | structured LP tranches |
+| Consent surface | `connect`, `wallet-adapter` | financial approval request | human/agent consent with terms context | user-facing protocol |
+| Key / root lifecycle | `wots-lease`, MASH (node) | key-use budget + rotation; MASH-root lifecycle | no key exhaustion; roots bound per stage | liveness failure risk (RFC-049 Q5) |
+| Evidence home | `proof`, `proofgraph`, `proof-integritas` | financial facts / lineage / anchoring | **single** home, no parallel evidence | avoid duplication (RFC-048 OMP-17/18/26) |
+| Discovery / eligibility | `lookup-*`, `manifest`, `identity` | counterparty/device discovery + manifest eligibility | permissionless; eligibility is a **product choice** | Eefi doc §2 |
+
+Cross-reference: the **AI-proposes** seams (Decision binding, Inference evidence, Memory provenance,
+Mandate chain) are **RFC-051** and MUST be applied to every committed Eefi outcome (RFC-051 CFR-1).
+
+---
 
 **Bottom line.** Eefi is not "more Omnia packages". It is a thin product layer over a substrate
 that already provides identity, proofs, policy, storage and (with MASH) capital authorization and
