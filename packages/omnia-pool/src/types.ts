@@ -380,6 +380,11 @@ export type RebalanceAllocationParams = {
   rooting?: RegistryRootingContext;
 };
 
+export type PayoutFinality =
+  | { status: 'confirmed'; evidenceRef: string; txpowId?: string; depth?: number }
+  | { status: 'offchain-final'; evidenceRef: string }
+  | { status: 'refunded' | 'exited'; evidenceRef: string };
+
 export type ExecutePoolPayoutParams = {
   pool: LiquidityPoolManifest;
   position: LiquidityPosition;
@@ -387,6 +392,13 @@ export type ExecutePoolPayoutParams = {
   recipientAddress: string;
   ctx?: OmniaPoolAllocationContext;
   rooting?: RegistryRootingContext;
+  /**
+   * Finality evidence (RFC-048 §3.3). A payout produces only a *draft* until a
+   * verifiable settlement artifact is supplied; without `settlement` the intent
+   * stays `approved` and the position is NOT decremented. `confirmed` and
+   * `offchain-final` are distinct guarantees, both requiring a recovery policy.
+   */
+  settlement?: PayoutFinality;
 };
 
 export type RecordPoolFeeParams = {

@@ -96,5 +96,6 @@ export type {
   ReleaseAllocationParams,
   RebalanceAllocationParams,
   ExecutePoolPayoutParams,
+  PayoutFinality,
   RecordPoolFeeParams,
 } from './types.js';

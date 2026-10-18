@@ -369,7 +369,7 @@ describe('omnia-pool', () => {
     );
     const { intent: approved, registry: approvedReg } = approveWithdrawal(intent, position, withIntent);
     const result = await executePoolPayout(
-      { pool: manifest, position, intent: approved, recipientAddress: lp, rooting: { signer, signIndices: { addressIndex: 0, l1: 0, l2: 1 } } },
+      { pool: manifest, position, intent: approved, recipientAddress: lp, settlement: { status: 'confirmed', evidenceRef: 'idx-1', txpowId: 'tx-1' }, rooting: { signer, signIndices: { addressIndex: 0, l1: 0, l2: 1 } } },
       approvedReg,
     );
 
@@ -377,6 +377,30 @@ describe('omnia-pool', () => {
     expect(result.signedTransition!.delta.op.type).toBe('payout');
     expect(result.signedTransition!.delta.op.withdrawalId).toBe(intent.withdrawalId);
     expect(result.signedTransition!.delta.root).toBe(computeRegistryRoot(result.registry));
+  });
+
+  it('does not settle or decrement capital without finality evidence (RFC-048 §3.3)', async () => {
+    const { manifest, registry: reg } = createOmniaPool(basePoolParams(), registry);
+    const { position, state } = await makeDeposit(
+      { pool: manifest, lpAddress: lp, amount: '100000', purpose: 'omnia-channel-capital' },
+      reg,
+    );
+    const { intent, state: withIntent } = withdrawLiquidity(
+      manifest,
+      position,
+      { positionId: position.positionId, amount: '1000', recipientAddress: lp },
+      state,
+    );
+    const { intent: approved, registry: approvedReg } = approveWithdrawal(intent, position, withIntent);
+
+    // No `settlement` → the payout is only a draft: position and intent unchanged.
+    const result = await executePoolPayout(
+      { pool: manifest, position, intent: approved, recipientAddress: lp },
+      approvedReg,
+    );
+    expect(result.intent.status).toBe('approved');
+    expect(result.position.amount).toBe(position.amount);
+    expect(result.signedTransition).toBeUndefined();
   });
 
   it('rejects allocation type/purpose mismatch', async () => {
@@ -599,7 +623,7 @@ describe('omnia-pool', () => {
     expect(approved.status).toBe('approved');
 
     const result = await executePoolPayout(
-      { pool: manifest, position, intent: approved, recipientAddress: lp },
+      { pool: manifest, position, intent: approved, recipientAddress: lp, settlement: { status: 'confirmed', evidenceRef: 'idx-1', txpowId: 'tx-1' } },
       approvedReg,
     );
     expect(result.intent.status).toBe('settled-externally');
@@ -653,6 +677,7 @@ describe('omnia-pool', () => {
         intent: approved,
         recipientAddress: lp,
         ctx: { omnia: port, loadChannel, saveChannelSnapshot },
+        settlement: { status: 'confirmed', evidenceRef: 'idx-2', txpowId: 'tx-2' },
       },
       approvedReg,
     );

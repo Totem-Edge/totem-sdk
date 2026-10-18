@@ -51,7 +51,7 @@ describe('pool script (RFC-038 V3 — per-share non-custodial)', () => {
     expect(POOL.script).toContain('IF SHARE0 GT 0 THEN');
     expect(POOL.script).toContain('ASSERT VERIFYOUT(0');
     expect(POOL.script).toContain(`ASSERT STATE(${POOL_SHARE_PORT_BASE}) EQ 0`);
-    expect(POOL.script).toContain('RETURN VERIFYOUT(@INPUT @ADDRESS @AMOUNT SUB SHARE0 @TOKENID TRUE)');
+    expect(POOL.script).toContain('RETURN VERIFYOUT(1 @ADDRESS @AMOUNT SUB SHARE0 @TOKENID TRUE)');
   });
 
   it('keeps cooperative updates co-signed, epoch-monotone, value-confined and exit-block-immutable', () => {

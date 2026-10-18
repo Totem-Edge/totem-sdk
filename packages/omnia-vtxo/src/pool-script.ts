@@ -76,7 +76,7 @@ export function buildPoolScript(params: PoolScriptParams): string {
     // Remainder (other holders' shares) stays in the pool; skip it when the
     // withdrawing holder's share is the whole pool (no room for another output).
     lines.push(`      IF @AMOUNT GT SHARE${k} THEN`);
-    lines.push(`        RETURN VERIFYOUT(@INPUT @ADDRESS @AMOUNT SUB SHARE${k} @TOKENID TRUE)`);
+    lines.push(`        RETURN VERIFYOUT(1 @ADDRESS @AMOUNT SUB SHARE${k} @TOKENID TRUE)`);
     lines.push('      ENDIF');
     lines.push('      RETURN TRUE');
     lines.push('    ENDIF');

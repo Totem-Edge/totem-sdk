@@ -97,7 +97,7 @@ export function buildFactoryScript(
     // share is the entire output there is no remainder, so a 0-amount output is
     // never required.
     lines.push(`      IF @AMOUNT GT SHARE${k} THEN`);
-    lines.push(`        RETURN VERIFYOUT(@INPUT @ADDRESS @AMOUNT SUB SHARE${k} @TOKENID TRUE)`);
+    lines.push(`        RETURN VERIFYOUT(1 @ADDRESS @AMOUNT SUB SHARE${k} @TOKENID TRUE)`);
     lines.push('      ENDIF');
     lines.push('      RETURN TRUE');
     lines.push('    ENDIF');

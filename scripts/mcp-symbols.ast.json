@@ -11087,6 +11087,10 @@
           "kind": "type",
           "signature": "export type ExecutePoolPayoutParams = { pool: LiquidityPoolManifest"
         },
+        "PayoutFinality": {
+          "kind": "type",
+          "signature": "export type PayoutFinality = | { status: 'confirmed'"
+        },
         "RecordPoolFeeParams": {
           "kind": "type",
           "signature": "export type RecordPoolFeeParams = { pool: LiquidityPoolManifest"

@@ -16,7 +16,7 @@ import {
   type LiquidityPosition,
   type WithdrawalIntent,
 } from '@totemsdk/liquidity-bond';
-import type { OmniaPoolAllocationContext, OmniaPoolWithdrawalResult, RegistryRootingContext, WithdrawLiquidityOptions } from './types.js';
+import type { ExecutePoolPayoutParams, OmniaPoolAllocationContext, OmniaPoolWithdrawalResult, RegistryRootingContext, WithdrawLiquidityOptions } from './types.js';
 import { maybeSignTransition } from './rooting.js';
 
 /**
@@ -85,15 +85,6 @@ export function approveWithdrawal(
   withdrawals[position.positionId] = list;
   const nextRegistry: LiquidityBondRegistryState = { ...registry, withdrawals };
   return { intent: approved, registry: nextRegistry };
-}
-
-export interface ExecutePoolPayoutParams {
-  pool: LiquidityPoolManifest;
-  position: LiquidityPosition;
-  intent: WithdrawalIntent;
-  recipientAddress: string;
-  ctx?: OmniaPoolAllocationContext;
-  rooting?: RegistryRootingContext;
 }
 
 /**
@@ -183,10 +174,24 @@ export async function executePoolPayout(
     execution = settlement;
   }
 
+  // RFC-048 §3.3: a prepared draft (exit draft / settlement proposal) is NOT a
+  // completed payout. Without verifiable finality evidence, do NOT consume the
+  // receipt, decrement LP capital, or mark the intent settled — return the
+  // prepared execution and leave the position and registry unchanged.
+  if (!params.settlement) {
+    return {
+      intent: params.intent,
+      position: params.position,
+      registry,
+      execution,
+    };
+  }
+
   // Mark position withdrawn for the requested amount and close the intent.
   const settledIntent: WithdrawalIntent = {
     ...params.intent,
     status: 'settled-externally',
+    metadata: { ...(params.intent.metadata ?? {}), settlement: params.settlement },
   };
 
   const withdrawnAmount = params.intent.amount;
