@@ -10,6 +10,9 @@ Touches (proposed): `@totemsdk/omnia*` (funding/settlement boundaries), `@totems
 > MASH-governed **capital commitments** compose with Omnia execution and the future Eefi product
 > layer — **without** making Omnia permissioned. Architecture only; no implementation is
 > authorised by this RFC.
+>
+> **Positioning.** RFC-049 defines the **capital-authorization boundary** (a precondition); the
+> Eefi product/market/risk architecture is **RFC-050**.
 
 ---
 

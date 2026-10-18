@@ -11,6 +11,9 @@ Audit caveat: Source-level review of architecture and selected implementations. 
 > **Numbering.** The working draft used `RFC-040`; `040`–`046` are the Canary repository and
 > `047` is the Experience Spine. This document is **`RFC-048`**.
 >
+> **Positioning.** RFC-048 is a **precondition for Eefi, not the Eefi product specification** — it
+> defines Omnia's completeness and reuse; the product/market/risk layer is RFC-050.
+>
 > **Package count.** The SDK_MANIFEST currently records **64 publishable packages**; the "65
 > package directories" here = those 64 + the private `sdk-tests` directory. "Eight `omnia*`
 > packages" is exact.
