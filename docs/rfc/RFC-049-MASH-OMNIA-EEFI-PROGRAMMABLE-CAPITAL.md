@@ -141,9 +141,10 @@ authorization state and Omnia program state must not overlap ports, and must res
 ### 5.2 Concrete collisions / hazards
 
 1. **`200+k` overlaps MSHS 234–255 for `k ≥ 34`.** The Omnia factory and VTXO pool *share* band
-   (`200+k`) runs straight into the MSHS proof band. Any factory/VTXO with ≥ ~34 holders would
-   collide. **Rule:** share ports MUST stay ≤ 233; holder/participant counts beyond that need a
-   different allocation (or Model B re-parameterisation).
+   (`200+k`) runs into the MSHS proof band. **Rule:** relocate the share band to a registered
+   sub-234 range with headroom (e.g. base `128` → ~106 slots) — party count is an **encoding
+   choice**, not a MASH limit — or re-parameterise in Model B. Ports are per-coin namespaces, so
+   factory and VTXO can each carry their own large band below 234.
 2. **`SAMESTATE` across the MSHS band is forbidden.** MSHS Direct-Mode scripts MUST NOT place
    `BASE(k)..max` inside a `SAMESTATE(from,to)` span. Omnia uses single-port `SAMESTATE(102 102)`
    / `SAMESTATE(103 103)` — safe today — but any **range** `SAMESTATE` that spans ≥234 would
@@ -163,8 +164,10 @@ authorization state and Omnia program state must not overlap ports, and must res
 
 - **R-MASH-1:** MASH state MUST live inside the MSHS band (≥234); no other package may allocate
   there.
-- **R-MASH-2:** Omnia share/escape ports MUST be bounded (≤233) and documented; factory/VTXO
-  participant limits derive from this bound.
+- **R-MASH-2:** Omnia's variable-length bands (party shares, etc.) MUST be allocated within a
+  registered **sub-234** range, driven by a per-coin-class port registry (see RFC-048 §12.6); the
+  current `200+k` base yields only 34 slots and SHOULD be relocated lower. **Model A imposes no
+  cap** — a cap exists only for same-coin (Model B) composites.
 - **R-MASH-3:** No `SAMESTATE` range may span the MSHS band.
 - **R-MASH-4:** Any composite (MASH + Omnia + MAST) transaction MUST publish a port-allocation
   table and pass an instruction-budget check.
@@ -173,6 +176,33 @@ authorization state and Omnia program state must not overlap ports, and must res
 
 Phase 0 must confirm the **exact** MSHS range endpoints and produce a machine-checked port
 registry (extending the custody gate lineage) for composite scripts.
+
+### 5.4 What MAST/MASH do — and do not — add to party count
+
+| Per party | Where it lives | MAST | MASH |
+|---|---|---|---|
+| Authorization / static terms | script (MAST branches) — scales | **yes** | authorization branch only |
+| Mutable balances / shares | state ports, unless a committed set-root | no | no (same-coin it *consumes* 234–255) |
+
+- **MAST** adds real flexibility to the **participant/authorization** count: per-party escape/close
+  branches scale in script space at ~zero port cost (`MULTISIG(N keys)` already does this).
+- **MASH** adds **none**: it is an authorization branch and, same-coin, reserves 234–255.
+- **Balances require a committed set-root** (Merkle/MMR) to scale — the VTXO batch root already
+  commits the holder set at `STATE(100)`; the factory SHOULD adopt the same.
+
+**Non-removal custody constraint (normative).** Any committed-set encoding MUST preserve
+**per-holder non-removal** — a holder's entitlement cannot be reduced or removed without that
+holder's signature — **and** a timelocked, operator-independent on-chain exit; otherwise it is
+custodial/trust-minimised and fails the RFC-039 gate. The current all-holders
+`MULTISIG(operator + holders)` update satisfies non-removal but **does not scale**; scaling requires
+**per-leaf authorization** (accumulator / sparse tree). Here *"chain of custody"* means the
+**verification chain** of state commitments and proofs — **not** a custodian holding funds. See
+RFC-048 §12.5.
+
+**Code gap (tracked).** `omnia-vtxo`/`omnia-factory` currently bound the party count only from below
+(`holders.length < 1`, `participants.length < 2`) and can emit ports ≥234; relocate the share base
+below the MSHS floor with an explicit upper bound and add the `check-state-ports` gate (RFC-048
+§12.6/§12.8).
 
 ---
 

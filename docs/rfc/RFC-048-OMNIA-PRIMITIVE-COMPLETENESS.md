@@ -314,16 +314,19 @@ separate claimed properties.
 | omnia-pool | LP position and allocation orchestration, NAV and rebalance | No draft-as-settlement, enforce exact LP ownership, verified fee claims and complete capital reconciliation |
 | omnia-vtxo | Merkle proofs, split/transfer/merge, signer and anchor builders | Dynamically transferred holder exit, global anti-double-spend, proof-to-chain inclusion, VM-valid withdrawal |
 
-**Known source-level safety issue requiring immediate reproduction.** In
-`omnia-vtxo/src/pool-script.ts`, the exit branch derives `SHAREk` from `STATE(200+k)` and then
-requires `STATE(200+k) EQ 0` on the **same** spend; under the documented previous/new state
-semantics this appears contradictory. The exit deadline is also read from current `STATE(102)`
-before the cooperative-path-only `SAMESTATE` guard. The same share-pattern appears in the factory
-escape script. These are **suspected, not validated** live-chain exploits or faults: run isolated
-Minima VM tests and correct according to actual consensus semantics before asserting custody. Also
-test transferred-owner authorization: the current on-chain holder-key list is static while
-`transferVtxo` can create new off-chain recipients. A source comment still says port `300+k`
-although the generated script uses `200+k`; documentation must be made consistent.
+**Source-level safety issues — found, fixed, and gated (was "suspected").** The exit/escape
+share branches originally read `SHARE_k` from `STATE(200+k)` — the **NEW/current** state per
+`@totemsdk/kissvm` (`state` = "Current state") — and then asserted the *same* `STATE(200+k) EQ 0`,
+which is self-contradictory: the unilateral exit was **unsatisfiable** (`omnia-vtxo`,
+`omnia-factory`). They also verified the remainder at `VERIFYOUT(@INPUT …)` = output 0, colliding
+with the payout (`VERIFYOUT(0 payout SHARE)`), so partial withdrawals were unsatisfiable and
+contradicted the SDK's own `exit-tx.ts` layout (payout@0, remainder@1). **Both are fixed**:
+committed values are read from `PREVSTATE(...)` (exit block / escape block / shares) and the
+successor is constrained via `STATE(...)`; the remainder is output **1**. A new `custody-exec` gate
+**executes** the escape branches via the SDK KISSVM evaluator (proof-ladder **L1/L2**) —
+**real isolated-chain VM tests remain required for L3/L4**. Still open: dynamic transferred-owner
+exit (static on-chain holder keys vs `transferVtxo`); and the `200+k` share band's relationship to
+the MSHS port band (see **§12**).
 
 ---
 
@@ -499,3 +502,86 @@ programmable settlement. Reuse Totem's existing signed proofs, ProofGraph, negot
 engines. Add the minimum missing typed contracts for oracle policy, capital reservation, financial
 quote binding and durable settlement reconciliation. Keep lending, liquidations, pricing
 algorithms, AMMs and derivatives in **Eefi**, not the Omnia package family.
+
+---
+
+## 12. Amendment — Port allocation, party scaling and the non-removal custody constraint
+
+This amendment adds the state-port/party-count analysis and the committed-set custody constraint
+(also referenced by RFC-049 §5), and records the resolved safety fixes.
+
+### 12.1 Ports are bytes; allocation is scarce
+
+State ports serialize as a MiniByte (**0–255**) — hence `MiniByte value must be 0-255, got 300`.
+There are only **256 ports**, and MSHS-2 (MASH) occupies **234–255**. Omnia currently uses 100–102,
+103 (factory escape), 110 (VTXO exit delay), 120–183 (channel programs), and `200+k` (factory/VTXO
+shares).
+
+### 12.2 Ports are per-coin namespaces
+
+A **channel coin**, a **factory coin** and a **VTXO pool coin** are different coins with different
+scripts; their ports do **not** collide with each other. A coin must only avoid the bands its *own*
+script (plus any MASH branch on that coin) uses. Factory and VTXO can each have a large band — they
+need not share one.
+
+### 12.3 `200+k` is a small-N shortcut, not a constraint
+
+The 34-slot ceiling is purely because the share base is 200. On factory/VTXO coins, ports 104–199
+are unused (they carry no eltoo programs), so relocating the base (e.g. **128**) yields ~106 slots
+and keeps clear of the MSHS floor. **Party count is an encoding choice, not a MASH constraint.**
+
+### 12.4 Encoding — not MAST/MASH — sets party capacity
+
+| Per party | Where it lives | MAST | MASH |
+|---|---|---|---|
+| Authorization / static terms | script (MAST branches) — scales | **yes** | authorization branch only |
+| Mutable balances / shares | state (ports), unless a committed set-root | no | no (and same-coin it consumes 234–255) |
+
+MAST ⇒ the **authorization** side scales without port cost. MASH ⇒ authorization only (same-coin it
+*consumes* the top ports). **Balances require a committed set-root (Merkle/MMR) to scale** — the
+VTXO batch root already does this (`STATE(100)=root`); the factory SHOULD adopt it.
+
+### 12.5 Normative custody constraint (non-removal)
+
+Any committed-set share encoding MUST preserve **per-holder non-removal** and a **timelocked
+unilateral on-chain exit**:
+
+- a holder's entitlement **cannot be reduced or removed without that holder's signature**; and
+- a timelocked, operator-independent on-chain exit exists (prove `leaf ∈ PREVSTATE(100)`,
+  `RETURN SIGNEDBY(holder)` after `EXITBLOCK`).
+
+Otherwise the encoding is **custodial/trust-minimised** and fails the RFC-039 custody gate. A single
+root the operator can rewrite unilaterally would let the operator eject/reduce a holder — a custody
+regression. The current all-holders `MULTISIG(operator + holders)` update satisfies non-removal but
+**does not scale**; scaling requires **per-leaf authorization** (accumulator / sparse tree) so a
+leaf cannot change without its holder. Here *"chain of custody"* means the **verification chain** of
+state commitments and proofs — **not** a custodian holding funds.
+
+### 12.6 Port registry + gate (proposed)
+
+Add a machine-checked registry (`docs/STATE-PORT-REGISTRY.md` + `scripts/check-state-ports.mjs`, in
+the spirit of `validate-custody`): per-coin-class bands; MSHS reserved ≥234; **no `SAMESTATE` range
+may span the MSHS band**; fail on out-of-band/overlapping/`SAMESTATE`-spanning ports.
+
+Proposed bands: `0` reserved · `1–99` general/legacy · `100–119` Omnia channel/factory control ·
+`120–183` Omnia channel programs · `120–233` Omnia share band on factory/VTXO coins (relocate base
+below 200 for headroom) · `234–255` MSHS-2.
+
+### 12.7 Registry additions
+
+- **OMP-29** — State-port allocation / composite port registry (owner: shared settlement/state ports).
+- **INV-17** — Committed-set non-removal + timelocked unilateral exit; no `SAMESTATE` spans the MSHS band.
+- **CT-19** — Composite MASH+Omnia state-port test (registry respected; exit satisfiable against the committed root).
+
+### 12.8 Code gap (tracked)
+
+`omnia-vtxo`/`omnia-factory` enforce only **lower** bounds on party count (`holders.length < 1`,
+`participants.length < 2`) and can emit ports ≥234. Fix: relocate
+`POOL_SHARE_PORT_BASE` / `FACTORY_BALANCE_PORT_BASE` below the MSHS floor with an explicit upper
+bound, add the `check-state-ports` gate, and add a boundary case to `custody-exec`.
+
+### 12.9 Reuse-index addition
+
+| Group | Package / capability | Reuse decision |
+|---|---|---|
+| MASH / MSHS-2 (node) | `totem-node-new-crypto` MSHS-2 verifier | **Conditional direct** for capital authorization at the OPEN/CLOSE boundary; node-side, consumed via `kissvm`/`identity`/`authority`/`agent-policy`; not a package (see RFC-049) |

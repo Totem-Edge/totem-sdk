@@ -103,6 +103,14 @@ machine-readable (see `scripts/verify-sdk-manifest.mjs`).
   merely non-null.
 - **Exit confinement:** a custodial-capable path (operator-only) must **fail
   closed** once a non-custodial path exists.
+- **Committed-set non-removal:** any set-based entitlement encoding (a Merkle/MMR
+  root rather than one state port per party) MUST ensure a holder's entitlement
+  cannot be **reduced or removed without that holder's signature**, and MUST
+  retain a timelocked, operator-independent on-chain exit. A single root the
+  operator can rewrite unilaterally is custodial/trust-minimised and fails the
+  gate. (MAST branches scale *authorization* without port cost; MASH is an
+  authorization branch only; *balances* need a committed set-root with per-leaf
+  authorization to scale.) See RFC-048 §12, RFC-049 §5.
 
 ## 6. Verification is part of "done"
 
