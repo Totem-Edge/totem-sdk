@@ -55,8 +55,8 @@ function poolExit({ spentShare, successorShare, amount, signers, remainder }) {
     block: 200, inputIndex: 0,
     inputs: [{ coinId: '0x' + 'cc'.repeat(32), address: POOL, amount: BigInt(amount), tokenId: '0x00' }],
     outputs,
-    state: { 101: '1', 102: '0', 200: String(successorShare) },
-    prevState: { 101: '0', 102: '100', 200: String(spentShare) },
+    state: { 101: '1', 102: '0', 128: String(successorShare) },
+    prevState: { 101: '0', 102: '100', 128: String(spentShare) },
     simulationMode: true,
   }, signers);
 }
@@ -87,8 +87,8 @@ function factoryEscape({ amount, remainder, successorZero }) {
     block: 200, inputIndex: 0,
     inputs: [{ coinId: '0x' + 'ee'.repeat(32), address: FACTORY, amount: BigInt(amount), tokenId: '0x00' }],
     outputs,
-    state: { 100: '0', 103: '0', 200: successorZero ? '0' : '1000', 201: '500' },
-    prevState: { 100: '0', 103: '0', 200: '1000', 201: '500' },
+    state: { 100: '0', 103: '0', 128: successorZero ? '0' : '1000', 129: '500' },
+    prevState: { 100: '0', 103: '0', 128: '1000', 129: '500' },
     simulationMode: true,
   }, [aKey]);
 }

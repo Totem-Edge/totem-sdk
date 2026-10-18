@@ -16,8 +16,14 @@ export const FACTORY_ESCAPE_DELAY_BLOCKS = 256;
 /** State port carrying the absolute escape block (STATE(103)). */
 export const FACTORY_ESCAPE_PORT = 103;
 
-/** State port base for per-party allocations: party k ⇒ port 200+k. */
-export const FACTORY_BALANCE_PORT_BASE = 200;
+/** State port base for per-party allocations: party k ⇒ `base + k` (below the MSHS floor). */
+export const FACTORY_BALANCE_PORT_BASE = 128;
+
+/** Lowest port reserved for MSHS-2 (MASH); Omnia ports MUST stay below this. */
+export const MSHS_PORT_FLOOR = 234;
+
+/** Maximum participants whose balance ports remain below the MSHS floor. */
+export const FACTORY_MAX_PARTICIPANTS = MSHS_PORT_FLOOR - FACTORY_BALANCE_PORT_BASE;
 
 export interface FactoryScriptOptions {
   /** Reserved for callers; the escape block is carried in STATE(103) at funding. */
@@ -25,7 +31,7 @@ export interface FactoryScriptOptions {
 }
 
 /**
- * Per-party allocation state variables (port 200+k = party k's balance), seeded
+ * Per-party allocation state variables (port base+k = party k's balance), seeded
  * into the factory funding output so the timeout escape can pay each party its
  * committed share.
  */
@@ -55,9 +61,9 @@ export function factoryEscapeStateVariable(escapeBlock: number): { port: number;
  *   - **Cooperative / update** (any time): `MULTISIG(N …)` — all parties sign.
  *     `SETTLEMENT=true` closes after minimal coinage (1 block).
  *   - **Unilateral escape** (after the absolute block in `STATE(103)`): any
- *     single party k may withdraw its allocation `SHARE_k = PREVSTATE(200+k)`
+ *     single party k may withdraw its allocation `SHARE_k = PREVSTATE(base+k)`
  *     (the spent coin's share) to its own settlement address, zero its state in
- *     the successor (`STATE(200+k) EQ 0`), keep the other parties' balances
+ *     the successor (`STATE(base+k) EQ 0`), keep the other parties' balances
  *     unchanged, and return the remainder to the factory script. Repeated
  *     withdrawals cannot double-claim because each zeroes its own port. `STATE(103)` is immutable on every spend (`SAMESTATE(103 103)`),
  *     so the escape clock cannot be pushed by any counterparty.
@@ -70,6 +76,11 @@ export function buildFactoryScript(
 ): string {
   if (participants.length < 2) {
     throw new Error(`Factory requires at least 2 participants, got ${participants.length}`);
+  }
+  if (participants.length > FACTORY_MAX_PARTICIPANTS) {
+    throw new Error(
+      `Factory supports at most ${FACTORY_MAX_PARTICIPANTS} participants (got ${participants.length}) — balance ports would reach the MSHS-2 band (≥${MSHS_PORT_FLOOR})`,
+    );
   }
   const count = participants.length;
 

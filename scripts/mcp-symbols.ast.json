@@ -10420,7 +10420,7 @@
         "buildFactoryScript": {
           "kind": "function",
           "signature": "buildFactoryScript(participants: FactoryParticipant[], _options?: FactoryScriptOptions): string",
-          "doc": "Build the N-of-N MULTISIG MAST funding script for a channel factory\n(RFC-039, CUSTODY-POLICY §2).\n\nSpend paths:\n  - **Cooperative / update** (any time): `MULTISIG(N …)` — all parties sign.\n    `SETTLEMENT=true` closes after minimal coinage (1 block).\n  - **Unilateral escape** (after the absolute block in `STATE(103)`): any\n    single party k may withdraw its allocation `SHARE_k = PREVSTATE(200+k)`\n    (the spent coin's share) to its own settlement address, zero its state in\n    the successor (`STATE(200+k) EQ 0`), keep the other parties' balances\n    unchanged, and return the remainder to the factory script. Repeated\n    withdrawals cannot double-claim because each zeroes its own port. `STATE(103)` is immutable on every spend (`SAMESTATE(103 103)`),\n    so the escape clock cannot be pushed by any counterparty.\n\nMinimum 2 participants required."
+          "doc": "Build the N-of-N MULTISIG MAST funding script for a channel factory\n(RFC-039, CUSTODY-POLICY §2).\n\nSpend paths:\n  - **Cooperative / update** (any time): `MULTISIG(N …)` — all parties sign.\n    `SETTLEMENT=true` closes after minimal coinage (1 block).\n  - **Unilateral escape** (after the absolute block in `STATE(103)`): any\n    single party k may withdraw its allocation `SHARE_k = PREVSTATE(base+k)`\n    (the spent coin's share) to its own settlement address, zero its state in\n    the successor (`STATE(base+k) EQ 0`), keep the other parties' balances\n    unchanged, and return the remainder to the factory script. Repeated\n    withdrawals cannot double-claim because each zeroes its own port. `STATE(103)` is immutable on every spend (`SAMESTATE(103 103)`),\n    so the escape clock cannot be pushed by any counterparty.\n\nMinimum 2 participants required."
         },
         "buildAndHashFactoryScript": {
           "kind": "function",
@@ -10430,12 +10430,37 @@
         "factoryBalanceStateVariables": {
           "kind": "function",
           "signature": "factoryBalanceStateVariables(participants: FactoryParticipant[]): { port: number; value: bigint; type: \"number\"; }[]",
-          "doc": "Per-party allocation state variables (port 200+k = party k's balance), seeded\ninto the factory funding output so the timeout escape can pay each party its\ncommitted share."
+          "doc": "Per-party allocation state variables (port base+k = party k's balance), seeded\ninto the factory funding output so the timeout escape can pay each party its\ncommitted share."
         },
         "factoryEscapeStateVariable": {
           "kind": "function",
           "signature": "factoryEscapeStateVariable(escapeBlock: number): { port: number; value: bigint; type: \"number\"; }",
           "doc": "Absolute escape-block state variable (STATE(103)) for the factory funding output."
+        },
+        "FACTORY_BALANCE_PORT_BASE": {
+          "kind": "const",
+          "signature": "FACTORY_BALANCE_PORT_BASE = 128",
+          "doc": "State port base for per-party allocations: party k ⇒ `base + k` (below the MSHS floor)."
+        },
+        "FACTORY_ESCAPE_PORT": {
+          "kind": "const",
+          "signature": "FACTORY_ESCAPE_PORT = 103",
+          "doc": "State port carrying the absolute escape block (STATE(103))."
+        },
+        "FACTORY_ESCAPE_DELAY_BLOCKS": {
+          "kind": "const",
+          "signature": "FACTORY_ESCAPE_DELAY_BLOCKS = 256",
+          "doc": "Blocks after the funding tip at which the unilateral escape opens."
+        },
+        "FACTORY_MAX_PARTICIPANTS": {
+          "kind": "const",
+          "signature": "FACTORY_MAX_PARTICIPANTS = MSHS_PORT_FLOOR - FACTORY_BALANCE_PORT_BASE",
+          "doc": "Maximum participants whose balance ports remain below the MSHS floor."
+        },
+        "MSHS_PORT_FLOOR": {
+          "kind": "const",
+          "signature": "MSHS_PORT_FLOOR = 234",
+          "doc": "Lowest port reserved for MSHS-2 (MASH); Omnia ports MUST stay below this."
         },
         "scriptAddress": {
           "kind": "function",
@@ -12001,8 +12026,18 @@
         },
         "POOL_SHARE_PORT_BASE": {
           "kind": "const",
-          "signature": "POOL_SHARE_PORT_BASE = 200",
-          "doc": "State port base for per-holder shares: holder k ⇒ port 200+k (ports are bytes, ≤255)."
+          "signature": "POOL_SHARE_PORT_BASE = 128",
+          "doc": "State port base for per-holder shares: holder k ⇒ `base + k`. Kept below the\nMSHS-2 floor so Omnia ports never collide with MASH (ports are bytes, 0–255).\nSee RFC-048 §12 / RFC-049 §5."
+        },
+        "MSHS_PORT_FLOOR": {
+          "kind": "const",
+          "signature": "MSHS_PORT_FLOOR = 234",
+          "doc": "Lowest port reserved for MSHS-2 (MASH); Omnia ports MUST stay below this."
+        },
+        "POOL_MAX_HOLDERS": {
+          "kind": "const",
+          "signature": "POOL_MAX_HOLDERS = MSHS_PORT_FLOOR - POOL_SHARE_PORT_BASE",
+          "doc": "Maximum holders whose share ports remain below the MSHS floor."
         },
         "PoolScriptParams": {
           "kind": "interface",

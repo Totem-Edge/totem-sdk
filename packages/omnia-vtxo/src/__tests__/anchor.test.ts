@@ -46,7 +46,7 @@ describe('pool script (RFC-038 V3 — per-share non-custodial)', () => {
   it('has a per-holder exit branch constrained to the committed share', () => {
     expect(POOL.script).toContain('IF @BLOCK GT EXITBLOCK THEN');
     expect(POOL.script).toContain('LET EXITBLOCK=PREVSTATE(102)');
-    expect(POOL.script).toContain('LET SHARE0=PREVSTATE(200)');
+    expect(POOL.script).toContain('LET SHARE0=PREVSTATE(128)');
     expect(POOL.script).toContain('IF SIGNEDBY(');
     expect(POOL.script).toContain('IF SHARE0 GT 0 THEN');
     expect(POOL.script).toContain('ASSERT VERIFYOUT(0');

@@ -172,11 +172,11 @@ describe('buildFactoryScript', () => {
     const script = buildFactoryScript([ALICE, BOB]);
     expect(script).toContain('ASSERT SAMESTATE(103 103)');
     expect(script).toContain('IF @BLOCK GT PREVSTATE(103) THEN');
-    expect(script).toContain('LET SHARE0=PREVSTATE(200)');
-    expect(script).toContain('LET SHARE1=PREVSTATE(201)');
+    expect(script).toContain('LET SHARE0=PREVSTATE(128)');
+    expect(script).toContain('LET SHARE1=PREVSTATE(129)');
     expect(script).toContain('ASSERT VERIFYOUT(0');
-    expect(script).toContain('ASSERT STATE(200) EQ 0');
-    expect(script).toContain('ASSERT STATE(201) EQ PREVSTATE(201)');
+    expect(script).toContain('ASSERT STATE(128) EQ 0');
+    expect(script).toContain('ASSERT STATE(129) EQ PREVSTATE(129)');
     // Whole-share guard: no zero-remainder output when the share is the whole pool.
     expect(script).toContain('IF @AMOUNT GT SHARE0 THEN');
     expect(script).toContain('RETURN VERIFYOUT(1 @ADDRESS @AMOUNT SUB SHARE0 @TOKENID TRUE)');
@@ -185,8 +185,8 @@ describe('buildFactoryScript', () => {
 
   test('seeds per-party allocation + escape-block state', () => {
     expect(factoryBalanceStateVariables([ALICE, BOB])).toEqual([
-      { port: 200, value: 1000n, type: 'number' },
-      { port: 201, value: 500n, type: 'number' },
+      { port: 128, value: 1000n, type: 'number' },
+      { port: 129, value: 500n, type: 'number' },
     ]);
     expect(factoryEscapeStateVariable(5000)).toEqual({ port: 103, value: 5000n, type: 'number' });
     expect(() => factoryEscapeStateVariable(-1)).toThrow(/escapeBlock/);

@@ -206,7 +206,7 @@
         "@totemsdk/kissvm": "^1.2.1",
         "@totemsdk/lookup-client": "^0.2.0",
         "@totemsdk/omnia": "^2.0.1",
-        "@totemsdk/omnia-factory": "^0.5.2",
+        "@totemsdk/omnia-factory": "^0.5.3",
         "@totemsdk/omnia-router": "^0.3.0",
         "@totemsdk/omnia-splice": "^0.3.0",
         "@totemsdk/pear": "^0.2.1",
@@ -913,7 +913,7 @@
     },
     {
       "name": "@totemsdk/omnia-factory",
-      "version": "0.5.2",
+      "version": "0.5.3",
       "description": "Channel factory — N-of-N MULTISIG funding, virtual channel management, factory settlement",
       "domain": "payment-network",
       "keywords": [
@@ -999,7 +999,7 @@
     },
     {
       "name": "@totemsdk/omnia-vtxo",
-      "version": "0.5.2",
+      "version": "0.5.3",
       "description": "Virtual UTXO / payment-pool claim layer — cash-like off-chain balance primitive",
       "domain": "payment-network",
       "keywords": [
@@ -1600,10 +1600,10 @@
         "@totemsdk/manifest": "^2.0.0",
         "@totemsdk/minima-rpc": "^0.3.0",
         "@totemsdk/omnia": "^2.0.1",
-        "@totemsdk/omnia-factory": "^0.5.2",
+        "@totemsdk/omnia-factory": "^0.5.3",
         "@totemsdk/omnia-router": "^0.3.0",
         "@totemsdk/omnia-splice": "^0.3.0",
-        "@totemsdk/omnia-vtxo": "^0.5.2",
+        "@totemsdk/omnia-vtxo": "^0.5.3",
         "@totemsdk/storage": "^0.1.0",
         "@totemsdk/wots-lease": "^1.0.1"
       },
@@ -1733,10 +1733,10 @@
         "@totemsdk/core": "^1.3.0",
         "@totemsdk/liquidity-bond": "^0.3.1",
         "@totemsdk/omnia": "^2.0.1",
-        "@totemsdk/omnia-factory": "^0.5.2",
+        "@totemsdk/omnia-factory": "^0.5.3",
         "@totemsdk/omnia-router": "^0.3.0",
         "@totemsdk/omnia-splice": "^0.3.0",
-        "@totemsdk/omnia-vtxo": "^0.5.2",
+        "@totemsdk/omnia-vtxo": "^0.5.3",
         "@totemsdk/storage": "^0.1.0",
         "@totemsdk/tx-builder": "^0.2.1",
         "@totemsdk/wots-lease": "^1.0.1"
@@ -1777,7 +1777,7 @@
         "@totemsdk/core": "^1.3.0",
         "@totemsdk/identity": "^1.0.1",
         "@totemsdk/omnia": "^2.0.1",
-        "@totemsdk/omnia-factory": "^0.5.2",
+        "@totemsdk/omnia-factory": "^0.5.3",
         "@totemsdk/omnia-router": "^0.3.0",
         "@totemsdk/omnia-splice": "^0.3.0",
         "@totemsdk/root-identity": "^1.0.9",
