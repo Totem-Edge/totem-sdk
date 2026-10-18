@@ -95,6 +95,11 @@ jobs:
         run: |
           for p in statechain omnia omnia-factory omnia-vtxo; do (cd "packages/$p" && npx tsc); done
           node scripts/check-state-ports.mjs
+      - name: Real-VM escape gate — Rust/WASM vs TS (RFC-048 L3/L5 direction)
+        run: |
+          (cd packages/kissvm/rust && wasm-pack build --target nodejs --out-dir pkg-node)
+          for p in omnia omnia-vtxo omnia-factory; do (cd "packages/$p" && npx tsc); done
+          node scripts/custody-exec-vm.mjs
       - name: Upstream publish guard (CAN-003 / CAN-008a)
         run: node scripts/check-upstream-published.mjs
       - name: Rebuild native sqlite bindings (install uses --ignore-scripts)

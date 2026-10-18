@@ -326,8 +326,10 @@ with the payout (`VERIFYOUT(0 payout SHARE)`), so partial withdrawals were unsat
 contradicted the SDK's own `exit-tx.ts` layout (payout@0, remainder@1). **Both are fixed**:
 committed values are read from `PREVSTATE(...)` (exit block / escape block / shares) and the
 successor is constrained via `STATE(...)`; the remainder is output **1**. A new `custody-exec` gate
-**executes** the escape branches via the SDK KISSVM evaluator (proof-ladder **L1/L2**) —
-**real isolated-chain VM tests remain required for L3/L4**. Still open: dynamic transferred-owner
+**executes** the escape branches via the SDK KISSVM evaluator (proof-ladder **L1/L2**), and a
+`custody-exec-vm` gate runs the **same branches through the Rust/WASM KISSVM** and confirms it
+agrees with the TS evaluator (cross-implementation parity); a full isolated Minima **node** run
+remains the **L4** bar. Still open: dynamic transferred-owner
 exit (static on-chain holder keys vs `transferVtxo`); and the `200+k` share band's relationship to
 the MSHS port band (see **§12**).
 
