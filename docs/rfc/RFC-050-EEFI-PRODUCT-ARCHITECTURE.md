@@ -77,6 +77,27 @@ Therefore RFC-050 makes the following **mandatory precondition** for Gen-2/3 pro
 This is the Eefi analogue of the RFC-039 per-share exit. Without it, Eefi products are
 trust-minimised at best and **must be labelled as such** (CUSTODY-POLICY).
 
+**First shape — implemented.** The initial P-EXIT covenant is a KISSVM template,
+`buildExerciseCovenant` + `exerciseCovenantStateVariables` in `@totemsdk/kissvm`
+(`packages/kissvm/src/templates/exercise.ts`). It encodes: a committed time window (maturity /
+recovery ports read from `PREVSTATE`, pinned by `SAMESTATE`); a **beneficiary branch** that opens
+after the objective condition and pays *exactly* the committed beneficiary path, requiring only the
+beneficiary's own signature (never the owner's); and a **recovery branch** that pays the owner's own
+address only after the window. A caller-supplied `condition` expression (e.g. `MAST(0x…)`,
+`SIGNEDBY(0x…)`) supports oracle-witness / liquidation shapes, and `requireSignature: false` gives a
+permissionless trigger whose payout is still fixed to the beneficiary. It is validated by
+`scripts/exercise-exec-vm.mjs` — real `TreeKey` signatures through **both** the TypeScript and
+Rust/WASM VMs (beneficiary exercises; owner cannot redirect; recovery is time-bounded; tampered
+digest rejected) — plus logic tests in `packages/kissvm/src/__tests__/exercise.test.ts`. Payouts may be
+**whole-balance** or a **fixed `payout` with a remainder** (default: back to the owner). A companion
+**OMP-21 collateral-bond covenant** (`buildCollateralBondScript`) implements objective-condition
+liquidation with a borrower reclaim path and no operator discretion. An **OMP-19 oracle condition
+witness** (`buildOracleConditionScript`) commits an observation and validates an authorized oracle
+quorum, freshness and an objective value comparison — the **cooperative/attested** shape (this SDK's
+`CHECKSIG` binds the oracle to the transaction digest). The **non-cooperative** path is
+`buildOracleExerciseCovenant` (commit the observation at funding; the beneficiary exercises alone).
+Still open: the product economics around the bond and the oracle policy/quorum runtime.
+
 ---
 
 ## 4. Gating primitives (must exist before Eefi products)
@@ -89,15 +110,15 @@ Mapping Eefi needs → the RFC-048 primitives that must land first:
 | Return of capital / loan repayment / derivative settle | Co-signed closes + executable settlement/recovery (P-EXIT) | OMP-07, **P-EXIT** | Partial / **new** |
 | JIT credit, RFQ, no double-allocation | Capital reservation / anti-double-allocation | OMP-13 | Partial |
 | Forwards/swaps/options binding | Signed bilateral financial quote | OMP-14 | Partial |
-| Price-linked / parametric payouts | Trusted oracle observation policy + on-chain condition witness | OMP-18, OMP-19 | **New** / Partial |
-| Secured lending, liquidation, loss recovery | Enforceable collateral bond (incl. **liquidation covenant**) | OMP-21 | **New** |
+| Price-linked / parametric payouts | Trusted oracle observation policy + on-chain condition witness | OMP-18, OMP-19 | **New** / Partial → condition witness in `kissvm` (§3) |
+| Secured lending, liquidation, loss recovery | Enforceable collateral bond (incl. **liquidation covenant**) | OMP-21 | **New** → first covenant in `kissvm` (§3) |
 | Structured yield / LP entitlement | LP backing + exact withdrawal entitlement | OMP-20, OMP-22 | Partial |
 
 Two RFC-048 details remain load-bearing: (a) Omnia program injection is update-path logic — a
 credit/derivative program **must not assume** its predicates constrain the **final settlement
 payout** (verify separately); (b) composite scripts need state-port + instruction-budget checks
-(RFC-048 §12, RFC-049 §5) — MASH uses 234–255 (and a large KISSVM budget), so **no full MASH
-verifier in the update path**.
+(RFC-048 §12, RFC-049 §5) — MASH uses ports **230–255** and a large KISSVM budget, so the verifier
+must be a canonical MAST dispatch (it MAY authorize updates, per R-MASH-5, but never inlined).
 
 ---
 
@@ -269,8 +290,11 @@ authorizes.
 
 ## 11. Open questions
 
-1. **P-EXIT design.** Which covenant shape (pre-signed exercise tx vs. condition-branch) gives a
-   trust-minimised exercise right, and how does it bind the exact payout path? (Gating item.)
+1. **P-EXIT design.** *First shape chosen:* a **condition-branch covenant** (§3) rather than a
+   single pre-signed exercise tx, because it generalises to oracle-witness / liquidation conditions
+   and needs no writer liveness or pre-commitment at exercise time; the exact payout path is bound
+   by `VERIFYOUT` to the committed beneficiary. Open: partial payouts/remainders, the
+   oracle-witness covenant, and whether exercise should ever be signature-free (permissionless).
 2. **Aggregation/liquidation.** Who, if anyone, may call a liquidation covenant once the objective
    condition holds — and can it be permissionless (anyone pays, beneficiary fixed)?
 3. Marketplace protocol: reuses `edge` signed negotiation verbatim, or a financial profile?
@@ -302,7 +326,7 @@ identity/authorization, or is an inter-package message the two sides must agree 
 | Seam | Packages | Contract | Invariant | Why now |
 |---|---|---|---|---|
 | LP capital → Eefi treasury | `liquidity-bond`, `storage` | `LiquidityPosition ↔ EefiCapitalAgreement ↔` treasury vaults | **one** LP ledger | entitlement is the source of truth; avoid two ledgers |
-| Operator / oracle accountability | `provider-bond`, `kissvm` | bond covenant (OMP-21) | slashing/liquidation by **objective covenant**, never discretion | interacts with capital authorization |
+| Operator / oracle accountability | `provider-bond`, `kissvm` | bond covenant (OMP-21) — `buildCollateralBondScript` (§3) | slashing/liquidation by **objective covenant**, never discretion | interacts with capital authorization |
 | Machine Prepaid Accounts | `statechain`, `se-server` | prepaid-pass lifecycle ↔ product | non-custodial owner reclaim | protocol-level; Eefi doc §4 |
 | Physical → revenue finance | `location-proof`, `spatial-proof`, `raster-proof`, `industrial-action` | attestation → settlement condition (OMP-18/19) | exact-integer units; attestation is **provenance, not truth** | Gen-2 has no proof path otherwise |
 | Transport / message envelope | `edge` purchasing, `pubsub-transport`, `stream-transport`, `realtime`, `pear` | **one** signed financial message envelope | no second negotiation protocol (RFC-048 §3.2) | fragmentation risk |

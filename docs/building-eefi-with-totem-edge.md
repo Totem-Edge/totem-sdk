@@ -1,8 +1,8 @@
 <!--
   SEO metadata (for standalone repo README / social sharing)
   title: Building Eefi with Totem Edge — Edge DeFi, IoT Payments & the Machine Economy on Minima
-  description: Edge DeFi (Eefi) is a new category of financial infrastructure where IoT devices, sensors, and machines run their own payment channels, liquidity pools, and governance — all on the Minima blockchain, all quantum-resistant, all without cloud servers. Learn how the Totem SDK's 60 publishable packages compose to turn every device into a bank.
-  keywords: Edge DeFi, Eefi, IoT payments, machine economy, machine-to-machine payments, M2M payments, autonomous payments, device payments, Minima blockchain, Totem SDK, Omnia payment channels, eltoo, WOTS signatures, quantum-resistant, statechains, VTXO, channel factory, MachinePay, QVAC, agent policy, recursive MAST, quadratic voting, liquid democracy, provider bonds, liquidity bonds, edge computing, industrial IoT, DePIN, decentralized physical infrastructure
+  description: Edge DeFi (Eefi) is a new category of financial infrastructure where IoT devices, sensors, and machines run their own payment channels, liquidity pools, programmable capital, and governance — all on the Minima blockchain, all quantum-resistant, all without cloud servers. Learn how the Totem SDK's 64 publishable packages compose to turn every device into a bank.
+  keywords: Edge DeFi, Eefi, IoT payments, machine economy, machine-to-machine payments, M2M payments, autonomous payments, device payments, Minima blockchain, Totem SDK, Omnia payment channels, eltoo, WOTS signatures, tree signatures, TreeKey, quantum-resistant, MASH, MSHS-2, programmable capital, capital authorization, P-EXIT, EefiCapitalAgreement, committed facts, statechains, VTXO, channel factory, MachinePay, QVAC, agent policy, recursive MAST, quadratic voting, liquid democracy, provider bonds, liquidity bonds, edge computing, industrial IoT, DePIN, decentralized physical infrastructure
   og:image: https://totem.ing/img/totem-edge-framework.png
   og:type: article
   article:tag: Edge DeFi, IoT, Minima, blockchain, payments, DePIN
@@ -31,12 +31,14 @@
 7. [The Trust Layer: Provider Bonds and Reputation](#7-the-trust-layer-provider-bonds--reputation) — How devices assess counterparty trust without centralized ratings
 8. [The Authority Layer: Mandates, Delegation, and Recursive MAST](#8-the-authority-layer-mandates-delegation--recursive-mast) — Cryptographic permission slips and the 7-layer policy stack
 9. [The Governance Layer: Devices as DAO Members](#9-the-governance-layer-devices-as-dao-members) — Quadratic voting, liquid democracy, and machine-enforceable governance outcomes
-10. [The AI Seam: Agent Policy and QVAC](#10-the-ai-seam-agent-policy--qvac) — How AI agents propose actions without ever touching signing keys
+10. [The AI Seam: Agent Policy, QVAC and Committed Facts](#10-the-ai-seam-agent-policy-qvac--committed-facts) — How AI proposes, and how proposals become digest-bound committed facts without ever touching signing keys
 11. [The Proof Layer: Cryptographic Evidence for Everything](#11-the-proof-layer-cryptographic-evidence-for-everything) — WOTS-signed proofs, on-chain anchoring, and the proof relationship graph
-12. [The Full Stack in Action](#12-the-full-stack-in-action-a-solar-farm-running-its-own-financial-infrastructure) — A day in the life of a 50-inverter solar farm running Eefi
-13. [The Road Ahead](#13-the-road-ahead) — What's next for Edge DeFi and the machine economy
+12. [The Capital Layer: MASH and Programmable Capital](#12-the-capital-layer-mash-and-programmable-capital) — The capital-authorization boundary, three enforcement stages, the state-port partition, and the `EefiCapitalAgreement` (RFC-049)
+13. [Enforceable Rights: P-EXIT and the Eefi Product Generations](#13-enforceable-rights-p-exit-and-the-eefi-product-generations) — The unilateral-exercise primitive that gates every non-trivial Eefi product, and the product sequence (RFC-050)
+14. [The Full Stack in Action](#14-the-full-stack-in-action-a-solar-farm-running-its-own-financial-infrastructure) — A day in the life of a 50-inverter solar farm running Eefi
+15. [The Road Ahead](#15-the-road-ahead) — What's next for Edge DeFi and the machine economy
 - [Key Terminology](#key-terminology) — Glossary of Eefi concepts
-- [Packages Referenced](#packages-referenced) — All 41 Totem SDK packages with deep links
+- [Packages Referenced](#packages-referenced) — The Totem SDK packages referenced in this paper, with deep links
 
 ---
 
@@ -50,7 +52,15 @@ Now imagine the same scenario in Eefi. The sensor detects the anomaly. It has it
 
 **The device is the bank. The device is the auditor. The device is the market participant.**
 
-This isn't science fiction. Every piece of this stack exists today in the Totem SDK — 60 publishable packages spanning cryptographic primitives, payment channels, identity systems, governance frameworks, proof layers, and edge computing runtimes. This article walks through how they compose to create Eefi, following two journeys: a human user who wants to pay a device for a service, and a device that wants to earn revenue autonomously.
+This isn't science fiction. Every piece of this stack exists today in the Totem SDK — 64 publishable packages spanning cryptographic primitives, payment channels, identity systems, governance frameworks, proof layers, and edge computing runtimes. This article walks through how they compose to create Eefi, following two journeys: a human user who wants to pay a device for a service, and a device that wants to earn revenue autonomously.
+
+**Where the pieces sit.** Eefi is not one system. It is three layers over a shared substrate, and conflating them is the most common architectural error (RFC-048 §0):
+
+1. **Totem substrate** — cryptography, identity, signed proofs, provenance, policy, durable state, discovery, negotiation and device adapters.
+2. **Omnia** — financial *execution*: funding, co-signed state updates, routing, factories, splicing, settlement, dispute, exits and recovery.
+3. **Eefi** — *product economics*: markets, pricing, risk, credit, leasing and (later) derivatives — a thin product layer that composes the substrate and Omnia and adds no new execution primitive.
+
+Two invariants frame everything below. **Omnia is permissionless** (RFC-049 §2): anyone may offer or take capital, and no MASH/MAST/agent-policy condition may ever become a global admission requirement — *policy-constrained is not permissioned*. And **nothing is claimed beyond its proof level** (RFC-048 §1): source (`L0`), deterministic unit (`L1`), cross-package composition (`L2`), independent deployment on an isolated chain (`L3`), fault injection (`L4`) and adversarial / VM-parity review (`L5`) are distinct, and a mock or a static grep gate never advances a financial-safety claim. This paper describes the architecture and the direction; the RFCs state what is *enforced today* versus *proposed*.
 
 ---
 
@@ -157,7 +167,7 @@ A channel between a customer and Inverter 7 follows a simple lifecycle:
 open → fund → update (repeat) → cooperativeClose
 ```
 
-**Open:** The customer's wallet and the inverter exchange public keys and agree on initial balances. A 2-of-2 WOTS multisig covenant is created.
+**Open:** The customer's wallet and the inverter exchange public keys and agree on initial balances. A 2-of-2 multisig covenant is created. Each party's identity is a **`TreeKey` root public key** — a Merkle tree of one-time WOTS keys — and each spend is authorized by a canonical **tree signature** (a leaf WOTS signature plus an MMR proof to the root). This is the signature model the Minima node itself enforces: `SIGNEDBY` matches a witness's tree-signature **root** public key, not a bare single-key WOTS digest (RFC-009, RFC-048 §12.10). No WOTS key is ever reused — `@totemsdk/wots-lease` reserves each one-time slot atomically, and the Rust/WASM KISSVM verifies tree signatures with the same engine the node uses.
 
 **Fund:** The customer deposits 100 MINIMA into the channel's on-chain UTXO. The channel is now `active`.
 
@@ -184,6 +194,8 @@ The router also supports cross-token swaps at intermediate nodes. A customer hol
 A solar farm with 50 inverters doesn't need 50 on-chain UTXOs. `@totemsdk/omnia-factory` creates an N-of-N multisig factory channel: one on-chain UTXO funds the entire farm. Each inverter opens *virtual channels* with customers entirely off-chain. 50 devices, 200 active customers, 1 on-chain footprint.
 
 When a customer wants to exit, the factory settles all affected virtual channels in a single on-chain transaction. The factory can also be spliced to add capacity as the farm grows.
+
+Two constraints keep a factory non-custodial as it scales (RFC-048 §12, RFC-049 §5). First, **non-removal**: a party's entitlement can never be reduced or removed without that party's own signature, and every party keeps a timelocked, operator-independent on-chain escape. Second, **state-port allocation**: shares live in on-chain state *ports*, which are bytes (0–255), and the top band (≥230) is reserved for the node's MSHS-2/MASH authorization — so the share band is allocated below it (base 128, max 102 parties) with an explicit party cap, and no `SAMESTATE` range may span the MSHS band. Authorization branches in MAST scale the participant count cheaply; mutable balances need a **committed set root** — the VTXO batch root commits the holder set at `STATE(100)`, and the factory now commits its own **party-set root** at `STATE(111)` (immutable via `SAMESTATE`), the anchor for per-leaf proof scaling.
 
 ### Connectivity: How devices behind NAT participate
 
@@ -243,6 +255,8 @@ Between the payment rail (Omnia) and the prepaid pass system (Statechains) sits 
 A VTXO (`@totemsdk/omnia-vtxo`) is a claim on a pool of on-chain capacity, backed by a deterministic Merkle commitment tree. Think of it as a bearer note inside a shared liquidity pool. The pool operator holds the on-chain UTXO. The VTXO holder holds the Merkle proof.
 
 VTXOs support a full lifecycle: **mint** (create a new VTXO from pool capacity), **transfer** (send to a new owner), **split** (break into smaller denominations), **merge** (combine into a larger one), **refresh** (rotate keys for security), and **exit** (claim the on-chain funds).
+
+**Exit must be enforceable, not promised.** The pool's on-chain script gives each holder a **per-share unilateral exit**: after an absolute exit block, a holder may withdraw *only its own committed share* to its own key, zero that share in the successor state, and return the remainder to the pool — with no operator liveness required (RFC-039, RFC-048 §5/§12.5). The committed share and the exit block are read from the spent coin's state (`PREVSTATE`), and the successor is constrained so a holder can never pay itself more than its share. This is not a documentation claim: executable gates run the escape branch through **both** the TypeScript and the Rust/WASM KISSVM with **real `TreeKey` signatures** (correct signer passes; wrong signer, tampered digest, or non-zeroing successor all fail). A full isolated-node run remains the outstanding bar.
 
 The critical property for devices: VTXOs are **pure functional**. Transfers don't require live signing from the sender — the recipient just needs the Merkle proof. A device that's intermittently connected can receive VTXOs while offline and verify them when it reconnects.
 
@@ -352,6 +366,8 @@ Solar Inverter 7:
 ```
 
 The bond isn't just a score — it's real MINIMA that can be slashed if the provider misbehaves. A router that consistently fails to forward payments loses its bond. A statechain entity that signs invalid transfers loses its bond. The economic incentive aligns with honest behavior.
+
+**From records to enforceable collateral.** `@totemsdk/provider-bond` and `@totemsdk/liquidity-bond` today produce the *records and scores*; the ability to actually **slash, dispute and reclaim** is an on-chain **collateral-bond covenant** — RFC-048 primitive OMP-21, whose first shape now exists (`buildCollateralBondScript` in `@totemsdk/kissvm`). The rule that keeps it trustworthy: liquidation or slashing MUST be triggered by an **objective, on-chain-verifiable condition** and executed by a covenant, **never by an operator's say-so** (RFC-050 §6). Without a covenant of this shape a bond is an accounting claim, not an enforced one.
 
 **Journey checkpoint — the human user:** You're about to open a channel with a solar farm you've never used before. Your wallet automatically checks the farm's provider bond: 94/100, 1,000 MIN staked, zero incidents. You don't need to trust the farm — the bond and the score give you verifiable assurance. If they cheat, their collateral is slashed and you're made whole.
 
@@ -466,7 +482,7 @@ Governance is not just voting. It's an append-only event log: `policy_published`
 
 ---
 
-## 10. The AI Seam: Agent Policy & QVAC
+## 10. The AI Seam: Agent Policy, QVAC & Committed Facts
 
 So far, every action has been deterministic: the device does what its policy says. But what if the device needs to respond to changing market conditions? What if it needs to negotiate prices, rebalance channels, or detect anomalies — tasks that require intelligence, not just rule evaluation?
 
@@ -492,6 +508,16 @@ QVAC proposes → agent-policy evaluates → Totem signs → Minima settles
 ### The critical property
 
 **QVAC never touches a private key.** It proposes. It observes. It reasons. But it cannot sign. The `AgentPolicy` is the gate. If the policy says no, no transaction is built. This is the fundamental separation that makes autonomous device operation safe: intelligence is external, but authority remains local.
+
+### From proposals to committed facts
+
+Separating keys from intelligence is necessary but not sufficient. Once an AI-proposed value influences something **committed** on-chain — an Omnia program, an Eefi capital agreement, an industrial action — it must be bound as a **committed fact**, not left in stripped metadata (RFC-051):
+
+- **Digest-bound or it didn't happen.** Anything that *influences* a committed outcome is committed as a **digest-bound field** of the committing object. `DecisionContext` is stripped before a provider is invoked and must never affect provider output — so it is never authoritative.
+- **Receipts, not truth.** A committed fact references its **producer receipt** and its digest-bound inputs. A signed receipt or a digest proves *integrity and provenance*, never *truth* or *correctness*. A price or risk estimate is an **input** to a deterministic rule, not the rule itself.
+- **No AI artifact grants spend authority.** Authorization is **mandate + covenant** — cryptographic and non-discretionary. Decision *informs*; it never authorizes.
+
+Four seams make this uniform (RFC-051): **Decision → committed operation binding** (`CommittedDecisionBinding`), **Inference evidence** (`InferenceEvidenceRef`), **Memory provenance** (`CommittedMemoryRef`), and the **mandate/authorization chain** (`identity → authority mandate → agent-policy grant → covenant/MASH`). The same rule applies to Omnia, Eefi and industrial actions: *AI proposes. Mandates and covenants authorize. Committed state carries only digest-bound facts with producer receipts.*
 
 ### Composable policies
 
@@ -593,7 +619,132 @@ Industrial actions carry guardrails: parameter ranges, context matches, time win
 
 ---
 
-## 12. The Full Stack in Action: A Solar Farm Running Its Own Financial Infrastructure
+## 12. The Capital Layer: MASH and Programmable Capital
+
+Everything so far moves value *after* it is already in play. The capital layer answers the prior question: **whose capital may enter, under what conditions, and with what enforceable rights on the way out** (RFC-049).
+
+### MASH: stateless post-quantum authorization
+
+**MASH is MSHS-2** — a *stateless* post-quantum authorization scheme implemented in the C++ node (`totem-node-new-crypto`), not an SDK package. A device's wallet seed derives a **PK_ROOT**; the node builds an on-chain **MSHS-2 verifier branch** (a MAST policy) that commits the authorization. The authorization binds the **transaction** (inputs/outputs; state excluded) — exactly the tx-binding a `SIGNEDBY` gives — and one root authorizes up to `Q_MAX` transactions (production profile `2^28`) via a durable counter plus a durable **retire marker**, so a root can never sign after retirement — even across a crash. Crucially, the **counter is the anti-reuse mechanism, not a one-time key**: reusing the root across many authorizations does **not** expose the signer (unlike WOTS leaves). The SDK does not re-implement MASH; it *consumes* it through the existing identity, policy, script and evidence seams, exactly as it consumes WOTS.
+
+MASH installs its proof in a **reserved state-port band** (ports `230..255`). Two hard rules follow (RFC-049 §5):
+
+- **R-MASH-1** — MASH state lives only in the MSHS band; no other package allocates there.
+- **R-MASH-3** — no `SAMESTATE` range may span the MSHS band.
+
+And one performance rule (a *budget* rule, not a security one): MSHS-2's verifier is ~751–960 KISSVM ops, so it must be a canonical MAST dispatch, never inlined into a large script. That does **not** forbid MASH in the update path — because it is reuse-safe and tx-binding, **MASH may authorize Omnia state updates too**, which is exactly how you stop exhausting one-time WOTS leaves. The limits are rate (~3.2 s/signature) and size (large proof + carrier), so it fits low-frequency / checkpoint updates (funding, periodic checkpoints, settlement, capital tranches) rather than per-second metering.
+
+### Permissionless is the invariant
+
+MASH lets a participant place cryptographically enforceable conditions on **its own** assets — exposure limits, collateral, maturity, counterparties. It must never become a network-wide admission controller. Omnia stays permissionless: standard participation requires no MASH wallet, no protocol-wide whitelist, no central policy issuer, and no privileged liquidity operator (RFC-049 §2.1). *Policy-constrained liquidity* (an LP bounding its own risk) and *permissioned liquidity* (a market excluding participants) are different things; both can sit on the same permissionless substrate.
+
+### Three enforcement stages
+
+Financial conditions are enforced in three distinct places, and conflating them is the classic error (RFC-049 §4, RFC-050 §2):
+
+| Stage | Enforced by | Boundary |
+|-------|-------------|----------|
+| **OPEN — Capital authorization** | MASH + MAST + KISSVM | which capital may enter, permitted assets/counterparties, collateral, maturity, caps |
+| **UPDATE — Financial state machine** | Omnia programs + co-signed state + agent-policy | interest, repayments, meter readings, margin, HTLCs |
+| **CLOSE — Settlement rights** | Omnia dispute/settlement + MASH-controlled recipients | principal return, fee sharing, waterfall, escrow release, recovery |
+
+The critical point: **MASH *funding* does not automatically authorize Omnia's off-chain updates.** An Omnia update or close requires **both** participants' signatures; a unilateral close broadcasts a **previously co-signed** package — it does not let one side invent a payout (RFC-039). But a channel **MAY separately use MASH to authorize its updates** (a MASH authorization binds the update transaction and is reuse-safe), which is how you avoid exhausting one-time WOTS leaves on long-lived channels; that is a distinct authorization from the funding one.
+
+There are two ways to integrate MASH. **Model A** — MASH-governed channel *boundaries* (funding and settlement destinations), leaving existing Omnia scripts untouched — is the recommended first step and imposes no party cap. **Model B** — MASH-aware Omnia contracts that embed MAST policy commitments and enforce extra invariants — is far more powerful and requires new protocol work, consensus-compatible tests and financial review.
+
+### The shared contract: `EefiCapitalAgreement`
+
+Rather than a new Omnia package per product, one shared contract binds MASH funding authorization to Omnia execution terms and settlement rights:
+
+```typescript
+interface EefiCapitalAgreement {
+  version: 'eefi-capital/v1';
+  termsHash: string;                 // MUST be bound wherever enforcement occurs, not stored-only
+  funding: {
+    mashPolicyRoot: string;
+    allowedProgramHash: string;
+    assetId: string;
+    maxAmountAtoms: string;
+    counterparties?: string[];       // OPTIONAL — absent ⇒ open to anyone (permissionless)
+  };
+  operation: {
+    channelProgramId: string;
+    maturityBlock: string;
+    stateRulesHash: string;
+    conditionPolicyId?: string;
+  };
+  settlement: {
+    payoutPolicyHash: string;
+    recoveryPolicyHash: string;
+    collateralCommitment?: string;
+  };
+}
+```
+
+`termsHash` MUST be committed **wherever enforcement depends on it** (funding script hash, channel program, payout covenant) — not merely recorded as metadata. And any committed-set encoding must preserve **per-holder non-removal** plus a timelocked unilateral exit, or it fails the custody gate (RFC-048 §12.5).
+
+**Journey checkpoint — the device:** The fleet operator's treasury is a MASH-governed vault. When it funds Inverter 7's channel, the MSHS-2 authorization commits the exact terms — approved asset, maximum amount, counterparty policy. The channel runs for months, updating freely; MASH is not re-checked on every update (that would blow the instruction budget). When the channel closes, settlement pays only the committed beneficiaries, and the proceeds return to the MASH vault. The capital was never custodial, and the operator never had discretion over a holder's exit.
+
+---
+
+## 13. Enforceable Rights: P-EXIT and the Eefi Product Generations
+
+The capital layer governs entry. The product layer governs what a party may **do** — and here there is one load-bearing gap.
+
+### The load-bearing gap: enforceable unilateral exercise
+
+Every non-trivial Eefi product — lease return, credit default, option exercise, parametric payout, tranche waterfall — requires a party to **exercise or settle without the counterparty's cooperation**. Omnia's current settlement branch is both-signed; it cannot provide that by itself. RFC-050 therefore makes a **mandatory precondition** for Gen-2/3 products:
+
+> **P-EXIT — an enforceable unilateral exercise/settlement covenant.** A KISSVM / `recursive-mast` covenant under which a party can, after an **objective on-chain condition** (maturity, timeout, oracle witness, default), spend to exactly its committed beneficiary path **without any third party's signature or liveness**, and with **no unilateral path for any counterparty to redirect value.**
+
+P-EXIT is the Eefi analogue of the RFC-039 per-share exit. Without it, a product is trust-minimised at best and must be **labelled as such**.
+
+A first shape now exists. `@totemsdk/kissvm`'s `buildExerciseCovenant` encodes a committed time window — or a caller-supplied objective condition such as a `MAST(…)` oracle witness — plus a beneficiary branch that pays exactly the committed path requiring only the beneficiary's own signature, and an owner recovery branch that opens only after the window. It is validated by a real-signature gate that runs the covenant through **both** the TypeScript and Rust/WASM VMs: the beneficiary can exercise, the owner cannot redirect, and recovery is time-bounded. The same primitive backs an **OMP-21 collateral bond** (`buildCollateralBondScript`): an objective condition lets the lender seize on default, while the borrower keeps a timelocked reclaim path when no default is proven — liquidation is by covenant, never by an operator's say-so. And an **oracle condition witness** (`buildOracleConditionScript`) makes price-linked and parametric conditions objective: it commits an observation, requires an authorized oracle quorum, checks freshness, and applies the value comparison, failing closed on stale or untrusted data. Because on-chain signature checks bind the oracle to the transaction, that witness is the *cooperative/attested* shape; the **non-cooperative** path is `buildOracleExerciseCovenant` — commit the observation at funding, and the beneficiary exercises alone when it is fresh and satisfies the condition, with no oracle liveness at exercise.
+
+### The reusable Eefi contract surface
+
+Products live in the Eefi layer; the generic contracts live in the SDK (KISSVM templates + thin types). Four contracts cover the surface (RFC-050 §5):
+
+- **`EefiCapitalAgreement`** — binds MASH authorization to Omnia terms and settlement rights (above).
+- **`EefiMarketAgreement`** — a signed, finite, executable quote (price, fees, deadline, venue), distinct from the capital agreement.
+- **`EefiRiskPolicyRef`** — a *declarative* risk policy referenced by products (exposure caps, collateral ratio, haircut, liquidation condition) — never a discretionary engine.
+- **`EefiExerciseCovenant`** — the P-EXIT primitive: `unilateral-exercise | liquidation | maturity-redemption`, with a condition id, an exact beneficiary policy hash, a recovery fallback and a timelock.
+
+### Normative invariants
+
+- **Funding:** MASH authorization deploys only the approved amount and asset into the **exact** committed terms.
+- **Operation:** every valid Omnia transition preserves the financial obligations, balances, collateral and sequence rules.
+- **Settlement:** every reachable close, timeout, dispute, liquidation or recovery path pays only the rightful beneficiaries and **never depends on an unavailable counterparty** for a promised unilateral exit.
+- **Permissionless** (RFC-049 §2): no global MASH requirement, no whitelist, no mandatory oracle for ordinary channels.
+- **Non-removal** (RFC-048 §12.5): committed-set entitlements keep per-holder non-removal plus a timelocked exit.
+- **No operator-discretion liquidation:** liquidation MUST be triggered by an **objective, on-chain-verifiable condition** and executed by covenant.
+- **No fabricated financial facts:** a signed quote, invoice or meter attestation establishes *provenance*, not truth; a memory or quote claim is not value.
+
+### The product generations
+
+| Generation | Products | What it needs |
+|-----------|----------|----------------|
+| **Gen 1 — Capital control & autonomous liquidity** | Autonomous Treasury · Conditional Liquidity Corridors · Private RFQ Exchange · Term Liquidity Leasing · Machine Prepaid Accounts | Channels, routing, factories, agent-policy (VTXOs optional). Highest value: **just-in-time conditional liquidity**. |
+| **Gen 2 — Credit & productive-asset finance** | Machine Credit Lines · Streaming Revenue Finance · Machine Receivables Finance | Proof-backed repayment, explicit evidence policy, fraud handling, **recoverable collateral**. |
+| **Gen 3 — Derivatives & structured products** | Collateralized Forwards · Options · Parametric Coverage · Senior/Junior LP Tranches · Interest-Rate Swaps · Cash-Settled Futures | **P-EXIT** + oracle witness + collateral/liquidation covenants. Earliest viable: a fully collateralized, fixed-expiry option. |
+
+The recommended build order (RFC-050 §8) starts with MASH Conditional Liquidity Corridors (best reuse) and ends with leveraged derivatives (highest risk). Generic reservation, proof verification, recovery and settlement contracts stay **beneath** the product layer and are shared across products.
+
+### The decisive integration test
+
+```
+MASH treasury → conditional Omnia funding → repeated channel updates →
+counterparty disappears → unilateral close using the agreed recoverable state →
+proceeds returned to a MASH vault → independent balance reconciliation
+```
+
+With adversarial variants: funding rejected outside the agreed terms; a splice that preserves the recovery right; settlement that pays only committed beneficiaries; and a Gen-3 precursor where the buyer exercises **without the writer online**. This must run against the **real Minima execution path** (RFC-048 proof-ladder L3/L4), not merely a KISSVM-evaluator simulation.
+
+Eefi does not require the Experience layer (RFC-047), but each product's lifecycle should be **externally correlatable** as an Experience Episode — funding, terms, updates, settlement, evidence — so that memory can inform risk and pricing without ever authorizing.
+
+---
+
+## 14. The Full Stack in Action: A Solar Farm Running Its Own Financial Infrastructure
 
 Let's put it all together. Here is a solar farm in Brandenburg, Germany — 50 inverters, 3.6kW each, selling power directly to customers over the Minima network. No utility in the middle. No payment processor. No cloud dashboard. Just devices, code, and cryptography.
 
@@ -622,6 +773,8 @@ Let's put it all together. Here is a solar farm in Brandenburg, Germany — 50 i
 
 **Step 7: Factory.** The 50 inverters join a channel factory. One on-chain UTXO. Virtual channels per customer. Zero on-chain transactions for day-to-day operation.
 
+**Step 8: Capital.** The fleet treasury is a MASH-governed vault. Funding each channel commits the exact terms — approved asset, maximum amount, counterparty policy — via MSHS-2 (`EefiCapitalAgreement`). The operator can never unilaterally redirect a holder's exit, and settlement proceeds return to the vault (RFC-049).
+
 ### A day in the life
 
 **06:00 — Sunrise.** The inverters wake up. They check WOTS leases — all keys reserved. They verify their manifests are still valid. They confirm the factory UTXO is confirmed on-chain. They begin metering.
@@ -640,7 +793,7 @@ Let's put it all together. Here is a solar farm in Brandenburg, Germany — 50 i
 
 **22:00 — Shutdown.** Operating hours end. The inverters stop accepting new channels. Existing channels drain. The last customer disconnects at 22:14.
 
-**23:00 — Settlement.** The operator splices out the day's revenue: 1,840 MIN extracted from the factory UTXO without closing any channels. The liquidity bond records update. The proofgraph indexes the day's 28,000 proofs. A checkpoint anchors the governance state hash to L1.
+**23:00 — Settlement.** The operator splices out the day's revenue: 1,840 MIN extracted from the factory UTXO without closing any channels. Settlement proceeds return to the MASH-governed treasury vault. The liquidity bond records update. The proofgraph indexes the day's 28,000 proofs. A checkpoint anchors the governance state hash to L1.
 
 **00:00 — Audit.** An automated auditor queries the proofgraph: "Show me all payments, meter readings, and channel updates for March 15, 2026." 28,000 proofs returned. Every single one verifiable. Every single one anchored on-chain. The auditor signs off. The farm sleeps.
 
@@ -650,27 +803,34 @@ At no point in this day did any inverter connect to a payment processor. At no p
 
 ---
 
-## 13. The Road Ahead
+## 15. The Road Ahead
 
-Eefi is not a finished product. It's a direction. The Totem SDK provides the primitives. The composition is up to builders. Here's what's on the horizon:
+Eefi is not a finished product. It's a direction. The Totem SDK provides the primitives; the composition is up to builders. The RFCs are explicit about what is enforced today versus proposed, and this paper keeps to that line.
+
+**Already landed (and gated):**
+- **Real tree-signature authorization.** The Rust/WASM KISSVM verifies canonical Minima `TreeKey` tree signatures with the same engine the node uses; escape and cooperative-`MULTISIG` branches are executed with **real** signatures in both the TypeScript and Rust VMs, and a parity gate pins TS↔Rust verifier agreement.
+- **Per-share unilateral exit.** The VTXO pool and factory escape branches are executable, per-holder and non-removable, with the committed share and exit block read from `PREVSTATE` and the successor constrained via `STATE`.
+- **State-port discipline.** Omnia share bands relocated below the MSHS floor (base 128, explicit party cap), enforced by a `check-state-ports` gate.
+- **P-EXIT covenant (first shape).** `buildExerciseCovenant` in `@totemsdk/kissvm`: a beneficiary can exercise to exactly its committed path after a committed condition without the owner's signature or liveness; the owner can only reclaim after the window. Validated by a real-signature gate across both VMs.
 
 **Near term:**
-- Real WOTS operator signing for VTXO pools (currently using mock signatures)
-- Pool-wide epoch roots for VTXO commitment trees
-- Audited KISSVM exit scripts for VTXO redemption
-- Watchtower monitoring for channel factory safety
-- Production-grade SE server with key rotation and Postgres persistence
+- The port-allocation registry now exists (`docs/STATE-PORT-REGISTRY.md` + `scripts/state-port-registry.json`, gated by `validate:ports`); remaining: confirm the exact MSHS-2 range endpoints and publish the port-allocation table for composite MASH + Omnia + MAST transactions (RFC-049 §5).
+- Committed-set roots for the factory (adopting the VTXO batch root) so party count scales without custodial shortcuts.
+- Enforceable collateral bonds — first OMP-21 covenant landed (`buildCollateralBondScript`: objective-condition liquidation + borrower reclaim); remaining: the oracle-witness covenant and the bond's product economics.
+- Production-grade SE server with key rotation and Postgres persistence.
 
 **Medium term:**
-- QVAC agent integration for dynamic pricing, channel rebalancing, and fleet orchestration
-- Cross-domain trust bridges between regulatory jurisdictions
-- Mobile SDK for Pear/Bare — devices that run on Android without Node.js
-- Hardware security module (HSM) integration for WOTS key storage on physical devices
+- **P-EXIT, extended** — the product economics around the collateral bond and the oracle policy/quorum runtime. This gates every Gen-2/3 product.
+- The RFC-051 committed-fact seams (Decision binding, Inference evidence, Memory provenance, Mandate chain) applied uniformly to Omnia, Eefi and industrial actions.
+- Watchtower monitoring for channel-factory safety, and the RFC-048 L3/L4 conformance suite run on an isolated chain.
+- Mobile SDK for Pear/Bare — devices that run on Android without Node.js; HSM integration for WOTS key storage.
 
 **Long term:**
-- Fully autonomous device fleets that self-organize into factories, negotiate prices via QVAC agents, and settle disputes via on-chain governance
-- Eefi as the default financial layer for the industrial Internet of Things — every sensor, every actuator, every machine a market participant
-- A world where the edge *is* the infrastructure, and centralization is the exception, not the rule
+- Fully autonomous device fleets that self-organize into factories, negotiate prices via QVAC agents, and settle disputes via on-chain governance.
+- Eefi as the default financial layer for the industrial Internet of Things — every sensor, every actuator, every machine a market participant.
+- A world where the edge *is* the infrastructure, and centralization is the exception, not the rule.
+
+> **The honest framing.** Eefi's foundation is not "more Omnia packages." It is a small set of cross-cutting contracts: **verifiable completeness** (RFC-048), a **capital-authorization boundary** (RFC-049), a **P-EXIT exercise right with objective conditions and non-removal custody** (RFC-050), and a single **AI-proposed-committed-facts** discipline (RFC-051). Build those first; the products follow.
 
 ---
 
@@ -694,6 +854,15 @@ Eefi is not a finished product. It's a direction. The Totem SDK provides the pri
 | **PREVSTATE** | Minima opcode enabling stateful contracts that evolve across transactions — counters, vesting, state machines |
 | **MAST** | Merkle-ized Abstract Syntax Tree — proof-authenticated dynamic loading of bounded executable modules |
 | **WOTS** | Winternitz One-Time Signatures — quantum-resistant signature scheme used throughout the Totem SDK |
+| **TreeKey / tree signature** | A Merkle tree of one-time WOTS keys; its **root public key is the signer identity**. A spend is authorized by a tree signature (a leaf WOTS signature plus an MMR proof to the root) — the signature model the Minima node itself enforces |
+| **MASH (MSHS-2)** | Stateless post-quantum authorization implemented in the C++ node: a one-time PK_ROOT with a durable counter and retire marker, consumed by the SDK via identity/policy/script/evidence seams — **not** an SDK package |
+| **Capital-authorization boundary** | The OPEN/CLOSE stages where MASH-governed capital enters a channel and settlement rights are enforced (RFC-049) |
+| **Policy-constrained vs permissioned** | An LP bounding **its own** risk (the permissionless substrate is unchanged) vs a market excluding participants (a product choice on the same substrate) |
+| **MSHS band** | State ports ≥230 (bundle 230–255), reserved for MASH authorization; no `SAMESTATE` range may span it |
+| **Committed set root** | A Merkle/MMR commitment to a holder or party set, so balances scale without custodial shortcuts while preserving non-removal |
+| **EefiCapitalAgreement** | The shared contract binding MASH funding authorization to Omnia execution terms and settlement rights (RFC-049 / RFC-050) |
+| **P-EXIT** | An enforceable unilateral exercise/settlement covenant: exercise after an **objective on-chain condition** without the counterparty, with no path to redirect value (RFC-050) |
+| **Committed fact** | A digest-bound field of a committing object that references its **producer receipt** and inputs; it proves integrity and provenance, never truth or authority (RFC-051) |
 
 ---
 
@@ -744,6 +913,10 @@ Eefi is not a finished product. It's a direction. The Totem SDK provides the pri
 | `@totemsdk/stream-transport` | [`packages/stream-transport`](https://github.com/Totem-Edge/totem-sdk/tree/main/packages/stream-transport) | Bidirectional byte-stream adapters |
 | `@totemsdk/pubsub-transport` | [`packages/pubsub-transport`](https://github.com/Totem-Edge/totem-sdk/tree/main/packages/pubsub-transport) | Publish-subscribe transport abstractions |
 | `@totemsdk/wallet-adapter` | [`packages/wallet-adapter`](https://github.com/Totem-Edge/totem-sdk/tree/main/packages/wallet-adapter) | Wallet adapter interfaces for multi-provider chain access |
+
+**Not a package: the node.** MASH (MSHS-2) authorization lives in the C++ node (`totem-node-new-crypto`), not under `packages/`. The node is the native backend for the `@totemsdk/*` ecosystem: it implements the lookup protocol, consumes SDK-defined `authority` / `agent-policy` profiles, and provides the MSHS-2 verifier the capital layer relies on (RFC-049 §1/§3). The SDK consumes it through the existing seams rather than re-implementing it.
+
+**Architecture references.** The direction in this paper is specified in [`docs/rfc/`](https://github.com/Totem-Edge/totem-sdk/tree/main/docs/rfc): RFC-048 (Omnia primitive completeness & reuse), RFC-049 (MASH × Omnia × Eefi), RFC-050 (Eefi product architecture) and RFC-051 (AI-proposed committed facts). Where this paper and an RFC differ, the RFC governs.
 
 ---
 

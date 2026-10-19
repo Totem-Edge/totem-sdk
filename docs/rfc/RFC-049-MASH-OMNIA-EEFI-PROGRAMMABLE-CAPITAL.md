@@ -25,11 +25,17 @@ C++ node (`totem-node-new-crypto/org/minima/utils/mshs2/`, commands under
 - A **PK_ROOT** is derived from the wallet seed; an on-chain MSHS-2 **verifier branch** (a MAST
   policy) commits the authorization. `mashnewaddress` *"derives a post-quantum public key from
   your wallet seed and builds the canonical MSHS-2 verifier branch."*
-- Roots are **one-time-use** with a durable counter (`mshs2_<PK_ROOT>_uses.dat`) and a durable
-  **retire marker** (`..._retired`), so a root cannot sign after retirement (crash-durable).
-- MSHS-2 occupies a **reserved state-port band**: per the node's RFC-0001 draft, *"first proof
-  port 234"* through the highest MSHS port (reported `230..255`), and a normative rule:
-  **Direct-Mode scripts MUST NOT include ports `BASE(k)..max` in any `SAMESTATE` range.**
+- The authorization message `M` binds the **transaction** (`TOTIN`/inputs, `TOTOUT`/outputs; state
+  excluded) — i.e. it authorizes a spend exactly as a `SIGNEDBY` does, so it can authorize **any**
+  spend, including an Omnia update/settlement transaction.
+- Roots authorize up to `Q_MAX` transactions via a durable counter (`mshs2_<PK_ROOT>_uses.dat`,
+  reserve-before-sign) plus a durable **retire marker** (`..._retired`) so a root cannot sign after
+  retirement (crash-durable). The **counter — not a one-time key — is the anti-reuse mechanism**, so
+  reusing the root across many authorizations does **not** expose the signer (unlike WOTS leaves);
+  the production profile `MSHS2-22-15` sets `Q_MAX = 2^28`.
+- MSHS-2 installs its proof in a **reserved state-port band** (ports `230..255`, `bundleBase = 230`),
+  with a normative rule: **Direct-Mode scripts MUST NOT include ports `BASE(k)..max` in any
+  `SAMESTATE` range.**
 
 MASH is therefore node-side. The SDK does **not** re-implement it; it consumes it as an
 on-chain authorization/script primitive. That is the same posture as RFC-008/009/032/033
@@ -109,8 +115,10 @@ correct shape if a consumer need appears — mirroring how `@totemsdk/identity` 
 
 Critically (per RFC-039): an Omnia channel's update/settlement requires both participants'
 signatures; a unilateral close broadcasts a **previously co-signed** close package — it does not
-let one participant invent a payout. MASH funding does **not** confer authority over an Omnia
-channel's internal updates.
+let one participant invent a payout. MASH **funding** does **not** confer authority over an Omnia
+channel's internal updates — but a channel **MAY separately use MASH to authorize its updates** (a
+distinct authorization; MASH binds the update transaction and is reuse-safe), which is how a
+long-lived channel avoids exhausting one-time WOTS leaves (see §5.2.4 / R-MASH-5).
 
 ### 4.1 Integration models
 
@@ -138,60 +146,79 @@ authorization state and Omnia program state must not overlap ports, and must res
 | 100 / 101 / 102 | Omnia channel (`SETTLEMENT`, `SEQUENCE`, `COMMITMENT_V2`) | `transactions.ts` |
 | 103 / 110 | Omnia factory escape block; VTXO exit-delay | factory/`exit-tx` |
 | 120–183 | Omnia programs (COUNTER 120–122, METER 130–133, HTLC 140–144, VAULT 150–152, TREASURY 160–164, MEMBERSHIP 170–172, ASSET 180–183) | `program.ts` |
-| 200 + k | Omnia **factory shares** and **VTXO pool shares** | `FACTORY_BALANCE_PORT_BASE`, `POOL_SHARE_PORT_BASE` |
-| ≥ 234 … max | **MSHS-2 / MASH** (proof ports from 234) | node RFC-0001 |
+| 128 + k | Omnia **factory shares** and **VTXO pool shares** | `FACTORY_BALANCE_PORT_BASE`, `POOL_SHARE_PORT_BASE` (base 128, max 102) |
+| 230 … 255 | **MSHS-2 / MASH** (bundle header 230–233; proof ports from 234) | node (`bundleBase = 256 − (4 + k) = 230`) |
 
 ### 5.2 Concrete collisions / hazards
 
-1. **`200+k` overlaps MSHS 234–255 for `k ≥ 34`.** The Omnia factory and VTXO pool *share* band
-   (`200+k`) runs into the MSHS proof band. **Rule:** relocate the share band to a registered
-   sub-234 range with headroom (e.g. base `128` → ~106 slots) — party count is an **encoding
-   choice**, not a MASH limit — or re-parameterise in Model B. Ports are per-coin namespaces, so
-   factory and VTXO can each carry their own large band below 234.
+1. **The share band runs into the MSHS band if the base is too high.** The legacy `200+k` base
+   overlapped MSHS at `k ≥ 30`; the current `128+k` base (max **102** parties) keeps clear below
+   `230`. **Rule:** allocate the share band in a registered **sub-230** range with headroom (base
+   `128`) — party count is an **encoding choice**, not a MASH limit — or re-parameterise in Model B.
+   Ports are per-coin namespaces, so factory and VTXO can each carry their own large band below 230.
 2. **`SAMESTATE` across the MSHS band is forbidden.** MSHS Direct-Mode scripts MUST NOT place
    `BASE(k)..max` inside a `SAMESTATE(from,to)` span. Omnia uses single-port `SAMESTATE(102 102)`
-   / `SAMESTATE(103 103)` — safe today — but any **range** `SAMESTATE` that spans ≥234 would
+   / `SAMESTATE(103 103)` — safe today — but any **range** `SAMESTATE` that spans ≥230 would
    break MSHS. Composite scripts MUST keep `SAMESTATE` ranges entirely ≤ BASE(k)-1.
 3. **MAST / KISSVM templates are port-parameterised.** Templates (agent-policy, data-privacy,
    rwa-lifecycle, provider-bond, temporal, …) take **caller-supplied** port configs, so collisions
    are a *composition-time allocation* problem, not a fixed overlap. A composite MASH+Omnia+template
    transaction needs an explicit **port-allocation table**.
-4. **Instruction budget.** MSHS-2's verifier is instruction-heavy; placing the full MASH verifier
-   inside every Omnia channel update would blow the KISSVM budget and is explicitly **not**
-   recommended. MASH's strongest role is on-chain **capital control and settlement authorization**
-   (OPEN and CLOSE), not the high-frequency UPDATE path.
+4. **Instruction budget — a budget constraint, not a security one.** MSHS-2's verifier is ~751–960
+   KISSVM ops and installs its proof in ports `230..255`, so it MUST be a canonical MAST dispatch,
+   never inlined into a large Omnia script. But this does **not** forbid MASH in the update path:
+   MASH authorizes the **transaction** and is **reuse-safe** (a durable counter, `Q_MAX = 2^28`, no
+   WOTS lease machinery), so it **MAY** authorize Omnia state updates — the natural way to avoid
+   exhausting one-time WOTS leaves. The practical limits are **rate** (~3.2 s/signature) and **size**
+   (large proof + up to 24 KiB carrier), which suit **low-frequency / checkpoint** updates (funding
+   OPEN, periodic channel checkpoints, settlement CLOSE, capital tranches) rather than per-second
+   metering.
 5. **State encoding.** MASH state and Omnia state must use one canonical encoding; a composite
    must not silently reinterpret a port. Confirm canonicalization at composition.
 
 ### 5.3 Required rules
 
-- **R-MASH-1:** MASH state MUST live inside the MSHS band (≥234); no other package may allocate
+- **R-MASH-1:** MASH state MUST live inside the MSHS band (≥230); no other package may allocate
   there.
 - **R-MASH-2:** Omnia's variable-length bands (party shares, etc.) MUST be allocated within a
-  registered **sub-234** range, driven by a per-coin-class port registry (see RFC-048 §12.6); the
-  current `200+k` base yields only 34 slots and SHOULD be relocated lower. **Model A imposes no
-  cap** — a cap exists only for same-coin (Model B) composites.
+  registered **sub-230** range, driven by a per-coin-class port registry (see RFC-048 §12.6); the
+  legacy `200+k` base yielded only 30 slots and has been relocated to base 128 (max 102).
+  **Model A imposes no cap** — a cap exists only for same-coin (Model B) composites.
 - **R-MASH-3:** No `SAMESTATE` range may span the MSHS band.
 - **R-MASH-4:** Any composite (MASH + Omnia + MAST) transaction MUST publish a port-allocation
   table and pass an instruction-budget check.
-- **R-MASH-5:** Omnia scripts MUST NOT embed the full MASH verifier in the update path; MASH
-  authorization belongs at funding (OPEN) and settlement (CLOSE) boundaries.
+- **R-MASH-5:** MASH **MAY** authorize Omnia updates (it is reuse-safe and transaction-binding, and
+  saves WOTS leaves). Because the verifier is ~751–960 ops and uses ports `230..255`, it MUST be a
+  canonical MAST dispatch (never inlined into a large update script) and R-MASH-4's port-allocation +
+  instruction-budget checks apply. It is best suited to **low-frequency / high-value** authorizations
+  (OPEN/CLOSE, checkpoints, capital tranches); high-frequency metering keeps its fast per-update
+  path, with MASH used to checkpoint/re-root.
 
 Phase 0 must confirm the **exact** MSHS range endpoints and produce a machine-checked port
-registry (extending the custody gate lineage) for composite scripts.
+registry (extending the custody gate lineage) for composite scripts. **Implemented:** the registry
+now exists — [`docs/STATE-PORT-REGISTRY.md`](../STATE-PORT-REGISTRY.md) +
+[`scripts/state-port-registry.json`](../../scripts/state-port-registry.json), checked by
+[`scripts/check-state-ports.mjs`](../../scripts/check-state-ports.mjs) (`npm run validate:ports`) —
+with per-coin-class bands, the share base at 128 (max 102), and R-MASH-3 (no `SAMESTATE` spans the
+MSHS band) enforced. The exact MSHS endpoints are now **confirmed from the node** as `230–255`
+(`bundleBase = 256 − (4 + k) = 230`; header 230–233, proof 234–255) — so the registry floor is
+**230**, not the earlier 234.
 
 ### 5.4 What MAST/MASH do — and do not — add to party count
 
 | Per party | Where it lives | MAST | MASH |
 |---|---|---|---|
 | Authorization / static terms | script (MAST branches) — scales | **yes** | authorization branch only |
-| Mutable balances / shares | state ports, unless a committed set-root | no | no (same-coin it *consumes* 234–255) |
+| Mutable balances / shares | state ports, unless a committed set-root | no | no (same-coin it *consumes* 230–255) |
 
 - **MAST** adds real flexibility to the **participant/authorization** count: per-party escape/close
   branches scale in script space at ~zero port cost (`MULTISIG(N keys)` already does this).
-- **MASH** adds **none**: it is an authorization branch and, same-coin, reserves 234–255.
+- **MASH** adds **none**: it is an authorization branch and, same-coin, reserves 230–255.
 - **Balances require a committed set-root** (Merkle/MMR) to scale — the VTXO batch root already
-  commits the holder set at `STATE(100)`; the factory SHOULD adopt the same.
+  commits the holder set at `STATE(100)`; the factory now commits its **party-set root** at
+  `STATE(111)` (`factoryPartySetRoot`, immutable via `SAMESTATE`). The **per-leaf inclusion
+  primitive** is `buildMmrMembershipCovenant` (`@totemsdk/kissvm`), verified on-chain via the
+  canonical 5-arg `PROOF` — one branch instead of one-per-party (O(N)).
 
 **Non-removal custody constraint (normative).** Any committed-set encoding MUST preserve
 **per-holder non-removal** — a holder's entitlement cannot be reduced or removed without that
@@ -203,9 +230,9 @@ custodial/trust-minimised and fails the RFC-039 gate. The current all-holders
 RFC-048 §12.5.
 
 **Code gap (tracked).** `omnia-vtxo`/`omnia-factory` currently bound the party count only from below
-(`holders.length < 1`, `participants.length < 2`) and can emit ports ≥234; relocate the share base
-below the MSHS floor with an explicit upper bound and add the `check-state-ports` gate (RFC-048
-§12.6/§12.8).
+(`holders.length < 1`, `participants.length < 2`) and could emit ports ≥230; the share base has been
+relocated below the MSHS floor (base 128, max 102) with an explicit upper bound and the
+`check-state-ports` gate (RFC-048 §12.6/§12.8).
 
 ---
 

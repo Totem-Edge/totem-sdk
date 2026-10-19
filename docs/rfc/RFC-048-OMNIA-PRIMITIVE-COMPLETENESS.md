@@ -98,7 +98,7 @@ whether a named package exists.
 | OMP-16 | Reliable finality evidence, recipient payout and economic reconciliation | chain-provider, server RFC-036, proofgraph, omnia-pool | P | Shared settlement port + Omnia | G0/G4 |
 | OMP-17 | Signed observation with provenance and reference evidence | proof, proofgraph, manifest, identity | E (generic) | Totem evidence | G3 |
 | OMP-18 | Oracle feed identity, schema, units, freshness, quorum, aggregation, challenge policy | proof, proofgraph, lookup-*, industrial-action units | N | Cross-domain Totem observation protocol | G3 |
-| OMP-19 | Financial condition witness verifiable by specified execution venue | kissvm CHECKSIG example, recursive-mast, proof | P | Totem KISSVM adapter + Omnia program | G3 |
+| OMP-19 | Financial condition witness verifiable by specified execution venue | kissvm CHECKSIG example, recursive-mast, proof; **`buildOracleConditionScript`** (§3.1) | P → witness template | Totem KISSVM adapter + Omnia program | G3 |
 | OMP-20 | Verifiable LP principal, ownership, allocation and fee claims | liquidity-bond, omnia-pool, proofgraph | P | Omnia pool | G4 |
 | OMP-21 | Enforceable collateral bond, slashing/dispute/reclaim | provider-bond records, kissvm, recursive-mast, statechain | N (execution) | Shared Totem bond contract | G4/G6 |
 | OMP-22 | Position solvency, explicit reserves and anti-double-counting | liquidity-bond, omnia-pool, chain-provider | P | Omnia pool accounting | G4 |
@@ -186,6 +186,21 @@ enforceability.
 and `proofgraph`; create a dedicated `@totemsdk/oracle` only if independent consumers (e.g. Omnia
 and industrial-action) require reusable quorum/aggregation runtime and the interface stabilizes.
 Oracles are infrastructure, not `omnia-oracle`.
+
+**Implemented witness.** A first on-chain condition witness exists:
+`buildOracleConditionScript` + `oracleConditionStateVariables` in `@totemsdk/kissvm`
+(`packages/kissvm/src/templates/oracle.ts`). It commits the observation (value, freshness window,
+feed/schema hash) to state; requires the authorized oracle(s) via `MULTISIG(threshold …)` (so a
+quorum is expressible); enforces the freshness window and the objective value comparison; and
+**fails closed** on a stale observation, an untrusted signer or a mutated feed commitment. Because
+this SDK's `CHECKSIG`/`SIGNEDBY` verify against the **transaction digest** (and the transaction
+commits the observation), this is the **cooperative/attested** shape: a non-cooperative exercise
+MUST instead commit the observation at funding and use the P-EXIT exercise covenant (RFC-050 §3).
+Validated with real `TreeKey` signatures across the TypeScript and Rust/WASM VMs. The
+**non-cooperative** path is the composed `buildOracleExerciseCovenant`: the observation is committed
+at funding and, after maturity, the beneficiary exercises **alone** — with only its own signature —
+when the committed observation is fresh and satisfies the value condition. No oracle liveness is
+required at exercise time.
 
 ### 3.2 Negotiation and RFQ
 
@@ -326,10 +341,14 @@ with the payout (`VERIFYOUT(0 payout SHARE)`), so partial withdrawals were unsat
 contradicted the SDK's own `exit-tx.ts` layout (payout@0, remainder@1). **Both are fixed**:
 committed values are read from `PREVSTATE(...)` (exit block / escape block / shares) and the
 successor is constrained via `STATE(...)`; the remainder is output **1**. A new `custody-exec` gate
-**executes** the escape branches via the SDK KISSVM evaluator (proof-ladder **L1/L2**), and a
-`custody-exec-vm` gate runs the **same branches through the Rust/WASM KISSVM** and confirms it
-agrees with the TS evaluator (cross-implementation parity); a full isolated Minima **node** run
-remains the **L4** bar. Still open: dynamic transferred-owner
+**executes** the escape branches via the SDK KISSVM evaluator (proof-ladder **L1/L2**). A
+`custody-exec-vm` gate runs the **same branches through the Rust/WASM KISSVM** with **real Minima
+`TreeKey` signatures** — every `SIGNEDBY`/`MULTISIG` is satisfied by an actual tree signature over the
+transaction digest, with no `simulationMode` — and confirms the Rust VM agrees with the TS evaluator;
+the Rust VM verifies via `totemsdk_core_wasm::treekey::verify_tree_signature`, the same engine the
+node and JS bridge use. A `custody-signature-parity` gate pins TS↔Rust verifier agreement for both
+flat WOTS and tree signatures over multiple vectors (incl. tamper). A full isolated Minima **node**
+run (real chain inclusion) remains the **L4** bar. Still open: dynamic transferred-owner
 exit (static on-chain holder keys vs `transferVtxo`); and the `200+k` share band's relationship to
 the MSHS port band (see **§12**).
 
@@ -518,9 +537,10 @@ This amendment adds the state-port/party-count analysis and the committed-set cu
 ### 12.1 Ports are bytes; allocation is scarce
 
 State ports serialize as a MiniByte (**0–255**) — hence `MiniByte value must be 0-255, got 300`.
-There are only **256 ports**, and MSHS-2 (MASH) occupies **234–255**. Omnia currently uses 100–102,
-103 (factory escape), 110 (VTXO exit delay), 120–183 (channel programs), and `200+k` (factory/VTXO
-shares).
+There are only **256 ports**, and MSHS-2 (MASH) occupies **230–255** (`bundleBase = 256 − (4 + k) =
+230`: header `R/ROOTS_BLOB/SECRETS_BLOB/TREE_SIG` at 230–233, `PROOF` at 234–255). Omnia currently
+uses 100–102, 103 (factory escape), 110 (VTXO exit delay), 120–183 (channel programs), and `128+k`
+(factory/VTXO shares).
 
 ### 12.2 Ports are per-coin namespaces
 
@@ -531,8 +551,8 @@ need not share one.
 
 ### 12.3 `200+k` is a small-N shortcut, not a constraint
 
-The 34-slot ceiling is purely because the share base is 200. On factory/VTXO coins, ports 104–199
-are unused (they carry no eltoo programs), so relocating the base (e.g. **128**) yields ~106 slots
+The 30-slot ceiling is purely because the share base is 200. On factory/VTXO coins, ports 104–199
+are unused (they carry no eltoo programs), so relocating the base (e.g. **128**) yields ~102 slots
 and keeps clear of the MSHS floor. **Party count is an encoding choice, not a MASH constraint.**
 
 ### 12.4 Encoding — not MAST/MASH — sets party capacity
@@ -540,11 +560,24 @@ and keeps clear of the MSHS floor. **Party count is an encoding choice, not a MA
 | Per party | Where it lives | MAST | MASH |
 |---|---|---|---|
 | Authorization / static terms | script (MAST branches) — scales | **yes** | authorization branch only |
-| Mutable balances / shares | state (ports), unless a committed set-root | no | no (and same-coin it consumes 234–255) |
+| Mutable balances / shares | state (ports), unless a committed set-root | no | no (and same-coin it consumes 230–255) |
 
 MAST ⇒ the **authorization** side scales without port cost. MASH ⇒ authorization only (same-coin it
 *consumes* the top ports). **Balances require a committed set-root (Merkle/MMR) to scale** — the
-VTXO batch root already does this (`STATE(100)=root`); the factory SHOULD adopt it.
+VTXO batch root already does this (`STATE(100)=root`); the factory now commits its **party-set root**
+at `STATE(111)` (`factoryPartySetRoot` / `factoryPartyRootStateVariable`, pinned by `SAMESTATE`) — a
+Minima-native MMR root over the participant digests, padded to a power of two with the zero-digest
+sentinel so it handles arbitrary N. This is the anchor for per-leaf (proof-based) scaling; balances
+still enumerate per-party ports (base 128, max 102), so a **balance** set-root remains open.
+
+The **per-leaf inclusion primitive** now exists: `buildMmrMembershipCovenant` in `@totemsdk/kissvm`
+verifies `PROOF(leaf leafSum rootHash rootSum proof)` on-chain, binds `SIGNEDBY(leaf)` and pays the
+leaf — so a party can prove membership against the committed root in a **single** branch instead of
+one branch per party (O(N)). `factoryPartyProof(participants, i)` produces the witness. Fixing this
+surfaced a **VM parity gap**: the Rust/WASM KISSVM implemented a 3-arg MAST-style `PROOF`, whereas
+the node's `org.minima.kissvm.functions.sha.PROOF` (`requiredParams() == 5`) and the TS evaluator
+both use the canonical 5-arg MMR form; the Rust now matches (verified by the membership gate across
+both VMs).
 
 ### 12.5 Normative custody constraint (non-removal)
 
@@ -562,15 +595,19 @@ regression. The current all-holders `MULTISIG(operator + holders)` update satisf
 leaf cannot change without its holder. Here *"chain of custody"* means the **verification chain** of
 state commitments and proofs — **not** a custodian holding funds.
 
-### 12.6 Port registry + gate (proposed)
+### 12.6 Port registry + gate (implemented)
 
-Add a machine-checked registry (`docs/STATE-PORT-REGISTRY.md` + `scripts/check-state-ports.mjs`, in
-the spirit of `validate-custody`): per-coin-class bands; MSHS reserved ≥234; **no `SAMESTATE` range
-may span the MSHS band**; fail on out-of-band/overlapping/`SAMESTATE`-spanning ports.
+Machine-checked registry: [`docs/STATE-PORT-REGISTRY.md`](../STATE-PORT-REGISTRY.md) (human) +
+[`scripts/state-port-registry.json`](../../scripts/state-port-registry.json) (machine) +
+[`scripts/check-state-ports.mjs`](../../scripts/check-state-ports.mjs) (`npm run validate:ports`, in the
+spirit of `validate-custody`): per-coin-class bands; MSHS reserved **230–255**; **no `SAMESTATE` range may
+span the MSHS band**; fail on out-of-band or MSHS-spanning ports; declared share bases checked against
+package constants.
 
-Proposed bands: `0` reserved · `1–99` general/legacy · `100–119` Omnia channel/factory control ·
-`120–183` Omnia channel programs · `120–233` Omnia share band on factory/VTXO coins (relocate base
-below 200 for headroom) · `234–255` MSHS-2.
+Finalized bands: `0–99` general/legacy (incl. `statechain`) · `100–119` Omnia channel/factory control ·
+`120–183` Omnia channel programs · `128–229` Omnia share band on factory/VTXO coins (**base 128**,
+max 102 parties) · `230–255` MSHS-2. (Ports are per-coin namespaces, so `omnia-programs` and
+`omnia-share` overlap across coin classes.)
 
 ### 12.7 Registry additions
 
@@ -581,7 +618,7 @@ below 200 for headroom) · `234–255` MSHS-2.
 ### 12.8 Code gap (tracked)
 
 `omnia-vtxo`/`omnia-factory` enforce only **lower** bounds on party count (`holders.length < 1`,
-`participants.length < 2`) and can emit ports ≥234. Fix: relocate
+`participants.length < 2`) and can emit ports ≥230. Fix: relocate
 `POOL_SHARE_PORT_BASE` / `FACTORY_BALANCE_PORT_BASE` below the MSHS floor with an explicit upper
 bound, add the `check-state-ports` gate, and add a boundary case to `custody-exec`.
 
@@ -590,3 +627,15 @@ bound, add the `check-state-ports` gate, and add a boundary case to `custody-exe
 | Group | Package / capability | Reuse decision |
 |---|---|---|
 | MASH / MSHS-2 (node) | `totem-node-new-crypto` MSHS-2 verifier | **Conditional direct** for capital authorization at the OPEN/CLOSE boundary; node-side, consumed via `kissvm`/`identity`/`authority`/`agent-policy`; not a package (see RFC-049) |
+
+### 12.10 Signature-model fidelity (implemented)
+
+The node's `SIGNEDBY` is **membership of a witness's tree-signature root public key**
+(`SignatureProof::getRootPublicKey`, `Contract::checkSignature`), not a flat single WOTS key. The
+Rust/WASM KISSVM witness now carries canonical `TreeSignature`s (`treeSignatures`, RFC-009) keyed by
+root public key and verifies them with `totemsdk_core_wasm::treekey::verify_tree_signature`; the flat
+single-key WOTS path remains only as the degenerate/compat case. To consume the engine natively,
+`core-wasm` is linked into the VM as an rlib and its per-crate `#[wasm_bindgen(start)]` is
+feature-gated (`wasm-start`, default-on) so the generated `init`/`__wbindgen_describe_init` symbols
+do not collide. Gates: `custody-exec-vm` (real-signature escape + cooperative `MULTISIG`, Rust↔TS)
+and `custody-signature-parity` (flat + tree verifier parity, incl. tamper).
