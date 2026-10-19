@@ -101,6 +101,9 @@ describe('factory opening coordination (RFC-035 B2)', () => {
     await aliceFn.openFactory(A, aliceCoord, opening);
 
     await waitFor(() => opened !== undefined);
+    // The co-signer commits its lease asynchronously, possibly after Alice's
+    // `onOpened` fires — wait for it explicitly to avoid a flaky race.
+    await waitFor(() => bob.lease.commitKeyUse.mock.calls.length > 0);
     expect(opened!.status).toBe('active');
     expect(opened!.currentSequence).toBe(1);
     expect(bob.lease.commitKeyUse).toHaveBeenCalled();
