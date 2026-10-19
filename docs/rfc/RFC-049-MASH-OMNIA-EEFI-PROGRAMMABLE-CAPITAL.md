@@ -270,6 +270,14 @@ coins. The incompatibilities below are **per coin/script**, never per wallet. On
 both modes draw from the **same `PK_ROOT` and its lifetime counter** (`Q_MAX = 2^28`), so the
 authorization budget is **shared** across modes (see §11 Q5).
 
+**Why they cannot share a *transaction*.** The committed branch itself asserts `@TOTIN EQ 1` and
+`@TOTOUT EQ 1` (`mshs2_modes.hpp`), and the signer enforces `inputs.size() == outputs.size() == 1`.
+So a committed coin can be spent **only in a solitary 1-in/1-out transaction** — it cannot be one of
+several inputs funding a channel, and it cannot share a transaction with a wallet-mode coin (or any
+other coin). Concretely: a channel-opening tx **cannot** fund from *committed coin + wallet coin*;
+the two modes coexist in the *wallet*, but never in the *same transaction*. Combining them in one tx
+is exactly what the **multi-IO committed mode** (§11 Q7) would unlock.
+
 This changes four things for MASH-based Omnia/Eefi txs:
 
 1. **Ports.** Committed mode additionally occupies **ports 0–1** (`mash-committed-state`, STATE(0)/STATE(1)) on top of 230–255. On one coin that collides with anything using 0–1 (e.g. `statechain`).
