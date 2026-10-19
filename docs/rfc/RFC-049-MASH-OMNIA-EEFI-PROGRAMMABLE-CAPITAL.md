@@ -436,8 +436,8 @@ deferred behind Gen 1–2 gates and RFC-048's oracle/collateral work.
    branches (§5.5), so committed state cannot compose with Omnia channel/factory/settlement scripts
    or P-EXIT. A **multi-IO committed mode** — or a committed-state carrier attachable to a multi-party
    Omnia script — is what would let committed state participate in channels, factories and enforceable
-   exercise, and is the gating question for stateful MASH-governed Omnia coins. Node-side work; tracked
-   here rather than assumed.
+   exercise, and is the gating question for stateful MASH-governed Omnia coins. Node-side work;
+   **drafted as RFC-052** (`docs/rfc/RFC-052-MASH-MULTI-IO-COMMITTED-MODE.md`).
 
 ---
 
