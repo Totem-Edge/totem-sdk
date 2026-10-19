@@ -203,7 +203,7 @@
       "dependencies": {
         "@totemsdk/agent-policy": "^0.3.1",
         "@totemsdk/chain-provider": "^0.2.1",
-        "@totemsdk/kissvm": "^1.2.2",
+        "@totemsdk/kissvm": "^1.2.3",
         "@totemsdk/lookup-client": "^0.2.0",
         "@totemsdk/omnia": "^2.0.1",
         "@totemsdk/omnia-factory": "^0.5.4",
@@ -715,7 +715,7 @@
     },
     {
       "name": "@totemsdk/kissvm",
-      "version": "1.2.2",
+      "version": "1.2.3",
       "description": "KISSVM v1 evaluator for Minima scripting — lexer, parser, VM, all opcodes, backed by Rust/WASM",
       "domain": "cryptographic-foundation",
       "keywords": [
@@ -890,7 +890,7 @@
         "@totemsdk/agent-policy": "^0.3.1",
         "@totemsdk/chain-provider": "^0.2.1",
         "@totemsdk/core": "^1.3.0",
-        "@totemsdk/kissvm": "^1.2.2",
+        "@totemsdk/kissvm": "^1.2.3",
         "@totemsdk/lookup-protocol": "^0.2.0",
         "@totemsdk/stream-transport": "^0.2.0",
         "@totemsdk/tx-builder": "^0.2.1",
@@ -1247,7 +1247,7 @@
       ],
       "dependencies": {
         "@totemsdk/core": "^1.3.0",
-        "@totemsdk/kissvm": "^1.2.2",
+        "@totemsdk/kissvm": "^1.2.3",
         "@totemsdk/tx-builder": "^0.2.1"
       },
       "exports": {
