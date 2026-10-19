@@ -203,10 +203,10 @@
       "dependencies": {
         "@totemsdk/agent-policy": "^0.3.1",
         "@totemsdk/chain-provider": "^0.2.1",
-        "@totemsdk/kissvm": "^1.2.1",
+        "@totemsdk/kissvm": "^1.2.2",
         "@totemsdk/lookup-client": "^0.2.0",
         "@totemsdk/omnia": "^2.0.1",
-        "@totemsdk/omnia-factory": "^0.5.3",
+        "@totemsdk/omnia-factory": "^0.5.4",
         "@totemsdk/omnia-router": "^0.3.0",
         "@totemsdk/omnia-splice": "^0.3.0",
         "@totemsdk/pear": "^0.2.1",
@@ -715,7 +715,7 @@
     },
     {
       "name": "@totemsdk/kissvm",
-      "version": "1.2.1",
+      "version": "1.2.2",
       "description": "KISSVM v1 evaluator for Minima scripting — lexer, parser, VM, all opcodes, backed by Rust/WASM",
       "domain": "cryptographic-foundation",
       "keywords": [
@@ -890,7 +890,7 @@
         "@totemsdk/agent-policy": "^0.3.1",
         "@totemsdk/chain-provider": "^0.2.1",
         "@totemsdk/core": "^1.3.0",
-        "@totemsdk/kissvm": "^1.2.1",
+        "@totemsdk/kissvm": "^1.2.2",
         "@totemsdk/lookup-protocol": "^0.2.0",
         "@totemsdk/stream-transport": "^0.2.0",
         "@totemsdk/tx-builder": "^0.2.1",
@@ -913,7 +913,7 @@
     },
     {
       "name": "@totemsdk/omnia-factory",
-      "version": "0.5.3",
+      "version": "0.5.4",
       "description": "Channel factory — N-of-N MULTISIG funding, virtual channel management, factory settlement",
       "domain": "payment-network",
       "keywords": [
@@ -999,7 +999,7 @@
     },
     {
       "name": "@totemsdk/omnia-vtxo",
-      "version": "0.5.3",
+      "version": "0.5.4",
       "description": "Virtual UTXO / payment-pool claim layer — cash-like off-chain balance primitive",
       "domain": "payment-network",
       "keywords": [
@@ -1247,7 +1247,7 @@
       ],
       "dependencies": {
         "@totemsdk/core": "^1.3.0",
-        "@totemsdk/kissvm": "^1.2.1",
+        "@totemsdk/kissvm": "^1.2.2",
         "@totemsdk/tx-builder": "^0.2.1"
       },
       "exports": {
@@ -1600,10 +1600,10 @@
         "@totemsdk/manifest": "^2.0.0",
         "@totemsdk/minima-rpc": "^0.3.0",
         "@totemsdk/omnia": "^2.0.1",
-        "@totemsdk/omnia-factory": "^0.5.3",
+        "@totemsdk/omnia-factory": "^0.5.4",
         "@totemsdk/omnia-router": "^0.3.0",
         "@totemsdk/omnia-splice": "^0.3.0",
-        "@totemsdk/omnia-vtxo": "^0.5.3",
+        "@totemsdk/omnia-vtxo": "^0.5.4",
         "@totemsdk/storage": "^0.1.0",
         "@totemsdk/wots-lease": "^1.0.1"
       },
@@ -1733,10 +1733,10 @@
         "@totemsdk/core": "^1.3.0",
         "@totemsdk/liquidity-bond": "^0.3.1",
         "@totemsdk/omnia": "^2.0.1",
-        "@totemsdk/omnia-factory": "^0.5.3",
+        "@totemsdk/omnia-factory": "^0.5.4",
         "@totemsdk/omnia-router": "^0.3.0",
         "@totemsdk/omnia-splice": "^0.3.0",
-        "@totemsdk/omnia-vtxo": "^0.5.3",
+        "@totemsdk/omnia-vtxo": "^0.5.4",
         "@totemsdk/storage": "^0.1.0",
         "@totemsdk/tx-builder": "^0.2.1",
         "@totemsdk/wots-lease": "^1.0.1"
@@ -1777,14 +1777,24 @@
         "@totemsdk/core": "^1.3.0",
         "@totemsdk/identity": "^1.0.1",
         "@totemsdk/omnia": "^2.0.1",
-        "@totemsdk/omnia-factory": "^0.5.3",
+        "@totemsdk/omnia-factory": "^0.5.4",
         "@totemsdk/omnia-router": "^0.3.0",
         "@totemsdk/omnia-splice": "^0.3.0",
         "@totemsdk/root-identity": "^1.0.9",
         "@totemsdk/wots-lease": "^1.0.1"
       },
       "exports": {
-        ".": "dist/index.{js,d.ts}"
+        ".": "dist/index.{js,d.ts}",
+        "./server": {
+          "import": {
+            "types": "./dist/server.d.ts",
+            "default": "./dist/server.js"
+          },
+          "require": {
+            "types": "./dist/cjs/server.d.ts",
+            "default": "./dist/cjs/server.js"
+          }
+        }
       },
       "exportsDescription": "createOmniaRelayClient, RoutingPort, channelGraphEdges, buildGraph, queryRoute, createRelayOmniaSwarm",
       "custody": {
