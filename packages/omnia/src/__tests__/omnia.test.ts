@@ -167,6 +167,14 @@ function makeMockChainProvider() {
     broadcastTxPoW: jest.fn(async (_txHex: string) => ({
       txpowid: `0xtxpow${txCounter++}`,
     })),
+    getCoin: jest.fn(async (id: string) => ({
+      coinId: id,
+      address: '0x' + '11'.repeat(32),
+      amount: '1000000',
+      tokenid: '0x00',
+      spent: false,
+      mmrentry: 1,
+    })),
     getToken: jest.fn(async (tokenId: string) => ({
       tokenId,
       name: { name: 'TestToken' },
