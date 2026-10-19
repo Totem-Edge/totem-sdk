@@ -157,6 +157,15 @@ export function createOmniaHost(
             spliceProposals: dependencies.spliceProposals,
             spliceAcceptances: dependencies.spliceAcceptances,
             spliceLeaseProvider: dependencies.spliceLeaseProvider,
+            fundingSigner: config.fundingPubkey
+              ? async (digest: Uint8Array) => {
+                  const sig = await chainAdapter!.signData(
+                    config.fundingPubkey!,
+                    '0x' + Buffer.from(digest).toString('hex'),
+                  );
+                  return Uint8Array.from(Buffer.from(sig.replace(/^0x/i, ''), 'hex'));
+                }
+              : undefined,
             readOnly,
             identity: dependencies.identity,
             manifest: dependencies.manifest,

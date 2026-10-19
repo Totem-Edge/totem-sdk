@@ -14,6 +14,12 @@ export interface OmniaHostConfig {
   localAddressIndex?: number;
   localSettlementAddress?: string;
   nodeMode?: string;
+  /**
+   * Public key (0x…) that owns the funding coin. When set, the host signs the
+   * funding-transaction digest via the node's `sign` command to assemble the
+   * channel funding witness (OMNIA_FUNDING_PUBKEY).
+   */
+  fundingPubkey?: string;
   wsPath: string;
   /** BIP39 mnemonic or hex seed (same formats @totemsdk/core accepts). */
   seed?: string;
@@ -120,6 +126,7 @@ export function loadConfigFromEnv(env: NodeJS.ProcessEnv = process.env): OmniaHo
     localAddressIndex: optionalInteger(env.OMNIA_LOCAL_ADDRESS_INDEX),
     localSettlementAddress: optional(env.OMNIA_LOCAL_SETTLEMENT_ADDRESS),
     nodeMode: optional(env.OMNIA_NODE_MODE),
+    fundingPubkey: optional(env.OMNIA_FUNDING_PUBKEY),
     wsPath: env.OMNIA_WS_PATH?.trim() || '/rpc',
     seed,
     keyfile,

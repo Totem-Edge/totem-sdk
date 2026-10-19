@@ -18,9 +18,11 @@ import type {
 import { buildAndHashEltooScript, scriptAddress } from './script.js';
 import {
   buildFundingTx,
+  computeOmniaTxDigest,
   minimaOutputCoinIdsForDraft,
   omniaDraftToCanonicalMinimaBytes,
 } from './transactions.js';
+import { serializeOmniaWitness } from './witness.js';
 import { assessCapacity, WOTS_CAPACITY_TOTAL, flatSigningIndex } from './capacity.js';
 import { signState, verifyStateSignature } from './sign.js';
 import { ChannelStatusError, SigningIndexMonotonicityError, DoubleSignError, SequenceError } from './errors.js';
@@ -164,11 +166,23 @@ export async function createChannel(
   // The funding coin is signed by the wallet layer; Omnia requires the caller to
   // provide the serialized Minima witness bytes so funding never broadcasts with
   // placeholder witness data.
-  if (!params.fundingWitnessBytes?.length) {
-    throw new Error('createChannel requires serialized fundingWitnessBytes for broadcast');
-  }
   const fundingTxBytes = omniaDraftToCanonicalMinimaBytes(fundingDraft);
-  const txBody = serializeTxBody(fundingTxBytes, params.fundingWitnessBytes);
+  let fundingWitness = params.fundingWitnessBytes;
+  if (!fundingWitness?.length) {
+    // Assemble the witness from caller-supplied proofs + a signature over the
+    // funding digest (which only createChannel can build). See CreateChannelParams.
+    if (!params.fundingSigner || !params.fundingProofs) {
+      throw new Error('createChannel requires serialized fundingWitnessBytes for broadcast');
+    }
+    const digest = computeOmniaTxDigest(fundingDraft);
+    const signature = await params.fundingSigner(digest);
+    fundingWitness = serializeOmniaWitness({
+      signatures: [signature],
+      coinProofs: params.fundingProofs.coinProofs,
+      scriptProofs: params.fundingProofs.scriptProofs,
+    });
+  }
+  const txBody = serializeTxBody(fundingTxBytes, fundingWitness);
   const mined = await mineTxPoW(txBody, TX_POW_MIN_DIFFICULTY);
   const fullTxPoW = concatBytes(concatBytes(mined.minedHeaderBytes, new Uint8Array([0x01])), txBody);
   const broadcast = await chainProvider.broadcastTxPoW(Buffer.from(fullTxPoW).toString('hex'));

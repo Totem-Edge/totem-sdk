@@ -62,6 +62,12 @@ export interface HostApiContext {
   chainProvider?: ChainStateProvider;
   swarm?: OmniaSwarm;
   localParticipant?: ChannelParticipant;
+  /**
+   * Signs the funding-transaction digest with the funding coin's key, so
+   * openChannel can assemble the funding witness without the caller reproducing
+   * the funding draft. Configured from the node's `sign` command.
+   */
+  fundingSigner?: (digest: Uint8Array) => Promise<Uint8Array> | Uint8Array;
   factories?: Map<string, ChannelFactory>;
   factoryBundles?: Record<string, WotsLeaseBundle>;
   spliceProposals?: Map<string, SpliceProposal>;
@@ -369,16 +375,33 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       settlementAddress: typeof params.remoteSettlementAddress === 'string' ? params.remoteSettlementAddress : undefined,
     };
     const result = await withOperation(context, params, async () => {
-      const createParams: CreateChannelParams & { fundingWitnessBytes: Uint8Array } = {
+      const createParams: CreateChannelParams = {
         localParty: context.localParticipant,
         remoteParty: remote,
         localAmount: requiredBigInt(params, 'localAmount'),
         remoteAmount: requiredBigInt(params, 'remoteAmount'),
         tokenId: typeof params.tokenId === 'string' ? params.tokenId : undefined,
         fundingCoinId: requiredString(params, 'fundingCoinId'),
-        fundingWitnessBytes: Buffer.from(requiredString(params, 'fundingWitnessHex').replace(/^0x/i, ''), 'hex'),
       };
-      const created = await createChannel(createParams as CreateChannelParams, context.chainProvider);
+      const fundingWitnessHex = typeof params.fundingWitnessHex === 'string' ? params.fundingWitnessHex : undefined;
+      if (fundingWitnessHex) {
+        createParams.fundingWitnessBytes = Buffer.from(fundingWitnessHex.replace(/^0x/i, ''), 'hex');
+      } else {
+        // Assemble the funding witness: createChannel builds the funding draft,
+        // the configured funding signer signs its digest, and the caller supplies
+        // the input proofs (serialized CoinProof + ScriptProof).
+        if (!context.fundingSigner) {
+          throw new Error('openChannel requires fundingWitnessHex, or a configured funding signer + funding proofs');
+        }
+        const toBytes = (v: unknown): Uint8Array[] =>
+          Array.isArray(v) ? v.map((h) => Buffer.from(String(h).replace(/^0x/i, ''), 'hex')) : [];
+        createParams.fundingProofs = {
+          coinProofs: toBytes(params.fundingCoinProofsHex),
+          scriptProofs: toBytes(params.fundingScriptProofsHex),
+        };
+        createParams.fundingSigner = context.fundingSigner;
+      }
+      const created = await createChannel(createParams, context.chainProvider);
       context.channels.set(created.channel.channelId, {
         ...created.channel,
         localSigner: context.signer,

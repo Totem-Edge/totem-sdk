@@ -211,6 +211,21 @@ export interface CreateChannelParams {
   fundingCoinId: string;
   /** Serialized Minima witness for the funding transaction input(s). Required for createChannel broadcast. */
   fundingWitnessBytes?: Uint8Array;
+  /**
+   * Alternative to `fundingWitnessBytes`: the funding input proofs (serialized
+   * Minima CoinProof + ScriptProof). Used with `fundingSigner` so createChannel
+   * assembles the witness itself.
+   */
+  fundingProofs?: {
+    coinProofs: Uint8Array[];
+    scriptProofs: Uint8Array[];
+  };
+  /**
+   * Sign the funding transaction digest (WOTS). Called only when
+   * `fundingWitnessBytes` is absent. Lets a wallet sign the exact digest
+   * createChannel built, without the caller reproducing the funding draft.
+   */
+  fundingSigner?: (digest: Uint8Array) => Promise<Uint8Array> | Uint8Array;
   channelType?: 'direct' | 'virtual';
   factoryRef?: string;
   program?: ChannelProgram;

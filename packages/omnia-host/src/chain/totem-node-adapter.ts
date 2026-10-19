@@ -20,6 +20,12 @@ export interface ConfirmationOptions {
 
 export interface TotemNodeAdapter extends ChainStateProvider {
   getMode(): Promise<string | undefined>;
+  /**
+   * Sign arbitrary data with a wallet key (`sign publickey:<0x> data:<0x>`).
+   * Used to produce the funding witness signature: createChannel builds the
+   * funding digest, and this signs it with the funding coin's key.
+   */
+  signData(pubkeyHex: string, dataHex: string): Promise<string>;
   waitForConfirmation(coinId: string, options?: ConfirmationOptions): Promise<void>;
   subscribe(listener: (tip: ChainTip) => void): () => void;
   close(): void;
@@ -63,6 +69,20 @@ export function createTotemNodeAdapter(options: TotemNodeAdapterOptions): TotemN
       if (!result || typeof result !== 'object') return undefined;
       const mode = (result as { mode?: unknown }).mode;
       return typeof mode === 'string' ? mode : undefined;
+    },
+
+    async signData(pubkeyHex: string, dataHex: string): Promise<string> {
+      const result = await client.runCommand('sign', { publickey: pubkeyHex, data: dataHex });
+      const unwrap = (v: unknown): string | undefined => {
+        if (typeof v === 'string') return v;
+        if (v && typeof v === 'object' && typeof (v as { response?: unknown }).response === 'string') {
+          return (v as { response: string }).response;
+        }
+        return undefined;
+      };
+      const sig = unwrap(result) ?? unwrap((result as { response?: unknown } | undefined)?.response);
+      if (!sig) throw new Error('signData: unexpected node response');
+      return sig;
     },
 
     async waitForConfirmation(coinId, confirmationOptions = {}): Promise<void> {
