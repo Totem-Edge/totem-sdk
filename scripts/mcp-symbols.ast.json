@@ -6964,11 +6964,21 @@
         },
         "evaluateScriptWasm": {
           "kind": "function",
-          "signature": "evaluateScriptWasm(script: string, witness: any, txCtx: any): any"
+          "signature": "evaluateScriptWasm(script: string, witness: ScriptWitness | Record<string, unknown>, txCtx: any): any"
         },
         "parseScriptWasm": {
           "kind": "function",
           "signature": "parseScriptWasm(source: string): any"
+        },
+        "toWasmWitness": {
+          "kind": "function",
+          "signature": "toWasmWitness(witness: ScriptWitness): unknown",
+          "doc": "Convert a TS `ScriptWitness` (Map keyed by signer root key) into the Rust VM\nwitness object. Flat WOTS entries go in `signatures`; canonical tree\nsignatures (RFC-009) go in `treeSignatures`, keyed by root public key — the\nidentity `SIGNEDBY`/`MULTISIG` match against (RFC-048)."
+        },
+        "treeSignatureToWasm": {
+          "kind": "function",
+          "signature": "treeSignatureToWasm(sig: TreeSignature): unknown",
+          "doc": "Convert a canonical Minima `TreeSignature` into the shape the Rust VM's\nserde bridge deserializes (`totemsdk_core_wasm::treekey::TreeSignature`).\nByte fields become plain number arrays; `mmrProof.blockTime` is dropped (the\nRust proof has no block time and serde ignores unknown fields)."
         },
         "Value": {
           "kind": "type",
@@ -7447,6 +7457,94 @@
         "LeaseCertificateConfig": {
           "kind": "interface",
           "signature": "export interface LeaseCertificateConfig"
+        },
+        "buildExerciseCovenant": {
+          "kind": "function",
+          "signature": "buildExerciseCovenant(config: ExerciseCovenantConfig): string",
+          "doc": "Build the P-EXIT exercise/settlement covenant script.\n\nLayout:\n```\n  exercise: IF <condition> THEN [IF SIGNEDBY(beneficiary) THEN]\n              ASSERT VERIFYOUT(0 beneficiary payout|@AMOUNT tokenId FALSE)\n              IF payout <"
+        },
+        "exerciseCovenantStateVariables": {
+          "kind": "function",
+          "signature": "exerciseCovenantStateVariables(config: { maturityBlock: bigint; recoveryBlock: bigint; maturityPort?: number; recoveryPort?: number; }): ExerciseCovenantState[]",
+          "doc": "Committed state variables for a time-bounded exercise covenant: the absolute\nmaturity and recovery blocks, seeded into the covenant's funding output. Read\nback by the script via `PREVSTATE` and pinned with `SAMESTATE` so no spend can\nmove the exercise clock."
+        },
+        "ExerciseCovenantConfig": {
+          "kind": "interface",
+          "signature": "export interface ExerciseCovenantConfig"
+        },
+        "ExerciseCovenantState": {
+          "kind": "interface",
+          "signature": "export interface ExerciseCovenantState"
+        },
+        "ExerciseKind": {
+          "kind": "type",
+          "signature": "export type ExerciseKind = 'unilateral-exercise' | 'liquidation' | 'maturity-redemption'",
+          "doc": "Condition under which the exercise branch opens."
+        },
+        "buildCollateralBondScript": {
+          "kind": "function",
+          "signature": "buildCollateralBondScript(config: CollateralBondConfig): string",
+          "doc": "Build the OMP-21 collateral-bond covenant script."
+        },
+        "collateralBondStateVariables": {
+          "kind": "function",
+          "signature": "collateralBondStateVariables(config: { maturityBlock: bigint; maturityPort?: number; }): CollateralBondState[]",
+          "doc": "Committed maturity state variable for a collateral bond."
+        },
+        "CollateralBondConfig": {
+          "kind": "interface",
+          "signature": "export interface CollateralBondConfig",
+          "doc": "OMP-21 — enforceable collateral bond (RFC-048 §2, RFC-050 §4/§6).\n\nA collateral bond turns a *promise* of slashing into an *enforced* covenant.\nThe RFC-048 invariant is explicit: liquidation MUST be triggered by an\n**objective, on-chain-verifiable condition** and executed by covenant — never\nby an operator's say-so (RFC-050 §6). The same template gives the borrower an\noperator-independent reclaim path so the bond is never custodial.\n\nBranches:\n  1. **Repayment release** — when `releaseCondition` holds (default: the lender\n     signs), the collateral returns to the borrower.\n  2. **Post-maturity settlement** — after the committed maturity block the\n     outcome is fully determined by `liquidationCondition`: defaulted → the\n     lender seizes; not defaulted → the borrower reclaims. Because the branch is\n     decided by the objective condition, a defaulting borrower cannot race the\n     lender by reclaiming first.\n  3. **Pre-maturity default** — before maturity, an objective default lets the\n     lender seize (permissionless; payout fixed to the lender).\n\nThe lender can never pay itself except through the objective condition, and the\nborrower always has a timelocked reclaim when no default is proven."
+        },
+        "CollateralBondState": {
+          "kind": "interface",
+          "signature": "export interface CollateralBondState"
+        },
+        "buildOracleConditionScript": {
+          "kind": "function",
+          "signature": "buildOracleConditionScript(config: OracleConditionConfig): string",
+          "doc": "Build the on-chain oracle condition witness (optionally with a payout)."
+        },
+        "oracleConditionStateVariables": {
+          "kind": "function",
+          "signature": "oracleConditionStateVariables(commitment: OracleCommitment, ports?: { valuePort?: number; observedAtPort?: number; validUntilPort?: number; feedPort?: number; }): OracleStateVariable[]",
+          "doc": "Commit an oracle observation to state at funding. The witness reads these back\nvia `PREVSTATE`; the feed commitment is pinned with `SAMESTATE` so it cannot be\nswapped by a spender."
+        },
+        "buildOracleExerciseCovenant": {
+          "kind": "function",
+          "signature": "buildOracleExerciseCovenant(config: OracleExerciseCovenantConfig): string",
+          "doc": "Build the composed P-EXIT × OMP-19 covenant: the observation is committed at\nfunding, and after maturity the beneficiary can exercise **alone** — with only\nits own signature — provided the committed observation is fresh and satisfies\nthe objective value condition. The oracle is not required at exercise time."
+        },
+        "OracleConditionConfig": {
+          "kind": "interface",
+          "signature": "export interface OracleConditionConfig"
+        },
+        "OracleComparisonOp": {
+          "kind": "type",
+          "signature": "export type OracleComparisonOp = 'GT' | 'GTE' | 'LT' | 'LTE' | 'EQ' | 'NEQ'",
+          "doc": "OMP-18 / OMP-19 — on-chain oracle condition witness (RFC-048 §3.1).\n\nTurns a signed oracle **observation** into an objective on-chain condition for a\nspend (price-linked / parametric payouts, liquidation triggers, condition\nwitnesses). It reuses the existing evidence stack (`proof` / `proofgraph` /\n`identity`); it does **not** define a second signature scheme.\n\nOn-chain semantics (and their honest limit):\n  - The observation fields are **committed** to state ports at funding (see\n    {@link oracleConditionStateVariables}); the witness reads them via\n    `PREVSTATE` and pins the feed commitment with `SAMESTATE`.\n  - The authorized oracle(s) authorize the spend — `MULTISIG(threshold …)` — so\n    a quorum can be required. In this SDK, `CHECKSIG`/`SIGNEDBY` verify against\n    the **transaction digest**, and the transaction commits the observation, so\n    the oracle's signature is a cooperative attestation **bound to the spend**.\n  - Freshness (`observedAt ≤"
+        },
+        "OracleCommitment": {
+          "kind": "interface",
+          "signature": "export interface OracleCommitment"
+        },
+        "OracleStateVariable": {
+          "kind": "interface",
+          "signature": "export interface OracleStateVariable"
+        },
+        "OracleExerciseCovenantConfig": {
+          "kind": "interface",
+          "signature": "export interface OracleExerciseCovenantConfig"
+        },
+        "buildMmrMembershipCovenant": {
+          "kind": "function",
+          "signature": "buildMmrMembershipCovenant(config: MmrMembershipCovenantConfig): string",
+          "doc": "Build the MMR membership covenant script."
+        },
+        "MmrMembershipCovenantConfig": {
+          "kind": "interface",
+          "signature": "export interface MmrMembershipCovenantConfig",
+          "doc": "MMR membership covenant (RFC-048 §12.4) — prove, on-chain, that a runtime leaf\nis included in a committed MMR root, using the canonical `PROOF` opcode.\n\nThis is the per-leaf primitive behind **committed-set-root scaling**: rather\nthan emitting one escape branch per party (an O(N) script), the spender commits\nits leaf and MMR proof to state and the script verifies inclusion against the\ncommitted root. The leaf is the signer's own WOTS public-key digest (`0x…`), so\n`SIGNEDBY(LEAF)` binds the identity and `VERIFYOUT(0 LEAF …)` pays exactly it.\n\nRuntime typing (matches a Minima node): the `data` operand is a HEX leaf when\nits evaluated value starts with `0x` (hashed from raw bytes) and a SCRIPT leaf\notherwise. Here the leaf is supplied via `STATE(leafPort)` as `0x<pubkey>`, so\nit types as HEX and matches an `MMRTree.fromPublicKeys(...)` root."
         },
         "buildCommitScript": {
           "kind": "function",
@@ -10437,6 +10535,21 @@
           "signature": "factoryEscapeStateVariable(escapeBlock: number): { port: number; value: bigint; type: \"number\"; }",
           "doc": "Absolute escape-block state variable (STATE(103)) for the factory funding output."
         },
+        "factoryPartySetRoot": {
+          "kind": "function",
+          "signature": "factoryPartySetRoot(participants: FactoryParticipant[]): string",
+          "doc": "MMR root (hex, no `0x`) over the participants' public-key digests.\n\nMinima's `MMRTree` builds a perfect binary tree (power-of-two leaves), so the\nparty set is padded to the next power of two with the **zero digest** sentinel\n(a fixed, publicly known padding leaf). The root is thus a Minima-native MMR\nroot — the same structure the VTXO batch root commits and the on-chain `PROOF`\nverifies — over an arbitrary number of participants."
+        },
+        "factoryPartyRootStateVariable": {
+          "kind": "function",
+          "signature": "factoryPartyRootStateVariable(root: string): { port: number; value: string; type: \"hex\"; }",
+          "doc": "Committed party-set root state variable (STATE(111)) for the factory funding output."
+        },
+        "factoryPartyProof": {
+          "kind": "function",
+          "signature": "factoryPartyProof(participants: FactoryParticipant[], index: number): string",
+          "doc": "Serialized MMR inclusion proof (hex, no `0x`) for participant `index` against\nthe committed party-set root — the witness for a per-leaf\n`buildMmrMembershipCovenant` escape (RFC-048 §12.4)."
+        },
         "FACTORY_BALANCE_PORT_BASE": {
           "kind": "const",
           "signature": "FACTORY_BALANCE_PORT_BASE = 128",
@@ -10457,10 +10570,15 @@
           "signature": "FACTORY_MAX_PARTICIPANTS = MSHS_PORT_FLOOR - FACTORY_BALANCE_PORT_BASE",
           "doc": "Maximum participants whose balance ports remain below the MSHS floor."
         },
+        "FACTORY_PARTY_ROOT_PORT": {
+          "kind": "const",
+          "signature": "FACTORY_PARTY_ROOT_PORT = 111",
+          "doc": "State port carrying the committed party-set root (STATE(111)) — the MMR root\nof the participant public-key digests (RFC-048 §12.4/§12.5). It is pinned on\nevery spend (`SAMESTATE`), so the participant set is cryptographically fixed\nand immutable, independent of the per-party enumeration. This is the factory's\nadoption of the VTXO committed-set root and the anchor for future per-leaf\n(proof-based) scaling."
+        },
         "MSHS_PORT_FLOOR": {
           "kind": "const",
-          "signature": "MSHS_PORT_FLOOR = 234",
-          "doc": "Lowest port reserved for MSHS-2 (MASH); Omnia ports MUST stay below this."
+          "signature": "MSHS_PORT_FLOOR = 230",
+          "doc": "Lowest port reserved for MSHS-2 (MASH); Omnia ports MUST stay below this.\nThe node installs the MASH authorization bundle at ports **230–255**\n(`bundleBase = 256 − (4 + k) = 230`): the header R / ROOTS_BLOB /\nSECRETS_BLOB / TREE_SIG at 230–233 and PROOF at 234–255. A composite\nMASH + Omnia coin must therefore keep Omnia ports ≤ 229."
         },
         "scriptAddress": {
           "kind": "function",
@@ -12031,8 +12149,8 @@
         },
         "MSHS_PORT_FLOOR": {
           "kind": "const",
-          "signature": "MSHS_PORT_FLOOR = 234",
-          "doc": "Lowest port reserved for MSHS-2 (MASH); Omnia ports MUST stay below this."
+          "signature": "MSHS_PORT_FLOOR = 230",
+          "doc": "Lowest port reserved for MSHS-2 (MASH); Omnia ports MUST stay below this.\nThe node installs the MASH authorization bundle at ports **230–255**\n(`bundleBase = 256 − (4 + k) = 230`): the header R / ROOTS_BLOB /\nSECRETS_BLOB / TREE_SIG at 230–233 and PROOF at 234–255. A composite\nMASH + Omnia coin must therefore keep Omnia ports ≤ 229."
         },
         "POOL_MAX_HOLDERS": {
           "kind": "const",

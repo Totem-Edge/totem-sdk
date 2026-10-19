@@ -15,6 +15,12 @@
  *   (b) it is UNSATISFIABLE when the successor does not zero the share;
  *   (c) it is UNSATISFIABLE without the withdrawing party's signature.
  *
+ * Signatures here are exercised via `simulationMode` (witness *presence*), since
+ * this gate targets script logic. Real cryptographic signature enforcement — flat
+ * WOTS and canonical tree signatures — is covered by `custody-exec-vm.mjs`
+ * (real `TreeKey` signatures, Rust/WASM vs TS) and `custody-signature-parity.mjs`
+ * (TS vs Rust verifier parity).
+ *
  * Requires built dist of: @totemsdk/omnia-vtxo, @totemsdk/omnia-factory, @totemsdk/kissvm.
  * Usage: node scripts/custody-exec.mjs   (after `npm run build`)
  */

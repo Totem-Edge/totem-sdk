@@ -55,6 +55,8 @@
     "custody:golden:check": "node scripts/custody-golden.mjs --check",
     "custody:exec": "node scripts/custody-exec.mjs",
     "custody:exec:vm": "node scripts/custody-exec-vm.mjs",
+    "signature:parity": "node scripts/custody-signature-parity.mjs",
+    "exercise:exec:vm": "node scripts/exercise-exec-vm.mjs",
     "validate:ports": "node scripts/check-state-ports.mjs",
     "release:family-install": "node scripts/check-family-install.mjs",
     "release:upstream": "node scripts/check-upstream-published.mjs",
