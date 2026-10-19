@@ -47,6 +47,14 @@ export interface OmniaIntegrationConfig {
   onChannelAccepted?: (channel: OmniaChannel, peer: OmniaPeer) => void;
   onStateUpdated?: (channel: OmniaChannel, peer: OmniaPeer) => void;
   onSettlementProposed?: (payload: unknown, peer: OmniaPeer) => void;
+  /**
+   * Factory coordination messages (FACTORY_PROPOSAL/ACCEPT, FACTORY_CLOSE_*).
+   * The host supplies these handlers (it owns the factory SDK + lease bundles);
+   * the transport core stays free of factory dependencies.
+   */
+  onFactoryMessage?: (peer: OmniaPeer, msg: OmniaMessage) => void | Promise<void>;
+  /** Virtual-channel coordination messages (VC_PROPOSAL/ACCEPT/FINALIZED). */
+  onVcMessage?: (peer: OmniaPeer, msg: OmniaMessage) => void | Promise<void>;
 }
 
 export type ChannelStore = Map<string, OmniaChannel>;
@@ -87,6 +95,14 @@ export function createOmniaIntegration(
 ): Unsubscribe {
   const boundPeers = new Set<OmniaPeer>();
 
+  const FACTORY_TYPES = new Set<OmniaMessage['type']>([
+    'FACTORY_PROPOSAL', 'FACTORY_ACCEPT', 'FACTORY_CLOSE_PROPOSAL',
+    'FACTORY_CLOSE_ACCEPT', 'FACTORY_FINALIZED', 'FACTORY_CLOSE_FINALIZED',
+  ]);
+  const VC_TYPES = new Set<OmniaMessage['type']>([
+    'VC_PROPOSAL', 'VC_ACCEPT', 'VC_FINALIZED',
+  ]);
+
   const unsubListen = swarm.listenForChannels(
     (peer: OmniaPeer, msg: OmniaMessage) => {
       if (msg.type === 'CHANNEL_PROPOSAL') {
@@ -95,6 +111,14 @@ export function createOmniaIntegration(
           bindPeerIntegration(peer, store, config, { routeChannelProposal: false });
         }
         _handleChannelProposal(peer, msg, store, config, false);
+        return;
+      }
+      if (FACTORY_TYPES.has(msg.type)) {
+        void config.onFactoryMessage?.(peer, msg);
+        return;
+      }
+      if (VC_TYPES.has(msg.type)) {
+        void config.onVcMessage?.(peer, msg);
       }
     },
   );

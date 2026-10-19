@@ -1,8 +1,10 @@
 import { concatBytes } from '@totemsdk/core/wasm';
+import { buildScriptProof } from '@totemsdk/core';
 import {
   serializeTxDraft,
   omniaDraftToMinimaBytes,
-  computeTxDraftDigest,
+  computeOmniaTxDigest,
+  serializeOmniaWitness,
   toRawMinima,
   verifyChannelSignature,
 } from '@totemsdk/omnia';
@@ -82,7 +84,7 @@ export function buildFactorySettlement(factory: ChannelFactory): FactorySettleme
   return {
     settlementDraft,
     settlementTxHex: serializeTxDraft(settlementDraft),
-    txDigest: computeTxDraftDigest(settlementDraft),
+    txDigest: computeOmniaTxDigest(settlementDraft),
   };
 }
 
@@ -152,19 +154,22 @@ export async function assembleFactorySettlement(
   draft: FactorySettlementDraft,
   signatures: Record<string, FactorySettlementSignature>,
   chainProvider?: ChainStateProvider,
-  options?: { verify?: (sig: Uint8Array, digest: Uint8Array, pkd: string) => boolean },
+  options?: {
+    verify?: (sig: Uint8Array, digest: Uint8Array, pkd: string) => boolean;
+    /** Serialized CoinProof for the factory's shared UTXO (coinexport `data`). */
+    coinProof?: Uint8Array;
+  },
 ): Promise<FactorySettlementPayload> {
-  const witnessParts: Uint8Array[] = [];
+  const signaturesOut: Uint8Array[] = [];
   for (const p of factory.participants) {
     const s = signatures[p.partyId];
     if (!s) throw new Error(`Missing settlement signature for party '${p.partyId}' — close requires all N`);
     if (!verifyFactorySettlementSignature(factory, draft.txDigest, p.partyId, s.signature, options?.verify)) {
       throw new Error(`Settlement signature verification failed for party '${p.partyId}'`);
     }
-    witnessParts.push(s.signature);
+    signaturesOut.push(s.signature);
   }
 
-  const witnessBytes = witnessParts.reduce((a, b) => concatBytes(a, b));
   const payload: FactorySettlementPayload = {
     factoryId:        factory.factoryId,
     sequence:         factory.currentSequence,
@@ -173,13 +178,34 @@ export async function assembleFactorySettlement(
   };
 
   if (chainProvider) {
+    if (!options?.coinProof) {
+      throw new Error('closeFactory broadcast requires the factory coin proof (coinexport data)');
+    }
+    // The settlement input is the factory's N-of-N MULTISIG UTXO; the witness
+    // needs all N signatures + the coin proof + the funding-script proof.
+    const witnessBytes = serializeOmniaWitness({
+      signatures: signaturesOut,
+      coinProofs: [options.coinProof],
+      scriptProofs: [buildScriptProof(factory.fundingScript)],
+    });
     const draftBytes = omniaDraftToMinimaBytes(draft.settlementDraft);
-    const txnDifficulty = await resolveTxPowTarget(chainProvider);
-    const txBody     = serializeTxBody(draftBytes, witnessBytes, { txnDifficulty });
-    const mined      = await mineTxPoW(txBody, txnDifficulty);
-    const fullTxPoW  = concatBytes(concatBytes(mined.minedHeaderBytes, new Uint8Array([0x01])), txBody);
-    await chainProvider.broadcastTxPoW(Buffer.from(fullTxPoW).toString('hex'));
-    payload.txpowId  = Buffer.from(mined.txpowId).toString('hex');
+    if (chainProvider.submitTransaction) {
+      const submitted = await chainProvider.submitTransaction(draftBytes, witnessBytes);
+      if (submitted.success === false || !submitted.txpowid) {
+        throw new Error(`Factory settlement submission failed: ${submitted.message ?? 'no txpowid'}`);
+      }
+      payload.txpowId = submitted.txpowid;
+    } else {
+      const txnDifficulty = await resolveTxPowTarget(chainProvider);
+      const txBody     = serializeTxBody(draftBytes, witnessBytes, { txnDifficulty });
+      const mined      = await mineTxPoW(txBody, txnDifficulty);
+      const fullTxPoW  = concatBytes(concatBytes(mined.minedHeaderBytes, new Uint8Array([0x01])), txBody);
+      const broadcast  = await chainProvider.broadcastTxPoW(Buffer.from(fullTxPoW).toString('hex'));
+      if (broadcast.success === false) {
+        throw new Error(`Factory settlement broadcast failed: ${broadcast.message ?? 'unknown error'}`);
+      }
+      payload.txpowId  = broadcast.txpowid ?? Buffer.from(mined.txpowId).toString('hex');
+    }
   }
 
   return payload;
@@ -200,6 +226,7 @@ export async function closeFactory(
   factory: ChannelFactory,
   leaseProviders: Record<string, WotsLeaseBundle>,
   chainProvider?: ChainStateProvider,
+  opts?: { coinProof?: Uint8Array },
 ): Promise<FactorySettlementPayload> {
   for (const p of factory.participants) {
     if (!leaseProviders[p.partyId]) {
@@ -225,6 +252,7 @@ export async function closeFactory(
       const fn = bundle?.verify ?? verifyChannelSignature;
       return fn(sig, digest, pkd);
     },
+    coinProof: opts?.coinProof,
   });
 }
 

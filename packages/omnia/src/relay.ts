@@ -316,10 +316,10 @@ export class HostedRelaySwarmImpl implements OmniaSwarm {
     });
 
     peer.onMessage((omniaMsg: OmniaMessage) => {
-      if (omniaMsg.type === 'CHANNEL_PROPOSAL') {
-        for (const cb of this._channelListeners) {
-          try { cb(peer, omniaMsg); } catch {}
-        }
+      // Forward every inbound message: channel work uses CHANNEL_PROPOSAL, and
+      // factory/VC/splice coordination uses the other kinds over the same peer.
+      for (const cb of this._channelListeners) {
+        try { cb(peer, omniaMsg); } catch {}
       }
     });
 

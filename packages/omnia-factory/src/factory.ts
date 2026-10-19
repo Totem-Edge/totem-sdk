@@ -1,9 +1,12 @@
 import { sha3_256 } from '@totemsdk/core/wasm';
 import { concatBytes } from '@totemsdk/core/wasm';
+import { buildScriptProof, computeScriptAddress } from '@totemsdk/core';
 import {
   buildFundingTx,
   omniaDraftToMinimaBytes,
-  computeTxDraftDigest,
+  computeOmniaTxDigest,
+  minimaOutputCoinIdsForDraft,
+  serializeOmniaWitness,
   verifyChannelSignature,
 } from '@totemsdk/omnia';
 import { mineTxPoW, resolveTxPowTarget, serializeTxBody } from '@totemsdk/txpow';
@@ -11,6 +14,7 @@ import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import type {
   ChannelFactory,
   FactoryParticipant,
+  FactoryFundingMaterial,
   WotsLeaseBundle,
   FactoryLogEntry,
 } from './types.js';
@@ -158,6 +162,7 @@ export async function createFactory(
   bundle: WotsLeaseBundle,
   chainProvider?: ChainStateProvider,
   tokenScale: number = 0,
+  funding?: FactoryFundingMaterial[],
 ): Promise<ChannelFactory> {
   if (participants.length < 2) {
     throw new Error(`Factory requires at least 2 participants, got ${participants.length}`);
@@ -187,6 +192,21 @@ export async function createFactory(
 
   const allHaveCoinId = participants.every(p => p.fundingCoinId);
   if (allHaveCoinId && chainProvider) {
+    const materialByParty = new Map((funding ?? []).map(m => [m.partyId, m]));
+
+    // The transaction input address must be the *funding coin's* address, not
+    // the participant's settlement address. Callers supply it directly or via
+    // the funding coin script.
+    const inputAddresses = participants.map(p => {
+      const m = materialByParty.get(p.partyId);
+      return m?.coinAddress ?? (m?.script ? computeScriptAddress(m.script) : '');
+    });
+    if (inputAddresses.some(a => !a)) {
+      throw new Error(
+        'createFactory on-chain requires funding material (coinAddress or script) for every participant',
+      );
+    }
+
     const tip = await chainProvider.getTip();
     const escapeBlock = tip.block + FACTORY_ESCAPE_DELAY_BLOCKS;
     const fundingDraft = buildFundingTx(
@@ -197,22 +217,59 @@ export async function createFactory(
       tokenScale,
       participants.map(p => p.fundingCoinId!),
       participants.map(p => p.contributionAmount),
-      participants.map(p => p.settlementAddress ?? p.publicKeyDigest),
+      inputAddresses,
       [...factoryBalanceStateVariables(participants), factoryEscapeStateVariable(escapeBlock)],
     );
 
-    // All parties co-sign the TX digest — the exact on-chain TX structure.
-    pendingCommitment = computeTxDraftDigest(fundingDraft);
+    // Production signatures must cover the canonical Minima transaction ID.
+    pendingCommitment = computeOmniaTxDigest(fundingDraft);
 
-    const draftBytes  = omniaDraftToMinimaBytes(fundingDraft);
-    const txnDifficulty = await resolveTxPowTarget(chainProvider);
-    const txBody      = serializeTxBody(draftBytes, new Uint8Array(0), { txnDifficulty });
-    const mined       = await mineTxPoW(txBody, txnDifficulty);
-    const fullTxPoW   = concatBytes(concatBytes(mined.minedHeaderBytes, new Uint8Array([0x01])), txBody);
-    await chainProvider.broadcastTxPoW(Buffer.from(fullTxPoW).toString('hex'));
+    // Assemble the real witness: one CoinProof + ScriptProof + signature per
+    // input coin (the factory's own MULTISIG script is the *output* script).
+    const signatures: Uint8Array[] = [];
+    const coinProofs: Uint8Array[] = [];
+    const scriptProofs: Uint8Array[] = [];
+    for (const p of participants) {
+      const m = materialByParty.get(p.partyId);
+      if (!m) throw new Error(`Missing funding material for factory party '${p.partyId}'`);
+      coinProofs.push(m.coinProof);
+      let scriptProof = m.scriptProof;
+      if (!scriptProof) {
+        if (!m.script) throw new Error(`Missing script or scriptProof for factory party '${p.partyId}'`);
+        scriptProof = buildScriptProof(m.script);
+      }
+      scriptProofs.push(scriptProof);
+      if (m.signature) {
+        signatures.push(m.signature);
+      } else if (m.signer) {
+        signatures.push(Uint8Array.from(await m.signer(pendingCommitment)));
+      } else {
+        throw new Error(`Missing signature or signer for factory party '${p.partyId}'`);
+      }
+    }
 
-    fundingTxId   = Buffer.from(mined.txpowId).toString('hex');
-    fundingCoinId = `${fundingTxId}-0`;
+    const draftBytes = omniaDraftToMinimaBytes(fundingDraft);
+    const witnessBytes = serializeOmniaWitness({ signatures, coinProofs, scriptProofs });
+
+    if (chainProvider.submitTransaction) {
+      const submitted = await chainProvider.submitTransaction(draftBytes, witnessBytes);
+      if (submitted.success === false || !submitted.txpowid) {
+        throw new Error(`Factory funding submission failed: ${submitted.message ?? 'no txpowid'}`);
+      }
+      fundingTxId = submitted.txpowid;
+    } else {
+      const txnDifficulty = await resolveTxPowTarget(chainProvider);
+      const txBody = serializeTxBody(draftBytes, witnessBytes, { txnDifficulty });
+      const mined = await mineTxPoW(txBody, txnDifficulty);
+      const fullTxPoW = concatBytes(concatBytes(mined.minedHeaderBytes, new Uint8Array([0x01])), txBody);
+      const broadcast = await chainProvider.broadcastTxPoW(Buffer.from(fullTxPoW).toString('hex'));
+      if (broadcast.success === false) {
+        throw new Error(`Factory funding broadcast failed: ${broadcast.message ?? 'unknown error'}`);
+      }
+      fundingTxId = broadcast.txpowid ?? Buffer.from(mined.txpowId).toString('hex');
+    }
+
+    fundingCoinId = minimaOutputCoinIdsForDraft(fundingDraft)[0];
   } else {
     // In-memory / test path: sign the factory state commitment instead.
     pendingCommitment = computeFactoryStateCommitment(factoryId, 1, allocations, []);

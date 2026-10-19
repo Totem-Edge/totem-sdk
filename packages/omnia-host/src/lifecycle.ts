@@ -9,6 +9,12 @@ import { createTotemNodeAdapter, type TotemNodeAdapter } from './chain/totem-nod
 import { channelGraphEdges, InProcessRoutingProvider, type RoutingProvider } from './router/routing-provider.js';
 import type { JsonRpcHandler } from './api/jsonrpc.js';
 import { createHostMethods, type OperationStoreLike } from './api/methods.js';
+import {
+  acceptFactory,
+  signFactorySettlement,
+  signVirtualChannelOpen,
+  signVirtualChannelClose,
+} from '@totemsdk/omnia-factory';
 import type { ChannelFactory, FactoryParticipant, WotsLeaseBundle } from '@totemsdk/omnia-factory';
 import type { SpliceAcceptance, SpliceLeaseProvider, SpliceProposal } from '@totemsdk/omnia-splice';
 
@@ -102,9 +108,14 @@ export function createOmniaHost(
         const relay = config.relay
           ? { mode: 'self-hosted' as const, relayUrl: config.relay }
           : { mode: 'native' as const };
+        const dhtBootstrap = (process.env.OMNIA_DHT_BOOTSTRAP ?? '')
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean);
         swarm = await (dependencies.createSwarm ?? createOmniaSwarm)({
           localPubkey: config.localPubkey,
           relay,
+          ...(dhtBootstrap.length ? { bootstrap: dhtBootstrap } : {}),
         });
       }
       if (!chainAdapter) {
@@ -126,10 +137,118 @@ export function createOmniaHost(
             }
           : undefined
       );
+      // Factory managers default to this node's own lease bundle so the local
+      // side can propose/sign without extra wiring. A two-host factory still
+      // needs peer coordination (FACTORY_PROPOSAL/ACCEPT).
+      const factoryBundles = dependencies.factoryBundles ?? (
+        localParticipant && dependencies.signer && dependencies.leaseProvider
+          ? {
+              [localParticipant.partyId]: {
+                signer: dependencies.signer,
+                leaseProvider: dependencies.leaseProvider,
+              } as WotsLeaseBundle,
+            }
+          : undefined
+      );
+      const factories = dependencies.factories ?? (
+        factoryBundles ? new Map<string, ChannelFactory>() : undefined
+      );
+
+      const localBundle = localParticipant
+        ? factoryBundles?.[localParticipant.partyId]
+        : undefined;
+
+      const onFactoryMessage = async (peer: any, msg: any): Promise<void> => {
+        const payload = (msg?.payload ?? {}) as Record<string, any>;
+        if (!factories || !localBundle) return;
+        try {
+          if (msg.type === 'FACTORY_PROPOSAL' && payload.factory) {
+            const accepted = await acceptFactory(payload.factory, localBundle);
+            factories.set(accepted.factoryId, accepted);
+            await peer.sendMessage({
+              type: 'FACTORY_ACCEPT',
+              channelId: accepted.factoryId,
+              nonce: msg.nonce,
+              payload: { factory: accepted },
+            });
+          } else if (msg.type === 'FACTORY_CLOSE_PROPOSAL' && payload.factoryId) {
+            const factory = factories.get(payload.factoryId);
+            if (!factory) throw new Error(`Factory ${payload.factoryId} not found`);
+            const signature = await signFactorySettlement(factory, payload.draft, localBundle);
+            await peer.sendMessage({
+              type: 'FACTORY_CLOSE_ACCEPT',
+              channelId: payload.factoryId,
+              nonce: msg.nonce,
+              payload: { signature },
+            });
+          }
+        } catch (e) {
+          await peer.sendMessage({
+            type: 'ERROR',
+            channelId: msg.channelId,
+            nonce: msg.nonce,
+            payload: { error: String(e) },
+          });
+        }
+      };
+
+      const onVcMessage = async (peer: any, msg: any): Promise<void> => {
+        const payload = (msg?.payload ?? {}) as Record<string, any>;
+        if (!factories || !localBundle) return;
+        try {
+          if (msg.type === 'VC_FINALIZED') {
+            if (payload.factory) factories.set(payload.factory.factoryId, payload.factory);
+            if (payload.kind === 'vc-open' && payload.channel) {
+              channelStore?.set(payload.channel.channelId, payload.channel);
+            } else if (payload.kind === 'vc-close' && payload.channelId) {
+              channelStore?.delete(payload.channelId);
+            }
+            return;
+          }
+
+          const factory = factories.get(payload.factoryId);
+          if (!factory) throw new Error(`Factory ${payload.factoryId} not found`);
+          if (msg.type === 'VC_PROPOSAL' && payload.kind === 'vc-open') {
+            const signature = await signVirtualChannelOpen(factory, payload.plan, localBundle);
+            await localBundle.leaseProvider.commitKeyUse(
+              signature.reservationId,
+              `factory-vc-open-${payload.factoryId}`,
+            );
+            await peer.sendMessage({
+              type: 'VC_ACCEPT',
+              channelId: payload.vcId,
+              nonce: msg.nonce,
+              payload: { kind: 'vc-open', signature },
+            });
+          } else if (msg.type === 'VC_PROPOSAL' && payload.kind === 'vc-close') {
+            const signature = await signVirtualChannelClose(factory, payload.plan, localBundle);
+            await localBundle.leaseProvider.commitKeyUse(
+              signature.reservationId,
+              `factory-vc-close-${payload.factoryId}`,
+            );
+            await peer.sendMessage({
+              type: 'VC_ACCEPT',
+              channelId: payload.vcId,
+              nonce: msg.nonce,
+              payload: { kind: 'vc-close', signature },
+            });
+          }
+        } catch (e) {
+          await peer.sendMessage({
+            type: 'ERROR',
+            channelId: msg.channelId,
+            nonce: msg.nonce,
+            payload: { error: String(e) },
+          });
+        }
+      };
+
       unsubscribe = createOmniaIntegration(swarm, channelStore, {
         signer: dependencies.signer,
         leaseProvider: dependencies.leaseProvider,
         chainProvider: dependencies.chainProvider ?? chainAdapter,
+        onFactoryMessage,
+        onVcMessage,
       });
       if (!controlServer) {
         const readOnly = !dependencies.signer || !dependencies.leaseProvider;
@@ -152,8 +271,8 @@ export function createOmniaHost(
             chainProvider: dependencies.chainProvider ?? chainAdapter,
             swarm,
             localParticipant,
-            factories: dependencies.factories,
-            factoryBundles: dependencies.factoryBundles,
+            factories,
+            factoryBundles,
             spliceProposals: dependencies.spliceProposals,
             spliceAcceptances: dependencies.spliceAcceptances,
             spliceLeaseProvider: dependencies.spliceLeaseProvider,

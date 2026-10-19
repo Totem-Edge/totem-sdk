@@ -29,10 +29,14 @@ import {
 } from '@totemsdk/omnia-router';
 import {
   acceptFactory,
+  assembleVirtualChannelClose,
+  assembleVirtualChannelOpen,
+  buildVirtualChannelClose,
+  buildVirtualChannelOpen,
   closeFactory,
-  closeVirtualChannel,
   createFactory,
-  openVirtualChannel,
+  signVirtualChannelClose,
+  signVirtualChannelOpen,
   type ChannelFactory,
   type FactoryParticipant,
   type WotsLeaseBundle,
@@ -298,6 +302,7 @@ function waitForPeerReply(
   peer: { onMessage(cb: (msg: PeerReply) => void): () => void },
   channelId: string,
   timeoutMs: number,
+  types: string[] = ['ACK', 'ERROR'],
 ): Promise<PeerReply | null> {
   return new Promise((resolve) => {
     let done = false;
@@ -311,7 +316,7 @@ function waitForPeerReply(
     };
     unsub = peer.onMessage((msg) => {
       if (msg.channelId !== channelId) return;
-      if (msg.type === 'ACK' || msg.type === 'ERROR') finish(msg);
+      if (types.includes(msg.type)) finish(msg);
     });
     const timer = setTimeout(() => finish(null), timeoutMs);
   });
@@ -651,7 +656,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
 
   const createFactoryMethod: JsonRpcHandler = async (raw) => {
     const params = paramsObject(raw);
-    if (!context.factories || !context.factoryBundles || !context.chainProvider) throw new Error('Factory manager is not configured');
+    if (!context.factories || !context.factoryBundles) throw new Error('Factory manager is not configured');
     const participants = params.participants;
     if (!Array.isArray(participants) || participants.length < 2) throw new Error('participants must contain at least two factory participants');
     const parsed = participants.map((value) => {
@@ -667,13 +672,32 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       } satisfies FactoryParticipant;
     });
     const tokenId = typeof params.tokenId === 'string' ? params.tokenId : '0x00';
-    const bundles = context.factoryBundles;
-    const proposer = parsed.find((participant) => bundles[participant.partyId]);
-    if (!proposer) throw new Error('No local factory lease bundle matches a participant');
+    const localPartyId = context.localParticipant?.partyId;
+    if (!localPartyId) throw new Error('Local participant is not configured');
+    const localBundle = context.factoryBundles[localPartyId];
+    if (!localBundle) throw new Error('No local factory lease bundle');
     return withOperation(context, params, async () => {
-      const factory = await createFactory(parsed, tokenId, bundles[proposer.partyId], context.chainProvider);
+      // Off-chain factory opening; on-chain funding is a separate step.
+      let factory = await createFactory(parsed, tokenId, localBundle);
+      const remote = parsed.find((participant) => participant.partyId !== localPartyId);
+      if (context.swarm && remote) {
+        const peer = await context.swarm.connectToPeer(remote.publicKeyDigest, factory.factoryId);
+        await peer.sendMessage({
+          type: 'FACTORY_PROPOSAL',
+          channelId: factory.factoryId,
+          nonce: Date.now(),
+          payload: { factory },
+        });
+        const reply = await waitForPeerReply(peer, factory.factoryId, 30_000, ['FACTORY_ACCEPT', 'ERROR']);
+        if (reply?.type !== 'FACTORY_ACCEPT') {
+          throw new Error(`Counterparty did not accept the factory (${reply?.type ?? 'timeout'})`);
+        }
+        const accepted = (reply.payload as { factory?: ChannelFactory } | undefined)?.factory;
+        if (!accepted) throw new Error('Factory accept reply missing factory');
+        factory = accepted;
+      }
       context.factories!.set(factory.factoryId, factory);
-      return { success: true, factoryId: factory.factoryId, fundingTxId: factory.fundingTxId };
+      return { success: true, factoryId: factory.factoryId, status: factory.status };
     });
   };
   register('totem_omniaCreateFactory', createFactoryMethod, 'omnia/createFactory');
@@ -689,8 +713,42 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
     const amounts = params.amounts;
     if (!amounts || typeof amounts !== 'object') throw new Error('amounts is required');
     const parsedAmounts = Object.fromEntries(Object.entries(amounts as Record<string, unknown>).map(([key, value]) => [key, BigInt(String(value))]));
+    const localPartyId = context.localParticipant?.partyId;
+    if (!localPartyId) throw new Error('Local participant is not configured');
+    const localBundle = context.factoryBundles[localPartyId];
+    if (!localBundle) throw new Error('No local factory lease bundle');
     return withOperation(context, params, async () => {
-      const result = await openVirtualChannel(factory, parties as [string, string], parsedAmounts, context.factoryBundles!);
+      const plan = buildVirtualChannelOpen(factory, parties as [string, string], parsedAmounts);
+      const localSig = await signVirtualChannelOpen(factory, plan, localBundle);
+      const signatures: Record<string, any> = { [localSig.partyId]: localSig };
+      const remote = factory.participants.find((participant) => participant.partyId !== localPartyId);
+      const peer = context.swarm && remote
+        ? await context.swarm.connectToPeer(remote.publicKeyDigest, plan.vcId)
+        : undefined;
+      if (peer) {
+        await peer.sendMessage({
+          type: 'VC_PROPOSAL',
+          channelId: plan.vcId,
+          nonce: Date.now(),
+          payload: { kind: 'vc-open', factoryId, vcId: plan.vcId, plan },
+        });
+        const reply = await waitForPeerReply(peer, plan.vcId, 30_000, ['VC_ACCEPT', 'ERROR']);
+        const sig = (reply?.payload as { signature?: any } | undefined)?.signature;
+        if (reply?.type !== 'VC_ACCEPT' || !sig) {
+          throw new Error(`Counterparty did not sign the virtual-channel open (${reply?.type ?? 'timeout'})`);
+        }
+        signatures[sig.partyId] = sig;
+      }
+      const result = assembleVirtualChannelOpen(factory, plan, signatures);
+      await localBundle.leaseProvider.commitKeyUse(localSig.reservationId, `factory-vc-open-${factoryId}`);
+      if (peer) {
+        await peer.sendMessage({
+          type: 'VC_FINALIZED',
+          channelId: plan.vcId,
+          nonce: Date.now(),
+          payload: { kind: 'vc-open', factory: result.factory, channel: result.channel },
+        });
+      }
       context.factories!.set(factoryId, result.factory);
       context.channels.set(result.channel.channelId, result.channel);
       return { success: true, channelId: result.channel.channelId, factoryId };
@@ -698,14 +756,77 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
   };
   register('totem_omniaOpenVirtualChannel', openVirtual, 'omnia/openVirtualChannel');
 
+  const closeVirtual: JsonRpcHandler = async (raw) => {
+    const params = paramsObject(raw);
+    if (!context.factories || !context.factoryBundles) throw new Error('Factory manager is not configured');
+    const factoryId = requiredString(params, 'factoryId');
+    const channelId = requiredString(params, 'channelId');
+    const factory = context.factories.get(factoryId);
+    if (!factory) throw new Error(`Factory ${factoryId} not found`);
+    const channel = context.channels.get(channelId);
+    if (!channel) throw new Error(`Channel ${channelId} not found`);
+    const localPartyId = context.localParticipant?.partyId;
+    if (!localPartyId) throw new Error('Local participant is not configured');
+    const localBundle = context.factoryBundles[localPartyId];
+    if (!localBundle) throw new Error('No local factory lease bundle');
+    return withOperation(context, params, async () => {
+      const plan = buildVirtualChannelClose(factory, channel);
+      const localSig = await signVirtualChannelClose(factory, plan, localBundle);
+      const signatures: Record<string, any> = { [localSig.partyId]: localSig };
+      const remote = factory.participants.find((participant) => participant.partyId !== localPartyId);
+      const peer = context.swarm && remote
+        ? await context.swarm.connectToPeer(remote.publicKeyDigest, plan.vcId)
+        : undefined;
+      if (peer) {
+        await peer.sendMessage({
+          type: 'VC_PROPOSAL',
+          channelId: plan.vcId,
+          nonce: Date.now(),
+          payload: { kind: 'vc-close', factoryId, vcId: plan.vcId, plan },
+        });
+        const reply = await waitForPeerReply(peer, plan.vcId, 30_000, ['VC_ACCEPT', 'ERROR']);
+        const sig = (reply?.payload as { signature?: any } | undefined)?.signature;
+        if (reply?.type !== 'VC_ACCEPT' || !sig) {
+          throw new Error(`Counterparty did not sign the virtual-channel close (${reply?.type ?? 'timeout'})`);
+        }
+        signatures[sig.partyId] = sig;
+      }
+      const updated = assembleVirtualChannelClose(factory, plan, signatures);
+      await localBundle.leaseProvider.commitKeyUse(localSig.reservationId, `factory-vc-close-${factoryId}`);
+      if (peer) {
+        await peer.sendMessage({
+          type: 'VC_FINALIZED',
+          channelId: plan.vcId,
+          nonce: Date.now(),
+          payload: { kind: 'vc-close', factory: updated, channelId },
+        });
+      }
+      context.factories!.set(factoryId, updated);
+      context.channels.delete(channelId);
+      return {
+        success: true,
+        factoryId,
+        channelId,
+        allocations: Object.fromEntries(Object.entries(updated.allocations).map(([k, v]) => [k, v.toString()])),
+      };
+    });
+  };
+  register('totem_omniaCloseVirtualChannel', closeVirtual, 'omnia/closeVirtualChannel');
+
   const closeFactoryMethod: JsonRpcHandler = async (raw) => {
     const params = paramsObject(raw);
     if (!context.factories || !context.factoryBundles || !context.chainProvider) throw new Error('Factory manager is not configured');
     const factoryId = requiredString(params, 'factoryId');
     const factory = context.factories.get(factoryId);
     if (!factory) throw new Error(`Factory ${factoryId} not found`);
+    const coinProofRaw = params.coinProof
+      ?? (params.broadcastProofs as Record<string, unknown> | undefined)?.coinProofs;
+    const coinProofHex = Array.isArray(coinProofRaw) ? coinProofRaw[0] : coinProofRaw;
+    const coinProof = typeof coinProofHex === 'string'
+      ? Buffer.from(coinProofHex.replace(/^0x/i, ''), 'hex')
+      : undefined;
     return withOperation(context, params, async () => {
-      const payload = await closeFactory(factory, context.factoryBundles!, context.chainProvider);
+      const payload = await closeFactory(factory, context.factoryBundles!, context.chainProvider, { coinProof });
       context.factories!.set(factoryId, { ...factory, status: 'closed' });
       return { success: true, factoryId, settlementTxId: payload.txpowId, finalAllocations: Object.fromEntries(Object.entries(payload.finalAllocations).map(([key, value]) => [key, value.toString()])) };
     });

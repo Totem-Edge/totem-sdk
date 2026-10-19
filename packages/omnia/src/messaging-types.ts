@@ -89,6 +89,11 @@ export interface OmniaSwarmConfig {
   maxReconnectAttempts?: number;
   reconnectBaseDelayMs?: number;
   relay?: RelayConfig;
+  /**
+   * Native Hyperswarm only: override the DHT bootstrap nodes (`'host:port'`).
+   * Useful for an isolated/local DHT in tests. Defaults to the public DHT.
+   */
+  bootstrap?: string[];
 }
 
 export interface OmniaSwarm {

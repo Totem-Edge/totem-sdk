@@ -321,6 +321,124 @@ export async function openVirtualChannel(
 
 // ─── closeVirtualChannel ─────────────────────────────────────────────────────
 
+/** Deterministic VC-close plan (no signing). Exported for peer co-signing. */
+export interface VirtualChannelClosePlan {
+  vcId: string;
+  finalAllocations: Record<string, bigint>;
+  newSequence: number;
+  newAllocations: Record<string, bigint>;
+  newVcIds: string[];
+  commitment: Uint8Array;
+}
+
+export function buildVirtualChannelClose(
+  factory: ChannelFactory,
+  channel: OmniaChannel,
+): VirtualChannelClosePlan {
+  const existing = factory.virtualChannels.find(c => c.channelId === channel.channelId);
+  if (!existing) throw new Error(`Virtual channel '${channel.channelId}' not found in factory`);
+
+  const finalAllocations: Record<string, bigint> =
+    channel.latestState?.balances ?? { ...channel.balances };
+  const finalSum = Object.values(finalAllocations).reduce((a, b) => a + b, 0n);
+  if (finalSum !== channel.totalValue) {
+    throw new Error(
+      `Final balance sum (${finalSum}) !== channel totalValue (${channel.totalValue})`,
+    );
+  }
+
+  const newSequence = factory.currentSequence + 1;
+  const newAllocations: Record<string, bigint> = { ...factory.allocations };
+  for (const [partyId, amount] of Object.entries(finalAllocations)) {
+    newAllocations[partyId] = (newAllocations[partyId] ?? 0n) + amount;
+  }
+  const newVcIds = factory.virtualChannels
+    .filter(c => c.channelId !== channel.channelId)
+    .map(c => c.channelId);
+  const commitment = computeFactoryStateCommitment(
+    factory.factoryId,
+    newSequence,
+    newAllocations,
+    newVcIds,
+  );
+
+  return {
+    vcId: channel.channelId,
+    finalAllocations,
+    newSequence,
+    newAllocations,
+    newVcIds,
+    commitment,
+  };
+}
+
+/** Produce this party's VC-close signature without committing the lease. */
+export async function signVirtualChannelClose(
+  factory: ChannelFactory,
+  plan: VirtualChannelClosePlan,
+  bundle: WotsLeaseBundle,
+): Promise<VirtualChannelOpenSignature> {
+  const participant = factory.participants.find(
+    p => p.publicKeyDigest === bundle.signer.publicKeyDigest,
+  );
+  if (!participant) {
+    throw new Error('signer.publicKeyDigest does not match any registered factory participant');
+  }
+  const reservation = await bundle.leaseProvider.reserveKeyUse({
+    treeId: `omnia-factory-${factory.factoryId}`,
+    purpose: 'factory-vc-close',
+    payloadHash: Buffer.from(plan.commitment).toString('hex'),
+  });
+  let sig: Uint8Array;
+  try {
+    sig = await bundle.signer.sign(plan.commitment, reservation.indices);
+  } catch (err) {
+    await bundle.leaseProvider.burnReservation(reservation.reservationId, 'sign-failed').catch(() => {});
+    throw err;
+  }
+  const verifyFn = bundle.verify ?? verifyChannelSignature;
+  if (!verifyFn(sig, plan.commitment, participant.publicKeyDigest)) {
+    await bundle.leaseProvider.burnReservation(reservation.reservationId, 'verification-failed').catch(() => {});
+    throw new Error(`Virtual-channel close signature verification failed for party '${participant.partyId}'`);
+  }
+  return { partyId: participant.partyId, signature: sig, reservationId: reservation.reservationId };
+}
+
+/** Assemble N-of-N VC-close signatures into the updated factory. */
+export function assembleVirtualChannelClose(
+  factory: ChannelFactory,
+  plan: VirtualChannelClosePlan,
+  signatures: Record<string, VirtualChannelOpenSignature>,
+  verify?: (sig: Uint8Array, digest: Uint8Array, pkd: string) => boolean,
+): ChannelFactory {
+  for (const p of factory.participants) {
+    const s = signatures[p.partyId];
+    if (!s) throw new Error(`Missing virtual-channel close signature for party '${p.partyId}' — close requires all N`);
+    if (!verifyVirtualChannelOpenSignature(factory, plan.commitment, p.partyId, s.signature, verify)) {
+      throw new Error(`Virtual-channel close signature verification failed for party '${p.partyId}'`);
+    }
+  }
+
+  const logEntry: FactoryLogEntry = {
+    sequence: plan.newSequence,
+    timestamp: Date.now(),
+    event: 'virtual_close',
+    allocations: plan.newAllocations,
+    virtualChannelIds: plan.newVcIds,
+  };
+
+  const updated: ChannelFactory = {
+    ...factory,
+    allocations: plan.newAllocations,
+    virtualChannels: factory.virtualChannels.filter(c => c.channelId !== plan.vcId),
+    currentSequence: plan.newSequence,
+    stateLog: [...factory.stateLog, logEntry],
+  };
+
+  enforceConservation(updated);
+  return updated;
+}
+
 /**
  * Close a virtual channel and return its final balances to factory allocations.
  *

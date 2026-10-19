@@ -57,6 +57,27 @@ export interface FactoryLeaseOps {
  * `@totemsdk/core`, allowing test code to inject a no-op verifier without
  * requiring real WOTS key material.
  */
+/**
+ * On-chain funding material for one factory participant. Required by
+ * `createFactory` when the on-chain funding path is used (every participant
+ * supplies a `fundingCoinId` and a `chainProvider` is given).
+ */
+export interface FactoryFundingMaterial {
+  partyId: string;
+  /** Serialized Minima CoinProof for this party's funding coin (coinexport `data`). */
+  coinProof: Uint8Array;
+  /** Address of the funding coin (must match the coin in `coinProof`). */
+  coinAddress?: string;
+  /** Funding coin script; used to build its ScriptProof when `scriptProof` is absent. */
+  script?: string;
+  /** Pre-built serialized ScriptProof for the funding coin's address. */
+  scriptProof?: Uint8Array;
+  /** Sign the funding TX digest with the funding coin's wallet key. */
+  signer?: (digest: Uint8Array) => Promise<Uint8Array> | Uint8Array;
+  /** Or a pre-computed serialized Signature over the funding digest. */
+  signature?: Uint8Array;
+}
+
 export interface WotsLeaseBundle {
   leaseProvider: FactoryLeaseOps;
   signer: ChannelSigner;

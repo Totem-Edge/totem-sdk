@@ -1,6 +1,7 @@
 export type {
   FactoryStatus,
   FactoryParticipant,
+  FactoryFundingMaterial,
   FactorySignature,
   FactoryLogEntry,
   ChannelFactory,
@@ -62,12 +63,16 @@ export {
   closeVirtualChannel,
   buildVirtualChannelOpen,
   signVirtualChannelOpen,
+  buildVirtualChannelClose,
+  signVirtualChannelClose,
+  assembleVirtualChannelClose,
   verifyVirtualChannelOpenSignature,
   assembleVirtualChannelOpen,
 } from './virtual.js';
 export type {
   VirtualChannelOpenPlan,
   VirtualChannelOpenSignature,
+  VirtualChannelClosePlan,
 } from './virtual.js';
 
 export {

@@ -40,6 +40,7 @@ export class OmniaSwarmImpl implements OmniaSwarm {
       maxReconnectAttempts: config.maxReconnectAttempts ?? 5,
       reconnectBaseDelayMs: config.reconnectBaseDelayMs ?? 500,
       relay: config.relay ?? { mode: 'native' },
+      bootstrap: config.bootstrap ?? [],
     };
 
     if (config.localPubkey) {
@@ -64,10 +65,11 @@ export class OmniaSwarmImpl implements OmniaSwarm {
 
       if (isNewPeer) {
         peer.onMessage((msg: OmniaMessage) => {
-          if (msg.type === 'CHANNEL_PROPOSAL') {
-            for (const cb of this._channelListeners) {
-              try { cb(peer, msg); } catch { /* noop */ }
-            }
+          // Forward every inbound message to the integration listeners: the
+          // channel lifecycle uses CHANNEL_PROPOSAL, while factory/VC/splice
+          // coordination uses the other message kinds on the same peer.
+          for (const cb of this._channelListeners) {
+            try { cb(peer, msg); } catch { /* noop */ }
           }
           const chTopic = channelTopic(msg.channelId).toString('hex');
           this._registerPeerForTopic(chTopic, peer);
@@ -286,7 +288,9 @@ export async function createOmniaSwarm(config: OmniaSwarmConfig = {}): Promise<O
     );
   }
 
-  const swarm = new HyperswarmCtor();
+  const swarm = config.bootstrap?.length
+    ? new HyperswarmCtor({ bootstrap: config.bootstrap })
+    : new HyperswarmCtor();
   return new OmniaSwarmImpl(swarm, config);
 }
 
