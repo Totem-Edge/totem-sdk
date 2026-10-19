@@ -41,6 +41,12 @@ export interface MmrMembershipCovenantConfig {
   requireSignature?: boolean;
   /** Pay the whole balance to the leaf identity (default `true`). */
   pay?: boolean;
+  /**
+   * Optional state port carrying the payout **address data** (the node's VERIFYOUT
+   * compares address data, not the pubkey). When set, the payout goes to
+   * `STATE(addressPort)`; otherwise it falls back to the leaf (compat).
+   */
+  addressPort?: number;
 }
 
 function requirePort(value: number, field: string): number {
@@ -72,15 +78,17 @@ export function buildMmrMembershipCovenant(config: MmrMembershipCovenantConfig):
     : (config.rootSum ?? 0n).toString();
   const requireSignature = config.requireSignature ?? true;
   const pay = config.pay ?? true;
+  const addressPort = config.addressPort !== undefined ? requirePort(config.addressPort, 'addressPort') : undefined;
+  const payTarget = addressPort !== undefined ? 'payaddr' : 'leaf';
 
   const body: string[] = [`ASSERT PROOF(leaf ${leafSumExpr} root ${rootSumExpr} mmrproof)`];
   if (requireSignature) {
     body.push(`IF SIGNEDBY(leaf) THEN`);
-    if (pay) body.push(`  ASSERT VERIFYOUT(0 leaf @AMOUNT ${tokenId} FALSE)`);
+    if (pay) body.push(`  ASSERT VERIFYOUT(0 ${payTarget} @AMOUNT ${tokenId} FALSE)`);
     body.push(`  RETURN TRUE`);
     body.push(`ENDIF`);
   } else {
-    if (pay) body.push(`ASSERT VERIFYOUT(0 leaf @AMOUNT ${tokenId} FALSE)`);
+    if (pay) body.push(`ASSERT VERIFYOUT(0 ${payTarget} @AMOUNT ${tokenId} FALSE)`);
     body.push(`RETURN TRUE`);
   }
 
@@ -90,6 +98,7 @@ export function buildMmrMembershipCovenant(config: MmrMembershipCovenantConfig):
     `ASSERT SAMESTATE(${rootPort} ${rootPort})`,
     `LET leaf = STATE(${leafPort})`,
     `LET mmrproof = STATE(${proofPort})`,
+    ...(addressPort !== undefined ? [`LET payaddr = STATE(${addressPort})`] : []),
     ...body,
     `RETURN FALSE`,
   ].join('\n');

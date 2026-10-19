@@ -1,3 +1,4 @@
+import { wotsAddressData } from '@totemsdk/core';
 import { toNodeScript } from '@totemsdk/core';
 /**
  * OMP-18 / OMP-19 — on-chain oracle condition witness (RFC-048 §3.1).
@@ -173,9 +174,10 @@ export function buildOracleConditionScript(config: OracleConditionConfig): strin
 
   if (config.beneficiary !== undefined) {
     const beneficiary = `0x${requireHex(config.beneficiary, 'beneficiary')}`;
+    const beneficiaryAddr = wotsAddressData(beneficiary);
     lines.push(
       `// 6. payout`,
-      `ASSERT VERIFYOUT(0 ${beneficiary} @AMOUNT ${tokenId} FALSE)`,
+      `ASSERT VERIFYOUT(0 ${beneficiaryAddr} @AMOUNT ${tokenId} FALSE)`,
       ``,
     );
   }
@@ -226,6 +228,9 @@ export function buildOracleExerciseCovenant(config: OracleExerciseCovenantConfig
   const beneficiary = `0x${requireHex(config.beneficiary, 'beneficiary')}`;
   const recovery = `0x${requireHex(config.recovery, 'recovery')}`;
   const remainderTo = config.remainderTo ? '0x' + requireHex(config.remainderTo, 'remainderTo') : recovery;
+  const beneficiaryAddr = wotsAddressData(beneficiary);
+  const recoveryAddr = wotsAddressData(recovery);
+  const remainderAddr = wotsAddressData(remainderTo);
   const tokenId = config.tokenId ? '0x' + requireHex(config.tokenId, 'tokenId') : '0x00';
   const op = config.comparison.op;
   if (!['GT', 'GTE', 'LT', 'LTE', 'EQ', 'NEQ'].includes(op)) {
@@ -250,13 +255,13 @@ export function buildOracleExerciseCovenant(config: OracleExerciseCovenantConfig
   if (config.payout !== undefined) {
     const payout = config.payout.toString();
     body.push(`ASSERT @AMOUNT GTE ${payout}`);
-    body.push(`ASSERT VERIFYOUT(0 ${beneficiary} ${payout} ${tokenId} FALSE)`);
+    body.push(`ASSERT VERIFYOUT(0 ${beneficiaryAddr} ${payout} ${tokenId} FALSE)`);
     body.push(`IF @AMOUNT GT ${payout} THEN`);
-    body.push(`  RETURN VERIFYOUT(1 ${remainderTo} @AMOUNT - ${payout} ${tokenId} TRUE)`);
+    body.push(`  RETURN VERIFYOUT(1 ${remainderAddr} @AMOUNT - ${payout} ${tokenId} TRUE)`);
     body.push(`ENDIF`);
     body.push(`RETURN TRUE`);
   } else {
-    body.push(`ASSERT VERIFYOUT(0 ${beneficiary} @AMOUNT ${tokenId} FALSE)`);
+    body.push(`ASSERT VERIFYOUT(0 ${beneficiaryAddr} @AMOUNT ${tokenId} FALSE)`);
     body.push(`RETURN TRUE`);
   }
 
@@ -288,7 +293,7 @@ export function buildOracleExerciseCovenant(config: OracleExerciseCovenantConfig
     ``,
     `// ---- recovery branch (owner reclaim, only after the window) ----`,
     `IF @BLOCK GTE recovery THEN`,
-    `  ASSERT VERIFYOUT(0 ${recovery} @AMOUNT ${tokenId} FALSE)`,
+    `  ASSERT VERIFYOUT(0 ${recoveryAddr} @AMOUNT ${tokenId} FALSE)`,
     `  RETURN TRUE`,
     `ENDIF`,
     ``,

@@ -1,3 +1,4 @@
+import { wotsAddressData } from '@totemsdk/core';
 import { toNodeScript } from '@totemsdk/core';
 /**
  * OMP-21 — enforceable collateral bond (RFC-048 §2, RFC-050 §4/§6).
@@ -87,6 +88,8 @@ export function buildCollateralBondScript(config: CollateralBondConfig): string 
 
   const borrowerHex = `0x${borrower}`;
   const lenderHex = `0x${lender}`;
+  const borrowerAddr = wotsAddressData(borrowerHex);
+  const lenderAddr = wotsAddressData(lenderHex);
   const liquidationCondition = config.liquidationCondition.trim();
   const releaseCondition = (config.releaseCondition ?? `SIGNEDBY(${lenderHex})`).trim();
 
@@ -98,23 +101,23 @@ export function buildCollateralBondScript(config: CollateralBondConfig): string 
     ``,
     `// 1. Repayment release → collateral returns to the borrower.`,
     `IF ${releaseCondition} THEN`,
-    `  ASSERT VERIFYOUT(0 ${borrowerHex} @AMOUNT ${tokenId} FALSE)`,
+    `  ASSERT VERIFYOUT(0 ${borrowerAddr} @AMOUNT ${tokenId} FALSE)`,
     `  RETURN TRUE`,
     `ENDIF`,
     ``,
     `// 2. Post-maturity settlement — decided by the objective condition (no race).`,
     `IF @BLOCK GTE maturity THEN`,
     `  IF ${liquidationCondition} THEN`,
-    `    ASSERT VERIFYOUT(0 ${lenderHex} @AMOUNT ${tokenId} FALSE)`,
+    `    ASSERT VERIFYOUT(0 ${lenderAddr} @AMOUNT ${tokenId} FALSE)`,
     `  ELSE`,
-    `    ASSERT VERIFYOUT(0 ${borrowerHex} @AMOUNT ${tokenId} FALSE)`,
+    `    ASSERT VERIFYOUT(0 ${borrowerAddr} @AMOUNT ${tokenId} FALSE)`,
     `  ENDIF`,
     `  RETURN TRUE`,
     `ENDIF`,
     ``,
     `// 3. Pre-maturity default → the lender seizes (permissionless, fixed payout).`,
     `IF ${liquidationCondition} THEN`,
-    `  ASSERT VERIFYOUT(0 ${lenderHex} @AMOUNT ${tokenId} FALSE)`,
+    `  ASSERT VERIFYOUT(0 ${lenderAddr} @AMOUNT ${tokenId} FALSE)`,
     `  RETURN TRUE`,
     `ENDIF`,
     ``,

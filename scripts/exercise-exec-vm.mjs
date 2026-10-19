@@ -45,7 +45,7 @@ const coreWasmMod = await load('packages/core-wasm/pkg-web/totemsdk_core_wasm.js
 await coreWasmMod.default(readFileSync(CORE_WASM_BG));
 
 const { evaluateScript, toWasmWitness, buildExerciseCovenant, exerciseCovenantStateVariables, buildCollateralBondScript, buildOracleConditionScript, buildOracleExerciseCovenant, buildMmrMembershipCovenant } = await load('packages/kissvm/dist/index.js');
-const { TreeKey, MMRTree, serializeMMRProof, hexToBytes, bytesToHex, createMMRDataLeafNode } = await load('packages/core/dist/index.js');
+const { TreeKey, wotsAddressData, MMRTree, serializeMMRProof, hexToBytes, bytesToHex, createMMRDataLeafNode } = await load('packages/core/dist/index.js');
 const { buildFactoryDistributionScript } = await load('packages/omnia-factory/dist/index.js');
 
 let failures = 0;
@@ -102,7 +102,7 @@ const ctx = ({ block, to, amount = 1000 }) => ({
   block,
   txDigest: DIGEST,
   inputs: [{ coinId: '0x' + 'cc'.repeat(32), address: COVENANT, amount, tokenId: '0x00' }],
-  outputs: [{ address: to, amount, tokenId: '0x00', keepState: false }],
+  outputs: [{ address: wotsAddressData(to), amount, tokenId: '0x00', keepState: false }],
   state: { 100: MATURITY.toString(), 101: RECOVERY.toString() },
   prevState: { 100: MATURITY.toString(), 101: RECOVERY.toString() },
 });
@@ -142,7 +142,7 @@ function ctxOutputs({ block, outputs, amount = 1000 }) {
     prevState: { 100: MATURITY.toString(), 101: RECOVERY.toString() },
   };
 }
-const out = (to, amt, keepState = false) => ({ address: to, amount: amt, tokenId: '0x00', keepState });
+const out = (to, amt, keepState = false) => ({ address: wotsAddressData(to), amount: amt, tokenId: '0x00', keepState });
 const partial = buildExerciseCovenant({ kind: 'unilateral-exercise', beneficiary, recovery, payout: 400n });
 both('partial exercise pays fixed payout + remainder to owner', partial, signWith([beneficiaryKey]),
   ctxOutputs({ block: 550, outputs: [out(beneficiary, 400), out(recovery, 600, true)] }), true);
@@ -157,7 +157,7 @@ function bondCtx({ block, to, amount = 1000 }) {
     block,
     txDigest: DIGEST,
     inputs: [{ coinId: '0x' + 'cc'.repeat(32), address: COVENANT, amount, tokenId: '0x00' }],
-    outputs: [{ address: to, amount, tokenId: '0x00', keepState: false }],
+    outputs: [{ address: wotsAddressData(to), amount, tokenId: '0x00', keepState: false }],
     state: { 100: '600' },
     prevState: { 100: '600' },
   };
@@ -182,7 +182,7 @@ function oracleCtx({ block, value = 1000, valid = 600, feedState = FEED, to = be
     block,
     txDigest: DIGEST,
     inputs: [{ coinId: '0x' + 'cc'.repeat(32), address: COVENANT, amount: 1000, tokenId: '0x00' }],
-    outputs: [{ address: to, amount: 1000, tokenId: '0x00', keepState: false }],
+    outputs: [{ address: wotsAddressData(to), amount: 1000, tokenId: '0x00', keepState: false }],
     state: { 120: String(value), 121: '500', 122: String(valid), 123: feedState },
     prevState: { 120: String(value), 121: '500', 122: String(valid), 123: FEED },
   };
@@ -203,7 +203,7 @@ function oexCtx({ block, value = 1000, observed = 500, valid = 600, to = benefic
     block,
     txDigest: DIGEST,
     inputs: [{ coinId: '0x' + 'cc'.repeat(32), address: COVENANT, amount: 1000, tokenId: '0x00' }],
-    outputs: [{ address: to, amount: 1000, tokenId: '0x00', keepState: false }],
+    outputs: [{ address: wotsAddressData(to), amount: 1000, tokenId: '0x00', keepState: false }],
     state: { 100: '500', 101: '600', 120: String(value), 121: String(observed), 122: String(valid), 123: FEED },
     prevState: { 100: '500', 101: '600', 120: String(value), 121: String(observed), 122: String(valid), 123: FEED },
   };
@@ -226,14 +226,14 @@ const leafC = pk(memberC);
 const partyTree = MMRTree.fromPublicKeys([hexToBytes(leafA.slice(2)), hexToBytes(leafB.slice(2))]);
 const partyRoot = '0x' + bytesToHex(partyTree.getRoot().data).toLowerCase();
 const proofA = '0x' + bytesToHex(serializeMMRProof(partyTree.getProof(0))).toLowerCase();
-const membership = buildMmrMembershipCovenant({ rootPort: 111, leafPort: 112, proofPort: 113 });
+const membership = buildMmrMembershipCovenant({ rootPort: 111, leafPort: 112, proofPort: 113, addressPort: 116 });
 function memberCtx({ leaf, proof, to = leaf }) {
   return {
     block: 550,
     txDigest: DIGEST,
     inputs: [{ coinId: '0x' + 'cc'.repeat(32), address: COVENANT, amount: 1000, tokenId: '0x00' }],
-    outputs: [{ address: to, amount: 1000, tokenId: '0x00', keepState: false }],
-    state: { 111: partyRoot, 112: leaf, 113: proof },
+    outputs: [{ address: wotsAddressData(to), amount: 1000, tokenId: '0x00', keepState: false }],
+    state: { 111: partyRoot, 112: leaf, 113: proof, 116: wotsAddressData(leaf) },
     prevState: { 111: partyRoot },
   };
 }
@@ -248,14 +248,14 @@ balanceTree.addLeaf(createMMRDataLeafNode(hexToBytes(leafA.slice(2)), 700n));
 balanceTree.addLeaf(createMMRDataLeafNode(hexToBytes(leafB.slice(2)), 300n));
 const balanceRoot = '0x' + bytesToHex(balanceTree.getRoot().data).toLowerCase();
 const balanceProof = '0x' + bytesToHex(serializeMMRProof(balanceTree.getProof(0))).toLowerCase();
-const balanceCovenant = buildMmrMembershipCovenant({ rootPort: 111, leafPort: 112, proofPort: 113, leafSumPort: 114, rootSumPort: 115 });
+const balanceCovenant = buildMmrMembershipCovenant({ rootPort: 111, leafPort: 112, proofPort: 113, leafSumPort: 114, rootSumPort: 115, addressPort: 116 });
 function balanceCtx({ leaf, proof, leafSum = '700', rootSum = '1000', amount = 700, to = leaf }) {
   return {
     block: 550,
     txDigest: DIGEST,
     inputs: [{ coinId: '0x' + 'cc'.repeat(32), address: COVENANT, amount, tokenId: '0x00' }],
-    outputs: [{ address: to, amount, tokenId: '0x00', keepState: false }],
-    state: { 111: balanceRoot, 112: leaf, 113: proof, 114: leafSum, 115: rootSum },
+    outputs: [{ address: wotsAddressData(to), amount, tokenId: '0x00', keepState: false }],
+    state: { 111: balanceRoot, 112: leaf, 113: proof, 114: leafSum, 115: rootSum, 116: wotsAddressData(leaf) },
     prevState: { 111: balanceRoot },
   };
 }

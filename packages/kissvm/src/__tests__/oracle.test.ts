@@ -1,3 +1,4 @@
+import { wotsAddressData } from '@totemsdk/core';
 /**
  * OMP-18/19 oracle condition witness — template logic (RFC-048 §3.1).
  *
@@ -41,7 +42,7 @@ function oracleCtx(opts: {
     block: opts.block,
     inputIndex: 0,
     inputs: [{ amount: 1000, tokenId: '0x00', coinId: '0xabc', address: '0x' + 'dd'.repeat(32) }],
-    outputs: [{ address: to, amount: 1000, tokenId: '0x00', keepState: false }],
+    outputs: [{ address: wotsAddressData(to), amount: 1000, tokenId: '0x00', keepState: false }],
     state: s({ 120: value, 121: observed, 122: valid, 123: stateFeed }),
     prevState: s({ 120: value, 121: observed, 122: valid, 123: feed }),
     simulationMode: true,
@@ -114,7 +115,7 @@ describe('P-EXIT × OMP-19 non-cooperative oracle exercise', () => {
       block: opts.block,
       inputIndex: 0,
       inputs: [{ amount: 1000, tokenId: '0x00', coinId: '0xabc', address: '0x' + 'dd'.repeat(32) }],
-      outputs: [{ address: opts.to ?? '0x' + pkBENEFICIARY, amount: 1000, tokenId: '0x00', keepState: false }],
+      outputs: [{ address: wotsAddressData(opts.to ?? '0x' + pkBENEFICIARY), amount: 1000, tokenId: '0x00', keepState: false }],
       state: s({ 100: 500, 101: 600, 120: value, 121: observed, 122: valid, 123: FEED }),
       prevState: s({ 100: 500, 101: 600, 120: value, 121: observed, 122: valid, 123: FEED }),
       simulationMode: true,

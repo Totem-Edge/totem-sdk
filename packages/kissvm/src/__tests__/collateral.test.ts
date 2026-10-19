@@ -1,3 +1,4 @@
+import { wotsAddressData } from '@totemsdk/core';
 /**
  * OMP-21 collateral bond — template logic (RFC-048 §2, RFC-050 §6).
  *
@@ -27,7 +28,7 @@ function bondCtx(block: number, to: string, amount = 1000): TxContext {
     block,
     inputIndex: 0,
     inputs: [{ amount, tokenId: '0x00', coinId: '0xabc', address: COVENANT }],
-    outputs: [{ address: to, amount, tokenId: '0x00', keepState: false }],
+    outputs: [{ address: wotsAddressData(to), amount, tokenId: '0x00', keepState: false }],
     state: s({ 100: MATURITY }),
     prevState: s({ 100: MATURITY }),
     simulationMode: true,
@@ -79,8 +80,8 @@ describe('OMP-21 collateral bond', () => {
   it('emits objective-condition and no-discretion markers', () => {
     expect(bond).toContain('VERIFYOUT(');
     expect(bond).toContain('ASSERT SAMESTATE(100 100)');
-    expect(bond).toContain(`VERIFYOUT(0 0x${pkLENDER} @AMOUNT 0x00 FALSE)`);
-    expect(bond).toContain(`VERIFYOUT(0 0x${pkBORROWER} @AMOUNT 0x00 FALSE)`);
+    expect(bond).toContain(`VERIFYOUT(0 ${wotsAddressData(lenderAddr)} @AMOUNT 0x00 FALSE)`);
+    expect(bond).toContain(`VERIFYOUT(0 ${wotsAddressData(borrowerAddr)} @AMOUNT 0x00 FALSE)`);
   });
 
   it('requires an objective liquidation condition', () => {

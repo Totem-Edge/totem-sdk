@@ -370,3 +370,10 @@ export { bytesToHex as hex };
 
 // Real canonicalizer (pure JS, no WASM) used by the script builders.
 export { toNodeScript } from "../../../core/src/scripts/canonical.js";
+
+// WOTS address data (matches the node: VERIFYOUT compares address data).
+export function wotsAddressData(publicKeyDigest: string): string {
+  const raw = publicKeyDigest.replace(/^0x/i, "").toUpperCase();
+  const script = ("RETURN SIGNEDBY(0x" + raw + ")").trim().toUpperCase();
+  return "0x" + bytesToHex(sha3_256(new TextEncoder().encode(script)));
+}

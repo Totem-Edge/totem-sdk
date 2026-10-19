@@ -1,3 +1,4 @@
+import { wotsAddressData } from '@totemsdk/core';
 /**
  * P-EXIT exercise covenant — template logic (RFC-050 §3).
  *
@@ -27,7 +28,7 @@ function s(entries: Record<number, string | number>): Record<number, string> {
 
 function covCtx(block: number, to: string): TxContext {
   const inputs: CoinData[] = [{ amount: 100, tokenId: '0x00', coinId: '0xabc', address: COVENANT }];
-  const outputs: OutputData[] = [{ address: to, amount: 100, tokenId: '0x00', keepState: false }];
+  const outputs: OutputData[] = [{ address: wotsAddressData(to), amount: 100, tokenId: '0x00', keepState: false }];
   return {
     block,
     inputIndex: 0,
@@ -100,7 +101,7 @@ describe('P-EXIT exercise covenant', () => {
   it('emits the expected structural markers', () => {
     expect(covenant).toContain('SIGNEDBY(');
     expect(covenant).toContain(`SIGNEDBY(0x${pkBENEFICIARY})`);
-    expect(covenant).toContain(`VERIFYOUT(0 0x${pkOWNER} @AMOUNT 0x00 FALSE)`);
+    expect(covenant).toContain(`VERIFYOUT(0 ${wotsAddressData(ownerAddr)} @AMOUNT 0x00 FALSE)`);
     expect(covenant).toContain('ASSERT SAMESTATE(100 100)');
     expect(covenant).toContain('ASSERT SAMESTATE(101 101)');
   });
@@ -128,22 +129,22 @@ describe('P-EXIT partial payout + remainder', () => {
 
   it('pays the fixed payout and returns the remainder to the owner', () => {
     const tx = outputsCtx(550, [
-      { address: beneficiaryAddr, amount: 400, tokenId: '0x00', keepState: false },
-      { address: ownerAddr, amount: 600, tokenId: '0x00', keepState: true },
+      { address: wotsAddressData(beneficiaryAddr), amount: 400, tokenId: '0x00', keepState: false },
+      { address: wotsAddressData(ownerAddr), amount: 600, tokenId: '0x00', keepState: true },
     ]);
     expect(run(partial, tx, [pkBENEFICIARY]).success).toBe(true);
   });
 
   it('rejects a misdirected remainder', () => {
     const tx = outputsCtx(550, [
-      { address: beneficiaryAddr, amount: 400, tokenId: '0x00', keepState: false },
+      { address: wotsAddressData(beneficiaryAddr), amount: 400, tokenId: '0x00', keepState: false },
       { address: '0x' + '99'.repeat(32), amount: 600, tokenId: '0x00', keepState: true },
     ]);
     expect(run(partial, tx, [pkBENEFICIARY]).success).toBe(false);
   });
 
   it('rejects a payout larger than the balance', () => {
-    const tx = outputsCtx(550, [{ address: beneficiaryAddr, amount: 400, tokenId: '0x00', keepState: false }], 300);
+    const tx = outputsCtx(550, [{ address: wotsAddressData(beneficiaryAddr), amount: 400, tokenId: '0x00', keepState: false }], 300);
     expect(run(partial, tx, [pkBENEFICIARY]).success).toBe(false);
   });
 });

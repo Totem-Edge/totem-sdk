@@ -1,3 +1,4 @@
+import { wotsAddressData } from '@totemsdk/core';
 import { toNodeScript } from '@totemsdk/core';
 /**
  * P-EXIT — enforceable unilateral exercise / settlement covenant (RFC-050 §3).
@@ -155,6 +156,9 @@ export function buildExerciseCovenant(config: ExerciseCovenantConfig): string {
 
   const beneficiaryHex = `0x${beneficiary}`;
   const recoveryHex = `0x${recovery}`;
+  const beneficiaryAddr = wotsAddressData(beneficiaryHex);
+  const recoveryAddr = wotsAddressData(recoveryHex);
+  const remainderAddr = wotsAddressData(remainderTo);
 
   const useCondition = config.condition !== undefined && config.condition.trim().length > 0;
 
@@ -163,13 +167,13 @@ export function buildExerciseCovenant(config: ExerciseCovenantConfig): string {
   if (config.payout !== undefined) {
     const payout = config.payout.toString();
     body.push(`ASSERT @AMOUNT GTE ${payout}`);
-    body.push(`ASSERT VERIFYOUT(0 ${beneficiaryHex} ${payout} ${tokenId} FALSE)`);
+    body.push(`ASSERT VERIFYOUT(0 ${beneficiaryAddr} ${payout} ${tokenId} FALSE)`);
     body.push(`IF @AMOUNT GT ${payout} THEN`);
-    body.push(`  RETURN VERIFYOUT(1 ${remainderTo} @AMOUNT - ${payout} ${tokenId} TRUE)`);
+    body.push(`  RETURN VERIFYOUT(1 ${remainderAddr} @AMOUNT - ${payout} ${tokenId} TRUE)`);
     body.push(`ENDIF`);
     body.push(`RETURN TRUE`);
   } else {
-    body.push(`ASSERT VERIFYOUT(0 ${beneficiaryHex} @AMOUNT ${tokenId} FALSE)`);
+    body.push(`ASSERT VERIFYOUT(0 ${beneficiaryAddr} @AMOUNT ${tokenId} FALSE)`);
     body.push(`RETURN TRUE`);
   }
 
@@ -211,7 +215,7 @@ export function buildExerciseCovenant(config: ExerciseCovenantConfig): string {
     ``,
     `// ---- recovery branch (owner reclaim, only after the window) ----`,
     `IF @BLOCK GTE recovery THEN`,
-    `  ASSERT VERIFYOUT(0 ${recoveryHex} @AMOUNT ${tokenId} FALSE)`,
+    `  ASSERT VERIFYOUT(0 ${recoveryAddr} @AMOUNT ${tokenId} FALSE)`,
     `  RETURN TRUE`,
     `ENDIF`,
     ``,
