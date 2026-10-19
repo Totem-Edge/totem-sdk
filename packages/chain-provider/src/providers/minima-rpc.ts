@@ -138,11 +138,14 @@ export class MinimaRpcProvider implements ChainStateProvider, DepositVerifier {
 
   async broadcastTxPoW(txpowHex: string): Promise<BroadcastResult> {
     try {
-      const result = await this.client.txnMinePost(txpowHex);
+      // `sendtransaction` submits a pre-mined TxPoW to the mempool where the
+      // node mines it into a block. `txnminepost` only posts the TxPoW (via the
+      // peer NIO path) and does not get it mined.
+      const result = await this.client.sendTransaction(txpowHex);
       return {
         success: true,
         txpowid: result?.txpowid,
-        message: 'broadcast via MinimaRpc txnminepost',
+        message: 'broadcast via MinimaRpc sendtransaction',
       };
     } catch (e) {
       return { success: false, message: String(e) };

@@ -353,6 +353,7 @@ export interface MinimaRpcClient {
   txnExport(id: string): Promise<string>;
   txnPost(params: TxnPostParams): Promise<TxnPostResult>;
   txnMinePost(data: string): Promise<TxnPostResult>;
+  sendTransaction(data: string): Promise<TxnPostResult>;
   txnMine(params: TxnMineParams): Promise<void>;
   txnDelete(id: string): Promise<void>;
   txnClear(id: string): Promise<void>;

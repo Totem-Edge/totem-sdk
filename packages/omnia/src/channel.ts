@@ -158,6 +158,11 @@ export async function createChannel(
   }
   const totalValue = params.localAmount + params.remoteAmount;
 
+  const fundingCoin = await chainProvider.getCoin(params.fundingCoinId);
+  if (!fundingCoin) {
+    throw new Error(`Funding coin ${params.fundingCoinId} not found on chain`);
+  }
+
   const fundingDraft = buildFundingTx(
     script,
     address,
@@ -165,8 +170,8 @@ export async function createChannel(
     tokenId,
     tokenScale,
     [params.fundingCoinId],
-    [totalValue],
-    [address],
+    [BigInt(fundingCoin.amount) * 10n ** BigInt(tokenScale)],
+    [fundingCoin.address],
   );
 
   // Build canonical Minima TX bytes, mine PoW, assemble full TxPoW, and broadcast.

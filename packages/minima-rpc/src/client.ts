@@ -200,6 +200,10 @@ export function createMinimaRpcClient(config: MinimaRpcConfig): MinimaRpcClient 
       return run('txnminepost', { data }) as Promise<TxnPostResult>;
     },
 
+    async sendTransaction(data: string) {
+      return run('sendtransaction', { data }) as Promise<TxnPostResult>;
+    },
+
     async txnMine(params: TxnMineParams) {
       await run('txnmine', params as unknown as Record<string, unknown>);
     },

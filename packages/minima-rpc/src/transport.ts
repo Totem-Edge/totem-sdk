@@ -22,10 +22,22 @@ function buildUrl(config: MinimaRpcConfig): string {
   return `${scheme}://${config.host}:${config.port}`;
 }
 
+/**
+ * Maximum length of a single RPC parameter value. The node caps POST bodies at
+ * 10 MB (CMDHandler::MAX_POST_BODY_SIZE); a full TxPoW hex payload (as carried
+ * by `data:` on `sendtransaction`/`txnminepost`) is several KB, far above the
+ * old 1024-char limit. Keep a bound slightly below the node's so an oversized
+ * parameter is rejected client-side rather than truncated server-side.
+ */
+const MAX_RPC_PARAM_LENGTH = 10 * 1024 * 1024;
+
 function sanitizeRpcValue(value: unknown, paramName: string): string {
   const str = String(value);
-  if (str.length > 1024) {
-    throw new MinimaRpcError(`Parameter ${paramName} exceeds maximum length (1024)`, '');
+  if (str.length > MAX_RPC_PARAM_LENGTH) {
+    throw new MinimaRpcError(
+      `Parameter ${paramName} exceeds maximum length (${MAX_RPC_PARAM_LENGTH})`,
+      '',
+    );
   }
   // The wire format is space-delimited, so any whitespace in a value would
   // inject additional `key:value` parameters. Reject whitespace and control
@@ -271,6 +283,12 @@ export function buildCommandString(
 
     case 'txnminepost': {
       const parts = ['txnminepost'];
+      if (p.data !== undefined) pushParam(parts, 'data', p.data);
+      return parts.join(' ');
+    }
+
+    case 'sendtransaction': {
+      const parts = ['sendtransaction'];
       if (p.data !== undefined) pushParam(parts, 'data', p.data);
       return parts.join(' ');
     }
