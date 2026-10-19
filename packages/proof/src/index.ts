@@ -63,3 +63,14 @@ export {
   createIdentityProof,
   verifyIdentityProof,
 } from './identity-proof.js';
+
+// Oracle observation policy / quorum / aggregation runtime (RFC-048 §3.1, OMP-18)
+export { ORACLE_OBSERVATION_DOMAIN, applyOraclePolicy, medianAtoms } from './oracle-policy.js';
+export type {
+  OracleObservationV1,
+  OraclePolicy,
+  OracleAggregation,
+  VerifiedObservationSetV1,
+  OraclePolicyResult,
+  ApplyOraclePolicyOptions,
+} from './oracle-policy.js';

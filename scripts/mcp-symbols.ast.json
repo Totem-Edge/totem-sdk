@@ -2686,6 +2686,11 @@
           "signature": "mmrRootFromSingleLeaf(script: string): Bytes",
           "doc": "In a single-leaf MMR the root equals the leaf commitment."
         },
+        "buildScriptProof": {
+          "kind": "function",
+          "signature": "buildScriptProof(script: string): Bytes",
+          "doc": "Build the serialized Minima `ScriptProof` bytes for a single-leaf MMR.\n\nMirrors the node's `ScriptProof(const std::string& zScript)` constructor\n(org/minima/objects/script_proof.cpp): the script is added as the sole leaf\nof a fresh MMR with sum value ZERO, so the proof chain is empty and the\nresulting address is the leaf commitment itself:\n\n  address = sha3( MiniNumber.ZERO || MiniString(script) || MiniNumber.ZERO )\n          = mmrLeafExact(script)\n\nThis is exactly how the node derives `Address(script)`, so a witness carrying\nthis proof satisfies `Witness::getScript(input.getAddress())` for every input\npaying to that script. Without it the node rejects the TxPoW with\n\"Script Missing from TxPoW for address <addr>\".\n\nWire format (`ScriptProof::writeDataStream`):\n  MiniString(script) || MMRProof(blockTime = 0, chunks = [])"
+        },
         "createMMRDataLeafNode": {
           "kind": "function",
           "signature": "createMMRDataLeafNode(pubkey: Bytes, sumValue?: bigint): MMRData",
@@ -12734,6 +12739,47 @@
         "verifyIdentityProof": {
           "kind": "function",
           "signature": "verifyIdentityProof(signedProof: SignedProof, signedClaim: SignedIdentityClaim): ProofVerifyResult"
+        },
+        "ORACLE_OBSERVATION_DOMAIN": {
+          "kind": "const",
+          "signature": "ORACLE_OBSERVATION_DOMAIN = 'totem:oracle:observation:v1'",
+          "doc": "Domain-separation tag for an oracle observation (RFC-048 §3.1)."
+        },
+        "applyOraclePolicy": {
+          "kind": "function",
+          "signature": "applyOraclePolicy(observations: OracleObservationV1[], policy: OraclePolicy, nowMs: number, opts?: ApplyOraclePolicyOptions): OraclePolicyResult",
+          "doc": "Apply an oracle policy to a candidate observation set. Returns the verified set, or\nfails closed with a reason. `nowMs` is supplied by the caller (pure code — no\nwall-clock). Signature/revocation/evidence-byte checks are the caller's (see header)."
+        },
+        "medianAtoms": {
+          "kind": "function",
+          "signature": "medianAtoms(values: bigint[]): bigint",
+          "doc": "Median of a non-empty list of integers (lower-middle for even counts)."
+        },
+        "OracleObservationV1": {
+          "kind": "interface",
+          "signature": "export interface OracleObservationV1",
+          "doc": "A single canonical oracle observation (RFC-048 §3.1, verbatim)."
+        },
+        "OraclePolicy": {
+          "kind": "interface",
+          "signature": "export interface OraclePolicy"
+        },
+        "OracleAggregation": {
+          "kind": "type",
+          "signature": "export type OracleAggregation = 'median' | 'threshold-agreement' | 'single-trusted'"
+        },
+        "VerifiedObservationSetV1": {
+          "kind": "interface",
+          "signature": "export interface VerifiedObservationSetV1",
+          "doc": "Verified observation set (RFC-048 §3.1, verbatim)."
+        },
+        "OraclePolicyResult": {
+          "kind": "type",
+          "signature": "export type OraclePolicyResult = | { accepted: true"
+        },
+        "ApplyOraclePolicyOptions": {
+          "kind": "interface",
+          "signature": "export interface ApplyOraclePolicyOptions"
         }
       }
     },
@@ -16589,6 +16635,11 @@
           "kind": "function",
           "signature": "mmrRootFromSingleLeaf(script: string): Bytes",
           "doc": "In a single-leaf MMR the root equals the leaf commitment."
+        },
+        "buildScriptProof": {
+          "kind": "function",
+          "signature": "buildScriptProof(script: string): Bytes",
+          "doc": "Build the serialized Minima `ScriptProof` bytes for a single-leaf MMR.\n\nMirrors the node's `ScriptProof(const std::string& zScript)` constructor\n(org/minima/objects/script_proof.cpp): the script is added as the sole leaf\nof a fresh MMR with sum value ZERO, so the proof chain is empty and the\nresulting address is the leaf commitment itself:\n\n  address = sha3( MiniNumber.ZERO || MiniString(script) || MiniNumber.ZERO )\n          = mmrLeafExact(script)\n\nThis is exactly how the node derives `Address(script)`, so a witness carrying\nthis proof satisfies `Witness::getScript(input.getAddress())` for every input\npaying to that script. Without it the node rejects the TxPoW with\n\"Script Missing from TxPoW for address <addr>\".\n\nWire format (`ScriptProof::writeDataStream`):\n  MiniString(script) || MMRProof(blockTime = 0, chunks = [])"
         },
         "createMMRDataLeafNode": {
           "kind": "function",
