@@ -182,6 +182,13 @@ contract MUST explicitly disclose that the decision is cooperative/off-chain. Co
 signature format and witness semantics with the actual Minima VM before advertising unilateral
 enforceability.
 
+**L4 finding (2026-10).** Running the custody escape through the **real node KISSVM**
+(`docs/audits/kissvm-node-validity-l4-2026-10.md`) shows the SDK's generated scripts are **not
+node-parseable** — the node tokenizer requires `^[a-z]+$` variable names, a lowercase `0x` prefix,
+and `+`/`-` arithmetic (not `SUB`/`ADD`) — and that `VERIFYOUT` compares the output coin's **address
+data** while the SDK uses a raw pubkey digest as the address. Branch logic is sound; syntax and
+address representation are the gap. Tracked as follow-ups in the audit.
+
 **Packaging:** first implement a small versioned observation protocol/profile built around `proof`
 and `proofgraph`; create a dedicated `@totemsdk/oracle` only if independent consumers (e.g. Omnia
 and industrial-action) require reusable quorum/aggregation runtime and the interface stabilizes.
