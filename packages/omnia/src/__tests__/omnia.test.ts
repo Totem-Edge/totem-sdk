@@ -301,17 +301,19 @@ describe('@totemsdk/omnia — eltoo script builder', () => {
     expect(script).toContain('STATE(101)');
     expect(script).toContain('PREVSTATE(101)');
     expect(script).toContain(`@COINAGE GTE ${ELTOO_CONTEST_DELAY_BLOCKS}`);
-    expect(script.toUpperCase()).toBe(script); // fully uppercase
+    // node-canonical: variables lowercase, hex a lowercase 0x prefix, no comments
+    expect(script).not.toMatch(/0X|\/\//);
+    for (const m of script.matchAll(/LET\s+([A-Za-z0-9_]+)/g)) expect(m[1]).toMatch(/^[a-z]+$/);
   });
 
   it('requires both signatures on update and settlement (no single-signer spend)', () => {
     const script = buildEltooScript([alice, bob]);
-    expect(script).toContain('LET BOTHSIGNED=MULTISIG(2');
-    expect(script).toContain('ASSERT SEQUENCE EQ PREVSEQUENCE');
-    expect(script).toContain('ASSERT SEQUENCE GT PREVSEQUENCE');
+    expect(script).toContain('LET bothsigned=MULTISIG(2');
+    expect(script).toContain('ASSERT sequence EQ prevsequence');
+    expect(script).toContain('ASSERT sequence GT prevsequence');
     // Both branches require the 2-of-2 signatures — that is the settlement
     // output constraint; neither party can pay itself unilaterally.
-    expect((script.match(/ASSERT BOTHSIGNED/g) ?? []).length).toBe(2);
+    expect((script.match(/ASSERT bothsigned/g) ?? []).length).toBe(2);
     expect(script).not.toMatch(/IF SIGNEDBY\(/);
     expect(script).not.toMatch(/RETURN SIGNEDBY\(/);
   });

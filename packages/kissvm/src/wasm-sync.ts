@@ -6,6 +6,7 @@
  */
 
 import type { ScriptWitness } from './types.js';
+import { toNodeScript } from '@totemsdk/core';
 import type { TreeSignature } from '@totemsdk/core';
 
 let evaluate_script_wasm: any;
@@ -76,7 +77,7 @@ export function evaluateScriptWasm(
     (witness as ScriptWitness)?.signatures instanceof Map
       ? toWasmWitness(witness as ScriptWitness)
       : witness;
-  return evaluate_script_wasm(script, w, txCtx);
+  return evaluate_script_wasm(toNodeScript(script), w, txCtx);
 }
 
 export function parseScriptWasm(source: string): any {

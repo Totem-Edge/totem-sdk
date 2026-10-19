@@ -2816,7 +2816,8 @@
         },
         "computeScriptAddress": {
           "kind": "function",
-          "signature": "computeScriptAddress(script: string): string"
+          "signature": "computeScriptAddress(script: string): string",
+          "doc": "Derive a Minima script address exactly as the node does\n(`Address::Address(script)` / `ScriptProof::calculateAddress`):\n\n  address = sha3( MiniNumber.ZERO || MiniString(script) || MiniNumber.ZERO )\n\nThe script is first canonicalised (`toNodeScript`) so the address is over the\nsame bytes the node will execute and that `buildScriptProof` attests. The\nprevious implementation hashed `sha3(upper(script))`, which is not a Minima\nscript address — coins sent to it could never be spent by that script\n(\"Script Missing from TxPoW for address …\")."
         },
         "convertFlatChunkToSDK": {
           "kind": "function",
@@ -9850,11 +9851,11 @@
         },
         "CounterProgram": {
           "kind": "const",
-          "signature": "CounterProgram: ChannelProgram = { id: COUNTER_PROGRAM_ID, version: 1, buildScript(parties: ChannelParticipant[]): string { const base = buildEltooScript(parties).replace('ASSERT BOTHSIGNED\\nASSERT SE"
+          "signature": "CounterProgram: ChannelProgram = { id: COUNTER_PROGRAM_ID, version: 1, buildScript(parties: ChannelParticipant[]): string { const base = buildEltooScript(parties).replace(ELTOO_INJECTION_ANCHOR, [ 'AS"
         },
         "MeterProgram": {
           "kind": "const",
-          "signature": "MeterProgram: ChannelProgram = { id: METER_PROGRAM_ID, version: 1, buildScript(parties: ChannelParticipant[]): string { const base = buildEltooScript(parties).replace('ASSERT BOTHSIGNED\\nASSERT SEQUEN"
+          "signature": "MeterProgram: ChannelProgram = { id: METER_PROGRAM_ID, version: 1, buildScript(parties: ChannelParticipant[]): string { const base = buildEltooScript(parties).replace(ELTOO_INJECTION_ANCHOR, [ 'ASSERT"
         },
         "HTLCPaymentProgram": {
           "kind": "const",
@@ -16034,6 +16035,11 @@
           "kind": "const",
           "signature": "parseMxAddress: typeof parse_mx_address_wasm"
         },
+        "toNodeScript": {
+          "kind": "function",
+          "signature": "toNodeScript(script: string): string",
+          "doc": "Canonicalize a KISSVM script to node-accepted syntax. Idempotent."
+        },
         "scriptToAddress": {
           "kind": "function",
           "signature": "scriptToAddress(script: string): string"
@@ -16775,7 +16781,8 @@
         },
         "computeScriptAddress": {
           "kind": "function",
-          "signature": "computeScriptAddress(script: string): string"
+          "signature": "computeScriptAddress(script: string): string",
+          "doc": "Derive a Minima script address exactly as the node does\n(`Address::Address(script)` / `ScriptProof::calculateAddress`):\n\n  address = sha3( MiniNumber.ZERO || MiniString(script) || MiniNumber.ZERO )\n\nThe script is first canonicalised (`toNodeScript`) so the address is over the\nsame bytes the node will execute and that `buildScriptProof` attests. The\nprevious implementation hashed `sha3(upper(script))`, which is not a Minima\nscript address — coins sent to it could never be spent by that script\n(\"Script Missing from TxPoW for address …\")."
         },
         "convertFlatChunkToSDK": {
           "kind": "function",

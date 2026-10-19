@@ -2,7 +2,7 @@
   "name": "totem-sdk",
   "version": "1.0.0",
   "private": true,
-  "description": "Totem SDK monorepo — quantum-resistant decentralized computing platform for the Minima network",
+  "description": "Totem SDK monorepo \u2014 quantum-resistant decentralized computing platform for the Minima network",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Totem-Edge/totem-sdk.git"
@@ -61,7 +61,8 @@
     "validate:composite-ports": "node scripts/check-composite-ports.mjs",
     "release:family-install": "node scripts/check-family-install.mjs",
     "release:upstream": "node scripts/check-upstream-published.mjs",
-    "validate:qvac-drift": "node scripts/verify-qvac-api-drift.mjs"
+    "validate:qvac-drift": "node scripts/verify-qvac-api-drift.mjs",
+    "validate:node-syntax": "node scripts/check-node-syntax.mjs"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

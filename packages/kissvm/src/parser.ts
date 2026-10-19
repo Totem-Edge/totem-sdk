@@ -1,3 +1,4 @@
+import { toNodeScript } from '@totemsdk/core';
 import { tokenize, Token, TokenKind } from './lexer.js';
 import { MiniNumber } from './MiniNumber.js';
 import { KissvmParseError } from './errors.js';

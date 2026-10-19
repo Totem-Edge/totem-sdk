@@ -4,7 +4,10 @@ import { sha3_256 as nobleSha3 } from './wasm-sync.js';
 import { serializeMiniNumber, serializeMiniData, writeHashToStream, javaHashAllObjects } from "./javaStreamables.js";
 
 // Import canonical wire serialization from Streamable.ts (single source of truth)
-import { writeMMRProof, type MMRProof as StreamableMMRProof } from "./Streamable.js";
+import { writeMMRProof, writeMiniString, type MMRProof as StreamableMMRProof } from "./Streamable.js";
+// Canonicalise to the exact script the node will receive, so the proof's
+// computed address matches `computeScriptAddress` (which canonicalises too).
+import { toNodeScript } from "./scripts/canonical.js";
 
 // Re-export for API compatibility (existing code imports from mmr.ts)
 // Using a wrapper function for better compatibility with dynamic imports
@@ -77,6 +80,36 @@ export function mmrLeafExact(script: string): Bytes {
 /** In a single-leaf MMR the root equals the leaf commitment. */
 export function mmrRootFromSingleLeaf(script: string): Bytes {
   return mmrLeafExact(script);
+}
+
+/**
+ * Build the serialized Minima `ScriptProof` bytes for a single-leaf MMR.
+ *
+ * Mirrors the node's `ScriptProof(const std::string& zScript)` constructor
+ * (org/minima/objects/script_proof.cpp): the script is added as the sole leaf
+ * of a fresh MMR with sum value ZERO, so the proof chain is empty and the
+ * resulting address is the leaf commitment itself:
+ *
+ *   address = sha3( MiniNumber.ZERO || MiniString(script) || MiniNumber.ZERO )
+ *           = mmrLeafExact(script)
+ *
+ * This is exactly how the node derives `Address(script)`, so a witness carrying
+ * this proof satisfies `Witness::getScript(input.getAddress())` for every input
+ * paying to that script. Without it the node rejects the TxPoW with
+ * "Script Missing from TxPoW for address <addr>".
+ *
+ * Wire format (`ScriptProof::writeDataStream`):
+ *   MiniString(script) || MMRProof(blockTime = 0, chunks = [])
+ *
+ * @param script - The Minima (KISSVM) script whose address the proof attests.
+ */
+export function buildScriptProof(script: string): Bytes {
+  // The node derives the proof's address as
+  //   sha3( MiniNumber.ZERO || MiniString(script) || MiniNumber.ZERO )
+  // so the script bytes here must be exactly the canonical script whose address
+  // was used for the coin (see computeScriptAddress).
+  const canonical = toNodeScript(script);
+  return concat(writeMiniString(canonical), serializeMMRProof({ chunks: [] }, 0n));
 }
 
 // ============================================================================

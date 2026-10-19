@@ -20,7 +20,7 @@
 const KEYWORDS = new Set([
   'LET', 'IF', 'THEN', 'ELSE', 'ELSEIF', 'ENDIF', 'RETURN', 'ASSERT', 'EXEC', 'MAST',
   'WHILE', 'DO', 'ENDWHILE', 'FOR', 'TO', 'BY', 'ENDFOR', 'FOREACH', 'IN', 'SWITCH',
-  'CASE', 'DEFAULT', 'ENDSWITCH', 'FUNC', 'ENDFUNC', 'TRUE', 'FALSE', 'STORE', 'WITH',
+  'CASE', 'DEFAULT', 'ENDSWITCH', 'FUNC', 'ENDFUNC', 'TRUE', 'FALSE', 'STORE', 'WITH', 'FUNCTION', 'RETURN',
 ]);
 
 // Word operators kept as-is (ADD/SUB are handled separately → +/−).

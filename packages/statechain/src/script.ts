@@ -1,10 +1,10 @@
-import { computeScriptAddress } from '@totemsdk/core';
+import { computeScriptAddress, toNodeScript } from '@totemsdk/core';
 
 export const RECLAIM_TIMELOCK = 256;
 
 function kissHex(h: string): string {
   const raw = h.startsWith('0x') || h.startsWith('0X') ? h.slice(2) : h;
-  return '0X' + raw.toUpperCase();
+  return '0x' + raw.toUpperCase();
 }
 
 /**
@@ -22,14 +22,14 @@ function kissHex(h: string): string {
  * @param sePkd  - SE's WOTS public key digest (hardcoded in script, fixed per SE).
  */
 export function buildStatechainScript(sePkd: string): string {
-  return [
+  return toNodeScript([
     `LET OWNER=STATE(0)`,
     `IF @COINAGE GTE ${RECLAIM_TIMELOCK} THEN`,
     `  RETURN SIGNEDBY(OWNER)`,
     `ENDIF`,
     `ASSERT MULTISIG(2 OWNER ${kissHex(sePkd)})`,
     `RETURN TRUE`,
-  ].join('\n');
+  ].join('\n'));
 }
 
 export function normalizeScript(script: string): string {

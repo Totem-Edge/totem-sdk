@@ -7,7 +7,7 @@ import {
   verifyChannelSignature,
 } from '@totemsdk/omnia';
 import type { OmniaTxDraft } from '@totemsdk/omnia';
-import { mineTxPoW, TX_POW_MIN_DIFFICULTY, serializeTxBody } from '@totemsdk/txpow';
+import { mineTxPoW, resolveTxPowTarget, serializeTxBody } from '@totemsdk/txpow';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import type {
   ChannelFactory,
@@ -174,8 +174,9 @@ export async function assembleFactorySettlement(
 
   if (chainProvider) {
     const draftBytes = omniaDraftToMinimaBytes(draft.settlementDraft);
-    const txBody     = serializeTxBody(draftBytes, witnessBytes);
-    const mined      = await mineTxPoW(txBody, TX_POW_MIN_DIFFICULTY);
+    const txnDifficulty = await resolveTxPowTarget(chainProvider);
+    const txBody     = serializeTxBody(draftBytes, witnessBytes, { txnDifficulty });
+    const mined      = await mineTxPoW(txBody, txnDifficulty);
     const fullTxPoW  = concatBytes(concatBytes(mined.minedHeaderBytes, new Uint8Array([0x01])), txBody);
     await chainProvider.broadcastTxPoW(Buffer.from(fullTxPoW).toString('hex'));
     payload.txpowId  = Buffer.from(mined.txpowId).toString('hex');

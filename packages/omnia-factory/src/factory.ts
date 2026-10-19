@@ -6,7 +6,7 @@ import {
   computeTxDraftDigest,
   verifyChannelSignature,
 } from '@totemsdk/omnia';
-import { mineTxPoW, TX_POW_MIN_DIFFICULTY, serializeTxBody } from '@totemsdk/txpow';
+import { mineTxPoW, resolveTxPowTarget, serializeTxBody } from '@totemsdk/txpow';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import type {
   ChannelFactory,
@@ -205,8 +205,9 @@ export async function createFactory(
     pendingCommitment = computeTxDraftDigest(fundingDraft);
 
     const draftBytes  = omniaDraftToMinimaBytes(fundingDraft);
-    const txBody      = serializeTxBody(draftBytes, new Uint8Array(0));
-    const mined       = await mineTxPoW(txBody, TX_POW_MIN_DIFFICULTY);
+    const txnDifficulty = await resolveTxPowTarget(chainProvider);
+    const txBody      = serializeTxBody(draftBytes, new Uint8Array(0), { txnDifficulty });
+    const mined       = await mineTxPoW(txBody, txnDifficulty);
     const fullTxPoW   = concatBytes(concatBytes(mined.minedHeaderBytes, new Uint8Array([0x01])), txBody);
     await chainProvider.broadcastTxPoW(Buffer.from(fullTxPoW).toString('hex'));
 

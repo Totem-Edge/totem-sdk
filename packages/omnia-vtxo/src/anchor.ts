@@ -14,7 +14,7 @@ import {
   type OmniaTxDraft,
   type StateValue,
 } from '@totemsdk/omnia';
-import { serializeTxBody, mineTxPoW, TX_POW_MIN_DIFFICULTY } from '@totemsdk/txpow';
+import { serializeTxBody, mineTxPoW, resolveTxPowTarget } from '@totemsdk/txpow';
 import { concatBytes } from '@totemsdk/core';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import { buildAndHashPoolScript, POOL_SHARE_PORT_BASE } from './pool-script.js';
@@ -137,8 +137,9 @@ export async function anchorBatch(
   if (deps.chainProvider) {
     const mine = deps.mine ?? ((txBody, difficulty) => mineTxPoW(txBody, difficulty));
     const draftBytes = omniaDraftToMinimaBytes(draft);
-    const txBody = serializeTxBody(draftBytes, signature);
-    const mined = await mine(txBody, TX_POW_MIN_DIFFICULTY);
+    const txnDifficulty = await resolveTxPowTarget(deps.chainProvider);
+    const txBody = serializeTxBody(draftBytes, signature, { txnDifficulty });
+    const mined = await mine(txBody, txnDifficulty);
     const fullTxPoW = concatBytes(concatBytes(mined.minedHeaderBytes, new Uint8Array([0x01])), txBody);
     await deps.chainProvider.broadcastTxPoW(Buffer.from(fullTxPoW).toString('hex'));
     result.txpowId = Buffer.from(mined.txpowId).toString('hex');

@@ -1,4 +1,4 @@
-import { computeScriptAddress } from '@totemsdk/core';
+import { computeScriptAddress, toNodeScript } from '@totemsdk/core';
 import type { ChannelParticipant } from './types.js';
 
 const COINID_ELTOO = '0x01';
@@ -12,7 +12,7 @@ function kissHex(hex: string): string {
   if (!/^[0-9a-fA-F]{64}$/.test(raw)) {
     throw new Error(`publicKeyDigest must be exactly 64 hex characters, got ${JSON.stringify(hex)}`);
   }
-  return '0X' + raw.toUpperCase();
+  return '0x' + raw.toUpperCase();
 }
 
 /**
@@ -64,7 +64,7 @@ export function buildEltooScript(parties: ChannelParticipant[]): string {
     'RETURN TRUE',
   ].join('\n');
 
-  return script;
+  return toNodeScript(script);
 }
 
 export function normalizeScript(script: string): string {

@@ -1,7 +1,7 @@
-import { sha3_256 } from '../wasm-sync.js';
+import { toNodeScript } from './canonical.js';
 import { wotsVerifyDigest } from '../wots.js';
 import type { MMRProof, MMRProofChunk } from '../mmr.js';
-import { serializeMMRProof } from '../mmr.js';
+import { serializeMMRProof, mmrRootFromSingleLeaf } from '../mmr.js';
 import type { ScriptDescriptor, StateValue, ExternalSignature, ScriptProofResult, FlatMMRProofChunk, LegacyMMRProof } from './types.js';
 import { convertFlatChunkToSDK } from './types.js';
 import { mxToHex } from '../minima32.js';
@@ -399,11 +399,20 @@ export function validateExternalSignature(
   }
 }
 
+/**
+ * Derive a Minima script address exactly as the node does
+ * (`Address::Address(script)` / `ScriptProof::calculateAddress`):
+ *
+ *   address = sha3( MiniNumber.ZERO || MiniString(script) || MiniNumber.ZERO )
+ *
+ * The script is first canonicalised (`toNodeScript`) so the address is over the
+ * same bytes the node will execute and that `buildScriptProof` attests. The
+ * previous implementation hashed `sha3(upper(script))`, which is not a Minima
+ * script address — coins sent to it could never be spent by that script
+ * ("Script Missing from TxPoW for address …").
+ */
 export function computeScriptAddress(script: string): string {
-  const cleanScript = script.trim().toUpperCase();
-  const scriptBytes = new TextEncoder().encode(cleanScript);
-  const hashBytes = sha3_256(scriptBytes);
-  return bytesToHex(hashBytes);
+  return bytesToHex(mmrRootFromSingleLeaf(toNodeScript(script)));
 }
 
 export { concat };

@@ -1,4 +1,4 @@
-import { bytesToHex, sha3_256 } from '@totemsdk/core';
+import { bytesToHex, sha3_256, toNodeScript } from '@totemsdk/core';
 import type { ChannelParticipant, ChannelProgram, ChannelProgramBuildStateInput, OmniaChannel, OmniaTxDraft, StateValue, HTLCRecord, ProgramTransition } from './types.js';
 import { buildEltooScript } from './script.js';
 import { buildUpdateTx, computeOmniaTxDigest } from './transactions.js';
@@ -52,7 +52,7 @@ export const ASSET_TOTAL_PORT = 183;
 
 const programs = new Map<string, ChannelProgram>();
 
-const ELTOO_INJECTION_ANCHOR = 'ASSERT BOTHSIGNED\nASSERT SEQUENCE GT PREVSEQUENCE';
+const ELTOO_INJECTION_ANCHOR = 'ASSERT bothsigned\nASSERT sequence GT prevsequence';
 
 function preimageDigest(preimage: string): string {
   const digest = sha3_256(new TextEncoder().encode(preimage));
@@ -64,7 +64,7 @@ function normalizeHex(value: string): string {
 }
 
 function injectEltooScript(parties: ChannelParticipant[], additions: string[]): string {
-  return buildEltooScript(parties).replace(ELTOO_INJECTION_ANCHOR, [ELTOO_INJECTION_ANCHOR, ...additions].join('\n'));
+  return toNodeScript(buildEltooScript(parties).replace(ELTOO_INJECTION_ANCHOR, [ELTOO_INJECTION_ANCHOR, ...additions].join('\n')));
 }
 
 export const DefaultEltooPaymentProgram: ChannelProgram = {
@@ -82,9 +82,9 @@ export const CounterProgram: ChannelProgram = {
   id: COUNTER_PROGRAM_ID,
   version: 1,
   buildScript(parties: ChannelParticipant[]): string {
-    const base = buildEltooScript(parties).replace('ASSERT BOTHSIGNED\nASSERT SEQUENCE GT PREVSEQUENCE', [
-      'ASSERT BOTHSIGNED',
-      'ASSERT SEQUENCE GT PREVSEQUENCE',
+    const base = buildEltooScript(parties).replace(ELTOO_INJECTION_ANCHOR, [
+      'ASSERT bothsigned',
+      'ASSERT sequence GT prevsequence',
       `LET COUNTER=STATE(${COUNTER_STATE_PORT})`,
       `LET PREVCOUNTER=PREVSTATE(${COUNTER_STATE_PORT})`,
       `LET ACTION=STATE(${COUNTER_ACTION_PORT})`,
@@ -100,7 +100,7 @@ export const CounterProgram: ChannelProgram = {
       '    ASSERT COUNTER EQ PREVCOUNTER',
       'ENDIF',
     ].join('\n'));
-    return base;
+    return toNodeScript(base);
   },
   buildStateVariables({ previousState, transition }: ChannelProgramBuildStateInput): StateValue[] {
     const current = getStateBigInt(previousState, COUNTER_STATE_PORT, 0n);
@@ -163,9 +163,9 @@ export const MeterProgram: ChannelProgram = {
   id: METER_PROGRAM_ID,
   version: 1,
   buildScript(parties: ChannelParticipant[]): string {
-    const base = buildEltooScript(parties).replace('ASSERT BOTHSIGNED\nASSERT SEQUENCE GT PREVSEQUENCE', [
-      'ASSERT BOTHSIGNED',
-      'ASSERT SEQUENCE GT PREVSEQUENCE',
+    const base = buildEltooScript(parties).replace(ELTOO_INJECTION_ANCHOR, [
+      'ASSERT bothsigned',
+      'ASSERT sequence GT prevsequence',
       `LET READING=STATE(${METER_READING_PORT})`,
       `LET PREVREADING=PREVSTATE(${METER_READING_PORT})`,
       `LET USAGE=STATE(${METER_USAGE_DELTA_PORT})`,
@@ -175,7 +175,7 @@ export const MeterProgram: ChannelProgram = {
       'ASSERT USAGE EQ READING - PREVREADING',
       'ASSERT PAYMENT EQ USAGE MUL UNITPRICE',
     ].join('\n'));
-    return base;
+    return toNodeScript(base);
   },
   buildStateVariables({ previousState, transition }: ChannelProgramBuildStateInput): StateValue[] {
     const previousReading = getStateBigInt(previousState, METER_READING_PORT, 0n);
@@ -356,10 +356,10 @@ export const VaultProgram: ChannelProgram = {
       `LET SWEPT=STATE(${VAULT_SWEPT_PORT})`,
       `IF SWEPT THEN`,
       '    ASSERT LOCKEDVALUE EQ 0',
-      `    ASSERT SEQUENCE GTE PREVSTATE(${VAULT_RELEASE_SEQUENCE_PORT})`,
+      `    ASSERT sequence GTE PREVSTATE(${VAULT_RELEASE_SEQUENCE_PORT})`,
       '    RETURN TRUE',
       'ENDIF',
-      `IF SEQUENCE LT PREVSTATE(${VAULT_RELEASE_SEQUENCE_PORT}) THEN`,
+      `IF sequence LT PREVSTATE(${VAULT_RELEASE_SEQUENCE_PORT}) THEN`,
       `    ASSERT LOCKEDVALUE EQ PREVSTATE(${VAULT_LOCKED_VALUE_PORT})`,
       'ENDIF',
       `IF LOCKEDVALUE LT PREVSTATE(${VAULT_LOCKED_VALUE_PORT}) THEN`,

@@ -14,7 +14,7 @@
  */
 
 import { sha256 as nobleSha256 } from '@noble/hashes/sha256.js';
-import { sha3_256, hexToBytes, wotsVerifyDigest, verifyTreeSignature, mmrLeafExact, parseMMRProofFromHex, createMMRDataParentNode, createMMRDataLeafNode, calculateProofRoot } from '@totemsdk/core';
+import { sha3_256, hexToBytes, wotsVerifyDigest, verifyTreeSignature, mmrLeafExact, parseMMRProofFromHex, createMMRDataParentNode, createMMRDataLeafNode, calculateProofRoot, toNodeScript } from '@totemsdk/core';
 import type { MMRData, MMRProof, TreeSignature } from '@totemsdk/core';
 import { KissvmLimitError, KissvmRuntimeError, ReturnSignal } from './errors.js';
 import { LIMITS, VMState, MastBranch, UserFunction } from './vm.js';
@@ -62,7 +62,7 @@ export function evaluateScript(
 ): EvalResult {
   const vm = new VMState(witness, txCtx);
   try {
-    const ast = parseScript(script);
+    const ast = parseScript(toNodeScript(script));
     execStatements(ast, vm);
     return {
       passed: false,
