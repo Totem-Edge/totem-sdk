@@ -246,9 +246,62 @@ relocated below the MSHS floor (base 128, max 102) with an explicit upper bound 
 
 ---
 
-## 6. The shared contract: `EefiCapitalAgreement`
+### 5.5 Deployment modes — wallet vs committed-owner-v1 (and what committed state changes)
 
-Rather than a new Omnia package per product, a shared contract binds MASH funding authorization
+MSHS-2 ships **two deployment modes** (`mshs2_modes.hpp`; `mashtxnsign mode:wallet|committed-v1`):
+
+| | **wallet** (default) | **committed-owner-v1** |
+|---|---|---|
+| outer locking script | `MAST 0x<policyRoot>` | `LET stateroot=0x<sha3(state)> MAST 0x<policyRoot>` |
+| app state | transaction STATE (free ports) | **committed into the locking script** (the `stateroot`) |
+| MASH bundle ports | STATE 230–255 | STATE 230–255 |
+| app-state carrier | — | `STATE(0)` = current preimage, `STATE(1)` = signed successor |
+| tx shape | multi-input/output, recovery branches | **exactly 1 input, 1 output, no recovery branches** |
+| successor | arbitrary | must commit `STATE(1)` and **preserve the input amount** |
+| carrier size | — | current + next ≤ 24 KiB |
+| op envelope | ≤ 960 (`mshs2WalletOps`) | wallet verifier + committed assertions |
+
+This changes four things for MASH-based Omnia/Eefi txs:
+
+1. **Ports.** Committed mode additionally occupies **ports 0–1** (`mash-committed-state`, STATE(0)/STATE(1)) on top of 230–255. On one coin that collides with anything using 0–1 (e.g. `statechain`).
+2. **Shape.** Committed mode is **1-in/1-out with no recovery branches**, so it is **not composable** with Omnia channel / factory / settlement scripts (multi-output, recovery / HTLC / escape branches). The composite table (§5.3) therefore uses **wallet** mode only; a committed-mode coin is a **standalone** state carrier.
+3. **What committed mode is for.** It is an **owner-authoritative, single-owner state carrier**: the committed state evolves by owner-authorized replacement (the successor re-embeds the next root). It fits a **MASH-governed vault/treasury** — e.g. the destination of recovered capital in §9 — not a multi-party channel. It is also the natural on-chain home for RFC-051 digest-bound **committed facts** (the `stateroot` *is* a digest commitment).
+4. **P-EXIT conflict (RFC-050 §3).** P-EXIT requires a **recovery branch**; committed mode **forbids** recovery branches. A committed-mode coin therefore **cannot host a P-EXIT covenant** — the two are **mutually exclusive on the same coin**. Gen-2/3 Eefi products (which need P-EXIT) must use **wallet**-mode MASH (or none), not committed mode.
+
+**What committed mode is actually for (real-world).** It is a **post-quantum, single-owner,
+fixed-amount, owner-updatable on-chain *state* coin** — a "state NFT" / smart account — not a
+value-movement coin. Its constraints (1-in/1-out, preserve amount, no recovery) are what make it a
+*safe state carrier*, and they are why it is excluded from Omnia composites. Concrete uses:
+
+1. **Self-updatable post-quantum identity/credential coin.** Commit a device/agent's identity document
+   plus its delegation/credential set (≤24 KiB) into the locking script; the owner rotates it in place
+   (key rotation, credential refresh, mandate change). The address rotates with the state root, but it
+   is one logical account. Strong fit for Eefi device identity (RFC-047 / `identity`).
+2. **On-chain state-root anchor (state machine).** The coin holds a *commitment* to an off-chain state
+   (a channel/ledger/position root) and updates it on each checkpoint — a post-quantum "statechain
+   anchor" whose successor deterministically re-embeds the next root. Reuse-safe MASH means no WOTS
+   leaf exhaustion across a long life (`Q_MAX = 2^28`).
+3. **The committed-facts carrier (RFC-051).** `stateroot = SHA3(state)` *is* a digest binding: facts
+   that must influence a committed outcome ride in the state preimage, revealed via `STATE(0)`. This
+   is the concrete on-chain home for RFC-051.
+4. **Long-lived high-value single-owner account** needing many authorizations without one-time-key
+   management — e.g. a treasury/config coin that only ever re-commits its own state.
+5. **Vault/treasury metadata coin** — a policy/ledger state that evolves, with value moved by separate
+   txs.
+
+**What it is not.** Fixed amount (cannot pay out or receive), single owner (one PK_ROOT, no
+`extraBranches`; the MAST policy is just the MASH verifier), and no recovery branch — so it is
+incompatible with multi-party custody, Omnia channel/factory/settlement shapes, and P-EXIT. It is a
+**state primitive, not an execution primitive.**
+
+**Bottom line:** committed state does **not** change the wallet-mode boundary model (Model A) or the
+composite table; it introduces a **second, single-owner, 1-in/1-out** deployment suited to state
+coins, identities, state-root anchors and committed-fact carriers, and it is **incompatible** with
+multi-party Omnia shapes and P-EXIT.
+
+---
+
+## 6. The shared contract: `EefiCapitalAgreement`Rather than a new Omnia package per product, a shared contract binds MASH funding authorization
 to Omnia execution terms and settlement rights:
 
 ```ts
@@ -359,6 +412,12 @@ deferred behind Gen 1–2 gates and RFC-048's oracle/collateral work.
    does retirement interact with an already-funded channel?
 6. Unilateral recovery: which settlement covenant makes the promised exit executable without the
    counterparty (the gating question for Gen 4+ products)?
+7. **A multi-IO committed mode (the unlock).** Committed-owner-v1 is 1-in/1-out with no recovery
+   branches (§5.5), so committed state cannot compose with Omnia channel/factory/settlement scripts
+   or P-EXIT. A **multi-IO committed mode** — or a committed-state carrier attachable to a multi-party
+   Omnia script — is what would let committed state participate in channels, factories and enforceable
+   exercise, and is the gating question for stateful MASH-governed Omnia coins. Node-side work; tracked
+   here rather than assumed.
 
 ---
 

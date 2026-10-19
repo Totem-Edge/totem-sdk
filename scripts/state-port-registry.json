@@ -11,6 +11,7 @@
   },
   "bands": [
     { "id": "legacy", "from": 0, "to": 99, "owner": "legacy scripts, statechain", "notes": "general/legacy state ports" },
+    { "id": "mash-committed-state", "from": 0, "to": 1, "owner": "node (MASH committed-state carrier)", "notes": "MSHS-2 committed-owner-v1: STATE(0)=current state preimage, STATE(1)=signed successor. Only used in committed mode (the state root is also committed into the locking script)." },
     { "id": "omnia-control", "from": 100, "to": 119, "owner": "omnia*", "notes": "channel/factory control (100 SETTLEMENT, 101 SEQUENCE, 102 COMMITMENT, 103 escape)" },
     { "id": "omnia-programs", "from": 120, "to": 183, "owner": "omnia (program.ts)", "notes": "channel program ports (COUNTER 120-122, METER 130-133, HTLC 140-144, VAULT 150-152, TREASURY 160-164, MEMBERSHIP 170-172, ASSET 180-183)" },
     { "id": "omnia-share", "from": 128, "to": 229, "owner": "omnia-factory, omnia-vtxo", "notes": "per-party share band, base 128 (POOL_SHARE_PORT_BASE / FACTORY_BALANCE_PORT_BASE); capped below the MSHS floor 230 → max 102 parties" }
@@ -20,6 +21,20 @@
     "omnia": { "coinClass": "channel", "bands": ["omnia-control", "omnia-programs"] },
     "omnia-factory": { "coinClass": "factory", "bands": ["omnia-control", "omnia-share"] },
     "omnia-vtxo": { "coinClass": "vtxo", "bands": ["omnia-control", "omnia-share"] }
+  },
+  "mashModes": {
+    "wallet": {
+      "outer": "MAST 0x<policyRoot>",
+      "statePorts": ["mshs"],
+      "txShape": "multi-input/output; recovery branches allowed",
+      "notes": "Default. MASH bundle in STATE 230-255; app state free. Used by the composite table."
+    },
+    "committed-owner-v1": {
+      "outer": "LET stateroot=0x<sha3(state)> MAST 0x<policyRoot>",
+      "statePorts": ["mash-committed-state", "mshs"],
+      "txShape": "exactly 1 input, 1 output, no recovery branches; successor commits STATE(1) and preserves the amount; current+next <= 24 KiB",
+      "notes": "State root committed into the locking script. Owner-authoritative single-owner carrier (vault/treasury, RFC-051 committed facts). NOT composable with Omnia multi-party scripts and NOT compatible with P-EXIT (recovery branch forbidden). Excluded from composites."
+    }
   },
   "shareBases": {
     "omnia-factory": { "export": "FACTORY_BALANCE_PORT_BASE", "expected": 128 },

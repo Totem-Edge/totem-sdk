@@ -57,6 +57,13 @@ inference treated as truth, metadata masquerading as committed input, and no uni
 > **CFR-3.** No AI artifact grants spend authority. Authorization is **mandate + covenant/MASH**,
 > cryptographic and non-discretionary.
 
+**A concrete on-chain carrier for committed facts.** The MSHS-2 **committed-owner-v1** mode
+(RFC-049 §5.5) is a ready-made home for digest-bound facts: the locking script commits
+`stateroot = SHA3(state)`, `STATE(0)` reveals the preimage, and the successor re-embeds the next root
+(1-in/1-out, no recovery branches). A committed fact that must influence a committed outcome can ride
+in that state preimage — the `stateroot` *is* the digest binding. (Note: because committed mode
+forbids recovery branches, it cannot be combined with P-EXIT covenants, RFC-050 §3.)
+
 ---
 
 ## 4. Seam A — Decision → committed operation binding

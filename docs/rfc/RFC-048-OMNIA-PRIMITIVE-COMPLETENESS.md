@@ -585,6 +585,13 @@ trigger with no counterparty liveness, no per-party balance ports, and no on-cha
 The balance set-root is the committed evidence; the distribution's correctness is enforced by the
 co-signatures, not by re-deriving the root.
 
+**Committed mode.** MSHS-2 also ships a **committed-owner-v1** deployment that commits the state root
+**into the locking script** (`LET stateroot=… MAST …`) and carries it in ports **0–1**
+(`mash-committed-state`, `STATE(0)`=current / `STATE(1)`=successor). It is **1-in/1-out, no recovery
+branches, preserve-amount** (RFC-049 §5.5) — so it is **not composable** with Omnia multi-party
+scripts and is excluded from the composite table (which uses wallet mode). It is a standalone
+single-owner state carrier (and a home for RFC-051 committed facts).
+
 The **per-leaf inclusion primitive** now exists: `buildMmrMembershipCovenant` in `@totemsdk/kissvm`
 verifies `PROOF(leaf leafSum rootHash rootSum proof)` on-chain, binds `SIGNEDBY(leaf)` and pays the
 leaf — so a party can prove membership against the committed root in a **single** branch instead of

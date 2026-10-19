@@ -98,6 +98,11 @@ quorum, freshness and an objective value comparison — the **cooperative/attest
 `buildOracleExerciseCovenant` (commit the observation at funding; the beneficiary exercises alone).
 Still open: the product economics around the bond and the oracle policy/quorum runtime.
 
+**Committed-state MASH is incompatible with P-EXIT.** A committed-owner-v1 MSHS-2 coin (RFC-049 §5.5)
+is **1-in/1-out with no recovery branches**, and commits its state root into the locking script.
+P-EXIT *is* a recovery/exercise branch. So a Gen-2/3 product's coin MUST use **wallet**-mode MASH (or
+none), never committed mode — the two are mutually exclusive on the same coin.
+
 ---
 
 ## 4. Gating primitives (must exist before Eefi products)
