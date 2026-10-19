@@ -1,5 +1,5 @@
 import { computeScriptAddress } from '@totemsdk/core/scripts';
-import { MMRTree, hexToBytes, bytesToHex, serializeMMRProof, createMMRDataLeafNode, toNodeScript } from '@totemsdk/core';
+import { MMRTree, hexToBytes, bytesToHex, serializeMMRProof, createMMRDataLeafNode, toNodeScript, wotsAddressData } from '@totemsdk/core';
 import type { FactoryParticipant } from './types.js';
 
 /**
@@ -156,7 +156,7 @@ export function factoryDistributionOutputs(
     if (p.contributionAmount < 0n) {
       throw new Error(`factoryDistributionOutputs: participant[${i}].contributionAmount must be non-negative`);
     }
-    return { address: '0x' + raw, amount: p.contributionAmount, tokenId };
+    return { address: wotsAddressData(raw), amount: p.contributionAmount, tokenId };
   });
 }
 
@@ -285,7 +285,7 @@ export function buildFactoryScript(
   const count = participants.length;
 
   const pks = participants.map((p) => kissHex(p.publicKeyDigest));
-  const payouts = participants.map((p) => kissHex(p.settlementAddress ?? p.publicKeyDigest));
+  const payouts = participants.map((p) => wotsAddressData(p.settlementAddress ?? p.publicKeyDigest));
 
   const lines: string[] = [
     'LET settlement=STATE(100)',

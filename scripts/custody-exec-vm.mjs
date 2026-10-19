@@ -52,7 +52,7 @@ await coreWasmMod.default(readFileSync(CORE_WASM_BG));
 const { evaluateScript, toWasmWitness } = await load('packages/kissvm/dist/index.js');
 const { buildPoolScript } = await load('packages/omnia-vtxo/dist/index.js');
 const { buildFactoryScript } = await load('packages/omnia-factory/dist/index.js');
-const { TreeKey } = await load('packages/core/dist/index.js');
+const { TreeKey, wotsAddressData } = await load('packages/core/dist/index.js');
 
 let failures = 0;
 function check(name, cond, detail = '') {
@@ -114,7 +114,7 @@ function both(label, script, sigs, ctx, expected) {
 // ── VTXO pool: per-share unilateral exit (real signature) ────────────────────
 const pool = buildPoolScript({ operatorPublicKeyDigest: operator, holders: [holder], exitBlock: 100 });
 const poolExit = ({ spentShare, successorShare, amount, remainder }) => {
-  const outputs = [{ address: holder, amount: Number(spentShare), tokenId: '0x00', keepState: false }];
+  const outputs = [{ address: wotsAddressData(holder), amount: Number(spentShare), tokenId: '0x00', keepState: false }];
   if (remainder) outputs.push({ address: POOL, amount: Number(remainder), tokenId: '0x00', keepState: true });
   return {
     block: 200,
@@ -151,7 +151,7 @@ const factory = buildFactoryScript([
   { partyId: 'b', publicKeyDigest: B, addressIndex: 1, contributionAmount: 500n, settlementAddress: B },
 ]);
 const factoryExit = ({ amount, remainder, successorZero }) => {
-  const outputs = [{ address: A, amount: 1000, tokenId: '0x00', keepState: false }];
+  const outputs = [{ address: wotsAddressData(A), amount: 1000, tokenId: '0x00', keepState: false }];
   if (remainder) outputs.push({ address: FACTORY, amount: Number(remainder), tokenId: '0x00', keepState: true });
   return {
     block: 300,

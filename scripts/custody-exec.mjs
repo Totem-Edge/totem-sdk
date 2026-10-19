@@ -36,6 +36,7 @@ function check(name, cond) {
   else { failures++; console.error(`  FAIL ${name}`); }
 }
 
+const { wotsAddressData } = await load('packages/core/dist/index.js');
 const { buildPoolScript } = await load('packages/omnia-vtxo/dist/index.js');
 const { buildFactoryScript } = await load('packages/omnia-factory/dist/index.js');
 const { evaluateScript } = await load('packages/kissvm/dist/index.js');
@@ -55,7 +56,7 @@ function ev(script, ctx, signerKeys) {
 // ── omnia-vtxo pool owner exit ──────────────────────────────────────────────
 const pool = buildPoolScript({ operatorPublicKeyDigest: OP, holders: [OWNER], exitBlock: 100 });
 function poolExit({ spentShare, successorShare, amount, signers, remainder }) {
-  const outputs = [{ address: OWNER, amount: BigInt(spentShare), tokenId: '0x00', keepState: false }];
+  const outputs = [{ address: wotsAddressData(OWNER), amount: BigInt(spentShare), tokenId: '0x00', keepState: false }];
   if (remainder) outputs.push({ address: POOL, amount: BigInt(remainder), tokenId: '0x00', keepState: true });
   return ev(pool, {
     block: 200, inputIndex: 0,
@@ -87,7 +88,7 @@ const factory = buildFactoryScript([
   { partyId: 'b', publicKeyDigest: B, addressIndex: 1, contributionAmount: 500n, settlementAddress: B },
 ]);
 function factoryEscape({ amount, remainder, successorZero }) {
-  const outputs = [{ address: A, amount: 1000n, tokenId: '0x00', keepState: false }];
+  const outputs = [{ address: wotsAddressData(A), amount: 1000n, tokenId: '0x00', keepState: false }];
   if (remainder) outputs.push({ address: FACTORY, amount: BigInt(remainder), tokenId: '0x00', keepState: true });
   return ev(factory, {
     block: 200, inputIndex: 0,

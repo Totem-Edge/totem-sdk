@@ -20,7 +20,7 @@ import {
   type TxOutputDraft,
 } from '@totemsdk/omnia';
 import { serializeTxBody, mineTxPoW, TX_POW_MIN_DIFFICULTY } from '@totemsdk/txpow';
-import { concatBytes } from '@totemsdk/core';
+import { concatBytes, wotsAddressData } from '@totemsdk/core';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import type { OmniaVtxo } from './types.js';
 import { poolStateVariables } from './anchor.js';
@@ -54,7 +54,7 @@ export function buildExitTransactionDraft(params: ExitTxParams): OmniaTxDraft {
   if (share <= 0n) throw new Error('exit: holder share must be positive');
 
   const outputs: TxOutputDraft[] = [{
-    address: params.vtxo.owner,
+    address: wotsAddressData(params.vtxo.owner),
     amount: share,
     tokenId: params.vtxo.tokenId,
     storeState: false,

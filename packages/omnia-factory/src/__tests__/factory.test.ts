@@ -1,3 +1,4 @@
+import { wotsAddressData } from '@totemsdk/core';
 import {
   createFactory,
   acceptFactory,
@@ -953,8 +954,8 @@ describe('factory distribution (scalable escape)', () => {
     const parts = [party('a', A, 700n), party('b', B, 300n)];
     const outs = factoryDistributionOutputs(parts);
     expect(outs).toEqual([
-      { address: A, amount: 700n, tokenId: '0x00' },
-      { address: B, amount: 300n, tokenId: '0x00' },
+      { address: wotsAddressData(A), amount: 700n, tokenId: '0x00' },
+      { address: wotsAddressData(B), amount: 300n, tokenId: '0x00' },
     ]);
     const total = outs.reduce((s, o) => s + o.amount, 0n);
     expect(total).toBe(factoryBalanceSetRoot(parts).rootSum);

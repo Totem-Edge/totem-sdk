@@ -23,7 +23,7 @@
  * exit block, and cannot stop a holder's exit. It is a liveness-only peer.
  */
 
-import { computeScriptAddress, toNodeScript } from '@totemsdk/core';
+import { computeScriptAddress, toNodeScript, wotsAddressData } from '@totemsdk/core';
 
 /**
  * State port base for per-holder shares: holder k ⇒ `base + k`. Kept below the
@@ -71,6 +71,7 @@ export function buildPoolScript(params: PoolScriptParams): string {
     );
   }
   const holders = params.holders.map((h, i) => pkHex(h, `holder[${i}]`));
+  const holderAddrs = params.holders.map((h) => wotsAddressData(h));
   if (!Number.isInteger(params.exitBlock) || params.exitBlock < 0) {
     throw new Error(`exitBlock must be a non-negative integer, got ${JSON.stringify(params.exitBlock)}`);
   }
@@ -86,7 +87,7 @@ export function buildPoolScript(params: PoolScriptParams): string {
     lines.push(`  LET share=PREVSTATE(${port})`);
     lines.push(`  IF SIGNEDBY(${holder}) THEN`);
     lines.push(`    IF share GT 0 THEN`);
-    lines.push(`      ASSERT VERIFYOUT(0 ${holder} share @TOKENID FALSE)`);
+    lines.push(`      ASSERT VERIFYOUT(0 ${holderAddrs[k]} share @TOKENID FALSE)`);
     for (let j = 0; j < holders.length; j++) {
       if (j === k) continue;
       lines.push(`      ASSERT STATE(${POOL_SHARE_PORT_BASE + j}) EQ PREVSTATE(${POOL_SHARE_PORT_BASE + j})`);

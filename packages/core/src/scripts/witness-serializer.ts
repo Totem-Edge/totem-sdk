@@ -411,6 +411,17 @@ export function validateExternalSignature(
  * script address — coins sent to it could never be spent by that script
  * ("Script Missing from TxPoW for address …").
  */
+/**
+ * Address data (hex) of a WOTS public-key digest's single-key script
+ * (`RETURN SIGNEDBY(0x<pk>)`). This is the value a `VERIFYOUT` compares against
+ * (the node compares the output coin's *address data*), distinct from the WOTS
+ * public key used by `SIGNEDBY`.
+ */
+export function wotsAddressData(publicKeyDigest: string): string {
+  const raw = publicKeyDigest.replace(/^0x/i, '').toUpperCase();
+  return computeScriptAddress(`RETURN SIGNEDBY(0x${raw})`);
+}
+
 export function computeScriptAddress(script: string): string {
   return bytesToHex(mmrRootFromSingleLeaf(toNodeScript(script)));
 }

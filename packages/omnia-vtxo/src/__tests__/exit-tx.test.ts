@@ -1,3 +1,4 @@
+import { wotsAddressData } from '@totemsdk/core';
 /**
  * RFC-038 V3 — per-share VTXO exit transaction.
  */
@@ -45,7 +46,7 @@ const params = () => ({
 describe('exit transaction (RFC-038 V3 — per-share)', () => {
   it("pays output 0 only the holder's share, remainder back to the pool", () => {
     const draft = buildExitTransactionDraft(params());
-    expect(draft.outputs[0].address).toBe(H0);
+    expect(draft.outputs[0].address).toBe(wotsAddressData(H0));
     expect(draft.outputs[0].amount).toBe(500n);
     expect(draft.outputs[0].storeState).toBe(false);
     expect(draft.outputs[1].address).toBe(params().fundingAddress);

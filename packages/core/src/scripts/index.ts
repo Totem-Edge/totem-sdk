@@ -18,6 +18,7 @@ export {
   aggregateSignatures,
   validateExternalSignature,
   computeScriptAddress,
+  wotsAddressData,
 } from './witness-serializer.js';
 export * from './contract-helpers.js';
 

@@ -2816,8 +2816,12 @@
         },
         "computeScriptAddress": {
           "kind": "function",
-          "signature": "computeScriptAddress(script: string): string",
-          "doc": "Derive a Minima script address exactly as the node does\n(`Address::Address(script)` / `ScriptProof::calculateAddress`):\n\n  address = sha3( MiniNumber.ZERO || MiniString(script) || MiniNumber.ZERO )\n\nThe script is first canonicalised (`toNodeScript`) so the address is over the\nsame bytes the node will execute and that `buildScriptProof` attests. The\nprevious implementation hashed `sha3(upper(script))`, which is not a Minima\nscript address — coins sent to it could never be spent by that script\n(\"Script Missing from TxPoW for address …\")."
+          "signature": "computeScriptAddress(script: string): string"
+        },
+        "wotsAddressData": {
+          "kind": "function",
+          "signature": "wotsAddressData(publicKeyDigest: string): string",
+          "doc": "Address data (hex) of a WOTS public-key digest's single-key script\n(`RETURN SIGNEDBY(0x<pk>)`). This is the value a `VERIFYOUT` compares against\n(the node compares the output coin's *address data*), distinct from the WOTS\npublic key used by `SIGNEDBY`."
         },
         "convertFlatChunkToSDK": {
           "kind": "function",
@@ -9666,7 +9670,7 @@
         },
         "buildEltooScript": {
           "kind": "function",
-          "signature": "buildEltooScript(parties: ChannelParticipant[]): string",
+          "signature": "buildEltooScript(parties: ChannelParticipant[], contestDelayBlocks?: number): string",
           "doc": "Eltoo channel script (RFC-039, CUSTODY-POLICY §2).\n\nTwo spend paths, **both requiring `MULTISIG(2 A B)`**:\n  - **Update** (`SETTLEMENT` false): `BOTHSIGNED` + `SEQUENCE GT\n    PREVSEQUENCE` — advance the off-chain state.\n  - **Settlement** (`SETTLEMENT` true): `BOTHSIGNED` + `SEQUENCE EQ\n    PREVSEQUENCE` after `@COINAGE GTE ELTOO_CONTEST_DELAY_BLOCKS` — close on the\n    pre-signed state.\n\nUnilateral close is achieved by **broadcasting the co-signed close package**:\neach state carries an update + settlement transaction pre-signed by *both*\nparties (`settlement.ts` `startUnilateralClose`/`finalizeUnilateralClose`), and\nbecause the witness already contains both signatures, *either party can relay\nit alone* — no counterparty liveness. `BOTHSIGNED` here is therefore the output\nconstraint: only a transaction both parties signed (the agreed split) can be\nspent. A single-signer settlement branch would let one party pay itself\neverything, so it must never be added without an explicit output constraint.\n\nThe settlement `@COINAGE GTE ELTOO_CONTEST_DELAY_BLOCKS` is a *relative* contest\ndelay and is deliberately not converted to an absolute `@BLOCK`: each update\nresets it by design. It cannot be weaponised to push the victim's clock because\nboth update and settlement require `BOTHSIGNED` — no one can move the coin to\nreset coinage without the victim's signature."
         },
         "normalizeScript": {
@@ -9847,7 +9851,7 @@
         },
         "DefaultEltooPaymentProgram": {
           "kind": "const",
-          "signature": "DefaultEltooPaymentProgram: ChannelProgram = { id: ELTOO_PAYMENT_PROGRAM_ID, version: 1, buildScript(parties: ChannelParticipant[]): string { return buildEltooScript(parties); }, buildStateVariables(_"
+          "signature": "DefaultEltooPaymentProgram: ChannelProgram = { id: ELTOO_PAYMENT_PROGRAM_ID, version: 1, buildScript(parties: ChannelParticipant[], options?: { contestDelayBlocks?: number }): string { return buildElt"
         },
         "CounterProgram": {
           "kind": "const",
@@ -10261,6 +10265,16 @@
           "signature": "proposeSettlement(channel: OmniaChannel, leaseProvider: WotsLeaseProvider, opts?: ProposeSettlementOptions): Promise<{ settlementPayload: SettlementPayload; partialState: Partial<SignedChannelState>; }>",
           "doc": "Builds the cooperative settlement TX (`STATE(100)=TRUE`) and signs it with the\nsettlement TX digest — critical for on-chain correctness.\n\nFull chain path (when `opts.chainProvider` is provided):\n  1. Build settlement draft (STATE(100)=TRUE, per-party outputs).\n  2. Sign the settlement TX digest via the WOTS lease.\n  3. Serialize draft bytes + witness bytes → `serializeTxBody()` (txpow TxBody).\n  4. Mine PoW via `mineTxPoW()` using `TX_POW_MIN_DIFFICULTY`.\n  5. Assemble full TxPoW: `minedHeaderBytes || 0x01 || txBody`.\n  6. Broadcast via `chainProvider.broadcastTxPoW()`.\n\nSpec: `proposeSettlement(channel, leaseProvider)` — signer and partyAddresses are\noptional via the opts argument and fall back to channel fields."
         },
+        "buildSettlementSigningRequest": {
+          "kind": "function",
+          "signature": "buildSettlementSigningRequest(channel: OmniaChannel, opts?: Pick<ProposeSettlementOptions, \"partyAddresses\">): SettlementSigningRequest",
+          "doc": "Build the deterministic settlement draft + digest for a cooperative close.\nBoth parties can build this independently from the same channel state, or the\nsettling party can send it verbatim to the counterparty to co-sign."
+        },
+        "signSettlementRequest": {
+          "kind": "function",
+          "signature": "signSettlementRequest(channel: OmniaChannel, request: SettlementSigningRequest, leaseProvider: WotsLeaseProvider, signer?: ChannelSigner): Promise<{ partyId: string; signature: ChannelSignature; indices: SigningIndices; }>",
+          "doc": "Co-sign a settlement signing request. Used by the counterparty to provide its\nhalf of the eltoo `MULTISIG(2 …)` settlement witness."
+        },
         "startUnilateralClose": {
           "kind": "function",
           "signature": "startUnilateralClose(channel: OmniaChannel, chainProvider: ChainStateProvider, broadcastProofs?: OmniaWitnessProofs): Promise<UnilateralCloseStartResult>"
@@ -10284,6 +10298,11 @@
         "markChannelClosed": {
           "kind": "function",
           "signature": "markChannelClosed(channel: OmniaChannel): OmniaChannel"
+        },
+        "SettlementSigningRequest": {
+          "kind": "interface",
+          "signature": "export interface SettlementSigningRequest",
+          "doc": "A settlement draft + digest offered to the counterparty for co-signing."
         },
         "executeIntent": {
           "kind": "function",
