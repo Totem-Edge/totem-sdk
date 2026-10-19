@@ -86,7 +86,11 @@ export class OmniaSwarmImpl implements OmniaSwarm {
    */
   private _adaptConn(conn: unknown): IStreamTransport {
     const c = conn as Record<string, unknown>;
-    if (typeof c['send'] === 'function') {
+    // Only treat it as an IStreamTransport if it implements the interface
+    // (onData is the defining method). A raw Hyperswarm/streamx connection may
+    // expose `send` but not `onData`, and must be wrapped — otherwise
+    // OmniaStream calls `_stream.onData(...)` and throws.
+    if (typeof c['send'] === 'function' && typeof c['onData'] === 'function') {
       return c as unknown as IStreamTransport;
     }
     return new NodeStreamTransport(conn);
