@@ -166,7 +166,7 @@
     },
     {
       "name": "@totemsdk/chain-provider",
-      "version": "0.2.1",
+      "version": "0.3.0",
       "description": "Unified ChainStateProvider interface — Hosted, PureMinima, and Composite strategies",
       "domain": "sovereignty-stack",
       "keywords": [
@@ -178,7 +178,7 @@
       ],
       "dependencies": {
         "@totemsdk/core": "^1.4.0",
-        "@totemsdk/minima-rpc": "^0.3.0"
+        "@totemsdk/minima-rpc": "^0.4.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -202,16 +202,16 @@
       ],
       "dependencies": {
         "@totemsdk/agent-policy": "^0.3.1",
-        "@totemsdk/chain-provider": "^0.2.1",
+        "@totemsdk/chain-provider": "^0.3.0",
         "@totemsdk/kissvm": "^1.3.0",
         "@totemsdk/lookup-client": "^0.2.0",
-        "@totemsdk/omnia": "^2.1.0",
+        "@totemsdk/omnia": "^2.2.0",
         "@totemsdk/omnia-factory": "^0.6.0",
         "@totemsdk/omnia-router": "^0.3.0",
         "@totemsdk/omnia-splice": "^0.3.0",
         "@totemsdk/pear": "^0.2.1",
         "@totemsdk/statechain": "^0.3.0",
-        "@totemsdk/txpow": "^1.0.2",
+        "@totemsdk/txpow": "^1.1.0",
         "@totemsdk/wots-lease": "^1.0.1"
       },
       "exports": {
@@ -334,7 +334,7 @@
         "@totemsdk/intelligence": "^0.1.1",
         "@totemsdk/manifest": "^2.0.0",
         "@totemsdk/storage": "^0.1.0",
-        "@totemsdk/txpow": "^1.0.2"
+        "@totemsdk/txpow": "^1.1.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -357,7 +357,7 @@
       ],
       "dependencies": {
         "@totemsdk/agent-policy": "^0.3.1",
-        "@totemsdk/chain-provider": "^0.2.1",
+        "@totemsdk/chain-provider": "^0.3.0",
         "@totemsdk/identity": "^1.0.1",
         "@totemsdk/location-proof": "^1.0.0",
         "@totemsdk/lookup-client": "^0.2.0",
@@ -782,7 +782,7 @@
         "client"
       ],
       "dependencies": {
-        "@totemsdk/chain-provider": "^0.2.1",
+        "@totemsdk/chain-provider": "^0.3.0",
         "@totemsdk/core": "^1.4.0",
         "@totemsdk/lookup-protocol": "^0.2.0",
         "@totemsdk/root-identity": "^1.0.9",
@@ -811,12 +811,12 @@
       ],
       "dependencies": {
         "better-sqlite3": "^12.2.0",
-        "@totemsdk/chain-provider": "^0.2.1",
+        "@totemsdk/chain-provider": "^0.3.0",
         "@totemsdk/core": "^1.4.0",
         "@totemsdk/lookup-protocol": "^0.2.0",
         "@totemsdk/manifest": "^2.0.0",
-        "@totemsdk/minima-rpc": "^0.3.0",
-        "@totemsdk/txpow": "^1.0.2",
+        "@totemsdk/minima-rpc": "^0.4.0",
+        "@totemsdk/txpow": "^1.1.0",
         "@totemsdk/wots-lease": "^1.0.1"
       },
       "exports": {
@@ -875,7 +875,7 @@
     },
     {
       "name": "@totemsdk/omnia",
-      "version": "2.1.0",
+      "version": "2.2.0",
       "description": "Omnia eltoo payment channel state machine — transport-agnostic, WOTS-safe, HTLC-ready",
       "domain": "payment-network",
       "keywords": [
@@ -888,13 +888,13 @@
       ],
       "dependencies": {
         "@totemsdk/agent-policy": "^0.3.1",
-        "@totemsdk/chain-provider": "^0.2.1",
+        "@totemsdk/chain-provider": "^0.3.0",
         "@totemsdk/core": "^1.4.0",
         "@totemsdk/kissvm": "^1.3.0",
         "@totemsdk/lookup-protocol": "^0.2.0",
         "@totemsdk/stream-transport": "^0.2.0",
         "@totemsdk/tx-builder": "^0.2.1",
-        "@totemsdk/txpow": "^1.0.2",
+        "@totemsdk/txpow": "^1.1.0",
         "@totemsdk/wots-lease": "^1.0.1"
       },
       "exports": {
@@ -923,12 +923,12 @@
         "virtual-channel"
       ],
       "dependencies": {
-        "@totemsdk/chain-provider": "^0.2.1",
+        "@totemsdk/chain-provider": "^0.3.0",
         "@totemsdk/core": "^1.4.0",
-        "@totemsdk/omnia": "^2.1.0",
+        "@totemsdk/omnia": "^2.2.0",
         "@totemsdk/storage": "^0.1.0",
         "@totemsdk/tx-builder": "^0.2.1",
-        "@totemsdk/txpow": "^1.0.2",
+        "@totemsdk/txpow": "^1.1.0",
         "@totemsdk/wots-lease": "^1.0.1"
       },
       "exports": {
@@ -958,7 +958,7 @@
       ],
       "dependencies": {
         "@totemsdk/core": "^1.4.0",
-        "@totemsdk/omnia": "^2.1.0",
+        "@totemsdk/omnia": "^2.2.0",
         "@totemsdk/storage": "^0.1.0"
       },
       "exports": {
@@ -982,10 +982,10 @@
       ],
       "dependencies": {
         "@totemsdk/core": "^1.4.0",
-        "@totemsdk/omnia": "^2.1.0",
+        "@totemsdk/omnia": "^2.2.0",
         "@totemsdk/storage": "^0.1.0",
         "@totemsdk/tx-builder": "^0.2.1",
-        "@totemsdk/txpow": "^1.0.2",
+        "@totemsdk/txpow": "^1.1.0",
         "@totemsdk/wots-lease": "^1.0.1"
       },
       "exports": {
@@ -1010,11 +1010,11 @@
         "ark"
       ],
       "dependencies": {
-        "@totemsdk/chain-provider": "^0.2.1",
+        "@totemsdk/chain-provider": "^0.3.0",
         "@totemsdk/core": "^1.4.0",
-        "@totemsdk/omnia": "^2.1.0",
+        "@totemsdk/omnia": "^2.2.0",
         "@totemsdk/storage": "^0.1.0",
-        "@totemsdk/txpow": "^1.0.2",
+        "@totemsdk/txpow": "^1.1.0",
         "@totemsdk/wots-lease": "^1.0.1"
       },
       "exports": {
@@ -1189,7 +1189,7 @@
     },
     {
       "name": "@totemsdk/minima-rpc",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "description": "Fetch-based PureMinima RPC client — Bare/Pear/Node/browser compatible",
       "domain": "sovereignty-stack",
       "keywords": [
@@ -1332,7 +1332,7 @@
         "ws": "^8.21.1",
         "@totemsdk/core": "^1.4.0",
         "@totemsdk/storage": "^0.1.0",
-        "@totemsdk/txpow": "^1.0.2"
+        "@totemsdk/txpow": "^1.1.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1356,11 +1356,11 @@
         "custody-transfer"
       ],
       "dependencies": {
-        "@totemsdk/chain-provider": "^0.2.1",
+        "@totemsdk/chain-provider": "^0.3.0",
         "@totemsdk/core": "^1.4.0",
         "@totemsdk/storage": "^0.1.0",
         "@totemsdk/tx-builder": "^0.2.1",
-        "@totemsdk/txpow": "^1.0.2",
+        "@totemsdk/txpow": "^1.1.0",
         "@totemsdk/wots-lease": "^1.0.1"
       },
       "exports": {
@@ -1426,7 +1426,7 @@
     },
     {
       "name": "@totemsdk/txpow",
-      "version": "1.0.2",
+      "version": "1.1.0",
       "description": "TxPoW envelope serialization and proof-of-work mining for Minima",
       "domain": "cryptographic-foundation",
       "keywords": [
@@ -1464,7 +1464,7 @@
         "multi-wallet"
       ],
       "dependencies": {
-        "@totemsdk/chain-provider": "^0.2.1"
+        "@totemsdk/chain-provider": "^0.3.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1490,7 +1490,7 @@
         "@totemsdk/core": "^1.4.0",
         "@totemsdk/lookup-protocol": "^0.2.0",
         "@totemsdk/storage": "^0.1.0",
-        "@totemsdk/txpow": "^1.0.2"
+        "@totemsdk/txpow": "^1.1.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1582,7 +1582,7 @@
     },
     {
       "name": "@totemsdk/omnia-host",
-      "version": "0.8.0",
+      "version": "0.9.0",
       "description": "Durable Omnia node daemon for channel lifecycle, routing, and control APIs",
       "domain": "payment-network",
       "keywords": [
@@ -1594,12 +1594,12 @@
       "dependencies": {
         "better-sqlite3": "^12.2.0",
         "ws": "^8.21.1",
-        "@totemsdk/chain-provider": "^0.2.1",
+        "@totemsdk/chain-provider": "^0.3.0",
         "@totemsdk/core": "^1.4.0",
         "@totemsdk/identity": "^1.0.1",
         "@totemsdk/manifest": "^2.0.0",
-        "@totemsdk/minima-rpc": "^0.3.0",
-        "@totemsdk/omnia": "^2.1.0",
+        "@totemsdk/minima-rpc": "^0.4.0",
+        "@totemsdk/omnia": "^2.2.0",
         "@totemsdk/omnia-factory": "^0.6.0",
         "@totemsdk/omnia-router": "^0.3.0",
         "@totemsdk/omnia-splice": "^0.3.0",
@@ -1729,10 +1729,10 @@
       ],
       "dependencies": {
         "@totemsdk/agent-policy": "^0.3.1",
-        "@totemsdk/chain-provider": "^0.2.1",
+        "@totemsdk/chain-provider": "^0.3.0",
         "@totemsdk/core": "^1.4.0",
         "@totemsdk/liquidity-bond": "^0.3.1",
-        "@totemsdk/omnia": "^2.1.0",
+        "@totemsdk/omnia": "^2.2.0",
         "@totemsdk/omnia-factory": "^0.6.0",
         "@totemsdk/omnia-router": "^0.3.0",
         "@totemsdk/omnia-splice": "^0.3.0",
@@ -1773,10 +1773,10 @@
         "browser"
       ],
       "dependencies": {
-        "@totemsdk/chain-provider": "^0.2.1",
+        "@totemsdk/chain-provider": "^0.3.0",
         "@totemsdk/core": "^1.4.0",
         "@totemsdk/identity": "^1.0.1",
-        "@totemsdk/omnia": "^2.1.0",
+        "@totemsdk/omnia": "^2.2.0",
         "@totemsdk/omnia-factory": "^0.6.0",
         "@totemsdk/omnia-router": "^0.3.0",
         "@totemsdk/omnia-splice": "^0.3.0",
