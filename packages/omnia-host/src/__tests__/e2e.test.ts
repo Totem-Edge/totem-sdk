@@ -61,6 +61,14 @@ describe('omnia-host end-to-end (real control server)', () => {
 
     const chainProvider = {
       broadcastTxPoW: jest.fn(async () => ({ txpowid: '0xtxpow-e2e' })),
+      getCoin: jest.fn(async (id: string) => ({
+        coinId: id,
+        address: '0x' + '11'.repeat(32),
+        amount: '1000000',
+        tokenid: '0x00',
+        spent: false,
+        mmrentry: 1,
+      })),
       getToken: jest.fn(async (tokenId: string) => ({ tokenId, name: { name: 'Test' }, amount: '0', script: 'RETURN TRUE' })),
     };
 
@@ -75,14 +83,25 @@ describe('omnia-host end-to-end (real control server)', () => {
       } as any,
       swarm: {
         advertise: jest.fn(),
-        connectToPeer: jest.fn(async () => ({
-          pubkey: 'peer',
-          channelId: 'channel',
-          sendMessage: jest.fn(),
-          onMessage: jest.fn(),
-          disconnect: jest.fn(),
-          isConnected: jest.fn(() => true),
-        })),
+        connectToPeer: jest.fn(async (_pubkey: string, channelId: string) => {
+          let cb: ((msg: any) => void) | undefined;
+          let last: any;
+          const deliver = () => {
+            if (!cb || !last) return;
+            const reply = last.type === 'SETTLEMENT_PROPOSAL'
+              ? { type: 'ACK', channelId: last.channelId, payload: { partyId: 'bob', signature: '0x' + '11'.repeat(64) } }
+              : { type: 'ACK', channelId: last.channelId };
+            setTimeout(() => cb?.(reply), 0);
+          };
+          return {
+            pubkey: 'peer',
+            channelId,
+            sendMessage: jest.fn(async (msg: any) => { last = msg; deliver(); }),
+            onMessage: jest.fn((f: (msg: any) => void) => { cb = f; deliver(); return () => { cb = undefined; }; }),
+            disconnect: jest.fn(),
+            isConnected: jest.fn(() => true),
+          };
+        }),
         listenForChannels: jest.fn(() => jest.fn()),
         broadcast: jest.fn(),
         close: jest.fn(async () => undefined),

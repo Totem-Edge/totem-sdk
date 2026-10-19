@@ -553,7 +553,7 @@ describe('@totemsdk/omnia — acceptChannel', () => {
 });
 
 describe('@totemsdk/omnia — createChannel', () => {
-  it('calls broadcastTxPoW and returns channel in opening status', async () => {
+  it('calls broadcastTxPoW and returns channel in active status', async () => {
     const chainProvider = makeMockChainProvider();
     const params: CreateChannelParams = {
       localParty: alice,
@@ -566,7 +566,7 @@ describe('@totemsdk/omnia — createChannel', () => {
     };
     const { channel, proposal } = await createChannel(params, chainProvider as any);
     expect(chainProvider.broadcastTxPoW).toHaveBeenCalledTimes(1);
-    expect(channel.status).toBe('opening');
+    expect(channel.status).toBe('active');
     expect(channel.totalValue).toBe(1000n);
     expect(channel.tokenId).toBe('0x00');
     expect(channel.programId).toBe('eltoo-payment');
@@ -1800,6 +1800,7 @@ describe('@totemsdk/omnia — settlement', () => {
   });
 
   it('proposeSettlement: returns settlementPayload with correct channelId and sequence', async () => {
+    channel.onChainSequence = 5;
     const partyAddresses = { alice: '0x' + 'aa'.repeat(32), bob: '0x' + 'bb'.repeat(32) };
     const { settlementPayload, partialState } = await proposeSettlement(channel, leaseProvider as any, { partyAddresses: partyAddresses, signer: aliceSigner });
     expect(settlementPayload.channelId).toBe(channel.channelId);
@@ -2461,7 +2462,7 @@ describe('@totemsdk/omnia — integration: fund → N updates → cooperative se
       chain as any,
     );
 
-    let ch = activateChannel(openChannel);
+    let ch = openChannel.status === 'active' ? openChannel : activateChannel(openChannel);
     expect(ch.status).toBe('active');
 
     // 2. 5 updates
