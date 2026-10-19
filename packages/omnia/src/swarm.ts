@@ -11,7 +11,7 @@
 
 import { OmniaPeerImpl } from './peer.js';
 import { channelTopic, peerTopic, broadcastTopic } from './topic.js';
-import { NodeStreamTransport, type IStreamTransport } from '@totemsdk/stream-transport';
+import { NodeStreamTransport, HyperswarmStreamTransport, type IStreamTransport } from '@totemsdk/stream-transport';
 import type {
   OmniaSwarm,
   OmniaSwarmConfig,
@@ -53,7 +53,7 @@ export class OmniaSwarmImpl implements OmniaSwarm {
         : `unknown-${Date.now()}`;
 
       const isNewPeer = !this._peers.has(pubkey);
-      const peer = this._getOrBindPeer(this._adaptConn(conn), pubkey, undefined);
+      const peer = this._getOrBindPeer(this._adaptConn(conn, info), pubkey, undefined);
 
       const topics: Buffer[] = Array.isArray(info?.topics)
         ? info.topics.map((t: Buffer | Uint8Array) => Buffer.from(t))
@@ -84,7 +84,10 @@ export class OmniaSwarmImpl implements OmniaSwarm {
    *   IStreamTransport and is returned as-is (test / already-wrapped path).
    * - Otherwise it is wrapped in NodeStreamTransport (production Hyperswarm path).
    */
-  private _adaptConn(conn: unknown): IStreamTransport {
+  private _adaptConn(
+    conn: unknown,
+    info?: { publicKey?: Uint8Array; topics?: Buffer[] },
+  ): IStreamTransport {
     const c = conn as Record<string, unknown>;
     // Only treat it as an IStreamTransport if it implements the interface
     // (onData is the defining method). A raw Hyperswarm/streamx connection may
@@ -92,6 +95,14 @@ export class OmniaSwarmImpl implements OmniaSwarm {
     // OmniaStream calls `_stream.onData(...)` and throws.
     if (typeof c['send'] === 'function' && typeof c['onData'] === 'function') {
       return c as unknown as IStreamTransport;
+    }
+    // Prefer the Hyperswarm adapter, which carries the connection's pubkey and
+    // topics (already available from the swarm `info`).
+    if (info?.publicKey) {
+      return new HyperswarmStreamTransport(conn, {
+        publicKey: Buffer.from(info.publicKey),
+        topics: info.topics,
+      });
     }
     return new NodeStreamTransport(conn);
   }
@@ -146,7 +157,7 @@ export class OmniaSwarmImpl implements OmniaSwarm {
           : null;
         if (connPubkey === expectedPubkey) {
           cleanup();
-          resolve(this._adaptConn(conn));
+          resolve(this._adaptConn(conn, info));
         }
       };
 
