@@ -174,6 +174,8 @@ jobs:
         run: node scripts/verify-sdk-manifest.mjs
       - name: Custody conformance gate (RFC-044)
         run: node scripts/validate-custody.mjs
+      - name: Wallet-adapter ⇄ connect parity gate
+        run: node scripts/check-wallet-adapter-parity.mjs
       - name: Flat whole-family install guard (CAN-008)
         run: node scripts/check-family-install.mjs
       - name: storage→core DAG lint

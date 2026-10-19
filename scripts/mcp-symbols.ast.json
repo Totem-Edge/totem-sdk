@@ -18565,12 +18565,20 @@
     "@totemsdk/wallet-adapter": {
       "symbols": {
         "WalletInfo": {
-          "kind": "interface",
-          "signature": "export interface WalletInfo"
+          "kind": "type",
+          "signature": "export type WalletInfo = TotemWalletInfo"
         },
         "WalletCapabilities": {
-          "kind": "interface",
-          "signature": "export interface WalletCapabilities"
+          "kind": "type",
+          "signature": "export type WalletCapabilities = TotemCapabilities"
+        },
+        "AdapterProvider": {
+          "kind": "type",
+          "signature": "export type AdapterProvider = TotemProvider"
+        },
+        "ConnectResponse": {
+          "kind": "type",
+          "signature": "export type ConnectResponse = TotemConnectResponse"
         },
         "AccountEntry": {
           "kind": "interface",
@@ -18578,7 +18586,8 @@
         },
         "GetAccountsResponse": {
           "kind": "interface",
-          "signature": "export interface GetAccountsResponse"
+          "signature": "export interface GetAccountsResponse",
+          "doc": "Internal/subclass account shape. `TOTEM_GET_ACCOUNTS` is normalised on the\nwire to the canonical connect shape (`{ accounts: [{ index, address, balance }] }`)."
         },
         "SignTransactionParams": {
           "kind": "interface",
@@ -18596,30 +18605,6 @@
           "kind": "interface",
           "signature": "export interface SignDataResponse"
         },
-        "ChainProviderLike": {
-          "kind": "interface",
-          "signature": "export interface ChainProviderLike"
-        },
-        "ChainProviderFactory": {
-          "kind": "type",
-          "signature": "export type ChainProviderFactory = ( providerType: 'hosted' | 'pure_rpc' | 'hybrid', rpcEndpoint?: string, ) => ChainProviderLike"
-        },
-        "WalletAdapterConfig": {
-          "kind": "interface",
-          "signature": "export interface WalletAdapterConfig"
-        },
-        "AdapterProvider": {
-          "kind": "interface",
-          "signature": "export interface AdapterProvider"
-        },
-        "TotemAdapterError": {
-          "kind": "class",
-          "signature": "export class TotemAdapterError extends Error"
-        },
-        "ConnectResponse": {
-          "kind": "interface",
-          "signature": "export interface ConnectResponse"
-        },
         "VerifyResponse": {
           "kind": "interface",
           "signature": "export interface VerifyResponse"
@@ -18628,10 +18613,29 @@
           "kind": "interface",
           "signature": "export interface DisconnectResponse"
         },
+        "ChainProviderLike": {
+          "kind": "interface",
+          "signature": "export interface ChainProviderLike"
+        },
+        "ChainProviderFactory": {
+          "kind": "type",
+          "signature": "export type ChainProviderFactory = ( providerType: 'hosted' | 'pure_rpc' | 'hybrid', rpcEndpoint?: string, ) => ChainProviderLike"
+        },
+        "WalletAdapterApprovalRequest": {
+          "kind": "interface",
+          "signature": "export interface WalletAdapterApprovalRequest"
+        },
+        "WalletAdapterConfig": {
+          "kind": "interface",
+          "signature": "export interface WalletAdapterConfig"
+        },
+        "TotemAdapterError": {
+          "kind": "class",
+          "signature": "export class TotemAdapterError extends Error"
+        },
         "TotemWalletAdapter": {
           "kind": "class",
-          "signature": "export abstract class TotemWalletAdapter",
-          "doc": "Abstract base class for third-party Totem-compatible wallets.\n\nSubclass this and implement only three methods:\n- `getAccounts(origin)` — return the list of accounts for a dApp origin\n- `signTransaction(origin, params)` — sign an unsigned transaction hex\n- `signData(origin, params)` — sign arbitrary data hex\n\nEverything else — TOTEM_CONNECT handshake, TOTEM_GET_CAPABILITIES,\nconnected-site gating, chain provider switching, and the totem:announce\ninjection — is handled automatically by the base class.\n\nCall `adapter.inject()` once from your extension content script or page\ncontext to make the wallet discoverable by any dApp using WalletDiscovery\nfrom"
+          "signature": "export abstract class TotemWalletAdapter"
         }
       }
     },

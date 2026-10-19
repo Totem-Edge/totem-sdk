@@ -1460,7 +1460,7 @@
     },
     {
       "name": "@totemsdk/wallet-adapter",
-      "version": "1.0.1",
+      "version": "2.0.0",
       "description": "Abstract base class for Totem-compatible wallets — hardware bridges, mobile companions, institutional custody",
       "domain": "edge-computing",
       "keywords": [
@@ -1470,12 +1470,13 @@
         "multi-wallet"
       ],
       "dependencies": {
-        "@totemsdk/chain-provider": "^0.3.0"
+        "@totemsdk/chain-provider": "^0.3.0",
+        "@totemsdk/connect": "^2.4.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "WalletAdapter, WalletConfig, sign, getBalance, getAddresses, TotemAnnounce",
+      "exportsDescription": "Abstract TotemWalletAdapter over the shared connect/wallet runtime — fail-closed approvals, trusted origin, WOTS lease, input authorization, full 47-method connect surface",
       "custody": {
         "classification": "non-custodial",
         "reason": "keys never leave the wallet; exports no key material"

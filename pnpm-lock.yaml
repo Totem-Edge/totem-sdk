@@ -2330,6 +2330,9 @@ importers:
       '@totemsdk/chain-provider':
         specifier: workspace:^
         version: link:../chain-provider
+      '@totemsdk/connect':
+        specifier: workspace:^
+        version: link:../connect
     devDependencies:
       '@types/jest':
         specifier: ^30.0.0

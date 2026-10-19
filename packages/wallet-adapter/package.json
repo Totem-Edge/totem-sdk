@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/wallet-adapter",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "description": "Abstract base class for building Totem-compatible wallets — hardware bridges, mobile companions, institutional custody wallets",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
@@ -33,6 +33,9 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "dependencies": {
+    "@totemsdk/connect": "workspace:^"
   },
   "peerDependencies": {
     "@totemsdk/chain-provider": "workspace:^"

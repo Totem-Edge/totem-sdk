@@ -13,6 +13,8 @@ module.exports = {
     }],
   },
   moduleNameMapper: {
+    '^@totemsdk/connect$': '<rootDir>/../connect/src/index.ts',
+    '^@totemsdk/connect/wallet$': '<rootDir>/../connect/src/wallet.ts',
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
 };

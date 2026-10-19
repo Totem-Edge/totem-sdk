@@ -62,7 +62,8 @@
     "release:family-install": "node scripts/check-family-install.mjs",
     "release:upstream": "node scripts/check-upstream-published.mjs",
     "validate:qvac-drift": "node scripts/verify-qvac-api-drift.mjs",
-    "validate:node-syntax": "node scripts/check-node-syntax.mjs"
+    "validate:node-syntax": "node scripts/check-node-syntax.mjs",
+    "validate:wallet-adapter-parity": "node scripts/check-wallet-adapter-parity.mjs"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

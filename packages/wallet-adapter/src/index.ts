@@ -2,117 +2,87 @@
  * @totemsdk/wallet-adapter
  *
  * Abstract base class for building Totem-compatible wallets.
- * Hardware wallet bridges, mobile companion apps, institutional custody
- * wallets — any third-party signer that wants to be discoverable by dApps
- * using the TOTEM_ANNOUNCE multi-wallet discovery protocol.
  *
- * Usage: subclass TotemWalletAdapter, implement the three abstract methods,
- * then call adapter.inject() from your content script or page context.
+ * This package is a thin binding over the shared wallet runtime in
+ * `@totemsdk/connect/wallet`. That runtime supplies:
+ * - the full 47-method connect surface (legacy `TOTEM_*` + `totem_*`),
+ * - mandatory, fail-closed approvals for approval-required methods,
+ * - the WOTS lease port and the optional Omnia / statechain / KISSVM / agent /
+ *   receipts / payment-request / chain / edge ports,
+ * - per-method capability support and explicit `UNSUPPORTED` reasons.
+ *
+ * Subclasses implement the three signer methods (`getAccounts`,
+ * `signTransaction`, `signData`) and declare an `approve` callback (and a
+ * trusted `getOrigin`). Approval-required methods are **unsupported** when no
+ * `approve` callback is configured, so a wallet can never silently execute
+ * them by default.
  *
  * @example
  * ```ts
- * import { TotemWalletAdapter } from '@totemsdk/wallet-adapter';
- *
  * class MyWallet extends TotemWalletAdapter {
- *   async getAccounts(origin) {
- *     return { accounts: [{ address: 'Mx...', addressIndex: 0, publicKey: 'deadbeef...' }], activeIndex: 0 };
- *   }
- *   async signTransaction(origin, params) {
- *     const signed = await myHardwareDevice.sign(params.unsignedHex);
- *     return { success: true, signedHex: signed };
- *   }
- *   async signData(origin, params) {
- *     const signed = await myHardwareDevice.sign(params.unsignedHex);
- *     return { success: true, signedHex: signed };
- *   }
+ *   async getAccounts(origin) { return { accounts: [...], activeIndex: 0 }; }
+ *   async signTransaction(origin, params) { return myDevice.sign(params.unsignedHex); }
+ *   async signData(origin, params) { return myDevice.sign(params.unsignedHex); }
  * }
  *
  * const wallet = new MyWallet({
  *   walletInfo: { id: 'my-wallet', name: 'My Wallet', version: '1.0.0' },
+ *   getOrigin: () => window.location.origin,
+ *   approve: async ({ method, origin, params }) => myUi.confirm(method, origin, params),
  * });
  * wallet.inject();
  * ```
  */
+import {
+  TOTEM_ANNOUNCE,
+  TOTEM_REQUEST_ANNOUNCE,
+  type TotemCapabilities,
+  type TotemConnectResponse,
+  type TotemProvider,
+  type TotemProviderStatus,
+  type TotemWalletInfo,
+} from '@totemsdk/connect';
+import {
+  createWalletRuntime,
+  type AgentBridgePort,
+  type ApprovalPort,
+  type ChainStateProviderPort,
+  type EdgeDispatchPort,
+  type KissvmClientPort,
+  type OmniaClientPort,
+  type PaymentRequestPort,
+  type ReceiptStorePort,
+  type SelfHostedPort,
+  type StatechainClientPort,
+  type WalletHandlerContext,
+  type WalletMethodHandler,
+  type WalletRuntime,
+  type WalletRuntimeMeta,
+  type WalletSignerPort,
+  type WotsLeasePort,
+} from '@totemsdk/connect/wallet';
 
-// ─── TOTEM_ANNOUNCE protocol constants ────────────────────────────────────────
-// Inlined so this package has zero runtime dependencies.
+// ─── Public type aliases (aligned with @totemsdk/connect) ────────────────────
 
-const TOTEM_ANNOUNCE_EVENT = 'totem:announce';
-const TOTEM_REQUEST_ANNOUNCE_EVENT = 'totem:requestAnnounce';
+export type WalletInfo = TotemWalletInfo;
+export type WalletCapabilities = TotemCapabilities;
+export type AdapterProvider = TotemProvider;
+export type ConnectResponse = TotemConnectResponse;
 
-// ─── Wallet identity ──────────────────────────────────────────────────────────
-
-export interface WalletInfo {
-  id: string;
-  name: string;
-  icon?: string;
-  version?: string;
-}
-
-// ─── Capability declaration ───────────────────────────────────────────────────
-// Mirrors TotemCapabilities from @totemsdk/connect — inlined so consumers
-// don't need @totemsdk/connect installed.
-
-export interface WalletCapabilities {
-  version: string;
-  wallet: {
-    selfCustody: boolean;
-    wotsTreeKey: boolean;
-    rootIdentity: boolean;
-    treeKeyDepth: number | null;
-    maxAddresses: number | null;
-    seedExport: boolean;
-    custodyType: 'self' | 'hosted' | 'hybrid';
-  };
-  account: {
-    multiAddress: boolean;
-    accountSwitcher: boolean;
-  };
-  chain: {
-    hostedProvider: boolean;
-    pureMinimaRpc: boolean;
-    lookupNode: boolean;
-    localProofVerify: boolean;
-    pearRuntime: boolean;
-    hyperswarm: boolean;
-  };
-  txpow: {
-    localMining: boolean;
-    progressEvents: boolean;
-  };
-  omnia: {
-    channels: boolean;
-    routing: boolean;
-    multiHop: boolean;
-    crossTokenSwap: boolean;
-    factory: boolean;
-    virtualChannels: boolean;
-    splicing: boolean;
-    hyperswarm: boolean;
-  };
-  statechain: {
-    supported: boolean;
-    blindSE: boolean;
-  };
-  scripting: {
-    kissvm: boolean;
-  };
-  qvac: {
-    paymentIntents: boolean;
-    explanations: boolean;
-  };
-}
-
-// ─── Abstract method parameter and return types ───────────────────────────────
+// ─── Subclass-facing parameter / return types ────────────────────────────────
 
 export interface AccountEntry {
   address: string;
   addressIndex: number;
-  /** WOTS public key hex. Required for TOTEM_VERIFY — return null only for accounts that will not be used for verification. */
+  /** WOTS public key hex. Required for TOTEM_VERIFY. */
   publicKey: string | null;
   balance?: string;
 }
 
+/**
+ * Internal/subclass account shape. `TOTEM_GET_ACCOUNTS` is normalised on the
+ * wire to the canonical connect shape (`{ accounts: [{ index, address, balance }] }`).
+ */
 export interface GetAccountsResponse {
   accounts: AccountEntry[];
   activeIndex: number;
@@ -148,79 +118,6 @@ export interface SignDataResponse {
   errorCode?: string;
 }
 
-// ─── Chain provider (structural / duck-typed) ─────────────────────────────────
-// Using a structural interface so @totemsdk/chain-provider is a true optional
-// peer dep — the adapter never imports it at runtime. Pass any object that
-// satisfies ChainProviderLike and it will work.
-
-export interface ChainProviderLike {
-  getCoins(query: Record<string, unknown>): Promise<unknown[]>;
-  getCoin(coinId: string): Promise<unknown>;
-  getProof(coinId: string): Promise<unknown>;
-  getTip(): Promise<{ block: number; hash: string; time?: string }>;
-  getToken(tokenId: string): Promise<unknown>;
-  searchTokens(query: Record<string, unknown>): Promise<unknown[]>;
-  getTokensByCreator(address: string): Promise<unknown[]>;
-  broadcastTxPoW(txpowHex: string): Promise<{ success: boolean; txpowid?: string; message?: string }>;
-}
-
-// Factory signature for dynamic provider switching (totem_setChainProvider).
-// If you use @totemsdk/chain-provider, return the appropriate provider class:
-//
-//   import { HostedProvider, PureMinimaRpcProvider } from '@totemsdk/chain-provider';
-//   chainProviderFactory: (type, rpcEndpoint) => {
-//     if (type === 'pure_rpc' && rpcEndpoint) return new PureMinimaRpcProvider({ endpoint: rpcEndpoint });
-//     return new HostedProvider({ baseUrl: 'https://api.axia.to', apiKey: '...' });
-//   }
-
-export type ChainProviderFactory = (
-  providerType: 'hosted' | 'pure_rpc' | 'hybrid',
-  rpcEndpoint?: string,
-) => ChainProviderLike;
-
-// ─── Adapter configuration ────────────────────────────────────────────────────
-
-export interface WalletAdapterConfig {
-  walletInfo: WalletInfo;
-  capabilities?: DeepPartial<Omit<WalletCapabilities, 'version'>>;
-  chainProvider?: ChainProviderLike;
-  chainProviderFactory?: ChainProviderFactory;
-}
-
-// Utility type — allows partial nesting in capability overrides
-type DeepPartial<T> = { [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K] };
-
-// ─── TotemProvider shape (what dApps receive) ─────────────────────────────────
-
-export interface AdapterProvider {
-  isTotem: true;
-  request(args: { method: string; params?: Record<string, unknown> }): Promise<unknown>;
-  on(event: string, callback: (...args: unknown[]) => void): void;
-  removeListener(event: string, callback: (...args: unknown[]) => void): void;
-}
-
-// ─── RPC error ────────────────────────────────────────────────────────────────
-
-export class TotemAdapterError extends Error {
-  constructor(
-    message: string,
-    public readonly code: number = -32000,
-    public readonly errorCode?: string,
-  ) {
-    super(message);
-    this.name = 'TotemAdapterError';
-  }
-}
-
-// ─── Protocol response shapes (canonical TOTEM_CONNECT v4.x) ─────────────────
-
-export interface ConnectResponse {
-  connected: true;
-  address: string;
-  addressIndex: number;
-  isReconnect?: boolean;
-}
-
 export interface VerifyResponse {
   verified: true;
   verificationId: string;
@@ -239,7 +136,108 @@ export interface DisconnectResponse {
   errorCode?: string;
 }
 
-// ─── Not-connected error helper ───────────────────────────────────────────────
+// ─── Chain provider (structural / duck-typed) ─────────────────────────────────
+
+export interface ChainProviderLike {
+  getCoins(query: Record<string, unknown>): Promise<unknown[]>;
+  getCoin?(coinId: string): Promise<unknown>;
+  getProof?(coinId: string): Promise<unknown>;
+  getTip?(): Promise<{ block: number; hash: string; time?: string }>;
+  getToken?(tokenId: string): Promise<unknown>;
+  searchTokens?(query: Record<string, unknown>): Promise<unknown[]>;
+  getTokensByCreator?(address: string): Promise<unknown[]>;
+  broadcastTxPoW(txpowHex: string): Promise<{ success: boolean; txpowid?: string; message?: string }>;
+}
+
+export type ChainProviderFactory = (
+  providerType: 'hosted' | 'pure_rpc' | 'hybrid',
+  rpcEndpoint?: string,
+) => ChainProviderLike;
+
+// ─── Configuration ────────────────────────────────────────────────────────────
+
+export interface WalletAdapterApprovalRequest {
+  method: string;
+  params: Record<string, unknown>;
+  /** Trusted requesting origin (resolved by the host, never by the dApp). */
+  origin?: string;
+}
+
+export interface WalletAdapterConfig {
+  walletInfo: WalletInfo;
+  capabilities?: DeepPartial<Omit<WalletCapabilities, 'version'>>;
+
+  /** Trusted origin resolver. Defaults to `window.location.origin` in a browser. */
+  getOrigin?: (method?: string) => string | undefined;
+  /**
+   * Fall back to the dApp-supplied `params.origin` when no trusted origin is
+   * available. NOT recommended; off by default.
+   */
+  allowUntrustedOrigin?: boolean;
+
+  /**
+   * Approval callback. Required for approval-required methods; without it they
+   * are reported unsupported (fail closed). The `origin` passed here is the
+   * trusted origin.
+   */
+  approve?: (request: WalletAdapterApprovalRequest) => Promise<boolean>;
+
+  /** Allow signing inputs that are not in the connected account list. */
+  allowExternalInputs?: boolean;
+
+  chainProvider?: ChainProviderLike;
+  chainProviderFactory?: ChainProviderFactory;
+  network?: string;
+  providerStatus?: Partial<TotemProviderStatus>;
+
+  // Optional execution ports for the full connect surface.
+  chain?: ChainStateProviderPort;
+  lease?: WotsLeasePort;
+  omnia?: OmniaClientPort;
+  statechain?: StatechainClientPort;
+  kissvm?: KissvmClientPort;
+  agent?: AgentBridgePort;
+  receipts?: ReceiptStorePort;
+  paymentRequests?: PaymentRequestPort;
+  selfHosted?: SelfHostedPort;
+  edge?: EdgeDispatchPort;
+
+  /** Extra/override method handlers. */
+  handlers?: readonly WalletMethodHandler[];
+}
+
+type DeepPartial<T> = { [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K] };
+
+// ─── RPC error (kept for compatibility) ───────────────────────────────────────
+
+export class TotemAdapterError extends Error {
+  constructor(
+    message: string,
+    public readonly code: number = -32000,
+    public readonly errorCode?: string,
+  ) {
+    super(message);
+    this.name = 'TotemAdapterError';
+  }
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+const ORIGIN_METHODS = new Set([
+  'TOTEM_CONNECT',
+  'TOTEM_VERIFY',
+  'TOTEM_GET_ACCOUNTS',
+  'TOTEM_GET_COINS',
+  'TOTEM_SEND_TRANSACTION',
+  'TOTEM_SEND_COMPLEX',
+  'TOTEM_TOKENCREATE',
+  'TOTEM_SIGN_DATA',
+  'TOTEM_BROADCAST_HEX',
+  'TOTEM_GRANT_TX_PERMISSION',
+  'TOTEM_REVOKE_TX_PERMISSION',
+  'TOTEM_GET_TX_PERMISSIONS',
+  'totem_signTransaction',
+]);
 
 function notConnectedError(): { success: false; error: string; errorCode: string } {
   return {
@@ -249,136 +247,116 @@ function notConnectedError(): { success: false; error: string; errorCode: string
   };
 }
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
+}
+
 // ─── TotemWalletAdapter ───────────────────────────────────────────────────────
 
-/**
- * Abstract base class for third-party Totem-compatible wallets.
- *
- * Subclass this and implement only three methods:
- * - `getAccounts(origin)` — return the list of accounts for a dApp origin
- * - `signTransaction(origin, params)` — sign an unsigned transaction hex
- * - `signData(origin, params)` — sign arbitrary data hex
- *
- * Everything else — TOTEM_CONNECT handshake, TOTEM_GET_CAPABILITIES,
- * connected-site gating, chain provider switching, and the totem:announce
- * injection — is handled automatically by the base class.
- *
- * Call `adapter.inject()` once from your extension content script or page
- * context to make the wallet discoverable by any dApp using WalletDiscovery
- * from @totemsdk/connect.
- */
 export abstract class TotemWalletAdapter {
   protected _chainProvider: ChainProviderLike | null;
   private readonly _config: WalletAdapterConfig;
   private readonly _connectedOrigins = new Set<string>();
   private readonly _eventListeners = new Map<string, Set<(...args: unknown[]) => void>>();
+  private readonly _usedVerifyNonces = new Set<string>();
   private _currentProviderType: 'hosted' | 'pure_rpc' | 'hybrid' = 'hosted';
   private _announceListener?: () => void;
   private _injected = false;
+  private readonly _runtime: WalletRuntime;
 
   constructor(config: WalletAdapterConfig) {
     this._config = config;
     this._chainProvider = config.chainProvider ?? null;
+    this._runtime = this._createRuntime();
   }
 
   // ── Abstract methods ───────────────────────────────────────────────────────
 
-  /**
-   * Return the accounts this wallet manages for the given dApp origin.
-   * Called on TOTEM_CONNECT and TOTEM_GET_ACCOUNTS.
-   *
-   * Note: `publicKey` must be a non-null hex string for any account that
-   * will be used with TOTEM_VERIFY. Return null only for accounts that
-   * will never need to produce verification signatures.
-   */
   protected abstract getAccounts(origin: string): Promise<GetAccountsResponse>;
 
-  /**
-   * Sign an unsigned Minima transaction hex.
-   * Called on totem_signTransaction.
-   * The base class does NOT perform coin selection — if you need it, handle
-   * TOTEM_SEND_TRANSACTION as a future extension point in your subclass.
-   */
   protected abstract signTransaction(origin: string, params: SignTransactionParams): Promise<SignTransactionResponse>;
 
-  /**
-   * Sign arbitrary data (used for TOTEM_SIGN_DATA and TOTEM_VERIFY).
-   */
   protected abstract signData(origin: string, params: SignDataParams): Promise<SignDataResponse>;
+
+  // ── Optional hooks for the remaining signer-side surface ───────────────────
+
+  protected sendTransaction?(origin: string, params: Record<string, unknown>): Promise<unknown>;
+  protected sendComplex?(origin: string, params: Record<string, unknown>): Promise<unknown>;
+  protected createToken?(origin: string, params: Record<string, unknown>): Promise<unknown>;
+  protected broadcastHex?(origin: string, params: Record<string, unknown>): Promise<unknown>;
+  protected grantTxPermission?(origin: string, params: Record<string, unknown>): Promise<unknown>;
+  protected revokeTxPermission?(origin: string, params: Record<string, unknown>): Promise<unknown>;
+  protected getTxPermissions?(origin: string, params: Record<string, unknown>): Promise<unknown>;
+  protected getWotsStatus?(origin: string, params: Record<string, unknown>): Promise<unknown>;
+  protected mineTxPoW?(origin: string, params: Record<string, unknown>): Promise<unknown>;
+  protected broadcastTxPoW?(origin: string, params: Record<string, unknown>): Promise<unknown>;
+  protected proveOwnership?(origin: string, params: Record<string, unknown>): Promise<unknown>;
 
   // ── Public API ─────────────────────────────────────────────────────────────
 
-  /**
-   * Fire `totem:announce` and register a `totem:requestAnnounce` listener
-   * so the wallet re-announces on demand. Safe to call from a content script
-   * or an injected MAIN-world script.
-   *
-   * No-op if called more than once — call `destroy()` first to re-inject.
-   */
+  /** WOTS lease port for subclasses that coordinate key-use budgets. */
+  protected get lease(): WotsLeasePort | undefined {
+    return this._config.lease;
+  }
+
   inject(): void {
     if (typeof window === 'undefined' || this._injected) return;
     this._injected = true;
     const announce = () => this._announce();
     this._announceListener = announce;
-    window.addEventListener(TOTEM_REQUEST_ANNOUNCE_EVENT, announce);
+    window.addEventListener(TOTEM_REQUEST_ANNOUNCE, announce);
     this._announce();
   }
 
-  /**
-   * Remove the `totem:requestAnnounce` listener and clear all state.
-   * After calling destroy() the adapter will no longer respond to dApp
-   * discovery requests.
-   */
   destroy(): void {
     if (typeof window !== 'undefined' && this._announceListener) {
-      window.removeEventListener(TOTEM_REQUEST_ANNOUNCE_EVENT, this._announceListener);
+      window.removeEventListener(TOTEM_REQUEST_ANNOUNCE, this._announceListener);
     }
     this._injected = false;
     this._connectedOrigins.clear();
     this._eventListeners.clear();
+    this._usedVerifyNonces.clear();
+  }
+
+  /** The composed provider (full `TotemProvider` surface). */
+  get provider(): AdapterProvider {
+    return this._buildProvider();
+  }
+
+  /** Method-support manifest (handled vs unsupported + reasons). */
+  meta(): WalletRuntimeMeta {
+    return this._runtime.meta();
   }
 
   /**
-   * Dispatch a single RPC request as if it came from a dApp provider.request() call.
-   * Useful for testing without a real browser environment.
+   * Dispatch a request. `origin` is the host-resolved trusted origin; when
+   * omitted it is resolved from `getOrigin` (or `window.location.origin`).
    */
   async handleRequest(
     method: string,
     params: Record<string, unknown> = {},
+    origin?: string,
   ): Promise<unknown> {
-    switch (method) {
-      case 'TOTEM_CONNECT':
-        return this._handleConnect(params);
-      case 'TOTEM_DISCONNECT':
-        return this._handleDisconnect(params);
-      case 'TOTEM_VERIFY':
-        return this._handleVerify(params);
-      case 'TOTEM_GET_ACCOUNTS':
-        return this._handleGetAccounts(params);
-      case 'TOTEM_SIGN_DATA':
-        return this._handleSignData(params);
-      case 'totem_signTransaction':
-        return this._handleSignTransaction(params);
-      case 'TOTEM_GET_CAPABILITIES':
-      case 'totem_getCapabilities':
-        return this._handleGetCapabilities();
-      case 'totem_setChainProvider':
-        return this._handleSetChainProvider(params);
-      case 'totem_getProviderStatus':
-        return this._handleGetProviderStatus();
-      default:
-        throw new TotemAdapterError(
-          `Method not supported: ${method}`,
-          -32601,
-          'METHOD_UNSUPPORTED',
-        );
+    const trusted = this._resolveOrigin(method, origin);
+    const fallback = this._config.allowUntrustedOrigin && typeof params.origin === 'string'
+      ? params.origin
+      : undefined;
+    const effective = trusted ?? fallback;
+    if (effective === undefined && ORIGIN_METHODS.has(method)) {
+      return {
+        success: false,
+        error: `A verified origin is required for ${method}`,
+        errorCode: 'ORIGIN_REQUIRED',
+      };
     }
+    const merged = effective === undefined ? params : { ...params, origin: effective };
+    return this._runtime.provider.request({
+      method,
+      params: merged,
+      ...(effective === undefined ? {} : { origin: effective }),
+    } as never);
   }
 
-  /**
-   * Emit an event to all dApp listeners subscribed via provider.on().
-   * Call this from your subclass when wallet state changes (e.g. account changed).
-   */
   protected emit(event: string, ...args: unknown[]): void {
     const listeners = this._eventListeners.get(event);
     if (!listeners) return;
@@ -387,93 +365,337 @@ export abstract class TotemWalletAdapter {
     });
   }
 
-  /**
-   * Check whether a given origin has called TOTEM_CONNECT.
-   * Useful in subclass implementations that want to gate custom behaviour.
-   */
   protected isConnected(origin: string): boolean {
     return this._connectedOrigins.has(origin);
   }
 
-  // ── Private: announcement ──────────────────────────────────────────────────
+  // ── Runtime construction ───────────────────────────────────────────────────
 
-  private _announce(): void {
-    const provider = this._buildProvider();
-    window.dispatchEvent(
-      new CustomEvent(TOTEM_ANNOUNCE_EVENT, {
-        detail: { info: this._config.walletInfo, provider } satisfies {
-          info: WalletInfo;
-          provider: AdapterProvider;
-        },
-      }),
-    );
-  }
-
-  private _buildProvider(): AdapterProvider {
-    return {
-      isTotem: true,
-      request: async (args: { method: string; params?: Record<string, unknown> }) =>
-        this.handleRequest(args.method, args.params ?? {}),
-      on: (event: string, cb: (...args: unknown[]) => void) => {
-        if (!this._eventListeners.has(event)) {
-          this._eventListeners.set(event, new Set());
-        }
-        this._eventListeners.get(event)!.add(cb);
-      },
-      removeListener: (event: string, cb: (...args: unknown[]) => void) => {
-        this._eventListeners.get(event)?.delete(cb);
+  private _createRuntime(): WalletRuntime {
+    const self = this;
+    const info = {
+      wallet: this._config.walletInfo.name ?? this._config.walletInfo.id,
+      version: this._config.walletInfo.version ?? '1.0.0',
+      capabilities: this._buildCapabilities(),
+      get status(): TotemProviderStatus {
+        return self._providerStatus();
       },
     };
+    const signer = this._buildSigner();
+    const approve = this._config.approve;
+
+    const ctx: WalletHandlerContext = {
+      info,
+      signer,
+      ...(approve
+        ? {
+            approvals: {
+              request: ((req) => approve({
+                method: req.method,
+                params: req.params,
+                ...(req.origin === undefined ? {} : { origin: req.origin }),
+              })) as ApprovalPort['request'],
+            },
+          }
+        : {}),
+      ...(this._config.chain ? { chain: this._config.chain } : {}),
+      ...(this._config.lease ? { lease: this._config.lease } : {}),
+      ...(this._config.omnia ? { omnia: this._config.omnia } : {}),
+      ...(this._config.statechain ? { statechain: this._config.statechain } : {}),
+      ...(this._config.kissvm ? { kissvm: this._config.kissvm } : {}),
+      ...(this._config.agent ? { agent: this._config.agent } : {}),
+      ...(this._config.receipts ? { receipts: this._config.receipts } : {}),
+      ...(this._config.paymentRequests ? { paymentRequests: this._config.paymentRequests } : {}),
+      ...(this._config.edge ? { edge: this._config.edge } : {}),
+      ...(this._config.selfHosted || this._config.chainProviderFactory
+        ? {
+            selfHosted: {
+              setChainProvider: async (p: Record<string, unknown>) => {
+                if (this._config.selfHosted?.setChainProvider) {
+                  return this._config.selfHosted.setChainProvider(p);
+                }
+                return this._setChainProvider(p);
+              },
+            },
+          }
+        : {}),
+    };
+
+    const handlers: WalletMethodHandler[] = [
+      {
+        method: 'TOTEM_DISCONNECT',
+        requiredCapabilities: [],
+        handle: async (params) => self._disconnect(params),
+      },
+      {
+        method: 'totem_getCapabilities',
+        requiredCapabilities: [],
+        handle: async () => self._buildCapabilities(),
+      },
+      {
+        method: 'TOTEM_GET_CAPABILITIES',
+        requiredCapabilities: [],
+        handle: async () => self._buildCapabilities(),
+      },
+      {
+        method: 'totem_setChainProvider',
+        requiredCapabilities: [],
+        requiresApproval: true,
+        handle: async (params) => self._setChainProvider(params),
+      },
+      {
+        method: 'TOTEM_PROVE_OWNERSHIP',
+        requiredCapabilities: [],
+        handle: async (params) => self._proveOwnership(params),
+      },
+      {
+        method: 'GET_CONNECTED_SITES',
+        requiredCapabilities: [],
+        handle: async () => ({ sites: [...self._connectedOrigins] }),
+      },
+      {
+        method: 'DISCONNECT_SITE',
+        requiredCapabilities: [],
+        handle: async (params) => self._disconnect(params),
+      },
+      {
+        method: 'DISCONNECT_ALL_SITES',
+        requiredCapabilities: [],
+        handle: async () => self._disconnectAll(),
+      },
+      ...(this._config.handlers ?? []),
+    ];
+
+    return createWalletRuntime(ctx, {
+      ...(approve
+        ? {
+            approve: (request) => approve({
+              method: request.method,
+              params: request.params,
+              ...(request.origin === undefined ? {} : { origin: request.origin }),
+            }),
+          }
+        : {}),
+      handlers,
+    });
   }
 
-  // ── Private: built-in handlers ─────────────────────────────────────────────
+  private _buildSigner(): WalletSignerPort {
+    const self = this;
+    const signer: WalletSignerPort = {
+      supports(method: string) {
+        return self._supportsSignerMethod(method);
+      },
+      connect: (params) => self._connect(String(params.origin ?? '')),
+      verify: (params) => self._verify(params),
+      getAccounts: async (params) => {
+        const origin = String(params.origin ?? '');
+        if (!self._connectedOrigins.has(origin)) return notConnectedError();
+        const result = await self.getAccounts(origin);
+        return {
+          accounts: result.accounts.map((account) => ({
+            index: account.addressIndex,
+            address: account.address,
+            balance: account.balance ?? '0',
+          })),
+        };
+      },
+      signData: (params) => self._signData(String(params.origin ?? ''), params as unknown as SignDataParams),
+      signTransaction: (params) => self._signTransaction(String(params.origin ?? ''), params as unknown as SignTransactionParams),
+    };
 
-  private async _handleConnect(params: Record<string, unknown>): Promise<ConnectResponse> {
-    const origin = String(params.origin ?? 'unknown');
+    const chainGetCoins = this._config.chain?.getCoins?.bind(this._config.chain)
+      ?? this._chainProvider?.getCoins?.bind(this._chainProvider);
+    if (chainGetCoins) signer.getCoins = (params) => chainGetCoins(params);
+
+    const chainBroadcast = this._config.chain?.broadcastTxPoW?.bind(this._config.chain)
+      ?? this._chainProvider?.broadcastTxPoW?.bind(this._chainProvider);
+    if (chainBroadcast) {
+      signer.broadcastTxPoW = (params) =>
+        chainBroadcast(String(params.txpowHex ?? params.signedHex ?? params.hex ?? ''));
+    }
+
+    if (this.sendTransaction) {
+      signer.sendTransaction = async (params) => {
+        const origin = String(params.origin ?? '');
+        if (!self._connectedOrigins.has(origin)) return notConnectedError();
+        const auth = await self._authorizeInputs(origin, params.inputAddresses as string[] | undefined);
+        if (auth !== true) return auth;
+        return self.sendTransaction!(origin, params);
+      };
+    }
+    if (this.sendComplex) {
+      signer.sendComplex = async (params) => {
+        const origin = String(params.origin ?? '');
+        if (!self._connectedOrigins.has(origin)) return notConnectedError();
+        return self.sendComplex!(origin, params);
+      };
+    }
+    if (this.createToken) {
+      signer.createToken = async (params) => {
+        const origin = String(params.origin ?? '');
+        if (!self._connectedOrigins.has(origin)) return notConnectedError();
+        return self.createToken!(origin, params);
+      };
+    }
+    if (this.broadcastHex) {
+      signer.broadcastHex = async (params) => {
+        const origin = String(params.origin ?? '');
+        if (!self._connectedOrigins.has(origin)) return notConnectedError();
+        return self.broadcastHex!(origin, params);
+      };
+    }
+    if (this.grantTxPermission) {
+      signer.grantTxPermission = async (params) => {
+        const origin = String(params.origin ?? '');
+        if (!self._connectedOrigins.has(origin)) return notConnectedError();
+        return self.grantTxPermission!(origin, params);
+      };
+    }
+    if (this.revokeTxPermission) {
+      signer.revokeTxPermission = async (params) => {
+        const origin = String(params.origin ?? '');
+        if (!self._connectedOrigins.has(origin)) return notConnectedError();
+        return self.revokeTxPermission!(origin, params);
+      };
+    }
+    if (this.getTxPermissions) {
+      signer.getTxPermissions = async (params) => {
+        const origin = String(params.origin ?? '');
+        if (!self._connectedOrigins.has(origin)) return notConnectedError();
+        return self.getTxPermissions!(origin, params);
+      };
+    }
+    if (this.getWotsStatus) {
+      signer.getWotsStatus = async (params) => {
+        const origin = String(params.origin ?? '');
+        if (!self._connectedOrigins.has(origin)) return notConnectedError();
+        return self.getWotsStatus!(origin, params);
+      };
+    }
+    if (this.mineTxPoW) {
+      signer.mineTxPoW = async (params) => {
+        const origin = String(params.origin ?? '');
+        if (!self._connectedOrigins.has(origin)) return notConnectedError();
+        return self.mineTxPoW!(origin, params);
+      };
+    }
+    if (this.broadcastTxPoW) {
+      signer.broadcastTxPoW = async (params) => {
+        const origin = String(params.origin ?? '');
+        if (!self._connectedOrigins.has(origin)) return notConnectedError();
+        return self.broadcastTxPoW!(origin, params);
+      };
+    }
+    if (this.proveOwnership) {
+      signer.proveOwnership = async (params) => {
+        const origin = String(params.origin ?? '');
+        if (!self._connectedOrigins.has(origin)) return notConnectedError();
+        return self.proveOwnership!(origin, params);
+      };
+    }
+
+    return signer;
+  }
+
+  private _supportsSignerMethod(method: string): boolean {
+    switch (method) {
+      case 'TOTEM_GET_COINS':
+        return Boolean(this._config.chain?.getCoins || this._chainProvider);
+      case 'TOTEM_SEND_TRANSACTION':
+        return typeof this.sendTransaction === 'function';
+      case 'TOTEM_SEND_COMPLEX':
+        return typeof this.sendComplex === 'function';
+      case 'TOTEM_TOKENCREATE':
+        return typeof this.createToken === 'function';
+      case 'TOTEM_BROADCAST_HEX':
+        return typeof this.broadcastHex === 'function';
+      case 'TOTEM_GRANT_TX_PERMISSION':
+        return typeof this.grantTxPermission === 'function';
+      case 'TOTEM_REVOKE_TX_PERMISSION':
+        return typeof this.revokeTxPermission === 'function';
+      case 'TOTEM_GET_TX_PERMISSIONS':
+        return typeof this.getTxPermissions === 'function';
+      case 'totem_getWotsStatus':
+        return typeof this.getWotsStatus === 'function';
+      case 'totem_mineTxPoW':
+        return typeof this.mineTxPoW === 'function';
+      case 'totem_broadcastTxPoW':
+        return typeof this.broadcastTxPoW === 'function'
+          || Boolean(this._config.chain?.broadcastTxPoW || this._chainProvider?.broadcastTxPoW);
+      default:
+        return true;
+    }
+  }
+
+  // ── Handlers ───────────────────────────────────────────────────────────────
+
+  private async _connect(origin: string): Promise<ConnectResponse | { success: false; error: string; errorCode: string }> {
+    if (!origin) {
+      return { success: false, error: 'A verified origin is required for TOTEM_CONNECT', errorCode: 'ORIGIN_REQUIRED' };
+    }
+    const result = await this.getAccounts(origin);
+    const first = result.accounts[result.activeIndex] ?? result.accounts[0];
+    if (!first) {
+      return { success: false, error: 'No accounts available', errorCode: 'NO_ACCOUNTS' };
+    }
     const isReconnect = this._connectedOrigins.has(origin);
     this._connectedOrigins.add(origin);
-
-    const result = await this.getAccounts(origin);
-    const first = result.accounts[0] ?? { address: '', addressIndex: 0, publicKey: null };
+    this.emit('connect', { origin, address: first.address, addressIndex: first.addressIndex });
     return {
       connected: true,
       address: first.address,
       addressIndex: first.addressIndex,
+      publicKey: first.publicKey,
       isReconnect,
     };
   }
 
-  private _handleDisconnect(params: Record<string, unknown>): DisconnectResponse {
+  private _disconnect(params: Record<string, unknown>): DisconnectResponse {
     const origin = String(params.origin ?? '');
     if (!this._connectedOrigins.has(origin)) {
-      return {
-        success: false,
-        error: 'Site not connected.',
-        errorCode: 'SITE_NOT_CONNECTED',
-      };
+      return { success: false, error: 'Site not connected.', errorCode: 'SITE_NOT_CONNECTED' };
     }
     this._connectedOrigins.delete(origin);
-    // Notify any listeners that accounts are now empty
     this.emit('accountsChanged', []);
+    this.emit('disconnect', { origin });
     return { success: true };
   }
 
-  private async _handleVerify(
+  private _disconnectAll(): { success: true } {
+    this._connectedOrigins.clear();
+    this.emit('accountsChanged', []);
+    this.emit('disconnect', { origin: null });
+    return { success: true };
+  }
+
+  private async _verify(
     params: Record<string, unknown>,
   ): Promise<VerifyResponse | { success: false; error: string; errorCode: string }> {
     const origin = String(params.origin ?? '');
+    if (!this._connectedOrigins.has(origin)) return notConnectedError();
 
-    if (!this._connectedOrigins.has(origin)) {
-      return notConnectedError();
+    const challenge = asRecord(params.challenge);
+    const domain = typeof challenge.domain === 'string' ? challenge.domain : undefined;
+    if (domain !== undefined && domain !== origin) {
+      return { success: false, error: 'Challenge domain does not match the requesting origin', errorCode: 'ORIGIN_MISMATCH' };
+    }
+    const uri = typeof challenge.uri === 'string' ? challenge.uri : undefined;
+    if (uri !== undefined && uri !== origin) {
+      return { success: false, error: 'Challenge URI does not match the requesting origin', errorCode: 'ORIGIN_MISMATCH' };
     }
 
-    const challenge = params.challenge as Record<string, unknown> | undefined;
-    const statement = String(challenge?.statement ?? `Sign in to ${origin}`);
-    const nonce = String(challenge?.nonce ?? Math.random().toString(36).slice(2));
-    const expiryMs = Number(challenge?.expiryMs ?? 300_000);
+    const statement = String(challenge.statement ?? `Sign in to ${origin}`);
+    const nonce = String(challenge.nonce ?? this._randomHex(8));
+    if (this._usedVerifyNonces.has(nonce)) {
+      return { success: false, error: 'Challenge nonce has already been used', errorCode: 'NONCE_REPLAY' };
+    }
+    const expiryMs = Number(challenge.expiryMs ?? 300_000);
+    if (!Number.isSafeInteger(expiryMs) || expiryMs <= 0) {
+      return { success: false, error: 'Challenge expiryMs must be a positive integer', errorCode: 'INVALID_CHALLENGE' };
+    }
     const expiresAt = Date.now() + expiryMs;
 
-    // Build the canonical sign-in message (EIP-4361-style but Minima-native)
     const message = [
       `${origin} wants you to sign in with your Minima wallet.`,
       '',
@@ -485,14 +707,13 @@ export abstract class TotemWalletAdapter {
       `Expiration Time: ${new Date(expiresAt).toISOString()}`,
     ].join('\n');
 
-    const messageHex =
-      '0x' +
-      Array.from(new TextEncoder().encode(message), b =>
-        b.toString(16).padStart(2, '0'),
-      ).join('');
+    const messageHex = '0x' + Array.from(
+      new TextEncoder().encode(message),
+      b => b.toString(16).padStart(2, '0'),
+    ).join('');
 
     const accountsResult = await this.getAccounts(origin);
-    const first = accountsResult.accounts[0];
+    const first = accountsResult.accounts[accountsResult.activeIndex] ?? accountsResult.accounts[0];
     if (!first) {
       return { success: false, error: 'No accounts available', errorCode: 'NO_ACCOUNTS' };
     }
@@ -509,7 +730,6 @@ export abstract class TotemWalletAdapter {
       inputAddresses: [first.address],
       returnFormat: 'hex',
     });
-
     if (!signResult.success) {
       return {
         success: false,
@@ -518,72 +738,169 @@ export abstract class TotemWalletAdapter {
       };
     }
 
-    const verifyBuf = crypto.getRandomValues(new Uint8Array(8));
-    const verificationId = `verify-${Date.now()}-${Array.from(verifyBuf, b => b.toString(16).padStart(2, '0')).join('')}`;
+    this._usedVerifyNonces.add(nonce);
+    if (this._usedVerifyNonces.size > 1024) this._usedVerifyNonces.clear();
 
     return {
       verified: true,
-      verificationId,
+      verificationId: `verify-${Date.now()}-${this._randomHex(8)}`,
       address: first.address,
       message,
       signature: signResult.signedHex ?? '',
       publicKey: first.publicKey,
       expiresAt,
+      sessionToken: this._randomHex(32),
+      sessionExpiresAt: expiresAt,
     };
   }
 
-  private async _handleGetAccounts(
-    params: Record<string, unknown>,
-  ): Promise<GetAccountsResponse | { success: false; error: string; errorCode: string }> {
-    const origin = String(params.origin ?? '');
-    if (!this._connectedOrigins.has(origin)) {
-      return notConnectedError();
-    }
-    return this.getAccounts(origin);
-  }
-
-  private async _handleSignTransaction(
-    params: Record<string, unknown>,
+  private async _signTransaction(
+    origin: string,
+    params: SignTransactionParams,
   ): Promise<SignTransactionResponse> {
-    const origin = String(params.origin ?? '');
-    if (!this._connectedOrigins.has(origin)) {
-      return notConnectedError();
-    }
+    if (!this._connectedOrigins.has(origin)) return notConnectedError();
+    const auth = await this._authorizeInputs(origin, params.inputAddresses);
+    if (auth !== true) return auth;
     return this.signTransaction(origin, {
       unsignedHex: String(params.unsignedHex ?? ''),
-      inputAddresses: (params.inputAddresses as string[]) ?? [],
-      inputIndices: params.inputIndices as number[] | undefined,
-      returnFormat: (params.returnFormat as 'hex' | 'json') ?? 'hex',
+      inputAddresses: Array.isArray(params.inputAddresses) ? params.inputAddresses : [],
+      ...(params.inputIndices === undefined ? {} : { inputIndices: params.inputIndices }),
+      returnFormat: params.returnFormat ?? 'hex',
     });
   }
 
-  private async _handleSignData(
-    params: Record<string, unknown>,
+  private async _signData(
+    origin: string,
+    params: SignDataParams,
   ): Promise<SignDataResponse> {
-    const origin = String(params.origin ?? '');
-    if (!this._connectedOrigins.has(origin)) {
-      return notConnectedError();
-    }
+    if (!this._connectedOrigins.has(origin)) return notConnectedError();
+    const auth = await this._authorizeInputs(origin, params.inputAddresses);
+    if (auth !== true) return auth;
     return this.signData(origin, {
       unsignedHex: String(params.unsignedHex ?? ''),
-      inputAddresses: (params.inputAddresses as string[]) ?? [],
-      inputIndices: params.inputIndices as number[] | undefined,
-      returnFormat: (params.returnFormat as 'hex' | 'json') ?? 'hex',
+      inputAddresses: Array.isArray(params.inputAddresses) ? params.inputAddresses : [],
+      ...(params.inputIndices === undefined ? {} : { inputIndices: params.inputIndices }),
+      returnFormat: params.returnFormat ?? 'hex',
     });
   }
 
-  private _handleGetCapabilities(): WalletCapabilities {
+  private async _authorizeInputs(
+    origin: string,
+    inputAddresses: string[] | undefined,
+  ): Promise<true | { success: false; error: string; errorCode: string }> {
+    if (this._config.allowExternalInputs) return true;
+    const inputs = Array.isArray(inputAddresses) ? inputAddresses : [];
+    if (inputs.length === 0) return true;
+    const result = await this.getAccounts(origin);
+    const allowed = new Set(result.accounts.map(account => account.address.toLowerCase()));
+    const unauthorized = inputs.find(address => !allowed.has(String(address).toLowerCase()));
+    if (unauthorized) {
+      return {
+        success: false,
+        error: `Input address ${unauthorized} is not a connected account`,
+        errorCode: 'ADDRESS_NOT_AUTHORIZED',
+      };
+    }
+    return true;
+  }
+
+  private async _proveOwnership(
+    params: Record<string, unknown>,
+  ): Promise<unknown> {
+    if (!this.proveOwnership) {
+      return { success: false, error: 'Wallet does not expose ownership proofs.', errorCode: 'UNSUPPORTED' };
+    }
+    const origin = String(params.origin ?? '');
+    if (!this._connectedOrigins.has(origin)) return notConnectedError();
+    return this.proveOwnership(origin, params);
+  }
+
+  private _setChainProvider(
+    params: Record<string, unknown>,
+  ): { success: boolean; providerType?: string; error?: string; errorCode?: string } {
+    const providerType = String(params.providerType ?? '');
+    if (providerType !== 'hosted' && providerType !== 'pure_rpc' && providerType !== 'hybrid') {
+      return { success: false, error: `Invalid provider type: ${providerType}`, errorCode: 'INVALID_PROVIDER_TYPE' };
+    }
+    if (!this._config.chainProviderFactory) {
+      return { success: false, error: 'No chain provider factory configured', errorCode: 'UNSUPPORTED' };
+    }
+    try {
+      const rpcEndpoint = typeof params.rpcEndpoint === 'string' ? params.rpcEndpoint : undefined;
+      this._chainProvider = this._config.chainProviderFactory(providerType, rpcEndpoint);
+      this._currentProviderType = providerType;
+      this.emit('chainChanged', { providerType });
+      return { success: true, providerType };
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : String(err),
+        errorCode: 'PROVIDER_ERROR',
+      };
+    }
+  }
+
+  // ── Announcement / provider ────────────────────────────────────────────────
+
+  private _announce(): void {
+    const provider = this._buildProvider();
+    window.dispatchEvent(
+      new CustomEvent(TOTEM_ANNOUNCE, {
+        detail: { info: this._config.walletInfo, provider },
+      }),
+    );
+  }
+
+  private _buildProvider(): AdapterProvider {
+    const self = this;
+    return {
+      isTotem: true,
+      request: (args: { method: string; params?: Record<string, unknown>; origin?: string }) =>
+        self.handleRequest(args.method, args.params ?? {}, args.origin),
+      on: (event: string, callback: (...args: unknown[]) => void) => {
+        if (!self._eventListeners.has(event)) self._eventListeners.set(event, new Set());
+        self._eventListeners.get(event)!.add(callback);
+      },
+      removeListener: (event: string, callback: (...args: unknown[]) => void) => {
+        self._eventListeners.get(event)?.delete(callback);
+      },
+      enable: () => self.handleRequest('TOTEM_CONNECT', {}),
+      send: (method: string, params?: unknown[]) => self.handleRequest(method, asRecord(params)),
+      getCoins: (params?: Record<string, unknown>) => self.handleRequest('TOTEM_GET_COINS', asRecord(params)),
+      sendComplex: (buildParams: Record<string, unknown>, mode?: 'build' | 'submit') =>
+        self.handleRequest('TOTEM_SEND_COMPLEX', { ...buildParams, ...(mode ? { mode } : {}) }),
+      signData: (params: Record<string, unknown>) => self.handleRequest('TOTEM_SIGN_DATA', params),
+      broadcastHex: (params: Record<string, unknown>) => self.handleRequest('TOTEM_BROADCAST_HEX', params),
+    } as AdapterProvider;
+  }
+
+  private _resolveOrigin(method: string, explicit?: string): string | undefined {
+    if (explicit) return explicit;
+    const fromConfig = this._config.getOrigin?.(method);
+    if (fromConfig) return fromConfig;
+    if (
+      typeof window !== 'undefined' &&
+      window.location &&
+      window.location.origin &&
+      window.location.origin !== 'null'
+    ) {
+      return window.location.origin;
+    }
+    return undefined;
+  }
+
+  private _buildCapabilities(): WalletCapabilities {
     const { walletInfo, capabilities: caps } = this._config;
     return {
       version: walletInfo.version ?? '1.0.0',
       wallet: {
-        selfCustody: true,
+        selfCustody: false,
         wotsTreeKey: false,
         rootIdentity: false,
         treeKeyDepth: null,
         maxAddresses: null,
         seedExport: false,
-        custodyType: 'self',
+        custodyType: 'hosted',
         ...(caps?.wallet ?? {}),
       },
       account: {
@@ -633,38 +950,25 @@ export abstract class TotemWalletAdapter {
     };
   }
 
-  private _handleSetChainProvider(
-    params: Record<string, unknown>,
-  ): { success: boolean; providerType: string } {
-    const providerType = String(
-      params.providerType ?? 'hosted',
-    ) as 'hosted' | 'pure_rpc' | 'hybrid';
-    const rpcEndpoint = params.rpcEndpoint as string | undefined;
-
-    this._currentProviderType = providerType;
-
-    if (this._config.chainProviderFactory) {
-      this._chainProvider = this._config.chainProviderFactory(providerType, rpcEndpoint);
-    }
-
-    return { success: true, providerType };
-  }
-
-  private _handleGetProviderStatus(): {
-    providerType: string;
-    network: string;
-    relayAvailable: boolean;
-    localMiningAvailable: boolean;
-    pearRuntime: boolean;
-    lookupLatencyMs: null;
-  } {
+  private _providerStatus(): TotemProviderStatus {
     return {
-      providerType: this._currentProviderType,
-      network: 'mainnet',
+      network: this._config.network ?? 'mainnet',
       relayAvailable: false,
       localMiningAvailable: false,
       pearRuntime: false,
       lookupLatencyMs: null,
+      ...(this._config.providerStatus ?? {}),
+      providerType: this._currentProviderType,
     };
+  }
+
+  private _randomHex(bytes: number): string {
+    const cryptoObj = (globalThis as { crypto?: { getRandomValues?: <T extends ArrayBufferView>(array: T) => T } }).crypto;
+    if (!cryptoObj?.getRandomValues) {
+      throw new Error('A secure random source is required for TOTEM_VERIFY');
+    }
+    const buffer = new Uint8Array(bytes);
+    cryptoObj.getRandomValues(buffer);
+    return Array.from(buffer, b => b.toString(16).padStart(2, '0')).join('');
   }
 }
