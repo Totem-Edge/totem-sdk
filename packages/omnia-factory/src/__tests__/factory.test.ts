@@ -11,6 +11,10 @@ import {
   buildAndHashFactoryScript,
   factoryBalanceStateVariables,
   factoryEscapeStateVariable,
+  factoryPartySetRoot,
+  factoryPartyRootStateVariable,
+  factoryPartyProof,
+  FACTORY_PARTY_ROOT_PORT,
   computeFactoryStateCommitment,
 } from '../index';
 import type {
@@ -830,5 +834,69 @@ describe('enforceConservation', () => {
     const f = await makeActiveFactory([ALICE, BOB]);
     const broken: ChannelFactory = { ...f, allocations: { alice: 9999n, bob: 500n } };
     expect(() => enforceConservation(broken)).toThrow(/conservation/);
+  });
+});
+
+// ─── 12. committed party-set root (RFC-048 §12.4/§12.5) ───────────────────────
+
+describe('committed party-set root', () => {
+  const A = '0x' + '11'.repeat(32);
+  const B = '0x' + '22'.repeat(32);
+  const C = '0x' + '33'.repeat(32);
+  const party = (id: string, pk: string) => ({
+    partyId: id,
+    publicKeyDigest: pk,
+    addressIndex: 0,
+    contributionAmount: 1000n,
+    settlementAddress: pk,
+  });
+
+  test('is deterministic and set-sensitive', () => {
+    const parts = [party('a', A), party('b', B)];
+    const root = factoryPartySetRoot(parts);
+    expect(root).toMatch(/^[0-9a-f]{64}$/);
+    expect(factoryPartySetRoot(parts)).toBe(root);
+    expect(factoryPartySetRoot([...parts, party('c', C)])).not.toBe(root);
+  });
+
+  test('the factory script pins the party-set root immutably', () => {
+    const script = buildFactoryScript([party('a', A), party('b', B)]);
+    expect(script).toContain(`ASSERT SAMESTATE(${FACTORY_PARTY_ROOT_PORT} ${FACTORY_PARTY_ROOT_PORT})`);
+  });
+
+  test('emits the committed root as a funding state variable', () => {
+    const root = factoryPartySetRoot([party('a', A), party('b', B)]);
+    expect(factoryPartyRootStateVariable(root)).toEqual({
+      port: FACTORY_PARTY_ROOT_PORT,
+      value: '0x' + root,
+      type: 'hex',
+    });
+    expect(() => factoryPartyRootStateVariable('not-32-bytes')).toThrow();
+  });
+});
+
+// ─── 13. per-leaf MMR inclusion proof (RFC-048 §12.4) ─────────────────────────
+
+describe('factoryPartyProof', () => {
+  const A = '0x' + '11'.repeat(32);
+  const B = '0x' + '22'.repeat(32);
+  const C = '0x' + '33'.repeat(32);
+  const party = (id: string, pk: string) => ({
+    partyId: id,
+    publicKeyDigest: pk,
+    addressIndex: 0,
+    contributionAmount: 1000n,
+    settlementAddress: pk,
+  });
+
+  test('produces a serialized inclusion proof for each party', () => {
+    const parts = [party('a', A), party('b', B), party('c', C)];
+    for (let i = 0; i < parts.length; i++) {
+      expect(factoryPartyProof(parts, i)).toMatch(/^[0-9a-f]+$/);
+    }
+  });
+
+  test('rejects an out-of-range index', () => {
+    expect(() => factoryPartyProof([party('a', A), party('b', B)], 2)).toThrow();
   });
 });

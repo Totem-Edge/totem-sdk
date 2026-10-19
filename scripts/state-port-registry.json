@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "description": "State-port registry (RFC-048 §12.6, RFC-049 §5). Ports are bytes 0–255. MSHS-2 (MASH) reserves the top band; no SAMESTATE range may span it. Bands may overlap across coin classes (ports are per-coin namespaces), never across the MSHS boundary.",
+  "mshsFloor": 230,
+  "mshsBand": {
+    "from": 230,
+    "to": 255,
+    "owner": "node (MASH / MSHS-2)",
+    "notes": "bundleBase = 256 - (4 + k) = 230 (k=22). Header R/ROOTS_BLOB/SECRETS_BLOB/TREE_SIG at 230-233; PROOF at 234-255. The node refuses any tx with state in 230..255.",
+    "samestateRule": "MUST NOT span this band (R-MASH-3)"
+  },
+  "bands": [
+    { "id": "legacy", "from": 0, "to": 99, "owner": "legacy scripts, statechain", "notes": "general/legacy state ports" },
+    { "id": "omnia-control", "from": 100, "to": 119, "owner": "omnia*", "notes": "channel/factory control (100 SETTLEMENT, 101 SEQUENCE, 102 COMMITMENT, 103 escape)" },
+    { "id": "omnia-programs", "from": 120, "to": 183, "owner": "omnia (program.ts)", "notes": "channel program ports (COUNTER 120-122, METER 130-133, HTLC 140-144, VAULT 150-152, TREASURY 160-164, MEMBERSHIP 170-172, ASSET 180-183)" },
+    { "id": "omnia-share", "from": 128, "to": 229, "owner": "omnia-factory, omnia-vtxo", "notes": "per-party share band, base 128 (POOL_SHARE_PORT_BASE / FACTORY_BALANCE_PORT_BASE); capped below the MSHS floor 230 → max 102 parties" }
+  ],
+  "packages": {
+    "statechain": { "coinClass": "statechain", "bands": ["legacy"] },
+    "omnia": { "coinClass": "channel", "bands": ["omnia-control", "omnia-programs"] },
+    "omnia-factory": { "coinClass": "factory", "bands": ["omnia-control", "omnia-share"] },
+    "omnia-vtxo": { "coinClass": "vtxo", "bands": ["omnia-control", "omnia-share"] }
+  },
+  "shareBases": {
+    "omnia-factory": { "export": "FACTORY_BALANCE_PORT_BASE", "expected": 128 },
+    "omnia-vtxo": { "export": "POOL_SHARE_PORT_BASE", "expected": 128 }
+  },
+  "rules": [
+    "R-MASH-1: MASH state lives only in the MSHS band (>= 230); no other package may allocate there.",
+    "R-MASH-2: Omnia variable-length bands (party shares) MUST be allocated below the MSHS floor (base 128).",
+    "R-MASH-3: No SAMESTATE range may span the MSHS band.",
+    "R-MASH-4: A composite (MASH + Omnia + MAST) transaction MUST publish a port-allocation table and pass an instruction-budget check.",
+    "R-MASH-5: Omnia scripts MUST NOT embed the full MASH verifier in the update path."
+  ]
+}

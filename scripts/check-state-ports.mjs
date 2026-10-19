@@ -1,15 +1,23 @@
 #!/usr/bin/env node
 /**
- * State-port gate (RFC-048 §12.6 / RFC-049 §5).
+ * State-port gate (RFC-048 §12.6 / RFC-049 §5) — registry-driven.
  *
  * Ports are bytes (0–255) and MSHS-2 (MASH) reserves the top band (floor 234).
- * Omnia's variable-length bands (party shares) must stay below that floor, no
- * `SAMESTATE` range may span it, and builders must refuse to emit out-of-band
- * ports. This gate builds the value-bearing scripts and asserts it.
+ * This gate is the machine check for `scripts/state-port-registry.json`:
+ *
+ *   1. registry integrity — bands in range, none crossing the MSHS floor, the
+ *      MSHS band is exactly [floor, 255];
+ *   2. every value-bearing script's STATE/PREVSTATE ports fall inside the bands
+ *      declared for its package (ports are per-coin namespaces, so bands may
+ *      overlap across packages — never across the MSHS boundary);
+ *   3. no `SAMESTATE` range spans the MSHS band (R-MASH-3);
+ *   4. declared share bases match the package constants; and
+ *   5. builders refuse to emit out-of-band ports.
  *
  * Requires built dist of: statechain, omnia, omnia-factory, omnia-vtxo.
  * Usage: node scripts/check-state-ports.mjs   (after `npm run build`)
  */
+import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -21,13 +29,36 @@ function check(name, cond, detail = '') {
   if (cond) console.log(`  ok  ${name}`);
   else { failures++; console.error(`  FAIL ${name}${detail ? ' — ' + detail : ''}`); }
 }
+function throws(fn) { try { fn(); return false; } catch { return true; } }
 
+// ── registry integrity ───────────────────────────────────────────────────────
+const REGISTRY = JSON.parse(readFileSync(join(ROOT, 'scripts/state-port-registry.json'), 'utf8'));
+const FLOOR = REGISTRY.mshsFloor;
+const MSHS = REGISTRY.mshsBand;
+
+check(`registry: MSHS floor is ${FLOOR} (node: MASH bundle 230–255; proof ports from 234)`, FLOOR === 230);
+check(`registry: MSHS band is exactly [${FLOOR}, 255]`, MSHS.from === FLOOR && MSHS.to === 255);
+
+const bandById = new Map();
+for (const b of REGISTRY.bands) {
+  bandById.set(b.id, b);
+}
+check('registry: band ids are unique', bandById.size === REGISTRY.bands.length);
+
+for (const b of REGISTRY.bands) {
+  check(`registry: band "${b.id}" is within 0–255 and below the MSHS floor`, b.from >= 0 && b.from <= b.to && b.to <= 255 && b.to < FLOOR, `[${b.from},${b.to}]`);
+}
+for (const [pkg, spec] of Object.entries(REGISTRY.packages)) {
+  check(`registry: package "${pkg}" references only declared bands`, spec.bands.every((id) => bandById.has(id)), spec.bands.join(','));
+}
+
+// ── build the value-bearing scripts ──────────────────────────────────────────
 const { buildStatechainScript } = await load('packages/statechain/dist/index.js');
 const { buildEltooScript } = await load('packages/omnia/dist/index.js');
 const factory = await load('packages/omnia-factory/dist/index.js');
 const vtxo = await load('packages/omnia-vtxo/dist/index.js');
 
-const AVG_HOLDER_COUNT = 3; // exercise multi-holder share ports
+const AVG_HOLDER_COUNT = 3;
 const pk = (b) => '0x' + String(b).repeat(2).padStart(2, '0').slice(0, 2).repeat(32);
 const holder = (i) => '0x' + (16 + i).toString(16).padStart(2, '0').repeat(32);
 
@@ -49,24 +80,38 @@ const scripts = {
   }),
 };
 
-const FLOOR = vtxo.MSHS_PORT_FLOOR;
-check(`MSHS floor is ${FLOOR} (node RFC-0001: proof ports from 234)`, FLOOR === 234);
+check('registry: every gated package is registered', Object.keys(scripts).every((p) => p in REGISTRY.packages), Object.keys(scripts).filter((p) => !(p in REGISTRY.packages)).join(','));
+
+const inBands = (port, bands) => bands.some((id) => { const b = bandById.get(id); return port >= b.from && port <= b.to; });
 
 for (const [pkg, src] of Object.entries(scripts)) {
-  const ports = [...src.matchAll(/(?:PREVSTATE|STATE)\((\d+)\)/g)].map((m) => Number(m[1]));
-  const overFloor = ports.filter((p) => p >= FLOOR);
+  const declared = REGISTRY.packages[pkg].bands;
+  const ports = [...new Set([...src.matchAll(/(?:PREVSTATE|STATE)\((\d+)\)/g)].map((m) => Number(m[1])))];
+  const outOfBand = ports.filter((p) => !inBands(p, declared));
   const over255 = ports.filter((p) => p > 255);
-  check(`${pkg}: all STATE/PREVSTATE ports < ${FLOOR}`, overFloor.length === 0, `found ${overFloor.join(',')}`);
+  check(`${pkg}: all ports in declared bands [${declared.join(', ')}]`, outOfBand.length === 0, `out-of-band: ${outOfBand.join(',')}`);
   check(`${pkg}: all ports ≤ 255`, over255.length === 0);
 
   // SAMESTATE(from to): the range [from,to] must not span the MSHS band.
   const spans = [...src.matchAll(/SAMESTATE\((\d+)\s+(\d+)\)/g)]
     .map((m) => [Number(m[1]), Number(m[2])])
-    .filter(([, to]) => to >= FLOOR);
+    .filter(([from, to]) => !(to < FLOOR || from >= FLOOR));
   check(`${pkg}: no SAMESTATE range spans the MSHS band`, spans.length === 0, JSON.stringify(spans));
 }
 
-// Builders must refuse to emit out-of-band ports.
+// ── declared share bases match the package constants ─────────────────────────
+for (const [pkg, spec] of Object.entries(REGISTRY.shareBases)) {
+  const mod = pkg === 'omnia-factory' ? factory : vtxo;
+  check(`registry: ${pkg}.${spec.export} === ${spec.expected}`, mod[spec.export] === spec.expected, `got ${mod[spec.export]}`);
+}
+
+// ── the factory commits an immutable party-set root (RFC-048 §12.4/§12.5) ────
+check(
+  `omnia-factory commits the immutable party-set root (STATE(${factory.FACTORY_PARTY_ROOT_PORT}))`,
+  scripts['omnia-factory'].includes(`ASSERT SAMESTATE(${factory.FACTORY_PARTY_ROOT_PORT} ${factory.FACTORY_PARTY_ROOT_PORT})`),
+);
+
+// ── builders must refuse to emit out-of-band ports ───────────────────────────
 check(
   `omnia-vtxo refuses > ${vtxo.POOL_MAX_HOLDERS} holders`,
   throws(() => vtxo.buildPoolScript({ operatorPublicKeyDigest: pk('aa'), holders: Array.from({ length: vtxo.POOL_MAX_HOLDERS + 1 }, (_, i) => holder(i % 240)), exitBlock: 1 })),
@@ -76,10 +121,8 @@ check(
   throws(() => factory.buildFactoryScript(Array.from({ length: factory.FACTORY_MAX_PARTICIPANTS + 1 }, (_, i) => ({ partyId: `p${i}`, publicKeyDigest: holder(i % 240), addressIndex: i, contributionAmount: 1n, settlementAddress: holder(i % 240) })))),
 );
 
-function throws(fn) { try { fn(); return false; } catch { return true; } }
-
 if (failures > 0) {
   console.error(`\nState-port gate: ${failures} check(s) failed.`);
   process.exit(1);
 }
-console.log('\nState-port gate: all Omnia bands stay below the MSHS floor; ranges are clean.');
+console.log('\nState-port gate: registry intact; every script stays in its declared bands; no range spans the MSHS band.');

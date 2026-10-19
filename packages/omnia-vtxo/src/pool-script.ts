@@ -32,8 +32,12 @@ import { computeScriptAddress } from '@totemsdk/core';
  */
 export const POOL_SHARE_PORT_BASE = 128;
 
-/** Lowest port reserved for MSHS-2 (MASH); Omnia ports MUST stay below this. */
-export const MSHS_PORT_FLOOR = 234;
+/** Lowest port reserved for MSHS-2 (MASH); Omnia ports MUST stay below this.
+ *  The node installs the MASH authorization bundle at ports **230–255**
+ *  (`bundleBase = 256 − (4 + k) = 230`): the header R / ROOTS_BLOB /
+ *  SECRETS_BLOB / TREE_SIG at 230–233 and PROOF at 234–255. A composite
+ *  MASH + Omnia coin must therefore keep Omnia ports ≤ 229. */
+export const MSHS_PORT_FLOOR = 230;
 
 /** Maximum holders whose share ports remain below the MSHS floor. */
 export const POOL_MAX_HOLDERS = MSHS_PORT_FLOOR - POOL_SHARE_PORT_BASE;
