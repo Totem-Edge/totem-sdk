@@ -10,7 +10,7 @@
  */
 
 import { OmniaPeerImpl } from './peer.js';
-import { channelTopic, peerTopic, broadcastTopic } from './topic.js';
+import { channelTopic, peerTopic, broadcastTopic, normalizePubkey } from './topic.js';
 import { NodeStreamTransport, HyperswarmStreamTransport, type IStreamTransport } from '@totemsdk/stream-transport';
 import type {
   OmniaSwarm,
@@ -31,7 +31,7 @@ export class OmniaSwarmImpl implements OmniaSwarm {
   private readonly _topicPeers = new Map<string, OmniaPeerImpl[]>();
   private readonly _joinedTopics = new Set<string>();
   private _channelListeners: Array<(peer: OmniaPeer, proposal: OmniaMessage) => void> = [];
-  private readonly _config: Required<Omit<OmniaSwarmConfig, 'localPubkey'>> & { localPubkey?: string };
+  private readonly _config: Required<Omit<OmniaSwarmConfig, 'localPubkey' | 'keyPair'>> & { localPubkey?: string; keyPair?: { publicKey: Uint8Array; secretKey: Uint8Array } };
 
   constructor(swarm: AnySwarm, config: OmniaSwarmConfig = {}) {
     this._swarm = swarm;
@@ -41,12 +41,11 @@ export class OmniaSwarmImpl implements OmniaSwarm {
       reconnectBaseDelayMs: config.reconnectBaseDelayMs ?? 500,
       relay: config.relay ?? { mode: 'native' },
       bootstrap: config.bootstrap ?? [],
+      keyPair: config.keyPair,
     };
 
-    if (config.localPubkey) {
-      this.advertise(config.localPubkey);
-    }
-
+    // Register the inbound handler BEFORE advertising so no connection can be
+    // accepted in the gap between `join()` and handler registration.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     this._swarm.on('connection', (conn: any, info: any) => {
       const pubkey = info?.publicKey
@@ -54,6 +53,9 @@ export class OmniaSwarmImpl implements OmniaSwarm {
         : `unknown-${Date.now()}`;
 
       const isNewPeer = !this._peers.has(pubkey);
+      if (process.env.OMNIA_DEBUG) {
+        console.error('[swarm] inbound', pubkey, 'client', info?.client, 'new', isNewPeer);
+      }
       const peer = this._getOrBindPeer(this._adaptConn(conn, info), pubkey, undefined);
 
       const topics: Buffer[] = Array.isArray(info?.topics)
@@ -76,6 +78,10 @@ export class OmniaSwarmImpl implements OmniaSwarm {
         });
       }
     });
+
+    if (config.localPubkey) {
+      this.advertise(config.localPubkey);
+    }
   }
 
   /**
@@ -154,10 +160,15 @@ export class OmniaSwarmImpl implements OmniaSwarm {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const handler = (conn: any, info: any): void => {
+        // Hyperswarm reports raw lowercase hex; callers pass `0x`-prefixed
+        // digests. Normalise both before matching (native-only path).
         const connPubkey = info?.publicKey
           ? Buffer.from(info.publicKey).toString('hex')
           : null;
-        if (connPubkey === expectedPubkey) {
+        if (process.env.OMNIA_DEBUG) {
+          console.error('[swarm] connection', connPubkey, 'expect', expectedPubkey);
+        }
+        if (connPubkey && connPubkey === expectedPubkey.replace(/^0x/i, '').toLowerCase()) {
           cleanup();
           resolve(this._adaptConn(conn, info));
         }
@@ -172,7 +183,10 @@ export class OmniaSwarmImpl implements OmniaSwarm {
 
       if (!this._joinedTopics.has(topicHex)) {
         this._joinedTopics.add(topicHex);
-        this._swarm.join(topic, { server: true, client: true });
+        this._swarm.join(topic, { server: true, client: false });
+        if (process.env.OMNIA_DEBUG) {
+          console.error('[swarm] join', topicHex, 'expect', expectedPubkey);
+        }
       }
       this._swarm.flush().catch((err: Error) => { cleanup(); reject(err); });
     });
@@ -184,17 +198,43 @@ export class OmniaSwarmImpl implements OmniaSwarm {
     if (!this._joinedTopics.has(topicHex)) {
       this._joinedTopics.add(topicHex);
       this._swarm.join(topic, { server: true, client: false });
+      if (process.env.OMNIA_DEBUG) {
+        console.error('[swarm] advertise', topicHex, 'pubkey', normalizePubkey(localPubkey));
+      }
     }
   }
 
-  async connectToPeer(pubkey: string, channelId?: string): Promise<OmniaPeer> {
-    const existing = this._peers.get(pubkey);
+  async connectToPeer(
+    pubkey: string,
+    channelId?: string,
+    expectedTransportPubkey?: string,
+  ): Promise<OmniaPeer> {
+    // Hyperswarm identifies peers by raw lowercase hex; callers pass
+    // `0x`-prefixed digests. Use one canonical key for rendezvous and the
+    // peer registry so lookups after connect succeed.
+    const key = normalizePubkey(pubkey);
+    const existing = this._peers.get(key);
     if (existing) return existing;
 
-    const topic = peerTopic(pubkey);
-    await this._connectToPubkey(topic, pubkey);
+    const topic = peerTopic(key);
+    // Native connections are authenticated by the transport (noise) key, which
+    // is bound to the Omnia identity by the signed manifest. Match on it when
+    // provided; otherwise fall back to the Omnia key (legacy behaviour).
+    const matchKey = expectedTransportPubkey ? normalizePubkey(expectedTransportPubkey) : key;
+    await this._connectToPubkey(topic, matchKey);
 
-    const peer = this._peers.get(pubkey);
+    // The global connection handler binds the peer under the transport key;
+    // re-key it under the Omnia participant key for subsequent lookups.
+    const transportPeer = this._peers.get(matchKey);
+    if (transportPeer) {
+      if (matchKey !== key) {
+        this._peers.delete(matchKey);
+        this._peers.set(key, transportPeer);
+      }
+      return transportPeer;
+    }
+
+    const peer = this._peers.get(key);
     if (peer) return peer;
 
     throw new Error(
@@ -288,9 +328,10 @@ export async function createOmniaSwarm(config: OmniaSwarmConfig = {}): Promise<O
     );
   }
 
-  const swarm = config.bootstrap?.length
-    ? new HyperswarmCtor({ bootstrap: config.bootstrap })
-    : new HyperswarmCtor();
+  const opts: Record<string, unknown> = {};
+  if (config.bootstrap?.length) opts.bootstrap = config.bootstrap;
+  if (config.keyPair) opts.keyPair = config.keyPair;
+  const swarm = Object.keys(opts).length ? new HyperswarmCtor(opts) : new HyperswarmCtor();
   return new OmniaSwarmImpl(swarm, config);
 }
 

@@ -67,6 +67,8 @@ export interface HostApiContext {
   chainProvider?: ChainStateProvider;
   swarm?: OmniaSwarm;
   localParticipant?: ChannelParticipant;
+  /** Native transport identity, published in the signed manifest. */
+  transportPubkey?: string;
   /**
    * Signs the funding-transaction digest with the funding coin's key, so
    * openChannel can assemble the funding witness without the caller reproducing
@@ -271,7 +273,7 @@ async function persistProgramUpdate(
   context.channels.set(channelId, result.channel);
   const remoteParty = channel.parties.find((party) => party.partyId !== context.localParticipant.partyId);
   if (context.swarm && remoteParty) {
-    const peer = await context.swarm.connectToPeer(remoteParty.publicKeyDigest, channelId);
+    const peer = await context.swarm.connectToPeer(remoteParty.publicKeyDigest, channelId, remoteParty.transportPubkey);
     await peer.sendMessage({ type: 'STATE_UPDATE', channelId, nonce: Date.now(), payload: result.signedState });
   }
   return {
@@ -420,10 +422,14 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       publicKeyDigest: remotePublicKeyDigest,
       addressIndex: typeof params.remoteAddressIndex === 'number' ? params.remoteAddressIndex : 0,
       settlementAddress: typeof params.remoteSettlementAddress === 'string' ? params.remoteSettlementAddress : undefined,
+      transportPubkey: typeof params.remoteTransportPubkey === 'string' ? params.remoteTransportPubkey : undefined,
     };
     const result = await withOperation(context, params, async () => {
       const createParams: CreateChannelParams = {
-        localParty: context.localParticipant,
+        localParty: {
+          ...context.localParticipant,
+          transportPubkey: context.localParticipant.transportPubkey ?? context.transportPubkey,
+        },
         remoteParty: remote,
         localAmount: requiredBigInt(params, 'localAmount'),
         remoteAmount: requiredBigInt(params, 'remoteAmount'),
@@ -479,7 +485,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       });
       let acknowledged = true;
       if (context.swarm) {
-        const peer = await context.swarm.connectToPeer(remote.publicKeyDigest, created.channel.channelId);
+        const peer = await context.swarm.connectToPeer(remote.publicKeyDigest, created.channel.channelId, remote.transportPubkey);
         await peer.sendMessage({ type: 'CHANNEL_PROPOSAL', channelId: created.channel.channelId, nonce: Date.now(), payload: created.proposal });
         // Give the peer time to accept so a follow-up pay() is not lost.
         const reply = await waitForPeerReply(peer, created.channel.channelId, 20_000);
@@ -512,9 +518,11 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       }, context.leaseProvider, context.signer);
       if (result.error) throw new Error(result.error);
       context.channels.set(channelId, result.channel);
+      const remoteParty = channel.parties.find((party) => party.partyId === remotePartyId)!;
       const peer = context.swarm ? await context.swarm.connectToPeer(
-        channel.parties.find((party) => party.partyId === remotePartyId)!.publicKeyDigest,
+        remoteParty.publicKeyDigest,
         channelId,
+        remoteParty.transportPubkey,
       ) : undefined;
       if (peer) await peer.sendMessage({ type: 'STATE_UPDATE', channelId, nonce: Date.now(), payload: result.signedState });
       return { success: true, channelId, sequence: result.channel.currentSequence, localBalance: result.channel.balances[localPartyId]!.toString(), remoteBalance: result.channel.balances[remotePartyId]!.toString() };
@@ -609,7 +617,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       let settlementTxHex: string | undefined;
       if (context.swarm && remoteParty) {
         const request = buildSettlementSigningRequest(closing, { partyAddresses });
-        const peer = await context.swarm.connectToPeer(remoteParty.publicKeyDigest, channelId);
+        const peer = await context.swarm.connectToPeer(remoteParty.publicKeyDigest, channelId, remoteParty.transportPubkey);
         await peer.sendMessage({
           type: 'SETTLEMENT_PROPOSAL',
           channelId,
@@ -669,6 +677,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
         contributionAmount: BigInt(requiredString(item, 'contributionAmount')),
         fundingCoinId: typeof item.fundingCoinId === 'string' ? item.fundingCoinId : undefined,
         settlementAddress: typeof item.settlementAddress === 'string' ? item.settlementAddress : undefined,
+        transportPubkey: typeof item.transportPubkey === 'string' ? item.transportPubkey : undefined,
       } satisfies FactoryParticipant;
     });
     const tokenId = typeof params.tokenId === 'string' ? params.tokenId : '0x00';
@@ -681,7 +690,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       let factory = await createFactory(parsed, tokenId, localBundle);
       const remote = parsed.find((participant) => participant.partyId !== localPartyId);
       if (context.swarm && remote) {
-        const peer = await context.swarm.connectToPeer(remote.publicKeyDigest, factory.factoryId);
+        const peer = await context.swarm.connectToPeer(remote.publicKeyDigest, factory.factoryId, remote.transportPubkey);
         await peer.sendMessage({
           type: 'FACTORY_PROPOSAL',
           channelId: factory.factoryId,
@@ -723,7 +732,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       const signatures: Record<string, any> = { [localSig.partyId]: localSig };
       const remote = factory.participants.find((participant) => participant.partyId !== localPartyId);
       const peer = context.swarm && remote
-        ? await context.swarm.connectToPeer(remote.publicKeyDigest, plan.vcId)
+        ? await context.swarm.connectToPeer(remote.publicKeyDigest, plan.vcId, remote.transportPubkey)
         : undefined;
       if (peer) {
         await peer.sendMessage({
@@ -775,7 +784,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       const signatures: Record<string, any> = { [localSig.partyId]: localSig };
       const remote = factory.participants.find((participant) => participant.partyId !== localPartyId);
       const peer = context.swarm && remote
-        ? await context.swarm.connectToPeer(remote.publicKeyDigest, plan.vcId)
+        ? await context.swarm.connectToPeer(remote.publicKeyDigest, plan.vcId, remote.transportPubkey)
         : undefined;
       if (peer) {
         await peer.sendMessage({

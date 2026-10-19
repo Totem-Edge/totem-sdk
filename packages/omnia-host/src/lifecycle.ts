@@ -32,6 +32,10 @@ export interface OmniaHostDependencies {
   methods?: Map<string, JsonRpcHandler>;
   operationStoreForApi?: OperationStoreLike;
   localParticipant?: import('@totemsdk/omnia').ChannelParticipant;
+  /** Stable ed25519 native transport keypair (derived from the host seed). */
+  transportKeyPair?: { publicKey: Uint8Array; secretKey: Uint8Array };
+  /** `0x`-prefixed transport public key published in the signed manifest. */
+  transportPubkey?: string;
   factories?: Map<string, ChannelFactory>;
   factoryBundles?: Record<string, WotsLeaseBundle>;
   spliceProposals?: Map<string, SpliceProposal>;
@@ -116,6 +120,7 @@ export function createOmniaHost(
           localPubkey: config.localPubkey,
           relay,
           ...(dhtBootstrap.length ? { bootstrap: dhtBootstrap } : {}),
+          ...(dependencies.transportKeyPair ? { keyPair: dependencies.transportKeyPair } : {}),
         });
       }
       if (!chainAdapter) {
@@ -160,6 +165,9 @@ export function createOmniaHost(
 
       const onFactoryMessage = async (peer: any, msg: any): Promise<void> => {
         const payload = (msg?.payload ?? {}) as Record<string, any>;
+        if (process.env.OMNIA_DEBUG) {
+          console.error('[factory] recv', msg?.type, 'hasFactory', !!payload.factory, 'bundles', !!localBundle);
+        }
         if (!factories || !localBundle) return;
         try {
           if (msg.type === 'FACTORY_PROPOSAL' && payload.factory) {
@@ -183,6 +191,7 @@ export function createOmniaHost(
             });
           }
         } catch (e) {
+          if (process.env.OMNIA_DEBUG) console.error('[factory] err', String(e));
           await peer.sendMessage({
             type: 'ERROR',
             channelId: msg.channelId,
@@ -271,6 +280,7 @@ export function createOmniaHost(
             chainProvider: dependencies.chainProvider ?? chainAdapter,
             swarm,
             localParticipant,
+            transportPubkey: dependencies.transportPubkey,
             factories,
             factoryBundles,
             spliceProposals: dependencies.spliceProposals,

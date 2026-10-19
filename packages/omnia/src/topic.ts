@@ -18,10 +18,19 @@ export function channelTopic(channelId: string): Buffer {
 }
 
 /**
+ * Normalise a public key to lowercase hex without the `0x` prefix. Hyperswarm
+ * reports keys as raw lowercase hex, while callers pass `0x`-prefixed digests;
+ * both rendezvous (topic) and connection matching must agree on one form.
+ */
+export function normalizePubkey(pubkey: string): string {
+  return pubkey.replace(/^0x/i, '').toLowerCase();
+}
+
+/**
  * Derive a 32-byte Hyperswarm topic Buffer for peer-to-peer rendezvous.
  */
 export function peerTopic(pubkey: string): Buffer {
-  const input = new TextEncoder().encode('omnia:peer:' + pubkey);
+  const input = new TextEncoder().encode('omnia:peer:' + normalizePubkey(pubkey));
   return Buffer.from(sha3_256(input));
 }
 

@@ -14,6 +14,8 @@ async function main(): Promise<void> {
     ? {
         signer: signing.signer,
         leaseProvider: signing.leaseProvider,
+        transportKeyPair: signing.transportKeyPair,
+        transportPubkey: signing.transportPubkey,
         identity: identityAndManifest?.identity
           ? {
               address: signing.address,

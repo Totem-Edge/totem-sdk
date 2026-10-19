@@ -94,11 +94,25 @@ export interface OmniaSwarmConfig {
    * Useful for an isolated/local DHT in tests. Defaults to the public DHT.
    */
   bootstrap?: string[];
+  /**
+   * Native Hyperswarm only: stable ed25519 keypair for the transport identity.
+   * When omitted, Hyperswarm generates an ephemeral one.
+   */
+  keyPair?: { publicKey: Uint8Array; secretKey: Uint8Array };
 }
 
 export interface OmniaSwarm {
   advertise(localPubkey: string): void;
-  connectToPeer(pubkey: string, channelId?: string): Promise<OmniaPeer>;
+  /**
+   * Connect to a peer by its Omnia participant pubkey (rendezvous topic).
+   * `expectedTransportPubkey` is the peer's native transport identity (from
+   * its signed manifest); native transports match it against the noise key.
+   */
+  connectToPeer(
+    pubkey: string,
+    channelId?: string,
+    expectedTransportPubkey?: string,
+  ): Promise<OmniaPeer>;
   listenForChannels(
     onProposal: (peer: OmniaPeer, proposal: OmniaMessage) => void,
   ): Unsubscribe;

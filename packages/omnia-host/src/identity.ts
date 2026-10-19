@@ -119,6 +119,7 @@ export async function createHostManifest(
     endpoints: [{ type: 'websocket', uri: `ws://${config.host}:${config.port}${config.wsPath}` }],
     capabilities: ['omnia:open-channel', 'omnia:update-channel', 'omnia:route', 'omnia:settle'],
     tags: ['omnia', 'payment-channel', 'daemon'],
+    transportPubkey: signing.transportPubkey,
   };
   // RFC-037: sign the manifest with the unified child TreeKey. Allocate a
   // one-time leaf via the lease so restarts never reuse a WOTS leaf.

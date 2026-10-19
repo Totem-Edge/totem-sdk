@@ -19,7 +19,15 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'node:crypto';
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+  createPrivateKey,
+  createPublicKey,
+  randomBytes,
+  scryptSync,
+} from 'node:crypto';
 import {
   bytesToHex,
   createUnifiedChildTreeKey,
@@ -41,6 +49,14 @@ import type { OmniaHostConfig } from './config.js';
 export interface HostSigning {
   signer: ChannelSigner;
   leaseProvider: WotsLeaseProvider;
+  /**
+   * Stable ed25519 keypair used as the native Hyperswarm transport identity.
+   * Derived deterministically from the host seed. The transport is classical
+   * (noise); its public key is bound to the PQ identity by the signed manifest.
+   */
+  transportKeyPair: { publicKey: Uint8Array; secretKey: Uint8Array };
+  /** `0x`-prefixed hex transport public key (published in the signed manifest). */
+  transportPubkey: string;
   /** Minima address for the unified child TreeKey (identity + channels). */
   address: string;
   /** Channel participant key: the unified child TreeKey root pubkey (RFC-037). */
@@ -108,6 +124,30 @@ export function encryptSeedForKeyfile(seed: Uint8Array, passphrase: string): Key
     iv: iv.toString('hex'),
     authTag: cipher.getAuthTag().toString('hex'),
   };
+}
+
+/**
+ * Derive the stable ed25519 transport keypair from the host seed.
+ *
+ * The transport is Hyperswarm's classical noise channel; this key is *not* the
+ * quantum-resistant identity. It is published in the identity-signed manifest
+ * so peers can bind it to the host's PQ identity.
+ */
+function deriveTransportKeyPair(baseSeed: Uint8Array): { publicKey: Uint8Array; secretKey: Uint8Array } {
+  const seed = createHash('sha256')
+    .update(Buffer.concat([Buffer.from(baseSeed), Buffer.from('omnia-transport-v1')]))
+    .digest();
+  // Ed25519 PKCS#8 DER prefix + 32-byte seed
+  const pkcs8 = Buffer.concat([
+    Buffer.from('302e020100300506032b657004220420', 'hex'),
+    seed,
+  ]);
+  const privateKey = createPrivateKey({ key: pkcs8, format: 'der', type: 'pkcs8' });
+  const spki = createPublicKey(privateKey).export({ format: 'der', type: 'spki' }) as Buffer;
+  const publicKey = spki.subarray(spki.length - 32);
+  // sodium/ed25519 64-byte secret key = seed || publicKey
+  const secretKey = Buffer.concat([seed, publicKey]);
+  return { publicKey: new Uint8Array(publicKey), secretKey: new Uint8Array(secretKey) };
 }
 
 function resolveBaseSeed(config: OmniaHostConfig): Uint8Array {
@@ -243,11 +283,16 @@ export function createHostSigning(config: OmniaHostConfig): HostSigning {
     },
   };
 
+  const transportKeyPair = deriveTransportKeyPair(baseSeed);
+  const transportPubkey = `0x${bytesToHex(transportKeyPair.publicKey)}`;
+
   return {
     signer,
     leaseProvider,
     address,
     publicKeyDigest,
+    transportKeyPair,
+    transportPubkey,
     baseSeed,
     treeKey,
     addressIndex,

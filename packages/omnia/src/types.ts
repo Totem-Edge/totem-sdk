@@ -33,6 +33,12 @@ export interface ChannelParticipant {
   settlementAddress?: string;
   relayEndpoint?: string;
   /**
+   * Native transport identity (ed25519 pubkey) published in the participant's
+   * signed manifest. Used by the Hyperswarm transport to authenticate the
+   * connection; the PQ binding is the manifest signature.
+   */
+  transportPubkey?: string;
+  /**
    * Root-identity anchor (RFC-037 Amendment A). Optional during migration; when
    * present, the participant's channel key is bound to a wallet root identity via
    * an ownership proof. Verified by `verifyChannelParticipantIdentity`.

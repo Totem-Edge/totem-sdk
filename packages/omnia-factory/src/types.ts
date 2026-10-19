@@ -24,6 +24,8 @@ export interface FactoryParticipant {
   fundingCoinId?: string;
   /** Address to receive funds on cooperative settlement. Falls back to publicKeyDigest. */
   settlementAddress?: string;
+  /** Native transport identity (ed25519 pubkey) from the signed manifest. */
+  transportPubkey?: string;
 }
 
 // ─── Lease bundle ─────────────────────────────────────────────────────────────

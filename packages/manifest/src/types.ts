@@ -108,6 +108,11 @@ export interface EdgeServiceManifest {
   tags: string[];
   expiresAt?: number;
   minTotemVersion?: string;
+  /**
+   * Native Hyperswarm transport public key (ed25519, `0x` hex). Classical key
+   * bound to the host's PQ identity by this manifest's signature.
+   */
+  transportPubkey?: string;
 }
 
 export type Manifest =
