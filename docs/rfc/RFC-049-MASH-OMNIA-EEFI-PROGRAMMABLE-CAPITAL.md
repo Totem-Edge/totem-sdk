@@ -261,6 +261,15 @@ MSHS-2 ships **two deployment modes** (`mshs2_modes.hpp`; `mashtxnsign mode:wall
 | carrier size | — | current + next ≤ 24 KiB |
 | op envelope | ≤ 960 (`mshs2WalletOps`) | wallet verifier + committed assertions |
 
+**Both modes are available at once — they are per-coin, not per-wallet.** An MSHS-2 mode is a
+*per-address deployment policy over one `PK_ROOT`* (`mshs2_modes.hpp`: *"both use the same
+cryptographic profile and root counter"*); the mode is chosen per transaction/address. A system runs
+**wallet** mode for its Omnia/capital coins **and** **committed** mode for its state coins
+concurrently — each mode is a different primitive, composed at the *system* level across different
+coins. The incompatibilities below are **per coin/script**, never per wallet. One coupling matters:
+both modes draw from the **same `PK_ROOT` and its lifetime counter** (`Q_MAX = 2^28`), so the
+authorization budget is **shared** across modes (see §11 Q5).
+
 This changes four things for MASH-based Omnia/Eefi txs:
 
 1. **Ports.** Committed mode additionally occupies **ports 0–1** (`mash-committed-state`, STATE(0)/STATE(1)) on top of 230–255. On one coin that collides with anything using 0–1 (e.g. `statechain`).
@@ -295,9 +304,11 @@ incompatible with multi-party custody, Omnia channel/factory/settlement shapes, 
 **state primitive, not an execution primitive.**
 
 **Bottom line:** committed state does **not** change the wallet-mode boundary model (Model A) or the
-composite table; it introduces a **second, single-owner, 1-in/1-out** deployment suited to state
-coins, identities, state-root anchors and committed-fact carriers, and it is **incompatible** with
-multi-party Omnia shapes and P-EXIT.
+composite table; it adds a **second, per-coin, single-owner, 1-in/1-out** deployment suited to state
+coins, identities, state-root anchors and committed-fact carriers. Both modes run **together across a
+system** (wallet for Omnia/capital coins, committed for state coins, one shared `PK_ROOT`); the
+incompatibility is only **on the same coin** — committed mode cannot share a coin with multi-party
+Omnia shapes or P-EXIT.
 
 ---
 

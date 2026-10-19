@@ -23,6 +23,7 @@
     "omnia-vtxo": { "coinClass": "vtxo", "bands": ["omnia-control", "omnia-share"] }
   },
   "mashModes": {
+    "_note": "Per-coin (per-address) deployment policies over one PK_ROOT and a SHARED lifetime counter (Q_MAX = 2^28). Both modes are available at once across a system — wallet for Omnia/capital coins, committed for state coins; they are mutually exclusive only on the SAME coin.",
     "wallet": {
       "outer": "MAST 0x<policyRoot>",
       "statePorts": ["mshs"],
@@ -33,7 +34,7 @@
       "outer": "LET stateroot=0x<sha3(state)> MAST 0x<policyRoot>",
       "statePorts": ["mash-committed-state", "mshs"],
       "txShape": "exactly 1 input, 1 output, no recovery branches; successor commits STATE(1) and preserves the amount; current+next <= 24 KiB",
-      "notes": "State root committed into the locking script. Owner-authoritative single-owner carrier (vault/treasury, RFC-051 committed facts). NOT composable with Omnia multi-party scripts and NOT compatible with P-EXIT (recovery branch forbidden). Excluded from composites."
+      "notes": "State root committed into the locking script. Owner-authoritative single-owner state carrier (identity/credential coin, state-root anchor, RFC-051 committed facts). Not composable with multi-party Omnia scripts and not compatible with P-EXIT on the SAME coin (recovery branch forbidden); still used alongside wallet-mode coins in the same system. Excluded from same-coin composites."
     }
   },
   "shareBases": {
