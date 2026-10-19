@@ -539,6 +539,7 @@ impl TreeRegistry {
 // ---------------------------------------------------------------------------
 
 /// Initialize the WASM module (called automatically on import).
+#[cfg(feature = "wasm-start")]
 #[wasm_bindgen(start)]
 pub fn init() {
     // Set up panic hook for better error messages

@@ -21,8 +21,11 @@ fn sha256_impl(data: &[u8]) -> Vec<u8> {
     hasher.finalize().to_vec()
 }
 
-fn wots_verify_impl(_sig: &[u8], _digest: &[u8], _pk: &[u8]) -> bool {
-    false
+/// WOTS verification delegates to the Rust crypto engine (`core-wasm`), so the
+/// VM verifies signatures with the exact same implementation as the node and the
+/// JS bridge (RFC-048 signature parity). Not a stub.
+fn wots_verify_impl(sig: &[u8], digest: &[u8], pk: &[u8]) -> bool {
+    totemsdk_core_wasm::wots::wots_verify_digest(sig, digest, pk)
 }
 
 #[wasm_bindgen]

@@ -30,7 +30,17 @@ pub struct EvalResult {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScriptWitness {
+    #[serde(default)]
     pub signatures: HashMap<String, Vec<u8>>,
+    /// Canonical Minima tree signatures (RFC-009), keyed by the lowercase hex
+    /// **root public key** — the signer identity used by `SIGNEDBY`/`MULTISIG`.
+    /// Values are `totemsdk_core_wasm::treekey::TreeSignature` (RFC-048).
+    #[serde(
+        default,
+        rename = "treeSignatures",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub tree_signatures: Option<HashMap<String, totemsdk_core_wasm::treekey::TreeSignature>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub preimages: Option<HashMap<String, String>>,
 }
@@ -149,7 +159,14 @@ pub enum AstNode {
     #[serde(rename = "MAST_EXPR")]
     MastExpr { #[serde(rename = "rootHash")] root_hash: String, span: Option<Span> },
     #[serde(rename = "PROOF")]
-    Proof { #[serde(rename = "scriptHash")] script_hash: Box<AstNode>, #[serde(rename = "policyRoot")] policy_root: Box<AstNode>, proof: Box<AstNode>, span: Option<Span> },
+    Proof {
+        data: Box<AstNode>,
+        #[serde(rename = "leafSum")] leaf_sum: Box<AstNode>,
+        #[serde(rename = "rootHash")] root_hash: Box<AstNode>,
+        #[serde(rename = "rootSum")] root_sum: Box<AstNode>,
+        proof: Box<AstNode>,
+        span: Option<Span>,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

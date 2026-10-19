@@ -23,6 +23,10 @@ num-bigint = "0.4"
 num-traits = "0.2"
 js-sys = "0.3"
 console_error_panic_hook = "0.1"
+# The Rust/WASM crypto engine. The VM verifies TreeSignatures with the *same*
+# Rust implementation the node and the JS bridge use (RFC-048 signature parity),
+# instead of the presence-only `simulationMode` fallback.
+totemsdk-core-wasm = { path = "../../core-wasm", default-features = false }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3"

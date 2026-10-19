@@ -13,6 +13,14 @@ homepage = "https://totem.ing"
 # mirrors (RFC-033) — built only when not targeting wasm32 (see src/ffi.rs).
 crate-type = ["cdylib", "rlib", "staticlib"]
 
+[features]
+# The `#[wasm_bindgen(start)]` module initializer is emitted per-crate and its
+# generated symbols (`init`, `__wbindgen_describe_init`) collide when the engine
+# is linked as an rlib into another wasm-bindgen crate (e.g. the KISSVM VM,
+# RFC-048). Consumers that link this as a library disable it.
+default = ["wasm-start"]
+wasm-start = []
+
 [dependencies]
 wasm-bindgen = "=0.2.126"
 sha3 = "0.10"

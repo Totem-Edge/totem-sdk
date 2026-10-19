@@ -309,7 +309,13 @@ fn eval_expr(node: &AstNode, vm: &mut VmState) -> Result<VmValue, EvalError> {
             match &vm.tx_ctx.tx_digest {
                 None => {
                     if vm.tx_ctx.simulation_mode.unwrap_or(false) {
-                        return Ok(VmValue::Bool(!vm.witness.signatures.is_empty()));
+                        let has_any = !vm.witness.signatures.is_empty()
+                            || vm
+                                .witness
+                                .tree_signatures
+                                .as_ref()
+                                .map_or(false, |m| !m.is_empty());
+                        return Ok(VmValue::Bool(has_any));
                     }
                     vm.add_trace("CHECKSIG → false (no txDigest; provide TxContext.txDigest for real verification)".into());
                     Ok(VmValue::Bool(false))
@@ -319,6 +325,16 @@ fn eval_expr(node: &AstNode, vm: &mut VmState) -> Result<VmValue, EvalError> {
                         let pk_bytes = hex_to_bytes(pk_hex);
                         if (vm.wots_verify)(sig, digest, &pk_bytes) {
                             return Ok(VmValue::Bool(true));
+                        }
+                    }
+                    if let Some(tree_sigs) = &vm.witness.tree_signatures {
+                        for (pk_hex, ts) in tree_sigs {
+                            let pk_bytes = hex_to_bytes(pk_hex);
+                            if totemsdk_core_wasm::treekey::verify_tree_signature(
+                                &pk_bytes, digest, ts,
+                            ) {
+                                return Ok(VmValue::Bool(true));
+                            }
                         }
                     }
                     Ok(VmValue::Bool(false))
@@ -400,11 +416,13 @@ fn eval_expr(node: &AstNode, vm: &mut VmState) -> Result<VmValue, EvalError> {
         AstNode::ExecMast { .. } => {
             Ok(VmValue::Bool(exec_mast_block_vm(vm)?))
         }
-        AstNode::Proof { script_hash, policy_root, proof, .. } => {
-            let sh_val = eval_expr(script_hash, vm)?.to_string_val();
-            let pr_val = eval_expr(policy_root, vm)?.to_string_val();
-            let pf_val = eval_expr(proof, vm)?.to_string_val();
-            Ok(VmValue::Bool(eval_proof(&sh_val, &pr_val, &pf_val, vm)?))
+        AstNode::Proof { data, leaf_sum, root_hash, root_sum, proof, .. } => {
+            let data_val = eval_expr(data, vm)?.to_string_val();
+            let leaf_sum_val = value_to_u64(&eval_expr(leaf_sum, vm)?)?;
+            let root_hash_val = eval_expr(root_hash, vm)?.to_string_val();
+            let root_sum_val = value_to_u64(&eval_expr(root_sum, vm)?)?;
+            let proof_val = eval_expr(proof, vm)?.to_string_val();
+            Ok(VmValue::Bool(eval_proof(&data_val, leaf_sum_val, &root_hash_val, root_sum_val, &proof_val, vm)?))
         }
         _ => Err(EvalError::Runtime("Cannot evaluate as expression".into())),
     }
@@ -515,34 +533,49 @@ fn verify_signed_by(pk_val: &str, vm: &mut VmState) -> Result<bool, EvalError> {
     } else {
         pk_val.to_lowercase()
     };
+    let prefix = stripped[..stripped.len().min(10)].to_string();
 
-    let sig = vm.witness.signatures.get(&stripped).cloned();
-    match sig {
+    // RFC-048: the signer identity is the keyed entry — either a flat WOTS
+    // signature (single-key/compat) or a canonical Minima TreeSignature keyed by
+    // its root public key.
+    let flat = vm.witness.signatures.get(&stripped).cloned();
+    let tree = vm
+        .witness
+        .tree_signatures
+        .as_ref()
+        .and_then(|m| m.get(&stripped).cloned());
+
+    if flat.is_none() && tree.is_none() {
+        vm.add_trace(format!("SIGNEDBY({}…) → no sig", prefix));
+        return Ok(false);
+    }
+
+    match &vm.tx_ctx.tx_digest {
         None => {
-            let prefix = &stripped[..stripped.len().min(10)];
-            vm.add_trace(format!("SIGNEDBY({}…) → no sig", prefix));
+            if vm.tx_ctx.simulation_mode.unwrap_or(false) {
+                vm.add_trace(format!("SIGNEDBY({}…) → present (simulation mode)", prefix));
+                return Ok(true);
+            }
+            vm.add_trace(format!("SIGNEDBY({}…) → false (no txDigest)", prefix));
             Ok(false)
         }
-        Some(sig_bytes) => {
-            match &vm.tx_ctx.tx_digest {
-                None => {
-                    if vm.tx_ctx.simulation_mode.unwrap_or(false) {
-                        let prefix = &stripped[..stripped.len().min(10)];
-                        vm.add_trace(format!("SIGNEDBY({}…) → present (simulation mode)", prefix));
-                        return Ok(true);
-                    }
-                    let prefix = &stripped[..stripped.len().min(10)];
-                    vm.add_trace(format!("SIGNEDBY({}…) → false (no txDigest)", prefix));
-                    Ok(false)
-                }
-                Some(digest) => {
-                    let pk_bytes = hex_to_bytes(&stripped);
-                    let ok = (vm.wots_verify)(&sig_bytes, digest, &pk_bytes);
-                    let prefix = &stripped[..stripped.len().min(10)];
-                    vm.add_trace(format!("SIGNEDBY({}…) → {}", prefix, ok));
-                    Ok(ok)
+        Some(digest) => {
+            let pk_bytes = hex_to_bytes(&stripped);
+            let mut ok = false;
+            if let Some(sig_bytes) = &flat {
+                if (vm.wots_verify)(sig_bytes, digest, &pk_bytes) {
+                    ok = true;
                 }
             }
+            if !ok {
+                if let Some(ts) = &tree {
+                    if totemsdk_core_wasm::treekey::verify_tree_signature(&pk_bytes, digest, ts) {
+                        ok = true;
+                    }
+                }
+            }
+            vm.add_trace(format!("SIGNEDBY({}…) → {}", prefix, ok));
+            Ok(ok)
         }
     }
 }
@@ -670,24 +703,29 @@ fn execute_sub_script(script: &str, parent_vm: &mut VmState) -> Result<bool, Eva
     Ok(result)
 }
 
-fn eval_proof(script_hash_val: &str, policy_root_val: &str, proof_val: &str, vm: &mut VmState) -> Result<bool, EvalError> {
-    let norm_hash = normalize_hex(script_hash_val);
-    let norm_root = normalize_hex(policy_root_val);
+/// Canonical Minima `PROOF(data leafSum rootHash rootSum proofChain)` — verifies
+/// that `data` (hashed into a leaf via `MMRData.CreateMMRDataLeafNode`) is
+/// included in the MMR rooted at `rootHash`/`rootSum`. Matches the node's
+/// `org.minima.kissvm.functions.sha.PROOF` (`requiredParams() == 5`).
+fn eval_proof(
+    data_val: &str,
+    leaf_sum: u64,
+    root_hash_val: &str,
+    root_sum: u64,
+    proof_val: &str,
+    vm: &mut VmState,
+) -> Result<bool, EvalError> {
+    use totemsdk_core_wasm::mmr;
 
-    let branches = vm.tx_ctx.mast_branches.clone();
-    let mut script_present = branches.as_ref().map(|b| b.contains_key(&norm_hash)).unwrap_or(false);
-    if !script_present {
-        if let Some(ref b) = branches {
-            for k in b.keys() {
-                if normalize_hex(k) == norm_hash { script_present = true; break; }
-            }
-        }
-    }
-    if !script_present {
-        let prefix = &norm_hash[..norm_hash.len().min(12)];
-        vm.add_trace(format!("PROOF: script {}… not in mastBranches → false", prefix));
-        return Ok(false);
-    }
+    let norm_root = normalize_hex(root_hash_val);
+
+    // Leaf data: `[ … ]` = SCRIPT leaf (brackets stripped); `0x…` = HEX leaf;
+    // otherwise a SCRIPT leaf — mirroring the node's getHexParam/getStringParam try.
+    let bracketed = data_val.starts_with('[') && data_val.ends_with(']');
+    let inner = if bracketed { &data_val[1..data_val.len() - 1] } else { data_val };
+    let is_hex = !bracketed && (inner.starts_with("0x") || inner.starts_with("0X"));
+    let leaf_bytes: Vec<u8> = if is_hex { hex_to_bytes(inner) } else { inner.as_bytes().to_vec() };
+    let leaf_data = mmr::create_mmr_data_leaf_node(&leaf_bytes, leaf_sum);
 
     let proof_hex = if proof_val.starts_with("0x") || proof_val.starts_with("0X") {
         &proof_val[2..]
@@ -695,43 +733,47 @@ fn eval_proof(script_hash_val: &str, policy_root_val: &str, proof_val: &str, vm:
         proof_val
     };
 
+    // Empty proof: trivial single-leaf tree (root must equal the leaf, sums equal).
     if proof_hex.is_empty() {
-        let ok = norm_hash == norm_root;
-        let prefix = &norm_hash[..norm_hash.len().min(12)];
-        vm.add_trace(format!("PROOF({}…) empty-proof, trivial={}", prefix, ok));
+        let computed = format!("0x{}", hex::encode(&leaf_data.data));
+        let ok = normalize_hex(&computed) == norm_root && leaf_data.value == root_sum;
+        let prefix = &norm_root[..norm_root.len().min(12)];
+        vm.add_trace(format!("PROOF({}…) empty-proof trivial={}", prefix, ok));
         return Ok(ok);
     }
 
-    let ok = verify_merkle_proof(&norm_hash, &norm_root, proof_hex, vm);
-    let prefix = &norm_hash[..norm_hash.len().min(12)];
+    let proof_bytes = match hex::decode(proof_hex) {
+        Ok(v) => v,
+        Err(_) => { vm.add_trace("PROOF: invalid proof hex → false".into()); return Ok(false); }
+    };
+    let (proof, _block_time, _read) = match mmr::parse_mmr_proof_from_hex(&proof_bytes) {
+        Ok(v) => v,
+        Err(_) => { vm.add_trace("PROOF: invalid MMR proof → false".into()); return Ok(false); }
+    };
+
+    let mut current = leaf_data;
+    for chunk in &proof.chunks {
+        current = if chunk.is_left {
+            mmr::create_mmr_data_parent_node(&chunk.mmr_data, &current)
+        } else {
+            mmr::create_mmr_data_parent_node(&current, &chunk.mmr_data)
+        };
+    }
+
+    let computed = format!("0x{}", hex::encode(&current.data));
+    let hash_ok = normalize_hex(&computed) == norm_root;
+    let sum_ok = current.value == root_sum;
+    let ok = hash_ok && sum_ok;
+    let lprefix = &computed[..computed.len().min(12)];
     let rprefix = &norm_root[..norm_root.len().min(12)];
-    vm.add_trace(format!("PROOF({}…, root={}…) merkle={}", prefix, rprefix, ok));
+    vm.add_trace(format!("PROOF(leaf {}…, root {}…) hash={} sum={}", lprefix, rprefix, hash_ok, sum_ok));
     Ok(ok)
 }
 
-fn verify_merkle_proof(leaf_hex: &str, root_hex: &str, proof_hex: &str, vm: &VmState) -> bool {
-    let leaf_pure = if leaf_hex.starts_with("0x") { &leaf_hex[2..] } else { leaf_hex };
-    let mut current = match hex::decode(leaf_pure) { Ok(v) => v, Err(_) => return false };
-    let proof_bytes = match hex::decode(proof_hex) { Ok(v) => v, Err(_) => return false };
-
-    let sibling_size = 32;
-    let mut off = 0;
-    while off + sibling_size <= proof_bytes.len() {
-        let sibling = &proof_bytes[off..off + sibling_size];
-        let (lo, hi) = if uint8_less(&current, sibling) {
-            (current.clone(), sibling.to_vec())
-        } else {
-            (sibling.to_vec(), current.clone())
-        };
-        let mut pair = Vec::with_capacity(64);
-        pair.extend_from_slice(&lo);
-        pair.extend_from_slice(&hi);
-        current = (vm.sha3_256)(&pair);
-        off += sibling_size;
-    }
-
-    let computed_root = format!("0x{}", hex::encode(&current));
-    normalize_hex(&computed_root) == normalize_hex(root_hex)
+fn value_to_u64(v: &VmValue) -> Result<u64, EvalError> {
+    let b = as_scaled(v)?;
+    num_traits::ToPrimitive::to_u64(&b)
+        .ok_or_else(|| EvalError::Runtime("PROOF sum must be a non-negative integer".into()))
 }
 
 fn validate_arg_count(fn_: &UserFunction, provided: usize, name: &str) -> Result<(), EvalError> {
@@ -911,13 +953,4 @@ fn as_port_int(v: &VmValue) -> Result<i64, EvalError> {
 fn hex_to_bytes(hex: &str) -> Vec<u8> {
     let s = if hex.starts_with("0x") || hex.starts_with("0X") { &hex[2..] } else { hex };
     hex::decode(s).unwrap_or_default()
-}
-
-fn uint8_less(a: &[u8], b: &[u8]) -> bool {
-    let len = a.len().min(b.len());
-    for i in 0..len {
-        if a[i] < b[i] { return true; }
-        if a[i] > b[i] { return false; }
-    }
-    a.len() < b.len()
 }

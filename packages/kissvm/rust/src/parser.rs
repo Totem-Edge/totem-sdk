@@ -459,11 +459,13 @@ impl Parser {
             }
             TokenKind::Proof => {
                 self.eat(None)?; self.eat(Some(TokenKind::LParen))?;
-                let script_hash = self.parse_expr()?; self.try_eat(TokenKind::Comma);
-                let policy_root = self.parse_expr()?; self.try_eat(TokenKind::Comma);
+                let data = self.parse_expr()?; self.try_eat(TokenKind::Comma);
+                let leaf_sum = self.parse_expr()?; self.try_eat(TokenKind::Comma);
+                let root_hash = self.parse_expr()?; self.try_eat(TokenKind::Comma);
+                let root_sum = self.parse_expr()?; self.try_eat(TokenKind::Comma);
                 let proof = self.parse_expr()?;
                 self.eat(Some(TokenKind::RParen))?;
-                Ok(AstNode::Proof { script_hash: Box::new(script_hash), policy_root: Box::new(policy_root), proof: Box::new(proof), span: Some(self.span(start_pos)) })
+                Ok(AstNode::Proof { data: Box::new(data), leaf_sum: Box::new(leaf_sum), root_hash: Box::new(root_hash), root_sum: Box::new(root_sum), proof: Box::new(proof), span: Some(self.span(start_pos)) })
             }
             TokenKind::Mast => {
                 self.eat(None)?;
