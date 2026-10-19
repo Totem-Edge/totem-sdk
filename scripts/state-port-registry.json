@@ -57,8 +57,8 @@
     },
     "mash+omnia-factory": {
       "coinClass": "factory",
-      "instructionBudget": "over",
-      "instructionBudgetNote": "MASH envelope (795) + the factory script's conservative op bound (~247) exceeds the KISSVM 1024 limit. Model B (MASH-aware factory) needs a trimmed factory script or a per-branch budget; until then MASH authorizes the factory only at the boundary (Model A), not inline. Tracked per R-MASH-5.",
+      "instructionBudget": "ok",
+      "instructionBudgetNote": "Model B is feasible with the O(1) pre-signed distribution escape (`buildFactoryDistributionScript`): MASH envelope 795 + ~60-76 op bound <= 1024. The per-party-escape `buildFactoryScript` is O(N) and exceeds the budget (N=2 -> 247, N=10 -> 2015), so MASH-aware factory coins MUST use the distribution escape.",
       "participants": [
         { "id": "mash", "bands": ["mshs"] },
         { "id": "omnia-factory", "bands": ["omnia-control", "omnia-share"] }

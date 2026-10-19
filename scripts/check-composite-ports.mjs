@@ -50,10 +50,14 @@ const omniaScripts = {
     { partyId: 'a', publicKeyDigest: pk('aa'), addressIndex: 0 },
     { partyId: 'b', publicKeyDigest: pk('bb'), addressIndex: 1 },
   ]),
-  'omnia-factory': factory.buildFactoryScript([
-    { partyId: 'a', publicKeyDigest: holder(0), addressIndex: 0, contributionAmount: 1000n, settlementAddress: holder(0) },
-    { partyId: 'b', publicKeyDigest: holder(1), addressIndex: 1, contributionAmount: 1000n, settlementAddress: holder(1) },
-  ]),
+  // Model-B shape: the O(1) pre-signed distribution escape (the per-party-escape
+  // factory is O(N) and exceeds the budget; see docs/COMPOSITE-PORT-ALLOCATION.md).
+  'omnia-factory': factory.buildFactoryDistributionScript({
+    participants: [
+      { partyId: 'a', publicKeyDigest: holder(0), addressIndex: 0, contributionAmount: 1000n, settlementAddress: holder(0) },
+      { partyId: 'b', publicKeyDigest: holder(1), addressIndex: 1, contributionAmount: 1000n, settlementAddress: holder(1) },
+    ],
+  }),
   'omnia-vtxo': vtxo.buildPoolScript({ operatorPublicKeyDigest: pk('aa'), holders: [holder(0)], exitBlock: 100 }),
 };
 

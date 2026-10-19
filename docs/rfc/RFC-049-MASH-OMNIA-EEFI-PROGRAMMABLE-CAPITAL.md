@@ -209,10 +209,11 @@ MSHS band) enforced. The exact MSHS endpoints are now **confirmed from the node*
 by [`scripts/check-composite-ports.mjs`](../../scripts/check-composite-ports.mjs)
 (`npm run validate:composite-ports`): per-composite participant bands must be **pairwise disjoint**
 (one coin), only MASH may use the MSHS band, and `MASH envelope + Omnia op bound ≤ 1024`. See
-[`docs/COMPOSITE-PORT-ALLOCATION.md`](../COMPOSITE-PORT-ALLOCATION.md). It flags **`mash+omnia-factory`
-as over budget** (MASH 795 + factory ~247 > 1024) — so a **Model B** MASH-aware factory is not
-currently feasible; MASH authorizes the factory at the **boundary** (Model A) only. This is the
-concrete, measured form of R-MASH-5.
+[`docs/COMPOSITE-PORT-ALLOCATION.md`](../COMPOSITE-PORT-ALLOCATION.md). The factory has two escape
+shapes: the **per-party escape** is O(N) (N=2 → 247 ops) and **over budget**; the **pre-signed
+distribution escape** (`buildFactoryDistributionScript`) is O(1) (~60–76) and **within budget**
+(855–871 ≤ 1024). So **Model B is feasible with the distribution escape**; only the per-party-escape
+factory cannot be inlined under the MASH envelope. This is the concrete, measured form of R-MASH-5.
 
 ### 5.4 What MAST/MASH do — and do not — add to party count
 

@@ -23,7 +23,7 @@ table and pass an instruction‑budget check**. This is that table and check.
 | `mash+omnia-channel` | channel | mash | `mshs` (230–255) | |
 | | | omnia | `omnia-control` (100–119), `omnia-programs` (120–183) | **ok** (795 + ~75 = 870 ≤ 1024) |
 | `mash+omnia-factory` | factory | mash | `mshs` (230–255) | |
-| | | omnia-factory | `omnia-control` (100–119), `omnia-share` (128–229) | **over** (795 + ~247 = 1042 > 1024) |
+| | | omnia-factory | `omnia-control` (100–119), `omnia-share` (128–229) | **ok** (795 + ~60 = 855 ≤ 1024, distribution escape) |
 | `mash+omnia-vtxo` | vtxo | mash | `mshs` (230–255) | |
 | | | omnia-vtxo | `omnia-control` (100–119), `omnia-share` (128–229) | **ok** (795 + ~143 = 938 ≤ 1024) |
 
@@ -40,17 +40,25 @@ Port ranges per participant are the union of its declared bands (see
   envelope is `795 + 12·(inputs−1) + 37·(outputs−1)` (`mshs2_modes.hpp`, depth‑15). The Omnia op
   bound is a **path‑independent upper bound** (AST node count).
 
-## 4. The factory budget finding
+## 4. The factory budget finding — Model B is feasible with the distribution escape
 
-`mash+omnia-factory` is **over budget** (conservative bound 1042 > 1024): the MASH envelope alone is
-795, leaving ~229 ops, and the factory script's upper bound is ~247. This is why **R‑MASH‑5** says the
-MASH verifier belongs at the boundaries as a MAST dispatch, not inlined. Consequences:
+The MASH envelope alone is **795** ops, leaving ~229 for the Omnia script. The factory has **two
+escape shapes**, and the budget depends entirely on which is used:
 
-- **Model A** (MASH governs the factory's funding/settlement *boundaries*, existing Omnia script
-  unchanged) is unaffected — MASH and the factory script are on different coins.
-- **Model B** (MASH‑aware factory, same coin) is **not currently feasible**: the composite needs a
-  trimmed factory script (or a per‑branch budget) before it can be claimed. The registry records this
-  explicitly (`instructionBudget: "over"`), so the gate asserts the limitation rather than hiding it.
+| Factory escape | op bound (AST) | MASH + bound | Verdict |
+|---|---|---|---|
+| per-party escape (`buildFactoryScript`) | O(N): 247 (N=2), 715 (N=5), 2015 (N=10) | 1042 → 2810 | **over** |
+| **pre-signed distribution** (`buildFactoryDistributionScript`) | O(1): 60 (N=2), 66 (N=5), 76 (N=10) | **855–871** | **ok** |
+
+So **Model B (MASH-aware factory on one coin) *is* feasible** — provided the coin uses the **O(1)
+pre-signed distribution escape**, not the O(N) per-party escape. This is the concrete, measured form
+of R-MASH-5:
+
+- **Model A** (MASH at the factory's funding/settlement *boundaries*, Omnia script unchanged) is
+  unaffected.
+- **Model B** MUST use `buildFactoryDistributionScript` (any party broadcasts the pre-signed
+  all-party distribution after the timeout); the per-party-escape `buildFactoryScript` cannot be
+  inlined under the MASH envelope.
 
 ## 5. Adding a composite
 
