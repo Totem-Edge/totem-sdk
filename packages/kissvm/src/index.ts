@@ -7,7 +7,7 @@ export { sigdig } from './eval.js';
 export { MiniNumber } from './MiniNumber.js';
 
 // WASM bridge (Rust-backed evaluator and parser)
-export { evaluateScriptWasm, parseScriptWasm } from './wasm-sync.js';
+export { evaluateScriptWasm, parseScriptWasm, toWasmWitness, treeSignatureToWasm } from './wasm-sync.js';
 
 export type {
   Value,
@@ -190,6 +190,45 @@ export {
   buildLeaseStateMachineScript,
 } from './templates/wots-lease.js';
 export type { LeaseCertificateConfig } from './templates/wots-lease.js';
+
+// P-EXIT — enforceable unilateral exercise/settlement covenant (RFC-050 §3)
+export {
+  buildExerciseCovenant,
+  exerciseCovenantStateVariables,
+} from './templates/exercise.js';
+export type {
+  ExerciseCovenantConfig,
+  ExerciseCovenantState,
+  ExerciseKind,
+} from './templates/exercise.js';
+
+// OMP-21 — enforceable collateral bond with objective-condition liquidation (RFC-048/050)
+export {
+  buildCollateralBondScript,
+  collateralBondStateVariables,
+} from './templates/collateral.js';
+export type {
+  CollateralBondConfig,
+  CollateralBondState,
+} from './templates/collateral.js';
+
+// OMP-18/19 — on-chain oracle condition witness (RFC-048 §3.1)
+export {
+  buildOracleConditionScript,
+  oracleConditionStateVariables,
+  buildOracleExerciseCovenant,
+} from './templates/oracle.js';
+export type {
+  OracleConditionConfig,
+  OracleComparisonOp,
+  OracleCommitment,
+  OracleStateVariable,
+  OracleExerciseCovenantConfig,
+} from './templates/oracle.js';
+
+// MMR membership covenant — per-leaf inclusion in a committed root (RFC-048 §12.4)
+export { buildMmrMembershipCovenant } from './templates/membership.js';
+export type { MmrMembershipCovenantConfig } from './templates/membership.js';
 
 export {
   buildCommitScript,
