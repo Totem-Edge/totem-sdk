@@ -3,7 +3,7 @@
   "title": "Totem SDK Package Manifest",
   "description": "Machine-readable index of all @totemsdk packages — for AI agents, tooling, and developers. Updated 2026-08-18.",
   "org": "@totemsdk",
-  "total": 64,
+  "total": 65,
   "domains": {
     "cryptographic-foundation": {
       "description": "WOTS+ signatures, TreeKey hierarchy, MMR proofs, KISSVM, MAST, TxPoW",
@@ -107,6 +107,12 @@
       "description": "Provider-neutral storage contracts and adapters — StorageError taxonomy, versioned codec, namespaces, transactions + CAS, and the pluggable ArtifactStoreBackend artifact port",
       "packages": [
         "@totemsdk/storage"
+      ]
+    },
+    "programmable-capital": {
+      "description": "Eefi generic contracts — capital, market, risk and exercise agreements over MASH-authorized Omnia execution",
+      "packages": [
+        "@totemsdk/eefi"
       ]
     }
   },
@@ -2002,6 +2008,32 @@
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
+      }
+    },
+    {
+      "name": "@totemsdk/eefi",
+      "version": "0.1.0",
+      "description": "Neutral Eefi generic contracts — capital, market, risk and exercise agreement schemas with canonical digests",
+      "domain": "programmable-capital",
+      "keywords": [
+        "eefi",
+        "programmable-capital",
+        "contracts",
+        "capital",
+        "market",
+        "risk",
+        "types"
+      ],
+      "dependencies": {
+        "@totemsdk/core": "^1.4.0"
+      },
+      "exports": {
+        ".": "dist/index.{js,d.ts}"
+      },
+      "exportsDescription": "EefiCapitalAgreement, EefiMarketAgreement, EefiRiskPolicyRef, EefiExerciseCovenant, canonical digests, fail-closed validators",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "schema/digest library — holds no on-chain value"
       }
     }
   ]

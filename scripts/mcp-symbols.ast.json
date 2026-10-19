@@ -5665,6 +5665,117 @@
         }
       }
     },
+    "@totemsdk/eefi": {
+      "symbols": {
+        "EefiAtomAmount": {
+          "kind": "type",
+          "signature": "export type EefiAtomAmount = string",
+          "doc": "Non-negative integer amount in atoms, as a decimal string (never a float)."
+        },
+        "EefiCapitalAgreement": {
+          "kind": "interface",
+          "signature": "export interface EefiCapitalAgreement",
+          "doc": "Binds MASH authorisation to Omnia terms and settlement rights.\n\n`termsHash` is the canonical digest of `{ funding, operation, settlement }`\n(see `eefiCapitalTermsHash`) and MUST be recomputed/verified wherever the\nagreement is enforced — never trusted from storage alone."
+        },
+        "EefiContract": {
+          "kind": "type",
+          "signature": "export type EefiContract = | EefiCapitalAgreement | EefiMarketAgreement | EefiRiskPolicyRef | EefiExerciseCovenant"
+        },
+        "EefiContractVersion": {
+          "kind": "type",
+          "signature": "export type EefiContractVersion = EefiContract['version']"
+        },
+        "EefiExerciseCovenant": {
+          "kind": "interface",
+          "signature": "export interface EefiExerciseCovenant",
+          "doc": "Descriptor for the P-EXIT primitive (RFC-050 §3). The script itself is built\nby `@totemsdk/kissvm` (`buildExerciseCovenant` / collateral / oracle\ntemplates); this type only commits the condition and the exact payout paths."
+        },
+        "EefiExerciseKind": {
+          "kind": "type",
+          "signature": "export type EefiExerciseKind = | 'unilateral-exercise' | 'liquidation' | 'maturity-redemption'"
+        },
+        "EefiFundingTerms": {
+          "kind": "interface",
+          "signature": "export interface EefiFundingTerms"
+        },
+        "EefiHex": {
+          "kind": "type",
+          "signature": "export type EefiHex = string",
+          "doc": "`0x`-prefixed, even-length hex."
+        },
+        "EefiMarketAgreement": {
+          "kind": "interface",
+          "signature": "export interface EefiMarketAgreement",
+          "doc": "A signed, finite, executable quote (RFC-050 §5).\n\n`quoteId` is the canonical digest of the quote body excluding `quoteId` and\n`signatureRef` (see `eefiMarketQuoteDigest`). `signatureRef` points at the\nsigned-negotiation digest (e.g. `@totemsdk/edge` TradeAgreement); it is bound\nseparately so the quote can be re-signed without changing its identity."
+        },
+        "EefiMarketSide": {
+          "kind": "type",
+          "signature": "export type EefiMarketSide = 'buy' | 'sell'"
+        },
+        "EefiOperationTerms": {
+          "kind": "interface",
+          "signature": "export interface EefiOperationTerms"
+        },
+        "EefiRiskPolicyRef": {
+          "kind": "interface",
+          "signature": "export interface EefiRiskPolicyRef",
+          "doc": "A declarative risk policy referenced by products. `policyId` is the canonical\ndigest of the policy body excluding `policyId` (see `eefiRiskPolicyId`).\nThis is never a discretionary engine."
+        },
+        "EefiSettlementTerms": {
+          "kind": "interface",
+          "signature": "export interface EefiSettlementTerms"
+        },
+        "EEFI_DIGEST_DOMAINS": {
+          "kind": "const",
+          "signature": "EEFI_DIGEST_DOMAINS = { capitalTerms: 'eefi:capital-terms:v1', marketQuote: 'eefi:market-quote:v1', riskPolicy: 'eefi:risk-policy:v1', exerciseCovenant: 'eefi:exercise-covenant:v1', } as const"
+        },
+        "eefiCapitalTermsHash": {
+          "kind": "function",
+          "signature": "eefiCapitalTermsHash(agreement: Pick<EefiCapitalAgreement, \"funding\" | \"operation\" | \"settlement\">): string",
+          "doc": "Canonical digest of the enforcement-relevant capital terms."
+        },
+        "eefiExerciseCovenantHash": {
+          "kind": "function",
+          "signature": "eefiExerciseCovenantHash(covenant: EefiExerciseCovenant): string",
+          "doc": "Canonical digest of an exercise/liquidation covenant descriptor."
+        },
+        "eefiMarketQuoteDigest": {
+          "kind": "function",
+          "signature": "eefiMarketQuoteDigest(agreement: EefiMarketAgreement): string",
+          "doc": "Canonical quote identity, excluding `quoteId` and the signature reference."
+        },
+        "eefiRiskPolicyId": {
+          "kind": "function",
+          "signature": "eefiRiskPolicyId(policy: EefiRiskPolicyRef): string",
+          "doc": "Canonical risk-policy identity, excluding `policyId`."
+        },
+        "EefiValidationError": {
+          "kind": "class",
+          "signature": "export class EefiValidationError extends Error"
+        },
+        "validateCapitalAgreement": {
+          "kind": "function",
+          "signature": "validateCapitalAgreement(value: unknown): asserts value is EefiCapitalAgreement"
+        },
+        "validateEefiContract": {
+          "kind": "function",
+          "signature": "validateEefiContract(value: unknown): EefiContract",
+          "doc": "Validate any Eefi contract by its version tag. Returns the narrowed value."
+        },
+        "validateExerciseCovenant": {
+          "kind": "function",
+          "signature": "validateExerciseCovenant(value: unknown): asserts value is EefiExerciseCovenant"
+        },
+        "validateMarketAgreement": {
+          "kind": "function",
+          "signature": "validateMarketAgreement(value: unknown): asserts value is EefiMarketAgreement"
+        },
+        "validateRiskPolicyRef": {
+          "kind": "function",
+          "signature": "validateRiskPolicyRef(value: unknown): asserts value is EefiRiskPolicyRef"
+        }
+      }
+    },
     "@totemsdk/governance": {
       "symbols": {
         "ProposalStatus": {
@@ -10520,6 +10631,11 @@
           "kind": "interface",
           "signature": "export interface FactoryParticipant"
         },
+        "FactoryFundingMaterial": {
+          "kind": "interface",
+          "signature": "export interface FactoryFundingMaterial",
+          "doc": "On-chain funding material for one factory participant. Required by\n`createFactory` when the on-chain funding path is used (every participant\nsupplies a `fundingCoinId` and a `chainProvider` is given)."
+        },
         "FactorySignature": {
           "kind": "type",
           "signature": "export type FactorySignature = Uint8Array"
@@ -10547,8 +10663,7 @@
         },
         "WotsLeaseBundle": {
           "kind": "interface",
-          "signature": "export interface WotsLeaseBundle",
-          "doc": "Bundle of `FactoryLeaseOps` + `ChannelSigner` for one factory participant.\n\nIn production, wire a real `WotsLeaseProvider` (which satisfies `FactoryLeaseOps`\nstructurally) and a `ChannelSigner` backed by the participant's WOTS tree key.\nIn tests, provide mock implementations of all three methods on `leaseProvider`.\n\nThe optional `verify` callback overrides the default `wotsVerifyDigest` from\n`@totemsdk/core`, allowing test code to inject a no-op verifier without\nrequiring real WOTS key material."
+          "signature": "export interface WotsLeaseBundle"
         },
         "OmniaChannel": {
           "kind": "interface",
@@ -10668,7 +10783,7 @@
         },
         "createFactory": {
           "kind": "function",
-          "signature": "createFactory(participants: FactoryParticipant[], tokenId: string, bundle: WotsLeaseBundle, chainProvider?: ChainStateProvider, tokenScale?: number): Promise<ChannelFactory>",
+          "signature": "createFactory(participants: FactoryParticipant[], tokenId: string, bundle: WotsLeaseBundle, chainProvider?: ChainStateProvider, tokenScale?: number, funding?: FactoryFundingMaterial[]): Promise<ChannelFactory>",
           "doc": "Create a factory proposal (proposer step).\n\nThe calling party (`signer.publicKeyDigest` matches one of `participants`)\nsigns the factory opening commitment via `leaseProvider`, performing the full\nWOTS reserve → sign → verify → commit cycle.\n\nWhen ALL participants supply `fundingCoinId` and `chainProvider` is given,\nthe N-input → 1-output funding TX is built (via `@totemsdk/omnia`'s\n`buildFundingTx`), mined (via `@totemsdk/txpow`'s `mineTxPoW`), and broadcast.\nThe TX draft digest is used as the factory opening commitment so that all\nparties are co-signing the EXACT on-chain TX structure.\n\nWithout `fundingCoinId`s or `chainProvider`, the factory is in-memory only\n(useful for testing and off-chain simulation); the commitment falls back to\nthe factory state commitment hash.\n\nThe returned factory is in `'opening'` status.  Every other participant must\ncall `acceptFactory(factory, leaseProvider, signer)` before the factory\ntransitions to `'active'`."
         },
         "acceptFactory": {
@@ -10745,6 +10860,20 @@
           "signature": "signVirtualChannelOpen(factory: ChannelFactory, plan: VirtualChannelOpenPlan, bundle: WotsLeaseBundle): Promise<VirtualChannelOpenSignature>",
           "doc": "Produce this party's VC-open signature WITHOUT committing the lease\n(RFC-035 B3). The caller commits on `VC_FINALIZED` or burns on expiry."
         },
+        "buildVirtualChannelClose": {
+          "kind": "function",
+          "signature": "buildVirtualChannelClose(factory: ChannelFactory, channel: OmniaChannel): VirtualChannelClosePlan"
+        },
+        "signVirtualChannelClose": {
+          "kind": "function",
+          "signature": "signVirtualChannelClose(factory: ChannelFactory, plan: VirtualChannelClosePlan, bundle: WotsLeaseBundle): Promise<VirtualChannelOpenSignature>",
+          "doc": "Produce this party's VC-close signature without committing the lease."
+        },
+        "assembleVirtualChannelClose": {
+          "kind": "function",
+          "signature": "assembleVirtualChannelClose(factory: ChannelFactory, plan: VirtualChannelClosePlan, signatures: Record<string, VirtualChannelOpenSignature>, verify?: (sig: Uint8Array, digest: Uint8Array, pkd: string) => boolean): ChannelFactory",
+          "doc": "Assemble N-of-N VC-close signatures into the updated factory."
+        },
         "verifyVirtualChannelOpenSignature": {
           "kind": "function",
           "signature": "verifyVirtualChannelOpenSignature(factory: ChannelFactory, commitment: Uint8Array, partyId: string, signature: Uint8Array, verify?: (sig: Uint8Array, digest: Uint8Array, pkd: string) => boolean): boolean"
@@ -10764,9 +10893,14 @@
           "signature": "export interface VirtualChannelOpenSignature",
           "doc": "A participant's VC-open signature, held until the open is confirmed."
         },
+        "VirtualChannelClosePlan": {
+          "kind": "interface",
+          "signature": "export interface VirtualChannelClosePlan",
+          "doc": "Deterministic VC-close plan (no signing). Exported for peer co-signing."
+        },
         "closeFactory": {
           "kind": "function",
-          "signature": "closeFactory(factory: ChannelFactory, leaseProviders: Record<string, WotsLeaseBundle>, chainProvider?: ChainStateProvider): Promise<FactorySettlementPayload>",
+          "signature": "closeFactory(factory: ChannelFactory, leaseProviders: Record<string, WotsLeaseBundle>, chainProvider?: ChainStateProvider, opts?: { coinProof?: Uint8Array; }): Promise<FactorySettlementPayload>",
           "doc": "Cooperative N-of-N factory close (central/local path).\n\nBuilds the settlement TX, collects all N signatures (each committing its own\nlease via the full WOTS cycle), assembles the witness, and — when a\n`chainProvider` is supplied — mines + broadcasts the settlement TxPoW."
         },
         "buildDisputePayload": {
@@ -10791,7 +10925,7 @@
         },
         "assembleFactorySettlement": {
           "kind": "function",
-          "signature": "assembleFactorySettlement(factory: ChannelFactory, draft: FactorySettlementDraft, signatures: Record<string, FactorySettlementSignature>, chainProvider?: ChainStateProvider, options?: { verify?: (sig: Uint8Array, digest: Uint8Array, pkd: string) => boolean; }): Promise<FactorySettlementPayload>",
+          "signature": "assembleFactorySettlement(factory: ChannelFactory, draft: FactorySettlementDraft, signatures: Record<string, FactorySettlementSignature>, chainProvider?: ChainStateProvider, options?: { verify?: (sig: Uint8Array, digest: Uint8Array, pkd: string) => boolean; coinProof?: Uint8Array; }): Promise<FactorySettlementPayload>",
           "doc": "Assemble N-of-N settlement signatures into the MULTISIG witness + payload, and\n(when a `chainProvider` is given) mine + broadcast the settlement TxPoW."
         },
         "FactorySettlementDraft": {
@@ -16800,8 +16934,12 @@
         },
         "computeScriptAddress": {
           "kind": "function",
-          "signature": "computeScriptAddress(script: string): string",
-          "doc": "Derive a Minima script address exactly as the node does\n(`Address::Address(script)` / `ScriptProof::calculateAddress`):\n\n  address = sha3( MiniNumber.ZERO || MiniString(script) || MiniNumber.ZERO )\n\nThe script is first canonicalised (`toNodeScript`) so the address is over the\nsame bytes the node will execute and that `buildScriptProof` attests. The\nprevious implementation hashed `sha3(upper(script))`, which is not a Minima\nscript address — coins sent to it could never be spent by that script\n(\"Script Missing from TxPoW for address …\")."
+          "signature": "computeScriptAddress(script: string): string"
+        },
+        "wotsAddressData": {
+          "kind": "function",
+          "signature": "wotsAddressData(publicKeyDigest: string): string",
+          "doc": "Address data (hex) of a WOTS public-key digest's single-key script\n(`RETURN SIGNEDBY(0x<pk>)`). This is the value a `VERIFYOUT` compares against\n(the node compares the output coin's *address data*), distinct from the WOTS\npublic key used by `SIGNEDBY`."
         },
         "convertFlatChunkToSDK": {
           "kind": "function",

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "comment": "Machine-readable publishability, verification, and maturity classification. Packages with status 'publishable' must pass every gate (build, typecheck, lint, unit tests). Packages with status 'excluded' are not published and are skipped by the verification gate with an explicit machine-readable reason. Maturity levels: alpha \u2192 beta \u2192 rc \u2192 v1. Each level activates additional required gates automatically via scripts/verify-workspace.mjs.",
+  "comment": "Machine-readable publishability, verification, and maturity classification. Packages with status 'publishable' must pass every gate (build, typecheck, lint, unit tests). Packages with status 'excluded' are not published and are skipped by the verification gate with an explicit machine-readable reason. Maturity levels: alpha → beta → rc → v1. Each level activates additional required gates automatically via scripts/verify-workspace.mjs.",
   "maturityGates": {
     "alpha": [
       "typecheck",
@@ -34,7 +34,7 @@
       "maturity": "rc",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/authority": {
@@ -42,7 +42,7 @@
       "maturity": "v1",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/chain-provider": {
@@ -50,7 +50,7 @@
       "maturity": "rc",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/connect": {
@@ -58,7 +58,7 @@
       "maturity": "v1",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/core": {
@@ -66,7 +66,7 @@
       "maturity": "v1",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/core-wasm": {
@@ -74,7 +74,7 @@
       "maturity": "v1",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/decision": {
@@ -82,7 +82,7 @@
       "maturity": "beta",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/edge": {
@@ -90,7 +90,7 @@
       "maturity": "v1",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/edge-adapters": {
@@ -98,7 +98,7 @@
       "maturity": "rc",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/edge-bacnet": {
@@ -106,7 +106,7 @@
       "maturity": "rc",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/edge-ble": {
@@ -114,7 +114,7 @@
       "maturity": "rc",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/edge-can": {
@@ -122,7 +122,7 @@
       "maturity": "rc",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/edge-coap": {
@@ -130,7 +130,7 @@
       "maturity": "rc",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/edge-email": {
@@ -138,7 +138,7 @@
       "maturity": "rc",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/edge-grpc": {
@@ -146,7 +146,7 @@
       "maturity": "rc",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/edge-lorawan": {
@@ -154,7 +154,7 @@
       "maturity": "rc",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/edge-matter": {
@@ -162,7 +162,7 @@
       "maturity": "rc",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/edge-modbus": {
@@ -170,7 +170,7 @@
       "maturity": "rc",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/edge-mqtt": {
@@ -178,7 +178,7 @@
       "maturity": "rc",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/edge-nfc": {
@@ -186,7 +186,7 @@
       "maturity": "alpha",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/edge-opcua": {
@@ -194,7 +194,7 @@
       "maturity": "rc",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/edge-ros2": {
@@ -202,7 +202,7 @@
       "maturity": "rc",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/governance": {
@@ -210,7 +210,7 @@
       "maturity": "rc",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/identity": {
@@ -218,7 +218,7 @@
       "maturity": "v1",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/industrial-action": {
@@ -226,7 +226,7 @@
       "maturity": "rc",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/intelligence": {
@@ -234,7 +234,7 @@
       "maturity": "beta",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/kissvm": {
@@ -242,7 +242,7 @@
       "maturity": "v1",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/liquidity-bond": {
@@ -258,7 +258,7 @@
       "maturity": "v1",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/spatial-proof": {
@@ -266,7 +266,7 @@
       "maturity": "v1",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/raster-proof": {
@@ -274,7 +274,7 @@
       "maturity": "v1",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/lookup-client": {
@@ -282,7 +282,7 @@
       "maturity": "rc",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/lookup-node": {
@@ -290,7 +290,7 @@
       "maturity": "rc",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/lookup-protocol": {
@@ -298,7 +298,7 @@
       "maturity": "rc",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/manifest": {
@@ -306,7 +306,7 @@
       "maturity": "v1",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/mcp-server": {
@@ -314,7 +314,7 @@
       "maturity": "rc",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/omnia": {
@@ -398,7 +398,7 @@
       "maturity": "rc",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/proof": {
@@ -406,7 +406,7 @@
       "maturity": "v1",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/proof-integritas": {
@@ -414,7 +414,7 @@
       "maturity": "v1",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/proofgraph": {
@@ -422,7 +422,7 @@
       "maturity": "v1",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/provider-bond": {
@@ -438,7 +438,7 @@
       "maturity": "rc",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/pubsub-transport": {
@@ -446,7 +446,7 @@
       "maturity": "rc",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/qvac": {
@@ -454,7 +454,7 @@
       "maturity": "beta",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/realtime": {
@@ -462,7 +462,7 @@
       "maturity": "rc",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/recursive-mast": {
@@ -470,7 +470,7 @@
       "maturity": "rc",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/root-identity": {
@@ -478,7 +478,7 @@
       "maturity": "v1",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/sdk-tests": {
@@ -498,7 +498,7 @@
       "maturity": "v1",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/statechain": {
@@ -518,7 +518,7 @@
       "maturity": "alpha",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/stream-transport": {
@@ -526,7 +526,7 @@
       "maturity": "rc",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/tx-builder": {
@@ -542,7 +542,7 @@
       "maturity": "v1",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "packages/wallet-adapter": {
@@ -558,7 +558,7 @@
       "maturity": "v1",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library \u2014 holds no on-chain value"
+        "reason": "library — holds no on-chain value"
       }
     },
     "extensions/observability": {
@@ -580,6 +580,14 @@
     "extensions/totem-pwa-wallet": {
       "status": "excluded",
       "reason": "private PWA wallet scaffold (not an @totemsdk/* publishable)"
+    },
+    "packages/eefi": {
+      "status": "publishable",
+      "maturity": "rc",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "schema/digest library — holds no on-chain value"
+      }
     }
   }
 }
