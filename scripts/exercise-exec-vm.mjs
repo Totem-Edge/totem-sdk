@@ -290,6 +290,17 @@ both('after the timeout, all-party sigs allow the distribution', distScript, sig
 both('before the timeout, the distribution is rejected', distScript, signWith([distA, distB]), distCtx(100), false);
 both('rejected without all parties', distScript, signWith([distA]), distCtx(300), false);
 
+console.log('Rust VM strictness — rejects non-canonical scripts (RFC-048 L4)');
+const minimal = { block: 1, inputIndex: 0, inputs: [], outputs: [], state: new Map(), prevState: new Map() };
+function rustRejects(script) {
+  const r = wasm.evaluate_script_wasm(script, { signatures: new Map() }, minimal);
+  return r.passed === false && /node-canonical/.test(String(r.error || ''));
+}
+check('rejects camelCase identifier (prevClaimed)', rustRejects('LET prevClaimed=1 RETURN TRUE'));
+check('rejects digit variable (share0)', rustRejects('LET share0=1 RETURN TRUE'));
+check('rejects uppercase 0X hex prefix', rustRejects('RETURN SIGNEDBY(0XAA)'));
+check('rejects ADD/SUB word operators', rustRejects('RETURN 1 ADD 1'));
+
 if (failures > 0) {
   console.error(`\nP-EXIT gate: ${failures} check(s) failed.`);
   process.exit(1);

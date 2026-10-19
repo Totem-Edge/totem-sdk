@@ -171,6 +171,12 @@ pub fn tokenize(source: &str) -> Result<Vec<Token>, String> {
                 tokens.push(Token { kind: TokenKind::String, value: s, pos: start });
             }
             '0' if i + 1 < chars.len() && (chars[i + 1] == 'x' || chars[i + 1] == 'X') => {
+                if chars[i + 1] == 'X' {
+                    return Err(format!(
+                        "uppercase 0X hex prefix at pos {} is not node-canonical (use lowercase 0x)",
+                        start
+                    ));
+                }
                 i += 2;
                 let mut hex_str = String::from("0x");
                 while i < chars.len() && chars[i].is_ascii_hexdigit() {
@@ -214,6 +220,24 @@ pub fn tokenize(source: &str) -> Result<Vec<Token>, String> {
                     i += 1;
                 }
                 let upper = word.to_uppercase();
+                // Node-canonical strictness: keyword/function forms are all-uppercase;
+                // user variables are all-lowercase letters (^[a-z]+$). Reject mixed
+                // case, digits and underscores (e.g. `prevClaimed`, `SHARE0`, `share0`)
+                // and the non-node `ADD`/`SUB` word operators (canonical is `+`/`-`).
+                let all_lower = word.chars().all(|c| c.is_ascii_lowercase());
+                let all_upper = word.chars().all(|c| c.is_ascii_uppercase());
+                if upper == "ADD" || upper == "SUB" {
+                    return Err(format!(
+                        "`{}` at pos {} is not node-canonical (use `+`/`-`)",
+                        word, start
+                    ));
+                }
+                if !all_lower && !all_upper {
+                    return Err(format!(
+                        "identifier `{}` at pos {} is not node-canonical (variables must match ^[a-z]+$)",
+                        word, start
+                    ));
+                }
                 let kind = match upper.as_str() {
                     "TRUE" => TokenKind::True,
                     "FALSE" => TokenKind::False,
