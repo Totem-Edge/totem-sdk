@@ -23,10 +23,20 @@ export interface MmrMembershipCovenantConfig {
   proofPort: number;
   /** Asset id (hex). Defaults to `0x00` (MINIMA). */
   tokenId?: string;
-  /** Leaf sum value. Default 0. */
+  /** Leaf sum value (fixed). Default 0. Ignored when `leafSumPort` is set. */
   leafSum?: bigint;
-  /** Root sum value. Default 0. */
+  /** Root sum value (fixed). Default 0. Ignored when `rootSumPort` is set. */
   rootSum?: bigint;
+  /**
+   * State port where the spender commits the leaf sum (e.g. a committed balance).
+   * When set, overrides `leafSum`.
+   */
+  leafSumPort?: number;
+  /**
+   * State port where the spender commits the root sum (e.g. total committed).
+   * When set, overrides `rootSum`.
+   */
+  rootSumPort?: number;
   /** Require the signer's key to equal the leaf (default `true`). */
   requireSignature?: boolean;
   /** Pay the whole balance to the leaf identity (default `true`). */
@@ -54,12 +64,16 @@ export function buildMmrMembershipCovenant(config: MmrMembershipCovenantConfig):
   const leafPort = requirePort(config.leafPort, 'leafPort');
   const proofPort = requirePort(config.proofPort, 'proofPort');
   const tokenId = config.tokenId ? '0x' + requireHex(config.tokenId, 'tokenId') : '0x00';
-  const leafSum = (config.leafSum ?? 0n).toString();
-  const rootSum = (config.rootSum ?? 0n).toString();
+  const leafSumExpr = config.leafSumPort !== undefined
+    ? `STATE(${requirePort(config.leafSumPort, 'leafSumPort')})`
+    : (config.leafSum ?? 0n).toString();
+  const rootSumExpr = config.rootSumPort !== undefined
+    ? `STATE(${requirePort(config.rootSumPort, 'rootSumPort')})`
+    : (config.rootSum ?? 0n).toString();
   const requireSignature = config.requireSignature ?? true;
   const pay = config.pay ?? true;
 
-  const body: string[] = [`ASSERT PROOF(LEAF ${leafSum} ROOT ${rootSum} MMRPROOF)`];
+  const body: string[] = [`ASSERT PROOF(LEAF ${leafSumExpr} ROOT ${rootSumExpr} MMRPROOF)`];
   if (requireSignature) {
     body.push(`IF SIGNEDBY(LEAF) THEN`);
     if (pay) body.push(`  ASSERT VERIFYOUT(0 LEAF @AMOUNT ${tokenId} FALSE)`);

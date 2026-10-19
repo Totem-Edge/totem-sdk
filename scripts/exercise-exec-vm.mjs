@@ -45,7 +45,7 @@ const coreWasmMod = await load('packages/core-wasm/pkg-web/totemsdk_core_wasm.js
 await coreWasmMod.default(readFileSync(CORE_WASM_BG));
 
 const { evaluateScript, toWasmWitness, buildExerciseCovenant, exerciseCovenantStateVariables, buildCollateralBondScript, buildOracleConditionScript, buildOracleExerciseCovenant, buildMmrMembershipCovenant } = await load('packages/kissvm/dist/index.js');
-const { TreeKey, MMRTree, serializeMMRProof, hexToBytes, bytesToHex } = await load('packages/core/dist/index.js');
+const { TreeKey, MMRTree, serializeMMRProof, hexToBytes, bytesToHex, createMMRDataLeafNode } = await load('packages/core/dist/index.js');
 
 let failures = 0;
 function check(name, cond, detail = '') {
@@ -240,6 +240,28 @@ both('member proves inclusion and is paid', membership, signWith([memberA]), mem
 both('rejected when the signer is not the leaf', membership, signWith([memberB]), memberCtx({ leaf: leafA, proof: proofA }), false);
 both('rejected on a tampered proof', membership, signWith([memberA]), memberCtx({ leaf: leafA, proof: '0x' + proofA.slice(2, -2) + 'ff' }), false);
 both('rejected when the leaf is not in the committed root', membership, signWith([memberC]), memberCtx({ leaf: leafC, proof: proofA }), false);
+
+console.log('Balance set-root — per-leaf (pubkey, balance) inclusion (RFC-048 §12.4)');
+const balanceTree = new MMRTree();
+balanceTree.addLeaf(createMMRDataLeafNode(hexToBytes(leafA.slice(2)), 700n));
+balanceTree.addLeaf(createMMRDataLeafNode(hexToBytes(leafB.slice(2)), 300n));
+const balanceRoot = '0x' + bytesToHex(balanceTree.getRoot().data).toLowerCase();
+const balanceProof = '0x' + bytesToHex(serializeMMRProof(balanceTree.getProof(0))).toLowerCase();
+const balanceCovenant = buildMmrMembershipCovenant({ rootPort: 111, leafPort: 112, proofPort: 113, leafSumPort: 114, rootSumPort: 115 });
+function balanceCtx({ leaf, proof, leafSum = '700', rootSum = '1000', amount = 700, to = leaf }) {
+  return {
+    block: 550,
+    txDigest: DIGEST,
+    inputs: [{ coinId: '0x' + 'cc'.repeat(32), address: COVENANT, amount, tokenId: '0x00' }],
+    outputs: [{ address: to, amount, tokenId: '0x00', keepState: false }],
+    state: { 111: balanceRoot, 112: leaf, 113: proof, 114: leafSum, 115: rootSum },
+    prevState: { 111: balanceRoot },
+  };
+}
+both('party proves committed balance and is paid it', balanceCovenant, signWith([memberA]), balanceCtx({ leaf: leafA, proof: balanceProof }), true);
+both('rejected when the claimed balance does not match the leaf sum', balanceCovenant, signWith([memberA]), balanceCtx({ leaf: leafA, proof: balanceProof, leafSum: '800' }), false);
+both('rejected on a wrong signer', balanceCovenant, signWith([memberB]), balanceCtx({ leaf: leafA, proof: balanceProof }), false);
+both('rejected when the leaf is not in the balance root', balanceCovenant, signWith([memberC]), balanceCtx({ leaf: leafC, proof: balanceProof }), false);
 
 if (failures > 0) {
   console.error(`\nP-EXIT gate: ${failures} check(s) failed.`);

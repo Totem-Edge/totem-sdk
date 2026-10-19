@@ -14,6 +14,8 @@ import {
   factoryPartySetRoot,
   factoryPartyRootStateVariable,
   factoryPartyProof,
+  factoryBalanceSetRoot,
+  factoryBalanceProof,
   FACTORY_PARTY_ROOT_PORT,
   computeFactoryStateCommitment,
 } from '../index';
@@ -898,5 +900,40 @@ describe('factoryPartyProof', () => {
 
   test('rejects an out-of-range index', () => {
     expect(() => factoryPartyProof([party('a', A), party('b', B)], 2)).toThrow();
+  });
+});
+
+// ─── 14. balance set-root (RFC-048 §12.4) ─────────────────────────────────────
+
+describe('factoryBalanceSetRoot', () => {
+  const A = '0x' + '11'.repeat(32);
+  const B = '0x' + '22'.repeat(32);
+  const C = '0x' + '33'.repeat(32);
+  const party = (id: string, pk: string, amount: bigint) => ({
+    partyId: id,
+    publicKeyDigest: pk,
+    addressIndex: 0,
+    contributionAmount: amount,
+    settlementAddress: pk,
+  });
+
+  test('commits (pubkey, balance) leaves with rootSum = total', () => {
+    const parts = [party('a', A, 700n), party('b', B, 300n)];
+    const { root, rootSum } = factoryBalanceSetRoot(parts);
+    expect(root).toMatch(/^[0-9a-f]{64}$/);
+    expect(rootSum).toBe(1000n);
+    expect(factoryBalanceProof(parts, 0)).toMatch(/^[0-9a-f]+$/);
+  });
+
+  test('is deterministic and set/amount-sensitive', () => {
+    const base = [party('a', A, 700n), party('b', B, 300n)];
+    const { root } = factoryBalanceSetRoot(base);
+    expect(factoryBalanceSetRoot(base).root).toBe(root);
+    expect(factoryBalanceSetRoot([party('a', A, 600n), party('b', B, 300n)]).root).not.toBe(root);
+    expect(factoryBalanceSetRoot([...base, party('c', C, 0n)]).root).not.toBe(root);
+  });
+
+  test('rejects an out-of-range proof index', () => {
+    expect(() => factoryBalanceProof([party('a', A, 1n)], 1)).toThrow();
   });
 });

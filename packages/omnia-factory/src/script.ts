@@ -1,5 +1,5 @@
 import { computeScriptAddress } from '@totemsdk/core/scripts';
-import { MMRTree, hexToBytes, bytesToHex, serializeMMRProof } from '@totemsdk/core';
+import { MMRTree, hexToBytes, bytesToHex, serializeMMRProof, createMMRDataLeafNode } from '@totemsdk/core';
 import type { FactoryParticipant } from './types.js';
 
 /**
@@ -70,6 +70,56 @@ export function factoryPartyProof(participants: FactoryParticipant[], index: num
   }
   const proof = MMRTree.fromPublicKeys(padPartySet(participants)).getProof(index);
   return bytesToHex(serializeMMRProof(proof)).toLowerCase();
+}
+
+/**
+ * Balance set-root (RFC-048 §12.4) — the MMR root over `(pubkey, balance)` leaves,
+ * where each participant's `contributionAmount` is the **leaf sum**. This commits
+ * the exact distribution of the factory balance (`rootSum` = the total) and is the
+ * scalable, off-chain commitment that replaces per-party balance ports.
+ */
+export function factoryBalanceSetRoot(participants: FactoryParticipant[]): { root: string; rootSum: bigint } {
+  const tree = buildBalanceTree(participants);
+  const root = tree.getRoot();
+  if (!root) throw new Error('factoryBalanceSetRoot: failed to compute the balance set-root');
+  return { root: bytesToHex(root.data).toLowerCase(), rootSum: root.value };
+}
+
+/**
+ * Serialized MMR inclusion proof (hex, no `0x`) for participant `index` against
+ * the committed balance set-root — the witness for a `buildMmrMembershipCovenant`
+ * balance escape (leaf sum = the participant's balance).
+ */
+export function factoryBalanceProof(participants: FactoryParticipant[], index: number): string {
+  if (!Number.isInteger(index) || index < 0 || index >= participants.length) {
+    throw new Error(`factoryBalanceProof: index ${index} is out of range (0..${participants.length - 1})`);
+  }
+  const proof = buildBalanceTree(participants).getProof(index);
+  return bytesToHex(serializeMMRProof(proof)).toLowerCase();
+}
+
+/** Padded (power-of-two) MMR tree over `(pubkey, balance)` leaves. */
+function buildBalanceTree(participants: FactoryParticipant[]): MMRTree {
+  if (!Array.isArray(participants) || participants.length === 0) {
+    throw new Error('factory balance set requires at least one participant');
+  }
+  const tree = new MMRTree();
+  for (const [i, p] of participants.entries()) {
+    const raw = (p.publicKeyDigest ?? '').replace(/^0x/i, '');
+    if (raw.length === 0 || !/^[0-9a-fA-F]+$/.test(raw)) {
+      throw new Error(`participant[${i}].publicKeyDigest must be a hex string`);
+    }
+    if (p.contributionAmount < 0n) {
+      throw new Error(`participant[${i}].contributionAmount must be non-negative`);
+    }
+    tree.addLeaf(createMMRDataLeafNode(hexToBytes(raw), p.contributionAmount));
+  }
+  let size = 1;
+  while (size < participants.length) size <<= 1;
+  for (let i = participants.length; i < size; i++) {
+    tree.addLeaf(createMMRDataLeafNode(new Uint8Array(32), 0n));
+  }
+  return tree;
 }
 
 /** Committed party-set root state variable (STATE(111)) for the factory funding output. */

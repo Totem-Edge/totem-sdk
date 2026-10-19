@@ -10550,6 +10550,16 @@
           "signature": "factoryPartyProof(participants: FactoryParticipant[], index: number): string",
           "doc": "Serialized MMR inclusion proof (hex, no `0x`) for participant `index` against\nthe committed party-set root — the witness for a per-leaf\n`buildMmrMembershipCovenant` escape (RFC-048 §12.4)."
         },
+        "factoryBalanceSetRoot": {
+          "kind": "function",
+          "signature": "factoryBalanceSetRoot(participants: FactoryParticipant[]): { root: string; rootSum: bigint; }",
+          "doc": "Balance set-root (RFC-048 §12.4) — the MMR root over `(pubkey, balance)` leaves,\nwhere each participant's `contributionAmount` is the **leaf sum**. This commits\nthe exact distribution of the factory balance (`rootSum` = the total) and is the\nscalable, off-chain commitment that replaces per-party balance ports."
+        },
+        "factoryBalanceProof": {
+          "kind": "function",
+          "signature": "factoryBalanceProof(participants: FactoryParticipant[], index: number): string",
+          "doc": "Serialized MMR inclusion proof (hex, no `0x`) for participant `index` against\nthe committed balance set-root — the witness for a `buildMmrMembershipCovenant`\nbalance escape (leaf sum = the participant's balance)."
+        },
         "FACTORY_BALANCE_PORT_BASE": {
           "kind": "const",
           "signature": "FACTORY_BALANCE_PORT_BASE = 128",
@@ -16063,6 +16073,35 @@
         "VerificationResult": {
           "kind": "interface",
           "signature": "export interface VerificationResult"
+        },
+        "deriveDeterministicAddress": {
+          "kind": "function",
+          "signature": "deriveDeterministicAddress(baseSeed: Uint8Array, addressIndex: number): DerivedAddress",
+          "doc": "Minima Wallet.java parity: `baseSeed + index → privseed → TreeKey(64,3) → address`."
+        },
+        "deriveUnifiedAddress": {
+          "kind": "function",
+          "signature": "deriveUnifiedAddress(baseSeed: Uint8Array, addressIndex: number): DerivedAddress",
+          "doc": "RFC-037 unified hierarchical scheme: `baseSeed + index → child TreeKey → address`."
+        },
+        "deriveAddress": {
+          "kind": "function",
+          "signature": "deriveAddress(baseSeed: Uint8Array, addressIndex: number, scheme?: AddressScheme): DerivedAddress",
+          "doc": "Derive the address for a scheme (default: the node-parity per-address scheme)."
+        },
+        "verifyDeterministicAddress": {
+          "kind": "function",
+          "signature": "verifyDeterministicAddress(baseSeed: Uint8Array, addressIndex: number, expectedAddress: string, scheme?: AddressScheme): boolean",
+          "doc": "Fail-loud check: does the node-returned `expectedAddress` equal the address\nderived from the seed? Use this instead of trusting `newaddress` blindly."
+        },
+        "AddressScheme": {
+          "kind": "type",
+          "signature": "export type AddressScheme = 'per-address' | 'unified'",
+          "doc": "Deterministic address derivation (CAN-005).\n\nMinima's `newaddress` is non-deterministic, and not every node build honours a\n`modifier:` argument, so an address taken from the node can differ across\ncontainers/restarts and break cross-container resolution. These helpers derive\nthe address **from the seed** instead, using the same schemes the node uses, so\nthe result is reproducible and (for the matching scheme) node-spendable.\n\n- `deriveDeterministicAddress` — Minima `Wallet.createNewKey()` parity:\n  `privseed = hash(baseSeed, index)` → `TreeKey(privseed, 64, 3)` → pubkey → Mx.\n- `deriveUnifiedAddress` — RFC-037 hierarchical child key.\n\n`verifyDeterministicAddress` asserts an address a node handed back matches the\nseed-derived one — the fail-loud check that replaces a silent fallback."
+        },
+        "DerivedAddress": {
+          "kind": "interface",
+          "signature": "export interface DerivedAddress"
         },
         "writeMiniByte": {
           "kind": "function",

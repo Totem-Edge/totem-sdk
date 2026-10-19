@@ -771,9 +771,13 @@ fn eval_proof(
 }
 
 fn value_to_u64(v: &VmValue) -> Result<u64, EvalError> {
-    let b = as_scaled(v)?;
-    num_traits::ToPrimitive::to_u64(&b)
-        .ok_or_else(|| EvalError::Runtime("PROOF sum must be a non-negative integer".into()))
+    // MMR leaf/root sums are unscaled integers (MiniNumber.unscaled in the TS
+    // evaluator), so divide out the fixed-point scale like `as_port_int`.
+    let i = as_port_int(v)?;
+    if i < 0 {
+        return Err(EvalError::Runtime("PROOF sum must be a non-negative integer".into()));
+    }
+    Ok(i as u64)
 }
 
 fn validate_arg_count(fn_: &UserFunction, provided: usize, name: &str) -> Result<(), EvalError> {

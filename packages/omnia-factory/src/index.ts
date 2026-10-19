@@ -19,6 +19,8 @@ export {
   factoryPartySetRoot,
   factoryPartyRootStateVariable,
   factoryPartyProof,
+  factoryBalanceSetRoot,
+  factoryBalanceProof,
   FACTORY_BALANCE_PORT_BASE,
   FACTORY_ESCAPE_PORT,
   FACTORY_ESCAPE_DELAY_BLOCKS,

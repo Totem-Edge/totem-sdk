@@ -568,7 +568,12 @@ VTXO batch root already does this (`STATE(100)=root`); the factory now commits i
 at `STATE(111)` (`factoryPartySetRoot` / `factoryPartyRootStateVariable`, pinned by `SAMESTATE`) — a
 Minima-native MMR root over the participant digests, padded to a power of two with the zero-digest
 sentinel so it handles arbitrary N. This is the anchor for per-leaf (proof-based) scaling; balances
-still enumerate per-party ports (base 128, max 102), so a **balance** set-root remains open.
+still enumerate per-party ports (base 128, max 102). The **balance set-root** now exists as a
+committed off-chain distribution: `factoryBalanceSetRoot` (MMR over `(pubkey, balance)` leaves, leaf
+sum = balance, `rootSum` = total) + `factoryBalanceProof`, verified on-chain by
+`buildMmrMembershipCovenant` with runtime sum ports. On-chain **single-party** exit against a
+committed balance set still requires MMR **root recomputation** for the successor update; until then
+the scalable escape is a pre-signed all-party distribution.
 
 The **per-leaf inclusion primitive** now exists: `buildMmrMembershipCovenant` in `@totemsdk/kissvm`
 verifies `PROOF(leaf leafSum rootHash rootSum proof)` on-chain, binds `SIGNEDBY(leaf)` and pays the

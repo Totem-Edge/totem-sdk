@@ -31,6 +31,12 @@ describe('buildMmrMembershipCovenant', () => {
     expect(noPay).not.toContain('VERIFYOUT');
   });
 
+
+  it('reads runtime leaf/root sums from state ports (committed balances)', () => {
+    const c = buildMmrMembershipCovenant({ rootPort: 111, leafPort: 112, proofPort: 113, leafSumPort: 114, rootSumPort: 115 });
+    expect(c).toContain('ASSERT PROOF(LEAF STATE(114) ROOT STATE(115) MMRPROOF)');
+  });
+
   it('rejects an out-of-range port', () => {
     expect(() => buildMmrMembershipCovenant({ rootPort: 300, leafPort: 112, proofPort: 113 })).toThrow();
   });
