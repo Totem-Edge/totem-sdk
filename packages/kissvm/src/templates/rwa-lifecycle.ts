@@ -103,7 +103,7 @@ export function buildFractionalizationScript(
     ``,
     `// Total supply cap`,
     `LET issued = PREVSTATE(${options.issuancePort})`,
-    `ASSERT issued ADD @AMOUNT LTE ${options.totalShares}`,
+    `ASSERT issued + @AMOUNT LTE ${options.totalShares}`,
   ];
 
   if (options.shareholderCap !== undefined) {
@@ -118,7 +118,7 @@ export function buildFractionalizationScript(
   lines.push(
     ``,
     `// Lockup period`,
-    `ASSERT @BLOCK GTE PREVSTATE(${options.issuancePort + 2}) ADD ${options.lockupBlocks}`,
+    `ASSERT @BLOCK GTE PREVSTATE(${options.issuancePort + 2}) + ${options.lockupBlocks}`,
     ``,
     `ASSERT VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID TRUE)`,
     `RETURN TRUE`,
@@ -221,9 +221,9 @@ export function buildDistributionScript(
       ``,
       `// Total distribution cap`,
       `LET prevDistributed = PREVSTATE(${options.distributionPort})`,
-      `ASSERT prevDistributed ADD payout LTE ${options.totalDistribution}`,
+      `ASSERT prevDistributed + payout LTE ${options.totalDistribution}`,
       // RFC-016 P4: record the distribution so the cap is actually enforced.
-      `ASSERT STATE(${options.distributionPort}) EQ prevDistributed ADD payout`,
+      `ASSERT STATE(${options.distributionPort}) EQ prevDistributed + payout`,
       ``,
       `ASSERT VERIFYOUT(@INPUT @ADDRESS payout @TOKENID TRUE)`,
       `RETURN TRUE`,
@@ -334,18 +334,18 @@ export function buildRedemptionScript(
       `ASSERT @BLOCK LTE ${options.redemptionWindowEnd}`,
       ``,
       `// Minimum holding period`,
-      `ASSERT @BLOCK SUB PREVSTATE(30) GTE ${options.minHoldingPeriodBlocks}`,
+      `ASSERT @BLOCK - PREVSTATE(30) GTE ${options.minHoldingPeriodBlocks}`,
       ``,
       `// Redemption cap`,
       `LET prevRedeemed = PREVSTATE(${options.totalRedeemedPort})`,
-      `ASSERT prevRedeemed ADD @AMOUNT LTE ${options.maxRedeemable}`,
+      `ASSERT prevRedeemed + @AMOUNT LTE ${options.maxRedeemable}`,
       // RFC-016 P4: record the redemption so the cap is actually enforced.
-      `ASSERT STATE(${options.totalRedeemedPort}) EQ prevRedeemed ADD @AMOUNT`,
+      `ASSERT STATE(${options.totalRedeemedPort}) EQ prevRedeemed + @AMOUNT`,
       ``,
       `// Calculate payout: shares × NAV minus fee`,
       `LET gross = @AMOUNT MUL ${options.navPerShare}`,
       `LET fee = gross MUL ${options.redemptionFeeBps} DIV 10000`,
-      `LET net = gross SUB fee`,
+      `LET net = gross - fee`,
       ``,
       `ASSERT VERIFYOUT(@INPUT @ADDRESS net @TOKENID TRUE)`,
       `RETURN TRUE`,

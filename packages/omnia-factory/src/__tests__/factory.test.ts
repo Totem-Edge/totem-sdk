@@ -167,7 +167,7 @@ describe('buildFactoryScript', () => {
     expect(script).toContain('MULTISIG(2');
     expect(script).toContain('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA');
     expect(script).toContain('BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB');
-    expect(script).toContain('LET SETTLEMENT=STATE(100)');
+    expect(script).toContain('LET settlement=STATE(100)');
   });
 
   test('generates N-of-N MULTISIG script for 3 parties', () => {
@@ -180,14 +180,14 @@ describe('buildFactoryScript', () => {
     const script = buildFactoryScript([ALICE, BOB]);
     expect(script).toContain('ASSERT SAMESTATE(103 103)');
     expect(script).toContain('IF @BLOCK GT PREVSTATE(103) THEN');
-    expect(script).toContain('LET SHARE0=PREVSTATE(128)');
-    expect(script).toContain('LET SHARE1=PREVSTATE(129)');
+    expect(script).toContain('LET share=PREVSTATE(128)');
+    expect(script).toContain('LET share=PREVSTATE(129)');
     expect(script).toContain('ASSERT VERIFYOUT(0');
     expect(script).toContain('ASSERT STATE(128) EQ 0');
     expect(script).toContain('ASSERT STATE(129) EQ PREVSTATE(129)');
     // Whole-share guard: no zero-remainder output when the share is the whole pool.
-    expect(script).toContain('IF @AMOUNT GT SHARE0 THEN');
-    expect(script).toContain('RETURN VERIFYOUT(1 @ADDRESS @AMOUNT SUB SHARE0 @TOKENID TRUE)');
+    expect(script).toContain('IF @AMOUNT GT share THEN');
+    expect(script).toContain('RETURN VERIFYOUT(1 @ADDRESS @AMOUNT - share @TOKENID TRUE)');
     expect(script).toContain('      RETURN TRUE');
   });
 

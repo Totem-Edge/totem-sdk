@@ -2,7 +2,7 @@
  * RFC-038 V1/V3 — on-chain batch anchoring + per-share non-custodial pool script.
  */
 
-import { buildAndHashPoolScript, poolScriptAddress, POOL_SHARE_PORT_BASE } from '../pool-script.js';
+import { buildAndHashPoolScript, poolScriptAddress, POOL_share_PORT_BASE } from '../pool-script.js';
 import {
   buildBatchAnchorDraft,
   batchAnchorDigest,
@@ -44,18 +44,18 @@ describe('pool script (RFC-038 V3 — per-share non-custodial)', () => {
   });
 
   it('has a per-holder exit branch constrained to the committed share', () => {
-    expect(POOL.script).toContain('IF @BLOCK GT EXITBLOCK THEN');
-    expect(POOL.script).toContain('LET EXITBLOCK=PREVSTATE(102)');
-    expect(POOL.script).toContain('LET SHARE0=PREVSTATE(128)');
+    expect(POOL.script).toContain('IF @BLOCK GT exitblock THEN');
+    expect(POOL.script).toContain('LET exitblock=PREVSTATE(102)');
+    expect(POOL.script).toContain('LET share=PREVSTATE(128)');
     expect(POOL.script).toContain('IF SIGNEDBY(');
-    expect(POOL.script).toContain('IF SHARE0 GT 0 THEN');
+    expect(POOL.script).toContain('IF share GT 0 THEN');
     expect(POOL.script).toContain('ASSERT VERIFYOUT(0');
-    expect(POOL.script).toContain(`ASSERT STATE(${POOL_SHARE_PORT_BASE}) EQ 0`);
-    expect(POOL.script).toContain('RETURN VERIFYOUT(1 @ADDRESS @AMOUNT SUB SHARE0 @TOKENID TRUE)');
+    expect(POOL.script).toContain(`ASSERT STATE(${POOL_share_PORT_BASE}) EQ 0`);
+    expect(POOL.script).toContain('RETURN VERIFYOUT(1 @ADDRESS @AMOUNT - share @TOKENID TRUE)');
   });
 
   it('keeps cooperative updates co-signed, epoch-monotone, value-confined and exit-block-immutable', () => {
-    expect(POOL.script).toContain('ASSERT EPOCH GT PREVSTATE(101)');
+    expect(POOL.script).toContain('ASSERT epoch GT PREVSTATE(101)');
     expect(POOL.script).toContain('ASSERT SAMESTATE(102 102)');
     expect(POOL.script).toContain('ASSERT VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID TRUE)');
     expect(POOL.script).toContain('RETURN MULTISIG(2');
@@ -74,8 +74,8 @@ describe('pool script (RFC-038 V3 — per-share non-custodial)', () => {
       { port: 100, value: '0xdead', type: 'string' },
       { port: 101, value: 3n, type: 'number' },
       { port: 102, value: 500n, type: 'number' },
-      { port: POOL_SHARE_PORT_BASE, value: 1000n, type: 'number' },
-      { port: POOL_SHARE_PORT_BASE + 1, value: 250n, type: 'number' },
+      { port: POOL_share_PORT_BASE, value: 1000n, type: 'number' },
+      { port: POOL_share_PORT_BASE + 1, value: 250n, type: 'number' },
     ]);
   });
 });

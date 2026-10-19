@@ -92,7 +92,7 @@ export function buildCollateralBondScript(config: CollateralBondConfig): string 
   const lines: string[] = [
     `// OMP-21 — enforceable collateral bond (RFC-048 §2, RFC-050 §6)`,
     `// Liquidation is objective (never discretionary); the borrower keeps a reclaim path.`,
-    `LET MATURITY = PREVSTATE(${maturityPort})`,
+    `LET maturity = PREVSTATE(${maturityPort})`,
     `ASSERT SAMESTATE(${maturityPort} ${maturityPort})`,
     ``,
     `// 1. Repayment release → collateral returns to the borrower.`,
@@ -102,7 +102,7 @@ export function buildCollateralBondScript(config: CollateralBondConfig): string 
     `ENDIF`,
     ``,
     `// 2. Post-maturity settlement — decided by the objective condition (no race).`,
-    `IF @BLOCK GTE MATURITY THEN`,
+    `IF @BLOCK GTE maturity THEN`,
     `  IF ${liquidationCondition} THEN`,
     `    ASSERT VERIFYOUT(0 ${lenderHex} @AMOUNT ${tokenId} FALSE)`,
     `  ELSE`,

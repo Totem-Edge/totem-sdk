@@ -162,7 +162,7 @@ export function buildUsageTrackingScript(config: UsageTrackingConfig): string {
     // rolls over: past skew, the end advances by exactly `windowBlocks`.
     `// Window reset: if past window end, roll the window forward`,
     `IF @BLOCK GT windowEnd THEN`,
-    `  ASSERT STATE(${config.windowEndPort}) EQ windowEnd ADD ${config.windowBlocks.toString()}`,
+    `  ASSERT STATE(${config.windowEndPort}) EQ windowEnd + ${config.windowBlocks.toString()}`,
     `  LET count = STATE(${config.countPort})`,
     `  LET amount = STATE(${config.amountPort})`,
     `  ASSERT count LTE maxCount`,

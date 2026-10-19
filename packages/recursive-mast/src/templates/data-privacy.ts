@@ -57,7 +57,7 @@ export function buildDataAccessConsentScript(
     ``,
     `// Retention period`,
     `LET consentBlock = PREVSTATE(${options.accessLogPort})`,
-    `ASSERT @BLOCK SUB consentBlock LTE ${options.retentionBlocks}`,
+    `ASSERT @BLOCK - consentBlock LTE ${options.retentionBlocks}`,
   ];
 
   if (options.dataProcessorPkd) {
@@ -124,7 +124,7 @@ export function buildGdprSubjectRequestScript(
       `ASSERT @BLOCK GTE ${options.requestBlock}`,
       ``,
       `// Response deadline`,
-      `ASSERT @BLOCK SUB ${options.requestBlock} LTE ${options.responseDeadlineBlocks}`,
+      `ASSERT @BLOCK - ${options.requestBlock} LTE ${options.responseDeadlineBlocks}`,
       ``,
       `// Response recorded`,
       `ASSERT STATE(${options.responsePort}) NEQ 0`,

@@ -71,7 +71,7 @@ export function buildSensorProofScript(config: SensorProofConfig): string {
     `ASSERT SIGDIG(2 reading)`,
     ``,
     `// 3. Reading is fresh`,
-    `ASSERT @BLOCK SUB sigTime LTE maxAge`,
+    `ASSERT @BLOCK - sigTime LTE maxAge`,
     ``,
     `// 4. Output preserves the reading`,
     `ASSERT VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID TRUE)`,

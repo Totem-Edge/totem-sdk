@@ -6,7 +6,7 @@
  * than emitting one escape branch per party (an O(N) script), the spender commits
  * its leaf and MMR proof to state and the script verifies inclusion against the
  * committed root. The leaf is the signer's own WOTS public-key digest (`0x…`), so
- * `SIGNEDBY(LEAF)` binds the identity and `VERIFYOUT(0 LEAF …)` pays exactly it.
+ * `SIGNEDBY(leaf)` binds the identity and `VERIFYOUT(0 leaf …)` pays exactly it.
  *
  * Runtime typing (matches a Minima node): the `data` operand is a HEX leaf when
  * its evaluated value starts with `0x` (hashed from raw bytes) and a SCRIPT leaf
@@ -73,23 +73,23 @@ export function buildMmrMembershipCovenant(config: MmrMembershipCovenantConfig):
   const requireSignature = config.requireSignature ?? true;
   const pay = config.pay ?? true;
 
-  const body: string[] = [`ASSERT PROOF(LEAF ${leafSumExpr} ROOT ${rootSumExpr} MMRPROOF)`];
+  const body: string[] = [`ASSERT PROOF(leaf ${leafSumExpr} root ${rootSumExpr} mmrproof)`];
   if (requireSignature) {
-    body.push(`IF SIGNEDBY(LEAF) THEN`);
-    if (pay) body.push(`  ASSERT VERIFYOUT(0 LEAF @AMOUNT ${tokenId} FALSE)`);
+    body.push(`IF SIGNEDBY(leaf) THEN`);
+    if (pay) body.push(`  ASSERT VERIFYOUT(0 leaf @AMOUNT ${tokenId} FALSE)`);
     body.push(`  RETURN TRUE`);
     body.push(`ENDIF`);
   } else {
-    if (pay) body.push(`ASSERT VERIFYOUT(0 LEAF @AMOUNT ${tokenId} FALSE)`);
+    if (pay) body.push(`ASSERT VERIFYOUT(0 leaf @AMOUNT ${tokenId} FALSE)`);
     body.push(`RETURN TRUE`);
   }
 
   return [
     `// MMR membership covenant (RFC-048 §12.4) — per-leaf inclusion in a committed root`,
-    `LET ROOT = PREVSTATE(${rootPort})`,
+    `LET root = PREVSTATE(${rootPort})`,
     `ASSERT SAMESTATE(${rootPort} ${rootPort})`,
-    `LET LEAF = STATE(${leafPort})`,
-    `LET MMRPROOF = STATE(${proofPort})`,
+    `LET leaf = STATE(${leafPort})`,
+    `LET mmrproof = STATE(${proofPort})`,
     ...body,
     `RETURN FALSE`,
   ].join('\n');

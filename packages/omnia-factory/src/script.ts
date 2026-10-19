@@ -4,11 +4,11 @@ import type { FactoryParticipant } from './types.js';
 
 /**
  * Normalize a hex public key digest to the KISSVM-compatible format:
- * strip leading 0x/0X and render as upper-case hex with leading '0X'.
+ * strip leading 0x/0X and render as upper-case hex with a lowercase 0x prefix.
  */
 function kissHex(hex: string): string {
   const raw = hex.startsWith('0x') || hex.startsWith('0X') ? hex.slice(2) : hex;
-  return '0X' + raw.toUpperCase();
+  return '0x' + raw.toUpperCase();
 }
 
 /** Blocks after the funding tip at which the unilateral escape opens. */
@@ -259,7 +259,7 @@ export function factoryEscapeStateVariable(escapeBlock: number): { port: number;
  *
  * Spend paths:
  *   - **Cooperative / update** (any time): `MULTISIG(N …)` — all parties sign.
- *     `SETTLEMENT=true` closes after minimal coinage (1 block).
+ *     `settlement=true` closes after minimal coinage (1 block).
  *   - **Unilateral escape** (after the absolute block in `STATE(103)`): any
  *     single party k may withdraw its allocation `SHARE_k = PREVSTATE(base+k)`
  *     (the spent coin's share) to its own settlement address, zero its state in
@@ -288,7 +288,7 @@ export function buildFactoryScript(
   const payouts = participants.map((p) => kissHex(p.settlementAddress ?? p.publicKeyDigest));
 
   const lines: string[] = [
-    'LET SETTLEMENT=STATE(100)',
+    'LET settlement=STATE(100)',
     `ASSERT SAMESTATE(${FACTORY_ESCAPE_PORT} ${FACTORY_ESCAPE_PORT})`,
     // RFC-048 §12.4/§12.5: the committed party-set root is immutable on every spend.
     `ASSERT SAMESTATE(${FACTORY_PARTY_ROOT_PORT} ${FACTORY_PARTY_ROOT_PORT})`,
@@ -297,10 +297,10 @@ export function buildFactoryScript(
 
   participants.forEach((_, k) => {
     const port = FACTORY_BALANCE_PORT_BASE + k;
-    lines.push(`  LET SHARE${k}=PREVSTATE(${port})`);
+    lines.push(`  LET share=PREVSTATE(${port})`);
     lines.push(`  IF SIGNEDBY(${pks[k]}) THEN`);
-    lines.push(`    IF SHARE${k} GT 0 THEN`);
-    lines.push(`      ASSERT VERIFYOUT(0 ${payouts[k]} SHARE${k} @TOKENID FALSE)`);
+    lines.push(`    IF share GT 0 THEN`);
+    lines.push(`      ASSERT VERIFYOUT(0 ${payouts[k]} share @TOKENID FALSE)`);
     for (let j = 0; j < count; j++) {
       if (j === k) continue;
       lines.push(`      ASSERT STATE(${FACTORY_BALANCE_PORT_BASE + j}) EQ PREVSTATE(${FACTORY_BALANCE_PORT_BASE + j})`);
@@ -309,8 +309,8 @@ export function buildFactoryScript(
     // Whole-share guard (mirrors the VTXO script): when the withdrawing party's
     // share is the entire output there is no remainder, so a 0-amount output is
     // never required.
-    lines.push(`      IF @AMOUNT GT SHARE${k} THEN`);
-    lines.push(`        RETURN VERIFYOUT(1 @ADDRESS @AMOUNT SUB SHARE${k} @TOKENID TRUE)`);
+    lines.push(`      IF @AMOUNT GT share THEN`);
+    lines.push(`        RETURN VERIFYOUT(1 @ADDRESS @AMOUNT - share @TOKENID TRUE)`);
     lines.push('      ENDIF');
     lines.push('      RETURN TRUE');
     lines.push('    ENDIF');
@@ -319,7 +319,7 @@ export function buildFactoryScript(
 
   lines.push('ENDIF');
   lines.push(`ASSERT MULTISIG(${count} ${pks.join(' ')})`);
-  lines.push('IF SETTLEMENT THEN');
+  lines.push('IF settlement THEN');
   lines.push('    IF @COINAGE GTE 1 THEN RETURN TRUE ENDIF');
   lines.push('ELSE');
   lines.push('    RETURN TRUE');

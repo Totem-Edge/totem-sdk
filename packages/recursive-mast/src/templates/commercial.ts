@@ -262,7 +262,7 @@ export function telemetryLicenseLayer(
     `ASSERT @BLOCK LTE ${options.expiryBlock}`,
   ];
   if (options.maxDataAge !== undefined) {
-    lines.push(`ASSERT @BLOCK SUB STATE(21) LTE ${options.maxDataAge}`);
+    lines.push(`ASSERT @BLOCK - STATE(21) LTE ${options.maxDataAge}`);
   }
   lines.push(`RETURN TRUE`);
 

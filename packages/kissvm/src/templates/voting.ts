@@ -59,7 +59,7 @@ export function buildWeightedVotingScript(
       `LET abstainVotes = PREVSTATE(${options.abstainPort})`,
       ``,
       `// Quorum check (at tally time)`,
-      `LET totalCast = forVotes ADD againstVotes ADD abstainVotes`,
+      `LET totalCast = forVotes + againstVotes + abstainVotes`,
       `ASSERT totalCast GTE ${options.quorumWeight}`,
       ``,
       `// Result`,
@@ -156,11 +156,11 @@ export function buildQuadraticVotingScript(
       ``,
       `// Credit pool limit`,
       `LET prevSpent = PREVSTATE(${options.creditsSpentPort})`,
-      `ASSERT prevSpent ADD cost LTE ${options.creditPool}`,
+      `ASSERT prevSpent + cost LTE ${options.creditPool}`,
       ``,
       // RFC-016 P4: the credits must actually be consumed (the spent counter
       // advances by `cost`); otherwise a voter can vote repeatedly forever.
-      `ASSERT STATE(${options.creditsSpentPort}) EQ prevSpent ADD cost`,
+      `ASSERT STATE(${options.creditsSpentPort}) EQ prevSpent + cost`,
       ``,
       `ASSERT SIGNEDBY(governance)`,
       `RETURN TRUE`,

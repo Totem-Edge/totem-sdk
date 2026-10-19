@@ -24,7 +24,7 @@ function witness(): ScriptWitness {
 
 describe('RFC-020 H8: FUNCTION sandbox', () => {
   test('binds arguments as values and evaluates arithmetic correctly', () => {
-    const res = evaluateScript('RETURN FUNCTION([LET r = $1 ADD $2] 2 3) EQ 5', witness(), ctx());
+    const res = evaluateScript('RETURN FUNCTION([LET r = $1 + $2] 2 3) EQ 5', witness(), ctx());
     expect(res.passed).toBe(true);
   });
 

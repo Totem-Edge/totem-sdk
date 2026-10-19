@@ -208,7 +208,7 @@ export function remoteSupportLayer(
       `LET oem = 0x${options.oemPkd}`,
       `ASSERT SIGNEDBY(customer) AND SIGNEDBY(tech) AND SIGNEDBY(oem)`,
       `ASSERT @BLOCK GTE ${options.startBlock}`,
-      `ASSERT @BLOCK SUB ${options.startBlock} LTE ${options.maxDuration}`,
+      `ASSERT @BLOCK - ${options.startBlock} LTE ${options.maxDuration}`,
       `ASSERT CONTAINS([${cmdList}] STATE(0))`,
       `RETURN TRUE`,
     ].join('\n'),

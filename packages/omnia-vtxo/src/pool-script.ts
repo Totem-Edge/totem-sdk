@@ -13,7 +13,7 @@
  *     (`STATE(base+k) EQ 0`) and returning the remainder to the pool. A holder
  *     cannot pay itself more than its share, so one holder can never rug the others.
  *   - **Cooperative update.** Before the exit window the pool may only move by
- *     `MULTISIG(operator + all holders)`, epoch-monotone (`ASSERT EPOCH GT
+ *     `MULTISIG(operator + all holders)`, epoch-monotone (`ASSERT epoch GT
  *     PREVSTATE(101)`), with the exit block immutable (`ASSERT SAMESTATE(102
  *     102)`) so no one can push the escape clock, and value confined to the same
  *     script address (`ASSERT VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID TRUE)`)
@@ -56,7 +56,7 @@ function pkHex(digest: string, label: string): string {
   if (!/^[0-9a-fA-F]{64}$/.test(raw)) {
     throw new Error(`${label} public key digest must be 64 hex chars, got ${JSON.stringify(digest)}`);
   }
-  return '0X' + raw.toUpperCase();
+  return '0x' + raw.toUpperCase();
 }
 
 /** Per-share-constrained, epoch-monotone, state-carrying pool script. */
@@ -76,17 +76,17 @@ export function buildPoolScript(params: PoolScriptParams): string {
   }
 
   const lines: string[] = [
-    'LET EPOCH=STATE(101)',
-    'LET EXITBLOCK=PREVSTATE(102)',
-    'IF @BLOCK GT EXITBLOCK THEN',
+    'LET epoch=STATE(101)',
+    'LET exitblock=PREVSTATE(102)',
+    'IF @BLOCK GT exitblock THEN',
   ];
 
   holders.forEach((holder, k) => {
     const port = POOL_SHARE_PORT_BASE + k;
-    lines.push(`  LET SHARE${k}=PREVSTATE(${port})`);
+    lines.push(`  LET share=PREVSTATE(${port})`);
     lines.push(`  IF SIGNEDBY(${holder}) THEN`);
-    lines.push(`    IF SHARE${k} GT 0 THEN`);
-    lines.push(`      ASSERT VERIFYOUT(0 ${holder} SHARE${k} @TOKENID FALSE)`);
+    lines.push(`    IF share GT 0 THEN`);
+    lines.push(`      ASSERT VERIFYOUT(0 ${holder} share @TOKENID FALSE)`);
     for (let j = 0; j < holders.length; j++) {
       if (j === k) continue;
       lines.push(`      ASSERT STATE(${POOL_SHARE_PORT_BASE + j}) EQ PREVSTATE(${POOL_SHARE_PORT_BASE + j})`);
@@ -94,8 +94,8 @@ export function buildPoolScript(params: PoolScriptParams): string {
     lines.push(`      ASSERT STATE(${port}) EQ 0`);
     // Remainder (other holders' shares) stays in the pool; skip it when the
     // withdrawing holder's share is the whole pool (no room for another output).
-    lines.push(`      IF @AMOUNT GT SHARE${k} THEN`);
-    lines.push(`        RETURN VERIFYOUT(1 @ADDRESS @AMOUNT SUB SHARE${k} @TOKENID TRUE)`);
+    lines.push(`      IF @AMOUNT GT share THEN`);
+    lines.push(`        RETURN VERIFYOUT(1 @ADDRESS @AMOUNT - share @TOKENID TRUE)`);
     lines.push('      ENDIF');
     lines.push('      RETURN TRUE');
     lines.push('    ENDIF');
@@ -103,7 +103,7 @@ export function buildPoolScript(params: PoolScriptParams): string {
   });
 
   lines.push('ENDIF');
-  lines.push('ASSERT EPOCH GT PREVSTATE(101)');
+  lines.push('ASSERT epoch GT PREVSTATE(101)');
   lines.push('ASSERT SAMESTATE(102 102)');
   lines.push('ASSERT VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID TRUE)');
   lines.push(`RETURN MULTISIG(${holders.length + 1} ${operator} ${holders.join(' ')})`);

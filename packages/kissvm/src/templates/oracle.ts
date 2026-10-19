@@ -140,9 +140,9 @@ export function buildOracleConditionScript(config: OracleConditionConfig): strin
     `// OMP-19 — on-chain oracle condition witness (RFC-048 §3.1)`,
     `// Cooperative/attested shape: the oracle authorizes the tx digest, which commits`,
     `// the observation. For a non-cooperative exercise, commit at funding + use P-EXIT.`,
-    `LET OBSERVED = PREVSTATE(${observedAtPort})`,
-    `LET VALID = PREVSTATE(${validUntilPort})`,
-    `LET VALUE = PREVSTATE(${valuePort})`,
+    `LET observed = PREVSTATE(${observedAtPort})`,
+    `LET valid = PREVSTATE(${validUntilPort})`,
+    `LET value = PREVSTATE(${valuePort})`,
     ``,
     `// 1. authorized oracle(s) / quorum`,
     `ASSERT MULTISIG(${threshold} ${oracles.join(' ')})`,
@@ -151,22 +151,22 @@ export function buildOracleConditionScript(config: OracleConditionConfig): strin
     `ASSERT SAMESTATE(${feedPort} ${feedPort})`,
     ``,
     `// 3. freshness window (fail closed when stale)`,
-    `ASSERT @BLOCK GTE OBSERVED`,
-    `ASSERT @BLOCK LTE VALID`,
+    `ASSERT @BLOCK GTE observed`,
+    `ASSERT @BLOCK LTE valid`,
     ``,
   ];
 
   if (config.requireSequenceAdvance) {
     lines.push(
       `// 4. anti-replay: sequence strictly advances`,
-      `ASSERT STATE(${sequencePort}) EQ PREVSTATE(${sequencePort}) ADD 1`,
+      `ASSERT STATE(${sequencePort}) EQ PREVSTATE(${sequencePort}) + 1`,
       ``,
     );
   }
 
   lines.push(
     `// 5. objective value condition`,
-    `ASSERT VALUE ${op} ${valueAtoms}`,
+    `ASSERT value ${op} ${valueAtoms}`,
     ``,
   );
 
@@ -242,16 +242,16 @@ export function buildOracleExerciseCovenant(config: OracleExerciseCovenantConfig
   const feedPort = requirePort(config.feedPort ?? DEFAULT_PORTS.feedPort, 'feedPort');
 
   const body: string[] = [
-    `ASSERT @BLOCK GTE OBSERVED`,
-    `ASSERT @BLOCK LTE VALID`,
-    `ASSERT VALUE ${op} ${config.comparison.valueAtoms.toString()}`,
+    `ASSERT @BLOCK GTE observed`,
+    `ASSERT @BLOCK LTE valid`,
+    `ASSERT value ${op} ${config.comparison.valueAtoms.toString()}`,
   ];
   if (config.payout !== undefined) {
     const payout = config.payout.toString();
     body.push(`ASSERT @AMOUNT GTE ${payout}`);
     body.push(`ASSERT VERIFYOUT(0 ${beneficiary} ${payout} ${tokenId} FALSE)`);
     body.push(`IF @AMOUNT GT ${payout} THEN`);
-    body.push(`  RETURN VERIFYOUT(1 ${remainderTo} @AMOUNT SUB ${payout} ${tokenId} TRUE)`);
+    body.push(`  RETURN VERIFYOUT(1 ${remainderTo} @AMOUNT - ${payout} ${tokenId} TRUE)`);
     body.push(`ENDIF`);
     body.push(`RETURN TRUE`);
   } else {
@@ -261,8 +261,8 @@ export function buildOracleExerciseCovenant(config: OracleExerciseCovenantConfig
 
   const pad = (lines: string[], depth: number): string[] => lines.map((l) => `${'  '.repeat(depth)}${l}`);
   const exercise = [
-    `IF @BLOCK GTE MATURITY THEN`,
-    `  IF @BLOCK LT RECOVERY THEN`,
+    `IF @BLOCK GTE maturity THEN`,
+    `  IF @BLOCK LT recovery THEN`,
     `    IF SIGNEDBY(${beneficiary}) THEN`,
     ...pad(body, 3),
     `    ENDIF`,
@@ -273,11 +273,11 @@ export function buildOracleExerciseCovenant(config: OracleExerciseCovenantConfig
   const lines: string[] = [
     `// P-EXIT × OMP-19 — non-cooperative oracle exercise (RFC-050 §3, RFC-048 §3.1)`,
     `// Observation committed at funding; the beneficiary exercises alone. No oracle liveness.`,
-    `LET MATURITY = PREVSTATE(${maturityPort})`,
-    `LET RECOVERY = PREVSTATE(${recoveryPort})`,
-    `LET OBSERVED = PREVSTATE(${observedAtPort})`,
-    `LET VALID = PREVSTATE(${validUntilPort})`,
-    `LET VALUE = PREVSTATE(${valuePort})`,
+    `LET maturity = PREVSTATE(${maturityPort})`,
+    `LET recovery = PREVSTATE(${recoveryPort})`,
+    `LET observed = PREVSTATE(${observedAtPort})`,
+    `LET valid = PREVSTATE(${validUntilPort})`,
+    `LET value = PREVSTATE(${valuePort})`,
     `ASSERT SAMESTATE(${maturityPort} ${maturityPort})`,
     `ASSERT SAMESTATE(${recoveryPort} ${recoveryPort})`,
     `ASSERT SAMESTATE(${feedPort} ${feedPort})`,
@@ -286,7 +286,7 @@ export function buildOracleExerciseCovenant(config: OracleExerciseCovenantConfig
     ...exercise,
     ``,
     `// ---- recovery branch (owner reclaim, only after the window) ----`,
-    `IF @BLOCK GTE RECOVERY THEN`,
+    `IF @BLOCK GTE recovery THEN`,
     `  ASSERT VERIFYOUT(0 ${recovery} @AMOUNT ${tokenId} FALSE)`,
     `  RETURN TRUE`,
     `ENDIF`,

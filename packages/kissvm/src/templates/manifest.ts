@@ -73,7 +73,7 @@ export function buildManifestExpiryScript(config: ManifestExpiryConfig): string 
     `ASSERT @BLOCK GTE signedAt`,
     `ASSERT @BLOCK LTE expiresAt`,
     ``,
-    `ASSERT PREVSTATE(2) EQ 0 OR @BLOCK SUB PREVSTATE(2) GTE interval`,
+    `ASSERT PREVSTATE(2) EQ 0 OR @BLOCK - PREVSTATE(2) GTE interval`,
     ``,
     `RETURN TRUE`,
   ].join('\n')

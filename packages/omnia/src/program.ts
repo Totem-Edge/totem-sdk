@@ -90,9 +90,9 @@ export const CounterProgram: ChannelProgram = {
       `LET ACTION=STATE(${COUNTER_ACTION_PORT})`,
       `LET OPERAND=STATE(${COUNTER_OPERAND_PORT})`,
       `IF ACTION EQ ${COUNTER_ACTION_INCREMENT} THEN`,
-      '    ASSERT COUNTER EQ PREVCOUNTER ADD OPERAND',
+      '    ASSERT COUNTER EQ PREVCOUNTER + OPERAND',
       `ELSEIF ACTION EQ ${COUNTER_ACTION_DECREMENT} THEN`,
-      '    ASSERT COUNTER EQ PREVCOUNTER SUB OPERAND',
+      '    ASSERT COUNTER EQ PREVCOUNTER - OPERAND',
       `ELSEIF ACTION EQ ${COUNTER_ACTION_SET} THEN`,
       '    ASSERT COUNTER EQ OPERAND',
       'ELSE',
@@ -172,7 +172,7 @@ export const MeterProgram: ChannelProgram = {
       `LET UNITPRICE=STATE(${METER_UNIT_PRICE_PORT})`,
       `LET PAYMENT=STATE(${METER_PAYMENT_PORT})`,
       'ASSERT READING GTE PREVREADING',
-      'ASSERT USAGE EQ READING SUB PREVREADING',
+      'ASSERT USAGE EQ READING - PREVREADING',
       'ASSERT PAYMENT EQ USAGE MUL UNITPRICE',
     ].join('\n'));
     return base;
@@ -642,7 +642,7 @@ export const AssetProgram: ChannelProgram = {
       `LET TOTAL=STATE(${ASSET_TOTAL_PORT})`,
       'ASSERT A GTE 0',
       'ASSERT B GTE 0',
-      'ASSERT A ADD B EQ TOTAL',
+      'ASSERT A + B EQ TOTAL',
     ]);
   },
   buildStateVariables({ previousState, transition }: ChannelProgramBuildStateInput): StateValue[] {

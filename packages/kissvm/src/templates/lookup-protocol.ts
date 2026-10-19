@@ -34,7 +34,7 @@ export function buildLeaseMessageScript(config: LeaseMessageConfig): string {
     lines.push(
       ``,
       `LET created = PREVSTATE(${config.commissionPort})`,
-      `ASSERT @BLOCK SUB created LTE ${config.maxTtlBlocks.toString()}`,
+      `ASSERT @BLOCK - created LTE ${config.maxTtlBlocks.toString()}`,
     )
   }
 
@@ -76,7 +76,7 @@ export function buildCoinUpdateScript(config: CoinUpdateConfig): string {
     `OR prevEvent EQ 1 AND curEvent EQ 2`,
     ``,
     `LET prevBlock = PREVSTATE(${config.blockWindowPort})`,
-    `ASSERT @BLOCK SUB prevBlock GTE ${config.minConfirmations.toString()}`,
+    `ASSERT @BLOCK - prevBlock GTE ${config.minConfirmations.toString()}`,
     ``,
     `ASSERT VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID TRUE)`,
     `RETURN TRUE`,
@@ -116,7 +116,7 @@ export function buildTrustMessageScript(config: TrustMessageConfig): string {
   lines.push(
     ``,
     `LET created = PREVSTATE(3)`,
-    `ASSERT @BLOCK SUB created LTE ${config.expiryWindow.toString()}`,
+    `ASSERT @BLOCK - created LTE ${config.expiryWindow.toString()}`,
     ``,
     `RETURN TRUE`,
   )

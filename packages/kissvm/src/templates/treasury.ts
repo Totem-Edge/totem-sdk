@@ -62,7 +62,7 @@ export function buildMultiSigTreasuryScript(
       `// Spending limit per period`,
       `LET periodStart = PREVSTATE(${options.periodStartPort})`,
       `LET spent = PREVSTATE(${options.spentThisPeriodPort})`,
-      `LET elapsed = @BLOCK SUB periodStart`,
+      `LET elapsed = @BLOCK - periodStart`,
       ``,
       // RFC-016 hardening: on period expiry, reset the counter AND advance the
       // committed period start. Previously periodStart never moved, so every
@@ -72,9 +72,9 @@ export function buildMultiSigTreasuryScript(
       `  ASSERT STATE(${options.periodStartPort}) EQ @BLOCK`,
       `  ASSERT STATE(${options.spentThisPeriodPort}) EQ @AMOUNT`,
       `ELSE`,
-      `  ASSERT spent ADD @AMOUNT LTE ${options.maxSpendPerPeriod}`,
+      `  ASSERT spent + @AMOUNT LTE ${options.maxSpendPerPeriod}`,
       `  ASSERT STATE(${options.periodStartPort}) EQ periodStart`,
-      `  ASSERT STATE(${options.spentThisPeriodPort}) EQ spent ADD @AMOUNT`,
+      `  ASSERT STATE(${options.spentThisPeriodPort}) EQ spent + @AMOUNT`,
       `ENDIF`,
       ``,
       spendCheck,
@@ -103,8 +103,8 @@ export function buildBudgetAllocationScript(
   // RFC-018 P1-6: enforce the cap against committed spend and advance each
   // category counter so repeated spends cannot exceed the cap.
   const categoryChecks = options.categories.flatMap(cat => [
-    `ASSERT PREVSTATE(${cat.spentPort}) ADD @AMOUNT LTE ${cat.cap}`,
-    `ASSERT STATE(${cat.spentPort}) EQ PREVSTATE(${cat.spentPort}) ADD @AMOUNT`,
+    `ASSERT PREVSTATE(${cat.spentPort}) + @AMOUNT LTE ${cat.cap}`,
+    `ASSERT STATE(${cat.spentPort}) EQ PREVSTATE(${cat.spentPort}) + @AMOUNT`,
   ]);
 
   return {
@@ -117,7 +117,7 @@ export function buildBudgetAllocationScript(
       ``,
       `// Fiscal period enforcement`,
       `LET periodStart = PREVSTATE(${options.periodStartPort})`,
-      `LET elapsed = @BLOCK SUB periodStart`,
+      `LET elapsed = @BLOCK - periodStart`,
       `ASSERT elapsed LTE ${options.fiscalPeriodBlocks}`,
       ``,
       `// Category caps`,
@@ -155,21 +155,21 @@ export function buildTimeLockedReserveScript(
       ``,
       `// Cliff: no withdrawals before cliffBlocks`,
       `LET reserveStart = PREVSTATE(${options.reservePort})`,
-      `ASSERT @BLOCK GTE reserveStart ADD ${options.cliffBlocks}`,
+      `ASSERT @BLOCK GTE reserveStart + ${options.cliffBlocks}`,
       ``,
       `// Vesting: linear release over vestingBlocks`,
-      `LET elapsed = @BLOCK SUB reserveStart`,
+      `LET elapsed = @BLOCK - reserveStart`,
       // RFC-018 P1-6: clamp vested to the total reserve (elapsed can exceed
       // vestingBlocks, which previously over-released) and advance the claimed
       // counter so it cannot be re-claimed.
       `LET vestedRaw = ${options.totalReserve} MUL elapsed DIV ${options.vestingBlocks}`,
       `LET vested = MIN(vestedRaw ${options.totalReserve})`,
       `LET prevClaimed = PREVSTATE(${options.claimedPort})`,
-      `LET claimable = vested SUB prevClaimed`,
+      `LET claimable = vested - prevClaimed`,
       ``,
       `ASSERT claimable GT 0`,
       `ASSERT @AMOUNT LTE claimable`,
-      `ASSERT STATE(${options.claimedPort}) EQ prevClaimed ADD @AMOUNT`,
+      `ASSERT STATE(${options.claimedPort}) EQ prevClaimed + @AMOUNT`,
       `ASSERT SIGNEDBY(governance)`,
       `ASSERT VERIFYOUT(@INPUT beneficiary @AMOUNT @TOKENID TRUE)`,
       `RETURN TRUE`,
@@ -203,19 +203,19 @@ export function buildProposalExecutionScript(
       ``,
       `// Voting period must have elapsed`,
       `LET proposalStart = PREVSTATE(${options.proposalStartPort})`,
-      `ASSERT @BLOCK SUB proposalStart GTE ${options.votingPeriodBlocks}`,
+      `ASSERT @BLOCK - proposalStart GTE ${options.votingPeriodBlocks}`,
       ``,
       `// Quorum check`,
       `LET votesFor = PREVSTATE(${options.votesForPort})`,
       `LET votesAgainst = PREVSTATE(${options.votesAgainstPort})`,
-      `LET totalVotes = votesFor ADD votesAgainst`,
+      `LET totalVotes = votesFor + votesAgainst`,
       `ASSERT totalVotes GTE ${options.quorum}`,
       ``,
       `// Majority`,
       `ASSERT votesFor GT votesAgainst`,
       ``,
       `// Execution delay`,
-      `ASSERT @BLOCK SUB proposalStart GTE ${options.votingPeriodBlocks} ADD ${options.executionDelayBlocks}`,
+      `ASSERT @BLOCK - proposalStart GTE ${options.votingPeriodBlocks} + ${options.executionDelayBlocks}`,
       ``,
       `ASSERT SIGNEDBY(governance)`,
       `ASSERT VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID TRUE)`,
@@ -252,7 +252,7 @@ export function buildStreamingPaymentScript(
     `ASSERT PREVSTATE(${options.cancellationPort}) EQ 0`,
     ``,
     `// Calculate streamed amount`,
-    `LET elapsed = @BLOCK SUB ${options.startBlock}`,
+    `LET elapsed = @BLOCK - ${options.startBlock}`,
   ];
 
   if (options.maxDurationBlocks !== undefined) {
@@ -262,12 +262,12 @@ export function buildStreamingPaymentScript(
   lines.push(
     `LET streamed = elapsed MUL ${options.ratePerBlock}`,
     `LET prevClaimed = PREVSTATE(${options.totalStreamedPort})`,
-    `LET claimable = streamed SUB prevClaimed`,
+    `LET claimable = streamed - prevClaimed`,
     ``,
     `ASSERT claimable GT 0`,
     `ASSERT @AMOUNT LTE claimable`,
     // RFC-018 P1-6: advance the streamed counter so it cannot be re-claimed.
-    `ASSERT STATE(${options.totalStreamedPort}) EQ prevClaimed ADD @AMOUNT`,
+    `ASSERT STATE(${options.totalStreamedPort}) EQ prevClaimed + @AMOUNT`,
     `ASSERT SIGNEDBY(payer)`,
     `ASSERT VERIFYOUT(@INPUT payee @AMOUNT @TOKENID TRUE)`,
     `RETURN TRUE`,

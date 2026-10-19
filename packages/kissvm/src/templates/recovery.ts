@@ -64,7 +64,7 @@ export function buildThresholdRecoveryScript(config: ThresholdRecoveryConfig): s
     `// 2. Time-delayed activation`,
     `LET recoveryProposed = PREVSTATE(50)`,
     `LET currentBlock = @BLOCK`,
-    `ASSERT currentBlock SUB recoveryProposed GTE ${config.delayBlocks}`,
+    `ASSERT currentBlock - recoveryProposed GTE ${config.delayBlocks}`,
     ``,
     `// 3. Replacement controller`,
     `LET newController = STATE(51)`,
@@ -118,7 +118,7 @@ export function buildEpochRotationScript(config: EpochRotationConfig): string {
     `ASSERT newEpoch GT prevEpoch`,
     ``,
     `// 3. Notice period`,
-    `ASSERT @BLOCK SUB PREVSTATE(61) GTE ${config.noticeBlocks}`,
+    `ASSERT @BLOCK - PREVSTATE(61) GTE ${config.noticeBlocks}`,
     ``,
     `// 4. New controller is set`,
     `ASSERT STATE(62) EQ newController`,
@@ -176,7 +176,7 @@ export function buildDelegatedCredentialScript(config: DelegatedCredentialConfig
       `ASSERT INC(uses) LTE ${config.maxUses}`,
       // RFC-016 P4: the use must actually be consumed (advance the counter);
       // otherwise the credential is reusable indefinitely.
-      `ASSERT STATE(71) EQ uses ADD 1`,
+      `ASSERT STATE(71) EQ uses + 1`,
     );
   }
 

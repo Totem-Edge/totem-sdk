@@ -2,7 +2,7 @@
  * KISSVM v1 evaluator — uses MiniNumber matching Java's MiniNumber/BigDecimal.
  *
  * Arithmetic:
- *   ADD / SUB : a + b  / a − b        (standard decimal arithmetic)
+ *   + / - : a + b  / a − b        (standard decimal arithmetic)
  *   MUL       : a × b                  (standard decimal multiplication)
  *   DIV       : a / b                  (standard decimal division)
  *   MOD       : a mod b

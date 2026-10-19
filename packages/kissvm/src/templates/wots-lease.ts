@@ -102,7 +102,7 @@ export function buildWatermarkTrackingScript(config: LeaseCertificateConfig): st
     `ASSERT curMark GT prevMark`,
     ``,
     `LET prevBlock = PREVSTATE(${config.watermarkPort + 1})`,
-    `LET elapsed = @BLOCK SUB prevBlock`,
+    `LET elapsed = @BLOCK - prevBlock`,
     `ASSERT elapsed GTE ${config.issuedAt.toString()}`,
     ``,
     // RFC-016 P4: preserve the committed block marker (the old SAMESTATE(w+1,w+2)

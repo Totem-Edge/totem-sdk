@@ -169,7 +169,7 @@ describe('RFC-016 P4: high-severity families hardened', () => {
   it('vesting commits the schedule and clamps at total', () => {
     const linear = buildLinearRelease({ curve: 'linear', startPort: 1, endPort: 2, totalPort: 3, beneficiaryPort: 4, beneficiary: pkA });
     expect(linear).toContain('ASSERT vestStart EQ PREVSTATE(1)');
-    expect(linear).toContain('ASSERT prevClaimed ADD claimable LTE total');
+    expect(linear).toContain('ASSERT prevClaimed + claimable LTE total');
     const cliff = buildCliffRelease({ curve: 'cliff', startPort: 1, endPort: 2, cliffPort: 5, totalPort: 3, beneficiaryPort: 4, beneficiary: pkA });
     expect(cliff).toContain('ASSERT total EQ PREVSTATE(3)');
   });
@@ -199,7 +199,7 @@ describe('RFC-016 P4 wave 3: cumulative counters + recipient binding', () => {
     const base = { treasuryId: 't', maxSpendPerPeriod: '100', periodBlocks: 10, periodStartPort: 1, spentThisPeriodPort: 2 };
     const bound = buildMultiSigTreasuryScript([pkA, pkB], 2, { ...base, recipientPkd: pkB }).script;
     expect(bound).toContain(`ASSERT VERIFYOUT(@INPUT 0x${pkB} @AMOUNT @TOKENID TRUE)`);
-    expect(bound).toContain('ASSERT STATE(2) EQ spent ADD @AMOUNT');
+    expect(bound).toContain('ASSERT STATE(2) EQ spent + @AMOUNT');
     expect(() => buildMultiSigTreasuryScript([pkA], 1, base as never)).toThrow(/recipientPkd/);
   });
 
@@ -208,20 +208,20 @@ describe('RFC-016 P4 wave 3: cumulative counters + recipient binding', () => {
       assetId: 'a', distributionId: 'd', distributionType: 'dividend', totalDistribution: '1000',
       shareTokenId: '00', recordDateBlock: 1, distributionPort: 7, perSharePort: 8,
     }).script;
-    expect(dist).toContain('ASSERT STATE(7) EQ prevDistributed ADD payout');
+    expect(dist).toContain('ASSERT STATE(7) EQ prevDistributed + payout');
 
     const redeem = buildRedemptionScript(pkA, {
       assetId: 'a', shareTokenId: '00', navPerShare: '1', redemptionFeeBps: 0, minHoldingPeriodBlocks: 0,
       redemptionWindowStart: 1, redemptionWindowEnd: 100, totalRedeemedPort: 9, maxRedeemable: '1000',
     }).script;
-    expect(redeem).toContain('ASSERT STATE(9) EQ prevRedeemed ADD @AMOUNT');
+    expect(redeem).toContain('ASSERT STATE(9) EQ prevRedeemed + @AMOUNT');
   });
 
   it('delegated credential consumes its usage counter', () => {
     const script = buildDelegatedCredentialScript({
       role: 'operator', issuerPkd: pkA, holderPkd: pkB, scope: 'ops', validFrom: 1, expiresAt: 100, maxUses: 3,
     });
-    expect(script).toContain('ASSERT STATE(71) EQ uses ADD 1');
+    expect(script).toContain('ASSERT STATE(71) EQ uses + 1');
   });
 });
 

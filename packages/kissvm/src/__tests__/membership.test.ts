@@ -12,16 +12,16 @@ describe('buildMmrMembershipCovenant', () => {
   const covenant = buildMmrMembershipCovenant({ rootPort: 111, leafPort: 112, proofPort: 113 });
 
   it('verifies the leaf against the committed root via PROOF', () => {
-    expect(covenant).toContain('LET ROOT = PREVSTATE(111)');
+    expect(covenant).toContain('LET root = PREVSTATE(111)');
     expect(covenant).toContain('ASSERT SAMESTATE(111 111)');
-    expect(covenant).toContain('LET LEAF = STATE(112)');
-    expect(covenant).toContain('LET MMRPROOF = STATE(113)');
-    expect(covenant).toContain('ASSERT PROOF(LEAF 0 ROOT 0 MMRPROOF)');
+    expect(covenant).toContain('LET leaf = STATE(112)');
+    expect(covenant).toContain('LET mmrproof = STATE(113)');
+    expect(covenant).toContain('ASSERT PROOF(leaf 0 root 0 mmrproof)');
   });
 
   it('binds the signer to the leaf and pays it', () => {
-    expect(covenant).toContain('IF SIGNEDBY(LEAF) THEN');
-    expect(covenant).toContain('ASSERT VERIFYOUT(0 LEAF @AMOUNT 0x00 FALSE)');
+    expect(covenant).toContain('IF SIGNEDBY(leaf) THEN');
+    expect(covenant).toContain('ASSERT VERIFYOUT(0 leaf @AMOUNT 0x00 FALSE)');
   });
 
   it('can omit the signature and/or the payout', () => {
@@ -34,7 +34,7 @@ describe('buildMmrMembershipCovenant', () => {
 
   it('reads runtime leaf/root sums from state ports (committed balances)', () => {
     const c = buildMmrMembershipCovenant({ rootPort: 111, leafPort: 112, proofPort: 113, leafSumPort: 114, rootSumPort: 115 });
-    expect(c).toContain('ASSERT PROOF(LEAF STATE(114) ROOT STATE(115) MMRPROOF)');
+    expect(c).toContain('ASSERT PROOF(leaf STATE(114) root STATE(115) mmrproof)');
   });
 
   it('rejects an out-of-range port', () => {

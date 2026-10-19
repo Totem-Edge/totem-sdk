@@ -134,7 +134,7 @@ export function exerciseCovenantStateVariables(config: {
  *               IF payout < @AMOUNT THEN RETURN VERIFYOUT(1 remainder @AMOUNT-payout tokenId TRUE) ENDIF
  *               RETURN TRUE
  *             [ENDIF] ENDIF
- *   recovery: IF @BLOCK GTE RECOVERY THEN
+ *   recovery: IF @BLOCK GTE recovery THEN
  *               ASSERT VERIFYOUT(0 recovery @AMOUNT tokenId FALSE); RETURN TRUE
  *             ENDIF
  *   RETURN FALSE
@@ -164,7 +164,7 @@ export function buildExerciseCovenant(config: ExerciseCovenantConfig): string {
     body.push(`ASSERT @AMOUNT GTE ${payout}`);
     body.push(`ASSERT VERIFYOUT(0 ${beneficiaryHex} ${payout} ${tokenId} FALSE)`);
     body.push(`IF @AMOUNT GT ${payout} THEN`);
-    body.push(`  RETURN VERIFYOUT(1 ${remainderTo} @AMOUNT SUB ${payout} ${tokenId} TRUE)`);
+    body.push(`  RETURN VERIFYOUT(1 ${remainderTo} @AMOUNT - ${payout} ${tokenId} TRUE)`);
     body.push(`ENDIF`);
     body.push(`RETURN TRUE`);
   } else {
@@ -188,8 +188,8 @@ export function buildExerciseCovenant(config: ExerciseCovenantConfig): string {
     exercise = [`IF ${config.condition!.trim()} THEN`, ...pad(exercise, 1), `ENDIF`];
   } else {
     exercise = [
-      `IF @BLOCK GTE MATURITY THEN`,
-      `  IF @BLOCK LT RECOVERY THEN`,
+      `IF @BLOCK GTE maturity THEN`,
+      `  IF @BLOCK LT recovery THEN`,
       ...pad(exercise, 2),
       `  ENDIF`,
       `ENDIF`,
@@ -200,8 +200,8 @@ export function buildExerciseCovenant(config: ExerciseCovenantConfig): string {
     `// P-EXIT — enforceable unilateral exercise covenant (RFC-050 §3)`,
     `// kind: ${config.kind}`,
     `// The owner cannot redirect the beneficiary path; exercise needs only the beneficiary.`,
-    `LET MATURITY = PREVSTATE(${maturityPort})`,
-    `LET RECOVERY = PREVSTATE(${recoveryPort})`,
+    `LET maturity = PREVSTATE(${maturityPort})`,
+    `LET recovery = PREVSTATE(${recoveryPort})`,
     `ASSERT SAMESTATE(${maturityPort} ${maturityPort})`,
     `ASSERT SAMESTATE(${recoveryPort} ${recoveryPort})`,
     ``,
@@ -209,7 +209,7 @@ export function buildExerciseCovenant(config: ExerciseCovenantConfig): string {
     ...exercise,
     ``,
     `// ---- recovery branch (owner reclaim, only after the window) ----`,
-    `IF @BLOCK GTE RECOVERY THEN`,
+    `IF @BLOCK GTE recovery THEN`,
     `  ASSERT VERIFYOUT(0 ${recoveryHex} @AMOUNT ${tokenId} FALSE)`,
     `  RETURN TRUE`,
     `ENDIF`,
