@@ -162,6 +162,11 @@ export class HostedRelaySwarmImpl implements OmniaSwarm {
     private readonly _config: OmniaSwarmConfig = {},
   ) {
     this._localPubkey = _config.localPubkey;
+    // Advertise on construction, matching OmniaSwarmImpl: this subscribes us to
+    // our own peer topic so inbound CHANNEL_PROPOSAL/STATE_UPDATE addressed to
+    // this pubkey are delivered. Without it the relayed counterparty never
+    // receives proposals (it only subscribed when *it* called connectToPeer).
+    if (_config.localPubkey) this.advertise(_config.localPubkey);
   }
 
   private async _ensureWS(): Promise<typeof WebSocket> {

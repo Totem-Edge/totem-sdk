@@ -34,6 +34,18 @@ export class MinimaRpcProvider implements ChainStateProvider, DepositVerifier {
   }
 
   async getCoin(coinId: string): Promise<Coin | null> {
+    // `coins` only returns wallet-relevant coins, so it never sees coins locked
+    // to an app/channel script. `coinexport` is the chain-level primitive and is
+    // the only reliable way to resolve an arbitrary coinid (see verifyDeposit).
+    try {
+      const exported = await this.client.coinExport(coinId);
+      const coin = exported?.coinproof?.coin as unknown as Coin | undefined;
+      if (coin) {
+        return { ...coin, spent: (coin as { spent?: boolean }).spent === true };
+      }
+    } catch {
+      // fall through to the wallet query
+    }
     try {
       const coins = await this.getCoins({ coinId });
       return coins[0] ?? null;

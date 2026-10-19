@@ -30,6 +30,13 @@ import { mergeClosePackages, verifyClosePackage } from './close-package.js';
 import { computeProgramUpdateDigestHex, resolveChannelProgram } from './program.js';
 import { canonicalizeProgramTransition } from './transition.js';
 
+/**
+ * How long acceptChannel waits for the funding coin to appear on-chain. The
+ * funding tx is broadcast (and mined) asynchronously, so the counterparty may
+ * receive the proposal before the channel output coin exists.
+ */
+const FUNDING_COIN_WAIT_MS = 60_000;
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Module-level sequence watermarks
 //
@@ -279,7 +286,17 @@ export async function acceptChannel(
 
   let fundingConfirmed = false;
   if (provider) {
-    const coin = await provider.getCoin(proposal.fundingCoinId);
+    // The funding tx may still be un-mined when the proposal arrives, so the
+    // channel output coin is not on-chain yet. Poll for it (bounded) instead of
+    // failing immediately.
+    let coin = await provider.getCoin(proposal.fundingCoinId);
+    if (!coin) {
+      const deadline = Date.now() + FUNDING_COIN_WAIT_MS;
+      while (!coin && Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 1000));
+        coin = await provider.getCoin(proposal.fundingCoinId);
+      }
+    }
     if (!coin) {
       throw new Error(`Funding coin ${proposal.fundingCoinId} not found on chain`);
     }
