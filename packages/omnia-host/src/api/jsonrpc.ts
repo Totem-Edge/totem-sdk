@@ -70,8 +70,12 @@ async function dispatch(
   try {
     return response(request.id, await method(request.params));
   } catch (error) {
-    console.error('[jsonrpc] handler error:', error instanceof Error ? error.stack ?? error.message : String(error));
-    return errorResponse(request.id, -32000, 'Internal error');
+    // Surface the handler's message to the caller. Masking it as "Internal
+    // error" made operational failures (broadcast rejection, missing manager,
+    // malformed params) impossible to diagnose from the client side.
+    const message = error instanceof Error ? error.message : String(error);
+    console.error('[jsonrpc] handler error:', error instanceof Error ? error.stack ?? message : message);
+    return errorResponse(request.id, -32000, message);
   }
 }
 

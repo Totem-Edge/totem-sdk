@@ -70,8 +70,8 @@ function injectEltooScript(parties: ChannelParticipant[], additions: string[]): 
 export const DefaultEltooPaymentProgram: ChannelProgram = {
   id: ELTOO_PAYMENT_PROGRAM_ID,
   version: 1,
-  buildScript(parties: ChannelParticipant[]): string {
-    return buildEltooScript(parties);
+  buildScript(parties: ChannelParticipant[], options?: { contestDelayBlocks?: number }): string {
+    return buildEltooScript(parties, options?.contestDelayBlocks);
   },
   buildStateVariables(_input: ChannelProgramBuildStateInput): StateValue[] {
     return [];

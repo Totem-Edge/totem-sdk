@@ -162,10 +162,20 @@ export interface OmniaChannel {
   balances: Record<partyId, bigint>;
   pendingHTLCs: HTLCRecord[];
   currentSequence: number;
+  /**
+   * Sequence number of the channel coin currently committed on-chain (the
+   * funding output, or the output of the most recent broadcast update tx).
+   * Off-chain updates do not change it. The eltoo settlement branch requires
+   * `SEQUENCE EQ PREVSEQUENCE`, so cooperative settlement must use this value
+   * (with the agreed balances) rather than `currentSequence`.
+   */
+  onChainSequence?: number;
   latestState: SignedChannelState | null;
   stateLog: ChannelLogEntry[];
   status: ChannelStatus;
   channelType: 'direct' | 'virtual';
+  /** Eltoo contest window embedded in the funding script (default 256). */
+  contestDelayBlocks?: number;
   factoryRef?: string;
   /**
    * Local party signer — stored on the channel so callers can omit the signer param from
@@ -221,6 +231,15 @@ export interface CreateChannelParams {
     scriptProofs: Uint8Array[];
   };
   /**
+   * The Minima (KISSVM) script whose hash is the funding coin's address. When
+   * set (and `fundingWitnessBytes` is absent) createChannel builds the required
+   * single-leaf `ScriptProof` itself via `buildScriptProof` and appends it to
+   * the witness. The node requires a ScriptProof for every input address, so
+   * callers that only have the address script should pass it here instead of
+   * hand-rolling `fundingProofs.scriptProofs`.
+   */
+  fundingScript?: string;
+  /**
    * Sign the funding transaction digest (WOTS). Called only when
    * `fundingWitnessBytes` is absent. Lets a wallet sign the exact digest
    * createChannel built, without the caller reproducing the funding draft.
@@ -229,6 +248,12 @@ export interface CreateChannelParams {
   channelType?: 'direct' | 'virtual';
   factoryRef?: string;
   program?: ChannelProgram;
+  /**
+   * Blocks the counterparty must wait before a settlement spend is valid
+   * (eltoo contest window). Defaults to 256. Short values are for test/dev
+   * networks only — a short window weakens unilateral-close protection.
+   */
+  contestDelayBlocks?: number;
 }
 
 export interface ChannelProposal {
@@ -245,6 +270,8 @@ export interface ChannelProposal {
   fundingAddress?: string;
   fundingTxId: string;
   fundingCoinId: string;
+  /** Eltoo contest window embedded in the funding script (default 256). */
+  contestDelayBlocks?: number;
 }
 
 export interface AddHTLCParams {
@@ -325,7 +352,12 @@ export interface ChannelProgramValidateTransitionInput {
 export interface ChannelProgram {
   id: string;
   version: number;
-  buildScript(parties: ChannelParticipant[]): string;
+  /**
+   * Build the channel script. `contestDelayBlocks` is only honoured by programs
+   * that embed an eltoo-style contest delay (the default eltoo program); other
+   * programs may ignore it.
+   */
+  buildScript(parties: ChannelParticipant[], options?: { contestDelayBlocks?: number }): string;
   buildStateVariables(input: ChannelProgramBuildStateInput): StateValue[];
   validateTransition?(input: ChannelProgramValidateTransitionInput): ChannelProgramValidationResult;
 }

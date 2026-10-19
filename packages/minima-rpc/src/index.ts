@@ -15,6 +15,8 @@ export type {
   CoinCheckResult,
   CoinExportResult,
   MegaMMRInfo,
+  MagicNumbers,
+  MagicInfo,
   TxnPostResult,
   TxnPostParams,
   TxnMineParams,

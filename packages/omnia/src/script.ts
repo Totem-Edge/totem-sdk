@@ -40,9 +40,15 @@ function kissHex(hex: string): string {
  * both update and settlement require `BOTHSIGNED` — no one can move the coin to
  * reset coinage without the victim's signature.
  */
-export function buildEltooScript(parties: ChannelParticipant[]): string {
+export function buildEltooScript(
+  parties: ChannelParticipant[],
+  contestDelayBlocks: number = ELTOO_CONTEST_DELAY_BLOCKS,
+): string {
   if (parties.length !== 2) {
     throw new Error(`v0.1.0 supports exactly 2 parties, got ${parties.length}`);
+  }
+  if (!Number.isInteger(contestDelayBlocks) || contestDelayBlocks < 0) {
+    throw new Error(`contestDelayBlocks must be a non-negative integer, got ${contestDelayBlocks}`);
   }
   const [a, b] = parties;
   const pkA = kissHex(a.publicKeyDigest);
@@ -56,7 +62,7 @@ export function buildEltooScript(parties: ChannelParticipant[]): string {
     'IF SETTLEMENT THEN',
     '    ASSERT BOTHSIGNED',
     '    ASSERT SEQUENCE EQ PREVSEQUENCE',
-    `    ASSERT @COINAGE GTE ${ELTOO_CONTEST_DELAY_BLOCKS}`,
+    `    ASSERT @COINAGE GTE ${contestDelayBlocks}`,
     '    RETURN TRUE',
     'ENDIF',
     'ASSERT BOTHSIGNED',

@@ -18,6 +18,7 @@ import type {
   CoinCheckResult,
   CoinExportResult,
   MegaMMRInfo,
+  MagicInfo,
   TxnPostResult,
   TxnPostParams,
   TxnMineParams,
@@ -109,6 +110,10 @@ export function createMinimaRpcClient(config: MinimaRpcConfig): MinimaRpcClient 
 
     async megammr() {
       return run('megammr', undefined, true) as Promise<MegaMMRInfo>;
+    },
+
+    async magic() {
+      return run('magic', undefined, true) as Promise<MagicInfo>;
     },
 
     async history(params?: HistoryQuery) {
@@ -205,7 +210,7 @@ export function createMinimaRpcClient(config: MinimaRpcConfig): MinimaRpcClient 
     },
 
     async txnMine(params: TxnMineParams) {
-      await run('txnmine', params as unknown as Record<string, unknown>);
+      return run('txnmine', params as unknown as Record<string, unknown>) as Promise<{ txpowid?: string; data?: string }>;
     },
 
     async txnDelete(id: string) {

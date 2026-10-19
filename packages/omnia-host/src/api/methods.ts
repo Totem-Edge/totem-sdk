@@ -8,6 +8,7 @@ import {
   markChannelClosed,
   markChannelClosing,
   proposeSettlement,
+  buildSettlementSigningRequest,
   recordMeterReading,
   setCounter,
   timeoutHTLC,
@@ -126,8 +127,10 @@ export function channelStateView(channel: OmniaChannel): Record<string, unknown>
     totalValue: channel.totalValue,
     currentSequence: channel.currentSequence,
     fundingAddress: channel.fundingAddress,
+    fundingScript: channel.fundingScript,
     fundingTxId: channel.fundingTxId,
     fundingCoinId: channel.fundingCoinId,
+    contestDelayBlocks: channel.contestDelayBlocks,
     parties: channel.parties,
     balances: channel.balances,
     pendingHTLCs: channel.pendingHTLCs,
@@ -275,6 +278,45 @@ async function persistProgramUpdate(
   };
 }
 
+/**
+ * Wait for the counterparty to acknowledge a channel proposal. A channel is not
+ * usable on both sides until the peer has accepted it; without this, an
+ * immediate `pay()` can race ahead of the peer's accept and its STATE_UPDATE is
+ * dropped ("Unknown channel"). Resolves true on ACK, false on ERROR/timeout.
+ */
+interface PeerReply {
+  type: string;
+  channelId?: string;
+  payload?: unknown;
+}
+
+/**
+ * Wait for an ACK/ERROR from the counterparty for a given channel. Returns the
+ * reply message (so callers can read a co-signature) or null on timeout.
+ */
+function waitForPeerReply(
+  peer: { onMessage(cb: (msg: PeerReply) => void): () => void },
+  channelId: string,
+  timeoutMs: number,
+): Promise<PeerReply | null> {
+  return new Promise((resolve) => {
+    let done = false;
+    let unsub: (() => void) | undefined;
+    const finish = (reply: PeerReply | null): void => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      if (unsub) unsub();
+      resolve(reply);
+    };
+    unsub = peer.onMessage((msg) => {
+      if (msg.channelId !== channelId) return;
+      if (msg.type === 'ACK' || msg.type === 'ERROR') finish(msg);
+    });
+    const timer = setTimeout(() => finish(null), timeoutMs);
+  });
+}
+
 export function createHostMethods(context: HostApiContext): Map<string, JsonRpcHandler> {
   const methods = new Map<string, JsonRpcHandler>();
   const register = (name: string, handler: JsonRpcHandler, alias: string): void => {
@@ -382,6 +424,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
         remoteAmount: requiredBigInt(params, 'remoteAmount'),
         tokenId: typeof params.tokenId === 'string' ? params.tokenId : undefined,
         fundingCoinId: requiredString(params, 'fundingCoinId'),
+        contestDelayBlocks: typeof params.contestDelayBlocks === 'number' ? params.contestDelayBlocks : undefined,
       };
       const fundingWitnessHex = typeof params.fundingWitnessHex === 'string' ? params.fundingWitnessHex : undefined;
       if (fundingWitnessHex) {
@@ -408,12 +451,20 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
         if (!signer) {
           throw new Error('openChannel requires fundingWitnessHex, or a fundingPubkey + funding proofs');
         }
+        if (typeof params.fundingScript !== 'string' && !Array.isArray(params.fundingScriptProofsHex)) {
+          throw new Error('openChannel requires fundingScript (or serialized fundingScriptProofsHex) for the funding input address');
+        }
         const toBytes = (v: unknown): Uint8Array[] =>
           Array.isArray(v) ? v.map((h) => Buffer.from(String(h).replace(/^0x/i, ''), 'hex')) : [];
         createParams.fundingProofs = {
           coinProofs: toBytes(params.fundingCoinProofsHex),
           scriptProofs: toBytes(params.fundingScriptProofsHex),
         };
+        // The funding coin's address script: createChannel derives the required
+        // single-leaf ScriptProof from it, so callers need not hand-roll it.
+        if (typeof params.fundingScript === 'string') {
+          createParams.fundingScript = params.fundingScript;
+        }
         createParams.fundingSigner = signer;
       }
       const created = await createChannel(createParams, context.chainProvider);
@@ -421,11 +472,15 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
         ...created.channel,
         localSigner: context.signer,
       });
+      let acknowledged = true;
       if (context.swarm) {
         const peer = await context.swarm.connectToPeer(remote.publicKeyDigest, created.channel.channelId);
         await peer.sendMessage({ type: 'CHANNEL_PROPOSAL', channelId: created.channel.channelId, nonce: Date.now(), payload: created.proposal });
+        // Give the peer time to accept so a follow-up pay() is not lost.
+        const reply = await waitForPeerReply(peer, created.channel.channelId, 20_000);
+        acknowledged = reply?.type === 'ACK';
       }
-      return { success: true, channelId: created.channel.channelId, fundingTxId: created.channel.fundingTxId };
+      return { success: true, channelId: created.channel.channelId, fundingTxId: created.channel.fundingTxId, acknowledged };
     });
     return result;
   };
@@ -534,11 +589,47 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       const channel = context.channels.get(channelId);
       if (!channel) throw new Error(`Channel ${channelId} not found`);
       const closing = markChannelClosing(channel, 'mutual');
+      const partyAddresses = Object.fromEntries(
+        closing.parties.map((party) => [party.partyId, party.settlementAddress ?? party.publicKeyDigest]),
+      );
+
+      // Cooperative close needs both eltoo MULTISIG(2 A B) signatures. Build the
+      // exact settlement draft, ask the counterparty to co-sign it, then include
+      // both signatures in the broadcast witness.
+      const localPartyId = context.localParticipant?.partyId;
+      const remoteParty = localPartyId
+        ? closing.parties.find((party) => party.partyId !== localPartyId)
+        : undefined;
+      let counterpartySignatures: Array<{ partyId: string; signature: Uint8Array }> | undefined;
+      let settlementTxHex: string | undefined;
+      if (context.swarm && remoteParty) {
+        const request = buildSettlementSigningRequest(closing, { partyAddresses });
+        const peer = await context.swarm.connectToPeer(remoteParty.publicKeyDigest, channelId);
+        await peer.sendMessage({
+          type: 'SETTLEMENT_PROPOSAL',
+          channelId,
+          nonce: Date.now(),
+          payload: { signRequest: true, ...request },
+        });
+        const reply = await waitForPeerReply(peer, channelId, 30_000);
+        const replyPayload = reply?.payload as { signature?: string; partyId?: string } | undefined;
+        if (reply?.type !== 'ACK' || typeof replyPayload?.signature !== 'string') {
+          throw new Error(`Counterparty did not co-sign the settlement (${reply?.type ?? 'timeout'})`);
+        }
+        counterpartySignatures = [{
+          partyId: replyPayload.partyId ?? remoteParty.partyId,
+          signature: Buffer.from(replyPayload.signature.replace(/^0x/i, ''), 'hex'),
+        }];
+        settlementTxHex = request.settlementTxHex;
+      }
+
       const settlement = await proposeSettlement(closing, context.leaseProvider, {
         signer: context.signer,
         chainProvider: context.chainProvider,
         broadcastProofs: parsedProofs,
-        partyAddresses: Object.fromEntries(closing.parties.map((party) => [party.partyId, party.settlementAddress ?? party.publicKeyDigest])),
+        partyAddresses,
+        settlementTxHex,
+        counterpartySignatures,
       });
       context.channels.set(channelId, markChannelClosed(closing));
       return { success: true, channelId, settlementTxId: settlement.settlementPayload.txpowId, finalBalances: Object.fromEntries(Object.entries(settlement.settlementPayload.balances).map(([key, value]) => [key, value.toString()])) };

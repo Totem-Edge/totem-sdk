@@ -63,6 +63,11 @@ export function createTotemNodeAdapter(options: TotemNodeAdapterOptions): TotemN
     searchTokens: (query) => provider.searchTokens(query),
     getTokensByCreator: (address) => provider.getTokensByCreator(address),
     broadcastTxPoW: (txpowHex) => provider.broadcastTxPoW(txpowHex),
+    getMinTxPowWork: () =>
+      provider.getMinTxPowWork ? provider.getMinTxPowWork() : Promise.resolve(null),
+    ...(provider.submitTransaction
+      ? { submitTransaction: provider.submitTransaction.bind(provider) }
+      : {}),
 
     async getMode(): Promise<string | undefined> {
       const result = await client.runCommand('getmode');

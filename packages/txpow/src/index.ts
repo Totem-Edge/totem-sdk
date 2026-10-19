@@ -51,7 +51,13 @@ export {
 
 export { setWasmUrl, getBrowserWasmUrl, isWasmAvailable } from './mine-wasm.js';
 
-export { fetchTxPowTarget, type TxPowParams } from './difficulty.js';
+export {
+  fetchTxPowTarget,
+  targetFromMinWork,
+  resolveTxPowTarget,
+  type TxPowParams,
+  type MinWorkSource,
+} from './difficulty.js';
 
 export { verifyProofOfWork, verifyTxPoWWork, verifyTxPoWParts, type VerifyResult } from './verify.js';
 

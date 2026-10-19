@@ -98,6 +98,21 @@ export class MinimaRpcProvider implements ChainStateProvider, DepositVerifier {
     return this.client.mmrProof(coinId) as unknown as MMRProof;
   }
 
+  /**
+   * Current minimum TxPoW work from the tip block's Magic numbers (`magic`
+   * command). This is the live target locally mined transactions must meet;
+   * using it avoids hardcoding a difficulty that may be harder than the
+   * network currently requires (or easier than it has drifted to).
+   */
+  async getMinTxPowWork(): Promise<string | null> {
+    try {
+      const info = await this.client.magic();
+      return info?.lastblock?.currentmintxpowwork ?? null;
+    } catch {
+      return null;
+    }
+  }
+
   async getTip(): Promise<ChainTip> {
     return this.client.getTip() as unknown as ChainTip;
   }
@@ -134,6 +149,52 @@ export class MinimaRpcProvider implements ChainStateProvider, DepositVerifier {
 
   async getTokensByCreator(address: string): Promise<TokenInfo[]> {
     return this.searchTokens({ creatorAddress: address });
+  }
+
+  /**
+   * Submit a raw transaction + witness via the node's explicit-mine path.
+   *
+   * `sendtransaction` only adds a pre-built TxPoW to the mempool; a TxPoW built
+   * outside the node has a placeholder header (block number 0, block difficulty
+   * MAX_HASH), which the node's block builder does not reliably promote. The
+   * node's own `txnmine` builds the header with the real tip fields and mines
+   * it. We then post that mined TxPoW with `sendtransaction`.
+   *
+   * TxnRow wire format (Java/C++): MiniString(id) || Transaction || Witness.
+   */
+  async submitTransaction(
+    txBytes: Uint8Array,
+    witnessBytes: Uint8Array,
+    id: string = `omnia-${Date.now()}`,
+  ): Promise<BroadcastResult> {
+    try {
+      const idBytes = new TextEncoder().encode(id);
+      const len = idBytes.length;
+      const prefix = new Uint8Array([
+        (len >>> 24) & 0xff,
+        (len >>> 16) & 0xff,
+        (len >>> 8) & 0xff,
+        len & 0xff,
+      ]);
+      const row = Buffer.concat([
+        Buffer.from(prefix),
+        Buffer.from(idBytes),
+        Buffer.from(txBytes),
+        Buffer.from(witnessBytes),
+      ]);
+      const mined = await this.client.txnMine({ data: Buffer.from(row).toString('hex') });
+      if (!mined?.data) {
+        return { success: false, message: 'txnmine returned no data' };
+      }
+      const posted = await this.client.sendTransaction(mined.data);
+      return {
+        success: true,
+        txpowid: mined.txpowid ?? posted?.txpowid,
+        message: 'submitted via txnmine + sendtransaction',
+      };
+    } catch (e) {
+      return { success: false, message: String(e) };
+    }
   }
 
   async broadcastTxPoW(txpowHex: string): Promise<BroadcastResult> {

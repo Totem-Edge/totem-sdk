@@ -144,4 +144,21 @@ export interface ChainStateProvider {
   searchTokens(query: TokenSearchQuery): Promise<TokenInfo[]>;
   getTokensByCreator(address: string): Promise<TokenInfo[]>;
   broadcastTxPoW(txpowHex: string): Promise<BroadcastResult>;
+  /**
+   * Live minimum TxPoW work (32-byte hex target) from the node's Magic numbers.
+   * Optional: providers that cannot read it let callers fall back to the
+   * protocol default. Used to mine transactions to the current network target.
+   */
+  getMinTxPowWork?(): Promise<string | null>;
+  /**
+   * Submit a raw transaction + witness through the node's explicit-mine path:
+   * `txnmine` (node builds the TxPoW header with the real block number /
+   * difficulty / magic and mines) followed by `sendtransaction`. When absent,
+   * callers fall back to SDK-side mining + `broadcastTxPoW`.
+   */
+  submitTransaction?(
+    txBytes: Uint8Array,
+    witnessBytes: Uint8Array,
+    id?: string,
+  ): Promise<BroadcastResult>;
 }

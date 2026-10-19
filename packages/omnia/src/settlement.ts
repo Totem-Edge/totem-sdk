@@ -1,8 +1,7 @@
 import { concatBytes } from '@totemsdk/core';
-import { mineTxPoW, TX_POW_MIN_DIFFICULTY, serializeTxBody } from '@totemsdk/txpow';
+import { mineTxPoW, resolveTxPowTarget, serializeTxBody } from '@totemsdk/txpow';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
-import type { WotsLeaseProvider } from '@totemsdk/wots-lease';
-import type { SigningIndices } from '@totemsdk/wots-lease';
+import type { WotsLeaseProvider, SigningIndices } from '@totemsdk/wots-lease';
 import type {
   OmniaChannel,
   SignedChannelState,
@@ -14,7 +13,7 @@ import type {
   UnilateralCloseFinalizeResult,
 } from './types.js';
 import { ChannelStatusError } from './errors.js';
-import { buildSettlementTx, deserializeTxDraft, serializeTxDraft, omniaDraftToCanonicalMinimaBytes } from './transactions.js';
+import { buildSettlementTx, deserializeTxDraft, serializeTxDraft, omniaDraftToCanonicalMinimaBytes, computeOmniaTxDigest } from './transactions.js';
 import { signTxDraft } from './sign.js';
 import { verifyClosePackage } from './close-package.js';
 import { ELTOO_CONTEST_DELAY_BLOCKS } from './script.js';
@@ -44,22 +43,112 @@ export interface ProposeSettlementOptions {
    */
   chainProvider?: ChainStateProvider;
   broadcastProofs?: OmniaWitnessProofs;
+  /**
+   * Exact settlement draft (serialized) that the counterparty signed. When set,
+   * this is used verbatim so both signatures cover identical bytes.
+   */
+  settlementTxHex?: string;
+  /**
+   * Counterparty signatures to include alongside the local one. The eltoo
+   * settlement branch requires `MULTISIG(2 A B)`, so a cooperative settlement
+   * needs both signatures in the witness.
+   */
+  counterpartySignatures?: Array<{ partyId: string; signature: ChannelSignature }>;
+}
+
+/** A settlement draft + digest offered to the counterparty for co-signing. */
+export interface SettlementSigningRequest {
+  channelId: string;
+  sequence: number;
+  settlementTxHex: string;
+  digestHex: string;
+  partyAddresses: Record<string, string>;
+}
+
+function resolveSettlementState(channel: OmniaChannel): SignedChannelState {
+  const current: SignedChannelState = channel.latestState ?? {
+    sequence: channel.currentSequence,
+    balances: channel.balances,
+    pendingHTLCs: channel.pendingHTLCs,
+    stateVariables: [
+      { port: 100, value: false, type: 'bool' as const },
+      { port: 101, value: BigInt(channel.currentSequence), type: 'number' as const },
+    ],
+    transactionHex: '',
+    signatures: {},
+    signingIndices: {},
+  };
+  // The eltoo SETTLEMENT branch requires SEQUENCE EQ PREVSEQUENCE, i.e. the
+  // sequence stored on the *on-chain* channel coin. Off-chain updates advance
+  // `currentSequence` but not the chain coin until an update tx is broadcast.
+  // A cooperative close therefore settles at the on-chain sequence while
+  // distributing the agreed (post-payment) balances.
+  return { ...current, sequence: channel.onChainSequence ?? 0 };
+}
+
+function resolveSettlementPartyAddresses(
+  channel: OmniaChannel,
+  partyAddresses?: Record<string, string>,
+): Record<string, string> {
+  const resolved: Record<string, string> = {};
+  for (const party of channel.parties) {
+    const addr = partyAddresses?.[party.partyId] ?? party.settlementAddress;
+    if (!addr) {
+      throw new Error(
+        `No settlement address for party ${party.partyId}. ` +
+        `Set party.settlementAddress or pass opts.partyAddresses.`
+      );
+    }
+    resolved[party.partyId] = addr;
+  }
+  return resolved;
 }
 
 /**
- * Minimal witness encoding for eltoo settlement TX.
- * Packs the signing indices (addressIndex, l1, l2) followed by raw WOTS signature bytes.
- * In a full Minima integration this would be a Minima Witness with InputScriptInfo
- * and CoinProof, serialized via @totemsdk/core's Streamable. This encoding carries
- * the same data and is sufficient for the TxPoW body passed to serializeTxBody.
+ * Build the deterministic settlement draft + digest for a cooperative close.
+ * Both parties can build this independently from the same channel state, or the
+ * settling party can send it verbatim to the counterparty to co-sign.
  */
-function encodeSettlementWitness(signature: ChannelSignature, indices: SigningIndices): Uint8Array {
-  const meta = new Uint8Array(8);
-  const view = new DataView(meta.buffer);
-  view.setUint32(0, indices.addressIndex, false);
-  view.setUint16(4, indices.l1, false);
-  view.setUint16(6, indices.l2, false);
-  return concatBytes(meta, signature);
+export function buildSettlementSigningRequest(
+  channel: OmniaChannel,
+  opts?: Pick<ProposeSettlementOptions, 'partyAddresses'>,
+): SettlementSigningRequest {
+  const state = resolveSettlementState(channel);
+  const partyAddresses = resolveSettlementPartyAddresses(channel, opts?.partyAddresses);
+  const draft = buildSettlementTx(channel, state, partyAddresses);
+  return {
+    channelId: channel.channelId,
+    sequence: state.sequence,
+    settlementTxHex: serializeTxDraft(draft),
+    digestHex: '0x' + Buffer.from(computeOmniaTxDigest(draft)).toString('hex'),
+    partyAddresses,
+  };
+}
+
+/**
+ * Co-sign a settlement signing request. Used by the counterparty to provide its
+ * half of the eltoo `MULTISIG(2 …)` settlement witness.
+ */
+export async function signSettlementRequest(
+  channel: OmniaChannel,
+  request: SettlementSigningRequest,
+  leaseProvider: WotsLeaseProvider,
+  signer?: ChannelSigner,
+): Promise<{ partyId: string; signature: ChannelSignature; indices: SigningIndices }> {
+  const effectiveSigner = signer ?? channel.localSigner;
+  if (!effectiveSigner) throw new Error('No signer provided and channel.localSigner is not set');
+  const signerParty = channel.parties.find(p => p.publicKeyDigest === effectiveSigner.publicKeyDigest);
+  if (!signerParty) throw new Error('Signer is not a channel participant');
+
+  const draft = deserializeTxDraft(request.settlementTxHex);
+  const { signature, indices } = await signTxDraft(
+    channel,
+    draft,
+    `settlement-sign-seq-${request.sequence}`,
+    leaseProvider,
+    effectiveSigner,
+  );
+  return { partyId: signerParty.partyId, signature, indices };
 }
 
 async function mineAndBroadcastDraft(
@@ -68,10 +157,14 @@ async function mineAndBroadcastDraft(
   witnessBytes: Uint8Array,
 ): Promise<string | undefined> {
   const draftBytes = omniaDraftToCanonicalMinimaBytes(deserializeTxDraft(txHex));
-  const txBody = serializeTxBody(draftBytes, witnessBytes);
-  const mined = await mineTxPoW(txBody, TX_POW_MIN_DIFFICULTY);
+  const txnDifficulty = await resolveTxPowTarget(chainProvider);
+  const txBody = serializeTxBody(draftBytes, witnessBytes, { txnDifficulty });
+  const mined = await mineTxPoW(txBody, txnDifficulty);
   const fullTxPoW = concatBytes(concatBytes(mined.minedHeaderBytes, new Uint8Array([0x01])), txBody);
   const broadcast = await chainProvider.broadcastTxPoW(Buffer.from(fullTxPoW).toString('hex'));
+  if (broadcast.success === false) {
+    throw new Error(`Settlement broadcast failed: ${broadcast.message ?? 'unknown error'}`);
+  }
   return broadcast.txpowid ?? Buffer.from(mined.txpowId).toString('hex');
 }
 
@@ -105,34 +198,15 @@ export async function proposeSettlement(
   const signerParty = channel.parties.find(p => p.publicKeyDigest === effectiveSigner.publicKeyDigest);
   if (!signerParty) throw new Error('Signer is not a channel participant');
 
-  // Derive settlement addresses: use explicit override, then party.settlementAddress.
-  const partyAddresses: Record<string, string> = {};
-  for (const party of channel.parties) {
-    const addr = opts?.partyAddresses?.[party.partyId] ?? party.settlementAddress;
-    if (!addr) {
-      throw new Error(
-        `No settlement address for party ${party.partyId}. ` +
-        `Set party.settlementAddress or pass opts.partyAddresses.`
-      );
-    }
-    partyAddresses[party.partyId] = addr;
-  }
+  const partyAddresses = resolveSettlementPartyAddresses(channel, opts?.partyAddresses);
+  const state = resolveSettlementState(channel);
 
-  const state = channel.latestState ?? {
-    sequence: channel.currentSequence,
-    balances: channel.balances,
-    pendingHTLCs: channel.pendingHTLCs,
-    stateVariables: [
-      { port: 100, value: false, type: 'bool' as const },
-      { port: 101, value: BigInt(channel.currentSequence), type: 'number' as const },
-    ],
-    transactionHex: '',
-    signatures: {},
-    signingIndices: {},
-  };
-
-  const settlementDraft = buildSettlementTx(channel, state, partyAddresses);
-  const settlementHex = serializeTxDraft(settlementDraft);
+  // Prefer the exact draft the counterparty co-signed so both signatures cover
+  // identical bytes; otherwise build it deterministically from channel state.
+  const settlementDraft = opts?.settlementTxHex
+    ? deserializeTxDraft(opts.settlementTxHex)
+    : buildSettlementTx(channel, state, partyAddresses);
+  const settlementHex = opts?.settlementTxHex ?? serializeTxDraft(settlementDraft);
 
   // signTxDraft signs the settlement TX (STATE(100)=TRUE), not the update TX.
   const { signature, indices } = await signTxDraft(
@@ -167,20 +241,44 @@ export async function proposeSettlement(
   if (opts?.chainProvider) {
     assertBroadcastProofs(opts.broadcastProofs);
     const draftBytes = omniaDraftToCanonicalMinimaBytes(settlementDraft);
+    // Include the counterparty signature(s) too: the eltoo settlement branch
+    // requires MULTISIG(2 A B), so a cooperative close needs both keys present.
+    const signatures = [
+      signature,
+      ...(opts.counterpartySignatures ?? []).map((s) => s.signature),
+    ];
     const witnessBytes = serializeOmniaWitness({
-      signatures: [encodeSettlementWitness(signature, indices)],
+      // `signature` is already a serialized Minima/Tree Signature; the lease
+      // indices are channel metadata and must NOT be prepended to the witness
+      // (doing so makes the node's TxPoW parser reject the body).
+      signatures,
       coinProofs: opts.broadcastProofs.coinProofs,
       scriptProofs: opts.broadcastProofs.scriptProofs,
     });
-    const txBody = serializeTxBody(draftBytes, witnessBytes);
 
-    const mined = await mineTxPoW(txBody, TX_POW_MIN_DIFFICULTY);
+    if (opts.chainProvider.submitTransaction) {
+      // Node builds the TxPoW header (real block number/difficulty/magic),
+      // mines, and we post it — the reliable explicit-mine path.
+      const submitted = await opts.chainProvider.submitTransaction(draftBytes, witnessBytes);
+      if (submitted.success === false || !submitted.txpowid) {
+        throw new Error(`Settlement submission failed: ${submitted.message ?? 'no txpowid'}`);
+      }
+      settlementPayload.txpowId = submitted.txpowid;
+    } else {
+      const txnDifficulty = await resolveTxPowTarget(opts.chainProvider);
+      const txBody = serializeTxBody(draftBytes, witnessBytes, { txnDifficulty });
 
-    // Full TxPoW = TxHeader bytes + MiniByte(0x01=hasBody) + TxBody bytes
-    const fullTxPoW = concatBytes(concatBytes(mined.minedHeaderBytes, new Uint8Array([0x01])), txBody);
-    await opts.chainProvider.broadcastTxPoW(Buffer.from(fullTxPoW).toString('hex'));
+      const mined = await mineTxPoW(txBody, txnDifficulty);
 
-    settlementPayload.txpowId = Buffer.from(mined.txpowId).toString('hex');
+      // Full TxPoW = TxHeader bytes + MiniByte(0x01=hasBody) + TxBody bytes
+      const fullTxPoW = concatBytes(concatBytes(mined.minedHeaderBytes, new Uint8Array([0x01])), txBody);
+      const broadcast = await opts.chainProvider.broadcastTxPoW(Buffer.from(fullTxPoW).toString('hex'));
+      if (broadcast.success === false) {
+        throw new Error(`Settlement broadcast failed: ${broadcast.message ?? 'unknown error'}`);
+      }
+
+      settlementPayload.txpowId = Buffer.from(mined.txpowId).toString('hex');
+    }
   }
 
   const partialState: Partial<SignedChannelState> = {
@@ -189,7 +287,10 @@ export async function proposeSettlement(
     pendingHTLCs: state.pendingHTLCs,
     stateVariables: settlementDraft.stateVariables,
     transactionHex: settlementHex,
-    signatures: { [signerParty.partyId]: signature },
+    signatures: {
+      [signerParty.partyId]: signature,
+      ...Object.fromEntries((opts?.counterpartySignatures ?? []).map((s) => [s.partyId, s.signature])),
+    },
     signingIndices: { [signerParty.partyId]: indices },
   };
 

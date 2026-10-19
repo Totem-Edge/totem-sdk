@@ -201,6 +201,30 @@ export interface MegaMMRInfo {
   hash: string;
 }
 
+/** Magic numbers carried by a TxPoW header (totem-node/Java `magic` shape). */
+export interface MagicNumbers {
+  currentmaxtxpowsize?: string;
+  currentmaxkissvmops?: string;
+  currentmaxtxn?: string;
+  /** Live minimum TxPoW work (hex, 32-byte target). Used as the mining target. */
+  currentmintxpowwork?: string;
+  desiredmaxtxpowsize?: string;
+  desiredmaxkissvmops?: string;
+  desiredmaxtxn?: string;
+  desiredmintxpowwork?: string;
+}
+
+export interface MagicInfo {
+  /** Magic values of the current tip block (null before the first block). */
+  lastblock: MagicNumbers | null;
+  /** This node's desired values (used for the weighted-average retarget). */
+  desired?: {
+    kissvm?: string;
+    txpowsize?: string;
+    txnsperblock?: string;
+  };
+}
+
 export interface TxnPostResult {
   txpowid?: string;
   txpow?: unknown;
@@ -220,7 +244,7 @@ export interface TxnPostParams {
 }
 
 export interface TxnMineParams {
-  id: string;
+  id?: string;
   data?: string;
 }
 
@@ -333,6 +357,8 @@ export interface MinimaRpcClient {
    */
   probeDeterministicAddress(modifier?: string): Promise<AddressModifierProbe>;
   megammr(): Promise<MegaMMRInfo>;
+  /** `magic` — current network Magic numbers (incl. `currentmintxpowwork`). */
+  magic(): Promise<MagicInfo>;
   history(params?: HistoryQuery): Promise<HistoryEntry[]>;
   burn(last?: number): Promise<BurnInfo>;
   send(params: SendParams): Promise<TxnPostResult>;
@@ -353,8 +379,13 @@ export interface MinimaRpcClient {
   txnExport(id: string): Promise<string>;
   txnPost(params: TxnPostParams): Promise<TxnPostResult>;
   txnMinePost(data: string): Promise<TxnPostResult>;
+  /**
+   * `txnmine` — mine a TxnRow (ID + Transaction + Witness) using the node's
+   * own header (correct block number/difficulty/magic) and return the mined
+   * TxPoW hex. Unlike `sendtransaction`, this does not post it.
+   */
   sendTransaction(data: string): Promise<TxnPostResult>;
-  txnMine(params: TxnMineParams): Promise<void>;
+  txnMine(params: TxnMineParams): Promise<{ txpowid?: string; data?: string }>;
   txnDelete(id: string): Promise<void>;
   txnClear(id: string): Promise<void>;
   verify(publicKey: string, data: string, signature: string): Promise<boolean>;

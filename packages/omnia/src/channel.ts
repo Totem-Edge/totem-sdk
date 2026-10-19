@@ -1,5 +1,5 @@
-import { concatBytes } from '@totemsdk/core';
-import { mineTxPoW, TX_POW_MIN_DIFFICULTY, serializeTxBody } from '@totemsdk/txpow';
+import { concatBytes, buildScriptProof } from '@totemsdk/core';
+import { mineTxPoW, resolveTxPowTarget, serializeTxBody } from '@totemsdk/txpow';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import type { WotsLeaseProvider } from '@totemsdk/wots-lease';
 import type {
@@ -149,7 +149,8 @@ export async function createChannel(
 ): Promise<{ channel: OmniaChannel; proposal: ChannelProposal }> {
   const parties = [params.localParty, params.remoteParty];
   const program = resolveChannelProgram(params.program);
-  const script = program.buildScript(parties);
+  const contestDelayBlocks = params.contestDelayBlocks;
+  const script = program.buildScript(parties, { contestDelayBlocks });
   const address = scriptAddress(script);
   const tokenId = params.tokenId ?? TOKENID_MINIMA;
   const tokenScale = params.tokenScale ?? 0;
@@ -186,20 +187,59 @@ export async function createChannel(
     if (!params.fundingSigner || !params.fundingProofs) {
       throw new Error('createChannel requires serialized fundingWitnessBytes for broadcast');
     }
+    // The node requires a ScriptProof for every input address. Prefer deriving
+    // it from `fundingScript` (authoritative, built here); fall back to any
+    // caller-supplied serialized proofs only when no script is provided.
+    const scriptProofs = params.fundingScript
+      ? [buildScriptProof(params.fundingScript)]
+      : params.fundingProofs.scriptProofs;
+    if (!scriptProofs.length) {
+      throw new Error('createChannel requires fundingScript or fundingProofs.scriptProofs');
+    }
     const digest = computeOmniaTxDigest(fundingDraft);
     const signature = await params.fundingSigner(digest);
     fundingWitness = serializeOmniaWitness({
       signatures: [signature],
       coinProofs: params.fundingProofs.coinProofs,
-      scriptProofs: params.fundingProofs.scriptProofs,
+      scriptProofs,
     });
   }
-  const txBody = serializeTxBody(fundingTxBytes, fundingWitness);
-  const mined = await mineTxPoW(txBody, TX_POW_MIN_DIFFICULTY);
-  const fullTxPoW = concatBytes(concatBytes(mined.minedHeaderBytes, new Uint8Array([0x01])), txBody);
-  const broadcast = await chainProvider.broadcastTxPoW(Buffer.from(fullTxPoW).toString('hex'));
-  const fundingTxId = broadcast.txpowid ?? Buffer.from(mined.txpowId).toString('hex');
+  // Prefer the node's explicit-mine path (`txnmine` builds the correct header,
+  // then `sendtransaction`). Otherwise mine locally to the live target.
+  let fundingTxId: string;
+  if (chainProvider.submitTransaction) {
+    const submitted = await chainProvider.submitTransaction(fundingTxBytes, fundingWitness);
+    if (submitted.success === false || !submitted.txpowid) {
+      throw new Error(`Funding transaction submission failed: ${submitted.message ?? 'no txpowid'}`);
+    }
+    fundingTxId = submitted.txpowid;
+  } else {
+    // Mine to the node's live minimum work (chain provider -> node `magic`).
+    const txnDifficulty = await resolveTxPowTarget(chainProvider);
+    const txBody = serializeTxBody(fundingTxBytes, fundingWitness, { txnDifficulty });
+    const mined = await mineTxPoW(txBody, txnDifficulty);
+    const fullTxPoW = concatBytes(concatBytes(mined.minedHeaderBytes, new Uint8Array([0x01])), txBody);
+    const broadcast = await chainProvider.broadcastTxPoW(Buffer.from(fullTxPoW).toString('hex'));
+    if (broadcast.success === false) {
+      throw new Error(`Funding TxPoW broadcast failed: ${broadcast.message ?? 'unknown error'}`);
+    }
+    fundingTxId = broadcast.txpowid ?? Buffer.from(mined.txpowId).toString('hex');
+  }
   const fundingCoinId = minimaOutputCoinIdsForDraft(fundingDraft)[0];
+
+  // The funding tx is broadcast asynchronously and mined into a following
+  // block. Wait (bounded) for the channel output coin so this side can be
+  // marked 'active' immediately; otherwise the first pay()/updateState() is
+  // rejected with ChannelStatusError while we still report 'opening'.
+  let fundingOnChain = await chainProvider.getCoin(fundingCoinId);
+  if (!fundingOnChain) {
+    const deadline = Date.now() + FUNDING_COIN_WAIT_MS;
+    while (!fundingOnChain && Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 1000));
+      fundingOnChain = await chainProvider.getCoin(fundingCoinId);
+    }
+  }
+  const initialStatus = fundingOnChain && !fundingOnChain.spent ? 'active' : 'opening';
 
   if (params.tokenId && params.tokenId !== TOKENID_MINIMA) {
     const tokenInfo = await chainProvider.getToken(params.tokenId);
@@ -233,10 +273,12 @@ export async function createChannel(
     balances,
     pendingHTLCs: [],
     currentSequence: 0,
+    onChainSequence: 0,
     latestState: null,
     stateLog: [],
-    status: 'opening',
+    status: initialStatus,
     channelType: params.channelType ?? 'direct',
+    contestDelayBlocks,
     factoryRef: params.factoryRef,
     createdAt: Date.now(),
     updatedAt: Date.now(),
@@ -258,6 +300,7 @@ export async function createChannel(
     fundingAddress: address,
     fundingTxId,
     fundingCoinId,
+    contestDelayBlocks,
   };
 
   return { channel, proposal };
@@ -282,7 +325,7 @@ export async function acceptChannel(
 ): Promise<OmniaChannel> {
   const parties = [proposal.localParty, proposal.remoteParty];
   const program = resolveChannelProgram({ id: proposal.programId, version: proposal.programVersion });
-  const script = program.buildScript(parties);
+  const script = program.buildScript(parties, { contestDelayBlocks: proposal.contestDelayBlocks });
   const address = scriptAddress(script);
 
   if (script !== proposal.fundingScript) {
@@ -350,10 +393,12 @@ export async function acceptChannel(
     balances,
     pendingHTLCs: [],
     currentSequence: 0,
+    onChainSequence: 0,
     latestState: null,
     stateLog: [],
     status: fundingConfirmed ? 'active' : 'funding_pending',
     channelType: 'direct',
+    contestDelayBlocks: proposal.contestDelayBlocks,
     createdAt: Date.now(),
     updatedAt: Date.now(),
   };

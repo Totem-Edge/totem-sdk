@@ -240,6 +240,8 @@ export {
 
 export {
   proposeSettlement,
+  buildSettlementSigningRequest,
+  signSettlementRequest,
   startUnilateralClose,
   finalizeUnilateralClose,
   replaceUnilateralCloseState,
@@ -247,6 +249,7 @@ export {
   markChannelClosing,
   markChannelClosed,
 } from './settlement.js';
+export type { SettlementSigningRequest } from './settlement.js';
 
 export { executeIntent } from './intent.js';
 

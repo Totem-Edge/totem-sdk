@@ -18,6 +18,8 @@ import {
 } from './sign.js';
 import {
   proposeSettlement,
+  signSettlementRequest,
+  type SettlementSigningRequest,
 } from './settlement.js';
 import type {
   OmniaChannel,
@@ -273,6 +275,39 @@ async function _handleSettlementProposal(
   }
 
   if (config.leaseProvider && channel) {
+    const payload = msg.payload as Partial<SettlementSigningRequest> & { signRequest?: boolean };
+    // Cooperative close: the initiator asks us to co-sign a specific settlement
+    // draft (both signatures are required by the eltoo MULTISIG(2 …) branch).
+    // We sign and ACK; the initiator broadcasts.
+    if (payload?.signRequest === true && typeof payload.settlementTxHex === 'string') {
+      try {
+        const coSig = await signSettlementRequest(
+          channel,
+          payload as SettlementSigningRequest,
+          config.leaseProvider,
+          config.signer,
+        );
+        const signatureHex = Array.from(coSig.signature)
+          .map((b) => b.toString(16).padStart(2, '0'))
+          .join('');
+        await peer.sendMessage({
+          type: 'ACK',
+          channelId: msg.channelId,
+          nonce: msg.nonce,
+          payload: {
+            ok: true,
+            signRequest: true,
+            partyId: coSig.partyId,
+            signature: '0x' + signatureHex,
+            indices: coSig.indices,
+          },
+        });
+      } catch (err) {
+        _sendError(peer, msg.channelId, msg.nonce, `signSettlementRequest failed: ${String(err)}`);
+      }
+      return;
+    }
+
     try {
       const { settlementPayload, partialState } = await proposeSettlement(
         channel,
