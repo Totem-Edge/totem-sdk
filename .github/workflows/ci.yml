@@ -95,6 +95,10 @@ jobs:
         run: |
           for p in statechain omnia omnia-factory omnia-vtxo; do (cd "packages/$p" && npx tsc); done
           node scripts/check-state-ports.mjs
+      - name: Composite port-allocation gate — MASH + Omnia disjoint + budget (RFC-049 §5, R-MASH-4)
+        run: |
+          for p in kissvm omnia omnia-factory omnia-vtxo; do (cd "packages/$p" && npx tsc); done
+          node scripts/check-composite-ports.mjs
       - name: Real-VM escape gate — Rust/WASM vs TS, real signatures (RFC-048 L3/L5)
         run: |
           (cd packages/kissvm/rust && wasm-pack build --target nodejs --out-dir pkg-node)

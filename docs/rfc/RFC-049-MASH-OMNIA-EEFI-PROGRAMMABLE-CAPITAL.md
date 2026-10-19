@@ -204,6 +204,16 @@ MSHS band) enforced. The exact MSHS endpoints are now **confirmed from the node*
 (`bundleBase = 256 − (4 + k) = 230`; header 230–233, proof 234–255) — so the registry floor is
 **230**, not the earlier 234.
 
+**R-MASH-4 implemented.** Composites are declared in
+[`scripts/state-port-registry.json`](../../scripts/state-port-registry.json) (`composites`) and checked
+by [`scripts/check-composite-ports.mjs`](../../scripts/check-composite-ports.mjs)
+(`npm run validate:composite-ports`): per-composite participant bands must be **pairwise disjoint**
+(one coin), only MASH may use the MSHS band, and `MASH envelope + Omnia op bound ≤ 1024`. See
+[`docs/COMPOSITE-PORT-ALLOCATION.md`](../COMPOSITE-PORT-ALLOCATION.md). It flags **`mash+omnia-factory`
+as over budget** (MASH 795 + factory ~247 > 1024) — so a **Model B** MASH-aware factory is not
+currently feasible; MASH authorizes the factory at the **boundary** (Model A) only. This is the
+concrete, measured form of R-MASH-5.
+
 ### 5.4 What MAST/MASH do — and do not — add to party count
 
 | Per party | Where it lives | MAST | MASH |

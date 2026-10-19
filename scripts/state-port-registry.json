@@ -25,6 +25,38 @@
     "omnia-factory": { "export": "FACTORY_BALANCE_PORT_BASE", "expected": 128 },
     "omnia-vtxo": { "export": "POOL_SHARE_PORT_BASE", "expected": 128 }
   },
+  "instructionBudget": {
+    "kissvmMaxInstructions": 1024,
+    "mashWalletEnvelope": { "base": 795, "perExtraInput": 12, "perExtraOutput": 37 },
+    "notes": "MASH wallet-mode envelope = 795 + 12*(inputs-1) + 37*(outputs-1) (mshs2_modes.hpp, depth-15). A composite's MASH envelope + Omnia script ops MUST stay <= kissvmMaxInstructions; that is why the verifier is a MAST dispatch (R-MASH-5), not inlined."
+  },
+  "composites": {
+    "mash+omnia-channel": {
+      "coinClass": "channel",
+      "instructionBudget": "ok",
+      "participants": [
+        { "id": "mash", "bands": ["mshs"] },
+        { "id": "omnia", "bands": ["omnia-control", "omnia-programs"] }
+      ]
+    },
+    "mash+omnia-factory": {
+      "coinClass": "factory",
+      "instructionBudget": "over",
+      "instructionBudgetNote": "MASH envelope (795) + the factory script's conservative op bound (~247) exceeds the KISSVM 1024 limit. Model B (MASH-aware factory) needs a trimmed factory script or a per-branch budget; until then MASH authorizes the factory only at the boundary (Model A), not inline. Tracked per R-MASH-5.",
+      "participants": [
+        { "id": "mash", "bands": ["mshs"] },
+        { "id": "omnia-factory", "bands": ["omnia-control", "omnia-share"] }
+      ]
+    },
+    "mash+omnia-vtxo": {
+      "coinClass": "vtxo",
+      "instructionBudget": "ok",
+      "participants": [
+        { "id": "mash", "bands": ["mshs"] },
+        { "id": "omnia-vtxo", "bands": ["omnia-control", "omnia-share"] }
+      ]
+    }
+  },
   "rules": [
     "R-MASH-1: MASH state lives only in the MSHS band (>= 230); no other package may allocate there.",
     "R-MASH-2: Omnia variable-length bands (party shares) MUST be allocated below the MSHS floor (base 128).",
