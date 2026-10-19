@@ -21,17 +21,21 @@ export {
   factoryPartyProof,
   factoryBalanceSetRoot,
   factoryBalanceProof,
+  factoryDistributionOutputs,
+  buildFactoryDistributionScript,
   FACTORY_BALANCE_PORT_BASE,
   FACTORY_ESCAPE_PORT,
   FACTORY_ESCAPE_DELAY_BLOCKS,
   FACTORY_MAX_PARTICIPANTS,
   FACTORY_PARTY_ROOT_PORT,
+  FACTORY_BALANCE_ROOT_PORT,
   MSHS_PORT_FLOOR,
   scriptAddress,
   normalizeScript,
 } from './script.js';
 
 export { computeFactoryStateCommitment } from './commitment.js';
+export type { FactoryDistributionOutput, FactoryDistributionScriptConfig } from './script.js';
 
 export {
   createFactory,

@@ -16,6 +16,8 @@ import {
   factoryPartyProof,
   factoryBalanceSetRoot,
   factoryBalanceProof,
+  factoryDistributionOutputs,
+  buildFactoryDistributionScript,
   FACTORY_PARTY_ROOT_PORT,
   computeFactoryStateCommitment,
 } from '../index';
@@ -935,5 +937,34 @@ describe('factoryBalanceSetRoot', () => {
 
   test('rejects an out-of-range proof index', () => {
     expect(() => factoryBalanceProof([party('a', A, 1n)], 1)).toThrow();
+  });
+});
+
+// ─── 15. scalable escape: pre-signed all-party distribution (RFC-048 §12.4) ────
+
+describe('factory distribution (scalable escape)', () => {
+  const A = '0x' + '11'.repeat(32);
+  const B = '0x' + '22'.repeat(32);
+  const party = (id: string, pk: string, amount: bigint) => ({
+    partyId: id, publicKeyDigest: pk, addressIndex: 0, contributionAmount: amount, settlementAddress: pk,
+  });
+
+  test('materializes the committed distribution, matching the balance rootSum', () => {
+    const parts = [party('a', A, 700n), party('b', B, 300n)];
+    const outs = factoryDistributionOutputs(parts);
+    expect(outs).toEqual([
+      { address: A, amount: 700n, tokenId: '0x00' },
+      { address: B, amount: 300n, tokenId: '0x00' },
+    ]);
+    const total = outs.reduce((s, o) => s + o.amount, 0n);
+    expect(total).toBe(factoryBalanceSetRoot(parts).rootSum);
+  });
+
+  test('builds the pre-signed all-party distribution escape', () => {
+    const s = buildFactoryDistributionScript({ participants: [party('a', A, 1n), party('b', B, 1n)] });
+    expect(s).toContain('IF @BLOCK GT PREVSTATE(103) THEN');
+    expect(s).toContain('ASSERT MULTISIG(2 ');
+    expect(s).toContain('ASSERT SAMESTATE(111 111)');
+    expect(s).toContain('ASSERT SAMESTATE(112 112)');
   });
 });

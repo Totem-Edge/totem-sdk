@@ -571,9 +571,19 @@ sentinel so it handles arbitrary N. This is the anchor for per-leaf (proof-based
 still enumerate per-party ports (base 128, max 102). The **balance set-root** now exists as a
 committed off-chain distribution: `factoryBalanceSetRoot` (MMR over `(pubkey, balance)` leaves, leaf
 sum = balance, `rootSum` = total) + `factoryBalanceProof`, verified on-chain by
-`buildMmrMembershipCovenant` with runtime sum ports. On-chain **single-party** exit against a
-committed balance set still requires MMR **root recomputation** for the successor update; until then
-the scalable escape is a pre-signed all-party distribution.
+`buildMmrMembershipCovenant` with runtime sum ports.
+
+**On-chain single-party exit against a committed balance set is blocked on root recomputation — and
+that is not expressible in KISSVM.** Zeroing a claimant's leaf and committing the successor root
+requires reproducing `MMRData.CreateMMRDataParentNode` in-script, whose hash includes the serialized
+**MiniNumber sum**. KISSVM has no MiniNumber serializer (and the SDK KISSVM has no `SETLEN` at all;
+the node's `SETLEN` only length-prefixes MiniData). So the successor root cannot be recomputed
+on-chain today. The scalable single-party escape is therefore a **pre-signed all-party
+distribution**: at funding the parties co-sign one distribution tx paying each its committed balance
+(`factoryDistributionOutputs`), and after the timeout **any** party broadcasts it — a unilateral
+trigger with no counterparty liveness, no per-party balance ports, and no on-chain recomputation.
+The balance set-root is the committed evidence; the distribution's correctness is enforced by the
+co-signatures, not by re-deriving the root.
 
 The **per-leaf inclusion primitive** now exists: `buildMmrMembershipCovenant` in `@totemsdk/kissvm`
 verifies `PROOF(leaf leafSum rootHash rootSum proof)` on-chain, binds `SIGNEDBY(leaf)` and pays the

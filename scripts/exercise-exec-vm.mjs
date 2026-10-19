@@ -46,6 +46,7 @@ await coreWasmMod.default(readFileSync(CORE_WASM_BG));
 
 const { evaluateScript, toWasmWitness, buildExerciseCovenant, exerciseCovenantStateVariables, buildCollateralBondScript, buildOracleConditionScript, buildOracleExerciseCovenant, buildMmrMembershipCovenant } = await load('packages/kissvm/dist/index.js');
 const { TreeKey, MMRTree, serializeMMRProof, hexToBytes, bytesToHex, createMMRDataLeafNode } = await load('packages/core/dist/index.js');
+const { buildFactoryDistributionScript } = await load('packages/omnia-factory/dist/index.js');
 
 let failures = 0;
 function check(name, cond, detail = '') {
@@ -262,6 +263,32 @@ both('party proves committed balance and is paid it', balanceCovenant, signWith(
 both('rejected when the claimed balance does not match the leaf sum', balanceCovenant, signWith([memberA]), balanceCtx({ leaf: leafA, proof: balanceProof, leafSum: '800' }), false);
 both('rejected on a wrong signer', balanceCovenant, signWith([memberB]), balanceCtx({ leaf: leafA, proof: balanceProof }), false);
 both('rejected when the leaf is not in the balance root', balanceCovenant, signWith([memberC]), balanceCtx({ leaf: leafC, proof: balanceProof }), false);
+
+console.log('Scalable factory escape — pre-signed all-party distribution (RFC-048 §12.4)');
+const distA = mk(0x71);
+const distB = mk(0x72);
+const distScript = buildFactoryDistributionScript({
+  participants: [
+    { partyId: 'a', publicKeyDigest: pk(distA), addressIndex: 0, contributionAmount: 1000n, settlementAddress: pk(distA) },
+    { partyId: 'b', publicKeyDigest: pk(distB), addressIndex: 1, contributionAmount: 500n, settlementAddress: pk(distB) },
+  ],
+});
+function distCtx(block) {
+  return {
+    block,
+    txDigest: DIGEST,
+    inputs: [{ coinId: '0x' + 'cc'.repeat(32), address: COVENANT, amount: 1500, tokenId: '0x00' }],
+    outputs: [
+      { address: pk(distA), amount: 1000, tokenId: '0x00', keepState: false },
+      { address: pk(distB), amount: 500, tokenId: '0x00', keepState: false },
+    ],
+    state: { 103: '256', 111: '0x' + '11'.repeat(32), 112: '0x' + '22'.repeat(32) },
+    prevState: { 103: '256', 111: '0x' + '11'.repeat(32), 112: '0x' + '22'.repeat(32) },
+  };
+}
+both('after the timeout, all-party sigs allow the distribution', distScript, signWith([distA, distB]), distCtx(300), true);
+both('before the timeout, the distribution is rejected', distScript, signWith([distA, distB]), distCtx(100), false);
+both('rejected without all parties', distScript, signWith([distA]), distCtx(300), false);
 
 if (failures > 0) {
   console.error(`\nP-EXIT gate: ${failures} check(s) failed.`);

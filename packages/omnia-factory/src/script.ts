@@ -27,6 +27,12 @@ export const FACTORY_ESCAPE_PORT = 103;
  */
 export const FACTORY_PARTY_ROOT_PORT = 111;
 
+/**
+ * State port carrying the committed balance set-root (STATE(112)) — the MMR root
+ * over `(pubkey, balance)` leaves (RFC-048 §12.4). Pinned on every spend.
+ */
+export const FACTORY_BALANCE_ROOT_PORT = 112;
+
 /** Public-key digests for the party set, padded to a power of two (Minima MMR). */
 function padPartySet(participants: FactoryParticipant[]): Uint8Array[] {
   if (!Array.isArray(participants) || participants.length === 0) {
@@ -120,6 +126,81 @@ function buildBalanceTree(participants: FactoryParticipant[]): MMRTree {
     tree.addLeaf(createMMRDataLeafNode(new Uint8Array(32), 0n));
   }
   return tree;
+}
+
+export interface FactoryDistributionOutput {
+  /** Payout destination (hex pubkey digest). */
+  address: string;
+  /** Committed balance (atoms). */
+  amount: bigint;
+  tokenId: string;
+}
+
+/**
+ * The exact payout set the pre-signed all-party distribution must contain — one
+ * output per participant, paying its committed balance (RFC-048 §12.4). Its sum
+ * equals `factoryBalanceSetRoot(...).rootSum`.
+ */
+export function factoryDistributionOutputs(
+  participants: FactoryParticipant[],
+  tokenId = '0x00',
+): FactoryDistributionOutput[] {
+  if (!Array.isArray(participants) || participants.length === 0) {
+    throw new Error('factoryDistributionOutputs requires at least one participant');
+  }
+  return participants.map((p, i) => {
+    const raw = (p.settlementAddress ?? p.publicKeyDigest ?? '').replace(/^0x/i, '');
+    if (!/^[0-9a-fA-F]{64}$/.test(raw)) {
+      throw new Error(`factoryDistributionOutputs: participant[${i}] payout address must be a 64-hex digest`);
+    }
+    if (p.contributionAmount < 0n) {
+      throw new Error(`factoryDistributionOutputs: participant[${i}].contributionAmount must be non-negative`);
+    }
+    return { address: '0x' + raw, amount: p.contributionAmount, tokenId };
+  });
+}
+
+export interface FactoryDistributionScriptConfig {
+  participants: FactoryParticipant[];
+  /** State port carrying the escape block. Default `FACTORY_ESCAPE_PORT` (103). */
+  escapePort?: number;
+  /** State port carrying the committed party-set root. Default `FACTORY_PARTY_ROOT_PORT` (111). */
+  partyRootPort?: number;
+  /** State port carrying the committed balance set-root. Default `FACTORY_BALANCE_ROOT_PORT` (112). */
+  balanceRootPort?: number;
+}
+
+/**
+ * Scalable factory escape covenant (RFC-048 §12.4) — the pre-signed all-party
+ * distribution. After the committed escape block **any** party may broadcast the
+ * distribution (all-party `MULTISIG`), with no counterparty liveness and no
+ * on-chain root recomputation. The committed party-set and balance roots are
+ * pinned (`SAMESTATE`) so the set and balances cannot move.
+ */
+export function buildFactoryDistributionScript(config: FactoryDistributionScriptConfig): string {
+  const participants = config.participants;
+  if (!Array.isArray(participants) || participants.length < 1) {
+    throw new Error('buildFactoryDistributionScript requires at least one participant');
+  }
+  const pks = participants.map((p, i) => {
+    if (!p.publicKeyDigest) throw new Error(`participant[${i}].publicKeyDigest is required`);
+    return kissHex(p.publicKeyDigest);
+  });
+  const escapePort = config.escapePort ?? FACTORY_ESCAPE_PORT;
+  const partyRootPort = config.partyRootPort ?? FACTORY_PARTY_ROOT_PORT;
+  const balanceRootPort = config.balanceRootPort ?? FACTORY_BALANCE_ROOT_PORT;
+
+  return [
+    '// Scalable factory escape — pre-signed all-party distribution (RFC-048 §12.4)',
+    `ASSERT SAMESTATE(${escapePort} ${escapePort})`,
+    `ASSERT SAMESTATE(${partyRootPort} ${partyRootPort})`,
+    `ASSERT SAMESTATE(${balanceRootPort} ${balanceRootPort})`,
+    `IF @BLOCK GT PREVSTATE(${escapePort}) THEN`,
+    `  ASSERT MULTISIG(${participants.length} ${pks.join(' ')})`,
+    `  RETURN TRUE`,
+    `ENDIF`,
+    `RETURN FALSE`,
+  ].join('\n');
 }
 
 /** Committed party-set root state variable (STATE(111)) for the factory funding output. */
