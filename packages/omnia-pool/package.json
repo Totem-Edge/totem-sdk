@@ -35,36 +35,15 @@
     "@totemsdk/tx-builder": "workspace:^",
     "@totemsdk/wots-lease": "workspace:^",
     "@totemsdk/core": "workspace:^",
-    "@totemsdk/omnia": "workspace:^"
-  },
-  "peerDependencies": {
+    "@totemsdk/omnia": "workspace:^",
     "@totemsdk/omnia-factory": "workspace:^",
     "@totemsdk/omnia-router": "workspace:^",
     "@totemsdk/omnia-splice": "workspace:^",
     "@totemsdk/omnia-vtxo": "workspace:^"
   },
-  "peerDependenciesMeta": {
-    "@totemsdk/omnia-factory": {
-      "optional": true
-    },
-    "@totemsdk/omnia-router": {
-      "optional": true
-    },
-    "@totemsdk/omnia-splice": {
-      "optional": true
-    },
-    "@totemsdk/omnia-vtxo": {
-      "optional": true
-    }
-  },
   "devDependencies": {
     "@totemsdk/authority": "workspace:^",
     "@totemsdk/identity": "workspace:^",
-    "@totemsdk/omnia": "workspace:^",
-    "@totemsdk/omnia-factory": "workspace:^",
-    "@totemsdk/omnia-router": "workspace:^",
-    "@totemsdk/omnia-splice": "workspace:^",
-    "@totemsdk/omnia-vtxo": "workspace:^",
     "@totemsdk/proof": "workspace:^",
     "@types/jest": "^30.0.0",
     "@types/node": "^20.0.0",

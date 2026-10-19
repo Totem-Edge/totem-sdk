@@ -1551,6 +1551,18 @@ importers:
       '@totemsdk/omnia':
         specifier: workspace:^
         version: link:../omnia
+      '@totemsdk/omnia-factory':
+        specifier: workspace:^
+        version: link:../omnia-factory
+      '@totemsdk/omnia-router':
+        specifier: workspace:^
+        version: link:../omnia-router
+      '@totemsdk/omnia-splice':
+        specifier: workspace:^
+        version: link:../omnia-splice
+      '@totemsdk/omnia-vtxo':
+        specifier: workspace:^
+        version: link:../omnia-vtxo
       '@totemsdk/storage':
         specifier: workspace:^
         version: link:../storage
@@ -1567,18 +1579,6 @@ importers:
       '@totemsdk/identity':
         specifier: workspace:^
         version: link:../identity
-      '@totemsdk/omnia-factory':
-        specifier: workspace:^
-        version: link:../omnia-factory
-      '@totemsdk/omnia-router':
-        specifier: workspace:^
-        version: link:../omnia-router
-      '@totemsdk/omnia-splice':
-        specifier: workspace:^
-        version: link:../omnia-splice
-      '@totemsdk/omnia-vtxo':
-        specifier: workspace:^
-        version: link:../omnia-vtxo
       '@totemsdk/proof':
         specifier: workspace:^
         version: link:../proof
