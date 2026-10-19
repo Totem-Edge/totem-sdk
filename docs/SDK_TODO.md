@@ -53,16 +53,28 @@ raw Hyperswarm/streamx connection can expose `send` without the interface's
 `onData`, so `OmniaStream` threw `_stream.onData is not a function`. Now detects
 on `onData` and wraps otherwise (commit `0716615`).
 
-## omnia swarm — native peer connection for local two-node tests  *(OPEN)*
+## omnia swarm — self-hosted relay server  *(DONE)*
 
-With the above fixed, `connectToPeer` now **times out** (`Peer connection timeout
-for <pubkey>`, 15 s) under `mode: 'native'`: the raw Hyperswarm DHT does not
-connect two hosts on the same box in the test window.
+The relay **client** existed (`omnia/relay.ts` `HostedRelaySwarmImpl`) but there
+was no relay **server** to point `mode: 'self-hosted'` at. Added
+`@totemsdk/omnia-relay/server` — a Node-only `ws` server implementing the client
+protocol (`sub`/`pub`/`msg` + `ping`/`relay_closed`), exposed via a subpath so
+the browser-safe main entry is unchanged (commit `caa53fb`).
 
-**Task:** make a local two-node channel test reliable without the public DHT —
-e.g. a local/self-hosted relay (`createOmniaSwarm({ relay: { mode: 'self-hosted',
-relayUrl } })`), a `local` bootstrap for tests, or a configurable connect
-timeout. Fix in the SDK/relay, not by special-casing `omnia-host`.
+**Verified end-to-end:** two Omnia nodes over a local relay —
+`totem_omniaOpenChannel` → `{ success: true, channelId: 0x5e01a466…,
+fundingTxId: 00000fad… }`, channel status `opening`, balances 1M/1M.
+
+## omnia — counterparty proposal handling  *(OPEN)*
+
+Opening a channel funds it on the opener (A) and A `pub`s a `CHANNEL_PROPOSAL`,
+but the counterparty (B) does **not** register it (`totem_omniaGetChannels` → `[]`
+on B). The accept/listen path for the receiving party is missing or not wired in
+`omnia-host`.
+
+**Task:** wire the counterparty side — `listenForChannels` → accept →
+`context.channels.set(...)` — so both nodes show the channel, then `pay`/`settle`
+end-to-end. Fix in the SDK, not by special-casing `omnia-host`.
 
 ---
 
