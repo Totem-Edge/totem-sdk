@@ -2072,6 +2072,11 @@
           "kind": "const",
           "signature": "parseMxAddress = parse_mx_address_wasm"
         },
+        "toNodeScript": {
+          "kind": "function",
+          "signature": "toNodeScript(script: string): string",
+          "doc": "Canonicalize a KISSVM script to node-accepted syntax. Idempotent."
+        },
         "scriptToAddress": {
           "kind": "function",
           "signature": "scriptToAddress(script: string): string"
@@ -7549,7 +7554,7 @@
         "MmrMembershipCovenantConfig": {
           "kind": "interface",
           "signature": "export interface MmrMembershipCovenantConfig",
-          "doc": "MMR membership covenant (RFC-048 §12.4) — prove, on-chain, that a runtime leaf\nis included in a committed MMR root, using the canonical `PROOF` opcode.\n\nThis is the per-leaf primitive behind **committed-set-root scaling**: rather\nthan emitting one escape branch per party (an O(N) script), the spender commits\nits leaf and MMR proof to state and the script verifies inclusion against the\ncommitted root. The leaf is the signer's own WOTS public-key digest (`0x…`), so\n`SIGNEDBY(LEAF)` binds the identity and `VERIFYOUT(0 LEAF …)` pays exactly it.\n\nRuntime typing (matches a Minima node): the `data` operand is a HEX leaf when\nits evaluated value starts with `0x` (hashed from raw bytes) and a SCRIPT leaf\notherwise. Here the leaf is supplied via `STATE(leafPort)` as `0x<pubkey>`, so\nit types as HEX and matches an `MMRTree.fromPublicKeys(...)` root."
+          "doc": "MMR membership covenant (RFC-048 §12.4) — prove, on-chain, that a runtime leaf\nis included in a committed MMR root, using the canonical `PROOF` opcode.\n\nThis is the per-leaf primitive behind **committed-set-root scaling**: rather\nthan emitting one escape branch per party (an O(N) script), the spender commits\nits leaf and MMR proof to state and the script verifies inclusion against the\ncommitted root. The leaf is the signer's own WOTS public-key digest (`0x…`), so\n`SIGNEDBY(leaf)` binds the identity and `VERIFYOUT(0 leaf …)` pays exactly it.\n\nRuntime typing (matches a Minima node): the `data` operand is a HEX leaf when\nits evaluated value starts with `0x` (hashed from raw bytes) and a SCRIPT leaf\notherwise. Here the leaf is supplied via `STATE(leafPort)` as `0x<pubkey>`, so\nit types as HEX and matches an `MMRTree.fromPublicKeys(...)` root."
         },
         "buildCommitScript": {
           "kind": "function",
@@ -9386,6 +9391,15 @@
           "kind": "interface",
           "signature": "export interface MegaMMRInfo"
         },
+        "MagicNumbers": {
+          "kind": "interface",
+          "signature": "export interface MagicNumbers",
+          "doc": "Magic numbers carried by a TxPoW header (totem-node/Java `magic` shape)."
+        },
+        "MagicInfo": {
+          "kind": "interface",
+          "signature": "export interface MagicInfo"
+        },
         "TxnPostResult": {
           "kind": "interface",
           "signature": "export interface TxnPostResult"
@@ -10523,7 +10537,7 @@
         "buildFactoryScript": {
           "kind": "function",
           "signature": "buildFactoryScript(participants: FactoryParticipant[], _options?: FactoryScriptOptions): string",
-          "doc": "Build the N-of-N MULTISIG MAST funding script for a channel factory\n(RFC-039, CUSTODY-POLICY §2).\n\nSpend paths:\n  - **Cooperative / update** (any time): `MULTISIG(N …)` — all parties sign.\n    `SETTLEMENT=true` closes after minimal coinage (1 block).\n  - **Unilateral escape** (after the absolute block in `STATE(103)`): any\n    single party k may withdraw its allocation `SHARE_k = PREVSTATE(base+k)`\n    (the spent coin's share) to its own settlement address, zero its state in\n    the successor (`STATE(base+k) EQ 0`), keep the other parties' balances\n    unchanged, and return the remainder to the factory script. Repeated\n    withdrawals cannot double-claim because each zeroes its own port. `STATE(103)` is immutable on every spend (`SAMESTATE(103 103)`),\n    so the escape clock cannot be pushed by any counterparty.\n\nMinimum 2 participants required."
+          "doc": "Build the N-of-N MULTISIG MAST funding script for a channel factory\n(RFC-039, CUSTODY-POLICY §2).\n\nSpend paths:\n  - **Cooperative / update** (any time): `MULTISIG(N …)` — all parties sign.\n    `settlement=true` closes after minimal coinage (1 block).\n  - **Unilateral escape** (after the absolute block in `STATE(103)`): any\n    single party k may withdraw its allocation `SHARE_k = PREVSTATE(base+k)`\n    (the spent coin's share) to its own settlement address, zero its state in\n    the successor (`STATE(base+k) EQ 0`), keep the other parties' balances\n    unchanged, and return the remainder to the factory script. Repeated\n    withdrawals cannot double-claim because each zeroes its own port. `STATE(103)` is immutable on every spend (`SAMESTATE(103 103)`),\n    so the escape clock cannot be pushed by any counterparty.\n\nMinimum 2 participants required."
         },
         "buildAndHashFactoryScript": {
           "kind": "function",
@@ -18162,9 +18176,24 @@
           "signature": "fetchTxPowTarget(axiaBaseUrl: string, timeoutMs?: number): Promise<Uint8Array>",
           "doc": "Fetch the current minimum TxPoW work from the Axia API.\n\nFalls back to TX_POW_MIN_DIFFICULTY (the hardcoded protocol floor) on any\nerror: network failure, timeout, or malformed response."
         },
+        "targetFromMinWork": {
+          "kind": "function",
+          "signature": "targetFromMinWork(minWorkHex: string): Uint8Array",
+          "doc": "Convert a live `currentmintxpowwork` value (32-byte hex target) into a mining\ntarget, applying the same 10% margin the node's own wallet uses\n(`minwork * 10 / 11`, see Java `TxPoWGenerator.generateTxPoW`).\n\n`TxPoWChecker.checkTxPoWSimple` rejects only when\n`txnDifficulty > magic.getMinTxPowWork()`, so a target that is harder than\nthe live minimum is always accepted; the margin absorbs the tiny per-block\nMagic retarget."
+        },
+        "resolveTxPowTarget": {
+          "kind": "function",
+          "signature": "resolveTxPowTarget(source?: MinWorkSource | null, fallback?: Uint8Array): Promise<Uint8Array>",
+          "doc": "Resolve the TxPoW mining target from a live node when it exposes\n`getMinTxPowWork()`, otherwise fall back to `TX_POW_MIN_DIFFICULTY`.\n\nNever throws: a node/protocol hiccup must not block transaction\nconstruction. The fallback is the protocol default target (MAX/1e6), which\nis harder than the network hard floor (`Magic.MIN_HASHES = 10000`)."
+        },
         "TxPowParams": {
           "kind": "interface",
           "signature": "export interface TxPowParams"
+        },
+        "MinWorkSource": {
+          "kind": "interface",
+          "signature": "export interface MinWorkSource",
+          "doc": "Anything that can expose a node's live minimum TxPoW work (hex)."
         },
         "verifyProofOfWork": {
           "kind": "function",

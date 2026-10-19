@@ -23,7 +23,7 @@
  *   4. Policy root authorizes the channel's governing rules
  */
 
-import { sha3_256, bytesToHex } from '@totemsdk/core';
+import { sha3_256, bytesToHex, toNodeScript } from '@totemsdk/core';
 import type { PrevStateWorkflow } from '../mast/types.js';
 import { buildPrevStateWorkflow, buildStateTransition } from '../mast/prevstate.js';
 
@@ -108,7 +108,7 @@ export function buildPaymentChannelScript(config: PaymentChannelConfig): string 
     `MAST 0x${config.policyRoot}`,
   );
 
-  return lines.join('\n');
+  return toNodeScript(lines.join('\n'));
 }
 
 /**

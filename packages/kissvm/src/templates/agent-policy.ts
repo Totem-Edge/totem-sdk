@@ -1,3 +1,4 @@
+import { toNodeScript } from '@totemsdk/core';
 export interface PaymentIntentConfig {
   /** Fixed authority permitted to execute the intent (I1). */
   authorityPk: string
@@ -41,7 +42,7 @@ export function buildPaymentIntentScript(config: PaymentIntentConfig): string {
   }
 
   lines.push(`RETURN TRUE`)
-  return lines.join('\n')
+  return toNodeScript(lines.join('\n'))
 }
 
 export interface AgentProposalConfig {
@@ -83,7 +84,7 @@ export function buildAgentProposalScript(config: AgentProposalConfig): string {
   lines.push(`ASSERT PREVSTATE(21) GTE ${config.minConfidence}`)
   lines.push(`ASSERT @BLOCK LTE ${config.expiresAt.toString()}`)
   lines.push(`RETURN TRUE`)
-  return lines.join('\n')
+  return toNodeScript(lines.join('\n'))
 }
 
 export interface PolicyEnforcementConfig {
@@ -109,5 +110,5 @@ export function buildPolicyEnforcementScript(config: PolicyEnforcementConfig): s
 
   lines.push(`ASSERT @BLOCK LTE ${config.expiresAt.toString()}`)
   lines.push(`RETURN TRUE`)
-  return lines.join('\n')
+  return toNodeScript(lines.join('\n'))
 }

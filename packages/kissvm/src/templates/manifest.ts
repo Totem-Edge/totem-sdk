@@ -1,3 +1,4 @@
+import { toNodeScript } from '@totemsdk/core';
 export interface ManifestBindingConfig {
   publisherPk: string
   manifestHash: string
@@ -28,7 +29,7 @@ export function buildManifestBindingScript(config: ManifestBindingConfig): strin
   ]
 
   lines.push(``, `RETURN TRUE`)
-  return lines.join('\n')
+  return toNodeScript(lines.join('\n'))
 }
 
 export function buildCapabilityScript(config: CapabilityConfig): string {
@@ -52,7 +53,7 @@ export function buildCapabilityScript(config: CapabilityConfig): string {
     `RETURN TRUE`,
   )
 
-  return lines.join('\n')
+  return toNodeScript(lines.join('\n'))
 }
 
 export function buildManifestExpiryScript(config: ManifestExpiryConfig): string {

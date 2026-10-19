@@ -367,3 +367,6 @@ export function getParams(): any {
 export { sha3_256 as F };
 export { hexToBytes as fromHex };
 export { bytesToHex as hex };
+
+// Real canonicalizer (pure JS, no WASM) used by the script builders.
+export { toNodeScript } from "../../../core/src/scripts/canonical.js";

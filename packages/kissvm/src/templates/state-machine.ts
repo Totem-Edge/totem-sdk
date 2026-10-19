@@ -14,7 +14,7 @@
  *   4. New state is written to STATE
  */
 
-import { sha3_256, bytesToHex } from '@totemsdk/core';
+import { sha3_256, bytesToHex, toNodeScript } from '@totemsdk/core';
 import type { PrevStateWorkflow, StateTransition } from '../mast/types.js';
 import { buildPrevStateWorkflow, buildStateTransition } from '../mast/prevstate.js';
 
@@ -79,7 +79,7 @@ export function buildStateMachineScript(config: StateMachineConfig): string {
     `RETURN TRUE`,
   ]
 
-  return lines.join('\n')
+  return toNodeScript(lines.join('\n'))
 }
 
 /**

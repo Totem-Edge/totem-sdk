@@ -13,7 +13,7 @@
  *   4. Operation is executed and receipt is generated
  */
 
-import { sha3_256, bytesToHex } from '@totemsdk/core';
+import { sha3_256, bytesToHex, toNodeScript } from '@totemsdk/core';
 import type { PolicyTree } from '../types.js';
 import { buildPolicyTree, type PolicyNodeInput } from '../policy-tree.js';
 import { buildDelegationLink, buildDelegationChain, type DelegationLink } from '../delegation.js';
@@ -87,7 +87,7 @@ export function buildAccessControlScript(config: AccessControlConfig): string {
     `MAST 0x${config.policyRoot}`,
   );
 
-  return lines.join('\n');
+  return toNodeScript(lines.join('\n'));
 }
 
 /**

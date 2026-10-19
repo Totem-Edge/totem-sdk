@@ -1,3 +1,4 @@
+import { toNodeScript } from '@totemsdk/core';
 export type ReleaseCurve = 'linear' | 'cliff' | 'deadline' | 'window' | 'rate-limit' | 'decay'
 
 export interface TemporalConfig {
@@ -68,7 +69,7 @@ export function buildLinearRelease(config: TemporalConfig): string {
     `STORE STATE(${beneficiaryPort}) WITH prevClaimed + claimable`,
     `RETURN TRUE`,
   ]
-  return lines.join('\n')
+  return toNodeScript(lines.join('\n'))
 }
 
 /**
@@ -113,7 +114,7 @@ export function buildCliffRelease(config: TemporalConfig): string {
     `STORE STATE(${beneficiaryPort}) WITH prevClaimed + claimable`,
     `RETURN TRUE`,
   ]
-  return lines.join('\n')
+  return toNodeScript(lines.join('\n'))
 }
 
 export function buildDeadlineScript(config: TemporalConfig): string {
@@ -123,7 +124,7 @@ export function buildDeadlineScript(config: TemporalConfig): string {
   ]
   if (beneficiary) lines.push(`ASSERT SIGNEDBY(0x${beneficiary})`)
   lines.push(`RETURN TRUE`)
-  return lines.join('\n')
+  return toNodeScript(lines.join('\n'))
 }
 
 export function buildWindowScript(config: TemporalConfig): string {
@@ -132,7 +133,7 @@ export function buildWindowScript(config: TemporalConfig): string {
     `ASSERT @BLOCK LTE ${config.windowEndBlock!.toString()}`,
     `RETURN TRUE`,
   ]
-  return lines.join('\n')
+  return toNodeScript(lines.join('\n'))
 }
 
 export function buildRateLimitScript(config: TemporalConfig): string {
@@ -185,7 +186,7 @@ export function buildDecayScript(config: TemporalConfig): string {
     `ASSERT VERIFYOUT(@INPUT 0x${beneficiary} value @TOKENID TRUE)`,
     `RETURN TRUE`,
   ]
-  return lines.join('\n')
+  return toNodeScript(lines.join('\n'))
 }
 
 export function buildTemporalScript(config: TemporalConfig): string {

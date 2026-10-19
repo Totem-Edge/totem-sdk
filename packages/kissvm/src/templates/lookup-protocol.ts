@@ -1,3 +1,4 @@
+import { toNodeScript } from '@totemsdk/core';
 export interface LeaseMessageConfig {
   leaseId: string
   treeId: string
@@ -50,7 +51,7 @@ export function buildLeaseMessageScript(config: LeaseMessageConfig): string {
   }
 
   lines.push(``, `RETURN TRUE`)
-  return lines.join('\n')
+  return toNodeScript(lines.join('\n'))
 }
 
 export interface CoinUpdateConfig {
@@ -121,5 +122,5 @@ export function buildTrustMessageScript(config: TrustMessageConfig): string {
     `RETURN TRUE`,
   )
 
-  return lines.join('\n')
+  return toNodeScript(lines.join('\n'))
 }

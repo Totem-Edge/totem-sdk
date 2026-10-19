@@ -1,3 +1,4 @@
+import { toNodeScript } from '@totemsdk/core';
 export interface ProofConfig {
   authorityPk: string
   expiresAt: bigint
@@ -20,7 +21,7 @@ export function buildProofAnchorScript(config: ProofConfig): string {
     ``,
     `RETURN TRUE`,
   ]
-  return lines.join('\n')
+  return toNodeScript(lines.join('\n'))
 }
 
 export function buildCapabilityProofScript(config: ProofConfig): string {
@@ -39,7 +40,7 @@ export function buildCapabilityProofScript(config: ProofConfig): string {
     ``,
     `RETURN TRUE`,
   ]
-  return lines.join('\n')
+  return toNodeScript(lines.join('\n'))
 }
 
 export function buildRevocationProofScript(config: ProofConfig): string {
@@ -54,7 +55,7 @@ export function buildRevocationProofScript(config: ProofConfig): string {
     ``,
     `RETURN TRUE`,
   ]
-  return lines.join('\n')
+  return toNodeScript(lines.join('\n'))
 }
 
 export function buildProofDelegationScript(config: ProofConfig): string {
@@ -77,5 +78,5 @@ export function buildProofDelegationScript(config: ProofConfig): string {
     ``,
     `RETURN TRUE`,
   ]
-  return lines.join('\n')
+  return toNodeScript(lines.join('\n'))
 }

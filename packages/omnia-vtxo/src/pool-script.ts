@@ -23,7 +23,7 @@
  * exit block, and cannot stop a holder's exit. It is a liveness-only peer.
  */
 
-import { computeScriptAddress } from '@totemsdk/core';
+import { computeScriptAddress, toNodeScript } from '@totemsdk/core';
 
 /**
  * State port base for per-holder shares: holder k ⇒ `base + k`. Kept below the
@@ -108,7 +108,7 @@ export function buildPoolScript(params: PoolScriptParams): string {
   lines.push('ASSERT VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID TRUE)');
   lines.push(`RETURN MULTISIG(${holders.length + 1} ${operator} ${holders.join(' ')})`);
 
-  return lines.join('\n');
+  return toNodeScript(lines.join('\n'));
 }
 
 export function poolScriptAddress(script: string): string {

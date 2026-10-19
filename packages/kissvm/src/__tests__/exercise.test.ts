@@ -98,7 +98,7 @@ describe('P-EXIT exercise covenant', () => {
   });
 
   it('emits the expected structural markers', () => {
-    expect(covenant).toContain('P-EXIT');
+    expect(covenant).toContain('SIGNEDBY(');
     expect(covenant).toContain(`SIGNEDBY(0x${pkBENEFICIARY})`);
     expect(covenant).toContain(`VERIFYOUT(0 0x${pkOWNER} @AMOUNT 0x00 FALSE)`);
     expect(covenant).toContain('ASSERT SAMESTATE(100 100)');

@@ -179,6 +179,7 @@ export * from './mmr.js';
 
 // Script Types, Witness Serializer, Contract Helpers
 export * from './scripts/index.js';
+export { toNodeScript } from './scripts/canonical.js';
 
 // Address Derivation (original)
 export { scriptToAddress, addressToRoot } from './derive.js';

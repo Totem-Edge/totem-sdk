@@ -1,5 +1,5 @@
 import { computeScriptAddress } from '@totemsdk/core/scripts';
-import { MMRTree, hexToBytes, bytesToHex, serializeMMRProof, createMMRDataLeafNode } from '@totemsdk/core';
+import { MMRTree, hexToBytes, bytesToHex, serializeMMRProof, createMMRDataLeafNode, toNodeScript } from '@totemsdk/core';
 import type { FactoryParticipant } from './types.js';
 
 /**
@@ -325,7 +325,7 @@ export function buildFactoryScript(
   lines.push('    RETURN TRUE');
   lines.push('ENDIF');
 
-  return lines.join('\n');
+  return toNodeScript(lines.join('\n'));
 }
 
 export function normalizeScript(script: string): string {

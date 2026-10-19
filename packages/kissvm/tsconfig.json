@@ -5,7 +5,9 @@
     "lib": [
       "ES2022"
     ],
-    "types": ["node"],
+    "types": [
+      "node"
+    ],
     "declaration": true,
     "outDir": "./dist",
     "rootDir": "./src",
@@ -22,6 +24,7 @@
   "exclude": [
     "node_modules",
     "dist",
-    "**/*.test.ts"
+    "**/*.test.ts",
+    "src/__mocks__"
   ]
 }

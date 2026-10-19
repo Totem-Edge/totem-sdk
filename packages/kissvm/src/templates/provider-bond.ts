@@ -1,3 +1,4 @@
+import { toNodeScript } from '@totemsdk/core';
 export const BOND_STATUS = {
   DECLARED: 0,
   PENDING: 1,
@@ -92,7 +93,7 @@ export function buildHeartbeatScript(config: ProviderBondConfig): string {
     `RETURN TRUE`,
   )
 
-  return lines.join('\n')
+  return toNodeScript(lines.join('\n'))
 }
 
 /**

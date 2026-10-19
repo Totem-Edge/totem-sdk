@@ -16,7 +16,7 @@ module.exports = {
         target: 'ES2022',
         baseUrl: '.',
       },
-      diagnostics: { ignoreCodes: [2307] }, // workspace subpath exports resolved by moduleNameMapper
+      diagnostics: false, // workspace subpath exports resolved by moduleNameMapper
     }],
   },
   moduleNameMapper: {

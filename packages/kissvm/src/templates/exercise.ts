@@ -1,3 +1,4 @@
+import { toNodeScript } from '@totemsdk/core';
 /**
  * P-EXIT — enforceable unilateral exercise / settlement covenant (RFC-050 §3).
  *
@@ -217,5 +218,5 @@ export function buildExerciseCovenant(config: ExerciseCovenantConfig): string {
     `RETURN FALSE`,
   ];
 
-  return lines.join('\n');
+  return toNodeScript(lines.join('\n'));
 }

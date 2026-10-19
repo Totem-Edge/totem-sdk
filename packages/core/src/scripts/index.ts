@@ -20,3 +20,5 @@ export {
   computeScriptAddress,
 } from './witness-serializer.js';
 export * from './contract-helpers.js';
+
+export { toNodeScript } from "./canonical.js";

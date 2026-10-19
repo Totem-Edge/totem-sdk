@@ -1,3 +1,4 @@
+import { toNodeScript } from '@totemsdk/core';
 export const LEASE_STATUS = {
   PENDING: 0,
   ACTIVE: 1,
@@ -81,7 +82,7 @@ export function buildLeaseCertificateScript(config: LeaseCertificateConfig): str
     ``,
     `RETURN TRUE`,
   )
-  return lines.join('\n')
+  return toNodeScript(lines.join('\n'))
 }
 
 /**

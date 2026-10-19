@@ -21,7 +21,7 @@
  *   └── Emergency recovery policy (threshold, delay, public notice)
  */
 
-import { sha3_256, bytesToHex } from '@totemsdk/core';
+import { sha3_256, bytesToHex, toNodeScript } from '@totemsdk/core';
 
 // ─── Threshold recovery ─────────────────────────────────────────────────────
 
@@ -172,7 +172,7 @@ export function buildDelegatedCredentialScript(config: DelegatedCredentialConfig
   }
 
   lines.push(``, `RETURN TRUE`);
-  return lines.join('\n');
+  return toNodeScript(lines.join('\n'));
 }
 
 // ─── Institutional hierarchy builder ───────────────────────────────────────
@@ -282,5 +282,5 @@ export function buildSuccessionScript(config: SuccessionConfig): string {
     `RETURN TRUE`,
   );
 
-  return lines.join('\n');
+  return toNodeScript(lines.join('\n'));
 }

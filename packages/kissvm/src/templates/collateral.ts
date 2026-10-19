@@ -1,3 +1,4 @@
+import { toNodeScript } from '@totemsdk/core';
 /**
  * OMP-21 — enforceable collateral bond (RFC-048 §2, RFC-050 §4/§6).
  *
@@ -120,5 +121,5 @@ export function buildCollateralBondScript(config: CollateralBondConfig): string 
     `RETURN FALSE`,
   ];
 
-  return lines.join('\n');
+  return toNodeScript(lines.join('\n'));
 }

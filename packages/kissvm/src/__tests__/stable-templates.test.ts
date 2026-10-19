@@ -360,7 +360,7 @@ describe('stable template: wots-lease', () => {
   it('lease certificate commits indices and an optional signature (RFC-020 P2-14)', () => {
     const withSig = { ...baseCfg, signature: 'cd'.repeat(32) };
     const script = buildLeaseCertificateScript(withSig);
-    expect(script).toContain('ASSERT certIndices EQ [0]');
+    expect(script).toContain('ASSERT certindices EQ [0]');
     expect(script).toContain('SAMESTATE(10 16)');
     expect(script).toContain(`ASSERT STATE(16) EQ 0x${'cd'.repeat(32)}`);
 

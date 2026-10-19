@@ -77,7 +77,7 @@ describe('OMP-21 collateral bond', () => {
   });
 
   it('emits objective-condition and no-discretion markers', () => {
-    expect(bond).toContain('OMP-21');
+    expect(bond).toContain('VERIFYOUT(');
     expect(bond).toContain('ASSERT SAMESTATE(100 100)');
     expect(bond).toContain(`VERIFYOUT(0 0x${pkLENDER} @AMOUNT 0x00 FALSE)`);
     expect(bond).toContain(`VERIFYOUT(0 0x${pkBORROWER} @AMOUNT 0x00 FALSE)`);

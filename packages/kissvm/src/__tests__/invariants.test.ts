@@ -168,8 +168,8 @@ describe('RFC-016 P4: high-severity families hardened', () => {
 
   it('vesting commits the schedule and clamps at total', () => {
     const linear = buildLinearRelease({ curve: 'linear', startPort: 1, endPort: 2, totalPort: 3, beneficiaryPort: 4, beneficiary: pkA });
-    expect(linear).toContain('ASSERT vestStart EQ PREVSTATE(1)');
-    expect(linear).toContain('ASSERT prevClaimed + claimable LTE total');
+    expect(linear).toContain('ASSERT veststart EQ PREVSTATE(1)');
+    expect(linear).toContain('ASSERT prevclaimed + claimable LTE total');
     const cliff = buildCliffRelease({ curve: 'cliff', startPort: 1, endPort: 2, cliffPort: 5, totalPort: 3, beneficiaryPort: 4, beneficiary: pkA });
     expect(cliff).toContain('ASSERT total EQ PREVSTATE(3)');
   });

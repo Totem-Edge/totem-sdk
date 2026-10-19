@@ -1,3 +1,4 @@
+import { toNodeScript } from '@totemsdk/core';
 /**
  * OMP-18 / OMP-19 — on-chain oracle condition witness (RFC-048 §3.1).
  *
@@ -180,7 +181,7 @@ export function buildOracleConditionScript(config: OracleConditionConfig): strin
   }
 
   lines.push(`RETURN TRUE`);
-  return lines.join('\n');
+  return toNodeScript(lines.join('\n'));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -294,5 +295,5 @@ export function buildOracleExerciseCovenant(config: OracleExerciseCovenantConfig
     `RETURN FALSE`,
   ];
 
-  return lines.join('\n');
+  return toNodeScript(lines.join('\n'));
 }

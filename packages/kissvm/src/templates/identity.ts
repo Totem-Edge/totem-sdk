@@ -1,4 +1,4 @@
-import { sha3_256, bytesToHex } from '@totemsdk/core'
+import { sha3_256, bytesToHex, toNodeScript } from '@totemsdk/core'
 
 export interface IdentityVerificationConfig {
   identityPk: string
@@ -50,11 +50,11 @@ export function buildIdentityVerificationScript(config: IdentityVerificationConf
       `ASSERT PROOF([${leaf}] 0 0x${config.policyRoot} 0 STATE(3))`,
       `MAST 0x${config.policyRoot}`,
     )
-    return lines.join('\n')
+    return toNodeScript(lines.join('\n'))
   }
 
   lines.push(``, `RETURN TRUE`)
-  return lines.join('\n')
+  return toNodeScript(lines.join('\n'))
 }
 
 export function buildDelegationProofScript(config: DelegationProofConfig): string {
@@ -94,7 +94,7 @@ export function buildDelegationProofScript(config: DelegationProofConfig): strin
   }
 
   lines.push(``, `RETURN TRUE`)
-  return lines.join('\n')
+  return toNodeScript(lines.join('\n'))
 }
 
 export function buildRotationScript(config: RotationConfig): string {
