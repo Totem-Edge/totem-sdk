@@ -46,17 +46,23 @@ Resolve it at the source so the SDK talks to a compliant server:
 
 ---
 
-## omnia swarm — `_stream.onData is not a function`  *(OPEN)*
+## omnia swarm — `_stream.onData is not a function`  *(FIXED)*
 
-Opening a channel now clears signing + witness assembly and reaches the swarm
-step (`context.swarm.connectToPeer(...)` → `CHANNEL_PROPOSAL`), which throws
-`TypeError: _stream.onData is not a function`. The native swarm appears to rely
-on a Bare/Pear stream API (`onData`) that does not exist in Node — so the
-`omnia-host` cannot open a channel under Node with `mode: 'native'`.
+`_adaptConn` treated any object with a `send` method as an `IStreamTransport`; a
+raw Hyperswarm/streamx connection can expose `send` without the interface's
+`onData`, so `OmniaStream` threw `_stream.onData is not a function`. Now detects
+on `onData` and wraps otherwise (commit `0716615`).
 
-**Task:** fix the swarm so it runs under Node (feature-detect the stream API, or
-provide a Node stream adapter), or make the relay mode the documented Node path.
-Do not paper over it in `omnia-host`.
+## omnia swarm — native peer connection for local two-node tests  *(OPEN)*
+
+With the above fixed, `connectToPeer` now **times out** (`Peer connection timeout
+for <pubkey>`, 15 s) under `mode: 'native'`: the raw Hyperswarm DHT does not
+connect two hosts on the same box in the test window.
+
+**Task:** make a local two-node channel test reliable without the public DHT —
+e.g. a local/self-hosted relay (`createOmniaSwarm({ relay: { mode: 'self-hosted',
+relayUrl } })`), a `local` bootstrap for tests, or a configurable connect
+timeout. Fix in the SDK/relay, not by special-casing `omnia-host`.
 
 ---
 
