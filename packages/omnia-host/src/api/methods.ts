@@ -388,10 +388,25 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
         createParams.fundingWitnessBytes = Buffer.from(fundingWitnessHex.replace(/^0x/i, ''), 'hex');
       } else {
         // Assemble the funding witness: createChannel builds the funding draft,
-        // the configured funding signer signs its digest, and the caller supplies
-        // the input proofs (serialized CoinProof + ScriptProof).
-        if (!context.fundingSigner) {
-          throw new Error('openChannel requires fundingWitnessHex, or a configured funding signer + funding proofs');
+        // a funding signer signs its digest, and the caller supplies the input
+        // proofs (serialized CoinProof + ScriptProof). The signer comes from the
+        // configured funding signer, or from the node's `sign` command using the
+        // `fundingPubkey` the caller passes.
+        const fundingPubkey = typeof params.fundingPubkey === 'string' ? params.fundingPubkey : undefined;
+        const nodeAdapter = context.chainProvider as { signData?: (pk: string, data: string) => Promise<string> };
+        const signer = context.fundingSigner ?? (
+          fundingPubkey && typeof nodeAdapter?.signData === 'function'
+            ? async (digest: Uint8Array) => {
+                const sig = await nodeAdapter.signData!(
+                  fundingPubkey,
+                  '0x' + Buffer.from(digest).toString('hex'),
+                );
+                return Uint8Array.from(Buffer.from(sig.replace(/^0x/i, ''), 'hex'));
+              }
+            : undefined
+        );
+        if (!signer) {
+          throw new Error('openChannel requires fundingWitnessHex, or a fundingPubkey + funding proofs');
         }
         const toBytes = (v: unknown): Uint8Array[] =>
           Array.isArray(v) ? v.map((h) => Buffer.from(String(h).replace(/^0x/i, ''), 'hex')) : [];
@@ -399,7 +414,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
           coinProofs: toBytes(params.fundingCoinProofsHex),
           scriptProofs: toBytes(params.fundingScriptProofsHex),
         };
-        createParams.fundingSigner = context.fundingSigner;
+        createParams.fundingSigner = signer;
       }
       const created = await createChannel(createParams, context.chainProvider);
       context.channels.set(created.channel.channelId, {
