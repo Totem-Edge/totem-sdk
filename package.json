@@ -63,7 +63,9 @@
     "release:upstream": "node scripts/check-upstream-published.mjs",
     "validate:qvac-drift": "node scripts/verify-qvac-api-drift.mjs",
     "validate:node-syntax": "node scripts/check-node-syntax.mjs",
-    "validate:wallet-adapter-parity": "node scripts/check-wallet-adapter-parity.mjs"
+    "validate:wallet-adapter-parity": "node scripts/check-wallet-adapter-parity.mjs",
+    "smoke:runtime": "node scripts/runtime-smoke.cjs",
+    "smoke:runtime:native": "node scripts/runtime-smoke.cjs --native"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
