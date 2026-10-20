@@ -1,4 +1,4 @@
-# Omnia test results — S1–S10
+# Omnia test results — S1–S11
 
 **Snapshot:** 2026-10-20 (two-host session 2026-10-19/20).
 **Plan:** [`OMNIA_TEST_PLAN.md`](./OMNIA_TEST_PLAN.md).
@@ -22,7 +22,7 @@ settlement + explicit TxPoW mining), `12e37e73` (transport identity),
 | **S7** | **PENDING** | splice managers not wired into the host CLI |
 | **S8** | **PENDING** | needs 3 hosts and fee-adjusted per-hop amounts |
 | **S9** | **PASS** | local relay; two relay-backed swarms; PING/ACK round-trip; 2 relay clients |
-| **S10** | **PENDING** | `omnia-pool` orchestration is SDK-harness only |
+| **S10** | **PASS** | SDK harness: pool → deposit → allocate → release → withdraw → rooted payout |
 | **S11** | **PENDING** | Axia watchtower (in `axia-platform`); after S4/S5, HTLC cases after S8 |
 
 ---
@@ -138,6 +138,20 @@ The run also exposed a concurrent-connect leak in `HostedRelaySwarmImpl`
 (`advertise` racing `connectToPeer` opened one socket per caller); `_connect` is
 now shared and the relay reports exactly 2 clients.
 
+### S10 — pool lifecycle
+
+`scripts/omnia-s10-pool.mjs` uses the real `@totemsdk/omnia-pool` accounting with
+an in-memory `liquidity-bond` registry: create pool, deposit 100k, allocate 50k,
+check NAV, release, withdraw 1k, approve, and execute a payout with confirmed
+settlement plus a rooted registry transition. Result:
+
+```
+OMNIA_RESULT {"stage":"S10","deposited":"100000","allocated":"50000",
+  "withdrawn":"1000","remaining":"99000","nav":"99000",
+  "payoutStatus":"settled-externally","rooted":true,"pass":true}
+S10_PASS
+```
+
 ### S11 — Axia watchtower
 
 Deferred to `axia-platform` with its own integration tests; see
@@ -153,6 +167,8 @@ Axia API, Postgres, Redis, and the TxPoW indexer.
 | `@totemsdk/omnia` | 9 | 223 |
 | `@totemsdk/omnia-host` | 11 | 58 |
 | `@totemsdk/stream-transport` | 2 | 20 |
+| `@totemsdk/omnia-pool` | 4 | 40 |
+| `@totemsdk/liquidity-bond` | 17 | 170 |
 
 ### Runtime portability
 
@@ -183,7 +199,8 @@ Bare support (fixed 2026-10-20):
 
 1. **S5 `closeFactory`** (on-chain factory settlement) is not exercised
    end-to-end: the host does not yet accept per-participant funding material.
-2. **S6/S10** need host methods for VTXO/pool; currently SDK-only.
+2. **S6** needs host methods for VTXO (SDK-only today). S10 is closed at the
+   SDK-harness level; hosting pool operations remains future work.
 3. **S7** splice managers are not wired into the host CLI.
 4. **S8** needs a third host and fee-adjusted per-hop amounts/retention.
 5. **S11** (Axia watchtower) needs the Axia API/DB/Redis/indexer; test after
@@ -206,6 +223,7 @@ Bare support (fixed 2026-10-20):
 | 2026-10-20 | S5 restart | native | `fddce8c6` | PASS | one rebind; zero churn/ERROR |
 | 2026-10-20 | S5 (mirrored harness) | native | `fddce8c6` | PASS | factory `e342d9bd…`, VC `8aad94ac…`, 100M/100M |
 | 2026-10-20 | S9 | relay | `fddce8c6` | PASS | local relay; 2 clients; `omnia-s9-relay.mjs` |
+| 2026-10-20 | S10 | in-memory | `d9477ba3` | PASS | pool lifecycle; `omnia-s10-pool.mjs` |
 | 2026-10-20 | runtime | — | `d9ef523c` + Bare fix | PASS (Node/Bun/Bare) | `runtime-smoke.cjs`; Bun native skipped (upstream) |
 
 To add a run: append a row, then add the command, `OMNIA_RESULT` JSON, and log

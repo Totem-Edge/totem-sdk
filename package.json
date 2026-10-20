@@ -68,7 +68,8 @@
     "smoke:runtime:native": "node scripts/runtime-smoke.cjs --native",
     "test:omnia:s4": "node scripts/omnia-s4-cross.mjs",
     "test:omnia:s5": "node scripts/omnia-s5-cross.mjs",
-    "test:omnia:s9": "node scripts/omnia-s9-relay.mjs"
+    "test:omnia:s9": "node scripts/omnia-s9-relay.mjs",
+    "test:omnia:s10": "node scripts/omnia-s10-pool.mjs"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

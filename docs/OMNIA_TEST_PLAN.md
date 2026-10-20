@@ -1,4 +1,4 @@
-# Omnia test plan — SDK mirror (S1–S10)
+# Omnia test plan — SDK mirror (S1–S11)
 
 **Status:** mirrored 2026-10-20 from the counterpart plan in the `hawk-node` repo
 (`OMNIA_TEST_PLAN.md`). This copy is authoritative for the **SDK-side** harnesses,
@@ -71,6 +71,7 @@ All harnesses live in `scripts/` and print a machine-readable
 | S4 | `node scripts/omnia-s4-cross.mjs` | two nodes + two hosts; funded coin; bearer token |
 | S5 | `node scripts/omnia-s5-cross.mjs` | two hosts; factory lease bundles (host startup) |
 | S9 | `node scripts/omnia-s9-relay.mjs` | local only |
+| S10 | `node scripts/omnia-s10-pool.mjs` | local only |
 | runtime | `node scripts/runtime-smoke.cjs [--native]` | SDK build; `OMNIA_SMOKE_HOST` for native |
 
 ### S4
@@ -108,6 +109,17 @@ Starts a self-hosted relay on an ephemeral loopback port, connects two
 `HostedRelaySwarmImpl` clients, sends a PING over the relay from B to A and
 asserts A's ACK comes back on the same peer. Also asserts the relay sees exactly
 the two expected clients. No node, chain, or cloud host is required.
+
+### S10
+
+```
+node scripts/omnia-s10-pool.mjs
+```
+
+In-memory liquidity-bond registry: create pool → deposit 100k (verified funding)
+→ allocate 50k to a reserve target → check NAV → release → withdraw 1k →
+approve → payout with confirmed settlement and a rooted registry transition.
+Asserts the receipt is consumed once and the remaining position is 99k.
 
 ### S11 — Axia watchtower / failure recovery
 
@@ -157,7 +169,7 @@ harness's.
 | **S7** | splice in/out | live resize | pending — managers not wired into the CLI |
 | **S8** | multi-hop / cross-token payment (3 nodes) | multi-hop settles | pending — needs 3 hosts + fee-adjusted per-hop amounts |
 | **S9** | relay round-trip (SDK harness) | relay client/server round-trip | done |
-| **S10** | liquidity-pool orchestration | pool lifecycle | pending — SDK harness only |
+| **S10** | liquidity-pool orchestration | pool lifecycle | done (SDK harness) |
 | **S11** | Axia watchtower / failure recovery (in `axia-platform`) | watch registration, HTLC timeout, dispute broadcast, WOTS capacity, alerts | pending — requires Axia API/DB/Redis/indexer; after S5/S8 |
 
 S4+ mutations require signing material, a funded node, and chain RPC. Read-only
