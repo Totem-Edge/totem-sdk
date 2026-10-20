@@ -494,6 +494,80 @@ function registerPreparedPayMethods(
   methods.set('totem_omniaPreparePay', preparePay);
   methods.set('omnia/preparePay', preparePay);
 
+  const prepareChannelUpdate: JsonRpcHandler = async (raw) => {
+    const params = paramsObject(raw);
+    const channelId = requiredString(params, 'channelId');
+    const localPartyId = context.localParticipant?.partyId;
+    const localPkd = context.localParticipant?.publicKeyDigest;
+    if (!localPartyId || !localPkd) throw new Error('Local participant is not configured');
+    if (!context.preparedPay) throw new Error('Prepared-pay store is not configured');
+    const channel = context.channels.get(channelId);
+    if (!channel) throw new Error(`Channel ${channelId} not found`);
+    if ((context.custodyMode ?? 'self') === 'hosted') {
+      throw new Error('prepareChannelUpdate requires an explicit hosted custody disclosure context (not yet configured)');
+    }
+
+    const rawBalances = params.newBalances;
+    const newBalances = rawBalances && typeof rawBalances === 'object'
+      ? Object.fromEntries(
+          Object.entries(rawBalances as Record<string, unknown>).map(([partyId, value]) => [partyId, BigInt(String(value))]),
+        )
+      : channel.balances;
+    const programTransition = params.programTransition as ProgramTransition | undefined;
+
+    return withOperation(context, params, async () => {
+      const preparedOperationId = operationId(params);
+      const unsigned = buildStateUpdate(
+        channel,
+        { newSequence: channel.currentSequence + 1, newBalances, programTransition },
+        { publicKeyDigest: localPkd },
+      );
+      const expiresAt = Date.now() + 120_000;
+      const base = {
+        domain: 'channel' as const,
+        signers: [localPkd],
+        custody: makeSelfCustody(),
+        expiresAt,
+      };
+      const summary = typeof params.memo === 'string' && params.memo ? params.memo : 'Channel state update';
+      const intent: import('@totemsdk/omnia').SignRequest = {
+        ...base,
+        requestId: `${preparedOperationId}:intent`,
+        kind: 'intent',
+        digest: unsigned.updateDigest,
+        context: { summary: `Authorize ${summary}` },
+      };
+      const update: import('@totemsdk/omnia').SignRequest = {
+        ...base,
+        requestId: `${preparedOperationId}:update`,
+        kind: 'chain',
+        digest: unsigned.updateDigest,
+        context: { summary: 'Sign the channel update transaction' },
+      };
+      const settlement: import('@totemsdk/omnia').SignRequest = {
+        ...base,
+        requestId: `${preparedOperationId}:settlement`,
+        kind: 'chain',
+        digest: unsigned.settlementDigest,
+        context: { summary: 'Sign the settlement close package' },
+      };
+      for (const [key, entry] of context.preparedPay!) {
+        if (entry.expiresAt <= Date.now()) context.preparedPay!.delete(key);
+      }
+      context.preparedPay!.set(preparedOperationId, { channelId, unsigned, intent, update, settlement, expiresAt });
+      return {
+        success: true,
+        status: 'signature-required',
+        operationId: preparedOperationId,
+        channelId,
+        requests: { intent, update, settlement },
+        expiresAt,
+      };
+    });
+  };
+  methods.set('totem_omniaPrepareChannelUpdate', prepareChannelUpdate);
+  methods.set('omnia/prepareChannelUpdate', prepareChannelUpdate);
+
   const submitPay: JsonRpcHandler = async (raw) => {
     const params = paramsObject(raw);
     const preparedOperationId = requiredString(params, 'preparedOperationId');
@@ -576,6 +650,8 @@ function registerPreparedPayMethods(
   };
   methods.set('totem_omniaSubmitPay', submitPay);
   methods.set('omnia/submitPay', submitPay);
+  methods.set('totem_omniaSubmitChannelUpdate', submitPay);
+  methods.set('omnia/submitChannelUpdate', submitPay);
 }
 
 export function createHostMethods(context: HostApiContext): Map<string, JsonRpcHandler> {

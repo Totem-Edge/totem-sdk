@@ -120,6 +120,14 @@ export function buildStateUpdate(
   if (!signerParty) throw new Error('Signer public key digest not found in channel parties');
 
   const pendingHTLCs = channel.pendingHTLCs.filter(h => h.status === 'pending');
+  const htlcTotal = pendingHTLCs.reduce((sum, h) => sum + h.amount, 0n);
+  const balanceSum = Object.values(newBalances).reduce((sum, value) => sum + value, 0n);
+  if (balanceSum + htlcTotal !== channel.totalValue) {
+    throw new BalanceConservationError(channel.totalValue, balanceSum + htlcTotal);
+  }
+  for (const [partyId, balance] of Object.entries(newBalances)) {
+    if (balance < 0n) throw new Error(`Negative balance for ${partyId}: ${balance}`);
+  }
   const programTransition = canonicalizeProgramTransition(update.programTransition);
   const draft = buildProgramUpdateTx(channel, newSequence, newBalances, channel.pendingHTLCs, programTransition);
   const updateDigest = computeOmniaTxDigest(draft);

@@ -156,5 +156,33 @@ describe('omnia preparePay / submitPay', () => {
     expect(updated.balances).toEqual({ alice: 500n, bob: 500n });
     expect(sent).toHaveLength(1);
     expect(sent[0]).toMatchObject({ type: 'STATE_UPDATE', channelId: channel.channelId });
+
+    // Generic state update (balances / program transitions), same wallet flow.
+    const preparedUpdate = await methods.get('omnia/prepareChannelUpdate')!({
+      operationId: 'prep-update-1',
+      channelId: channel.channelId,
+      newBalances: { alice: '450', bob: '550' },
+      memo: 'Rebalance',
+    });
+    const updateRequests = (preparedUpdate as any).requests;
+    const updateIndices2 = { addressIndex: 0, l1: 3, l2: 0 };
+    const settlementIndices2 = { addressIndex: 0, l1: 4, l2: 0 };
+    const intentSignature2 = await signing.signer.sign(signRequestPayload(updateRequests.intent), updateIndices2);
+    const updateSignature2 = await signing.signer.sign(updateRequests.update.digest, updateIndices2);
+    const settlementSignature2 = await signing.signer.sign(updateRequests.settlement.digest, settlementIndices2);
+
+    const submittedUpdate = await methods.get('omnia/submitChannelUpdate')!({
+      operationId: 'submit-update-1',
+      preparedOperationId: 'prep-update-1',
+      intentSignature: hex(intentSignature2),
+      updateSignature: hex(updateSignature2),
+      updateIndices: updateIndices2,
+      settlementSignature: hex(settlementSignature2),
+      settlementIndices: settlementIndices2,
+    });
+
+    expect(submittedUpdate).toMatchObject({ success: true, sequence: 3 });
+    expect(context.channels.get(channel.channelId)!.balances).toEqual({ alice: 450n, bob: 550n });
+    expect(sent).toHaveLength(2);
   });
 });
