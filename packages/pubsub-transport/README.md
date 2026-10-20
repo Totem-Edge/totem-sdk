@@ -13,6 +13,9 @@ Publish-subscribe transport abstractions for the Totem SDK — MQTT-compatible i
 | `MockPubSubTransport` | Test mock with `inject()` and recorded calls |
 | `MqttClientPort` | Type alias for `IPubSubTransport` (backward compat) |
 | `MqttMessage` | Type alias for `PubSubMessage` |
+| `WebSocketPubSubTransport` | Local-hub WebSocket client (JSON frames, base64 payloads) |
+| `HubClientFrame` / `HubServerFrame` | P2P hub wire protocol |
+| `bytesToBase64` / `base64ToBytes` | Cross-runtime payload helpers |
 
 ## Installation
 
@@ -20,7 +23,8 @@ Publish-subscribe transport abstractions for the Totem SDK — MQTT-compatible i
 npm install @totemsdk/pubsub-transport
 ```
 
-No required peer dependencies — purely Node.js built-ins.
+No required peer dependencies for the core/interfaces. The WebSocket hub client
+uses the platform `WebSocket` (or an injected implementation).
 
 ## Quick start
 
