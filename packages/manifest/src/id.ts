@@ -12,7 +12,8 @@
  */
 
 import { sha3_256 } from '@totemsdk/core/wasm';
-import type { Manifest } from './types.js';
+import { canonicalJson } from '@totemsdk/core';
+import type { Manifest, SignedManifest } from './types.js';
 
 function bytesToHex(b: Uint8Array): string {
   return Array.from(b)
@@ -43,4 +44,16 @@ export function computeManifestId(manifest: Manifest): string {
   }
 
   return bytesToHex(sha3_256(new TextEncoder().encode(stableKey)));
+}
+
+/**
+ * Content-addressed identity for a **signed manifest revision**.
+ *
+ * `computeManifestId` is the durable logical identifier (stable across versions).
+ * This envelope ID changes with the signed revision content (including signature
+ * and signedAt) so ProofGraph can retain multiple revisions of one manifest.
+ */
+export function computeManifestEnvelopeId(signedManifest: SignedManifest): string {
+  const input = 'TOTEM_MANIFEST_ENVELOPE_V1' + canonicalJson(signedManifest);
+  return bytesToHex(sha3_256(new TextEncoder().encode(input)));
 }

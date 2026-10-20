@@ -69,6 +69,7 @@ export {
   addProof,
   addIdentityClaim,
   addManifest,
+  addManifestRevision,
   addReceiptLike,
   addAnchor,
 } from './graph.js';
@@ -88,6 +89,7 @@ export {
   getEvidenceTrail,
   getProofLineage,
   resolveCurrentProofSet,
+  getManifestRevisions,
   getManifestsForAddress,
   getEdgesBetween,
   reachableFrom,

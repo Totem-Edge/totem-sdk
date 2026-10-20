@@ -13,7 +13,7 @@ export type {
 
 export { MANIFEST_VERSION } from './constants.js';
 
-export { computeManifestId } from './id.js';
+export { computeManifestId, computeManifestEnvelopeId } from './id.js';
 export { signManifest } from './sign.js';
 export { verifyManifest } from './verify.js';
 export { encodeManifest, decodeManifest } from './encoding.js';

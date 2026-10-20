@@ -36,6 +36,7 @@ export type ProofGraphEdgeType =
   | 'controls'
   | 'depends_on'
   | 'manifests_as'
+  | 'revision_of'
   | 'conflicts_with';
 
 export interface ProofGraphNode {

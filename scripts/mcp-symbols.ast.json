@@ -9392,6 +9392,11 @@
           "kind": "function",
           "signature": "computeManifestId(manifest: Manifest): string"
         },
+        "computeManifestEnvelopeId": {
+          "kind": "function",
+          "signature": "computeManifestEnvelopeId(signedManifest: SignedManifest): string",
+          "doc": "Content-addressed identity for a **signed manifest revision**.\n\n`computeManifestId` is the durable logical identifier (stable across versions).\nThis envelope ID changes with the signed revision content (including signature\nand signedAt) so ProofGraph can retain multiple revisions of one manifest."
+        },
         "signManifest": {
           "kind": "function",
           "signature": "signManifest<T extends Manifest>(manifest: T, treeKey: TreeKey, useIndex: number): Promise<SignedManifest<T>>"
@@ -13178,6 +13183,11 @@
           "signature": "addManifest(graph: ProofGraph, signedManifest: SignedManifest): ProofGraph",
           "doc": "Index a SignedManifest into the graph.\n\nNodes created:\n  manifest — computed manifest ID (stores manifest content in .data)\n  address  — resolved author/agent/operator address\n\nEdge created:\n  manifests_as  manifest → address"
         },
+        "addManifestRevision": {
+          "kind": "function",
+          "signature": "addManifestRevision(graph: ProofGraph, signedManifest: SignedManifest): ProofGraph",
+          "doc": "Add a signed manifest **revision** without collapsing other revisions.\n\nCreates:\n  manifest (logical)   refId = manifestId\n  manifest (revision)  refId = manifestEnvelopeId, data = { manifestId, manifestEnvelopeId, signedManifest }\n  address              resolved author/operator address\n  manifests_as         manifestId → address\n  revision_of          manifestEnvelopeId → manifestId"
+        },
         "addReceiptLike": {
           "kind": "function",
           "signature": "addReceiptLike(graph: ProofGraph, receipt: ReceiptLikeInput): ProofGraph",
@@ -13257,6 +13267,11 @@
           "kind": "function",
           "signature": "resolveCurrentProofSet(graph: ProofGraph): ProofGraphNode[]",
           "doc": "Return all proof nodes that are NOT the target of any 'revokes' or 'supersedes' edge.\nThese are the current / active proofs in the graph."
+        },
+        "getManifestRevisions": {
+          "kind": "function",
+          "signature": "getManifestRevisions(graph: ProofGraph, manifestId: string): ProofGraphNode[]",
+          "doc": "Return all content-addressed revisions of a logical manifest, ordered by envelope ID."
         },
         "getManifestsForAddress": {
           "kind": "function",

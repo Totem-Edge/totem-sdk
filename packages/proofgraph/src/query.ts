@@ -174,6 +174,20 @@ export function getManifestsForAddress(graph: ProofGraph, address: string): Proo
 }
 
 /**
+ * Return all content-addressed revisions of a logical manifest, ordered by envelope ID.
+ */
+export function getManifestRevisions(graph: ProofGraph, manifestId: string): ProofGraphNode[] {
+  const revisionRefs = new Set(
+    graph.edges
+      .filter((edge) => edge.type === 'revision_of' && edge.to === manifestId)
+      .map((edge) => edge.from),
+  );
+  return graph.nodes
+    .filter((node) => node.type === 'manifest' && revisionRefs.has(node.refId))
+    .sort((a, b) => a.refId.localeCompare(b.refId));
+}
+
+/**
  * Return all edges between two nodes (in either direction).
  */
 export function getEdgesBetween(

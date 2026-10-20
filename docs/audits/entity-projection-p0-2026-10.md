@@ -49,6 +49,42 @@ Status: P0-A, P0-B, P0-C and P0-D landed; P0-E pending
 - Root-proven children are **evidence only**: they do not grant
   `manifest:sign` (root, controller or an explicit `manifest:sign` delegate only).
 
+
+## RFC-056 privacy and disclosure principles (normative)
+
+Entity projection is **disclosure-bounded**, not a completeness requirement.
+
+> **Absence of disclosure means unknown, not invalid.**
+>
+> `unknown != false` · `undisclosed != unauthorized` · `unproven != disproven`
+
+- A resolver projects only information made available by its configured sources.
+  It MUST NOT require completeness, infer undisclosed attributes, or treat the
+  absence of an optional record as invalidity.
+- A legitimate minimal view may contain only the root identity (and any
+  controller/proof needed for the interaction): no identity document, manifest,
+  claims, proofs, resources, actions, governance or real-world identity.
+- Disclosure levels are optional, not mandatory:
+  0. root identity only ("same cryptographic actor");
+  1. selective child ownership proof ("these addresses share a root");
+  2. semantic Totem identity (agent/device/person/organization);
+  3. manifest ("I provide these capabilities");
+  4. specific claims/proofs ("I possess X / own Y / satisfy Z");
+  5. governance/authority ("I may perform Q").
+- Projection modes: `minimal`, `available`, `purpose-bound`. A purpose-bound view
+  reveals only the evidence needed for that interaction (e.g. "may I use this
+  charger?"), not the whole entity graph.
+- This is **pseudonymous, not anonymous**. A persistent root address can become
+  linkable if reused publicly. The privacy-preserving pattern keeps the root
+  private and uses children per context, disclosing a root-membership proof only
+  when linking contexts is required.
+- **Root ancestry SHOULD be selectively disclosed, not globally projected by
+  default.** A local view may know that A, B and C share root R while the
+  counterparty view for A contains only A unless policy requires otherwise.
+- Root identity is therefore the **privacy floor**: "I control this
+  cryptographic identity" without disclosing name, location, company, devices or
+  history.
+
 ## Remaining
 
 - **P0-E** ProofGraph manifest revision envelopes (`computeManifestEnvelopeId`).

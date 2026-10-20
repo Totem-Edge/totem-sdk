@@ -25,6 +25,7 @@ import {
   addProof,
   addIdentityClaim,
   addManifest,
+  addManifestRevision,
   addIdentityDocument,
   addEdge,
   buildEdge,
@@ -39,6 +40,7 @@ import {
   getEvidenceTrail,
   getProofLineage,
   resolveCurrentProofSet,
+  getManifestRevisions,
   verifyProofGraph,
   verifyGraphProofs,
   exportProofGraph,
@@ -61,9 +63,9 @@ import {
   createIdentityDocument,
 } from '@totemsdk/identity';
 
-import { signManifest } from '@totemsdk/manifest';
+import { computeManifestEnvelopeId, computeManifestId, signManifest } from '@totemsdk/manifest';
 
-import { wotsKeypairFromSeed, wotsAddressFromKeypair } from '@totemsdk/core';
+import { createUnifiedChildTreeKey, wotsKeypairFromSeed, wotsAddressFromKeypair } from '@totemsdk/core';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -274,7 +276,7 @@ test('(7) manifest adds manifest+address nodes with manifests_as edge', async ()
     capabilities: [],
     tags: [],
   };
-  const signed = await signManifest(raw, SEED_A, 0);
+  const signed = await signManifest(raw, createUnifiedChildTreeKey(SEED_A, 0), 0);
   const graph = addManifest(createProofGraph(), signed);
 
   const manifestNodes = graph.nodes.filter((n) => n.type === 'manifest');
@@ -285,6 +287,41 @@ test('(7) manifest adds manifest+address nodes with manifests_as edge', async ()
   expect(addressNodes).toHaveLength(1);
   expect(edges).toHaveLength(1);
   expect(edges[0].to).toBe(signerAddr);
+}, 30000);
+
+test('(7b) addManifestRevision retains multiple signed revisions', async () => {
+  const signerAddr = deriveAddress(SEED_A, 0);
+  const base = {
+    type: 'edge-service' as const,
+    serviceId: 'svc-pg-7b',
+    name: 'Revision Service',
+    version: '1.0.0',
+    operatorAddress: signerAddr,
+    serviceType: 'sensor' as const,
+    description: 'v1',
+    capabilities: [],
+    tags: [],
+  };
+  const treeKey = createUnifiedChildTreeKey(SEED_A, 0);
+  const v1 = await signManifest(base, treeKey, 0);
+  const v2 = await signManifest({ ...base, version: '1.1.0', description: 'v2' }, treeKey, 1);
+
+  const manifestId = computeManifestId(v1.manifest);
+  expect(computeManifestId(v2.manifest)).toBe(manifestId);
+
+  const e1 = computeManifestEnvelopeId(v1);
+  const e2 = computeManifestEnvelopeId(v2);
+  expect(e1).not.toBe(e2);
+
+  let graph = addManifestRevision(createProofGraph(), v1);
+  graph = addManifestRevision(graph, v2);
+
+  const revisions = getManifestRevisions(graph, manifestId);
+  expect(revisions.map((node) => node.refId)).toEqual([e1, e2].sort());
+  expect(revisions.every((node) => node.data?.manifestId === manifestId)).toBe(true);
+  expect(
+    graph.nodes.filter((node) => node.type === 'manifest' && node.refId === manifestId),
+  ).toHaveLength(1);
 }, 30000);
 
 // ─── Test 8: findProofsBySubject ──────────────────────────────────────────────

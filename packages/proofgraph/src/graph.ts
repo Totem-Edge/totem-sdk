@@ -9,7 +9,7 @@
 import type { SignedProof } from '@totemsdk/proof';
 import type { SignedIdentityClaim, TotemIdentityDocument } from '@totemsdk/identity';
 import type { SignedManifest } from '@totemsdk/manifest';
-import { computeManifestId } from '@totemsdk/manifest';
+import { computeManifestId, computeManifestEnvelopeId } from '@totemsdk/manifest';
 import type {
   ProofGraph,
   ProofGraphNode,
@@ -292,6 +292,35 @@ export function addManifest(graph: ProofGraph, signedManifest: SignedManifest): 
 
   return rebuild(graph, [manifestNode, addressNode], [
     makeEdge('manifests_as', manifestId, address),
+  ]);
+}
+
+/**
+ * Add a signed manifest **revision** without collapsing other revisions.
+ *
+ * Creates:
+ *   manifest (logical)   refId = manifestId
+ *   manifest (revision)  refId = manifestEnvelopeId, data = { manifestId, manifestEnvelopeId, signedManifest }
+ *   address              resolved author/operator address
+ *   manifests_as         manifestId → address
+ *   revision_of          manifestEnvelopeId → manifestId
+ */
+export function addManifestRevision(graph: ProofGraph, signedManifest: SignedManifest): ProofGraph {
+  const manifestId = computeManifestId(signedManifest.manifest);
+  const manifestEnvelopeId = computeManifestEnvelopeId(signedManifest);
+  const address = resolveManifestAddress(signedManifest);
+
+  const logicalNode = makeNode('manifest', manifestId, { manifestId });
+  const revisionNode = makeNode('manifest', manifestEnvelopeId, {
+    manifestId,
+    manifestEnvelopeId,
+    signedManifest,
+  });
+  const addressNode = makeNode('address', address);
+
+  return rebuild(graph, [logicalNode, revisionNode, addressNode], [
+    makeEdge('manifests_as', manifestId, address),
+    makeEdge('revision_of', manifestEnvelopeId, manifestId),
   ]);
 }
 

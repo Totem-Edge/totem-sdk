@@ -3,7 +3,7 @@
  * Stable IDs: same inputs → same ID; version change → same ID; key field change → different ID.
  */
 
-import { computeManifestId } from '../id.js';
+import { computeManifestId, computeManifestEnvelopeId } from '../id.js';
 import type {
   AppManifest,
   CapabilityManifest,
@@ -139,5 +139,32 @@ describe('computeManifestId — stable IDs', () => {
     ];
     const unique = new Set(ids);
     expect(unique.size).toBe(4);
+  });
+});
+
+describe('computeManifestEnvelopeId', () => {
+  const SIGNED = {
+    manifest: APP,
+    authorAddress: APP.authorAddress,
+    signerPublicKey: 'aa'.repeat(64),
+    signedAt: 1000,
+    signature: 'bb'.repeat(128),
+  } as any;
+
+  it('is deterministic for the same signed revision', () => {
+    expect(computeManifestEnvelopeId(SIGNED)).toBe(computeManifestEnvelopeId({ ...SIGNED }));
+  });
+
+  it('changes with revision content, signature or signedAt', () => {
+    const base = computeManifestEnvelopeId(SIGNED);
+    expect(computeManifestEnvelopeId({ ...SIGNED, signedAt: 2000 })).not.toBe(base);
+    expect(computeManifestEnvelopeId({ ...SIGNED, signature: 'cc'.repeat(128) })).not.toBe(base);
+    expect(
+      computeManifestEnvelopeId({ ...SIGNED, manifest: { ...APP, version: '2.0.0' } }),
+    ).not.toBe(base);
+  });
+
+  it('keeps the logical manifestId stable across revisions', () => {
+    expect(computeManifestId(APP)).toBe(computeManifestId({ ...APP, version: '2.0.0' }));
   });
 });
