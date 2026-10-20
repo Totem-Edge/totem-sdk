@@ -25,6 +25,17 @@ export interface ContextField {
   source?: string
 }
 
+/**
+ * Context value with observation metadata. Required when a schema field
+ * declares `maxAgeMs`, so freshness is enforced deterministically.
+ */
+export interface ContextValue<T = unknown> {
+  value: T
+  observedAt: number
+  source?: string
+  proofId?: string
+}
+
 export interface ContextSchema {
   name: string
   type: 'string' | 'number' | 'boolean' | 'object'

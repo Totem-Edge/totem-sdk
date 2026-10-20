@@ -44,6 +44,14 @@ import type {
   Vote,
   VoteTally,
 } from '../index'
+import { createIdentityDocument, type IdentityGraph } from '@totemsdk/identity'
+import { createProof, signProof, type SignedProof } from '@totemsdk/proof'
+import { wotsKeypairFromSeed, scriptFromWotsPk, scriptToAddress } from '@totemsdk/core'
+import {
+  verifyMandate,
+  type AuthorityIdentityResolver,
+  type MandateBody,
+} from '@totemsdk/authority'
 
 function makeSnapshot(
   daoId: string,
@@ -988,6 +996,7 @@ describe('outcome', () => {
       0,
       'gov-identity',
       'executor-address',
+      'principal-identity',
       {
         membershipSnapshotHash: snapshot.hash,
         voteTallyHash: outcome.tallyHash,
@@ -996,6 +1005,7 @@ describe('outcome', () => {
     )
     expect(mandate.grantor).toBe('gov-identity')
     expect(mandate.grantee).toBe('executor-address')
+    expect(mandate.principal).toBe('principal-identity')
     expect(mandate.scope).toBe('governance:treasury_spend:execute')
     expect(mandate.constraints).toBeDefined()
     expect(mandate.usageLimit?.maxCount).toBe(1)
@@ -1153,6 +1163,7 @@ describe('execution', () => {
       'outcome-proof-id',
       'gov-identity',
       'executor',
+      'principal-identity',
       NOW,
     )
     expect(plans).toHaveLength(2)
@@ -1184,7 +1195,7 @@ describe('execution', () => {
       thresholdBps: 5000,
       algorithm: 'linear' as const,
     }
-    expect(executeProposal(proposal, tally, '', '', '')).toHaveLength(0)
+    expect(executeProposal(proposal, tally, '', '', '', '')).toHaveLength(0)
   })
 
   it('isExecutionReady returns true after delay elapsed', () => {
@@ -1282,6 +1293,125 @@ describe('RFC-020 H6: proposal id binds the full action set', () => {
       status: 'passed', createdAt: 0, votingStartsAt: 0, votingEndsAt: 0, executionDelay: 0,
       membershipSnapshotHash: 'h', voteTally: tally,
     } as never;
-    expect(executeProposal(proposal, { ...tally, yes: 999 } as never, 'proof', 'gov', 'exec')).toEqual([]);
+    expect(executeProposal(proposal, { ...tally, yes: 999 } as never, 'proof', 'gov', 'exec', 'principal')).toEqual([]);
   });
 });
+
+// ─── P0-C: governance → authority integration ────────────────────────────────
+
+describe('governance → authority integration (P0-C)', () => {
+  function testSeed(n: number): Uint8Array {
+    const seed = new Uint8Array(32)
+    seed[0] = n & 0xff
+    seed[1] = (n >> 8) & 0xff
+    return seed
+  }
+
+  function deriveAddress(seed: Uint8Array, keyIndex: number): string {
+    const kp = wotsKeypairFromSeed(seed, keyIndex)
+    return scriptToAddress(scriptFromWotsPk(kp.pk))
+  }
+
+  const ROOT_SEED = testSeed(100)
+  const ADDR_ROOT = deriveAddress(ROOT_SEED, 0)
+  const ADDR_AGENT = deriveAddress(testSeed(103), 0)
+
+  async function makePrincipalIdentity(): Promise<{ graph: IdentityGraph; identityId: string }> {
+    const controllerAddress = deriveAddress(testSeed(101), 0)
+    const doc = createIdentityDocument({
+      kind: 'agent',
+      rootAddress: ADDR_ROOT,
+      controllerAddress,
+    })
+    return { graph: { document: doc, claims: [] }, identityId: doc.id }
+  }
+
+  function makeResolver(graphs: Map<string, IdentityGraph>): AuthorityIdentityResolver {
+    return { resolve: (identityId: string) => graphs.get(identityId) }
+  }
+
+  function makeMandateProof(mandate: MandateBody, seed: Uint8Array, keyIndex: number): SignedProof {
+    const unsigned = createProof({
+      kind: 'custom',
+      subject: { id: mandate.grantee, kind: 'agent' },
+      issuer: mandate.grantor,
+      issuedAt: mandate.issuedAt,
+      expiresAt: mandate.expiresAt,
+      payload: { schema: 'totem:authority:mandate/v1', mandate },
+    })
+    return signProof(unsigned, seed, keyIndex)
+  }
+
+  function makePassedProposal() {
+    const snapshot = makeSnapshot('dao-1', [{ id: 'a', weight: 10 }], NOW)
+    const proposal = createProposal({
+      config: makeConfig(),
+      actions: [{ type: 'custom', target: 'target', payload: { value: 1 }, description: 'x' }],
+      title: 'Test',
+      description: 'desc',
+      proposer: 'a',
+      snapshot,
+      createdAt: NOW,
+    }) as Proposal
+    const tally = {
+      proposalId: proposal.id,
+      yes: 10,
+      no: 0,
+      abstain: 0,
+      totalWeight: 10,
+      quorumWeight: 5,
+      quorumReached: true,
+      passed: true,
+      thresholdBps: 5000,
+      algorithm: 'linear' as const,
+    }
+    return { proposal, tally, snapshot }
+  }
+
+  it('verifies a governance-generated mandate with the real Authority verifier', async () => {
+    const { graph, identityId } = await makePrincipalIdentity()
+    const resolver = makeResolver(new Map([[identityId, graph]]))
+    const { proposal, tally, snapshot } = makePassedProposal()
+    const outcome = createOutcome({ proposal, tally, determinedBy: 'gov', determinedAt: NOW })
+
+    const mandate = createGovernedMandate(
+      outcome,
+      proposal.actions[0],
+      0,
+      ADDR_ROOT,
+      ADDR_AGENT,
+      identityId,
+      {
+        membershipSnapshotHash: snapshot.hash,
+        voteTallyHash: outcome.tallyHash,
+        outcomeProofId: 'proof:1',
+      },
+    )
+    expect(mandate.principal).toBe(identityId)
+
+    const signed = makeMandateProof(mandate, ROOT_SEED, 0)
+    const result = verifyMandate(signed, resolver, NOW)
+    expect(result.valid).toBe(true)
+    expect(result.principalId).toBe(identityId)
+    expect(result.grantorAddress).toBe(ADDR_ROOT)
+    expect(result.identityVerified).toBe(true)
+  })
+
+  it('rejects the old proposalId-as-principal form', async () => {
+    const { graph, identityId } = await makePrincipalIdentity()
+    const resolver = makeResolver(new Map([[identityId, graph]]))
+    const { proposal } = makePassedProposal()
+
+    const mandate: MandateBody = {
+      grantor: ADDR_ROOT,
+      grantee: ADDR_AGENT,
+      principal: proposal.id,
+      scope: 'governance:custom:execute',
+      issuedAt: NOW,
+    }
+    const signed = makeMandateProof(mandate, ROOT_SEED, 0)
+    const result = verifyMandate(signed, resolver, NOW)
+    expect(result.valid).toBe(false)
+    expect(result.reason).toContain('identity not found for principal')
+  })
+})

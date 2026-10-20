@@ -8,6 +8,8 @@ import {
   computeReceiptId,
   validateParameters,
   validateContext,
+  assertValidContext,
+  ActionValidationError,
   createProposal,
   verifyCommitment,
   assertValidProposal,
@@ -146,6 +148,72 @@ describe('definition', () => {
   it('validateContext passes with correct context', () => {
     const errors = validateContext(schema, { temperature: 85, humidity: 60 }, NOW)
     expect(errors).toHaveLength(0)
+  })
+})
+
+// ─── 3b. Context freshness (maxAgeMs) ───────────────────────────────────────
+
+describe('validateContext freshness (maxAgeMs)', () => {
+  const freshSchema: ActionSchema = {
+    parameters: [],
+    context: [
+      { name: 'temperature', type: 'number', required: true, maxAgeMs: 5000 },
+    ],
+  }
+
+  it('accepts a fresh observation', () => {
+    const errors = validateContext(
+      freshSchema,
+      { temperature: { value: 85, observedAt: NOW - 1000 } },
+      NOW,
+    )
+    expect(errors).toHaveLength(0)
+  })
+
+  it('rejects a stale observation', () => {
+    const errors = validateContext(
+      freshSchema,
+      { temperature: { value: 85, observedAt: NOW - 6000 } },
+      NOW,
+    )
+    expect(errors).toContain(
+      "context 'temperature': stale (age 6000ms > maxAgeMs 5000ms)",
+    )
+  })
+
+  it('requires freshness metadata when maxAgeMs is set', () => {
+    const errors = validateContext(freshSchema, { temperature: 85 }, NOW)
+    expect(errors).toContain(
+      "context 'temperature': freshness metadata (observedAt) is required when maxAgeMs is set",
+    )
+  })
+
+  it('rejects observations from the future', () => {
+    const errors = validateContext(
+      freshSchema,
+      { temperature: { value: 85, observedAt: NOW + 1000 } },
+      NOW,
+    )
+    expect(errors).toContain("context 'temperature': observedAt is in the future")
+  })
+
+  it('checks the inner value type', () => {
+    const errors = validateContext(
+      freshSchema,
+      { temperature: { value: '85', observedAt: NOW } },
+      NOW,
+    )
+    expect(errors).toContain("context 'temperature': expected number, got string")
+  })
+
+  it('assertValidContext throws on stale context', () => {
+    expect(() =>
+      assertValidContext(
+        freshSchema,
+        { temperature: { value: 85, observedAt: NOW - 6000 } },
+        NOW,
+      ),
+    ).toThrow(ActionValidationError)
   })
 })
 

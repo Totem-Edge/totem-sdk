@@ -57,20 +57,57 @@ function checkQuantityField(
   )
 }
 
+function observedAtOf(value: unknown): number | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
+  const record = value as Record<string, unknown>
+  const observedAt = record.observedAt ?? record.timestamp
+  return typeof observedAt === 'number' && Number.isFinite(observedAt)
+    ? observedAt
+    : undefined
+}
+
+function unwrapContextValue(value: unknown): unknown {
+  if (value && typeof value === 'object' && !Array.isArray(value) && 'value' in value) {
+    return (value as { value: unknown }).value
+  }
+  return value
+}
+
 export function validateContext(
   schema: ActionSchema,
   context: Record<string, unknown>,
-  _now: number,
+  now: number,
 ): string[] {
   const errors: string[] = []
   for (const field of schema.context) {
-    const value = context[field.name]
-    if (value === undefined || value === null) {
+    const raw = context[field.name]
+    if (raw === undefined || raw === null) {
       if (field.required) {
         errors.push(`context '${field.name}' is required`)
       }
       continue
     }
+
+    let value: unknown = raw
+    if (field.maxAgeMs !== undefined) {
+      const observedAt = observedAtOf(raw)
+      if (observedAt === undefined) {
+        errors.push(
+          `context '${field.name}': freshness metadata (observedAt) is required when maxAgeMs is set`,
+        )
+        continue
+      }
+      const age = now - observedAt
+      if (age < 0) {
+        errors.push(`context '${field.name}': observedAt is in the future`)
+      } else if (age > field.maxAgeMs) {
+        errors.push(
+          `context '${field.name}': stale (age ${age}ms > maxAgeMs ${field.maxAgeMs}ms)`,
+        )
+      }
+      value = unwrapContextValue(raw)
+    }
+
     const typeErr = checkType(field.type, value)
     if (typeErr) {
       errors.push(`context '${field.name}': ${typeErr}`)

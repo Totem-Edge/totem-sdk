@@ -6010,7 +6010,7 @@
         },
         "createGovernedMandate": {
           "kind": "function",
-          "signature": "createGovernedMandate(outcome: ProposalOutcome, action: ProposalAction, actionIndex: number, governanceIdentity: string, executor: string, params: { membershipSnapshotHash: string; voteTallyHash: string; outcomeProofId: string; }): MandateBody"
+          "signature": "createGovernedMandate(outcome: ProposalOutcome, action: ProposalAction, actionIndex: number, governanceIdentity: string, executor: string, principalIdentityId: string, params: { membershipSnapshotHash: string; voteTallyHash: string; outcomeProofId: string; }): MandateBody"
         },
         "finalizeProposalExecution": {
           "kind": "function",
@@ -6022,7 +6022,7 @@
         },
         "executeProposal": {
           "kind": "function",
-          "signature": "executeProposal(proposal: Proposal, tally: VoteTally, outcomeProofId: string, governanceIdentity: string, executor: string, now?: number): Array<{ action: ProposalAction; actionIndex: number; mandateBody: ReturnType<typeof createGovernedMandate>; }>"
+          "signature": "executeProposal(proposal: Proposal, tally: VoteTally, outcomeProofId: string, governanceIdentity: string, executor: string, principalIdentityId: string, now?: number): Array<{ action: ProposalAction; actionIndex: number; mandateBody: ReturnType<typeof createGovernedMandate>; }>"
         },
         "isExecutionReady": {
           "kind": "function",
@@ -6192,6 +6192,11 @@
           "kind": "interface",
           "signature": "export interface ContextField"
         },
+        "ContextValue": {
+          "kind": "interface",
+          "signature": "export interface ContextValue<T = unknown>",
+          "doc": "Context value with observation metadata. Required when a schema field\ndeclares `maxAgeMs`, so freshness is enforced deterministically."
+        },
         "ContextSchema": {
           "kind": "interface",
           "signature": "export interface ContextSchema"
@@ -6305,7 +6310,7 @@
         },
         "validateContext": {
           "kind": "function",
-          "signature": "validateContext(schema: ActionSchema, context: Record<string, unknown>, _now: number): string[]"
+          "signature": "validateContext(schema: ActionSchema, context: Record<string, unknown>, now: number): string[]"
         },
         "assertValidParameters": {
           "kind": "function",
@@ -11782,12 +11787,12 @@
         "findRoute": {
           "kind": "function",
           "signature": "findRoute(graph: ChannelGraph, from: string, to: string, amount: bigint, tokenId: string, opts?: RouteOptions): Route | null",
-          "doc": "Find the cheapest route (lowest total fee, then fewest hops) from `from` to\n`to` carrying `amount` of `tokenId`.  Edges are filtered by tokenId and\navailableBalance.\n\nReturns null if no path exists within maxHops."
+          "doc": "Find the cheapest route (lowest total fee, then fewest hops) from `from` to\n`to` carrying `amount` of `tokenId`. Edges are filtered by tokenId and\navailableBalance. Returns null if no path exists within maxHops.\n\nDelegates to the routing engine (zero-fee BFS / layered bounded search)."
         },
         "findCrossTokenRoute": {
           "kind": "function",
           "signature": "findCrossTokenRoute(graph: ChannelGraph, from: string, to: string, amountIn: bigint, tokenIn: string, tokenOut: string, opts?: RouteOptions): CrossTokenRoute | null",
-          "doc": "Find a cross-token route where the sender spends `tokenIn` and the\nrecipient receives `tokenOut`.  The path may include one or more swap hops\nprovided by bridging intermediaries registered via announceSwap.\n\nSelection criteria: lowest total fee (including swap fee), then fewest hops,\nthen fewest swap hops."
+          "doc": "Find a cross-token route where the sender spends `tokenIn` and the\nrecipient receives `tokenOut`. The path may include one or more swap hops\nprovided by bridging intermediaries registered via announceSwap.\n\nSelection criteria: lowest total fee (including swap fee), then fewest hops,\nthen fewest swap hops, then a deterministic route key.\n\n`maxHops` is a **global** end-to-end budget: preHops + 1 (swap) + postHops\nmust not exceed it (RFC-055 §2.5). The inbound leg is computed once for all\nannouncements; the outbound leg is cached per `(postDst, amountOut, tokenOut)`."
         },
         "applyRate": {
           "kind": "function",

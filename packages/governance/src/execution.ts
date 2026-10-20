@@ -14,6 +14,7 @@ export function executeProposal(
   outcomeProofId: string,
   governanceIdentity: string,
   executor: string,
+  principalIdentityId: string,
   now = Date.now(),
 ): Array<{
   action: ProposalAction
@@ -35,6 +36,10 @@ export function executeProposal(
     return []
   }
 
+  if (!principalIdentityId) {
+    throw new Error('executeProposal: principalIdentityId is required')
+  }
+
   const outcome = createOutcome({ proposal, tally, determinedBy: governanceIdentity })
   const tallyHash = computeTallyHash(tally)
 
@@ -45,6 +50,7 @@ export function executeProposal(
       index,
       governanceIdentity,
       executor,
+      principalIdentityId,
       {
         membershipSnapshotHash: proposal.membershipSnapshotHash,
         voteTallyHash: tallyHash,

@@ -50,12 +50,17 @@ export function createGovernedMandate(
   actionIndex: number,
   governanceIdentity: string,
   executor: string,
+  principalIdentityId: string,
   params: {
     membershipSnapshotHash: string
     voteTallyHash: string
     outcomeProofId: string
   },
 ): MandateBody {
+  if (!principalIdentityId) {
+    throw new Error('createGovernedMandate: principalIdentityId is required')
+  }
+
   const constraints: MandateBody['constraints'] = [
     { field: 'proposalId', operator: 'eq', value: outcome.proposalId },
     { field: 'actionIndex', operator: 'eq', value: actionIndex },
@@ -82,7 +87,7 @@ export function createGovernedMandate(
   return {
     grantor: governanceIdentity,
     grantee: executor,
-    principal: outcome.proposalId,
+    principal: principalIdentityId,
     scope: `governance:${action.type}:execute`,
     constraints,
     usageLimit: { maxCount: 1 },

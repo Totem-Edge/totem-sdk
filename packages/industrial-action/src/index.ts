@@ -2,6 +2,7 @@ export type {
   ParameterType,
   ParameterSchema,
   ContextField,
+  ContextValue,
   ContextSchema,
   ActionSchema,
   ActionError,
