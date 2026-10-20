@@ -7,6 +7,11 @@
 > Automated: the table below is generated. Run the script for the live matrix; `--check`
 > fails when a connect method is added that a wallet neither serves nor has triaged.
 
+> **Historical audit (2026-09-24).** Current status is RFC-014: both wallets serve
+> 47/47 connect methods and `KNOWN_GAPS` is empty. Use
+> `node scripts/audit-wallet-connect-parity.mjs --check` for the live matrix;
+> do not cite §1/§4 findings as current gaps.
+
 ---
 
 ## 1. Summary

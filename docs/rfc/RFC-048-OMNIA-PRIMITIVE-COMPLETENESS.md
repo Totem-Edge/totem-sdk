@@ -1,12 +1,30 @@
 # RFC-048 — Omnia Primitive Completeness & SDK Reuse Specification
 
-Status: Draft for architectural review — proposed, not merged for implementation
+Status: Draft for architectural review — architecture proposed; implementation partially landed (see Resolution status)
 Created: 2026-10-16
 Authors: Totem SDK Contributors
 Reference revision: `b95efe9a8423188c176c0e3e639c53bfd24b0b1a` (15 October 2026, UTC)
 Inventory: 65 package directories — eight `omnia*` packages + the rest reusable/specialized
 Scope: Fundamental primitives for private, edge-native, independently operated financial coordination and settlement. Not a specification for an AMM, lending product, derivatives exchange, stablecoin issuer, or investment offering.
 Audit caveat: Source-level review of architecture and selected implementations. This document does not claim that unexecuted chain scripts or multi-node workflows have passed live, adversarial conformance.
+
+> **Resolution status (2026-10-20).** Since the reference revision:
+> - **Exits:** per-share VTXO exit, factory distribution escape, and exit-clock
+>   pinning are implemented and VM-tested. The §12.4 single-party escape exists
+>   as a pre-signed all-party distribution.
+> - **Settlement proofs:** P-EXIT first shape, factory settlement
+>   build/sign/assemble, and server settlement verification are implemented.
+> - **Capital reconciliation:** `executePoolPayout` now requires settlement
+>   evidence before consuming a receipt or reducing LP capital; draft-only leaves
+>   state unchanged.
+> - **Code gaps:** §12.8 (party-count ports) and §12.10 (Rust/WASM `PROOF`
+>   parity) are fixed.
+>
+> **Still open:** live L4 isolated-node/multi-host conformance, the full
+> pooled-capital gate (RFC-050 §7.1), dynamic transferred-owner recovery, and
+> the broader root/epoch state-continuity review. Read §5/§8/§12 as the original
+> gap analysis; the notes below mark resolved items.
+
 
 > **Numbering.** The working draft used `RFC-040`; `040`–`046` are the Canary repository and
 > `047` is the Experience Spine. This document is **`RFC-048`**.
@@ -440,7 +458,13 @@ value has already been locked. The recovery scheduler MUST operate from a chain-
 **Phase A — custody and truth (blocking all financial releases)**
 - A1 Reproduce and fix suspected `omnia-vtxo` / `omnia-factory` unilateral-exit contradictions and state continuity. Add exact VM test vectors and independent-peers proof of recovery.
 - A2 Normalize operation settlement receipts and distinguish prepared, broadcast, confirmed, offchain-final and recovered.
-- A3 Fix `omnia-pool.executePoolPayout` and fees/NAV so accounting cannot close out against a draft, user-supplied verified flag or missing payout proof.
+- A3 **FIXED (2026-10-20)** — `omnia-pool.executePoolPayout` now requires a
+  settlement evidence object before closing the intent or reducing LP capital;
+  draft-only returns the unchanged position/registry. Residual: the settled
+  status string is still `'settled-externally'`; rename it in the next pass.
+  Original requirement: Fix `omnia-pool.executePoolPayout` and fees/NAV so
+  accounting cannot close out against a draft, user-supplied verified flag or
+  missing payout proof.
 - A4 Durable host watch/recovery and WOTS-key crash atomicity. Complete G0 test report.
 
 **Phase B — independent exchange**
@@ -580,9 +604,11 @@ committed off-chain distribution: `factoryBalanceSetRoot` (MMR over `(pubkey, ba
 sum = balance, `rootSum` = total) + `factoryBalanceProof`, verified on-chain by
 `buildMmrMembershipCovenant` with runtime sum ports.
 
-**On-chain single-party exit against a committed balance set is blocked on root recomputation — and
-that is not expressible in KISSVM.** Zeroing a claimant's leaf and committing the successor root
-requires reproducing `MMRData.CreateMMRDataParentNode` in-script, whose hash includes the serialized
+**RESOLVED BY DESIGN (2026-10-20).** On-chain single-party exit against a
+committed balance set is blocked on root recomputation — and
+that is not expressible in KISSVM. Zeroing a claimant's leaf and committing the
+successor root requires reproducing `MMRData.CreateMMRDataParentNode` in-script,
+whose hash includes the serialized
 **MiniNumber sum**. KISSVM has no MiniNumber serializer (and the SDK KISSVM has no `SETLEN` at all;
 the node's `SETLEN` only length-prefixes MiniData). So the successor root cannot be recomputed
 on-chain today. The scalable single-party escape is therefore a **pre-signed all-party
@@ -644,12 +670,13 @@ max 102 parties) · `230–255` MSHS-2. (Ports are per-coin namespaces, so `omni
 - **INV-17** — Committed-set non-removal + timelocked unilateral exit; no `SAMESTATE` spans the MSHS band.
 - **CT-19** — Composite MASH+Omnia state-port test (registry respected; exit satisfiable against the committed root).
 
-### 12.8 Code gap (tracked)
+### 12.8 Code gap (FIXED)
 
-`omnia-vtxo`/`omnia-factory` enforce only **lower** bounds on party count (`holders.length < 1`,
-`participants.length < 2`) and can emit ports ≥230. Fix: relocate
-`POOL_SHARE_PORT_BASE` / `FACTORY_BALANCE_PORT_BASE` below the MSHS floor with an explicit upper
-bound, add the `check-state-ports` gate, and add a boundary case to `custody-exec`.
+`omnia-vtxo`/`omnia-factory` originally enforced only **lower** bounds on party count (`holders.length < 1`,
+`participants.length < 2`) and could emit ports ≥230. **Fixed (2026-10-20):**
+`POOL_SHARE_PORT_BASE` / `FACTORY_BALANCE_PORT_BASE` are 128, the explicit upper
+bound is 102, and the `check-state-ports` gate plus boundary cases in
+`custody-exec` cover it.
 
 ### 12.9 Reuse-index addition
 
@@ -659,7 +686,7 @@ bound, add the `check-state-ports` gate, and add a boundary case to `custody-exe
 
 ### 12.10 Signature-model fidelity (implemented)
 
-The node's `SIGNEDBY` is **membership of a witness's tree-signature root public key**
+**Parity gap: FIXED (2026-10-20).** The node's `SIGNEDBY` is **membership of a witness's tree-signature root public key**
 (`SignatureProof::getRootPublicKey`, `Contract::checkSignature`), not a flat single WOTS key. The
 Rust/WASM KISSVM witness now carries canonical `TreeSignature`s (`treeSignatures`, RFC-009) keyed by
 root public key and verifies them with `totemsdk_core_wasm::treekey::verify_tree_signature`; the flat

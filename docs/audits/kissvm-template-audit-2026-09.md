@@ -7,6 +7,11 @@ in `@totemsdk/recursive-mast`; the MAST/PREVSTATE/policy-anchor infrastructure;
 the recursive-MAST → transaction/witness bridge; and `@totemsdk/tx-builder`.
 **Machine check companion:** RFC-016 hardening contract.
 
+> **Historical snapshot (2026-09-24).** Findings below are the original audit.
+> RFC-016/018/020 remediated the confirmed critical/high items; current status is
+> in `docs/audits/sdk-audit-remediation-2026-09.md` and those RFCs. Do not read the
+> red/orange rows as current gaps without re-checking `main`.
+
 > Note: path references have been normalized to the current tree. Some
 > templates described as `kissvm/experimental` live at
 > `packages/kissvm/src/templates/` and are re-exported via `templates/experimental.ts`.

@@ -240,7 +240,7 @@ custodial/trust-minimised and fails the RFC-039 gate. The current all-holders
 **verification chain** of state commitments and proofs — **not** a custodian holding funds. See
 RFC-048 §12.5.
 
-**Code gap (tracked).** `omnia-vtxo`/`omnia-factory` currently bound the party count only from below
+**Code gap (FIXED 2026-10-20).** `omnia-vtxo`/`omnia-factory` originally bounded the party count only from below
 (`holders.length < 1`, `participants.length < 2`) and could emit ports ≥230; the share base has been
 relocated below the MSHS floor (base 128, max 102) with an explicit upper bound and the
 `check-state-ports` gate (RFC-048 §12.6/§12.8).

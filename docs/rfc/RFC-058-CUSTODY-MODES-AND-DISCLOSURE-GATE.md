@@ -1,6 +1,6 @@
 # RFC-058 — Custody Modes, Non-Custodial Defaults, and the Liquidity Commitment Disclosure Gate
 
-**Status:** Draft — **P0 priority**; Amendment A (custodial completeness gate) added 2026-10-20
+**Status:** Draft — **P0 priority**; partial implementation landed (SignerPort, custody mode, VTXO/pool host methods, extension gate); see post-implementation status in §5.0
 **Priority:** P0
 **Created:** 2026-10-20
 **Authors:** Totem SDK Contributors
@@ -149,6 +149,14 @@ and live-tested before non-custodial implementation begins.
 signing/policy, recovery/dispute paths, durable state, host APIs, disclosure and
 the extension gate. It does **not** mean shipping a custodial package (RFC-039
 remains hard-fail).
+
+> **Post-implementation status (2026-10-20).** The table below records the
+> pre-implementation audit. Since it was written, `SignerPort` + custody mode,
+> VTXO host methods, pool host methods, and the extension disclosure gate have
+> landed; factory funding/close and unilateral-close host methods are partial.
+> KMS/HSM/MPC, live E2E chain execution, deployment custody policy/CI and full
+> durable audit/reconciliation remain open. Do not read the ❌ rows as current
+> for the landed items.
 
 | Area | Current state | Status | Blocks non-custodial? |
 |---|---|---|---|

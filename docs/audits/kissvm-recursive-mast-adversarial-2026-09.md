@@ -6,6 +6,11 @@
 **Method:** source review of every file in the three packages, byte-level hash reconciliation, parallel workers + lead verification, and deterministic node PoCs against a fresh `tsc` build of `src`.
 **Companion contract:** [RFC-018](../rfc/RFC-018-KISSVM-ADVERSARIAL-REMEDIATION.md)
 
+> **Historical snapshot (2026-09-28).** This is the original adversarial audit.
+> RFC-018/020 and the subsequent hardening commits remediated the critical and
+> top high findings; see `docs/audits/sdk-audit-remediation-2026-09.md` for the
+> current fixed/open ledger. Re-check `main` before citing a row as open.
+
 > This is the **second** adversarial pass on this surface; the first is
 > [kissvm-template-audit-2026-09.md](kissvm-template-audit-2026-09.md), which RFC-016
 > responded to. RFC-016 fixed the first-order criticals but left second-order

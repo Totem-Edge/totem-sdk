@@ -2,6 +2,13 @@
 
 Status: Landed — policy + gate + the three structural script fixes (omnia, omnia-factory, omnia-vtxo)
 Created: 2026-10-15
+
+> **Post-landing status (2026-10-20).** §1 below is the **historical pre-fix
+> state**. All three structural fixes landed (`omnia`, `omnia-factory`,
+> `omnia-vtxo`), the custody policy/gate is in CI, and the VTXO exit clock P0 is
+> fixed and VM-verified (`docs/audits/omnia-vtxo-exit-clock-2026-10.md`). The
+> remaining bar is live isolated-node L4 conformance, not the script fixes.
+
 Authors: Totem SDK Contributors
 Depends on: RFC-038 (VTXO operator), RFC-035 (peer coordination), RFC-014 (capability manifest)
 Touches: all `@totemsdk/*` packages (classification); `@totemsdk/omnia`, `@totemsdk/omnia-factory`, `@totemsdk/omnia-vtxo`, `@totemsdk/statechain`

@@ -2,6 +2,11 @@
 
 > Generated from `dead-code-inventory.md` with source-verified line numbers. Excludes kissvm templates (already remediated). All 12 monorepo packages covered.
 
+> **Historical plan (2026-09).** This is the original remediation worklist, not a
+> current gap report. Items may be resolved; check
+> `docs/audits/sdk-audit-remediation-2026-09.md` and the owning RFC before citing
+> an item as open.
+
 ---
 
 ## 1. `@totemsdk/agent-policy` — 24 findings (High)

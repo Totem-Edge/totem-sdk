@@ -2,6 +2,11 @@
 
 > Systematic scan of all 12 remaining packages for on-chain/off-chain KISSVM placeholders, dead type fields, unimplemented status transitions, forward-looking stubs, and TTL/expiry/block-height fields defined but never enforced.
 
+> **Historical snapshot (2026-09).** Many listed stubs have since been implemented
+> (RFC-004/008/038/058 and the S4–S10 work). Verify each item against current
+> `main` before treating it as open; current security status is in
+> `docs/audits/sdk-audit-remediation-2026-09.md` and the relevant RFC.
+
 ---
 
 ## Scan Results Summary

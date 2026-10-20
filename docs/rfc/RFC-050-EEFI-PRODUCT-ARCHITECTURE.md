@@ -1,6 +1,6 @@
 # RFC-050 — Eefi Product Architecture: Programmable Capital Markets for Machines
 
-Status: Draft for architectural review — proposed, not merged for implementation
+Status: Draft for architectural review — boundary/interface spec; P-EXIT first shape implemented (2026-10-20)
 Created: 2026-10-18
 Authors: Totem SDK Contributors
 Depends on: RFC-007 (Storage), RFC-017 (Decision Receipt Graph), RFC-019 (Governed Commerce), RFC-021–023 (Industrial/Physical), RFC-035 (Peer Coordination), RFC-036 (Settlement Verification), RFC-039 (Custody Conformance), RFC-047 (Experience), RFC-048 (Omnia Primitive Completeness), RFC-049 (MASH × Omnia × Eefi), RFC-051 (AI-Proposed Committed Facts)
@@ -59,7 +59,13 @@ capital, not the channel's internal state machine.
 
 ---
 
-## 3. The load-bearing gap: enforceable conditional settlement / unilateral exercise
+## 3. The load-bearing gap (first shape implemented): enforceable conditional settlement / unilateral exercise
+
+> **Status (2026-10-20).** The P-EXIT **first shape is implemented and
+> VM-verified** (`buildExerciseCovenant`, `exerciseCovenantStateVariables`,
+> `scripts/exercise-exec-vm.mjs`). The remaining gap is product economics around
+> the bond, the oracle policy/quorum runtime, and live L4 conformance — not the
+> existence of an executable unilateral exercise/settlement covenant.
 
 Every non-trivial Eefi product (lease return, credit default, option exercise, parametric payout,
 tranche waterfall) requires a party to **exercise or settle without the counterparty's
@@ -112,7 +118,7 @@ Mapping Eefi needs → the RFC-048 primitives that must land first:
 | Eefi need | Required primitive | RFC-048 ref | Status |
 |---|---|---|---|
 | Bind funded capital to approved terms | Channel funding + VM-valid transitions | OMP-06 | Partial |
-| Return of capital / loan repayment / derivative settle | Co-signed closes + executable settlement/recovery (P-EXIT) | OMP-07, **P-EXIT** | Partial / **new** |
+| Return of capital / loan repayment / derivative settle | Co-signed closes + executable settlement/recovery (P-EXIT) | OMP-07, **P-EXIT** | **Implemented** (P-EXIT first shape); product economics open |
 | JIT credit, RFQ, no double-allocation | Capital reservation / anti-double-allocation | OMP-13 | Partial |
 | Forwards/swaps/options binding | Signed bilateral financial quote | OMP-14 | Partial |
 | Price-linked / parametric payouts | Trusted oracle observation policy + on-chain condition witness | OMP-18, OMP-19 | **New** / Partial → condition witness in `kissvm` (§3) |
