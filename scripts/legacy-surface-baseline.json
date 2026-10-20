@@ -1,0 +1,425 @@
+{
+  "note": "Existing legacy/compat surface. New entries fail scripts/check-legacy-surface.mjs. Remove entries as cleanup lands.",
+  "entries": [
+    {
+      "file": "extensions/totem-extension/src/config/SdkMigrationManager.ts",
+      "kind": "flag",
+      "match": "SdkInitMode",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "extensions/totem-extension/src/config/SdkMigrationManager.ts",
+      "kind": "flag",
+      "match": "initMode",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "extensions/totem-extension/src/config/SdkTelemetry.ts",
+      "kind": "flag",
+      "match": "SdkInitMode",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "extensions/totem-extension/src/core/stores/LeaseStore.ts",
+      "kind": "deprecated",
+      "match": "/** @deprecated */",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "extensions/totem-extension/src/core/stores/LeaseStore.ts",
+      "kind": "export",
+      "match": "LegacyStoredLease",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "extensions/totem-extension/src/core/stores/WatermarkStore.ts",
+      "kind": "deprecated",
+      "match": "/** @deprecated */",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "extensions/totem-extension/src/core/stores/WatermarkStore.ts",
+      "kind": "deprecated",
+      "match": "/** @deprecated For migration use only */",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "extensions/totem-extension/src/core/stores/WatermarkStore.ts",
+      "kind": "deprecated",
+      "match": "/** @deprecated Use SigningIndices instead */",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "extensions/totem-extension/src/core/stores/WatermarkStore.ts",
+      "kind": "export",
+      "match": "LegacyWatermarkState",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "extensions/totem-extension/src/core/transaction/EnhancedTransactionBuilder.ts",
+      "kind": "deprecated",
+      "match": "* @deprecated Use canonicalBytesToHex from Streamable.ts instead.",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "extensions/totem-extension/src/core/transaction/EnhancedTransactionBuilder.ts",
+      "kind": "deprecated",
+      "match": "* @deprecated Use canonicalConcat from Streamable.ts instead.",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "extensions/totem-extension/src/core/transaction/EnhancedTransactionBuilder.ts",
+      "kind": "deprecated",
+      "match": "* @deprecated Use canonicalHexToBytes from Streamable.ts instead.",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "extensions/totem-extension/src/core/transaction/EnhancedTransactionBuilder.ts",
+      "kind": "deprecated",
+      "match": "* @deprecated Use writeMiniData from Streamable.ts instead.",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "extensions/totem-extension/src/core/transaction/EnhancedTransactionBuilder.ts",
+      "kind": "deprecated",
+      "match": "* @deprecated Use writeMiniNumber from Streamable.ts instead.",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "extensions/totem-extension/src/core/transaction/EnhancedTransactionBuilder.ts",
+      "kind": "deprecated",
+      "match": "* @deprecated Use writeMiniString from Streamable.ts instead.",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "extensions/totem-extension/src/core/transaction/service.ts",
+      "kind": "deprecated",
+      "match": "* @deprecated Use HierarchicalWitnessBundle for proper TreeKey signatures",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "extensions/totem-extension/src/core/transaction/types/ScriptTypes.ts",
+      "kind": "export",
+      "match": "LegacyMMRProof",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "extensions/totem-extension/src/core/wallet.ts",
+      "kind": "deprecated",
+      "match": "* @deprecated LEGACY FLAT ARCHITECTURE - DO NOT USE (2026-02)",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "extensions/totem-extension/src/core/wallet.ts",
+      "kind": "deprecated",
+      "match": "* @deprecated No-op in on-demand model.",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "extensions/totem-extension/src/core/wallet.ts",
+      "kind": "deprecated",
+      "match": "* @deprecated No-op — on-demand model requires no auto-resume.",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "extensions/totem-extension/src/core/wallet.ts",
+      "kind": "deprecated",
+      "match": "* @deprecated Use deriveAddressFromSeed instead. This method used the old master TreeKey architecture.",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "extensions/totem-extension/src/utils/sdk-rollout-admin.ts",
+      "kind": "flag",
+      "match": "SdkInitMode",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "extensions/totem-extension/src/utils/sdk-rollout-admin.ts",
+      "kind": "flag",
+      "match": "initMode",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "packages/connect/src/index.ts",
+      "kind": "deprecated",
+      "match": "/** @deprecated Use verify() instead */",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "packages/connect/src/wallet.ts",
+      "kind": "export",
+      "match": "LEGACY_METHODS",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "packages/connect/src/wallet.ts",
+      "kind": "export",
+      "match": "LegacyMethod",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "packages/core/package.json",
+      "kind": "export-subpath",
+      "match": "./legacy",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "packages/core/src/legacy.ts",
+      "kind": "deprecated",
+      "match": "* @deprecated The pure-JS kernels are scheduled for removal (RFC-031 P5). Use",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "packages/core/src/legacy.ts",
+      "kind": "export",
+      "match": "legacyConcatBytes",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "packages/core/src/legacy.ts",
+      "kind": "export",
+      "match": "legacyWotsAddressFromKeypair",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "packages/core/src/minima32.ts",
+      "kind": "deprecated",
+      "match": "/** @deprecated Use hexToMx */",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "packages/core/src/minima32.ts",
+      "kind": "deprecated",
+      "match": "/** @deprecated Use makeMxAddress */",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "packages/core/src/minima32.ts",
+      "kind": "deprecated",
+      "match": "/** @deprecated Use mxToHex */",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "packages/core/src/minima32.ts",
+      "kind": "deprecated",
+      "match": "/** @deprecated Use parseMxAddress */",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "packages/core/src/minimaWireSerializer.ts",
+      "kind": "deprecated",
+      "match": "* @deprecated (2026-01) - Most functions deprecated. Use Streamable.ts directly for",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "packages/core/src/minimaWireSerializer.ts",
+      "kind": "deprecated",
+      "match": "* @deprecated (2026-01) This function's output is NOT used in the main Totem transaction flow.",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "packages/core/src/mmr.ts",
+      "kind": "deprecated",
+      "match": "/** @deprecated Use parseMMRProofFromHex */",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "packages/core/src/scripts/types.ts",
+      "kind": "export",
+      "match": "LegacyMMRProof",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "packages/core/src/treekey.ts",
+      "kind": "deprecated",
+      "match": "* @deprecated Use getWOTSPublicKeyDigest() for Minima compatibility",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "packages/core/src/treekey.ts",
+      "kind": "deprecated",
+      "match": "* @deprecated Use {@link createUnifiedChildTreeKeyAsync} instead.",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "packages/core/src/treekey.ts",
+      "kind": "deprecated",
+      "match": "* @deprecated Use {@link createUnifiedChildTreeKey} instead.",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "packages/core/src/tx/TransactionService.ts",
+      "kind": "deprecated",
+      "match": "* @deprecated WotsSigningDependencies is no longer used by TransactionService.sign().",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "packages/core/src/tx/types.ts",
+      "kind": "deprecated",
+      "match": "* @deprecated Use HierarchicalWitnessBundle. Kept for backward compatibility.",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "packages/core/src/wots.ts",
+      "kind": "deprecated",
+      "match": "* @deprecated Use deriveChainSeedJava from javaStreamables.ts",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "packages/core/src/wots.ts",
+      "kind": "deprecated",
+      "match": "* @deprecated Use expandPrivateKey instead",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "packages/core/src/wots.ts",
+      "kind": "deprecated",
+      "match": "* @deprecated Use wotsVerify with full 1088-byte public key instead",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "packages/decision/src/types.ts",
+      "kind": "deprecated",
+      "match": "/** @deprecated 0.x alias for {@link ActionAnswer.operationConfidence}. */",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "packages/kissvm/src/eval.ts",
+      "kind": "flag",
+      "match": "allowLegacyMastBranches",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "packages/kissvm/src/mast/proof-chain.ts",
+      "kind": "deprecated",
+      "match": "* @deprecated Use toMinimaProofExpression(). Canonical Minima PROOF takes",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "packages/kissvm/src/templates/txpow.ts",
+      "kind": "deprecated",
+      "match": "/** @deprecated Use {@link buildAttestedTxPoWMetaScript} (RFC-016). */",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "packages/kissvm/src/types.ts",
+      "kind": "flag",
+      "match": "allowLegacyMastBranches",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "packages/mcp-server/src/index.ts",
+      "kind": "deprecated",
+      "match": "* @deprecated Importing this at module load forces index construction. Prefer",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "packages/mcp-server/src/indexer.ts",
+      "kind": "deprecated",
+      "match": "const deprecated = /@deprecated/.test(raw)",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "packages/mcp-server/src/indexer.ts",
+      "kind": "deprecated",
+      "match": "return { doc: raw, ...(/@deprecated/.test(raw) ? { deprecated: true } : {}) }",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "packages/mcp-server/src/types.ts",
+      "kind": "deprecated",
+      "match": "/** True when the doc contains an `@deprecated` tag. */",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "packages/recursive-mast/src/branch-capsule.ts",
+      "kind": "deprecated",
+      "match": "* @deprecated Use validateBranchEnvelope() for envelope checks or",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "packages/recursive-mast/src/kissvm/simulation.ts",
+      "kind": "flag",
+      "match": "allowLegacyMastBranches",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "packages/recursive-mast/src/proof-chain.ts",
+      "kind": "deprecated",
+      "match": "* @deprecated Use toMinimaProofExpression(). Canonical Minima PROOF takes",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "packages/tx-builder/src/fund-tx.ts",
+      "kind": "deprecated",
+      "match": "/** @deprecated Use {@link SignedFundingIntent} (RFC-016 P5). */",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    },
+    {
+      "file": "packages/txpow/src/admission/types.ts",
+      "kind": "deprecated",
+      "match": "* @deprecated Prefer `MinimaWorkRelay.submitBlock` (complete envelope).",
+      "class": "unclassified",
+      "reason": "pre-existing; classify during cleanup"
+    }
+  ]
+}

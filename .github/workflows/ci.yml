@@ -178,6 +178,8 @@ jobs:
         run: node scripts/verify-workspace.mjs --lint
       - name: Validate npm metadata
         run: node scripts/validate-pkg-meta.mjs
+      - name: Legacy surface guard (COMPATIBILITY.md)
+        run: node scripts/check-legacy-surface.mjs
       - name: Validate SDK_MANIFEST sync
         run: node scripts/verify-sdk-manifest.mjs
       - name: Custody conformance gate (RFC-044)
