@@ -1,6 +1,6 @@
 # RFC-062 — Node/Extension Pairing and Local-Node Provisioning
 
-**Status:** Draft — P1
+**Status:** Draft — P1; MVP implemented 2026-10-21 (loopback pairing service + extension page); Amendment A (Axia/Hawk provider parity) added 2026-10-21
 **Priority:** P1
 **Created:** 2026-10-20
 **Authors:** Totem SDK Contributors
@@ -16,6 +16,8 @@
 > relay/coordination endpoints.
 
 ---
+
+**MVP status.** `omnia-host pair` serves `/pair/v1/*` on loopback, persists a node identity and linked clients, and the extension Settings page opens a manual Pair Node screen that pins the fingerprint and stores the P2P hub URL. Remote pairing, 2FA enforcement, QR rendering/scanning and per-app hub credentials remain open. **Amendment A** defines the Axia/Hawk provider parity and mode isolation plan.
 
 ## 1. Summary
 
@@ -489,3 +491,4 @@ Waiting for the extension…
 - RFC-061 — Custody Enforcement Boundaries: Hosted Signing, MCP, and Direct Node Execution
 - node RFC-0011 — Node Capability Manifest and MCP
 - node RFC-0013 — MCP Profile Surface
+- RFC-062 Amendment A — Axia/Hawk Provider Parity and Mode Isolation
