@@ -39,6 +39,38 @@ type WotsAuthEnvelope struct {
 	Address           string `json:"address,omitempty"`
 }
 
+// SessionTicketRef is the RFC-032-A amortised-auth reference. `Seq` is a
+// client-monotonic counter, so a replayed ticket-authenticated message is
+// rejected by the node.
+type SessionTicketRef struct {
+	TicketID string `json:"ticketId"`
+	Seq      int64  `json:"seq"`
+}
+
+// SessionTicket is the node-signed ticket returned by SESSION_OPEN.
+type SessionTicket struct {
+	TicketID    string `json:"ticketId"`
+	Subject     string `json:"subject"`
+	NodeID      string `json:"nodeId"`
+	IssuedAt    int64  `json:"issuedAt"`
+	ExpiresAt   int64  `json:"expiresAt"`
+	MaxRequests int    `json:"maxRequests"`
+	Signature   string `json:"signature"`
+}
+
+// DefaultAuthRequiredTypes mirrors the TypeScript client/node list: high-value
+// or mutating messages must always carry a full WOTS envelope, never a ticket.
+var DefaultAuthRequiredTypes = []string{
+	"LEASE_RESERVE",
+	"LEASE_COMMIT",
+	"LEASE_BURN",
+	"BROADCAST_TXPOW",
+	"TRUST_RECORD",
+	"APP_ANNOUNCE",
+	"AGENT_ANNOUNCE",
+	"POLICY_ANNOUNCE",
+}
+
 // WotsSigner signs the RFC-032 auth digest for an outgoing message. Implement
 // this with a real WOTS/TreeKey signer. The digest is
 // sha3_256(canonicalJson(message) ‖ nonce ‖ expiresAt); `Nonce()` must return
@@ -55,6 +87,7 @@ type LookupMessage struct {
 	Version int               `json:"version"`
 	ID      string            `json:"id,omitempty"`
 	Auth    *WotsAuthEnvelope `json:"auth,omitempty"`
+	Ticket  *SessionTicketRef `json:"ticket,omitempty"`
 	Payload json.RawMessage   `json:"payload"`
 }
 
@@ -77,6 +110,15 @@ type LookupClientConfig struct {
 	// empty, the client fails closed (ErrNotInteroperable) unless a signer is
 	// supplied via NewLookupClientWithSigner.
 	IdentitySeed []byte
+	// UseSessionTickets enables RFC-032-A: SESSION_OPEN consumes one WOTS use,
+	// then non-high-value messages carry a `ticket` reference instead of a full
+	// envelope. Falls back to per-message WOTS if the session cannot be opened.
+	UseSessionTickets bool
+	// SessionTTLMs is the requested ticket lifetime; the node clamps it.
+	SessionTTLMs time.Duration
+	// AuthRequiredTypes overrides the high-value types that must always use a
+	// full WOTS envelope. Defaults to DefaultAuthRequiredTypes.
+	AuthRequiredTypes []string
 }
 
 type Coin struct {
@@ -134,6 +176,14 @@ type LookupClient struct {
 	subscriptions    *SubscriptionManager
 	signer           WotsSigner
 	authTTLMs        time.Duration
+	useTickets       bool
+	authRequired     map[string]struct{}
+	sessionTTL       time.Duration
+	ticket           *SessionTicket
+	ticketSeq        int64
+	ticketMu         sync.Mutex
+	reopenMu         sync.Mutex
+	reopening        bool
 	mu               sync.RWMutex
 	destroyed        bool
 	reconnectAttempt int
@@ -168,24 +218,55 @@ func NewLookupClientWithSigner(config LookupClientConfig, signer WotsSigner) (*L
 	}
 
 	c := &LookupClient{
-		config:    config,
-		signer:    signer,
-		authTTLMs: time.Minute,
-		handlers:  make(map[string][]func(...interface{})),
+		config:       config,
+		signer:       signer,
+		authTTLMs:    time.Minute,
+		useTickets:   config.UseSessionTickets,
+		authRequired: make(map[string]struct{}),
+		sessionTTL:   config.SessionTTLMs,
+		handlers:     make(map[string][]func(...interface{})),
+	}
+	required := config.AuthRequiredTypes
+	if required == nil {
+		required = DefaultAuthRequiredTypes
+	}
+	for _, typ := range required {
+		c.authRequired[typ] = struct{}{}
 	}
 	c.rpc = NewRpcLayer(config.TimeoutMs)
 	c.rpc.SetSigner(c)
+	c.rpc.SetOnSessionExpired(func() {
+		c.clearTicket()
+		c.maybeReopenSession()
+	})
 	c.subscriptions = NewSubscriptionManager(c.rpc)
 	return c, nil
 }
 
-// Stamp attaches a RFC-032 WOTS auth envelope to an outgoing message. Fails
-// closed with ErrNotInteroperable when no signer is configured, or for
-// unauthenticated liveness messages (HELLO/PING) which carry no envelope.
+// Stamp attaches a RFC-032 WOTS auth envelope to an outgoing message, or a
+// RFC-032-A session-ticket reference when a valid ticket is held and the type
+// allows amortised auth. Fails closed with ErrNotInteroperable when no signer
+// is configured, or for unauthenticated liveness messages (HELLO/PING) which
+// carry no envelope.
 func (c *LookupClient) Stamp(msg *LookupMessage) error {
 	if msg.Type == "HELLO" || msg.Type == "PING" {
 		return nil
 	}
+	msg.Auth = nil
+	msg.Ticket = nil
+
+	if c.useTickets && msg.Type != "SESSION_OPEN" && msg.Type != "SESSION_CLOSE" && !c.isAuthRequired(msg.Type) {
+		if ref := c.nextTicketRef(); ref != nil {
+			msg.Ticket = ref
+			return nil
+		}
+		if c.hasTicket() {
+			// Expired or exhausted: fall back to a full envelope and refresh the
+			// session in the background.
+			c.maybeReopenSession()
+		}
+	}
+
 	if c.signer == nil {
 		return ErrNotInteroperable
 	}
@@ -208,6 +289,110 @@ func (c *LookupClient) Stamp(msg *LookupMessage) error {
 	return nil
 }
 
+func (c *LookupClient) isAuthRequired(messageType string) bool {
+	_, ok := c.authRequired[messageType]
+	return ok
+}
+
+func (c *LookupClient) setTicket(ticket SessionTicket) error {
+	if ticket.TicketID == "" {
+		return errors.New("lookup-client: SESSION_TICKET has no ticketId")
+	}
+	if ticket.ExpiresAt <= time.Now().UnixMilli() {
+		return errors.New("lookup-client: SESSION_TICKET is already expired")
+	}
+	if ticket.MaxRequests <= 0 {
+		return errors.New("lookup-client: SESSION_TICKET has no request budget")
+	}
+	if c.signer != nil && ticket.Subject != c.signer.RootPublicKey() {
+		return fmt.Errorf("lookup-client: SESSION_TICKET subject %q does not match identity %q", ticket.Subject, c.signer.RootPublicKey())
+	}
+	c.ticketMu.Lock()
+	c.ticket = &ticket
+	c.ticketSeq = 0
+	c.ticketMu.Unlock()
+	return nil
+}
+
+func (c *LookupClient) clearTicket() {
+	c.ticketMu.Lock()
+	c.ticket = nil
+	c.ticketSeq = 0
+	c.ticketMu.Unlock()
+}
+
+func (c *LookupClient) hasTicket() bool {
+	c.ticketMu.Lock()
+	defer c.ticketMu.Unlock()
+	return c.ticket != nil
+}
+
+func (c *LookupClient) nextTicketRef() *SessionTicketRef {
+	c.ticketMu.Lock()
+	defer c.ticketMu.Unlock()
+	if c.ticket == nil || time.Now().UnixMilli() > c.ticket.ExpiresAt {
+		return nil
+	}
+	if c.ticket.MaxRequests > 0 && c.ticketSeq >= int64(c.ticket.MaxRequests) {
+		return nil
+	}
+	ref := &SessionTicketRef{TicketID: c.ticket.TicketID, Seq: c.ticketSeq}
+	c.ticketSeq++
+	return ref
+}
+
+// openSession sends SESSION_OPEN (one WOTS use) and caches the returned ticket.
+func (c *LookupClient) openSession() error {
+	if c.signer == nil {
+		return ErrNotInteroperable
+	}
+	c.clearTicket()
+	payload := map[string]interface{}{}
+	if c.sessionTTL > 0 {
+		payload["ttlMs"] = c.sessionTTL.Milliseconds()
+	}
+	resp, err := c.rpc.SendRequest(LookupMessage{
+		Type:    "SESSION_OPEN",
+		Version: ProtocolVersion,
+		Payload: mustMarshal(payload),
+	})
+	if err != nil {
+		return err
+	}
+	if resp.Type != "SESSION_TICKET" {
+		return fmt.Errorf("lookup-client: SESSION_OPEN did not return a ticket (got %s)", resp.Type)
+	}
+	var ticket SessionTicket
+	if err := json.Unmarshal(resp.Payload, &ticket); err != nil {
+		return fmt.Errorf("lookup-client: decode SESSION_TICKET: %w", err)
+	}
+	return c.setTicket(ticket)
+}
+
+// maybeReopenSession refreshes the ticket once in the background.
+func (c *LookupClient) maybeReopenSession() {
+	if !c.useTickets {
+		return
+	}
+	c.reopenMu.Lock()
+	if c.reopening {
+		c.reopenMu.Unlock()
+		return
+	}
+	c.reopening = true
+	c.reopenMu.Unlock()
+
+	go func() {
+		defer func() {
+			c.reopenMu.Lock()
+			c.reopening = false
+			c.reopenMu.Unlock()
+		}()
+		c.clearTicket()
+		_ = c.openSession()
+	}()
+}
+
 func (c *LookupClient) Connect(transport ITransport) error {
 	c.mu.Lock()
 	c.transport = transport
@@ -218,6 +403,7 @@ func (c *LookupClient) Connect(transport ITransport) error {
 	transport.OnClose(func() {
 		c.mu.Lock()
 		if !c.destroyed {
+			c.clearTicket()
 			c.transport = nil
 			c.rpc.Detach()
 			c.mu.Unlock()
@@ -228,6 +414,13 @@ func (c *LookupClient) Connect(transport ITransport) error {
 	})
 
 	transport.OnError(func(err error) {})
+
+	// RFC-032-A: if tickets are enabled, open a session (one WOTS use) before
+	// the first request. Failure falls back to per-message WOTS.
+	if c.useTickets {
+		c.clearTicket()
+		_ = c.openSession()
+	}
 
 	// RFC-032: no handshake. Authentication is a WOTS auth envelope stamped on
 	// every outgoing message (see Stamp / RpcLayer.SendRaw).
@@ -266,6 +459,7 @@ func (c *LookupClient) Disconnect() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.destroyed = true
+	c.clearTicket()
 	c.rpc.Detach()
 	if c.transport != nil {
 		c.transport.Close()
@@ -388,13 +582,14 @@ func (c *LookupClient) BroadcastTxPoW(txpowHex string) (*BroadcastResult, error)
 }
 
 type RpcLayer struct {
-	mu             sync.Mutex
-	pending        map[string]*pendingRequest
-	pushHandlers   map[string][]func(LookupMessage)
-	transport      ITransport
-	stamper        Stamper
-	defaultTimeout time.Duration
-	idCounter      int
+	mu               sync.Mutex
+	pending          map[string]*pendingRequest
+	pushHandlers     map[string][]func(LookupMessage)
+	transport        ITransport
+	stamper          Stamper
+	onSessionExpired func()
+	defaultTimeout   time.Duration
+	idCounter        int
 }
 
 type pendingRequest struct {
@@ -447,6 +642,11 @@ func (r *RpcLayer) route(msg LookupMessage) {
 			RequestID string `json:"requestId"`
 		}
 		json.Unmarshal(msg.Payload, &errPayload)
+		if errPayload.Code == "SESSION_EXPIRED" || errPayload.Code == "AUTH_REPLAY" {
+			if cb := r.onSessionExpired; cb != nil {
+				go cb()
+			}
+		}
 		if p, ok := r.pending[errPayload.RequestID]; ok {
 			p.timer.Stop()
 			p.reject <- fmt.Errorf("%s: %s", errPayload.Code, errPayload.Message)
@@ -534,6 +734,14 @@ type Stamper interface {
 func (r *RpcLayer) SetSigner(s Stamper) {
 	r.mu.Lock()
 	r.stamper = s
+	r.mu.Unlock()
+}
+
+// SetOnSessionExpired registers a callback invoked when the node rejects a
+// ticket (SESSION_EXPIRED/AUTH_REPLAY), so the client can reopen the session.
+func (r *RpcLayer) SetOnSessionExpired(cb func()) {
+	r.mu.Lock()
+	r.onSessionExpired = cb
 	r.mu.Unlock()
 }
 

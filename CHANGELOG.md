@@ -69,6 +69,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`@totemsdk/omnia-relay` 0.5.0 — self-hosted relay server**
   - New `@totemsdk/omnia-relay/server` entry point for running a relay instead of depending on a hosted endpoint.
 
+- **`@totemsdk/lookup-client` (Go) — RFC-032-A session tickets**
+  - The Go client performs one `SESSION_OPEN` (one WOTS use) and reuses a node ticket for non-high-value messages with a monotonic `seq`; `BROADCAST_TXPOW`, lease and announce types still require a full envelope.
+  - Ticket expiry, budget exhaustion, and `SESSION_EXPIRED`/`AUTH_REPLAY` trigger a single background reopen; a failed open falls back to per-message WOTS. Covered by `go test`.
+
 ### Changed
 
 - **`@totemsdk/decision` 0.2.0** — bounded-decisions hardening: runtime-owned hard cancellation (caller abort / `decision:cancel` / timeout all race the provider); operation vs target confidence split (`operationConfidence`/`targetConfidence`, `confidence` retained as the operation alias); action operation/target distribution completeness with provider-declared `distributionTolerance` (Laya/Jev 0.02) and `choiceSelection: 'argmax'` enforcement; target-head goal/operation context; intelligence-fallback semantic preservation; Edge failure provenance + capability narrowing; normalized provenance (result == receipt, receipt carries `upstreamRequestId`); closed-set `isDecisionCapability`; non-empty request-id validation; explicit `minOperationProbability`/`minTargetProbability`.
