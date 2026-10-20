@@ -103,7 +103,11 @@ pub fn verify_tree_signature(
         return Err("No proofs in signature".to_string());
     }
 
-    Ok(crate::treekey::verify_tree_signature(root_public_key, message, &signature))
+    Ok(crate::treekey::verify_tree_signature(
+        root_public_key,
+        message,
+        &signature,
+    ))
 }
 
 /// Verify an MMR proof from JSON.
@@ -218,7 +222,11 @@ pub fn create_challenge(domain: &str, statement: &str, now_secs: u64) -> Result<
 ///
 /// `now_secs` is passed from the caller because `SystemTime` panics on
 /// `wasm32-unknown-unknown`.
-pub fn validate_challenge(challenge_json: &str, domain: &str, now_secs: u64) -> Result<bool, String> {
+pub fn validate_challenge(
+    challenge_json: &str,
+    domain: &str,
+    now_secs: u64,
+) -> Result<bool, String> {
     let challenge: Challenge = serde_json::from_str(challenge_json)
         .map_err(|e| format!("Invalid challenge JSON: {}", e))?;
 
@@ -267,7 +275,8 @@ mod tests {
 
     #[test]
     fn test_create_and_validate_challenge() {
-        let challenge_json = create_challenge("test.totem.ing", "Sign in to TestApp", 1_700_000_000).unwrap();
+        let challenge_json =
+            create_challenge("test.totem.ing", "Sign in to TestApp", 1_700_000_000).unwrap();
         assert!(validate_challenge(&challenge_json, "test.totem.ing", 1_700_000_001).unwrap());
     }
 

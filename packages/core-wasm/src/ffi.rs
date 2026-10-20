@@ -191,20 +191,30 @@ pub extern "C" fn totem_wots_address_from_keypair(
 }
 
 #[no_mangle]
-pub extern "C" fn totem_timing_safe_equal(a: *const u8, a_len: usize, b: *const u8, b_len: usize) -> i32 {
+pub extern "C" fn totem_timing_safe_equal(
+    a: *const u8,
+    a_len: usize,
+    b: *const u8,
+    b_len: usize,
+) -> i32 {
     let a = unsafe { as_slice(a, a_len) };
     let b = unsafe { as_slice(b, b_len) };
-    if crate::verify::timing_safe_equal(a, b) { 1 } else { 0 }
+    if crate::verify::timing_safe_equal(a, b) {
+        1
+    } else {
+        0
+    }
 }
 
 // ── TreeKey (stateful handle) ────────────────────────────────────────────────
 
+use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Mutex;
-use once_cell::sync::Lazy;
 
-static HANDLES: Lazy<Mutex<HashMap<u32, treekey::TreeKey>>> = Lazy::new(|| Mutex::new(HashMap::new()));
+static HANDLES: Lazy<Mutex<HashMap<u32, treekey::TreeKey>>> =
+    Lazy::new(|| Mutex::new(HashMap::new()));
 static NEXT_HANDLE: AtomicU32 = AtomicU32::new(1);
 
 /// Create a TreeKey and return an opaque handle (0 on error).
@@ -265,7 +275,12 @@ pub extern "C" fn totem_treekey_get_public_key(handle: u32, out_len: *mut usize)
 
 #[no_mangle]
 pub extern "C" fn totem_treekey_get_uses(handle: u32) -> u32 {
-    HANDLES.lock().unwrap().get(&handle).map(|t| t.get_uses() as u32).unwrap_or(0)
+    HANDLES
+        .lock()
+        .unwrap()
+        .get(&handle)
+        .map(|t| t.get_uses() as u32)
+        .unwrap_or(0)
 }
 
 #[no_mangle]
@@ -277,7 +292,12 @@ pub extern "C" fn totem_treekey_set_uses(handle: u32, uses: u32) {
 
 #[no_mangle]
 pub extern "C" fn totem_treekey_get_max_uses(handle: u32) -> u32 {
-    HANDLES.lock().unwrap().get(&handle).map(|t| t.get_max_uses() as u32).unwrap_or(0)
+    HANDLES
+        .lock()
+        .unwrap()
+        .get(&handle)
+        .map(|t| t.get_max_uses() as u32)
+        .unwrap_or(0)
 }
 
 #[no_mangle]
@@ -317,7 +337,9 @@ pub extern "C" fn totem_tree_signature_serialize(
     err_out: *mut *mut std::os::raw::c_char,
 ) -> *mut u8 {
     let Some(s) = (unsafe { cstr(sig_json) }) else {
-        if !err_out.is_null() { unsafe { *err_out = leak_cstring("null signature json".into()) }; }
+        if !err_out.is_null() {
+            unsafe { *err_out = leak_cstring("null signature json".into()) };
+        }
         return std::ptr::null_mut();
     };
     match serde_json::from_str::<TreeSignature>(s) {
@@ -330,7 +352,9 @@ pub extern "C" fn totem_tree_signature_serialize(
             leak_bytes(out, out_len)
         }
         Err(e) => {
-            if !err_out.is_null() { unsafe { *err_out = leak_cstring(format!("parse error: {e}")) }; }
+            if !err_out.is_null() {
+                unsafe { *err_out = leak_cstring(format!("parse error: {e}")) };
+            }
             std::ptr::null_mut()
         }
     }
@@ -379,7 +403,8 @@ pub extern "C" fn totem_tree_signature_deserialize(
         if off + 4 > buf.len() {
             return fail(err_out, "truncated leaf pubkey length".into());
         }
-        let pk_len = u32::from_be_bytes([buf[off], buf[off + 1], buf[off + 2], buf[off + 3]]) as usize;
+        let pk_len =
+            u32::from_be_bytes([buf[off], buf[off + 1], buf[off + 2], buf[off + 3]]) as usize;
         off += 4;
         if off + pk_len > buf.len() {
             return fail(err_out, "leaf pubkey out of bounds".into());
@@ -390,7 +415,8 @@ pub extern "C" fn totem_tree_signature_deserialize(
         if off + 4 > buf.len() {
             return fail(err_out, "truncated signature length".into());
         }
-        let sig_len = u32::from_be_bytes([buf[off], buf[off + 1], buf[off + 2], buf[off + 3]]) as usize;
+        let sig_len =
+            u32::from_be_bytes([buf[off], buf[off + 1], buf[off + 2], buf[off + 3]]) as usize;
         off += 4;
         if off + sig_len > buf.len() {
             return fail(err_out, "signature out of bounds".into());
@@ -416,7 +442,8 @@ pub extern "C" fn totem_tree_signature_deserialize(
             if off + 4 > buf.len() {
                 return fail(err_out, "truncated mmr hash length".into());
             }
-            let h_len = u32::from_be_bytes([buf[off], buf[off + 1], buf[off + 2], buf[off + 3]]) as usize;
+            let h_len =
+                u32::from_be_bytes([buf[off], buf[off + 1], buf[off + 2], buf[off + 3]]) as usize;
             off += 4;
             if off + h_len > buf.len() {
                 return fail(err_out, "mmr hash out of bounds".into());
@@ -429,7 +456,10 @@ pub extern "C" fn totem_tree_signature_deserialize(
             off += v_len;
             chunks.push(crate::mmr::MMRProofChunk {
                 is_left,
-                mmr_data: crate::mmr::MMRData { data, value: value as u64 },
+                mmr_data: crate::mmr::MMRData {
+                    data,
+                    value: value as u64,
+                },
             });
         }
         proofs.push(treekey::SignatureProof {
@@ -455,9 +485,15 @@ pub extern "C" fn totem_verify_tree_signature_json(
 ) -> i32 {
     let root_pk = unsafe { as_slice(root_pk, root_pk_len) };
     let message = unsafe { as_slice(message, message_len) };
-    let Some(s) = (unsafe { cstr(sig_json) }) else { return 0; };
-    let Ok(sig) = serde_json::from_str::<TreeSignature>(s) else { return 0; };
-    match catch_unwind(AssertUnwindSafe(|| treekey::verify_tree_signature(root_pk, message, &sig))) {
+    let Some(s) = (unsafe { cstr(sig_json) }) else {
+        return 0;
+    };
+    let Ok(sig) = serde_json::from_str::<TreeSignature>(s) else {
+        return 0;
+    };
+    match catch_unwind(AssertUnwindSafe(|| {
+        treekey::verify_tree_signature(root_pk, message, &sig)
+    })) {
         Ok(true) => 1,
         _ => 0,
     }
@@ -505,7 +541,11 @@ pub fn derive_unified_child_seed_ts(base_seed: &[u8], index: u32) -> Vec<u8> {
 
 /// Derive the root identity private seed (TS-compatible).
 #[no_mangle]
-pub extern "C" fn totem_derive_root_priv_seed(seed: *const u8, seed_len: usize, out_len: *mut usize) -> *mut u8 {
+pub extern "C" fn totem_derive_root_priv_seed(
+    seed: *const u8,
+    seed_len: usize,
+    out_len: *mut usize,
+) -> *mut u8 {
     let seed = unsafe { as_slice(seed, seed_len) };
     leak_bytes(derive_root_priv_seed_ts(seed), out_len)
 }
@@ -537,7 +577,9 @@ pub extern "C" fn totem_create_unified_root_tree_key(
             handle
         }
         Err(e) => {
-            if !err_out.is_null() { unsafe { *err_out = leak_cstring(e) }; }
+            if !err_out.is_null() {
+                unsafe { *err_out = leak_cstring(e) };
+            }
             0
         }
     }
@@ -559,7 +601,9 @@ pub extern "C" fn totem_create_unified_child_tree_key(
             handle
         }
         Err(e) => {
-            if !err_out.is_null() { unsafe { *err_out = leak_cstring(e) }; }
+            if !err_out.is_null() {
+                unsafe { *err_out = leak_cstring(e) };
+            }
             0
         }
     }
@@ -594,7 +638,9 @@ pub extern "C" fn totem_create_per_address_tree_key(
             handle
         }
         Err(e) => {
-            if !err_out.is_null() { unsafe { *err_out = leak_cstring(e) }; }
+            if !err_out.is_null() {
+                unsafe { *err_out = leak_cstring(e) };
+            }
             0
         }
     }
@@ -609,7 +655,10 @@ pub extern "C" fn totem_derive_per_address_seed(
     out_len: *mut usize,
 ) -> *mut u8 {
     let root_seed = unsafe { as_slice(root_seed, root_seed_len) };
-    leak_bytes(crate::java_streamables::derive_per_address_seed(root_seed, address_index), out_len)
+    leak_bytes(
+        crate::java_streamables::derive_per_address_seed(root_seed, address_index),
+        out_len,
+    )
 }
 
 /// Derive a Minima Mx address from a 32-byte WOTS public-key digest
@@ -654,7 +703,11 @@ pub extern "C" fn totem_address_from_full_public_key(
 
 /// Serialize any byte buffer as a MiniData (4-byte length + bytes), for tests.
 #[no_mangle]
-pub extern "C" fn totem_write_mini_data(data: *const u8, len: usize, out_len: *mut usize) -> *mut u8 {
+pub extern "C" fn totem_write_mini_data(
+    data: *const u8,
+    len: usize,
+    out_len: *mut usize,
+) -> *mut u8 {
     let data = unsafe { as_slice(data, len) };
     leak_bytes(utils::concat_bytes(&[&write_mini_data(data)]), out_len)
 }
