@@ -125,6 +125,8 @@ S5_PASS
 
 | Package | Suites | Tests |
 |---|---|---|
+| `@totemsdk/core` | 26 | 288 |
+| `@totemsdk/txpow` | 4 | 136 |
 | `@totemsdk/omnia` | 9 | 223 |
 | `@totemsdk/omnia-host` | 11 | 58 |
 | `@totemsdk/stream-transport` | 2 | 20 |
@@ -138,12 +140,19 @@ factory/VC lifecycle):
 |---|---|---|
 | Node 22 | 5/5 | 6/6 with `OMNIA_SMOKE_HOST=<LAN IP>` |
 | Bun 1.3.14 | 5/5 | **skip** — `udx-native` panics on `uv_interface_addresses` (oven-sh/bun#18546) |
-| Bare 1.35 | **blocked** | n/a |
+| Bare 1.35 | 5/5 | n/a |
 
-Bare blocker: `@totemsdk/core-wasm/pkg-node` imports Node `fs` to read the WASM.
-The harness shims `Buffer`/`TextEncoder`/`TextDecoder`/`process`; the next fix is
-an `fs`→`bare-fs` (and `bare-encoding` global) fallback or a Bare-target WASM
-loader.
+Bare support (fixed 2026-10-20):
+
+- `core-wasm/pkg-node` falls back from node's `fs` to `bare-fs` and installs
+  `bare-encoding/global` when the encoding globals are absent. Both are optional
+  dependencies; `prepare-publish-assets.mjs` applies the fallback after every
+  wasm build so regeneration is safe.
+- `@noble/hashes` is patched so `node:crypto` is optional and
+  `globalThis.crypto` is the fallback. A Bare app that needs randomness sets
+  `globalThis.crypto = require('bare-crypto')`.
+- Verified with `bare scripts/runtime-smoke.cjs` and with
+  `--no-encoding-shim` (both 5/5, i.e. the SDK's own encoding fallback).
 
 ---
 
@@ -155,11 +164,10 @@ loader.
 3. **S7** splice managers are not wired into the host CLI.
 4. **S8** needs a third host and fee-adjusted per-hop amounts/retention.
 5. **S9** needs a formal relay round-trip harness using `@totemsdk/omnia-relay`.
-6. **Bare**: WASM `fs` blocker above; Bun native blocked upstream.
-7. **Native direct mode** (`OMNIA_NATIVE_DIRECT=1`) is intentionally disabled for
+6. **Native direct mode** (`OMNIA_NATIVE_DIRECT=1`) is intentionally disabled for
    the two-host tests: raw `dht.connect` bypasses hyperswarm's connection
    management and churns. Rendezvous (single dialer) is the supported path.
-8. External independent audit (G4) and Stage-T scale-up remain outside this
+7. External independent audit (G4) and Stage-T scale-up remain outside this
    harness.
 
 ---
@@ -173,7 +181,7 @@ loader.
 | 2026-10-20 | S5 | native | `e604b4cd`…`fddce8c6` | PASS | factory `37147d8e…`, VC `c17001f3…`, 100M/100M |
 | 2026-10-20 | S5 restart | native | `fddce8c6` | PASS | one rebind; zero churn/ERROR |
 | 2026-10-20 | S5 (mirrored harness) | native | `fddce8c6` | PASS | factory `e342d9bd…`, VC `8aad94ac…`, 100M/100M |
-| 2026-10-20 | runtime | — | `d9ef523c` | PASS (Node/Bun), BLOCKED (Bare) | `runtime-smoke.cjs` |
+| 2026-10-20 | runtime | — | `d9ef523c` + Bare fix | PASS (Node/Bun/Bare) | `runtime-smoke.cjs`; Bun native skipped (upstream) |
 
 To add a run: append a row, then add the command, `OMNIA_RESULT` JSON, and log
 paths under the relevant stage section. Re-run `scripts/omnia-{s4,s5}-cross.mjs`

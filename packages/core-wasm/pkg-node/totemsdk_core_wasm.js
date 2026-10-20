@@ -1,4 +1,7 @@
 /* @ts-self-types="./totemsdk_core_wasm.d.ts" */
+if (typeof TextEncoder === 'undefined' || typeof TextDecoder === 'undefined') {
+    try { require('bare-encoding/global'); } catch { /* runtime provides its own globals */ }
+}
 
 /**
  * Convert bytes to uppercase hex string.
@@ -1267,7 +1270,17 @@ if (!('encodeInto' in cachedTextEncoder)) {
 let WASM_VECTOR_LEN = 0;
 
 const wasmPath = `${__dirname}/totemsdk_core_wasm_bg.wasm`;
-const wasmBytes = require('fs').readFileSync(wasmPath);
+let wasmBytes;
+try {
+    wasmBytes = require('fs').readFileSync(wasmPath);
+} catch (fsError) {
+    // Bare has no node:fs; bare-fs is an optional dependency.
+    try {
+        wasmBytes = require('bare-fs').readFileSync(wasmPath);
+    } catch {
+        throw fsError;
+    }
+}
 const wasmModule = new WebAssembly.Module(wasmBytes);
 let wasmInstance = new WebAssembly.Instance(wasmModule, __wbg_get_imports());
 let wasm = wasmInstance.exports;

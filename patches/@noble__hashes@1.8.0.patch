@@ -1,0 +1,57 @@
+diff --git a/cryptoNode.js b/cryptoNode.js
+index eba1a1ffb613251dad55ca8edb8f70308fc17ad9..3de8dc7c5b6e8c0522b3654645226a7e00f12c12 100644
+--- a/cryptoNode.js
++++ b/cryptoNode.js
+@@ -3,16 +3,22 @@ Object.defineProperty(exports, "__esModule", { value: true });
+ exports.crypto = void 0;
+ /**
+  * Internal webcrypto alias.
+- * We prefer WebCrypto aka globalThis.crypto, which exists in node.js 16+.
+- * Falls back to Node.js built-in crypto for Node.js <=v14.
+- * See utils.ts for details.
++ * Prefer globalThis.crypto (browsers, Node 16+, Bun, and Bare apps that install
++ * a crypto global). Fall back to Node's built-in crypto for older Node.
++ * Bare has no node:crypto, so the require must be optional.
+  * @module
+  */
+-// @ts-ignore
+-const nc = require("node:crypto");
++let nc;
++try {
++    nc = require("node:crypto");
++}
++catch {
++    nc = undefined;
++}
++const globalCrypto = typeof globalThis === 'object' && globalThis.crypto ? globalThis.crypto : undefined;
+ exports.crypto = nc && typeof nc === 'object' && 'webcrypto' in nc
+     ? nc.webcrypto
+     : nc && typeof nc === 'object' && 'randomBytes' in nc
+         ? nc
+-        : undefined;
++        : globalCrypto;
+ //# sourceMappingURL=cryptoNode.js.map
+diff --git a/esm/cryptoNode.js b/esm/cryptoNode.js
+index 4f77e8f46c5e242e1e3cb92712dc65e95a8b8eb0..d5b4428b651b2ef993069ec5d61345b1e30fb8cc 100644
+--- a/esm/cryptoNode.js
++++ b/esm/cryptoNode.js
+@@ -1,15 +1,9 @@
+ /**
+  * Internal webcrypto alias.
+- * We prefer WebCrypto aka globalThis.crypto, which exists in node.js 16+.
+- * Falls back to Node.js built-in crypto for Node.js <=v14.
+- * See utils.ts for details.
++ * Prefer globalThis.crypto (browsers, Node 16+, Bun, and Bare apps that install
++ * a crypto global). The ESM build must not statically import node:crypto: Bare
++ * cannot resolve it and the import fails before any fallback can run.
+  * @module
+  */
+-// @ts-ignore
+-import * as nc from 'node:crypto';
+-export const crypto = nc && typeof nc === 'object' && 'webcrypto' in nc
+-    ? nc.webcrypto
+-    : nc && typeof nc === 'object' && 'randomBytes' in nc
+-        ? nc
+-        : undefined;
++export const crypto = typeof globalThis === 'object' && globalThis.crypto ? globalThis.crypto : undefined;
+ //# sourceMappingURL=cryptoNode.js.map

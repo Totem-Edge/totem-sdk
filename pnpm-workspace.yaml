@@ -10,3 +10,6 @@ allowBuilds:
   'better-sqlite3': true
   'esbuild': true
   'unrs-resolver': true
+
+patchedDependencies:
+  '@noble/hashes@1.8.0': patches/@noble__hashes@1.8.0.patch

@@ -102,8 +102,15 @@ Flow: `createFactory` (two 100M contributions) → `openVirtualChannel` (50M/50M
 ```
 node scripts/runtime-smoke.cjs
 bun  scripts/runtime-smoke.cjs
+bare scripts/runtime-smoke.cjs --no-encoding-shim
 OMNIA_SMOKE_HOST=<LAN IP> node scripts/runtime-smoke.cjs --native
 ```
+
+Bare has no `fs`, `TextEncoder`/`TextDecoder`, or `node:crypto`. The SDK now
+falls back to the optional `bare-fs`/`bare-encoding` packages (applied by the
+core-wasm post-build script) and patches `@noble/hashes` to make `node:crypto`
+optional. `--no-encoding-shim` proves the SDK's own fallback rather than the
+harness's.
 
 ---
 

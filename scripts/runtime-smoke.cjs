@@ -12,9 +12,10 @@
  *   (hyperdht cannot bootstrap on 127.0.0.1)
  *
  * Bare note: Bare has no Buffer/TextEncoder/TextDecoder/process globals, so the
- * harness installs minimal shims. The current blocker is
- * @totemsdk/core-wasm/pkg-node importing node's `fs`; a Bare-target WASM build or
- * an fs/bare-fs shim is required. Node and Bun run the full SDK surface.
+ * harness installs minimal shims. Pass --no-encoding-shim to exercise the SDK's
+ * own bare-encoding/global fallback instead. The WASM glue falls back from
+ * node:fs to bare-fs, and @noble/hashes' node:crypto import is optional (patched)
+ * with globalThis.crypto as the fallback. Node and Bun run the full surface.
  *
  * Checks:
  *   - @totemsdk/core hashing
@@ -40,6 +41,8 @@ if (typeof Bare !== 'undefined') {
   const bareArgs = Array.isArray(Bare.argv) ? Bare.argv : [];
   const bareBufferArg = bareArgs.find((a) => typeof a === 'string' && a.startsWith('--bare-buffer='));
   const bareBufferPath = bareBufferArg ? bareBufferArg.slice('--bare-buffer='.length) : null;
+  // --no-encoding-shim exercises the SDK's bare-encoding/global fallback.
+  const skipEncodingShim = bareArgs.includes('--no-encoding-shim');
   if (typeof globalThis.Buffer === 'undefined') {
     for (const candidate of ['bare-buffer', bareBufferPath]) {
       if (!candidate) continue;
@@ -52,7 +55,7 @@ if (typeof Bare !== 'undefined') {
       }
     }
   }
-  if (typeof globalThis.TextEncoder === 'undefined') {
+  if (!skipEncodingShim && typeof globalThis.TextEncoder === 'undefined') {
     globalThis.TextEncoder = class {
       encode(str) {
         const out = [];
@@ -71,7 +74,7 @@ if (typeof Bare !== 'undefined') {
     };
     applied.push('TextEncoder');
   }
-  if (typeof globalThis.TextDecoder === 'undefined') {
+  if (!skipEncodingShim && typeof globalThis.TextDecoder === 'undefined') {
     globalThis.TextDecoder = class {
       decode(u8) {
         if (u8 === undefined || u8 === null || u8.length === 0) return '';

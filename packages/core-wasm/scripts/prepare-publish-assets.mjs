@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { existsSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const ignoreRules = [
@@ -20,3 +20,61 @@ for (const directory of ['pkg', 'pkg-node', 'pkg-web']) {
     writeFileSync(join(outputDir, '.gitignore'), ignoreRules);
   }
 }
+
+/**
+ * Make the Node wasm-bindgen glue runnable on Bare.
+ *
+ * wasm-pack's `--target nodejs` glue reads the .wasm with node's `fs` and uses
+ * the `TextEncoder`/`TextDecoder` globals. Bare has neither by default:
+ *   - `bare-fs` / `bare-encoding` are optional dependencies (Node/Bun never
+ *     load them because `fs` and the encoding globals exist there).
+ *   - The fallback keeps the original `fs` error if `bare-fs` is unavailable.
+ *
+ * Keep this idempotent: it runs after every `build:node`.
+ */
+function patchNodeGlueForBare() {
+  const file = join(process.cwd(), 'pkg-node', 'totemsdk_core_wasm.js');
+  if (!existsSync(file)) return;
+
+  let source = readFileSync(file, 'utf8');
+  let changed = false;
+
+  if (!source.includes("require('bare-encoding/global')")) {
+    const firstNewline = source.indexOf('\n');
+    const injection = [
+      "if (typeof TextEncoder === 'undefined' || typeof TextDecoder === 'undefined') {",
+      "    try { require('bare-encoding/global'); } catch { /* runtime provides its own globals */ }",
+      "}",
+      '',
+    ].join('\n');
+    source = firstNewline === -1
+      ? injection + source
+      : source.slice(0, firstNewline + 1) + injection + source.slice(firstNewline + 1);
+    changed = true;
+  }
+
+  const fsRead = "const wasmBytes = require('fs').readFileSync(wasmPath);";
+  if (source.includes(fsRead)) {
+    source = source.replace(
+      fsRead,
+      [
+        'let wasmBytes;',
+        'try {',
+        '    wasmBytes = require(\'fs\').readFileSync(wasmPath);',
+        '} catch (fsError) {',
+        '    // Bare has no node:fs; bare-fs is an optional dependency.',
+        '    try {',
+        '        wasmBytes = require(\'bare-fs\').readFileSync(wasmPath);',
+        '    } catch {',
+        '        throw fsError;',
+        '    }',
+        '}',
+      ].join('\n'),
+    );
+    changed = true;
+  }
+
+  if (changed) writeFileSync(file, source);
+}
+
+patchNodeGlueForBare();
