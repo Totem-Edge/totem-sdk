@@ -71,6 +71,7 @@ All harnesses live in `scripts/` and print a machine-readable
 | S4 | `node scripts/omnia-s4-cross.mjs` | two nodes + two hosts; funded coin; bearer token |
 | S5 | `node scripts/omnia-s5-cross.mjs` | two hosts; factory lease bundles (host startup) |
 | S9 | `node scripts/omnia-s9-relay.mjs` | local only |
+| S6 | `node scripts/omnia-s6-vtxo.mjs` | local only |
 | S10 | `node scripts/omnia-s10-pool.mjs` | local only |
 | runtime | `node scripts/runtime-smoke.cjs [--native]` | SDK build; `OMNIA_SMOKE_HOST` for native |
 
@@ -109,6 +110,18 @@ Starts a self-hosted relay on an ephemeral loopback port, connects two
 `HostedRelaySwarmImpl` clients, sends a PING over the relay from B to A and
 asserts A's ACK comes back on the same peer. Also asserts the relay sees exactly
 the two expected clients. No node, chain, or cloud host is required.
+
+### S6
+
+```
+node scripts/omnia-s6-vtxo.mjs
+```
+
+Real `@totemsdk/omnia-vtxo` primitives with a unified TreeKey operator and a
+mock lease provider: create pool → mint 100k → co-sign/verify the mint receipt →
+partial transfer 40k (60k change) → co-sign/verify the transfer receipt →
+refresh to epoch 1 → co-sign/verify → exit draft → exited. Also asserts a
+receipt does not verify against the wrong root.
 
 ### S10
 
@@ -165,7 +178,7 @@ harness's.
 | **S3** | two nodes on a shared chain, both hosts healthy | both at tip; both control planes healthy | done |
 | **S4** | core channel lifecycle between two nodes | a channel payment settles on-chain | done |
 | **S5** | factory + virtual-channel lifecycle | factory opens, VC opens/closes, allocations restore | done |
-| **S6** | virtual-UTXO claims | claim settles | pending — no host methods yet |
+| **S6** | virtual-UTXO claims | claim settles | done (SDK harness) |
 | **S7** | splice in/out | live resize | pending — managers not wired into the CLI |
 | **S8** | multi-hop / cross-token payment (3 nodes) | multi-hop settles | pending — needs 3 hosts + fee-adjusted per-hop amounts |
 | **S9** | relay round-trip (SDK harness) | relay client/server round-trip | done |

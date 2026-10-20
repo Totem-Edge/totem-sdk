@@ -18,7 +18,7 @@ settlement + explicit TxPoW mining), `12e37e73` (transport identity),
 | **S3** | **PASS** | two Minima nodes (RPC 9005/9015) and two hosts (control 50052/50053) healthy on separate OCI instances |
 | **S4** | **PASS** | `openChannel → pay → settle → closeChannel`; settlement TxPoW accepted as a main-chain block |
 | **S5** | **PASS** | `createFactory → openVirtualChannel → closeVirtualChannel`; allocations restored (native, two hosts) |
-| **S6** | **PENDING** | `omnia-vtxo` has no host methods yet |
+| **S6** | **PASS** | SDK harness: pool → mint → signed receipts → transfer → refresh → exit |
 | **S7** | **PENDING** | splice managers not wired into the host CLI |
 | **S8** | **PENDING** | needs 3 hosts and fee-adjusted per-hop amounts |
 | **S9** | **PASS** | local relay; two relay-backed swarms; PING/ACK round-trip; 2 relay clients |
@@ -138,6 +138,23 @@ The run also exposed a concurrent-connect leak in `HostedRelaySwarmImpl`
 (`advertise` racing `connectToPeer` opened one socket per caller); `_connect` is
 now shared and the relay reports exactly 2 clients.
 
+### S6 — virtual-UTXO claims
+
+`scripts/omnia-s6-vtxo.mjs` uses the real `omnia-vtxo` primitives with a unified
+TreeKey operator (real WOTS receipts) and an in-memory lease provider: create
+pool, mint 100k, co-sign/verify the mint receipt, partially transfer 40k with a
+60k change, co-sign/verify the transfer receipt with conservation, refresh to
+epoch 1, co-sign/verify, then exit draft → exiting → exited. A wrong-root receipt
+is rejected.
+
+```
+OMNIA_RESULT {"stage":"S6","minted":{"amount":"100000"},
+  "transfer":{"amount":"40000","changeAmount":"60000"},
+  "refreshed":{"epoch":1},"exit":{"draftAmount":"40000","status":"exited"},
+  "pass":true}
+S6_PASS
+```
+
 ### S10 — pool lifecycle
 
 `scripts/omnia-s10-pool.mjs` uses the real `@totemsdk/omnia-pool` accounting with
@@ -167,6 +184,7 @@ Axia API, Postgres, Redis, and the TxPoW indexer.
 | `@totemsdk/omnia` | 9 | 223 |
 | `@totemsdk/omnia-host` | 11 | 58 |
 | `@totemsdk/stream-transport` | 2 | 20 |
+| `@totemsdk/omnia-vtxo` | 17 | 187 |
 | `@totemsdk/omnia-pool` | 4 | 40 |
 | `@totemsdk/liquidity-bond` | 17 | 170 |
 
@@ -199,8 +217,8 @@ Bare support (fixed 2026-10-20):
 
 1. **S5 `closeFactory`** (on-chain factory settlement) is not exercised
    end-to-end: the host does not yet accept per-participant funding material.
-2. **S6** needs host methods for VTXO (SDK-only today). S10 is closed at the
-   SDK-harness level; hosting pool operations remains future work.
+2. **S6/S10** are closed at the SDK-harness level; host methods for VTXO/pool
+   operations remain future work.
 3. **S7** splice managers are not wired into the host CLI.
 4. **S8** needs a third host and fee-adjusted per-hop amounts/retention.
 5. **S11** (Axia watchtower) needs the Axia API/DB/Redis/indexer; test after
@@ -222,8 +240,9 @@ Bare support (fixed 2026-10-20):
 | 2026-10-20 | S5 | native | `e604b4cd`…`fddce8c6` | PASS | factory `37147d8e…`, VC `c17001f3…`, 100M/100M |
 | 2026-10-20 | S5 restart | native | `fddce8c6` | PASS | one rebind; zero churn/ERROR |
 | 2026-10-20 | S5 (mirrored harness) | native | `fddce8c6` | PASS | factory `e342d9bd…`, VC `8aad94ac…`, 100M/100M |
-| 2026-10-20 | S9 | relay | `fddce8c6` | PASS | local relay; 2 clients; `omnia-s9-relay.mjs` |
-| 2026-10-20 | S10 | in-memory | `d9477ba3` | PASS | pool lifecycle; `omnia-s10-pool.mjs` |
+| 2026-10-20 | S9 | relay | `d9477ba3` | PASS | local relay; 2 clients; `omnia-s9-relay.mjs` |
+| 2026-10-20 | S6 | in-memory | uncommitted | PASS | VTXO mint/transfer/refresh/exit; `omnia-s6-vtxo.mjs` |
+| 2026-10-20 | S10 | in-memory | `1fe96913` | PASS | pool lifecycle; `omnia-s10-pool.mjs` |
 | 2026-10-20 | runtime | — | `d9ef523c` + Bare fix | PASS (Node/Bun/Bare) | `runtime-smoke.cjs`; Bun native skipped (upstream) |
 
 To add a run: append a row, then add the command, `OMNIA_RESULT` JSON, and log
