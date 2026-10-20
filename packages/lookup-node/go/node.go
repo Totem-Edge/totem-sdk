@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/totem-sdk/core-ffi"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/totem-sdk/core-ffi"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -19,11 +19,24 @@ import (
 // Ed25519, no HELLO/AUTH_CHALLENGE/AUTH_RESPONSE handshake.
 const ProtocolVersion = 2
 
+// DefaultAuthRequiredTypes mirrors the TypeScript node/client list.
+var DefaultAuthRequiredTypes = []string{
+	"LEASE_RESERVE",
+	"LEASE_COMMIT",
+	"LEASE_BURN",
+	"BROADCAST_TXPOW",
+	"TRUST_RECORD",
+	"APP_ANNOUNCE",
+	"AGENT_ANNOUNCE",
+	"POLICY_ANNOUNCE",
+}
+
 type LookupMessage struct {
 	Type    string            `json:"type"`
 	Version int               `json:"version"`
 	ID      string            `json:"id,omitempty"`
 	Auth    *WotsAuthEnvelope `json:"auth,omitempty"`
+	Ticket  *SessionTicketRef `json:"ticket,omitempty"`
 	Payload json.RawMessage   `json:"payload"`
 }
 
@@ -92,6 +105,16 @@ type LookupNodeConfig struct {
 	TrustIndex    bool
 	MegaMMR       bool
 	SkipAuth      bool
+	// SessionTTLMs is the default/maximum session-ticket lifetime. Default 60s.
+	SessionTTLMs time.Duration
+	// SessionMaxRequests is the per-ticket request budget. Default 1000.
+	SessionMaxRequests int
+	// AuthRequiredTypes overrides the high-value types that must always use a
+	// full WOTS envelope. Defaults to DefaultAuthRequiredTypes.
+	AuthRequiredTypes []string
+	// TicketSigner overrides the node ticket-signing identity (tests/custom
+	// deployments). When nil, a NodeIdentity is derived from NodeID lazily.
+	TicketSigner TicketSigner
 	// Verifier is the RFC-032 WOTS verifier. When nil (or SkipAuth false), the
 	// node fails closed: signed messages are rejected rather than trusted.
 	Verifier WotsVerifier
@@ -110,6 +133,10 @@ type LookupNode struct {
 	nodeID        string
 	sessions      map[string]*ClientSession
 	replayGuard   *ReplayGuard
+	tickets       *SessionTicketStore
+	ticketSigner  TicketSigner
+	ticketOnce    sync.Once
+	ticketErr     error
 	mu            sync.RWMutex
 	started       bool
 	stopCh        chan struct{}
@@ -151,6 +178,7 @@ func NewLookupNode(config LookupNodeConfig) (*LookupNode, error) {
 		nodeID:      config.NodeID,
 		sessions:    make(map[string]*ClientSession),
 		replayGuard: NewReplayGuard(),
+		tickets:     NewSessionTicketStore(),
 		stopCh:      make(chan struct{}),
 	}
 
@@ -208,6 +236,9 @@ func (n *LookupNode) Stop() {
 	n.watchlist.Stop()
 	if n.agentRegistry != nil {
 		n.agentRegistry.StopExpiryLoop()
+	}
+	if identity, ok := n.ticketSigner.(*NodeIdentity); ok {
+		identity.Free()
 	}
 	n.sessions = make(map[string]*ClientSession)
 	n.store.Close()
@@ -312,15 +343,49 @@ func (s *ClientSession) handleMessage(msg LookupMessage) {
 		return
 	}
 
-	// RFC-032: verify the WOTS auth envelope on every authenticated message.
+	// RFC-032-A: session establishment (one WOTS use) and teardown.
+	if msg.Type == "SESSION_OPEN" {
+		s.handleSessionOpen(msg)
+		return
+	}
+	if msg.Type == "SESSION_CLOSE" {
+		var p struct {
+			TicketID string `json:"ticketId"`
+		}
+		json.Unmarshal(msg.Payload, &p)
+		s.node.tickets.Revoke(p.TicketID)
+		s.sendMessage(LookupMessage{
+			Type:    "PONG",
+			Version: ProtocolVersion,
+			ID:      msg.ID,
+			Payload: mustMarshal(map[string]interface{}{"ts": time.Now().UnixMilli(), "echo": 0}),
+		})
+		return
+	}
+
+	// RFC-032 / RFC-032-A: authenticate via a full WOTS envelope, or (for
+	// non-high-value types) a node-issued session ticket.
 	if !s.node.config.SkipAuth {
-		if !s.verifyAuth(msg) {
-			s.sendError(msg.ID, "AUTH_REQUIRED", "invalid or missing WOTS auth")
+		if msg.Auth != nil {
+			if code, reason := s.verifyAuthEnvelope(msg); code != "" {
+				s.sendError(msg.ID, code, reason)
+				return
+			}
+		} else if msg.Ticket != nil {
+			if !s.verifyTicket(msg) {
+				return
+			}
+		} else {
+			s.sendError(msg.ID, "AUTH_REQUIRED", "Not authenticated")
 			return
 		}
 	} else if msg.Auth != nil {
 		s.Authenticated = true
 		s.PublicKeyHex = msg.Auth.RootPublicKey
+	} else if msg.Ticket != nil {
+		if !s.verifyTicket(msg) {
+			return
+		}
 	}
 
 	now := time.Now().UnixMilli()
@@ -337,35 +402,135 @@ func (s *ClientSession) handleMessage(msg LookupMessage) {
 	s.dispatch(msg)
 }
 
-// verifyAuth verifies the RFC-032 WOTS auth envelope and enforces replay
-// rejection (per-identity nonce monotonicity). Fails closed when no verifier is
-// configured.
-func (s *ClientSession) verifyAuth(msg LookupMessage) bool {
+// verifyAuthEnvelope verifies the RFC-032 WOTS auth envelope and enforces
+// replay rejection. It returns an error code/reason (empty on success).
+func (s *ClientSession) verifyAuthEnvelope(msg LookupMessage) (string, string) {
 	auth := msg.Auth
 	if auth == nil || auth.Signature == "" || auth.RootPublicKey == "" {
-		return false
+		return "AUTH_REQUIRED", "invalid or missing WOTS auth"
 	}
 	if time.Now().UnixMilli() > auth.ExpiresAt {
-		return false
+		return "AUTH_REQUIRED", "expired WOTS auth"
 	}
 	verifier := s.node.config.Verifier
 	if verifier == nil {
-		// Fail closed: no WOTS verifier ⇒ signed messages are not trusted.
-		return false
+		return "AUTH_REQUIRED", "no WOTS verifier configured"
 	}
 	digest, err := AuthDigest(msg, auth.Nonce, auth.ExpiresAt)
 	if err != nil {
-		return false
+		return "AUTH_REQUIRED", "invalid auth digest"
 	}
 	if !verifier.Verify(auth.RootPublicKey, digest, auth.Signature) {
-		return false
+		return "AUTH_REQUIRED", "invalid WOTS signature"
 	}
 	if !s.node.replayGuard.Claim(auth.RootPublicKey, auth.Nonce) {
-		return false
+		return "AUTH_REPLAY", "Replayed or non-monotonic nonce"
 	}
 	s.Authenticated = true
 	s.PublicKeyHex = auth.RootPublicKey
+	return "", ""
+}
+
+// verifyTicket consumes a ticket ref for a non-high-value type. On failure it
+// sends the matching error and returns false.
+func (s *ClientSession) verifyTicket(msg LookupMessage) bool {
+	if s.isAuthRequired(msg.Type) {
+		s.sendError(msg.ID, "AUTH_REQUIRED", fmt.Sprintf("'%s' requires a WOTS auth envelope", msg.Type))
+		return false
+	}
+	ref := msg.Ticket
+	if ref == nil {
+		s.sendError(msg.ID, "AUTH_REQUIRED", "Not authenticated")
+		return false
+	}
+	subject, reason := s.node.tickets.Consume(ref.TicketID, ref.Seq, "")
+	if reason != "" {
+		code := "SESSION_EXPIRED"
+		if reason == "replay" {
+			code = "AUTH_REPLAY"
+		}
+		s.sendError(msg.ID, code, "session ticket rejected: "+reason)
+		return false
+	}
+	s.Authenticated = true
+	s.PublicKeyHex = subject
 	return true
+}
+
+// handleSessionOpen verifies a SESSION_OPEN (one WOTS use) and mints a
+// node-signed ticket bound to the authenticated identity.
+func (s *ClientSession) handleSessionOpen(msg LookupMessage) {
+	code, reason := s.verifyAuthEnvelope(msg)
+	if code != "" {
+		s.sendError(msg.ID, code, reason)
+		return
+	}
+
+	cfg := s.node.config
+	ttl := cfg.SessionTTLMs
+	if ttl <= 0 {
+		ttl = time.Minute
+	}
+	var p struct {
+		TTLMs int64 `json:"ttlMs"`
+	}
+	if len(msg.Payload) > 0 {
+		json.Unmarshal(msg.Payload, &p)
+	}
+	if p.TTLMs > 0 {
+		requested := time.Duration(p.TTLMs) * time.Millisecond
+		if requested < ttl {
+			ttl = requested
+		}
+	}
+	maxRequests := cfg.SessionMaxRequests
+	if maxRequests <= 0 {
+		maxRequests = 1000
+	}
+
+	idBytes := make([]byte, 16)
+	rand.Read(idBytes)
+	now := time.Now().UnixMilli()
+	ticket := SessionTicket{
+		TicketID:    fmt.Sprintf("tkt-%x", idBytes),
+		Subject:     s.PublicKeyHex,
+		NodeID:      s.node.nodeID,
+		IssuedAt:    now,
+		ExpiresAt:   now + ttl.Milliseconds(),
+		MaxRequests: maxRequests,
+	}
+
+	signer, err := s.node.getTicketSigner()
+	if err != nil {
+		s.sendError(msg.ID, "INTERNAL_ERROR", "cannot sign session ticket")
+		return
+	}
+	signature, err := signer.SignTicket(ticket)
+	if err != nil {
+		s.sendError(msg.ID, "INTERNAL_ERROR", "cannot sign session ticket")
+		return
+	}
+	ticket.Signature = signature
+	s.node.tickets.Issue(ticket)
+	s.sendMessage(LookupMessage{
+		Type:    "SESSION_TICKET",
+		Version: ProtocolVersion,
+		ID:      msg.ID,
+		Payload: mustMarshal(ticket),
+	})
+}
+
+func (s *ClientSession) isAuthRequired(messageType string) bool {
+	list := s.node.config.AuthRequiredTypes
+	if list == nil {
+		list = DefaultAuthRequiredTypes
+	}
+	for _, typ := range list {
+		if typ == messageType {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *ClientSession) dispatch(msg LookupMessage) {

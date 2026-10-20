@@ -61,6 +61,12 @@ func (s *CoreWotsSigner) RootPublicKey() string { return s.pub }
 // Nonce returns the next TreeKey use index.
 func (s *CoreWotsSigner) Nonce() int64 { return int64(s.tree.Uses()) }
 
+// SetUses restores the use counter; it errors if `uses` would rewind it.
+func (s *CoreWotsSigner) SetUses(uses uint32) error { return s.tree.SetUses(uses) }
+
+// Uses returns the current use counter.
+func (s *CoreWotsSigner) Uses() uint32 { return s.tree.Uses() }
+
 // Sign signs the digest and returns the serialized TreeSignature bytes.
 func (s *CoreWotsSigner) Sign(digest []byte) ([]byte, error) {
 	sigJSON, err := s.tree.Sign(digest)

@@ -39,7 +39,7 @@ internally consistent.
 | RFC-029 | Draft — design | Not implemented (`byType` absent) |
 | RFC-030 | Draft — design | Shortlisting deferred by RFC-012 |
 | RFC-031 | Draft — P4 substantially landed | P5 (`/legacy` removal) remains |
-| RFC-032 / 032-A | Landed (TypeScript) + Go lookup-client tickets | Go lookup-client cache/seq/reopen landed; Go node ticket store remains |
+| RFC-032 / 032-A | Landed (TypeScript) + Go client and node tickets | Go client cache/seq/reopen and Go node mint/store/consume landed; generated TypeDoc remains |
 | RFC-033 | Landed | Go FFI + interop green |
 | RFC-034 | Phase A landed | Phase B tracked in RFC-035 |
 | RFC-035 | In progress | Onion codec, forwarder hook, capability flips remain |
@@ -127,9 +127,9 @@ internally consistent.
   RFC-050 §3 now says the P-EXIT first shape is implemented. Added a status note to RFC-049;
   the table remains the historical reference-revision view.
 - **RFC-032/032-A** said Go mirrors were not updated. The Go lookup **node** has RFC-032 auth
-  interop, the Go **SE** has leased identity, and the Go **lookup-client** now implements
-  `SESSION_OPEN`/ticket cache/`seq`/reopen. The correct wording is “Go node/SE/client auth
-  landed; Go node ticket store remains,” not a blanket “Go not updated.”
+  interop, the Go **SE** has leased identity, and both the Go **lookup-client** and
+  **lookup-node** implement tickets (`SESSION_OPEN`, cache/store, `seq`, reopen/mint/revoke).
+  The remaining task is regenerating generated TypeDoc, not a missing Go implementation.
 - **RFC-008** said Go signing routes return HTTP 501; the Go SE server now implements
   identity/signing routes. The status was corrected; the old line remains as history.
 
@@ -168,7 +168,7 @@ must not be read as delivery:
 | `RFC-019-…` | Draft + residual noted (post-auth negotiation acceptance) |
 | `RFC-020-…` | Draft → Landed (remediation; open questions only) |
 | `RFC-028-…` | Draft → Landed (V1/V2/V3) |
-| `RFC-032-…` / `RFC-032-AMENDMENT-A-…` | Corrected Go wording: WOTS/auth + Go lookup-client tickets landed; Go node ticket store remains |
+| `RFC-032-…` / `RFC-032-AMENDMENT-A-…` | Corrected Go wording: WOTS/auth + Go client and node tickets landed; generated TypeDoc remains |
 | `RFC-049-…` | Added status note over the RFC-048 reference table |
 | `RFC-053-…` | Draft/authorised → Landed; removed RFC-051 dependency |
 | `RFC-054-…` | Added **not started** |
@@ -188,8 +188,8 @@ must not be read as delivery:
 3. **RFC-014-A A3.** Start RFC-015 or explicitly defer A3.
 4. **RFC-019 residual.** Decide whether post-authorization negotiation acceptance is in scope;
    if not, mark it a follow-up.
-5. **RFC-032 Go node tickets.** The Go lookup-client cache/seq/reopen is implemented; decide
-   whether Go node ticket minting is required for a full Go mirror.
+5. **RFC-032 generated TypeDoc.** Go lookup-client and lookup-node tickets are implemented;
+   regenerate the generated TypeDoc as the remaining documentation task.
 6. **RFC-035/038/031 P5.** These are the only genuinely active residuals; keep them visible
    in the roadmap rather than in Draft-status limbo.
 
