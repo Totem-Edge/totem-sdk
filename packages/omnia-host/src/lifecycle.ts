@@ -9,6 +9,7 @@ import { createTotemNodeAdapter, type TotemNodeAdapter } from './chain/totem-nod
 import { channelGraphEdges, InProcessRoutingProvider, type RoutingProvider } from './router/routing-provider.js';
 import type { JsonRpcHandler } from './api/jsonrpc.js';
 import { createHostMethods, type OperationStoreLike } from './api/methods.js';
+import { ReplyCache } from './reply-cache.js';
 import {
   acceptFactory,
   signFactorySettlement,
@@ -171,93 +172,109 @@ export function createOmniaHost(
         ? factoryBundles?.[localParticipant.partyId]
         : undefined;
 
+      const factoryReplies = new ReplyCache();
+      const vcReplies = new ReplyCache();
+
       const onFactoryMessage = async (peer: any, msg: any): Promise<void> => {
+        if (!factories || !localBundle) return;
+        if (msg?.type !== 'FACTORY_PROPOSAL' && msg?.type !== 'FACTORY_CLOSE_PROPOSAL') return;
         const payload = (msg?.payload ?? {}) as Record<string, any>;
         if (process.env.OMNIA_DEBUG) {
-          console.error('[factory] recv', msg?.type, 'hasFactory', !!payload.factory, 'bundles', !!localBundle);
+          console.error('[factory] recv', msg.type, 'hasFactory', !!payload.factory, 'bundles', !!localBundle);
         }
-        if (!factories || !localBundle) return;
-        try {
-          if (msg.type === 'FACTORY_PROPOSAL' && payload.factory) {
-            const accepted = await acceptFactory(payload.factory, localBundle);
-            factories.set(accepted.factoryId, accepted);
-            await peer.sendMessage({
-              type: 'FACTORY_ACCEPT',
-              channelId: accepted.factoryId,
+        const key = factoryReplies.key(msg.type, msg.channelId, msg.nonce);
+        const reply = await factoryReplies.run(key, async () => {
+          try {
+            if (msg.type === 'FACTORY_PROPOSAL' && payload.factory) {
+              const accepted = await acceptFactory(payload.factory, localBundle);
+              factories.set(accepted.factoryId, accepted);
+              return {
+                type: 'FACTORY_ACCEPT',
+                channelId: accepted.factoryId,
+                nonce: msg.nonce,
+                payload: { factory: accepted },
+              };
+            }
+            if (msg.type === 'FACTORY_CLOSE_PROPOSAL' && payload.factoryId) {
+              const factory = factories.get(payload.factoryId);
+              if (!factory) throw new Error(`Factory ${payload.factoryId} not found`);
+              const signature = await signFactorySettlement(factory, payload.draft, localBundle);
+              return {
+                type: 'FACTORY_CLOSE_ACCEPT',
+                channelId: payload.factoryId,
+                nonce: msg.nonce,
+                payload: { signature },
+              };
+            }
+            return null;
+          } catch (e) {
+            if (process.env.OMNIA_DEBUG) console.error('[factory] err', String(e));
+            return {
+              type: 'ERROR',
+              channelId: msg.channelId,
               nonce: msg.nonce,
-              payload: { factory: accepted },
-            });
-          } else if (msg.type === 'FACTORY_CLOSE_PROPOSAL' && payload.factoryId) {
-            const factory = factories.get(payload.factoryId);
-            if (!factory) throw new Error(`Factory ${payload.factoryId} not found`);
-            const signature = await signFactorySettlement(factory, payload.draft, localBundle);
-            await peer.sendMessage({
-              type: 'FACTORY_CLOSE_ACCEPT',
-              channelId: payload.factoryId,
-              nonce: msg.nonce,
-              payload: { signature },
-            });
+              payload: { error: String(e) },
+            };
           }
-        } catch (e) {
-          if (process.env.OMNIA_DEBUG) console.error('[factory] err', String(e));
-          await peer.sendMessage({
-            type: 'ERROR',
-            channelId: msg.channelId,
-            nonce: msg.nonce,
-            payload: { error: String(e) },
-          });
-        }
+        });
+        if (reply) await peer.sendMessage(reply);
       };
 
       const onVcMessage = async (peer: any, msg: any): Promise<void> => {
-        const payload = (msg?.payload ?? {}) as Record<string, any>;
         if (!factories || !localBundle) return;
-        try {
-          if (msg.type === 'VC_FINALIZED') {
-            if (payload.factory) factories.set(payload.factory.factoryId, payload.factory);
-            if (payload.kind === 'vc-open' && payload.channel) {
-              channelStore?.set(payload.channel.channelId, payload.channel);
-            } else if (payload.kind === 'vc-close' && payload.channelId) {
-              channelStore?.delete(payload.channelId);
-            }
-            return;
+        const payload = (msg?.payload ?? {}) as Record<string, any>;
+        if (msg?.type === 'VC_FINALIZED') {
+          if (payload.factory) factories.set(payload.factory.factoryId, payload.factory);
+          if (payload.kind === 'vc-open' && payload.channel) {
+            channelStore?.set(payload.channel.channelId, payload.channel);
+          } else if (payload.kind === 'vc-close' && payload.channelId) {
+            channelStore?.delete(payload.channelId);
           }
-
-          const factory = factories.get(payload.factoryId);
-          if (!factory) throw new Error(`Factory ${payload.factoryId} not found`);
-          if (msg.type === 'VC_PROPOSAL' && payload.kind === 'vc-open') {
-            const signature = await signVirtualChannelOpen(factory, payload.plan, localBundle);
-            await localBundle.leaseProvider.commitKeyUse(
-              signature.reservationId,
-              `factory-vc-open-${payload.factoryId}`,
-            );
-            await peer.sendMessage({
-              type: 'VC_ACCEPT',
-              channelId: payload.vcId,
-              nonce: msg.nonce,
-              payload: { kind: 'vc-open', signature },
-            });
-          } else if (msg.type === 'VC_PROPOSAL' && payload.kind === 'vc-close') {
-            const signature = await signVirtualChannelClose(factory, payload.plan, localBundle);
-            await localBundle.leaseProvider.commitKeyUse(
-              signature.reservationId,
-              `factory-vc-close-${payload.factoryId}`,
-            );
-            await peer.sendMessage({
-              type: 'VC_ACCEPT',
-              channelId: payload.vcId,
-              nonce: msg.nonce,
-              payload: { kind: 'vc-close', signature },
-            });
-          }
-        } catch (e) {
-          await peer.sendMessage({
-            type: 'ERROR',
-            channelId: msg.channelId,
-            nonce: msg.nonce,
-            payload: { error: String(e) },
-          });
+          return;
         }
+        if (msg?.type !== 'VC_PROPOSAL') return;
+        const key = vcReplies.key(msg.type, msg.channelId, msg.nonce, payload.kind);
+        const reply = await vcReplies.run(key, async () => {
+          try {
+            const factory = factories.get(payload.factoryId);
+            if (!factory) throw new Error(`Factory ${payload.factoryId} not found`);
+            if (payload.kind === 'vc-open') {
+              const signature = await signVirtualChannelOpen(factory, payload.plan, localBundle);
+              await localBundle.leaseProvider.commitKeyUse(
+                signature.reservationId,
+                `factory-vc-open-${payload.factoryId}`,
+              );
+              return {
+                type: 'VC_ACCEPT',
+                channelId: payload.vcId,
+                nonce: msg.nonce,
+                payload: { kind: 'vc-open', signature },
+              };
+            }
+            if (payload.kind === 'vc-close') {
+              const signature = await signVirtualChannelClose(factory, payload.plan, localBundle);
+              await localBundle.leaseProvider.commitKeyUse(
+                signature.reservationId,
+                `factory-vc-close-${payload.factoryId}`,
+              );
+              return {
+                type: 'VC_ACCEPT',
+                channelId: payload.vcId,
+                nonce: msg.nonce,
+                payload: { kind: 'vc-close', signature },
+              };
+            }
+            return null;
+          } catch (e) {
+            return {
+              type: 'ERROR',
+              channelId: msg.channelId,
+              nonce: msg.nonce,
+              payload: { error: String(e) },
+            };
+          }
+        });
+        if (reply) await peer.sendMessage(reply);
       };
 
       unsubscribe = createOmniaIntegration(swarm, channelStore, {

@@ -28,8 +28,11 @@ type AnySwarm = any;
 export class OmniaSwarmImpl implements OmniaSwarm {
   private readonly _swarm: AnySwarm;
   private readonly _peers = new Map<string, OmniaPeerImpl>();
+  /** transportKey -> canonical Omnia participant key (after connectToPeer re-key). */
+  private readonly _aliases = new Map<string, string>();
   private readonly _topicPeers = new Map<string, OmniaPeerImpl[]>();
   private readonly _joinedTopics = new Set<string>();
+  private readonly _discoveries = new Map<string, { refresh?: () => Promise<unknown> }>();
   private _channelListeners: Array<(peer: OmniaPeer, proposal: OmniaMessage) => void> = [];
   private readonly _config: Required<Omit<OmniaSwarmConfig, 'localPubkey' | 'keyPair' | 'host' | 'port'>> & { localPubkey?: string; keyPair?: { publicKey: Uint8Array; secretKey: Uint8Array }; host?: string; port?: number };
 
@@ -51,23 +54,23 @@ export class OmniaSwarmImpl implements OmniaSwarm {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     this._swarm.on('connection', (conn: any, info: any) => {
       const pubkey = info?.publicKey
-        ? Buffer.from(info.publicKey).toString('hex')
+        ? Buffer.from(info.publicKey).toString('hex').toLowerCase()
         : `unknown-${Date.now()}`;
 
-      const isNewPeer = !this._peers.has(pubkey);
+      // Single-dial design: the responder only advertises (server), the
+      // initiator joins with client:true and dials. There is therefore one
+      // physical socket per pair and no duplicate-selection race. Do not drop
+      // connections here: an app-level rule cannot know which socket hyperswarm
+      // kept, and dropping the sole dial deadlocks the connection.
+
+      // A peer may have been re-keyed from its transport key to its Omnia
+      // participant key; resolve the alias so a reconnect rebinds the same peer.
+      const registryKey = this._aliases.get(pubkey) ?? pubkey;
+      const isNewPeer = !this._peers.has(registryKey);
       if (process.env.OMNIA_DEBUG) {
-        console.error('[swarm] inbound', pubkey, 'client', info?.client, 'new', isNewPeer);
+        console.error('[swarm] connection', pubkey, 'key', registryKey, 'client', info?.client, 'initiator', (conn as { isInitiator?: boolean })?.isInitiator, 'new', isNewPeer);
       }
-      // Duplicate-connection guard: keep one live transport per peer. When both
-      // sides dial (client lookups), drop the extra socket instead of rebinding
-      // the active stream (which caused a reconnect/rebind storm and lost frames).
-      const existing = this._peers.get(pubkey);
-      if (existing && (existing.isConnected?.() ?? true)) {
-        if (process.env.OMNIA_DEBUG) console.error('[swarm] duplicate dropped', pubkey);
-        try { (conn as { destroy?: () => void }).destroy?.(); } catch { /* noop */ }
-        return;
-      }
-      const peer = this._getOrBindPeer(this._adaptConn(conn, info), pubkey, undefined);
+      const peer = this._getOrBindPeer(this._adaptConn(conn, info), registryKey, undefined);
 
       const topics: Buffer[] = Array.isArray(info?.topics)
         ? info.topics.map((t: Buffer | Uint8Array) => Buffer.from(t))
@@ -141,6 +144,9 @@ export class OmniaSwarmImpl implements OmniaSwarm {
   ): OmniaPeerImpl {
     const existing = this._peers.get(pubkey);
     if (existing) {
+      // The selected connection may replace an older socket. Rebind (do not
+      // drop): hyperswarm has already destroyed the losing side, so refusing
+      // the winner would leave the peer permanently disconnected.
       existing.rebindStream(stream);
       return existing;
     }
@@ -150,17 +156,41 @@ export class OmniaSwarmImpl implements OmniaSwarm {
       channelId,
       maxReconnectAttempts: this._config.maxReconnectAttempts,
       reconnectBaseDelayMs: this._config.reconnectBaseDelayMs,
-      reconnectFactory: async () => {
-        const topic = peerTopic(pubkey);
-        return this._connectToPubkey(topic, pubkey);
-      },
+      // In rendezvous mode hyperswarm already re-dials discovered peers and
+      // re-emits `connection` (which rebinds above). An SDK reconnect as well
+      // just races it and produces duplicate sockets. Only direct mode needs it.
+      reconnectFactory: process.env.OMNIA_NATIVE_DIRECT === '1'
+        ? async () => {
+            const dht = (this._swarm as { dht?: { connect?: (k: Buffer) => unknown } }).dht;
+            if (!dht?.connect) throw new Error('direct reconnect unavailable');
+            return this._adaptConn(dht.connect(Buffer.from(pubkey, 'hex')), {
+              publicKey: Buffer.from(pubkey, 'hex'),
+            });
+          }
+        : undefined,
     });
 
     this._peers.set(pubkey, peer);
     return peer;
   }
 
-  private _connectToPubkey(topic: Buffer, expectedPubkey: string): Promise<IStreamTransport> {
+  /**
+   * Wait until a connection to `expectedPubkey` is accepted. Resolution is a
+   * signal only — the global `connection` handler has already bound (or
+   * rebound) the peer and owns the single transport wrapper. Adapting the raw
+   * connection here as well would attach a second set of data/close listeners.
+   */
+  private _rekeyPeer(from: string, to: string): OmniaPeerImpl | undefined {
+    if (from === to) return this._peers.get(from);
+    const peer = this._peers.get(from);
+    if (!peer) return this._peers.get(to);
+    this._peers.delete(from);
+    this._peers.set(to, peer);
+    this._aliases.set(from, to);
+    return peer;
+  }
+
+  private _connectToPubkey(topic: Buffer, expectedPubkey?: string): Promise<string> {
     return new Promise((resolve, reject) => {
       const topicHex = topic.toString('hex');
 
@@ -174,15 +204,15 @@ export class OmniaSwarmImpl implements OmniaSwarm {
         // Hyperswarm reports raw lowercase hex; callers pass `0x`-prefixed
         // digests. Normalise both before matching (native-only path).
         const connPubkey = info?.publicKey
-          ? Buffer.from(info.publicKey).toString('hex')
+          ? Buffer.from(info.publicKey).toString('hex').toLowerCase()
           : null;
         if (process.env.OMNIA_DEBUG) {
           console.error('[swarm] connection', connPubkey, 'expect', expectedPubkey);
         }
-        if (connPubkey && connPubkey === expectedPubkey.replace(/^0x/i, '').toLowerCase()) {
-          cleanup();
-          resolve(this._adaptConn(conn, info));
-        }
+        if (!connPubkey) return;
+        if (expectedPubkey && connPubkey !== expectedPubkey.replace(/^0x/i, '').toLowerCase()) return;
+        cleanup();
+        resolve(connPubkey);
       };
 
       const cleanup = (): void => {
@@ -194,21 +224,34 @@ export class OmniaSwarmImpl implements OmniaSwarm {
 
       if (!this._joinedTopics.has(topicHex)) {
         this._joinedTopics.add(topicHex);
-        this._swarm.join(topic, { server: true, client: true });
+        const discovery = this._swarm.join(topic, { server: true, client: true });
+        if (discovery) this._discoveries.set(topicHex, discovery);
         if (process.env.OMNIA_DEBUG) {
           console.error('[swarm] join', topicHex, 'expect', expectedPubkey);
         }
+      } else {
+        // Already on the topic: force a fresh lookup. Without this, a peer that
+        // restarted is still absent from the previous lookup result and the
+        // 15s wait times out despite hyperswarm being able to find it.
+        const discovery = this._discoveries.get(topicHex);
+        if (process.env.OMNIA_DEBUG) {
+          console.error('[swarm] refresh', topicHex, 'expect', expectedPubkey);
+        }
+        void discovery?.refresh?.().catch(() => {});
       }
       this._swarm.flush().catch((err: Error) => { cleanup(); reject(err); });
     });
   }
 
   advertise(localPubkey: string): void {
-    const topic = peerTopic(localPubkey);
+    // connectToPeer normalises before deriving peerTopic; advertiser and
+    // dialer must hash the SAME string or they never meet on the DHT.
+    const topic = peerTopic(normalizePubkey(localPubkey));
     const topicHex = topic.toString('hex');
     if (!this._joinedTopics.has(topicHex)) {
       this._joinedTopics.add(topicHex);
-      this._swarm.join(topic, { server: true, client: true });
+      const discovery = this._swarm.join(topic, { server: true, client: false });
+      if (discovery) this._discoveries.set(topicHex, discovery);
       if (process.env.OMNIA_DEBUG) {
         console.error('[swarm] advertise', topicHex, 'pubkey', normalizePubkey(localPubkey));
       }
@@ -225,7 +268,19 @@ export class OmniaSwarmImpl implements OmniaSwarm {
     // peer registry so lookups after connect succeed.
     const key = normalizePubkey(pubkey);
     const existing = this._peers.get(key);
-    if (existing) return existing;
+    // A closed peer is kept (not removed) so an incoming reconnect can rebind
+    // it, but it must not be handed to callers: sending on it throws
+    // "transport is closed" before the rebind arrives.
+    if (existing?.isConnected()) return existing;
+
+    // A connection may already have been accepted (and bound under the
+    // transport key) before connectToPeer was called. Resolve it instead of
+    // dialing a second socket and waiting for an event that already fired.
+    if (expectedTransportPubkey) {
+      const transportHex = normalizePubkey(expectedTransportPubkey);
+      const bound = this._peers.get(transportHex) ?? this._peers.get(this._aliases.get(transportHex) ?? transportHex);
+      if (bound?.isConnected()) return this._rekeyPeer(transportHex, key) ?? bound;
+    }
 
     // Native connections are authenticated by the transport (noise) key, which
     // is bound to the Omnia identity by the signed manifest. When we know the
@@ -238,29 +293,29 @@ export class OmniaSwarmImpl implements OmniaSwarm {
       const dht: any = (this._swarm as any).dht;
       if (dht && typeof dht.connect === 'function') {
         const raw = Buffer.from(transportHex, 'hex');
+        this._aliases.set(transportHex, key);
         const conn = dht.connect(raw);
         conn.on('error', (err: Error) => {
           if (process.env.OMNIA_DEBUG) console.error('[swarm] direct connect error', String(err));
         });
         const transport = this._adaptConn(conn, { publicKey: raw });
-        return this._getOrBindPeer(transport, key, channelId);
+        const bound = this._getOrBindPeer(transport, transportHex, channelId);
+        return this._rekeyPeer(transportHex, key) ?? bound;
       }
     }
 
     const topic = peerTopic(key);
-    const matchKey = expectedTransportPubkey ? normalizePubkey(expectedTransportPubkey) : key;
-    await this._connectToPubkey(topic, matchKey);
+    // Without a manifest-provided transport key, the rendezvous key is also the
+    // expected transport key (legacy/same-key deployments).
+    const expected = expectedTransportPubkey ? normalizePubkey(expectedTransportPubkey) : key;
+    const matchKey = await this._connectToPubkey(topic, expected);
 
     // The global connection handler binds the peer under the transport key;
-    // re-key it under the Omnia participant key for subsequent lookups.
-    const transportPeer = this._peers.get(matchKey);
-    if (transportPeer) {
-      if (matchKey !== key) {
-        this._peers.delete(matchKey);
-        this._peers.set(key, transportPeer);
-      }
-      return transportPeer;
-    }
+    // re-key it under the Omnia participant key for subsequent lookups. Record
+    // the alias so later reconnects (which report the transport key) rebind the
+    // same peer instead of creating a duplicate.
+    const transportPeer = this._rekeyPeer(matchKey, key);
+    if (transportPeer) return transportPeer;
 
     const peer = this._peers.get(key);
     if (peer) return peer;
@@ -280,7 +335,10 @@ export class OmniaSwarmImpl implements OmniaSwarm {
     const topicHex = topic.toString('hex');
     if (!this._joinedTopics.has(topicHex)) {
       this._joinedTopics.add(topicHex);
-      this._swarm.join(topic, { server: true, client: true });
+      // Listen-only: joining with client:true makes every listening host dial
+      // every other listener, producing N-way duplicate sockets. Proposals are
+      // delivered over the peer connection established by connectToPeer.
+      this._swarm.join(topic, { server: true, client: false });
     }
 
     return () => {
@@ -306,6 +364,8 @@ export class OmniaSwarmImpl implements OmniaSwarm {
       peer.disconnect();
     }
     this._peers.clear();
+    this._aliases.clear();
+    this._discoveries.clear();
     this._topicPeers.clear();
     this._joinedTopics.clear();
     this._channelListeners = [];
@@ -356,6 +416,14 @@ export async function createOmniaSwarm(config: OmniaSwarmConfig = {}): Promise<O
     );
   }
 
+  // dht-rpc bootstrap entries are `host:port`; the `pubkey@host:port` form is a
+  // hyperswarm convention. Passing the latter straight through makes dht-rpc
+  // treat `pubkey@host` as the hostname, so the node never bootstraps.
+  const bootstrap = (config.bootstrap ?? []).map((entry: string) => {
+    const at = entry.lastIndexOf('@');
+    return at === -1 ? entry : entry.slice(at + 1);
+  });
+
   let swarm: any;
   if (config.host || config.port) {
     // Hyperswarm does not forward `host`/`port` to its DHT, so construct the
@@ -365,9 +433,29 @@ export async function createOmniaSwarm(config: OmniaSwarmConfig = {}): Promise<O
     const dht = new DhtCtor({
       ...(config.host ? { host: config.host } : {}),
       ...(config.port ? { port: config.port } : {}),
-      ...(config.bootstrap?.length ? { bootstrap: config.bootstrap } : {}),
+      ...(bootstrap.length ? { bootstrap } : {}),
       ...(config.keyPair ? { keyPair: config.keyPair } : {}),
     });
+    if (config.host) {
+      // `host`/`port` bind the socket but `dht.host`/`dht.port` are NAT-sampled;
+      // on a LAN/VPN/loopback the sampler may stay null/0 and every announce
+      // carries an unusable address. When the caller pins an interface, pin the
+      // announced address to the bound socket too. `_nat.add` keeps dht-rpc's
+      // own sampling from immediately overriding the getters.
+      await Promise.race([
+        dht.ready().catch(() => {}),
+        new Promise((resolve) => setTimeout(resolve, 3_000)),
+      ]);
+      const address = (dht as { io?: { serverSocket?: { address?: () => { port?: number } } } })
+        .io?.serverSocket?.address?.();
+      const pinnedHost = config.host;
+      const pinnedPort = address?.port ?? config.port;
+      Object.defineProperty(dht, 'host', { configurable: true, get: () => pinnedHost });
+      if (pinnedPort) {
+        Object.defineProperty(dht, 'port', { configurable: true, get: () => pinnedPort });
+      }
+      (dht as { _nat?: { add?: (host: string, port: number) => void } })._nat?.add?.(pinnedHost, pinnedPort ?? 0);
+    }
     // The server keypair is separate from the DHT keypair; use the same
     // derived transport keypair so `info.publicKey` matches the signed manifest.
     swarm = new HyperswarmCtor({ dht, ...(config.keyPair ? { keyPair: config.keyPair } : {}) });

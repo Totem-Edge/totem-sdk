@@ -174,18 +174,53 @@ export class NodeStreamTransport implements IStreamTransport {
   private _state: TransportState = 'open';
   private _closeResolve: (() => void) | null = null;
   private readonly _closePromise: Promise<void>;
+  private _readyResolve: (() => void) | null = null;
+  private readonly _readyPromise: Promise<void>;
   private readonly _pendingSendRejects = new Set<(error: Error) => void>();
 
   constructor(stream: unknown) {
     this._stream = stream as NodeStreamTransport['_stream'];
 
+    this._readyPromise = new Promise((resolve) => {
+      this._readyResolve = resolve;
+    });
+
     this._stream.on('data', (chunk: unknown) =>
       emitBytes(chunk, (bytes) => this._data.emit(bytes), (error) => this._error.emit(error)),
     );
 
+    // A raw `dht.connect()` stream (and net.Socket in connecting state) is not
+    // writable yet. Wait for the handshake to complete instead of writing into
+    // a socket that is still opening (bytes written then are lost).
+    const raw = this._stream as {
+      connecting?: boolean;
+      pending?: boolean;
+      opened?: boolean | Promise<void>;
+      once?: (event: string, handler: () => void) => unknown;
+    };
+    // A raw `dht.connect()` SecretStream exposes `opened` as a Promise that
+    // resolves after the Noise handshake; a net.Socket uses `connecting`.
+    const openedPromise = raw.opened && typeof (raw.opened as Promise<void>).then === 'function'
+      ? (raw.opened as Promise<void>)
+      : null;
+    if (openedPromise || raw.connecting === true || raw.pending === true || raw.opened === false) {
+      this._state = 'connecting';
+      const markOpen = (): void => {
+        if (this._state === 'connecting') this._state = 'open';
+        this._readyResolve?.();
+      };
+      openedPromise?.then(markOpen, () => { /* close/error handlers settle */ });
+      raw.once?.('open', markOpen);
+      raw.once?.('connect', markOpen);
+      raw.once?.('ready', markOpen);
+    } else {
+      this._readyResolve?.();
+    }
+
     this._stream.on('close', () => {
       if (this._state === 'closed') return;
       this._state = 'closed';
+      this._readyResolve?.();
       this._rejectPendingSends(new ClosedTransportError());
       this._data.seal();
       this._close.emit();
@@ -207,6 +242,7 @@ export class NodeStreamTransport implements IStreamTransport {
   }
 
   async send(data: Uint8Array): Promise<void> {
+    if (this._state === 'connecting') await this._readyPromise;
     if (this._state === 'closed' || this._state === 'closing') {
       throw new ClosedTransportError();
     }

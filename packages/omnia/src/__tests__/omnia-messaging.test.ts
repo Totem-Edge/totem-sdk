@@ -1083,7 +1083,7 @@ describe('OmniaSwarmImpl with mock swarm', () => {
     await swarmImpl.close();
   });
 
-  it('advertise: joins peerTopic(localPubkey) as server', () => {
+  it('advertise: joins peerTopic(localPubkey) as a server only', () => {
     const mockSwarm = makeMockHyperswarm();
     const swarmImpl = new OmniaSwarmImpl(mockSwarm);
     const localPubkey = Buffer.alloc(32, 0x11).toString('hex');
@@ -1095,6 +1095,10 @@ describe('OmniaSwarmImpl with mock swarm', () => {
     expect(topicArg).toBeInstanceOf(Buffer);
     expect(topicArg.length).toBe(32);
     expect(opts.server).toBe(true);
+    // Single-dial design: the responder advertises server-only, and the peer
+    // that wants to connect calls connectToPeer (client lookup + dial). Two
+    // client lookups create two sockets and make hyperswarm's duplicate
+    // selection tear the pair down repeatedly.
     expect(opts.client).toBe(false);
   });
 

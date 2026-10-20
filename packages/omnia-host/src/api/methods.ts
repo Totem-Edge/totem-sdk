@@ -293,34 +293,66 @@ async function persistProgramUpdate(
 interface PeerReply {
   type: string;
   channelId?: string;
+  nonce?: number;
   payload?: unknown;
 }
 
+interface ReplyPeer {
+  sendMessage(msg: PeerReply & { channelId: string }): Promise<void>;
+  onMessage(cb: (msg: PeerReply) => void): () => void;
+  onReconnected?(cb: () => void): () => void;
+}
+
 /**
- * Wait for an ACK/ERROR from the counterparty for a given channel. Returns the
- * reply message (so callers can read a co-signature) or null on timeout.
+ * Send a proposal and wait for its ACK/ERROR reply.
+ *
+ * The message is resent with the SAME nonce when the peer reconnects (a
+ * proposal or its reply may have been lost when the old stream closed) and
+ * once mid-flight in case the reply was lost without the stream closing.
+ * Receivers are expected to deduplicate by `(type, channelId, nonce)` so a
+ * resend never consumes another WOTS leaf or yields a different signature.
  */
-function waitForPeerReply(
-  peer: { onMessage(cb: (msg: PeerReply) => void): () => void },
+export function requestPeerReply(
+  peer: ReplyPeer,
+  msg: PeerReply & { channelId: string },
   channelId: string,
   timeoutMs: number,
   types: string[] = ['ACK', 'ERROR'],
 ): Promise<PeerReply | null> {
   return new Promise((resolve) => {
     let done = false;
-    let unsub: (() => void) | undefined;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let fallback: ReturnType<typeof setTimeout> | undefined;
+    const unsubs: Array<() => void> = [];
     const finish = (reply: PeerReply | null): void => {
       if (done) return;
       done = true;
-      clearTimeout(timer);
-      if (unsub) unsub();
+      if (timer) clearTimeout(timer);
+      if (fallback) clearTimeout(fallback);
+      for (const unsub of unsubs) unsub();
       resolve(reply);
     };
-    unsub = peer.onMessage((msg) => {
-      if (msg.channelId !== channelId) return;
-      if (types.includes(msg.type)) finish(msg);
-    });
-    const timer = setTimeout(() => finish(null), timeoutMs);
+    const resend = (reason: string): void => {
+      if (done) return;
+      if (process.env.OMNIA_DEBUG) {
+        console.error('[peer] resend', msg.type, msg.nonce, reason, channelId);
+      }
+      void peer.sendMessage(msg).catch(() => { /* next reconnect/retry */ });
+    };
+    unsubs.push(peer.onMessage((reply) => {
+      if (reply.channelId !== channelId) return;
+      if (msg.nonce !== undefined && reply.nonce !== undefined && reply.nonce !== msg.nonce) return;
+      if (types.includes(reply.type)) finish(reply);
+    }));
+    if (peer.onReconnected) {
+      unsubs.push(peer.onReconnected(() => resend('reconnected')));
+    }
+    fallback = setTimeout(
+      () => resend('no reply'),
+      Math.min(10_000, Math.floor(timeoutMs / 2)),
+    );
+    timer = setTimeout(() => finish(null), timeoutMs);
+    void peer.sendMessage(msg).catch(() => { /* resent on reconnect/fallback */ });
   });
 }
 
@@ -486,9 +518,13 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       let acknowledged = true;
       if (context.swarm) {
         const peer = await context.swarm.connectToPeer(remote.publicKeyDigest, created.channel.channelId, remote.transportPubkey);
-        await peer.sendMessage({ type: 'CHANNEL_PROPOSAL', channelId: created.channel.channelId, nonce: Date.now(), payload: created.proposal });
         // Give the peer time to accept so a follow-up pay() is not lost.
-        const reply = await waitForPeerReply(peer, created.channel.channelId, 20_000);
+        const reply = await requestPeerReply(
+          peer,
+          { type: 'CHANNEL_PROPOSAL', channelId: created.channel.channelId, nonce: Date.now(), payload: created.proposal },
+          created.channel.channelId,
+          20_000,
+        );
         acknowledged = reply?.type === 'ACK';
       }
       return { success: true, channelId: created.channel.channelId, fundingTxId: created.channel.fundingTxId, acknowledged };
@@ -618,13 +654,17 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       if (context.swarm && remoteParty) {
         const request = buildSettlementSigningRequest(closing, { partyAddresses });
         const peer = await context.swarm.connectToPeer(remoteParty.publicKeyDigest, channelId, remoteParty.transportPubkey);
-        await peer.sendMessage({
-          type: 'SETTLEMENT_PROPOSAL',
+        const reply = await requestPeerReply(
+          peer,
+          {
+            type: 'SETTLEMENT_PROPOSAL',
+            channelId,
+            nonce: Date.now(),
+            payload: { signRequest: true, ...request },
+          },
           channelId,
-          nonce: Date.now(),
-          payload: { signRequest: true, ...request },
-        });
-        const reply = await waitForPeerReply(peer, channelId, 30_000);
+          30_000,
+        );
         const replyPayload = reply?.payload as { signature?: string; partyId?: string } | undefined;
         if (reply?.type !== 'ACK' || typeof replyPayload?.signature !== 'string') {
           throw new Error(`Counterparty did not co-sign the settlement (${reply?.type ?? 'timeout'})`);
@@ -691,13 +731,18 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       const remote = parsed.find((participant) => participant.partyId !== localPartyId);
       if (context.swarm && remote) {
         const peer = await context.swarm.connectToPeer(remote.publicKeyDigest, factory.factoryId, remote.transportPubkey);
-        await peer.sendMessage({
-          type: 'FACTORY_PROPOSAL',
-          channelId: factory.factoryId,
-          nonce: Date.now(),
-          payload: { factory },
-        });
-        const reply = await waitForPeerReply(peer, factory.factoryId, 30_000, ['FACTORY_ACCEPT', 'ERROR']);
+        const reply = await requestPeerReply(
+          peer,
+          {
+            type: 'FACTORY_PROPOSAL',
+            channelId: factory.factoryId,
+            nonce: Date.now(),
+            payload: { factory },
+          },
+          factory.factoryId,
+          30_000,
+          ['FACTORY_ACCEPT', 'ERROR'],
+        );
         if (reply?.type !== 'FACTORY_ACCEPT') {
           throw new Error(`Counterparty did not accept the factory (${reply?.type ?? 'timeout'})`);
         }
@@ -735,13 +780,18 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
         ? await context.swarm.connectToPeer(remote.publicKeyDigest, plan.vcId, remote.transportPubkey)
         : undefined;
       if (peer) {
-        await peer.sendMessage({
-          type: 'VC_PROPOSAL',
-          channelId: plan.vcId,
-          nonce: Date.now(),
-          payload: { kind: 'vc-open', factoryId, vcId: plan.vcId, plan },
-        });
-        const reply = await waitForPeerReply(peer, plan.vcId, 30_000, ['VC_ACCEPT', 'ERROR']);
+        const reply = await requestPeerReply(
+          peer,
+          {
+            type: 'VC_PROPOSAL',
+            channelId: plan.vcId,
+            nonce: Date.now(),
+            payload: { kind: 'vc-open', factoryId, vcId: plan.vcId, plan },
+          },
+          plan.vcId,
+          30_000,
+          ['VC_ACCEPT', 'ERROR'],
+        );
         const sig = (reply?.payload as { signature?: any } | undefined)?.signature;
         if (reply?.type !== 'VC_ACCEPT' || !sig) {
           throw new Error(`Counterparty did not sign the virtual-channel open (${reply?.type ?? 'timeout'})`);
@@ -787,13 +837,18 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
         ? await context.swarm.connectToPeer(remote.publicKeyDigest, plan.vcId, remote.transportPubkey)
         : undefined;
       if (peer) {
-        await peer.sendMessage({
-          type: 'VC_PROPOSAL',
-          channelId: plan.vcId,
-          nonce: Date.now(),
-          payload: { kind: 'vc-close', factoryId, vcId: plan.vcId, plan },
-        });
-        const reply = await waitForPeerReply(peer, plan.vcId, 30_000, ['VC_ACCEPT', 'ERROR']);
+        const reply = await requestPeerReply(
+          peer,
+          {
+            type: 'VC_PROPOSAL',
+            channelId: plan.vcId,
+            nonce: Date.now(),
+            payload: { kind: 'vc-close', factoryId, vcId: plan.vcId, plan },
+          },
+          plan.vcId,
+          30_000,
+          ['VC_ACCEPT', 'ERROR'],
+        );
         const sig = (reply?.payload as { signature?: any } | undefined)?.signature;
         if (reply?.type !== 'VC_ACCEPT' || !sig) {
           throw new Error(`Counterparty did not sign the virtual-channel close (${reply?.type ?? 'timeout'})`);
