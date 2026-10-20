@@ -419,6 +419,10 @@ export function createOmniaHost(
             spliceProposals,
             spliceAcceptances,
             spliceLeaseProvider,
+            custodyMode: config.custodyMode ?? 'self',
+            signerPort: dependencies.signerPort,
+            preparedPay: new Map(),
+            coordinator: !dependencies.signer && !config.readOnly,
             fundingSigner: config.fundingPubkey
               ? async (digest: Uint8Array) => {
                   const sig = await chainAdapter!.signData(
