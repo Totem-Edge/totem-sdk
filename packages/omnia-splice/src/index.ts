@@ -3,7 +3,15 @@ export {
   type QuiesceOptions
 } from './quiesce.js';
 export { buildSpliceTx, spliceDraftToMinimaBytes, computeSpliceTxDigest } from './splice-tx.js';
-export { proposeSpliceIn, proposeSpliceOut, acceptSplice } from './splice.js';
+export {
+  proposeSpliceIn,
+  proposeSpliceOut,
+  acceptSplice,
+  buildSpliceProposal,
+  buildSpliceInProposal,
+  buildSpliceOutProposal,
+} from './splice.js';
+export type { UnsignedSpliceProposal } from './splice.js';
 export { finalizeSplice, type FinalizeSpliceOptions } from './finalize.js';
 
 export type {

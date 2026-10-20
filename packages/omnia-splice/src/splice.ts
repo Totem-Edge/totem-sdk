@@ -137,6 +137,108 @@ function bindDraftToParams(
   }
 }
 
+/** A splice proposal whose proposer signature has not been applied yet. */
+export interface UnsignedSpliceProposal {
+  spliceId: string;
+  channelId: string;
+  params: SpliceParams;
+  spliceTxHex: string;
+  spliceTxDraft: SpliceProposal['spliceTxDraft'];
+  proposerPublicKeyDigest: string;
+  digest: Uint8Array;
+}
+
+/**
+ * Build the deterministic splice draft/digest without signing. Used by the
+ * wallet/coordinator flow: the caller signs `digest` and attaches the
+ * signature before finalization.
+ */
+export function buildSpliceProposal(
+  channel: OmniaChannel | QuiescedChannel,
+  params: SpliceParams,
+  proposerPublicKeyDigest: string,
+): UnsignedSpliceProposal {
+  validateChannelQuiesced(channel);
+  validateProposalParams(channel, params);
+  const proposerInChannel = channel.parties.find(p => p.publicKeyDigest === proposerPublicKeyDigest);
+  if (!proposerInChannel) throw new SpliceMissingPartyError(proposerPublicKeyDigest);
+  const draft = buildSpliceTx(channel as OmniaChannel, params);
+  return {
+    spliceId: generateSpliceId(),
+    channelId: channel.channelId,
+    params,
+    spliceTxHex: Buffer.from(spliceDraftToMinimaBytes(draft)).toString('hex'),
+    spliceTxDraft: draft,
+    proposerPublicKeyDigest,
+    digest: computeSpliceTxDigest(draft),
+  };
+}
+
+/** Build an unsigned splice-in proposal (see `buildSpliceProposal`). */
+export function buildSpliceInProposal(
+  channel: OmniaChannel | QuiescedChannel,
+  additionalCoinId: string,
+  additionalAmount: bigint,
+  proposerPublicKeyDigest: string,
+  newBalances?: Record<string, bigint>,
+): UnsignedSpliceProposal {
+  validateChannelQuiesced(channel);
+  const newTotal = channel.totalValue + additionalAmount;
+  const effectiveNewBalances = newBalances ?? scaleBalances(channel.balances, channel.totalValue, newTotal);
+  return buildSpliceProposal(channel, {
+    type: 'splice_in',
+    newTotalValue: newTotal,
+    newBalances: effectiveNewBalances,
+    additionalCoinId,
+    additionalAmount,
+  }, proposerPublicKeyDigest);
+}
+
+/** Build an unsigned splice-out proposal (see `buildSpliceProposal`). */
+export function buildSpliceOutProposal(
+  channel: OmniaChannel | QuiescedChannel,
+  withdrawAmount: bigint,
+  withdrawAddress: string,
+  proposerPublicKeyDigest: string,
+  newBalances?: Record<string, bigint>,
+  extraOutputs?: Array<{ address: string; amount: bigint; tokenId?: string }>,
+): UnsignedSpliceProposal {
+  validateChannelQuiesced(channel);
+  const extraSum = (extraOutputs ?? []).reduce((a, o) => a + o.amount, 0n);
+  const totalOutflow = withdrawAmount + extraSum;
+  if (totalOutflow > channel.totalValue) {
+    throw new Error(
+      `buildSpliceOutProposal: total outflow (withdraw ${withdrawAmount} + extra outputs ${extraSum} = ${totalOutflow}) ` +
+      `exceeds channel totalValue (${channel.totalValue})`,
+    );
+  }
+  const remainingTotal = channel.totalValue - totalOutflow;
+  const effectiveNewBalances = newBalances ?? (() => {
+    const ratio = channel.totalValue > 0n ? remainingTotal * 1000n / channel.totalValue : 0n;
+    const adjusted: Record<string, bigint> = {};
+    let assigned = 0n;
+    const partyIds = Object.keys(channel.balances);
+    for (let i = 0; i < partyIds.length - 1; i++) {
+      const pid = partyIds[i];
+      const prev = channel.balances[pid] ?? 0n;
+      const scaled = (prev * ratio) / 1000n;
+      adjusted[pid] = scaled;
+      assigned += scaled;
+    }
+    const lastId = partyIds[partyIds.length - 1];
+    if (lastId) adjusted[lastId] = remainingTotal - assigned;
+    return adjusted;
+  })();
+  return buildSpliceProposal(channel, {
+    type: 'splice_out',
+    newTotalValue: remainingTotal,
+    newBalances: effectiveNewBalances,
+    withdrawAmount,
+    withdrawAddress,
+    extraOutputs,
+  }, proposerPublicKeyDigest);
+}
+
 /**
  * Initiating party proposes a splice-in: add external funds to the channel.
  *

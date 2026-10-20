@@ -29,6 +29,7 @@ import type {
   OmniaChannel,
   OmniaSwarm,
   ProgramTransition,
+  SignedChannelState,
   SignRequest,
   SignerPort,
   UnsignedStateUpdate,
@@ -71,9 +72,13 @@ import {
   proposeSpliceIn,
   proposeSpliceOut,
   quiesceChannel,
+  buildSpliceInProposal,
+  buildSpliceOutProposal,
+  type QuiescedChannel,
   type SpliceAcceptance,
   type SpliceLeaseProvider,
   type SpliceProposal,
+  type UnsignedSpliceProposal,
 } from '@totemsdk/omnia-splice';
 import type { JsonRpcHandler } from './jsonrpc.js';
 import type { RoutingProvider } from '../router/routing-provider.js';
@@ -116,6 +121,8 @@ export interface HostApiContext {
   preparedSettle?: Map<string, PreparedSettleEntry>;
   /** Coordinator-mode channel openings awaiting the funding signature. */
   preparedOpen?: Map<string, PreparedOpenEntry>;
+  /** Coordinator-mode splices awaiting wallet signatures. */
+  preparedSplice?: Map<string, PreparedSpliceEntry>;
   /** True when the host has no signer and exposes prepare/submit only. */
   coordinator?: boolean;
   /** Opt-in host identity (address, publicKeyDigest, optional delegation). */
@@ -406,6 +413,22 @@ export interface PreparedOpenEntry {
   fundingScript?: string;
   intent: import('@totemsdk/omnia').SignRequest;
   funding: import('@totemsdk/omnia').SignRequest;
+  expiresAt: number;
+}
+
+export interface PreparedSpliceEntry {
+  channelId: string;
+  quiescedChannel: QuiescedChannel;
+  quiesce: {
+    unsigned: UnsignedStateUpdate;
+    intent: import('@totemsdk/omnia').SignRequest;
+    update: import('@totemsdk/omnia').SignRequest;
+    settlement: import('@totemsdk/omnia').SignRequest;
+  };
+  unsigned: UnsignedSpliceProposal;
+  acceptance: SpliceAcceptance;
+  intent: import('@totemsdk/omnia').SignRequest;
+  splice: import('@totemsdk/omnia').SignRequest;
   expiresAt: number;
 }
 
@@ -987,6 +1010,282 @@ function registerPreparedPayMethods(
   };
   methods.set('totem_omniaSubmitOpenChannel', submitOpenChannel);
   methods.set('omnia/submitOpenChannel', submitOpenChannel);
+
+  const prepareSplice = (type: 'in' | 'out'): JsonRpcHandler => async (raw) => {
+    const params = paramsObject(raw);
+    if (!context.preparedSplice || !context.spliceAcceptances) {
+      throw new Error('Splice manager is not configured');
+    }
+    if (!context.swarm) throw new Error('Splice preparation requires swarm connectivity');
+    const channelId = requiredString(params, 'channelId');
+    const channel = context.channels.get(channelId);
+    if (!channel) throw new Error(`Channel ${channelId} not found`);
+    const localPartyId = context.localParticipant?.partyId;
+    const localPkd = context.localParticipant?.publicKeyDigest;
+    if (!localPartyId || !localPkd) throw new Error('Local participant is not configured');
+    if (channel.status !== 'active') throw new Error(`Channel ${channelId} is not active (${channel.status})`);
+    const pending = channel.pendingHTLCs.filter((h) => h.status === 'pending');
+    if (pending.length > 0) throw new Error(`Cannot splice with ${pending.length} pending HTLC(s)`);
+    const remote = channel.parties.find((party) => party.partyId !== localPartyId);
+    if (!remote) throw new Error('Channel counterparty not found');
+
+    const nextSequence = channel.currentSequence + 1;
+    const quiesceUnsigned = buildStateUpdate(
+      channel,
+      { newSequence: nextSequence, newBalances: { ...channel.balances } },
+      { publicKeyDigest: localPkd },
+    );
+    const quiescedChannel: QuiescedChannel = {
+      ...channel,
+      currentSequence: nextSequence,
+      balances: { ...channel.balances },
+      pendingHTLCs: [],
+      latestState: null,
+      status: 'quiesced',
+      quiesceSignedState: quiesceUnsigned.unsignedClosePackage,
+      updatedAt: Date.now(),
+    };
+    const parsedBalances = params.newBalances && typeof params.newBalances === 'object'
+      ? Object.fromEntries(
+          Object.entries(params.newBalances as Record<string, unknown>).map(([partyId, value]) => [partyId, BigInt(String(value))]),
+        )
+      : undefined;
+    const unsigned = type === 'in'
+      ? buildSpliceInProposal(
+          quiescedChannel,
+          requiredString(params, 'additionalCoinId'),
+          requiredBigInt(params, 'additionalAmount'),
+          localPkd,
+          parsedBalances,
+        )
+      : buildSpliceOutProposal(
+          quiescedChannel,
+          requiredBigInt(params, 'withdrawAmount'),
+          requiredString(params, 'withdrawAddress'),
+          localPkd,
+          parsedBalances,
+        );
+
+    return withOperation(context, params, async () => {
+      const placeholder: SpliceProposal = {
+        spliceId: unsigned.spliceId,
+        channelId: unsigned.channelId,
+        params: unsigned.params,
+        spliceTxHex: unsigned.spliceTxHex,
+        spliceTxDraft: unsigned.spliceTxDraft,
+        proposerPublicKeyDigest: localPkd,
+        proposerSignature: new Uint8Array(0),
+        proposerReservationId: '',
+        proposerSigningIndices: { addressIndex: 0, l1: 0, l2: 0 },
+        proposedAt: Date.now(),
+      };
+      const peer = await context.swarm!.connectToPeer(remote.publicKeyDigest, channelId, remote.transportPubkey);
+      const reply = await requestPeerReply(
+        peer,
+        { type: 'SPLICE_PROPOSAL', channelId, nonce: Date.now(), payload: { proposal: placeholder } },
+        channelId,
+        30_000,
+        ['SPLICE_ACCEPT', 'ERROR'],
+      );
+      const acceptance = (reply?.payload as { acceptance?: SpliceAcceptance } | undefined)?.acceptance;
+      if (reply?.type !== 'SPLICE_ACCEPT' || !acceptance) {
+        throw new Error(`Counterparty did not accept the splice (${reply?.type ?? 'timeout'})`);
+      }
+      context.spliceAcceptances!.set(unsigned.spliceId, acceptance);
+
+      const preparedOperationId = operationId(params);
+      const expiresAt = Date.now() + 300_000;
+      const base = {
+        domain: 'splice' as const,
+        signers: [localPkd],
+        custody: makeSelfCustody(),
+        expiresAt,
+      };
+      const quiesceIntent: import('@totemsdk/omnia').SignRequest = {
+        ...base,
+        domain: 'channel',
+        requestId: `${preparedOperationId}:quiesce:intent`,
+        kind: 'intent',
+        digest: quiesceUnsigned.updateDigest,
+        context: { summary: `Authorize quiesce before ${type === 'in' ? 'splice-in' : 'splice-out'}` },
+      };
+      const quiesceUpdate: import('@totemsdk/omnia').SignRequest = {
+        ...base,
+        domain: 'channel',
+        requestId: `${preparedOperationId}:quiesce:update`,
+        kind: 'chain',
+        digest: quiesceUnsigned.updateDigest,
+        context: { summary: 'Sign the quiesce channel update' },
+      };
+      const quiesceSettlement: import('@totemsdk/omnia').SignRequest = {
+        ...base,
+        domain: 'channel',
+        requestId: `${preparedOperationId}:quiesce:settlement`,
+        kind: 'chain',
+        digest: quiesceUnsigned.settlementDigest,
+        context: { summary: 'Sign the quiesce settlement package' },
+      };
+      const intent: import('@totemsdk/omnia').SignRequest = {
+        ...base,
+        requestId: `${preparedOperationId}:intent`,
+        kind: 'intent',
+        digest: unsigned.digest,
+        context: {
+          summary: `Authorize ${type === 'in' ? 'splice-in' : 'splice-out'} on ${channelId}`,
+          amount: unsigned.params.newTotalValue.toString(),
+        },
+      };
+      const splice: import('@totemsdk/omnia').SignRequest = {
+        ...base,
+        requestId: `${preparedOperationId}:splice`,
+        kind: 'chain',
+        digest: unsigned.digest,
+        context: { summary: 'Sign the splice transaction' },
+      };
+      for (const [key, entry] of context.preparedSplice!) {
+        if (entry.expiresAt <= Date.now()) context.preparedSplice!.delete(key);
+      }
+      context.preparedSplice!.set(preparedOperationId, {
+        channelId,
+        quiescedChannel,
+        quiesce: {
+          unsigned: quiesceUnsigned,
+          intent: quiesceIntent,
+          update: quiesceUpdate,
+          settlement: quiesceSettlement,
+        },
+        unsigned,
+        acceptance,
+        intent,
+        splice,
+        expiresAt,
+      });
+      return {
+        success: true,
+        status: 'signature-required',
+        operationId: preparedOperationId,
+        channelId,
+        spliceId: unsigned.spliceId,
+        spliceType: type,
+        requests: {
+          quiesce: { intent: quiesceIntent, update: quiesceUpdate, settlement: quiesceSettlement },
+          splice: { intent, chain: splice },
+        },
+        expiresAt,
+      };
+    });
+  };
+  methods.set('totem_omniaPrepareSpliceIn', prepareSplice('in'));
+  methods.set('omnia/prepareSpliceIn', prepareSplice('in'));
+  methods.set('totem_omniaPrepareSpliceOut', prepareSplice('out'));
+  methods.set('omnia/prepareSpliceOut', prepareSplice('out'));
+
+  const submitSplice: JsonRpcHandler = async (raw) => {
+    const params = paramsObject(raw);
+    const preparedOperationId = requiredString(params, 'preparedOperationId');
+    const localPkd = context.localParticipant?.publicKeyDigest;
+    if (!localPkd) throw new Error('Local participant is not configured');
+    if (!context.preparedSplice) throw new Error('Prepared-splice store is not configured');
+    return withOperation(context, params, async () => {
+      const entry = context.preparedSplice!.get(preparedOperationId);
+      if (!entry) throw new Error(`Prepared splice ${preparedOperationId} not found`);
+      if (entry.expiresAt <= Date.now()) {
+        context.preparedSplice!.delete(preparedOperationId);
+        throw new Error(`Prepared splice ${preparedOperationId} has expired`);
+      }
+      const quiesceIntentSignature = hexBytes(params.quiesceIntentSignature, 'quiesceIntentSignature');
+      const quiesceUpdateSignature = hexBytes(params.quiesceUpdateSignature, 'quiesceUpdateSignature');
+      const quiesceSettlementSignature = hexBytes(params.quiesceSettlementSignature, 'quiesceSettlementSignature');
+      const spliceIntentSignature = hexBytes(params.spliceIntentSignature, 'spliceIntentSignature');
+      const spliceSignature = hexBytes(params.spliceSignature, 'spliceSignature');
+      const updateIndices = signingIndicesParam(params.quiesceUpdateIndices);
+      const settlementIndices = signingIndicesParam(params.quiesceSettlementIndices);
+      const spliceIndices = params.spliceIndices
+        ? signingIndicesParam(params.spliceIndices)
+        : { addressIndex: 0, l1: 0, l2: 0 };
+
+      if (!verifyChannelSignature(quiesceIntentSignature, signRequestPayload(entry.quiesce.intent), localPkd)) {
+        throw new Error('quiesce intent signature does not verify');
+      }
+      if (!verifyChannelSignature(quiesceUpdateSignature, entry.quiesce.unsigned.updateDigest, localPkd)) {
+        throw new Error('quiesce update signature does not verify');
+      }
+      if (!verifyChannelSignature(quiesceSettlementSignature, entry.quiesce.unsigned.settlementDigest, localPkd)) {
+        throw new Error('quiesce settlement signature does not verify');
+      }
+      if (!verifyChannelSignature(spliceIntentSignature, signRequestPayload(entry.intent), localPkd)) {
+        throw new Error('splice intent signature does not verify');
+      }
+      if (!verifyChannelSignature(spliceSignature, entry.unsigned.digest, localPkd)) {
+        throw new Error('splice signature does not verify');
+      }
+      if (!context.chainProvider?.broadcastTxPoW) {
+        throw new Error('Splice requires a chain provider with broadcastTxPoW');
+      }
+
+      const quiesceState = finalizeStateUpdateWithIndices(
+        entry.quiesce.unsigned,
+        quiesceUpdateSignature,
+        updateIndices,
+        quiesceSettlementSignature,
+        settlementIndices,
+      );
+      const quiescedChannel: QuiescedChannel = {
+        ...entry.quiescedChannel,
+        balances: quiesceState.balances!,
+        currentSequence: quiesceState.sequence!,
+        pendingHTLCs: [],
+        latestState: quiesceState as SignedChannelState,
+        quiesceSignedState: quiesceState as SignedChannelState,
+        status: 'quiesced',
+        updatedAt: Date.now(),
+      };
+      const { digest: _digest, ...unsignedBase } = entry.unsigned;
+      const proposal: SpliceProposal = {
+        ...unsignedBase,
+        proposerSignature: spliceSignature,
+        proposerReservationId: '',
+        proposerSigningIndices: spliceIndices,
+        proposedAt: Date.now(),
+      };
+      const spliced = await finalizeSplice(quiescedChannel, proposal, entry.acceptance, {
+        broadcast: (txHex) => context.chainProvider!.broadcastTxPoW!(txHex),
+      });
+      context.channels.set(entry.channelId, spliced as unknown as OmniaChannel);
+      if (context.swarm) {
+        const remote = spliced.parties.find((party) => party.partyId !== context.localParticipant!.partyId);
+        if (remote) {
+          const peer = await context.swarm.connectToPeer(
+            remote.publicKeyDigest,
+            entry.channelId,
+            remote.transportPubkey,
+          );
+          await peer.sendMessage({
+            type: 'SPLICE_FINALIZED',
+            channelId: entry.channelId,
+            nonce: Date.now(),
+            payload: {
+              channel: spliced,
+              txId: spliced.spliceFundingTxId,
+              spliceId: entry.unsigned.spliceId,
+            },
+          });
+        }
+      }
+      context.preparedSplice!.delete(preparedOperationId);
+      return {
+        success: true,
+        channelId: entry.channelId,
+        spliceId: entry.unsigned.spliceId,
+        spliceType: spliced.spliceType,
+        totalValue: spliced.totalValue.toString(),
+        balances: Object.fromEntries(Object.entries(spliced.balances).map(([partyId, amount]) => [partyId, amount.toString()])),
+        fundingCoinId: spliced.spliceFundingCoinId,
+      };
+    });
+  };
+  methods.set('totem_omniaSubmitSplice', submitSplice);
+  methods.set('omnia/submitSplice', submitSplice);
 }
 
 export function createHostMethods(context: HostApiContext): Map<string, JsonRpcHandler> {
