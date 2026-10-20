@@ -425,6 +425,7 @@ export function createOmniaHost(
             preparedSettle: new Map(),
             preparedOpen: new Map(),
             preparedSplice: new Map(),
+            preparedFactory: new Map(),
             coordinator: !dependencies.signer && !config.readOnly,
             fundingSigner: config.fundingPubkey
               ? async (digest: Uint8Array) => {

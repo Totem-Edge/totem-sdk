@@ -319,6 +319,167 @@ export async function createFactory(
   return factory;
 }
 
+/** A factory opening built without any signatures or broadcast. */
+export interface FactoryOpeningPlan {
+  factory: ChannelFactory;
+  fundingTxBytes?: Uint8Array;
+  fundingDigest?: Uint8Array;
+  fundingCoinId?: string;
+  fundingMaterials?: FactoryFundingMaterial[];
+  onChain: boolean;
+}
+
+export interface FinalizeFactoryOpeningOptions {
+  /** Funding-witness signatures for every participant (on-chain only). */
+  fundingSignatures?: Record<string, Uint8Array>;
+  /** Factory opening signatures to record on the proposal. */
+  openingSignatures: Record<string, Uint8Array>;
+}
+
+/**
+ * Build a factory and (when every participant supplies a funding coin) its
+ * deterministic funding draft, without signing or broadcasting.
+ */
+export async function buildFactoryOpening(
+  participants: FactoryParticipant[],
+  tokenId: string,
+  tokenScale: number,
+  chainProvider?: ChainStateProvider,
+  funding?: FactoryFundingMaterial[],
+): Promise<FactoryOpeningPlan> {
+  if (participants.length < 2) {
+    throw new Error(`Factory requires at least 2 participants, got ${participants.length}`);
+  }
+  const totalValue = participants.reduce((sum, p) => sum + p.contributionAmount, 0n);
+  const allocations: Record<string, bigint> = {};
+  for (const p of participants) allocations[p.partyId] = p.contributionAmount;
+  const { script, address } = buildAndHashFactoryScript(participants);
+  const factoryId = generateFactoryId(participants, tokenId, tokenScale);
+
+  let fundingTxBytes: Uint8Array | undefined;
+  let fundingDigest: Uint8Array | undefined;
+  let fundingCoinId: string | undefined;
+  let pendingCommitment: Uint8Array;
+
+  const allHaveCoinId = participants.every(p => p.fundingCoinId);
+  if (allHaveCoinId && chainProvider) {
+    const materialByParty = new Map((funding ?? []).map(m => [m.partyId, m]));
+    const inputAddresses = participants.map(p => {
+      const m = materialByParty.get(p.partyId);
+      return m?.coinAddress ?? (m?.script ? computeScriptAddress(m.script) : '');
+    });
+    if (inputAddresses.some(a => !a)) {
+      throw new Error(
+        'Factory opening on-chain requires funding material (coinAddress or script) for every participant',
+      );
+    }
+    const tip = await chainProvider.getTip();
+    const escapeBlock = tip.block + FACTORY_ESCAPE_DELAY_BLOCKS;
+    const fundingDraft = buildFundingTx(
+      script,
+      address,
+      totalValue,
+      tokenId,
+      tokenScale,
+      participants.map(p => p.fundingCoinId!),
+      participants.map(p => p.contributionAmount),
+      inputAddresses,
+      [...factoryBalanceStateVariables(participants), factoryEscapeStateVariable(escapeBlock)],
+    );
+    fundingDigest = computeOmniaTxDigest(fundingDraft);
+    fundingTxBytes = omniaDraftToMinimaBytes(fundingDraft);
+    fundingCoinId = minimaOutputCoinIdsForDraft(fundingDraft)[0];
+    pendingCommitment = fundingDigest;
+  } else {
+    pendingCommitment = computeFactoryStateCommitment(factoryId, 1, allocations, []);
+  }
+
+  const initialEntry: FactoryLogEntry = {
+    sequence: 0,
+    timestamp: Date.now(),
+    event: 'create',
+    allocations: { ...allocations },
+    virtualChannelIds: [],
+  };
+  const factory: ChannelFactory = {
+    factoryId,
+    participants,
+    totalValue,
+    tokenId,
+    tokenScale,
+    allocations: { ...allocations },
+    virtualChannels: [],
+    currentSequence: 0,
+    status: 'opening',
+    stateLog: [initialEntry],
+    fundingScript: script,
+    fundingAddress: address,
+    fundingTxId: undefined,
+    fundingCoinId: undefined,
+    pendingCommitment: Buffer.from(pendingCommitment).toString('hex'),
+    pendingSignatures: {},
+  };
+  return { factory, fundingTxBytes, fundingDigest, fundingCoinId, fundingMaterials: funding, onChain: fundingTxBytes !== undefined };
+}
+
+/**
+ * Broadcast the prepared factory funding (when on-chain) and record opening
+ * signatures. When every participant signature is supplied the factory commits.
+ */
+export async function finalizeFactoryOpening(
+  plan: FactoryOpeningPlan,
+  opts: FinalizeFactoryOpeningOptions,
+  chainProvider?: ChainStateProvider,
+): Promise<ChannelFactory> {
+  let factory = plan.factory;
+  if (plan.onChain) {
+    if (!chainProvider || !plan.fundingTxBytes) throw new Error('Factory funding requires a chain provider');
+    const materials = new Map((plan.fundingMaterials ?? []).map(m => [m.partyId, m]));
+    const signatures: Uint8Array[] = [];
+    const coinProofs: Uint8Array[] = [];
+    const scriptProofs: Uint8Array[] = [];
+    for (const participant of factory.participants) {
+      const signature = opts.fundingSignatures?.[participant.partyId];
+      if (!signature) throw new Error(`Missing funding signature for factory party '${participant.partyId}'`);
+      const material = materials.get(participant.partyId);
+      if (!material) throw new Error(`Missing funding material for factory party '${participant.partyId}'`);
+      coinProofs.push(material.coinProof);
+      const scriptProof = material.scriptProof ?? (material.script ? buildScriptProof(material.script) : undefined);
+      if (!scriptProof) throw new Error(`Missing script or scriptProof for factory party '${participant.partyId}'`);
+      scriptProofs.push(scriptProof);
+      signatures.push(signature);
+    }
+    const witnessBytes = serializeOmniaWitness({ signatures, coinProofs, scriptProofs });
+    let fundingTxId: string;
+    if (chainProvider.submitTransaction) {
+      const submitted = await chainProvider.submitTransaction(plan.fundingTxBytes, witnessBytes);
+      if (submitted.success === false || !submitted.txpowid) {
+        throw new Error(`Factory funding submission failed: ${submitted.message ?? 'no txpowid'}`);
+      }
+      fundingTxId = submitted.txpowid;
+    } else {
+      const txnDifficulty = await resolveTxPowTarget(chainProvider);
+      const txBody = serializeTxBody(plan.fundingTxBytes, witnessBytes, { txnDifficulty });
+      const mined = await mineTxPoW(txBody, txnDifficulty);
+      const fullTxPoW = concatBytes(concatBytes(mined.minedHeaderBytes, new Uint8Array([0x01])), txBody);
+      const broadcast = await chainProvider.broadcastTxPoW(Buffer.from(fullTxPoW).toString('hex'));
+      if (broadcast.success === false) {
+        throw new Error(`Factory funding broadcast failed: ${broadcast.message ?? 'unknown error'}`);
+      }
+      fundingTxId = broadcast.txpowid ?? Buffer.from(mined.txpowId).toString('hex');
+    }
+    factory = {
+      ...factory,
+      fundingTxId,
+      fundingCoinId: plan.fundingCoinId,
+    };
+  }
+
+  factory = { ...factory, pendingSignatures: { ...opts.openingSignatures } };
+  const allSigned = factory.participants.every(p => factory.pendingSignatures[p.partyId] !== undefined);
+  return allSigned ? commitOpening(factory) : factory;
+}
+
 // ─── acceptFactory ────────────────────────────────────────────────────────────
 
 /**

@@ -58,12 +58,15 @@ import {
   buildVirtualChannelOpen,
   closeFactory,
   createFactory,
+  buildFactoryOpening,
+  finalizeFactoryOpening,
   signFactorySettlement,
   signVirtualChannelClose,
   signVirtualChannelOpen,
   type ChannelFactory,
   type FactorySettlementSignature,
   type FactoryFundingMaterial,
+  type FactoryOpeningPlan,
   type FactoryParticipant,
   type WotsLeaseBundle,
 } from '@totemsdk/omnia-factory';
@@ -123,6 +126,8 @@ export interface HostApiContext {
   preparedOpen?: Map<string, PreparedOpenEntry>;
   /** Coordinator-mode splices awaiting wallet signatures. */
   preparedSplice?: Map<string, PreparedSpliceEntry>;
+  /** Coordinator-mode factory openings awaiting the creator signature. */
+  preparedFactory?: Map<string, PreparedFactoryEntry>;
   /** True when the host has no signer and exposes prepare/submit only. */
   coordinator?: boolean;
   /** Opt-in host identity (address, publicKeyDigest, optional delegation). */
@@ -413,6 +418,15 @@ export interface PreparedOpenEntry {
   fundingScript?: string;
   intent: import('@totemsdk/omnia').SignRequest;
   funding: import('@totemsdk/omnia').SignRequest;
+  expiresAt: number;
+}
+
+export interface PreparedFactoryEntry {
+  plan: FactoryOpeningPlan;
+  remotePartyId?: string;
+  remoteFundingSignature?: Uint8Array;
+  intent: import('@totemsdk/omnia').SignRequest;
+  commitment: import('@totemsdk/omnia').SignRequest;
   expiresAt: number;
 }
 
@@ -1286,6 +1300,197 @@ function registerPreparedPayMethods(
   };
   methods.set('totem_omniaSubmitSplice', submitSplice);
   methods.set('omnia/submitSplice', submitSplice);
+
+  const prepareFactory: JsonRpcHandler = async (raw) => {
+    const params = paramsObject(raw);
+    const localPkd = context.localParticipant?.publicKeyDigest;
+    if (!localPkd) throw new Error('Local participant is not configured');
+    if (!context.preparedFactory) throw new Error('Prepared-factory store is not configured');
+    const participantsRaw = params.participants;
+    if (!Array.isArray(participantsRaw) || participantsRaw.length < 2) {
+      throw new Error('participants must contain at least two factory participants');
+    }
+    const participants = participantsRaw.map((value) => {
+      if (!value || typeof value !== 'object') throw new Error('Invalid factory participant');
+      const item = value as Record<string, unknown>;
+      return {
+        partyId: requiredString(item, 'partyId'),
+        publicKeyDigest: requiredString(item, 'publicKeyDigest'),
+        addressIndex: Number(item.addressIndex ?? 0),
+        contributionAmount: BigInt(requiredString(item, 'contributionAmount')),
+        fundingCoinId: typeof item.fundingCoinId === 'string' ? item.fundingCoinId : undefined,
+        settlementAddress: typeof item.settlementAddress === 'string' ? item.settlementAddress : undefined,
+        transportPubkey: typeof item.transportPubkey === 'string' ? item.transportPubkey : undefined,
+      } satisfies FactoryParticipant;
+    });
+    const toBytes = (value: unknown): Uint8Array | undefined =>
+      typeof value === 'string' ? Buffer.from(value.replace(/^0x/i, ''), 'hex') : undefined;
+    const fundingMaterials: FactoryFundingMaterial[] | undefined = Array.isArray(params.funding)
+      ? params.funding.map((value) => {
+          if (!value || typeof value !== 'object') throw new Error('Invalid factory funding material');
+          const item = value as Record<string, unknown>;
+          const coinProof = toBytes(item.coinProof);
+          if (!coinProof) throw new Error('factory funding material requires coinProof');
+          return {
+            partyId: requiredString(item, 'partyId'),
+            coinProof,
+            ...(typeof item.coinAddress === 'string' ? { coinAddress: item.coinAddress } : {}),
+            ...(typeof item.script === 'string' ? { script: item.script } : {}),
+            ...(toBytes(item.scriptProof) ? { scriptProof: toBytes(item.scriptProof) } : {}),
+          } satisfies FactoryFundingMaterial;
+        })
+      : undefined;
+    const tokenId = typeof params.tokenId === 'string' ? params.tokenId : '0x00';
+    const tokenScale = typeof params.tokenScale === 'number' ? params.tokenScale : 0;
+    const remote = participants.find((participant) => participant.publicKeyDigest !== localPkd);
+
+    return withOperation(context, params, async () => {
+      const plan = await buildFactoryOpening(
+        participants,
+        tokenId,
+        tokenScale,
+        context.chainProvider,
+        fundingMaterials,
+      );
+      let remoteFundingSignature: Uint8Array | undefined;
+      if (plan.onChain && context.swarm && remote) {
+        const peer = await context.swarm.connectToPeer(remote.publicKeyDigest, plan.factory.factoryId, remote.transportPubkey);
+        const reply = await requestPeerReply(
+          peer,
+          {
+            type: 'FACTORY_FUNDING_REQUEST',
+            channelId: plan.factory.factoryId,
+            nonce: Date.now(),
+            payload: { digest: '0x' + Buffer.from(plan.fundingDigest!).toString('hex') },
+          },
+          plan.factory.factoryId,
+          30_000,
+          ['FACTORY_FUNDING_RESPONSE', 'ERROR'],
+        );
+        const signature = (reply?.payload as { signature?: string } | undefined)?.signature;
+        if (!signature) throw new Error(`Counterparty did not co-sign factory funding (${reply?.type ?? 'timeout'})`);
+        remoteFundingSignature = Uint8Array.from(Buffer.from(signature.replace(/^0x/i, ''), 'hex'));
+      }
+
+      const preparedOperationId = operationId(params);
+      const expiresAt = Date.now() + 300_000;
+      const commitment = Buffer.from(plan.factory.pendingCommitment!, 'hex');
+      const base = {
+        domain: 'factory' as const,
+        signers: [localPkd],
+        custody: makeSelfCustody(),
+        expiresAt,
+      };
+      const intent: import('@totemsdk/omnia').SignRequest = {
+        ...base,
+        requestId: `${preparedOperationId}:intent`,
+        kind: 'intent',
+        digest: commitment,
+        context: {
+          summary: `Authorize factory opening (${plan.factory.totalValue} units)`,
+          amount: plan.factory.totalValue.toString(),
+          asset: plan.factory.tokenId,
+        },
+      };
+      const commitmentRequest: import('@totemsdk/omnia').SignRequest = {
+        ...base,
+        requestId: `${preparedOperationId}:commitment`,
+        kind: 'chain',
+        digest: commitment,
+        context: { summary: 'Sign the factory funding/opening commitment' },
+      };
+      for (const [key, entry] of context.preparedFactory!) {
+        if (entry.expiresAt <= Date.now()) context.preparedFactory!.delete(key);
+      }
+      context.preparedFactory!.set(preparedOperationId, {
+        plan,
+        remotePartyId: remote?.partyId,
+        remoteFundingSignature,
+        intent,
+        commitment: commitmentRequest,
+        expiresAt,
+      });
+      return {
+        success: true,
+        status: 'signature-required',
+        operationId: preparedOperationId,
+        factoryId: plan.factory.factoryId,
+        onChain: plan.onChain,
+        fundingCoinId: plan.fundingCoinId,
+        totalValue: plan.factory.totalValue.toString(),
+        requests: { intent, commitment: commitmentRequest },
+        expiresAt,
+      };
+    });
+  };
+  methods.set('totem_omniaPrepareFactory', prepareFactory);
+  methods.set('omnia/prepareFactory', prepareFactory);
+
+  const submitFactory: JsonRpcHandler = async (raw) => {
+    const params = paramsObject(raw);
+    const preparedOperationId = requiredString(params, 'preparedOperationId');
+    const localPkd = context.localParticipant?.publicKeyDigest;
+    const localPartyId = context.localParticipant?.partyId;
+    if (!localPkd || !localPartyId) throw new Error('Local participant is not configured');
+    if (!context.preparedFactory) throw new Error('Prepared-factory store is not configured');
+    return withOperation(context, params, async () => {
+      const entry = context.preparedFactory!.get(preparedOperationId);
+      if (!entry) throw new Error(`Prepared factory ${preparedOperationId} not found`);
+      if (entry.expiresAt <= Date.now()) {
+        context.preparedFactory!.delete(preparedOperationId);
+        throw new Error(`Prepared factory ${preparedOperationId} has expired`);
+      }
+      const intentSignature = hexBytes(params.intentSignature, 'intentSignature');
+      const commitmentSignature = hexBytes(params.commitmentSignature, 'commitmentSignature');
+      const commitment = Buffer.from(entry.plan.factory.pendingCommitment!, 'hex');
+      if (!verifyChannelSignature(intentSignature, signRequestPayload(entry.intent), localPkd)) {
+        throw new Error('intent signature does not verify');
+      }
+      if (!verifyChannelSignature(commitmentSignature, commitment, localPkd)) {
+        throw new Error('factory commitment signature does not verify');
+      }
+      if (!context.chainProvider && entry.plan.onChain) throw new Error('Factory funding requires a chain provider');
+
+      const fundingSignatures: Record<string, Uint8Array> = { [localPartyId]: commitmentSignature };
+      if (entry.remotePartyId && entry.remoteFundingSignature) {
+        fundingSignatures[entry.remotePartyId] = entry.remoteFundingSignature;
+      }
+      let factory = await finalizeFactoryOpening(
+        entry.plan,
+        {
+          fundingSignatures: entry.plan.onChain ? fundingSignatures : undefined,
+          openingSignatures: { [localPartyId]: commitmentSignature },
+        },
+        context.chainProvider,
+      );
+      context.factories?.set(factory.factoryId, factory);
+
+      if (context.swarm && entry.remotePartyId) {
+        const remote = factory.participants.find((participant) => participant.partyId === entry.remotePartyId);
+        if (remote) {
+          const peer = await context.swarm.connectToPeer(remote.publicKeyDigest, factory.factoryId, remote.transportPubkey);
+          const reply = await requestPeerReply(
+            peer,
+            { type: 'FACTORY_PROPOSAL', channelId: factory.factoryId, nonce: Date.now(), payload: { factory } },
+            factory.factoryId,
+            30_000,
+            ['FACTORY_ACCEPT', 'ERROR'],
+          );
+          if (reply?.type !== 'FACTORY_ACCEPT') {
+            throw new Error(`Counterparty did not accept the factory (${reply?.type ?? 'timeout'})`);
+          }
+          const accepted = (reply.payload as { factory?: ChannelFactory } | undefined)?.factory;
+          if (!accepted) throw new Error('Factory accept reply missing factory');
+          factory = accepted;
+          context.factories?.set(factory.factoryId, factory);
+        }
+      }
+      context.preparedFactory!.delete(preparedOperationId);
+      return { success: true, factoryId: factory.factoryId, status: factory.status, fundingTxId: factory.fundingTxId };
+    });
+  };
+  methods.set('totem_omniaSubmitFactory', submitFactory);
+  methods.set('omnia/submitFactory', submitFactory);
 }
 
 export function createHostMethods(context: HostApiContext): Map<string, JsonRpcHandler> {

@@ -1,3 +1,4 @@
+export type { FactoryOpeningPlan, FinalizeFactoryOpeningOptions } from './factory.js';
 export type {
   FactoryStatus,
   FactoryParticipant,
@@ -40,6 +41,8 @@ export type { FactoryDistributionOutput, FactoryDistributionScriptConfig } from 
 
 export {
   createFactory,
+  buildFactoryOpening,
+  finalizeFactoryOpening,
   acceptFactory,
   reallocate,
   enforceConservation,
