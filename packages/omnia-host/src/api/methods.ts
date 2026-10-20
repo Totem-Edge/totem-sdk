@@ -14,6 +14,10 @@ import {
   timeoutHTLC,
   updateState,
   makeSelfCustody,
+  buildStateUpdate,
+  finalizeStateUpdateWithIndices,
+  signRequestPayload,
+  verifyChannelSignature,
 } from '@totemsdk/omnia';
 import type {
   ChannelParticipant,
@@ -25,10 +29,11 @@ import type {
   ProgramTransition,
   SignRequest,
   SignerPort,
+  UnsignedStateUpdate,
   UpdateStateResult,
 } from '@totemsdk/omnia';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
-import type { WotsLeaseProvider } from '@totemsdk/wots-lease';
+import type { SigningIndices, WotsLeaseProvider } from '@totemsdk/wots-lease';
 import {
   executeCrossTokenPayment,
   executeMultiHopPayment,
@@ -102,6 +107,10 @@ export interface HostApiContext {
   custodyMode?: CustodyMode;
   /** RFC-058 signer port; when absent the local signer path is used. */
   signerPort?: SignerPort;
+  /** Coordinator-mode prepared channel updates awaiting wallet signatures. */
+  preparedPay?: Map<string, PreparedPayEntry>;
+  /** True when the host has no signer and exposes prepare/submit only. */
+  coordinator?: boolean;
   /** Opt-in host identity (address, publicKeyDigest, optional delegation). */
   identity?: {
     address: string;
@@ -376,6 +385,199 @@ export function requestPeerReply(
   });
 }
 
+export interface PreparedPayEntry {
+  channelId: string;
+  unsigned: UnsignedStateUpdate;
+  intent: import('@totemsdk/omnia').SignRequest;
+  update: import('@totemsdk/omnia').SignRequest;
+  settlement: import('@totemsdk/omnia').SignRequest;
+  expiresAt: number;
+}
+
+function signingIndicesParam(value: unknown): SigningIndices {
+  if (!value || typeof value !== 'object') throw new Error('signingIndices is required');
+  const item = value as Record<string, unknown>;
+  const num = (key: string): number => {
+    const parsed = Number(item[key]);
+    if (!Number.isInteger(parsed) || parsed < 0) throw new Error(`signingIndices.${key} must be a non-negative integer`);
+    return parsed;
+  };
+  return { addressIndex: num('addressIndex'), l1: num('l1'), l2: num('l2') };
+}
+
+function hexBytes(value: unknown, label: string): Uint8Array {
+  if (typeof value !== 'string') throw new Error(`${label} must be a hex string`);
+  return Buffer.from(value.replace(/^0x/i, ''), 'hex');
+}
+
+function registerPreparedPayMethods(
+  methods: Map<string, JsonRpcHandler>,
+  context: HostApiContext,
+): void {
+  const preparePay: JsonRpcHandler = async (raw) => {
+    const params = paramsObject(raw);
+    const channelId = requiredString(params, 'channelId');
+    const amount = requiredBigInt(params, 'amount');
+    const localPartyId = context.localParticipant?.partyId;
+    const localPkd = context.localParticipant?.publicKeyDigest;
+    if (!localPartyId || !localPkd) throw new Error('Local participant is not configured');
+    if (!context.preparedPay) throw new Error('Prepared-pay store is not configured');
+    const channel = context.channels.get(channelId);
+    if (!channel) throw new Error(`Channel ${channelId} not found`);
+    const remotePartyId = channel.parties.find((party) => party.partyId !== localPartyId)?.partyId;
+    if (!remotePartyId) throw new Error('Channel counterparty not found');
+    if (amount <= 0n || (channel.balances[localPartyId] ?? 0n) < amount) {
+      throw new Error('Insufficient channel balance');
+    }
+    if ((context.custodyMode ?? 'self') === 'hosted') {
+      throw new Error('preparePay requires an explicit hosted custody disclosure context (not yet configured)');
+    }
+
+    return withOperation(context, params, async () => {
+      const preparedOperationId = operationId(params);
+      const unsigned = buildStateUpdate(
+        channel,
+        {
+          newSequence: channel.currentSequence + 1,
+          newBalances: {
+            ...channel.balances,
+            [localPartyId]: (channel.balances[localPartyId] ?? 0n) - amount,
+            [remotePartyId]: (channel.balances[remotePartyId] ?? 0n) + amount,
+          },
+        },
+        { publicKeyDigest: localPkd },
+      );
+
+      const expiresAt = Date.now() + 120_000;
+      const base = {
+        domain: 'channel' as const,
+        signers: [localPkd],
+        custody: makeSelfCustody(),
+        expiresAt,
+      };
+      const intent: import('@totemsdk/omnia').SignRequest = {
+        ...base,
+        requestId: `${preparedOperationId}:intent`,
+        kind: 'intent',
+        digest: unsigned.updateDigest,
+        context: { summary: `Authorize payment of ${amount.toString()} on channel ${channelId}` },
+      };
+      const update: import('@totemsdk/omnia').SignRequest = {
+        ...base,
+        requestId: `${preparedOperationId}:update`,
+        kind: 'chain',
+        digest: unsigned.updateDigest,
+        context: { summary: 'Sign the channel update transaction' },
+      };
+      const settlement: import('@totemsdk/omnia').SignRequest = {
+        ...base,
+        requestId: `${preparedOperationId}:settlement`,
+        kind: 'chain',
+        digest: unsigned.settlementDigest,
+        context: { summary: 'Sign the settlement close package' },
+      };
+
+      for (const [key, entry] of context.preparedPay!) {
+        if (entry.expiresAt <= Date.now()) context.preparedPay!.delete(key);
+      }
+      context.preparedPay!.set(preparedOperationId, { channelId, unsigned, intent, update, settlement, expiresAt });
+      return {
+        success: true,
+        status: 'signature-required',
+        operationId: preparedOperationId,
+        channelId,
+        requests: { intent, update, settlement },
+        expiresAt,
+      };
+    });
+  };
+  methods.set('totem_omniaPreparePay', preparePay);
+  methods.set('omnia/preparePay', preparePay);
+
+  const submitPay: JsonRpcHandler = async (raw) => {
+    const params = paramsObject(raw);
+    const preparedOperationId = requiredString(params, 'preparedOperationId');
+    const localPkd = context.localParticipant?.publicKeyDigest;
+    if (!localPkd) throw new Error('Local participant is not configured');
+    if (!context.preparedPay) throw new Error('Prepared-pay store is not configured');
+    return withOperation(context, params, async () => {
+      const entry = context.preparedPay!.get(preparedOperationId);
+      if (!entry) throw new Error(`Prepared payment ${preparedOperationId} not found`);
+      if (entry.expiresAt <= Date.now()) {
+        context.preparedPay!.delete(preparedOperationId);
+        throw new Error(`Prepared payment ${preparedOperationId} has expired`);
+      }
+
+      const intentSignature = hexBytes(params.intentSignature, 'intentSignature');
+      const updateSignature = hexBytes(params.updateSignature, 'updateSignature');
+      const settlementSignature = hexBytes(params.settlementSignature, 'settlementSignature');
+      const updateIndices = signingIndicesParam(params.updateIndices);
+      const settlementIndices = signingIndicesParam(params.settlementIndices);
+
+      if (!verifyChannelSignature(intentSignature, signRequestPayload(entry.intent), localPkd)) {
+        throw new Error('intent signature does not verify');
+      }
+      if (!verifyChannelSignature(updateSignature, entry.unsigned.updateDigest, localPkd)) {
+        throw new Error('update signature does not verify');
+      }
+      if (!verifyChannelSignature(settlementSignature, entry.unsigned.settlementDigest, localPkd)) {
+        throw new Error('settlement signature does not verify');
+      }
+
+      const state = finalizeStateUpdateWithIndices(
+        entry.unsigned,
+        updateSignature,
+        updateIndices,
+        settlementSignature,
+        settlementIndices,
+      );
+      const channel = entry.unsigned.channel;
+      const updatedChannel = {
+        ...channel,
+        balances: state.balances!,
+        currentSequence: state.sequence!,
+        pendingProposal: { sequence: state.sequence!, payloadHash: entry.unsigned.payloadHash },
+        stateLog: [
+          ...channel.stateLog,
+          {
+            sequence: state.sequence!,
+            timestamp: Date.now(),
+            balances: { ...state.balances! },
+            htlcCount: entry.unsigned.pendingHTLCs.length,
+            event: 'update' as const,
+          },
+        ],
+        updatedAt: Date.now(),
+      };
+      context.channels.set(entry.channelId, updatedChannel);
+
+      const localPartyId = context.localParticipant!.partyId;
+      const remote = channel.parties.find((party) => party.partyId !== localPartyId);
+      if (!remote) throw new Error('Channel counterparty not found');
+      if (context.swarm) {
+        const peer = await context.swarm.connectToPeer(remote.publicKeyDigest, entry.channelId, remote.transportPubkey);
+        await peer.sendMessage({
+          type: 'STATE_UPDATE',
+          channelId: entry.channelId,
+          nonce: Date.now(),
+          payload: state,
+        });
+      }
+      context.preparedPay!.delete(preparedOperationId);
+
+      return {
+        success: true,
+        channelId: entry.channelId,
+        sequence: state.sequence!,
+        localBalance: state.balances![localPartyId]!.toString(),
+        remoteBalance: state.balances![remote.partyId]!.toString(),
+      };
+    });
+  };
+  methods.set('totem_omniaSubmitPay', submitPay);
+  methods.set('omnia/submitPay', submitPay);
+}
+
 export function createHostMethods(context: HostApiContext): Map<string, JsonRpcHandler> {
   const methods = new Map<string, JsonRpcHandler>();
   const register = (name: string, handler: JsonRpcHandler, alias: string): void => {
@@ -461,6 +663,12 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
 
   // Fail-fast rule: without signing material only the read-only surface is
   // registered. Mutation methods must never exist without a signer.
+  // Coordinator mode: no host signing material. Expose the read surface plus
+  // the non-signing prepare/submit flow; wallets supply signatures and indices.
+  if (context.coordinator && !context.readOnly) {
+    registerPreparedPayMethods(methods, context);
+    return methods;
+  }
   if (context.readOnly || !context.signer || !context.leaseProvider) {
     return methods;
   }
@@ -597,6 +805,8 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
     });
   };
   register('totem_omniaPay', pay, 'omnia/pay');
+  registerPreparedPayMethods(methods, context);
+
 
   const programTransition: JsonRpcHandler = async (raw) => {
     const params = paramsObject(raw);

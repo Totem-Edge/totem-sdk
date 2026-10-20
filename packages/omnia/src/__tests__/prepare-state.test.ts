@@ -6,7 +6,9 @@ import { bytesToHex, createUnifiedChildTreeKey, serializeTreeSignature } from '@
 import type { WotsLeaseProvider } from '@totemsdk/wots-lease';
 import { DefaultEltooPaymentProgram } from '../program.js';
 import {
+  buildStateUpdate,
   finalizeStateUpdate,
+  finalizeStateUpdateWithIndices,
   prepareStateUpdate,
   signState,
   verifyStateSignature,
@@ -89,6 +91,31 @@ describe('prepareStateUpdate / finalizeStateUpdate', () => {
 
     expect(state.sequence).toBe(2);
     expect(state.balances).toEqual({ alice: 500n, bob: 500n });
+    expect(verifyStateSignature(channel, state, 'alice', pkd)).toBe(true);
+  });
+
+  it('buildStateUpdate + finalizeStateUpdateWithIndices supports wallet-supplied indices', async () => {
+    const channel = makeChannel(pkd);
+    const unsigned = buildStateUpdate(
+      channel,
+      { newSequence: 2, newBalances: { alice: 500n, bob: 500n } },
+      { publicKeyDigest: pkd },
+    );
+    expect(unsigned.payloadHash).toMatch(/^[0-9a-fA-F]+$/);
+
+    const updateIndices = { addressIndex: 0, l1: 1, l2: 0 };
+    const settlementIndices = { addressIndex: 0, l1: 2, l2: 0 };
+    const updateSig = await signer.sign(unsigned.updateDigest, updateIndices);
+    const settlementSig = await signer.sign(unsigned.settlementDigest, settlementIndices);
+    const state = finalizeStateUpdateWithIndices(
+      unsigned,
+      updateSig,
+      updateIndices,
+      settlementSig,
+      settlementIndices,
+    ) as SignedChannelState;
+
+    expect(state.sequence).toBe(2);
     expect(verifyStateSignature(channel, state, 'alice', pkd)).toBe(true);
   });
 
