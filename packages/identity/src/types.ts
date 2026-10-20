@@ -64,9 +64,29 @@ export interface IdentityVerifyResult {
   metadata?: Record<string, unknown>;
 }
 
+export interface IdentityProofVerificationContext {
+  expectedRootAddress?: string;
+  expectedAddress?: string;
+  purpose?:
+    | 'identity-resolution'
+    | 'manifest-binding'
+    | 'lookup-auth'
+    | 'authority'
+    | 'governance'
+    | 'other';
+}
+
 export interface IdentityProofVerifier {
   type: string;
-  verify(proof: unknown): Promise<IdentityVerifyResult>;
+  verify(
+    proof: unknown,
+    context?: IdentityProofVerificationContext,
+  ): Promise<IdentityVerifyResult>;
+}
+
+export interface IdentityResolutionOptions {
+  /** Explicit resolution time. Defaults to Date.now() for compatibility. */
+  asOf?: number;
 }
 
 export interface IdentityGraph {
@@ -139,6 +159,10 @@ export interface RevocationClaim {
 
 export interface ManifestIdentityBinding {
   valid: boolean;
+  /** Root address asserted by a verified root-identity proof, when present. */
+  rootAddress?: string;
+  /** Child addresses proven by the root-identity proof (evidence only). */
+  provenAddresses?: string[];
   reason?: string;
   manifestId: string;
   identityId: string;

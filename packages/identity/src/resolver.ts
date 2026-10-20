@@ -24,18 +24,24 @@ import type {
   IdentityResolutionResult,
   ResolvedIdentity,
   IdentityStatus,
+  IdentityResolutionOptions,
   DelegationClaim,
   PaymentRecipientClaim,
   ServiceEndpointClaim,
   SignedIdentityClaim,
 } from './types.js';
 
-function isExpired(claim: { expiresAt?: number }): boolean {
-  if (claim.expiresAt === undefined) return false;
-  return Date.now() > claim.expiresAt;
+function isEffective(claim: { issuedAt: number; expiresAt?: number }, asOf: number): boolean {
+  if (claim.issuedAt > asOf) return false;
+  if (claim.expiresAt === undefined) return true;
+  return asOf <= claim.expiresAt;
 }
 
-export function resolveIdentityGraph(graph: IdentityGraph): IdentityResolutionResult {
+export function resolveIdentityGraph(
+  graph: IdentityGraph,
+  options: IdentityResolutionOptions = {},
+): IdentityResolutionResult {
+  const asOf = options.asOf ?? Date.now();
   const { document, claims } = graph;
   const { rootAddress, controllerAddress } = document;
 
@@ -60,7 +66,7 @@ export function resolveIdentityGraph(graph: IdentityGraph): IdentityResolutionRe
       sc.claim.type === 'delegates_to' &&
       sc.claim.subject === document.id &&
       (sc.claim.issuer === rootAddress || sc.claim.issuer === controllerAddress) &&
-      !isExpired(sc.claim),
+      isEffective(sc.claim, asOf),
   );
   const firstLevelDelegates = new Set<string>(rootDelegations.map((sc) => sc.claim.object));
 
@@ -77,7 +83,8 @@ export function resolveIdentityGraph(graph: IdentityGraph): IdentityResolutionRe
     (sc) =>
       sc.claim.type === 'revokes' &&
       sc.claim.subject === document.id &&
-      isRootOrController(sc.claim.issuer),
+      isRootOrController(sc.claim.issuer) &&
+      isEffective(sc.claim, asOf),
   );
   const isRevoked = revocationClaims.length > 0;
   const revokedAt = isRevoked
@@ -90,7 +97,7 @@ export function resolveIdentityGraph(graph: IdentityGraph): IdentityResolutionRe
       sc.claim.type === 'rotates_to' &&
       sc.claim.subject === document.id &&
       isRootOrController(sc.claim.issuer) &&
-      !isExpired(sc.claim),
+      isEffective(sc.claim, asOf),
   );
   const rotationTarget = rotationClaims.length > 0 ? rotationClaims[0].claim.object : undefined;
 
@@ -104,7 +111,7 @@ export function resolveIdentityGraph(graph: IdentityGraph): IdentityResolutionRe
       sc.claim.type === 'delegates_to' &&
       sc.claim.subject === document.id &&
       allAuthorized.has(sc.claim.issuer) &&
-      !isExpired(sc.claim),
+      isEffective(sc.claim, asOf),
   );
 
   const delegates: DelegationClaim[] = allDelegationSignedClaims.map((sc) => ({
@@ -147,7 +154,7 @@ export function resolveIdentityGraph(graph: IdentityGraph): IdentityResolutionRe
         sc.claim.type === 'payment_recipient' &&
         sc.claim.subject === document.id &&
         hasScope(sc.claim.issuer, 'identity:manage') &&
-        !isExpired(sc.claim),
+        isEffective(sc.claim, asOf),
     )
     .map((sc) => ({
       claimId: sc.claim.id,
@@ -165,7 +172,7 @@ export function resolveIdentityGraph(graph: IdentityGraph): IdentityResolutionRe
         sc.claim.type === 'service_endpoint' &&
         sc.claim.subject === document.id &&
         hasScope(sc.claim.issuer, 'identity:manage') &&
-        !isExpired(sc.claim),
+        isEffective(sc.claim, asOf),
     )
     .map((sc) => ({
       claimId: sc.claim.id,

@@ -6146,7 +6146,7 @@
         },
         "resolveIdentityGraph": {
           "kind": "function",
-          "signature": "resolveIdentityGraph(graph: IdentityGraph): IdentityResolutionResult"
+          "signature": "resolveIdentityGraph(graph: IdentityGraph, options?: IdentityResolutionOptions): IdentityResolutionResult"
         },
         "bindManifestToIdentity": {
           "kind": "function",
@@ -6154,7 +6154,7 @@
         },
         "verifyManifestIdentity": {
           "kind": "function",
-          "signature": "verifyManifestIdentity(signedManifest: SignedManifest<any>, identityGraph: IdentityGraph, options?: { proofVerifiers?: Record<string, IdentityProofVerifier>; }): Promise<ManifestIdentityBinding>"
+          "signature": "verifyManifestIdentity(signedManifest: SignedManifest<any>, identityGraph: IdentityGraph, options?: { proofVerifiers?: Record<string, IdentityProofVerifier>; asOf?: number; }): Promise<ManifestIdentityBinding>"
         },
         "isTotemIdentityDocument": {
           "kind": "function",
@@ -15650,6 +15650,33 @@
           "kind": "interface",
           "signature": "export interface OwnershipProof",
           "doc": "Ownership proof demonstrating that a root key controls a set of child addresses.\n\nThe root key signs a canonical JSON message that includes all child public keys\nand a timestamp, allowing third parties to verify the claim without any\ninteraction with the blockchain.\n\nVerification steps:\n1. Rebuild the canonical message from `rootAddress`, `childPublicKeys`, and `timestamp`.\n2. Verify `rootProof.signature` over that message with `rootProof.publicKey`.\n3. For each `(childPublicKeys[i], childAddresses[i])` pair confirm the address\n   is correctly derived from the public key."
+        },
+        "encodeRootIdentityProof": {
+          "kind": "function",
+          "signature": "encodeRootIdentityProof(proof: OwnershipProof): string",
+          "doc": "Serialize an ownership proof (opaque string carried in identity/manifest fields)."
+        },
+        "decodeRootIdentityProof": {
+          "kind": "function",
+          "signature": "decodeRootIdentityProof(encoded: string): OwnershipProof",
+          "doc": "Parse and shape-check a serialized ownership proof."
+        },
+        "createRootIdentityProofVerifier": {
+          "kind": "function",
+          "signature": "createRootIdentityProofVerifier(): RootIdentityProofVerifier",
+          "doc": "Create a structural verifier compatible with `IdentityProofVerifier`.\n\nRoot ancestry is evidence only: consumers must still enforce authorization\nthrough identity/authority. `expectedRootAddress` is mandatory for\nidentity/manifest binding; the verifier never widens an authorization scope."
+        },
+        "RootIdentityVerificationContext": {
+          "kind": "interface",
+          "signature": "export interface RootIdentityVerificationContext"
+        },
+        "RootIdentityVerificationResult": {
+          "kind": "interface",
+          "signature": "export interface RootIdentityVerificationResult"
+        },
+        "RootIdentityProofVerifier": {
+          "kind": "interface",
+          "signature": "export interface RootIdentityProofVerifier"
         }
       }
     },

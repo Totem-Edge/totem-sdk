@@ -1,6 +1,6 @@
 # Entity projection P0 hardening (October 2026)
 
-Status: P0-C and P0-D landed; P0-A/B/E pending
+Status: P0-A, P0-B, P0-C and P0-D landed; P0-E pending
 
 ## Numbering and package naming
 
@@ -30,10 +30,27 @@ Status: P0-C and P0-D landed; P0-A/B/E pending
   - the inner `value` is type-checked.
 - Backward-compatible: only schemas that declare `maxAgeMs` require the wrapper.
 
+## P0-A — explicit resolution time
+
+- `resolveIdentityGraph(graph, { asOf })` — claims are effective only when
+  `issuedAt <= asOf` and not expired at `asOf`.
+- `verifyManifestIdentity(..., { asOf })` rejects manifests signed after `asOf`
+  and manifests expired at `asOf`.
+- Historical replay tests cover effective/expired/future claims and revocations.
+
+## P0-B — root verifier + binding hardening
+
+- `@totemsdk/root-identity` now exports
+  `encodeRootIdentityProof`, `decodeRootIdentityProof` and
+  `createRootIdentityProofVerifier` (returns `rootAddress`,
+  `provenAddresses`, `proofDigest`).
+- Manifest binding passes `expectedRootAddress` and requires
+  `proof.rootAddress === identity.document.rootAddress`.
+- Root-proven children are **evidence only**: they do not grant
+  `manifest:sign` (root, controller or an explicit `manifest:sign` delegate only).
+
 ## Remaining
 
-- **P0-A** identity explicit `asOf` + root-binding hardening.
-- **P0-B** `root-identity` verifier (`encode/decode`, `createRootIdentityProofVerifier`).
 - **P0-E** ProofGraph manifest revision envelopes (`computeManifestEnvelopeId`).
 - **P1** `@totemsdk/entity` package + `projectEntity()` / `resolveEntity()`.
 

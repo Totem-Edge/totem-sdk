@@ -9,7 +9,9 @@
  *   1. The identity's rootAddress
  *   2. The identity's controllerAddress
  *   3. An address in authorizedAddresses (delegates with "manifest:sign" or "*" scope)
- *   4. An address in result.provenAddresses returned by the root-identity proof verifier
+ * Root-identity proofs are verified and must resolve to the identity's root,
+ * but a root-proven child does NOT grant `manifest:sign` by itself. Proven
+ * addresses are returned as evidence only.
  *
  * Note: controlledAddresses (delegates with any scope) are NOT included in the
  * manifest-signing valid set. Only explicitly scoped manifest signers may bind.
@@ -36,9 +38,12 @@ export async function verifyManifestIdentity(
   identityGraph: IdentityGraph,
   options?: {
     proofVerifiers?: Record<string, IdentityProofVerifier>;
+    /** Explicit resolution time. Defaults to Date.now() for compatibility. */
+    asOf?: number;
   },
 ): Promise<ManifestIdentityBinding> {
   const proofVerifiers = options?.proofVerifiers ?? {};
+  const asOf = options?.asOf ?? Date.now();
   const manifestId = computeManifestId(signedManifest.manifest);
 
   // Step 1: verify manifest signature first — fail fast on invalid manifest
@@ -54,8 +59,30 @@ export async function verifyManifestIdentity(
     };
   }
 
+  if (signedManifest.signedAt > asOf) {
+    return {
+      valid: false,
+      reason: `manifest was signed at ${signedManifest.signedAt}, after asOf ${asOf}`,
+      manifestId,
+      identityId: identityGraph.document.id,
+      signerAddress: signedManifest.authorAddress,
+      resolvedStatus: 'active',
+    };
+  }
+  const manifestExpiresAt = (signedManifest.manifest as { expiresAt?: number }).expiresAt;
+  if (manifestExpiresAt !== undefined && asOf > manifestExpiresAt) {
+    return {
+      valid: false,
+      reason: `manifest expired at ${manifestExpiresAt}, before asOf ${asOf}`,
+      manifestId,
+      identityId: identityGraph.document.id,
+      signerAddress: signedManifest.authorAddress,
+      resolvedStatus: 'active',
+    };
+  }
+
   // Step 2: resolve identity graph (includes claim signature verification)
-  const resolution = resolveIdentityGraph(identityGraph);
+  const resolution = resolveIdentityGraph(identityGraph, { asOf });
   if (!resolution.resolved) {
     return {
       valid: false,
@@ -77,8 +104,17 @@ export async function verifyManifestIdentity(
     try {
       const verifyResult = await proofVerifiers['root-identity'].verify(
         signedManifest.rootIdentityProof,
+        {
+          expectedRootAddress: identityGraph.document.rootAddress,
+          expectedAddress: signedManifest.authorAddress,
+          purpose: 'manifest-binding',
+        },
       );
-      if (verifyResult.valid && verifyResult.provenAddresses) {
+      if (
+        verifyResult.valid &&
+        verifyResult.rootAddress === identityGraph.document.rootAddress &&
+        verifyResult.provenAddresses
+      ) {
         provenAddresses.push(...verifyResult.provenAddresses);
       }
     } catch {
@@ -93,8 +129,17 @@ export async function verifyManifestIdentity(
         try {
           const verifyResult = await proofVerifiers['root-identity'].verify(
             sc.rootIdentityProof,
+            {
+              expectedRootAddress: identityGraph.document.rootAddress,
+              expectedAddress: sc.claim.issuer,
+              purpose: 'manifest-binding',
+            },
           );
-          if (verifyResult.valid && verifyResult.provenAddresses) {
+          if (
+            verifyResult.valid &&
+            verifyResult.rootAddress === identityGraph.document.rootAddress &&
+            verifyResult.provenAddresses
+          ) {
             provenAddresses.push(...verifyResult.provenAddresses);
           }
         } catch {
@@ -109,7 +154,7 @@ export async function verifyManifestIdentity(
   //   1. rootAddress
   //   2. controllerAddress
   //   3. authorizedAddresses — delegates with "manifest:sign" or "*" scope
-  //   4. provenAddresses — from root-identity proof verifiers
+  // Root-proven children are evidence only; they do not grant manifest:sign.
   // RFC-020 C3: `controlledAddresses` (delegates with ANY scope, e.g. a
   // read-only `data:read` delegate) are deliberately NOT manifest signers.
   const signerAddress = signedManifest.authorAddress;
@@ -117,7 +162,6 @@ export async function verifyManifestIdentity(
     resolved.rootAddress,
     resolved.controllerAddress,
     ...resolved.authorizedAddresses,
-    ...provenAddresses,
   ]);
 
   if (!validAddresses.has(signerAddress)) {
@@ -149,6 +193,10 @@ export async function verifyManifestIdentity(
     identityId: identityGraph.document.id,
     signerAddress,
     resolvedStatus: resolved.status,
+    ...(provenAddresses.length > 0 ? { provenAddresses: [...new Set(provenAddresses)] } : {}),
+    ...(provenAddresses.length > 0
+      ? { rootAddress: identityGraph.document.rootAddress }
+      : {}),
   };
 }
 

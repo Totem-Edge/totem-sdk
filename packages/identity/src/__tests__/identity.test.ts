@@ -232,6 +232,51 @@ describe('resolveIdentityGraph', () => {
     expect(result.resolved?.authorizedAddresses).toContain('MxDELEGATE');
   }, 30000);
 
+  it('evaluates claims at an explicit asOf', async () => {
+    const rootAddr = deriveAddress(SEED_A, 0);
+    const doc = createIdentityDocument({
+      kind: 'agent',
+      rootAddress: rootAddr,
+      controllerAddress: rootAddr,
+    });
+    const delClaim = createDelegationClaim({
+      issuer: rootAddr,
+      subject: doc.id,
+      delegatedAddress: 'MxDELEGATE',
+      scopes: ['manifest:sign'],
+      issuedAt: 1000,
+      expiresAt: 2000,
+    });
+    const signed = await signIdentityClaim(delClaim, SEED_A, 0);
+    const graph: IdentityGraph = { document: doc, claims: [signed] };
+
+    expect(resolveIdentityGraph(graph, { asOf: 1500 }).resolved?.delegates).toHaveLength(1);
+    expect(resolveIdentityGraph(graph, { asOf: 2500 }).resolved?.delegates).toHaveLength(0);
+    expect(resolveIdentityGraph(graph, { asOf: 500 }).resolved?.delegates).toHaveLength(0);
+  }, 30000);
+
+  it('does not apply a revocation issued after asOf', async () => {
+    const rootAddr = deriveAddress(SEED_A, 0);
+    const doc = createIdentityDocument({
+      kind: 'agent',
+      rootAddress: rootAddr,
+      controllerAddress: rootAddr,
+    });
+    const rev = createIdentityClaim({
+      type: 'revokes',
+      issuer: rootAddr,
+      subject: doc.id,
+      object: '',
+      payload: {},
+      issuedAt: 3000,
+    });
+    const signed = await signIdentityClaim(rev, SEED_A, 0);
+    const graph: IdentityGraph = { document: doc, claims: [signed] };
+
+    expect(resolveIdentityGraph(graph, { asOf: 2000 }).resolved?.status).toBe('active');
+    expect(resolveIdentityGraph(graph, { asOf: 4000 }).resolved?.status).toBe('revoked');
+  }, 30000);
+
   it('resolves payment recipient claim', async () => {
     const rootAddr = deriveAddress(SEED_A, 0);
     const doc = createIdentityDocument({
@@ -429,7 +474,7 @@ describe('address binding security', () => {
 // signManifest derives addresses via WASM wotsAddressFromKeypair.
 
 describe('verifyManifestIdentity / bindManifestToIdentity', () => {
-  async function makeEdgeServiceManifest(seed: Uint8Array, keyIndex: number) {
+  async function makeEdgeServiceManifest(seed: Uint8Array, keyIndex: number, expiresAt?: number) {
     const signerAddr = manifestAddress(seed);
     const manifest = {
       type: 'edge-service' as const,
@@ -441,6 +486,7 @@ describe('verifyManifestIdentity / bindManifestToIdentity', () => {
       description: 'test',
       capabilities: [],
       tags: [],
+      ...(expiresAt !== undefined ? { expiresAt } : {}),
     };
     return signManifest(manifest, manifestTree(seed), keyIndex);
   }
@@ -600,6 +646,63 @@ describe('verifyManifestIdentity / bindManifestToIdentity', () => {
     const binding = await bindManifestToIdentity(signed, graph);
     expect(binding.valid).toBe(true);
     expect(binding.signerAddress).toBe(rootAddr);
+  }, 30000);
+
+  it('evaluates manifest validity at an explicit asOf', async () => {
+    const base = await makeEdgeServiceManifest(SEED_A, 0, 2000);
+    const signed = { ...base, signedAt: 1000 };
+    const doc = createIdentityDocument({
+      kind: 'service',
+      rootAddress: signed.authorAddress,
+      controllerAddress: signed.authorAddress,
+    });
+    const graph: IdentityGraph = { document: doc, claims: [] };
+
+    const before = await verifyManifestIdentity(signed, graph, { asOf: 1500 });
+    expect(before.valid).toBe(true);
+
+    const expired = await verifyManifestIdentity(signed, graph, { asOf: 3000 });
+    expect(expired.valid).toBe(false);
+    expect(expired.reason).toMatch(/expired/);
+  }, 30000);
+
+  it('rejects a manifest signed after asOf', async () => {
+    const signed = await makeEdgeServiceManifest(SEED_A, 0);
+    const doc = createIdentityDocument({
+      kind: 'service',
+      rootAddress: signed.authorAddress,
+      controllerAddress: signed.authorAddress,
+    });
+    const graph: IdentityGraph = { document: doc, claims: [] };
+
+    const binding = await verifyManifestIdentity(
+      { ...signed, signedAt: 5000 },
+      graph,
+      { asOf: 4000 },
+    );
+    expect(binding.valid).toBe(false);
+    expect(binding.reason).toMatch(/after asOf/);
+  }, 30000);
+
+  it('does not grant manifest:sign to a root-proven child', async () => {
+    const signed = await makeEdgeServiceManifest(SEED_A, 0);
+    const doc = createIdentityDocument({
+      kind: 'service',
+      rootAddress: 'MxROOT',
+      controllerAddress: 'MxCTRL',
+    });
+    const graph: IdentityGraph = { document: doc, claims: [] };
+    const verifier = {
+      type: 'root-identity',
+      async verify() {
+        return { valid: true, rootAddress: 'MxROOT', provenAddresses: [signed.authorAddress] };
+      },
+    };
+
+    const binding = await verifyManifestIdentity(signed, graph, {
+      proofVerifiers: { 'root-identity': verifier as never },
+    });
+    expect(binding.valid).toBe(false);
   }, 30000);
 });
 
