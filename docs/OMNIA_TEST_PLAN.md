@@ -72,6 +72,7 @@ All harnesses live in `scripts/` and print a machine-readable
 | S5 | `node scripts/omnia-s5-cross.mjs` | two hosts; factory lease bundles (host startup) |
 | S9 | `node scripts/omnia-s9-relay.mjs` | local only |
 | S6 | `node scripts/omnia-s6-vtxo.mjs` | local only |
+| S7 | `node scripts/omnia-s7-splice.mjs` | local only |
 | S10 | `node scripts/omnia-s10-pool.mjs` | local only |
 | runtime | `node scripts/runtime-smoke.cjs [--native]` | SDK build; `OMNIA_SMOKE_HOST` for native |
 
@@ -122,6 +123,22 @@ mock lease provider: create pool → mint 100k → co-sign/verify the mint recei
 partial transfer 40k (60k change) → co-sign/verify the transfer receipt →
 refresh to epoch 1 → co-sign/verify → exit draft → exited. Also asserts a
 receipt does not verify against the wrong root.
+
+### S7
+
+```
+node scripts/omnia-s7-splice.mjs
+```
+
+Real `@totemsdk/omnia-splice` state machine with deterministic mock WOTS signers:
+active channel → `quiesceChannel` → `proposeSpliceIn` (1000→1500) → `acceptSplice`
+→ `finalizeSplice`; then a fresh channel → `quiesceChannel` →
+`proposeSpliceOut` (1000→500, withdraw 500) → `acceptSplice` → `finalizeSplice`.
+Uses a fresh channel id per phase because the SDK keeps a per-channel sequence
+watermark.
+
+Host wiring (a peer `SPLICE_PROPOSAL`/`ACCEPT` exchange and host
+accept/finalize methods) is still pending; the SDK lifecycle is green.
 
 ### S10
 
@@ -179,7 +196,7 @@ harness's.
 | **S4** | core channel lifecycle between two nodes | a channel payment settles on-chain | done |
 | **S5** | factory + virtual-channel lifecycle | factory opens, VC opens/closes, allocations restore | done |
 | **S6** | virtual-UTXO claims | claim settles | done (SDK harness) |
-| **S7** | splice in/out | live resize | pending — managers not wired into the CLI |
+| **S7** | splice in/out | live resize | done (SDK harness); host accept/finalize wiring pending |
 | **S8** | multi-hop / cross-token payment (3 nodes) | multi-hop settles | pending — needs 3 hosts + fee-adjusted per-hop amounts |
 | **S9** | relay round-trip (SDK harness) | relay client/server round-trip | done |
 | **S10** | liquidity-pool orchestration | pool lifecycle | done (SDK harness) |

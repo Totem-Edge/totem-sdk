@@ -70,7 +70,8 @@
     "test:omnia:s5": "node scripts/omnia-s5-cross.mjs",
     "test:omnia:s9": "node scripts/omnia-s9-relay.mjs",
     "test:omnia:s10": "node scripts/omnia-s10-pool.mjs",
-    "test:omnia:s6": "node scripts/omnia-s6-vtxo.mjs"
+    "test:omnia:s6": "node scripts/omnia-s6-vtxo.mjs",
+    "test:omnia:s7": "node scripts/omnia-s7-splice.mjs"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
