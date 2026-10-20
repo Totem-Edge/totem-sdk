@@ -94,6 +94,9 @@ export {
 export {
   signTxDraft,
   signState,
+  prepareStateUpdate,
+  type PreparedStateUpdate,
+  finalizeStateUpdate,
   verifyStateSignature,
   validateStateTransition,
   verifyState,

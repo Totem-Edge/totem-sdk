@@ -82,6 +82,125 @@ export async function signTxDraft(
  * @param leaseProvider - WOTS lease provider.
  * @param signer        - Optional explicit signer; falls back to channel.localSigner.
  */
+export interface PreparedStateUpdate {
+  channel: OmniaChannel;
+  newSequence: number;
+  newBalances: Record<string, bigint>;
+  pendingHTLCs: OmniaChannel['pendingHTLCs'];
+  stateVariables: OmniaTxDraft['stateVariables'];
+  programTransition: ProgramTransition | undefined;
+  transactionHex: string;
+  updateDigest: Uint8Array;
+  settlementDigest: Uint8Array;
+  signerPartyId: string;
+  updateReservation: { reservationId: string; indices: SigningIndices };
+  settlementReservation: { reservationId: string; indices: SigningIndices };
+  unsignedClosePackage: ReturnType<typeof buildUnsignedClosePackage>;
+}
+
+/**
+ * Build and reserve a channel update without signing it.
+ *
+ * The caller owns the reservations: sign `updateDigest` and `settlementDigest`
+ * with the reserved indices, then call `finalizeStateUpdate` and commit the
+ * leases. On any failure before returning, the reservations are burned.
+ */
+export async function prepareStateUpdate(
+  channel: OmniaChannel,
+  update: { newSequence: number; newBalances: Record<string, bigint>; programTransition?: ProgramTransition },
+  leaseProvider: WotsLeaseProvider,
+  signer?: ChannelSigner,
+): Promise<PreparedStateUpdate> {
+  const { newSequence, newBalances } = update;
+  const effectiveSigner = resolveSignerOrThrow(channel, signer);
+  const pendingHTLCs = channel.pendingHTLCs.filter(h => h.status === 'pending');
+  const programTransition = canonicalizeProgramTransition(update.programTransition);
+  const draft = buildProgramUpdateTx(channel, newSequence, newBalances, channel.pendingHTLCs, programTransition);
+  const updateDigest = computeOmniaTxDigest(draft);
+
+  const updateReservation = await leaseProvider.reserveKeyUse({
+    treeId: `omnia-channel-${channel.channelId}`,
+    purpose: `channel-update-seq-${newSequence}`,
+    payloadHash: Buffer.from(updateDigest).toString('hex'),
+  });
+
+  let settlementReservation: { reservationId: string; indices: SigningIndices } | undefined;
+  try {
+    const signerParty = channel.parties.find(p => p.publicKeyDigest === effectiveSigner.publicKeyDigest);
+    if (!signerParty) throw new Error('Signer public key digest not found in channel parties');
+
+    const unsignedClosePackage = buildUnsignedClosePackage(channel, {
+      sequence: newSequence,
+      balances: newBalances,
+      pendingHTLCs,
+      stateVariables: draft.stateVariables,
+      programTransition,
+    });
+    const settlementDigest = hexToBytes(unsignedClosePackage.settlement.txDigest);
+    settlementReservation = await leaseProvider.reserveKeyUse({
+      treeId: `omnia-channel-${channel.channelId}`,
+      purpose: `channel-settlement-seq-${newSequence}`,
+      payloadHash: unsignedClosePackage.settlement.txDigest,
+    });
+
+    return {
+      channel,
+      newSequence,
+      newBalances,
+      pendingHTLCs,
+      stateVariables: draft.stateVariables,
+      programTransition,
+      transactionHex: serializeTxDraft(draft),
+      updateDigest,
+      settlementDigest,
+      signerPartyId: signerParty.partyId,
+      updateReservation,
+      settlementReservation,
+      unsignedClosePackage,
+    };
+  } catch (err) {
+    await leaseProvider.burnReservation(updateReservation.reservationId, 'channel-update-prepare-failed').catch(() => {});
+    if (settlementReservation) {
+      await leaseProvider.burnReservation(settlementReservation.reservationId, 'channel-update-prepare-failed').catch(() => {});
+    }
+    throw err;
+  }
+}
+
+/** Assemble a `SignedChannelState` from a prepared update and its signatures. */
+export function finalizeStateUpdate(
+  prepared: PreparedStateUpdate,
+  updateSignature: ChannelSignature,
+  settlementSignature: ChannelSignature,
+): Partial<SignedChannelState> {
+  const closePackage = addClosePackageSignature(
+    prepared.unsignedClosePackage,
+    prepared.signerPartyId,
+    updateSignature,
+    prepared.updateReservation.indices,
+    settlementSignature,
+    prepared.settlementReservation.indices,
+  );
+
+  return {
+    sequence: prepared.newSequence,
+    balances: prepared.newBalances,
+    pendingHTLCs: prepared.pendingHTLCs,
+    stateVariables: prepared.stateVariables,
+    transactionHex: prepared.transactionHex,
+    signatures: { [prepared.signerPartyId]: updateSignature },
+    signingIndices: { [prepared.signerPartyId]: prepared.updateReservation.indices },
+    closePackage,
+    programTransition: prepared.programTransition,
+  };
+}
+
+/**
+ * Signs a channel update state and returns the full partial `SignedChannelState`.
+ *
+ * This is the local-signer path: prepare -> sign both digests -> commit -> finalize.
+ * For a wallet/coordinator flow use `prepareStateUpdate` + `finalizeStateUpdate`.
+ */
 export async function signState(
   channel: OmniaChannel,
   update: { newSequence: number; newBalances: Record<string, bigint>; programTransition?: ProgramTransition },
@@ -89,7 +208,6 @@ export async function signState(
   signer?: ChannelSigner,
   signerPort?: SignerPort,
 ): Promise<Partial<SignedChannelState>> {
-  const { newSequence, newBalances } = update;
   const effectiveSigner = resolveSignerOrThrow(channel, signer);
   const signDigest = async (
     digest: Uint8Array,
@@ -113,61 +231,33 @@ export async function signState(
     };
     return signerPort.sign(request);
   };
-  const pendingHTLCs = channel.pendingHTLCs.filter(h => h.status === 'pending');
-  const programTransition = canonicalizeProgramTransition(update.programTransition);
-  const draft = buildProgramUpdateTx(channel, newSequence, newBalances, channel.pendingHTLCs, programTransition);
 
-  const digest = computeOmniaTxDigest(draft);
-
-  const reservation = await leaseProvider.reserveKeyUse({
-    treeId: `omnia-channel-${channel.channelId}`,
-    purpose: `channel-update-seq-${newSequence}`,
-    payloadHash: Buffer.from(digest).toString('hex'),
-  });
-
-  const signature = await signDigest(digest, reservation.indices, `channel-update-seq-${newSequence}`);
-  await leaseProvider.commitKeyUse(reservation.reservationId, `channel-update-seq-${newSequence}`);
-
-  const signerParty = channel.parties.find(p => p.publicKeyDigest === effectiveSigner.publicKeyDigest);
-  if (!signerParty) throw new Error('Signer public key digest not found in channel parties');
-
-  const unsignedClosePackage = buildUnsignedClosePackage(channel, {
-    sequence: newSequence,
-    balances: newBalances,
-    pendingHTLCs,
-    stateVariables: draft.stateVariables,
-    programTransition,
-  });
-  const settlementDigest = hexToBytes(unsignedClosePackage.settlement.txDigest);
-  const settlementReservation = await leaseProvider.reserveKeyUse({
-    treeId: `omnia-channel-${channel.channelId}`,
-    purpose: `channel-settlement-seq-${newSequence}`,
-    payloadHash: unsignedClosePackage.settlement.txDigest,
-  });
-  const settlementSignature = await signDigest(settlementDigest, settlementReservation.indices, `channel-settlement-seq-${newSequence}`);
-  await leaseProvider.commitKeyUse(settlementReservation.reservationId, `channel-settlement-seq-${newSequence}`);
-
-  const closePackage = addClosePackageSignature(
-    unsignedClosePackage,
-    signerParty.partyId,
-    signature,
-    reservation.indices,
-    settlementSignature,
-    settlementReservation.indices,
-  );
-
-  const transactionHex = serializeTxDraft(draft);
-  return {
-    sequence: newSequence,
-    balances: newBalances,
-    pendingHTLCs,
-    stateVariables: draft.stateVariables,
-    transactionHex,
-    signatures: { [signerParty.partyId]: signature },
-    signingIndices: { [signerParty.partyId]: reservation.indices },
-    closePackage,
-    programTransition,
-  };
+  const prepared = await prepareStateUpdate(channel, update, leaseProvider, signer);
+  try {
+    const updateSignature = await signDigest(
+      prepared.updateDigest,
+      prepared.updateReservation.indices,
+      `channel-update-seq-${prepared.newSequence}`,
+    );
+    const settlementSignature = await signDigest(
+      prepared.settlementDigest,
+      prepared.settlementReservation.indices,
+      `channel-settlement-seq-${prepared.newSequence}`,
+    );
+    await leaseProvider.commitKeyUse(
+      prepared.updateReservation.reservationId,
+      `channel-update-seq-${prepared.newSequence}`,
+    );
+    await leaseProvider.commitKeyUse(
+      prepared.settlementReservation.reservationId,
+      `channel-settlement-seq-${prepared.newSequence}`,
+    );
+    return finalizeStateUpdate(prepared, updateSignature, settlementSignature);
+  } catch (err) {
+    await leaseProvider.burnReservation(prepared.updateReservation.reservationId, 'channel-update-sign-failed').catch(() => {});
+    await leaseProvider.burnReservation(prepared.settlementReservation.reservationId, 'channel-settlement-sign-failed').catch(() => {});
+    throw err;
+  }
 }
 
 /**
