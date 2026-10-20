@@ -13,8 +13,20 @@ import {
   setCounter,
   timeoutHTLC,
   updateState,
+  makeSelfCustody,
 } from '@totemsdk/omnia';
-import type { ChannelParticipant, ChannelSigner, CreateChannelParams, OmniaChannel, OmniaSwarm, ProgramTransition, UpdateStateResult } from '@totemsdk/omnia';
+import type {
+  ChannelParticipant,
+  ChannelSigner,
+  CreateChannelParams,
+  CustodyMode,
+  OmniaChannel,
+  OmniaSwarm,
+  ProgramTransition,
+  SignRequest,
+  SignerPort,
+  UpdateStateResult,
+} from '@totemsdk/omnia';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import type { WotsLeaseProvider } from '@totemsdk/wots-lease';
 import {
@@ -87,7 +99,9 @@ export interface HostApiContext {
   /** When true, only read-only methods are registered (no signer material). */
   readOnly?: boolean;
   /** Deployment custody mode (RFC-058); defaults to self. */
-  custodyMode?: import('@totemsdk/omnia').CustodyMode;
+  custodyMode?: CustodyMode;
+  /** RFC-058 signer port; when absent the local signer path is used. */
+  signerPort?: SignerPort;
   /** Opt-in host identity (address, publicKeyDigest, optional delegation). */
   identity?: {
     address: string;
@@ -733,7 +747,21 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
     if (!localBundle) throw new Error('No local factory lease bundle');
     const remote = parsed.find((participant) => participant.partyId !== localPartyId);
 
-    const localSigner = context.signer && context.leaseProvider
+    const localSigner = context.signerPort && (context.custodyMode ?? 'self') !== 'hosted'
+      ? async (digest: Uint8Array): Promise<Uint8Array> => {
+          const request: SignRequest = {
+            requestId: `factory-funding-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            kind: 'chain',
+            domain: 'factory',
+            digest,
+            context: { summary: 'Factory funding input' },
+            signers: [context.signerPort!.publicKeyDigest],
+            custody: makeSelfCustody(),
+            expiresAt: Date.now() + 60_000,
+          };
+          return context.signerPort!.sign(request);
+        }
+      : context.signer && context.leaseProvider
       ? async (digest: Uint8Array): Promise<Uint8Array> => {
           const reservation = await context.leaseProvider!.reserveKeyUse({
             treeId: 'factory-funding',

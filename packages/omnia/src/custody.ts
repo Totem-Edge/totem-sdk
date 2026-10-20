@@ -13,6 +13,14 @@ import { sha3_256 } from '@totemsdk/core';
 
 export type CustodyMode = 'self' | 'trust-minimised' | 'hosted';
 
+/**
+ * - `intent`: authorization signature over domain + disclosure + digest.
+ * - `chain`: raw chain signature over `digest` (the intent/approval layer binds
+ *   the disclosure; the chain signature itself must remain the exact bytes the
+ *   chain/peer verifies).
+ */
+export type SignRequestKind = 'intent' | 'chain';
+
 export type SignDomain =
   | 'channel'
   | 'factory'
@@ -60,6 +68,8 @@ export interface SignContext {
 export interface SignRequest {
   /** Idempotency key; reusing it with a different payload is rejected. */
   requestId: string;
+  /** Defaults to `intent`. */
+  kind?: SignRequestKind;
   domain: SignDomain;
   /** The canonical payload digest to sign (before domain separation). */
   digest: Uint8Array;
@@ -154,6 +164,9 @@ export function validateCustodyContext(custody: CustodyContext): void {
 export function assertSignRequest(request: SignRequest, now = Date.now()): void {
   if (!request || typeof request !== 'object') throw new Error('sign request is required');
   if (!request.requestId) throw new Error('sign request requires requestId');
+  if (request.kind !== undefined && request.kind !== 'intent' && request.kind !== 'chain') {
+    throw new Error(`invalid sign request kind: ${String(request.kind)}`);
+  }
   if (!SIGN_DOMAINS.has(request.domain)) throw new Error(`invalid sign domain: ${String(request.domain)}`);
   if (!(request.digest instanceof Uint8Array) || request.digest.length !== 32) {
     throw new Error('sign request digest must be 32 bytes');
@@ -169,12 +182,15 @@ export function assertSignRequest(request: SignRequest, now = Date.now()): void 
 }
 
 /**
- * Domain-separated payload a signer signs.
+ * Payload a signer signs.
  *
- * Binds the payload digest to the domain and the custody disclosure hash, so a
- * signature produced under disclosure A is invalid under disclosure B.
+ * - `intent` (default): domain-separated digest binding the custody disclosure
+ *   hash, so a signature under disclosure A is invalid under disclosure B.
+ * - `chain`: the raw digest; the chain/peer verifies exactly these bytes. The
+ *   disclosure is bound by the accompanying intent/approval signature.
  */
 export function signRequestPayload(request: SignRequest): Uint8Array {
+  if (request.kind === 'chain') return new Uint8Array(request.digest);
   const prefix = new TextEncoder().encode(
     `${DOMAIN_PREFIX}|${request.domain}|${request.custody.disclosureHash ?? ''}|`,
   );

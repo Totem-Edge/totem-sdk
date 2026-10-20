@@ -1,6 +1,7 @@
 import { createOmniaHost, loadConfigFromEnv } from './index.js';
 import { createHostSigning, hasSigningMaterial } from './signing.js';
 import { createHostIdentityAndManifest } from './identity.js';
+import { createLocalSignerPort } from './signer-port.js';
 
 async function main(): Promise<void> {
   const config = loadConfigFromEnv();
@@ -14,6 +15,7 @@ async function main(): Promise<void> {
     ? {
         signer: signing.signer,
         leaseProvider: signing.leaseProvider,
+        signerPort: createLocalSignerPort(signing),
         transportKeyPair: signing.transportKeyPair,
         transportPubkey: signing.transportPubkey,
         identity: identityAndManifest?.identity

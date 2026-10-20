@@ -27,6 +27,8 @@ export interface OmniaHostDependencies {
   operationStore?: OperationStore | Pick<OperationStore, 'close'>;
   signer?: ChannelSigner;
   leaseProvider?: WotsLeaseProviderLike;
+  /** RFC-058 signer port; defaults to a local signer in CLI deployments. */
+  signerPort?: import('@totemsdk/omnia').SignerPort;
   chainProvider?: MinimalChainProvider;
   controlServer?: ControlServer;
   chainAdapter?: TotemNodeAdapter;

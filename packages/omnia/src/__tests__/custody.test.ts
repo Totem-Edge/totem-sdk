@@ -96,6 +96,18 @@ describe('sign requests', () => {
     expect(Array.from(signRequestPayload(request()))).toEqual(Array.from(base));
   });
 
+  it('signs raw bytes for chain requests and domain-separates intent requests', () => {
+    const digest = new Uint8Array(32).fill(3);
+    const chainReq = request({ kind: 'chain', digest });
+    expect(Array.from(signRequestPayload(chainReq))).toEqual(Array.from(digest));
+    const intentReq = request({ kind: 'intent', digest });
+    expect(Array.from(signRequestPayload(intentReq))).not.toEqual(Array.from(digest));
+  });
+
+  it('rejects an unknown sign request kind', () => {
+    expect(() => assertSignRequest(request({ kind: 'nope' as never }))).toThrow(/kind/);
+  });
+
   it('binds the payload digest', () => {
     const a = signRequestPayload(request({ digest: new Uint8Array(32).fill(1) }));
     const b = signRequestPayload(request({ digest: new Uint8Array(32).fill(2) }));
