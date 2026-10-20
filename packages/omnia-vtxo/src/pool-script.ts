@@ -77,6 +77,10 @@ export function buildPoolScript(params: PoolScriptParams): string {
   }
 
   const lines: string[] = [
+    // RFC-055/assessment P0: bind the exit clock before either branch. A
+    // successful exit returns early, so a SAMESTATE guard placed after the
+    // branch would be bypassable.
+    'ASSERT SAMESTATE(102 102)',
     'LET epoch=STATE(101)',
     'LET exitblock=PREVSTATE(102)',
     'IF @BLOCK GT exitblock THEN',
@@ -105,7 +109,6 @@ export function buildPoolScript(params: PoolScriptParams): string {
 
   lines.push('ENDIF');
   lines.push('ASSERT epoch GT PREVSTATE(101)');
-  lines.push('ASSERT SAMESTATE(102 102)');
   lines.push('ASSERT VERIFYOUT(@INPUT @ADDRESS @AMOUNT @TOKENID TRUE)');
   lines.push(`RETURN MULTISIG(${holders.length + 1} ${operator} ${holders.join(' ')})`);
 

@@ -48,7 +48,9 @@ func dispatch(graph *omniarouter.ChannelGraph, method string, params map[string]
 	case "health":
 		return map[string]any{"ok": true}, nil
 	case "addChannel":
-		graph.AddChannel(channelEdge(params))
+		if err := graph.AddChannel(channelEdge(params)); err != nil {
+			return nil, err
+		}
 		return map[string]any{"ok": true}, nil
 	case "removeChannel":
 		channelID, ok := params["channelId"].(string)

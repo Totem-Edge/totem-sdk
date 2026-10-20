@@ -204,3 +204,9 @@ verified. These are the driving items for V3–V4.
 - An exit tx confirms on-chain after the timelock; a second exit draft is refused.
 - A replayed/withheld operator response burns the lease and rejects late accepts.
 - A VTXO spent in epoch N is rejected in epoch N (no double-spend).
+
+> **Pooled-capital gate (RFC-050 §7.1).** A VTXO pool holding third-party funds
+> MUST NOT launch until the real-VM L4 exit proof, state-continuity review,
+> settlement-aware accounting and adversarial routing gates close. The SDK
+> TS/Rust-VM exit cases and the October 2026 exit-clock fix are necessary but not
+> sufficient.

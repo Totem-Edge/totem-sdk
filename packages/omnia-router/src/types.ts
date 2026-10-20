@@ -224,6 +224,8 @@ export interface PaymentResult {
   /** Hex preimage revealed during settlement (present on success) */
   preimage?: string;
   error?: string;
+  /** Machine-readable failure code (e.g. ROUTE_REVALIDATION_FAILED). */
+  errorCode?: string;
   /** htlcIds that were successfully settled */
   settledHops: string[];
   /** Verifiable fee proofs for each settled hop — feeds recordPoolFee earn-proofs. */
@@ -233,6 +235,9 @@ export interface PaymentResult {
 // ─── Pathfinding options ──────────────────────────────────────────────────────
 
 export interface RouteOptions {
-  /** Maximum number of hops (default: 8) */
+  /**
+   * Maximum number of hops for the whole route (default: 8). For cross-token
+   * routes this is a global end-to-end budget.
+   */
   maxHops?: number;
 }

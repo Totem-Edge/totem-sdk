@@ -55,14 +55,14 @@ function ev(script, ctx, signerKeys) {
 
 // ── omnia-vtxo pool owner exit ──────────────────────────────────────────────
 const pool = buildPoolScript({ operatorPublicKeyDigest: OP, holders: [OWNER], exitBlock: 100 });
-function poolExit({ spentShare, successorShare, amount, signers, remainder }) {
+function poolExit({ spentShare, successorShare, amount, signers, remainder, exitBlockState = '100' }) {
   const outputs = [{ address: wotsAddressData(OWNER), amount: BigInt(spentShare), tokenId: '0x00', keepState: false }];
   if (remainder) outputs.push({ address: POOL, amount: BigInt(remainder), tokenId: '0x00', keepState: true });
   return ev(pool, {
     block: 200, inputIndex: 0,
     inputs: [{ coinId: '0x' + 'cc'.repeat(32), address: POOL, amount: BigInt(amount), tokenId: '0x00' }],
     outputs,
-    state: { 101: '1', 102: '0', 128: String(successorShare) },
+    state: { 101: '1', 102: exitBlockState, 128: String(successorShare) },
     prevState: { 101: '0', 102: '100', 128: String(spentShare) },
     simulationMode: true,
   }, signers);
@@ -77,6 +77,8 @@ check('rejected without the owner signature',
   !poolExit({ spentShare: 1000, successorShare: 0, amount: 1000, signers: [opKey] }));
 check('rejected when the spent share is zero',
   !poolExit({ spentShare: 0, successorShare: 0, amount: 1000, signers: [ownerKey] }));
+check('rejected when the exit block changes',
+  !poolExit({ spentShare: 1000, successorShare: 0, amount: 1000, signers: [ownerKey], exitBlockState: '0' }));
 
 // ── omnia-factory per-party escape ──────────────────────────────────────────
 const A = '0x' + '11'.repeat(32);

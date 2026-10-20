@@ -1,4 +1,5 @@
 import { bytesToHex, sha3_256 } from '@totemsdk/core';
+import { validateChannelSpend, validateRoute, validateRoutingHop, swapIntermediary } from './route-validation.js';
 import type {
   ChannelOps,
   RouterChannel,
@@ -17,6 +18,10 @@ import type {
 
 function isSwapHop(hop: RoutingHop | SwapHop): hop is SwapHop {
   return (hop as SwapHop).isSwap === true;
+}
+
+function revalidationErrorCode(message: string): string | undefined {
+  return message.includes('ROUTE_REVALIDATION_FAILED') ? 'ROUTE_REVALIDATION_FAILED' : undefined;
 }
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────
@@ -79,6 +84,16 @@ export async function executeMultiHopPayment(
     return { success: false, error: 'paymentRequest.preimage is required for execution', settledHops: [] };
   }
 
+  const routeValidation = validateRoute(channels, route);
+  if (!routeValidation.ok) {
+    return {
+      success: false,
+      error: `ROUTE_REVALIDATION_FAILED: ${routeValidation.error}`,
+      errorCode: 'ROUTE_REVALIDATION_FAILED',
+      settledHops: [],
+    };
+  }
+
   const plainHops = route.hops.filter(h => !isSwapHop(h)) as RoutingHop[];
   const locked: Array<{ channelId: string; htlcId: string }> = [];
 
@@ -94,6 +109,25 @@ export async function executeMultiHopPayment(
     if (!lp) {
       await cancelHtlcs(ops, channels, locked, leaseProviders);
       return { success: false, error: `No lease provider for channel ${hop.channelId}`, settledHops: [] };
+    }
+    if (hop.amount !== paymentRequest.amount) {
+      await cancelHtlcs(ops, channels, locked, leaseProviders);
+      return {
+        success: false,
+        error: `ROUTE_REVALIDATION_FAILED: hop amount ${hop.amount.toString()} != payment amount ${paymentRequest.amount.toString()}`,
+        errorCode: 'ROUTE_REVALIDATION_FAILED',
+        settledHops: [],
+      };
+    }
+    const hopValidation = validateRoutingHop(channels, hop);
+    if (!hopValidation.ok) {
+      await cancelHtlcs(ops, channels, locked, leaseProviders);
+      return {
+        success: false,
+        error: `ROUTE_REVALIDATION_FAILED: ${hopValidation.error}`,
+        errorCode: 'ROUTE_REVALIDATION_FAILED',
+        settledHops: [],
+      };
     }
 
     // Timeouts decrease toward the recipient so each hop has time to claim.
@@ -257,6 +291,16 @@ export async function executeCrossTokenPayment(
     return { success: false, error: 'paymentRequest.preimage is required for execution', settledHops: [] };
   }
 
+  const routeValidation = validateRoute(channels, route);
+  if (!routeValidation.ok) {
+    return {
+      success: false,
+      error: `ROUTE_REVALIDATION_FAILED: ${routeValidation.error}`,
+      errorCode: 'ROUTE_REVALIDATION_FAILED',
+      settledHops: [],
+    };
+  }
+
   const locked: Array<{ channelId: string; htlcId: string }> = [];
 
   /**
@@ -268,11 +312,15 @@ export async function executeCrossTokenPayment(
     amount:       bigint,
     hashlock:     string,
     timeoutBlock: bigint,
+    tokenId:      string,
+    sender:       string,
   ): Promise<string> {
     const channel = channels.get(channelId);
     const lp      = leaseProviders.get(channelId);
     if (!channel) throw new Error(`Channel ${channelId} not found`);
     if (!lp)      throw new Error(`No lease provider for channel ${channelId}`);
+    const spend = validateChannelSpend(channel, sender, amount, tokenId);
+    if (!spend.ok) throw new Error(`ROUTE_REVALIDATION_FAILED: ${spend.error}`);
 
     // Let addHTLC exceptions propagate — they carry the original error message.
     const result = await ops.addHTLC(channel, {
@@ -317,24 +365,38 @@ export async function executeCrossTokenPayment(
           hop.amountIn,
           paymentRequest.hashlock,
           inTimeout,
+          hop.tokenIn,
+          hop.from,
         );
       } catch (err) {
         await cancelHtlcs(ops, channels, locked, leaseProviders);
-        return { success: false, error: `Inbound HTLC lock failed: ${String(err)}`, settledHops: [] };
+        return { success: false, error: `Inbound HTLC lock failed: ${String(err)}`, ...(revalidationErrorCode(String(err)) ? { errorCode: 'ROUTE_REVALIDATION_FAILED' } : {}), settledHops: [] };
       }
 
       // Outbound channel (intermediary → recipient, tokenOut side)
       const outTimeout = paymentRequest.expiryBlock - BigInt(pos++);
+      const intermediary = swapIntermediary(channels, hop);
+      if (!intermediary) {
+        await cancelHtlcs(ops, channels, locked, leaseProviders);
+        return {
+          success: false,
+          error: `ROUTE_REVALIDATION_FAILED: no intermediary for ${hop.inboundChannelId}`,
+          errorCode: 'ROUTE_REVALIDATION_FAILED',
+          settledHops: [],
+        };
+      }
       try {
         await lockHTLC(
           hop.outboundChannelId,
           hop.amountOut,
           paymentRequest.hashlock,
           outTimeout,
+          hop.tokenOut,
+          intermediary,
         );
       } catch (err) {
         await cancelHtlcs(ops, channels, locked, leaseProviders);
-        return { success: false, error: `Outbound HTLC lock failed: ${String(err)}`, settledHops: [] };
+        return { success: false, error: `Outbound HTLC lock failed: ${String(err)}`, ...(revalidationErrorCode(String(err)) ? { errorCode: 'ROUTE_REVALIDATION_FAILED' } : {}), settledHops: [] };
       }
     } else {
       const timeout = paymentRequest.expiryBlock - BigInt(pos++);
@@ -344,10 +406,12 @@ export async function executeCrossTokenPayment(
           hop.amount,
           paymentRequest.hashlock,
           timeout,
+          hop.tokenId,
+          hop.from,
         );
       } catch (err) {
         await cancelHtlcs(ops, channels, locked, leaseProviders);
-        return { success: false, error: `Hop HTLC lock failed: ${String(err)}`, settledHops: [] };
+        return { success: false, error: `Hop HTLC lock failed: ${String(err)}`, ...(revalidationErrorCode(String(err)) ? { errorCode: 'ROUTE_REVALIDATION_FAILED' } : {}), settledHops: [] };
       }
     }
   }

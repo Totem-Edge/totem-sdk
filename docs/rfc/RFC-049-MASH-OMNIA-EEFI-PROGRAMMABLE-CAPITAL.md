@@ -374,6 +374,12 @@ A fully collateralized, fixed-expiry **option** is the natural first derivative 
 MUST have an executable exercise right that does **not** require the writer to cooperate at
 exercise time (Omnia's both-signed settlement branch cannot be assumed to provide this).
 
+> **Pooled-capital gate (RFC-050 §7.1).** MASH treasuries and any shared
+> VTXO/factory/LP output with third-party funds MUST NOT deploy until the
+> pooled-capital gate closes: real-VM L4 exit proof, state-continuity review,
+> settlement-aware accounting, and adversarial routing. Bilateral RFC-054 v1 is
+> exempt because it uses no pooled output.
+
 ---
 
 ## 8. What RFC-048 already flags as missing (statuses)

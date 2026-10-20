@@ -68,11 +68,13 @@ const mk = (fill) => new TreeKey(new Uint8Array(32).fill(fill), 64, 3);
 
 const operatorKey = mk(0xa1);
 const holderKey = mk(0xb2);
+const holder2Key = mk(0xe5);
 const partyAKey = mk(0xc3);
 const partyBKey = mk(0xd4);
 
 const operator = pk(operatorKey);
 const holder = pk(holderKey);
+const holder2 = pk(holder2Key);
 const A = pk(partyAKey);
 const B = pk(partyBKey);
 
@@ -113,16 +115,26 @@ function both(label, script, sigs, ctx, expected) {
 
 // ── VTXO pool: per-share unilateral exit (real signature) ────────────────────
 const pool = buildPoolScript({ operatorPublicKeyDigest: operator, holders: [holder], exitBlock: 100 });
-const poolExit = ({ spentShare, successorShare, amount, remainder }) => {
-  const outputs = [{ address: wotsAddressData(holder), amount: Number(spentShare), tokenId: '0x00', keepState: false }];
+const poolExit = ({
+  spentShare,
+  successorShare,
+  amount,
+  remainder,
+  payoutAmount,
+  exitBlockState = '100',
+  block = 200,
+  stateExtra = {},
+  prevStateExtra = {},
+}) => {
+  const outputs = [{ address: wotsAddressData(holder), amount: Number(payoutAmount ?? spentShare), tokenId: '0x00', keepState: false }];
   if (remainder) outputs.push({ address: POOL, amount: Number(remainder), tokenId: '0x00', keepState: true });
   return {
-    block: 200,
+    block,
     txDigest: DIGEST,
     inputs: [{ coinId: '0x' + 'cc'.repeat(32), address: POOL, amount: Number(amount), tokenId: '0x00' }],
     outputs,
-    state: { 101: '1', 102: '100', 128: String(successorShare) },
-    prevState: { 101: '0', 102: '100', 128: String(spentShare) },
+    state: { 101: '1', 102: exitBlockState, 128: String(successorShare), ...stateExtra },
+    prevState: { 101: '0', 102: '100', 128: String(spentShare), ...prevStateExtra },
   };
 };
 console.log('real VM: omnia-vtxo pool owner exit (real TreeSignature, Rust/WASM vs TS)');
@@ -131,6 +143,16 @@ both('partial-share exit (payout@0, remainder@1)', pool, signWith([holderKey]), 
 both('rejected: successor does not zero the share', pool, signWith([holderKey]), poolExit({ spentShare: 1000, successorShare: 1000, amount: 1000 }), false);
 both('rejected: signer is not the holder (wrong root)', pool, signWith([operatorKey]), poolExit({ spentShare: 1000, successorShare: 0, amount: 1000 }), false);
 both('rejected: holder sig over a tampered digest', pool, signWith([holderKey], new Uint8Array(32).fill(0x43)), poolExit({ spentShare: 1000, successorShare: 0, amount: 1000 }), false);
+both('rejected: exit spend mutates the exit clock', pool, signWith([holderKey]), poolExit({ spentShare: 1000, successorShare: 0, amount: 1000, exitBlockState: '50' }), false);
+both('rejected: holder exit before the exit block', pool, signWith([holderKey]), poolExit({ spentShare: 1000, successorShare: 0, amount: 1000, block: 50 }), false);
+both('rejected: payout exceeds the committed share', pool, signWith([holderKey]), poolExit({ spentShare: 1000, successorShare: 0, amount: 1500, payoutAmount: 1500 }), false);
+
+// Two holders: one exits, the other's share must survive.
+const pool2 = buildPoolScript({ operatorPublicKeyDigest: operator, holders: [holder, holder2], exitBlock: 100 });
+const pool2Exit = (overrides) => poolExit({ ...overrides });
+console.log('real VM: omnia-vtxo pool multi-holder exit (share preservation)');
+both('accepted: exit preserves the other holder share', pool2, signWith([holderKey]), pool2Exit({ spentShare: 1000, successorShare: 0, amount: 1500, remainder: 500, stateExtra: { 129: '500' }, prevStateExtra: { 129: '500' } }), true);
+both('rejected: exit zeroes another holder share', pool2, signWith([holderKey]), pool2Exit({ spentShare: 1000, successorShare: 0, amount: 1500, remainder: 500, stateExtra: { 129: '0' }, prevStateExtra: { 129: '500' } }), false);
 
 // ── VTXO pool: cooperative MULTISIG(operator + holders) ──────────────────────
 const poolCoopCtx = {
@@ -144,6 +166,7 @@ const poolCoopCtx = {
 console.log('real VM: omnia-vtxo pool cooperative update MULTISIG(2)');
 both('accepted with operator + holder real sigs', pool, signWith([operatorKey, holderKey]), poolCoopCtx, true);
 both('rejected with only the holder sig (2-of-2 unmet)', pool, signWith([holderKey]), poolCoopCtx, false);
+both('rejected: cooperative update mutates the exit clock', pool, signWith([operatorKey, holderKey]), { ...poolCoopCtx, state: { ...poolCoopCtx.state, 102: '50' } }, false);
 
 // ── Factory: per-party escape (real signature) ───────────────────────────────
 const factory = buildFactoryScript([

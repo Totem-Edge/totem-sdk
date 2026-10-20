@@ -23,14 +23,14 @@ type ChannelHTLC struct {
 }
 
 type RouterChannel struct {
-	ChannelID      string           `json:"channelId"`
-	TokenID        string           `json:"tokenId"`
-	Parties        []ChannelParty   `json:"parties"`
-	Balances       map[string]string `json:"balances"`
-	PendingHTLCs   []ChannelHTLC    `json:"pendingHTLCs"`
-	TotalValue     string           `json:"totalValue"`
-	CurrentSequence uint32          `json:"currentSequence"`
-	Status         string           `json:"status"`
+	ChannelID       string            `json:"channelId"`
+	TokenID         string            `json:"tokenId"`
+	Parties         []ChannelParty    `json:"parties"`
+	Balances        map[string]string `json:"balances"`
+	PendingHTLCs    []ChannelHTLC     `json:"pendingHTLCs"`
+	TotalValue      string            `json:"totalValue"`
+	CurrentSequence uint32            `json:"currentSequence"`
+	Status          string            `json:"status"`
 }
 
 type ChannelGraphEdge struct {
@@ -104,6 +104,9 @@ type PaymentResult struct {
 }
 
 type RouteOptions struct {
+	// MaxHops is the whole-route hop budget (0 means 0 unless omitted via a
+	// nil *RouteOptions; the default is 8). For cross-token routes it is a
+	// global end-to-end budget.
 	MaxHops int
 }
 

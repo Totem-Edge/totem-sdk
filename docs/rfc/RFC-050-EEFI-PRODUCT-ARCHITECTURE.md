@@ -246,6 +246,36 @@ discovery, collateralization and liquidation remain **Eefi**, and all depend on 
 collateral covenants. Earliest viable: a **fully collateralized, fixed-expiry option** (bounded
 obligation) — but only with a non-cooperative exercise right.
 
+### 7.1 Pooled-capital gate (normative)
+
+“Pooled capital” means any shared fund-bearing output or ledger with third-party
+deposits or entitlements: LP deposits, shared VTXO/factory outputs, MASH
+treasuries, or pooled liquidity used for Eefi products.
+
+Pooled capital MUST NOT be enabled, advertised, or deployed with third-party
+funds until **all** of the following hold:
+
+1. **Real-VM exit proof (L4).** Honest and malicious exits for the VTXO pool and
+   factory scripts execute against an isolated Minima node: exit after expiry,
+   rejection before expiry, rejection of overlarge payouts, and preservation of
+   every other participant's share after one exit. SDK TS/Rust-VM cases are
+   necessary but not sufficient.
+2. **State-continuity review.** Every immutable pool state variable (exit clock,
+   committed roots, epoch) is pinned before any early-return branch; no exit path
+   can mutate the successor's committed state. The October 2026 exit-clock P0 is
+   fixed and SDK-VM verified (`docs/audits/omnia-vtxo-exit-clock-2026-10.md`);
+   the broader root/epoch review remains open.
+3. **Settlement-aware accounting.** No prepared-as-settled path. Every deposit,
+   payout and fee claim is bound to verified funding/settlement evidence
+   (`prepared → authorized → broadcast → confirmed → reconciled`); crash, retry
+   and ambiguous-confirmation paths are reconcilable.
+4. **Adversarial routing/atomicity** (if pooled liquidity is routed): the Gate 3
+   multi-peer failure tests (kill the intermediary at lock, fulfil and refund).
+
+Until 1–4 close, a **bilateral** exchange (RFC-054 v1) is permitted because it
+uses no pooled VTXO/factory output; pooled liquidity remains blocked.
+
+
 ---
 
 ## 8. Recommended product sequence
@@ -261,6 +291,12 @@ obligation) — but only with a non-cooperative exercise right.
 | 7 | Collateralized Forwards & Options | First bounded derivatives (needs P-EXIT) |
 | 8 | Parametric Coverage & Structured LP Tranches | Needs oracle + loss-waterfall + collateral |
 | 9 | Leveraged / Perpetual Derivatives | Highest risk; needs mature margin/liquidation/recovery |
+
+> **Sequencing update (RFC-054).** The private spot exchange (item 3) is moved
+> ahead of items 1–2 as the **first** Gen-1 milestone: it is the simplest real
+> obligation, and it proves quotes, reservations, atomic settlement and
+> settlement evidence without MASH, pooled VTXO or credit. Items 1, 2 and 4 and
+> Machine Prepaid Accounts follow it. See RFC-054 §12.
 
 Generic reservation, proof verification, recovery and settlement contracts stay **beneath** the
 product layer and are shared across products.

@@ -875,3 +875,169 @@ describe('executeCrossTokenPayment', () => {
     expect(timeoutCalls.length).toBe(3);
   });
 });
+
+// ─── Route revalidation before execution ─────────────────────────────────────
+
+describe('route revalidation before execution', () => {
+  function multiSetup() {
+    const HOP1 = 'pk-hop1', HOP2 = 'pk-hop2';
+    const g = createChannelGraph();
+    addChannel(g, mkEdge('c1', ALICE, HOP1, TOKEN_A, 1000n * SCALE));
+    addChannel(g, mkEdge('c2', HOP1, HOP2, TOKEN_A, 1000n * SCALE));
+    addChannel(g, mkEdge('c3', HOP2, CAROL, TOKEN_A, 1000n * SCALE));
+
+    const route = findRoute(g, ALICE, CAROL, 100n * SCALE, TOKEN_A)!;
+    const channels: Map<string, RouterChannel> = new Map([
+      ['c1', mkChannel('c1', ALICE, HOP1)],
+      ['c2', mkChannel('c2', HOP1, HOP2)],
+      ['c3', mkChannel('c3', HOP2, CAROL)],
+    ]);
+    const lps: Map<string, LeaseProvider> = new Map([
+      ['c1', MOCK_LP], ['c2', MOCK_LP], ['c3', MOCK_LP],
+    ]);
+    const paymentReq = buildPaymentRequest(100n * SCALE, TOKEN_A, 1000n);
+    const ops = makeMockOps();
+    return { channels, lps, route, paymentReq, ops };
+  }
+
+  function tracked(ops: ChannelOps): { ops: ChannelOps; calls: () => number } {
+    let calls = 0;
+    return {
+      ops: {
+        ...ops,
+        addHTLC: async (channel, params, lp) => {
+          calls++;
+          return ops.addHTLC(channel, params, lp);
+        },
+      },
+      calls: () => calls,
+    };
+  }
+
+  async function runMulti(mutate: (channels: Map<string, RouterChannel>) => void) {
+    const setup = multiSetup();
+    mutate(setup.channels);
+    const counter = tracked(setup.ops);
+    const result = await executeMultiHopPayment(
+      counter.ops, setup.channels, setup.route, setup.paymentReq, setup.lps,
+    );
+    return { result, calls: counter.calls() };
+  }
+
+  test('rejects a stale balance before locking any HTLC', async () => {
+    const { result, calls } = await runMulti((channels) => {
+      const c1 = channels.get('c1')!;
+      channels.set('c1', { ...c1, balances: { ...c1.balances, A: 0n } });
+    });
+    expect(result.success).toBe(false);
+    expect(result.errorCode).toBe('ROUTE_REVALIDATION_FAILED');
+    expect(result.settledHops).toEqual([]);
+    expect(calls).toBe(0);
+  });
+
+  test('rejects a missing channel before locking any HTLC', async () => {
+    const { result, calls } = await runMulti((channels) => channels.delete('c2'));
+    expect(result.success).toBe(false);
+    expect(result.errorCode).toBe('ROUTE_REVALIDATION_FAILED');
+    expect(calls).toBe(0);
+  });
+
+  test('rejects a wrong-token channel', async () => {
+    const { result, calls } = await runMulti((channels) => {
+      const c1 = channels.get('c1')!;
+      channels.set('c1', { ...c1, tokenId: TOKEN_B });
+    });
+    expect(result.success).toBe(false);
+    expect(result.errorCode).toBe('ROUTE_REVALIDATION_FAILED');
+    expect(calls).toBe(0);
+  });
+
+  test('rejects an inactive channel', async () => {
+    const { result, calls } = await runMulti((channels) => {
+      const c1 = channels.get('c1')!;
+      channels.set('c1', { ...c1, status: 'closing' });
+    });
+    expect(result.success).toBe(false);
+    expect(result.errorCode).toBe('ROUTE_REVALIDATION_FAILED');
+    expect(calls).toBe(0);
+  });
+
+  test('rejects a direction mismatch', async () => {
+    const { result, calls } = await runMulti((channels) => {
+      const c1 = channels.get('c1')!;
+      channels.set('c1', {
+        ...c1,
+        parties: [
+          { partyId: 'A', publicKeyDigest: 'pk-not-alice', addressIndex: 0 },
+          { partyId: 'B', publicKeyDigest: 'pk-not-hop1', addressIndex: 0 },
+        ],
+      });
+    });
+    expect(result.success).toBe(false);
+    expect(result.errorCode).toBe('ROUTE_REVALIDATION_FAILED');
+    expect(calls).toBe(0);
+  });
+
+  function crossSetup() {
+    const g = createChannelGraph();
+    addChannel(g, mkEdge('in-chan', ALICE, BRIDGE, TOKEN_A, 1000n * SCALE));
+    addChannel(g, mkEdge('out-chan', BRIDGE, CAROL, TOKEN_B, 2000n * SCALE));
+    announceSwap(g, {
+      intermediaryPubKey: BRIDGE,
+      tokenIn: TOKEN_A,
+      tokenOut: TOKEN_B,
+      rate: '1.5',
+      inboundChannelId: 'in-chan',
+      outboundChannelId: 'out-chan',
+      maxAmountIn: 1000n * SCALE,
+    });
+    const route = findCrossTokenRoute(g, ALICE, CAROL, 100n * SCALE, TOKEN_A, TOKEN_B)!;
+    const channels: Map<string, RouterChannel> = new Map([
+      ['in-chan', mkChannel('in-chan', ALICE, BRIDGE, TOKEN_A, 1000n * SCALE)],
+      ['out-chan', mkChannel('out-chan', BRIDGE, CAROL, TOKEN_B, 2000n * SCALE)],
+    ]);
+    const lps: Map<string, LeaseProvider> = new Map([
+      ['in-chan', MOCK_LP], ['out-chan', MOCK_LP],
+    ]);
+    const paymentReq = buildPaymentRequest(100n * SCALE, TOKEN_A, 1000n);
+    const ops = makeMockOps();
+    return { channels, lps, route, paymentReq, ops };
+  }
+
+  async function runCross(mutate: (channels: Map<string, RouterChannel>) => void) {
+    const setup = crossSetup();
+    mutate(setup.channels);
+    const counter = tracked(setup.ops);
+    const result = await executeCrossTokenPayment(
+      counter.ops, setup.channels, setup.route, setup.paymentReq, setup.lps,
+    );
+    return { result, calls: counter.calls() };
+  }
+
+  test('cross-token: rejects a stale inbound balance before locking', async () => {
+    const { result, calls } = await runCross((channels) => {
+      const inbound = channels.get('in-chan')!;
+      channels.set('in-chan', { ...inbound, balances: { ...inbound.balances, A: 0n } });
+    });
+    expect(result.success).toBe(false);
+    expect(result.errorCode).toBe('ROUTE_REVALIDATION_FAILED');
+    expect(calls).toBe(0);
+  });
+
+  test('cross-token: rejects a missing outbound channel before locking', async () => {
+    const { result, calls } = await runCross((channels) => channels.delete('out-chan'));
+    expect(result.success).toBe(false);
+    expect(result.errorCode).toBe('ROUTE_REVALIDATION_FAILED');
+    expect(calls).toBe(0);
+  });
+
+  test('cross-token: rejects a wrong-token outbound channel', async () => {
+    const { result, calls } = await runCross((channels) => {
+      const outbound = channels.get('out-chan')!;
+      channels.set('out-chan', { ...outbound, tokenId: TOKEN_A });
+    });
+    expect(result.success).toBe(false);
+    expect(result.errorCode).toBe('ROUTE_REVALIDATION_FAILED');
+    expect(calls).toBe(0);
+  });
+});

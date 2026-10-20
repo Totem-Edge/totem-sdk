@@ -1,10 +1,26 @@
 package omniarouter
 
 import (
+	"fmt"
 	"math/big"
 )
 
-func (g *ChannelGraph) AddChannel(edge ChannelGraphEdge) {
+func (g *ChannelGraph) AddChannel(edge ChannelGraphEdge) error {
+	if edge.ChannelID == "" || edge.From == "" || edge.To == "" || edge.TokenID == "" {
+		return fmt.Errorf("addChannel requires non-empty channelId, from, to and tokenId")
+	}
+	feeRate, ok := new(big.Int).SetString(edge.FeeRate, 10)
+	if !ok || feeRate.Sign() < 0 {
+		return fmt.Errorf("invalid feeRate %q for channel %s: must be non-negative", edge.FeeRate, edge.ChannelID)
+	}
+	balance, ok := new(big.Int).SetString(edge.AvailableBalance, 10)
+	if !ok || balance.Sign() < 0 {
+		return fmt.Errorf("invalid availableBalance %q for channel %s: must be non-negative", edge.AvailableBalance, edge.ChannelID)
+	}
+	capacity, ok := new(big.Int).SetString(edge.HTLCCapacity, 10)
+	if !ok || capacity.Sign() < 0 {
+		return fmt.Errorf("invalid htlcCapacity %q for channel %s: must be non-negative", edge.HTLCCapacity, edge.ChannelID)
+	}
 	existing := g.EdgesByChannel[edge.ChannelID]
 
 	idx := -1
@@ -25,6 +41,7 @@ func (g *ChannelGraph) AddChannel(edge ChannelGraphEdge) {
 	nodeList := g.NodeEdges[edge.From]
 	nodeList = append(nodeList, edge)
 	g.NodeEdges[edge.From] = nodeList
+	return nil
 }
 
 func (g *ChannelGraph) RemoveChannel(channelID string) {

@@ -21,7 +21,8 @@
     "build:go": "cd go && go build -o ../bin/omnia-router ./cmd/omnia-router",
     "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist bin",
-    "test": "jest"
+    "test": "jest",
+    "bench": "node bench/route-bench.mjs"
   },
   "files": [
     "dist",

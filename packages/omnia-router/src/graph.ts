@@ -1,13 +1,48 @@
 import type { ChannelGraph, ChannelGraphEdge, SwapAnnouncement } from './types.js';
-import { parseRateToScaled } from './pathfind.js';
+import { parseRateToScaled } from './rates.js';
+
+/** Internal graph revisions (topology / economics / live state). */
+export interface GraphRevisions {
+  topology: number;
+  economics: number;
+  live: number;
+}
+
+const graphRevisions = new WeakMap<ChannelGraph, GraphRevisions>();
+
+function ensureRevisions(graph: ChannelGraph): GraphRevisions {
+  let revisions = graphRevisions.get(graph);
+  if (!revisions) {
+    revisions = { topology: 0, economics: 0, live: 0 };
+    graphRevisions.set(graph, revisions);
+  }
+  return revisions;
+}
+
+/** Snapshot-consistent revision marker for routing caches and trees. */
+export function getGraphRevisions(graph: ChannelGraph): GraphRevisions {
+  return { ...ensureRevisions(graph) };
+}
+
+function bumpTopology(graph: ChannelGraph): void {
+  const revisions = ensureRevisions(graph);
+  revisions.topology += 1;
+  revisions.live += 1;
+}
+
+function bumpEconomics(graph: ChannelGraph): void {
+  ensureRevisions(graph).economics += 1;
+}
 
 /** Create an empty ChannelGraph. */
 export function createChannelGraph(): ChannelGraph {
-  return {
+  const graph: ChannelGraph = {
     nodeEdges:       new Map(),
     edgesByChannel:  new Map(),
     swapIndex:       new Map(),
   };
+  graphRevisions.set(graph, { topology: 0, economics: 0, live: 0 });
+  return graph;
 }
 
 /**
@@ -20,6 +55,25 @@ export function createChannelGraph(): ChannelGraph {
  * entry (balance update semantics).
  */
 export function addChannel(graph: ChannelGraph, edge: ChannelGraphEdge): void {
+  if (!edge.channelId || !edge.from || !edge.to || !edge.tokenId) {
+    throw new Error('addChannel requires non-empty channelId, from, to and tokenId');
+  }
+  if (edge.feeRate < 0n) {
+    throw new Error(
+      `Invalid feeRate ${edge.feeRate.toString()} for channel ${edge.channelId}: must be non-negative`,
+    );
+  }
+  if (edge.availableBalance < 0n) {
+    throw new Error(
+      `Invalid availableBalance ${edge.availableBalance.toString()} for channel ${edge.channelId}: must be non-negative`,
+    );
+  }
+  if (edge.htlcCapacity < 0n) {
+    throw new Error(
+      `Invalid htlcCapacity ${edge.htlcCapacity.toString()} for channel ${edge.channelId}: must be non-negative`,
+    );
+  }
+
   const existing = graph.edgesByChannel.get(edge.channelId) ?? [];
 
   // Replace any edge for the same (channelId, from) direction.
@@ -36,6 +90,7 @@ export function addChannel(graph: ChannelGraph, edge: ChannelGraphEdge): void {
   const nodeList = graph.nodeEdges.get(edge.from) ?? [];
   nodeList.push(edge);
   graph.nodeEdges.set(edge.from, nodeList);
+  bumpTopology(graph);
 }
 
 /**
@@ -49,6 +104,7 @@ export function removeChannel(graph: ChannelGraph, channelId: string): void {
     _removeFromNodeEdges(graph, edge);
   }
   graph.edgesByChannel.delete(channelId);
+  bumpTopology(graph);
 }
 
 function _removeFromNodeEdges(graph: ChannelGraph, edge: ChannelGraphEdge): void {
@@ -91,6 +147,7 @@ export function announceSwap(graph: ChannelGraph, announcement: SwapAnnouncement
     list.push(announcement);
   }
   graph.swapIndex.set(key, list);
+  bumpEconomics(graph);
 }
 
 /**
