@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/omnia-relay",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Wallet-side Omnia client — browser-safe relay transport + routing/HTLC/factory/splice composition over @totemsdk/omnia",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",

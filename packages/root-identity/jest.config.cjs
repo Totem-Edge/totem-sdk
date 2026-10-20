@@ -1,22 +1,13 @@
-export default {
-  extensionsToTreatAsEsm: ['.ts'],
+module.exports = {
   preset: 'ts-jest/presets/default-esm',
   testEnvironment: 'node',
   testMatch: ['**/test/**/*.test.ts'],
   moduleFileExtensions: ['ts', 'js'],
   transform: {
-    '^.+\\.tsx?$': [
-      'ts-jest',
-      {
-        useESM: true,
-        tsconfig: {
-          module: 'nodenext',
-          moduleResolution: 'nodenext',
-          esModuleInterop: true,
-          isolatedModules: true,
-        },
-      },
-    ],
+    '^.+\\.tsx?$': ['ts-jest', {
+      tsconfig: '<rootDir>/tsconfig.json',
+      diagnostics: { ignoreCodes: [151002] },
+    }],
   },
   moduleNameMapper: {
     // Strip .js extensions from relative imports so ts-jest can resolve .ts files.

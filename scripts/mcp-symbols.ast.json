@@ -5776,6 +5776,145 @@
         }
       }
     },
+    "@totemsdk/entity": {
+      "symbols": {
+        "EntityAuthorityGrant": {
+          "kind": "interface",
+          "signature": "export interface EntityAuthorityGrant",
+          "doc": "An authority grant that has already been verified by `@totemsdk/authority`.\n\n`@totemsdk/entity` does not verify mandates. It only enforces the subject\nbinding and the `validFrom`/`expiresAt` window at the requested `asOf`."
+        },
+        "EntityChildProofView": {
+          "kind": "interface",
+          "signature": "export interface EntityChildProofView"
+        },
+        "EntityClaimsView": {
+          "kind": "interface",
+          "signature": "export interface EntityClaimsView"
+        },
+        "EntityDisclosureLevel": {
+          "kind": "type",
+          "signature": "export type EntityDisclosureLevel = 0 | 1 | 2 | 3 | 4 | 5",
+          "doc": "Disclosure levels 0 (root only) … 5 (authority)."
+        },
+        "EntityIdentityView": {
+          "kind": "interface",
+          "signature": "export interface EntityIdentityView"
+        },
+        "EntityManifestBindingView": {
+          "kind": "interface",
+          "signature": "export interface EntityManifestBindingView"
+        },
+        "EntityManifestView": {
+          "kind": "interface",
+          "signature": "export interface EntityManifestView"
+        },
+        "EntityProjectionMode": {
+          "kind": "type",
+          "signature": "export type EntityProjectionMode = 'minimal' | 'available' | 'purpose-bound'"
+        },
+        "EntityProjectionRequest": {
+          "kind": "interface",
+          "signature": "export interface EntityProjectionRequest"
+        },
+        "EntityPurpose": {
+          "kind": "type",
+          "signature": "export type EntityPurpose = | 'same-actor' | 'shared-root' | 'identity' | 'capabilities' | 'claims' | 'authority'"
+        },
+        "EntityResolution": {
+          "kind": "interface",
+          "signature": "export interface EntityResolution"
+        },
+        "EntityResolverOptions": {
+          "kind": "interface",
+          "signature": "export interface EntityResolverOptions"
+        },
+        "EntityRootView": {
+          "kind": "interface",
+          "signature": "export interface EntityRootView"
+        },
+        "EntitySection": {
+          "kind": "type",
+          "signature": "export type EntitySection = | 'root' | 'children' | 'identity' | 'manifest' | 'claims' | 'authority'"
+        },
+        "EntitySectionState": {
+          "kind": "type",
+          "signature": "export type EntitySectionState = 'known' | 'unknown' | 'invalid'",
+          "doc": "`known`   — the source was supplied and verified.\n`unknown` — the source was not supplied (absence of disclosure, not a negative).\n`invalid` — the source was supplied but failed verification."
+        },
+        "EntitySources": {
+          "kind": "interface",
+          "signature": "export interface EntitySources"
+        },
+        "EntityView": {
+          "kind": "interface",
+          "signature": "export interface EntityView"
+        },
+        "ENTITY_PURPOSE_SECTIONS": {
+          "kind": "const",
+          "signature": "ENTITY_PURPOSE_SECTIONS: Readonly< Record<EntityPurpose, readonly EntitySection[]> > = { 'same-actor': ['root'], 'shared-root': ['children'], identity: ['identity'], capabilities: ['manifest'], claims"
+        },
+        "ENTITY_RESOLUTION_VERSION": {
+          "kind": "const",
+          "signature": "ENTITY_RESOLUTION_VERSION = 'entity-resolution/v1' as const"
+        },
+        "ENTITY_SECTIONS": {
+          "kind": "const",
+          "signature": "ENTITY_SECTIONS: readonly EntitySection[] = [ 'root', 'children', 'identity', 'manifest', 'claims', 'authority', ]"
+        },
+        "ENTITY_SECTION_LEVELS": {
+          "kind": "const",
+          "signature": "ENTITY_SECTION_LEVELS: Readonly<Record<EntitySection, EntityDisclosureLevel>> = { root: 0, children: 1, identity: 2, manifest: 3, claims: 4, authority: 5, }"
+        },
+        "ENTITY_VIEW_VERSION": {
+          "kind": "const",
+          "signature": "ENTITY_VIEW_VERSION = 'entity-view/v1' as const"
+        },
+        "ENTITY_DIGEST_DOMAINS": {
+          "kind": "const",
+          "signature": "ENTITY_DIGEST_DOMAINS = { ref: 'entity:ref:v1', view: 'entity:view:v1', } as const"
+        },
+        "computeEntityRef": {
+          "kind": "function",
+          "signature": "computeEntityRef(rootAddress: string): string",
+          "doc": "Opaque, stable reference to a root address."
+        },
+        "computeEntityViewDigest": {
+          "kind": "function",
+          "signature": "computeEntityViewDigest(view: EntityView | Omit<EntityView, \"digest\">): string",
+          "doc": "Canonical digest of an entity view, excluding `digest` itself."
+        },
+        "resolveEntity": {
+          "kind": "function",
+          "signature": "resolveEntity(sources: EntitySources, options?: EntityResolverOptions): Promise<EntityResolution>",
+          "doc": "Resolve an entity from local sources at an explicit time.\n\nNever fetches the network, signs, or grants authority. The optional\n`proofVerifier` should be a root-identity verifier; root ancestry is evidence\nonly and never widens authorization."
+        },
+        "projectEntity": {
+          "kind": "function",
+          "signature": "projectEntity(resolution: EntityResolution, request?: EntityProjectionRequest): EntityView",
+          "doc": "Produce a disclosure-bounded view from a resolved entity.\n\nDefault mode is `minimal` (root only). `available` discloses every verified\nsection up to `maxDisclosureLevel`. `purpose-bound` discloses only the\nsections required by the requested purposes."
+        },
+        "EntityValidationError": {
+          "kind": "class",
+          "signature": "export class EntityValidationError extends Error"
+        },
+        "assertEntityProjectionRequest": {
+          "kind": "function",
+          "signature": "assertEntityProjectionRequest(request: EntityProjectionRequest): void"
+        },
+        "assertEntityResolverOptions": {
+          "kind": "function",
+          "signature": "assertEntityResolverOptions(options: EntityResolverOptions): void"
+        },
+        "assertEntitySources": {
+          "kind": "function",
+          "signature": "assertEntitySources(sources: EntitySources): void"
+        },
+        "isEntitySection": {
+          "kind": "function",
+          "signature": "isEntitySection(value: unknown): boolean"
+        }
+      }
+    },
     "@totemsdk/governance": {
       "symbols": {
         "ProposalStatus": {

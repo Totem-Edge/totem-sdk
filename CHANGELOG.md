@@ -26,14 +26,80 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `prepared-effects` — effects derived from the **real built transaction** (change and channel-internal outputs excluded from spends); the committed receipt reflects the real spend, not the agent's claimed amount.
   - Key-lease lifecycle (`reserve → sign → commit/burn`) is an internal consequence of authorized signing actions, never an agent-callable action.
 
+- **`@totemsdk/omnia` 2.3.0 — PQ-bound native transport identity and resilient peer messaging**
+  - `transportPubkey` on channel/factory participants, derived from the host seed and bound by the identity-signed manifest; `OmniaSwarm.connectToPeer` matches the expected transport key and re-keys the peer under the Omnia identity.
+  - Native DHT bootstrap options (`OMNIA_DHT_BOOTSTRAP`, `OMNIA_DHT_HOST`/`OMNIA_DHT_PORT`); Hyperswarm now receives an explicitly constructed `hyperdht` instance and the same derived keypair.
+  - `onFactoryMessage`/`onVcMessage` integration hooks and forwarding of every inbound message to integration listeners (relay and Hyperswarm).
+  - `NodeStreamTransport` exposes stream-open readiness.
+
+- **`@totemsdk/omnia-factory` 0.7.0 — real factory funding, settlement, and virtual-channel lifecycle**
+  - On-chain funding witness assembled from per-participant `CoinProof` + `ScriptProof` + a signature over the canonical TX digest; funding coin id is derived from the funding material and settlement uses canonical digests.
+  - N-of-N settlement witness (factory coin proof + script proof) submitted via `txnmine`/`sendtransaction`.
+  - Two-phase `build`/`sign`/`assembleVirtualChannelClose` for virtual-channel closure.
+
+- **`@totemsdk/omnia-host` 0.9.0 — two-node factory and virtual-channel coordination**
+  - Local factory lease bundles; `FACTORY_PROPOSAL`/`FACTORY_ACCEPT` and `VC_PROPOSAL`/`VC_ACCEPT`/`VC_FINALIZED` coordination.
+  - Two-phase `createFactory`, `openVirtualChannel`, and `closeVirtualChannel`; `closeFactory` accepts the factory coin proof.
+
+- **`@totemsdk/omnia-router` 0.4.0 — bounded routing engine**
+  - Layered `(hops, node)` search plus zero-fee BFS, fixing the hop-constrained label bug.
+  - Global cross-token hop budget with one inbound tree and cached outbound legs.
+  - Candidate routes are revalidated against live channels before any HTLC lock.
+
+- **`@totemsdk/eefi` 0.1.0 — generic Eefi contracts (RFC-053)**
+  - New data-only package (core-only dependency) for `EefiCapitalAgreement`, `EefiMarketAgreement`, `EefiRiskPolicyRef`, and `EefiExerciseCovenant` with domain-separated canonical digests and fail-closed validation.
+  - Covenant builders remain in `@totemsdk/kissvm`; this package performs no money movement, script construction, or policy evaluation.
+
+- **`@totemsdk/entity` 0.1.0 — disclosure-bounded entity resolution (RFC-056)**
+  - `resolveEntity()` composes identity, an optional signed manifest, an optional root-ownership proof, and pre-verified authority grants into one resolution at an explicit `asOf`.
+  - `projectEntity()` produces `minimal`, `available`, or `purpose-bound` views across disclosure levels 0–5 (root, children, identity, manifest, claims, authority).
+  - Absence of disclosure is reported as `unknown`, never `invalid` or `false`; invalid manifests/proofs/grants are reported without falling back to raw data.
+  - Includes canonical view digests, a metadata allow-list, and an opaque `entityRef` that avoids disclosing semantic identity in minimal views.
+
+- **`@totemsdk/root-identity` 1.0.10 — structural root-binding verifier**
+  - New `createRootIdentityProofVerifier()` plus `encodeRootIdentityProof()` / `decodeRootIdentityProof()` for verifying an `OwnershipProof` without importing the wallet implementation.
+  - `expectedRootAddress` binding is enforced; proven children are returned as evidence only and never grant `manifest:sign` or authority.
+
+- **`@totemsdk/manifest` 2.0.1 — content-addressed revisions and transport key**
+  - `computeManifestEnvelopeId()` gives a stable identity to manifest revisions (RFC-056 P0-E).
+  - `EdgeServiceManifest.transportPubkey` carries the classical routing key bound by the manifest's PQ signature.
+
+- **`@totemsdk/omnia-relay` 0.5.0 — self-hosted relay server**
+  - New `@totemsdk/omnia-relay/server` entry point for running a relay instead of depending on a hosted endpoint.
+
 ### Changed
 
 - **`@totemsdk/decision` 0.2.0** — bounded-decisions hardening: runtime-owned hard cancellation (caller abort / `decision:cancel` / timeout all race the provider); operation vs target confidence split (`operationConfidence`/`targetConfidence`, `confidence` retained as the operation alias); action operation/target distribution completeness with provider-declared `distributionTolerance` (Laya/Jev 0.02) and `choiceSelection: 'argmax'` enforcement; target-head goal/operation context; intelligence-fallback semantic preservation; Edge failure provenance + capability narrowing; normalized provenance (result == receipt, receipt carries `upstreamRequestId`); closed-set `isDecisionCapability`; non-empty request-id validation; explicit `minOperationProbability`/`minTargetProbability`.
   - **Breaking within 0.x:** for actions, `minSelectedProbability` and `requireProbabilities` now cover the selected target as well as the operation; Laya/Jev complete distributions are validated strictly (coverage, sum, argmax).
 
+- **`@totemsdk/wallet-adapter` 2.0.0 — bound to the connect/wallet runtime**
+  - The base class now composes `createWalletRuntime`: fail-closed approvals, trusted-origin resolution, input authorization, verify domain/replay checks and sessions, WOTS lease port, all 47 connect methods via optional ports, the full `TotemProvider` shape, and a per-method support manifest.
+  - Custody defaults are safe (`false`/`hosted`); unknown methods return `UNSUPPORTED`. A wallet-adapter parity gate is wired into CI.
+  - **Breaking:** approval-gated methods require an `approve` callback.
+
+- **`@totemsdk/omnia-router` 0.4.0 — routing behaviour** — pathfinding now uses the bounded layered engine and live route revalidation, so path selection and cost accounting differ from 0.3.x. The internal `RoutingEngine` is not exported yet.
+
+- **`@totemsdk/core-wasm` 1.0.3 — Bare runtime support**
+  - The generated Node glue falls back from `node:fs` to optional `bare-fs` and installs `bare-encoding/global` when the encoding globals are absent. `prepare-publish-assets.mjs` reapplies the patch after every wasm build.
+  - `@noble/hashes` is patched so `node:crypto` is optional and `globalThis.crypto` is the fallback. `pkg-web` is now built as the portable async target.
+
+- **`@totemsdk/identity` 1.0.2 — explicit resolution time**
+  - `resolveIdentityGraph(graph, { asOf })` evaluates claims only when `issuedAt <= asOf` and not expired at `asOf`.
+  - `verifyManifestIdentity(..., { asOf })` rejects manifests signed after `asOf` or expired at `asOf`. Backward-compatible: omitting `asOf` uses `Date.now()`.
+
 ### Fixed
 
 - **`scripts/workspace-gates.config.json`** — removed stale `pureminima-rpc` entry (package removed in `9440d2b`); workspace gates now pass 58/58.
+
+- **`@totemsdk/omnia` 2.3.0** — keep one live transport per peer (duplicate inbound sockets are destroyed instead of rebinding the active stream); single-dial rendezvous removes dual-socket churn; `requestPeerReply` resends the same proposal/nonce after a reconnect; `ReplyCache` makes factory/VC proposal handling idempotent and returns the identical reply to duplicates without consuming an extra WOTS leaf; DHT bootstrap entries are normalised and the announce address is pinned when host/port are explicit; `VC_ACCEPT` replies are no longer misread as proposals.
+
+- **`@totemsdk/omnia-vtxo` 0.6.1** — pin the exit clock (`SAMESTATE(102)`) before the exit branch (P0), so the exit path cannot use a moved clock.
+
+- **`@totemsdk/omnia-pool` 0.5.2** — `@totemsdk/omnia-factory`, `omnia-router`, `omnia-splice`, and `omnia-vtxo` are declared runtime dependencies (they are statically imported by `live-ports.ts`); optional peers made the published package unimportable in a clean install.
+
+- **`@totemsdk/connect` 2.4.1** — refreshed workspace peer ranges so a flat install no longer hits `ERESOLVE` against the current Omnia family.
+
+- **`@totemsdk/stream-transport` 0.2.1** — `NodeStreamTransport` now waits for a raw stream's `opened`/`connecting`/`open`/`connect`/`ready` signal before sending, so writes to a `dht.connect()` stream are not lost during the Noise handshake.
 
 ## [1.0.0] - 2026-08-20
 

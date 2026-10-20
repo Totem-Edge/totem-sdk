@@ -8,13 +8,14 @@
 import { signManifest } from '@totemsdk/manifest';
 import { encodeManifest } from '@totemsdk/manifest';
 import type { AppManifest } from '@totemsdk/manifest';
+import { createUnifiedChildTreeKey } from '@totemsdk/core';
 import { AppRegistry } from '../registry.js';
 import { SqliteStore } from '../storage.js';
 
 jest.setTimeout(60_000);
 
 /**
- * `signManifest` derives `authorAddress` from the seed and overwrites the
+ * `signManifest` derives `authorAddress` from the tree key and overwrites the
  * manifest field; `verifyManifest` then requires the two to match. So the test
  * signs a manifest whose declared author is the real signer address.
  */
@@ -22,9 +23,9 @@ async function signedManifestBytes(seedByte: number): Promise<Uint8Array> {
   const seed = new Uint8Array(32).fill(seedByte);
   // First derive the address by signing a placeholder, then sign the real one.
   const placeholder = appManifest('MxPLACEHOLDER');
-  const first = await signManifest(placeholder, seed, 0);
+  const first = await signManifest(placeholder, createUnifiedChildTreeKey(seed, 0), 0);
   const realManifest = appManifest(first.authorAddress);
-  const signed = await signManifest(realManifest, seed, 0);
+  const signed = await signManifest(realManifest, createUnifiedChildTreeKey(seed, 0), 0);
   return encodeManifest(signed);
 }
 

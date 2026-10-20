@@ -38,7 +38,16 @@ Requires Rust and wasm-pack:
 ```bash
 wasm-pack build --target bundler --out-dir pkg
 wasm-pack build --target nodejs --out-dir pkg-node
+wasm-pack build --target web --out-dir pkg-web
 ```
+
+`scripts/prepare-publish-assets.mjs` runs after every build and patches the
+generated Node glue for Bare: it falls back from `node:fs` to the optional
+`bare-fs` package and installs `bare-encoding/global` when the encoding globals
+are missing. `pkg-web` is the portable async target (explicit wasm bytes, no
+`fs`). Bare apps that need randomness should set
+`globalThis.crypto = require('bare-crypto')`; `@noble/hashes` is patched so a
+missing `node:crypto` no longer breaks import.
 
 ## License
 

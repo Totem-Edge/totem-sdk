@@ -1,0 +1,70 @@
+{
+  "name": "@totemsdk/entity",
+  "version": "0.1.0",
+  "description": "Disclosure-bounded entity resolution and projection — compose identity, manifests, proofs and authority into a privacy-preserving view",
+  "main": "dist/cjs/index.js",
+  "types": "dist/cjs/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
+    "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
+    "clean": "rm -rf dist",
+    "test": "jest --config jest.config.cjs"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "@totemsdk/core": "workspace:^",
+    "@totemsdk/identity": "workspace:^",
+    "@totemsdk/manifest": "workspace:^"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20.0.0",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.0.0",
+    "typescript": "~5.7.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "author": "Totem SDK",
+  "homepage": "https://docs.totem.ing",
+  "bugs": {
+    "url": "https://github.com/Totem-Edge/totem-sdk/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Totem-Edge/totem-sdk.git",
+    "directory": "packages/entity"
+  },
+  "keywords": [
+    "totem",
+    "totemsdk",
+    "entity",
+    "identity",
+    "disclosure",
+    "privacy",
+    "resolution",
+    "projection"
+  ],
+  "type": "module"
+}

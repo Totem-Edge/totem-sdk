@@ -1,6 +1,6 @@
 # Entity projection P0 hardening (October 2026)
 
-Status: P0-A, P0-B, P0-C and P0-D landed; P0-E pending
+Status: P0-A…P0-E landed; P1 `@totemsdk/entity` 0.1.0 landed (RFC-056)
 
 ## Numbering and package naming
 
@@ -87,7 +87,8 @@ Entity projection is **disclosure-bounded**, not a completeness requirement.
 
 ## Remaining
 
-- **P0-E** ProofGraph manifest revision envelopes (`computeManifestEnvelopeId`).
-- **P1** `@totemsdk/entity` package + `projectEntity()` / `resolveEntity()`.
+- **P0-E** ProofGraph manifest revision envelopes (`computeManifestEnvelopeId`) — landed in `561239c5`.
+- **P1** `@totemsdk/entity` package + `projectEntity()` / `resolveEntity()` — landed (v0.1.0). See RFC-056.
+- **P2 (proposed)** raw signed-claim disclosure for independent verification, manifest-revision references in entity views, and a policy-backed purpose registry.
 
 See RFC-050 §7.1 for the unrelated pooled-capital gate.

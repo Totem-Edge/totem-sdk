@@ -581,6 +581,14 @@
       "status": "excluded",
       "reason": "private PWA wallet scaffold (not an @totemsdk/* publishable)"
     },
+    "packages/entity": {
+      "status": "publishable",
+      "maturity": "alpha",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "resolution/projection library — holds no on-chain value"
+      }
+    },
     "packages/eefi": {
       "status": "publishable",
       "maturity": "rc",

@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/omnia-router",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Multi-hop payment routing over Omnia channels — single-token and cross-token paths",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
