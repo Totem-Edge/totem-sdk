@@ -91,6 +91,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`@totemsdk/core-wasm` 1.0.4** — rebuilt the published `pkg`/`pkg-node`/`pkg-web` wasm with the pinned CI toolchain on Linux/amd64. No functional changes; main and npm now carry byte-identical artifacts.
+
 - **`scripts/workspace-gates.config.json`** — removed stale `pureminima-rpc` entry (package removed in `9440d2b`); workspace gates now pass 58/58.
 
 - **`@totemsdk/omnia` 2.3.0** — keep one live transport per peer (duplicate inbound sockets are destroyed instead of rebinding the active stream); single-dial rendezvous removes dual-socket churn; `requestPeerReply` resends the same proposal/nonce after a reconnect; `ReplyCache` makes factory/VC proposal handling idempotent and returns the identical reply to duplicates without consuming an extra WOTS leaf; DHT bootstrap entries are normalised and the announce address is pinned when host/port are explicit; `VC_ACCEPT` replies are no longer misread as proposals.

@@ -245,7 +245,7 @@
         "wasm"
       ],
       "dependencies": {
-        "@totemsdk/core-wasm": "^1.0.3"
+        "@totemsdk/core-wasm": "^1.0.4"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}",
@@ -297,7 +297,7 @@
     },
     {
       "name": "@totemsdk/core-wasm",
-      "version": "1.0.3",
+      "version": "1.0.4",
       "description": "WOTS+ cryptographic engine compiled from Rust to WASM",
       "domain": "cryptographic-foundation",
       "keywords": [
@@ -1605,10 +1605,12 @@
         "@totemsdk/chain-provider": "^0.3.0",
         "@totemsdk/core": "^1.4.0",
         "@totemsdk/identity": "^1.0.2",
+        "@totemsdk/liquidity-bond": "^0.3.1",
         "@totemsdk/manifest": "^2.0.1",
         "@totemsdk/minima-rpc": "^0.4.0",
         "@totemsdk/omnia": "^2.3.0",
         "@totemsdk/omnia-factory": "^0.7.0",
+        "@totemsdk/omnia-pool": "^0.5.3",
         "@totemsdk/omnia-router": "^0.4.0",
         "@totemsdk/omnia-splice": "^0.3.0",
         "@totemsdk/omnia-vtxo": "^0.6.1",
