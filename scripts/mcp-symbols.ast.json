@@ -10074,8 +10074,37 @@
         },
         "signState": {
           "kind": "function",
-          "signature": "signState(channel: OmniaChannel, update: { newSequence: number; newBalances: Record<string, bigint>; programTransition?: ProgramTransition; }, leaseProvider: WotsLeaseProvider, signer?: ChannelSigner): Promise<Partial<SignedChannelState>>",
+          "signature": "signState(channel: OmniaChannel, update: { newSequence: number; newBalances: Record<string, bigint>; programTransition?: ProgramTransition; }, leaseProvider: WotsLeaseProvider, signer?: ChannelSigner, signerPort?: SignerPort): Promise<Partial<SignedChannelState>>",
+          "doc": "Signs a channel update state and returns the full partial `SignedChannelState`.\n\nThis is the local-signer path: prepare -> sign both digests -> commit -> finalize.\nFor a wallet/coordinator flow use `prepareStateUpdate` + `finalizeStateUpdate`."
+        },
+        "prepareStateUpdate": {
+          "kind": "function",
+          "signature": "prepareStateUpdate(channel: OmniaChannel, update: { newSequence: number; newBalances: Record<string, bigint>; programTransition?: ProgramTransition; }, leaseProvider: WotsLeaseProvider, signer?: ChannelSigner): Promise<PreparedStateUpdate>",
+          "doc": "Build and reserve a channel update without signing it.\n\nThe caller owns the reservations: sign `updateDigest` and `settlementDigest`\nwith the reserved indices, then call `finalizeStateUpdate` and commit the\nleases. On any failure before returning, the reservations are burned."
+        },
+        "buildStateUpdate": {
+          "kind": "function",
+          "signature": "buildStateUpdate(channel: OmniaChannel, update: { newSequence: number; newBalances: Record<string, bigint>; programTransition?: ProgramTransition; }, signer?: Pick<ChannelSigner, \"publicKeyDigest\">): UnsignedStateUpdate",
+          "doc": "Build a channel update without reserving a lease or signing.\n\nUsed by coordinator/wallet flows: the wallet reserves and signs, then returns\nthe signatures and indices to `finalizeStateUpdateWithIndices`."
+        },
+        "PreparedStateUpdate": {
+          "kind": "interface",
+          "signature": "export interface PreparedStateUpdate extends UnsignedStateUpdate"
+        },
+        "UnsignedStateUpdate": {
+          "kind": "interface",
+          "signature": "export interface UnsignedStateUpdate",
           "doc": "Signs a channel update state and returns the full partial `SignedChannelState`.\n\nSigns the canonical Minima update transaction digest. The full off-chain state\nis bound through StateCommitmentV2 embedded in STATE(102), making the digest\nboth L1-visible and KISSVM-visible.\n\nExecutes the full reserve → sign → commit WOTS lease cycle and returns a\n`Partial<SignedChannelState>` with `signatures` and `signingIndices` keyed by the\nsigner's `partyId`, ready to be forwarded to the counterparty for co-signing."
+        },
+        "finalizeStateUpdate": {
+          "kind": "function",
+          "signature": "finalizeStateUpdate(prepared: PreparedStateUpdate, updateSignature: ChannelSignature, settlementSignature: ChannelSignature): Partial<SignedChannelState>",
+          "doc": "Assemble a `SignedChannelState` from a prepared update and its signatures."
+        },
+        "finalizeStateUpdateWithIndices": {
+          "kind": "function",
+          "signature": "finalizeStateUpdateWithIndices(unsigned: UnsignedStateUpdate, updateSignature: ChannelSignature, updateIndices: SigningIndices, settlementSignature: ChannelSignature, settlementIndices: SigningIndices): Partial<SignedChannelState>",
+          "doc": "Assemble a `SignedChannelState` from unsigned data and wallet-supplied indices."
         },
         "verifyStateSignature": {
           "kind": "function",
@@ -10393,6 +10422,14 @@
           "kind": "interface",
           "signature": "export interface OmniaWitnessProofs"
         },
+        "ChannelOpeningPlan": {
+          "kind": "interface",
+          "signature": "export interface ChannelOpeningPlan"
+        },
+        "FinalizeChannelOpeningOptions": {
+          "kind": "interface",
+          "signature": "export interface FinalizeChannelOpeningOptions"
+        },
         "addClosePackageSignature": {
           "kind": "function",
           "signature": "addClosePackageSignature(closePackage: SignedClosePackage, partyId: string, updateSignature: ChannelSignature, updateIndices: SigningIndices, settlementSignature: ChannelSignature, settlementIndices: SigningIndices): SignedClosePackage"
@@ -10424,6 +10461,16 @@
           "signature": "_resetChannelWatermarks(): void",
           "doc": "Reset all channel sequence watermarks.\nIntended only for test isolation — call in `beforeEach` to prevent watermarks\nfrom bleeding between tests that share a fixed `channelId`."
         },
+        "buildChannelOpening": {
+          "kind": "function",
+          "signature": "buildChannelOpening(params: CreateChannelParams, chainProvider: ChainStateProvider): Promise<ChannelOpeningPlan>",
+          "doc": "Build a channel opening without broadcasting: resolve the program/script,\nread the funding coin, construct the deterministic funding draft and return\nits digest for wallet signing."
+        },
+        "finalizeChannelOpening": {
+          "kind": "function",
+          "signature": "finalizeChannelOpening(plan: ChannelOpeningPlan, opts: FinalizeChannelOpeningOptions, chainProvider: ChainStateProvider): Promise<{ channel: OmniaChannel; proposal: ChannelProposal; fundingTxId: string; }>",
+          "doc": "Broadcast a built channel opening using either a caller-supplied witness or\na wallet signature over the funding digest plus input proofs. Revalidates\nthe funding coin before the irreversible broadcast."
+        },
         "createChannel": {
           "kind": "function",
           "signature": "createChannel(params: CreateChannelParams, chainProvider: ChainStateProvider): Promise<{ channel: OmniaChannel; proposal: ChannelProposal; }>"
@@ -10435,12 +10482,12 @@
         },
         "updateState": {
           "kind": "function",
-          "signature": "updateState(channel: OmniaChannel, delta: UpdateDelta, leaseProvider: WotsLeaseProvider, signer?: ChannelSigner): Promise<UpdateStateResult>",
+          "signature": "updateState(channel: OmniaChannel, delta: UpdateDelta, leaseProvider: WotsLeaseProvider, signer?: ChannelSigner, signerPort?: import(\"./custody.js\").SignerPort): Promise<UpdateStateResult>",
           "doc": "Produce a new partial SignedChannelState with incremented sequence.\n\nSpec: `updateState(channel, delta, leaseProvider)` — signer is optional and\nfalls back to `channel.localSigner` when not provided."
         },
         "applyProgramTransition": {
           "kind": "function",
-          "signature": "applyProgramTransition(channel: OmniaChannel, params: ApplyProgramTransitionParams, leaseProvider: WotsLeaseProvider, signer?: ChannelSigner): Promise<UpdateStateResult>"
+          "signature": "applyProgramTransition(channel: OmniaChannel, params: ApplyProgramTransitionParams, leaseProvider: WotsLeaseProvider, signer?: ChannelSigner, signerPort?: import(\"./custody.js\").SignerPort): Promise<UpdateStateResult>"
         },
         "attachCounterpartySignature": {
           "kind": "function",
@@ -10522,7 +10569,7 @@
         },
         "proposeSettlement": {
           "kind": "function",
-          "signature": "proposeSettlement(channel: OmniaChannel, leaseProvider: WotsLeaseProvider, opts?: ProposeSettlementOptions): Promise<{ settlementPayload: SettlementPayload; partialState: Partial<SignedChannelState>; }>",
+          "signature": "proposeSettlement(channel: OmniaChannel, leaseProvider: WotsLeaseProvider | undefined, opts?: ProposeSettlementOptions): Promise<{ settlementPayload: SettlementPayload; partialState: Partial<SignedChannelState>; }>",
           "doc": "Builds the cooperative settlement TX (`STATE(100)=TRUE`) and signs it with the\nsettlement TX digest — critical for on-chain correctness.\n\nFull chain path (when `opts.chainProvider` is provided):\n  1. Build settlement draft (STATE(100)=TRUE, per-party outputs).\n  2. Sign the settlement TX digest via the WOTS lease.\n  3. Serialize draft bytes + witness bytes → `serializeTxBody()` (txpow TxBody).\n  4. Mine PoW via `mineTxPoW()` using `TX_POW_MIN_DIFFICULTY`.\n  5. Assemble full TxPoW: `minedHeaderBytes || 0x01 || txBody`.\n  6. Broadcast via `chainProvider.broadcastTxPoW()`.\n\nSpec: `proposeSettlement(channel, leaseProvider)` — signer and partyAddresses are\noptional via the opts argument and fall back to channel fields."
         },
         "buildSettlementSigningRequest": {
@@ -10767,11 +10814,69 @@
         "ProposalState": {
           "kind": "type",
           "signature": "export type ProposalState = 'pending' | 'accepted' | 'committed' | 'abandoned'"
+        },
+        "CustodyMode": {
+          "kind": "type",
+          "signature": "export type CustodyMode = 'self' | 'trust-minimised' | 'hosted'"
+        },
+        "CustodyContext": {
+          "kind": "interface",
+          "signature": "export interface CustodyContext"
+        },
+        "SignDomain": {
+          "kind": "type",
+          "signature": "export type SignDomain = | 'channel' | 'factory' | 'settlement' | 'splice' | 'vtxo' | 'pool' | 'manifest'"
+        },
+        "SignContext": {
+          "kind": "interface",
+          "signature": "export interface SignContext"
+        },
+        "SignRequest": {
+          "kind": "interface",
+          "signature": "export interface SignRequest"
+        },
+        "SignerPort": {
+          "kind": "interface",
+          "signature": "export interface SignerPort"
+        },
+        "makeSelfCustody": {
+          "kind": "function",
+          "signature": "makeSelfCustody(overrides?: Partial<CustodyContext>): CustodyContext",
+          "doc": "Default custody context for a self-custody deployment."
+        },
+        "makeHostedCustody": {
+          "kind": "function",
+          "signature": "makeHostedCustody(config: HostedCustodyConfig): CustodyContext",
+          "doc": "Build and validate an explicit hosted-custody context. Callers must opt in\nand provide a complete disclosure; there is no implicit hosted mode."
+        },
+        "validateCustodyContext": {
+          "kind": "function",
+          "signature": "validateCustodyContext(custody: CustodyContext): void",
+          "doc": "Validate custody metadata. Hosted custody must be explicit and complete;\nself-custody cannot claim operator movement/freeze/discretion powers."
+        },
+        "assertSignRequest": {
+          "kind": "function",
+          "signature": "assertSignRequest(request: SignRequest, now?: number): void",
+          "doc": "Validate a sign request before handing it to a signer."
+        },
+        "signRequestPayload": {
+          "kind": "function",
+          "signature": "signRequestPayload(request: SignRequest): Uint8Array",
+          "doc": "Payload a signer signs.\n\n- `intent` (default): domain-separated digest binding the custody disclosure\n  hash, so a signature under disclosure A is invalid under disclosure B.\n- `chain`: the raw digest; the chain/peer verifies exactly these bytes. The\n  disclosure is bound by the accompanying intent/approval signature."
         }
       }
     },
     "@totemsdk/omnia-factory": {
       "symbols": {
+        "FactoryOpeningPlan": {
+          "kind": "interface",
+          "signature": "export interface FactoryOpeningPlan",
+          "doc": "A factory opening built without any signatures or broadcast."
+        },
+        "FinalizeFactoryOpeningOptions": {
+          "kind": "interface",
+          "signature": "export interface FinalizeFactoryOpeningOptions"
+        },
         "FactoryStatus": {
           "kind": "type",
           "signature": "export type FactoryStatus = 'opening' | 'active' | 'closing' | 'closed'"
@@ -10934,6 +11039,16 @@
           "kind": "function",
           "signature": "createFactory(participants: FactoryParticipant[], tokenId: string, bundle: WotsLeaseBundle, chainProvider?: ChainStateProvider, tokenScale?: number, funding?: FactoryFundingMaterial[]): Promise<ChannelFactory>",
           "doc": "Create a factory proposal (proposer step).\n\nThe calling party (`signer.publicKeyDigest` matches one of `participants`)\nsigns the factory opening commitment via `leaseProvider`, performing the full\nWOTS reserve → sign → verify → commit cycle.\n\nWhen ALL participants supply `fundingCoinId` and `chainProvider` is given,\nthe N-input → 1-output funding TX is built (via `@totemsdk/omnia`'s\n`buildFundingTx`), mined (via `@totemsdk/txpow`'s `mineTxPoW`), and broadcast.\nThe TX draft digest is used as the factory opening commitment so that all\nparties are co-signing the EXACT on-chain TX structure.\n\nWithout `fundingCoinId`s or `chainProvider`, the factory is in-memory only\n(useful for testing and off-chain simulation); the commitment falls back to\nthe factory state commitment hash.\n\nThe returned factory is in `'opening'` status.  Every other participant must\ncall `acceptFactory(factory, leaseProvider, signer)` before the factory\ntransitions to `'active'`."
+        },
+        "buildFactoryOpening": {
+          "kind": "function",
+          "signature": "buildFactoryOpening(participants: FactoryParticipant[], tokenId: string, tokenScale: number, chainProvider?: ChainStateProvider, funding?: FactoryFundingMaterial[]): Promise<FactoryOpeningPlan>",
+          "doc": "Build a factory and (when every participant supplies a funding coin) its\ndeterministic funding draft, without signing or broadcasting."
+        },
+        "finalizeFactoryOpening": {
+          "kind": "function",
+          "signature": "finalizeFactoryOpening(plan: FactoryOpeningPlan, opts: FinalizeFactoryOpeningOptions, chainProvider?: ChainStateProvider): Promise<ChannelFactory>",
+          "doc": "Broadcast the prepared factory funding (when on-chain) and record opening\nsignatures. When every participant signature is supplied the factory commits."
         },
         "acceptFactory": {
           "kind": "function",
@@ -11266,6 +11381,20 @@
           "kind": "interface",
           "signature": "export interface DuckDbConnection",
           "doc": "Adapter boundary for the optional DuckDB implementation."
+        },
+        "createLocalSignerPort": {
+          "kind": "function",
+          "signature": "createLocalSignerPort(signing: HostSigning): SignerPort"
+        },
+        "createPolicySignerPort": {
+          "kind": "function",
+          "signature": "createPolicySignerPort(base: SignerPort, policy?: SignerPolicy): SignerPort",
+          "doc": "Wrap a signer port with policy checks. The underlying port may be a local\nsigner, KMS/HSM/MPC adapter, or hosted policy engine; this wrapper only\nenforces the deployment policy and disclosure requirements."
+        },
+        "SignerPolicy": {
+          "kind": "interface",
+          "signature": "export interface SignerPolicy",
+          "doc": "Hosted/KMS policy checks applied before delegating to the underlying port."
         }
       }
     },
@@ -12074,6 +12203,26 @@
           "signature": "acceptSplice(channel: OmniaChannel | QuiescedChannel, proposal: SpliceProposal, leaseProvider: SpliceLeaseProvider): Promise<SpliceAcceptance>",
           "doc": "Counterparty accepts a splice proposal by co-signing the splice TX digest.\n\nRequires the channel to be in 'quiesced' state.\n\nWOTS lease safety: reserves a key slot before signing. The returned\n`acceptorReservationId` and `acceptorSigningIndices` are embedded in the\n`SpliceAcceptance` and consumed by `finalizeSplice` to commit or burn the\nacceptor's key-slot reservation.\n\nThe acceptor independently:\n  1. Validates party membership (proposer and acceptor both in channel).\n  2. Validates proposal balance conservation and amount constraints.\n  3. Cryptographically binds the signed draft to the proposal params by\n     recomputing the expected draft from `params + channel` and comparing\n     digests — rejects if they differ (tamper detection).\n  4. Reserves a WOTS key slot via `leaseProvider.wotsLease`.\n  5. Signs the splice TX digest with reserved indices."
         },
+        "buildSpliceProposal": {
+          "kind": "function",
+          "signature": "buildSpliceProposal(channel: OmniaChannel | QuiescedChannel, params: SpliceParams, proposerPublicKeyDigest: string): UnsignedSpliceProposal",
+          "doc": "Build the deterministic splice draft/digest without signing. Used by the\nwallet/coordinator flow: the caller signs `digest` and attaches the\nsignature before finalization."
+        },
+        "buildSpliceInProposal": {
+          "kind": "function",
+          "signature": "buildSpliceInProposal(channel: OmniaChannel | QuiescedChannel, additionalCoinId: string, additionalAmount: bigint, proposerPublicKeyDigest: string, newBalances?: Record<string, bigint>): UnsignedSpliceProposal",
+          "doc": "Build an unsigned splice-in proposal (see `buildSpliceProposal`)."
+        },
+        "buildSpliceOutProposal": {
+          "kind": "function",
+          "signature": "buildSpliceOutProposal(channel: OmniaChannel | QuiescedChannel, withdrawAmount: bigint, withdrawAddress: string, proposerPublicKeyDigest: string, newBalances?: Record<string, bigint>, extraOutputs?: Array<{ address: string; amount: bigint; tokenId?: string; }>): UnsignedSpliceProposal",
+          "doc": "Build an unsigned splice-out proposal (see `buildSpliceProposal`)."
+        },
+        "UnsignedSpliceProposal": {
+          "kind": "interface",
+          "signature": "export interface UnsignedSpliceProposal",
+          "doc": "A splice proposal whose proposer signature has not been applied yet."
+        },
         "finalizeSplice": {
           "kind": "function",
           "signature": "finalizeSplice(channel: OmniaChannel | QuiescedChannel, proposal: SpliceProposal, acceptance: SpliceAcceptance, options?: FinalizeSpliceOptions): Promise<SplicedChannel>",
@@ -12469,10 +12618,14 @@
           "kind": "interface",
           "signature": "export interface VtxoOperatorWithIdentity extends OmniaVtxoOperator"
         },
+        "buildVtxoReceiptPayload": {
+          "kind": "function",
+          "signature": "buildVtxoReceiptPayload(receipt: VtxoOperatorReceipt, batch: VtxoReceiptBatch): Uint8Array",
+          "doc": "Co-sign a receipt with the operator, after verifying the batch."
+        },
         "signVtxoReceipt": {
           "kind": "function",
-          "signature": "signVtxoReceipt(operator: OmniaVtxoOperator, receipt: VtxoOperatorReceipt, batch: VtxoReceiptBatch): Promise<VtxoOperatorReceipt>",
-          "doc": "Co-sign a receipt with the operator, after verifying the batch."
+          "signature": "signVtxoReceipt(operator: OmniaVtxoOperator, receipt: VtxoOperatorReceipt, batch: VtxoReceiptBatch): Promise<VtxoOperatorReceipt>"
         },
         "verifyVtxoReceipt": {
           "kind": "function",
