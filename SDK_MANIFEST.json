@@ -3,7 +3,7 @@
   "title": "Totem SDK Package Manifest",
   "description": "Machine-readable index of all @totemsdk packages — for AI agents, tooling, and developers. Updated 2026-10-20.",
   "org": "@totemsdk",
-  "total": 66,
+  "total": 67,
   "domains": {
     "cryptographic-foundation": {
       "description": "WOTS+ signatures, TreeKey hierarchy, MMR proofs, KISSVM, MAST, TxPoW",
@@ -65,6 +65,7 @@
         "@totemsdk/server",
         "@totemsdk/pubsub-transport",
         "@totemsdk/stream-transport",
+        "@totemsdk/p2p-hub",
         "@totemsdk/wallet-adapter",
         "@totemsdk/edge-email",
         "@totemsdk/industrial-action",
@@ -1189,6 +1190,33 @@
         ".": "dist/index.{js,d.ts}"
       },
       "exportsDescription": "IPubSubTransport, EventEmitterTransport, MockPubSubTransport, PublishOptions, SubscribeOptions",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
+    },
+    {
+      "name": "@totemsdk/p2p-hub",
+      "version": "0.1.0",
+      "description": "Local P2P hub — one Hyperswarm instance shared by Totem apps over a loopback WebSocket bridge",
+      "domain": "edge-computing",
+      "keywords": [
+        "p2p",
+        "hyperswarm",
+        "websocket",
+        "transport",
+        "hub"
+      ],
+      "dependencies": {
+        "@totemsdk/core": "^1.4.0",
+        "@totemsdk/pubsub-transport": "^0.2.0",
+        "@totemsdk/stream-transport": "^0.2.1",
+        "ws": "^8.21.1"
+      },
+      "exports": {
+        ".": "dist/index.{js,d.ts}"
+      },
+      "exportsDescription": "P2PHub, createP2PHub, createWebSocketHubServer, createHyperswarmHubNetwork, deriveTopicKey",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
