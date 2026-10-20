@@ -1,6 +1,6 @@
 # RFC-058 — Custody Modes, Non-Custodial Defaults, and the Liquidity Commitment Disclosure Gate
 
-**Status:** Draft — **P0 priority**; proposed for immediate review
+**Status:** Draft — **P0 priority**; Amendment A (custodial completeness gate) added 2026-10-20
 **Priority:** P0
 **Created:** 2026-10-20
 **Authors:** Totem SDK Contributors
@@ -14,6 +14,18 @@
 > signing abstraction that makes it enforceable, and the Totem extension gate that
 > requires an explicit custody/risk disclosure before a user signs any liquidity
 > commitment.
+>
+> **Amendment A (2026-10-20) — custodial completeness gate.** A pre-implementation
+> audit (§5.0) found that **custodial plumbing is not complete**: the host signs
+> directly (no `SignerPort`), there is no KMS/HSM/MPC or policy engine, VTXO/pool
+> host methods are absent, unilateral-close/dispute methods are absent, several
+> stores are in-memory, the disclosure gate does not exist, and live on-chain
+> execution is blocked by the missing Minima node on the test hosts. Therefore
+> **non-custodial implementation work is gated behind the P0 custodial checklist**
+> in §5.0. Shared foundations (`SignRequest`/`SignerPort`, custody schema, disclosure
+> hash) may land first because both modes depend on them. The protocol default
+> remains non-custodial; the *implementation order* is custodial-first to de-risk the
+> shared signing/policy/state plumbing.
 
 ---
 
@@ -40,6 +52,8 @@ This RFC decides:
    value-bearing package becomes custodial. Hosted custody is a **deployment
    composition** (operator-supplied signer/policy adapter), gated by a new
    deployment-custody policy.
+7. **Custodial plumbing is a prerequisite.** The P0 checklist in §5.0 must be
+   complete (or explicitly waived) before non-custodial implementation starts.
 
 ---
 
@@ -82,6 +96,8 @@ not legal advice.
 
 **Goals**
 
+- **Complete the custodial plumbing first** (§5.0) so the shared signer/policy/state
+  boundary is proven before non-custodial split APIs are built.
 - Make self-custody the default across all Omnia packages and the host.
 - Retain a first-class, explicit hosted-custody integration path.
 - Enforce custody disclosure at the signing boundary, including dApp/WalletConnect
@@ -120,6 +136,44 @@ not legal advice.
 ---
 
 ## 5. Decisions
+
+### D0 — Custodial completeness before non-custodial implementation
+
+Custodial plumbing is the higher-risk path and exercises the same `SignRequest` /
+`SignerPort` boundary that non-custodial mode needs. It must be complete, audited,
+and live-tested before non-custodial implementation begins.
+
+#### 5.0 Custodial plumbing completeness audit (2026-10-20)
+
+“Custodial plumbing” here means the **hosted deployment capabilities**: operator-held
+signing/policy, recovery/dispute paths, durable state, host APIs, disclosure and
+the extension gate. It does **not** mean shipping a custodial package (RFC-039
+remains hard-fail).
+
+| Area | Current state | Status | Blocks non-custodial? |
+|---|---|---|---|
+| `SignRequest` / `SignerPort` | Host signs directly from `OMNIA_HOST_SEED`; no port abstraction | ❌ missing | Yes — shared foundation |
+| KMS/HSM/MPC + policy engine | None; no limits, allowlists, quorum, dual control, audit | ❌ missing | Yes |
+| Channel lifecycle (S4) | open/pay/settle/close live-tested | ✅ | — |
+| Unilateral close / recovery | SDK has `start/finalizeUnilateralClose`; no host methods | ❌ missing | Yes |
+| Factory funding/close (S5) | Two-party funding + cooperative close coded/unit-tested; live chain blocked (no node) | 🟡 partial | Yes — live E2E |
+| Virtual channels (S5) | open/close live-tested | ✅ | — |
+| Splice (S7) | Host coordination wired/unit-tested; live on-chain and funding-coin path blocked | 🟡 partial | Yes — live E2E |
+| VTXO host methods (S6) | SDK harness green; no host context/stores/operator/methods | ❌ missing | Yes |
+| Pool host methods (S10) | SDK harness green; no registry/positions/ports/methods | ❌ missing | Yes |
+| Router / multi-hop (S8) | Fee-aware SDK green; three-host E2E blocked | 🟡 partial | No — but required for hosted liquidity |
+| Relay (S9) | Local relay round-trip green | ✅ | — |
+| Durable stores / audit | Channels SQLite; factory/splice proposals in memory; no audit/reconciliation | ❌ partial | Yes |
+| Custody disclosure in manifest/SignRequest | Not implemented | ❌ missing | Yes |
+| Totem extension gate | Not implemented | ❌ missing | Yes |
+| Deployment custody policy / CI | Not implemented | ❌ missing | Yes |
+| Live E2E environment | Minima node/binary absent on A/B; only Omnia host + DHT seed running | ❌ blocked | Yes — live E2E |
+
+**Gate rule.** Non-custodial implementation PRs do not start until every P0 row is
+✅ or has a written waiver approved in this RFC. Shared foundations (D3 schema,
+`SignerPort`, disclosure hash) may land first because both modes need them. The
+custodial adapter, VTXO/pool host methods, durable stores, dispute/recovery paths,
+extension gate and live S5/S7/S8 runs are P0.
 
 ### D1 — Non-custodial default
 
@@ -426,12 +480,13 @@ preferred location for the reference adapter is the operator deployment
 
 | Phase | Scope |
 |---|---|
-| **P0** | This RFC; deployment-custody policy; schemas; extension gate spec; approve the default switch |
-| **P1** | `SignRequest`/`SignerPort`; prepare/sign/submit for channels, settlement, factory, splice |
-| **P2** | Signer-less coordinator host; wallet bridge; explicit hosted adapter + policy engine |
-| **P3** | VTXO/pool non-custodial defaults; per-position allocations; non-transferable receipts |
-| **P4** | Extension disclosure gate + anti-bypass + tests |
-| **P5** | Migration, docs, default switch, hosted reference deployment in `axia-platform` |
+| **P0** | This RFC (incl. Amendment A); deployment-custody policy; schemas; extension gate spec; custodial completeness waiver/checklist |
+| **P1** | Shared foundation: `SignRequest`/`SignerPort`, custody schema, disclosure hash, prepare/sign/submit primitives |
+| **P2** | Custodial completeness: KMS/HSM/MPC + policy engine; VTXO/pool host methods; unilateral close/dispute methods; durable stores/audit; live S5/S7/S8 E2E; redeploy the Minima node |
+| **P3** | Extension disclosure gate + anti-bypass + tests |
+| **P4** | Hosted reference deployment in `axia-platform`; signed disclosures/policy; deployment-custody CI |
+| **P5** | Non-custodial split APIs; per-position allocations; non-transferable receipts; signer-less coordinator host |
+| **P6** | Migration, docs, default switch; protocol-only GTM |
 
 P0 is release-blocking for any hosted deployment and for the default switch.
 
@@ -467,6 +522,12 @@ P0 is release-blocking for any hosted deployment and for the default switch.
    pool?
 7. Which extensions/wallets beyond Totem must implement the gate, and can a shared
    conformance suite certify them?
+8. Which §5.0 P0 rows, if any, may be waived before non-custodial work starts? The
+   current proposal is **none** for signing, VTXO/pool host methods, unilateral
+   recovery, disclosure/extension gate and live S5/S7.
+9. Does custodial-first sequencing delay the non-custodial default unacceptably, or
+   should the shared `SignerPort`/schema land in parallel while the custodial
+   checklist is completed?
 
 ---
 
