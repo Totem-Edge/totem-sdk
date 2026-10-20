@@ -24,7 +24,14 @@ for (const block of lock.split('[[package]]').slice(1)) {
   if (!name || !version) continue;
   packages.push({ name, version, ...(checksum ? { checksum } : {}) });
 }
-packages.sort((a, b) => a.name.localeCompare(b.name) || a.version.localeCompare(b.version));
+packages.sort((a, b) => {
+  // Deterministic byte order; localeCompare differs between macOS and Linux.
+  if (a.name < b.name) return -1;
+  if (a.name > b.name) return 1;
+  if (a.version < b.version) return -1;
+  if (a.version > b.version) return 1;
+  return 0;
+});
 
 const sbom = {
   format: 'totem-cargo-lock/v1',
