@@ -1,6 +1,7 @@
 package lookupnode
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"sync"
 	"testing"
@@ -212,6 +213,24 @@ func TestHighValueTypeRejectsTicket(t *testing.T) {
 	resp = recvFromNode(t, tr)
 	if resp.Type != "ERROR" {
 		t.Fatalf("BROADCAST_TXPOW should reject a ticket, got %s", resp.Type)
+	}
+}
+
+func TestSessionTicketDigestMatchesTypeScriptVector(t *testing.T) {
+	digest, err := SessionTicketDigest(SessionTicket{
+		TicketID:    "tkt-vector",
+		Subject:     "client-pub",
+		NodeID:      "node-test",
+		IssuedAt:    1_700_000_000_000,
+		ExpiresAt:   1_700_000_060_000,
+		MaxRequests: 3,
+	})
+	if err != nil {
+		t.Fatalf("digest: %v", err)
+	}
+	const want = "641892248458549b8011b08725ccea56c5147ddc05e471fdb80902fbb39a1426"
+	if got := hex.EncodeToString(digest); got != want {
+		t.Fatalf("digest = %s, want %s", got, want)
 	}
 }
 

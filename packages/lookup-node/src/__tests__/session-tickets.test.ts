@@ -113,6 +113,20 @@ describe('NodeIdentity ticket signing (RFC-032-A)', () => {
     expect(sessionTicketDigest(payload).length).toBe(32);
   });
 
+  it('matches the cross-language digest vector', () => {
+    const payload: Omit<SessionTicket, 'signature'> = {
+      ticketId: 'tkt-vector',
+      subject: 'client-pub',
+      nodeId: 'node-test',
+      issuedAt: 1_700_000_000_000,
+      expiresAt: 1_700_000_060_000,
+      maxRequests: 3,
+    };
+    expect(bytesToHex(sessionTicketDigest(payload)).toLowerCase()).toBe(
+      '641892248458549b8011b08725ccea56c5147ddc05e471fdb80902fbb39a1426',
+    );
+  });
+
   it('rejects a ticket signed by a different node identity', () => {
     const signer = NodeIdentity.fromNodeId('node-A');
     const other = NodeIdentity.fromNodeId('node-B');
