@@ -7,7 +7,11 @@ let wasmInitialized = false;
 async function initWasm(): Promise<any> {
   if (wasmInitialized) return wasmModule;
   try {
-    wasmModule = await import('../rust/pkg/tx_builder_wasm.js');
+    // Keep the specifier non-literal so `tsc` does not require generated
+    // wasm-pack output in a fresh checkout. `initWasm()` returns null when the
+    // module is absent; publish builds generate it via `build:wasm`.
+    const wasmModulePath = '../rust/pkg/tx_builder_wasm.js';
+    wasmModule = await import(/* @vite-ignore */ wasmModulePath);
     await wasmModule.default();
     wasmInitialized = true;
     return wasmModule;

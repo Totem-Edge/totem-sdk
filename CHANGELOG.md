@@ -107,6 +107,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`@totemsdk/stream-transport` 0.2.1** — `NodeStreamTransport` now waits for a raw stream's `opened`/`connecting`/`open`/`connect`/`ready` signal before sending, so writes to a `dht.connect()` stream are not lost during the Noise handshake.
 
+- **`@totemsdk/tx-builder`** — `wasm-bridge.ts` uses a non-literal dynamic import so a fresh checkout typechecks and builds without generated `rust/pkg` output. `build:wasm` still produces the published artifacts; the runtime fallback is unchanged.
+
 ## [1.0.0] - 2026-08-20
 
 ### Added
