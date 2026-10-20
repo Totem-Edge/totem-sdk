@@ -318,3 +318,19 @@ export {
   type AcceptanceRecord,
   type ProposalState,
 } from './coordination/types.js';
+
+// RFC-058 — custody modes, sign requests and the signer port.
+export type {
+  CustodyMode,
+  CustodyContext,
+  SignDomain,
+  SignContext,
+  SignRequest,
+  SignerPort,
+} from './custody.js';
+export {
+  makeSelfCustody,
+  validateCustodyContext,
+  assertSignRequest,
+  signRequestPayload,
+} from './custody.js';
