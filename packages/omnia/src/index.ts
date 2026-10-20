@@ -339,6 +339,7 @@ export type {
 } from './custody.js';
 export {
   makeSelfCustody,
+  makeHostedCustody,
   validateCustodyContext,
   assertSignRequest,
   signRequestPayload,

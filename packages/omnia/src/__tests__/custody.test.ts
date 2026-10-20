@@ -4,6 +4,7 @@
 
 import {
   makeSelfCustody,
+  makeHostedCustody,
   validateCustodyContext,
   assertSignRequest,
   signRequestPayload,
@@ -62,6 +63,31 @@ describe('custody modes', () => {
     }
     expect(() => validateCustodyContext(hosted({ keyManagement: 'wallet' }))).toThrow(/wallet-only/);
     expect(() => validateCustodyContext(hosted({ canFreeze: undefined }))).toThrow(/canFreeze/);
+  });
+
+  it('builds an explicit hosted context and applies safe defaults', () => {
+    const custody = makeHostedCustody({
+      operatorId: 'op-1',
+      legalEntity: 'Example Custody Ltd',
+      jurisdiction: 'GB',
+      disclosureHash: '0x' + 'aa'.repeat(32),
+      disclosureVersion: '2026-10-20',
+      policySummary: '2-person approval over 10k',
+      withdrawalTerms: 'T+1, limits apply',
+    });
+    expect(custody.mode).toBe('hosted');
+    expect(custody.keyManagement).toBe('host');
+    expect(custody.canMoveFunds).toBe(false);
+    expect(custody.canFreeze).toBe(false);
+    expect(() => makeHostedCustody({
+      operatorId: 'op-1',
+      legalEntity: '',
+      jurisdiction: 'GB',
+      disclosureHash: '0xaa',
+      disclosureVersion: '1',
+      policySummary: 'x',
+      withdrawalTerms: 'x',
+    })).toThrow(/legalEntity/);
   });
 
   it('requires reason and mitigation for trust-minimised custody', () => {

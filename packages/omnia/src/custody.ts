@@ -50,6 +50,8 @@ export interface CustodyContext {
   /** Hash of the operator's disclosure/terms; bound into the signed payload. */
   disclosureHash?: string;
   disclosureVersion?: string;
+  /** Hosted only: public URL of the full disclosure/terms. */
+  disclosureUrl?: string;
   policySummary?: string;
   /** Trust-minimised: why it is trust-minimised and how it is mitigated. */
   reason?: string;
@@ -115,6 +117,44 @@ export function makeSelfCustody(overrides: Partial<CustodyContext> = {}): Custod
     receiptTransferability: 'none',
     ...overrides,
   };
+}
+
+/** Constructor input for an explicit hosted-custody deployment. */
+export interface HostedCustodyConfig {
+  operatorId: string;
+  legalEntity: string;
+  jurisdiction: string;
+  disclosureHash: string;
+  disclosureVersion: string;
+  policySummary: string;
+  withdrawalTerms: string;
+  /** Defaults to `host` (operator-held key material). */
+  keyManagement?: 'kms' | 'hsm' | 'mpc' | 'host';
+  /** Defaults to false: the disclosure must opt in explicitly. */
+  canMoveFunds?: boolean;
+  canFreeze?: boolean;
+  operatorDiscretion?: boolean;
+  license?: string;
+  disclosureUrl?: string;
+  receiptTransferability?: 'none' | 'restricted' | 'transferable';
+}
+
+/**
+ * Build and validate an explicit hosted-custody context. Callers must opt in
+ * and provide a complete disclosure; there is no implicit hosted mode.
+ */
+export function makeHostedCustody(config: HostedCustodyConfig): CustodyContext {
+  const custody: CustodyContext = {
+    mode: 'hosted',
+    keyManagement: config.keyManagement ?? 'host',
+    canMoveFunds: config.canMoveFunds ?? false,
+    canFreeze: config.canFreeze ?? false,
+    operatorDiscretion: config.operatorDiscretion ?? false,
+    receiptTransferability: config.receiptTransferability ?? 'none',
+    ...config,
+  };
+  validateCustodyContext(custody);
+  return custody;
 }
 
 /**

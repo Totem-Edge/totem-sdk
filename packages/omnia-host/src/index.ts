@@ -29,4 +29,5 @@ export type { HostApiContext } from './api/methods.js';
 export type { OperationStoreLike } from './api/methods.js';
 export { DisabledAnalyticsStore, DuckDbAnalyticsStore, initializeDuckDb } from './stores/analytics.js';
 export type { AnalyticsEvent, AnalyticsStore, DuckDbConnection } from './stores/analytics.js';
-export { createLocalSignerPort } from './signer-port.js';
+export { createLocalSignerPort, createPolicySignerPort } from './signer-port.js';
+export type { SignerPolicy } from './signer-port.js';
