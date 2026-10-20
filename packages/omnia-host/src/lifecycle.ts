@@ -422,6 +422,7 @@ export function createOmniaHost(
             custodyMode: config.custodyMode ?? 'self',
             signerPort: dependencies.signerPort,
             preparedPay: new Map(),
+            preparedSettle: new Map(),
             coordinator: !dependencies.signer && !config.readOnly,
             fundingSigner: config.fundingPubkey
               ? async (digest: Uint8Array) => {

@@ -109,6 +109,8 @@ export interface HostApiContext {
   signerPort?: SignerPort;
   /** Coordinator-mode prepared channel updates awaiting wallet signatures. */
   preparedPay?: Map<string, PreparedPayEntry>;
+  /** Coordinator-mode cooperative settlements awaiting the local signature. */
+  preparedSettle?: Map<string, PreparedSettleEntry>;
   /** True when the host has no signer and exposes prepare/submit only. */
   coordinator?: boolean;
   /** Opt-in host identity (address, publicKeyDigest, optional delegation). */
@@ -394,6 +396,16 @@ export interface PreparedPayEntry {
   expiresAt: number;
 }
 
+export interface PreparedSettleEntry {
+  channelId: string;
+  closing: OmniaChannel;
+  request: ReturnType<typeof buildSettlementSigningRequest>;
+  counterpartySignature: { partyId: string; signature: Uint8Array };
+  intent: import('@totemsdk/omnia').SignRequest;
+  settlement: import('@totemsdk/omnia').SignRequest;
+  expiresAt: number;
+}
+
 function signingIndicesParam(value: unknown): SigningIndices {
   if (!value || typeof value !== 'object') throw new Error('signingIndices is required');
   const item = value as Record<string, unknown>;
@@ -652,6 +664,157 @@ function registerPreparedPayMethods(
   methods.set('omnia/submitPay', submitPay);
   methods.set('totem_omniaSubmitChannelUpdate', submitPay);
   methods.set('omnia/submitChannelUpdate', submitPay);
+
+  const prepareSettle: JsonRpcHandler = async (raw) => {
+    const params = paramsObject(raw);
+    const channelId = requiredString(params, 'channelId');
+    const localPartyId = context.localParticipant?.partyId;
+    const localPkd = context.localParticipant?.publicKeyDigest;
+    if (!localPartyId || !localPkd) throw new Error('Local participant is not configured');
+    if (!context.preparedSettle) throw new Error('Prepared-settle store is not configured');
+    if (!context.swarm) throw new Error('prepareSettle requires swarm connectivity');
+    const channel = context.channels.get(channelId);
+    if (!channel) throw new Error(`Channel ${channelId} not found`);
+    if (!['active', 'closing_mutual'].includes(channel.status)) {
+      throw new Error(`Channel ${channelId} is not settleable (${channel.status})`);
+    }
+    const closing = markChannelClosing(channel, 'mutual');
+    const partyAddresses = Object.fromEntries(
+      closing.parties.map((party) => [party.partyId, party.settlementAddress ?? party.publicKeyDigest]),
+    );
+    const remote = closing.parties.find((party) => party.partyId !== localPartyId);
+    if (!remote) throw new Error('Channel counterparty not found');
+    const request = buildSettlementSigningRequest(closing, { partyAddresses });
+
+    return withOperation(context, params, async () => {
+      const peer = await context.swarm!.connectToPeer(remote.publicKeyDigest, channelId, remote.transportPubkey);
+      const reply = await requestPeerReply(
+        peer,
+        {
+          type: 'SETTLEMENT_PROPOSAL',
+          channelId,
+          nonce: Date.now(),
+          payload: { signRequest: true, ...request },
+        },
+        channelId,
+        30_000,
+      );
+      const payload = reply?.payload as { signature?: string; partyId?: string } | undefined;
+      if (reply?.type !== 'ACK' || typeof payload?.signature !== 'string') {
+        throw new Error(`Counterparty did not co-sign the settlement (${reply?.type ?? 'timeout'})`);
+      }
+      const counterpartySignature = {
+        partyId: payload.partyId ?? remote.partyId,
+        signature: Buffer.from(payload.signature.replace(/^0x/i, ''), 'hex'),
+      };
+
+      const preparedOperationId = operationId(params);
+      const expiresAt = Date.now() + 120_000;
+      const digest = Buffer.from(request.digestHex.replace(/^0x/i, ''), 'hex');
+      const base = {
+        domain: 'channel' as const,
+        signers: [localPkd],
+        custody: makeSelfCustody(),
+        expiresAt,
+      };
+      const intent: import('@totemsdk/omnia').SignRequest = {
+        ...base,
+        requestId: `${preparedOperationId}:intent`,
+        kind: 'intent',
+        digest,
+        context: { summary: 'Authorize cooperative settlement' },
+      };
+      const settlement: import('@totemsdk/omnia').SignRequest = {
+        ...base,
+        requestId: `${preparedOperationId}:settlement`,
+        kind: 'chain',
+        digest,
+        context: { summary: 'Sign the cooperative settlement transaction' },
+      };
+      for (const [key, entry] of context.preparedSettle!) {
+        if (entry.expiresAt <= Date.now()) context.preparedSettle!.delete(key);
+      }
+      context.preparedSettle!.set(preparedOperationId, {
+        channelId,
+        closing,
+        request,
+        counterpartySignature,
+        intent,
+        settlement,
+        expiresAt,
+      });
+      return {
+        success: true,
+        status: 'signature-required',
+        operationId: preparedOperationId,
+        channelId,
+        requests: { intent, settlement },
+        expiresAt,
+      };
+    });
+  };
+  methods.set('totem_omniaPrepareSettle', prepareSettle);
+  methods.set('omnia/prepareSettle', prepareSettle);
+
+  const submitSettle: JsonRpcHandler = async (raw) => {
+    const params = paramsObject(raw);
+    const preparedOperationId = requiredString(params, 'preparedOperationId');
+    const localPkd = context.localParticipant?.publicKeyDigest;
+    if (!localPkd) throw new Error('Local participant is not configured');
+    if (!context.preparedSettle) throw new Error('Prepared-settle store is not configured');
+    return withOperation(context, params, async () => {
+      const entry = context.preparedSettle!.get(preparedOperationId);
+      if (!entry) throw new Error(`Prepared settlement ${preparedOperationId} not found`);
+      if (entry.expiresAt <= Date.now()) {
+        context.preparedSettle!.delete(preparedOperationId);
+        throw new Error(`Prepared settlement ${preparedOperationId} has expired`);
+      }
+      const intentSignature = hexBytes(params.intentSignature, 'intentSignature');
+      const settlementSignature = hexBytes(params.settlementSignature, 'settlementSignature');
+      const digest = Buffer.from(entry.request.digestHex.replace(/^0x/i, ''), 'hex');
+      if (!verifyChannelSignature(intentSignature, signRequestPayload(entry.intent), localPkd)) {
+        throw new Error('intent signature does not verify');
+      }
+      if (!verifyChannelSignature(settlementSignature, digest, localPkd)) {
+        throw new Error('settlement signature does not verify');
+      }
+      if (!context.chainProvider) throw new Error('Settlement requires a chain provider');
+      const rawProofs = params.broadcastProofs;
+      const broadcastProofs = rawProofs && typeof rawProofs === 'object'
+        && Array.isArray((rawProofs as Record<string, unknown>).coinProofs)
+        && Array.isArray((rawProofs as Record<string, unknown>).scriptProofs)
+        ? {
+            coinProofs: ((rawProofs as Record<string, unknown>).coinProofs as unknown[]).map((hex) => Buffer.from(String(hex).replace(/^0x/i, ''), 'hex')),
+            scriptProofs: ((rawProofs as Record<string, unknown>).scriptProofs as unknown[]).map((hex) => Buffer.from(String(hex).replace(/^0x/i, ''), 'hex')),
+          }
+        : undefined;
+      const settlementIndices = params.settlementIndices
+        ? signingIndicesParam(params.settlementIndices)
+        : undefined;
+      const settlement = await proposeSettlement(entry.closing, context.leaseProvider, {
+        chainProvider: context.chainProvider,
+        broadcastProofs,
+        partyAddresses: entry.request.partyAddresses,
+        settlementTxHex: entry.request.settlementTxHex,
+        counterpartySignatures: [entry.counterpartySignature],
+        localSignature: settlementSignature,
+        localIndices: settlementIndices,
+        localPartyId: context.localParticipant!.partyId,
+      });
+      context.channels.set(entry.channelId, markChannelClosed(entry.closing));
+      context.preparedSettle!.delete(preparedOperationId);
+      return {
+        success: true,
+        channelId: entry.channelId,
+        settlementTxId: settlement.settlementPayload.txpowId,
+        finalBalances: Object.fromEntries(
+          Object.entries(settlement.settlementPayload.balances).map(([key, value]) => [key, value.toString()]),
+        ),
+      };
+    });
+  };
+  methods.set('totem_omniaSubmitSettle', submitSettle);
+  methods.set('omnia/submitSettle', submitSettle);
 }
 
 export function createHostMethods(context: HostApiContext): Map<string, JsonRpcHandler> {

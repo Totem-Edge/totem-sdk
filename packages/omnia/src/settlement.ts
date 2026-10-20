@@ -54,6 +54,14 @@ export interface ProposeSettlementOptions {
    * needs both signatures in the witness.
    */
   counterpartySignatures?: Array<{ partyId: string; signature: ChannelSignature }>;
+  /**
+   * Wallet/coordinator flow: use an already-produced local settlement
+   * signature instead of signing here. `localPartyId` and `localIndices`
+   * identify the signer; no lease or signer is required.
+   */
+  localSignature?: ChannelSignature;
+  localIndices?: SigningIndices;
+  localPartyId?: string;
 }
 
 /** A settlement draft + digest offered to the counterparty for co-signing. */
@@ -185,7 +193,7 @@ async function mineAndBroadcastDraft(
  */
 export async function proposeSettlement(
   channel: OmniaChannel,
-  leaseProvider: WotsLeaseProvider,
+  leaseProvider: WotsLeaseProvider | undefined,
   opts?: ProposeSettlementOptions,
 ): Promise<{ settlementPayload: SettlementPayload; partialState: Partial<SignedChannelState> }> {
   if (!['active', 'closing_mutual'].includes(channel.status)) {
@@ -193,10 +201,13 @@ export async function proposeSettlement(
   }
 
   const effectiveSigner = opts?.signer ?? channel.localSigner;
-  if (!effectiveSigner) throw new Error('No signer provided and channel.localSigner is not set');
-
-  const signerParty = channel.parties.find(p => p.publicKeyDigest === effectiveSigner.publicKeyDigest);
+  const signerParty = opts?.localPartyId
+    ? channel.parties.find(p => p.partyId === opts.localPartyId)
+    : channel.parties.find(p => p.publicKeyDigest === effectiveSigner?.publicKeyDigest);
   if (!signerParty) throw new Error('Signer is not a channel participant');
+  if (!opts?.localSignature && !effectiveSigner) {
+    throw new Error('No signer provided and channel.localSigner is not set');
+  }
 
   const partyAddresses = resolveSettlementPartyAddresses(channel, opts?.partyAddresses);
   const state = resolveSettlementState(channel);
@@ -209,13 +220,22 @@ export async function proposeSettlement(
   const settlementHex = opts?.settlementTxHex ?? serializeTxDraft(settlementDraft);
 
   // signTxDraft signs the settlement TX (STATE(100)=TRUE), not the update TX.
-  const { signature, indices } = await signTxDraft(
-    channel,
-    settlementDraft,
-    `settlement-seq-${state.sequence}`,
-    leaseProvider,
-    effectiveSigner,
-  );
+  let signature: ChannelSignature;
+  let indices: SigningIndices | undefined;
+  if (opts?.localSignature) {
+    signature = opts.localSignature;
+    indices = opts.localIndices;
+  } else {
+    if (!effectiveSigner) throw new Error('No signer provided and channel.localSigner is not set');
+    if (!leaseProvider) throw new Error('No lease provider provided for settlement signing');
+    ({ signature, indices } = await signTxDraft(
+      channel,
+      settlementDraft,
+      `settlement-seq-${state.sequence}`,
+      leaseProvider,
+      effectiveSigner,
+    ));
+  }
 
   const htlcOutputs = state.pendingHTLCs
     .filter(h => h.status === 'pending')
@@ -291,7 +311,7 @@ export async function proposeSettlement(
       [signerParty.partyId]: signature,
       ...Object.fromEntries((opts?.counterpartySignatures ?? []).map((s) => [s.partyId, s.signature])),
     },
-    signingIndices: { [signerParty.partyId]: indices },
+    signingIndices: indices ? { [signerParty.partyId]: indices } : {},
   };
 
   return { settlementPayload, partialState };
