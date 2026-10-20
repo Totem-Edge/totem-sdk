@@ -49,6 +49,23 @@ import {
   type OmniaVtxoPool,
   type VtxoOperatorReceipt,
 } from '@totemsdk/omnia-vtxo';
+import {
+  createOmniaPool,
+  depositToPool,
+  allocatePositionCapital,
+  releaseAllocation,
+  withdrawLiquidity,
+  approveWithdrawal,
+  executePoolPayout,
+} from '@totemsdk/omnia-pool';
+import {
+  createEmptyLiquidityBondRegistryState,
+  type LiquidityAllocation,
+  type LiquidityBondRegistryState,
+  type LiquidityPoolManifest,
+  type LiquidityPosition,
+  type WithdrawalIntent,
+} from '@totemsdk/liquidity-bond';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import type { SigningIndices, WotsLeaseProvider } from '@totemsdk/wots-lease';
 import {
@@ -146,6 +163,14 @@ export interface HostApiContext {
   vtxos?: Map<string, OmniaVtxo>;
   vtxoReceipts?: Map<string, VtxoOperatorReceipt>;
   preparedVtxoReceipts?: Map<string, PreparedVtxoReceiptEntry>;
+  /** Liquidity pools and their live registry state. */
+  pools?: Map<string, { manifest: LiquidityPoolManifest; registry: LiquidityBondRegistryState }>;
+  poolPositions?: Map<string, {
+    position: LiquidityPosition;
+    registry: LiquidityBondRegistryState;
+    allocation?: LiquidityAllocation;
+    intent?: WithdrawalIntent;
+  }>;
   /** True when the host has no signer and exposes prepare/submit only. */
   coordinator?: boolean;
   /** Opt-in host identity (address, publicKeyDigest, optional delegation). */
@@ -1697,6 +1722,181 @@ function registerPreparedPayMethods(
   };
   methods.set('totem_omniaSubmitVtxoReceipt', submitVtxoReceipt);
   methods.set('omnia/submitVtxoReceipt', submitVtxoReceipt);
+
+  const createLiquidityPool: JsonRpcHandler = async (raw) => {
+    const params = paramsObject(raw);
+    if (!context.pools) throw new Error('Pool stores are not configured');
+    const created = createOmniaPool({
+      poolId: requiredString(params, 'poolId'),
+      operatorAddress: requiredString(params, 'operatorAddress'),
+      tokenId: typeof params.tokenId === 'string' ? params.tokenId : '0x00',
+      purpose: requiredString(params, 'purpose') as never,
+      poolType: requiredString(params, 'poolType') as never,
+      capacity: String(requiredBigInt(params, 'capacity')),
+      feePolicy: params.feePolicy as never,
+      riskPolicy: params.riskPolicy as never,
+      lockTerms: params.lockTerms as never,
+      operatorBond: params.operatorBond as never,
+      metadata: params.metadata as Record<string, unknown> | undefined,
+    }, createEmptyLiquidityBondRegistryState());
+    context.pools.set(created.manifest.poolId, { manifest: created.manifest, registry: created.registry });
+    return { success: true, pool: jsonSafe(created.manifest), registry: jsonSafe(created.registry) };
+  };
+  methods.set('totem_omniaCreateLiquidityPool', createLiquidityPool);
+  methods.set('omnia/createLiquidityPool', createLiquidityPool);
+
+  const depositToLiquidityPool: JsonRpcHandler = async (raw) => {
+    const params = paramsObject(raw);
+    if (!context.pools || !context.poolPositions) throw new Error('Pool stores are not configured');
+    const poolId = requiredString(params, 'poolId');
+    const stored = context.pools.get(poolId);
+    if (!stored) throw new Error(`Pool ${poolId} not found`);
+    const verifier = {
+      verifyDeposit: async (request: { coinId: string; tokenId?: string; claimedAmount?: string }) => {
+        if (!context.chainProvider) return { valid: false, reason: 'no chain provider' };
+        const coin = await context.chainProvider.getCoin(request.coinId);
+        if (!coin) return { valid: false, reason: 'coin not found' };
+        if (coin.spent) return { valid: false, reason: 'coin is spent' };
+        if (request.tokenId && coin.tokenid !== request.tokenId) return { valid: false, reason: 'token mismatch' };
+        if (request.claimedAmount && BigInt(coin.amount) < BigInt(request.claimedAmount)) {
+          return { valid: false, reason: 'insufficient amount' };
+        }
+        return { valid: true };
+      },
+    };
+    const deposited = await depositToPool({
+      pool: stored.manifest,
+      lpAddress: requiredString(params, 'lpAddress'),
+      amount: String(requiredBigInt(params, 'amount')),
+      purpose: requiredString(params, 'purpose') as never,
+      underlyingUtxoRef: typeof params.underlyingUtxoRef === 'string' ? params.underlyingUtxoRef : undefined,
+      underlyingRefs: params.underlyingRefs as never,
+      metadata: params.metadata as Record<string, unknown> | undefined,
+      chainProvider: verifier as never,
+    }, stored.registry);
+    context.pools.set(poolId, { manifest: deposited.pool, registry: deposited.state });
+    context.poolPositions.set(deposited.position.positionId, { position: deposited.position, registry: deposited.state });
+    return {
+      success: true,
+      poolId,
+      position: jsonSafe(deposited.position),
+      receipt: jsonSafe(deposited.receipt),
+      registry: jsonSafe(deposited.state),
+    };
+  };
+  methods.set('totem_omniaDepositToPool', depositToLiquidityPool);
+  methods.set('omnia/depositToPool', depositToLiquidityPool);
+
+  const allocatePoolCapital: JsonRpcHandler = async (raw) => {
+    const params = paramsObject(raw);
+    if (!context.poolPositions) throw new Error('Pool stores are not configured');
+    const positionId = requiredString(params, 'positionId');
+    const stored = context.poolPositions.get(positionId);
+    if (!stored) throw new Error(`Pool position ${positionId} not found`);
+    const allocated = await allocatePositionCapital({
+      position: stored.position,
+      amount: String(requiredBigInt(params, 'amount')),
+      allocationType: requiredString(params, 'allocationType') as never,
+      purpose: requiredString(params, 'purpose') as never,
+      target: params.target as never,
+      metadata: params.metadata as Record<string, unknown> | undefined,
+    }, stored.registry);
+    context.poolPositions.set(positionId, { ...stored, position: allocated.position, registry: allocated.registry, allocation: allocated.allocation });
+    return {
+      success: true,
+      position: jsonSafe(allocated.position),
+      allocation: jsonSafe(allocated.allocation),
+      registry: jsonSafe(allocated.registry),
+    };
+  };
+  methods.set('totem_omniaAllocatePoolCapital', allocatePoolCapital);
+  methods.set('omnia/allocatePoolCapital', allocatePoolCapital);
+
+  const releasePoolAllocation: JsonRpcHandler = async (raw) => {
+    const params = paramsObject(raw);
+    if (!context.poolPositions) throw new Error('Pool stores are not configured');
+    const positionId = requiredString(params, 'positionId');
+    const stored = context.poolPositions.get(positionId);
+    if (!stored) throw new Error(`Pool position ${positionId} not found`);
+    if (!stored.allocation) throw new Error(`Pool position ${positionId} has no allocation`);
+    const released = releaseAllocation({ allocation: stored.allocation, position: stored.position }, stored.registry);
+    context.poolPositions.set(positionId, { ...stored, position: released.position, registry: released.registry, allocation: undefined });
+    return { success: true, position: jsonSafe(released.position), registry: jsonSafe(released.registry) };
+  };
+  methods.set('totem_omniaReleasePoolAllocation', releasePoolAllocation);
+  methods.set('omnia/releasePoolAllocation', releasePoolAllocation);
+
+  const withdrawPoolLiquidity: JsonRpcHandler = async (raw) => {
+    const params = paramsObject(raw);
+    if (!context.pools || !context.poolPositions) throw new Error('Pool stores are not configured');
+    const positionId = requiredString(params, 'positionId');
+    const stored = context.poolPositions.get(positionId);
+    if (!stored) throw new Error(`Pool position ${positionId} not found`);
+    const pool = context.pools.get(stored.position.poolId);
+    if (!pool) throw new Error(`Pool ${stored.position.poolId} not found`);
+    const withdrawn = withdrawLiquidity(pool.manifest, stored.position, {
+      positionId,
+      amount: String(requiredBigInt(params, 'amount')),
+      recipientAddress: requiredString(params, 'recipientAddress'),
+      reason: typeof params.reason === 'string' ? params.reason : undefined,
+    }, stored.registry);
+    context.poolPositions.set(positionId, { ...stored, position: withdrawn.position, registry: withdrawn.state, intent: withdrawn.intent });
+    return { success: true, intent: jsonSafe(withdrawn.intent), position: jsonSafe(withdrawn.position), registry: jsonSafe(withdrawn.state) };
+  };
+  methods.set('totem_omniaWithdrawPool', withdrawPoolLiquidity);
+  methods.set('omnia/withdrawPool', withdrawPoolLiquidity);
+
+  const approvePoolWithdrawal: JsonRpcHandler = async (raw) => {
+    const params = paramsObject(raw);
+    if (!context.poolPositions) throw new Error('Pool stores are not configured');
+    const positionId = requiredString(params, 'positionId');
+    const stored = context.poolPositions.get(positionId);
+    if (!stored) throw new Error(`Pool position ${positionId} not found`);
+    if (!stored.intent) throw new Error(`Pool position ${positionId} has no withdrawal intent`);
+    const approved = approveWithdrawal(stored.intent, stored.position, stored.registry);
+    context.poolPositions.set(positionId, { ...stored, registry: approved.registry, intent: approved.intent });
+    return { success: true, intent: jsonSafe(approved.intent), registry: jsonSafe(approved.registry) };
+  };
+  methods.set('totem_omniaApprovePoolWithdrawal', approvePoolWithdrawal);
+  methods.set('omnia/approvePoolWithdrawal', approvePoolWithdrawal);
+
+  const executePoolPayoutMethod: JsonRpcHandler = async (raw) => {
+    const params = paramsObject(raw);
+    if (!context.pools || !context.poolPositions) throw new Error('Pool stores are not configured');
+    const positionId = requiredString(params, 'positionId');
+    const stored = context.poolPositions.get(positionId);
+    if (!stored) throw new Error(`Pool position ${positionId} not found`);
+    if (!stored.intent) throw new Error(`Pool position ${positionId} has no withdrawal intent`);
+    const pool = context.pools.get(stored.position.poolId);
+    if (!pool) throw new Error(`Pool ${stored.position.poolId} not found`);
+    const signIndices = params.signIndices ? signingIndicesParam(params.signIndices) : undefined;
+    if (signIndices && !context.signer) throw new Error('Pool payout signing requires a signer');
+    const paid = await executePoolPayout({
+      pool: pool.manifest,
+      position: stored.position,
+      intent: stored.intent,
+      recipientAddress: requiredString(params, 'recipientAddress'),
+      settlement: params.settlement as never,
+      ...(signIndices && context.signer
+        ? { rooting: { signer: context.signer, signIndices } }
+        : {}),
+    }, stored.registry);
+    context.poolPositions.set(positionId, {
+      ...stored,
+      position: paid.position,
+      registry: paid.registry,
+      intent: paid.intent,
+    });
+    return {
+      success: true,
+      intent: jsonSafe(paid.intent),
+      position: jsonSafe(paid.position),
+      registry: jsonSafe(paid.registry),
+      signedTransition: paid.signedTransition ? jsonSafe(paid.signedTransition) : undefined,
+    };
+  };
+  methods.set('totem_omniaExecutePoolPayout', executePoolPayoutMethod);
+  methods.set('omnia/executePoolPayout', executePoolPayoutMethod);
 }
 
 export function createHostMethods(context: HostApiContext): Map<string, JsonRpcHandler> {

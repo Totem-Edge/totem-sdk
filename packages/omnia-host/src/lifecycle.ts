@@ -430,6 +430,8 @@ export function createOmniaHost(
             vtxos: new Map(),
             vtxoReceipts: new Map(),
             preparedVtxoReceipts: new Map(),
+            pools: new Map(),
+            poolPositions: new Map(),
             coordinator: !dependencies.signer && !config.readOnly,
             fundingSigner: config.fundingPubkey
               ? async (digest: Uint8Array) => {

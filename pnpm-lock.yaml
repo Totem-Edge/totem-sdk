@@ -1516,6 +1516,9 @@ importers:
       '@totemsdk/identity':
         specifier: workspace:^
         version: link:../identity
+      '@totemsdk/liquidity-bond':
+        specifier: workspace:^
+        version: link:../liquidity-bond
       '@totemsdk/manifest':
         specifier: workspace:^
         version: link:../manifest
@@ -1528,6 +1531,9 @@ importers:
       '@totemsdk/omnia-factory':
         specifier: workspace:^
         version: link:../omnia-factory
+      '@totemsdk/omnia-pool':
+        specifier: workspace:^
+        version: link:../omnia-pool
       '@totemsdk/omnia-router':
         specifier: workspace:^
         version: link:../omnia-router
