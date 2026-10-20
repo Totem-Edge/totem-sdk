@@ -18,11 +18,11 @@ settlement + explicit TxPoW mining), `12e37e73` (transport identity),
 | **S3** | **PASS** | two Minima nodes (RPC 9005/9015) and two hosts (control 50052/50053) healthy on separate OCI instances |
 | **S4** | **PASS** | `openChannel → pay → settle → closeChannel`; settlement TxPoW accepted as a main-chain block |
 | **S5** | **PASS** | `createFactory → openVirtualChannel → closeVirtualChannel`; allocations restored (native, two hosts) |
-| **S6** | **PASS** | SDK harness: pool → mint → signed receipts → transfer → refresh → exit |
+| **S6** | **PASS** | SDK + host harness: pool → mint → signed receipts → transfer → refresh → exit |
 | **S7** | **PASS** | SDK harness + host coordination (unit); live 2-host E2E pending |
 | **S8** | **PASS** | SDK harness: 3-hop fee-aware payment, per-hop amounts, fee retention |
 | **S9** | **PASS** | local relay; two relay-backed swarms; PING/ACK round-trip; 2 relay clients |
-| **S10** | **PASS** | SDK harness: pool → deposit → allocate → release → withdraw → rooted payout |
+| **S10** | **PASS** | SDK + host harness: pool → deposit → allocate → release → withdraw → rooted payout |
 | **S11** | **PENDING** | Axia watchtower (in `axia-platform`); after S4/S5, HTLC cases after S8 |
 
 ---
@@ -302,6 +302,8 @@ unaffected.
 | 2026-10-20 | S7 | in-memory | `71c10b68` | PASS | splice-in/out; `omnia-s7-splice.mjs` |
 | 2026-10-20 | S8 | in-memory | uncommitted | PASS | 3-hop fee-aware; `omnia-s8-router.mjs` |
 | 2026-10-20 | S10 | in-memory | `1fe96913` | PASS | pool lifecycle; `omnia-s10-pool.mjs` |
+| 2026-10-20 | S6 (host API) | in-memory | `06de2cc8` | PASS | host VTXO API + wallet receipts; `omnia-s6-host.mjs` |
+| 2026-10-20 | S10 (host API) | in-memory | `06de2cc8` | PASS | host pool lifecycle + payout rooting; `omnia-s10-host.mjs` |
 | 2026-10-20 | runtime | — | `d9ef523c` + Bare fix | PASS (Node/Bun/Bare) | `runtime-smoke.cjs`; Bun native skipped (upstream) |
 
 To add a run: append a row, then add the command, `OMNIA_RESULT` JSON, and log
