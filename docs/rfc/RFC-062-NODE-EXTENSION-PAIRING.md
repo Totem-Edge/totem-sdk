@@ -37,8 +37,8 @@ This RFC decides:
 6. **Axia remains a deliberate choice.** Pairing a local node does not silently
    replace Axia. Fallback is explicit, visible and reversible.
 7. **The pair command can provision more than an RPC URL.** It can advertise the
-   local/hybrid lease path, on-chain watermark endpoint and Omnia relay/host
-   endpoint, but only with the same consent and scoping rules.
+   local/hybrid lease path, on-chain watermark endpoint, Omnia relay/host endpoint
+   and the local P2P hub, but only with the same consent and scoping rules.
 8. **Custody gates are unchanged.** If the paired node can also sign (hosted
    mode), RFC-061 disclosure/2FA rules apply; pairing never implies signing
    authority.
@@ -184,6 +184,7 @@ Offered scopes:
 | `chain.submit` | submit an already-signed TxPoW |
 | `omnia.relay` | connect to the local Omnia relay/WebSocket |
 | `omnia.coordinate` | call the local Omnia host prepare/read API (never sign) |
+| `p2p.pubsub` | connect to the local P2P hub for app-namespaced pub/sub topics |
 
 Forbidden scopes:
 
@@ -222,7 +223,7 @@ Credentials MUST be:
 - Lease mode is selected explicitly (`axia`, `local`, `hybrid`); pairing may
   recommend a mode based on node capabilities but cannot enable it silently.
 
-### D8 — Provisioning lease, watermark and Omnia endpoints
+### D8 — Provisioning lease, watermark, Omnia and P2P hub endpoints
 
 The pairing response may include:
 
@@ -238,12 +239,26 @@ interface PairedNodeCapabilities {
     hostControlUrl?: string;
     transportPubkey?: string;
   };
+  p2p?: {
+    /** Loopback WebSocket hub, e.g. ws://127.0.0.1:7788. */
+    hubUrl: string;
+    /** Optional bearer token; prefer a per-client credential over a shared token. */
+    token?: string;
+    scopes: Array<'p2p.pubsub'>;
+    topicPrefixes?: string[];
+  };
 }
 ```
 
 - All endpoints are consented and fingerprinted as part of the same pairing.
 - `omnia.coordinate` exposes prepare/read operations only; signing remains with the
   wallet or the RFC-061 hosted signer.
+- `p2p.hubUrl` is the RFC-062 local P2P hub (one Hyperswarm shared by dapps),
+  normally `ws://127.0.0.1:<port>`. It is advertised from `omnia-host`
+  `whoami.p2pHubUrl` when `OMNIA_P2P_HUB_PORT` is enabled.
+- `p2p.pubsub` allows app-namespaced topics (for example `dex.v1.*` for PIPE and
+  `omnia.*` for Omnia). The hub is a dumb authenticated pipe; app messages remain
+  end-to-end signed.
 - If the node is a hosted signer, pairing does not grant signing; RFC-061 2FA and
   disclosure gates apply.
 
@@ -331,6 +346,7 @@ Node:        home-minima
 Network:     mainnet
 Fingerprint: 8f3c 91a2 77de 0b41
 Endpoint:    http://127.0.0.1:9002
+P2P hub:     ws://127.0.0.1:7788
 Expires:     4m 58s
 
 [QR]  totem://pair?node=...&fp=...&code=...
@@ -399,6 +415,8 @@ Waiting for the extension…
 
 - Advertise local/hybrid lease and on-chain watermark endpoints.
 - Advertise Omnia relay/host prepare/read endpoints.
+- Advertise the local P2P hub (`p2p.hubUrl`) and `p2p.pubsub` scope; PIPE and other
+  apps connect through `@totemsdk/pubsub-transport`.
 - Extension consent for each endpoint; no signing scope.
 - Tests: capability negotiation, missing capabilities, endpoint change.
 
@@ -421,8 +439,10 @@ Waiting for the extension…
 4. A changed endpoint/fingerprint/network disables the node and requires re-pairing.
 5. Credentials are scoped; `sign`, seed export and admin scopes cannot be granted.
 6. `pair revoke` invalidates the credential and the extension fails closed.
-7. Pairing can provision chain RPC, lease/watermark and Omnia endpoints with
-   explicit consent, without granting Omnia signing authority.
+7. Pairing can provision chain RPC, lease/watermark, Omnia and P2P hub endpoints
+   with explicit consent, without granting Omnia signing authority.
+8. The P2P hub endpoint is only advertised when enabled and is bound to loopback
+   unless the operator explicitly opts into a remote TLS endpoint.
 8. Local-node failure never silently falls back to Axia.
 9. Existing manual URL + consent flow remains functional.
 10. Negative tests cover replay, expiry, origin mismatch, DNS rebinding, token
@@ -445,6 +465,10 @@ Waiting for the extension…
 6. **Omnia capabilities:** should `omnia.coordinate` be part of the first pairing
    release or a follow-on after RFC-061's MCP/host policy is complete?
 7. **Extension support:** Chromium-only first, or Firefox parity in the same phase?
+8. **Hub credentials:** one shared deployment token vs per-app scoped credentials
+   stored in the extension/dapp after pairing?
+9. **Hub topic policy:** should pairing grant a fixed prefix list (`omnia`,
+   `dex.v1`) or require per-app topic approval?
 
 ---
 
