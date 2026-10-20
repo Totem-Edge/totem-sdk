@@ -394,7 +394,7 @@ pub extern "C" fn totem_tree_signature_deserialize(
     let Some((num_proofs, mut off)) = read_mini_number(buf, 0) else {
         return fail(err_out, "truncated proof count".into());
     };
-    if num_proofs < 1 || num_proofs > 8 {
+    if !(1..=8).contains(&num_proofs) {
         return fail(err_out, format!("impossible proof count ({num_proofs})"));
     }
     let mut proofs = Vec::new();

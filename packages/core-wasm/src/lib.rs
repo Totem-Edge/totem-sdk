@@ -3,6 +3,11 @@
 //! Compiled to WASM for use in browsers, Node.js, Pear/Bare, and edge devices.
 //! All functions are byte-exact compatible with the Minima Java node.
 
+// The native C ABI in `ffi.rs` dereferences caller-owned raw pointers by
+// contract. Marking every entry point `unsafe` would break the generated Go
+// headers, so keep the ABI stable and document the caller obligation there.
+#![allow(clippy::not_unsafe_ptr_arg_deref)]
+
 pub mod bip39;
 pub mod derive;
 pub mod java_streamables;
