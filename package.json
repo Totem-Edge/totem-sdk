@@ -65,7 +65,9 @@
     "validate:node-syntax": "node scripts/check-node-syntax.mjs",
     "validate:wallet-adapter-parity": "node scripts/check-wallet-adapter-parity.mjs",
     "smoke:runtime": "node scripts/runtime-smoke.cjs",
-    "smoke:runtime:native": "node scripts/runtime-smoke.cjs --native"
+    "smoke:runtime:native": "node scripts/runtime-smoke.cjs --native",
+    "test:omnia:s4": "node scripts/omnia-s4-cross.mjs",
+    "test:omnia:s5": "node scripts/omnia-s5-cross.mjs"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
