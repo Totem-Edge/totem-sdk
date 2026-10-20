@@ -70,6 +70,7 @@ All harnesses live in `scripts/` and print a machine-readable
 |---|---|---|
 | S4 | `node scripts/omnia-s4-cross.mjs` | two nodes + two hosts; funded coin; bearer token |
 | S5 | `node scripts/omnia-s5-cross.mjs` | two hosts; factory lease bundles (host startup) |
+| S9 | `node scripts/omnia-s9-relay.mjs` | local only |
 | runtime | `node scripts/runtime-smoke.cjs [--native]` | SDK build; `OMNIA_SMOKE_HOST` for native |
 
 ### S4
@@ -97,6 +98,32 @@ node scripts/omnia-s5-cross.mjs
 Flow: `createFactory` (two 100M contributions) → `openVirtualChannel` (50M/50M)
 → `closeVirtualChannel`; asserts both allocations are restored to 100M.
 
+### S9
+
+```
+node scripts/omnia-s9-relay.mjs
+```
+
+Starts a self-hosted relay on an ephemeral loopback port, connects two
+`HostedRelaySwarmImpl` clients, sends a PING over the relay from B to A and
+asserts A's ACK comes back on the same peer. Also asserts the relay sees exactly
+the two expected clients. No node, chain, or cloud host is required.
+
+### S11 — Axia watchtower / failure recovery
+
+This stage lives in **`axia-platform`**, not this harness. It depends on a
+watchable channel/factory from S4/S5, and on an HTLC from S8 for the timeout
+cases. Prerequisites: Axia API + Postgres + Redis + `TxpOWIndexer` + Minima RPC.
+
+- **S11a (after S5):** register a channel watch; WOTS capacity warnings at 95%
+  and 100% (seq 3891/4096); dispute detection when a transaction spends
+  `fundingCoinId` (scheduler broadcasts the latest **full** state, never a
+  partial state); webhook/notification delivery; `omnia_watchtower_events`;
+  idempotency; Redis-down/block-watermark fallback.
+- **S11b (after S8):** pending HTLC with `timeoutBlock <= tip`; scheduler
+  detects it once, calls `timeoutHTLC`, broadcasts the partial/full state, and
+  does not re-attempt the same `htlcId`.
+
 ### Runtime portability
 
 ```
@@ -105,6 +132,9 @@ bun  scripts/runtime-smoke.cjs
 bare scripts/runtime-smoke.cjs --no-encoding-shim
 OMNIA_SMOKE_HOST=<LAN IP> node scripts/runtime-smoke.cjs --native
 ```
+
+Node ESM resolves `core-wasm` through the `node` condition to the synchronous
+`pkg-node` target; the bundler target remains for browser bundlers.
 
 Bare has no `fs`, `TextEncoder`/`TextDecoder`, or `node:crypto`. The SDK now
 falls back to the optional `bare-fs`/`bare-encoding` packages (applied by the
@@ -126,8 +156,9 @@ harness's.
 | **S6** | virtual-UTXO claims | claim settles | pending — no host methods yet |
 | **S7** | splice in/out | live resize | pending — managers not wired into the CLI |
 | **S8** | multi-hop / cross-token payment (3 nodes) | multi-hop settles | pending — needs 3 hosts + fee-adjusted per-hop amounts |
-| **S9** | relay round-trip (SDK harness) | relay client/server round-trip | pending — formalise the `omnia-relay` client harness |
+| **S9** | relay round-trip (SDK harness) | relay client/server round-trip | done |
 | **S10** | liquidity-pool orchestration | pool lifecycle | pending — SDK harness only |
+| **S11** | Axia watchtower / failure recovery (in `axia-platform`) | watch registration, HTLC timeout, dispute broadcast, WOTS capacity, alerts | pending — requires Axia API/DB/Redis/indexer; after S5/S8 |
 
 S4+ mutations require signing material, a funded node, and chain RPC. Read-only
 mode proves the API surface only.

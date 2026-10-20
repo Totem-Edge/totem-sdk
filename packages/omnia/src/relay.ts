@@ -146,6 +146,7 @@ type PeerEntry = { stream: RelayBackedStream; peer: OmniaPeerImpl };
 export class HostedRelaySwarmImpl implements OmniaSwarm {
   private _ws: WebSocket | null = null;
   private _wsReady: Promise<void> = Promise.resolve();
+  private _connecting: Promise<void> | null = null;
   private _connected = false;
   private _localPubkey: string | undefined;
   private _peers = new Map<string, PeerEntry>();
@@ -176,6 +177,10 @@ export class HostedRelaySwarmImpl implements OmniaSwarm {
 
   private _connect(): Promise<void> {
     if (this._closed) return Promise.reject(new Error('Swarm is closed'));
+    // `advertise` (constructor) and `connectToPeer`/`listenForChannels` can race
+    // the first connection. Share one in-flight socket instead of opening one
+    // per caller (leaked sockets showed up in the relay's client count).
+    if (this._connecting) return this._connecting;
 
     this._wsReady = new Promise<void>(async (resolve, reject) => {
       try {
@@ -213,7 +218,10 @@ export class HostedRelaySwarmImpl implements OmniaSwarm {
       }
     });
 
-    return this._wsReady;
+    this._connecting = this._wsReady.finally(() => {
+      this._connecting = null;
+    });
+    return this._connecting;
   }
 
   private _scheduleReconnect(): void {
@@ -380,6 +388,7 @@ export class HostedRelaySwarmImpl implements OmniaSwarm {
       try { this._ws.close(); } catch {}
       this._ws = null;
     }
+    this._connecting = null;
   }
 }
 

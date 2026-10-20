@@ -21,8 +21,9 @@ settlement + explicit TxPoW mining), `12e37e73` (transport identity),
 | **S6** | **PENDING** | `omnia-vtxo` has no host methods yet |
 | **S7** | **PENDING** | splice managers not wired into the host CLI |
 | **S8** | **PENDING** | needs 3 hosts and fee-adjusted per-hop amounts |
-| **S9** | **PENDING** | relay server/client exist; formal harness still to add |
+| **S9** | **PASS** | local relay; two relay-backed swarms; PING/ACK round-trip; 2 relay clients |
 | **S10** | **PENDING** | `omnia-pool` orchestration is SDK-harness only |
+| **S11** | **PENDING** | Axia watchtower (in `axia-platform`); after S4/S5, HTLC cases after S8 |
 
 ---
 
@@ -121,6 +122,28 @@ allocations A=100000000 B=100000000
 S5_PASS
 ```
 
+### S9 — relay round-trip
+
+`scripts/omnia-s9-relay.mjs` starts a self-hosted relay on an ephemeral loopback
+port and connects two `HostedRelaySwarmImpl` clients. B sends `PING` over the
+relay; A replies `ACK` on the same peer. Result:
+
+```
+OMNIA_RESULT {"stage":"S9","transport":"relay","relayClients":2,
+  "channelId":"s9-relay","pass":true}
+S9_PASS
+```
+
+The run also exposed a concurrent-connect leak in `HostedRelaySwarmImpl`
+(`advertise` racing `connectToPeer` opened one socket per caller); `_connect` is
+now shared and the relay reports exactly 2 clients.
+
+### S11 — Axia watchtower
+
+Deferred to `axia-platform` with its own integration tests; see
+`OMNIA_TEST_PLAN.md` §S11. It cannot run from this harness because it needs the
+Axia API, Postgres, Redis, and the TxPoW indexer.
+
 ### Package test suites (SDK)
 
 | Package | Suites | Tests |
@@ -163,7 +186,8 @@ Bare support (fixed 2026-10-20):
 2. **S6/S10** need host methods for VTXO/pool; currently SDK-only.
 3. **S7** splice managers are not wired into the host CLI.
 4. **S8** needs a third host and fee-adjusted per-hop amounts/retention.
-5. **S9** needs a formal relay round-trip harness using `@totemsdk/omnia-relay`.
+5. **S11** (Axia watchtower) needs the Axia API/DB/Redis/indexer; test after
+   S5 (disputes/WOTS) and S8 (HTLC timeouts).
 6. **Native direct mode** (`OMNIA_NATIVE_DIRECT=1`) is intentionally disabled for
    the two-host tests: raw `dht.connect` bypasses hyperswarm's connection
    management and churns. Rendezvous (single dialer) is the supported path.
@@ -181,6 +205,7 @@ Bare support (fixed 2026-10-20):
 | 2026-10-20 | S5 | native | `e604b4cd`…`fddce8c6` | PASS | factory `37147d8e…`, VC `c17001f3…`, 100M/100M |
 | 2026-10-20 | S5 restart | native | `fddce8c6` | PASS | one rebind; zero churn/ERROR |
 | 2026-10-20 | S5 (mirrored harness) | native | `fddce8c6` | PASS | factory `e342d9bd…`, VC `8aad94ac…`, 100M/100M |
+| 2026-10-20 | S9 | relay | `fddce8c6` | PASS | local relay; 2 clients; `omnia-s9-relay.mjs` |
 | 2026-10-20 | runtime | — | `d9ef523c` + Bare fix | PASS (Node/Bun/Bare) | `runtime-smoke.cjs`; Bun native skipped (upstream) |
 
 To add a run: append a row, then add the command, `OMNIA_RESULT` JSON, and log

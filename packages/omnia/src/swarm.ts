@@ -388,17 +388,15 @@ export async function createOmniaSwarm(config: OmniaSwarmConfig = {}): Promise<O
     const baseEndpoint = relayConfig.endpoint ?? 'wss://api.axia.to/api/relay/ws';
     const endpointUrl = new URL(baseEndpoint);
     endpointUrl.searchParams.set('apiKey', relayConfig.apiKey);
-    const impl = new HostedRelaySwarmImpl(endpointUrl.toString(), config);
-    if (config.localPubkey) impl.advertise(config.localPubkey);
-    return impl;
+    // The constructor advertises when config.localPubkey is set.
+    return new HostedRelaySwarmImpl(endpointUrl.toString(), config);
   }
 
   if (mode === 'self-hosted') {
     const { HostedRelaySwarmImpl } = await import('./relay.js');
     const relayConfig = config.relay as { mode: 'self-hosted'; relayUrl: string };
-    const impl = new HostedRelaySwarmImpl(relayConfig.relayUrl, config);
-    if (config.localPubkey) impl.advertise(config.localPubkey);
-    return impl;
+    // The constructor advertises when config.localPubkey is set.
+    return new HostedRelaySwarmImpl(relayConfig.relayUrl, config);
   }
 
   // mode === 'native' — raw Hyperswarm

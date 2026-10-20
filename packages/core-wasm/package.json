@@ -1,12 +1,17 @@
 {
   "name": "@totemsdk/core-wasm",
-  "version": "1.0.2",
-  "description": "WOTS (Winternitz) cryptographic engine compiled to WASM — Rust core for @totemsdk/core",
+  "version": "1.0.3",
+  "description": "WOTS (Winternitz) cryptographic engine compiled to WASM \u2014 Rust core for @totemsdk/core",
   "main": "pkg-node/totemsdk_core_wasm.js",
   "types": "pkg/totemsdk_core_wasm.d.ts",
   "exports": {
     ".": {
       "types": "./pkg/totemsdk_core_wasm.d.ts",
+      "node": {
+        "import": "./pkg-node/totemsdk_core_wasm.js",
+        "require": "./pkg-node/totemsdk_core_wasm.js",
+        "default": "./pkg-node/totemsdk_core_wasm.js"
+      },
       "bun": "./pkg-node/totemsdk_core_wasm.js",
       "require": "./pkg-node/totemsdk_core_wasm.js",
       "import": "./pkg/totemsdk_core_wasm.js",
