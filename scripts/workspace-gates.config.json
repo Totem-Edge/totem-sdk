@@ -393,6 +393,14 @@
         }
       }
     },
+    "packages/p2p-hub": {
+      "status": "publishable",
+      "maturity": "alpha",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
+    },
     "packages/pear": {
       "status": "publishable",
       "maturity": "rc",
