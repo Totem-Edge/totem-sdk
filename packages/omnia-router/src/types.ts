@@ -145,6 +145,8 @@ export interface RoutingHop {
   to: string;
   amount: bigint;
   tokenId: string;
+  /** Edge fee rate (per SCALE); populated by the routing engine. */
+  feeRate?: bigint;
   /** Populated during payment execution */
   htlcId?: string;
 }

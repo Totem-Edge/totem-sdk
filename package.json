@@ -71,7 +71,8 @@
     "test:omnia:s9": "node scripts/omnia-s9-relay.mjs",
     "test:omnia:s10": "node scripts/omnia-s10-pool.mjs",
     "test:omnia:s6": "node scripts/omnia-s6-vtxo.mjs",
-    "test:omnia:s7": "node scripts/omnia-s7-splice.mjs"
+    "test:omnia:s7": "node scripts/omnia-s7-splice.mjs",
+    "test:omnia:s8": "node scripts/omnia-s8-router.mjs"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

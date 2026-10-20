@@ -123,6 +123,7 @@ export function reconstructFromLayers(
       to:        edge.to,
       amount,
       tokenId,
+      feeRate:   edge.feeRate,
     });
     current = label.parent.prevNode;
   }

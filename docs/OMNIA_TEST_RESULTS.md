@@ -20,7 +20,7 @@ settlement + explicit TxPoW mining), `12e37e73` (transport identity),
 | **S5** | **PASS** | `createFactory → openVirtualChannel → closeVirtualChannel`; allocations restored (native, two hosts) |
 | **S6** | **PASS** | SDK harness: pool → mint → signed receipts → transfer → refresh → exit |
 | **S7** | **PASS** | SDK harness: quiesce/propose/accept/finalize splice-in and splice-out |
-| **S8** | **PENDING** | needs 3 hosts and fee-adjusted per-hop amounts |
+| **S8** | **PASS** | SDK harness: 3-hop fee-aware payment, per-hop amounts, fee retention |
 | **S9** | **PASS** | local relay; two relay-backed swarms; PING/ACK round-trip; 2 relay clients |
 | **S10** | **PASS** | SDK harness: pool → deposit → allocate → release → withdraw → rooted payout |
 | **S11** | **PENDING** | Axia watchtower (in `axia-platform`); after S4/S5, HTLC cases after S8 |
@@ -171,6 +171,21 @@ S7_PASS
 
 Host accept/finalize + peer coordination remain future work.
 
+### S8 — fee-aware multi-hop
+
+`scripts/omnia-s8-router.mjs` runs a real three-hop route (Alice → Hop1 → Hop2 →
+Carol) through the routing engine and executor with deterministic in-memory HTLC
+ops. The executor locks the payment plus downstream fees and each intermediary
+retains the difference:
+
+```
+payer 10,020,000,000 -> hop1 10,010,000,000 -> hop2 10,000,000,000 (scaled)
+Hop1 retains 10,000,000; Hop2 retains 10,000,000; Carol receives 10,000,000,000
+settledHops=3 feeProofs=3
+```
+
+Three-host E2E and cross-token routing remain future work.
+
 ### S10 — pool lifecycle
 
 `scripts/omnia-s10-pool.mjs` uses the real `@totemsdk/omnia-pool` accounting with
@@ -202,6 +217,7 @@ Axia API, Postgres, Redis, and the TxPoW indexer.
 | `@totemsdk/stream-transport` | 2 | 20 |
 | `@totemsdk/omnia-vtxo` | 17 | 187 |
 | `@totemsdk/omnia-splice` | 3 | 75 |
+| `@totemsdk/omnia-router` | 5 | 79 |
 | `@totemsdk/omnia-pool` | 4 | 40 |
 | `@totemsdk/liquidity-bond` | 17 | 170 |
 
@@ -235,7 +251,8 @@ Bare support (fixed 2026-10-20):
 1. **S5 `closeFactory`** (on-chain factory settlement) is not exercised
    end-to-end: the host does not yet accept per-participant funding material.
 2. **S6/S7/S10** are closed at the SDK-harness level; host methods (and, for
-   splice, the peer accept/finalize exchange) remain future work.
+   splice, the peer accept/finalize exchange) remain future work. S8 is green at
+   the SDK level; a three-host end-to-end run and cross-token routing remain.
 3. **S7** splice managers are not wired into the host CLI.
 4. **S8** needs a third host and fee-adjusted per-hop amounts/retention.
 5. **S11** (Axia watchtower) needs the Axia API/DB/Redis/indexer; test after
@@ -259,7 +276,8 @@ Bare support (fixed 2026-10-20):
 | 2026-10-20 | S5 (mirrored harness) | native | `fddce8c6` | PASS | factory `e342d9bd…`, VC `8aad94ac…`, 100M/100M |
 | 2026-10-20 | S9 | relay | `d9477ba3` | PASS | local relay; 2 clients; `omnia-s9-relay.mjs` |
 | 2026-10-20 | S6 | in-memory | `040dbf51` | PASS | VTXO mint/transfer/refresh/exit; `omnia-s6-vtxo.mjs` |
-| 2026-10-20 | S7 | in-memory | uncommitted | PASS | splice-in/out; `omnia-s7-splice.mjs` |
+| 2026-10-20 | S7 | in-memory | `71c10b68` | PASS | splice-in/out; `omnia-s7-splice.mjs` |
+| 2026-10-20 | S8 | in-memory | uncommitted | PASS | 3-hop fee-aware; `omnia-s8-router.mjs` |
 | 2026-10-20 | S10 | in-memory | `1fe96913` | PASS | pool lifecycle; `omnia-s10-pool.mjs` |
 | 2026-10-20 | runtime | — | `d9ef523c` + Bare fix | PASS (Node/Bun/Bare) | `runtime-smoke.cjs`; Bun native skipped (upstream) |
 

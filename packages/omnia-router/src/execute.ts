@@ -1,5 +1,6 @@
 import { bytesToHex, sha3_256 } from '@totemsdk/core';
 import { validateChannelSpend, validateRoute, validateRoutingHop, swapIntermediary } from './route-validation.js';
+import { SCALE } from './rates.js';
 import type {
   ChannelOps,
   RouterChannel,
@@ -84,6 +85,21 @@ export async function executeMultiHopPayment(
     return { success: false, error: 'paymentRequest.preimage is required for execution', settledHops: [] };
   }
 
+  const plainHops = route.hops.filter(h => !isSwapHop(h)) as RoutingHop[];
+
+  // Fee-aware per-hop amounts. Each hop locks the payment plus the fees of the
+  // downstream intermediaries; the fee for the final edge belongs to the
+  // recipient and is not charged. Intermediary i retains
+  // hopAmount[i] - hopAmount[i+1]. With no fee rates this is the legacy
+  // same-amount behaviour.
+  const fees = plainHops.map((hop) =>
+    hop.feeRate && hop.feeRate > 0n ? (paymentRequest.amount * hop.feeRate) / SCALE : 0n,
+  );
+  for (let i = 0; i < plainHops.length; i++) {
+    const downstream = fees.slice(i, Math.max(i, fees.length - 1)).reduce((a, b) => a + b, 0n);
+    plainHops[i].amount = paymentRequest.amount + downstream;
+  }
+
   const routeValidation = validateRoute(channels, route);
   if (!routeValidation.ok) {
     return {
@@ -94,7 +110,6 @@ export async function executeMultiHopPayment(
     };
   }
 
-  const plainHops = route.hops.filter(h => !isSwapHop(h)) as RoutingHop[];
   const locked: Array<{ channelId: string; htlcId: string }> = [];
 
   // ── Forward: lock HTLCs ───────────────────────────────────────────────────
@@ -109,15 +124,6 @@ export async function executeMultiHopPayment(
     if (!lp) {
       await cancelHtlcs(ops, channels, locked, leaseProviders);
       return { success: false, error: `No lease provider for channel ${hop.channelId}`, settledHops: [] };
-    }
-    if (hop.amount !== paymentRequest.amount) {
-      await cancelHtlcs(ops, channels, locked, leaseProviders);
-      return {
-        success: false,
-        error: `ROUTE_REVALIDATION_FAILED: hop amount ${hop.amount.toString()} != payment amount ${paymentRequest.amount.toString()}`,
-        errorCode: 'ROUTE_REVALIDATION_FAILED',
-        settledHops: [],
-      };
     }
     const hopValidation = validateRoutingHop(channels, hop);
     if (!hopValidation.ok) {

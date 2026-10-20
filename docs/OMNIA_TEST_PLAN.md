@@ -73,6 +73,7 @@ All harnesses live in `scripts/` and print a machine-readable
 | S9 | `node scripts/omnia-s9-relay.mjs` | local only |
 | S6 | `node scripts/omnia-s6-vtxo.mjs` | local only |
 | S7 | `node scripts/omnia-s7-splice.mjs` | local only |
+| S8 | `node scripts/omnia-s8-router.mjs` | local only |
 | S10 | `node scripts/omnia-s10-pool.mjs` | local only |
 | runtime | `node scripts/runtime-smoke.cjs [--native]` | SDK build; `OMNIA_SMOKE_HOST` for native |
 
@@ -140,6 +141,21 @@ watermark.
 Host wiring (a peer `SPLICE_PROPOSAL`/`ACCEPT` exchange and host
 accept/finalize methods) is still pending; the SDK lifecycle is green.
 
+### S8
+
+```
+node scripts/omnia-s8-router.mjs
+```
+
+Three-hop single-token path Alice → Hop1 → Hop2 → Carol with a 0.1% fee on the
+first two edges and a fee-free recipient edge. The executor now locks
+`payment + downstream fees` per hop: payer 10.02, hop1 10.01, hop2 10.0
+(scaled); Hop1 retains 0.01, Hop2 retains 0.01, Carol receives exactly 10.0.
+Asserts the three fee proofs and each intermediary's retained fee.
+
+The three-host end-to-end run (third A1 + real HTLC ops) and cross-token routing
+remain future work.
+
 ### S10
 
 ```
@@ -197,7 +213,7 @@ harness's.
 | **S5** | factory + virtual-channel lifecycle | factory opens, VC opens/closes, allocations restore | done |
 | **S6** | virtual-UTXO claims | claim settles | done (SDK harness) |
 | **S7** | splice in/out | live resize | done (SDK harness); host accept/finalize wiring pending |
-| **S8** | multi-hop / cross-token payment (3 nodes) | multi-hop settles | pending — needs 3 hosts + fee-adjusted per-hop amounts |
+| **S8** | multi-hop / cross-token payment (3 nodes) | multi-hop settles | done (SDK harness, fee-aware); 3-host E2E + cross-token pending |
 | **S9** | relay round-trip (SDK harness) | relay client/server round-trip | done |
 | **S10** | liquidity-pool orchestration | pool lifecycle | done (SDK harness) |
 | **S11** | Axia watchtower / failure recovery (in `axia-platform`) | watch registration, HTLC timeout, dispute broadcast, WOTS capacity, alerts | pending — requires Axia API/DB/Redis/indexer; after S5/S8 |
