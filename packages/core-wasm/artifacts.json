@@ -4,8 +4,8 @@
   "wasmPack": "wasm-pack 0.15.0",
   "wasmBindgen": "0.2.126",
   "artifacts": {
-    "pkg/totemsdk_core_wasm_bg.wasm": "8a76c3272bd4f83340fcb03d5d7fd3411341e41b0b6cc857567d049dd2218264",
-    "pkg-node/totemsdk_core_wasm_bg.wasm": "8a76c3272bd4f83340fcb03d5d7fd3411341e41b0b6cc857567d049dd2218264",
-    "pkg-web/totemsdk_core_wasm_bg.wasm": "8a76c3272bd4f83340fcb03d5d7fd3411341e41b0b6cc857567d049dd2218264"
+    "pkg/totemsdk_core_wasm_bg.wasm": "2b42bc86c0ba546ea09bf3430499117a15a56a3c81a99995c54cccfbcb63d767",
+    "pkg-node/totemsdk_core_wasm_bg.wasm": "2b42bc86c0ba546ea09bf3430499117a15a56a3c81a99995c54cccfbcb63d767",
+    "pkg-web/totemsdk_core_wasm_bg.wasm": "2b42bc86c0ba546ea09bf3430499117a15a56a3c81a99995c54cccfbcb63d767"
   }
 }
