@@ -301,53 +301,126 @@ MCP agents should not receive TOTP secrets. For autonomous agents, use RFC-010
 policy-scoped keys with limits; 2FA is reserved for enrollment, policy changes,
 key rotation and human-approved submissions.
 
-### D9 — 2FA reset via edge-email
+### D9 — 2FA reset via edge-email (break-glass, no session required)
 
 `edge-email` provides an `EmailTransportPort` and gateway; it is deliberately a
-transport, not a trust authority. A reset must remain safe if the mailbox is
-compromised.
+transport, not a trust authority. The reset flow MUST work when the user has **no
+authenticated session and no 2FA device**. It therefore cannot begin with "log in
+and request a reset"; it begins with a **pre-enrolled recovery proof**.
 
-**Enrollment**
+**Enrollment (while the account is healthy)**
 
-- Verify the recovery address at setup (confirmation token).
-- Store the address, a hash of the verification, and the reset policy; never store
-  the 2FA secret in email.
+At least two independent recovery paths SHOULD be configured:
 
-**Reset flow**
+1. **Recovery key** — an offline key (paper/HSM/another device) whose public key is
+   enrolled on the node. The private key never touches the node.
+2. **Recovery codes** — N single-use codes, shown once at enrollment and stored
+   hashed on the node.
+3. **Root identity** — an enrolled wallet/root identity public key that can sign a
+   reset challenge after restoring the wallet from its seed on another device.
+4. **Recovery email(s)** — verified addresses used for notification and
+   cancellation only. Email is never sufficient to complete a reset.
+5. **Operator quorum** — optional N-of-M operator approval for the last-resort path.
 
-1. The user initiates reset from an authenticated session or a device that still
-   holds a valid session.
-2. The node creates a high-entropy, single-use token; stores only its hash with a
-   short TTL (10–15 minutes), bound to account, request id and source.
-3. `edge-email` sends the link/token. The email contains no secret material and no
-   signing capability.
-4. The link opens the operator console; the reset still requires **one of**:
-   - a recovery code,
-   - an existing trusted device/session approval,
-   - N-of-M operator/admin approval.
-5. A cooling-off period (default 24h, configurable up to 72h) applies when the
-   second factor is unavailable. Signing and key rotation are disabled for the
-   account during cooling-off.
-6. On completion, invalidate all sessions, pending MFA challenges, API tokens and
-   reset tokens; write an audit event and notify the recovery address and operator
-   channels.
+**Initiation without a session**
+
+`POST /recovery/v1/request` is unauthenticated but **not unverified**:
+
+- The caller supplies the account identifier and one of:
+  - a recovery code (hashed, single-use), or
+  - a signature over the canonical reset request using the enrolled recovery key
+    or root identity.
+- The node rate-limits and returns a generic response (no account enumeration).
+- On success it creates a `RecoveryRequest` with:
+  - request id, account, proof type, requestedAt,
+  - `executeAfter = now + coolingOff` (default 24h; 72h for quorum/last-resort),
+  - status `pending`.
+- The node sends notifications to every enrolled recovery address via
+  `edge-email`: request id, approximate time/source, and a **cancel** link. The
+  email contains no token that can complete the reset.
+- During the cooling-off window, high-risk actions (signing, key rotation, 2FA
+  changes, withdrawal-policy changes) are disabled for the account.
+
+**Cancellation**
+
+- Any existing trusted session/device may cancel.
+- The emailed cancel link may cancel (email possession can stop a reset; it cannot
+  complete one).
+- A signed cancel request using the recovery key/root identity may cancel.
+- Cancellation is idempotent and audited.
+
+**Completion**
+
+After `executeAfter`, the user completes the reset by presenting the same recovery
+proof again (code or signature), then enrolls a new 2FA method. On success:
+
+- issue a new session only after the new 2FA is enrolled;
+- invalidate all sessions, API tokens, pending MFA challenges, old recovery codes
+  and outstanding reset requests;
+- rotate the recovery key if the recovery key was used or is suspected compromised;
+- generate and display new recovery codes once;
+- notify all recovery addresses and operator channels;
+- write an audit event.
+
+If the only available proof is a recovery code, the cooling-off delay and
+notification/cancel window are mandatory. A high-value account MAY require two
+recovery codes (threshold) or a recovery key plus code.
+
+**No factors available (last resort)**
+
+If the user has lost the 2FA device, recovery key/codes, and cannot sign with the
+root identity, there is no safe self-service reset. The only path is operator-assisted:
+
+1. Out-of-band identity verification chosen by the operator (support case, video,
+   signed statement, KYC where applicable).
+2. N-of-M operator/admin approval.
+3. Extended cooling-off (default 72h) with notifications to all known channels.
+4. New 2FA enrollment and full credential/session invalidation.
+
+This path is manual, may be denied by policy, and MUST NOT be completable by email
+alone. For non-custodial deployments, note that resetting the node account does not
+recover on-chain funds; wallet/seed recovery is a separate procedure.
+
+**Recovery data model**
+
+```ts
+interface RecoveryRequest {
+  requestId: string;
+  accountId: string;
+  proofType: 'recovery-code' | 'recovery-key' | 'root-identity' | 'operator-quorum';
+  requestedAt: number;
+  executeAfter: number;
+  status: 'pending' | 'cancelled' | 'completed' | 'denied' | 'expired';
+  source?: string;
+}
+
+interface RecoveryEnrollment {
+  recoveryPublicKey?: string;
+  recoveryCodeHashes: string[];
+  rootIdentityPublicKey?: string;
+  notificationEmails: string[];
+  quorumPolicy?: { required: number; of: number };
+}
+```
 
 **Abuse controls**
 
-- Email alone never completes a reset; it only starts a request.
-- Single-use tokens, hashed at rest, constant-time comparison, rate limits,
-  anti-enumeration responses, and POST/confirm (not GET) completion.
-- Bind the token to the request and source; reject reuse and cross-account use.
-- Use SPF/DKIM/DMARC, a dedicated reset domain, and an anti-phishing phrase in the
-  email.
-- If `edge-email` is unavailable, fall back to recovery codes or operator quorum;
-  never disable 2FA.
+- Email alone never completes a reset; it only notifies/cancels.
+- Single-use tokens/codes, hashed at rest, constant-time comparison, rate limits,
+  anti-enumeration responses, POST/confirm (not GET) completion.
+- Bind requests to the account and source; reject reuse and cross-account use.
+- Use SPF/DKIM/DMARC, a dedicated reset domain, and an anti-phishing phrase.
+- If `edge-email` is unavailable, recovery keys/codes still work; notifications are
+  retried and the operator console records the outage. Never disable 2FA.
+- Alerts go to all enrolled channels, not a single mailbox.
 
 **Configuration (names illustrative)**
 
 - `NODE_MFA=enabled|required`
 - `NODE_MFA_METHODS=totp,webauthn`
-- `NODE_MFA_RECOVERY_EMAIL`
+- `NODE_MFA_RECOVERY_EMAILS`
+- `NODE_MFA_RECOVERY_KEY`
+- `NODE_MFA_RECOVERY_CODE_COUNT`
 - `NODE_MFA_RESET_TTL_SECONDS` / `NODE_MFA_RESET_DELAY_SECONDS`
 - `NODE_MFA_REQUIRE_QUORUM`
 
@@ -365,7 +438,10 @@ compromised.
 | Self-custody mode claims hosted powers | Custody validation rejects operator movement/freeze/discretion in self mode |
 | Stolen password/API token signs funds | Money-moving actions require a single-use MFA assertion bound to the operation |
 | MFA code replay | Assertions are single-use, expire, and bind operation/amount/disclosure |
-| Compromised recovery mailbox resets 2FA | Email only starts reset; recovery code/device/quorum plus cooling-off required |
+| Compromised recovery mailbox resets 2FA | Email only notifies/cancels; a recovery code/key/root signature plus cooling-off is required |
+| User has no session and lost the 2FA device | Unauthenticated recovery request with a pre-enrolled code/key/root signature, or operator quorum |
+| Attacker with a stolen recovery code | Cooling-off, notifications to all channels, cancel from any channel |
+| Attacker with email only | Cannot complete; can only cancel (DoS is auditable and reversible) |
 | Reset link replay or enumeration | Hashed single-use tokens, TTL, rate limits, generic responses, POST completion |
 
 ---
@@ -438,8 +514,12 @@ exposed over MCP; D can initially ship as “deny raw signing in hosted mode.”
 9. Negative tests cover replay, metadata spoofing, expiry, fallback-to-seed and
    cross-transport bypass.
 10. Money-moving node/MCP actions without a valid MFA assertion are denied.
-11. A reset initiated by edge-email cannot complete with the email token alone and
-    invalidates all sessions/tokens on completion.
+11. A reset can be initiated without an authenticated session using an enrolled
+    recovery code/key/root identity; email alone cannot complete it.
+12. Completion requires the recovery proof again, invalidates all sessions/tokens
+    and old recovery factors, and notifies every enrolled address.
+13. With every factor lost, only the operator-quorum path can reset, after
+    identity verification and an extended cooling-off.
 
 ---
 
@@ -458,10 +538,14 @@ exposed over MCP; D can initially ship as “deny raw signing in hosted mode.”
 6. **Audit retention:** local durable store vs exported SIEM/indexer.
 7. **2FA scope:** require for all hosted signing, or only above thresholds and for
    admin/key-rotation actions?
-8. **Recovery fallback:** recovery codes vs trusted device vs operator quorum, and
-   the default cooling-off period?
-9. **WebAuthn availability:** can the node assume a browser/operator console, or
-   must TOTP be the only universal baseline?
+8. **Recovery fallback:** recovery codes vs recovery key vs root identity vs
+   operator quorum, and the default cooling-off period?
+9. **No-session initiation:** should the request endpoint require a signed challenge
+   even for recovery codes (anti-automation), or are rate limits sufficient?
+10. **WebAuthn availability:** can the node assume a browser/operator console, or
+    must TOTP be the only universal baseline?
+11. **Recovery key storage:** paper/HSM/another device, and how is its rotation
+    proven after use?
 
 ---
 
