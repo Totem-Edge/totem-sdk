@@ -529,7 +529,18 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
         if (typeof params.fundingScript === 'string') {
           createParams.fundingScript = params.fundingScript;
         }
-        createParams.fundingSigner = signer;
+        createParams.fundingSigner = context.signerPort && (context.custodyMode ?? 'self') !== 'hosted'
+          ? async (digest: Uint8Array) => context.signerPort!.sign({
+              requestId: `channel-funding-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+              kind: 'chain',
+              domain: 'channel',
+              digest,
+              context: { summary: 'Channel funding input' },
+              signers: [context.signerPort!.publicKeyDigest],
+              custody: makeSelfCustody(),
+              expiresAt: Date.now() + 60_000,
+            })
+          : signer;
       }
       const created = await createChannel(createParams, context.chainProvider);
       context.channels.set(created.channel.channelId, {
@@ -572,7 +583,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
           [localPartyId]: (channel.balances[localPartyId] ?? 0n) - amount,
           [remotePartyId]: (channel.balances[remotePartyId] ?? 0n) + amount,
         },
-      }, context.leaseProvider, context.signer);
+      }, context.leaseProvider, context.signer, context.signerPort);
       if (result.error) throw new Error(result.error);
       context.channels.set(channelId, result.channel);
       const remoteParty = channel.parties.find((party) => party.partyId === remotePartyId)!;

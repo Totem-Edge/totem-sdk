@@ -423,6 +423,7 @@ export async function updateState(
   delta: UpdateDelta,
   leaseProvider: WotsLeaseProvider,
   signer?: ChannelSigner,
+  signerPort?: import('./custody.js').SignerPort,
 ): Promise<UpdateStateResult> {
   if (channel.status !== 'active') {
     throw new ChannelStatusError('active', channel.status);
@@ -466,6 +467,7 @@ export async function updateState(
     { newSequence, newBalances: delta.newBalances, programTransition },
     leaseProvider,
     effectiveSigner,
+    signerPort,
   );
 
   // Signing index monotonicity: new flat index must exceed the previous one.
@@ -512,6 +514,7 @@ export async function applyProgramTransition(
   params: ApplyProgramTransitionParams,
   leaseProvider: WotsLeaseProvider,
   signer?: ChannelSigner,
+  signerPort?: import('./custody.js').SignerPort,
 ): Promise<UpdateStateResult> {
   return updateState(
     channel,
@@ -522,6 +525,7 @@ export async function applyProgramTransition(
     },
     leaseProvider,
     signer,
+    signerPort,
   );
 }
 

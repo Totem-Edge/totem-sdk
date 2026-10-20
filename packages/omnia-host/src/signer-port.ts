@@ -25,6 +25,10 @@ export function createLocalSignerPort(signing: HostSigning): SignerPort {
       }
 
       const payload = signRequestPayload(request);
+      if (request.signingIndices) {
+        // Caller owns the lease (channel/factory tx signing); sign the exact leaf.
+        return signing.signer.sign(payload, request.signingIndices);
+      }
       const reservation = await signing.leaseProvider.reserveKeyUse({
         treeId: 'omnia-sign-request',
         purpose: `sign-request:${request.domain}`,

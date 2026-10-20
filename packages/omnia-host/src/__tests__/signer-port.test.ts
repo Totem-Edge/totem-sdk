@@ -49,6 +49,18 @@ describe('createLocalSignerPort', () => {
     expect(verifyChannelSignature(signature, digest, signing.publicKeyDigest)).toBe(true);
   });
 
+  it('uses caller-provided lease indices (channel/factory tx signing)', async () => {
+    const digest = new Uint8Array(32).fill(6);
+    const req = request({
+      kind: 'chain',
+      digest,
+      signers: [signing.publicKeyDigest],
+      signingIndices: { addressIndex: signing.addressIndex, l1: 1, l2: 0 },
+    });
+    const signature = await port.sign(req);
+    expect(verifyChannelSignature(signature, digest, signing.publicKeyDigest)).toBe(true);
+  });
+
   it('refuses requests where the local key is not a required signer', async () => {
     await expect(port.sign(request({ signers: ['0x' + '11'.repeat(32)] }))).rejects.toThrow(/not a required signer/);
   });

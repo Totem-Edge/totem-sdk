@@ -10,6 +10,7 @@
  */
 
 import { sha3_256 } from '@totemsdk/core';
+import type { SigningIndices } from '@totemsdk/wots-lease';
 
 export type CustodyMode = 'self' | 'trust-minimised' | 'hosted';
 
@@ -76,6 +77,11 @@ export interface SignRequest {
   context: SignContext;
   /** Required signer public-key digests. */
   signers: string[];
+  /**
+   * Pre-reserved lease indices. When supplied, the signer must use them and the
+   * caller owns reserve/commit (used by channel/factory tx signing).
+   */
+  signingIndices?: SigningIndices;
   custody: CustodyContext;
   expiresAt?: number;
   chainId?: string;

@@ -22,6 +22,7 @@ import { validateChannelStateWithKissvm } from './kissvm.js';
 import { buildProgramUpdateTx, resolveChannelProgram } from './program.js';
 import { canonicalizeProgramTransition } from './transition.js';
 import { verifyChannelSignature } from './wots.js';
+import { makeSelfCustody, type SignRequest, type SignerPort } from './custody.js';
 
 function resolveSignerOrThrow(channel: OmniaChannel, signer?: ChannelSigner): ChannelSigner {
   const effective = signer ?? channel.localSigner;
@@ -86,9 +87,32 @@ export async function signState(
   update: { newSequence: number; newBalances: Record<string, bigint>; programTransition?: ProgramTransition },
   leaseProvider: WotsLeaseProvider,
   signer?: ChannelSigner,
+  signerPort?: SignerPort,
 ): Promise<Partial<SignedChannelState>> {
   const { newSequence, newBalances } = update;
   const effectiveSigner = resolveSignerOrThrow(channel, signer);
+  const signDigest = async (
+    digest: Uint8Array,
+    indices: SigningIndices,
+    purpose: string,
+  ): Promise<ChannelSignature> => {
+    if (!signerPort) return effectiveSigner.sign(digest, indices);
+    if (signerPort.publicKeyDigest !== effectiveSigner.publicKeyDigest) {
+      throw new Error('signer port does not match the channel signer');
+    }
+    const request: SignRequest = {
+      requestId: `channel-${channel.channelId}-${purpose}-${Date.now()}`,
+      kind: 'chain',
+      domain: 'channel',
+      digest,
+      context: { summary: purpose },
+      signers: [signerPort.publicKeyDigest],
+      signingIndices: indices,
+      custody: makeSelfCustody(),
+      expiresAt: Date.now() + 60_000,
+    };
+    return signerPort.sign(request);
+  };
   const pendingHTLCs = channel.pendingHTLCs.filter(h => h.status === 'pending');
   const programTransition = canonicalizeProgramTransition(update.programTransition);
   const draft = buildProgramUpdateTx(channel, newSequence, newBalances, channel.pendingHTLCs, programTransition);
@@ -101,7 +125,7 @@ export async function signState(
     payloadHash: Buffer.from(digest).toString('hex'),
   });
 
-  const signature = await effectiveSigner.sign(digest, reservation.indices);
+  const signature = await signDigest(digest, reservation.indices, `channel-update-seq-${newSequence}`);
   await leaseProvider.commitKeyUse(reservation.reservationId, `channel-update-seq-${newSequence}`);
 
   const signerParty = channel.parties.find(p => p.publicKeyDigest === effectiveSigner.publicKeyDigest);
@@ -120,7 +144,7 @@ export async function signState(
     purpose: `channel-settlement-seq-${newSequence}`,
     payloadHash: unsignedClosePackage.settlement.txDigest,
   });
-  const settlementSignature = await effectiveSigner.sign(settlementDigest, settlementReservation.indices);
+  const settlementSignature = await signDigest(settlementDigest, settlementReservation.indices, `channel-settlement-seq-${newSequence}`);
   await leaseProvider.commitKeyUse(settlementReservation.reservationId, `channel-settlement-seq-${newSequence}`);
 
   const closePackage = addClosePackageSignature(
