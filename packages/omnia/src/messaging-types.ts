@@ -64,6 +64,8 @@ export interface OmniaPeer {
   sendMessage(msg: OmniaMessage): Promise<void>;
   onMessage(cb: (msg: OmniaMessage) => void): Unsubscribe;
   disconnect(): void;
+  /** True when the peer has a live transport (native/relay). */
+  isConnected?(): boolean;
   onReconnecting(cb: (attempt: number) => void): Unsubscribe;
   onReconnected(cb: () => void): Unsubscribe;
 }

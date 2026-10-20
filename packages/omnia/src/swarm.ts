@@ -58,6 +58,15 @@ export class OmniaSwarmImpl implements OmniaSwarm {
       if (process.env.OMNIA_DEBUG) {
         console.error('[swarm] inbound', pubkey, 'client', info?.client, 'new', isNewPeer);
       }
+      // Duplicate-connection guard: keep one live transport per peer. When both
+      // sides dial (client lookups), drop the extra socket instead of rebinding
+      // the active stream (which caused a reconnect/rebind storm and lost frames).
+      const existing = this._peers.get(pubkey);
+      if (existing && (existing.isConnected?.() ?? true)) {
+        if (process.env.OMNIA_DEBUG) console.error('[swarm] duplicate dropped', pubkey);
+        try { (conn as { destroy?: () => void }).destroy?.(); } catch { /* noop */ }
+        return;
+      }
       const peer = this._getOrBindPeer(this._adaptConn(conn, info), pubkey, undefined);
 
       const topics: Buffer[] = Array.isArray(info?.topics)
@@ -185,7 +194,7 @@ export class OmniaSwarmImpl implements OmniaSwarm {
 
       if (!this._joinedTopics.has(topicHex)) {
         this._joinedTopics.add(topicHex);
-        this._swarm.join(topic, { server: true, client: false });
+        this._swarm.join(topic, { server: true, client: true });
         if (process.env.OMNIA_DEBUG) {
           console.error('[swarm] join', topicHex, 'expect', expectedPubkey);
         }
@@ -199,7 +208,7 @@ export class OmniaSwarmImpl implements OmniaSwarm {
     const topicHex = topic.toString('hex');
     if (!this._joinedTopics.has(topicHex)) {
       this._joinedTopics.add(topicHex);
-      this._swarm.join(topic, { server: true, client: false });
+      this._swarm.join(topic, { server: true, client: true });
       if (process.env.OMNIA_DEBUG) {
         console.error('[swarm] advertise', topicHex, 'pubkey', normalizePubkey(localPubkey));
       }
@@ -271,7 +280,7 @@ export class OmniaSwarmImpl implements OmniaSwarm {
     const topicHex = topic.toString('hex');
     if (!this._joinedTopics.has(topicHex)) {
       this._joinedTopics.add(topicHex);
-      this._swarm.join(topic, { server: true, client: false });
+      this._swarm.join(topic, { server: true, client: true });
     }
 
     return () => {

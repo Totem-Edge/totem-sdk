@@ -32,6 +32,7 @@ export class OmniaPeerImpl implements OmniaPeer {
   private _reconnectingListeners: SimpleListener<[number]>[] = [];
   private _reconnectedListeners: SimpleListener<[]>[] = [];
   private _disconnected = false;
+  private _streamClosed = false;
   private _reconnectAttempt = 0;
   private _streamVersion = 0;
 
@@ -49,6 +50,7 @@ export class OmniaPeerImpl implements OmniaPeer {
   }
 
   private _attachStream(raw: IStreamTransport): OmniaStream {
+    this._streamClosed = false;
     const stream = new OmniaStream(raw);
     const attachedVersion = this._streamVersion;
 
@@ -60,6 +62,7 @@ export class OmniaPeerImpl implements OmniaPeer {
     });
 
     stream.onClose(() => {
+      this._streamClosed = true;
       if (!this._disconnected && this._streamVersion === attachedVersion) {
         this._scheduleReconnect();
       }
@@ -104,6 +107,11 @@ export class OmniaPeerImpl implements OmniaPeer {
         this._scheduleReconnect();
       }
     }, delay);
+  }
+
+  /** True when the peer has a live transport (not deliberately closed). */
+  isConnected(): boolean {
+    return !this._disconnected && !this._streamClosed;
   }
 
   rebindStream(raw: IStreamTransport): void {
