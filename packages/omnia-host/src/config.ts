@@ -51,6 +51,12 @@ export interface OmniaHostConfig {
    * Undefined disables token auth.
    */
   controlToken?: string;
+  /** RFC-062 local P2P hub (optional). One Hyperswarm shared by dapps. */
+  p2pHubPort?: number;
+  p2pHubHost?: string;
+  p2pHubToken?: string;
+  p2pHubOrigins?: string[];
+  p2pHubTopics?: string[];
 }
 
 function parsePort(value: string | undefined): number {
@@ -81,6 +87,21 @@ function parseOrigins(value: string | undefined): string[] | undefined {
     ?.split(',')
     .map((part) => part.trim())
     .filter((part) => part.length > 0);
+  return parts && parts.length > 0 ? parts : undefined;
+}
+
+function parseOptionalPort(value: string | undefined, name: string): number | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  const port = Number(trimmed);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error(`${name} must be an integer between 1 and 65535; received ${value}`);
+  }
+  return port;
+}
+
+function parseList(value: string | undefined): string[] | undefined {
+  const parts = value?.split(',').map((part) => part.trim()).filter(Boolean);
   return parts && parts.length > 0 ? parts : undefined;
 }
 
@@ -151,6 +172,11 @@ export function loadConfigFromEnv(env: NodeJS.ProcessEnv = process.env): OmniaHo
     identityFile: optional(env.OMNIA_HOST_IDENTITY_FILE),
     serviceType: optional(env.OMNIA_HOST_SERVICE_TYPE) ?? 'omnia-router',
     allowedOrigins: parseOrigins(env.OMNIA_ALLOWED_ORIGINS),
+    p2pHubPort: parseOptionalPort(env.OMNIA_P2P_HUB_PORT, 'OMNIA_P2P_HUB_PORT'),
+    p2pHubHost: optional(env.OMNIA_P2P_HUB_HOST),
+    p2pHubToken: optional(env.OMNIA_P2P_HUB_TOKEN),
+    p2pHubOrigins: parseOrigins(env.OMNIA_P2P_HUB_ORIGINS),
+    p2pHubTopics: parseList(env.OMNIA_P2P_HUB_TOPICS),
     controlToken: optional(env.OMNIA_CONTROL_TOKEN),
   };
 }

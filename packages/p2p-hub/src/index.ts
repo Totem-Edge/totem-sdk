@@ -300,6 +300,8 @@ function concat(a: Uint8Array, b: Uint8Array): Uint8Array {
 // ── Real Hyperswarm network ────────────────────────────────────────────────────
 
 export interface HyperswarmHubNetworkOptions {
+  /** Use an existing Hyperswarm instance (e.g. `omnia-host`'s swarm). */
+  swarm?: any;
   keyPair?: unknown;
   bootstrap?: string[];
   host?: string;
@@ -310,14 +312,18 @@ export interface HyperswarmHubNetworkOptions {
 export async function createHyperswarmHubNetwork(
   options: HyperswarmHubNetworkOptions = {},
 ): Promise<HubNetwork> {
-  let HyperswarmCtor: new (opts?: unknown) => any;
-  try {
-    const mod = await import('hyperswarm' as string) as { default: new (opts?: unknown) => any };
-    HyperswarmCtor = mod.default;
-  } catch {
-    throw new Error("P2P hub requires 'hyperswarm' (npm i hyperswarm)");
+  let swarm = options.swarm;
+  const ownsSwarm = !swarm;
+  if (!swarm) {
+    let HyperswarmCtor: new (opts?: unknown) => any;
+    try {
+      const mod = await import('hyperswarm' as string) as { default: new (opts?: unknown) => any };
+      HyperswarmCtor = mod.default;
+    } catch {
+      throw new Error("P2P hub requires 'hyperswarm' (npm i hyperswarm)");
+    }
+    swarm = new HyperswarmCtor(options);
   }
-  const swarm = new HyperswarmCtor(options);
   const discoveries = new Map<string, { destroy?: () => Promise<void> | void }>();
   const handlers = new Set<(connection: HubNetworkConnection, topics: string[]) => void>();
 
@@ -354,7 +360,7 @@ export async function createHyperswarmHubNetwork(
       return () => handlers.delete(handler);
     },
     async close() {
-      await swarm.destroy();
+      if (ownsSwarm) await swarm.destroy();
     },
   };
 }

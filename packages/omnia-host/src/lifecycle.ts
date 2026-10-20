@@ -8,6 +8,12 @@ import { createControlServer, type ControlServer } from './api/jsonrpc.js';
 import { createTotemNodeAdapter, type TotemNodeAdapter } from './chain/totem-node-adapter.js';
 import { channelGraphEdges, InProcessRoutingProvider, type RoutingProvider } from './router/routing-provider.js';
 import type { JsonRpcHandler } from './api/jsonrpc.js';
+import {
+  createHyperswarmHubNetwork,
+  createWebSocketHubServer,
+  type HubNetwork,
+  type WebSocketHubServer,
+} from '@totemsdk/p2p-hub';
 import { createHostMethods, type OperationStoreLike } from './api/methods.js';
 import { ReplyCache } from './reply-cache.js';
 import {
@@ -54,6 +60,8 @@ export interface OmniaHostDependencies {
   };
   /** Boot-time signed EdgeServiceManifest (getManifest). */
   manifest?: unknown;
+  /** Optional P2P hub network (tests/embedding). */
+  p2pHubNetwork?: HubNetwork;
 }
 
 export interface OmniaHost {
@@ -63,6 +71,8 @@ export interface OmniaHost {
   isStarted(): boolean;
   readonly swarm?: OmniaSwarm;
   readonly channels?: Map<string, OmniaChannel>;
+  /** Loopback WebSocket endpoint for local dapps, when enabled (RFC-062). */
+  readonly p2pHubUrl?: string;
 }
 
 /**
@@ -86,6 +96,8 @@ export function createOmniaHost(
   let controlServer: ControlServer | undefined = dependencies.controlServer;
   let chainAdapter: TotemNodeAdapter | undefined = dependencies.chainAdapter;
   let routingProvider = dependencies.routingProvider ?? new InProcessRoutingProvider();
+  let p2pHubServer: WebSocketHubServer | undefined;
+  let p2pHubUrl: string | undefined;
 
   return {
     config,
@@ -95,6 +107,9 @@ export function createOmniaHost(
     },
     get channels(): Map<string, OmniaChannel> | undefined {
       return channelStore;
+    },
+    get p2pHubUrl(): string | undefined {
+      return p2pHubUrl;
     },
 
     async start(): Promise<void> {
@@ -144,6 +159,24 @@ export function createOmniaHost(
           ssl: rpc.protocol === 'https:',
         });
       }
+      if (config.p2pHubPort !== undefined || dependencies.p2pHubNetwork) {
+        const native = (swarm as { nativeSwarm?: () => unknown }).nativeSwarm?.();
+        const network = dependencies.p2pHubNetwork ?? await createHyperswarmHubNetwork(
+          native ? { swarm: native } : {},
+        );
+        p2pHubServer = await createWebSocketHubServer({
+          network,
+          host: config.p2pHubHost ?? '127.0.0.1',
+          port: config.p2pHubPort ?? 0,
+          ...(config.p2pHubToken ? { token: config.p2pHubToken } : {}),
+          ...(config.p2pHubOrigins ? { allowedOrigins: config.p2pHubOrigins } : {}),
+          ...(config.p2pHubTopics ? { allowedTopicPrefixes: config.p2pHubTopics } : {}),
+        });
+        const address = await p2pHubServer.listen();
+        const host = address.host.includes(':') ? `[${address.host}]` : address.host;
+        p2pHubUrl = `ws://${host}:${address.port}`;
+      }
+
       const localParticipant = dependencies.localParticipant ?? (
         config.localPartyId && config.localPubkey && config.localAddressIndex !== undefined
           ? {
@@ -445,6 +478,7 @@ export function createOmniaHost(
             readOnly,
             identity: dependencies.identity,
             manifest: dependencies.manifest,
+            p2pHubUrl,
             refreshRouting: () => routingProvider.rebuild(channelGraphEdges(channelStore!.values())),
           }),
         });
@@ -455,6 +489,9 @@ export function createOmniaHost(
       } catch (error) {
         unsubscribe?.();
         unsubscribe = undefined;
+        await p2pHubServer?.close();
+        p2pHubServer = undefined;
+        p2pHubUrl = undefined;
         chainAdapter?.close();
         await swarm?.close();
         if (ownedOperationStore) await ownedOperationStore.close();
@@ -469,6 +506,9 @@ export function createOmniaHost(
       if (!started) return;
       unsubscribe?.();
       unsubscribe = undefined;
+      await p2pHubServer?.close();
+      p2pHubServer = undefined;
+      p2pHubUrl = undefined;
       await controlServer?.close();
       chainAdapter?.close();
       await swarm?.close();

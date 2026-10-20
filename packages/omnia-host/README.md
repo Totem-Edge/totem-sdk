@@ -35,6 +35,11 @@ The daemon configuration is read from environment variables:
 | `OMNIA_HOST_READ_ONLY` | unset | `1` forces read-only mode even with keys present |
 | `OMNIA_HOST_IDENTITY_FILE` | unset | Optional delegated identity claim JSON (operator root → service delegate) |
 | `OMNIA_HOST_SERVICE_TYPE` | `omnia-router` | EdgeServiceManifest serviceType |
+| `OMNIA_P2P_HUB_PORT` | unset | Enable the RFC-062 loopback P2P hub on this port |
+| `OMNIA_P2P_HUB_HOST` | `127.0.0.1` | Hub bind address; keep loopback unless explicitly remote |
+| `OMNIA_P2P_HUB_TOKEN` | unset | Hub bearer token (use a per-client credential in production) |
+| `OMNIA_P2P_HUB_ORIGINS` | unset | Comma-separated browser Origin allowlist |
+| `OMNIA_P2P_HUB_TOPICS` | unset | Comma-separated topic prefixes (e.g. `omnia,dex.v1`) |
 
 ### Signing model
 

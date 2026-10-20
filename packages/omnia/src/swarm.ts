@@ -359,6 +359,10 @@ export class OmniaSwarmImpl implements OmniaSwarm {
     await Promise.allSettled(peers.map(peer => peer.sendMessage(msg)));
   }
 
+  nativeSwarm(): unknown {
+    return this._swarm;
+  }
+
   async close(): Promise<void> {
     for (const peer of this._peers.values()) {
       peer.disconnect();

@@ -1543,6 +1543,9 @@ importers:
       '@totemsdk/omnia-vtxo':
         specifier: workspace:^
         version: link:../omnia-vtxo
+      '@totemsdk/p2p-hub':
+        specifier: workspace:^
+        version: link:../p2p-hub
       '@totemsdk/storage':
         specifier: workspace:^
         version: link:../storage

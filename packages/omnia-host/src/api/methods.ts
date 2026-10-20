@@ -182,6 +182,8 @@ export interface HostApiContext {
   };
   /** Boot-time signed EdgeServiceManifest. */
   manifest?: unknown;
+  /** RFC-062 loopback P2P hub endpoint, when enabled. */
+  p2pHubUrl?: string;
 }
 
 function channelSummary(channel: OmniaChannel): Record<string, unknown> {
@@ -1970,6 +1972,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       identityId: context.identity.identityId,
       delegation: context.identity.delegation,
       custodyMode: context.custodyMode ?? 'self',
+      p2pHubUrl: context.p2pHubUrl ?? null,
     };
   };
   register('totem_omniaWhoami', whoami, 'omnia/whoami');

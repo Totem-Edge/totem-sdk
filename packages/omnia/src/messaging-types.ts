@@ -128,5 +128,7 @@ export interface OmniaSwarm {
     onProposal: (peer: OmniaPeer, proposal: OmniaMessage) => void,
   ): Unsubscribe;
   broadcast(topic: string, msg: OmniaMessage): Promise<void>;
+  /** Underlying transport instance (Hyperswarm/relay), for local bridges. */
+  nativeSwarm?(): unknown;
   close(): Promise<void>;
 }

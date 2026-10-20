@@ -106,6 +106,25 @@ describe('loadConfigFromEnv', () => {
     })).toThrow('OMNIA_HOST_SEED and OMNIA_HOST_KEYFILE are mutually exclusive');
   });
 
+  it('parses the optional local P2P hub settings', () => {
+    const config = loadConfigFromEnv({
+      OMNIA_P2P_HUB_PORT: '7788',
+      OMNIA_P2P_HUB_HOST: '127.0.0.1',
+      OMNIA_P2P_HUB_TOKEN: 'secret',
+      OMNIA_P2P_HUB_ORIGINS: 'chrome-extension://abc,https://app.totem.ing',
+      OMNIA_P2P_HUB_TOPICS: 'omnia,dex.v1',
+    });
+    expect(config.p2pHubPort).toBe(7788);
+    expect(config.p2pHubHost).toBe('127.0.0.1');
+    expect(config.p2pHubToken).toBe('secret');
+    expect(config.p2pHubOrigins).toEqual(['chrome-extension://abc', 'https://app.totem.ing']);
+    expect(config.p2pHubTopics).toEqual(['omnia', 'dex.v1']);
+  });
+
+  it('rejects an invalid P2P hub port', () => {
+    expect(() => loadConfigFromEnv({ OMNIA_P2P_HUB_PORT: '70000' })).toThrow(/OMNIA_P2P_HUB_PORT/);
+  });
+
   it('parses keyfile, passphrase, device id, read-only, identity, and service type', () => {
     const config = loadConfigFromEnv({
       OMNIA_HOST_KEYFILE: './keys/host.json',
