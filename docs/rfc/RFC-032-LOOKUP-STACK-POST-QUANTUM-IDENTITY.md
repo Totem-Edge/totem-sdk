@@ -1,6 +1,6 @@
 # RFC-032: Lookup-Stack Post-Quantum Identity — Replace Ed25519 with WOTS/TreeKey
 
-**Status:** Landed (TypeScript packages) — v2 hard switch implemented across `lookup-protocol`, `lookup-client`, `lookup-node`. Ed25519 removed; per-message WOTS `auth` envelope + nonce-monotonicity replay guard; registry verifies the WOTS-signed manifest; lease node identity is WOTS/TreeKey. Go mirrors (`lookup-*/go`) and generated TypeDoc are **not yet updated**. Live-key deployment should derive the identity from `@totemsdk/root-identity` and coordinate indices via `@totemsdk/wots-lease` (RFC-032 §9 Q1).
+**Status:** Landed (TypeScript packages) — v2 hard switch implemented across `lookup-protocol`, `lookup-client`, `lookup-node`. Ed25519 removed; per-message WOTS `auth` envelope + nonce-monotonicity replay guard; registry verifies the WOTS-signed manifest; lease node identity is WOTS/TreeKey. Go WOTS/auth landed in lookup-node/SE via RFC-033; the Go lookup-client ticket cache and generated TypeDoc remain. Live-key deployment should derive the identity from `@totemsdk/root-identity` and coordinate indices via `@totemsdk/wots-lease` (RFC-032 §9 Q1).
 **Created:** 2026-10-02
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]

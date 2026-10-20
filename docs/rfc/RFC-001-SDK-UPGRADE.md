@@ -1,6 +1,6 @@
 # RFC-001: Totem SDK Upgrade - WOTS Lifecycle, Streaming & RPC
 
-**Status:** Draft  
+**Status:** Historical — extension SDK rollout implemented; superseded by RFC-014/058 for the current wallet/custody direction
 **Created:** 2025-11-26  
 **Authors:** Axia Platform Team  
 **Reviewers:** [Pending stakeholder assignment]

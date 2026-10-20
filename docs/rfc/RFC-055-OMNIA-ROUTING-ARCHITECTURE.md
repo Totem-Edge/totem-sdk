@@ -1,6 +1,6 @@
 # RFC-055 — Omnia Routing Architecture: Bounded Search, Reusable Trees, and Pluggable Engines
 
-Status: Draft — proposed; Phase 1 implementation authorised for `@totemsdk/omnia-router` only
+Status: Draft — Phase 1 landed (`@totemsdk/omnia-router@0.4.0`); Phase 2+ not authorised
 Created: 2026-10-20
 Authors: Totem SDK Contributors
 Depends on: RFC-035 (Omnia Peer Coordination), RFC-036 (Settlement Verification), RFC-048 (Omnia Primitive Completeness)

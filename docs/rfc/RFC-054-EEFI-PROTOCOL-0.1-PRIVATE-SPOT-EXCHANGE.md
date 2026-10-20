@@ -1,6 +1,6 @@
 # RFC-054 — Eefi Protocol 0.1: Verified Private Spot Exchange
 
-Status: Draft — proposed; implementation authorised for the **bilateral spot-exchange profile (v1)** only
+Status: Draft — proposed; implementation authorised for the **bilateral spot-exchange profile (v1)** only; **not started**
 Created: 2026-10-20
 Authors: Totem SDK Contributors
 Depends on: RFC-036 (Settlement Verification), RFC-048 (Omnia Primitive Completeness), RFC-050 (Eefi Product Architecture), RFC-053 (Eefi Generic Contracts)

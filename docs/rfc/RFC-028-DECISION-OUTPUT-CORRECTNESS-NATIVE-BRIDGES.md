@@ -1,6 +1,6 @@
 # RFC-028: Decision Output Correctness & Native Provider Bridges
 
-**Status:** Draft — design specification
+**Status:** Landed — V1/V2/V3 correctness implemented and covered by the RFC-012 post-landing pass
 **Created:** 2026-10-01
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]

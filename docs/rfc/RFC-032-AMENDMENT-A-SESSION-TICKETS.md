@@ -1,6 +1,6 @@
 # RFC-032 Amendment A — Lookup Session Tickets (P5 Plan)
 
-**Status:** Landed (TypeScript) — T0–T3 complete, T4 partial (node identity watermark persisted; ticket table is in-memory), T5 covered by unit + E2E tests. Go mirrors not updated.
+**Status:** Landed (TypeScript) — T0–T3 complete, T4 partial (node identity watermark persisted; ticket table is in-memory), T5 covered by unit + E2E tests. Go WOTS/auth landed via RFC-033; the Go lookup-client ticket cache remains.
 **Created:** 2026-10-02 · **Amends:** RFC-032
 **Touches:** `@totemsdk/lookup-protocol`, `@totemsdk/lookup-client`, `@totemsdk/lookup-node`
 **Depends on:** RFC-032 (lookup-stack post-quantum identity)
@@ -187,7 +187,7 @@ Shipped (tests green: protocol 21, client 29, node 60):
 - **T5** Tests: ticket store (budget/expiry/replay/revocation/subject), `NodeIdentity` sign/verify + forged/tampered/different-node rejection, and a node E2E (real WOTS `SESSION_OPEN` → ticket → ticket-authenticated `GET_COINS`, auth-required rejection, replay rejection), plus client amortisation (one `SESSION_OPEN`, monotonic `seq`) and default per-message WOTS.
 
 Not done:
-- **Go mirrors** (`lookup-*/go`) still lack WOTS and do not implement tickets.
+- **Go mirrors**: WOTS/auth landed (RFC-033); the Go lookup-client ticket cache is not implemented.
 - Live-ticket durability across restart (T4 remainder).
 
 ## A.8 Open questions

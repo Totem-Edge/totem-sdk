@@ -1,9 +1,9 @@
 # RFC-053 — Eefi Generic Contracts (v1)
 
-Status: Draft — implementation authorised for the `@totemsdk/eefi` generic contract surface only
+Status: Landed — `@totemsdk/eefi@0.1.0` generic contracts implemented and published
 Created: 2026-10-19
 Authors: Totem SDK Contributors
-Depends on: RFC-048 (Omnia Primitive Completeness), RFC-049 (MASH × Omnia × Eefi), RFC-050 (Eefi Product Architecture), RFC-051 (AI-Proposed Committed Facts)
+Depends on: RFC-048 (Omnia Primitive Completeness), RFC-049 (MASH × Omnia × Eefi), RFC-050 (Eefi Product Architecture)
 Touches: **new** `@totemsdk/eefi`; references (does not modify) `kissvm`, `proof`, `edge`, `omnia`
 
 > **Scope.** RFC-050 defines the Eefi boundary and explicitly authorises no implementation

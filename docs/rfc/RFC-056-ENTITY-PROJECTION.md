@@ -1,9 +1,9 @@
 # RFC-056 — Entity Projection and Operational Resolution
 
-Status: Draft — P0-A…P0-E landed; P1 authorises `@totemsdk/entity` v0.1.0
+Status: Draft — P0-A…P0-E and P1 landed; `@totemsdk/entity@0.1.0` implemented and published
 Created: 2026-10-20
 Authors: Totem SDK Contributors
-Depends on: RFC-020 (Identity and Claims), RFC-037 (Unified WOTS Signatures), RFC-051 (AI-Proposed Committed Facts), RFC-053 (Eefi Generic Contracts)
+Depends on: identity/claims (`@totemsdk/identity`), RFC-037 (Unified WOTS Signatures); references `@totemsdk/manifest`, `@totemsdk/root-identity`, `@totemsdk/authority`
 Touches: **new** `@totemsdk/entity`; references `identity`, `root-identity`, `manifest`, `authority`, `governance`, `proofgraph`
 
 > **Numbering note.** The proposal circulated as “RFC-033”, which collides with

@@ -1,6 +1,6 @@
 # RFC-009: KISSVM Signature Fidelity — Minima-Faithful TreeKey SignatureProof Verification
 
-**Status:** Draft — Phase 0/1 (witness model + evaluator tree-proof verification), Phase 2 (Java → SDK parity, byte-identical), and Phase 3 (full TreeKey owner migration + canonical tx-builder witness serializer) landed; the RFC-008 on-chain gate passes. Remaining: non-TS parity mirrors (Rust verifier, Go SE).
+**Status:** Draft — Phase 0/1 (witness model + evaluator tree-proof verification), Phase 2 (Java → SDK parity, byte-identical), and Phase 3 (full TreeKey owner migration + canonical tx-builder witness serializer) landed; the RFC-008 on-chain gate passes. RFC-033 added the Go SE/FFI path and `core-wasm` carries the Rust tree-signature verifier. Remaining: a final parity audit of any residual non-TS mirror, not a missing implementation.
 **Created:** 2026-09-21
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]
@@ -289,9 +289,9 @@ available but is the less-faithful model.)
 
 - Phase 2 reverse direction (SDK → Java) is implied by the byte-identical
   serialization above; a scripted cross-check against `minima.jar` is optional.
-- Non-TS parity mirrors: the Rust statechain verifier
-  (`packages/statechain/rust/src/{types,verify}.rs`) and the Go SE still reflect
-  the flat model (Go SE remains fail-closed, RFC-008 Open Question 7).
+- Non-TS parity mirrors: the Rust statechain verifier now uses the tree model
+  and the Go SE uses the RFC-008 leased identity (RFC-033). Remaining: a final
+  parity audit of any residual flat-model helper.
 
 ## 7. Acceptance Gate (the RFC-008 blocker)
 

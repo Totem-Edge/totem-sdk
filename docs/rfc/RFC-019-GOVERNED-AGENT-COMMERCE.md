@@ -1,6 +1,6 @@
 # RFC-019: Governed Agent Commerce — close the `createEdge()` privilege-escalation path
 
-**Status:** Draft — remediation contract (P0 + P1 + P2 landed)
+**Status:** Draft — remediation contract (P0–P2 landed; residual: post-authorization negotiation acceptance)
 **Created:** 2026-09-28
 **Authors:** Totem SDK Contributors
 **Depends on:** RFC-004 (Edge SDK v1), RFC-010 (Industrial Action RC), RFC-007 (storage/durability)

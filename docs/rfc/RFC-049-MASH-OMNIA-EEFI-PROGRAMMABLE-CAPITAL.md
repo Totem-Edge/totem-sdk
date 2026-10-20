@@ -384,6 +384,11 @@ exercise time (Omnia's both-signed settlement branch cannot be assumed to provid
 
 ## 8. What RFC-048 already flags as missing (statuses)
 
+> **Status note (2026-10-20).** This table is the RFC-048 reference-revision
+> view. Since then P-EXIT’s first shape, factory settlement and recoverable
+> exits landed; see RFC-050 §3 and RFC-048’s Resolution status. Read “Partial”
+> below as the original gap, not the current implementation state.
+
 | Requirement | RFC-048 status | MASH × Eefi relevance |
 |---|---|---|
 | Channel funding & VM-valid transitions | Partial | Binding funded capital to approved terms |

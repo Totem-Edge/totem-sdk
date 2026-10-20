@@ -1,6 +1,6 @@
 # RFC-008: Federated Statechain — Leased WOTS Identity & Threshold SE Federation
 
-**Status:** Draft — Phase 1 landed (leased-WOTS identity + SE server wiring + client envelope verification + SE hardening AUD-026/027/029 + RFC-009 full owner key-model migration); remaining: Go parity
+**Status:** Draft — Phase 1 landed (leased-WOTS identity + SE server wiring + client envelope verification + SE hardening AUD-026/027/029 + RFC-009 full owner key-model migration + RFC-033 Go FFI/SE signing routes); remaining: OQ7 non-WOTS acceptance and any residual Go route parity
 **Created:** 2026-09-21
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]
@@ -436,8 +436,8 @@ never surfaces it.
   (`ownerAuth.ts`) is tree-aware.
 - Rewrite `seKey.test.ts` for the deprecated legacy functions — **landed** (the
   legacy flat `wotsVerifyDigestAsync` is removed; owner auth is TreeKey).
-- **Remaining:** Go signing routes return HTTP 501 (Go SE stays fail-closed,
-  Open Question 7).
+- **Remaining:** Go SE signing routes landed via RFC-033; OQ7 (non-WOTS
+  acceptance) and any residual route parity remain.
 
 **SE hardening landed (AUD-026/027/029).**
 

@@ -1,6 +1,6 @@
 # RFC-014 Amendment A — Capability Manifest Truthfulness
 
-**Status:** Draft — A0, A1, A2 landed; A3 (Axia mirror re-publish) next
+**Status:** Draft — A0, A1, A2 landed; A3 (Axia mirror re-publish) is **blocked on RFC-015**, which is not started
 **Created:** 2026-10-08
 **Revised:** 2026-10-08 (A0/A1/A2 implemented)
 **Amends:** RFC-014 (Wallet Connect Parity)
