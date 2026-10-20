@@ -42,6 +42,14 @@ jobs:
       - name: Build core-wasm (prerequisite)
         working-directory: packages/core-wasm
         run: npm run build
+      - name: Upload rebuilt core-wasm artifacts (provenance)
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: core-wasm-rebuilt
+          path: |
+            packages/core-wasm/pkg
+            packages/core-wasm/pkg-node
+            packages/core-wasm/pkg-web
       - name: WASM provenance — committed pkg/pkg-node/pkg-web must match source (RFC-018 P2-5, RFC-031)
         run: |
           if ! git diff --exit-code -- packages/core-wasm/pkg packages/core-wasm/pkg-node packages/core-wasm/pkg-web; then
