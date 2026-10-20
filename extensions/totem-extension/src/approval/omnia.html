@@ -42,6 +42,19 @@
     <span id="kind-caption">Approving makes your wallet sign this operation with its WOTS key.</span>
   </div>
 
+  <div class="card" id="custody-card" style="display:none; border-color: var(--warning);">
+    <div class="row"><span class="label">Operator</span><span class="value" id="custody-operator"></span></div>
+    <div class="row" id="row-custody-jurisdiction" style="display:none"><span class="label">Jurisdiction</span><span class="value" id="custody-jurisdiction"></span></div>
+    <div class="row" id="row-custody-license" style="display:none"><span class="label">Licence</span><span class="value" id="custody-license"></span></div>
+    <div class="row" id="row-custody-policy" style="display:none"><span class="label">Policy</span><span class="value" id="custody-policy"></span></div>
+    <div class="row" id="row-custody-disclosure" style="display:none"><span class="label">Disclosure</span><span class="value" id="custody-disclosure"></span></div>
+    <div id="custody-warnings" style="margin-top:8px; display:flex; flex-direction:column; gap:6px;"></div>
+    <label style="display:flex; gap:8px; align-items:flex-start; margin-top:12px; font-size:12px;">
+      <input type="checkbox" id="custody-checkbox" />
+      <span>I have read and understand the custody disclosure, operator powers and withdrawal terms.</span>
+    </label>
+  </div>
+
   <div class="card">
     <div class="row" id="row-channel" style="display:none"><span class="label">Channel</span><span class="value" id="channel-id"></span></div>
     <div class="row" id="row-factory" style="display:none"><span class="label">Factory</span><span class="value" id="factory-id"></span></div>
@@ -51,7 +64,7 @@
 
   <div class="actions">
     <button id="reject-btn">Reject</button>
-    <button id="approve-btn">Approve</button>
+    <button id="approve-btn" disabled>Approve</button>
   </div>
 
   <script src="omnia-approval.js"></script>

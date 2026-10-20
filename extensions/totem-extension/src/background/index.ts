@@ -36,6 +36,13 @@ import { sha3_256 } from '@noble/hashes/sha3.js';
 import { parseTxInputs } from '../core/transaction/txParser';
 import { setWasmUrl } from '@totemsdk/txpow';
 import { validateSignData, computeManifestBlobHash, normalizeAddrToHex as normalizeSignAddr } from '../core/signing/signDataValidator';
+import {
+  acknowledgeCustodyDisclosure,
+  isCustodyDisclosureAcknowledged,
+  requiresCustodyDisclosure,
+  validateCustodyDisclosure,
+  type CustodyDisclosure,
+} from '../core/custody/disclosure';
 import { buildTransaction, type BuildTransactionParams, type SpendableCoinInput, type CoinProofData, parseDecimalToBaseUnits, extractAmountBytesFromCoinProof, extractCoinDataFromCoinProof } from '../core/transaction/MinimaTransactionBuilder';
 import { signTokenCoinId } from '../core/transaction/signtoken';
 import { mxToHex, hexToMx } from '../core/utils/minima-base32';
@@ -347,6 +354,7 @@ let pendingProveOwnershipRequest: PendingProveOwnershipRequest | null = null;
 const pendingProveOwnershipCallbacks = new Map<number, (approved: boolean) => void>();
 // RFC-035 B5 — pending Omnia peer-coordination approval windows.
 const pendingOmniaCallbacks = new Map<number, (approved: boolean) => void>();
+const pendingOmniaApprovalParams = new Map<number, OmniaApprovalParams>();
 interface PendingConnection {
   origin: string;
   accounts: Array<{ index: number; address: string; balance: string; name?: string }>;
@@ -612,6 +620,8 @@ interface OmniaApprovalParams {
   factoryId?: string;
   spliceId?: string;
   proposer?: string;
+  /** RFC-058 custody/disclosure metadata; hosted requests are hard-gated. */
+  custody?: CustodyDisclosure;
 }
 
 /**
@@ -628,6 +638,7 @@ async function showOmniaApprovalPopup(params: OmniaApprovalParams): Promise<bool
       ...(params.factoryId ? { factoryId: params.factoryId } : {}),
       ...(params.spliceId ? { spliceId: params.spliceId } : {}),
       ...(params.proposer ? { proposer: params.proposer } : {}),
+      ...(params.custody ? { custody: JSON.stringify(params.custody) } : {}),
     });
     chrome.windows.create({
       url: `${approvalUrl}?${urlParams.toString()}`,
@@ -638,10 +649,12 @@ async function showOmniaApprovalPopup(params: OmniaApprovalParams): Promise<bool
     }, (window) => {
       if (window?.id) {
         pendingOmniaCallbacks.set(window.id, resolve);
+        pendingOmniaApprovalParams.set(window.id, params);
         const removedListener = (windowId: number) => {
           if (windowId === window.id) {
             if (pendingOmniaCallbacks.has(windowId)) {
               pendingOmniaCallbacks.delete(windowId);
+              pendingOmniaApprovalParams.delete(windowId);
               resolve(false);
             }
             chrome.windows.onRemoved.removeListener(removedListener);
@@ -658,6 +671,25 @@ async function showOmniaApprovalPopup(params: OmniaApprovalParams): Promise<bool
       }
     });
   });
+}
+
+/**
+ * RFC-058: fail-closed gate for hosted/trust-minimised liquidity commitments.
+ * Returns false when the user rejects the disclosure.
+ */
+async function ensureCustodyDisclosure(custody: CustodyDisclosure): Promise<boolean> {
+  validateCustodyDisclosure(custody);
+  if (!requiresCustodyDisclosure(custody)) return true;
+  if (await isCustodyDisclosureAcknowledged(custody)) return true;
+  return showOmniaApprovalPopup({ kind: 'custody-disclosure', custody });
+}
+
+function parseCustodyParam(value: unknown): CustodyDisclosure | undefined {
+  if (!value) return undefined;
+  const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+  if (!parsed || typeof parsed !== 'object') throw new Error('invalid custody disclosure');
+  validateCustodyDisclosure(parsed as CustodyDisclosure);
+  return parsed as CustodyDisclosure;
 }
 
 async function showPermissionApprovalPopup(req: PendingPermissionRequest): Promise<boolean> {
@@ -768,7 +800,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         cleanupListener();
         windowRemoveListeners.delete(windowId);
       }
-      callback(message.approved === true);
+      const approvalParams = pendingOmniaApprovalParams.get(windowId);
+      pendingOmniaApprovalParams.delete(windowId);
+      const custody = approvalParams?.custody;
+      if (custody && requiresCustodyDisclosure(custody)) {
+        if (message.approved !== true || message.custodyAcknowledged !== true) {
+          callback(false);
+        } else {
+          void acknowledgeCustodyDisclosure(custody)
+            .then(() => callback(true))
+            .catch(() => callback(false));
+        }
+      } else {
+        callback(message.approved === true);
+      }
     }
   }
 
@@ -1122,6 +1167,7 @@ function approveExtensionCoordination(req: WalletApprovalRequest): Promise<boole
     ...(req.factoryId ? { factoryId: req.factoryId } : {}),
     ...(req.spliceId ? { spliceId: req.spliceId } : {}),
     ...(req.proposer ? { proposer: req.proposer } : {}),
+    ...(req.custody ? { custody: req.custody as CustodyDisclosure } : {}),
   });
 }
 
@@ -4236,6 +4282,16 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
         if (!unlocked) {
           return { ok: true, result: { success: false, error: 'Wallet is locked', errorCode: 'WALLET_LOCKED' }, id };
         }
+
+        let custody: CustodyDisclosure | undefined;
+        try {
+          custody = parseCustodyParam((params as any)?.custody);
+        } catch (error: any) {
+          return { ok: true, result: { success: false, error: error.message, errorCode: 'INVALID_CUSTODY_DISCLOSURE' }, id };
+        }
+        if (custody && !(await ensureCustodyDisclosure(custody))) {
+          return { ok: true, result: { success: false, error: 'Custody disclosure rejected', errorCode: 'USER_REJECTED' }, id };
+        }
         
         console.log(`[TOTEM_SEND_COMPLEX] Complex transaction request (mode=${mode}) from:`, origin);
         
@@ -4574,6 +4630,16 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
         const unlocked = await ensureUnlocked('A dApp wants to sign data');
         if (!unlocked) {
           return { ok: true, result: { success: false, error: 'Wallet is locked', errorCode: 'WALLET_LOCKED' }, id };
+        }
+
+        let custody: CustodyDisclosure | undefined;
+        try {
+          custody = parseCustodyParam((params as any)?.custody);
+        } catch (error: any) {
+          return { ok: true, result: { success: false, error: error.message, errorCode: 'INVALID_CUSTODY_DISCLOSURE' }, id };
+        }
+        if (custody && !(await ensureCustodyDisclosure(custody))) {
+          return { ok: true, result: { success: false, error: 'Custody disclosure rejected', errorCode: 'USER_REJECTED' }, id };
         }
         
         console.log('[TOTEM_SIGN_DATA] request from:', origin);

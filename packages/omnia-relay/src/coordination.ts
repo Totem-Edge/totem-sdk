@@ -20,6 +20,7 @@ import {
   type OmniaPeer,
   type OmniaChannel,
   type ChannelSigner,
+  type CustodyContext,
 } from '@totemsdk/omnia';
 import {
   createSpliceCoordination,
@@ -46,6 +47,8 @@ export interface WalletApprovalRequest {
   factoryId?: string;
   spliceId?: string;
   proposer?: string;
+  /** RFC-058 custody/disclosure metadata; hosted requests must be gated. */
+  custody?: CustodyContext;
 }
 export type WalletApproval = (request: WalletApprovalRequest) => Promise<boolean>;
 
@@ -63,6 +66,8 @@ export interface WalletCoordinationOptions {
   /** Inititator-only: mine + broadcast settlement TxPoW. */
   chainProvider?: ChainStateProvider;
   policy?: CoordinationPolicy;
+  /** RFC-058 custody metadata attached to every approval request. */
+  custody?: CustodyContext;
   /** Signature verifier; defaults to `verifyChannelSignature` (RFC-037). */
   verifySignature?: (signature: Uint8Array, digest: Uint8Array, publicKeyDigest: string) => boolean;
   /** Splice finalize options (broadcast / mineDifficulty). */
@@ -100,7 +105,7 @@ export function createWalletCoordination(options: WalletCoordinationOptions): Wa
     finalizeOptions: options.spliceFinalizeOptions,
     approval: approval
       ? (req) =>
-          approval({ kind: 'splice-accept', channelId: req.channelId, spliceId: req.spliceId, proposer: req.proposer })
+          approval({ kind: 'splice-accept', channelId: req.channelId, spliceId: req.spliceId, proposer: req.proposer, custody: options.custody })
       : undefined,
     onFinalized: options.onSpliceFinalized,
   });
@@ -111,7 +116,7 @@ export function createWalletCoordination(options: WalletCoordinationOptions): Wa
     verifySignature: options.verifySignature,
     chainProvider: options.chainProvider,
     approval: approval
-      ? (req) => approval({ kind: 'factory-open', factoryId: req.factoryId, proposer: req.proposer })
+      ? (req) => approval({ kind: 'factory-open', factoryId: req.factoryId, proposer: req.proposer, custody: options.custody })
       : undefined,
     onOpened: options.onFactoryOpened,
     onClosed: options.onFactoryClosed,

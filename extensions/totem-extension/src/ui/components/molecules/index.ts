@@ -67,3 +67,5 @@ export type {
 } from './TransactionPreview';
 
 export { QRScannerModal } from './QRScannerModal';
+export { CustodyDisclosureModal } from './CustodyDisclosureModal';
+export type { CustodyDisclosureModalProps } from './CustodyDisclosureModal';
