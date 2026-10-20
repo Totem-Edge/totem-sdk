@@ -149,7 +149,7 @@ describe('factory close coordination (RFC-035 B3)', () => {
   async function makeActive(alice: ReturnType<typeof makeBundle>, bob: ReturnType<typeof makeBundle>): Promise<ChannelFactory> {
     let f = await createFactory([ALICE, BOB], TOKEN_A, alice.bundle);
     f = await acceptFactory(f, bob.bundle);
-    return { ...f, fundingCoinId: 'test-coin-001' };
+    return { ...f, fundingCoinId: '0x' + 'ab'.repeat(32) };
   }
 
   it('closes N-of-N: gathers settlement signatures and commits held leases', async () => {
@@ -225,7 +225,7 @@ describe('virtual channel open coordination (RFC-035 B3)', () => {
   async function makeActive(alice: ReturnType<typeof makeBundle>, bob: ReturnType<typeof makeBundle>): Promise<ChannelFactory> {
     let f = await createFactory([ALICE, BOB], TOKEN_A, alice.bundle);
     f = await acceptFactory(f, bob.bundle);
-    return { ...f, fundingCoinId: 'test-coin-001' };
+    return { ...f, fundingCoinId: '0x' + 'ab'.repeat(32) };
   }
 
   it('opens N-of-N: gathers VC-open signatures and commits held leases', async () => {

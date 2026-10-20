@@ -81,21 +81,21 @@ const ALICE: FactoryParticipant = {
   publicKeyDigest:    '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
   addressIndex:       0,
   contributionAmount: 1000n,
-  settlementAddress:  '0xALICE_SETTLE',
+  settlementAddress:  '0x' + 'a1'.repeat(32),
 };
 const BOB: FactoryParticipant = {
   partyId:            'bob',
   publicKeyDigest:    '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
   addressIndex:       1,
   contributionAmount: 500n,
-  settlementAddress:  '0xBOB_SETTLE',
+  settlementAddress:  '0x' + 'b2'.repeat(32),
 };
 const CAROL: FactoryParticipant = {
   partyId:            'carol',
   publicKeyDigest:    '0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
   addressIndex:       2,
   contributionAmount: 500n,
-  settlementAddress:  '0xCAROL_SETTLE',
+  settlementAddress:  '0x' + 'c3'.repeat(32),
 };
 
 // One bundle per participant.
@@ -156,7 +156,7 @@ async function makeActiveFactoryColoured(participants: FactoryParticipant[], tok
 }
 
 /** Attach a dummy fundingCoinId to a factory (needed by closeFactory). */
-function withFundingCoinId(factory: ChannelFactory, coinId = 'test-coin-001'): ChannelFactory {
+function withFundingCoinId(factory: ChannelFactory, coinId = '0x' + 'ab'.repeat(32)): ChannelFactory {
   return { ...factory, fundingCoinId: coinId };
 }
 
