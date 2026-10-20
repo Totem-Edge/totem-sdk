@@ -62,6 +62,18 @@ try {
   }
 } catch {}
 
+// Also skip versions already tagged on origin: tags may have been created from
+// another clone, and pushing them again aborts the whole release run.
+try {
+  const result = execSync('git ls-remote --tags origin "totemsdk/*"', {
+    cwd: REPO_ROOT, encoding: 'utf-8', timeout: 30000
+  });
+  for (const line of result.trim().split('\n')) {
+    const ref = line.split('\t')[1];
+    if (ref) releasedTags.add(ref.replace('refs/tags/', '').replace(/\^\{\}$/, ''));
+  }
+} catch {}
+
 const HEAD = execSync('git rev-parse HEAD', { cwd: REPO_ROOT, encoding: 'utf-8' }).trim();
 const toRelease = ordered.filter(p => !releasedTags.has(`totemsdk/${p.slug}-v${p.version}`));
 

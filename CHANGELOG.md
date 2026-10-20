@@ -37,9 +37,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - N-of-N settlement witness (factory coin proof + script proof) submitted via `txnmine`/`sendtransaction`.
   - Two-phase `build`/`sign`/`assembleVirtualChannelClose` for virtual-channel closure.
 
-- **`@totemsdk/omnia-host` 0.9.0 — two-node factory and virtual-channel coordination**
+- **`@totemsdk/omnia-host` 0.10.0 — two-node factory, virtual-channel, splice, and cooperative settlement**
   - Local factory lease bundles; `FACTORY_PROPOSAL`/`FACTORY_ACCEPT` and `VC_PROPOSAL`/`VC_ACCEPT`/`VC_FINALIZED` coordination.
   - Two-phase `createFactory`, `openVirtualChannel`, and `closeVirtualChannel`; `closeFactory` accepts the factory coin proof.
+  - `createFactory` accepts per-participant funding material (coin/script proofs plus local and remote co-signers); `closeFactory` performs cooperative two-host settlement via `FACTORY_CLOSE_PROPOSAL`/`FACTORY_CLOSE_ACCEPT`/`FACTORY_CLOSE_FINALIZED`.
+  - S7 splice coordination is wired into the host lifecycle and control API.
 
 - **`@totemsdk/omnia-router` 0.4.0 — bounded routing engine**
   - Layered `(hops, node)` search plus zero-fee BFS, fixing the hop-constrained label bug.
@@ -98,6 +100,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`@totemsdk/omnia-pool` 0.5.2** — `@totemsdk/omnia-factory`, `omnia-router`, `omnia-splice`, and `omnia-vtxo` are declared runtime dependencies (they are statically imported by `live-ports.ts`); optional peers made the published package unimportable in a clean install.
 
 - **`@totemsdk/connect` 2.4.1** — refreshed workspace peer ranges so a flat install no longer hits `ERESOLVE` against the current Omnia family.
+
+- **`@totemsdk/connect` 2.4.2** — refreshed the `omnia-factory` and `omnia-router` dependency ranges for the 0.7.0 / 0.4.0 releases (`^0.6.0`/`^0.3.0` excluded them).
+
+- **`@totemsdk/omnia-pool` 0.5.3** — refreshed the `omnia-factory` and `omnia-router` ranges for the 0.7.0 / 0.4.0 releases.
 
 - **`@totemsdk/stream-transport` 0.2.1** — `NodeStreamTransport` now waits for a raw stream's `opened`/`connecting`/`open`/`connect`/`ready` signal before sending, so writes to a `dht.connect()` stream are not lost during the Noise handshake.
 

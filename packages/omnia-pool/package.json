@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/omnia-pool",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "description": "Generic Omnia liquidity pool orchestration primitive for Totem SDK",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",

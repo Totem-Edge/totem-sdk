@@ -198,7 +198,7 @@
     },
     {
       "name": "@totemsdk/connect",
-      "version": "2.4.1",
+      "version": "2.4.2",
       "description": "Client-side SDK for Totem wallet browser extension — includes Edge capability layer",
       "domain": "edge-computing",
       "keywords": [
@@ -334,7 +334,7 @@
       ],
       "dependencies": {
         "@totemsdk/agent-policy": "^0.3.1",
-        "@totemsdk/connect": "^2.4.1",
+        "@totemsdk/connect": "^2.4.2",
         "@totemsdk/core": "^1.4.0",
         "@totemsdk/decision": "^0.2.0",
         "@totemsdk/identity": "^1.0.2",
@@ -1472,7 +1472,7 @@
       ],
       "dependencies": {
         "@totemsdk/chain-provider": "^0.3.0",
-        "@totemsdk/connect": "^2.4.1"
+        "@totemsdk/connect": "^2.4.2"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1590,7 +1590,7 @@
     },
     {
       "name": "@totemsdk/omnia-host",
-      "version": "0.9.0",
+      "version": "0.10.0",
       "description": "Durable Omnia node daemon for channel lifecycle, routing, and control APIs",
       "domain": "payment-network",
       "keywords": [
@@ -1723,7 +1723,7 @@
     },
     {
       "name": "@totemsdk/omnia-pool",
-      "version": "0.5.2",
+      "version": "0.5.3",
       "description": "Generic Omnia liquidity pool orchestration primitive for Totem SDK",
       "domain": "payment-network",
       "keywords": [
