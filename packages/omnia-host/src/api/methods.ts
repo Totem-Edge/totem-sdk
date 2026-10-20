@@ -42,7 +42,6 @@ import {
   type WotsLeaseBundle,
 } from '@totemsdk/omnia-factory';
 import {
-  acceptSplice,
   finalizeSplice,
   proposeSpliceIn,
   proposeSpliceOut,
@@ -899,18 +898,63 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
 
   const splice = (type: 'in' | 'out'): JsonRpcHandler => async (raw) => {
     const params = paramsObject(raw);
-    if (!context.spliceLeaseProvider || !context.spliceProposals) throw new Error('Splice manager is not configured');
+    if (!context.spliceLeaseProvider || !context.spliceProposals || !context.spliceAcceptances) {
+      throw new Error('Splice manager is not configured');
+    }
     const channelId = requiredString(params, 'channelId');
     const channel = context.channels.get(channelId);
     if (!channel) throw new Error(`Channel ${channelId} not found`);
+    const localPartyId = context.localParticipant?.partyId;
+    if (!localPartyId) throw new Error('Local participant is not configured');
+    const remote = channel.parties.find((party) => party.partyId !== localPartyId);
+    if (!context.swarm || !remote) throw new Error('Splice requires a counterparty');
+    const swarm = context.swarm;
     return withOperation(context, params, async () => {
-      const quiesced = await quiesceChannel(channel, context.spliceLeaseProvider!);
+      const provider = context.spliceLeaseProvider!;
+      const quiesced = await quiesceChannel(channel, provider);
       const proposal = type === 'in'
-        ? await proposeSpliceIn(quiesced, requiredString(params, 'additionalCoinId'), requiredBigInt(params, 'additionalAmount'), context.spliceLeaseProvider!, params.newBalances as Record<string, bigint> | undefined)
-        : await proposeSpliceOut(quiesced, requiredBigInt(params, 'withdrawAmount'), requiredString(params, 'withdrawAddress'), context.spliceLeaseProvider!, params.newBalances as Record<string, bigint> | undefined);
+        ? await proposeSpliceIn(quiesced, requiredString(params, 'additionalCoinId'), requiredBigInt(params, 'additionalAmount'), provider, params.newBalances as Record<string, bigint> | undefined)
+        : await proposeSpliceOut(quiesced, requiredBigInt(params, 'withdrawAmount'), requiredString(params, 'withdrawAddress'), provider, params.newBalances as Record<string, bigint> | undefined);
       context.spliceProposals!.set(proposal.spliceId, proposal);
-      context.channels.set(channelId, quiesced as unknown as OmniaChannel);
-      return { success: true, channelId, spliceId: proposal.spliceId, updatedChannelState: proposal.spliceTxHex };
+
+      const peer = await swarm.connectToPeer(remote.publicKeyDigest, channelId, remote.transportPubkey);
+      const proposalMessage = {
+        type: 'SPLICE_PROPOSAL',
+        channelId,
+        nonce: Date.now(),
+        payload: { proposal },
+      };
+      const reply = await requestPeerReply(peer, proposalMessage, channelId, 30_000, ['SPLICE_ACCEPT', 'ERROR']);
+      const acceptance = (reply?.payload as { acceptance?: SpliceAcceptance } | undefined)?.acceptance;
+      if (reply?.type !== 'SPLICE_ACCEPT' || !acceptance) {
+        throw new Error(`Counterparty did not accept the splice (${reply?.type ?? 'timeout'})`);
+      }
+      context.spliceAcceptances!.set(proposal.spliceId, acceptance);
+
+      const spliced = await finalizeSplice(quiesced, proposal, acceptance, {
+        ...(provider.broadcast ? { broadcast: provider.broadcast } : {}),
+        proposerLeaseProvider: provider.wotsLease,
+      });
+      context.channels.set(channelId, spliced as unknown as OmniaChannel);
+      await peer.sendMessage({
+        type: 'SPLICE_FINALIZED',
+        channelId,
+        nonce: proposalMessage.nonce,
+        payload: {
+          channel: spliced,
+          txId: spliced.spliceFundingTxId,
+          spliceId: proposal.spliceId,
+        },
+      });
+      return {
+        success: true,
+        channelId,
+        spliceId: proposal.spliceId,
+        spliceType: spliced.spliceType,
+        totalValue: spliced.totalValue.toString(),
+        balances: Object.fromEntries(Object.entries(spliced.balances).map(([partyId, amount]) => [partyId, amount.toString()])),
+        fundingCoinId: spliced.spliceFundingCoinId,
+      };
     });
   };
   register('totem_omniaSpliceIn', splice('in'), 'omnia/spliceIn');

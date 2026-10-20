@@ -19,7 +19,7 @@ settlement + explicit TxPoW mining), `12e37e73` (transport identity),
 | **S4** | **PASS** | `openChannel → pay → settle → closeChannel`; settlement TxPoW accepted as a main-chain block |
 | **S5** | **PASS** | `createFactory → openVirtualChannel → closeVirtualChannel`; allocations restored (native, two hosts) |
 | **S6** | **PASS** | SDK harness: pool → mint → signed receipts → transfer → refresh → exit |
-| **S7** | **PASS** | SDK harness: quiesce/propose/accept/finalize splice-in and splice-out |
+| **S7** | **PASS** | SDK harness + host coordination (unit); live 2-host E2E pending |
 | **S8** | **PASS** | SDK harness: 3-hop fee-aware payment, per-hop amounts, fee retention |
 | **S9** | **PASS** | local relay; two relay-backed swarms; PING/ACK round-trip; 2 relay clients |
 | **S10** | **PASS** | SDK harness: pool → deposit → allocate → release → withdraw → rooted payout |
@@ -169,7 +169,11 @@ OMNIA_RESULT {"stage":"S7","spliceIn":{"from":"1000","to":"1500"},
 S7_PASS
 ```
 
-Host accept/finalize + peer coordination remain future work.
+Host coordination is implemented: `lifecycle.ts` wires the splice lease/proposal
+stores, the proposer drives `SPLICE_PROPOSAL → SPLICE_ACCEPT → finalize →
+SPLICE_FINALIZED`, and the responder quiesces/accepts and commits its reservation
+on finalization. `packages/omnia-host/src/__tests__/splice-coordination.test.ts`
+covers the proposer path. A live two-host on-chain splice E2E remains.
 
 ### S8 — fee-aware multi-hop
 
@@ -213,7 +217,7 @@ Axia API, Postgres, Redis, and the TxPoW indexer.
 | `@totemsdk/core` | 26 | 288 |
 | `@totemsdk/txpow` | 4 | 136 |
 | `@totemsdk/omnia` | 9 | 223 |
-| `@totemsdk/omnia-host` | 11 | 58 |
+| `@totemsdk/omnia-host` | 12 | 59 |
 | `@totemsdk/stream-transport` | 2 | 20 |
 | `@totemsdk/omnia-vtxo` | 17 | 187 |
 | `@totemsdk/omnia-splice` | 3 | 75 |

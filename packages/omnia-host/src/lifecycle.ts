@@ -16,6 +16,7 @@ import {
   signVirtualChannelOpen,
   signVirtualChannelClose,
 } from '@totemsdk/omnia-factory';
+import { acceptSplice, quiesceChannel } from '@totemsdk/omnia-splice';
 import type { ChannelFactory, FactoryParticipant, WotsLeaseBundle } from '@totemsdk/omnia-factory';
 import type { SpliceAcceptance, SpliceLeaseProvider, SpliceProposal } from '@totemsdk/omnia-splice';
 
@@ -172,6 +173,76 @@ export function createOmniaHost(
         ? factoryBundles?.[localParticipant.partyId]
         : undefined;
 
+      const spliceLeaseProvider = dependencies.spliceLeaseProvider ?? (
+        dependencies.signer && dependencies.leaseProvider
+          ? {
+              signer: dependencies.signer,
+              wotsLease: dependencies.leaseProvider,
+              ...(chainAdapter
+                ? { broadcast: (txHex: string) => chainAdapter!.broadcastTxPoW(txHex) }
+                : {}),
+            }
+          : undefined
+      );
+      const spliceProposals = dependencies.spliceProposals ?? new Map<string, SpliceProposal>();
+      const spliceAcceptances = dependencies.spliceAcceptances ?? new Map<string, SpliceAcceptance>();
+
+      const onSpliceMessage = async (peer: any, msg: any): Promise<void> => {
+        if (!spliceLeaseProvider || !channelStore) return;
+        if (msg?.type !== 'SPLICE_PROPOSAL' && msg?.type !== 'SPLICE_FINALIZED') return;
+        const payload = (msg.payload ?? {}) as Record<string, any>;
+        try {
+          if (msg.type === 'SPLICE_PROPOSAL' && payload.proposal) {
+            const proposal = payload.proposal as SpliceProposal;
+            let channel = channelStore.get(proposal.channelId) as
+              | import('@totemsdk/omnia-splice').QuiescedChannel
+              | import('@totemsdk/omnia').OmniaChannel
+              | undefined;
+            if (!channel) throw new Error(`Splice channel ${proposal.channelId} not found`);
+            const prior = spliceAcceptances.get(proposal.spliceId);
+            if (prior) {
+              await peer.sendMessage({
+                type: 'SPLICE_ACCEPT',
+                channelId: msg.channelId,
+                nonce: msg.nonce,
+                payload: { acceptance: prior },
+              });
+              return;
+            }
+            if (channel.status === 'active') {
+              channel = await quiesceChannel(channel, spliceLeaseProvider);
+              channelStore.set(channel.channelId, channel as unknown as OmniaChannel);
+            }
+            const acceptance = await acceptSplice(channel, proposal, spliceLeaseProvider);
+            spliceAcceptances.set(proposal.spliceId, acceptance);
+            await peer.sendMessage({
+              type: 'SPLICE_ACCEPT',
+              channelId: msg.channelId,
+              nonce: msg.nonce,
+              payload: { acceptance },
+            });
+            return;
+          }
+          if (msg.type === 'SPLICE_FINALIZED' && payload.channel) {
+            const channel = payload.channel as OmniaChannel;
+            channelStore.set(channel.channelId, channel);
+            const acceptance = spliceAcceptances.get(payload.spliceId);
+            if (acceptance && typeof payload.txId === 'string') {
+              await spliceLeaseProvider.wotsLease
+                .commitKeyUse(acceptance.acceptorReservationId, payload.txId)
+                .catch(() => {});
+            }
+          }
+        } catch (err) {
+          await peer.sendMessage({
+            type: 'ERROR',
+            channelId: msg.channelId,
+            nonce: msg.nonce,
+            payload: { error: err instanceof Error ? err.message : String(err) },
+          }).catch(() => {});
+        }
+      };
+
       const factoryReplies = new ReplyCache();
       const vcReplies = new ReplyCache();
 
@@ -283,6 +354,7 @@ export function createOmniaHost(
         chainProvider: dependencies.chainProvider ?? chainAdapter,
         onFactoryMessage,
         onVcMessage,
+        onSpliceMessage,
       });
       if (!controlServer) {
         const readOnly = !dependencies.signer || !dependencies.leaseProvider;
@@ -308,9 +380,9 @@ export function createOmniaHost(
             transportPubkey: dependencies.transportPubkey,
             factories,
             factoryBundles,
-            spliceProposals: dependencies.spliceProposals,
-            spliceAcceptances: dependencies.spliceAcceptances,
-            spliceLeaseProvider: dependencies.spliceLeaseProvider,
+            spliceProposals,
+            spliceAcceptances,
+            spliceLeaseProvider,
             fundingSigner: config.fundingPubkey
               ? async (digest: Uint8Array) => {
                   const sig = await chainAdapter!.signData(

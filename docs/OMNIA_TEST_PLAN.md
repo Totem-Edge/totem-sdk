@@ -138,8 +138,10 @@ active channel → `quiesceChannel` → `proposeSpliceIn` (1000→1500) → `acc
 Uses a fresh channel id per phase because the SDK keeps a per-channel sequence
 watermark.
 
-Host wiring (a peer `SPLICE_PROPOSAL`/`ACCEPT` exchange and host
-accept/finalize methods) is still pending; the SDK lifecycle is green.
+Host coordination is now wired: the proposer sends `SPLICE_PROPOSAL`, the
+responder quiesces/accepts (`SPLICE_ACCEPT`), the proposer finalizes and sends
+`SPLICE_FINALIZED`; duplicate proposals reuse the cached acceptance. A live
+two-host E2E run (with an on-chain splice-in funding coin) is still pending.
 
 ### S8
 
@@ -212,7 +214,7 @@ harness's.
 | **S4** | core channel lifecycle between two nodes | a channel payment settles on-chain | done |
 | **S5** | factory + virtual-channel lifecycle | factory opens, VC opens/closes, allocations restore | done |
 | **S6** | virtual-UTXO claims | claim settles | done (SDK harness) |
-| **S7** | splice in/out | live resize | done (SDK harness); host accept/finalize wiring pending |
+| **S7** | splice in/out | live resize | done (SDK + host coordination); live 2-host E2E pending |
 | **S8** | multi-hop / cross-token payment (3 nodes) | multi-hop settles | done (SDK harness, fee-aware); 3-host E2E + cross-token pending |
 | **S9** | relay round-trip (SDK harness) | relay client/server round-trip | done |
 | **S10** | liquidity-pool orchestration | pool lifecycle | done (SDK harness) |

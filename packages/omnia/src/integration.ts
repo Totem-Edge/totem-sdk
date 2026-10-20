@@ -55,6 +55,8 @@ export interface OmniaIntegrationConfig {
   onFactoryMessage?: (peer: OmniaPeer, msg: OmniaMessage) => void | Promise<void>;
   /** Virtual-channel coordination messages (VC_PROPOSAL/ACCEPT/FINALIZED). */
   onVcMessage?: (peer: OmniaPeer, msg: OmniaMessage) => void | Promise<void>;
+  /** Splice coordination messages (SPLICE_PROPOSAL/ACCEPT/FINALIZED). */
+  onSpliceMessage?: (peer: OmniaPeer, msg: OmniaMessage) => void | Promise<void>;
 }
 
 export type ChannelStore = Map<string, OmniaChannel>;
@@ -102,6 +104,9 @@ export function createOmniaIntegration(
   const VC_TYPES = new Set<OmniaMessage['type']>([
     'VC_PROPOSAL', 'VC_ACCEPT', 'VC_FINALIZED',
   ]);
+  const SPLICE_TYPES = new Set<OmniaMessage['type']>([
+    'SPLICE_PROPOSAL', 'SPLICE_ACCEPT', 'SPLICE_FINALIZED',
+  ]);
 
   const unsubListen = swarm.listenForChannels(
     (peer: OmniaPeer, msg: OmniaMessage) => {
@@ -119,6 +124,10 @@ export function createOmniaIntegration(
       }
       if (VC_TYPES.has(msg.type)) {
         void config.onVcMessage?.(peer, msg);
+        return;
+      }
+      if (SPLICE_TYPES.has(msg.type)) {
+        void config.onSpliceMessage?.(peer, msg);
       }
     },
   );
