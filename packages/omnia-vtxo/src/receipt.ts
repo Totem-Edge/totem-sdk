@@ -30,11 +30,10 @@ export interface VtxoReceiptBatch {
  * @throws if the root does not commit the leaves, the epoch is stale, an output
  * is not in the batch, or conservation fails.
  */
-export async function signVtxoReceipt(
-  operator: OmniaVtxoOperator,
+export function buildVtxoReceiptPayload(
   receipt: VtxoOperatorReceipt,
   batch: VtxoReceiptBatch,
-): Promise<VtxoOperatorReceipt> {
+): Uint8Array {
   if (receipt.epoch !== batch.epoch) {
     throw new Error(`receipt epoch ${receipt.epoch} does not match batch epoch ${batch.epoch}`);
   }
@@ -59,7 +58,15 @@ export async function signVtxoReceipt(
     }
   }
 
-  const data = computeBatchCommitmentBytes(receipt.poolId, receipt.epoch, batch.root, receipt.outputIds);
+  return computeBatchCommitmentBytes(receipt.poolId, receipt.epoch, batch.root, receipt.outputIds);
+}
+
+export async function signVtxoReceipt(
+  operator: OmniaVtxoOperator,
+  receipt: VtxoOperatorReceipt,
+  batch: VtxoReceiptBatch,
+): Promise<VtxoOperatorReceipt> {
+  const data = buildVtxoReceiptPayload(receipt, batch);
   const signature = await operator.sign(data);
   return { ...receipt, signature };
 }

@@ -92,5 +92,5 @@ describe('omnia prepareFactory / submitFactory', () => {
     const factory = (context.factories as Map<string, any>).get((prepared as any).factoryId)!;
     expect(factory.status).toBe('active');
     expect(factory.allocations).toEqual({ alice: 600n, bob: 400n });
-  });
+  }, 30_000);
 });

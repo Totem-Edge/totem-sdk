@@ -36,6 +36,19 @@ import type {
   UpdateStateResult,
   ChannelOpeningPlan,
 } from '@totemsdk/omnia';
+import {
+  createPool as createVtxoPoolSdk,
+  mintVtxo,
+  transferVtxo,
+  refreshVtxo,
+  createExitDraft,
+  markExiting,
+  markExited,
+  buildVtxoReceiptPayload,
+  type OmniaVtxo,
+  type OmniaVtxoPool,
+  type VtxoOperatorReceipt,
+} from '@totemsdk/omnia-vtxo';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import type { SigningIndices, WotsLeaseProvider } from '@totemsdk/wots-lease';
 import {
@@ -128,6 +141,11 @@ export interface HostApiContext {
   preparedSplice?: Map<string, PreparedSpliceEntry>;
   /** Coordinator-mode factory openings awaiting the creator signature. */
   preparedFactory?: Map<string, PreparedFactoryEntry>;
+  /** VTXO pools, live claims and unsigned/signed receipts. */
+  vtxoPools?: Map<string, OmniaVtxoPool>;
+  vtxos?: Map<string, OmniaVtxo>;
+  vtxoReceipts?: Map<string, VtxoOperatorReceipt>;
+  preparedVtxoReceipts?: Map<string, PreparedVtxoReceiptEntry>;
   /** True when the host has no signer and exposes prepare/submit only. */
   coordinator?: boolean;
   /** Opt-in host identity (address, publicKeyDigest, optional delegation). */
@@ -418,6 +436,13 @@ export interface PreparedOpenEntry {
   fundingScript?: string;
   intent: import('@totemsdk/omnia').SignRequest;
   funding: import('@totemsdk/omnia').SignRequest;
+  expiresAt: number;
+}
+
+export interface PreparedVtxoReceiptEntry {
+  receipt: VtxoOperatorReceipt;
+  payload: Uint8Array;
+  request: SignRequest;
   expiresAt: number;
 }
 
@@ -1491,6 +1516,187 @@ function registerPreparedPayMethods(
   };
   methods.set('totem_omniaSubmitFactory', submitFactory);
   methods.set('omnia/submitFactory', submitFactory);
+
+  const createVtxoPoolMethod: JsonRpcHandler = async (raw) => {
+    const params = paramsObject(raw);
+    if (!context.vtxoPools) throw new Error('VTXO stores are not configured');
+    const localPkd = context.localParticipant?.publicKeyDigest;
+    const operator = typeof params.operator === 'string' ? params.operator : localPkd;
+    if (!operator) throw new Error('VTXO pool operator is required');
+    const pool = createVtxoPoolSdk({
+      operator,
+      tokenId: typeof params.tokenId === 'string' ? params.tokenId : '0x00',
+      totalCapacity: requiredBigInt(params, 'totalCapacity'),
+      nonce: requiredString(params, 'nonce'),
+      ...(params.policy && typeof params.policy === 'object' ? { policy: params.policy as Record<string, unknown> } : {}),
+    }, typeof params.now === 'number' ? params.now : Date.now());
+    context.vtxoPools.set(pool.poolId, pool);
+    return { success: true, pool: jsonSafe(pool) };
+  };
+  methods.set('totem_omniaCreateVtxoPool', createVtxoPoolMethod);
+  methods.set('omnia/createVtxoPool', createVtxoPoolMethod);
+
+  const mintVtxoMethod: JsonRpcHandler = async (raw) => {
+    const params = paramsObject(raw);
+    if (!context.vtxoPools || !context.vtxos || !context.vtxoReceipts) throw new Error('VTXO stores are not configured');
+    const pool = context.vtxoPools.get(requiredString(params, 'poolId'));
+    if (!pool) throw new Error(`VTXO pool ${String(params.poolId)} not found`);
+    const minted = mintVtxo(pool, {
+      owner: requiredString(params, 'owner'),
+      amount: requiredBigInt(params, 'amount'),
+      nonce: requiredString(params, 'nonce'),
+      expiresAt: typeof params.expiresAt === 'number' ? params.expiresAt : undefined,
+      fundingProof: params.fundingProof,
+    }, typeof params.now === 'number' ? params.now : undefined);
+    context.vtxoPools.set(pool.poolId, minted.pool);
+    context.vtxos.set(minted.vtxo.vtxoId, minted.vtxo);
+    context.vtxoReceipts.set(minted.receipt.receiptId, minted.receipt);
+    return { success: true, pool: jsonSafe(minted.pool), vtxo: jsonSafe(minted.vtxo), receipt: jsonSafe(minted.receipt) };
+  };
+  methods.set('totem_omniaMintVtxo', mintVtxoMethod);
+  methods.set('omnia/mintVtxo', mintVtxoMethod);
+
+  const transferVtxoMethod: JsonRpcHandler = async (raw) => {
+    const params = paramsObject(raw);
+    if (!context.vtxos || !context.vtxoReceipts) throw new Error('VTXO stores are not configured');
+    const vtxo = context.vtxos.get(requiredString(params, 'vtxoId'));
+    if (!vtxo) throw new Error(`VTXO ${String(params.vtxoId)} not found`);
+    const result = transferVtxo(vtxo, {
+      recipient: requiredString(params, 'recipient'),
+      amount: requiredBigInt(params, 'amount'),
+      nonce: requiredString(params, 'nonce'),
+      changeNonce: typeof params.changeNonce === 'string' ? params.changeNonce : undefined,
+    }, typeof params.now === 'number' ? params.now : undefined);
+    context.vtxos.set(result.input.vtxoId, result.input);
+    context.vtxos.set(result.output.vtxoId, result.output);
+    if (result.change) context.vtxos.set(result.change.vtxoId, result.change);
+    context.vtxoReceipts.set(result.receipt.receiptId, result.receipt);
+    return {
+      success: true,
+      input: jsonSafe(result.input),
+      output: jsonSafe(result.output),
+      change: result.change ? jsonSafe(result.change) : undefined,
+      receipt: jsonSafe(result.receipt),
+    };
+  };
+  methods.set('totem_omniaTransferVtxo', transferVtxoMethod);
+  methods.set('omnia/transferVtxo', transferVtxoMethod);
+
+  const refreshVtxoMethod: JsonRpcHandler = async (raw) => {
+    const params = paramsObject(raw);
+    if (!context.vtxos || !context.vtxoReceipts) throw new Error('VTXO stores are not configured');
+    const vtxo = context.vtxos.get(requiredString(params, 'vtxoId'));
+    if (!vtxo) throw new Error(`VTXO ${String(params.vtxoId)} not found`);
+    const result = refreshVtxo(vtxo, {
+      newEpoch: Number(params.newEpoch),
+      nonce: requiredString(params, 'nonce'),
+    }, typeof params.now === 'number' ? params.now : undefined);
+    context.vtxos.set(result.old.vtxoId, result.old);
+    context.vtxos.set(result.refreshed.vtxoId, result.refreshed);
+    if (context.vtxoPools) {
+      const pool = context.vtxoPools.get(vtxo.poolId);
+      if (pool) context.vtxoPools.set(pool.poolId, { ...pool, epoch: result.refreshed.epoch });
+    }
+    context.vtxoReceipts.set(result.receipt.receiptId, result.receipt);
+    return { success: true, old: jsonSafe(result.old), refreshed: jsonSafe(result.refreshed), receipt: jsonSafe(result.receipt) };
+  };
+  methods.set('totem_omniaRefreshVtxo', refreshVtxoMethod);
+  methods.set('omnia/refreshVtxo', refreshVtxoMethod);
+
+  const initiateVtxoExitMethod: JsonRpcHandler = async (raw) => {
+    const params = paramsObject(raw);
+    if (!context.vtxos || !context.vtxoReceipts) throw new Error('VTXO stores are not configured');
+    const vtxo = context.vtxos.get(requiredString(params, 'vtxoId'));
+    if (!vtxo) throw new Error(`VTXO ${String(params.vtxoId)} not found`);
+    const now = typeof params.now === 'number' ? params.now : undefined;
+    const draft = createExitDraft(vtxo, now);
+    const exiting = markExiting(vtxo, now);
+    context.vtxos.set(exiting.vtxoId, exiting);
+    context.vtxoReceipts.set(draft.receipt.receiptId, draft.receipt);
+    return { success: true, vtxo: jsonSafe(exiting), draft: jsonSafe(draft.draft), receipt: jsonSafe(draft.receipt) };
+  };
+  methods.set('totem_omniaInitiateVtxoExit', initiateVtxoExitMethod);
+  methods.set('omnia/initiateVtxoExit', initiateVtxoExitMethod);
+
+  const completeVtxoExitMethod: JsonRpcHandler = async (raw) => {
+    const params = paramsObject(raw);
+    if (!context.vtxos) throw new Error('VTXO stores are not configured');
+    const vtxo = context.vtxos.get(requiredString(params, 'vtxoId'));
+    if (!vtxo) throw new Error(`VTXO ${String(params.vtxoId)} not found`);
+    const exited = markExited(vtxo, {
+      txpowId: typeof params.txpowId === 'string' ? params.txpowId : undefined,
+      now: typeof params.now === 'number' ? params.now : undefined,
+    });
+    context.vtxos.set(exited.vtxoId, exited);
+    return { success: true, vtxo: jsonSafe(exited) };
+  };
+  methods.set('totem_omniaCompleteVtxoExit', completeVtxoExitMethod);
+  methods.set('omnia/completeVtxoExit', completeVtxoExitMethod);
+
+  const prepareVtxoReceipt: JsonRpcHandler = async (raw) => {
+    const params = paramsObject(raw);
+    if (!context.vtxoReceipts || !context.vtxos || !context.preparedVtxoReceipts) {
+      throw new Error('VTXO stores are not configured');
+    }
+    const localPkd = context.localParticipant?.publicKeyDigest;
+    if (!localPkd) throw new Error('Local participant is not configured');
+    const receipt = context.vtxoReceipts.get(requiredString(params, 'receiptId'));
+    if (!receipt) throw new Error(`VTXO receipt ${String(params.receiptId)} not found`);
+    const outputs = receipt.outputIds.map((id) => {
+      const vtxo = context.vtxos!.get(id);
+      if (!vtxo) throw new Error(`VTXO ${id} referenced by receipt is not stored`);
+      return vtxo;
+    });
+    const root = typeof params.root === 'string' ? params.root : outputs[0]?.proof.root;
+    const epoch = typeof params.epoch === 'number' ? params.epoch : receipt.epoch;
+    if (!root) throw new Error('VTXO receipt root is required');
+    const payload = buildVtxoReceiptPayload(receipt, {
+      outputs,
+      root,
+      epoch,
+      previousEpoch: typeof params.previousEpoch === 'number' ? params.previousEpoch : undefined,
+      inputsAmount: params.inputsAmount !== undefined ? BigInt(String(params.inputsAmount)) : undefined,
+    });
+    const request: SignRequest = {
+      requestId: `vtxo-receipt-${receipt.receiptId}`,
+      kind: 'chain',
+      domain: 'vtxo',
+      digest: payload,
+      context: { summary: `Co-sign VTXO ${receipt.op} receipt` },
+      signers: [localPkd],
+      custody: makeSelfCustody(),
+      expiresAt: Date.now() + 120_000,
+    };
+    const expiresAt = Date.now() + 120_000;
+    context.preparedVtxoReceipts.set(receipt.receiptId, { receipt, payload, request, expiresAt });
+    return { success: true, status: 'signature-required', receiptId: receipt.receiptId, requests: { receipt: request }, expiresAt };
+  };
+  methods.set('totem_omniaPrepareVtxoReceipt', prepareVtxoReceipt);
+  methods.set('omnia/prepareVtxoReceipt', prepareVtxoReceipt);
+
+  const submitVtxoReceipt: JsonRpcHandler = async (raw) => {
+    const params = paramsObject(raw);
+    const receiptId = requiredString(params, 'receiptId');
+    const localPkd = context.localParticipant?.publicKeyDigest;
+    if (!localPkd) throw new Error('Local participant is not configured');
+    if (!context.preparedVtxoReceipts || !context.vtxoReceipts) throw new Error('VTXO stores are not configured');
+    const entry = context.preparedVtxoReceipts.get(receiptId);
+    if (!entry) throw new Error(`Prepared VTXO receipt ${receiptId} not found`);
+    if (entry.expiresAt <= Date.now()) {
+      context.preparedVtxoReceipts.delete(receiptId);
+      throw new Error(`Prepared VTXO receipt ${receiptId} has expired`);
+    }
+    const signature = hexBytes(params.signature, 'signature');
+    if (!verifyChannelSignature(signature, entry.payload, localPkd)) {
+      throw new Error('VTXO receipt signature does not verify');
+    }
+    const signed: VtxoOperatorReceipt = { ...entry.receipt, signature: '0x' + Buffer.from(signature).toString('hex') };
+    context.vtxoReceipts.set(receiptId, signed);
+    context.preparedVtxoReceipts.delete(receiptId);
+    return { success: true, receipt: jsonSafe(signed) };
+  };
+  methods.set('totem_omniaSubmitVtxoReceipt', submitVtxoReceipt);
+  methods.set('omnia/submitVtxoReceipt', submitVtxoReceipt);
 }
 
 export function createHostMethods(context: HostApiContext): Map<string, JsonRpcHandler> {
