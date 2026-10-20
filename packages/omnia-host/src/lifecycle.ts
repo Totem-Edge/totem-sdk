@@ -116,11 +116,19 @@ export function createOmniaHost(
           .split(',')
           .map((s) => s.trim())
           .filter(Boolean);
+        // Serverless native mode: bind/announce an explicit local interface so
+        // peers can reach us directly (multi-homed hosts, netns, VPN, etc.).
+        const dhtHost = process.env.OMNIA_DHT_HOST?.trim() || undefined;
+        const dhtPort = process.env.OMNIA_DHT_PORT
+          ? Number(process.env.OMNIA_DHT_PORT)
+          : undefined;
         swarm = await (dependencies.createSwarm ?? createOmniaSwarm)({
           localPubkey: config.localPubkey,
           relay,
           ...(dhtBootstrap.length ? { bootstrap: dhtBootstrap } : {}),
           ...(dependencies.transportKeyPair ? { keyPair: dependencies.transportKeyPair } : {}),
+          ...(dhtHost ? { host: dhtHost } : {}),
+          ...(dhtPort ? { port: dhtPort } : {}),
         });
       }
       if (!chainAdapter) {

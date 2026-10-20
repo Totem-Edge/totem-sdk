@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/omnia",
   "version": "2.2.0",
-  "description": "Omnia eltoo payment channel state machine — transport-agnostic, WOTS-safe, HTLC-ready",
+  "description": "Omnia eltoo payment channel state machine \u2014 transport-agnostic, WOTS-safe, HTLC-ready",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "exports": {
@@ -52,7 +52,8 @@
     "@totemsdk/tx-builder": "workspace:^",
     "@totemsdk/txpow": "workspace:^",
     "@totemsdk/wots-lease": "workspace:^",
-    "hyperswarm": ">=4.0.0"
+    "hyperswarm": ">=4.0.0",
+    "hyperdht": "^6.0.0"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

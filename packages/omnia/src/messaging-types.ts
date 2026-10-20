@@ -99,6 +99,13 @@ export interface OmniaSwarmConfig {
    * When omitted, Hyperswarm generates an ephemeral one.
    */
   keyPair?: { publicKey: Uint8Array; secretKey: Uint8Array };
+  /**
+   * Native Hyperswarm only: local interface to bind/announce (e.g. a specific
+   * LAN/VPN address in a multi-homed or namespace setup). Defaults to all.
+   */
+  host?: string;
+  /** Native Hyperswarm only: local UDP port. Defaults to an ephemeral port. */
+  port?: number;
 }
 
 export interface OmniaSwarm {

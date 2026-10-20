@@ -31,7 +31,7 @@ export class OmniaSwarmImpl implements OmniaSwarm {
   private readonly _topicPeers = new Map<string, OmniaPeerImpl[]>();
   private readonly _joinedTopics = new Set<string>();
   private _channelListeners: Array<(peer: OmniaPeer, proposal: OmniaMessage) => void> = [];
-  private readonly _config: Required<Omit<OmniaSwarmConfig, 'localPubkey' | 'keyPair'>> & { localPubkey?: string; keyPair?: { publicKey: Uint8Array; secretKey: Uint8Array } };
+  private readonly _config: Required<Omit<OmniaSwarmConfig, 'localPubkey' | 'keyPair' | 'host' | 'port'>> & { localPubkey?: string; keyPair?: { publicKey: Uint8Array; secretKey: Uint8Array }; host?: string; port?: number };
 
   constructor(swarm: AnySwarm, config: OmniaSwarmConfig = {}) {
     this._swarm = swarm;
@@ -42,6 +42,8 @@ export class OmniaSwarmImpl implements OmniaSwarm {
       relay: config.relay ?? { mode: 'native' },
       bootstrap: config.bootstrap ?? [],
       keyPair: config.keyPair,
+      host: config.host,
+      port: config.port,
     };
 
     // Register the inbound handler BEFORE advertising so no connection can be
@@ -216,10 +218,27 @@ export class OmniaSwarmImpl implements OmniaSwarm {
     const existing = this._peers.get(key);
     if (existing) return existing;
 
-    const topic = peerTopic(key);
     // Native connections are authenticated by the transport (noise) key, which
-    // is bound to the Omnia identity by the signed manifest. Match on it when
-    // provided; otherwise fall back to the Omnia key (legacy behaviour).
+    // is bound to the Omnia identity by the signed manifest. When we know the
+    // peer's transport key, dial its DHT node directly. This is symmetric and
+    // avoids topic rendezvous / hole-punch asymmetry entirely.
+    if (expectedTransportPubkey && process.env.OMNIA_NATIVE_DIRECT === '1') {
+      const transportHex = normalizePubkey(expectedTransportPubkey);
+      if (process.env.OMNIA_DEBUG) console.error('[swarm] direct connect', transportHex);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const dht: any = (this._swarm as any).dht;
+      if (dht && typeof dht.connect === 'function') {
+        const raw = Buffer.from(transportHex, 'hex');
+        const conn = dht.connect(raw);
+        conn.on('error', (err: Error) => {
+          if (process.env.OMNIA_DEBUG) console.error('[swarm] direct connect error', String(err));
+        });
+        const transport = this._adaptConn(conn, { publicKey: raw });
+        return this._getOrBindPeer(transport, key, channelId);
+      }
+    }
+
+    const topic = peerTopic(key);
     const matchKey = expectedTransportPubkey ? normalizePubkey(expectedTransportPubkey) : key;
     await this._connectToPubkey(topic, matchKey);
 
@@ -328,10 +347,27 @@ export async function createOmniaSwarm(config: OmniaSwarmConfig = {}): Promise<O
     );
   }
 
-  const opts: Record<string, unknown> = {};
-  if (config.bootstrap?.length) opts.bootstrap = config.bootstrap;
-  if (config.keyPair) opts.keyPair = config.keyPair;
-  const swarm = Object.keys(opts).length ? new HyperswarmCtor(opts) : new HyperswarmCtor();
+  let swarm: any;
+  if (config.host || config.port) {
+    // Hyperswarm does not forward `host`/`port` to its DHT, so construct the
+    // DHT explicitly (bind + announce a specific local interface/port).
+    const dhtMod = await (import('hyperdht' as string) as Promise<{ default: new (opts?: any) => any }>);
+    const DhtCtor = dhtMod.default as any;
+    const dht = new DhtCtor({
+      ...(config.host ? { host: config.host } : {}),
+      ...(config.port ? { port: config.port } : {}),
+      ...(config.bootstrap?.length ? { bootstrap: config.bootstrap } : {}),
+      ...(config.keyPair ? { keyPair: config.keyPair } : {}),
+    });
+    // The server keypair is separate from the DHT keypair; use the same
+    // derived transport keypair so `info.publicKey` matches the signed manifest.
+    swarm = new HyperswarmCtor({ dht, ...(config.keyPair ? { keyPair: config.keyPair } : {}) });
+  } else {
+    const opts: Record<string, unknown> = {};
+    if (config.bootstrap?.length) opts.bootstrap = config.bootstrap;
+    if (config.keyPair) opts.keyPair = config.keyPair;
+    swarm = Object.keys(opts).length ? new HyperswarmCtor(opts) : new HyperswarmCtor();
+  }
   return new OmniaSwarmImpl(swarm, config);
 }
 
