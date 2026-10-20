@@ -248,7 +248,12 @@ export function createOmniaHost(
 
       const onFactoryMessage = async (peer: any, msg: any): Promise<void> => {
         if (!factories || !localBundle) return;
-        if (msg?.type !== 'FACTORY_PROPOSAL' && msg?.type !== 'FACTORY_CLOSE_PROPOSAL') return;
+        if (
+          msg?.type !== 'FACTORY_PROPOSAL' &&
+          msg?.type !== 'FACTORY_FUNDING_REQUEST' &&
+          msg?.type !== 'FACTORY_CLOSE_PROPOSAL' &&
+          msg?.type !== 'FACTORY_CLOSE_FINALIZED'
+        ) return;
         const payload = (msg?.payload ?? {}) as Record<string, any>;
         if (process.env.OMNIA_DEBUG) {
           console.error('[factory] recv', msg.type, 'hasFactory', !!payload.factory, 'bundles', !!localBundle);
@@ -256,6 +261,27 @@ export function createOmniaHost(
         const key = factoryReplies.key(msg.type, msg.channelId, msg.nonce);
         const reply = await factoryReplies.run(key, async () => {
           try {
+            if (msg.type === 'FACTORY_FUNDING_REQUEST' && typeof payload.digest === 'string') {
+              const digest = Uint8Array.from(Buffer.from(payload.digest.replace(/^0x/i, ''), 'hex'));
+              const reservation = await localBundle.leaseProvider.reserveKeyUse({
+                treeId: 'factory-funding',
+                purpose: 'factory-funding',
+                payloadHash: payload.digest,
+              });
+              try {
+                const signature = await localBundle.signer.sign(digest, reservation.indices);
+                await localBundle.leaseProvider.commitKeyUse(reservation.reservationId, 'factory-funding');
+                return {
+                  type: 'FACTORY_FUNDING_RESPONSE',
+                  channelId: msg.channelId,
+                  nonce: msg.nonce,
+                  payload: { signature: '0x' + Buffer.from(signature).toString('hex') },
+                };
+              } catch (err) {
+                await localBundle.leaseProvider.burnReservation(reservation.reservationId, 'factory-funding-failed').catch(() => {});
+                throw err;
+              }
+            }
             if (msg.type === 'FACTORY_PROPOSAL' && payload.factory) {
               const accepted = await acceptFactory(payload.factory, localBundle);
               factories.set(accepted.factoryId, accepted);
@@ -270,12 +296,20 @@ export function createOmniaHost(
               const factory = factories.get(payload.factoryId);
               if (!factory) throw new Error(`Factory ${payload.factoryId} not found`);
               const signature = await signFactorySettlement(factory, payload.draft, localBundle);
+              await localBundle.leaseProvider
+                .commitKeyUse(signature.reservationId, `factory-settlement-${payload.factoryId}`)
+                .catch(() => {});
               return {
                 type: 'FACTORY_CLOSE_ACCEPT',
                 channelId: payload.factoryId,
                 nonce: msg.nonce,
                 payload: { signature },
               };
+            }
+            if (msg.type === 'FACTORY_CLOSE_FINALIZED' && payload.factoryId) {
+              const factory = factories.get(payload.factoryId);
+              if (factory) factories.set(payload.factoryId, { ...factory, status: 'closed' });
+              return null;
             }
             return null;
           } catch (e) {

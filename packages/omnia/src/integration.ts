@@ -98,7 +98,8 @@ export function createOmniaIntegration(
   const boundPeers = new Set<OmniaPeer>();
 
   const FACTORY_TYPES = new Set<OmniaMessage['type']>([
-    'FACTORY_PROPOSAL', 'FACTORY_ACCEPT', 'FACTORY_CLOSE_PROPOSAL',
+    'FACTORY_PROPOSAL', 'FACTORY_ACCEPT', 'FACTORY_FUNDING_REQUEST',
+    'FACTORY_FUNDING_RESPONSE', 'FACTORY_CLOSE_PROPOSAL',
     'FACTORY_CLOSE_ACCEPT', 'FACTORY_FINALIZED', 'FACTORY_CLOSE_FINALIZED',
   ]);
   const VC_TYPES = new Set<OmniaMessage['type']>([

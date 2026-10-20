@@ -112,6 +112,13 @@ Resilience runs:
   `stream closed → refresh → rebound` and S5 passed.
 - Froze B in the proposal window, killed it, restarted it; S5 still completed.
 
+S5 `closeFactory` host plumbing: `createFactory` now accepts per-participant
+funding material (`coinProof`, address/script, optional precomputed signature or
+a local wallet signer) and passes it to the SDK funding path; `closeFactory`
+accepts the factory coin proof. `factory-funding.test.ts` covers the wiring. A
+live two-party on-chain factory funding run still needs the funding-signature
+exchange (the digest is only known after both coin ids are fixed).
+
 Harness mirrored as `scripts/omnia-s5-cross.mjs`. A confirmation run with the
 mirrored harness on the same hosts produced:
 
@@ -217,7 +224,7 @@ Axia API, Postgres, Redis, and the TxPoW indexer.
 | `@totemsdk/core` | 26 | 288 |
 | `@totemsdk/txpow` | 4 | 136 |
 | `@totemsdk/omnia` | 9 | 223 |
-| `@totemsdk/omnia-host` | 12 | 59 |
+| `@totemsdk/omnia-host` | 13 | 62 |
 | `@totemsdk/stream-transport` | 2 | 20 |
 | `@totemsdk/omnia-vtxo` | 17 | 187 |
 | `@totemsdk/omnia-splice` | 3 | 75 |
@@ -250,10 +257,22 @@ Bare support (fixed 2026-10-20):
 
 ---
 
+## Live E2E environment blocker (2026-10-20)
+
+The OCI A1 instances are RUNNING and SSH/control planes are reachable, but
+`getchaintip`/`coins` return nothing: the Minima node is not running and no
+`minima`/`totem-node` binary is present on either host. The SDK/Omnia host and
+the DHT seed are still running. Live S5 funding/close, S7 splice, and the S8
+three-host run require redeploying the node (or a prebuilt binary) on both
+hosts before they can be executed. SDK/host coordination and unit tests are
+unaffected.
+
 ## Open issues / next gates
 
-1. **S5 `closeFactory`** (on-chain factory settlement) is not exercised
-   end-to-end: the host does not yet accept per-participant funding material.
+1. **S5 `closeFactory`** host plumbing and cooperative signing are in place
+   (funding material, coin proof, proposal/accept/finalized; unit-tested). A live
+   two-party on-chain funding/close run remains, including the funding-signature
+   exchange.
 2. **S6/S7/S10** are closed at the SDK-harness level; host methods (and, for
    splice, the peer accept/finalize exchange) remain future work. S8 is green at
    the SDK level; a three-host end-to-end run and cross-token routing remain.

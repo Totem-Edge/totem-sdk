@@ -212,7 +212,7 @@ harness's.
 | **S2** | sidecar starts; control plane answers | `healthz`; `totem_omniaWhoami`; signed manifest | done |
 | **S3** | two nodes on a shared chain, both hosts healthy | both at tip; both control planes healthy | done |
 | **S4** | core channel lifecycle between two nodes | a channel payment settles on-chain | done |
-| **S5** | factory + virtual-channel lifecycle | factory opens, VC opens/closes, allocations restore | done |
+| **S5** | factory + virtual-channel lifecycle | factory opens, VC opens/closes, allocations restore | done (SDK/host + cooperative close); live on-chain funding pending |
 | **S6** | virtual-UTXO claims | claim settles | done (SDK harness) |
 | **S7** | splice in/out | live resize | done (SDK + host coordination); live 2-host E2E pending |
 | **S8** | multi-hop / cross-token payment (3 nodes) | multi-hop settles | done (SDK harness, fee-aware); 3-host E2E + cross-token pending |

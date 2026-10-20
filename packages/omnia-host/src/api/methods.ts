@@ -29,15 +29,20 @@ import {
 } from '@totemsdk/omnia-router';
 import {
   acceptFactory,
+  assembleFactorySettlement,
   assembleVirtualChannelClose,
   assembleVirtualChannelOpen,
+  buildFactorySettlement,
   buildVirtualChannelClose,
   buildVirtualChannelOpen,
   closeFactory,
   createFactory,
+  signFactorySettlement,
   signVirtualChannelClose,
   signVirtualChannelOpen,
   type ChannelFactory,
+  type FactorySettlementSignature,
+  type FactoryFundingMaterial,
   type FactoryParticipant,
   type WotsLeaseBundle,
 } from '@totemsdk/omnia-factory';
@@ -719,15 +724,94 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
         transportPubkey: typeof item.transportPubkey === 'string' ? item.transportPubkey : undefined,
       } satisfies FactoryParticipant;
     });
-    const tokenId = typeof params.tokenId === 'string' ? params.tokenId : '0x00';
     const localPartyId = context.localParticipant?.partyId;
     if (!localPartyId) throw new Error('Local participant is not configured');
     const localBundle = context.factoryBundles[localPartyId];
     if (!localBundle) throw new Error('No local factory lease bundle');
+    const remote = parsed.find((participant) => participant.partyId !== localPartyId);
+
+    const localSigner = context.signer && context.leaseProvider
+      ? async (digest: Uint8Array): Promise<Uint8Array> => {
+          const reservation = await context.leaseProvider!.reserveKeyUse({
+            treeId: 'factory-funding',
+            purpose: 'factory-funding',
+            payloadHash: '0x' + Buffer.from(digest).toString('hex'),
+          });
+          try {
+            const sig = await context.signer!.sign(digest, reservation.indices);
+            await context.leaseProvider!.commitKeyUse(reservation.reservationId, 'factory-funding');
+            return sig;
+          } catch (err) {
+            await context.leaseProvider!.burnReservation(reservation.reservationId, 'factory-funding-failed').catch(() => {});
+            throw err;
+          }
+        }
+      : undefined;
+    let fundingPeer: { sendMessage(msg: unknown): Promise<void>; onMessage(cb: (msg: any) => void): () => void; onReconnected?(cb: () => void): () => void } | undefined;
+    const remoteSigner = context.swarm && remote
+      ? async (digest: Uint8Array): Promise<Uint8Array> => {
+          fundingPeer ??= await context.swarm!.connectToPeer(remote.publicKeyDigest, 'factory-funding', remote.transportPubkey);
+          const channelId = 'factory-funding';
+          const reply = await requestPeerReply(
+            fundingPeer,
+            {
+              type: 'FACTORY_FUNDING_REQUEST',
+              channelId,
+              nonce: Date.now(),
+              payload: { digest: '0x' + Buffer.from(digest).toString('hex') },
+            },
+            channelId,
+            30_000,
+            ['FACTORY_FUNDING_RESPONSE', 'ERROR'],
+          );
+          const signature = (reply?.payload as { signature?: string } | undefined)?.signature;
+          if (!signature) {
+            throw new Error(`Counterparty did not co-sign factory funding (${reply?.type ?? 'timeout'})`);
+          }
+          return Uint8Array.from(Buffer.from(signature.replace(/^0x/i, ''), 'hex'));
+        }
+      : undefined;
+
+    const funding: FactoryFundingMaterial[] | undefined = Array.isArray(params.funding)
+      ? params.funding.map((value) => {
+          if (!value || typeof value !== 'object') throw new Error('Invalid factory funding material');
+          const item = value as Record<string, unknown>;
+          const hex = (key: string): Uint8Array | undefined => {
+            const raw = item[key];
+            if (typeof raw !== 'string') return undefined;
+            return Buffer.from(raw.replace(/^0x/i, ''), 'hex');
+          };
+          const coinProof = hex('coinProof');
+          if (!coinProof) throw new Error('factory funding material requires coinProof');
+          const partyId = requiredString(item, 'partyId');
+          const signature = hex('signature');
+          const signer = signature
+            ? undefined
+            : partyId === localPartyId
+              ? localSigner
+              : remoteSigner;
+          return {
+            partyId,
+            coinProof,
+            ...(typeof item.coinAddress === 'string' ? { coinAddress: item.coinAddress } : {}),
+            ...(typeof item.script === 'string' ? { script: item.script } : {}),
+            ...(hex('scriptProof') ? { scriptProof: hex('scriptProof') } : {}),
+            ...(signature ? { signature } : signer ? { signer } : {}),
+          } satisfies FactoryFundingMaterial;
+        })
+      : undefined;
+    const tokenId = typeof params.tokenId === 'string' ? params.tokenId : '0x00';
     return withOperation(context, params, async () => {
-      // Off-chain factory opening; on-chain funding is a separate step.
-      let factory = await createFactory(parsed, tokenId, localBundle);
-      const remote = parsed.find((participant) => participant.partyId !== localPartyId);
+      // Off-chain when no funding material is supplied; with funding material the
+      // SDK builds, signs, and submits the on-chain factory funding TX.
+      let factory = await createFactory(
+        parsed,
+        tokenId,
+        localBundle,
+        context.chainProvider,
+        0,
+        funding,
+      );
       if (context.swarm && remote) {
         const peer = await context.swarm.connectToPeer(remote.publicKeyDigest, factory.factoryId, remote.transportPubkey);
         const reply = await requestPeerReply(
@@ -889,9 +973,44 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       ? Buffer.from(coinProofHex.replace(/^0x/i, ''), 'hex')
       : undefined;
     return withOperation(context, params, async () => {
-      const payload = await closeFactory(factory, context.factoryBundles!, context.chainProvider, { coinProof });
+      const localPartyId = context.localParticipant?.partyId;
+      const localBundle = localPartyId ? context.factoryBundles![localPartyId] : undefined;
+      if (!localPartyId || !localBundle) throw new Error('No local factory lease bundle');
+      const remote = factory.participants.find((participant) => participant.partyId !== localPartyId);
+      let payload;
+      if (context.swarm && remote) {
+        // Cooperative close: build/sign locally, collect the counterparty
+        // signature over the same draft, then assemble and broadcast once.
+        const draft = buildFactorySettlement(factory);
+        const localSig = await signFactorySettlement(factory, draft, localBundle);
+        const signatures: Record<string, FactorySettlementSignature> = { [localSig.partyId]: localSig };
+        const peer = await context.swarm.connectToPeer(remote.publicKeyDigest, factoryId, remote.transportPubkey);
+        const message = {
+          type: 'FACTORY_CLOSE_PROPOSAL',
+          channelId: factoryId,
+          nonce: Date.now(),
+          payload: { factoryId, draft },
+        };
+        const reply = await requestPeerReply(peer, message, factoryId, 30_000, ['FACTORY_CLOSE_ACCEPT', 'ERROR']);
+        const remoteSig = (reply?.payload as { signature?: FactorySettlementSignature } | undefined)?.signature;
+        if (reply?.type !== 'FACTORY_CLOSE_ACCEPT' || !remoteSig) {
+          throw new Error(`Counterparty did not co-sign the factory close (${reply?.type ?? 'timeout'})`);
+        }
+        signatures[remoteSig.partyId] = remoteSig;
+        payload = await assembleFactorySettlement(factory, draft, signatures, context.chainProvider, { coinProof });
+        await localBundle.leaseProvider.commitKeyUse(localSig.reservationId, `factory-settlement-${factoryId}`);
+        await peer.sendMessage({
+          type: 'FACTORY_CLOSE_FINALIZED',
+          channelId: factoryId,
+          nonce: message.nonce,
+          payload: { factoryId, txId: payload.txpowId },
+        });
+      } else {
+        payload = await closeFactory(factory, context.factoryBundles!, context.chainProvider, { coinProof });
+      }
       context.factories!.set(factoryId, { ...factory, status: 'closed' });
-      return { success: true, factoryId, settlementTxId: payload.txpowId, finalAllocations: Object.fromEntries(Object.entries(payload.finalAllocations).map(([key, value]) => [key, value.toString()])) };
+      const finalAllocations = payload.finalAllocations as Record<string, bigint>;
+      return { success: true, factoryId, settlementTxId: payload.txpowId, finalAllocations: Object.fromEntries(Object.entries(finalAllocations).map(([key, value]) => [key, value.toString()])) };
     });
   };
   register('totem_omniaCloseFactory', closeFactoryMethod, 'omnia/closeFactory');

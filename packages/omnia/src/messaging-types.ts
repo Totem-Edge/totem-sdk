@@ -20,6 +20,8 @@ export type OmniaMessageType =
   // RFC-035 Phase B — peer coordination (additive; unknown kinds are dropped).
   | 'FACTORY_PROPOSAL'
   | 'FACTORY_ACCEPT'
+  | 'FACTORY_FUNDING_REQUEST'
+  | 'FACTORY_FUNDING_RESPONSE'
   | 'FACTORY_CLOSE_PROPOSAL'
   | 'FACTORY_CLOSE_ACCEPT'
   | 'FACTORY_CLOSE_FINALIZED'
