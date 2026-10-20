@@ -86,6 +86,8 @@ export interface HostApiContext {
   spliceLeaseProvider?: SpliceLeaseProvider;
   /** When true, only read-only methods are registered (no signer material). */
   readOnly?: boolean;
+  /** Deployment custody mode (RFC-058); defaults to self. */
+  custodyMode?: import('@totemsdk/omnia').CustodyMode;
   /** Opt-in host identity (address, publicKeyDigest, optional delegation). */
   identity?: {
     address: string;
@@ -430,6 +432,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       publicKeyDigest: context.identity.publicKeyDigest,
       identityId: context.identity.identityId,
       delegation: context.identity.delegation,
+      custodyMode: context.custodyMode ?? 'self',
     };
   };
   register('totem_omniaWhoami', whoami, 'omnia/whoami');

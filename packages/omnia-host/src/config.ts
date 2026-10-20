@@ -1,5 +1,6 @@
 import os from 'node:os';
 import path from 'node:path';
+import type { CustodyMode } from '@totemsdk/omnia';
 
 export interface OmniaHostConfig {
   port: number;
@@ -31,6 +32,11 @@ export interface OmniaHostConfig {
   deviceId?: string;
   /** "1" forces read-only mode even with keys present. */
   readOnly: boolean;
+  /**
+   * Deployment custody mode (RFC-058). Defaults to self-custody; hosted custody
+   * is explicit and policy-controlled. This does not change on-chain custody.
+   */
+  custodyMode?: CustodyMode;
   /** Identity file containing a delegated identity claim (operator root → service delegate). */
   identityFile?: string;
   /** EdgeServiceManifest serviceType (default "omnia-router"). */
@@ -76,6 +82,14 @@ function parseOrigins(value: string | undefined): string[] | undefined {
     .map((part) => part.trim())
     .filter((part) => part.length > 0);
   return parts && parts.length > 0 ? parts : undefined;
+}
+
+function parseCustodyMode(value: string | undefined): CustodyMode {
+  const mode = optional(value) ?? 'self';
+  if (mode !== 'self' && mode !== 'trust-minimised' && mode !== 'hosted') {
+    throw new Error(`OMNIA_CUSTODY must be self, trust-minimised or hosted; received ${value}`);
+  }
+  return mode;
 }
 
 function parseSeed(value: string | undefined): string | undefined {
@@ -133,6 +147,7 @@ export function loadConfigFromEnv(env: NodeJS.ProcessEnv = process.env): OmniaHo
     keyfilePassphrase: optional(env.OMNIA_HOST_KEYFILE_PASSPHRASE),
     deviceId: optional(env.OMNIA_HOST_DEVICE_ID),
     readOnly: env.OMNIA_HOST_READ_ONLY?.trim() === '1',
+    custodyMode: parseCustodyMode(env.OMNIA_CUSTODY),
     identityFile: optional(env.OMNIA_HOST_IDENTITY_FILE),
     serviceType: optional(env.OMNIA_HOST_SERVICE_TYPE) ?? 'omnia-router',
     allowedOrigins: parseOrigins(env.OMNIA_ALLOWED_ORIGINS),

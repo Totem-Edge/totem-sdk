@@ -9,6 +9,7 @@ describe('loadConfigFromEnv', () => {
       chainRpcUrl: 'http://127.0.0.1:9005',
       chainRpcPassword: undefined,
       analyticsDbPath: undefined,
+      fundingPubkey: undefined,
       relay: undefined,
       localPubkey: undefined,
       localPartyId: undefined,
@@ -21,8 +22,11 @@ describe('loadConfigFromEnv', () => {
       keyfilePassphrase: undefined,
       deviceId: undefined,
       readOnly: false,
+      custodyMode: 'self',
       identityFile: undefined,
       serviceType: 'omnia-router',
+      allowedOrigins: undefined,
+      controlToken: undefined,
     });
   });
 
@@ -47,6 +51,7 @@ describe('loadConfigFromEnv', () => {
       chainRpcUrl: 'https://node.example:9005',
       chainRpcPassword: 'secret',
       analyticsDbPath: '/data/analytics.duckdb',
+      fundingPubkey: undefined,
       relay: undefined,
       localPubkey: 'pubkey',
       localPartyId: 'alice',
@@ -59,8 +64,11 @@ describe('loadConfigFromEnv', () => {
       keyfilePassphrase: undefined,
       deviceId: undefined,
       readOnly: false,
+      custodyMode: 'self',
       identityFile: undefined,
       serviceType: 'omnia-router',
+      allowedOrigins: undefined,
+      controlToken: undefined,
     });
   });
 
