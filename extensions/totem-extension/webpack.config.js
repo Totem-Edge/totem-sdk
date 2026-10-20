@@ -278,6 +278,8 @@ const uiConfig = {
         { from: 'src/approval/prove-ownership.html', to: 'prove-ownership.html' },
         { from: 'src/approval/omnia.html', to: 'approval/omnia.html' },
         { from: 'src/approval/omnia-approval.js', to: 'approval/omnia-approval.js' },
+        { from: 'src/approval/pairing.html', to: 'approval/pairing.html' },
+        { from: 'src/approval/pairing.js', to: 'approval/pairing.js' },
         { from: 'scanner.html', to: 'scanner.html' },
         // WASM mining engine — fetched by the service worker via chrome.runtime.getURL
         { from: 'node_modules/@totemsdk/txpow/src/wasm/miner.wasm', to: 'miner.wasm' }

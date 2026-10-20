@@ -43,6 +43,16 @@ The daemon configuration is read from environment variables:
 
 ### Signing model
 
+Pairing a local node with the extension (RFC-062):
+
+```bash
+OMNIA_HOST_DB=~/.totem/omnia/omnia.sqlite OMNIA_P2P_HUB_PORT=7788 omnia-host pair
+```
+
+The command prints a one-time code, node fingerprint and endpoint. Open Totem →
+Settings → **PAIR NODE**, paste them, verify the fingerprint and confirm. The
+pairing service listens on `127.0.0.1:${OMNIA_PAIR_PORT:-7789}` by default.
+
 `OMNIA_HOST_SEED` (or the keyfile) is the base seed. The host derives the unified
 child TreeKey (`createUnifiedChildTreeKey(baseSeed, localAddressIndex)`) and signs
 every channel state (and the boot manifest) with serialized TreeSignatures; the

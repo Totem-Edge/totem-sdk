@@ -1113,6 +1113,13 @@ export function BrutalistSettings({ onAccountsUpdated }: BrutalistSettingsProps 
               )}
 
               <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
+                <Button
+                  variant="secondary"
+                  onClick={() => chrome.tabs.create({ url: chrome.runtime.getURL('approval/pairing.html') })}
+                  style={{ flex: 1 }}
+                >
+                  PAIR NODE
+                </Button>
                 <Button variant="secondary" onClick={handleTestSelfHosted} disabled={selfHostedBusy} style={{ flex: 1 }}>
                   {selfHostedBusy ? '…' : 'TEST'}
                 </Button>

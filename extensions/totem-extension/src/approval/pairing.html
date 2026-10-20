@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Totem - Pair Node</title>
+  <style>
+    :root { --bg:#000; --elev:#111; --text:#fff; --muted:#888; --accent:#00D9B5; --border:#333; --warn:#f59e0b; }
+    * { box-sizing: border-box; }
+    body { margin:0; padding:16px; font-family:'JetBrains Mono','Fira Code',monospace; background:var(--bg); color:var(--text); min-height:100vh; }
+    h1 { font-size:16px; margin:0 0 4px; }
+    .sub { color:var(--muted); font-size:12px; margin-bottom:16px; }
+    label { display:block; color:var(--muted); font-size:11px; margin:12px 0 4px; text-transform:uppercase; }
+    input { width:100%; padding:10px; background:var(--elev); border:1px solid var(--border); color:var(--text); font-family:inherit; font-size:13px; border-radius:6px; }
+    button { width:100%; padding:12px; margin-top:12px; border-radius:8px; border:1px solid var(--border); background:var(--elev); color:var(--text); font-family:inherit; font-size:14px; cursor:pointer; }
+    #confirm { background:var(--accent); color:#000; border-color:var(--accent); font-weight:600; display:none; }
+    .card { background:var(--elev); border:1px solid var(--border); border-radius:8px; padding:12px; margin-top:12px; display:none; }
+    .row { display:flex; justify-content:space-between; gap:12px; font-size:12px; padding:3px 0; }
+    .row span:first-child { color:var(--muted); }
+    .row span:last-child { word-break:break-all; text-align:right; }
+    .warn { color:var(--warn); font-size:12px; margin-top:8px; }
+    .ok { color:var(--accent); font-size:12px; margin-top:8px; }
+    #status { margin-top:12px; font-size:12px; color:var(--muted); }
+  </style>
+</head>
+<body>
+  <h1>Pair Local Node</h1>
+  <div class="sub">Connect this wallet to a node's loopback RPC and P2P hub (RFC-062).</div>
+
+  <label for="endpoint">Node endpoint</label>
+  <input id="endpoint" placeholder="http://127.0.0.1:7789" autocomplete="off" />
+  <label for="code">Pairing code</label>
+  <input id="code" placeholder="paste the one-time code" autocomplete="off" />
+  <button id="lookup">Review node</button>
+
+  <div id="card" class="card">
+    <div class="row"><span>Node</span><span id="node-id"></span></div>
+    <div class="row"><span>Fingerprint</span><span id="fingerprint"></span></div>
+    <div class="row"><span>Network</span><span id="network"></span></div>
+    <div class="row"><span>Scopes</span><span id="scopes"></span></div>
+    <div class="row"><span>P2P hub</span><span id="hub-url"></span></div>
+    <div class="warn">Only pair a node you run or trust. The fingerprint is pinned; a later change requires re-pairing.</div>
+    <button id="confirm">Pair and save</button>
+  </div>
+
+  <div id="status"></div>
+  <script src="pairing.js"></script>
+</body>
+</html>
