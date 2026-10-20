@@ -32,9 +32,11 @@ Audit caveat: Source-level review of architecture and selected implementations. 
 > **Positioning.** RFC-048 is a **precondition for Eefi, not the Eefi product specification** — it
 > defines Omnia's completeness and reuse; the product/market/risk layer is RFC-050.
 >
-> **Package count.** The SDK_MANIFEST currently records **64 publishable packages**; the "65
-> package directories" here = those 64 + the private `sdk-tests` directory. "Eight `omnia*`
-> packages" is exact.
+> **Package count.** At the reference revision the SDK_MANIFEST recorded **64
+> publishable packages**; the "65 package directories" here = those 64 + the
+> private `sdk-tests` directory. Current `main` records **66 publishable
+> packages** (72 discovered workspace packages). "Eight `omnia*` packages" is
+> exact.
 
 ---
 
@@ -517,7 +519,7 @@ ownership.
 | Common persistence (1) | storage | Direct: CAS, journals, durable artifacts and recovery |
 | Test and developer surface (2) | sdk-tests, mcp-server | Supporting: proof-ladder scenarios, developer inspection / demos |
 
-Count: 8 + 3 + 2 + 6 + 8 + 6 + 6 + 15 + 4 + 4 + 1 + 2 = **65** (the 64 publishable packages plus
+Count at the reference revision: 8 + 3 + 2 + 6 + 8 + 6 + 6 + 15 + 4 + 4 + 1 + 2 = **65** (the 64 publishable packages plus
 the private `sdk-tests` directory).
 
 **Reuse guidance:** `industrial-action` owns typed physical units but not precise financial token

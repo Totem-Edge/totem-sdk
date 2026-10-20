@@ -64,6 +64,12 @@ function exportKeys(pkg) {
 }
 
 function verify() {
+  // 0. Top-level count must match the entries.
+  countCheck();
+  if (manifest.total !== manifest.packages.length) {
+    fail(`manifest total ${manifest.total} ≠ packages length ${manifest.packages.length}`);
+  }
+
   // 1. Completeness: every publishable package must have a manifest entry.
   for (const { dir, meta, pkg } of PUBLISHABLE) {
     if (!entryByName.has(pkg.name)) {
@@ -110,6 +116,8 @@ function verify() {
 }
 
 function repair() {
+  manifest.total = manifest.packages.length;
+
   for (const entry of manifest.packages) {
     const found = byName.get(entry.name);
     if (!found || found.meta.status !== 'publishable') continue;
