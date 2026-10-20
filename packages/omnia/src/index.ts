@@ -196,6 +196,7 @@ export {
   serializeOmniaWitness,
 } from './witness.js';
 export type { OmniaWitnessOptions, OmniaWitnessProofs } from './witness.js';
+export type { ChannelOpeningPlan, FinalizeChannelOpeningOptions } from './channel.js';
 
 export {
   addClosePackageSignature,
@@ -208,6 +209,8 @@ export {
 export {
   enforceUpdateGuards,
   _resetChannelWatermarks,
+  buildChannelOpening,
+  finalizeChannelOpening,
   createChannel,
   acceptChannel,
   updateState,

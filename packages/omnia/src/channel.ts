@@ -143,10 +143,40 @@ function logEntry(
   };
 }
 
-export async function createChannel(
+export interface ChannelOpeningPlan {
+  channel: OmniaChannel;
+  proposal: ChannelProposal;
+  fundingTxBytes: Uint8Array;
+  fundingDigest: Uint8Array;
+  inputCoinId: string;
+  outputCoinId: string;
+  fundingScript: string;
+  fundingAddress: string;
+}
+
+export interface FinalizeChannelOpeningOptions {
+  /** Serialized witness assembled by the caller (preferred when available). */
+  fundingWitnessBytes?: Uint8Array;
+  /** Wallet/coordinator flow: signature over `plan.fundingDigest`. */
+  fundingSignature?: Uint8Array;
+  /** Input proofs required with `fundingSignature`. */
+  fundingProofs?: {
+    coinProofs: Uint8Array[];
+    scriptProofs: Uint8Array[];
+  };
+  /** Funding coin address script; the SDK derives its ScriptProof. */
+  fundingScript?: string;
+}
+
+/**
+ * Build a channel opening without broadcasting: resolve the program/script,
+ * read the funding coin, construct the deterministic funding draft and return
+ * its digest for wallet signing.
+ */
+export async function buildChannelOpening(
   params: CreateChannelParams,
   chainProvider: ChainStateProvider,
-): Promise<{ channel: OmniaChannel; proposal: ChannelProposal }> {
+): Promise<ChannelOpeningPlan> {
   const parties = [params.localParty, params.remoteParty];
   const program = resolveChannelProgram(params.program);
   const contestDelayBlocks = params.contestDelayBlocks;
@@ -163,6 +193,9 @@ export async function createChannel(
   if (!fundingCoin) {
     throw new Error(`Funding coin ${params.fundingCoinId} not found on chain`);
   }
+  if (fundingCoin.spent) {
+    throw new Error(`Funding coin ${params.fundingCoinId} is already spent`);
+  }
 
   const fundingDraft = buildFundingTx(
     script,
@@ -174,72 +207,9 @@ export async function createChannel(
     [BigInt(fundingCoin.amount) * 10n ** BigInt(tokenScale)],
     [fundingCoin.address],
   );
-
-  // Build canonical Minima TX bytes, mine PoW, assemble full TxPoW, and broadcast.
-  // The funding coin is signed by the wallet layer; Omnia requires the caller to
-  // provide the serialized Minima witness bytes so funding never broadcasts with
-  // placeholder witness data.
   const fundingTxBytes = omniaDraftToCanonicalMinimaBytes(fundingDraft);
-  let fundingWitness = params.fundingWitnessBytes;
-  if (!fundingWitness?.length) {
-    // Assemble the witness from caller-supplied proofs + a signature over the
-    // funding digest (which only createChannel can build). See CreateChannelParams.
-    if (!params.fundingSigner || !params.fundingProofs) {
-      throw new Error('createChannel requires serialized fundingWitnessBytes for broadcast');
-    }
-    // The node requires a ScriptProof for every input address. Prefer deriving
-    // it from `fundingScript` (authoritative, built here); fall back to any
-    // caller-supplied serialized proofs only when no script is provided.
-    const scriptProofs = params.fundingScript
-      ? [buildScriptProof(params.fundingScript)]
-      : params.fundingProofs.scriptProofs;
-    if (!scriptProofs.length) {
-      throw new Error('createChannel requires fundingScript or fundingProofs.scriptProofs');
-    }
-    const digest = computeOmniaTxDigest(fundingDraft);
-    const signature = await params.fundingSigner(digest);
-    fundingWitness = serializeOmniaWitness({
-      signatures: [signature],
-      coinProofs: params.fundingProofs.coinProofs,
-      scriptProofs,
-    });
-  }
-  // Prefer the node's explicit-mine path (`txnmine` builds the correct header,
-  // then `sendtransaction`). Otherwise mine locally to the live target.
-  let fundingTxId: string;
-  if (chainProvider.submitTransaction) {
-    const submitted = await chainProvider.submitTransaction(fundingTxBytes, fundingWitness);
-    if (submitted.success === false || !submitted.txpowid) {
-      throw new Error(`Funding transaction submission failed: ${submitted.message ?? 'no txpowid'}`);
-    }
-    fundingTxId = submitted.txpowid;
-  } else {
-    // Mine to the node's live minimum work (chain provider -> node `magic`).
-    const txnDifficulty = await resolveTxPowTarget(chainProvider);
-    const txBody = serializeTxBody(fundingTxBytes, fundingWitness, { txnDifficulty });
-    const mined = await mineTxPoW(txBody, txnDifficulty);
-    const fullTxPoW = concatBytes(concatBytes(mined.minedHeaderBytes, new Uint8Array([0x01])), txBody);
-    const broadcast = await chainProvider.broadcastTxPoW(Buffer.from(fullTxPoW).toString('hex'));
-    if (broadcast.success === false) {
-      throw new Error(`Funding TxPoW broadcast failed: ${broadcast.message ?? 'unknown error'}`);
-    }
-    fundingTxId = broadcast.txpowid ?? Buffer.from(mined.txpowId).toString('hex');
-  }
-  const fundingCoinId = minimaOutputCoinIdsForDraft(fundingDraft)[0];
-
-  // The funding tx is broadcast asynchronously and mined into a following
-  // block. Wait (bounded) for the channel output coin so this side can be
-  // marked 'active' immediately; otherwise the first pay()/updateState() is
-  // rejected with ChannelStatusError while we still report 'opening'.
-  let fundingOnChain = await chainProvider.getCoin(fundingCoinId);
-  if (!fundingOnChain) {
-    const deadline = Date.now() + FUNDING_COIN_WAIT_MS;
-    while (!fundingOnChain && Date.now() < deadline) {
-      await new Promise((r) => setTimeout(r, 1000));
-      fundingOnChain = await chainProvider.getCoin(fundingCoinId);
-    }
-  }
-  const initialStatus = fundingOnChain && !fundingOnChain.spent ? 'active' : 'opening';
+  const fundingDigest = computeOmniaTxDigest(fundingDraft);
+  const outputCoinId = minimaOutputCoinIdsForDraft(fundingDraft)[0];
 
   if (params.tokenId && params.tokenId !== TOKENID_MINIMA) {
     const tokenInfo = await chainProvider.getToken(params.tokenId);
@@ -252,16 +222,14 @@ export async function createChannel(
   }
 
   const channelId = generateChannelId();
-
   const balances: Record<string, bigint> = {
     [params.localParty.partyId]: params.localAmount,
     [params.remoteParty.partyId]: params.remoteAmount,
   };
-
   const channel: OmniaChannel = {
     channelId,
-    fundingTxId,
-    fundingCoinId,
+    fundingTxId: '',
+    fundingCoinId: outputCoinId,
     fundingScript: script,
     programId: program.id,
     programVersion: program.version,
@@ -276,14 +244,13 @@ export async function createChannel(
     onChainSequence: 0,
     latestState: null,
     stateLog: [],
-    status: initialStatus,
+    status: 'opening',
     channelType: params.channelType ?? 'direct',
     contestDelayBlocks,
     factoryRef: params.factoryRef,
     createdAt: Date.now(),
     updatedAt: Date.now(),
   };
-
   channel.stateLog.push(logEntry(channel, 'open'));
 
   const proposal: ChannelProposal = {
@@ -298,11 +265,130 @@ export async function createChannel(
     programId: program.id,
     programVersion: program.version,
     fundingAddress: address,
-    fundingTxId,
-    fundingCoinId,
+    fundingTxId: '',
+    fundingCoinId: outputCoinId,
     contestDelayBlocks,
   };
 
+  return {
+    channel,
+    proposal,
+    fundingTxBytes,
+    fundingDigest,
+    inputCoinId: params.fundingCoinId,
+    outputCoinId,
+    fundingScript: script,
+    fundingAddress: address,
+  };
+}
+
+/**
+ * Broadcast a built channel opening using either a caller-supplied witness or
+ * a wallet signature over the funding digest plus input proofs. Revalidates
+ * the funding coin before the irreversible broadcast.
+ */
+export async function finalizeChannelOpening(
+  plan: ChannelOpeningPlan,
+  opts: FinalizeChannelOpeningOptions,
+  chainProvider: ChainStateProvider,
+): Promise<{ channel: OmniaChannel; proposal: ChannelProposal; fundingTxId: string }> {
+  const fundingCoin = await chainProvider.getCoin(plan.inputCoinId);
+  if (!fundingCoin) {
+    throw new Error(`Funding coin ${plan.inputCoinId} not found on chain`);
+  }
+  if (fundingCoin.spent) {
+    throw new Error(`Funding coin ${plan.inputCoinId} is already spent`);
+  }
+
+  let fundingWitness = opts.fundingWitnessBytes;
+  if (!fundingWitness?.length) {
+    if (!opts.fundingSignature) {
+      throw new Error('finalizeChannelOpening requires fundingWitnessBytes or fundingSignature');
+    }
+    if (!opts.fundingProofs) {
+      throw new Error('finalizeChannelOpening requires fundingProofs with fundingSignature');
+    }
+    const scriptProofs = opts.fundingScript
+      ? [buildScriptProof(opts.fundingScript)]
+      : opts.fundingProofs.scriptProofs;
+    if (!scriptProofs.length) {
+      throw new Error('finalizeChannelOpening requires fundingScript or fundingProofs.scriptProofs');
+    }
+    fundingWitness = serializeOmniaWitness({
+      signatures: [opts.fundingSignature],
+      coinProofs: opts.fundingProofs.coinProofs,
+      scriptProofs,
+    });
+  }
+
+  let fundingTxId: string;
+  if (chainProvider.submitTransaction) {
+    const submitted = await chainProvider.submitTransaction(plan.fundingTxBytes, fundingWitness);
+    if (submitted.success === false || !submitted.txpowid) {
+      throw new Error(`Funding transaction submission failed: ${submitted.message ?? 'no txpowid'}`);
+    }
+    fundingTxId = submitted.txpowid;
+  } else {
+    const txnDifficulty = await resolveTxPowTarget(chainProvider);
+    const txBody = serializeTxBody(plan.fundingTxBytes, fundingWitness, { txnDifficulty });
+    const mined = await mineTxPoW(txBody, txnDifficulty);
+    const fullTxPoW = concatBytes(concatBytes(mined.minedHeaderBytes, new Uint8Array([0x01])), txBody);
+    const broadcast = await chainProvider.broadcastTxPoW(Buffer.from(fullTxPoW).toString('hex'));
+    if (broadcast.success === false) {
+      throw new Error(`Funding TxPoW broadcast failed: ${broadcast.message ?? 'unknown error'}`);
+    }
+    fundingTxId = broadcast.txpowid ?? Buffer.from(mined.txpowId).toString('hex');
+  }
+
+  let fundingOnChain = await chainProvider.getCoin(plan.outputCoinId);
+  if (!fundingOnChain) {
+    const deadline = Date.now() + FUNDING_COIN_WAIT_MS;
+    while (!fundingOnChain && Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 1000));
+      fundingOnChain = await chainProvider.getCoin(plan.outputCoinId);
+    }
+  }
+  const initialStatus = fundingOnChain && !fundingOnChain.spent ? 'active' : 'opening';
+
+  const channel: OmniaChannel = {
+    ...plan.channel,
+    fundingTxId,
+    status: initialStatus,
+    updatedAt: Date.now(),
+  };
+  const proposal: ChannelProposal = {
+    ...plan.proposal,
+    fundingTxId,
+  };
+  return { channel, proposal, fundingTxId };
+}
+
+export async function createChannel(
+  params: CreateChannelParams,
+  chainProvider: ChainStateProvider,
+): Promise<{ channel: OmniaChannel; proposal: ChannelProposal }> {
+  const plan = await buildChannelOpening(params, chainProvider);
+  if (params.fundingWitnessBytes?.length) {
+    const { channel, proposal } = await finalizeChannelOpening(
+      plan,
+      { fundingWitnessBytes: params.fundingWitnessBytes },
+      chainProvider,
+    );
+    return { channel, proposal };
+  }
+  if (!params.fundingSigner || !params.fundingProofs) {
+    throw new Error('createChannel requires serialized fundingWitnessBytes for broadcast');
+  }
+  const signature = await params.fundingSigner(plan.fundingDigest);
+  const { channel, proposal } = await finalizeChannelOpening(
+    plan,
+    {
+      fundingSignature: signature,
+      fundingProofs: params.fundingProofs,
+      fundingScript: params.fundingScript,
+    },
+    chainProvider,
+  );
   return { channel, proposal };
 }
 

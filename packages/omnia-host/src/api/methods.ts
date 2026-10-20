@@ -1,6 +1,8 @@
 import {
   addHTLC,
   createChannel,
+  buildChannelOpening,
+  finalizeChannelOpening,
   applyProgramTransition,
   decrementCounter,
   fulfillHTLC,
@@ -31,6 +33,7 @@ import type {
   SignerPort,
   UnsignedStateUpdate,
   UpdateStateResult,
+  ChannelOpeningPlan,
 } from '@totemsdk/omnia';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import type { SigningIndices, WotsLeaseProvider } from '@totemsdk/wots-lease';
@@ -111,6 +114,8 @@ export interface HostApiContext {
   preparedPay?: Map<string, PreparedPayEntry>;
   /** Coordinator-mode cooperative settlements awaiting the local signature. */
   preparedSettle?: Map<string, PreparedSettleEntry>;
+  /** Coordinator-mode channel openings awaiting the funding signature. */
+  preparedOpen?: Map<string, PreparedOpenEntry>;
   /** True when the host has no signer and exposes prepare/submit only. */
   coordinator?: boolean;
   /** Opt-in host identity (address, publicKeyDigest, optional delegation). */
@@ -393,6 +398,14 @@ export interface PreparedPayEntry {
   intent: import('@totemsdk/omnia').SignRequest;
   update: import('@totemsdk/omnia').SignRequest;
   settlement: import('@totemsdk/omnia').SignRequest;
+  expiresAt: number;
+}
+
+export interface PreparedOpenEntry {
+  plan: ChannelOpeningPlan;
+  fundingScript?: string;
+  intent: import('@totemsdk/omnia').SignRequest;
+  funding: import('@totemsdk/omnia').SignRequest;
   expiresAt: number;
 }
 
@@ -815,6 +828,165 @@ function registerPreparedPayMethods(
   };
   methods.set('totem_omniaSubmitSettle', submitSettle);
   methods.set('omnia/submitSettle', submitSettle);
+
+  const prepareOpenChannel: JsonRpcHandler = async (raw) => {
+    const params = paramsObject(raw);
+    const localParticipant = context.localParticipant;
+    const localPkd = localParticipant?.publicKeyDigest;
+    if (!localParticipant || !localPkd) throw new Error('Local participant is not configured');
+    if (!context.preparedOpen) throw new Error('Prepared-open store is not configured');
+    if (!context.chainProvider) throw new Error('prepareOpenChannel requires a chain provider');
+    const remote: ChannelParticipant = {
+      partyId: requiredString(params, 'remotePartyId'),
+      publicKeyDigest: requiredString(params, 'remotePublicKeyDigest'),
+      addressIndex: typeof params.remoteAddressIndex === 'number' ? params.remoteAddressIndex : 0,
+      settlementAddress: typeof params.remoteSettlementAddress === 'string' ? params.remoteSettlementAddress : undefined,
+      transportPubkey: typeof params.remoteTransportPubkey === 'string' ? params.remoteTransportPubkey : undefined,
+    };
+    const createParams: CreateChannelParams = {
+      localParty: {
+        ...localParticipant,
+        transportPubkey: localParticipant.transportPubkey ?? context.transportPubkey,
+      },
+      remoteParty: remote,
+      localAmount: requiredBigInt(params, 'localAmount'),
+      remoteAmount: requiredBigInt(params, 'remoteAmount'),
+      tokenId: typeof params.tokenId === 'string' ? params.tokenId : undefined,
+      fundingCoinId: requiredString(params, 'fundingCoinId'),
+      contestDelayBlocks: typeof params.contestDelayBlocks === 'number' ? params.contestDelayBlocks : undefined,
+      fundingScript: typeof params.fundingScript === 'string' ? params.fundingScript : undefined,
+    };
+
+    return withOperation(context, params, async () => {
+      const plan = await buildChannelOpening(createParams, context.chainProvider!);
+      const preparedOperationId = operationId(params);
+      const expiresAt = Date.now() + 300_000;
+      const base = {
+        domain: 'channel' as const,
+        signers: [localPkd],
+        custody: makeSelfCustody(),
+        expiresAt,
+      };
+      const summary = `Open channel ${plan.channel.channelId} (${plan.channel.totalValue} units)`;
+      const intent: import('@totemsdk/omnia').SignRequest = {
+        ...base,
+        requestId: `${preparedOperationId}:intent`,
+        kind: 'intent',
+        digest: plan.fundingDigest,
+        context: {
+          summary: `Authorize ${summary}`,
+          amount: plan.channel.totalValue.toString(),
+          asset: plan.channel.tokenId,
+          terms: `Counterparty ${remote.partyId}; channel ${plan.channel.channelId}`,
+        },
+      };
+      const funding: import('@totemsdk/omnia').SignRequest = {
+        ...base,
+        requestId: `${preparedOperationId}:funding`,
+        kind: 'chain',
+        digest: plan.fundingDigest,
+        context: { summary: 'Sign the channel funding transaction' },
+      };
+      for (const [key, entry] of context.preparedOpen!) {
+        if (entry.expiresAt <= Date.now()) context.preparedOpen!.delete(key);
+      }
+      context.preparedOpen!.set(preparedOperationId, {
+        plan,
+        fundingScript: createParams.fundingScript,
+        intent,
+        funding,
+        expiresAt,
+      });
+      return {
+        success: true,
+        status: 'signature-required',
+        operationId: preparedOperationId,
+        channelId: plan.channel.channelId,
+        fundingAddress: plan.fundingAddress,
+        fundingCoinId: plan.outputCoinId,
+        inputCoinId: plan.inputCoinId,
+        totalValue: plan.channel.totalValue.toString(),
+        requests: { intent, funding },
+        expiresAt,
+      };
+    });
+  };
+  methods.set('totem_omniaPrepareOpenChannel', prepareOpenChannel);
+  methods.set('omnia/prepareOpenChannel', prepareOpenChannel);
+
+  const submitOpenChannel: JsonRpcHandler = async (raw) => {
+    const params = paramsObject(raw);
+    const preparedOperationId = requiredString(params, 'preparedOperationId');
+    const localPkd = context.localParticipant?.publicKeyDigest;
+    if (!localPkd) throw new Error('Local participant is not configured');
+    if (!context.preparedOpen) throw new Error('Prepared-open store is not configured');
+    if (!context.chainProvider) throw new Error('submitOpenChannel requires a chain provider');
+    return withOperation(context, params, async () => {
+      const entry = context.preparedOpen!.get(preparedOperationId);
+      if (!entry) throw new Error(`Prepared channel opening ${preparedOperationId} not found`);
+      if (entry.expiresAt <= Date.now()) {
+        context.preparedOpen!.delete(preparedOperationId);
+        throw new Error(`Prepared channel opening ${preparedOperationId} has expired`);
+      }
+
+      const intentSignature = hexBytes(params.intentSignature, 'intentSignature');
+      const fundingSignature = hexBytes(params.fundingSignature, 'fundingSignature');
+      if (!verifyChannelSignature(intentSignature, signRequestPayload(entry.intent), localPkd)) {
+        throw new Error('intent signature does not verify');
+      }
+      if (!verifyChannelSignature(fundingSignature, entry.plan.fundingDigest, localPkd)) {
+        throw new Error('funding signature does not verify');
+      }
+
+      const toBytes = (value: unknown): Uint8Array[] =>
+        Array.isArray(value) ? value.map((item) => Buffer.from(String(item).replace(/^0x/i, ''), 'hex')) : [];
+      const fundingWitnessHex = typeof params.fundingWitnessHex === 'string' ? params.fundingWitnessHex : undefined;
+      let finalizeOpts: Parameters<typeof finalizeChannelOpening>[1];
+      if (fundingWitnessHex) {
+        finalizeOpts = { fundingWitnessBytes: Buffer.from(fundingWitnessHex.replace(/^0x/i, ''), 'hex') };
+      } else {
+        finalizeOpts = {
+          fundingSignature,
+          fundingProofs: {
+            coinProofs: toBytes(params.fundingCoinProofsHex),
+            scriptProofs: toBytes(params.fundingScriptProofsHex),
+          },
+          fundingScript: typeof params.fundingScript === 'string'
+            ? params.fundingScript
+            : entry.fundingScript,
+        };
+      }
+
+      const { channel, proposal, fundingTxId } = await finalizeChannelOpening(
+        entry.plan,
+        finalizeOpts,
+        context.chainProvider!,
+      );
+      context.channels.set(channel.channelId, { ...channel, localSigner: context.signer });
+      let acknowledged = true;
+      if (context.swarm) {
+        const remote = channel.parties.find((party) => party.partyId !== context.localParticipant!.partyId);
+        if (remote) {
+          const peer = await context.swarm.connectToPeer(
+            remote.publicKeyDigest,
+            channel.channelId,
+            remote.transportPubkey,
+          );
+          const reply = await requestPeerReply(
+            peer,
+            { type: 'CHANNEL_PROPOSAL', channelId: channel.channelId, nonce: Date.now(), payload: proposal },
+            channel.channelId,
+            20_000,
+          );
+          acknowledged = reply?.type === 'ACK';
+        }
+      }
+      context.preparedOpen!.delete(preparedOperationId);
+      return { success: true, channelId: channel.channelId, fundingTxId, acknowledged };
+    });
+  };
+  methods.set('totem_omniaSubmitOpenChannel', submitOpenChannel);
+  methods.set('omnia/submitOpenChannel', submitOpenChannel);
 }
 
 export function createHostMethods(context: HostApiContext): Map<string, JsonRpcHandler> {
