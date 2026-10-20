@@ -237,6 +237,9 @@ jobs:
       - name: Build core-wasm (prerequisite)
         working-directory: packages/core-wasm
         run: npm run build
+      - name: Build Omnia WASM artifacts (declared in files)
+        working-directory: packages/omnia
+        run: npm run build:wasm
       - name: Pack validation
         run: node scripts/verify-workspace.mjs --pack
       - name: Verify clean consumer install from packed tarballs
