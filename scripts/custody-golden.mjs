@@ -13,6 +13,7 @@
  *
  * Requires the packages to be built (dist/). Wire into CI after `npm run build`.
  */
+import './lib/init-core-wasm.mjs';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { dirname, join, resolve } from 'path';
 import { fileURLToPath } from 'url';

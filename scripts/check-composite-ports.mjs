@@ -17,6 +17,7 @@
  * Requires built dist of: kissvm, omnia, omnia-factory, omnia-vtxo.
  * Usage: node scripts/check-composite-ports.mjs
  */
+import './lib/init-core-wasm.mjs';
 import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';

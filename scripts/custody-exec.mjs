@@ -24,6 +24,7 @@
  * Requires built dist of: @totemsdk/omnia-vtxo, @totemsdk/omnia-factory, @totemsdk/kissvm.
  * Usage: node scripts/custody-exec.mjs   (after `npm run build`)
  */
+import './lib/init-core-wasm.mjs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 

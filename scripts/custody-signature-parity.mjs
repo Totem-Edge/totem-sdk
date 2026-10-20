@@ -14,6 +14,7 @@
  * Requires the built dist (core, kissvm) and the core-wasm web + nodejs builds.
  * Usage: node scripts/custody-signature-parity.mjs
  */
+import './lib/init-core-wasm.mjs';
 import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';

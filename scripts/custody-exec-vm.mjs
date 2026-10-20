@@ -22,6 +22,7 @@
  * wasm nodejs build (`cd packages/kissvm/rust && wasm-pack build --target nodejs
  * --out-dir pkg-node`). Usage: node scripts/custody-exec-vm.mjs
  */
+import './lib/init-core-wasm.mjs';
 import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';

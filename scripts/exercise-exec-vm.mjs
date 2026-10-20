@@ -20,6 +20,7 @@
  * Requires: built dist (kissvm, core) AND the kissvm wasm nodejs build.
  * Usage: node scripts/exercise-exec-vm.mjs
  */
+import './lib/init-core-wasm.mjs';
 import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';

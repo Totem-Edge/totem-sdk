@@ -11,6 +11,7 @@
  * Requires built dist of: core, statechain, omnia, omnia-factory, omnia-vtxo.
  * Usage: node scripts/check-node-syntax.mjs
  */
+import './lib/init-core-wasm.mjs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
