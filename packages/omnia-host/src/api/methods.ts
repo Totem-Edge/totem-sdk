@@ -2061,7 +2061,10 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
         if (typeof params.fundingScript === 'string') {
           createParams.fundingScript = params.fundingScript;
         }
-        createParams.fundingSigner = context.signerPort && (context.custodyMode ?? 'self') !== 'hosted'
+        // If the caller supplied the funding coin's public key, the node's
+        // `sign` command is authoritative for that input. The host channel key
+        // must not sign someone else's funding coin.
+        createParams.fundingSigner = !fundingPubkey && context.signerPort && (context.custodyMode ?? 'self') !== 'hosted'
           ? async (digest: Uint8Array) => context.signerPort!.sign({
               requestId: `channel-funding-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
               kind: 'chain',

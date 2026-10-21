@@ -206,6 +206,8 @@ export async function buildChannelOpening(
     [params.fundingCoinId],
     [BigInt(fundingCoin.amount) * 10n ** BigInt(tokenScale)],
     [fundingCoin.address],
+    [],
+    [{ storeState: fundingCoin.storestate === true, stateVariables: [] }],
   );
   const fundingTxBytes = omniaDraftToCanonicalMinimaBytes(fundingDraft);
   const fundingDigest = computeOmniaTxDigest(fundingDraft);

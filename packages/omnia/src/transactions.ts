@@ -281,6 +281,7 @@ export function buildFundingTx(
   inputAmounts: bigint[],
   inputAddresses: string[],
   extraStateVariables: StateValue[] = [],
+  inputStates?: Array<{ storeState?: boolean; stateVariables?: StateValue[] }>,
 ): OmniaTxDraft {
   // All TX amounts must be in raw Minima units.
   // Callers supply inputAmounts in the same scaled token units as totalValue;
@@ -291,6 +292,8 @@ export function buildFundingTx(
     amount: toRawMinima(inputAmounts[i] ?? 0n, tokenScale),
     tokenId,
     scriptHex: '',
+    storeState: inputStates?.[i]?.storeState ?? false,
+    stateVariables: inputStates?.[i]?.stateVariables ?? [],
   }));
 
   const rawTotal = toRawMinima(totalValue, tokenScale);
@@ -597,8 +600,8 @@ export function omniaDraftToCanonicalMinimaBytes(draft: OmniaTxDraft): Uint8Arra
     address: input.address,
     amount: input.amount,
     tokenId: input.tokenId,
-    storeState: false,
-    stateVariables: [],
+    storeState: input.storeState ?? false,
+    stateVariables: input.stateVariables ?? [],
   }));
   const outputBytes = draft.outputs.map((output, index) => serializeCoinForMinima({
     coinId: outputCoinIds[index],

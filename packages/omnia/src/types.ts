@@ -381,6 +381,9 @@ export interface TxInputDraft {
   amount: bigint;
   tokenId: string;
   scriptHex: string;
+  /** Chain state flag of the input coin (needed for txnmine script checks). */
+  storeState?: boolean;
+  stateVariables?: StateValue[];
 }
 
 export interface TxOutputDraft {
