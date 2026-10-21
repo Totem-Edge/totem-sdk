@@ -1,6 +1,6 @@
 # RFC-063 — Production Readiness and Maturity Promotion
 
-**Status:** Draft — Phase 0 authorised; Phases 1–4 proposed
+**Status:** Draft — Phase 0 in progress (A1–A5 and A7 landed; A6 and E1–E4 remain); Phases 1–4 proposed
 **Priority:** P0 (public truth) / P1 (security and durability) / P2 (real-world proof)
 **Created:** 2026-10-21
 **Authors:** Totem SDK Contributors
@@ -274,17 +274,17 @@ signed releases, and a docs site that is sufficient without reading RFCs.
 
 ## 7. Immediate Phase 0 checklist
 
-- [ ] Update `README.md` from 60/6 to 67/9 and fix the 55-package manifest line.
-- [ ] Add CI, Rust, and release badges.
-- [ ] Add RFC-063 to `README.md` and `docs/README.md`.
-- [ ] Correct RFC-018/019/020/032/033 status wording in the public RFC index.
-- [ ] Add RFC-037–062 to the public RFC index (or replace the table with a
+- [x] Update `README.md` from 60/6 to 67/9 and fix the 55-package manifest line.
+- [x] Add CI, Rust, and release badges.
+- [x] Add RFC-063 to `README.md` and `docs/README.md`.
+- [x] Correct RFC-018/019/020/032/033 status wording in the public RFC index.
+- [x] Add RFC-037–062 to the public RFC index (or replace the table with a
       generated index).
-- [ ] Replace the seven-row maturity table with a generated full matrix.
-- [ ] Rewrite `SECURITY.md` supported versions for the pre-1.0 workspace.
-- [ ] Remove the placeholder PGP block and state the real encrypted-report path.
+- [x] Replace the seven-row maturity table with a generated full matrix.
+- [x] Rewrite `SECURITY.md` supported versions for the pre-1.0 workspace.
+- [x] Remove the placeholder PGP block and state the real encrypted-report path.
 - [ ] Regenerate TypeDoc and verify the docs build in CI.
-- [ ] Add `scripts/verify-public-claims.mjs` and run it in CI.
+- [x] Add `scripts/verify-public-claims.mjs` and run it in CI.
 - [ ] Publish release notes and set maturity-aligned npm dist-tags.
 
 ---

@@ -185,6 +185,12 @@ The complete generated index is [rfc/README.md](rfc/README.md). The table below 
 | [rfc/RFC-035-OMNIA-PEER-COORDINATION-PROTOCOL.md](rfc/RFC-035-OMNIA-PEER-COORDINATION-PROTOCOL.md) | Omnia peer coordination protocol (Phase B) — message kinds + verified, durable round-trips for the N-of-N/per-hop methods (`openVirtualChannel`, `closeFactory`, `payMultiHop`) and the factory/splice accept-finalize halves, over the relay (draft) |
 | [rfc/RFC-036-SERVER-SETTLEMENT-VERIFICATION.md](rfc/RFC-036-SERVER-SETTLEMENT-VERIFICATION.md) | Server settlement verification & package identity — explicit submission-vs-settlement contract, `awaitConfirmation` inclusion/balance/recoverability checks, and `@totemsdk/node` → `@totemsdk/server` doc/namespace correction (draft) |
 | [rfc/RFC-063-PRODUCTION-READINESS-AND-MATURITY-PROMOTION.md](rfc/RFC-063-PRODUCTION-READINESS-AND-MATURITY-PROMOTION.md) | Production readiness and maturity promotion — production core, evidence gates, per-package maturity, and Phase 0 truth work (draft; Phase 0 authorised) |
+| [rfc/RFC-064-OMNIA-OFFCHAIN-EXTENSIONS-PRINCIPLES-AND-REGISTRY.md](rfc/RFC-064-OMNIA-OFFCHAIN-EXTENSIONS-PRINCIPLES-AND-REGISTRY.md) | Omnia off-chain extensions — shared safety contract, capability registry, measurable gates and custody boundaries (proposed; no implementation authorised) |
+| [rfc/RFC-065-OMNIA-MULTIPART-PAYMENTS.md](rfc/RFC-065-OMNIA-MULTIPART-PAYMENTS.md) | Omnia multipart payments — basic MPP, durable payment sets, reservations and recovery (proposed) |
+| [rfc/RFC-066-OMNIA-ATOMIC-REBALANCING.md](rfc/RFC-066-OMNIA-ATOMIC-REBALANCING.md) | Omnia atomic rebalancing — bounded, fully collateralised cycles and untrusted coordination (proposed) |
+| [rfc/RFC-067-OMNIA-HASH-CHAIN-STREAMS.md](rfc/RFC-067-OMNIA-HASH-CHAIN-STREAMS.md) | Omnia hash-chain streams — prefunded voucher feasibility prototype (proposed; gated) |
+| [rfc/RFC-068-OMNIA-ONION-ROUTING.md](rfc/RFC-068-OMNIA-ONION-ROUTING.md) | Omnia onion forwarding and blinded receiving paths — authenticated per-hop payloads (proposed) |
+| [research/OMNIA-OFFCHAIN-RESEARCH-PROFILES.md](research/OMNIA-OFFCHAIN-RESEARCH-PROFILES.md) | Deferred OEX-04/05/06/08/09/10/11/12 research notes; no implementation authority |
 | [rfc/RFC-014-AMENDMENT-A-CAPABILITY-MANIFEST-TRUTHFULNESS.md](rfc/RFC-014-AMENDMENT-A-CAPABILITY-MANIFEST-TRUTHFULNESS.md) | RFC-014 Amendment A — capability manifest truthfulness: port presence is not capability; per-method `supports()` probes so the manifest reflects what the wallet actually serves (draft) |
 
 ---
