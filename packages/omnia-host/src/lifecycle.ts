@@ -360,6 +360,10 @@ export function createOmniaHost(
         if (reply) await peer.sendMessage(reply);
       };
 
+      const channelPeers = new Map<string, any>();
+      const onPeerMessage = (peer: any, msg: any): void => {
+        if (msg?.channelId) channelPeers.set(msg.channelId, peer);
+      };
       const onVcMessage = async (peer: any, msg: any): Promise<void> => {
         if (!factories || !localBundle) return;
         const payload = (msg?.payload ?? {}) as Record<string, any>;
@@ -424,6 +428,7 @@ export function createOmniaHost(
         onFactoryMessage,
         onVcMessage,
         onSpliceMessage,
+        onPeerMessage,
       });
       if (!controlServer) {
         const readOnly = !dependencies.signer || !dependencies.leaseProvider;
@@ -445,6 +450,7 @@ export function createOmniaHost(
             leaseProvider: dependencies.leaseProvider,
             chainProvider: dependencies.chainProvider ?? chainAdapter,
             swarm,
+            channelPeers,
             localParticipant,
             transportPubkey: dependencies.transportPubkey,
             factories,

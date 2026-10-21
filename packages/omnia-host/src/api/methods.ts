@@ -27,6 +27,7 @@ import type {
   CreateChannelParams,
   CustodyMode,
   OmniaChannel,
+  OmniaPeer,
   OmniaSwarm,
   ProgramTransition,
   SignedChannelState,
@@ -128,6 +129,8 @@ export interface HostApiContext {
   leaseProvider?: WotsLeaseProvider;
   chainProvider?: ChainStateProvider;
   swarm?: OmniaSwarm;
+  /** Last authenticated peer seen for each channel; reply over it directly. */
+  channelPeers?: Map<string, OmniaPeer>;
   localParticipant?: ChannelParticipant;
   /** Native transport identity, published in the signed manifest. */
   transportPubkey?: string;
@@ -2141,6 +2144,71 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
     });
   };
   register('totem_omniaPay', pay, 'omnia/pay');
+
+  const sendHtlcState = async (channel: OmniaChannel, state: Partial<import('@totemsdk/omnia').SignedChannelState>): Promise<void> => {
+    const localPartyId = context.localParticipant!.partyId;
+    const remote = channel.parties.find((party) => party.partyId !== localPartyId);
+    if (!context.swarm || !remote) return;
+    const peer = context.channelPeers?.get(channel.channelId)
+      ?? await context.swarm.connectToPeer(remote.publicKeyDigest, channel.channelId, remote.transportPubkey);
+    await peer.sendMessage({ type: 'STATE_UPDATE', channelId: channel.channelId, nonce: Date.now(), payload: { ...state, pendingHTLCs: channel.pendingHTLCs } });
+  };
+
+  const addHtlcMethod: JsonRpcHandler = async (raw) => {
+    const params = paramsObject(raw);
+    const channelId = requiredString(params, 'channelId');
+    requireMutationContext(context);
+    const result = await withOperation(context, params, async () => {
+      const channel = context.channels.get(channelId);
+      if (!channel) throw new Error(`Channel ${channelId} not found`);
+      const added = await addHTLC(channel, {
+        amount: requiredBigInt(params, 'amount'),
+        hashlock: requiredString(params, 'hashlock'),
+        timeoutBlock: requiredBigInt(params, 'timeoutBlock'),
+        direction: (typeof params.direction === 'string' ? params.direction : 'offered') as 'offered' | 'received',
+        counterpartPublicKeyDigest: requiredString(params, 'counterpartPublicKeyDigest'),
+      }, context.leaseProvider!, context.signer);
+      if (added.error) throw new Error(added.error);
+      context.channels.set(channelId, added.channel);
+      await sendHtlcState(added.channel, added.partialState);
+      return { success: true, channelId, htlcId: added.htlcId, sequence: added.channel.currentSequence };
+    });
+    return result;
+  };
+  register('totem_omniaAddHTLC', addHtlcMethod, 'omnia/addHTLC');
+
+  const fulfillHtlcMethod: JsonRpcHandler = async (raw) => {
+    const params = paramsObject(raw);
+    const channelId = requiredString(params, 'channelId');
+    requireMutationContext(context);
+    return withOperation(context, params, async () => {
+      const channel = context.channels.get(channelId);
+      if (!channel) throw new Error(`Channel ${channelId} not found`);
+      const fulfilled = await fulfillHTLC(channel, requiredString(params, 'htlcId'), requiredString(params, 'preimage'), context.leaseProvider!, context.signer);
+      if (fulfilled.error) throw new Error(fulfilled.error);
+      context.channels.set(channelId, fulfilled.channel);
+      await sendHtlcState(fulfilled.channel, fulfilled.partialState);
+      return { success: true, channelId, sequence: fulfilled.channel.currentSequence };
+    });
+  };
+  register('totem_omniaFulfillHTLC', fulfillHtlcMethod, 'omnia/fulfillHTLC');
+
+  const timeoutHtlcMethod: JsonRpcHandler = async (raw) => {
+    const params = paramsObject(raw);
+    const channelId = requiredString(params, 'channelId');
+    requireMutationContext(context);
+    return withOperation(context, params, async () => {
+      const channel = context.channels.get(channelId);
+      if (!channel) throw new Error(`Channel ${channelId} not found`);
+      const timedOut = await timeoutHTLC(channel, requiredString(params, 'htlcId'), context.leaseProvider!, context.chainProvider!, context.signer);
+      if (timedOut.error) throw new Error(timedOut.error);
+      context.channels.set(channelId, timedOut.channel);
+      await sendHtlcState(timedOut.channel, timedOut.partialState);
+      return { success: true, channelId, sequence: timedOut.channel.currentSequence };
+    });
+  };
+  register('totem_omniaTimeoutHTLC', timeoutHtlcMethod, 'omnia/timeoutHTLC');
+
   registerPreparedPayMethods(methods, context);
 
 
