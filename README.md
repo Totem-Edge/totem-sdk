@@ -7,6 +7,8 @@ Sensors read the world, machines act on it, and value moves because of it. Totem
 > For the strategic overview (the loop, the five systems, and why this exists), see the [Totem Edge org README](.github/profile/README.md). This file is the technical one: what's here, how it's organised, and how to use it.
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Workspace CI](https://github.com/Totem-Edge/totem-sdk/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Totem-Edge/totem-sdk/actions/workflows/ci.yml)
+[![Rust Core CI](https://github.com/Totem-Edge/totem-sdk/actions/workflows/rust-core.yml/badge.svg?branch=main)](https://github.com/Totem-Edge/totem-sdk/actions/workflows/rust-core.yml)
 [![NPM](https://img.shields.io/npm/v/@totemsdk/core?label=core)](https://www.npmjs.com/package/@totemsdk/core)
 [![NPM](https://img.shields.io/npm/v/@totemsdk/kissvm?label=kissvm)](https://www.npmjs.com/package/@totemsdk/kissvm)
 [![NPM](https://img.shields.io/npm/v/@totemsdk/edge?label=edge)](https://www.npmjs.com/package/@totemsdk/edge)
@@ -246,23 +248,25 @@ Every stage produces evidence the next stage consumes — and every stage can be
 | [`@totemsdk/mcp-server`](packages/mcp-server) | MCP server for AI agent tooling — expose SDK capabilities to LLM agents |
 | [`@totemsdk/wallet-adapter`](packages/wallet-adapter) | Wallet adapter interfaces for multi-provider chain access |
 
-The authoritative machine-readable catalog is [`SDK_MANIFEST.json`](SDK_MANIFEST.json) — currently **60 packages across 6 domains**, plus the private `@totem/sdk-tests`.
+The authoritative machine-readable catalog is [`SDK_MANIFEST.json`](SDK_MANIFEST.json) — currently **67 packages across 9 domains**, plus the private `@totem/sdk-tests`.
 
 ---
 
 ## Maturity
 
-We are honest about where things stand. The core cryptographic layer and the Omnia channel state machine (including its Rust/WASM parity engine) are the most battle-tested; several edge connectors and governance/policy pieces are reference implementations proving the architecture.
+We are honest about where things stand. The core cryptographic layer and the Omnia channel state machine (including its Rust/WASM parity engine) are the most battle-tested. Breadth is not maturity: the SDK has a deliberately small production core and an explicitly labelled preview surface. [RFC-063](docs/rfc/RFC-063-PRODUCTION-READINESS-AND-MATURITY-PROMOTION.md) defines the promotion gates.
 
-| Layer | Status | Notes |
-|-------|--------|-------|
-| `core`, `core-wasm`, `kissvm` | **Production** | Extensive test vectors, Java byte-exact parity, WASM-backed |
-| `omnia` (+ parity engine) | **Production** | 186 TS tests, 27 Rust tests, 11 WASM-parity suites; golden fixtures |
-| `wots-lease` | **Stable** | Watermark v3 canonical; all five provider layers implemented (local, Axia, personal node, P2P quorum, on-chain) |
-| `recursive-mast`, `authority`, `governance` | **Alpha → Beta** | Architecture-proven; broader policy templates in progress |
-| `edge-*` connectors | **Reference** | Proven adapters (MQTT, Modbus); others demonstrate port injection |
-| `industrial-action` | **RC** | RFC-010 landed: governed edge runtime, authority-proof binding, fail-safe/fail-silent/fail-closed/abort semantics, durable at-most-once idempotency, authority-bound receipts, Modbus/TCP emulator E2E |
-| `omnia-host` | **Alpha** | Channel daemon; routing/control APIs active |
+| Level | Packages | Meaning |
+|-------|---------:|---------|
+| v1 | 20 | Production support; API and evidence gates met |
+| rc | 39 | Release candidate; API-frozen for the next minor |
+| beta | 3 | Usable; API may change |
+| alpha | 5 | Architecture proof; no compatibility promise |
+| excluded | 6 | Private/test harness; not published |
+
+The generated per-package matrix is [`docs/maturity.md`](docs/maturity.md). It is checked in CI against `scripts/workspace-gates.config.json`; do not edit it by hand.
+
+**Production core candidates:** `core`, `core-wasm`, `kissvm`, `wots-lease`, `omnia`, `omnia-host`, `storage`, `lookup-*`, `industrial-action`, `edge-mqtt`, and `edge-modbus`. Other edge connectors, governance/policy pieces, replication, and new economic primitives remain preview until they pass the RFC-063 gates.
 
 ---
 
@@ -494,6 +498,8 @@ docs/                       # SDK documentation
 | Document | Description |
 |----------|-------------|
 | [Doc index](docs/README.md) | Canonical index of all SDK documentation |
+| [RFC index](docs/rfc/README.md) | Generated index of every RFC and its current status |
+| [Maturity matrix](docs/maturity.md) | Generated per-package maturity, aligned with the CI gates |
 | [KISSVM Guide](packages/kissvm/docs/KISSVM_Comprehensive_Guide.md) | Full KISSVM language reference, opcodes, templates |
 | [KISSVM Reference](packages/kissvm/docs/REFERENCE.md) | Quick-reference card for KISSVM syntax and opcodes |
 | [Integration Guide](packages/core/docs/INTEGRATION_GUIDE.md) | Server-side verification, hex conventions, TreeSignature format, replay protection |
@@ -510,20 +516,20 @@ docs/                       # SDK documentation
 | [RFC-004](docs/rfc/RFC-004-EDGE-SDK-V1-PROMOTION.md) | Edge SDK v1 promotion |
 | [RFC-005](docs/rfc/RFC-005-SDK-WALLET-GAP-FIXES.md) | SDK wallet gap fixes — landed (9/11 resolved: token creation in both wallets + on-node validated, stateful send, UTXO inspection, tx-builder serialization, non-browser discovery, template stability, multi-output approval; wallet-side KISSVM deferred by design) |
 | [RFC-006](docs/rfc/RFC-006-SDK-INTELLIGENCE-QVAC-INTEGRATION.md) | SDK intelligence/QVAC integration (implemented) |
-| [RFC-007](docs/rfc/RFC-007-STORAGE-CONSOLIDATION.md) | Storage consolidation & durable guarantees — Phases 0–3 landed (`@totemsdk/storage` adopted by 20 packages); 3a/4 partial (se-server volatile-default risk); 5 open (draft) |
+| [RFC-007](docs/rfc/RFC-007-STORAGE-CONSOLIDATION.md) | Storage consolidation & durable guarantees — Phases 0–3 landed; 3a/4 partial; 5 open |
 | [RFC-008](docs/rfc/RFC-008-FEDERATED-STATECHAIN.md) | Federated statechain — leased WOTS identity & threshold SE federation (draft) |
 | [RFC-009](docs/rfc/RFC-009-KISSVM-SIGNATURE-FIDELITY.md) | KISSVM signature fidelity — Minima-faithful TreeKey `SignatureProof` verification (draft) |
-| [RFC-010](docs/rfc/RFC-010-INDUSTRIAL-ACTION-RC.md) | Industrial action to RC — industrial action definitions on the governed edge runtime (idempotency, authority-proof binding, retry/timeout/rollback) (draft) |
-| [RFC-011](docs/rfc/RFC-011-INDUSTRIAL-ACTION-DOMAIN-MODEL.md) | Industrial action domain model — units, resources/interlocks, composition, versioning, events, and vertical profiles (draft) |
+| [RFC-010](docs/rfc/RFC-010-INDUSTRIAL-ACTION-RC.md) | Industrial action to RC — industrial action definitions on the governed edge runtime (landed) |
+| [RFC-011](docs/rfc/RFC-011-INDUSTRIAL-ACTION-DOMAIN-MODEL.md) | Industrial action domain model — units, resources/interlocks, composition, versioning, events, and vertical profiles (landed) |
 | [RFC-012](docs/rfc/RFC-012-DECISION-RUNTIME.md) | Decision runtime — bounded semantic choice as a first-class Edge service (`@totemsdk/decision`), sibling to Intelligence (landed) |
-| [RFC-013](docs/rfc/RFC-013-WALLET-SELF-HOSTED-MODE.md) | Wallet self-hosted mode — Axia-relay default with chain-provider opt-out + wallet-side WOTS lease (draft) |
-| [RFC-014](docs/rfc/RFC-014-WALLET-CONNECT-PARITY.md) | Wallet connect parity & shared execution bridge — one method implementation for extension + PWA, Edge-routed families (draft) |
+| [RFC-013](docs/rfc/RFC-013-WALLET-SELF-HOSTED-MODE.md) | Wallet self-hosted mode — Axia-relay default with chain-provider opt-out + wallet-side WOTS lease (landed) |
+| [RFC-014](docs/rfc/RFC-014-WALLET-CONNECT-PARITY.md) | Wallet connect parity & shared execution bridge — one method implementation for extension + PWA, Edge-routed families (landed) |
 | [RFC-015](docs/rfc/RFC-015-AXIA-API-ALIGNMENT.md) | Axia API alignment — wallet capability manifest, SE registry RFC-008 shape, lease model, status/receipts, quota/telemetry (draft) |
 | [RFC-016](docs/rfc/RFC-016-KISSVM-TEMPLATE-SECURITY-HARDENING.md) | KISSVM template security hardening — MAST/PROOF fidelity, committed prevstate, fail-closed witness bridge, transaction planners (landed) |
 | [RFC-017](docs/rfc/RFC-017-DECISION-RECEIPT-GRAPH.md) | Decision receipt graph — link semantic `@totemsdk/decision` receipts into governed Edge/run/industrial evidence without conflating semantic, authority or governance decisions (draft) |
-| [RFC-018](docs/rfc/RFC-018-KISSVM-ADVERSARIAL-REMEDIATION.md) | KISSVM / recursive-MAST / tx-builder adversarial remediation — close second-order composition/verification holes (MULTISIG de-dup, terminal-MAST-after-RETURN, signing verification, invariant detector, proof-mandatory MAST) (draft) |
-| [RFC-019](docs/rfc/RFC-019-GOVERNED-AGENT-COMMERCE.md) | Governed agent commerce — close the `createEdge()` privilege-escalation path; agents reach commerce only via governed `purchase:*` actions with canonical-effect authorization and atomic reservation (draft) |
-| [RFC-020](docs/rfc/RFC-020-MULTIPACKAGE-ADVERSARIAL-HARDENING.md) | Multi-package adversarial hardening — close cross-package composition holes (draft) |
+| [RFC-018](docs/rfc/RFC-018-KISSVM-ADVERSARIAL-REMEDIATION.md) | KISSVM / recursive-MAST / tx-builder adversarial remediation — close second-order composition/verification holes (landed) |
+| [RFC-019](docs/rfc/RFC-019-GOVERNED-AGENT-COMMERCE.md) | Governed agent commerce — close the `createEdge()` privilege-escalation path; agents reach commerce only via governed `purchase:*` actions with canonical-effect authorization and atomic reservation (draft; post-authorization negotiation residual) |
+| [RFC-020](docs/rfc/RFC-020-MULTIPACKAGE-ADVERSARIAL-HARDENING.md) | Multi-package adversarial hardening — close cross-package composition holes (landed) |
 | [RFC-021](docs/rfc/RFC-021-INDUSTRIAL-CATALOGUE-DECISION-BINDING.md) | Industrial action catalogue & decision binding — registered definitions/resources as pinned Decision candidates with explicit bounded parameter selection (draft) |
 | [RFC-022](docs/rfc/RFC-022-PREPARED-COMMAND-BINDING-ASYNC-LIFECYCLE.md) | Prepared-command binding & async operation lifecycle — commit the prepared command/target; accepted→running→reconciled over RFC-019 reservation holds (draft) |
 | [RFC-023](docs/rfc/RFC-023-PHYSICAL-EFFECT-POLICY-ENFORCEMENT.md) | Physical-effect policy enforcement — typed power/energy/speed/duration/envelope effects with matching enforced `RunLimits` (draft) |
@@ -534,11 +540,13 @@ docs/                       # SDK documentation
 | [RFC-028](docs/rfc/RFC-028-DECISION-OUTPUT-CORRECTNESS-NATIVE-BRIDGES.md) | Decision output correctness & native bridges — missing-output errors, score/distribution agreement, compiled-count limits, tested Jev/Laya bridges (draft) |
 | [RFC-029](docs/rfc/RFC-029-PER-QUESTION-ACCEPTANCE-MULTI-PROVIDER.md) | Per-question acceptance & multi-provider assembly — type-keyed rules, partial acceptance with selective escalation (draft) |
 | [RFC-030](docs/rfc/RFC-030-MODEL-AWARE-PREFLIGHT-SHORTLISTING-BATCHING.md) | Model-aware preflight, shortlisting & batching — compiled-request budgets, hard ceilings, transformation recording (draft) |
-| [RFC-031](docs/rfc/RFC-031-CORE-WASM-SOLE-IMPLEMENTATION.md) | Core-Wasm sole-implementation — portable WASM (async init), oracle parity gates, provenance, and the gated/phased sunset of the JS crypto kernels (draft) |
-| [RFC-032](docs/rfc/RFC-032-LOOKUP-STACK-POST-QUANTUM-IDENTITY.md) | Lookup-stack post-quantum identity — replace Ed25519 with the WOTS/TreeKey root identity (auth, announcements, lease certs, trust); hard switch to lookup-protocol v2 (draft) |
-| [RFC-033](docs/rfc/RFC-033-GO-WOTS-VIA-RUST-FFI.md) | Byte-exact WOTS for the Go mirrors via Rust FFI — reuse the pure-Rust core over a C ABI + cgo instead of a hand port; bidirectional TS⇄Go parity (draft) |
+| [RFC-031](docs/rfc/RFC-031-CORE-WASM-SOLE-IMPLEMENTATION.md) | Core-Wasm sole-implementation — portable WASM, oracle parity gates, provenance, and the gated sunset of the JS crypto kernels (draft; P1–P4 substantially landed, P5 remaining) |
+| [RFC-032](docs/rfc/RFC-032-LOOKUP-STACK-POST-QUANTUM-IDENTITY.md) | Lookup-stack post-quantum identity — replace Ed25519 with the WOTS/TreeKey root identity (landed) |
+| [RFC-033](docs/rfc/RFC-033-GO-WOTS-VIA-RUST-FFI.md) | Byte-exact WOTS for the Go mirrors via Rust FFI — bidirectional TS⇄Go parity (landed) |
+| [RFC-034–062](docs/rfc/README.md) | Full generated RFC index |
+| [RFC-063](docs/rfc/RFC-063-PRODUCTION-READINESS-AND-MATURITY-PROMOTION.md) | Production readiness and maturity promotion — production core, evidence gates, and Phase 0 truth work (draft; Phase 0 authorised) |
 | [SDK Audit (archived)](docs/archive/SDK_AUDIT-2026-02-ARCHIVED.md) | Historical Feb 2026 audit; current maturity lives in the table above |
-| [SDK Manifest](SDK_MANIFEST.json) | Machine-readable package index — 55 packages, for AI agents and tooling |
+| [SDK Manifest](SDK_MANIFEST.json) | Machine-readable package index — 67 packages, for AI agents and tooling |
 | [API Reference](https://totem.ing) | Full TypeDoc-generated API reference |
 
 ---

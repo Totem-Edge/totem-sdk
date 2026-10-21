@@ -182,6 +182,11 @@ jobs:
         run: node scripts/check-legacy-surface.mjs
       - name: Validate SDK_MANIFEST sync
         run: node scripts/verify-sdk-manifest.mjs
+      - name: Public claims and generated indexes (RFC-063)
+        run: |
+          node scripts/report-maturity.mjs
+          node scripts/report-rfc-index.mjs
+          node scripts/verify-public-claims.mjs
       - name: Custody conformance gate (RFC-044)
         run: node scripts/validate-custody.mjs
       - name: Wallet-adapter ⇄ connect parity gate

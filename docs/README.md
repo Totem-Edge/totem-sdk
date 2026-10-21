@@ -13,6 +13,8 @@
 | [../CONTRIBUTING.md](../CONTRIBUTING.md) | Contribution guidelines and development setup |
 | [../SECURITY.md](../SECURITY.md) | Security policy and vulnerability reporting |
 | [../SDK_MANIFEST.json](../SDK_MANIFEST.json) | Machine-readable package index (for AI agents and tooling) |
+| [maturity.md](maturity.md) | Generated per-package maturity matrix (RFC-063) |
+| [rfc/README.md](rfc/README.md) | Generated index of every RFC and its current status |
 
 ---
 
@@ -144,6 +146,8 @@
 
 ## RFCs
 
+The complete generated index is [rfc/README.md](rfc/README.md). The table below is curated.
+
 | Document | Description |
 |----------|-------------|
 | [rfc/RFC-001-SDK-UPGRADE.md](rfc/RFC-001-SDK-UPGRADE.md) | SDK upgrade process RFC |
@@ -161,9 +165,9 @@
 | [rfc/RFC-015-AXIA-API-ALIGNMENT.md](rfc/RFC-015-AXIA-API-ALIGNMENT.md) | Axia API alignment — wallet capability/method-support manifest, SE registry RFC-008 shape (per-member identity + federation), WOTS lease model, transaction status/receipts, quota/telemetry for the new families (draft) |
 | [rfc/RFC-016-KISSVM-TEMPLATE-SECURITY-HARDENING.md](rfc/RFC-016-KISSVM-TEMPLATE-SECURITY-HARDENING.md) | KISSVM template security hardening — MAST terminality, PROOF leaf-preimage fidelity, committed prevstate, fail-closed witness bridge, transaction planners, data-consent retention (landed) |
 | [rfc/RFC-017-DECISION-RECEIPT-GRAPH.md](rfc/RFC-017-DECISION-RECEIPT-GRAPH.md) | Decision receipt graph — link semantic `@totemsdk/decision` receipts into governed Edge/run/industrial evidence via an inert, verifiable `DecisionRef`, keeping semantic, authority and governance decisions distinct (draft) |
-| [rfc/RFC-018-KISSVM-ADVERSARIAL-REMEDIATION.md](rfc/RFC-018-KISSVM-ADVERSARIAL-REMEDIATION.md) | KISSVM / recursive-MAST / tx-builder adversarial remediation — close the second-order composition/verification holes (MULTISIG key de-dup, terminal-MAST-after-RETURN, signing verification, invariant detector, proof-mandatory MAST) (draft) |
-| [rfc/RFC-019-GOVERNED-AGENT-COMMERCE.md](rfc/RFC-019-GOVERNED-AGENT-COMMERCE.md) | Governed agent commerce — close the `createEdge()` privilege-escalation path; agents reach commerce only via governed `purchase:*` actions with canonical-effect authorization and atomic reservation (draft) |
-| [rfc/RFC-020-MULTIPACKAGE-ADVERSARIAL-HARDENING.md](rfc/RFC-020-MULTIPACKAGE-ADVERSARIAL-HARDENING.md) | Multi-package adversarial hardening — close cross-package composition holes (draft) |
+| [rfc/RFC-018-KISSVM-ADVERSARIAL-REMEDIATION.md](rfc/RFC-018-KISSVM-ADVERSARIAL-REMEDIATION.md) | KISSVM / recursive-MAST / tx-builder adversarial remediation — close the second-order composition/verification holes (MULTISIG key de-dup, terminal-MAST-after-RETURN, signing verification, invariant detector, proof-mandatory MAST) (landed) |
+| [rfc/RFC-019-GOVERNED-AGENT-COMMERCE.md](rfc/RFC-019-GOVERNED-AGENT-COMMERCE.md) | Governed agent commerce — close the `createEdge()` privilege-escalation path; agents reach commerce only via governed `purchase:*` actions with canonical-effect authorization and atomic reservation (draft; post-authorization negotiation residual) |
+| [rfc/RFC-020-MULTIPACKAGE-ADVERSARIAL-HARDENING.md](rfc/RFC-020-MULTIPACKAGE-ADVERSARIAL-HARDENING.md) | Multi-package adversarial hardening — close cross-package composition holes (landed) |
 | [rfc/RFC-021-INDUSTRIAL-CATALOGUE-DECISION-BINDING.md](rfc/RFC-021-INDUSTRIAL-CATALOGUE-DECISION-BINDING.md) | Industrial action catalogue & decision binding — project registered definitions/resources into pinned Decision candidates, with explicit bounded parameter selection (draft) |
 | [rfc/RFC-022-PREPARED-COMMAND-BINDING-ASYNC-LIFECYCLE.md](rfc/RFC-022-PREPARED-COMMAND-BINDING-ASYNC-LIFECYCLE.md) | Prepared-command binding & async operation lifecycle — commit the prepared command/target, and add accepted→running→reconciled semantics over RFC-019 reservation holds (draft) |
 | [rfc/RFC-023-PHYSICAL-EFFECT-POLICY-ENFORCEMENT.md](rfc/RFC-023-PHYSICAL-EFFECT-POLICY-ENFORCEMENT.md) | Physical-effect policy enforcement — typed power/energy/speed/duration/envelope effects in `StepEffects` with matching enforced `RunLimits` (draft) |
@@ -175,11 +179,12 @@
 | [rfc/RFC-029-PER-QUESTION-ACCEPTANCE-MULTI-PROVIDER.md](rfc/RFC-029-PER-QUESTION-ACCEPTANCE-MULTI-PROVIDER.md) | Per-question acceptance & multi-provider assembly — type-keyed rules, partial acceptance with selective escalation, per-answer provider/bindings (draft) |
 | [rfc/RFC-030-MODEL-AWARE-PREFLIGHT-SHORTLISTING-BATCHING.md](rfc/RFC-030-MODEL-AWARE-PREFLIGHT-SHORTLISTING-BATCHING.md) | Model-aware preflight, shortlisting & batching — compiled-request budgets, hard ceilings, shortlist/split recording, extended batching (draft) |
 | [rfc/RFC-031-CORE-WASM-SOLE-IMPLEMENTATION.md](rfc/RFC-031-CORE-WASM-SOLE-IMPLEMENTATION.md) | Core-Wasm sole-implementation — portable WASM (async init), oracle parity gates, provenance, and the gated/phased sunset of the JS crypto kernels (draft) |
-| [rfc/RFC-032-LOOKUP-STACK-POST-QUANTUM-IDENTITY.md](rfc/RFC-032-LOOKUP-STACK-POST-QUANTUM-IDENTITY.md) | Lookup-stack post-quantum identity — replace Ed25519 with the WOTS/TreeKey root identity across auth, announcements, lease certs and trust records; hard switch to lookup-protocol v2 (draft) |
-| [rfc/RFC-033-GO-WOTS-VIA-RUST-FFI.md](rfc/RFC-033-GO-WOTS-VIA-RUST-FFI.md) | Byte-exact WOTS for the Go mirrors via Rust FFI — reuse the pure-Rust core over a C ABI + cgo instead of a hand port; bidirectional TS⇄Go parity (draft) |
+| [rfc/RFC-032-LOOKUP-STACK-POST-QUANTUM-IDENTITY.md](rfc/RFC-032-LOOKUP-STACK-POST-QUANTUM-IDENTITY.md) | Lookup-stack post-quantum identity — replace Ed25519 with the WOTS/TreeKey root identity across auth, announcements, lease certs and trust records; hard switch to lookup-protocol v2 (landed) |
+| [rfc/RFC-033-GO-WOTS-VIA-RUST-FFI.md](rfc/RFC-033-GO-WOTS-VIA-RUST-FFI.md) | Byte-exact WOTS for the Go mirrors via Rust FFI — reuse the pure-Rust core over a C ABI + cgo instead of a hand port; bidirectional TS⇄Go parity (landed) |
 | [rfc/RFC-034-OMNIA-RELAY-METHOD-PARITY.md](rfc/RFC-034-OMNIA-RELAY-METHOD-PARITY.md) | Omnia relay method parity (Phase A) — serve the single-wallet Omnia methods (`getRoute`, `getSwapRate` read-only; `createFactory`, `spliceIn`, `spliceOut` single-party, `createFactory` on-chain); reasoned `UNSUPPORTED` for the multi-party Phase B methods (draft) |
 | [rfc/RFC-035-OMNIA-PEER-COORDINATION-PROTOCOL.md](rfc/RFC-035-OMNIA-PEER-COORDINATION-PROTOCOL.md) | Omnia peer coordination protocol (Phase B) — message kinds + verified, durable round-trips for the N-of-N/per-hop methods (`openVirtualChannel`, `closeFactory`, `payMultiHop`) and the factory/splice accept-finalize halves, over the relay (draft) |
 | [rfc/RFC-036-SERVER-SETTLEMENT-VERIFICATION.md](rfc/RFC-036-SERVER-SETTLEMENT-VERIFICATION.md) | Server settlement verification & package identity — explicit submission-vs-settlement contract, `awaitConfirmation` inclusion/balance/recoverability checks, and `@totemsdk/node` → `@totemsdk/server` doc/namespace correction (draft) |
+| [rfc/RFC-063-PRODUCTION-READINESS-AND-MATURITY-PROMOTION.md](rfc/RFC-063-PRODUCTION-READINESS-AND-MATURITY-PROMOTION.md) | Production readiness and maturity promotion — production core, evidence gates, per-package maturity, and Phase 0 truth work (draft; Phase 0 authorised) |
 | [rfc/RFC-014-AMENDMENT-A-CAPABILITY-MANIFEST-TRUTHFULNESS.md](rfc/RFC-014-AMENDMENT-A-CAPABILITY-MANIFEST-TRUTHFULNESS.md) | RFC-014 Amendment A — capability manifest truthfulness: port presence is not capability; per-method `supports()` probes so the manifest reflects what the wallet actually serves (draft) |
 
 ---

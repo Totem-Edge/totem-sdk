@@ -16,13 +16,11 @@ Include as much detail as possible:
 
 We will acknowledge your report within 48 hours and provide a timeline for resolution within 5 business days.
 
-### PGP Key
+### Encrypted reports
 
-```
------BEGIN PGP PUBLIC KEY BLOCK-----
-(Contact security@totem.ing for the current PGP key)
------END PGP PUBLIC KEY BLOCK-----
-```
+If you need encrypted email, request the current PGP key from
+**security@totem.ing** before sending details. Never send seed phrases, private
+keys, or exploit details in plaintext.
 
 ## Disclosure Policy
 
@@ -34,11 +32,17 @@ We will acknowledge your report within 48 hours and provide a timeline for resol
 
 ## Supported Versions
 
-| Version | Supported          |
-|---------|--------------------|
-| 2.x     | :white_check_mark: |
-| 1.x     | :x:                |
-| < 1.0   | :x:                |
+The SDK is pre-1.0 at the workspace level. Security fixes are applied to the
+latest published release of each package; older releases are not supported.
+
+| Release line | Supported |
+|---|---|
+| Latest published release of each package | Yes |
+| Older releases | No — upgrade to the latest release |
+| Preview/alpha packages | Best effort; not covered by production support |
+
+This table will be replaced by a per-package support policy when the RFC-063
+production core reaches 1.0.
 
 ## Security Model
 
