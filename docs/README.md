@@ -190,6 +190,7 @@ The complete generated index is [rfc/README.md](rfc/README.md). The table below 
 | [rfc/RFC-066-OMNIA-ATOMIC-REBALANCING.md](rfc/RFC-066-OMNIA-ATOMIC-REBALANCING.md) | Omnia atomic rebalancing — bounded, fully collateralised cycles and untrusted coordination (proposed) |
 | [rfc/RFC-067-OMNIA-HASH-CHAIN-STREAMS.md](rfc/RFC-067-OMNIA-HASH-CHAIN-STREAMS.md) | Omnia hash-chain streams — prefunded voucher feasibility prototype (proposed; gated) |
 | [rfc/RFC-068-OMNIA-ONION-ROUTING.md](rfc/RFC-068-OMNIA-ONION-ROUTING.md) | Omnia onion forwarding and blinded receiving paths — authenticated per-hop payloads (proposed) |
+| [rfc/RFC-069-OMNIA-SAME-CHAIN-SUBMARINE-SWAPS.md](rfc/RFC-069-OMNIA-SAME-CHAIN-SUBMARINE-SWAPS.md) | Omnia same-chain submarine swaps — on-chain/channel conditional exchange, timeouts and refunds (proposed) |
 | [research/OMNIA-OFFCHAIN-RESEARCH-PROFILES.md](research/OMNIA-OFFCHAIN-RESEARCH-PROFILES.md) | Deferred OEX-04/05/06/08/09/10/11/12 research notes; no implementation authority |
 | [rfc/RFC-014-AMENDMENT-A-CAPABILITY-MANIFEST-TRUTHFULNESS.md](rfc/RFC-014-AMENDMENT-A-CAPABILITY-MANIFEST-TRUTHFULNESS.md) | RFC-014 Amendment A — capability manifest truthfulness: port presence is not capability; per-method `supports()` probes so the manifest reflects what the wallet actually serves (draft) |
 

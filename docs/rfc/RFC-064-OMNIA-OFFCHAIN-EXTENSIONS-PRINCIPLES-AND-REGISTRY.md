@@ -144,7 +144,7 @@ truth or the semantic quality of arbitrary computation.
 | OEX-04 | Transaction aggregation and netting | Research after RFC-066; matching stays in Eefi | Eefi + `omnia` execution |
 | OEX-05 | Cross-relationship virtual funding | Research only; depth 1 first | `omnia-factory`, `omnia`, host |
 | OEX-06 | Multi-asset portfolio channels | Research only; compare linked single-asset channels first | `omnia`, `tx-builder`, `kissvm` |
-| OEX-07 | Submarine swaps | Same-chain profile after RFC-065/066; external chains separate | `omnia`, `chain-provider`, Eefi quotes |
+| OEX-07 | Submarine swaps | Same-chain profile in [RFC-069](RFC-069-OMNIA-SAME-CHAIN-SUBMARINE-SWAPS.md); external chains separate | `omnia`, `chain-provider`, Eefi quotes |
 | OEX-08 | Forced-progression application channels | Research only; may require script/consensus work | `omnia`, `kissvm` |
 | OEX-09 | Probabilistic micropayments | Deferred; WOTS issuance cost must be measured first | `omnia`, `wots-lease` |
 | OEX-10 | Shared overflow reserves (Sluice) | Research only; not a default non-custodial reserve | `omnia-pool`, `omnia` |
@@ -159,6 +159,8 @@ truth or the semantic quality of arbitrary computation.
   implementation proposals. They may start after their own review.
 - RFC-068 (onion forwarding) may proceed in parallel with RFC-035 work. It does
   not require a new package.
+- RFC-069 (same-chain submarine swaps) is a proposed composition extension after
+  RFC-065/066. It does not authorise external-chain interoperability.
 - RFC-067 (hash-chain streams) is a **feasibility prototype**, not an authorised
   production path. It stops if the constrained claim cannot be expressed and
   enforced within the real VM budget.
@@ -254,7 +256,7 @@ Disclosure does not make an unsafe recovery model acceptable.
 2. **RFC-066 bounded rebalancing** — reuses the reservation/recovery foundation.
 3. **RFC-068 onion forwarding** — parallel with RFC-035 completion.
 4. **RFC-067 hash-chain prototype** — only after the constrained-claim proof.
-5. **OEX-07 same-chain swap** — after MPP and rebalancing.
+5. **RFC-069 same-chain swap** — after MPP and rebalancing; external chains remain separate.
 6. **OEX-04 netting** — after RFC-066, with Eefi owning matching policy.
 7. **Research profiles** — on a product trigger, not a calendar.
 
@@ -299,6 +301,7 @@ Disclosure does not make an unsafe recovery model acceptable.
 - [RFC-055 — Omnia Routing Architecture](RFC-055-OMNIA-ROUTING-ARCHITECTURE.md)
 - [RFC-058 — Custody Modes and Disclosure Gate](RFC-058-CUSTODY-MODES-AND-DISCLOSURE-GATE.md)
 - [RFC-063 — Production Readiness](RFC-063-PRODUCTION-READINESS-AND-MATURITY-PROMOTION.md)
+- [RFC-069 — Same-Chain Submarine Swaps](RFC-069-OMNIA-SAME-CHAIN-SUBMARINE-SWAPS.md)
 - [Off-chain research profiles](../research/OMNIA-OFFCHAIN-RESEARCH-PROFILES.md)
 
 This RFC is design guidance. It does not establish production readiness, custody

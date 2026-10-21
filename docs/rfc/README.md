@@ -71,5 +71,6 @@
 | [RFC-066-OMNIA-ATOMIC-REBALANCING.md](RFC-066-OMNIA-ATOMIC-REBALANCING.md) | RFC-066 — Omnia Atomic Rebalancing: Bounded Cycles | Proposed — implementation not started; bounded cycles only |
 | [RFC-067-OMNIA-HASH-CHAIN-STREAMS.md](RFC-067-OMNIA-HASH-CHAIN-STREAMS.md) | RFC-067 — Omnia Hash-Chain Streams: Prefunded Voucher Prototype | Proposed — feasibility prototype only; production path not authorised |
 | [RFC-068-OMNIA-ONION-ROUTING.md](RFC-068-OMNIA-ONION-ROUTING.md) | RFC-068 — Omnia Onion Forwarding and Blinded Receiving Paths | Proposed — implementation not started; authenticated onion profile |
+| [RFC-069-OMNIA-SAME-CHAIN-SUBMARINE-SWAPS.md](RFC-069-OMNIA-SAME-CHAIN-SUBMARINE-SWAPS.md) | RFC-069 — Omnia Same-Chain Submarine Swaps | Proposed — implementation not started; same-chain profile only |
 
-Total: **67** RFC documents.
+Total: **68** RFC documents.
