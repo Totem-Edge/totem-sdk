@@ -9955,7 +9955,7 @@
         },
         "buildFundingTx": {
           "kind": "function",
-          "signature": "buildFundingTx(fundingScript: string, fundingScriptAddress: string, totalValue: bigint, tokenId: string, tokenScale: number, inputCoinIds: string[], inputAmounts: bigint[], inputAddresses: string[], extraStateVariables?: StateValue[]): OmniaTxDraft"
+          "signature": "buildFundingTx(fundingScript: string, fundingScriptAddress: string, totalValue: bigint, tokenId: string, tokenScale: number, inputCoinIds: string[], inputAmounts: bigint[], inputAddresses: string[], extraStateVariables?: StateValue[], inputStates?: Array<{ storeState?: boolean; stateVariables?: StateValue[]; }>): OmniaTxDraft"
         },
         "buildUpdateTx": {
           "kind": "function",
