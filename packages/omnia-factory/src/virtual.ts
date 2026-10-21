@@ -236,12 +236,14 @@ export function assembleVirtualChannelOpen(
     publicKeyDigest:   partyAMeta.publicKeyDigest,
     addressIndex:      partyAMeta.addressIndex,
     settlementAddress: partyAMeta.settlementAddress,
+    transportPubkey:   partyAMeta.transportPubkey,
   };
   const partyB: ChannelParticipant = {
     partyId:           partyBId,
     publicKeyDigest:   partyBMeta.publicKeyDigest,
     addressIndex:      partyBMeta.addressIndex,
     settlementAddress: partyBMeta.settlementAddress,
+    transportPubkey:   partyBMeta.transportPubkey,
   };
 
   const channel: OmniaChannel = {

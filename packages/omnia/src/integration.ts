@@ -57,6 +57,8 @@ export interface OmniaIntegrationConfig {
   onVcMessage?: (peer: OmniaPeer, msg: OmniaMessage) => void | Promise<void>;
   /** Splice coordination messages (SPLICE_PROPOSAL/ACCEPT/FINALIZED). */
   onSpliceMessage?: (peer: OmniaPeer, msg: OmniaMessage) => void | Promise<void>;
+  /** Observe every inbound peer message, before lifecycle dispatch. */
+  onPeerMessage?: (peer: OmniaPeer, msg: OmniaMessage) => void;
 }
 
 export type ChannelStore = Map<string, OmniaChannel>;
@@ -111,11 +113,15 @@ export function createOmniaIntegration(
 
   const unsubListen = swarm.listenForChannels(
     (peer: OmniaPeer, msg: OmniaMessage) => {
+      config.onPeerMessage?.(peer, msg);
+      // Bind every peer on first contact, not only CHANNEL_PROPOSAL. Virtual
+      // channels and factory openings arrive on peers that may never send a
+      // CHANNEL_PROPOSAL, and their later STATE_UPDATEs must still be handled.
+      if (!boundPeers.has(peer)) {
+        boundPeers.add(peer);
+        bindPeerIntegration(peer, store, config, { routeChannelProposal: false });
+      }
       if (msg.type === 'CHANNEL_PROPOSAL') {
-        if (!boundPeers.has(peer)) {
-          boundPeers.add(peer);
-          bindPeerIntegration(peer, store, config, { routeChannelProposal: false });
-        }
         _handleChannelProposal(peer, msg, store, config, false);
         return;
       }
@@ -218,10 +224,17 @@ async function _handleStateUpdate(
 
   const signedState = msg.payload as SignedChannelState;
   signedState.programTransition = canonicalizeProgramTransition(signedState.programTransition);
+  // STATE_UPDATE may carry new pending HTLCs that the receiver does not have yet.
+  // Apply them to the working channel before verification/signing so the co-sign
+  // commitment matches the sender's payload.
+  const channelForState: OmniaChannel = signedState.pendingHTLCs
+    ? { ...channel, pendingHTLCs: signedState.pendingHTLCs }
+    : channel;
   const result = config.leaseProvider
-    ? await verifyStateForCoSign(channel, signedState)
-    : await verifyState(channel, signedState);
+    ? await verifyStateForCoSign(channelForState, signedState)
+    : await verifyState(channelForState, signedState);
   if (!result.valid) {
+    if (process.env.OMNIA_DEBUG) console.error('[integration] STATE_UPDATE invalid', msg.channelId, result.errors);
     _sendError(
       peer,
       msg.channelId,
@@ -234,7 +247,7 @@ async function _handleStateUpdate(
   if (config.leaseProvider) {
     try {
       const partialState = await signState(
-        channel,
+        channelForState,
         {
           newSequence: signedState.sequence,
           newBalances: signedState.balances,
@@ -249,7 +262,7 @@ async function _handleStateUpdate(
         const localPartyId = Object.keys(partialState.signatures)[0];
         if (localPartyId) {
           const merged = attachCounterpartySignature(
-            channel,
+            channelForState,
             partialState,
             remotePartyId,
             signedState.signatures[remotePartyId],
@@ -271,6 +284,7 @@ async function _handleStateUpdate(
         },
       });
       if (mergedChannel) {
+        if (process.env.OMNIA_DEBUG) console.error('[integration] STATE_UPDATE merged', msg.channelId, mergedChannel.currentSequence, mergedChannel.pendingHTLCs.length);
         store.set(msg.channelId, mergedChannel);
         config.onStateUpdated?.(mergedChannel, peer);
         return;
@@ -284,7 +298,7 @@ async function _handleStateUpdate(
   }
 
   const updatedChannel: OmniaChannel = {
-    ...channel,
+    ...channelForState,
     latestState: signedState,
     currentSequence: signedState.sequence,
     balances: signedState.balances,
