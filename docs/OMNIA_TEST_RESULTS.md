@@ -1,6 +1,6 @@
 # Omnia test results — S1–S11
 
-**Snapshot:** 2026-10-20 (two-host session 2026-10-19/20).
+**Snapshot:** 2026-10-21 (OCI two-host + AWS 8-node session).
 **Plan:** [`OMNIA_TEST_PLAN.md`](./OMNIA_TEST_PLAN.md).
 **SDK commits in scope:** `fddce8c6` (reliable proposals/idempotent replies),
 `d9ef523c` (runtime harness), `e604b4cd` (S5 factory/VC), `b621c2a5` (S4
@@ -16,11 +16,11 @@ settlement + explicit TxPoW mining), `12e37e73` (transport identity),
 | **S1** | **PASS** | `@totemsdk/omnia-host` builds `dist/cli.js`; starts with `OMNIA_*` config |
 | **S2** | **PASS** | `/healthz` `{ok:true}`; `totem_omniaWhoami` + `totem_omniaGetManifest` return identity + signed manifest |
 | **S3** | **PASS** | two Minima nodes (RPC 9005/9015) and two hosts (control 50052/50053) healthy on separate OCI instances |
-| **S4** | **PASS** | `openChannel → pay → settle → closeChannel`; settlement TxPoW accepted as a main-chain block |
-| **S5** | **PASS** | `createFactory → openVirtualChannel → closeVirtualChannel`; allocations restored (native, two hosts) |
+| **S4** | **PASS** | Native `txnmine` path on AWS: `openChannel → pay → settle → closeChannel`; settlement TxPoW on-chain |
+| **S5** | **PASS** | `createFactory → openVirtualChannel → closeVirtualChannel`; 8-host ring + chord mesh, allocations restored |
 | **S6** | **PASS** | SDK + host harness: pool → mint → signed receipts → transfer → refresh → exit |
 | **S7** | **PASS** | SDK harness + host coordination (unit); live 2-host E2E pending |
-| **S8** | **PASS** | SDK harness: 3-hop fee-aware payment, per-hop amounts, fee retention |
+| **S8** | **PASS** | 8-node routing graph: 7-hop ring, 4-hop chorded, all-pairs routes, fee-aware settlement |
 | **S9** | **PASS** | local relay; two relay-backed swarms; PING/ACK round-trip; 2 relay clients |
 | **S10** | **PASS** | SDK + host harness: pool → deposit → allocate → release → withdraw → rooted payout |
 | **S11** | **PENDING** | Axia watchtower (in `axia-platform`); after S4/S5, HTLC cases after S8 |
@@ -288,6 +288,27 @@ unaffected.
 
 ---
 
+### 2026-10-21 — AWS 8-node testbed
+
+- 8 × `t4g.small` in `us-east-1`, private DHT through one seed on host A.
+- Hosts: A–H on control ports `50052`–`50059`; node A runs a private `-test -solo`
+  chain with a genesis coin.
+- Ring S5 edges: A–B, B–C, C–D, D–E, E–F, F–G, G–H, H–A.
+- Chord S5 edges: A–E, B–F, C–G, D–H.
+- All listed S5 edges returned `S5_PASS`; S6/S10 host harnesses passed on AWS.
+- S4 now uses the default `txnmine` path; the funding input is signed by the
+  funding coin key (`fundingPubkey`) rather than the host channel key.
+- S8 graph harness: `scripts/omnia-s8-graph.mjs`.
+  - ring-only A→H: 7 hops
+  - ring + chords A→H: 4 hops
+  - all-pairs ring routes resolve
+  - 7-hop fee-aware payment settles; recipient receives exactly `10000000000`.
+
+**Not yet executed:** a true cross-host 7-hop value transfer. The router graph
+and host transport/factory mesh are proven separately; executing HTLC forwarding
+across eight independent hosts requires a cross-host coordinator/host API that is
+not yet implemented.
+
 ## Run log
 
 | Date | Stage | Transport | SDK commit | Result | Evidence |
@@ -305,6 +326,12 @@ unaffected.
 | 2026-10-20 | S6 (host API) | in-memory | `06de2cc8` | PASS | host VTXO API + wallet receipts; `omnia-s6-host.mjs` |
 | 2026-10-20 | S10 (host API) | in-memory | `06de2cc8` | PASS | host pool lifecycle + payout rooting; `omnia-s10-host.mjs` |
 | 2026-10-20 | runtime | — | `d9ef523c` + Bare fix | PASS (Node/Bun/Bare) | `runtime-smoke.cjs`; Bun native skipped (upstream) |
+| 2026-10-21 | S4 | native/txnmine | `702df648` | PASS | native funding signature fixed; settlement `0x0001304A…` |
+| 2026-10-21 | S5 | native (AWS) | `702df648` | PASS | ring A-E-F-G-H-A + chords B-F/C-G/D-H; 100M/100M each |
+| 2026-10-21 | S8 graph | in-memory | `omnia-s8-graph.mjs` | PASS | 8 nodes, 7-hop ring, 4-hop chord route, recipient exact |
+| 2026-10-21 | S6 host | in-memory (AWS) | current dist | PASS | `omnia-s6-host.mjs`; VTXO lifecycle |
+| 2026-10-21 | S10 host | in-memory (AWS) | current dist | PASS | `omnia-s10-host.mjs`; remaining 99000, rooted |
+| 2026-10-21 | MCP | local node + host | `4e81067` | PASS | Omnia prepare/read tools in manifest; `tools/call` whoami/channels |
 
 To add a run: append a row, then add the command, `OMNIA_RESULT` JSON, and log
 paths under the relevant stage section. Re-run `scripts/omnia-{s4,s5}-cross.mjs`

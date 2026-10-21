@@ -73,7 +73,7 @@ All harnesses live in `scripts/` and print a machine-readable
 | S9 | `node scripts/omnia-s9-relay.mjs` | local only |
 | S6 | `node scripts/omnia-s6-vtxo.mjs` / `node scripts/omnia-s6-host.mjs` | local only |
 | S7 | `node scripts/omnia-s7-splice.mjs` | local only |
-| S8 | `node scripts/omnia-s8-router.mjs` | local only |
+| S8 | `node scripts/omnia-s8-router.mjs` / `node scripts/omnia-s8-graph.mjs` | local only |
 | S10 | `node scripts/omnia-s10-pool.mjs` / `node scripts/omnia-s10-host.mjs` | local only |
 | runtime | `node scripts/runtime-smoke.cjs [--native]` | SDK build; `OMNIA_SMOKE_HOST` for native |
 
