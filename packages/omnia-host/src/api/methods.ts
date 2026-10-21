@@ -2074,6 +2074,15 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
             })
           : signer;
       }
+      // RFC-035: establish the peer transport before broadcasting funding.
+      // Otherwise a DHT timeout leaves the funding coin spent with no channel.
+      if (context.swarm) {
+        await context.swarm.connectToPeer(
+          remote.publicKeyDigest,
+          `omnia-open-preflight-${remotePartyId}`,
+          remote.transportPubkey,
+        );
+      }
       const created = await createChannel(createParams, context.chainProvider);
       context.channels.set(created.channel.channelId, {
         ...created.channel,

@@ -65,7 +65,7 @@ export function createTotemNodeAdapter(options: TotemNodeAdapterOptions): TotemN
     broadcastTxPoW: (txpowHex) => provider.broadcastTxPoW(txpowHex),
     getMinTxPowWork: () =>
       provider.getMinTxPowWork ? provider.getMinTxPowWork() : Promise.resolve(null),
-    ...(provider.submitTransaction
+    ...(provider.submitTransaction && process.env.OMNIA_CHAIN_NO_TXNMINE !== '1'
       ? { submitTransaction: provider.submitTransaction.bind(provider) }
       : {}),
 
