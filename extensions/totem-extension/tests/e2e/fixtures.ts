@@ -13,13 +13,13 @@ export interface ExtensionTestFixtures {
 export const test = base.extend<ExtensionTestFixtures>({
   context: async ({}, use) => {
     const context = await chromium.launchPersistentContext('', {
+      channel: 'chromium',
       headless: IS_CI,
       args: [
         `--disable-extensions-except=${EXTENSION_PATH}`,
         `--load-extension=${EXTENSION_PATH}`,
         '--no-first-run',
         '--disable-popup-blocking',
-        ...(IS_CI ? ['--headless=new'] : []),
       ],
     });
     await use(context);
