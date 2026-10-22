@@ -115,6 +115,7 @@
 | [Wallet ⇄ connect parity (2026-09)](audits/wallet-connect-parity-2026-09.md) | Extension vs PWA coverage of `@totemsdk/connect` methods; parity/task list and Axia API recommendations (`scripts/audit-wallet-connect-parity.mjs`) |
 | [KISSVM / recursive-MAST / tx-builder adversarial audit (2026-09)](audits/kissvm-recursive-mast-adversarial-2026-09.md) | Independent adversarial audit — 3 Critical / 11 High / 16 Medium; the second pass on the RFC-016 surface; remediation contract in RFC-018 |
 | [Edge agent-commerce privilege escalation (2026-09)](audits/edge-agent-commerce-privilege-escalation-2026-09.md) | `createEdge()`/`EdgeBuyer` expose an ungoverned agent purchasing path around `createAgentEdgeRuntime()`; threat model + remediation contract in RFC-019 |
+| [License provenance audit (2026-10)](audits/license-provenance-2026-10.md) | Source-provenance review of Minima-derived core/KISSVM/serialization, Bouncy Castle, QVAC, BIP39 and generated protobuf; recommends Apache-2.0 new releases + `NOTICE` |
 | [SDK_ROLLBACK_RUNBOOK.md](SDK_ROLLBACK_RUNBOOK.md) | Rollback procedures for SDK releases |
 | [SDK_STAGED_ROLLOUT.md](SDK_STAGED_ROLLOUT.md) | Staged rollout strategy for SDK deployments |
 | [RECOVERY_CLI.md](RECOVERY_CLI.md) | Recovery CLI tool documentation |
