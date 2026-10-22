@@ -189,7 +189,7 @@ support bar:
   `omnia-splice`, `omnia-vtxo`, `liquidity-bond`
 - Edge runtime: `edge`
 
-Tier 2 minimum bar:
+Tier 2 minimum bar for a **Tier 0 dependency**:
 
 - P0 truth (current counts, status, version and RFC links);
 - P2 unit/integration tests for the imported surface;
@@ -197,9 +197,10 @@ Tier 2 minimum bar:
 - P7 named owner and support expectation;
 - no open P0/P1 security finding on the imported path.
 
-Tier 2 packages do not need full Tier 0 documentation or operations evidence,
-but they must be stable enough that a Tier 0/1 package is not built on an
-unowned or Alpha runtime path.
+Tier 2 packages do not need full Tier 0 documentation or operations evidence.
+A Tier 1 candidate may use an Alpha dependency only when the dependency is
+explicitly gated and the candidate makes no production claim. A Tier 0 package
+may not use an Alpha/Preview runtime dependency on its supported path.
 
 ### 4.5 Outside the production surface
 

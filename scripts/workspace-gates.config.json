@@ -32,6 +32,7 @@
     "packages/agent-policy": {
       "status": "publishable",
       "maturity": "rc",
+      "supportTier": 2,
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -40,6 +41,7 @@
     "packages/authority": {
       "status": "publishable",
       "maturity": "v1",
+      "supportTier": 2,
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -48,6 +50,7 @@
     "packages/chain-provider": {
       "status": "publishable",
       "maturity": "rc",
+      "supportTier": 2,
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -56,6 +59,7 @@
     "packages/connect": {
       "status": "publishable",
       "maturity": "v1",
+      "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -64,6 +68,7 @@
     "packages/core": {
       "status": "publishable",
       "maturity": "v1",
+      "supportTier": 0,
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -72,6 +77,7 @@
     "packages/core-wasm": {
       "status": "publishable",
       "maturity": "v1",
+      "supportTier": 0,
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -80,6 +86,7 @@
     "packages/decision": {
       "status": "publishable",
       "maturity": "beta",
+      "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -88,6 +95,7 @@
     "packages/edge": {
       "status": "publishable",
       "maturity": "v1",
+      "supportTier": 2,
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -96,6 +104,7 @@
     "packages/edge-adapters": {
       "status": "publishable",
       "maturity": "rc",
+      "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -104,6 +113,7 @@
     "packages/edge-bacnet": {
       "status": "publishable",
       "maturity": "rc",
+      "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -112,6 +122,7 @@
     "packages/edge-ble": {
       "status": "publishable",
       "maturity": "rc",
+      "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -120,6 +131,7 @@
     "packages/edge-can": {
       "status": "publishable",
       "maturity": "rc",
+      "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -128,6 +140,7 @@
     "packages/edge-coap": {
       "status": "publishable",
       "maturity": "rc",
+      "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -136,6 +149,7 @@
     "packages/edge-email": {
       "status": "publishable",
       "maturity": "rc",
+      "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -144,6 +158,7 @@
     "packages/edge-grpc": {
       "status": "publishable",
       "maturity": "rc",
+      "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -152,6 +167,7 @@
     "packages/edge-lorawan": {
       "status": "publishable",
       "maturity": "rc",
+      "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -160,6 +176,7 @@
     "packages/edge-matter": {
       "status": "publishable",
       "maturity": "rc",
+      "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -168,6 +185,7 @@
     "packages/edge-modbus": {
       "status": "publishable",
       "maturity": "rc",
+      "supportTier": 1,
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -176,6 +194,7 @@
     "packages/edge-mqtt": {
       "status": "publishable",
       "maturity": "rc",
+      "supportTier": 1,
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -184,6 +203,7 @@
     "packages/edge-nfc": {
       "status": "publishable",
       "maturity": "alpha",
+      "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -192,6 +212,7 @@
     "packages/edge-opcua": {
       "status": "publishable",
       "maturity": "rc",
+      "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -200,6 +221,7 @@
     "packages/edge-ros2": {
       "status": "publishable",
       "maturity": "rc",
+      "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -208,6 +230,7 @@
     "packages/governance": {
       "status": "publishable",
       "maturity": "rc",
+      "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -216,6 +239,7 @@
     "packages/identity": {
       "status": "publishable",
       "maturity": "v1",
+      "supportTier": 2,
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -224,6 +248,7 @@
     "packages/industrial-action": {
       "status": "publishable",
       "maturity": "rc",
+      "supportTier": 1,
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -232,6 +257,7 @@
     "packages/intelligence": {
       "status": "publishable",
       "maturity": "beta",
+      "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -240,6 +266,7 @@
     "packages/kissvm": {
       "status": "publishable",
       "maturity": "v1",
+      "supportTier": 0,
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -248,6 +275,7 @@
     "packages/liquidity-bond": {
       "status": "publishable",
       "maturity": "rc",
+      "supportTier": 2,
       "custody": {
         "classification": "non-custodial",
         "reason": "data-only; no on-chain value held (disclaimed)"
@@ -256,6 +284,7 @@
     "packages/location-proof": {
       "status": "publishable",
       "maturity": "v1",
+      "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -264,6 +293,7 @@
     "packages/spatial-proof": {
       "status": "publishable",
       "maturity": "v1",
+      "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -272,6 +302,7 @@
     "packages/raster-proof": {
       "status": "publishable",
       "maturity": "v1",
+      "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -280,6 +311,7 @@
     "packages/lookup-client": {
       "status": "publishable",
       "maturity": "rc",
+      "supportTier": 1,
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -288,6 +320,7 @@
     "packages/lookup-node": {
       "status": "publishable",
       "maturity": "rc",
+      "supportTier": 1,
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -296,6 +329,7 @@
     "packages/lookup-protocol": {
       "status": "publishable",
       "maturity": "rc",
+      "supportTier": 1,
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -304,6 +338,7 @@
     "packages/manifest": {
       "status": "publishable",
       "maturity": "v1",
+      "supportTier": 2,
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -312,6 +347,7 @@
     "packages/mcp-server": {
       "status": "publishable",
       "maturity": "rc",
+      "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -319,7 +355,8 @@
     },
     "packages/omnia": {
       "status": "publishable",
-      "maturity": "v1",
+      "maturity": "rc",
+      "supportTier": 1,
       "custody": {
         "classification": "non-custodial",
         "reason": "unilateral eltoo broadcast branch after contest delay; update path is MULTISIG(2)",
@@ -332,6 +369,7 @@
     "packages/omnia-factory": {
       "status": "publishable",
       "maturity": "rc",
+      "supportTier": 2,
       "custody": {
         "classification": "non-custodial",
         "reason": "N-of-N cooperative close + per-party timeout escape",
@@ -344,6 +382,7 @@
     "packages/omnia-host": {
       "status": "publishable",
       "maturity": "rc",
+      "supportTier": 1,
       "custody": {
         "classification": "non-custodial",
         "reason": "signing host; TreeKey stays in-wallet; holds no value"
@@ -352,6 +391,7 @@
     "packages/omnia-pool": {
       "status": "publishable",
       "maturity": "rc",
+      "supportTier": 2,
       "custody": {
         "classification": "non-custodial",
         "reason": "pool backing is non-custodial VTXO/channel scripts; holds no funds itself"
@@ -360,6 +400,7 @@
     "packages/omnia-relay": {
       "status": "publishable",
       "maturity": "alpha",
+      "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
         "reason": "coordination transport; holds no value (liveness-only)"
@@ -368,6 +409,7 @@
     "packages/omnia-router": {
       "status": "publishable",
       "maturity": "rc",
+      "supportTier": 2,
       "custody": {
         "classification": "non-custodial",
         "reason": "routes over non-custodial channels; holds no value"
@@ -376,6 +418,7 @@
     "packages/omnia-splice": {
       "status": "publishable",
       "maturity": "rc",
+      "supportTier": 2,
       "custody": {
         "classification": "non-custodial",
         "reason": "splicing follows the non-custodial channel script"
@@ -384,6 +427,7 @@
     "packages/omnia-vtxo": {
       "status": "publishable",
       "maturity": "rc",
+      "supportTier": 2,
       "custody": {
         "classification": "non-custodial",
         "reason": "owner-unilateral exit after exitTimelock; cooperative update MULTISIG(2 operator,owner)",
@@ -396,6 +440,7 @@
     "packages/p2p-hub": {
       "status": "publishable",
       "maturity": "alpha",
+      "supportTier": 2,
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -404,6 +449,7 @@
     "packages/pear": {
       "status": "publishable",
       "maturity": "rc",
+      "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -412,6 +458,7 @@
     "packages/proof": {
       "status": "publishable",
       "maturity": "v1",
+      "supportTier": 2,
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -420,6 +467,7 @@
     "packages/proof-integritas": {
       "status": "publishable",
       "maturity": "v1",
+      "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -428,6 +476,7 @@
     "packages/proofgraph": {
       "status": "publishable",
       "maturity": "v1",
+      "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -436,6 +485,7 @@
     "packages/provider-bond": {
       "status": "publishable",
       "maturity": "rc",
+      "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
         "reason": "data-only; bond is a proof; no on-chain value held (disclaimed)"
@@ -444,6 +494,7 @@
     "packages/minima-rpc": {
       "status": "publishable",
       "maturity": "rc",
+      "supportTier": 2,
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -452,6 +503,7 @@
     "packages/pubsub-transport": {
       "status": "publishable",
       "maturity": "rc",
+      "supportTier": 2,
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -460,6 +512,7 @@
     "packages/qvac": {
       "status": "publishable",
       "maturity": "beta",
+      "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -468,6 +521,7 @@
     "packages/realtime": {
       "status": "publishable",
       "maturity": "rc",
+      "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -476,6 +530,7 @@
     "packages/recursive-mast": {
       "status": "publishable",
       "maturity": "rc",
+      "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -484,6 +539,7 @@
     "packages/root-identity": {
       "status": "publishable",
       "maturity": "v1",
+      "supportTier": 2,
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -491,11 +547,13 @@
     },
     "packages/sdk-tests": {
       "status": "excluded",
-      "reason": "private test harness package; not intended for publication"
+      "reason": "private test harness package; not intended for publication",
+      "supportTier": "excluded"
     },
     "packages/se-server": {
       "status": "publishable",
       "maturity": "rc",
+      "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
         "reason": "statechain operator service; holds no value (owner reclaim path is on-chain)"
@@ -504,6 +562,7 @@
     "packages/server": {
       "status": "publishable",
       "maturity": "v1",
+      "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -512,6 +571,7 @@
     "packages/statechain": {
       "status": "publishable",
       "maturity": "rc",
+      "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
         "reason": "owner reclaim after RECLAIM_TIMELOCK (unilateral); cooperative MULTISIG(2 owner,SE)",
@@ -524,6 +584,7 @@
     "packages/storage": {
       "status": "publishable",
       "maturity": "alpha",
+      "supportTier": 1,
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -532,6 +593,7 @@
     "packages/stream-transport": {
       "status": "publishable",
       "maturity": "rc",
+      "supportTier": 2,
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -540,6 +602,7 @@
     "packages/tx-builder": {
       "status": "publishable",
       "maturity": "rc",
+      "supportTier": 2,
       "custody": {
         "classification": "non-custodial",
         "reason": "builds transactions; holds no on-chain value"
@@ -548,6 +611,7 @@
     "packages/txpow": {
       "status": "publishable",
       "maturity": "v1",
+      "supportTier": 2,
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -556,6 +620,7 @@
     "packages/wallet-adapter": {
       "status": "publishable",
       "maturity": "v1",
+      "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
         "reason": "keys never leave the wallet; exports no key material"
@@ -563,7 +628,8 @@
     },
     "packages/wots-lease": {
       "status": "publishable",
-      "maturity": "v1",
+      "maturity": "rc",
+      "supportTier": 1,
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -571,27 +637,33 @@
     },
     "extensions/observability": {
       "status": "excluded",
-      "reason": "private extension/observability scaffold (not an @totemsdk/* publishable)"
+      "reason": "private extension/observability scaffold (not an @totemsdk/* publishable)",
+      "supportTier": "excluded"
     },
     "extensions/totem-dapp-starter": {
       "status": "excluded",
-      "reason": "private dApp starter scaffold (not an @totemsdk/* publishable)"
+      "reason": "private dApp starter scaffold (not an @totemsdk/* publishable)",
+      "supportTier": "excluded"
     },
     "extensions/totem-extension": {
       "status": "excluded",
-      "reason": "private extension scaffold (not an @totemsdk/* publishable)"
+      "reason": "private extension scaffold (not an @totemsdk/* publishable)",
+      "supportTier": "excluded"
     },
     "extensions/totem-pear-android-starter": {
       "status": "excluded",
-      "reason": "private Android starter scaffold (not an @totemsdk/* publishable)"
+      "reason": "private Android starter scaffold (not an @totemsdk/* publishable)",
+      "supportTier": "excluded"
     },
     "extensions/totem-pwa-wallet": {
       "status": "excluded",
-      "reason": "private PWA wallet scaffold (not an @totemsdk/* publishable)"
+      "reason": "private PWA wallet scaffold (not an @totemsdk/* publishable)",
+      "supportTier": "excluded"
     },
     "packages/entity": {
       "status": "publishable",
       "maturity": "alpha",
+      "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
         "reason": "resolution/projection library — holds no on-chain value"
@@ -600,6 +672,7 @@
     "packages/eefi": {
       "status": "publishable",
       "maturity": "rc",
+      "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
         "reason": "schema/digest library — holds no on-chain value"

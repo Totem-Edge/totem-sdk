@@ -254,17 +254,17 @@ The authoritative machine-readable catalog is [`SDK_MANIFEST.json`](SDK_MANIFEST
 
 ## Maturity
 
-We are honest about where things stand. The core cryptographic layer and the Omnia channel state machine (including its Rust/WASM parity engine) are the most battle-tested. Breadth is not maturity: the SDK has a deliberately small production core and an explicitly labelled preview surface. [RFC-063](docs/rfc/RFC-063-PRODUCTION-READINESS-AND-MATURITY-PROMOTION.md) defines the promotion gates.
+We are honest about where things stand. The core cryptographic layer and the Omnia channel state machine (including its Rust/WASM parity engine) are the most battle-tested. Breadth is not maturity: the SDK has a deliberately small production core and an explicitly labelled support-tier surface. [RFC-063](docs/rfc/RFC-063-PRODUCTION-READINESS-AND-MATURITY-PROMOTION.md) defines the promotion gates.
 
 | Level | Packages | Meaning |
 |-------|---------:|---------|
-| v1 | 20 | Production support; API and evidence gates met |
-| rc | 39 | Release candidate; API-frozen for the next minor |
+| v1 | 18 | Production support; API and evidence gates met |
+| rc | 41 | Release candidate; API-frozen for the next minor |
 | beta | 3 | Usable; API may change |
 | alpha | 5 | Architecture proof; no compatibility promise |
 | excluded | 6 | Private/test harness; not published |
 
-The generated per-package matrix is [`docs/maturity.md`](docs/maturity.md). It is checked in CI against `scripts/workspace-gates.config.json`; do not edit it by hand.
+Support tiers: **Tier 0** (3) first-line production core, **Tier 1** (10) production candidates, **Tier 2** (20) required support dependencies, **outside** (34), **excluded** (6). The generated per-package matrix is [`docs/maturity.md`](docs/maturity.md). It is checked in CI against `scripts/workspace-gates.config.json`; do not edit it by hand.
 
 **Production surface (RFC-063 §4):** Tier 0 is `core`, `core-wasm` and `kissvm`. Tier 1 candidates are `wots-lease`, `omnia`, `omnia-host`, `storage`, `lookup-*`, `industrial-action`, `edge-mqtt` and `edge-modbus`; they remain RC/alpha until their named evidence and dependency closure pass. Other packages keep their measured maturity and are outside the first-line production core; they are not automatically “preview”.
 
