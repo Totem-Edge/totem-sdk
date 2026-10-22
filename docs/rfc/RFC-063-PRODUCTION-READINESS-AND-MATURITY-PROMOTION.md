@@ -95,7 +95,7 @@ The polish gap is therefore concentrated in public truth and proof:
 | Level | Meaning | Allowed public use |
 |---|---|---|
 | **Production** | Supported for real value, with evidence and an owner | `latest` npm tag; README production table; docs marked stable |
-| **RC** | Feature-complete, API-frozen for the next minor, awaiting production evidence | `next` tag; “release candidate” label |
+| **RC** | Feature-complete, API-frozen for the next minor, awaiting production evidence | `next` tag; “release candidate” label. `latest` may remain as npm's required default when no stable v1 exists; it is not a production claim. |
 | **Beta** | Usable, but API may change; integration testing expected | `beta` tag; beta label |
 | **Alpha** | Architecture proof; no compatibility promise | `alpha` tag |
 | **Preview** | Demonstrator or experimental; may be removed | `preview` tag or not published |
@@ -135,7 +135,7 @@ while a required runtime dependency is Alpha, Preview or unowned.
 | Tier | Meaning | Public use |
 |---|---|---|
 | **Tier 0 — Production core** | First-line supported packages that pass §3.2 and whose runtime dependencies are Tier 0, 1 or 2 | `latest`; README production table; stable docs |
-| **Tier 1 — Production candidates** | Explicitly targeted for Tier 0 but still gathering evidence; may be RC or Alpha | `next`, `beta` or `alpha`; no production claim |
+| **Tier 1 — Production candidates** | Explicitly targeted for Tier 0 but still gathering evidence; may be RC or Alpha | `next`, `beta` or `alpha`; `latest` may remain only as npm's required default when no stable v1 exists, never as a production claim |
 | **Tier 2 — Required support dependencies** | Packages imported by Tier 0/1 on the supported path; they need a minimum stability bar, not headline production docs | RC or higher; no Alpha/Preview on a required path |
 | **Outside the production surface** | Not part of the first-line support promise; keeps its evidence-based maturity | Whatever the current level is: v1, RC, Beta, Alpha, Preview or Excluded |
 
@@ -173,8 +173,10 @@ in Tier 1 even though its package version and API are stable.
 - `edge-mqtt`, `edge-modbus` — rc; need HIL and conformance evidence.
 
 Tier 1 packages may be published and used, but they must not carry a production
-label or `latest` dist-tag. The per-package evidence plan is maintained in
-[TIER1-EVIDENCE-PLAN.md](../TIER1-EVIDENCE-PLAN.md).
+label. npm requires a `latest` tag, so an RC/Alpha package with no stable v1 may
+still appear there as the registry's required default; that is not a production
+claim, and the explicit channel is `next`, `beta` or `alpha`. The per-package
+evidence plan is maintained in [TIER1-EVIDENCE-PLAN.md](../TIER1-EVIDENCE-PLAN.md).
 
 ### 4.4 Tier 2 — required support dependencies
 

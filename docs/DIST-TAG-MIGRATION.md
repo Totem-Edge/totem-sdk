@@ -91,44 +91,36 @@ Phase A is reversible and does not break `npm install <package>`.
 
 ---
 
-## 3. Phase B — remove `latest` from non-production packages
+## 3. Phase B — the `latest` constraint
 
-This is the breaking part. Once `latest` is removed, `npm install <package>`
-fails until the user specifies `@next`, `@beta` or `@alpha`.
+npm does **not** allow removing the `latest` tag. A `DELETE
+/-/package/<pkg>/dist-tags/latest` request returns `403 Forbidden`; `latest` is
+required so that `npm install <package>@latest` always resolves. This was
+verified with both the `npm-production` token and a separate owner token.
 
-Example:
+The policy is therefore:
 
-```bash
-npm dist-tag rm @totemsdk/omnia latest
-npm dist-tag rm @totemsdk/omnia-host latest
-npm dist-tag rm @totemsdk/storage latest
-```
+- **v1 packages:** `latest` points at the stable v1.
+- **Non-v1 packages with a stable v1:** point `latest` at that stable v1 and
+  keep the newer release on `next`/`beta`/`alpha`.
+- **Non-v1 packages with no stable v1:** `latest` points at the newest published
+  version as npm's required default. It is **not** a production claim. The
+  explicit channel is `next`, `beta` or `alpha`.
+- **Future publishes:** always pass `--tag next`, `--tag beta` or `--tag alpha`
+  for a non-v1 release. The publish workflow now does this automatically, so a
+  later release does not move `latest`.
 
-Do this only for packages that are intentionally not production. Announce the
-change in release notes before removing `latest`.
+If a package has no stable v1 and you want to warn default installers, use
+`npm deprecate <pkg>@<version> "<message>"`. This is optional and does not change
+the tag.
 
-### Packages with an older stable v1
+### Current state
 
-If a package has an older stable v1 version, the safer move is to point `latest`
-at that v1 and leave the newer RC on `next`:
-
-```bash
-npm dist-tag add @totemsdk/example@1.2.3 latest
-npm dist-tag add @totemsdk/example@2.0.0-rc.1 next
-```
-
-### Packages with no stable v1
-
-For `omnia`, `omnia-host`, `storage`, `lookup-*`, `industrial-action`,
-`edge-mqtt` and `edge-modbus`, there may be no stable v1 to point at. The options
-are:
-
-1. remove `latest` and require explicit `@next` / `@alpha`; or
-2. keep `latest` temporarily and mark the package with an npm deprecation
-   warning while the stable release is prepared.
-
-Option 1 is the truthful end state. Option 2 is a transition state, not a
-permanent solution.
+- All 49 missing channel tags are present.
+- `node scripts/report-dist-tags.mjs --check` reports **0 drift** under the
+  corrected policy.
+- `latest` remains on the current version for packages with no stable v1.
+- No package contents were changed.
 
 ---
 
@@ -142,55 +134,52 @@ pnpm publish --access public --no-git-checks --tag "${{ matrix.dist_tag }}"
 ```
 
 That means a future RC publish uses `next`, a beta publish uses `beta`, and an
-alpha publish uses `alpha`. A subsequent release cannot silently recreate
-`latest` for a non-v1 package.
+alpha publish uses `alpha`. A subsequent release does not move `latest` for an
+existing non-v1 package.
 
 The release matrix still publishes one package per release tag. It does not
-rewrite tags retrospectively; Phase A/B handle existing versions.
+rewrite tags retrospectively; the channel tags handle existing versions.
 
 ---
 
 ## 5. Phase D — release gate
 
-After the registry matches the model, add the check to the release workflow:
+The check is now part of `publish-totemsdk.yml`:
 
 ```bash
 node scripts/report-dist-tags.mjs --check
 ```
 
-Do not add it to pull-request CI before the migration is complete; historical
-drift would make unrelated PRs fail.
+It is not in pull-request CI because it queries the public registry for all 67
+packages; the publish workflow is the release gate.
 
 ---
 
 ## 6. Rollback
 
-Every tag move is reversible without republishing:
+Channel-tag changes are reversible without republishing:
 
 ```bash
-# restore the previous default
-npm dist-tag add @totemsdk/omnia@2.3.0 latest
-
-# remove an opt-in tag if it was created by mistake
+# remove an opt-in channel tag if it was created by mistake
 npm dist-tag rm @totemsdk/omnia next
+
+# repoint latest at a stable v1 if one exists
+npm dist-tag add @totemsdk/example@1.2.3 latest
 ```
 
-Record the before/after tags in the release notes.
+`latest` cannot be removed, only repointed.
 
 ---
 
 ## 7. Approval and execution
 
-This migration changes public npm resolution. It needs:
+Channel-tag changes need an npm identity with write access to `@totemsdk` and
+any required 2FA/OTP. The `npm-production` environment token can add channel tags
+and is sufficient for the current policy. No destructive `latest` operation is
+required or possible.
 
-- an npm identity with write access to `@totemsdk`;
-- 2FA/OTP or trusted-publishing approval;
-- a rollback operator.
-
-Because the SDK is pre-release with no users, the `latest` removals do not need a
-compatibility window. They still need an authenticated registry session with
-permission to delete dist-tags; the current `npm-production` token can add tags
-but receives 403 on deletion.
+Because the SDK is pre-release with no users, no compatibility window is
+required for channel tags.
 
 The repository provides these execution paths:
 

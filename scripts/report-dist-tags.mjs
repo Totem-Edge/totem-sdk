@@ -57,7 +57,8 @@ for (const pkg of manifest.packages) {
   if (!tags) {
     drift.push('unpublished or registry unavailable');
   } else if (level === 'rc' || level === 'beta' || level === 'alpha') {
-    if (latest) drift.push(`latest=${latest} (expected no latest; use ${expected})`);
+    // npm requires a `latest` tag. It may point at the newest prerelease when no
+    // stable v1 exists; the explicit channel is `next`/`beta`/`alpha`.
     if (!expectedVersion) drift.push(`missing ${expected} tag`);
   } else if (level === 'v1') {
     if (!latest) drift.push('missing latest tag');
@@ -70,6 +71,7 @@ for (const pkg of manifest.packages) {
     expected,
     latest,
     expectedVersion,
+    note: latest && expectedVersion && latest !== expectedVersion ? `latest=${latest}` : '',
     tags: tags ? Object.entries(tags).map(([k, v]) => `${k}=${v}`).join(', ') : 'ERROR',
     drift: drift.join('; '),
   });

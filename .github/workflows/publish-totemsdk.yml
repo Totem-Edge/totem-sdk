@@ -83,6 +83,9 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: 'true'
 
+      - name: Verify maturity dist-tags
+        run: node scripts/report-dist-tags.mjs --check
+
   # ── Rebuild & deploy TotemEdgeSDKDocs ──────────────────────────────────────
   # Runs only after ALL publish matrix jobs complete successfully.
   # A failed publish will prevent this job from running, so the docs site

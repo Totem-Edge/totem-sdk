@@ -7,8 +7,10 @@
 **Reference commit:** `c3b007c0`
 
 Tier 1 is the production-candidate set. These packages may be published and used,
-but they must not carry a production label or the `latest` npm dist-tag until the
-evidence below is complete and the package is promoted to Tier 0.
+but they must not carry a production label until the evidence below is complete
+and the package is promoted to Tier 0. Their explicit channel tag is `next`,
+`beta` or `alpha`; `latest` may remain npm's required default when no stable v1
+exists.
 
 The current support tiers are generated in [maturity.md](maturity.md).
 
@@ -53,7 +55,7 @@ by its dependency support surface.
 
 - `storage` is Alpha; `txpow` must meet the Tier 2 bar.
 - Real-node restart/recovery evidence for the durable lease path.
-- Dist-tag must move from `latest` to `next` until promotion.
+- Channel tag `next` is present; `latest` remains npm's required default until a stable v1 exists.
 
 **Exit**
 
@@ -79,7 +81,7 @@ by its dependency support surface.
 - Required support dependencies include `agent-policy`, `chain-provider`,
   `stream-transport`, `tx-builder`, `txpow` and `wots-lease`.
 - P7 owner/support expectation.
-- Dist-tag must move from `latest` to `next` until promotion.
+- Channel tag `next` is present; `latest` remains npm's required default until a stable v1 exists.
 
 **Exit**
 
@@ -106,7 +108,7 @@ by its dependency support surface.
   was lost on restart (`Factory ... not found`).
 - Durable factory/VC/splice/pool/VTXO state and recovery.
 - `storage` is Alpha.
-- Dist-tag must move from `latest` to `next` until promotion.
+- Channel tag `next` is present; `latest` remains npm's required default until a stable v1 exists.
 
 **Exit**
 
@@ -131,7 +133,7 @@ by its dependency support surface.
   backend parity.
 - Adoption by `omnia-host`, `wots-lease`, `industrial-action` and `edge-mqtt`
   without helper-only wiring.
-- Dist-tag must move from `latest` to `alpha` until promotion.
+- Channel tag `alpha` is present; `latest` remains npm's required default until a stable v1 exists.
 
 **Exit**
 
@@ -154,7 +156,7 @@ by its dependency support surface.
 
 - Multi-peer conformance across TypeScript and Go.
 - Fuzz/property tests for framing and malformed payloads.
-- Dist-tag must move from `latest` to `next` until promotion.
+- Channel tag `next` is present; `latest` remains npm's required default until a stable v1 exists.
 
 **Exit**
 
@@ -177,7 +179,7 @@ by its dependency support surface.
 - Durable session/ticket and reconnect recovery.
 - Two-process multi-peer and teardown tests.
 - Shared connection-manager cleanup (RFC-057 D10).
-- Dist-tag must move from `latest` to `next` until promotion.
+- Channel tag `next` is present; `latest` remains npm's required default until a stable v1 exists.
 
 **Exit**
 
@@ -200,7 +202,7 @@ by its dependency support surface.
 
 - Durable ticket store and identity across restart.
 - Multi-peer, teardown and reconnect evidence.
-- Dist-tag must move from `latest` to `next` until promotion.
+- Channel tag `next` is present; `latest` remains npm's required default until a stable v1 exists.
 
 **Exit**
 
@@ -224,7 +226,7 @@ by its dependency support surface.
 - HIL evidence for physical effects.
 - Conformance for the supported industrial profiles.
 - Dependency closure on `proof`, `authority`, `edge`, `agent-policy`, `storage`.
-- Dist-tag must move from `latest` to `next` until promotion.
+- Channel tag `next` is present; `latest` remains npm's required default until a stable v1 exists.
 
 **Exit**
 
@@ -247,7 +249,7 @@ by its dependency support surface.
 - Broker HIL and reconnect evidence.
 - Credit-gate and offline-queue behavior against a real broker.
 - `storage` is Alpha.
-- Dist-tag must move from `latest` to `next` until promotion.
+- Channel tag `next` is present; `latest` remains npm's required default until a stable v1 exists.
 
 **Exit**
 
@@ -267,7 +269,7 @@ by its dependency support surface.
 
 - HIL PLC evidence.
 - Reconnect, error taxonomy and register-map conformance.
-- Dist-tag must move from `latest` to `next` until promotion.
+- Channel tag `next` is present; `latest` remains npm's required default until a stable v1 exists.
 
 **Exit**
 
@@ -279,23 +281,21 @@ by its dependency support surface.
 
 ## 3. Dist-tag targets
 
-| Tier | Level | Target tag |
-|---|---|---|
-| Tier 0 | v1 | `latest` |
-| Tier 1 | rc | `next` |
-| Tier 1 | beta | `beta` |
-| Tier 1 | alpha | `alpha` |
-| Tier 2 | v1/rc | current maturity tag; not a headline production claim |
-| Outside | v1 | `latest` allowed for its own stable scope |
-| Outside | rc/beta/alpha | `next` / `beta` / `alpha` |
+| Tier | Level | Channel tag | `latest` |
+|---|---|---|---|
+| Tier 0 | v1 | `latest` | Required; points at v1 |
+| Tier 1 | rc | `next` | May remain as npm's required default if no stable v1 exists; not a production claim |
+| Tier 1 | beta | `beta` | Same |
+| Tier 1 | alpha | `alpha` | Same |
+| Tier 2 | v1/rc | current maturity tag | v1 may use `latest`; rc uses `next` |
+| Outside | v1 | `latest` | Allowed for its own stable scope |
+| Outside | rc/beta/alpha | `next` / `beta` / `alpha` | May remain as npm's required default; not a production claim |
 
-Tier 1 packages must not remain on `latest` after this plan is applied. The
-dist-tag audit and migration are tracked separately so the package contents are
-not changed merely to move a tag. Channel tags (`next`/`beta`/`alpha`) are now
-present; `latest` removal is blocked on npm token permission. Run
-`node scripts/report-dist-tags.mjs` for the current drift report; `--commands`
-prints the non-breaking tag additions, and `--check` is suitable for a release
-gate. See [DIST-TAG-MIGRATION.md](DIST-TAG-MIGRATION.md).
+npm does not allow removing `latest`. Tier 1 packages therefore use an explicit
+channel tag; `latest` may still point at the newest prerelease when no stable v1
+exists. Run `node scripts/report-dist-tags.mjs` for the drift report;
+`--commands` prints missing channel-tag additions, and `--check` is suitable for
+a release gate. See [DIST-TAG-MIGRATION.md](DIST-TAG-MIGRATION.md).
 
 ---
 

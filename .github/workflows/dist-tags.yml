@@ -10,7 +10,6 @@ on:
         type: choice
         options:
           - dry-run
-          - add-only
           - apply
 
 permissions:
@@ -34,11 +33,11 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Plan or apply dist-tags
         run: |
-          case "${{ inputs.mode }}" in
-            apply)    node scripts/apply-dist-tags.mjs --execute ;;
-            add-only) node scripts/apply-dist-tags.mjs --execute --add-only ;;
-            *)        node scripts/apply-dist-tags.mjs ;;
-          esac
+          if [ "${{ inputs.mode }}" = "apply" ]; then
+            node scripts/apply-dist-tags.mjs --execute
+          else
+            node scripts/apply-dist-tags.mjs
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Verify final tags
