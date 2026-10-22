@@ -1229,6 +1229,34 @@ describe('@totemsdk/omnia — updateState (full lifecycle)', () => {
     ).resolves.toBeDefined();
   });
 
+  it('releases the watermark after a signing failure so a retry can use the same sequence', async () => {
+    const retryChannel = makeTestChannel({ channelId: '0xdeadbeef00000099' });
+    const failingSigner: ChannelSigner = {
+      publicKeyDigest: ALICE_PKD,
+      sign: jest.fn()
+        .mockRejectedValueOnce(new Error('wallet unavailable'))
+        .mockImplementation(aliceSigner.sign as any),
+    };
+
+    await expect(
+      updateState(
+        retryChannel,
+        { newBalances: { alice: 500n, bob: 500n } },
+        leaseProvider as any,
+        failingSigner,
+      )
+    ).rejects.toThrow('wallet unavailable');
+
+    await expect(
+      updateState(
+        retryChannel,
+        { newBalances: { alice: 500n, bob: 500n } },
+        leaseProvider as any,
+        aliceSigner,
+      )
+    ).resolves.toBeDefined();
+  });
+
   it('DoubleSignError: stale channel copy signing different payload at same sequence', async () => {
     // Advance the authoritative watermark to sequence 1 by signing once.
     await updateState(

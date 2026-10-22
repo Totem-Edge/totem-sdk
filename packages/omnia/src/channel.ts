@@ -122,6 +122,18 @@ export function _resetChannelWatermarks(): void {
   _channelWatermarks.clear();
 }
 
+/**
+ * Release a watermark advance when signing failed before a state was committed.
+ * A failed wallet/lease round must not poison the next attempt at the same
+ * sequence with a stale, different payload.
+ */
+export function releaseUpdateGuard(channelId: string, sequence: number, payloadHash: string): void {
+  const watermark = _channelWatermarks.get(channelId);
+  if (watermark && watermark.sequence === sequence && watermark.payloadHash === payloadHash) {
+    _channelWatermarks.delete(channelId);
+  }
+}
+
 const TOKENID_MINIMA = '0x00';
 
 function generateChannelId(): string {
@@ -550,13 +562,19 @@ export async function updateState(
     return { channel, signedState: {}, error: guardError };
   }
 
-  const partialState = await signState(
-    channel,
-    { newSequence, newBalances: delta.newBalances, programTransition },
-    leaseProvider,
-    effectiveSigner,
-    signerPort,
-  );
+  let partialState;
+  try {
+    partialState = await signState(
+      channel,
+      { newSequence, newBalances: delta.newBalances, programTransition },
+      leaseProvider,
+      effectiveSigner,
+      signerPort,
+    );
+  } catch (err) {
+    releaseUpdateGuard(channel.channelId, newSequence, payloadHash);
+    throw err;
+  }
 
   // Signing index monotonicity: new flat index must exceed the previous one.
   const indices = partialState.signingIndices![signerParty.partyId];

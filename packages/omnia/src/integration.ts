@@ -117,9 +117,21 @@ export function createOmniaIntegration(
       // Bind every peer on first contact, not only CHANNEL_PROPOSAL. Virtual
       // channels and factory openings arrive on peers that may never send a
       // CHANNEL_PROPOSAL, and their later STATE_UPDATEs must still be handled.
-      if (!boundPeers.has(peer)) {
+      const firstContact = !boundPeers.has(peer);
+      if (firstContact) {
         boundPeers.add(peer);
         bindPeerIntegration(peer, store, config, { routeChannelProposal: false });
+      }
+      // The listener and the per-peer handler are separate subscriptions. The
+      // first STATE_UPDATE on a newly-bound peer would otherwise be consumed by
+      // this listener before the handler exists, so dispatch that one directly.
+      if (firstContact && msg.type === 'STATE_UPDATE') {
+        void _handleStateUpdate(peer, msg, store, config);
+        return;
+      }
+      if (firstContact && msg.type === 'SETTLEMENT_PROPOSAL') {
+        void _handleSettlementProposal(peer, msg, store, config);
+        return;
       }
       if (msg.type === 'CHANNEL_PROPOSAL') {
         _handleChannelProposal(peer, msg, store, config, false);

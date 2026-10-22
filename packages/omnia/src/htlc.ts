@@ -10,9 +10,25 @@ import type {
 } from './types.js';
 import { ChannelStatusError, BalanceConservationError, SigningIndexMonotonicityError } from './errors.js';
 import { signState } from './sign.js';
-import { enforceUpdateGuards } from './channel.js';
+import { enforceUpdateGuards, releaseUpdateGuard } from './channel.js';
 import { flatSigningIndex } from './capacity.js';
 import { computeProgramUpdateDigestHex } from './program.js';
+
+
+async function signStateGuarded(
+  channel: OmniaChannel,
+  update: { newSequence: number; newBalances: Record<string, bigint> },
+  leaseProvider: WotsLeaseProvider,
+  signer: ChannelSigner | undefined,
+  payloadHash: string,
+): Promise<Partial<SignedChannelState>> {
+  try {
+    return await signState(channel, update, leaseProvider, signer);
+  } catch (err) {
+    releaseUpdateGuard(channel.channelId, update.newSequence, payloadHash);
+    throw err;
+  }
+}
 
 export const HTLC_FEE_PROOF_DOMAIN = 'totemsdk/omnia/htlc-fulfillment/v1';
 
@@ -150,11 +166,12 @@ export async function addHTLC(
     pendingProposal: { sequence: newSequence, payloadHash },
   };
 
-  const partialState = await signState(
+  const partialState = await signStateGuarded(
     channelWithHTLC,
     { newSequence, newBalances },
     leaseProvider,
     effectiveSigner,
+    payloadHash,
   );
 
   // Signing-index monotonicity: new flat index must exceed the previous one.
@@ -259,11 +276,12 @@ export async function fulfillHTLC(
     pendingProposal: { sequence: newSequence, payloadHash },
   };
 
-  const partialState = await signState(
+  const partialState = await signStateGuarded(
     channelWithSettled,
     { newSequence, newBalances },
     leaseProvider,
     effectiveSigner,
+    payloadHash,
   );
 
   // Signing-index monotonicity: new flat index must exceed the previous one.
@@ -373,11 +391,12 @@ export async function timeoutHTLC(
     pendingProposal: { sequence: newSequence, payloadHash },
   };
 
-  const partialState = await signState(
+  const partialState = await signStateGuarded(
     channelWithTimeout,
     { newSequence, newBalances },
     leaseProvider,
     effectiveSigner,
+    payloadHash,
   );
 
   // Signing-index monotonicity: new flat index must exceed the previous one.
