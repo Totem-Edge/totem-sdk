@@ -3,7 +3,7 @@ name = "edge-mqtt-wasm"
 version = "0.1.0"
 edition = "2021"
 description = "Rust/WASM helpers for @totemsdk/edge-mqtt — canonicalization, topic matching, fixed-point arithmetic"
-license = "MIT"
+license = "Apache-2.0"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

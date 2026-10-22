@@ -13,7 +13,7 @@
   },
   "homepage": "https://docs.totem.ing",
   "author": "Totem SDK",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "keywords": [
     "totem",
     "totemsdk",

@@ -72,4 +72,4 @@ See `docs/rfc/RFC-056-ENTITY-PROJECTION.md` for the normative design.
 
 ## License
 
-MIT
+Apache-2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).

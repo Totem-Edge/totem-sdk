@@ -422,7 +422,7 @@ function scaffoldPackage(args: any): ToolResponse {
         },
       },
       scripts: { build: 'tsc', clean: 'rm -rf dist', test: 'jest --passWithNoTests' },
-      files: ['dist', 'README.md', 'LICENSE'],
+      files: ['dist', 'README.md', 'LICENSE', 'NOTICE'],
       dependencies: Object.fromEntries(depList.map(d => [d, '^0.1.0'])),
       devDependencies: {
         '@types/jest': '^30.0.0',
@@ -431,8 +431,20 @@ function scaffoldPackage(args: any): ToolResponse {
         typescript: '^7.0.2',
       },
       publishConfig: { access: 'public' },
-      license: 'MIT',
+      license: 'Apache-2.0',
     }, null, 2),
+  })
+
+  files.push({
+    path: `NOTICE`,
+    content: [
+      `Totem SDK`,
+      `Copyright 2024-2026 Totem SDK Contributors`,
+      ``,
+      `This package is licensed under the Apache License, Version 2.0.`,
+      `See LICENSE and the repository NOTICE for third-party attributions.`,
+      ``,
+    ].join('\n'),
   })
 
   files.push({

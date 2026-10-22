@@ -52,4 +52,4 @@ const topic = channelTopic('my-channel-id'); // 32-byte Buffer (SHA3-256)
 
 ## License
 
-MIT
+Apache-2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).

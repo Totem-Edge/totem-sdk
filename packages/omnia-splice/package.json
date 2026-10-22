@@ -28,7 +28,8 @@
     "rust/pkg/",
     "rust/pkg-node/",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "NOTICE"
   ],
   "dependencies": {
     "@totemsdk/omnia": "workspace:^",
@@ -51,7 +52,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "license": "MIT",
+  "license": "Apache-2.0",
   "author": "Totem SDK",
   "homepage": "https://docs.totem.ing",
   "bugs": {

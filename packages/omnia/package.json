@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/omnia",
   "version": "2.3.0",
-  "description": "Omnia eltoo payment channel state machine \u2014 transport-agnostic, WOTS-safe, HTLC-ready",
+  "description": "Omnia eltoo payment channel state machine — transport-agnostic, WOTS-safe, HTLC-ready",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "exports": {
@@ -39,7 +39,8 @@
     "rust/pkg/",
     "rust/pkg-node/",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "NOTICE"
   ],
   "dependencies": {
     "@noble/hashes": "^1.8.0",
@@ -68,7 +69,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "license": "MIT",
+  "license": "Apache-2.0",
   "author": "Totem SDK",
   "homepage": "https://docs.totem.ing",
   "bugs": {

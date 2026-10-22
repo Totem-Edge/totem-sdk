@@ -25,7 +25,8 @@
   "files": [
     "dist",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "NOTICE"
   ],
   "devDependencies": {
     "@types/jest": "^30.0.0",
@@ -40,7 +41,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "license": "MIT",
+  "license": "Apache-2.0",
   "author": "Totem SDK",
   "homepage": "https://docs.totem.ing",
   "bugs": {

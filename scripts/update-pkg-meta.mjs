@@ -10,28 +10,8 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PACKAGES_DIR = join(__dirname, '..', 'packages');
 
-const MIT_LICENSE = `MIT License
-
-Copyright (c) 2024 Totem SDK Contributors
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-`;
+const APACHE_LICENSE = readFileSync(join(__dirname, '..', 'LICENSE'), 'utf8');
+const NOTICE = readFileSync(join(__dirname, '..', 'NOTICE'), 'utf8');
 
 const BASE_KEYWORDS = [
   'totem', 'totemsdk', 'minima', 'blockchain',
@@ -92,7 +72,7 @@ for (const pkgDir of pkgDirs) {
 
   // 1. Shared metadata
   Object.assign(pkg, SHARED_META);
-  pkg.license = 'MIT';
+  pkg.license = 'Apache-2.0';
   pkg.repository = repoFor(pkgDir);
 
   // 2. Keywords — preserve existing extras, dedupe
@@ -101,7 +81,7 @@ for (const pkgDir of pkgDirs) {
   pkg.keywords = [...new Set([...base, ...existing])];
 
   // 3. files array
-  pkg.files = ['dist', 'README.md', 'LICENSE'];
+  pkg.files = ['dist', 'README.md', 'LICENSE', 'NOTICE'];
 
   // 4. Fix stale workspace semver ranges in dependencies and devDependencies
   for (const field of ['dependencies', 'devDependencies', 'peerDependencies']) {
@@ -120,9 +100,9 @@ for (const pkgDir of pkgDirs) {
 
   writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
 
-  // 5. Create LICENSE file
-  const licensePath = join(PACKAGES_DIR, pkgDir, 'LICENSE');
-  writeFileSync(licensePath, MIT_LICENSE);
+  // 5. Create LICENSE and NOTICE files
+  writeFileSync(join(PACKAGES_DIR, pkgDir, 'LICENSE'), APACHE_LICENSE);
+  writeFileSync(join(PACKAGES_DIR, pkgDir, 'NOTICE'), NOTICE);
 
   console.log(`✓ ${pkgDir}`);
 }

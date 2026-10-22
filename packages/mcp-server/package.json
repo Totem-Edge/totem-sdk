@@ -25,7 +25,8 @@
     "dist",
     "data",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "NOTICE"
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0"
@@ -43,7 +44,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "license": "MIT",
+  "license": "Apache-2.0",
   "author": "Totem SDK",
   "homepage": "https://docs.totem.ing",
   "bugs": {

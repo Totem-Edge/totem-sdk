@@ -29,7 +29,8 @@
     "rust/pkg/",
     "rust/pkg-node/",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "NOTICE"
   ],
   "dependencies": {
     "@totemsdk/proof": "workspace:^",
@@ -65,7 +66,7 @@
   "bugs": {
     "url": "https://github.com/Totem-Edge/totem-sdk/issues"
   },
-  "license": "MIT",
+  "license": "Apache-2.0",
   "author": "Totem SDK",
   "homepage": "https://docs.totem.ing",
   "repository": {

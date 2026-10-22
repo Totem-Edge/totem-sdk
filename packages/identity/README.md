@@ -303,4 +303,4 @@ Each claim signature consumes one WOTS key index. Use `@totemsdk/wots-lease` to 
 
 ## License
 
-MIT
+Apache-2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).

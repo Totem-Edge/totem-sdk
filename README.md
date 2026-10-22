@@ -6,7 +6,7 @@ Sensors read the world, machines act on it, and value moves because of it. Totem
 
 > For the strategic overview (the loop, the five systems, and why this exists), see the [Totem Edge org README](.github/profile/README.md). This file is the technical one: what's here, how it's organised, and how to use it.
 
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Workspace CI](https://github.com/Totem-Edge/totem-sdk/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Totem-Edge/totem-sdk/actions/workflows/ci.yml)
 [![Rust Core CI](https://github.com/Totem-Edge/totem-sdk/actions/workflows/rust-core.yml/badge.svg?branch=main)](https://github.com/Totem-Edge/totem-sdk/actions/workflows/rust-core.yml)
 [![NPM](https://img.shields.io/npm/v/@totemsdk/core?label=core)](https://www.npmjs.com/package/@totemsdk/core)
@@ -612,7 +612,7 @@ npm run build:wasm
 
 ## License
 
-MIT License — See [LICENSE](LICENSE) for details.
+Apache License 2.0 — See [LICENSE](LICENSE) and [NOTICE](NOTICE) for details. Existing releases published under MIT remain available under their original license.
 
 ---
 

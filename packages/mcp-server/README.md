@@ -73,4 +73,4 @@ If neither is available the server stays running but index-backed tools return a
 
 ## License
 
-MIT
+Apache-2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).

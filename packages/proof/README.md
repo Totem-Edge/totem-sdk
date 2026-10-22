@@ -217,4 +217,4 @@ Each `signProof` call consumes one WOTS key index. Use [`@totemsdk/wots-lease`](
 
 ## License
 
-MIT
+Apache-2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).

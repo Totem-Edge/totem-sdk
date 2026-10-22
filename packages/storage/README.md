@@ -145,4 +145,4 @@ See [docs/adapter-guide.md](docs/adapter-guide.md) for the authoring checklist.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+Apache-2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).

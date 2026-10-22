@@ -47,6 +47,11 @@ This audit is not a legal opinion. A lawyer should review the translation
 question, the Bouncy Castle obligations and the QVAC type declarations before the
 license change is announced.
 
+**Resolution (2026-10-21):** The public SDK has been relicensed to Apache-2.0 for
+new releases. Root and package `LICENSE` files, package metadata, Cargo manifests
+and the `NOTICE` file have been updated. Existing releases published under MIT
+remain available under their original license.
+
 ---
 
 ## 2. Method

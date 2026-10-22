@@ -6,7 +6,7 @@
   ],
   "description": "Quantum-resistant WOTS+ cryptographic engine for the Totem SDK — compiled to WASM",
   "version": "0.1.0",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/Totem-Edge/totem-sdk"
@@ -15,7 +15,8 @@
     "totemsdk_core_wasm_bg.wasm",
     "totemsdk_core_wasm.js",
     "totemsdk_core_wasm_bg.js",
-    "totemsdk_core_wasm.d.ts"
+    "totemsdk_core_wasm.d.ts",
+    "NOTICE"
   ],
   "main": "totemsdk_core_wasm.js",
   "homepage": "https://totem.ing",

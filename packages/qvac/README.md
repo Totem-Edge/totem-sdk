@@ -124,4 +124,4 @@ types.
 
 ## License
 
-MIT — Totem SDK Contributors
+Apache-2.0 — Totem SDK Contributors. See [LICENSE](LICENSE) and [NOTICE](NOTICE).

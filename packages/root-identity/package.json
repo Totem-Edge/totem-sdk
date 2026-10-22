@@ -29,7 +29,8 @@
     "rust/pkg/",
     "rust/pkg-node/",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "NOTICE"
   ],
   "peerDependencies": {
     "@totemsdk/core": "workspace:^"
@@ -69,7 +70,7 @@
     "kyc"
   ],
   "author": "Totem SDK",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "homepage": "https://docs.totem.ing",
   "bugs": {
     "url": "https://github.com/Totem-Edge/totem-sdk/issues"

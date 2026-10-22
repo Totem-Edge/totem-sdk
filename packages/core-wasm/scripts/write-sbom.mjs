@@ -37,6 +37,8 @@ const sbom = {
   format: 'totem-cargo-lock/v1',
   note: 'RFC-031 P3 SBOM. Regenerate: node scripts/write-sbom.mjs',
   component: '@totemsdk/core-wasm',
+  license: 'Apache-2.0',
+  notices: 'NOTICE',
   generatedFrom: 'Cargo.lock',
   packageCount: packages.length,
   packages,

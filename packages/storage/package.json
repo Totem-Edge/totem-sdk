@@ -225,7 +225,8 @@
     "dist",
     "README.md",
     "docs",
-    "LICENSE"
+    "LICENSE",
+    "NOTICE"
   ],
   "dependencies": {
     "@totemsdk/core": "workspace:^",
@@ -247,7 +248,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "license": "MIT",
+  "license": "Apache-2.0",
   "author": "Totem SDK",
   "homepage": "https://docs.totem.ing",
   "repository": {

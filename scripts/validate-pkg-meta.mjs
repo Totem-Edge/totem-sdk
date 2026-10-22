@@ -82,10 +82,17 @@ for (const pkgDir of pkgDirs) {
     missing.push('license (not an SPDX expression)');
   }
 
-  // Verify LICENSE file exists on disk
+  // Verify LICENSE and NOTICE files exist on disk
   const licensePath = join(PACKAGES_DIR, pkgDir, 'LICENSE');
   if (!existsSync(licensePath)) {
     missing.push('LICENSE file on disk');
+  }
+  const noticePath = join(PACKAGES_DIR, pkgDir, 'NOTICE');
+  if (!existsSync(noticePath)) {
+    missing.push('NOTICE file on disk');
+  }
+  if (!Array.isArray(pkg.files) || !pkg.files.includes('NOTICE')) {
+    missing.push('NOTICE in files');
   }
 
   // Verify README.md file exists on disk (required in files array)

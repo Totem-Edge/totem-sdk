@@ -103,4 +103,4 @@ Matter uses a setup code (11 or 21 digits) printed on the device or QR code. The
 
 ## License
 
-MIT
+Apache-2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).

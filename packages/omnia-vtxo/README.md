@@ -298,4 +298,4 @@ The only runtime dependency is `@noble/hashes` (SHA3-256), which is itself runti
 
 ## License
 
-MIT
+Apache-2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).

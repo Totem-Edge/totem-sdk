@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const ignoreRules = [
@@ -11,6 +11,7 @@ const ignoreRules = [
   '!package.json',
   '!README.md',
   '!LICENSE',
+  '!NOTICE',
   '',
 ].join('\n');
 
@@ -18,6 +19,10 @@ for (const directory of ['pkg', 'pkg-node', 'pkg-web']) {
   const outputDir = join(process.cwd(), directory);
   if (existsSync(outputDir)) {
     writeFileSync(join(outputDir, '.gitignore'), ignoreRules);
+    for (const legalFile of ['LICENSE', 'NOTICE']) {
+      const source = join(process.cwd(), legalFile);
+      if (existsSync(source)) copyFileSync(source, join(outputDir, legalFile));
+    }
   }
 }
 
