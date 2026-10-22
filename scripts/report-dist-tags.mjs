@@ -69,6 +69,7 @@ for (const pkg of manifest.packages) {
     name: pkg.name,
     expected,
     latest,
+    expectedVersion,
     tags: tags ? Object.entries(tags).map(([k, v]) => `${k}=${v}`).join(', ') : 'ERROR',
     drift: drift.join('; '),
   });
@@ -86,6 +87,14 @@ for (const row of rows) {
 }
 
 const bad = rows.filter((row) => row.drift);
+if (process.argv.includes('--commands')) {
+  console.log('\n# Non-breaking channel tags for existing versions.');
+  console.log('# These add opt-in tags; they do not remove latest.');
+  for (const row of rows) {
+    if (row.level === 'v1' || !row.latest || row.expectedVersion) continue;
+    console.log(`npm dist-tag add ${row.name}@${row.latest} ${row.expected}`);
+  }
+}
 if (process.argv.includes('--check') && bad.length > 0) {
   console.error(`\n✗ dist-tag drift: ${bad.length} package(s)`);
   process.exit(1);

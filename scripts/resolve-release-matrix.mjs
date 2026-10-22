@@ -61,12 +61,23 @@ const needsWasm = [...closure].some((name) => {
 // verify-consumer-pack gate rejects the tarball for a missing declared file.
 const buildWasm = Boolean(target.manifest.scripts?.['build:wasm']);
 
+function distTag(meta) {
+  switch (meta.maturity) {
+    case 'v1': return 'latest';
+    case 'rc': return 'next';
+    case 'beta': return 'beta';
+    case 'alpha': return 'alpha';
+    default: return 'latest';
+  }
+}
+
 process.stdout.write(JSON.stringify({
   include: [{
     pkg: slug,
     dir: target.dir,
     npm_name: target.manifest.name,
     version,
+    dist_tag: distTag(target.meta),
     needs_wasm: needsWasm,
     build_wasm: buildWasm,
   }],

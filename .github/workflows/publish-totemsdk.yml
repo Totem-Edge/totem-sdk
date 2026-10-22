@@ -77,7 +77,7 @@ jobs:
 
       # ── Publish ────────────────────────────────────────────────────────────
       - name: Publish ${{ matrix.npm_name }}@${{ matrix.version }}
-        run: pnpm publish --access public --no-git-checks
+        run: pnpm publish --access public --no-git-checks --tag "${{ matrix.dist_tag }}"
         working-directory: ${{ matrix.dir }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
