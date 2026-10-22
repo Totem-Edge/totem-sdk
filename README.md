@@ -266,7 +266,7 @@ We are honest about where things stand. The core cryptographic layer and the Omn
 
 The generated per-package matrix is [`docs/maturity.md`](docs/maturity.md). It is checked in CI against `scripts/workspace-gates.config.json`; do not edit it by hand.
 
-**Production core candidates:** `core`, `core-wasm`, `kissvm`, `wots-lease`, `omnia`, `omnia-host`, `storage`, `lookup-*`, `industrial-action`, `edge-mqtt`, and `edge-modbus`. Other edge connectors, governance/policy pieces, replication, and new economic primitives remain preview until they pass the RFC-063 gates.
+**Production surface (RFC-063 §4):** Tier 0 is `core`, `core-wasm` and `kissvm`. Tier 1 candidates are `wots-lease`, `omnia`, `omnia-host`, `storage`, `lookup-*`, `industrial-action`, `edge-mqtt` and `edge-modbus`; they remain RC/alpha until their named evidence and dependency closure pass. Other packages keep their measured maturity and are outside the first-line production core; they are not automatically “preview”.
 
 ---
 

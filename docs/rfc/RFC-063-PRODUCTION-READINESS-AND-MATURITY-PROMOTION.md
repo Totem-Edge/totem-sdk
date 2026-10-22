@@ -1,6 +1,6 @@
 # RFC-063 — Production Readiness and Maturity Promotion
 
-**Status:** Draft — Phase 0 in progress (A1–A5 and A7 landed; A6 and E1–E4 remain); Phases 1–4 proposed
+**Status:** Draft — Phase 0 in progress (A1–A5 and A7 landed; A6, tier reconciliation and E1–E4 remain); Phases 1–4 proposed
 **Priority:** P0 (public truth) / P1 (security and durability) / P2 (real-world proof)
 **Created:** 2026-10-21
 **Authors:** Totem SDK Contributors
@@ -14,7 +14,7 @@
 >
 > It deliberately does **not** declare all 67 publishable packages production.
 > Breadth is not maturity. A narrow, audited, reproducible core with explicitly
-> labelled preview packages is more credible than a large catalogue of
+> explicitly labelled support tiers is more credible than a large catalogue of
 > alpha-to-RC packages.
 
 ---
@@ -23,10 +23,12 @@
 
 1. **Production is earned per package, not per repository.** A package may carry
    the README label **Production** only after passing the gates in §3.
-2. **The production core is deliberately small.** Core cryptography, Omnia,
-   `omnia-host`, storage, lookup, `industrial-action`, and a small number of
-   edge connectors are candidates. Everything else is RC, Beta, Alpha, Preview,
-   or Excluded until it qualifies.
+2. **The production core is deliberately small and dependency-closed.** Tier 0
+   currently contains the cryptographic and VM foundation. Omnia, host, storage,
+   lookup, industrial action and selected edge connectors are Tier 1 candidates.
+   Every package a Tier 0/1 package imports at runtime must be Tier 0, Tier 1 or
+   a support dependency in Tier 2. Everything outside the production surface
+   keeps its evidence-based level; it is not automatically labelled Preview.
 3. **Maturity labels must agree across five places:** `README.md`,
    `scripts/workspace-gates.config.json`, `SDK_MANIFEST.json`, npm dist-tags, and
    the generated API docs. Drift is a release-blocking defect.
@@ -122,30 +124,125 @@ while the gap is “tracked.” Labels describe the present, not the roadmap.
 
 ---
 
-## 4. Production core
+## 4. Production surface
 
-The production core is the set of packages the SDK is willing to support first.
-It is intentionally narrow and may grow only by passing §3.2.
+The production surface is the set of packages the SDK is willing to support. It
+is deliberately narrow and **dependency-closed**: a package cannot be Tier 0
+while a required runtime dependency is Alpha, Preview or unowned.
 
-**Candidate production core:**
+### 4.1 Tiers
 
-- `core`, `core-wasm`, `kissvm`, `wots-lease`
-- `omnia`, `omnia-host`, `storage`
-- `lookup-protocol`, `lookup-client`, `lookup-node`
-- `industrial-action`, `edge-mqtt`, `edge-modbus`
+| Tier | Meaning | Public use |
+|---|---|---|
+| **Tier 0 — Production core** | First-line supported packages that pass §3.2 and whose runtime dependencies are Tier 0, 1 or 2 | `latest`; README production table; stable docs |
+| **Tier 1 — Production candidates** | Explicitly targeted for Tier 0 but still gathering evidence; may be RC or Alpha | `next`, `beta` or `alpha`; no production claim |
+| **Tier 2 — Required support dependencies** | Packages imported by Tier 0/1 on the supported path; they need a minimum stability bar, not headline production docs | RC or higher; no Alpha/Preview on a required path |
+| **Outside the production surface** | Not part of the first-line support promise; keeps its evidence-based maturity | Whatever the current level is: v1, RC, Beta, Alpha, Preview or Excluded |
 
-Everything else is **preview** until it qualifies. In particular:
+“Outside the production surface” does **not** mean Preview. A package can have a
+stable v1 API and still be outside the first-line production core.
 
-- Edge connectors other than MQTT/Modbus remain reference/preview until HIL and
-  conformance tests exist.
-- `recursive-mast`, `authority`, `governance`, and agent-policy surfaces remain
-  Alpha/Beta until RFC-019/021/022/023 land.
-- Replication (`RFC-057`) remains out of scope for production labelling.
-- Eefi credit/points, pairing, and new extension flows remain experimental until
-  their custody and recovery gates are proven.
+### 4.2 Tier 0 — current production core
 
-This is not a demotion of the preview packages. It is an honest statement that
-production support is a promise, not a directory listing.
+Current Tier 0:
+
+- `core`
+- `core-wasm`
+- `kissvm`
+
+These are the only packages with a complete production claim today. They are
+the cryptographic and VM foundation, have no required Alpha/Preview runtime
+dependency, and are the least ambiguous support surface.
+
+`wots-lease` is the next Tier 0 candidate. It has a v1 API, but its `storage` and
+`txpow` dependencies must first meet the Tier 2 minimum bar. Until then it stays
+in Tier 1 even though its package version and API are stable.
+
+### 4.3 Tier 1 — production candidates
+
+- `wots-lease` — v1 API; blocked on the `storage`/`txpow` dependency review.
+- `omnia` — strongest Omnia candidate; AWS 8-node and non-custodial HTLC evidence
+  exists, but its dependency closure and ownership gate are incomplete.
+- `omnia-host` — rc; durable host state and factory-registry recovery must pass
+  before any production claim.
+- `storage` — alpha; promotion is a prerequisite for `wots-lease`,
+  `omnia-host`, `industrial-action` and `edge-mqtt`.
+- `lookup-protocol`, `lookup-client`, `lookup-node` — rc; TypeScript/Go ticket
+  parity is landed, but durable multi-peer and restart evidence remains.
+- `industrial-action` — rc; needs HIL and conformance evidence.
+- `edge-mqtt`, `edge-modbus` — rc; need HIL and conformance evidence.
+
+Tier 1 packages may be published and used, but they must not carry a production
+label or `latest` dist-tag.
+
+### 4.4 Tier 2 — required support dependencies
+
+The current Tier 0/1 import closure requires these packages to meet a minimum
+support bar:
+
+- Transaction and chain: `txpow`, `tx-builder`, `chain-provider`, `minima-rpc`
+- Identity and evidence: `identity`, `manifest`, `root-identity`, `agent-policy`,
+  `authority`, `proof`
+- Transport and host coordination: `stream-transport`, `p2p-hub`,
+  `pubsub-transport`
+- Omnia composition: `omnia-factory`, `omnia-router`, `omnia-pool`,
+  `omnia-splice`, `omnia-vtxo`, `liquidity-bond`
+- Edge runtime: `edge`
+
+Tier 2 minimum bar:
+
+- P0 truth (current counts, status, version and RFC links);
+- P2 unit/integration tests for the imported surface;
+- P5 provenance-attested release with `LICENSE` and `NOTICE`;
+- P7 named owner and support expectation;
+- no open P0/P1 security finding on the imported path.
+
+Tier 2 packages do not need full Tier 0 documentation or operations evidence,
+but they must be stable enough that a Tier 0/1 package is not built on an
+unowned or Alpha runtime path.
+
+### 4.5 Outside the production surface
+
+Examples include `connect`, `wallet-adapter`, `governance`, `recursive-mast`,
+`decision`, `intelligence`, `qvac`, `entity`, `eefi`, the remaining edge
+connectors, replication packages and new economic primitives.
+
+These packages retain their measured level. They are not automatically demoted
+to Preview, and they are not part of the first-line production promise until
+they enter Tier 1 with a named evidence plan.
+
+### 4.6 Promotion and demotion rules
+
+1. A package enters Tier 0 only after passing all §3.2 gates, completing
+   dependency closure, naming an owner/support channel, and matching its npm
+   dist-tag and generated docs.
+2. A Tier 0/1 package whose required dependency becomes Alpha or Preview loses
+   its production claim until the dependency is repaired or removed from the
+   supported path.
+3. A package may be v1 outside Tier 0. That means its API is stable; it is not a
+   first-line production support promise.
+4. A new package enters Tier 1 only with a named workload, owner, evidence plan
+   and exit criterion. Directory presence is not a promotion.
+5. Removing a package from Tier 0 changes the support claim, not its version or
+   its existing published artefacts.
+
+### 4.7 Current evidence and blockers
+
+| Package | Current position | Blocker / next evidence |
+|---|---|---|
+| `core`, `core-wasm`, `kissvm` | Tier 0 | Maintain gates; no new production claim from this RFC |
+| `wots-lease` | Tier 1 (v1 API) | `storage` is alpha; `txpow` must meet Tier 2 bar |
+| `omnia` | Tier 1 | AWS 8-node/7-hop evidence is strong; dependency closure and P7 ownership remain |
+| `omnia-host` | Tier 1 (rc) | 2026-10-22 7-hop teardown blocked: factory registry lost on restart; durable host storage required |
+| `storage` | Tier 1 (alpha) | Must be promoted before `wots-lease`, `omnia-host`, `industrial-action` or `edge-mqtt` can claim Tier 0 |
+| `lookup-*` | Tier 1 (rc) | Real multi-peer durability, restart and teardown evidence |
+| `industrial-action` | Tier 1 (rc) | HIL and conformance evidence |
+| `edge-mqtt`, `edge-modbus` | Tier 1 (rc) | HIL and conformance evidence |
+
+The current `scripts/workspace-gates.config.json` and `docs/maturity.md` predate
+this tier model. Phase 0 A2 must reconcile them; until that happens, the tier
+table in this section is the target, not a claim that the published matrix
+already matches it.
 
 ---
 
@@ -159,7 +256,7 @@ or hardware labs.
 | ID | Work | Done when |
 |---|---|---|
 | A1 | Correct README package/domain counts and `SDK_MANIFEST` counts | Counts are generated or CI-checked |
-| A2 | Add a full maturity matrix for all 67 packages | Every package has level, reason, owner, and evidence link |
+| A2 | Add a full maturity matrix for all 67 packages, including Tier 0/1/2 support scope | Every package has level, support tier, reason, owner, and evidence link |
 | A3 | Rebuild the RFC index for RFC-037–063 and correct stale statuses | README/docs RFC tables match RFC front matter |
 | A4 | Fix `SECURITY.md` supported versions and remove the PGP placeholder | No claims that contradict published versions |
 | A5 | Add CI/release/coverage/audit badges | README shows current, clickable status |
@@ -243,7 +340,7 @@ or hardware labs.
 **Exit:**
 
 - README, docs, `SDK_MANIFEST`, npm metadata, and RFC front matter agree.
-- Every package has a maturity level and a reason.
+- Every package has a maturity level, support tier and a reason.
 - `SECURITY.md` has no stale version claim or placeholder key.
 - CI fails on public-count/status drift.
 - Release notes and dist-tags match the declared maturity.
@@ -261,7 +358,8 @@ host state, and policy/agent hardening are in CI.
 **Scope:** B2, B9, C1–C6, C8, D1–D7, F2–F6.
 
 **Exit:** independent audit published; 3–5 connectors stable with HIL/conformance;
-two end-to-end verticals; testnet evidence; production core passes §3.2.
+two end-to-end verticals; testnet evidence; Tier 0 passes §3.2 and dependency
+closure.
 
 ### Phase 3 — Ecosystem (180+ days)
 
@@ -285,6 +383,8 @@ signed releases, and a docs site that is sufficient without reading RFCs.
 - [x] Remove the placeholder PGP block and state the real encrypted-report path.
 - [ ] Regenerate TypeDoc and verify the docs build in CI.
 - [x] Add `scripts/verify-public-claims.mjs` and run it in CI.
+- [ ] Reconcile `scripts/workspace-gates.config.json`, `docs/maturity.md` and
+      npm dist-tags with the Tier 0/1/2 model in §4.
 - [ ] Publish release notes and set maturity-aligned npm dist-tags.
 
 ---
