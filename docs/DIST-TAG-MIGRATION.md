@@ -43,6 +43,11 @@ packages follow their measured level.
 
 ---
 
+> **Pre-release policy.** The SDK is pre-release with no known users. The
+> non-breaking/breaking split below is therefore a safety option, not a
+> requirement: Phase A and Phase B may be executed atomically. There is no
+> migration announcement or backwards-compatibility window to preserve.
+
 ## 2. Phase A — add channel tags (non-breaking)
 
 This phase only adds tags. It does not remove `latest`, so existing default
@@ -168,8 +173,19 @@ This migration changes public npm resolution. It needs:
 
 - an npm identity with write access to `@totemsdk`;
 - 2FA/OTP or trusted-publishing approval;
-- a release note for the `latest` removals;
 - a rollback operator.
+
+Because the SDK is pre-release with no users, the `latest` removals do not need a
+compatibility window. They still need an authenticated registry session; local
+npm is currently unauthenticated.
+
+The repository provides two execution paths:
+
+- `node scripts/apply-dist-tags.mjs` — authenticated local dry-run;
+- `node scripts/apply-dist-tags.mjs --execute` — authenticated local apply;
+- **Actions → Dist-tag migration** — manual workflow using the
+  `npm-production` environment and `NPM_TOKEN`. Use `dry-run` first, then
+  `apply`. The workflow runs the post-apply `--check` gate.
 
 The local environment used for this audit is not authenticated to npm, so the
 commands should be run from the release environment or an approved operator
