@@ -9,6 +9,8 @@
 > Tier 0 is the first-line production core, Tier 1 is the production-candidate
 > set, Tier 2 is the required support-dependency set, and `outside` is not
 > part of the first-line production promise.
+>
+> Tier 1 evidence plan: [TIER1-EVIDENCE-PLAN.md](TIER1-EVIDENCE-PLAN.md).
 
 ## Summary
 

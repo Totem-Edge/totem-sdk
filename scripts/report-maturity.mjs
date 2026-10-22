@@ -43,6 +43,8 @@ lines.push('>');
 lines.push('> Tier 0 is the first-line production core, Tier 1 is the production-candidate');
 lines.push('> set, Tier 2 is the required support-dependency set, and `outside` is not');
 lines.push('> part of the first-line production promise.');
+lines.push('>');
+lines.push('> Tier 1 evidence plan: [TIER1-EVIDENCE-PLAN.md](TIER1-EVIDENCE-PLAN.md).');
 lines.push('');
 
 const entries = Object.entries(config.packages).map(([dir, meta]) => {

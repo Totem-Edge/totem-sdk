@@ -173,7 +173,8 @@ in Tier 1 even though its package version and API are stable.
 - `edge-mqtt`, `edge-modbus` — rc; need HIL and conformance evidence.
 
 Tier 1 packages may be published and used, but they must not carry a production
-label or `latest` dist-tag.
+label or `latest` dist-tag. The per-package evidence plan is maintained in
+[TIER1-EVIDENCE-PLAN.md](../TIER1-EVIDENCE-PLAN.md).
 
 ### 4.4 Tier 2 — required support dependencies
 

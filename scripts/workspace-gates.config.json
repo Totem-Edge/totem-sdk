@@ -69,6 +69,9 @@
       "status": "publishable",
       "maturity": "v1",
       "supportTier": 0,
+      "supportReason": "Tier 0 production core",
+      "owner": "Totem SDK maintainers",
+      "evidence": "docs/rfc/RFC-063-PRODUCTION-READINESS-AND-MATURITY-PROMOTION.md#4-production-surface",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -78,6 +81,9 @@
       "status": "publishable",
       "maturity": "v1",
       "supportTier": 0,
+      "supportReason": "Tier 0 production core",
+      "owner": "Totem SDK maintainers",
+      "evidence": "docs/rfc/RFC-063-PRODUCTION-READINESS-AND-MATURITY-PROMOTION.md#4-production-surface",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -186,6 +192,9 @@
       "status": "publishable",
       "maturity": "rc",
       "supportTier": 1,
+      "supportReason": "Tier 1 production candidate; evidence plan pending",
+      "owner": "Totem SDK maintainers",
+      "evidence": "docs/TIER1-EVIDENCE-PLAN.md#edge-modbus",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -195,6 +204,9 @@
       "status": "publishable",
       "maturity": "rc",
       "supportTier": 1,
+      "supportReason": "Tier 1 production candidate; evidence plan pending",
+      "owner": "Totem SDK maintainers",
+      "evidence": "docs/TIER1-EVIDENCE-PLAN.md#edge-mqtt",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -249,6 +261,9 @@
       "status": "publishable",
       "maturity": "rc",
       "supportTier": 1,
+      "supportReason": "Tier 1 production candidate; evidence plan pending",
+      "owner": "Totem SDK maintainers",
+      "evidence": "docs/TIER1-EVIDENCE-PLAN.md#industrial-action",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -267,6 +282,9 @@
       "status": "publishable",
       "maturity": "v1",
       "supportTier": 0,
+      "supportReason": "Tier 0 production core",
+      "owner": "Totem SDK maintainers",
+      "evidence": "docs/rfc/RFC-063-PRODUCTION-READINESS-AND-MATURITY-PROMOTION.md#4-production-surface",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -312,6 +330,9 @@
       "status": "publishable",
       "maturity": "rc",
       "supportTier": 1,
+      "supportReason": "Tier 1 production candidate; evidence plan pending",
+      "owner": "Totem SDK maintainers",
+      "evidence": "docs/TIER1-EVIDENCE-PLAN.md#lookup-client",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -321,6 +342,9 @@
       "status": "publishable",
       "maturity": "rc",
       "supportTier": 1,
+      "supportReason": "Tier 1 production candidate; evidence plan pending",
+      "owner": "Totem SDK maintainers",
+      "evidence": "docs/TIER1-EVIDENCE-PLAN.md#lookup-node",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -330,6 +354,9 @@
       "status": "publishable",
       "maturity": "rc",
       "supportTier": 1,
+      "supportReason": "Tier 1 production candidate; evidence plan pending",
+      "owner": "Totem SDK maintainers",
+      "evidence": "docs/TIER1-EVIDENCE-PLAN.md#lookup-protocol",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -357,6 +384,9 @@
       "status": "publishable",
       "maturity": "rc",
       "supportTier": 1,
+      "supportReason": "Tier 1 production candidate; evidence plan pending",
+      "owner": "Totem SDK maintainers",
+      "evidence": "docs/TIER1-EVIDENCE-PLAN.md#omnia",
       "custody": {
         "classification": "non-custodial",
         "reason": "unilateral eltoo broadcast branch after contest delay; update path is MULTISIG(2)",
@@ -383,6 +413,9 @@
       "status": "publishable",
       "maturity": "rc",
       "supportTier": 1,
+      "supportReason": "Tier 1 production candidate; evidence plan pending",
+      "owner": "Totem SDK maintainers",
+      "evidence": "docs/TIER1-EVIDENCE-PLAN.md#omnia-host",
       "custody": {
         "classification": "non-custodial",
         "reason": "signing host; TreeKey stays in-wallet; holds no value"
@@ -585,6 +618,9 @@
       "status": "publishable",
       "maturity": "alpha",
       "supportTier": 1,
+      "supportReason": "Tier 1 production candidate; evidence plan pending",
+      "owner": "Totem SDK maintainers",
+      "evidence": "docs/TIER1-EVIDENCE-PLAN.md#storage",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -630,6 +666,9 @@
       "status": "publishable",
       "maturity": "rc",
       "supportTier": 1,
+      "supportReason": "Tier 1 production candidate; evidence plan pending",
+      "owner": "Totem SDK maintainers",
+      "evidence": "docs/TIER1-EVIDENCE-PLAN.md#wots-lease",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
