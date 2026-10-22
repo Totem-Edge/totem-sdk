@@ -23,6 +23,14 @@ for (const directory of ['pkg', 'pkg-node', 'pkg-web']) {
       const source = join(process.cwd(), legalFile);
       if (existsSync(source)) copyFileSync(source, join(outputDir, legalFile));
     }
+    const pkgJsonPath = join(outputDir, 'package.json');
+    if (existsSync(pkgJsonPath)) {
+      const pkg = JSON.parse(readFileSync(pkgJsonPath, 'utf8'));
+      const files = Array.isArray(pkg.files) ? pkg.files : [];
+      if (!files.includes('NOTICE')) files.push('NOTICE');
+      pkg.files = files;
+      writeFileSync(pkgJsonPath, JSON.stringify(pkg, null, 2) + '\n');
+    }
   }
 }
 
