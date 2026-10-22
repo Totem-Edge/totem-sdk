@@ -17,6 +17,7 @@ const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const manifest = JSON.parse(readFileSync(join(ROOT, 'SDK_MANIFEST.json'), 'utf8'));
 const config = JSON.parse(readFileSync(join(ROOT, 'scripts', 'workspace-gates.config.json'), 'utf8'));
 const EXECUTE = process.argv.includes('--execute');
+const ADD_ONLY = process.argv.includes('--add-only');
 
 const EXPECTED_TAG = { v1: 'latest', rc: 'next', beta: 'beta', alpha: 'alpha' };
 
@@ -84,9 +85,11 @@ for (const pkg of manifest.packages) {
   } else {
     console.log(`OK   ${pkg.name}: ${expected}=${version}`);
   }
-  if (tags.latest) {
+  if (tags.latest && !ADD_ONLY) {
     changes++;
     if (!run(['dist-tag', 'rm', pkg.name, 'latest'])) failures++;
+  } else if (tags.latest) {
+    console.log(`SKIP ${pkg.name}: add-only; latest remains ${tags.latest}`);
   }
 }
 

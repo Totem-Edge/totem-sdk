@@ -291,10 +291,11 @@ by its dependency support surface.
 
 Tier 1 packages must not remain on `latest` after this plan is applied. The
 dist-tag audit and migration are tracked separately so the package contents are
-not changed merely to move a tag. Run `node scripts/report-dist-tags.mjs` for the
-current drift report; `--commands` prints the non-breaking tag additions, and
-`--check` is suitable for a release gate. See
-[DIST-TAG-MIGRATION.md](DIST-TAG-MIGRATION.md).
+not changed merely to move a tag. Channel tags (`next`/`beta`/`alpha`) are now
+present; `latest` removal is blocked on npm token permission. Run
+`node scripts/report-dist-tags.mjs` for the current drift report; `--commands`
+prints the non-breaking tag additions, and `--check` is suitable for a release
+gate. See [DIST-TAG-MIGRATION.md](DIST-TAG-MIGRATION.md).
 
 ---
 

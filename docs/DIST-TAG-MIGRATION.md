@@ -1,7 +1,7 @@
 # npm Dist-Tag Migration
 
-**Status:** Planned — non-breaking tag additions first; `latest` removal requires
-release approval
+**Status:** Phase A complete (channel tags added); Phase B blocked on npm token
+permission for `latest` removal
 
 **Parent:** [RFC-063 §3.1 and §4](rfc/RFC-063-PRODUCTION-READINESS-AND-MATURITY-PROMOTION.md)
 
@@ -40,6 +40,18 @@ The target model is:
 
 Tier 0 must use `latest`. Tier 1 must not claim `latest`. Tier 2 and outside
 packages follow their measured level.
+
+### Current registry state (2026-10-22)
+
+- All 49 missing channel tags were added successfully.
+- The follow-up `npm dist-tag rm <pkg> latest` calls returned **403 Forbidden**
+  from the `npm-production` token.
+- Registry state is therefore: Tier 0 v1 packages have only `latest`; Tier 1/2/
+  outside non-v1 packages currently have **both** `latest` and their correct
+  `next`/`beta`/`alpha` tag.
+- No package content was changed.
+- Phase B needs an npm token with permission to delete/rewrite dist-tags, or an
+  owner with registry access to run the removals.
 
 ---
 
@@ -176,16 +188,19 @@ This migration changes public npm resolution. It needs:
 - a rollback operator.
 
 Because the SDK is pre-release with no users, the `latest` removals do not need a
-compatibility window. They still need an authenticated registry session; local
-npm is currently unauthenticated.
+compatibility window. They still need an authenticated registry session with
+permission to delete dist-tags; the current `npm-production` token can add tags
+but receives 403 on deletion.
 
-The repository provides two execution paths:
+The repository provides these execution paths:
 
 - `node scripts/apply-dist-tags.mjs` — authenticated local dry-run;
-- `node scripts/apply-dist-tags.mjs --execute` — authenticated local apply;
+- `node scripts/apply-dist-tags.mjs --execute --add-only` — add channel tags only;
+- `node scripts/apply-dist-tags.mjs --execute` — add channel tags and remove
+  `latest` from non-v1 packages;
 - **Actions → Dist-tag migration** — manual workflow using the
-  `npm-production` environment and `NPM_TOKEN`. Use `dry-run` first, then
-  `apply`. The workflow runs the post-apply `--check` gate.
+  `npm-production` environment and `NPM_TOKEN`. Use `dry-run`, then `add-only`,
+  then `apply`. The workflow runs the post-apply `--check` gate.
 
 The local environment used for this audit is not authenticated to npm, so the
 commands should be run from the release environment or an approved operator
