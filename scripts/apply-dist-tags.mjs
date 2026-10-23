@@ -31,6 +31,27 @@ function readTags(name) {
   }
 }
 
+function packageVersion(name) {
+  const short = name.replace(/^@totemsdk\//, '');
+  try {
+    const manifest = JSON.parse(readFileSync(join(ROOT, 'packages', short, 'package.json'), 'utf8'));
+    return typeof manifest.version === 'string' ? manifest.version : null;
+  } catch {
+    return null;
+  }
+}
+
+function isPublished(name, version) {
+  try {
+    execFileSync('npm', ['view', `${name}@${version}`, 'version'], {
+      stdio: 'ignore', timeout: 15000,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function run(args) {
   const label = `npm ${args.join(' ')}`;
   console.log(`${EXECUTE ? 'RUN ' : 'DRY '} ${label}`);
@@ -62,7 +83,10 @@ for (const pkg of manifest.packages) {
     continue;
   }
 
-  const version = tags[expected] ?? tags.latest;
+  const declared = packageVersion(pkg.name);
+  const version = declared && isPublished(pkg.name, declared)
+    ? declared
+    : tags[expected] ?? tags.latest;
   if (!version) {
     console.error(`FAIL ${pkg.name}: no published version to tag`);
     failures++;
