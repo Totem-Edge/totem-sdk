@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/storage",
-  "version": "0.1.0",
-  "description": "Provider-neutral storage contracts and adapters — StorageError taxonomy, versioned codec, namespaces, transactions + CAS, artifact-boundary types with a pluggable ArtifactStoreBackend port",
+  "version": "0.2.0",
+  "description": "Provider-neutral storage contracts and adapters \u2014 StorageError taxonomy, versioned codec, namespaces, transactions + CAS, artifact-boundary types with a pluggable ArtifactStoreBackend port",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "typesVersions": {
@@ -38,6 +38,9 @@
       ],
       "sqlite": [
         "./dist/cjs/adapters/sqlite-store.d.ts"
+      ],
+      "sqlite-sync": [
+        "./dist/cjs/adapters/sync-sqlite-store.d.ts"
       ],
       "journal": [
         "./dist/cjs/journal.d.ts"
@@ -172,6 +175,16 @@
       "require": {
         "types": "./dist/cjs/adapters/sqlite-store.d.ts",
         "default": "./dist/cjs/adapters/sqlite-store.js"
+      }
+    },
+    "./sqlite-sync": {
+      "import": {
+        "types": "./dist/adapters/sync-sqlite-store.d.ts",
+        "default": "./dist/adapters/sync-sqlite-store.js"
+      },
+      "require": {
+        "types": "./dist/cjs/adapters/sync-sqlite-store.d.ts",
+        "default": "./dist/cjs/adapters/sync-sqlite-store.js"
       }
     },
     "./journal": {

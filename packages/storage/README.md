@@ -146,3 +146,12 @@ See [docs/adapter-guide.md](docs/adapter-guide.md) for the authoring checklist.
 ## License
 
 Apache-2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
+
+
+## Synchronous adapter
+
+`@totemsdk/storage/sqlite-sync` exposes `SyncSqliteStore` for consumers whose
+runtime contract is synchronous (e.g. `@totemsdk/omnia`'s `ChannelStore` Map). It
+uses the same `totemsdk_kv` table, versioned codec and envelope as
+`@totemsdk/storage/sqlite`, so values written by one are readable by the other.
+Native `better-sqlite3` remains isolated to this subpath.
