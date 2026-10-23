@@ -182,6 +182,17 @@ export class MinimaRpcProvider implements ChainStateProvider, DepositVerifier {
         Buffer.from(txBytes),
         Buffer.from(witnessBytes),
       ]);
+      // Validate the imported TxnRow first. txncheck runs the pool script and
+      // returns a structured failure instead of letting txnmine/sendtransaction
+      // crash on malformed mined data.
+      await this.client.txnImport(Buffer.from(row).toString('hex'), id);
+      const checked = await this.client.txnCheck(id) as unknown as {
+        validtransaction?: boolean;
+        valid?: boolean | Record<string, boolean>;
+      };
+      if (checked.validtransaction === false || checked.valid === false) {
+        return { success: false, message: `txncheck failed: ${JSON.stringify(checked.valid)}` };
+      }
       const mined = await this.client.txnMine({ data: Buffer.from(row).toString('hex') });
       if (!mined?.data) {
         return { success: false, message: 'txnmine returned no data' };
