@@ -2,6 +2,9 @@ import crypto from 'node:crypto';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { WebSocketServer, type WebSocket } from 'ws';
+import type { ObservationBus } from '../observe/bus.js';
+import type { ObservationStore } from '../observe/types.js';
+import type { ObserveSnapshot } from '../observe/types.js';
 
 export interface JsonRpcRequest {
   jsonrpc?: '2.0';
@@ -38,6 +41,15 @@ export interface ControlServerOptions {
    * over the WebSocket handshake.
    */
   authToken?: string;
+  /**
+   * Read-only observation feed (RFC-0011 Amendment A). Snapshot and SSE are
+   * guarded by the same origin allowlist + bearer token as the RPC surface.
+   */
+  observe?: {
+    store: ObservationStore;
+    bus: ObservationBus;
+    snapshot: () => ObserveSnapshot | Promise<ObserveSnapshot>;
+  };
 }
 
 export interface ControlServer {
@@ -139,6 +151,88 @@ function safeTokenEqual(provided: string | undefined, expected: string): boolean
   return crypto.timingSafeEqual(a, b);
 }
 
+function authorizeControlPlane(
+  req: http.IncomingMessage,
+  allowedOrigins: string[] | undefined,
+  authToken: string | undefined,
+): boolean {
+  if (!isOriginAllowed(req, allowedOrigins)) return false;
+  if (authToken !== undefined && !safeTokenEqual(bearerToken(req), authToken)) return false;
+  return true;
+}
+
+function parseObserveCursor(req: http.IncomingMessage): number {
+  const url = new URL(req.url ?? '/', 'http://localhost');
+  const after = Number(url.searchParams.get('after') ?? NaN);
+  if (Number.isFinite(after) && after >= 0) return Math.floor(after);
+  const lastEventId = req.headers['last-event-id'];
+  const raw = Array.isArray(lastEventId) ? lastEventId[0] : lastEventId;
+  const parsed = Number(raw ?? NaN);
+  return Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : 0;
+}
+
+async function streamObservations(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  observe: NonNullable<ControlServerOptions['observe']>,
+): Promise<void> {
+  res.writeHead(200, {
+    'content-type': 'text/event-stream',
+    'cache-control': 'no-cache',
+    connection: 'keep-alive',
+    'x-accel-buffering': 'no',
+  });
+
+  let last = parseObserveCursor(req);
+  let closed = false;
+  let live = false;
+  const pending = new Map<number, import('../observe/types.js').OmniaObservation>();
+
+  const write = (obs: import('../observe/types.js').OmniaObservation): void => {
+    if (closed || obs.sourceSequence <= last) return;
+    last = obs.sourceSequence;
+    res.write(`id: ${obs.sourceSequence}\nevent: observation\ndata: ${JSON.stringify(obs)}\n\n`);
+  };
+
+  const unsubscribe = observe.bus.subscribe((obs) => {
+    if (obs.sourceSequence <= last) return;
+    if (live) write(obs);
+    else pending.set(obs.sourceSequence, obs);
+  });
+
+  const heartbeat = setInterval(() => {
+    if (!closed) res.write(': keep-alive\n\n');
+  }, 15_000);
+  heartbeat.unref?.();
+
+  const cleanup = (): void => {
+    if (closed) return;
+    closed = true;
+    clearInterval(heartbeat);
+    unsubscribe();
+    res.end();
+  };
+  req.on('close', cleanup);
+  req.on('error', cleanup);
+
+  try {
+    const cursor = await observe.store.head();
+    res.write(`event: cursor\ndata: ${JSON.stringify({ cursor })}\n\n`);
+    // Replay the durable journal, then flush anything the bus delivered while
+    // replaying. The journal is the source of truth; no gap, no duplication.
+    for (const obs of await observe.store.readSince(last)) write(obs);
+    live = true;
+    for (const seq of Array.from(pending.keys()).sort((a, b) => a - b)) {
+      const obs = pending.get(seq);
+      if (obs) write(obs);
+    }
+    pending.clear();
+  } catch (error) {
+    console.error('[observe] stream failed:', error instanceof Error ? error.message : String(error));
+    cleanup();
+  }
+}
+
 export function createControlServer(options: ControlServerOptions): ControlServer {
   // RFC-020 H1: a non-loopback bind must be authenticated. Refuse to start a
   // network-exposed control plane without a token.
@@ -163,7 +257,28 @@ export function createControlServer(options: ControlServerOptions): ControlServe
       sendJson(res, ready ? 200 : 503, { ok: ready });
       return;
     }
-    if (req.method !== 'POST' || pathname(req.url) !== wsPath) {
+    const route = pathname(req.url);
+    if (req.method === 'GET' && (route === '/observe/snapshot' || route === '/observe/events')) {
+      if (!options.observe) {
+        sendJson(res, 404, { error: 'Observation feed not enabled' });
+        return;
+      }
+      if (!authorizeControlPlane(req, allowedOrigins, authToken)) {
+        sendJson(res, 403, { error: 'Forbidden' });
+        return;
+      }
+      if (route === '/observe/snapshot') {
+        try {
+          sendJson(res, 200, await options.observe.snapshot());
+        } catch (error) {
+          sendJson(res, 500, { error: error instanceof Error ? error.message : String(error) });
+        }
+        return;
+      }
+      await streamObservations(req, res, options.observe);
+      return;
+    }
+    if (req.method !== 'POST' || route !== wsPath) {
       sendJson(res, 404, { error: 'Not found' });
       return;
     }

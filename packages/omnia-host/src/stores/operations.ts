@@ -1,5 +1,5 @@
-import Database from 'better-sqlite3';
 import { createHash } from 'node:crypto';
+import { SyncSqliteStore } from '@totemsdk/storage/sqlite-sync';
 
 export type OperationStatus = 'pending' | 'reserved' | 'executing' | 'committed' | 'failed' | 'unknown';
 
@@ -14,101 +14,87 @@ export interface OperationRecord {
   error?: string;
 }
 
-interface OperationRow {
-  operation_id: string;
-  status: OperationStatus;
-  created_at: number;
-  updated_at: number;
-  request_json: string | null;
-  result_json: string | null;
-  error: string | null;
-  request_digest: string | null;
-}
+const PREFIX = 'omnia:operation:';
+const FORMAT_KEY = 'omnia:store:operation:format';
+const STORE_FORMAT = 1;
 
 /**
- * CAN-001: operation requests/results can carry `bigint` amounts (e.g. a
- * multi-hop route's hop amounts). `JSON.stringify` throws on bigint, so encode
- * with a reversible tag and decode it back — the journal never sees a raw
- * primitive it cannot persist.
+ * CAN-001: operation requests/results can carry `bigint` amounts. The storage
+ * codec tags bigints natively, so the record is persisted as-is. Legacy
+ * `omnia_operations` rows (JSON with `{$bigint}` tags) are migrated on open.
  */
-function bigintReplacer(_key: string, value: unknown): unknown {
-  return typeof value === 'bigint' ? { $bigint: value.toString() } : value;
+function decodeLegacy(value: string | null): unknown {
+  if (value === null) return undefined;
+  return JSON.parse(value, (_key, nested: unknown) => {
+    if (
+      nested !== null &&
+      typeof nested === 'object' &&
+      typeof (nested as { $bigint?: unknown }).$bigint === 'string' &&
+      Object.keys(nested as Record<string, unknown>).length === 1
+    ) {
+      return BigInt((nested as { $bigint: string }).$bigint);
+    }
+    return nested;
+  });
 }
 
-function bigintReviver(_key: string, value: unknown): unknown {
-  if (
-    value !== null &&
-    typeof value === 'object' &&
-    typeof (value as { $bigint?: unknown }).$bigint === 'string' &&
-    Object.keys(value as Record<string, unknown>).length === 1
-  ) {
-    return BigInt((value as { $bigint: string }).$bigint);
-  }
-  return value;
-}
-
-function encode(value: unknown): string | null {
-  return value === undefined ? null : JSON.stringify(value, bigintReplacer);
-}
-
-function decode(value: string | null): unknown {
-  return value === null ? undefined : JSON.parse(value, bigintReviver);
-}
-
-function toRecord(row: OperationRow): OperationRecord {
-  return {
-    operationId: row.operation_id,
-    status: row.status,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-    request: decode(row.request_json),
-    requestDigest: row.request_digest ?? undefined,
-    result: decode(row.result_json),
-    error: row.error ?? undefined,
-  };
-}
-
-/** Durable operation journal with atomic status transitions. */
+/** Durable operation journal with atomic status transitions, via storage SDK. */
 export class OperationStore {
-  private readonly db: Database.Database;
+  private readonly kv: SyncSqliteStore;
 
   constructor(dbPath: string) {
-    this.db = new Database(dbPath);
-    this.db.pragma('journal_mode = WAL');
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS omnia_operations (
-        operation_id TEXT PRIMARY KEY,
-        status TEXT NOT NULL,
-        created_at INTEGER NOT NULL,
-        updated_at INTEGER NOT NULL,
-        request_json TEXT,
-        request_digest TEXT,
-        result_json TEXT,
-        error TEXT
-      )
-    `);
-    const columns = this.db.prepare('PRAGMA table_info(omnia_operations)').all() as Array<{ name: string }>;
-    if (!columns.some((column) => column.name === 'request_digest')) {
-      this.db.exec('ALTER TABLE omnia_operations ADD COLUMN request_digest TEXT');
+    this.kv = new SyncSqliteStore(dbPath);
+    const version = this.kv.get<number>(FORMAT_KEY);
+    if (version !== null && version !== STORE_FORMAT) {
+      this.kv.close();
+      throw new Error(
+        `Unsupported OperationStore format ${version} (this build supports ${STORE_FORMAT}) — refusing to open`,
+      );
     }
+    if (version === null) this.migrateLegacy();
+  }
+
+  private migrateLegacy(): void {
+    // One-time migration from the pre-storage direct-SQLite table.
+    this.kv.migrateLegacyTable<OperationRecord>('omnia_operations', (row) => {
+      const request = decodeLegacy((row['request_json'] as string | null) ?? null);
+      const result = decodeLegacy((row['result_json'] as string | null) ?? null);
+      const digestValue = row['request_digest'] ? String(row['request_digest']) : undefined;
+      const error = row['error'] ? String(row['error']) : undefined;
+      const record: OperationRecord = {
+        operationId: String(row['operation_id']),
+        status: (row['status'] as OperationStatus) ?? 'unknown',
+        createdAt: Number(row['created_at']),
+        updatedAt: Number(row['updated_at']),
+        ...(request !== undefined ? { request } : {}),
+        ...(digestValue ? { requestDigest: digestValue } : {}),
+        ...(result !== undefined ? { result } : {}),
+        ...(error ? { error } : {}),
+      };
+      return { key: PREFIX + record.operationId, value: record };
+    });
+    this.kv.set(FORMAT_KEY, STORE_FORMAT);
   }
 
   get(operationId: string): OperationRecord | undefined {
-    const row = this.db.prepare(
-      'SELECT * FROM omnia_operations WHERE operation_id = ?',
-    ).get(operationId) as OperationRow | undefined;
-    return row ? toRecord(row) : undefined;
+    return this.kv.get<OperationRecord>(PREFIX + operationId) ?? undefined;
   }
 
   create(operationId: string, request?: unknown, now = Date.now()): OperationRecord {
-    this.db.prepare(`
-      INSERT OR IGNORE INTO omnia_operations
-        (operation_id, status, created_at, updated_at, request_json, request_digest)
-      VALUES (?, 'pending', ?, ?, ?, ?)
-    `).run(operationId, now, now, encode(request), digest(request));
-    const record = this.get(operationId);
-    if (!record) throw new Error(`Failed to create operation ${operationId}`);
-    return record;
+    return this.kv.transaction(() => {
+      const existing = this.get(operationId);
+      if (existing) return existing;
+      const record: OperationRecord = {
+        operationId,
+        status: 'pending',
+        createdAt: now,
+        updatedAt: now,
+        ...(request !== undefined ? { request } : {}),
+        requestDigest: digest(request),
+      };
+      this.kv.set(PREFIX + operationId, record);
+      return record;
+    });
   }
 
   verifyRequest(operationId: string, request: unknown): boolean {
@@ -123,40 +109,48 @@ export class OperationStore {
     patch: { result?: unknown; error?: string } = {},
     now = Date.now(),
   ): OperationRecord {
-    const result = this.db.prepare(`
-      UPDATE omnia_operations
-      SET status = ?, updated_at = ?, result_json = ?, error = ?
-      WHERE operation_id = ? AND status = ?
-    `).run(to, now, encode(patch.result), patch.error ?? null, operationId, from);
-
-    if (result.changes !== 1) {
-      const current = this.get(operationId);
-      if (!current) throw new Error(`Unknown operation ${operationId}`);
-      throw new Error(
-        `Operation ${operationId} expected status ${from} but is ${current.status}`,
-      );
-    }
-
-    return this.get(operationId)!;
+    return this.kv.transaction(() => {
+      const record = this.get(operationId);
+      if (!record) throw new Error(`Unknown operation ${operationId}`);
+      if (record.status !== from) {
+        throw new Error(`Operation ${operationId} expected status ${from} but is ${record.status}`);
+      }
+      const next: OperationRecord = {
+        ...record,
+        status: to,
+        updatedAt: now,
+        ...(patch.error !== undefined ? { error: patch.error } : {}),
+        ...(patch.result !== undefined ? { result: patch.result } : {}),
+      };
+      this.kv.set(PREFIX + operationId, next);
+      return next;
+    });
   }
 
   listByStatus(status: OperationStatus): OperationRecord[] {
-    const rows = this.db.prepare(
-      'SELECT * FROM omnia_operations WHERE status = ? ORDER BY created_at',
-    ).all(status) as OperationRow[];
-    return rows.map(toRecord);
+    return this.kv
+      .keys()
+      .filter((key) => key.startsWith(PREFIX))
+      .map((key) => this.kv.get<OperationRecord>(key))
+      .filter((record): record is OperationRecord => record !== null)
+      .filter((record) => record.status === status)
+      .sort((a, b) => a.createdAt - b.createdAt);
   }
 
   close(): void {
-    this.db.close();
+    this.kv.close();
   }
 }
 
 function canonical(value: unknown): string {
+  if (value === undefined) return 'undefined';
   if (typeof value === 'bigint') return `{"$bigint":${JSON.stringify(value.toString())}}`;
-  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (value === null || typeof value !== 'object') return JSON.stringify(value) ?? 'null';
   if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
-  return `{${Object.keys(value as Record<string, unknown>).sort().map((key) => `${JSON.stringify(key)}:${canonical((value as Record<string, unknown>)[key])}`).join(',')}}`;
+  return `{${Object.keys(value as Record<string, unknown>)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${canonical((value as Record<string, unknown>)[key])}`)
+    .join(',')}}`;
 }
 
 function digest(value: unknown): string {

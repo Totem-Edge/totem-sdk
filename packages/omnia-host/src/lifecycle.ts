@@ -1,4 +1,10 @@
+import path from 'node:path';
 import type { OmniaHostConfig } from './config.js';
+import { ObservationBus } from './observe/bus.js';
+import { ObservationEmitter, channelTransitionHash } from './observe/emitter.js';
+import { createSqliteObservationStore } from './observe/store.js';
+import { createObservationSnapshot } from './observe/snapshot.js';
+import type { ObservationStore } from './observe/types.js';
 import type { OmniaSwarm, ChannelSigner, WotsLeaseProviderLike, MinimalChainProvider } from '@totemsdk/omnia';
 import { createOmniaIntegration, createOmniaSwarm } from '@totemsdk/omnia';
 import { SqliteChannelStore } from './stores/sqlite-store.js';
@@ -62,6 +68,12 @@ export interface OmniaHostDependencies {
   manifest?: unknown;
   /** Optional P2P hub network (tests/embedding). */
   p2pHubNetwork?: HubNetwork;
+  /** Observation feed: inject a store/bus (tests/embedding) or disable it. */
+  observationStore?: ObservationStore;
+  observationBus?: ObservationBus;
+  observe?: boolean;
+  networkId?: string;
+  sourceNodeId?: string;
 }
 
 export interface OmniaHost {
@@ -93,6 +105,10 @@ export function createOmniaHost(
     : undefined;
   const injectedOperationStore = dependencies.operationStore;
   let ownedOperationStore: OperationStore | undefined;
+  let observationStore: ObservationStore | undefined = dependencies.observationStore;
+  let ownedObservationStore: ObservationStore | undefined;
+  const observationBus = dependencies.observationBus ?? new ObservationBus();
+  let observation: ObservationEmitter | undefined;
   let controlServer: ControlServer | undefined = dependencies.controlServer;
   let chainAdapter: TotemNodeAdapter | undefined = dependencies.chainAdapter;
   let routingProvider = dependencies.routingProvider ?? new InProcessRoutingProvider();
@@ -126,6 +142,24 @@ export function createOmniaHost(
       if (!operationStore && !injectedOperationStore) {
         ownedOperationStore = new OperationStore(config.dbPath);
         operationStore = ownedOperationStore;
+      }
+      const observeEnabled = dependencies.observe === true || (dependencies.observe !== false && config.observeDisabled !== true && config.observeDbPath !== undefined);
+      if (observeEnabled && !observationStore) {
+        const observePath = config.observeDbPath ?? path.join(path.dirname(config.dbPath), 'observe.sqlite');
+        try {
+          ownedObservationStore = await createSqliteObservationStore(observePath);
+          observationStore = ownedObservationStore;
+        } catch (err) {
+          console.error('[omnia-host] observation store disabled:', err instanceof Error ? err.message : String(err));
+        }
+      }
+      if (observationStore) {
+        observation = new ObservationEmitter({
+          store: observationStore,
+          bus: observationBus,
+          networkId: config.networkId ?? dependencies.networkId ?? 'omnia',
+          sourceNodeId: config.sourceNodeId ?? dependencies.sourceNodeId ?? config.localPartyId ?? 'omnia-host',
+        });
       }
       if (!swarm) {
         const relay = config.relay
@@ -261,6 +295,12 @@ export function createOmniaHost(
           if (msg.type === 'SPLICE_FINALIZED' && payload.channel) {
             const channel = payload.channel as OmniaChannel;
             channelStore.set(channel.channelId, channel);
+            void observation?.emit({
+              domain: 'splice', kind: 'splice.finalized', phase: 'confirmed',
+              entity: { type: 'channel', id: channel.channelId },
+              amounts: { capacity: channel.totalValue?.toString(), balances: Object.fromEntries(Object.entries(channel.balances ?? {}).map(([k, v]) => [k, v.toString()])) },
+              data: { spliceId: (payload as any).spliceId, txId: (payload as any).txId },
+            });
             const acceptance = spliceAcceptances.get(payload.spliceId);
             if (acceptance && typeof payload.txId === 'string') {
               await spliceLeaseProvider.wotsLease
@@ -320,6 +360,11 @@ export function createOmniaHost(
             if (msg.type === 'FACTORY_PROPOSAL' && payload.factory) {
               const accepted = await acceptFactory(payload.factory, localBundle);
               factories.set(accepted.factoryId, accepted);
+              void observation?.emit({
+                domain: 'factory', kind: 'factory.accepted', phase: 'accepted',
+                entity: { type: 'factory', id: accepted.factoryId },
+                data: { participants: accepted.participants },
+              });
               return {
                 type: 'FACTORY_ACCEPT',
                 channelId: accepted.factoryId,
@@ -363,6 +408,42 @@ export function createOmniaHost(
       const channelPeers = new Map<string, any>();
       const onPeerMessage = (peer: any, msg: any): void => {
         if (msg?.channelId) channelPeers.set(msg.channelId, peer);
+        void observation?.emit({
+          domain: 'transport', kind: 'transport.message', phase: 'observed',
+          entity: { type: 'node', id: config.sourceNodeId ?? config.localPartyId ?? 'omnia-host' },
+          evidence: { peerPublicKeyDigest: peer?.publicKeyDigest },
+          data: { type: msg?.type, channelId: msg?.channelId, nonce: msg?.nonce },
+        });
+      };
+      const onChannelAccepted = (channel: any, peer: any): void => {
+        void observation?.emit({
+          domain: 'channel', kind: 'channel.proposal.accepted', phase: 'accepted',
+          entity: { type: 'channel', id: channel.channelId },
+          parties: { local: localParticipant?.partyId, remote: channel.parties?.find((p: any) => p.partyId !== localParticipant?.partyId)?.partyId },
+          token: { tokenId: channel.tokenId, scale: channel.tokenScale ?? 0 },
+          amounts: { capacity: channel.totalValue?.toString(), balances: Object.fromEntries(Object.entries(channel.balances ?? {}).map(([k, v]: [string, any]) => [k, v.toString()])) },
+          transitionHash: channelTransitionHash(channel),
+          evidence: { peerPublicKeyDigest: peer?.publicKeyDigest },
+        });
+      };
+      const onStateUpdated = (channel: any, peer: any): void => {
+        void observation?.emit({
+          domain: 'channel', kind: 'channel.updated', phase: 'committed',
+          entity: { type: 'channel', id: channel.channelId },
+          parties: { local: localParticipant?.partyId, remote: channel.parties?.find((p: any) => p.partyId !== localParticipant?.partyId)?.partyId },
+          token: { tokenId: channel.tokenId, scale: channel.tokenScale ?? 0 },
+          after: { sequence: channel.currentSequence, balances: Object.fromEntries(Object.entries(channel.balances ?? {}).map(([k, v]: [string, any]) => [k, v.toString()])) },
+          transitionHash: channelTransitionHash(channel),
+          evidence: { peerPublicKeyDigest: peer?.publicKeyDigest },
+        });
+      };
+      const onSettlementProposed = (payload: any, peer: any): void => {
+        void observation?.emit({
+          domain: 'settlement', kind: 'settlement.proposed', phase: 'proposed',
+          entity: { type: 'channel', id: payload?.channelId ?? 'unknown' },
+          evidence: { peerPublicKeyDigest: peer?.publicKeyDigest },
+          data: { payload },
+        });
       };
       const onVcMessage = async (peer: any, msg: any): Promise<void> => {
         if (!factories || !localBundle) return;
@@ -371,8 +452,18 @@ export function createOmniaHost(
           if (payload.factory) factories.set(payload.factory.factoryId, payload.factory);
           if (payload.kind === 'vc-open' && payload.channel) {
             channelStore?.set(payload.channel.channelId, payload.channel);
+            void observation?.emit({
+              domain: 'factory', kind: 'factory.vc_opened', phase: 'accepted',
+              entity: { type: 'channel', id: payload.channel.channelId },
+              data: { factoryId: payload.factory?.factoryId },
+            });
           } else if (payload.kind === 'vc-close' && payload.channelId) {
             channelStore?.delete(payload.channelId);
+            void observation?.emit({
+              domain: 'factory', kind: 'factory.vc_closed', phase: 'closed',
+              entity: { type: 'channel', id: payload.channelId },
+              data: { factoryId: payload.factory?.factoryId },
+            });
           }
           return;
         }
@@ -429,7 +520,22 @@ export function createOmniaHost(
         onVcMessage,
         onSpliceMessage,
         onPeerMessage,
+        onChannelAccepted,
+        onStateUpdated,
+        onSettlementProposed,
       });
+      const preparedPay = new Map();
+      const preparedSettle = new Map();
+      const preparedOpen = new Map();
+      const preparedSplice = new Map();
+      const preparedFactory = new Map();
+      const vtxoPools = new Map();
+      const vtxos = new Map();
+      const vtxoReceipts = new Map();
+      const preparedVtxoReceipts = new Map();
+      const pools = new Map();
+      const poolPositions = new Map();
+
       if (!controlServer) {
         const readOnly = !dependencies.signer || !dependencies.leaseProvider;
         if (readOnly) {
@@ -442,10 +548,27 @@ export function createOmniaHost(
           isReady: () => started,
           allowedOrigins: config.allowedOrigins,
           authToken: config.controlToken,
+          observe: observationStore ? {
+            store: observationStore,
+            bus: observationBus,
+            snapshot: async () => createObservationSnapshot({
+              networkId: config.networkId ?? dependencies.networkId ?? 'omnia',
+              sourceNodeId: config.sourceNodeId ?? dependencies.sourceNodeId ?? config.localPartyId ?? 'omnia-host',
+              streamId: `${config.sourceNodeId ?? dependencies.sourceNodeId ?? config.localPartyId ?? 'omnia-host'}:${config.networkId ?? dependencies.networkId ?? 'omnia'}`,
+              cursor: await observationStore!.head(),
+              channels: channelStore?.values(),
+              factories: factories?.values(),
+              vtxoPools: vtxoPools.values(),
+              vtxos: vtxos.values(),
+              pools: pools.values(),
+              operations: (dependencies.operationStoreForApi ?? operationStore) as unknown as { listByStatus?: (status: string) => unknown[] } | undefined,
+            }),
+          } : undefined,
           methods: dependencies.methods ?? createHostMethods({
             channels: channelStore,
             routing: routingProvider,
             operations: dependencies.operationStoreForApi ?? operationStore,
+            observe: observation,
             signer: dependencies.signer,
             leaseProvider: dependencies.leaseProvider,
             chainProvider: dependencies.chainProvider ?? chainAdapter,
@@ -460,17 +583,17 @@ export function createOmniaHost(
             spliceLeaseProvider,
             custodyMode: config.custodyMode ?? 'self',
             signerPort: dependencies.signerPort,
-            preparedPay: new Map(),
-            preparedSettle: new Map(),
-            preparedOpen: new Map(),
-            preparedSplice: new Map(),
-            preparedFactory: new Map(),
-            vtxoPools: new Map(),
-            vtxos: new Map(),
-            vtxoReceipts: new Map(),
-            preparedVtxoReceipts: new Map(),
-            pools: new Map(),
-            poolPositions: new Map(),
+            preparedPay,
+            preparedSettle,
+            preparedOpen,
+            preparedSplice,
+            preparedFactory,
+            vtxoPools,
+            vtxos,
+            vtxoReceipts,
+            preparedVtxoReceipts,
+            pools,
+            poolPositions,
             coordinator: !dependencies.signer && !config.readOnly,
             fundingSigner: config.fundingPubkey
               ? async (digest: Uint8Array) => {
@@ -521,6 +644,8 @@ export function createOmniaHost(
       if (ownedOperationStore) await ownedOperationStore.close();
       else if (injectedOperationStore) await injectedOperationStore.close();
       ownedOperationStore = undefined;
+      if (ownedObservationStore) await ownedObservationStore.close();
+      ownedObservationStore = undefined;
       ownedStore?.close();
       ownedStore = undefined;
       started = false;

@@ -23,6 +23,10 @@ The daemon configuration is read from environment variables:
 | `OMNIA_CHAIN_RPC` | `http://127.0.0.1:9005` | Totem node RPC endpoint |
 | `OMNIA_CHAIN_RPC_PASSWORD` | unset | Totem node RPC password |
 | `OMNIA_ANALYTICS_DB` | unset | Optional DuckDB analytics path |
+| `OMNIA_OBSERVE` | on | `0`/`false` disables the durable observation feed |
+| `OMNIA_OBSERVE_DB` | `<OMNIA_HOST_DB dir>/observe.sqlite` | Observation journal (via `@totemsdk/storage`) |
+| `OMNIA_NETWORK_ID` | `omnia` | Observation network id |
+| `OMNIA_SOURCE_NODE_ID` | `OMNIA_LOCAL_PARTY_ID` or `omnia-host` | Stable observation source id |
 | `OMNIA_RELAY` | native swarm | Optional relay URL |
 | `OMNIA_LOCAL_PUBKEY` | unset | Local Omnia identity |
 | `OMNIA_LOCAL_PARTY_ID` | unset | Local channel party ID required for mutations |
@@ -40,6 +44,31 @@ The daemon configuration is read from environment variables:
 | `OMNIA_P2P_HUB_TOKEN` | unset | Hub bearer token (use a per-client credential in production) |
 | `OMNIA_P2P_HUB_ORIGINS` | unset | Comma-separated browser Origin allowlist |
 | `OMNIA_P2P_HUB_TOPICS` | unset | Comma-separated topic prefixes (e.g. `omnia,dex.v1`) |
+
+### Observation feed (read-only)
+
+Every host runs a durable, replayable observation journal (RFC-0011 Amendment A)
+built on `@totemsdk/storage` (`createJournal` + `SqliteStore`) — **not** a direct
+SQLite/DuckDB write. It records domain transitions (channel open/update/HTLC/
+settle/close, factory/VC, splice, VTXO, pool, operation, transport) with identity,
+correlation, exact amounts, chain/evidence refs and a compact before/after diff.
+
+```text
+GET /observe/snapshot                 → current state + journal cursor
+GET /observe/events?after=<cursor>    → SSE replay + live tail (Last-Event-ID)
+```
+
+Both endpoints use the control-plane origin allowlist and `OMNIA_CONTROL_TOKEN`
+bearer auth. Events never include seeds, private keys, preimages or raw
+signatures (only hashes/indices). The emitter persists asynchronously and never
+blocks a mutation.
+
+**Persistence.** All host persistence — the channel store, the operation journal
+and the observation events — goes through `@totemsdk/storage`. The channel and
+operation stores use the synchronous `@totemsdk/storage/sqlite-sync` adapter
+(same codec/envelope as `SqliteStore`); legacy `omnia_channels` /
+`omnia_operations` tables are migrated automatically on open. `omnia-host` does
+not import `better-sqlite3` directly.
 
 ### Signing model
 

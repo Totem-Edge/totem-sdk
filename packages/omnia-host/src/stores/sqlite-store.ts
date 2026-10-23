@@ -1,5 +1,9 @@
-import Database from 'better-sqlite3';
+import { SyncSqliteStore } from '@totemsdk/storage/sqlite-sync';
 import { recoverChannel, serializeChannelSnapshot, type OmniaChannel, type ChannelSigner } from '@totemsdk/omnia';
+
+const PREFIX = 'omnia:channel:';
+const FORMAT_KEY = 'omnia:store:channel:format';
+const STORE_FORMAT = 1;
 
 function iterator<T>(values: T[]): MapIterator<T> {
   let index = 0;
@@ -17,12 +21,13 @@ function iterator<T>(values: T[]): MapIterator<T> {
   };
 }
 
-/** SQLite-backed Map facade accepted by @totemsdk/omnia's ChannelStore type. */
+/**
+ * Synchronous Map facade accepted by @totemsdk/omnia's ChannelStore type,
+ * persisted through `@totemsdk/storage` (`SyncSqliteStore`, same codec/envelope
+ * as `SqliteStore`). Legacy `omnia_channels` tables are migrated on open.
+ */
 export class SqliteChannelStore extends Map<string, OmniaChannel> {
-  private readonly db: Database.Database;
-  private readonly readStatement: Database.Statement;
-  private readonly writeStatement: Database.Statement;
-  private readonly deleteStatement: Database.Statement;
+  private readonly kv: SyncSqliteStore;
   /**
    * CAN-002: a recovered channel loses `localSigner` (it is not serializable),
    * so the router's `counterpartPkd()` cannot tell which party is local and
@@ -32,26 +37,22 @@ export class SqliteChannelStore extends Map<string, OmniaChannel> {
 
   constructor(dbPath: string) {
     super();
-    this.db = new Database(dbPath);
-    this.db.pragma('journal_mode = WAL');
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS omnia_channels (
-        channel_id TEXT PRIMARY KEY,
-        channel_json TEXT NOT NULL,
-        updated_at INTEGER NOT NULL
-      )
-    `);
-    this.readStatement = this.db.prepare(
-      'SELECT channel_json FROM omnia_channels WHERE channel_id = ?',
-    );
-    this.writeStatement = this.db.prepare(`
-      INSERT INTO omnia_channels (channel_id, channel_json, updated_at)
-      VALUES (?, ?, ?)
-      ON CONFLICT(channel_id) DO UPDATE SET
-        channel_json = excluded.channel_json,
-        updated_at = excluded.updated_at
-    `);
-    this.deleteStatement = this.db.prepare('DELETE FROM omnia_channels WHERE channel_id = ?');
+    this.kv = new SyncSqliteStore(dbPath);
+    const version = this.kv.get<number>(FORMAT_KEY);
+    if (version !== null && version !== STORE_FORMAT) {
+      this.kv.close();
+      throw new Error(
+        `Unsupported SqliteChannelStore format ${version} (this build supports ${STORE_FORMAT}) — refusing to open`,
+      );
+    }
+    if (version === null) {
+      // One-time migration from the pre-storage direct-SQLite table.
+      this.kv.migrateLegacyTable<string>('omnia_channels', (row) => ({
+        key: PREFIX + String(row['channel_id']),
+        value: String(row['channel_json']),
+      }));
+      this.kv.set(FORMAT_KEY, STORE_FORMAT);
+    }
   }
 
   /** Attach the host's signer so recovered channels carry it (CAN-002). */
@@ -63,45 +64,50 @@ export class SqliteChannelStore extends Map<string, OmniaChannel> {
     return this.localSigner ? { ...channel, localSigner: this.localSigner } : channel;
   }
 
+  private channelKeys(): string[] {
+    return this.kv.keys().filter((key) => key.startsWith(PREFIX));
+  }
+
+  private idOf(key: string): string {
+    return key.slice(PREFIX.length);
+  }
+
   override get(channelId: string): OmniaChannel | undefined {
-    const row = this.readStatement.get(channelId) as { channel_json: string } | undefined;
-    return row ? this.rebind(recoverChannel(row.channel_json)) : undefined;
+    const snapshot = this.kv.get<string>(PREFIX + channelId);
+    return snapshot ? this.rebind(recoverChannel(snapshot)) : undefined;
   }
 
   override set(channelId: string, channel: OmniaChannel): this {
-    this.writeStatement.run(channelId, serializeChannelSnapshot(channel), Date.now());
+    this.kv.set(PREFIX + channelId, serializeChannelSnapshot(channel));
     return this;
   }
 
   override has(channelId: string): boolean {
-    return this.readStatement.get(channelId) !== undefined;
+    return this.kv.has(PREFIX + channelId);
   }
 
   override delete(channelId: string): boolean {
-    return this.deleteStatement.run(channelId).changes > 0;
+    return this.kv.remove(PREFIX + channelId);
   }
 
   override clear(): void {
-    this.db.exec('DELETE FROM omnia_channels');
+    for (const key of this.channelKeys()) this.kv.remove(key);
   }
 
   override get size(): number {
-    const row = this.db.prepare('SELECT COUNT(*) AS count FROM omnia_channels').get() as { count: number };
-    return row.count;
+    return this.channelKeys().length;
   }
 
   override entries(): MapIterator<[string, OmniaChannel]> {
-    const rows = this.db.prepare(
-      'SELECT channel_id, channel_json FROM omnia_channels ORDER BY channel_id',
-    ).iterate() as Iterable<{ channel_id: string; channel_json: string }>;
-    return iterator(Array.from(rows, (row) => [
-      row.channel_id,
-      this.rebind(recoverChannel(row.channel_json)),
-    ]));
+    const rows = this.channelKeys().map((key) => {
+      const snapshot = this.kv.get<string>(key)!;
+      return [this.idOf(key), this.rebind(recoverChannel(snapshot))] as [string, OmniaChannel];
+    });
+    return iterator(rows);
   }
 
   override keys(): MapIterator<string> {
-    return iterator(Array.from(this.entries(), ([channelId]) => channelId));
+    return iterator(this.channelKeys().map((key) => this.idOf(key)));
   }
 
   override values(): MapIterator<OmniaChannel> {
@@ -117,6 +123,6 @@ export class SqliteChannelStore extends Map<string, OmniaChannel> {
   }
 
   close(): void {
-    this.db.close();
+    this.kv.close();
   }
 }

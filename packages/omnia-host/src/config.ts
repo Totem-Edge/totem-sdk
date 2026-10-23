@@ -9,6 +9,14 @@ export interface OmniaHostConfig {
   chainRpcUrl: string;
   chainRpcPassword?: string;
   analyticsDbPath?: string;
+  /** Durable observation journal DB (default: alongside dbPath). */
+  observeDbPath?: string;
+  /** Observation network id (multi-network deployments). */
+  networkId?: string;
+  /** Stable observation source id (default: localPartyId or "omnia-host"). */
+  sourceNodeId?: string;
+  /** Disable the observation feed entirely (OMNIA_OBSERVE=0). */
+  observeDisabled?: boolean;
   relay?: string;
   localPubkey?: string;
   localPartyId?: string;
@@ -148,13 +156,18 @@ export function loadConfigFromEnv(env: NodeJS.ProcessEnv = process.env): OmniaHo
     );
   }
 
+  const dbPath = env.OMNIA_HOST_DB?.trim() || path.join(dataRoot, 'omnia.sqlite');
   return {
     port: parsePort(env.OMNIA_HOST_PORT),
     host: env.OMNIA_HOST_BIND?.trim() || '127.0.0.1',
-    dbPath: env.OMNIA_HOST_DB?.trim() || path.join(dataRoot, 'omnia.sqlite'),
+    dbPath,
     chainRpcUrl: env.OMNIA_CHAIN_RPC?.trim() || 'http://127.0.0.1:9005',
     chainRpcPassword: optional(env.OMNIA_CHAIN_RPC_PASSWORD),
     analyticsDbPath: optional(env.OMNIA_ANALYTICS_DB),
+    observeDbPath: optional(env.OMNIA_OBSERVE_DB) ?? path.join(path.dirname(dbPath), 'observe.sqlite'),
+    networkId: optional(env.OMNIA_NETWORK_ID),
+    sourceNodeId: optional(env.OMNIA_SOURCE_NODE_ID),
+    observeDisabled: env.OMNIA_OBSERVE?.trim() === '0' || env.OMNIA_OBSERVE?.trim().toLowerCase() === 'false',
     relay: optional(env.OMNIA_RELAY),
     localPubkey: optional(env.OMNIA_LOCAL_PUBKEY),
     localPartyId: optional(env.OMNIA_LOCAL_PARTY_ID),

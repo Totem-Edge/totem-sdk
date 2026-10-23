@@ -117,6 +117,8 @@ import {
 import type { JsonRpcHandler } from './jsonrpc.js';
 import type { RoutingProvider } from '../router/routing-provider.js';
 import type { OperationStore } from '../stores/operations.js';
+import type { ObservationEmitter } from '../observe/emitter.js';
+import { channelTransitionHash, hashTransition } from '../observe/emitter.js';
 
 export type OperationStoreLike = Pick<OperationStore, 'get' | 'create' | 'transition' | 'listByStatus'>;
 
@@ -125,6 +127,8 @@ export interface HostApiContext {
   routing: RoutingProvider;
   refreshRouting?: () => void;
   operations?: OperationStoreLike;
+  /** Durable observation emitter (optional; behind OMNIA_OBSERVE). */
+  observe?: ObservationEmitter;
   signer?: ChannelSigner;
   leaseProvider?: WotsLeaseProvider;
   chainProvider?: ChainStateProvider;
@@ -330,14 +334,35 @@ async function withOperation<T>(
   if (existing && !['pending', 'failed'].includes(existing.status)) {
     throw new Error(`Operation ${id} is already ${existing.status}`);
   }
-  if (!existing) context.operations.create(id, params);
+  if (!existing) {
+    context.operations.create(id, params);
+    await context.observe?.emit({
+      domain: 'operation', kind: 'operation.created', phase: 'proposed',
+      entity: { type: 'operation', id }, operationId: id,
+      data: { request: params },
+    });
+  }
   context.operations.transition(id, existing?.status === 'failed' ? 'failed' : 'pending', 'executing');
+  await context.observe?.emit({
+    domain: 'operation', kind: 'operation.executing', phase: 'executing',
+    entity: { type: 'operation', id }, operationId: id,
+  });
   try {
     const result = await run();
     context.operations.transition(id, 'executing', 'committed', { result });
+    await context.observe?.emit({
+      domain: 'operation', kind: 'operation.committed', phase: 'committed',
+      entity: { type: 'operation', id }, operationId: id,
+      data: { result },
+    });
     return result;
   } catch (error) {
     context.operations.transition(id, 'executing', 'failed', { error: error instanceof Error ? error.message : String(error) });
+    await context.observe?.emit({
+      domain: 'operation', kind: 'operation.failed', phase: 'failed',
+      entity: { type: 'operation', id }, operationId: id,
+      data: { error: error instanceof Error ? error.message : String(error) },
+    });
     throw error;
   }
 }
@@ -1911,6 +1936,48 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
     methods.set(alias, handler);
   };
 
+  const observeMethods = (map: Map<string, JsonRpcHandler>): Map<string, JsonRpcHandler> => {
+    const emitter = context.observe;
+    if (!emitter) return map;
+    const observed = new Map<string, JsonRpcHandler>();
+    const isQuiet = (name: string): boolean =>
+      name.startsWith('totem_omniaGet') || name === 'totem_omniaWhoami' ||
+      name === 'totem_omniaGetManifest';
+    for (const [name, handler] of map) {
+      observed.set(name, async (params?: unknown) => {
+        if (isQuiet(name)) return handler(params);
+        const startedAt = Date.now();
+        const raw = paramsObject(params);
+        const opId = typeof raw.operationId === 'string' ? raw.operationId : undefined;
+        void emitter.emit({
+          domain: 'command', kind: 'command.invoked', phase: 'observed',
+          entity: { type: 'command', id: name },
+          ...(opId ? { operationId: opId } : {}),
+          data: { method: name, params },
+        });
+        try {
+          const result = await handler(params);
+          void emitter.emit({
+            domain: 'command', kind: 'command.completed', phase: 'committed',
+            entity: { type: 'command', id: name },
+            ...(opId ? { operationId: opId } : {}),
+            data: { method: name, durationMs: Date.now() - startedAt, result },
+          });
+          return result;
+        } catch (error) {
+          void emitter.emit({
+            domain: 'command', kind: 'command.failed', phase: 'failed',
+            entity: { type: 'command', id: name },
+            ...(opId ? { operationId: opId } : {}),
+            data: { method: name, durationMs: Date.now() - startedAt, error: error instanceof Error ? error.message : String(error) },
+          });
+          throw error;
+        }
+      });
+    }
+    return observed;
+  };
+
   const getChannels: JsonRpcHandler = (raw) => {
     const params = paramsObject(raw);
     const tokenId = typeof params.tokenId === 'string' ? params.tokenId : undefined;
@@ -1932,12 +1999,24 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
   };
   register('totem_omniaGetChannelState', getChannelState, 'omnia/getChannelState');
 
+  const normalizeRouteNode = (value: string): string => {
+    const lower = value.toLowerCase();
+    for (const channel of context.channels.values()) {
+      for (const party of channel.parties) {
+        if (party.partyId === value || party.publicKeyDigest.toLowerCase() === lower) {
+          return party.publicKeyDigest;
+        }
+      }
+    }
+    return value;
+  };
+
   const getRoute: JsonRpcHandler = async (raw) => {
     context.refreshRouting?.();
     const params = paramsObject(raw);
     const route = await context.routing.getRoute({
-      from: requiredString(params, 'fromPartyId'),
-      to: requiredString(params, 'toPartyId'),
+      from: normalizeRouteNode(requiredString(params, 'fromPartyId')),
+      to: normalizeRouteNode(requiredString(params, 'toPartyId')),
       amount: requiredBigInt(params, 'amount'),
       tokenId: requiredString(params, 'tokenId'),
       targetTokenId: typeof params.targetTokenId === 'string' ? params.targetTokenId : undefined,
@@ -1973,6 +2052,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       address: context.identity.address,
       publicKeyDigest: context.identity.publicKeyDigest,
       identityId: context.identity.identityId,
+      settlementAddress: context.localParticipant?.settlementAddress,
       delegation: context.identity.delegation,
       custodyMode: context.custodyMode ?? 'self',
       p2pHubUrl: context.p2pHubUrl ?? null,
@@ -1994,10 +2074,10 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
   // the non-signing prepare/submit flow; wallets supply signatures and indices.
   if (context.coordinator && !context.readOnly) {
     registerPreparedPayMethods(methods, context);
-    return methods;
+    return observeMethods(methods);
   }
   if (context.readOnly || !context.signer || !context.leaseProvider) {
-    return methods;
+    return observeMethods(methods);
   }
 
   const openChannel: JsonRpcHandler = async (raw) => {
@@ -2106,6 +2186,17 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
         );
         acknowledged = reply?.type === 'ACK';
       }
+      await context.observe?.emit({
+        domain: 'channel', kind: 'channel.opened', phase: 'accepted',
+        entity: { type: 'channel', id: created.channel.channelId },
+        parties: { local: context.localParticipant?.partyId, remote: remotePartyId },
+        token: { tokenId: created.channel.tokenId, scale: created.channel.tokenScale ?? 0 },
+        amounts: { capacity: created.channel.totalValue.toString(), balances: balancesJson(created.channel) },
+        chain: { fundingCoinId: created.channel.fundingCoinId, txpowId: created.channel.fundingTxId },
+        transitionHash: channelTransitionHash(created.channel),
+        ...(typeof params.operationId === 'string' ? { operationId: params.operationId } : {}),
+        data: { acknowledged },
+      });
       return { success: true, channelId: created.channel.channelId, fundingTxId: created.channel.fundingTxId, acknowledged };
     });
     return result;
@@ -2124,6 +2215,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       const remotePartyId = channel.parties.find((party) => party.partyId !== localPartyId)?.partyId;
       if (!remotePartyId) throw new Error('Channel counterparty not found');
       if (amount <= 0n || (channel.balances[localPartyId] ?? 0n) < amount) throw new Error('Insufficient channel balance');
+      const beforeBalances = balancesJson(channel);
       const result = await updateState(channel, {
         newBalances: {
           ...channel.balances,
@@ -2133,6 +2225,17 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       }, context.leaseProvider, context.signer, context.signerPort);
       if (result.error) throw new Error(result.error);
       context.channels.set(channelId, result.channel);
+      await context.observe?.emit({
+        domain: 'channel', kind: 'channel.updated', phase: 'committed',
+        entity: { type: 'channel', id: channelId },
+        parties: { local: localPartyId, remote: remotePartyId },
+        token: { tokenId: channel.tokenId, scale: channel.tokenScale ?? 0 },
+        before: { balances: beforeBalances, sequence: channel.currentSequence },
+        after: { balances: balancesJson(result.channel), sequence: result.channel.currentSequence },
+        amounts: { amountAtoms: amount.toString(), balances: balancesJson(result.channel) },
+        transitionHash: channelTransitionHash(result.channel),
+        ...(typeof params.operationId === 'string' ? { operationId: params.operationId } : {}),
+      });
       const remoteParty = channel.parties.find((party) => party.partyId === remotePartyId)!;
       const peer = context.swarm ? await context.swarm.connectToPeer(
         remoteParty.publicKeyDigest,
@@ -2170,6 +2273,14 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       }, context.leaseProvider!, context.signer);
       if (added.error) throw new Error(added.error);
       context.channels.set(channelId, added.channel);
+      await context.observe?.emit({
+        domain: 'payment', kind: 'htlc.added', phase: 'committed',
+        entity: { type: 'channel', id: channelId },
+        amounts: { amountAtoms: requiredBigInt(params, 'amount').toString(), balances: balancesJson(added.channel) },
+        transitionHash: channelTransitionHash(added.channel),
+        ...(typeof params.operationId === 'string' ? { operationId: params.operationId } : {}),
+        data: { htlcId: added.htlcId, hashlock: params.hashlock, timeoutBlock: String(params.timeoutBlock), direction: params.direction },
+      });
       await sendHtlcState(added.channel, added.partialState);
       return { success: true, channelId, htlcId: added.htlcId, sequence: added.channel.currentSequence };
     });
@@ -2187,6 +2298,14 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       const fulfilled = await fulfillHTLC(channel, requiredString(params, 'htlcId'), requiredString(params, 'preimage'), context.leaseProvider!, context.signer);
       if (fulfilled.error) throw new Error(fulfilled.error);
       context.channels.set(channelId, fulfilled.channel);
+      await context.observe?.emit({
+        domain: 'payment', kind: 'htlc.fulfilled', phase: 'committed',
+        entity: { type: 'channel', id: channelId },
+        amounts: { balances: balancesJson(fulfilled.channel) },
+        transitionHash: channelTransitionHash(fulfilled.channel),
+        ...(typeof params.operationId === 'string' ? { operationId: params.operationId } : {}),
+        data: { htlcId: params.htlcId },
+      });
       await sendHtlcState(fulfilled.channel, fulfilled.partialState);
       return { success: true, channelId, sequence: fulfilled.channel.currentSequence };
     });
@@ -2203,6 +2322,14 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       const timedOut = await timeoutHTLC(channel, requiredString(params, 'htlcId'), context.leaseProvider!, context.chainProvider!, context.signer);
       if (timedOut.error) throw new Error(timedOut.error);
       context.channels.set(channelId, timedOut.channel);
+      await context.observe?.emit({
+        domain: 'payment', kind: 'htlc.timed_out', phase: 'recovered',
+        entity: { type: 'channel', id: channelId },
+        amounts: { balances: balancesJson(timedOut.channel) },
+        transitionHash: channelTransitionHash(timedOut.channel),
+        ...(typeof params.operationId === 'string' ? { operationId: params.operationId } : {}),
+        data: { htlcId: params.htlcId },
+      });
       await sendHtlcState(timedOut.channel, timedOut.partialState);
       return { success: true, channelId, sequence: timedOut.channel.currentSequence };
     });
@@ -2331,6 +2458,14 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
         counterpartySignatures,
       });
       context.channels.set(channelId, markChannelClosed(closing));
+      await context.observe?.emit({
+        domain: 'settlement', kind: 'settlement.committed', phase: 'confirmed',
+        entity: { type: 'channel', id: channelId },
+        chain: { txpowId: settlement.settlementPayload.txpowId },
+        amounts: { balances: Object.fromEntries(Object.entries(settlement.settlementPayload.balances).map(([k, v]) => [k, v.toString()])) },
+        transitionHash: hashTransition(['settlement', channelId, settlement.settlementPayload.txpowId]),
+        ...(typeof params.operationId === 'string' ? { operationId: params.operationId } : {}),
+      });
       return { success: true, channelId, settlementTxId: settlement.settlementPayload.txpowId, finalBalances: Object.fromEntries(Object.entries(settlement.settlementPayload.balances).map(([key, value]) => [key, value.toString()])) };
     });
   };
@@ -2343,6 +2478,12 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       const channel = context.channels.get(channelId);
       if (!channel) throw new Error(`Channel ${channelId} not found`);
       context.channels.set(channelId, markChannelClosed(channel));
+      await context.observe?.emit({
+        domain: 'channel', kind: 'channel.closed', phase: 'closed',
+        entity: { type: 'channel', id: channelId },
+        transitionHash: channelTransitionHash(markChannelClosed(channel)),
+        ...(typeof params.operationId === 'string' ? { operationId: params.operationId } : {}),
+      });
       return { success: true, channelId };
     });
   };
@@ -2490,6 +2631,14 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
         factory = accepted;
       }
       context.factories!.set(factory.factoryId, factory);
+      await context.observe?.emit({
+        domain: 'factory', kind: 'factory.opened', phase: 'accepted',
+        entity: { type: 'factory', id: factory.factoryId },
+        amounts: { balances: Object.fromEntries(Object.entries(factory.allocations ?? {}).map(([k, v]) => [k, v.toString()])) },
+        transitionHash: hashTransition(['factory', factory.factoryId, factory.status]),
+        ...(typeof params.operationId === 'string' ? { operationId: params.operationId } : {}),
+        data: { participants: factory.participants },
+      });
       return { success: true, factoryId: factory.factoryId, status: factory.status };
     });
   };
@@ -2549,6 +2698,14 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       }
       context.factories!.set(factoryId, result.factory);
       context.channels.set(result.channel.channelId, result.channel);
+      await context.observe?.emit({
+        domain: 'factory', kind: 'factory.vc_opened', phase: 'accepted',
+        entity: { type: 'channel', id: result.channel.channelId },
+        amounts: { capacity: result.channel.totalValue.toString(), balances: balancesJson(result.channel) },
+        transitionHash: channelTransitionHash(result.channel),
+        ...(typeof params.operationId === 'string' ? { operationId: params.operationId } : {}),
+        data: { factoryId },
+      });
       return { success: true, channelId: result.channel.channelId, factoryId };
     });
   };
@@ -2606,6 +2763,12 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       }
       context.factories!.set(factoryId, updated);
       context.channels.delete(channelId);
+      await context.observe?.emit({
+        domain: 'factory', kind: 'factory.vc_closed', phase: 'closed',
+        entity: { type: 'channel', id: channelId },
+        ...(typeof params.operationId === 'string' ? { operationId: params.operationId } : {}),
+        data: { factoryId, allocations: Object.fromEntries(Object.entries(updated.allocations ?? {}).map(([k, v]) => [k, v.toString()])) },
+      });
       return {
         success: true,
         factoryId,
@@ -2665,6 +2828,13 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
         payload = await closeFactory(factory, context.factoryBundles!, context.chainProvider, { coinProof });
       }
       context.factories!.set(factoryId, { ...factory, status: 'closed' });
+      await context.observe?.emit({
+        domain: 'factory', kind: 'factory.closed', phase: 'closed',
+        entity: { type: 'factory', id: factoryId },
+        chain: { txpowId: payload.txpowId },
+        amounts: { balances: Object.fromEntries(Object.entries(payload.finalAllocations as Record<string, bigint>).map(([k, v]) => [k, v.toString()])) },
+        ...(typeof params.operationId === 'string' ? { operationId: params.operationId } : {}),
+      });
       const finalAllocations = payload.finalAllocations as Record<string, bigint>;
       return { success: true, factoryId, settlementTxId: payload.txpowId, finalAllocations: Object.fromEntries(Object.entries(finalAllocations).map(([key, value]) => [key, value.toString()])) };
     });
@@ -2711,6 +2881,15 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
         proposerLeaseProvider: provider.wotsLease,
       });
       context.channels.set(channelId, spliced as unknown as OmniaChannel);
+      await context.observe?.emit({
+        domain: 'splice', kind: 'splice.completed', phase: 'confirmed',
+        entity: { type: 'channel', id: channelId },
+        amounts: { capacity: spliced.totalValue.toString(), balances: Object.fromEntries(Object.entries(spliced.balances).map(([k, v]) => [k, v.toString()])) },
+        chain: { fundingCoinId: spliced.spliceFundingCoinId, txpowId: spliced.spliceFundingTxId },
+        transitionHash: hashTransition(['splice', channelId, spliced.spliceFundingCoinId, spliced.spliceFundingTxId]),
+        ...(typeof params.operationId === 'string' ? { operationId: params.operationId } : {}),
+        data: { spliceId: proposal.spliceId, spliceType: spliced.spliceType },
+      });
       await peer.sendMessage({
         type: 'SPLICE_FINALIZED',
         channelId,
@@ -2805,6 +2984,18 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
             leaseProviders,
           );
       if (!result.success) throw new Error(result.error ?? 'multi-hop payment failed');
+      await context.observe?.emit({
+        domain: 'payment', kind: 'payment.completed', phase: 'committed',
+        entity: { type: 'payment', id: typeof params.operationId === 'string' ? params.operationId : parsedRequest.hashlock },
+        ...(typeof params.operationId === 'string' ? { operationId: params.operationId } : {}),
+        amounts: { amountAtoms: parsedRequest.amount.toString() },
+        token: { tokenId: parsedRequest.tokenId, scale: 0 },
+        transitionHash: hashTransition(['payment', parsedRequest.hashlock, result.settledHops.join(',')]),
+        data: {
+          settledHops: result.settledHops,
+          hops: parsedRoute.hops.map((h) => ({ channelId: (h as { channelId?: string }).channelId, amount: String((h as { amount?: unknown }).amount) })),
+        },
+      });
       return {
         success: true,
         preimage: result.preimage,
@@ -2814,5 +3005,5 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
   };
   register('totem_omniaPayMultiHop', payMultiHop, 'omnia/payMultiHop');
 
-  return methods;
+  return observeMethods(methods);
 }

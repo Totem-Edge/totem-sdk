@@ -31,3 +31,6 @@ export { DisabledAnalyticsStore, DuckDbAnalyticsStore, initializeDuckDb } from '
 export type { AnalyticsEvent, AnalyticsStore, DuckDbConnection } from './stores/analytics.js';
 export { createLocalSignerPort, createPolicySignerPort } from './signer-port.js';
 export type { SignerPolicy } from './signer-port.js';
+
+// Durable, replayable observation feed (RFC-0011 Amendment A).
+export * from './observe/index.js';

@@ -12,6 +12,11 @@ module.exports = {
         baseUrl: '.',
         paths: {
           '@totemsdk/storage/sqlite': ['../storage/src/adapters/sqlite-store.ts'],
+          '@totemsdk/storage/sqlite-sync': ['../storage/src/adapters/sync-sqlite-store.ts'],
+          '@totemsdk/storage/memory': ['../storage/src/adapters/memory-store.ts'],
+          '@totemsdk/storage/journal': ['../storage/src/journal.ts'],
+          '@totemsdk/storage/snapshot': ['../storage/src/snapshot.ts'],
+          '@totemsdk/storage/codec': ['../storage/src/codec.ts'],
           '@totemsdk/storage': ['../storage/src/index.ts'],
           '@totemsdk/storage/fs': ['../storage/src/adapters/file-store.ts'],
         },
@@ -34,6 +39,11 @@ module.exports = {
     '^@totemsdk/storage$': '<rootDir>/../storage/src/index.ts',
     '^@totemsdk/storage/fs$': '<rootDir>/../storage/src/adapters/file-store.ts',
     '^@totemsdk/storage/sqlite$': '<rootDir>/../storage/src/adapters/sqlite-store.ts',
+    '^@totemsdk/storage/sqlite-sync$': '<rootDir>/../storage/src/adapters/sync-sqlite-store.ts',
+    '^@totemsdk/storage/memory$': '<rootDir>/../storage/src/adapters/memory-store.ts',
+    '^@totemsdk/storage/journal$': '<rootDir>/../storage/src/journal.ts',
+    '^@totemsdk/storage/snapshot$': '<rootDir>/../storage/src/snapshot.ts',
+    '^@totemsdk/storage/codec$': '<rootDir>/../storage/src/codec.ts',
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
 };
