@@ -188,6 +188,7 @@ The complete generated index is [rfc/README.md](rfc/README.md). The table below 
 | [rfc/RFC-063-PRODUCTION-READINESS-AND-MATURITY-PROMOTION.md](rfc/RFC-063-PRODUCTION-READINESS-AND-MATURITY-PROMOTION.md) | Production readiness and maturity promotion — production core, evidence gates, per-package maturity, and Phase 0 truth work (draft; Phase 0 authorised) |
 | [TIER1-EVIDENCE-PLAN.md](TIER1-EVIDENCE-PLAN.md) | Tier 1 production-candidate evidence plan — per-package blockers, exit gates and dist-tag targets |
 | [DIST-TAG-MIGRATION.md](DIST-TAG-MIGRATION.md) | npm dist-tag migration — channel tags, the npm-required `latest` policy, release-gate checks and rollback |
+| [RELEASE-PROCESS.md](RELEASE-PROCESS.md) | Release checklist — versioning, promotion gates, changelog, provenance, dist-tags, release notes and rollback |
 | [rfc/RFC-064-OMNIA-OFFCHAIN-EXTENSIONS-PRINCIPLES-AND-REGISTRY.md](rfc/RFC-064-OMNIA-OFFCHAIN-EXTENSIONS-PRINCIPLES-AND-REGISTRY.md) | Omnia off-chain extensions — shared safety contract, capability registry, measurable gates and custody boundaries (proposed; no implementation authorised) |
 | [rfc/RFC-065-OMNIA-MULTIPART-PAYMENTS.md](rfc/RFC-065-OMNIA-MULTIPART-PAYMENTS.md) | Omnia multipart payments — basic MPP, durable payment sets, reservations and recovery (proposed) |
 | [rfc/RFC-066-OMNIA-ATOMIC-REBALANCING.md](rfc/RFC-066-OMNIA-ATOMIC-REBALANCING.md) | Omnia atomic rebalancing — bounded, fully collateralised cycles and untrusted coordination (proposed) |
