@@ -1,6 +1,12 @@
 import { OmniaVtxo, OmniaVtxoPool, OmniaVtxoStore, VtxoId } from './types.js';
 import { VtxoStatusError } from './errors.js';
 
+const CONSUMED_STATUSES = new Set(['spent', 'transferred', 'split', 'merged', 'refreshed', 'exited']);
+
+function isConsumed(status: OmniaVtxo['status']): boolean {
+  return CONSUMED_STATUSES.has(status);
+}
+
 export class MemoryOmniaVtxoStore implements OmniaVtxoStore {
   private readonly pools: Map<string, OmniaVtxoPool> = new Map();
   private readonly vtxos: Map<VtxoId, OmniaVtxo> = new Map();
@@ -14,6 +20,13 @@ export class MemoryOmniaVtxoStore implements OmniaVtxoStore {
   }
 
   async saveVtxo(vtxo: OmniaVtxo): Promise<void> {
+    const existing = this.vtxos.get(vtxo.vtxoId);
+    if (existing && isConsumed(existing.status) && !isConsumed(vtxo.status)) {
+      throw new VtxoStatusError(
+        `Cannot resurrect VTXO ${vtxo.vtxoId}: status is '${existing.status}'`,
+        existing.status,
+      );
+    }
     this.vtxos.set(vtxo.vtxoId, vtxo);
   }
 

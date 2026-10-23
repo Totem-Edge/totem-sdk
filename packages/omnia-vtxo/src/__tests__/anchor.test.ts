@@ -99,6 +99,18 @@ describe('anchorBatch (RFC-038 V1)', () => {
     expect(result.witnessHex).toBeTruthy();
   });
 
+  it('assembles an N-of-N operator + holder witness', async () => {
+    const signatures = [new Uint8Array(1088).fill(1), new Uint8Array(1088).fill(2)];
+    const result = await anchorBatch(params(), {
+      signatures,
+      coinProofs: [new Uint8Array([1, 2, 3])],
+      scriptProofs: [new Uint8Array([4, 5, 6])],
+    });
+    const witness = Buffer.from(result.witnessHex, 'hex');
+    expect(witness.length).toBeGreaterThan(signatures[0].length);
+    expect(result.witnessHex).not.toBe(Buffer.from(signatures[0]).toString('hex'));
+  });
+
   it('signs, mines and broadcasts when a chain provider is supplied', async () => {
     const broadcastTxPoW = jest.fn(async () => ({ success: true }));
     const result = await anchorBatch(params(), {

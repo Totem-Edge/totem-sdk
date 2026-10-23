@@ -62,14 +62,17 @@ export function buildExitTransactionDraft(params: ExitTxParams): OmniaTxDraft {
   }];
 
   const carriesState = params.amount > share;
+  const remaining = params.shares.map((s, i) => (i === params.holderIndex ? 0n : s));
+  const exitState = carriesState
+    ? poolStateVariables(params.root, params.epoch, params.exitBlock, remaining)
+    : poolStateVariables(params.root, params.epoch, params.exitBlock, params.shares.map(() => 0n));
   if (carriesState) {
-    const remaining = params.shares.map((s, i) => (i === params.holderIndex ? 0n : s));
     outputs.push({
       address: params.fundingAddress,
       amount: params.amount - share,
       tokenId: params.vtxo.tokenId,
       storeState: true,
-      stateVariables: poolStateVariables(params.root, params.epoch, params.exitBlock, remaining),
+      stateVariables: exitState,
     });
   }
 
@@ -84,7 +87,7 @@ export function buildExitTransactionDraft(params: ExitTxParams): OmniaTxDraft {
     }],
     outputs,
     storeState: carriesState,
-    stateVariables: [],
+    stateVariables: exitState,
   };
 }
 
@@ -135,13 +138,24 @@ export async function buildExitTransaction(params: ExitTxParams, deps: ExitTxDep
   };
 
   if (deps.chainProvider) {
-    const mine = deps.mine ?? ((txBody, difficulty) => mineTxPoW(txBody, difficulty));
     const draftBytes = omniaDraftToMinimaBytes(draft);
-    const txBody = serializeTxBody(draftBytes, signature);
-    const mined = await mine(txBody, TX_POW_MIN_DIFFICULTY);
-    const fullTxPoW = concatBytes(concatBytes(mined.minedHeaderBytes, new Uint8Array([0x01])), txBody);
-    await deps.chainProvider.broadcastTxPoW(Buffer.from(fullTxPoW).toString('hex'));
-    result.txpowId = Buffer.from(mined.txpowId).toString('hex');
+    if (typeof deps.chainProvider.submitTransaction === 'function') {
+      const submitted = await deps.chainProvider.submitTransaction(draftBytes, signature);
+      if (submitted?.success === false) {
+        throw new Error(`exitSubmit failed: ${submitted.message ?? 'unknown error'}`);
+      }
+      result.txpowId = submitted?.txpowid;
+    } else {
+      const mine = deps.mine ?? ((txBody, difficulty) => mineTxPoW(txBody, difficulty));
+      const txBody = serializeTxBody(draftBytes, signature);
+      const mined = await mine(txBody, TX_POW_MIN_DIFFICULTY);
+      const fullTxPoW = concatBytes(concatBytes(mined.minedHeaderBytes, new Uint8Array([0x01])), txBody);
+      const broadcast = await deps.chainProvider.broadcastTxPoW(Buffer.from(fullTxPoW).toString('hex'));
+      if (broadcast?.success === false) {
+        throw new Error(`exitBroadcast failed: ${broadcast.message ?? 'unknown error'}`);
+      }
+      result.txpowId = broadcast?.txpowid ?? Buffer.from(mined.txpowId).toString('hex');
+    }
   }
 
   return result;

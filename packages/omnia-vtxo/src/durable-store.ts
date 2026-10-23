@@ -23,6 +23,10 @@ import type {
 import { VtxoStatusError } from './errors.js';
 
 const DEFAULT_NAMESPACE = 'totem_omnia_vtxo:v1:';
+const CONSUMED_STATUSES = new Set(['spent', 'transferred', 'split', 'merged', 'refreshed', 'exited']);
+function isConsumed(status: OmniaVtxo['status']): boolean {
+  return CONSUMED_STATUSES.has(status);
+}
 
 export interface OmniaVtxoRegistryState {
   pools: Record<string, OmniaVtxoPool>;
@@ -92,6 +96,13 @@ export function createDurableOmniaVtxoStore(
 
     async saveVtxo(vtxo: OmniaVtxo): Promise<void> {
       await mutate((state) => {
+        const existing = state.vtxos[vtxo.vtxoId];
+        if (existing && isConsumed(existing.status) && !isConsumed(vtxo.status)) {
+          throw new VtxoStatusError(
+            `Cannot resurrect VTXO ${vtxo.vtxoId}: status is '${existing.status}'`,
+            existing.status,
+          );
+        }
         const vtxos = { ...state.vtxos, [vtxo.vtxoId]: vtxo };
         return { ...state, vtxos };
       });

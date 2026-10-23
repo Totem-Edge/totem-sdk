@@ -10,6 +10,7 @@
 
 import {
   computeOmniaTxDigest,
+  serializeOmniaWitness,
   omniaDraftToMinimaBytes,
   type OmniaTxDraft,
   type StateValue,
@@ -103,8 +104,18 @@ interface MinedTxPow {
 }
 
 export interface BatchAnchorDeps {
-  /** Sign the batch-anchor tx digest (e.g. via a leased WOTS signer). */
-  signDigest: (digest: Uint8Array) => Promise<Uint8Array>;
+  /** Sign the batch-anchor tx digest (single-signer legacy path). */
+  signDigest?: (digest: Uint8Array) => Promise<Uint8Array>;
+  /**
+   * Complete N-of-N witness signatures in pool MULTISIG order:
+   * operator first, then holders in `BatchAnchorParams.holders` order.
+   * When supplied, `signDigest` is not called.
+   */
+  signatures?: Uint8Array[];
+  /** Serialized Minima CoinProof(s) for the pool input. */
+  coinProofs?: Uint8Array[];
+  /** Serialized Minima ScriptProof(s) for the pool input script. */
+  scriptProofs?: Uint8Array[];
   chainProvider?: ChainStateProvider;
   /** PoW miner (defaults to `@totemsdk/txpow`'s mineTxPoW). */
   mine?: (txBody: Uint8Array, difficulty: Uint8Array) => Promise<MinedTxPow>;
@@ -125,24 +136,45 @@ export async function anchorBatch(
 ): Promise<BatchAnchorResult> {
   const draft = buildBatchAnchorDraft(params);
   const digest = batchAnchorDigest(draft);
-  const signature = await deps.signDigest(digest);
+  const signatures = deps.signatures ?? (deps.signDigest ? [await deps.signDigest(digest)] : undefined);
+  if (!signatures || signatures.length === 0) {
+    throw new Error('anchorBatch requires signDigest or signatures');
+  }
+  const witness = serializeOmniaWitness({
+    signatures,
+    coinProofs: deps.coinProofs ?? [],
+    scriptProofs: deps.scriptProofs ?? [],
+  });
 
   const result: BatchAnchorResult = {
     root: params.root,
     epoch: params.epoch,
     digest: Buffer.from(digest).toString('hex'),
-    witnessHex: Buffer.from(signature).toString('hex'),
+    witnessHex: Buffer.from(witness).toString('hex'),
   };
 
   if (deps.chainProvider) {
-    const mine = deps.mine ?? ((txBody, difficulty) => mineTxPoW(txBody, difficulty));
     const draftBytes = omniaDraftToMinimaBytes(draft);
-    const txnDifficulty = await resolveTxPowTarget(deps.chainProvider);
-    const txBody = serializeTxBody(draftBytes, signature, { txnDifficulty });
-    const mined = await mine(txBody, txnDifficulty);
-    const fullTxPoW = concatBytes(concatBytes(mined.minedHeaderBytes, new Uint8Array([0x01])), txBody);
-    await deps.chainProvider.broadcastTxPoW(Buffer.from(fullTxPoW).toString('hex'));
-    result.txpowId = Buffer.from(mined.txpowId).toString('hex');
+    // Prefer the node's explicit-mining path. A pre-mined TxPoW posted through
+    // sendtransaction has a placeholder header and is not reliably promoted.
+    if (typeof deps.chainProvider.submitTransaction === 'function') {
+      const submitted = await deps.chainProvider.submitTransaction(draftBytes, witness);
+      if (submitted?.success === false) {
+        throw new Error(`anchorSubmit failed: ${submitted.message ?? 'unknown error'}`);
+      }
+      result.txpowId = submitted?.txpowid;
+    } else {
+      const mine = deps.mine ?? ((txBody, difficulty) => mineTxPoW(txBody, difficulty));
+      const txnDifficulty = await resolveTxPowTarget(deps.chainProvider);
+      const txBody = serializeTxBody(draftBytes, witness, { txnDifficulty });
+      const mined = await mine(txBody, txnDifficulty);
+      const fullTxPoW = concatBytes(concatBytes(mined.minedHeaderBytes, new Uint8Array([0x01])), txBody);
+      const broadcast = await deps.chainProvider.broadcastTxPoW(Buffer.from(fullTxPoW).toString('hex'));
+      if (broadcast?.success === false) {
+        throw new Error(`anchorBroadcast failed: ${broadcast.message ?? 'unknown error'}`);
+      }
+      result.txpowId = broadcast?.txpowid ?? Buffer.from(mined.txpowId).toString('hex');
+    }
   }
 
   return result;
