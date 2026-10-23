@@ -900,6 +900,7 @@ export interface TotemProvider {
   request(args: TotemSendComplexRequest & { params: { mode?: 'submit' } }): Promise<TotemSendComplexSubmitResponse>;
   request(args: TotemSendComplexRequest): Promise<TotemSendComplexBuildResponse | TotemSendComplexSubmitResponse>;
   request(args: TotemSignDataRequest): Promise<TotemSignDataResponse>;
+  request(args: TotemSignMessageRequest): Promise<TotemSignMessageResponse>;
   request(args: TotemBroadcastHexRequest): Promise<TotemBroadcastHexResponse>;
   request(args: TotemGrantTxPermissionRequest): Promise<TotemGrantTxPermissionResponse>;
   request(args: TotemRevokeTxPermissionRequest): Promise<TotemRevokeTxPermissionResponse>;
@@ -1387,6 +1388,34 @@ export interface TotemSignDataErrorResponse {
 export type TotemSignDataResponse =
   | TotemSignDataSuccessResponse
   | TotemSignDataErrorResponse;
+
+export interface TotemSignMessageRequest {
+  method: 'TOTEM_SIGN_MESSAGE';
+  params: {
+    origin: string;
+    message: string;
+  };
+}
+
+export interface TotemSignMessageSuccessResponse {
+  success: true;
+  address: string;
+  message: string;
+  messageHash: string;
+  signature: string;
+  publicKey: string;
+  scheme: string;
+}
+
+export interface TotemSignMessageErrorResponse {
+  success: false;
+  error: string;
+  errorCode?: string;
+}
+
+export type TotemSignMessageResponse =
+  | TotemSignMessageSuccessResponse
+  | TotemSignMessageErrorResponse;
 
 export interface TotemBroadcastHexRequest {
   method: 'TOTEM_BROADCAST_HEX';

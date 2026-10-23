@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { BrutalistApp } from "./BrutalistApp";
 import { DebugLogProvider } from "../contexts/DebugLogContext";
 import { isDesignerMode } from "../../config/constants";
+import { ensureCoreWasm } from "../../core/wasm-init";
 import { applyTheme, DEFAULT_THEME, THEME_STORAGE_KEY, themes, ThemeId } from "../theme/ThemeRegistry";
 
 // Import the Axia Brutalist Design System tokens
@@ -49,14 +50,16 @@ console.log('[Totem Brutalist] Initializing React app...');
 // Wait for DOM to be ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
-    initApp();
+    void initApp();
   });
 } else {
-  initApp();
+  void initApp();
 }
 
-function initApp() {
+async function initApp() {
   try {
+    await ensureCoreWasm();
+
     const rootElement = document.getElementById("root");
     if (!rootElement) {
       console.error('[Totem Brutalist] Root element not found!');

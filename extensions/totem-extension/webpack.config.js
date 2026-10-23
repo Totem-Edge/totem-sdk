@@ -159,6 +159,10 @@ const sharedConfig = {
     extensions: ['.ts', '.tsx', '.js', '.jsx'],
     alias: {
       '@': path.resolve(__dirname, './src'),
+      // The extension initializes the async web WASM build via ensureCoreWasm().
+      // Resolve the bare core-wasm import to the same pkg-web module so sync
+      // wrappers in @totemsdk/core share that initialized instance.
+      '@totemsdk/core-wasm$': require.resolve('@totemsdk/core-wasm/web'),
     },
     fallback: {
       "buffer": require.resolve("buffer/"),
@@ -205,6 +209,14 @@ const backgroundConfig = {
     new BlockDevImportsPlugin(),
     ...ignoreNodeSchemePlugins(),
     ...ignoreNodeOnlyPackagesPlugins(),
+    new CopyWebpackPlugin({
+      patterns: [
+        {
+          from: 'node_modules/@totemsdk/core-wasm/pkg-web/totemsdk_core_wasm_bg.wasm',
+          to: 'totemsdk_core_wasm_bg.wasm',
+        },
+      ],
+    }),
     new webpack.ProvidePlugin({
       Buffer: ['buffer', 'Buffer'],
       process: 'process',
@@ -282,7 +294,12 @@ const uiConfig = {
         { from: 'src/approval/pairing.js', to: 'approval/pairing.js' },
         { from: 'scanner.html', to: 'scanner.html' },
         // WASM mining engine — fetched by the service worker via chrome.runtime.getURL
-        { from: 'node_modules/@totemsdk/txpow/src/wasm/miner.wasm', to: 'miner.wasm' }
+        { from: 'node_modules/@totemsdk/txpow/src/wasm/miner.wasm', to: 'miner.wasm' },
+        // Core cryptographic WASM — initialized by ensureCoreWasm() in UI/background
+        {
+          from: 'node_modules/@totemsdk/core-wasm/pkg-web/totemsdk_core_wasm_bg.wasm',
+          to: 'totemsdk_core_wasm_bg.wasm',
+        }
         // SECURITY: dev-popup.html deliberately excluded from production build
         // It contains hardcoded test mnemonics for development only
         // Production uses CSPRNG via bip39.generateMnemonic(256) in background service

@@ -14,6 +14,7 @@ const ALLOWED_DAPP_METHODS = new Set([
   // and must never be forwarded from dApp pages.
   'TOTEM_DISCONNECT',
   'TOTEM_VERIFY',
+  'TOTEM_SIGN_MESSAGE',
   'TOTEM_GET_ACCOUNTS',
   'TOTEM_SEND_TRANSACTION',
   'TOTEM_GRANT_TX_PERMISSION',

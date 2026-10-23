@@ -23,6 +23,7 @@ import type { ChannelIdentity, OmniaChannel } from '@totemsdk/omnia';
 // extension's legacy "node" moduleResolution cannot see it.
 import { IdbStore } from '@totemsdk/storage/idb';
 import { SdkMigrationManager } from '../config/SdkMigrationManager';
+import { ensureCoreWasm } from '../core/wasm-init';
 import { sdkTelemetry } from '../config/SdkTelemetry';
 import { initSdkWallet, createExtensionAdapters } from '../core/sdk/SdkWalletInit';
 import { portfolioStreamManager } from '../core/portfolio';
@@ -1025,6 +1026,8 @@ async function sdkStartupRecovery(projectId: string) {
  * Called via ensureStartup() singleflight guard
  */
 async function startupSequenceImpl() {
+  await ensureCoreWasm();
+
   const config = await bootstrapInit();
   const projectId = config?.AXIA_PROJECT_ID || 'totem-shared';
 
@@ -1477,6 +1480,7 @@ const DAPP_ALLOWED_METHODS = new Set([
   'TOTEM_CONNECT',
   // TOTEM_CONNECT_APPROVE is intentionally excluded — internal extension-only.
   'TOTEM_VERIFY',
+  'TOTEM_SIGN_MESSAGE',
   'TOTEM_GET_ACCOUNTS',
   'TOTEM_DISCONNECT',
   'TOTEM_SEND_TRANSACTION',
@@ -3662,6 +3666,118 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
       }
     }
     
+
+    case 'TOTEM_SIGN_MESSAGE': {
+      try {
+        const { origin, message } = params || {};
+
+        if (!origin || typeof origin !== 'string') {
+          return { ok: false, error: 'Origin is required', id };
+        }
+        if (!message || typeof message !== 'string' || message.length === 0) {
+          return { ok: false, error: 'message is required', id };
+        }
+        if (message.length > 16_384) {
+          return { ok: false, error: 'message exceeds 16KB limit', id };
+        }
+
+        const unlocked = await ensureUnlocked('A dApp wants you to sign a message');
+        if (!unlocked) {
+          return { ok: false, error: 'Wallet is locked', id };
+        }
+
+        const site = connectedSitesStore.getSite(origin);
+        if (!site) {
+          return { ok: false, error: 'Site not connected. Call TOTEM_CONNECT first.', id };
+        }
+        if (!site.permissions.canVerify) {
+          return { ok: false, error: 'Site does not have signing permission', id };
+        }
+
+        const account = walletManager.getAccountByIndex(site.addressIndex);
+        if (!account) {
+          return { ok: false, error: 'Connected address not found in wallet', id };
+        }
+
+        const messageBytes = new TextEncoder().encode(message);
+        const messageDigest = sha3_256(messageBytes);
+        const messageHashHex = '0x' + Array.from(messageDigest)
+          .map((b) => b.toString(16).padStart(2, '0'))
+          .join('');
+
+        const addressIndex = site.addressIndex;
+        const perAddressTreeKey = walletManager.getPerAddressTreeKey(addressIndex);
+        if (!perAddressTreeKey) {
+          return { ok: false, error: 'Per-address TreeKey not available (wallet locked?)', id };
+        }
+
+        await watermarkStore.initialize();
+        const reserved = await withSigningLock(() =>
+          watermarkStore.reserveNextIndicesForAddress(addressIndex)
+        );
+        if (!reserved) {
+          return { ok: false, error: 'No available signing indices for this address (exhausted)', id };
+        }
+
+        const capacity = watermarkStore.getAddressCapacity(addressIndex);
+        const displayChallenge = ChallengeBuilder.create()
+          .setDomain(origin)
+          .setAddress(account.address)
+          .setStatement('Sign message')
+          .setNonce(messageHashHex.slice(0, 34))
+          .setExpiry(5 * 60 * 1000)
+          .build();
+
+        const approved = await showVerifyApprovalPopup({
+          challenge: displayChallenge.challenge,
+          rawMessage: message,
+          addressIndex,
+          minimaAddress: account.address,
+          origin,
+          wotsIndices: { l1: reserved.l1, l2: reserved.l2 },
+          capacity,
+        });
+
+        if (!approved) {
+          await withSigningLock(() => watermarkStore.releaseReservation(reserved));
+          return { ok: false, error: 'User rejected message signing', id };
+        }
+
+        const KEYS_PER_LEVEL = 64;
+        const uses = reserved.l1 * KEYS_PER_LEVEL + reserved.l2;
+        perAddressTreeKey.setUses(uses);
+        const treeSignature: TreeSignature = perAddressTreeKey.sign(messageDigest);
+        await withSigningLock(() => watermarkStore.markUsed(reserved));
+
+        const signatureBytes = serializeTreeSignature(treeSignature);
+        const signatureHex = '0x' + Array.from(signatureBytes)
+          .map((b) => b.toString(16).padStart(2, '0'))
+          .join('');
+        const rootPubkeyHex = '0x' + Array.from(perAddressTreeKey.getPublicKey())
+          .map((b) => b.toString(16).padStart(2, '0'))
+          .join('');
+
+        await connectedSitesStore.updateLastUsed(origin);
+
+        return {
+          ok: true,
+          result: {
+            success: true,
+            address: ensureMx(account.address),
+            message,
+            messageHash: messageHashHex,
+            signature: signatureHex,
+            publicKey: rootPubkeyHex,
+            scheme: 'wots-treekey-v1',
+          },
+          id,
+        };
+      } catch (error: any) {
+        console.error('[TOTEM_SIGN_MESSAGE] Error:', error);
+        return { ok: false, error: error.message || 'TOTEM_SIGN_MESSAGE failed', id };
+      }
+    }
+
     case 'TOTEM_SEND_TRANSACTION': {
       try {
         const { origin, request: txRequest } = params || {};

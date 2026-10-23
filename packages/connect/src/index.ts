@@ -12,6 +12,7 @@ import type {
   TotemSendComplexBuildResponse,
   TotemSendComplexSubmitResponse,
   TotemSignDataResponse,
+  TotemSignMessageResponse,
   TotemBroadcastHexResponse,
   TotemGrantTxPermissionResponse,
   TotemRevokeTxPermissionResponse,
@@ -336,6 +337,16 @@ export async function signData(origin: string, params: {
   const provider = getProvider();
   return await provider.request({
     method: 'TOTEM_SIGN_DATA',
+    params: { origin, ...params }
+  });
+}
+
+export async function signMessage(origin: string, params: {
+  message: string;
+}): Promise<TotemSignMessageResponse> {
+  const provider = getProvider();
+  return await provider.request({
+    method: 'TOTEM_SIGN_MESSAGE',
     params: { origin, ...params }
   });
 }
