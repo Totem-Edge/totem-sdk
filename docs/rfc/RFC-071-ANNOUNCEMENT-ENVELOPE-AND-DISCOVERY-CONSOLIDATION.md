@@ -78,6 +78,8 @@ interface AnnouncementEnvelope<T = unknown> {
   sequence: number;              // monotonic per publisher+subject
   createdAt: number;
   expiresAt: number;
+  asset?: string;                // primary asset/currency, if applicable
+  secondaryAsset?: string;
 
   custody?: AnnouncementCustody; // RFC-058 context, verified from operator manifest
   disclosureHash?: string;
@@ -262,12 +264,16 @@ Phase 1 (landed with this RFC):
   canonical ID/payload/digest helpers.
 - `@totemsdk/liquidity-bond`: `createPoolAnnouncement` projection adapter.
 - Tests: envelope create/sign/verify/tamper/expiry/topic/rank; pool projection.
+- `@totemsdk/manifest`: `MemoryAnnouncementStore` — verifies envelopes, enforces
+  monotonic sequence per `(publisher, subjectId)`, prunes expired records and
+  returns ranked/filtered results. It is an in-memory reference index, not a
+  durable registry.
 
 Phase 2 (not yet authorised here):
 
 - provider/credit/swap-rate/service adapters;
 - Hyperswarm/relay/pubsub subscription service;
-- lookup-node or omnia-host announcement index;
+- durable lookup-node or omnia-host announcement index backed by the reference store;
 - MOKA `OpportunityView` replacement;
 - RFC-058 custody disclosure binding in the signed envelope.
 

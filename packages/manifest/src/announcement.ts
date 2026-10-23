@@ -49,6 +49,8 @@ export interface AnnouncementEnvelope<T = unknown> {
   sequence: number;
   createdAt: number;
   expiresAt: number;
+  asset?: string;
+  secondaryAsset?: string;
   custody?: AnnouncementCustody;
   disclosureHash?: string;
   liquidity?: AnnouncementLiquidity;
@@ -145,6 +147,8 @@ export function createAnnouncement<T = unknown>(
     sequence: input.sequence,
     createdAt: input.createdAt,
     expiresAt: input.expiresAt,
+    asset: input.asset,
+    secondaryAsset: input.secondaryAsset,
     custody: input.custody,
     disclosureHash: input.disclosureHash,
     liquidity: input.liquidity,

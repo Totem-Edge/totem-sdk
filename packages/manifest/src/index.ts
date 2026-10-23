@@ -48,3 +48,11 @@ export {
   announcementTopic,
   rankAnnouncements,
 } from './announcement.js';
+
+export type {
+  AnnouncementAcceptOptions,
+  AnnouncementAcceptResult,
+  AnnouncementQuery,
+  AnnouncementStoreOptions,
+} from './announcement-store.js';
+export { MemoryAnnouncementStore } from './announcement-store.js';
