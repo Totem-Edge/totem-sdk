@@ -1,50 +1,53 @@
-# Cryptographic core — requires 2 maintainer reviews
-packages/core/          @totem-sdk/core-maintainers
-packages/wots-lease/    @totem-sdk/core-maintainers
-packages/txpow/         @totem-sdk/core-maintainers
-packages/tx-builder/    @totem-sdk/core-maintainers
+# Default owner for all files.
+* @MrGheek
+
+# Cryptographic core — security-sensitive; owner review required
+packages/core/          @MrGheek
+packages/wots-lease/    @MrGheek
+packages/txpow/         @MrGheek
+packages/tx-builder/    @MrGheek
 
 # Payment network
-packages/omnia/         @totem-sdk/omnia-maintainers
-packages/omnia-factory/ @totem-sdk/omnia-maintainers
-packages/omnia-router/  @totem-sdk/omnia-maintainers
-packages/omnia-splice/  @totem-sdk/omnia-maintainers
-packages/omnia-vtxo/    @totem-sdk/omnia-maintainers
+packages/omnia/         @MrGheek
+packages/omnia-factory/ @MrGheek
+packages/omnia-router/  @MrGheek
+packages/omnia-splice/  @MrGheek
+packages/omnia-vtxo/    @MrGheek
 
 # Statechain
-packages/statechain/    @totem-sdk/statechain-maintainers
-packages/se-server/     @totem-sdk/statechain-maintainers
+packages/statechain/    @MrGheek
+packages/se-server/     @MrGheek
 
 # Edge computing
-packages/edge/          @totem-sdk/edge-maintainers
-packages/edge-adapters/ @totem-sdk/edge-maintainers
-packages/edge-mqtt/     @totem-sdk/edge-maintainers
+packages/edge/          @MrGheek
+packages/edge-adapters/ @MrGheek
+packages/edge-mqtt/     @MrGheek
 
 # Sovereignty stack
-packages/lookup-client/  @totem-sdk/lookup-maintainers
-packages/lookup-node/    @totem-sdk/lookup-maintainers
-packages/lookup-protocol/ @totem-sdk/lookup-maintainers
-packages/chain-provider/ @totem-sdk/lookup-maintainers
+packages/lookup-client/  @MrGheek
+packages/lookup-node/    @MrGheek
+packages/lookup-protocol/ @MrGheek
+packages/chain-provider/ @MrGheek
 
 # Identity & claims
-packages/identity/       @totem-sdk/identity-maintainers
-packages/root-identity/  @totem-sdk/identity-maintainers
-packages/manifest/       @totem-sdk/identity-maintainers
-packages/proof/          @totem-sdk/identity-maintainers
-packages/proof-integritas/ @totem-sdk/identity-maintainers
-packages/proofgraph/     @totem-sdk/identity-maintainers
-packages/provider-bond/  @totem-sdk/identity-maintainers
-packages/liquidity-bond/ @totem-sdk/identity-maintainers
+packages/identity/       @MrGheek
+packages/root-identity/  @MrGheek
+packages/manifest/       @MrGheek
+packages/proof/          @MrGheek
+packages/proof-integritas/ @MrGheek
+packages/proofgraph/     @MrGheek
+packages/provider-bond/  @MrGheek
+packages/liquidity-bond/ @MrGheek
 
 # Wallet & dApp
-extensions/totem-extension/                 @totem-sdk/wallet-maintainers
-extensions/totem-pwa-wallet/                @totem-sdk/wallet-maintainers
-packages/connect/                           @totem-sdk/wallet-maintainers
-packages/wallet-adapter/                    @totem-sdk/wallet-maintainers
+extensions/totem-extension/                 @MrGheek
+extensions/totem-pwa-wallet/                @MrGheek
+packages/connect/                           @MrGheek
+packages/wallet-adapter/                    @MrGheek
 
 # Security policy
-SECURITY.md                                 @totem-sdk/core-maintainers
-docs/security/                              @totem-sdk/core-maintainers
+SECURITY.md                                 @MrGheek
+docs/security/                              @MrGheek
 
 # CI/CD
-.github/workflows/                          @totem-sdk/infra-maintainers
+.github/workflows/                          @MrGheek

@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Ownership and support:** added a default `CODEOWNERS` owner and aligned
+  `SUPPORT.md` / `SECURITY.md` with the RFC-063 Tier 0/1/2 support model. Tier 1
+  packages are explicitly best-effort, not production support.
+
 - **License:** new releases are licensed under Apache-2.0. Added a root `NOTICE`
   covering Minima, Bouncy Castle, QVAC, Google Protocol Buffers, BIP39 and
   Contributor Covenant attribution. Package `LICENSE`, `NOTICE`, `package.json`,

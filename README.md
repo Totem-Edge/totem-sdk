@@ -620,6 +620,6 @@ Apache License 2.0 — See [LICENSE](LICENSE) and [NOTICE](NOTICE) for details. 
 
 **Built by the Totem SDK Contributors**
 
-[Website](https://totem.ing) • [Documentation](https://totem.ing) • [GitHub](https://github.com/Totem-Edge)
+[Website](https://totem.ing) • [Documentation](https://totem.ing) • [GitHub](https://github.com/Totem-Edge) • [Support](SUPPORT.md)
 
 </div>

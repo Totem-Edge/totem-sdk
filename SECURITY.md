@@ -35,14 +35,16 @@ keys, or exploit details in plaintext.
 The SDK is pre-1.0 at the workspace level. Security fixes are applied to the
 latest published release of each package; older releases are not supported.
 
-| Release line | Supported |
+| Package scope | Supported |
 |---|---|
-| Latest published release of each package | Yes |
+| Tier 0 production core | Yes |
+| Tier 1 production candidates | Best effort; not production support |
+| Tier 2 support dependencies and outside packages | Best effort; no production support |
 | Older releases | No — upgrade to the latest release |
-| Preview/alpha packages | Best effort; not covered by production support |
 
-This table will be replaced by a per-package support policy when the RFC-063
-production core reaches 1.0.
+The per-package tiers are generated in [docs/maturity.md](docs/maturity.md) and
+defined by [RFC-063](docs/rfc/RFC-063-PRODUCTION-READINESS-AND-MATURITY-PROMOTION.md).
+Tier 1 packages are pre-release candidates, even when they are on `latest`.
 
 ## Security Model
 
