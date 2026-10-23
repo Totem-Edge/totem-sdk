@@ -40,6 +40,7 @@ import {
   buildGraph,
   queryRoute,
   serializeRoute,
+  parseWireRoute,
   serializeSwapAnnouncement,
   getSwapAnnouncements,
   type ChannelGraph,
@@ -211,13 +212,16 @@ export function createOmniaRelayClient(options: OmniaRelayClientOptions = {}): R
     if (!graph) return unsupported('Omnia payMultiHop: no routing graph configured.');
 
     const from = options.localParticipant?.publicKeyDigest ?? signer.publicKeyDigest;
-    const route = queryRoute(graph, {
-      from,
-      to: reqString(params, 'toPartyId'),
-      amount: reqBigInt(params, 'amount'),
-      tokenId: reqString(params, 'tokenId'),
-      ...(typeof params.maxHops === 'number' ? { maxHops: params.maxHops } : {}),
-    });
+    const route = params.route
+      ? parseWireRoute(params.route)
+      : queryRoute(graph, {
+          from,
+          to: reqString(params, 'toPartyId'),
+          amount: reqBigInt(params, 'amount'),
+          tokenId: reqString(params, 'tokenId'),
+          targetTokenId: optString(params, 'targetTokenId'),
+          ...(typeof params.maxHops === 'number' ? { maxHops: params.maxHops } : {}),
+        });
     if (!route) return { success: false, error: 'No route found', errorCode: 'ROUTE_NOT_FOUND' };
 
     const firstHop = route.hops[0] as { channelId: string; to: string; amount: bigint; isSwap?: boolean };
@@ -228,7 +232,8 @@ export function createOmniaRelayClient(options: OmniaRelayClientOptions = {}): R
     if (!channel) return notFound(`Channel ${firstHop.channelId} not found`);
 
     const hashlock = reqString(params, 'hashlock');
-    const timeoutBlock = reqBigInt(params, 'timeoutBlock');
+    const preimage = optString(params, 'preimage');
+    const timeoutBlock = reqBigInt(params, 'expiryBlock');
     const result = await addHTLC(
       channel,
       {
@@ -253,10 +258,10 @@ export function createOmniaRelayClient(options: OmniaRelayClientOptions = {}): R
 
     return {
       success: true,
+      ...(preimage ? { preimage } : {}),
       route: serializeRoute(route),
       firstHopChannelId: result.channel.channelId,
       htlcId: result.htlcId,
-      hashlock,
     };
   };
 

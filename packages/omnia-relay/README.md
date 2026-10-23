@@ -54,7 +54,8 @@ configureExtensionWalletRuntime({ omnia });
 | `getRoute`, `getSwapRate` | served | read-only, over `@totemsdk/omnia-router` |
 | `createFactory` | served (single-party) | mines + broadcasts the funding TxPoW; **approval-gated** |
 | `spliceIn`, `spliceOut` | served (proposer half) | quiesce + propose; the accept/finalize half is Phase B |
-| `openVirtualChannel`, `closeFactory`, `payMultiHop` | explicit `UNSUPPORTED` | multi-party; pending the coordination protocol (RFC-035) |
+| `openVirtualChannel`, `closeFactory` | explicit `UNSUPPORTED` | multi-party; pending the coordination protocol (RFC-035) |
+| `payMultiHop` | served (first hop) | locks the first-hop HTLC and forwards the state update; cross-token swap hops are explicitly `UNSUPPORTED` until the relay can execute them |
 
 `supports(method)` reports the truth per method (RFC-014 Amendment A) so the
 wallet capability manifest reflects what the client will actually attempt.

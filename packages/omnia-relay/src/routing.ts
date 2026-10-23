@@ -164,6 +164,50 @@ export function serializeRoute(route: Route | CrossTokenRoute): Record<string, u
   };
 }
 
+/** Parse a wire route (decimal strings) back into router types. */
+export function parseWireRoute(value: unknown): Route | CrossTokenRoute {
+  if (!value || typeof value !== 'object') throw new Error('Omnia: route must be an object');
+  const raw = value as Record<string, unknown>;
+  if (!Array.isArray(raw.hops) || raw.hops.length === 0) throw new Error('Omnia: route.hops must be a non-empty array');
+  const hops = raw.hops.map((entry, index) => {
+    if (!entry || typeof entry !== 'object') throw new Error(`Omnia: route.hops[${index}] must be an object`);
+    const hop = entry as Record<string, unknown>;
+    const base = {
+      channelId: String(hop.channelId ?? ''),
+      from: String(hop.from ?? ''),
+      to: String(hop.to ?? ''),
+      amount: BigInt(String(hop.amount ?? '0')),
+      tokenId: String(hop.tokenId ?? ''),
+      ...(typeof hop.htlcId === 'string' ? { htlcId: hop.htlcId } : {}),
+    };
+    if (hop.isSwap === true) {
+      return {
+        ...base,
+        isSwap: true as const,
+        tokenIn: String(hop.tokenIn ?? ''),
+        tokenOut: String(hop.tokenOut ?? ''),
+        amountIn: BigInt(String(hop.amountIn ?? '0')),
+        amountOut: BigInt(String(hop.amountOut ?? '0')),
+        rate: String(hop.rate ?? ''),
+        inboundChannelId: String(hop.inboundChannelId ?? ''),
+        outboundChannelId: String(hop.outboundChannelId ?? ''),
+      };
+    }
+    return base;
+  });
+  const route = {
+    hops,
+    totalFees: BigInt(String(raw.totalFees ?? '0')),
+    tokenIn: String(raw.tokenIn ?? ''),
+    tokenOut: String(raw.tokenOut ?? ''),
+    estimatedBlocks: Number(raw.estimatedBlocks ?? 0),
+  } as Route | CrossTokenRoute;
+  if (hops.some((hop) => (hop as { isSwap?: boolean }).isSwap)) {
+    (route as CrossTokenRoute).swapHops = hops.filter((hop) => (hop as { isSwap?: boolean }).isSwap) as CrossTokenRoute['swapHops'];
+  }
+  return route;
+}
+
 /** Serialize swap announcements for the wire. */
 export function serializeSwapAnnouncement(a: SwapAnnouncement): Record<string, unknown> {
   return {

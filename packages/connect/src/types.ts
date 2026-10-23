@@ -485,9 +485,17 @@ export interface TotemOmniaPayMultiHopRequest {
   method: 'totem_omniaPayMultiHop';
   params: {
     origin: string;
-    route: Route;
+    toPartyId: string;
+    amount: string;
+    tokenId: string;
     hashlock: string;
-    timeoutBlocks?: number;
+    preimage?: string;
+    expiryBlock: string;
+    maxHops?: number;
+    /** Optional caller-selected route. Omit to let the wallet/host route. */
+    route?: Route;
+    /** Required when routing from tokenId to a different settlement token. */
+    targetTokenId?: string;
   };
 }
 
@@ -495,6 +503,9 @@ export interface TotemOmniaPayMultiHopResponse {
   success: boolean;
   preimage?: string;
   settledHops?: string[];
+  route?: Route;
+  htlcId?: string;
+  firstHopChannelId?: string;
   error?: string;
   errorCode?: string;
 }

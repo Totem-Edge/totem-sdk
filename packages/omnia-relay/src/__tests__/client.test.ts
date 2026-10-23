@@ -286,7 +286,7 @@ describe('createOmniaRelayClient — payMultiHop (RFC-035 B4)', () => {
       amount: 100n,
       tokenId: '0x00',
       hashlock: '0x' + '11'.repeat(32),
-      timeoutBlock: 100n,
+      expiryBlock: 100n,
     })) as { success: boolean; htlcId: string; firstHopChannelId: string };
     expect(result.success).toBe(true);
     expect(result.htlcId).toBeTruthy();
@@ -298,6 +298,81 @@ describe('createOmniaRelayClient — payMultiHop (RFC-035 B4)', () => {
     expect(sendMessage).toHaveBeenCalled();
     const sent = sendMessage.mock.calls[0][0] as { type: string };
     expect(sent.type).toBe('STATE_UPDATE');
+    await client.close();
+  });
+
+  it('accepts a canonical wire route and uses its first hop', async () => {
+    const sendMessage = jest.fn(async (_m: unknown) => {});
+    const swarm = swarmWithPeer(sendMessage);
+    const channel = { ...activeChannel(), channelId: 'ch-route' } as OmniaChannel;
+    const client = createOmniaRelayClient({
+      swarm,
+      channels: new Map([[channel.channelId, channel]]),
+      signer,
+      leaseProvider,
+      chainProvider: {} as never,
+      localParticipant: { partyId: 'alice', publicKeyDigest: ALICE, addressIndex: 0 },
+    });
+
+    const result = (await client.payMultiHop({
+      toPartyId: BOB,
+      amount: '100',
+      tokenId: '0x00',
+      hashlock: '0x' + '11'.repeat(32),
+      preimage: '0x' + '22'.repeat(32),
+      expiryBlock: '100',
+      route: {
+        tokenIn: '0x00',
+        tokenOut: '0x00',
+        totalFees: '0',
+        estimatedBlocks: 10,
+        hops: [
+          { channelId: channel.channelId, from: ALICE, to: BOB, amount: '100', tokenId: '0x00' },
+        ],
+      },
+    })) as { success: boolean; firstHopChannelId: string; preimage?: string };
+
+    expect(result.success).toBe(true);
+    expect(result.firstHopChannelId).toBe(channel.channelId);
+    expect(result.preimage).toBe('0x' + '22'.repeat(32));
+    await client.close();
+  });
+
+  it('rejects cross-token swap hops before locking', async () => {
+    const swarm = swarmWithPeer(jest.fn());
+    const channel = { ...activeChannel(), channelId: 'ch-swap' } as OmniaChannel;
+    const client = createOmniaRelayClient({
+      swarm,
+      channels: new Map([[channel.channelId, channel]]),
+      signer,
+      leaseProvider,
+      chainProvider: {} as never,
+      localParticipant: { partyId: 'alice', publicKeyDigest: ALICE, addressIndex: 0 },
+    });
+
+    const result = (await client.payMultiHop({
+      toPartyId: BOB,
+      amount: '100',
+      tokenId: '0x00',
+      hashlock: '0x' + '11'.repeat(32),
+      preimage: '0x' + '22'.repeat(32),
+      expiryBlock: '100',
+      route: {
+        tokenIn: '0x00',
+        tokenOut: '0x01',
+        totalFees: '0',
+        estimatedBlocks: 10,
+        hops: [{
+          channelId: channel.channelId, from: ALICE, to: BOB, amount: '100', tokenId: '0x00',
+          isSwap: true, tokenIn: '0x00', tokenOut: '0x01',
+          amountIn: '100', amountOut: '90', rate: '0.9',
+          inboundChannelId: channel.channelId, outboundChannelId: channel.channelId,
+        }],
+      },
+    })) as { errorCode: string };
+
+    expect(result.errorCode).toBe('UNSUPPORTED');
+    expect(swarm.connectToPeer).not.toHaveBeenCalled();
     await client.close();
   });
 

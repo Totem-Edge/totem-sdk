@@ -18,6 +18,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Omnia `payMultiHop` contract (breaking):** `connect`, `omnia-relay` and
+  `omnia-host` now share one intent-based request:
+  `{ toPartyId, amount, tokenId, hashlock, preimage?, expiryBlock, maxHops?, route?, targetTokenId? }`.
+  The old route-only connect shape and relay `timeoutBlock`/first-hop response
+  contract are removed. Relay responses add `preimage`/route metadata; host
+  executes full routes and cross-token routes from the same request.
+
 - **`@totemsdk/connect` / `@totemsdk/wallet-adapter`:** added the missing
   `TOTEM_SIGN_MESSAGE` descriptor and handler to the shared wallet runtime. The
   canonical connect surface is now 48 methods; wallets without a message-signing

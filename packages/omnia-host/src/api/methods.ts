@@ -2023,21 +2023,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       maxHops: typeof params.maxHops === 'number' ? params.maxHops : undefined,
     });
     if (!route) return { success: false, error: 'No route found', errorCode: 'ROUTE_NOT_FOUND' };
-    return {
-      success: true,
-      route: {
-        ...route,
-        totalFees: route.totalFees.toString(),
-        hops: route.hops.map((hop) => ({
-          ...hop,
-          amount: hop.amount.toString(),
-          ...('isSwap' in hop && hop.isSwap ? {
-            amountIn: hop.amountIn.toString(),
-            amountOut: hop.amountOut.toString(),
-          } : {}),
-        })),
-      },
-    };
+    return { success: true, route: serializeWireRoute(route) };
   };
   register('totem_omniaGetRoute', getRoute, 'omnia/getRoute');
 
@@ -2914,28 +2900,113 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
   register('totem_omniaSpliceIn', splice('in'), 'omnia/spliceIn');
   register('totem_omniaSpliceOut', splice('out'), 'omnia/spliceOut');
 
+  function parseWireRoute(value: unknown): Route | CrossTokenRoute {
+    if (!value || typeof value !== 'object') throw new Error('route must be an object');
+    const raw = value as Record<string, unknown>;
+    if (!Array.isArray(raw.hops) || raw.hops.length === 0) throw new Error('route.hops must be a non-empty array');
+    const hops = raw.hops.map((entry, index) => {
+      if (!entry || typeof entry !== 'object') throw new Error(`route.hops[${index}] must be an object`);
+      const hop = entry as Record<string, unknown>;
+      const base = {
+        channelId: String(hop.channelId ?? ''),
+        from: String(hop.from ?? ''),
+        to: String(hop.to ?? ''),
+        amount: typeof hop.amount === 'bigint' ? hop.amount : BigInt(String(hop.amount ?? '0')),
+        tokenId: String(hop.tokenId ?? ''),
+        ...(typeof hop.htlcId === 'string' ? { htlcId: hop.htlcId } : {}),
+      };
+      if (hop.isSwap === true) {
+        return {
+          ...base,
+          isSwap: true as const,
+          tokenIn: String(hop.tokenIn ?? ''),
+          tokenOut: String(hop.tokenOut ?? ''),
+          amountIn: typeof hop.amountIn === 'bigint' ? hop.amountIn : BigInt(String(hop.amountIn ?? '0')),
+          amountOut: typeof hop.amountOut === 'bigint' ? hop.amountOut : BigInt(String(hop.amountOut ?? '0')),
+          rate: String(hop.rate ?? ''),
+          inboundChannelId: String(hop.inboundChannelId ?? ''),
+          outboundChannelId: String(hop.outboundChannelId ?? ''),
+        };
+      }
+      return base;
+    });
+    const route = {
+      hops,
+      totalFees: typeof raw.totalFees === 'bigint' ? raw.totalFees : BigInt(String(raw.totalFees ?? '0')),
+      tokenIn: String(raw.tokenIn ?? ''),
+      tokenOut: String(raw.tokenOut ?? ''),
+      estimatedBlocks: Number(raw.estimatedBlocks ?? 0),
+    } as Route | CrossTokenRoute;
+    if (hops.some((hop) => (hop as { isSwap?: boolean }).isSwap)) {
+      (route as CrossTokenRoute).swapHops = hops.filter((hop) => (hop as { isSwap?: boolean }).isSwap) as CrossTokenRoute['swapHops'];
+    }
+    return route;
+  }
+
+  function serializeWireRoute(route: Route | CrossTokenRoute): Record<string, unknown> {
+    return {
+      tokenIn: route.tokenIn,
+      tokenOut: route.tokenOut,
+      totalFees: route.totalFees.toString(),
+      estimatedBlocks: route.estimatedBlocks,
+      hops: route.hops.map((hop) => {
+        const base = {
+          channelId: hop.channelId,
+          from: hop.from,
+          to: hop.to,
+          amount: hop.amount.toString(),
+          tokenId: hop.tokenId,
+          ...(hop.htlcId ? { htlcId: hop.htlcId } : {}),
+        };
+        if ('isSwap' in hop && hop.isSwap) {
+          return {
+            ...base,
+            isSwap: true,
+            tokenIn: hop.tokenIn,
+            tokenOut: hop.tokenOut,
+            amountIn: hop.amountIn.toString(),
+            amountOut: hop.amountOut.toString(),
+            rate: hop.rate,
+            inboundChannelId: hop.inboundChannelId,
+            outboundChannelId: hop.outboundChannelId,
+          };
+        }
+        return base;
+      }),
+    };
+  }
+
   const payMultiHop: JsonRpcHandler = async (raw) => {
     const params = paramsObject(raw);
     requireMutationContext(context);
-    const route = params.route;
-    if (!route || typeof route !== 'object' || !Array.isArray((route as Record<string, unknown>).hops)) {
-      throw new Error('route with hops is required');
-    }
-    const paymentRequest = params.paymentRequest;
-    if (!paymentRequest || typeof paymentRequest !== 'object') {
-      throw new Error('paymentRequest is required');
-    }
-    const request = paymentRequest as Record<string, unknown>;
+    const from = context.localParticipant?.publicKeyDigest;
+    if (!from) throw new Error('Local participant is not configured');
+
+    const amount = requiredBigInt(params, 'amount');
+    const tokenId = requiredString(params, 'tokenId');
+    const targetTokenId = typeof params.targetTokenId === 'string' ? params.targetTokenId : undefined;
+    const parsedRoute = params.route
+      ? parseWireRoute(params.route)
+      : await context.routing.getRoute({
+          from,
+          to: normalizeRouteNode(requiredString(params, 'toPartyId')),
+          amount,
+          tokenId,
+          ...(targetTokenId ? { targetTokenId } : {}),
+          ...(typeof params.maxHops === 'number' ? { maxHops: params.maxHops } : {}),
+        });
+    if (!parsedRoute) throw new Error('No route found');
+    const isCrossToken = parsedRoute.hops.some((hop) => 'isSwap' in hop && hop.isSwap === true);
+
     const parsedRequest: PaymentRequest = {
-      hashlock: requiredString(request, 'hashlock'),
-      amount: requiredBigInt(request, 'amount'),
-      tokenId: requiredString(request, 'tokenId'),
-      expiryBlock: requiredBigInt(request, 'expiryBlock'),
-      preimage: typeof request.preimage === 'string' ? request.preimage : undefined,
-      description: typeof request.description === 'string' ? request.description : undefined,
+      hashlock: requiredString(params, 'hashlock'),
+      amount,
+      tokenId,
+      expiryBlock: requiredBigInt(params, 'expiryBlock'),
+      ...(typeof params.preimage === 'string' ? { preimage: params.preimage } : {}),
+      ...(typeof params.description === 'string' ? { description: params.description } : {}),
     };
-    const parsedRoute = route as Route | CrossTokenRoute;
-    const isCrossToken = 'swapHops' in parsedRoute && Array.isArray(parsedRoute.swapHops) && parsedRoute.swapHops.length > 0;
+    if (!parsedRequest.preimage) throw new Error('preimage is required');
 
     const ops: ChannelOps = {
       addHTLC: (channel, htlcParams, leaseProvider) => addHTLC(
@@ -3000,6 +3071,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
         success: true,
         preimage: result.preimage,
         settledHops: result.settledHops,
+        route: serializeWireRoute(parsedRoute),
       };
     });
   };

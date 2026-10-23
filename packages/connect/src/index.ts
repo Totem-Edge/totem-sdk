@@ -619,9 +619,15 @@ export async function omniaGetRoute(origin: string, params: {
 }
 
 export async function omniaPayMultiHop(origin: string, params: {
-  route: Route;
+  toPartyId: string;
+  amount: string;
+  tokenId: string;
   hashlock: string;
-  timeoutBlocks?: number;
+  preimage?: string;
+  expiryBlock: string;
+  maxHops?: number;
+  route?: Route;
+  targetTokenId?: string;
 }): Promise<TotemOmniaPayMultiHopResponse> {
   const provider = getProvider();
   return await provider.request({

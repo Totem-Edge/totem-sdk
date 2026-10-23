@@ -845,7 +845,7 @@
         },
         "omniaPayMultiHop": {
           "kind": "function",
-          "signature": "omniaPayMultiHop(origin: string, params: { route: Route; hashlock: string; timeoutBlocks?: number; }): Promise<TotemOmniaPayMultiHopResponse>"
+          "signature": "omniaPayMultiHop(origin: string, params: { toPartyId: string; amount: string; tokenId: string; hashlock: string; preimage?: string; expiryBlock: string; maxHops?: number; route?: Route; targetTokenId?: string; }): Promise<TotemOmniaPayMultiHopResponse>"
         },
         "omniaGetSwapRate": {
           "kind": "function",

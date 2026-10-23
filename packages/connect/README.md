@@ -68,6 +68,20 @@ No bundler configuration needed — ships as ESM, works in any modern browser.
 
 `omniaOpenChannel`, `omniaPay`, `omniaSettle`, `omniaCloseChannel`, `omniaGetChannels`, `omniaGetRoute`, `omniaPayMultiHop`, `omniaGetSwapRate`, `omniaCreateFactory`, `omniaOpenVirtualChannel`, `omniaCloseFactory`, `omniaSpliceIn`, `omniaSpliceOut` — all take `origin` as the first argument.
 
+`omniaPayMultiHop(origin, params)` uses one canonical request across the relay
+and host paths:
+
+```ts
+{
+  toPartyId, amount, tokenId, hashlock,
+  preimage?, expiryBlock, maxHops?,
+  route?, targetTokenId?
+}
+```
+
+`route` is optional; when omitted the wallet/host computes it. Cross-token
+payments require `targetTokenId` or an explicit route containing swap hops.
+
 ### Statechain
 
 `statechainCreate`, `statechainTransfer`, `statechainClaim`, `statechainVerify` — all take `origin` as the first argument.
