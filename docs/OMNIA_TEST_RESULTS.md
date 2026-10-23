@@ -286,6 +286,39 @@ the in-memory factory registry is empty, so `closeVirtualChannel` fails with
 `Factory ... not found`. Factory state needs durable storage before teardown can
 verify allocation restoration.
 
+#### VTXO hardening and multiparty (2026-10-22/23)
+
+Plan: [`VTXO_HARDENING_AND_MULTIPARTY_TEST_PLAN.md`](./VTXO_HARDENING_AND_MULTIPARTY_TEST_PLAN.md).
+
+Hardening:
+
+- H2 receipt security — PASS
+- H3 funding proof presence/shape + verifier callback — PASS
+- H4 durable restart — PASS
+- H5 store-level one-time-use / no resurrection — PASS
+- H6 live anchor/exit — PARTIAL: live anchor reached tx submission, but the
+  private node could not provide a valid tip-depth pool-coin MMR proof and
+  stopped auto-mining; exit not reached
+- H7 pool conservation — PASS (omnia-pool 40/40)
+- H8 host concurrent transfer/idempotency — PASS (omnia-host 95/95)
+
+Multiparty:
+
+- M1 six-owner fan-out — PASS
+- M2 split + change conservation — PASS
+- M3 chained ownership A→B→C — PASS
+- M4 shared-store concurrent claim — PASS
+- M5 operator-offline exits — PASS
+- M6 stale root/epoch rejection — PASS
+- M7 same-owner merge / cross-owner refusal — PASS
+- M8 2-of-3 co-owned claim policy — PASS
+- M9 conditional/escrow claim policy — PASS
+- M10 DvP claim policy bound to HTLC id/hashlock/preimage — PASS
+
+Test totals: `omnia-vtxo` **204/204**, `omnia-pool` **40/40**,
+`omnia-host` **103/103**, `omnia-router` **79/79**, `omnia-relay` **29/29**,
+`chain-provider` **47 passed / 4 skipped**. S8 payMultiHop rerun: `S8_PASS`.
+
 ### S10 — pool lifecycle
 
 `scripts/omnia-s10-pool.mjs` uses the real `@totemsdk/omnia-pool` accounting with
@@ -406,6 +439,53 @@ back the watermark only for the matching failed attempt; regression test
 `releases the watermark after a signing failure...` passes (omnia 237/237).
 Live wallet-restart rerun is still pending.
 
+### 2026-10-23 — Live non-custodial on hawk-node (OCI A)
+
+**Node:** `hawk-node` `main` built from source (Docker linux/arm64,
+`totem-node` v0.1.7) on `mash-a1-bench2` (79.72.84.151), `-mode edge -solo`
+with a fresh data dir. First run creates the solo genesis coin
+(1,000,000,000). This build includes the `TxPoWChecker::CURRENT_NETWORK`
+cross-TU static-init fix (`org/minima/system/brains/tx_po_w_checker.cpp`), so
+blocks are no longer rejected with `Wrong Block ChainID!` — the old v0.1.7
+release lacked that fix.
+
+**Coordinators:** two non-custodial `omnia-host` processes on A (control
+50055/50056), each with a separate wallet service (51060/51061) and **no
+`OMNIA_HOST_SEED`**. Native DHT via the real seed on `10.0.0.210:48860`; chain
+RPC `http://127.0.0.1:9005`.
+
+**Funding:** 100M from the solo genesis coin to wallet A (`0xc865…`); funding
+coin `0x783D…`.
+
+```text
+NONCUSTODIAL_OPEN_PASS  channel 0x654e65ec80779f61f7bbe1972b965e56
+funding tx 0x0003007A7E43570244C8BF7E57663908D48A851719C0F100BA6070FAD4B25872
+initial 60,000,000 / 40,000,000; acknowledged=true; hostAHasSeed=false; hostBHasSeed=false
+
+pay 5,000,000 -> 55,000,000 / 45,000,000 (both hosts sequence 1)
+NONCUSTODIAL_SETTLE_PASS  settlement 0x0001E04A1D81E3396A8F0414A5C4EAA0FAEB9FC5ACCFD37C4BECA4E02B58F026
+on-chain at block 101; final 55,000,000 / 45,000,000
+```
+
+**Observation:** both hosts served `/observe/snapshot` (cursor 78) and emitted
+the channel transition events; the settlement is a main-chain block.
+
+**Caveats / findings:**
+
+- Both coordinators ran on A for this run (single-machine non-custodial split).
+  Cross-host B is the next step.
+- The relay transport on the host build timed out for both a direct two-client
+  test and the host open; the successful run used native DHT. The relay path
+  needs the shared connection-manager work (RFC-057 D2/D10/D11) or a matching
+  published relay build.
+- The host ran the workspace `@totemsdk/omnia` dist (current main) overlaid on
+  the published 0.12.0 install; the bootstrap address must be the seed's bound
+  interface (`10.0.0.210:48860`), not loopback.
+- After `totem_omniaCloseChannel` on A, A's snapshot reports `closed` while B
+  still reports `active`. Settlement is on-chain, so this is a local-status
+  propagation gap (close is not sent to the counterparty), not a settlement
+  failure.
+
 ## Run log
 
 | Date | Stage | Transport | SDK commit | Result | Evidence |
@@ -436,10 +516,16 @@ Live wallet-restart rerun is still pending.
 | 2026-10-21 | Non-custodial failure probe | native (AWS) | current dist | PASS | wallet-down fails closed; watermark release fixed; retry at same sequence succeeds |
 | 2026-10-21 | HTLC timeout/refund (non-custodial) | native (AWS) | current dist | PASS | expired HTLC → `timed_out` on both hosts |
 | 2026-10-21 | S6/S10 host APIs (non-custodial) | in-memory + chain check | current dist | PASS | `S6_S10_NONCUSTODIAL_PASS`; VTXO exit + pool deposit/allocate/release/withdraw |
+| 2026-10-22 | VTXO hardening H2–H5/H7/H8 | in-memory | current dist | PASS | receipts/funding proof/durability/store spent-set/pool/host concurrency |
+| 2026-10-22 | VTXO multiparty M1–M7 | in-memory | current dist | PASS | 6-owner fan-out, split/change, chained ownership, concurrent claim, offline exits, stale root, merge rules |
+| 2026-10-23 | VTXO H6 live | native | current dist | BLOCKED | anchor proof depth one block short; private node stopped auto-mining; exit not reached |
+| 2026-10-23 | VTXO M8–M10 | in-memory | current dist | PASS | 2-of-3 claim, conditional escrow, DvP policy binding |
+| 2026-10-23 | S8 payMultiHop rerun | in-memory | current dist | PASS | `S8_PASS`; 3 hops, 10M/10M retained, recipient exact |
 | 2026-10-22 | 7-hop timeout (non-custodial) | native (AWS) | current dist | PASS | seven expired HTLCs timed out on both sides |
 | 2026-10-22 | Reconnect mid-HTLC | native (AWS) | current dist | PASS | B restart recovered pending HTLC and fulfilled |
 | 2026-10-22 | Concurrent HTLCs | native (AWS) | current dist | PASS | 3 in-flight A→B HTLCs fulfilled |
 | 2026-10-22 | 7-hop teardown | native (AWS) | current dist | BLOCKED | factory registry lost on restart; `Factory ... not found` |
+| 2026-10-23 | S4 (non-custodial, hawk-node) | native DHT | current dist (omnia-host 0.12.0) | PASS | solo hawk-node genesis; `NONCUSTODIAL_OPEN_PASS` + `NONCUSTODIAL_SETTLE_PASS`; 60/40 → 55/45; settlement `0x0001E04A…` |
 
 To add a run: append a row, then add the command, `OMNIA_RESULT` JSON, and log
 paths under the relevant stage section. Re-run `scripts/omnia-{s4,s5}-cross.mjs`
