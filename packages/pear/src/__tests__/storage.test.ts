@@ -192,6 +192,14 @@ describe('BareKVStore (in-memory mock)', () => {
     expect(await store.get('obj')).toEqual({ x: 10 });
   });
 
+  it('round-trips bigint and bytes through the shared storage codec (D7)', async () => {
+    const value = { n: 7n, bytes: new Uint8Array([1, 2, 3]) };
+    await store.set('codec', value);
+    const read = await store.get<typeof value>('codec');
+    expect(read).toEqual(value);
+    expect(typeof read?.n).toBe('bigint');
+  });
+
   it('has() reflects set/del', async () => {
     expect(await store.has('k')).toBe(false);
     await store.set('k', true);

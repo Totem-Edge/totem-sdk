@@ -157,7 +157,8 @@ export class HyperswarmManager {
       this._node.handleConnection(transport);
     });
 
-    await swarm.join(topicBuf, { announce, lookup });
+    // D1 / RFC-057 Phase 0: current Hyperswarm uses { server, client }.
+    await swarm.join(topicBuf, { server: announce, client: lookup });
 
     // Wait for the initial flush to complete so peers are immediately reachable
     if (typeof swarm.flush === 'function') {

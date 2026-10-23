@@ -21,8 +21,8 @@
  *   be notified on each event.
  */
 
-import { createOmniaSwarm } from '@totemsdk/omnia-hyperswarm';
-import { createOmniaIntegration } from '@totemsdk/omnia-hyperswarm';
+import { createOmniaSwarm } from '@totemsdk/omnia';
+import { createOmniaIntegration } from '@totemsdk/omnia';
 import { createChannel } from '@totemsdk/omnia';
 import { createLogger } from '@totemsdk/pear';
 

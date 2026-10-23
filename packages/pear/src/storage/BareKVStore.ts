@@ -1,7 +1,8 @@
 /**
  * BareKVStore — Hyperbee-backed KVStore implementation.
  *
- * Uses a Hypercore + Hyperbee (append-only B-tree) as the durable backing store.
+ * Uses a Hypercore + Hyperbee (append-only B-tree) as the durable backing store,
+ * with the shared `@totemsdk/storage` versioned codec for values (RFC-007/057 D7).
  * This is the preferred persistence layer for Pear apps that already use the
  * Holepunch stack (zero extra dependencies, P2P-replicatable by default).
  *
@@ -14,6 +15,7 @@
  * Hyperbee instance — used by tests to avoid a real Hypercore on disk.
  */
 
+import { codec } from '@totemsdk/storage';
 import type { KVStore } from './types.js';
 
 export interface HypebeeLike {
@@ -62,7 +64,10 @@ export class BareKVStore implements KVStore {
       ]) as [{ default: new (core: unknown, opts: object) => HypebeeLike }, { default: new (path: string) => unknown }];
 
       const core = new Hypercore(storagePath);
-      this._bee = new Hyperbee(core, { keyEncoding: 'utf-8', valueEncoding: 'json' });
+      // D7 / RFC-057 Phase 0: use the shared Totem versioned codec (bigint +
+      // Uint8Array tags, explicit format version) instead of raw JSON, so
+      // Hyperbee/Pear agrees with every other @totemsdk/storage adapter.
+      this._bee = new Hyperbee(core, { keyEncoding: 'utf-8', valueEncoding: 'binary' });
       await this._bee.ready();
       return this._bee;
     })();
@@ -75,12 +80,13 @@ export class BareKVStore implements KVStore {
   async get<T>(key: string): Promise<T | null> {
     const bee = await this._open();
     const entry = await bee.get(key);
-    return entry ? (entry.value as T) : null;
+    if (!entry) return null;
+    return codec.deserialize(new Uint8Array(entry.value as Uint8Array)) as T;
   }
 
   async set<T>(key: string, value: T): Promise<void> {
     const bee = await this._open();
-    await bee.put(key, value);
+    await bee.put(key, Buffer.from(codec.serialize(value)));
   }
 
   async remove(key: string): Promise<boolean> {

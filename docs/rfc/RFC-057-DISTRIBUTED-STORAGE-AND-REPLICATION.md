@@ -1,6 +1,6 @@
 # RFC-057 — Distributed Storage and Replication (Holepunch Integration)
 
-Status: Draft — Phase 0 (repair + conformance) authorised; **not started**; no new public API or package surface is authorised by this RFC
+Status: Draft — Phase 0 (repair + conformance) **started** (D1, D7, D13 landed; see [`RFC-057-PHASE-0-TRACKING.md`](./RFC-057-PHASE-0-TRACKING.md)); no new public API or package surface is authorised by this RFC
 Created: 2026-10-20
 Authors: Totem SDK Contributors
 Depends on: RFC-007 (Storage Architecture), RFC-031 (Bare/ESM portability), RFC-037 (unified WOTS identity)
