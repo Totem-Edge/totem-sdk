@@ -13,6 +13,7 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 const PACKAGES_DIR = join(ROOT, 'packages');
+const ROOT_LICENSE = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).license;
 
 const REQUIRED_FIELDS = ['author', 'license', 'repository', 'homepage', 'bugs', 'keywords', 'files'];
 
@@ -80,6 +81,8 @@ for (const pkgDir of pkgDirs) {
   const licenseVal = pkg.license;
   if (typeof licenseVal !== 'string' || !/^[A-Za-z0-9.\-+ ]+$/.test(licenseVal)) {
     missing.push('license (not an SPDX expression)');
+  } else if (licenseVal !== ROOT_LICENSE) {
+    missing.push(`license (${licenseVal} ≠ root ${ROOT_LICENSE})`);
   }
 
   // Verify LICENSE and NOTICE files exist on disk
@@ -90,6 +93,9 @@ for (const pkgDir of pkgDirs) {
   const noticePath = join(PACKAGES_DIR, pkgDir, 'NOTICE');
   if (!existsSync(noticePath)) {
     missing.push('NOTICE file on disk');
+  }
+  if (!Array.isArray(pkg.files) || !pkg.files.includes('LICENSE')) {
+    missing.push('LICENSE in files');
   }
   if (!Array.isArray(pkg.files) || !pkg.files.includes('NOTICE')) {
     missing.push('NOTICE in files');
