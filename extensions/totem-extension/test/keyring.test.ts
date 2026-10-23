@@ -97,7 +97,7 @@ describe('MinimaKeyring', () => {
       const signature = keyring.signParentChild(parentSeed, childRoot);
       
       expect(Array.isArray(signature)).toBe(true);
-      expect(signature.length).toBe(34); // WOTS+ signature length
+      expect(signature.length).toBe(34); // WOTS signature length
     });
 
     test('can sign transaction hash', () => {
@@ -107,7 +107,7 @@ describe('MinimaKeyring', () => {
       const signature = keyring.signTxHash(txHash, leafSeed);
       
       expect(Array.isArray(signature)).toBe(true);
-      expect(signature.length).toBe(34); // WOTS+ signature length
+      expect(signature.length).toBe(34); // WOTS signature length
     });
 
     test('throws error when signing with locked vault', () => {

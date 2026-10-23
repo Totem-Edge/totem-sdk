@@ -1,6 +1,6 @@
 # Totem Core Yellow Paper
 
-**The cryptographic foundation of the Totem SDK — WOTS+ signatures, TreeKey hierarchy, MMR proofs, and byte-exact Minima serialization, implemented in both TypeScript and Rust/WASM.**
+**The cryptographic foundation of the Totem SDK — WOTS signatures, TreeKey hierarchy, MMR proofs, and byte-exact Minima serialization, implemented in both TypeScript and Rust/WASM.**
 
 **Version:** 3.1
 **Last Updated:** 2026-07-27

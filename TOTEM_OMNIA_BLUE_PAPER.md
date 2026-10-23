@@ -879,7 +879,7 @@ At global scale, 100,000 on-chain transactions per day is well within Minima's c
 | Fee model | 1.5-3.5% + $0.10-0.30 | 0.1% per routing hop |
 | Device-to-device | Not supported | Native |
 | Offline operation | No | Yes (VTXOs, statechains) |
-| Quantum resistance | No | Yes (WOTS+) |
+| Quantum resistance | No | Yes (WOTS) |
 | Censorship resistance | No (centralised) | Yes (P2P) |
 
 ### 14.4 The Path to Billions
@@ -924,7 +924,7 @@ The Omnia Payment Network is the financial layer of Edge DeFi (Eefi). It compose
 │  Lookup Protocol (P2P discovery) · Stream Transport         │
 ├─────────────────────────────────────────────────────────────┤
 │                    CRYPTOGRAPHIC LAYER                       │
-│  WOTS+ Signatures · TreeKey Hierarchy · MMR Proofs          │
+│  WOTS Signatures · TreeKey Hierarchy · MMR Proofs          │
 │  SHA3-256 Hashing · Byte-Exact Serialization                │
 │  Rust/WASM Engine · Quantum Resistance                      │
 └─────────────────────────────────────────────────────────────┘
@@ -1060,7 +1060,7 @@ RETURN TRUE
 
 ## Related Specifications
 
-- [Core Yellow Paper](TOTEM_CORE_YELLOW_PAPER.md) — WOTS+ parameters, TreeKey hierarchy and MMR proofs
+- [Core Yellow Paper](TOTEM_CORE_YELLOW_PAPER.md) — WOTS parameters, TreeKey hierarchy and MMR proofs
 - [Edge Grey Paper](TOTEM_EDGE_GREY_PAPER.md) — port-injected edge runtime and the sensor-to-settlement bridge
 - [Governance Green Paper](TOTEM_GOVERNANCE_GREEN_PAPER.md) — authority mandates and recursive MAST policy
 - [Intelligence & Decision Purple Paper](TOTEM_INTELLIGENCE_DECISION_PURPLE_PAPER.md) — Decision-first bounded semantics and governed execution (AI proposes, Totem authorizes)

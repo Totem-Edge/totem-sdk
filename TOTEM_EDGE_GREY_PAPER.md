@@ -579,7 +579,7 @@ Guest presents statechain to lock. Lock verifies chain of custody off-chain. Loc
 - [Governance Green Paper](TOTEM_GOVERNANCE_GREEN_PAPER.md) — authority mandates, policy and autonomy budgets
 - [Omnia Blue Paper](TOTEM_OMNIA_BLUE_PAPER.md) — channels, settlement and economic coordination
 - [Connect Red Paper](TOTEM_CONNECT_RED_PAPER.md) — dApp-wallet protocol
-- [Core Yellow Paper](TOTEM_CORE_YELLOW_PAPER.md) — WOTS+/TreeKey signing
+- [Core Yellow Paper](TOTEM_CORE_YELLOW_PAPER.md) — WOTS/TreeKey signing
 
 ---
 

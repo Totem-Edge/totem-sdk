@@ -22,7 +22,7 @@
 
 | Document | Description |
 |----------|-------------|
-| [../TOTEM_CORE_YELLOW_PAPER.md](../TOTEM_CORE_YELLOW_PAPER.md) | Core cryptographic yellow paper — WOTS+ parameters, TreeKey hierarchy, signing, serialization, lease/watermark coordination, Rust/WASM engine |
+| [../TOTEM_CORE_YELLOW_PAPER.md](../TOTEM_CORE_YELLOW_PAPER.md) | Core cryptographic yellow paper — WOTS parameters, TreeKey hierarchy, signing, serialization, lease/watermark coordination, Rust/WASM engine |
 | [../TOTEM_CONNECT_RED_PAPER.md](../TOTEM_CONNECT_RED_PAPER.md) | Connect Red Paper — dApp-wallet wire protocol specification (49 methods) |
 | [../TOTEM_OMNIA_BLUE_PAPER.md](../TOTEM_OMNIA_BLUE_PAPER.md) | Omnia Blue Paper — P2P payment channels, routing, factories, VTXOs, statechains, scaling to billions |
 | [../TOTEM_GOVERNANCE_GREEN_PAPER.md](../TOTEM_GOVERNANCE_GREEN_PAPER.md) | Governance Green Paper — authority mandates, recursive MAST policy trees, quadratic voting, liquid democracy, QVAC agent policy |

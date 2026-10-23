@@ -2,7 +2,7 @@
 
 ## Is Totem Wallet secure?
 
-Yes. Totem Wallet uses quantum-resistant WOTS+ signatures and never exposes your private keys. All signing happens client-side.
+Yes. Totem Wallet uses quantum-resistant WOTS signatures and never exposes your private keys. All signing happens client-side.
 
 ## What makes WOTS quantum-resistant?
 
@@ -30,7 +30,7 @@ See [SECURITY.md](../../SECURITY.md). Do not open a public GitHub issue.
 
 | Purpose | Algorithm |
 |---------|-----------|
-| Signatures | WOTS+ (w=8, n=256, L=34) |
+| Signatures | WOTS (w=8, n=256, L=34) |
 | Hashing | SHA3-256 (Keccak) |
 | Encryption | AES-256-GCM |
 | Key Derivation | PBKDF2 with SHA-256 |

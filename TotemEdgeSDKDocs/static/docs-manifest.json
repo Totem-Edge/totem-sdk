@@ -1401,7 +1401,7 @@
     {
       "name": "@totemsdk/core",
       "slug": "totemsdk-core",
-      "description": "Core cryptographic primitives — WOTS+, SHA3-256, TreeKey, BIP39, backed by Rust/WASM",
+      "description": "Core cryptographic primitives — WOTS, SHA3-256, TreeKey, BIP39, backed by Rust/WASM",
       "domain": "cryptographic-foundation",
       "maturity": "v1",
       "apiReferenceUrl": "https://docs.totem.ing/api/totemsdk-core/",
@@ -2544,7 +2544,7 @@
     {
       "name": "@totemsdk/core-wasm",
       "slug": "totemsdk-core-wasm",
-      "description": "WOTS+ cryptographic engine compiled from Rust to WASM",
+      "description": "WOTS cryptographic engine compiled from Rust to WASM",
       "domain": "cryptographic-foundation",
       "maturity": "v1",
       "apiReferenceUrl": "https://docs.totem.ing/api/totemsdk-core-wasm/",
@@ -15422,7 +15422,7 @@
     {
       "title": "@totemsdk/core-wasm",
       "url": "https://docs.totem.ing/api/totemsdk-core-wasm/index",
-      "description": "WOTS+ cryptographic engine compiled from Rust to WASM"
+      "description": "WOTS cryptographic engine compiled from Rust to WASM"
     },
     {
       "title": "index",

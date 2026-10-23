@@ -1,12 +1,12 @@
 ---
 title: "@totemsdk/core-wasm"
 sidebar_label: "@totemsdk/core-wasm"
-description: "WOTS+ cryptographic engine compiled from Rust to WASM"
+description: "WOTS cryptographic engine compiled from Rust to WASM"
 ---
 
 # `@totemsdk/core-wasm`
 
-> WOTS+ cryptographic engine compiled from Rust to WASM
+> WOTS cryptographic engine compiled from Rust to WASM
 
 **Maturity: `v1`**
 

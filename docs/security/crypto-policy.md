@@ -131,7 +131,7 @@ This document defines the cryptographic security policies for the Totem SDK. All
 - **Symmetric encryption**: AES-256-GCM
 - **Key derivation**: PBKDF2 with SHA-256, minimum 200,000 iterations
 - **Hash function**: SHA3-256 (Keccak)
-- **Digital signatures**: WOTS+ (w=8, n=256, L=34)
+- **Digital signatures**: WOTS (w=8, n=256, L=34)
 - **Ephemeral keys**: Ed25519 (for session authentication only, not for blockchain transactions)
 
 **Prohibited**:

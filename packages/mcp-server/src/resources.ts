@@ -18,7 +18,7 @@ const PAPERS: Array<{ uri: string; name: string; description: string; file: stri
   {
     uri: 'totemsdk://papers/yellow',
     name: 'Core Yellow Paper',
-    description: 'WOTS+ signatures, TreeKey hierarchy, MMR proofs, byte-exact serialization, lease/watermark coordination, Rust/WASM engine',
+    description: 'WOTS signatures, TreeKey hierarchy, MMR proofs, byte-exact serialization, lease/watermark coordination, Rust/WASM engine',
     file: 'TOTEM_CORE_YELLOW_PAPER.md',
   },
   {

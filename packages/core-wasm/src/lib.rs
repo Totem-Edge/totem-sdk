@@ -1,4 +1,4 @@
-//! Totem SDK Core — Quantum-resistant WOTS+ cryptographic engine
+//! Totem SDK Core — Quantum-resistant WOTS cryptographic engine
 //!
 //! Compiled to WASM for use in browsers, Node.js, Pear/Bare, and edge devices.
 //! All functions are byte-exact compatible with the Minima Java node.

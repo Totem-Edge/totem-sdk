@@ -1,6 +1,6 @@
 use crate::java_streamables::derive_chain_seed_java;
 use crate::params::*;
-/// WOTS+ implementation — BouncyCastle-compatible
+/// WOTS implementation — BouncyCastle-compatible
 ///
 /// Matches org.bouncycastle.pqc.crypto.gmss.util.WinternitzOTSignature
 /// and WinternitzOTSVerify byte-for-byte.

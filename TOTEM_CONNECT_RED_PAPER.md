@@ -2078,7 +2078,7 @@ The extension implements the full protocol as a background service worker with a
 
 ### 16.3 Related Specifications
 
-- [Core Yellow Paper](TOTEM_CORE_YELLOW_PAPER.md) — WOTS+ parameters, TreeKey hierarchy, MMR proofs, serialization, lease/watermark coordination
+- [Core Yellow Paper](TOTEM_CORE_YELLOW_PAPER.md) — WOTS parameters, TreeKey hierarchy, MMR proofs, serialization, lease/watermark coordination
 - [Omnia Blue Paper](TOTEM_OMNIA_BLUE_PAPER.md) — Eltoo payment channel protocol
 - [Governance Green Paper](TOTEM_GOVERNANCE_GREEN_PAPER.md) — recursive MAST, authority, quadratic voting
 - [Edge Grey Paper](TOTEM_EDGE_GREY_PAPER.md) — edge runtime, port injection, MachinePay

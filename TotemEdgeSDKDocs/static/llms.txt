@@ -55,7 +55,7 @@ index | https://docs.totem.ing/api/totemsdk-core/index | Maturity: v1**
 ## Classes
 
 - [ConsoleLogger](classes/ConsoleLogger.
-@totemsdk/core-wasm | https://docs.totem.ing/api/totemsdk-core-wasm/index | WOTS+ cryptographic engine compiled from Rust to WASM
+@totemsdk/core-wasm | https://docs.totem.ing/api/totemsdk-core-wasm/index | WOTS cryptographic engine compiled from Rust to WASM
 index | https://docs.totem.ing/api/totemsdk-edge/index | Maturity: v1**
 
 # @totemsdk/edge

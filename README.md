@@ -28,7 +28,7 @@ Physical systems don't work in "transactions". They work in loops:
 | Stage | What happens | Serious packages |
 |-------|--------------|------------------|
 | **Sense** | A device reads the world — temperature, pressure, energy, motion. | `edge-*` protocol adapters (MQTT, Modbus, BACnet, CAN, BLE, LoRaWAN, OPC-UA, ROS 2, Matter, CoAP, gRPC, SMTP/IMAP) |
-| **Prove** | The reading becomes a signed, anchored, verifiable fact. | `core` (WOTS+ signatures), `root-identity`, `proof`, `proofgraph`, `manifest` |
+| **Prove** | The reading becomes a signed, anchored, verifiable fact. | `core` (WOTS signatures), `root-identity`, `proof`, `proofgraph`, `manifest` |
 | **Decide** | Policy evaluates whether the fact is acceptable. | `recursive-mast`, `authority`, `governance`, `agent-policy`, `kissvm` |
 | **Act** | Bounded operational action against a real device. | `edge`, `industrial-action`, `edge-adapters` |
 | **Settle** | Value moves — micropayments, balances, dividends. | `omnia`, `omnia-router`, `omnia-factory`, `statechain`, `liquidity-bond` |
@@ -69,7 +69,7 @@ Agents never hold keys. An agent proposes a payment or an action; a policy engin
 
 Totem SDK is Minima-native, and we chose Minima because it fits the loop rather than fights it:
 
-- **Hash-based signatures by construction.** WOTS+ one-time signatures are built from SHA3-256 — their security rests on the hash function, not on discrete-log or factoring assumptions, so they are a deliberate, from-scratch choice for a quantum future rather than a retrofit.
+- **Hash-based signatures by construction.** WOTS one-time signatures are built from SHA3-256 — their security rests on the hash function, not on discrete-log or factoring assumptions, so they are a deliberate, from-scratch choice for a quantum future rather than a retrofit.
 - **UTXO-native.** Value moves by spending coins, which composes naturally with channels, statechains, and vaults.
 - **Scriptable at the protocol level.** KISSVM makes program invariants enforceable on-chain, so the deciding and settling stages are verifiable — not just wallet-side.
 - **Runs on commodity hardware.** A personal node is small enough for a household or a factory edge box.
@@ -161,7 +161,7 @@ Every stage produces evidence the next stage consumes — and every stage can be
 | Package | Description |
 |---------|-------------|
 | [`@totemsdk/core`](packages/core) | The cryptographic engine — WOTS, TreeKey, BIP39, MMR, serialization, WASM-backed |
-| [`@totemsdk/core-wasm`](packages/core-wasm) | Rust/WASM core — WOTS+ signatures, SHA3-256, TreeKey, TxPoW mining, BIP39 |
+| [`@totemsdk/core-wasm`](packages/core-wasm) | Rust/WASM core — WOTS signatures, SHA3-256, TreeKey, TxPoW mining, BIP39 |
 | [`@totemsdk/wots-lease`](packages/wots-lease) | WOTS key safety — atomic reservation, hash-chained journal, crash recovery |
 | [`@totemsdk/root-identity`](packages/root-identity) | One seed → up to 64 blockchain addresses, all cryptographically provable |
 | [`@totemsdk/proof`](packages/proof) | Portable proof layer — create, sign, verify, and anchor WOTS-signed proof envelopes |
@@ -228,7 +228,7 @@ Every stage produces evidence the next stage consumes — and every stage can be
 | Package | Description |
 |---------|-------------|
 | [`@totemsdk/core`](packages/core) | The cryptographic engine — WOTS, TreeKey, BIP39, MMR, serialization, WASM-backed |
-| [`@totemsdk/core-wasm`](packages/core-wasm) | Rust/WASM core — WOTS+ signatures, SHA3-256, TreeKey, TxPoW mining, BIP39 |
+| [`@totemsdk/core-wasm`](packages/core-wasm) | Rust/WASM core — WOTS signatures, SHA3-256, TreeKey, TxPoW mining, BIP39 |
 | [`@totemsdk/kissvm`](packages/kissvm) | KISSVM v1 evaluator — Minima's smart contract language, Rust/WASM-backed |
 
 ### Sovereignty infrastructure
@@ -297,7 +297,7 @@ pnpm add @totemsdk/edge @totemsdk/edge-mqtt @totemsdk/edge-bacnet
 pnpm add @totemsdk/agent-policy
 ```
 
-### Sign and verify with WOTS+
+### Sign and verify with WOTS
 
 ```typescript
 import { wotsSign, wotsVerify, derivePKdigest } from '@totemsdk/core';
@@ -394,7 +394,7 @@ No package in this SDK imports a network library. Every protocol adapter defines
 
 ### Hash-based quantum resistance
 
-Every signing operation flows through **WOTS+ (Winternitz One-Time Signatures)** — w=8, n=256, L=34 — built from SHA3-256 with a 3-level TreeKey hierarchy providing 262,144 one-time signatures per address. Because the security of WOTS+ rests on the one-wayness of the underlying hash rather than on discrete-log or factoring assumptions, the stack does not rely on any algorithm a large-scale quantum computer could retire. The one fatal failure mode — one-time key reuse — is handled by the `wots-lease` system: atomic reservation, hash-chained journaling, and crash recovery.
+Every signing operation flows through **WOTS (Winternitz One-Time Signatures)** — w=8, n=256, L=34 — built from SHA3-256 with a 3-level TreeKey hierarchy providing 262,144 one-time signatures per address. Because the security of WOTS rests on the one-wayness of the underlying hash rather than on discrete-log or factoring assumptions, the stack does not rely on any algorithm a large-scale quantum computer could retire. The one fatal failure mode — one-time key reuse — is handled by the `wots-lease` system: atomic reservation, hash-chained journaling, and crash recovery.
 
 ### Sovereignty
 
@@ -429,7 +429,7 @@ The channel state machine (`omnia`) is implemented in both TypeScript and Rust/W
 
 | Package | Rust crate | Lines | What it does |
 |---------|-----------|-------|-------------|
-| `@totemsdk/core-wasm` | `totemsdk-core-wasm` | ~2,720 | WOTS+ signatures, SHA3-256, TreeKey, TxPoW mining, BIP39 |
+| `@totemsdk/core-wasm` | `totemsdk-core-wasm` | ~2,720 | WOTS signatures, SHA3-256, TreeKey, TxPoW mining, BIP39 |
 | `@totemsdk/kissvm` | `kissvm-wasm` | ~1,800 | KISSVM v1 evaluator — lexer, parser, VM, all opcodes |
 | `@totemsdk/edge-mqtt` | `edge-mqtt-wasm` | ~550 | Canonical JSON, MQTT topic matching, fixed-point arithmetic |
 | `@totemsdk/omnia` | `omnia` | — | Channel state machine, programs, recovery, close-package validation |
@@ -442,7 +442,7 @@ Each package also ships a TypeScript fallback and a `wasm-sync.ts` bridge that p
 
 ### Key security properties
 
-- **Hash-based signatures** — WOTS+ from SHA3-256; no discrete-log assumptions to break
+- **Hash-based signatures** — WOTS from SHA3-256; no discrete-log assumptions to break
 - **Keys never leave your device** — all signing happens client-side
 - **PBKDF2 key derivation** — 200,000+ iterations for password-derived keys
 - **AES-256-GCM encryption** — for stored seeds and mnemonics
@@ -461,7 +461,7 @@ See [SECURITY.md](SECURITY.md) for our vulnerability disclosure policy.
 
 ```
 packages/                   # 62 workspace packages, 61 publishable @totemsdk scoped
-├── core/                   # Cryptographic primitives (WOTS+, MMR, etc.)
+├── core/                   # Cryptographic primitives (WOTS, MMR, etc.)
 ├── core-wasm/              # Rust/WASM crypto engine
 ├── kissvm/                 # KISSVM evaluator + template library
 ├── omnia/                  # Eltoo payment channels + 8 built-in programs
@@ -503,7 +503,7 @@ docs/                       # SDK documentation
 | [KISSVM Guide](packages/kissvm/docs/KISSVM_Comprehensive_Guide.md) | Full KISSVM language reference, opcodes, templates |
 | [KISSVM Reference](packages/kissvm/docs/REFERENCE.md) | Quick-reference card for KISSVM syntax and opcodes |
 | [Integration Guide](packages/core/docs/INTEGRATION_GUIDE.md) | Server-side verification, hex conventions, TreeSignature format, replay protection |
-| [Core Yellow Paper](TOTEM_CORE_YELLOW_PAPER.md) | Full WOTS+ and TreeKey cryptographic specification |
+| [Core Yellow Paper](TOTEM_CORE_YELLOW_PAPER.md) | Full WOTS and TreeKey cryptographic specification |
 | [Connect Red Paper](TOTEM_CONNECT_RED_PAPER.md) | Totem Connect dApp-wallet protocol specification — all 49 methods |
 | [Omnia Blue Paper](TOTEM_OMNIA_BLUE_PAPER.md) | P2P payment channels, routing, factories, VTXOs, statechains |
 | [Governance Green Paper](TOTEM_GOVERNANCE_GREEN_PAPER.md) | Authority mandates, recursive MAST policy trees, quadratic voting |

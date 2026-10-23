@@ -7,7 +7,7 @@
   "total": 67,
   "domains": {
     "cryptographic-foundation": {
-      "description": "WOTS+ signatures, TreeKey hierarchy, MMR proofs, KISSVM, MAST, TxPoW",
+      "description": "WOTS signatures, TreeKey hierarchy, MMR proofs, KISSVM, MAST, TxPoW",
       "packages": [
         "@totemsdk/core",
         "@totemsdk/core-wasm",
@@ -236,7 +236,7 @@
     {
       "name": "@totemsdk/core",
       "version": "1.4.0",
-      "description": "Core cryptographic primitives — WOTS+, SHA3-256, TreeKey, BIP39, backed by Rust/WASM",
+      "description": "Core cryptographic primitives — WOTS, SHA3-256, TreeKey, BIP39, backed by Rust/WASM",
       "domain": "cryptographic-foundation",
       "keywords": [
         "wots",
@@ -300,7 +300,7 @@
     {
       "name": "@totemsdk/core-wasm",
       "version": "1.0.4",
-      "description": "WOTS+ cryptographic engine compiled from Rust to WASM",
+      "description": "WOTS cryptographic engine compiled from Rust to WASM",
       "domain": "cryptographic-foundation",
       "keywords": [
         "wasm",

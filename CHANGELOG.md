@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Terminology:** replaced every `WOTS+` reference with `WOTS` across the SDK,
+  documentation and generated API text. Minima uses regular WOTS, not the WOTS+
+  variant.
+
 ### Security
 
 - **`@totemsdk/manifest` 2.0.2 — author-address binding:** `verifyManifest` now
@@ -165,7 +171,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **`@totemsdk/core-wasm` 1.0.0** — Rust/WASM cryptographic core reaches v1 (WOTS+, SHA3-256, TreeKey, TxPoW mining, BIP39).
+- **`@totemsdk/core-wasm` 1.0.0** — Rust/WASM cryptographic core reaches v1 (WOTS, SHA3-256, TreeKey, TxPoW mining, BIP39).
 - **`@totemsdk/kissvm` 1.0.0** — KISSVM evaluator reaches v1 (Rust/WASM-backed, Java byte-exact parity).
 - **`@totemsdk/wots-lease` 1.0.0** — WOTS key-use coordination reaches v1 with all five provider layers implemented:
   - Layer 4 `P2PQuorumLeaseProvider` — multi-device quorum attestation over the same signing slot; slots are burned on quorum failure or conflict so they are never reused.

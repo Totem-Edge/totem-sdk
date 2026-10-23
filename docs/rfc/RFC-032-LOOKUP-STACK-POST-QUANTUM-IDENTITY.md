@@ -11,7 +11,7 @@
 
 ## 1. Summary
 
-The lookup stack (`lookup-protocol` / `lookup-client` / `lookup-node`) authenticates peers with **Ed25519**, which is broken by Shor's algorithm and therefore not post-quantum. Everywhere else in Totem, identity is **hash-based** (WOTS+ / TreeKey, RFC-008/RFC-009) and anchored to a Minima address; the lookup stack is the outlier.
+The lookup stack (`lookup-protocol` / `lookup-client` / `lookup-node`) authenticates peers with **Ed25519**, which is broken by Shor's algorithm and therefore not post-quantum. Everywhere else in Totem, identity is **hash-based** (WOTS / TreeKey, RFC-008/RFC-009) and anchored to a Minima address; the lookup stack is the outlier.
 
 This RFC replaces Ed25519 across the lookup stack with the **WOTS/TreeKey identity Totem already uses**, so that node authentication, app/agent announcements, lease certificates and trust records all attach a single, quantum-resistant identity to access requests. It is a **hard switch** (per decision): the lookup wire format moves to WOTS-only and Ed25519 is removed, not dual-run.
 

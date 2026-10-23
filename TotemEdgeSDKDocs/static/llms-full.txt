@@ -2176,8 +2176,8 @@ Auto-generated from TypeScript sources via TypeDoc. Run `npm run generate` from 
 | [`@totemsdk/authority`](totemsdk-authority/index.md) | Deterministic authority engine — mandate verification, scope matching, usage tracking | v1 |
 | [`@totemsdk/chain-provider`](totemsdk-chain-provider/index.md) | Unified ChainStateProvider interface — Hosted, PureMinima, and Composite strategies | rc |
 | [`@totemsdk/connect`](totemsdk-connect/index.md) | Client-side SDK for Totem wallet browser extension — includes Edge capability layer | v1 |
-| [`@totemsdk/core`](totemsdk-core/index.md) | Core cryptographic primitives — WOTS+, SHA3-256, TreeKey, BIP39, backed by Rust/WASM | v1 |
-| [`@totemsdk/core-wasm`](totemsdk-core-wasm/index.md) | WOTS+ cryptographic engine compiled from Rust to WASM | v1 |
+| [`@totemsdk/core`](totemsdk-core/index.md) | Core cryptographic primitives — WOTS, SHA3-256, TreeKey, BIP39, backed by Rust/WASM | v1 |
+| [`@totemsdk/core-wasm`](totemsdk-core-wasm/index.md) | WOTS cryptographic engine compiled from Rust to WASM | v1 |
 | [`@totemsdk/edge`](totemsdk-edge/index.md) | Unified developer-facing runtime — composes identity, manifest, wallet, payment, proof, lookup, and policy via injected ports | v1 |
 | [`@totemsdk/edge-adapters`](totemsdk-edge-adapters/index.md) | Reference adapters bridging SDK packages to @totemsdk/edge port interfaces | rc |
 | [`@totemsdk/edge-bacnet`](totemsdk-edge-bacnet/index.md) | Edge runtime adapter for BACnet — building automation, HVAC, device properties | rc |
@@ -3005,7 +3005,7 @@ URL: https://docs.totem.ing/api/totemsdk-core-wasm/index
 
 # `@totemsdk/core-wasm`
 
-> WOTS+ cryptographic engine compiled from Rust to WASM
+> WOTS cryptographic engine compiled from Rust to WASM
 
 **Maturity: `v1`**
 

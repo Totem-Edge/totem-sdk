@@ -1,4 +1,4 @@
-//! WOTS+ parameter set for Minima blockchain.
+//! WOTS parameter set for Minima blockchain.
 //!
 //! Winternitz parameter w=8 (8 bits per digit), n=256 (SHA3-256 output),
 //! L=34 chains (32 message + 2 checksum).
