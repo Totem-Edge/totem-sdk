@@ -25,14 +25,26 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import sha3pkg from 'js-sha3';
 const { sha3_256 } = sha3pkg;
+import { init as initCoreWasm } from '@totemsdk/core/wasm';
 import {
   TreeKey,
   serializeTreeSignature,
   deriveAddressFromPublicKey,
   verifySignatureDetailed,
-} from '../../../packages/core/dist/index.js';
+} from '@totemsdk/core';
+
+// @totemsdk/core 1.4 uses the async-init web WASM build; initialize it once
+// with the bundled wasm bytes before any TreeKey work.
+const wasmGlue = import.meta.resolve('@totemsdk/core-wasm/web');
+await initCoreWasm({
+  module_or_path: readFileSync(
+    fileURLToPath(new URL('totemsdk_core_wasm_bg.wasm', wasmGlue)),
+  ),
+});
 
 function hexToBytes(hex) {
   const stripped = String(hex).replace(/^0x/i, '');

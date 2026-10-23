@@ -56,7 +56,9 @@ export async function waitForOnboarding(page: Page): Promise<void> {
 }
 
 export async function waitForHome(page: Page): Promise<void> {
-  await expect(page.locator('[data-testid="home-balance"], .balance-display, text=/MINIMA/i')).toBeVisible({ timeout: 30000 });
+  const home = page.locator('[data-testid="home-balance"], .balance-display');
+  const minima = page.getByText(/MINIMA/i);
+  await expect(home.or(minima).first()).toBeVisible({ timeout: 30000 });
 }
 
 export async function clearExtensionStorage(page: Page, extensionId: string): Promise<void> {
