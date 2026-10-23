@@ -77,14 +77,25 @@ See [docs/security/crypto-policy.md](docs/security/crypto-policy.md) for detaile
 
 ## Bug Bounty
 
-We offer bounties for responsibly disclosed vulnerabilities. Bounty amounts are determined by severity:
+We offer discretionary rewards for responsibly disclosed vulnerabilities.
+Rewards are paid in `$TOTEM` tokens, not fiat. No fiat payment is offered or
+implied.
 
-| Severity | Bounty Range |
-|----------|-------------|
-| Critical | $5,000 - $25,000 |
-| High     | $1,000 - $5,000  |
-| Medium   | $250 - $1,000    |
-| Low      | $100 - $250      |
+The reference bands below size the token award. The token amount is calculated
+at the initial valuation round price:
+
+`token reward = reference USD value / initial round USD price per TOTEM`
+
+| Severity | Reference band (USD) | Token reward |
+|----------|---------------------:|--------------|
+| Critical | $5,000 - $25,000 | equivalent in `$TOTEM` at the initial round price |
+| High     | $1,000 - $5,000  | equivalent in `$TOTEM` at the initial round price |
+| Medium   | $250 - $1,000    | equivalent in `$TOTEM` at the initial round price |
+| Low      | $100 - $250      | equivalent in `$TOTEM` at the initial round price |
+
+The exact `$TOTEM` amounts will be fixed when the initial valuation round price
+is finalised. Until then, the reference bands are used only to size a
+discretionary token award; they are not a promise of fiat payment.
 
 Critical vulnerabilities include:
 - WOTS key recovery or signature forgery
