@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-10-23
+
+### Added
+
+- Durable host state for factories, virtual channels, splice proposals/acceptances,
+  VTXO pools/claims/receipts and liquidity pools/positions, persisted through
+  `@totemsdk/storage/sqlite-sync` (same codec/envelope as the channel/operation
+  stores).
+- `PersistentMap` with explicit host-state format versioning (unsupported formats
+  refuse to open) and Map/Set/Date tagging; runtime signer/lease handles are
+  stripped, never persisted.
+
+### Fixed
+
+- Factory registry (and the other host-owned registries) now survives a host
+  restart, addressing the RFC-063 Tier-1 durable-state blocker.
+
 ## [0.11.0] - 2026-10-22
 
 ### Added
