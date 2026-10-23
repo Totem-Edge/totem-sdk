@@ -651,7 +651,10 @@
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
-      }
+      },
+      "supportReason": "Tier 2 required support dependency; v1",
+      "owner": "Totem SDK maintainers",
+      "evidence": "docs/rfc/RFC-063-PRODUCTION-READINESS-AND-MATURITY-PROMOTION.md#44-tier-2--required-support-dependencies"
     },
     "packages/wallet-adapter": {
       "status": "publishable",
@@ -664,9 +667,9 @@
     },
     "packages/wots-lease": {
       "status": "publishable",
-      "maturity": "rc",
-      "supportTier": 1,
-      "supportReason": "Tier 1 production candidate; evidence plan pending",
+      "maturity": "v1",
+      "supportTier": 0,
+      "supportReason": "Tier 0 production core; storage and txpow support gates satisfied",
       "owner": "Totem SDK maintainers",
       "evidence": "docs/TIER1-EVIDENCE-PLAN.md#wots-lease",
       "custody": {

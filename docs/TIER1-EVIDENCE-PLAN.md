@@ -39,10 +39,10 @@ production claim.
 
 ## 2. Package evidence
 
-### wots-lease
+### wots-lease — promoted to Tier 0
 
-**Current:** `rc`, Tier 1. API is v1-stable but the package is blocked from Tier 0
-by its dependency support surface.
+**Current:** `v1`, Tier 0. Promoted on 2026-10-23 after `storage` reached rc and
+`txpow` gained Tier 2 support metadata.
 
 **Evidence today**
 
@@ -51,18 +51,11 @@ by its dependency support surface.
 - Explicit fail-closed seed/watermark recovery tests.
 - On-chain lease path exists.
 
-**Missing**
+**Remaining production evidence**
 
-- `storage` is Alpha; `txpow` must meet the Tier 2 bar.
-- Real-node restart/recovery evidence for the durable lease path.
-- Channel tag `next` is present; `latest` remains npm's required default until a stable v1 exists.
-
-**Exit**
-
-- Storage and txpow dependencies meet the Tier 2 bar.
 - Crash/restart and restored-backup tests show no signing-leaf reuse.
-- Real-node lease/watermark recovery passes.
-- Dist-tag and docs agree with `rc`.
+- Real-node lease/watermark recovery remains required.
+- The explicit channel is now `latest`; the package is no longer a Tier 1 candidate.
 
 ### omnia
 

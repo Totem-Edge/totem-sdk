@@ -16,16 +16,16 @@
 
 | Level | Packages |
 |---|---:|
-| v1 | 18 |
-| rc | 42 |
+| v1 | 19 |
+| rc | 41 |
 | beta | 3 |
 | alpha | 4 |
 | excluded | 6 |
 
 | Support tier | Packages |
 |---|---:|
-| Tier 0 | 3 |
-| Tier 1 | 10 |
+| Tier 0 | 4 |
+| Tier 1 | 9 |
 | Tier 2 | 20 |
 | Outside production surface | 34 |
 | Excluded | 6 |
@@ -39,6 +39,7 @@ Total: **67** publishable packages + **6** excluded entries = **73** workspace e
 | `@totemsdk/core` | 1.4.0 | v1 | 0 | `packages/core` |
 | `@totemsdk/core-wasm` | 1.0.4 | v1 | 0 | `packages/core-wasm` |
 | `@totemsdk/kissvm` | 1.3.0 | v1 | 0 | `packages/kissvm` |
+| `@totemsdk/wots-lease` | 1.0.1 | v1 | 0 | `packages/wots-lease` |
 | `@totemsdk/edge-modbus` | 0.2.0 | rc | 1 | `packages/edge-modbus` |
 | `@totemsdk/edge-mqtt` | 0.2.5 | rc | 1 | `packages/edge-mqtt` |
 | `@totemsdk/industrial-action` | 0.2.1 | rc | 1 | `packages/industrial-action` |
@@ -48,7 +49,6 @@ Total: **67** publishable packages + **6** excluded entries = **73** workspace e
 | `@totemsdk/omnia` | 2.3.1 | rc | 1 | `packages/omnia` |
 | `@totemsdk/omnia-host` | 0.12.0 | rc | 1 | `packages/omnia-host` |
 | `@totemsdk/storage` | 0.2.0 | rc | 1 | `packages/storage` |
-| `@totemsdk/wots-lease` | 1.0.1 | rc | 1 | `packages/wots-lease` |
 | `@totemsdk/authority` | 1.0.1 | v1 | 2 | `packages/authority` |
 | `@totemsdk/edge` | 1.3.0 | v1 | 2 | `packages/edge` |
 | `@totemsdk/identity` | 1.0.2 | v1 | 2 | `packages/identity` |

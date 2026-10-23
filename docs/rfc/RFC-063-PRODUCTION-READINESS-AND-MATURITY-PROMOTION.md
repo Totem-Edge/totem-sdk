@@ -149,24 +149,22 @@ Current Tier 0:
 - `core`
 - `core-wasm`
 - `kissvm`
+- `wots-lease`
 
-These are the only packages with a complete production claim today. They are
-the cryptographic and VM foundation, have no required Alpha/Preview runtime
-dependency, and are the least ambiguous support surface.
+These are the packages with a complete production claim today. They are the
+cryptographic, VM and signing-slot foundation, have no required Alpha/Preview
+runtime dependency, and are the least ambiguous support surface.
 
-`wots-lease` is the next Tier 0 candidate. It has a v1 API, but its `storage` and
-`txpow` dependencies must first meet the Tier 2 minimum bar. Until then it stays
-in Tier 1 even though its package version and API are stable.
+`omnia` is the next Tier 0 candidate after its dependency closure and security
+gate are complete.
 
 ### 4.3 Tier 1 — production candidates
 
-- `wots-lease` — v1 API; blocked on the `storage`/`txpow` dependency review.
 - `omnia` — strongest Omnia candidate; AWS 8-node and non-custodial HTLC evidence
   exists, but its dependency closure and ownership gate are incomplete.
 - `omnia-host` — rc; durable host state and factory-registry recovery must pass
   before any production claim.
-- `storage` — alpha; promotion is a prerequisite for `wots-lease`,
-  `omnia-host`, `industrial-action` and `edge-mqtt`.
+- `storage` — rc; crash/power-loss and broader backend evidence remain.
 - `lookup-protocol`, `lookup-client`, `lookup-node` — rc; TypeScript/Go ticket
   parity is landed, but durable multi-peer and restart evidence remains.
 - `industrial-action` — rc; needs HIL and conformance evidence.
@@ -235,10 +233,10 @@ they enter Tier 1 with a named evidence plan.
 | Package | Current position | Blocker / next evidence |
 |---|---|---|
 | `core`, `core-wasm`, `kissvm` | Tier 0 | Maintain gates; no new production claim from this RFC |
-| `wots-lease` | Tier 1 (v1 API) | `storage` is alpha; `txpow` must meet Tier 2 bar |
+| `wots-lease` | Tier 0 | Storage is rc and txpow has Tier 2 metadata; real-node recovery evidence remains |
 | `omnia` | Tier 1 | AWS 8-node/7-hop evidence is strong; dependency closure and P7 ownership remain |
 | `omnia-host` | Tier 1 (rc) | 2026-10-22 7-hop teardown blocked: factory registry lost on restart; durable host storage required |
-| `storage` | Tier 1 (alpha) | Must be promoted before `wots-lease`, `omnia-host`, `industrial-action` or `edge-mqtt` can claim Tier 0 |
+| `storage` | Tier 1 (rc) | Crash/power-loss and broader backend parity remain |
 | `lookup-*` | Tier 1 (rc) | Real multi-peer durability, restart and teardown evidence |
 | `industrial-action` | Tier 1 (rc) | HIL and conformance evidence |
 | `edge-mqtt`, `edge-modbus` | Tier 1 (rc) | HIL and conformance evidence |

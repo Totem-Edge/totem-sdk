@@ -258,15 +258,15 @@ We are honest about where things stand. The core cryptographic layer and the Omn
 
 | Level | Packages | Meaning |
 |-------|---------:|---------|
-| v1 | 18 | Production support; API and evidence gates met |
-| rc | 42 | Release candidate; API-frozen for the next minor |
+| v1 | 19 | Production support; API and evidence gates met |
+| rc | 41 | Release candidate; API-frozen for the next minor |
 | beta | 3 | Usable; API may change |
 | alpha | 4 | Architecture proof; no compatibility promise |
 | excluded | 6 | Private/test harness; not published |
 
-Support tiers: **Tier 0** (3) first-line production core, **Tier 1** (10) production candidates, **Tier 2** (20) required support dependencies, **outside** (34), **excluded** (6). The generated per-package matrix is [`docs/maturity.md`](docs/maturity.md). It is checked in CI against `scripts/workspace-gates.config.json`; do not edit it by hand.
+Support tiers: **Tier 0** (4) first-line production core, **Tier 1** (9) production candidates, **Tier 2** (20) required support dependencies, **outside** (34), **excluded** (6). The generated per-package matrix is [`docs/maturity.md`](docs/maturity.md). It is checked in CI against `scripts/workspace-gates.config.json`; do not edit it by hand.
 
-**Production surface (RFC-063 §4):** Tier 0 is `core`, `core-wasm` and `kissvm`. Tier 1 candidates are `wots-lease`, `omnia`, `omnia-host`, `storage`, `lookup-*`, `industrial-action`, `edge-mqtt` and `edge-modbus`; they remain RC/alpha until their named evidence and dependency closure pass. Other packages keep their measured maturity and are outside the first-line production core; they are not automatically “preview”.
+**Production surface (RFC-063 §4):** Tier 0 is `core`, `core-wasm`, `kissvm` and `wots-lease`. Tier 1 candidates are `omnia`, `omnia-host`, `storage`, `lookup-*`, `industrial-action`, `edge-mqtt` and `edge-modbus`; they remain RC/alpha until their named evidence and dependency closure pass. Other packages keep their measured maturity and are outside the first-line production core; they are not automatically “preview”.
 
 ---
 
