@@ -64,6 +64,8 @@ Branch naming conventions:
 - Write tests for new functionality
 - Ensure all existing tests pass
 - Update documentation as needed
+- Add a `CHANGELOG.md` entry for user-facing changes
+- Review the release process in [docs/RELEASE-PROCESS.md](docs/RELEASE-PROCESS.md)
 
 ### 4. Run Tests
 
@@ -117,12 +119,13 @@ chore(deps): update @noble/hashes to v2.0.0
 - README updates for new packages
 - API reference updates via TypeDoc
 - Changelog entries for user-facing changes
+- Release checklist in [docs/RELEASE-PROCESS.md](docs/RELEASE-PROCESS.md)
 
 ## Cryptographic Code Requirements
 
 Changes to cryptographic code (`packages/core/`) have additional requirements:
 
-1. **Review**: At least 2 maintainer approvals required
+1. **Review**: Owner review is required; independent security review is required before a production promotion
 2. **Parity Tests**: Must pass parity tests against Java reference implementation
 3. **Backward Compatibility**: Key derivation changes must maintain backward compatibility
 4. **Security Assessment**: Include a security impact assessment in the PR description

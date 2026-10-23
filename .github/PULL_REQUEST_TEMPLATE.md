@@ -28,7 +28,8 @@ List the `@totemsdk/*` packages affected by this change.
 
 ## Cryptographic Changes Checklist (if applicable)
 
-- [ ] Reviewed by at least 2 maintainers
+- [ ] Owner review completed
+- [ ] Independent security review recorded before production promotion
 - [ ] Parity tests pass against Java reference implementation
 - [ ] Backward compatibility verified
 - [ ] Security impact assessment included
@@ -36,12 +37,15 @@ List the `@totemsdk/*` packages affected by this change.
 - [ ] WOTS key usage follows lease/watermark protocol
 - [ ] Serialization matches Java byte-for-byte
 
-## Documentation
+## Documentation and release
 
 - [ ] JSDoc comments added for public APIs
 - [ ] README updated if needed
 - [ ] API reference regenerated if needed
 - [ ] Changelog entry added
+- [ ] Maturity/support-tier impact assessed against RFC-063
+- [ ] License and `NOTICE` unchanged, or migration impact recorded
+- [ ] Release process reviewed ([docs/RELEASE-PROCESS.md](../docs/RELEASE-PROCESS.md))
 
 ## Breaking Changes
 
