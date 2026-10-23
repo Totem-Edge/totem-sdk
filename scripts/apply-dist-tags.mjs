@@ -62,7 +62,7 @@ for (const pkg of manifest.packages) {
     continue;
   }
 
-  const version = tags.latest ?? tags[expected];
+  const version = tags[expected] ?? tags.latest;
   if (!version) {
     console.error(`FAIL ${pkg.name}: no published version to tag`);
     failures++;
