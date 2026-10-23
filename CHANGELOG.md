@@ -9,10 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **`@totemsdk/wots-lease` promoted to v1 / Tier 0:** `storage` reached rc and
-  `txpow` now carries Tier 2 support metadata. Real-node recovery and independent
-  review remain tracked, but the package now has a first-line production claim.
-
 - **`@totemsdk/storage` 0.2.0 promoted to rc (Tier 1):** the synchronous SQLite
   adapter and `omnia-host` 0.12.0 durable state adoption have landed. Remaining
   evidence is crash/power-loss recovery and broader backend parity; no
