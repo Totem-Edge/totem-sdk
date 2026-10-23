@@ -45,10 +45,10 @@ Total: **67** publishable packages + **6** excluded entries = **73** workspace e
 | `@totemsdk/lookup-client` | 0.2.0 | rc | 1 | `packages/lookup-client` |
 | `@totemsdk/lookup-node` | 0.2.1 | rc | 1 | `packages/lookup-node` |
 | `@totemsdk/lookup-protocol` | 0.2.0 | rc | 1 | `packages/lookup-protocol` |
-| `@totemsdk/omnia` | 2.3.0 | rc | 1 | `packages/omnia` |
-| `@totemsdk/omnia-host` | 0.10.0 | rc | 1 | `packages/omnia-host` |
+| `@totemsdk/omnia` | 2.3.1 | rc | 1 | `packages/omnia` |
+| `@totemsdk/omnia-host` | 0.11.0 | rc | 1 | `packages/omnia-host` |
 | `@totemsdk/wots-lease` | 1.0.1 | rc | 1 | `packages/wots-lease` |
-| `@totemsdk/storage` | 0.1.0 | alpha | 1 | `packages/storage` |
+| `@totemsdk/storage` | 0.2.0 | alpha | 1 | `packages/storage` |
 | `@totemsdk/authority` | 1.0.1 | v1 | 2 | `packages/authority` |
 | `@totemsdk/edge` | 1.3.0 | v1 | 2 | `packages/edge` |
 | `@totemsdk/identity` | 1.0.2 | v1 | 2 | `packages/identity` |
