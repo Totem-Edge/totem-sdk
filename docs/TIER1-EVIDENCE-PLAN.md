@@ -119,27 +119,32 @@ by its dependency support surface.
 
 ### storage
 
-**Current:** `alpha`, Tier 1. Promotion is a prerequisite for several candidates.
+**Current:** `rc`, Tier 1. The durable SQLite adapter and host adoption have
+landed; production evidence is still being gathered.
 
 **Evidence today**
 
 - Conformance tests for SQLite, file, IndexedDB and memory adapters.
 - Journal, namespace, artifact, snapshot, persistence, codec and relational tests.
+- Synchronous SQLite adapter with legacy-table migration.
+- `omnia-host` 0.12.0 persists channel/operation/observation state through the
+  storage contract.
 - Runtime-neutral contract with no Hypercore/network dependency.
 
 **Missing**
 
-- Alpha-to-RC promotion evidence: crash/power-loss, corruption handling and
-  backend parity.
-- Adoption by `omnia-host`, `wots-lease`, `industrial-action` and `edge-mqtt`
-  without helper-only wiring.
-- Channel tag `alpha` is present; `latest` remains npm's required default until a stable v1 exists.
+- Crash/power-loss and corruption recovery evidence across backends.
+- Backend parity under sustained contention and reopen.
+- Adoption by `wots-lease`, `industrial-action` and `edge-mqtt` without
+  helper-only wiring.
+- Channel tag `next` is required for rc; `latest` remains npm's required default
+  until a stable v1 exists.
 
 **Exit**
 
 - All conformance suites pass on the supported runtimes.
 - Crash/power-loss and corrupt-state tests fail closed.
-- At least the host and lease paths use the durable contract end to end.
+- Host and lease paths use the durable contract end to end.
 - Dist-tag and docs agree with `rc`.
 
 ### lookup-protocol

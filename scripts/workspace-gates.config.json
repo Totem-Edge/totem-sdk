@@ -616,9 +616,9 @@
     },
     "packages/storage": {
       "status": "publishable",
-      "maturity": "alpha",
+      "maturity": "rc",
       "supportTier": 1,
-      "supportReason": "Tier 1 production candidate; evidence plan pending",
+      "supportReason": "Tier 1 production candidate; rc — durable SQLite adapter and host adoption landed; crash/power-loss evidence remains",
       "owner": "Totem SDK maintainers",
       "evidence": "docs/TIER1-EVIDENCE-PLAN.md#storage",
       "custody": {

@@ -259,9 +259,9 @@ We are honest about where things stand. The core cryptographic layer and the Omn
 | Level | Packages | Meaning |
 |-------|---------:|---------|
 | v1 | 18 | Production support; API and evidence gates met |
-| rc | 41 | Release candidate; API-frozen for the next minor |
+| rc | 42 | Release candidate; API-frozen for the next minor |
 | beta | 3 | Usable; API may change |
-| alpha | 5 | Architecture proof; no compatibility promise |
+| alpha | 4 | Architecture proof; no compatibility promise |
 | excluded | 6 | Private/test harness; not published |
 
 Support tiers: **Tier 0** (3) first-line production core, **Tier 1** (10) production candidates, **Tier 2** (20) required support dependencies, **outside** (34), **excluded** (6). The generated per-package matrix is [`docs/maturity.md`](docs/maturity.md). It is checked in CI against `scripts/workspace-gates.config.json`; do not edit it by hand.

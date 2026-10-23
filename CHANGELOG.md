@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`@totemsdk/storage` 0.2.0 promoted to rc (Tier 1):** the synchronous SQLite
+  adapter and `omnia-host` 0.12.0 durable state adoption have landed. Remaining
+  evidence is crash/power-loss recovery and broader backend parity; no
+  production claim yet.
+
 - **Terminology:** replaced every `WOTS+` reference with `WOTS` across the SDK,
   documentation and generated API text. Minima uses regular WOTS, not the WOTS+
   variant.
