@@ -255,8 +255,8 @@ pgrep -af 'totem-node|omnia-host|omnia-noncustodial|wallet-service|dht-seed'
    cross-host assertion.
 3. **Relay transport** — published host build times out; native DHT is the
    working path. Needs the shared connection manager (RFC-057 D2/D10/D11).
-4. **Cross-host run** — current live run has both coordinators on OCI A. Next
-   step moves B to OCI B (same chain RPC via private network or a second node).
+4. **Cross-host run** — **done** 2026-10-23 on AWS A/B (see run log). Remaining:
+   restart/mid-channel recovery and close propagation.
 5. **MCP snapshot** — `HAWK_NODES` / `McpSnapshotSource` has not been exercised
    against this live hawk-node build.
 6. **Single settlement trace** — correlate `channelId` + `fundingTxId` +
@@ -295,3 +295,26 @@ Template:
   split + native DHT + on-chain settlement; no host seeds.
 - **What it did not prove / next:** cross-host B; close propagation (B still
   `active`); relay transport; MCP observation. See §4.
+
+### 2026-10-23 — cross-host non-custodial open → pay → settle (AWS A/B)
+
+- **Goal:** repeat the non-custodial lifecycle across two AWS hosts.
+- **Topology:** AWS `t4g.small` A (`172.31.68.246`) and B (`172.31.74.14`) in
+  `omnia-aws-test`; A runs the funded `-test -solo` hawk-node on RPC 9029,
+  B reaches it over the private network. Coordinators 50055/50056; wallets
+  51060/51061; DHT seed `8146640f…@172.31.68.246:49737`; A 49738, B 49739.
+- **Methods used:** `getchaintip`, `balance`, `coinexport`, `txpow`;
+  `totem_omniaWhoami` (cross-host), `PrepareOpenChannel`/`SubmitOpenChannel`,
+  `GetChannelState` (A and B), `Pay`, `Settle`, `CloseChannel`;
+  `/observe/snapshot` on both hosts; wallet `/info`, `/sign`, `/lease/*`.
+- **Evidence:** `NONCUSTODIAL_OPEN_PASS` (channel `0x27ba…`, funding tx
+  `0x0003BA1D…`, 60/40, acknowledged, no seeds); pay 5M → 55/45;
+  `NONCUSTODIAL_SETTLE_PASS` (settlement `0x00028566…`).
+- **Observation:** A cursor 31, `closed`, seq 1, 55/45; B cursor 5, `active`,
+  seq 1, 55/45. Balances and sequence agree; B did not receive the close.
+- **What it proved:** cross-host private-network control, native-DHT peer
+  connection, two-phase non-custodial open and cooperative on-chain settlement
+  between separate hosts.
+- **What it did not prove / next:** close propagation (B still `active`);
+  mid-channel restart/recovery; relay transport; MCP observation. The two
+  observation streams are per-node — compare both, never assume one is global.

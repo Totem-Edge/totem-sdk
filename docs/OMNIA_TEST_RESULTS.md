@@ -293,7 +293,7 @@ Plan: [`VTXO_HARDENING_AND_MULTIPARTY_TEST_PLAN.md`](./VTXO_HARDENING_AND_MULTIP
 
 Hardening:
 
-- H2 receipt security — PASS
+- H2 receipt security — PASS (binds receiptId, op, inputIds, outputIds, epoch, timestamp; conservation mandatory for non-mint)
 - H3 funding proof presence/shape + verifier callback — PASS
 - H4 durable restart — PASS
 - H5 store-level one-time-use / no resurrection — PASS
@@ -324,7 +324,7 @@ Multiparty:
 - M17 vesting/payroll — PASS
 - M18 guardian recovery — PASS
 
-Test totals: `omnia-vtxo` **212/212**, `omnia-pool` **40/40**,
+Test totals: `omnia-vtxo` **215/215**, `omnia-pool` **40/40**,
 `omnia-host` **103/103**, `omnia-router` **79/79**, `omnia-relay` **29/29**,
 `chain-provider` **47 passed / 4 skipped**. S8 payMultiHop rerun: `S8_PASS`.
 
@@ -495,6 +495,34 @@ the channel transition events; the settlement is a main-chain block.
   propagation gap (close is not sent to the counterparty), not a settlement
   failure.
 
+### 2026-10-23 — Cross-host non-custodial on AWS A/B (hawk-node)
+
+**Environment:** AWS `t4g.small` A (`172.31.68.246`) and B (`172.31.74.14`)
+in `omnia-aws-test`. A runs the funded `-test -solo` hawk-node on RPC 9029
+(chain length 4019 at start); B reaches it over the private network. Both
+coordinators use `@totemsdk/omnia-host@0.12.0` plus the current
+`@totemsdk/omnia` dist; separate wallet services on 51060 (A) and 51061 (B);
+**no host seeds**. Native DHT seed `8146640f…@172.31.68.246:49737`; A 49738,
+B 49739. Security-group rules open TCP 50056–50059 and 9029, and UDP
+49739–49740, between instances in `sg-096bb28b3f3d8d10e`.
+
+```text
+NONCUSTODIAL_OPEN_PASS  channel 0x27ba4867b286f0c1f234a4c57b20b8c2
+funding tx 0x0003BA1DE818B6F12C42C6D5BC3A339D821D0F584BF87C84556F0752D6F27842
+initial 60,000,000 / 40,000,000; acknowledged=true; hostAHasSeed=false; hostBHasSeed=false
+
+pay 5,000,000 -> 55,000,000 / 45,000,000
+NONCUSTODIAL_SETTLE_PASS  settlement 0x00028566396F38BDC945BFEFDDF2835D37247ABCF7723451BAB8BCE7B2064DB2
+final 55,000,000 / 45,000,000
+```
+
+**Observation:**
+
+- A `/observe/snapshot`: cursor 31, status `closed`, sequence 1, 55/45.
+- B `/observe/snapshot`: cursor 5, status `active`, sequence 1, 55/45.
+- Balances and sequence agree; B did not receive the close (known gap).
+- The feeds are **per-node journals** (different cursors); compare both.
+
 ## Run log
 
 | Date | Stage | Transport | SDK commit | Result | Evidence |
@@ -529,12 +557,17 @@ the channel transition events; the settlement is a main-chain block.
 | 2026-10-22 | VTXO multiparty M1–M7 | in-memory | current dist | PASS | 6-owner fan-out, split/change, chained ownership, concurrent claim, offline exits, stale root, merge rules |
 | 2026-10-23 | VTXO H6 live | native | current dist | BLOCKED | anchor proof depth one block short; private node stopped auto-mining; exit not reached |
 | 2026-10-23 | VTXO M8–M18 | in-memory | current dist | PASS | threshold, conditional, DvP, delegation, rotation, yield, binding, liveness, collateral, vesting, recovery |
+| 2026-10-23 | VTXO receipt binding | in-memory | current dist | PASS | all receipt fields bound; mandatory conservation for non-mint |
+| 2026-10-23 | V1 exit entitlement | in-memory | current dist | PASS | recipient receives bound pre-signed exit; tampered owner/amount/digest rejected |
+| 2026-10-23 | V1 guarded transfer | in-memory | current dist | PASS | `transferVtxoWithExit` builds/verifies recipient exit before moving claim |
+| 2026-10-23 | V1 host exit seam | in-memory | current dist | PASS | host transfer accepts entitlement; `omnia/verifyVtxoExitEntitlement` exposed (host 103/103) |
 | 2026-10-23 | S8 payMultiHop rerun | in-memory | current dist | PASS | `S8_PASS`; 3 hops, 10M/10M retained, recipient exact |
 | 2026-10-22 | 7-hop timeout (non-custodial) | native (AWS) | current dist | PASS | seven expired HTLCs timed out on both sides |
 | 2026-10-22 | Reconnect mid-HTLC | native (AWS) | current dist | PASS | B restart recovered pending HTLC and fulfilled |
 | 2026-10-22 | Concurrent HTLCs | native (AWS) | current dist | PASS | 3 in-flight A→B HTLCs fulfilled |
 | 2026-10-22 | 7-hop teardown | native (AWS) | current dist | BLOCKED | factory registry lost on restart; `Factory ... not found` |
 | 2026-10-23 | S4 (non-custodial, hawk-node) | native DHT | current dist (omnia-host 0.12.0) | PASS | solo hawk-node genesis; `NONCUSTODIAL_OPEN_PASS` + `NONCUSTODIAL_SETTLE_PASS`; 60/40 → 55/45; settlement `0x0001E04A…` |
+| 2026-10-23 | S4 cross-host (non-custodial) | native DHT (AWS A/B) | current dist (host 0.12.0) | PASS | open `0x27ba…`, pay 5M, settle `0x00028566…`; A closed / B active (close gap) |
 
 To add a run: append a row, then add the command, `OMNIA_RESULT` JSON, and log
 paths under the relevant stage section. Re-run `scripts/omnia-{s4,s5}-cross.mjs`
