@@ -197,6 +197,95 @@ settledHops=3 feeProofs=3
 
 Three-host E2E and cross-token routing remain future work.
 
+#### S8 — non-custodial coordinator/wallet split (AWS)
+
+`scripts/omnia-wallet-service.mjs` and `scripts/omnia-noncustodial-host.mjs` ran
+three coordinator hosts on AWS A/B/C against copied A–B and B–C channels:
+
+- each host process had **no `OMNIA_HOST_SEED`/`OMNIA_HOST_KEYFILE`** and no local
+  lease journal; it held only its transport key and public participant identity;
+- signing and WOTS reservations were delegated over loopback HTTP to a separate
+  wallet-service process holding the seed;
+- the copied channel rows were normalised to carry explicit transport pubkeys
+  (the older copied channels predated the transport-preservation fix);
+- A→B→C HTLC lock/fulfill completed: `S8_HOST_HTLC_PASS`.
+
+Final balances from that run:
+
+```text
+A–B: 43,000,000 / 52,000,000
+B–C: 47,030,000 / 51,980,000
+amount 1,000,000; fee 10,000
+```
+
+Negative control: stopping A's wallet service and calling `omniaPay` returned
+`fetch failed`; the coordinator host could not produce a signature on its own.
+This proves the host/wallet boundary, not just the custody-mode label.
+
+#### Non-custodial open → pay → settle (AWS D/E)
+
+`scripts/omnia-open-noncustodial.mjs` and
+`scripts/omnia-settle-noncustodial.mjs` repeated the lifecycle with coordinator
+hosts D/E and separate wallet services. Neither host process had a seed; D's
+wallet signed the funding digest and both wallet services signed the update and
+settlement. D/E's funding coin was sent from a fresh private node.
+
+```text
+NONCUSTODIAL_OPEN_PASS
+channel 0xb5975516d744659c1b594bcedafc2e44
+funding 0x0003C2E69477D360E8E1B44B6F187189C025A666C0907D5EA71F43C562556244
+initial 60,000,000 / 40,000,000
+
+pay 5,000,000 -> 55,000,000 / 45,000,000 (both hosts sequence 1)
+NONCUSTODIAL_SETTLE_PASS
+settlement 0x0001275535774A7C9B266F6500CB35CE0442E7FF41A136C1A0EA5859394810B5
+```
+
+The channel settlement addresses had to be supplied as hex script addresses;
+the harness now derives them from the wallet's WOTS script (`addressHex`) and
+publishes them via `whoami` for subsequent opens.
+
+#### Non-custodial 7-hop and factory/VC (AWS A–H)
+
+Eight coordinator hosts A–H ran with separate wallet services and **no host
+seed**. Seven edge factories/VCs were opened non-custodially (A–B … G–H), then a
+7-hop HTLC was locked and fulfilled backwards:
+
+```text
+A→B 1,000,000 → B→C 990,000 → C→D 980,000 → D→E 970,000
+→ E→F 960,000 → F→G 950,000 → G→H 940,000
+S8_HOST_HTLC7_PASS
+```
+
+Final per-edge balances each retain 10,000 per hop. The same run exercised
+non-custodial `createFactory → openVirtualChannel → closeVirtualChannel`; the
+close returned both 100M allocations. No funding coin was needed for these
+in-memory factory/VC opens.
+
+#### Non-custodial failure/recovery and VTXO/pool
+
+Wallet-down then retry on the same channel sequence now succeeds after the
+watermark release fix. An expired HTLC was added and timed out; both hosts
+reported `timed_out` at sequence 3. `scripts/omnia-s6-s10-noncustodial.mjs`
+then ran VTXO mint/transfer/refresh/exit and pool
+deposit/allocate/release/withdraw through a coordinator host with a separate
+wallet service: `S6_S10_NONCUSTODIAL_PASS`.
+
+#### Non-custodial timeout/reconnect/concurrency (AWS A–H)
+
+Using the seven non-custodial edge VCs:
+
+- `S8_HOST_HTLC7_TIMEOUT_PASS`: seven expired HTLCs added, then timed out on
+  both sides of every hop.
+- Reconnect: B was killed and restarted while an A→B HTLC was pending; B
+  recovered the pending HTLC and fulfilled it after restart.
+- Concurrency: three HTLCs were added on A→B and all three fulfilled.
+
+**Teardown blocker:** after coordinator restart, channels persist in SQLite but
+the in-memory factory registry is empty, so `closeVirtualChannel` fails with
+`Factory ... not found`. Factory state needs durable storage before teardown can
+verify allocation restoration.
+
 ### S10 — pool lifecycle
 
 `scripts/omnia-s10-pool.mjs` uses the real `@totemsdk/omnia-pool` accounting with
@@ -304,10 +393,18 @@ unaffected.
   - all-pairs ring routes resolve
   - 7-hop fee-aware payment settles; recipient receives exactly `10000000000`.
 
-**Not yet executed:** a true cross-host 7-hop value transfer. The router graph
-and host transport/factory mesh are proven separately; executing HTLC forwarding
-across eight independent hosts requires a cross-host coordinator/host API that is
-not yet implemented.
+**Executed 2026-10-21:** a true cross-host 7-hop value transfer across eight
+non-custodial coordinator hosts. See “Non-custodial 7-hop and factory/VC (AWS
+A–H)” above: `S8_HOST_HTLC7_PASS`, with seven edge VCs and 10k retained per hop.
+
+**Recovery finding (fixed):** restarting a wallet service and then attempting an
+HTLC produced `Double-sign detected: sequence 3 already signed with a different
+payload`. Root cause: the in-process update watermark advanced before the async
+wallet signature and was not released when signing failed, so a retry at the same
+sequence with a different payload was rejected. `releaseUpdateGuard()` now rolls
+back the watermark only for the matching failed attempt; regression test
+`releases the watermark after a signing failure...` passes (omnia 237/237).
+Live wallet-restart rerun is still pending.
 
 ## Run log
 
@@ -332,6 +429,17 @@ not yet implemented.
 | 2026-10-21 | S6 host | in-memory (AWS) | current dist | PASS | `omnia-s6-host.mjs`; VTXO lifecycle |
 | 2026-10-21 | S10 host | in-memory (AWS) | current dist | PASS | `omnia-s10-host.mjs`; remaining 99000, rooted |
 | 2026-10-21 | MCP | local node + host | `4e81067` | PASS | Omnia prepare/read tools in manifest; `tools/call` whoami/channels |
+| 2026-10-21 | S8 HTLC (non-custodial) | native (AWS) | current dist | PASS | coordinator hosts + separate wallet services; 3-hop `S8_HOST_HTLC_PASS`; wallet-down negative |
+| 2026-10-21 | S4 (non-custodial) | native (AWS) | current dist | PASS | `NONCUSTODIAL_OPEN_PASS`; `NONCUSTODIAL_SETTLE_PASS`; 60/40 → 55/45; on-chain settlement |
+| 2026-10-21 | S5 factory/VC (non-custodial) | in-memory (AWS) | current dist | PASS | 7 edge factories/VCs; close restored 100M/100M allocations |
+| 2026-10-21 | S8 7-hop (non-custodial) | native (AWS) | current dist | PASS | 8 coordinators; 7 VCs; `S8_HOST_HTLC7_PASS`; 10k fee/hop |
+| 2026-10-21 | Non-custodial failure probe | native (AWS) | current dist | PASS | wallet-down fails closed; watermark release fixed; retry at same sequence succeeds |
+| 2026-10-21 | HTLC timeout/refund (non-custodial) | native (AWS) | current dist | PASS | expired HTLC → `timed_out` on both hosts |
+| 2026-10-21 | S6/S10 host APIs (non-custodial) | in-memory + chain check | current dist | PASS | `S6_S10_NONCUSTODIAL_PASS`; VTXO exit + pool deposit/allocate/release/withdraw |
+| 2026-10-22 | 7-hop timeout (non-custodial) | native (AWS) | current dist | PASS | seven expired HTLCs timed out on both sides |
+| 2026-10-22 | Reconnect mid-HTLC | native (AWS) | current dist | PASS | B restart recovered pending HTLC and fulfilled |
+| 2026-10-22 | Concurrent HTLCs | native (AWS) | current dist | PASS | 3 in-flight A→B HTLCs fulfilled |
+| 2026-10-22 | 7-hop teardown | native (AWS) | current dist | BLOCKED | factory registry lost on restart; `Factory ... not found` |
 
 To add a run: append a row, then add the command, `OMNIA_RESULT` JSON, and log
 paths under the relevant stage section. Re-run `scripts/omnia-{s4,s5}-cross.mjs`
