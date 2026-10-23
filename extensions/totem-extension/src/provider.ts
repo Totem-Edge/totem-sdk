@@ -149,6 +149,10 @@ const totemProvider = {
     return totemProvider.request({ method: 'TOTEM_GET_CHAIN_TIP' });
   },
 
+  getChannelState: async (channelId: string): Promise<unknown> => {
+    return totemProvider.request({ method: 'totem_omniaGetChannelState', params: { channelId } });
+  },
+
   sendComplex: async (buildParams: Record<string, unknown>, mode?: 'build' | 'submit'): Promise<unknown> => {
     return totemProvider.request({ method: 'TOTEM_SEND_COMPLEX', params: { buildParams, mode: mode || 'submit' } });
   },

@@ -268,6 +268,7 @@ export interface RelayOmniaClient {
   readonly swarm: OmniaSwarm;
   readonly channels: Map<string, OmniaChannel>;
   getChannels(params?: Record<string, unknown>): Promise<unknown>;
+  getChannelState(params: Record<string, unknown>): Promise<unknown>;
   openChannel(params: Record<string, unknown>): Promise<unknown>;
   pay(params: Record<string, unknown>): Promise<unknown>;
   settle(params: Record<string, unknown>): Promise<unknown>;
@@ -362,6 +363,49 @@ export function createRelayOmniaClient(options: RelayOmniaClientOptions = {}): R
           currentSequence: c.currentSequence,
           parties: c.parties.map((p) => p.partyId),
         })),
+      };
+    },
+    async getChannelState(params: Record<string, unknown>) {
+      const channelId = typeof params.channelId === 'string' ? params.channelId : '';
+      const channel = channels.get(channelId);
+      if (!channel) {
+        return { success: false, error: `Channel ${channelId} not found`, errorCode: 'NOT_FOUND' };
+      }
+      const jsonSafe = (value: unknown): unknown => {
+        if (typeof value === 'bigint') return value.toString();
+        if (value instanceof Uint8Array) {
+          return `0x${Array.from(value, (byte) => byte.toString(16).padStart(2, '0')).join('')}`;
+        }
+        if (Array.isArray(value)) return value.map(jsonSafe);
+        if (value && typeof value === 'object') {
+          return Object.fromEntries(
+            Object.entries(value as Record<string, unknown>).map(([key, nested]) => [key, jsonSafe(nested)]),
+          );
+        }
+        return value;
+      };
+      return {
+        success: true,
+        channel: jsonSafe({
+          channelId: channel.channelId,
+          status: channel.status,
+          tokenId: channel.tokenId,
+          tokenScale: channel.tokenScale ?? 0,
+          totalValue: channel.totalValue,
+          currentSequence: channel.currentSequence,
+          parties: channel.parties,
+          balances: channel.balances,
+          pendingHTLCs: channel.pendingHTLCs,
+          latestState: channel.latestState
+            ? {
+                sequence: channel.latestState.sequence,
+                balances: channel.latestState.balances,
+                pendingHTLCs: channel.latestState.pendingHTLCs,
+              }
+            : null,
+          createdAt: channel.createdAt,
+          updatedAt: channel.updatedAt,
+        }),
       };
     },
     openChannel: (params) => runOp('openChannel', params),

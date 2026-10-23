@@ -8,6 +8,8 @@
  * Responses are scoped to the requesting page's origin.
  */
 
+import { isConnectMethod } from '@totemsdk/connect/wallet';
+
 const ALLOWED_DAPP_METHODS = new Set([
   'TOTEM_CONNECT',
   // TOTEM_CONNECT_APPROVE is intentionally excluded — it is internal extension-only
@@ -58,7 +60,7 @@ window.addEventListener('message', async (event) => {
     return;
   }
 
-  if (!ALLOWED_DAPP_METHODS.has(method)) {
+  if (!ALLOWED_DAPP_METHODS.has(method) && !isConnectMethod(method)) {
     window.postMessage({
       type: 'TOTEM_RESPONSE',
       id,

@@ -131,6 +131,50 @@ export function createOmniaRelayClient(options: OmniaRelayClientOptions = {}): R
     return buildGraph(undefined, own);
   };
 
+  const jsonSafe = (value: unknown): unknown => {
+    if (typeof value === 'bigint') return value.toString();
+    if (value instanceof Uint8Array) {
+      return `0x${Array.from(value, (byte) => byte.toString(16).padStart(2, '0')).join('')}`;
+    }
+    if (Array.isArray(value)) return value.map(jsonSafe);
+    if (value && typeof value === 'object') {
+      return Object.fromEntries(
+        Object.entries(value as Record<string, unknown>).map(([key, nested]) => [key, jsonSafe(nested)]),
+      );
+    }
+    return value;
+  };
+
+  const getChannelState = async (params: Record<string, unknown>): Promise<unknown> => {
+    const channelId = reqString(params, 'channelId');
+    const channel = base.channels.get(channelId);
+    if (!channel) return notFound(`Channel ${channelId} not found`);
+
+    return {
+      success: true,
+      channel: jsonSafe({
+        channelId: channel.channelId,
+        status: channel.status,
+        tokenId: channel.tokenId,
+        tokenScale: channel.tokenScale ?? 0,
+        totalValue: channel.totalValue,
+        currentSequence: channel.currentSequence,
+        parties: channel.parties,
+        balances: channel.balances,
+        pendingHTLCs: channel.pendingHTLCs,
+        latestState: channel.latestState
+          ? {
+              sequence: channel.latestState.sequence,
+              balances: channel.latestState.balances,
+              pendingHTLCs: channel.latestState.pendingHTLCs,
+            }
+          : null,
+        createdAt: channel.createdAt,
+        updatedAt: channel.updatedAt,
+      }),
+    };
+  };
+
   const getRoute = async (params: Record<string, unknown>): Promise<unknown> => {
     const graph = resolveGraph();
     if (!graph) return unsupported('Omnia getRoute: no routing graph configured.');
@@ -267,7 +311,7 @@ export function createOmniaRelayClient(options: OmniaRelayClientOptions = {}): R
 
   const supports = (method: string): boolean | { supported: boolean; reason?: string } => {
     const name = clientName(method);
-    if (name === 'getRoute' || name === 'getSwapRate') {
+    if (name === 'getRoute' || name === 'getSwapRate' || name === 'getChannelState') {
       return hasRoutingGraph()
         ? true
         : { supported: false, reason: `Omnia ${name}: no routing graph configured.` };
@@ -295,6 +339,7 @@ export function createOmniaRelayClient(options: OmniaRelayClientOptions = {}): R
   return {
     ...base,
     getRoute,
+    getChannelState,
     getSwapRate,
     createFactory: createFactoryOp,
     spliceIn: splice('in'),

@@ -57,6 +57,7 @@ export const TOTEM_METHODS = [
   'totem_getTransactionStatus',
   'totem_getReceipt',
   'totem_omniaGetChannels',
+  'totem_omniaGetChannelState',
   'totem_omniaOpenChannel',
   'totem_omniaPay',
   'totem_omniaSettle',
@@ -197,6 +198,7 @@ export const WALLET_METHODS: readonly WalletMethodDescriptor[] = [
   // Omnia — consent-gated SDK client (RFC-014 §6.3); an autonomous host may
   // instead route the same methods through its governed `edge` port.
   d('totem_omniaGetChannels', 'sdk', 'omnia', ['omnia'], ['omnia:channels'], { orRequires: ['edge'] }),
+  d('totem_omniaGetChannelState', 'sdk', 'omnia', ['omnia'], ['omnia:channels'], { orRequires: ['edge'] }),
   d('totem_omniaOpenChannel', 'sdk', 'omnia', ['omnia'], ['omnia:channels'], { requiresApproval: true, orRequires: ['edge'] }),
   d('totem_omniaPay', 'sdk', 'omnia', ['omnia'], ['omnia:routing'], { requiresApproval: true, orRequires: ['edge'] }),
   d('totem_omniaSettle', 'sdk', 'omnia', ['omnia'], ['omnia:channels'], { requiresApproval: true, orRequires: ['edge'] }),
@@ -263,6 +265,7 @@ export const OMNIA_CLIENT_METHOD_BY_METHOD: Readonly<
   Record<string, Exclude<keyof OmniaClientPort, 'supports'>>
 > = {
   totem_omniaGetChannels: 'getChannels',
+  totem_omniaGetChannelState: 'getChannelState',
   totem_omniaOpenChannel: 'openChannel',
   totem_omniaPay: 'pay',
   totem_omniaSettle: 'settle',
@@ -376,6 +379,7 @@ export interface StatechainClientPort extends SupportProbe {
  */
 export interface OmniaClientPort extends SupportProbe {
   getChannels?(params: Record<string, unknown>): Promise<unknown>;
+  getChannelState?(params: Record<string, unknown>): Promise<unknown>;
   openChannel?(params: Record<string, unknown>): Promise<unknown>;
   pay?(params: Record<string, unknown>): Promise<unknown>;
   settle?(params: Record<string, unknown>): Promise<unknown>;

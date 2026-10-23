@@ -35,6 +35,7 @@ import type {
   TotemGetTransactionStatusResponse,
   TotemGetReceiptResponse,
   TotemOmniaGetChannelsResponse,
+  TotemOmniaGetChannelStateResponse,
   TotemOmniaOpenChannelResponse,
   TotemOmniaPayResponse,
   TotemOmniaSettleResponse,
@@ -543,6 +544,17 @@ export async function getReceipt(txpowId: string): Promise<TotemGetReceiptRespon
 }
 
 // ─── Omnia direct-channel ─────────────────────────────────────────────────────
+
+export async function omniaGetChannelState(
+  origin: string,
+  channelId: string,
+): Promise<TotemOmniaGetChannelStateResponse> {
+  const provider = getProvider();
+  return (await provider.request({
+    method: 'totem_omniaGetChannelState',
+    params: { origin, channelId },
+  })) as TotemOmniaGetChannelStateResponse;
+}
 
 export async function omniaGetChannels(origin: string, params?: {
   tokenId?: string;

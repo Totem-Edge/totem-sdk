@@ -323,6 +323,48 @@ export interface TotemGetReceiptResponse {
 
 // ─── Omnia direct-channel ─────────────────────────────────────────────────────
 
+export interface OmniaPendingHtlc {
+  htlcId: string;
+  amount: string;
+  hashlock: string;
+  timeoutBlock: string;
+  direction: 'offered' | 'received';
+  status: 'pending' | 'fulfilled' | 'timed_out';
+  htlcAddress: string;
+  senderPublicKeyDigest: string;
+  recipientPublicKeyDigest: string;
+}
+
+export interface OmniaChannelState {
+  channelId: string;
+  status: string;
+  tokenId: string;
+  tokenScale: number;
+  totalValue: string;
+  currentSequence: number;
+  parties: Array<Record<string, unknown>>;
+  balances: Record<string, string>;
+  pendingHTLCs: OmniaPendingHtlc[];
+  latestState?: Record<string, unknown> | null;
+  createdAt?: number;
+  updatedAt?: number;
+}
+
+export interface TotemOmniaGetChannelStateRequest {
+  method: 'totem_omniaGetChannelState';
+  params: {
+    origin: string;
+    channelId: string;
+  };
+}
+
+export interface TotemOmniaGetChannelStateResponse {
+  success: boolean;
+  channel?: OmniaChannelState;
+  error?: string;
+  errorCode?: string;
+}
+
 export interface OmniaChannelSummary {
   channelId: string;
   status: string;
