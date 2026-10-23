@@ -18,6 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`@totemsdk/connect` / `@totemsdk/wallet-adapter`:** added the missing
+  `TOTEM_SIGN_MESSAGE` descriptor and handler to the shared wallet runtime. The
+  canonical connect surface is now 48 methods; wallets without a message-signing
+  port report an explicit `UNSUPPORTED` reason.
+
 - **`@totemsdk/entity` — breaking projection change:** the `minimal` mode now
   discloses **no sections**, including no root address and no `entityRef`.
   `EntityView.root` is optional and appears only when root is explicitly

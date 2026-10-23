@@ -5,7 +5,7 @@
  *
  * This package is a thin binding over the shared wallet runtime in
  * `@totemsdk/connect/wallet`. That runtime supplies:
- * - the full 47-method connect surface (legacy `TOTEM_*` + `totem_*`),
+ * - the full 48-method connect surface (legacy `TOTEM_*` + `totem_*`),
  * - mandatory, fail-closed approvals for approval-required methods,
  * - the WOTS lease port and the optional Omnia / statechain / KISSVM / agent /
  *   receipts / payment-request / chain / edge ports,

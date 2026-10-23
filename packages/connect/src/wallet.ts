@@ -34,6 +34,7 @@ export const LEGACY_METHODS = [
   'TOTEM_SEND_COMPLEX',
   'TOTEM_TOKENCREATE',
   'TOTEM_SIGN_DATA',
+  'TOTEM_SIGN_MESSAGE',
   'TOTEM_BROADCAST_HEX',
   'TOTEM_GRANT_TX_PERMISSION',
   'TOTEM_REVOKE_TX_PERMISSION',
@@ -79,7 +80,7 @@ export const TOTEM_METHODS = [
   'totem_agentCreateReceipt',
 ] as const;
 
-/** Every canonical connect method (47). */
+/** Every canonical connect method (48). */
 export const CONNECT_METHODS = [...LEGACY_METHODS, ...TOTEM_METHODS] as const;
 
 export type LegacyMethod = (typeof LEGACY_METHODS)[number];
@@ -166,6 +167,7 @@ export const WALLET_METHODS: readonly WalletMethodDescriptor[] = [
   d('TOTEM_SEND_COMPLEX', 'local', 'complex', ['signer', 'approvals'], [], { requiresApproval: true }),
   d('TOTEM_TOKENCREATE', 'local', 'token', ['signer', 'approvals'], [], { requiresApproval: true }),
   d('TOTEM_SIGN_DATA', 'local', 'sign', ['signer', 'approvals'], [], { requiresApproval: true }),
+  d('TOTEM_SIGN_MESSAGE', 'local', 'sign', ['signer', 'approvals'], [], { requiresApproval: true }),
   d('TOTEM_BROADCAST_HEX', 'local', 'broadcast', ['signer', 'approvals'], [], { requiresApproval: true }),
   d('TOTEM_GRANT_TX_PERMISSION', 'local', 'permissions', ['signer', 'approvals'], [], { requiresApproval: true }),
   d('TOTEM_REVOKE_TX_PERMISSION', 'local', 'permissions', ['signer']),
@@ -306,6 +308,7 @@ export interface WalletSignerPort extends SupportProbe {
   sendComplex?(params: Record<string, unknown>): Promise<unknown>;
   createToken?(params: Record<string, unknown>): Promise<unknown>;
   signData?(params: Record<string, unknown>): Promise<unknown>;
+  signMessage?(params: Record<string, unknown>): Promise<unknown>;
   broadcastHex?(params: Record<string, unknown>): Promise<unknown>;
   proveOwnership?(params: Record<string, unknown>): Promise<unknown>;
   grantTxPermission?(params: Record<string, unknown>): Promise<unknown>;
@@ -485,6 +488,7 @@ export function createDefaultHandlers(): WalletMethodHandler[] {
     delegate('TOTEM_SEND_COMPLEX', (c) => c.signer?.sendComplex?.bind(c.signer), 'Wallet does not expose a complex-transaction builder.'),
     delegate('TOTEM_TOKENCREATE', (c) => c.signer?.createToken?.bind(c.signer), 'Wallet does not expose a token creation port.'),
     delegate('TOTEM_SIGN_DATA', (c) => c.signer?.signData?.bind(c.signer), 'Wallet does not expose a data signer port.'),
+    delegate('TOTEM_SIGN_MESSAGE', (c) => c.signer?.signMessage?.bind(c.signer), 'Wallet does not expose a message signer port.'),
     delegate('TOTEM_BROADCAST_HEX', (c) => c.signer?.broadcastHex?.bind(c.signer), 'Wallet does not expose a broadcast port.'),
     delegate('TOTEM_GRANT_TX_PERMISSION', (c) => c.signer?.grantTxPermission?.bind(c.signer), 'Wallet does not manage tx permissions.'),
     delegate('TOTEM_REVOKE_TX_PERMISSION', (c) => c.signer?.revokeTxPermission?.bind(c.signer), 'Wallet does not manage tx permissions.'),

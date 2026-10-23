@@ -7,7 +7,7 @@ protocol.
 
 The adapter is a thin binding over the shared wallet runtime in
 `@totemsdk/connect/wallet`. You implement the signer; the runtime supplies the
-full 47-method connect surface, mandatory approvals, WOTS lease coordination and
+full 48-method connect surface, mandatory approvals, WOTS lease coordination and
 explicit `UNSUPPORTED` dispositions.
 
 ## Installation
