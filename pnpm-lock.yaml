@@ -1555,9 +1555,6 @@ importers:
       '@totemsdk/wots-lease':
         specifier: workspace:^
         version: link:../wots-lease
-      better-sqlite3:
-        specifier: ^12.2.0
-        version: 12.11.1
       ws:
         specifier: ^8.21.1
         version: 8.21.1
@@ -1565,9 +1562,6 @@ importers:
       '@totemsdk/txpow':
         specifier: workspace:^
         version: link:../txpow
-      '@types/better-sqlite3':
-        specifier: ^7.6.13
-        version: 7.6.13
       '@types/jest':
         specifier: ^30.0.0
         version: 30.0.0
