@@ -2,6 +2,7 @@
 
 **Snapshot:** 2026-10-21 (OCI two-host + AWS 8-node session).
 **Plan:** [`OMNIA_TEST_PLAN.md`](./OMNIA_TEST_PLAN.md).
+**Methods / observability tracker:** [`OMNIA_SETTLEMENT_METHODS.md`](./OMNIA_SETTLEMENT_METHODS.md).
 **SDK commits in scope:** `fddce8c6` (reliable proposals/idempotent replies),
 `d9ef523c` (runtime harness), `e604b4cd` (S5 factory/VC), `b621c2a5` (S4
 settlement + explicit TxPoW mining), `12e37e73` (transport identity),
@@ -314,8 +315,16 @@ Multiparty:
 - M8 2-of-3 co-owned claim policy — PASS
 - M9 conditional/escrow claim policy — PASS
 - M10 DvP claim policy bound to HTLC id/hashlock/preimage — PASS
+- M11 delegated scoped claim — PASS
+- M12 operator rotation — PASS
+- M13 six-LP pro-rata yield — PASS
+- M14 pool/token binding isolation — PASS
+- M15 griefing/liveness (five owners exit while one withholds) — PASS
+- M16 collateral release — PASS
+- M17 vesting/payroll — PASS
+- M18 guardian recovery — PASS
 
-Test totals: `omnia-vtxo` **204/204**, `omnia-pool` **40/40**,
+Test totals: `omnia-vtxo` **212/212**, `omnia-pool` **40/40**,
 `omnia-host` **103/103**, `omnia-router` **79/79**, `omnia-relay` **29/29**,
 `chain-provider` **47 passed / 4 skipped**. S8 payMultiHop rerun: `S8_PASS`.
 
@@ -519,7 +528,7 @@ the channel transition events; the settlement is a main-chain block.
 | 2026-10-22 | VTXO hardening H2–H5/H7/H8 | in-memory | current dist | PASS | receipts/funding proof/durability/store spent-set/pool/host concurrency |
 | 2026-10-22 | VTXO multiparty M1–M7 | in-memory | current dist | PASS | 6-owner fan-out, split/change, chained ownership, concurrent claim, offline exits, stale root, merge rules |
 | 2026-10-23 | VTXO H6 live | native | current dist | BLOCKED | anchor proof depth one block short; private node stopped auto-mining; exit not reached |
-| 2026-10-23 | VTXO M8–M10 | in-memory | current dist | PASS | 2-of-3 claim, conditional escrow, DvP policy binding |
+| 2026-10-23 | VTXO M8–M18 | in-memory | current dist | PASS | threshold, conditional, DvP, delegation, rotation, yield, binding, liveness, collateral, vesting, recovery |
 | 2026-10-23 | S8 payMultiHop rerun | in-memory | current dist | PASS | `S8_PASS`; 3 hops, 10M/10M retained, recipient exact |
 | 2026-10-22 | 7-hop timeout (non-custodial) | native (AWS) | current dist | PASS | seven expired HTLCs timed out on both sides |
 | 2026-10-22 | Reconnect mid-HTLC | native (AWS) | current dist | PASS | B restart recovered pending HTLC and fulfilled |
