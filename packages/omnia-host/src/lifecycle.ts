@@ -4,6 +4,8 @@ import { ObservationBus } from './observe/bus.js';
 import { ObservationEmitter, channelTransitionHash } from './observe/emitter.js';
 import { createSqliteObservationStore } from './observe/store.js';
 import { createObservationSnapshot } from './observe/snapshot.js';
+import { SyncSqliteStore } from '@totemsdk/storage/sqlite-sync';
+import { PersistentMap } from './stores/persistent-map.js';
 import type { ObservationStore } from './observe/types.js';
 import type { OmniaSwarm, ChannelSigner, WotsLeaseProviderLike, MinimalChainProvider } from '@totemsdk/omnia';
 import { createOmniaIntegration, createOmniaSwarm } from '@totemsdk/omnia';
@@ -71,6 +73,8 @@ export interface OmniaHostDependencies {
   /** Observation feed: inject a store/bus (tests/embedding) or disable it. */
   observationStore?: ObservationStore;
   observationBus?: ObservationBus;
+  /** Synchronous storage adapter for durable factories/splices/VTXOs/pools. */
+  hostStateStore?: SyncSqliteStore;
   observe?: boolean;
   networkId?: string;
   sourceNodeId?: string;
@@ -107,6 +111,8 @@ export function createOmniaHost(
   let ownedOperationStore: OperationStore | undefined;
   let observationStore: ObservationStore | undefined = dependencies.observationStore;
   let ownedObservationStore: ObservationStore | undefined;
+  let hostStateStore: SyncSqliteStore | undefined = dependencies.hostStateStore;
+  let ownedHostStateStore: SyncSqliteStore | undefined;
   const observationBus = dependencies.observationBus ?? new ObservationBus();
   let observation: ObservationEmitter | undefined;
   let controlServer: ControlServer | undefined = dependencies.controlServer;
@@ -161,6 +167,16 @@ export function createOmniaHost(
           sourceNodeId: config.sourceNodeId ?? dependencies.sourceNodeId ?? config.localPartyId ?? 'omnia-host',
         });
       }
+      if (!hostStateStore) {
+        try {
+          ownedHostStateStore = new SyncSqliteStore(config.dbPath);
+          hostStateStore = ownedHostStateStore;
+        } catch (err) {
+          console.error('[omnia-host] host-state store disabled:', err instanceof Error ? err.message : String(err));
+        }
+      }
+      const hostMap = <V>(namespace: string, injected?: Map<string, V>): Map<string, V> =>
+        injected ?? (hostStateStore ? new PersistentMap<V>(hostStateStore, namespace) : new Map<string, V>());
       if (!swarm) {
         const relay = config.relay
           ? { mode: 'self-hosted' as const, relayUrl: config.relay }
@@ -235,7 +251,7 @@ export function createOmniaHost(
           : undefined
       );
       const factories = dependencies.factories ?? (
-        factoryBundles ? new Map<string, ChannelFactory>() : undefined
+        factoryBundles ? hostMap<ChannelFactory>('omnia:factory:') : undefined
       );
 
       const localBundle = localParticipant
@@ -253,8 +269,8 @@ export function createOmniaHost(
             }
           : undefined
       );
-      const spliceProposals = dependencies.spliceProposals ?? new Map<string, SpliceProposal>();
-      const spliceAcceptances = dependencies.spliceAcceptances ?? new Map<string, SpliceAcceptance>();
+      const spliceProposals = hostMap<SpliceProposal>('omnia:splice:proposal:', dependencies.spliceProposals);
+      const spliceAcceptances = hostMap<SpliceAcceptance>('omnia:splice:acceptance:', dependencies.spliceAcceptances);
 
       const onSpliceMessage = async (peer: any, msg: any): Promise<void> => {
         if (!spliceLeaseProvider || !channelStore) return;
@@ -529,12 +545,12 @@ export function createOmniaHost(
       const preparedOpen = new Map();
       const preparedSplice = new Map();
       const preparedFactory = new Map();
-      const vtxoPools = new Map();
-      const vtxos = new Map();
-      const vtxoReceipts = new Map();
+      const vtxoPools = hostMap<any>('omnia:vtxo:pool:');
+      const vtxos = hostMap<any>('omnia:vtxo:');
+      const vtxoReceipts = hostMap<any>('omnia:vtxo:receipt:');
       const preparedVtxoReceipts = new Map();
-      const pools = new Map();
-      const poolPositions = new Map();
+      const pools = hostMap<any>('omnia:pool:');
+      const poolPositions = hostMap<any>('omnia:pool:position:');
 
       if (!controlServer) {
         const readOnly = !dependencies.signer || !dependencies.leaseProvider;
@@ -646,6 +662,8 @@ export function createOmniaHost(
       ownedOperationStore = undefined;
       if (ownedObservationStore) await ownedObservationStore.close();
       ownedObservationStore = undefined;
+      ownedHostStateStore?.close();
+      ownedHostStateStore = undefined;
       ownedStore?.close();
       ownedStore = undefined;
       started = false;
