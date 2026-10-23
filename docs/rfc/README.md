@@ -74,5 +74,6 @@
 | [RFC-068-OMNIA-ONION-ROUTING.md](RFC-068-OMNIA-ONION-ROUTING.md) | RFC-068 — Omnia Onion Forwarding and Blinded Receiving Paths | Proposed — implementation not started; authenticated onion profile |
 | [RFC-069-OMNIA-SAME-CHAIN-SUBMARINE-SWAPS.md](RFC-069-OMNIA-SAME-CHAIN-SUBMARINE-SWAPS.md) | RFC-069 — Omnia Same-Chain Submarine Swaps | Proposed — implementation not started; same-chain profile only |
 | [RFC-070-TOTEM-NAMESPACE-AND-NAME-RESOLUTION.md](RFC-070-TOTEM-NAMESPACE-AND-NAME-RESOLUTION.md) | RFC-070 — Totem Namespace and Name Resolution | Proposed — design only; no implementation authorised |
+| [RFC-071-ANNOUNCEMENT-ENVELOPE-AND-DISCOVERY-CONSOLIDATION.md](RFC-071-ANNOUNCEMENT-ENVELOPE-AND-DISCOVERY-CONSOLIDATION.md) | RFC-071 — Announcement Envelope and Discovery Consolidation | **Draft — Phase 1 implemented.** `@totemsdk/manifest` now exposes the generic |
 
-Total: **70** RFC documents.
+Total: **71** RFC documents.

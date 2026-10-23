@@ -24,3 +24,27 @@ export {
   isDAppManifest,
   isEdgeServiceManifest,
 } from './guards.js';
+
+export type {
+  AnnouncementKind,
+  AnnouncementCustodyMode,
+  AnnouncementCustody,
+  AnnouncementLiquidity,
+  AnnouncementEnvelope,
+  SignedAnnouncement,
+  AnnouncementVerifyResult,
+  AnnouncementTopicFilter,
+  CreateAnnouncementInput,
+} from './announcement.js';
+
+export {
+  computeAnnouncementPayloadHash,
+  computeAnnouncementId,
+  announcementDigest,
+  createAnnouncement,
+  validateAnnouncement,
+  signAnnouncement,
+  verifyAnnouncement,
+  announcementTopic,
+  rankAnnouncements,
+} from './announcement.js';

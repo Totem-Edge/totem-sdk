@@ -4,7 +4,7 @@ Status: **Draft — proposed.** Implementation is authorised for the **data-only
 Created: 2026-10-20
 Authors: Totem SDK Contributors
 Depends on: RFC-039 (Custody Conformance), RFC-048 (Omnia Primitive Completeness), RFC-049 (MASH × Omnia × Eefi), RFC-050 (Eefi Product Architecture), RFC-053 (Eefi Generic Contracts), RFC-054 (Eefi Protocol 0.1), RFC-058 (Custody Modes and Disclosure Gate)
-References: RFC-002 (Rust/WASM parity), RFC-003 (built-in programs), RFC-035 (peer coordination), RFC-037 (unified WOTS), RFC-038 (VTXO operator), RFC-055 (routing), RFC-057 (distributed storage), RFC-060 (Bootstrap Points and Future Token Recognition)
+References: RFC-002 (Rust/WASM parity), RFC-003 (built-in programs), RFC-035 (peer coordination), RFC-037 (unified WOTS), RFC-038 (VTXO operator), RFC-055 (routing), RFC-057 (distributed storage), RFC-060 (Bootstrap Points and Future Token Recognition), RFC-071 (Announcement Envelope and Discovery Consolidation)
 Touches: `eefi-credit` (new), `eefi`, `omnia`, `omnia-host`, `omnia-pool`, `liquidity-bond`, `provider-bond`, `kissvm`, `connect`, `manifest`, `identity`, `stream-transport`, `pubsub-transport`, `extensions/totem-extension`, MOKA (external consumer)
 
 > **Positioning.** Credit is an **Eefi** product domain, not an Omnia product.
@@ -28,6 +28,11 @@ Touches: `eefi-credit` (new), `eefi`, `omnia`, `omnia-host`, `omnia-pool`, `liqu
 > routing), and RFC-058 D6 forbids pooled return and public yield advertising in
 > the non-custodial default. MOKA MUST NOT advertise pooled yield as a
 > non-custodial default.
+>
+> **Update (RFC-071).** The opportunity-discovery model is consolidated into the
+> generic `AnnouncementEnvelope` in `@totemsdk/manifest`. This RFC no longer
+> proposes a new `OpportunityManifest` manifest kind; see
+> [RFC-071](RFC-071-ANNOUNCEMENT-ENVELOPE-AND-DISCOVERY-CONSOLIDATION.md).
 >
 > **Prerelease posture.** The SDK is prerelease and has no users. There is no
 > backward-compatibility promise and no migration burden. This RFC chooses the
@@ -1447,6 +1452,7 @@ Discovery:
 - RFC-054 — Eefi Protocol 0.1 private spot exchange (bilateral scope precedent).
 - RFC-058 — custody modes, `SignRequest`/`SignerPort`, disclosure gate.
 - RFC-060 — Bootstrap Points and Future Token Recognition.
+- RFC-071 — Announcement Envelope and Discovery Consolidation.
 - `packages/manifest/src/types.ts`, `id.ts`, `verify.ts`, `sign.ts`, `encoding.ts`, `guards.ts`
 - `packages/omnia/src/program.ts`, `script.ts`, `types.ts`
 - `packages/omnia/rust/src/program.rs`, `wasm.rs`

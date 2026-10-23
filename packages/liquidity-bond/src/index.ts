@@ -223,3 +223,9 @@ export {
 export { MemoryLiquidityBondStore } from './memory-store.js';
 export { createDurableLiquidityBondStore } from './durable-store.js';
 export type { DurableLiquidityBondStore, DurableLiquidityBondStoreOptions } from './durable-store.js';
+
+export type {
+  PoolAnnouncementPayload,
+  CreatePoolAnnouncementParams,
+} from './announcement.js';
+export { createPoolAnnouncement } from './announcement.js';
