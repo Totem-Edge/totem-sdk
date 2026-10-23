@@ -109,7 +109,7 @@ function requestedSections(
   mode: EntityProjectionMode,
   purposes: readonly string[] | undefined,
 ): EntitySection[] {
-  if (mode === 'minimal') return ['root'];
+  if (mode === 'minimal') return [];
   if (mode === 'available') return [...ENTITY_SECTIONS];
 
   const requested = new Set<EntitySection>(['root']);
@@ -129,7 +129,7 @@ function requestedSections(
 /**
  * Produce a disclosure-bounded view from a resolved entity.
  *
- * Default mode is `minimal` (root only). `available` discloses every verified
+ * Default mode is `minimal` (no sections). `available` discloses every verified
  * section up to `maxDisclosureLevel`. `purpose-bound` discloses only the
  * sections required by the requested purposes.
  */
@@ -144,15 +144,14 @@ export function projectEntity(
       `projection asOf ${request.asOf} does not match resolution asOf ${resolution.asOf}`,
     ]);
   }
-  if (resolution.status.root !== 'known') {
-    throw new EntityValidationError(['resolution root section is not known']);
-  }
-
   const mode: EntityProjectionMode = request.mode ?? 'minimal';
   const maxLevel: EntityDisclosureLevel =
     request.maxDisclosureLevel ?? (mode === 'minimal' ? 0 : 5);
 
   const requested = requestedSections(resolution, mode, request.purposes);
+  if (requested.includes('root') && resolution.status.root !== 'known') {
+    throw new EntityValidationError(['resolution root section is not known']);
+  }
   const effective = requested.filter(
     (section) => ENTITY_SECTION_LEVELS[section] <= maxLevel || section === 'root',
   );
@@ -212,10 +211,14 @@ export function projectEntity(
     mode,
     asOf: resolution.asOf,
     disclosureLevel,
-    root: {
-      rootAddress: resolution.rootAddress,
-      entityRef: computeEntityRef(resolution.rootAddress),
-    },
+    ...(disclosed.includes('root')
+      ? {
+          root: {
+            rootAddress: resolution.rootAddress,
+            entityRef: computeEntityRef(resolution.rootAddress),
+          },
+        }
+      : {}),
     status,
     disclosed,
     withheld,

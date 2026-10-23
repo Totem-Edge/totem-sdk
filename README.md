@@ -543,7 +543,7 @@ docs/                       # SDK documentation
 | [RFC-031](docs/rfc/RFC-031-CORE-WASM-SOLE-IMPLEMENTATION.md) | Core-Wasm sole-implementation — portable WASM, oracle parity gates, provenance, and the gated sunset of the JS crypto kernels (draft; P1–P4 substantially landed, P5 remaining) |
 | [RFC-032](docs/rfc/RFC-032-LOOKUP-STACK-POST-QUANTUM-IDENTITY.md) | Lookup-stack post-quantum identity — replace Ed25519 with the WOTS/TreeKey root identity (landed) |
 | [RFC-033](docs/rfc/RFC-033-GO-WOTS-VIA-RUST-FFI.md) | Byte-exact WOTS for the Go mirrors via Rust FFI — bidirectional TS⇄Go parity (landed) |
-| [RFC-034–069](docs/rfc/README.md) | Full generated RFC index |
+| [RFC-034–070](docs/rfc/README.md) | Full generated RFC index |
 | [RFC-063](docs/rfc/RFC-063-PRODUCTION-READINESS-AND-MATURITY-PROMOTION.md) | Production readiness and maturity promotion — production core, evidence gates, and Phase 0 truth work (draft; Phase 0 authorised) |
 | [RFC-064](docs/rfc/RFC-064-OMNIA-OFFCHAIN-EXTENSIONS-PRINCIPLES-AND-REGISTRY.md) | Omnia off-chain extensions — shared safety contract, capability registry, measurable gates and custody boundaries (proposed; no implementation authorised) |
 | [RFC-065](docs/rfc/RFC-065-OMNIA-MULTIPART-PAYMENTS.md) | Omnia multipart payments — basic MPP, durable payment sets, reservations and recovery (proposed) |
@@ -551,6 +551,7 @@ docs/                       # SDK documentation
 | [RFC-067](docs/rfc/RFC-067-OMNIA-HASH-CHAIN-STREAMS.md) | Omnia hash-chain streams — prefunded voucher feasibility prototype (proposed; gated) |
 | [RFC-068](docs/rfc/RFC-068-OMNIA-ONION-ROUTING.md) | Omnia onion forwarding and blinded receiving paths — authenticated per-hop payloads (proposed) |
 | [RFC-069](docs/rfc/RFC-069-OMNIA-SAME-CHAIN-SUBMARINE-SWAPS.md) | Omnia same-chain submarine swaps — on-chain/channel conditional exchange, timeouts and refunds (proposed) |
+| [RFC-070](docs/rfc/RFC-070-TOTEM-NAMESPACE-AND-NAME-RESOLUTION.md) | Totem namespace and name resolution — on-chain registry root, P2P records, privacy profiles and Entity integration (proposed; design only) |
 | [Off-chain research profiles](docs/research/OMNIA-OFFCHAIN-RESEARCH-PROFILES.md) | Deferred OEX-04/05/06/08/09/10/11/12 research notes; no implementation authority |
 | [SDK Audit (archived)](docs/archive/SDK_AUDIT-2026-02-ARCHIVED.md) | Historical Feb 2026 audit; current maturity lives in the table above |
 | [SDK Manifest](SDK_MANIFEST.json) | Machine-readable package index — 67 packages, for AI agents and tooling |

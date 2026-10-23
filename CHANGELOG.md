@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`@totemsdk/entity` — breaking projection change:** the `minimal` mode now
+  discloses **no sections**, including no root address and no `entityRef`.
+  `EntityView.root` is optional and appears only when root is explicitly
+  requested. This closes the implicit root leak in the least-disclosing mode.
+  The package version must be bumped before release.
+
 - **Ownership and support:** added a default `CODEOWNERS` owner and aligned
   `SUPPORT.md` / `SECURITY.md` with the RFC-063 Tier 0/1/2 support model. Tier 1
   packages are explicitly best-effort, not production support.

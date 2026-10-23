@@ -141,17 +141,16 @@ describe('RFC-056 entity projection', () => {
     manifests = await buildManifestFixture();
   });
 
-  it('minimal projection discloses root only', async () => {
+  it('minimal projection discloses no sections including root', async () => {
     const resolution = await resolveEntity({ identity: claims.graph }, { asOf: 2000 });
     const view = projectEntity(resolution);
 
     expect(view.mode).toBe('minimal');
     expect(view.disclosureLevel).toBe(0);
-    expect(view.root.rootAddress).toBe(claims.root);
-    expect(view.root.entityRef).toMatch(/^0x[0-9a-f]{64}$/);
-    expect(view.disclosed).toEqual(['root']);
-    expect(view.withheld).toEqual(['children', 'identity', 'manifest', 'claims', 'authority']);
-    expect(view.status).toEqual({ root: 'known' });
+    expect(view.root).toBeUndefined();
+    expect(view.disclosed).toEqual([]);
+    expect(view.withheld).toEqual(['root', 'children', 'identity', 'manifest', 'claims', 'authority']);
+    expect(view.status).toEqual({});
     expect(view.identity).toBeUndefined();
     expect(view.manifest).toBeUndefined();
     expect(view.claims).toBeUndefined();

@@ -20,7 +20,7 @@ import type { SignedManifest } from '@totemsdk/manifest';
 export const ENTITY_RESOLUTION_VERSION = 'entity-resolution/v1' as const;
 export const ENTITY_VIEW_VERSION = 'entity-view/v1' as const;
 
-/** Disclosure levels 0 (root only) … 5 (authority). */
+/** Section disclosure levels: 0 root, 1 children, … 5 authority. Minimal requests no sections. */
 export type EntityDisclosureLevel = 0 | 1 | 2 | 3 | 4 | 5;
 
 export type EntityProjectionMode = 'minimal' | 'available' | 'purpose-bound';
@@ -188,7 +188,8 @@ export interface EntityView {
   mode: EntityProjectionMode;
   asOf: number;
   disclosureLevel: EntityDisclosureLevel;
-  root: EntityRootView;
+  /** Present only when the projection explicitly requests the root section. */
+  root?: EntityRootView;
   /** State of the sections that were requested by the projection policy. */
   status: Partial<Record<EntitySection, EntitySectionState>>;
   /** Sections successfully disclosed. */

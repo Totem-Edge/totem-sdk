@@ -35,8 +35,8 @@ const view = projectEntity(resolution, {
 
 - **Disclosure-bounded:** absence of disclosure is `unknown`, never `invalid`
   and never `false`.
-- **Root is the privacy floor:** a minimal view contains only the root address
-  and an opaque `entityRef`.
+- **No disclosure is the privacy floor:** a minimal view contains no root, no
+  `entityRef` and no semantic identity. Root is disclosed only when requested.
 - **No invented data:** a section is disclosed only when it was supplied and
   verified.
 - **Explicit time:** every resolution and view carries `asOf`; projections must
@@ -57,7 +57,7 @@ const view = projectEntity(resolution, {
 
 ## Modes
 
-- `minimal` (default): root only.
+- `minimal` (default): no sections; no root or `entityRef`.
 - `available`: every verified section up to `maxDisclosureLevel`.
 - `purpose-bound`: only the sections required by the requested purposes.
 

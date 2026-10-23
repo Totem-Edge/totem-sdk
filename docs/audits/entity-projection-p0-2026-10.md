@@ -1,5 +1,9 @@
 # Entity projection P0 hardening (October 2026)
 
+> **Post-audit amendment:** RFC-056 Amendment A changes `minimal` to disclose no
+> sections, including no root address or `entityRef`. This audit records the
+> earlier P0 design and is retained for history.
+
 Status: P0-A…P0-E landed; P1 `@totemsdk/entity` 0.1.0 landed (RFC-056)
 
 ## Numbering and package naming

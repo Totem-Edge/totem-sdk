@@ -1,6 +1,6 @@
 # RFC-056 — Entity Projection and Operational Resolution
 
-Status: Draft — P0-A…P0-E and P1 landed; `@totemsdk/entity@0.1.0` implemented and published
+Status: Draft — P0-A…P0-E and P1 landed; Amendment A applied (minimal discloses no root); `@totemsdk/entity@0.1.0` published, next release needs a breaking version bump
 Created: 2026-10-20
 Authors: Totem SDK Contributors
 Depends on: identity/claims (`@totemsdk/identity`), RFC-037 (Unified WOTS Signatures); references `@totemsdk/manifest`, `@totemsdk/root-identity`, `@totemsdk/authority`
@@ -37,6 +37,19 @@ pure, local-first resolution and projection layer:
 It never fetches the network, never signs, never grants authority and never
 performs money movement.
 
+### Amendment A — minimal view discloses no root
+
+**Status:** Amended 2026-10-23. The original P1 projection made `root` implicit in
+`minimal`, which leaked the root address and `entityRef` during the least
+disclosing interaction. The amendment changes `minimal` to request **no
+sections**: `root` becomes optional, and `entityRef` appears only when root is
+explicitly requested.
+
+This is a breaking output change for `@totemsdk/entity`. The package version must
+be bumped before the next publish. `available` and `purpose-bound` retain their
+existing section selection; `purpose-bound` still includes root because actor
+identification is part of its purpose.
+
 ---
 
 ## 2. Principles (normative)
@@ -50,10 +63,11 @@ completeness, infer undisclosed attributes, or treat the absence of an optional
 record as invalidity. Missing data is reported as `unknown`; failed verification is
 reported as `invalid`; neither is collapsed into `false`.
 
-### 2.2 Root identity is the privacy floor
+### 2.2 No disclosure is the privacy floor
 
-Disclosure is layered and optional. A legitimate minimal interaction may disclose
-only the root identity:
+Disclosure is layered and optional. A minimal interaction discloses no sections
+and no root. Root identity is the **first optional disclosure**, not an implicit
+one:
 
 | Level | Meaning | Section |
 |---|---|---|
@@ -70,7 +84,7 @@ Levels are optional and cumulative only by policy, never by requirement.
 
 | Mode | Behaviour |
 |---|---|
-| `minimal` | root only (level 0); no status about other sections |
+| `minimal` | no sections; no root, no `entityRef`, no status about other sections |
 | `available` | every verified section up to `maxDisclosureLevel` (default 5) |
 | `purpose-bound` | only sections required by the requested purposes; root is always included |
 
@@ -211,7 +225,7 @@ export interface EntityView {
   mode: EntityProjectionMode;
   asOf: number;
   disclosureLevel: EntityDisclosureLevel;
-  root: { rootAddress: string; entityRef: string };
+  root?: { rootAddress: string; entityRef: string };
   status: Partial<Record<EntitySection, EntitySectionState>>;
   disclosed: EntitySection[];
   withheld: EntitySection[];
@@ -228,7 +242,9 @@ export interface EntityView {
 
 Rules:
 
-1. `root` is always disclosed and MUST be `known`.
+1. `root` is disclosed only when the effective request includes it. `minimal`
+   requests no sections, so `root` and `entityRef` are absent. When root is
+   requested, it MUST be `known`.
 2. Only sections in the effective request are evaluated. Sections excluded by
    mode/level/purpose are listed in `withheld`; no content or existence signal is
    emitted for them.
@@ -343,8 +359,8 @@ authority/governance, or industrial-action), not the payment or custody layers.
 
 Package tests MUST cover:
 
-1. minimal view contains root only and no identity/manifest/claims/authority
-   fields or status;
+1. minimal view contains no sections, no root and no `entityRef`, and has an
+   empty status;
 2. `available` discloses verified sections and reports others as `unknown`;
 3. `purpose-bound` with `capabilities` discloses root + manifest only;
 4. `purpose-bound` with `authority` discloses root + authority only;
