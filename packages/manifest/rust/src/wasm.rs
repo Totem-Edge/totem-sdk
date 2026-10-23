@@ -40,6 +40,7 @@ pub fn compute_manifest_id_wasm(manifest_js: JsValue) -> Result<String, JsValue>
 pub fn verify_manifest_wasm(
     signed_js: JsValue,
     verify_sig_js: JsValue,
+    address_from_pubkey_js: JsValue,
 ) -> Result<JsValue, JsValue> {
     let signed: SignedManifest = serde_wasm_bindgen::from_value(signed_js)
         .map_err(|e| JsValue::from_str(&format!("Failed to parse: {}", e)))?;
@@ -57,7 +58,16 @@ pub fn verify_manifest_wasm(
         }
     };
 
-    let result = verify::verify_manifest(&signed, &sig_verifier);
+    let address_fn = js_sys::Function::from(address_from_pubkey_js);
+    let address_from_pubkey = move |pk: &str| -> Option<String> {
+        let this = JsValue::NULL;
+        match address_fn.call1(&this, &JsValue::from_str(pk)) {
+            Ok(result) => result.as_string(),
+            Err(_) => None,
+        }
+    };
+
+    let result = verify::verify_manifest(&signed, &sig_verifier, &address_from_pubkey);
     serde_wasm_bindgen::to_value(&result)
         .map_err(|e| JsValue::from_str(&format!("Failed to serialize: {}", e)))
 }

@@ -148,6 +148,20 @@ describe('signManifest + verifyManifest round-trips', () => {
     expect(result.valid).toBe(false);
   });
 
+  it('rejects a manifest whose claimed author is not derived from the signer key', async () => {
+    const victimAddress = 'MxVICTIM000000000000000000000000000000000000';
+    const app = { ...APP, authorAddress: victimAddress };
+    const signed = await signManifest(app, TEST_TREE, KEY_INDEX);
+
+    // signManifest derives authorAddress from TEST_TREE. Re-label it as the
+    // victim's address while keeping the manifest field and signature valid.
+    const forged = { ...signed, authorAddress: victimAddress };
+    const result = verifyManifest(forged);
+
+    expect(result.valid).toBe(false);
+    expect(result.reason).toMatch(/authorAddress/);
+  });
+
   it('detects corrupted signature bytes', async () => {
     const app = { ...APP, authorAddress: signedAddress };
     const signed = await signManifest(app, TEST_TREE, KEY_INDEX);

@@ -14,6 +14,7 @@ fn manifest_address_field(manifest: &serde_json::Value) -> String {
 pub fn verify_manifest(
     signed: &SignedManifest,
     verify_sig_fn: &dyn Fn(&str, &[u8], &str) -> bool,
+    address_from_pubkey_fn: &dyn Fn(&str) -> Option<String>,
 ) -> VerifyResult {
     let digest = manifest_digest(&signed.manifest);
 
@@ -25,21 +26,87 @@ pub fn verify_manifest(
         };
     }
 
+    // The signature proves control of signer_public_key. The claimed author must
+    // be the address derived from that key, otherwise an attacker can sign a
+    // manifest that declares a victim address and copy it into the wrapper.
+    let derived_address = match address_from_pubkey_fn(&signed.signer_public_key) {
+        Some(address) if !address.is_empty() => address,
+        _ => {
+            return VerifyResult {
+                valid: false,
+                reason: Some("signerPublicKey cannot derive an address".to_string()),
+                signer_address: signed.author_address.clone(),
+            };
+        }
+    };
+
+    if signed.author_address != derived_address {
+        return VerifyResult {
+            valid: false,
+            reason: Some(format!(
+                "authorAddress mismatch: signed by '{}' but wrapper claims '{}'",
+                derived_address, signed.author_address
+            )),
+            signer_address: derived_address,
+        };
+    }
+
     let expected_address = manifest_address_field(&signed.manifest);
-    if signed.author_address != expected_address {
+    if expected_address != derived_address {
         return VerifyResult {
             valid: false,
             reason: Some(format!(
                 "authorAddress mismatch: signed by '{}' but manifest declares '{}'",
-                signed.author_address, expected_address
+                derived_address, expected_address
             )),
-            signer_address: signed.author_address.clone(),
+            signer_address: derived_address,
         };
     }
 
     VerifyResult {
         valid: true,
         reason: None,
-        signer_address: signed.author_address.clone(),
+        signer_address: derived_address,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn signed_manifest() -> SignedManifest {
+        SignedManifest {
+            manifest: json!({
+                "type": "app",
+                "authorAddress": "MxOWNER"
+            }),
+            author_address: "MxOWNER".to_string(),
+            signer_public_key: "PKDIGEST".to_string(),
+            signed_at: 1,
+            signature: "SIG".to_string(),
+            root_identity_proof: None,
+        }
+    }
+
+    #[test]
+    fn accepts_matching_derived_address() {
+        let result = verify_manifest(
+            &signed_manifest(),
+            &|_, _, _| true,
+            &|_| Some("MxOWNER".to_string()),
+        );
+        assert!(result.valid);
+    }
+
+    #[test]
+    fn rejects_claimed_author_not_derived_from_signer() {
+        let result = verify_manifest(
+            &signed_manifest(),
+            &|_, _, _| true,
+            &|_| Some("MxATTACKER".to_string()),
+        );
+        assert!(!result.valid);
+        assert!(result.reason.unwrap_or_default().contains("authorAddress"));
     }
 }

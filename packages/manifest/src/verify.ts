@@ -8,7 +8,13 @@
  *   3. Confirm authorAddress matches the manifest's address field.
  */
 
-import { deserializeTreeSignature, hexToBytes, verifyTreeSignature } from '@totemsdk/core';
+import {
+  deserializeTreeSignature,
+  hexToBytes,
+  scriptFromWotsPk,
+  scriptToAddress,
+  verifyTreeSignature,
+} from '@totemsdk/core';
 import type { SignedManifest, VerifyResult } from './types.js';
 import { manifestDigest } from './sign.js';
 
@@ -50,14 +56,37 @@ export function verifyManifest(signed: SignedManifest): VerifyResult {
     return { valid: false, reason: 'WOTS signature invalid', signerAddress: authorAddress };
   }
 
-  const expectedAddress = manifestAddressField(manifest);
-  if (authorAddress !== expectedAddress) {
+  // The signature proves control of signerPublicKey. The claimed author must be
+  // the address derived from that key. Without this check an attacker can sign a
+  // manifest that declares a victim address and simply copy that address into
+  // the wrapper.
+  let derivedAddress: string;
+  try {
+    derivedAddress = scriptToAddress(scriptFromWotsPk(pkDigest));
+  } catch (e) {
     return {
       valid: false,
-      reason: `authorAddress mismatch: signed by '${authorAddress}' but manifest declares '${expectedAddress}'`,
+      reason: `signerPublicKey cannot derive an address: ${String(e)}`,
       signerAddress: authorAddress,
     };
   }
 
-  return { valid: true, signerAddress: authorAddress };
+  if (authorAddress !== derivedAddress) {
+    return {
+      valid: false,
+      reason: `authorAddress mismatch: signed by '${derivedAddress}' but wrapper claims '${authorAddress}'`,
+      signerAddress: derivedAddress,
+    };
+  }
+
+  const expectedAddress = manifestAddressField(manifest);
+  if (expectedAddress !== derivedAddress) {
+    return {
+      valid: false,
+      reason: `authorAddress mismatch: signed by '${derivedAddress}' but manifest declares '${expectedAddress}'`,
+      signerAddress: derivedAddress,
+    };
+  }
+
+  return { valid: true, signerAddress: derivedAddress };
 }

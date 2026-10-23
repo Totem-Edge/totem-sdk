@@ -862,7 +862,7 @@
     },
     {
       "name": "@totemsdk/manifest",
-      "version": "2.0.1",
+      "version": "2.0.2",
       "description": "Canonical signed declaration format — apps, agent capabilities, dApps, edge services",
       "domain": "verifiable-claims",
       "keywords": [

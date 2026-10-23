@@ -22,6 +22,11 @@ If you need encrypted email, request the current PGP key from
 **security@totem.ing** before sending details. Never send seed phrases, private
 keys, or exploit details in plaintext.
 
+## Published Advisories
+
+- [Manifest author binding (2026-10)](docs/audits/manifest-author-binding-2026-10.md) —
+  fixed in `@totemsdk/manifest` 2.0.2.
+
 ## Disclosure Policy
 
 1. The reporter will be acknowledged within 48 hours

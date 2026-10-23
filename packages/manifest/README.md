@@ -62,6 +62,11 @@ if (!result.valid) {
 }
 ```
 
+`verifyManifest` derives the signer address from `signerPublicKey` and requires
+both the wrapper `authorAddress` and the manifest's declared author/agent/operator
+address to match it. A wrapper/address mismatch is rejected; do not trust
+`authorAddress` without this check.
+
 ### Compute a stable manifest ID
 
 ```typescript

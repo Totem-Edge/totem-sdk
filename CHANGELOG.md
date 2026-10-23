@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- **`@totemsdk/manifest` 2.0.2 — author-address binding:** `verifyManifest` now
+  derives the signer address from `signerPublicKey` and requires both the wrapper
+  `authorAddress` and the manifest's declared author/agent/operator address to
+  match it. This closes a High-severity impersonation path where a signer could
+  declare a victim address and copy it into the wrapper. Rust/WASM verification
+  has the same parity fix.
+
 ### Changed
 
 - **`@totemsdk/entity` — breaking projection change:** the `minimal` mode now

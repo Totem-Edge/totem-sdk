@@ -52,7 +52,7 @@ Total: **67** publishable packages + **6** excluded entries = **73** workspace e
 | `@totemsdk/authority` | 1.0.1 | v1 | 2 | `packages/authority` |
 | `@totemsdk/edge` | 1.3.0 | v1 | 2 | `packages/edge` |
 | `@totemsdk/identity` | 1.0.2 | v1 | 2 | `packages/identity` |
-| `@totemsdk/manifest` | 2.0.1 | v1 | 2 | `packages/manifest` |
+| `@totemsdk/manifest` | 2.0.2 | v1 | 2 | `packages/manifest` |
 | `@totemsdk/proof` | 1.0.0 | v1 | 2 | `packages/proof` |
 | `@totemsdk/root-identity` | 1.0.10 | v1 | 2 | `packages/root-identity` |
 | `@totemsdk/txpow` | 1.1.0 | v1 | 2 | `packages/txpow` |
