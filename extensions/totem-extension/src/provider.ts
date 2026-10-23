@@ -145,6 +145,10 @@ const totemProvider = {
     return totemProvider.request({ method: 'TOTEM_GET_COINS', params: params || {} });
   },
 
+  getChainTip: async (): Promise<unknown> => {
+    return totemProvider.request({ method: 'TOTEM_GET_CHAIN_TIP' });
+  },
+
   sendComplex: async (buildParams: Record<string, unknown>, mode?: 'build' | 'submit'): Promise<unknown> => {
     return totemProvider.request({ method: 'TOTEM_SEND_COMPLEX', params: { buildParams, mode: mode || 'submit' } });
   },

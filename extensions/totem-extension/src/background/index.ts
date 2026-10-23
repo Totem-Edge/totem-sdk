@@ -1488,6 +1488,7 @@ const DAPP_ALLOWED_METHODS = new Set([
   'TOTEM_REVOKE_TX_PERMISSION',
   'TOTEM_GET_TX_PERMISSIONS',
   'TOTEM_GET_COINS',
+  'TOTEM_GET_CHAIN_TIP',
   'TOTEM_SEND_COMPLEX',
   'TOTEM_SIGN_DATA',
   'TOTEM_BROADCAST_HEX',
@@ -4281,6 +4282,42 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
       } catch (error: any) {
         console.error('[TOTEM_TOKENCREATE] Error:', error);
         return { ok: false, error: error.message, id };
+      }
+    }
+
+    case 'TOTEM_GET_CHAIN_TIP': {
+      try {
+        const origin = sender?.tab?.url ? new URL(sender.tab.url).origin : null;
+        if (!origin) {
+          return { ok: true, result: { success: false, error: 'Cannot determine caller origin', errorCode: 'INVALID_REQUEST' }, id };
+        }
+        const site = connectedSitesStore.getSite(origin);
+        if (!site) {
+          return { ok: true, result: { success: false, error: 'Site not connected. Call TOTEM_CONNECT first.', errorCode: 'SITE_NOT_CONNECTED' }, id };
+        }
+
+        const active = await resolveActiveChainProvider();
+        if (active) {
+          const tip = await active.provider.getTip();
+          return { ok: true, result: { success: true, block: String(tip.block), hash: tip.hash, time: tip.time }, id };
+        }
+
+        const storage = await chrome.storage.local.getTyped(['AXIA_BASE', 'AXIA_PROJECT_ID']);
+        const baseUrl = storage.AXIA_BASE || 'https://api.axia.to';
+        const projectId = storage.AXIA_PROJECT_ID || 'totem-shared';
+        const response = await fetch(`${baseUrl}/v1/${projectId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': projectId },
+          body: JSON.stringify({ jsonrpc: '2.0', method: 'status', params: {}, id: Date.now() }),
+        });
+        const data = await response.json();
+        const block = data?.result?.chain?.block ?? data?.result?.block ?? data?.chain?.block;
+        if (block === undefined) {
+          return { ok: true, result: { success: false, error: data?.error?.message || 'Chain tip unavailable', errorCode: 'CHAIN_TIP_UNAVAILABLE' }, id };
+        }
+        return { ok: true, result: { success: true, block: String(block) }, id };
+      } catch (error: any) {
+        return { ok: true, result: { success: false, error: error?.message || 'Chain tip failed', errorCode: 'CHAIN_TIP_FAILED' }, id };
       }
     }
 
