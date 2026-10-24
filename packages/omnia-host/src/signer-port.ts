@@ -67,6 +67,9 @@ export interface SignerAuditRecord {
   signer: string;
   decision: 'allow' | 'deny';
   reason?: string;
+  amount?: string;
+  summary?: string;
+  occurredAt?: number;
 }
 
 /** Hosted/KMS policy checks applied before delegating to the underlying port. */
@@ -113,6 +116,9 @@ export function createPolicySignerPort(base: SignerPort, policy: SignerPolicy = 
           ? { acknowledgementId: `${ack.disclosureId}:${ack.subjectId}:${ack.acknowledgedAt}` }
           : {}),
         signer: base.publicKeyDigest,
+        amount: request.context.amount,
+        summary: request.context.summary,
+        occurredAt: Date.now(),
       };
       try {
         assertCustodyAllowsSigning(request, policy.custody ?? {});

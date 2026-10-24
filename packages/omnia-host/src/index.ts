@@ -19,6 +19,8 @@ export {
 export { SqliteChannelStore } from './stores/sqlite-store.js';
 export { OperationStore } from './stores/operations.js';
 export type { OperationRecord, OperationStatus } from './stores/operations.js';
+export { SqliteAuditStore, createAuditRecorder } from './stores/audit.js';
+export type { SignerAuditEntry } from './stores/audit.js';
 export { createTotemNodeAdapter } from './chain/totem-node-adapter.js';
 export type { TotemNodeAdapter, TotemNodeAdapterOptions, ConfirmationOptions } from './chain/totem-node-adapter.js';
 export { InProcessRoutingProvider } from './router/routing-provider.js';
