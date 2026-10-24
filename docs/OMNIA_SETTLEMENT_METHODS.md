@@ -6,6 +6,9 @@ settlement fabric is doing, and what each method proved.
 **Rule:** a run is only understood when the **chain**, **coordinator state**,
 **observation journal** and **transport logs** agree. Never rely on one layer.
 
+**Plane split:** Hawk MCP is the command/control plane; `omnia-host /observe`
+is the Omnia observation plane. MCP notifications are not Omnia transitions.
+
 Related: [`OMNIA_TEST_RESULTS.md`](./OMNIA_TEST_RESULTS.md) (evidence),
 [`OMNIA_TEST_PLAN.md`](./OMNIA_TEST_PLAN.md) (stages),
 `Totem-Edge-Canary/docs/omnia-observer.md` (visualisation).
