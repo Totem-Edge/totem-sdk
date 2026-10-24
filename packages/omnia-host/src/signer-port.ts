@@ -70,6 +70,7 @@ export interface SignerAuditRecord {
   amount?: string;
   summary?: string;
   occurredAt?: number;
+  mfaVerified?: boolean;
 }
 
 /** Hosted/KMS policy checks applied before delegating to the underlying port. */
@@ -89,6 +90,15 @@ export interface SignerPolicy {
   };
   /** Durable audit sink; called with allow/deny decisions. */
   audit?: (record: SignerAuditRecord) => void | Promise<void>;
+  /**
+   * RFC-061 D8: verify a request-scoped, operation-bound MFA assertion.
+   * Defaults to non-self custody; a `minAmount` can scope it to larger moves.
+   */
+  mfa?: {
+    verify: (request: SignRequest) => void | Promise<void>;
+    modes?: CustodyMode[];
+    minAmount?: bigint;
+  };
   /** Additional operator approval hook (KMS/HSM/MPC or quorum). */
   authorize?: (request: SignRequest) => void | Promise<void>;
 }
@@ -126,6 +136,7 @@ export function createPolicySignerPort(base: SignerPort, policy: SignerPolicy = 
         await policy.audit?.({
           ...auditBase,
           decision: 'deny',
+          mfaVerified: false,
           reason: err instanceof Error ? err.message : String(err),
         });
         throw err;
@@ -146,9 +157,32 @@ export function createPolicySignerPort(base: SignerPort, policy: SignerPolicy = 
           throw new Error(`request amount ${parsed} exceeds policy limit ${policy.maxAmount}`);
         }
       }
+      let mfaVerified = false;
+      if (policy.mfa) {
+        const modes = policy.mfa.modes ?? ['trust-minimised', 'hosted'];
+        const modeRequired = modes.includes(request.custody.mode);
+        let amountRequired = true;
+        if (policy.mfa.minAmount !== undefined && request.context.amount !== undefined) {
+          amountRequired = BigInt(request.context.amount) >= policy.mfa.minAmount;
+        }
+        if (modeRequired && amountRequired) {
+          try {
+            await policy.mfa.verify(request);
+            mfaVerified = true;
+          } catch (err) {
+            await policy.audit?.({
+              ...auditBase,
+              decision: 'deny',
+              mfaVerified: false,
+              reason: err instanceof Error ? err.message : String(err),
+            });
+            throw err;
+          }
+        }
+      }
       await policy.authorize?.(request);
       const signature = await base.sign(request);
-      await policy.audit?.({ ...auditBase, decision: 'allow' });
+      await policy.audit?.({ ...auditBase, decision: 'allow', mfaVerified });
       return signature;
     },
   };
