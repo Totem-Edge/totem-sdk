@@ -38,6 +38,7 @@ import {
   TOTEM_REQUEST_ANNOUNCE,
   type TotemCapabilities,
   type TotemConnectResponse,
+  type TotemGetChainTipResponse,
   type TotemProvider,
   type TotemProviderStatus,
   type TotemWalletInfo,
@@ -228,6 +229,7 @@ const ORIGIN_METHODS = new Set([
   'TOTEM_VERIFY',
   'TOTEM_GET_ACCOUNTS',
   'TOTEM_GET_COINS',
+  'TOTEM_GET_CHAIN_TIP',
   'TOTEM_SEND_TRANSACTION',
   'TOTEM_SEND_COMPLEX',
   'TOTEM_TOKENCREATE',
@@ -867,6 +869,7 @@ export abstract class TotemWalletAdapter {
       enable: () => self.handleRequest('TOTEM_CONNECT', {}),
       send: (method: string, params?: unknown[]) => self.handleRequest(method, asRecord(params)),
       getCoins: (params?: Record<string, unknown>) => self.handleRequest('TOTEM_GET_COINS', asRecord(params)),
+      getChainTip: () => self.handleRequest('TOTEM_GET_CHAIN_TIP', {}) as Promise<TotemGetChainTipResponse>,
       sendComplex: (buildParams: Record<string, unknown>, mode?: 'build' | 'submit') =>
         self.handleRequest('TOTEM_SEND_COMPLEX', { ...buildParams, ...(mode ? { mode } : {}) }),
       signData: (params: Record<string, unknown>) => self.handleRequest('TOTEM_SIGN_DATA', params),

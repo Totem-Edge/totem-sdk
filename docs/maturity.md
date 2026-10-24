@@ -53,7 +53,7 @@ Total: **67** publishable packages + **6** excluded entries = **73** workspace e
 | `@totemsdk/edge` | 1.4.0 | v1 | 2 | `packages/edge` |
 | `@totemsdk/identity` | 1.0.2 | v1 | 2 | `packages/identity` |
 | `@totemsdk/manifest` | 2.0.2 | v1 | 2 | `packages/manifest` |
-| `@totemsdk/proof` | 1.0.0 | v1 | 2 | `packages/proof` |
+| `@totemsdk/proof` | 1.0.1 | v1 | 2 | `packages/proof` |
 | `@totemsdk/root-identity` | 1.0.10 | v1 | 2 | `packages/root-identity` |
 | `@totemsdk/txpow` | 1.1.0 | v1 | 2 | `packages/txpow` |
 | `@totemsdk/agent-policy` | 0.3.1 | rc | 2 | `packages/agent-policy` |
@@ -76,7 +76,7 @@ Total: **67** publishable packages + **6** excluded entries = **73** workspace e
 | `@totemsdk/raster-proof` | 1.0.0 | v1 | outside | `packages/raster-proof` |
 | `@totemsdk/server` | 1.0.3 | v1 | outside | `packages/server` |
 | `@totemsdk/spatial-proof` | 1.0.0 | v1 | outside | `packages/spatial-proof` |
-| `@totemsdk/wallet-adapter` | 2.0.0 | v1 | outside | `packages/wallet-adapter` |
+| `@totemsdk/wallet-adapter` | 2.0.1 | v1 | outside | `packages/wallet-adapter` |
 | `@totemsdk/edge-adapters` | 0.3.0 | rc | outside | `packages/edge-adapters` |
 | `@totemsdk/edge-bacnet` | 0.2.0 | rc | outside | `packages/edge-bacnet` |
 | `@totemsdk/edge-ble` | 0.2.0 | rc | outside | `packages/edge-ble` |

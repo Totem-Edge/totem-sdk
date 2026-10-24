@@ -1074,7 +1074,7 @@
     },
     {
       "name": "@totemsdk/proof",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "description": "Portable proof layer — create, sign, verify, and anchor WOTS-signed proof envelopes on Minima",
       "domain": "verifiable-claims",
       "keywords": [
@@ -1490,7 +1490,7 @@
     },
     {
       "name": "@totemsdk/wallet-adapter",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "description": "Abstract base class for Totem-compatible wallets — hardware bridges, mobile companions, institutional custody",
       "domain": "edge-computing",
       "keywords": [

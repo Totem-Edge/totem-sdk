@@ -14,7 +14,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   request/response, `chain.getTip` handler, and runtime provider method.
 
 - **`@totemsdk/edge` 1.4.0:** refreshed the optional `@totemsdk/connect` peer
-  range to `^3.1.0` after the connect 3.x breaking release.
+  range to `^3.1.1` after the connect 3.x breaking release.
+
+- **`@totemsdk/wallet-adapter` 2.0.1:** added the required
+  `getChainTip()` runtime provider method and `TOTEM_GET_CHAIN_TIP` origin
+  check, restoring TypeScript compatibility with `@totemsdk/connect` 3.1.x.
+
+- **`@totemsdk/proof` 1.0.1:** republished against the current
+  `@totemsdk/manifest` 2.x and `@totemsdk/identity` APIs, closing the last
+  CAN-009 flat-install manifest split.
 
 ### Fixed
 
