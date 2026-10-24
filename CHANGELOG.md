@@ -9,9 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **`@totemsdk/connect` 3.1.0 — `TOTEM_GET_CHAIN_TIP`:** added the extension's
+- **`@totemsdk/connect` 3.1.1 — `TOTEM_GET_CHAIN_TIP`:** added the extension's
   existing chain-tip request to the shared connect inventory with a typed
-  request/response and `chain.getTip` handler.
+  request/response, `chain.getTip` handler, and runtime provider method.
+
+- **`@totemsdk/edge` 1.4.0:** refreshed the optional `@totemsdk/connect` peer
+  range to `^3.1.0` after the connect 3.x breaking release.
 
 ### Fixed
 

@@ -16,6 +16,7 @@
 
 import type {
   TotemCapabilities,
+  TotemGetChainTipResponse,
   TotemProvider,
   TotemProviderStatus,
   TotemRequest,
@@ -816,6 +817,9 @@ export function createWalletRuntime(
     },
     async getCoins(params?: Record<string, unknown>): Promise<unknown> {
       return dispatch('TOTEM_GET_COINS', asRecord(params));
+    },
+    async getChainTip(): Promise<TotemGetChainTipResponse> {
+      return dispatch('TOTEM_GET_CHAIN_TIP', {}) as Promise<TotemGetChainTipResponse>;
     },
     async sendComplex(buildParams: Record<string, unknown>, mode?: 'build' | 'submit'): Promise<unknown> {
       return dispatch('TOTEM_SEND_COMPLEX', { ...buildParams, ...(mode ? { mode } : {}) });
