@@ -69,7 +69,7 @@ Total: **67** publishable packages + **6** excluded entries = **73** workspace e
 | `@totemsdk/stream-transport` | 0.2.1 | rc | 2 | `packages/stream-transport` |
 | `@totemsdk/tx-builder` | 0.2.1 | rc | 2 | `packages/tx-builder` |
 | `@totemsdk/p2p-hub` | 0.1.0 | alpha | 2 | `packages/p2p-hub` |
-| `@totemsdk/connect` | 3.0.0 | v1 | outside | `packages/connect` |
+| `@totemsdk/connect` | 3.1.0 | v1 | outside | `packages/connect` |
 | `@totemsdk/location-proof` | 1.0.0 | v1 | outside | `packages/location-proof` |
 | `@totemsdk/proof-integritas` | 1.0.0 | v1 | outside | `packages/proof-integritas` |
 | `@totemsdk/proofgraph` | 1.0.1 | v1 | outside | `packages/proofgraph` |

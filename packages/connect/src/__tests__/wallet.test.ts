@@ -77,10 +77,10 @@ function emptyContext(): WalletHandlerContext {
 }
 
 describe('connect/wallet registry', () => {
-  it('exposes the canonical 49 methods', () => {
-    expect(CONNECT_METHODS).toHaveLength(49);
-    expect(new Set(CONNECT_METHODS).size).toBe(49);
-    expect(LEGACY_COUNT()).toBe(13);
+  it('exposes the canonical 50 methods', () => {
+    expect(CONNECT_METHODS).toHaveLength(50);
+    expect(new Set(CONNECT_METHODS).size).toBe(50);
+    expect(LEGACY_COUNT()).toBe(14);
   });
 
   it('has a descriptor and exactly one default handler for every method', () => {
@@ -104,7 +104,7 @@ describe('connect/wallet registry', () => {
 describe('connect/wallet manifest', () => {
   it('marks every method supported when all ports are configured', () => {
     const manifest = buildWalletCapabilityManifest(fullContext());
-    expect(Object.keys(manifest.methods)).toHaveLength(49);
+    expect(Object.keys(manifest.methods)).toHaveLength(50);
     const unsupported = Object.entries(manifest.methods).filter(([, s]) => s === 'unsupported');
     expect(unsupported).toEqual([]);
   });

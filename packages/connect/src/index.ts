@@ -7,6 +7,7 @@ import type {
   TotemGetAccountsResponse,
   TotemSendTransactionResponse,
   TotemGetCoinsResponse,
+  TotemGetChainTipResponse,
   TokenCreationParams,
   TotemTokenCreateResponse,
   TotemSendComplexBuildResponse,
@@ -299,6 +300,14 @@ export async function getCoins(origin: string, params?: {
   return await provider.request({
     method: 'TOTEM_GET_COINS',
     params: { origin, ...params }
+  });
+}
+
+export async function getChainTip(origin: string): Promise<TotemGetChainTipResponse> {
+  const provider = getProvider();
+  return await provider.request({
+    method: 'TOTEM_GET_CHAIN_TIP',
+    params: { origin }
   });
 }
 

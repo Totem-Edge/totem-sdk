@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`@totemsdk/connect` 3.1.0 — `TOTEM_GET_CHAIN_TIP`:** added the extension's
+  existing chain-tip request to the shared connect inventory with a typed
+  request/response and `chain.getTip` handler.
+
 ### Fixed
 
 - **`@totemsdk/storage` FileStore CAS lost updates:** concurrent

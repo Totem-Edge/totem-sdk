@@ -31,6 +31,7 @@ export const LEGACY_METHODS = [
   'TOTEM_GET_ACCOUNTS',
   'TOTEM_SEND_TRANSACTION',
   'TOTEM_GET_COINS',
+  'TOTEM_GET_CHAIN_TIP',
   'TOTEM_SEND_COMPLEX',
   'TOTEM_TOKENCREATE',
   'TOTEM_SIGN_DATA',
@@ -81,7 +82,7 @@ export const TOTEM_METHODS = [
   'totem_agentCreateReceipt',
 ] as const;
 
-/** Every canonical connect method (49). */
+/** Every canonical connect method (50). */
 export const CONNECT_METHODS = [...LEGACY_METHODS, ...TOTEM_METHODS] as const;
 
 export type LegacyMethod = (typeof LEGACY_METHODS)[number];
@@ -165,6 +166,7 @@ export const WALLET_METHODS: readonly WalletMethodDescriptor[] = [
   d('TOTEM_GET_ACCOUNTS', 'local', 'accounts', ['signer']),
   d('TOTEM_SEND_TRANSACTION', 'local', 'payment', ['signer', 'approvals'], ['payment:send'], { requiresApproval: true }),
   d('TOTEM_GET_COINS', 'local', 'chain', ['signer']),
+  d('TOTEM_GET_CHAIN_TIP', 'local', 'chain', ['chain']),
   d('TOTEM_SEND_COMPLEX', 'local', 'complex', ['signer', 'approvals'], [], { requiresApproval: true }),
   d('TOTEM_TOKENCREATE', 'local', 'token', ['signer', 'approvals'], [], { requiresApproval: true }),
   d('TOTEM_SIGN_DATA', 'local', 'sign', ['signer', 'approvals'], [], { requiresApproval: true }),
@@ -490,6 +492,7 @@ export function createDefaultHandlers(): WalletMethodHandler[] {
     delegate('TOTEM_GET_ACCOUNTS', (c) => c.signer?.getAccounts?.bind(c.signer), 'Wallet does not expose accounts.'),
     delegate('TOTEM_SEND_TRANSACTION', (c) => c.signer?.sendTransaction?.bind(c.signer), 'Wallet does not expose a transaction signer port.'),
     delegate('TOTEM_GET_COINS', (c) => c.signer?.getCoins?.bind(c.signer), 'Wallet does not expose a chain read port.'),
+    delegate('TOTEM_GET_CHAIN_TIP', (c) => c.chain?.getTip?.bind(c.chain), 'Wallet does not expose a chain tip port.'),
     delegate('TOTEM_SEND_COMPLEX', (c) => c.signer?.sendComplex?.bind(c.signer), 'Wallet does not expose a complex-transaction builder.'),
     delegate('TOTEM_TOKENCREATE', (c) => c.signer?.createToken?.bind(c.signer), 'Wallet does not expose a token creation port.'),
     delegate('TOTEM_SIGN_DATA', (c) => c.signer?.signData?.bind(c.signer), 'Wallet does not expose a data signer port.'),

@@ -948,6 +948,7 @@ export interface TotemProvider {
   request(args: TotemGetAccountsRequest): Promise<TotemGetAccountsResponse>;
   request(args: TotemSendTransactionRequest): Promise<TotemSendTransactionResponse>;
   request(args: TotemGetCoinsRequest): Promise<TotemGetCoinsResponse>;
+  request(args: TotemGetChainTipRequest): Promise<TotemGetChainTipResponse>;
   request(args: TotemTokenCreateRequest): Promise<TotemTokenCreateResponse>;
   request(args: TotemSendComplexRequest & { params: { mode: 'build' } }): Promise<TotemSendComplexBuildResponse>;
   request(args: TotemSendComplexRequest & { params: { mode?: 'submit' } }): Promise<TotemSendComplexSubmitResponse>;
@@ -1024,6 +1025,7 @@ export interface TotemProvider {
   enable(): Promise<TotemConnectResponse>;
   send(method: string, params?: unknown[]): Promise<unknown>;
   getCoins(params?: { tokenId?: string; address?: string; minAmount?: string }): Promise<unknown>;
+  getChainTip(): Promise<TotemGetChainTipResponse>;
   sendComplex(buildParams: Record<string, unknown>, mode?: 'build' | 'submit'): Promise<unknown>;
   signData(params: { unsignedHex: string; inputAddresses: string[]; inputIndices?: number[]; returnFormat?: string }): Promise<unknown>;
   broadcastHex(params: { signedHex: string; expectedDigestTx?: string }): Promise<unknown>;
@@ -1280,6 +1282,30 @@ export interface TotemGetCoinsErrorResponse {
 export type TotemGetCoinsResponse =
   | TotemGetCoinsSuccessResponse
   | TotemGetCoinsErrorResponse;
+
+export interface TotemGetChainTipRequest {
+  method: 'TOTEM_GET_CHAIN_TIP';
+  params?: {
+    origin?: string;
+  };
+}
+
+export interface TotemGetChainTipSuccessResponse {
+  success: true;
+  block: string;
+  hash?: string;
+  time?: string | number;
+}
+
+export interface TotemGetChainTipErrorResponse {
+  success: false;
+  error: string;
+  errorCode: string;
+}
+
+export type TotemGetChainTipResponse =
+  | TotemGetChainTipSuccessResponse
+  | TotemGetChainTipErrorResponse;
 
 export interface InputScriptDescriptor {
   scriptType: ScriptType;

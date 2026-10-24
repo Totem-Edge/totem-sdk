@@ -735,6 +735,10 @@
           "kind": "function",
           "signature": "getCoins(origin: string, params?: { tokenId?: string; address?: string; minAmount?: string; sendable?: boolean; relevant?: boolean; spent?: boolean; }): Promise<TotemGetCoinsResponse>"
         },
+        "getChainTip": {
+          "kind": "function",
+          "signature": "getChainTip(origin: string): Promise<TotemGetChainTipResponse>"
+        },
         "sendComplex": {
           "kind": "function",
           "signature": "sendComplex(origin: string, buildParams: EnhancedBuildParams, mode?: \"build\"): Promise<TotemSendComplexBuildResponse>"
@@ -818,6 +822,10 @@
         "getReceipt": {
           "kind": "function",
           "signature": "getReceipt(txpowId: string): Promise<TotemGetReceiptResponse>"
+        },
+        "omniaGetChannelState": {
+          "kind": "function",
+          "signature": "omniaGetChannelState(origin: string, channelId: string): Promise<TotemOmniaGetChannelStateResponse>"
         },
         "omniaGetChannels": {
           "kind": "function",
@@ -1080,6 +1088,22 @@
         "TotemGetReceiptResponse": {
           "kind": "interface",
           "signature": "export interface TotemGetReceiptResponse"
+        },
+        "OmniaPendingHtlc": {
+          "kind": "interface",
+          "signature": "export interface OmniaPendingHtlc"
+        },
+        "OmniaChannelState": {
+          "kind": "interface",
+          "signature": "export interface OmniaChannelState"
+        },
+        "TotemOmniaGetChannelStateRequest": {
+          "kind": "interface",
+          "signature": "export interface TotemOmniaGetChannelStateRequest"
+        },
+        "TotemOmniaGetChannelStateResponse": {
+          "kind": "interface",
+          "signature": "export interface TotemOmniaGetChannelStateResponse"
         },
         "OmniaChannelSummary": {
           "kind": "interface",
@@ -1395,6 +1419,22 @@
           "kind": "type",
           "signature": "export type TotemGetCoinsResponse = | TotemGetCoinsSuccessResponse | TotemGetCoinsErrorResponse"
         },
+        "TotemGetChainTipRequest": {
+          "kind": "interface",
+          "signature": "export interface TotemGetChainTipRequest"
+        },
+        "TotemGetChainTipSuccessResponse": {
+          "kind": "interface",
+          "signature": "export interface TotemGetChainTipSuccessResponse"
+        },
+        "TotemGetChainTipErrorResponse": {
+          "kind": "interface",
+          "signature": "export interface TotemGetChainTipErrorResponse"
+        },
+        "TotemGetChainTipResponse": {
+          "kind": "type",
+          "signature": "export type TotemGetChainTipResponse = | TotemGetChainTipSuccessResponse | TotemGetChainTipErrorResponse"
+        },
         "InputScriptDescriptor": {
           "kind": "interface",
           "signature": "export interface InputScriptDescriptor"
@@ -1545,7 +1585,7 @@
         },
         "LEGACY_METHODS": {
           "kind": "const",
-          "signature": "LEGACY_METHODS = [ 'TOTEM_CONNECT', 'TOTEM_VERIFY', 'TOTEM_GET_ACCOUNTS', 'TOTEM_SEND_TRANSACTION', 'TOTEM_GET_COINS', 'TOTEM_SEND_COMPLEX', 'TOTEM_TOKENCREATE', 'TOTEM_SIGN_DATA', 'TOTEM_SIGN_MESSAGE",
+          "signature": "LEGACY_METHODS = [ 'TOTEM_CONNECT', 'TOTEM_VERIFY', 'TOTEM_GET_ACCOUNTS', 'TOTEM_SEND_TRANSACTION', 'TOTEM_GET_COINS', 'TOTEM_GET_CHAIN_TIP', 'TOTEM_SEND_COMPLEX', 'TOTEM_TOKENCREATE', 'TOTEM_SIGN_DAT",
           "doc": "Legacy uppercase wire methods."
         },
         "TOTEM_METHODS": {
@@ -1556,7 +1596,7 @@
         "CONNECT_METHODS": {
           "kind": "const",
           "signature": "CONNECT_METHODS = [...LEGACY_METHODS, ...TOTEM_METHODS] as const",
-          "doc": "Every canonical connect method (48)."
+          "doc": "Every canonical connect method (50)."
         },
         "LegacyMethod": {
           "kind": "type",
@@ -1594,12 +1634,12 @@
         },
         "OMNIA_ACTION_BY_METHOD": {
           "kind": "const",
-          "signature": "OMNIA_ACTION_BY_METHOD: Readonly<Record<string, string>> = { totem_omniaGetChannels: 'omnia:getChannels', totem_omniaOpenChannel: 'omnia:channel:open', totem_omniaPay: 'omnia:pay', totem_omniaSettle: ",
+          "signature": "OMNIA_ACTION_BY_METHOD: Readonly<Record<string, string>> = { totem_omniaGetChannels: 'omnia:getChannels', totem_omniaGetChannelState: 'omnia:getChannelState', totem_omniaOpenChannel: 'omnia:channel:op",
           "doc": "Omnia connect method → governed edge action id."
         },
         "OMNIA_CLIENT_METHOD_BY_METHOD": {
           "kind": "const",
-          "signature": "OMNIA_CLIENT_METHOD_BY_METHOD: Readonly< Record<string, Exclude<keyof OmniaClientPort, 'supports'>> > = { totem_omniaGetChannels: 'getChannels', totem_omniaOpenChannel: 'openChannel', totem_omniaPay: ",
+          "signature": "OMNIA_CLIENT_METHOD_BY_METHOD: Readonly< Record<string, Exclude<keyof OmniaClientPort, 'supports'>> > = { totem_omniaGetChannels: 'getChannels', totem_omniaGetChannelState: 'getChannelState', totem_om",
           "doc": "Omnia connect method → consent Omnia client method (RFC-014 §6.3)."
         },
         "WalletInfoPort": {
@@ -8837,6 +8877,19 @@
         "DurableLiquidityBondStoreOptions": {
           "kind": "interface",
           "signature": "export interface DurableLiquidityBondStoreOptions"
+        },
+        "PoolAnnouncementPayload": {
+          "kind": "interface",
+          "signature": "export interface PoolAnnouncementPayload"
+        },
+        "CreatePoolAnnouncementParams": {
+          "kind": "interface",
+          "signature": "export interface CreatePoolAnnouncementParams"
+        },
+        "createPoolAnnouncement": {
+          "kind": "function",
+          "signature": "createPoolAnnouncement(params: CreatePoolAnnouncementParams): AnnouncementEnvelope<PoolAnnouncementPayload>",
+          "doc": "Project a signed pool manifest into the generic announcement envelope.\nThe announcement references the pool manifest by id + hash; it does not\nrestate pool economics."
         }
       }
     },
@@ -9587,6 +9640,99 @@
         "isEdgeServiceManifest": {
           "kind": "function",
           "signature": "isEdgeServiceManifest(input: MaybeSignedOrRaw): input is EdgeServiceManifest | SignedManifest<EdgeServiceManifest>"
+        },
+        "AnnouncementKind": {
+          "kind": "type",
+          "signature": "export type AnnouncementKind = | 'service' | 'provider' | 'liquidity-pool' | 'credit-offer' | 'swap-rate' | 'router-capacity' | 'opportunity'"
+        },
+        "AnnouncementCustodyMode": {
+          "kind": "type",
+          "signature": "export type AnnouncementCustodyMode = 'self' | 'trust-minimised' | 'hosted' | 'unknown'"
+        },
+        "AnnouncementCustody": {
+          "kind": "interface",
+          "signature": "export interface AnnouncementCustody"
+        },
+        "AnnouncementLiquidity": {
+          "kind": "interface",
+          "signature": "export interface AnnouncementLiquidity"
+        },
+        "AnnouncementEnvelope": {
+          "kind": "interface",
+          "signature": "export interface AnnouncementEnvelope<T = unknown>"
+        },
+        "SignedAnnouncement": {
+          "kind": "interface",
+          "signature": "export interface SignedAnnouncement<T = unknown>"
+        },
+        "AnnouncementVerifyResult": {
+          "kind": "interface",
+          "signature": "export interface AnnouncementVerifyResult"
+        },
+        "AnnouncementTopicFilter": {
+          "kind": "type",
+          "signature": "export type AnnouncementTopicFilter = { index?: boolean"
+        },
+        "CreateAnnouncementInput": {
+          "kind": "type",
+          "signature": "export type CreateAnnouncementInput<T = unknown> = Omit< AnnouncementEnvelope<T>, 'version' | 'announcementId' | 'payloadHash' >"
+        },
+        "computeAnnouncementPayloadHash": {
+          "kind": "function",
+          "signature": "computeAnnouncementPayloadHash(payload: unknown): string"
+        },
+        "computeAnnouncementId": {
+          "kind": "function",
+          "signature": "computeAnnouncementId(input: { kind: AnnouncementKind; subjectId: string; publisher: string; }): string"
+        },
+        "announcementDigest": {
+          "kind": "function",
+          "signature": "announcementDigest(announcement: AnnouncementEnvelope): Uint8Array"
+        },
+        "createAnnouncement": {
+          "kind": "function",
+          "signature": "createAnnouncement<T = unknown>(input: CreateAnnouncementInput<T>): AnnouncementEnvelope<T>"
+        },
+        "validateAnnouncement": {
+          "kind": "function",
+          "signature": "validateAnnouncement(announcement: AnnouncementEnvelope): void"
+        },
+        "signAnnouncement": {
+          "kind": "function",
+          "signature": "signAnnouncement<T>(announcement: AnnouncementEnvelope<T>, treeKey: TreeKey, useIndex: number): Promise<SignedAnnouncement<T>>"
+        },
+        "verifyAnnouncement": {
+          "kind": "function",
+          "signature": "verifyAnnouncement(signed: SignedAnnouncement, options?: { now?: number; }): AnnouncementVerifyResult"
+        },
+        "announcementTopic": {
+          "kind": "function",
+          "signature": "announcementTopic(filter?: AnnouncementTopicFilter): Uint8Array"
+        },
+        "rankAnnouncements": {
+          "kind": "function",
+          "signature": "rankAnnouncements(announcements: readonly AnnouncementEnvelope[]): AnnouncementEnvelope[]"
+        },
+        "AnnouncementAcceptOptions": {
+          "kind": "interface",
+          "signature": "export interface AnnouncementAcceptOptions"
+        },
+        "AnnouncementAcceptResult": {
+          "kind": "interface",
+          "signature": "export interface AnnouncementAcceptResult"
+        },
+        "AnnouncementQuery": {
+          "kind": "interface",
+          "signature": "export interface AnnouncementQuery"
+        },
+        "AnnouncementStoreOptions": {
+          "kind": "interface",
+          "signature": "export interface AnnouncementStoreOptions"
+        },
+        "MemoryAnnouncementStore": {
+          "kind": "class",
+          "signature": "export class MemoryAnnouncementStore",
+          "doc": "In-memory announcement index.\n\nA store is a discovery convenience, not a source of truth: it verifies the\nenvelope, enforces monotonic sequence per (publisher, subjectId), drops\nexpired records and returns ranked results. Durable/transport-backed stores\nbelong in the host/lookup layer."
         }
       }
     },
