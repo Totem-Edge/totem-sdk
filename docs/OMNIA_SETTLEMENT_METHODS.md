@@ -26,6 +26,7 @@ Related: [`OMNIA_TEST_RESULTS.md`](./OMNIA_TEST_RESULTS.md) (evidence),
 | Transport | DHT seed / relay + logs | `[swarm]`, `[peer]`, `ss`, seed `SEED_PUB`/`PORT` |
 | Persistence | host SQLite + observation SQLite | restart probe, `/observe/snapshot` |
 | Visual / replay | canary API + dashboard | `/api/canary/runs/:id/observe*`, Omnia Explorer |
+| Chain analytics | Minima More node + DuckDB | `GET /mcp` SSE, `minima-analytics`, Rill models |
 
 ---
 
@@ -230,6 +231,33 @@ ss -tnp | grep 8899
 pgrep -af 'totem-node|omnia-host|omnia-noncustodial|wallet-service|dht-seed'
 ```
 
+### 2.9 Minima More chain analytics + Rill
+
+The chain plane is Minima More. It is captured separately from the Omnia
+observation plane and joined by `txpowId`/`coinId`.
+
+| Method | Reveals |
+|---|---|
+| `GET http://<node>:<rpc>/mcp` (SSE) | `event: message` notifications: `NEWBLOCK`, `Transaction Mined`, `NEW Unspent/Spent Coin`, genesis |
+| `MinimaMoreSseSource` (Canary) | maps those to `chain.block`, `chain.txpow.mined`, `chain.coin.created/spent` with exact ids/amounts |
+| `minima-analytics -megammr -mmr-enrich` | unpruned recent coin set + MMR root; skips archive-backed metrics when no archive |
+| `GET /v1/capabilities` | `archive`/`megammr`/`analytics` coverage and `index.status` |
+| Rill `omnia_chain_events.yaml` / `omnia_chain_blocks.yaml` | read `observe.jsonl`, join `analytics.chain_blocks` by `txpow_id` |
+
+```bash
+curl -N -u minima:test http://<node>:<rpc>/mcp          # chain SSE
+MINIMA_MORE_NODES='[{"id":"mm","url":"http://<node>:<rpc>","username":"minima","password":"test"}]'
+minima-analytics -data <data> -indexdb minima.duckdb -megammr -mmr-enrich -indexonly
+curl -s http://127.0.0.1:8080/v1/capabilities
+```
+
+Minima More's `-rpc` handling can offset the actual RPC port; verify with
+`ss -ltn`/`status` rather than assuming the flag value. `-megammr` is
+recent/unpruned; historical Omnia analytics still needs `-archive`.
+
+MegaMMR-only support + Rill models: `minima-more` PR #1
+(`feat/minima-analytics-megammr-only`).
+
 ---
 
 ## 3. Question → best method
@@ -239,6 +267,7 @@ pgrep -af 'totem-node|omnia-host|omnia-noncustodial|wallet-service|dht-seed'
 | Is the chain healthy / mining? | `getchaintip` | `status`, node log `Transaction Mined` |
 | Is the funding coin spendable? | `coinexport` + `balance` | `coins` (`confirmed`, `age`), `getchaintip` |
 | Did settlement hit chain? | `txpow txpowid:` | `getchaintip` hash, `block`, `status.length` |
+| What on-chain analytics surround this Omnia tx? | Minima More `GET /mcp` SSE → `chain.*` | Rill `omnia_chain_*` models, `minima-analytics` capabilities |
 | Do both coordinators agree? | `GetChannelState` A + B | `/observe/snapshot` A + B (`sequence`, `balances`, `status`) |
 | Did a message stall? | `[peer] resend` / `Peer connection timeout` | `[swarm] join` vs `advertise`, `ss -lun`, seed bootstrap |
 | Is the host non-custodial? | wallet `/info` + host env | wallet-down negative, `/lease/*` |
@@ -321,3 +350,20 @@ Template:
 - **What it did not prove / next:** close propagation (B still `active`);
   mid-channel restart/recovery; relay transport; MCP observation. The two
   observation streams are per-node — compare both, never assume one is global.
+
+### 2026-10-24 — Minima More analytics node (AWS) + MegaMMR-only index
+
+- **Goal:** one Minima More analytics node alongside the Hawk nodes; capture its
+  chain SSE and feed recent on-chain analytics to Rill.
+- **Topology:** AWS `t4g.small` (`172.31.64.30`), Minima More `0.5.0` with
+  `-archive -megammr -mcp http`; `minima-analytics` sidecar on the same host.
+- **Methods used:** `GET /mcp` SSE, `MinimaMoreSseSource`,
+  `minima-analytics -megammr -mmr-enrich -indexonly`,
+  `GET /v1/capabilities`, Rill `omnia_chain_events`/`omnia_chain_blocks`.
+- **Evidence:** `MegaMMR-only index OK`; `index.status=ready`;
+  `coverage.megammr.coins=1` with root; `modes=[archive,megammr,analytics]`.
+- **What it proved:** the chain SSE is captured and mapped to `chain.*`; the
+  analytics sidecar can index without an archive; Rill models read the journal.
+- **What it did not prove / next:** mainnet/imported MegaMMR data (test MMR is
+  small); Rill dashboard run; historical metrics still need `-archive`.
+  PR: `minima-more#1`.
