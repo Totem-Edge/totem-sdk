@@ -110,6 +110,9 @@ importers:
       '@totemsdk/core':
         specifier: workspace:^
         version: link:../../packages/core
+      '@totemsdk/core-wasm':
+        specifier: workspace:^
+        version: link:../../packages/core-wasm
       '@totemsdk/identity':
         specifier: workspace:^
         version: link:../../packages/identity

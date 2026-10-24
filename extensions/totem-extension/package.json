@@ -60,6 +60,7 @@
     "@totemsdk/chain-provider": "workspace:^",
     "@totemsdk/connect": "workspace:^",
     "@totemsdk/core": "workspace:^",
+    "@totemsdk/core-wasm": "workspace:^",
     "@totemsdk/identity": "workspace:^",
     "@totemsdk/omnia-relay": "workspace:^",
     "@totemsdk/realtime": "workspace:^",
