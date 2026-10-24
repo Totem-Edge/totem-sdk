@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [0.13.1] - 2026-10-24
+
+### Fixed
+
+- `/observe/snapshot` now serializes BigInt values in channel parties, factory
+  participants and operation records. The AWS v1 gate found the endpoint
+  throwing `Do not know how to serialize a BigInt`.
+
 ## [0.13.0] - 2026-10-23
 
 ### Changed

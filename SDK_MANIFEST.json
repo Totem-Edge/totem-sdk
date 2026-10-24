@@ -1619,7 +1619,7 @@
     },
     {
       "name": "@totemsdk/omnia-host",
-      "version": "0.13.0",
+      "version": "0.13.1",
       "description": "Durable Omnia node daemon for channel lifecycle, routing, and control APIs",
       "domain": "payment-network",
       "keywords": [
