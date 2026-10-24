@@ -4,6 +4,7 @@
 
 import os from 'node:os';
 import {
+  custodyDisclosureId,
   makeHostedCustody,
   makeSelfCustody,
   signRequestPayload,
@@ -77,12 +78,6 @@ describe('createPolicySignerPort', () => {
   const base = createLocalSignerPort(signing);
 
   it('enforces domain, disclosure and amount limits before signing', async () => {
-    const port = createPolicySignerPort(base, {
-      allowedDomains: ['channel'],
-      allowedModes: ['hosted'],
-      maxAmount: 100n,
-      requireDisclosure: true,
-    });
     const custody = makeHostedCustody({
       operatorId: 'op-1',
       legalEntity: 'Example Custody Ltd',
@@ -92,6 +87,22 @@ describe('createPolicySignerPort', () => {
       policySummary: 'limits',
       withdrawalTerms: 'T+1',
     });
+    const acknowledgement = {
+      disclosureId: custodyDisclosureId(custody),
+      disclosureHash: custody.disclosureHash!,
+      disclosureVersion: custody.disclosureVersion!,
+      subjectId: 'alice',
+      acknowledgedAt: Date.now(),
+    };
+    const audit = jest.fn();
+    const port = createPolicySignerPort(base, {
+      allowedDomains: ['channel'],
+      allowedModes: ['hosted'],
+      maxAmount: 100n,
+      requireDisclosure: true,
+      custody: { acknowledgement, subjectId: 'alice', policyDecision: 'allow' },
+      audit,
+    });
     const ok = request({
       signers: [signing.publicKeyDigest],
       custody,
@@ -99,6 +110,9 @@ describe('createPolicySignerPort', () => {
     });
     const signature = await port.sign(ok);
     expect(verifyChannelSignature(signature, signRequestPayload(ok), signing.publicKeyDigest)).toBe(true);
+    expect(audit).toHaveBeenCalledWith(
+      expect.objectContaining({ decision: 'allow', mode: 'hosted', requestId: 'req-signer-1' }),
+    );
 
     await expect(port.sign(request({
       signers: [signing.publicKeyDigest],
@@ -114,6 +128,24 @@ describe('createPolicySignerPort', () => {
       signers: [signing.publicKeyDigest],
       custody: makeSelfCustody(),
     }))).rejects.toThrow(/custody mode/);
+  });
+
+  it('fails closed for hosted signing without an acknowledgement', async () => {
+    const port = createPolicySignerPort(base, {
+      allowedModes: ['hosted'],
+      custody: { policyDecision: 'allow' },
+    });
+    const custody = makeHostedCustody({
+      operatorId: 'op-1',
+      legalEntity: 'Example Custody Ltd',
+      jurisdiction: 'GB',
+      disclosureHash: '0x' + 'aa'.repeat(32),
+      disclosureVersion: '2026-10-20',
+      policySummary: 'limits',
+      withdrawalTerms: 'T+1',
+    });
+    await expect(port.sign(request({ signers: [signing.publicKeyDigest], custody })))
+      .rejects.toThrow(/acknowledgement/);
   });
 });
 

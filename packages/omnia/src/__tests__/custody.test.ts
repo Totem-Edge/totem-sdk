@@ -8,6 +8,11 @@ import {
   validateCustodyContext,
   assertSignRequest,
   signRequestPayload,
+  custodyDisclosureId,
+  checkCustodyAcknowledgement,
+  assertCustodyAcknowledgement,
+  assertCustodyAllowsSigning,
+  type CustodyAcknowledgement,
   type CustodyContext,
   type SignRequest,
 } from '../custody.js';
@@ -138,5 +143,81 @@ describe('sign requests', () => {
     const a = signRequestPayload(request({ digest: new Uint8Array(32).fill(1) }));
     const b = signRequestPayload(request({ digest: new Uint8Array(32).fill(2) }));
     expect(Array.from(a)).not.toEqual(Array.from(b));
+  });
+});
+
+function acknowledgement(
+  custody: CustodyContext,
+  overrides: Partial<CustodyAcknowledgement> = {},
+): CustodyAcknowledgement {
+  return {
+    disclosureId: custodyDisclosureId(custody),
+    disclosureHash: custody.disclosureHash ?? '',
+    disclosureVersion: custody.disclosureVersion ?? '',
+    subjectId: 'alice',
+    acknowledgedAt: Date.now(),
+    ...overrides,
+  };
+}
+
+describe('custody acknowledgements', () => {
+  it('derives a stable id from the material terms', () => {
+    const a = hosted();
+    const b = hosted({ disclosureHash: '0x' + 'bb'.repeat(32), disclosureVersion: '2026-11-01' });
+    expect(custodyDisclosureId(a)).toBe(custodyDisclosureId(hosted()));
+    expect(custodyDisclosureId(a)).not.toBe(custodyDisclosureId(b));
+  });
+
+  it('checks the exact disclosure, subject and freshness', () => {
+    const custody = hosted();
+    const ack = acknowledgement(custody);
+    expect(checkCustodyAcknowledgement(ack, custody)).toEqual({ ok: true });
+    expect(checkCustodyAcknowledgement(undefined, custody)).toMatchObject({ ok: false });
+    expect(checkCustodyAcknowledgement({ ...ack, disclosureId: '0xdead' }, custody)).toMatchObject({ ok: false });
+    expect(checkCustodyAcknowledgement({ ...ack, disclosureHash: '0xbeef' }, custody)).toMatchObject({ ok: false });
+    expect(checkCustodyAcknowledgement({ ...ack, disclosureVersion: 'old' }, custody)).toMatchObject({ ok: false });
+    expect(checkCustodyAcknowledgement({ ...ack, subjectId: 'bob' }, custody, { subjectId: 'alice' })).toMatchObject({ ok: false });
+    expect(checkCustodyAcknowledgement({ ...ack, expiresAt: Date.now() - 1 }, custody)).toMatchObject({ ok: false });
+    expect(checkCustodyAcknowledgement({ ...ack, acknowledgedAt: Date.now() + 60 * 60_000 }, custody)).toMatchObject({ ok: false });
+    expect(() => assertCustodyAcknowledgement({ ...ack, disclosureId: '0xdead' }, custody)).toThrow(/disclosureId/);
+  });
+
+  it('allows self-custody without an acknowledgement', () => {
+    expect(() => assertCustodyAllowsSigning(request())).not.toThrow();
+  });
+
+  it('fails closed for hosted custody without an ack or policy decision', () => {
+    const custody = hosted();
+    expect(() => assertCustodyAllowsSigning(request({ custody }))).toThrow(/acknowledgement/);
+    const ack = acknowledgement(custody);
+    expect(() => assertCustodyAllowsSigning(request({ custody }), { acknowledgement: ack })).toThrow(/policy decision/);
+    expect(() =>
+      assertCustodyAllowsSigning(request({ custody }), {
+        acknowledgement: ack,
+        subjectId: 'alice',
+        policyDecision: 'allow',
+      }),
+    ).not.toThrow();
+    expect(() =>
+      assertCustodyAllowsSigning(request({ custody }), {
+        acknowledgement: ack,
+        subjectId: 'alice',
+        policyDecision: 'deny',
+      }),
+    ).toThrow(/policy decision/);
+  });
+
+  it('requires an acknowledgement for trust-minimised custody', () => {
+    const custody: CustodyContext = {
+      mode: 'trust-minimised',
+      reason: 'operator can delay',
+      mitigation: 'timelocked exit',
+      disclosureHash: '0x' + 'cc'.repeat(32),
+      disclosureVersion: '1',
+    };
+    expect(() => assertCustodyAllowsSigning(request({ custody }))).toThrow(/acknowledgement/);
+    expect(() =>
+      assertCustodyAllowsSigning(request({ custody }), { acknowledgement: acknowledgement(custody) }),
+    ).not.toThrow();
   });
 });

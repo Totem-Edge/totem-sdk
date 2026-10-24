@@ -332,6 +332,10 @@ export {
 export type {
   CustodyMode,
   CustodyContext,
+  CustodyAcknowledgement,
+  CustodyAcknowledgementCheck,
+  CustodyAcknowledgementOptions,
+  CustodySigningOptions,
   SignDomain,
   SignContext,
   SignRequest,
@@ -342,5 +346,9 @@ export {
   makeHostedCustody,
   validateCustodyContext,
   assertSignRequest,
+  custodyDisclosureId,
+  checkCustodyAcknowledgement,
+  assertCustodyAcknowledgement,
+  assertCustodyAllowsSigning,
   signRequestPayload,
 } from './custody.js';

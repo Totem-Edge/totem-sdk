@@ -8,8 +8,11 @@
 
 import { bytesToHex } from '@totemsdk/core';
 import {
+  assertCustodyAllowsSigning,
   assertSignRequest,
+  custodyDisclosureId,
   signRequestPayload,
+  type CustodyAcknowledgement,
   type CustodyMode,
   type SignDomain,
   type SignRequest,
@@ -54,6 +57,18 @@ export function createLocalSignerPort(signing: HostSigning): SignerPort {
 }
 
 
+/** Durable audit record for every policy-signer decision (RFC-061 D6). */
+export interface SignerAuditRecord {
+  requestId: string;
+  domain: SignDomain;
+  mode: CustodyMode;
+  disclosureId: string;
+  acknowledgementId?: string;
+  signer: string;
+  decision: 'allow' | 'deny';
+  reason?: string;
+}
+
 /** Hosted/KMS policy checks applied before delegating to the underlying port. */
 export interface SignerPolicy {
   allowedDomains?: SignDomain[];
@@ -62,6 +77,15 @@ export interface SignerPolicy {
   maxAmount?: bigint;
   /** Require a disclosure hash/version on the custody context. */
   requireDisclosure?: boolean;
+  /** RFC-061 signer gate: exact disclosure acknowledgement + policy decision. */
+  custody?: {
+    acknowledgement?: CustodyAcknowledgement;
+    subjectId?: string;
+    policyDecision?: 'allow' | 'deny';
+    now?: number;
+  };
+  /** Durable audit sink; called with allow/deny decisions. */
+  audit?: (record: SignerAuditRecord) => void | Promise<void>;
   /** Additional operator approval hook (KMS/HSM/MPC or quorum). */
   authorize?: (request: SignRequest) => void | Promise<void>;
 }
@@ -78,6 +102,27 @@ export function createPolicySignerPort(base: SignerPort, policy: SignerPolicy = 
       assertSignRequest(request);
       if (!request.signers.includes(base.publicKeyDigest)) {
         throw new Error(`signer ${base.publicKeyDigest} is not a required signer for ${request.requestId}`);
+      }
+      const ack = policy.custody?.acknowledgement;
+      const auditBase: Omit<SignerAuditRecord, 'decision'> = {
+        requestId: request.requestId,
+        domain: request.domain,
+        mode: request.custody.mode,
+        disclosureId: custodyDisclosureId(request.custody),
+        ...(ack
+          ? { acknowledgementId: `${ack.disclosureId}:${ack.subjectId}:${ack.acknowledgedAt}` }
+          : {}),
+        signer: base.publicKeyDigest,
+      };
+      try {
+        assertCustodyAllowsSigning(request, policy.custody ?? {});
+      } catch (err) {
+        await policy.audit?.({
+          ...auditBase,
+          decision: 'deny',
+          reason: err instanceof Error ? err.message : String(err),
+        });
+        throw err;
       }
       if (policy.allowedDomains && !policy.allowedDomains.includes(request.domain)) {
         throw new Error(`domain ${request.domain} is not allowed by policy`);
@@ -96,7 +141,9 @@ export function createPolicySignerPort(base: SignerPort, policy: SignerPolicy = 
         }
       }
       await policy.authorize?.(request);
-      return base.sign(request);
+      const signature = await base.sign(request);
+      await policy.audit?.({ ...auditBase, decision: 'allow' });
+      return signature;
     },
   };
 }

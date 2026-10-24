@@ -9,7 +9,7 @@
  * disclosure hash, so a signature cannot be replayed under different terms.
  */
 
-import { sha3_256 } from '@totemsdk/core';
+import { bytesToHex, sha3_256 } from '@totemsdk/core';
 import type { SigningIndices } from '@totemsdk/wots-lease';
 
 export type CustodyMode = 'self' | 'trust-minimised' | 'hosted';
@@ -224,6 +224,132 @@ export function assertSignRequest(request: SignRequest, now = Date.now()): void 
   validateCustodyContext(request.custody);
   if (request.expiresAt !== undefined && request.expiresAt <= now) {
     throw new Error('sign request has expired');
+  }
+}
+
+/**
+ * Portable acknowledgement of one exact disclosure (RFC-061 D2).
+ * The host must verify this against its configured disclosure; it must never
+ * trust a caller-supplied boolean.
+ */
+export interface CustodyAcknowledgement {
+  disclosureId: string;
+  disclosureHash: string;
+  disclosureVersion: string;
+  subjectId: string;
+  acknowledgedAt: number;
+  expiresAt?: number;
+  /** Optional proof; required when the ack crosses a trust boundary. */
+  signature?: Uint8Array;
+  signerPublicKeyDigest?: string;
+}
+
+/**
+ * Stable id over the material custody terms. A change to any term (or to the
+ * disclosure hash/version) invalidates every acknowledgement bound to it.
+ */
+export function custodyDisclosureId(custody: CustodyContext): string {
+  const canonical = {
+    mode: custody.mode,
+    operatorId: custody.operatorId ?? null,
+    legalEntity: custody.legalEntity ?? null,
+    jurisdiction: custody.jurisdiction ?? null,
+    license: custody.license ?? null,
+    keyManagement: custody.keyManagement ?? null,
+    canMoveFunds: custody.canMoveFunds ?? false,
+    canFreeze: custody.canFreeze ?? false,
+    operatorDiscretion: custody.operatorDiscretion ?? false,
+    withdrawalTerms: custody.withdrawalTerms ?? null,
+    receiptTransferability: custody.receiptTransferability ?? null,
+    disclosureHash: custody.disclosureHash ?? null,
+    disclosureVersion: custody.disclosureVersion ?? null,
+    disclosureUrl: custody.disclosureUrl ?? null,
+    policySummary: custody.policySummary ?? null,
+    reason: custody.reason ?? null,
+    mitigation: custody.mitigation ?? null,
+  };
+  return bytesToHex(sha3_256(new TextEncoder().encode(JSON.stringify(canonical))));
+}
+
+export interface CustodyAcknowledgementCheck {
+  ok: boolean;
+  reason?: string;
+}
+
+export interface CustodyAcknowledgementOptions {
+  subjectId?: string;
+  now?: number;
+  /** Tolerated future clock skew for acknowledgedAt (default 5 minutes). */
+  clockSkewMs?: number;
+}
+
+/** Verify an acknowledgement against the exact custody terms. */
+export function checkCustodyAcknowledgement(
+  acknowledgement: CustodyAcknowledgement | undefined,
+  custody: CustodyContext,
+  options: CustodyAcknowledgementOptions = {},
+): CustodyAcknowledgementCheck {
+  if (!acknowledgement) return { ok: false, reason: 'custody acknowledgement is required' };
+  if (!acknowledgement.disclosureId) return { ok: false, reason: 'custody acknowledgement requires disclosureId' };
+  if (acknowledgement.disclosureId !== custodyDisclosureId(custody)) {
+    return { ok: false, reason: 'custody acknowledgement disclosureId does not match' };
+  }
+  if (acknowledgement.disclosureHash !== custody.disclosureHash) {
+    return { ok: false, reason: 'custody acknowledgement disclosureHash does not match' };
+  }
+  if (acknowledgement.disclosureVersion !== custody.disclosureVersion) {
+    return { ok: false, reason: 'custody acknowledgement disclosureVersion does not match' };
+  }
+  if (!acknowledgement.subjectId) return { ok: false, reason: 'custody acknowledgement requires subjectId' };
+  if (options.subjectId !== undefined && acknowledgement.subjectId !== options.subjectId) {
+    return { ok: false, reason: 'custody acknowledgement subject does not match' };
+  }
+  const now = options.now ?? Date.now();
+  const skew = options.clockSkewMs ?? 5 * 60_000;
+  if (!Number.isFinite(acknowledgement.acknowledgedAt) || acknowledgement.acknowledgedAt <= 0) {
+    return { ok: false, reason: 'custody acknowledgement has an invalid acknowledgedAt' };
+  }
+  if (acknowledgement.acknowledgedAt > now + skew) {
+    return { ok: false, reason: 'custody acknowledgement is from the future' };
+  }
+  if (acknowledgement.expiresAt !== undefined && acknowledgement.expiresAt <= now) {
+    return { ok: false, reason: 'custody acknowledgement has expired' };
+  }
+  return { ok: true };
+}
+
+export function assertCustodyAcknowledgement(
+  acknowledgement: CustodyAcknowledgement | undefined,
+  custody: CustodyContext,
+  options: CustodyAcknowledgementOptions = {},
+): void {
+  const result = checkCustodyAcknowledgement(acknowledgement, custody, options);
+  if (!result.ok) throw new Error(result.reason ?? 'custody acknowledgement is invalid');
+}
+
+export interface CustodySigningOptions extends CustodyAcknowledgementOptions {
+  acknowledgement?: CustodyAcknowledgement;
+  /** Hosted custody requires a positive policy decision; absent/deny fails closed. */
+  policyDecision?: 'allow' | 'deny';
+}
+
+/**
+ * The signer-side custody gate (RFC-061 D1).
+ *
+ * - self: allowed, no hosted disclosure.
+ * - trust-minimised: valid acknowledgement for the exact terms.
+ * - hosted: valid acknowledgement + explicit positive policy decision.
+ */
+export function assertCustodyAllowsSigning(
+  request: SignRequest,
+  options: CustodySigningOptions = {},
+): void {
+  validateCustodyContext(request.custody);
+  if (request.custody.mode === 'self') return;
+  assertCustodyAcknowledgement(options.acknowledgement, request.custody, options);
+  if (request.custody.mode === 'trust-minimised') return;
+  if (options.policyDecision !== 'allow') {
+    throw new Error('hosted signing requires a positive policy decision');
   }
 }
 
