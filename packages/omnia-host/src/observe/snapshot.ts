@@ -49,7 +49,7 @@ function channelView(channel: OmniaChannel): Record<string, unknown> {
     currentSequence: channel.currentSequence,
     fundingCoinId: channel.fundingCoinId,
     fundingTxId: channel.fundingTxId,
-    parties: channel.parties,
+    parties: toJson(channel.parties),
     balances: Object.fromEntries(Object.entries(channel.balances).map(([k, v]) => [k, v.toString()])),
     pendingHTLCs: (channel.pendingHTLCs ?? []).map((h) => toJson(h)),
     updatedAt: channel.updatedAt,
@@ -64,7 +64,7 @@ function factoryView(factory: ChannelFactory): Record<string, unknown> {
     status: f.status,
     tokenId: f.tokenId,
     tokenScale: f.tokenScale ?? 0,
-    participants: f.participants,
+    participants: toJson(f.participants),
     allocations: Object.fromEntries(Object.entries(allocations).map(([k, v]) => [k, v.toString()])),
     updatedAt: f.updatedAt,
   };
@@ -80,12 +80,12 @@ function operationsView(operations?: ObservationSnapshotInput["operations"]): un
       const r = record as { operationId?: string };
       if (r.operationId && seen.has(r.operationId)) continue;
       if (r.operationId) seen.add(r.operationId);
-      out.push({
+      out.push(toJson({
         operationId: r.operationId,
         status: (record as { status?: string }).status ?? status,
         updatedAt: (record as { updatedAt?: number }).updatedAt,
         error: (record as { error?: string }).error,
-      });
+      }));
     }
   }
   return out;
