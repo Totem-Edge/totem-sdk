@@ -81,7 +81,7 @@ export const TOTEM_METHODS = [
   'totem_agentCreateReceipt',
 ] as const;
 
-/** Every canonical connect method (48). */
+/** Every canonical connect method (49). */
 export const CONNECT_METHODS = [...LEGACY_METHODS, ...TOTEM_METHODS] as const;
 
 export type LegacyMethod = (typeof LEGACY_METHODS)[number];
@@ -246,6 +246,7 @@ export function methodDescriptor(method: string): WalletMethodDescriptor | undef
 /** Omnia connect method → governed edge action id. */
 export const OMNIA_ACTION_BY_METHOD: Readonly<Record<string, string>> = {
   totem_omniaGetChannels: 'omnia:getChannels',
+  totem_omniaGetChannelState: 'omnia:getChannelState',
   totem_omniaOpenChannel: 'omnia:channel:open',
   totem_omniaPay: 'omnia:pay',
   totem_omniaSettle: 'omnia:settle',
