@@ -203,11 +203,12 @@ landed; production evidence is still being gathered.
 - Watchlist, handlers, auth, trust, relay, registry-WOTS, lease and session-ticket
   tests.
 - Go interop and tree-key vectors.
+- Durable ticket store and node identity watermark survive restart; ticket
+  `seq`, budget and revocation are enforced after reopen.
 - Ticket store and revocation path exist.
 
 **Missing**
 
-- Durable ticket store and identity across restart.
 - Multi-peer, teardown and reconnect evidence.
 - Channel tag `next` is present; `latest` remains npm's required default until a stable v1 exists.
 

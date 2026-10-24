@@ -35,7 +35,7 @@ export class LookupNode implements NodeDispatcher {
   /** RFC-032: node-wide anti-replay guard (per-identity nonce monotonicity). */
   readonly replayGuard = new ReplayGuard();
   /** RFC-032-A: issued session tickets (lifetime, budget, seq replay). */
-  readonly tickets = new SessionTicketStore();
+  readonly tickets: SessionTicketStore;
   /** Lazily-built node WOTS identity (TreeKey derivation is expensive). */
   private _nodeIdentity?: NodeIdentity;
   /** RFC-032-A: persisted node-identity use counter, restored in start(). */
@@ -54,6 +54,15 @@ export class LookupNode implements NodeDispatcher {
     // SQLite store — always on (defaults to ':memory:' for lightweight/test deployments)
     const dbPath = config.sqlite?.dbPath ?? ':memory:';
     this.store = new SqliteStore(dbPath);
+    this.tickets = new SessionTicketStore({
+      nodeId: this.nodeId,
+      persistence: {
+        get: (key) => this.store.kvGet(key),
+        set: (key, value) => this.store.kvSet(key, value),
+        remove: (key) => this.store.kvRemove(key),
+        keys: (prefix) => this.store.kvKeys(prefix),
+      },
+    });
 
     // RFC-032-A: the node identity is built lazily (TreeKey derivation is
     // expensive) on first ticket minting. Its WOTS use counter is persisted to

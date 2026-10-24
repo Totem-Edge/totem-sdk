@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`@totemsdk/lookup-node` 0.3.0 — durable session tickets:** ticket state now
+  persists in SQLite (`totem_lookup_ticket:v1:*`) and is restored on startup.
+  The per-ticket `seq` watermark, request budget and revocation survive a node
+  restart; tickets minted by another node or corrupt entries are discarded.
+  Added a node-restart E2E that reuses a ticket and rejects its replay.
+
 - **`@totemsdk/connect` 3.1.1 — `TOTEM_GET_CHAIN_TIP`:** added the extension's
   existing chain-tip request to the shared connect inventory with a typed
   request/response, `chain.getTip` handler, and runtime provider method.

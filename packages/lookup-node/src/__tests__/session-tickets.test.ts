@@ -5,6 +5,9 @@
  * budget, revocation, subject binding, and forged signatures.
  */
 
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { sessionTicketDigest, authDigest, PROTOCOL_VERSION } from '@totemsdk/lookup-protocol';
 import type { SessionTicket, LookupMessage } from '@totemsdk/lookup-protocol';
 import {
@@ -13,8 +16,9 @@ import {
   bytesToHex,
 } from '@totemsdk/core';
 import { NodeIdentity } from '../auth-verify.js';
-import { SessionTicketStore } from '../ticket-store.js';
+import { SessionTicketStore, type SessionTicketPersistence } from '../ticket-store.js';
 import { LookupNode } from '../node.js';
+import { SqliteStore } from '../storage.js';
 import { makeMockProvider, createTestPair, MessageBuffer } from './helpers.js';
 import { makeRawSender } from '../handlers.js';
 
@@ -46,6 +50,15 @@ function ticket(overrides: Partial<SessionTicket> = {}): SessionTicket {
     maxRequests: 3,
   };
   return { ...base, signature: 'sig', ...overrides };
+}
+
+function persistent(store: SqliteStore): SessionTicketPersistence {
+  return {
+    get: (key) => store.kvGet(key),
+    set: (key, value) => store.kvSet(key, value),
+    remove: (key) => store.kvRemove(key),
+    keys: (prefix) => store.kvKeys(prefix),
+  };
 }
 
 describe('SessionTicketStore', () => {
@@ -90,6 +103,88 @@ describe('SessionTicketStore', () => {
     store.issue(ticket({ subject: 'aa'.repeat(32) }));
     expect(store.consume('tkt-1', 0, 'bb'.repeat(32))).toMatchObject({ ok: false, reason: 'unknown' });
     expect(store.consume('tkt-1', 0, 'aa'.repeat(32)).ok).toBe(true);
+  });
+});
+
+describe('SessionTicketStore durability (RFC-032-A T4)', () => {
+  let dir: string;
+  let file: string;
+
+  beforeEach(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lookup-tickets-'));
+    file = path.join(dir, 'node.sqlite');
+  });
+
+  afterEach(() => {
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('preserves the seq watermark and request budget across reopen', () => {
+    let db = new SqliteStore(file);
+    let store = new SessionTicketStore({
+      now: () => 1000,
+      nodeId: 'node-x',
+      persistence: persistent(db),
+    });
+    store.issue(ticket({ nodeId: 'node-x', maxRequests: 3 }));
+    expect(store.consume('tkt-1', 0, 'ab'.repeat(32))).toMatchObject({ ok: true });
+    db.close();
+
+    db = new SqliteStore(file);
+    store = new SessionTicketStore({
+      now: () => 1000,
+      nodeId: 'node-x',
+      persistence: persistent(db),
+    });
+    expect(store.consume('tkt-1', 0)).toMatchObject({ ok: false, reason: 'replay' });
+    expect(store.consume('tkt-1', 1).ok).toBe(true);
+    expect(store.consume('tkt-1', 2).ok).toBe(true);
+    expect(store.consume('tkt-1', 3)).toMatchObject({ ok: false, reason: 'exhausted' });
+    db.close();
+  });
+
+  it('does not resurrect a revoked ticket across reopen', () => {
+    let db = new SqliteStore(file);
+    let store = new SessionTicketStore({
+      now: () => 1000,
+      nodeId: 'node-x',
+      persistence: persistent(db),
+    });
+    store.issue(ticket({ nodeId: 'node-x' }));
+    store.revoke('tkt-1');
+    db.close();
+
+    db = new SqliteStore(file);
+    store = new SessionTicketStore({
+      now: () => 1000,
+      nodeId: 'node-x',
+      persistence: persistent(db),
+    });
+    expect(store.consume('tkt-1', 0)).toMatchObject({ ok: false, reason: 'unknown' });
+    db.close();
+  });
+
+  it('discards tickets minted by a different node and corrupt entries', () => {
+    let db = new SqliteStore(file);
+    let store = new SessionTicketStore({
+      now: () => 1000,
+      nodeId: 'node-x',
+      persistence: persistent(db),
+    });
+    store.issue(ticket({ nodeId: 'other-node', ticketId: 'foreign' }));
+    db.kvSet('totem_lookup_ticket:v1:broken', '{not-json');
+    db.close();
+
+    db = new SqliteStore(file);
+    store = new SessionTicketStore({
+      now: () => 1000,
+      nodeId: 'node-x',
+      persistence: persistent(db),
+    });
+    expect(store.consume('foreign', 0)).toMatchObject({ ok: false, reason: 'unknown' });
+    expect(store.size()).toBe(0);
+    expect(db.kvGet('totem_lookup_ticket:v1:broken')).toBeNull();
+    db.close();
   });
 });
 
@@ -241,5 +336,37 @@ describe('lookup-node session tickets end-to-end', () => {
     expect(resp.type).toBe('ERROR');
     expect((resp.payload as { code: string }).code).toBe('AUTH_REPLAY');
     await node.stop();
+  });
+
+  it('keeps a minted ticket usable across a node restart', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lookup-node-restart-'));
+    const dbPath = path.join(dir, 'node.sqlite');
+    const config = { provider: makeMockProvider(), nodeId: 'node-restart', sqlite: { dbPath } };
+
+    const first = new LookupNode(config);
+    await first.start();
+    const client = makeClientIdentity(0x55);
+    const { ticket } = await openSession(first, client);
+    await first.stop();
+
+    const second = new LookupNode(config);
+    await second.start();
+    const [clientTransport, serverTransport] = createTestPair();
+    const buffer = new MessageBuffer(clientTransport);
+    second.handleConnection(serverTransport);
+    const send = makeRawSender(clientTransport);
+
+    const ref = { ticketId: ticket.ticketId, seq: 0 };
+    send({ type: 'GET_COINS', version: PROTOCOL_VERSION, id: 'after-restart', ticket: ref, payload: { address: 'Mx1' } } as LookupMessage);
+    const resp = await buffer.waitFor((m) => m.id === 'after-restart', 15_000);
+    expect(resp.type).toBe('COINS_RESPONSE');
+
+    send({ type: 'GET_COINS', version: PROTOCOL_VERSION, id: 'replay-after-restart', ticket: ref, payload: { address: 'Mx1' } } as LookupMessage);
+    const replay = await buffer.waitFor((m) => m.id === 'replay-after-restart', 15_000);
+    expect(replay.type).toBe('ERROR');
+    expect((replay.payload as { code: string }).code).toBe('AUTH_REPLAY');
+
+    await second.stop();
+    fs.rmSync(dir, { recursive: true, force: true });
   });
 });

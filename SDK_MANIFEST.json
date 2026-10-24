@@ -808,7 +808,7 @@
     },
     {
       "name": "@totemsdk/lookup-node",
-      "version": "0.2.1",
+      "version": "0.3.0",
       "description": "Always-on personal lookup node — Hyperswarm, chain queries, COIN_UPDATE push, WOTS lease coordination",
       "domain": "sovereignty-stack",
       "keywords": [
