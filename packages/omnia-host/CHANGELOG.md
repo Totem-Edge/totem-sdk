@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-10-23
+
+### Changed
+
+- `totem_omniaPayMultiHop` now uses the shared intent-based request contract
+  (`toPartyId`, `amount`, `tokenId`, `hashlock`, `preimage`, `expiryBlock`,
+  optional `route`/`targetTokenId`). Cross-token routes use the host executor.
+
 ## [0.12.0] - 2026-10-23
 
 ### Added

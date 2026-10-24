@@ -200,7 +200,7 @@
     },
     {
       "name": "@totemsdk/connect",
-      "version": "2.4.2",
+      "version": "3.0.0",
       "description": "Client-side SDK for Totem wallet browser extension — includes Edge capability layer",
       "domain": "edge-computing",
       "keywords": [
@@ -1619,7 +1619,7 @@
     },
     {
       "name": "@totemsdk/omnia-host",
-      "version": "0.12.0",
+      "version": "0.13.0",
       "description": "Durable Omnia node daemon for channel lifecycle, routing, and control APIs",
       "domain": "payment-network",
       "keywords": [
@@ -1798,7 +1798,7 @@
     },
     {
       "name": "@totemsdk/omnia-relay",
-      "version": "0.5.0",
+      "version": "0.6.0",
       "description": "Wallet-side Omnia client — browser-safe relay transport + routing/factory/splice composition",
       "domain": "payment-network",
       "keywords": [
@@ -1995,7 +1995,7 @@
     },
     {
       "name": "@totemsdk/storage",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "description": "Provider-neutral storage contracts and adapters — StorageError taxonomy, versioned codec, namespaces, transactions + CAS, artifact-boundary types with a pluggable ArtifactStoreBackend port",
       "domain": "storage",
       "keywords": [
@@ -2046,7 +2046,7 @@
     },
     {
       "name": "@totemsdk/entity",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "description": "Disclosure-bounded entity resolution and projection — composes identity, manifests, proofs and authority into a privacy-preserving view",
       "domain": "verifiable-claims",
       "keywords": [

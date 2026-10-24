@@ -96,8 +96,15 @@ class CasLock {
     for (;;) {
       try {
         await fs.mkdir(this.path);
-        await fs.writeFile(join(this.path, CasLock.MARKER), `${Date.now()}\n${process.pid}`, 'utf8');
-        return;
+        try {
+          await fs.writeFile(join(this.path, CasLock.MARKER), `${Date.now()}\n${process.pid}`, 'utf8');
+          return;
+        } catch (markerErr) {
+          // A stale-lock steal may have removed the directory between mkdir and
+          // marker creation. Retry the acquisition instead of failing.
+          if ((markerErr as NodeJS.ErrnoException).code === 'ENOENT') continue;
+          throw markerErr;
+        }
       } catch (err) {
         if ((err as NodeJS.ErrnoException).code !== 'EEXIST') {
           throw new StorageError(`FileStore CAS lock acquire failed: ${(err as Error).message}`, 'unavailable', { cause: err });
@@ -128,7 +135,12 @@ class CasLock {
         }
       }
       if (orphan) {
-        await this.steal();
+        // Re-check immediately before removal. If a new owner claimed the lock
+        // during the grace window, leave it alone. rmdir (not recursive) also
+        // fails safely if a marker appeared after this check.
+        if ((await this.readMarker()) === null) {
+          await fs.rmdir(this.path).catch(() => undefined);
+        }
       }
     }
   }
@@ -143,6 +155,29 @@ class CasLock {
  *  marker write). The mkdir→marker window is microseconds, so 150ms is ample
  *  to observe a normal claim in flight without stalling hand-offs. */
 const ORPHAN_GRACE_MS = 150;
+
+/**
+ * In-process serialization per lock path. The on-disk lock handles separate
+ * processes; this chain prevents two FileStore instances in the same process
+ * from racing through the small mkdir→marker window and stealing each other's
+ * freshly-created lock.
+ */
+const inProcessLockChains = new Map<string, Promise<void>>();
+
+async function withInProcessLock<T>(path: string, fn: () => Promise<T>): Promise<T> {
+  const previous = inProcessLockChains.get(path) ?? Promise.resolve();
+  let release!: () => void;
+  const current = new Promise<void>((resolve) => { release = resolve; });
+  const tail = previous.then(() => current);
+  inProcessLockChains.set(path, tail);
+  await previous;
+  try {
+    return await fn();
+  } finally {
+    release();
+    if (inProcessLockChains.get(path) === tail) inProcessLockChains.delete(path);
+  }
+}
 
 export class FileStore implements StorageAdapterWithCapabilities, CasStore, TransactionalStore {
   readonly capabilities: StoreCapabilities = {
@@ -283,41 +318,43 @@ export class FileStore implements StorageAdapterWithCapabilities, CasStore, Tran
     // the other (AUD-033). Under this per-key lock, contention either waits or
     // is detected — it is never resolved by overwriting a peer's commit.
     const lock = this.lockFor(key);
-    await lock.acquire();
-    try {
-      const envelope = await this.readEnvelope(key);
-      const current = envelope ? (envelope.v as T | null) : null;
-      const revision = envelope ? envelope.r : 0;
-
-      const decision = update(current);
-      if ('abort' in decision) {
-        return { applied: false, value: current, revision };
-      }
-
-      const next: FileEnvelope = { k: key, v: decision.next, r: revision + 1 };
-      await fs.mkdir(this.dir, { recursive: true });
-      const file = this.fileFor(key);
-      const tmp = join(this.dir, `.tmp-${process.pid}-${Math.random().toString(36).slice(2)}`);
-      let handle: fs.FileHandle;
+    return withInProcessLock(lock.path, async () => {
+      await lock.acquire();
       try {
-        handle = await fs.open(tmp, 'w');
-      } catch (err) {
-        throw new StorageError(`FileStore open failed: ${(err as Error).message}`, 'unavailable', { key, cause: err });
+        const envelope = await this.readEnvelope(key);
+        const current = envelope ? (envelope.v as T | null) : null;
+        const revision = envelope ? envelope.r : 0;
+
+        const decision = update(current);
+        if ('abort' in decision) {
+          return { applied: false, value: current, revision };
+        }
+
+        const next: FileEnvelope = { k: key, v: decision.next, r: revision + 1 };
+        await fs.mkdir(this.dir, { recursive: true });
+        const file = this.fileFor(key);
+        const tmp = join(this.dir, `.tmp-${process.pid}-${Math.random().toString(36).slice(2)}`);
+        let handle: fs.FileHandle;
+        try {
+          handle = await fs.open(tmp, 'w');
+        } catch (err) {
+          throw new StorageError(`FileStore open failed: ${(err as Error).message}`, 'unavailable', { key, cause: err });
+        }
+        try {
+          await handle.writeFile(codec.serialize(next));
+          await handle.sync();
+          await handle.close();
+          await fs.rename(tmp, file);
+        } catch (err) {
+          await handle.close();
+          await fs.rm(tmp, { force: true }).catch(() => undefined);
+          throw new StorageError(`FileStore CAS failed: ${(err as Error).message}`, 'write-failed', { key, cause: err });
+        }
+        return { applied: true, value: decision.next, revision: revision + 1 };
+      } finally {
+        await lock.release();
       }
-      try {
-        await handle.writeFile(codec.serialize(next));
-        await handle.sync();
-        await handle.close();
-        await fs.rename(tmp, file);
-      } catch (err) {
-        await handle.close();
-        await fs.rm(tmp, { force: true }).catch(() => undefined);
-        throw new StorageError(`FileStore CAS failed: ${(err as Error).message}`, 'write-failed', { key, cause: err });
-      }
-      return { applied: true, value: decision.next, revision: revision + 1 };
-    } finally {
-      await lock.release();
-    }
+    });
   }
 
   transaction(): Transaction {

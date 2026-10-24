@@ -129,6 +129,8 @@ landed; production evidence is still being gathered.
 - Synchronous SQLite adapter with legacy-table migration.
 - `omnia-host` 0.12.0 persists channel/operation/observation state through the
   storage contract.
+- FileStore AUD-033 lost-update race fixed; repeated in-process and cross-process
+  CAS conformance runs pass.
 - Runtime-neutral contract with no Hypercore/network dependency.
 
 **Missing**

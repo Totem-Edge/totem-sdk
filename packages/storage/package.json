@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/storage",
-  "version": "0.2.0",
-  "description": "Provider-neutral storage contracts and adapters \u2014 StorageError taxonomy, versioned codec, namespaces, transactions + CAS, artifact-boundary types with a pluggable ArtifactStoreBackend port",
+  "version": "0.2.1",
+  "description": "Provider-neutral storage contracts and adapters — StorageError taxonomy, versioned codec, namespaces, transactions + CAS, artifact-boundary types with a pluggable ArtifactStoreBackend port",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "typesVersions": {

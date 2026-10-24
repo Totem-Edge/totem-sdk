@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`@totemsdk/storage` FileStore CAS lost updates:** concurrent
+  `conditionalUpdate` calls across separate `FileStore` instances could both
+  report success while one write was lost. Added in-process per-lock
+  serialization, safer orphan-lock recovery, and retry handling when a stale-lock
+  steal races `mkdir`. The AUD-033 conformance test now passes repeatedly.
+
 ### Changed
 
 - **`@totemsdk/storage` 0.2.0 promoted to rc (Tier 1):** the synchronous SQLite

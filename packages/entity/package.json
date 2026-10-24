@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/entity",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Disclosure-bounded entity resolution and projection — compose identity, manifests, proofs and authority into a privacy-preserving view",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",

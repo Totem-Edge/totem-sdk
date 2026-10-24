@@ -46,8 +46,8 @@ Total: **67** publishable packages + **6** excluded entries = **73** workspace e
 | `@totemsdk/lookup-node` | 0.2.1 | rc | 1 | `packages/lookup-node` |
 | `@totemsdk/lookup-protocol` | 0.2.0 | rc | 1 | `packages/lookup-protocol` |
 | `@totemsdk/omnia` | 2.3.1 | rc | 1 | `packages/omnia` |
-| `@totemsdk/omnia-host` | 0.12.0 | rc | 1 | `packages/omnia-host` |
-| `@totemsdk/storage` | 0.2.0 | rc | 1 | `packages/storage` |
+| `@totemsdk/omnia-host` | 0.13.0 | rc | 1 | `packages/omnia-host` |
+| `@totemsdk/storage` | 0.2.1 | rc | 1 | `packages/storage` |
 | `@totemsdk/wots-lease` | 1.0.1 | rc | 1 | `packages/wots-lease` |
 | `@totemsdk/authority` | 1.0.1 | v1 | 2 | `packages/authority` |
 | `@totemsdk/edge` | 1.3.0 | v1 | 2 | `packages/edge` |
@@ -69,7 +69,7 @@ Total: **67** publishable packages + **6** excluded entries = **73** workspace e
 | `@totemsdk/stream-transport` | 0.2.1 | rc | 2 | `packages/stream-transport` |
 | `@totemsdk/tx-builder` | 0.2.1 | rc | 2 | `packages/tx-builder` |
 | `@totemsdk/p2p-hub` | 0.1.0 | alpha | 2 | `packages/p2p-hub` |
-| `@totemsdk/connect` | 2.4.2 | v1 | outside | `packages/connect` |
+| `@totemsdk/connect` | 3.0.0 | v1 | outside | `packages/connect` |
 | `@totemsdk/location-proof` | 1.0.0 | v1 | outside | `packages/location-proof` |
 | `@totemsdk/proof-integritas` | 1.0.0 | v1 | outside | `packages/proof-integritas` |
 | `@totemsdk/proofgraph` | 1.0.1 | v1 | outside | `packages/proofgraph` |
@@ -101,8 +101,8 @@ Total: **67** publishable packages + **6** excluded entries = **73** workspace e
 | `@totemsdk/intelligence` | 0.1.1 | beta | outside | `packages/intelligence` |
 | `@totemsdk/qvac` | 0.1.1 | beta | outside | `packages/qvac` |
 | `@totemsdk/edge-nfc` | 0.1.0 | alpha | outside | `packages/edge-nfc` |
-| `@totemsdk/entity` | 0.1.0 | alpha | outside | `packages/entity` |
-| `@totemsdk/omnia-relay` | 0.5.0 | alpha | outside | `packages/omnia-relay` |
+| `@totemsdk/entity` | 0.2.0 | alpha | outside | `packages/entity` |
+| `@totemsdk/omnia-relay` | 0.6.0 | alpha | outside | `packages/omnia-relay` |
 | `@totem/sdk-tests` | 1.0.0 | excluded | excluded | `packages/sdk-tests` |
 | `@totemsdk/observability` | 0.1.0 | excluded | excluded | `extensions/observability` |
 | `totem-dapp-starter` | 0.1.0 | excluded | excluded | `extensions/totem-dapp-starter` |

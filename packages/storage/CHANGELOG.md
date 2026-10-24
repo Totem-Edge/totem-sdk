@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-10-23
+
+### Fixed
+
+- `FileStore` conditional updates are serialized in-process and recover orphan
+  locks without racing a new holder; AUD-033 lost-update conformance passes
+  repeatedly.
+
 ## [0.2.0] - 2026-10-22
 
 ### Added
