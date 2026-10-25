@@ -132,10 +132,17 @@ export function createPairingService(options: PairingServiceOptions): PairingSer
     fs.writeFileSync(options.storePath, JSON.stringify(store, null, 2), { mode: 0o600 });
   };
 
+  const isExtensionOrigin = (origin?: string): boolean =>
+    !!origin && (origin.startsWith('chrome-extension://') || origin.startsWith('moz-extension://'));
+
   const allowsOrigin = (origin?: string): boolean => {
     if (!origin) return true;
-    if (!options.allowedOrigins || options.allowedOrigins.length === 0) return true;
-    return options.allowedOrigins.includes(origin);
+    if (options.allowedOrigins && options.allowedOrigins.length > 0) {
+      return options.allowedOrigins.includes(origin);
+    }
+    // Default-deny web origins. An extension origin is required for the
+    // browser-driven pairing and auto-detection flows.
+    return isExtensionOrigin(origin);
   };
 
   const baseInfo = () => ({
@@ -242,6 +249,7 @@ export function createPairingHttpServer(
   options: PairingHttpServerOptions,
 ): PairingHttpServer {
   const maxBodyBytes = options.maxBodyBytes ?? 16 * 1024;
+  const detectLastAt = new Map<string, number>();
   const server = http.createServer(async (req, res) => {
     const origin = typeof req.headers.origin === 'string' ? req.headers.origin : undefined;
     const cors = (): void => {
@@ -264,6 +272,23 @@ export function createPairingHttpServer(
     };
     const url = new URL(req.url ?? '/', 'http://localhost');
     try {
+      if (req.method === 'POST' && url.pathname === '/pair/v1/detect') {
+        // Auto-detection is deliberately extension-only. It returns a fresh
+        // one-time code, but still requires the user to review and confirm.
+        const extensionOrigin = !!origin &&
+          (origin.startsWith('chrome-extension://') || origin.startsWith('moz-extension://'));
+        if (origin && !extensionOrigin) {
+          return send(403, { error: 'Pairing detection is only available to the Totem extension' });
+        }
+        if (extensionOrigin) {
+          const now = Date.now();
+          const last = detectLastAt.get(origin) ?? 0;
+          if (now - last < 1000) return send(429, { error: 'Slow down' });
+          detectLastAt.set(origin, now);
+        }
+        res.setHeader('cache-control', 'no-store');
+        return send(200, service.createInvitation());
+      }
       if (req.method === 'GET' && url.pathname === '/healthz') return send(200, { ok: true });
       if (req.method === 'GET' && url.pathname === '/node/v1/identity') return send(200, service.identity());
       if (req.method === 'GET' && url.pathname === '/pair/v1/info') {
