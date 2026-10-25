@@ -66,45 +66,45 @@ Minimal port wrapping live VTXO pool operations.
 
 ### markExited()
 
-> **markExited**(`pool`, `vtxoId`, `txpowId`): `Promise`\<`OmniaVtxoPool`\>
+> **markExited**(`vtxo`, `txpowId`, `now?`): `Promise`\<`OmniaVtxo`\>
 
 #### Parameters
 
-##### pool
+##### vtxo
 
-`OmniaVtxoPool`
-
-##### vtxoId
-
-`string`
+`OmniaVtxo`
 
 ##### txpowId
 
 `string`
 
+##### now?
+
+`number`
+
 #### Returns
 
-`Promise`\<`OmniaVtxoPool`\>
+`Promise`\<`OmniaVtxo`\>
 
 ***
 
 ### markExiting()
 
-> **markExiting**(`pool`, `vtxoId`): `Promise`\<`OmniaVtxoPool`\>
+> **markExiting**(`vtxo`, `now?`): `Promise`\<`OmniaVtxo`\>
 
 #### Parameters
 
-##### pool
+##### vtxo
 
-`OmniaVtxoPool`
+`OmniaVtxo`
 
-##### vtxoId
+##### now?
 
-`string`
+`number`
 
 #### Returns
 
-`Promise`\<`OmniaVtxoPool`\>
+`Promise`\<`OmniaVtxo`\>
 
 ***
 

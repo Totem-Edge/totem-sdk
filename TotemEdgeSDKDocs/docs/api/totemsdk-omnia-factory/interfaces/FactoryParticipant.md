@@ -50,3 +50,11 @@ and broadcast on-chain.  Omit for in-memory / test-only factories.
 > `optional` **settlementAddress?**: `string`
 
 Address to receive funds on cooperative settlement. Falls back to publicKeyDigest.
+
+***
+
+### transportPubkey?
+
+> `optional` **transportPubkey?**: `string`
+
+Native transport identity (ed25519 pubkey) from the signed manifest.

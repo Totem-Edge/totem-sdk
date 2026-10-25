@@ -18,23 +18,9 @@ The PREPARED operation reduced to canonical security facts.
 
 ### evidence?
 
-> `optional` **evidence?**: `object`
+> `optional` **evidence?**: [`RunStepEvidence`](RunStepEvidence.md)
 
-#### executionReceipt?
-
-> `optional` **executionReceipt?**: `unknown`
-
-#### postconditionsVerified?
-
-> `optional` **postconditionsVerified?**: `boolean`
-
-#### quoteTimestamp?
-
-> `optional` **quoteTimestamp?**: `number`
-
-#### simulation?
-
-> `optional` **simulation?**: `unknown`
+Evidence captured during preparation; recorded on the run step receipt.
 
 ***
 

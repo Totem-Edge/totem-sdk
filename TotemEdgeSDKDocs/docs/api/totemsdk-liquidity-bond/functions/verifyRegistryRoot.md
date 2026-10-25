@@ -10,7 +10,8 @@
 
 Verify a root against a registry (boolean form of the transition check):
  1. recompute the root from the registry and require it to equal `root`;
- 2. when the verifier exposes `verify`, also check the signature over the root.
+ 2. require the verifier to actually check the signature (AUD-015 — no
+    structure-only acceptance).
 
 ## Parameters
 

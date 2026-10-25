@@ -6,13 +6,19 @@
 
 # Function: parseScript()
 
-> **parseScript**(`source`): [`ASTNode`](../type-aliases/ASTNode.md)[]
+> **parseScript**(`source`, `options?`): [`ASTNode`](../type-aliases/ASTNode.md)[]
 
 ## Parameters
 
 ### source
 
 `string`
+
+### options?
+
+#### declared?
+
+`Iterable`\<`string`, `any`, `any`\>
 
 ## Returns
 

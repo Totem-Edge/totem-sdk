@@ -22,11 +22,14 @@ Count of local index entries (persisted evidence mappings).
 
 ### putEvidence()
 
-> **putEvidence**(`graph`, `bytesFor`): `Promise`\<`ArtifactRef`[]\>
+> **putEvidence**(`graph`, `bytesFor`, `options?`): `Promise`\<`ArtifactRef`[]\>
 
 Persist evidence bytes for every `evidence` node of `graph`.
 `bytesFor` maps a node id to the bytes to store; nodes with no bytes are
-skipped. Returns the refs persisted, in graph node order.
+skipped. When a commitment is known (node `data.contentHash` or
+`options.contentHashFor`), the claim→hash→artifact binding is enforced:
+`sha3_256(bytes) === contentHash === artifact.digest`.
+Returns the refs persisted, in graph node order.
 
 #### Parameters
 
@@ -37,6 +40,10 @@ skipped. Returns the refs persisted, in graph node order.
 ##### bytesFor
 
 (`nodeId`) => `Uint8Array`\<`ArrayBufferLike`\> \| `undefined`
+
+##### options?
+
+[`PutEvidenceOptions`](PutEvidenceOptions.md)
 
 #### Returns
 

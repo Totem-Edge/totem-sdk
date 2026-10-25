@@ -13,8 +13,11 @@
 
 ## Interfaces
 
+- [AcceptResponseOptions](interfaces/AcceptResponseOptions.md)
 - [AnnouncePolicyConfig](interfaces/AnnouncePolicyConfig.md)
 - [AuditConfig](interfaces/AuditConfig.md)
+- [AvailabilityGateConfig](interfaces/AvailabilityGateConfig.md)
+- [AvailabilityGateDecision](interfaces/AvailabilityGateDecision.md)
 - [AvailabilityPolicy](interfaces/AvailabilityPolicy.md)
 - [AvailabilityReceipt](interfaces/AvailabilityReceipt.md)
 - [BranchFilter](interfaces/BranchFilter.md)
@@ -65,6 +68,7 @@
 - [ProofChain](interfaces/ProofChain.md)
 - [ProofLink](interfaces/ProofLink.md)
 - [QueryPolicyConfig](interfaces/QueryPolicyConfig.md)
+- [RecoveryAvailabilityPolicy](interfaces/RecoveryAvailabilityPolicy.md)
 - [RecursiveMastPolicyManifest](interfaces/RecursiveMastPolicyManifest.md)
 - [RecursiveMastPolicyStore](interfaces/RecursiveMastPolicyStore.md)
 - [RequiredRoleState](interfaces/RequiredRoleState.md)
@@ -78,17 +82,20 @@
 - [SigningSession](interfaces/SigningSession.md)
 - [SigningSessionConfig](interfaces/SigningSessionConfig.md)
 - [StateTransition](interfaces/StateTransition.md)
+- [TemplateStabilityEntry](interfaces/TemplateStabilityEntry.md)
 - [VerificationResult](interfaces/VerificationResult.md)
 - [WatchPolicyConfig](interfaces/WatchPolicyConfig.md)
 
 ## Type Aliases
 
+- [AvailabilityGateKind](type-aliases/AvailabilityGateKind.md)
 - [BlockDuration](type-aliases/BlockDuration.md)
 - [BlockHeight](type-aliases/BlockHeight.md)
 - [EncodingDomain](type-aliases/EncodingDomain.md)
 - [EncryptionAlgorithm](type-aliases/EncryptionAlgorithm.md)
 - [SigningDomain](type-aliases/SigningDomain.md)
 - [SigningSessionStatus](type-aliases/SigningSessionStatus.md)
+- [TemplateStability](type-aliases/TemplateStability.md)
 - [UnixTimeMs](type-aliases/UnixTimeMs.md)
 - [UnixTimeSec](type-aliases/UnixTimeSec.md)
 
@@ -99,6 +106,7 @@
 - [ENVELOPE\_VERSION](variables/ENVELOPE_VERSION.md)
 - [KEY\_PREFIX](variables/KEY_PREFIX.md)
 - [STANDARD\_LAYERS](variables/STANDARD_LAYERS.md)
+- [TEMPLATE\_STABILITY](variables/TEMPLATE_STABILITY.md)
 
 ## Functions
 
@@ -138,6 +146,7 @@
 - [canonicalHash](functions/canonicalHash.md)
 - [canonicalSerialize](functions/canonicalSerialize.md)
 - [canonicalSign](functions/canonicalSign.md)
+- [canonicalSigningResponseMessage](functions/canonicalSigningResponseMessage.md)
 - [canonicalVerify](functions/canonicalVerify.md)
 - [collectSigningResponses](functions/collectSigningResponses.md)
 - [compileMastTree](functions/compileMastTree.md)
@@ -164,6 +173,7 @@
 - [deserializeEncryptionEnvelope](functions/deserializeEncryptionEnvelope.md)
 - [deserializeKeyWrappingEnvelope](functions/deserializeKeyWrappingEnvelope.md)
 - [encryptedBranchPublicMetadata](functions/encryptedBranchPublicMetadata.md)
+- [evaluateAvailabilityGate](functions/evaluateAvailabilityGate.md)
 - [findPolicyNode](functions/findPolicyNode.md)
 - [getActivePolicyRoot](functions/getActivePolicyRoot.md)
 - [getBranchesByAction](functions/getBranchesByAction.md)
@@ -172,6 +182,7 @@
 - [getPolicyLeaves](functions/getPolicyLeaves.md)
 - [getPolicyPath](functions/getPolicyPath.md)
 - [getRecoveryBranches](functions/getRecoveryBranches.md)
+- [getTemplateStability](functions/getTemplateStability.md)
 - [isEncryptedBranch](functions/isEncryptedBranch.md)
 - [isMigrationActive](functions/isMigrationActive.md)
 - [isMigrationComplete](functions/isMigrationComplete.md)
@@ -205,6 +216,7 @@
 - [unixTimeMsToSec](functions/unixTimeMsToSec.md)
 - [unixTimeSecToMs](functions/unixTimeSecToMs.md)
 - [validateInventoryCoverage](functions/validateInventoryCoverage.md)
+- [validatePolicyAnchorConfig](functions/validatePolicyAnchorConfig.md)
 - [verifyAvailabilityReceipt](functions/verifyAvailabilityReceipt.md)
 - [~~verifyBranchPackage~~](functions/verifyBranchPackage.md)
 - [verifyDelegationChain](functions/verifyDelegationChain.md)

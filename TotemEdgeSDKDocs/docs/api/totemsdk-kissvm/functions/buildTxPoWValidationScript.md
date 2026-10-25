@@ -4,7 +4,7 @@
 
 [@totemsdk/kissvm](../index.md) / buildTxPoWValidationScript
 
-# Function: buildTxPoWValidationScript()
+# ~~Function: buildTxPoWValidationScript()~~
 
 > **buildTxPoWValidationScript**(`config`): `string`
 
@@ -17,3 +17,7 @@
 ## Returns
 
 `string`
+
+## Deprecated
+
+Use [buildAttestedTxPoWMetaScript](buildAttestedTxPoWMetaScript.md) (RFC-016).

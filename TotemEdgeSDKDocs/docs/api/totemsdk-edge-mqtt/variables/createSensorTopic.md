@@ -8,8 +8,6 @@
 
 > `const` **createSensorTopic**: (`device_id`, `sensor_id`, `kind`) => `string` = `create_sensor_topic`
 
-Create a sensor topic string.
-
 ## Parameters
 
 ### device\_id

@@ -26,11 +26,21 @@ Mining engine: `'wasm'` when the pre-compiled binary was used.
 
 ***
 
+### settlement
+
+> **settlement**: `"unverified"`
+
+Always `'unverified'` here — `sendTransaction()` returns on **submission**,
+not settlement. Use `awaitConfirmation()` / `sendAndConfirm()` to observe
+inclusion before claiming the payment settled.
+
+***
+
 ### status
 
 > **status**: `"submitted"`
 
-Always `'submitted'` on success.
+The TxPoW was accepted for broadcast. NOT confirmation.
 
 ***
 

@@ -6,7 +6,7 @@
 
 # Function: buildAndHashFactoryScript()
 
-> **buildAndHashFactoryScript**(`participants`): `object`
+> **buildAndHashFactoryScript**(`participants`, `options?`): `object`
 
 Build the factory script and compute its canonical address in one step.
 The address is used as the output address of the factory funding TX.
@@ -16,6 +16,10 @@ The address is used as the output address of the factory funding TX.
 ### participants
 
 [`FactoryParticipant`](../interfaces/FactoryParticipant.md)[]
+
+### options?
+
+`FactoryScriptOptions` = `{}`
 
 ## Returns
 

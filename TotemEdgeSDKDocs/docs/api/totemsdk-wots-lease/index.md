@@ -2,7 +2,7 @@
 
 ***
 
-**Maturity: v1**
+**Maturity: rc**
 
 # @totemsdk/wots-lease
 
@@ -26,6 +26,8 @@
 - [QuorumUnavailableError](classes/QuorumUnavailableError.md)
 - [WatermarkExhaustedError](classes/WatermarkExhaustedError.md)
 - [WatermarkMonotonicityError](classes/WatermarkMonotonicityError.md)
+- [WatermarkSeedRegressionError](classes/WatermarkSeedRegressionError.md)
+- [WatermarkSeedRequiredError](classes/WatermarkSeedRequiredError.md)
 - [WotsWatermarkStore](classes/WotsWatermarkStore.md)
 
 ## Interfaces
@@ -45,9 +47,12 @@
 - [QuorumAttestation](interfaces/QuorumAttestation.md)
 - [QuorumPeer](interfaces/QuorumPeer.md)
 - [ReserveParams](interfaces/ReserveParams.md)
+- [SeedLeaseWatermarkParams](interfaces/SeedLeaseWatermarkParams.md)
+- [SeedWatermarkOptions](interfaces/SeedWatermarkOptions.md)
 - [SigningIndices](interfaces/SigningIndices.md)
 - [SyncResult](interfaces/SyncResult.md)
 - [TreeWatermark](interfaces/TreeWatermark.md)
+- [WatermarkSeed](interfaces/WatermarkSeed.md)
 - [WotsLeaseProvider](interfaces/WotsLeaseProvider.md)
 - [WotsWatermarkState](interfaces/WotsWatermarkState.md)
 
@@ -60,8 +65,10 @@
 
 - [allocateDeviceRange](functions/allocateDeviceRange.md)
 - [deviceSlotForAddressIndex](functions/deviceSlotForAddressIndex.md)
+- [exportLeaseWatermark](functions/exportLeaseWatermark.md)
 - [flatIndex](functions/flatIndex.md)
 - [fromFlatIndex](functions/fromFlatIndex.md)
+- [seedLeaseWatermark](functions/seedLeaseWatermark.md)
 
 ## References
 

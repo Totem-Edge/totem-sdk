@@ -12,7 +12,7 @@ Minimal port wrapping live router operations.
 
 ### addChannel()
 
-> **addChannel**(`graph`, `channel`): `ChannelGraph`
+> **addChannel**(`graph`, `edge`): `void`
 
 #### Parameters
 
@@ -20,13 +20,13 @@ Minimal port wrapping live router operations.
 
 `ChannelGraph`
 
-##### channel
+##### edge
 
-`RouterChannel`
+`ChannelGraphEdge`
 
 #### Returns
 
-`ChannelGraph`
+`void`
 
 ***
 
@@ -42,21 +42,29 @@ Minimal port wrapping live router operations.
 
 ### executeMultiHopPayment()
 
-> **executeMultiHopPayment**(`graph`, `route`, `channelOps`): `Promise`\<`PaymentResult`\>
+> **executeMultiHopPayment**(`ops`, `channels`, `route`, `paymentRequest`, `leaseProviders`): `Promise`\<`PaymentResult`\>
 
 #### Parameters
 
-##### graph
+##### ops
 
-`ChannelGraph`
+`ChannelOps`
+
+##### channels
+
+`Map`\<`string`, `RouterChannel`\>
 
 ##### route
 
 `Route`
 
-##### channelOps
+##### paymentRequest
 
-`ChannelOps`
+`PaymentRequest`
+
+##### leaseProviders
+
+`Map`\<`string`, `unknown`\>
 
 #### Returns
 
@@ -66,7 +74,7 @@ Minimal port wrapping live router operations.
 
 ### findRoute()
 
-> **findRoute**(`graph`, `request`): `Route` \| `undefined`
+> **findRoute**(`graph`, `from`, `to`, `amount`, `tokenId`, `opts?`): `Route` \| `undefined`
 
 #### Parameters
 
@@ -74,9 +82,25 @@ Minimal port wrapping live router operations.
 
 `ChannelGraph`
 
-##### request
+##### from
 
-`PaymentRequest`
+`string`
+
+##### to
+
+`string`
+
+##### amount
+
+`bigint`
+
+##### tokenId
+
+`string`
+
+##### opts?
+
+`RouteOptions`
 
 #### Returns
 

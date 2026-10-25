@@ -56,9 +56,11 @@
 
 ***
 
-### signature
+### signature?
 
-> **signature**: `string`
+> `optional` **signature?**: `string`
+
+Optional authority signature over the certificate; committed when present.
 
 ***
 

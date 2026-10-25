@@ -34,6 +34,14 @@ The authorized step effects (for run-total folding on commit).
 
 ***
 
+### evidence?
+
+> `optional` **evidence?**: [`RunStepEvidence`](RunStepEvidence.md)
+
+RFC-017: preparation/execution evidence captured with the reservation.
+
+***
+
 ### expiresAt
 
 > **expiresAt**: `number`

@@ -18,7 +18,8 @@
 
 > **sign**(`payload`, `indices`): `Promise`\<[`ChannelSignature`](../type-aliases/ChannelSignature.md)\>
 
-Returns flat WOTS signature bytes (output of wotsSign).
+Returns the WOTS signature over `payload` for the given indices (RFC-037:
+ serialized hierarchical TreeSignature).
 
 #### Parameters
 

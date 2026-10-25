@@ -18,18 +18,46 @@
 
 > **params**: `object`
 
+#### amount
+
+> **amount**: `string`
+
+#### expiryBlock
+
+> **expiryBlock**: `string`
+
 #### hashlock
 
 > **hashlock**: `string`
+
+#### maxHops?
+
+> `optional` **maxHops?**: `number`
 
 #### origin
 
 > **origin**: `string`
 
-#### route
+#### preimage?
 
-> **route**: [`Route`](Route.md)
+> `optional` **preimage?**: `string`
 
-#### timeoutBlocks?
+#### route?
 
-> `optional` **timeoutBlocks?**: `number`
+> `optional` **route?**: [`Route`](Route.md)
+
+Optional caller-selected route. Omit to let the wallet/host route.
+
+#### targetTokenId?
+
+> `optional` **targetTokenId?**: `string`
+
+Required when routing from tokenId to a different settlement token.
+
+#### tokenId
+
+> **tokenId**: `string`
+
+#### toPartyId
+
+> **toPartyId**: `string`

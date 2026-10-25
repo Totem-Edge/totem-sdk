@@ -124,6 +124,18 @@
 
 ***
 
+### magic()
+
+> **magic**(): `Promise`\<[`MagicInfo`](MagicInfo.md)\>
+
+`magic` — current network Magic numbers (incl. `currentmintxpowwork`).
+
+#### Returns
+
+`Promise`\<[`MagicInfo`](MagicInfo.md)\>
+
+***
+
 ### megammr()
 
 > **megammr**(): `Promise`\<[`MegaMMRInfo`](MegaMMRInfo.md)\>
@@ -147,6 +159,47 @@
 #### Returns
 
 `Promise`\<[`MMRProof`](MMRProof.md)\>
+
+***
+
+### newAddress()
+
+> **newAddress**(`params?`): `Promise`\<[`AddressInfo`](AddressInfo.md)\>
+
+`newaddress` — optionally with a `modifier:` for deterministic derivation.
+
+#### Parameters
+
+##### params?
+
+###### modifier?
+
+`string`
+
+#### Returns
+
+`Promise`\<[`AddressInfo`](AddressInfo.md)\>
+
+***
+
+### probeDeterministicAddress()
+
+> **probeDeterministicAddress**(`modifier?`): `Promise`\<`AddressModifierProbe`\>
+
+Probe whether this node honours `newaddress modifier:` — i.e. returns the
+same address for the same modifier twice. `supported:false` means the node
+ignores the modifier (or has no such command), so callers must not trust a
+node-returned deterministic address (use `@totemsdk/core` derivation).
+
+#### Parameters
+
+##### modifier?
+
+`string`
+
+#### Returns
+
+`Promise`\<`AddressModifierProbe`\>
 
 ***
 
@@ -179,6 +232,26 @@
 ##### params
 
 [`SendParams`](SendParams.md)
+
+#### Returns
+
+`Promise`\<[`TxnPostResult`](TxnPostResult.md)\>
+
+***
+
+### sendTransaction()
+
+> **sendTransaction**(`data`): `Promise`\<[`TxnPostResult`](TxnPostResult.md)\>
+
+`txnmine` — mine a TxnRow (ID + Transaction + Witness) using the node's
+own header (correct block number/difficulty/magic) and return the mined
+TxPoW hex. Unlike `sendtransaction`, this does not post it.
+
+#### Parameters
+
+##### data
+
+`string`
 
 #### Returns
 
@@ -370,7 +443,7 @@
 
 ### txnMine()
 
-> **txnMine**(`params`): `Promise`\<`void`\>
+> **txnMine**(`params`): `Promise`\<\{ `data?`: `string`; `txpowid?`: `string`; \}\>
 
 #### Parameters
 
@@ -380,7 +453,7 @@
 
 #### Returns
 
-`Promise`\<`void`\>
+`Promise`\<\{ `data?`: `string`; `txpowid?`: `string`; \}\>
 
 ***
 

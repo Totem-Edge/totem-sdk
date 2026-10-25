@@ -10,6 +10,17 @@ Context supplied to the evaluator describing the spend transaction
 
 ## Properties
 
+### allowLegacyMastBranches?
+
+> `optional` **allowLegacyMastBranches?**: `boolean`
+
+RFC-018 KISSVM-MAST-001: opt in to the legacy, unverified `mastBranches`
+resolution path. Production MUST use witness ScriptProofs (`scriptProofs`)
+bound to a MAST root; leaving this false makes MAST fail closed when no
+verified proof is available.
+
+***
+
 ### block
 
 > **block**: `number`
@@ -49,6 +60,9 @@ All input coins
 MAST branch resolution: maps hashHex (lowercase, 0x-prefixed) → scriptText.
 The spender reveals the branch they are executing here.
 Key = `'0x' + sha3_256(UPPER(trim(scriptText)))`
+
+RFC-018 KISSVM-MAST-001: this legacy, unverified path is disabled by
+default. Set [allowLegacyMastBranches](#allowlegacymastbranches) to opt in (development/tests).
 
 ***
 

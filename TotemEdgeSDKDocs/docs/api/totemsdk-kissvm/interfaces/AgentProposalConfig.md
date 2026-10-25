@@ -14,6 +14,14 @@
 
 ***
 
+### authorityPk
+
+> **authorityPk**: `string`
+
+RFC-018 P1-3: authority permitted to submit the proposal.
+
+***
+
 ### expiresAt
 
 > **expiresAt**: `bigint`

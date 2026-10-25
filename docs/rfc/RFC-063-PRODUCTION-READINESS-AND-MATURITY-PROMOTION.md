@@ -1,6 +1,6 @@
 # RFC-063 — Production Readiness and Maturity Promotion
 
-**Status:** Draft — Phase 0 in progress (A1–A5 and A7 landed; A6, tier reconciliation and E1–E4 remain); Phases 1–4 proposed
+**Status:** Draft — Phase 0 in progress (A1–A7 landed; tier reconciliation and E1–E4 remain); Phases 1–4 proposed
 **Priority:** P0 (public truth) / P1 (security and durability) / P2 (real-world proof)
 **Created:** 2026-10-21
 **Authors:** Totem SDK Contributors
@@ -385,7 +385,7 @@ signed releases, and a docs site that is sufficient without reading RFCs.
 - [x] Replace the seven-row maturity table with a generated full matrix.
 - [x] Rewrite `SECURITY.md` supported versions for the pre-1.0 workspace.
 - [x] Remove the placeholder PGP block and state the real encrypted-report path.
-- [ ] Regenerate TypeDoc and verify the docs build in CI.
+- [x] Regenerate TypeDoc and verify the docs build in CI.
 - [x] Add `scripts/verify-public-claims.mjs` and run it in CI.
 - [ ] Reconcile `scripts/workspace-gates.config.json`, `docs/maturity.md` and
       npm dist-tags with the Tier 0/1/2 model in §4.

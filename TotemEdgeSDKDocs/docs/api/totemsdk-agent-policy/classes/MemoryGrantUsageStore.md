@@ -64,6 +64,11 @@ Abort a reservation after execution fails or is cancelled.
 
 Atomically reserve mandate usage + local quotas for a step.
 
+When `usageLimit` is supplied, the limit is enforced against committed +
+reserved usage inside the same critical section as the reservation, so a
+concurrent burst can never over-reserve the budget (AUD-020). Exceeding it
+throws `GrantUsageLimitExceededError`.
+
 #### Parameters
 
 ##### input
@@ -103,6 +108,10 @@ Atomically reserve mandate usage + local quotas for a step.
 ###### usageDelta.count
 
 `number`
+
+###### usageLimit?
+
+`UsageLimit`
 
 #### Returns
 
@@ -299,7 +308,7 @@ budget is released is `'definitely-not-executed'`; `'completed'` commits.
 
 ##### outcome
 
-`ReservationSettlementOutcome`
+[`ReservationSettlementOutcome`](../type-aliases/ReservationSettlementOutcome.md)
 
 ##### opts?
 
@@ -323,7 +332,7 @@ budget is released is `'definitely-not-executed'`; `'completed'` commits.
 
 ### recoverReservations()
 
-> **recoverReservations**(`runId?`): `Promise`\<`OutOfBandReservation`[]\>
+> **recoverReservations**(`runId?`): `Promise`\<[`OutOfBandReservation`](../interfaces/OutOfBandReservation.md)[]\>
 
 Conservative reservation recovery: unsettled past-deadline reservations are
 classified `unknown` and their budget is HELD until explicit reconciliation.
@@ -336,7 +345,7 @@ classified `unknown` and their budget is HELD until explicit reconciliation.
 
 #### Returns
 
-`Promise`\<`OutOfBandReservation`[]\>
+`Promise`\<[`OutOfBandReservation`](../interfaces/OutOfBandReservation.md)[]\>
 
 #### Implementation of
 

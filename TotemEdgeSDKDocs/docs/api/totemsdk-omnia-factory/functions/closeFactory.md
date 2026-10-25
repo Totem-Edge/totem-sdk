@@ -6,21 +6,13 @@
 
 # Function: closeFactory()
 
-> **closeFactory**(`factory`, `leaseProviders`, `chainProvider?`): `Promise`\<[`FactorySettlementPayload`](../interfaces/FactorySettlementPayload.md)\>
+> **closeFactory**(`factory`, `leaseProviders`, `chainProvider?`, `opts?`): `Promise`\<[`FactorySettlementPayload`](../interfaces/FactorySettlementPayload.md)\>
 
-Cooperative N-of-N factory close.
+Cooperative N-of-N factory close (central/local path).
 
-Flow:
-  1. Fail fast if `factory.fundingCoinId` is not set — settlement TX requires
-     a concrete input coin.
-  2. Build the settlement OmniaTxDraft (N outputs, one per participant with a
-     positive allocation) spending the factory's N-of-N MULTISIG input.
-  3. Compute the TX draft digest via `computeTxDraftDigest` from `@totemsdk/omnia`.
-  4. Collect N-of-N signatures — all participants sign + verify the TX digest
-     via the full WOTS lease cycle (reserve → sign → verify → commit).
-  5. Encode the concatenated WOTS signatures as the settlement TX witness.
-  6. When `chainProvider` is supplied: mine via `@totemsdk/txpow`'s `mineTxPoW`,
-     assemble the full TxPoW blob, and broadcast.
+Builds the settlement TX, collects all N signatures (each committing its own
+lease via the full WOTS cycle), assembles the witness, and — when a
+`chainProvider` is supplied — mines + broadcasts the settlement TxPoW.
 
 ## Parameters
 
@@ -41,6 +33,12 @@ WOTS lease bundles for ALL N factory participants.
 `ChainStateProvider`
 
 Optional: mine + broadcast the settlement TX.
+
+### opts?
+
+#### coinProof?
+
+`Uint8Array`\<`ArrayBufferLike`\>
 
 ## Returns
 

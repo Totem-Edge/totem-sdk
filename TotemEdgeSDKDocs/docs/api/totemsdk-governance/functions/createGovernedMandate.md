@@ -6,7 +6,7 @@
 
 # Function: createGovernedMandate()
 
-> **createGovernedMandate**(`outcome`, `action`, `actionIndex`, `governanceIdentity`, `executor`, `params`): `MandateBody`
+> **createGovernedMandate**(`outcome`, `action`, `actionIndex`, `governanceIdentity`, `executor`, `principalIdentityId`, `params`): `MandateBody`
 
 ## Parameters
 
@@ -27,6 +27,10 @@
 `string`
 
 ### executor
+
+`string`
+
+### principalIdentityId
 
 `string`
 

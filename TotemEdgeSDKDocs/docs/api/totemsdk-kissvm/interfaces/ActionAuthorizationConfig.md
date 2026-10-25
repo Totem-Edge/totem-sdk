@@ -20,6 +20,14 @@
 
 ***
 
+### authorityPk
+
+> **authorityPk**: `string`
+
+Fixed authority permitted to authorize the action (I1).
+
+***
+
 ### noncePort
 
 > **noncePort**: `number`

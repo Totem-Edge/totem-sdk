@@ -18,6 +18,9 @@
 - [`ActionConditionError`](ActionConditionError.md)
 - [`ActionGovernanceError`](ActionGovernanceError.md)
 - [`ActionCommitmentError`](ActionCommitmentError.md)
+- [`ActionInterlockError`](ActionInterlockError.md)
+- [`ActionScheduleError`](ActionScheduleError.md)
+- [`ActionApprovalError`](ActionApprovalError.md)
 
 ## Constructors
 

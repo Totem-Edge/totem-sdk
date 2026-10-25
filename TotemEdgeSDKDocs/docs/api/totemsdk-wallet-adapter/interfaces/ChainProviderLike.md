@@ -24,9 +24,9 @@
 
 ***
 
-### getCoin()
+### getCoin()?
 
-> **getCoin**(`coinId`): `Promise`\<`unknown`\>
+> `optional` **getCoin**(`coinId`): `Promise`\<`unknown`\>
 
 #### Parameters
 
@@ -56,9 +56,9 @@
 
 ***
 
-### getProof()
+### getProof()?
 
-> **getProof**(`coinId`): `Promise`\<`unknown`\>
+> `optional` **getProof**(`coinId`): `Promise`\<`unknown`\>
 
 #### Parameters
 
@@ -72,9 +72,9 @@
 
 ***
 
-### getTip()
+### getTip()?
 
-> **getTip**(): `Promise`\<\{ `block`: `number`; `hash`: `string`; `time?`: `string`; \}\>
+> `optional` **getTip**(): `Promise`\<\{ `block`: `number`; `hash`: `string`; `time?`: `string`; \}\>
 
 #### Returns
 
@@ -82,9 +82,9 @@
 
 ***
 
-### getToken()
+### getToken()?
 
-> **getToken**(`tokenId`): `Promise`\<`unknown`\>
+> `optional` **getToken**(`tokenId`): `Promise`\<`unknown`\>
 
 #### Parameters
 
@@ -98,9 +98,9 @@
 
 ***
 
-### getTokensByCreator()
+### getTokensByCreator()?
 
-> **getTokensByCreator**(`address`): `Promise`\<`unknown`[]\>
+> `optional` **getTokensByCreator**(`address`): `Promise`\<`unknown`[]\>
 
 #### Parameters
 
@@ -114,9 +114,9 @@
 
 ***
 
-### searchTokens()
+### searchTokens()?
 
-> **searchTokens**(`query`): `Promise`\<`unknown`[]\>
+> `optional` **searchTokens**(`query`): `Promise`\<`unknown`[]\>
 
 #### Parameters
 

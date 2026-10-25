@@ -20,6 +20,10 @@
 
 `string`
 
+#### mandateProofId?
+
+`string`
+
 #### parameters
 
 `Record`\<`string`, `unknown`\>

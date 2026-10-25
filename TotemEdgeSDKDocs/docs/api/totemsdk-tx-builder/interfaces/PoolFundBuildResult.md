@@ -16,7 +16,7 @@
 
 ### proof
 
-> **proof**: [`DeepFundingProof`](DeepFundingProof.md)
+> **proof**: [`SignedFundingIntent`](SignedFundingIntent.md)
 
 ***
 

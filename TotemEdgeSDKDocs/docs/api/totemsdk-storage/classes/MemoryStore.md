@@ -32,6 +32,18 @@
 
 [`StorageAdapterWithCapabilities`](../interfaces/StorageAdapterWithCapabilities.md).[`capabilities`](../interfaces/StorageAdapterWithCapabilities.md#capabilities)
 
+***
+
+### failurePolicy
+
+> `readonly` **failurePolicy**: `"strict"`
+
+RFC-007 Amendment A: an in-memory store cannot corrupt.
+
+#### Implementation of
+
+[`StorageAdapterWithCapabilities`](../interfaces/StorageAdapterWithCapabilities.md).[`failurePolicy`](../interfaces/StorageAdapterWithCapabilities.md#failurepolicy)
+
 ## Methods
 
 ### clear()

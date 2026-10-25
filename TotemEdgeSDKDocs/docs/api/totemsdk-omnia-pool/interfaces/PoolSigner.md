@@ -40,7 +40,8 @@ is structurally a `ChannelSigner` (plus an optional convenience reader).
 
 > **sign**(`payload`, `indices`): `Promise`\<`ChannelSignature`\>
 
-Returns flat WOTS signature bytes (output of wotsSign).
+Returns the WOTS signature over `payload` for the given indices (RFC-037:
+ serialized hierarchical TreeSignature).
 
 #### Parameters
 

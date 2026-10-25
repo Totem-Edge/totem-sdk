@@ -100,6 +100,18 @@
 
 ***
 
+### replayGuard
+
+> `readonly` **replayGuard**: `ReplayGuard`
+
+RFC-032: node-wide anti-replay guard (per-identity nonce monotonicity).
+
+#### Implementation of
+
+[`NodeDispatcher`](../interfaces/NodeDispatcher.md).[`replayGuard`](../interfaces/NodeDispatcher.md#replayguard)
+
+***
+
 ### store
 
 > `readonly` **store**: [`SqliteStore`](SqliteStore.md)
@@ -107,6 +119,18 @@
 #### Implementation of
 
 [`NodeDispatcher`](../interfaces/NodeDispatcher.md).[`store`](../interfaces/NodeDispatcher.md#store)
+
+***
+
+### tickets
+
+> `readonly` **tickets**: `SessionTicketStore`
+
+RFC-032-A: issued session tickets (lifetime, budget, seq replay).
+
+#### Implementation of
+
+[`NodeDispatcher`](../interfaces/NodeDispatcher.md).[`tickets`](../interfaces/NodeDispatcher.md#tickets)
 
 ***
 
@@ -152,6 +176,26 @@ retrieve all coins from the indexer.
 
 ***
 
+### nodeIdentity
+
+#### Get Signature
+
+> **get** **nodeIdentity**(): `NodeIdentity`
+
+RFC-032-A: node WOTS identity (built lazily on first use).
+
+##### Returns
+
+`NodeIdentity`
+
+RFC-032-A: node WOTS identity (signs session tickets).
+
+#### Implementation of
+
+[`NodeDispatcher`](../interfaces/NodeDispatcher.md).[`nodeIdentity`](../interfaces/NodeDispatcher.md#nodeidentity)
+
+***
+
 ### sessionCount
 
 #### Get Signature
@@ -163,6 +207,38 @@ retrieve all coins from the indexer.
 `number`
 
 ## Methods
+
+### checkIdentityRate()
+
+> **checkIdentityRate**(`publicKeyHex`, `rpm`, `now?`): `boolean`
+
+RFC-020 H11: a fuzzy per-identity rate limit that survives reconnects. The
+per-session counter reset whenever a client reconnected; this one is keyed
+by authenticated public key for a rolling minute.
+
+#### Parameters
+
+##### publicKeyHex
+
+`string` \| `undefined`
+
+##### rpm
+
+`number`
+
+##### now?
+
+`number` = `...`
+
+#### Returns
+
+`boolean`
+
+#### Implementation of
+
+[`NodeDispatcher`](../interfaces/NodeDispatcher.md).[`checkIdentityRate`](../interfaces/NodeDispatcher.md#checkidentityrate)
+
+***
 
 ### getSessions()
 

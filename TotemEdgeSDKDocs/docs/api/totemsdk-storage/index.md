@@ -2,7 +2,7 @@
 
 ***
 
-**Maturity: alpha**
+**Maturity: rc**
 
 # @totemsdk/storage
 
@@ -23,19 +23,25 @@
 - [CasStore](interfaces/CasStore.md)
 - [Codec](interfaces/Codec.md)
 - [ConditionalResult](interfaces/ConditionalResult.md)
+- [EffectivePersistence](interfaces/EffectivePersistence.md)
 - [EnqueueReceipt](interfaces/EnqueueReceipt.md)
 - [Journal](interfaces/Journal.md)
 - [JournalEntry](interfaces/JournalEntry.md)
 - [JournalOptions](interfaces/JournalOptions.md)
 - [JournalRecoveryReport](interfaces/JournalRecoveryReport.md)
+- [PersistencePorts](interfaces/PersistencePorts.md)
+- [PersistenceRequirement](interfaces/PersistenceRequirement.md)
+- [PersistenceSurfaceGuarantee](interfaces/PersistenceSurfaceGuarantee.md)
 - [PutOptions](interfaces/PutOptions.md)
 - [PutReceipt](interfaces/PutReceipt.md)
 - [RevisionedSnapshotStore](interfaces/RevisionedSnapshotStore.md)
 - [RevisionedSnapshotStoreOptions](interfaces/RevisionedSnapshotStoreOptions.md)
+- [ScopedStorage](interfaces/ScopedStorage.md)
 - [SnapshotRecord](interfaces/SnapshotRecord.md)
 - [StorageAdapter](interfaces/StorageAdapter.md)
 - [StorageAdapterWithCapabilities](interfaces/StorageAdapterWithCapabilities.md)
 - [StorageErrorDetails](interfaces/StorageErrorDetails.md)
+- [StorageScope](interfaces/StorageScope.md)
 - [StoreCapabilities](interfaces/StoreCapabilities.md)
 - [Transaction](interfaces/Transaction.md)
 - [TransactionalStore](interfaces/TransactionalStore.md)
@@ -65,9 +71,11 @@
 
 - [artifactRefId](functions/artifactRefId.md)
 - [assertCapabilities](functions/assertCapabilities.md)
+- [assertPersistence](functions/assertPersistence.md)
 - [asStorageError](functions/asStorageError.md)
 - [createJournal](functions/createJournal.md)
 - [createRevisionedSnapshotStore](functions/createRevisionedSnapshotStore.md)
+- [createScopedStorage](functions/createScopedStorage.md)
 - [enqueueItem](functions/enqueueItem.md)
 - [isStorageError](functions/isStorageError.md)
 - [jsonClean](functions/jsonClean.md)

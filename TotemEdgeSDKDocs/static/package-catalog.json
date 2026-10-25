@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-19T12:42:21.018Z",
+  "generatedAt": "2026-10-25T06:44:58.051Z",
   "domains": [
     {
       "id": "cryptographic-foundation",
@@ -33,7 +33,7 @@
         {
           "slug": "totemsdk-wots-lease",
           "name": "@totemsdk/wots-lease",
-          "maturity": "v1"
+          "maturity": "rc"
         }
       ]
     },
@@ -85,7 +85,7 @@
         {
           "slug": "totemsdk-omnia",
           "name": "@totemsdk/omnia",
-          "maturity": "v1"
+          "maturity": "rc"
         },
         {
           "slug": "totemsdk-omnia-factory",
@@ -131,6 +131,11 @@
           "slug": "totemsdk-omnia-pool",
           "name": "@totemsdk/omnia-pool",
           "maturity": "rc"
+        },
+        {
+          "slug": "totemsdk-omnia-relay",
+          "name": "@totemsdk/omnia-relay",
+          "maturity": "alpha"
         }
       ]
     },
@@ -222,6 +227,11 @@
           "slug": "totemsdk-pubsub-transport",
           "name": "@totemsdk/pubsub-transport",
           "maturity": "rc"
+        },
+        {
+          "slug": "totemsdk-p2p-hub",
+          "name": "@totemsdk/p2p-hub",
+          "maturity": "alpha"
         },
         {
           "slug": "totemsdk-server",
@@ -323,6 +333,11 @@
           "slug": "totemsdk-raster-proof",
           "name": "@totemsdk/raster-proof",
           "maturity": "v1"
+        },
+        {
+          "slug": "totemsdk-entity",
+          "name": "@totemsdk/entity",
+          "maturity": "alpha"
         }
       ]
     },
@@ -343,13 +358,35 @@
       ]
     },
     {
+      "id": "decision",
+      "label": "decision",
+      "packages": [
+        {
+          "slug": "totemsdk-decision",
+          "name": "@totemsdk/decision",
+          "maturity": "beta"
+        }
+      ]
+    },
+    {
       "id": "storage",
       "label": "Storage",
       "packages": [
         {
           "slug": "totemsdk-storage",
           "name": "@totemsdk/storage",
-          "maturity": "alpha"
+          "maturity": "rc"
+        }
+      ]
+    },
+    {
+      "id": "programmable-capital",
+      "label": "programmable-capital",
+      "packages": [
+        {
+          "slug": "totemsdk-eefi",
+          "name": "@totemsdk/eefi",
+          "maturity": "rc"
         }
       ]
     }

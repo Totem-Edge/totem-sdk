@@ -119,6 +119,24 @@ cursor is behind (no-op).
 
 ***
 
+### exportWatermark()
+
+> **exportWatermark**(`treeId`): `Promise`\<[`WatermarkSeed`](../interfaces/WatermarkSeed.md)\>
+
+Export a portable watermark seed for restore (RFC-013 §9).
+
+#### Parameters
+
+##### treeId
+
+`string`
+
+#### Returns
+
+`Promise`\<[`WatermarkSeed`](../interfaces/WatermarkSeed.md)\>
+
+***
+
 ### getJournal()
 
 > **getJournal**(): [`LeaseJournal`](LeaseJournal.md)
@@ -234,6 +252,29 @@ slot is already taken.
 #### Returns
 
 `Promise`\<[`LeaseReservation`](../interfaces/LeaseReservation.md)\>
+
+***
+
+### seedWatermark()
+
+> **seedWatermark**(`seed`, `options?`): `Promise`\<`void`\>
+
+Seed the local watermark from an exported/operator/on-chain snapshot.
+Forward-only by default; refuses to start below the true high-water mark.
+
+#### Parameters
+
+##### seed
+
+[`WatermarkSeed`](../interfaces/WatermarkSeed.md)
+
+##### options?
+
+[`SeedWatermarkOptions`](../interfaces/SeedWatermarkOptions.md)
+
+#### Returns
+
+`Promise`\<`void`\>
 
 ***
 

@@ -35,7 +35,7 @@ recompute/verify the pool anchor without pulling the full registry in.
 
 ##### opts?
 
-[`RegistryRootOptions`](RegistryRootOptions.md)
+[`RegistryRootOptions`](RegistryRootOptions.md) & `object`
 
 #### Returns
 
@@ -81,7 +81,7 @@ recompute/verify the pool anchor without pulling the full registry in.
 
 ### signRegistryTransition()
 
-> **signRegistryTransition**(`registry`, `op`, `signer`, `opts?`): `Promise`\<[`RegistrySignedTransition`](RegistrySignedTransition.md)\>
+> **signRegistryTransition**(`registry`, `op`, `signer`, `opts`): `Promise`\<[`RegistrySignedTransition`](RegistrySignedTransition.md)\>
 
 #### Parameters
 
@@ -97,9 +97,9 @@ recompute/verify the pool anchor without pulling the full registry in.
 
 [`RegistryTransitionSigner`](RegistryTransitionSigner.md)
 
-##### opts?
+##### opts
 
-[`RegistryRootOptions`](RegistryRootOptions.md)
+[`RegistrySigningOptions`](RegistrySigningOptions.md)
 
 #### Returns
 

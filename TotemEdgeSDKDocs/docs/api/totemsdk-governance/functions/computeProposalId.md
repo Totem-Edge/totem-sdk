@@ -24,7 +24,7 @@
 
 ### actions
 
-`number`
+[`ProposalAction`](../interfaces/ProposalAction.md)[]
 
 ## Returns
 

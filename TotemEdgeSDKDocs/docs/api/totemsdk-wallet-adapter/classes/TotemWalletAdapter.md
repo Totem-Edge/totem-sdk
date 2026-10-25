@@ -6,21 +6,6 @@
 
 # Abstract Class: TotemWalletAdapter
 
-Abstract base class for third-party Totem-compatible wallets.
-
-Subclass this and implement only three methods:
-- `getAccounts(origin)` — return the list of accounts for a dApp origin
-- `signTransaction(origin, params)` — sign an unsigned transaction hex
-- `signData(origin, params)` — sign arbitrary data hex
-
-Everything else — TOTEM_CONNECT handshake, TOTEM_GET_CAPABILITIES,
-connected-site gating, chain provider switching, and the totem:announce
-injection — is handled automatically by the base class.
-
-Call `adapter.inject()` once from your extension content script or page
-context to make the wallet discoverable by any dApp using WalletDiscovery
-from @totemsdk/connect.
-
 ## Constructors
 
 ### Constructor
@@ -43,15 +28,99 @@ from @totemsdk/connect.
 
 > `protected` **\_chainProvider**: [`ChainProviderLike`](../interfaces/ChainProviderLike.md) \| `null`
 
+## Accessors
+
+### lease
+
+#### Get Signature
+
+> **get** `protected` **lease**(): `WotsLeasePort` \| `undefined`
+
+WOTS lease port for subclasses that coordinate key-use budgets.
+
+##### Returns
+
+`WotsLeasePort` \| `undefined`
+
+***
+
+### provider
+
+#### Get Signature
+
+> **get** **provider**(): `TotemProvider`
+
+The composed provider (full `TotemProvider` surface).
+
+##### Returns
+
+`TotemProvider`
+
 ## Methods
+
+### broadcastHex()?
+
+> `protected` `optional` **broadcastHex**(`origin`, `params`): `Promise`\<`unknown`\>
+
+#### Parameters
+
+##### origin
+
+`string`
+
+##### params
+
+`Record`\<`string`, `unknown`\>
+
+#### Returns
+
+`Promise`\<`unknown`\>
+
+***
+
+### broadcastTxPoW()?
+
+> `protected` `optional` **broadcastTxPoW**(`origin`, `params`): `Promise`\<`unknown`\>
+
+#### Parameters
+
+##### origin
+
+`string`
+
+##### params
+
+`Record`\<`string`, `unknown`\>
+
+#### Returns
+
+`Promise`\<`unknown`\>
+
+***
+
+### createToken()?
+
+> `protected` `optional` **createToken**(`origin`, `params`): `Promise`\<`unknown`\>
+
+#### Parameters
+
+##### origin
+
+`string`
+
+##### params
+
+`Record`\<`string`, `unknown`\>
+
+#### Returns
+
+`Promise`\<`unknown`\>
+
+***
 
 ### destroy()
 
 > **destroy**(): `void`
-
-Remove the `totem:requestAnnounce` listener and clear all state.
-After calling destroy() the adapter will no longer respond to dApp
-discovery requests.
 
 #### Returns
 
@@ -62,9 +131,6 @@ discovery requests.
 ### emit()
 
 > `protected` **emit**(`event`, ...`args`): `void`
-
-Emit an event to all dApp listeners subscribed via provider.on().
-Call this from your subclass when wallet state changes (e.g. account changed).
 
 #### Parameters
 
@@ -86,13 +152,6 @@ Call this from your subclass when wallet state changes (e.g. account changed).
 
 > `abstract` `protected` **getAccounts**(`origin`): `Promise`\<[`GetAccountsResponse`](../interfaces/GetAccountsResponse.md)\>
 
-Return the accounts this wallet manages for the given dApp origin.
-Called on TOTEM_CONNECT and TOTEM_GET_ACCOUNTS.
-
-Note: `publicKey` must be a non-null hex string for any account that
-will be used with TOTEM_VERIFY. Return null only for accounts that
-will never need to produce verification signatures.
-
 #### Parameters
 
 ##### origin
@@ -105,12 +164,72 @@ will never need to produce verification signatures.
 
 ***
 
+### getTxPermissions()?
+
+> `protected` `optional` **getTxPermissions**(`origin`, `params`): `Promise`\<`unknown`\>
+
+#### Parameters
+
+##### origin
+
+`string`
+
+##### params
+
+`Record`\<`string`, `unknown`\>
+
+#### Returns
+
+`Promise`\<`unknown`\>
+
+***
+
+### getWotsStatus()?
+
+> `protected` `optional` **getWotsStatus**(`origin`, `params`): `Promise`\<`unknown`\>
+
+#### Parameters
+
+##### origin
+
+`string`
+
+##### params
+
+`Record`\<`string`, `unknown`\>
+
+#### Returns
+
+`Promise`\<`unknown`\>
+
+***
+
+### grantTxPermission()?
+
+> `protected` `optional` **grantTxPermission**(`origin`, `params`): `Promise`\<`unknown`\>
+
+#### Parameters
+
+##### origin
+
+`string`
+
+##### params
+
+`Record`\<`string`, `unknown`\>
+
+#### Returns
+
+`Promise`\<`unknown`\>
+
+***
+
 ### handleRequest()
 
-> **handleRequest**(`method`, `params?`): `Promise`\<`unknown`\>
+> **handleRequest**(`method`, `params?`, `origin?`): `Promise`\<`unknown`\>
 
-Dispatch a single RPC request as if it came from a dApp provider.request() call.
-Useful for testing without a real browser environment.
+Dispatch a request. `origin` is the host-resolved trusted origin; when
+omitted it is resolved from `getOrigin` (or `window.location.origin`).
 
 #### Parameters
 
@@ -122,6 +241,10 @@ Useful for testing without a real browser environment.
 
 `Record`\<`string`, `unknown`\> = `{}`
 
+##### origin?
+
+`string`
+
 #### Returns
 
 `Promise`\<`unknown`\>
@@ -132,12 +255,6 @@ Useful for testing without a real browser environment.
 
 > **inject**(): `void`
 
-Fire `totem:announce` and register a `totem:requestAnnounce` listener
-so the wallet re-announces on demand. Safe to call from a content script
-or an injected MAIN-world script.
-
-No-op if called more than once — call `destroy()` first to re-inject.
-
 #### Returns
 
 `void`
@@ -147,9 +264,6 @@ No-op if called more than once — call `destroy()` first to re-inject.
 ### isConnected()
 
 > `protected` **isConnected**(`origin`): `boolean`
-
-Check whether a given origin has called TOTEM_CONNECT.
-Useful in subclass implementations that want to gate custom behaviour.
 
 #### Parameters
 
@@ -163,11 +277,121 @@ Useful in subclass implementations that want to gate custom behaviour.
 
 ***
 
+### meta()
+
+> **meta**(): `WalletRuntimeMeta`
+
+Method-support manifest (handled vs unsupported + reasons).
+
+#### Returns
+
+`WalletRuntimeMeta`
+
+***
+
+### mineTxPoW()?
+
+> `protected` `optional` **mineTxPoW**(`origin`, `params`): `Promise`\<`unknown`\>
+
+#### Parameters
+
+##### origin
+
+`string`
+
+##### params
+
+`Record`\<`string`, `unknown`\>
+
+#### Returns
+
+`Promise`\<`unknown`\>
+
+***
+
+### proveOwnership()?
+
+> `protected` `optional` **proveOwnership**(`origin`, `params`): `Promise`\<`unknown`\>
+
+#### Parameters
+
+##### origin
+
+`string`
+
+##### params
+
+`Record`\<`string`, `unknown`\>
+
+#### Returns
+
+`Promise`\<`unknown`\>
+
+***
+
+### revokeTxPermission()?
+
+> `protected` `optional` **revokeTxPermission**(`origin`, `params`): `Promise`\<`unknown`\>
+
+#### Parameters
+
+##### origin
+
+`string`
+
+##### params
+
+`Record`\<`string`, `unknown`\>
+
+#### Returns
+
+`Promise`\<`unknown`\>
+
+***
+
+### sendComplex()?
+
+> `protected` `optional` **sendComplex**(`origin`, `params`): `Promise`\<`unknown`\>
+
+#### Parameters
+
+##### origin
+
+`string`
+
+##### params
+
+`Record`\<`string`, `unknown`\>
+
+#### Returns
+
+`Promise`\<`unknown`\>
+
+***
+
+### sendTransaction()?
+
+> `protected` `optional` **sendTransaction**(`origin`, `params`): `Promise`\<`unknown`\>
+
+#### Parameters
+
+##### origin
+
+`string`
+
+##### params
+
+`Record`\<`string`, `unknown`\>
+
+#### Returns
+
+`Promise`\<`unknown`\>
+
+***
+
 ### signData()
 
 > `abstract` `protected` **signData**(`origin`, `params`): `Promise`\<[`SignDataResponse`](../interfaces/SignDataResponse.md)\>
-
-Sign arbitrary data (used for TOTEM_SIGN_DATA and TOTEM_VERIFY).
 
 #### Parameters
 
@@ -188,11 +412,6 @@ Sign arbitrary data (used for TOTEM_SIGN_DATA and TOTEM_VERIFY).
 ### signTransaction()
 
 > `abstract` `protected` **signTransaction**(`origin`, `params`): `Promise`\<[`SignTransactionResponse`](../interfaces/SignTransactionResponse.md)\>
-
-Sign an unsigned Minima transaction hex.
-Called on totem_signTransaction.
-The base class does NOT perform coin selection — if you need it, handle
-TOTEM_SEND_TRANSACTION as a future extension point in your subclass.
 
 #### Parameters
 

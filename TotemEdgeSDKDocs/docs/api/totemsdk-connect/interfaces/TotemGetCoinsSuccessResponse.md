@@ -28,6 +28,30 @@
 
 > **created**: `string`
 
+#### mmrEntry?
+
+> `optional` **mmrEntry?**: `string`
+
+MMR entry, when reported.
+
+#### spent?
+
+> `optional` **spent?**: `boolean`
+
+Whether the coin is spent, when reported.
+
+#### state?
+
+> `optional` **state?**: `unknown`[]
+
+Coin state variables, when reported.
+
+#### storeState?
+
+> `optional` **storeState?**: `boolean`
+
+Coin keeps state, when reported.
+
 #### tokenId
 
 > **tokenId**: `string`

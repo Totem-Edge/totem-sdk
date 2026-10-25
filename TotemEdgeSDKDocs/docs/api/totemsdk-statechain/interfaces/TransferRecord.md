@@ -8,9 +8,10 @@
 
 TransferRecord — one entry per ownership hop in transferHistory.
 
-`transferKey`    — prior owner's WOTS seed (hex) for custody-lineage proofs.
-`ownerSignature` — hex of the old owner's WOTS sig over `signedDigest`.
-  Stored so `verifyStateChain` can verify per-hop old-owner signatures.
+`ownerSignature` — hex of the old owner's serialized Minima `TreeSignature`
+  over `signedDigest` (root-bound). Stored so `verifyStateChain` can verify
+  per-hop old-owner authorization.
+`seSignature`    — the SE's leased-leaf signature envelope over `signedDigest`.
 `signedDigest`   — hex of computeTransactionDigest(stateUpdateTx).
   Bound to `txBodyHex` — `verifyStateChain` recomputes this digest from
   `txBodyHex` and rejects records where they do not match.
@@ -20,12 +21,6 @@ TransferRecord — one entry per ownership hop in transferHistory.
 `txHex`          — full TxPoW hex of the on-chain state-update TX.
 
 ## Properties
-
-### blindedSignature
-
-> **blindedSignature**: `string`
-
-***
 
 ### from
 
@@ -43,7 +38,17 @@ TransferRecord — one entry per ownership hop in transferHistory.
 
 > **ownerSignature**: `string`
 
-Hex of old owner's signature over signedDigest.
+Hex of old owner's serialized Minima `TreeSignature` over signedDigest.
+
+***
+
+### seSignature
+
+> **seSignature**: `SESignature`
+
+RFC-008: the SE signature envelope. Carries the leased leaf (`kind`,
+`publicKey`, `address`, `proofVersion`) so `verifyStateChain` can check leaf
+authorization against the SE root's `OwnershipProof`.
 
 ***
 
@@ -73,14 +78,6 @@ Hex of sha3_256(txBodyHex) — the TX body digest signed by old owner + SE.
 
 ***
 
-### transferKey
-
-> **transferKey**: `string`
-
-Prior owner's WOTS seed for custody lineage verification.
-
-***
-
 ### txBodyHex
 
 > **txBodyHex**: `string`
@@ -96,3 +93,13 @@ Hex of the raw serialized Transaction bytes (not TxPoW envelope).
 > **txHex**: `string`
 
 Full TxPoW hex of the on-chain state-update TX.
+
+***
+
+### txTimeMilli?
+
+> `optional` **txTimeMilli?**: `number`
+
+AUD-012: the TxPoW header `timeMilli` used when `txHex` was built, so the
+TxPoW can be reconstructed and bound to the signed body. Absent on records
+created before this field (legacy `txHex` binding is skipped).

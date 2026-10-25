@@ -20,6 +20,12 @@
 
 ### options?
 
+#### asOf?
+
+`number`
+
+Explicit resolution time. Defaults to Date.now() for compatibility.
+
 #### proofVerifiers?
 
 `Record`\<`string`, [`IdentityProofVerifier`](../interfaces/IdentityProofVerifier.md)\>

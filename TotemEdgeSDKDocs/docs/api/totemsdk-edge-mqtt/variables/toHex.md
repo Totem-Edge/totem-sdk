@@ -8,8 +8,6 @@
 
 > `const` **toHex**: (`bytes`) => `string` = `to_hex`
 
-Convert bytes to lowercase hex string.
-
 ## Parameters
 
 ### bytes

@@ -12,4 +12,5 @@
 
 > `optional` **maxHops?**: `number`
 
-Maximum number of hops (default: 8)
+Maximum number of hops for the whole route (default: 8). For cross-token
+routes this is a global end-to-end budget.

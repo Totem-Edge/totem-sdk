@@ -433,6 +433,26 @@ v1.0.0
 
 ***
 
+### getTxPowStatus()
+
+> **getTxPowStatus**(`txpowId`): `Promise`\<[`TxPowStatus`](../interfaces/TxPowStatus.md) \| `null`\>
+
+Fetch a txpow record via the Minima `txpow` RPC (RFC-036). Returns a
+normalized `{ txpowid, isblock, header }`, or `null` when the node does not
+serve the record.
+
+#### Parameters
+
+##### txpowId
+
+`string`
+
+#### Returns
+
+`Promise`\<[`TxPowStatus`](../interfaces/TxPowStatus.md) \| `null`\>
+
+***
+
 ### getUTXOs()
 
 > **getUTXOs**(`address`): `Promise`\<`UTXO`[]\>

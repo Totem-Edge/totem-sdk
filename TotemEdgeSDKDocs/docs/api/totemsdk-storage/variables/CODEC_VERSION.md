@@ -6,4 +6,4 @@
 
 # Variable: CODEC\_VERSION
 
-> `const` **CODEC\_VERSION**: `1` = `1`
+> `const` **CODEC\_VERSION**: `2` = `2`

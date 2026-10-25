@@ -6,7 +6,7 @@
 
 # Function: verifyPoolFundTx()
 
-> **verifyPoolFundTx**(`tx`, `proof`, `expectedPoolAddress?`): [`PoolFundVerification`](../interfaces/PoolFundVerification.md)
+> **verifyPoolFundTx**(`tx`, `proof`, `expectedPoolAddress`, `opts?`): [`PoolFundVerification`](../interfaces/PoolFundVerification.md)
 
 Verify a deep funding proof. `expectedPoolAddress` (the pool/channel script
 address) is required to prove the spend target — without it the proof only
@@ -20,11 +20,15 @@ proves the LP signed some tx, which is why acceptance must pass it.
 
 ### proof
 
-[`DeepFundingProof`](../interfaces/DeepFundingProof.md)
+[`SignedFundingIntent`](../interfaces/SignedFundingIntent.md)
 
-### expectedPoolAddress?
+### expectedPoolAddress
 
 `string`
+
+### opts?
+
+[`PoolFundVerifyOptions`](../interfaces/PoolFundVerifyOptions.md) = `{}`
 
 ## Returns
 

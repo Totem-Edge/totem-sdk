@@ -20,6 +20,14 @@
 
 ***
 
+### provenAddresses?
+
+> `optional` **provenAddresses?**: `string`[]
+
+Child addresses proven by the root-identity proof (evidence only).
+
+***
+
 ### reason?
 
 > `optional` **reason?**: `string`
@@ -29,6 +37,14 @@
 ### resolvedStatus
 
 > **resolvedStatus**: [`IdentityStatus`](../type-aliases/IdentityStatus.md)
+
+***
+
+### rootAddress?
+
+> `optional` **rootAddress?**: `string`
+
+Root address asserted by a verified root-identity proof, when present.
 
 ***
 

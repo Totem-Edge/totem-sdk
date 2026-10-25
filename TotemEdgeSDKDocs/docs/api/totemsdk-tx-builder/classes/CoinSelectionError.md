@@ -24,7 +24,7 @@
 
 ##### code
 
-`"FETCH_FAILED"` \| `"INSUFFICIENT_FUNDS"` \| `"SERVICE_UNAVAILABLE"` \| `"NETWORK_ERROR"`
+`"FETCH_FAILED"` \| `"INSUFFICIENT_FUNDS"` \| `"SERVICE_UNAVAILABLE"` \| `"NETWORK_ERROR"` \| `"INVALID_TARGET"`
 
 ##### details?
 
@@ -52,7 +52,7 @@
 
 ### code
 
-> `readonly` **code**: `"FETCH_FAILED"` \| `"INSUFFICIENT_FUNDS"` \| `"SERVICE_UNAVAILABLE"` \| `"NETWORK_ERROR"`
+> `readonly` **code**: `"FETCH_FAILED"` \| `"INSUFFICIENT_FUNDS"` \| `"SERVICE_UNAVAILABLE"` \| `"NETWORK_ERROR"` \| `"INVALID_TARGET"`
 
 ***
 

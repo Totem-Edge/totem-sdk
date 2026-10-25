@@ -14,6 +14,17 @@
 
 ***
 
+### eligiblePort?
+
+> `optional` **eligiblePort?**: `number`
+
+RFC-020 P2-4 (STABLE-013): committed port holding the eligible-voter /
+weight total. When set, `quorumPct` is enforced as a true percentage of it
+(`total * 100 >= quorumPct * eligible`). When omitted, `quorumPct` is
+treated as an absolute minimum vote count.
+
+***
+
 ### governancePk
 
 > **governancePk**: `string`

@@ -40,6 +40,14 @@ Set when an exit draft consumed this VTXO — prevents double-exit.
 
 ***
 
+### exitTxpowId?
+
+> `optional` **exitTxpowId?**: `string`
+
+The confirming exit transaction's txpowId (set on `markExited`).
+
+***
+
 ### expiresAt?
 
 > `optional` **expiresAt?**: `number`

@@ -26,6 +26,14 @@
 
 ***
 
+### contestDelayBlocks?
+
+> `optional` **contestDelayBlocks?**: `number`
+
+Eltoo contest window embedded in the funding script (default 256).
+
+***
+
 ### createdAt
 
 > **createdAt**: `number`
@@ -94,6 +102,18 @@ reference the real spendable coin rather than the funding output.
 Local party signer — stored on the channel so callers can omit the signer param from
 public functions (updateState, addHTLC, proposeSettlement, executeIntent, etc.).
 Explicit signer params always take precedence over this field.
+
+***
+
+### onChainSequence?
+
+> `optional` **onChainSequence?**: `number`
+
+Sequence number of the channel coin currently committed on-chain (the
+funding output, or the output of the most recent broadcast update tx).
+Off-chain updates do not change it. The eltoo settlement branch requires
+`SEQUENCE EQ PREVSEQUENCE`, so cooperative settlement must use this value
+(with the agreed balances) rather than `currentSequence`.
 
 ***
 

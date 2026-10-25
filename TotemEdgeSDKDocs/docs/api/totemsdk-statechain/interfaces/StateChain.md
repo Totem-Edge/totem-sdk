@@ -52,6 +52,16 @@ StateChain — in-memory state of a Mercury-protocol statechain UTXO.
 
 ***
 
+### genesisCoinId?
+
+> `optional` **genesisCoinId?**: `string`
+
+The locked coin id at creation (the LOCK TX output spent by the first
+transfer). Required to bind the first transfer's `txBodyHex` to its
+ownership labels (AUD-012); absent on chains created before this field.
+
+***
+
 ### lockingAddress
 
 > **lockingAddress**: `string`
@@ -79,6 +89,24 @@ StateChain — in-memory state of a Mercury-protocol statechain UTXO.
 ### reclaimTx
 
 > **reclaimTx**: `string`
+
+***
+
+### seOwnershipProof?
+
+> `optional` **seOwnershipProof?**: `SeOwnershipProof`
+
+RFC-008: the SE's published identity — the root-identity `OwnershipProof`
+that authorizes the leased child leaves used for transfer blind-signatures.
+When present, `verifyStateChain` verifies leaf authorization against it.
+
+***
+
+### seProofVersion?
+
+> `optional` **seProofVersion?**: `number`
+
+RFC-008: monotonic SE identity-proof version.
 
 ***
 

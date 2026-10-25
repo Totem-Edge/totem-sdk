@@ -24,6 +24,12 @@
 
 `object`[]
 
+#### transactionState?
+
+[`StateVariable`](../interfaces/StateVariable.md)[]
+
+Transaction-level state variables.
+
 #### version
 
 `1`

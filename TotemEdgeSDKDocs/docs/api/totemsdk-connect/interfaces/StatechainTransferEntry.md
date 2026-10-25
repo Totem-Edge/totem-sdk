@@ -8,12 +8,6 @@
 
 ## Properties
 
-### blindedSignature
-
-> **blindedSignature**: `string`
-
-***
-
 ### from
 
 > **from**: `string`
@@ -24,11 +18,23 @@
 
 > **fromPublicKeyDigest**: `string`
 
+TreeKey **root** public key hex (RFC-009).
+
 ***
 
 ### ownerSignature
 
 > **ownerSignature**: `string`
+
+Old owner's serialized Minima `TreeSignature` hex.
+
+***
+
+### seSignature
+
+> **seSignature**: [`StatechainSeSignature`](StatechainSeSignature.md)
+
+RFC-008 SE signature envelope.
 
 ***
 

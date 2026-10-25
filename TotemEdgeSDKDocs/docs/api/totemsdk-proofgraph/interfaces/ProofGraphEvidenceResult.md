@@ -16,6 +16,14 @@ Per-evidence-node restore result.
 
 ***
 
+### contentHash?
+
+> `optional` **contentHash?**: `string`
+
+The claim commitment this evidence is bound to, when known.
+
+***
+
 ### message?
 
 > `optional` **message?**: `string`

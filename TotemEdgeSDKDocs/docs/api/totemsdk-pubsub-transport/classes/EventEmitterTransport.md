@@ -6,10 +6,10 @@
 
 # Class: EventEmitterTransport
 
-In-process pub/sub transport backed by a Node.js EventEmitter.
+In-process pub/sub transport backed by a minimal emitter.
 Useful for wiring together components in the same process without a broker.
 
-Two EventEmitterTransport instances sharing the same `bus` EventEmitter
+Two EventEmitterTransport instances sharing the same `bus` emitter
 form a bidirectional pub/sub channel: what one publishes, the other receives.
 
 ## Implements
@@ -26,7 +26,7 @@ form a bidirectional pub/sub channel: what one publishes, the other receives.
 
 ##### bus?
 
-`EventEmitter`\<`DefaultEventMap`\>
+[`EmitterLike`](../interfaces/EmitterLike.md)
 
 #### Returns
 
@@ -38,11 +38,11 @@ form a bidirectional pub/sub channel: what one publishes, the other receives.
 
 #### Get Signature
 
-> **get** **bus**(): `EventEmitter`
+> **get** **bus**(): [`EmitterLike`](../interfaces/EmitterLike.md)
 
 ##### Returns
 
-`EventEmitter`
+[`EmitterLike`](../interfaces/EmitterLike.md)
 
 ## Methods
 

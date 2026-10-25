@@ -24,6 +24,32 @@ Effect class — used for capability gating and audit.
 
 ## Methods
 
+### classifyFailure()?
+
+> `optional` **classifyFailure**(`error`, `prepared`): `"definitely-not-executed"` \| `"unknown"`
+
+RFC-019 P1: classify an execution failure. Return `'definitely-not-executed'`
+only when the operation provably did not take effect (the reservation may be
+released — this is the default for non-dispatching port actions); return
+`'unknown'` for ambiguous post-dispatch outcomes, where the reservation is
+held for reconciliation rather than released.
+
+#### Parameters
+
+##### error
+
+`unknown`
+
+##### prepared
+
+`unknown`
+
+#### Returns
+
+`"definitely-not-executed"` \| `"unknown"`
+
+***
+
 ### deriveEffects()
 
 > **deriveEffects**(`prepared`): `StepEffects`

@@ -12,7 +12,9 @@
 
 ## Interfaces
 
+- [ArtifactCacheRetentionPolicy](interfaces/ArtifactCacheRetentionPolicy.md)
 - [CommerceStore](interfaces/CommerceStore.md)
+- [EdgeArtifactCache](interfaces/EdgeArtifactCache.md)
 - [IdentityPortConfig](interfaces/IdentityPortConfig.md)
 - [LiquidityPortConfig](interfaces/LiquidityPortConfig.md)
 - [LocationPortConfig](interfaces/LocationPortConfig.md)
@@ -34,6 +36,7 @@
 
 ## Functions
 
+- [createEdgeArtifactCache](functions/createEdgeArtifactCache.md)
 - [createIdentityPortAdapter](functions/createIdentityPortAdapter.md)
 - [createLiquidityPortAdapter](functions/createLiquidityPortAdapter.md)
 - [createLocationPortAdapter](functions/createLocationPortAdapter.md)

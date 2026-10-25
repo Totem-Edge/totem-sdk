@@ -6,16 +6,6 @@
 
 # Interface: WotsLeaseBundle
 
-Bundle of `FactoryLeaseOps` + `ChannelSigner` for one factory participant.
-
-In production, wire a real `WotsLeaseProvider` (which satisfies `FactoryLeaseOps`
-structurally) and a `ChannelSigner` backed by the participant's WOTS tree key.
-In tests, provide mock implementations of all three methods on `leaseProvider`.
-
-The optional `verify` callback overrides the default `wotsVerifyDigest` from
-`@totemsdk/core`, allowing test code to inject a no-op verifier without
-requiring real WOTS key material.
-
 ## Properties
 
 ### leaseProvider

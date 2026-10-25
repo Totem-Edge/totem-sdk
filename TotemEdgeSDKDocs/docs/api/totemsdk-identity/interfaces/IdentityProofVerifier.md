@@ -16,13 +16,17 @@
 
 ### verify()
 
-> **verify**(`proof`): `Promise`\<[`IdentityVerifyResult`](IdentityVerifyResult.md)\>
+> **verify**(`proof`, `context?`): `Promise`\<[`IdentityVerifyResult`](IdentityVerifyResult.md)\>
 
 #### Parameters
 
 ##### proof
 
 `unknown`
+
+##### context?
+
+`IdentityProofVerificationContext`
 
 #### Returns
 

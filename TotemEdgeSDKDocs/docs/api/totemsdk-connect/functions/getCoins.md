@@ -24,6 +24,24 @@
 
 `string`
 
+#### relevant?
+
+`boolean`
+
+Only coins relevant to the wallet.
+
+#### sendable?
+
+`boolean`
+
+Only spendable coins.
+
+#### spent?
+
+`boolean`
+
+Filter by spent status (UTXO inspection).
+
 #### tokenId?
 
 `string`

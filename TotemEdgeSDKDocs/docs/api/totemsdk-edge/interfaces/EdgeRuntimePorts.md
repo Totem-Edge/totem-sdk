@@ -8,6 +8,25 @@
 
 ## Properties
 
+### artifacts?
+
+> `optional` **artifacts?**: `ArtifactStore`
+
+RFC-007 Amendment A: optional artifact byte store. Separate from `storage`
+(bytes vs. metadata); required when a feature declares `needsArtifacts`.
+
+***
+
+### decision?
+
+> `optional` **decision?**: [`EdgeDecisionPort`](EdgeDecisionPort.md)
+
+Optional bounded decision surface — a sibling of intelligence, not an
+intelligence domain. Host implementations via `createEdgeDecisionPort`
+from @totemsdk/decision.
+
+***
+
 ### identity?
 
 > `optional` **identity?**: [`EdgeIdentityPort`](EdgeIdentityPort.md)
@@ -83,6 +102,16 @@ WOTS key-lease coordination — required before any signing operation.
 > `optional` **pubsub?**: [`EdgePubSubPort`](EdgePubSubPort.md)
 
 Publish-subscribe transport (MQTT-compatible, protocol-agnostic).
+
+***
+
+### storage?
+
+> `optional` **storage?**: `StorageAdapterWithCapabilities`
+
+RFC-007 Amendment A: optional transactional KV substrate. Required when a
+configured feature declares `durable`/`needsArtifacts`; validated by
+`assertPersistence()` at construction.
 
 ***
 

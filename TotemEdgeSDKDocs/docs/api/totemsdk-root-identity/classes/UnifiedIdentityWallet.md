@@ -239,7 +239,7 @@ one-time-use signing slot is ever reused.
 
 ### proveOwnership()
 
-> **proveOwnership**(`childIndices`): [`OwnershipProof`](../interfaces/OwnershipProof.md)
+> **proveOwnership**(`childIndices`, `options?`): [`OwnershipProof`](../interfaces/OwnershipProof.md)
 
 Produce an ownership proof demonstrating that this root identity controls
 all given child addresses.
@@ -255,6 +255,15 @@ network access.
 `number`[]
 
 Which children to include (0-based)
+
+##### options?
+
+###### rootUseIndex?
+
+`number`
+
+Allocate the root signature at this explicit
+  leaf index (e.g. from a WOTS lease) instead of the in-memory cursor.
 
 #### Returns
 
@@ -376,6 +385,36 @@ Hashes the message with SHA3-256 before signing.
 #### Throws
 
 if root TreeKey is exhausted (262 144 uses)
+
+***
+
+### signFromRootAt()
+
+> **signFromRootAt**(`message`, `useIndex`): [`WotsProof`](../interfaces/WotsProof.md)
+
+Sign `message` with the root identity key at an explicit leaf index.
+
+Use this when the caller allocates the one-time leaf itself (e.g. via the
+RFC-013 WOTS lease provider) so a root leaf is never reused across sessions
+or concurrent callers. Advances the in-memory root cursor past `useIndex`.
+
+#### Parameters
+
+##### message
+
+`string`
+
+##### useIndex
+
+`number`
+
+#### Returns
+
+[`WotsProof`](../interfaces/WotsProof.md)
+
+#### Throws
+
+if `useIndex` is not a non-negative integer or exceeds capacity.
 
 ***
 

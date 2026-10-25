@@ -44,6 +44,14 @@
 
 ***
 
+### nodeIdentity
+
+> `readonly` **nodeIdentity**: `NodeIdentity`
+
+RFC-032-A: node WOTS identity (signs session tickets).
+
+***
+
 ### provider
 
 > `readonly` **provider**: `ChainStateProvider`
@@ -56,9 +64,25 @@
 
 ***
 
+### replayGuard
+
+> `readonly` **replayGuard**: `ReplayGuard`
+
+RFC-032: node-wide replay guard shared across sessions.
+
+***
+
 ### store?
 
 > `readonly` `optional` **store?**: [`SqliteStore`](../classes/SqliteStore.md)
+
+***
+
+### tickets
+
+> `readonly` **tickets**: `SessionTicketStore`
+
+RFC-032-A: session ticket store (lifetime/budget/seq).
 
 ***
 
@@ -73,6 +97,32 @@
 > `readonly` **watchlist**: [`WatchlistManager`](../classes/WatchlistManager.md)
 
 ## Methods
+
+### checkIdentityRate()
+
+> **checkIdentityRate**(`publicKeyHex`, `rpm`, `now?`): `boolean`
+
+RFC-020 H11: per-identity rate limit that survives reconnects.
+
+#### Parameters
+
+##### publicKeyHex
+
+`string` \| `undefined`
+
+##### rpm
+
+`number`
+
+##### now?
+
+`number`
+
+#### Returns
+
+`boolean`
+
+***
 
 ### onSessionClosed()
 

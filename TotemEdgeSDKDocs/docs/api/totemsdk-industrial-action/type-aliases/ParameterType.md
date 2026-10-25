@@ -6,4 +6,4 @@
 
 # Type Alias: ParameterType
 
-> **ParameterType** = `"string"` \| `"number"` \| `"boolean"` \| `"object"` \| `"array"`
+> **ParameterType** = `"string"` \| `"number"` \| `"boolean"` \| `"object"` \| `"array"` \| `"quantity"`

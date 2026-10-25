@@ -6,7 +6,7 @@
 
 # Function: aggregateSignatures()
 
-> **aggregateSignatures**(`totemSignature`, `externalSignatures`): `Uint8Array`\<`ArrayBufferLike`\>[]
+> **aggregateSignatures**(`totemSignature`, `externalSignatures`, `transactionDigest`): `Uint8Array`\<`ArrayBufferLike`\>[]
 
 ## Parameters
 
@@ -23,6 +23,10 @@
 ### externalSignatures
 
 [`ExternalSignature`](../interfaces/ExternalSignature.md)[]
+
+### transactionDigest
+
+`Uint8Array`
 
 ## Returns
 

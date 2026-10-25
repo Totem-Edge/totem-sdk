@@ -14,9 +14,7 @@
 ## Interfaces
 
 - [AccountEntry](interfaces/AccountEntry.md)
-- [AdapterProvider](interfaces/AdapterProvider.md)
 - [ChainProviderLike](interfaces/ChainProviderLike.md)
-- [ConnectResponse](interfaces/ConnectResponse.md)
 - [DisconnectResponse](interfaces/DisconnectResponse.md)
 - [GetAccountsResponse](interfaces/GetAccountsResponse.md)
 - [SignDataParams](interfaces/SignDataParams.md)
@@ -24,10 +22,13 @@
 - [SignTransactionParams](interfaces/SignTransactionParams.md)
 - [SignTransactionResponse](interfaces/SignTransactionResponse.md)
 - [VerifyResponse](interfaces/VerifyResponse.md)
+- [WalletAdapterApprovalRequest](interfaces/WalletAdapterApprovalRequest.md)
 - [WalletAdapterConfig](interfaces/WalletAdapterConfig.md)
-- [WalletCapabilities](interfaces/WalletCapabilities.md)
-- [WalletInfo](interfaces/WalletInfo.md)
 
 ## Type Aliases
 
+- [AdapterProvider](type-aliases/AdapterProvider.md)
 - [ChainProviderFactory](type-aliases/ChainProviderFactory.md)
+- [ConnectResponse](type-aliases/ConnectResponse.md)
+- [WalletCapabilities](type-aliases/WalletCapabilities.md)
+- [WalletInfo](type-aliases/WalletInfo.md)

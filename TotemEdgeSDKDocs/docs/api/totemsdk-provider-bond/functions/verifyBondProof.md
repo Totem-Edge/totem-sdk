@@ -6,7 +6,12 @@
 
 # Function: verifyBondProof()
 
-> **verifyBondProof**(`proof`, `verifier?`): [`ProviderBondVerifyResult`](../interfaces/ProviderBondVerifyResult.md)
+> **verifyBondProof**(`proof`, `verifier?`): `Promise`\<[`ProviderBondVerifyResult`](../interfaces/ProviderBondVerifyResult.md)\>
+
+RFC-020 C4: a bond proof is only meaningful when independently verified.
+Every proof type (including self-declared `manual`/`declared`) must be
+verified by the supplied [BondProofVerifier](../interfaces/BondProofVerifier.md); without one it fails
+closed rather than asserting an unbacked `ok`.
 
 ## Parameters
 
@@ -20,4 +25,4 @@
 
 ## Returns
 
-[`ProviderBondVerifyResult`](../interfaces/ProviderBondVerifyResult.md)
+`Promise`\<[`ProviderBondVerifyResult`](../interfaces/ProviderBondVerifyResult.md)\>

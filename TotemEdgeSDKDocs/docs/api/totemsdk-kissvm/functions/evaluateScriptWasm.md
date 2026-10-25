@@ -16,7 +16,7 @@
 
 ### witness
 
-`any`
+[`ScriptWitness`](../interfaces/ScriptWitness.md) \| `Record`\<`string`, `unknown`\>
 
 ### txCtx
 

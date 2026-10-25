@@ -12,7 +12,7 @@
 
 ### proof
 
-[`DeepFundingProof`](../interfaces/DeepFundingProof.md)
+[`SignedFundingIntent`](../interfaces/SignedFundingIntent.md)
 
 ## Returns
 

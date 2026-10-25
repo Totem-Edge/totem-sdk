@@ -6,7 +6,7 @@
 
 # Function: vestingWorkflow()
 
-> **vestingWorkflow**(`startPort`, `totalPort`, `claimedPort`, `beneficiaryPk`): [`PrevStateWorkflow`](../interfaces/PrevStateWorkflow.md)
+> **vestingWorkflow**(`startPort`, `endPort`, `totalPort`, `claimedPort`, `beneficiaryPk`): [`PrevStateWorkflow`](../interfaces/PrevStateWorkflow.md)
 
 Generate a KISSVM script for a vesting schedule.
 
@@ -17,6 +17,10 @@ Generate a KISSVM script for a vesting schedule.
 `number`
 
 STATE port for vesting start block.
+
+### endPort
+
+`number`
 
 ### totalPort
 

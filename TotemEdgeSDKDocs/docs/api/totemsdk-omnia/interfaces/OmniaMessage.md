@@ -14,6 +14,14 @@
 
 ***
 
+### correlationId?
+
+> `optional` **correlationId?**: `string`
+
+RFC-035: stable id of the coordination round-trip (factoryId / spliceId / vcId).
+
+***
+
 ### nonce
 
 > **nonce**: `number`

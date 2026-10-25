@@ -38,7 +38,7 @@ Auto-generated from TypeScript sources via TypeDoc. Run `npm run generate` from 
 | [`@totemsdk/lookup-node`](totemsdk-lookup-node/index.md) | Always-on personal lookup node — Hyperswarm, chain queries, COIN_UPDATE push, WOTS lease coordination | rc |
 | [`@totemsdk/lookup-protocol`](totemsdk-lookup-protocol/index.md) | Wire protocol definitions for lookup node ↔ client communication | rc |
 | [`@totemsdk/manifest`](totemsdk-manifest/index.md) | Canonical signed declaration format — apps, agent capabilities, dApps, edge services | v1 |
-| [`@totemsdk/omnia`](totemsdk-omnia/index.md) | Omnia eltoo payment channel state machine — transport-agnostic, WOTS-safe, HTLC-ready | v1 |
+| [`@totemsdk/omnia`](totemsdk-omnia/index.md) | Omnia eltoo payment channel state machine — transport-agnostic, WOTS-safe, HTLC-ready | rc |
 | [`@totemsdk/omnia-factory`](totemsdk-omnia-factory/index.md) | Channel factory — N-of-N MULTISIG funding, virtual channel management, factory settlement | rc |
 | [`@totemsdk/omnia-router`](totemsdk-omnia-router/index.md) | Multi-hop payment routing — single-token and cross-token paths over Omnia channels | rc |
 | [`@totemsdk/omnia-splice`](totemsdk-omnia-splice/index.md) | Channel splicing — resize eltoo channels without close+reopen | rc |
@@ -49,6 +49,7 @@ Auto-generated from TypeScript sources via TypeDoc. Run `npm run generate` from 
 | [`@totemsdk/proofgraph`](totemsdk-proofgraph/index.md) | Local deterministic proof relationship graph — indexes proofs, identities, manifests into a content-addressed DAG | v1 |
 | [`@totemsdk/provider-bond`](totemsdk-provider-bond/index.md) | Provider trust layer — prove, record, score and filter infrastructure providers | rc |
 | [`@totemsdk/pubsub-transport`](totemsdk-pubsub-transport/index.md) | Pub/sub transport interfaces — IPubSubTransport, EventEmitterTransport, MockPubSubTransport | rc |
+| [`@totemsdk/p2p-hub`](totemsdk-p2p-hub/index.md) | Local P2P hub — one Hyperswarm instance shared by Totem apps over a loopback WebSocket bridge | alpha |
 | [`@totemsdk/minima-rpc`](totemsdk-minima-rpc/index.md) | Fetch-based PureMinima RPC client — Bare/Pear/Node/browser compatible | rc |
 | [`@totemsdk/realtime`](totemsdk-realtime/index.md) | Real-time balance streaming — WebSocket and HTTP fallback | rc |
 | [`@totemsdk/recursive-mast`](totemsdk-recursive-mast/index.md) | Recursive MAST + PREVSTATE — composable policy trees, proof chains, state transitions, delegation | rc |
@@ -60,17 +61,21 @@ Auto-generated from TypeScript sources via TypeDoc. Run `npm run generate` from 
 | [`@totemsdk/tx-builder`](totemsdk-tx-builder/index.md) | Transaction builder for Minima — coin selection, multisig, WOTS signing | rc |
 | [`@totemsdk/txpow`](totemsdk-txpow/index.md) | TxPoW envelope serialization and proof-of-work mining for Minima | v1 |
 | [`@totemsdk/wallet-adapter`](totemsdk-wallet-adapter/index.md) | Abstract base class for Totem-compatible wallets — hardware bridges, mobile companions, institutional custody | v1 |
-| [`@totemsdk/wots-lease`](totemsdk-wots-lease/index.md) | WOTS key-use coordination — canonical v3 watermark, provider-based lease safety | v1 |
+| [`@totemsdk/wots-lease`](totemsdk-wots-lease/index.md) | WOTS key-use coordination — canonical v3 watermark, provider-based lease safety | rc |
 | [`@totemsdk/edge-email`](totemsdk-edge-email/index.md) | Edge runtime adapter for email — IMAP/SMTP polling, notification delivery, command parsing, and sensor ingestion via email | rc |
 | [`@totemsdk/industrial-action`](totemsdk-industrial-action/index.md) | Deterministic industrial action lifecycle for Totem Edge — converts governed intent into context-aware, bounded, verifiably executed operations on field devices and protocols | rc |
-| [`@totemsdk/mcp-server`](totemsdk-mcp-server/index.md) | MCP server exposing the full Totem SDK package set — metadata, types, exports, dependency graphs, and scaffolding tools for 57 packages | rc |
+| [`@totemsdk/mcp-server`](totemsdk-mcp-server/index.md) | MCP server exposing the full Totem SDK package set — metadata, types, exports, dependency graphs, and scaffolding tools | rc |
 | [`@totemsdk/omnia-host`](totemsdk-omnia-host/index.md) | Durable Omnia node daemon for channel lifecycle, routing, and control APIs | rc |
 | [`@totemsdk/location-proof`](totemsdk-location-proof/index.md) | Generic location and movement proof primitives — device-neutral GPS/GNSS claims, confidence scoring, motion trails, and proof envelope integration | v1 |
 | [`@totemsdk/spatial-proof`](totemsdk-spatial-proof/index.md) | Generic spatial relationship proof primitives — geometry hashes, geofence relations, route checks, and proof envelope integration | v1 |
 | [`@totemsdk/raster-proof`](totemsdk-raster-proof/index.md) | Edge-capable raster and visual evidence proof primitives — asset hashes, tile Merkle roots, raster manifests, derived-layer provenance, and proof envelope integration | v1 |
 | [`@totemsdk/omnia-pool`](totemsdk-omnia-pool/index.md) | Generic Omnia liquidity pool orchestration primitive for Totem SDK | rc |
+| [`@totemsdk/omnia-relay`](totemsdk-omnia-relay/index.md) | Wallet-side Omnia client — browser-safe relay transport + routing/factory/splice composition | alpha |
 | [`@totemsdk/intelligence`](totemsdk-intelligence/index.md) | Provider-neutral intelligence contracts — capabilities, operations, receipts, errors for local self-hosted AI inference | beta |
+| [`@totemsdk/decision`](totemsdk-decision/index.md) | Provider-neutral decision runtime — typed, constrained, provenance-bound proposals over dynamic candidate spaces (AI proposes, Totem authorizes) | beta |
 | [`@totemsdk/qvac`](totemsdk-qvac/index.md) | QVAC intelligence adapter — wraps @qvac/sdk into @totemsdk/intelligence provider-neutral contracts (with /edge and /raw subpaths) | beta |
-| [`@totemsdk/storage`](totemsdk-storage/index.md) | Provider-neutral storage contracts and adapters — StorageError taxonomy, versioned codec, namespaces, transactions + CAS, artifact-boundary types with a pluggable ArtifactStoreBackend port | alpha |
+| [`@totemsdk/storage`](totemsdk-storage/index.md) | Provider-neutral storage contracts and adapters — StorageError taxonomy, versioned codec, namespaces, transactions + CAS, artifact-boundary types with a pluggable ArtifactStoreBackend port | rc |
+| [`@totemsdk/entity`](totemsdk-entity/index.md) | Disclosure-bounded entity resolution and projection — composes identity, manifests, proofs and authority into a privacy-preserving view | alpha |
+| [`@totemsdk/eefi`](totemsdk-eefi/index.md) | Neutral Eefi generic contracts — capital, market, risk and exercise agreement schemas with canonical digests | rc |
 | [`@totemsdk/observability`](totem-observability/index.md) | Drop-in observability for Totem-based dApps — trace propagation and batched telemetry | — |
 | [`totem-extension/keyring`](totem-extension-keyring/index.md) | Totem Extension public keyring API — signing validator types and security boundary utilities | — |

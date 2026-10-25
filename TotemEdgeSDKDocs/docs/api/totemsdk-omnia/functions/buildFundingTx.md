@@ -6,7 +6,7 @@
 
 # Function: buildFundingTx()
 
-> **buildFundingTx**(`fundingScript`, `fundingScriptAddress`, `totalValue`, `tokenId`, `tokenScale`, `inputCoinIds`, `inputAmounts`, `inputAddresses`): [`OmniaTxDraft`](../interfaces/OmniaTxDraft.md)
+> **buildFundingTx**(`fundingScript`, `fundingScriptAddress`, `totalValue`, `tokenId`, `tokenScale`, `inputCoinIds`, `inputAmounts`, `inputAddresses`, `extraStateVariables?`, `inputStates?`): [`OmniaTxDraft`](../interfaces/OmniaTxDraft.md)
 
 ## Parameters
 
@@ -41,6 +41,14 @@
 ### inputAddresses
 
 `string`[]
+
+### extraStateVariables?
+
+[`StateValue`](../interfaces/StateValue.md)[] = `[]`
+
+### inputStates?
+
+`object`[]
 
 ## Returns
 

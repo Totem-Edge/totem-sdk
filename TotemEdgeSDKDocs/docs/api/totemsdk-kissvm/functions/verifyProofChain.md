@@ -6,7 +6,7 @@
 
 # Function: verifyProofChain()
 
-> **verifyProofChain**(`chain`, `expectedLeafScriptHash?`): [`VerificationResult`](../interfaces/VerificationResult.md)
+> **verifyProofChain**(`chain`, `expectedLeafScriptHash?`, `options?`): [`VerificationResult`](../interfaces/VerificationResult.md)
 
 ## Parameters
 
@@ -15,6 +15,12 @@
 [`ProofChain`](../interfaces/ProofChain.md)
 
 ### expectedLeafScriptHash?
+
+`string`
+
+### options?
+
+#### expectedRoot?
 
 `string`
 

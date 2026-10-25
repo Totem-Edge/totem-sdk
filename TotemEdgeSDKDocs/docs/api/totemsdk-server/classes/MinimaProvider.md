@@ -334,6 +334,28 @@ v6.0.0
 
 ***
 
+### getBalance()
+
+> **getBalance**(`address`, `tokenId?`): `Promise`\<`string`\>
+
+Recipient balance lookup for the `expect` delta check.
+
+#### Parameters
+
+##### address
+
+`string`
+
+##### tokenId?
+
+`string`
+
+#### Returns
+
+`Promise`\<`string`\>
+
+***
+
 ### getMaxListeners()
 
 > **getMaxListeners**(): `number`
@@ -352,6 +374,24 @@ v1.0.0
 #### Inherited from
 
 `EventEmitter.getMaxListeners`
+
+***
+
+### getTxPowStatus()
+
+> **getTxPowStatus**(`txpowId`): `Promise`\<[`TxPowStatus`](../interfaces/TxPowStatus.md) \| `null`\>
+
+Fetch a normalized txpow record; see `@totemsdk/server` `awaitConfirmation`.
+
+#### Parameters
+
+##### txpowId
+
+`string`
+
+#### Returns
+
+`Promise`\<[`TxPowStatus`](../interfaces/TxPowStatus.md) \| `null`\>
 
 ***
 

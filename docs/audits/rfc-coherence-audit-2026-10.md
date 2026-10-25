@@ -39,7 +39,7 @@ internally consistent.
 | RFC-029 | Draft — design | Not implemented (`byType` absent) |
 | RFC-030 | Draft — design | Shortlisting deferred by RFC-012 |
 | RFC-031 | Draft — P4 substantially landed | P5 (`/legacy` removal) remains |
-| RFC-032 / 032-A | Landed (TypeScript) + Go client and node tickets | Go client cache/seq/reopen and Go node mint/store/consume landed; generated TypeDoc remains |
+| RFC-032 / 032-A | Landed (TypeScript) + Go client and node tickets | Go client cache/seq/reopen and Go node mint/store/consume landed; TypeDoc regenerated 2026-10-24 |
 | RFC-033 | Landed | Go FFI + interop green |
 | RFC-034 | Phase A landed | Phase B tracked in RFC-035 |
 | RFC-035 | In progress | Onion codec, forwarder hook, capability flips remain |
@@ -168,7 +168,7 @@ must not be read as delivery:
 | `RFC-019-…` | Draft + residual noted (post-auth negotiation acceptance) |
 | `RFC-020-…` | Draft → Landed (remediation; open questions only) |
 | `RFC-028-…` | Draft → Landed (V1/V2/V3) |
-| `RFC-032-…` / `RFC-032-AMENDMENT-A-…` | Corrected Go wording: WOTS/auth + Go client and node tickets landed; generated TypeDoc remains |
+| `RFC-032-…` / `RFC-032-AMENDMENT-A-…` | Corrected Go wording: WOTS/auth + Go client and node tickets landed; TypeDoc regenerated 2026-10-24 |
 | `RFC-049-…` | Added status note over the RFC-048 reference table |
 | `RFC-053-…` | Draft/authorised → Landed; removed RFC-051 dependency |
 | `RFC-054-…` | Added **not started** |

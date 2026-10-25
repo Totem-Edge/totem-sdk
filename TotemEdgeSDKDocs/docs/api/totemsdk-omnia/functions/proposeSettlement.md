@@ -30,7 +30,7 @@ optional via the opts argument and fall back to channel fields.
 
 ### leaseProvider
 
-`WotsLeaseProvider`
+`WotsLeaseProvider` \| `undefined`
 
 ### opts?
 

@@ -32,6 +32,14 @@
 
 ***
 
+### tokenId?
+
+> `optional` **tokenId?**: `string`
+
+Set when the transaction creates a token (RFC-005 #2/#11).
+
+***
+
 ### transaction
 
 > **transaction**: [`MinimaTransaction`](MinimaTransaction.md)

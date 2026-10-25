@@ -6,7 +6,7 @@
 
 # Function: signRegistryTransition()
 
-> **signRegistryTransition**(`registry`, `op`, `signer`, `opts?`): `Promise`\<[`RegistrySignedTransition`](../interfaces/RegistrySignedTransition.md)\>
+> **signRegistryTransition**(`registry`, `op`, `signer`, `opts`): `Promise`\<[`RegistrySignedTransition`](../interfaces/RegistrySignedTransition.md)\>
 
 Sign a registry transition: binds the resulting state (via `root`), the mutation
 (`op`), and the prior anchor (`previousRoot`) into one signed record.
@@ -25,9 +25,9 @@ Sign a registry transition: binds the resulting state (via `root`), the mutation
 
 [`RegistryTransitionSigner`](../interfaces/RegistryTransitionSigner.md)
 
-### opts?
+### opts
 
-[`RegistryRootOptions`](../interfaces/RegistryRootOptions.md)
+[`RegistrySigningOptions`](../interfaces/RegistrySigningOptions.md)
 
 ## Returns
 

@@ -1,6 +1,6 @@
 # RFC-032 Amendment A — Lookup Session Tickets (P5 Plan)
 
-**Status:** Landed (TypeScript) — T0–T4 complete (node identity watermark and live ticket table persist across restart), T5 covered by unit + E2E tests. Go WOTS/auth landed via RFC-033; the Go lookup-client ticket cache and Go node ticket store landed too. Generated TypeDoc remains.
+**Status:** Landed (TypeScript) — T0–T4 complete (node identity watermark and live ticket table persist across restart), T5 covered by unit + E2E tests. Go WOTS/auth landed via RFC-033; the Go lookup-client ticket cache and Go node ticket store landed too. TypeDoc regenerated 2026-10-24.
 **Created:** 2026-10-02 · **Amends:** RFC-032
 **Touches:** `@totemsdk/lookup-protocol`, `@totemsdk/lookup-client`, `@totemsdk/lookup-node`
 **Depends on:** RFC-032 (lookup-stack post-quantum identity)
@@ -187,7 +187,7 @@ Shipped (tests green: protocol 21, client 29, node 60):
 - **T5** Tests: ticket store (budget/expiry/replay/revocation/subject), persistence/reopen (seq budget, no revocation resurrection, foreign-node/corrupt-entry discard), `NodeIdentity` sign/verify + forged/tampered/different-node rejection, and a node E2E (real WOTS `SESSION_OPEN` → ticket → ticket-authenticated `GET_COINS`, auth-required rejection, replay rejection, and ticket reuse after a node restart), plus client amortisation (one `SESSION_OPEN`, monotonic `seq`) and default per-message WOTS.
 
 Not done:
-- **Go mirrors**: WOTS/auth landed (RFC-033); the Go lookup-client implements `SESSION_OPEN`/ticket cache/`seq`/reopen, and the Go lookup-node mints/stores/consumes tickets. Generated TypeDoc remains.
+- **Go mirrors**: WOTS/auth landed (RFC-033); the Go lookup-client implements `SESSION_OPEN`/ticket cache/`seq`/reopen, and the Go lookup-node mints/stores/consumes tickets. TypeDoc regenerated 2026-10-24.
 
 ## A.8 Open questions
 

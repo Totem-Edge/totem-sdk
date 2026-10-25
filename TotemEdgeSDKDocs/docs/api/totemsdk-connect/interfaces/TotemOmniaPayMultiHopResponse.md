@@ -20,9 +20,27 @@
 
 ***
 
+### firstHopChannelId?
+
+> `optional` **firstHopChannelId?**: `string`
+
+***
+
+### htlcId?
+
+> `optional` **htlcId?**: `string`
+
+***
+
 ### preimage?
 
 > `optional` **preimage?**: `string`
+
+***
+
+### route?
+
+> `optional` **route?**: [`Route`](Route.md)
 
 ***
 

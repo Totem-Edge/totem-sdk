@@ -10,8 +10,9 @@
 
 Verify a channel state signature using off-chain WOTS verification.
 
- * Rebuilds the canonical Minima update transaction digest and uses
- * `wotsVerifyDigest` to compare it against the party's stored public key digest.
+ * Rebuilds the canonical Minima update transaction digest and verifies it
+ * against the party's stored public key digest using `verifyChannelSignature`
+ * (the wallet's hierarchical TreeKey scheme, RFC-037).
 
 Because the commitment covers the full off-chain state (sequence + balance split +
 pending HTLCs), any tampering with these fields after signing will cause verification

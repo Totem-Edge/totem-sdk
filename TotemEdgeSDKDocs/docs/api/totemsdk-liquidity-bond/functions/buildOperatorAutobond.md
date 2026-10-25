@@ -6,7 +6,7 @@
 
 # Function: buildOperatorAutobond()
 
-> **buildOperatorAutobond**(`manifest`, `signer`, `now?`): `Promise`\<[`OperatorAutobond`](../interfaces/OperatorAutobond.md)\>
+> **buildOperatorAutobond**(`manifest`, `signer`, `indices`, `now?`): `Promise`\<[`OperatorAutobond`](../interfaces/OperatorAutobond.md)\>
 
 ## Parameters
 
@@ -17,6 +17,10 @@
 ### signer
 
 `OperatorAutobondSigner`
+
+### indices
+
+`SigningIndices`
 
 ### now?
 

@@ -17,6 +17,7 @@
 - [CrossTokenRoute](interfaces/CrossTokenRoute.md)
 - [DurableRouterLedger](interfaces/DurableRouterLedger.md)
 - [DurableRouterLedgerOptions](interfaces/DurableRouterLedgerOptions.md)
+- [ForwardHop](interfaces/ForwardHop.md)
 - [HTLCParams](interfaces/HTLCParams.md)
 - [PaymentRequest](interfaces/PaymentRequest.md)
 - [PaymentResult](interfaces/PaymentResult.md)
@@ -25,6 +26,7 @@
 - [RouterChannel](interfaces/RouterChannel.md)
 - [RouterFeeProof](interfaces/RouterFeeProof.md)
 - [RouterLedgerState](interfaces/RouterLedgerState.md)
+- [RoutingEnvelopeCodec](interfaces/RoutingEnvelopeCodec.md)
 - [RoutingHop](interfaces/RoutingHop.md)
 - [SettledSegment](interfaces/SettledSegment.md)
 - [SwapAnnouncement](interfaces/SwapAnnouncement.md)
@@ -34,6 +36,7 @@
 
 - [HTLCStatus](type-aliases/HTLCStatus.md)
 - [LeaseProvider](type-aliases/LeaseProvider.md)
+- [PeelResult](type-aliases/PeelResult.md)
 
 ## Variables
 
@@ -50,6 +53,7 @@
 - [cancelPayment](functions/cancelPayment.md)
 - [computeRouterFeeProofHash](functions/computeRouterFeeProofHash.md)
 - [createChannelGraph](functions/createChannelGraph.md)
+- [createCleartextRoutingCodec](functions/createCleartextRoutingCodec.md)
 - [createDurableRouterLedger](functions/createDurableRouterLedger.md)
 - [executeCrossTokenPayment](functions/executeCrossTokenPayment.md)
 - [executeMultiHopPayment](functions/executeMultiHopPayment.md)

@@ -8,8 +8,6 @@
 
 > `const` **createDefaultMqttTopics**: (`device_id`) => `any` = `create_default_mqtt_topics`
 
-Create default MQTT topic set for a device.
-
 ## Parameters
 
 ### device\_id

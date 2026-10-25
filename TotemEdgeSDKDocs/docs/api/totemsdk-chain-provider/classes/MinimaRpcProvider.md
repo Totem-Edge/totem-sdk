@@ -125,6 +125,25 @@ Deterministic deposit address the LP funds the pool/channel from.
 
 ***
 
+### getMinTxPowWork()
+
+> **getMinTxPowWork**(): `Promise`\<`string` \| `null`\>
+
+Current minimum TxPoW work from the tip block's Magic numbers (`magic`
+command). This is the live target locally mined transactions must meet;
+using it avoids hardcoding a difficulty that may be harder than the
+network currently requires (or easier than it has drifted to).
+
+#### Returns
+
+`Promise`\<`string` \| `null`\>
+
+#### Implementation of
+
+[`ChainStateProvider`](../interfaces/ChainStateProvider.md).[`getMinTxPowWork`](../interfaces/ChainStateProvider.md#getmintxpowwork)
+
+***
+
 ### getMmrRoot()
 
 > **getMmrRoot**(): `Promise`\<`string` \| `null`\>
@@ -232,6 +251,44 @@ MMR root at tip — the anchor peers verify offline proofs against.
 #### Implementation of
 
 [`ChainStateProvider`](../interfaces/ChainStateProvider.md).[`searchTokens`](../interfaces/ChainStateProvider.md#searchtokens)
+
+***
+
+### submitTransaction()
+
+> **submitTransaction**(`txBytes`, `witnessBytes`, `id?`): `Promise`\<[`BroadcastResult`](../interfaces/BroadcastResult.md)\>
+
+Submit a raw transaction + witness via the node's explicit-mine path.
+
+`sendtransaction` only adds a pre-built TxPoW to the mempool; a TxPoW built
+outside the node has a placeholder header (block number 0, block difficulty
+MAX_HASH), which the node's block builder does not reliably promote. The
+node's own `txnmine` builds the header with the real tip fields and mines
+it. We then post that mined TxPoW with `sendtransaction`.
+
+TxnRow wire format (Java/C++): MiniString(id) || Transaction || Witness.
+
+#### Parameters
+
+##### txBytes
+
+`Uint8Array`
+
+##### witnessBytes
+
+`Uint8Array`
+
+##### id?
+
+`string` = `...`
+
+#### Returns
+
+`Promise`\<[`BroadcastResult`](../interfaces/BroadcastResult.md)\>
+
+#### Implementation of
+
+[`ChainStateProvider`](../interfaces/ChainStateProvider.md).[`submitTransaction`](../interfaces/ChainStateProvider.md#submittransaction)
 
 ***
 

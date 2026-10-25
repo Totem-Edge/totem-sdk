@@ -10,11 +10,26 @@
 
 - [`StorageAdapter`](StorageAdapter.md)
 
+## Extended by
+
+- [`ScopedStorage`](ScopedStorage.md)
+
 ## Properties
 
 ### capabilities
 
 > `readonly` **capabilities**: [`StoreCapabilities`](StoreCapabilities.md)
+
+***
+
+### failurePolicy
+
+> `readonly` **failurePolicy**: `"strict"` \| `"lenient"`
+
+RFC-007 Amendment A (§A.3.2): the adapter's corruption policy, observable
+**outside** `StoreCapabilities` so a strict consumer can reject a lenient
+adapter at construction — before a corrupt read is collapsed into `null`.
+`MemoryStore` reports `'strict'` (it cannot corrupt).
 
 ## Methods
 

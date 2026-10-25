@@ -6,7 +6,7 @@
 
 # Function: markExited()
 
-> **markExited**(`vtxo`, `now?`): [`OmniaVtxo`](../interfaces/OmniaVtxo.md)
+> **markExited**(`vtxo`, `options?`): [`OmniaVtxo`](../interfaces/OmniaVtxo.md)
 
 Transitions an exiting VTXO to 'exited' status.
 
@@ -16,11 +16,15 @@ Transitions an exiting VTXO to 'exited' status.
 
 [`OmniaVtxo`](../interfaces/OmniaVtxo.md)
 
-### now?
+### options?
+
+#### now?
 
 `number`
 
-Timestamp in ms. Defaults to Date.now() if omitted — pass explicitly for determinism.
+#### txpowId?
+
+`string`
 
 ## Returns
 

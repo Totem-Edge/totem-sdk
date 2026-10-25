@@ -14,6 +14,14 @@
 
 ***
 
+### contestDelayBlocks?
+
+> `optional` **contestDelayBlocks?**: `number`
+
+Eltoo contest window embedded in the funding script (default 256).
+
+***
+
 ### fundingAddress?
 
 > `optional` **fundingAddress?**: `string`

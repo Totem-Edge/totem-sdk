@@ -30,4 +30,4 @@
 
 > **publicKey**: `string` \| `null`
 
-WOTS public key hex. Required for TOTEM_VERIFY — return null only for accounts that will not be used for verification.
+WOTS public key hex. Required for TOTEM_VERIFY.

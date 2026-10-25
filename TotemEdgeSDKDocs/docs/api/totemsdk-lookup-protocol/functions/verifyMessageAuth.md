@@ -6,10 +6,11 @@
 
 # Function: verifyMessageAuth()
 
-> **verifyMessageAuth**(`msg`, `publicKey`, `verify`): `Promise`\<`boolean`\>
+> **verifyMessageAuth**(`msg`, `verify`, `now?`): `Promise`\<`boolean`\>
 
-Verify the `sig` field of a message against a known public key.
-Returns false if `sig` is absent.
+Verify the `auth` envelope of a message. Returns false when absent, expired,
+or the signature does not verify. The caller is responsible for replay
+rejection (nonce/index uniqueness) — see lookup-node.
 
 ## Parameters
 
@@ -17,13 +18,13 @@ Returns false if `sig` is absent.
 
 [`LookupMessage`](../type-aliases/LookupMessage.md)
 
-### publicKey
-
-`Uint8Array`
-
 ### verify
 
 [`VerifyFn`](../interfaces/VerifyFn.md)
+
+### now?
+
+`number` = `...`
 
 ## Returns
 

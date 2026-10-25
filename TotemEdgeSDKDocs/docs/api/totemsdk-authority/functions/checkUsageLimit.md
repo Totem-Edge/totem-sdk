@@ -6,7 +6,7 @@
 
 # Function: checkUsageLimit()
 
-> **checkUsageLimit**(`snapshot`, `limit`, `now`, `proposed?`): `boolean`
+> **checkUsageLimit**(`snapshot`, `limit`, `_now`, `proposed?`): `boolean`
 
 ## Parameters
 
@@ -18,7 +18,7 @@
 
 [`UsageLimit`](../interfaces/UsageLimit.md)
 
-### now
+### \_now
 
 `number`
 

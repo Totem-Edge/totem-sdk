@@ -6,7 +6,7 @@
 
 # Function: assertValidParameters()
 
-> **assertValidParameters**(`schema`, `parameters`): `void`
+> **assertValidParameters**(`schema`, `parameters`, `units?`): `void`
 
 ## Parameters
 
@@ -17,6 +17,10 @@
 ### parameters
 
 `Record`\<`string`, `unknown`\>
+
+### units?
+
+[`UnitRegistry`](../interfaces/UnitRegistry.md) = `...`
 
 ## Returns
 

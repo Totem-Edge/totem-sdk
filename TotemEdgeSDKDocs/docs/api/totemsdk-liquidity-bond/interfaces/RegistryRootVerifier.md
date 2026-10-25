@@ -8,6 +8,9 @@
 
 Verifier used to check a registry root signature.
 
+`verify` is **required** (AUD-015): an optional verifier let a caller pass an
+object with no `verify` and have every signature silently accepted.
+
 ## Properties
 
 ### publicKeyDigest
@@ -16,9 +19,9 @@ Verifier used to check a registry root signature.
 
 ## Methods
 
-### verify()?
+### verify()
 
-> `optional` **verify**(`payload`, `signature`, `indices?`): `boolean` \| `Promise`\<`boolean`\>
+> **verify**(`payload`, `signature`, `indices?`): `boolean` \| `Promise`\<`boolean`\>
 
 #### Parameters
 

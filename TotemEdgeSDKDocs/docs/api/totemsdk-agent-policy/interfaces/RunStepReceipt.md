@@ -36,6 +36,14 @@ Verified effects — folded into run totals on commit.
 
 ***
 
+### evidence?
+
+> `optional` **evidence?**: [`RunStepEvidence`](RunStepEvidence.md)
+
+RFC-017: preparation/execution evidence recorded with this step.
+
+***
+
 ### executionProof?
 
 > `optional` **executionProof?**: `unknown`

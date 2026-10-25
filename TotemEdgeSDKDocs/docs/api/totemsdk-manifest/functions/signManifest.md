@@ -6,7 +6,7 @@
 
 # Function: signManifest()
 
-> **signManifest**\<`T`\>(`manifest`, `seed`, `keyIndex`): `Promise`\<[`SignedManifest`](../interfaces/SignedManifest.md)\<`T`\>\>
+> **signManifest**\<`T`\>(`manifest`, `treeKey`, `useIndex`): `Promise`\<[`SignedManifest`](../interfaces/SignedManifest.md)\<`T`\>\>
 
 ## Type Parameters
 
@@ -20,11 +20,11 @@
 
 `T`
 
-### seed
+### treeKey
 
-`Uint8Array`
+`TreeKey`
 
-### keyIndex
+### useIndex
 
 `number`
 

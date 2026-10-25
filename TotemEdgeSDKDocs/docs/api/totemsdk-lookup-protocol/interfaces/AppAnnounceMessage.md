@@ -12,6 +12,18 @@
 
 ## Properties
 
+### auth?
+
+> `optional` **auth?**: [`WotsAuthEnvelope`](WotsAuthEnvelope.md)
+
+RFC-032 post-quantum authentication (present on authenticated messages).
+
+#### Inherited from
+
+`BaseMessage.auth`
+
+***
+
 ### id?
 
 > `optional` **id?**: `string`
@@ -52,27 +64,18 @@ If true the app charges no fees — used for freeOnly filter in APP_QUERY.
 
 > **manifest**: `Uint8Array`
 
-#### publicKey?
-
-> `optional` **publicKey?**: `string`
-
-Hex-encoded Ed25519 public key of the signer (required for signature verification)
-
-#### signature?
-
-> `optional` **signature?**: `string`
-
-Hex-encoded Ed25519 signature over manifest bytes
-
 ***
 
-### sig?
+### ticket?
 
-> `optional` **sig?**: `string`
+> `optional` **ticket?**: [`SessionTicketRef`](SessionTicketRef.md)
+
+RFC-032-A: node-issued session ticket (alternative to per-message `auth`).
+Not used on SESSION_OPEN/TICKET/CLOSE or liveness messages.
 
 #### Inherited from
 
-`BaseMessage.sig`
+`BaseMessage.ticket`
 
 ***
 

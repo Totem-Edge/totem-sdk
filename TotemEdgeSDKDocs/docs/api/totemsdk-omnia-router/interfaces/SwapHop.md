@@ -44,6 +44,18 @@
 
 ***
 
+### feeRate?
+
+> `optional` **feeRate?**: `bigint`
+
+Edge fee rate (per SCALE); populated by the routing engine.
+
+#### Inherited from
+
+[`RoutingHop`](RoutingHop.md).[`feeRate`](RoutingHop.md#feerate)
+
+***
+
 ### from
 
 > **from**: `string`

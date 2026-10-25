@@ -44,15 +44,11 @@
 
 ***
 
-### publicKey?
+### signerAddress?
 
-> `optional` **publicKey?**: `string`
+> `optional` **signerAddress?**: `string`
 
-***
-
-### signature?
-
-> `optional` **signature?**: `string`
+RFC-032: WOTS signer address recovered from the SignedManifest.
 
 ***
 

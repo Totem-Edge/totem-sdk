@@ -14,6 +14,14 @@
 
 ***
 
+### origin?
+
+> `optional` **origin?**: `string`
+
+RFC-020 H2: the requesting origin, forwarded to the approval callback.
+
+***
+
 ### params?
 
 > `optional` **params?**: `Record`\<`string`, `unknown`\>

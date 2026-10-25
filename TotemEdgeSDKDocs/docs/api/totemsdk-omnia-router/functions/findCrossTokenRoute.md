@@ -9,11 +9,15 @@
 > **findCrossTokenRoute**(`graph`, `from`, `to`, `amountIn`, `tokenIn`, `tokenOut`, `opts?`): [`CrossTokenRoute`](../interfaces/CrossTokenRoute.md) \| `null`
 
 Find a cross-token route where the sender spends `tokenIn` and the
-recipient receives `tokenOut`.  The path may include one or more swap hops
+recipient receives `tokenOut`. The path may include one or more swap hops
 provided by bridging intermediaries registered via announceSwap.
 
 Selection criteria: lowest total fee (including swap fee), then fewest hops,
-then fewest swap hops.
+then fewest swap hops, then a deterministic route key.
+
+`maxHops` is a **global** end-to-end budget: preHops + 1 (swap) + postHops
+must not exceed it (RFC-055 §2.5). The inbound leg is computed once for all
+announcements; the outbound leg is cached per `(postDst, amountOut, tokenOut)`.
 
 ## Parameters
 

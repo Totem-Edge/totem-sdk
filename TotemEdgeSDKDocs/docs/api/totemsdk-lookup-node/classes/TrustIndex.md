@@ -24,7 +24,9 @@ SQLite backing store
 
 [`TrustIndexConfig`](../interfaces/TrustIndexConfig.md)
 
-Trust index configuration
+Trust index configuration. When `requireVerifiedSignature` is
+  true (default), `config.verifyReviewerSignature` must be provided and must
+  approve the record, otherwise the record is rejected (fail closed).
 
 #### Returns
 
@@ -54,7 +56,9 @@ Trust index configuration
 
 ### record()
 
-> **record**(`msg`): `void`
+> **record**(`msg`, `authenticatedPublicKey?`): `Promise`\<`boolean`\>
+
+Persist a reviewer's trust record.
 
 #### Parameters
 
@@ -62,6 +66,17 @@ Trust index configuration
 
 `TrustRecordMessage`
 
+TRUST_RECORD message
+
+##### authenticatedPublicKey?
+
+`string`
+
+Public key bound to the authenticated session,
+  used to bind `reviewerAddress` to the connection that submitted the record.
+
 #### Returns
 
-`void`
+`Promise`\<`boolean`\>
+
+true when the record was accepted and persisted, false otherwise.

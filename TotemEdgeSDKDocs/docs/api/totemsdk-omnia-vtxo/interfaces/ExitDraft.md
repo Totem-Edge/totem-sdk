@@ -22,7 +22,7 @@
 
 ### draftType
 
-> **draftType**: `"mock-exit"`
+> **draftType**: `"vtxo-exit"`
 
 ***
 

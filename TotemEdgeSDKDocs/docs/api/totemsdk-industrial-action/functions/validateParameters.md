@@ -6,7 +6,7 @@
 
 # Function: validateParameters()
 
-> **validateParameters**(`schema`, `parameters`): `string`[]
+> **validateParameters**(`schema`, `parameters`, `units?`): `string`[]
 
 ## Parameters
 
@@ -17,6 +17,10 @@
 ### parameters
 
 `Record`\<`string`, `unknown`\>
+
+### units?
+
+[`UnitRegistry`](../interfaces/UnitRegistry.md) = `...`
 
 ## Returns
 

@@ -14,6 +14,14 @@
 
 ***
 
+### publisherPk
+
+> **publisherPk**: `string`
+
+RFC-018 P1-3: publisher permitted to renew/attest the manifest.
+
+***
+
 ### signedAt
 
 > **signedAt**: `bigint`

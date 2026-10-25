@@ -6,6 +6,10 @@
 
 # Interface: OmniaVtxoOperator
 
+## Extended by
+
+- [`VtxoOperatorWithIdentity`](VtxoOperatorWithIdentity.md)
+
 ## Properties
 
 ### poolId

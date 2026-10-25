@@ -20,6 +20,16 @@
 
 ***
 
+### deletable
+
+> `readonly` **deletable**: `boolean`
+
+RFC-007 Amendment A: whether `delete()` can actually remove/tombstone bytes.
+Retention policy (`retention`) and the ability to delete are related but not
+identical, so the ability is explicit.
+
+***
+
 ### offlineReadable
 
 > `readonly` **offlineReadable**: `boolean`
@@ -28,7 +38,7 @@
 
 ### retention
 
-> `readonly` **retention**: `"fixed"` \| `"managed"` \| `"none"`
+> `readonly` **retention**: `"none"` \| `"fixed"` \| `"managed"`
 
 ***
 

@@ -1,0 +1,11 @@
+[**@totemsdk/connect**](../index.md)
+
+***
+
+[@totemsdk/connect](../index.md) / LEGACY\_METHODS
+
+# Variable: LEGACY\_METHODS
+
+> `const` **LEGACY\_METHODS**: readonly \[`"TOTEM_CONNECT"`, `"TOTEM_VERIFY"`, `"TOTEM_GET_ACCOUNTS"`, `"TOTEM_SEND_TRANSACTION"`, `"TOTEM_GET_COINS"`, `"TOTEM_GET_CHAIN_TIP"`, `"TOTEM_SEND_COMPLEX"`, `"TOTEM_TOKENCREATE"`, `"TOTEM_SIGN_DATA"`, `"TOTEM_SIGN_MESSAGE"`, `"TOTEM_BROADCAST_HEX"`, `"TOTEM_GRANT_TX_PERMISSION"`, `"TOTEM_REVOKE_TX_PERMISSION"`, `"TOTEM_GET_TX_PERMISSIONS"`\]
+
+Legacy uppercase wire methods.

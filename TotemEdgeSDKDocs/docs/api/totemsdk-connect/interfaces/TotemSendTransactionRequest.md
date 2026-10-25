@@ -34,6 +34,12 @@
 
 > **outputs**: `object`[]
 
+##### request.transactionState?
+
+> `optional` **transactionState?**: [`StateVariable`](StateVariable.md)[]
+
+Transaction-level state variables.
+
 ##### request.version
 
 > **version**: `1`

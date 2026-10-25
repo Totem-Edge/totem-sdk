@@ -16,17 +16,41 @@
 
 ### params
 
+#### amount
+
+`string`
+
+#### expiryBlock
+
+`string`
+
 #### hashlock
 
 `string`
 
-#### route
+#### maxHops?
+
+`number`
+
+#### preimage?
+
+`string`
+
+#### route?
 
 [`Route`](../interfaces/Route.md)
 
-#### timeoutBlocks?
+#### targetTokenId?
 
-`number`
+`string`
+
+#### tokenId
+
+`string`
+
+#### toPartyId
+
+`string`
 
 ## Returns
 

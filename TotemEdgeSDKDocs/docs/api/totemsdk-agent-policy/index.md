@@ -51,6 +51,7 @@
 - [CanonicalAgentAction](interfaces/CanonicalAgentAction.md)
 - [ChannelEffect](interfaces/ChannelEffect.md)
 - [CommitParams](interfaces/CommitParams.md)
+- [DecisionRefEvidence](interfaces/DecisionRefEvidence.md)
 - [GrantBoundAutonomyOptions](interfaces/GrantBoundAutonomyOptions.md)
 - [GrantBoundPolicyOptions](interfaces/GrantBoundPolicyOptions.md)
 - [GrantRequirement](interfaces/GrantRequirement.md)
@@ -58,6 +59,7 @@
 - [LocalBounds](interfaces/LocalBounds.md)
 - [MemoryGrantUsageStoreOptions](interfaces/MemoryGrantUsageStoreOptions.md)
 - [OpenRunParams](interfaces/OpenRunParams.md)
+- [OutOfBandReservation](interfaces/OutOfBandReservation.md)
 - [PaymentIntent](interfaces/PaymentIntent.md)
 - [PolicyEvalResult](interfaces/PolicyEvalResult.md)
 - [PolicyMiddleware](interfaces/PolicyMiddleware.md)
@@ -78,6 +80,7 @@
 - [RunSessionTotals](interfaces/RunSessionTotals.md)
 - [RunStateSnapshot](interfaces/RunStateSnapshot.md)
 - [RunStateStore](interfaces/RunStateStore.md)
+- [RunStepEvidence](interfaces/RunStepEvidence.md)
 - [RunStepReceipt](interfaces/RunStepReceipt.md)
 - [SqliteRunStateStoreOptions](interfaces/SqliteRunStateStoreOptions.md)
 - [StepAuthorization](interfaces/StepAuthorization.md)
@@ -98,6 +101,7 @@
 - [ProtoAgentProposal](type-aliases/ProtoAgentProposal.md)
 - [ProtoAgentReceipt](type-aliases/ProtoAgentReceipt.md)
 - [ProtoPaymentIntent](type-aliases/ProtoPaymentIntent.md)
+- [ReservationSettlementOutcome](type-aliases/ReservationSettlementOutcome.md)
 - [RunMode](type-aliases/RunMode.md)
 
 ## Functions

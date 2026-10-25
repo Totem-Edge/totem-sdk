@@ -92,7 +92,11 @@
 
 ### connectToPeer()
 
-> **connectToPeer**(`pubkey`, `channelId?`): `Promise`\<[`OmniaPeer`](../interfaces/OmniaPeer.md)\>
+> **connectToPeer**(`pubkey`, `channelId?`, `expectedTransportPubkey?`): `Promise`\<[`OmniaPeer`](../interfaces/OmniaPeer.md)\>
+
+Connect to a peer by its Omnia participant pubkey (rendezvous topic).
+`expectedTransportPubkey` is the peer's native transport identity (from
+its signed manifest); native transports match it against the noise key.
 
 #### Parameters
 
@@ -101,6 +105,10 @@
 `string`
 
 ##### channelId?
+
+`string`
+
+##### expectedTransportPubkey?
 
 `string`
 
@@ -131,3 +139,19 @@
 #### Implementation of
 
 [`OmniaSwarm`](../interfaces/OmniaSwarm.md).[`listenForChannels`](../interfaces/OmniaSwarm.md#listenforchannels)
+
+***
+
+### nativeSwarm()
+
+> **nativeSwarm**(): `unknown`
+
+Underlying transport instance (Hyperswarm/relay), for local bridges.
+
+#### Returns
+
+`unknown`
+
+#### Implementation of
+
+[`OmniaSwarm`](../interfaces/OmniaSwarm.md).[`nativeSwarm`](../interfaces/OmniaSwarm.md#nativeswarm)

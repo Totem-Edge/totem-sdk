@@ -20,6 +20,14 @@
 
 ***
 
+### expiresAt
+
+> **expiresAt**: `number`
+
+RFC-020 P2-11 (TXB-FUND-001): absolute expiry (epoch ms).
+
+***
+
 ### fundingCoinId
 
 > **fundingCoinId**: `string`

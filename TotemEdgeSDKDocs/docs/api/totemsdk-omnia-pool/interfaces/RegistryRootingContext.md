@@ -31,3 +31,12 @@ Optional signing context that makes a registry transition anchorable.
 ### signer
 
 > **signer**: `RegistryTransitionSigner`
+
+***
+
+### signIndices
+
+> **signIndices**: `SigningIndices`
+
+WOTS indices leased for this transition. Required (AUD-006): registry
+signing never defaults to a reusable genesis index.

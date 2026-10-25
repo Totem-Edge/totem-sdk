@@ -65,7 +65,7 @@ Proposer's WOTS lease provider. If supplied,
 
 Custom signature verifier called for both the
                                    proposer and acceptor signatures before state
-                                   transition. Defaults to `wotsVerifyDigest`.
+                                   transition. Defaults to `verifyChannelSignature`.
                                    **Override in test environments** that use mock
                                    signers (mock signatures are not real WOTS sigs
                                    and will not pass the default verifier).

@@ -17,7 +17,7 @@ intent only and expect the caller to handle settlement externally.
 
 ### params
 
-`ExecutePoolPayoutParams`
+[`ExecutePoolPayoutParams`](../type-aliases/ExecutePoolPayoutParams.md)
 
 ### registry
 

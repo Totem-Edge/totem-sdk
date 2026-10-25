@@ -82,6 +82,24 @@
 
 ***
 
+### getMinTxPowWork()?
+
+> `optional` **getMinTxPowWork**(): `Promise`\<`string` \| `null`\>
+
+Live minimum TxPoW work (32-byte hex target) from the node's Magic numbers.
+Optional: providers that cannot read it let callers fall back to the
+protocol default. Used to mine transactions to the current network target.
+
+#### Returns
+
+`Promise`\<`string` \| `null`\>
+
+#### Inherited from
+
+`ChainStateProvider.getMinTxPowWork`
+
+***
+
 ### getMode()
 
 > **getMode**(): `Promise`\<`string` \| `undefined`\>
@@ -183,6 +201,63 @@
 #### Inherited from
 
 `ChainStateProvider.searchTokens`
+
+***
+
+### signData()
+
+> **signData**(`pubkeyHex`, `dataHex`): `Promise`\<`string`\>
+
+Sign arbitrary data with a wallet key (`sign publickey:<0x> data:<0x>`).
+Used to produce the funding witness signature: createChannel builds the
+funding digest, and this signs it with the funding coin's key.
+
+#### Parameters
+
+##### pubkeyHex
+
+`string`
+
+##### dataHex
+
+`string`
+
+#### Returns
+
+`Promise`\<`string`\>
+
+***
+
+### submitTransaction()?
+
+> `optional` **submitTransaction**(`txBytes`, `witnessBytes`, `id?`): `Promise`\<`BroadcastResult`\>
+
+Submit a raw transaction + witness through the node's explicit-mine path:
+`txnmine` (node builds the TxPoW header with the real block number /
+difficulty / magic and mines) followed by `sendtransaction`. When absent,
+callers fall back to SDK-side mining + `broadcastTxPoW`.
+
+#### Parameters
+
+##### txBytes
+
+`Uint8Array`
+
+##### witnessBytes
+
+`Uint8Array`
+
+##### id?
+
+`string`
+
+#### Returns
+
+`Promise`\<`BroadcastResult`\>
+
+#### Inherited from
+
+`ChainStateProvider.submitTransaction`
 
 ***
 

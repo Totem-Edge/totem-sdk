@@ -46,6 +46,16 @@
 
 ***
 
+### getChainTip()
+
+> **getChainTip**(): `Promise`\<[`TotemGetChainTipResponse`](../type-aliases/TotemGetChainTipResponse.md)\>
+
+#### Returns
+
+`Promise`\<[`TotemGetChainTipResponse`](../type-aliases/TotemGetChainTipResponse.md)\>
+
+***
+
 ### getCoins()
 
 > **getCoins**(`params?`): `Promise`\<`unknown`\>
@@ -186,6 +196,34 @@
 
 #### Call Signature
 
+> **request**(`args`): `Promise`\<[`TotemGetChainTipResponse`](../type-aliases/TotemGetChainTipResponse.md)\>
+
+##### Parameters
+
+###### args
+
+[`TotemGetChainTipRequest`](TotemGetChainTipRequest.md)
+
+##### Returns
+
+`Promise`\<[`TotemGetChainTipResponse`](../type-aliases/TotemGetChainTipResponse.md)\>
+
+#### Call Signature
+
+> **request**(`args`): `Promise`\<[`TotemTokenCreateResponse`](../type-aliases/TotemTokenCreateResponse.md)\>
+
+##### Parameters
+
+###### args
+
+[`TotemTokenCreateRequest`](TotemTokenCreateRequest.md)
+
+##### Returns
+
+`Promise`\<[`TotemTokenCreateResponse`](../type-aliases/TotemTokenCreateResponse.md)\>
+
+#### Call Signature
+
 > **request**(`args`): `Promise`\<[`TotemSendComplexBuildResponse`](TotemSendComplexBuildResponse.md)\>
 
 ##### Parameters
@@ -239,6 +277,20 @@
 ##### Returns
 
 `Promise`\<[`TotemSignDataResponse`](../type-aliases/TotemSignDataResponse.md)\>
+
+#### Call Signature
+
+> **request**(`args`): `Promise`\<[`TotemSignMessageResponse`](../type-aliases/TotemSignMessageResponse.md)\>
+
+##### Parameters
+
+###### args
+
+[`TotemSignMessageRequest`](TotemSignMessageRequest.md)
+
+##### Returns
+
+`Promise`\<[`TotemSignMessageResponse`](../type-aliases/TotemSignMessageResponse.md)\>
 
 #### Call Signature
 

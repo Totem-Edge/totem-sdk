@@ -8,6 +8,10 @@
 
 Parameters for `sendTransaction()`.
 
+## Extended by
+
+- [`SendAndConfirmParams`](SendAndConfirmParams.md)
+
 ## Properties
 
 ### addressIndex

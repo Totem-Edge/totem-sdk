@@ -12,6 +12,18 @@
 
 ## Properties
 
+### auth?
+
+> `optional` **auth?**: [`WotsAuthEnvelope`](WotsAuthEnvelope.md)
+
+RFC-032 post-quantum authentication (present on authenticated messages).
+
+#### Inherited from
+
+`BaseMessage.auth`
+
+***
+
 ### id?
 
 > `optional` **id?**: `string`
@@ -50,18 +62,6 @@ Expected latency in milliseconds (for maxLatencyMs filter)
 
 Price per RPC call in smallest unit (for maxPricePerCall filter)
 
-#### publicKey?
-
-> `optional` **publicKey?**: `string`
-
-Hex-encoded Ed25519 public key of the signer
-
-#### signature?
-
-> `optional` **signature?**: `string`
-
-Hex-encoded Ed25519 signature over manifest bytes
-
 #### tags?
 
 > `optional` **tags?**: `string`[]
@@ -70,13 +70,16 @@ Capability tags for filtering (e.g. ['translation', 'gpt-4'])
 
 ***
 
-### sig?
+### ticket?
 
-> `optional` **sig?**: `string`
+> `optional` **ticket?**: [`SessionTicketRef`](SessionTicketRef.md)
+
+RFC-032-A: node-issued session ticket (alternative to per-message `auth`).
+Not used on SESSION_OPEN/TICKET/CLOSE or liveness messages.
 
 #### Inherited from
 
-`BaseMessage.sig`
+`BaseMessage.ticket`
 
 ***
 

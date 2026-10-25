@@ -14,6 +14,15 @@
 
 ***
 
+### expiresAt
+
+> **expiresAt**: `number`
+
+RFC-020 P2-11: absolute expiry (epoch ms) after which the intent must be
+rejected. Required so an intent cannot be replayed indefinitely.
+
+***
+
 ### fundingCoinId
 
 > **fundingCoinId**: `string`
@@ -26,9 +35,13 @@
 
 ***
 
-### lpKeyIndex?
+### lpKeyIndex
 
-> `optional` **lpKeyIndex?**: `number`
+> **lpKeyIndex**: `number`
+
+RFC-020 C1: the WOTS leaf index to sign with. Required — never defaulted —
+so a caller must obtain it from a lease/watermark reservation and cannot
+silently reuse leaf 0.
 
 ***
 

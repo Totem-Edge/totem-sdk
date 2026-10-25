@@ -20,7 +20,7 @@
 
 ### status
 
-`"active"` \| `"claimed"` \| `"disputed"`
+`"active"` \| `"claiming"` \| `"claimed"` \| `"disputed"`
 
 ## Returns
 

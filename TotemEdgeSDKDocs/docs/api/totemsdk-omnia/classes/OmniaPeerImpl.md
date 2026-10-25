@@ -66,6 +66,22 @@
 
 ***
 
+### isConnected()
+
+> **isConnected**(): `boolean`
+
+True when the peer has a live transport (not deliberately closed).
+
+#### Returns
+
+`boolean`
+
+#### Implementation of
+
+[`OmniaPeer`](../interfaces/OmniaPeer.md).[`isConnected`](../interfaces/OmniaPeer.md#isconnected)
+
+***
+
 ### onMessage()
 
 > **onMessage**(`cb`): [`Unsubscribe`](../type-aliases/Unsubscribe.md)

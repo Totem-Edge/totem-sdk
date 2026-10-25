@@ -6,7 +6,7 @@
 
 # Function: verifyBondStack()
 
-> **verifyBondStack**(`params`): [`ProviderBondVerifyResult`](../interfaces/ProviderBondVerifyResult.md)
+> **verifyBondStack**(`params`): `Promise`\<[`ProviderBondVerifyResult`](../interfaces/ProviderBondVerifyResult.md)\>
 
 ## Parameters
 
@@ -16,4 +16,4 @@
 
 ## Returns
 
-[`ProviderBondVerifyResult`](../interfaces/ProviderBondVerifyResult.md)
+`Promise`\<[`ProviderBondVerifyResult`](../interfaces/ProviderBondVerifyResult.md)\>

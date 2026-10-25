@@ -56,6 +56,20 @@
 
 ***
 
+### getMinTxPowWork()?
+
+> `optional` **getMinTxPowWork**(): `Promise`\<`string` \| `null`\>
+
+Live minimum TxPoW work (32-byte hex target) from the node's Magic numbers.
+Optional: providers that cannot read it let callers fall back to the
+protocol default. Used to mine transactions to the current network target.
+
+#### Returns
+
+`Promise`\<`string` \| `null`\>
+
+***
+
 ### getProof()
 
 > **getProof**(`coinId`): `Promise`\<[`MMRProof`](MMRProof.md)\>
@@ -127,3 +141,32 @@
 #### Returns
 
 `Promise`\<[`TokenInfo`](TokenInfo.md)[]\>
+
+***
+
+### submitTransaction()?
+
+> `optional` **submitTransaction**(`txBytes`, `witnessBytes`, `id?`): `Promise`\<[`BroadcastResult`](BroadcastResult.md)\>
+
+Submit a raw transaction + witness through the node's explicit-mine path:
+`txnmine` (node builds the TxPoW header with the real block number /
+difficulty / magic and mines) followed by `sendtransaction`. When absent,
+callers fall back to SDK-side mining + `broadcastTxPoW`.
+
+#### Parameters
+
+##### txBytes
+
+`Uint8Array`
+
+##### witnessBytes
+
+`Uint8Array`
+
+##### id?
+
+`string`
+
+#### Returns
+
+`Promise`\<[`BroadcastResult`](BroadcastResult.md)\>

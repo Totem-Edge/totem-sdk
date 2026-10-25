@@ -6,7 +6,7 @@
 
 # Function: buildRecursiveWitnessPlan()
 
-> **buildRecursiveWitnessPlan**(`selectedPath`, `disclosedScripts`, `collectedSignatures`): `object`
+> **buildRecursiveWitnessPlan**(`selectedPath`, `disclosedScripts`, `collectedSignatures`, `roleKeys?`): `object`
 
 Build a recursive MAST witness plan from collected signatures and
 disclosed scripts. The plan describes what the witness should contain;
@@ -29,9 +29,13 @@ The disclosed MAST branch scripts.
 
 ### collectedSignatures
 
-`Map`\<`string`, `string`\>
+`Record`\<`string`, `string`\> \| `Map`\<`string`, `string`\>
 
 Signatures by role.
+
+### roleKeys?
+
+`Record`\<`string`, `string`\>
 
 ## Returns
 
@@ -42,6 +46,10 @@ A witness plan (mastBranches + signatures) ready for materialization.
 ### mastBranches
 
 > **mastBranches**: `Map`\<`string`, `string`\>
+
+### scriptProofs
+
+> **scriptProofs**: `ScriptProof`[]
 
 ### signatures
 

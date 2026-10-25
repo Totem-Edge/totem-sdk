@@ -6,7 +6,7 @@
 
 # Function: applyProgramTransition()
 
-> **applyProgramTransition**(`channel`, `params`, `leaseProvider`, `signer?`): `Promise`\<[`UpdateStateResult`](../interfaces/UpdateStateResult.md)\>
+> **applyProgramTransition**(`channel`, `params`, `leaseProvider`, `signer?`, `signerPort?`): `Promise`\<[`UpdateStateResult`](../interfaces/UpdateStateResult.md)\>
 
 ## Parameters
 
@@ -25,6 +25,10 @@
 ### signer?
 
 [`ChannelSigner`](../interfaces/ChannelSigner.md)
+
+### signerPort?
+
+[`SignerPort`](../interfaces/SignerPort.md)
 
 ## Returns
 

@@ -6,7 +6,11 @@
 
 # Interface: VerifyFn()
 
+A WOTS verifier: verifies (digest, signature, pkDigest) → boolean.
+
 > **VerifyFn**(`digest`, `signature`, `publicKey`): `boolean` \| `Promise`\<`boolean`\>
+
+A WOTS verifier: verifies (digest, signature, pkDigest) → boolean.
 
 ## Parameters
 

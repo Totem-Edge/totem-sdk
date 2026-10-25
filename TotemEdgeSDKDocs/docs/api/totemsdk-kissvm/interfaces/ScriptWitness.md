@@ -29,6 +29,12 @@ The evaluator verifies each proof against the MAST root before executing.
 
 ### signatures
 
-> **signatures**: `Map`\<`string`, `Uint8Array`\<`ArrayBufferLike`\>\>
+> **signatures**: `Map`\<`string`, `TreeSignature` \| `Uint8Array`\<`ArrayBufferLike`\>\>
 
-pubkey-hex (lowercase, no 0x) → flat 1088-byte WOTS signature
+Signer-root-key hex (lowercase, no 0x) → signature.
+
+- `Uint8Array`: a flat 1088-byte WOTS signature (single-key convenience),
+  verified against the key as a bare WOTS public-key digest.
+- `TreeSignature` (`{ proofs }`, RFC-009): a Minima tree signature whose
+  root public key is the signer identity; verified with
+  `verifyTreeSignature` (proof chain to the root).

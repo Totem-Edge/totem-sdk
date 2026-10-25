@@ -22,13 +22,23 @@
 
 ### buildScript()
 
-> **buildScript**(`parties`): `string`
+> **buildScript**(`parties`, `options?`): `string`
+
+Build the channel script. `contestDelayBlocks` is only honoured by programs
+that embed an eltoo-style contest delay (the default eltoo program); other
+programs may ignore it.
 
 #### Parameters
 
 ##### parties
 
 [`ChannelParticipant`](ChannelParticipant.md)[]
+
+##### options?
+
+###### contestDelayBlocks?
+
+`number`
 
 #### Returns
 

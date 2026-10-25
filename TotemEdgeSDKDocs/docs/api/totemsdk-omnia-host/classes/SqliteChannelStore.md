@@ -6,7 +6,9 @@
 
 # Class: SqliteChannelStore
 
-SQLite-backed Map facade accepted by @totemsdk/omnia's ChannelStore type.
+Synchronous Map facade accepted by @totemsdk/omnia's ChannelStore type,
+persisted through `@totemsdk/storage` (`SyncSqliteStore`, same codec/envelope
+as `SqliteStore`). Legacy `omnia_channels` tables are migrated on open.
 
 ## Extends
 
@@ -255,6 +257,24 @@ Adds a new element with a specified key and value to the Map. If an element with
 #### Overrides
 
 `Map.set`
+
+***
+
+### setLocalSigner()
+
+> **setLocalSigner**(`signer?`): `void`
+
+Attach the host's signer so recovered channels carry it (CAN-002).
+
+#### Parameters
+
+##### signer?
+
+`ChannelSigner`
+
+#### Returns
+
+`void`
 
 ***
 

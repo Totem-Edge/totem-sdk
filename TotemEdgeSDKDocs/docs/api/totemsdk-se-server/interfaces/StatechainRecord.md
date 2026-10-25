@@ -70,7 +70,7 @@
 
 ### status
 
-> **status**: `"active"` \| `"claimed"` \| `"disputed"`
+> **status**: `"active"` \| `"claiming"` \| `"claimed"` \| `"disputed"`
 
 ***
 
@@ -89,3 +89,9 @@
 ### updated\_at
 
 > **updated\_at**: `Date`
+
+***
+
+### version
+
+> **version**: `number`

@@ -37,6 +37,26 @@ Usage:
 
 ## Methods
 
+### addWallet()
+
+> **addWallet**(`wallet`): `void`
+
+Register a wallet manually. This is the non-browser / headless fallback:
+callers (CLI, Node, Bare, SSR) that have no `totem:announce` event source
+can inject a provider directly instead of relying on `window` CustomEvents.
+
+#### Parameters
+
+##### wallet
+
+[`DiscoveredWallet`](../interfaces/DiscoveredWallet.md)
+
+#### Returns
+
+`void`
+
+***
+
 ### destroy()
 
 > **destroy**(): `void`
@@ -70,3 +90,21 @@ readonly [`DiscoveredWallet`](../interfaces/DiscoveredWallet.md)[]
 #### Returns
 
 () => `void`
+
+***
+
+### removeWallet()
+
+> **removeWallet**(`id`): `void`
+
+Remove a manually-registered (or announced) wallet by id.
+
+#### Parameters
+
+##### id
+
+`string`
+
+#### Returns
+
+`void`

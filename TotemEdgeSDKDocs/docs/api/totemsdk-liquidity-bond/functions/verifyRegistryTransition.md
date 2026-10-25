@@ -8,8 +8,9 @@
 
 > **verifyRegistryTransition**(`registry`, `transition`, `verifier`, `opts?`): `Promise`\<\{ `reasons`: `string`[]; `valid`: `boolean`; \}\>
 
-Root-based transition verification (#6): recompute root, then (when the
-verifier exposes `verify`) check the signature and signer identity.
+Root-based transition verification (#6): recompute root, then always check
+the signature over the transition payload (anchor + sequence + op) and the
+signer identity. A verifier without `verify` fails closed (AUD-015).
 
 ## Parameters
 

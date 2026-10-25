@@ -30,6 +30,18 @@
 
 ***
 
+### isConnected()?
+
+> `optional` **isConnected**(): `boolean`
+
+True when the peer has a live transport (native/relay).
+
+#### Returns
+
+`boolean`
+
+***
+
 ### onMessage()
 
 > **onMessage**(`cb`): [`Unsubscribe`](../type-aliases/Unsubscribe.md)

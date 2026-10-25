@@ -6,6 +6,10 @@
 
 # Interface: RegistryRootOptions
 
+## Extended by
+
+- [`RegistrySigningOptions`](RegistrySigningOptions.md)
+
 ## Properties
 
 ### domain?
@@ -64,4 +68,5 @@ Monotonic anti-reorg sequence (#34) — must advance on every applied transition
 
 > `optional` **signIndices?**: `SigningIndices`
 
-Signing indices bound into the signature (defaults to genesis indices).
+Signing indices bound into the signature. Required for signing
+(`RegistrySigningOptions`); the other root helpers ignore it.

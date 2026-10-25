@@ -8,9 +8,11 @@
 
 HTTP implementation of SEClient that talks to any compatible SE server.
 
-`ownerSign(nonce)` must sign sha3_256(nonce) with the current owner's WOTS key.
-It is called automatically inside `blindSign` and `revokeKey` after the SE
-issues a challenge nonce — callers do not need to manage the challenge protocol.
+`ownerSign(message)` must produce the current owner's serialized Minima
+`TreeSignature` over `sha3_256(message)`, where `message` is the canonical
+request message (chain + operation + nonce + body). It is called
+automatically inside `blindSign` and `revokeKey` after the SE issues a
+challenge nonce; the SE verifies it against the owner's root public key.
 
 ## Implements
 
@@ -30,7 +32,7 @@ issues a challenge nonce — callers do not need to manage the challenge protoco
 
 ##### ownerSign
 
-(`nonce`) => `Promise`\<`Uint8Array`\<`ArrayBufferLike`\>\>
+(`message`) => `Promise`\<`Uint8Array`\<`ArrayBufferLike`\>\>
 
 ##### opts?
 
@@ -44,7 +46,10 @@ issues a challenge nonce — callers do not need to manage the challenge protoco
 
 ### blindSign()
 
-> **blindSign**(`chainId`, `blindedCommitmentHex`): `Promise`\<`string`\>
+> **blindSign**(`chainId`, `blindedCommitmentHex`): `Promise`\<`SESignature`\>
+
+Blind-sign a commitment. Returns the SE signature envelope (RFC-008): a
+leased one-time leaf authorized by the SE root's `OwnershipProof`.
 
 #### Parameters
 
@@ -58,7 +63,7 @@ issues a challenge nonce — callers do not need to manage the challenge protoco
 
 #### Returns
 
-`Promise`\<`string`\>
+`Promise`\<`SESignature`\>
 
 #### Implementation of
 
@@ -88,10 +93,15 @@ issues a challenge nonce — callers do not need to manage the challenge protoco
 
 ### registerChain()
 
-> **registerChain**(`chainId`, `_coinId`, `_ownerPublicKeyDigest`, `_lockingScript`): `Promise`\<`void`\>
+> **registerChain**(`chainId`, `coinId`, `ownerPublicKeyDigest`, `lockingScript`, `details?`): `Promise`\<`void`\>
 
 Optional: register a newly locked coin with the SE.
 Called during `createStateChain` when present.
+
+AUD-028: `details` carries the record fields the SE needs to create the
+registration (the locked coin is announced after funding). Implementations
+that talk to a real SE server should send them; the HTTP client requires
+them and fails closed otherwise.
 
 #### Parameters
 
@@ -99,17 +109,21 @@ Called during `createStateChain` when present.
 
 `string`
 
-##### \_coinId
+##### coinId
 
 `string`
 
-##### \_ownerPublicKeyDigest
+##### ownerPublicKeyDigest
 
 `string`
 
-##### \_lockingScript
+##### lockingScript
 
 `string`
+
+##### details?
+
+[`RegisterChainDetails`](../interfaces/RegisterChainDetails.md)
 
 #### Returns
 

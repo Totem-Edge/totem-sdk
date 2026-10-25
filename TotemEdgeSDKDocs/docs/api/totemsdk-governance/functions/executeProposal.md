@@ -6,7 +6,7 @@
 
 # Function: executeProposal()
 
-> **executeProposal**(`proposal`, `tally`, `outcomeProofId`, `governanceIdentity`, `executor`, `now?`): `object`[]
+> **executeProposal**(`proposal`, `tally`, `outcomeProofId`, `governanceIdentity`, `executor`, `principalIdentityId`, `now?`): `object`[]
 
 ## Parameters
 
@@ -27,6 +27,10 @@
 `string`
 
 ### executor
+
+`string`
+
+### principalIdentityId
 
 `string`
 

@@ -14,6 +14,14 @@
 
 ***
 
+### authorityPk
+
+> **authorityPk**: `string`
+
+Fixed authority permitted to execute the intent (I1).
+
+***
+
 ### expiresAt
 
 > **expiresAt**: `bigint`

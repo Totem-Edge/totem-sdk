@@ -8,5 +8,5 @@
 
 ## Variables
 
-- [sdkIndex](variables/sdkIndex.md)
+- [~~sdkIndex~~](variables/sdkIndex.md)
 - [SERVER\_INFO](variables/SERVER_INFO.md)

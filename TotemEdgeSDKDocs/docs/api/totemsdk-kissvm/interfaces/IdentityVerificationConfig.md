@@ -20,6 +20,14 @@
 
 ***
 
+### leafScript?
+
+> `optional` **leafScript?**: `string`
+
+The exact authorizing leaf script committed in `policyRoot` (PROOF preimage).
+
+***
+
 ### policyRoot?
 
 > `optional` **policyRoot?**: `string`

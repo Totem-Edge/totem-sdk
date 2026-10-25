@@ -162,11 +162,11 @@
 
 ### verifyLeaseCertificate()
 
-> **verifyLeaseCertificate**(`cert?`): `Promise`\<`boolean`\>
+> **verifyLeaseCertificate**(`_cert?`): `Promise`\<`boolean`\>
 
 #### Parameters
 
-##### cert?
+##### \_cert?
 
 [`LeaseCertificate`](../interfaces/LeaseCertificate.md)
 

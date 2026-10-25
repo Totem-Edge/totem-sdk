@@ -12,13 +12,21 @@ Minimal port wrapping live channel factory operations.
 
 ### closeFactory()
 
-> **closeFactory**(`factory`): `Promise`\<`FactorySettlementPayload`\>
+> **closeFactory**(`factory`, `leaseProviders`, `chainProvider?`): `Promise`\<`FactorySettlementPayload`\>
 
 #### Parameters
 
 ##### factory
 
 `ChannelFactory`
+
+##### leaseProviders
+
+`Record`\<`string`, `WotsLeaseBundle`\>
+
+##### chainProvider?
+
+`ChainStateProvider`
 
 #### Returns
 
@@ -28,7 +36,7 @@ Minimal port wrapping live channel factory operations.
 
 ### closeVirtualChannel()
 
-> **closeVirtualChannel**(`factory`, `channelId`): `Promise`\<`ChannelFactory`\>
+> **closeVirtualChannel**(`factory`, `channel`, `leaseProviders`): `Promise`\<`ChannelFactory`\>
 
 #### Parameters
 
@@ -36,9 +44,13 @@ Minimal port wrapping live channel factory operations.
 
 `ChannelFactory`
 
-##### channelId
+##### channel
 
-`string`
+`OmniaChannel`
+
+##### leaseProviders
+
+`Record`\<`string`, `WotsLeaseBundle`\>
 
 #### Returns
 
@@ -84,7 +96,7 @@ Minimal port wrapping live channel factory operations.
 
 ### reallocate()
 
-> **reallocate**(`factory`, `allocation`): `Promise`\<`ChannelFactory`\>
+> **reallocate**(`factory`, `fromPartyId`, `toPartyId`, `amount`, `leaseProviders`): `Promise`\<`ChannelFactory`\>
 
 #### Parameters
 
@@ -92,9 +104,21 @@ Minimal port wrapping live channel factory operations.
 
 `ChannelFactory`
 
-##### allocation
+##### fromPartyId
 
-`Record`\<`string`, `string`\>
+`string`
+
+##### toPartyId
+
+`string`
+
+##### amount
+
+`bigint`
+
+##### leaseProviders
+
+`Record`\<`string`, `WotsLeaseBundle`\>
 
 #### Returns
 

@@ -34,6 +34,21 @@
 
 ***
 
+### detach()
+
+> **detach**(): `void`
+
+Stop delivering data to listeners and drop them, without closing the
+underlying transport. Used when a peer rebinds to a newer connection: the
+superseded socket stays owned by hyperswarm (which destroys the loser),
+but must not keep feeding frames to the peer.
+
+#### Returns
+
+`void`
+
+***
+
 ### onClose()
 
 > **onClose**(`cb`): [`Unsubscribe`](../type-aliases/Unsubscribe.md)

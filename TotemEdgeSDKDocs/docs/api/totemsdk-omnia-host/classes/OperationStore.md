@@ -6,7 +6,7 @@
 
 # Class: OperationStore
 
-Durable operation journal with atomic status transitions.
+Durable operation journal with atomic status transitions, via storage SDK.
 
 ## Constructors
 

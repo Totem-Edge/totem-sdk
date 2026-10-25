@@ -6,10 +6,10 @@
 
 # Function: signMessage()
 
-> **signMessage**\<`T`\>(`msg`, `sign`): `Promise`\<`T` & `object`\>
+> **signMessage**\<`T`\>(`msg`, `sign`, `rootPublicKey`, `options`): `Promise`\<`T`\>
 
-Attach a signature to a message.
-Returns a new message object with the `sig` field set.
+Attach a WOTS auth envelope to a message. The signer signs the auth digest.
+`rootPublicKey` is the hex PKdigest; `rootIdentityProof`/`address` are optional.
 
 ## Type Parameters
 
@@ -21,12 +21,34 @@ Returns a new message object with the `sig` field set.
 
 ### msg
 
-`T`
+`Omit`\<`T`, `"auth"` \| `"ticket"` \| `"sig"`\>
 
 ### sign
 
 [`SignFn`](../interfaces/SignFn.md)
 
+### rootPublicKey
+
+`string`
+
+### options
+
+#### address?
+
+`string`
+
+#### expiresAt
+
+`number`
+
+#### nonce
+
+`number`
+
+#### rootIdentityProof?
+
+`string`
+
 ## Returns
 
-`Promise`\<`T` & `object`\>
+`Promise`\<`T`\>

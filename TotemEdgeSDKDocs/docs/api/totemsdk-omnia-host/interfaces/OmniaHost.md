@@ -20,6 +20,14 @@
 
 ***
 
+### p2pHubUrl?
+
+> `readonly` `optional` **p2pHubUrl?**: `string`
+
+Loopback WebSocket endpoint for local dapps, when enabled (RFC-062).
+
+***
+
 ### swarm?
 
 > `readonly` `optional` **swarm?**: `OmniaSwarm`

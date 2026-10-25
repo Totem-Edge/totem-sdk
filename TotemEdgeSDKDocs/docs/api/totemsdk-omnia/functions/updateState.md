@@ -6,7 +6,7 @@
 
 # Function: updateState()
 
-> **updateState**(`channel`, `delta`, `leaseProvider`, `signer?`): `Promise`\<[`UpdateStateResult`](../interfaces/UpdateStateResult.md)\>
+> **updateState**(`channel`, `delta`, `leaseProvider`, `signer?`, `signerPort?`): `Promise`\<[`UpdateStateResult`](../interfaces/UpdateStateResult.md)\>
 
 Produce a new partial SignedChannelState with incremented sequence.
 
@@ -38,6 +38,10 @@ WOTS lease provider for key slot management.
 [`ChannelSigner`](../interfaces/ChannelSigner.md)
 
 Optional explicit signer; falls back to channel.localSigner.
+
+### signerPort?
+
+[`SignerPort`](../interfaces/SignerPort.md)
 
 ## Returns
 

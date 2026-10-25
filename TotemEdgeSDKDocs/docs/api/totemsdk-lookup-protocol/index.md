@@ -18,8 +18,6 @@
 - [AppAnnounceMessage](interfaces/AppAnnounceMessage.md)
 - [AppQueryMessage](interfaces/AppQueryMessage.md)
 - [AppResultMessage](interfaces/AppResultMessage.md)
-- [AuthChallengeMessage](interfaces/AuthChallengeMessage.md)
-- [AuthResponseMessage](interfaces/AuthResponseMessage.md)
 - [BroadcastTxPoWMessage](interfaces/BroadcastTxPoWMessage.md)
 - [CoinUpdateMessage](interfaces/CoinUpdateMessage.md)
 - [ErrorMessage](interfaces/ErrorMessage.md)
@@ -44,6 +42,11 @@
 - [PolicyWatchMessage](interfaces/PolicyWatchMessage.md)
 - [PongMessage](interfaces/PongMessage.md)
 - [ProofResponseMessage](interfaces/ProofResponseMessage.md)
+- [SessionCloseMessage](interfaces/SessionCloseMessage.md)
+- [SessionOpenMessage](interfaces/SessionOpenMessage.md)
+- [SessionTicket](interfaces/SessionTicket.md)
+- [SessionTicketMessage](interfaces/SessionTicketMessage.md)
+- [SessionTicketRef](interfaces/SessionTicketRef.md)
 - [SignFn](interfaces/SignFn.md)
 - [TrustQueryMessage](interfaces/TrustQueryMessage.md)
 - [TrustRecordMessage](interfaces/TrustRecordMessage.md)
@@ -52,6 +55,7 @@
 - [VersionMismatchMessage](interfaces/VersionMismatchMessage.md)
 - [WatchRegisterMessage](interfaces/WatchRegisterMessage.md)
 - [WatchRemoveMessage](interfaces/WatchRemoveMessage.md)
+- [WotsAuthEnvelope](interfaces/WotsAuthEnvelope.md)
 
 ## Type Aliases
 
@@ -65,10 +69,12 @@
 
 ## Functions
 
+- [authDigest](functions/authDigest.md)
+- [canonicalJson](functions/canonicalJson.md)
 - [checkVersion](functions/checkVersion.md)
 - [decodeMessage](functions/decodeMessage.md)
 - [encodeMessage](functions/encodeMessage.md)
-- [messageDigest](functions/messageDigest.md)
 - [peekFrameLength](functions/peekFrameLength.md)
+- [sessionTicketDigest](functions/sessionTicketDigest.md)
 - [signMessage](functions/signMessage.md)
 - [verifyMessageAuth](functions/verifyMessageAuth.md)

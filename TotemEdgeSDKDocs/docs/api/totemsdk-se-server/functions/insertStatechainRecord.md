@@ -16,7 +16,7 @@
 
 ### rec
 
-`Omit`\<[`StatechainRecord`](../interfaces/StatechainRecord.md), `"transfer_count"` \| `"status"` \| `"created_at"` \| `"updated_at"`\>
+`Omit`\<[`StatechainRecord`](../interfaces/StatechainRecord.md), `"transfer_count"` \| `"version"` \| `"status"` \| `"created_at"` \| `"updated_at"`\>
 
 ## Returns
 

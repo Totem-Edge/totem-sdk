@@ -31,7 +31,7 @@ redundant network round-trips in high-throughput scenarios.
 ## Example
 
 ```ts
-import { sendTransaction } from '@totemsdk/node';
+import { sendTransaction } from '@totemsdk/server';
 
 const result = await sendTransaction({
   seed: 'word1 word2 ... word24',

@@ -14,6 +14,14 @@
 
 ***
 
+### errorCode?
+
+> `optional` **errorCode?**: `string`
+
+Machine-readable failure code (e.g. ROUTE_REVALIDATION_FAILED).
+
+***
+
 ### feeProofs?
 
 > `optional` **feeProofs?**: [`RouterFeeProof`](RouterFeeProof.md)[]

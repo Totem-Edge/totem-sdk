@@ -19,6 +19,7 @@
 - [DurableStateChainStoreOptions](interfaces/DurableStateChainStoreOptions.md)
 - [HttpSEClientOptions](interfaces/HttpSEClientOptions.md)
 - [RecoveryReport](interfaces/RecoveryReport.md)
+- [RegisterChainDetails](interfaces/RegisterChainDetails.md)
 - [ResolveSEClientOptions](interfaces/ResolveSEClientOptions.md)
 - [SEClient](interfaces/SEClient.md)
 - [SERegistryEntry](interfaces/SERegistryEntry.md)
@@ -28,7 +29,6 @@
 - [StatechainOwner](interfaces/StatechainOwner.md)
 - [StateChainRegistryState](interfaces/StateChainRegistryState.md)
 - [TransferRecord](interfaces/TransferRecord.md)
-- [VerifyOptions](interfaces/VerifyOptions.md)
 - [VerifyResult](interfaces/VerifyResult.md)
 
 ## Type Aliases

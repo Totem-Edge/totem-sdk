@@ -6,27 +6,25 @@
 
 # Function: transferOwnership()
 
-> **transferOwnership**(`chain`, `newOwner`, `seClient`, `_verifyBlindSig?`, `_chainProvider?`): `Promise`\<[`StateChain`](../interfaces/StateChain.md)\>
+> **transferOwnership**(`chain`, `newOwner`, `seClient`, `_chainProvider?`): `Promise`\<[`StateChain`](../interfaces/StateChain.md)\>
 
 Transfer ownership of a statechain UTXO to a new owner.
 
 Public API: `transferOwnership(chain, newOwner, seClient)`
 
 Creates an on-chain state-update TX:
-  input:  current MULTISIG coin with STATE(0) = oldOwnerPkd
-  output: same locking address with STATE(0) = newOwnerPkd
+  input:  current MULTISIG coin with STATE(0) = oldOwnerRoot
+  output: same locking address with STATE(0) = newOwnerRoot
 
-Signing flow:
- - `chain.currentOwner.sign(txDigest)` — old owner signs TX body digest.
- - `seClient.blindSign(hex(txDigest))` — SE countersigns same digest.
- Both satisfy `MULTISIG(2 STATE(0) SE)` for the input coin.
+Signing flow (RFC-009, Minima-faithful):
+ - `chain.currentOwner.signTree(txDigest)` — old owner root-bound TreeKey sig.
+ - `seClient.blindSign(hex(txDigest))` — SE leased-leaf co-signature envelope.
+ Both satisfy `MULTISIG(2 STATE(0) SE)` for the input coin; the witness is a
+ list of Minima `TreeSignature` objects.
 
 Post-transfer:
- - New owner's reclaim TX is built via `newOwner.sign(reclaimDigest)`.
+ - New owner's reclaim TX is built via `newOwner.signTree(reclaimDigest)`.
    `chain.reclaimTx` always reflects CURRENT owner — never initial owner.
- - Old owner's `transferKeySeed` is moved to `TransferRecord.transferKey`
-   then **zeroed in-place** on the original owner object so the secret does
-   not persist in hot state after the ownership hop.
 
 ## Parameters
 
@@ -34,26 +32,19 @@ Post-transfer:
 
 [`StateChain`](../interfaces/StateChain.md)
 
-Active statechain (must have `currentOwner.sign`).
+Active statechain (must have `currentOwner.signTree`).
 
 ### newOwner
 
 [`StatechainOwner`](../interfaces/StatechainOwner.md)
 
-Recipient identity + signing capability.
+Recipient identity + TreeKey signing capability.
 
 ### seClient
 
 [`SEClient`](../interfaces/SEClient.md)
 
 SE client for countersigning the state-update TX.
-
-### \_verifyBlindSig?
-
-(`sig`, `commitment`, `sePkdHex`) => `boolean`
-
-Optional SE blind-sig verification override (test use).
-  Defaults to `wotsVerifyDigest`. Production callers should omit this.
 
 ### \_chainProvider?
 

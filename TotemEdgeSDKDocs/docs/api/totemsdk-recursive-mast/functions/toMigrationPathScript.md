@@ -9,7 +9,11 @@
 > **toMigrationPathScript**(`path`): `string`
 
 Generate the full nested MAST script for a migration path.
-Each step wraps the next in a migration transition.
+
+RFC-018 P2-2: each step delegates to the *next composed script* (its
+canonical root), not merely its `toPolicyRoot` — the previous form appended a
+terminal `MAST` after a `RETURN TRUE`, leaving the child unreachable. An empty
+path fails closed rather than compiling to allow-all.
 
 ## Parameters
 

@@ -23,6 +23,8 @@
 - [CoinsQuery](interfaces/CoinsQuery.md)
 - [HistoryEntry](interfaces/HistoryEntry.md)
 - [HistoryQuery](interfaces/HistoryQuery.md)
+- [MagicInfo](interfaces/MagicInfo.md)
+- [MagicNumbers](interfaces/MagicNumbers.md)
 - [MegaMMRInfo](interfaces/MegaMMRInfo.md)
 - [MinimaEnvelope](interfaces/MinimaEnvelope.md)
 - [MinimaRpcClient](interfaces/MinimaRpcClient.md)

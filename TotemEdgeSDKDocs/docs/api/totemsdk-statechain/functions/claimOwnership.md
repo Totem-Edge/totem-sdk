@@ -12,9 +12,10 @@ Cooperative claim — current owner + SE co-sign a claim TX.
 
 Public API: `claimOwnership(chain, leaseProvider) -> ClaimPayload`
 
-Both `chain.currentOwner.sign` and `leaseProvider.seClient.blindSign` sign
+Both `chain.currentOwner.signTree` and `leaseProvider.seClient.blindSign` sign
 `computeTransactionDigest(tx)` — the actual TX body hash — satisfying the
-`MULTISIG(2 STATE(0) SE)` spending path. No timelock required.
+`MULTISIG(2 STATE(0) SE)` spending path. The witness is a Minima-faithful list
+of root-bound `TreeSignature` objects (owner + SE). No timelock required.
 
 ## Parameters
 

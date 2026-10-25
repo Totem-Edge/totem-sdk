@@ -27,10 +27,10 @@ Required write acknowledgment; default `durably-acknowledged`. Pass
 
 ### verify?
 
-> `readonly` `optional` **verify?**: (`chain`, `opts?`) => `VerifyResult`
+> `readonly` `optional` **verify?**: (`chain`) => `VerifyResult`
 
 Structural validation hook run over each `StateChain` at load and before
-each save (default: a strict `verifyChainIntegrity` check).
+each save (default: a strict `verifyStateChain` check).
 
 #### Parameters
 
@@ -38,18 +38,6 @@ each save (default: a strict `verifyChainIntegrity` check).
 
 [`StateChain`](StateChain.md)
 
-##### opts?
-
-[`VerifyOptions`](VerifyOptions.md)
-
 #### Returns
 
 `VerifyResult`
-
-***
-
-### verifyOptions?
-
-> `readonly` `optional` **verifyOptions?**: [`VerifyOptions`](VerifyOptions.md)
-
-Verification-override options (test/self-hosted SE mocks).

@@ -6,10 +6,17 @@
 
 # @totemsdk/se-server
 
+## Classes
+
+- [SeIdentity](classes/SeIdentity.md)
+
 ## Interfaces
 
+- [SeIdentityOptions](interfaces/SeIdentityOptions.md)
+- [SePublishedIdentity](interfaces/SePublishedIdentity.md)
 - [SeServer](interfaces/SeServer.md)
 - [SeServerConfig](interfaces/SeServerConfig.md)
+- [SeSignature](interfaces/SeSignature.md)
 - [SeSignEvent](interfaces/SeSignEvent.md)
 - [StatechainRecord](interfaces/StatechainRecord.md)
 - [TimelockAlert](interfaces/TimelockAlert.md)
@@ -27,8 +34,6 @@
 - [decryptReclaimTx](functions/decryptReclaimTx.md)
 - [encryptReclaimTx](functions/encryptReclaimTx.md)
 - [getApproachingTimelockChains](functions/getApproachingTimelockChains.md)
-- [getPublicKeyHex](functions/getPublicKeyHex.md)
-- [getPublicKeyHexAsync](functions/getPublicKeyHexAsync.md)
 - [getStatechainRecord](functions/getStatechainRecord.md)
 - [insertRevocation](functions/insertRevocation.md)
 - [insertStatechainRecord](functions/insertStatechainRecord.md)
@@ -37,7 +42,5 @@
 - [loadConfigFromEnv](functions/loadConfigFromEnv.md)
 - [logSignEvent](functions/logSignEvent.md)
 - [migrateStatechainTables](functions/migrateStatechainTables.md)
-- [seSign](functions/seSign.md)
 - [updateStatechainOwner](functions/updateStatechainOwner.md)
 - [updateStatechainStatus](functions/updateStatechainStatus.md)
-- [wotsVerifyDigestAsync](functions/wotsVerifyDigestAsync.md)

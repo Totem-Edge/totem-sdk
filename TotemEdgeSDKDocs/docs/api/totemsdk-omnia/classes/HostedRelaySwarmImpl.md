@@ -94,6 +94,10 @@
 
 > **connectToPeer**(`pubkey`, `channelId?`): `Promise`\<[`OmniaPeer`](../interfaces/OmniaPeer.md)\>
 
+Connect to a peer by its Omnia participant pubkey (rendezvous topic).
+`expectedTransportPubkey` is the peer's native transport identity (from
+its signed manifest); native transports match it against the noise key.
+
 #### Parameters
 
 ##### pubkey

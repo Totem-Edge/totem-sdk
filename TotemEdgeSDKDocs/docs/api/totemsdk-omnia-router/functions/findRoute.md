@@ -9,10 +9,10 @@
 > **findRoute**(`graph`, `from`, `to`, `amount`, `tokenId`, `opts?`): [`Route`](../interfaces/Route.md) \| `null`
 
 Find the cheapest route (lowest total fee, then fewest hops) from `from` to
-`to` carrying `amount` of `tokenId`.  Edges are filtered by tokenId and
-availableBalance.
+`to` carrying `amount` of `tokenId`. Edges are filtered by tokenId and
+availableBalance. Returns null if no path exists within maxHops.
 
-Returns null if no path exists within maxHops.
+Delegates to the routing engine (zero-fee BFS / layered bounded search).
 
 ## Parameters
 

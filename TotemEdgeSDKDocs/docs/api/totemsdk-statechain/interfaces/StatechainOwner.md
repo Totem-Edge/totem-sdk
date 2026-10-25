@@ -6,10 +6,15 @@
 
 # Interface: StatechainOwner
 
-StatechainOwner — owner identity and signing capability.
+StatechainOwner — owner identity and Minima-faithful TreeKey signing
+capability (RFC-009).
 
-`sign(message)` signs a `computeTransactionDigest` byte-array with this
-owner's WOTS key. Used for: lock TX, reclaimTx building, cooperative claim.
+`signTree(message)` signs a `computeTransactionDigest` byte-array with this
+owner's TreeKey, producing a root-bound Minima `TreeSignature`. Used for the
+lock TX, reclaim TX, state-update TX, and cooperative claim. Minima binds the
+signer's **root** public key (`SignatureProof.getRootPublicKey()`), so
+`publicKeyDigest` carries that root — it is the value bound by
+`STATE(0)`/`SIGNEDBY`/`MULTISIG` in the locking script.
 
 Creation-time fields (only required on the owner passed to `createStateChain`):
   `address`  — the coin's current address (spending address of the input UTXO).
@@ -17,10 +22,6 @@ Creation-time fields (only required on the owner passed to `createStateChain`):
   `tokenId`  — token ID of the coin being locked.
   `amount`   — coin amount in MIN base units.
 These three fields are stripped from the stored `StateChain.currentOwner`.
-
-`transferKeySeed` — WOTS seed (hex) for this owner's key slot.
-Moved into `TransferRecord.transferKey` on outbound transfer, then zeroed
-in-place on the original owner object so the secret does not linger in hot state.
 
 ## Properties
 
@@ -50,6 +51,8 @@ Coin amount in MIN base units — required when creating a new statechain.
 
 > **publicKeyDigest**: `string`
 
+TreeKey **root** public key (32-byte hex) — the owner's Minima identity.
+
 ***
 
 ### tokenId?
@@ -58,17 +61,14 @@ Coin amount in MIN base units — required when creating a new statechain.
 
 Coin token ID — required when creating a new statechain.
 
-***
-
-### transferKeySeed?
-
-> `optional` **transferKeySeed?**: `string`
-
 ## Methods
 
-### sign()
+### signTree()
 
-> **sign**(`message`): `Promise`\<`Uint8Array`\<`ArrayBufferLike`\>\>
+> **signTree**(`message`): `Promise`\<`TreeSignature`\>
+
+Sign a digest with this owner's TreeKey. The returned `TreeSignature` is
+root-bound and serialized via `serializeTreeSignature` into the witness.
 
 #### Parameters
 
@@ -78,4 +78,4 @@ Coin token ID — required when creating a new statechain.
 
 #### Returns
 
-`Promise`\<`Uint8Array`\<`ArrayBufferLike`\>\>
+`Promise`\<`TreeSignature`\>

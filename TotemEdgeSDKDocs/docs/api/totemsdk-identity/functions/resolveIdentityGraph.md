@@ -6,13 +6,17 @@
 
 # Function: resolveIdentityGraph()
 
-> **resolveIdentityGraph**(`graph`): [`IdentityResolutionResult`](../interfaces/IdentityResolutionResult.md)
+> **resolveIdentityGraph**(`graph`, `options?`): [`IdentityResolutionResult`](../interfaces/IdentityResolutionResult.md)
 
 ## Parameters
 
 ### graph
 
 [`IdentityGraph`](../interfaces/IdentityGraph.md)
+
+### options?
+
+`IdentityResolutionOptions` = `{}`
 
 ## Returns
 

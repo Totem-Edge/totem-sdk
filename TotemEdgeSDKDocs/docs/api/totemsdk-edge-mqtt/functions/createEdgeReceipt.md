@@ -24,6 +24,12 @@
 
 `Record`\<`string`, `unknown`\>
 
+#### relatedDecisionId?
+
+`string`
+
+RFC-017: the semantic DecisionReceipt.receiptId this action cites.
+
 #### relatedIdentityId?
 
 `string`

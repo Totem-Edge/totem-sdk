@@ -165,7 +165,7 @@ run totals.
 
 ##### outcome
 
-`ReservationSettlementOutcome`
+[`ReservationSettlementOutcome`](../type-aliases/ReservationSettlementOutcome.md)
 
 ##### opts?
 
@@ -185,7 +185,7 @@ run totals.
 
 ### recoverReservations()
 
-> **recoverReservations**(`runId?`): `Promise`\<`OutOfBandReservation`[]\>
+> **recoverReservations**(`runId?`): `Promise`\<[`OutOfBandReservation`](OutOfBandReservation.md)[]\>
 
 Conservative reservation recovery (RFC-007 §3.5): a reservation that was
 never settled before its deadline is classified `unknown` — its budget is
@@ -199,7 +199,7 @@ HELD, never restored by expiry. Returns every unsettled reservation.
 
 #### Returns
 
-`Promise`\<`OutOfBandReservation`[]\>
+`Promise`\<[`OutOfBandReservation`](OutOfBandReservation.md)[]\>
 
 ***
 

@@ -12,13 +12,21 @@ Minimal port wrapping live splice operations.
 
 ### acceptSplice()
 
-> **acceptSplice**(`proposal`): `Promise`\<`SpliceAcceptance`\>
+> **acceptSplice**(`channel`, `proposal`, `leaseProvider`): `Promise`\<`SpliceAcceptance`\>
 
 #### Parameters
+
+##### channel
+
+`OmniaChannel` \| `QuiescedChannel`
 
 ##### proposal
 
 `SpliceProposal`
+
+##### leaseProvider
+
+`SpliceLeaseProvider`
 
 #### Returns
 
@@ -28,13 +36,25 @@ Minimal port wrapping live splice operations.
 
 ### finalizeSplice()
 
-> **finalizeSplice**(`acceptance`): `Promise`\<`SplicedChannel`\>
+> **finalizeSplice**(`channel`, `proposal`, `acceptance`, `options?`): `Promise`\<`SplicedChannel`\>
 
 #### Parameters
+
+##### channel
+
+`OmniaChannel` \| `QuiescedChannel`
+
+##### proposal
+
+`SpliceProposal`
 
 ##### acceptance
 
 `SpliceAcceptance`
+
+##### options?
+
+`FinalizeSpliceOptions`
 
 #### Returns
 
@@ -44,13 +64,25 @@ Minimal port wrapping live splice operations.
 
 ### proposeSpliceOut()
 
-> **proposeSpliceOut**(`params`): `Promise`\<`SpliceProposal`\>
+> **proposeSpliceOut**(`channel`, `withdrawAmount`, `withdrawAddress`, `leaseProvider`): `Promise`\<`SpliceProposal`\>
 
 #### Parameters
 
-##### params
+##### channel
 
-`SpliceParams`
+`QuiescedChannel`
+
+##### withdrawAmount
+
+`bigint`
+
+##### withdrawAddress
+
+`string`
+
+##### leaseProvider
+
+`SpliceLeaseProvider`
 
 #### Returns
 
@@ -60,13 +92,17 @@ Minimal port wrapping live splice operations.
 
 ### quiesceChannel()
 
-> **quiesceChannel**(`channel`): `Promise`\<`QuiescedChannel`\>
+> **quiesceChannel**(`channel`, `leaseProvider`): `Promise`\<`QuiescedChannel`\>
 
 #### Parameters
 
 ##### channel
 
 `OmniaChannel`
+
+##### leaseProvider
+
+`SpliceLeaseProvider`
 
 #### Returns
 

@@ -82,6 +82,51 @@ Exposed for the runtime-level outbox drainer to send.
 
 ***
 
+### executePrepared()
+
+> **executePrepared**(`prepared`, `opts?`): `Promise`\<[`PurchaseResult`](../interfaces/PurchaseResult.md)\>
+
+RFC-019: execute exactly a prepared purchase. When `skipAuthority` is set
+(a governed action already authorized + reserved), the buyer's own authority
+approval is skipped and the prepared agreement is executed as-is.
+
+#### Parameters
+
+##### prepared
+
+[`PreparedPurchase`](../interfaces/PreparedPurchase.md)
+
+##### opts?
+
+###### skipAuthority?
+
+`boolean`
+
+#### Returns
+
+`Promise`\<[`PurchaseResult`](../interfaces/PurchaseResult.md)\>
+
+***
+
+### finalizeNegotiation()
+
+> **finalizeNegotiation**(`preview`): `Promise`\<[`NegotiationResult`](../interfaces/NegotiationResult.md)\>
+
+RFC-019 P1-2: sign the acceptance for a previewed negotiation and converge
+the agreement. Call only AFTER the governed action authorized the terms.
+
+#### Parameters
+
+##### preview
+
+[`NegotiationPreview`](../interfaces/NegotiationPreview.md)
+
+#### Returns
+
+`Promise`\<[`NegotiationResult`](../interfaces/NegotiationResult.md)\>
+
+***
+
 ### handleInbound()
 
 > **handleInbound**(`message`, `context`): `Promise`\<[`ReplayOutcome`](../interfaces/ReplayOutcome.md)\>
@@ -140,6 +185,62 @@ co-located runtimes).
 #### Returns
 
 `Promise`\<[`NegotiationResult`](../interfaces/NegotiationResult.md)\>
+
+***
+
+### prepareBuy()
+
+> **prepareBuy**(`options`): `Promise`\<[`PreparedPurchase`](../interfaces/PreparedPurchase.md)\>
+
+RFC-019: discovery + negotiation + agreement preparation, WITHOUT any
+economic commitment (no authority approval, no payment). A governed action
+authorizes the canonical effects of the returned purchase, then calls
+`executePrepared()`.
+
+#### Parameters
+
+##### options
+
+[`BuyOptions`](../interfaces/BuyOptions.md)
+
+#### Returns
+
+`Promise`\<[`PreparedPurchase`](../interfaces/PreparedPurchase.md)\>
+
+***
+
+### previewNegotiation()
+
+> **previewNegotiation**(`options`): `Promise`\<[`NegotiationPreview`](../interfaces/NegotiationPreview.md)\>
+
+RFC-019 P1-2: run a negotiation to the decision point WITHOUT signing a
+binding acceptance. A governed action authorizes the resulting terms, then
+`finalizeNegotiation()` signs the acceptance. Fails closed on the transport
+path (which cannot defer the signature).
+
+#### Parameters
+
+##### options
+
+###### desiredTerms
+
+[`TradeTerms`](../interfaces/TradeTerms.md)
+
+###### limits
+
+`Partial`\<[`NegotiationLimits`](../interfaces/NegotiationLimits.md)\>
+
+###### manifest
+
+`SignedManifest`
+
+###### strategy
+
+[`NegotiationStrategy`](../interfaces/NegotiationStrategy.md)
+
+#### Returns
+
+`Promise`\<[`NegotiationPreview`](../interfaces/NegotiationPreview.md)\>
 
 ***
 
