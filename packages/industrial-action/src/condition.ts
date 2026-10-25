@@ -21,7 +21,13 @@ function evaluateCondition(
   context: Record<string, unknown>,
 ): string | null {
   if (condition.evaluate) {
-    return condition.evaluate(params, context)
+    try {
+      return condition.evaluate(params, context)
+    } catch (error) {
+      // Policy evaluation must fail closed, never let a hostile/throwing
+      // evaluator escape as an execution exception.
+      return `evaluator failed: ${error instanceof Error ? error.message : String(error)}`
+    }
   }
 
   const value = resolveField(condition.field, params, context)

@@ -41,7 +41,7 @@ Total: **67** publishable packages + **6** excluded entries = **73** workspace e
 | `@totemsdk/kissvm` | 1.3.0 | v1 | 0 | `packages/kissvm` |
 | `@totemsdk/edge-modbus` | 0.2.0 | rc | 1 | `packages/edge-modbus` |
 | `@totemsdk/edge-mqtt` | 0.2.5 | rc | 1 | `packages/edge-mqtt` |
-| `@totemsdk/industrial-action` | 0.2.1 | rc | 1 | `packages/industrial-action` |
+| `@totemsdk/industrial-action` | 0.2.2 | rc | 1 | `packages/industrial-action` |
 | `@totemsdk/lookup-client` | 0.2.0 | rc | 1 | `packages/lookup-client` |
 | `@totemsdk/lookup-node` | 0.3.0 | rc | 1 | `packages/lookup-node` |
 | `@totemsdk/lookup-protocol` | 0.2.1 | rc | 1 | `packages/lookup-protocol` |
