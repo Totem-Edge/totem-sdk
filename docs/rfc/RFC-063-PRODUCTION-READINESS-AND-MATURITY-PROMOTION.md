@@ -1,6 +1,6 @@
 # RFC-063 — Production Readiness and Maturity Promotion
 
-**Status:** Draft — Phase 0 in progress (A1–A7 landed; tier reconciliation and E1–E4 remain); Phases 1–4 proposed
+**Status:** Draft — Phase 0 closeout (tier reconciliation and E1–E4 remain); Phase 1 B1 published, B2–B9 open; Phases 2–4 proposed
 **Priority:** P0 (public truth) / P1 (security and durability) / P2 (real-world proof)
 **Created:** 2026-10-21
 **Authors:** Totem SDK Contributors
@@ -271,7 +271,7 @@ or hardware labs.
 
 | ID | Work | Done when |
 |---|---|---|
-| B1 | Public threat model: attackers, trust boundaries, key custody, replay/reorg, compromised components | Reviewed and linked from `SECURITY.md` |
+| B1 | Public threat model: attackers, trust boundaries, key custody, replay/reorg, compromised components | Published 2026-10-25 in `docs/security/threat-model.md` and linked from `SECURITY.md`; external review remains part of B2 |
 | B2 | Independent audit of current core, Omnia, KISSVM, lookup, storage, edge runtime | Audit published and findings triaged |
 | B3 | Fuzz/property tests for wire parsers, tx builder, KISSVM, proofs, channel transitions, adapters | CI targets and invariants documented |
 | B4 | Key recovery, rotation, lease recovery, compromise, and disaster-recovery runbooks | Tested procedures, not prose only |

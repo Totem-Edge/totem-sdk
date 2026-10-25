@@ -59,9 +59,17 @@ Totem SDK is a quantum-resistant cryptographic platform. The security of the ent
 
 1. **WOTS Key Reuse Prevention**: No WOTS key index shall ever be used to sign more than one message. Violation of this invariant results in catastrophic security failure — private key recovery becomes computationally feasible. The `@totemsdk/wots-lease` package enforces this through lease/watermark coordination.
 
-2. **Private Key Confinement**: Private keys and seed material must never leave the device. All signing operations happen client-side. The server only sees signed transactions.
+2. **Private Key Confinement**: Private keys and seed material must never leave the custody boundary that holds them. Signing happens in the wallet or a separate wallet service; a coordinator host must not hold the seed. The network only sees signed transactions.
 
 3. **Byte-Exact Serialization**: All serialization must match the Minima Java node byte-for-byte. A single byte difference causes `allsignaturesvalid=false` and potential consensus failure.
+
+### Threat Model
+
+See [docs/security/threat-model.md](docs/security/threat-model.md) for the public
+threat model: assets, actors, trust boundaries, threat catalogue, current
+controls and residual risks. It covers the Tier 0/1 surface and Tier 2 packages on
+the supported path. It is not an independent audit; the Phase 1 audit, fuzz and
+recovery gates remain open.
 
 ### Cryptographic Policies
 

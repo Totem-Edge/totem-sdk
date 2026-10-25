@@ -141,6 +141,7 @@
 
 | Document | Description |
 |----------|-------------|
+| [security/threat-model.md](security/threat-model.md) | Public threat model: assets, actors, trust boundaries, threat catalogue and residual risks |
 | [security/crypto-policy.md](security/crypto-policy.md) | Cryptographic policy and approved algorithms |
 | [developers/extension/security-faq.md](developers/extension/security-faq.md) | Security FAQ for extension developers |
 
