@@ -66,21 +66,29 @@ export function decodeManifest(bytes: Uint8Array): SignedManifest {
   const jsonLen =
     (bytes[2] << 24) | (bytes[3] << 16) | (bytes[4] << 8) | bytes[5];
 
-  if (bytes.length < 6 + jsonLen) {
+  if (jsonLen < 0 || bytes.length < 6 + jsonLen) {
     throw new Error(`decodeManifest: buffer too short for declared JSON length ${jsonLen}`);
   }
 
   const jsonBytes = bytes.slice(6, 6 + jsonLen);
   const json = new TextDecoder().decode(jsonBytes);
 
-  let signed: SignedManifest;
+  let parsed: unknown;
   try {
-    signed = JSON.parse(json) as SignedManifest;
+    parsed = JSON.parse(json);
   } catch (e) {
     throw new Error(`decodeManifest: invalid JSON payload: ${String(e)}`);
   }
 
-  if (signed.manifest?.type !== expectedType) {
+  if (parsed === null || typeof parsed !== 'object') {
+    throw new Error('decodeManifest: JSON payload is not a SignedManifest object');
+  }
+  const signed = parsed as SignedManifest;
+  if (signed.manifest === null || typeof signed.manifest !== 'object') {
+    throw new Error('decodeManifest: JSON payload has no manifest object');
+  }
+
+  if (signed.manifest.type !== expectedType) {
     throw new Error(
       `decodeManifest: type discriminant mismatch — wire says '${expectedType}' but JSON manifest.type is '${signed.manifest?.type}'`,
     );
@@ -91,6 +99,7 @@ export function decodeManifest(bytes: Uint8Array): SignedManifest {
 
 function hexToBytes(hex: string): Uint8Array {
   if (hex.startsWith('0x')) hex = hex.slice(2);
+  if (!/^[0-9a-fA-F]*$/.test(hex)) throw new Error('hexToBytes: invalid hex string');
   if (hex.length % 2 !== 0) throw new Error('hexToBytes: odd-length hex string');
   const out = new Uint8Array(hex.length / 2);
   for (let i = 0; i < out.length; i++) {

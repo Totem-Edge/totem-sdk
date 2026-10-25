@@ -143,6 +143,7 @@
 |----------|-------------|
 | [security/threat-model.md](security/threat-model.md) | Public threat model: assets, actors, trust boundaries, threat catalogue and residual risks |
 | [security/crypto-policy.md](security/crypto-policy.md) | Cryptographic policy and approved algorithms |
+| [security/fuzz-targets.md](security/fuzz-targets.md) | Deterministic fuzz/property targets and invariants (Phase 1 B3) |
 | [developers/extension/security-faq.md](developers/extension/security-faq.md) | Security FAQ for extension developers |
 
 ---

@@ -43,6 +43,12 @@ export function encodeMessage(msg: LookupMessage): Uint8Array {
   return frame;
 }
 
+function isLookupMessage(value: unknown): value is LookupMessage {
+  if (value === null || typeof value !== 'object') return false;
+  const msg = value as Partial<LookupMessage>;
+  return typeof msg.type === 'string' && typeof msg.version === 'number' && Number.isFinite(msg.version);
+}
+
 /**
  * Decode a framed buffer to a LookupMessage.
  * Expects exactly one framed message in the buffer.
@@ -74,9 +80,13 @@ export function decodeMessage(buf: Uint8Array): LookupMessage {
         return new Uint8Array((value as { __uint8array: number[] }).__uint8array);
       }
       return value;
-    }) as LookupMessage;
+    }) as unknown;
+    if (!isLookupMessage(parsed)) {
+      throw new FramingError('Decoded frame is not a LookupMessage');
+    }
     return parsed;
   } catch (e) {
+    if (e instanceof FramingError) throw e;
     throw new FramingError(`JSON parse failed: ${String(e)}`);
   }
 }

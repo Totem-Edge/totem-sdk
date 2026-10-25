@@ -270,7 +270,7 @@ This model is linked from `SECURITY.md` and is reviewed when:
 The model is **not** an audit. The Phase 1 gates remain:
 
 - B2 independent audit
-- B3 fuzz/property targets
+- B3 fuzz/property targets — initial targets in [fuzz-targets.md](fuzz-targets.md)
 - B4 tested recovery/rotation/compromise runbooks
 - B5 SBOM, signed/reproducible artifacts and dependency scanning
 - B6 vulnerability/advisory process

@@ -839,7 +839,7 @@
     },
     {
       "name": "@totemsdk/lookup-protocol",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "description": "Wire protocol definitions for lookup node ↔ client communication",
       "domain": "sovereignty-stack",
       "keywords": [
@@ -862,7 +862,7 @@
     },
     {
       "name": "@totemsdk/manifest",
-      "version": "2.0.2",
+      "version": "2.0.3",
       "description": "Canonical signed declaration format — apps, agent capabilities, dApps, edge services",
       "domain": "verifiable-claims",
       "keywords": [
@@ -884,7 +884,7 @@
     },
     {
       "name": "@totemsdk/omnia",
-      "version": "2.3.1",
+      "version": "2.3.2",
       "description": "Omnia eltoo payment channel state machine — transport-agnostic, WOTS-safe, HTLC-ready",
       "domain": "payment-network",
       "keywords": [

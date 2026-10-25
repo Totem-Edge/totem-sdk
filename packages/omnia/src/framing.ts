@@ -72,6 +72,18 @@ export function encodeOmniaMessage(msg: OmniaMessage): Uint8Array {
   return frame;
 }
 
+function isOmniaMessage(value: unknown): value is OmniaMessage {
+  if (value === null || typeof value !== 'object') return false;
+  const msg = value as Partial<OmniaMessage>;
+  return (
+    typeof msg.type === 'string' &&
+    typeof msg.channelId === 'string' &&
+    typeof msg.nonce === 'number' &&
+    Number.isFinite(msg.nonce) &&
+    'payload' in msg
+  );
+}
+
 function _decodeOmniaFrame(buf: Uint8Array): OmniaMessage {
   const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
   const bodyLen = view.getUint32(0, false);
@@ -81,7 +93,7 @@ function _decodeOmniaFrame(buf: Uint8Array): OmniaMessage {
   const body = buf.slice(4, 4 + bodyLen);
   const json = new TextDecoder().decode(body);
   try {
-    return JSON.parse(json, (_key, value: unknown) => {
+    const parsed = JSON.parse(json, (_key, value: unknown) => {
       if (value !== null && typeof value === 'object') {
         if (
           '__bigint' in value &&
@@ -99,8 +111,13 @@ function _decodeOmniaFrame(buf: Uint8Array): OmniaMessage {
         }
       }
       return value;
-    }) as OmniaMessage;
+    }) as unknown;
+    if (!isOmniaMessage(parsed)) {
+      throw new FramingError('Decoded frame is not an OmniaMessage');
+    }
+    return parsed;
   } catch (e) {
+    if (e instanceof FramingError) throw e;
     throw new FramingError(`OmniaMessage JSON parse failed: ${String(e)}`);
   }
 }

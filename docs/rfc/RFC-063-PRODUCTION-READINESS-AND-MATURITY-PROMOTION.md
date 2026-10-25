@@ -1,6 +1,6 @@
 # RFC-063 — Production Readiness and Maturity Promotion
 
-**Status:** Draft — Phase 0 closeout (tier reconciliation and E1–E4 remain); Phase 1 B1 published, B2–B9 open; Phases 2–4 proposed
+**Status:** Draft — Phase 0 closeout (tier reconciliation and E1–E4 remain); Phase 1 B1 published, B3 partial (wire/manifest targets), B2/B4–B9 open; Phases 2–4 proposed
 **Priority:** P0 (public truth) / P1 (security and durability) / P2 (real-world proof)
 **Created:** 2026-10-21
 **Authors:** Totem SDK Contributors
@@ -273,7 +273,7 @@ or hardware labs.
 |---|---|---|
 | B1 | Public threat model: attackers, trust boundaries, key custody, replay/reorg, compromised components | Published 2026-10-25 in `docs/security/threat-model.md` and linked from `SECURITY.md`; external review remains part of B2 |
 | B2 | Independent audit of current core, Omnia, KISSVM, lookup, storage, edge runtime | Audit published and findings triaged |
-| B3 | Fuzz/property tests for wire parsers, tx builder, KISSVM, proofs, channel transitions, adapters | CI targets and invariants documented |
+| B3 | Fuzz/property tests for wire parsers, tx builder, KISSVM, proofs, channel transitions, adapters | Initial lookup/Omnia framing and manifest targets landed in `docs/security/fuzz-targets.md`; KISSVM, tx builder, proofs, channel transitions and storage targets remain |
 | B4 | Key recovery, rotation, lease recovery, compromise, and disaster-recovery runbooks | Tested procedures, not prose only |
 | B5 | SBOM, signed artifacts, dependency/container scanning, reproducible builds | Automated and verifiable |
 | B6 | Vulnerability process: real PGP/key path, severity taxonomy, advisory/CVE process, security changelog | `SECURITY.md` and advisories agree |

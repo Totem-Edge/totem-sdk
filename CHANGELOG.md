@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- **Framing and manifest hardening (Phase 1 B3):** `@totemsdk/lookup-protocol`
+  0.2.1 and `@totemsdk/omnia` 2.3.2 now reject non-message JSON payloads at the
+  framing boundary, and `@totemsdk/manifest` 2.0.3 rejects null/primitive JSON
+  and invalid signature hex during decode/encode. Added deterministic fuzz
+  targets for lookup framing, Omnia framing and manifest encoding.
+
 ### Added
 
 - **`@totemsdk/minima-rpc` 0.5.0 — full 132-command metadata:** known commands
