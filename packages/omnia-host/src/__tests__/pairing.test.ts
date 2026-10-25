@@ -94,6 +94,20 @@ describe('pairing HTTP server', () => {
       const info = await (await fetch(`${base}/pair/v1/info?code=${encodeURIComponent(invitation.code)}`)).json() as { nodeId: string };
       expect(info.nodeId).toBe(service.nodeId);
 
+      const detected = await (await fetch(`${base}/pair/v1/detect`, {
+        method: 'POST',
+        headers: { origin: 'chrome-extension://abc' },
+      })).json() as { code: string; nodeId: string; endpoint: string };
+      expect(detected.code).toBeTruthy();
+      expect(detected.nodeId).toBe(service.nodeId);
+      expect(detected.endpoint).toContain('127.0.0.1');
+
+      const blocked = await fetch(`${base}/pair/v1/detect`, {
+        method: 'POST',
+        headers: { origin: 'https://evil.example' },
+      });
+      expect(blocked.status).toBe(403);
+
       const completed = await (await fetch(`${base}/pair/v1/complete`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
