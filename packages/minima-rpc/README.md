@@ -26,6 +26,11 @@ npm install @totemsdk/minima-rpc
 | `txnCreate(id)` / `txnInput` / `txnOutput` / `txnState` / `txnScript` / `txnSign` / `txnPost` / `txnMine` | Full transaction builder |
 | `runCommand(cmd, params?)` | Raw command escape hatch |
 
+`runCommand` knows the full 132-command node surface: known commands validate
+required/unknown parameters and enums, coerce booleans/numbers/JSON values, and
+emit the node's parameter order. Unknown commands retain an explicit passthrough
+path.
+
 Errors are typed as `MinimaRpcError`.
 
 ## Usage

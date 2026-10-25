@@ -1,4 +1,9 @@
 import { buildCommandString, postCommand } from '../transport';
+import {
+  MINIMA_COMMAND_NAMES,
+  MINIMA_COMMAND_PARAMS,
+  type MinimaCommandParam,
+} from '../commands.generated';
 import { createMinimaRpcClient } from '../client';
 import { MinimaRpcError } from '../types';
 import { postCommandRaw, isRawHttpAvailable } from '../raw-http';
@@ -118,7 +123,69 @@ describe('buildCommandString', () => {
       buildCommandString('debuglogs', { level: 'verbose extra' }),
     ).toThrow(MinimaRpcError);
   });
+
+  it('covers the full generated node command set (132 commands)', () => {
+    expect(MINIMA_COMMAND_NAMES).toHaveLength(132);
+    for (const name of MINIMA_COMMAND_NAMES) {
+      const specs = MINIMA_COMMAND_PARAMS[
+        name as keyof typeof MINIMA_COMMAND_PARAMS
+      ] as readonly MinimaCommandParam[];
+      const params: Record<string, unknown> = {};
+      for (const spec of specs) {
+        if (!spec.required) continue;
+        params[spec.name] = spec.enum?.[0] ?? sampleValue(spec.type);
+      }
+      const command = buildCommandString(name, params);
+      expect(command.split(' ')[0]).toBe(name);
+    }
+  });
+
+  it('builds MASH and newer commands with schema order and coercion', () => {
+    expect(
+      buildCommandString('mashnewaddress', {
+        mode: 'wallet',
+        state: '0xabc',
+        trackall: true,
+      }),
+    ).toBe('mashnewaddress mode:wallet state:0xabc trackall:true');
+    expect(buildCommandString('txnaddamount', { id: 'tx1', amount: 1000 })).toBe(
+      'txnaddamount id:tx1 amount:1000',
+    );
+    expect(buildCommandString('mashaddressinfo', { address: 'Mx123' })).toBe(
+      'mashaddressinfo address:Mx123',
+    );
+  });
+
+  it('rejects missing, unknown and invalid enum params for known commands', () => {
+    expect(() => buildCommandString('mashaddressinfo')).toThrow(/Missing required parameter address/);
+    expect(() => buildCommandString('mashnewaddress', { nope: 'x' })).toThrow(
+      /Unknown parameter nope/,
+    );
+    expect(() => buildCommandString('mashnewaddress', { mode: 'invalid' })).toThrow(
+      /must be one of wallet, committed-owner-v1/,
+    );
+  });
+
+  it('allows a multi-KB TxPoW data payload', () => {
+    const data = `0x${'ab'.repeat(4096)}`;
+    expect(buildCommandString('txnminepost', { data })).toBe(`txnminepost data:${data}`);
+  });
 });
+
+function sampleValue(type: string): unknown {
+  switch (type) {
+    case 'boolean':
+      return true;
+    case 'number':
+      return 1;
+    case 'object':
+      return { ok: true };
+    case 'array':
+      return ['x'];
+    default:
+      return 'x';
+  }
+}
 
 describe('createMinimaRpcClient — fetch mocking', () => {
   const config = { host: '127.0.0.1', port: 9005, password: 'testpw' };

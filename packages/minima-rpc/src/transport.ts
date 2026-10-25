@@ -16,6 +16,10 @@
 import type { MinimaRpcConfig, MinimaEnvelope } from './types.js';
 import { MinimaRpcError } from './types.js';
 import { postCommandRaw, isRawHttpAvailable } from './raw-http.js';
+import {
+  MINIMA_COMMAND_PARAMS,
+  type MinimaCommandParam,
+} from './commands.generated.js';
 
 function buildUrl(config: MinimaRpcConfig): string {
   const scheme = config.ssl === false ? 'http' : 'https';
@@ -57,6 +61,88 @@ function sanitizeRpcValue(value: unknown, paramName: string): string {
  */
 function pushParam(parts: string[], name: string, value: unknown): void {
   parts.push(`${name}:${sanitizeRpcValue(value, name)}`);
+}
+
+function commandSchema(method: string): readonly MinimaCommandParam[] | undefined {
+  return (MINIMA_COMMAND_PARAMS as Record<string, readonly MinimaCommandParam[]>)[method];
+}
+
+function coerceParamValue(value: unknown, spec: MinimaCommandParam, method: string): string {
+  let coerced: string;
+
+  switch (spec.type) {
+    case 'boolean':
+      if (value === true || value === 'true') coerced = 'true';
+      else if (value === false || value === 'false') coerced = 'false';
+      else {
+        throw new MinimaRpcError(
+          `Parameter ${spec.name} must be true or false for ${method}`,
+          method,
+        );
+      }
+      break;
+    case 'number':
+      if (typeof value === 'number' && !Number.isFinite(value)) {
+        throw new MinimaRpcError(`Parameter ${spec.name} must be a finite number`, method);
+      }
+      coerced = String(value);
+      if (!/^-?\d+(?:\.\d+)?$/.test(coerced)) {
+        throw new MinimaRpcError(`Parameter ${spec.name} must be numeric for ${method}`, method);
+      }
+      break;
+    case 'object':
+    case 'array': {
+      let encoded: string | undefined;
+      try {
+        encoded = JSON.stringify(value);
+      } catch {
+        encoded = undefined;
+      }
+      if (encoded === undefined) {
+        throw new MinimaRpcError(`Parameter ${spec.name} must be serializable`, method);
+      }
+      coerced = encoded;
+      break;
+    }
+    default:
+      coerced = String(value);
+      break;
+  }
+
+  if (spec.enum && !spec.enum.includes(coerced)) {
+    throw new MinimaRpcError(
+      `Parameter ${spec.name} must be one of ${spec.enum.join(', ')} for ${method}`,
+      method,
+    );
+  }
+  return coerced;
+}
+
+function buildKnownCommand(
+  method: string,
+  params: Record<string, unknown> | undefined,
+  schema: readonly MinimaCommandParam[],
+): string {
+  const supplied = params ?? {};
+  const known = new Set(schema.map((param) => param.name));
+  for (const key of Object.keys(supplied)) {
+    if (!known.has(key)) {
+      throw new MinimaRpcError(`Unknown parameter ${key} for ${method}`, method);
+    }
+  }
+
+  const parts = [method];
+  for (const spec of schema) {
+    const value = supplied[spec.name];
+    if (value === undefined || value === null) {
+      if (spec.required) {
+        throw new MinimaRpcError(`Missing required parameter ${spec.name} for ${method}`, method);
+      }
+      continue;
+    }
+    pushParam(parts, spec.name, coerceParamValue(value, spec, method));
+  }
+  return parts.join(' ');
 }
 
 function buildAuthHeader(config: MinimaRpcConfig): string {
@@ -144,6 +230,14 @@ export function buildCommandString(
     case 'getaddress':
       return 'getaddress';
 
+    case 'newaddress': {
+      const parts = ['newaddress'];
+      // The node's capability manifest does not list this optional modifier,
+      // but the SDK's deterministic-address probe uses it.
+      if (p.modifier !== undefined) pushParam(parts, 'modifier', p.modifier);
+      return parts.join(' ');
+    }
+
     case 'megammr':
       return 'megammr';
 
@@ -163,7 +257,7 @@ export function buildCommandString(
 
     case 'webhooks': {
       const parts = ['webhooks'];
-      pushParam(parts, 'action', p.action);
+      if (p.action !== undefined) pushParam(parts, 'action', p.action);
       if (p.hook !== undefined) pushParam(parts, 'hook', p.hook);
       if (p.filter !== undefined) pushParam(parts, 'filter', p.filter);
       return parts.join(' ');
@@ -365,6 +459,8 @@ export function buildCommandString(
           method,
         );
       }
+      const schema = commandSchema(method);
+      if (schema) return buildKnownCommand(method, params, schema);
       if (!params || Object.keys(params).length === 0) {
         return method;
       }

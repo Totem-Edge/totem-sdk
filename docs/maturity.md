@@ -59,7 +59,7 @@ Total: **67** publishable packages + **6** excluded entries = **73** workspace e
 | `@totemsdk/agent-policy` | 0.3.1 | rc | 2 | `packages/agent-policy` |
 | `@totemsdk/chain-provider` | 0.3.0 | rc | 2 | `packages/chain-provider` |
 | `@totemsdk/liquidity-bond` | 0.3.1 | rc | 2 | `packages/liquidity-bond` |
-| `@totemsdk/minima-rpc` | 0.4.0 | rc | 2 | `packages/minima-rpc` |
+| `@totemsdk/minima-rpc` | 0.5.0 | rc | 2 | `packages/minima-rpc` |
 | `@totemsdk/omnia-factory` | 0.7.0 | rc | 2 | `packages/omnia-factory` |
 | `@totemsdk/omnia-pool` | 0.5.3 | rc | 2 | `packages/omnia-pool` |
 | `@totemsdk/omnia-router` | 0.4.0 | rc | 2 | `packages/omnia-router` |

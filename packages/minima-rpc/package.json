@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/minima-rpc",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Fetch-based Totem/Minima RPC client — Bare/Pear/Node/browser compatible",
   "type": "module",
   "main": "dist/cjs/index.js",

@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`@totemsdk/minima-rpc` 0.5.0 — full 132-command metadata:** known commands
+  now validate required/unknown parameters and enums, coerce
+  booleans/numbers/JSON values, and emit the node's parameter order. Added the
+  generated command metadata and regeneration script. The old 1024-char value cap
+  is replaced by the 10 MB node-body limit while keeping whitespace/control
+  rejection, so full TxPoW payloads are accepted. `newaddress modifier:` remains
+  an explicit SDK extension.
+
 - **`@totemsdk/lookup-node` 0.3.0 — durable session tickets:** ticket state now
   persists in SQLite (`totem_lookup_ticket:v1:*`) and is restored on startup.
   The per-ticket `seq` watermark, request budget and revocation survive a node
