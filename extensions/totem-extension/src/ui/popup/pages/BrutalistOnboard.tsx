@@ -10,6 +10,7 @@ import { Card, Typography, Button, BIP39AutocompleteInput, isValidBIP39Word } fr
 import { BrutalistNotification } from '../components/BrutalistNotification';
 import { TotemEagleMark } from '../../assets';
 import { isDesignerMode } from '../../../config/constants';
+import { detectHawkPairing, storeHawkInvitation, type HawkInvitation } from '../../../core/providers/hawkDetection';
 import '../../theme/axia-tokens.css';
 
 type OnboardStep = 'welcome' | 'display-phrase' | 'confirm-phrase' | 'enter-phrase' | 'password' | 'loading';
@@ -30,6 +31,8 @@ export function BrutalistOnboard({ onDone }: BrutalistOnboardProps) {
   const [baseSeed, setBaseSeed] = useState<number[]>([]);
   const [error, setError] = useState<{ title: string; message: string } | null>(null);
   const [verificationWords, setVerificationWords] = useState<Record<number, string>>({});
+  const [hawkInvitation, setHawkInvitation] = useState<HawkInvitation | null>(null);
+  const [hawkBusy, setHawkBusy] = useState(false);
   
   // Random verification indices (generated once when entering confirm step)
   const [verificationIndices, setVerificationIndices] = useState<number[]>([]);
@@ -113,6 +116,34 @@ export function BrutalistOnboard({ onDone }: BrutalistOnboardProps) {
   useEffect(() => {
     console.log('[BrutalistOnboard] Mnemonic validation - wordCount:', mnemonic ? mnemonic.split(' ').length : 0, 'valid:', isValidMnemonic);
   }, [mnemonic, isValidMnemonic]);
+
+  // First-run detection: pair the local Hawk backend before the wallet seed exists.
+  useEffect(() => {
+    if (typeof chrome === 'undefined' || !chrome?.storage?.local) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const existing = await chrome.storage.local.get('self_hosted_pairing');
+        if (existing?.self_hosted_pairing) return;
+        const invitation = await detectHawkPairing();
+        if (!cancelled) setHawkInvitation(invitation);
+      } catch {
+        // No local Hawk is a normal first-run path.
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const handlePairHawk = async () => {
+    if (!hawkInvitation) return;
+    setHawkBusy(true);
+    try {
+      await storeHawkInvitation(hawkInvitation);
+      chrome.tabs.create({ url: chrome.runtime.getURL('approval/pairing.html?detected=1') });
+    } finally {
+      setHawkBusy(false);
+    }
+  };
 
   // Start CREATE flow
   const handleCreateWallet = () => {
@@ -201,7 +232,14 @@ export function BrutalistOnboard({ onDone }: BrutalistOnboardProps) {
       <div style={{ width: '100%', maxWidth: '380px', paddingBottom: 'var(--space-3)' }}>
         {/* STEP 1: WELCOME */}
         {step === 'welcome' && (
-          <WelcomeStep onCreateWallet={handleCreateWallet} onImportWallet={handleImportWallet} />
+          <WelcomeStep
+            onCreateWallet={handleCreateWallet}
+            onImportWallet={handleImportWallet}
+            hawkInvitation={hawkInvitation}
+            hawkBusy={hawkBusy}
+            onPairHawk={handlePairHawk}
+            onDismissHawk={() => setHawkInvitation(null)}
+          />
         )}
 
         {/* STEP 2: DISPLAY PHRASE (CREATE MODE) */}
@@ -272,7 +310,21 @@ export function BrutalistOnboard({ onDone }: BrutalistOnboardProps) {
 
 // ========== STEP COMPONENTS ==========
 
-function WelcomeStep({ onCreateWallet, onImportWallet }: { onCreateWallet: () => void; onImportWallet: () => void }) {
+function WelcomeStep({
+  onCreateWallet,
+  onImportWallet,
+  hawkInvitation,
+  hawkBusy,
+  onPairHawk,
+  onDismissHawk,
+}: {
+  onCreateWallet: () => void;
+  onImportWallet: () => void;
+  hawkInvitation: HawkInvitation | null;
+  hawkBusy: boolean;
+  onPairHawk: () => void;
+  onDismissHawk: () => void;
+}) {
   return (
     <div style={{
       display: 'flex',
@@ -302,6 +354,28 @@ function WelcomeStep({ onCreateWallet, onImportWallet }: { onCreateWallet: () =>
           Quantum-Resistant Self-Custody
         </Typography>
       </div>
+
+      {hawkInvitation && (
+        <Card style={{ marginBottom: 'var(--space-2)', padding: 'var(--space-1-5)', borderColor: 'var(--accent-primary)' }}>
+          <Typography variant="caption" bold color="accent" uppercase style={{ display: 'block', marginBottom: '4px' }}>
+            HAWK DETECTED
+          </Typography>
+          <Typography variant="caption" color="muted" style={{ display: 'block', marginBottom: '4px' }}>
+            {hawkInvitation.endpoint} · node {hawkInvitation.nodeId}
+          </Typography>
+          <Typography variant="caption" color="muted" style={{ display: 'block', marginBottom: 'var(--space-1)' }}>
+            Pair this node as your backend. Your extension wallet keeps its own recovery phrase.
+          </Typography>
+          <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
+            <Button variant="primary" onClick={onPairHawk} disabled={hawkBusy} style={{ flex: 1 }}>
+              {hawkBusy ? 'OPENING…' : 'PAIR NOW'}
+            </Button>
+            <Button variant="secondary" onClick={onDismissHawk} style={{ flex: 1 }}>
+              NOT NOW
+            </Button>
+          </div>
+        </Card>
+      )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', width: '100%' }}>
         <Button variant="primary" size="lg" fullWidth onClick={onCreateWallet}>

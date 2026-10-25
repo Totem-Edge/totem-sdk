@@ -19,7 +19,9 @@
     "https://rpc.axia.to/*",
     "https://telemetry.axia.to/*",
     "wss://api.axia.to/*",
-    "wss://rpc.axia.to/*"
+    "wss://rpc.axia.to/*",
+    "http://127.0.0.1:7789/*",
+    "http://localhost:7789/*"
   ],
 
   "optional_host_permissions": [

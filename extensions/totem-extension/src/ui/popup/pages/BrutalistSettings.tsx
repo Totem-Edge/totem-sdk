@@ -22,6 +22,7 @@ import {
   type WalletKeyValueStore,
 } from '../../../core/config/selfHosted';
 import { getPQStatusMessage, browserSupportsPQ } from '../../../utils/pqDetection';
+import { detectHawkPairing, storeHawkInvitation } from '../../../core/providers/hawkDetection';
 import { useTheme } from '../../theme/useTheme';
 import { useAnnouncements } from '../../hooks/useAnnouncements';
 import { ConnectedSites } from './ConnectedSites';
@@ -199,6 +200,21 @@ export function BrutalistSettings({ onAccountsUpdated }: BrutalistSettingsProps 
       setSelfHostedStatus(`Connected — block ${tip.block}`);
     } catch (e) {
       setSelfHostedStatus(`Failed: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setSelfHostedBusy(false);
+    }
+  }
+
+  async function handleDetectHawk() {
+    setSelfHostedBusy(true);
+    setSelfHostedStatus('Searching for a local Hawk node…');
+    try {
+      const invitation = await detectHawkPairing();
+      await storeHawkInvitation(invitation);
+      setSelfHostedStatus(`Hawk detected at ${invitation.endpoint}. Review the fingerprint to pair.`);
+      chrome.tabs.create({ url: chrome.runtime.getURL('approval/pairing.html?detected=1') });
+    } catch (e) {
+      setSelfHostedStatus(`No local Hawk found. Start the node pairing service on 127.0.0.1:7789. (${e instanceof Error ? e.message : String(e)})`);
     } finally {
       setSelfHostedBusy(false);
     }
@@ -1111,6 +1127,16 @@ export function BrutalistSettings({ onAccountsUpdated }: BrutalistSettingsProps 
                   {selfHostedStatus}
                 </Typography>
               )}
+
+              <Button
+                variant="primary"
+                fullWidth
+                onClick={handleDetectHawk}
+                disabled={selfHostedBusy}
+                style={{ marginBottom: 'var(--space-1)' }}
+              >
+                {selfHostedBusy ? 'SEARCHING…' : 'DETECT HAWK'}
+              </Button>
 
               <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
                 <Button
