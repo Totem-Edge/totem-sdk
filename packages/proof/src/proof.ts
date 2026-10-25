@@ -12,7 +12,6 @@ import { sha3_256, scriptFromWotsPk, scriptToAddress } from '@totemsdk/core';
 import {
   wotsSign,
   wotsKeypairFromSeed,
-  wotsAddressFromKeypair,
   wotsVerifyDigest,
   hexToBytes,
   bytesToHex,
@@ -172,7 +171,14 @@ export function verifyProofIdIntegrity(signedProof: SignedProof): boolean {
  * from setting a privileged address while signing with a different key.
  */
 export function verifyProofSignature(signedProof: SignedProof): boolean {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  if (
+    !signedProof ||
+    typeof signedProof !== 'object' ||
+    !signedProof.signature ||
+    typeof signedProof.signature !== 'object'
+  ) {
+    return false;
+  }
   const { signature, anchor: _anchor, rootIdentityProof: _rootIdentityProof, ...unsignedProof } = signedProof;
 
   // Address/public-key binding check:
@@ -239,6 +245,9 @@ export function verifyProof(
   signedProof: SignedProof,
   options?: { graceMs?: number; now?: number },
 ): ProofVerifyResult {
+  if (!signedProof || typeof signedProof !== 'object') {
+    return { valid: false, reason: 'not a proof object' };
+  }
   const sig = (signedProof as unknown as Record<string, unknown>).signature;
   if (!sig || typeof sig !== 'object') {
     return { valid: false, reason: 'missing signature block' };

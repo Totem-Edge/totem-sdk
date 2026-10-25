@@ -1074,7 +1074,7 @@
     },
     {
       "name": "@totemsdk/proof",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "description": "Portable proof layer — create, sign, verify, and anchor WOTS-signed proof envelopes on Minima",
       "domain": "verifiable-claims",
       "keywords": [

@@ -1,6 +1,6 @@
 # Fuzz and Property Targets
 
-**Status:** Phase 1 B3 — initial wire/encoding targets landed
+**Status:** Phase 1 B3 — wire, VM, proof and ticket targets landed
 **Owner:** Totem SDK maintainers
 **Related:** [threat-model.md](threat-model.md), [crypto-policy.md](crypto-policy.md),
 [RFC-063](../rfc/RFC-063-PRODUCTION-READINESS-AND-MATURITY-PROMOTION.md)
@@ -18,6 +18,9 @@ They run inside the normal package test suites.
 | Lookup framing | `packages/lookup-protocol/src/__tests__/framing-fuzz.test.ts` | Encode→decode preserves a generated message; arbitrary/truncated bytes return `FramingError` or a structurally valid message; non-object JSON is rejected; oversized lengths are rejected before body allocation |
 | Omnia framing | `packages/omnia/src/__tests__/framing-fuzz.test.ts` | Encode→decode preserves bigint/`Uint8Array` payloads; every split point reassembles; arbitrary bytes return `FramingError` or a structurally valid message; non-message JSON is rejected |
 | Manifest encoding | `packages/manifest/src/__tests__/encoding-fuzz.test.ts` | Encode→decode preserves the signed manifest; arbitrary bytes return a controlled `Error`, never `TypeError`/`RangeError`; null/primitive JSON is rejected; invalid signature hex is rejected before encoding |
+| KISSVM parser/evaluator | `packages/kissvm/src/__tests__/parser-eval-fuzz.test.ts` | Random source parses or throws a controlled error; generated scripts return an EvalResult or `KissvmLimitError`; no host exception escapes |
+| Proof verification | `packages/proof/src/__tests__/verify-fuzz.test.ts` | Semantic mutations of a valid WOTS proof are rejected; malformed values return `{valid:false}` without throwing |
+| Lookup ticket sequences | `packages/lookup-node/src/__tests__/ticket-fuzz.test.ts` | Random seq/budget/revoke sequences match the ticket model across SQLite reopen |
 
 Run:
 
@@ -51,16 +54,15 @@ These are required to close B3, but are not implemented yet:
 
 | Target | Package(s) | Invariant |
 |---|---|---|
-| KISSVM lexer/parser | `kissvm` | Arbitrary token streams either parse or throw `KissvmParseError`; no `TypeError`/`RangeError` escapes |
-| KISSVM evaluator | `kissvm` | Bounded execution, no uncaught host exception, step/op limits enforced |
-| Tx builder serialization | `tx-builder`, `core` | Valid object/hex round-trips; malformed bytes fail closed; no silent truncation |
-| Proof/manifest verification | `proof`, `manifest` | Mutated signatures/keys/digests are rejected; no verifier throws an uncontrolled error |
 | Omnia channel transitions | `omnia`, `omnia-host` | Generated valid/invalid sequence transitions preserve conservation and reject replay/rollback |
 | Storage adapters | `storage` | Generated concurrent CAS/reopen sequences do not lose acknowledged updates |
-| Lookup session tickets | `lookup-node` | Generated ticket/seq/reopen sequences preserve budget and replay rejection |
 | Industrial actions | `industrial-action` | Generated policy/envelope boundaries fail closed |
 
-Do not mark B3 complete until these targets exist and run in CI.
+Note: transaction serialization is already covered by the deterministic
+WASM↔TS parity fuzz in
+`packages/core/src/__tests__/serialization-fuzz.parity.test.ts`.
+
+Do not mark B3 complete until the remaining targets exist and run in CI.
 
 ---
 
