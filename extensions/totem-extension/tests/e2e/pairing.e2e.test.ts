@@ -58,4 +58,38 @@ test.describe('RFC-062 Pair Node page', () => {
 
     await page.close();
   });
+
+  test('detects a local Hawk node and starts the review flow', async ({ context, extensionId }) => {
+    const page = await context.newPage();
+    await page.addInitScript(() => {
+      (chrome as any).permissions.request = async () => true;
+    });
+
+    const info = {
+      nodeId: 'hawk-node-1',
+      fingerprint: 'hawk-fp-1',
+      network: 'minima',
+      scopes: ['chain.read', 'chain.submit', 'p2p.pubsub'],
+      capabilities: { chain: { rpcUrl: 'http://127.0.0.1:9005', network: 'minima' } },
+      expiresAt: Date.now() + 60_000,
+    };
+    const invitation = { ...info, endpoint: 'http://127.0.0.1:7789', code: 'detected-code' };
+
+    await page.route('http://127.0.0.1:7789/**', async (route) => {
+      const url = route.request().url();
+      if (url.endsWith('/healthz')) return route.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true}' });
+      if (url.endsWith('/pair/v1/detect')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(invitation) });
+      if (url.includes('/pair/v1/info')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(info) });
+      return route.fulfill({ status: 404, body: '{}' });
+    });
+
+    await page.goto(`chrome-extension://${extensionId}/approval/pairing.html`);
+    await page.getByRole('button', { name: /DETECT HAWK/i }).click();
+
+    await expect(page.locator('#endpoint')).toHaveValue('http://127.0.0.1:7789');
+    await expect(page.locator('#code')).toHaveValue('detected-code');
+    await expect(page.locator('#fingerprint')).toHaveText(info.fingerprint);
+    await expect(page.locator('#status')).toContainText(/Hawk detected/i);
+    await page.close();
+  });
 });

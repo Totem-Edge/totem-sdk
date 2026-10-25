@@ -37,9 +37,7 @@ async function requestHostPermission(endpoint) {
   }
 }
 
-$('lookup').addEventListener('click', async () => {
-  const endpoint = endpointEl.value.trim().replace(/\/$/, '');
-  const code = codeEl.value.trim();
+async function reviewNode(endpoint, code) {
   if (!endpoint || !code) {
     setStatus('Enter both the node endpoint and the pairing code.');
     return;
@@ -65,7 +63,58 @@ $('lookup').addEventListener('click', async () => {
     confirmBtn.style.display = 'none';
     setStatus(error instanceof Error ? error.message : String(error));
   }
+}
+
+$('lookup').addEventListener('click', () => {
+  reviewNode(endpointEl.value.trim().replace(/\/$/, ''), codeEl.value.trim());
 });
+
+async function detectHawk() {
+  setStatus('Searching for a local Hawk node…');
+  card.style.display = 'none';
+  confirmBtn.style.display = 'none';
+  const candidates = ['http://127.0.0.1:7789', 'http://localhost:7789'];
+  for (const base of candidates) {
+    try {
+      const health = await fetch(`${base}/healthz`, { cache: 'no-store' });
+      if (!health.ok) continue;
+      const payload = await health.json().catch(() => null);
+      if (!payload || payload.ok !== true) continue;
+      const response = await fetch(`${base}/pair/v1/detect`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: '{}',
+        cache: 'no-store',
+      });
+      const body = await response.json().catch(() => null);
+      if (!response.ok || !body?.code) continue;
+      endpointEl.value = base;
+      codeEl.value = body.code;
+      await reviewNode(base, body.code);
+      setStatus(`Hawk detected at ${base}. Review the fingerprint, then confirm.`);
+      return;
+    } catch {
+      // Try the next loopback candidate.
+    }
+  }
+  setStatus('No local Hawk pairing service found on 127.0.0.1:7789. Start the node pair service first.');
+}
+
+$('detect').addEventListener('click', detectHawk);
+
+(async () => {
+  if (typeof chrome === 'undefined' || !chrome?.storage?.local) return;
+  const stored = await chrome.storage.local.get('hawk_pairing_invitation');
+  const found = stored?.hawk_pairing_invitation;
+  if (found?.endpoint && found?.code) {
+    await chrome.storage.local.remove('hawk_pairing_invitation');
+    endpointEl.value = found.endpoint;
+    codeEl.value = found.code;
+    await reviewNode(found.endpoint, found.code);
+  } else if (new URLSearchParams(location.search).has('detected')) {
+    await detectHawk();
+  }
+})();
 
 confirmBtn.addEventListener('click', async () => {
   if (!invitation || !nodeInfo) return;
