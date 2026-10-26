@@ -59,16 +59,17 @@ the browser-safe main entry is unchanged (commit `caa53fb`).
 `totem_omniaOpenChannel` → `{ success: true, channelId: 0x5e01a466…,
 fundingTxId: 00000fad… }`, channel status `opening`, balances 1M/1M.
 
-## omnia — counterparty proposal handling  *(OPEN)*
+## omnia — counterparty proposal handling  *(FIXED — verify live)*
 
-Opening a channel funds it on the opener (A) and A `pub`s a `CHANNEL_PROPOSAL`,
-but the counterparty (B) does **not** register it (`totem_omniaGetChannels` → `[]`
-on B). The accept/listen path for the receiving party is missing or not wired in
-`omnia-host`.
+The receiving side is now wired in `@totemsdk/omnia`: `listenForChannels`
+dispatches `CHANNEL_PROPOSAL` to `_handleChannelProposal`, which calls
+`acceptChannel`, stores the channel and sends the ACK
+(`packages/omnia/src/integration.ts`). Later increments also bind peers on first
+contact so virtual/factory proposals are not missed.
 
-**Task:** wire the counterparty side — `listenForChannels` → accept →
-`context.channels.set(...)` — so both nodes show the channel, then `pay`/`settle`
-end-to-end. Fix in the SDK, not by special-casing `omnia-host`.
+**Remaining:** confirm the two-node `open → pay → settle` flow against a live
+hawk node (the cross-host scripts are the place for it) and close this item; do
+not reintroduce an `omnia-host` special case.
 
 ---
 
@@ -95,3 +96,26 @@ if similar defects recur, fix them in the node, not with an SDK fallback.
 - **Document** the required config: `OMNIA_LOCAL_PUBKEY` / `OMNIA_LOCAL_PARTY_ID`
   / `OMNIA_LOCAL_ADDRESS_INDEX` (mutations fail without them) and `operationId`
   on every mutation.
+
+---
+
+## Verification harness — package-scoped tests  *(use these commands)*
+
+Workspace packages publish `dist/`, which is gitignored. A root `pnpm -r build`
+or a single root Jest config therefore either rebuilds everything (including
+nondeterministic WASM) or fails to resolve siblings on a fresh checkout. The
+supported path is dependency-scoped:
+
+```bash
+pnpm install --frozen-lockfile
+pnpm --config.verify-deps-before-run=false --filter "@totemsdk/<pkg>..." run build
+pnpm --config.verify-deps-before-run=false --filter @totemsdk/<pkg> test
+```
+
+- Root `jest.config.js` is now an aggregator over `packages/*/jest.config.*`; it
+  is a convenience runner, not the verification gate.
+- Hidden/additional tests must live under the target package's `src/__tests__/`
+  (or `src/**/*.test.ts`) so that package's transform, `moduleNameMapper` and
+  `paths` apply.
+- `omnia-host` maps its direct workspace deps to source; a fully build-free run
+  still needs dependency `dist/` for transitive subpath imports.

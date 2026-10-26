@@ -1,7 +1,7 @@
 # RFC coherence audit — incomplete and unstarted RFCs (October 2026)
 
-Status: **Audit + status corrections.**
-Snapshot: 2026-10-20, `main` at `4a011934`.
+Status: **Audit + status corrections** (re-checked 2026-10-26 — see §6).
+Snapshot: 2026-10-20, `main` at `4a011934`; addendum snapshot `ba85f8b4`.
 Scope: every RFC whose status is Draft, In progress, partial, authorised-but-not-started, or
 `Phase N` incomplete.
 
@@ -206,3 +206,50 @@ For incomplete RFCs, use one of:
 
 Avoid “Draft — implementation authorised” without saying whether work has started; readers
 and investors will read it as delivered.
+
+---
+
+## 6. Addendum — 2026-10-26 re-check
+
+Snapshot: `main` at `ba85f8b4` (the audit above was taken at `4a011934`). This
+appends corrections; it does not rewrite §§1–5.
+
+### 6.1 Status corrections since the audit
+
+| RFC | Audit view | Now | Evidence |
+|---|---|---|---|
+| RFC-062 | “not started”; labels imply delivery | **Draft — P1 MVP implemented + Amendment A** | `omnia-host/src/pairing.ts`; extension Hawk detection/pairing (`26609a0e`, `cc908742`, `594692e8`) |
+| RFC-061 | “not started” (concurrent) | **Draft — P0 partially implemented**; signer port, custody descriptors and MFA/policy-signer enforcement exist; MCP/direct-node boundary still needs verification | `omnia-host/src/signer-port.ts`, `omnia-host/src/mfa.ts`, `omnia/src/custody.ts` |
+| RFC-057 | “not started” | **Draft — Phase 0 started**: D1/D7/D13 landed; D2–D6, D8–D12 pending; Phases 1–5 not authorised | `RFC-057-PHASE-0-TRACKING.md` |
+| RFC-063 | Phase 0 closeout | **Unchanged**: Phase 0 checklist leaves 2 items open; B1 published, B3 complete, B2/B4–B9 open; Phases 2–4 proposed | RFC-063 §7 |
+| RFC-072 | absent | **Proposed — design only**; no implementation authorised | RFC-072; indexed (72 documents) |
+
+### 6.2 Generated truth checks (2026-10-26)
+
+- `SDK_MANIFEST.json` — 68 entries in sync with `package.json`.
+- `docs/maturity.md` — 73 workspace entries in sync with `scripts/workspace-gates.config.json`.
+- RFC index — 72 documents in sync (includes RFC-072).
+- README/manifest/maturity agree on 67 publishable packages across 9 domains.
+- Root `jest.config.js` now aggregates `packages/*/jest.config.*`; the supported
+  verification path is package-scoped (`pnpm --filter "@totemsdk/<pkg>..." build`
+  then `pnpm --filter @totemsdk/<pkg> test`), documented in `docs/SDK_TODO.md`.
+
+### 6.3 Remaining decisions (updated)
+
+1. **RFC-059 package shape** — still unresolved (`eefi-credit`/`opportunity` vs
+   `manifest`); no package exists.
+2. **RFC-061/062 wording** — no longer “not started”: state the partial
+   implementation and the unverified boundaries explicitly.
+3. **RFC-014-A A3** — still blocked on RFC-015 (not started).
+4. **RFC-019 residual** — post-authorization negotiation acceptance is still open.
+5. **RFC-032 TypeDoc** — regenerated 2026-10-24 (per RFC-032/032-A); remove it
+   from the “needs decision” list and keep it in the release checklist.
+6. **RFC-057** — Phase 0 next slices: D3/D4/D6, then D5, then D2/D10/D11, then
+   D8/D12, then D9; gate is two-process Node **and** Bare tests with no
+   mocked-Hyperbee-only coverage.
+7. **RFC-063** — Phase 0 finish: reconcile config/maturity/npm dist-tags; publish
+   release notes with maturity-aligned tags. Phase 1: B2 (independent audit) and
+   B4–B9 remain.
+8. **Active residuals** — RFC-035 (onion codec/forwarder/capability flips),
+   RFC-038 V4, RFC-031 P5 (`/legacy` removal), RFC-007 Phase 5, RFC-058 KMS/live
+   E2E.
