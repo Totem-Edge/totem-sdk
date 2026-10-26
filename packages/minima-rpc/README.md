@@ -58,11 +58,36 @@ console.log('Block height:', status.block);
 ```typescript
 const txId = 'my-tx-001';
 await rpc.txnCreate(txId);
-await rpc.txnInput(txId, { coinId: '0xABC...', scriptmmr: true });
+await rpc.txnBasics(txId);
+await rpc.txnInput(txId, { coinid: '0xABC...' });
 await rpc.txnOutput(txId, { address: 'MxDEF...', amount: '1.5', tokenid: '0x00' });
 await rpc.txnSign(txId, { privateKey: privateKeyHex });
-const result = await rpc.txnPost(txId, { mine: true });
+const check = await rpc.txnCheck(txId);
+const result = await rpc.txnPost({ id: txId, mine: true });
 console.log('Posted:', result.txpowid);
+```
+
+### Manual transaction discipline
+
+Prepare a transaction **once**:
+
+`txnCreate → txnBasics → txnInput/txnOutput → txnSign → txnCheck → txnPost { id, mine: true }`
+
+Do not pass `auto:true` after manually adding inputs: the node appends coin
+proofs for `auto:true`, and a second `txnpost auto:true` invokes that helper
+again. `txncheck` also does not prove that the subsequent `txnpost` will be
+accepted; verify the returned `txpowid` and confirmation.
+
+For a floating token input, convert the human amount to the token's raw unit
+**once** at the builder boundary:
+
+```typescript
+import { toRawTokenAmount } from '@totemsdk/minima-rpc';
+await rpc.txnInput(txId, {
+  coinid: '0xABC...',
+  tokenid: '0xTOKEN',
+  amount: toRawTokenAmount('1.5', 8),
+});
 ```
 
 ### Error handling

@@ -252,6 +252,12 @@ export interface TxnInputParams {
   id: string;
   coinid?: string;
   address?: string;
+  /**
+   * Raw amount in the token's smallest unit. The generic transport passes this
+   * through unchanged; for a floating token input the node may interpret token
+   * units and convert them in Java. Convert explicitly at a node-aware builder
+   * boundary (`toRawTokenAmount`) rather than relying on implicit conversion.
+   */
   amount?: string;
   tokenid?: string;
   floating?: boolean;

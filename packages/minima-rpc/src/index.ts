@@ -35,3 +35,5 @@ export type {
   MinimaEnvelope,
 } from './types.js';
 export { MinimaRpcError } from './types.js';
+
+export { toRawTokenAmount } from './amounts.js';
