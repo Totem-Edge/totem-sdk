@@ -76,6 +76,7 @@
   "dependencies": {
     "@totemsdk/storage": "workspace:^",
     "@totemsdk/stream-transport": "workspace:^",
+    "@totemsdk/manifest": "workspace:^",
     "@noble/hashes": "^2.2.0"
   },
   "scripts": {

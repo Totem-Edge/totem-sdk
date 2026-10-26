@@ -47,6 +47,7 @@ console.log('Build complete.\n');
 const files = [
   join(__dirname, 'storage.bare.mjs'),
   join(__dirname, 'lifecycle.bare.mjs'),
+  join(__dirname, 'hyperbee.bare.mjs'),
 ];
 
 let failed = 0;

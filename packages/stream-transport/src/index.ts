@@ -636,6 +636,224 @@ export class HyperswarmStreamTransport extends NodeStreamTransport {
   }
 }
 
+// ── SwarmConnectionManager ────────────────────────────────────────────────────
+
+/** Peer info supplied by Hyperswarm's `connection` event. */
+export interface SwarmPeerInfo {
+  publicKey: Uint8Array;
+  topics?: Uint8Array[];
+}
+
+export interface SwarmDiscovery {
+  flushed?(): Promise<unknown>;
+  destroy?(): Promise<unknown> | unknown;
+}
+
+/**
+ * Minimal Hyperswarm surface used by the manager. Tests inject a fake; the
+ * production path dynamically imports `hyperswarm`.
+ */
+export interface SwarmLike {
+  on(event: 'connection', handler: (conn: unknown, info: SwarmPeerInfo) => void): unknown;
+  removeListener?(event: 'connection', handler: (...args: unknown[]) => void): unknown;
+  join(topic: Uint8Array, opts?: { client?: boolean; server?: boolean }): SwarmDiscovery | void;
+  destroy?(): Promise<unknown> | unknown;
+}
+
+export interface SwarmConnectionOptions {
+  client?: boolean;
+  server?: boolean;
+  /** Only accept a connection from this 32-byte public key. */
+  targetPublicKey?: Uint8Array | Buffer | string;
+  /** Default: 15_000 ms. */
+  timeoutMs?: number;
+}
+
+export interface SwarmConnectionManagerOptions {
+  /** Inject a swarm (tests) instead of importing `hyperswarm`. */
+  createSwarm?: () => SwarmLike;
+}
+
+interface SwarmWaiter {
+  topic: Buffer;
+  target?: Buffer;
+  resolve: (transport: HyperswarmStreamTransport) => void;
+  reject: (error: Error) => void;
+  timer: ReturnType<typeof setTimeout>;
+  done: boolean;
+}
+
+interface TopicEntry {
+  buffer: Buffer;
+  opts: { client?: boolean; server?: boolean };
+  discovery: SwarmDiscovery | null;
+}
+
+function toKeyBuffer(value: Uint8Array | Buffer | string): Buffer {
+  if (typeof value === 'string') return Buffer.from(value, 'hex');
+  return Buffer.isBuffer(value) ? value : Buffer.from(value);
+}
+
+function keyEquals(a: Uint8Array | undefined, b: Uint8Array): boolean {
+  if (!a || a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) if (a[i] !== b[i]) return false;
+  return true;
+}
+
+/**
+ * Owns a single Hyperswarm instance and dispatches connections to matching
+ * waits. Fixes the per-call swarm/listener leak, topic cross-talk and
+ * `flush()`-as-readiness defects (RFC-057 D2/D10/D11).
+ */
+export class SwarmConnectionManager {
+  private _swarm: SwarmLike | null = null;
+  private _closed = false;
+  private readonly _waiters = new Set<SwarmWaiter>();
+  private readonly _transports = new Set<HyperswarmStreamTransport>();
+  private readonly _topics = new Map<string, TopicEntry>();
+  private readonly _onConnectionBound = (conn: unknown, info: SwarmPeerInfo): void =>
+    this._onConnection(conn, info);
+
+  constructor(private readonly _options: SwarmConnectionManagerOptions = {}) {}
+
+  private async _getSwarm(): Promise<SwarmLike> {
+    if (this._closed) throw new Error('SwarmConnectionManager: manager is closed');
+    if (this._swarm) return this._swarm;
+    if (this._options.createSwarm) {
+      this._swarm = this._options.createSwarm();
+    } else {
+      const mod = await (import('hyperswarm' as string)) as { default?: new () => SwarmLike };
+      const Ctor = (mod.default ?? mod) as new () => SwarmLike;
+      this._swarm = new Ctor();
+    }
+    this._swarm.on('connection', this._onConnectionBound);
+    return this._swarm;
+  }
+
+  private _matches(waiter: SwarmWaiter, info: SwarmPeerInfo): boolean {
+    if (waiter.target) {
+      return info?.publicKey ? keyEquals(info.publicKey, waiter.target) : false;
+    }
+    if (info?.topics && info.topics.length > 0) {
+      return info.topics.some((topic) => keyEquals(topic, waiter.topic));
+    }
+    // Older Hyperswarm builds omit `topics`; only accept when unambiguous.
+    return this._waiters.size === 1;
+  }
+
+  private _onConnection(conn: unknown, info: SwarmPeerInfo): void {
+    for (const waiter of this._waiters) {
+      if (!this._matches(waiter, info)) continue;
+      this._releaseWaiter(waiter);
+      const transport = new HyperswarmStreamTransport(conn, {
+        publicKey: toKeyBuffer(info.publicKey),
+        topics: info.topics?.map((topic) => toKeyBuffer(topic)),
+      });
+      this._transports.add(transport);
+      transport.onClose(() => this._transports.delete(transport));
+      waiter.resolve(transport);
+      return;
+    }
+    // No waiter owns this connection; do not leak it.
+    const destroy = (conn as { destroy?: () => void } | null)?.destroy;
+    if (typeof destroy === 'function') destroy.call(conn);
+  }
+
+  /** Remove a waiter and release its topic reference. */
+  private _releaseWaiter(waiter: SwarmWaiter, error?: Error, destroyTopic = false): void {
+    if (waiter.done) return;
+    waiter.done = true;
+    clearTimeout(waiter.timer);
+    this._waiters.delete(waiter);
+    if (error) waiter.reject(error);
+
+    if (destroyTopic) {
+      const stillWaiting = [...this._waiters].some((other) => keyEquals(other.topic, waiter.topic));
+      if (!stillWaiting) {
+        const key = waiter.topic.toString('hex');
+        const entry = this._topics.get(key);
+        if (entry) {
+          this._topics.delete(key);
+          void Promise.resolve(entry.discovery?.destroy?.()).catch(() => {});
+        }
+      }
+      if (this._waiters.size === 0 && this._transports.size === 0) {
+        void this._destroySwarm();
+      }
+    }
+  }
+
+  /** Join a topic (once) and wait for the first matching peer connection. */
+  async connect(
+    topic: Uint8Array | Buffer | string,
+    options: SwarmConnectionOptions = {},
+  ): Promise<HyperswarmStreamTransport> {
+    const swarm = await this._getSwarm();
+    const topicBuffer = toKeyBuffer(topic);
+    const key = topicBuffer.toString('hex');
+    const timeoutMs = options.timeoutMs ?? 15_000;
+    const target = options.targetPublicKey === undefined
+      ? undefined
+      : toKeyBuffer(options.targetPublicKey);
+
+    let entry = this._topics.get(key);
+    if (!entry) {
+      const opts = {
+        client: options.client ?? true,
+        server: options.server ?? false,
+      };
+      entry = { buffer: topicBuffer, opts, discovery: swarm.join(topicBuffer, opts) ?? null };
+      this._topics.set(key, entry);
+      // Announcements only; never peer readiness.
+      void Promise.resolve(entry.discovery?.flushed?.()).catch(() => {});
+    }
+
+    return new Promise<HyperswarmStreamTransport>((resolve, reject) => {
+      const waiter: SwarmWaiter = {
+        topic: topicBuffer,
+        target,
+        resolve,
+        reject,
+        done: false,
+        timer: setTimeout(() => {
+          this._releaseWaiter(
+            waiter,
+            new Error(`SwarmConnectionManager: no peers for topic ${key} within ${timeoutMs}ms`),
+            true,
+          );
+        }, timeoutMs),
+      };
+      this._waiters.add(waiter);
+    });
+  }
+
+  private async _destroySwarm(): Promise<void> {
+    const swarm = this._swarm;
+    this._swarm = null;
+    if (!swarm) return;
+    swarm.removeListener?.('connection', this._onConnectionBound as (...args: unknown[]) => void);
+    await Promise.resolve(swarm.destroy?.()).catch(() => {});
+  }
+
+  /** Close every transport, leave joined topics and destroy the swarm. */
+  async close(): Promise<void> {
+    if (this._closed && !this._swarm) return;
+    this._closed = true;
+    for (const waiter of [...this._waiters]) {
+      this._releaseWaiter(waiter, new Error('SwarmConnectionManager: manager closed'));
+    }
+    for (const transport of [...this._transports]) {
+      await transport.close().catch(() => {});
+    }
+    this._transports.clear();
+    for (const entry of this._topics.values()) {
+      await Promise.resolve(entry.discovery?.destroy?.()).catch(() => {});
+    }
+    this._topics.clear();
+    await this._destroySwarm();
+  }
+}
+
 // ── InMemoryTransport (test helper) ───────────────────────────────────────────
 
 /**
@@ -753,39 +971,45 @@ export interface HyperswarmTransportConfig {
   targetPublicKey?: Buffer;
   /** Hyperswarm join options. Default: { server: true, client: true }. */
   joinOpts?: { server?: boolean; client?: boolean };
+  /** Default: 15_000 ms. */
+  timeoutMs?: number;
+  /** Inject a swarm factory (tests). */
+  createSwarm?: () => SwarmLike;
+  /** Reuse a shared manager; the caller owns its lifecycle. */
+  manager?: SwarmConnectionManager;
 }
 
 /**
  * Establishes a Hyperswarm connection and returns IStreamTransport.
  * Dynamically imports `hyperswarm` so the package remains optional at build time.
+ *
+ * The returned transport owns its swarm: `close()` also destroys the swarm and
+ * leaves the joined topic (RFC-057 D11). Pass `manager` to share lifecycle.
  */
 export async function createHyperswarmTransport(
   config: HyperswarmTransportConfig,
 ): Promise<HyperswarmStreamTransport> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const HyperswarmLib = ((await (import('hyperswarm' as string))) as any).default;
-  const swarm = new HyperswarmLib();
-
-  return new Promise<HyperswarmStreamTransport>((resolve, reject) => {
-    swarm.on('connection', (conn: unknown, info: { publicKey: Buffer; topics?: Buffer[] }) => {
-      if (
-        config.targetPublicKey &&
-        !info.publicKey.equals(config.targetPublicKey)
-      ) {
-        return;
-      }
-      const transport = new HyperswarmStreamTransport(conn, info);
-      resolve(transport);
+  const ownsManager = !config.manager;
+  const manager = config.manager ?? new SwarmConnectionManager({ createSwarm: config.createSwarm });
+  try {
+    const transport = await manager.connect(config.topic, {
+      client: config.joinOpts?.client ?? true,
+      server: config.joinOpts?.server ?? true,
+      targetPublicKey: config.targetPublicKey,
+      timeoutMs: config.timeoutMs,
     });
-
-    const discovery = swarm.join(
-      config.topic,
-      config.joinOpts ?? { server: true, client: true },
-    );
-
-    discovery.flushed?.().catch(reject);
-    swarm.flush().catch(reject);
-  });
+    if (ownsManager) {
+      const originalClose = transport.close.bind(transport);
+      transport.close = async () => {
+        await originalClose();
+        await manager.close();
+      };
+    }
+    return transport;
+  } catch (error) {
+    if (ownsManager) await manager.close();
+    throw error;
+  }
 }
 
 // ── Factory: createWebSocketTransport ─────────────────────────────────────────

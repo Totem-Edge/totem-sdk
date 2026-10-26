@@ -1850,6 +1850,9 @@ importers:
       '@noble/hashes':
         specifier: ^2.2.0
         version: 2.2.0
+      '@totemsdk/manifest':
+        specifier: workspace:^
+        version: link:../manifest
       '@totemsdk/storage':
         specifier: workspace:^
         version: link:../storage

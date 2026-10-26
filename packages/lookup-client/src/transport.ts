@@ -13,6 +13,7 @@ import type { LookupMessage } from '@totemsdk/lookup-protocol';
 import type { ITransport, LookupClientConfig } from './types.js';
 import {
   ClosedTransportError,
+  SwarmConnectionManager,
   type DataHandler,
   type CloseHandler,
   type ErrorHandler,
@@ -347,29 +348,22 @@ export async function createHyperswarmTransport(
 ): Promise<ITransport> {
   // ── Primary: Hyperswarm ──────────────────────────────────────────────────
   if (config.hyperswarmTopic) {
+    const manager = new SwarmConnectionManager({ createSwarm: config._swarmFactory });
     try {
-      const { default: Hyperswarm } = await (
-        import('hyperswarm' as string) as Promise<{ default: new () => unknown }>
-      );
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const swarm = new (Hyperswarm as any)();
-      const topicBytes = Buffer.from(config.hyperswarmTopic, 'hex');
-
-      return await new Promise<ITransport>((resolve, reject) => {
-        const timer = setTimeout(
-          () => reject(new Error('Hyperswarm connect timeout (15s)')),
-          15_000,
-        );
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        swarm.on('connection', (conn: any) => {
-          clearTimeout(timer);
-          resolve(new NodeStreamTransport(conn));
-        });
-        swarm.join(topicBytes, { client: true, server: false });
-        swarm.flush().catch(reject);
+      const transport = await manager.connect(config.hyperswarmTopic, {
+        client: true,
+        server: false,
+        timeoutMs: config.timeoutMs ?? 15_000,
       });
+      const originalClose = transport.close.bind(transport);
+      transport.close = async () => {
+        await originalClose();
+        await manager.close();
+      };
+      return transport;
     } catch {
-      // Hyperswarm not installed or connection failed — fall through to WebSocket
+      // Always release the swarm/listeners before falling back.
+      await manager.close().catch(() => {});
       if (!config.nodeUrl) {
         throw new Error(
           `Hyperswarm transport failed and no nodeUrl fallback is configured. ` +

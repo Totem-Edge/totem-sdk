@@ -57,6 +57,11 @@ export interface LookupClientConfig {
   /** RFC-032-A: message types that must always carry a full WOTS envelope. */
   authRequiredTypes?: readonly string[];
   /**
+   * @internal — inject a swarm factory for the Hyperswarm transport (tests).
+   * The factory is used by the shared SwarmConnectionManager.
+   */
+  _swarmFactory?: () => import('@totemsdk/stream-transport').SwarmLike;
+  /**
    * @internal — factory called on every connection attempt (for testing).
    * Bypasses Hyperswarm/HTTP transport creation entirely.
    * When provided, _transport is ignored.
