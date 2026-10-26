@@ -75,11 +75,11 @@
     "jsqr": "^1.4.0",
     "qrcode.react": "^4.2.0",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^19.3.1"
   },
   "overrides": {
     "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0"
+    "@types/react-dom": "^19.3.0"
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",
@@ -88,7 +88,7 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^26.1.2",
     "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0",
+    "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
     "assert": "^2.1.0",
     "autoprefixer": "^10.5.4",
