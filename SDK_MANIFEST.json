@@ -1008,7 +1008,7 @@
     },
     {
       "name": "@totemsdk/omnia-vtxo",
-      "version": "0.6.1",
+      "version": "0.6.2",
       "description": "Virtual UTXO / payment-pool claim layer — cash-like off-chain balance primitive",
       "domain": "payment-network",
       "keywords": [
@@ -1642,7 +1642,7 @@
         "@totemsdk/omnia-pool": "^0.5.3",
         "@totemsdk/omnia-router": "^0.4.0",
         "@totemsdk/omnia-splice": "^0.3.0",
-        "@totemsdk/omnia-vtxo": "^0.6.1",
+        "@totemsdk/omnia-vtxo": "^0.6.2",
         "@totemsdk/p2p-hub": "^0.1.0",
         "@totemsdk/storage": "^0.2.1",
         "@totemsdk/wots-lease": "^1.0.1"
@@ -1776,7 +1776,7 @@
         "@totemsdk/omnia-factory": "^0.7.0",
         "@totemsdk/omnia-router": "^0.4.0",
         "@totemsdk/omnia-splice": "^0.3.0",
-        "@totemsdk/omnia-vtxo": "^0.6.1",
+        "@totemsdk/omnia-vtxo": "^0.6.2",
         "@totemsdk/storage": "^0.2.1",
         "@totemsdk/tx-builder": "^0.2.1",
         "@totemsdk/wots-lease": "^1.0.1"

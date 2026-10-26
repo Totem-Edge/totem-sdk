@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- **`@totemsdk/omnia-vtxo` 0.6.2 — receipt and exit binding:** the operator
+  co-signature now commits every semantically relevant receipt field
+  (`receiptId`, op, input/output ids, epoch, timestamp, pool and root), and
+  conservation is mandatory and exact for non-mint operations. Added
+  `VtxoExitEntitlement` and `transferVtxoWithExit` so a transferred claim can
+  carry a self-contained, independently verifiable on-chain exit package.
+
 - **B3 verification hardening:** added deterministic parser/evaluator fuzz for
   KISSVM, mutation fuzzing for proof verification, ticket seq/budget property
   tests, storage CAS/reopen properties, Omnia channel-transition boundaries and

@@ -81,18 +81,36 @@ describe('signVtxoReceipt / verifyVtxoReceipt (RFC-038 V0)', () => {
     ).rejects.toThrow(/not a VTXO/);
   });
 
-  it('rejects a conservation violation', async () => {
+  it('requires conservation for a value-changing receipt', async () => {
+    await expect(
+      signVtxoReceipt(operator(), receipt(), { outputs, root, epoch: 1 }),
+    ).rejects.toThrow(/conservation required/);
+  });
+
+  it('requires exact conservation (not just outputs <= inputs)', async () => {
     await expect(
       signVtxoReceipt(operator(), receipt(), { outputs, root, epoch: 1, inputsAmount: 100n }),
     ).rejects.toThrow(/conservation/);
+    await expect(
+      signVtxoReceipt(operator(), receipt(), { outputs, root, epoch: 1, inputsAmount: 400n }),
+    ).rejects.toThrow(/conservation/);
   });
 
-  it('binds receiptId, op, inputIds and timestamp into the signature', async () => {
+  it('allows mint without an inputs amount', async () => {
+    const op = operator();
+    const signed = await signVtxoReceipt(op, receipt({ op: 'mint' }), { outputs, root, epoch: 1 });
+    expect(signed.signature).toBeTruthy();
+  });
+
+  it('binds every semantically relevant field into the signature', async () => {
     const op = operator();
     const signed = await signVtxoReceipt(op, receipt(), { outputs, root, epoch: 1, inputsAmount: 300n });
     expect(await verifyVtxoReceipt(op, { ...signed, receiptId: 'rcpt-other' }, root)).toBe(false);
     expect(await verifyVtxoReceipt(op, { ...signed, op: 'split' }, root)).toBe(false);
     expect(await verifyVtxoReceipt(op, { ...signed, inputIds: ['v-other'] }, root)).toBe(false);
+    expect(await verifyVtxoReceipt(op, { ...signed, outputIds: ['v2'] }, root)).toBe(false);
+    expect(await verifyVtxoReceipt(op, { ...signed, poolId: 'pool-2' }, root)).toBe(false);
+    expect(await verifyVtxoReceipt(op, { ...signed, epoch: 2 }, root)).toBe(false);
     expect(await verifyVtxoReceipt(op, { ...signed, at: signed.at + 1 }, root)).toBe(false);
   });
 

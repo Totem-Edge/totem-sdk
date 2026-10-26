@@ -76,5 +76,6 @@
 | [RFC-070-TOTEM-NAMESPACE-AND-NAME-RESOLUTION.md](RFC-070-TOTEM-NAMESPACE-AND-NAME-RESOLUTION.md) | RFC-070 — Totem Namespace and Name Resolution | Proposed — design only; no implementation authorised |
 | [RFC-071-ANNOUNCEMENT-ENVELOPE-AND-DISCOVERY-CONSOLIDATION.md](RFC-071-ANNOUNCEMENT-ENVELOPE-AND-DISCOVERY-CONSOLIDATION.md) | RFC-071 — Announcement Envelope and Discovery Consolidation | **Draft — Phase 1 implemented.** `@totemsdk/manifest` now exposes the generic |
 | [RFC-072-IDENTITY-VERIFICATION-PROVIDERS.md](RFC-072-IDENTITY-VERIFICATION-PROVIDERS.md) | RFC-072 — Identity Verification Providers: Sumsub and FeatherID | Proposed — design; no implementation authorised |
+| [RFC-073-HAWK-NODE-COMMAND-MAPPING.md](RFC-073-HAWK-NODE-COMMAND-MAPPING.md) | RFC-073 — Hawk Node Command Mapping and Provider Contract | Draft — documents the implemented Hawk-node 1.0.100.0 command surface (132 commands) and the `ChainStateProvider` mapping; the provider-boundary migration remains under RFC-062 Amendment A. |
 
-Total: **72** RFC documents.
+Total: **73** RFC documents.
