@@ -1,6 +1,6 @@
 # RFC-063 — Production Readiness and Maturity Promotion
 
-**Status:** Draft — Phase 0 closeout (tier reconciliation and E1–E4 remain); Phase 1 B1 published and B3 complete, B2/B4–B9 open; Phases 2–4 proposed
+**Status:** Draft — Phase 0 closeout (tier reconciliation and E1–E4 remain); Phase 1 B1, B3, B4 and B6 complete, B5 automated with release-asset attachment outstanding, B2/B7–B9 open; Phases 2–4 proposed
 **Priority:** P0 (public truth) / P1 (security and durability) / P2 (real-world proof)
 **Created:** 2026-10-21
 **Authors:** Totem SDK Contributors
@@ -274,9 +274,9 @@ or hardware labs.
 | B1 | Public threat model: attackers, trust boundaries, key custody, replay/reorg, compromised components | Published 2026-10-25 in `docs/security/threat-model.md` and linked from `SECURITY.md`; external review remains part of B2 |
 | B2 | Independent audit of current core, Omnia, KISSVM, lookup, storage, edge runtime | Audit published and findings triaged |
 | B3 | Fuzz/property tests for wire parsers, tx builder, KISSVM, proofs, channel transitions, adapters | Complete (2026-10-25): lookup/Omnia framing, manifest, KISSVM parser/evaluator, proof mutation, lookup tickets, storage CAS/reopen, Omnia channel transitions and industrial policy boundaries in `docs/security/fuzz-targets.md`; tx serialization is covered by the core parity fuzz |
-| B4 | Key recovery, rotation, lease recovery, compromise, and disaster-recovery runbooks | Tested procedures, not prose only |
-| B5 | SBOM, signed artifacts, dependency/container scanning, reproducible builds | Automated and verifiable |
-| B6 | Vulnerability process: real PGP/key path, severity taxonomy, advisory/CVE process, security changelog | `SECURITY.md` and advisories agree |
+| B4 | Key recovery, rotation, lease recovery, compromise, and disaster-recovery runbooks | **Complete (2026-10-26):** `docs/security/recovery-runbook.md`; executable gate `scripts/verify-recovery-procedures.mjs` (`pnpm verify:recovery`) |
+| B5 | SBOM, signed artifacts, dependency/container scanning, reproducible builds | **Automated (2026-10-26):** `Supply chain` CI job (`pnpm audit --prod --audit-level high`, CycloneDX SBOM per project), patched transitive overrides, npm provenance and WASM hash provenance; residual: attach SBOMs to GitHub releases |
+| B6 | Vulnerability process: real PGP/key path, severity taxonomy, advisory/CVE process, security changelog | **Complete (2026-10-26):** `docs/security/advisory-process.md`, advisory index + template, GitHub private advisory path in `SECURITY.md`; encrypted email on request |
 | B7 | Finish RFC-019 residual and land RFC-021/022/023 | RFCs move out of Draft with tests |
 | B8 | Finish RFC-031 P5 and RFC-007 Phase 5/Phase 4 conformance | No ambiguous dual crypto/storage path |
 | B9 | Policy receipts, simulation/dry-run, and physical-effect enforcement | Enforceable and auditable, not advisory |
