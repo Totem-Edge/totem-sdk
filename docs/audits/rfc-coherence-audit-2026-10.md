@@ -251,8 +251,10 @@ appends corrections; it does not rewrite §§1–5.
    release notes with maturity-aligned tags. Phase 1: B2 (independent audit) and
    B4–B9 remain.
 8. **Active residuals** — RFC-035 (onion codec/forwarder/capability flips),
-   RFC-038 V4, RFC-031 P5 (`/legacy` removal), RFC-007 Phase 5, RFC-058 KMS/live
-   E2E.
+   RFC-038 V4, RFC-031 P5 (`/legacy` removal; needs a core major), RFC-058
+   KMS/live E2E. **RFC-007 Phase 5 is now landed** (accounted purchase authority
+   + recovery-independent availability gate), so only Phase 3a/4 partials
+   remain.
 
 ### 6.4 B7–B9 gap (not completable as a checklist pass)
 
@@ -293,7 +295,8 @@ and the first honest slice for each:
 
 - Industrial receipts exist (`createIndustrialReceipt`/`verifyIndustrialReceipt`,
   RFC-010 P4), and `deriveEffectsFromBuiltTx` derives advisory `StepEffects`.
-  There is no policy-receipt binding of the decision + mandate + executed effect,
-  and no first-class dry-run/simulation result contract. First slice: define a
-  policy receipt that binds decision id, mandate proof, derived effects and
-  outcome; add a dry-run mode that returns the same receipt without broadcasting.
+  **Landed 2026-10-26:** typed `PhysicalEffects` on `StepEffects`, matching
+  `RunLimits.physical` ceilings, and enforcement in `checkRunLimits`
+  (`agent-policy/src/run.ts`, `autonomy.ts`, tests). Still open: binding the
+  effects to the prepared command (RFC-022 P1), policy-receipt binding of
+  decision + mandate + effect, and a first-class dry-run/simulation contract.

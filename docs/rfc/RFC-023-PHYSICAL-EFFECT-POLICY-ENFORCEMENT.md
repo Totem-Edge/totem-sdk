@@ -1,6 +1,6 @@
 # RFC-023: Physical-Effect Policy Enforcement — Extending `StepEffects` to Enforceable Physical Limits
 
-**Status:** Draft — design specification
+**Status:** In progress — typed physical effects + `RunLimits` enforcement landed (2026-10-26); binding to the prepared command (RFC-022 P1) and mandate-constraint exposure remain
 **Created:** 2026-09-30
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]

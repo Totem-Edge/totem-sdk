@@ -1,6 +1,6 @@
 # RFC-063 — Production Readiness and Maturity Promotion
 
-**Status:** Draft — Phase 0 closeout (tier reconciliation and E1–E4 remain); Phase 1 B1, B3, B4 and B6 complete, B5 automated with release-asset attachment outstanding, B2/B7–B9 open; Phases 2–4 proposed
+**Status:** Draft — Phase 0 closeout (tier reconciliation and E1–E4 remain); Phase 1 B1, B3, B4 and B6 complete, B5 automated with release-asset attachment outstanding, B8 partially landed (RFC-007 Phase 5), B2/B7/B9 open; Phases 2–4 proposed
 **Priority:** P0 (public truth) / P1 (security and durability) / P2 (real-world proof)
 **Created:** 2026-10-21
 **Authors:** Totem SDK Contributors
@@ -278,8 +278,8 @@ or hardware labs.
 | B5 | SBOM, signed artifacts, dependency/container scanning, reproducible builds | **Automated (2026-10-26):** `Supply chain` CI job (`pnpm audit --prod --audit-level high`, CycloneDX SBOM per project), patched transitive overrides, npm provenance and WASM hash provenance; residual: attach SBOMs to GitHub releases |
 | B6 | Vulnerability process: real PGP/key path, severity taxonomy, advisory/CVE process, security changelog | **Complete (2026-10-26):** `docs/security/advisory-process.md`, advisory index + template, GitHub private advisory path in `SECURITY.md`; encrypted email on request |
 | B7 | Finish RFC-019 residual and land RFC-021/022/023 | RFCs move out of Draft with tests |
-| B8 | Finish RFC-031 P5 and RFC-007 Phase 5/Phase 4 conformance | No ambiguous dual crypto/storage path |
-| B9 | Policy receipts, simulation/dry-run, and physical-effect enforcement | Enforceable and auditable, not advisory |
+| B8 | Finish RFC-031 P5 and RFC-007 Phase 5/Phase 4 conformance | **RFC-007 Phase 5 landed (2026-10-26):** accounted purchase authority + recovery-independent availability gate. RFC-031 P5 (`@totemsdk/core/legacy`) remains and requires a core major; Phase 4 conformance remains partial |
+| B9 | Policy receipts, simulation/dry-run, and physical-effect enforcement | **Partial (2026-10-26):** typed `PhysicalEffects` + `RunLimits.physical` enforced in `checkRunLimits` with tests; policy receipts, dry-run and prepared-command binding (RFC-022 P1) remain |
 
 ### C. Testing and proof (Phase 1–2)
 

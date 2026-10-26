@@ -1,6 +1,6 @@
 # RFC-007: Storage Consolidation & Durable Guarantees
 
-**Status:** Landing in progress — re-triaged 2026-09-28 (see §1.1). Phases 0–3 landed; Phase 3a and Phase 4 partial; Phase 5 outstanding; Phase 6 is the RFC's own recorded deferral. `@totemsdk/storage` is now adopted by 22 packages.
+**Status:** Landing in progress — re-triaged 2026-09-28 (see §1.1). Phases 0–3 landed; Phase 3a and Phase 4 partial; **Phase 5 landed 2026-10-26** (accounted purchase authority above the backend + recovery-independent recursive-MAST availability gate); Phase 6 is the RFC's own recorded deferral. `@totemsdk/storage` is now adopted by 22 packages.
 **Created:** 2026-09-15
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]
@@ -63,7 +63,7 @@ The earlier "Phase 0 only" reading was wrong: `@totemsdk/storage` is now declare
 
 Gates 1 (reservation survival), 2 (accounting mechanism), 3 (core consumer conformance), 5 (statechain reclaim), and 7 (Phase 3a content gating) were assessed **green**; Phase 3a's provider gate is opt-in composition (not applied by default in `createQvacEdgeIntelligencePort`).
 
-**Verdict.** RFC-007 is substantially landed through Phase 3. Remaining work: Phase 3a content-access enforcement is opt-in; Phase 4 carries the `se-server` volatile-default red risk and mock-only relational conformance; Phase 5 is outstanding; Phase 6 is deferred. The §6 acceptance gates have not been re-run for every surface.
+**Verdict.** RFC-007 is substantially landed through Phase 5. Remaining work: Phase 3a content-access enforcement is opt-in; Phase 4 carries the `se-server` volatile-default red risk and mock-only relational conformance; Phase 6 is deferred. Phase 5 evidence: `edge/src/__tests__/accounted-purchase-authority.test.ts`, `commerce-accounting.test.ts`, and `recursive-mast/src/__tests__/availability-gate.test.ts` (recovery proceeds independently of the content gate).
 
 **Amendment A (A0–A3 landed, 2026-09-28).** A focused amendment — *Edge persistence injection point & evidence-byte ownership* — is tracked in `docs/rfc/RFC-007-AMENDMENT-A-EDGE-PERSISTENCE.md`. It (a) adds two optional `EdgeRuntimePorts` slots (`storage` + `artifacts`) with a neutral `assertPersistence()` no-silent-downgrade gate, (b) makes adapter `failurePolicy` observable so strict consumers can reject lenient adapters before `corrupt` is collapsed into `not-found`, and (c) makes original-byte ownership **mandatory and verified** — captured originals route into the `ArtifactStore`-backed evidence layer and the claim → `contentHash` → `ArtifactRef` binding is enforced, with ProofGraph as the reference consumer, the proof primitives remaining storage-free, and chunked-artifact retention named as a follow-on RFC/phase. Its phases are labelled A0–A3 to avoid colliding with this RFC's Landed Phases 0–3. **A0** (neutral persistence helpers, observable `failurePolicy`, `ArtifactBackendCapabilities.deletable`, two `EdgeRuntimePorts` slots) has landed.
 
