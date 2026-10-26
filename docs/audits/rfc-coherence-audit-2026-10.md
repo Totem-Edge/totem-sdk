@@ -220,7 +220,7 @@ appends corrections; it does not rewrite §§1–5.
 |---|---|---|---|
 | RFC-062 | “not started”; labels imply delivery | **Draft — P1 MVP implemented + Amendment A** | `omnia-host/src/pairing.ts`; extension Hawk detection/pairing (`26609a0e`, `cc908742`, `594692e8`) |
 | RFC-061 | “not started” (concurrent) | **Draft — P0 partially implemented**; signer port, custody descriptors and MFA/policy-signer enforcement exist; MCP/direct-node boundary still needs verification | `omnia-host/src/signer-port.ts`, `omnia-host/src/mfa.ts`, `omnia/src/custody.ts` |
-| RFC-057 | “not started” | **Draft — Phase 0 started**: D1/D7/D13 landed; D2–D6, D8–D12 pending; Phases 1–5 not authorised | `RFC-057-PHASE-0-TRACKING.md` |
+| RFC-057 | “not started” | **Draft — Phase 0 complete (D1–D13)**; real two-process Node tests + Node-proxy Bare suite pass, native Bare environment-gated; Phases 1–5 remain proposed | `RFC-057-PHASE-0-TRACKING.md` |
 | RFC-063 | Phase 0 closeout | **Unchanged**: Phase 0 checklist leaves 2 items open; B1 published, B3 complete, B2/B4–B9 open; Phases 2–4 proposed | RFC-063 §7 |
 | RFC-072 | absent | **Proposed — design only**; no implementation authorised | RFC-072; indexed (72 documents) |
 
@@ -244,9 +244,9 @@ appends corrections; it does not rewrite §§1–5.
 4. **RFC-019 residual** — post-authorization negotiation acceptance is still open.
 5. **RFC-032 TypeDoc** — regenerated 2026-10-24 (per RFC-032/032-A); remove it
    from the “needs decision” list and keep it in the release checklist.
-6. **RFC-057** — Phase 0 next slices: D3/D4/D6, then D5, then D2/D10/D11, then
-   D8/D12, then D9; gate is two-process Node **and** Bare tests with no
-   mocked-Hyperbee-only coverage.
+6. **RFC-057** — Phase 0 is now complete (D1–D13). Remaining is the native-Bare
+   run when a Bare image is available; Phases 1–5 are still proposed and not
+   authorised.
 7. **RFC-063** — Phase 0 finish: reconcile config/maturity/npm dist-tags; publish
    release notes with maturity-aligned tags. Phase 1: B2 (independent audit) and
    B4–B9 remain.
