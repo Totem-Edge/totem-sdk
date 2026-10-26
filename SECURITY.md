@@ -4,9 +4,8 @@
 
 **Do not open a public GitHub issue for security vulnerabilities.**
 
-To report a security vulnerability, please email:
-
-**security@totem.ing**
+Preferred private channel: **[GitHub private vulnerability reporting](https://github.com/Totem-Edge/totem-sdk/security/advisories/new)**.
+If you cannot use GitHub, email **security@totem.ing**.
 
 Include as much detail as possible:
 - A description of the vulnerability
@@ -24,16 +23,25 @@ keys, or exploit details in plaintext.
 
 ## Published Advisories
 
+The authoritative list is [`docs/security/advisories/`](docs/security/advisories/README.md).
+Current entry:
+
 - [Manifest author binding (2026-10)](docs/audits/manifest-author-binding-2026-10.md) —
   fixed in `@totemsdk/manifest` 2.0.2.
 
 ## Disclosure Policy
 
+Severity taxonomy, response targets and the advisory template are defined in
+[the advisory process](docs/security/advisory-process.md).
+
 1. The reporter will be acknowledged within 48 hours
 2. We will investigate and confirm the vulnerability within 5 business days
-3. A fix will be developed and tested
-4. A security advisory will be published on GitHub
+3. A fix will be developed and tested (7/30/90-day targets by severity)
+4. A security advisory will be published on GitHub and added to the advisory index
 5. Credit will be given to the reporter (unless anonymity is requested)
+
+Supply-chain controls (dependency audit, SBOM, provenance, reproducible WASM)
+are documented in [supply-chain evidence](docs/security/supply-chain.md).
 
 ## Supported Versions
 

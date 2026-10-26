@@ -67,6 +67,7 @@
     "validate:wallet-adapter-parity": "node scripts/check-wallet-adapter-parity.mjs",
     "smoke:runtime": "node scripts/runtime-smoke.cjs",
     "smoke:runtime:native": "node scripts/runtime-smoke.cjs --native",
+    "verify:recovery": "node scripts/verify-recovery-procedures.mjs",
     "test:omnia:s4": "node scripts/omnia-s4-cross.mjs",
     "test:omnia:s5": "node scripts/omnia-s5-cross.mjs",
     "test:omnia:s9": "node scripts/omnia-s9-relay.mjs",

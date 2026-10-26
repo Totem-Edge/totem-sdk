@@ -4,6 +4,13 @@ packages:
 
 overrides:
   typescript: 5.9.3
+  # RFC-063 B5 — patched transitive ranges for open high/critical advisories.
+  proxy-addr: '>=2.0.8'
+  fast-uri: '>=3.1.7'
+  body-parser: '>=2.4.0'
+  '@modelcontextprotocol/sdk': '>=1.32.0'
+  zod: '>=4.6.6'
+  react-router: '>=7.18.2'
 
 allowBuilds:
   '@parcel/watcher': true

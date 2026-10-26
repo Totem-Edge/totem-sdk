@@ -144,6 +144,10 @@
 | [security/threat-model.md](security/threat-model.md) | Public threat model: assets, actors, trust boundaries, threat catalogue and residual risks |
 | [security/crypto-policy.md](security/crypto-policy.md) | Cryptographic policy and approved algorithms |
 | [security/fuzz-targets.md](security/fuzz-targets.md) | Deterministic fuzz/property targets and invariants (Phase 1 B3) |
+| [security/recovery-runbook.md](security/recovery-runbook.md) | Tested key/lease recovery, rotation, compromise and disaster-recovery procedures (Phase 1 B4) |
+| [security/supply-chain.md](security/supply-chain.md) | Dependency audit, SBOM, provenance and reproducible-build evidence (Phase 1 B5) |
+| [security/advisory-process.md](security/advisory-process.md) | Private reporting path, severity taxonomy, advisory/CVE lifecycle and security changelog (Phase 1 B6) |
+| [security/advisories/](security/advisories/README.md) | Published security advisories and the advisory template |
 | [developers/extension/security-faq.md](developers/extension/security-faq.md) | Security FAQ for extension developers |
 
 ---
