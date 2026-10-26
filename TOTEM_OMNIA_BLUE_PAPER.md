@@ -70,9 +70,11 @@ Most payment channel networks use a punishment model. If you try to cheat by bro
 
 For a device with 512KB of RAM and intermittent connectivity, this is impossible.
 
-**Eltoo eliminates punishment entirely.** Every channel state carries a monotonically increasing sequence number. The latest state always replaces any earlier one on-chain. No revocation secrets. No watchtower anxiety. No penalty transactions. A soil sensor can go offline for a week during a monsoon, come back, and safely continue operating its channel.
+**Eltoo removes revocation secrets and punishment, but not the need to answer a stale close.** Every channel state carries a monotonically increasing sequence number; the latest co-signed state replaces an earlier one on-chain. There are no revocation secrets and no penalty transaction. However, if one party broadcasts an old state, someone must detect it and get the newer state confirmed before the challenge deadline.
 
-The KISSVM script that enforces this is elegantly simple:
+At the nominal 50-second block interval, the default 256-block window is about **3 hours 33 minutes**. A device that is offline for a week is **not** automatically safe: it needs a counterparty, a delegated monitor/watchtower, or a longer challenge delay (at the cost of slower exits). Without one of those, do not treat the channel as safe after a long offline period. Watchtower coverage (S11) is still pending in the test plan.
+
+The KISSVM script below is illustrative. Executable scripts come from the `@totemsdk/kissvm` builders, which canonicalise identifiers with `toNodeScript`; do not copy uppercase-variable source directly into a node.
 
 ```
 LET SETTLEMENT=STATE(100)
@@ -86,9 +88,9 @@ ELSE
 ENDIF
 ```
 
-**Settlement path:** Both parties agree to close. The sequence must match the previous state (no updates happened after settlement was proposed). A 256-block cooldown gives time for disputes.
+**Settlement path:** Both parties agree to close. The sequence must match the previous state (no updates happened after settlement was proposed). The 256-block cooldown is only useful if someone can detect a stale close and confirm the newer state inside it.
 
-**Update path:** The new sequence is higher than the previous. That's it. The newer state wins. No punishment. No revocation keys. No watchtowers.
+**Update path:** The new sequence is higher than the previous, so the newer state wins on-chain. There is no punishment and no revocation key. This does not remove the liveness requirement: a stale close still has to be answered within the challenge window.
 
 ### 2.2 Channel Lifecycle
 
@@ -104,7 +106,9 @@ open → fund → active → update (repeat) → cooperativeClose | forceClose
 
 **Cooperative close:** Both parties sign a settlement transaction. After a 256-block cooldown, the funds are distributed on-chain according to the final balances.
 
-**Force close:** One party broadcasts the latest signed state unilaterally. The counterparty has the cooldown period to dispute with a newer state.
+**Force close:** One party broadcasts the latest signed state unilaterally. The counterparty (or a delegated watcher) has the cooldown period to broadcast a newer state. If the counterparty is offline for the whole window, the stale state can confirm.
+
+**Challenge-window assumptions.** The 256-block default is a policy parameter, not a guarantee. At 50 seconds per block it is 12,800 seconds (3 h 33 min 20 s). Any change must propagate consistently through the channel scripts, deadline calculations, host configuration and tests; a longer window lowers the monitoring burden but slows every exit.
 
 ### 2.3 HTLCs: Atomic Multi-Hop
 
@@ -268,9 +272,14 @@ mint → active → transfer → active (new owner)
 
 ### 6.3 Why VTXOs Matter for Devices
 
-VTXOs are **pure functional** — transfers don't require live signing from the sender. A device that's intermittently connected can receive VTXOs while offline and verify them when it reconnects. This is critical for:
+VTXO transfers are functional in the sense that the recipient can verify a claim without the sender being online. The recipient still has to distinguish two questions:
 
-- **Vending machines** that receive payments while offline
+- **Delivery:** does the claim exist in a committed pool root? A Merkle proof establishes membership.
+- **Acceptance:** has that claim already been spent elsewhere? A Merkle proof does **not** establish non-spend. A sender can keep an earlier active snapshot and present it to a disconnected receiver; the host's local double-transfer guard only protects receivers that share the same state.
+
+Offline **delivery** is supported. Guaranteed offline **acceptance** needs an additional mechanism: an online/operator spend check, an operator-co-signed or precommitted transfer, or an explicitly risk-bounded policy. This matters for:
+
+- **Vending machines** that dispense before reconciliation (double-spend exposure unless the risk is bounded or checked)
 - **Agricultural sensors** that batch-sell data once a day when connectivity is available
 - **Delivery drones** that receive VTXOs at pickup and verify them at drop-off
 - **Maritime sensors** that operate for weeks without connectivity
@@ -284,8 +293,8 @@ A vending machine operator deploys 500 machines across a city. Each machine hold
 2. Customer presents the €5 VTXO to the machine
 3. Machine verifies the Merkle proof against the pool's commitment root
 4. Machine splits the VTXO: €2 to machine, €3 change back to customer
-5. Both new VTXOs are valid against the pool root
-6. No on-chain transaction. No network connectivity required. Sub-second settlement.
+5. The **new** VTXOs need an authenticated new commitment (or a defined precommitted construction); they do not automatically belong to the previous pool root
+6. No on-chain transaction. No network connectivity is required for **delivery**, but the machine must still decide how to bound the double-spend risk before dispensing.
 
 **End of day:**
 1. Machine has accumulated 200 VTXOs worth €340
@@ -611,7 +620,7 @@ The Omnia Payment Network is private by default. Not because of a privacy add-on
 
 **Layer 1 — Off-chain state updates.** Every channel state update happens off-chain between the two parties. Only cooperative settlement or unilateral force-close touches the Minima blockchain. A channel that runs for a year with 10,000 updates produces one on-chain transaction. The 9,999 intermediate states are known only to the two parties.
 
-**Layer 2 — Eltoo eliminates watchtowers.** Lightning Network requires watchtowers — third parties that monitor the blockchain for cheating attempts. Watchtowers are surveillance points. Eltoo eliminates punishment entirely, which eliminates watchtowers. No third party monitors your channels.
+**Layer 2 — Eltoo removes punishment, not monitoring.** Lightning Network requires watchtowers because cheating is punished by taking the cheater's funds. Eltoo replaces punishment with a newer-state update, but a stale close still has to be detected and answered inside the challenge window. A counterparty or a delegated watcher is therefore still a liveness requirement; it is not a punishment/surveillance mechanism, but it is also not optional for a long-offline channel.
 
 **Layer 3 — Statechain blind signatures.** The Statechain Entity signs what the new owner presents without seeing the content. The SE knows a transfer happened but learns nothing about the UTXO value, the identities of sender or receiver, or what the statechain represents. The SE is a blind notary, not a surveillance intermediary.
 
@@ -779,8 +788,8 @@ The Omnia Payment Network is not a theoretical construct. Every mechanism descri
 2. Customer approaches machine, wallet discovers it via BLE
 3. Customer selects a €2 snack
 4. Customer's wallet holds a €5 VTXO from the machine's pool
-5. Machine verifies the VTXO's Merkle proof, splits it: €2 to machine, €3 change to customer
-6. Machine dispenses snack. Total time: <1 second. No network connectivity required.
+5. Machine verifies the VTXO's Merkle proof, splits it: €2 to machine, €3 change to customer, and records the new commitment (the split outputs do not inherit the old root automatically)
+6. Machine dispenses the snack. Delivery takes <1 second; **acceptance** is only safe offline when the operator has an explicit anti-double-spend policy (online check, operator co-sign, or bounded risk).
 7. At end of day, machine merges all VTXOs and exits to operator's on-chain address
 
 **Scale:** 5,000 machines × 100 transactions per day = 500,000 VTXO operations per day. 5,000 on-chain settlements per day (one per machine). 99% reduction in on-chain footprint vs. 500,000 individual transactions.

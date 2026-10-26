@@ -7,6 +7,16 @@ import { buildExitTransaction, type ExitTxParams, type ExitTxDeps } from './exit
 
 /**
  * Transfers a VTXO (fully or partially) to a recipient.
+ *
+ * **Offline safety.** The returned output VTXOs are new claims. A Merkle proof
+ * establishes membership in a committed set; it does NOT prove the input was
+ * never spent elsewhere. The local host rejects a second transfer through its
+ * shared state, but disconnected receivers do not share that state. Treat a
+ * received VTXO as final only after an anti-double-spend check (online/operator
+ * spend check, operator-co-signed transfer, or an explicitly risk-bounded
+ * policy), and have the operator commit the new outputs — they do not
+ * automatically belong to the previous pool root.
+ *
  * @param now - Timestamp in ms. Defaults to Date.now() if omitted — pass explicitly for determinism.
  */
 export function transferVtxo(

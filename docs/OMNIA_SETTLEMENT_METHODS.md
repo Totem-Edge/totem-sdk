@@ -127,7 +127,25 @@ curl -s -H 'authorization: Bearer test' -H 'content-type: application/json' \
 read method yet. Factory/VTXO/pool state is currently read from
 `/observe/snapshot` or the host SQLite DB.
 
-### 2.3 Observation fabric — the settlement timeline
+#### 2.2a Manual transaction preparation (builder boundary)
+
+When a path uses the node's `txn*` command builder rather than the SDK's
+serialized `txnmine`/`sendtransaction` submission, prepare once:
+
+`build → txnbasics → sign → txncheck → txnpost id:<id> mine:true`
+
+Do **not** pass `auto:true` after manually adding inputs. The node appends coin
+proofs for `auto:true`, and a second `txnpost auto:true` invokes the helper
+again (duplicate proofs). `txncheck` alone is not acceptance evidence; assert
+the returned `txpowid` and confirmation.
+
+Amount units are an explicit boundary. Omnia carries raw amounts and the normal
+settlement submission (`txnmine` then `sendtransaction`) bypasses `txninput`.
+For a floating `txninput` token amount, convert token units to raw exactly once
+with `toRawTokenAmount(amount, tokenScale)` from `@totemsdk/minima-rpc`; do not
+convert inside the generic transport or Omnia's internal amounts.
+
+## 2.3 Observation fabric — the settlement timeline
 
 | Route | Reveals |
 |---|---|

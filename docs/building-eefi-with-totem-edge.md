@@ -157,7 +157,7 @@ If manifests and identity are the *declaration* layer, Omnia is the *execution* 
 
 Most payment channel networks (like Lightning) use a punishment model: if you try to cheat by broadcasting an old channel state, I can take all your money. This requires every participant to store revocation secrets for every previous state and watch the chain constantly for cheating attempts. For a device with limited storage and intermittent connectivity, this is a nightmare.
 
-**Eltoo** (`@totemsdk/omnia`) eliminates punishment entirely. Every channel state carries a monotonically increasing update number. The latest state always replaces any earlier one on-chain. No revocation secrets. No watchtower anxiety. No penalty transactions. A device can go offline for a week, come back, and safely continue operating its channel.
+**Eltoo** (`@totemsdk/omnia`) removes revocation secrets and punishment. Every channel state carries a monotonically increasing update number; the latest co-signed state replaces an earlier one on-chain. It does **not** remove the need to answer a stale close inside the challenge window (256 blocks ≈ 3 h 33 min at 50 s blocks). A device offline for a week needs a counterparty, a delegated watcher, or a longer delay; otherwise a stale close can confirm.
 
 ### Channel lifecycle
 
@@ -258,7 +258,7 @@ VTXOs support a full lifecycle: **mint** (create a new VTXO from pool capacity),
 
 **Exit must be enforceable, not promised.** The pool's on-chain script gives each holder a **per-share unilateral exit**: after an absolute exit block, a holder may withdraw *only its own committed share* to its own key, zero that share in the successor state, and return the remainder to the pool — with no operator liveness required (RFC-039, RFC-048 §5/§12.5). The committed share and the exit block are read from the spent coin's state (`PREVSTATE`), and the successor is constrained so a holder can never pay itself more than its share. This is not a documentation claim: executable gates run the escape branch through **both** the TypeScript and the Rust/WASM KISSVM with **real `TreeKey` signatures** (correct signer passes; wrong signer, tampered digest, or non-zeroing successor all fail). A full isolated-node run remains the outstanding bar.
 
-The critical property for devices: VTXOs are **pure functional**. Transfers don't require live signing from the sender — the recipient just needs the Merkle proof. A device that's intermittently connected can receive VTXOs while offline and verify them when it reconnects.
+The critical property for devices: VTXO transfers do not require the sender to be online. A recipient can verify a Merkle proof offline, but that proves **membership**, not that the claim was never spent. Offline **delivery** is supported; guaranteed offline **acceptance** needs an anti-double-spend mechanism (online/operator check, operator co-sign, or a bounded-risk policy).
 
 ### Liquidity bonds: Where does the capital come from?
 
