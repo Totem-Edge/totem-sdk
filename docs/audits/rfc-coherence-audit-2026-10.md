@@ -253,3 +253,47 @@ appends corrections; it does not rewrite §§1–5.
 8. **Active residuals** — RFC-035 (onion codec/forwarder/capability flips),
    RFC-038 V4, RFC-031 P5 (`/legacy` removal), RFC-007 Phase 5, RFC-058 KMS/live
    E2E.
+
+### 6.4 B7–B9 gap (not completable as a checklist pass)
+
+RFC-063 B7–B9 are implementation programs, not document chores. Current evidence
+and the first honest slice for each:
+
+**B7 — RFC-019 residual, RFC-021/022/023**
+
+- RFC-019: the binding-negotiation path still fails closed for transport-backed
+  flows — `previewNegotiation` throws “requires a dedicated governed flow”
+  (`packages/edge/src/purchasing/buyer.ts:464`). First slice: implement
+  post-authorization acceptance as a governed operation with a regression test in
+  `edge/src/__tests__/governed-commerce.test.ts`.
+- RFC-022: `preparedCommandHash` is absent from the workspace. First slice: add
+  the prepared-command binding + async operation lifecycle to the host/edge
+  boundary with a round-trip and restart test.
+- RFC-023: `StepEffects` exists (agent-policy, edge prepared-effects,
+  industrial adapter) but is advisory. First slice: extend it with enforceable
+  physical limits and rejection tests at the industrial adapter.
+- RFC-021: no catalogue→decision-candidate registration is present in `decision`
+  or `industrial-action`. First slice: register catalogue definitions as bounded
+  decision candidates with a decision-to-catalogue binding test.
+
+**B8 — RFC-031 P5 and RFC-007 Phase 5**
+
+- RFC-031 P5: `@totemsdk/core/legacy` is still exported
+  (`packages/core/package.json`, `packages/core/src/legacy.ts`). No first-party
+  source imports it, but removing it is a **breaking public API change** and
+  needs a major version + deprecation note. First slice: deprecation release,
+  then delete the export and the file.
+- RFC-007 Phase 5: purchase/authority shared accounting above the backend plus
+  recursive-MAST availability integration (cycle guard); acceptance is an
+  authority + availability conformance gate and a recovery path independent of
+  the content gate (RFC-007 §6). First slice: authority/availability conformance
+  test before touching storage.
+
+**B9 — policy receipts, simulation/dry-run, physical effects**
+
+- Industrial receipts exist (`createIndustrialReceipt`/`verifyIndustrialReceipt`,
+  RFC-010 P4), and `deriveEffectsFromBuiltTx` derives advisory `StepEffects`.
+  There is no policy-receipt binding of the decision + mandate + executed effect,
+  and no first-class dry-run/simulation result contract. First slice: define a
+  policy receipt that binds decision id, mandate proof, derived effects and
+  outcome; add a dry-run mode that returns the same receipt without broadcasting.
