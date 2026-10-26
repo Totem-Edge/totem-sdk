@@ -9,7 +9,7 @@
  */
 
 import { computeCommitmentRoot, computeVtxoLeaf, computeVtxoReceiptCommitmentBytes } from './commitment.js';
-import type { OmniaVtxo, OmniaVtxoOperator, VtxoOperatorReceipt } from './types.js';
+import type { OmniaVtxo, OmniaVtxoOperator, OmniaVtxoPool, VtxoOperatorReceipt } from './types.js';
 
 /** The batch the receipt belongs to — the operator's source of truth. */
 export interface VtxoReceiptBatch {
@@ -83,4 +83,20 @@ export async function verifyVtxoReceipt(
   if (!receipt.signature) return false;
   const data = computeVtxoReceiptCommitmentBytes(receipt, root);
   return operator.verify(data, receipt.signature);
+}
+
+/**
+ * Verify a receipt against the pool's current anchored state, not a
+ * caller-supplied root. Rejects a receipt from another pool/epoch and requires
+ * the pool's committed root to be present.
+ */
+export async function verifyVtxoReceiptForPool(
+  operator: OmniaVtxoOperator,
+  receipt: VtxoOperatorReceipt,
+  pool: Pick<OmniaVtxoPool, 'poolId' | 'epoch' | 'commitmentRoot'>,
+): Promise<boolean> {
+  if (receipt.poolId !== pool.poolId) return false;
+  if (receipt.epoch !== pool.epoch) return false;
+  if (!pool.commitmentRoot) return false;
+  return verifyVtxoReceipt(operator, receipt, pool.commitmentRoot);
 }

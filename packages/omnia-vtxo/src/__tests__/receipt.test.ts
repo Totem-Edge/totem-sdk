@@ -5,7 +5,7 @@
 import { createUnifiedChildTreeKey } from '@totemsdk/core';
 import type { WotsLeaseProvider } from '@totemsdk/wots-lease';
 import { createVtxoOperator } from '../operator.js';
-import { signVtxoReceipt, verifyVtxoReceipt } from '../receipt.js';
+import { signVtxoReceipt, verifyVtxoReceipt, verifyVtxoReceiptForPool as sdkVerifyForPool } from '../receipt.js';
 import { computeCommitmentRoot, computeVtxoLeaf } from '../commitment.js';
 import type { OmniaVtxo, VtxoOperatorReceipt } from '../types.js';
 
@@ -116,5 +116,15 @@ describe('signVtxoReceipt / verifyVtxoReceipt (RFC-038 V0)', () => {
 
   it('rejects an unsigned receipt', async () => {
     expect(await verifyVtxoReceipt(operator(), receipt(), root)).toBe(false);
+  });
+
+  it('verifies against the pool anchored state, not a caller-supplied root', async () => {
+    const op = operator();
+    const signed = await signVtxoReceipt(op, receipt(), { outputs, root, epoch: 1, inputsAmount: 300n });
+    const pool = { poolId: 'pool-1', epoch: 1, commitmentRoot: root };
+    expect(await sdkVerifyForPool(op, signed, pool)).toBe(true);
+    expect(await sdkVerifyForPool(op, signed, { ...pool, poolId: 'pool-2' })).toBe(false);
+    expect(await sdkVerifyForPool(op, signed, { ...pool, epoch: 2 })).toBe(false);
+    expect(await sdkVerifyForPool(op, signed, { ...pool, commitmentRoot: '0x' + '00'.repeat(32) })).toBe(false);
   });
 });

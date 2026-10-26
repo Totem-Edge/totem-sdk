@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   conservation is mandatory and exact for non-mint operations. Added
   `VtxoExitEntitlement` and `transferVtxoWithExit` so a transferred claim can
   carry a self-contained, independently verifiable on-chain exit package.
+  `verifyVtxoReceiptForPool` verifies against the pool's anchored root/epoch
+  instead of a caller-supplied root.
 
 - **B3 verification hardening:** added deterministic parser/evaluator fuzz for
   KISSVM, mutation fuzzing for proof verification, ticket seq/budget property
