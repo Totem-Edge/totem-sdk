@@ -67,7 +67,7 @@ describe('VTXO host API', () => {
       vtxoId: mint.vtxo.vtxoId,
       recipient: 'bob',
       amount: '40000',
-      nonce: 'xfer-1',
+      nonce: 'xfer-1', unsafeLedgerTransfer: true,
     });
     const transfer = transferred as any;
     expect(transfer.change.amount).toBe('60000');

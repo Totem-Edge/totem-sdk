@@ -48,7 +48,7 @@ async function signReceipt(receiptId, root, extra = {}) {
   });
   await signReceipt(minted.receipt.receiptId, minted.vtxo.proof.root);
   const transferred = await rpc('omnia/transferVtxo', {
-    vtxoId: minted.vtxo.vtxoId, recipient: 'bob', amount: '40000', nonce: 'xfer-1',
+    vtxoId: minted.vtxo.vtxoId, recipient: 'bob', amount: '40000', nonce: 'xfer-1', unsafeLedgerTransfer: true,
   });
   await signReceipt(transferred.receipt.receiptId, transferred.output.proof.root, { inputsAmount: '100000' });
   const refreshed = await rpc('omnia/refreshVtxo', {

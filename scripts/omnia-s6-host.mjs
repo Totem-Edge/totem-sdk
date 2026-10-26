@@ -58,7 +58,7 @@ async function main() {
   if (!JSON_ONLY) log('minted', minted.vtxo.vtxoId);
 
   const transferred = await methods.get('omnia/transferVtxo')({
-    vtxoId: minted.vtxo.vtxoId, recipient: 'bob', amount: '40000', nonce: 'xfer-1',
+    vtxoId: minted.vtxo.vtxoId, recipient: 'bob', amount: '40000', nonce: 'xfer-1', unsafeLedgerTransfer: true,
   });
   const transferReceipt = await signReceipt(transferred.receipt.receiptId, transferred.output.proof.root, {
     inputsAmount: '100000',

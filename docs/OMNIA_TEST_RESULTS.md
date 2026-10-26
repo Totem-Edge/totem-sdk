@@ -560,7 +560,7 @@ final 55,000,000 / 45,000,000
 | 2026-10-23 | VTXO receipt binding | in-memory | current dist | PASS | all receipt fields bound; mandatory conservation for non-mint |
 | 2026-10-23 | V1 exit entitlement | in-memory | current dist | PASS | recipient receives bound pre-signed exit; tampered owner/amount/digest rejected |
 | 2026-10-23 | V1 guarded transfer | in-memory | current dist | PASS | `transferVtxoWithExit` builds/verifies recipient exit before moving claim |
-| 2026-10-23 | V1 host exit seam | in-memory | current dist | PASS | host transfer accepts entitlement; `omnia/verifyVtxoExitEntitlement` exposed (host 103/103) |
+| 2026-10-23 | V1 host exit enforcement | in-memory | current dist | PASS | host rejects VTXO transfer without entitlement unless explicit `unsafeLedgerTransfer:true`; verify endpoint exposed |
 | 2026-10-23 | S8 payMultiHop rerun | in-memory | current dist | PASS | `S8_PASS`; 3 hops, 10M/10M retained, recipient exact |
 | 2026-10-22 | 7-hop timeout (non-custodial) | native (AWS) | current dist | PASS | seven expired HTLCs timed out on both sides |
 | 2026-10-22 | Reconnect mid-HTLC | native (AWS) | current dist | PASS | B restart recovered pending HTLC and fulfilled |

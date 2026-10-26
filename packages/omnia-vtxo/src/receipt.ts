@@ -8,7 +8,7 @@
  * arbitrary `(root, epoch, ids)` tuple whose root does not commit the outputs.
  */
 
-import { computeBatchCommitmentBytes, computeCommitmentRoot, computeVtxoLeaf } from './commitment.js';
+import { computeCommitmentRoot, computeVtxoLeaf, computeVtxoReceiptCommitmentBytes } from './commitment.js';
 import type { OmniaVtxo, OmniaVtxoOperator, VtxoOperatorReceipt } from './types.js';
 
 /** The batch the receipt belongs to — the operator's source of truth. */
@@ -51,14 +51,17 @@ export function buildVtxoReceiptPayload(
     throw new Error('batch root does not commit the batch leaves');
   }
 
-  if (batch.inputsAmount !== undefined) {
-    const outputSum = batch.outputs.reduce((sum, v) => sum + v.amount, 0n);
-    if (outputSum > batch.inputsAmount) {
-      throw new Error(`conservation violated: outputs ${outputSum} exceed inputs ${batch.inputsAmount}`);
+  const outputSum = batch.outputs.reduce((sum, v) => sum + v.amount, 0n);
+  if (receipt.op !== 'mint') {
+    if (batch.inputsAmount === undefined) {
+      throw new Error(`conservation required for ${receipt.op} receipts`);
+    }
+    if (outputSum !== batch.inputsAmount) {
+      throw new Error(`conservation violated: outputs ${outputSum} != inputs ${batch.inputsAmount}`);
     }
   }
 
-  return computeBatchCommitmentBytes(receipt.poolId, receipt.epoch, batch.root, receipt.outputIds);
+  return computeVtxoReceiptCommitmentBytes(receipt, batch.root);
 }
 
 export async function signVtxoReceipt(
@@ -78,6 +81,6 @@ export async function verifyVtxoReceipt(
   root: string,
 ): Promise<boolean> {
   if (!receipt.signature) return false;
-  const data = computeBatchCommitmentBytes(receipt.poolId, receipt.epoch, root, receipt.outputIds);
+  const data = computeVtxoReceiptCommitmentBytes(receipt, root);
   return operator.verify(data, receipt.signature);
 }

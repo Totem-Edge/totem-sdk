@@ -14,6 +14,7 @@
 
 import {
   computeOmniaTxDigest,
+  serializeOmniaWitness,
   omniaDraftToMinimaBytes,
   serializeTxDraft,
   type OmniaTxDraft,
@@ -41,6 +42,8 @@ export interface ExitTxParams {
   shares: bigint[];
   /** Index of the exiting holder (must match `vtxo.owner`). */
   holderIndex: number;
+  /** Real MMR entry number of the pool coin. */
+  fundingMmrEntry?: bigint;
   /** Pool state, needed to rebuild the remainder output's state. */
   root: string;
   epoch: number;
@@ -84,6 +87,7 @@ export function buildExitTransactionDraft(params: ExitTxParams): OmniaTxDraft {
       amount: params.amount,
       tokenId: params.vtxo.tokenId,
       scriptHex: params.fundingScript,
+      ...(params.fundingMmrEntry !== undefined ? { mmrEntry: params.fundingMmrEntry } : {}),
     }],
     outputs,
     storeState: carriesState,
@@ -106,6 +110,10 @@ interface MinedTxPow {
 
 export interface ExitTxDeps {
   signDigest: (digest: Uint8Array) => Promise<Uint8Array>;
+  /** Serialized CoinProof(s) for the pool input. */
+  coinProofs?: Uint8Array[];
+  /** Serialized ScriptProof(s) for the pool script. */
+  scriptProofs?: Uint8Array[];
   chainProvider?: ChainStateProvider;
   mine?: (txBody: Uint8Array, difficulty: Uint8Array) => Promise<MinedTxPow>;
 }
@@ -127,6 +135,11 @@ export async function buildExitTransaction(params: ExitTxParams, deps: ExitTxDep
   const digest = exitTransactionDigest(draft);
   const signature = await deps.signDigest(digest);
 
+  const witness = serializeOmniaWitness({
+    signatures: [signature],
+    coinProofs: deps.coinProofs ?? [],
+    scriptProofs: deps.scriptProofs ?? [],
+  });
   const result: ExitTxResult = {
     vtxoId: params.vtxo.vtxoId,
     owner: params.vtxo.owner,
@@ -134,20 +147,20 @@ export async function buildExitTransaction(params: ExitTxParams, deps: ExitTxDep
     draftType: 'vtxo-exit',
     txHex: exitTransactionHex(draft),
     digest: Buffer.from(digest).toString('hex'),
-    witnessHex: Buffer.from(signature).toString('hex'),
+    witnessHex: Buffer.from(witness).toString('hex'),
   };
 
   if (deps.chainProvider) {
     const draftBytes = omniaDraftToMinimaBytes(draft);
     if (typeof deps.chainProvider.submitTransaction === 'function') {
-      const submitted = await deps.chainProvider.submitTransaction(draftBytes, signature);
+      const submitted = await deps.chainProvider.submitTransaction(draftBytes, witness);
       if (submitted?.success === false) {
         throw new Error(`exitSubmit failed: ${submitted.message ?? 'unknown error'}`);
       }
       result.txpowId = submitted?.txpowid;
     } else {
       const mine = deps.mine ?? ((txBody, difficulty) => mineTxPoW(txBody, difficulty));
-      const txBody = serializeTxBody(draftBytes, signature);
+      const txBody = serializeTxBody(draftBytes, witness);
       const mined = await mine(txBody, TX_POW_MIN_DIFFICULTY);
       const fullTxPoW = concatBytes(concatBytes(mined.minedHeaderBytes, new Uint8Array([0x01])), txBody);
       const broadcast = await deps.chainProvider.broadcastTxPoW(Buffer.from(fullTxPoW).toString('hex'));

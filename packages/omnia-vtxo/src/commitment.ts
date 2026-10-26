@@ -7,6 +7,7 @@ export const VTXO_ID_DOMAIN = 'totemsdk/omnia-vtxo/vtxo/v1';
 export const VTXO_POOL_ID_DOMAIN = 'totemsdk/omnia-vtxo/pool/v1';
 export const VTXO_LEAF_DOMAIN = 'totemsdk/omnia-vtxo/leaf/v1';
 export const VTXO_RECEIPT_DOMAIN = 'totemsdk/omnia-vtxo/receipt/v1';
+export const VTXO_RECEIPT_BINDING_DOMAIN = 'totemsdk/omnia-vtxo/receipt-binding/v1';
 export const VTXO_BATCH_DOMAIN = 'totemsdk/omnia-vtxo/batch/v1';
 
 /**
@@ -20,6 +21,40 @@ export function computeBatchCommitment(
   orderedIds: readonly string[],
 ): string {
   return sha3hex(`${VTXO_BATCH_DOMAIN}|${poolId}|${epoch}|${root}|${[...orderedIds].join(',')}`);
+}
+
+
+/** Receipt commitment binds every semantically relevant receipt field. */
+export function computeVtxoReceiptCommitment(
+  receipt: {
+    receiptId: string;
+    poolId: string;
+    op: string;
+    inputIds: readonly string[];
+    outputIds: readonly string[];
+    epoch: number;
+    at: number;
+  },
+  root: string,
+): string {
+  return sha3hex([
+    VTXO_RECEIPT_BINDING_DOMAIN,
+    receipt.poolId,
+    receipt.epoch.toString(),
+    root,
+    receipt.receiptId,
+    receipt.op,
+    [...receipt.inputIds].join(','),
+    [...receipt.outputIds].join(','),
+    receipt.at.toString(),
+  ].join('|'));
+}
+
+export function computeVtxoReceiptCommitmentBytes(
+  receipt: Parameters<typeof computeVtxoReceiptCommitment>[0],
+  root: string,
+): Uint8Array {
+  return hexToBytes(computeVtxoReceiptCommitment(receipt, root));
 }
 
 /** The 32-byte digest of a batch commitment, for signing. */

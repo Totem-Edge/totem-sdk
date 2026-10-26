@@ -22,8 +22,8 @@ describe('VTXO host hardening', () => {
     }) as any;
 
     const results = await Promise.allSettled([
-      methods.get('omnia/transferVtxo')!({ vtxoId: minted.vtxo.vtxoId, recipient: 'bob', amount: '1000', nonce: 'h8-a' }),
-      methods.get('omnia/transferVtxo')!({ vtxoId: minted.vtxo.vtxoId, recipient: 'carol', amount: '1000', nonce: 'h8-b' }),
+      methods.get('omnia/transferVtxo')!({ vtxoId: minted.vtxo.vtxoId, recipient: 'bob', amount: '1000', nonce: 'h8-a', unsafeLedgerTransfer: true }),
+      methods.get('omnia/transferVtxo')!({ vtxoId: minted.vtxo.vtxoId, recipient: 'carol', amount: '1000', nonce: 'h8-b', unsafeLedgerTransfer: true }),
     ]);
     expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
     expect(results.filter((r) => r.status === 'rejected')).toHaveLength(1);

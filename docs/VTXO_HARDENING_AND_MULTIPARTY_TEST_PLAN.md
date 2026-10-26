@@ -38,11 +38,11 @@ offline-operator cases, the operator API is stopped after shares are delivered.
 | ID | Test | Proves | Status |
 |---|---|---|---|
 | H1 | Non-custodial operator host + separate wallet service | Host has no seed; receipt signing is delegated | PASS (S6_S10_NONCUSTODIAL) |
-| H2 | Tampered receipt: wrong root, epoch, output set, signature | Receipt verification fails closed | PASS |
+| H2 | Tampered receipt: wrong root, epoch, output set, signature, receiptId/op/inputIds/timestamp | Receipt verification fails closed | PASS |
 | H3 | Funding proof: wrong pool address/amount/token, spent coin, tampered MMR proof | `proofVerified` cannot be spoofed | PASS (verifier callback required for cryptographic proof) |
 | H4 | Durable restart: crash between reserve/commit, pending receipts | No VTXO/lease reuse or receipt loss | PASS (durable-store reopen) |
 | H5 | Global spent-set / double-spend: same VTXO twice, spent then exit, replay | One-time-use across owners/epochs | PASS (store refuses resurrection of consumed VTXOs) |
-| H6 | Anchor + exit live: anchor batch, exit after timelock, double exit | On-chain anchoring and per-share exit | PARTIAL — live anchor PASS via `txnmine` and future exitBlock; live exit crashes node with `MiniNumber value out of int range` |
+| H6 | Anchor + exit live: anchor batch, exit after timelock, double exit | On-chain anchoring and per-share exit | PARTIAL — live anchor PASS; exit now runs `txnimport` → `txncheck` → `txnpost`, but `txnimport` rejects the TxnRow as `Invalid transaction data` |
 | H7 | Pool conservation: VTXO claims vs LP allocations/withdrawals | No owner-share or accounting confusion | PASS (pool suite 40/40) |
 | H8 | Host hardening: idempotency, concurrent mutations, RPC/operator failure, audit | No duplicate mutations or lost operations | PASS (idempotency + concurrent transfer guard; durable audit still separate) |
 
@@ -75,6 +75,11 @@ offline-operator cases, the operator API is stopped after shares are delivered.
 | M16 | VTXO-backed channel/factory collateral | Shares release correctly on channel/factory close |
 | M17 | Vesting/payroll/streaming claims | Six beneficiaries claim on distinct schedules |
 | M18 | Guardian/social recovery | M-of-N guardians authorize recovery of an owner share |
+
+**Executed:** M1–M18 pass in `multiparty.test.ts` / `claim-policy.ts`
+(two-of-three threshold, conditional escrow, DvP, delegation, operator
+rotation, six-LP yield, pool/token binding, griefing liveness, collateral,
+vesting, guardian recovery). omnia-vtxo suite: 212/212.
 
 ## Execution order
 

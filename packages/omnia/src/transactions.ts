@@ -576,6 +576,7 @@ function serializeCoinForMinima(opts: {
   tokenId: string;
   storeState: boolean;
   stateVariables: StateValue[];
+  mmrEntry?: bigint;
 }): Uint8Array {
   const parts = [
     writeHashToStreamLocal(opts.coinId),
@@ -583,7 +584,7 @@ function serializeCoinForMinima(opts: {
     writeMiniNumberLocal(opts.amount),
     writeHashToStreamLocal(opts.tokenId),
     writeMiniByteLocal(opts.storeState),
-    writeMMREntryNumberLocal(0n),
+    writeMMREntryNumberLocal(opts.mmrEntry ?? 0n),
     writeMiniByteLocal(false),
     writeMiniNumberLocal(0n),
     writeMiniNumberLocal(BigInt(opts.stateVariables.length)),
@@ -602,6 +603,7 @@ export function omniaDraftToCanonicalMinimaBytes(draft: OmniaTxDraft): Uint8Arra
     tokenId: input.tokenId,
     storeState: input.storeState ?? false,
     stateVariables: input.stateVariables ?? [],
+    mmrEntry: input.mmrEntry,
   }));
   const outputBytes = draft.outputs.map((output, index) => serializeCoinForMinima({
     coinId: outputCoinIds[index],

@@ -46,6 +46,8 @@ import {
   markExiting,
   markExited,
   buildVtxoReceiptPayload,
+  verifyVtxoClaim,
+  verifyVtxoExitEntitlement,
   type OmniaVtxo,
   type OmniaVtxoPool,
   type VtxoOperatorReceipt,
@@ -1603,24 +1605,82 @@ function registerPreparedPayMethods(
       expiresAt: typeof params.expiresAt === 'number' ? params.expiresAt : undefined,
       fundingProof: params.fundingProof,
     }, typeof params.now === 'number' ? params.now : undefined);
+    const storedVtxo = params.claimPolicy && typeof params.claimPolicy === 'object'
+      ? { ...minted.vtxo, claimPolicy: params.claimPolicy as OmniaVtxo['claimPolicy'] }
+      : minted.vtxo;
     context.vtxoPools.set(pool.poolId, minted.pool);
-    context.vtxos.set(minted.vtxo.vtxoId, minted.vtxo);
+    context.vtxos.set(storedVtxo.vtxoId, storedVtxo);
     context.vtxoReceipts.set(minted.receipt.receiptId, minted.receipt);
-    return { success: true, pool: jsonSafe(minted.pool), vtxo: jsonSafe(minted.vtxo), receipt: jsonSafe(minted.receipt) };
+    return { success: true, pool: jsonSafe(minted.pool), vtxo: jsonSafe(storedVtxo), receipt: jsonSafe(minted.receipt) };
   };
   methods.set('totem_omniaMintVtxo', mintVtxoMethod);
   methods.set('omnia/mintVtxo', mintVtxoMethod);
+
+  const verifyVtxoClaimMethod: JsonRpcHandler = async (raw) => {
+    const params = paramsObject(raw);
+    if (!context.vtxos) throw new Error('VTXO stores are not configured');
+    const vtxo = context.vtxos.get(requiredString(params, 'vtxoId'));
+    if (!vtxo) throw new Error(`VTXO ${String(params.vtxoId)} not found`);
+    const block = typeof params.block === 'number'
+      ? params.block
+      : context.chainProvider
+        ? (await context.chainProvider.getTip()).block
+        : undefined;
+    if (block === undefined) throw new Error('verifyVtxoClaim requires a block height or chain provider');
+    const witnesses = Array.isArray(params.signers) ? params.signers.map(String) : [];
+    const htlc = params.htlc && typeof params.htlc === 'object'
+      ? params.htlc as { paymentId: string; hashlock: string; status: 'pending' | 'fulfilled' | 'timed_out' }
+      : undefined;
+    const result = verifyVtxoClaim(vtxo, {
+      signers: witnesses,
+      preimage: typeof params.preimage === 'string' ? params.preimage : undefined,
+      path: params.path === 'refund' ? 'refund' : params.path === 'claim' ? 'claim' : undefined,
+      scope: params.scope === 'transfer' ? 'transfer' : params.scope === 'claim' ? 'claim' : undefined,
+      claimAmount: params.claimAmount !== undefined ? BigInt(String(params.claimAmount)) : undefined,
+    }, {
+      block,
+      poolId: typeof params.poolId === 'string' ? params.poolId : vtxo.poolId,
+      tokenId: typeof params.tokenId === 'string' ? params.tokenId : vtxo.tokenId,
+      htlc,
+    });
+    return { success: result.valid, ...result };
+  };
+  methods.set('totem_omniaVerifyVtxoClaim', verifyVtxoClaimMethod);
+  methods.set('omnia/verifyVtxoClaim', verifyVtxoClaimMethod);
+
+  const verifyVtxoExitEntitlementMethod: JsonRpcHandler = async (raw) => {
+    const params = paramsObject(raw);
+    if (!context.vtxos) throw new Error('VTXO stores are not configured');
+    const vtxo = context.vtxos.get(requiredString(params, 'vtxoId'));
+    if (!vtxo) throw new Error(`VTXO ${String(params.vtxoId)} not found`);
+    if (!params.entitlement || typeof params.entitlement !== 'object') {
+      throw new Error('entitlement is required');
+    }
+    const result = verifyVtxoExitEntitlement(
+      params.entitlement as Parameters<typeof verifyVtxoExitEntitlement>[0],
+      vtxo,
+    );
+    return { success: result.valid, ...result };
+  };
+  methods.set('totem_omniaVerifyVtxoExitEntitlement', verifyVtxoExitEntitlementMethod);
+  methods.set('omnia/verifyVtxoExitEntitlement', verifyVtxoExitEntitlementMethod);
 
   const transferVtxoMethod: JsonRpcHandler = async (raw) => {
     const params = paramsObject(raw);
     if (!context.vtxos || !context.vtxoReceipts) throw new Error('VTXO stores are not configured');
     const vtxo = context.vtxos.get(requiredString(params, 'vtxoId'));
     if (!vtxo) throw new Error(`VTXO ${String(params.vtxoId)} not found`);
+    if (!params.exitEntitlement && params.unsafeLedgerTransfer !== true) {
+      throw new Error('omnia/transferVtxo requires a verified exitEntitlement (or explicit unsafeLedgerTransfer:true for legacy ledger-only use)');
+    }
     const result = transferVtxo(vtxo, {
       recipient: requiredString(params, 'recipient'),
       amount: requiredBigInt(params, 'amount'),
       nonce: requiredString(params, 'nonce'),
       changeNonce: typeof params.changeNonce === 'string' ? params.changeNonce : undefined,
+      ...(params.exitEntitlement && typeof params.exitEntitlement === 'object'
+        ? { exitEntitlement: params.exitEntitlement as OmniaVtxo['exitEntitlement'] }
+        : {}),
     }, typeof params.now === 'number' ? params.now : undefined);
     context.vtxos.set(result.input.vtxoId, result.input);
     context.vtxos.set(result.output.vtxoId, result.output);

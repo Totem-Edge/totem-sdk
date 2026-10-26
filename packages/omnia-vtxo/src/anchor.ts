@@ -38,6 +38,8 @@ export interface BatchAnchorParams {
   /** Raw on-chain amount (token base units). */
   amount: bigint;
   tokenId: string;
+  /** Real MMR entry number of the funding coin. */
+  fundingMmrEntry?: bigint;
 }
 
 /** Pool output state: STATE(100)=root, STATE(101)=epoch, STATE(102)=exitBlock, STATE(300+k)=share k. */
@@ -81,6 +83,7 @@ export function buildBatchAnchorDraft(params: BatchAnchorParams): OmniaTxDraft {
       amount: params.amount,
       tokenId: params.tokenId,
       scriptHex: params.fundingScript,
+      ...(params.fundingMmrEntry !== undefined ? { mmrEntry: params.fundingMmrEntry } : {}),
     }],
     outputs: [{
       address,

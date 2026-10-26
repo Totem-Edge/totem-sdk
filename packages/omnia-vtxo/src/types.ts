@@ -1,3 +1,6 @@
+import type { VtxoClaimPolicy } from './claim-policy.js';
+import type { VtxoExitEntitlement } from './exit-entitlement.js';
+
 export type VtxoId = string;
 
 export type VtxoStatus =
@@ -61,6 +64,10 @@ export interface OmniaVtxo {
   expiresAt?: number;
   /** The on-chain funding proof recorded at mint (deep proof, #28). */
   fundingProof?: unknown;
+  /** Opt-in multiparty claim policy (M8–M18). */
+  claimPolicy?: VtxoClaimPolicy;
+  /** V1: independently executable exit package delivered to the owner. */
+  exitEntitlement?: VtxoExitEntitlement;
   /** Set when an exit draft consumed this VTXO — prevents double-exit. */
   exitConsumedAt?: number;
   exitReceiptId?: string;
@@ -115,6 +122,8 @@ export interface TransferVtxoParams {
   amount: bigint;
   nonce: string;
   changeNonce?: string;
+  /** V1: exit package the recipient must receive with the claim. */
+  exitEntitlement?: VtxoExitEntitlement;
 }
 
 export interface SplitVtxoParams {

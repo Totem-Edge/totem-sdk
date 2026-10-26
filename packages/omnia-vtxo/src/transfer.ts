@@ -1,6 +1,8 @@
 import { OmniaVtxo, TransferVtxoParams, TransferResult, VtxoTransfer, VtxoOperatorReceipt } from './types.js';
 import { VtxoStatusError, VtxoAmountError } from './errors.js';
 import { computeVtxoId, buildVtxoProofSet, computeReceiptId } from './commitment.js';
+import { verifyVtxoExitEntitlement, createVtxoExitEntitlement, type VtxoExitEntitlement } from './exit-entitlement.js';
+import { buildExitTransaction, type ExitTxParams, type ExitTxDeps } from './exit-tx.js';
 
 
 /**
@@ -27,6 +29,15 @@ export function transferVtxo(
     throw new VtxoAmountError(
       `Transfer amount ${params.amount} exceeds VTXO amount ${vtxo.amount}`
     );
+  }
+  if (params.exitEntitlement) {
+    if (params.amount !== vtxo.amount) {
+      throw new VtxoAmountError('exit entitlement requires a full-value transfer');
+    }
+    const check = verifyVtxoExitEntitlement(params.exitEntitlement, vtxo);
+    if (!check.valid) {
+      throw new VtxoAmountError(`invalid exit entitlement: ${check.errors.join('; ')}`);
+    }
   }
 
   const isPartial = params.amount < vtxo.amount;
@@ -78,6 +89,7 @@ export function transferVtxo(
     tokenId: vtxo.tokenId,
     status: 'active',
     epoch: vtxo.epoch,
+    ...(params.exitEntitlement ? { exitEntitlement: params.exitEntitlement } : {}),
     proof: {
       leaf: '',
       root: '',
@@ -172,4 +184,28 @@ export function transferVtxo(
       signature: '',
     },
   };
+}
+
+
+/**
+ * V1 transfer: build the recipient's independent exit before moving the claim,
+ * then transfer only if the exit package verifies against the input VTXO.
+ */
+export async function transferVtxoWithExit(
+  vtxo: OmniaVtxo,
+  params: Omit<TransferVtxoParams, 'exitEntitlement'>,
+  exitParams: ExitTxParams,
+  exitDeps: ExitTxDeps,
+  now?: number,
+): Promise<TransferResult & { receipt: VtxoOperatorReceipt; exitEntitlement: VtxoExitEntitlement }> {
+  if (exitParams.vtxo.vtxoId !== vtxo.vtxoId) {
+    throw new VtxoAmountError('exit entitlement VTXO does not match transfer input');
+  }
+  if (params.amount !== vtxo.amount) {
+    throw new VtxoAmountError('transferVtxoWithExit requires a full-value transfer');
+  }
+  const exit = await buildExitTransaction(exitParams, exitDeps);
+  const entitlement = createVtxoExitEntitlement(exitParams, exit);
+  const transferred = transferVtxo(vtxo, { ...params, exitEntitlement: entitlement }, now);
+  return { ...transferred, exitEntitlement: entitlement };
 }

@@ -19,3 +19,6 @@ export * from './memory-store.js';
 export * from './durable-store.js';
 export * from './serialization.js';
 export * from './policy.js';
+export * from './claim-policy.js';
+export * from './yield.js';
+export * from './exit-entitlement.js';

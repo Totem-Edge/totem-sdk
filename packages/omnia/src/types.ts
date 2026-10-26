@@ -384,6 +384,8 @@ export interface TxInputDraft {
   /** Chain state flag of the input coin (needed for txnmine script checks). */
   storeState?: boolean;
   stateVariables?: StateValue[];
+  /** Real MMR entry number from the input coin proof; must match txnmine. */
+  mmrEntry?: bigint;
 }
 
 export interface TxOutputDraft {

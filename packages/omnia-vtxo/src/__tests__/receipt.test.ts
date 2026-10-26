@@ -57,7 +57,7 @@ describe('signVtxoReceipt / verifyVtxoReceipt (RFC-038 V0)', () => {
 
   it('co-signs a receipt after verifying the batch, and verifies it', async () => {
     const op = operator();
-    const signed = await signVtxoReceipt(op, receipt(), { outputs, root, epoch: 1 });
+    const signed = await signVtxoReceipt(op, receipt(), { outputs, root, epoch: 1, inputsAmount: 300n });
     expect(signed.signature).toBeTruthy();
     expect(await verifyVtxoReceipt(op, signed, root)).toBe(true);
     expect(await verifyVtxoReceipt(op, signed, '0x' + 'ff'.repeat(32))).toBe(false);
@@ -65,19 +65,19 @@ describe('signVtxoReceipt / verifyVtxoReceipt (RFC-038 V0)', () => {
 
   it('rejects a root that does not commit the leaves', async () => {
     await expect(
-      signVtxoReceipt(operator(), receipt(), { outputs, root: '0x' + '00'.repeat(32), epoch: 1 }),
+      signVtxoReceipt(operator(), receipt(), { outputs, root: '0x' + '00'.repeat(32), epoch: 1, inputsAmount: 300n }),
     ).rejects.toThrow(/commit/);
   });
 
   it('rejects a stale epoch (monotonicity)', async () => {
     await expect(
-      signVtxoReceipt(operator(), receipt(), { outputs, root, epoch: 1, previousEpoch: 1 }),
+      signVtxoReceipt(operator(), receipt(), { outputs, root, epoch: 1, previousEpoch: 1, inputsAmount: 300n }),
     ).rejects.toThrow(/not greater/);
   });
 
   it('rejects an output that is not in the batch', async () => {
     await expect(
-      signVtxoReceipt(operator(), receipt({ outputIds: ['vX'] }), { outputs, root, epoch: 1 }),
+      signVtxoReceipt(operator(), receipt({ outputIds: ['vX'] }), { outputs, root, epoch: 1, inputsAmount: 300n }),
     ).rejects.toThrow(/not a VTXO/);
   });
 
@@ -85,6 +85,15 @@ describe('signVtxoReceipt / verifyVtxoReceipt (RFC-038 V0)', () => {
     await expect(
       signVtxoReceipt(operator(), receipt(), { outputs, root, epoch: 1, inputsAmount: 100n }),
     ).rejects.toThrow(/conservation/);
+  });
+
+  it('binds receiptId, op, inputIds and timestamp into the signature', async () => {
+    const op = operator();
+    const signed = await signVtxoReceipt(op, receipt(), { outputs, root, epoch: 1, inputsAmount: 300n });
+    expect(await verifyVtxoReceipt(op, { ...signed, receiptId: 'rcpt-other' }, root)).toBe(false);
+    expect(await verifyVtxoReceipt(op, { ...signed, op: 'split' }, root)).toBe(false);
+    expect(await verifyVtxoReceipt(op, { ...signed, inputIds: ['v-other'] }, root)).toBe(false);
+    expect(await verifyVtxoReceipt(op, { ...signed, at: signed.at + 1 }, root)).toBe(false);
   });
 
   it('rejects an unsigned receipt', async () => {
