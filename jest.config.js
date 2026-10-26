@@ -1,55 +1,22 @@
-module.exports = {
-  preset: 'ts-jest',
-  testEnvironment: 'node',
-  roots: ['<rootDir>/packages'],
-  testMatch: [
-    '<rootDir>/packages/**/__tests__/**/*.(ts|js)',
-    '<rootDir>/packages/**/?(*.)(spec|test).(ts|js)'
-  ],
+const { existsSync, readdirSync } = require('node:fs');
+const { join } = require('node:path');
 
-  testPathIgnorePatterns: [
-    '/node_modules/',
-    '<rootDir>/extensions/',
-  ],
+// Root Jest is an aggregator only: each package owns its transform, module
+// mapping and test roots. Running one giant config from the root cannot resolve
+// workspace siblings correctly (their `exports` point at gitignored `dist/`).
+// Package-scoped runs stay the supported verification path:
+//   pnpm --filter "@totemsdk/<pkg>..." run build
+//   pnpm --filter @totemsdk/<pkg> test
+const packagesDir = join(__dirname, 'packages');
 
-  transform: {
-    '^.+\\.ts$': 'ts-jest'
-  },
+const projects = readdirSync(packagesDir, { withFileTypes: true })
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => {
+    const dir = join(packagesDir, entry.name);
+    return ['jest.config.js', 'jest.config.cjs']
+      .map((name) => join(dir, name))
+      .find((path) => existsSync(path));
+  })
+  .filter(Boolean);
 
-  // Map .js-suffixed imports (ESM-style TypeScript source) to their .ts counterparts.
-  // Many totem-sdk packages write `import { X } from './types.js'` in TypeScript.
-  // In a source-level Jest run there are no .js files — only .ts — so strip the extension.
-  moduleNameMapper: {
-    '^(\\.{1,2}/.*)\\.js$': '$1',
-    '^@/(.*)$': '<rootDir>/packages/$1'
-  },
-
-  collectCoverageFrom: [
-    'packages/axia-api/src/**/*.{ts,js}',
-    '!packages/axia-api/src/**/*.d.ts',
-    '!packages/axia-api/src/**/__tests__/**',
-    '!packages/axia-api/src/**/test/**'
-  ],
-  coverageDirectory: '<rootDir>/coverage',
-  coverageReporters: ['text', 'lcov', 'html'],
-
-  // JUnit reporter configuration for CI metrics
-  reporters: [
-    'default',
-    ['jest-junit', {
-      outputDirectory: './test-results',
-      outputName: 'junit.xml',
-      suiteName: 'Axia API Tests',
-      classNameTemplate: '{classname}',
-      titleTemplate: '{title}',
-      ancestorSeparator: ' › ',
-      usePathForSuiteName: true
-    }]
-  ],
-
-  setupFilesAfterEnv: [],
-
-  // Performance settings
-  maxWorkers: '50%',
-  testTimeout: 10000,
-};
+module.exports = { projects };
