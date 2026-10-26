@@ -88,6 +88,10 @@ export function checkRunLimits(
     feesByToken: Record<string, string>;
     stepSpendByToken: Record<string, string>;
     outstandingByToken: Record<string, string>;
+    /** RFC-023: aggregate energy per resource (watt-hours). */
+    energyByResource?: Record<string, string>;
+    /** RFC-023: aggregate wall-clock duration per resource (seconds). */
+    durationByResource?: Record<string, string>;
     now: number;
     startedAt: number;
   },
@@ -156,7 +160,76 @@ export function checkRunLimits(
     }
   }
 
+  // RFC-023: enforce typed physical effects. Effects are derived from the
+  // prepared command (never caller hints); a missing section is unconstrained.
+  const physical = action.effects.physical;
+  const Lp = L.physical;
+  if (physical && Lp) {
+    for (const p of physical.power ?? []) {
+      if (Lp.maxStepPower && gt(p.watts, Lp.maxStepPower.watts)) {
+        return { kind: 'boundary_exceeded', reason: 'maxStepPower', boundary: 'run.maxStepPower' };
+      }
+    }
+    for (const e of physical.energy ?? []) {
+      if (Lp.maxEnergy) {
+        const used = state.energyByResource?.[e.resource] ?? '0';
+        if (gt(add(used, e.wattHours), Lp.maxEnergy.wattHours)) {
+          return escalatePhysical('run.maxEnergy', e.resource, e.wattHours, Lp.maxEnergy.wattHours, used, action);
+        }
+      }
+    }
+    for (const s of physical.speed ?? []) {
+      if (Lp.maxSpeed && gt(s.metresPerSecond, Lp.maxSpeed.metresPerSecond)) {
+        return { kind: 'boundary_exceeded', reason: 'maxSpeed', boundary: 'run.maxSpeed' };
+      }
+    }
+    for (const d of physical.duration ?? []) {
+      if (Lp.maxDurationSeconds) {
+        const used = state.durationByResource?.[d.resource] ?? '0';
+        if (gt(add(used, d.seconds), Lp.maxDurationSeconds.seconds)) {
+          return {
+            kind: 'boundary_exceeded',
+            reason: 'maxDurationSeconds',
+            boundary: 'run.maxDurationSeconds',
+          };
+        }
+      }
+    }
+    for (const env of physical.envelopes ?? []) {
+      if (Lp.allowedEnvelopes && !Lp.allowedEnvelopes.includes(env.envelopeId)) {
+        return { kind: 'boundary_exceeded', reason: 'envelopeNotAllowed', boundary: 'run.allowedEnvelopes' };
+      }
+    }
+  }
+
   return undefined;
+}
+
+function escalatePhysical(
+  boundary: string,
+  resource: string,
+  requested: string,
+  cap: string,
+  used: string,
+  action: CanonicalAgentAction,
+): BoundaryFailure {
+  const remaining = sub(cap, used);
+  return {
+    kind: 'escalate',
+    reason: `${boundary} exceeded`,
+    boundary,
+    escalation: {
+      boundary,
+      remaining,
+      requested,
+      suggestedGrant: {
+        scope: action.action,
+        maxTotal: requested,
+        expiresInMs: 300_000,
+        bindToRunId: action.runId,
+      },
+    },
+  };
 }
 
 function escalateGrossSpend(

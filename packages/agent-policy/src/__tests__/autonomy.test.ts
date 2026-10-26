@@ -151,6 +151,95 @@ describe('checkRunLimits', () => {
   });
 });
 
+describe('checkRunLimits — physical effects (RFC-023)', () => {
+  const PHYSICAL_PROFILE: AutonomyProfile = {
+    ...PROFILE,
+    runLimits: {
+      ...PROFILE.runLimits,
+      maxGrossSpend: undefined,
+      maxFees: undefined,
+      physical: {
+        maxStepPower: { watts: '22000' },
+        maxEnergy: { wattHours: '40' },
+        maxSpeed: { metresPerSecond: '30' },
+        maxDurationSeconds: { seconds: '3600' },
+        allowedEnvelopes: ['mission-1'],
+      },
+    },
+  };
+
+  const baseState = {
+    committedSteps: 0,
+    reservedSteps: 0,
+    abortedSteps: 0,
+    spentByToken: {},
+    feesByToken: {},
+    stepSpendByToken: {},
+    outstandingByToken: {},
+    now: 2000,
+    startedAt: 0,
+  };
+
+  const physicalStep = (physical: NonNullable<CanonicalAgentAction['effects']['physical']>) =>
+    step('device.set', 'set-1', 'set-1', {
+      effects: { spends: [], channels: [], physical },
+    });
+
+  it('allows commands within every physical ceiling', () => {
+    const r = checkRunLimits(PHYSICAL_PROFILE, physicalStep({
+      power: [{ resource: 'charger', watts: '22000' }],
+      energy: [{ resource: 'charger', wattHours: '10' }],
+      speed: [{ resource: 'rover', metresPerSecond: '30' }],
+      duration: [{ resource: 'rover', seconds: '3600' }],
+      envelopes: [{ envelopeId: 'mission-1', envelopeDigest: 'abc' }],
+    }), baseState);
+    expect(r).toBeUndefined();
+  });
+
+  it('rejects instantaneous power above the per-step ceiling', () => {
+    const r = checkRunLimits(PHYSICAL_PROFILE, physicalStep({
+      power: [{ resource: 'charger', watts: '22001' }],
+    }), baseState);
+    expect(r).toMatchObject({ kind: 'boundary_exceeded', boundary: 'run.maxStepPower' });
+  });
+
+  it('rejects speed above the per-step ceiling', () => {
+    const r = checkRunLimits(PHYSICAL_PROFILE, physicalStep({
+      speed: [{ resource: 'rover', metresPerSecond: '31' }],
+    }), baseState);
+    expect(r).toMatchObject({ kind: 'boundary_exceeded', boundary: 'run.maxSpeed' });
+  });
+
+  it('escalates aggregate energy with the remaining allowance', () => {
+    const r = checkRunLimits(PHYSICAL_PROFILE, physicalStep({
+      energy: [{ resource: 'charger', wattHours: '10' }],
+    }), { ...baseState, energyByResource: { charger: '35' } });
+    expect(r?.kind).toBe('escalate');
+    expect(r?.boundary).toBe('run.maxEnergy');
+    expect(r?.escalation).toMatchObject({ remaining: '5', requested: '10', boundary: 'run.maxEnergy' });
+    expect(r?.escalation?.suggestedGrant.bindToRunId).toBe('run-1');
+  });
+
+  it('rejects aggregate duration above the run ceiling', () => {
+    const r = checkRunLimits(PHYSICAL_PROFILE, physicalStep({
+      duration: [{ resource: 'rover', seconds: '200' }],
+    }), { ...baseState, durationByResource: { rover: '3500' } });
+    expect(r).toMatchObject({ kind: 'boundary_exceeded', boundary: 'run.maxDurationSeconds' });
+  });
+
+  it('rejects an envelope outside the allowed set', () => {
+    const r = checkRunLimits(PHYSICAL_PROFILE, physicalStep({
+      envelopes: [{ envelopeId: 'mission-2', envelopeDigest: 'def' }],
+    }), baseState);
+    expect(r).toMatchObject({ kind: 'boundary_exceeded', boundary: 'run.allowedEnvelopes' });
+  });
+
+  it('leaves actions without physical effects unconstrained', () => {
+    const r = checkRunLimits(PHYSICAL_PROFILE, step('device.set'), baseState);
+    expect(r).toBeUndefined();
+  });
+});
+
 describe('checkTransition', () => {
   it('enforces the profile DAG', () => {
     expect(checkTransition(PROFILE, undefined, 'simulate')).toBe(true);

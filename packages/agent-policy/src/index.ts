@@ -118,6 +118,12 @@ export type {
   StepEffects,
   StepEffect,
   ChannelEffect,
+  PhysicalEffects,
+  PowerEffect,
+  EnergyEffect,
+  SpeedEffect,
+  DurationEffect,
+  EnvelopeRef,
   CanonicalAgentAction,
 } from './run.js';
 

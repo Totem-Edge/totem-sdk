@@ -31,11 +31,59 @@ export interface ChannelEffect {
   operation: string;
 }
 
+export interface PowerEffect {
+  /** Resource the effect applies to (ResourceId key). */
+  resource: string;
+  /** Instantaneous ceiling the prepared command draws/emits (decimal string). */
+  watts: string;
+}
+
+export interface EnergyEffect {
+  resource: string;
+  /** Total energy the prepared command can consume/produce (decimal string). */
+  wattHours: string;
+}
+
+export interface SpeedEffect {
+  resource: string;
+  /** Speed ceiling implied by the prepared command (decimal string). */
+  metresPerSecond: string;
+}
+
+export interface DurationEffect {
+  resource: string;
+  /** Maximum wall-clock duration the operation may run (decimal string). */
+  seconds: string;
+}
+
+export interface EnvelopeRef {
+  /** Opaque, registered envelope id (e.g. a mission plan). */
+  envelopeId: string;
+  /** Canonical digest of the envelope the command was bounded against. */
+  envelopeDigest: string;
+}
+
+/**
+ * RFC-023 typed physical effects. These must be derived from the PREPARED
+ * operation, never from agent-supplied hints, and are enforced by
+ * `checkRunLimits`.
+ */
+export interface PhysicalEffects {
+  power?: PowerEffect[];
+  energy?: EnergyEffect[];
+  speed?: SpeedEffect[];
+  duration?: DurationEffect[];
+  /** Mission/operation envelopes the prepared command is confined to. */
+  envelopes?: EnvelopeRef[];
+}
+
 export interface StepEffects {
   spends: StepEffect[];
   fees?: StepEffect[];
   channels?: ChannelEffect[];
   stateChanges?: Record<string, unknown>;
+  /** RFC-023: typed physical effects derived from the prepared command. */
+  physical?: PhysicalEffects;
 }
 
 /**
@@ -71,6 +119,14 @@ export interface RunLimits {
   maxOutstandingChannelExposure?: { tokenId: string; amount: string };
   /** Cap on gross spend across a single step. */
   maxStepSpend?: { tokenId: string; amount: string };
+  /** RFC-023 physical ceilings (per step / per run). */
+  physical?: {
+    maxStepPower?: { watts: string };
+    maxEnergy?: { wattHours: string };
+    maxSpeed?: { metresPerSecond: string };
+    maxDurationSeconds?: { seconds: string };
+    allowedEnvelopes?: string[];
+  };
 }
 
 export interface StepTransitionRule {
