@@ -55,3 +55,5 @@ export {
 } from './guards.js';
 
 
+export { ReplicatedIdentityClaimIndex } from './replicated-index.js';
+export type { IdentityIndexPort, StoredIdentityClaim } from './replicated-index.js';
