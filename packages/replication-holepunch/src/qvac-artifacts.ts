@@ -58,11 +58,7 @@ export async function downloadModelAsset(
       'corrupt',
     );
   }
-  const receipt = await options.store.put(
-    options.namespace,
-    bytes,
-    options.expectedRef ? { expected: options.expectedRef } : undefined,
-  );
+  const receipt = await options.store.put(options.namespace, bytes);
   return { location, ref: receipt.ref, bytes: bytes.length };
 }
 

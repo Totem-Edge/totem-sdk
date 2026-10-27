@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/replication-holepunch",
   "version": "0.1.0",
-  "description": "Holepunch adapters for @totemsdk/replication — Hypercore logs, Hyperbee indexes and Corestore lifecycle",
+  "description": "Holepunch adapters for @totemsdk/replication \u2014 Hypercore logs, Hyperbee indexes and Corestore lifecycle",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "exports": {
@@ -58,7 +58,9 @@
   ],
   "dependencies": {
     "@totemsdk/core": "workspace:^",
-    "@totemsdk/replication": "workspace:^"
+    "@totemsdk/replication": "workspace:^",
+    "autobase": "7.28.2",
+    "corestore": "7.11.0"
   },
   "peerDependencies": {
     "corestore": ">=6.0.0",
@@ -77,16 +79,15 @@
     }
   },
   "devDependencies": {
+    "@totemsdk/storage": "workspace:^",
     "@types/jest": "^30.0.0",
     "@types/node": "^20.0.0",
     "hyperbee": "^2.27.3",
     "hypercore": "^11.33.5",
+    "hyperdrive": "^13.3.3",
     "jest": "^30.4.2",
     "ts-jest": "^29.4.11",
-    "typescript": "^5.9.3",
-    "@totemsdk/storage": "workspace:^",
-    "hyperdrive": "^13.3.3",
-    "corestore": "^7.11.0"
+    "typescript": "^5.9.3"
   },
   "engines": {
     "node": ">=18.0.0"

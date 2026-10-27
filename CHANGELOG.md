@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **RFC-057 Phase 3 (partial) — Autobase collaborative state:** added
+  `AutobaseCollaborativeStore` with real Autobase/Corestore, deterministic
+  reducers, owner-only writer admission, dataset-version envelopes and
+  competing-writer convergence tests. Signed-length completeness, migration and
+  offline reconnect remain.
+
 - **RFC-057 Phase 2 — Hyperdrive artifacts and QVAC bridge:** added
   `HyperdriveArtifactBackend` implementing `ArtifactStoreBackend` with immutable
   content-addressed paths, SHA3-256 verification on every read, `corrupt` vs

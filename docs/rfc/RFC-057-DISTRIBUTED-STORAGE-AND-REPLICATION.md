@@ -1,6 +1,6 @@
 # RFC-057 — Distributed Storage and Replication (Holepunch Integration)
 
-Status: Draft — Phases 0–2 **complete** (repair/conformance; replicated logs and indexes; Hyperdrive artifacts with QVAC verification bridge). Phases 3–5 authorised; Autobase, production consumers and deployment hardening remain
+Status: Draft — Phases 0–2 **complete** (repair/conformance; replicated logs and indexes; Hyperdrive artifacts with QVAC verification bridge); Phase 3 **partial** (real Autobase adapter, deterministic reducers, owner-governed writer admission and convergence/rejection tests landed; signed-length completeness, migration and offline reconnect remain). Phases 4–5 remain
 Created: 2026-10-20
 Authors: Totem SDK Contributors
 Depends on: RFC-007 (Storage Architecture), RFC-031 (Bare/ESM portability), RFC-037 (unified WOTS identity)
@@ -354,6 +354,10 @@ corrupt-block and interrupted-download tests fail closed.
 
 Deterministic reducers, governed writer admission, identity binding, dataset
 migration, offline convergence tests. Hyperbee provides materialised views.
+
+Implementation: `AutobaseCollaborativeStore` in
+`@totemsdk/replication-holepunch` (real Autobase/Corestore, Hypercore op view,
+owner-only writer admission, dataset-version envelope).
 
 **Gate:** competing writers converge; unauthorised writers are rejected; a peer
 with a stale view never reports `complete`.

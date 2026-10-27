@@ -3,3 +3,4 @@ export * from './hyperbee-index.js';
 export * from './hyperdrive-artifacts.js';
 
 export * from './qvac-artifacts.js';
+export * from './autobase-collaborative.js';
