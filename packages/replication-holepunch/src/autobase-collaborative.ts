@@ -14,18 +14,23 @@ import type { CollaborativeStore, ReplicationStatus } from '@totemsdk/replicatio
 import { sha3_256, toHex } from '@totemsdk/core';
 
 const CONTROL_ADD_WRITER = '__totem_add_writer';
+const CONTROL_REMOVE_WRITER = '__totem_remove_writer';
 
 interface ViewEnvelope<Op> {
   /** Writer core key (hex) that produced the operation. */
   w: string;
   /** Op payload, or a control marker. */
-  o: Op | { type: typeof CONTROL_ADD_WRITER; key: string };
+  o: Op | { type: typeof CONTROL_ADD_WRITER | typeof CONTROL_REMOVE_WRITER; key: string };
   v: number;
+  /** Autobase system length when this operation was materialised. */
+  sl: number;
 }
 
 export interface AutobaseReducer<Op, State> {
   initialState(): State;
   reduce(state: State, op: Op): State;
+  /** Optional migration for operations written under an older dataset version. */
+  migrate?(op: unknown, fromVersion: number): Op | null;
 }
 
 export interface AutobaseCollaborativeOptions<Op, State> {
@@ -92,7 +97,6 @@ export class AutobaseCollaborativeStore<Op, State>
 
     const base = new Autobase(store, options.bootstrapKey ?? null, {
       valueEncoding: 'json',
-      ackInterval: 100,
       open: (corestore: any) =>
         corestore.get({ name: 'totem-collab-ops', valueEncoding: 'json' }),
       async apply(nodes: any[], view: any, host: any): Promise<void> {
@@ -100,13 +104,23 @@ export class AutobaseCollaborativeStore<Op, State>
           const value = node.value;
           if (!value || typeof value !== 'object') continue;
           const writer = hex(node.from.key);
-          if (value.o?.type === CONTROL_ADD_WRITER) {
+          if (value.o?.type === CONTROL_ADD_WRITER || value.o?.type === CONTROL_REMOVE_WRITER) {
             if (writer !== (owner ?? hex(base.local.key))) continue;
-            await host.addWriter(Buffer.from(value.o.key, 'hex'), { indexer: true });
+            if (value.o.type === CONTROL_ADD_WRITER) {
+              await host.addWriter(Buffer.from(value.o.key, 'hex'), { indexer: true });
+            } else {
+              if (!host.removeable(Buffer.from(value.o.key, 'hex'))) continue;
+              await host.removeWriter(Buffer.from(value.o.key, 'hex'));
+            }
             continue;
           }
           if (options.isWriterAllowed && !options.isWriterAllowed(writer)) continue;
-          await view.append(JSON.stringify({ w: writer, o: value.o, v: datasetVersion }));
+          await view.append(JSON.stringify({
+            w: writer,
+            o: value.o,
+            v: Number(value.v ?? datasetVersion),
+            sl: Number(host.system?.length ?? 0),
+          }));
         }
       },
     });
@@ -145,7 +159,29 @@ export class AutobaseCollaborativeStore<Op, State>
     }
     await this.base.append({
       o: { type: CONTROL_ADD_WRITER, key: writerKey.toLowerCase() },
+      v: this.datasetVersion,
     });
+    await this.base.update();
+  }
+
+  /** Owner-only writer removal (the last indexer cannot be removed). */
+  async removeWriter(writerKey: string): Promise<void> {
+    this.assertOpen();
+    if (hex(this.base.local.key) !== this.ownerKey) {
+      throw new Error('only the owner writer may remove writers');
+    }
+    await this.base.append({
+      o: { type: CONTROL_REMOVE_WRITER, key: writerKey.toLowerCase() },
+      v: this.datasetVersion,
+    });
+    await this.base.update();
+  }
+
+  /** Explicit indexer acknowledgement; completeness is never advanced implicitly. */
+  async ack(): Promise<void> {
+    this.assertOpen();
+    if (!this.base.isIndexer) return;
+    await this.base.ack();
     await this.base.update();
   }
 
@@ -157,24 +193,41 @@ export class AutobaseCollaborativeStore<Op, State>
     const id = toHex(sha3_256(
       new TextEncoder().encode(`${this.baseKey}:${this.base.length}:${JSON.stringify(operation)}`),
     ));
-    await this.base.append({ o: operation });
+    await this.base.append({ o: operation, v: this.datasetVersion });
     await this.base.update();
     return { id, status: 'applied' };
+  }
+
+  /**
+   * Materialise the current reduced view into a replicated index (for example
+   * `HyperbeeDistributedIndex`). The index is a derived cache; the Autobase
+   * operation log remains authoritative.
+   */
+  async materialize(
+    index: { put(key: string, value: unknown): Promise<void> },
+    key = 'collab:state',
+  ): Promise<{ state: State; revision: string; complete: boolean }> {
+    const view = await this.readView();
+    await index.put(key, view);
+    return view;
   }
 
   async readView(): Promise<{ state: State; revision: string; complete: boolean }> {
     this.assertOpen();
     await this.base.update();
-    if (this.base.isIndexer && this.base.signedLength !== this.base.length) {
-      await this.base.ack();
-      await this.base.update();
-    }
     const view = this.base.view;
     let state = this.reducer.initialState();
+    let maxSystemLength = 0;
     for (let i = 0; i < view.length; i += 1) {
       const raw = await view.get(i);
       const envelope = (typeof raw === 'string' ? JSON.parse(raw) : raw) as ViewEnvelope<Op> | null;
-      if (!envelope || typeof envelope !== 'object' || envelope.v !== this.datasetVersion) {
+      if (!envelope || typeof envelope !== 'object') continue;
+      if (Number(envelope.sl) > maxSystemLength) maxSystemLength = Number(envelope.sl);
+      if (envelope.v !== this.datasetVersion) {
+        if (!this.reducer.migrate) continue;
+        const migrated = this.reducer.migrate(envelope.o, envelope.v);
+        if (migrated === null) continue;
+        state = this.reducer.reduce(state, migrated);
         continue;
       }
       state = this.reducer.reduce(state, envelope.o as Op);
@@ -185,7 +238,9 @@ export class AutobaseCollaborativeStore<Op, State>
     return {
       state,
       revision,
-      complete: !this.base.paused && this.base.signedLength === this.base.length,
+      // Complete means every materialised operation is inside the signed
+      // prefix. Unsigned ack/control tail nodes do not make the view stale.
+      complete: !this.base.paused && this.base.signedLength >= maxSystemLength,
     };
   }
 

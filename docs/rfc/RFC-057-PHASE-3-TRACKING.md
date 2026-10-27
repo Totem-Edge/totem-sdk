@@ -1,8 +1,8 @@
 # RFC-057 Phase 3 — Autobase collaborative state
 
-Status: **partial** — real Autobase adapter, deterministic reducer, writer
-admission and convergence tests landed. Signed-length completeness, dataset
-migration and offline reconnect remain.
+Status: **complete at the library boundary** — Autobase adapter, deterministic
+reducer, writer admission/rotation, dataset migration, explicit acknowledgements,
+offline reconnect and Hyperbee materialisation landed.
 Parent: [`RFC-057-DISTRIBUTED-STORAGE-AND-REPLICATION.md`](./RFC-057-DISTRIBUTED-STORAGE-AND-REPLICATION.md)
 
 ## Landed

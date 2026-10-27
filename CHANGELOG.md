@@ -20,11 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   evidence in a replicated index and re-verifying artifacts on read. Device
   histories, manifests, receipts and lookup replicas remain.
 
-- **RFC-057 Phase 3 (partial) — Autobase collaborative state:** added
+- **RFC-057 Phase 3 — Autobase collaborative state:** added
   `AutobaseCollaborativeStore` with real Autobase/Corestore, deterministic
-  reducers, owner-only writer admission, dataset-version envelopes and
-  competing-writer convergence tests. Signed-length completeness, migration and
-  offline reconnect remain.
+  reducers, owner-only writer admission/removal, writer-recorded dataset
+  versions with migration, explicit acknowledgements, signed-prefix
+  completeness, offline reconnect and Hyperbee materialisation.
+
 
 - **RFC-057 Phase 2 — Hyperdrive artifacts and QVAC bridge:** added
   `HyperdriveArtifactBackend` implementing `ArtifactStoreBackend` with immutable
