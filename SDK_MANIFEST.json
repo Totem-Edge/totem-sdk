@@ -344,6 +344,7 @@
         "@totemsdk/identity": "^1.0.2",
         "@totemsdk/intelligence": "^0.1.1",
         "@totemsdk/manifest": "^2.0.3",
+        "@totemsdk/replication": "^0.1.0",
         "@totemsdk/storage": "^0.2.2",
         "@totemsdk/txpow": "^1.1.0"
       },
@@ -874,7 +875,8 @@
         "signed"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.4.0"
+        "@totemsdk/core": "^1.4.0",
+        "@totemsdk/replication": "^0.1.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"

@@ -230,3 +230,5 @@ export {
   type OutboxEntry,
   InMemoryOutboxStore,
 } from './purchasing/index.js';
+export { EdgeReplicatedDeviceHistory } from './replicated-device-events.js';
+export type { EdgeDeviceEvent } from './replicated-device-events.js';

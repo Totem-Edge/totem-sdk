@@ -56,3 +56,4 @@ export type {
   AnnouncementStoreOptions,
 } from './announcement-store.js';
 export { MemoryAnnouncementStore } from './announcement-store.js';
+export { ReplicatedAnnouncementStore } from './replicated-announcements.js';
