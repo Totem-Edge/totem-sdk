@@ -104,3 +104,4 @@ export {
   exportProofGraph,
   importProofGraph,
 } from './io.js';
+export * from './replicated-evidence.js';
