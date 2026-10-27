@@ -2163,22 +2163,22 @@ importers:
       '@totemsdk/replication':
         specifier: workspace:^
         version: link:../replication
-    devDependencies:
       '@totemsdk/storage':
         specifier: workspace:^
         version: link:../storage
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.43
       autobase:
         specifier: 7.28.2
         version: 7.28.2(bare-url@2.4.6)
       corestore:
         specifier: 7.11.0
         version: 7.11.0(bare-url@2.4.6)
+    devDependencies:
+      '@types/jest':
+        specifier: ^30.0.0
+        version: 30.0.0
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.43
       hyperbee:
         specifier: ^2.27.3
         version: 2.27.3

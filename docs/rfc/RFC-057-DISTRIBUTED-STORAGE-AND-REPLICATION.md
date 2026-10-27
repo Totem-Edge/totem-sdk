@@ -1,6 +1,6 @@
 # RFC-057 — Distributed Storage and Replication (Holepunch Integration)
 
-Status: Draft — Phases 0–2 **complete** (repair/conformance; replicated logs and indexes; Hyperdrive artifacts with QVAC verification bridge); Phase 3 **partial** (real Autobase adapter, deterministic reducers, owner-governed writer admission and convergence/rejection tests landed; signed-length completeness, migration and offline reconnect remain). Phases 4–5 remain
+Status: Draft — Phases 0–2 **complete**; Phase 3 **partial** (real Autobase adapter, deterministic reducers, governed writer admission, convergence/rejection tests; signed-length completeness, migration and reconnect remain); Phase 4 **partial** (replicated proofgraph evidence network landed; device histories, manifests, receipts and lookup replicas remain). Phase 5 remains
 Created: 2026-10-20
 Authors: Totem SDK Contributors
 Depends on: RFC-007 (Storage Architecture), RFC-031 (Bare/ESM portability), RFC-037 (unified WOTS identity)
@@ -366,6 +366,10 @@ with a stale view never reports `complete`.
 
 Proofgraph evidence network, device event histories, replicated manifests, and
 selective agent receipts. Existing authoritative CAS state is preserved.
+
+Implementation: `createReplicatedEvidenceNetwork` in
+`@totemsdk/replication-holepunch` indexes digest-verified proofgraph evidence
+and re-verifies it on every read.
 
 Also integrate the read-side consumers: `lookup-client`/`chain-provider`/
 `realtime` read replicas and caches, `lookup-protocol` replication capability

@@ -4,3 +4,4 @@ export * from './hyperdrive-artifacts.js';
 
 export * from './qvac-artifacts.js';
 export * from './autobase-collaborative.js';
+export * from './proofgraph-evidence-network.js';

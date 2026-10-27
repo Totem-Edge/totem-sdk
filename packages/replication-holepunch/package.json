@@ -60,7 +60,8 @@
     "@totemsdk/core": "workspace:^",
     "@totemsdk/replication": "workspace:^",
     "autobase": "7.28.2",
-    "corestore": "7.11.0"
+    "corestore": "7.11.0",
+    "@totemsdk/storage": "workspace:^"
   },
   "peerDependencies": {
     "corestore": ">=6.0.0",
@@ -79,7 +80,6 @@
     }
   },
   "devDependencies": {
-    "@totemsdk/storage": "workspace:^",
     "@types/jest": "^30.0.0",
     "@types/node": "^20.0.0",
     "hyperbee": "^2.27.3",

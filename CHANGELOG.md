@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **RFC-057 Phase 4 (partial) — replicated proofgraph evidence:** added
+  `createReplicatedEvidenceNetwork`, indexing digest-verified proofgraph
+  evidence in a replicated index and re-verifying artifacts on read. Device
+  histories, manifests, receipts and lookup replicas remain.
+
 - **RFC-057 Phase 3 (partial) — Autobase collaborative state:** added
   `AutobaseCollaborativeStore` with real Autobase/Corestore, deterministic
   reducers, owner-only writer admission, dataset-version envelopes and
