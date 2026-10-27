@@ -9,6 +9,7 @@ export const VTXO_LEAF_DOMAIN = 'totemsdk/omnia-vtxo/leaf/v1';
 export const VTXO_RECEIPT_DOMAIN = 'totemsdk/omnia-vtxo/receipt/v1';
 export const VTXO_RECEIPT_BINDING_DOMAIN = 'totemsdk/omnia-vtxo/receipt-binding/v1';
 export const VTXO_BATCH_DOMAIN = 'totemsdk/omnia-vtxo/batch/v1';
+export const VTXO_EPOCH_DOMAIN = 'totemsdk/omnia-vtxo/epoch/v1';
 
 /**
  * Canonical batch commitment (RFC-038 §3.2): the operator signs this over the
@@ -259,4 +260,23 @@ export function computeReceiptId(
     at.toString(),
   ].join(':');
   return sha3hex(input);
+}
+
+
+/** Operator-signed epoch record commitment (spend-state authority). */
+export function computeEpochCommitmentBytes(
+  poolId: string,
+  epoch: number,
+  root: string,
+  receiptIds: readonly string[],
+  inputIds: readonly string[],
+): Uint8Array {
+  return hexToBytes(sha3hex([
+    VTXO_EPOCH_DOMAIN,
+    poolId,
+    epoch.toString(),
+    root,
+    [...receiptIds].sort().join(','),
+    [...inputIds].sort().join(','),
+  ].join('|')));
 }

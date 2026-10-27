@@ -218,7 +218,11 @@ export async function checkPoolFunding(
   coinId: string,
   expected: PoolFundingExpectation,
   chainProvider: ChainStateProvider,
-  options: { verifyProof?: (proof: unknown, coinId: string) => boolean } = {},
+  options: {
+    verifyProof?: (proof: unknown, coinId: string) => boolean;
+    /** Fail closed unless the MMR proof verifies. */
+    requireVerified?: boolean;
+  } = {},
 ): Promise<PoolFundingCheck> {
   const coin = await chainProvider.getCoin(coinId);
   if (!coin) return { ok: false, coinId, proofVerified: false, error: 'pool coin not found' };
@@ -234,11 +238,23 @@ export async function checkPoolFunding(
   if (!proof) return { ok: false, coinId, proofVerified: false, error: 'no MMR proof for pool coin' };
 
   const proofVerified = options.verifyProof ? options.verifyProof(proof, coinId) : false;
+  const coinView = { address: coin.address, amount: String(coin.amount), tokenId: coin.tokenid, spent: Boolean(coin.spent) };
+
+  if (options.requireVerified && !proofVerified) {
+    return {
+      ok: false,
+      coinId,
+      coin: coinView,
+      proof,
+      proofVerified: false,
+      error: 'pool funding proof was not verified',
+    };
+  }
 
   return {
     ok: true,
     coinId,
-    coin: { address: coin.address, amount: String(coin.amount), tokenId: coin.tokenid, spent: Boolean(coin.spent) },
+    coin: coinView,
     proof,
     proofVerified,
   };

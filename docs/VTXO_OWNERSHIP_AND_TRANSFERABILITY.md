@@ -107,6 +107,26 @@ ledger-only tests. Host transfers are therefore guarded by default.
 moving the claim, so new integrations should use it instead of raw
 `transferVtxo()`.
 
+## 4b. Expiry semantics (V0 decision)
+
+V0 closeout status: [vtxo-v0-closeout-2026-10.md](audits/vtxo-v0-closeout-2026-10.md).
+
+`expiresAt` is **untrusted metadata** in the current VTXO model. It is not part
+of `computeVtxoLeaf`, `verifyVtxo` does not enforce it, and `transferVtxo`
+drops it on outputs. Do not use it to claim that a VTXO expires, and do not
+confuse these distinct deadlines:
+
+| Deadline | What it means |
+|---|---|
+| Voucher/claim `claimDeadline` | Issuer/product rule: last moment a claim may be reserved. Enforced by the claims service, not the chain. |
+| `exitBlock` | Unilateral recovery timelock: the earliest block at which the committed owner may exit. |
+| Refresh/renewal deadline | Operator policy for updating a batch/epoch; it does not extinguish a claim. |
+| VTXO `expiresAt` | Untrusted metadata today; not enforceable on-chain. |
+
+Expiry becomes meaningful only when a new covenant commits and enforces it
+(e.g. a dedicated expiry branch). Until then, product expiry must be enforced
+at reservation, and a settled claim remains owned by its holder.
+
 ## 5. Required protocol work
 
 - **Owner-state covenant (landed):** `buildOwnerPoolScript()` authenticates the

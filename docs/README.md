@@ -118,6 +118,7 @@
 | [License provenance audit (2026-10)](audits/license-provenance-2026-10.md) | Source-provenance review of Minima-derived core/KISSVM/serialization, Bouncy Castle, QVAC, BIP39 and generated protobuf; recommends Apache-2.0 new releases + `NOTICE` |
 | [Manifest author-binding advisory (2026-10)](audits/manifest-author-binding-2026-10.md) | High-severity manifest impersonation: signature was not bound to the claimed author address; fixed by deriving and checking the signer address |
 | [Offline-safety and builder-claim audit (2026-10)](audits/offline-safety-claims-2026-10.md) | Corrects offline-channel/VTXO claims, token-amount and `txnpost auto:true` builder hazards, script-example drift and identity-hash linkability |
+| [VTXO V0 closeout (2026-10)](audits/vtxo-v0-closeout-2026-10.md) | V0 hardening status: anchored receipt verification, mandatory funding proof, epoch authority, expiry semantics and remaining adversarial/live-node gates |
 | [SDK_ROLLBACK_RUNBOOK.md](SDK_ROLLBACK_RUNBOOK.md) | Rollback procedures for SDK releases |
 | [SDK_STAGED_ROLLOUT.md](SDK_STAGED_ROLLOUT.md) | Staged rollout strategy for SDK deployments |
 | [RECOVERY_CLI.md](RECOVERY_CLI.md) | Recovery CLI tool documentation |

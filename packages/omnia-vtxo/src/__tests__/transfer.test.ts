@@ -37,6 +37,14 @@ describe('transferVtxo — full transfer', () => {
     expect(result.change).toBeUndefined();
   });
 
+  it('drops expiresAt on transfer (not carried to the new owner)', () => {
+    const { vtxo } = setup();
+    const { output } = transferVtxo({ ...vtxo, expiresAt: 1 }, {
+      recipient: 'bob', amount: BigInt(1000), nonce: 'tx-expiry',
+    }, NOW + 1);
+    expect(output.expiresAt).toBeUndefined();
+  });
+
   it('output has populated proof', () => {
     const { vtxo } = setup();
     const { output } = transferVtxo(vtxo, { recipient: 'bob', amount: BigInt(1000), nonce: 'tx-1' }, NOW + 1);

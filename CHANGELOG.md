@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`@totemsdk/omnia-vtxo` 0.8.0 — V0 spend-state and funding hardening:**
+  added `EpochAuthority`, a durable operator-signed epoch journal enforcing
+  monotonic epochs, one root per epoch, spent-input rejection, conflict rejection
+  and crash recovery. `checkPoolFunding` now supports `requireVerified` to fail
+  closed when the MMR proof is not verified. Added expiry-semantics and
+  owner-state adversarial tests. V1 remains gated on live-node evidence.
+
 - **`@totemsdk/omnia-vtxo` 0.7.0 — V1 owner-state covenant:** a single-owner
   claim coin commits the current owner key/address in state. The previous owner
   transfers by signing an owner-rotation state update (same address/amount,

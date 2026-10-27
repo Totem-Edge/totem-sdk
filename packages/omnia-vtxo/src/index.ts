@@ -6,6 +6,7 @@ export * from './operator.js';
 export * from './receipt.js';
 export * from './pool-script.js';
 export * from './owner-pool.js';
+export * from './epoch-authority.js';
 export * from './anchor.js';
 export * from './exit-tx.js';
 export * from './pool.js';

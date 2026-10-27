@@ -154,6 +154,42 @@ describe('checkPoolFunding (RFC-038 V1)', () => {
     expect(result.proofVerified).toBe(true);
   });
 
+  it('fails closed when verification is required but no verifier is supplied', async () => {
+    const chainProvider = {
+      getCoin: jest.fn(async () => coin),
+      getProof: jest.fn(async () => ({ ok: true })),
+    } as unknown as ChainStateProvider;
+    const result = await checkPoolFunding(coin.coinid, expected, chainProvider, { requireVerified: true });
+    expect(result.ok).toBe(false);
+    expect(result.proofVerified).toBe(false);
+    expect(result.error).toMatch(/not verified/);
+  });
+
+  it('fails closed when the verifier rejects the proof', async () => {
+    const chainProvider = {
+      getCoin: jest.fn(async () => coin),
+      getProof: jest.fn(async () => ({ ok: true })),
+    } as unknown as ChainStateProvider;
+    const result = await checkPoolFunding(coin.coinid, expected, chainProvider, {
+      requireVerified: true,
+      verifyProof: () => false,
+    });
+    expect(result.ok).toBe(false);
+  });
+
+  it('accepts when verification is required and the verifier passes', async () => {
+    const chainProvider = {
+      getCoin: jest.fn(async () => coin),
+      getProof: jest.fn(async () => ({ ok: true })),
+    } as unknown as ChainStateProvider;
+    const result = await checkPoolFunding(coin.coinid, expected, chainProvider, {
+      requireVerified: true,
+      verifyProof: () => true,
+    });
+    expect(result.ok).toBe(true);
+    expect(result.proofVerified).toBe(true);
+  });
+
   it('rejects a mismatched amount', async () => {
     const chainProvider = {
       getCoin: jest.fn(async () => coin),

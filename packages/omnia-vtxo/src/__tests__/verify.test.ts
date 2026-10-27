@@ -2,6 +2,7 @@ import { createPool } from '../pool';
 import { mintVtxo } from '../vtxo';
 import { transferVtxo } from '../transfer';
 import { verifyVtxo, verifyVtxoProof, verifyVtxoTransfer, verifyConservation } from '../verify';
+import { computeVtxoLeaf } from '../commitment';
 import { OmniaVtxo } from '../types';
 
 const NOW = 1000;
@@ -29,6 +30,13 @@ describe('verifyVtxo', () => {
     const result = verifyVtxo(bad);
     expect(result.valid).toBe(false);
     expect(result.errors.some(e => e.includes('Amount'))).toBe(true);
+  });
+
+  it('treats expiresAt as untrusted metadata (not bound to the leaf or proof)', () => {
+    const { vtxo } = setup();
+    const withExpiry: OmniaVtxo = { ...vtxo, expiresAt: 1 };
+    expect(computeVtxoLeaf(withExpiry)).toBe(computeVtxoLeaf(vtxo));
+    expect(verifyVtxo(withExpiry).valid).toBe(true);
   });
 
   it('returns invalid for missing owner', () => {
