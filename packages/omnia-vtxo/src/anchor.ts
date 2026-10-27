@@ -18,6 +18,8 @@ import {
 import { serializeTxBody, mineTxPoW, resolveTxPowTarget } from '@totemsdk/txpow';
 import { concatBytes } from '@totemsdk/core';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
+import type { EpochAuthority } from './epoch-authority.js';
+import type { VtxoOperatorReceipt } from './types.js';
 import { buildAndHashPoolScript, POOL_SHARE_PORT_BASE } from './pool-script.js';
 
 export interface BatchAnchorParams {
@@ -40,6 +42,8 @@ export interface BatchAnchorParams {
   tokenId: string;
   /** Real MMR entry number of the funding coin. */
   fundingMmrEntry?: bigint;
+  /** Receipts included in this epoch, when a spend-state authority is used. */
+  receipts?: VtxoOperatorReceipt[];
 }
 
 /** Pool output state: STATE(100)=root, STATE(101)=epoch, STATE(102)=exitBlock, STATE(300+k)=share k. */
@@ -122,6 +126,8 @@ export interface BatchAnchorDeps {
   chainProvider?: ChainStateProvider;
   /** PoW miner (defaults to `@totemsdk/txpow`'s mineTxPoW). */
   mine?: (txBody: Uint8Array, difficulty: Uint8Array) => Promise<MinedTxPow>;
+  /** Durable spend-state authority; receipts are recorded before broadcast. */
+  authority?: EpochAuthority;
 }
 
 export interface BatchAnchorResult {
@@ -137,6 +143,16 @@ export async function anchorBatch(
   params: BatchAnchorParams,
   deps: BatchAnchorDeps,
 ): Promise<BatchAnchorResult> {
+  if (deps.authority) {
+    const receipts = params.receipts ?? [];
+    if (receipts.length === 0) {
+      throw new Error('anchorBatch: a spend-state authority requires the epoch receipts');
+    }
+    for (const receipt of receipts) {
+      await deps.authority.append(receipt, params.root);
+    }
+  }
+
   const draft = buildBatchAnchorDraft(params);
   const digest = batchAnchorDigest(draft);
   const signatures = deps.signatures ?? (deps.signDigest ? [await deps.signDigest(digest)] : undefined);
@@ -178,6 +194,7 @@ export async function anchorBatch(
       }
       result.txpowId = broadcast?.txpowid ?? Buffer.from(mined.txpowId).toString('hex');
     }
+    if (deps.authority) await deps.authority.markPublished(params.epoch);
   }
 
   return result;

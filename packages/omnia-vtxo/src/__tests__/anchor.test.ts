@@ -10,6 +10,11 @@ import {
   poolStateVariables,
   checkPoolFunding,
 } from '../anchor.js';
+import { computeCommitmentRoot, computeVtxoLeaf } from '../commitment.js';
+import { signVtxoReceipt } from '../receipt.js';
+import { EpochAuthority, type EpochEvent } from '../epoch-authority.js';
+import { MemoryStore, createJournal } from '@totemsdk/storage';
+import type { OmniaVtxo, OmniaVtxoOperator, VtxoOperatorReceipt } from '../types.js';
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 
 const OP = '0x' + 'aa'.repeat(32);
@@ -197,5 +202,119 @@ describe('checkPoolFunding (RFC-038 V1)', () => {
     } as unknown as ChainStateProvider;
     const result = await checkPoolFunding(coin.coinid, { ...expected, amount: '999' }, chainProvider);
     expect(result.ok).toBe(false);
+  });
+});
+
+describe('anchorBatch — spend-state authority integration', () => {
+  const operatorDigest = '0x' + '11'.repeat(32);
+  const holder = '0x' + '22'.repeat(32);
+  const { script, address } = buildAndHashPoolScript({
+    operatorPublicKeyDigest: operatorDigest,
+    holders: [holder],
+    exitBlock: 100,
+  });
+  const operator = {
+    poolId: 'pool-anchor',
+    sign: async (data: Uint8Array) => Buffer.from(data).toString('hex'),
+    verify: async (data: Uint8Array, sig: string) => Buffer.from(data).toString('hex') === sig,
+  } as OmniaVtxoOperator;
+
+  const output: OmniaVtxo = {
+    vtxoId: 'v-out',
+    poolId: 'pool-anchor',
+    owner: holder,
+    amount: 1_000n,
+    tokenId: '0x00',
+    status: 'active',
+    epoch: 1,
+    proof: { leaf: '', root: '', siblings: [], positions: [], epoch: 1, batchId: '' },
+    history: [],
+    createdAt: 1,
+    updatedAt: 1,
+  };
+  const root = computeCommitmentRoot([computeVtxoLeaf(output)]);
+
+  async function signedReceipt(over: Partial<VtxoOperatorReceipt> = {}): Promise<VtxoOperatorReceipt> {
+    return signVtxoReceipt(operator, {
+      receiptId: 'r-anchor',
+      poolId: 'pool-anchor',
+      op: 'mint',
+      inputIds: [],
+      outputIds: ['v-out'],
+      epoch: 1,
+      at: 1,
+      signature: '',
+      ...over,
+    }, { outputs: [output], root, epoch: 1 });
+  }
+
+  const params = (receipts?: VtxoOperatorReceipt[]) => ({
+    operatorPublicKeyDigest: operatorDigest,
+    holders: [holder],
+    shares: [1_000n],
+    exitBlock: 100,
+    root,
+    epoch: 1,
+    fundingCoinId: '0x' + 'cc'.repeat(32),
+    fundingAddress: address,
+    fundingScript: script,
+    amount: 1_000n,
+    tokenId: '0x00',
+    ...(receipts ? { receipts } : {}),
+  });
+
+  function authority() {
+    const journal = createJournal<EpochEvent>(new MemoryStore(), {
+      namespace: `anchor-epoch:${Math.random()}:v1:`,
+      requireAckMode: 'volatile',
+    });
+    return new EpochAuthority({ poolId: 'pool-anchor', journal, operator });
+  }
+
+  it('records receipts, publishes the epoch, and leaves no pending work', async () => {
+    const auth = authority();
+    const receipt = await signedReceipt();
+    const chainProvider = {
+      submitTransaction: jest.fn(async () => ({ success: true, txpowid: '0x' + '33'.repeat(32) })),
+    } as unknown as ChainStateProvider;
+
+    const result = await anchorBatch(params([receipt]), {
+      signDigest: async () => new Uint8Array(1088).fill(1),
+      chainProvider,
+      authority: auth,
+    });
+
+    expect(result.txpowId).toBe('0x' + '33'.repeat(32));
+    expect((await auth.recover()).pending).toEqual([]);
+    expect((await auth.current()).publishedEpoch).toBe(1);
+    expect(await auth.verifyReceipt(receipt, root)).toBe(true);
+  });
+
+  it('rejects a conflicting receipt before broadcasting', async () => {
+    const auth = authority();
+    await auth.append(await signedReceipt(), root);
+
+    const conflictingOutput = { ...output, vtxoId: 'v-other' };
+    const conflictingRoot = computeCommitmentRoot([computeVtxoLeaf(conflictingOutput)]);
+    const conflicting = await signVtxoReceipt(operator, {
+      receiptId: 'r-conflict',
+      poolId: 'pool-anchor',
+      op: 'mint',
+      inputIds: [],
+      outputIds: ['v-other'],
+      epoch: 1,
+      at: 2,
+      signature: '',
+    }, { outputs: [conflictingOutput], root: conflictingRoot, epoch: 1 });
+
+    const chainProvider = {
+      submitTransaction: jest.fn(async () => ({ success: true, txpowid: '0x' + '44'.repeat(32) })),
+    } as unknown as ChainStateProvider;
+
+    await expect(anchorBatch(
+      { ...params([conflicting]), root: conflictingRoot },
+      { signDigest: async () => new Uint8Array(1088).fill(1), chainProvider, authority: auth },
+    )).rejects.toThrow(/conflicting root/);
+    expect(chainProvider.submitTransaction).not.toHaveBeenCalled();
   });
 });
