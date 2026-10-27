@@ -2065,9 +2065,18 @@ importers:
 
   packages/qvac:
     dependencies:
+      '@totemsdk/core':
+        specifier: workspace:^
+        version: link:../core
       '@totemsdk/intelligence':
         specifier: workspace:^
         version: link:../intelligence
+      '@totemsdk/replication-holepunch':
+        specifier: workspace:^
+        version: link:../replication-holepunch
+      '@totemsdk/storage':
+        specifier: workspace:^
+        version: link:../storage
     devDependencies:
       '@types/jest':
         specifier: ^30.0.0

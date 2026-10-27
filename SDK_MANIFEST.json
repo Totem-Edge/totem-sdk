@@ -1987,10 +1987,23 @@
         "edge-ai"
       ],
       "dependencies": {
-        "@totemsdk/intelligence": "^0.1.1"
+        "@totemsdk/core": "^1.4.0",
+        "@totemsdk/intelligence": "^0.1.1",
+        "@totemsdk/replication-holepunch": "^0.1.0",
+        "@totemsdk/storage": "^0.2.2"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}",
+        "./artifacts": {
+          "import": {
+            "types": "./dist/artifacts.d.ts",
+            "default": "./dist/artifacts.js"
+          },
+          "require": {
+            "types": "./dist/cjs/artifacts.d.ts",
+            "default": "./dist/cjs/artifacts.js"
+          }
+        },
         "./asr": "dist/domains/asr.{js,d.ts}",
         "./audiogen": "dist/domains/audiogen.{js,d.ts}",
         "./classify": "dist/domains/classify.{js,d.ts}",
