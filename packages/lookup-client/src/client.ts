@@ -280,6 +280,15 @@ export class LookupClient {
     return resp.payload as ChainTip;
   }
 
+  async queryReplication(filter: { datasetId?: string; transport?: 'hyperswarm' | 'relay' } = {}): Promise<import('@totemsdk/lookup-protocol').ReplicationCapability[]> {
+    const resp = await this._rpc.sendRequest({
+      type: 'REPLICATION_QUERY',
+      version: PROTOCOL_VERSION,
+      payload: filter,
+    });
+    return (resp.payload as { replicas?: import('@totemsdk/lookup-protocol').ReplicationCapability[] }).replicas ?? [];
+  }
+
   async getToken(tokenId: string): Promise<TokenInfo> {
     const resp = await this._rpc.sendRequest({
       type: 'GET_TOKEN',

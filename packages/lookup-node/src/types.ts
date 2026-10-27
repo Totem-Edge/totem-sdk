@@ -4,7 +4,7 @@
 
 import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import type { StorageAdapter } from '@totemsdk/core';
-import type { TrustRecordMessage } from '@totemsdk/lookup-protocol';
+import type { ReplicationCapability, TrustRecordMessage } from '@totemsdk/lookup-protocol';
 
 export type { ChainStateProvider };
 
@@ -108,6 +108,8 @@ export interface MegaMMRConfig {
 }
 
 export interface LookupNodeConfig {
+  /** RFC-057: replication capabilities this node advertises. */
+  replication?: ReplicationCapability[];
   /** Chain state source — MinimaRpcProvider or any ChainStateProvider */
   provider: ChainStateProvider;
   /** Block polling interval in ms. Default: 5_000 */

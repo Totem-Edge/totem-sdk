@@ -411,6 +411,21 @@ export class ClientSession {
         break;
       }
 
+      case 'REPLICATION_QUERY': {
+        const replicas = (this._dispatcher.config.replication ?? []).filter((replica) => {
+          if (msg.payload.datasetId && replica.datasetId !== msg.payload.datasetId) return false;
+          if (msg.payload.transport && !replica.transports.includes(msg.payload.transport)) return false;
+          return true;
+        });
+        this._sendFn({
+          type: 'REPLICATION_RESULT',
+          version: 2,
+          id: msg.id,
+          payload: { replicas },
+        });
+        break;
+      }
+
       case 'TRUST_RECORD': {
         const ti = this._dispatcher.trustIndex;
         if (ti) await ti.record(msg, this.publicKeyHex);

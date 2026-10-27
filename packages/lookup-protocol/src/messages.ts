@@ -47,6 +47,8 @@ export type MessageType =
   | 'AGENT_ANNOUNCE'
   | 'AGENT_QUERY'
   | 'AGENT_RESULT'
+  | 'REPLICATION_QUERY'
+  | 'REPLICATION_RESULT'
   | 'TRUST_RECORD'
   | 'TRUST_QUERY'
   | 'TRUST_RESPONSE'
@@ -553,6 +555,33 @@ export interface PolicySignCancelMessage extends BaseMessage {
   };
 }
 
+// ─── Replication capability discovery ──────────────────────────────────────
+
+export interface ReplicationCapability {
+  datasetId: string;
+  datasetVersion: number;
+  writerModel: 'single-writer' | 'multi-writer' | 'read-replica';
+  transports: Array<'hyperswarm' | 'relay'>;
+  encrypted: boolean;
+  /** Optional opaque endpoint/topic hint; never trusted as identity. */
+  endpoint?: string;
+}
+
+export interface ReplicationQueryMessage extends BaseMessage {
+  type: 'REPLICATION_QUERY';
+  payload: {
+    datasetId?: string;
+    transport?: 'hyperswarm' | 'relay';
+  };
+}
+
+export interface ReplicationResultMessage extends BaseMessage {
+  type: 'REPLICATION_RESULT';
+  payload: {
+    replicas: ReplicationCapability[];
+  };
+}
+
 export type LookupMessage =
   | HelloMessage
   | SessionOpenMessage
@@ -584,6 +613,8 @@ export type LookupMessage =
   | AgentAnnounceMessage
   | AgentQueryMessage
   | AgentResultMessage
+  | ReplicationQueryMessage
+  | ReplicationResultMessage
   | TrustRecordMessage
   | TrustQueryMessage
   | TrustResponseMessage
