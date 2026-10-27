@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **RFC-057 Phase 2 (partial) — Hyperdrive artifacts:** added
+  `HyperdriveArtifactBackend` implementing `ArtifactStoreBackend` with immutable
+  content-addressed paths, SHA3-256 verification on every read, `corrupt` vs
+  `not-found`, restart/reopen and conformance tests. Storage conformance now
+  supports digest-aware backends and fixed-retention immutability.
+
 - **RFC-057 Phase 1 — replicated logs and indexes:** new
   `@totemsdk/replication` (runtime-neutral contracts, dataset descriptors,
   versioned codec, checkpoints) and `@totemsdk/replication-holepunch`

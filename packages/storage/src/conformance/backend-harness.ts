@@ -10,6 +10,7 @@
  */
 
 import { describe, it, expect } from '@jest/globals';
+import { bytesToHex, sha3_256 } from '@totemsdk/core';
 
 import type {
   ArtifactRef,
@@ -22,7 +23,16 @@ export interface BackendConformanceStore {
 
 export type BackendConformanceMakeStore = () => Promise<BackendConformanceStore>;
 
-export function runBackendConformance(suiteName: string, makeStore: BackendConformanceMakeStore): void {
+export interface BackendConformanceOptions {
+  /** Compute the ref digest from the bytes for content-addressed backends. */
+  readonly digestAware?: boolean;
+}
+
+export function runBackendConformance(
+  suiteName: string,
+  makeStore: BackendConformanceMakeStore,
+  options: BackendConformanceOptions = {},
+): void {
   describe(suiteName, () => {
     it('declares a complete capability set', async () => {
       const { backend } = await makeStore();
@@ -46,12 +56,14 @@ export function runBackendConformance(suiteName: string, makeStore: BackendConfo
     });
 
     ifWritable('put then get returns the same bytes', async (backend) => {
+      const bytes = new Uint8Array([0x01, 0x02, 0x03, 0x04, 0xff]);
       const ref: ArtifactRef = {
         namespace: 'test',
         algorithm: 'sha3-256',
-        digest: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+        digest: options.digestAware
+          ? bytesToHex(sha3_256(bytes)).toLowerCase()
+          : '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
       };
-      const bytes = new Uint8Array([0x01, 0x02, 0x03, 0x04, 0xff]);
       const receipt = await backend.put(ref, bytes);
       expect(receipt.ref.digest).toBe(ref.digest);
       expect(receipt.size).toBe(bytes.byteLength);
@@ -61,7 +73,10 @@ export function runBackendConformance(suiteName: string, makeStore: BackendConfo
       expect(Buffer.from(read.bytes!).toString('hex')).toBe(Buffer.from(bytes).toString('hex'));
     });
 
-    ifWritable('put overwrites same-ref bytes', async (backend) => {
+    ifWritable('put overwrites same-ref bytes (mutable retention only)', async (backend) => {
+      // Fixed-retention backends are content-addressed/immutable by contract;
+      // rewriting a published ref is not allowed.
+      if (backend.capabilities.retention === 'fixed') return;
       const ref: ArtifactRef = {
         namespace: 'test',
         algorithm: 'sha3-256',

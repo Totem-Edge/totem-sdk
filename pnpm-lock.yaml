@@ -2163,9 +2163,6 @@ importers:
       '@totemsdk/replication':
         specifier: workspace:^
         version: link:../replication
-      corestore:
-        specifier: '>=6.0.0'
-        version: 7.11.0(bare-url@2.4.6)
     devDependencies:
       '@totemsdk/storage':
         specifier: workspace:^
@@ -2176,12 +2173,18 @@ importers:
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
+      corestore:
+        specifier: ^7.11.0
+        version: 7.11.0(bare-url@2.4.6)
       hyperbee:
         specifier: ^2.27.3
         version: 2.27.3
       hypercore:
         specifier: ^11.33.5
         version: 11.33.5(bare-url@2.4.6)
+      hyperdrive:
+        specifier: ^13.3.3
+        version: 13.3.3(bare-url@2.4.6)
       jest:
         specifier: ^30.4.2
         version: 30.4.2(@types/node@20.19.43)

@@ -34,6 +34,16 @@
         "types": "./dist/cjs/hyperbee-index.d.ts",
         "default": "./dist/cjs/hyperbee-index.js"
       }
+    },
+    "./hyperdrive": {
+      "import": {
+        "types": "./dist/hyperdrive-artifacts.d.ts",
+        "default": "./dist/hyperdrive-artifacts.js"
+      },
+      "require": {
+        "types": "./dist/cjs/hyperdrive-artifacts.d.ts",
+        "default": "./dist/cjs/hyperdrive-artifacts.js"
+      }
     }
   },
   "scripts": {
@@ -74,7 +84,9 @@
     "jest": "^30.4.2",
     "ts-jest": "^29.4.11",
     "typescript": "^5.9.3",
-    "@totemsdk/storage": "workspace:^"
+    "@totemsdk/storage": "workspace:^",
+    "hyperdrive": "^13.3.3",
+    "corestore": "^7.11.0"
   },
   "engines": {
     "node": ">=18.0.0"

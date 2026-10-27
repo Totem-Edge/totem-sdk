@@ -2123,7 +2123,7 @@
       "exportsDescription": "ReplicationStatus, DistributedCapabilities, ReplicatedLog, DistributedIndex, CollaborativeStore, DatasetDescriptor, Checkpoint",
       "custody": {
         "classification": "non-custodial",
-        "reason": "replication contracts — hold no on-chain value"
+        "reason": "replication contracts — holds no on-chain value"
       }
     },
     {
@@ -2139,16 +2139,26 @@
         "holepunch"
       ],
       "dependencies": {
-        "@totemsdk/core": "^1.4.0",
-        "@totemsdk/replication": "^0.1.0",
         "hypercore": "^11.33.5",
         "hyperbee": "^2.27.3",
-        "corestore": "^7.11.0"
+        "corestore": "^7.11.0",
+        "@totemsdk/core": "^1.4.0",
+        "@totemsdk/replication": "^0.1.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}",
+        "./hyperbee": "dist/hyperbee-index.{js,d.ts}",
         "./hypercore": "dist/hypercore-log.{js,d.ts}",
-        "./hyperbee": "dist/hyperbee-index.{js,d.ts}"
+        "./hyperdrive": {
+          "import": {
+            "types": "./dist/hyperdrive-artifacts.d.ts",
+            "default": "./dist/hyperdrive-artifacts.js"
+          },
+          "require": {
+            "types": "./dist/cjs/hyperdrive-artifacts.d.ts",
+            "default": "./dist/cjs/hyperdrive-artifacts.js"
+          }
+        }
       },
       "exportsDescription": "HypercoreReplicatedLog, HyperbeeDistributedIndex",
       "custody": {
