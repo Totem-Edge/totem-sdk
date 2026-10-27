@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`@totemsdk/omnia-vtxo` 0.7.0 — V1 owner-state covenant:** a single-owner
+  claim coin commits the current owner key/address in state. The previous owner
+  transfers by signing an owner-rotation state update (same address/amount,
+  higher epoch); after the exit block the committed owner exits unilaterally to
+  their committed address. Added `buildOwnerPoolScript`,
+  `buildOwnerTransferTransaction` and `buildOwnerExitTransaction` with real
+  WOTS/KISSVM tests. This is the arbitrary-recipient V1 path; pooled bearer
+  VTXOs remain out of scope.
+
 ### Security
 
 - **`@totemsdk/omnia-vtxo` 0.6.2 — receipt and exit binding:** the operator

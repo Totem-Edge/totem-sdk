@@ -1,6 +1,6 @@
 # VTXO ownership and transferability decision
 
-Status: **Decision required / V0 gate.**
+Status: **V1 design selected — owner-state covenant; core implemented.**
 Scope: RFC-038, Eefi Voucher V1, M8–M18 claim policies.
 
 ## 1. The mismatch
@@ -44,23 +44,44 @@ Each transfer delivers a new, fully signed per-share exit transaction (or a
 pre-signed exit tree), so the recipient holds an executable L1 recovery path
 without the operator.
 
-- Pros: matches the Ark-style property that recovery is a transaction path, not
-  merely a Merkle membership proof; operator cannot withhold exit.
-- Cons: storage/growth per transfer, exit-tx fee/coinage handling, and receiver
-  must verify the pre-signed transaction before accepting.
-- Verdict: **recommended V1 target**.
+- Pros: recovery is a transaction path, not merely a Merkle membership proof.
+- Cons: the current fixed-holder script pays the **committed holder**, so a
+  pre-signed exit for Alice cannot pay Bob without a covenant change. Storage
+  and fee handling also grow per transfer.
+- Verdict: **not sufficient alone on the current pool script.**
+
+### D. Current owner committed in state (selected)
+
+A single-owner claim coin commits the current owner public key and payout
+address in state. The previous owner rotates the owner by signing a state update
+to the same address/amount; after `exitBlock`, the committed owner exits to its
+committed address with no operator signature.
+
+- Pros: arbitrary recipient transfer with an enforceable unilateral exit; no
+  fixed holder list; the UTXO set is the spend authority, so Alice cannot
+  double-recover after a confirmed transfer; the operator is not needed after
+  funding.
+- Cons: one coin per claim (on-chain footprint); the transfer window closes at
+  `exitBlock`; the recipient must wait for confirmation before accepting.
+- Verdict: **V1 target. Implemented in `owner-pool.ts`.**
 
 ## 3. Decision
 
 1. **Phase 1 Eefi Voucher** remains on-chain treasury payouts. It must not claim
    pooled VTXO backing or self-custodial transferability.
 2. **Closed-group pools** may use fixed holders now.
-3. **Arbitrary-recipient VTXO transfer** is gated on option C: the recipient
-   must receive an independently executable exit path.
-4. Until option C is implemented and live-tested, `transferVtxo()` is an
-   off-chain ledger transfer, not a proven recovery entitlement.
+3. **Arbitrary-recipient VTXO transfer** uses the owner-state covenant (option
+   D): the recipient receives a coin whose committed owner they control, with a
+   unilateral exit path.
+4. `transferVtxo()` remains an off-chain ledger transfer unless paired with an
+   enforceable owner coin. `transferVtxoWithExit()` is only valid when the
+   recipient is already a committed holder; it is not an arbitrary-recipient
+   transfer.
 
 ## 4. V1 acceptance test (non-negotiable)
+
+The selected V1 form is an **owner-state claim coin**, not a pooled bearer
+VTXO. The test is run against that covenant.
 
 1. Alice holds a funded VTXO backed by pool coin P.
 2. Alice transfers to Bob; Bob verifies the claim, backing and exit package.
@@ -88,12 +109,22 @@ moving the claim, so new integrations should use it instead of raw
 
 ## 5. Required protocol work
 
-- Define `ExitEntitlement` (vtxo id, owner, amount, pool coin, exit tx/digest,
-  exit block, signature).
-- Bind the entitlement into the VTXO receipt and transfer acceptance.
-- Require recipients to verify the exit tx before treating a transfer as final.
-- Make operator receipt state globally authoritative across replicas.
-- Define expiry/renewal separately from exit timelock.
+- **Owner-state covenant (landed):** `buildOwnerPoolScript()` authenticates the
+  committed previous owner (`SIGNEDBY(PREVSTATE(103))`) for both transfer and
+  exit; `buildOwnerTransferDraft()` / `buildOwnerExitDraft()` and the signed
+  transaction assemblers are in `packages/omnia-vtxo/src/owner-pool.ts`.
+- **Transfer confirmation rule:** a recipient must not treat a transfer as final
+  until the owner-rotation transaction is confirmed; an unconfirmed transfer can
+  lose a race to the previous owner's exit.
+- **Initial state verification:** the funder must commit the recipient's public
+  key and the address derived from it; a mismatched owner address is rejected by
+  the builders.
+- **Exit block:** the transfer window closes at `exitBlock`; after that the
+  owner's unilateral exit path is the only owner-authorized spend.
+- **Operator receipts / global ledger:** still required for batch claims, but
+  the owner coin's UTXO set is the spend authority for a single claim.
+- **Expiry/renewal:** keep expiry separate from the exit timelock; do not claim
+  that a VTXO expires unless the expiry is committed and enforced.
 
 ## 6. Explicit non-goals until V1 passes
 
