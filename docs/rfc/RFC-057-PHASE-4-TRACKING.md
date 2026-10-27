@@ -27,13 +27,15 @@ Parent: [`RFC-057-DISTRIBUTED-STORAGE-AND-REPLICATION.md`](./RFC-057-DISTRIBUTED
   and replica errors are never hidden by a primary read.
 - `LookupClientReadReplica` applies the same contract to `getCoins()` and
   `getTip()`.
+- Wiring: `LookupClientConfig.replica` / `replicaMaxAgeMs`; concrete
+  `LookupClient.getCoinsReplicated()` / `getTipReplicated()`; and
+  `LookupClientProvider.getCoinsWithFreshness()` / `getTipWithFreshness()`.
 - Replicated proofgraph evidence network (Phase 4 start) remains.
 - Tests: 32 in `replication-holepunch`, 36 in `lookup-client`, 7 in
   `replication`.
 
 ## Remaining integration
 
-- Wire the lookup adapter at a concrete `lookup-node`/`lookup-client` call site.
 - Replication capability announcements in `lookup-protocol`.
 - Optional `proof-integritas` checkpoint anchoring and governed `edge`
   replication actions.

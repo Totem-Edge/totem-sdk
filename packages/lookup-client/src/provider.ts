@@ -30,12 +30,23 @@ import type {
   TokenSearchQuery,
 } from '@totemsdk/chain-provider';
 import type { LookupClient } from './client.js';
+import type { ReplicatedRead } from '@totemsdk/replication';
 
 export class LookupClientProvider implements ChainStateProvider {
   constructor(private readonly _client: LookupClient) {}
 
   getCoins(query: CoinsQuery): Promise<Coin[]> {
     return this._client.getCoins(query);
+  }
+
+  /** RFC-057 Phase 4: freshness-aware coins read from the configured replica. */
+  getCoinsWithFreshness(query: CoinsQuery): Promise<ReplicatedRead<Coin[]>> {
+    return this._client.getCoinsReplicated(query);
+  }
+
+  /** RFC-057 Phase 4: freshness-aware chain-tip read from the configured replica. */
+  getTipWithFreshness(): Promise<ReplicatedRead<ChainTip>> {
+    return this._client.getTipReplicated();
   }
 
   getCoin(coinId: string): Promise<Coin | null> {

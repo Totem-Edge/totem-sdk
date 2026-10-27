@@ -72,6 +72,16 @@ export interface LookupClientConfig {
    * Ignored when _transportFactory is set.
    */
   _transport?: import('@totemsdk/stream-transport').IStreamTransport;
+  /** RFC-057 Phase 4: optional replicated read view for freshness-aware reads. */
+  replica?: LookupReplicaSource;
+  /** Maximum replica observation age before it is reported stale. */
+  replicaMaxAgeMs?: number;
+}
+
+
+/** RFC-057 Phase 4: a replicated read source returning explicit completeness. */
+export interface LookupReplicaSource {
+  get(key: string): Promise<import('@totemsdk/replication').ReplicaObservation<unknown> | null>;
 }
 
 export type Unsubscribe = () => void;

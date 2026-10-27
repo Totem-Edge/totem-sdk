@@ -51,3 +51,24 @@ describe('LookupClientReadReplica', () => {
     expect(primary.getTip).not.toHaveBeenCalled();
   });
 });
+
+describe('LookupClient replicated methods', () => {
+  it('expose the configured replica through getCoinsReplicated/getTipReplicated', async () => {
+    const primary = client();
+    const { LookupClient } = await import('../client.js');
+    const instance = new LookupClient({
+      _transport: {} as never,
+      replica: { get: async (key) => key === 'chain-tip'
+        ? { value: tip, complete: true, observedAt: Date.now() }
+        : { value: coins, complete: true, observedAt: Date.now() } },
+    });
+    (instance as any)._rpc = { sendRequest: jest.fn(async () => ({ payload: {} })) };
+    expect(await instance.getCoinsReplicated({} as never)).toMatchObject({
+      source: 'replica', freshness: 'fresh', complete: true,
+    });
+    expect(await instance.getTipReplicated()).toMatchObject({
+      value: tip, source: 'replica', freshness: 'fresh',
+    });
+    expect(primary.getCoins).not.toHaveBeenCalled();
+  });
+});

@@ -7,12 +7,9 @@
  */
 
 import type { ChainTip, Coin, CoinsQuery } from '@totemsdk/chain-provider';
-import { readReplicated, type ReplicaObservation, type ReplicatedRead } from '@totemsdk/replication';
+import { readReplicated, type ReplicatedRead } from '@totemsdk/replication';
 import type { LookupClient } from './client.js';
-
-export interface LookupReplicaSource {
-  get(key: string): Promise<ReplicaObservation<unknown> | null>;
-}
+import type { LookupReplicaSource } from './types.js';
 
 export interface LookupReadReplicaOptions {
   /** Observations older than this are reported stale. */

@@ -20,7 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   evidence and re-verifying artifacts on read; device event history, agent
   receipt log, digest-verified manifest store, and `readReplicated()` /
   `LookupClientReadReplica` freshness-aware lookup reads that never silently
-  fall back to stale data.
+  fall back to stale data. `LookupClientConfig.replica` wires freshness-aware
+  `getCoinsReplicated()` / `getTipReplicated()` and provider counterparts.
 
 - **RFC-057 Phase 3 — Autobase collaborative state:** added
   `AutobaseCollaborativeStore` with real Autobase/Corestore, deterministic

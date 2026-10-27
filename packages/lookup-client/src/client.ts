@@ -19,8 +19,10 @@ import type { SessionTicket } from '@totemsdk/lookup-protocol';
 import { Authenticator, LookupIdentity } from './auth.js';
 import { RpcLayer } from './rpc.js';
 import { SubscriptionManager } from './subscriptions.js';
+import { LookupClientReadReplica } from './replica.js';
 import { createHyperswarmTransport } from './transport.js';
 import type { CoinUpdateCallback, ITransport, LookupClientConfig, Unsubscribe } from './types.js';
+import type { ReplicatedRead } from '@totemsdk/replication';
 
 type EventHandler = (...args: unknown[]) => void;
 
@@ -48,6 +50,7 @@ export class LookupClient {
   private _destroyed = false;
   private _reconnectAttempt = 0;
   private _handlers = new Map<string, EventHandler[]>();
+  private readonly _readReplica?: LookupClientReadReplica;
 
   constructor(private readonly _config: LookupClientConfig) {
     this._rpc = new RpcLayer(_config.timeoutMs ?? 10_000);
@@ -67,6 +70,11 @@ export class LookupClient {
       ...(_config.authRequiredTypes !== undefined ? { authRequiredTypes: _config.authRequiredTypes } : {}),
     });
     this._rpc.setAuthenticator(this._authenticator);
+    if (_config.replica) {
+      this._readReplica = new LookupClientReadReplica(this, _config.replica, {
+        ...(_config.replicaMaxAgeMs !== undefined ? { maxAgeMs: _config.replicaMaxAgeMs } : {}),
+      });
+    }
     // RFC-032-A: re-open the session once when the node rejects an expired ticket.
     this._rpc.setOnSessionExpired(() => {
       if (!this._authenticator.useTickets) return;
@@ -228,6 +236,18 @@ export class LookupClient {
     });
     const p = resp.payload as { coins?: Coin[] };
     return p.coins ?? [];
+  }
+
+  /** RFC-057 Phase 4: freshness-aware coins read (explicit source/complete). */
+  async getCoinsReplicated(query: CoinsQuery): Promise<ReplicatedRead<Coin[]>> {
+    if (!this._readReplica) throw new Error('lookup replica is not configured');
+    return this._readReplica.getCoins(query);
+  }
+
+  /** RFC-057 Phase 4: freshness-aware chain-tip read. */
+  async getTipReplicated(): Promise<ReplicatedRead<ChainTip>> {
+    if (!this._readReplica) throw new Error('lookup replica is not configured');
+    return this._readReplica.getTip();
   }
 
   async getCoin(coinId: string): Promise<Coin | null> {
