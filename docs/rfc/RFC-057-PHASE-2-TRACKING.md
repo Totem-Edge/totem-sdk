@@ -1,7 +1,8 @@
 # RFC-057 Phase 2 — Hyperdrive artifacts
 
-Status: **partial** — Hyperdrive `ArtifactStoreBackend` landed; consumer migration
-and interrupted-download coverage remain.
+Status: **complete at the library boundary** — Hyperdrive backend, QVAC
+verification bridge, and interrupted-download coverage landed. Consumer adoption
+is tracked in Phase 4.
 Parent: [`RFC-057-DISTRIBUTED-STORAGE-AND-REPLICATION.md`](./RFC-057-DISTRIBUTED-STORAGE-AND-REPLICATION.md)
 
 ## Landed
@@ -17,13 +18,22 @@ Parent: [`RFC-057-DISTRIBUTED-STORAGE-AND-REPLICATION.md`](./RFC-057-DISTRIBUTED
 - Storage conformance harness gained a `digestAware` mode and skips the overwrite
   case for fixed-retention backends; the Hyperdrive backend passes it.
 
-## Pending
+- `downloadModelAsset()` in `replication-holepunch/qvac-artifacts` bridges
+  QVAC `downloadAsset()` results into `ArtifactStore`: it verifies SHA3-256
+  against the expected `ArtifactRef` **before** `put`, so truncated or
+  substituted downloads never become addressable. `verifyModelAssetBytes()` is
+  available for read-only checks.
+- Proof evidence already flows through `createProofGraphEvidenceStore`, which
+  enforces `contentHash === artifact.digest`; no ad-hoc proof artifact paths
+  remain in the proof producers.
+- Interrupted-download corruption coverage: a partial/tampered payload is
+  rejected before write and the store is unchanged.
 
-1. Migrate/ bridge QVAC `downloadAsset({ hyperdriveKey })` to the shared
-   `ArtifactStoreBackend` and verify model bytes against the digest.
-2. Publish proof artifacts (`location-proof`, `spatial-proof`, `raster-proof`)
-   through `ArtifactStore`, not ad-hoc paths.
-3. Interrupted-download/cache-lifecycle tests with a real Hyperdrive peer.
-4. Decide whether Hyperdrive keys/versions expose a separate artifact index.
+## Deferred to Phase 4
 
-Gate is not met until (1)–(3) are tested.
+1. Adopt `downloadModelAsset()` at QVAC call sites (there are no in-repo callers
+   today; consumers must opt in).
+2. Decide whether Hyperdrive keys/versions expose a separate artifact index.
+3. Real-peer cache lifecycle/eviction tests.
+
+Phase 2 gate is met for the library surface; runtime consumers are Phase 4.

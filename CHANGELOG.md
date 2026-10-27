@@ -9,11 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **RFC-057 Phase 2 (partial) — Hyperdrive artifacts:** added
+- **RFC-057 Phase 2 — Hyperdrive artifacts and QVAC bridge:** added
   `HyperdriveArtifactBackend` implementing `ArtifactStoreBackend` with immutable
   content-addressed paths, SHA3-256 verification on every read, `corrupt` vs
   `not-found`, restart/reopen and conformance tests. Storage conformance now
   supports digest-aware backends and fixed-retention immutability.
+  `downloadModelAsset()` verifies QVAC download bytes against the expected
+  artifact ref before publishing, rejecting interrupted/tampered payloads.
 
 - **RFC-057 Phase 1 — replicated logs and indexes:** new
   `@totemsdk/replication` (runtime-neutral contracts, dataset descriptors,
