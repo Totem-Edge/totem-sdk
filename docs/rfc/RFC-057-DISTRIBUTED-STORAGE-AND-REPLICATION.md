@@ -1,6 +1,6 @@
 # RFC-057 — Distributed Storage and Replication (Holepunch Integration)
 
-Status: Draft — Phases 0–2 **complete**; Phase 3 **partial** (real Autobase adapter, deterministic reducers, governed writer admission, convergence/rejection tests; signed-length completeness, migration and reconnect remain); Phase 4 **partial** (replicated proofgraph evidence network landed; device histories, manifests, receipts and lookup replicas remain). Phase 5 remains
+Status: Draft — Phases 0–2 **complete**; Phase 3 **partial** (Autobase adapter/reducers/admission/convergence; signed-length completeness, migration, reconnect remain); Phase 4 **partial** (replicated proofgraph evidence; device histories, manifests, receipts and lookup replicas remain); Phase 5 **partial** (AES-GCM dataset envelopes and quotas landed; key rotation, selective replication, relay fallback, checkpoint verification, process-kill and ARM measurements remain)
 Created: 2026-10-20
 Authors: Totem SDK Contributors
 Depends on: RFC-007 (Storage Architecture), RFC-031 (Bare/ESM portability), RFC-037 (unified WOTS identity)
@@ -384,7 +384,11 @@ to stale data.
 ### Phase 5 — deployment hardening
 
 Encrypted dataset distribution, quotas, selective replication, verified
-checkpoints, recovery across Node, Bare and constrained ARM. Add a
+checkpoints, recovery across Node, Bare and constrained ARM.
+
+Implementation: `createAesGcmDatasetCipher` and `ReplicationQuota` in
+`@totemsdk/replication-holepunch` (explicit versioned AES-GCM envelopes and
+fail-closed byte/record quotas). Add a
 replication-over-relay path for runtimes without native Holepunch (browser,
 Android Pear) via `@totemsdk/omnia-relay` or a dedicated gateway; native
 Hyperswarm remains the preferred path.

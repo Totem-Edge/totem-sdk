@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **RFC-057 Phase 5 (partial) — deployment hardening:** added versioned
+  AES-256-GCM dataset envelopes (`createAesGcmDatasetCipher`) and fail-closed
+  byte/record replication quotas. Key rotation, selective replication, relay
+  fallback, verified checkpoints, process-kill recovery and ARM measurements
+  remain.
+
 - **RFC-057 Phase 4 (partial) — replicated proofgraph evidence:** added
   `createReplicatedEvidenceNetwork`, indexing digest-verified proofgraph
   evidence in a replicated index and re-verifying artifacts on read. Device
