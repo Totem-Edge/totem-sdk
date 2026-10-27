@@ -1,6 +1,6 @@
 # RFC-057 — Distributed Storage and Replication (Holepunch Integration)
 
-Status: Draft — Phase 0 (repair + conformance) **complete** (D1–D13 fixed; real Node tests + Node-proxy Bare suite pass; native Bare remains environment-gated). Phases 1–5 remain proposed; no new public API or package surface is authorised by this RFC
+Status: Draft — Phase 0 (repair + conformance) **complete**; Phase 1 (replicated logs and indexes) **complete** (`@totemsdk/replication`, `@totemsdk/replication-holepunch`). Phases 2–5 authorised for staged implementation; Hyperdrive artifacts, Autobase, production consumers and deployment hardening remain
 Created: 2026-10-20
 Authors: Totem SDK Contributors
 Depends on: RFC-007 (Storage Architecture), RFC-031 (Bare/ESM portability), RFC-037 (unified WOTS identity)
@@ -457,9 +457,10 @@ exercises the primitives without putting payment correctness at risk.
 
 ## 11. Authorisation
 
-This RFC authorises **Phase 0 only**: fixing D1–D13, adding a shared connection/
-Corestore lifecycle (including `pear`, `lookup-client` and `stream-transport`),
-migrating the Android starter fixture, and adding real multi-process conformance
-tests (Node and Bare). It does not authorise new npm packages, new public APIs, or
-any change to Omnia/statechain authority. Phases 1–5 require review and a
-follow-up authorisation.
+**Authorisation update 2026-10-27.** Phase 0 is complete. The repository owner
+authorised staged implementation of Phases 1–5. Phase 1 has landed with the new
+`@totemsdk/replication` contracts package and the optional
+`@totemsdk/replication-holepunch` adapters (Hypercore log, Hyperbee read index).
+Phases 2–5 remain gated by their own acceptance tests. No change is authorised to
+Omnia/statechain/WOTS authority: replication may carry encrypted backups of
+already validated state only.

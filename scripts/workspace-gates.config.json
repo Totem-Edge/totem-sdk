@@ -716,6 +716,24 @@
         "classification": "non-custodial",
         "reason": "schema/digest library — holds no on-chain value"
       }
+    },
+    "packages/replication": {
+      "status": "publishable",
+      "maturity": "alpha",
+      "supportTier": "outside",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "replication contracts — holds no on-chain value"
+      }
+    },
+    "packages/replication-holepunch": {
+      "status": "publishable",
+      "maturity": "alpha",
+      "supportTier": "outside",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "Holepunch replication adapters — hold no on-chain value"
+      }
     }
   }
 }

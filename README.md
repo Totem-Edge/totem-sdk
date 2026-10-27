@@ -248,7 +248,7 @@ Every stage produces evidence the next stage consumes — and every stage can be
 | [`@totemsdk/mcp-server`](packages/mcp-server) | MCP server for AI agent tooling — expose SDK capabilities to LLM agents |
 | [`@totemsdk/wallet-adapter`](packages/wallet-adapter) | Wallet adapter interfaces for multi-provider chain access |
 
-The authoritative machine-readable catalog is [`SDK_MANIFEST.json`](SDK_MANIFEST.json) — currently **67 packages across 9 domains**, plus the private `@totem/sdk-tests`.
+The authoritative machine-readable catalog is [`SDK_MANIFEST.json`](SDK_MANIFEST.json) — currently **69 packages across 9 domains**, plus the private `@totem/sdk-tests`.
 
 ---
 
@@ -264,7 +264,7 @@ We are honest about where things stand. The core cryptographic layer and the Omn
 | alpha | 4 | Architecture proof; no compatibility promise |
 | excluded | 6 | Private/test harness; not published |
 
-Support tiers: **Tier 0** (3) first-line production core, **Tier 1** (10) production candidates, **Tier 2** (20) required support dependencies, **outside** (34), **excluded** (6). The generated per-package matrix is [`docs/maturity.md`](docs/maturity.md). It is checked in CI against `scripts/workspace-gates.config.json`; do not edit it by hand.
+Support tiers: **Tier 0** (3) first-line production core, **Tier 1** (10) production candidates, **Tier 2** (20) required support dependencies, **outside** (36), **excluded** (6). The generated per-package matrix is [`docs/maturity.md`](docs/maturity.md). It is checked in CI against `scripts/workspace-gates.config.json`; do not edit it by hand.
 
 **Production surface (RFC-063 §4):** Tier 0 is `core`, `core-wasm` and `kissvm`. Tier 1 candidates are `wots-lease`, `omnia`, `omnia-host`, `storage`, `lookup-*`, `industrial-action`, `edge-mqtt` and `edge-modbus`; they remain RC/alpha until their named evidence and dependency closure pass. Other packages keep their measured maturity and are outside the first-line production core; they are not automatically “preview”.
 
@@ -554,7 +554,7 @@ docs/                       # SDK documentation
 | [RFC-070](docs/rfc/RFC-070-TOTEM-NAMESPACE-AND-NAME-RESOLUTION.md) | Totem namespace and name resolution — on-chain registry root, P2P records, privacy profiles and Entity integration (proposed; design only) |
 | [Off-chain research profiles](docs/research/OMNIA-OFFCHAIN-RESEARCH-PROFILES.md) | Deferred OEX-04/05/06/08/09/10/11/12 research notes; no implementation authority |
 | [SDK Audit (archived)](docs/archive/SDK_AUDIT-2026-02-ARCHIVED.md) | Historical Feb 2026 audit; current maturity lives in the table above |
-| [SDK Manifest](SDK_MANIFEST.json) | Machine-readable package index — 67 packages, for AI agents and tooling |
+| [SDK Manifest](SDK_MANIFEST.json) | Machine-readable package index — 69 packages, for AI agents and tooling |
 | [API Reference](https://totem.ing) | Full TypeDoc-generated API reference |
 
 ---

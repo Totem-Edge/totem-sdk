@@ -1,0 +1,41 @@
+{
+  "name": "@totemsdk/replication",
+  "version": "0.1.0",
+  "description": "Runtime-neutral contracts for Totem distributed storage: replicated logs, indexes, datasets and checkpoints",
+  "main": "dist/cjs/index.js",
+  "types": "dist/cjs/index.d.ts",
+  "exports": {
+    ".": {
+      "import": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
+      "require": { "types": "./dist/cjs/index.d.ts", "default": "./dist/cjs/index.js" }
+    }
+  },
+  "scripts": {
+    "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
+    "test": "jest"
+  },
+  "files": ["dist", "README.md", "LICENSE", "NOTICE"],
+  "dependencies": {
+    "@totemsdk/core": "workspace:^",
+    "@totemsdk/storage": "workspace:^"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20.0.0",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.4.11",
+    "typescript": "^5.9.3"
+  },
+  "engines": { "node": ">=18.0.0" },
+  "publishConfig": { "access": "public" },
+  "license": "Apache-2.0",
+  "author": "Totem SDK",
+  "homepage": "https://docs.totem.ing",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Totem-Edge/totem-sdk.git",
+    "directory": "packages/replication"
+  },
+  "bugs": { "url": "https://github.com/Totem-Edge/totem-sdk/issues" },
+  "keywords": ["totem", "replication", "hypercore", "distributed-storage", "storage"]
+}

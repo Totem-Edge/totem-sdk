@@ -4,7 +4,7 @@
   "description": "Machine-readable index of all @totemsdk packages — for AI agents, tooling, and developers. Updated 2026-10-20.",
   "license": "Apache-2.0",
   "org": "@totemsdk",
-  "total": 67,
+  "total": 69,
   "domains": {
     "cryptographic-foundation": {
       "description": "WOTS signatures, TreeKey hierarchy, MMR proofs, KISSVM, MAST, TxPoW",
@@ -109,7 +109,9 @@
     "storage": {
       "description": "Provider-neutral storage contracts and adapters — StorageError taxonomy, versioned codec, namespaces, transactions + CAS, and the pluggable ArtifactStoreBackend artifact port",
       "packages": [
-        "@totemsdk/storage"
+        "@totemsdk/storage",
+        "@totemsdk/replication",
+        "@totemsdk/replication-holepunch"
       ]
     },
     "programmable-capital": {
@@ -2097,6 +2099,61 @@
       "custody": {
         "classification": "non-custodial",
         "reason": "schema/digest library — holds no on-chain value"
+      }
+    },
+    {
+      "name": "@totemsdk/replication",
+      "version": "0.1.0",
+      "description": "Runtime-neutral contracts for Totem distributed storage: replicated logs, indexes, datasets and checkpoints",
+      "domain": "storage",
+      "keywords": [
+        "totem",
+        "replication",
+        "distributed-storage",
+        "hypercore",
+        "contracts"
+      ],
+      "dependencies": {
+        "@totemsdk/core": "^1.4.0",
+        "@totemsdk/storage": "^0.2.1"
+      },
+      "exports": {
+        ".": "dist/index.{js,d.ts}"
+      },
+      "exportsDescription": "ReplicationStatus, DistributedCapabilities, ReplicatedLog, DistributedIndex, CollaborativeStore, DatasetDescriptor, Checkpoint",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "replication contracts — hold no on-chain value"
+      }
+    },
+    {
+      "name": "@totemsdk/replication-holepunch",
+      "version": "0.1.0",
+      "description": "Holepunch adapters for @totemsdk/replication — Hypercore logs, Hyperbee indexes and Corestore lifecycle",
+      "domain": "storage",
+      "keywords": [
+        "totem",
+        "replication",
+        "hypercore",
+        "hyperbee",
+        "holepunch"
+      ],
+      "dependencies": {
+        "@totemsdk/core": "^1.4.0",
+        "@totemsdk/replication": "^0.1.0",
+        "hypercore": "^11.33.5",
+        "hyperbee": "^2.27.3",
+        "corestore": "^7.11.0"
+      },
+      "exports": {
+        ".": "dist/index.{js,d.ts}",
+        "./hypercore": "dist/hypercore-log.{js,d.ts}",
+        "./hyperbee": "dist/hyperbee-index.{js,d.ts}"
+      },
+      "exportsDescription": "HypercoreReplicatedLog, HyperbeeDistributedIndex",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "Holepunch replication adapters — hold no on-chain value"
       }
     }
   ]

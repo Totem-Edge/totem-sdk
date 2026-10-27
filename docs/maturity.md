@@ -19,7 +19,7 @@
 | v1 | 18 |
 | rc | 42 |
 | beta | 3 |
-| alpha | 4 |
+| alpha | 6 |
 | excluded | 6 |
 
 | Support tier | Packages |
@@ -27,10 +27,10 @@
 | Tier 0 | 3 |
 | Tier 1 | 10 |
 | Tier 2 | 20 |
-| Outside production surface | 34 |
+| Outside production surface | 36 |
 | Excluded | 6 |
 
-Total: **67** publishable packages + **6** excluded entries = **73** workspace entries.
+Total: **69** publishable packages + **6** excluded entries = **75** workspace entries.
 
 ## Matrix
 
@@ -103,6 +103,8 @@ Total: **67** publishable packages + **6** excluded entries = **73** workspace e
 | `@totemsdk/edge-nfc` | 0.1.0 | alpha | outside | `packages/edge-nfc` |
 | `@totemsdk/entity` | 0.2.0 | alpha | outside | `packages/entity` |
 | `@totemsdk/omnia-relay` | 0.6.0 | alpha | outside | `packages/omnia-relay` |
+| `@totemsdk/replication` | 0.1.0 | alpha | outside | `packages/replication` |
+| `@totemsdk/replication-holepunch` | 0.1.0 | alpha | outside | `packages/replication-holepunch` |
 | `@totem/sdk-tests` | 1.0.0 | excluded | excluded | `packages/sdk-tests` |
 | `@totemsdk/observability` | 0.1.0 | excluded | excluded | `extensions/observability` |
 | `totem-dapp-starter` | 0.1.0 | excluded | excluded | `extensions/totem-dapp-starter` |

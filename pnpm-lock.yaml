@@ -2130,6 +2130,68 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
 
+  packages/replication:
+    dependencies:
+      '@totemsdk/core':
+        specifier: workspace:^
+        version: link:../core
+      '@totemsdk/storage':
+        specifier: workspace:^
+        version: link:../storage
+    devDependencies:
+      '@types/jest':
+        specifier: ^30.0.0
+        version: 30.0.0
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.43
+      jest:
+        specifier: ^30.4.2
+        version: 30.4.2(@types/node@20.19.43)
+      ts-jest:
+        specifier: ^29.4.11
+        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.5.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.5.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/replication-holepunch:
+    dependencies:
+      '@totemsdk/core':
+        specifier: workspace:^
+        version: link:../core
+      '@totemsdk/replication':
+        specifier: workspace:^
+        version: link:../replication
+      corestore:
+        specifier: '>=6.0.0'
+        version: 7.11.0(bare-url@2.4.6)
+    devDependencies:
+      '@totemsdk/storage':
+        specifier: workspace:^
+        version: link:../storage
+      '@types/jest':
+        specifier: ^30.0.0
+        version: 30.0.0
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.43
+      hyperbee:
+        specifier: ^2.27.3
+        version: 2.27.3
+      hypercore:
+        specifier: ^11.33.5
+        version: 11.33.5(bare-url@2.4.6)
+      jest:
+        specifier: ^30.4.2
+        version: 30.4.2(@types/node@20.19.43)
+      ts-jest:
+        specifier: ^29.4.11
+        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.5.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.5.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
   packages/root-identity:
     devDependencies:
       '@totemsdk/core':

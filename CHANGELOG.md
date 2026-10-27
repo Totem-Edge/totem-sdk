@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **RFC-057 Phase 1 — replicated logs and indexes:** new
+  `@totemsdk/replication` (runtime-neutral contracts, dataset descriptors,
+  versioned codec, checkpoints) and `@totemsdk/replication-holepunch`
+  (Hypercore `ReplicatedLog`, Hyperbee `DistributedIndex`). Real Hypercore/Hyperbee
+  tests cover append/read cursors, restart recovery, sparse replication, version
+  rejection and two-peer convergence.
+
 - **`@totemsdk/omnia-vtxo` 0.8.1 — V0 spend-state and funding hardening:**
   added `EpochAuthority`, a durable operator-signed epoch journal enforcing
   monotonic epochs, one root per epoch, spent-input rejection, conflict rejection
