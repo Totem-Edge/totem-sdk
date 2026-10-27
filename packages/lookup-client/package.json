@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/lookup-client",
   "version": "0.2.0",
-  "description": "Hyperswarm client for Totem lookup nodes — chain queries, real-time coin updates, and TxPoW broadcast without a local chain DB",
+  "description": "Hyperswarm client for Totem lookup nodes \u2014 chain queries, real-time coin updates, and TxPoW broadcast without a local chain DB",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "exports": {
@@ -34,7 +34,8 @@
     "@totemsdk/lookup-protocol": "workspace:^",
     "@totemsdk/chain-provider": "workspace:^",
     "@totemsdk/root-identity": "workspace:^",
-    "@totemsdk/stream-transport": "workspace:^"
+    "@totemsdk/stream-transport": "workspace:^",
+    "@totemsdk/replication": "workspace:^"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

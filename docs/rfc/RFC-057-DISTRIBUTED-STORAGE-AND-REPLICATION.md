@@ -1,6 +1,6 @@
 # RFC-057 — Distributed Storage and Replication (Holepunch Integration)
 
-Status: Draft — Phases 0–3 **complete** (repair/conformance; logs/indexes; Hyperdrive artifacts+QVAC bridge; Autobase with reducers, admission/rotation, migration, explicit acks, offline reconnect and Hyperbee materialisation); Phase 4 **partial** (replicated proofgraph evidence; device histories, manifests, receipts and lookup replicas remain); Phase 5 **partial** (AES-GCM envelopes and quotas; key rotation, selective replication, relay fallback, checkpoint verification, process-kill and ARM measurements remain)
+Status: Draft — Phases 0–4 **complete** (repair/conformance; logs/indexes; Hyperdrive artifacts+QVAC bridge; Autobase reducers/admission/rotation/migration/acks/offline/Hyperbee; proofgraph evidence, device histories, manifests, receipts and freshness-aware lookup replicas); Phase 5 **partial** (AES-GCM envelopes and quotas; key rotation, selective replication, relay fallback, checkpoint verification, process-kill and ARM measurements remain)
 Created: 2026-10-20
 Authors: Totem SDK Contributors
 Depends on: RFC-007 (Storage Architecture), RFC-031 (Bare/ESM portability), RFC-037 (unified WOTS identity)

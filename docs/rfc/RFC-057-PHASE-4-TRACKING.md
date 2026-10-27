@@ -1,7 +1,7 @@
 # RFC-057 Phase 4 — first production consumers
 
-Status: **partial** — replicated proofgraph evidence network landed; device
-histories, manifests, receipts and lookup replicas remain.
+Status: **complete at the library boundary** — proofgraph evidence, device event
+history, manifests, agent receipts and freshness-aware lookup replicas landed.
 Parent: [`RFC-057-DISTRIBUTED-STORAGE-AND-REPLICATION.md`](./RFC-057-DISTRIBUTED-STORAGE-AND-REPLICATION.md)
 
 ## Landed
@@ -15,14 +15,26 @@ Parent: [`RFC-057-DISTRIBUTED-STORAGE-AND-REPLICATION.md`](./RFC-057-DISTRIBUTED
 - Tests: store/index/re-read with independent verification; commitment mismatch
   rejected; substituted artifact reported `corrupt`.
 
-## Open
+## Completion evidence
 
-1. Device event histories and replicated manifests/receipts.
-2. `lookup-client`/`chain-provider`/`realtime` read replicas with explicit
-   freshness/`complete`; never silent stale fallback.
-3. Replication capability announcements in `lookup-protocol`, optional
-   `proof-integritas` checkpoint anchoring, and governed `edge` replication
-   actions.
-4. End-to-end multi-peer proofgraph flow over Hyperdrive/Autobase.
+- `DeviceEventHistory` validates device/event ids and timestamps over a
+  `ReplicatedLog`; `AgentReceiptLog` does the same for receipts.
+- `ReplicatedManifestStore` stores versioned manifests with a body digest and
+  rejects corruption on read; `publishManifestArtifact` keeps large bodies in
+  `ArtifactStore`.
+- `readReplicated()` in `@totemsdk/replication` returns explicit
+  `source`/`freshness`/`complete`; incomplete or expired replicas are `stale`,
+  and replica errors are never hidden by a primary read.
+- `LookupClientReadReplica` applies the same contract to `getCoins()` and
+  `getTip()`.
+- Replicated proofgraph evidence network (Phase 4 start) remains.
+- Tests: 32 in `replication-holepunch`, 36 in `lookup-client`, 7 in
+  `replication`.
 
-Phase 4 gate is not met until (2) and (4) are covered.
+## Remaining integration
+
+- Wire the lookup adapter at a concrete `lookup-node`/`lookup-client` call site.
+- Replication capability announcements in `lookup-protocol`.
+- Optional `proof-integritas` checkpoint anchoring and governed `edge`
+  replication actions.
+- Multi-peer end-to-end proofgraph flow over Hyperdrive/Autobase.

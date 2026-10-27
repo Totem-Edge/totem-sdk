@@ -6,3 +6,4 @@ export * from './qvac-artifacts.js';
 export * from './autobase-collaborative.js';
 export * from './proofgraph-evidence-network.js';
 export * from './replication-security.js';
+export * from './consumers.js';

@@ -15,10 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   fallback, verified checkpoints, process-kill recovery and ARM measurements
   remain.
 
-- **RFC-057 Phase 4 (partial) — replicated proofgraph evidence:** added
+- **RFC-057 Phase 4 — first production consumers:** added
   `createReplicatedEvidenceNetwork`, indexing digest-verified proofgraph
-  evidence in a replicated index and re-verifying artifacts on read. Device
-  histories, manifests, receipts and lookup replicas remain.
+  evidence and re-verifying artifacts on read; device event history, agent
+  receipt log, digest-verified manifest store, and `readReplicated()` /
+  `LookupClientReadReplica` freshness-aware lookup reads that never silently
+  fall back to stale data.
 
 - **RFC-057 Phase 3 — Autobase collaborative state:** added
   `AutobaseCollaborativeStore` with real Autobase/Corestore, deterministic

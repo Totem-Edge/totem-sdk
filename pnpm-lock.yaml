@@ -1269,6 +1269,9 @@ importers:
       '@totemsdk/lookup-protocol':
         specifier: workspace:^
         version: link:../lookup-protocol
+      '@totemsdk/replication':
+        specifier: workspace:^
+        version: link:../replication
       '@totemsdk/root-identity':
         specifier: workspace:^
         version: link:../root-identity

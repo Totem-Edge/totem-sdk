@@ -42,3 +42,4 @@ export async function connectLookupNode(config: LookupClientConfig): Promise<Loo
   await client._connect(transport);
   return client;
 }
+export * from './replica.js';
