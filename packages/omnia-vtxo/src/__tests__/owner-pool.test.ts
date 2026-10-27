@@ -5,6 +5,7 @@
 import {
   bytesToHex,
   derivePKdigest,
+  hexToBytes,
   wotsAddressData,
   wotsSign,
 } from '@totemsdk/core';
@@ -189,5 +190,57 @@ describe('V1 owner-pool transaction builders', () => {
     const exit = await buildOwnerExitTransaction({ coin, state: to }, deps);
     expect(exit.kind).toBe('owner-exit');
     expect(exit.state.ownerAddr).toBe(addrB);
+  });
+});
+
+describe('V1 owner-pool end-to-end (VM)', () => {
+  const from = { root: '0x' + '11'.repeat(32), epoch: 1, exitBlock: 100, ownerPk: pkA, ownerAddr: addrA };
+  const to = { ...from, epoch: 2, ownerPk: pkB, ownerAddr: addrB };
+  const coin = {
+    coinId: '0x' + 'cc'.repeat(32),
+    address: poolAddr,
+    amount: 1_000n,
+    tokenId: '0x00',
+  };
+
+  const stateMap = (values: { port: number; value: unknown }[]) =>
+    Object.fromEntries(values.map((v) => [v.port, String(v.value)]));
+
+  it('verifies the actual signed transfer transaction, then Bob exits', async () => {
+    const transfer = await buildOwnerTransferTransaction({ coin, from, to }, {
+      signDigest: async (digest) => wotsSign(seedA, 0, digest),
+    });
+    const draft = buildOwnerTransferDraft({ coin, from, to });
+    const transferCtx: TxContext = {
+      block: 50,
+      inputIndex: 0,
+      inputs: [coin as unknown as CoinData],
+      outputs: draft.outputs.map((o) => ({
+        address: o.address,
+        amount: Number(o.amount),
+        tokenId: o.tokenId,
+        keepState: o.storeState,
+      })) as OutputData[],
+      state: stateMap(draft.stateVariables ?? []),
+      prevState: stateMap(buildOwnerPoolState(from)),
+      txDigest: hexToBytes(transfer.digest),
+    };
+    expect(evaluateScript(script, witness(pkA, wotsSign(seedA, 0, hexToBytes(transfer.digest))), transferCtx).passed).toBe(true);
+    expect(evaluateScript(script, witness(pkB, wotsSign(seedB, 0, hexToBytes(transfer.digest))), transferCtx).passed).toBe(false);
+
+    const exit = await buildOwnerExitTransaction({ coin, state: to }, {
+      signDigest: async (digest) => wotsSign(seedB, 0, digest),
+    });
+    const exitCtx: TxContext = {
+      block: 101,
+      inputIndex: 0,
+      inputs: [coin as unknown as CoinData],
+      outputs: [{ address: addrB, amount: 1_000, tokenId: '0x00', keepState: false }],
+      state: {},
+      prevState: stateMap(buildOwnerPoolState(to)),
+      txDigest: hexToBytes(exit.digest),
+    };
+    expect(evaluateScript(script, witness(pkB, wotsSign(seedB, 0, hexToBytes(exit.digest))), exitCtx).passed).toBe(true);
+    expect(evaluateScript(script, witness(pkA, wotsSign(seedA, 0, hexToBytes(exit.digest))), exitCtx).passed).toBe(false);
   });
 });

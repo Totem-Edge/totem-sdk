@@ -1792,6 +1792,9 @@ importers:
         specifier: workspace:^
         version: link:../wots-lease
     devDependencies:
+      '@totemsdk/kissvm':
+        specifier: workspace:^
+        version: link:../kissvm
       '@types/jest':
         specifier: ^30.0.0
         version: 30.0.0
