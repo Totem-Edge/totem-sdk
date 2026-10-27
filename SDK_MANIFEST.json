@@ -215,7 +215,7 @@
         "@totemsdk/agent-policy": "^0.3.1",
         "@totemsdk/chain-provider": "^0.3.0",
         "@totemsdk/kissvm": "^1.3.0",
-        "@totemsdk/lookup-client": "^0.3.0",
+        "@totemsdk/lookup-client": "^0.3.1",
         "@totemsdk/omnia": "^2.3.2",
         "@totemsdk/omnia-factory": "^0.7.0",
         "@totemsdk/omnia-router": "^0.4.0",
@@ -371,14 +371,14 @@
         "@totemsdk/chain-provider": "^0.3.0",
         "@totemsdk/identity": "^1.0.2",
         "@totemsdk/location-proof": "^1.0.0",
-        "@totemsdk/lookup-client": "^0.3.0",
+        "@totemsdk/lookup-client": "^0.3.1",
         "@totemsdk/manifest": "^2.0.3",
         "@totemsdk/omnia-router": "^0.4.0",
         "@totemsdk/proof": "^1.0.2",
         "@totemsdk/pubsub-transport": "^0.2.0",
         "@totemsdk/root-identity": "^1.0.10",
         "@totemsdk/storage": "^0.2.2",
-        "@totemsdk/stream-transport": "^0.2.1"
+        "@totemsdk/stream-transport": "^0.2.2"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -492,7 +492,7 @@
       ],
       "dependencies": {
         "@totemsdk/edge": "^1.4.0",
-        "@totemsdk/stream-transport": "^0.2.1"
+        "@totemsdk/stream-transport": "^0.2.2"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -783,7 +783,7 @@
     },
     {
       "name": "@totemsdk/lookup-client",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "description": "Hyperswarm client for Totem lookup nodes — chain queries, real-time coin updates, TxPoW broadcast",
       "domain": "sovereignty-stack",
       "keywords": [
@@ -798,7 +798,7 @@
         "@totemsdk/lookup-protocol": "^0.2.1",
         "@totemsdk/replication": "^0.1.0",
         "@totemsdk/root-identity": "^1.0.10",
-        "@totemsdk/stream-transport": "^0.2.1"
+        "@totemsdk/stream-transport": "^0.2.2"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -904,7 +904,7 @@
         "@totemsdk/core": "^1.4.0",
         "@totemsdk/kissvm": "^1.3.0",
         "@totemsdk/lookup-protocol": "^0.2.1",
-        "@totemsdk/stream-transport": "^0.2.1",
+        "@totemsdk/stream-transport": "^0.2.2",
         "@totemsdk/tx-builder": "^0.2.1",
         "@totemsdk/txpow": "^1.1.0",
         "@totemsdk/wots-lease": "^1.0.1"
@@ -1061,7 +1061,7 @@
         "corestore": ">=6.0.0",
         "@totemsdk/manifest": "^2.0.3",
         "@totemsdk/storage": "^0.2.2",
-        "@totemsdk/stream-transport": "^0.2.1"
+        "@totemsdk/stream-transport": "^0.2.2"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}",
@@ -1216,7 +1216,7 @@
         "ws": "^8.21.1",
         "@totemsdk/core": "^1.4.0",
         "@totemsdk/pubsub-transport": "^0.2.0",
-        "@totemsdk/stream-transport": "^0.2.1"
+        "@totemsdk/stream-transport": "^0.2.2"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1418,7 +1418,7 @@
     },
     {
       "name": "@totemsdk/stream-transport",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "description": "Transport adapters — IStreamTransport, NodeStream, WebSocket, WebRTC, Stdio, Hyperswarm, in-memory",
       "domain": "edge-computing",
       "keywords": [

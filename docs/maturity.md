@@ -42,7 +42,7 @@ Total: **69** publishable packages + **6** excluded entries = **75** workspace e
 | `@totemsdk/edge-modbus` | 0.2.0 | rc | 1 | `packages/edge-modbus` |
 | `@totemsdk/edge-mqtt` | 0.2.5 | rc | 1 | `packages/edge-mqtt` |
 | `@totemsdk/industrial-action` | 0.2.2 | rc | 1 | `packages/industrial-action` |
-| `@totemsdk/lookup-client` | 0.3.0 | rc | 1 | `packages/lookup-client` |
+| `@totemsdk/lookup-client` | 0.3.1 | rc | 1 | `packages/lookup-client` |
 | `@totemsdk/lookup-node` | 0.3.0 | rc | 1 | `packages/lookup-node` |
 | `@totemsdk/lookup-protocol` | 0.2.1 | rc | 1 | `packages/lookup-protocol` |
 | `@totemsdk/omnia` | 2.3.2 | rc | 1 | `packages/omnia` |
@@ -66,7 +66,7 @@ Total: **69** publishable packages + **6** excluded entries = **75** workspace e
 | `@totemsdk/omnia-splice` | 0.3.0 | rc | 2 | `packages/omnia-splice` |
 | `@totemsdk/omnia-vtxo` | 0.8.1 | rc | 2 | `packages/omnia-vtxo` |
 | `@totemsdk/pubsub-transport` | 0.2.0 | rc | 2 | `packages/pubsub-transport` |
-| `@totemsdk/stream-transport` | 0.2.1 | rc | 2 | `packages/stream-transport` |
+| `@totemsdk/stream-transport` | 0.2.2 | rc | 2 | `packages/stream-transport` |
 | `@totemsdk/tx-builder` | 0.2.1 | rc | 2 | `packages/tx-builder` |
 | `@totemsdk/p2p-hub` | 0.1.0 | alpha | 2 | `packages/p2p-hub` |
 | `@totemsdk/connect` | 3.1.1 | v1 | outside | `packages/connect` |
