@@ -84,3 +84,5 @@ export {
 export { UsageStore } from './usage.js'
 
 export { executeProposal, isExecutionReady } from './execution.js'
+export { ReplicatedGovernanceAudit } from './replicated-audit.js';
+export type { GovernanceAuditRecord } from './replicated-audit.js';

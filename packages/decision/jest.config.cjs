@@ -9,6 +9,7 @@ module.exports = {
     }],
   },
   moduleNameMapper: {
+    '^@totemsdk/replication$': '<rootDir>/../replication/src/index.ts',
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
 };

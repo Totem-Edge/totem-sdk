@@ -373,6 +373,9 @@ importers:
       '@totemsdk/proof':
         specifier: workspace:^
         version: link:../proof
+      '@totemsdk/replication':
+        specifier: workspace:^
+        version: link:../replication
       '@totemsdk/storage':
         specifier: workspace:^
         version: link:../storage
@@ -549,6 +552,9 @@ importers:
       '@totemsdk/intelligence':
         specifier: workspace:^
         version: link:../intelligence
+      '@totemsdk/replication':
+        specifier: workspace:^
+        version: link:../replication
     devDependencies:
       '@types/jest':
         specifier: ^30.0.0
@@ -586,6 +592,9 @@ importers:
       '@totemsdk/manifest':
         specifier: workspace:^
         version: link:../manifest
+      '@totemsdk/replication':
+        specifier: workspace:^
+        version: link:../replication
       '@totemsdk/storage':
         specifier: workspace:^
         version: link:../storage
@@ -1056,6 +1065,9 @@ importers:
       '@totemsdk/proof':
         specifier: workspace:^
         version: link:../proof
+      '@totemsdk/replication':
+        specifier: workspace:^
+        version: link:../replication
     devDependencies:
       '@types/jest':
         specifier: ^30.0.0
@@ -1118,6 +1130,9 @@ importers:
       '@totemsdk/proof':
         specifier: workspace:^
         version: link:../proof
+      '@totemsdk/replication':
+        specifier: workspace:^
+        version: link:../replication
       '@totemsdk/storage':
         specifier: workspace:^
         version: link:../storage
@@ -1368,6 +1383,9 @@ importers:
       '@totemsdk/core':
         specifier: workspace:^
         version: link:../core
+      '@totemsdk/replication':
+        specifier: workspace:^
+        version: link:../replication
     devDependencies:
       '@types/jest':
         specifier: ^30.0.0
@@ -1859,6 +1877,12 @@ importers:
       '@totemsdk/manifest':
         specifier: workspace:^
         version: link:../manifest
+      '@totemsdk/replication':
+        specifier: workspace:^
+        version: link:../replication
+      '@totemsdk/replication-holepunch':
+        specifier: workspace:^
+        version: link:../replication-holepunch
       '@totemsdk/storage':
         specifier: workspace:^
         version: link:../storage
@@ -2531,6 +2555,9 @@ importers:
       '@totemsdk/lookup-protocol':
         specifier: workspace:^
         version: link:../lookup-protocol
+      '@totemsdk/replication':
+        specifier: workspace:^
+        version: link:../replication
       '@totemsdk/storage':
         specifier: workspace:^
         version: link:../storage

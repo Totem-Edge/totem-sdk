@@ -28,6 +28,7 @@ module.exports = {
     '^@totemsdk/manifest$': '<rootDir>/../manifest/src/index.ts',
     '^@totemsdk/identity$': '<rootDir>/../identity/src/index.ts',
     '^@totemsdk/authority$': '<rootDir>/../authority/src/index.ts',
+    '^@totemsdk/replication$': '<rootDir>/../replication/src/index.ts',
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
 };

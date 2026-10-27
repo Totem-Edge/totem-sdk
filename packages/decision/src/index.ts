@@ -158,3 +158,4 @@ export {
   isDecisionRefFreshResult,
 } from './decision-ref.js';
 export type { DecisionRef, DecisionRefRecord } from './decision-ref.js';
+export { ReplicatedDecisionReceiptLog } from './replicated-receipts.js';

@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/agent-policy",
   "version": "0.3.1",
-  "description": "Agent-policy interface contracts — language-agnostic Protobuf schema for AI agent ↔ wallet communication",
+  "description": "Agent-policy interface contracts \u2014 language-agnostic Protobuf schema for AI agent \u2194 wallet communication",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "exports": {
@@ -38,7 +38,8 @@
     "@totemsdk/authority": "workspace:^",
     "@totemsdk/intelligence": "workspace:^",
     "@totemsdk/proof": "workspace:^",
-    "@totemsdk/storage": "workspace:^"
+    "@totemsdk/storage": "workspace:^",
+    "@totemsdk/replication": "workspace:^"
   },
   "devDependencies": {
     "@protobuf-ts/plugin": "^2.9.4",

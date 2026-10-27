@@ -140,6 +140,7 @@
         "@totemsdk/core": "^1.4.0",
         "@totemsdk/intelligence": "^0.1.1",
         "@totemsdk/proof": "^1.0.2",
+        "@totemsdk/replication": "^0.1.0",
         "@totemsdk/storage": "^0.2.2"
       },
       "exports": {
@@ -691,7 +692,8 @@
         "@totemsdk/authority": "^1.0.1",
         "@totemsdk/core": "^1.4.0",
         "@totemsdk/identity": "^1.0.2",
-        "@totemsdk/proof": "^1.0.2"
+        "@totemsdk/proof": "^1.0.2",
+        "@totemsdk/replication": "^0.1.0"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1913,7 +1915,8 @@
       ],
       "dependencies": {
         "@totemsdk/core": "^1.4.0",
-        "@totemsdk/intelligence": "^0.1.1"
+        "@totemsdk/intelligence": "^0.1.1",
+        "@totemsdk/replication": "^0.1.0"
       },
       "exports": {
         ".": {

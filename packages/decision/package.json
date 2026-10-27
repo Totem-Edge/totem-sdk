@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/decision",
   "version": "0.2.0",
-  "description": "Provider-neutral decision runtime — typed, constrained, provenance-bound proposals over dynamic candidate spaces (AI proposes, Totem authorizes)",
+  "description": "Provider-neutral decision runtime \u2014 typed, constrained, provenance-bound proposals over dynamic candidate spaces (AI proposes, Totem authorizes)",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "exports": {
@@ -100,7 +100,8 @@
   ],
   "dependencies": {
     "@totemsdk/core": "workspace:^",
-    "@totemsdk/intelligence": "workspace:^"
+    "@totemsdk/intelligence": "workspace:^",
+    "@totemsdk/replication": "workspace:^"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

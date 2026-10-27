@@ -140,3 +140,4 @@ export type {
 // Receipt persistence
 export { MemoryReceiptStore } from './receipt-store.js';
 export type { ReceiptStore } from './receipt-store.js';
+export { ReplicatedReceiptStore } from './replicated-receipt-store.js';
