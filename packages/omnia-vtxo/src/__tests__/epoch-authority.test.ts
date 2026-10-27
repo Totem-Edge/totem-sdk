@@ -131,6 +131,31 @@ describe('EpochAuthority (V0 spend-state)', () => {
     expect(after.publishedEpoch).toBe(2);
   });
 
+  it('treats a lost acknowledgement as an idempotent retry', async () => {
+    const j = journal();
+    const authority = new EpochAuthority({ poolId: POOL, journal: j, operator });
+    const one = await signed(receipt(), outputs1, 300n);
+    const first = await authority.append(one.receipt, one.root);
+    const retry = await authority.append(one.receipt, one.root);
+    expect(retry).toEqual(first);
+  });
+
+  it('rejects an offline acceptance of an earlier snapshot', async () => {
+    const j = journal();
+    const authority = new EpochAuthority({ poolId: POOL, journal: j, operator });
+    const one = await signed(receipt(), outputs1, 300n);
+    await authority.append(one.receipt, one.root);
+    const two = await signed(
+      receipt({ receiptId: 'r-2', epoch: 2, inputIds: ['v2'], outputIds: ['v4'] }),
+      [vtxo('v4', 100n)],
+      100n,
+    );
+    await authority.append(two.receipt, two.root);
+
+    expect(await authority.verifyReceipt(one.receipt, one.root)).toBe(false);
+    await expect(authority.append(one.receipt, one.root)).rejects.toThrow(/stale/);
+  });
+
   it('rejects an epoch gap', async () => {
     const j = journal();
     const authority = new EpochAuthority({ poolId: POOL, journal: j, operator });

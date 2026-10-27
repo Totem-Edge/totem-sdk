@@ -123,16 +123,17 @@ export class EpochAuthority {
     if (receipt.epoch > state.epoch + 1) {
       throw new Error(`epoch authority: epoch gap ${state.epoch} → ${receipt.epoch}`);
     }
-    for (const inputId of receipt.inputIds) {
-      if (state.spentInputIds.has(inputId)) {
-        throw new Error(`epoch authority: input ${inputId} was already spent`);
-      }
-    }
     const existing = (await this.events()).find(
       (e): e is EpochRecord => e.kind === 'epoch' && e.receiptId === receipt.receiptId,
     );
     if (existing && existing.root === root) return existing;
     if (existing) throw new Error('epoch authority: conflicting receipt id');
+
+    for (const inputId of receipt.inputIds) {
+      if (state.spentInputIds.has(inputId)) {
+        throw new Error(`epoch authority: input ${inputId} was already spent`);
+      }
+    }
 
     const signature = await this.operator.sign(
       computeEpochCommitmentBytes(this.poolId, receipt.epoch, root, [receipt.receiptId], receipt.inputIds),

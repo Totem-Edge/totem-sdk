@@ -13,10 +13,10 @@ covenant.
 |---|---|---|
 | Adopt anchored receipt verification in acceptance | **Done** | SDK `verifyVtxoReceiptForPool()` checks pool id, epoch and anchored root; Vouch `VtxoGateway.verifyReceiptForPool()` is called by `VtxoClaimSettlementPort` before a claim is accepted. Tests: `omnia-vtxo receipt.test.ts`, Vouch `vtxo.test.ts`. |
 | Make funding proof mandatory at the SDK boundary | **Done** | `checkPoolFunding(..., { requireVerified: true })` fails closed without a verifier or with a rejected proof; Vouch settlement requires `proofVerified` by default. Tests: `anchor.test.ts`. |
-| Define and implement spend-state authority | **Primitive + anchor boundary done; claim-settlement wiring pending** | `EpochAuthority` is a durable operator-signed journal: monotonic epochs, one root per epoch, spent-input rejection, conflict rejection and crash recovery. `anchorBatch` now records receipts and marks the epoch published only after broadcast. Tests: `epoch-authority.test.ts`, `anchor.test.ts`. Vouch’s claim settlement must supply the authority factory when VTXO mode is enabled. |
+| Define and implement spend-state authority | **Done** | `EpochAuthority` is a durable operator-signed journal: monotonic epochs, one root per epoch, spent-input rejection, conflict rejection, idempotent retry and crash recovery. `anchorBatch` records receipts before broadcast and marks the epoch published only after broadcast. Vouch’s `VtxoClaimSettlementPort` requires an authority factory and passes it into the anchor. Tests: `epoch-authority.test.ts`, `anchor.test.ts`, Vouch `vtxo-settlement.test.ts`. |
 | Settle expiry semantics | **Done** | `expiresAt` is documented and tested as untrusted metadata (not in the leaf, not checked by `verifyVtxo`, dropped on transfer). Claim deadline, exit block and refresh deadline are defined separately. |
 | Write the ownership ADR | **Done** | The ADR selects a one-owner enforceable claim. `recipient-pool` remains the non-transferable baseline; the owner-state covenant is the V1 transfer extension. Dynamic multi-holder pools and transaction-tree exits are research. |
-| Add the adversarial suite | **Partial** | Covered: receipt-field tampering, exact conservation, stale epoch, conflicting root, double-spend input, crash-before-publish, epoch gap, wrong signer, wrong exit block/address/amount. Remaining: lost acknowledgement and cancel-then-reconcile (RFC-019 reservation flow), offline acceptance with an earlier snapshot, and a live-node race. |
+| Add the adversarial suite | **Done for the VTXO boundary; live-node race remains V1** | Covered: receipt-field tampering, exact conservation, stale epoch, conflicting root, double-spend input, lost-acknowledgement idempotent retry, offline earlier-snapshot rejection, crash-before-publish, epoch gap, wrong signer, wrong exit block/address/amount. Cancel-then-reconcile is covered by the existing RFC-019 `agent-policy` reservation-recovery suite; the VTXO path does not own a cancel surface. |
 
 ## 2. V1 status
 
@@ -25,16 +25,12 @@ The owner-state covenant is implemented and published in `omnia-vtxo@0.7.0`
 still uses L1 settlement for real claims. The decisive A→B→exit test on an
 isolated node remains the V1 gate.
 
-## 3. Remaining V0 work before V1 is called complete
+## 3. V0 status
 
-1. Wire `EpochAuthority` into the settlement/host path so a receipt is accepted
-   only if it is recorded in the authoritative journal and matches the current
-   epoch/root.
-2. Add the lost-acknowledgement and cancel-then-reconcile cases at the RFC-019
-   reservation boundary.
-3. Add an explicit offline-acceptance test showing that a valid earlier snapshot
-   is rejected by the authority (or that acceptance remains risk-bounded).
-4. Run the isolated-node transfer/exit evidence.
+V0 is closed at the SDK/Vouch boundary. The remaining gate is V1 live evidence:
+run the isolated-node A→B transfer, double-recovery attempt and independent exit.
+The VTXO path still requires a deployment-supplied durable journal adapter; the
+reference scaffold refuses production startup until one is configured.
 
 ## 4. Verification
 

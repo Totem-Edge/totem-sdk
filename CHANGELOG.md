@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **`@totemsdk/omnia-vtxo` 0.8.0 — V0 spend-state and funding hardening:**
+- **`@totemsdk/omnia-vtxo` 0.8.1 — V0 spend-state and funding hardening:**
   added `EpochAuthority`, a durable operator-signed epoch journal enforcing
   monotonic epochs, one root per epoch, spent-input rejection, conflict rejection
   and crash recovery. `checkPoolFunding` now supports `requireVerified` to fail
