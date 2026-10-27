@@ -229,3 +229,4 @@ export type {
   ProfileConformanceIssue,
   ProfileConformanceReport,
 } from './profiles.js'
+export { createReplicatedActionEventSink } from './replicated-events.js';

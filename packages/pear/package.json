@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/pear",
   "version": "0.2.1",
-  "description": "Bare/Pear runtime integration harness for @totemsdk — storage, networking, lifecycle, and Hyperdrive adapters for Pear apps",
+  "description": "Bare/Pear runtime integration harness for @totemsdk \u2014 storage, networking, lifecycle, and Hyperdrive adapters for Pear apps",
   "type": "module",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
@@ -71,13 +71,25 @@
         "types": "./dist/cjs/hyperdrive.d.ts",
         "default": "./dist/cjs/hyperdrive.js"
       }
+    },
+    "./replication": {
+      "import": {
+        "types": "./dist/replication.d.ts",
+        "default": "./dist/replication.js"
+      },
+      "require": {
+        "types": "./dist/cjs/replication.d.ts",
+        "default": "./dist/cjs/replication.js"
+      }
     }
   },
   "dependencies": {
     "@totemsdk/storage": "workspace:^",
     "@totemsdk/stream-transport": "workspace:^",
     "@totemsdk/manifest": "workspace:^",
-    "@noble/hashes": "^2.2.0"
+    "@noble/hashes": "^2.2.0",
+    "@totemsdk/replication": "workspace:^",
+    "@totemsdk/replication-holepunch": "workspace:^"
   },
   "scripts": {
     "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",

@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/industrial-action",
   "version": "0.2.2",
-  "description": "Deterministic industrial action lifecycle for Totem Edge — converts governed intent into context-aware, bounded, verifiably executed operations on field devices and protocols",
+  "description": "Deterministic industrial action lifecycle for Totem Edge \u2014 converts governed intent into context-aware, bounded, verifiably executed operations on field devices and protocols",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "exports": {
@@ -36,7 +36,8 @@
     "@totemsdk/authority": "workspace:^",
     "@totemsdk/edge": "workspace:^",
     "@totemsdk/agent-policy": "workspace:^",
-    "@totemsdk/storage": "workspace:^"
+    "@totemsdk/storage": "workspace:^",
+    "@totemsdk/replication": "workspace:^"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

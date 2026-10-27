@@ -68,3 +68,5 @@ export {
   OnchainWatermarkError,
   DeviceRangeViolationError,
 } from './errors.js';
+export { ReplicatedLeaseJournalBackup } from './replicated-backup.js';
+export type { LeaseJournalRestoreTarget } from './replicated-backup.js';

@@ -1060,6 +1060,8 @@
         "hyperdrive": ">=2.0.0",
         "corestore": ">=6.0.0",
         "@totemsdk/manifest": "^2.0.3",
+        "@totemsdk/replication": "^0.1.0",
+        "@totemsdk/replication-holepunch": "^0.1.0",
         "@totemsdk/storage": "^0.2.2",
         "@totemsdk/stream-transport": "^0.2.2"
       },
@@ -1068,6 +1070,16 @@
         "./hyperdrive": "dist/hyperdrive.{js,d.ts}",
         "./lifecycle": "dist/lifecycle.{js,d.ts}",
         "./network": "dist/network/index.{js,d.ts}",
+        "./replication": {
+          "import": {
+            "types": "./dist/replication.d.ts",
+            "default": "./dist/replication.js"
+          },
+          "require": {
+            "types": "./dist/cjs/replication.d.ts",
+            "default": "./dist/cjs/replication.js"
+          }
+        },
         "./storage": "dist/storage/index.{js,d.ts}"
       },
       "exportsDescription": "PearRuntime, createStorage, createNetwork, createLifecycle, HyperdriveAdapter",
@@ -1530,6 +1542,7 @@
       "dependencies": {
         "@totemsdk/core": "^1.4.0",
         "@totemsdk/lookup-protocol": "^0.2.1",
+        "@totemsdk/replication": "^0.1.0",
         "@totemsdk/storage": "^0.2.2",
         "@totemsdk/txpow": "^1.1.0"
       },
@@ -1586,6 +1599,7 @@
         "@totemsdk/core": "^1.4.0",
         "@totemsdk/edge": "^1.4.0",
         "@totemsdk/proof": "^1.0.2",
+        "@totemsdk/replication": "^0.1.0",
         "@totemsdk/storage": "^0.2.2"
       },
       "exports": {
