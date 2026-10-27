@@ -42,12 +42,12 @@ Total: **69** publishable packages + **6** excluded entries = **75** workspace e
 | `@totemsdk/edge-modbus` | 0.2.0 | rc | 1 | `packages/edge-modbus` |
 | `@totemsdk/edge-mqtt` | 0.2.5 | rc | 1 | `packages/edge-mqtt` |
 | `@totemsdk/industrial-action` | 0.2.2 | rc | 1 | `packages/industrial-action` |
-| `@totemsdk/lookup-client` | 0.2.0 | rc | 1 | `packages/lookup-client` |
+| `@totemsdk/lookup-client` | 0.3.0 | rc | 1 | `packages/lookup-client` |
 | `@totemsdk/lookup-node` | 0.3.0 | rc | 1 | `packages/lookup-node` |
 | `@totemsdk/lookup-protocol` | 0.2.1 | rc | 1 | `packages/lookup-protocol` |
 | `@totemsdk/omnia` | 2.3.2 | rc | 1 | `packages/omnia` |
 | `@totemsdk/omnia-host` | 0.13.1 | rc | 1 | `packages/omnia-host` |
-| `@totemsdk/storage` | 0.2.1 | rc | 1 | `packages/storage` |
+| `@totemsdk/storage` | 0.2.2 | rc | 1 | `packages/storage` |
 | `@totemsdk/wots-lease` | 1.0.1 | rc | 1 | `packages/wots-lease` |
 | `@totemsdk/authority` | 1.0.1 | v1 | 2 | `packages/authority` |
 | `@totemsdk/edge` | 1.4.0 | v1 | 2 | `packages/edge` |
