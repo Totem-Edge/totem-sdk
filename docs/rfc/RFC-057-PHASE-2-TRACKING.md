@@ -1,8 +1,6 @@
 # RFC-057 Phase 2 — Hyperdrive artifacts
 
-Status: **complete at the library boundary** — Hyperdrive backend, QVAC
-verification bridge, and interrupted-download coverage landed. Consumer adoption
-is tracked in Phase 4.
+Status: **Complete 2026-10-27** — digest-verified Hyperdrive ArtifactStoreBackend + conformance; QVAC verification bridge and interrupted-download coverage.
 Parent: [`RFC-057-DISTRIBUTED-STORAGE-AND-REPLICATION.md`](./RFC-057-DISTRIBUTED-STORAGE-AND-REPLICATION.md)
 
 ## Landed

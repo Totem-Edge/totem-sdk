@@ -1,6 +1,6 @@
 # RFC-057 Phase 1 — Replicated logs and indexes
 
-Status: **Phase 1 complete 2026-10-27**.
+Status: **Phase 1 complete 2026-10-27** — contracts + Hypercore log + Hyperbee index with real two-peer/restart tests.
 Parent: [`RFC-057-DISTRIBUTED-STORAGE-AND-REPLICATION.md`](./RFC-057-DISTRIBUTED-STORAGE-AND-REPLICATION.md)
 
 ## Landed

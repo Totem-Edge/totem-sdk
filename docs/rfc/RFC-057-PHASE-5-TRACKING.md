@@ -1,8 +1,6 @@
 # RFC-057 Phase 5 — deployment hardening
 
-Status: **partial** — encrypted dataset envelopes and quotas landed; key
-rotation, selective replication, relay fallback, verified checkpoints,
-process-kill recovery and ARM measurements remain.
+Status: **Partial 2026-10-27** — AES-GCM envelopes, fail-closed quotas and encrypted backup records; key rotation/selective replication/relay/checkpoint/process-kill/ARM pending.
 Parent: [`RFC-057-DISTRIBUTED-STORAGE-AND-REPLICATION.md`](./RFC-057-DISTRIBUTED-STORAGE-AND-REPLICATION.md)
 
 ## Landed
@@ -25,3 +23,9 @@ Parent: [`RFC-057-DISTRIBUTED-STORAGE-AND-REPLICATION.md`](./RFC-057-DISTRIBUTED
 5. ARM64 resource measurements and Node/Bare/ARM recovery matrix.
 
 Phase 5 gate is not met until (1)–(5) are covered.
+
+## Additional foundations
+
+- `EncryptedBackupLog` plus `createEncryptedBackupRecord()` /
+  `restoreEncryptedBackupRecord()` for backup-only recovery (ciphertext digest
+  verification, no authoritative replication).

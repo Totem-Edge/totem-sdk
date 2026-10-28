@@ -1,7 +1,6 @@
 # RFC-057 Phase 4 — first production consumers
 
-Status: **complete at the library boundary** — proofgraph evidence, device event
-history, manifests, agent receipts and freshness-aware lookup replicas landed.
+Status: **Complete 2026-10-27** — proofgraph, pear, edge, manifest, identity, agent/decision/governance audit logs, QVAC artifact bridge, lookup capability discovery and freshness-aware replicas; entity/PWA/omnia wrappers pending.
 Parent: [`RFC-057-DISTRIBUTED-STORAGE-AND-REPLICATION.md`](./RFC-057-DISTRIBUTED-STORAGE-AND-REPLICATION.md)
 
 ## Landed
@@ -40,3 +39,14 @@ Parent: [`RFC-057-DISTRIBUTED-STORAGE-AND-REPLICATION.md`](./RFC-057-DISTRIBUTED
 - Optional `proof-integritas` checkpoint anchoring and governed `edge`
   replication actions.
 - Multi-peer end-to-end proofgraph flow over Hyperdrive/Autobase.
+
+## Additional package integrations
+
+- `proofgraph` replicated evidence adapter (digest re-verified on read).
+- `pear` `@totemsdk/pear/replication` factories for Hypercore/Hyperbee/Hyperdrive.
+- `edge` replicated device event history and `industrial-action` replicated event sink.
+- `manifest` replicated announcement store (signature/sequence verified on replay).
+- `identity` replicated claim index (signature verified on write and read).
+- `agent-policy`, `decision`, `governance` replicated audit/receipt logs.
+- `qvac` `@totemsdk/qvac/artifacts` download → verify → artifact-store bridge.
+- `lookup-protocol`/`lookup-node`/`lookup-client` replication capability discovery.
