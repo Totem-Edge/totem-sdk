@@ -209,7 +209,11 @@ export function createOmniaHost(
           ssl: rpc.protocol === 'https:',
         });
       }
-      if (config.p2pHubPort !== undefined || dependencies.p2pHubNetwork) {
+      if (config.p2pHubUrl) {
+        // Shared-hub client mode: another process owns the hub. The host only
+        // advertises the URL; it must not start a competing local hub.
+        p2pHubUrl = config.p2pHubUrl;
+      } else if (config.p2pHubPort !== undefined || dependencies.p2pHubNetwork) {
         const native = (swarm as { nativeSwarm?: () => unknown }).nativeSwarm?.();
         const network = dependencies.p2pHubNetwork ?? await createHyperswarmHubNetwork(
           native ? { swarm: native } : {},

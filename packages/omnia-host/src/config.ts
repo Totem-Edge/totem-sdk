@@ -61,6 +61,8 @@ export interface OmniaHostConfig {
   controlToken?: string;
   /** RFC-062 local P2P hub (optional). One Hyperswarm shared by dapps. */
   p2pHubPort?: number;
+  /** RFC-062 shared hub URL; when set the host does not start a local hub. */
+  p2pHubUrl?: string;
   p2pHubHost?: string;
   p2pHubToken?: string;
   p2pHubOrigins?: string[];
@@ -106,6 +108,13 @@ function parseOptionalPort(value: string | undefined, name: string): number | un
     throw new Error(`${name} must be an integer between 1 and 65535; received ${value}`);
   }
   return port;
+}
+
+function parseWsUrl(value: string | undefined, name: string): string | undefined {
+  const url = optional(value);
+  if (!url) return undefined;
+  if (!/^wss?:\/\//i.test(url)) throw new Error(`${name} must be a ws:// or wss:// URL`);
+  return url;
 }
 
 function parseList(value: string | undefined): string[] | undefined {
@@ -186,6 +195,7 @@ export function loadConfigFromEnv(env: NodeJS.ProcessEnv = process.env): OmniaHo
     serviceType: optional(env.OMNIA_HOST_SERVICE_TYPE) ?? 'omnia-router',
     allowedOrigins: parseOrigins(env.OMNIA_ALLOWED_ORIGINS),
     p2pHubPort: parseOptionalPort(env.OMNIA_P2P_HUB_PORT, 'OMNIA_P2P_HUB_PORT'),
+    p2pHubUrl: parseWsUrl(env.OMNIA_P2P_HUB_URL, 'OMNIA_P2P_HUB_URL'),
     p2pHubHost: optional(env.OMNIA_P2P_HUB_HOST),
     p2pHubToken: optional(env.OMNIA_P2P_HUB_TOKEN),
     p2pHubOrigins: parseOrigins(env.OMNIA_P2P_HUB_ORIGINS),

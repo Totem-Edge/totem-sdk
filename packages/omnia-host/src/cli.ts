@@ -16,10 +16,10 @@ async function runPair(): Promise<void> {
   const capabilities = {
     chain: { rpcUrl: config.chainRpcUrl, network: 'minima' },
     lease: { modes: ['local', 'hybrid'] as Array<'local' | 'hybrid'> },
-    ...(config.p2pHubPort
+    ...(config.p2pHubUrl || config.p2pHubPort
       ? {
           p2p: {
-            hubUrl: `ws://${config.p2pHubHost ?? '127.0.0.1'}:${config.p2pHubPort}`,
+            hubUrl: config.p2pHubUrl ?? `ws://${config.p2pHubHost ?? '127.0.0.1'}:${config.p2pHubPort}`,
             scopes: ['p2p.pubsub'] as ['p2p.pubsub'],
             ...(config.p2pHubTopics ? { topicPrefixes: config.p2pHubTopics } : {}),
           },

@@ -258,7 +258,7 @@ export function createControlServer(options: ControlServerOptions): ControlServe
       return;
     }
     const route = pathname(req.url);
-    if (req.method === 'GET' && (route === '/observe/snapshot' || route === '/observe/events')) {
+    if (req.method === 'GET' && (route === '/observe' || route === '/observe/snapshot' || route === '/observe/events')) {
       if (!options.observe) {
         sendJson(res, 404, { error: 'Observation feed not enabled' });
         return;
@@ -267,7 +267,7 @@ export function createControlServer(options: ControlServerOptions): ControlServe
         sendJson(res, 403, { error: 'Forbidden' });
         return;
       }
-      if (route === '/observe/snapshot') {
+      if (route === '/observe' || route === '/observe/snapshot') {
         try {
           sendJson(res, 200, await options.observe.snapshot());
         } catch (error) {

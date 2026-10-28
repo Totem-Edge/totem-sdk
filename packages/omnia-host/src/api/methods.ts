@@ -2065,6 +2065,32 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
   };
   register('totem_omniaGetChannels', getChannels, 'omnia/getChannels');
 
+  const getFundingCoins: JsonRpcHandler = async (raw) => {
+    const params = paramsObject(raw);
+    const address = requiredString(params, 'address');
+    if (!context.chainProvider) throw new Error('Funding discovery requires a chain provider');
+    const tokenId = typeof params.tokenId === 'string' ? params.tokenId : undefined;
+    const coins = await context.chainProvider.getCoins({
+      address,
+      ...(tokenId ? { tokenId } : {}),
+      sendable: true,
+    });
+    const proofs = await Promise.all(coins.map(async (coin) => {
+      if (!context.chainProvider?.getProof) return null;
+      try { return await context.chainProvider.getProof(coin.coinid); } catch { return null; }
+    }));
+    return {
+      address,
+      coins: coins.map((coin, index) => ({ ...coin, ...(proofs[index] ? { proof: proofs[index] } : {}) })),
+      source: 'chain-provider',
+      limitations: [
+        'A node may only report wallet-relevant coins; foreign WOTS addresses can return an empty set.',
+        'A missing proof is reported as absent, not as a funding failure.',
+      ],
+    };
+  };
+  register('totem_omniaGetFundingCoins', getFundingCoins, 'omnia/getFundingCoins');
+
   const getChannelState: JsonRpcHandler = (raw) => {
     const params = paramsObject(raw);
     const channelId = requiredString(params, 'channelId');

@@ -27,6 +27,24 @@ describe('omnia-host JSON-RPC methods', () => {
     });
   });
 
+  it('discovers funding coins and reports missing proofs honestly', async () => {
+    const methods = createHostMethods({
+      channels: new Map(),
+      routing: new InProcessRoutingProvider(),
+      chainProvider: {
+        getCoins: async () => [{
+          coinid: '0x' + '11'.repeat(32), amount: '100', address: 'MxFund',
+          tokenid: '0x00',
+        }],
+        getProof: async () => { throw new Error('not available'); },
+      } as any,
+    });
+    const result = await methods.get('totem_omniaGetFundingCoins')!({ address: 'MxFund' }) as any;
+    expect(result.coins).toHaveLength(1);
+    expect(result.coins[0].proof).toBeUndefined();
+    expect(result.limitations.join(' ')).toContain('wallet-relevant');
+  });
+
   it('exposes a fully serializable channel state (CAN-006)', () => {
     const channels = new Map<string, any>([['channel-1', {
       channelId: 'channel-1',
