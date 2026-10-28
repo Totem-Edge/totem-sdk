@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`@totemsdk/realtime` Axia fallback reliability:** `snapshot_failed`
+  frames that carry `0x…` identifiers now poll the subscribed `Mx…` addresses
+  instead of forwarding an unroutable address, snapshot/delta entry addresses
+  are canonicalized for single-address subscriptions (with a `resolveAddress`
+  hook for multi-address callers), and a `snapshotTimeoutMs` watchdog starts
+  the HTTP fallback when a socket authenticates but never sends
+  `portfolio_snapshot`.
+- **`@totemsdk/connect` coin metadata:** `TOTEM_GET_COINS` responses now retain
+  the wallet's token metadata (`token` plus flattened `name`, `ticker`,
+  `decimals`, `artimage`, `webvalidate`) instead of stripping it, and the
+  response types document those fields.
 - **`@totemsdk/core` transaction coin-ID precompute:** the public
   `precomputeTransactionCoinID` no longer passes serialized transaction bytes
   to the WASM coin-ID helper. Object/JSON inputs use the TypeScript
