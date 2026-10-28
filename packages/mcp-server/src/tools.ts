@@ -2,6 +2,7 @@ import type { DependencyEdge, DependencyKind, SdkIndex, ToolDefinition, ToolResp
 import { searchTemplates, getTemplatesForPackage } from './template-catalog.js'
 import { readSourceFile } from './indexer.js'
 import { refreshIndex } from './index-store.js'
+import { planComposition, scaffoldApp } from './composition.js'
 
 /**
  * The single source of truth for the MCP tool catalog. `index.ts` advertises
@@ -21,6 +22,8 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
   { name: 'read-source', description: "Read a source file from a package's src/ directory (e.g. package '@totemsdk/core', path 'treekey.ts')", inputSchema: { type: 'object', properties: { package: { type: 'string', description: 'Package name (e.g. @totemsdk/core)' }, path: { type: 'string', description: 'Path relative to the package src/ directory' } }, required: ['package', 'path'] } },
   { name: 'list-packages', description: 'List SDK packages, optionally filtered by domain or name substring', inputSchema: { type: 'object', properties: { domain: { type: 'string', description: 'Optional domain filter (e.g. edge/runtime... see totemsdk://domain-map)' }, filter: { type: 'string', description: 'Optional package-name substring filter' } } } },
   { name: 'search-packages', description: 'Search packages by keyword across name, description, keywords and exports (e.g. "wots lease coordination")', inputSchema: { type: 'object', properties: { query: { type: 'string', description: 'Free-text query' }, domain: { type: 'string', description: 'Optional domain filter' }, limit: { type: 'number', description: 'Max results (default 15)' } }, required: ['query'] } },
+  { name: 'plan-composition', description: 'Plan a justified SDK composition across the full catalogue, with per-package dispositions, dependency closure, capability map, maturity and warnings', inputSchema: { type: 'object', properties: { brief: { type: 'string' }, runtime: { type: 'string', enum: ['node-cjs', 'node-esm', 'bare', 'browser', 'unknown'] }, requiredPackages: { type: 'array', items: { type: 'string' } }, suggestedPackages: { type: 'array', items: { type: 'string' } }, optionalPackages: { type: 'array', items: { type: 'string' } }, excludedPackages: { type: 'array', items: { type: 'string' } }, requiredCapabilities: { type: 'array', items: { type: 'string' } } } } },
+  { name: 'scaffold-app', description: 'Generate a structured application file map from a composition plan (generator only; no writes or installs)', inputSchema: { type: 'object', properties: { appName: { type: 'string' }, runtime: { type: 'string', enum: ['node-cjs', 'node-esm'] }, plan: { type: 'object' } }, required: ['plan'] } },
   { name: 'refresh-index', description: 'Rebuild the SDK index from the filesystem (development convenience) and report counts', inputSchema: { type: 'object', properties: {} } },
 ]
 
@@ -38,9 +41,19 @@ export function handleToolCall(name: string, args: any, index: SdkIndex): ToolRe
     case 'read-source': return readSource(args, index)
     case 'list-packages': return listPackages(args, index)
     case 'search-packages': return searchPackages(args, index)
+    case 'plan-composition': return jsonResult(planComposition(args, index))
+    case 'scaffold-app':
+      if (!args.plan || typeof args.plan !== 'object') {
+        return { content: [{ type: 'text', text: 'plan is required (call plan-composition first)' }], isError: true }
+      }
+      return jsonResult(scaffoldApp(args, index))
     case 'refresh-index': return refreshIndexTool()
     default: return { content: [{ type: 'text', text: `Unknown tool: ${name}` }], isError: true }
   }
+}
+
+function jsonResult(value: unknown): ToolResponse {
+  return { content: [{ type: 'text', text: JSON.stringify(value, null, 2) }] }
 }
 
 function refreshIndexTool(): ToolResponse {

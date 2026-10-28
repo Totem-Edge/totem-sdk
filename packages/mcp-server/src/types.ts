@@ -26,6 +26,8 @@ export interface PackageIndex {
   /** Per-symbol metadata (signature, doc, deprecation) keyed by symbol name. */
   symbols?: { [name: string]: SymbolMeta }
   domain: string
+  /** Sourced maturity label from the workspace gate, when known. */
+  maturity?: string
 }
 
 export interface PackageExports {

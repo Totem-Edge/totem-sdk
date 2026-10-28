@@ -188,6 +188,38 @@ describe('handleToolCall', () => {
     expect(res.content[0].text).toContain('does not depend')
   })
 
+  it('plan-composition selects a closure and dispositions every package', () => {
+    const res = handleToolCall('plan-composition', {
+      brief: 'core demo', runtime: 'node-esm', requiredPackages: ['@totemsdk/core'],
+      requiredCapabilities: ['sha3'],
+    }, index)
+    const plan = JSON.parse(res.content[0].text)
+    expect(plan.directDependencies).toEqual(['@totemsdk/core'])
+    expect(plan.transitiveDependencies).toEqual(['@totemsdk/core-wasm'])
+    expect(plan.dispositions).toHaveLength(2)
+    expect(plan.dispositions.find((d: any) => d.name === '@totemsdk/core')).toMatchObject({ disposition: 'direct' })
+    expect(plan.dispositions.find((d: any) => d.name === '@totemsdk/core-wasm')).toMatchObject({ disposition: 'transitive' })
+  })
+
+  it('plan-composition reports unresolved requests', () => {
+    const res = handleToolCall('plan-composition', {
+      requiredPackages: ['@totemsdk/missing'], runtime: 'node-esm',
+    }, index)
+    const plan = JSON.parse(res.content[0].text)
+    expect(plan.unresolved).toEqual(['@totemsdk/missing'])
+  })
+
+  it('scaffold-app returns a pinned file map and manifest', () => {
+    const plan = JSON.parse(handleToolCall('plan-composition', {
+      runtime: 'node-esm', requiredPackages: ['@totemsdk/core'],
+    }, index).content[0].text)
+    const res = handleToolCall('scaffold-app', { appName: 'demo-app', runtime: 'node-esm', plan }, index)
+    const scaffold = JSON.parse(res.content[0].text)
+    expect(scaffold.dependencies).toEqual({ '@totemsdk/core': '1.2.6' })
+    expect(scaffold.files.map((f: any) => f.path)).toEqual(expect.arrayContaining(['package.json', 'tsconfig.json', 'src/index.ts', 'README.md']))
+    expect(scaffold.generationManifest.warnings).toEqual(expect.any(Array))
+  })
+
   it('package-stats reports metrics with domain and export counts', () => {
     const res = handleToolCall('package-stats', { name: '@totemsdk/core' }, index)
     expect(res.content[0].text).toContain('@totemsdk/core v1.2.6')

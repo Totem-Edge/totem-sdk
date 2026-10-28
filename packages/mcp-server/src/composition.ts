@@ -1,0 +1,321 @@
+/**
+ * Dependency-aware composition planning and application scaffolding.
+ *
+ * The planner considers the entire indexed catalogue but selects only a
+ * justified closure. It preserves declaration provenance and never upgrades a
+ * package's maturity from a successful plan or scaffold.
+ */
+
+import type { DependencyEdge, DependencyKind, PackageIndex, SdkIndex } from './types.js'
+
+export type AppRuntime = 'node-cjs' | 'node-esm' | 'bare' | 'browser' | 'unknown'
+
+export interface PlanCompositionInput {
+  brief?: string
+  runtime?: AppRuntime
+  requiredPackages?: string[]
+  suggestedPackages?: string[]
+  optionalPackages?: string[]
+  excludedPackages?: string[]
+  requiredCapabilities?: string[]
+}
+
+export type Disposition =
+  | 'direct'
+  | 'transitive'
+  | 'enabled-optional'
+  | 'alternative'
+  | 'excluded'
+  | 'unresolved'
+
+export interface PackageDisposition {
+  name: string
+  version?: string
+  maturity?: string
+  disposition: Disposition
+  reasons: string[]
+  dependencyPath?: string[]
+}
+
+export interface CompositionPlan {
+  brief?: string
+  runtime: AppRuntime
+  directDependencies: string[]
+  transitiveDependencies: string[]
+  enabledOptional: string[]
+  excluded: string[]
+  unresolved: string[]
+  dispositions: PackageDisposition[]
+  edges: DependencyEdge[]
+  capabilityMap: Record<string, { selected: string[]; candidates: string[] }>
+  maturity: Record<string, string>
+  installOrder: string[]
+  conflicts: Array<{ package: string; reason: string }>
+  hostPorts: string[]
+  warnings: string[]
+}
+
+const RUNTIME_KINDS: DependencyKind[] = ['runtime', 'peer']
+
+function names(input: unknown): string[] {
+  return Array.isArray(input) ? input.filter((v): v is string => typeof v === 'string' && v.length > 0) : []
+}
+
+function capabilityMatches(index: SdkIndex, token: string): string[] {
+  const terms = token.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean)
+  return Object.values(index.packages)
+    .map((pkg) => {
+      const haystack = [
+        pkg.name, pkg.description, ...(pkg.keywords ?? []),
+        ...pkg.exports.functions, ...pkg.exports.types, ...pkg.exports.classes,
+        ...pkg.exports.interfaces, ...pkg.exports.consts,
+      ].join(' ').toLowerCase()
+      return { name: pkg.name, score: terms.filter((term) => haystack.includes(term)).length }
+    })
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name))
+    .map((entry) => entry.name)
+}
+
+function installOrder(selected: Set<string>, index: SdkIndex): string[] {
+  const visited = new Set<string>()
+  const visiting = new Set<string>()
+  const order: string[] = []
+  const visit = (name: string): void => {
+    if (visited.has(name) || visiting.has(name)) return
+    visiting.add(name)
+    const pkg = index.packages[name]
+    for (const kind of RUNTIME_KINDS) {
+      for (const dep of Object.keys(pkg?.dependencyGroups?.[kind] ?? {})) {
+        if (selected.has(dep)) visit(dep)
+      }
+    }
+    visiting.delete(name)
+    visited.add(name)
+    order.push(name)
+  }
+  for (const name of [...selected].sort()) visit(name)
+  return order
+}
+
+export function planComposition(input: PlanCompositionInput, index: SdkIndex): CompositionPlan {
+  const runtime = input.runtime ?? 'unknown'
+  const required = names(input.requiredPackages)
+  const suggested = names(input.suggestedPackages)
+  const optional = names(input.optionalPackages)
+  const excluded = new Set(names(input.excludedPackages))
+  const unresolved = [...new Set([...required, ...suggested, ...optional])]
+    .filter((name) => !index.packages[name] && !excluded.has(name))
+    .sort()
+  const requested = [...new Set([...required, ...suggested])]
+    .filter((name) => index.packages[name] && !excluded.has(name))
+
+  const direct = new Set(requested)
+  const transitive = new Set<string>()
+  const enabledOptional = new Set<string>()
+  const edges = new Map<string, DependencyEdge>()
+  const dependencyPath = new Map<string, string[]>()
+
+  const addEdge = (from: string, to: string, kind: DependencyKind, range: string): void => {
+    edges.set(`${from}\u0000${to}\u0000${kind}`, { from, to, kind, range })
+  }
+
+  const queue = [...direct].sort()
+  while (queue.length > 0) {
+    const name = queue.shift()!
+    const pkg = index.packages[name]
+    for (const kind of RUNTIME_KINDS) {
+      for (const [dep, range] of Object.entries(pkg?.dependencyGroups?.[kind] ?? {})) {
+        if (!index.packages[dep]) continue
+        addEdge(name, dep, kind, String(range))
+        if (direct.has(dep) || transitive.has(dep)) continue
+        transitive.add(dep)
+        dependencyPath.set(dep, [...(dependencyPath.get(name) ?? [name]), dep])
+        queue.push(dep)
+      }
+    }
+  }
+  for (const name of optional) {
+    if (!index.packages[name] || excluded.has(name)) continue
+    enabledOptional.add(name)
+    for (const kind of RUNTIME_KINDS) {
+      for (const [dep, range] of Object.entries(index.packages[name]?.dependencyGroups?.[kind] ?? {})) {
+        addEdge(name, dep, kind, String(range))
+      }
+    }
+  }
+
+  const selected = new Set([...direct, ...transitive, ...enabledOptional])
+  const capabilityMap: CompositionPlan['capabilityMap'] = {}
+  const alternatives = new Set<string>()
+  for (const capability of names(input.requiredCapabilities)) {
+    const candidates = capabilityMatches(index, capability)
+    capabilityMap[capability] = {
+      selected: candidates.filter((name) => selected.has(name)),
+      candidates: candidates.slice(0, 10),
+    }
+    for (const name of candidates) if (!selected.has(name)) alternatives.add(name)
+  }
+
+  const dispositions: PackageDisposition[] = Object.values(index.packages)
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((pkg): PackageDisposition => {
+      const base = {
+        name: pkg.name, version: pkg.version,
+        ...(pkg.maturity ? { maturity: pkg.maturity } : {}),
+      }
+      if (unresolved.includes(pkg.name)) {
+        return { ...base, disposition: 'unresolved', reasons: ['requested but not present in the selected catalogue'] }
+      }
+      if (excluded.has(pkg.name)) {
+        return { ...base, disposition: 'excluded', reasons: ['explicitly excluded by the brief'] }
+      }
+      if (direct.has(pkg.name)) {
+        return { ...base, disposition: 'direct', reasons: ['required or suggested by the brief'] }
+      }
+      if (transitive.has(pkg.name)) {
+        return {
+          ...base, disposition: 'transitive',
+          reasons: ['required by a selected package'],
+          ...(dependencyPath.has(pkg.name) ? { dependencyPath: dependencyPath.get(pkg.name) } : {}),
+        }
+      }
+      if (enabledOptional.has(pkg.name)) {
+        return { ...base, disposition: 'enabled-optional', reasons: ['optional integration enabled by the brief'] }
+      }
+      if (alternatives.has(pkg.name)) {
+        return { ...base, disposition: 'alternative', reasons: ['matched a required capability but not selected'] }
+      }
+      return { ...base, disposition: 'excluded', reasons: ['not selected by this composition'] }
+    })
+
+  const warnings: string[] = []
+  if (runtime === 'browser' || runtime === 'unknown') {
+    warnings.push(`Runtime '${runtime}' support is not verified for this composition.`)
+  }
+  const selectedMissingMaturity = [...selected].filter((name) => !index.packages[name]?.maturity)
+  if (selectedMissingMaturity.length > 0) {
+    warnings.push(`Maturity unknown for: ${selectedMissingMaturity.sort().join(', ')}`)
+  }
+
+  return {
+    ...(input.brief ? { brief: input.brief } : {}),
+    runtime,
+    directDependencies: [...direct].sort(),
+    transitiveDependencies: [...transitive].sort(),
+    enabledOptional: [...enabledOptional].sort(),
+    excluded: [...excluded].sort(),
+    unresolved,
+    dispositions,
+    edges: [...edges.values()].sort((a, b) =>
+      `${a.from}:${a.to}:${a.kind}`.localeCompare(`${b.from}:${b.to}:${b.kind}`)),
+    capabilityMap,
+    maturity: Object.fromEntries([...selected].sort().map((name) => [
+      name, index.packages[name]?.maturity ?? 'unknown',
+    ])),
+    installOrder: installOrder(selected, index),
+    conflicts: [],
+    hostPorts: [],
+    warnings,
+  }
+}
+
+export interface ScaffoldAppInput {
+  appName?: string
+  runtime?: 'node-cjs' | 'node-esm'
+  plan: CompositionPlan
+}
+
+export interface ScaffoldAppResult {
+  files: Array<{ path: string; content: string }>
+  dependencies: Record<string, string>
+  install: string[]
+  generationManifest: {
+    runtime: string
+    directDependencies: string[]
+    maturity: Record<string, string>
+    warnings: string[]
+  }
+}
+
+export function scaffoldApp(input: ScaffoldAppInput, index: SdkIndex): ScaffoldAppResult {
+  const runtime = input.runtime ?? 'node-esm'
+  const appName = (input.appName ?? 'totem-app').toLowerCase().replace(/[^a-z0-9-]+/g, '-')
+  const dependencies: Record<string, string> = {}
+  for (const name of input.plan.directDependencies) {
+    const pkg = index.packages[name]
+    if (pkg) dependencies[name] = pkg.version
+  }
+  const hasCore = Boolean(dependencies['@totemsdk/core'])
+  const moduleType = runtime === 'node-esm' ? 'module' : 'commonjs'
+  const files: Array<{ path: string; content: string }> = []
+
+  files.push({
+    path: 'package.json',
+    content: JSON.stringify({
+      name: appName,
+      private: true,
+      type: moduleType,
+      scripts: {
+        build: 'tsc -p tsconfig.json',
+        start: runtime === 'node-esm' ? 'node dist/index.js' : 'node dist/index.js',
+        test: 'node dist/index.js',
+      },
+      dependencies,
+      devDependencies: { typescript: '^5.9.3', '@types/node': '^20.0.0' },
+    }, null, 2) + '\n',
+  })
+  files.push({
+    path: 'tsconfig.json',
+    content: JSON.stringify({
+      compilerOptions: {
+        target: 'ES2022',
+        module: runtime === 'node-esm' ? 'NodeNext' : 'CommonJS',
+        moduleResolution: runtime === 'node-esm' ? 'NodeNext' : 'Node',
+        outDir: 'dist',
+        rootDir: 'src',
+        strict: true,
+        esModuleInterop: true,
+        skipLibCheck: true,
+      },
+      include: ['src/**/*.ts'],
+    }, null, 2) + '\n',
+  })
+  files.push({
+    path: 'src/index.ts',
+    content: [
+      hasCore
+        ? "import { sha3_256, toHex } from '@totemsdk/core';"
+        : "import { createHash } from 'node:crypto';",
+      '',
+      `export const appName = '${appName}';`,
+      '',
+      'export function run(): string {',
+      hasCore
+        ? "  return toHex(sha3_256(new TextEncoder().encode(appName)));"
+        : "  return createHash('sha3-256').update(appName).digest('hex');",
+      '}',
+      '',
+      'if (process.argv[1]?.endsWith("index.js") || process.argv[1]?.endsWith("index.cjs")) {',
+      '  console.log(`${appName} works: ${run()}`);',
+      '}',
+      '',
+    ].join('\n'),
+  })
+  files.push({
+    path: 'README.md',
+    content: `# ${appName}\n\nGenerated by @totemsdk/mcp-server.\n\nRuntime: ${runtime}\n\n## Install\n\n\`\`\`bash\nnpm install\nnpm run build\nnpm test\n\`\`\`\n\n## Maturity\n\n${Object.entries(input.plan.maturity).map(([name, maturity]) => `- ${name}: ${maturity}`).join('\n')}\n`,
+  })
+
+  return {
+    files,
+    dependencies,
+    install: ['npm install', 'npm run build', 'npm test'],
+    generationManifest: {
+      runtime,
+      directDependencies: input.plan.directDependencies,
+      maturity: input.plan.maturity,
+      warnings: input.plan.warnings,
+    },
+  }
+}

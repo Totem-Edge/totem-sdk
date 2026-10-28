@@ -80,6 +80,7 @@ function readGitRevision(root: string): string | undefined {
 interface RepoData {
   topPkgDir: string
   manifest: Map<string, ManifestPackage>
+  maturity: Map<string, string>
   ast: Map<string, Record<string, SymbolMeta>>
 }
 
@@ -110,7 +111,21 @@ function loadRepoData(root: string): RepoData {
     // Optional artifact — fall back to the regex scan.
   }
 
-  return { topPkgDir, manifest, ast }
+  const maturity = new Map<string, string>()
+  try {
+    const gates = JSON.parse(fs.readFileSync(path.join(root, 'scripts', 'workspace-gates.config.json'), 'utf-8')) as {
+      packages?: Record<string, { maturity?: string }>
+    }
+    for (const [dir, meta] of Object.entries(gates.packages ?? {})) {
+      if (!meta?.maturity) continue
+      try {
+        const pj = JSON.parse(fs.readFileSync(path.join(root, dir, 'package.json'), 'utf-8')) as { name?: string }
+        if (pj.name) maturity.set(pj.name, meta.maturity)
+      } catch { /* unreadable package */ }
+    }
+  } catch { /* optional */ }
+
+  return { topPkgDir, manifest, maturity, ast }
 }
 
 function loadBundledIndex(): SdkIndex | null {
@@ -359,7 +374,7 @@ function mergeAst(symbols: Map<string, SymbolMeta>, ast: Record<string, SymbolMe
 
 /** Scan a monorepo root into an `SdkIndex`. */
 export function buildFromMonorepo(root: string, now: number = Date.now()): SdkIndex {
-  const { topPkgDir, manifest: MANIFEST, ast: AST } = loadRepoData(root)
+  const { topPkgDir, manifest: MANIFEST, maturity: MATURITY, ast: AST } = loadRepoData(root)
   const packages: { [name: string]: PackageIndex } = {}
   const symbolIndex: { [symbol: string]: SymbolEntry[] } = {}
   const domainMap: DomainMap = {}
@@ -400,6 +415,7 @@ export function buildFromMonorepo(root: string, now: number = Date.now()): SdkIn
       exports,
       symbols: Object.fromEntries(symbols),
       domain,
+      ...(MATURITY.get(pkg.name) ? { maturity: MATURITY.get(pkg.name) } : {}),
     }
     packages[pkg.name] = idx
     if (!domainMap[domain]) domainMap[domain] = []
