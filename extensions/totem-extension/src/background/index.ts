@@ -4395,6 +4395,14 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
           amount: c.amount,
           tokenId: c.tokenid,
           created: c.created,
+          // Chain providers attach the token's metadata to each coin. Keep it
+          // so dApps can render names/decimals without a second indexer call.
+          ...(c.token ? { token: c.token } : {}),
+          ...(c.token?.name ? { name: c.token.name } : {}),
+          ...(c.token?.ticker ? { ticker: c.token.ticker } : {}),
+          ...(c.token?.decimals !== undefined ? { decimals: c.token.decimals } : {}),
+          ...(c.token?.artimage ? { artimage: c.token.artimage } : {}),
+          ...(c.token?.webvalidate ? { webvalidate: c.token.webvalidate } : {}),
           ...(c.storeState !== undefined ? { storeState: c.storeState } : {}),
           ...(c.state !== undefined ? { state: c.state } : {}),
           ...(c.spent !== undefined ? { spent: c.spent } : {}),

@@ -280,3 +280,96 @@ describe('PortfolioStreamManager — getSnapshot', () => {
     expect(snap.portfolios['MxUNKNOWN']).toBeUndefined();
   });
 });
+
+// ─── WebSocket address encoding + snapshot watchdog ──────────────────────────
+
+async function startAuthenticated(
+  mgr: PortfolioStreamManager,
+  addresses: string[],
+): Promise<FakeWsClient> {
+  fakeWs = undefined as unknown as FakeWsClient;
+  const started = mgr.start(addresses);
+  for (let i = 0; i < 50 && !fakeWs; i++) await Promise.resolve();
+  if (!fakeWs) throw new Error('WebSocket was not created');
+  fakeWs.triggerOpen();
+  fakeWs.triggerMessage({ type: 'authenticated', userId: 'test-user' });
+  await started;
+  return fakeWs;
+}
+
+describe('PortfolioStreamManager — Axia address encoding', () => {
+  it('polls the subscribed Mx address when snapshot_failed reports 0x addresses', async () => {
+    const timer = makeControlledTimer();
+    const http = makeFakeHttp();
+    const { mgr } = makeManager({ timer, http });
+    const socket = await startAuthenticated(mgr, ['MxABC']);
+
+    (http.get as any).mockClear();
+    const hexAddress = `0x${'a'.repeat(64)}`;
+    socket.triggerMessage({
+      type: 'error',
+      code: 'snapshot_failed',
+      addresses: [hexAddress],
+    });
+
+    const urls: string[] = (http.get as any).mock.calls.map((call: any[]) => call[0] as string);
+    expect(urls.some(url => url.includes('MxABC'))).toBe(true);
+    expect(urls.some(url => url.includes('aaaaaaaa'))).toBe(false);
+  });
+
+  it('remaps snapshot entry addresses to the single subscribed address', async () => {
+    const timer = makeControlledTimer();
+    const { mgr } = makeManager({ timer });
+    const received: PortfolioUpdateEvent[] = [];
+    mgr.addListener({ onPortfolioUpdate: event => received.push(event) });
+
+    const socket = await startAuthenticated(mgr, ['MxABC']);
+    socket.triggerMessage({
+      type: 'portfolio_snapshot',
+      entries: [{
+        kind: 'native',
+        tokenid: '0x00',
+        confirmed: '1',
+        unconfirmed: '0',
+        sendable: '1',
+        total: '1',
+        decimals: 8,
+        name: 'Minima',
+        ticker: 'MINIMA',
+        address: `0x${'b'.repeat(64)}`,
+      }],
+    });
+
+    expect(received.length).toBeGreaterThan(0);
+    expect(received[0].address).toBe('MxABC');
+  });
+});
+
+describe('PortfolioStreamManager — snapshot watchdog', () => {
+  it('starts HTTP fallback when authenticated but no snapshot arrives', async () => {
+    const timer = makeControlledTimer();
+    const http = makeFakeHttp();
+    const { mgr } = makeManager({ timer, http });
+    await startAuthenticated(mgr, ['MxABC']);
+
+    expect(mgr.getConnectionState()).toBe('connected');
+    timer.advance(10_000);
+    timer.flush();
+
+    expect(mgr.getConnectionState()).toBe('fallback');
+    expect(http.get).toHaveBeenCalled();
+  });
+
+  it('clears the watchdog once a snapshot arrives', async () => {
+    const timer = makeControlledTimer();
+    const http = makeFakeHttp();
+    const { mgr } = makeManager({ timer, http });
+    const socket = await startAuthenticated(mgr, ['MxABC']);
+
+    socket.triggerMessage({ type: 'portfolio_snapshot', entries: [] });
+    timer.advance(20_000);
+    timer.flush();
+
+    expect(mgr.getConnectionState()).toBe('connected');
+  });
+});

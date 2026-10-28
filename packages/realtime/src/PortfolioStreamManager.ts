@@ -45,6 +45,13 @@ import { toPortfolioEntry } from './normalize.js';
 const DEFAULT_RECONNECT_DELAYS = [1000, 2000, 4000, 8000, 16000, 30000];
 const DEFAULT_HTTP_POLL_INTERVAL = 10000;
 const DEFAULT_TOKEN_REFRESH_BUFFER = 5 * 60 * 1000; // 5 min before expiry
+/**
+ * How long to wait for `portfolio_snapshot` after the socket authenticates.
+ * A socket can authenticate and then go silent (for example when the balance
+ * RPC fails); without this watchdog the manager stays "connected" with no data
+ * and never starts the HTTP fallback.
+ */
+const DEFAULT_SNAPSHOT_TIMEOUT = 10_000;
 
 export interface PortfolioStreamDependencies {
   websocket: WebSocketFactory;
@@ -64,6 +71,8 @@ interface ResolvedPortfolioStreamConfig {
   httpPollInterval: number;
   tokenRefreshBuffer: number;
   maxCacheAge: number;
+  snapshotTimeoutMs: number;
+  resolveAddress?: (address: string) => string;
 }
 
 export class PortfolioStreamManager {
@@ -95,6 +104,8 @@ export class PortfolioStreamManager {
   private savedAddresses: string[] = [];
   private isStreaming = false;
   private lastForceRefreshAt = 0;
+  private snapshotTimeout: TimerHandle | null = null;
+  private snapshotReceived = false;
 
   constructor(
     deps: PortfolioStreamDependencies,
@@ -114,6 +125,8 @@ export class PortfolioStreamManager {
       httpPollInterval: config.httpPollInterval ?? DEFAULT_HTTP_POLL_INTERVAL,
       tokenRefreshBuffer: config.tokenRefreshBuffer ?? DEFAULT_TOKEN_REFRESH_BUFFER,
       maxCacheAge: config.maxCacheAge ?? 24 * 60 * 60 * 1000,
+      snapshotTimeoutMs: config.snapshotTimeoutMs ?? DEFAULT_SNAPSHOT_TIMEOUT,
+      resolveAddress: config.resolveAddress,
     };
 
     if (deps.lifecycle) {
@@ -145,6 +158,8 @@ export class PortfolioStreamManager {
     this.stopHttpFallback();
     this.clearTokenRefresh();
     this.clearReconnectTimeout();
+    this.clearSnapshotWatchdog();
+    this.snapshotReceived = false;
     this.disconnectWebSocket();
     if (this.backendUnsubscribe) {
       try { this.backendUnsubscribe(); } catch { /* ignore */ }
@@ -162,6 +177,69 @@ export class PortfolioStreamManager {
       this.timer.clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout = null;
     }
+  }
+
+  private ensureSnapshotWatchdog(): void {
+    if (this.snapshotTimeout || this.config.backend) return;
+    if (this.config.snapshotTimeoutMs <= 0) return;
+
+    this.snapshotTimeout = this.timer.setTimeout(() => {
+      this.snapshotTimeout = null;
+      if (this.snapshotReceived) return;
+      if (this.connectionState !== 'connected') return;
+
+      this.logger.warn(
+        `[PortfolioStream] No portfolio_snapshot after ${this.config.snapshotTimeoutMs}ms — starting HTTP fallback`,
+      );
+      this.startHttpFallback();
+    }, this.config.snapshotTimeoutMs);
+  }
+
+  private clearSnapshotWatchdog(): void {
+    if (this.snapshotTimeout) {
+      this.timer.clearTimeout(this.snapshotTimeout);
+      this.snapshotTimeout = null;
+    }
+  }
+
+  /**
+   * Resolve a server-provided address to a subscribed address.
+   *
+   * Axia can answer a subscription with `0x…` identifiers while the caller
+   * subscribed with `Mx…` (and vice versa). A `resolveAddress` hook handles
+   * explicit mappings; for a single-address subscription the address is
+   * unambiguous, so remap it rather than emitting an event the caller cannot
+   * match.
+   */
+  private canonicalAddress(address: string): string {
+    if (typeof address !== 'string') return address;
+    const resolved = this.config.resolveAddress?.(address) ?? address;
+    if (this.subscribedAddresses.includes(resolved)) return resolved;
+    if (this.subscribedAddresses.length === 1) return this.subscribedAddresses[0];
+    return resolved;
+  }
+
+  /**
+   * Pick addresses to poll from a `snapshot_failed` frame. If the server's
+   * addresses cannot be matched to the subscription (different encoding), poll
+   * every subscribed address instead of passing an unrouteable identifier to
+   * the HTTP backend.
+   */
+  private resolvePollTargets(addresses: unknown): string[] {
+    if (!Array.isArray(addresses) || addresses.length === 0) {
+      return [...this.subscribedAddresses];
+    }
+    const strings = addresses.filter(
+      (address): address is string => typeof address === 'string' && address.length > 0,
+    );
+    const matched = strings
+      .map(address => this.canonicalAddress(address))
+      .filter(address => this.subscribedAddresses.includes(address));
+
+    if (matched.length > 0) {
+      return Array.from(new Set(matched));
+    }
+    return [...this.subscribedAddresses];
   }
 
   addListener(listener: PortfolioStreamListener): void {
@@ -232,6 +310,8 @@ export class PortfolioStreamManager {
     this.logger.info('[PortfolioStream] Starting for addresses:', addresses);
 
     this.subscribedAddresses = addresses;
+    this.snapshotReceived = false;
+    this.clearSnapshotWatchdog();
     this.isSuspending = false;
     this.isStreaming = true;
 
@@ -413,6 +493,7 @@ export class PortfolioStreamManager {
         const onClose = (event: { code: number; reason: string }) => {
           this.logger.info('[PortfolioStream] WebSocket closed:', event.code, event.reason);
 
+          this.clearSnapshotWatchdog();
           this.ws = null;
 
           if (event.code === 1008) {
@@ -449,11 +530,13 @@ export class PortfolioStreamManager {
         this.logger.debug('[PortfolioStream] Authenticated:', msg.userId);
         this.setConnectionState('connected');
         this.sendSubscribe();
+        this.ensureSnapshotWatchdog();
         onConnected?.();
         break;
 
       case 'subscribed':
         this.logger.debug('[PortfolioStream] Subscribed:', msg.subscription_id ?? msg.subscriptionId);
+        this.ensureSnapshotWatchdog();
         break;
 
       case 'capabilities':
@@ -465,7 +548,18 @@ export class PortfolioStreamManager {
        * Shape: { type:'portfolio_snapshot', entries: PortfolioEntry[], change_seq, tip_height, ... }
        */
       case 'portfolio_snapshot': {
-        const entries: PortfolioEntry[] = msg.entries ?? [];
+        this.snapshotReceived = true;
+        this.clearSnapshotWatchdog();
+        if (this.httpPollInterval) {
+          // The socket recovered; stop the watchdog/fallback poll loop.
+          this.stopHttpFallback();
+          this.setConnectionState('connected');
+        }
+
+        const entries: PortfolioEntry[] = (msg.entries ?? []).map((entry: PortfolioEntry) => {
+          const address = this.canonicalAddress(entry.address);
+          return address === entry.address ? entry : { ...entry, address };
+        });
         const now = this.timer.now();
 
         // Group entries by address and cache them
@@ -506,7 +600,10 @@ export class PortfolioStreamManager {
        * Shape: { type:'portfolio_delta', changes: PortfolioEntry[], ... }
        */
       case 'portfolio_delta': {
-        const changes: PortfolioEntry[] = msg.changes ?? [];
+        const changes: PortfolioEntry[] = (msg.changes ?? []).map((change: PortfolioEntry) => {
+          const address = this.canonicalAddress(change.address);
+          return address === change.address ? change : { ...change, address };
+        });
         const now = this.timer.now();
 
         const byAddress = new Map<string, PortfolioEntry[]>();
@@ -545,12 +642,20 @@ export class PortfolioStreamManager {
 
       case 'resync_required':
         this.logger.info('[PortfolioStream] resync_required received, reason=', msg.reason, '— reconnecting');
+        this.clearSnapshotWatchdog();
         this.disconnectWebSocket();
         this.scheduleReconnect();
         break;
 
       case 'tx_confirmation':
-        this.handleTxConfirmation(msg.event as TxConfirmationEvent);
+        this.handleTxConfirmation(
+          msg.event
+            ? {
+                ...(msg.event as TxConfirmationEvent),
+                address: this.canonicalAddress((msg.event as TxConfirmationEvent).address),
+              }
+            : (msg.event as TxConfirmationEvent),
+        );
         break;
 
       case 'ping':
@@ -561,17 +666,14 @@ export class PortfolioStreamManager {
         this.logger.error('[PortfolioStream] Server error:', msg.message, 'code:', msg.code);
         // If the server reports it couldn't fetch some addresses, poll HTTP for those
         // rather than silently displaying 0.
-        if ((msg.code === 'snapshot_failed' || msg.code === 'snapshot_internal_error') && Array.isArray(msg.addresses) && msg.addresses.length > 0) {
-          for (const addr of msg.addresses) {
+        if (msg.code === 'snapshot_failed' || msg.code === 'snapshot_internal_error') {
+          // Axia returns failed addresses as `0x…` even when the subscription
+          // used `Mx…`. Poll the matched/subscribed addresses rather than the
+          // raw server identifiers so the HTTP backend receives a routable
+          // address.
+          for (const addr of this.resolvePollTargets(msg.addresses)) {
             this._pollAddressOnce(addr).catch(err =>
               this.logger.warn('[PortfolioStream] One-shot poll for error frame failed for', addr, err),
-            );
-          }
-        } else if (msg.code === 'snapshot_internal_error') {
-          // Full snapshot failure — poll all subscribed addresses
-          for (const addr of this.subscribedAddresses) {
-            this._pollAddressOnce(addr).catch(err =>
-              this.logger.warn('[PortfolioStream] One-shot poll (internal error) failed for', addr, err),
             );
           }
         }
@@ -660,6 +762,7 @@ export class PortfolioStreamManager {
 
   private disconnectWebSocket(): void {
     this.clearReconnectTimeout();
+    this.clearSnapshotWatchdog();
 
     if (this.ws) {
       this.ws.close(1000, 'Client disconnect');

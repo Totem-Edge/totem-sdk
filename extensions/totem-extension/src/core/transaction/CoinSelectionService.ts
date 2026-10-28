@@ -17,6 +17,8 @@ export interface SpendableCoin {
   amount: string;
   tokenid: string;
   created: number;
+  /** Token metadata reported by the chain provider (Hosted/Axia or node). */
+  token?: CoinTokenMetadata;
   /** Coin keeps state (RFC-005 #6). */
   storeState?: boolean;
   /** Coin state variables, when reported. */
@@ -25,6 +27,18 @@ export interface SpendableCoin {
   spent?: boolean;
   /** MMR entry, when reported. */
   mmrEntry?: string;
+}
+
+/** Token metadata attached to a coin by the chain provider. */
+export interface CoinTokenMetadata {
+  name?: string;
+  ticker?: string;
+  decimals?: number | string;
+  artimage?: string;
+  webvalidate?: string;
+  icon?: string;
+  image?: string;
+  [key: string]: unknown;
 }
 
 /** Optional chain filters for coin queries (RFC-005 #6). */
@@ -127,6 +141,7 @@ function mapProviderCoin(coin: {
   spent?: boolean;
   mmrentry?: string;
   mmrEntry?: string;
+  token?: unknown;
 }): SpendableCoin | null {
   const rawId = coin.coinid ?? coin.coinId;
   if (typeof rawId !== 'string' || rawId.length === 0) return null;
@@ -142,6 +157,9 @@ function mapProviderCoin(coin: {
     amount: coin.amount,
     tokenid,
     created: typeof coin.created === 'number' ? coin.created : Number(coin.created ?? 0) || 0,
+    ...(coin.token && typeof coin.token === 'object'
+      ? { token: coin.token as CoinTokenMetadata }
+      : {}),
     ...(typeof storeState === 'boolean' ? { storeState } : {}),
     ...(Array.isArray(coin.state) ? { state: coin.state } : {}),
     ...(typeof coin.spent === 'boolean' ? { spent: coin.spent } : {}),
@@ -350,6 +368,9 @@ class CoinSelectionService {
         amount: coin.amount,
         tokenid: tokenId,
         created: typeof coin.created === 'number' ? coin.created : 0,
+        ...(coin.token && typeof coin.token === 'object'
+          ? { token: coin.token as CoinTokenMetadata }
+          : {}),
         ...(typeof storeState === 'boolean' ? { storeState } : {}),
         ...(Array.isArray(coin.state) ? { state: coin.state } : {}),
         ...(typeof coin.spent === 'boolean' ? { spent: coin.spent } : {}),

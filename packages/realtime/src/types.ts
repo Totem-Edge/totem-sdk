@@ -153,6 +153,17 @@ export interface PortfolioStreamConfig {
   httpPollInterval?: number;
   tokenRefreshBuffer?: number;
   maxCacheAge?: number;
+  /**
+   * How long to wait for `portfolio_snapshot` after `authenticated` before
+   * starting the HTTP fallback. Default 10s. Set to 0 to disable.
+   */
+  snapshotTimeoutMs?: number;
+  /**
+   * Map a server-provided address to the address form used by `start()`.
+   * Useful when the API answers with `0x…` identifiers but the caller
+   * subscribes with `Mx…` (or vice versa).
+   */
+  resolveAddress?: (address: string) => string;
 }
 
 export interface WebSocketTokenResponse {

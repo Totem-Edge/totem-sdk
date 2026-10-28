@@ -1250,6 +1250,18 @@ export interface TotemGetCoinsRequest {
   };
 }
 
+/** Token metadata attached to a coin by the wallet's chain provider. */
+export interface TotemCoinTokenMetadata {
+  name?: string;
+  ticker?: string;
+  decimals?: number | string;
+  artimage?: string;
+  webvalidate?: string;
+  icon?: string;
+  image?: string;
+  [key: string]: unknown;
+}
+
 export interface TotemGetCoinsSuccessResponse {
   success: true;
   coins: Array<{
@@ -1258,6 +1270,14 @@ export interface TotemGetCoinsSuccessResponse {
     amount: string;
     tokenId: string;
     created: string;
+    /** Token metadata (name, ticker, decimals, artimage) when reported. */
+    token?: TotemCoinTokenMetadata;
+    /** Flattened token metadata for convenience. */
+    name?: string;
+    ticker?: string;
+    decimals?: number | string;
+    artimage?: string;
+    webvalidate?: string;
     /** Coin keeps state, when reported. */
     storeState?: boolean;
     /** Coin state variables, when reported. */
