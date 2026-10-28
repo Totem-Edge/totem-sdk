@@ -262,6 +262,35 @@ describe('handleToolCall', () => {
     expect(indexFile.content).not.toContain('sha3_256')
   })
 
+  it('scaffold-app selects proofgraph and storage primitives', () => {
+    const familyIndex = makeIndex()
+    const add = (name: string, dir: string, fn: string) => {
+      familyIndex.packages[name] = {
+        name, dir, version: '1.0.0', description: name,
+        dependencies: [], devDependencies: [], hasRust: false, hasGo: false, hasTests: true,
+        exports: { functions: [fn], types: [], classes: [], interfaces: [], consts: [] },
+        symbols: { [fn]: { kind: 'function' } },
+        dependencyGroups: { runtime: {}, peer: {}, optional: {}, dev: {} },
+        exportsMap: { '.': { import: './dist/index.js' } }, domain: 'test',
+      }
+    }
+    add('@totemsdk/proofgraph', 'proofgraph', 'createProofGraph')
+    add('@totemsdk/storage', 'storage', 'ArtifactStore')
+    for (const [pkg, expected] of [
+      ['@totemsdk/proofgraph', 'createProofGraph'],
+      ['@totemsdk/storage', 'ArtifactStore'],
+    ] as const) {
+      const plan = JSON.parse(handleToolCall('plan-composition', {
+        runtime: 'node-esm', requiredPackages: [pkg],
+      }, familyIndex).content[0].text)
+      const scaffold = JSON.parse(handleToolCall('scaffold-app', {
+        appName: 'family-demo', runtime: 'node-esm', plan,
+      }, familyIndex).content[0].text)
+      const source = scaffold.files.find((f: any) => f.path === 'src/index.ts').content
+      expect(source).toContain(expected)
+    }
+  })
+
   it('package-stats reports metrics with domain and export counts', () => {
     const res = handleToolCall('package-stats', { name: '@totemsdk/core' }, index)
     expect(res.content[0].text).toContain('@totemsdk/core v1.2.6')

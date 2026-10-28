@@ -251,6 +251,29 @@ function selectPrimitive(dependencies: Record<string, string>): {
       ],
     }
   }
+  if (dependencies['@totemsdk/proofgraph']) {
+    return {
+      imports: ["import { createProofGraph } from '@totemsdk/proofgraph';"],
+      body: [
+        'const graph = createProofGraph({ scaffold: appName });',
+        'return graph.graphId;',
+      ],
+    }
+  }
+  if (dependencies['@totemsdk/storage']) {
+    return {
+      imports: [
+        "import { ArtifactStore } from '@totemsdk/storage/artifacts';",
+        "import { LocalFileBackend } from '@totemsdk/storage/artifacts/local-fs-backend';",
+      ],
+      body: [
+        "const store = new ArtifactStore(new LocalFileBackend('./artifacts'));",
+        "const receipt = await store.put('scaffold', new TextEncoder().encode(appName));",
+        'const read = await store.get(receipt.ref);',
+        'return `${receipt.ref.digest}:${read.status}`;',
+      ],
+    }
+  }
   if (dependencies['@totemsdk/replication']) {
     return {
       imports: ["import { readReplicated } from '@totemsdk/replication';"],
@@ -259,6 +282,54 @@ function selectPrimitive(dependencies: Record<string, string>): {
         "  readReplica: async () => ({ value: 'replica', complete: true, observedAt: Date.now() }),",
         '});',
         'return `${result.source}:${result.freshness}`;',
+      ],
+    }
+  }
+  if (dependencies['@totemsdk/manifest']) {
+    return {
+      imports: ["import { createAnnouncement } from '@totemsdk/manifest';"],
+      body: [
+        "const announcement = createAnnouncement({",
+        "  kind: 'service',",
+        '  subjectId: appName,',
+        "  subjectHash: '0x' + '11'.repeat(32),",
+        "  publisher: 'MxScaffoldPublisher',",
+        '  sequence: 1,',
+        '  createdAt: Date.now(),',
+        '  expiresAt: Date.now() + 86_400_000,',
+        "  topics: ['totemsdk:scaffold'],",
+        "  nonce: 'scaffold',",
+        '});',
+        'return announcement.announcementId;',
+      ],
+    }
+  }
+  if (dependencies['@totemsdk/identity']) {
+    return {
+      imports: ["import { createIdentityDocument } from '@totemsdk/identity';"],
+      body: [
+        "const document = createIdentityDocument({",
+        "  kind: 'app',",
+        "  rootAddress: 'MxScaffoldRoot',",
+        "  controllerAddress: 'MxScaffoldRoot',",
+        '});',
+        'return document.id;',
+      ],
+    }
+  }
+  if (dependencies['@totemsdk/governance']) {
+    return {
+      imports: ["import { createGovernanceConfig } from '@totemsdk/governance';"],
+      body: [
+        'const config = createGovernanceConfig({',
+        '  daoId: appName,',
+        '  name: appName,',
+        "  voting: { algorithm: 'linear', quorumBps: 5000, passThresholdBps: 5000, votingPeriodMs: 86_400_000 },",
+        '  membership: {},',
+        "  authorityScope: 'scaffold',",
+        "  authorityResolver: 'scaffold',",
+        '});',
+        'return config.daoId;',
       ],
     }
   }
