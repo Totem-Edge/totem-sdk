@@ -20,6 +20,8 @@ export interface ConfirmationOptions {
 
 export interface TotemNodeAdapter extends ChainStateProvider {
   getMode(): Promise<string | undefined>;
+  /** Hash of block 0, used to reject a host pointed at the wrong chain. */
+  getGenesisHash(): Promise<string | undefined>;
   /**
    * Sign arbitrary data with a wallet key (`sign publickey:<0x> data:<0x>`).
    * Used to produce the funding witness signature: createChannel builds the
@@ -74,6 +76,17 @@ export function createTotemNodeAdapter(options: TotemNodeAdapterOptions): TotemN
       if (!result || typeof result !== 'object') return undefined;
       const mode = (result as { mode?: unknown }).mode;
       return typeof mode === 'string' ? mode : undefined;
+    },
+
+    async getGenesisHash(): Promise<string | undefined> {
+      const result = await client.runCommand('getblockhash', { height: 0 });
+      if (typeof result === 'string') return result;
+      if (result && typeof result === 'object') {
+        const value = (result as { hash?: unknown; response?: unknown }).hash
+          ?? (result as { response?: unknown }).response;
+        if (typeof value === 'string') return value;
+      }
+      return undefined;
     },
 
     async signData(pubkeyHex: string, dataHex: string): Promise<string> {

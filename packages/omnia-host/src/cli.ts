@@ -14,7 +14,7 @@ async function runPair(): Promise<void> {
     .map((value) => value.trim())
     .filter(Boolean);
   const capabilities = {
-    chain: { rpcUrl: config.chainRpcUrl, network: 'minima' },
+    chain: { rpcUrl: config.chainRpcUrl, network: 'minima', ...(config.genesisHash ? { genesisHash: config.genesisHash } : {}) },
     lease: { modes: ['local', 'hybrid'] as Array<'local' | 'hybrid'> },
     ...(config.p2pHubUrl || config.p2pHubPort
       ? {

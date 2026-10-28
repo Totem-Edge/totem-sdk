@@ -209,6 +209,20 @@ export function createOmniaHost(
           ssl: rpc.protocol === 'https:',
         });
       }
+      if (config.genesisHash) {
+        const adapter = chainAdapter as { getGenesisHash?: () => Promise<string | undefined> };
+        const observed = await adapter.getGenesisHash?.();
+        if (!observed) {
+          throw new Error(
+            `OMNIA_GENESIS_HASH is set but the chain provider does not expose a genesis hash; refusing to start`,
+          );
+        }
+        if (observed.toLowerCase() !== config.genesisHash.toLowerCase()) {
+          throw new Error(
+            `Chain genesis mismatch: expected ${config.genesisHash}, node reports ${observed}`,
+          );
+        }
+      }
       if (config.p2pHubUrl) {
         // Shared-hub client mode: another process owns the hub. The host only
         // advertises the URL; it must not start a competing local hub.

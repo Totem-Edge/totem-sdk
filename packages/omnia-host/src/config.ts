@@ -13,6 +13,8 @@ export interface OmniaHostConfig {
   observeDbPath?: string;
   /** Observation network id (multi-network deployments). */
   networkId?: string;
+  /** Expected genesis hash; startup fails if the node reports a different chain. */
+  genesisHash?: string;
   /** Stable observation source id (default: localPartyId or "omnia-host"). */
   sourceNodeId?: string;
   /** Disable the observation feed entirely (OMNIA_OBSERVE=0). */
@@ -175,6 +177,7 @@ export function loadConfigFromEnv(env: NodeJS.ProcessEnv = process.env): OmniaHo
     analyticsDbPath: optional(env.OMNIA_ANALYTICS_DB),
     observeDbPath: optional(env.OMNIA_OBSERVE_DB) ?? path.join(path.dirname(dbPath), 'observe.sqlite'),
     networkId: optional(env.OMNIA_NETWORK_ID),
+    genesisHash: optional(env.OMNIA_GENESIS_HASH),
     sourceNodeId: optional(env.OMNIA_SOURCE_NODE_ID),
     observeDisabled: env.OMNIA_OBSERVE?.trim() === '0' || env.OMNIA_OBSERVE?.trim().toLowerCase() === 'false',
     relay: optional(env.OMNIA_RELAY),
