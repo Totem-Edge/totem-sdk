@@ -1,3 +1,12 @@
+export type DependencyKind = 'runtime' | 'peer' | 'optional' | 'dev'
+
+export interface DependencyEdge {
+  from: string
+  to: string
+  kind: DependencyKind
+  range: string
+}
+
 export interface PackageIndex {
   name: string
   dir: string
@@ -6,6 +15,10 @@ export interface PackageIndex {
   keywords?: string[]
   dependencies: string[]
   devDependencies: string[]
+  /** Declared dependency groups with ranges, when known. */
+  dependencyGroups?: Partial<Record<DependencyKind, Record<string, string>>>
+  /** Package.json export subpaths and their runtime conditions. */
+  exportsMap?: Record<string, unknown>
   hasRust: boolean
   hasGo: boolean
   hasTests: boolean
@@ -88,6 +101,9 @@ export interface ValidImportResult {
   valid: boolean
   importPath?: string
   symbolFound?: boolean
+  dependencyKind?: 'runtime' | 'peer' | 'optional' | 'dev' | 'none'
+  subpath?: string
+  condition?: string
   reason?: string
 }
 

@@ -387,6 +387,13 @@ export function buildFromMonorepo(root: string, now: number = Date.now()): SdkIn
       ...(Array.isArray(pkg.keywords) ? { keywords: pkg.keywords as string[] } : {}),
       dependencies: Object.keys(pkg.dependencies || {}),
       devDependencies: Object.keys(pkg.devDependencies || {}),
+      dependencyGroups: {
+        runtime: { ...(pkg.dependencies || {}) },
+        peer: { ...(pkg.peerDependencies || {}) },
+        optional: { ...(pkg.optionalDependencies || {}) },
+        dev: { ...(pkg.devDependencies || {}) },
+      },
+      ...(pkg.exports && typeof pkg.exports === 'object' ? { exportsMap: pkg.exports } : {}),
       hasRust: hasSubdir(dir, 'rust') || hasSubdir(dir, 'rust-toolchain'),
       hasGo: hasSubdir(dir, 'go'),
       hasTests: hasTestDir(dir),
@@ -406,6 +413,21 @@ export function buildFromMonorepo(root: string, now: number = Date.now()): SdkIn
         ...(meta.doc !== undefined ? { doc: meta.doc } : {}),
         ...(meta.deprecated ? { deprecated: true } : {}),
       })
+    }
+  }
+
+  // Normalise workspace protocol ranges to the concrete workspace version so
+  // graph output is actionable outside pnpm. External ranges are preserved.
+  for (const pkg of Object.values(packages)) {
+    for (const kind of ['runtime', 'peer', 'optional', 'dev'] as const) {
+      const group = pkg.dependencyGroups?.[kind]
+      if (!group) continue
+      for (const [dep, range] of Object.entries(group)) {
+        if (String(range).startsWith('workspace:')) {
+          const version = packages[dep]?.version
+          group[dep] = version ? `^${version}` : String(range)
+        }
+      }
     }
   }
 

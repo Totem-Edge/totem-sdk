@@ -20,6 +20,8 @@ function makeIndex(): SdkIndex {
         description: 'Core cryptographic primitives',
         dependencies: ['@totemsdk/core-wasm'],
         devDependencies: [],
+        dependencyGroups: { runtime: { '@totemsdk/core-wasm': '^0.1.0' }, peer: {}, optional: {}, dev: {} },
+        exportsMap: { '.': { import: './dist/index.js', require: './dist/index.cjs' } },
         hasRust: true,
         hasGo: false,
         hasTests: true,
@@ -39,6 +41,8 @@ function makeIndex(): SdkIndex {
         description: 'Rust/WASM crypto engine',
         dependencies: [],
         devDependencies: [],
+        dependencyGroups: { runtime: {}, peer: {}, optional: {}, dev: {} },
+        exportsMap: { '.': { import: './dist/index.js', require: './dist/index.cjs' } },
         hasRust: true,
         hasGo: false,
         hasTests: true,
@@ -130,6 +134,35 @@ describe('handleToolCall', () => {
   it('dependency-graph lists inbound dependents', () => {
     const res = handleToolCall('dependency-graph', { package: '@totemsdk/core-wasm', direction: 'in' }, index)
     expect(res.content[0].text).toContain('@totemsdk/core')
+  })
+
+  it('dependency-graph all returns typed edges and SCCs', () => {
+    const res = handleToolCall('dependency-graph', { package: '@totemsdk/core', direction: 'all', format: 'json' }, index)
+    const graph = JSON.parse(res.content[0].text)
+    expect(graph.edges).toEqual(expect.arrayContaining([
+      expect.objectContaining({ from: '@totemsdk/core', to: '@totemsdk/core-wasm', kind: 'runtime' }),
+    ]))
+    expect(graph.stronglyConnectedComponents).toEqual([])
+  })
+
+  it('dependency-graph reports cycles instead of pretending a DAG', () => {
+    const cyclic = makeIndex()
+    cyclic.packages['@totemsdk/core-wasm'].dependencyGroups!.runtime = { '@totemsdk/core': '^1.2.6' }
+    const res = handleToolCall('dependency-graph', { package: '@totemsdk/core', direction: 'all', format: 'json' }, cyclic)
+    expect(JSON.parse(res.content[0].text).stronglyConnectedComponents).toEqual([
+      ['@totemsdk/core', '@totemsdk/core-wasm'],
+    ])
+  })
+
+  it('validate-import checks export subpaths and conditions', () => {
+    const ok = handleToolCall('validate-import', {
+      from: '@totemsdk/core', to: '@totemsdk/core-wasm', subpath: '.', condition: 'import',
+    }, index)
+    expect(ok.content[0].text).toContain('"valid": true')
+    const missing = handleToolCall('validate-import', {
+      from: '@totemsdk/core', to: '@totemsdk/core-wasm', subpath: './missing',
+    }, index)
+    expect(missing.content[0].text).toContain('does not export subpath')
   })
 
   it('dependency-graph errors on unknown package', () => {

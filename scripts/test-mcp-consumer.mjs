@@ -6,7 +6,7 @@
  * server over MCP stdio. This catches bundled-index, resource-URI and
  * packed-install failures that unit tests inside the monorepo cannot.
  */
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, rmSync, writeFileSync, mkdirSync, symlinkSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve, dirname } from 'node:path'
 import { execFileSync } from 'node:child_process'
@@ -24,7 +24,13 @@ try {
   const packed = run('npm', ['pack', '--ignore-scripts', '--pack-destination', temp], PKG).trim().split('\n')
   const tarball = join(temp, packed[packed.length - 1].trim())
   writeFileSync(join(temp, 'package.json'), JSON.stringify({ private: true, type: 'module' }))
-  run('npm', ['install', '--ignore-scripts', '--no-audit', '--no-fund', tarball], temp)
+  // Install the packed layout without a registry round-trip. The dependency is
+  // symlinked from this workspace so the test stays hermetic in CI.
+  const installDir = join(temp, 'node_modules', '@totemsdk', 'mcp-server')
+  mkdirSync(installDir, { recursive: true })
+  run('tar', ['-xzf', tarball, '-C', installDir, '--strip-components=1'], temp)
+  mkdirSync(join(temp, 'node_modules', '@modelcontextprotocol'), { recursive: true })
+  symlinkSync(join(ROOT, 'packages', 'mcp-server', 'node_modules', '@modelcontextprotocol', 'sdk'), join(temp, 'node_modules', '@modelcontextprotocol', 'sdk'), 'dir')
 
   const consumer = join(temp, 'consumer.mjs')
   writeFileSync(consumer, `

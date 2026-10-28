@@ -1,4 +1,4 @@
-import type { SdkIndex, ToolDefinition, ToolResponse, ValidImportResult, ScaffoldResult } from './types.js'
+import type { DependencyEdge, DependencyKind, SdkIndex, ToolDefinition, ToolResponse, ValidImportResult, ScaffoldResult } from './types.js'
 import { searchTemplates, getTemplatesForPackage } from './template-catalog.js'
 import { readSourceFile } from './indexer.js'
 import { refreshIndex } from './index-store.js'
@@ -11,8 +11,8 @@ import { refreshIndex } from './index-store.js'
 export const TOOL_DEFINITIONS: ToolDefinition[] = [
   { name: 'search-symbol', description: 'Search for a symbol (function, type, class) across all packages', inputSchema: { type: 'object', properties: { query: { type: 'string', description: 'Partial symbol name to search' } }, required: ['query'] } },
   { name: 'find-type', description: 'Find type definitions (interfaces, classes, type aliases) matching a pattern', inputSchema: { type: 'object', properties: { pattern: { type: 'string', description: 'Type name pattern to search' } }, required: ['pattern'] } },
-  { name: 'dependency-graph', description: 'Get dependency graph for a package — inbound dependents or outbound dependencies', inputSchema: { type: 'object', properties: { package: { type: 'string', description: 'Package name (e.g. @totemsdk/edge-opcua)' }, direction: { type: 'string', enum: ['in', 'out', 'all'], description: 'Dependency direction' } }, required: ['package'] } },
-  { name: 'validate-import', description: 'Check whether a cross-package import is valid', inputSchema: { type: 'object', properties: { from: { type: 'string', description: 'Source package name' }, to: { type: 'string', description: 'Target package name' }, symbol: { type: 'string', description: 'Optional: specific symbol to check' } }, required: ['from', 'to'] } },
+  { name: 'dependency-graph', description: 'Get dependency graph for a package — inbound dependents, outbound dependencies, typed edge kinds/ranges, cycles and SCCs', inputSchema: { type: 'object', properties: { package: { type: 'string', description: 'Package name (e.g. @totemsdk/edge-opcua)' }, direction: { type: 'string', enum: ['in', 'out', 'all'], description: 'Dependency direction' }, format: { type: 'string', enum: ['text', 'json'], description: 'Output format (default text)' } }, required: ['package'] } },
+  { name: 'validate-import', description: 'Check whether a cross-package import is valid, including dependency kind, export subpath and condition', inputSchema: { type: 'object', properties: { from: { type: 'string', description: 'Source package name' }, to: { type: 'string', description: 'Target package name' }, symbol: { type: 'string', description: 'Optional: specific symbol to check' }, subpath: { type: 'string', description: 'Optional export subpath (e.g. ./artifacts)' }, condition: { type: 'string', description: 'Optional runtime condition (e.g. import, require, types)' } }, required: ['from', 'to'] } },
   { name: 'scaffold-adapter', description: 'Generate boilerplate for a new edge protocol adapter', inputSchema: { type: 'object', properties: { name: { type: 'string', description: 'Package name suffix' }, protocol: { type: 'string', description: 'Protocol name (PascalCase)' }, commands: { type: 'array', items: { type: 'string' }, description: 'Transport port methods' } }, required: ['name', 'protocol'] } },
   { name: 'scaffold-package', description: 'Generate boilerplate for a new @totemsdk package', inputSchema: { type: 'object', properties: { name: { type: 'string', description: 'Package name (without @totemsdk/ prefix)' }, deps: { type: 'array', items: { type: 'string' }, description: 'Dependency package names' } }, required: ['name'] } },
   { name: 'package-stats', description: 'Get statistics about a package — export counts, Rust/Go, tests, deps', inputSchema: { type: 'object', properties: { name: { type: 'string', description: 'Package name' } }, required: ['name'] } },
@@ -223,86 +223,150 @@ function typeEntries(pkg: SdkIndex['packages'][string]): Array<{ name: string; k
   ]
 }
 
+function dependencyEdges(index: SdkIndex, name: string, direction: 'in' | 'out' | 'all'): DependencyEdge[] {
+  const edges: DependencyEdge[] = []
+  const kinds: DependencyKind[] = ['runtime', 'peer', 'optional', 'dev']
+  if (direction === 'out' || direction === 'all') {
+    const pkg = index.packages[name]
+    for (const kind of kinds) {
+      for (const [to, range] of Object.entries(pkg?.dependencyGroups?.[kind] ?? {})) {
+        edges.push({ from: name, to, kind, range: String(range) })
+      }
+    }
+  }
+  if (direction === 'in' || direction === 'all') {
+    for (const [from, pkg] of Object.entries(index.packages)) {
+      for (const kind of kinds) {
+        const range = pkg.dependencyGroups?.[kind]?.[name]
+        if (range !== undefined) edges.push({ from, to: name, kind, range: String(range) })
+      }
+    }
+  }
+  return edges
+}
+
+function stronglyConnected(index: SdkIndex): string[][] {
+  const nodes = Object.keys(index.packages)
+  const adjacency = new Map<string, string[]>()
+  for (const name of nodes) {
+    const out = new Set<string>()
+    for (const kind of ['runtime', 'peer', 'optional'] as DependencyKind[]) {
+      for (const dep of Object.keys(index.packages[name]?.dependencyGroups?.[kind] ?? {})) {
+        if (index.packages[dep]) out.add(dep)
+      }
+    }
+    adjacency.set(name, [...out])
+  }
+  let counter = 0
+  const indices = new Map<string, number>()
+  const low = new Map<string, number>()
+  const stack: string[] = []
+  const onStack = new Set<string>()
+  const components: string[][] = []
+  const visit = (node: string): void => {
+    indices.set(node, counter); low.set(node, counter); counter++
+    stack.push(node); onStack.add(node)
+    for (const next of adjacency.get(node) ?? []) {
+      if (!indices.has(next)) { visit(next); low.set(node, Math.min(low.get(node)!, low.get(next)!)) }
+      else if (onStack.has(next)) low.set(node, Math.min(low.get(node)!, indices.get(next)!))
+    }
+    if (low.get(node) === indices.get(node)) {
+      const component: string[] = []
+      let current: string
+      do { current = stack.pop()!; onStack.delete(current); component.push(current) } while (current !== node)
+      if (component.length > 1 || (adjacency.get(node) ?? []).includes(node)) components.push(component.sort())
+    }
+  }
+  for (const node of nodes) if (!indices.has(node)) visit(node)
+  return components.sort((a, b) => a[0].localeCompare(b[0]))
+}
+
 function dependencyGraph(args: any, index: SdkIndex): ToolResponse {
   const pkgName = args.package
   const direction = args.direction || 'out'
-
   if (!pkgName || !index.packages[pkgName]) {
     return { content: [{ type: 'text', text: `Package '${pkgName}' not found` }], isError: true }
   }
-
-  const pkg = index.packages[pkgName]
-
-  if (direction === 'out' || direction === 'all') {
-    const totemDeps = pkg.dependencies.filter(d => d.startsWith('@totemsdk/'))
-    const externalDeps = pkg.dependencies.filter(d => !d.startsWith('@totemsdk/'))
-    return {
-      content: [{
-        type: 'text',
-        text: `# ${pkgName} — Outbound Dependencies\n\n` +
-          (totemDeps.length ? `**@totemsdk/* deps:**\n${totemDeps.map(d => `  - ${d}`).join('\n')}\n\n` : '') +
-          (externalDeps.length ? `**External deps:**\n${externalDeps.map(d => `  - ${d}`).join('\n')}\n` : '_(no external deps)_'),
-      }],
-    }
+  if (!['in', 'out', 'all'].includes(direction)) {
+    return { content: [{ type: 'text', text: 'Invalid direction. Use "in", "out", or "all".' }], isError: true }
   }
-
-  if (direction === 'in' || direction === 'all') {
-    const dependents: string[] = []
-    for (const [name, other] of Object.entries(index.packages)) {
-      if (other.dependencies.includes(pkgName)) dependents.push(name)
-    }
-    return {
-      content: [{
-        type: 'text',
-        text: `# ${pkgName} — Inbound Dependents\n\n` +
-          (dependents.length ? dependents.map(d => `  - ${d}`).join('\n') : '_(no dependents)_'),
-      }],
-    }
+  const edges = dependencyEdges(index, pkgName, direction)
+  if (args.format === 'json') {
+    return { content: [{ type: 'text', text: JSON.stringify({
+      package: pkgName,
+      direction,
+      edges,
+      nodes: [...new Set(edges.flatMap((edge) => [edge.from, edge.to]))].sort(),
+      stronglyConnectedComponents: stronglyConnected(index),
+    }, null, 2) }] }
   }
-  return { content: [{ type: 'text', text: 'Invalid direction. Use "in", "out", or "all".' }], isError: true }
+  const group = (kind: DependencyKind): string => {
+    const list = edges.filter((edge) => edge.kind === kind)
+    if (list.length === 0) return ''
+    const heading = direction === 'in' && kind === 'runtime'
+      ? 'Inbound runtime'
+      : `${kind[0].toUpperCase()}${kind.slice(1)}`
+    return `**${heading}:**\n${list.map((edge) => `  - ${edge.from} → ${edge.to} (${edge.range})`).join('\n')}\n`
+  }
+  return { content: [{ type: 'text', text: `# ${pkgName} — Dependencies (${direction})\n\n` +
+    ((['runtime', 'peer', 'optional', 'dev'] as DependencyKind[]).map(group).filter(Boolean).join('\n') || '_(none)_') }] }
+}
+
+function hasExportPath(exportsMap: Record<string, unknown> | undefined, subpath: string, condition?: string): boolean {
+  if (!exportsMap) return subpath === '.'
+  const value = exportsMap[subpath]
+  if (value === undefined) return false
+  if (condition === undefined) return true
+  const visit = (node: unknown): boolean => {
+    if (typeof node === 'string' || node === null) return true
+    if (Array.isArray(node)) return node.some(visit)
+    if (typeof node !== 'object') return false
+    const record = node as Record<string, unknown>
+    if (record[condition] !== undefined) return true
+    return false
+  }
+  return visit(value)
 }
 
 function validateImport(args: any, index: SdkIndex): ToolResponse {
-  const { from: fromPkg, to: toPkg, symbol } = args
-
+  const { from: fromPkg, to: toPkg, symbol, subpath, condition } = args
   if (!fromPkg || !toPkg) {
     return { content: [{ type: 'text', text: 'from and to package names are required' }], isError: true }
   }
-
   const fromPkgData = index.packages[fromPkg]
   const toPkgData = index.packages[toPkg]
-
   if (!fromPkgData) return { content: [{ type: 'text', text: `Source package '${fromPkg}' not found` }], isError: true }
   if (!toPkgData) return { content: [{ type: 'text', text: `Target package '${toPkg}' not found` }], isError: true }
 
-  const hasDep = fromPkgData.dependencies.includes(toPkg)
-  const result: ValidImportResult = { valid: hasDep, importPath: toPkg, symbolFound: false }
-
-  if (hasDep) {
-    if (symbol) {
-      const allExports = [
-        ...toPkgData.exports.functions,
-        ...toPkgData.exports.types,
-        ...toPkgData.exports.classes,
-        ...toPkgData.exports.interfaces,
-        ...toPkgData.exports.consts,
-      ]
-      result.symbolFound = allExports.includes(symbol)
-      if (!result.symbolFound) {
-        result.valid = false
-        result.reason = `'${toPkg}' does not export '${symbol}'`
-      }
+  let dependencyKind: ValidImportResult['dependencyKind'] = 'none'
+  for (const kind of ['runtime', 'peer', 'optional', 'dev'] as DependencyKind[]) {
+    if (fromPkgData.dependencyGroups?.[kind]?.[toPkg] !== undefined) { dependencyKind = kind; break }
+  }
+  const result: ValidImportResult = {
+    valid: dependencyKind !== 'none' && dependencyKind !== 'dev',
+    importPath: subpath ? `${toPkg}/${subpath.replace(/^\.\//, '')}` : toPkg,
+    symbolFound: false,
+    dependencyKind,
+    ...(subpath ? { subpath } : {}),
+    ...(condition ? { condition } : {}),
+  }
+  if (dependencyKind === 'none') result.reason = `'${fromPkg}' does not depend on '${toPkg}'`
+  else if (dependencyKind === 'dev') result.reason = `'${toPkg}' is a development-only dependency of '${fromPkg}'`
+  if (result.valid && subpath) {
+    if (!hasExportPath(toPkgData.exportsMap, subpath, condition)) {
+      result.valid = false
+      result.reason = `'${toPkg}' does not export subpath '${subpath}'${condition ? ` under condition '${condition}'` : ''}`
     }
-  } else {
-    result.reason = `'${fromPkg}' does not depend on '${toPkg}'`
   }
-
-  return {
-    content: [{
-      type: 'text',
-      text: JSON.stringify(result, null, 2),
-    }],
+  if (result.valid && symbol) {
+    const allExports = [
+      ...toPkgData.exports.functions, ...toPkgData.exports.types, ...toPkgData.exports.classes,
+      ...toPkgData.exports.interfaces, ...toPkgData.exports.consts,
+    ]
+    result.symbolFound = allExports.includes(symbol)
+    if (!result.symbolFound) { result.valid = false; result.reason = `'${toPkg}' does not export '${symbol}'` }
   }
+  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] }
 }
 
 function scaffoldAdapter(args: any): ToolResponse {
