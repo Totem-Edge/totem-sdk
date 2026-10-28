@@ -58,6 +58,12 @@ export function createTotemNodeAdapter(options: TotemNodeAdapterOptions): TotemN
 
   return {
     getCoins: (query) => provider.getCoins(query),
+    ...(provider.getAddressInfo
+      ? { getAddressInfo: (address: string) => provider.getAddressInfo!(address) }
+      : {}),
+    ...(provider.exportCoin
+      ? { exportCoin: (coinId: string) => provider.exportCoin!(coinId) }
+      : {}),
     getCoin: (coinId) => provider.getCoin(coinId),
     getProof: (coinId) => provider.getProof(coinId),
     getTip: () => provider.getTip(),

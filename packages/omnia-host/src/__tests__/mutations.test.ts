@@ -91,6 +91,22 @@ describe('omnia-host mutations', () => {
     expect(methods.has('totem_omniaGetChannels')).toBe(true);
   });
 
+  it('requires a funding source or selectable chain reads when fundingCoinId is omitted', async () => {
+    const channels = new Map([['channel-1', channel()]]);
+    const { context } = mutationContext(channels, operationStore());
+    const methods = createHostMethods(context);
+
+    await expect(
+      methods.get('totem_omniaOpenChannel')!({
+        operationId: 'open-no-coin',
+        remotePartyId: 'bob',
+        remotePublicKeyDigest: '0x' + 'bb'.repeat(32),
+        localAmount: '6',
+        remoteAmount: '4',
+      }),
+    ).rejects.toThrow(/getAddressInfo \+ exportCoin/);
+  });
+
   it('updates a channel and replays committed operations', async () => {
     const channels = new Map([['channel-1', channel()]]);
     const operations = operationStore();

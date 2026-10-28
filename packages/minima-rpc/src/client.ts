@@ -135,6 +135,10 @@ export function createMinimaRpcClient(config: MinimaRpcConfig): MinimaRpcClient 
       return run('coincheck', { coinid: coinId }, true) as Promise<CoinCheckResult>;
     },
 
+    async addressInfo(address: string) {
+      return run('getaddressinfo', { address }, true) as Promise<AddressInfo>;
+    },
+
     async coinExport(coinId: string) {
       return run('coinexport', { coinid: coinId }, true) as Promise<CoinExportResult>;
     },

@@ -24,6 +24,8 @@ export interface OmniaHostConfig {
   localPartyId?: string;
   localAddressIndex?: number;
   localSettlementAddress?: string;
+  /** Address to source funding coins from when the caller omits fundingCoinId. */
+  fundingAddress?: string;
   nodeMode?: string;
   /**
    * Public key (0x…) that owns the funding coin. When set, the host signs the
@@ -185,6 +187,7 @@ export function loadConfigFromEnv(env: NodeJS.ProcessEnv = process.env): OmniaHo
     localPartyId: optional(env.OMNIA_LOCAL_PARTY_ID),
     localAddressIndex: optionalInteger(env.OMNIA_LOCAL_ADDRESS_INDEX),
     localSettlementAddress: optional(env.OMNIA_LOCAL_SETTLEMENT_ADDRESS),
+    fundingAddress: optional(env.OMNIA_FUNDING_ADDRESS),
     nodeMode: optional(env.OMNIA_NODE_MODE),
     fundingPubkey: optional(env.OMNIA_FUNDING_PUBKEY),
     wsPath: env.OMNIA_WS_PATH?.trim() || '/rpc',

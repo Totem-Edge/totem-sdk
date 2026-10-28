@@ -118,6 +118,7 @@ import {
 } from '@totemsdk/omnia-splice';
 import type { JsonRpcHandler } from './jsonrpc.js';
 import type { RoutingProvider } from '../router/routing-provider.js';
+import { CoinSelectionService, type CoinFetcher, type SpendableCoin } from '@totemsdk/tx-builder';
 import { OperationConflictError } from '../stores/operations.js';
 import type { OperationStore } from '../stores/operations.js';
 import type { ObservationEmitter } from '../observe/emitter.js';
@@ -135,6 +136,8 @@ export interface HostApiContext {
   signer?: ChannelSigner;
   leaseProvider?: WotsLeaseProvider;
   chainProvider?: ChainStateProvider;
+  /** Default address to source funding coins from (OMNIA_FUNDING_ADDRESS). */
+  fundingAddress?: string;
   swarm?: OmniaSwarm;
   /** Last authenticated peer seen for each channel; reply over it directly. */
   channelPeers?: Map<string, OmniaPeer>;
@@ -2167,6 +2170,59 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
     return observeMethods(methods);
   }
 
+  /**
+   * Choose a funding coin from the host's own chain view when the caller does
+   * not supply one. Selection policy lives in @totemsdk/tx-builder; this only
+   * sources candidates and the ownership material.
+   */
+  async function selectFundingCoin(
+    ctx: HostApiContext,
+    req: { targetAmount: bigint; tokenId?: string; fundingAddress?: string },
+  ): Promise<{ coinId: string; publickey: string; script: string; proof: string }> {
+    const chain = ctx.chainProvider;
+    if (!chain?.getAddressInfo || !chain.exportCoin) {
+      throw new Error(
+        'openChannel requires fundingCoinId, or a chain provider supporting getAddressInfo + exportCoin for automatic selection',
+      );
+    }
+    const address = req.fundingAddress ?? ctx.fundingAddress ?? ctx.localParticipant?.settlementAddress;
+    if (!address) {
+      throw new Error('openChannel cannot select a funding coin: no fundingAddress or local settlement address');
+    }
+    const fetcher: CoinFetcher = {
+      fetchCoins: async (addresses: string[]): Promise<SpendableCoin[]> => {
+        const out: SpendableCoin[] = [];
+        for (const addr of addresses) {
+          const coins = await chain.getCoins({ address: addr, sendable: true });
+          for (const c of coins) {
+            if (c.spent) continue;
+            out.push({ coinId: c.coinid, address: c.address, amount: c.amount, tokenid: c.tokenid, created: 0 });
+          }
+        }
+        return out;
+      },
+    };
+    const service = new CoinSelectionService(fetcher);
+    const spendable = await service.fetchSpendableCoins([address], req.tokenId ?? '0x00');
+    const selection = service.selectCoins(spendable, {
+      mode: 'focused',
+      focusedAddress: address,
+      targetAmount: req.targetAmount.toString(),
+      tokenId: req.tokenId ?? '0x00',
+    });
+    const chosen = selection.selectedCoins[0];
+    if (selection.insufficientFunds || !chosen) {
+      throw new Error(
+        `openChannel funding selection failed: need ${req.targetAmount.toString()}, selected ${selection.totalSelected}`,
+      );
+    }
+    const info = await chain.getAddressInfo(chosen.address);
+    if (!info) throw new Error(`openChannel: no address info for ${chosen.address}`);
+    const exported = await chain.exportCoin(chosen.coinId);
+    if (!exported) throw new Error(`openChannel: no coin export for ${chosen.coinId}`);
+    return { coinId: chosen.coinId, publickey: info.publickey, script: info.script, proof: exported.data };
+  }
+
   const openChannel: JsonRpcHandler = async (raw) => {
     const params = paramsObject(raw);
     requireMutationContext(context);
@@ -2180,16 +2236,37 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
       transportPubkey: typeof params.remoteTransportPubkey === 'string' ? params.remoteTransportPubkey : undefined,
     };
     const result = await withOperation(context, params, async () => {
+      const localAmount = requiredBigInt(params, 'localAmount');
+      const remoteAmount = requiredBigInt(params, 'remoteAmount');
+      const tokenId = typeof params.tokenId === 'string' ? params.tokenId : undefined;
+
+      let fundingCoinId = typeof params.fundingCoinId === 'string' ? params.fundingCoinId : undefined;
+      let fundingPubkey = typeof params.fundingPubkey === 'string' ? params.fundingPubkey : undefined;
+      let fundingScript = typeof params.fundingScript === 'string' ? params.fundingScript : undefined;
+      let fundingCoinProofsHex = params.fundingCoinProofsHex;
+
+      if (!fundingCoinId) {
+        const picked = await selectFundingCoin(context, {
+          targetAmount: localAmount + remoteAmount,
+          tokenId,
+          fundingAddress: typeof params.fundingAddress === 'string' ? params.fundingAddress : undefined,
+        });
+        fundingCoinId = picked.coinId;
+        fundingPubkey = picked.publickey;
+        fundingScript = picked.script;
+        fundingCoinProofsHex = [picked.proof];
+      }
+
       const createParams: CreateChannelParams = {
         localParty: {
           ...context.localParticipant,
           transportPubkey: context.localParticipant.transportPubkey ?? context.transportPubkey,
         },
         remoteParty: remote,
-        localAmount: requiredBigInt(params, 'localAmount'),
-        remoteAmount: requiredBigInt(params, 'remoteAmount'),
-        tokenId: typeof params.tokenId === 'string' ? params.tokenId : undefined,
-        fundingCoinId: requiredString(params, 'fundingCoinId'),
+        localAmount,
+        remoteAmount,
+        tokenId,
+        fundingCoinId,
         contestDelayBlocks: typeof params.contestDelayBlocks === 'number' ? params.contestDelayBlocks : undefined,
       };
       const fundingWitnessHex = typeof params.fundingWitnessHex === 'string' ? params.fundingWitnessHex : undefined;
@@ -2201,7 +2278,6 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
         // proofs (serialized CoinProof + ScriptProof). The signer comes from the
         // configured funding signer, or from the node's `sign` command using the
         // `fundingPubkey` the caller passes.
-        const fundingPubkey = typeof params.fundingPubkey === 'string' ? params.fundingPubkey : undefined;
         const nodeAdapter = context.chainProvider as { signData?: (pk: string, data: string) => Promise<string> };
         const signer = context.fundingSigner ?? (
           fundingPubkey && typeof nodeAdapter?.signData === 'function'
@@ -2217,19 +2293,19 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
         if (!signer) {
           throw new Error('openChannel requires fundingWitnessHex, or a fundingPubkey + funding proofs');
         }
-        if (typeof params.fundingScript !== 'string' && !Array.isArray(params.fundingScriptProofsHex)) {
+        if (typeof fundingScript !== 'string' && !Array.isArray(params.fundingScriptProofsHex)) {
           throw new Error('openChannel requires fundingScript (or serialized fundingScriptProofsHex) for the funding input address');
         }
         const toBytes = (v: unknown): Uint8Array[] =>
           Array.isArray(v) ? v.map((h) => Buffer.from(String(h).replace(/^0x/i, ''), 'hex')) : [];
         createParams.fundingProofs = {
-          coinProofs: toBytes(params.fundingCoinProofsHex),
+          coinProofs: toBytes(fundingCoinProofsHex),
           scriptProofs: toBytes(params.fundingScriptProofsHex),
         };
         // The funding coin's address script: createChannel derives the required
         // single-leaf ScriptProof from it, so callers need not hand-roll it.
-        if (typeof params.fundingScript === 'string') {
-          createParams.fundingScript = params.fundingScript;
+        if (typeof fundingScript === 'string') {
+          createParams.fundingScript = fundingScript;
         }
         // If the caller supplied the funding coin's public key, the node's
         // `sign` command is authoritative for that input. The host channel key

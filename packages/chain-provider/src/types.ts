@@ -135,8 +135,30 @@ export interface DepositVerifier {
   }): Promise<boolean>;
 }
 
+export interface AddressInfo {
+  address: string;
+  publickey: string;
+  script: string;
+}
+
+export interface ExportedCoin {
+  coinid: string;
+  data: string;
+}
+
 export interface ChainStateProvider {
   getCoins(query: CoinsQuery): Promise<Coin[]>;
+  /**
+   * Ownership material for an address (public key + address script). Required to
+   * build a funding witness for a coin the caller owns.
+   */
+  getAddressInfo?(address: string): Promise<AddressInfo | null>;
+  /**
+   * Serialized coin proof (Minima `coinexport`) for a specific coin id. Required
+   * to assemble the funding input proof. Never expose this over a remote control
+   * plane; it is caller-side material.
+   */
+  exportCoin?(coinId: string): Promise<ExportedCoin | null>;
   getCoin(coinId: string): Promise<Coin | null>;
   getProof(coinId: string): Promise<MMRProof>;
   getTip(): Promise<ChainTip>;

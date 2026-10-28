@@ -370,6 +370,8 @@ export interface MinimaRpcClient {
   send(params: SendParams): Promise<TxnPostResult>;
   coinCheck(coinId: string): Promise<CoinCheckResult>;
   coinExport(coinId: string): Promise<CoinExportResult>;
+  /** `getaddressinfo` — public key + address script for an address. */
+  addressInfo(address: string): Promise<AddressInfo>;
   mmrProof(coinId: string): Promise<MMRProof>;
   getTip(): Promise<ChainTip>;
   txnCreate(id: string): Promise<void>;

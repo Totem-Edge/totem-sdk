@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/omnia-host",
-  "version": "0.13.1",
+  "version": "0.13.2",
   "description": "Durable Omnia node daemon for channel lifecycle, routing, and control APIs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -42,6 +42,7 @@
     "@totemsdk/omnia-vtxo": "workspace:^",
     "@totemsdk/p2p-hub": "workspace:^",
     "@totemsdk/storage": "workspace:^",
+    "@totemsdk/tx-builder": "workspace:^",
     "@totemsdk/wots-lease": "workspace:^",
     "ws": "^8.21.1"
   },

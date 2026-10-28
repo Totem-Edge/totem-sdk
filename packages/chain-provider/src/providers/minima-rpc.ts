@@ -11,6 +11,8 @@ import type {
   ChainTip,
   TokenInfo,
   TokenSearchQuery,
+  AddressInfo,
+  ExportedCoin,
   BroadcastResult,
   DepositVerifier,
   VerifyDepositParams,
@@ -31,6 +33,18 @@ export class MinimaRpcProvider implements ChainStateProvider, DepositVerifier {
       megammr: query.megammr,
     });
     return result as unknown as Coin[];
+  }
+
+  async getAddressInfo(address: string): Promise<AddressInfo | null> {
+    const res = await this.client.addressInfo(address);
+    if (!res?.publickey || !res?.script) return null;
+    return { address, publickey: res.publickey, script: res.script };
+  }
+
+  async exportCoin(coinId: string): Promise<ExportedCoin | null> {
+    const res = await this.client.coinExport(coinId);
+    if (!res?.data) return null;
+    return { coinid: coinId, data: res.data };
   }
 
   async getCoin(coinId: string): Promise<Coin | null> {
