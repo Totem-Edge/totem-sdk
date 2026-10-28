@@ -2,7 +2,7 @@
   "name": "totem-pwa-wallet",
   "version": "1.0.0",
   "private": true,
-  "description": "Self-custodial Totem PWA wallet — installable, cross-origin embeddable via provider.js",
+  "description": "Self-custodial Totem PWA wallet \u2014 installable, cross-origin embeddable via provider.js",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Totem-Edge/totem-sdk.git",
@@ -29,7 +29,8 @@
     "build": "tsc && vite build && vite build --config vite.provider.config.ts",
     "build:app": "tsc && vite build",
     "build:provider": "vite build --config vite.provider.config.ts",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node --experimental-strip-types --test test/*.test.mjs"
   },
   "dependencies": {
     "@noble/hashes": "^1.8.0",

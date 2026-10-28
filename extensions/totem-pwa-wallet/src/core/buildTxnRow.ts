@@ -10,6 +10,7 @@
  */
 import { sha3_256 } from '@noble/hashes/sha3.js';
 import { mxToHex, serializeTreeSignature, type TreeKey } from '@totemsdk/core';
+import { assertTokenCreateBalanced } from './tokenCreateBurn.js';
 
 // ─── Utility ──────────────────────────────────────────────────────────────────
 
@@ -530,12 +531,7 @@ export async function buildTxnRowHex(params: BuildSendParams): Promise<BuildSend
     ? parseAmountToBigInt(params.tokenCreate.burn)
     : 0n;
   if (burnScaled < 0n) throw new Error('tokenCreate.burn must be non-negative');
-  if (inputTotal !== outputTotal + burnScaled) {
-    throw new Error(
-      `Transaction does not balance: inputs=${bigIntToDecimal(inputTotal)} ` +
-      `outputs=${bigIntToDecimal(outputTotal)} burn=${bigIntToDecimal(burnScaled)}`,
-    );
-  }
+  assertTokenCreateBalanced(inputTotal, outputTotal, burnScaled);
 
   // 2c. Token creation (RFC-005 #2/#11): output[0] becomes the token-create
   // coin. Mirrors Minima tokencreate: scale = 44-decimals, the minima amount is
