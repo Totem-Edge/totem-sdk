@@ -277,7 +277,7 @@
         },
         "checkRunLimits": {
           "kind": "function",
-          "signature": "checkRunLimits(profile: AutonomyProfile, action: CanonicalAgentAction, state: { committedSteps: number; reservedSteps: number; abortedSteps: number; spentByToken: Record<string, string>; feesByToken: Record<string, string>; stepSpendByToken: Record<string, string>; outstandingByToken: Record<string, string>; now: number; startedAt: number; }): BoundaryFailure | undefined",
+          "signature": "checkRunLimits(profile: AutonomyProfile, action: CanonicalAgentAction, state: { committedSteps: number; reservedSteps: number; abortedSteps: number; spentByToken: Record<string, string>; feesByToken: Record<string, string>; stepSpendByToken: Record<string, string>; outstandingByToken: Record<string, string>; energyByResource?: Record<string, string>; durationByResource?: Record<string, string>; now: number; startedAt: number; }): BoundaryFailure | undefined",
           "doc": "Evaluate run limits for a prepared action's verified effects. All ceilings\nare per-profile; a broader mandate is never needed."
         },
         "checkTransition": {
@@ -375,6 +375,31 @@
           "kind": "interface",
           "signature": "export interface ChannelEffect"
         },
+        "PhysicalEffects": {
+          "kind": "interface",
+          "signature": "export interface PhysicalEffects",
+          "doc": "RFC-023 typed physical effects. These must be derived from the PREPARED\noperation, never from agent-supplied hints, and are enforced by\n`checkRunLimits`."
+        },
+        "PowerEffect": {
+          "kind": "interface",
+          "signature": "export interface PowerEffect"
+        },
+        "EnergyEffect": {
+          "kind": "interface",
+          "signature": "export interface EnergyEffect"
+        },
+        "SpeedEffect": {
+          "kind": "interface",
+          "signature": "export interface SpeedEffect"
+        },
+        "DurationEffect": {
+          "kind": "interface",
+          "signature": "export interface DurationEffect"
+        },
+        "EnvelopeRef": {
+          "kind": "interface",
+          "signature": "export interface EnvelopeRef"
+        },
         "CanonicalAgentAction": {
           "kind": "interface",
           "signature": "export interface CanonicalAgentAction extends ActionIntent",
@@ -417,6 +442,10 @@
           "kind": "interface",
           "signature": "export interface ReceiptStore",
           "doc": "ReceiptStore — persists AgentReceipt objects for audit trail.\n\nDefault implementation stores receipts in memory. Callers can provide\na custom `save` function for file, database, or remote storage."
+        },
+        "ReplicatedReceiptStore": {
+          "kind": "class",
+          "signature": "export class ReplicatedReceiptStore implements ReceiptStore"
         }
       }
     },
@@ -689,6 +718,14 @@
         "ParsedMinimaRpcUrl": {
           "kind": "interface",
           "signature": "export interface ParsedMinimaRpcUrl"
+        },
+        "createMinimaRpcClient": {
+          "kind": "function",
+          "signature": "createMinimaRpcClient(config: MinimaRpcConfig): MinimaRpcClient"
+        },
+        "MinimaRpcClient": {
+          "kind": "interface",
+          "signature": "export interface MinimaRpcClient"
         }
       }
     },
@@ -3622,6 +3659,10 @@
         "DecisionRefRecord": {
           "kind": "interface",
           "signature": "export interface DecisionRefRecord extends DecisionRef"
+        },
+        "ReplicatedDecisionReceiptLog": {
+          "kind": "class",
+          "signature": "export class ReplicatedDecisionReceiptLog"
         }
       }
     },
@@ -4513,6 +4554,14 @@
           "kind": "class",
           "signature": "export class InMemoryOutboxStore implements OutboxStore",
           "doc": "In-memory outbox (dev/test)."
+        },
+        "EdgeReplicatedDeviceHistory": {
+          "kind": "class",
+          "signature": "export class EdgeReplicatedDeviceHistory"
+        },
+        "EdgeDeviceEvent": {
+          "kind": "interface",
+          "signature": "export interface EdgeDeviceEvent"
         }
       }
     },
@@ -6226,6 +6275,14 @@
         "isExecutionReady": {
           "kind": "function",
           "signature": "isExecutionReady(proposal: Proposal, _config?: GovernanceConfig, now?: number): boolean"
+        },
+        "ReplicatedGovernanceAudit": {
+          "kind": "class",
+          "signature": "export class ReplicatedGovernanceAudit"
+        },
+        "GovernanceAuditRecord": {
+          "kind": "type",
+          "signature": "export type GovernanceAuditRecord = | { readonly kind: 'proposal'"
         }
       }
     },
@@ -6374,6 +6431,18 @@
         "isRevocationClaim": {
           "kind": "function",
           "signature": "isRevocationClaim(value: unknown): value is RevocationClaim"
+        },
+        "ReplicatedIdentityClaimIndex": {
+          "kind": "class",
+          "signature": "export class ReplicatedIdentityClaimIndex"
+        },
+        "IdentityIndexPort": {
+          "kind": "interface",
+          "signature": "export interface IdentityIndexPort"
+        },
+        "StoredIdentityClaim": {
+          "kind": "interface",
+          "signature": "export interface StoredIdentityClaim"
         }
       }
     },
@@ -7079,6 +7148,10 @@
         "ProfileConformanceReport": {
           "kind": "interface",
           "signature": "export interface ProfileConformanceReport"
+        },
+        "createReplicatedActionEventSink": {
+          "kind": "function",
+          "signature": "createReplicatedActionEventSink(log: ReplicatedLog<IndustrialActionEvent>): ActionEventStream"
         }
       }
     },
@@ -9184,6 +9257,14 @@
         "Unsubscribe": {
           "kind": "type",
           "signature": "export type Unsubscribe = () => void"
+        },
+        "LookupReadReplicaOptions": {
+          "kind": "interface",
+          "signature": "export interface LookupReadReplicaOptions"
+        },
+        "LookupClientReadReplica": {
+          "kind": "class",
+          "signature": "export class LookupClientReadReplica"
         }
       }
     },
@@ -9427,6 +9508,18 @@
         "AgentResultMessage": {
           "kind": "interface",
           "signature": "export interface AgentResultMessage extends BaseMessage"
+        },
+        "ReplicationCapability": {
+          "kind": "interface",
+          "signature": "export interface ReplicationCapability"
+        },
+        "ReplicationQueryMessage": {
+          "kind": "interface",
+          "signature": "export interface ReplicationQueryMessage extends BaseMessage"
+        },
+        "ReplicationResultMessage": {
+          "kind": "interface",
+          "signature": "export interface ReplicationResultMessage extends BaseMessage"
         },
         "TrustRecordMessage": {
           "kind": "interface",
@@ -9733,6 +9826,10 @@
           "kind": "class",
           "signature": "export class MemoryAnnouncementStore",
           "doc": "In-memory announcement index.\n\nA store is a discovery convenience, not a source of truth: it verifies the\nenvelope, enforces monotonic sequence per (publisher, subjectId), drops\nexpired records and returns ranked results. Durable/transport-backed stores\nbelong in the host/lookup layer."
+        },
+        "ReplicatedAnnouncementStore": {
+          "kind": "class",
+          "signature": "export class ReplicatedAnnouncementStore"
         }
       }
     },
@@ -9898,6 +9995,11 @@
         "MinimaRpcError": {
           "kind": "class",
           "signature": "export class MinimaRpcError extends Error"
+        },
+        "toRawTokenAmount": {
+          "kind": "function",
+          "signature": "toRawTokenAmount(amount: string, tokenScale: number): string",
+          "doc": "Convert a human token amount (e.g. `\"1.5\"`) to the token's smallest raw unit\nfor a known token scale (`8` → `\"150000000\"`)."
         }
       }
     },
@@ -12910,6 +13012,15 @@
           "signature": "computeBatchCommitment(poolId: string, epoch: number, root: string, orderedIds: readonly string[]): string",
           "doc": "Canonical batch commitment (RFC-038 §3.2): the operator signs this over the\npool, epoch, Merkle root, and the ordered VTXO ids in the batch."
         },
+        "computeVtxoReceiptCommitment": {
+          "kind": "function",
+          "signature": "computeVtxoReceiptCommitment(receipt: { receiptId: string; poolId: string; op: string; inputIds: readonly string[]; outputIds: readonly string[]; epoch: number; at: number; }, root: string): string",
+          "doc": "Receipt commitment binds every semantically relevant receipt field."
+        },
+        "computeVtxoReceiptCommitmentBytes": {
+          "kind": "function",
+          "signature": "computeVtxoReceiptCommitmentBytes(receipt: Parameters<typeof computeVtxoReceiptCommitment>[0], root: string): Uint8Array"
+        },
         "computeBatchCommitmentBytes": {
           "kind": "function",
           "signature": "computeBatchCommitmentBytes(poolId: string, epoch: number, root: string, orderedIds: readonly string[]): Uint8Array",
@@ -12943,6 +13054,11 @@
           "kind": "function",
           "signature": "computeReceiptId(poolId: string, op: string, inputIds: string[], outputIds: string[], at: number): string"
         },
+        "computeEpochCommitmentBytes": {
+          "kind": "function",
+          "signature": "computeEpochCommitmentBytes(poolId: string, epoch: number, root: string, receiptIds: readonly string[], inputIds: readonly string[]): Uint8Array",
+          "doc": "Operator-signed epoch record commitment (spend-state authority)."
+        },
         "VTXO_ID_DOMAIN": {
           "kind": "const",
           "signature": "VTXO_ID_DOMAIN = 'totemsdk/omnia-vtxo/vtxo/v1'",
@@ -12960,9 +13076,17 @@
           "kind": "const",
           "signature": "VTXO_RECEIPT_DOMAIN = 'totemsdk/omnia-vtxo/receipt/v1'"
         },
+        "VTXO_RECEIPT_BINDING_DOMAIN": {
+          "kind": "const",
+          "signature": "VTXO_RECEIPT_BINDING_DOMAIN = 'totemsdk/omnia-vtxo/receipt-binding/v1'"
+        },
         "VTXO_BATCH_DOMAIN": {
           "kind": "const",
           "signature": "VTXO_BATCH_DOMAIN = 'totemsdk/omnia-vtxo/batch/v1'"
+        },
+        "VTXO_EPOCH_DOMAIN": {
+          "kind": "const",
+          "signature": "VTXO_EPOCH_DOMAIN = 'totemsdk/omnia-vtxo/epoch/v1'"
         },
         "ComputeVtxoIdParams": {
           "kind": "interface",
@@ -13011,6 +13135,11 @@
           "signature": "verifyVtxoReceipt(operator: OmniaVtxoOperator, receipt: VtxoOperatorReceipt, root: string): Promise<boolean>",
           "doc": "Verify a co-signed receipt against the operator and the batch root."
         },
+        "verifyVtxoReceiptForPool": {
+          "kind": "function",
+          "signature": "verifyVtxoReceiptForPool(operator: OmniaVtxoOperator, receipt: VtxoOperatorReceipt, pool: Pick<OmniaVtxoPool, \"poolId\" | \"epoch\" | \"commitmentRoot\">): Promise<boolean>",
+          "doc": "Verify a receipt against the pool's current anchored state, not a\ncaller-supplied root. Rejects a receipt from another pool/epoch and requires\nthe pool's committed root to be present."
+        },
         "VtxoReceiptBatch": {
           "kind": "interface",
           "signature": "export interface VtxoReceiptBatch",
@@ -13048,6 +13177,121 @@
           "kind": "interface",
           "signature": "export interface PoolScriptParams"
         },
+        "ownerAddressFor": {
+          "kind": "function",
+          "signature": "ownerAddressFor(ownerPk: string): string",
+          "doc": "Derive the committed payout address from an owner public-key digest."
+        },
+        "buildOwnerPoolScript": {
+          "kind": "function",
+          "signature": "buildOwnerPoolScript(): string",
+          "doc": "The transferable owner-pool script. State ports 100–104 are the only state;\nthere are no fixed holder constants."
+        },
+        "buildOwnerPoolState": {
+          "kind": "function",
+          "signature": "buildOwnerPoolState(state: OwnerPoolState): StateValue[]"
+        },
+        "ownerPoolAddress": {
+          "kind": "function",
+          "signature": "ownerPoolAddress(): string"
+        },
+        "buildOwnerTransferDraft": {
+          "kind": "function",
+          "signature": "buildOwnerTransferDraft(params: OwnerTransferParams): OmniaTxDraft",
+          "doc": "Build the transfer transaction: same script address, same amount/token,\nnew owner state and a higher epoch."
+        },
+        "buildOwnerExitDraft": {
+          "kind": "function",
+          "signature": "buildOwnerExitDraft(params: OwnerExitParams): OmniaTxDraft",
+          "doc": "Build the unilateral exit: full amount to the committed owner address."
+        },
+        "buildOwnerTransferTransaction": {
+          "kind": "function",
+          "signature": "buildOwnerTransferTransaction(params: OwnerTransferParams, deps: OwnerPoolTxDeps): Promise<OwnerPoolTxResult>",
+          "doc": "Sign and assemble the owner-rotation transfer transaction."
+        },
+        "buildOwnerExitTransaction": {
+          "kind": "function",
+          "signature": "buildOwnerExitTransaction(params: OwnerExitParams, deps: OwnerPoolTxDeps): Promise<OwnerPoolTxResult>",
+          "doc": "Sign and assemble the unilateral owner exit transaction."
+        },
+        "OWNER_POOL_ROOT_PORT": {
+          "kind": "const",
+          "signature": "OWNER_POOL_ROOT_PORT = 100"
+        },
+        "OWNER_POOL_EPOCH_PORT": {
+          "kind": "const",
+          "signature": "OWNER_POOL_EPOCH_PORT = 101"
+        },
+        "OWNER_POOL_EXIT_BLOCK_PORT": {
+          "kind": "const",
+          "signature": "OWNER_POOL_EXIT_BLOCK_PORT = 102"
+        },
+        "OWNER_POOL_PK_PORT": {
+          "kind": "const",
+          "signature": "OWNER_POOL_PK_PORT = 103"
+        },
+        "OWNER_POOL_ADDR_PORT": {
+          "kind": "const",
+          "signature": "OWNER_POOL_ADDR_PORT = 104"
+        },
+        "OwnerPoolState": {
+          "kind": "interface",
+          "signature": "export interface OwnerPoolState"
+        },
+        "OwnerPoolCoin": {
+          "kind": "interface",
+          "signature": "export interface OwnerPoolCoin"
+        },
+        "OwnerTransferParams": {
+          "kind": "interface",
+          "signature": "export interface OwnerTransferParams"
+        },
+        "OwnerExitParams": {
+          "kind": "interface",
+          "signature": "export interface OwnerExitParams"
+        },
+        "OwnerPoolTxDeps": {
+          "kind": "interface",
+          "signature": "export interface OwnerPoolTxDeps"
+        },
+        "OwnerPoolTxResult": {
+          "kind": "interface",
+          "signature": "export interface OwnerPoolTxResult"
+        },
+        "openEpochAuthority": {
+          "kind": "function",
+          "signature": "openEpochAuthority(adapter: StorageAdapterWithCapabilities & CasStore, options: EpochAuthorityOptions & { namespace?: string; requireAckMode?: \"durably-acknowledged\" | \"volatile\"; }): Promise<EpochAuthority>",
+          "doc": "Open an epoch authority over a storage adapter (journal recovery on open)."
+        },
+        "EpochRecord": {
+          "kind": "interface",
+          "signature": "export interface EpochRecord"
+        },
+        "EpochPublished": {
+          "kind": "interface",
+          "signature": "export interface EpochPublished"
+        },
+        "EpochEvent": {
+          "kind": "type",
+          "signature": "export type EpochEvent = EpochRecord | EpochPublished"
+        },
+        "EpochAuthorityOptions": {
+          "kind": "interface",
+          "signature": "export interface EpochAuthorityOptions"
+        },
+        "EpochAuthorityState": {
+          "kind": "interface",
+          "signature": "export interface EpochAuthorityState"
+        },
+        "EpochRecovery": {
+          "kind": "interface",
+          "signature": "export interface EpochRecovery"
+        },
+        "EpochAuthority": {
+          "kind": "class",
+          "signature": "export class EpochAuthority"
+        },
         "poolStateVariables": {
           "kind": "function",
           "signature": "poolStateVariables(root: string, epoch: number, exitBlock: number, shares?: bigint[]): StateValue[]",
@@ -13069,7 +13313,7 @@
         },
         "checkPoolFunding": {
           "kind": "function",
-          "signature": "checkPoolFunding(coinId: string, expected: PoolFundingExpectation, chainProvider: ChainStateProvider, options?: { verifyProof?: (proof: unknown, coinId: string) => boolean; }): Promise<PoolFundingCheck>",
+          "signature": "checkPoolFunding(coinId: string, expected: PoolFundingExpectation, chainProvider: ChainStateProvider, options?: { verifyProof?: (proof: unknown, coinId: string) => boolean; requireVerified?: boolean; }): Promise<PoolFundingCheck>",
           "doc": "Check that the pool's on-chain coin exists, matches the expected\n(address, amount, token), is unspent, and that the node serves an MMR proof.\n\nNOTE: this is a **presence/shape check**, not a cryptographic proof\nverification, unless a `verifyProof` callback is supplied — see\n`PoolFundingCheck.proofVerified`."
         },
         "BatchAnchorParams": {
@@ -13160,7 +13404,12 @@
         "transferVtxo": {
           "kind": "function",
           "signature": "transferVtxo(vtxo: OmniaVtxo, params: TransferVtxoParams, now?: number): TransferResult & { receipt: VtxoOperatorReceipt; }",
-          "doc": "Transfers a VTXO (fully or partially) to a recipient."
+          "doc": "Transfers a VTXO (fully or partially) to a recipient.\n\n**Offline safety.** The returned output VTXOs are new claims. A Merkle proof\nestablishes membership in a committed set; it does NOT prove the input was\nnever spent elsewhere. The local host rejects a second transfer through its\nshared state, but disconnected receivers do not share that state. Treat a\nreceived VTXO as final only after an anti-double-spend check (online/operator\nspend check, operator-co-signed transfer, or an explicitly risk-bounded\npolicy), and have the operator commit the new outputs — they do not\nautomatically belong to the previous pool root."
+        },
+        "transferVtxoWithExit": {
+          "kind": "function",
+          "signature": "transferVtxoWithExit(vtxo: OmniaVtxo, params: Omit<TransferVtxoParams, \"exitEntitlement\">, exitParams: ExitTxParams, exitDeps: ExitTxDeps, now?: number): Promise<TransferResult & { receipt: VtxoOperatorReceipt; exitEntitlement: VtxoExitEntitlement; }>",
+          "doc": "V1 transfer: build the recipient's independent exit before moving the claim,\nthen transfer only if the exit package verifies against the input VTXO."
         },
         "splitVtxo": {
           "kind": "function",
@@ -13269,6 +13518,60 @@
         "VtxoExitIntent": {
           "kind": "interface",
           "signature": "export interface VtxoExitIntent"
+        },
+        "verifyClaimPolicy": {
+          "kind": "function",
+          "signature": "verifyClaimPolicy(policy: VtxoClaimPolicy, witness: VtxoClaimWitness, ctx: VtxoClaimContext): VtxoClaimResult"
+        },
+        "claimPolicyOf": {
+          "kind": "function",
+          "signature": "claimPolicyOf(vtxo: OmniaVtxo): VtxoClaimPolicy",
+          "doc": "Resolve the policy attached to a VTXO, defaulting to its single owner."
+        },
+        "verifyVtxoClaim": {
+          "kind": "function",
+          "signature": "verifyVtxoClaim(vtxo: OmniaVtxo, witness: VtxoClaimWitness, ctx: VtxoClaimContext): VtxoClaimResult"
+        },
+        "VtxoPolicyBinding": {
+          "kind": "interface",
+          "signature": "export interface VtxoPolicyBinding"
+        },
+        "VtxoClaimPolicy": {
+          "kind": "type",
+          "signature": "export type VtxoClaimPolicy = ( | { type: 'single'"
+        },
+        "VtxoClaimWitness": {
+          "kind": "interface",
+          "signature": "export interface VtxoClaimWitness"
+        },
+        "VtxoClaimContext": {
+          "kind": "interface",
+          "signature": "export interface VtxoClaimContext"
+        },
+        "VtxoClaimResult": {
+          "kind": "interface",
+          "signature": "export interface VtxoClaimResult"
+        },
+        "distributeYield": {
+          "kind": "function",
+          "signature": "distributeYield(total: bigint, weights: Record<string, bigint>): Record<string, bigint>",
+          "doc": "Deterministic pro-rata yield distribution for multiparty VTXO/pool claims."
+        },
+        "createVtxoExitEntitlement": {
+          "kind": "function",
+          "signature": "createVtxoExitEntitlement(params: ExitTxParams, result: ExitTxResult): VtxoExitEntitlement"
+        },
+        "verifyVtxoExitEntitlement": {
+          "kind": "function",
+          "signature": "verifyVtxoExitEntitlement(entitlement: VtxoExitEntitlement, vtxo: OmniaVtxo): ExitEntitlementVerification"
+        },
+        "VtxoExitEntitlement": {
+          "kind": "interface",
+          "signature": "export interface VtxoExitEntitlement"
+        },
+        "ExitEntitlementVerification": {
+          "kind": "interface",
+          "signature": "export interface ExitEntitlementVerification"
         }
       }
     },
@@ -13427,35 +13730,39 @@
         "openLocalDrive": {
           "kind": "function",
           "signature": "openLocalDrive(storagePath: string): Promise<BareHyperdriveAdapter>",
-          "doc": "Open a **local** Hyperdrive from a Corestore path (no network required).\n\nUseful when the drive content is already replicated locally or when the\ncaller manages replication separately."
+          "doc": "Open a **local** Hyperdrive from a Corestore path (no network)."
         },
         "openRemoteDrive": {
           "kind": "function",
           "signature": "openRemoteDrive(pearTopicKey: string, options?: RemoteDriveOptions): Promise<BareHyperdriveAdapter & { close(): Promise<void>; }>",
-          "doc": "Open a **remote** Hyperdrive identified by its 64-hex `pearTopicKey`.\n\nSteps:\n  1. Creates a Corestore for local block caching.\n  2. Creates a Hyperswarm and joins the topic derived from `pearTopicKey`.\n  3. Plumbs each swarm connection into Corestore's replication stream.\n  4. Opens a Hyperdrive seeded with the public key derived from `pearTopicKey`.\n  5. Waits for the drive to become `ready` (blocks are fetched from peers)."
+          "doc": "Open a **remote** Hyperdrive identified by its 64-hex `pearTopicKey`.\n\nJoins `discoveryKey` (not the root core key), waits for an actual peer\nconnection, and destroys the swarm/store if joining times out so a failed\nattempt cannot leak a swarm."
         },
         "loadManifest": {
           "kind": "function",
           "signature": "loadManifest(pearTopicKey: string, adapter?: HyperdriveAdapter, options?: RemoteDriveOptions): Promise<SignedManifest>",
-          "doc": "Load and parse `manifest.json` from a remote Hyperdrive identified by\nits 64-hex `pearTopicKey`.\n\n- Joins Hyperswarm to locate peers for the given topic key.\n- Reads `/manifest.json` from the replicated drive.\n- If `@totemsdk/app-manifest` is installed its `decodeManifest` is used\n  for schema validation; otherwise the raw JSON is returned.\n\nPass a pre-opened `adapter` to skip the network join (useful in tests)."
+          "doc": "Read and verify `manifest.json` from a remote Hyperdrive.\n\nFails closed:\n- invalid JSON or a non-SignedManifest envelope throws;\n- a failed WOTS/author verification throws.\n\nWhen this function opens the drive it also closes it in `finally`."
+        },
+        "SignedManifest": {
+          "kind": "interface",
+          "signature": "export interface SignedManifest<T extends Manifest = Manifest>",
+          "doc": "Wraps any manifest with a WOTS signature.\n\n`signerPublicKey` — hex of the full WOTS public key (required for\nself-contained verification via verifyManifest).\n`authorAddress`  — the Minima address of the signer, derived at sign time\n  and stored for quick policy checks without re-deriving from the public key."
         },
         "HyperdriveAdapter": {
           "kind": "interface",
           "signature": "export interface HyperdriveAdapter"
         },
-        "SignedManifest": {
-          "kind": "interface",
-          "signature": "export interface SignedManifest",
-          "doc": "A minimal `SignedManifest` shape.\nThe full type is provided by `@totemsdk/app-manifest` when installed.\nThis local definition avoids a hard dependency."
-        },
         "RemoteDriveOptions": {
           "kind": "interface",
           "signature": "export interface RemoteDriveOptions"
         },
+        "RemoteDriveDeps": {
+          "kind": "interface",
+          "signature": "export interface RemoteDriveDeps"
+        },
         "BareHyperdriveAdapter": {
           "kind": "class",
           "signature": "export class BareHyperdriveAdapter implements HyperdriveAdapter",
-          "doc": "Wraps a real Hyperdrive instance (from the `hyperdrive` npm package) or\nany duck-typed object as a `HyperdriveAdapter`.\n\nConstructor accepts any Hyperdrive-like object so tests can inject mocks."
+          "doc": "Wraps a real Hyperdrive instance (or a duck-typed test double) as a\n`HyperdriveAdapter`."
         },
         "defaultSwarmConfig": {
           "kind": "function",
@@ -14033,6 +14340,26 @@
           "kind": "function",
           "signature": "importProofGraph(json: string): ProofGraph",
           "doc": "Deserialize a ProofGraph from a JSON string.\n\nValidates every node and edge against structural constraints, then\nrecomputes the graphId from nodes + edges. Throws if any constraint\nis violated or if the recomputed graphId does not match the stored value."
+        },
+        "createReplicatedProofGraphEvidenceStore": {
+          "kind": "function",
+          "signature": "createReplicatedProofGraphEvidenceStore(options: { artifacts: ArtifactStore; index: ReplicatedEvidenceIndexPort; namespace?: string; }): ReplicatedProofGraphEvidenceStore"
+        },
+        "ReplicatedEvidenceIndexEntry": {
+          "kind": "interface",
+          "signature": "export interface ReplicatedEvidenceIndexEntry"
+        },
+        "ReplicatedEvidenceIndexPort": {
+          "kind": "interface",
+          "signature": "export interface ReplicatedEvidenceIndexPort"
+        },
+        "ReplicatedEvidenceRead": {
+          "kind": "interface",
+          "signature": "export interface ReplicatedEvidenceRead"
+        },
+        "ReplicatedProofGraphEvidenceStore": {
+          "kind": "interface",
+          "signature": "export interface ReplicatedProofGraphEvidenceStore"
         }
       }
     },
@@ -16395,6 +16722,277 @@
         }
       }
     },
+    "@totemsdk/replication": {
+      "symbols": {
+        "ObservedHead": {
+          "kind": "interface",
+          "signature": "export interface ObservedHead",
+          "doc": "Runtime-neutral distributed-storage contracts."
+        },
+        "ReplicationStatus": {
+          "kind": "interface",
+          "signature": "export interface ReplicationStatus"
+        },
+        "DistributedCapabilities": {
+          "kind": "interface",
+          "signature": "export interface DistributedCapabilities"
+        },
+        "ReplicatedLog": {
+          "kind": "interface",
+          "signature": "export interface ReplicatedLog<T>"
+        },
+        "DistributedIndex": {
+          "kind": "interface",
+          "signature": "export interface DistributedIndex"
+        },
+        "CollaborativeStore": {
+          "kind": "interface",
+          "signature": "export interface CollaborativeStore<Op, State>"
+        },
+        "DistributedFileStore": {
+          "kind": "interface",
+          "signature": "export interface DistributedFileStore"
+        },
+        "defineDataset": {
+          "kind": "function",
+          "signature": "defineDataset(descriptor: DatasetDescriptor): DatasetDescriptor"
+        },
+        "assertCompatibleDataset": {
+          "kind": "function",
+          "signature": "assertCompatibleDataset(expected: DatasetDescriptor, incoming: DatasetDescriptor): void",
+          "doc": "Reject unknown dataset versions rather than best-effort parsing."
+        },
+        "encodeReplicationRecord": {
+          "kind": "function",
+          "signature": "encodeReplicationRecord<T>(descriptor: DatasetDescriptor, record: T): Uint8Array"
+        },
+        "decodeReplicationRecord": {
+          "kind": "function",
+          "signature": "decodeReplicationRecord<T>(descriptor: DatasetDescriptor, bytes: Uint8Array): T"
+        },
+        "REPLICATION_DATASET_FORMAT": {
+          "kind": "const",
+          "signature": "REPLICATION_DATASET_FORMAT = 1"
+        },
+        "WriterModel": {
+          "kind": "type",
+          "signature": "export type WriterModel = 'single-writer' | 'multi-writer' | 'read-replica'"
+        },
+        "DatasetDescriptor": {
+          "kind": "interface",
+          "signature": "export interface DatasetDescriptor"
+        },
+        "DatasetEnvelope": {
+          "kind": "interface",
+          "signature": "export interface DatasetEnvelope<T = unknown>"
+        },
+        "computeCheckpointDigest": {
+          "kind": "function",
+          "signature": "computeCheckpointDigest(cp: Omit<Checkpoint, \"signature\" | \"signerPublicKey\">): string"
+        },
+        "verifyCheckpoint": {
+          "kind": "function",
+          "signature": "verifyCheckpoint(cp: Checkpoint): boolean",
+          "doc": "Verify a checkpoint's tree signature against its declared signer key."
+        },
+        "Checkpoint": {
+          "kind": "interface",
+          "signature": "export interface Checkpoint"
+        },
+        "readReplicated": {
+          "kind": "function",
+          "signature": "readReplicated<T>(key: string, options: ReplicatedReadOptions<T>): Promise<ReplicatedRead<T>>"
+        },
+        "ReplicaFreshness": {
+          "kind": "type",
+          "signature": "export type ReplicaFreshness = 'fresh' | 'stale' | 'unknown'",
+          "doc": "RFC-057 Phase 4 — freshness-aware replicated reads.\n\nA replica never claims to be authoritative. `complete: false` or an expired\nobservation is surfaced as `stale`; a primary read is used only when the\nreplica has no value and a primary reader is explicitly supplied. Replica\nerrors are never silently converted into primary reads."
+        },
+        "ReplicaObservation": {
+          "kind": "interface",
+          "signature": "export interface ReplicaObservation<T>"
+        },
+        "ReplicatedRead": {
+          "kind": "interface",
+          "signature": "export interface ReplicatedRead<T>"
+        },
+        "ReplicatedReadOptions": {
+          "kind": "interface",
+          "signature": "export interface ReplicatedReadOptions<T>"
+        },
+        "createEncryptedBackupRecord": {
+          "kind": "function",
+          "signature": "createEncryptedBackupRecord(options: { backupId: string; version: number; state: Uint8Array; cipher: BackupCipher; now?: number; }): Promise<EncryptedBackupRecord>"
+        },
+        "restoreEncryptedBackupRecord": {
+          "kind": "function",
+          "signature": "restoreEncryptedBackupRecord(options: { record: EncryptedBackupRecord; cipher: BackupCipher; }): Promise<Uint8Array>"
+        },
+        "BackupCipher": {
+          "kind": "interface",
+          "signature": "export interface BackupCipher"
+        },
+        "EncryptedBackupRecord": {
+          "kind": "interface",
+          "signature": "export interface EncryptedBackupRecord"
+        },
+        "EncryptedBackupLog": {
+          "kind": "class",
+          "signature": "export class EncryptedBackupLog",
+          "doc": "Append-only backup stream; consumers remain responsible for encrypting state."
+        }
+      }
+    },
+    "@totemsdk/replication-holepunch": {
+      "symbols": {
+        "HypercoreLogOptions": {
+          "kind": "interface",
+          "signature": "export interface HypercoreLogOptions"
+        },
+        "HypercoreReplicatedLog": {
+          "kind": "class",
+          "signature": "export class HypercoreReplicatedLog<T> implements ReplicatedLog<T>"
+        },
+        "HyperbeeIndexOptions": {
+          "kind": "interface",
+          "signature": "export interface HyperbeeIndexOptions"
+        },
+        "HyperbeeDistributedIndex": {
+          "kind": "class",
+          "signature": "export class HyperbeeDistributedIndex implements DistributedIndex"
+        },
+        "artifactPath": {
+          "kind": "function",
+          "signature": "artifactPath(ref: ArtifactRef): string"
+        },
+        "artifactRefFor": {
+          "kind": "function",
+          "signature": "artifactRefFor(namespace: string, bytes: Uint8Array): ArtifactRef",
+          "doc": "Helper for tests/producers: digest a byte payload as an ArtifactRef."
+        },
+        "HyperdriveArtifactOptions": {
+          "kind": "interface",
+          "signature": "export interface HyperdriveArtifactOptions"
+        },
+        "HyperdriveArtifactBackend": {
+          "kind": "class",
+          "signature": "export class HyperdriveArtifactBackend implements ArtifactStoreBackend"
+        },
+        "downloadModelAsset": {
+          "kind": "function",
+          "signature": "downloadModelAsset(options: DownloadModelAssetOptions): Promise<DownloadedModelAsset>",
+          "doc": "Download, verify, then publish a model asset. Verification happens before\n`store.put`, so an interrupted or tampered download leaves the store\nunchanged."
+        },
+        "verifyModelAssetBytes": {
+          "kind": "function",
+          "signature": "verifyModelAssetBytes(bytes: Uint8Array, ref: ArtifactRef): boolean",
+          "doc": "Verify already-downloaded bytes against a ref without writing them."
+        },
+        "DownloadModelAssetOptions": {
+          "kind": "interface",
+          "signature": "export interface DownloadModelAssetOptions"
+        },
+        "DownloadedModelAsset": {
+          "kind": "interface",
+          "signature": "export interface DownloadedModelAsset"
+        },
+        "AutobaseReducer": {
+          "kind": "interface",
+          "signature": "export interface AutobaseReducer<Op, State>"
+        },
+        "AutobaseCollaborativeOptions": {
+          "kind": "interface",
+          "signature": "export interface AutobaseCollaborativeOptions<Op, State>"
+        },
+        "AutobaseCollaborativeStore": {
+          "kind": "class",
+          "signature": "export class AutobaseCollaborativeStore<Op, State> implements CollaborativeStore<Op, State>"
+        },
+        "createReplicatedEvidenceNetwork": {
+          "kind": "function",
+          "signature": "createReplicatedEvidenceNetwork(options: { artifacts: ArtifactStore; index: EvidenceIndexPort; namespace?: string; }): ReplicatedEvidenceNetwork"
+        },
+        "EvidenceGraphNode": {
+          "kind": "interface",
+          "signature": "export interface EvidenceGraphNode"
+        },
+        "EvidenceGraph": {
+          "kind": "interface",
+          "signature": "export interface EvidenceGraph"
+        },
+        "EvidenceIndexPort": {
+          "kind": "interface",
+          "signature": "export interface EvidenceIndexPort"
+        },
+        "EvidenceIndexEntry": {
+          "kind": "interface",
+          "signature": "export interface EvidenceIndexEntry"
+        },
+        "EvidenceNetworkRead": {
+          "kind": "interface",
+          "signature": "export interface EvidenceNetworkRead"
+        },
+        "ReplicatedEvidenceNetwork": {
+          "kind": "interface",
+          "signature": "export interface ReplicatedEvidenceNetwork"
+        },
+        "createAesGcmDatasetCipher": {
+          "kind": "function",
+          "signature": "createAesGcmDatasetCipher(key: Uint8Array): Promise<ReplicatedCipher>"
+        },
+        "ReplicatedCipher": {
+          "kind": "interface",
+          "signature": "export interface ReplicatedCipher",
+          "doc": "RFC-057 Phase 5 — encrypted dataset envelopes and replication quotas.\n\nEncryption is explicit per dataset and never inferred from a key path. The\nenvelope carries its own version and IV; quotas are enforced before a write\nreaches the log or view."
+        },
+        "ReplicationQuotaPolicy": {
+          "kind": "interface",
+          "signature": "export interface ReplicationQuotaPolicy"
+        },
+        "ReplicationQuotaExceededError": {
+          "kind": "class",
+          "signature": "export class ReplicationQuotaExceededError extends Error"
+        },
+        "ReplicationQuota": {
+          "kind": "class",
+          "signature": "export class ReplicationQuota",
+          "doc": "Process-local quota accounting; callers persist consumption with the store."
+        },
+        "publishManifestArtifact": {
+          "kind": "function",
+          "signature": "publishManifestArtifact(artifacts: ArtifactStore, namespace: string, body: Uint8Array): Promise<{ digest: string; reference: string; }>",
+          "doc": "Optional helper for keeping large manifest bodies in the artifact store."
+        },
+        "DeviceEvent": {
+          "kind": "interface",
+          "signature": "export interface DeviceEvent"
+        },
+        "DeviceEventHistory": {
+          "kind": "class",
+          "signature": "export class DeviceEventHistory"
+        },
+        "ReplicatedManifest": {
+          "kind": "interface",
+          "signature": "export interface ReplicatedManifest<T = unknown>"
+        },
+        "ManifestIndexPort": {
+          "kind": "interface",
+          "signature": "export interface ManifestIndexPort"
+        },
+        "ReplicatedManifestStore": {
+          "kind": "class",
+          "signature": "export class ReplicatedManifestStore"
+        },
+        "AgentReceipt": {
+          "kind": "interface",
+          "signature": "export interface AgentReceipt"
+        },
+        "AgentReceiptLog": {
+          "kind": "class",
+          "signature": "export class AgentReceiptLog"
+        }
+      }
+    },
     "@totemsdk/root-identity": {
       "symbols": {
         "UnifiedIdentityWallet": {
@@ -18698,7 +19296,7 @@
         "createHyperswarmTransport": {
           "kind": "function",
           "signature": "createHyperswarmTransport(config: HyperswarmTransportConfig): Promise<HyperswarmStreamTransport>",
-          "doc": "Establishes a Hyperswarm connection and returns IStreamTransport.\nDynamically imports `hyperswarm` so the package remains optional at build time."
+          "doc": "Establishes a Hyperswarm connection and returns IStreamTransport.\nDynamically imports `hyperswarm` so the package remains optional at build time.\n\nThe returned transport owns its swarm: `close()` also destroys the swarm and\nleaves the joined topic (RFC-057 D11). Pass `manager` to share lifecycle."
         },
         "createWebSocketTransport": {
           "kind": "function",
@@ -18774,6 +19372,33 @@
           "kind": "class",
           "signature": "export class HyperswarmStreamTransport extends NodeStreamTransport",
           "doc": "Adapts a raw Hyperswarm connection (a Node.js Duplex stream) to\nIStreamTransport, carrying the connection's info (publicKey, topics)."
+        },
+        "SwarmPeerInfo": {
+          "kind": "interface",
+          "signature": "export interface SwarmPeerInfo",
+          "doc": "Peer info supplied by Hyperswarm's `connection` event."
+        },
+        "SwarmDiscovery": {
+          "kind": "interface",
+          "signature": "export interface SwarmDiscovery"
+        },
+        "SwarmLike": {
+          "kind": "interface",
+          "signature": "export interface SwarmLike",
+          "doc": "Minimal Hyperswarm surface used by the manager. Tests inject a fake; the\nproduction path dynamically imports `hyperswarm`."
+        },
+        "SwarmConnectionOptions": {
+          "kind": "interface",
+          "signature": "export interface SwarmConnectionOptions"
+        },
+        "SwarmConnectionManagerOptions": {
+          "kind": "interface",
+          "signature": "export interface SwarmConnectionManagerOptions"
+        },
+        "SwarmConnectionManager": {
+          "kind": "class",
+          "signature": "export class SwarmConnectionManager",
+          "doc": "Owns a single Hyperswarm instance and dispatches connections to matching\nwaits. Fixes the per-call swarm/listener leak, topic cross-talk and\n`flush()`-as-readiness defects (RFC-057 D2/D10/D11)."
         },
         "InMemoryTransport": {
           "kind": "class",
@@ -19665,6 +20290,14 @@
         "DeviceRangeViolationError": {
           "kind": "class",
           "signature": "export class DeviceRangeViolationError extends Error"
+        },
+        "ReplicatedLeaseJournalBackup": {
+          "kind": "class",
+          "signature": "export class ReplicatedLeaseJournalBackup"
+        },
+        "LeaseJournalRestoreTarget": {
+          "kind": "interface",
+          "signature": "export interface LeaseJournalRestoreTarget"
         }
       }
     }

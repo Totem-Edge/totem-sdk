@@ -56,7 +56,7 @@ if (!existsSync(join(distDir, 'indexer.js')) || !existsSync(join(distDir, 'resou
   process.exit(1)
 }
 const { buildIndex } = require(join(distDir, 'indexer.js'))
-const { listResources } = require(join(distDir, 'resources.js'))
+const { listResources, handleResourceRead } = require(join(distDir, 'resources.js'))
 const index = buildIndex()
 
 const BASELINE_PATH = join(__dirname, 'mcp-index-baseline.json')
@@ -99,6 +99,31 @@ for (const name of publishable) {
 }
 for (const name of manifestNames) {
   if (!publishable.has(name)) fail(`manifest package ${name} is not classified publishable`)
+}
+
+// ── 1b. advertised scoped-package resources must round-trip ──────────────────
+for (const name of indexNames) {
+  const uri = `totemsdk://packages/${encodeURIComponent(name)}`
+  if (handleResourceRead(uri, index) === null) {
+    fail(`advertised resource does not round-trip: ${uri}`)
+  }
+}
+
+// ── 1c. bundled index parity (packed installs use this) ──────────────────────
+const bundlePath = join(ROOT, 'packages', 'mcp-server', 'data', 'sdk-index.json')
+if (!existsSync(bundlePath)) {
+  fail('MCP bundled index is missing (run the mcp-server build)')
+} else {
+  const bundle = JSON.parse(readFileSync(bundlePath, 'utf8'))
+  const bundleNames = new Set(Object.keys(bundle.packages ?? {}))
+  for (const name of manifestNames) if (!bundleNames.has(name)) fail(`MCP bundle is missing ${name}`)
+  for (const name of bundleNames) if (!manifestNames.has(name)) fail(`MCP bundle contains non-manifest package ${name}`)
+  if (bundle.schemaVersion === undefined) fail('MCP bundle has no schemaVersion')
+  if (bundle.source !== 'monorepo') fail(`MCP bundle source is ${String(bundle.source)} (expected monorepo)`)
+  if (!bundle.sourceRevision) fail('MCP bundle has no sourceRevision')
+  if (bundle.coverage?.manifestCount !== manifestNames.size) {
+    fail(`MCP bundle coverage.manifestCount ${String(bundle.coverage?.manifestCount)} ≠ manifest ${manifestNames.size}`)
+  }
 }
 
 // ── 2 + 3. domain + exports per package ──────────────────────────────────────

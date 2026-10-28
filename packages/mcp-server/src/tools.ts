@@ -35,7 +35,7 @@ export function handleToolCall(name: string, args: any, index: SdkIndex): ToolRe
     case 'package-stats': return packageStats(args, index)
     case 'list-exports': return listExports(args, index)
     case 'suggest-template': return suggestTemplate(args)
-    case 'read-source': return readSource(args)
+    case 'read-source': return readSource(args, index)
     case 'list-packages': return listPackages(args, index)
     case 'search-packages': return searchPackages(args, index)
     case 'refresh-index': return refreshIndexTool()
@@ -94,13 +94,24 @@ function searchPackages(args: any, index: SdkIndex): ToolResponse {
   }
 }
 
-function readSource(args: any): ToolResponse {
+function readSource(args: any, index: SdkIndex): ToolResponse {
   const pkg = args.package
   const file = args.path
   if (!pkg || !file) return { content: [{ type: 'text', text: 'package and path are required' }], isError: true }
   const content = readSourceFile(pkg, file)
   if (content === null) {
-    return { content: [{ type: 'text', text: `Source not found: ${pkg}/src/${file}` }], isError: true }
+    const indexed = index.packages?.[pkg]
+    const contractUri = `totemsdk://packages/${encodeURIComponent(pkg)}/contracts`
+    return {
+      content: [{
+        type: 'text',
+        text: `Source unavailable: ${pkg}/src/${file}. `
+          + (indexed
+            ? `This build does not ship implementation source; read the exact contracts at ${contractUri}.`
+            : `Package '${pkg}' is not in the selected SDK index.`),
+      }],
+      isError: true,
+    }
   }
   return { content: [{ type: 'text', text: content }] }
 }

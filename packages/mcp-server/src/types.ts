@@ -47,7 +47,26 @@ export interface DomainMap {
   [domain: string]: string[]
 }
 
+export interface IndexCoverage {
+  /** Entries in the selected catalogue (SDK_MANIFEST.json). */
+  manifestCount: number;
+  /** Package directories discovered in the workspace. */
+  discoveredCount: number;
+  /** Catalogue entries with no indexed package. */
+  missingFromIndex: string[];
+  /** Indexed packages not declared in the catalogue. */
+  extraInIndex: string[];
+}
+
 export interface SdkIndex {
+  /** Index schema version; bump when consumers must adapt. */
+  schemaVersion?: number;
+  /** Where this index came from. */
+  source?: 'monorepo' | 'bundled';
+  /** Git revision of the scanned workspace, when known. */
+  sourceRevision?: string;
+  /** Catalogue/index coverage reconciliation. */
+  coverage?: IndexCoverage;
   generatedAt: number
   packages: { [name: string]: PackageIndex }
   symbolIndex: { [symbol: string]: SymbolEntry[] }

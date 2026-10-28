@@ -59,6 +59,24 @@ function detectRepoRoot(): string | null {
   return null
 }
 
+/** Read the checked-out Git revision without spawning a process. */
+function readGitRevision(root: string): string | undefined {
+  try {
+    const git = path.join(root, '.git')
+    let head = fs.readFileSync(path.join(git, 'HEAD'), 'utf-8').trim()
+    if (head.startsWith('ref: ')) {
+      const ref = head.slice(5).trim()
+      const refPath = path.join(git, ref)
+      head = fs.existsSync(refPath)
+        ? fs.readFileSync(refPath, 'utf-8').trim()
+        : ''
+    }
+    return /^[0-9a-f]{40,64}$/.test(head) ? head : undefined
+  } catch {
+    return undefined
+  }
+}
+
 interface RepoData {
   topPkgDir: string
   manifest: Map<string, ManifestPackage>
@@ -98,7 +116,9 @@ function loadRepoData(root: string): RepoData {
 function loadBundledIndex(): SdkIndex | null {
   try {
     const idx = JSON.parse(fs.readFileSync(BUNDLED_INDEX_PATH, 'utf-8')) as SdkIndex
-    if (idx && typeof idx === 'object' && idx.packages && typeof idx.packages === 'object') return idx
+    if (idx && typeof idx === 'object' && idx.packages && typeof idx.packages === 'object') {
+      return { ...idx, schemaVersion: idx.schemaVersion ?? 2, source: idx.source ?? 'bundled' }
+    }
     return null
   } catch {
     return null
@@ -343,11 +363,14 @@ export function buildFromMonorepo(root: string, now: number = Date.now()): SdkIn
   const packages: { [name: string]: PackageIndex } = {}
   const symbolIndex: { [symbol: string]: SymbolEntry[] } = {}
   const domainMap: DomainMap = {}
+  const manifestNames = new Set(MANIFEST.keys())
+  const discoveredNames = new Set<string>()
 
   for (const dir of findPackageDirs(topPkgDir)) {
     const pkg = readPackageJson(dir)
     if (!pkg || !pkg.name) continue
     const manifest = MANIFEST.get(pkg.name)
+    discoveredNames.add(pkg.name)
     if (MANIFEST.size > 0 && !manifest) continue
 
     const dirName = path.basename(dir)
@@ -386,7 +409,24 @@ export function buildFromMonorepo(root: string, now: number = Date.now()): SdkIn
     }
   }
 
-  return { generatedAt: now, packages, symbolIndex, domainMap }
+  const missingFromIndex = [...manifestNames].filter((name) => !packages[name]).sort()
+  const extraInIndex = [...discoveredNames].filter((name) => !manifestNames.has(name)).sort()
+  const sourceRevision = readGitRevision(root)
+  return {
+    schemaVersion: 2,
+    source: 'monorepo',
+    ...(sourceRevision ? { sourceRevision } : {}),
+    coverage: {
+      manifestCount: manifestNames.size,
+      discoveredCount: discoveredNames.size,
+      missingFromIndex,
+      extraInIndex,
+    },
+    generatedAt: now,
+    packages,
+    symbolIndex,
+    domainMap,
+  }
 }
 
 /**

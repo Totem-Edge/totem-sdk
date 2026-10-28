@@ -365,3 +365,32 @@ describe('P3 — catalogs, mime types, section addressing', () => {
     expect(conventions).not.toContain('no shared util')
   })
 })
+
+describe('resource URI decoding and index provenance', () => {
+  const index = makeIndex()
+
+  it('round-trips an encoded scoped package URI', () => {
+    const text = handleResourceRead('totemsdk://packages/%40totemsdk%2Fcore', index)
+    expect(text).not.toBeNull()
+    expect(JSON.parse(text!)).toMatchObject({ name: '@totemsdk/core' })
+  })
+
+  it('reads encoded exports, dependencies and contracts', () => {
+    expect(handleResourceRead('totemsdk://packages/%40totemsdk%2Fcore/exports', index)).toContain('wotsSign')
+    expect(handleResourceRead('totemsdk://packages/%40totemsdk%2Fcore/dependencies', index)).toContain('@totemsdk/core-wasm')
+    const contracts = handleResourceRead('totemsdk://packages/%40totemsdk%2Fcore/contracts', index)
+    expect(contracts).not.toBeNull()
+    expect(JSON.parse(contracts!)).toMatchObject({ contentKind: 'contract', package: '@totemsdk/core' })
+  })
+
+  it('rejects malformed encoding and traversal', () => {
+    expect(handleResourceRead('totemsdk://packages/%E0%A4%A', index)).toBeNull()
+    expect(handleResourceRead('totemsdk://packages/%2e%2e', index)).toBeNull()
+  })
+
+  it('exposes index provenance and coverage', () => {
+    const text = handleResourceRead('totemsdk://index', index)
+    expect(text).not.toBeNull()
+    expect(JSON.parse(text!)).toMatchObject({ packageCount: 2, source: 'unknown' })
+  })
+})

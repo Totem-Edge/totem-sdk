@@ -243,6 +243,16 @@ const CONVENTIONS = `# Totem SDK Conventions
 - Promise<T> everywhere, typed event emitters, no Observables
 - Action lifecycle: propose -> reserve -> execute -> confirm/fail/unknown`
 
+function decodeResourceSegment(value: string): string | null {
+  try {
+    const decoded = decodeURIComponent(value)
+    if (!decoded || decoded.includes('..') || decoded.includes('\\') || decoded.includes('\0')) return null
+    return decoded
+  } catch {
+    return null
+  }
+}
+
 export function handleResourceRead(uri: string, index: SdkIndex): string | null {
   if (uri === 'totemsdk://connect/methods') return JSON.stringify(connectMethods(), null, 2)
   if (uri === 'totemsdk://edge/capabilities') return JSON.stringify(edgeCapabilities(), null, 2)
@@ -266,6 +276,17 @@ export function handleResourceRead(uri: string, index: SdkIndex): string | null 
       return section ?? `Section not found: ${uri.slice(hash + 1)}`
     }
     return content
+  }
+
+  if (uri === 'totemsdk://index') {
+    return JSON.stringify({
+      schemaVersion: index.schemaVersion ?? null,
+      source: index.source ?? 'unknown',
+      sourceRevision: index.sourceRevision ?? null,
+      generatedAt: index.generatedAt,
+      packageCount: Object.keys(index.packages).length,
+      coverage: index.coverage ?? null,
+    }, null, 2)
   }
 
   if (uri === 'totemsdk://packages') {
@@ -302,32 +323,58 @@ export function handleResourceRead(uri: string, index: SdkIndex): string | null 
 
   const pkgMatch = uri.match(/^totemsdk:\/\/packages\/([^/]+)$/)
   if (pkgMatch) {
-    const pkg = index.packages[pkgMatch[1]]
+    const name = decodeResourceSegment(pkgMatch[1])
+    if (!name) return null
+    const pkg = index.packages[name]
     return pkg ? JSON.stringify(pkg, null, 2) : null
+  }
+
+  const pkgContractsMatch = uri.match(/^totemsdk:\/\/packages\/([^/]+)\/contracts$/)
+  if (pkgContractsMatch) {
+    const name = decodeResourceSegment(pkgContractsMatch[1])
+    if (!name) return null
+    const pkg = index.packages[name]
+    if (!pkg) return null
+    return JSON.stringify({
+      contentKind: 'contract',
+      package: pkg.name,
+      version: pkg.version,
+      origin: index.source ?? 'unknown',
+      sourceRevision: index.sourceRevision ?? null,
+      symbols: pkg.symbols ?? {},
+    }, null, 2)
   }
 
   const pkgExportsMatch = uri.match(/^totemsdk:\/\/packages\/([^/]+)\/exports$/)
   if (pkgExportsMatch) {
-    const pkg = index.packages[pkgExportsMatch[1]]
+    const name = decodeResourceSegment(pkgExportsMatch[1])
+    if (!name) return null
+    const pkg = index.packages[name]
     return pkg ? JSON.stringify(pkg.exports, null, 2) : null
   }
 
   const pkgDepsMatch = uri.match(/^totemsdk:\/\/packages\/([^/]+)\/dependencies$/)
   if (pkgDepsMatch) {
-    const pkg = index.packages[pkgDepsMatch[1]]
+    const name = decodeResourceSegment(pkgDepsMatch[1])
+    if (!name) return null
+    const pkg = index.packages[name]
     if (!pkg) return null
     return JSON.stringify({ dependencies: pkg.dependencies, devDependencies: pkg.devDependencies }, null, 2)
   }
 
   const domainMatch = uri.match(/^totemsdk:\/\/packages\/by-domain\/(.+)$/)
   if (domainMatch) {
-    const pkgs = index.domainMap[domainMatch[1]]
+    const domain = decodeResourceSegment(domainMatch[1])
+    if (!domain) return null
+    const pkgs = index.domainMap[domain]
     return pkgs ? JSON.stringify(pkgs.map(n => index.packages[n]).filter(Boolean), null, 2) : null
   }
 
   const symbolMatch = uri.match(/^totemsdk:\/\/symbol\/(.+)$/)
   if (symbolMatch) {
-    const entries = index.symbolIndex[symbolMatch[1]]
+    const symbol = decodeResourceSegment(symbolMatch[1])
+    if (!symbol) return null
+    const entries = index.symbolIndex[symbol]
     return entries ? JSON.stringify(entries, null, 2) : null
   }
 
@@ -338,6 +385,7 @@ export function listResources(index: SdkIndex): Array<{ uri: string; name: strin
   const resources: Array<{ uri: string; name: string; description: string }> = [
     { uri: 'totemsdk://packages', name: 'All Packages', description: `List of all ${Object.keys(index.packages).length} SDK packages with metadata` },
     { uri: 'totemsdk://templates', name: 'All KISSVM Templates', description: `All ${getAllTemplates().length} KISSVM script templates with import paths and descriptions` },
+    { uri: 'totemsdk://index', name: 'Index Provenance', description: 'Index schema, source revision, package count and coverage reconciliation' },
     { uri: 'totemsdk://conventions', name: 'Coding Conventions', description: 'Totem SDK coding conventions and patterns' },
     { uri: 'totemsdk://domain-map', name: 'Domain Map', description: 'Packages grouped by domain layer' },
     ...PAPERS.map(p => ({ uri: p.uri, name: p.name, description: p.description })),
@@ -368,6 +416,11 @@ export function listResources(index: SdkIndex): Array<{ uri: string; name: strin
       uri: `totemsdk://packages/${encodeURIComponent(name)}/dependencies`,
       name: `Dependencies: ${name}`,
       description: `Dependencies of ${name}`,
+    })
+    resources.push({
+      uri: `totemsdk://packages/${encodeURIComponent(name)}/contracts`,
+      name: `Contracts: ${name}`,
+      description: `Exact exported contract metadata for ${name} (contentKind: contract)`,
     })
   }
 

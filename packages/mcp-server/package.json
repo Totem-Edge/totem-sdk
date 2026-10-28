@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/mcp-server",
   "version": "0.4.0",
-  "description": "MCP server exposing the full Totem SDK package set — metadata, types, exports, dependency graphs, and scaffolding tools",
+  "description": "MCP server exposing the full Totem SDK package set \u2014 metadata, types, exports, dependency graphs, and scaffolding tools",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
@@ -19,7 +19,8 @@
     "prepare": "tsc && node ../../scripts/build-mcp-bundle.mjs",
     "clean": "rm -rf dist data",
     "start": "node dist/index.js",
-    "test": "jest"
+    "test": "jest",
+    "test:consumer": "node ../../scripts/test-mcp-consumer.mjs"
   },
   "files": [
     "dist",
