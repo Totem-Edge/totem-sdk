@@ -237,6 +237,43 @@ export function planComposition(input: PlanCompositionInput, index: SdkIndex): C
   }
 }
 
+
+function selectPrimitive(dependencies: Record<string, string>): {
+  imports: string[]
+  body: string[]
+} {
+  if (dependencies['@totemsdk/edge']) {
+    return {
+      imports: ["import { createEdgeDevice } from '@totemsdk/edge';"],
+      body: [
+        "const device = createEdgeDevice({ kind: 'device' });",
+        'return device.deviceId;',
+      ],
+    }
+  }
+  if (dependencies['@totemsdk/replication']) {
+    return {
+      imports: ["import { readReplicated } from '@totemsdk/replication';"],
+      body: [
+        "const result = await readReplicated('scaffold', {",
+        "  readReplica: async () => ({ value: 'replica', complete: true, observedAt: Date.now() }),",
+        '});',
+        'return `${result.source}:${result.freshness}`;',
+      ],
+    }
+  }
+  if (dependencies['@totemsdk/core']) {
+    return {
+      imports: ["import { sha3_256, toHex } from '@totemsdk/core';"],
+      body: ['return toHex(sha3_256(new TextEncoder().encode(appName)));'],
+    }
+  }
+  return {
+    imports: ["import { createHash } from 'node:crypto';"],
+    body: ["return createHash('sha3-256').update(appName).digest('hex');"],
+  }
+}
+
 export interface ScaffoldAppInput {
   appName?: string
   runtime?: 'node-cjs' | 'node-esm'
@@ -263,7 +300,7 @@ export function scaffoldApp(input: ScaffoldAppInput, index: SdkIndex): ScaffoldA
     const pkg = index.packages[name]
     if (pkg) dependencies[name] = pkg.version
   }
-  const hasCore = Boolean(dependencies['@totemsdk/core'])
+  const primitive = selectPrimitive(dependencies)
   const moduleType = runtime === 'node-esm' ? 'module' : 'commonjs'
   const files: Array<{ path: string; content: string }> = []
 
@@ -301,20 +338,19 @@ export function scaffoldApp(input: ScaffoldAppInput, index: SdkIndex): ScaffoldA
   files.push({
     path: 'src/index.ts',
     content: [
-      hasCore
-        ? "import { sha3_256, toHex } from '@totemsdk/core';"
-        : "import { createHash } from 'node:crypto';",
+      ...primitive.imports,
       '',
       `export const appName = '${appName}';`,
       '',
-      'export function run(): string {',
-      hasCore
-        ? "  return toHex(sha3_256(new TextEncoder().encode(appName)));"
-        : "  return createHash('sha3-256').update(appName).digest('hex');",
+      'export async function run(): Promise<string> {',
+      ...primitive.body.map((line) => `  ${line}`),
       '}',
       '',
       'if (process.argv[1]?.endsWith("index.js") || process.argv[1]?.endsWith("index.cjs")) {',
-      '  console.log(`${appName} works: ${run()}`);',
+      '  run().then((result) => console.log(`${appName} works: ${result}`)).catch((error) => {',
+      '    console.error(error);',
+      '    process.exitCode = 1;',
+      '  });',
       '}',
       '',
     ].join('\n'),

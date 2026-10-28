@@ -34,6 +34,13 @@ function makeIndex(): SdkIndex {
           interfaces: ['TimerAdapter'],
           consts: [],
         },
+        symbols: {
+          wotsSign: { kind: 'function', signature: 'wotsSign(seed, index, message)' },
+          wotsVerify: { kind: 'function' },
+          sha3_256: { kind: 'function', signature: 'sha3_256(bytes): Uint8Array' },
+          TreeKey: { kind: 'type' },
+          TimerAdapter: { kind: 'interface' },
+        },
         domain: 'core/crypto',
       },
       '@totemsdk/core-wasm': {
@@ -220,6 +227,39 @@ describe('handleToolCall', () => {
     expect(scaffold.dependencies).toEqual({ '@totemsdk/core': '1.2.6' })
     expect(scaffold.files.map((f: any) => f.path)).toEqual(expect.arrayContaining(['package.json', 'tsconfig.json', 'src/index.ts', 'README.md']))
     expect(scaffold.generationManifest.warnings).toEqual(expect.any(Array))
+  })
+
+  it('inspect-contract returns bounded symbol metadata and typed failures', () => {
+    const found = handleToolCall('inspect-contract', { package: '@totemsdk/core', symbol: 'sha3_256' }, index)
+    const contract = JSON.parse(found.content[0].text)
+    expect(contract).toMatchObject({ ok: true, contentKind: 'contract', package: '@totemsdk/core', symbol: 'sha3_256' })
+    const missing = handleToolCall('inspect-contract', { package: '@totemsdk/core', symbol: 'nope' }, index)
+    expect(missing.isError).toBe(true)
+    expect(JSON.parse(missing.content[0].text).code).toBe('symbol-not-found')
+    const page = JSON.parse(handleToolCall('inspect-contract', { package: '@totemsdk/core', limit: 1 }, index).content[0].text)
+    expect(page.symbols).toHaveLength(1)
+    expect(page.nextOffset).toBe(1)
+  })
+
+  it('scaffold-app chooses a family primitive from the selected package', () => {
+    const edgeIndex = makeIndex()
+    edgeIndex.packages['@totemsdk/edge'] = {
+      name: '@totemsdk/edge', dir: 'edge', version: '1.4.0', description: 'Edge runtime',
+      dependencies: [], devDependencies: [], hasRust: false, hasGo: false, hasTests: true,
+      exports: { functions: ['createEdgeDevice'], types: [], classes: [], interfaces: [], consts: [] },
+      symbols: { createEdgeDevice: { kind: 'function', signature: 'createEdgeDevice(opts): EdgeDevice' } },
+      dependencyGroups: { runtime: {}, peer: {}, optional: {}, dev: {} },
+      exportsMap: { '.': { import: './dist/index.js' } }, domain: 'edge-computing',
+    }
+    const plan = JSON.parse(handleToolCall('plan-composition', {
+      runtime: 'node-esm', requiredPackages: ['@totemsdk/edge'],
+    }, edgeIndex).content[0].text)
+    const scaffold = JSON.parse(handleToolCall('scaffold-app', {
+      appName: 'edge-demo', runtime: 'node-esm', plan,
+    }, edgeIndex).content[0].text)
+    const indexFile = scaffold.files.find((f: any) => f.path === 'src/index.ts')
+    expect(indexFile.content).toContain('createEdgeDevice')
+    expect(indexFile.content).not.toContain('sha3_256')
   })
 
   it('package-stats reports metrics with domain and export counts', () => {
