@@ -1193,13 +1193,16 @@ export interface TokenCreationParams {
   script?: string;
   /**
    * Amount of MINIMA to burn with the minting transaction (display units, e.g.
-   * "0.1"). Matches Minima's `tokencreate burn:`.
+   * "0.1"). This is separate from `totalSupply`: it affects coin selection and
+   * change, is omitted from transaction outputs, and is destroyed by Minima's
+   * inputs-minus-outputs burn rule. It never increases token supply.
    */
   burn?: string;
   /**
    * Public key to sign the token creation with (Minima's `signtoken:`), proving
-   * authorship. The signature over the token coin id is added to the token
-   * metadata. NOTE: not yet implemented by the wallet handler.
+   * authorship. The signature over the token-create output coin ID is added to
+   * the token metadata (`signtype`/`signedby`/`signature`). Implemented by the
+   * wallet: it spends a dedicated WOTS leaf, never the transaction leaf.
    */
   signtoken?: string;
   /** Address to receive the created token supply; defaults to the wallet's primary address. */

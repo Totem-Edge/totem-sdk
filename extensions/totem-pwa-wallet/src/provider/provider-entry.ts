@@ -188,7 +188,7 @@ configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false })
       if (request) {
         // Never silently drop a token-creation option the wallet cannot honor:
         // doing so would mint a different token than the dApp requested.
-        for (const unsupported of ['burn', 'signtoken', 'recipientAddress'] as const) {
+        for (const unsupported of ['signtoken', 'recipientAddress'] as const) {
           if (request[unsupported] !== undefined) {
             throw new Error(
               `Token creation option '${unsupported}' is not supported by this wallet; ` +
@@ -200,6 +200,7 @@ configurePwaWalletRuntime({ omnia: createOmniaRelayClient({ autoAccept: false })
         if (request.decimals !== undefined) out.decimals = String(request.decimals);
         if (request.totalSupply !== undefined) out.totalSupply = String(request.totalSupply);
         if (request.script !== undefined) out.script = String(request.script);
+        if (request.burn !== undefined) out.burn = String(request.burn);
       }
     }
 

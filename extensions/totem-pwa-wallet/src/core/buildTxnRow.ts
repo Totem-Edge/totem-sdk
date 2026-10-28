@@ -456,6 +456,8 @@ export interface BuildSendParams {
     script?: string;
     decimals: number;
     totalSupply: string;
+    /** MINIMA to burn with the mint; excluded from token supply. */
+    burn?: string;
   };
 }
 
@@ -516,16 +518,22 @@ export async function buildTxnRowHex(params: BuildSendParams): Promise<BuildSend
     });
   }
 
-  // 2b. Invariant: outputs must exactly consume the inputs (AUD-037).
+  // 2b. Invariant: outputs plus an explicit burn must consume the inputs
+  // (AUD-037). Minima's tokencreate burn is not an output; it is destroyed by
+  // the inputs-minus-outputs rule.
   let inputTotal = 0n;
   for (const c of inputs) inputTotal += scaledAmountFromRaw(c.rawAmountBytes);
   const outputTotal =
     (toAmountScaled > 0n ? toAmountScaled : 0n) +
     (changeAmountScaled > 0n ? changeAmountScaled : 0n);
-  if (inputTotal !== outputTotal) {
+  const burnScaled = params.tokenCreate?.burn
+    ? parseAmountToBigInt(params.tokenCreate.burn)
+    : 0n;
+  if (burnScaled < 0n) throw new Error('tokenCreate.burn must be non-negative');
+  if (inputTotal !== outputTotal + burnScaled) {
     throw new Error(
       `Transaction does not balance: inputs=${bigIntToDecimal(inputTotal)} ` +
-      `outputs=${bigIntToDecimal(outputTotal)}`,
+      `outputs=${bigIntToDecimal(outputTotal)} burn=${bigIntToDecimal(burnScaled)}`,
     );
   }
 
@@ -672,6 +680,11 @@ export interface CoinSelectionResult {
  * Select coins covering the requested amount.
  * Returns the selected coins and the change amount.
  */
+/** Add two decimal amount strings without floating point. */
+export function addDecimalAmounts(a: string, b: string): string {
+  return bigIntToDecimal(parseAmountToBigInt(a) + parseAmountToBigInt(b));
+}
+
 export function selectCoins(
   coins: RawCoinRecord[],
   amountDecimal: string,

@@ -10,7 +10,7 @@ import {
   prepareLease, finalizeLease, fetchWatermark,
   fetchCoins, fetchCoinProofs,
 } from '../core/api';
-import { buildTxnRowHex, normalizeAddressToHex, selectCoins } from '../core/buildTxnRow';
+import { addDecimalAmounts, buildTxnRowHex, normalizeAddressToHex, selectCoins } from '../core/buildTxnRow';
 import { track } from '../core/observability';
 import { parseApprovalContext, sendApprovalResult } from './approvalContext';
 
@@ -23,6 +23,7 @@ function getParams() {
     decimals: Number(url.searchParams.get('decimals') ?? '8'),
     totalSupply: url.searchParams.get('totalSupply') ?? '0',
     script: url.searchParams.get('script') ?? 'RETURN TRUE',
+    burn: url.searchParams.get('burn') ?? '',
   };
 }
 
@@ -46,7 +47,7 @@ export function TokenCreateApproval() {
   const [loading, setLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
   const ctx = useMemo(parseApprovalContext, []);
-  const { metadata, decimals, totalSupply, script } = getParams();
+  const { metadata, decimals, totalSupply, script, burn } = getParams();
   const tokenName = String((metadata as { name?: unknown }).name ?? '');
   const isNft = decimals === 0;
 
@@ -77,6 +78,9 @@ export function TokenCreateApproval() {
       if (!Number.isInteger(decimals) || decimals < 0 || decimals > 44) throw new Error('decimals must be 0..44');
       if (!/^\d+$/.test(totalSupply) || BigInt(totalSupply) <= 0n) throw new Error('totalSupply must be a positive integer string');
       if (!tokenName) throw new Error('metadata.name is required');
+      if (burn && (!/^\d+(\.\d+)?$/.test(burn) || BigInt(burn.split('.')[0] || '0') < 0n)) {
+        throw new Error('burn must be a non-negative decimal string');
+      }
 
       const fromHex = normalizeAddressToHex(account.address);
       const colorminima = colorminimaDecimal(totalSupply, decimals);
@@ -88,7 +92,10 @@ export function TokenCreateApproval() {
       const coins = await fetchCoins(account.address, session.identityHash);
       if (!coins.length) throw new Error('No spendable coins found for this address.');
 
-      const { selected, changeAmount } = selectCoins(coins, colorminima, '0x00');
+      // Selection must cover the token colorminima plus any burned MINIMA.
+      // The burn is omitted from outputs, so change is reduced accordingly.
+      const selectionTarget = burn && burn !== '0' ? addDecimalAmounts(colorminima, burn) : colorminima;
+      const { selected, changeAmount } = selectCoins(coins, selectionTarget, '0x00');
 
       setStatusMsg('Requesting signing lease…');
       const txId = `tokencreate-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -120,7 +127,7 @@ export function TokenCreateApproval() {
         l1: lease.l1,
         l2: lease.l2,
         sign: true,
-        tokenCreate: { name: JSON.stringify(metadata), script, decimals, totalSupply },
+        tokenCreate: { name: JSON.stringify(metadata), script, decimals, totalSupply, ...(burn ? { burn } : {}) },
       });
 
       await WalletManager.flushSigCache();
@@ -178,10 +185,16 @@ export function TokenCreateApproval() {
               <span className="label" style={{ marginBottom: 0 }}>Supply</span>
               <span>{totalSupply}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-1-5)' }}>
               <span className="label" style={{ marginBottom: 0 }}>Decimals</span>
               <span>{decimals}{isNft ? ' (non-fungible)' : ''}</span>
             </div>
+            {burn && burn !== '0' && (
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span className="label" style={{ marginBottom: 0 }}>Burn</span>
+                <span>{burn} MINIMA</span>
+              </div>
+            )}
           </div>
           <div className="error-msg" style={{ marginBottom: 'var(--space-3)' }}>
             ⚠ WOTS signatures are one-time-use. Verify before approving.
