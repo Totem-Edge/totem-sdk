@@ -68,6 +68,14 @@ async function main(): Promise<void> {
   const signing = config.readOnly || !hasSigningMaterial(config)
     ? undefined
     : createHostSigning(config);
+  if (signing) {
+    // Derive the local participant from the signing material. Operators should
+    // not have to hand-wire partyId/pubkey/addressIndex just to use mutations.
+    config.localPartyId ??= signing.publicKeyDigest;
+    config.localPubkey ??= signing.publicKeyDigest;
+    config.localAddressIndex ??= 0;
+    config.localSettlementAddress ??= signing.address;
+  }
   const identityAndManifest = signing
     ? await createHostIdentityAndManifest(config, signing)
     : undefined;

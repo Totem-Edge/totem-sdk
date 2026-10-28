@@ -14,6 +14,25 @@ export interface OperationRecord {
   error?: string;
 }
 
+
+export class OperationConflictError extends Error {
+  readonly code: 'operation-conflict' | 'operation-in-progress' | 'operation-result-missing';
+  readonly operationId: string;
+  readonly status: OperationStatus;
+  constructor(
+    code: 'operation-conflict' | 'operation-in-progress' | 'operation-result-missing',
+    operationId: string,
+    status: OperationStatus,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'OperationConflictError';
+    this.code = code;
+    this.operationId = operationId;
+    this.status = status;
+  }
+}
+
 const PREFIX = 'omnia:operation:';
 const FORMAT_KEY = 'omnia:store:operation:format';
 const STORE_FORMAT = 1;

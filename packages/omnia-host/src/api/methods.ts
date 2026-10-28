@@ -118,6 +118,7 @@ import {
 } from '@totemsdk/omnia-splice';
 import type { JsonRpcHandler } from './jsonrpc.js';
 import type { RoutingProvider } from '../router/routing-provider.js';
+import { OperationConflictError } from '../stores/operations.js';
 import type { OperationStore } from '../stores/operations.js';
 import type { ObservationEmitter } from '../observe/emitter.js';
 import { channelTransitionHash, hashTransition } from '../observe/emitter.js';
@@ -330,11 +331,25 @@ async function withOperation<T>(
     verifyRequest?: (operationId: string, request: unknown) => boolean;
   }).verifyRequest;
   if (existing && verifier && !verifier(id, params)) {
-    throw new Error(`Operation ${id} request does not match the original request`);
+    throw new OperationConflictError(
+      'operation-conflict', id, existing.status,
+      `Operation ${id} request does not match the original request`,
+    );
   }
-  if (existing?.status === 'committed') return existing.result as T;
+  if (existing?.status === 'committed') {
+    if (existing.result === undefined) {
+      throw new OperationConflictError(
+        'operation-result-missing', id, existing.status,
+        `Operation ${id} is committed but has no stored result`,
+      );
+    }
+    return existing.result as T;
+  }
   if (existing && !['pending', 'failed'].includes(existing.status)) {
-    throw new Error(`Operation ${id} is already ${existing.status}`);
+    throw new OperationConflictError(
+      'operation-in-progress', id, existing.status,
+      `Operation ${id} is already ${existing.status}`,
+    );
   }
   if (!existing) {
     context.operations.create(id, params);

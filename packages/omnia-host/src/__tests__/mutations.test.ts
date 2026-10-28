@@ -156,6 +156,24 @@ describe('omnia-host mutations', () => {
     expect(channels.get('channel-1')!.balances).toEqual({ alice: 5n, bob: 5n });
   });
 
+  it('returns the stored result for an identical committed operation', async () => {
+    const records = new Map<string, any>();
+    records.set('same', { operationId: 'same', status: 'committed', result: { success: true, sequence: 1 } });
+    const operations = {
+      get: (id: string) => records.get(id),
+      create: jest.fn(),
+      transition: jest.fn(),
+      listByStatus: () => [],
+      verifyRequest: () => true,
+    };
+    const { context } = mutationContext(new Map([['channel-1', channel()]]), operations);
+    const methods = createHostMethods(context);
+    await expect(methods.get('totem_omniaIncrementCounter')!({
+      operationId: 'same', channelId: 'channel-1', by: '1',
+    })).resolves.toMatchObject({ success: true, sequence: 1 });
+    expect(operations.transition).not.toHaveBeenCalled();
+  });
+
   it('rejects a reused operation ID with different request data', async () => {
     const records = new Map<string, any>();
     records.set('same', { operationId: 'same', status: 'committed', result: { success: true } });

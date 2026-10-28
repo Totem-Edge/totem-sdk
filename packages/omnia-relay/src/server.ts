@@ -17,6 +17,7 @@
  * reached only via the `@totemsdk/omnia-relay/server` subpath.
  */
 
+import { createServer as createHttpsServer } from 'node:https';
 import { WebSocketServer, type WebSocket } from 'ws';
 
 export interface RelayServerOptions {
@@ -24,6 +25,10 @@ export interface RelayServerOptions {
   port: number;
   /** Bind address (default 127.0.0.1). */
   host?: string;
+  /** Optional bearer token; clients append `?token=...` to the relay URL. */
+  token?: string;
+  /** Optional TLS key/certificate; enables wss when both are supplied. */
+  tls?: { key: string | Buffer; cert: string | Buffer };
 }
 
 export interface RelayServer {
@@ -34,11 +39,23 @@ export interface RelayServer {
 }
 
 export function createRelayServer(options: RelayServerOptions): RelayServer {
-  const wss = new WebSocketServer({ port: options.port, host: options.host ?? '127.0.0.1' });
+  const tlsServer = options.tls
+    ? createHttpsServer({ key: options.tls.key, cert: options.tls.cert })
+    : undefined;
+  const wss = new WebSocketServer(tlsServer
+    ? { server: tlsServer }
+    : { port: options.port, host: options.host ?? '127.0.0.1' });
   const topicSubs = new Map<string, Set<WebSocket>>();
   let url: string | undefined;
 
-  wss.on('connection', (ws: WebSocket) => {
+  wss.on('connection', (ws: WebSocket, req: { url?: string }) => {
+    if (options.token) {
+      const supplied = new URL(req.url ?? '/', 'ws://relay').searchParams.get('token');
+      if (supplied !== options.token) {
+        ws.close(1008, 'unauthorized');
+        return;
+      }
+    }
     const subs = new Set<string>();
 
     ws.on('message', (data: unknown) => {
@@ -101,10 +118,12 @@ export function createRelayServer(options: RelayServerOptions): RelayServer {
         wss.once('listening', () => {
           const addr = wss.address();
           const port = typeof addr === 'object' && addr ? addr.port : options.port;
-          url = `ws://${options.host ?? '127.0.0.1'}:${port}`;
+          const scheme = tlsServer ? 'wss' : 'ws';
+          url = `${scheme}://${options.host ?? '127.0.0.1'}:${port}`;
           resolve({ url, port });
         });
         wss.once('error', reject);
+        if (tlsServer) tlsServer.listen(options.port, options.host ?? '127.0.0.1');
       });
     },
 
@@ -116,7 +135,10 @@ export function createRelayServer(options: RelayServerOptions): RelayServer {
             c.close();
           } catch { /* noop */ }
         }
-        wss.close(() => resolve());
+        wss.close(() => {
+          if (tlsServer) tlsServer.close(() => resolve());
+          else resolve();
+        });
       });
     },
   };
