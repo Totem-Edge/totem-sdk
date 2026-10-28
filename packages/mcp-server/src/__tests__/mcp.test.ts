@@ -5,6 +5,8 @@ import {
   searchTemplates,
 } from '../template-catalog.js'
 import { handleToolCall, TOOL_DEFINITIONS } from '../tools.js'
+import { RECIPES, planRecipe } from '../recipes.js'
+import { scaffoldApp } from '../composition.js'
 import { buildIndex, buildFromMonorepo, readSourceFile, IndexUnavailableError } from '../indexer.js'
 import { handleResourceRead, listResources, resourceMimeType } from '../resources.js'
 import type { SdkIndex } from '../types.js'
@@ -457,5 +459,28 @@ describe('resource URI decoding and index provenance', () => {
     const text = handleResourceRead('totemsdk://index', index)
     expect(text).not.toBeNull()
     expect(JSON.parse(text!)).toMatchObject({ packageCount: 2, source: 'unknown' })
+  })
+})
+
+describe('verified recipes', () => {
+  const index = buildIndex()
+
+  it('plans both recipes from the real catalogue without unresolved packages', () => {
+    for (const recipe of RECIPES) {
+      const plan = planRecipe(recipe, index)
+      expect(plan.unresolved).toEqual([])
+      expect(plan.directDependencies.length).toBeGreaterThan(0)
+      expect(plan.maturity['@totemsdk/core']).toBeDefined()
+    }
+  })
+
+  it('scaffolds a passport recipe through the shared engine', () => {
+    const recipe = RECIPES.find((entry) => entry.id === 'digital-product-passport')!
+    const plan = planRecipe(recipe, index)
+    const scaffold = scaffoldApp({ appName: 'passport-demo', runtime: 'node-esm', plan }, index)
+    expect(scaffold.files.map((file) => file.path)).toEqual(expect.arrayContaining([
+      'src/index.ts', 'src/integrations.ts', 'package.json', 'README.md',
+    ]))
+    expect(scaffold.generationManifest.directDependencies).toEqual(plan.directDependencies)
   })
 })

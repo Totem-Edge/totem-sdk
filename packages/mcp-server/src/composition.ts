@@ -47,7 +47,8 @@ export interface CompositionPlan {
   unresolved: string[]
   dispositions: PackageDisposition[]
   edges: DependencyEdge[]
-  capabilityMap: Record<string, { selected: string[]; candidates: string[] }>
+  capabilityMap: Record<string, { selected: string[]; candidates: string[]; unresolved: boolean }>
+  briefMatches: string[]
   maturity: Record<string, string>
   installOrder: string[]
   conflicts: Array<{ package: string; reason: string }>
@@ -148,11 +149,14 @@ export function planComposition(input: PlanCompositionInput, index: SdkIndex): C
   const selected = new Set([...direct, ...transitive, ...enabledOptional])
   const capabilityMap: CompositionPlan['capabilityMap'] = {}
   const alternatives = new Set<string>()
+  const briefMatches = input.brief ? capabilityMatches(index, input.brief).slice(0, 20) : []
+  for (const name of briefMatches) if (!selected.has(name)) alternatives.add(name)
   for (const capability of names(input.requiredCapabilities)) {
     const candidates = capabilityMatches(index, capability)
     capabilityMap[capability] = {
       selected: candidates.filter((name) => selected.has(name)),
       candidates: candidates.slice(0, 10),
+      unresolved: candidates.length === 0,
     }
     for (const name of candidates) if (!selected.has(name)) alternatives.add(name)
   }
@@ -190,6 +194,18 @@ export function planComposition(input: PlanCompositionInput, index: SdkIndex): C
     })
 
   const warnings: string[] = []
+  if (direct.size === 0 && input.brief) {
+    warnings.push('No direct packages were selected; inspect briefMatches and choose a composition.')
+  }
+  if (briefMatches.length === 0 && input.brief) {
+    warnings.push('No package metadata matched the brief; no recipe is assumed.')
+  }
+  const unresolvedCapabilities = Object.entries(capabilityMap)
+    .filter(([, value]) => value.unresolved)
+    .map(([capability]) => capability)
+  if (unresolvedCapabilities.length > 0) {
+    warnings.push(`No package provides capability: ${unresolvedCapabilities.join(', ')}`)
+  }
   if (runtime === 'browser' || runtime === 'unknown') {
     warnings.push(`Runtime '${runtime}' support is not verified for this composition.`)
   }
@@ -210,6 +226,7 @@ export function planComposition(input: PlanCompositionInput, index: SdkIndex): C
     edges: [...edges.values()].sort((a, b) =>
       `${a.from}:${a.to}:${a.kind}`.localeCompare(`${b.from}:${b.to}:${b.kind}`)),
     capabilityMap,
+    briefMatches,
     maturity: Object.fromEntries([...selected].sort().map((name) => [
       name, index.packages[name]?.maturity ?? 'unknown',
     ])),
@@ -299,6 +316,21 @@ export function scaffoldApp(input: ScaffoldAppInput, index: SdkIndex): ScaffoldA
       'if (process.argv[1]?.endsWith("index.js") || process.argv[1]?.endsWith("index.cjs")) {',
       '  console.log(`${appName} works: ${run()}`);',
       '}',
+      '',
+    ].join('\n'),
+  })
+  files.push({
+    path: 'src/integrations.ts',
+    content: [
+      '// Generated integration matrix. Unknown capabilities remain explicit.',
+      `export const integrations = ${JSON.stringify(Object.fromEntries(
+        input.plan.directDependencies.map((name) => [name, {
+          maturity: input.plan.maturity[name] ?? 'unknown',
+          status: 'selected',
+        }]),
+      ), null, 2)} as const;`,
+      '',
+      `export const limitations = ${JSON.stringify(input.plan.warnings, null, 2)} as const;`,
       '',
     ].join('\n'),
   })
