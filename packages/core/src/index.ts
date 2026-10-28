@@ -100,7 +100,6 @@ export {
   writeMiniNumber,
   writeMiniData,
   writeMiniString,
-  precomputeTransactionCoinID,
 } from './wasm-sync.js';
 
 // TreeKey/TreeKeyNode — WASM-backed
@@ -141,8 +140,18 @@ export {
 } from './wasm-sync.js';
 
 // Transaction Serialization & Digest
+// Public names route through the TypeScript implementation. The WASM bindings
+// remain available explicitly for parity tests and legacy callers that
+// intentionally want the byte-level WASM surface.
 export {
   serializeTransaction,
+  precomputeTransactionCoinID,
+  rollCoinId,
+  minimaTransactionFromJson,
+} from './transaction-json.js';
+export {
+  serializeTransaction as serializeTransactionWasm,
+  precomputeTransactionCoinID as precomputeTransactionCoinIDWasm,
   computeTransactionDigest,
 } from './wasm-sync.js';
 

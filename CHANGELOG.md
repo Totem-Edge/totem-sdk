@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`@totemsdk/core` transaction coin-ID precompute:** the public
+  `precomputeTransactionCoinID` no longer passes serialized transaction bytes
+  to the WASM coin-ID helper. Object/JSON inputs use the TypeScript
+  implementation (`SHA3(MiniData(input[0].coinId) || MiniNumber(outputIndex))`),
+  and legacy byte callers are deserialized or treated as a coin-ID rollover.
+  The WASM binding remains available as `precomputeTransactionCoinIDWasm`.
+- **`@totemsdk/core` transaction serialization:** the public
+  `serializeTransaction` routes through the TypeScript serializer and accepts
+  either a `MinimaTransaction` or the legacy JSON shape. This fixes the WASM
+  `memory access out of bounds` crash on token-metadata + state outputs. The
+  WASM serializer remains available as `serializeTransactionWasm`.
+- **`@totemsdk/wots-lease` on-chain watermark publish:** output coin IDs are
+  computed from the input coin ID and written into the transaction body before
+  signing, instead of calling the precompute helper after serialization and
+  discarding its return value.
+
 ### Added
 
 - **RFC-057 Phase 5 (partial) — deployment hardening:** added versioned

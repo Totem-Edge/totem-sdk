@@ -2067,10 +2067,6 @@
           "kind": "const",
           "signature": "writeMiniString = write_mini_string_wasm"
         },
-        "precomputeTransactionCoinID": {
-          "kind": "const",
-          "signature": "precomputeTransactionCoinID = precompute_transaction_coin_id_wasm"
-        },
         "createUnifiedChildTreeKey": {
           "kind": "function",
           "signature": "createUnifiedChildTreeKey(baseSeed: Bytes, index: number): TreeKey",
@@ -2132,8 +2128,31 @@
           "signature": "wotsAddressFromKeypair(seed: Uint8Array, index: number): string"
         },
         "serializeTransaction": {
+          "kind": "function",
+          "signature": "serializeTransaction(tx: MinimaTransaction | string): Uint8Array",
+          "doc": "Public serializer: accepts the TS object or the legacy JSON string."
+        },
+        "precomputeTransactionCoinID": {
+          "kind": "function",
+          "signature": "precomputeTransactionCoinID(tx: MinimaTransaction): void"
+        },
+        "rollCoinId": {
+          "kind": "function",
+          "signature": "rollCoinId(coinId: Uint8Array, outputIndex?: number): Uint8Array",
+          "doc": "Coin-ID rollover: SHA3(MiniData(coinId) || MiniNumber(index))."
+        },
+        "minimaTransactionFromJson": {
+          "kind": "function",
+          "signature": "minimaTransactionFromJson(json: string): MinimaTransaction",
+          "doc": "Convert the legacy JSON transaction shape into the TS object shape."
+        },
+        "serializeTransactionWasm": {
           "kind": "const",
           "signature": "serializeTransaction = serialize_transaction_wasm"
+        },
+        "precomputeTransactionCoinIDWasm": {
+          "kind": "const",
+          "signature": "precomputeTransactionCoinID = precompute_transaction_coin_id_wasm"
         },
         "computeTransactionDigest": {
           "kind": "const",
@@ -17484,10 +17503,6 @@
           "kind": "const",
           "signature": "writeMiniString: typeof write_mini_string_wasm"
         },
-        "precomputeTransactionCoinID": {
-          "kind": "const",
-          "signature": "precomputeTransactionCoinID: typeof precompute_transaction_coin_id_wasm"
-        },
         "createUnifiedChildTreeKey": {
           "kind": "function",
           "signature": "createUnifiedChildTreeKey(baseSeed: Bytes, index: number): TreeKey",
@@ -17549,8 +17564,31 @@
           "signature": "wotsAddressFromKeypair(seed: Uint8Array, index: number): string"
         },
         "serializeTransaction": {
+          "kind": "function",
+          "signature": "serializeTransaction(tx: MinimaTransaction | string): Uint8Array",
+          "doc": "Public serializer: accepts the TS object or the legacy JSON string."
+        },
+        "precomputeTransactionCoinID": {
+          "kind": "function",
+          "signature": "precomputeTransactionCoinID(tx: MinimaTransaction): void"
+        },
+        "rollCoinId": {
+          "kind": "function",
+          "signature": "rollCoinId(coinId: Uint8Array, outputIndex?: number): Uint8Array",
+          "doc": "Coin-ID rollover: SHA3(MiniData(coinId) || MiniNumber(index))."
+        },
+        "minimaTransactionFromJson": {
+          "kind": "function",
+          "signature": "minimaTransactionFromJson(json: string): MinimaTransaction",
+          "doc": "Convert the legacy JSON transaction shape into the TS object shape."
+        },
+        "serializeTransactionWasm": {
           "kind": "const",
           "signature": "serializeTransaction: typeof serialize_transaction_wasm"
+        },
+        "precomputeTransactionCoinIDWasm": {
+          "kind": "const",
+          "signature": "precomputeTransactionCoinID: typeof precompute_transaction_coin_id_wasm"
         },
         "computeTransactionDigest": {
           "kind": "const",

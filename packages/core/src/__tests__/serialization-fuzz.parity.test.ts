@@ -9,7 +9,7 @@
 
 import { bytesToHex, hexToBytes } from '../wasm-sync.js';
 import {
-  serializeTransaction as wasmSerialize,
+  serializeTransactionWasm as wasmSerialize,
   serializeTransactionObject,
   deserializeTransaction,
 } from '../index.js';

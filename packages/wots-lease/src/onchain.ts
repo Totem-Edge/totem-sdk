@@ -40,7 +40,7 @@ import {
   parseMxAddress,
   serializeTransaction,
   computeTransactionDigest,
-  precomputeTransactionCoinID,
+  rollCoinId,
   writeMiniNumber,
 } from '@totemsdk/core';
 import { serializeTxPoW } from '@totemsdk/txpow';
@@ -266,15 +266,15 @@ export class OnchainWatermarkProvider implements WotsLeaseProvider {
       state: [stateVarJson(this.statePort, flatToHex(newFlat))],
     };
 
+    const rolledCoinId = rollCoinId(hexToBytes(this.currentCoinId), 0);
     const tx = {
       linkhash: '0x00',
       inputs: [inputCoin],
-      outputs: [outputCoin],
+      outputs: [{ ...outputCoin, coinid: '0x' + bytesToHex(rolledCoinId) }],
       state: [],
     };
 
     const txBytes = serializeTransaction(JSON.stringify(tx));
-    precomputeTransactionCoinID(txBytes, 0);
     const digest = computeTransactionDigest(txBytes);
     const sig = await this.signer.sign(digest);
 
@@ -295,9 +295,7 @@ export class OnchainWatermarkProvider implements WotsLeaseProvider {
     // coin with a new coin ID (output 0 of this spend). Track and persist the
     // ADVANCED identity so the next publish spends the live coin, not the
     // consumed one.
-    const newCoinId = '0x' + bytesToHex(
-      precomputeTransactionCoinID(hexToBytes(this.currentCoinId), 0),
-    );
+    const newCoinId = '0x' + bytesToHex(rolledCoinId);
     this.currentCoinId = newCoinId;
     if (this.storage) {
       try {

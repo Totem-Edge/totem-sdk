@@ -36,7 +36,7 @@ Total: **69** publishable packages + **6** excluded entries = **75** workspace e
 
 | Package | Version | Level | Support tier | Directory |
 |---|---|---|---|---|
-| `@totemsdk/core` | 1.4.0 | v1 | 0 | `packages/core` |
+| `@totemsdk/core` | 1.4.1 | v1 | 0 | `packages/core` |
 | `@totemsdk/core-wasm` | 1.0.4 | v1 | 0 | `packages/core-wasm` |
 | `@totemsdk/kissvm` | 1.3.0 | v1 | 0 | `packages/kissvm` |
 | `@totemsdk/edge-modbus` | 0.2.0 | rc | 1 | `packages/edge-modbus` |
@@ -48,7 +48,7 @@ Total: **69** publishable packages + **6** excluded entries = **75** workspace e
 | `@totemsdk/omnia` | 2.3.2 | rc | 1 | `packages/omnia` |
 | `@totemsdk/omnia-host` | 0.13.1 | rc | 1 | `packages/omnia-host` |
 | `@totemsdk/storage` | 0.2.2 | rc | 1 | `packages/storage` |
-| `@totemsdk/wots-lease` | 1.0.1 | rc | 1 | `packages/wots-lease` |
+| `@totemsdk/wots-lease` | 1.0.2 | rc | 1 | `packages/wots-lease` |
 | `@totemsdk/authority` | 1.0.1 | v1 | 2 | `packages/authority` |
 | `@totemsdk/edge` | 1.4.0 | v1 | 2 | `packages/edge` |
 | `@totemsdk/identity` | 1.0.2 | v1 | 2 | `packages/identity` |
@@ -108,6 +108,6 @@ Total: **69** publishable packages + **6** excluded entries = **75** workspace e
 | `@totem/sdk-tests` | 1.0.0 | excluded | excluded | `packages/sdk-tests` |
 | `@totemsdk/observability` | 0.1.0 | excluded | excluded | `extensions/observability` |
 | `totem-dapp-starter` | 0.1.0 | excluded | excluded | `extensions/totem-dapp-starter` |
-| `totem-extension` | 1.0.3 | excluded | excluded | `extensions/totem-extension` |
+| `totem-extension` | 1.0.4 | excluded | excluded | `extensions/totem-extension` |
 | `totem-pear-android-starter` | 0.1.0 | excluded | excluded | `extensions/totem-pear-android-starter` |
 | `totem-pwa-wallet` | 1.0.0 | excluded | excluded | `extensions/totem-pwa-wallet` |
