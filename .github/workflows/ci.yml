@@ -107,6 +107,8 @@ jobs:
         run: node scripts/verify-mcp-index.mjs
       - name: Packed MCP consumer stdio test
         run: node scripts/test-mcp-consumer.mjs
+      - name: Packed Bare consumer test
+        run: node scripts/bare-pack-consumer.mjs
 
   test:
     name: Unit tests

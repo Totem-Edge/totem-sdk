@@ -9,7 +9,16 @@ Verified command:
 pnpm smoke:bare
 ```
 
-The smoke test runs under a real Bare binary and exercises:
+Run both gates:
+
+```bash
+pnpm smoke:bare          # direct Bare ESM smoke
+pnpm smoke:bare:pack     # packed consumer (tarball install + bare-pack + run)
+```
+
+The packed gate installs the real `@totemsdk/core` and `@totemsdk/core-wasm`
+tarballs into a temporary non-symlinked project, embeds the WASM as base64,
+and runs the bundle under Bare. The direct smoke test exercises:
 
 - `bare-encoding/global` for `TextEncoder`/`TextDecoder`;
 - `bare-fs` for the `.wasm` asset;
@@ -22,10 +31,9 @@ platform binary installed by the workspace `bare` dev dependency.
 ## Packaging notes
 
 - Do not treat a Node import smoke test as Bare evidence.
-- A `bare-pack` consumer fixture should install the package tarball into a
-  non-symlinked `node_modules` before packing so native addon prebuilds are
-  discoverable. The repository smoke test above validates the ESM/runtime
-  surface; the packed-consumer gate remains a separate required check.
+- The packed-consumer gate installs the package tarballs into a non-symlinked
+  `node_modules` before packing so native addon prebuilds are discoverable.
+  `node:crypto` is aliased to `bare-crypto` for `@noble/hashes`.
 - `@totemsdk/core-wasm/pkg-web` is the portable target. The Node target imports
   `fs` and is intentionally not the Bare target.
 - `@noble/hashes` is pinned to the workspace-patched version whose

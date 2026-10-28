@@ -76,7 +76,8 @@
     "test:omnia:s7": "node scripts/omnia-s7-splice.mjs",
     "test:omnia:s8": "node scripts/omnia-s8-router.mjs",
     "generate:minima-commands": "node scripts/generate-minima-rpc-commands.mjs",
-    "smoke:bare": "node scripts/run-bare.mjs scripts/bare-core-smoke.mjs"
+    "smoke:bare": "node scripts/run-bare.mjs scripts/bare-core-smoke.mjs",
+    "smoke:bare:pack": "node scripts/bare-pack-consumer.mjs"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
