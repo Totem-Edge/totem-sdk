@@ -31,7 +31,10 @@ export type OmniaMessageType =
   | 'VC_FINALIZED'
   | 'SPLICE_PROPOSAL'
   | 'SPLICE_ACCEPT'
-  | 'SPLICE_FINALIZED';
+  | 'SPLICE_FINALIZED'
+  // RFC-057-adjacent host routing gossip (advisory; never authorizes payment).
+  | 'ROUTE_GRAPH_ANNOUNCE'
+  | 'ROUTE_GRAPH_REQUEST';
 
 export interface OmniaMessage {
   type: OmniaMessageType;

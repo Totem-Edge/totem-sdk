@@ -15,6 +15,7 @@ import type { OmniaChannel } from '@totemsdk/omnia';
 import { createControlServer, type ControlServer } from './api/jsonrpc.js';
 import { createTotemNodeAdapter, type TotemNodeAdapter } from './chain/totem-node-adapter.js';
 import { channelGraphEdges, InProcessRoutingProvider, type RoutingProvider } from './router/routing-provider.js';
+import type { ChannelGraphEdge } from '@totemsdk/omnia-router';
 import type { JsonRpcHandler } from './api/jsonrpc.js';
 import {
   createHyperswarmHubNetwork,
@@ -440,8 +441,71 @@ export function createOmniaHost(
       };
 
       const channelPeers = new Map<string, any>();
+      const importedRouteEdges = new Map<string, ChannelGraphEdge[]>();
+      const routeEdgeWire = (edge: ChannelGraphEdge) => ({
+        channelId: edge.channelId,
+        from: edge.from,
+        to: edge.to,
+        tokenId: edge.tokenId,
+        availableBalance: edge.availableBalance.toString(),
+        htlcCapacity: edge.htlcCapacity.toString(),
+        feeRate: edge.feeRate.toString(),
+      });
+      const localRouteEdges = (): ChannelGraphEdge[] => channelGraphEdges(channelStore?.values() ?? []);
+      const rebuildRoutes = (): void => {
+        const local = localRouteEdges();
+        const localIds = new Set(local.map((edge) => edge.channelId));
+        const remote = [...importedRouteEdges.values()]
+          .flat()
+          .filter((edge) => !localIds.has(edge.channelId));
+        routingProvider.rebuild([...local, ...remote]);
+      };
+      const announceRoutesTo = (peer: any): void => {
+        if (!peer?.sendMessage) return;
+        const edges = localRouteEdges().map(routeEdgeWire);
+        if (edges.length === 0) return;
+        void peer.sendMessage({
+          type: 'ROUTE_GRAPH_ANNOUNCE',
+          channelId: 'route-graph',
+          nonce: Date.now(),
+          payload: { source: config.localPartyId ?? config.sourceNodeId ?? 'omnia-host', hop: 0, edges },
+        }).catch(() => undefined);
+      };
       const onPeerMessage = (peer: any, msg: any): void => {
         if (msg?.channelId) channelPeers.set(msg.channelId, peer);
+        if (msg?.type === 'ROUTE_GRAPH_REQUEST') {
+          announceRoutesTo(peer);
+          return;
+        }
+        if (msg?.type === 'ROUTE_GRAPH_ANNOUNCE') {
+          const payload = msg.payload as { edges?: unknown[]; hop?: number } | undefined;
+          if (!payload || !Array.isArray(payload.edges) || (payload.hop ?? 0) > 2) return;
+          for (const raw of payload.edges) {
+            if (!raw || typeof raw !== 'object') continue;
+            const edge = raw as Record<string, unknown>;
+            if (typeof edge.channelId !== 'string' || typeof edge.from !== 'string' || typeof edge.to !== 'string' || typeof edge.tokenId !== 'string') continue;
+            const parsed: ChannelGraphEdge = {
+              channelId: edge.channelId, from: edge.from, to: edge.to, tokenId: edge.tokenId,
+              availableBalance: BigInt(String(edge.availableBalance ?? '0')),
+              htlcCapacity: BigInt(String(edge.htlcCapacity ?? '0')),
+              feeRate: BigInt(String(edge.feeRate ?? '0')),
+            };
+            const current = importedRouteEdges.get(parsed.channelId) ?? [];
+            const next = current.filter((item) => item.from !== parsed.from);
+            next.push(parsed);
+            importedRouteEdges.set(parsed.channelId, next);
+          }
+          rebuildRoutes();
+          // Gossip one hop to other connected peers; edges are advisory only.
+          const forwarded = (payload.hop ?? 0) + 1;
+          if (forwarded <= 2) {
+            for (const other of new Set(channelPeers.values())) {
+              if (other === peer) continue;
+              void other.sendMessage?.({ type: 'ROUTE_GRAPH_ANNOUNCE', channelId: 'route-graph', nonce: Date.now(), payload: { ...payload, hop: forwarded } }).catch?.(() => undefined);
+            }
+          }
+          return;
+        }
         void observation?.emit({
           domain: 'transport', kind: 'transport.message', phase: 'observed',
           entity: { type: 'node', id: config.sourceNodeId ?? config.localPartyId ?? 'omnia-host' },
@@ -450,6 +514,8 @@ export function createOmniaHost(
         });
       };
       const onChannelAccepted = (channel: any, peer: any): void => {
+        rebuildRoutes();
+        announceRoutesTo(peer);
         void observation?.emit({
           domain: 'channel', kind: 'channel.proposal.accepted', phase: 'accepted',
           entity: { type: 'channel', id: channel.channelId },
@@ -461,6 +527,8 @@ export function createOmniaHost(
         });
       };
       const onStateUpdated = (channel: any, peer: any): void => {
+        rebuildRoutes();
+        announceRoutesTo(peer);
         void observation?.emit({
           domain: 'channel', kind: 'channel.updated', phase: 'committed',
           entity: { type: 'channel', id: channel.channelId },
@@ -606,6 +674,7 @@ export function createOmniaHost(
             signer: dependencies.signer,
             leaseProvider: dependencies.leaseProvider,
             chainProvider: dependencies.chainProvider ?? chainAdapter,
+            fundingAddress: config.fundingAddress,
             swarm,
             channelPeers,
             localParticipant,
@@ -642,7 +711,7 @@ export function createOmniaHost(
             identity: dependencies.identity,
             manifest: dependencies.manifest,
             p2pHubUrl,
-            refreshRouting: () => routingProvider.rebuild(channelGraphEdges(channelStore!.values())),
+            refreshRouting: () => rebuildRoutes(),
           }),
         });
       }
