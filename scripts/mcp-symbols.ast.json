@@ -1444,6 +1444,11 @@
           "kind": "interface",
           "signature": "export interface TotemGetCoinsRequest"
         },
+        "TotemCoinTokenMetadata": {
+          "kind": "interface",
+          "signature": "export interface TotemCoinTokenMetadata",
+          "doc": "Token metadata attached to a coin by the wallet's chain provider."
+        },
         "TotemGetCoinsSuccessResponse": {
           "kind": "interface",
           "signature": "export interface TotemGetCoinsSuccessResponse"
@@ -2066,6 +2071,15 @@
         "writeMiniString": {
           "kind": "const",
           "signature": "writeMiniString = write_mini_string_wasm"
+        },
+        "init": {
+          "kind": "function",
+          "signature": "init(): Promise<void>",
+          "doc": "Compatibility initializer for the synchronous bridge.\n\nThe CJS/sync build has already instantiated WASM at module load; this exists\nso the public ESM and CJS APIs expose the same `init()` contract. The ESM\nbuild rewrites this module to `wasm-async.js`, where init is the real\nwasm-bindgen initializer."
+        },
+        "initSync": {
+          "kind": "function",
+          "signature": "initSync(): void"
         },
         "createUnifiedChildTreeKey": {
           "kind": "function",
@@ -17502,6 +17516,15 @@
         "writeMiniString": {
           "kind": "const",
           "signature": "writeMiniString: typeof write_mini_string_wasm"
+        },
+        "init": {
+          "kind": "function",
+          "signature": "init(): Promise<void>",
+          "doc": "Compatibility initializer for the synchronous bridge.\n\nThe CJS/sync build has already instantiated WASM at module load; this exists\nso the public ESM and CJS APIs expose the same `init()` contract. The ESM\nbuild rewrites this module to `wasm-async.js`, where init is the real\nwasm-bindgen initializer."
+        },
+        "initSync": {
+          "kind": "function",
+          "signature": "initSync(): void"
         },
         "createUnifiedChildTreeKey": {
           "kind": "function",

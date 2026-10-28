@@ -75,13 +75,20 @@
     "test:omnia:s6": "node scripts/omnia-s6-vtxo.mjs",
     "test:omnia:s7": "node scripts/omnia-s7-splice.mjs",
     "test:omnia:s8": "node scripts/omnia-s8-router.mjs",
-    "generate:minima-commands": "node scripts/generate-minima-rpc-commands.mjs"
+    "generate:minima-commands": "node scripts/generate-minima-rpc-commands.mjs",
+    "smoke:bare": "node scripts/run-bare.mjs scripts/bare-core-smoke.mjs"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "@types/node": "^20.19.43",
     "@typescript-eslint/eslint-plugin": "^8.70.1",
     "@typescript-eslint/parser": "^8.70.1",
+    "bare": "1.36.0",
+    "bare-crypto": "1.15.4",
+    "bare-encoding": "1.0.3",
+    "bare-fs": "4.8.4",
+    "bare-http1": "4.0.0",
+    "bare-pack": "3.0.2",
     "eslint": "^10.11.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.7",

@@ -100,6 +100,8 @@ export {
   writeMiniNumber,
   writeMiniData,
   writeMiniString,
+  init,
+  initSync,
 } from './wasm-sync.js';
 
 // TreeKey/TreeKeyNode — WASM-backed

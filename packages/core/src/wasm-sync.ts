@@ -170,3 +170,19 @@ export function wotsKeypairFromSeed(seed: Uint8Array, index: number): { seed: Ui
   const pk = derive_pk_digest_wasm(seed, index);
   return { seed, index, pk };
 }
+
+/**
+ * Compatibility initializer for the synchronous bridge.
+ *
+ * The CJS/sync build has already instantiated WASM at module load; this exists
+ * so the public ESM and CJS APIs expose the same `init()` contract. The ESM
+ * build rewrites this module to `wasm-async.js`, where init is the real
+ * wasm-bindgen initializer.
+ */
+export async function init(): Promise<void> {
+  // no-op: the synchronous bridge is initialized at import time
+}
+
+export function initSync(): void {
+  // no-op: the synchronous bridge is initialized at import time
+}
