@@ -179,10 +179,10 @@ export function wotsKeypairFromSeed(seed: Uint8Array, index: number): { seed: Ui
  * build rewrites this module to `wasm-async.js`, where init is the real
  * wasm-bindgen initializer.
  */
-export async function init(): Promise<void> {
+export async function init(_options?: { module_or_path?: unknown }): Promise<void> {
   // no-op: the synchronous bridge is initialized at import time
 }
 
-export function initSync(): void {
+export function initSync(_options?: { module?: unknown }): void {
   // no-op: the synchronous bridge is initialized at import time
 }

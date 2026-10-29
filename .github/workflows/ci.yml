@@ -109,6 +109,8 @@ jobs:
         run: node scripts/test-mcp-consumer.mjs
       - name: Packed Bare consumer test
         run: node scripts/bare-pack-consumer.mjs
+      - name: Generated MCP recipe applications
+        run: node scripts/mcp-generated-app-consumer.mjs
 
   test:
     name: Unit tests

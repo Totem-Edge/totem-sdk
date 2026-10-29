@@ -104,7 +104,7 @@ const ADAPTERS: Record<string, AdapterTemplate> = {
     imports: ["const { createIdentityDocument } = await import('@totemsdk/identity');"],
     body: [
       'const document = createIdentityDocument({',
-      "  kind: 'app',",
+      "  kind: 'service',",
       "  rootAddress: 'MxWorkflowRoot',",
       "  controllerAddress: 'MxWorkflowRoot',",
       '});',

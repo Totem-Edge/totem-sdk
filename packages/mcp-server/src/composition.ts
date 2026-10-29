@@ -295,6 +295,11 @@ export function scaffoldApp(input: ScaffoldAppInput, index: SdkIndex): ScaffoldA
       body: adapter.body,
     }
   })
+  if (codeSteps.length > 0) {
+    for (const runtimePkg of ['@totemsdk/core', '@totemsdk/core-wasm']) {
+      if (index.packages[runtimePkg]) dependencies[runtimePkg] = index.packages[runtimePkg].version
+    }
+  }
   const moduleType = runtime === 'node-esm' ? 'module' : 'commonjs'
   const files: Array<{ path: string; content: string }> = []
 
@@ -341,9 +346,22 @@ export function scaffoldApp(input: ScaffoldAppInput, index: SdkIndex): ScaffoldA
     path: 'src/workflow.ts',
     content: `export const workflow = ${JSON.stringify(input.plan.workflow, null, 2)} as const;\n`,
   })
+  const bootstrap = runtime === 'node-esm' && codeSteps.length > 0
+    ? [
+        "import { initSync } from '@totemsdk/core';",
+        "import { readFileSync } from 'node:fs';",
+        "import { fileURLToPath } from 'node:url';",
+        '',
+        "const wasmModuleUrl = (import.meta as ImportMeta & { resolve: (id: string) => string }).resolve('@totemsdk/core-wasm/web');",
+        "const wasmPath = fileURLToPath(new URL('totemsdk_core_wasm_bg.wasm', wasmModuleUrl));",
+        '(initSync as (options: { module: WebAssembly.Module }) => void)({ module: new WebAssembly.Module(readFileSync(wasmPath)) });',
+        '',
+      ]
+    : []
   files.push({
     path: 'src/index.ts',
     content: [
+      ...bootstrap,
       "import { workflow } from './workflow.js';",
       '',
       `export const appName = '${appName}';`,
@@ -368,7 +386,7 @@ export function scaffoldApp(input: ScaffoldAppInput, index: SdkIndex): ScaffoldA
       '    if (runner) {',
       "      results.push({ step: step.id, status: 'ok', result: await runner() });",
       '    } else {',
-      '      results.push({ step: step.id, status: step.kind, detail: step.contract });',
+      "      results.push({ step: step.id, status: step.kind === 'host-port' ? 'host-port' : 'unresolved', detail: step.contract });",
       '    }',
       '  }',
       '  return results;',

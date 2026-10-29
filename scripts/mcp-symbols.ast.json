@@ -2074,12 +2074,12 @@
         },
         "init": {
           "kind": "function",
-          "signature": "init(): Promise<void>",
+          "signature": "init(_options?: { module_or_path?: unknown; }): Promise<void>",
           "doc": "Compatibility initializer for the synchronous bridge.\n\nThe CJS/sync build has already instantiated WASM at module load; this exists\nso the public ESM and CJS APIs expose the same `init()` contract. The ESM\nbuild rewrites this module to `wasm-async.js`, where init is the real\nwasm-bindgen initializer."
         },
         "initSync": {
           "kind": "function",
-          "signature": "initSync(): void"
+          "signature": "initSync(_options?: { module?: unknown; }): void"
         },
         "createUnifiedChildTreeKey": {
           "kind": "function",
@@ -9863,6 +9863,88 @@
         "ReplicatedAnnouncementStore": {
           "kind": "class",
           "signature": "export class ReplicatedAnnouncementStore"
+        },
+        "parseReleaseFeed": {
+          "kind": "function",
+          "signature": "parseReleaseFeed(input: unknown): ReleaseFeed"
+        },
+        "evaluateReleaseFeed": {
+          "kind": "function",
+          "signature": "evaluateReleaseFeed(feed: ReleaseFeed, installed: Record<string, string>): ReleaseFeedEvaluation",
+          "doc": "Compare installed versions against the feed. Read-only: callers decide what to\ndo with the result. Never throws on unknown versions."
+        },
+        "fetchReleaseFeed": {
+          "kind": "function",
+          "signature": "fetchReleaseFeed(url: string, options?: FetchReleaseFeedOptions): Promise<ReleaseFeed>"
+        },
+        "compareVersions": {
+          "kind": "function",
+          "signature": "compareVersions(a: string, b: string): number",
+          "doc": "Semver-ish comparison: -1 | 0 | 1. Pre-release sorts before its release."
+        },
+        "satisfiesRange": {
+          "kind": "function",
+          "signature": "satisfiesRange(version: string, range: string): boolean",
+          "doc": "Supports space-separated AND comparators, and `||` alternatives."
+        },
+        "discoverInstalledTotemPackages": {
+          "kind": "function",
+          "signature": "discoverInstalledTotemPackages(options?: DiscoverInstalledOptions): Promise<Record<string, string>>",
+          "doc": "Best-effort discovery of installed `@totemsdk/*` package versions by walking\nupward for node_modules. Read-only and runtime-agnostic so any SDK entrypoint\ncan use the same awareness check. Unreadable manifests are skipped."
+        },
+        "createUpdateChecker": {
+          "kind": "function",
+          "signature": "createUpdateChecker(options?: UpdateCheckerOptions): UpdateChecker",
+          "doc": "Awareness-only periodic check. It never installs, blocks, degrades or mutates\npackage state: it evaluates a feed and reports. Safe to embed in any SDK\nruntime, including long-lived edge adapters."
+        },
+        "ReleaseFeed": {
+          "kind": "interface",
+          "signature": "export interface ReleaseFeed"
+        },
+        "ReleasePackage": {
+          "kind": "interface",
+          "signature": "export interface ReleasePackage"
+        },
+        "ReleaseVersion": {
+          "kind": "interface",
+          "signature": "export interface ReleaseVersion",
+          "doc": "Release/advisory awareness feed (#update-awareness).\n\nThis module is deliberately non-enforcing: it tells an operator (or a host)\nthat newer package versions and advisories exist. It never installs, never\nblocks a peer, and never changes behaviour on its own. Enforcement is a\nseparate concern."
+        },
+        "Advisory": {
+          "kind": "interface",
+          "signature": "export interface Advisory"
+        },
+        "AdvisoryAffected": {
+          "kind": "interface",
+          "signature": "export interface AdvisoryAffected"
+        },
+        "AvailableUpdate": {
+          "kind": "interface",
+          "signature": "export interface AvailableUpdate"
+        },
+        "ApplicableAdvisory": {
+          "kind": "interface",
+          "signature": "export interface ApplicableAdvisory"
+        },
+        "ReleaseFeedEvaluation": {
+          "kind": "interface",
+          "signature": "export interface ReleaseFeedEvaluation"
+        },
+        "FetchReleaseFeedOptions": {
+          "kind": "interface",
+          "signature": "export interface FetchReleaseFeedOptions"
+        },
+        "DiscoverInstalledOptions": {
+          "kind": "interface",
+          "signature": "export interface DiscoverInstalledOptions"
+        },
+        "UpdateChecker": {
+          "kind": "interface",
+          "signature": "export interface UpdateChecker"
+        },
+        "UpdateCheckerOptions": {
+          "kind": "interface",
+          "signature": "export interface UpdateCheckerOptions"
         }
       }
     },
@@ -16921,6 +17003,11 @@
           "signature": "verifyModelAssetBytes(bytes: Uint8Array, ref: ArtifactRef): boolean",
           "doc": "Verify already-downloaded bytes against a ref without writing them."
         },
+        "ArtifactStorePort": {
+          "kind": "interface",
+          "signature": "export interface ArtifactStorePort",
+          "doc": "Structural port so ESM and CJS builds of ArtifactStore share one contract."
+        },
         "DownloadModelAssetOptions": {
           "kind": "interface",
           "signature": "export interface DownloadModelAssetOptions"
@@ -17519,12 +17606,12 @@
         },
         "init": {
           "kind": "function",
-          "signature": "init(): Promise<void>",
+          "signature": "init(_options?: { module_or_path?: unknown; }): Promise<void>",
           "doc": "Compatibility initializer for the synchronous bridge.\n\nThe CJS/sync build has already instantiated WASM at module load; this exists\nso the public ESM and CJS APIs expose the same `init()` contract. The ESM\nbuild rewrites this module to `wasm-async.js`, where init is the real\nwasm-bindgen initializer."
         },
         "initSync": {
           "kind": "function",
-          "signature": "initSync(): void"
+          "signature": "initSync(_options?: { module?: unknown; }): void"
         },
         "createUnifiedChildTreeKey": {
           "kind": "function",

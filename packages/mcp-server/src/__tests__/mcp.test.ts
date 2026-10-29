@@ -224,7 +224,7 @@ describe('handleToolCall', () => {
     }, index).content[0].text)
     const res = handleToolCall('scaffold-app', { appName: 'demo-app', runtime: 'node-esm', plan }, index)
     const scaffold = JSON.parse(res.content[0].text)
-    expect(scaffold.dependencies).toEqual({ '@totemsdk/core': '1.2.6' })
+    expect(scaffold.dependencies).toEqual({ '@totemsdk/core': '1.2.6', '@totemsdk/core-wasm': '0.1.0' })
     expect(scaffold.files.map((f: any) => f.path)).toEqual(expect.arrayContaining(['package.json', 'tsconfig.json', 'src/index.ts', 'README.md']))
     expect(scaffold.generationManifest.warnings).toEqual(expect.any(Array))
   })
