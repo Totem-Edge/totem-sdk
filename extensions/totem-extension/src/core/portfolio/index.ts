@@ -7,8 +7,13 @@
  * Background script imports:
  *   import { portfolioStreamManager } from '../core/portfolio';
  */
-import { PortfolioStreamManager, PortfolioCache } from '@totemsdk/realtime';
-import type { PortfolioStreamConfig } from '@totemsdk/realtime';
+import { PortfolioStreamManager, PortfolioCache, toPortfolioEntry } from '@totemsdk/realtime';
+import type { PortfolioBackend, PortfolioEntry, PortfolioStreamConfig } from '@totemsdk/realtime';
+import {
+  coinSelectionService,
+  addDecimalStrings,
+  type SpendableCoin,
+} from '../transaction/CoinSelectionService';
 import type {
   StorageAdapter,
   WebSocketFactory,
@@ -166,6 +171,72 @@ class ExtWsFactory implements WebSocketFactory {
   dispose(): void {}
 }
 
+// ── Wallet-backed portfolio backend ───────────────────────────────────────────
+// The extension UI previously read balances exclusively from Axia's
+// `/v1/:projectId/portfolio` endpoint. When that endpoint or the balance WS was
+// degraded the popup sat in "polling" with an empty cache. Read the wallet's
+// own coins instead: this uses the user's selected chain provider (hosted,
+// self-hosted or composite) and falls back to Axia's `/v1/wallet/coins`.
+function aggregateWalletCoins(coins: SpendableCoin[], address: string): PortfolioEntry[] {
+  const byToken = new Map<
+    string,
+    { total: string; count: number; coin: SpendableCoin }
+  >();
+
+  for (const coin of coins) {
+    if (coin.spent) continue;
+    const tokenid = coin.tokenid || '0x00';
+    const existing = byToken.get(tokenid);
+    if (existing) {
+      existing.total = addDecimalStrings(existing.total, coin.amount);
+      existing.count += 1;
+    } else {
+      byToken.set(tokenid, { total: coin.amount, count: 1, coin });
+    }
+  }
+
+  const entries: PortfolioEntry[] = [...byToken.entries()].map(
+    ([tokenid, { total, count, coin }]) => {
+      const entry = toPortfolioEntry(
+        {
+          tokenid,
+          confirmed: total,
+          unconfirmed: '0',
+          sendable: total,
+          total,
+          token: coin.token,
+        },
+        address
+      );
+      entry.coins = count;
+      return entry;
+    }
+  );
+
+  if (!entries.some(entry => entry.kind === 'native')) {
+    const native = toPortfolioEntry(
+      { tokenid: '0x00', confirmed: '0', unconfirmed: '0', total: '0' },
+      address
+    );
+    native.coins = 0;
+    entries.unshift(native);
+  }
+
+  return entries;
+}
+
+const walletPortfolioBackend: PortfolioBackend = {
+  supportsPush: false,
+  async getPortfolio(address: string): Promise<PortfolioEntry[]> {
+    const coins = await coinSelectionService.fetchSpendableCoins(
+      [address],
+      '*',
+      { relevant: true }
+    );
+    return aggregateWalletCoins(coins, address);
+  },
+};
+
 // ── Singleton ─────────────────────────────────────────────────────────────────
 const DEFAULT_BASE_URL  = 'https://api.axia.to';
 const DEFAULT_PROJECT_ID = 'totem-shared';
@@ -178,6 +249,8 @@ const portfolioCache = new PortfolioCache(
 const config: PortfolioStreamConfig = {
   baseUrl:   DEFAULT_BASE_URL,
   projectId: DEFAULT_PROJECT_ID,
+  backend:   walletPortfolioBackend,
+  httpPollInterval: 15_000,
 };
 
 export const portfolioStreamManager = new PortfolioStreamManager(

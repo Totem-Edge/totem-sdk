@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Totem extension portfolio stream:** the popup now reads balances through
+  a wallet-backed `PortfolioBackend` (the selected chain provider with Axia
+  `/v1/wallet/coins` fallback) instead of Axia's
+  `/v1/:projectId/portfolio` endpoint. This prevents the popup from sitting in
+  "polling" with an empty cache when Axia's balance RPC is degraded, and the
+  same all-token query powers `TOTEM_GET_COINS`.
 - **`@totemsdk/realtime` Axia fallback reliability:** `snapshot_failed`
   frames that carry `0x…` identifiers now poll the subscribed `Mx…` addresses
   instead of forwarding an unroutable address, snapshot/delta entry addresses
