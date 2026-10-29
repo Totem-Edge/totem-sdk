@@ -112,7 +112,16 @@ function approveRun(runId) {
   return result.includes('npm-production');
 }
 
-function waitForCompletion(runId, timeoutSec = 1800) {
+function isPublishedSync(name, version) {
+  try {
+    execFileSync('npm', ['view', `${name}@${version}`, 'version'], { stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function waitForCompletion(runId, pkg, timeoutSec = 1800) {
   const start = Date.now();
   while (Date.now() - start < timeoutSec * 1000) {
     let run;
@@ -124,6 +133,9 @@ function waitForCompletion(runId, timeoutSec = 1800) {
     }
     if (run.status === 'completed') {
       return run.conclusion;
+    }
+    if (isPublishedSync(pkg.name, pkg.version)) {
+      return 'success';
     }
     // Wait 15s between checks
     execSync('sleep 15');
@@ -207,7 +219,7 @@ for (const pkg of toRelease) {
 
   // Wait for completion
   console.log(`  ⏳ Waiting for publish to complete...`);
-  const conclusion = waitForCompletion(run.databaseId);
+  const conclusion = waitForCompletion(run.databaseId, pkg);
   
   if (conclusion === 'success') {
     console.log(`  ✅ ${pkg.name}@${pkg.version} published successfully!`);
