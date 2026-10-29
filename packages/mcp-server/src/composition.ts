@@ -7,6 +7,7 @@
  */
 
 import type { DependencyEdge, DependencyKind, PackageIndex, SdkIndex } from './types.js'
+import { buildWorkflow, getWorkflowAdapter, type WorkflowPlan, type WorkflowStep } from './workflow.js'
 
 export type AppRuntime = 'node-cjs' | 'node-esm' | 'bare' | 'browser' | 'unknown'
 
@@ -53,6 +54,9 @@ export interface CompositionPlan {
   installOrder: string[]
   conflicts: Array<{ package: string; reason: string }>
   hostPorts: string[]
+  workflow: WorkflowPlan
+  fixtures: string[]
+  acceptance: string[]
   warnings: string[]
 }
 
@@ -214,6 +218,18 @@ export function planComposition(input: PlanCompositionInput, index: SdkIndex): C
     warnings.push(`Maturity unknown for: ${selectedMissingMaturity.sort().join(', ')}`)
   }
 
+  const workflow = buildWorkflow({
+    directDependencies: [...direct].sort(),
+    maturity: Object.fromEntries([...selected].sort().map((name) => [
+      name, index.packages[name]?.maturity ?? 'unknown',
+    ])),
+    requiredCapabilities: names(input.requiredCapabilities),
+    index,
+  })
+  if (workflow.unresolved.length > 0) {
+    warnings.push(`No verified workflow adapter for: ${workflow.unresolved.sort().join(', ')}`)
+  }
+
   return {
     ...(input.brief ? { brief: input.brief } : {}),
     runtime,
@@ -232,118 +248,15 @@ export function planComposition(input: PlanCompositionInput, index: SdkIndex): C
     ])),
     installOrder: installOrder(selected, index),
     conflicts: [],
-    hostPorts: [],
+    hostPorts: workflow.hostPorts,
+    workflow,
+    fixtures: workflow.fixtures,
+    acceptance: workflow.acceptance,
     warnings,
   }
 }
 
 
-function selectPrimitive(dependencies: Record<string, string>): {
-  imports: string[]
-  body: string[]
-} {
-  if (dependencies['@totemsdk/edge']) {
-    return {
-      imports: ["import { createEdgeDevice } from '@totemsdk/edge';"],
-      body: [
-        "const device = createEdgeDevice({ kind: 'device' });",
-        'return device.deviceId;',
-      ],
-    }
-  }
-  if (dependencies['@totemsdk/proofgraph']) {
-    return {
-      imports: ["import { createProofGraph } from '@totemsdk/proofgraph';"],
-      body: [
-        'const graph = createProofGraph({ scaffold: appName });',
-        'return graph.graphId;',
-      ],
-    }
-  }
-  if (dependencies['@totemsdk/storage']) {
-    return {
-      imports: [
-        "import { ArtifactStore } from '@totemsdk/storage/artifacts';",
-        "import { LocalFileBackend } from '@totemsdk/storage/artifacts/local-fs-backend';",
-      ],
-      body: [
-        "const store = new ArtifactStore(new LocalFileBackend('./artifacts'));",
-        "const receipt = await store.put('scaffold', new TextEncoder().encode(appName));",
-        'const read = await store.get(receipt.ref);',
-        'return `${receipt.ref.digest}:${read.status}`;',
-      ],
-    }
-  }
-  if (dependencies['@totemsdk/replication']) {
-    return {
-      imports: ["import { readReplicated } from '@totemsdk/replication';"],
-      body: [
-        "const result = await readReplicated('scaffold', {",
-        "  readReplica: async () => ({ value: 'replica', complete: true, observedAt: Date.now() }),",
-        '});',
-        'return `${result.source}:${result.freshness}`;',
-      ],
-    }
-  }
-  if (dependencies['@totemsdk/manifest']) {
-    return {
-      imports: ["import { createAnnouncement } from '@totemsdk/manifest';"],
-      body: [
-        "const announcement = createAnnouncement({",
-        "  kind: 'service',",
-        '  subjectId: appName,',
-        "  subjectHash: '0x' + '11'.repeat(32),",
-        "  publisher: 'MxScaffoldPublisher',",
-        '  sequence: 1,',
-        '  createdAt: Date.now(),',
-        '  expiresAt: Date.now() + 86_400_000,',
-        "  topics: ['totemsdk:scaffold'],",
-        "  nonce: 'scaffold',",
-        '});',
-        'return announcement.announcementId;',
-      ],
-    }
-  }
-  if (dependencies['@totemsdk/identity']) {
-    return {
-      imports: ["import { createIdentityDocument } from '@totemsdk/identity';"],
-      body: [
-        "const document = createIdentityDocument({",
-        "  kind: 'app',",
-        "  rootAddress: 'MxScaffoldRoot',",
-        "  controllerAddress: 'MxScaffoldRoot',",
-        '});',
-        'return document.id;',
-      ],
-    }
-  }
-  if (dependencies['@totemsdk/governance']) {
-    return {
-      imports: ["import { createGovernanceConfig } from '@totemsdk/governance';"],
-      body: [
-        'const config = createGovernanceConfig({',
-        '  daoId: appName,',
-        '  name: appName,',
-        "  voting: { algorithm: 'linear', quorumBps: 5000, passThresholdBps: 5000, votingPeriodMs: 86_400_000 },",
-        '  membership: {},',
-        "  authorityScope: 'scaffold',",
-        "  authorityResolver: 'scaffold',",
-        '});',
-        'return config.daoId;',
-      ],
-    }
-  }
-  if (dependencies['@totemsdk/core']) {
-    return {
-      imports: ["import { sha3_256, toHex } from '@totemsdk/core';"],
-      body: ['return toHex(sha3_256(new TextEncoder().encode(appName)));'],
-    }
-  }
-  return {
-    imports: ["import { createHash } from 'node:crypto';"],
-    body: ["return createHash('sha3-256').update(appName).digest('hex');"],
-  }
-}
 
 export interface ScaffoldAppInput {
   appName?: string
@@ -371,7 +284,17 @@ export function scaffoldApp(input: ScaffoldAppInput, index: SdkIndex): ScaffoldA
     const pkg = index.packages[name]
     if (pkg) dependencies[name] = pkg.version
   }
-  const primitive = selectPrimitive(dependencies)
+  const codeSteps = input.plan.workflow.steps.filter((step) => step.kind === 'code')
+  const functions = codeSteps.map((step, index) => {
+    const adapter = getWorkflowAdapter(step.package)
+    if (!adapter) throw new Error(`Missing workflow adapter for ${step.package}`)
+    return {
+      step,
+      name: `step${index + 1}`,
+      imports: adapter.imports,
+      body: adapter.body,
+    }
+  })
   const moduleType = runtime === 'node-esm' ? 'module' : 'commonjs'
   const files: Array<{ path: string; content: string }> = []
 
@@ -384,7 +307,7 @@ export function scaffoldApp(input: ScaffoldAppInput, index: SdkIndex): ScaffoldA
       scripts: {
         build: 'tsc -p tsconfig.json',
         start: runtime === 'node-esm' ? 'node dist/index.js' : 'node dist/index.js',
-        test: 'node dist/index.js',
+        test: 'npm run build && node --test test/*.test.mjs',
       },
       dependencies,
       devDependencies: { typescript: '^5.9.3', '@types/node': '^20.0.0' },
@@ -406,19 +329,53 @@ export function scaffoldApp(input: ScaffoldAppInput, index: SdkIndex): ScaffoldA
       include: ['src/**/*.ts'],
     }, null, 2) + '\n',
   })
+  const stepFunctions = functions.flatMap(({ step, name, imports, body }) => [
+    `async function ${name}(): Promise<string> {`,
+    ...imports.map((line) => `  ${line}`),
+    ...body.map((line) => `  ${line}`),
+    '}',
+    '',
+  ])
+  const runners = functions.map(({ step, name }) => `  '${step.id}': ${name},`).join('\n')
+  files.push({
+    path: 'src/workflow.ts',
+    content: `export const workflow = ${JSON.stringify(input.plan.workflow, null, 2)} as const;\n`,
+  })
   files.push({
     path: 'src/index.ts',
     content: [
-      ...primitive.imports,
+      "import { workflow } from './workflow.js';",
       '',
       `export const appName = '${appName}';`,
+      'export { workflow };',
       '',
-      'export async function run(): Promise<string> {',
-      ...primitive.body.map((line) => `  ${line}`),
+      ...stepFunctions,
+      'const runners: Record<string, () => Promise<string>> = {',
+      runners,
+      '};',
+      '',
+      'export interface WorkflowResult {',
+      '  step: string;',
+      "  status: 'ok' | 'host-port' | 'unresolved';",
+      '  result?: string;',
+      '  detail?: string;',
+      '}',
+      '',
+      'export async function run(): Promise<WorkflowResult[]> {',
+      '  const results: WorkflowResult[] = [];',
+      '  for (const step of workflow.steps) {',
+      '    const runner = runners[step.id];',
+      '    if (runner) {',
+      "      results.push({ step: step.id, status: 'ok', result: await runner() });",
+      '    } else {',
+      '      results.push({ step: step.id, status: step.kind, detail: step.contract });',
+      '    }',
+      '  }',
+      '  return results;',
       '}',
       '',
       'if (process.argv[1]?.endsWith("index.js") || process.argv[1]?.endsWith("index.cjs")) {',
-      '  run().then((result) => console.log(`${appName} works: ${result}`)).catch((error) => {',
+      '  run().then((results) => console.log(JSON.stringify(results, null, 2))).catch((error) => {',
       '    console.error(error);',
       '    process.exitCode = 1;',
       '  });',
@@ -438,6 +395,21 @@ export function scaffoldApp(input: ScaffoldAppInput, index: SdkIndex): ScaffoldA
       ), null, 2)} as const;`,
       '',
       `export const limitations = ${JSON.stringify(input.plan.warnings, null, 2)} as const;`,
+      '',
+    ].join('\n'),
+  })
+  files.push({
+    path: 'test/workflow.test.mjs',
+    content: [
+      "import test from 'node:test';",
+      "import assert from 'node:assert/strict';",
+      "import { run, workflow } from '../dist/index.js';",
+      '',
+      "test('generated workflow executes every declared step', async () => {",
+      '  const results = await run();',
+      '  assert.equal(results.length, workflow.steps.length);',
+      "  assert.ok(results.every((entry) => entry.status === 'ok' || entry.status === 'host-port' || entry.status === 'unresolved'));",
+      '});',
       '',
     ].join('\n'),
   })

@@ -540,7 +540,20 @@ describe('verified recipes', () => {
       expect(plan.unresolved).toEqual([])
       expect(plan.directDependencies.length).toBeGreaterThan(0)
       expect(plan.maturity['@totemsdk/core']).toBeDefined()
+      expect(plan.workflow.steps.length).toBeGreaterThan(0)
+      expect(plan.workflow.acceptance.length).toBeGreaterThan(0)
     }
+  })
+
+  it('carries host ports, fixtures and multi-step workflows into the recipe plans', () => {
+    const passport = planRecipe(RECIPES[0], index)
+    expect(passport.workflow.hostPorts.join(' ')).toContain('@totemsdk/edge-mqtt')
+    expect(passport.workflow.steps.some((step) => step.package === '@totemsdk/proofgraph' && step.kind === 'code')).toBe(true)
+
+    const machinePay = planRecipe(RECIPES[1], index)
+    expect(machinePay.workflow.steps.some((step) => step.package === '@totemsdk/edge' && step.kind === 'code')).toBe(true)
+    expect(machinePay.workflow.steps.some((step) => step.package === '@totemsdk/omnia' && step.kind === 'code')).toBe(true)
+    expect(machinePay.fixtures.length).toBeGreaterThan(0)
   })
 
   it('scaffolds a passport recipe through the shared engine', () => {
@@ -548,8 +561,10 @@ describe('verified recipes', () => {
     const plan = planRecipe(recipe, index)
     const scaffold = scaffoldApp({ appName: 'passport-demo', runtime: 'node-esm', plan }, index)
     expect(scaffold.files.map((file) => file.path)).toEqual(expect.arrayContaining([
-      'src/index.ts', 'src/integrations.ts', 'package.json', 'README.md',
+      'src/index.ts', 'src/workflow.ts', 'src/integrations.ts', 'test/workflow.test.mjs', 'package.json', 'README.md',
     ]))
+    const workflowFile = scaffold.files.find((file) => file.path === 'src/workflow.ts')!
+    expect(JSON.parse(workflowFile.content.replace('export const workflow = ', '').replace(' as const;\n', ''))).toBeTruthy()
     expect(scaffold.generationManifest.directDependencies).toEqual(plan.directDependencies)
   })
 })
