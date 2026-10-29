@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/manifest",
-  "version": "2.0.3",
-  "description": "Canonical signed declaration format for Totem Edge entities \u2014 apps, agent capabilities, dApps, and edge services",
+  "version": "2.1.0",
+  "description": "Canonical signed declaration format for Totem Edge entities — apps, agent capabilities, dApps, and edge services",
   "type": "module",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",

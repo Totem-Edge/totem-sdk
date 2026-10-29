@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/root-identity",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "description": "Single root identity controlling up to 64 on-chain addresses — all cryptographically linked via full independent 3-level TreeKeys",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",

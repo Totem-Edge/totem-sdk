@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/pear",
-  "version": "0.2.1",
-  "description": "Bare/Pear runtime integration harness for @totemsdk \u2014 storage, networking, lifecycle, and Hyperdrive adapters for Pear apps",
+  "version": "0.3.0",
+  "description": "Bare/Pear runtime integration harness for @totemsdk — storage, networking, lifecycle, and Hyperdrive adapters for Pear apps",
   "type": "module",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",

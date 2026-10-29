@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/edge-can",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Edge runtime adapter for CAN bus — automotive, heavy machinery, socketcan",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",

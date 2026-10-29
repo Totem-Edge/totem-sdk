@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/p2p-hub",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Local P2P hub — one Hyperswarm instance shared by Totem apps over a loopback WebSocket bridge",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",

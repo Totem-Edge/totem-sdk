@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/replication-holepunch",
-  "version": "0.1.0",
-  "description": "Holepunch adapters for @totemsdk/replication \u2014 Hypercore logs, Hyperbee indexes and Corestore lifecycle",
+  "version": "0.2.0",
+  "description": "Holepunch adapters for @totemsdk/replication — Hypercore logs, Hyperbee indexes and Corestore lifecycle",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "exports": {

@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/edge-ros2",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Edge runtime adapter for ROS 2 — robotics, DDS middleware, typed topics",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",

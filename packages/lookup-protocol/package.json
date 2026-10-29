@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/lookup-protocol",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Wire protocol definitions for Totem lookup node ↔ client communication",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
