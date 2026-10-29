@@ -26,6 +26,12 @@ export interface OmniaHostConfig {
   localSettlementAddress?: string;
   /** Address to source funding coins from when the caller omits fundingCoinId. */
   fundingAddress?: string;
+  /** Optional release-feed URL. Awareness only: never enforces or installs. */
+  updateCheckUrl?: string;
+  /** Release-feed poll interval (default 6h). */
+  updateCheckIntervalMs?: number;
+  /** Installed versions to evaluate, as { "@totemsdk/name": "x.y.z" }. */
+  updateCheckPackages?: Record<string, string>;
   nodeMode?: string;
   /**
    * Public key (0x…) that owns the funding coin. When set, the host signs the
@@ -157,6 +163,24 @@ function parseSeed(value: string | undefined): string | undefined {
   return seed;
 }
 
+function parseUpdateCheckPackages(raw: string | undefined): Record<string, string> | undefined {
+  if (!raw?.trim()) return undefined;
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new Error('must be a JSON object of name -> version');
+    }
+    const out: Record<string, string> = {};
+    for (const [name, version] of Object.entries(parsed as Record<string, unknown>)) {
+      if (typeof version !== 'string') throw new Error(`version for ${name} must be a string`);
+      out[name] = version;
+    }
+    return out;
+  } catch (err) {
+    throw new Error(`OMNIA_UPDATE_CHECK_PACKAGES is invalid: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
 /** Load the daemon configuration from the documented OMNIA_* environment. */
 export function loadConfigFromEnv(env: NodeJS.ProcessEnv = process.env): OmniaHostConfig {
   const dataRoot = path.join(os.homedir(), '.totem', 'omnia');
@@ -188,6 +212,11 @@ export function loadConfigFromEnv(env: NodeJS.ProcessEnv = process.env): OmniaHo
     localAddressIndex: optionalInteger(env.OMNIA_LOCAL_ADDRESS_INDEX),
     localSettlementAddress: optional(env.OMNIA_LOCAL_SETTLEMENT_ADDRESS),
     fundingAddress: optional(env.OMNIA_FUNDING_ADDRESS),
+    updateCheckUrl: optional(env.OMNIA_UPDATE_CHECK_URL),
+    updateCheckIntervalMs: env.OMNIA_UPDATE_CHECK_INTERVAL_MS
+      ? Number(env.OMNIA_UPDATE_CHECK_INTERVAL_MS)
+      : undefined,
+    updateCheckPackages: parseUpdateCheckPackages(env.OMNIA_UPDATE_CHECK_PACKAGES),
     nodeMode: optional(env.OMNIA_NODE_MODE),
     fundingPubkey: optional(env.OMNIA_FUNDING_PUBKEY),
     wsPath: env.OMNIA_WS_PATH?.trim() || '/rpc',

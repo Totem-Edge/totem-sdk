@@ -18,7 +18,9 @@ export type AnnouncementKind =
   | 'credit-offer'
   | 'swap-rate'
   | 'router-capacity'
-  | 'opportunity';
+  | 'opportunity'
+  | 'sdk-release'
+  | 'security-advisory';
 
 export type AnnouncementCustodyMode = 'self' | 'trust-minimised' | 'hosted' | 'unknown';
 
@@ -202,6 +204,78 @@ export function validateAnnouncement(announcement: AnnouncementEnvelope): void {
   if (announcement.payloadHash !== expectedPayloadHash) {
     throw new Error('payloadHash does not match the canonical payload');
   }
+}
+
+
+/** Payload for `kind: 'sdk-release'` — package availability, never enforcement. */
+export interface SdkReleasePayload {
+  packages: Array<{
+    name: string;
+    distTags: Record<string, string>;
+    recommended?: string;
+    versions: Array<{ version: string; publishedAt?: string; integrity?: string; deprecated?: boolean }>;
+  }>;
+}
+
+/** Payload for `kind: 'security-advisory'` — human action required, signed. */
+export interface SecurityAdvisoryPayload {
+  advisories: Array<{
+    id: string;
+    severity: 'low' | 'moderate' | 'high' | 'critical';
+    title: string;
+    affected: Array<{ name: string; range: string }>;
+    patchedIn?: string;
+    url?: string;
+    publishedAt?: string;
+  }>;
+}
+
+export interface PublishReleaseAnnouncementInput<T> {
+  kind: 'sdk-release' | 'security-advisory';
+  payload: T;
+  /** Release signing key (root or release key). */
+  treeKey: TreeKey;
+  /** WOTS leaf reserved for this announcement. */
+  useIndex: number;
+  /** Publisher identity. Defaults to the signing key's address (must match). */
+  publisher?: string;
+  sequence: number;
+  subjectId?: string;
+  /** Lifetime; defaults to 30 days. */
+  ttlMs?: number;
+  now?: number;
+  nonce?: string;
+  topics?: string[];
+}
+
+function subjectHashFor(subjectId: string): string {
+  return bytesToHex(sha3_256(new TextEncoder().encode(subjectId)));
+}
+
+/**
+ * Build, validate and sign a release/advisory announcement. The result is the
+ * canonical envelope that lookup nodes replicate, so fleets verify a publisher
+ * signature instead of trusting a JSON file over HTTPS.
+ */
+export async function publishReleaseAnnouncement<T>(
+  input: PublishReleaseAnnouncementInput<T>,
+): Promise<SignedAnnouncement<T>> {
+  const now = input.now ?? Date.now();
+  const subjectId = input.subjectId ?? 'totemsdk/releases';
+  const publisher = input.publisher ?? scriptToAddress(scriptFromWotsPk(input.treeKey.getPublicKey()));
+  const announcement = createAnnouncement<T>({
+    kind: input.kind,
+    subjectId,
+    subjectHash: subjectHashFor(subjectId),
+    publisher,
+    sequence: input.sequence,
+    createdAt: now,
+    expiresAt: now + (input.ttlMs ?? 30 * 24 * 60 * 60 * 1000),
+    topics: input.topics ?? ['totemsdk', 'sdk-release'],
+    payload: input.payload,
+    nonce: input.nonce ?? bytesToHex(sha3_256(new TextEncoder().encode(`${subjectId}:${input.sequence}:${now}`))).slice(2, 18),
+  });
+  return signAnnouncement(announcement, input.treeKey, input.useIndex);
 }
 
 export async function signAnnouncement<T>(

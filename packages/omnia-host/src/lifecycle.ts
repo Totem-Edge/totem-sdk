@@ -4,6 +4,7 @@ import { ObservationBus } from './observe/bus.js';
 import { ObservationEmitter, channelTransitionHash } from './observe/emitter.js';
 import { createSqliteObservationStore } from './observe/store.js';
 import { createObservationSnapshot } from './observe/snapshot.js';
+import { createUpdateChecker } from '@totemsdk/manifest';
 import { SyncSqliteStore } from '@totemsdk/storage/sqlite-sync';
 import { PersistentMap } from './stores/persistent-map.js';
 import type { ObservationStore } from './observe/types.js';
@@ -150,6 +151,40 @@ export function createOmniaHost(
         ownedOperationStore = new OperationStore(config.dbPath);
         operationStore = ownedOperationStore;
       }
+      let updateChecker: ReturnType<typeof createUpdateChecker> | undefined;
+      if (config.updateCheckUrl) {
+        updateChecker = createUpdateChecker({
+          url: config.updateCheckUrl,
+          installed: config.updateCheckPackages,
+          intervalMs: config.updateCheckIntervalMs,
+          onResult: (result) => {
+            const updates = result.updates
+              .map((u) => `${u.name} ${u.installed}->${u.recommended ?? u.newest}`)
+              .join(', ');
+            const advisories = result.advisories.map((a) => `${a.id}(${a.severity})`).join(', ');
+            console.log(
+              `[omnia-host] updates available: ${updates || 'none'}` +
+                (advisories ? `; advisories: ${advisories}` : ''),
+            );
+            void observation?.emit({
+              domain: 'node',
+              kind: 'update.available',
+              phase: 'observed',
+              entity: { type: 'node', id: config.localPartyId ?? 'omnia-host' },
+              data: {
+                updates: result.updates,
+                advisories: result.advisories,
+                unknownInstalled: result.unknownInstalled,
+              },
+            });
+          },
+          onError: (err) => {
+            console.warn('[omnia-host] update check failed:', err instanceof Error ? err.message : String(err));
+          },
+        });
+        updateChecker.start();
+      }
+
       const observeEnabled = dependencies.observe === true || (dependencies.observe !== false && config.observeDisabled !== true && config.observeDbPath !== undefined);
       if (observeEnabled && !observationStore) {
         const observePath = config.observeDbPath ?? path.join(path.dirname(config.dbPath), 'observe.sqlite');
@@ -721,6 +756,7 @@ export function createOmniaHost(
       } catch (error) {
         unsubscribe?.();
         unsubscribe = undefined;
+        updateChecker?.stop();
         await p2pHubServer?.close();
         p2pHubServer = undefined;
         p2pHubUrl = undefined;

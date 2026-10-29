@@ -2309,6 +2309,9 @@ importers:
       '@totemsdk/core':
         specifier: workspace:^
         version: link:../core
+      '@totemsdk/manifest':
+        specifier: workspace:^
+        version: link:../manifest
       '@totemsdk/root-identity':
         specifier: workspace:^
         version: link:../root-identity

@@ -8,6 +8,7 @@
  *   await node.stop();
  */
 
+import { createUpdateChecker, type UpdateChecker } from '@totemsdk/manifest';
 import { WatchlistManager } from './watchlist.js';
 import { TxPoWRelay } from './relay.js';
 import { LeaseCoordinator } from './lease.js';
@@ -40,6 +41,8 @@ export class LookupNode implements NodeDispatcher {
   private _nodeIdentity?: NodeIdentity;
   /** RFC-032-A: persisted node-identity use counter, restored in start(). */
   private _restoredIdentityUses = 0;
+  /** Awareness-only release check (opt-in via TOTEM_UPDATE_CHECK_URL). */
+  private _updateChecker?: UpdateChecker;
 
   private readonly _sessions = new Map<string, ClientSession>();
   /** RFC-020 H11: per-identity rate counter that survives reconnects. */
@@ -136,6 +139,22 @@ export class LookupNode implements NodeDispatcher {
 
     this.watchlist.start();
 
+    const updateUrl = process.env.TOTEM_UPDATE_CHECK_URL ?? process.env.OMNIA_UPDATE_CHECK_URL;
+    if (updateUrl && !this._updateChecker) {
+      this._updateChecker = createUpdateChecker({
+        url: updateUrl,
+        onResult: (result) => {
+          const updates = result.updates.map((u) => `${u.name} ${u.installed}->${u.recommended ?? u.newest}`);
+          const advisories = result.advisories.map((a) => `${a.id}(${a.severity})`);
+          console.log(`[lookup-node] updates available: ${updates.join(', ') || 'none'}${advisories.length ? `; advisories: ${advisories.join(', ')}` : ''}`);
+        },
+        onError: (error) => {
+          console.warn('[lookup-node] update check failed:', error instanceof Error ? error.message : String(error));
+        },
+      });
+      this._updateChecker.start();
+    }
+
     if (this.agentRegistry && this.config.agentRegistry?.enabled) {
       const interval = this.config.agentRegistry.expiryCheckIntervalMs ?? 60_000;
       this.agentRegistry.startExpiryLoop(interval);
@@ -144,6 +163,8 @@ export class LookupNode implements NodeDispatcher {
 
   async stop(): Promise<void> {
     this._started = false;
+    this._updateChecker?.stop();
+    this._updateChecker = undefined;
     this.watchlist.stop();
     this.agentRegistry?.stopExpiryLoop();
     this._sessions.clear();

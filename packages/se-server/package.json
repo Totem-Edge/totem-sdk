@@ -32,6 +32,7 @@
   ],
   "dependencies": {
     "@totemsdk/core": "workspace:^",
+    "@totemsdk/manifest": "workspace:^",
     "@totemsdk/root-identity": "workspace:^",
     "@totemsdk/storage": "workspace:^",
     "@totemsdk/wots-lease": "workspace:^",

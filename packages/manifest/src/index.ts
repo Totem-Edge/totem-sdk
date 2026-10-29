@@ -35,6 +35,9 @@ export type {
   AnnouncementVerifyResult,
   AnnouncementTopicFilter,
   CreateAnnouncementInput,
+  SdkReleasePayload,
+  SecurityAdvisoryPayload,
+  PublishReleaseAnnouncementInput,
 } from './announcement.js';
 
 export {
@@ -44,6 +47,7 @@ export {
   createAnnouncement,
   validateAnnouncement,
   signAnnouncement,
+  publishReleaseAnnouncement,
   verifyAnnouncement,
   announcementTopic,
   rankAnnouncements,
@@ -57,3 +61,29 @@ export type {
 } from './announcement-store.js';
 export { MemoryAnnouncementStore } from './announcement-store.js';
 export { ReplicatedAnnouncementStore } from './replicated-announcements.js';
+
+export {
+  parseReleaseFeed,
+  evaluateReleaseFeed,
+  fetchReleaseFeed,
+  compareVersions,
+  satisfiesRange,
+  discoverInstalledTotemPackages,
+  createUpdateChecker,
+  releaseFeedFromAnnouncements,
+} from './release-feed.js';
+export type {
+  ReleaseFeed,
+  ReleasePackage,
+  ReleaseVersion,
+  Advisory,
+  AdvisoryAffected,
+  AvailableUpdate,
+  ApplicableAdvisory,
+  ReleaseFeedEvaluation,
+  FetchReleaseFeedOptions,
+  DiscoverInstalledOptions,
+  UpdateChecker,
+  UpdateCheckerOptions,
+  SignedReleaseAnnouncementLike,
+} from './release-feed.js';
