@@ -2,7 +2,7 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { execSync } from 'node:child_process';
+import { execSync, execFileSync } from 'node:child_process';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '..');
@@ -68,29 +68,34 @@ const toRelease = ordered.filter(p => {
   return releasedTags.has(tag);
 });
 
-const token = execSync('gh auth token', { encoding: 'utf-8' }).trim();
-const HEAD_SHA = execSync('git rev-parse HEAD', { cwd: REPO_ROOT, encoding: 'utf-8' }).trim();
+function retry(fn, attempts = 6) {
+  let last;
+  for (let i = 0; i < attempts; i++) {
+    try { return fn(); } catch (err) {
+      last = err;
+      execSync('sleep 5');
+    }
+  }
+  throw last;
+}
 
 function apiGet(url) {
-  return execSync(
-    `curl -s -H 'Authorization: token ${token}' -H 'Accept: application/vnd.github+json' '${url}'`,
-    { encoding: 'utf-8' }
-  );
+  return retry(() => execFileSync('gh', ['api', '--method', 'GET', url], { encoding: 'utf-8' }));
 }
 
 function apiPost(url, body) {
-  return execSync(
-    `curl -s -X POST -H 'Authorization: token ${token}' -H 'Accept: application/vnd.github+json' -H 'Content-Type: application/json' -d '${body}' '${url}'`,
-    { encoding: 'utf-8' }
-  );
+  return retry(() => execFileSync('gh', ['api', '--method', 'POST', url, '--input', '-'], {
+    input: body,
+    encoding: 'utf-8',
+  }));
 }
 
 function getRunForPackage(slug, version) {
   const tag = `totemsdk/${slug}-v${version}`;
-  const runs = JSON.parse(execSync(
-    `gh run list --workflow publish-totemsdk.yml --limit 100 --json databaseId,displayTitle,status,conclusion,headSha,headBranch`,
-    { encoding: 'utf-8' }
-  ));
+  const runs = JSON.parse(retry(() => execFileSync(
+    'gh', ['run', 'list', '--workflow', 'publish-totemsdk.yml', '--limit', '200', '--json', 'databaseId,displayTitle,status,conclusion,headSha,headBranch'],
+    { encoding: 'utf-8' },
+  )));
   // Find the run for this tag with the correct SHA
   return runs.find(r => r.headBranch === tag) || null;
 }
@@ -110,7 +115,13 @@ function approveRun(runId) {
 function waitForCompletion(runId, timeoutSec = 1800) {
   const start = Date.now();
   while (Date.now() - start < timeoutSec * 1000) {
-    const run = JSON.parse(apiGet(`https://api.github.com/repos/Totem-Edge/totem-sdk/actions/runs/${runId}`));
+    let run;
+    try {
+      run = JSON.parse(apiGet(`https://api.github.com/repos/Totem-Edge/totem-sdk/actions/runs/${runId}`));
+    } catch {
+      execSync('sleep 15');
+      continue;
+    }
     if (run.status === 'completed') {
       return run.conclusion;
     }
@@ -118,6 +129,18 @@ function waitForCompletion(runId, timeoutSec = 1800) {
     execSync('sleep 15');
   }
   return 'timeout';
+}
+
+async function isPublished(name, version) {
+  try {
+    const url = `https://registry.npmjs.org/${encodeURIComponent(name).replace('%40', '@')}`;
+    const response = await fetch(url);
+    if (!response.ok) return false;
+    const data = await response.json();
+    return Boolean(data.versions?.[version]);
+  } catch {
+    return false;
+  }
 }
 
 console.log(`=== Sequential release pipeline (${toRelease.length} packages) ===\n`);
@@ -129,6 +152,11 @@ const failures = [];
 for (const pkg of toRelease) {
   const tag = `totemsdk/${pkg.slug}-v${pkg.version}`;
   console.log(`\n[${pkg.name}@${pkg.version}] (maturity: ${pkg.maturity})`);
+  if (await isPublished(pkg.name, pkg.version)) {
+    console.log('  ⏭️  Already published on npm');
+    successCount++;
+    continue;
+  }
 
   // Find the workflow run for this package
   let run = getRunForPackage(pkg.slug, pkg.version);
