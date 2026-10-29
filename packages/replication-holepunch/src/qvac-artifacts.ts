@@ -9,7 +9,13 @@
  */
 
 import { sha3_256, toHex } from '@totemsdk/core';
-import type { ArtifactRef, ArtifactStore } from '@totemsdk/storage/artifacts';
+import type { ArtifactRef } from '@totemsdk/storage/artifacts';
+
+/** Structural port so ESM and CJS builds of ArtifactStore share one contract. */
+export interface ArtifactStorePort {
+  readonly capabilities: { readonly writable: boolean };
+  put(namespace: string, bytes: Uint8Array): Promise<{ readonly ref: ArtifactRef }>;
+}
 import { StorageError } from '@totemsdk/storage/errors';
 
 export interface DownloadModelAssetOptions {
@@ -18,7 +24,7 @@ export interface DownloadModelAssetOptions {
   /** Reads the bytes at the returned location. */
   readBytes: (location: string) => Promise<Uint8Array>;
   /** Writable artifact store that owns the bytes. */
-  store: ArtifactStore;
+  store: ArtifactStorePort;
   /** Artifact namespace, e.g. `totem-qvac-models`. */
   namespace: string;
   /**
