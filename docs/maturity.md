@@ -46,7 +46,7 @@ Total: **69** publishable packages + **6** excluded entries = **75** workspace e
 | `@totemsdk/lookup-node` | 0.3.0 | rc | 1 | `packages/lookup-node` |
 | `@totemsdk/lookup-protocol` | 0.2.1 | rc | 1 | `packages/lookup-protocol` |
 | `@totemsdk/omnia` | 2.3.2 | rc | 1 | `packages/omnia` |
-| `@totemsdk/omnia-host` | 0.13.1 | rc | 1 | `packages/omnia-host` |
+| `@totemsdk/omnia-host` | 0.13.2 | rc | 1 | `packages/omnia-host` |
 | `@totemsdk/storage` | 0.2.2 | rc | 1 | `packages/storage` |
 | `@totemsdk/wots-lease` | 1.0.2 | rc | 1 | `packages/wots-lease` |
 | `@totemsdk/authority` | 1.0.1 | v1 | 2 | `packages/authority` |
@@ -57,9 +57,9 @@ Total: **69** publishable packages + **6** excluded entries = **75** workspace e
 | `@totemsdk/root-identity` | 1.0.10 | v1 | 2 | `packages/root-identity` |
 | `@totemsdk/txpow` | 1.1.0 | v1 | 2 | `packages/txpow` |
 | `@totemsdk/agent-policy` | 0.3.1 | rc | 2 | `packages/agent-policy` |
-| `@totemsdk/chain-provider` | 0.3.0 | rc | 2 | `packages/chain-provider` |
+| `@totemsdk/chain-provider` | 0.3.1 | rc | 2 | `packages/chain-provider` |
 | `@totemsdk/liquidity-bond` | 0.3.1 | rc | 2 | `packages/liquidity-bond` |
-| `@totemsdk/minima-rpc` | 0.5.0 | rc | 2 | `packages/minima-rpc` |
+| `@totemsdk/minima-rpc` | 0.5.1 | rc | 2 | `packages/minima-rpc` |
 | `@totemsdk/omnia-factory` | 0.7.0 | rc | 2 | `packages/omnia-factory` |
 | `@totemsdk/omnia-pool` | 0.5.3 | rc | 2 | `packages/omnia-pool` |
 | `@totemsdk/omnia-router` | 0.4.0 | rc | 2 | `packages/omnia-router` |
@@ -90,10 +90,10 @@ Total: **69** publishable packages + **6** excluded entries = **75** workspace e
 | `@totemsdk/edge-ros2` | 0.2.0 | rc | outside | `packages/edge-ros2` |
 | `@totemsdk/eefi` | 0.1.0 | rc | outside | `packages/eefi` |
 | `@totemsdk/governance` | 0.2.1 | rc | outside | `packages/governance` |
-| `@totemsdk/mcp-server` | 0.4.0 | rc | outside | `packages/mcp-server` |
+| `@totemsdk/mcp-server` | 0.5.0 | rc | outside | `packages/mcp-server` |
 | `@totemsdk/pear` | 0.2.1 | rc | outside | `packages/pear` |
 | `@totemsdk/provider-bond` | 0.2.1 | rc | outside | `packages/provider-bond` |
-| `@totemsdk/realtime` | 0.2.0 | rc | outside | `packages/realtime` |
+| `@totemsdk/realtime` | 0.2.1 | rc | outside | `packages/realtime` |
 | `@totemsdk/recursive-mast` | 0.3.0 | rc | outside | `packages/recursive-mast` |
 | `@totemsdk/se-server` | 0.5.1 | rc | outside | `packages/se-server` |
 | `@totemsdk/statechain` | 0.3.0 | rc | outside | `packages/statechain` |

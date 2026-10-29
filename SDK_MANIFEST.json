@@ -178,7 +178,7 @@
     },
     {
       "name": "@totemsdk/chain-provider",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "description": "Unified ChainStateProvider interface — Hosted, PureMinima, and Composite strategies",
       "domain": "sovereignty-stack",
       "keywords": [
@@ -190,7 +190,7 @@
       ],
       "dependencies": {
         "@totemsdk/core": "^1.4.1",
-        "@totemsdk/minima-rpc": "^0.5.0"
+        "@totemsdk/minima-rpc": "^0.5.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -214,7 +214,7 @@
       ],
       "dependencies": {
         "@totemsdk/agent-policy": "^0.3.1",
-        "@totemsdk/chain-provider": "^0.3.0",
+        "@totemsdk/chain-provider": "^0.3.1",
         "@totemsdk/kissvm": "^1.3.0",
         "@totemsdk/lookup-client": "^0.3.1",
         "@totemsdk/omnia": "^2.3.2",
@@ -370,7 +370,7 @@
       ],
       "dependencies": {
         "@totemsdk/agent-policy": "^0.3.1",
-        "@totemsdk/chain-provider": "^0.3.0",
+        "@totemsdk/chain-provider": "^0.3.1",
         "@totemsdk/identity": "^1.0.2",
         "@totemsdk/location-proof": "^1.0.0",
         "@totemsdk/lookup-client": "^0.3.1",
@@ -796,7 +796,7 @@
         "client"
       ],
       "dependencies": {
-        "@totemsdk/chain-provider": "^0.3.0",
+        "@totemsdk/chain-provider": "^0.3.1",
         "@totemsdk/core": "^1.4.1",
         "@totemsdk/lookup-protocol": "^0.2.1",
         "@totemsdk/replication": "^0.1.0",
@@ -826,11 +826,11 @@
       ],
       "dependencies": {
         "better-sqlite3": "^12.2.0",
-        "@totemsdk/chain-provider": "^0.3.0",
+        "@totemsdk/chain-provider": "^0.3.1",
         "@totemsdk/core": "^1.4.1",
         "@totemsdk/lookup-protocol": "^0.2.1",
         "@totemsdk/manifest": "^2.0.3",
-        "@totemsdk/minima-rpc": "^0.5.0",
+        "@totemsdk/minima-rpc": "^0.5.1",
         "@totemsdk/txpow": "^1.1.0",
         "@totemsdk/wots-lease": "^1.0.2"
       },
@@ -904,7 +904,7 @@
       ],
       "dependencies": {
         "@totemsdk/agent-policy": "^0.3.1",
-        "@totemsdk/chain-provider": "^0.3.0",
+        "@totemsdk/chain-provider": "^0.3.1",
         "@totemsdk/core": "^1.4.1",
         "@totemsdk/kissvm": "^1.3.0",
         "@totemsdk/lookup-protocol": "^0.2.1",
@@ -939,7 +939,7 @@
         "virtual-channel"
       ],
       "dependencies": {
-        "@totemsdk/chain-provider": "^0.3.0",
+        "@totemsdk/chain-provider": "^0.3.1",
         "@totemsdk/core": "^1.4.1",
         "@totemsdk/omnia": "^2.3.2",
         "@totemsdk/storage": "^0.2.2",
@@ -1026,7 +1026,7 @@
         "ark"
       ],
       "dependencies": {
-        "@totemsdk/chain-provider": "^0.3.0",
+        "@totemsdk/chain-provider": "^0.3.1",
         "@totemsdk/core": "^1.4.1",
         "@totemsdk/omnia": "^2.3.2",
         "@totemsdk/storage": "^0.2.2",
@@ -1245,7 +1245,7 @@
     },
     {
       "name": "@totemsdk/minima-rpc",
-      "version": "0.5.0",
+      "version": "0.5.1",
       "description": "Fetch-based PureMinima RPC client — Bare/Pear/Node/browser compatible",
       "domain": "sovereignty-stack",
       "keywords": [
@@ -1267,7 +1267,7 @@
     },
     {
       "name": "@totemsdk/realtime",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "description": "Real-time balance streaming — WebSocket and HTTP fallback",
       "domain": "sovereignty-stack",
       "keywords": [
@@ -1412,7 +1412,7 @@
         "custody-transfer"
       ],
       "dependencies": {
-        "@totemsdk/chain-provider": "^0.3.0",
+        "@totemsdk/chain-provider": "^0.3.1",
         "@totemsdk/core": "^1.4.1",
         "@totemsdk/storage": "^0.2.2",
         "@totemsdk/tx-builder": "^0.2.1",
@@ -1520,7 +1520,7 @@
         "multi-wallet"
       ],
       "dependencies": {
-        "@totemsdk/chain-provider": "^0.3.0",
+        "@totemsdk/chain-provider": "^0.3.1",
         "@totemsdk/connect": "^3.1.1"
       },
       "exports": {
@@ -1617,7 +1617,7 @@
     },
     {
       "name": "@totemsdk/mcp-server",
-      "version": "0.4.0",
+      "version": "0.5.0",
       "description": "MCP server exposing the full Totem SDK package set — metadata, types, exports, dependency graphs, and scaffolding tools",
       "domain": "sovereignty-stack",
       "keywords": [
@@ -1641,7 +1641,7 @@
     },
     {
       "name": "@totemsdk/omnia-host",
-      "version": "0.13.1",
+      "version": "0.13.2",
       "description": "Durable Omnia node daemon for channel lifecycle, routing, and control APIs",
       "domain": "payment-network",
       "keywords": [
@@ -1652,12 +1652,12 @@
       ],
       "dependencies": {
         "ws": "^8.21.1",
-        "@totemsdk/chain-provider": "^0.3.0",
+        "@totemsdk/chain-provider": "^0.3.1",
         "@totemsdk/core": "^1.4.1",
         "@totemsdk/identity": "^1.0.2",
         "@totemsdk/liquidity-bond": "^0.3.1",
         "@totemsdk/manifest": "^2.0.3",
-        "@totemsdk/minima-rpc": "^0.5.0",
+        "@totemsdk/minima-rpc": "^0.5.1",
         "@totemsdk/omnia": "^2.3.2",
         "@totemsdk/omnia-factory": "^0.7.0",
         "@totemsdk/omnia-pool": "^0.5.3",
@@ -1666,6 +1666,7 @@
         "@totemsdk/omnia-vtxo": "^0.8.1",
         "@totemsdk/p2p-hub": "^0.1.0",
         "@totemsdk/storage": "^0.2.2",
+        "@totemsdk/tx-builder": "^0.2.1",
         "@totemsdk/wots-lease": "^1.0.2"
       },
       "exports": {
@@ -1790,7 +1791,7 @@
       ],
       "dependencies": {
         "@totemsdk/agent-policy": "^0.3.1",
-        "@totemsdk/chain-provider": "^0.3.0",
+        "@totemsdk/chain-provider": "^0.3.1",
         "@totemsdk/core": "^1.4.1",
         "@totemsdk/liquidity-bond": "^0.3.1",
         "@totemsdk/omnia": "^2.3.2",
@@ -1834,7 +1835,7 @@
         "browser"
       ],
       "dependencies": {
-        "@totemsdk/chain-provider": "^0.3.0",
+        "@totemsdk/chain-provider": "^0.3.1",
         "@totemsdk/core": "^1.4.1",
         "@totemsdk/identity": "^1.0.2",
         "@totemsdk/omnia": "^2.3.2",
