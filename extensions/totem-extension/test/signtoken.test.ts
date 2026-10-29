@@ -5,7 +5,7 @@
  * must be signed with a distinct WOTS leaf. These tests mock the wallet lease +
  * signing and assert the guard.
  */
-import { signTokenCoinId, TokenSignKeyReuseError } from '../src/core/transaction/signtoken';
+import { signTokenCoinId, TokenSignKeyReuseError, attachTokenSignature } from '../src/core/transaction/signtoken';
 import type { SignTokenCoinIdParams, WotsLeaf } from '../src/core/transaction/signtoken';
 
 const TOKEN_COIN_ID = '0x' + 'ab'.repeat(32);
@@ -65,5 +65,35 @@ describe('signtoken key-reuse guard', () => {
   it('allows a different l1/l2 on the same address', async () => {
     const d = makeDeps({ addressIndex: 0, l1: 4, l2: 7 });
     await expect(signTokenCoinId(d.params)).resolves.toBe('0xSIGNED');
+  });
+});
+
+describe('attachTokenSignature (Minima tokencreate metadata)', () => {
+  it('appends signtype/signedby/signature in the node order', () => {
+    const out = attachTokenSignature('{"name":"mynft","description":"d"}', '0xABCD', '0xSIG');
+    expect(out).toBe(
+      '{"name":"mynft","description":"d","signtype":"minima","signedby":"0xABCD","signature":"0xSIG"}',
+    );
+  });
+
+  it('preserves existing metadata such as NFT traits', () => {
+    const out = JSON.parse(
+      attachTokenSignature(
+        '{"name":"Hex Seed 1","attributes":[{"trait_type":"Seed","value":"ab"}],"image":"ipfs://cid"}',
+        'pk',
+        'sig',
+      ),
+    );
+    expect(out.name).toBe('Hex Seed 1');
+    expect(out.image).toBe('ipfs://cid');
+    expect(out.attributes).toEqual([{ trait_type: 'Seed', value: 'ab' }]);
+    expect(out.signtype).toBe('minima');
+  });
+
+  it('rejects metadata that is not a JSON object', () => {
+    expect(() => attachTokenSignature('"just a string"', 'pk', 'sig')).toThrow(/JSON object/);
+    expect(() => attachTokenSignature('[1,2]', 'pk', 'sig')).toThrow(/JSON object/);
+    expect(() => attachTokenSignature('null', 'pk', 'sig')).toThrow(/JSON object/);
+    expect(() => attachTokenSignature('not json', 'pk', 'sig')).toThrow();
   });
 });

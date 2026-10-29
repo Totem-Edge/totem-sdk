@@ -37,6 +37,30 @@ export interface SignTokenCoinIdParams {
   readonly addressIndex: number;
 }
 
+/**
+ * Embed a token-authorship signature in the token metadata JSON, mirroring
+ * Minima `tokencreate`: `signtype`, `signedby` and `signature` are appended to
+ * the existing metadata object, in that order.
+ *
+ * The signature itself is over the token-create output coin ID (see
+ * {@link signTokenCoinId}); it is deliberately NOT over the token ID, because
+ * the token ID hashes this metadata and would be circular.
+ */
+export function attachTokenSignature(
+  nameJson: string,
+  signedby: string,
+  signatureHex: string,
+): string {
+  const parsed = JSON.parse(nameJson);
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('token metadata must be a JSON object');
+  }
+  parsed.signtype = 'minima';
+  parsed.signedby = signedby;
+  parsed.signature = signatureHex;
+  return JSON.stringify(parsed);
+}
+
 /** Thrown when the token signature would reuse the transaction's WOTS leaf. */
 export class TokenSignKeyReuseError extends Error {
   constructor() {

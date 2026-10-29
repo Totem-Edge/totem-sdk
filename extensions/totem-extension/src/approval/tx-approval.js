@@ -8,6 +8,19 @@ const amount = urlParams.get('amount') || '0';
 const origin = urlParams.get('origin') || 'Unknown Site';
 const tokenId = urlParams.get('tokenId') || '0x00';
 const intent = urlParams.get('intent') || 'send';
+const metaKey = urlParams.get('metaKey') || '';
+const isTokenCreate = intent === 'tokencreate';
+
+let tokenCreate = null;
+const tokenCreateRaw = urlParams.get('tokenCreate');
+if (tokenCreateRaw) {
+  try {
+    const parsed = JSON.parse(tokenCreateRaw);
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) tokenCreate = parsed;
+  } catch (e) {
+    // Ignore malformed supply details; the intent warning still applies.
+  }
+}
 
 function formatAmount(amt) {
   const num = parseFloat(amt);
@@ -42,6 +55,7 @@ const INTENT_WARNINGS = {
   sign_data:        { label: 'Sign Data',             risk: 'signing', text: 'This uses your private WOTS key to produce a cryptographic signature. No funds move, but the signature proves your identity.' },
   broadcast_tx:     { label: 'Broadcast Transaction', risk: 'signing', text: 'This submits a pre-built raw transaction to the Minima network. Ensure you fully trust the site that constructed it.' },
   custom:           { label: 'Custom Transaction',    risk: 'high',   text: 'This is a custom transaction type. Review all details carefully — you are approving an operation the requesting site defined.' },
+  tokencreate:      { label: 'Mint Token',            risk: 'high',   text: 'This creates a new token or NFT on Minima. Minting is irreversible and consumes a one-time WOTS signature.' },
 };
 
 function getIntentWarning(intentKey) {
@@ -57,6 +71,19 @@ document.getElementById('intent-caption').textContent = iw0.text;
 
 const tokenName = getTokenName(tokenId);
 document.getElementById('token-name').textContent = tokenName;
+
+if (isTokenCreate) {
+  document.getElementById('header-title').textContent = 'MINT TOKEN';
+  document.getElementById('header-subtitle').textContent = 'Review the token you are about to create';
+  document.getElementById('amount-label').textContent = 'TOTAL SUPPLY';
+  document.getElementById('token-name').textContent = 'NEW TOKEN';
+
+  const burn = tokenCreate && typeof tokenCreate.burn === 'string' ? tokenCreate.burn : '';
+  if (burn && burn !== '0') {
+    document.getElementById('burn-row').style.display = 'flex';
+    document.getElementById('burn-value').textContent = formatAmount(burn) + ' MINIMA';
+  }
+}
 
 if (tokenId !== '0x00' && tokenId) {
   document.getElementById('token-id-display').style.display = 'block';
@@ -74,25 +101,102 @@ if (outputsRaw) {
       if (card) {
         const wrap = document.createElement('div');
         wrap.style.marginTop = '8px';
-        wrap.innerHTML =
-          '<div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">Outputs (' +
-          outputs.length +
-          ')</div>' +
-          outputs
-            .map(
-              (o, i) =>
-                '<div style="display:flex;justify-content:space-between;font-size:12px;gap:8px;">' +
-                '<span>#' + i + ' ' + truncateAddress(String(o.address || '')) + '</span>' +
-                '<span>' + formatAmount(String(o.amount || '0')) + ' ' + getTokenName(o.tokenId || '0x00') + '</span>' +
-                '</div>',
-            )
-            .join('');
+
+        const heading = document.createElement('div');
+        heading.style.cssText = 'font-size:12px;color:var(--text-muted);margin-bottom:4px;';
+        heading.textContent = 'Outputs (' + outputs.length + ')';
+        wrap.appendChild(heading);
+
+        outputs.forEach((o, i) => {
+          const row = document.createElement('div');
+          row.style.cssText = 'display:flex;justify-content:space-between;font-size:12px;gap:8px;';
+
+          const left = document.createElement('span');
+          left.textContent = '#' + i + ' ' + truncateAddress(String((o && o.address) || ''));
+
+          const right = document.createElement('span');
+          right.textContent =
+            formatAmount(String((o && o.amount) || '0')) +
+            ' ' +
+            getTokenName((o && o.tokenId) || '0x00');
+
+          row.appendChild(left);
+          row.appendChild(right);
+          wrap.appendChild(row);
+        });
+
         card.appendChild(wrap);
       }
     }
   } catch (e) {
     // Ignore malformed outputs — fall back to the single-output display.
   }
+}
+
+function clipText(value, max) {
+  const str = typeof value === 'string' ? value : value == null ? '' : String(value);
+  return str.length > max ? str.slice(0, max - 1) + '…' : str;
+}
+
+function safeImageUrl(value) {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (/^data:image\//i.test(trimmed)) {
+    return trimmed.length <= 512 * 1024 ? trimmed : null;
+  }
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol === 'https:') return parsed.toString();
+  } catch (e) {
+    // Relative or non-URL values are not rendered.
+  }
+  return null;
+}
+
+function renderTokenMetadata(metadata) {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return;
+  const card = document.getElementById('token-meta-card');
+  if (!card) return;
+
+  const imageUrl =
+    safeImageUrl(metadata.image) || safeImageUrl(metadata.icon) || safeImageUrl(metadata.imageData);
+  if (imageUrl) {
+    const img = document.getElementById('token-meta-image');
+    img.src = imageUrl;
+    img.alt = clipText(metadata.name || 'Token artwork', 120);
+    img.style.display = 'block';
+    img.addEventListener('error', () => { img.style.display = 'none'; });
+  }
+
+  const name = clipText(metadata.name, 120);
+  if (name) document.getElementById('token-meta-name').textContent = name;
+
+  const description = clipText(metadata.description, 500);
+  if (description) document.getElementById('token-meta-description').textContent = description;
+
+  const traits = document.getElementById('token-meta-traits');
+  if (Array.isArray(metadata.attributes)) {
+    metadata.attributes.slice(0, 20).forEach((attr) => {
+      if (!attr || typeof attr !== 'object') return;
+      const label = clipText(attr.trait_type, 32);
+      const value = clipText(attr.value, 48);
+      if (!label || !value) return;
+      const chip = document.createElement('span');
+      chip.className = 'token-meta-trait';
+      chip.textContent = label + ': ' + value;
+      traits.appendChild(chip);
+    });
+  }
+
+  card.style.display = 'block';
+}
+
+if (metaKey) {
+  chrome.storage.session.get(metaKey, (result) => {
+    if (chrome.runtime.lastError) return;
+    renderTokenMetadata(result && result[metaKey]);
+  });
 }
 
 let isValid = true;
@@ -161,8 +265,11 @@ chrome.runtime.sendMessage({
       if (lastErrorMsg('getBalance')) return;
       if (balanceResponse && balanceResponse.result) {
         const balance = parseFloat(balanceResponse.result.confirmed || '0');
-        const txAmount = parseFloat(amount);
-        hasBalance = balance >= (txAmount + 0.001);
+        // Token creation spends only the optional burn; `amount` is the token supply.
+        const spend = isTokenCreate
+          ? parseFloat(tokenCreate && typeof tokenCreate.burn === 'string' ? tokenCreate.burn : '0') || 0
+          : parseFloat(amount) || 0;
+        hasBalance = balance >= (spend + 0.001);
         updateUI();
       }
     });

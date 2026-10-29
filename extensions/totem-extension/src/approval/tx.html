@@ -220,14 +220,65 @@
             color: var(--text-muted);
             padding: 40px;
         }
+
+        .token-meta-card {
+            background: var(--bg-subtle);
+            border: 1px solid var(--border-subtle);
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+
+        .token-meta-image {
+            width: 100%;
+            max-height: 180px;
+            object-fit: contain;
+            background: #000;
+            display: block;
+            margin-bottom: 10px;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .token-meta-name {
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 6px;
+            word-break: break-word;
+        }
+
+        .token-meta-description {
+            font-size: 10px;
+            color: var(--text-muted);
+            line-height: 1.45;
+            margin-bottom: 8px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            max-height: 96px;
+            overflow: hidden;
+        }
+
+        .token-meta-traits {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        .token-meta-trait {
+            font-size: 9px;
+            border: 1px solid var(--border-default);
+            padding: 3px 6px;
+            color: var(--text-primary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            word-break: break-word;
+        }
     </style>
 </head>
 <body>
     <div class="header">
         <div class="header-icon">💸</div>
         <div>
-            <h1 class="header-title">SEND TRANSACTION</h1>
-            <p class="header-subtitle">Review and approve this transaction</p>
+            <h1 class="header-title" id="header-title">SEND TRANSACTION</h1>
+            <p class="header-subtitle" id="header-subtitle">Review and approve this transaction</p>
         </div>
     </div>
 
@@ -237,13 +288,21 @@
     </div>
 
     <div class="amount-box">
-        <div class="label">AMOUNT</div>
+        <div class="label" id="amount-label">AMOUNT</div>
         <div class="amount-value">
             <span id="amount">0</span> <span class="amount-token" id="token-name">MINIMA</span>
         </div>
         <div class="token-id" id="token-id-display" style="display: none;">
             Token ID: <span id="token-id"></span>
         </div>
+    </div>
+
+    <div class="token-meta-card" id="token-meta-card" style="display: none;">
+        <div class="label">TOKEN METADATA</div>
+        <img id="token-meta-image" class="token-meta-image" alt="" style="display: none;" referrerpolicy="no-referrer" />
+        <div id="token-meta-name" class="token-meta-name"></div>
+        <div id="token-meta-description" class="token-meta-description"></div>
+        <div id="token-meta-traits" class="token-meta-traits"></div>
     </div>
 
     <div class="detail-row">
@@ -257,6 +316,11 @@
     <div class="address-box">
         <div class="label">RECIPIENT ADDRESS</div>
         <div class="address-value" id="to-address">Loading...</div>
+    </div>
+
+    <div class="detail-row" id="burn-row" style="display: none;">
+        <span class="detail-label">Burn</span>
+        <span class="detail-value" id="burn-value"></span>
     </div>
 
     <div class="detail-row">

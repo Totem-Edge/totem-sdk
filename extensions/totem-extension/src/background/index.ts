@@ -45,7 +45,7 @@ import {
   type CustodyDisclosure,
 } from '../core/custody/disclosure';
 import { buildTransaction, type BuildTransactionParams, type SpendableCoinInput, type CoinProofData, parseDecimalToBaseUnits, extractAmountBytesFromCoinProof, extractCoinDataFromCoinProof } from '../core/transaction/MinimaTransactionBuilder';
-import { signTokenCoinId } from '../core/transaction/signtoken';
+import { signTokenCoinId, attachTokenSignature } from '../core/transaction/signtoken';
 import { mxToHex, hexToMx } from '../core/utils/minima-base32';
 import { connectedSitesStore } from '../core/stores/ConnectedSitesStore';
 import { ChallengeBuilder, type VerifyChallenge } from '../core/verify/ChallengeBuilder';
@@ -298,6 +298,10 @@ interface TxApprovalParams {
   mode?: 'build' | 'submit' | 'broadcast';
   /** All outputs (RFC-005 #10), so multi-output transactions are shown in full. */
   outputs?: Array<{ address: string; amount: string; tokenId?: string }>;
+  /** Token metadata (name/image/description/traits) for a tokencreate approval. */
+  metadata?: Record<string, unknown>;
+  /** Supply details for a tokencreate approval. */
+  tokenCreate?: { decimals: number; totalSupply: string; burn?: string };
 }
 
 const pendingApprovalCallbacks = new Map<number, (approved: boolean) => void>();
@@ -565,6 +569,25 @@ async function ensureUnlocked(reason: string): Promise<boolean> {
 }
 
 async function showTransactionApprovalPopup(params: TxApprovalParams): Promise<boolean> {
+  // Token metadata can be large (image URLs, traits) and must not be trusted
+  // into the URL. Stage it in session storage and pass only a nonce.
+  let metaKey: string | undefined;
+  if (params.metadata) {
+    metaKey = `txApprovalMeta:${crypto.randomUUID()}`;
+    try {
+      await chrome.storage.session.set({ [metaKey]: params.metadata });
+    } catch (err) {
+      console.warn('[Background] Failed to stage approval metadata:', err);
+      metaKey = undefined;
+    }
+  }
+  const clearMeta = () => {
+    if (!metaKey) return;
+    chrome.storage.session
+      .remove(metaKey)
+      .catch((err) => console.warn('[Background] Failed to clear approval metadata:', err));
+  };
+
   return new Promise((resolve) => {
     const approvalUrl = chrome.runtime.getURL('approval/tx.html');
     const urlParams = new URLSearchParams({
@@ -575,6 +598,8 @@ async function showTransactionApprovalPopup(params: TxApprovalParams): Promise<b
       intent: params.intent || 'send',
       mode: params.mode || 'submit'
     });
+    if (metaKey) urlParams.set('metaKey', metaKey);
+    if (params.tokenCreate) urlParams.set('tokenCreate', JSON.stringify(params.tokenCreate));
     // RFC-005 #10: pass every output so the approval shows the full transaction,
     // not just the first output.
     if (params.outputs && params.outputs.length > 1) {
@@ -601,6 +626,7 @@ async function showTransactionApprovalPopup(params: TxApprovalParams): Promise<b
             }
             chrome.windows.onRemoved.removeListener(removedListener);
             windowRemoveListeners.delete(windowId);
+            clearMeta();
           }
         };
         windowRemoveListeners.set(window.id, () => {
@@ -609,6 +635,7 @@ async function showTransactionApprovalPopup(params: TxApprovalParams): Promise<b
         chrome.windows.onRemoved.addListener(removedListener);
       } else {
         console.error('[Background] Failed to open tx approval popup');
+        clearMeta();
         resolve(false);
       }
     });
@@ -2232,11 +2259,12 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
               addressIndex: Number(prepareResult.addressIndex)
             });
 
-            const meta = JSON.parse(String((tokenCreate as any).name));
-            meta.signtype = 'minima';
-            meta.signedby = (tokenCreate as any).signtoken;
-            meta.signature = tokenSignatureHex;
-            effectiveTokenCreate = { ...(tokenCreate as any), name: JSON.stringify(meta) };
+            const meta = attachTokenSignature(
+              String((tokenCreate as any).name),
+              String((tokenCreate as any).signtoken),
+              tokenSignatureHex
+            );
+            effectiveTokenCreate = { ...(tokenCreate as any), name: meta };
             txLog.info(' signtoken: token authorship signature attached');
           } catch (e: any) {
             return { ok: false, error: `signtoken failed: ${e?.message || String(e)}`, stage: 'token_sign', id };
@@ -4230,19 +4258,34 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
         const colorminima = BigInt(totalSupply) * (10n ** BigInt(decimals));
         const amountBaseUnits = (colorminima + burnBase).toString();
 
+        let tokenNameJson: string;
+        try {
+          tokenNameJson = JSON.stringify(metadata);
+        } catch {
+          return { ok: true, result: { success: false, error: 'metadata must be JSON-serialisable', errorCode: 'INVALID_REQUEST' }, id };
+        }
+        if (tokenNameJson.length > 64 * 1024) {
+          return { ok: true, result: { success: false, error: 'metadata is too large (max 64 KiB)', errorCode: 'INVALID_REQUEST' }, id };
+        }
+
         const approved = await showTransactionApprovalPopup({
           origin,
           to: recipientAddress || account.address,
           amount: totalSupply,
           tokenId: '0x00',
-          intent: 'tokencreate'
+          intent: 'tokencreate',
+          metadata,
+          tokenCreate: {
+            decimals,
+            totalSupply,
+            ...(typeof burn === 'string' && burn.length > 0 ? { burn } : {})
+          }
         });
         if (!approved) {
           return { ok: true, result: { success: false, error: 'Token creation rejected by user', errorCode: 'USER_REJECTED' }, id };
         }
 
         const internalSender: chrome.runtime.MessageSender = { id: chrome.runtime.id };
-        const tokenNameJson = JSON.stringify(metadata);
         const wotsResult = await handleMessage({
           method: 'WOTS_SEND',
           params: {
