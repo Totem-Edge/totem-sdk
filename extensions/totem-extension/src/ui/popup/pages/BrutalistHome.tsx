@@ -28,6 +28,7 @@ interface TokenData {
   total?: string;
   icon?: string;
   url?: string;
+  artimage?: string;
   type?: string;
   webvalidate?: string;
   owner?: string;
@@ -101,8 +102,9 @@ export function BrutalistHome({ onNavigate, onSelectToken, activeAccountAddress 
         unconfirmed: t.unconfirmed ?? '0',
         coins:       t.coins,
         total:       t.total,
-        icon:        parseTokenImageUrl(t.url) || parseTokenImageUrl(t.icon),
+        icon:        parseTokenImageUrl(t.icon) || parseTokenImageUrl(t.url) || parseTokenImageUrl(t.artimage),
         url:         t.url   ?? undefined,
+        artimage:    t.artimage ?? undefined,
         type:        t.kind,
         webvalidate: t.webvalidate ?? undefined,
         owner:       t.owner ?? undefined,

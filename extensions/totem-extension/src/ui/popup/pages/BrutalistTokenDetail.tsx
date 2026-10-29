@@ -17,6 +17,7 @@ export interface TokenDetailData {
   total?: string;
   icon?: string;
   url?: string;
+  artimage?: string;
   type?: string;
   decimals?: number;
   webvalidate?: string;
@@ -80,7 +81,7 @@ export function BrutalistTokenDetail({ token, onNavigate, onSendToken, onBack }:
   const formattedSendable = token.sendable ? formatAmount(token.sendable, 8) : formattedBalance;
   const formattedUnconfirmed = hasUnconfirmed ? formatAmount(token.unconfirmed!, 4) : null;
 
-  const initialArtworkUrl = parseTokenImageUrl(token.icon) || parseTokenImageUrl(token.url);
+  const initialArtworkUrl = parseTokenImageUrl(token.icon) || parseTokenImageUrl(token.url) || parseTokenImageUrl(token.artimage);
   const [artworkUrl, setArtworkUrl] = useState<string | undefined>(initialArtworkUrl);
   const [artworkLoading, setArtworkLoading] = useState(isNFT && !initialArtworkUrl);
   const [artworkError, setArtworkError] = useState(false);

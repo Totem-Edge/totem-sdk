@@ -45,3 +45,9 @@ export type {
   ResolveChainProviderOptions,
   ParsedMinimaRpcUrl,
 } from './resolve.js';
+
+// Raw command-level client for transaction assembly (RFC-073). The typed
+// ChainStateProvider covers reads; transaction backends also need the node's
+// command surface (`coinexport`, `txnimport`, `txnpost`, `sendtransaction`).
+export { createMinimaRpcClient } from '@totemsdk/minima-rpc';
+export type { MinimaRpcClient } from '@totemsdk/minima-rpc';

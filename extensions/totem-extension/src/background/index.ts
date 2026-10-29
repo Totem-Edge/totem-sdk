@@ -5451,16 +5451,21 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
           for (const e of entries) {
             if (e.kind === 'native' || e.tokenid === '0x00') continue;
             customTokens.push({
-              tokenid:   e.tokenid,
-              name:      e.name      ?? 'Unknown',
-              ticker:    e.ticker,
-              url:       e.url       ?? e.icon,
-              icon:      e.url       ?? e.icon,
-              type:      e.kind,
-              confirmed: e.confirmed ?? '0',
-              sendable:  e.confirmed ?? '0',
-              total:     e.total     ?? '0',
-              coins:     e.coins     ?? 0,
+              tokenid:     e.tokenid,
+              name:        e.name        ?? e.ticker ?? 'Unknown',
+              ticker:      e.ticker,
+              url:         e.url         ?? e.icon ?? e.artimage,
+              icon:        e.icon        ?? e.url  ?? e.artimage,
+              artimage:    e.artimage    ?? undefined,
+              description: e.description ?? undefined,
+              owner:       e.owner       ?? undefined,
+              webvalidate: e.webvalidate ?? undefined,
+              decimals:    e.decimals    ?? undefined,
+              type:        e.kind,
+              confirmed:   e.confirmed   ?? '0',
+              sendable:    e.confirmed   ?? '0',
+              total:       e.total       ?? '0',
+              coins:       e.coins       ?? 0,
             });
           }
         }));
