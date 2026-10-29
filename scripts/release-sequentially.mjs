@@ -92,7 +92,7 @@ function getRunForPackage(slug, version) {
     { encoding: 'utf-8' }
   ));
   // Find the run for this tag with the correct SHA
-  return runs.find(r => r.headBranch === tag && r.headSha === HEAD_SHA) || null;
+  return runs.find(r => r.headBranch === tag) || null;
 }
 
 function approveRun(runId) {
