@@ -4,6 +4,7 @@
  * Displayed before wallet init/password prompt
  */
 import React from 'react';
+import { getExtensionVersion } from '../../shared/extensionVersion';
 
 interface SplashScreenProps {
   isLoading?: boolean;
@@ -109,7 +110,7 @@ export function SplashScreen({ isLoading = true, onAnimationEnd }: SplashScreenP
           color: 'var(--text-muted, #6B7280)',
           opacity: 0.5,
         }}>
-          v1.0.0
+          v{getExtensionVersion()}
         </span>
       </div>
 

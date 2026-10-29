@@ -25,6 +25,7 @@ import { getPQStatusMessage, browserSupportsPQ } from '../../../utils/pqDetectio
 import { detectHawkPairing, storeHawkInvitation } from '../../../core/providers/hawkDetection';
 import { useTheme } from '../../theme/useTheme';
 import { useAnnouncements } from '../../hooks/useAnnouncements';
+import { getExtensionVersion } from '../../shared/extensionVersion';
 import { ConnectedSites } from './ConnectedSites';
 import '../../theme/axia-tokens.css';
 
@@ -1628,7 +1629,7 @@ export function BrutalistSettings({ onAccountsUpdated }: BrutalistSettingsProps 
               Version
             </Typography>
             <Typography variant="caption" style={{ opacity: 0.7, fontSize: 'var(--text-2xs)' }}>
-              Totem Wallet v1.0.0
+              Totem Wallet v{getExtensionVersion()}
             </Typography>
           </div>
         </div>}
