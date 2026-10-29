@@ -21,7 +21,9 @@
     "build:go": "cd go && go build -o ../bin/edge-modbus .",
     "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist bin",
-    "test": "jest"
+    "test": "jest",
+    "test:go": "cd go && go test -race ./... && go vet ./...",
+    "test:integration": "node --test test/sidecar.integration.mjs"
   },
   "files": [
     "dist",

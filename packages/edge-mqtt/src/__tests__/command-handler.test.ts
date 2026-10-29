@@ -277,3 +277,111 @@ describe('RFC-020 H5: signed-envelope verification order', () => {
     expect(second.ok).toBe(true);
   });
 });
+
+describe('RFC-074: bounded command validity', () => {
+  const now = 1_800_000_000_000;
+  beforeEach(() => { jest.useFakeTimers(); jest.setSystemTime(now); });
+  afterEach(() => { jest.useRealTimers(); });
+
+  it.each([
+    ['future issue', now + 1, now + 60_000],
+    ['expired', now - 1, now],
+    ['reversed lifetime', now, now - 1],
+    ['empty lifetime', now, now],
+    ['excessive lifetime', now, now + 60_001],
+    ['stale issue', now - 60_001, now + 1],
+    ['fractional issue', now - 0.5, now + 1],
+    ['invalid issue', null, now + 1],
+    ['fractional expiry', now, now + 0.5],
+    ['unsafe expiry', now, Number.MAX_SAFE_INTEGER + 1],
+  ])('rejects %s before verification, policy or execution', async (_label, issuedAt, expiresAt) => {
+    const { client } = makeMockClient();
+    const runtime = makeAllowedRuntime('validity');
+    const check = jest.spyOn(runtime.ports.policy!, 'check');
+    const verify = jest.fn(async () => true);
+    const execute = jest.fn(async () => ({ ok: true }));
+    const handler = createMqttCommandHandler({ runtime, client, verifyCommandSignature: verify, executor: { execute } });
+    const message = makeSignedMessage({ action: 'run' });
+    const body = JSON.parse(message.payload as string);
+    Object.assign(body.envelope, { issuedAt, expiresAt });
+    message.payload = JSON.stringify(body);
+    expect((await handler.handleCommand(message)).ok).toBe(false);
+    expect(verify).not.toHaveBeenCalled();
+    expect(check).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
+  });
+
+  it.each([now + 1, now - 60_001, -1, 0, now - 0.5])('rejects invalid legacy createdAt=%s', async (createdAt) => {
+    const { client } = makeMockClient();
+    const execute = jest.fn(async () => ({ ok: true }));
+    const handler = createMqttCommandHandler({
+      runtime: makeAllowedRuntime('legacy-time'), client, requireSignedCommands: false, executor: { execute },
+    });
+    expect((await handler.handleCommand(makeMsg('ping', { createdAt }))).ok).toBe(false);
+    expect(execute).not.toHaveBeenCalled();
+  });
+
+  it('rejects a command that expires while signature verification is pending', async () => {
+    const { client } = makeMockClient();
+    const execute = jest.fn(async () => ({ ok: true }));
+    const handler = createMqttCommandHandler({
+      runtime: makeAllowedRuntime('slow-verify'), client, executor: { execute },
+      async verifyCommandSignature() { jest.setSystemTime(now + 60_000); return true; },
+    });
+    expect((await handler.handleCommand(makeSignedMessage({}))).error).toMatch(/expired/);
+    expect(execute).not.toHaveBeenCalled();
+  });
+
+  it('rejects a command that expires while policy is pending', async () => {
+    const { client } = makeMockClient();
+    const runtime = makeAllowedRuntime('slow-policy');
+    runtime.ports.policy!.check = async () => {
+      jest.setSystemTime(now + 60_000);
+      return { ok: true, data: { allowed: true } };
+    };
+    const execute = jest.fn(async () => ({ ok: true }));
+    const handler = createMqttCommandHandler({
+      runtime, client, executor: { execute }, verifyCommandSignature: async () => true,
+    });
+    expect((await handler.handleCommand(makeSignedMessage({}))).error).toMatch(/expired/);
+    expect(execute).not.toHaveBeenCalled();
+  });
+
+  it('rejects a successful policy response without an explicit allowed decision', async () => {
+    const { client } = makeMockClient();
+    const runtime = makeAllowedRuntime('empty-policy');
+    runtime.ports.policy!.check = async () => ({ ok: true });
+    const execute = jest.fn(async () => ({ ok: true }));
+    const handler = createMqttCommandHandler({ runtime, client, executor: { execute }, requireSignedCommands: false });
+    expect((await handler.handleCommand(makeMsg('ping'))).ok).toBe(false);
+    expect(execute).not.toHaveBeenCalled();
+  });
+
+  it('keeps a replay claim through the inclusive maximum-age boundary', async () => {
+    const { client } = makeMockClient();
+    const execute = jest.fn(async () => ({ ok: true }));
+    const handler = createMqttCommandHandler({
+      runtime: makeAllowedRuntime('boundary'), client, executor: { execute }, requireSignedCommands: false,
+    });
+    const message = makeMsg('ping');
+    expect((await handler.handleCommand(message)).ok).toBe(true);
+    jest.setSystemTime(now + 60_000);
+    expect((await handler.handleCommand(message)).error).toMatch(/duplicate/);
+    jest.setSystemTime(now + 60_001);
+    expect((await handler.handleCommand(message)).error).toMatch(/too old/);
+    expect(execute).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([0, -1, NaN, Infinity, 0.5, Number.MAX_SAFE_INTEGER + 1])('rejects invalid max age %s', (maxCommandAgeMs) => {
+    const { client } = makeMockClient();
+    expect(() => createMqttCommandHandler({
+      runtime: makeAllowedRuntime('config'), client, maxCommandAgeMs,
+    })).toThrow(/positive safe integer/);
+  });
+
+  it.each(['null', '[]', '42'])('rejects non-object JSON %s', async (payload) => {
+    const { client } = makeMockClient();
+    const handler = createMqttCommandHandler({ runtime: makeAllowedRuntime('json'), client });
+    expect((await handler.handleCommand({ topic: 'commands', payload, receivedAt: now })).ok).toBe(false);
+  });
+});

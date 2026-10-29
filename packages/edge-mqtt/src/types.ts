@@ -199,7 +199,8 @@ export interface MqttProofPublisherConfig {
   seed?: Uint8Array;
   /**
    * WOTS lease provider for coordinated key-index reservation.
-   * When set, key indices are reserved via the provider.
+   * Required when a seed is supplied in proof-package mode. The provider must
+   * reserve indices durably and exclusively across publishers and restarts.
    */
   leaseProvider?: {
     reserveKeyUse(params: {
@@ -246,15 +247,18 @@ export interface MqttCommandExecutor {
 }
 
 /**
- * Minimal durable key/value surface used by the replay ledger. Aligns with
- * `@totemsdk/storage` `StorageAdapter`, but is dependency-light so edge-mqtt
- * can accept any adapter-shaped store.
+ * Atomic durable replay claims. Plain StorageAdapter get/set is insufficient.
+ * All handlers for a device must share the same store and validity settings.
  */
 export interface ReplayLedgerStore {
-  get<T>(key: string): Promise<T | null | undefined>;
-  set(key: string, value: unknown): Promise<void>;
-  remove(key: string): Promise<boolean | void>;
-  keys(): Promise<string[]>;
+  /**
+   * Atomically insert a claim only when no claim exists or its expiresAt < now.
+   * Return true only after the new claim is durable; false means duplicate.
+   * Entries must remain present through expiresAt (inclusive). This operation
+   * must be exclusive across every process using the store. On uncertainty,
+   * throw; never return true for a claim whose persistence is unknown.
+   */
+  claim(key: string, expiresAt: number, now: number): Promise<boolean>;
 }
 
 export interface MqttCommandHandlerConfig {
@@ -264,12 +268,12 @@ export interface MqttCommandHandlerConfig {
   receiptTopic?: string;
   executor?: MqttCommandExecutor;
   metadata?: Record<string, unknown>;
-  /** Maximum age of a command in milliseconds (default 60_000). */
+  /** Positive safe-integer maximum age/lifetime in ms (default 60_000). No future timestamps are accepted. */
   maxCommandAgeMs?: number;
   /**
-   * Durable store for the replay ledger. When provided, processed command IDs
-   * survive restarts (RFC-007 G4); otherwise an in-memory freshness window is
-   * used.
+   * Atomic durable store for device-scoped command claims. When provided,
+   * claims survive handler restarts (RFC-007 G4). Without it replay protection
+   * is limited to a single handler's lifetime; it is not a durable profile.
    */
   replayStore?: ReplayLedgerStore;
   /** Function to verify a command signature. */

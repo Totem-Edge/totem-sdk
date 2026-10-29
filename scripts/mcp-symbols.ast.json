@@ -770,7 +770,7 @@
         },
         "getCoins": {
           "kind": "function",
-          "signature": "getCoins(origin: string, params?: { tokenId?: string; address?: string; minAmount?: string; sendable?: boolean; relevant?: boolean; spent?: boolean; }): Promise<TotemGetCoinsResponse>"
+          "signature": "getCoins(origin: string, params?: { tokenId?: string; allTokens?: boolean; address?: string; minAmount?: string; sendable?: boolean; relevant?: boolean; spent?: boolean; }): Promise<TotemGetCoinsResponse>"
         },
         "getChainTip": {
           "kind": "function",
@@ -5665,7 +5665,7 @@
         "decodeNdefMessage": {
           "kind": "function",
           "signature": "decodeNdefMessage(bytes: Uint8Array): NdefRecord[]",
-          "doc": "Parse an NDEF message byte stream into records."
+          "doc": "Parse complete unchunked NDEF messages; malformed/truncated input throws."
         },
         "NfcGatewayConfig": {
           "kind": "interface",
@@ -9769,7 +9769,7 @@
         },
         "AnnouncementKind": {
           "kind": "type",
-          "signature": "export type AnnouncementKind = | 'service' | 'provider' | 'liquidity-pool' | 'credit-offer' | 'swap-rate' | 'router-capacity' | 'opportunity'"
+          "signature": "export type AnnouncementKind = | 'service' | 'provider' | 'liquidity-pool' | 'credit-offer' | 'swap-rate' | 'router-capacity' | 'opportunity' | 'sdk-release' | 'security-advisory'"
         },
         "AnnouncementCustodyMode": {
           "kind": "type",
@@ -9803,6 +9803,20 @@
           "kind": "type",
           "signature": "export type CreateAnnouncementInput<T = unknown> = Omit< AnnouncementEnvelope<T>, 'version' | 'announcementId' | 'payloadHash' >"
         },
+        "SdkReleasePayload": {
+          "kind": "interface",
+          "signature": "export interface SdkReleasePayload",
+          "doc": "Payload for `kind: 'sdk-release'` — package availability, never enforcement."
+        },
+        "SecurityAdvisoryPayload": {
+          "kind": "interface",
+          "signature": "export interface SecurityAdvisoryPayload",
+          "doc": "Payload for `kind: 'security-advisory'` — human action required, signed."
+        },
+        "PublishReleaseAnnouncementInput": {
+          "kind": "interface",
+          "signature": "export interface PublishReleaseAnnouncementInput<T>"
+        },
         "computeAnnouncementPayloadHash": {
           "kind": "function",
           "signature": "computeAnnouncementPayloadHash(payload: unknown): string"
@@ -9826,6 +9840,11 @@
         "signAnnouncement": {
           "kind": "function",
           "signature": "signAnnouncement<T>(announcement: AnnouncementEnvelope<T>, treeKey: TreeKey, useIndex: number): Promise<SignedAnnouncement<T>>"
+        },
+        "publishReleaseAnnouncement": {
+          "kind": "function",
+          "signature": "publishReleaseAnnouncement<T>(input: PublishReleaseAnnouncementInput<T>): Promise<SignedAnnouncement<T>>",
+          "doc": "Build, validate and sign a release/advisory announcement. The result is the\ncanonical envelope that lookup nodes replicate, so fleets verify a publisher\nsignature instead of trusting a JSON file over HTTPS."
         },
         "verifyAnnouncement": {
           "kind": "function",
@@ -9897,6 +9916,11 @@
           "signature": "createUpdateChecker(options?: UpdateCheckerOptions): UpdateChecker",
           "doc": "Awareness-only periodic check. It never installs, blocks, degrades or mutates\npackage state: it evaluates a feed and reports. Safe to embed in any SDK\nruntime, including long-lived edge adapters."
         },
+        "releaseFeedFromAnnouncements": {
+          "kind": "function",
+          "signature": "releaseFeedFromAnnouncements(signed: SignedReleaseAnnouncementLike[], options?: { now?: number; }): ReleaseFeed",
+          "doc": "Project publisher-signed announcements into the evaluator's feed shape.\n\nSigned announcements are the source of truth (they carry publisher, sequence\nand expiry); `release-feed.json` produced by scripts/emit-release-feed.mjs is\nonly a CI artifact / offline snapshot. Highest sequence wins per package or\nadvisory id; expired announcements are ignored."
+        },
         "ReleaseFeed": {
           "kind": "interface",
           "signature": "export interface ReleaseFeed"
@@ -9945,6 +9969,10 @@
         "UpdateCheckerOptions": {
           "kind": "interface",
           "signature": "export interface UpdateCheckerOptions"
+        },
+        "SignedReleaseAnnouncementLike": {
+          "kind": "interface",
+          "signature": "export interface SignedReleaseAnnouncementLike"
         }
       }
     },

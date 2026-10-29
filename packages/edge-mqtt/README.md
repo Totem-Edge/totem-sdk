@@ -18,6 +18,37 @@ npm install @noble/hashes
 
 ## Design
 
+### Command replay and signing requirements
+
+Signed commands must use safe-integer timestamps, must not be future-dated, and
+must have `issuedAt < expiresAt <= issuedAt + maxCommandAgeMs` (default 60 seconds).
+Expiry is exclusive. Legacy unsigned commands also receive age/future checks,
+but cannot provide authenticated replay protection.
+
+`replayStore` now requires `claim(key, expiresAt, now): Promise<boolean>` rather
+than a plain storage adapter. Implement it as one durable transaction/CAS: return
+`true` only when inserting an absent or expired claim succeeds, and `false` for
+an existing claim whose expiry is **greater than or equal to** `now`. Retain
+claims through expiry, including the boundary. A get-then-set implementation is
+unsafe and is not supported. All handlers for a device must use the same atomic
+store, validity settings and trusted clock. Keys are device-scoped. Existing
+get/set replay stores must be migrated before upgrading; preserve unexpired
+claims while switching formats, or quiesce command intake for the old acceptance
+window before starting the new handler.
+
+Without a store, claims are atomic only within one handler instance and are
+lost on restart. Store errors block execution. Claims are consumed before policy
+and executor work and remain consumed if that work fails or throws: an uncertain
+physical effect must be reconciled, not automatically retried with a new ID.
+Tests using an in-memory atomic store exercise handler recreation/concurrency;
+they do not qualify a disk store or process-crash recovery profile.
+
+In `proof-package` mode, supplying a signing `seed` also requires a durable
+`leaseProvider`. Missing lease providers fail configuration; there is no index-0
+fallback. An omitted seed produces an unsigned proof. The injected provider is
+responsible for unique reservations across publishers/restarts and for burning
+uncertain reservations.
+
 `@totemsdk/edge-mqtt` wraps an `EdgeRuntime` (from `@totemsdk/edge`) with an MQTT-aware dispatch layer. You supply the transport client; the package handles rule routing, sensor bridging, proof publication, command gating, MachinePay credit enforcement, offline queuing, and service manifests.
 
 ### Transport injection

@@ -18,8 +18,7 @@ if (manifest.private) {
 
 // A clean consumer workspace with NO overrides. Transitive @totemsdk/*
 // dependencies are resolved from the public registry, so this reproduces a
-// real `npm install @totemsdk/<pkg>` — unlike verify-consumer-pack.mjs, which
-// can only inspect an isolated tarball when unpublished siblings exist.
+// real `npm install @totemsdk/<pkg>`. Unresolvable dependencies fail the check.
 const workDir = mkdtempSync(join(tmpdir(), 'totemsdk-smoke-'));
 
 function run(command, args, cwd, env = process.env) {
@@ -50,8 +49,8 @@ try {
   };
 
   // If any @totemsdk/* sibling isn't resolvable on the public registry yet,
-  // this package cannot be smoke-installed as a consumer (baseline release
-  // before siblings ship). Log and skip rather than fail the build.
+  // this package cannot be verified as a consumer. Dependency ordering or a
+  // registry outage must be resolved before this gate can pass.
   const unresolved = [];
   for (const [name, range] of Object.entries(runtimeDeps)) {
     if (!name.startsWith('@totemsdk/')) continue;

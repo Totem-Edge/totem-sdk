@@ -1,5 +1,11 @@
 # @totemsdk/edge-nfc
 
+NDEF helpers encode and decode complete **unchunked** messages. Short and
+four-byte payload lengths and optional record IDs are supported. Decoding throws
+on truncated headers/bodies, inconsistent message boundaries, reserved TNFs or
+unsupported chunked records; it never returns partial or zero-padded payloads.
+Type and ID lengths are bounded by their encoded UTF-8 byte lengths (255 bytes).
+
 Edge runtime adapter for NFC — NDEF read/write/erase, ISO 14443-4 APDU transceive, P2P, and Host Card Emulation.
 
 ## Install

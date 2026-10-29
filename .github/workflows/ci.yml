@@ -127,6 +127,14 @@ jobs:
         run: npm run build
       - name: Build workspace (dependency order)
         run: node scripts/verify-workspace.mjs --typecheck
+      - name: Setup Go for Modbus cross-language contract
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: '1.21'
+          cache: true
+          cache-dependency-path: packages/edge-modbus/go/go.sum
+      - name: Modbus ESM/CJS to Go sidecar TCP contract (RFC-074)
+        run: pnpm --filter @totemsdk/edge-modbus test:integration
       - name: Custody golden-script fixtures (RFC-039)
         run: |
           for p in statechain omnia omnia-factory omnia-vtxo; do (cd "packages/$p" && npx tsc); done
@@ -210,6 +218,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Setup filtered workspace
         uses: ./.github/actions/setup-pnpm
+      - name: Fail-closed verifier and packed consumer regressions (RFC-074)
+        run: node --test scripts/__tests__/verify-workspace.test.mjs scripts/__tests__/verify-consumer-pack.test.mjs scripts/__tests__/smoke-release-install.test.mjs
       - name: Run lint gate
         run: node scripts/verify-workspace.mjs --lint
       - name: Validate npm metadata
@@ -369,3 +379,6 @@ jobs:
         # builds, vets and tests each (edge-can is Linux-only and compiles natively
         # on this runner).
         run: node scripts/verify-go.mjs
+      - name: Modbus concurrent unit-routing race tests (RFC-074)
+        working-directory: packages/edge-modbus/go
+        run: go test -race ./...

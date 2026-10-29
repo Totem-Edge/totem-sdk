@@ -14,7 +14,7 @@
  *   node scripts/verify-workspace.mjs --test
  *   node scripts/verify-workspace.mjs --integration
  *   node scripts/verify-workspace.mjs --pack
- *   node scripts/verify-workspace.mjs --maturity <level>  # Only run gates required for this maturity level
+ *   node scripts/verify-workspace.mjs --maturity <level>  # Run required gates for packages at this exact level
  *
  * Exit code is non-zero if any publishable package fails its gate. Excluded
  * packages are reported but never silently pass or fail — their exclusion is
@@ -70,7 +70,21 @@ const WORKSPACE_DIRS = new Set([...DISCOVERED_DIRS, ...CONFIGURED_DIRS]);
 
 // Gate flags ---------------------------------------------------------------
 const args = process.argv.slice(2);
-const wantAll = args.includes('--all') || args.length === 0;
+const gateFlags = ['--typecheck', '--lint', '--test', '--integration', '--pack'];
+for (let i = 0; i < args.length; i++) {
+  if (args[i] === '--maturity') {
+    if (i !== args.indexOf('--maturity')) {
+      console.error('FAIL: --maturity may only be specified once');
+      process.exit(2);
+    }
+    i++;
+  } else if (args[i] !== '--all' && !gateFlags.includes(args[i])) {
+    console.error(`FAIL: unknown argument '${args[i]}'`);
+    process.exit(2);
+  }
+}
+// A selector alone activates its required gates; it is never a no-op.
+const wantAll = args.includes('--all') || !gateFlags.some((flag) => args.includes(flag));
 const wantTypecheck = wantAll || args.includes('--typecheck');
 const wantLint = wantAll || args.includes('--lint');
 const wantTest = wantAll || args.includes('--test');
@@ -90,10 +104,18 @@ const MATURITY_GATES = config.maturityGates ?? {
   v1: ['typecheck', 'lint', 'test', 'pack', 'integration'],
 };
 
-if (maturityIndex >= 0 && !MATURITY_GATES[maturityLevel]) {
+if (maturityIndex >= 0 && !Object.hasOwn(MATURITY_GATES, maturityLevel)) {
   console.error(`FAIL: invalid maturity level '${String(maturityLevel)}' (expected ${Object.keys(MATURITY_GATES).join(', ')})`);
   process.exit(2);
 }
+
+const enabledGates = new Set([
+  ...(wantTypecheck ? ['typecheck'] : []),
+  ...(wantLint ? ['lint'] : []),
+  ...(wantTest ? ['test'] : []),
+  ...(wantIntegration ? ['integration'] : []),
+  ...(wantPack ? ['pack'] : []),
+]);
 
 function isGateRequiredForMaturity(gateName, maturity) {
   const requiredGates = MATURITY_GATES[maturity] ?? MATURITY_GATES.alpha;
@@ -117,11 +139,11 @@ const results = [];
 let failures = 0;
 let prerequisiteBuildsDone = false;
 
-function run(cwd, cmd, label) {
+function run(cwd, cmd, label, evidence = true) {
   const r = spawnSync(cmd, { cwd, shell: true, encoding: 'utf8' });
   const ok = r.status === 0;
   if (!ok) failures += 1;
-  results.push({ label, ok, output: r.stdout + r.stderr });
+  results.push({ label, ok, evidence, output: r.stdout + r.stderr });
   if (!ok) {
     process.stdout.write(`\n--- FAIL: ${label}\n`);
     process.stdout.write((r.stdout + r.stderr).slice(-6000) + '\n');
@@ -194,14 +216,32 @@ const SELECTED_PUBLISHABLE = maturityLevel
   ? ORDERED_PUBLISHABLE.filter(([, meta]) => meta.maturity === maturityLevel)
   : ORDERED_PUBLISHABLE;
 
-function runBuildGate(labelPrefix) {
+// Build only selected packages and their workspace dependency closure.
+const BUILD_DIRS = new Set();
+const NAME_TO_DIR = new Map([...WORKSPACE_DIRS].map((dir) => [readPackageManifest(dir)?.name, dir]));
+function collectBuildDependencies(dir) {
+  if (BUILD_DIRS.has(dir)) return;
+  BUILD_DIRS.add(dir);
+  const manifest = readPackageManifest(dir);
+  for (const deps of [manifest?.dependencies, manifest?.devDependencies, manifest?.peerDependencies, manifest?.optionalDependencies]) {
+    for (const name of Object.keys(deps ?? {})) {
+      const dependency = NAME_TO_DIR.get(name);
+      if (dependency) collectBuildDependencies(dependency);
+    }
+  }
+}
+for (const [dir] of SELECTED_PUBLISHABLE) collectBuildDependencies(dir);
+const SELECTED_DIRS = new Set(SELECTED_PUBLISHABLE.map(([dir]) => dir));
+
+function runBuildGate(labelPrefix, evidence = false) {
   process.stdout.write(`── ${labelPrefix} build prerequisites (dependency order) ──\n`);
   for (const [dir] of ORDERED_WORKSPACE) {
+    if (!BUILD_DIRS.has(dir)) continue;
     const pkgDir = join(ROOT, dir);
     const manifest = readPackageManifest(dir);
     if (!manifest) { failures += 1; results.push({ label: `${dir}: missing package.json`, ok: false }); continue; }
     if (manifest.scripts?.build) {
-      run(pkgDir, 'npm run build', `${dir}: build`);
+      run(pkgDir, 'npm run build', `${dir}: build`, evidence && SELECTED_DIRS.has(dir));
     }
   }
   process.stdout.write('\n');
@@ -263,7 +303,7 @@ if (STALE_CONFIG.length > 0) {
 
 // 0b. Fail-closed evidence: every selected package must declare the scripts
 // required by its maturity. A missing gate is a failure, not a silent skip.
-// A package may declare a reviewed notApplicable entry in workspace-gates.config.
+// A package may declare an owned/reasoned notApplicable entry in workspace-gates.config.
 if (SELECTED_PUBLISHABLE.length === 0) {
   failures += 1;
   results.push({ label: 'maturity selection: no packages selected', ok: false });
@@ -279,18 +319,33 @@ const GATE_SCRIPTS = {
 for (const [dir, meta] of SELECTED_PUBLISHABLE) {
   const manifest = readPackageManifest(dir);
   if (!manifest) continue;
-  const required = MATURITY_GATES[meta.maturity] ?? MATURITY_GATES.alpha;
+  if (!Object.hasOwn(MATURITY_GATES, meta.maturity)) {
+    failures += 1;
+    results.push({ label: `${dir}: invalid maturity '${meta.maturity}'`, ok: false });
+    continue;
+  }
+  const required = MATURITY_GATES[meta.maturity];
   for (const gate of required) {
+    if (!gateFlags.includes(`--${gate}`)) {
+      failures += 1;
+      results.push({ label: `${dir}: unsupported required gate '${gate}'`, ok: false });
+      process.stdout.write(`FAIL: ${dir}: unsupported required gate '${gate}'\n`);
+      continue;
+    }
+    if (!enabledGates.has(gate)) continue;
     const script = GATE_SCRIPTS[gate];
     if (!script) continue;
     if (manifest.scripts?.[script]) continue;
-    if (meta.notApplicable?.[gate]) {
-      results.push({ label: `${dir}: ${gate} not applicable (${meta.notApplicable[gate]})`, ok: true });
+    const exemption = meta.notApplicable?.[gate];
+    if (typeof exemption?.owner === 'string' && exemption.owner.trim() &&
+        typeof exemption?.reason === 'string' && exemption.reason.trim()) {
+      results.push({ label: `${dir}: ${gate} not applicable (${exemption.owner}: ${exemption.reason})`, skipped: true });
+      process.stdout.write(`N/A: ${dir}: ${gate} (${exemption.owner}: ${exemption.reason})\n`);
       continue;
     }
     failures += 1;
     results.push({ label: `${dir}: missing required ${script} script for ${meta.maturity}`, ok: false });
-    process.stdout.write(`FAIL: ${dir} is ${meta.maturity} but has no '${script}' script for gate '${gate}'\n`);
+    process.stdout.write(`FAIL: ${dir}: missing required ${script} script for ${meta.maturity} gate '${gate}'\n`);
   }
 }
 
@@ -334,7 +389,7 @@ if (wantLint) {
 if (wantTypecheck) {
   // Most packages expose built dist files through package exports. Build in
   // dependency order so each package can resolve local workspace siblings.
-  runBuildGate('typecheck');
+  runBuildGate('typecheck', true);
   prerequisiteBuildsDone = true;
 }
 
@@ -401,6 +456,11 @@ if (wantPack) {
 }
 
 // Report -------------------------------------------------------------------
+if (!results.some((result) => result.evidence)) {
+  failures += 1;
+  results.push({ label: 'no selected gate commands executed', ok: false });
+  process.stdout.write('FAIL: no selected gate commands executed (hygiene, prerequisites and N/A are not gate execution)\n');
+}
 process.stdout.write('\n══════════════════════════════════════════════════════\n');
 process.stdout.write('Excluded packages (not published; machine-readable reason in config):\n');
 for (const [dir, meta] of EXCLUDED) {
@@ -411,6 +471,7 @@ if (maturityLevel) {
   process.stdout.write(`Maturity filter: ${maturityLevel}\n`);
   process.stdout.write(`  Gates required: ${(MATURITY_GATES[maturityLevel] ?? []).join(', ')}\n\n`);
 }
-process.stdout.write(`Gates: ${results.filter((r) => r.ok).length} passed, ${results.filter((r) => !r.ok).length} failed, ${SELECTED_PUBLISHABLE.length} selected\n`);
+process.stdout.write(`Gates: ${results.filter((r) => r.ok).length} passed, ${results.filter((r) => r.ok === false).length} failed, ${results.filter((r) => r.skipped).length} N/A, ${SELECTED_PUBLISHABLE.length} selected\n`);
+process.stdout.write(`Selected gate commands executed: ${results.filter((r) => r.evidence).length}\n`);
 process.stdout.write(failures === 0 ? 'VERIFY: PASS\n' : 'VERIFY: FAIL\n');
 process.exit(failures === 0 ? 0 : 1);

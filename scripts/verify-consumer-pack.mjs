@@ -49,11 +49,23 @@ try {
   }
 
   const rootExport = manifest.exports?.['.'] ?? manifest.exports;
-  const supportsImport = typeof rootExport === 'string' || Boolean(rootExport?.import);
-  const requireTarget = typeof rootExport === 'object' ? rootExport?.require : undefined;
-  const supportsRequire = typeof requireTarget === 'string'
-    && requireTarget.endsWith('.cjs')
-    && existsSync(join(installedDir, requireTarget.replace(/^\.\//, '')));
+  function hasCondition(target, condition) {
+    if (!target || typeof target !== 'object') return false;
+    if (Array.isArray(target)) return target.some((item) => hasCondition(item, condition));
+    return Object.hasOwn(target, condition) || hasCondition(target.node, condition);
+  }
+  const defaultTarget = typeof rootExport === 'string' ? rootExport
+    : typeof rootExport?.default === 'string' ? rootExport.default : undefined;
+  const supportsImport = Boolean(defaultTarget) || hasCondition(rootExport, 'import') ||
+    (!manifest.exports && Boolean(manifest.main));
+  // CommonJS .js targets and nested {types, default} branches are normal. Let
+  // Node load them and fail if broken; target existence must never suppress a probe.
+  const supportsRequire = hasCondition(rootExport, 'require') ||
+    (Boolean(defaultTarget) && (defaultTarget.endsWith('.cjs') || manifest.type !== 'module')) ||
+    (!manifest.exports && manifest.type !== 'module' && Boolean(manifest.main));
+  if (!supportsImport && !supportsRequire) {
+    throw new Error(`No supported root import/require probes selected for ${manifest.name}`);
+  }
   const probe = `
     import { createRequire } from 'node:module';
     const packageName = process.env.PACKAGE_NAME;

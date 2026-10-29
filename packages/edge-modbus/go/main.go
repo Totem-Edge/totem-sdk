@@ -30,7 +30,7 @@ type Config struct {
 
 type Request struct {
 	ID    string `json:"id"`
-	Frame string `json:"frame"` // hex-encoded raw Modbus frame
+	Frame string `json:"frame"` // hex unit-prefixed PDU; no MBAP header or RTU CRC
 }
 
 type Response struct {
@@ -46,13 +46,13 @@ type PushFrame struct {
 }
 
 type Server struct {
-	config   Config
-	handler  modbus.ClientHandler
-	client   modbus.Client
-	mu       sync.RWMutex
-	conns    map[net.Conn]struct{}
-	listener net.Listener
-	stopCh   chan struct{}
+	config    Config
+	handler   modbus.ClientHandler
+	requestMu sync.Mutex // Protect unit selection and the entire exchange.
+	mu        sync.RWMutex
+	conns     map[net.Conn]struct{}
+	listener  net.Listener
+	stopCh    chan struct{}
 }
 
 func main() {
@@ -98,7 +98,6 @@ func NewServer(config Config) (*Server, error) {
 	return &Server{
 		config:  config,
 		handler: handler,
-		client:  modbus.NewClient(handler),
 		conns:   make(map[net.Conn]struct{}),
 		stopCh:  make(chan struct{}),
 	}, nil
@@ -107,7 +106,9 @@ func NewServer(config Config) (*Server, error) {
 func createHandler(config Config) (modbus.ClientHandler, error) {
 	switch strings.ToLower(config.Mode) {
 	case "tcp":
-		return modbus.NewTCPClientHandler(config.TCPAddr), nil
+		handler := modbus.NewTCPClientHandler(config.TCPAddr)
+		handler.Timeout = time.Duration(config.TimeoutMs) * time.Millisecond
+		return handler, nil
 	case "rtu":
 		handler := modbus.NewRTUClientHandler(config.SerialPort)
 		handler.BaudRate = config.BaudRate
@@ -198,144 +199,6 @@ func (s *Server) handleConn(conn net.Conn) {
 	if err := scanner.Err(); err != nil {
 		log.Printf("[edge-modbus] Scanner error: %v", err)
 	}
-}
-
-func (s *Server) sendRawFrame(frame []byte) ([]byte, error) {
-	if len(frame) < 2 {
-		return nil, fmt.Errorf("frame too short (%d bytes)", len(frame))
-	}
-
-	unitID := frame[0]
-	functionCode := frame[1]
-
-	switch functionCode {
-	case 1: // Read Coils
-		if len(frame) < 4 {
-			return nil, fmt.Errorf("read coils frame too short")
-		}
-		addr := uint16(frame[2])<<8 | uint16(frame[3])
-		count := uint16(0)
-		if len(frame) >= 6 {
-			count = uint16(frame[4])<<8 | uint16(frame[5])
-		}
-		results, err := s.client.ReadCoils(addr, count)
-		if err != nil {
-			return nil, fmt.Errorf("read coils (unit=%d, addr=%d, count=%d): %w", unitID, addr, count, err)
-		}
-		return buildResponse(unitID, functionCode, results), nil
-
-	case 2: // Read Discrete Inputs
-		if len(frame) < 4 {
-			return nil, fmt.Errorf("read discrete inputs frame too short")
-		}
-		addr := uint16(frame[2])<<8 | uint16(frame[3])
-		count := uint16(0)
-		if len(frame) >= 6 {
-			count = uint16(frame[4])<<8 | uint16(frame[5])
-		}
-		results, err := s.client.ReadDiscreteInputs(addr, count)
-		if err != nil {
-			return nil, fmt.Errorf("read discrete inputs (unit=%d, addr=%d, count=%d): %w", unitID, addr, count, err)
-		}
-		return buildResponse(unitID, functionCode, results), nil
-
-	case 3: // Read Holding Registers
-		if len(frame) < 4 {
-			return nil, fmt.Errorf("read holding registers frame too short")
-		}
-		addr := uint16(frame[2])<<8 | uint16(frame[3])
-		count := uint16(0)
-		if len(frame) >= 6 {
-			count = uint16(frame[4])<<8 | uint16(frame[5])
-		}
-		results, err := s.client.ReadHoldingRegisters(addr, count)
-		if err != nil {
-			return nil, fmt.Errorf("read holding registers (unit=%d, addr=%d, count=%d): %w", unitID, addr, count, err)
-		}
-		return buildResponse(unitID, functionCode, results), nil
-
-	case 4: // Read Input Registers
-		if len(frame) < 4 {
-			return nil, fmt.Errorf("read input registers frame too short")
-		}
-		addr := uint16(frame[2])<<8 | uint16(frame[3])
-		count := uint16(0)
-		if len(frame) >= 6 {
-			count = uint16(frame[4])<<8 | uint16(frame[5])
-		}
-		results, err := s.client.ReadInputRegisters(addr, count)
-		if err != nil {
-			return nil, fmt.Errorf("read input registers (unit=%d, addr=%d, count=%d): %w", unitID, addr, count, err)
-		}
-		return buildResponse(unitID, functionCode, results), nil
-
-	case 5: // Write Single Coil
-		if len(frame) < 4 {
-			return nil, fmt.Errorf("write single coil frame too short")
-		}
-		addr := uint16(frame[2])<<8 | uint16(frame[3])
-		value := uint16(0)
-		if len(frame) >= 6 {
-			value = uint16(frame[4])<<8 | uint16(frame[5])
-		}
-		if _, err := s.client.WriteSingleCoil(addr, value); err != nil {
-			return nil, fmt.Errorf("write single coil (unit=%d, addr=%d): %w", unitID, addr, err)
-		}
-		return frame, nil
-
-	case 6: // Write Single Register
-		if len(frame) < 4 {
-			return nil, fmt.Errorf("write single register frame too short")
-		}
-		addr := uint16(frame[2])<<8 | uint16(frame[3])
-		value := uint16(0)
-		if len(frame) >= 6 {
-			value = uint16(frame[4])<<8 | uint16(frame[5])
-		}
-		if _, err := s.client.WriteSingleRegister(addr, value); err != nil {
-			return nil, fmt.Errorf("write single register (unit=%d, addr=%d): %w", unitID, addr, err)
-		}
-		return frame, nil
-
-	case 15: // Write Multiple Coils
-		if len(frame) < 6 {
-			return nil, fmt.Errorf("write multiple coils frame too short")
-		}
-		addr := uint16(frame[2])<<8 | uint16(frame[3])
-		quantity := uint16(frame[4])<<8 | uint16(frame[5])
-		byteCount := int(frame[6])
-		values := make([]byte, byteCount)
-		copy(values, frame[7:7+byteCount])
-		if _, err := s.client.WriteMultipleCoils(addr, quantity, values); err != nil {
-			return nil, fmt.Errorf("write multiple coils (unit=%d, addr=%d, qty=%d): %w", unitID, addr, quantity, err)
-		}
-		return frame[:6], nil
-
-	case 16: // Write Multiple Registers
-		if len(frame) < 6 {
-			return nil, fmt.Errorf("write multiple registers frame too short")
-		}
-		addr := uint16(frame[2])<<8 | uint16(frame[3])
-		quantity := uint16(frame[4])<<8 | uint16(frame[5])
-		byteCount := int(frame[6])
-		values := make([]byte, byteCount)
-		copy(values, frame[7:7+byteCount])
-		if _, err := s.client.WriteMultipleRegisters(addr, quantity, values); err != nil {
-			return nil, fmt.Errorf("write multiple registers (unit=%d, addr=%d, qty=%d): %w", unitID, addr, quantity, err)
-		}
-		return frame[:6], nil
-
-	default:
-		return nil, fmt.Errorf("unsupported function code: %d", functionCode)
-	}
-}
-
-func buildResponse(unitID byte, functionCode byte, data []byte) []byte {
-	resp := make([]byte, 2+len(data))
-	resp[0] = unitID
-	resp[1] = functionCode
-	copy(resp[2:], data)
-	return resp
 }
 
 func (s *Server) writeResponse(conn net.Conn, resp Response) {

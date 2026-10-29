@@ -1,11 +1,12 @@
 /**
  * Modbus Sensor Bridge — maps Modbus register reads to Edge proof inputs.
  *
- * Uses RTU frame format (no MBAP header) to match the Go native binary.
+ * Shares gateway validation so malformed responses never become sensor proofs.
  */
 
 import type { EdgeRuntime } from '@totemsdk/edge';
-import type { ModbusTransportPort, ModbusMessage } from './transport.js';
+import type { ModbusTransportPort } from './transport.js';
+import { createModbusGateway } from './gateway.js';
 import type { ModbusGateway } from './gateway.js';
 
 export interface ModbusSensorBinding {
@@ -35,18 +36,17 @@ export interface ModbusSensorBridge {
 export function createModbusSensorBridge(config: ModbusSensorBridgeConfig): ModbusSensorBridge {
   const timers: ReturnType<typeof setInterval>[] = [];
   let running = false;
+  const gateway = config.gateway ?? createModbusGateway({ runtime: config.runtime, transport: config.transport });
 
   async function pollBinding(binding: ModbusSensorBinding): Promise<void> {
     try {
-      let values: unknown;
-      const frame = buildReadFrame(binding.unitId, binding.functionCode, binding.address, binding.count);
-      const response = await config.transport.sendFrame(frame);
-
-      if (binding.functionCode === 1 || binding.functionCode === 2) {
-        values = parseCoils(response, binding.count);
-      } else if (binding.functionCode === 3 || binding.functionCode === 4) {
-        values = parseRegisters(response, binding.count);
-      }
+      const args = [binding.unitId, binding.address, binding.count] as const;
+      const result = binding.functionCode === 1 ? await gateway.readCoils(...args)
+        : binding.functionCode === 2 ? await gateway.readDiscreteInputs(...args)
+          : binding.functionCode === 3 ? await gateway.readHoldingRegisters(...args)
+            : binding.functionCode === 4 ? await gateway.readInputRegisters(...args) : undefined;
+      if (!result?.ok || !result.data) return;
+      const values = result.data.values;
 
       if (config.runtime.ports.proof) {
         await config.runtime.ports.proof.createProof({
@@ -88,35 +88,4 @@ export function createModbusSensorBridge(config: ModbusSensorBridgeConfig): Modb
       }
     },
   };
-}
-
-// ── RTU frame builder (no MBAP header — matches Go binary) ────────────────
-
-function buildReadFrame(unitId: number, fc: number, address: number, count: number): Uint8Array {
-  const buf = new Uint8Array(8);
-  buf[0] = unitId;
-  buf[1] = fc;
-  new DataView(buf.buffer).setUint16(2, address, false);
-  new DataView(buf.buffer).setUint16(4, count, false);
-  buf[6] = 0; buf[7] = 0;
-  return buf;
-}
-
-// ── Response parsers (RTU format — no MBAP header) ────────────────────────
-
-function parseCoils(response: Uint8Array, count: number): boolean[] {
-  const result: boolean[] = [];
-  for (let i = 0; i < count; i++) {
-    const byte = response[3 + Math.floor(i / 8)] ?? 0;
-    result.push(((byte >> (i % 8)) & 1) === 1);
-  }
-  return result;
-}
-
-function parseRegisters(response: Uint8Array, count: number): number[] {
-  const result: number[] = [];
-  for (let i = 0; i < count; i++) {
-    result.push(new DataView(response.buffer, response.byteOffset + 3 + i * 2, 2).getUint16(0, false));
-  }
-  return result;
 }

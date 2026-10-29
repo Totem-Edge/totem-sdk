@@ -4,17 +4,17 @@
  * Modes:
  *   'edge-port'    — delegates to runtime.ports.proof.createProof (default).
  *                     The port is responsible for signing.
- *   'proof-package' — uses createProof() + signProof() / signWithLease() from
+ *   'proof-package' — uses createProof() + signWithLease() from
  *                      @totemsdk/proof directly when config.seed is provided.
  *
  * Both modes bind the raw MQTT payload bytes (as an evidence hash) into the
  * proof so that payload tampering invalidates the WOTS signature.
  *
- * In proof-package mode a WOTS lease provider should be wired to prevent
+ * In proof-package mode a WOTS lease provider is required for signing to prevent
  * key-index reuse across concurrent signing operations or restarts.
  */
 
-import { createProof, signProof, signWithLease, toHex, sha3_256 } from '@totemsdk/proof';
+import { createProof, signWithLease, toHex, sha3_256 } from '@totemsdk/proof';
 import type { UnsignedProof, SignedProof } from '@totemsdk/proof';
 import { canonicalJson, computeMqttEventId } from './canonical.js';
 import type { MqttMessage } from './client-port.js';
@@ -33,6 +33,9 @@ function rawPayloadEvidence(rawPayload: Uint8Array | string): { id: string; kind
 
 export function createMqttProofPublisher(config: MqttProofPublisherConfig): MqttProofPublisher {
   const proofMode = config.proofMode ?? 'edge-port';
+  if (proofMode === 'proof-package' && config.seed && !config.leaseProvider) {
+    throw new Error('proof-package signing requires a durable WOTS leaseProvider');
+  }
 
   return {
     async createProofFromMessage(
@@ -100,7 +103,7 @@ export function createMqttProofPublisher(config: MqttProofPublisherConfig): Mqtt
               treeId: config.leaseTreeId,
             });
           } else {
-            proof = signProof(unsigned, config.seed, 0);
+            throw new Error('proof-package signing requires a durable WOTS leaseProvider');
           }
           proofId = (proof as SignedProof).proofId;
         } else {

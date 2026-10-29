@@ -8,12 +8,10 @@
  *      the same policy + executor pipeline (verification skipped). Available
  *      only when `config.requireSignedCommands === false` on trusted networks.
  *
- * Replay protection: processed command IDs are tracked for the maximum
- * command validity period (config.maxCommandAgeMs, default 60s). When a
- * durable replay store is configured (config.replayStore), the ledger is
- * persisted so a command accepted before a restart is still rejected
- * afterward (RFC-007 G4). Without a store it falls back to the in-memory
- * freshness window.
+ * Replay claims are atomic and retained through the command's maximum valid
+ * acceptance time. A configured replayStore must provide durable atomic claims
+ * across all handlers/processes for the device. Without it claims are local to
+ * this handler and are lost on restart.
  */
 
 import { createMqttReceipt, publishMqttReceipt } from './receipts.js';
@@ -32,16 +30,22 @@ import type {
 const REPLAY_VALIDITY_MS = 60_000;
 const REPLAY_LEDGER_PREFIX = 'totem_mqtt_replay:';
 
+function parseBody(raw: string): Record<string, unknown> {
+  try {
+    const value: unknown = JSON.parse(raw);
+    return value !== null && typeof value === 'object' && !Array.isArray(value)
+      ? value as Record<string, unknown>
+      : {};
+  } catch {
+    return {};
+  }
+}
+
 function parseCommand(message: MqttMessage): MqttCommand {
-  let body: Record<string, unknown> = {};
   const raw = message.payload instanceof Uint8Array
     ? new TextDecoder().decode(message.payload)
     : message.payload;
-  try {
-    body = JSON.parse(raw) as Record<string, unknown>;
-  } catch {
-    body = {};
-  }
+  const body = parseBody(raw);
 
   return {
     commandId: typeof body.commandId === 'string' ? body.commandId : '',
@@ -73,67 +77,41 @@ function parseSignedEnvelope(body: Record<string, unknown>): SignedCommandEnvelo
   };
 }
 
-interface LedgerEntry {
-  seenAt: number;
-}
-
 class ReplayLedger {
   private readonly seen = new Map<string, number>();
-  private lastMemoryPrune = 0;
 
   constructor(
-    private readonly maxAgeMs: number,
+    private readonly deviceId: string,
     private readonly store?: ReplayLedgerStore,
   ) {}
 
   private key(id: string): string {
-    return `${REPLAY_LEDGER_PREFIX}${id}`;
+    return `${REPLAY_LEDGER_PREFIX}${JSON.stringify([this.deviceId, id])}`;
   }
 
-  private pruneMemory(now: number): void {
-    if (now - this.lastMemoryPrune <= this.maxAgeMs) return;
-    for (const [id, seenAt] of this.seen) {
-      if (now - seenAt > this.maxAgeMs) this.seen.delete(id);
+  /** Claims before any policy/executor await. No claims are released on errors. */
+  async claim(commandId: string, expiresAt: number, now: number): Promise<boolean> {
+    if (this.store) return this.store.claim(this.key(commandId), expiresAt, now);
+    for (const [id, expiry] of this.seen) {
+      if (expiry < now) this.seen.delete(id);
     }
-    this.lastMemoryPrune = now;
-  }
-
-  private async load(id: string): Promise<number | undefined> {
-    if (!this.store) {
-      return this.seen.get(id);
-    }
-    const entry = await this.store.get<LedgerEntry>(this.key(id));
-    return entry?.seenAt;
-  }
-
-  private async persist(id: string, seenAt: number): Promise<void> {
-    if (!this.store) {
-      this.seen.set(id, seenAt);
-      return;
-    }
-    await this.store.set(this.key(id), { seenAt } satisfies LedgerEntry);
-  }
-
-  /** Returns true if the command id was already processed (replay). */
-  async mark(commandId: string): Promise<boolean> {
-    const now = Date.now();
-    this.pruneMemory(now);
-    const seenAt = await this.load(commandId);
-    if (seenAt !== undefined && now - seenAt <= this.maxAgeMs) {
-      return true;
-    }
-    if (seenAt !== undefined && this.store) {
-      // Expired entry: drop it so the ledger stays bounded, then re-record.
-      await this.store.remove(this.key(commandId));
-    }
-    await this.persist(commandId, now);
-    return false;
+    const previous = this.seen.get(commandId);
+    if (previous !== undefined && previous >= now) return false;
+    // No await between lookup and insertion: concurrent deliveries cannot both win.
+    this.seen.set(commandId, expiresAt);
+    return true;
   }
 }
 
 export function createMqttCommandHandler(config: MqttCommandHandlerConfig): MqttCommandHandler {
   const maxAgeMs = config.maxCommandAgeMs ?? REPLAY_VALIDITY_MS;
-  const ledger = new ReplayLedger(maxAgeMs, config.replayStore);
+  if (!Number.isSafeInteger(maxAgeMs) || maxAgeMs <= 0) {
+    throw new Error('maxCommandAgeMs must be a positive safe integer');
+  }
+  if (config.replayStore && typeof config.replayStore.claim !== 'function') {
+    throw new Error('replayStore must provide an atomic durable claim operation');
+  }
+  const ledger = new ReplayLedger(config.runtime.deviceId, config.replayStore);
 
   return {
     async handleCommand(message: MqttMessage): Promise<EdgeOperationResult> {
@@ -145,11 +123,10 @@ export function createMqttCommandHandler(config: MqttCommandHandlerConfig): Mqtt
       };
 
       // Parse envelope (signed) or legacy unsigned command body.
-      let body: Record<string, unknown> = {};
       const raw = message.payload instanceof Uint8Array
         ? new TextDecoder().decode(message.payload)
         : message.payload;
-      try { body = JSON.parse(raw) as Record<string, unknown>; } catch { body = {}; }
+      const body = parseBody(raw);
 
       const envelope = parseSignedEnvelope(body);
       const requireSignedCommands = config.requireSignedCommands !== false;
@@ -187,28 +164,32 @@ export function createMqttCommandHandler(config: MqttCommandHandlerConfig): Mqtt
         }
       }
 
-      // Signed envelope validity windows.
-      if (envelope) {
-        if (Date.now() > envelope.expiresAt) {
-          const reason = 'Rejected: command envelope expired';
-          await emitRejected(envelope.commandId, reason);
-          return { ok: false, error: reason, errorCode: 'MQTT_POLICY_REJECTED' };
-        }
-        if (Date.now() - envelope.issuedAt > maxAgeMs) {
-          const reason = 'Rejected: command too old';
-          await emitRejected(envelope.commandId, reason);
-          return { ok: false, error: reason, errorCode: 'MQTT_POLICY_REJECTED' };
-        }
-      }
-
       // Replay protection: commandId and createdAt must be present.
       if (!command.commandId) {
         const reason = 'Rejected: missing commandId';
         await emitRejected(command.commandId, reason);
         return { ok: false, error: reason, errorCode: 'MQTT_POLICY_REJECTED' };
       }
-      if (!command.createdAt) {
-        const reason = 'Rejected: missing createdAt — replay prevention';
+      const validityError = (now: number): string | undefined => {
+        if (!Number.isSafeInteger(command.createdAt) || command.createdAt <= 0 ||
+            !Number.isSafeInteger(command.createdAt + maxAgeMs)) {
+          return 'Rejected: invalid createdAt — replay prevention';
+        }
+        if (command.createdAt > now) return 'Rejected: command issued in the future';
+        if (now - command.createdAt > maxAgeMs) return 'Rejected: command too old';
+        if (envelope) {
+          if (!Number.isSafeInteger(envelope.expiresAt) ||
+              envelope.expiresAt <= envelope.issuedAt ||
+              envelope.expiresAt - envelope.issuedAt > maxAgeMs) {
+            return 'Rejected: invalid command envelope lifetime';
+          }
+          if (now >= envelope.expiresAt) return 'Rejected: command envelope expired';
+        }
+        return undefined;
+      };
+      const initialValidityError = validityError(Date.now());
+      if (initialValidityError) {
+        const reason = initialValidityError;
         await emitRejected(command.commandId, reason);
         return { ok: false, error: reason, errorCode: 'MQTT_POLICY_REJECTED' };
       }
@@ -223,14 +204,29 @@ export function createMqttCommandHandler(config: MqttCommandHandlerConfig): Mqtt
           return { ok: false, error: reason, errorCode: 'MQTT_POLICY_REJECTED' };
         }
         const valid = await config.verifyCommandSignature(envelope);
-        if (!valid) {
+        if (valid !== true) {
           const reason = 'Rejected: invalid command signature';
           await emitRejected(envelope.commandId, reason);
           return { ok: false, error: reason, errorCode: 'MQTT_POLICY_REJECTED' };
         }
       }
 
-      if (await ledger.mark(command.commandId)) {
+      // Verification may be asynchronous; do not claim or execute an expired command.
+      const claimTime = Date.now();
+      const verifiedValidityError = validityError(claimTime);
+      if (verifiedValidityError) {
+        await emitRejected(command.commandId, verifiedValidityError);
+        return { ok: false, error: verifiedValidityError, errorCode: 'MQTT_POLICY_REJECTED' };
+      }
+      let claimed: boolean;
+      try {
+        claimed = await ledger.claim(command.commandId, command.createdAt + maxAgeMs, claimTime);
+      } catch {
+        const reason = 'Rejected: replay claim unavailable — execution blocked';
+        await emitRejected(command.commandId, reason);
+        return { ok: false, error: reason, errorCode: 'MQTT_REPLAY_UNAVAILABLE' };
+      }
+      if (claimed !== true) {
         const reason = 'Rejected: duplicate commandId — replay prevented';
         await emitRejected(command.commandId, reason);
         return { ok: false, error: reason, errorCode: 'MQTT_POLICY_REJECTED' };
@@ -249,7 +245,7 @@ export function createMqttCommandHandler(config: MqttCommandHandlerConfig): Mqtt
         context: { commandId: command.commandId, topic: message.topic },
       });
 
-      if (!decision.ok || (decision.data && !decision.data.allowed)) {
+      if (!decision.ok || decision.data?.allowed !== true) {
         const reason = decision.data?.reason ?? decision.error ?? 'Policy denied';
         await emitRejected(command.commandId, reason);
         return { ok: false, error: reason, errorCode: 'MQTT_POLICY_REJECTED' };
@@ -261,6 +257,11 @@ export function createMqttCommandHandler(config: MqttCommandHandlerConfig): Mqtt
         return { ok: false, error: 'No command executor injected', errorCode: 'NO_EXECUTOR' };
       }
 
+      const executionValidityError = validityError(Date.now());
+      if (executionValidityError) {
+        await emitRejected(command.commandId, executionValidityError);
+        return { ok: false, error: executionValidityError, errorCode: 'MQTT_POLICY_REJECTED' };
+      }
       const result = await config.executor.execute({
         commandId: command.commandId,
         command: command.command,

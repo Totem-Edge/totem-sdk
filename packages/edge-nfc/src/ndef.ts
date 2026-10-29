@@ -25,17 +25,22 @@ export function encodeNdefMessage(records: NdefRecord[]): Uint8Array {
 
 function encodeRecord(record: NdefRecord, first: boolean, last: boolean): Uint8Array {
   const typeBytes = enc8(record.type);
-  const idBytes = record.id ? enc8(record.id) : new Uint8Array(0);
+  const hasId = record.id !== undefined;
+  const idBytes = hasId ? enc8(record.id ?? '') : new Uint8Array(0);
   const payload = record.payload;
   const shortPayload = payload.length <= 0xff;
+  validateRecord(record.tnf, typeBytes.length, idBytes.length, payload.length);
+  if (typeBytes.length > 0xff || idBytes.length > 0xff || payload.length > 0xffffffff) {
+    throw new Error('NDEF type, ID or payload exceeds its encoded length field');
+  }
 
-  const header = new Uint8Array(3 + typeBytes.length + idBytes.length);
+  const header = new Uint8Array(2 + (shortPayload ? 1 : 4) + (hasId ? 1 : 0) + typeBytes.length + idBytes.length);
   let o = 0;
   const flags =
     (first ? 0x80 : 0) |
     (last ? 0x40 : 0) |
     (shortPayload ? 0x10 : 0) |
-    (record.id ? 0x08 : 0) |
+    (hasId ? 0x08 : 0) |
     record.tnf;
   header[o++] = flags;
   header[o++] = typeBytes.length;
@@ -47,53 +52,70 @@ function encodeRecord(record: NdefRecord, first: boolean, last: boolean): Uint8A
     header[o++] = (payload.length >>> 8) & 0xff;
     header[o++] = payload.length & 0xff;
   }
-  if (record.id) header[o++] = idBytes.length;
+  if (hasId) header[o++] = idBytes.length;
   header.set(typeBytes, o);
   o += typeBytes.length;
-  if (record.id) {
+  if (hasId) {
     header.set(idBytes, o);
     o += idBytes.length;
   }
   return concat([header.subarray(0, o), payload]);
 }
 
-/** Parse an NDEF message byte stream into records. */
+/** Parse complete unchunked NDEF messages; malformed/truncated input throws. */
 export function decodeNdefMessage(bytes: Uint8Array): NdefRecord[] {
   const records: NdefRecord[] = [];
   let o = 0;
+  const requireBytes = (length: number): void => {
+    if (length > bytes.length - o) throw new Error('Truncated NDEF message');
+  };
   while (o < bytes.length) {
+    requireBytes(2);
     const flags = bytes[o++];
-    if (o > bytes.length) break;
+    if (((flags & 0x80) !== 0) !== (records.length === 0)) throw new Error('Invalid NDEF message-begin flag');
+    if ((flags & 0x20) !== 0) throw new Error('Chunked NDEF records are not supported');
     const tnf = flags & 0x07;
     const shortRecord = (flags & 0x10) !== 0;
     const il = (flags & 0x08) !== 0;
 
-    if (o >= bytes.length) break;
     const typeLength = bytes[o++];
     let payloadLength: number;
     if (shortRecord) {
-      payloadLength = bytes[o++] ?? 0;
+      requireBytes(1);
+      payloadLength = bytes[o++];
     } else {
-      if (o + 4 > bytes.length) break;
-      payloadLength =
-        ((bytes[o] << 24) |
-          ((bytes[o + 1] << 16) >>> 0) |
-          ((bytes[o + 2] << 8) >>> 0) |
-          (bytes[o + 3] >>> 0)) >>> 0;
+      requireBytes(4);
+      payloadLength = new DataView(bytes.buffer, bytes.byteOffset + o, 4).getUint32(0, false);
       o += 4;
     }
-    const idLength = il ? (bytes[o++] ?? 0) : 0;
+    if (il) requireBytes(1);
+    const idLength = il ? bytes[o++] : 0;
+    validateRecord(tnf, typeLength, idLength, payloadLength);
+    // Validate the entire body before allocating a payload; declared lengths
+    // from untrusted tags must not trigger huge allocations or zero-padding.
+    requireBytes(typeLength + idLength + payloadLength);
     const type = dec8(bytes.subarray(o, o + typeLength));
     o += typeLength;
     const id = il ? dec8(bytes.subarray(o, o + idLength)) : undefined;
     o += idLength;
-    const payload = new Uint8Array(payloadLength);
-    const end = Math.min(o + payloadLength, bytes.length);
-    payload.set(bytes.subarray(o, end));
-    o = end;
+    const payload = bytes.slice(o, o + payloadLength);
+    o += payloadLength;
     records.push({ tnf, type, payload, id });
+    if ((flags & 0x40) !== 0) {
+      if (o !== bytes.length) throw new Error('Trailing bytes after NDEF message end');
+      return records;
+    }
   }
+  if (records.length) throw new Error('Missing NDEF message-end flag');
   return records;
+}
+
+function validateRecord(tnf: number, typeLength: number, idLength: number, payloadLength: number): void {
+  if (!Number.isInteger(tnf) || tnf < 0 || tnf > 5) throw new Error('Unsupported or reserved NDEF TNF');
+  if (tnf === 0 && (typeLength !== 0 || idLength !== 0 || payloadLength !== 0)) {
+    throw new Error('NDEF empty record must not carry type, ID or payload');
+  }
+  if (tnf === 5 && typeLength !== 0) throw new Error('NDEF unknown record must not carry a type');
 }
 
 function enc8(s: string): Uint8Array {

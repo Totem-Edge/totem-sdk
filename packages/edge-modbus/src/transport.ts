@@ -10,7 +10,13 @@ export interface ModbusTransportPort {
   connect(): Promise<void>;
   /** Close the connection. */
   disconnect(): Promise<void>;
-  /** Send a raw Modbus frame and receive the response. */
+  /**
+   * Exchange [unitId, functionCode, ...PDU data], with no CRC or MBAP header.
+   * Reads return [unitId, functionCode, byteCount, ...data]; successful writes
+   * return [unitId, functionCode, addressHi, addressLo, valueOrCountHi, valueOrCountLo].
+   * The binding must validate wire CRC/MBAP transaction identity and must not
+   * retry writes automatically when the physical outcome is uncertain.
+   */
   sendFrame(frame: Uint8Array): Promise<Uint8Array>;
   /** Register a handler for unsolicited/inbound frames. */
   onFrame(handler: (frame: Uint8Array) => void): () => void;

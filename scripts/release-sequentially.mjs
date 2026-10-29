@@ -6,6 +6,7 @@ import { execSync, execFileSync } from 'node:child_process';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '..');
+const excludeEdge = process.argv.includes('--exclude-edge');
 
 const gates = JSON.parse(
   fs.readFileSync(path.join(REPO_ROOT, 'scripts/workspace-gates.config.json'), 'utf-8')
@@ -107,7 +108,7 @@ function approveRun(runId) {
   const envIds = deps.map(d => d.environment.id);
   const result = apiPost(
     `https://api.github.com/repos/Totem-Edge/totem-sdk/actions/runs/${runId}/pending_deployments`,
-    JSON.stringify({ environment_ids: envIds, state: 'approved', comment: 'Approved for V1 release' })
+    JSON.stringify({ environment_ids: envIds, state: 'approved', comment: 'Approved SDK package publication; maturity and support tier unchanged' })
   );
   return result.includes('npm-production');
 }
@@ -164,6 +165,10 @@ const failures = [];
 for (const pkg of toRelease) {
   const tag = `totemsdk/${pkg.slug}-v${pkg.version}`;
   console.log(`\n[${pkg.name}@${pkg.version}] (maturity: ${pkg.maturity})`);
+  if (excludeEdge && (pkg.slug === 'edge' || pkg.slug.startsWith('edge-'))) {
+    console.log('  ⏸️  Edge publication deferred pending RFC-074 qualification');
+    continue;
+  }
   if (await isPublished(pkg.name, pkg.version)) {
     console.log('  ⏭️  Already published on npm');
     successCount++;

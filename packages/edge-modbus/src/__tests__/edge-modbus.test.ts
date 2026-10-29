@@ -63,12 +63,12 @@ describe('edge-modbus gateway', () => {
     await expect(gw.start()).rejects.toThrow('connect failed');
   });
 
-  it('readCoils builds an RTU read frame (FC1) and parses bit response', async () => {
+  it('readCoils builds a CRC-free unit-prefixed PDU (FC1) and parses bit response', async () => {
     const transport = new MockModbusTransport();
     transport.responses.push(new Uint8Array([1, 1, 1, 0x0A]));
     const gw = createModbusGateway({ runtime: makeRuntime(), transport });
     const res = await gw.readCoils(1, 10, 4);
-    expect(Array.from(transport.sent[0])).toEqual([1, 1, 0, 10, 0, 4, 0, 0]);
+    expect(Array.from(transport.sent[0])).toEqual([1, 1, 0, 10, 0, 4]);
     expect(res).toEqual({ ok: true, data: { values: [false, true, false, true] } });
   });
 
@@ -92,7 +92,7 @@ describe('edge-modbus gateway', () => {
 
   it('readInputRegisters uses FC4', async () => {
     const transport = new MockModbusTransport();
-    transport.responses.push(new Uint8Array([1, 4, 2, 0xAB, 0xCD]));
+    transport.responses.push(new Uint8Array([7, 4, 2, 0xAB, 0xCD]));
     const gw = createModbusGateway({ runtime: makeRuntime(), transport });
     const res = await gw.readInputRegisters(7, 50, 1);
     expect(transport.sent[0][1]).toBe(4);
@@ -101,29 +101,29 @@ describe('edge-modbus gateway', () => {
 
   it('writeSingleCoil encodes FC5 with 0xFF00 for true and 0x0000 for false', async () => {
     const transport = new MockModbusTransport();
-    transport.responses.push(new Uint8Array([1, 5, 0, 20, 0xFF, 0, 0, 0]));
-    transport.responses.push(new Uint8Array([1, 5, 0, 20, 0x00, 0, 0, 0]));
+    transport.responses.push(new Uint8Array([1, 5, 0, 20, 0xFF, 0]));
+    transport.responses.push(new Uint8Array([1, 5, 0, 20, 0x00, 0]));
     const gw = createModbusGateway({ runtime: makeRuntime(), transport });
     const on = await gw.writeSingleCoil(1, 20, true);
     const off = await gw.writeSingleCoil(1, 20, false);
-    expect(Array.from(transport.sent[0])).toEqual([1, 5, 0, 20, 0xFF, 0x00, 0, 0]);
-    expect(Array.from(transport.sent[1])).toEqual([1, 5, 0, 20, 0x00, 0x00, 0, 0]);
+    expect(Array.from(transport.sent[0])).toEqual([1, 5, 0, 20, 0xFF, 0x00]);
+    expect(Array.from(transport.sent[1])).toEqual([1, 5, 0, 20, 0x00, 0x00]);
     expect(on).toEqual({ ok: true });
     expect(off).toEqual({ ok: true });
   });
 
   it('writeSingleRegister encodes FC6 with the register value', async () => {
     const transport = new MockModbusTransport();
-    transport.responses.push(new Uint8Array([1, 6, 0, 30, 0x12, 0x34, 0, 0]));
+    transport.responses.push(new Uint8Array([1, 6, 0, 30, 0x12, 0x34]));
     const gw = createModbusGateway({ runtime: makeRuntime(), transport });
     const res = await gw.writeSingleRegister(1, 30, 0x1234);
-    expect(Array.from(transport.sent[0])).toEqual([1, 6, 0, 30, 0x12, 0x34, 0, 0]);
+    expect(Array.from(transport.sent[0])).toEqual([1, 6, 0, 30, 0x12, 0x34]);
     expect(res).toEqual({ ok: true });
   });
 
   it('writeMultipleCoils encodes FC15 with packed bit data', async () => {
     const transport = new MockModbusTransport();
-    transport.responses.push(new Uint8Array([1, 15, 0, 40, 0, 8, 1, 0]));
+    transport.responses.push(new Uint8Array([1, 15, 0, 40, 0, 8]));
     const gw = createModbusGateway({ runtime: makeRuntime(), transport });
     const res = await gw.writeMultipleCoils(1, 40, [true, false, true, false, false, false, false, true]);
     expect(Array.from(transport.sent[0])).toEqual([1, 15, 0, 40, 0, 8, 1, 0b10000101]);
@@ -132,7 +132,7 @@ describe('edge-modbus gateway', () => {
 
   it('writeMultipleRegisters encodes FC16 with byte count and values', async () => {
     const transport = new MockModbusTransport();
-    transport.responses.push(new Uint8Array([1, 16, 0, 50, 0, 2, 4, 0]));
+    transport.responses.push(new Uint8Array([1, 16, 0, 50, 0, 2]));
     const gw = createModbusGateway({ runtime: makeRuntime(), transport });
     const res = await gw.writeMultipleRegisters(1, 50, [0x1111, 0x2222]);
     expect(Array.from(transport.sent[0])).toEqual([1, 16, 0, 50, 0, 2, 4, 0x11, 0x11, 0x22, 0x22]);
@@ -165,9 +165,85 @@ describe('edge-modbus gateway', () => {
     expect(gw.status).toBe('error');
     await gw.stop();
   });
+
+  it.each([
+    [], [1], [2, 1, 1, 0], [1, 2, 1, 0], [1, 1, 0],
+    [1, 1, 1], [1, 1, 2, 0, 0], [1, 1, 1, 0, 0], [1, 0x81], [1, 0x82, 2],
+  ])('rejects malformed/wrong read responses %j instead of zero-padding', async (...bytes: number[]) => {
+    const transport = new MockModbusTransport();
+    transport.responses.push(Uint8Array.from(bytes));
+    const gw = createModbusGateway({ runtime: makeRuntime(), transport });
+    expect((await gw.readCoils(1, 0, 1)).ok).toBe(false);
+  });
+
+  it.each([
+    [], [1, 6], [2, 6, 0, 30, 0x12, 0x34], [1, 5, 0, 30, 0x12, 0x34],
+    [1, 6, 0, 31, 0x12, 0x34], [1, 6, 0, 30, 0x12, 0x35], [1, 6, 0, 30, 0x12, 0x34, 0],
+  ])('treats missing/mismatched write acknowledgements %j as unknown', async (...bytes: number[]) => {
+    const transport = new MockModbusTransport();
+    transport.responses.push(Uint8Array.from(bytes));
+    const gw = createModbusGateway({ runtime: makeRuntime(), transport });
+    const result = await gw.writeSingleRegister(1, 30, 0x1234);
+    expect(result.errorCode).toBe('MODBUS_WRITE_OUTCOME_UNKNOWN');
+    expect(transport.sent).toHaveLength(1);
+  });
+
+  it('validates multi-write acknowledgement quantity', async () => {
+    const transport = new MockModbusTransport();
+    transport.responses.push(Uint8Array.from([1, 16, 0, 0, 0, 2]));
+    const gw = createModbusGateway({ runtime: makeRuntime(), transport });
+    expect((await gw.writeMultipleRegisters(1, 0, [7])).errorCode).toBe('MODBUS_WRITE_OUTCOME_UNKNOWN');
+  });
+
+  it('does not retry a timed-out write and distinguishes a device exception', async () => {
+    const transport = new MockModbusTransport();
+    transport.failSend = true;
+    const gw = createModbusGateway({ runtime: makeRuntime(), transport });
+    expect((await gw.writeSingleRegister(1, 0, 7)).errorCode).toBe('MODBUS_WRITE_OUTCOME_UNKNOWN');
+    expect(transport.sent).toHaveLength(1);
+    transport.failSend = false;
+    transport.responses.push(Uint8Array.from([1, 0x86, 2]));
+    expect((await gw.writeSingleRegister(1, 0, 7)).errorCode).toBe('MODBUS_EXCEPTION');
+  });
+
+  it.each([
+    [0, 0, 1], [248, 0, 1], [1.5, 0, 1], [1, -1, 1], [1, 65536, 1],
+    [1, 0, 0], [1, 0, 126], [1, 65535, 2], [1, 0, NaN],
+  ])('rejects invalid register-read arguments (%s, %s, %s) before I/O', async (unit, address, count) => {
+    const transport = new MockModbusTransport();
+    const gw = createModbusGateway({ runtime: makeRuntime(), transport });
+    expect((await gw.readHoldingRegisters(unit, address, count)).ok).toBe(false);
+    expect(transport.sent).toHaveLength(0);
+  });
+
+  it('rejects empty/excessive writes and invalid register values before I/O', async () => {
+    const transport = new MockModbusTransport();
+    const gw = createModbusGateway({ runtime: makeRuntime(), transport });
+    const results = await Promise.all([
+      gw.writeMultipleCoils(1, 0, []), gw.writeMultipleRegisters(1, 0, []),
+      gw.writeMultipleRegisters(1, 0, Array(124).fill(1)),
+      gw.writeMultipleCoils(1, 0, Array(1969).fill(false)),
+      gw.writeSingleRegister(1, 0, -1), gw.writeSingleRegister(1, 0, 65536),
+      gw.writeMultipleRegisters(1, 0, [1.5]),
+    ]);
+    expect(results.every((result) => result.errorCode === 'MODBUS_INVALID_REQUEST')).toBe(true);
+    expect(transport.sent).toHaveLength(0);
+  });
 });
 
 describe('edge-modbus sensor bridge', () => {
+  it('never creates sensor evidence from a truncated or wrong-unit response', async () => {
+    const transport = new MockModbusTransport();
+    transport.responses.push(Uint8Array.from([1, 1, 1]), Uint8Array.from([2, 1, 1, 0]));
+    const proof = makeProof();
+    const bridge = createModbusSensorBridge({
+      runtime: makeRuntime(proof), transport,
+      bindings: [{ sensorId: 'coil', unitId: 1, functionCode: 1, address: 0, count: 1, intervalMs: 1000, dataType: 'coil' }],
+    });
+    await bridge.poll();
+    await bridge.poll();
+    expect(proof.createProof).not.toHaveBeenCalled();
+  });
   it('poll creates proofs with parsed register values', async () => {
     const transport = new MockModbusTransport();
     transport.responses.push(new Uint8Array([1, 3, 4, 0x01, 0x02, 0x03, 0x04]));

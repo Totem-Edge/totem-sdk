@@ -1,6 +1,6 @@
 # RFC-074 — Edge Transport Qualification and Fail-Closed Release Gates
 
-**Status:** Draft — proposed; implementation begins after the current package publication train completes. No edge-family v1 promotion is authorised until Phase 0 and Phase 1 exit criteria pass.
+**Status:** Draft — implementation in progress on `rfc-074/edge-gates`, concurrently with non-edge publications. No edge-family v1 promotion is authorised until Phase 0 and Phase 1 exit criteria pass.
 **Priority:** P0
 **Created:** 2026-10-29
 **Authors:** Totem SDK Contributors
@@ -268,7 +268,7 @@ TS↔native protocol contract. Compilation alone is not evidence.
 5. What is the rollback policy for a promoted connector if a later release loses
    its binding evidence?
 
-## 13. Sequencing after the publication train
+## 13. Sequencing alongside the publication train
 
 1. Land Phase 0 gate repairs and obtain a green protected baseline.
 2. Fix MQTT and Modbus defects.
@@ -279,3 +279,55 @@ TS↔native protocol contract. Compilation alone is not evidence.
 
 The publication train may finish independently. It must not be used to declare
 any edge profile production-ready.
+
+## 14. Implementation progress (2026-10-29)
+
+Work is isolated on `rfc-074/edge-gates`. The local publication controller runs
+with `--exclude-edge`, deferring `edge` and every `edge-*` package while allowing
+unrelated immutable-tag publications to continue. Existing release tags do not
+contain these fixes; follow-up versions are required after qualification.
+
+### Implemented and exercised
+
+- Workspace maturity selectors are validated and select the exact package
+  maturity. A selector alone executes its configured requirements. Selected
+  prerequisite builds include the dependency closure, not unrelated packages.
+  Missing enabled requirements fail. N/A records require `owner` and `reason`,
+  are reported separately, and cannot produce an all-skipped PASS. Hygiene and
+  prerequisite-only work cannot stand in for executed gate commands.
+- Consumer checks install sibling dependencies and evaluate advertised ESM/CJS
+  root exports, including nested CommonJS `.js` entries. Missing dependencies,
+  broken entries and zero selected probes fail. Release smoke no longer exits
+  successfully when sibling registry resolution fails. Four real tarball/npm
+  consumer regressions, ten executable workspace-verifier regressions and two
+  controlled registry/install-failure release-smoke regressions pass. CI includes
+  these regressions plus the Modbus integration and Go race checks.
+- MQTT command claims use an atomic durable store contract; get/set-only stores
+  are rejected. Handler-local claims are atomic across concurrent deliveries.
+  Safe-integer timestamps, future/age/lifetime limits and expiry after async
+  verification/policy are checked. Uncertain claim persistence blocks execution;
+  claims remain consumed after executor errors. Signing with a seed requires a
+  lease provider. All 163 package tests and ESM/CJS compilation pass.
+- Modbus uses one unit-prefixed, CRC/MBAP-free PDU contract. Requests, response
+  identity/length/count and actual write echoes are validated. Sensor proofs use
+  the same validated gateway. Go serializes exchanges and applies each request's
+  unit ID. Uncertain writes are not retried. All 48 TypeScript tests, Go race
+  tests/vet and an ESM/CJS-to-Go JSON-line/TCP simulator integration pass.
+- NFC allocates the complete SR/long-payload/ID header and bounds-checks complete
+  messages before payload allocation. Truncated, invalid-boundary and unsupported
+  chunked records throw instead of producing partial/zero-padded records. All 43
+  package tests and ESM/CJS compilation pass.
+
+### Remaining exit criteria
+
+Phase 0 and Phase 1 are **not closed**. The real v1 lint invocation now fails
+because all 18 selected packages lack lint scripts. Shared lint, distinct v1
+requirements, dependency-closure/type/subpath consumer coverage and protected
+merge checks still need implementation/evidence. Consumer regressions use local
+file dependencies; they do not establish registry-wide closure compatibility.
+
+MQTT tests simulate an atomic shared store and lease provider. A real durable
+store's multi-process/crash recovery, broker binding and clock/replay recovery
+profile remain unqualified. Modbus evidence covers loopback TCP, not serial
+hardware/RTU recovery or native binary distribution. Full prepared-command
+binding and unknown physical-effect reconciliation remain Phase 2 work.
