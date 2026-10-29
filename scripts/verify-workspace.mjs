@@ -76,7 +76,8 @@ const wantLint = wantAll || args.includes('--lint');
 const wantTest = wantAll || args.includes('--test');
 const wantIntegration = wantAll || args.includes('--integration');
 const wantPack = wantAll || args.includes('--pack');
-const maturityLevel = args.includes('--maturity') ? args[args.indexOf('--maturity') + 1] : null;
+const maturityIndex = args.indexOf('--maturity');
+const maturityLevel = maturityIndex >= 0 ? args[maturityIndex + 1] : null;
 
 // Forbidden suppression markers in publishable-package scripts -------------
 const FORBIDDEN_SCRIPT_MARKERS = ['|| true', '||true', '--passWithNoTests', 'echo \'no tests\'', 'echo "no tests"', 'echo "no tests yet"'];
@@ -88,6 +89,11 @@ const MATURITY_GATES = config.maturityGates ?? {
   rc: ['typecheck', 'lint', 'test', 'pack', 'integration'],
   v1: ['typecheck', 'lint', 'test', 'pack', 'integration'],
 };
+
+if (maturityIndex >= 0 && !MATURITY_GATES[maturityLevel]) {
+  console.error(`FAIL: invalid maturity level '${String(maturityLevel)}' (expected ${Object.keys(MATURITY_GATES).join(', ')})`);
+  process.exit(2);
+}
 
 function isGateRequiredForMaturity(gateName, maturity) {
   const requiredGates = MATURITY_GATES[maturity] ?? MATURITY_GATES.alpha;
@@ -184,6 +190,9 @@ function getWorkspaceOrder() {
 
 const ORDERED_WORKSPACE = getWorkspaceOrder();
 const ORDERED_PUBLISHABLE = ORDERED_WORKSPACE.filter(([dir]) => PUBLISHABLE_DIRS.has(dir));
+const SELECTED_PUBLISHABLE = maturityLevel
+  ? ORDERED_PUBLISHABLE.filter(([, meta]) => meta.maturity === maturityLevel)
+  : ORDERED_PUBLISHABLE;
 
 function runBuildGate(labelPrefix) {
   process.stdout.write(`── ${labelPrefix} build prerequisites (dependency order) ──\n`);
@@ -227,6 +236,7 @@ function packageHasTestFiles(pkgDir) {
 
 process.stdout.write(`Workspace verification gate\n`);
 process.stdout.write(`  publishable packages: ${PUBLISHABLE.length}\n`);
+if (maturityLevel) process.stdout.write(`  selected for ${maturityLevel}: ${SELECTED_PUBLISHABLE.length}\n`);
 process.stdout.write(`  excluded packages:    ${EXCLUDED.length}\n`);
 process.stdout.write(`  discovered packages:  ${DISCOVERED_DIRS.size}\n\n`);
 
@@ -251,10 +261,43 @@ if (STALE_CONFIG.length > 0) {
   process.stdout.write('\n');
 }
 
+// 0b. Fail-closed evidence: every selected package must declare the scripts
+// required by its maturity. A missing gate is a failure, not a silent skip.
+// A package may declare a reviewed notApplicable entry in workspace-gates.config.
+if (SELECTED_PUBLISHABLE.length === 0) {
+  failures += 1;
+  results.push({ label: 'maturity selection: no packages selected', ok: false });
+  process.stdout.write(`FAIL: no publishable packages selected for maturity '${String(maturityLevel)}'\n`);
+}
+
+const GATE_SCRIPTS = {
+  typecheck: 'build',
+  lint: 'lint',
+  test: 'test',
+  integration: 'test:integration',
+};
+for (const [dir, meta] of SELECTED_PUBLISHABLE) {
+  const manifest = readPackageManifest(dir);
+  if (!manifest) continue;
+  const required = MATURITY_GATES[meta.maturity] ?? MATURITY_GATES.alpha;
+  for (const gate of required) {
+    const script = GATE_SCRIPTS[gate];
+    if (!script) continue;
+    if (manifest.scripts?.[script]) continue;
+    if (meta.notApplicable?.[gate]) {
+      results.push({ label: `${dir}: ${gate} not applicable (${meta.notApplicable[gate]})`, ok: true });
+      continue;
+    }
+    failures += 1;
+    results.push({ label: `${dir}: missing required ${script} script for ${meta.maturity}`, ok: false });
+    process.stdout.write(`FAIL: ${dir} is ${meta.maturity} but has no '${script}' script for gate '${gate}'\n`);
+  }
+}
+
 // 1. Script-hygiene gate: no suppression markers in publishable packages ----
 if (wantLint) {
   process.stdout.write('── script hygiene (publishable packages) ──────────────\n');
-  for (const [dir, meta] of ORDERED_PUBLISHABLE) {
+  for (const [dir, meta] of SELECTED_PUBLISHABLE) {
     if (!shouldRunGate('lint', meta.maturity)) continue;
     const pj = join(ROOT, dir, 'package.json');
     if (!existsSync(pj)) {
@@ -298,7 +341,7 @@ if (wantTypecheck) {
 // 3. Lint gate -------------------------------------------------------------
 if (wantLint) {
   process.stdout.write('── lint (publishable packages with a lint script) ──────\n');
-  for (const [dir, meta] of ORDERED_PUBLISHABLE) {
+  for (const [dir, meta] of SELECTED_PUBLISHABLE) {
     if (!shouldRunGate('lint', meta.maturity)) continue;
     const pkgDir = join(ROOT, dir);
     const pj = join(pkgDir, 'package.json');
@@ -315,7 +358,7 @@ if (wantLint) {
 if (wantTest) {
   ensurePrerequisiteBuilds('test');
   process.stdout.write('── unit tests (publishable packages with a test script) ──\n');
-  for (const [dir, meta] of ORDERED_PUBLISHABLE) {
+  for (const [dir, meta] of SELECTED_PUBLISHABLE) {
     if (!shouldRunGate('test', meta.maturity)) continue;
     const pkgDir = join(ROOT, dir);
     const pj = join(pkgDir, 'package.json');
@@ -332,7 +375,7 @@ if (wantTest) {
 if (wantIntegration) {
   ensurePrerequisiteBuilds('integration');
   process.stdout.write('── integration (publishable packages with a test:integration script) ──\n');
-  for (const [dir, meta] of ORDERED_PUBLISHABLE) {
+  for (const [dir, meta] of SELECTED_PUBLISHABLE) {
     if (!shouldRunGate('integration', meta.maturity)) continue;
     const pkgDir = join(ROOT, dir);
     const pj = join(pkgDir, 'package.json');
@@ -349,7 +392,7 @@ if (wantIntegration) {
 if (wantPack) {
   ensurePrerequisiteBuilds('pack');
   process.stdout.write('── pack (publishable packages) ─────────────────────────\n');
-  for (const [dir, meta] of ORDERED_PUBLISHABLE) {
+  for (const [dir, meta] of SELECTED_PUBLISHABLE) {
     if (!shouldRunGate('pack', meta.maturity)) continue;
     const pkgDir = join(ROOT, dir);
     run(pkgDir, 'npm pack --dry-run --json', `${dir}: pack --dry-run`);
@@ -368,6 +411,6 @@ if (maturityLevel) {
   process.stdout.write(`Maturity filter: ${maturityLevel}\n`);
   process.stdout.write(`  Gates required: ${(MATURITY_GATES[maturityLevel] ?? []).join(', ')}\n\n`);
 }
-process.stdout.write(`Gates: ${results.filter((r) => r.ok).length} passed, ${results.filter((r) => !r.ok).length} failed\n`);
+process.stdout.write(`Gates: ${results.filter((r) => r.ok).length} passed, ${results.filter((r) => !r.ok).length} failed, ${SELECTED_PUBLISHABLE.length} selected\n`);
 process.stdout.write(failures === 0 ? 'VERIFY: PASS\n' : 'VERIFY: FAIL\n');
 process.exit(failures === 0 ? 0 : 1);

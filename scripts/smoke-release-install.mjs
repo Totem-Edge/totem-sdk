@@ -60,9 +60,9 @@ try {
     if (probe.status !== 0) unresolved.push(`${name}@${range}`);
   }
   if (unresolved.length > 0) {
-    console.log(`Smoke install skipped for ${manifest.name}: unpublished sibling(s) on registry: ${unresolved.join(', ')}`);
-    rmSync(workDir, { recursive: true, force: true });
-    process.exit(0);
+    throw new Error(
+      `Release smoke cannot verify ${manifest.name}: unpublished sibling(s) on registry: ${unresolved.join(', ')}`,
+    );
   }
 
   writeFileSync(join(workDir, 'package.json'), JSON.stringify({ private: true, type: 'module' }) + '\n');

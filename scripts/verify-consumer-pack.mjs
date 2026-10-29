@@ -12,12 +12,6 @@ if (!packageArg) {
 const packageDir = resolve(packageArg);
 
 const manifest = JSON.parse(readFileSync(join(packageDir, 'package.json'), 'utf8'));
-const runtimeDependencyNames = Object.keys({
-  ...(manifest.dependencies ?? {}),
-  ...(manifest.peerDependencies ?? {}),
-  ...(manifest.optionalDependencies ?? {}),
-});
-const hasTotemRuntimeDependencies = runtimeDependencyNames.some((name) => name.startsWith('@totemsdk/'));
 const workDir = mkdtempSync(join(tmpdir(), 'totemsdk-consumer-'));
 
 function run(command, args, cwd, env = process.env) {
@@ -36,25 +30,16 @@ try {
 
   const tarball = join(workDir, tarballs[0]);
   writeFileSync(join(workDir, 'package.json'), JSON.stringify({ private: true, type: 'module' }) + '\n');
-  let installedDir;
-  if (hasTotemRuntimeDependencies) {
-    // This single-package check cannot install unpublished sibling @totemsdk/*
-    // tarballs from the same PR. Extract and verify package contents instead;
-    // packages without local Totem runtime deps still get a full install smoke.
-    run('tar', ['-xzf', tarball, '-C', workDir], workDir);
-    installedDir = join(workDir, 'package');
-  } else {
-    run('npm', [
-      'install',
-      '--ignore-scripts',
-      '--no-audit',
-      '--no-fund',
-      '--no-save',
-      '--package-lock=false',
-      tarball,
-    ], workDir);
-    installedDir = join(workDir, 'node_modules', ...manifest.name.split('/'));
-  }
+  run('npm', [
+    'install',
+    '--ignore-scripts',
+    '--no-audit',
+    '--no-fund',
+    '--no-save',
+    '--package-lock=false',
+    tarball,
+  ], workDir);
+  const installedDir = join(workDir, 'node_modules', ...manifest.name.split('/'));
 
   for (const file of manifest.files ?? []) {
     const requiredPath = join(installedDir, file.replace(/\/$/, ''));
@@ -64,10 +49,9 @@ try {
   }
 
   const rootExport = manifest.exports?.['.'] ?? manifest.exports;
-  const supportsImport = !hasTotemRuntimeDependencies && (typeof rootExport === 'string' || Boolean(rootExport?.import));
+  const supportsImport = typeof rootExport === 'string' || Boolean(rootExport?.import);
   const requireTarget = typeof rootExport === 'object' ? rootExport?.require : undefined;
-  const supportsRequire = !hasTotemRuntimeDependencies
-    && typeof requireTarget === 'string'
+  const supportsRequire = typeof requireTarget === 'string'
     && requireTarget.endsWith('.cjs')
     && existsSync(join(installedDir, requireTarget.replace(/^\.\//, '')));
   const probe = `
