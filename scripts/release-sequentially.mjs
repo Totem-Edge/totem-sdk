@@ -69,7 +69,7 @@ const toRelease = ordered.filter(p => {
 });
 
 const token = execSync('gh auth token', { encoding: 'utf-8' }).trim();
-const HEAD_SHA = '7bcf65a9a0c8539aac2138e85a2d96db2064e2b7';
+const HEAD_SHA = execSync('git rev-parse HEAD', { cwd: REPO_ROOT, encoding: 'utf-8' }).trim();
 
 function apiGet(url) {
   return execSync(
