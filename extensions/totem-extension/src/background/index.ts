@@ -4366,7 +4366,7 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
 
     case 'TOTEM_GET_COINS': {
       try {
-        const { tokenId, address: filterAddress, minAmount, sendable, relevant, spent } = params || {};
+        const { tokenId, allTokens, address: filterAddress, minAmount, sendable, relevant, spent } = params || {};
 
         // SECURITY: derive trusted origin from browser-verified sender.tab.url,
         // NOT from params.origin which the dApp could spoof.
@@ -4414,9 +4414,13 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
           : [account.address];
         
         await coinSelectionService.loadExcludedAddresses();
+        const allTokensRequested = allTokens === true || tokenId === '*';
+        const queryTokenId = allTokensRequested
+          ? '*'
+          : ((tokenId as string) || '0x00');
         const coins = await coinSelectionService.fetchSpendableCoins(
           addressesToQuery,
-          (tokenId as string) || '0x00',
+          queryTokenId,
           {
             ...(typeof sendable === 'boolean' ? { sendable } : {}),
             ...(typeof relevant === 'boolean' ? { relevant } : {}),
@@ -4463,7 +4467,8 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
             coins: sanitizedCoins,
             totalCoins: sanitizedCoins.length,
             queriedAddresses: addressesToQuery.length,
-            tokenId: (tokenId as string) || '0x00'
+            tokenId: allTokensRequested ? '*' : queryTokenId,
+            allTokens: allTokensRequested
           },
           id
         };

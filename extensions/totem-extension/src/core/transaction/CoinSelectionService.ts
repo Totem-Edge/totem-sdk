@@ -232,6 +232,12 @@ class CoinSelectionService {
     tokenId: string = '0x00',
     options?: CoinQueryOptions
   ): Promise<SpendableCoin[]> {
+    // `tokenId === '*'` means "all tokens": omit the token filter so the chain
+    // provider returns every unspent coin for the address. This is what lets a
+    // dApp enumerate a wallet's full portfolio without an indexer.
+    const allTokens = tokenId === '*';
+    const queryTokenId = allTokens ? undefined : tokenId || '0x00';
+
     // Self-hosted mode routes chain reads through the user's node (RFC-013 §7).
     // Axia mode (null) keeps the existing REST path below.
     try {
@@ -241,7 +247,7 @@ class CoinSelectionService {
         for (const address of addresses) {
           const coins = await active.provider.getCoins({
             address,
-            ...(tokenId ? { tokenId } : {}),
+            ...(queryTokenId ? { tokenId: queryTokenId } : {}),
             sendable: options?.sendable ?? true,
             ...(options?.relevant !== undefined ? { relevant: options.relevant } : {}),
             ...(options?.megammr !== undefined ? { megammr: options.megammr } : {}),
@@ -273,7 +279,7 @@ class CoinSelectionService {
         headers,
         body: JSON.stringify({
           addresses,
-          tokenId,
+          ...(queryTokenId ? { tokenId: queryTokenId } : {}),
           ...(options?.sendable !== undefined ? { sendable: options.sendable } : {}),
           ...(options?.relevant !== undefined ? { relevant: options.relevant } : {}),
           ...(options?.megammr !== undefined ? { megammr: options.megammr } : {}),

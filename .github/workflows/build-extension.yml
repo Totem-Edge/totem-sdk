@@ -53,6 +53,7 @@ jobs:
             --filter @totemsdk/root-identity \
             --filter @totemsdk/storage \
             --filter @totemsdk/minima-rpc \
+            --filter @totemsdk/replication \
             --filter @totemsdk/lookup-protocol \
             --filter @totemsdk/omnia-relay \
             --filter @totemsdk/omnia \

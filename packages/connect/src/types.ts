@@ -1241,7 +1241,10 @@ export interface TotemGetCoinsRequest {
   method: 'TOTEM_GET_COINS';
   params: {
     origin: string;
+    /** Specific token to query. Use `'*'` (or `allTokens`) for every token. */
     tokenId?: string;
+    /** Return coins for every token held by the wallet. */
+    allTokens?: boolean;
     address?: string;
     minAmount?: string;
     /** Only spendable coins. */
@@ -1292,7 +1295,10 @@ export interface TotemGetCoinsSuccessResponse {
   }>;
   totalCoins: number;
   queriedAddresses: number;
+  /** `'*'` when the request asked for all tokens. */
   tokenId: string;
+  /** True when the wallet enumerated every token it holds. */
+  allTokens?: boolean;
 }
 
 export interface TotemGetCoinsErrorResponse {

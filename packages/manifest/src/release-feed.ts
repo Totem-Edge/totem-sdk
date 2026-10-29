@@ -226,8 +226,10 @@ export async function discoverInstalledTotemPackages(
   options: DiscoverInstalledOptions = {},
 ): Promise<Record<string, string>> {
   // Lazy so browser bundles never pull node:fs, and the ESM build works.
-  const fs = await import('node:fs');
-  const path = await import('node:path');
+  // `webpackIgnore` keeps the dynamic specifier opaque to bundlers: the
+  // function is Node-only and is never called from browser entrypoints.
+  const fs = await import(/* webpackIgnore: true */ 'node:fs');
+  const path = await import(/* webpackIgnore: true */ 'node:path');
   const installed: Record<string, string> = {};
   let dir = path.resolve(options.from ?? process.cwd());
   const maxDepth = options.maxDepth ?? 6;

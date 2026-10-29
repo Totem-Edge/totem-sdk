@@ -287,6 +287,8 @@ export async function createToken(origin: string, request: TokenCreationParams):
 
 export async function getCoins(origin: string, params?: {
   tokenId?: string;
+  /** Return coins for every token held by the wallet. */
+  allTokens?: boolean;
   address?: string;
   minAmount?: string;
   /** Only spendable coins. */
