@@ -125,6 +125,22 @@ export class AxiaRpcClient {
     this.attachConfigListener();
   }
   
+  private apiVersionLogged = false;
+
+  private async logApiVersion(): Promise<void> {
+    if (this.apiVersionLogged) return;
+    this.apiVersionLogged = true;
+    try {
+      const base = (this.config?.AXIA_BASE || 'https://api.axia.to').replace(/\/$/, '');
+      const res = await fetch(`${base}/info`, { headers: { accept: 'application/json' } });
+      const info = res.ok ? await res.json() : null;
+      const extensionVersion = (globalThis as any).chrome?.runtime?.getManifest?.().version || 'unknown';
+      console.info(`[Axia API] ${info?.name || 'Axia API'} version=${info?.version || 'unknown'} base=${base} extension=${extensionVersion}`);
+    } catch (error) {
+      console.info(`[Axia API] version=unknown base=${this.config?.AXIA_BASE || 'https://api.axia.to'}`);
+    }
+  }
+
   setUserIdentityHash(hash: string): void {
     this._userIdentityHash = hash;
     console.log('[AxiaRpcClient] User identity hash set');
@@ -234,6 +250,7 @@ export class AxiaRpcClient {
         base: this.config.AXIA_BASE,
         projectId: this.config.AXIA_PROJECT_ID
       });
+      void this.logApiVersion();
     } catch (error) {
       console.error('[AxiaRpcClient] Failed to load bootstrap config:', error);
       throw error;

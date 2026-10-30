@@ -14,6 +14,7 @@ import {
   addDecimalStrings,
   type SpendableCoin,
 } from '../transaction/CoinSelectionService';
+import { getApiBase, getProjectId } from '../api/base';
 import type {
   StorageAdapter,
   WebSocketFactory,
@@ -67,7 +68,7 @@ const chromeStorageAdapter: StorageAdapter = {
 // ── console LoggerAdapter ─────────────────────────────────────────────────────
 const loggerAdapter: LoggerAdapter = {
   debug: (m: string, ...a: unknown[]) => console.debug(m, ...a),
-  info:  (m: string, ...a: unknown[]) => console.info(m, ...a),
+  info:  (m: string, ...a: unknown[]) => console.debug(m, ...a),
   warn:  (m: string, ...a: unknown[]) => console.warn(m, ...a),
   error: (m: string, ...a: unknown[]) => console.error(m, ...a),
 };
@@ -225,9 +226,31 @@ function aggregateWalletCoins(coins: SpendableCoin[], address: string): Portfoli
   return entries;
 }
 
+async function fetchApiPortfolio(address: string): Promise<PortfolioEntry[] | null> {
+  try {
+    const [baseUrl, projectId] = await Promise.all([getApiBase(), getProjectId()]);
+    const res = await fetch(
+      `${baseUrl.replace(/\/$/, '')}/v1/wallet/portfolio/${encodeURIComponent(address)}`,
+      { headers: { 'x-api-key': projectId } },
+    );
+    if (!res.ok) return null;
+    const payload = await res.json();
+    const entries = Array.isArray(payload?.entries) ? payload.entries : [];
+    return entries.length > 0 ? entries as PortfolioEntry[] : null;
+  } catch {
+    return null;
+  }
+}
+
 const walletPortfolioBackend: PortfolioBackend = {
   supportsPush: false,
   async getPortfolio(address: string): Promise<PortfolioEntry[]> {
+    // The API route enriches token metadata (name/decimals/artwork/NFT kind).
+    // Wallet RPC alone often returns only tokenid/amount, so prefer the API and
+    // fall back to the wallet-backed coin index if Axia is unavailable.
+    const apiEntries = await fetchApiPortfolio(address);
+    if (apiEntries) return apiEntries;
+
     const coins = await coinSelectionService.fetchSpendableCoins(
       [address],
       '*',
