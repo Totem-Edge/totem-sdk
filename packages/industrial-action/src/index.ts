@@ -24,6 +24,11 @@ export {
 } from './ids.js'
 
 export {
+  computePreparedCommandHash,
+} from './prepared-command.js'
+export type { PreparedCommandBinding } from './prepared-command.js'
+
+export {
   IndustrialActionError,
   ActionDefinitionError,
   ActionValidationError,

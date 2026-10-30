@@ -133,13 +133,15 @@ describe('approvals (RFC-011 §4.9)', () => {
     expect((await approvals.listPending()).length).toBe(0);
   });
 
-  it('enforces approvals in preparation', async () => {
+  it('enforces approvals bound to the prepared command in preparation', async () => {
     const approvals = createDurableApprovalRegistry(new MemoryStore(), { requireAckMode: 'volatile' });
     const edgeDef = toEdgeActionDefinition(makeDefinition(), { approvals, requireApproval: true });
 
     await expect(edgeDef.prepare(INPUT)).rejects.toBeInstanceOf(ActionApprovalError);
 
-    const request = await approvals.request({ commitmentHash: COMMITMENT });
+    // Approval is requested for the same prepared command the adapter will build.
+    const preview = await toEdgeActionDefinition(makeDefinition()).prepare(INPUT);
+    const request = await approvals.request({ commitmentHash: preview.commitmentHash });
     await expect(edgeDef.prepare({ ...INPUT, approvalId: request.approvalId })).rejects.toBeInstanceOf(ActionApprovalError);
 
     await approvals.approve(request.approvalId, 'operator-1');

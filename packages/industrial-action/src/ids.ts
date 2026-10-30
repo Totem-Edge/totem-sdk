@@ -30,12 +30,18 @@ export function computeCommitmentHash(proposal: {
    * different mandate after the fact.
    */
   mandateProofId?: string
+  /**
+   * RFC-022 §5.2: canonical hash of the actually prepared device command. It is
+   * null for proposals, which have not yet reached preparation.
+   */
+  preparedCommandHash?: string
 }): string {
-  return hashCanonical('TOTEM_INDUSTRIAL_ACTION_COMMITMENT_V2', {
+  return hashCanonical('TOTEM_INDUSTRIAL_ACTION_COMMITMENT_V3', {
     kind: proposal.kind,
     parameters: proposal.parameters,
     context: proposal.context,
     mandateProofId: proposal.mandateProofId ?? null,
+    preparedCommandHash: proposal.preparedCommandHash ?? null,
   })
 }
 

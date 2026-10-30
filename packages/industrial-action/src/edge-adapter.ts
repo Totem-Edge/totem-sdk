@@ -27,10 +27,11 @@ import type {
 import type { StepEffects } from '@totemsdk/agent-policy';
 
 import type { ActionError, ActionSchema, Condition } from './types.js';
-import { ActionConditionError, ActionDefinitionError, ActionValidationError, ActionInterlockError, ActionScheduleError, ActionApprovalError } from './errors.js';
+import { ActionConditionError, ActionDefinitionError, ActionValidationError, ActionInterlockError, ActionScheduleError, ActionApprovalError, ActionCommitmentError } from './errors.js';
 import { assertValidParameters, assertValidContext } from './definition.js';
 import { evaluateConditions } from './condition.js';
 import { computeCommitmentHash, computeOperationId } from './ids.js';
+import { computePreparedCommandHash } from './prepared-command.js';
 import { createIndustrialReceipt } from './industrial-receipt.js';
 import type { DeviceOperationRecord, DeviceOperationStore } from './operation-store.js';
 import type { InterlockRegistry } from './interlocks.js';
@@ -79,6 +80,8 @@ export interface PreparedDeviceOp extends DeviceOpBase {
   definitionVersion: number;
   /** Canonical schema hash (RFC-011 §4.5). */
   schemaHash: string;
+  /** RFC-022 §5.1: canonical digest of the command actually prepared. */
+  preparedCommandHash: string;
   parameters: Record<string, unknown>;
   context: Record<string, unknown>;
   commitmentHash: string;
@@ -153,8 +156,14 @@ export interface IndustrialActionDefinition<TResult = unknown> {
   safeState?: (op: PreparedDeviceOp) => Promise<EdgeOperationResult>;
   /** Fallback/redundant path used by `fail-operational`. */
   fallback?: (op: PreparedDeviceOp) => Promise<EdgeOperationResult<TResult>>;
-  /** Build the real device operation from validated inputs. */
+  /** Build the real device operation from validated inputs. Must be deterministic for identical inputs. */
   prepare(params: Record<string, unknown>, context: Record<string, unknown>): Promise<DeviceOpBase>;
+  /**
+   * Deterministic canonical form of the prepared command (RFC-022 §5.1).
+   * Defaults to the command object. Adapters with maps, floats or ordering must
+   * override this so the same logical command hashes identically.
+   */
+  canonicalizeCommand?(command: unknown): unknown;
   /** Canonical safety facts derived from the PREPARED operation. */
   deriveEffects(op: PreparedDeviceOp): StepEffects;
   /** Actuate the device through the edge port. */
@@ -190,6 +199,26 @@ export interface ToEdgeActionOptions {
 /** Effective failure mode: explicit, else `fail-silent` for reads. */
 function effectiveFailureMode(def: IndustrialActionDefinition): FailureMode | undefined {
   return def.policy?.failureMode ?? (def.effect === 'read' ? 'fail-silent' : undefined);
+}
+
+/**
+ * Recompute the prepared-command digest immediately before actuation. This
+ * catches mutation of the prepared object or a definition/config change between
+ * authorization and dispatch, so the executed command still matches the
+ * commitment that was approved.
+ */
+function assertPreparedBinding(def: IndustrialActionDefinition, op: PreparedDeviceOp): void {
+  const command = def.canonicalizeCommand ? def.canonicalizeCommand(op.command) : op.command;
+  const expected = computePreparedCommandHash({
+    ...(op.resourceId !== undefined ? { resourceId: op.resourceId } : {}),
+    ...(def.protocol !== undefined ? { protocol: def.protocol } : {}),
+    definitionVersion: op.definitionVersion,
+    schemaHash: op.schemaHash,
+    command,
+  });
+  if (expected !== op.preparedCommandHash) {
+    throw new ActionCommitmentError('prepared command no longer matches its commitment');
+  }
 }
 
 /** Compile an industrial definition into an edge action definition. */
@@ -289,14 +318,30 @@ export function toEdgeActionDefinition<TResult = unknown>(
         }
       }
 
+      // Prepare before commitment/approval so the authorized digest covers the
+      // actual resolved command, not only the caller's inputs (RFC-022 §5.2).
+      const base = await def.prepare(params, context);
+      const canonicalCommand = def.canonicalizeCommand
+        ? def.canonicalizeCommand(base.command)
+        : base.command;
+      const preparedCommandHash = computePreparedCommandHash({
+        ...(base.resourceId !== undefined ? { resourceId: base.resourceId } : {}),
+        ...(def.protocol !== undefined ? { protocol: def.protocol } : {}),
+        definitionVersion: version,
+        schemaHash,
+        command: canonicalCommand,
+      });
+
       const commitmentHash = computeCommitmentHash({
         kind: def.kind,
         parameters: params,
         context,
         ...(input.mandateProofId !== undefined ? { mandateProofId: input.mandateProofId } : {}),
+        preparedCommandHash,
       });
 
-      // Approvals (RFC-011 §4.9): an approved request bound to this commitment.
+      // Approvals (RFC-011 §4.9, RFC-022 §5.2): the approval must name the
+      // commitment that includes the prepared command.
       if (options.requireApproval) {
         if (input.approvalId === undefined) {
           throw new ActionApprovalError('an approval is required for this action');
@@ -307,7 +352,6 @@ export function toEdgeActionDefinition<TResult = unknown>(
         }
       }
 
-      const base = await def.prepare(params, context);
       const operationId = computeOperationId(commitmentHash, base.resourceId);
 
       return {
@@ -315,6 +359,7 @@ export function toEdgeActionDefinition<TResult = unknown>(
         kind: def.kind,
         definitionVersion: version,
         schemaHash,
+        preparedCommandHash,
         parameters: params,
         context,
         commitmentHash,
@@ -331,6 +376,7 @@ export function toEdgeActionDefinition<TResult = unknown>(
 
     async execute(prepared: unknown): Promise<IndustrialExecutionResult> {
       const op = prepared as PreparedDeviceOp;
+      assertPreparedBinding(def, op);
       const startedAt = now();
 
       const run = async (): Promise<IndustrialExecutionResult> => {
@@ -411,6 +457,7 @@ export async function runWithPolicy<TResult = unknown>(
   def: IndustrialActionDefinition<TResult>,
   op: PreparedDeviceOp,
 ): Promise<IndustrialExecutionResult<TResult>> {
+  assertPreparedBinding(def, op);
   const policy = def.policy ?? {};
   const mode = effectiveFailureMode(def) ?? 'abort';
   const maxAttempts = Math.max(1, policy.maxAttempts ?? 1);

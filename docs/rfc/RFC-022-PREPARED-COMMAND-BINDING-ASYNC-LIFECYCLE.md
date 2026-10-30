@@ -1,6 +1,6 @@
 # RFC-022: Prepared-Command Binding & Asynchronous Operation Lifecycle
 
-**Status:** Draft — design specification
+**Status:** In progress — P0 core types and P1 commitment binding implemented; asynchronous lifecycle (P2–P5) not yet implemented.
 **Created:** 2026-09-30
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]
@@ -338,6 +338,39 @@ sequenceDiagram
   durable `@totemsdk/edge` loop, or `agent-policy`?
 - **Q4** Should `handle` be a typed protocol (opaque bytes + scheme) rather than
   `unknown`, for cross-adapter persistence?
+
+## 9a. Implementation progress (2026-10-30)
+
+P0 core binding types and P1 commitment binding are implemented on
+`rfc-074/edge-gates`:
+
+- `PreparedCommandBinding` and `computePreparedCommandHash` cover the resolved
+  resource, adapter protocol, definition version, schema hash and canonical
+  command. `PreparedDeviceOp.preparedCommandHash` is required.
+- `IndustrialActionDefinition.canonicalizeCommand?` supports adapters whose
+  wire form is not canonical.
+- Commitment preimages now use `TOTEM_INDUSTRIAL_ACTION_COMMITMENT_V3` with
+  `preparedCommandHash` (null for proposals). Existing V2 commitments fail
+  closed; persisted approvals must be re-approved against V3.
+- `prepare` now builds the command **before** computing the commitment and
+  validating approval. `operationId` therefore pins the actual prepared command.
+- `execute`/`runWithPolicy` recompute the digest immediately before actuation and
+  reject a mutated prepared operation with `ActionCommitmentError`.
+- Tests cover identical inputs producing different prepared commands, protocol/
+  version/schema binding, canonicalization, mutation rejection and approval
+  binding to the prepared command.
+
+Not implemented in this increment:
+
+- schema-bound target resolution through `ResourceRegistry`; `resolveResourceId`
+  remains a callback and an unregistered target can still be returned;
+- endpoint recording (the adapter exposes no resolved `ResourceAddress`);
+- async `accepted`/`running`/`reconciling` states, progress, cancel, restart
+  reconciliation and receipt `reservationId` carry-through.
+
+The package version is bumped because the commitment domain, required prepared
+field and approval ordering are breaking pre-RC changes. This does not promote
+the package's maturity or support tier.
 
 ## 10. References
 

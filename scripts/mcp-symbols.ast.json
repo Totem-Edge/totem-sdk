@@ -6563,7 +6563,7 @@
         },
         "computeCommitmentHash": {
           "kind": "function",
-          "signature": "computeCommitmentHash(proposal: { kind: string; parameters: Record<string, unknown>; context: Record<string, unknown>; mandateProofId?: string; }): string"
+          "signature": "computeCommitmentHash(proposal: { kind: string; parameters: Record<string, unknown>; context: Record<string, unknown>; mandateProofId?: string; preparedCommandHash?: string; }): string"
         },
         "computeReceiptId": {
           "kind": "function",
@@ -6578,6 +6578,14 @@
           "kind": "function",
           "signature": "computeAuthorityBindingHash(commitmentHash: string, mandateProofId?: string, decisionId?: string): string",
           "doc": "RFC-010 §6.4 — authority binding digest.\n\nTies a proposal commitment to the exact mandate proof and authorization\ndecision that authorized it. The decision id is generally only known *after*\nauthorization (the edge runtime prepares before it authorizes), so this is\ncomputed at the receipt/record layer rather than at `prepare` time."
+        },
+        "computePreparedCommandHash": {
+          "kind": "function",
+          "signature": "computePreparedCommandHash(binding: PreparedCommandBinding): string"
+        },
+        "PreparedCommandBinding": {
+          "kind": "interface",
+          "signature": "export interface PreparedCommandBinding"
         },
         "IndustrialActionError": {
           "kind": "class",

@@ -76,7 +76,7 @@ if (passed) {
 ### Core types
 - `ActionProposal` — proposed action with commitment hash (bound to the mandate proof), expiry, optional authority decision
 - `IndustrialActionDefinition` — edge-facing definition compiled via `toEdgeActionDefinition`
-- `PreparedDeviceOp` — commitment-bound device operation (commitment, operationId, resource)
+- `PreparedDeviceOp` — commitment-bound device operation (prepared-command hash, commitment, operationId, resource)
 - `ExecutionPolicy` — failure mode, timeout, retry, rollback, in-flight behaviour
 - `FailureMode` / `ActionOutcome` — declared failure semantics and terminal outcomes
 - `DeviceOperationRecord` — durable at-most-once operation record
@@ -93,6 +93,7 @@ if (passed) {
 | `runWithPolicy` | Run actuation under the execution policy + failure semantics |
 | `createDurableDeviceOperationStore` | Durable at-most-once operation store |
 | `createIndustrialReceipt` / `verifyIndustrialReceipt` | Emit and verify authority-bound `EdgeReceipt`s |
+| `computePreparedCommandHash` | Canonical digest of the resolved command, target and definition binding |
 | `computeCommitmentHash` / `computeOperationId` / `computeAuthorityBindingHash` | Deterministic, authority-bound identifiers |
 
 ### Errors
@@ -109,9 +110,15 @@ Industrial actions run on the `@totemsdk/edge` governed runtime
 
 - `IndustrialActionDefinition` → `toEdgeActionDefinition` compiles an industrial
   action into an edge `EdgeActionDefinition`.
-- `prepare` validates against the schema, evaluates guardrails, binds the
-  authorizing `mandateProofId` into the commitment, and derives a deterministic
-  `operationId`.
+- `prepare` validates against the schema, evaluates guardrails, builds the real
+  device operation, and hashes its canonical command/resource/definition binding
+  into commitment V3. Approval is validated only after this binding exists, so
+  an approved commitment cannot describe a different prepared command.
+- `canonicalizeCommand` must be supplied for non-canonical wire forms (maps,
+  floats, ordering). Execution recomputes the digest and refuses a mutated
+  prepared operation before actuation.
+- Commitment preimages moved from `COMMITMENT_V2` to `COMMITMENT_V3`; persisted
+  V2 commitments must be rejected/re-approved rather than reinterpreted.
 - `ExecutionPolicy.failureMode` (`fail-safe` / `fail-silent` / `fail-closed` /
   `fail-operational` / `abort`) is **mandatory for `write` actions**; outcomes are
   `confirmed | failed | unknown | aborted | safe-stated | suppressed |
@@ -119,6 +126,11 @@ Industrial actions run on the `@totemsdk/edge` governed runtime
 - `createDurableDeviceOperationStore` gives actuation an at-most-once guarantee.
 - `createIndustrialReceipt` / `verifyIndustrialReceipt` emit authority-bound
   `EdgeReceipt`s.
+
+RFC-022 P1 binds the actual prepared command. The asynchronous operation
+lifecycle (accepted/running/reconciling, progress, cancel, readback completion)
+is **not yet implemented**; a synchronous successful actuation remains
+`confirmed`.
 
 The legacy `ActionRegistry`, `createGovernanceBridge`, `executeAction`, and
 `ActionReceipt` are **deprecated** and will be removed; use the edge-runtime path.
