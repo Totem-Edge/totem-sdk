@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/lookup-node",
   "version": "0.4.0",
-  "description": "Always-on personal lookup node \u2014 accepts Hyperswarm connections, answers chain queries, pushes COIN_UPDATE to watchlist subscribers, relays TxPoW, and coordinates WOTS leases",
+  "description": "Always-on personal lookup node — accepts Hyperswarm connections, answers chain queries, pushes COIN_UPDATE to watchlist subscribers, relays TxPoW, and coordinates WOTS leases",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -37,10 +37,7 @@
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.0",
-    "@types/jest": "^30.0.0",
     "@types/node": "^20.0.0",
-    "jest": "^30.4.2",
-    "ts-jest": "^29.0.0",
     "typescript": "^7.0.2"
   },
   "engines": {

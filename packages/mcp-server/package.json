@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/mcp-server",
   "version": "0.5.0",
-  "description": "MCP server exposing the full Totem SDK package set \u2014 metadata, types, exports, dependency graphs, and scaffolding tools",
+  "description": "MCP server exposing the full Totem SDK package set — metadata, types, exports, dependency graphs, and scaffolding tools",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
@@ -33,10 +33,7 @@
     "@modelcontextprotocol/sdk": "^1.30.0"
   },
   "devDependencies": {
-    "@types/jest": "^30.0.0",
     "@types/node": "^20.0.0",
-    "jest": "^30.4.2",
-    "ts-jest": "^29.0.0",
     "typescript": "^7.0.2"
   },
   "engines": {

@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/se-server",
   "version": "0.5.2",
-  "description": "Self-hostable Statechain Entity (SE) server \u2014 Mercury-protocol co-signer packaged as a standalone Express app",
+  "description": "Self-hostable Statechain Entity (SE) server — Mercury-protocol co-signer packaged as a standalone Express app",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -43,11 +43,8 @@
   },
   "devDependencies": {
     "@types/express": "^5.0.0",
-    "@types/jest": "^30.0.0",
     "@types/node": "^20.10.0",
     "@types/pg": "^8.11.0",
-    "jest": "^30.4.2",
-    "ts-jest": "^29.0.0",
     "typescript": "^7.0.2"
   },
   "engines": {

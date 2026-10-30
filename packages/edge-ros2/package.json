@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/edge-ros2",
   "version": "0.2.1",
-  "description": "Edge runtime adapter for ROS 2 \u2014 robotics, DDS middleware, typed topics",
+  "description": "Edge runtime adapter for ROS 2 — robotics, DDS middleware, typed topics",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "exports": {
@@ -32,10 +32,7 @@
     "@totemsdk/edge": "workspace:^"
   },
   "devDependencies": {
-    "@types/jest": "^30.0.0",
     "@types/node": "^20.0.0",
-    "jest": "^30.4.2",
-    "ts-jest": "^29.0.0",
     "typescript": "^7.0.2"
   },
   "engines": {

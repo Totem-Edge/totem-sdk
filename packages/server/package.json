@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/server",
   "version": "1.0.4",
-  "description": "Totem SDK for server-side applications \u2014 signing, transaction building and submission via Axia",
+  "description": "Totem SDK for server-side applications — signing, transaction building and submission via Axia",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -30,11 +30,8 @@
     "ws": "^8.21.1"
   },
   "devDependencies": {
-    "@types/jest": "^30.0.0",
     "@types/node": "^20.0.0",
     "@types/ws": "^8.5.0",
-    "jest": "^30.4.2",
-    "ts-jest": "^29.0.0",
     "typescript": "^7.0.2"
   },
   "engines": {

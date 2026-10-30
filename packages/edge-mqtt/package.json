@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/edge-mqtt",
   "version": "0.3.1",
-  "description": "MQTT adapter for Totem Edge \u2014 Rust/WASM-backed canonicalization, topic matching, and MachinePay arithmetic",
+  "description": "MQTT adapter for Totem Edge — Rust/WASM-backed canonicalization, topic matching, and MachinePay arithmetic",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "exports": {
@@ -50,12 +50,9 @@
   },
   "devDependencies": {
     "@totemsdk/wots-lease": "workspace:^",
-    "@types/jest": "^30.0.0",
     "@types/node": "^20.0.0",
     "aedes": "1.2.0",
-    "jest": "^30.4.2",
     "mqtt": "5.16.1",
-    "ts-jest": "^29.0.0",
     "typescript": "^7.0.2"
   },
   "engines": {

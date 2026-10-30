@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/core",
   "version": "1.4.2",
-  "description": "Core cryptographic primitives for Totem SDK \u2014 backed by Rust/WASM",
+  "description": "Core cryptographic primitives for Totem SDK — backed by Rust/WASM",
   "type": "module",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
@@ -179,10 +179,7 @@
     "node": ">=16.0.0"
   },
   "devDependencies": {
-    "@types/jest": "^30.0.0",
     "@types/node": "^20.0.0",
-    "jest": "^30.4.2",
-    "ts-jest": "^29.0.0",
     "typescript": "^7.0.2"
   },
   "publishConfig": {

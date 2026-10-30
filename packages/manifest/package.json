@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/manifest",
   "version": "2.1.0",
-  "description": "Canonical signed declaration format for Totem Edge entities \u2014 apps, agent capabilities, dApps, and edge services",
+  "description": "Canonical signed declaration format for Totem Edge entities — apps, agent capabilities, dApps, and edge services",
   "type": "module",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
@@ -37,10 +37,7 @@
     "@totemsdk/replication": "workspace:^"
   },
   "devDependencies": {
-    "@types/jest": "^30.0.0",
     "@types/node": "^20.0.0",
-    "jest": "^30.4.2",
-    "ts-jest": "^29.0.0",
     "typescript": "^7.0.2"
   },
   "engines": {

@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/edge-grpc",
   "version": "0.2.1",
-  "description": "Edge runtime adapter for gRPC \u2014 service-to-service, cloud-to-edge control planes",
+  "description": "Edge runtime adapter for gRPC — service-to-service, cloud-to-edge control planes",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "exports": {
@@ -34,10 +34,7 @@
     "@totemsdk/stream-transport": "workspace:^"
   },
   "devDependencies": {
-    "@types/jest": "^30.0.0",
     "@types/node": "^20.0.0",
-    "jest": "^30.4.2",
-    "ts-jest": "^29.0.0",
     "typescript": "^7.0.2"
   },
   "engines": {

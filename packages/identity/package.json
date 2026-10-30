@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/identity",
   "version": "1.1.0",
-  "description": "Canonical identity and claims layer for Totem Edge \u2014 who controls a manifest, device, or agent",
+  "description": "Canonical identity and claims layer for Totem Edge — who controls a manifest, device, or agent",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "exports": {
@@ -37,10 +37,7 @@
   },
   "devDependencies": {
     "@totemsdk/root-identity": "workspace:^",
-    "@types/jest": "^30.0.0",
     "@types/node": "^20.0.0",
-    "jest": "^30.4.2",
-    "ts-jest": "^29.0.0",
     "typescript": "^7.0.2"
   },
   "engines": {
