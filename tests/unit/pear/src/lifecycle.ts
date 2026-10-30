@@ -1,0 +1,1 @@
+../../../../packages/pear/src/lifecycle.ts

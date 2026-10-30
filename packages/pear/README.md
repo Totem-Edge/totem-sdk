@@ -103,3 +103,8 @@ logger.info('Node started', { publicKey: node.publicKey });
 - [`@totemsdk/lookup-node`](https://www.npmjs.com/package/@totemsdk/lookup-node) — personal lookup node that runs inside Pear
 - [`@totemsdk/omnia`](https://www.npmjs.com/package/@totemsdk/omnia) — payment channel swarm also Bare/Pear compatible
 - [`@totemsdk/core`](https://www.npmjs.com/package/@totemsdk/core) — `StorageAdapter` and `LoggerAdapter` interfaces implemented here
+
+
+## Testing
+
+Unit tests: `tests/unit/pear/`. Hyperbee/Hyperdrive/swarm/lifecycle integration: `tests/qualification/pear/`.
