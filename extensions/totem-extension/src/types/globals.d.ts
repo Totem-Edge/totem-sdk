@@ -17,3 +17,6 @@ declare const __DESIGNER_MODE__: boolean;
  * - Development: ['api.axia.to', 'rpc.axia.to', 'localhost', '127.0.0.1']
  */
 declare const __ALLOWED_HOSTS__: string[];
+
+declare const __TOTEM_TEST_SEED__: string;
+declare const __TOTEM_TEST_PASSWORD__: string;

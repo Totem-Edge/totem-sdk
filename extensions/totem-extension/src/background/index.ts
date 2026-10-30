@@ -1060,6 +1060,21 @@ async function startupSequenceImpl() {
   const sessionState = await walletManager.restoreSession();
   console.log(`[Background] Session restore result: ${sessionState}`);
 
+  // Test-only artifact (TOTEM_TEST_BUILD=1). Normal builds inject an empty
+  // seed and cannot auto-unlock. The seed is supplied at build time only.
+  if (__TOTEM_TEST_SEED__) {
+    try {
+      if (!await walletManager.hasEncryptedSeed()) {
+        await walletManager.importWallet(__TOTEM_TEST_SEED__, __TOTEM_TEST_PASSWORD__);
+        console.log('[TestBuild] Imported deterministic test wallet');
+      }
+      const unlocked = await walletManager.unlock(__TOTEM_TEST_PASSWORD__);
+      console.log('[TestBuild] Wallet auto-unlock:', unlocked);
+    } catch (testError) {
+      console.error('[TestBuild] Auto wallet setup failed:', testError);
+    }
+  }
+
   // RFC-037-A2: rebuild the Omnia port with signing material if the wallet is
   // unlocked (the builder falls back to the read-only client otherwise).
   void refreshExtensionOmniaPort();
