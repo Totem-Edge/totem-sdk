@@ -397,9 +397,11 @@ baseline. The non-edge publication train continues independently.
   recovery and packed-consumer suites. Existing edge tags remain deferred and
   do not contain these fixes.
 
-MQTT now has runnable `test:recovery` and `test:consumer` evidence for this limited
-profile; it remains RC. Verification comprises 184 package unit tests, five
-process-recovery checks and one packed ESM/CJS/type consumer. Full broker
-conformance, production issuer/WOTS storage,
+MQTT now has runnable `test:recovery`, `test:consumer` and `test:conformance`
+evidence for this limited profile; it remains RC. Verification comprises 184
+package unit tests, five process-recovery checks, one packed ESM/CJS/type
+consumer and four real Aedes-broker checks (QoS 1, QoS 2, persistent-session
+offline redelivery plus durable replay, authentication rejection). Production
+issuer/WOTS storage, Mosquitto/EMQX/TLS/ACL matrices, hostile reconnect,
 execution-status journaling/reconciliation and the remaining Phase 2 lifecycle
 requirements are still open.

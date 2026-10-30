@@ -134,6 +134,8 @@ jobs:
         run: pnpm --filter @totemsdk/edge-mqtt test:recovery
       - name: Packed MQTT ESM/CJS and SQLite subpath consumer (RFC-074)
         run: pnpm --filter @totemsdk/edge-mqtt test:consumer
+      - name: MQTT real broker QoS/session/auth conformance (RFC-074)
+        run: pnpm --filter @totemsdk/edge-mqtt test:conformance
       - name: Setup Go for Modbus cross-language contract
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:

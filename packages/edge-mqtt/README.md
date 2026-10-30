@@ -104,6 +104,7 @@ pnpm --filter @totemsdk/edge-mqtt build
 pnpm --filter @totemsdk/edge-mqtt test --runInBand
 pnpm --filter @totemsdk/edge-mqtt test:recovery
 pnpm --filter @totemsdk/edge-mqtt test:consumer
+pnpm --filter @totemsdk/edge-mqtt test:conformance
 ```
 
 The consumer test installs real local MQTT and Edge tarballs, with other
@@ -113,6 +114,13 @@ Connect peer. It is not a fully locally packed dependency closure. Node ESM
 consumers explicitly initialize Core WASM as described in the Core docs.
 Packing validates both MQTT WASM outputs and removes only wasm-pack's generated
 output `.gitignore` files, which otherwise omit required artifacts from tarballs.
+
+The broker-conformance suite uses a real Aedes broker and `mqtt` client to cover
+QoS 1 and QoS 2 delivery, duplicate command IDs, a persistent non-clean session
+queueing QoS 1 while offline, durable replay after handler/store restart, and
+authentication rejection. This is an in-process broker profile, not a Mosquitto/
+EMQX matrix, TLS, broker ACLs, hostile-network reconnect, or physical-device
+evidence.
 
 `@totemsdk/edge-mqtt` wraps an `EdgeRuntime` (from `@totemsdk/edge`) with an MQTT-aware dispatch layer. You supply the transport client; the package handles rule routing, sensor bridging, proof publication, command gating, MachinePay credit enforcement, offline queuing, and service manifests.
 

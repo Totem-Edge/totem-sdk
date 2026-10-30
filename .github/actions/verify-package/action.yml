@@ -27,6 +27,7 @@ runs:
       run: |
         pnpm --filter @totemsdk/edge-mqtt test:recovery
         pnpm --filter @totemsdk/edge-mqtt test:consumer
+        pnpm --filter @totemsdk/edge-mqtt test:conformance
     - name: Verify packed consumer
       shell: bash
       run: node scripts/verify-consumer-pack.mjs "${{ inputs.package-dir }}"
