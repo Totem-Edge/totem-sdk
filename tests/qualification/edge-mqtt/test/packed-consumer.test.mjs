@@ -8,7 +8,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
-const packageDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const packageDir = resolve(dirname(fileURLToPath(import.meta.url)), '../../../../packages/edge-mqtt');
 const repository = resolve(packageDir, '..', '..');
 
 test('packed MQTT root and SQLite subpath operate across ESM/CJS and strict type consumers', { timeout: 180_000 }, (t) => {

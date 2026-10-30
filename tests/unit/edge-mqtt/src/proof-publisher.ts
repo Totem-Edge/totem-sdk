@@ -1,0 +1,1 @@
+../../../../packages/edge-mqtt/src/proof-publisher.ts

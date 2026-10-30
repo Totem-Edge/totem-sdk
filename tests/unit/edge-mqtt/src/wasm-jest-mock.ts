@@ -1,0 +1,1 @@
+../../../../packages/edge-mqtt/src/wasm-jest-mock.ts

@@ -628,3 +628,8 @@ const client: MqttClientPort = {
 ## License
 
 Apache-2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
+
+
+## Testing
+
+Unit tests: `tests/unit/edge-mqtt/`; qualification: `tests/qualification/edge-mqtt/`. Package scripts delegate to these central suites.

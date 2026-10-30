@@ -148,3 +148,8 @@ You must implement `ModbusTransportPort`:
 ## License
 
 Apache-2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
+
+
+## Testing
+
+Unit tests: `tests/unit/edge-modbus/`; qualification: `tests/qualification/edge-modbus/`. Package scripts delegate to these central suites.

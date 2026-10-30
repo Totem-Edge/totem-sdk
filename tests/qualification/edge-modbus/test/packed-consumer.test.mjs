@@ -8,7 +8,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
-const packageDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const packageDir = resolve(dirname(fileURLToPath(import.meta.url)), '../../../../packages/edge-modbus');
 const repository = resolve(packageDir, '..', '..');
 
 test('packed Modbus consumer loads ESM/CJS, calls the gateway, and typechecks', { timeout: 180_000 }, (t) => {

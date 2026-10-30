@@ -16,9 +16,9 @@ test('ESM/CJS gateways exchange real JSON-line requests with Go and a TCP device
   t.after(() => rmSync(work, { recursive: true, force: true }));
   const executable = join(work, 'edge-modbus');
   execFileSync('go', ['build', '-o', executable, '.'], {
-    cwd: join(dirname(fileURLToPath(import.meta.url)), '..', 'go'), timeout: 30_000,
+    cwd: join(dirname(fileURLToPath(import.meta.url)), '../../../../packages/edge-modbus/go'), timeout: 30_000,
   });
-  const contract = JSON.parse(readFileSync(new URL('../sidecar.json', import.meta.url), 'utf8'));
+  const contract = JSON.parse(readFileSync(new URL('../../../../packages/edge-modbus/sidecar.json', import.meta.url), 'utf8'));
   assert.equal(contract.protocolVersion, 1);
   assert.equal(contract.distribution.bundledInNpmPackage, false);
   assert.match(execFileSync(executable, ['--version'], { encoding: 'utf8' }), /protocol=1/);

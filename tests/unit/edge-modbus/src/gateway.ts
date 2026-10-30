@@ -1,0 +1,1 @@
+../../../../packages/edge-modbus/src/gateway.ts

@@ -21,12 +21,12 @@
     "build:go": "cd go && go build -o ../bin/edge-modbus .",
     "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist bin",
-    "test": "jest",
+    "test": "jest --config ../../tests/jest/edge-modbus.cjs",
     "test:go": "cd go && go test -race ./... && go vet ./...",
-    "test:integration": "node --test test/sidecar.integration.mjs",
+    "test:integration": "node --test ../../tests/qualification/edge-modbus/test/sidecar.integration.mjs",
     "test:conformance": "cd go && go test -race ./...",
-    "test:recovery": "node --test test/sidecar.integration.mjs",
-    "test:consumer": "node --test test/packed-consumer.test.mjs"
+    "test:recovery": "node --test ../../tests/qualification/edge-modbus/test/sidecar.integration.mjs",
+    "test:consumer": "node --test ../../tests/qualification/edge-modbus/test/packed-consumer.test.mjs"
   },
   "files": [
     "dist",

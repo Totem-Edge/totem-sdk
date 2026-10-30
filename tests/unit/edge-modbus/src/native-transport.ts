@@ -1,0 +1,1 @@
+../../../../packages/edge-modbus/src/native-transport.ts

@@ -22,13 +22,13 @@
     "prepare": "tsc && tsc -p tsconfig.cjs.json && node scripts/finalize-build.cjs",
     "prepack": "node scripts/prepare-wasm-assets.cjs",
     "clean": "rm -rf dist rust/pkg rust/pkg-node rust/target",
-    "test": "jest",
-    "test:recovery": "node --test test/replay-recovery.test.mjs",
-    "test:consumer": "node --test test/packed-consumer.test.mjs",
-    "test:conformance": "node --test test/broker-matrix.test.mjs && node --test test/signing-conformance.test.mjs",
-    "test:signing": "node --test test/signing-conformance.test.mjs",
-    "test:broker-matrix": "node --test test/broker-matrix.test.mjs",
-    "test:integration": "node --test test/broker-conformance.test.mjs"
+    "test": "jest --config ../../tests/jest/edge-mqtt.cjs",
+    "test:recovery": "node --test ../../tests/qualification/edge-mqtt/test/replay-recovery.test.mjs",
+    "test:consumer": "node --test ../../tests/qualification/edge-mqtt/test/packed-consumer.test.mjs",
+    "test:conformance": "node --test ../../tests/qualification/edge-mqtt/test/broker-matrix.test.mjs && node --test ../../tests/qualification/edge-mqtt/test/signing-conformance.test.mjs",
+    "test:signing": "node --test ../../tests/qualification/edge-mqtt/test/signing-conformance.test.mjs",
+    "test:broker-matrix": "node --test ../../tests/qualification/edge-mqtt/test/broker-matrix.test.mjs",
+    "test:integration": "node --test ../../tests/qualification/edge-mqtt/test/broker-conformance.test.mjs"
   },
   "files": [
     "dist",
