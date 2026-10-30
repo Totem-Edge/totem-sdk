@@ -121,3 +121,8 @@ interface PortfolioEntry {
 
 - [`@totemsdk/core`](https://www.npmjs.com/package/@totemsdk/core) — base adapters used by the cache
 - [`@totemsdk/connect`](https://www.npmjs.com/package/@totemsdk/connect) — the extension's built-in portfolio stream for dApps
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/realtime/`.

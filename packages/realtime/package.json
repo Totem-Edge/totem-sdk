@@ -21,7 +21,7 @@
     "build:go": "cd go && go build -o ../bin/realtime .",
     "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist bin",
-    "test": "vitest run",
+    "test": "vitest run --config ../../tests/vitest/realtime.config.ts",
     "test:watch": "vitest"
   },
   "dependencies": {
