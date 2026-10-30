@@ -276,8 +276,9 @@ function ensurePrerequisiteBuilds(labelPrefix) {
   prerequisiteBuildsDone = true;
 }
 
-function packageHasTestFiles(pkgDir) {
+function packageHasTestFiles(pkgDir, workspaceDir = '') {
   const candidates = ['src/__tests__', 'test', '__tests__', 'src/test'];
+  if (workspaceDir) candidates.push(`../../tests/unit/${workspaceDir.split('/').pop()}`);
   for (const c of candidates) {
     const full = join(pkgDir, c);
     if (existsSync(full)) {
@@ -398,7 +399,7 @@ if (wantLint || wantTest || wantIntegration || wantConformance || wantRecovery |
       failures += 1;
       process.stdout.write(`FAIL: ${dir} uses forbidden marker '${hit}' in scripts\n`);
       results.push({ label: `${dir}: forbidden marker '${hit}'`, ok: false });
-    } else if (manifest.scripts?.test && !packageHasTestFiles(join(ROOT, dir))) {
+    } else if (manifest.scripts?.test && !packageHasTestFiles(join(ROOT, dir), dir)) {
       const testScript = String(manifest.scripts.test);
       const nativeTestRunner = /wasm-pack test|cargo test|go test|test:rust/.test(testScript);
       if (nativeTestRunner) {

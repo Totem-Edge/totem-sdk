@@ -1,6 +1,6 @@
-import { createLorawanGateway } from '../gateway.js';
-import { createLorawanSensorBridge } from '../sensor-bridge.js';
-import type { LorawanTransportPort, LorawanMessage } from '../transport.js';
+import { createLorawanGateway } from '@totemsdk/edge-lorawan';
+import { createLorawanSensorBridge } from '@totemsdk/edge-lorawan';
+import type { LorawanTransportPort, LorawanMessage } from '@totemsdk/edge-lorawan';
 import type { EdgeRuntime } from '@totemsdk/edge';
 
 class MockLorawanTransport implements LorawanTransportPort {

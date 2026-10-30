@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "packages": {
+    "@totemsdk/edge-lorawan": {
+      "version": "0.2.3",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "simulator": {
+          "unit": "packages/edge-lorawan:test",
+          "conformance": "packages/edge-lorawan:test:conformance",
+          "integration": "packages/edge-lorawan:test:integration",
+          "recovery": "packages/edge-lorawan:test:recovery",
+          "consumer": "packages/edge-lorawan:test:consumer"
+        }
+      },
+      "limitations": [
+        "ChirpStack/network-server and radio hardware profiles are not yet qualified"
+      ]
+    }
+  }
+}

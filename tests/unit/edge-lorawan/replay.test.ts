@@ -5,7 +5,7 @@ import { SqliteStore } from '@totemsdk/storage/sqlite';
 import {
   createMemoryLorawanReplayStore,
   createStorageLorawanReplayStore,
-} from '../replay.js';
+} from '@totemsdk/edge-lorawan';
 
 describe('LoRaWAN replay guard', () => {
   it('rejects duplicate and rolled-back frames, then accepts advancement', async () => {

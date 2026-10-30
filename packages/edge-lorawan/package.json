@@ -20,11 +20,11 @@
     "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist",
-    "test": "jest",
-    "test:recovery": "jest --runInBand replay",
-    "test:conformance": "node --test test/lorawan-simulator.test.mjs",
-    "test:integration": "node --test test/integration.test.mjs",
-    "test:consumer": "node --test test/packed-consumer.test.mjs"
+    "test": "jest --config ../../tests/jest/edge-lorawan.cjs",
+    "test:recovery": "jest --config ../../tests/jest/edge-lorawan.cjs replay",
+    "test:conformance": "node ../../tests/qualification/edge-lorawan/lorawan-simulator.test.mjs",
+    "test:integration": "node ../../tests/qualification/edge-lorawan/integration.test.mjs",
+    "test:consumer": "node ../../tests/qualification/edge-lorawan/packed-consumer.test.mjs"
   },
   "files": [
     "dist",

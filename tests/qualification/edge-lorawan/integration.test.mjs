@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { createLorawanGateway, createLorawanSensorBridge, createMemoryLorawanReplayStore } from '../dist/index.js';
+import { createLorawanGateway, createLorawanSensorBridge, createMemoryLorawanReplayStore } from '../../../packages/edge-lorawan/dist/index.js';
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
