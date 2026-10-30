@@ -1,0 +1,1 @@
+../../../../packages/edge-grpc/src/gateway.ts

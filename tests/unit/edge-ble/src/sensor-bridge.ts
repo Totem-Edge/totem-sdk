@@ -1,0 +1,1 @@
+../../../../packages/edge-ble/src/sensor-bridge.ts

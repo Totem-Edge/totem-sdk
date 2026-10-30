@@ -98,3 +98,8 @@ await bridge.start();
 ## License
 
 Apache-2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/edge-ros2/`. Package `test:*` scripts are repository delegates; tests are not shipped.

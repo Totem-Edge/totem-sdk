@@ -1,0 +1,1 @@
+../../../../packages/edge/src/device.ts

@@ -1,0 +1,1 @@
+../../../../packages/edge-nfc/src/ndef.ts

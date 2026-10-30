@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/edge-can",
   "version": "0.2.1",
-  "description": "Edge runtime adapter for CAN bus — automotive, heavy machinery, socketcan",
+  "description": "Edge runtime adapter for CAN bus \u2014 automotive, heavy machinery, socketcan",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "exports": {
@@ -20,7 +20,7 @@
     "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist bin",
-    "test": "jest",
+    "test": "jest --config ../../tests/jest/edge-can.cjs",
     "build:go": "cd go && go build -o ../bin/edge-can ."
   },
   "files": [

@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/edge-matter",
   "version": "0.2.1",
-  "description": "Edge runtime adapter for Matter — smart home, multi-transport, fabric management",
+  "description": "Edge runtime adapter for Matter \u2014 smart home, multi-transport, fabric management",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "exports": {
@@ -20,7 +20,7 @@
     "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist",
-    "test": "jest"
+    "test": "jest --config ../../tests/jest/edge-matter.cjs"
   },
   "files": [
     "dist",

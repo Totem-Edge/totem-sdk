@@ -1,0 +1,1 @@
+../../../../packages/edge-coap/src/gateway.ts

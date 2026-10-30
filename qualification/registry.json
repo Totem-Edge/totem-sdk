@@ -104,6 +104,146 @@
         }
       },
       "limitations": []
+    },
+    "@totemsdk/edge": {
+      "version": "1.5.1",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "unit": {
+          "suite": "packages/edge:test"
+        }
+      },
+      "limitations": []
+    },
+    "@totemsdk/edge-adapters": {
+      "version": "0.3.1",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "unit": {
+          "suite": "packages/edge-adapters:test"
+        }
+      },
+      "limitations": []
+    },
+    "@totemsdk/edge-bacnet": {
+      "version": "0.2.1",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "unit": {
+          "suite": "packages/edge-bacnet:test"
+        }
+      },
+      "limitations": []
+    },
+    "@totemsdk/edge-ble": {
+      "version": "0.2.1",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "unit": {
+          "suite": "packages/edge-ble:test"
+        }
+      },
+      "limitations": []
+    },
+    "@totemsdk/edge-can": {
+      "version": "0.2.1",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "unit": {
+          "suite": "packages/edge-can:test"
+        }
+      },
+      "limitations": []
+    },
+    "@totemsdk/edge-coap": {
+      "version": "0.2.1",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "unit": {
+          "suite": "packages/edge-coap:test"
+        }
+      },
+      "limitations": []
+    },
+    "@totemsdk/edge-email": {
+      "version": "0.2.1",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "unit": {
+          "suite": "packages/edge-email:test"
+        }
+      },
+      "limitations": []
+    },
+    "@totemsdk/edge-grpc": {
+      "version": "0.2.1",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "unit": {
+          "suite": "packages/edge-grpc:test"
+        }
+      },
+      "limitations": []
+    },
+    "@totemsdk/edge-matter": {
+      "version": "0.2.1",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "unit": {
+          "suite": "packages/edge-matter:test"
+        }
+      },
+      "limitations": []
+    },
+    "@totemsdk/edge-modbus": {
+      "version": "0.2.2",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "unit": {
+          "suite": "packages/edge-modbus:test"
+        }
+      },
+      "limitations": []
+    },
+    "@totemsdk/edge-mqtt": {
+      "version": "0.3.1",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "unit": {
+          "suite": "packages/edge-mqtt:test"
+        }
+      },
+      "limitations": []
+    },
+    "@totemsdk/edge-nfc": {
+      "version": "0.1.1",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "unit": {
+          "suite": "packages/edge-nfc:test"
+        }
+      },
+      "limitations": []
+    },
+    "@totemsdk/edge-opcua": {
+      "version": "0.2.1",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "unit": {
+          "suite": "packages/edge-opcua:test"
+        }
+      },
+      "limitations": []
+    },
+    "@totemsdk/edge-ros2": {
+      "version": "0.2.1",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "unit": {
+          "suite": "packages/edge-ros2:test"
+        }
+      },
+      "limitations": []
     }
   }
 }

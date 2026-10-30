@@ -1,0 +1,1 @@
+../../../../packages/edge-adapters/src/negotiation-transport.ts

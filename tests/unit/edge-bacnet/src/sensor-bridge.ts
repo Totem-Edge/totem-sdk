@@ -1,0 +1,1 @@
+../../../../packages/edge-bacnet/src/sensor-bridge.ts

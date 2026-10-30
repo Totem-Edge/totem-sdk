@@ -54,3 +54,8 @@ const runtime = createEdgeRuntime({ device, capabilities, ports: { liquidityPort
 ## License
 
 Apache-2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/edge-adapters/`. Package `test:*` scripts are repository delegates; tests are not shipped.

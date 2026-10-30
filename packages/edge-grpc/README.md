@@ -67,3 +67,8 @@ JSON header: `{ "path": "/package.Service/Method", "requestId": "0", "isResponse
 ## License
 
 Apache-2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/edge-grpc/`. Package `test:*` scripts are repository delegates; tests are not shipped.

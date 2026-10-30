@@ -470,3 +470,8 @@ interface EdgeManifestPort {
 ## License
 
 Apache-2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/edge/`. Package `test:*` scripts are repository delegates; tests are not shipped.

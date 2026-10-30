@@ -1,0 +1,1 @@
+../../../../packages/edge-matter/src/sensor-bridge.ts

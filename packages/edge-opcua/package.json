@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/edge-opcua",
   "version": "0.2.1",
-  "description": "Edge runtime adapter for OPC-UA — SCADA, factory floors, industrial automation",
+  "description": "Edge runtime adapter for OPC-UA \u2014 SCADA, factory floors, industrial automation",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "exports": {
@@ -21,7 +21,7 @@
     "build:rust": "cd rust && cargo build --release",
     "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist rust/target",
-    "test": "jest"
+    "test": "jest --config ../../tests/jest/edge-opcua.cjs"
   },
   "files": [
     "dist",

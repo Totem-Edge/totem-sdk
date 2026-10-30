@@ -1,0 +1,1 @@
+../../../../packages/edge-can/src/sensor-bridge.ts

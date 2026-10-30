@@ -1,0 +1,1 @@
+../../../../packages/edge-email/src/index.ts

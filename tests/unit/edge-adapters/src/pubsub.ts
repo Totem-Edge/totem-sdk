@@ -1,0 +1,1 @@
+../../../../packages/edge-adapters/src/pubsub.ts

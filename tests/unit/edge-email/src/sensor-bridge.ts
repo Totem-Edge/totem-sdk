@@ -1,0 +1,1 @@
+../../../../packages/edge-email/src/sensor-bridge.ts

@@ -1,0 +1,1 @@
+../../../../packages/edge-adapters/src/payment-l2.ts
