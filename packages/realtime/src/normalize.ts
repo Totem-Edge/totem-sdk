@@ -38,12 +38,25 @@ export interface RawBalanceEntry {
   /** nested token metadata object */
   token?: {
     name?: string;
+    tokenName?: string;
     ticker?: string;
     decimals?: number | string;
     artimage?: string;
+    image?: string;
+    imageData?: string;
+    icon?: string;
+    url?: string;
     webvalidate?: string;
     description?: string;
+    owner?: string;
   } | string;
+  tokenName?: string;
+  description?: string;
+  image?: string;
+  imageData?: string;
+  icon?: string;
+  url?: string;
+  owner?: string;
 }
 
 /**
@@ -63,7 +76,7 @@ export function classifyKind(
   artimage: string | undefined,
 ): PortfolioEntry['kind'] {
   if (tokenid === '0x00') return 'native';
-  if (artimage && artimage.length > 0 && decimals === 0 && total === '1') return 'nft';
+  if (decimals === 0 && (total === '1' || Boolean(artimage))) return 'nft';
   return 'token';
 }
 
@@ -79,30 +92,39 @@ export function toPortfolioEntry(raw: RawBalanceEntry, address: string): Portfol
   const confirmed  = raw.confirmed ?? raw.confirmed_balance ?? raw.balance ?? '0';
   const unconfirmed = raw.unconfirmed ?? raw.unconfirmed_balance ?? '0';
   const sendable   = raw.sendable ?? confirmed;
-  const total      = raw.total ?? String(
-    parseFloat(confirmed) + parseFloat(unconfirmed)
-  );
+  let computedTotal = '0';
+  try { computedTotal = (BigInt(confirmed || '0') + BigInt(unconfirmed || '0')).toString(); } catch { computedTotal = confirmed || '0'; }
+  const total      = raw.total ?? raw.balance ?? computedTotal;
 
   // Resolve nested token metadata
-  let metaName     = '';
-  let metaTicker   = '';
-  let metaDecimals: number | string | undefined;
-  let metaArtimage: string | undefined;
-  let metaWebvalidate: string | undefined;
-
-  if (raw.token && typeof raw.token === 'object') {
-    metaName       = raw.token.name ?? '';
-    metaTicker     = raw.token.ticker ?? '';
-    metaDecimals   = raw.token.decimals;
-    metaArtimage   = raw.token.artimage;
-    metaWebvalidate = raw.token.webvalidate;
+  let meta: Record<string, unknown> = {};
+  if (typeof raw.token === 'string') {
+    try {
+      const parsed = JSON.parse(raw.token);
+      if (parsed && typeof parsed === 'object') meta = parsed as Record<string, unknown>;
+    } catch { /* non-JSON metadata */ }
+  } else if (raw.token && typeof raw.token === 'object') {
+    meta = raw.token as Record<string, unknown>;
   }
+  const metaString = (key: string): string | undefined => {
+    const value = meta[key] ?? (raw as unknown as Record<string, unknown>)[key];
+    return typeof value === 'string' && value.trim() ? value : undefined;
+  };
+  const metaName = metaString('name') ?? metaString('tokenName') ?? metaString('mTokenName');
+  const metaTicker = metaString('ticker');
+  const metaDecimals = meta.decimals ?? (raw as unknown as Record<string, unknown>).decimals;
+  const metaArtimage = metaString('artimage') ?? metaString('image') ?? metaString('imageData') ?? metaString('icon');
+  const metaWebvalidate = metaString('webvalidate');
+  const metaDescription = metaString('description');
+  const metaUrl = metaString('url');
+  const metaOwner = metaString('owner');
 
-  const name       = raw.name ?? metaName;
-  const ticker     = raw.ticker ?? metaTicker;
+  const name = metaName ?? '';
+  const ticker = metaTicker ?? '';
   const decimalsRaw = raw.decimals ?? metaDecimals ?? (tokenid === '0x00' ? 8 : 0);
-  const decimals   = typeof decimalsRaw === 'string' ? parseInt(decimalsRaw, 10) : decimalsRaw;
-  const artimage   = raw.artimage ?? metaArtimage;
+  const parsedDecimals = typeof decimalsRaw === 'string' ? parseInt(decimalsRaw, 10) : decimalsRaw;
+  const decimals = Number.isFinite(parsedDecimals) ? Math.max(0, parsedDecimals as number) : (tokenid === '0x00' ? 8 : 0);
+  const artimage = raw.artimage ?? metaArtimage;
   const webvalidate = raw.webvalidate ?? metaWebvalidate;
 
   const kind = classifyKind(tokenid, decimals, total, artimage);
@@ -120,5 +142,9 @@ export function toPortfolioEntry(raw: RawBalanceEntry, address: string): Portfol
     artimage,
     webvalidate,
     address,
+    ...(metaDescription ?? raw.description ? { description: metaDescription ?? raw.description } : {}),
+    ...(metaUrl ?? raw.url ? { url: metaUrl ?? raw.url } : {}),
+    ...(metaString('icon') ?? raw.icon ? { icon: metaString('icon') ?? raw.icon } : {}),
+    ...(metaOwner ?? raw.owner ? { owner: metaOwner ?? raw.owner } : {}),
   };
 }

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Typography } from '../atoms';
-import { formatAmount } from '../../../constants';
+import { formatAmount, formatTokenAmount } from '../../../constants';
 import '../../theme/axia-tokens.css';
 
 export interface TokenRowProps {
@@ -34,7 +34,7 @@ export function TokenRow({
   description,
   onClick 
 }: TokenRowProps) {
-  const formatted = formatAmount(balance, Math.min(decimals ?? 4, 8));
+  const formatted = formatTokenAmount(balance, decimals ?? 4);
   const isClickable = !!onClick;
   const isNFT = type === 'NFT' || type === 'nft';
   const isVerified = !!webvalidate;
