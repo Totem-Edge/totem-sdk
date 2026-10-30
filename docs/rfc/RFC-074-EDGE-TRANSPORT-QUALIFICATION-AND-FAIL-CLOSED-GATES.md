@@ -312,7 +312,10 @@ contain these fixes; follow-up versions are required after qualification.
   identity/length/count and actual write echoes are validated. Sensor proofs use
   the same validated gateway. Go serializes exchanges and applies each request's
   unit ID. Uncertain writes are not retried. All 48 TypeScript tests, Go race
-  tests/vet and an ESM/CJS-to-Go JSON-line/TCP simulator integration pass.
+  tests/vet, independent RTU CRC/framing vectors and an ESM/CJS-to-Go
+  JSON-line/TCP simulator integration pass. `sidecar.json` now declares the
+  source-build distribution contract and `--version` protocol handshake; the npm
+  tarball still does not bundle binaries.
 - NFC allocates the complete SR/long-payload/ID header and bounds-checks complete
   messages before payload allocation. Truncated, invalid-boundary and unsupported
   chunked records throw instead of producing partial/zero-padded records. All 43

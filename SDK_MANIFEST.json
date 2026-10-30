@@ -552,7 +552,7 @@
     },
     {
       "name": "@totemsdk/edge-modbus",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "description": "Edge runtime adapter for Modbus — PLCs, RTUs, industrial sensors over serial/TCP",
       "domain": "edge-computing",
       "keywords": [

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { execFileSync, spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { createConnection, createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -18,6 +18,10 @@ test('ESM/CJS gateways exchange real JSON-line requests with Go and a TCP device
   execFileSync('go', ['build', '-o', executable, '.'], {
     cwd: join(dirname(fileURLToPath(import.meta.url)), '..', 'go'), timeout: 30_000,
   });
+  const contract = JSON.parse(readFileSync(new URL('../sidecar.json', import.meta.url), 'utf8'));
+  assert.equal(contract.protocolVersion, 1);
+  assert.equal(contract.distribution.bundledInNpmPackage, false);
+  assert.match(execFileSync(executable, ['--version'], { encoding: 'utf8' }), /protocol=1/);
 
   let fault;
   let deviceRequests = 0;

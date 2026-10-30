@@ -46,9 +46,29 @@ pnpm --filter @totemsdk/edge-modbus test:integration
 
 The integration test builds and launches the real Go process, connects ESM/CJS
 gateways through JSON lines and exercises a loopback Modbus TCP simulator.
-Go tests include concurrent unit routing under the race detector. This evidence
-covers the simulated TCP profile; serial hardware/RTU recovery and native binary
-distribution remain qualification work.
+Go tests include concurrent unit routing under the race detector and independent
+RTU CRC/framing vectors, including corruption, wrong-unit, truncation and size
+bounds.
+
+## Native sidecar distribution
+
+The npm package does **not** bundle platform binaries or auto-download one.
+`sidecar.json` is the machine-readable contract; the sidecar must be built from
+the matching package source:
+
+```bash
+pnpm --filter @totemsdk/edge-modbus build:go
+./packages/edge-modbus/bin/edge-modbus --version  # edge-modbus protocol=1
+```
+
+Set `MODBUS_MODE`, `MODBUS_LISTEN_ADDR`, `MODBUS_TCP_ADDR` or serial settings,
+and `MODBUS_TIMEOUT_MS`. A protocol-major mismatch or unavailable binary must
+block startup; there is no fallback transport.
+
+Qualified evidence currently covers a macOS arm64 source build and loopback TCP
+simulator, plus RTU codec/CRC unit tests. Serial hardware, Windows/Linux prebuilt
+binaries, a vendor PLC matrix, and hot upgrade/rolling replacement remain
+unqualified and must not be claimed as production-supported.
 
 ## Quick start
 

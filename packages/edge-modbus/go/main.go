@@ -55,7 +55,13 @@ type Server struct {
 	stopCh    chan struct{}
 }
 
+const ProtocolVersion = 1
+
 func main() {
+	if len(os.Args) > 1 && (os.Args[1] == "--version" || os.Args[1] == "-version") {
+		fmt.Printf("edge-modbus protocol=%d\n", ProtocolVersion)
+		return
+	}
 	config := Config{
 		ListenAddr: getEnv("MODBUS_LISTEN_ADDR", "127.0.0.1:15002"),
 		Mode:       getEnv("MODBUS_MODE", "tcp"),

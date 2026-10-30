@@ -1,0 +1,34 @@
+{
+  "name": "edge-modbus-sidecar",
+  "protocolVersion": 1,
+  "distribution": {
+    "mode": "source-build",
+    "bundledInNpmPackage": false,
+    "binary": "bin/edge-modbus",
+    "build": "pnpm --filter @totemsdk/edge-modbus build:go",
+    "autoDownload": false
+  },
+  "compatibility": {
+    "protocolMajor": 1,
+    "healthCheck": "edge-modbus --version",
+    "rule": "Rebuild the sidecar from the matching package source. The npm package does not bundle platform binaries."
+  },
+  "configuration": {
+    "mode": "MODBUS_MODE=tcp|rtu",
+    "listen": "MODBUS_LISTEN_ADDR=127.0.0.1:15002",
+    "tcpTarget": "MODBUS_TCP_ADDR=host:502",
+    "serial": "MODBUS_SERIAL_PORT=/dev/ttyUSB0",
+    "timeout": "MODBUS_TIMEOUT_MS=2000"
+  },
+  "qualified": [
+    "darwin-arm64 source build",
+    "loopback Modbus TCP simulator",
+    "RTU codec/CRC unit coverage"
+  ],
+  "unqualified": [
+    "modbus serial hardware",
+    "Windows and Linux prebuilt binaries",
+    "broker/PLC vendor matrix",
+    "hot upgrade or rolling sidecar replacement"
+  ]
+}
