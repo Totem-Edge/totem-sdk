@@ -267,6 +267,15 @@ jobs:
         uses: ./.github/actions/setup-pnpm
       - name: Setup Rust and WASM toolchain
         uses: ./.github/actions/setup-rust-wasm
+      - name: Setup Go for Modbus conformance
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: '1.21'
+          cache: true
+          cache-dependency-path: packages/edge-modbus/go/go.sum
+      - name: Build MQTT WASM artifacts for v1 evidence
+        working-directory: packages/edge-mqtt
+        run: npm run build:wasm
       - name: Verify mandatory v1 qualification evidence (RFC-074)
         run: node scripts/verify-workspace.mjs --maturity v1 --integration --conformance --recovery --consumer
 

@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/edge-modbus",
   "version": "0.2.2",
-  "description": "Edge runtime adapter for Modbus — PLCs, RTUs, industrial sensors over serial/TCP",
+  "description": "Edge runtime adapter for Modbus \u2014 PLCs, RTUs, industrial sensors over serial/TCP",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "exports": {
@@ -23,7 +23,10 @@
     "clean": "rm -rf dist bin",
     "test": "jest",
     "test:go": "cd go && go test -race ./... && go vet ./...",
-    "test:integration": "node --test test/sidecar.integration.mjs"
+    "test:integration": "node --test test/sidecar.integration.mjs",
+    "test:conformance": "cd go && go test -race ./...",
+    "test:recovery": "node --test test/sidecar.integration.mjs",
+    "test:consumer": "node --test test/packed-consumer.test.mjs"
   },
   "files": [
     "dist",

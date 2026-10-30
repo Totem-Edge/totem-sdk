@@ -75,7 +75,7 @@ test('a maturity-only selector executes all required gates for exactly that matu
   const result = fixture(t, { stable: { maturity: 'v1' }, experimental: { maturity: 'alpha' } }).run('--maturity', 'v1');
   assert.equal(result.status, 0, result.stdout + result.stderr);
   assert.deepEqual(result.commands, ['stable:build', 'stable:lint', 'stable:test', 'stable:test:integration',
-    'stable:test:conformance', 'stable:test:recovery', 'stable:packed-consumer', 'stable:test:consumer']);
+    'stable:test:conformance', 'stable:test:recovery', 'stable:test:consumer']);
   assert.match(result.stdout, /packages\/stable: pack --dry-run/);
   assert.doesNotMatch(result.stdout, /packages\/experimental: (build|lint|test|pack)/);
 });

@@ -45,7 +45,9 @@ pnpm --filter @totemsdk/edge-modbus test:integration
 ```
 
 The integration test builds and launches the real Go process, connects ESM/CJS
-gateways through JSON lines and exercises a loopback Modbus TCP simulator.
+gateways through JSON lines and exercises a loopback Modbus TCP simulator. The
+packed-consumer test installs local Edge/Modbus tarballs and calls the gateway in
+ESM/CJS plus strict NodeNext type consumers.
 Go tests include concurrent unit routing under the race detector and independent
 RTU CRC/framing vectors, including corruption, wrong-unit, truncation and size
 bounds.

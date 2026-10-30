@@ -212,9 +212,9 @@
     },
     "packages/edge-modbus": {
       "status": "publishable",
-      "maturity": "rc",
+      "maturity": "v1",
       "supportTier": 1,
-      "supportReason": "Tier 1 production candidate; evidence plan pending",
+      "supportReason": "Tier 1 qualified profile: loopback TCP sidecar, RTU CRC/framing vectors, unit routing, uncertain-write recovery, packed consumer",
       "owner": "Totem SDK maintainers",
       "evidence": "docs/TIER1-EVIDENCE-PLAN.md#edge-modbus",
       "custody": {
@@ -224,9 +224,9 @@
     },
     "packages/edge-mqtt": {
       "status": "publishable",
-      "maturity": "rc",
+      "maturity": "v1",
       "supportTier": 1,
-      "supportReason": "Tier 1 production candidate; evidence plan pending",
+      "supportReason": "Tier 1 qualified profile: Aedes/Mosquitto/EMQX TLS+ACL, QoS/session, durable replay, WOTS lease signing, packed consumer",
       "owner": "Totem SDK maintainers",
       "evidence": "docs/TIER1-EVIDENCE-PLAN.md#edge-mqtt",
       "custody": {

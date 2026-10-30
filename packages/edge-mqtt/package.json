@@ -42,8 +42,10 @@
     "test": "jest",
     "test:recovery": "node --test test/replay-recovery.test.mjs",
     "test:consumer": "node --test test/packed-consumer.test.mjs",
-    "test:conformance": "node --test test/broker-conformance.test.mjs",
-    "test:signing": "node --test test/signing-conformance.test.mjs"
+    "test:conformance": "node --test test/broker-matrix.test.mjs && node --test test/signing-conformance.test.mjs",
+    "test:signing": "node --test test/signing-conformance.test.mjs",
+    "test:broker-matrix": "node --test test/broker-matrix.test.mjs",
+    "test:integration": "node --test test/broker-conformance.test.mjs"
   },
   "files": [
     "dist",

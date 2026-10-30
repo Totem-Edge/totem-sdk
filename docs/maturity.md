@@ -16,8 +16,8 @@
 
 | Level | Packages |
 |---|---:|
-| v1 | 2 |
-| rc | 58 |
+| v1 | 4 |
+| rc | 56 |
 | beta | 3 |
 | alpha | 6 |
 | excluded | 6 |
@@ -39,8 +39,8 @@ Total: **69** publishable packages + **6** excluded entries = **75** workspace e
 | `@totemsdk/core` | 1.4.2 | v1 | 0 | `packages/core` |
 | `@totemsdk/core-wasm` | 1.0.5 | v1 | 0 | `packages/core-wasm` |
 | `@totemsdk/kissvm` | 1.3.1 | rc | 0 | `packages/kissvm` |
-| `@totemsdk/edge-modbus` | 0.2.2 | rc | 1 | `packages/edge-modbus` |
-| `@totemsdk/edge-mqtt` | 0.3.1 | rc | 1 | `packages/edge-mqtt` |
+| `@totemsdk/edge-modbus` | 0.2.2 | v1 | 1 | `packages/edge-modbus` |
+| `@totemsdk/edge-mqtt` | 0.3.1 | v1 | 1 | `packages/edge-mqtt` |
 | `@totemsdk/industrial-action` | 0.5.0 | rc | 1 | `packages/industrial-action` |
 | `@totemsdk/lookup-client` | 0.4.0 | rc | 1 | `packages/lookup-client` |
 | `@totemsdk/lookup-node` | 0.4.0 | rc | 1 | `packages/lookup-node` |

@@ -483,10 +483,16 @@ for (const gate of ['integration', 'conformance', 'recovery', 'consumer']) {
   ensurePrerequisiteBuilds(gate);
   process.stdout.write(`── ${gate} (package-owned qualification evidence) ──────\n`);
   for (const [dir] of runnable) {
+    const packageConsumer = readPackageManifest(dir)?.scripts?.[script];
     if (gate === 'consumer') {
-      run(ROOT, [process.execPath, join(__dirname, 'verify-consumer-pack.mjs'), join(ROOT, dir)], `${dir}: packed consumer`);
-    }
-    if (readPackageManifest(dir)?.scripts?.[script]) {
+      if (packageConsumer) {
+        // A package-owned consumer can install local sibling tarballs when
+        // sibling versions are intentionally not published yet.
+        run(join(ROOT, dir), `npm run ${script}`, `${dir}: ${script}`);
+      } else {
+        run(ROOT, [process.execPath, join(__dirname, 'verify-consumer-pack.mjs'), join(ROOT, dir)], `${dir}: packed consumer`);
+      }
+    } else if (packageConsumer) {
       run(join(ROOT, dir), `npm run ${script}`, `${dir}: ${script}`);
     }
   }

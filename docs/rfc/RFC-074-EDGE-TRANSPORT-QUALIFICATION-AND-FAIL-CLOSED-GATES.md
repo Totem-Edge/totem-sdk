@@ -402,13 +402,15 @@ publication train completed independently.
   recovery and packed-consumer suites. Existing edge tags remain deferred and
   do not contain these fixes.
 
-MQTT now has runnable `test:recovery`, `test:consumer` and `test:conformance`
-evidence for this limited profile; it remains RC. Verification comprises 184
-package unit tests, five process-recovery checks, one packed ESM/CJS/type
-consumer and four real Aedes-broker checks (QoS 1, QoS 2, persistent-session
-offline redelivery plus durable replay, authentication rejection) and one
-durable WOTS lease-signing suite (concurrent + restart key separation). The
-issuer/command verifier remains application-owned. Mosquitto/EMQX/TLS/ACL
-matrices, hostile reconnect, real wallet/HSM issuer verification,
-multi-device lease quorum, execution-status journaling/reconciliation and the
-remaining Phase 2 lifecycle requirements are still open.
+MQTT and Modbus are now **v1 for their declared qualified profiles**:
+MQTT has runnable integration/recovery/consumer/conformance evidence including
+Aedes QoS/session, Mosquitto/EMQX TLS+ACL matrices, durable WOTS signing and
+packed consumers; Modbus has loopback TCP sidecar, RTU CRC/framing, recovery and
+packed-consumer evidence. Verification is 184 MQTT unit tests plus process,
+broker, signing and packed-consumer suites; 48 Modbus TS tests plus Go race/vet,
+RTU vectors and sidecar integration.
+
+The issuer/command verifier remains application-owned. Hostile reconnect, real
+wallet/HSM issuer verification, serial hardware, multi-device lease quorum,
+native Linux/Windows binaries, execution-status journaling and other edge-family
+profiles remain open.
