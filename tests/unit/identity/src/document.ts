@@ -1,0 +1,1 @@
+../../../../packages/identity/src/document.ts

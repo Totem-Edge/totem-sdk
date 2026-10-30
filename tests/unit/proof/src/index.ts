@@ -1,0 +1,1 @@
+../../../../packages/proof/src/index.ts

@@ -11,3 +11,8 @@ The boundary is deliberate:
 - a collaborative view is eventually convergent, **not** global finality.
 
 See RFC-057 for the full model.
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/replication/`. Qualification profiles are recorded in `qualification/registry.json`. Package `test:*` scripts are repository delegates; tests are not shipped.

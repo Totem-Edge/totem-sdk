@@ -1,0 +1,1 @@
+../../../../packages/manifest/src/replicated-announcements.ts

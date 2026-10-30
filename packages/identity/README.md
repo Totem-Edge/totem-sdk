@@ -304,3 +304,8 @@ Each claim signature consumes one WOTS key index. Use `@totemsdk/wots-lease` to 
 ## License
 
 Apache-2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/identity/`. Qualification profiles are recorded in `qualification/registry.json`. Package `test:*` scripts are repository delegates; tests are not shipped.

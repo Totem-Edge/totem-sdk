@@ -44,6 +44,66 @@
       "limitations": [
         "Recovery not applicable (stateless WASM crypto library)"
       ]
+    },
+    "@totemsdk/storage": {
+      "version": "0.2.2",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "unit": {
+          "suite": "packages/storage:test"
+        }
+      },
+      "limitations": []
+    },
+    "@totemsdk/replication": {
+      "version": "0.2.0",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "unit": {
+          "suite": "packages/replication:test"
+        }
+      },
+      "limitations": []
+    },
+    "@totemsdk/manifest": {
+      "version": "2.1.0",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "unit": {
+          "suite": "packages/manifest:test"
+        }
+      },
+      "limitations": []
+    },
+    "@totemsdk/identity": {
+      "version": "1.1.0",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "unit": {
+          "suite": "packages/identity:test"
+        }
+      },
+      "limitations": []
+    },
+    "@totemsdk/proof": {
+      "version": "1.0.2",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "unit": {
+          "suite": "packages/proof:test"
+        }
+      },
+      "limitations": []
+    },
+    "@totemsdk/authority": {
+      "version": "1.0.2",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "unit": {
+          "suite": "packages/authority:test"
+        }
+      },
+      "limitations": []
     }
   }
 }

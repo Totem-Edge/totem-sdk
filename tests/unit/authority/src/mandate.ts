@@ -1,0 +1,1 @@
+../../../../packages/authority/src/mandate.ts

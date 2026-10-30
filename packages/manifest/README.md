@@ -226,3 +226,8 @@ interface EdgeServiceManifest {
 - [`@totemsdk/lookup-protocol`](https://www.npmjs.com/package/@totemsdk/lookup-protocol) — embeds `encodeManifest()` output in `APP_ANNOUNCE` / `AGENT_ANNOUNCE` messages
 - [`@totemsdk/wots-lease`](https://www.npmjs.com/package/@totemsdk/wots-lease) — manage WOTS key index reservation before calling `signManifest`
 - [`@totemsdk/root-identity`](https://www.npmjs.com/package/@totemsdk/root-identity) — optional `rootIdentityProof` field for chain-of-custody linking
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/manifest/`. Qualification profiles are recorded in `qualification/registry.json`. Package `test:*` scripts are repository delegates; tests are not shipped.

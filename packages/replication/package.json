@@ -18,7 +18,7 @@
   },
   "scripts": {
     "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
-    "test": "jest"
+    "test": "jest --config ../../tests/jest/replication.cjs"
   },
   "files": [
     "dist",

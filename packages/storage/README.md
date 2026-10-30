@@ -155,3 +155,8 @@ runtime contract is synchronous (e.g. `@totemsdk/omnia`'s `ChannelStore` Map). I
 uses the same `totemsdk_kv` table, versioned codec and envelope as
 `@totemsdk/storage/sqlite`, so values written by one are readable by the other.
 Native `better-sqlite3` remains isolated to this subpath.
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/storage/`. Qualification profiles are recorded in `qualification/registry.json`. Package `test:*` scripts are repository delegates; tests are not shipped.

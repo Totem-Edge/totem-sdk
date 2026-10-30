@@ -131,7 +131,7 @@ describe('FileStore corrupt handling', () => {
       await store.set('counter', 0);
 
       const { spawn } = await import('node:child_process');
-      const root = join(__dirname, '..', '..', '..', '..');
+      const root = join(__dirname, '..', '..', '..', '..', '..');
       const cjs = join(root, 'packages', 'storage', 'dist', 'adapters', 'file-store.js');
       const childSrc = `
         const { FileStore } = require(${JSON.stringify(cjs)});

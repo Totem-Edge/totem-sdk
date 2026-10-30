@@ -1,0 +1,1 @@
+../../../../packages/identity/src/manifest-binding.ts

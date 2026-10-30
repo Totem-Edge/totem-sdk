@@ -1,0 +1,1 @@
+../../../../packages/authority/src/index.ts

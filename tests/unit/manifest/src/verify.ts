@@ -1,0 +1,1 @@
+../../../../packages/manifest/src/verify.ts

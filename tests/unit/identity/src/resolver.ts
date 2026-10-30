@@ -1,0 +1,1 @@
+../../../../packages/identity/src/resolver.ts

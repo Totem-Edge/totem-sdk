@@ -1,0 +1,1 @@
+../../../../packages/proof/src/manifest-proof.ts
