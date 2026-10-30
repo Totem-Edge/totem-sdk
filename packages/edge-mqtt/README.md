@@ -124,7 +124,7 @@ evidence.
 The broker-matrix suite starts real Mosquitto and EMQX containers with a
 generated CA/server certificate. It verifies TLS trust and untrusted-CA rejection,
 anonymous-vs-password Mosquitto behavior, Mosquitto ACL denial, and allowed
-publish/subscribe delivery on both brokers. It requires Docker and pulls the
+publish/subscribe delivery on both brokers (Mosquitto also asserts ACL denial; EMQX is the TLS/delivery profile). It requires Docker and pulls the
 pinned images if absent.
 
 The signing-conformance suite composes the real durable `LocalLeaseProvider`

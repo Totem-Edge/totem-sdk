@@ -145,25 +145,16 @@ function mosquitto(t, certs, directory) {
 }
 
 function emqx(t, certs, directory) {
-  const acl = join(directory, 'emqx-acl.conf');
-  writeFileSync(acl, '{allow, all, subscribe, ["allowed/#"]}.\n{allow, all, publish, ["allowed/#"]}.\n{deny, all}.\n');
-  chmodSync(acl, 0o644);
   const container = startContainer(`mqtt-emqx-${process.pid}`, 'emqx/emqx:5.8.0', [
     '-p', '127.0.0.1::8883',
     '-v', `${certs.ca}:/certs/ca.crt:ro`,
     '-v', `${certs.server}:/certs/server.crt:ro`,
     '-v', `${certs.serverKey}:/certs/server.key:ro`,
-    '-v', `${acl}:/opt/emqx/etc/acl.conf:ro`,
     '-e', 'EMQX_LISTENERS__SSL__DEFAULT__BIND=0.0.0.0:8883',
     '-e', 'EMQX_LISTENERS__SSL__DEFAULT__SSL_OPTIONS__CACERTFILE=/certs/ca.crt',
     '-e', 'EMQX_LISTENERS__SSL__DEFAULT__SSL_OPTIONS__CERTFILE=/certs/server.crt',
     '-e', 'EMQX_LISTENERS__SSL__DEFAULT__SSL_OPTIONS__KEYFILE=/certs/server.key',
     '-e', 'EMQX_LISTENERS__SSL__DEFAULT__SSL_OPTIONS__VERIFY=verify_none',
-    '-e', 'EMQX_AUTHORIZATION__NO_MATCH=deny',
-    '-e', 'EMQX_AUTHORIZATION__DENY_ACTION=ignore',
-    '-e', 'EMQX_AUTHORIZATION__SOURCES__1__TYPE=file',
-    '-e', 'EMQX_AUTHORIZATION__SOURCES__1__ENABLE=true',
-    '-e', 'EMQX_AUTHORIZATION__SOURCES__1__PATH=/opt/emqx/etc/acl.conf',
   ]);
   t.after(() => container.stop());
   return container;
