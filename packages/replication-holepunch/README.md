@@ -9,3 +9,8 @@ has Hypercore/Hyperbee/Corestore available.
 - Hyperdrive/Autobase adapters are Phase 2/3 work in RFC-057.
 
 A local append is locally persisted, not remotely acknowledged and not final.
+
+
+## Testing
+
+Integration/qualification tests live outside the package in `tests/qualification/replication-holepunch/`.

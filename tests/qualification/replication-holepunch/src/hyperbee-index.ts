@@ -1,0 +1,1 @@
+../../../../packages/replication-holepunch/src/hyperbee-index.ts
