@@ -160,3 +160,14 @@ This package is a TypeScript port of core Minima Java cryptographic and data str
 - [`@totemsdk/wots-lease`](https://www.npmjs.com/package/@totemsdk/wots-lease) — cloud-coordinated WOTS key safety
 - [`@totemsdk/tx-builder`](https://www.npmjs.com/package/@totemsdk/tx-builder) — full transaction construction
 - [`@totemsdk/root-identity`](https://www.npmjs.com/package/@totemsdk/root-identity) — multi-address identity from one seed
+
+
+## Testing
+
+Tests live outside the published package:
+
+- Unit/contract tests: `tests/unit/core/`
+- Qualification/runtime suites: `tests/qualification/core/`
+- Registry: `qualification/registry.json`
+
+Package `test:*` scripts are thin repository delegates; tests are not shipped.

@@ -159,11 +159,11 @@
     "build": "tsc && node scripts/async-esm.mjs && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "prepare": "tsc && node scripts/async-esm.mjs && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist",
-    "test": "jest",
-    "test:wasm-async": "tsc -p tsconfig.json && node scripts/async-esm.mjs && node test/wasm-async.test.mjs && node test/wasm-surface-parity.test.mjs && node test/esm-root-async.test.mjs && node test/kernel-coverage.test.mjs",
+    "test": "jest --config ../../tests/jest/core.cjs",
+    "test:wasm-async": "tsc -p tsconfig.json && node scripts/async-esm.mjs && node ../../tests/unit/core/test/wasm-async.test.mjs && node ../../tests/unit/core/test/wasm-surface-parity.test.mjs && node ../../tests/unit/core/test/esm-root-async.test.mjs && node ../../tests/unit/core/test/kernel-coverage.test.mjs",
     "gen:pkdigest": "node scripts/gen_wots_pkdigest_vectors.cjs",
-    "test:integration": "node test/wasm-async.test.mjs && node test/esm-root-async.test.mjs",
-    "test:conformance": "npm run test:wasm-async && jest --runInBand --testPathPatterns=\"parity|golden|wots|bip39|java|mmr\""
+    "test:integration": "node ../../tests/unit/core/test/wasm-async.test.mjs && node ../../tests/unit/core/test/esm-root-async.test.mjs",
+    "test:conformance": "npm run test:wasm-async && jest --config ../../tests/jest/core.cjs --runInBand --testPathPatterns=\"parity|golden|wots|bip39|java|mmr\""
   },
   "files": [
     "dist",

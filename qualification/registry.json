@@ -16,6 +16,34 @@
       "limitations": [
         "ChirpStack/network-server and radio hardware profiles are not yet qualified"
       ]
+    },
+    "@totemsdk/core": {
+      "version": "1.4.2",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "wasm": {
+          "unit": "packages/core:test",
+          "integration": "packages/core:test:integration",
+          "conformance": "packages/core:test:conformance"
+        }
+      },
+      "limitations": [
+        "Recovery not applicable (stateless crypto library)"
+      ]
+    },
+    "@totemsdk/core-wasm": {
+      "version": "1.0.5",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "wasm": {
+          "test": "packages/core-wasm:test",
+          "integration": "packages/core-wasm:test:integration",
+          "conformance": "packages/core-wasm:test:conformance"
+        }
+      },
+      "limitations": [
+        "Recovery not applicable (stateless WASM crypto library)"
+      ]
     }
   }
 }

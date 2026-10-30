@@ -1,0 +1,1 @@
+../../../../packages/core/src/minimaWireSerializer.ts
