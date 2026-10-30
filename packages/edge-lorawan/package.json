@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/edge-lorawan",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Edge runtime adapter for LoRaWAN \u2014 agriculture, asset tracking, long-range sensors",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",

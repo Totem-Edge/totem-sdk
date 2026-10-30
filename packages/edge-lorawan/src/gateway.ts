@@ -18,14 +18,21 @@ export interface LorawanGatewayConfig {
   devAddr?: string;
   /** Durable replay guard; defaults to a process-local memory guard. */
   replayStore?: LorawanReplayStore;
+  /** Confirmed-uplink ACK timeout in ms (default 30_000). */
+  confirmedTimeoutMs?: number;
+  /**
+   * Classify a transport failure. Default is 'unknown' so a lost ACK is never
+   * mistaken for definitely-not-sent; no automatic retry is performed.
+   */
+  classifyUplinkError?: (error: unknown) => 'definitely-not-sent' | 'unknown';
 }
 
 export interface LorawanGateway {
   start(): Promise<void>;
   stop(): Promise<void>;
   readonly status: 'stopped' | 'running' | 'error';
-  /** Send a confirmed uplink. */
-  sendConfirmed(port: number, data: Uint8Array): Promise<void>;
+  /** Send a confirmed uplink. Uncertain outcomes are explicit and never retried. */
+  sendConfirmed(port: number, data: Uint8Array): Promise<EdgeOperationResult<{ acknowledged: true }>>;
   /** Send an unconfirmed uplink. */
   sendUnconfirmed(port: number, data: Uint8Array): Promise<void>;
 }
@@ -36,6 +43,10 @@ export function createLorawanGateway(config: LorawanGatewayConfig): LorawanGatew
   let unsubJoin: (() => void) | undefined;
   let unsubError: (() => void) | undefined;
   const replayStore = config.replayStore ?? createMemoryLorawanReplayStore();
+  const confirmedTimeoutMs = config.confirmedTimeoutMs ?? 30_000;
+  if (!Number.isSafeInteger(confirmedTimeoutMs) || confirmedTimeoutMs <= 0) {
+    throw new Error('confirmedTimeoutMs must be a positive safe integer');
+  }
   let currentDevAddr = config.abp?.devAddr ?? config.devAddr;
 
   const emit = (params: { subject: string; claims: unknown[] }): void => {
@@ -94,7 +105,30 @@ export function createLorawanGateway(config: LorawanGatewayConfig): LorawanGatew
       status = 'stopped';
     },
 
-    async sendConfirmed(port, data) { await config.transport.sendConfirmed(port, data); },
+    async sendConfirmed(port, data) {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        await Promise.race([
+          config.transport.sendConfirmed(port, data),
+          new Promise<never>((_resolve, reject) => {
+            timer = setTimeout(() => reject(new Error('confirmed uplink ACK timeout')), confirmedTimeoutMs);
+          }),
+        ]);
+        return { ok: true, data: { acknowledged: true } };
+      } catch (error) {
+        const classification = config.classifyUplinkError?.(error) ?? 'unknown';
+        if (classification === 'definitely-not-sent') {
+          return { ok: false, error: String(error), errorCode: 'LORAWAN_UPLINK_FAILED' };
+        }
+        return {
+          ok: false,
+          error: `confirmed uplink outcome unknown: ${String(error)}`,
+          errorCode: 'LORAWAN_UPLINK_OUTCOME_UNKNOWN',
+        };
+      } finally {
+        if (timer !== undefined) clearTimeout(timer);
+      }
+    },
     async sendUnconfirmed(port, data) { await config.transport.sendUnconfirmed(port, data); },
   };
 }

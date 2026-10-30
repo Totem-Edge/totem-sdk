@@ -413,8 +413,9 @@ RTU vectors and sidecar integration.
 
 LoRaWAN has a v1-qualified simulator profile: OTAA/ABP, monotonic frame counters,
 duplicate/rollback rejection, rejoin reset, gateway+bridge integration, durable
-CAS replay recovery and packed consumer. It remains outside the first-line
-production support tier; radio/network-server hardware and transport-supplied
+CAS replay recovery, packed consumer and explicit confirmed-uplink
+`unknown` results. It remains outside the first-line production support tier;
+radio/network-server hardware, ChirpStack conformance and transport-supplied
 session epochs remain unqualified.
 
 The issuer/command verifier remains application-owned. Hostile reconnect, real

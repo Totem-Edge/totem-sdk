@@ -69,7 +69,7 @@ Total: **69** publishable packages + **6** excluded entries = **75** workspace e
 | `@totemsdk/tx-builder` | 0.2.2 | rc | 2 | `packages/tx-builder` |
 | `@totemsdk/txpow` | 1.1.1 | rc | 2 | `packages/txpow` |
 | `@totemsdk/p2p-hub` | 0.1.1 | alpha | 2 | `packages/p2p-hub` |
-| `@totemsdk/edge-lorawan` | 0.2.2 | v1 | outside | `packages/edge-lorawan` |
+| `@totemsdk/edge-lorawan` | 0.2.3 | v1 | outside | `packages/edge-lorawan` |
 | `@totemsdk/connect` | 3.1.2 | rc | outside | `packages/connect` |
 | `@totemsdk/edge-adapters` | 0.3.1 | rc | outside | `packages/edge-adapters` |
 | `@totemsdk/edge-bacnet` | 0.2.1 | rc | outside | `packages/edge-bacnet` |

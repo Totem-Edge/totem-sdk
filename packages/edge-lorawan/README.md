@@ -14,6 +14,8 @@ This package does **not** import any LoRa radio library or network server client
 
 Durable frame/session state is injected through `LorawanReplayStore`. `createStorageLorawanReplayStore` adapts any durable `StorageAdapterWithCapabilities & CasStore`; the connector never imports SQLite or another native database. The memory guard is only for tests/single-process embedding.
 
+Confirmed uplinks are bounded by `confirmedTimeoutMs`. A timeout or transport failure defaults to `LORAWAN_UPLINK_OUTCOME_UNKNOWN`; a host may classify a definite pre-send failure as `definitely-not-sent`. The gateway never retries a confirmed uplink automatically. Sensor polling currently ignores the returned result; callers should reconcile or surface unknown outcomes.
+
 Known limit: without a transport-supplied session epoch, a rejoin cannot distinguish an old frame whose counter is higher than the new session watermark. Transports should bind frames to the current session and reject stale epochs upstream.
 
 ## Quick start

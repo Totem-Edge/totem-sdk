@@ -201,6 +201,43 @@ describe('edge-lorawan gateway', () => {
     await gw.stop();
   });
 
+  it('returns explicit unknown on a lost confirmed-uplink ACK and never retries', async () => {
+    const transport = new MockLorawanTransport();
+    transport.failSendConfirmed = true;
+    const gw = createLorawanGateway({
+      runtime: makeRuntime(), transport, otaa: { devEui: 'x', appEui: 'y', appKey: 'z' },
+    });
+    const result = await gw.sendConfirmed(2, new Uint8Array([1]));
+    expect(result.ok).toBe(false);
+    expect(result.errorCode).toBe('LORAWAN_UPLINK_OUTCOME_UNKNOWN');
+    expect(transport.confirmed).toHaveLength(1);
+  });
+
+  it('classifies definitely-not-sent without retrying', async () => {
+    const transport = new MockLorawanTransport();
+    transport.failSendConfirmed = true;
+    const gw = createLorawanGateway({
+      runtime: makeRuntime(), transport, otaa: { devEui: 'x', appEui: 'y', appKey: 'z' },
+      classifyUplinkError: () => 'definitely-not-sent',
+    });
+    expect(await gw.sendConfirmed(2, new Uint8Array([1]))).toMatchObject({
+      ok: false, errorCode: 'LORAWAN_UPLINK_FAILED',
+    });
+    expect(transport.confirmed).toHaveLength(1);
+  });
+
+  it('bounds a hanging confirmed uplink as unknown', async () => {
+    const transport = new MockLorawanTransport();
+    transport.sendConfirmed = () => new Promise(() => {});
+    const gw = createLorawanGateway({
+      runtime: makeRuntime(), transport, otaa: { devEui: 'x', appEui: 'y', appKey: 'z' },
+      confirmedTimeoutMs: 10,
+    });
+    expect(await gw.sendConfirmed(2, new Uint8Array([1]))).toMatchObject({
+      ok: false, errorCode: 'LORAWAN_UPLINK_OUTCOME_UNKNOWN',
+    });
+  });
+
   it('sendConfirmed and sendUnconfirmed delegate to transport', async () => {
     const transport = new MockLorawanTransport();
     const gw = createLorawanGateway({
