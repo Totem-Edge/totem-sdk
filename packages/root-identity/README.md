@@ -86,3 +86,8 @@ const wallet = RootIdentityWallet.fromPhrase(userInput);
 - [`@totemsdk/core`](https://www.npmjs.com/package/@totemsdk/core) — `createPerAddressTreeKey` used internally for each child
 - [`@totemsdk/wots-lease`](https://www.npmjs.com/package/@totemsdk/wots-lease) — manage signing slot watermarks for each child address
 - [`@totemsdk/statechain`](https://www.npmjs.com/package/@totemsdk/statechain) — transfer assets between addresses off-chain
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/root-identity/`. Package `test:*` scripts are repository delegates.

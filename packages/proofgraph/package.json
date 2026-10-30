@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/proofgraph",
   "version": "1.1.0",
-  "description": "Local deterministic proof relationship graph for Totem Edge — indexes proofs, identities, manifests, and subjects into a queryable content-addressed DAG",
+  "description": "Local deterministic proof relationship graph for Totem Edge \u2014 indexes proofs, identities, manifests, and subjects into a queryable content-addressed DAG",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "exports": {
@@ -21,7 +21,7 @@
     "build:wasm": "cd rust && wasm-pack build --target bundler --out-dir pkg && wasm-pack build --target nodejs --out-dir pkg-node",
     "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist rust/pkg rust/pkg-node rust/target",
-    "test": "jest"
+    "test": "jest --config ../../tests/jest/proofgraph.cjs"
   },
   "files": [
     "dist",

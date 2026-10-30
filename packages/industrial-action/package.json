@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/industrial-action",
   "version": "0.5.0",
-  "description": "Deterministic industrial action lifecycle for Totem Edge — converts governed intent into context-aware, bounded, verifiably executed operations on field devices and protocols",
+  "description": "Deterministic industrial action lifecycle for Totem Edge \u2014 converts governed intent into context-aware, bounded, verifiably executed operations on field devices and protocols",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "exports": {
@@ -20,7 +20,7 @@
     "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist",
-    "test": "jest",
+    "test": "jest --config ../../tests/jest/industrial-action.cjs",
     "test:integration": "jest --config jest.integration.config.cjs",
     "lint": "eslint src test --max-warnings 0"
   },

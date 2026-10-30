@@ -134,3 +134,8 @@ await provider.publishWatermark('wallet');
 - [`@totemsdk/core`](https://www.npmjs.com/package/@totemsdk/core) — WOTS primitives this package protects
 - [`@totemsdk/lookup-node`](https://www.npmjs.com/package/@totemsdk/lookup-node) — `LeaseCoordinator` for multi-client setups
 - [`@totemsdk/omnia`](https://www.npmjs.com/package/@totemsdk/omnia) — integrates wots-lease to protect channel signing slots
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/wots-lease/`. Package `test:*` scripts are repository delegates.

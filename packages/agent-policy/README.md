@@ -362,3 +362,8 @@ npm run build
 - [`@totemsdk/omnia`](https://www.npmjs.com/package/@totemsdk/omnia) — `AgentPolicy` integration for channel-level governance
 - [`@totemsdk/core`](https://www.npmjs.com/package/@totemsdk/core) — WOTS signatures used in proposals and receipts
 - [`@totemsdk/core-wasm`](https://www.npmjs.com/package/@totemsdk/core-wasm) — Rust/WASM cryptographic engine
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/agent-policy/`. Package `test:*` scripts are repository delegates.

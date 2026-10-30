@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/intelligence",
   "version": "0.1.2",
-  "description": "Provider-neutral intelligence contracts — capabilities, operations, receipts, errors for local self-hosted AI inference",
+  "description": "Provider-neutral intelligence contracts \u2014 capabilities, operations, receipts, errors for local self-hosted AI inference",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "exports": {
@@ -50,7 +50,7 @@
     "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist",
-    "test": "jest"
+    "test": "jest --config ../../tests/jest/intelligence.cjs"
   },
   "files": [
     "dist",

@@ -1,0 +1,1 @@
+../../../../packages/industrial-action/src/errors.ts

@@ -1,0 +1,1 @@
+../../../../packages/agent-policy/src/replicated-receipt-store.ts

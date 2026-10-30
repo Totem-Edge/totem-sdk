@@ -1,0 +1,1 @@
+../../../../packages/wots-lease/src/watermark.ts

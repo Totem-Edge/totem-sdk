@@ -1,0 +1,1 @@
+../../../../packages/kissvm/src/wasm-sync.ts

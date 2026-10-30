@@ -1,0 +1,1 @@
+../../../../packages/recursive-mast/src/template-stability.ts

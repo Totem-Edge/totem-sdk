@@ -69,3 +69,8 @@ class MyTransport implements IPubSubTransport {
 ## License
 
 Apache-2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/pubsub-transport/`. Package `test:*` scripts are repository delegates.

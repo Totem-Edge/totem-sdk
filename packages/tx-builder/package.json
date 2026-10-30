@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/tx-builder",
   "version": "0.2.2",
-  "description": "Transaction builder for Minima blockchain — coin selection, multisig, and WOTS signing",
+  "description": "Transaction builder for Minima blockchain \u2014 coin selection, multisig, and WOTS signing",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "exports": {
@@ -22,7 +22,7 @@
     "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "prepack": "rm -rf dist/__tests__ dist/tx-builder dist/core",
     "clean": "rm -rf dist rust/pkg rust/pkg-node rust/target",
-    "test": "jest --config jest.config.cjs",
+    "test": "jest --config ../../tests/jest/tx-builder.cjs",
     "test:rust": "cd rust && cargo test"
   },
   "files": [

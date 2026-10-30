@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/wots-lease",
   "version": "1.0.2",
-  "description": "WOTS key-use coordination — canonical v3 watermark, provider-based lease safety layers",
+  "description": "WOTS key-use coordination \u2014 canonical v3 watermark, provider-based lease safety layers",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "exports": {
@@ -21,7 +21,7 @@
     "build:wasm": "cd rust && wasm-pack build --target bundler --out-dir pkg && wasm-pack build --target nodejs --out-dir pkg-node",
     "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist rust/pkg rust/pkg-node rust/target",
-    "test": "jest"
+    "test": "jest --config ../../tests/jest/wots-lease.cjs"
   },
   "files": [
     "dist",

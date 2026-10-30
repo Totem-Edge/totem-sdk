@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/spatial-proof",
   "version": "1.0.1",
-  "description": "Generic spatial relationship proof primitives for Totem Edge — geometry hashes, geofence relations, route checks, and proof envelope integration",
+  "description": "Generic spatial relationship proof primitives for Totem Edge \u2014 geometry hashes, geofence relations, route checks, and proof envelope integration",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "exports": {
@@ -20,7 +20,7 @@
     "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist",
-    "test": "jest"
+    "test": "jest --config ../../tests/jest/spatial-proof.cjs"
   },
   "files": [
     "dist",

@@ -60,3 +60,8 @@ await transport.publish('dex.v1.orders.MINIMA_USDT', signedEnvelopeBytes);
 - Browser clients must use the loopback bridge; they cannot join Hyperswarm.
 - Use `deriveTopicKey(topic)` when native peers need the exact 32-byte DHT key.
 - Pairing/endpoint discovery is defined by RFC-062.
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/p2p-hub/`. Package `test:*` scripts are repository delegates.

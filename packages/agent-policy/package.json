@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/agent-policy",
   "version": "0.4.0",
-  "description": "Agent-policy interface contracts — language-agnostic Protobuf schema for AI agent ↔ wallet communication",
+  "description": "Agent-policy interface contracts \u2014 language-agnostic Protobuf schema for AI agent \u2194 wallet communication",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "exports": {
@@ -21,7 +21,7 @@
     "prepare": "npm run generate:proto && tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "generate:proto": "node scripts/generate-proto.mjs",
     "clean": "rm -rf dist src/generated",
-    "test": "jest"
+    "test": "jest --config ../../tests/jest/agent-policy.cjs"
   },
   "files": [
     "dist",

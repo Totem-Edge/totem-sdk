@@ -256,3 +256,8 @@ const edges = locationProofToGraphEdges(signed);         // about / references /
 - [`@totemsdk/manifest`](https://www.npmjs.com/package/@totemsdk/manifest) — signed entity declarations
 - [`@totemsdk/wots-lease`](https://www.npmjs.com/package/@totemsdk/wots-lease) — one-time key safety
 - [`@totemsdk/edge`](https://www.npmjs.com/package/@totemsdk/edge) — unified edge runtime
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/location-proof/`. Package `test:*` scripts are repository delegates.

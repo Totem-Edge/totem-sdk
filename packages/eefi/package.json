@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/eefi",
   "version": "0.1.1",
-  "description": "Eefi generic contracts — neutral capital, market, risk and exercise agreement schemas with canonical digests",
+  "description": "Eefi generic contracts \u2014 neutral capital, market, risk and exercise agreement schemas with canonical digests",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "exports": {
@@ -20,7 +20,7 @@
     "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist",
-    "test": "jest --config jest.config.cjs"
+    "test": "jest --config ../../tests/jest/eefi.cjs"
   },
   "files": [
     "dist",

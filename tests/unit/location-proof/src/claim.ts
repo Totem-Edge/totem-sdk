@@ -1,0 +1,1 @@
+../../../../packages/location-proof/src/claim.ts

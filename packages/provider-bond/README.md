@@ -240,3 +240,8 @@ const restored = parseProviderBondState(json);
 - Transport layer for provider announcements and queries
 - `$TOTEM` network service-assurance bonds: provider eligibility, capacity and liability policies subject to the network economics specification (see the Network Economics Gold Paper)
 - DAO governance integration
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/provider-bond/`. Package `test:*` scripts are repository delegates.

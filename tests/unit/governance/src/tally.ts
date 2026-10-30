@@ -1,0 +1,1 @@
+../../../../packages/governance/src/tally.ts

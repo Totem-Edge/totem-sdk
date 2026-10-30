@@ -37,3 +37,8 @@ const result = tallyQuadraticVotes(credits);
 ## License
 
 Apache-2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/governance/`. Package `test:*` scripts are repository delegates.

@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/recursive-mast",
   "version": "0.3.1",
-  "description": "Recursive MAST + PREVSTATE library — composable policy trees, proof chains, state transitions, and delegation workflows for Minima KISSVM",
+  "description": "Recursive MAST + PREVSTATE library \u2014 composable policy trees, proof chains, state transitions, and delegation workflows for Minima KISSVM",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "exports": {
@@ -51,7 +51,7 @@
     "build:wasm": "cd rust && wasm-pack build --target bundler --out-dir pkg && wasm-pack build --target nodejs --out-dir pkg-node",
     "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist rust/pkg rust/pkg-node rust/target",
-    "test": "jest"
+    "test": "jest --config ../../tests/jest/recursive-mast.cjs"
   },
   "files": [
     "dist",

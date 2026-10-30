@@ -134,3 +134,8 @@ const provider = new LookupClientProvider(mockClient);
 - [`@totemsdk/lookup-client`](https://www.npmjs.com/package/@totemsdk/lookup-client) — connect to a personal lookup node over Hyperswarm DHT
 - [`@totemsdk/node`](https://www.npmjs.com/package/@totemsdk/node) — Node.js `MinimaProvider`
 - [`@totemsdk/omnia`](https://www.npmjs.com/package/@totemsdk/omnia) — uses `ChainStateProvider` for coin queries
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/chain-provider/`. Package `test:*` scripts are repository delegates.

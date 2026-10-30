@@ -70,3 +70,7 @@ runtime's `EdgeCapabilitySet`) and `intelligence:cancel`.
 ## License
 
 Apache-2.0 — Totem SDK Contributors. See [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
+
+## Testing
+
+Tests live outside the published package in `tests/unit/intelligence/`. Package `test:*` scripts are repository delegates.

@@ -1,0 +1,1 @@
+../../../../packages/agent-policy/src/grant-bound-autonomy.ts

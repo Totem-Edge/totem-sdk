@@ -1,0 +1,1 @@
+../../../../packages/entity/src/digest.ts

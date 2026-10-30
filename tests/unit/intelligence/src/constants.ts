@@ -1,0 +1,1 @@
+../../../../packages/intelligence/src/constants.ts

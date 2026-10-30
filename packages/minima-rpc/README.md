@@ -119,3 +119,8 @@ This package is a TypeScript port of the Minima Java RPC layer. Canonical upstre
 - [`@totemsdk/chain-provider`](https://www.npmjs.com/package/@totemsdk/chain-provider) — `MinimaRpcProvider` wraps this client
 - [`@totemsdk/node`](https://www.npmjs.com/package/@totemsdk/node) — higher-level Node.js wallet
 - [`@totemsdk/lookup-node`](https://www.npmjs.com/package/@totemsdk/lookup-node) — uses this to relay to the Minima network
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/minima-rpc/`. Package `test:*` scripts are repository delegates.

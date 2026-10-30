@@ -249,3 +249,8 @@ import { buildFirmwareUpdateScript } from '@totemsdk/kissvm';
 - [`@totemsdk/recursive-mast`](https://www.npmjs.com/package/@totemsdk/recursive-mast) — higher-level policy coordination (delegation, discovery, signing, storage)
 - [`@totemsdk/tx-builder`](https://www.npmjs.com/package/@totemsdk/tx-builder) — builds transactions for `simulateSpend`
 - [`@totemsdk/omnia`](https://www.npmjs.com/package/@totemsdk/omnia) — payment channel state machine using KISSVM
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/kissvm/`. Package `test:*` scripts are repository delegates.

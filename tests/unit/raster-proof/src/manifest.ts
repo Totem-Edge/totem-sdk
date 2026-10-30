@@ -1,0 +1,1 @@
+../../../../packages/raster-proof/src/manifest.ts

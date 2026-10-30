@@ -113,3 +113,8 @@ This package is a TypeScript port of Minima's transaction construction and coin 
 - [`@totemsdk/connect`](https://www.npmjs.com/package/@totemsdk/connect) — `sendComplex(origin, buildParams)` uses `EnhancedBuildParams`
 - [`@totemsdk/core`](https://www.npmjs.com/package/@totemsdk/core) — WOTS signing primitives
 - [`@totemsdk/wots-lease`](https://www.npmjs.com/package/@totemsdk/wots-lease) — key safety for signing slots
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/tx-builder/`. Package `test:*` scripts are repository delegates.

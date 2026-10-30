@@ -381,3 +381,7 @@ The "raster supports proof" edge is created by `@totemsdk/proofgraph`'s `addProo
 - [`@totemsdk/manifest`](https://www.npmjs.com/package/@totemsdk/manifest) — signed entity declarations
 - [`@totemsdk/wots-lease`](https://www.npmjs.com/package/@totemsdk/wots-lease) — one-time key safety
 - [`@totemsdk/edge`](https://www.npmjs.com/package/@totemsdk/edge) — unified edge runtime
+
+## Testing
+
+Tests live outside the published package in `tests/unit/raster-proof/`. Package `test:*` scripts are repository delegates.

@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/p2p-hub",
   "version": "0.1.1",
-  "description": "Local P2P hub — one Hyperswarm instance shared by Totem apps over a loopback WebSocket bridge",
+  "description": "Local P2P hub \u2014 one Hyperswarm instance shared by Totem apps over a loopback WebSocket bridge",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "exports": {
@@ -18,7 +18,7 @@
   },
   "scripts": {
     "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
-    "test": "jest"
+    "test": "jest --config ../../tests/jest/p2p-hub.cjs"
   },
   "files": [
     "dist",

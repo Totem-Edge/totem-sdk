@@ -1,0 +1,1 @@
+../../../../packages/chain-provider/src/index.ts

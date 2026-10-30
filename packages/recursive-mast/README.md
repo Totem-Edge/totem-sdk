@@ -1236,3 +1236,8 @@ const report = await auditPolicyAvailability({
 ## License
 
 Apache-2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/recursive-mast/`. Package `test:*` scripts are repository delegates.

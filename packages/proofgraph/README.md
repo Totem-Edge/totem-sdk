@@ -244,3 +244,8 @@ class MyStorage implements ProofGraphStoragePort {
 ## License
 
 Apache-2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/proofgraph/`. Package `test:*` scripts are repository delegates.

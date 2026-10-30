@@ -53,3 +53,8 @@ const topic = channelTopic('my-channel-id'); // 32-byte Buffer (SHA3-256)
 ## License
 
 Apache-2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/stream-transport/`. Package `test:*` scripts are repository delegates.

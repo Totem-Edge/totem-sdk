@@ -1,0 +1,1 @@
+../../../../packages/proofgraph/src/verify.ts

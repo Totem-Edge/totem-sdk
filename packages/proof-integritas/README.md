@@ -189,3 +189,8 @@ const provider = createIntegritasProofProvider({
 ## License
 
 Apache-2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/proof-integritas/`. Package `test:*` scripts are repository delegates.

@@ -73,3 +73,8 @@ See `docs/rfc/RFC-056-ENTITY-PROJECTION.md` for the normative design.
 ## License
 
 Apache-2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/entity/`. Package `test:*` scripts are repository delegates.

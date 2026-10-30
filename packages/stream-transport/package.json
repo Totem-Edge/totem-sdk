@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/stream-transport",
   "version": "0.2.2",
-  "description": "Transport adapters for Totem SDK — IStreamTransport interface, NodeStream, WebSocket, WebRTC, Stdio, Hyperswarm, and in-memory transports",
+  "description": "Transport adapters for Totem SDK \u2014 IStreamTransport interface, NodeStream, WebSocket, WebRTC, Stdio, Hyperswarm, and in-memory transports",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "exports": {
@@ -20,7 +20,7 @@
     "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist",
-    "test": "jest"
+    "test": "jest --config ../../tests/jest/stream-transport.cjs"
   },
   "files": [
     "dist",

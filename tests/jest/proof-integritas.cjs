@@ -1,0 +1,47 @@
+module.exports = {
+  rootDir: '../..',
+  preset: 'ts-jest',
+  testEnvironment: 'node',
+  testMatch: ['<rootDir>/tests/unit/proof-integritas/**/*.test.ts'],
+  moduleFileExtensions: ['ts', 'js'],
+  transformIgnorePatterns: [
+    'node_modules/',
+  ],
+  transform: {
+    '^.+\\.ts$': ['ts-jest', {
+      tsconfig: {
+        module: 'CommonJS',
+        moduleResolution: 'node',
+        allowJs: true,
+        baseUrl: '.',
+        paths: {
+          '@totemsdk/proof': ['../proof/src/index.ts'],
+          '@totemsdk/core': ['../core/src/index.ts'],
+          '@totemsdk/manifest': ['../manifest/src/index.ts'],
+          '@totemsdk/proofgraph': ['../proofgraph/src/index.ts'],
+        },
+      },
+    }],
+    '^.+\\.js$': ['ts-jest', {
+      tsconfig: {
+        module: 'CommonJS',
+        moduleResolution: 'node',
+        allowJs: true,
+        baseUrl: '.',
+        paths: {
+          '@totemsdk/proof': ['../proof/src/index.ts'],
+          '@totemsdk/core': ['../core/src/index.ts'],
+          '@totemsdk/manifest': ['../manifest/src/index.ts'],
+          '@totemsdk/proofgraph': ['../proofgraph/src/index.ts'],
+        },
+      },
+    }],
+  },
+  moduleNameMapper: {
+    '^@totemsdk/proof$': '<rootDir>/packages/proof/src/index.ts',
+    '^@totemsdk/core$': '<rootDir>/packages/core/src/index.ts',
+    '^@totemsdk/manifest$': '<rootDir>/packages/manifest/src/index.ts',
+    '^@totemsdk/proofgraph$': '<rootDir>/packages/proofgraph/src/index.ts',
+    '^(\\.{1,2}/.*)\\.js$': '$1',
+  },
+};

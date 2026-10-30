@@ -1,0 +1,1 @@
+../../../../packages/minima-rpc/src/index.ts

@@ -1,0 +1,1 @@
+../../../../packages/provider-bond/src/serialization.ts

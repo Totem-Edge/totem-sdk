@@ -1,0 +1,1 @@
+../../../../packages/spatial-proof/src/proofgraph.ts

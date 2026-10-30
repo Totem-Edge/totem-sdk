@@ -1,0 +1,1 @@
+../../../../packages/tx-builder/src/multisig-manager.ts

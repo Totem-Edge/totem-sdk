@@ -1,0 +1,1 @@
+../../../../packages/liquidity-bond/src/registry.ts

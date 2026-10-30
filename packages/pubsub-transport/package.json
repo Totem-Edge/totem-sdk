@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/pubsub-transport",
   "version": "0.2.1",
-  "description": "Pub/sub transport interfaces for Totem SDK — IPubSubTransport, EventEmitterTransport, MockPubSubTransport",
+  "description": "Pub/sub transport interfaces for Totem SDK \u2014 IPubSubTransport, EventEmitterTransport, MockPubSubTransport",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "exports": {
@@ -20,7 +20,7 @@
     "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist",
-    "test": "jest"
+    "test": "jest --config ../../tests/jest/pubsub-transport.cjs"
   },
   "files": [
     "dist",

@@ -1,0 +1,1 @@
+../../../../packages/location-proof/src/motion.ts

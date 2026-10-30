@@ -79,3 +79,8 @@ validateEefiContract(agreement); // throws EefiValidationError if invalid
 
 Validation checks structure, hex, atom strings, basis points, and that any
 committed identifier matches its canonical digest.
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/eefi/`. Package `test:*` scripts are repository delegates.

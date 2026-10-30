@@ -1,0 +1,1 @@
+../../../../packages/proof-integritas/src/types.ts

@@ -1,0 +1,1 @@
+../../../../packages/root-identity/src/RootIdentityWallet.ts

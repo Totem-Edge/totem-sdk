@@ -241,3 +241,8 @@ const restored = parseLiquidityBondState(json);
 - DAO governance integration
 - Transport layer for pool announcements and queries
 - USDT stable settlement pool support
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/liquidity-bond/`. Package `test:*` scripts are repository delegates.
