@@ -1597,7 +1597,7 @@
     },
     {
       "name": "@totemsdk/industrial-action",
-      "version": "0.4.0",
+      "version": "0.5.0",
       "description": "Deterministic industrial action lifecycle for Totem Edge — converts governed intent into context-aware, bounded, verifiably executed operations on field devices and protocols",
       "domain": "edge-computing",
       "keywords": [

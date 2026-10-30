@@ -1,6 +1,6 @@
 # RFC-022: Prepared-Command Binding & Asynchronous Operation Lifecycle
 
-**Status:** In progress — P0 core types and P1 commitment binding implemented; asynchronous lifecycle (P2–P5) not yet implemented.
+**Status:** In progress — P0/P1 binding and P2/P3 asynchronous lifecycle core implemented; evidence/receipt carry-through (P4–P5) remains.
 **Created:** 2026-09-30
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]
@@ -360,17 +360,33 @@ P0 core binding types and P1 commitment binding are implemented on
   version/schema binding, canonicalization, mutation rejection and approval
   binding to the prepared command.
 
-Not implemented in this increment:
+A second increment adds the P2/P3 asynchronous core:
+
+- `ActionOutcome` includes non-terminal `accepted`, `running` and `reconciling`;
+  `AsyncOperationSupport.confirmation: 'accepted'` prevents a successful
+  dispatch from closing as `confirmed`.
+- `DeviceOperationRecord` carries handle, progress, cancellation, reservation/
+  authority ids and the prepared-command digest.
+- `createIndustrialOperationLifecycle` provides `reconcile`, `cancel` and
+  `open`; unknown readback is held as `reconciling` with reservation semantics
+  left to the host, never silently retried or marked successful.
+- Tests cover accepted dispatch, pending dedup, confirmed/unknown reconcile,
+  cancel-then-reconcile, unavailable prepared commands and single-shot
+  backward compatibility.
+
+Not implemented in these increments:
 
 - schema-bound target resolution through `ResourceRegistry`; `resolveResourceId`
   remains a callback and an unregistered target can still be returned;
 - endpoint recording (the adapter exposes no resolved `ResourceAddress`);
-- async `accepted`/`running`/`reconciling` states, progress, cancel, restart
-  reconciliation and receipt `reservationId` carry-through.
+- automatic reservation settlement/receipt `reservationId` carry-through and
+  scheduler-driven recovery;
+- persistence of the prepared operation itself (the host supplies
+  `resolvePrepared`).
 
 The package version is bumped because the commitment domain, required prepared
-field and approval ordering are breaking pre-RC changes. This does not promote
-the package's maturity or support tier.
+field, approval ordering and outcome union are breaking pre-RC changes. This
+does not promote the package's maturity or support tier.
 
 ## 10. References
 

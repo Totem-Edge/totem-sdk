@@ -6720,7 +6720,7 @@
         },
         "ActionOutcome": {
           "kind": "type",
-          "signature": "export type ActionOutcome = | 'confirmed' | 'failed' | 'unknown' | 'aborted' | 'safe-stated' | 'suppressed' | 'requires-reset'",
+          "signature": "export type ActionOutcome = | 'confirmed' | 'failed' | 'unknown' | 'aborted' | 'safe-stated' | 'suppressed' | 'requires-reset' /** Non-terminal: controller accepted the command. RFC-022 §5.5. */ | 'ac",
           "doc": "Terminal outcome of a governed actuation (never a bare boolean)."
         },
         "IndustrialExecutionResult": {
@@ -6736,6 +6736,10 @@
           "kind": "function",
           "signature": "createDurableDeviceOperationStore(adapter: StorageAdapterWithCapabilities & CasStore, options?: DurableDeviceOperationStoreOptions): DeviceOperationStore"
         },
+        "isTerminalOperationStatus": {
+          "kind": "function",
+          "signature": "isTerminalOperationStatus(status: OperationStatus): boolean"
+        },
         "DeviceOperationStore": {
           "kind": "interface",
           "signature": "export interface DeviceOperationStore"
@@ -6747,7 +6751,7 @@
         "OperationStatus": {
           "kind": "type",
           "signature": "export type OperationStatus = 'in-flight' | ActionOutcome",
-          "doc": "`in-flight` plus every terminal outcome."
+          "doc": "`in-flight`, non-terminal accepted/running/reconciling, or a terminal outcome."
         },
         "OperationClaim": {
           "kind": "interface",
@@ -6756,6 +6760,18 @@
         "DurableDeviceOperationStoreOptions": {
           "kind": "interface",
           "signature": "export interface DurableDeviceOperationStoreOptions"
+        },
+        "createIndustrialOperationLifecycle": {
+          "kind": "function",
+          "signature": "createIndustrialOperationLifecycle<TResult = unknown>(options: IndustrialOperationLifecycleOptions<TResult>): OperationLifecycle"
+        },
+        "OperationLifecycle": {
+          "kind": "interface",
+          "signature": "export interface OperationLifecycle"
+        },
+        "IndustrialOperationLifecycleOptions": {
+          "kind": "interface",
+          "signature": "export interface IndustrialOperationLifecycleOptions<TResult = unknown>"
         },
         "createIndustrialReceipt": {
           "kind": "function",

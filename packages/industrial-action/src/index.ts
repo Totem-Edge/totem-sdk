@@ -82,7 +82,7 @@ export type {
   ToEdgeActionOptions,
 } from './edge-adapter.js'
 
-export { createDurableDeviceOperationStore } from './operation-store.js'
+export { createDurableDeviceOperationStore, isTerminalOperationStatus } from './operation-store.js'
 export type {
   DeviceOperationStore,
   DeviceOperationRecord,
@@ -90,6 +90,9 @@ export type {
   OperationClaim,
   DurableDeviceOperationStoreOptions,
 } from './operation-store.js'
+
+export { createIndustrialOperationLifecycle } from './operation-lifecycle.js'
+export type { OperationLifecycle, IndustrialOperationLifecycleOptions } from './operation-lifecycle.js'
 
 export { createIndustrialReceipt, verifyIndustrialReceipt } from './industrial-receipt.js'
 export type {

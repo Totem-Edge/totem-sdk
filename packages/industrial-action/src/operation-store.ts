@@ -19,17 +19,29 @@ import type { ActionOutcome } from './edge-adapter.js';
 
 const DEFAULT_NAMESPACE = 'totem_industrial_action:v1:';
 
-/** `in-flight` plus every terminal outcome. */
+/** `in-flight`, non-terminal accepted/running/reconciling, or a terminal outcome. */
 export type OperationStatus = 'in-flight' | ActionOutcome;
 
 export interface DeviceOperationRecord {
   operationId: string;
   proposalId?: string;
+  invocationId?: string;
   status: OperationStatus;
   attempts: number;
   outcome?: ActionOutcome;
   updatedAt: number;
   result?: unknown;
+  error?: string;
+  /** Adapter-declared handle (mission/session/goal id) for reconciliation. */
+  handle?: unknown;
+  /** Adapter-declared non-terminal progress. */
+  progress?: { fraction?: number; detail?: string; at: number };
+  cancelRequested?: boolean;
+  /** RFC-019 reservation to settle after confirmed/failed reconciliation. */
+  reservationId?: string;
+  authorityDecisionId?: string;
+  /** RFC-022 prepared-command digest this record is bound to. */
+  preparedCommandHash?: string;
 }
 
 export interface OperationClaim {
@@ -48,6 +60,14 @@ export interface DeviceOperationStore {
   /** Replace a record (typically transitioning it out of `in-flight`). */
   transitionOperation(next: DeviceOperationRecord): Promise<boolean>;
   getOperation(operationId: string): Promise<DeviceOperationRecord | undefined>;
+  /** Optional: list operations that still need reconciliation/attention. */
+  listOpen?(): Promise<DeviceOperationRecord[]>;
+}
+
+export function isTerminalOperationStatus(status: OperationStatus): boolean {
+  return status === 'confirmed' || status === 'failed' || status === 'aborted' ||
+    status === 'safe-stated' || status === 'suppressed' || status === 'requires-reset' ||
+    status === 'unknown';
 }
 
 export interface DurableDeviceOperationStoreOptions {
@@ -106,6 +126,11 @@ export function createDurableDeviceOperationStore(
     async getOperation(operationId) {
       const state: OperationState = await snapshots.load();
       return state.operations[operationId];
+    },
+
+    async listOpen() {
+      const state: OperationState = await snapshots.load();
+      return Object.values(state.operations).filter((record) => !isTerminalOperationStatus(record.status));
     },
   };
 }

@@ -127,10 +127,13 @@ Industrial actions run on the `@totemsdk/edge` governed runtime
 - `createIndustrialReceipt` / `verifyIndustrialReceipt` emit authority-bound
   `EdgeReceipt`s.
 
-RFC-022 P1 binds the actual prepared command. The asynchronous operation
-lifecycle (accepted/running/reconciling, progress, cancel, readback completion)
-is **not yet implemented**; a synchronous successful actuation remains
-`confirmed`.
+RFC-022 P1 binds the actual prepared command. P2/P3 add asynchronous semantics:
+`async.confirmation: 'accepted'` keeps a successful dispatch non-terminal;
+`reconcile` advances accepted/running operations to confirmed/failed or holds
+`unknown` as `reconciling`; `cancel` also remains `reconciling` until readback.
+`createIndustrialOperationLifecycle` exposes `reconcile`, `cancel` and `open`.
+The host must retain/reconstruct the prepared operation for reconciliation.
+Single-shot definitions still confirm synchronously (backward compatible).
 
 The legacy `ActionRegistry`, `createGovernanceBridge`, `executeAction`, and
 `ActionReceipt` are **deprecated** and will be removed; use the edge-runtime path.

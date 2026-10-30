@@ -63,7 +63,13 @@ export type ActionOutcome =
   | 'aborted'
   | 'safe-stated'
   | 'suppressed'
-  | 'requires-reset';
+  | 'requires-reset'
+  /** Non-terminal: controller accepted the command. RFC-022 §5.5. */
+  | 'accepted'
+  /** Non-terminal: controller reports progress. */
+  | 'running'
+  /** Non-terminal: outcome unknown until explicit reconciliation. */
+  | 'reconciling';
 
 /** Adapter-prepared device command (before commitment/identity are attached). */
 export interface DeviceOpBase {
@@ -117,6 +123,30 @@ export interface ExecutionPolicy {
   rollback?: (op: PreparedDeviceOp, error: ActionError) => Promise<void>;
 }
 
+/**
+ * Adapter-reported progress for an asynchronous operation (RFC-022 §5.5).
+ * `confirmed` or `failed` are terminal; accepted/running/unknown are not.
+ */
+export interface OperationProgress<TResult = unknown> {
+  status: 'accepted' | 'running' | 'confirmed' | 'failed' | 'unknown';
+  handle?: unknown;
+  progress?: { fraction?: number; detail?: string; at: number };
+  result?: TResult;
+  error?: string;
+}
+
+export interface AsyncOperationSupport<TResult = unknown> {
+  /**
+   * What a successful actuate response establishes. `accepted` keeps the
+   * operation non-terminal until `reconcile` observes completion.
+   */
+  readonly confirmation: 'accepted' | 'completed';
+  /** Poll the controller/device for the current outcome. */
+  reconcile?(op: PreparedDeviceOp, record: DeviceOperationRecord): Promise<OperationProgress<TResult>>;
+  /** Request cancellation; best-effort. The outcome remains unresolved until reconcile. */
+  cancel?(op: PreparedDeviceOp, record: DeviceOperationRecord): Promise<void>;
+}
+
 /** Industrial execution result — `EdgeOperationResult` plus the outcome model. */
 export interface IndustrialExecutionResult<TResult = unknown> extends EdgeOperationResult<TResult> {
   outcome: ActionOutcome;
@@ -168,6 +198,8 @@ export interface IndustrialActionDefinition<TResult = unknown> {
   deriveEffects(op: PreparedDeviceOp): StepEffects;
   /** Actuate the device through the edge port. */
   actuate(op: PreparedDeviceOp): Promise<EdgeOperationResult<TResult>>;
+  /** Asynchronous controller/device semantics (RFC-022 §5.5). */
+  async?: AsyncOperationSupport<TResult>;
 }
 
 export interface ToEdgeActionOptions {
@@ -413,6 +445,7 @@ export function toEdgeActionDefinition<TResult = unknown>(
         attempts: result.attempts,
         outcome: result.outcome,
         updatedAt: now(),
+        preparedCommandHash: op.preparedCommandHash,
         ...(result.data !== undefined ? { result: result.data } : {}),
       };
       await store.transitionOperation(next);
@@ -427,6 +460,17 @@ function resolveExisting<TResult>(
   record: DeviceOperationRecord,
 ): IndustrialExecutionResult<TResult> {
   const mode = effectiveFailureMode(def) ?? 'abort';
+  if (record.status === 'accepted' || record.status === 'running' || record.status === 'reconciling') {
+    return {
+      ok: false,
+      error: 'operation is not terminal; reconcile it before treating it as complete',
+      errorCode: 'OPERATION_PENDING',
+      outcome: record.status,
+      failureMode: mode,
+      attempts: record.attempts,
+      deduplicated: true,
+    };
+  }
   if (record.status === 'in-flight') {
     const onInFlight = def.policy?.onInFlight ?? 'fail';
     return {
@@ -475,7 +519,13 @@ export async function runWithPolicy<TResult = unknown>(
     attempts += 1;
     last = await withTimeout(() => def.actuate(op), timeoutMs);
     if (last.ok) {
-      return { ...last, outcome: 'confirmed', failureMode: mode, attempts };
+      // RFC-022 §5.5: an accepted command is not a completed physical effect.
+      return {
+        ...last,
+        outcome: def.async?.confirmation === 'accepted' ? 'accepted' : 'confirmed',
+        failureMode: mode,
+        attempts,
+      };
     }
     if (attempts >= maxAttempts || !retryable(toActionError(last))) break;
     if (policy.backoffMs) await sleep(policy.backoffMs * attempts);
