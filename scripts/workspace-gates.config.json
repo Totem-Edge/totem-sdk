@@ -194,12 +194,13 @@
     },
     "packages/edge-lorawan": {
       "status": "publishable",
-      "maturity": "rc",
+      "maturity": "v1",
       "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
         "reason": "library \u2014 holds no on-chain value"
-      }
+      },
+      "supportReason": "v1 qualified simulator profile; support tier outside first-line production surface"
     },
     "packages/edge-matter": {
       "status": "publishable",

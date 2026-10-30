@@ -16,8 +16,8 @@
 
 | Level | Packages |
 |---|---:|
-| v1 | 4 |
-| rc | 56 |
+| v1 | 5 |
+| rc | 55 |
 | beta | 3 |
 | alpha | 6 |
 | excluded | 6 |
@@ -69,6 +69,7 @@ Total: **69** publishable packages + **6** excluded entries = **75** workspace e
 | `@totemsdk/tx-builder` | 0.2.2 | rc | 2 | `packages/tx-builder` |
 | `@totemsdk/txpow` | 1.1.1 | rc | 2 | `packages/txpow` |
 | `@totemsdk/p2p-hub` | 0.1.1 | alpha | 2 | `packages/p2p-hub` |
+| `@totemsdk/edge-lorawan` | 0.2.2 | v1 | outside | `packages/edge-lorawan` |
 | `@totemsdk/connect` | 3.1.2 | rc | outside | `packages/connect` |
 | `@totemsdk/edge-adapters` | 0.3.1 | rc | outside | `packages/edge-adapters` |
 | `@totemsdk/edge-bacnet` | 0.2.1 | rc | outside | `packages/edge-bacnet` |
@@ -77,7 +78,6 @@ Total: **69** publishable packages + **6** excluded entries = **75** workspace e
 | `@totemsdk/edge-coap` | 0.2.1 | rc | outside | `packages/edge-coap` |
 | `@totemsdk/edge-email` | 0.2.1 | rc | outside | `packages/edge-email` |
 | `@totemsdk/edge-grpc` | 0.2.1 | rc | outside | `packages/edge-grpc` |
-| `@totemsdk/edge-lorawan` | 0.2.2 | rc | outside | `packages/edge-lorawan` |
 | `@totemsdk/edge-matter` | 0.2.1 | rc | outside | `packages/edge-matter` |
 | `@totemsdk/edge-opcua` | 0.2.1 | rc | outside | `packages/edge-opcua` |
 | `@totemsdk/edge-ros2` | 0.2.1 | rc | outside | `packages/edge-ros2` |

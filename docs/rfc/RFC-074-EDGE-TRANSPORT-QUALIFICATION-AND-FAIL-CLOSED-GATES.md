@@ -411,6 +411,12 @@ packed-consumer evidence. Verification is 184 MQTT unit tests plus process,
 broker, signing and packed-consumer suites; 48 Modbus TS tests plus Go race/vet,
 RTU vectors and sidecar integration.
 
+LoRaWAN has a v1-qualified simulator profile: OTAA/ABP, monotonic frame counters,
+duplicate/rollback rejection, rejoin reset, gateway+bridge integration, durable
+CAS replay recovery and packed consumer. It remains outside the first-line
+production support tier; radio/network-server hardware and transport-supplied
+session epochs remain unqualified.
+
 The issuer/command verifier remains application-owned. Hostile reconnect, real
 wallet/HSM issuer verification, serial hardware, multi-device lease quorum,
 native Linux/Windows binaries, execution-status journaling and other edge-family

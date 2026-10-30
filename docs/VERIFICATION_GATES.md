@@ -114,6 +114,9 @@ Current v1 scope is limited to packages with runnable evidence:
   matrix, durable replay recovery, durable WOTS signing and packed consumer.
 - `@totemsdk/edge-modbus` — loopback TCP sidecar integration, RTU CRC/framing
   conformance, uncertain-write recovery and packed consumer.
+- `@totemsdk/edge-lorawan` — OTAA/ABP simulator, frame-counter/rejoin conformance,
+  gateway+bridge integration, durable CAS replay recovery and packed consumer.
+  Its support tier remains outside the first-line production surface.
 - `core`/`core-wasm` declare a reviewed recovery N/A: stateless crypto libraries
   whose host owns process recovery.
 
