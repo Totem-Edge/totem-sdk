@@ -125,3 +125,8 @@ silently. Corruption and unsupported on-disk versions raise `StorageError`
 - [`@totemsdk/kissvm`](https://www.npmjs.com/package/@totemsdk/kissvm) — evaluates the statechain locking script
 - [`@totemsdk/wots-lease`](https://www.npmjs.com/package/@totemsdk/wots-lease) — protects signing slots during transfers
 - [`@totemsdk/connect`](https://www.npmjs.com/package/@totemsdk/connect) — `totemStatechainCreate` / `totemStatechainTransfer` extension methods
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/statechain/`. Package `test:*` scripts are repository delegates; tests are not shipped.

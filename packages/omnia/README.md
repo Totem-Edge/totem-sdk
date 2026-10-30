@@ -321,3 +321,7 @@ Runs `build:wasm` then the parity fixture suites: `parity-fixtures`, `omnia-pari
 
 - [`docs/rfc/RFC-002-OMNIA-RUST-WASM-PARITY.md`](../../docs/rfc/RFC-002-OMNIA-RUST-WASM-PARITY.md) — Rust/WASM parity engine
 - [`docs/rfc/RFC-003-OMNIA-BUILT-IN-PROGRAMS.md`](../../docs/rfc/RFC-003-OMNIA-BUILT-IN-PROGRAMS.md) — built-in channel programs
+
+## Testing
+
+Tests live outside the published package in `tests/unit/omnia/`. Package `test:*` scripts are repository delegates; tests are not shipped.

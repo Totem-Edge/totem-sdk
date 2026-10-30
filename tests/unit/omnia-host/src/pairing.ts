@@ -1,0 +1,1 @@
+../../../../packages/omnia-host/src/pairing.ts

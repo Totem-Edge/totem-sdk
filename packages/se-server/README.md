@@ -124,3 +124,8 @@ const se = createSeServer({
 // Mount the SE router at any path in your existing app
 existingApp.use('/my-se', se.app);
 ```
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/se-server/`. Package `test:*` scripts are repository delegates; tests are not shipped.

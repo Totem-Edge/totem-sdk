@@ -1,0 +1,1 @@
+../../../../packages/omnia-pool/src/rooting.ts

@@ -299,3 +299,8 @@ The only runtime dependency is `@noble/hashes` (SHA3-256), which is itself runti
 ## License
 
 Apache-2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/omnia-vtxo/`. Package `test:*` scripts are repository delegates; tests are not shipped.

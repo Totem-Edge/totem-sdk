@@ -116,3 +116,8 @@ multi-hop payment execution via `@totemsdk/omnia-router`.
 The local test environment may skip SQLite integration tests when the
 `better-sqlite3` native addon has not been built. Install lifecycle scripts in
 CI or on the target platform to execute those tests.
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/omnia-host/`. Package `test:*` scripts are repository delegates; tests are not shipped.

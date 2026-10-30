@@ -244,6 +244,106 @@
         }
       },
       "limitations": []
+    },
+    "@totemsdk/omnia": {
+      "version": "2.4.0",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "unit": {
+          "suite": "packages/omnia:test"
+        }
+      },
+      "limitations": []
+    },
+    "@totemsdk/omnia-router": {
+      "version": "0.4.1",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "unit": {
+          "suite": "packages/omnia-router:test"
+        }
+      },
+      "limitations": []
+    },
+    "@totemsdk/omnia-factory": {
+      "version": "0.7.1",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "unit": {
+          "suite": "packages/omnia-factory:test"
+        }
+      },
+      "limitations": []
+    },
+    "@totemsdk/omnia-splice": {
+      "version": "0.3.1",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "unit": {
+          "suite": "packages/omnia-splice:test"
+        }
+      },
+      "limitations": []
+    },
+    "@totemsdk/omnia-vtxo": {
+      "version": "0.8.1",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "unit": {
+          "suite": "packages/omnia-vtxo:test"
+        }
+      },
+      "limitations": []
+    },
+    "@totemsdk/omnia-pool": {
+      "version": "0.5.4",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "unit": {
+          "suite": "packages/omnia-pool:test"
+        }
+      },
+      "limitations": []
+    },
+    "@totemsdk/omnia-host": {
+      "version": "0.13.3",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "unit": {
+          "suite": "packages/omnia-host:test"
+        }
+      },
+      "limitations": []
+    },
+    "@totemsdk/omnia-relay": {
+      "version": "0.7.0",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "unit": {
+          "suite": "packages/omnia-relay:test"
+        }
+      },
+      "limitations": []
+    },
+    "@totemsdk/statechain": {
+      "version": "0.3.1",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "unit": {
+          "suite": "packages/statechain:test"
+        }
+      },
+      "limitations": []
+    },
+    "@totemsdk/se-server": {
+      "version": "0.5.2",
+      "owner": "Totem SDK maintainers",
+      "profiles": {
+        "unit": {
+          "suite": "packages/se-server:test"
+        }
+      },
+      "limitations": []
     }
   }
 }

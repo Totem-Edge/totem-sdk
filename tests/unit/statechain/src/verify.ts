@@ -1,0 +1,1 @@
+../../../../packages/statechain/src/verify.ts

@@ -1,0 +1,1 @@
+../../../../packages/omnia/src/registry-anchor.ts

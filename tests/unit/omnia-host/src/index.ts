@@ -1,0 +1,1 @@
+../../../../packages/omnia-host/src/index.ts

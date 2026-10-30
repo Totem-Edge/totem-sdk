@@ -1,0 +1,1 @@
+../../../../packages/omnia-vtxo/src/pool-script.ts

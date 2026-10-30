@@ -68,3 +68,8 @@ await provider.broadcastTxPoW(settlementHex);
 - [`@totemsdk/omnia-router`](https://www.npmjs.com/package/@totemsdk/omnia-router) — route payments across factory and direct channels
 - [`@totemsdk/wots-lease`](https://www.npmjs.com/package/@totemsdk/wots-lease) — WOTS key safety for factory signing
 - [`@totemsdk/tx-builder`](https://www.npmjs.com/package/@totemsdk/tx-builder) — builds the N-of-N funding transaction
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/omnia-factory/`. Package `test:*` scripts are repository delegates; tests are not shipped.

@@ -1,0 +1,1 @@
+../../../../packages/omnia-factory/src/factory.ts

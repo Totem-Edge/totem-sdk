@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/omnia-relay",
   "version": "0.7.0",
-  "description": "Wallet-side Omnia client — browser-safe relay transport + routing/HTLC/factory/splice composition over @totemsdk/omnia",
+  "description": "Wallet-side Omnia client \u2014 browser-safe relay transport + routing/HTLC/factory/splice composition over @totemsdk/omnia",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "exports": {
@@ -30,7 +30,7 @@
     "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist",
-    "test": "jest"
+    "test": "jest --config ../../tests/jest/omnia-relay.cjs"
   },
   "files": [
     "dist",

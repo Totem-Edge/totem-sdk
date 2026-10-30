@@ -39,7 +39,7 @@ function collectSourceFiles(dir: string): string[] {
 }
 
 describe('Runtime compatibility guard', () => {
-  const srcDir = path.resolve(__dirname, '..');
+  const srcDir = path.resolve(__dirname, '../../../../../packages/omnia-vtxo/src');
   const sourceFiles = collectSourceFiles(srcDir);
 
   it('finds at least one source file to scan', () => {

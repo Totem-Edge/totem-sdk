@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/omnia-vtxo",
   "version": "0.8.1",
-  "description": "Virtual UTXO / payment-pool claim layer for Omnia — cash-like off-chain balance primitive for Totem Edge",
+  "description": "Virtual UTXO / payment-pool claim layer for Omnia \u2014 cash-like off-chain balance primitive for Totem Edge",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "exports": {
@@ -20,7 +20,7 @@
     "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist rust/pkg rust/pkg-node rust/target",
-    "test": "jest",
+    "test": "jest --config ../../tests/jest/omnia-vtxo.cjs",
     "build:wasm": "cd rust && wasm-pack build --target bundler --out-dir pkg && wasm-pack build --target nodejs --out-dir pkg-node"
   },
   "files": [

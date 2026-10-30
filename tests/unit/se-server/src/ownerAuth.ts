@@ -1,0 +1,1 @@
+../../../../packages/se-server/src/ownerAuth.ts

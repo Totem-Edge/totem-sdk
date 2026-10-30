@@ -1,0 +1,1 @@
+../../../../packages/omnia-vtxo/src/claim-policy.ts

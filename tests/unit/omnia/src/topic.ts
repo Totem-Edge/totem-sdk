@@ -1,0 +1,1 @@
+../../../../packages/omnia/src/topic.ts

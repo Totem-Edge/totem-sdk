@@ -93,3 +93,8 @@ await announceSwap({
 - [`@totemsdk/omnia-factory`](https://www.npmjs.com/package/@totemsdk/omnia-factory) — factory channels included in the routing graph
 - [`@totemsdk/omnia`](https://www.npmjs.com/package/@totemsdk/omnia) — Omnia messaging layer for propagating routes
 - [`@totemsdk/lookup-node`](https://www.npmjs.com/package/@totemsdk/lookup-node) — peer discovery for channel graph construction
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/omnia-router/`. Package `test:*` scripts are repository delegates; tests are not shipped.

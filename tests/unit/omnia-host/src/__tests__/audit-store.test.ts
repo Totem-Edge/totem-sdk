@@ -33,9 +33,10 @@ describe('SqliteAuditStore', () => {
     fs.rmSync(`${dbPath}-shm`, { force: true });
   });
 
-  it('persists allow and deny decisions across reopen, newest first', () => {
+  it('persists allow and deny decisions across reopen, newest first', async () => {
     const store = new SqliteAuditStore(dbPath);
     store.append(record({ requestId: 'req-allow', decision: 'allow' }));
+    await new Promise((resolve) => setTimeout(resolve, 2));
     store.append(record({ requestId: 'req-deny', decision: 'deny', reason: 'no ack' }));
     store.close();
 

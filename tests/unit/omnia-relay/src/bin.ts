@@ -1,0 +1,1 @@
+../../../../packages/omnia-relay/src/bin.ts

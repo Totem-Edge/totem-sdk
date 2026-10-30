@@ -80,3 +80,8 @@ const routing = {
 - RFC-014 — Wallet Connect Parity; RFC-014 Amendment A (manifest truthfulness)
 - `@totemsdk/omnia-host` — the Node-side counterpart that orchestrates the same
   packages.
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/omnia-relay/`. Package `test:*` scripts are repository delegates; tests are not shipped.

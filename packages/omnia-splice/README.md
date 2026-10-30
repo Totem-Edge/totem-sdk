@@ -88,3 +88,8 @@ try {
 - [`@totemsdk/omnia`](https://www.npmjs.com/package/@totemsdk/omnia) — the channel state machine being spliced
 - [`@totemsdk/tx-builder`](https://www.npmjs.com/package/@totemsdk/tx-builder) — used internally by `buildSpliceTx`
 - [`@totemsdk/wots-lease`](https://www.npmjs.com/package/@totemsdk/wots-lease) — signing slots managed during splice
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/omnia-splice/`. Package `test:*` scripts are repository delegates; tests are not shipped.
