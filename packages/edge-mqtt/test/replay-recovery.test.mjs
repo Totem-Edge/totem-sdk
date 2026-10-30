@@ -6,7 +6,8 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createSqliteMqttReplayStore } from '@totemsdk/edge-mqtt/sqlite-replay-store';
+import { createStorageMqttReplayStore } from '@totemsdk/edge-mqtt';
+import { SqliteStore } from '@totemsdk/storage/sqlite';
 
 const childrenByTest = new WeakMap();
 
@@ -66,8 +67,8 @@ async function fixture(t) {
     rmSync(directory, { recursive: true, force: true });
   });
   const options = { path: join(directory, 'replay.sqlite'), effectLog: join(directory, 'effects.log') };
-  const store = await createSqliteMqttReplayStore({ path: options.path });
-  await store.close();
+  const storage = new SqliteStore(options.path, { busyTimeoutMs: 5000 });
+  await storage.close();
   return { options, effects: () => existsSync(options.effectLog) ? readFileSync(options.effectLog, 'utf8').trim().split('\n') : [] };
 }
 

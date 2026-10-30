@@ -2,7 +2,7 @@
 
 Transport-agnostic MQTT adapter for Totem Edge — sensors, gateways, robots, cold-chain trackers, and MachinePay devices.
 
-The core entry ships **zero runtime network dependencies**. It does not import `mqtt.js`, `net`, `tls`, `ws`, `http`, or `fs`. All network behaviour is injected via a `MqttClientPort`. The optional `sqlite-replay-store` subpath is a Node/native binding; it is not imported by the core entry. Runtime support still depends on the caller's transport and the declared WASM/binding profile.
+The core entry ships **zero runtime network dependencies**. It does not import `mqtt.js`, `net`, `tls`, `ws`, `http`, or `fs`. All network behaviour is injected via a `MqttClientPort`. Durable replay is a port (`ReplayLedgerStore`); `createStorageMqttReplayStore` adapts any `StorageAdapterWithCapabilities & CasStore`, so SQLite/FileStore/native choices stay in the host or `@totemsdk/storage`.
 
 ## Install
 
@@ -52,17 +52,16 @@ fallback. An omitted seed produces an unsigned proof. The injected provider is
 responsible for unique reservations across publishers/restarts and for burning
 uncertain reservations.
 
-### File-backed SQLite replay profile (Node 22)
+### Durable replay via the storage abstraction
 
 ```typescript
-import { resolve } from 'node:path';
-import { createMqttCommandHandler } from '@totemsdk/edge-mqtt';
-import { createSqliteMqttReplayStore } from '@totemsdk/edge-mqtt/sqlite-replay-store';
+import { createMqttCommandHandler, createStorageMqttReplayStore } from '@totemsdk/edge-mqtt';
+import { SqliteStore } from '@totemsdk/storage/sqlite';
 
-const replayStore = await createSqliteMqttReplayStore({
-  path: resolve(stateDirectory, 'mqtt-replay.sqlite'),
+const storage = new SqliteStore(resolve(stateDirectory, 'mqtt-replay.sqlite'), {
   busyTimeoutMs: 5000,
 });
+const replayStore = createStorageMqttReplayStore(storage);
 const handler = createMqttCommandHandler({
   runtime,
   client,
@@ -71,22 +70,20 @@ const handler = createMqttCommandHandler({
   executor,
 });
 // Deliver subscribed command messages to handler.handleCommand(message).
-// At shutdown, stop intake and await in-flight handlers before closing the store.
+// At shutdown, stop intake and await in-flight handlers before closing storage.
 ```
 
-The exercised profile is Node 22 with the shared storage native SQLite binding.
-The factory reuses `@totemsdk/storage/sqlite` with WAL, `synchronous=FULL` and a
-single transactional conditional UPSERT. Only a committed insert/renewal returns
-`true`; lock/database errors propagate and block command execution. Paths must
-be absolute file-backed paths; `:memory:`, relative paths and URI forms are
-rejected. The composition root owns `await replayStore.close()`.
+The example uses Node 22 with the shared storage SQLite adapter, but the MQTT
+package only depends on the neutral `CasStore`/`StorageAdapterWithCapabilities`
+contracts. The factory requires atomic conditional writes and durable
+acknowledgement by default; lock/write contention is retried with a bound, then
+fails closed. The host owns storage lifecycle, path validation, WAL/backup and
+rollback protection. Use one database/namespace per device across all handlers.
 
-The default namespace is `mqtt-replay-v1`; custom namespaces separate application
-records, not authorization. Every handler/process for one device must share the
-database, namespace and validity settings. Rows are not automatically deleted
-when command queues or execution logs expire. An ID can be renewed only after
-its prior acceptance window has ended; command issuers should still use unique
-IDs. Database retention, backup and rollback protection belong to the host.
+The default namespace is `mqtt-replay-v3`; custom namespaces separate application
+records, not authorization. Claim rows are retained through their acceptance
+window; the host owns retention. An ID can be renewed only after its prior window
+has ended; issuers should still use unique IDs.
 
 Process recovery tests exercise independent ESM/CJS workers, simultaneous
 delivery and `SIGKILL` after admission but before/after a simulated durable

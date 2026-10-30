@@ -36,14 +36,12 @@ test('packed MQTT root and SQLite subpath operate across ESM/CJS and strict type
       for (const path of [
         'package/rust/pkg-node/edge_mqtt_wasm.js',
         'package/rust/pkg-node/edge_mqtt_wasm_bg.wasm',
-        'package/dist/sqlite-replay-store.js',
-        'package/dist/cjs/sqlite-replay-store.js',
       ]) assert.ok(files.split('\n').includes(path), `MQTT tarball missing ${path}`);
     }
   }
   // The deferred edge release is installed as its real local tarball. Other
   // dependencies resolve from npm; this is not a fully local packed SDK closure.
-  writeFileSync(join(work, 'package.json'), JSON.stringify({ private: true, type: 'module', dependencies }));
+  writeFileSync(join(work, 'package.json'), JSON.stringify({ private: true, type: 'module', dependencies, devDependencies: { '@types/node': '^22.0.0' } }));
   run('npm', ['install', '--no-audit', '--no-fund', '--package-lock=false']);
   // Verify that these are unpacked installs, not workspace links.
   const installed = JSON.parse(readFileSync(join(work, 'node_modules', '@totemsdk', 'edge-mqtt', 'package.json'), 'utf8'));
@@ -59,17 +57,21 @@ test('packed MQTT root and SQLite subpath operate across ESM/CJS and strict type
     import { pathToFileURL } from 'node:url';
     import { resolve } from 'node:path';
     import * as esm from '@totemsdk/edge-mqtt';
-    import { createSqliteMqttReplayStore } from '@totemsdk/edge-mqtt/sqlite-replay-store';
+    import { createStorageMqttReplayStore } from '@totemsdk/edge-mqtt';
+    import { SqliteStore } from '@totemsdk/storage/sqlite';
     import { init } from '@totemsdk/core';
     const require = createRequire(import.meta.url);
     const coreRequire = createRequire(require.resolve('@totemsdk/core'));
     const glue = coreRequire.resolve('@totemsdk/core-wasm/web');
     await init({ module_or_path: readFileSync(new URL('./totemsdk_core_wasm_bg.wasm', pathToFileURL(glue))) });
     const cjs = require('@totemsdk/edge-mqtt');
-    const cjsReplay = require('@totemsdk/edge-mqtt/sqlite-replay-store');
+    const cjsReplay = require('@totemsdk/edge-mqtt');
+    const { SqliteStore: CjsSqliteStore } = require('@totemsdk/storage/sqlite');
     const path = resolve('replay.sqlite');
-    const first = await createSqliteMqttReplayStore({ path });
-    const second = await cjsReplay.createSqliteMqttReplayStore({ path });
+    const firstStorage = new SqliteStore(path);
+    const secondStorage = new CjsSqliteStore(path);
+    const first = createStorageMqttReplayStore(firstStorage);
+    const second = cjsReplay.createStorageMqttReplayStore(secondStorage);
     let effects = 0;
     const config = (replayStore) => ({
       runtime: { deviceId: 'packed-device', ports: { policy: {
@@ -87,17 +89,17 @@ test('packed MQTT root and SQLite subpath operate across ESM/CJS and strict type
       assert.equal(replay.ok, false);
       assert.match(replay.error, /duplicate/);
       assert.equal(effects, 1);
-    } finally { await first.close(); await second.close(); }
+    } finally { await firstStorage.close(); await secondStorage.close(); }
   `);
   run(process.execPath, ['consumer.mjs']);
 
   for (const extension of ['mts', 'cts']) {
     writeFileSync(join(work, `consumer.${extension}`), `
-      import { createSqliteMqttReplayStore, type SqliteMqttReplayStore } from '@totemsdk/edge-mqtt/sqlite-replay-store';
-      import type { ReplayLedgerStore } from '@totemsdk/edge-mqtt';
-      const create: (options: { path: string }) => Promise<SqliteMqttReplayStore> = createSqliteMqttReplayStore;
+      import { createStorageMqttReplayStore, type ReplayLedgerStore } from '@totemsdk/edge-mqtt';
+      import { SqliteStore } from '@totemsdk/storage/sqlite';
+      const store: ReplayLedgerStore = createStorageMqttReplayStore(new SqliteStore('/tmp/unused.sqlite'));
       const use: (store: ReplayLedgerStore) => Promise<boolean> = (store) => store.claim('key', 200, 100);
-      void create; void use;
+      void store; void use;
     `);
   }
   writeFileSync(join(work, 'tsconfig.json'), JSON.stringify({

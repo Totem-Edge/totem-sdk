@@ -11,10 +11,14 @@ const fail = (error) => {
 
 async function main() {
   const cjs = options.moduleMode === 'cjs';
-  const { createSqliteMqttReplayStore } = cjs
-    ? require('@totemsdk/edge-mqtt/sqlite-replay-store')
-    : await import('@totemsdk/edge-mqtt/sqlite-replay-store');
-  const store = await createSqliteMqttReplayStore({ path: options.path });
+  const { createStorageMqttReplayStore } = cjs
+    ? require('@totemsdk/edge-mqtt')
+    : await import('@totemsdk/edge-mqtt');
+  const { SqliteStore } = cjs
+    ? require('@totemsdk/storage/sqlite')
+    : await import('@totemsdk/storage/sqlite');
+  const storage = new SqliteStore(options.path, { busyTimeoutMs: 5000 });
+  const store = createStorageMqttReplayStore(storage);
   let api;
   if (options.mode !== 'claim') {
     api = cjs ? require('@totemsdk/edge-mqtt') : await import('@totemsdk/edge-mqtt');
@@ -72,7 +76,7 @@ async function main() {
         payload: JSON.stringify({ envelope, payload }), receivedAt: Date.now(),
       });
     }
-    await store.close();
+    await storage.close();
     process.send({ type: 'result', result }, () => process.disconnect());
   }
 }

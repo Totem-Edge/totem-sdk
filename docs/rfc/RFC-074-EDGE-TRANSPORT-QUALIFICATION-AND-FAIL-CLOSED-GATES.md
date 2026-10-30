@@ -371,11 +371,12 @@ publication train completed independently.
 
 ### Third increment: Node SQLite MQTT replay and packed binding
 
-- Added the isolated `@totemsdk/edge-mqtt/sqlite-replay-store` export. It composes
-  the existing storage SQLite adapter with a dedicated namespaced claim table
-  and one conditional UPSERT. WAL/FULL commit precedes admission acknowledgement.
-  In-memory/relative/URI database paths are rejected. It does not auto-delete
-  replay rows or reinterpret a claim as a completed physical effect.
+- Replay persistence is a connector-neutral port. `createStorageMqttReplayStore`
+  adapts any durable `StorageAdapterWithCapabilities & CasStore`; SQLite is only
+  an injected test/example adapter, never imported by the connector runtime.
+  The adapter must provide atomic conditional updates and durable acknowledgement;
+  contention retries are bounded and then fail closed. Claims are never
+  reinterpreted as completed physical effects.
 - Claim keys bind device, verified issuer and command ID. Unsigned `requestedBy`
   cannot choose another replay scope. Existing device-only key formats must be
   migrated or quiesced before enabling the new format.

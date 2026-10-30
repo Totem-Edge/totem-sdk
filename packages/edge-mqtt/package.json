@@ -4,13 +4,6 @@
   "description": "MQTT adapter for Totem Edge \u2014 Rust/WASM-backed canonicalization, topic matching, and MachinePay arithmetic",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
-  "typesVersions": {
-    "*": {
-      "sqlite-replay-store": [
-        "./dist/cjs/sqlite-replay-store.d.ts"
-      ]
-    }
-  },
   "exports": {
     ".": {
       "import": {
@@ -20,16 +13,6 @@
       "require": {
         "types": "./dist/cjs/index.d.ts",
         "default": "./dist/cjs/index.js"
-      }
-    },
-    "./sqlite-replay-store": {
-      "import": {
-        "types": "./dist/sqlite-replay-store.d.ts",
-        "default": "./dist/sqlite-replay-store.js"
-      },
-      "require": {
-        "types": "./dist/cjs/sqlite-replay-store.d.ts",
-        "default": "./dist/cjs/sqlite-replay-store.js"
       }
     }
   },

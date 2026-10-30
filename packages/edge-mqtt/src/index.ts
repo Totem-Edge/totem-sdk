@@ -87,6 +87,9 @@ export { createMqttProofPublisher } from './proof-publisher.js';
 
 export { createMqttCommandHandler } from './command-handler.js';
 
+export { createStorageMqttReplayStore } from './storage-replay-store.js';
+export type { StorageMqttReplayStoreOptions } from './storage-replay-store.js';
+
 export { createMqttUsageMeter } from './usage-meter.js';
 
 export { createMqttCreditGate } from './credit-gate.js';

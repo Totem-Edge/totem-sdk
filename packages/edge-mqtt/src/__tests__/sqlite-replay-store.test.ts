@@ -1,23 +1,26 @@
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createSqliteMqttReplayStore } from '../sqlite-replay-store.js';
-import type { SqliteMqttReplayStore, SqliteMqttReplayStoreOptions } from '../sqlite-replay-store.js';
+import { SqliteStore } from '@totemsdk/storage/sqlite';
+import { createStorageMqttReplayStore } from '../storage-replay-store.js';
+import type { StorageMqttReplayStoreOptions } from '../storage-replay-store.js';
 import { createMqttCommandHandler } from '../command-handler.js';
 import type { MqttCommandHandlerConfig } from '../types.js';
 
 describe('file-backed atomic MQTT replay claims', () => {
   let directory: string;
-  let stores: SqliteMqttReplayStore[];
+  let stores: Array<{ close(): Promise<void> }>;
   beforeEach(() => { directory = mkdtempSync(join(tmpdir(), 'mqtt-sqlite-test-')); stores = []; });
   afterEach(async () => {
-    await Promise.all(stores.map((store) => store.close()));
+    await Promise.all(stores.map((store) => store.close().catch(() => {})));
     rmSync(directory, { recursive: true, force: true });
   });
-  async function open(options: Partial<SqliteMqttReplayStoreOptions> = {}) {
-    const store = await createSqliteMqttReplayStore({ path: join(directory, 'replay.sqlite'), ...options });
-    stores.push(store);
-    return store;
+  async function open(options: Partial<StorageMqttReplayStoreOptions> = {}) {
+    const storage = new SqliteStore(join(directory, 'replay.sqlite'));
+    const store = createStorageMqttReplayStore(storage, options);
+    stores.push(storage);
+    // The production port has no lifecycle; this SQLite test fixture owns it.
+    return Object.assign(store, { close: () => storage.close() });
   }
 
   it('retains claims across close/reopen through the inclusive expiry boundary', async () => {
@@ -52,14 +55,6 @@ describe('file-backed atomic MQTT replay claims', () => {
     expect(await left.claim(key, 200, 100)).toBe(true);
     expect(await right.claim(key, 200, 100)).toBe(true);
     expect(await left.claim(key, 200, 100)).toBe(false);
-  });
-
-  it.each([':memory:', '', 'relative.sqlite', 'file::memory:?cache=shared'])('rejects non-file-backed path %s', async (path) => {
-    await expect(createSqliteMqttReplayStore({ path })).rejects.toThrow(/absolute file-backed/);
-  });
-
-  it.each([-1, 0.5, NaN, Infinity, 60_001])('rejects invalid lock timeout %s', async (busyTimeoutMs) => {
-    await expect(open({ busyTimeoutMs })).rejects.toThrow(/busyTimeoutMs/);
   });
 
   it.each([[200, -1], [99, 100], [NaN, 100], [Infinity, 100], [200, 100.5]])('rejects invalid claim timestamps (%s, %s)', async (expiresAt, now) => {

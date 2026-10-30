@@ -276,6 +276,8 @@ jobs:
       - name: Build MQTT WASM artifacts for v1 evidence
         working-directory: packages/edge-mqtt
         run: npm run build:wasm
+      - name: SDK integration hygiene (v1 gate)
+        run: node scripts/verify-sdk-integration.mjs
       - name: Verify mandatory v1 qualification evidence (RFC-074)
         run: node scripts/verify-workspace.mjs --maturity v1 --integration --conformance --recovery --consumer
 

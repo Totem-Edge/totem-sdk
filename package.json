@@ -2,7 +2,7 @@
   "name": "totem-sdk",
   "version": "1.0.0",
   "private": true,
-  "description": "Totem SDK monorepo — quantum-resistant decentralized computing platform for the Minima network",
+  "description": "Totem SDK monorepo \u2014 quantum-resistant decentralized computing platform for the Minima network",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Totem-Edge/totem-sdk.git"
@@ -81,7 +81,8 @@
     "generate:minima-commands": "node scripts/generate-minima-rpc-commands.mjs",
     "smoke:bare": "node scripts/run-bare.mjs scripts/bare-core-smoke.mjs",
     "smoke:bare:pack": "node scripts/bare-pack-consumer.mjs",
-    "smoke:mcp:apps": "node scripts/mcp-generated-app-consumer.mjs"
+    "smoke:mcp:apps": "node scripts/mcp-generated-app-consumer.mjs",
+    "validate:sdk-integration": "node scripts/verify-sdk-integration.mjs"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

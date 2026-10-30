@@ -10,7 +10,8 @@ import { pathToFileURL } from 'node:url';
 import { Aedes } from 'aedes';
 import mqtt from 'mqtt';
 import { createMqttCommandHandler } from '../dist/index.js';
-import { createSqliteMqttReplayStore } from '../dist/sqlite-replay-store.js';
+import { createStorageMqttReplayStore } from '../dist/index.js';
+import { SqliteStore } from '@totemsdk/storage/sqlite';
 import { init } from '@totemsdk/core';
 
 const require = createRequire(import.meta.url);
@@ -147,8 +148,9 @@ test('QoS 1 broker delivery executes once and rejects a duplicate command ID', {
   const broker = await startBroker();
   t.after(() => broker.close());
   const directory = mkdtempSync(join(tmpdir(), 'mqtt-broker-qos1-'));
-  const replayStore = await createSqliteMqttReplayStore({ path: join(directory, 'replay.sqlite') });
-  t.after(async () => { await replayStore.close(); rmSync(directory, { recursive: true, force: true }); });
+  const replayStorage = new SqliteStore(join(directory, 'replay.sqlite'), { busyTimeoutMs: 5000 });
+  const replayStore = createStorageMqttReplayStore(replayStorage);
+  t.after(async () => { await replayStorage.close(); rmSync(directory, { recursive: true, force: true }); });
   const subscriber = await connect(broker.url, 'subscriber-qos1');
   const publisher = await connect(broker.url, 'publisher-qos1');
   t.after(async () => { await subscriber.port.disconnect(); await publisher.port.disconnect(); });
@@ -172,8 +174,9 @@ test('QoS 2 broker delivery executes the command', { timeout: 30_000 }, async (t
   const broker = await startBroker();
   t.after(() => broker.close());
   const directory = mkdtempSync(join(tmpdir(), 'mqtt-broker-qos2-'));
-  const replayStore = await createSqliteMqttReplayStore({ path: join(directory, 'replay.sqlite') });
-  t.after(async () => { await replayStore.close(); rmSync(directory, { recursive: true, force: true }); });
+  const replayStorage = new SqliteStore(join(directory, 'replay.sqlite'), { busyTimeoutMs: 5000 });
+  const replayStore = createStorageMqttReplayStore(replayStorage);
+  t.after(async () => { await replayStorage.close(); rmSync(directory, { recursive: true, force: true }); });
   const subscriber = await connect(broker.url, 'subscriber-qos2');
   const publisher = await connect(broker.url, 'publisher-qos2');
   t.after(async () => { await subscriber.port.disconnect(); await publisher.port.disconnect(); });
@@ -191,8 +194,9 @@ test('persistent session queues QoS 1 while offline and durable replay blocks re
   t.after(() => broker.close());
   const directory = mkdtempSync(join(tmpdir(), 'mqtt-broker-session-'));
   const replayPath = join(directory, 'replay.sqlite');
-  let replayStore = await createSqliteMqttReplayStore({ path: replayPath });
-  t.after(async () => { await replayStore.close(); rmSync(directory, { recursive: true, force: true }); });
+  let replayStorage = new SqliteStore(replayPath, { busyTimeoutMs: 5000 });
+  let replayStore = createStorageMqttReplayStore(replayStorage);
+  t.after(async () => { await replayStorage.close(); rmSync(directory, { recursive: true, force: true }); });
 
   const clientId = 'persistent-session';
   let subscriber = await connect(broker.url, clientId, { clean: false });
@@ -209,8 +213,9 @@ test('persistent session queues QoS 1 while offline and durable replay blocks re
   // Graceful disconnect retains the non-clean session in the broker. Close the
   // handler store too, so the reconnect exercises both broker and replay restart.
   await subscriber.port.disconnect();
-  await replayStore.close();
-  replayStore = await createSqliteMqttReplayStore({ path: replayPath });
+  await replayStorage.close();
+  replayStorage = new SqliteStore(replayPath, { busyTimeoutMs: 5000 });
+  replayStore = createStorageMqttReplayStore(replayStorage);
 
   await publisher.port.publish(TOPIC, command('offline-command'), { qos: 1 });
   subscriber = await connect(broker.url, clientId, { clean: false });

@@ -85,6 +85,14 @@ A genuinely inapplicable package-owned gate requires a reviewed record:
 Exemptions are reported as N/A, not passing evidence. An all-N/A invocation fails.
 No blanket exemptions have been added to existing packages.
 
+## SDK integration hygiene
+
+`node scripts/verify-sdk-integration.mjs` scans every publishable package. v1
+packages fail on runtime direct DB drivers, forked storage contracts,
+undeclared `@totemsdk/storage` imports, or raw device transports in `edge-*`
+connectors. RC/Alpha findings are reported as migration debt. Tests may inject
+concrete SQLite backends; connector runtime code must use the SDK abstraction.
+
 ## CI and current boundary
 
 Workspace CI runs shared lint and gate regression tests. Its dedicated
