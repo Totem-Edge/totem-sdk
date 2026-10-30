@@ -54,6 +54,8 @@ function makeProof() {
   return { createProof };
 }
 
+const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+
 const MESSAGE: LorawanMessage = {
   port: 2, payload: new Uint8Array([0xfa, 0x01]), confirmed: true, frameCounter: 12, snr: 8.5, rssi: -95, receivedAt: Date.now(),
 };
@@ -136,13 +138,35 @@ describe('edge-lorawan gateway', () => {
       runtime: makeRuntime(proof),
       transport,
       otaa: { devEui: 'x', appEui: 'y', appKey: 'z' },
+      devAddr: '26011F7D',
     });
     await gw.start();
     transport.emitDownlink(MESSAGE);
+    await flush();
     expect(proof.createProof).toHaveBeenCalledWith(expect.objectContaining({
       subject: 'lorawan:downlink',
       claims: [expect.objectContaining({ port: 2, payload: [0xfa, 0x01], confirmed: true, frameCounter: 12 })],
     }));
+    await gw.stop();
+  });
+
+  it('deduplicates downlinks by frame counter and resets on rejoin', async () => {
+    const transport = new MockLorawanTransport();
+    const proof = makeProof();
+    const gw = createLorawanGateway({
+      runtime: makeRuntime(proof), transport, otaa: { devEui: 'x', appEui: 'y', appKey: 'z' }, devAddr: '26011F7D',
+    });
+    await gw.start();
+    transport.emitDownlink(MESSAGE);
+    transport.emitDownlink(MESSAGE);
+    await flush();
+    expect(proof.createProof).toHaveBeenCalledTimes(1);
+
+    transport.emitJoin('26011F7D');
+    await flush();
+    transport.emitDownlink({ ...MESSAGE, frameCounter: 1 });
+    await flush();
+    expect(proof.createProof).toHaveBeenCalledTimes(3); // join + reset frame
     await gw.stop();
   });
 
@@ -156,6 +180,7 @@ describe('edge-lorawan gateway', () => {
     });
     await gw.start();
     transport.emitJoin('26011F7D');
+    await flush();
     expect(proof.createProof).toHaveBeenCalledWith(expect.objectContaining({
       subject: 'lorawan:join',
       claims: [{ devAddr: '26011F7D', timestamp: expect.any(Number) }],
@@ -198,6 +223,7 @@ describe('edge-lorawan sensor bridge', () => {
     const bridge = createLorawanSensorBridge({
       runtime: makeRuntime(proof),
       transport,
+      devAddr: '26011F7D',
       bindings: [
         { sensorId: 'level', port: 2, intervalMs: 60_000, unit: 'percent' },
         { sensorId: 'other', port: 9, intervalMs: 60_000 },
@@ -205,6 +231,7 @@ describe('edge-lorawan sensor bridge', () => {
     });
     await bridge.start();
     transport.emitDownlink(MESSAGE);
+    await flush();
     expect(proof.createProof).toHaveBeenCalledWith(expect.objectContaining({
       subject: 'sensor:level',
       claims: [expect.objectContaining({ sensorId: 'level', port: 2, payload: [0xfa, 0x01], unit: 'percent' })],
@@ -219,10 +246,12 @@ describe('edge-lorawan sensor bridge', () => {
     const bridge = createLorawanSensorBridge({
       runtime: makeRuntime(proof),
       transport,
+      devAddr: '26011F7D',
       bindings: [{ sensorId: 'level', port: 2, intervalMs: 60_000 }],
     });
     await bridge.start();
     transport.emitDownlink({ ...MESSAGE, port: 44 });
+    await flush();
     expect(proof.createProof).not.toHaveBeenCalled();
     await bridge.stop();
   });
@@ -233,12 +262,14 @@ describe('edge-lorawan sensor bridge', () => {
     const bridge = createLorawanSensorBridge({
       runtime: makeRuntime(proof),
       transport,
+      devAddr: '26011F7D',
       bindings: [{ sensorId: 'level', port: 2, intervalMs: 60_000 }],
     });
     await bridge.start();
     expect(transport.downlinkHandlers).toHaveLength(1);
     await bridge.stop();
     transport.emitDownlink(MESSAGE);
+    await flush();
     expect(proof.createProof).not.toHaveBeenCalled();
   });
 
@@ -247,6 +278,7 @@ describe('edge-lorawan sensor bridge', () => {
     const bridge = createLorawanSensorBridge({
       runtime: makeRuntime(),
       transport,
+      devAddr: '26011F7D',
       bindings: [
         { sensorId: 'level', port: 2, intervalMs: 60_000 },
         { sensorId: 'temp', port: 3, intervalMs: 60_000 },

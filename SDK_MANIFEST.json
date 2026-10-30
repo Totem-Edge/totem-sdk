@@ -507,7 +507,7 @@
     },
     {
       "name": "@totemsdk/edge-lorawan",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "description": "Edge runtime adapter for LoRaWAN — agriculture, asset tracking, long-range sensors",
       "domain": "edge-computing",
       "keywords": [
@@ -517,7 +517,8 @@
         "asset-tracking"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.5.1"
+        "@totemsdk/edge": "^1.5.1",
+        "@totemsdk/storage": "^0.2.2"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -598,17 +599,7 @@
         "@totemsdk/storage": "^0.2.2"
       },
       "exports": {
-        ".": "dist/index.{js,d.ts}",
-        "./sqlite-replay-store": {
-          "import": {
-            "types": "./dist/sqlite-replay-store.d.ts",
-            "default": "./dist/sqlite-replay-store.js"
-          },
-          "require": {
-            "types": "./dist/cjs/sqlite-replay-store.d.ts",
-            "default": "./dist/cjs/sqlite-replay-store.js"
-          }
-        }
+        ".": "dist/index.{js,d.ts}"
       },
       "exportsDescription": "MqttGateway, MqttSensorBridge, MachinePay, createMqttGateway, createMqttSensorBridge",
       "custody": {

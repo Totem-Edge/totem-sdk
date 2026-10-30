@@ -3,3 +3,6 @@ export { createLorawanGateway } from './gateway.js';
 export type { LorawanGatewayConfig, LorawanGateway } from './gateway.js';
 export { createLorawanSensorBridge } from './sensor-bridge.js';
 export type { LorawanSensorBinding, LorawanSensorBridgeConfig, LorawanSensorBridge } from './sensor-bridge.js';
+
+export { createMemoryLorawanReplayStore, createStorageLorawanReplayStore } from './replay.js';
+export type { LorawanReplayStore, StorageLorawanReplayStoreOptions } from './replay.js';

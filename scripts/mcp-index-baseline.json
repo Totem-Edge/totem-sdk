@@ -1,6 +1,6 @@
 {
   "note": "Per-package exported-symbol counts + total, used by scripts/verify-mcp-index.mjs to catch a package silently losing exports. Regenerate with: node scripts/verify-mcp-index.mjs --update",
-  "totalSymbols": 4200,
+  "totalSymbols": 4206,
   "packages": {
     "@totemsdk/agent-policy": 101,
     "@totemsdk/authority": 29,
@@ -17,10 +17,10 @@
     "@totemsdk/edge-coap": 13,
     "@totemsdk/edge-email": 11,
     "@totemsdk/edge-grpc": 13,
-    "@totemsdk/edge-lorawan": 9,
+    "@totemsdk/edge-lorawan": 13,
     "@totemsdk/edge-matter": 17,
     "@totemsdk/edge-modbus": 11,
-    "@totemsdk/edge-mqtt": 87,
+    "@totemsdk/edge-mqtt": 89,
     "@totemsdk/edge-nfc": 14,
     "@totemsdk/edge-opcua": 15,
     "@totemsdk/edge-ros2": 14,

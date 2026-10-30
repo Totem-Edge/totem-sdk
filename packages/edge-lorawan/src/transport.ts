@@ -23,6 +23,8 @@ export interface LorawanTransportPort {
 }
 
 export interface LorawanMessage {
+  /** Device address, when the transport knows it. */
+  devAddr?: string;
   /** Application port (1-223). */
   port: number;
   /** Payload bytes. */

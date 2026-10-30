@@ -77,7 +77,7 @@ Total: **69** publishable packages + **6** excluded entries = **75** workspace e
 | `@totemsdk/edge-coap` | 0.2.1 | rc | outside | `packages/edge-coap` |
 | `@totemsdk/edge-email` | 0.2.1 | rc | outside | `packages/edge-email` |
 | `@totemsdk/edge-grpc` | 0.2.1 | rc | outside | `packages/edge-grpc` |
-| `@totemsdk/edge-lorawan` | 0.2.1 | rc | outside | `packages/edge-lorawan` |
+| `@totemsdk/edge-lorawan` | 0.2.2 | rc | outside | `packages/edge-lorawan` |
 | `@totemsdk/edge-matter` | 0.2.1 | rc | outside | `packages/edge-matter` |
 | `@totemsdk/edge-opcua` | 0.2.1 | rc | outside | `packages/edge-opcua` |
 | `@totemsdk/edge-ros2` | 0.2.1 | rc | outside | `packages/edge-ros2` |

@@ -5144,6 +5144,23 @@
         "LorawanSensorBridge": {
           "kind": "interface",
           "signature": "export interface LorawanSensorBridge"
+        },
+        "createMemoryLorawanReplayStore": {
+          "kind": "function",
+          "signature": "createMemoryLorawanReplayStore(): LorawanReplayStore"
+        },
+        "createStorageLorawanReplayStore": {
+          "kind": "function",
+          "signature": "createStorageLorawanReplayStore(storage: StorageAdapterWithCapabilities & CasStore, options?: StorageLorawanReplayStoreOptions): LorawanReplayStore",
+          "doc": "CAS-backed durable guard over the neutral storage abstraction."
+        },
+        "LorawanReplayStore": {
+          "kind": "interface",
+          "signature": "export interface LorawanReplayStore"
+        },
+        "StorageLorawanReplayStoreOptions": {
+          "kind": "interface",
+          "signature": "export interface StorageLorawanReplayStoreOptions"
         }
       }
     },
@@ -5514,6 +5531,14 @@
         "createMqttCommandHandler": {
           "kind": "function",
           "signature": "createMqttCommandHandler(config: MqttCommandHandlerConfig): MqttCommandHandler"
+        },
+        "createStorageMqttReplayStore": {
+          "kind": "function",
+          "signature": "createStorageMqttReplayStore(storage: StorageAdapterWithCapabilities & CasStore, options?: StorageMqttReplayStoreOptions): ReplayLedgerStore"
+        },
+        "StorageMqttReplayStoreOptions": {
+          "kind": "interface",
+          "signature": "export interface StorageMqttReplayStoreOptions"
         },
         "createMqttUsageMeter": {
           "kind": "function",

@@ -10,7 +10,11 @@ npm install @totemsdk/edge-lorawan
 
 ## Design
 
-This package does **not** import any LoRa radio library or network server client. All radio/network behaviour is injected via `LorawanTransportPort`. The package handles OTAA/ABP activation, uplink/downlink framing, and proof generation.
+This package does **not** import any LoRa radio library or network server client. All radio/network behaviour is injected via `LorawanTransportPort`. The package handles OTAA/ABP activation, uplink/downlink framing, replay protection, and proof generation. Frame counters are accepted only when they advance the current device session; rejoin starts a new session and resets the watermark. A missing device address fails closed and creates no proof.
+
+Durable frame/session state is injected through `LorawanReplayStore`. `createStorageLorawanReplayStore` adapts any durable `StorageAdapterWithCapabilities & CasStore`; the connector never imports SQLite or another native database. The memory guard is only for tests/single-process embedding.
+
+Known limit: without a transport-supplied session epoch, a rejoin cannot distinguish an old frame whose counter is higher than the new session watermark. Transports should bind frames to the current session and reject stale epochs upstream.
 
 ## Quick start
 

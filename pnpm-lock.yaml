@@ -849,6 +849,9 @@ importers:
       '@totemsdk/edge':
         specifier: workspace:^
         version: link:../edge
+      '@totemsdk/storage':
+        specifier: workspace:^
+        version: link:../storage
     devDependencies:
       '@types/jest':
         specifier: ^30.0.0
