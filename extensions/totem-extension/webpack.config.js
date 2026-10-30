@@ -90,6 +90,16 @@ const NODE_SCHEME_ALIASES = [
   'node:buffer',
   'node:util',
   'node:events',
+  'node:path',
+  'node:fs',
+  'node:os',
+  'node:url',
+  'node:module',
+  'node:async_hooks',
+  'node:perf_hooks',
+  'node:v8',
+  'node:child_process',
+  'node:worker_threads',
 ];
 const ignoreNodeSchemePlugins = () =>
   NODE_SCHEME_ALIASES.map(
@@ -108,7 +118,7 @@ const ignoreNodeSchemePlugins = () =>
 //     relay-backed stream instead.
 // Rewrite them to the throw-on-load shim so the dynamic import rejects cleanly
 // (and the guarded fallback runs) instead of failing the browser build.
-const NODE_ONLY_PACKAGES = ['hyperswarm', 'sodium-native', 'sodium-universal', 'ws'];
+const NODE_ONLY_PACKAGES = ['hyperswarm', 'hyperdht', 'sodium-native', 'sodium-universal', 'ws'];
 const ignoreNodeOnlyPackagesPlugins = () =>
   NODE_ONLY_PACKAGES.map(
     (name) =>
@@ -294,7 +304,6 @@ const uiConfig = {
         { from: 'src/approval/pairing.js', to: 'approval/pairing.js' },
         { from: 'scanner.html', to: 'scanner.html' },
         // WASM mining engine — fetched by the service worker via chrome.runtime.getURL
-        { from: 'node_modules/@totemsdk/txpow/src/wasm/miner.wasm', to: 'miner.wasm' },
         // Core cryptographic WASM — initialized by ensureCoreWasm() in UI/background
         {
           from: 'node_modules/@totemsdk/core-wasm/pkg-web/totemsdk_core_wasm_bg.wasm',

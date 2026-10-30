@@ -1910,7 +1910,6 @@ function serializeWitness(
  * txnDifficulty=MAX_HASH (0xFF…FF).  The MEG node re-mines the TxPoW before
  * inclusion, so this is correct for the txnimport → txnpost flow.
  *
- * For locally-mined TxPoWs, use mineTxPoW() from @totemsdk/txpow directly.
  */
 export function serializeTxPoW(
   tx: MinimaTransaction,

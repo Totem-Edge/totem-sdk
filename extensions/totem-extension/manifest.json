@@ -2,18 +2,17 @@
   "manifest_version": 3,
   "name": "Totem",
   "short_name": "Totem",
-  "version": "1.0.9",
+  "version": "1.0.10",
+  "key": "MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAo+kFH1AnR8X2BIHhGkVs7vKAu8jGCKd4kDla/DJQerK+FW3A9qqPD9OwR9XWdpXVwWmNgQmTl5AkHbJfHvMbpZ0LaRQ8452zcecF2p+CKYDdq12p+lkobpzKdDADAWgJ18JScbOt3MBiH221UlWi6v2LO14REmOxZ4ZjOzIYuZIeg0jqYMWKMk25/0LrJ1nKrPMagykmIIGEX4noAmxsDo4gClb/oa6ch1QeRj/I1q/vcDSPW9zPGVgZAKFOpdQZ+ui0RRuTcdi2EMzyyxiUcAYAY1kc4Hk5uOleIAKamMidQT1MJILV86yfTF9QZEaGbz7oodyM6/XBgS3Gqd5BUJmo+a/WJKGlxz4/nl9mS/sb3Dy3GXs609FFNF84k97BNAedh6zGDOBqyUO1JXIwj8hVLtqt+5z7GxvxF9bQSKaCsYQYVnF8y+EhZj7Pthd+u0+88YErUSqCssenk9lqhWCi10WK1wAjX3CAWI3RkQ5nM7mloQoDz1p3mwQ6ONz2w8oiXxIYlDkmhcw2wwo3bwO4EdLDKtRV1KKQwxAUxArZZ6t6aklENvsKPfpaBC2P/q89uDi+3dWDn8TVWBJKgyKNuhJ+3PLQuLiwtEMkVAwEOZDWGn7LR8iJPKyiOnSf402paZ+NNOQEy1uEUlIWRuA7/Zl39qj5JI18YeRhBLUCAwEAAQ==",
   "description": "Totem - Secure wallet for Minima blockchain with WOTS signatures (w=8)",
   "homepage_url": "https://totem.ing",
   "minimum_chrome_version": "116",
-  
   "permissions": [
     "storage",
     "activeTab",
     "alarms",
     "tabs"
   ],
-  
   "host_permissions": [
     "https://api.axia.to/*",
     "https://rpc.axia.to/*",
@@ -23,32 +22,31 @@
     "http://127.0.0.1:7789/*",
     "http://localhost:7789/*"
   ],
-
   "optional_host_permissions": [
     "https://*/*",
     "http://localhost/*",
     "http://127.0.0.1/*"
   ],
-  
   "externally_connectable": {
     "matches": [
       "https://*.axia.to/*",
       "https://*.totem.ing/*"
     ]
   },
-  
   "background": {
     "service_worker": "background.js"
   },
-  
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["content-script.js"],
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content-script.js"
+      ],
       "run_at": "document_start"
     }
   ],
-  
   "action": {
     "default_popup": "popup.html",
     "default_title": "Totem Wallet",
@@ -59,21 +57,22 @@
       "128": "icons/icon-128.png"
     }
   },
-  
   "icons": {
     "16": "icons/icon-16.png",
     "32": "icons/icon-32.png",
     "48": "icons/icon-48.png",
     "128": "icons/icon-128.png"
   },
-  
   "web_accessible_resources": [
     {
-      "resources": ["src/provider.js"],
-      "matches": ["<all_urls>"]
+      "resources": [
+        "src/provider.js"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
     }
   ],
-  
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: blob:; object-src 'self';"
   }

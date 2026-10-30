@@ -7,7 +7,6 @@
  *   prepare          local watermark reservation (no server lease)
  *   fetchCoinProofs  node `coinexport` (returns the serialized CoinProof)
  *   finalize         node `txnimport` → `txnpost id:… mine:true`
- *   finalizeMined    node `sendtransaction`
  *   broadcast        node `txnimport` → `txnpost id:… mine:true`
  *
  * The WOTS leaf is marked used before the node submit is attempted. A failed
@@ -221,36 +220,6 @@ export class HawkTransactionService {
       if (lease) await leaseStore.updateStatus(lease.leaseId, 'finalized');
 
       TxSignLogger.info('Hawk transaction finalized', { txpowid, leaseId, id });
-      return { ok: true, leaseId, txpowid };
-    } catch (error) {
-      if (lease) await leaseStore.updateStatus(lease.leaseId, 'cancelled');
-      throw error;
-    }
-  }
-
-  /**
-   * Submit an already-mined TxPoW (browser-mined path).
-   */
-  static async finalizeMined(params: {
-    leaseToken: string;
-    minedHex: string;
-  }): Promise<FinalizeResponse> {
-    const { client } = await requireNode();
-    const hex = strip0x(params.minedHex);
-    if (!hex) throw new Error('finalizeMined requires minedHex');
-
-    const lease = leaseStore.getByToken(params.leaseToken);
-    const leaseId = lease?.leaseId ?? params.leaseToken;
-
-    if (lease) {
-      await withSigningLock(() => watermarkStore.markUsed(lease.indices));
-    }
-
-    try {
-      const posted = await client.sendTransaction(hex);
-      const txpowid = posted?.txpowid;
-      if (!txpowid) throw new Error('sendtransaction returned no txpowid');
-      if (lease) await leaseStore.updateStatus(lease.leaseId, 'finalized');
       return { ok: true, leaseId, txpowid };
     } catch (error) {
       if (lease) await leaseStore.updateStatus(lease.leaseId, 'cancelled');

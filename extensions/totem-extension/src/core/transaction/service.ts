@@ -494,44 +494,6 @@ export class TransactionService {
   }
 
   /**
-   * Step 3b: Submit a locally-mined TxPoW to Axia.
-   *
-   * Used when the extension mines the TxPoW in-browser (WASM).
-   * The backend calls `txpowpost data:<hex>` to relay the pre-mined TxPoW to
-   * the Minima network without any re-mining on the node side.
-   */
-  static async finalizeMined(params: { leaseToken: string; minedHex: string }): Promise<FinalizeResponse> {
-    const startTime = performance.now();
-    const base = await getApiBypassBase();
-    const projectId = await getProjectId();
-    const url = `${base.replace(/\/$/, '')}/v1/wots-hardened/finalize-mined`;
-
-    TxSignLogger.info(` 📤 Submitting locally-mined TxPoW to network...`);
-    TxSignLogger.info(`    url: ${url}`);
-    TxSignLogger.info(`    leaseToken: ${params.leaseToken.slice(0, 16)}...`);
-    TxSignLogger.info(`    minedHex length: ${params.minedHex.length} chars`);
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': projectId },
-      body: JSON.stringify(params)
-    });
-
-    if (!response.ok) {
-      let errorData: { error?: string; details?: string } = {};
-      try { errorData = await response.json(); } catch { /* ignore */ }
-      const msg = errorData.details || errorData.error || `finalize-mined failed: ${response.status}`;
-      TxSignLogger.error(` ❌ finalize-mined failed: ${msg}`);
-      throw new Error(msg);
-    }
-
-    const result = await response.json();
-    const elapsed = performance.now() - startTime;
-    TxSignLogger.info(` ✅ finalize-mined success (${elapsed.toFixed(0)}ms), txpowid: ${result.txpowid}`);
-    return result;
-  }
-
-  /**
    * DEBUG: Fetch canonical transaction bytes from Minima node for comparison.
    * 
    * Use this to validate client-side serialization against the node's format.

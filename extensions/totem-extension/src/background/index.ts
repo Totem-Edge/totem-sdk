@@ -35,7 +35,6 @@ import { coinSelectionService, CoinSelectionError } from '../core/transaction/Co
 import { formatMinimaAmount, parseMinimaAmount, MINIMA_DECIMALS, TOTEM_CHAIN_ID } from '../constants';
 import { sha3_256 } from '@noble/hashes/sha3.js';
 import { parseTxInputs } from '../core/transaction/txParser';
-import { setWasmUrl } from '@totemsdk/txpow';
 import { validateSignData, computeManifestBlobHash, normalizeAddrToHex as normalizeSignAddr } from '../core/signing/signDataValidator';
 import {
   acknowledgeCustodyDisclosure,
@@ -82,19 +81,6 @@ function generateVerifyNonce(): string {
   crypto.getRandomValues(buf);
   return Array.from(buf).map(b => b.toString(16).padStart(2, '0')).join('');
 }
-
-// =========================================================================
-// Local TxPoW Mining Setup
-// Set the WASM URL so the miner can fetch it via chrome.runtime.getURL.
-// This is a no-op if the extension is not an extension context.
-// =========================================================================
-try {
-  setWasmUrl(chrome.runtime.getURL('miner.wasm'));
-} catch { /* non-extension context (tests) – ignore */ }
-
-// Session-level cache for txnDifficulty (5 min TTL)
-let cachedTxPowDifficulty: { value: Uint8Array; fetchedAt: number } | null = null;
-const TXPOW_DIFFICULTY_CACHE_MS = 300_000;
 
 // =========================================================================
 // TOTEM_VERIFY v4.1: signs from the connected spend address (site.addressIndex)
@@ -2829,156 +2815,6 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
           txLog.info(' ✅ Preflight validation passed');
         }
         // ═══════════════════════════════════════════════════════════════════════
-
-        // ═══════════════════════════════════════════════════════════════════════
-        // Step 4.1: Attempt browser-side TxPoW mining (WASM, 30 s timeout)
-        // Success → submit via /finalize-mined (node relays pre-mined TxPoW)
-        // Timeout / any error → fall through to MEG-side mining (txnimport path)
-        // ═══════════════════════════════════════════════════════════════════════
-        let localMineSucceeded = false;
-        try {
-          txLog.info(' ═══════════════════════════════════════════════════════════════');
-          txLog.info(' Step 4.1: Attempting browser-side TxPoW mining (WASM)...');
-          txLog.info(' ═══════════════════════════════════════════════════════════════');
-
-          // Notify UI so it can show "Mining transaction…"
-          chrome.runtime.sendMessage({ type: 'TX_STAGE_UPDATE', stage: 'mining' }).catch((err) => console.warn('[Background] TX_STAGE_UPDATE sendMessage failed:', err));
-
-          // --- 1. Fetch / use cached txnDifficulty ---
-          // We fetch directly (not via fetchTxPowTarget which silently falls back
-          // to the protocol floor on errors). If the request fails, we throw so
-          // the outer catch falls through to MEG-side mining immediately.
-          const diffNow = Date.now();
-          if (!cachedTxPowDifficulty || diffNow - cachedTxPowDifficulty.fetchedAt > TXPOW_DIFFICULTY_CACHE_MS) {
-            const storageVals = await chrome.storage.local.getTyped(['AXIA_BASE']);
-            const apiBase = ((storageVals.AXIA_BASE as string | undefined) || 'https://api.axia.to').replace(/\/$/, '');
-            const diffCtrl = new AbortController();
-            const diffTimer = setTimeout(() => diffCtrl.abort(), 5_000);
-            let diffBytes: Uint8Array;
-            try {
-              const diffResp = await fetch(`${apiBase}/v1/wallet/txpow-params`, { signal: diffCtrl.signal });
-              if (!diffResp.ok) throw new Error(`txpow-params HTTP ${diffResp.status}`);
-              const diffData = (await diffResp.json()) as { minTxPowWork?: string };
-              const diffHex = String(diffData.minTxPowWork ?? '').replace(/^0x/, '');
-              if (diffHex.length !== 64) throw new Error(`txpow-params bad length: ${diffHex.length}`);
-              diffBytes = new Uint8Array(32);
-              for (let i = 0; i < 32; i++) diffBytes[i] = parseInt(diffHex.slice(i * 2, i * 2 + 2), 16);
-            } finally {
-              clearTimeout(diffTimer);
-            }
-            cachedTxPowDifficulty = { value: diffBytes, fetchedAt: Date.now() };
-            txLog.info(` Step 4.1: txnDifficulty fetched from ${apiBase}/v1/wallet/txpow-params`);
-          } else {
-            txLog.info(` Step 4.1: Using cached txnDifficulty (age: ${((diffNow - cachedTxPowDifficulty.fetchedAt) / 1000).toFixed(0)}s)`);
-          }
-          const txnDifficulty: Uint8Array = cachedTxPowDifficulty.value;
-
-          // --- 2. Build witness bytes from already-assembled data ---
-          const { buildWitnessBytes } = await import('../core/transaction/MinimaTransactionBuilder');
-          const witnessBytes = buildWitnessBytes(wotsData as any, coinProofsHex, inputScripts as any);
-          txLog.info(` Step 4.1: witnessBytes = ${witnessBytes.length}B`);
-
-          // --- 3. Serialize TxPoW body with real difficulty target ---
-          //    serializeTxBody returns the raw body bytes; we keep them for the
-          //    final assembly after mining finds a header with a winning nonce.
-          const { serializeTxBody, mineTxPoW } = await import('@totemsdk/txpow');
-          const txBodyBytes: Uint8Array = serializeTxBody(buildResult.serialized, witnessBytes, { txnDifficulty });
-          txLog.info(` Step 4.1: txBodyBytes = ${txBodyBytes.length}B`);
-
-          // --- 4. Mine with a 30 s hard timeout ---
-          //    We use the public `mineTxPoW()` API (not the internal
-          //    `mineTxPoWInProcess`). In the service-worker context,
-          //    `mineTxPoW` routes as follows:
-          //      • Node.js main thread  → worker_threads Worker (n/a here)
-          //      • Browser + workerUrl  → Web Worker (n/a — MV3 service workers
-          //                               cannot spawn new Worker() objects, so
-          //                               we intentionally do NOT call
-          //                               setBrowserWorkerUrl())
-          //      • Browser, no workerUrl → in-process async loop (this path)
-          //    WASM throughput is still used via the miner.wasm binary that was
-          //    loaded at startup by setWasmUrl(chrome.runtime.getURL('miner.wasm')).
-          const mineAbort = new AbortController();
-          const mineTimeoutId = setTimeout(() => mineAbort.abort('Mining timeout (30 s)'), 30_000);
-          const mineStart = performance.now();
-          let mineResult: Awaited<ReturnType<typeof mineTxPoW>>;
-          try {
-            mineResult = await mineTxPoW(txBodyBytes, txnDifficulty, { signal: mineAbort.signal });
-          } finally {
-            clearTimeout(mineTimeoutId);
-          }
-          const mineMs = performance.now() - mineStart;
-          txLog.info(` ✅ Step 4.1: Local mining SUCCESS in ${mineMs.toFixed(0)}ms, nonce=${mineResult.nonce}, src=${mineResult.source}`);
-
-          // --- 5. Assemble full TxPoW bytes: minedHeaderBytes ++ [0x01] ++ txBodyBytes ---
-          //    Wire format: TxHeader | MiniByte(0x01=hasBody) | TxBody
-          const { minedHeaderBytes } = mineResult;
-          const minedArr = new Uint8Array(minedHeaderBytes.length + 1 + txBodyBytes.length);
-          minedArr.set(minedHeaderBytes, 0);
-          minedArr[minedHeaderBytes.length] = 0x01;
-          minedArr.set(txBodyBytes, minedHeaderBytes.length + 1);
-          const minedHex = '0x' + Array.from(minedArr).map(b => b.toString(16).padStart(2, '0')).join('');
-          txLog.info(` Step 4.1: minedHex = ${minedHex.length} chars`);
-
-          // --- 6. Submit pre-mined TxPoW to Axia (relay-only) ---
-          const { TransactionService: TxSvc } = await import('../core/transaction/service');
-          const minedFinalizeResult = await TxSvc.finalizeMined({
-            leaseToken: prepareResult.leaseToken,
-            minedHex
-          });
-          if (!minedFinalizeResult?.txpowid) throw new Error('finalize-mined returned no txpowid');
-          txLog.info(` ✅ Step 4.1: Locally-mined transaction broadcast, txpowid=${minedFinalizeResult.txpowid}`);
-
-          localMineSucceeded = true;
-
-          // Persist receipt (best-effort — don't let this block the success response)
-          transactionReceiptStore.add({
-            txpowid: minedFinalizeResult.txpowid,
-            timestamp: Date.now(),
-            to,
-            amount,
-            tokenId: tokenid,
-            tokenSymbol: tokenSymbol || (tokenid === '0x00' ? 'MINIMA' : undefined),
-            from: sourceAddress,
-            indices: {
-              addressIndex: prepareResult.addressIndex,
-              l1: prepareResult.l1,
-              l2: prepareResult.l2
-            },
-            leaseId: minedFinalizeResult.leaseId,
-            status: 'pending',
-            lifecycle: 'submitted'
-          }).catch(e => txLog.warn(' Failed to persist receipt (local mine):', e));
-
-          pollTransactionConfirmation(minedFinalizeResult.txpowid);
-          if (portfolioStreamManager.isCurrentlyStreaming()) {
-            setTimeout(() => portfolioStreamManager.forceRefresh().catch((err) => console.warn('[Background] forceRefresh failed:', err)), 5_000);
-            setTimeout(() => portfolioStreamManager.forceRefresh().catch((err) => console.warn('[Background] forceRefresh failed:', err)), 12_000);
-          }
-
-          // Return early — skip the txnimport path
-          return {
-            ok: true,
-            txpowid: minedFinalizeResult.txpowid,
-            leaseId: minedFinalizeResult.leaseId,
-            addressIndex: prepareResult.addressIndex,
-            l1: prepareResult.l1,
-            l2: prepareResult.l2,
-            miningSource: 'local' as const,
-            stage: 'complete',
-            ...(buildResult.tokenId ? { tokenId: buildResult.tokenId } : {}),
-            id
-          };
-
-        } catch (mineErr: any) {
-          if (localMineSucceeded) {
-            // Receipt-save failed after a successful broadcast — re-throw so the
-            // outer catch returns an error rather than silently retrying with the
-            // consumed lease.
-            throw mineErr;
-          }
-          txLog.warn(` ⚠️ Step 4.1: Local mining failed (${mineErr?.message || String(mineErr)}), falling back to MEG-side mining`);
-          // Fall through to the existing txnimport path below
-        }
 
         // Generate import ID for txnimport (matches backend format)
         const importId = `totem-${prepareResult.leaseId || Date.now()}`;

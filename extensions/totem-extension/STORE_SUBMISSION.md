@@ -62,23 +62,35 @@ The Dashboard needs these before you can submit. None exist in the repo yet:
 
 | Asset | Spec | Status |
 |---|---|---|
-| Screenshots | 1280×800 or 640×400, JPEG/PNG, 1–5 | **TODO** |
-| Small promo tile | 440×280 | **TODO** |
-| Marquee promo tile | 1400×560 (optional) | **TODO** |
+| Screenshots | 1280×800 or 640×400, JPEG/PNG, 1–5 | ✅ `store-assets/screenshots/` |
+| Small promo tile | 440×280 | ✅ `store-assets/small-promo-440x280.png` |
+| Marquee promo tile | 1400×560 (optional) | ✅ `store-assets/marquee-1400x560.png` |
 | Store icon | 128×128 | ✅ `icons/icon-128.png` |
-| Short description | ≤ 132 chars | **TODO** (draft below) |
-| Detailed description | long-form | **TODO** (structure below) |
-| Category | Product / Productivity? → **Productivity** recommended | **TODO** |
+| Short description | ≤ 132 chars | ✅ below |
+| Detailed description | long-form | ✅ below |
+| Category | **Productivity** | ✅ selected |
 | Language | English (US) | — |
 | Homepage URL | `https://totem.ing` | ✅ (in manifest `homepage_url`) |
 | Privacy policy URL | `https://totem.ing/privacy` | ✅ (page now live) |
-| Support URL | `mailto:support@totem.ing` (or a /support page) | ⚠️ footer only |
+| Support URL | `https://totem.ing/support` | ✅ live |
 
-**Short description draft:**
+**Short description:**
 > Self-custodial Minima wallet with quantum-resistant WOTS signatures. Your keys never leave your device.
 
-**Detailed description structure:** what it is → self-custody/security →
-dApp connection (Totem Connect) → supported networks → link to docs.
+**Detailed description:**
+>
+> Totem is a self-custodial wallet for the Minima network. It generates and
+> stores your keys on your device, signs locally, and connects to dApps through
+> an explicit consent flow. Minima uses WOTS/TreeKey signatures, a
+> quantum-resistant design. Send and receive MIN and tokens, manage NFTs,
+> inspect balances, and connect to Axia or a paired lookup node. Your seed is
+> never sent to a server.
+
+**Listing notes:** Browser transaction mining is disabled in the Store build;
+TxPoW is mined by the node. The extension requests broad page access only to
+inject the Totem provider for dApp connection. `tabs` is used to route provider
+responses to the originating tab. Optional host permissions are used only for
+self-hosted node pairing.
 
 ---
 

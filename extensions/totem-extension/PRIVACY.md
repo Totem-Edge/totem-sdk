@@ -5,7 +5,7 @@
 The Totem Extension collects minimal data necessary for wallet operation:
 
 ### Collected (always)
-- **Wallet addresses** — stored locally in `chrome.storage.local`. Never transmitted except when the user explicitly signs a transaction.
+- **Wallet addresses** — stored locally in `chrome.storage.local`. Addresses are sent to the Axia API for portfolio/balance queries and transaction preparation. They are not sold or shared with unrelated third parties.
 - **Encrypted seed phrase** — stored locally in `chrome.storage.local`. Never transmitted. Encrypted with a user-chosen password using AES-256-GCM.
 
 ### Collected (with consent)
@@ -15,9 +15,10 @@ The Totem Extension collects minimal data necessary for wallet operation:
 
 ### Network requests
 The extension makes requests to:
-- `api.axia.to` / `rpc.axia.to` — Axia API for balance queries, transaction submission, and account state. Required for wallet operation.
+- `api.axia.to` / `rpc.axia.to` — Axia API for balance/portfolio queries, transaction preparation and submission, and account state. Required for wallet operation. Wallet addresses are included in balance/portfolio requests.
 - `telemetry.axia.to` — **opt-in anonymous usage telemetry only**. Not contacted unless the user enables "Anonymous Usage Data" in Settings. No personal data, wallet addresses, or keys.
 - `api.coingecko.com` — MINIMA price ticker for fiat display in the wallet UI.
+- `http://localhost:7789` / `http://127.0.0.1:7789` — optional local Axia/Hawk pairing endpoint.
 - `ipfs.io` — IPFS gateway for token image loading.
 
 ### Telemetry details
@@ -35,7 +36,7 @@ Totem Extension never collects:
 - Browsing history
 - Passwords
 - Personal identifiable information
-- IP addresses (API requests go directly to Axia, not through a Totem proxy)
+- Wallet balances and transaction history are queried from Axia using the wallet address. Axia's API/telemetry infrastructure may process request IP addresses for security, rate limiting and operations; they are not used for advertising or sold.
 
 ### Third-party sharing
 No user data is sold or shared with third parties. Network requests are limited to the services listed above, all of which are required for wallet functionality.
