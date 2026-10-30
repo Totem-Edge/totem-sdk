@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Extension version display:** Settings and the splash screen now read the
+  live extension manifest version instead of hard-coding `v1.0.0`. The
+  installed build and the version shown in the UI now agree.
 - **Totem extension portfolio stream:** the popup now reads balances through
   a wallet-backed `PortfolioBackend` (the selected chain provider with Axia
   `/v1/wallet/coins` fallback) instead of Axia's
