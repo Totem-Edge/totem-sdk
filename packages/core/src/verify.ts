@@ -157,15 +157,12 @@ function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
 function cryptoRandomBytes(length: number): Uint8Array {
   const buf = new Uint8Array(length);
   if (typeof globalThis.crypto !== 'undefined' && globalThis.crypto.getRandomValues) {
-    // Web Crypto API — available in browsers, Bare/Pear, and Node.js ≥ 19
     globalThis.crypto.getRandomValues(buf);
-  } else if (typeof process !== 'undefined' && process.versions?.node) {
-    // Node.js < 19 fallback — dynamic import avoids static resolution in Bare/bundlers
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const nodeCrypto = Function('return require')()('crypto') as { randomFillSync: (buf: Uint8Array) => void };
-    nodeCrypto.randomFillSync(buf);
   } else {
-    throw new Error('No cryptographically secure RNG available in this runtime');
+    throw new Error(
+      'No cryptographically secure RNG available. ' +
+      'This runtime must expose Web Crypto globalThis.crypto.getRandomValues (browser or Node.js >= 19).'
+    );
   }
   return buf;
 }

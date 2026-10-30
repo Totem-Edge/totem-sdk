@@ -216,6 +216,55 @@ function checkIcons() {
     }
 }
 
+// Check 6: Reject Chrome Web Store dynamic-code and overbroad permission patterns.
+function checkStoreSafety() {
+    console.log('\n🛡️  Checking Chrome Web Store safety...');
+
+    const distPath = path.join(__dirname, 'dist');
+    const forbidden = [
+        { name: 'new Function', re: /new Function\s*\(/ },
+        { name: 'eval(', re: /\beval\s*\(/ },
+        { name: 'return require', re: /return require/ },
+        { name: 'importScripts', re: /importScripts/ },
+    ];
+
+    function walk(dir) {
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+            const full = path.join(dir, entry.name);
+            if (entry.isDirectory()) walk(full);
+            else if (entry.name.endsWith('.js')) {
+                const source = fs.readFileSync(full, 'utf8');
+                for (const rule of forbidden) {
+                    if (rule.re.test(source)) {
+                        errors.push(`❌ Forbidden Store pattern "${rule.name}" in ${path.relative(distPath, full)}`);
+                    }
+                }
+            }
+        }
+    }
+    walk(distPath);
+
+    const manifest = JSON.parse(fs.readFileSync(path.join(distPath, 'manifest.json'), 'utf8'));
+    for (const permission of ['tabs', 'activeTab']) {
+        if ((manifest.permissions || []).includes(permission)) {
+            errors.push(`❌ Overbroad permission still requested: ${permission}`);
+        }
+    }
+
+    const matches = manifest.content_scripts?.flatMap((cs) => cs.matches || []) || [];
+    const excludes = manifest.content_scripts?.flatMap((cs) => cs.exclude_matches || []) || [];
+    if (matches.includes('<all_urls>')) {
+        errors.push('❌ Content script still uses <all_urls>');
+    }
+    if (!excludes.some((m) => m.includes('chromewebstore.google.com'))) {
+        errors.push('❌ Chrome Web Store origin is not excluded from content scripts');
+    }
+
+    if (errors.length === 0) {
+        console.log('✅ No dynamic-code patterns or forbidden permissions found');
+    }
+}
+
 // Run all checks
 checkDistStructure();
 checkManifest();
@@ -223,6 +272,7 @@ checkHTML();
 checkPopupSizing();
 checkBundleSizes();
 checkIcons();
+checkStoreSafety();
 
 // Summary
 console.log('\n📊 Verification Summary:');

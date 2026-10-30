@@ -128,6 +128,9 @@ chrome.runtime.onMessage.addListener((message) => {
     if (!ALLOWED_DAPP_EVENTS.has(message.eventName)) {
       return;
     }
+    if (message.origin && message.origin !== window.location.origin) {
+      return;
+    }
     window.postMessage({
       type: 'TOTEM_EVENT',
       eventName: message.eventName,

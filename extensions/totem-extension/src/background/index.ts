@@ -5020,17 +5020,13 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
           try {
             const tabs = await chrome.tabs.query({});
             for (const tab of tabs) {
-              if (tab.id && tab.url) {
-                try {
-                  const tabOrigin = new URL(tab.url).origin;
-                  if (tabOrigin === reqOrigin) {
-                    chrome.tabs.sendMessage(tab.id, {
-                      type: 'TOTEM_EVENT',
-                      eventName: 'accountsChanged',
-                      data: []
-                    }).catch((err) => console.warn('[Background] accountsChanged sendMessage failed:', err));
-                  }
-                } catch {}
+              if (tab.id) {
+                chrome.tabs.sendMessage(tab.id, {
+                  type: 'TOTEM_EVENT',
+                  eventName: 'accountsChanged',
+                  data: [],
+                  origin: reqOrigin
+                }).catch((err) => console.warn('[Background] accountsChanged sendMessage failed:', err));
               }
             }
           } catch (e) {

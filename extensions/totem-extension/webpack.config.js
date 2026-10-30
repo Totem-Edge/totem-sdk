@@ -128,6 +128,32 @@ const ignoreNodeOnlyPackagesPlugins = () =>
       ),
   );
 
+// Webpack 5.109 still emits a runtime probe containing new Function("return this")
+// even when output.globalObject is globalThis. Chrome Web Store rejects that
+// pattern, so replace the probe with the already-available global object.
+class StripDynamicRuntimePlugin {
+  apply(compiler) {
+    compiler.hooks.compilation.tap('StripDynamicRuntimePlugin', (compilation) => {
+      compilation.hooks.processAssets.tap(
+        {
+          name: 'StripDynamicRuntimePlugin',
+          stage: compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER,
+        },
+        (assets) => {
+          for (const [name, asset] of Object.entries(assets)) {
+            if (!name.endsWith('.js')) continue;
+            const source = asset.source().toString();
+            const stripped = source.replace(/new Function\((['"])return this\1\)\(\)/g, 'globalThis');
+            if (stripped !== source) {
+              compilation.updateAsset(name, new compiler.webpack.sources.RawSource(stripped));
+            }
+          }
+        },
+      );
+    });
+  }
+}
+
 // ============================================================================
 // SHARED CONFIGURATION
 // ============================================================================
@@ -136,7 +162,8 @@ const sharedConfig = {
     path: path.resolve(__dirname, 'dist'),
     filename: '[name].js',
     clean: false,  // Don't clean - multi-compiler builds will coordinate
-    globalObject: 'globalThis'
+    globalObject: 'globalThis',
+    publicPath: ''  // Keep runtime local; avoids Webpack's importScripts probe
   },
   watchOptions: {
     // Ignore node_modules and dist to avoid exhausting OS inotify watchers.
@@ -173,6 +200,9 @@ const sharedConfig = {
       // Resolve the bare core-wasm import to the same pkg-web module so sync
       // wrappers in @totemsdk/core share that initialized instance.
       '@totemsdk/core-wasm$': require.resolve('@totemsdk/core-wasm/web'),
+      // Browser-safe TxPoW surface: serialization and difficulty only. Local
+      // mining is disabled, so the Node worker_threads fallback is not bundled.
+      '@totemsdk/txpow$': path.resolve(__dirname, './src/shims/txpow.ts'),
     },
     fallback: {
       "buffer": require.resolve("buffer/"),
@@ -217,6 +247,7 @@ const backgroundConfig = {
   },
   plugins: [
     new BlockDevImportsPlugin(),
+    new StripDynamicRuntimePlugin(),
     ...ignoreNodeSchemePlugins(),
     ...ignoreNodeOnlyPackagesPlugins(),
     new CopyWebpackPlugin({
@@ -279,6 +310,7 @@ const uiConfig = {
   target: 'web',  // Browser DOM environment
   plugins: [
     new BlockDevImportsPlugin(),
+    new StripDynamicRuntimePlugin(),
     ...ignoreNodeSchemePlugins(),
     ...ignoreNodeOnlyPackagesPlugins(),
     new CopyWebpackPlugin({

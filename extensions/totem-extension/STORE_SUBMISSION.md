@@ -56,9 +56,9 @@ automatically as `totem-extension.zip`.
 
 ---
 
-## 3. Store listing assets (not yet created — required)
+## 3. Store listing assets (prepared)
 
-The Dashboard needs these before you can submit. None exist in the repo yet:
+The Dashboard needs these assets. They are checked into the repository:
 
 | Asset | Spec | Status |
 |---|---|---|
@@ -69,7 +69,7 @@ The Dashboard needs these before you can submit. None exist in the repo yet:
 | Short description | ≤ 132 chars | ✅ below |
 | Detailed description | long-form | ✅ below |
 | Category | **Productivity** | ✅ selected |
-| Language | English (US) | — |
+| Language | English (US) | ✅ |
 | Homepage URL | `https://totem.ing` | ✅ (in manifest `homepage_url`) |
 | Privacy policy URL | `https://totem.ing/privacy` | ✅ (page now live) |
 | Support URL | `https://totem.ing/support` | ✅ live |
@@ -87,10 +87,12 @@ The Dashboard needs these before you can submit. None exist in the repo yet:
 > never sent to a server.
 
 **Listing notes:** Browser transaction mining is disabled in the Store build;
-TxPoW is mined by the node. The extension requests broad page access only to
-inject the Totem provider for dApp connection. `tabs` is used to route provider
-responses to the originating tab. Optional host permissions are used only for
-self-hosted node pairing.
+TxPoW is mined by the Axia/Hawk node. The extension requests HTTP(S) page access
+only to inject the Totem provider for dApp connection and relays consent/signing
+messages without reading page content. The Chrome Web Store origins are explicitly
+excluded from content-script injection. Optional host permissions are used only
+for self-hosted node pairing. The Store bundle contains no dynamically evaluated
+code and no `tabs` or `activeTab` permission.
 
 ---
 
@@ -106,13 +108,15 @@ Answers must match `PRIVACY.md` and `https://totem.ing/privacy`.
 |---|---|---|---|
 | Authentication info (seed/keys) | Stored **locally only** | Wallet function | No |
 | Personal communications | No | — | — |
-| Financial info (addresses, tx) | Locally; addresses sent only when user signs | Wallet function | No |
+| Financial info (addresses, tx) | Addresses sent to Axia for portfolio/balance and transaction preparation | Wallet function | No |
 | Location | No | — | — |
 | Web history | No (content script doesn't read page content) | — | — |
 | User activity (opt-in telemetry) | **Only if user opts in** | Diagnostics | No |
 
-**Remote code:** No. All code is bundled; `miner.wasm` ships in the package and is
-used only for local TxPoW computation.
+**Remote code:** No. All executable code is bundled. The bundled WebAssembly is
+the Totem cryptographic core used for SHA3/WOTS operations; browser TxPoW mining
+was removed from the Store build. The production JS bundle is scanned for
+`new Function`, `eval`, `return require`, and `importScripts` before release.
 
 **Certifications** (must be true): no selling data, no unrelated purposes, no
 creditworthiness use. All hold.
@@ -123,15 +127,18 @@ creditworthiness use. All hold.
 
 Paste these into the Dashboard's justification fields.
 
-### `<all_urls>` (content script)
-Injects the wallet provider into every page so any dApp can detect it — there is
-no finite allowlist of dApp URLs. The content script only injects the provider and
-relays `TOTEM_*` messages to the service worker; it does not read or modify page
-content. `document_start` ensures the provider exists before dApp scripts run.
+### HTTP(S) page access (content script)
+Injects the wallet provider into HTTP(S) pages so any dApp can detect it — there
+is no finite allowlist of dApp URLs. The content script only injects the provider
+and relays allowlisted `TOTEM_*` messages to the service worker; it does not read
+or modify page content. `document_start` ensures the provider exists before dApp
+scripts run. `https://chromewebstore.google.com/*` and
+`https://chrome.google.com/webstore/*` are excluded.
 
-### `tabs`
-`chrome.tabs.query({})` finds open tabs to notify (`accountsChanged`) when a user
-disconnects a site.
+### `tabs` / `activeTab`
+Not requested. `chrome.tabs.create()` for internal approval pages and
+`chrome.tabs.sendMessage()` for disconnect events do not require these
+permissions. The disconnect fan-out no longer reads tab URLs.
 
 ### `storage`
 Local wallet state: encrypted seed, connected sites, permissions, history, settings.
@@ -140,20 +147,18 @@ Local wallet state: encrypted seed, connected sites, permissions, history, setti
 ### `alarms`
 Keeps the service worker alive while a session is active (balance keepalive).
 
-### `activeTab`
-Opens approval popups (connect / sign / permissions) in response to dApp requests.
-
-### Host permissions (`*.axia.to`, `telemetry.axia.to`)
-`api/rpc.axia.to` are required for balance and transaction submission.
+### Host permissions
+`api.axia.to` and `rpc.axia.to` are required for balance, portfolio, and
+transaction submission. `api2.axia.to` is the WAF-bypass submission host.
 `telemetry.axia.to` is used **only** for opt-in anonymous telemetry (default off),
-gated in `src/telemetry.ts`, payload allowlisted to version/event/timing/outcome —
-no addresses, keys, content, or origins. `coingecko` (price) and `ipfs.io` (token
-images) are reached via `optional_host_permissions` (`https://*/*`).
+gated in `src/telemetry.ts`, with an allowlisted payload (version/event/timing/
+outcome; no addresses, keys, content, or origins). `api.coingecko.com` supplies
+the MIN price. `ipfs.io` resolves token/NFT artwork. Self-hosted node origins
+are requested at runtime through `optional_host_permissions`.
 
 ### CSP: `'wasm-unsafe-eval'`
-Required for local TxPoW mining with the bundled `miner.wasm` (from
-`@totemsdk/txpow`). Runs in the service worker only; pure SHA3-256 computation, no
-network or filesystem access.
+Required for the bundled Totem WebAssembly cryptographic core (SHA3/WOTS). No
+browser TxPoW mining is included in the Store build; no remote code is loaded.
 
 ### CSP: `'unsafe-inline'` (style-src)
 Tailwind emits inline styles at build time; no user-controlled CSS.
@@ -181,7 +186,7 @@ It triggers `.github/workflows/build-extension.yml`, which:
 
 ```bash
 # 1. bump version, commit, tag
-git tag extension-v1.0.0 && git push origin extension-v1.0.0
+git tag extension-v1.0.12 && git push origin extension-v1.0.12
 # 2. publish a Release from that tag (this is the approval step)
 ```
 
@@ -192,13 +197,15 @@ download and enterprise policy, the Release supplies the zip, crx, and xml.
 
 ## 8. Pre-submission checklist
 
-- [ ] `EXTENSION_CRX_KEY` secret set (stable extension ID)
-- [ ] Version bumped in `manifest.json` + `package.json`
-- [ ] `npm run build` + `node verify-extension.js` pass
-- [ ] Store listing assets produced (screenshots, promo tiles, descriptions)
-- [ ] Privacy questionnaire answers match `PRIVACY.md` / `/privacy`
-- [ ] Permission + CSP justifications pasted
+- [x] `EXTENSION_CRX_KEY` secret set (stable extension ID)
+- [x] Version bumped in `manifest.json` + `package.json` (1.0.12)
+- [x] `npm run build` + `node verify-extension.js` pass
+- [x] Production bundle scan: no `new Function`, `eval`, `return require`, or `importScripts`
+- [x] Extension tests pass (88 tests + verification binding)
+- [x] Store listing assets produced (screenshots, promo tiles, descriptions)
+- [x] Privacy questionnaire answers match `PRIVACY.md` / `/privacy`
+- [ ] Permission + CSP justifications pasted in Dashboard
 - [ ] `https://totem.ing/privacy` reachable (Store requires a live policy URL)
 - [ ] Support contact reachable (`support@totem.ing`)
-- [ ] `extension-v<version>` tagged and Release published
+- [ ] `extension-v1.0.12` tagged and Release published
 - [ ] Zip uploaded to the Developer Dashboard

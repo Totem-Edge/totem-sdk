@@ -16,6 +16,7 @@ The Totem Extension collects minimal data necessary for wallet operation:
 ### Network requests
 The extension makes requests to:
 - `api.axia.to` / `rpc.axia.to` — Axia API for balance/portfolio queries, transaction preparation and submission, and account state. Required for wallet operation. Wallet addresses are included in balance/portfolio requests.
+- `api2.axia.to` — direct transaction-submission host used to bypass the Cloudflare request-size limit for signed transactions.
 - `telemetry.axia.to` — **opt-in anonymous usage telemetry only**. Not contacted unless the user enables "Anonymous Usage Data" in Settings. No personal data, wallet addresses, or keys.
 - `api.coingecko.com` — MINIMA price ticker for fiat display in the wallet UI.
 - `http://localhost:7789` / `http://127.0.0.1:7789` — optional local Axia/Hawk pairing endpoint.

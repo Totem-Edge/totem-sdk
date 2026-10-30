@@ -406,18 +406,12 @@ export function phraseToSeed(rawPhrase: string): Uint8Array {
 export function generateWordList(): string[] {
   const randomValues = new Uint32Array(24);
 
-  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-    crypto.getRandomValues(randomValues);
-  } else if (typeof process !== 'undefined' && process.versions?.node) {
-    const nodeCrypto = Function('return require')()('crypto') as { randomBytes: (size: number) => Buffer };
-    const bytes = nodeCrypto.randomBytes(96);
-    for (let i = 0; i < 24; i++) {
-      randomValues[i] = bytes.readUInt32BE(i * 4);
-    }
+  if (typeof globalThis.crypto !== 'undefined' && globalThis.crypto.getRandomValues) {
+    globalThis.crypto.getRandomValues(randomValues);
   } else {
     throw new Error(
       'generateWordList: no cryptographically secure random source available. ' +
-      'Seed generation requires crypto.getRandomValues (browser/Node 19+) or node:crypto.randomBytes (Node). ' +
+      'Seed generation requires Web Crypto globalThis.crypto.getRandomValues (browser or Node.js >= 19). ' +
       'Math.random() is not acceptable for key material.'
     );
   }
