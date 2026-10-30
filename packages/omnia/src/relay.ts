@@ -182,41 +182,36 @@ export class HostedRelaySwarmImpl implements OmniaSwarm {
     // per caller (leaked sockets showed up in the relay's client count).
     if (this._connecting) return this._connecting;
 
-    this._wsReady = new Promise<void>(async (resolve, reject) => {
-      try {
-        const WS = await this._ensureWS();
-        const ws = new (WS as unknown as new (url: string) => WebSocket)(this._relayUrl);
-        this._ws = ws;
+    this._wsReady = this._ensureWS().then((WS) => new Promise<void>((resolve, reject) => {
+      const ws = new (WS as unknown as new (url: string) => WebSocket)(this._relayUrl);
+      this._ws = ws;
 
-        ws.onopen = () => {
-          this._connected = true;
-          this._reconnectAttempts = 0;
-          for (const topic of this._subscribedTopics) {
-            this._rawSend('sub', topic);
-          }
-          this._startPing();
-          resolve();
-        };
+      ws.onopen = () => {
+        this._connected = true;
+        this._reconnectAttempts = 0;
+        for (const topic of this._subscribedTopics) {
+          this._rawSend('sub', topic);
+        }
+        this._startPing();
+        resolve();
+      };
 
-        ws.onerror = (ev: Event) => {
-          const msg = ((ev as unknown as { message?: string }).message) || 'WebSocket error';
-          reject(new Error(`Relay WS error: ${msg}`));
-        };
+      ws.onerror = (ev: Event) => {
+        const msg = ((ev as unknown as { message?: string }).message) || 'WebSocket error';
+        reject(new Error(`Relay WS error: ${msg}`));
+      };
 
-        ws.onclose = () => {
-          this._connected = false;
-          this._stopPing();
-          if (!this._closed) this._scheduleReconnect();
-        };
+      ws.onclose = () => {
+        this._connected = false;
+        this._stopPing();
+        if (!this._closed) this._scheduleReconnect();
+      };
 
-        ws.onmessage = (ev: { data: unknown }) => {
-          const raw = typeof ev.data === 'string' ? ev.data : String(ev.data);
-          this._onRelayMessage(raw);
-        };
-      } catch (err) {
-        reject(err);
-      }
-    });
+      ws.onmessage = (ev: { data: unknown }) => {
+        const raw = typeof ev.data === 'string' ? ev.data : String(ev.data);
+        this._onRelayMessage(raw);
+      };
+    }));
 
     this._connecting = this._wsReady.finally(() => {
       this._connecting = null;

@@ -14,11 +14,38 @@ export default [
       '**/*.d.ts',
       '**/coverage/**',
       '**/.pnpm-store/**',
+      '**/target/**',
+      '**/pkg/**',
+      '**/pkg-node/**',
+      '**/pkg-web/**',
+      '**/*.d.mts',
+      '**/*.d.cts',
     ],
   },
 
   {
-    files: ['**/*.{ts,tsx}'],
+    files: ['**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}'],
+    languageOptions: {
+      globals: { ...globals.node, ...globals.browser },
+    },
+    rules: {
+      'no-async-promise-executor': 'error',
+      'no-constant-binary-expression': 'error',
+      'no-dupe-args': 'error',
+      'no-dupe-keys': 'error',
+      'no-empty-pattern': 'error',
+      'no-loss-of-precision': 'error',
+      'no-unexpected-multiline': 'error',
+      'no-unreachable': 'error',
+      'no-unsafe-finally': 'error',
+      'no-unsafe-optional-chaining': 'error',
+      'use-isnan': 'error',
+      'valid-typeof': 'error',
+    },
+  },
+
+  {
+    files: ['**/*.{ts,tsx,mts,cts}'],
     languageOptions: {
       parser: tsParser,
       parserOptions: {

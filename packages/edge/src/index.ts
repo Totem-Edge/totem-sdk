@@ -38,7 +38,7 @@ export type {
   EdgeRuntimePorts,
 } from './ports.js';
 
-export type { EdgeCapability, EdgeCapabilitySet } from './capabilities.js';
+export type { EdgeCapability, EdgeCapabilitySet, EdgeTotemCapabilitiesInput } from './capabilities.js';
 export {
   EDGE_INTELLIGENCE_CAPABILITIES,
   isIntelligenceCapability,

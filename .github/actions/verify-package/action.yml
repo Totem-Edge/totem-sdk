@@ -16,6 +16,17 @@ runs:
     - name: Run package tests
       shell: bash
       run: pnpm --filter "${{ inputs.package-name }}" test
+    - name: Build MQTT WASM artifacts
+      if: inputs.package-name == '@totemsdk/edge-mqtt'
+      shell: bash
+      working-directory: packages/edge-mqtt
+      run: npm run build:wasm
+    - name: Verify MQTT process recovery and packed binding
+      if: inputs.package-name == '@totemsdk/edge-mqtt'
+      shell: bash
+      run: |
+        pnpm --filter @totemsdk/edge-mqtt test:recovery
+        pnpm --filter @totemsdk/edge-mqtt test:consumer
     - name: Verify packed consumer
       shell: bash
       run: node scripts/verify-consumer-pack.mjs "${{ inputs.package-dir }}"

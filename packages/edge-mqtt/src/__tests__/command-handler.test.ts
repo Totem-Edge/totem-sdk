@@ -253,6 +253,35 @@ describe('command-handler.test — signed envelope enforcement (AUD-030 / AUD-03
 });
 
 describe('RFC-020 H5: signed-envelope verification order', () => {
+  it('keeps verified issuers in independent replay scopes for the same command ID', async () => {
+    const { client } = makeMockClient();
+    const execute = jest.fn(async () => ({ ok: true }));
+    const handler = createMqttCommandHandler({
+      runtime: makeAllowedRuntime('issuer-scopes'), client, executor: { execute },
+      verifyCommandSignature: async () => true,
+    });
+    const first = makeSignedMessage({ action: 'run' }, 'issuer-command');
+    const second = makeSignedMessage({ action: 'run' }, 'issuer-command');
+    const body = JSON.parse(second.payload as string);
+    body.envelope.issuerIdentity = 'other-verified-issuer';
+    second.payload = JSON.stringify(body);
+    expect((await handler.handleCommand(first)).ok).toBe(true);
+    expect((await handler.handleCommand(second)).ok).toBe(true);
+    expect((await handler.handleCommand(first)).error).toMatch(/duplicate/);
+    expect(execute).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not let unsigned requestedBy variations bypass replay protection', async () => {
+    const { client } = makeMockClient();
+    const execute = jest.fn(async () => ({ ok: true }));
+    const handler = createMqttCommandHandler({
+      runtime: makeAllowedRuntime('legacy-scope'), client, executor: { execute }, requireSignedCommands: false,
+    });
+    expect((await handler.handleCommand(makeMsg('ping', { requestedBy: 'one' }))).ok).toBe(true);
+    expect((await handler.handleCommand(makeMsg('ping', { requestedBy: 'two' }))).error).toMatch(/duplicate/);
+    expect(execute).toHaveBeenCalledTimes(1);
+  });
+
   it('fails closed when a signed envelope is present but no verifier is configured', async () => {
     const { client } = makeMockClient();
     const handler = createMqttCommandHandler({ runtime: makeAllowedRuntime('h5-a'), client });

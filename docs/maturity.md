@@ -40,7 +40,7 @@ Total: **69** publishable packages + **6** excluded entries = **75** workspace e
 | `@totemsdk/core-wasm` | 1.0.5 | v1 | 0 | `packages/core-wasm` |
 | `@totemsdk/kissvm` | 1.3.1 | v1 | 0 | `packages/kissvm` |
 | `@totemsdk/edge-modbus` | 0.2.1 | rc | 1 | `packages/edge-modbus` |
-| `@totemsdk/edge-mqtt` | 0.3.0 | rc | 1 | `packages/edge-mqtt` |
+| `@totemsdk/edge-mqtt` | 0.3.1 | rc | 1 | `packages/edge-mqtt` |
 | `@totemsdk/industrial-action` | 0.3.0 | rc | 1 | `packages/industrial-action` |
 | `@totemsdk/lookup-client` | 0.4.0 | rc | 1 | `packages/lookup-client` |
 | `@totemsdk/lookup-node` | 0.4.0 | rc | 1 | `packages/lookup-node` |
@@ -50,7 +50,7 @@ Total: **69** publishable packages + **6** excluded entries = **75** workspace e
 | `@totemsdk/storage` | 0.2.2 | rc | 1 | `packages/storage` |
 | `@totemsdk/wots-lease` | 1.0.2 | rc | 1 | `packages/wots-lease` |
 | `@totemsdk/authority` | 1.0.2 | v1 | 2 | `packages/authority` |
-| `@totemsdk/edge` | 1.5.0 | v1 | 2 | `packages/edge` |
+| `@totemsdk/edge` | 1.5.1 | v1 | 2 | `packages/edge` |
 | `@totemsdk/identity` | 1.1.0 | v1 | 2 | `packages/identity` |
 | `@totemsdk/manifest` | 2.1.0 | v1 | 2 | `packages/manifest` |
 | `@totemsdk/proof` | 1.0.2 | v1 | 2 | `packages/proof` |
@@ -108,6 +108,6 @@ Total: **69** publishable packages + **6** excluded entries = **75** workspace e
 | `@totem/sdk-tests` | 1.0.0 | excluded | excluded | `packages/sdk-tests` |
 | `@totemsdk/observability` | 0.1.0 | excluded | excluded | `extensions/observability` |
 | `totem-dapp-starter` | 0.1.0 | excluded | excluded | `extensions/totem-dapp-starter` |
-| `totem-extension` | 1.0.3 | excluded | excluded | `extensions/totem-extension` |
+| `totem-extension` | 1.0.7 | excluded | excluded | `extensions/totem-extension` |
 | `totem-pear-android-starter` | 0.1.0 | excluded | excluded | `extensions/totem-pear-android-starter` |
 | `totem-pwa-wallet` | 1.0.0 | excluded | excluded | `extensions/totem-pwa-wallet` |

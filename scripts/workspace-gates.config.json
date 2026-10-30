@@ -1,6 +1,10 @@
 {
   "schemaVersion": 2,
   "comment": "Machine-readable publishability, verification, and maturity classification. Packages with status 'publishable' must pass every gate (build, typecheck, lint, unit tests). Packages with status 'excluded' are not published and are skipped by the verification gate with an explicit machine-readable reason. Maturity levels: alpha → beta → rc → v1. Each level activates additional required gates automatically via scripts/verify-workspace.mjs.",
+  "lint": {
+    "sharedRunner": "scripts/lint-workspace-package.mjs",
+    "description": "Mandatory shared correctness rules for every package; package-specific lint is additional. Existing style warnings remain advisory."
+  },
   "maturityGates": {
     "alpha": [
       "typecheck",
@@ -25,7 +29,10 @@
       "lint",
       "test",
       "pack",
-      "integration"
+      "integration",
+      "conformance",
+      "recovery",
+      "consumer"
     ]
   },
   "packages": {

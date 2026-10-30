@@ -328,7 +328,7 @@
     },
     {
       "name": "@totemsdk/edge",
-      "version": "1.5.0",
+      "version": "1.5.1",
       "description": "Unified developer-facing runtime — composes identity, manifest, wallet, payment, proof, lookup, and policy via injected ports",
       "domain": "edge-computing",
       "keywords": [
@@ -402,7 +402,7 @@
         "hvac"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.5.0"
+        "@totemsdk/edge": "^1.5.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -425,7 +425,7 @@
         "beacons"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.5.0"
+        "@totemsdk/edge": "^1.5.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -448,7 +448,7 @@
         "socketcan"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.5.0"
+        "@totemsdk/edge": "^1.5.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -471,7 +471,7 @@
         "rfc7252"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.5.0"
+        "@totemsdk/edge": "^1.5.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -493,7 +493,7 @@
         "cloud-edge"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.5.0",
+        "@totemsdk/edge": "^1.5.1",
         "@totemsdk/stream-transport": "^0.2.2"
       },
       "exports": {
@@ -517,7 +517,7 @@
         "asset-tracking"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.5.0"
+        "@totemsdk/edge": "^1.5.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -539,7 +539,7 @@
         "fabric"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.5.0"
+        "@totemsdk/edge": "^1.5.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -563,7 +563,7 @@
         "serial"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.5.0"
+        "@totemsdk/edge": "^1.5.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -576,7 +576,7 @@
     },
     {
       "name": "@totemsdk/edge-mqtt",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "description": "MQTT adapter — Rust/WASM-backed canonicalization, topic matching, MachinePay arithmetic",
       "domain": "edge-computing",
       "keywords": [
@@ -590,7 +590,7 @@
       "dependencies": {
         "@totemsdk/agent-policy": "^0.4.0",
         "@totemsdk/core": "^1.4.2",
-        "@totemsdk/edge": "^1.5.0",
+        "@totemsdk/edge": "^1.5.1",
         "@totemsdk/identity": "^1.1.0",
         "@totemsdk/manifest": "^2.1.0",
         "@totemsdk/proof": "^1.0.2",
@@ -598,7 +598,17 @@
         "@totemsdk/storage": "^0.2.2"
       },
       "exports": {
-        ".": "dist/index.{js,d.ts}"
+        ".": "dist/index.{js,d.ts}",
+        "./sqlite-replay-store": {
+          "import": {
+            "types": "./dist/sqlite-replay-store.d.ts",
+            "default": "./dist/sqlite-replay-store.js"
+          },
+          "require": {
+            "types": "./dist/cjs/sqlite-replay-store.d.ts",
+            "default": "./dist/cjs/sqlite-replay-store.js"
+          }
+        }
       },
       "exportsDescription": "MqttGateway, MqttSensorBridge, MachinePay, createMqttGateway, createMqttSensorBridge",
       "custody": {
@@ -620,7 +630,7 @@
         "hce"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.5.0"
+        "@totemsdk/edge": "^1.5.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -643,7 +653,7 @@
         "industrial"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.5.0"
+        "@totemsdk/edge": "^1.5.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -665,7 +675,7 @@
         "dds"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.5.0"
+        "@totemsdk/edge": "^1.5.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1574,7 +1584,7 @@
         "transport"
       ],
       "dependencies": {
-        "@totemsdk/edge": "^1.5.0"
+        "@totemsdk/edge": "^1.5.1"
       },
       "exports": {
         ".": "dist/index.{js,d.ts}"
@@ -1602,7 +1612,7 @@
         "@totemsdk/agent-policy": "^0.4.0",
         "@totemsdk/authority": "^1.0.2",
         "@totemsdk/core": "^1.4.2",
-        "@totemsdk/edge": "^1.5.0",
+        "@totemsdk/edge": "^1.5.1",
         "@totemsdk/proof": "^1.0.2",
         "@totemsdk/replication": "^0.2.0",
         "@totemsdk/storage": "^0.2.2"

@@ -6,7 +6,6 @@
  * to an EdgeCapabilitySet without any runtime import of @totemsdk/connect.
  */
 
-import type { TotemCapabilities } from '@totemsdk/connect';
 import { EdgeCapabilityError } from './errors.js';
 
 export type EdgeCapability =
@@ -93,6 +92,23 @@ export type EdgeCapability =
 export type EdgeCapabilitySet = Set<EdgeCapability>;
 
 /**
+ * Structural projection consumed by the Connect capability mapper. This is
+ * only the input port for fields mapped below, not Connect's full capability
+ * model. Keeping it local means the optional Connect peer is also optional for
+ * strict declaration consumers. Connect's TotemCapabilities satisfies this port.
+ */
+export interface EdgeTotemCapabilitiesInput {
+  wallet: Readonly<Record<'selfCustody' | 'wotsTreeKey' | 'rootIdentity' | 'seedExport', boolean>>;
+  account: Readonly<Record<'multiAddress' | 'accountSwitcher', boolean>>;
+  chain: Readonly<Record<'hostedProvider' | 'pureMinimaRpc' | 'lookupNode' | 'localProofVerify' | 'pearRuntime' | 'hyperswarm', boolean>>;
+  txpow: Readonly<Record<'localMining' | 'progressEvents', boolean>>;
+  omnia: Readonly<Record<'channels' | 'routing' | 'multiHop' | 'crossTokenSwap' | 'factory' | 'virtualChannels' | 'splicing' | 'hyperswarm', boolean>>;
+  statechain: Readonly<Record<'supported' | 'blindSE', boolean>>;
+  scripting: Readonly<Record<'kissvm', boolean>>;
+  qvac: Readonly<Record<'paymentIntents' | 'explanations', boolean>>;
+}
+
+/**
  * All intelligence domain capability strings (intelligence:<domain>).
  * Used for discovery, gating, and documentation.
  */
@@ -168,11 +184,11 @@ export function assertCapability(set: EdgeCapabilitySet, cap: EdgeCapability): v
  * Maps boolean fields from @totemsdk/connect's TotemCapabilities to the
  * appropriate EdgeCapability strings.
  *
- * @totemsdk/connect is imported as a type-only import — no runtime import
- * is emitted, preserving independent deployability of @totemsdk/edge.
+ * Accepts the mapped structural fields so neither runtime nor declaration
+ * consumers must install the optional @totemsdk/connect peer.
  */
-export function edgeCapabilitiesFromTotemCapabilities(
-  caps: TotemCapabilities,
+export function edgeCapabilitiesFromTotemCapabilities<T extends EdgeTotemCapabilitiesInput>(
+  caps: T,
 ): EdgeCapabilitySet {
   const result: EdgeCapability[] = [];
 

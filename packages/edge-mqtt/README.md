@@ -2,7 +2,7 @@
 
 Transport-agnostic MQTT adapter for Totem Edge — sensors, gateways, robots, cold-chain trackers, and MachinePay devices.
 
-This package ships **zero runtime network dependencies**. It does not import `mqtt.js`, `net`, `tls`, `ws`, `http`, or `fs`. All network behaviour is injected via a `MqttClientPort` interface, making it fully compatible with Bare, Pear, Node.js, Bun, and any environment that can provide a publish/subscribe abstraction.
+The core entry ships **zero runtime network dependencies**. It does not import `mqtt.js`, `net`, `tls`, `ws`, `http`, or `fs`. All network behaviour is injected via a `MqttClientPort`. The optional `sqlite-replay-store` subpath is a Node/native binding; it is not imported by the core entry. Runtime support still depends on the caller's transport and the declared WASM/binding profile.
 
 ## Install
 
@@ -31,10 +31,13 @@ than a plain storage adapter. Implement it as one durable transaction/CAS: retur
 an existing claim whose expiry is **greater than or equal to** `now`. Retain
 claims through expiry, including the boundary. A get-then-set implementation is
 unsafe and is not supported. All handlers for a device must use the same atomic
-store, validity settings and trusted clock. Keys are device-scoped. Existing
+store, validity settings and trusted clock. Keys bind device, verified issuer
+and command ID; unsigned `requestedBy` does not affect the replay scope. Existing
 get/set replay stores must be migrated before upgrading; preserve unexpired
 claims while switching formats, or quiesce command intake for the old acceptance
 window before starting the new handler.
+Device-only replay-key formats also require migration or quiescence before this
+issuer-scoped format is enabled; do not mix key formats across running handlers.
 
 Without a store, claims are atomic only within one handler instance and are
 lost on restart. Store errors block execution. Claims are consumed before policy
@@ -48,6 +51,68 @@ In `proof-package` mode, supplying a signing `seed` also requires a durable
 fallback. An omitted seed produces an unsigned proof. The injected provider is
 responsible for unique reservations across publishers/restarts and for burning
 uncertain reservations.
+
+### File-backed SQLite replay profile (Node 22)
+
+```typescript
+import { resolve } from 'node:path';
+import { createMqttCommandHandler } from '@totemsdk/edge-mqtt';
+import { createSqliteMqttReplayStore } from '@totemsdk/edge-mqtt/sqlite-replay-store';
+
+const replayStore = await createSqliteMqttReplayStore({
+  path: resolve(stateDirectory, 'mqtt-replay.sqlite'),
+  busyTimeoutMs: 5000,
+});
+const handler = createMqttCommandHandler({
+  runtime,
+  client,
+  replayStore,
+  verifyCommandSignature, // Application-owned issuer/key verification.
+  executor,
+});
+// Deliver subscribed command messages to handler.handleCommand(message).
+// At shutdown, stop intake and await in-flight handlers before closing the store.
+```
+
+The exercised profile is Node 22 with the shared storage native SQLite binding.
+The factory reuses `@totemsdk/storage/sqlite` with WAL, `synchronous=FULL` and a
+single transactional conditional UPSERT. Only a committed insert/renewal returns
+`true`; lock/database errors propagate and block command execution. Paths must
+be absolute file-backed paths; `:memory:`, relative paths and URI forms are
+rejected. The composition root owns `await replayStore.close()`.
+
+The default namespace is `mqtt-replay-v1`; custom namespaces separate application
+records, not authorization. Every handler/process for one device must share the
+database, namespace and validity settings. Rows are not automatically deleted
+when command queues or execution logs expire. An ID can be renewed only after
+its prior acceptance window has ended; command issuers should still use unique
+IDs. Database retention, backup and rollback protection belong to the host.
+
+Process recovery tests exercise independent ESM/CJS workers, simultaneous
+delivery and `SIGKILL` after admission but before/after a simulated durable
+effect. Redelivery is blocked in both crash windows. A claim proves admission,
+**not execution or physical outcome**: the host must reconcile an interrupted
+operation; automatic retries under a fresh ID are not safe. These tests do not
+establish machine-power-loss recovery, broker sessions/QoS/ACL/TLS, production
+issuer verification, or durable WOTS lease allocation.
+
+Build and qualification commands:
+
+```bash
+pnpm --filter @totemsdk/edge-mqtt build:wasm
+pnpm --filter @totemsdk/edge-mqtt build
+pnpm --filter @totemsdk/edge-mqtt test --runInBand
+pnpm --filter @totemsdk/edge-mqtt test:recovery
+pnpm --filter @totemsdk/edge-mqtt test:consumer
+```
+
+The consumer test installs real local MQTT and Edge tarballs, with other
+dependencies from npm, exercises public APIs through ESM/CJS and typechecks the
+SQLite subpath in strict NodeNext `.mts`/`.cts` consumers without the optional
+Connect peer. It is not a fully locally packed dependency closure. Node ESM
+consumers explicitly initialize Core WASM as described in the Core docs.
+Packing validates both MQTT WASM outputs and removes only wasm-pack's generated
+output `.gitignore` files, which otherwise omit required artifacts from tarballs.
 
 `@totemsdk/edge-mqtt` wraps an `EdgeRuntime` (from `@totemsdk/edge`) with an MQTT-aware dispatch layer. You supply the transport client; the package handles rule routing, sensor bridging, proof publication, command gating, MachinePay credit enforcement, offline queuing, and service manifests.
 

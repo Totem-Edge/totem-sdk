@@ -14,6 +14,9 @@
  *   node scripts/verify-workspace.mjs --test
  *   node scripts/verify-workspace.mjs --integration
  *   node scripts/verify-workspace.mjs --pack
+ *   node scripts/verify-workspace.mjs --conformance
+ *   node scripts/verify-workspace.mjs --recovery
+ *   node scripts/verify-workspace.mjs --consumer
  *   node scripts/verify-workspace.mjs --maturity <level>  # Run required gates for packages at this exact level
  *
  * Exit code is non-zero if any publishable package fails its gate. Excluded
@@ -70,7 +73,7 @@ const WORKSPACE_DIRS = new Set([...DISCOVERED_DIRS, ...CONFIGURED_DIRS]);
 
 // Gate flags ---------------------------------------------------------------
 const args = process.argv.slice(2);
-const gateFlags = ['--typecheck', '--lint', '--test', '--integration', '--pack'];
+const gateFlags = ['--typecheck', '--lint', '--test', '--integration', '--pack', '--conformance', '--recovery', '--consumer'];
 for (let i = 0; i < args.length; i++) {
   if (args[i] === '--maturity') {
     if (i !== args.indexOf('--maturity')) {
@@ -90,6 +93,9 @@ const wantLint = wantAll || args.includes('--lint');
 const wantTest = wantAll || args.includes('--test');
 const wantIntegration = wantAll || args.includes('--integration');
 const wantPack = wantAll || args.includes('--pack');
+const wantConformance = wantAll || args.includes('--conformance');
+const wantRecovery = wantAll || args.includes('--recovery');
+const wantConsumer = wantAll || args.includes('--consumer');
 const maturityIndex = args.indexOf('--maturity');
 const maturityLevel = maturityIndex >= 0 ? args[maturityIndex + 1] : null;
 
@@ -101,7 +107,7 @@ const MATURITY_GATES = config.maturityGates ?? {
   alpha: ['typecheck', 'lint', 'test'],
   beta: ['typecheck', 'lint', 'test', 'pack'],
   rc: ['typecheck', 'lint', 'test', 'pack', 'integration'],
-  v1: ['typecheck', 'lint', 'test', 'pack', 'integration'],
+  v1: ['typecheck', 'lint', 'test', 'pack', 'integration', 'conformance', 'recovery', 'consumer'],
 };
 
 if (maturityIndex >= 0 && !Object.hasOwn(MATURITY_GATES, maturityLevel)) {
@@ -115,7 +121,14 @@ const enabledGates = new Set([
   ...(wantTest ? ['test'] : []),
   ...(wantIntegration ? ['integration'] : []),
   ...(wantPack ? ['pack'] : []),
+  ...(wantConformance ? ['conformance'] : []),
+  ...(wantRecovery ? ['recovery'] : []),
+  ...(wantConsumer ? ['consumer'] : []),
 ]);
+const sharedLintConfigured = Object.hasOwn(config.lint ?? {}, 'sharedRunner');
+const sharedLintRunner = typeof config.lint?.sharedRunner === 'string' && config.lint.sharedRunner.trim()
+  ? resolve(ROOT, config.lint.sharedRunner) : null;
+const sharedLintAvailable = sharedLintRunner !== null && existsSync(sharedLintRunner);
 
 function isGateRequiredForMaturity(gateName, maturity) {
   const requiredGates = MATURITY_GATES[maturity] ?? MATURITY_GATES.alpha;
@@ -139,8 +152,10 @@ const results = [];
 let failures = 0;
 let prerequisiteBuildsDone = false;
 
-function run(cwd, cmd, label, evidence = true) {
-  const r = spawnSync(cmd, { cwd, shell: true, encoding: 'utf8' });
+function run(cwd, cmd, label, evidence = true, showOutput = false) {
+  const r = Array.isArray(cmd)
+    ? spawnSync(cmd[0], cmd.slice(1), { cwd, encoding: 'utf8' })
+    : spawnSync(cmd, { cwd, shell: true, encoding: 'utf8' });
   const ok = r.status === 0;
   if (!ok) failures += 1;
   results.push({ label, ok, evidence, output: r.stdout + r.stderr });
@@ -149,6 +164,7 @@ function run(cwd, cmd, label, evidence = true) {
     process.stdout.write((r.stdout + r.stderr).slice(-6000) + '\n');
   } else {
     process.stdout.write(`ok: ${label}\n`);
+    if (showOutput) process.stdout.write(r.stdout + r.stderr);
   }
   return ok;
 }
@@ -315,6 +331,9 @@ const GATE_SCRIPTS = {
   lint: 'lint',
   test: 'test',
   integration: 'test:integration',
+  conformance: 'test:conformance',
+  recovery: 'test:recovery',
+  consumer: 'test:consumer',
 };
 for (const [dir, meta] of SELECTED_PUBLISHABLE) {
   const manifest = readPackageManifest(dir);
@@ -333,6 +352,15 @@ for (const [dir, meta] of SELECTED_PUBLISHABLE) {
       continue;
     }
     if (!enabledGates.has(gate)) continue;
+    if (gate === 'lint' && sharedLintConfigured) {
+      if (!sharedLintAvailable) {
+        failures += 1;
+        results.push({ label: `${dir}: configured shared lint runner unavailable`, ok: false });
+        process.stdout.write(`FAIL: ${dir}: configured shared lint runner unavailable\n`);
+      }
+      // A local script or N/A must never replace configured shared lint.
+      continue;
+    }
     const script = GATE_SCRIPTS[gate];
     if (!script) continue;
     if (manifest.scripts?.[script]) continue;
@@ -349,8 +377,9 @@ for (const [dir, meta] of SELECTED_PUBLISHABLE) {
   }
 }
 
-// 1. Script-hygiene gate: no suppression markers in publishable packages ----
-if (wantLint) {
+// 1. Script hygiene is required for test/qualification invocations as well as lint.
+// A direct recovery/conformance invocation must not bypass suppression checks.
+if (wantLint || wantTest || wantIntegration || wantConformance || wantRecovery || wantConsumer) {
   process.stdout.write('── script hygiene (publishable packages) ──────────────\n');
   for (const [dir, meta] of SELECTED_PUBLISHABLE) {
     if (!shouldRunGate('lint', meta.maturity)) continue;
@@ -395,13 +424,16 @@ if (wantTypecheck) {
 
 // 3. Lint gate -------------------------------------------------------------
 if (wantLint) {
-  process.stdout.write('── lint (publishable packages with a lint script) ──────\n');
+  process.stdout.write('── lint (mandatory shared rules + package-specific scripts) ──────\n');
   for (const [dir, meta] of SELECTED_PUBLISHABLE) {
     if (!shouldRunGate('lint', meta.maturity)) continue;
     const pkgDir = join(ROOT, dir);
     const pj = join(pkgDir, 'package.json');
     if (!existsSync(pj)) continue;
     const manifest = JSON.parse(readFileSync(pj, 'utf8'));
+    if (sharedLintConfigured && sharedLintAvailable) {
+      run(ROOT, [process.execPath, sharedLintRunner, pkgDir], `${dir}: shared lint`, true, true);
+    }
     if (manifest.scripts?.lint) {
       run(pkgDir, 'npm run lint', `${dir}: lint`);
     }
@@ -426,23 +458,6 @@ if (wantTest) {
   process.stdout.write('\n');
 }
 
-// 5. Integration gate ------------------------------------------------------
-if (wantIntegration) {
-  ensurePrerequisiteBuilds('integration');
-  process.stdout.write('── integration (publishable packages with a test:integration script) ──\n');
-  for (const [dir, meta] of SELECTED_PUBLISHABLE) {
-    if (!shouldRunGate('integration', meta.maturity)) continue;
-    const pkgDir = join(ROOT, dir);
-    const pj = join(pkgDir, 'package.json');
-    if (!existsSync(pj)) continue;
-    const manifest = JSON.parse(readFileSync(pj, 'utf8'));
-    if (manifest.scripts?.['test:integration']) {
-      run(pkgDir, 'npm run test:integration', `${dir}: test:integration`);
-    }
-  }
-  process.stdout.write('\n');
-}
-
 // 5. Pack gate -------------------------------------------------------------
 if (wantPack) {
   ensurePrerequisiteBuilds('pack');
@@ -453,6 +468,24 @@ if (wantPack) {
     run(pkgDir, 'npm pack --dry-run --json', `${dir}: pack --dry-run`);
   }
   process.stdout.write('\n');
+}
+
+// 6. Integration and v1-only qualification. Shared consumer installation complements the
+// package-owned API/type exercise; conformance and recovery require dedicated suites.
+for (const gate of ['integration', 'conformance', 'recovery', 'consumer']) {
+  if (!enabledGates.has(gate)) continue;
+  const script = GATE_SCRIPTS[gate];
+  const runnable = SELECTED_PUBLISHABLE.filter(([dir, meta]) =>
+    shouldRunGate(gate, meta.maturity) && readPackageManifest(dir)?.scripts?.[script]);
+  if (runnable.length === 0) continue;
+  ensurePrerequisiteBuilds(gate);
+  process.stdout.write(`── ${gate} (package-owned qualification evidence) ──────\n`);
+  for (const [dir] of runnable) {
+    if (gate === 'consumer') {
+      run(ROOT, [process.execPath, join(__dirname, 'verify-consumer-pack.mjs'), join(ROOT, dir)], `${dir}: packed consumer`);
+    }
+    run(join(ROOT, dir), `npm run ${script}`, `${dir}: ${script}`);
+  }
 }
 
 // Report -------------------------------------------------------------------

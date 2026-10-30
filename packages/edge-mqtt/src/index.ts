@@ -43,6 +43,8 @@ export type {
   MqttCommandExecutor,
   MqttCommandHandlerConfig,
   MqttCommandHandler,
+  ReplayLedgerStore,
+  SignedCommandEnvelope,
   MqttUsageUnit,
   MqttUsageEvent,
   MqttUsageMeterConfig,

@@ -271,7 +271,7 @@ export interface MqttCommandHandlerConfig {
   /** Positive safe-integer maximum age/lifetime in ms (default 60_000). No future timestamps are accepted. */
   maxCommandAgeMs?: number;
   /**
-   * Atomic durable store for device-scoped command claims. When provided,
+   * Atomic durable store for device/verified-issuer/command claims. When provided,
    * claims survive handler restarts (RFC-007 G4). Without it replay protection
    * is limited to a single handler's lifetime; it is not a durable profile.
    */

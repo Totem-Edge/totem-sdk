@@ -4,6 +4,9 @@ import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSy
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
 
 const packageArg = process.argv[2];
 if (!packageArg) {
@@ -86,6 +89,32 @@ try {
     TEST_IMPORT: supportsImport ? '1' : '0',
     TEST_REQUIRE: supportsRequire ? '1' : '0',
   });
+
+  function declaresTypes(target) {
+    if (!target || typeof target !== 'object') return false;
+    return Object.hasOwn(target, 'types') || Object.values(target).some(declaresTypes);
+  }
+  const hasTypes = Boolean(manifest.types || manifest.typings) || declaresTypes(rootExport);
+  if (hasTypes) {
+    const files = [];
+    if (supportsImport) {
+      files.push('consumer.mts');
+      writeFileSync(join(workDir, 'consumer.mts'), `import * as api from ${JSON.stringify(manifest.name)};\nvoid api;\n`);
+    }
+    if (supportsRequire) {
+      files.push('consumer.cts');
+      writeFileSync(join(workDir, 'consumer.cts'), `import api = require(${JSON.stringify(manifest.name)});\nvoid api;\n`);
+    }
+    writeFileSync(join(workDir, 'tsconfig.json'), JSON.stringify({
+      compilerOptions: {
+        module: 'NodeNext', moduleResolution: 'NodeNext', target: 'ES2022',
+        strict: true, noEmit: true, skipLibCheck: false,
+      },
+      files,
+    }));
+    run(process.execPath, [require.resolve('typescript/bin/tsc'), '--project', 'tsconfig.json'], workDir);
+    console.log(`Consumer type imports passed: ${files.join(', ')} (NodeNext, strict, declaration checking enabled)`);
+  }
 
   console.log(`Consumer pack verification passed: ${manifest.name}@${manifest.version}`);
 } finally {

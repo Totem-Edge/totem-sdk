@@ -280,7 +280,7 @@ TS↔native protocol contract. Compilation alone is not evidence.
 The publication train may finish independently. It must not be used to declare
 any edge profile production-ready.
 
-## 14. Implementation progress (2026-10-29)
+## 14. Implementation progress (2026-10-30)
 
 Work is isolated on `rfc-074/edge-gates`. The local publication controller runs
 with `--exclude-edge`, deferring `edge` and every `edge-*` package while allowing
@@ -320,14 +320,86 @@ contain these fixes; follow-up versions are required after qualification.
 
 ### Remaining exit criteria
 
-Phase 0 and Phase 1 are **not closed**. The real v1 lint invocation now fails
-because all 18 selected packages lack lint scripts. Shared lint, distinct v1
-requirements, dependency-closure/type/subpath consumer coverage and protected
-merge checks still need implementation/evidence. Consumer regressions use local
-file dependencies; they do not establish registry-wide closure compatibility.
+Phase 0 and Phase 1 are **not closed**. Dependency-closure/subpath consumer
+coverage and protected merge checks still need implementation/evidence.
+Dedicated package-owned v1 qualification scripts remain absent. Consumer
+regressions use local file dependencies; they do not establish registry-wide
+closure compatibility.
 
-MQTT tests simulate an atomic shared store and lease provider. A real durable
-store's multi-process/crash recovery, broker binding and clock/replay recovery
-profile remain unqualified. Modbus evidence covers loopback TCP, not serial
+MQTT lease tests still use a fixture provider. A real Node SQLite replay binding
+now has multi-process and process-crash evidence, as described below. Broker
+binding, operational clock/backup rollback recovery and production signing
+profiles remain unqualified. Modbus evidence covers loopback TCP, not serial
 hardware/RTU recovery or native binary distribution. Full prepared-command
 binding and unknown physical-effect reconciliation remain Phase 2 work.
+
+### Second increment: shared lint and distinct v1 qualification
+
+- The verified transport/gate fixes were committed as `6c57b224`.
+- The existing root `eslint.config.mjs` is now mandatory for all 69 publishable
+  packages, including authored package tests/scripts. Local lint scripts are
+  additional. Zero selected source, ignored authored sources or inline attempts
+  to disable mandatory rules cannot yield a shared-lint PASS. Correctness errors
+  block; existing style/unused-variable warnings remain explicitly advisory.
+- Shared lint exposed an async Promise executor in Omnia's hosted relay. Its
+  initialization now chains WebSocket resolution into a synchronous executor;
+  targeted tests cover constructor failure, shared concurrent connection and
+  socket-error rejection.
+- v1 now additionally requires `test:conformance`, `test:recovery` and
+  `test:consumer`. Consumer qualification also invokes shared packed install and
+  import checks. RC retains its separate integration requirement. CI has a
+  dedicated v1 qualification job; no blanket N/A or placeholder scripts were
+  introduced.
+- Shared packed consumers now compile strict NodeNext ESM (`.mts`) and CJS
+  (`.cts`) type imports, with declaration checking enabled. A real packed
+  `@totemsdk/replication@0.2.0` consumer installed registry dependencies and passed
+  runtime and both type-mode probes.
+- Gate/lint/consumer/release-smoke regressions now include the mandatory shared
+  lint and v1 dispatch/absence cases. See [Verification gates](../VERIFICATION_GATES.md)
+  for the concrete command and evidence contracts.
+
+The shared lint run passes all 69 packages. The new v1-only invocation fails
+closed on **54 missing scripts** (three requirements across 18 packages), and
+v1 integration requirements still need package-level adoption. This is an
+explicit qualification backlog, not a production promotion or a green v1
+baseline. The non-edge publication train continues independently.
+
+### Third increment: Node SQLite MQTT replay and packed binding
+
+- Added the isolated `@totemsdk/edge-mqtt/sqlite-replay-store` export. It composes
+  the existing storage SQLite adapter with a dedicated namespaced claim table
+  and one conditional UPSERT. WAL/FULL commit precedes admission acknowledgement.
+  In-memory/relative/URI database paths are rejected. It does not auto-delete
+  replay rows or reinterpret a claim as a completed physical effect.
+- Claim keys bind device, verified issuer and command ID. Unsigned `requestedBy`
+  cannot choose another replay scope. Existing device-only key formats must be
+  migrated or quiesced before enabling the new format.
+- Nineteen binding unit cases exercise persisted reopen, inclusive expiry,
+  independent connections, namespace/key separation, validation and closed-store
+  failure. Real child processes exercise six-way claims, concurrent command
+  delivery and `SIGKILL` before/after a simulated durable effect. Exactly one
+  delivery executes; restarts reject redelivery in both uncertain-effect windows.
+- Recovery workers use real built MQTT/Core WASM, not the Jest MQTT shim.
+  Authentication and the device effect are controlled fixture ports; no broker
+  session or real device is claimed. Scope is Node process crash recovery, not
+  power loss or host backup rollback.
+- Real ESM/CJS execution exposed a misplaced CommonJS WASM import. Build
+  finalization now points it to the same packaged artifact. The packed consumer
+  also caught wasm-pack's generated ignore files omitting declared WASM assets;
+  build/prepack validate assets and remove those output-only ignores.
+- The clean consumer installs local MQTT/Edge tarballs plus registry dependencies,
+  calls public handler/replay APIs in both module modes, and compiles strict
+  `.mts`/`.cts` consumers of the new subpath. It does not use workspace symlinks.
+  This additionally exposed Edge declarations requiring an optional Connect peer;
+  the capability mapper now accepts a structural input port, preserving Connect
+  compatibility while removing that declaration dependency.
+- CI and package-release verification now build real MQTT WASM and execute the
+  recovery and packed-consumer suites. Existing edge tags remain deferred and
+  do not contain these fixes.
+
+MQTT now has runnable `test:recovery` and `test:consumer` evidence for this limited
+profile; it remains RC. Verification comprises 184 package unit tests, five
+process-recovery checks and one packed ESM/CJS/type consumer. Full broker
+conformance, production issuer/WOTS storage,
+execution-status journaling/reconciliation and the remaining Phase 2 lifecycle
+requirements are still open.

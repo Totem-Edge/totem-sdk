@@ -3811,6 +3811,11 @@
           "kind": "type",
           "signature": "export type EdgeCapabilitySet = Set<EdgeCapability>"
         },
+        "EdgeTotemCapabilitiesInput": {
+          "kind": "interface",
+          "signature": "export interface EdgeTotemCapabilitiesInput",
+          "doc": "Structural projection consumed by the Connect capability mapper. This is\nonly the input port for fields mapped below, not Connect's full capability\nmodel. Keeping it local means the optional Connect peer is also optional for\nstrict declaration consumers. Connect's TotemCapabilities satisfies this port."
+        },
         "EDGE_INTELLIGENCE_CAPABILITIES": {
           "kind": "const",
           "signature": "EDGE_INTELLIGENCE_CAPABILITIES: readonly string[] = [ 'intelligence:llm', 'intelligence:embed', 'intelligence:rag', 'intelligence:asr', 'intelligence:translate', 'intelligence:tts', 'intelligence:diff",
@@ -3840,7 +3845,7 @@
         },
         "edgeCapabilitiesFromTotemCapabilities": {
           "kind": "function",
-          "signature": "edgeCapabilitiesFromTotemCapabilities(caps: TotemCapabilities): EdgeCapabilitySet",
+          "signature": "edgeCapabilitiesFromTotemCapabilities<T extends EdgeTotemCapabilitiesInput>(caps: T): EdgeCapabilitySet",
           "doc": "Maps boolean fields from"
         },
         "createEdgeRuntime": {
@@ -5390,6 +5395,15 @@
         "MqttCommandHandler": {
           "kind": "interface",
           "signature": "export interface MqttCommandHandler"
+        },
+        "ReplayLedgerStore": {
+          "kind": "interface",
+          "signature": "export interface ReplayLedgerStore",
+          "doc": "Atomic durable replay claims. Plain StorageAdapter get/set is insufficient.\nAll handlers for a device must share the same store and validity settings."
+        },
+        "SignedCommandEnvelope": {
+          "kind": "interface",
+          "signature": "export interface SignedCommandEnvelope"
         },
         "MqttUsageUnit": {
           "kind": "type",

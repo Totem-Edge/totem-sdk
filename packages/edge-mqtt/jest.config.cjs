@@ -45,6 +45,7 @@ module.exports = {
     '^@totemsdk/agent-policy$': '<rootDir>/../agent-policy/src/index.ts',
     '^@totemsdk/storage$': '<rootDir>/../storage/src/index.ts',
     '^@totemsdk/storage/journal$': '<rootDir>/../storage/src/journal.ts',
+    '^@totemsdk/storage/sqlite$': '<rootDir>/../storage/src/adapters/sqlite-store.ts',
     '^@totemsdk/storage/(.*)$': '<rootDir>/../storage/src/$1',
     '\\.\\./rust/pkg-node/edge_mqtt_wasm\\.js$': '<rootDir>/src/wasm-jest-mock.ts',
     '^(\\.{1,2}/.*)\\.js$': '$1',

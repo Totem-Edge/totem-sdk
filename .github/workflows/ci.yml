@@ -127,6 +127,13 @@ jobs:
         run: npm run build
       - name: Build workspace (dependency order)
         run: node scripts/verify-workspace.mjs --typecheck
+      - name: Build real MQTT WASM artifacts (RFC-074)
+        working-directory: packages/edge-mqtt
+        run: npm run build:wasm
+      - name: MQTT multiprocess SQLite recovery (RFC-074)
+        run: pnpm --filter @totemsdk/edge-mqtt test:recovery
+      - name: Packed MQTT ESM/CJS and SQLite subpath consumer (RFC-074)
+        run: pnpm --filter @totemsdk/edge-mqtt test:consumer
       - name: Setup Go for Modbus cross-language contract
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
@@ -219,7 +226,7 @@ jobs:
       - name: Setup filtered workspace
         uses: ./.github/actions/setup-pnpm
       - name: Fail-closed verifier and packed consumer regressions (RFC-074)
-        run: node --test scripts/__tests__/verify-workspace.test.mjs scripts/__tests__/verify-consumer-pack.test.mjs scripts/__tests__/smoke-release-install.test.mjs
+        run: node --test scripts/__tests__/verify-workspace.test.mjs scripts/__tests__/verify-consumer-pack.test.mjs scripts/__tests__/smoke-release-install.test.mjs scripts/__tests__/shared-lint.test.mjs
       - name: Run lint gate
         run: node scripts/verify-workspace.mjs --lint
       - name: Validate npm metadata
@@ -245,6 +252,19 @@ jobs:
         run: node scripts/audit-wallet-connect-parity.mjs --check
       - name: Axia public API contract tests (RFC-0002 P2, RFC-015)
         run: npx jest --config packages/connect/jest.config.cjs axia-contract
+
+  v1-qualification:
+    name: v1 qualification (integration, conformance, recovery, consumer)
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Setup filtered workspace
+        uses: ./.github/actions/setup-pnpm
+      - name: Setup Rust and WASM toolchain
+        uses: ./.github/actions/setup-rust-wasm
+      - name: Verify mandatory v1 qualification evidence (RFC-074)
+        run: node scripts/verify-workspace.mjs --maturity v1 --integration --conformance --recovery --consumer
 
   storage-durability:
     name: Storage durable-CI (sqlite + fs + artifact conformance)
@@ -300,6 +320,9 @@ jobs:
         run: npm run build
       - name: Build Omnia WASM artifacts (declared in files)
         working-directory: packages/omnia
+        run: npm run build:wasm
+      - name: Build MQTT WASM artifacts (declared in files)
+        working-directory: packages/edge-mqtt
         run: npm run build:wasm
       - name: Strip wasm-pack generated .gitignore files
         run: node ../../scripts/clean-wasm-output-ignores.mjs

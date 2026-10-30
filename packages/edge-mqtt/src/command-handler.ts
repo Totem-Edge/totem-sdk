@@ -28,7 +28,7 @@ import type {
 } from './types.js';
 
 const REPLAY_VALIDITY_MS = 60_000;
-const REPLAY_LEDGER_PREFIX = 'totem_mqtt_replay:';
+const REPLAY_LEDGER_PREFIX = 'totem_mqtt_replay:v2:';
 
 function parseBody(raw: string): Record<string, unknown> {
   try {
@@ -79,26 +79,33 @@ function parseSignedEnvelope(body: Record<string, unknown>): SignedCommandEnvelo
 
 class ReplayLedger {
   private readonly seen = new Map<string, number>();
+  private lastMemoryPrune = 0;
 
   constructor(
     private readonly deviceId: string,
+    private readonly maxAgeMs: number,
     private readonly store?: ReplayLedgerStore,
   ) {}
 
-  private key(id: string): string {
-    return `${REPLAY_LEDGER_PREFIX}${JSON.stringify([this.deviceId, id])}`;
+  private key(issuerIdentity: string | null, id: string): string {
+    return `${REPLAY_LEDGER_PREFIX}${JSON.stringify([this.deviceId, issuerIdentity, id])}`;
   }
 
   /** Claims before any policy/executor await. No claims are released on errors. */
-  async claim(commandId: string, expiresAt: number, now: number): Promise<boolean> {
-    if (this.store) return this.store.claim(this.key(commandId), expiresAt, now);
-    for (const [id, expiry] of this.seen) {
-      if (expiry < now) this.seen.delete(id);
+  async claim(issuerIdentity: string | null, commandId: string, expiresAt: number, now: number): Promise<boolean> {
+    const key = this.key(issuerIdentity, commandId);
+    if (this.store) return this.store.claim(key, expiresAt, now);
+    // Amortize bounded retention pruning; expired entries never block a claim.
+    if (now - this.lastMemoryPrune > this.maxAgeMs) {
+      for (const [id, expiry] of this.seen) {
+        if (expiry < now) this.seen.delete(id);
+      }
+      this.lastMemoryPrune = now;
     }
-    const previous = this.seen.get(commandId);
+    const previous = this.seen.get(key);
     if (previous !== undefined && previous >= now) return false;
     // No await between lookup and insertion: concurrent deliveries cannot both win.
-    this.seen.set(commandId, expiresAt);
+    this.seen.set(key, expiresAt);
     return true;
   }
 }
@@ -111,7 +118,7 @@ export function createMqttCommandHandler(config: MqttCommandHandlerConfig): Mqtt
   if (config.replayStore && typeof config.replayStore.claim !== 'function') {
     throw new Error('replayStore must provide an atomic durable claim operation');
   }
-  const ledger = new ReplayLedger(config.runtime.deviceId, config.replayStore);
+  const ledger = new ReplayLedger(config.runtime.deviceId, maxAgeMs, config.replayStore);
 
   return {
     async handleCommand(message: MqttMessage): Promise<EdgeOperationResult> {
@@ -220,7 +227,9 @@ export function createMqttCommandHandler(config: MqttCommandHandlerConfig): Mqtt
       }
       let claimed: boolean;
       try {
-        claimed = await ledger.claim(command.commandId, command.createdAt + maxAgeMs, claimTime);
+        // Unsigned requestedBy is advisory and must not select a fresh replay
+        // scope. Signed issuers have independent, verifier-authenticated scopes.
+        claimed = await ledger.claim(envelope?.issuerIdentity ?? null, command.commandId, command.createdAt + maxAgeMs, claimTime);
       } catch {
         const reason = 'Rejected: replay claim unavailable — execution blocked';
         await emitRejected(command.commandId, reason);

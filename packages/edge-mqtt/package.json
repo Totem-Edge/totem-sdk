@@ -1,9 +1,16 @@
 {
   "name": "@totemsdk/edge-mqtt",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "MQTT adapter for Totem Edge — Rust/WASM-backed canonicalization, topic matching, and MachinePay arithmetic",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "sqlite-replay-store": [
+        "./dist/cjs/sqlite-replay-store.d.ts"
+      ]
+    }
+  },
   "exports": {
     ".": {
       "import": {
@@ -14,14 +21,27 @@
         "types": "./dist/cjs/index.d.ts",
         "default": "./dist/cjs/index.js"
       }
+    },
+    "./sqlite-replay-store": {
+      "import": {
+        "types": "./dist/sqlite-replay-store.d.ts",
+        "default": "./dist/sqlite-replay-store.js"
+      },
+      "require": {
+        "types": "./dist/cjs/sqlite-replay-store.d.ts",
+        "default": "./dist/cjs/sqlite-replay-store.js"
+      }
     }
   },
   "scripts": {
-    "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
-    "build:wasm": "cd rust && wasm-pack build --target bundler --out-dir pkg && wasm-pack build --target nodejs --out-dir pkg-node",
-    "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
+    "build": "tsc && tsc -p tsconfig.cjs.json && node scripts/finalize-build.cjs",
+    "build:wasm": "cd rust && wasm-pack build --target bundler --out-dir pkg && wasm-pack build --target nodejs --out-dir pkg-node && node ../scripts/prepare-wasm-assets.cjs",
+    "prepare": "tsc && tsc -p tsconfig.cjs.json && node scripts/finalize-build.cjs",
+    "prepack": "node scripts/prepare-wasm-assets.cjs",
     "clean": "rm -rf dist rust/pkg rust/pkg-node rust/target",
-    "test": "jest"
+    "test": "jest",
+    "test:recovery": "node --test test/replay-recovery.test.mjs",
+    "test:consumer": "node --test test/packed-consumer.test.mjs"
   },
   "files": [
     "dist",
