@@ -1,0 +1,1 @@
+../../../../packages/wallet-adapter/src/index.ts

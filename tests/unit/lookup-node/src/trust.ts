@@ -1,0 +1,1 @@
+../../../../packages/lookup-node/src/trust.ts

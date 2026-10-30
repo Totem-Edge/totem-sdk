@@ -74,3 +74,8 @@ await node.txPoWRelay.broadcast(signedTxHex);
 - [`@totemsdk/lookup-protocol`](https://www.npmjs.com/package/@totemsdk/lookup-protocol) — shared wire protocol types
 - [`@totemsdk/wots-lease`](https://www.npmjs.com/package/@totemsdk/wots-lease) — WOTS key safety coordinated by `LeaseCoordinator`
 - [`@totemsdk/minima-rpc`](https://www.npmjs.com/package/@totemsdk/minima-rpc) — RPC used to index from a Minima node
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/lookup-node/`. Package `test:*` scripts are repository delegates.

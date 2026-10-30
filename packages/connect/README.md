@@ -185,3 +185,8 @@ console.log('TxPoW ID:', result.txpowid);
 - [`@totemsdk/statechain`](https://www.npmjs.com/package/@totemsdk/statechain) — off-chain UTXO transfers
 - [`@totemsdk/kissvm`](https://www.npmjs.com/package/@totemsdk/kissvm) — KISSVM script evaluator
 - [`@totemsdk/agent-policy`](https://www.npmjs.com/package/@totemsdk/agent-policy) — AI agent payment contracts
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/connect/`. Package `test:*` scripts are repository delegates.

@@ -77,3 +77,8 @@ removed from the lookup stack. See `docs/rfc/RFC-032-LOOKUP-STACK-POST-QUANTUM-I
 - [`@totemsdk/lookup-client`](https://www.npmjs.com/package/@totemsdk/lookup-client) — client that sends/receives these messages
 - [`@totemsdk/lookup-node`](https://www.npmjs.com/package/@totemsdk/lookup-node) — server that handles these messages
 - [`@totemsdk/core`](https://www.npmjs.com/package/@totemsdk/core) — WOTS primitives used for message auth
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/lookup-protocol/`. Package `test:*` scripts are repository delegates.

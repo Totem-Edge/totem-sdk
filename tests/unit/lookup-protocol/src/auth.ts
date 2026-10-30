@@ -1,0 +1,1 @@
+../../../../packages/lookup-protocol/src/auth.ts

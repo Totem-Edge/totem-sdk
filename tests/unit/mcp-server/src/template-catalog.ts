@@ -1,0 +1,1 @@
+../../../../packages/mcp-server/src/template-catalog.ts

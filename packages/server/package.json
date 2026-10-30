@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/server",
   "version": "1.0.4",
-  "description": "Totem SDK for server-side applications — signing, transaction building and submission via Axia",
+  "description": "Totem SDK for server-side applications \u2014 signing, transaction building and submission via Axia",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -15,7 +15,7 @@
     "build": "tsc",
     "prepare": "tsc",
     "clean": "rm -rf dist",
-    "test": "jest"
+    "test": "jest --config ../../tests/jest/server.cjs"
   },
   "files": [
     "dist",

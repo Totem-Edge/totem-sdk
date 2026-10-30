@@ -125,3 +125,8 @@ const txpow       = await provider.request('minima_getTxPow', { txpowId: '0x...'
 - [`@totemsdk/chain-provider`](https://www.npmjs.com/package/@totemsdk/chain-provider) — provider interface and composites
 - [`@totemsdk/txpow`](https://www.npmjs.com/package/@totemsdk/txpow) — proof-of-work mining
 - [`@totemsdk/tx-builder`](https://www.npmjs.com/package/@totemsdk/tx-builder) — raw transaction construction
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/server/`. Package `test:*` scripts are repository delegates.

@@ -402,7 +402,7 @@ describe('index availability — never silently empty', () => {
   })
 
   it('buildFromMonorepo scans an explicit root', () => {
-    const repoRoot = path.resolve(__dirname, '..', '..', '..', '..')
+    const repoRoot = path.resolve(__dirname, '..', '..', '..', '..', '..')
     const index = buildFromMonorepo(repoRoot)
     expect(Object.keys(index.packages).length).toBeGreaterThan(50)
   })

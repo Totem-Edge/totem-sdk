@@ -74,3 +74,8 @@ If neither is available the server stays running but index-backed tools return a
 ## License
 
 Apache-2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/mcp-server/`. Package `test:*` scripts are repository delegates.

@@ -205,3 +205,8 @@ wallet.inject();    // fires totem:announce, listens for totem:requestAnnounce
 wallet.destroy();   // removes listener, clears connected sites and listeners
 wallet.inject();    // safe to re-inject
 ```
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/wallet-adapter/`. Package `test:*` scripts are repository delegates.

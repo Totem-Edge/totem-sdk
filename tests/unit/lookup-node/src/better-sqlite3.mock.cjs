@@ -1,0 +1,1 @@
+../../../../packages/lookup-node/src/better-sqlite3.mock.cjs

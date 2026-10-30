@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/connect",
   "version": "3.1.2",
-  "description": "Client-side SDK for connecting to the Totem wallet browser extension — includes Totem Edge capability layer",
+  "description": "Client-side SDK for connecting to the Totem wallet browser extension \u2014 includes Totem Edge capability layer",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "exports": {
@@ -30,7 +30,7 @@
     "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist",
-    "test": "jest",
+    "test": "jest --config ../../tests/jest/connect.cjs",
     "test:typecheck": "tsc --noEmit"
   },
   "files": [

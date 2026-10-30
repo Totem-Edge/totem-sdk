@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/lookup-protocol",
   "version": "0.3.0",
-  "description": "Wire protocol definitions for Totem lookup node ↔ client communication",
+  "description": "Wire protocol definitions for Totem lookup node \u2194 client communication",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "exports": {
@@ -20,7 +20,7 @@
     "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist",
-    "test": "jest"
+    "test": "jest --config ../../tests/jest/lookup-protocol.cjs"
   },
   "files": [
     "dist",

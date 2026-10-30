@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/lookup-node",
   "version": "0.4.0",
-  "description": "Always-on personal lookup node — accepts Hyperswarm connections, answers chain queries, pushes COIN_UPDATE to watchlist subscribers, relays TxPoW, and coordinates WOTS leases",
+  "description": "Always-on personal lookup node \u2014 accepts Hyperswarm connections, answers chain queries, pushes COIN_UPDATE to watchlist subscribers, relays TxPoW, and coordinates WOTS leases",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -17,7 +17,7 @@
     "prepare": "tsc && rm -rf dist/__tests__",
     "prepack": "rm -rf dist/__tests__",
     "clean": "rm -rf dist bin",
-    "test": "jest"
+    "test": "jest --config ../../tests/jest/lookup-node.cjs"
   },
   "files": [
     "dist",

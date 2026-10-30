@@ -81,3 +81,8 @@ const [clientTransport, serverTransport] = createInMemoryPair();
 - [`@totemsdk/lookup-node`](https://www.npmjs.com/package/@totemsdk/lookup-node) — the server this client connects to
 - [`@totemsdk/lookup-protocol`](https://www.npmjs.com/package/@totemsdk/lookup-protocol) — shared message type definitions
 - [`@totemsdk/chain-provider`](https://www.npmjs.com/package/@totemsdk/chain-provider) — `ChainStateProvider` interface
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/lookup-client/`. Package `test:*` scripts are repository delegates.

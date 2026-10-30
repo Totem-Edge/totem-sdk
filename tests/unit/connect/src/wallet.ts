@@ -1,0 +1,1 @@
+../../../../packages/connect/src/wallet.ts

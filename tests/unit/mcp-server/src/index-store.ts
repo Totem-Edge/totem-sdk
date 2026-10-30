@@ -1,0 +1,1 @@
+../../../../packages/mcp-server/src/index-store.ts

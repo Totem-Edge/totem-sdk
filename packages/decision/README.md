@@ -113,3 +113,8 @@ the request's decision types; `decision:cancel` is control-plane and ungated.
 
 `@totemsdk/decision/testing` ships structural mocks. The suite is offline — no
 network, models, or credentials.
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/decision/`. Package `test:*` scripts are repository delegates.
