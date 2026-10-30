@@ -1,0 +1,1 @@
+../../../../packages/txpow/src/verify.ts

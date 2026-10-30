@@ -1,0 +1,1 @@
+../../../../packages/txpow/src/serialization.ts

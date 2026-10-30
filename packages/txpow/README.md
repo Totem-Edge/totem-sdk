@@ -173,3 +173,8 @@ This package is a TypeScript port of Minima's TxPoW envelope structures. Canonic
 - [`@totemsdk/tx-builder`](https://www.npmjs.com/package/@totemsdk/tx-builder) — construct `txBodyBytes` before mining
 - [`@totemsdk/node`](https://www.npmjs.com/package/@totemsdk/node) — Node.js wallet that uses txpow internally
 - [`@totemsdk/chain-provider`](https://www.npmjs.com/package/@totemsdk/chain-provider) — `broadcastTxPoW` endpoint
+
+
+## Testing
+
+Tests live outside the published package in `tests/unit/txpow/`.

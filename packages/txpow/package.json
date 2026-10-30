@@ -36,12 +36,12 @@
   },
   "scripts": {
     "build": "npm run build:wasm && tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
-    "postbuild": "node -e \"const fs=require('fs'),p=require('path');const src=p.join(__dirname,'src','wasm','miner.wasm');if(fs.existsSync(src)){for(const d of ['dist/wasm','dist/cjs/wasm']){const dst=p.join(__dirname,d,'miner.wasm');fs.mkdirSync(p.dirname(dst),{recursive:true});fs.copyFileSync(src,dst);}console.log('[@totemsdk/txpow] miner.wasm → dist/wasm/ + dist/cjs/wasm/')}else{console.log('[@totemsdk/txpow] Note: miner.wasm not compiled — JS fallback only. Run npm run build:wasm with Emscripten to enable WASM acceleration.')}\"",
+    "postbuild": "node -e \"const fs=require('fs'),p=require('path');const src=p.join(__dirname,'src','wasm','miner.wasm');if(fs.existsSync(src)){for(const d of ['dist/wasm','dist/cjs/wasm']){const dst=p.join(__dirname,d,'miner.wasm');fs.mkdirSync(p.dirname(dst),{recursive:true});fs.copyFileSync(src,dst);}console.log('[@totemsdk/txpow] miner.wasm \u2192 dist/wasm/ + dist/cjs/wasm/')}else{console.log('[@totemsdk/txpow] Note: miner.wasm not compiled \u2014 JS fallback only. Run npm run build:wasm with Emscripten to enable WASM acceleration.')}\"",
     "compile:wasm": "node scripts/compile-wasm.cjs",
     "build:wasm": "npm run compile:wasm",
     "prepare": "npm run build:wasm && tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist",
-    "test": "jest"
+    "test": "jest --config ../../tests/jest/txpow.cjs"
   },
   "files": [
     "dist",

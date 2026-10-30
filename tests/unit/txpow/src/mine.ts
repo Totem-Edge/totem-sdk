@@ -1,0 +1,1 @@
+../../../../packages/txpow/src/mine.ts
