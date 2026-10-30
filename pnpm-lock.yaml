@@ -435,18 +435,9 @@ importers:
       '@totemsdk/core':
         specifier: workspace:^
         version: link:../core
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -515,15 +506,6 @@ importers:
         specifier: workspace:^
         version: link:../wots-lease
     devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -537,18 +519,9 @@ importers:
         specifier: workspace:^
         version: link:../core-wasm
     devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -574,18 +547,9 @@ importers:
         specifier: workspace:^
         version: link:../replication
     devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.5.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.5.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -629,18 +593,9 @@ importers:
       '@totemsdk/proof':
         specifier: workspace:^
         version: link:../proof
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -693,18 +648,9 @@ importers:
       '@totemsdk/txpow':
         specifier: workspace:^
         version: link:../txpow
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -715,18 +661,9 @@ importers:
         specifier: workspace:^
         version: link:../edge
     devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -737,18 +674,9 @@ importers:
         specifier: workspace:^
         version: link:../edge
     devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -759,18 +687,9 @@ importers:
         specifier: workspace:^
         version: link:../edge
     devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -781,18 +700,9 @@ importers:
         specifier: workspace:^
         version: link:../edge
     devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -803,18 +713,9 @@ importers:
         specifier: workspace:^
         version: link:../edge
     devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -828,18 +729,9 @@ importers:
         specifier: workspace:^
         version: link:../stream-transport
     devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -853,18 +745,9 @@ importers:
         specifier: workspace:^
         version: link:../storage
     devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -875,18 +758,9 @@ importers:
         specifier: workspace:^
         version: link:../edge
     devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -897,18 +771,9 @@ importers:
         specifier: workspace:^
         version: link:../edge
     devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -943,24 +808,15 @@ importers:
       '@totemsdk/wots-lease':
         specifier: workspace:^
         version: link:../wots-lease
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
       aedes:
         specifier: 1.2.0
         version: 1.2.0
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
       mqtt:
         specifier: 5.16.1
         version: 5.16.1
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -971,18 +827,9 @@ importers:
         specifier: workspace:^
         version: link:../edge
     devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.5.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.5.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -993,18 +840,9 @@ importers:
         specifier: workspace:^
         version: link:../edge
     devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1015,18 +853,9 @@ importers:
         specifier: workspace:^
         version: link:../edge
     devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1127,18 +956,9 @@ importers:
       '@totemsdk/root-identity':
         specifier: workspace:^
         version: link:../root-identity
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1324,18 +1144,9 @@ importers:
         specifier: workspace:^
         version: link:../stream-transport
     devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1370,18 +1181,9 @@ importers:
       '@types/better-sqlite3':
         specifier: ^7.6.0
         version: 7.6.13
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1392,18 +1194,9 @@ importers:
         specifier: workspace:^
         version: link:../core
     devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1417,18 +1210,9 @@ importers:
         specifier: workspace:^
         version: link:../replication
     devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1439,18 +1223,9 @@ importers:
         specifier: '>=1.32.0'
         version: 1.32.2(zod@4.6.7)
     devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1512,18 +1287,9 @@ importers:
         specifier: '>=4.0.0'
         version: 4.17.0(bare-buffer@3.7.1)(bare-url@2.4.6)
     devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1552,18 +1318,9 @@ importers:
         specifier: workspace:^
         version: link:../wots-lease
     devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1625,21 +1382,12 @@ importers:
       '@totemsdk/txpow':
         specifier: workspace:^
         version: link:../txpow
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
       '@types/node':
         specifier: ^20.19.43
         version: 20.19.43
       '@types/ws':
         specifier: ^8.5.0
         version: 8.18.1
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.4.11
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1692,18 +1440,9 @@ importers:
       '@totemsdk/proof':
         specifier: workspace:^
         version: link:../proof
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.5.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.5.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1741,21 +1480,12 @@ importers:
         specifier: ^8.21.1
         version: 8.21.1
     devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
       '@types/ws':
         specifier: ^8.5.0
         version: 8.18.1
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1772,18 +1502,9 @@ importers:
         specifier: workspace:^
         version: link:../storage
     devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1809,18 +1530,9 @@ importers:
         specifier: workspace:^
         version: link:../wots-lease
     devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1849,18 +1561,9 @@ importers:
       '@totemsdk/kissvm':
         specifier: workspace:^
         version: link:../kissvm
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1972,18 +1675,9 @@ importers:
         specifier: workspace:^
         version: link:../manifest
     devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -2208,18 +1902,9 @@ importers:
         specifier: workspace:^
         version: link:../storage
     devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.4.11
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.5.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.5.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -2349,21 +2034,12 @@ importers:
       '@types/express':
         specifier: ^5.0.0
         version: 5.0.6
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
       '@types/node':
         specifier: ^20.10.0
         version: 20.19.43
       '@types/pg':
         specifier: ^8.11.0
         version: 8.20.0
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -2383,21 +2059,12 @@ importers:
         specifier: ^8.21.1
         version: 8.21.1
     devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
       '@types/ws':
         specifier: ^8.5.0
         version: 8.18.1
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -2457,18 +2124,9 @@ importers:
       '@totemsdk/kissvm':
         specifier: workspace:^
         version: link:../kissvm
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -2488,21 +2146,12 @@ importers:
       '@types/better-sqlite3':
         specifier: ^7.6.13
         version: 7.6.13
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
       fake-indexeddb:
         specifier: ^6.2.5
         version: 6.2.5
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.5.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.5.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -2573,18 +2222,9 @@ importers:
         specifier: workspace:^
         version: link:../connect
     devDependencies:
-      '@types/jest':
-        specifier: ^30.0.0
-        version: 30.0.0
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
-      jest:
-        specifier: ^30.4.2
-        version: 30.4.2(@types/node@20.19.43)
-      ts-jest:
-        specifier: ^29.0.0
-        version: 29.4.11(@babel/core@7.29.7)(@jest/transform@30.5.2)(@jest/types@30.4.1)(babel-jest@30.4.1(@babel/core@7.29.7))(jest-util@30.4.1)(jest@30.4.2(@types/node@20.19.43))(typescript@5.9.3)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
