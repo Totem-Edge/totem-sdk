@@ -92,7 +92,18 @@ Workspace CI runs shared lint and gate regression tests. Its dedicated
 for v1 packages. Repository administrators must separately require the relevant
 status checks in branch protection; a workflow job does not configure protection.
 
-Current v1 packages still lack the dedicated qualification scripts. The job is
-intentionally blocked until real evidence or individually reviewed applicability
-decisions exist. See [RFC-074](rfc/RFC-074-EDGE-TRANSPORT-QUALIFICATION-AND-FAIL-CLOSED-GATES.md)
-for remaining profile, recovery and promotion criteria.
+Current v1 scope is deliberately limited to packages with runnable evidence:
+
+- `@totemsdk/core` — WASM/TS parity, golden/vector suites, runtime integration
+  and packed consumer.
+- `@totemsdk/core-wasm` — web/node parity, worker runtime integration and packed
+  consumer.
+- Both declare a reviewed recovery N/A: they are stateless crypto libraries and
+  the host owns process recovery.
+
+The other 16 previously-labelled v1 packages are now **RC** until they have
+dedicated conformance/recovery/integration evidence. Their support tiers and
+semver versions are unchanged; this is a fail-closed maturity correction, not a
+support-tier demotion. See
+[RFC-074](rfc/RFC-074-EDGE-TRANSPORT-QUALIFICATION-AND-FAIL-CLOSED-GATES.md) for
+remaining profile, recovery and promotion criteria.

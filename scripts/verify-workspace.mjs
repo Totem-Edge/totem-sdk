@@ -352,6 +352,7 @@ for (const [dir, meta] of SELECTED_PUBLISHABLE) {
       continue;
     }
     if (!enabledGates.has(gate)) continue;
+    if (gate === 'consumer') continue;
     if (gate === 'lint' && sharedLintConfigured) {
       if (!sharedLintAvailable) {
         failures += 1;
@@ -476,7 +477,8 @@ for (const gate of ['integration', 'conformance', 'recovery', 'consumer']) {
   if (!enabledGates.has(gate)) continue;
   const script = GATE_SCRIPTS[gate];
   const runnable = SELECTED_PUBLISHABLE.filter(([dir, meta]) =>
-    shouldRunGate(gate, meta.maturity) && readPackageManifest(dir)?.scripts?.[script]);
+    shouldRunGate(gate, meta.maturity) &&
+    (gate === 'consumer' || readPackageManifest(dir)?.scripts?.[script]));
   if (runnable.length === 0) continue;
   ensurePrerequisiteBuilds(gate);
   process.stdout.write(`── ${gate} (package-owned qualification evidence) ──────\n`);
@@ -484,7 +486,9 @@ for (const gate of ['integration', 'conformance', 'recovery', 'consumer']) {
     if (gate === 'consumer') {
       run(ROOT, [process.execPath, join(__dirname, 'verify-consumer-pack.mjs'), join(ROOT, dir)], `${dir}: packed consumer`);
     }
-    run(join(ROOT, dir), `npm run ${script}`, `${dir}: ${script}`);
+    if (readPackageManifest(dir)?.scripts?.[script]) {
+      run(join(ROOT, dir), `npm run ${script}`, `${dir}: ${script}`);
+    }
   }
 }
 

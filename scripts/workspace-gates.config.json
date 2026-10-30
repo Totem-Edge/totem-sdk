@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "comment": "Machine-readable publishability, verification, and maturity classification. Packages with status 'publishable' must pass every gate (build, typecheck, lint, unit tests). Packages with status 'excluded' are not published and are skipped by the verification gate with an explicit machine-readable reason. Maturity levels: alpha → beta → rc → v1. Each level activates additional required gates automatically via scripts/verify-workspace.mjs.",
+  "comment": "Machine-readable publishability, verification, and maturity classification. Packages with status 'publishable' must pass every gate (build, typecheck, lint, unit tests). Packages with status 'excluded' are not published and are skipped by the verification gate with an explicit machine-readable reason. Maturity levels: alpha \u2192 beta \u2192 rc \u2192 v1. Each level activates additional required gates automatically via scripts/verify-workspace.mjs.",
   "lint": {
     "sharedRunner": "scripts/lint-workspace-package.mjs",
     "description": "Mandatory shared correctness rules for every package; package-specific lint is additional. Existing style warnings remain advisory."
@@ -42,17 +42,18 @@
       "supportTier": 2,
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
+        "reason": "library \u2014 holds no on-chain value"
       }
     },
     "packages/authority": {
       "status": "publishable",
-      "maturity": "v1",
+      "maturity": "rc",
       "supportTier": 2,
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
-      }
+        "reason": "library \u2014 holds no on-chain value"
+      },
+      "supportReason": "v1 evidence pending; maturity reduced fail-closed"
     },
     "packages/chain-provider": {
       "status": "publishable",
@@ -60,17 +61,18 @@
       "supportTier": 2,
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
+        "reason": "library \u2014 holds no on-chain value"
       }
     },
     "packages/connect": {
       "status": "publishable",
-      "maturity": "v1",
+      "maturity": "rc",
       "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
-      }
+        "reason": "library \u2014 holds no on-chain value"
+      },
+      "supportReason": "v1 evidence pending; maturity reduced fail-closed"
     },
     "packages/core": {
       "status": "publishable",
@@ -81,7 +83,13 @@
       "evidence": "docs/rfc/RFC-063-PRODUCTION-READINESS-AND-MATURITY-PROMOTION.md#4-production-surface",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
+        "reason": "library \u2014 holds no on-chain value"
+      },
+      "notApplicable": {
+        "recovery": {
+          "owner": "Totem SDK maintainers",
+          "reason": "Stateless crypto library; durable storage/lifecycle is caller-owned. Host owns process recovery."
+        }
       }
     },
     "packages/core-wasm": {
@@ -93,7 +101,13 @@
       "evidence": "docs/rfc/RFC-063-PRODUCTION-READINESS-AND-MATURITY-PROMOTION.md#4-production-surface",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
+        "reason": "library \u2014 holds no on-chain value"
+      },
+      "notApplicable": {
+        "recovery": {
+          "owner": "Totem SDK maintainers",
+          "reason": "Stateless WASM crypto library; no process/state to recover. Host owns process recovery."
+        }
       }
     },
     "packages/decision": {
@@ -102,17 +116,18 @@
       "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
+        "reason": "library \u2014 holds no on-chain value"
       }
     },
     "packages/edge": {
       "status": "publishable",
-      "maturity": "v1",
+      "maturity": "rc",
       "supportTier": 2,
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
-      }
+        "reason": "library \u2014 holds no on-chain value"
+      },
+      "supportReason": "v1 evidence pending; maturity reduced fail-closed"
     },
     "packages/edge-adapters": {
       "status": "publishable",
@@ -120,7 +135,7 @@
       "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
+        "reason": "library \u2014 holds no on-chain value"
       }
     },
     "packages/edge-bacnet": {
@@ -129,7 +144,7 @@
       "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
+        "reason": "library \u2014 holds no on-chain value"
       }
     },
     "packages/edge-ble": {
@@ -138,7 +153,7 @@
       "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
+        "reason": "library \u2014 holds no on-chain value"
       }
     },
     "packages/edge-can": {
@@ -147,7 +162,7 @@
       "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
+        "reason": "library \u2014 holds no on-chain value"
       }
     },
     "packages/edge-coap": {
@@ -156,7 +171,7 @@
       "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
+        "reason": "library \u2014 holds no on-chain value"
       }
     },
     "packages/edge-email": {
@@ -165,7 +180,7 @@
       "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
+        "reason": "library \u2014 holds no on-chain value"
       }
     },
     "packages/edge-grpc": {
@@ -174,7 +189,7 @@
       "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
+        "reason": "library \u2014 holds no on-chain value"
       }
     },
     "packages/edge-lorawan": {
@@ -183,7 +198,7 @@
       "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
+        "reason": "library \u2014 holds no on-chain value"
       }
     },
     "packages/edge-matter": {
@@ -192,7 +207,7 @@
       "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
+        "reason": "library \u2014 holds no on-chain value"
       }
     },
     "packages/edge-modbus": {
@@ -204,7 +219,7 @@
       "evidence": "docs/TIER1-EVIDENCE-PLAN.md#edge-modbus",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
+        "reason": "library \u2014 holds no on-chain value"
       }
     },
     "packages/edge-mqtt": {
@@ -216,7 +231,7 @@
       "evidence": "docs/TIER1-EVIDENCE-PLAN.md#edge-mqtt",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
+        "reason": "library \u2014 holds no on-chain value"
       }
     },
     "packages/edge-nfc": {
@@ -225,7 +240,7 @@
       "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
+        "reason": "library \u2014 holds no on-chain value"
       }
     },
     "packages/edge-opcua": {
@@ -234,7 +249,7 @@
       "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
+        "reason": "library \u2014 holds no on-chain value"
       }
     },
     "packages/edge-ros2": {
@@ -243,7 +258,7 @@
       "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
+        "reason": "library \u2014 holds no on-chain value"
       }
     },
     "packages/governance": {
@@ -252,17 +267,18 @@
       "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
+        "reason": "library \u2014 holds no on-chain value"
       }
     },
     "packages/identity": {
       "status": "publishable",
-      "maturity": "v1",
+      "maturity": "rc",
       "supportTier": 2,
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
-      }
+        "reason": "library \u2014 holds no on-chain value"
+      },
+      "supportReason": "v1 evidence pending; maturity reduced fail-closed"
     },
     "packages/industrial-action": {
       "status": "publishable",
@@ -273,7 +289,7 @@
       "evidence": "docs/TIER1-EVIDENCE-PLAN.md#industrial-action",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
+        "reason": "library \u2014 holds no on-chain value"
       }
     },
     "packages/intelligence": {
@@ -282,19 +298,19 @@
       "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
+        "reason": "library \u2014 holds no on-chain value"
       }
     },
     "packages/kissvm": {
       "status": "publishable",
-      "maturity": "v1",
+      "maturity": "rc",
       "supportTier": 0,
       "supportReason": "Tier 0 production core",
       "owner": "Totem SDK maintainers",
       "evidence": "docs/rfc/RFC-063-PRODUCTION-READINESS-AND-MATURITY-PROMOTION.md#4-production-surface",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
+        "reason": "library \u2014 holds no on-chain value"
       }
     },
     "packages/liquidity-bond": {
@@ -308,30 +324,33 @@
     },
     "packages/location-proof": {
       "status": "publishable",
-      "maturity": "v1",
+      "maturity": "rc",
       "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
-      }
+        "reason": "library \u2014 holds no on-chain value"
+      },
+      "supportReason": "v1 evidence pending; maturity reduced fail-closed"
     },
     "packages/spatial-proof": {
       "status": "publishable",
-      "maturity": "v1",
+      "maturity": "rc",
       "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
-      }
+        "reason": "library \u2014 holds no on-chain value"
+      },
+      "supportReason": "v1 evidence pending; maturity reduced fail-closed"
     },
     "packages/raster-proof": {
       "status": "publishable",
-      "maturity": "v1",
+      "maturity": "rc",
       "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
-      }
+        "reason": "library \u2014 holds no on-chain value"
+      },
+      "supportReason": "v1 evidence pending; maturity reduced fail-closed"
     },
     "packages/lookup-client": {
       "status": "publishable",
@@ -342,7 +361,7 @@
       "evidence": "docs/TIER1-EVIDENCE-PLAN.md#lookup-client",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
+        "reason": "library \u2014 holds no on-chain value"
       }
     },
     "packages/lookup-node": {
@@ -354,7 +373,7 @@
       "evidence": "docs/TIER1-EVIDENCE-PLAN.md#lookup-node",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
+        "reason": "library \u2014 holds no on-chain value"
       }
     },
     "packages/lookup-protocol": {
@@ -366,17 +385,18 @@
       "evidence": "docs/TIER1-EVIDENCE-PLAN.md#lookup-protocol",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
+        "reason": "library \u2014 holds no on-chain value"
       }
     },
     "packages/manifest": {
       "status": "publishable",
-      "maturity": "v1",
+      "maturity": "rc",
       "supportTier": 2,
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
-      }
+        "reason": "library \u2014 holds no on-chain value"
+      },
+      "supportReason": "v1 evidence pending; maturity reduced fail-closed"
     },
     "packages/mcp-server": {
       "status": "publishable",
@@ -384,7 +404,7 @@
       "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
+        "reason": "library \u2014 holds no on-chain value"
       }
     },
     "packages/omnia": {
@@ -483,7 +503,7 @@
       "supportTier": 2,
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
+        "reason": "library \u2014 holds no on-chain value"
       }
     },
     "packages/pear": {
@@ -492,35 +512,38 @@
       "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
+        "reason": "library \u2014 holds no on-chain value"
       }
     },
     "packages/proof": {
       "status": "publishable",
-      "maturity": "v1",
+      "maturity": "rc",
       "supportTier": 2,
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
-      }
+        "reason": "library \u2014 holds no on-chain value"
+      },
+      "supportReason": "v1 evidence pending; maturity reduced fail-closed"
     },
     "packages/proof-integritas": {
       "status": "publishable",
-      "maturity": "v1",
+      "maturity": "rc",
       "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
-      }
+        "reason": "library \u2014 holds no on-chain value"
+      },
+      "supportReason": "v1 evidence pending; maturity reduced fail-closed"
     },
     "packages/proofgraph": {
       "status": "publishable",
-      "maturity": "v1",
+      "maturity": "rc",
       "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
-      }
+        "reason": "library \u2014 holds no on-chain value"
+      },
+      "supportReason": "v1 evidence pending; maturity reduced fail-closed"
     },
     "packages/provider-bond": {
       "status": "publishable",
@@ -537,7 +560,7 @@
       "supportTier": 2,
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
+        "reason": "library \u2014 holds no on-chain value"
       }
     },
     "packages/pubsub-transport": {
@@ -546,7 +569,7 @@
       "supportTier": 2,
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
+        "reason": "library \u2014 holds no on-chain value"
       }
     },
     "packages/qvac": {
@@ -555,7 +578,7 @@
       "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
+        "reason": "library \u2014 holds no on-chain value"
       }
     },
     "packages/realtime": {
@@ -564,7 +587,7 @@
       "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
+        "reason": "library \u2014 holds no on-chain value"
       }
     },
     "packages/recursive-mast": {
@@ -573,17 +596,18 @@
       "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
+        "reason": "library \u2014 holds no on-chain value"
       }
     },
     "packages/root-identity": {
       "status": "publishable",
-      "maturity": "v1",
+      "maturity": "rc",
       "supportTier": 2,
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
-      }
+        "reason": "library \u2014 holds no on-chain value"
+      },
+      "supportReason": "v1 evidence pending; maturity reduced fail-closed"
     },
     "packages/sdk-tests": {
       "status": "excluded",
@@ -601,12 +625,13 @@
     },
     "packages/server": {
       "status": "publishable",
-      "maturity": "v1",
+      "maturity": "rc",
       "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
-      }
+        "reason": "library \u2014 holds no on-chain value"
+      },
+      "supportReason": "v1 evidence pending; maturity reduced fail-closed"
     },
     "packages/statechain": {
       "status": "publishable",
@@ -625,12 +650,12 @@
       "status": "publishable",
       "maturity": "rc",
       "supportTier": 1,
-      "supportReason": "Tier 1 production candidate; rc — durable SQLite adapter and host adoption landed; crash/power-loss evidence remains",
+      "supportReason": "Tier 1 production candidate; rc \u2014 durable SQLite adapter and host adoption landed; crash/power-loss evidence remains",
       "owner": "Totem SDK maintainers",
       "evidence": "docs/TIER1-EVIDENCE-PLAN.md#storage",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
+        "reason": "library \u2014 holds no on-chain value"
       }
     },
     "packages/stream-transport": {
@@ -639,7 +664,7 @@
       "supportTier": 2,
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
+        "reason": "library \u2014 holds no on-chain value"
       }
     },
     "packages/tx-builder": {
@@ -653,21 +678,23 @@
     },
     "packages/txpow": {
       "status": "publishable",
-      "maturity": "v1",
+      "maturity": "rc",
       "supportTier": 2,
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
-      }
+        "reason": "library \u2014 holds no on-chain value"
+      },
+      "supportReason": "v1 evidence pending; maturity reduced fail-closed"
     },
     "packages/wallet-adapter": {
       "status": "publishable",
-      "maturity": "v1",
+      "maturity": "rc",
       "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
         "reason": "keys never leave the wallet; exports no key material"
-      }
+      },
+      "supportReason": "v1 evidence pending; maturity reduced fail-closed"
     },
     "packages/wots-lease": {
       "status": "publishable",
@@ -678,7 +705,7 @@
       "evidence": "docs/TIER1-EVIDENCE-PLAN.md#wots-lease",
       "custody": {
         "classification": "non-custodial",
-        "reason": "library — holds no on-chain value"
+        "reason": "library \u2014 holds no on-chain value"
       }
     },
     "extensions/observability": {
@@ -712,7 +739,7 @@
       "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
-        "reason": "resolution/projection library — holds no on-chain value"
+        "reason": "resolution/projection library \u2014 holds no on-chain value"
       }
     },
     "packages/eefi": {
@@ -721,7 +748,7 @@
       "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
-        "reason": "schema/digest library — holds no on-chain value"
+        "reason": "schema/digest library \u2014 holds no on-chain value"
       }
     },
     "packages/replication": {
@@ -730,7 +757,7 @@
       "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
-        "reason": "replication contracts — holds no on-chain value"
+        "reason": "replication contracts \u2014 holds no on-chain value"
       }
     },
     "packages/replication-holepunch": {
@@ -739,7 +766,7 @@
       "supportTier": "outside",
       "custody": {
         "classification": "non-custodial",
-        "reason": "Holepunch replication adapters — hold no on-chain value"
+        "reason": "Holepunch replication adapters \u2014 hold no on-chain value"
       }
     }
   }

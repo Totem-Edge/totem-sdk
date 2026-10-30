@@ -361,11 +361,13 @@ binding and unknown physical-effect reconciliation remain Phase 2 work.
   lint and v1 dispatch/absence cases. See [Verification gates](../VERIFICATION_GATES.md)
   for the concrete command and evidence contracts.
 
-The shared lint run passes all 69 packages. The new v1-only invocation fails
-closed on **54 missing scripts** (three requirements across 18 packages), and
-v1 integration requirements still need package-level adoption. This is an
-explicit qualification backlog, not a production promotion or a green v1
-baseline. The non-edge publication train continues independently.
+The shared lint run passes all 69 packages. The v1 qualification backlog exposed
+that 16 of 18 packages lacked dedicated conformance/recovery/consumer evidence.
+They are now **RC**, not v1; `core` and `core-wasm` retain v1 with real
+conformance/integration suites, shared packed-consumer checks and reviewed
+recovery N/A records. Support tiers and semver versions are unchanged. This is a
+fail-closed maturity correction, not a production promotion. The non-edge
+publication train completed independently.
 
 ### Third increment: Node SQLite MQTT replay and packed binding
 

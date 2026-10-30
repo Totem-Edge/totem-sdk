@@ -165,7 +165,7 @@ test('RC does not implicitly pass or execute v1-only qualification gates', (t) =
   assert.deepEqual(result.commands, ['candidate:build', 'candidate:lint', 'candidate:test', 'candidate:test:integration']);
 });
 
-for (const gate of ['conformance', 'recovery', 'consumer']) {
+for (const gate of ['conformance', 'recovery']) {
   test(`v1 fails when required ${gate} evidence is absent`, (t) => {
     const result = fixture(t, { stable: { maturity: 'v1', missing: [`test:${gate}`] } })
       .run('--maturity', 'v1', `--${gate}`);
@@ -174,6 +174,13 @@ for (const gate of ['conformance', 'recovery', 'consumer']) {
     assert.deepEqual(result.commands, []);
   });
 }
+
+test('v1 consumer qualification uses the shared packed consumer without a package script', (t) => {
+  const result = fixture(t, { stable: { maturity: 'v1', missing: ['test:consumer'] } })
+    .run('--maturity', 'v1', '--consumer');
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  assert.deepEqual(result.commands, ['stable:build', 'stable:packed-consumer']);
+});
 
 test('mandatory shared lint runs even without a local lint script', (t) => {
   const result = fixture(t, { stable: { maturity: 'v1', missing: ['lint'] } }, gates, { sharedLint: 'pass' })

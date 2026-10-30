@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/core",
   "version": "1.4.2",
-  "description": "Core cryptographic primitives for Totem SDK — backed by Rust/WASM",
+  "description": "Core cryptographic primitives for Totem SDK \u2014 backed by Rust/WASM",
   "type": "module",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
@@ -161,7 +161,9 @@
     "clean": "rm -rf dist",
     "test": "jest",
     "test:wasm-async": "tsc -p tsconfig.json && node scripts/async-esm.mjs && node test/wasm-async.test.mjs && node test/wasm-surface-parity.test.mjs && node test/esm-root-async.test.mjs && node test/kernel-coverage.test.mjs",
-    "gen:pkdigest": "node scripts/gen_wots_pkdigest_vectors.cjs"
+    "gen:pkdigest": "node scripts/gen_wots_pkdigest_vectors.cjs",
+    "test:integration": "node test/wasm-async.test.mjs && node test/esm-root-async.test.mjs",
+    "test:conformance": "npm run test:wasm-async && jest --runInBand --testPathPatterns=\"parity|golden|wots|bip39|java|mmr\""
   },
   "files": [
     "dist",
