@@ -1,6 +1,6 @@
 # Chrome Web Store Submission
 
-Current status and the exact remaining steps to publish the Totem extension.
+Current status: **v1.0.12 is built and published as a signed GitHub release; the Store bundle passes the dynamic-code/permission checks. Awaiting upload and submission in the Chrome Web Store Developer Dashboard.**
 
 The extension is distributed **direct-download first** (GitHub Release → totem.ing)
 and **Chrome Web Store second**. Both paths use the same signing key and therefore
@@ -207,5 +207,21 @@ download and enterprise policy, the Release supplies the zip, crx, and xml.
 - [ ] Permission + CSP justifications pasted in Dashboard
 - [ ] `https://totem.ing/privacy` reachable (Store requires a live policy URL)
 - [ ] Support contact reachable (`support@totem.ing`)
-- [ ] `extension-v1.0.12` tagged and Release published
+- [x] `extension-v1.0.12` tagged and signed Release published
+  - https://github.com/Totem-Edge/totem-sdk/releases/tag/extension-v1.0.12
 - [ ] Zip uploaded to the Developer Dashboard
+- [ ] Store listing reviewed and submitted for Chrome Web Store review
+
+## 9. Dashboard-only submission steps
+
+These require the Chrome Web Store developer account that owns the Totem item:
+
+1. Open the Developer Dashboard and select (or create) the Totem item.
+2. Upload `totem-extension-v1.0.12.zip` from the release above.
+3. Set the listing fields and upload the assets from section 3.
+4. Complete the privacy practices questionnaire and paste the permission/CSP
+   justifications from section 5.
+5. Confirm distribution, pricing, and support contact, then submit for review.
+
+No code changes are required for this step.
+
