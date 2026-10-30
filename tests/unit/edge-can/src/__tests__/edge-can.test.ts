@@ -77,6 +77,34 @@ describe('edge-can gateway', () => {
     expect(transport.sent).toEqual([{ id: 0x100, data: new Uint8Array([1, 2, 3]), isExtended: true }]);
   });
 
+  it.each([
+    [0x800, false], [-1, false], [0x20000000, true], [1.5, false],
+  ])('rejects invalid CAN ID %s', async (id, extended) => {
+    const transport = new MockCanTransport();
+    const gw = createCanGateway({ runtime: makeRuntime(), transport, interfaceName: 'can0' });
+    await expect(gw.send(id as number, new Uint8Array([1]), extended as boolean)).rejects.toThrow(/CAN ID/);
+    expect(transport.sent).toHaveLength(0);
+  });
+
+  it('rejects payloads longer than 8 bytes', async () => {
+    const transport = new MockCanTransport();
+    const gw = createCanGateway({ runtime: makeRuntime(), transport, interfaceName: 'can0' });
+    await expect(gw.send(0x100, new Uint8Array(9), false)).rejects.toThrow(/0-8 bytes/);
+    expect(transport.sent).toHaveLength(0);
+  });
+
+  it('ignores malformed inbound frames', async () => {
+    const transport = new MockCanTransport();
+    const proof = makeProof();
+    const gw = createCanGateway({ runtime: makeRuntime(proof), transport, interfaceName: 'can0', signals: [RPM_SIGNAL] });
+    await gw.start();
+    transport.emitFrame({ id: 0x123, isExtended: false, isRtr: false, dlc: 9, data: new Uint8Array(9), receivedAt: 1 });
+    transport.emitFrame({ id: 0x123, isExtended: false, isRtr: false, dlc: 2, data: new Uint8Array([1]), receivedAt: 2 });
+    transport.emitFrame({ id: 0x800, isExtended: false, isRtr: false, dlc: 1, data: new Uint8Array([1]), receivedAt: 3 });
+    expect(proof.createProof).not.toHaveBeenCalled();
+    await gw.stop();
+  });
+
   it('decodes little-endian signals and emits a proof for matching frames', async () => {
     const transport = new MockCanTransport();
     const proof = makeProof();

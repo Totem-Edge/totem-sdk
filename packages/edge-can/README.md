@@ -87,3 +87,8 @@ Apache-2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
 ## Testing
 
 Tests live outside the published package in `tests/unit/edge-can/`. Package `test:*` scripts are repository delegates; tests are not shipped.
+
+
+## Testing
+
+Unit tests: `tests/unit/edge-can/`. Linux vcan conformance: `tests/qualification/edge-can/vcan.test.mjs`.

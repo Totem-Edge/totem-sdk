@@ -33,6 +33,23 @@ export interface CanGateway {
   send(id: number, data: Uint8Array, isExtended?: boolean): Promise<void>;
 }
 
+function assertFrame(id: number, data: Uint8Array, isExtended: boolean): void {
+  const max = isExtended ? 0x1fffffff : 0x7ff;
+  if (!Number.isInteger(id) || id < 0 || id > max) {
+    throw new Error(`Invalid ${isExtended ? '29-bit' : '11-bit'} CAN ID: ${id}`);
+  }
+  if (!(data instanceof Uint8Array) || data.length > 8) {
+    throw new Error('CAN data must be 0-8 bytes');
+  }
+}
+
+function isValidReceivedFrame(frame: CanFrame): boolean {
+  const max = frame.isExtended ? 0x1fffffff : 0x7ff;
+  return Number.isInteger(frame.id) && frame.id >= 0 && frame.id <= max &&
+    Number.isInteger(frame.dlc) && frame.dlc >= 0 && frame.dlc <= 8 &&
+    frame.data instanceof Uint8Array && frame.data.length === frame.dlc;
+}
+
 export function createCanGateway(config: CanGatewayConfig): CanGateway {
   let status: 'stopped' | 'running' | 'error' = 'stopped';
   let unsubFrame: (() => void) | undefined;
@@ -57,6 +74,7 @@ export function createCanGateway(config: CanGatewayConfig): CanGateway {
       if (status === 'running') return;
       await config.transport.open(config.interfaceName);
       unsubFrame = config.transport.onFrame((frame) => {
+        if (!isValidReceivedFrame(frame)) return;
         const signals = decodeSignals(frame);
         if (signals.length > 0 && config.runtime.ports.proof) {
           config.runtime.ports.proof.createProof({
@@ -76,6 +94,7 @@ export function createCanGateway(config: CanGatewayConfig): CanGateway {
     },
 
     async send(id, data, isExtended = false): Promise<void> {
+      assertFrame(id, data, isExtended);
       await config.transport.send(id, data, isExtended);
     },
   };
