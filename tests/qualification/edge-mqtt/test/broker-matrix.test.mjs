@@ -93,6 +93,15 @@ async function subscribe(client, topic, qos = 1) {
   });
 }
 
+async function subscribeWithRetry(client, topic, qos = 1, attempts = 12) {
+  let last;
+  for (let i = 0; i < attempts; i++) {
+    try { return await subscribe(client, topic, qos); }
+    catch (error) { last = error; await delay(500); }
+  }
+  throw last;
+}
+
 async function publish(client, topic, payload, qos = 1) {
   await new Promise((resolve, reject) => {
     client.publish(topic, payload, { qos }, (error) => error ? reject(error) : resolve());
@@ -170,7 +179,7 @@ async function matrix(t, brokerName, startBroker) {
   const client = await withClient(port, certs.caCert, credentials, `matrix-${brokerName}-${Date.now()}`);
   t.after(async () => { await new Promise((resolve) => client.end(true, {}, resolve)); });
 
-  const granted = await subscribe(client, 'allowed/#');
+  const granted = await subscribeWithRetry(client, 'allowed/#');
   assert.notEqual(granted, 128, `${brokerName} denied an allowed subscription`);
   const received = once(client, 'message');
   await publish(client, 'allowed/device', JSON.stringify({ commandId: 'matrix', command: 'ping', createdAt: Date.now() }), 1);
@@ -186,7 +195,7 @@ async function matrix(t, brokerName, startBroker) {
   if (brokerName === 'mosquitto') {
     let deniedReceived = false;
     client.on('message', (topic) => { if (topic.startsWith('denied/')) deniedReceived = true; });
-    await subscribe(client, 'denied/#');
+    await subscribeWithRetry(client, 'denied/#');
     await publish(client, 'denied/topic', 'must-not-pass');
     await delay(750);
     assert.equal(deniedReceived, false, 'Mosquitto ACL allowed a denied publish/subscription');
