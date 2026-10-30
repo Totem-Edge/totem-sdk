@@ -1,1 +1,1 @@
-../../../../../../packages/core/src/scripts/dapp-types.ts
+../../../../../packages/core/src/scripts/dapp-types.ts

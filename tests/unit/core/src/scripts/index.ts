@@ -1,1 +1,1 @@
-../../../../../../packages/core/src/scripts/index.ts
+../../../../../packages/core/src/scripts/index.ts

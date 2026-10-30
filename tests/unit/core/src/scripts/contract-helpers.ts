@@ -1,1 +1,1 @@
-../../../../../../packages/core/src/scripts/contract-helpers.ts
+../../../../../packages/core/src/scripts/contract-helpers.ts

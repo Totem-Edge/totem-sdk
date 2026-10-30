@@ -1,1 +1,1 @@
-../../../../../../packages/core/src/scripts/witness-serializer.ts
+../../../../../packages/core/src/scripts/witness-serializer.ts

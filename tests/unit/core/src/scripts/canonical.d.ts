@@ -1,1 +1,1 @@
-../../../../../../packages/core/src/scripts/canonical.d.ts
+../../../../../packages/core/src/scripts/canonical.d.ts
