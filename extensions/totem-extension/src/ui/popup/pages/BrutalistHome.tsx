@@ -105,7 +105,7 @@ export function BrutalistHome({ onNavigate, onSelectToken, activeAccountAddress 
         icon:        parseTokenImageUrl(t.icon) || parseTokenImageUrl(t.url) || parseTokenImageUrl(t.artimage),
         url:         t.url   ?? undefined,
         artimage:    t.artimage ?? undefined,
-        type:        t.kind,
+        type:        t.kind ?? 'token',
         webvalidate: t.webvalidate ?? undefined,
         owner:       t.owner ?? undefined,
         description: t.description ?? undefined,
@@ -305,8 +305,9 @@ export function BrutalistHome({ onNavigate, onSelectToken, activeAccountAddress 
         }}>
           {(['assets', 'nfts'] as const).map(tab => {
             const isActive = activeAssetTab === tab;
-            const fungibleTokens = tokens.filter(t => t.type === 'token');
-            const nftTokens = tokens.filter(t => t.type === 'nft');
+            const isNft = (t: TokenData) => t.type === 'nft' || t.type === 'NFT' || (t.decimals === 0 && String(t.total) === '1');
+            const fungibleTokens = tokens.filter(t => !isNft(t));
+            const nftTokens = tokens.filter(isNft);
             const count = tab === 'assets' ? fungibleTokens.length : nftTokens.length;
             return (
               <button
@@ -376,8 +377,9 @@ export function BrutalistHome({ onNavigate, onSelectToken, activeAccountAddress 
 
         {/* Token Rows */}
         {tokensState === 'success' && (() => {
-          const fungibleTokens = tokens.filter(t => t.type === 'token');
-          const nftTokens = tokens.filter(t => t.type === 'nft');
+          const isNft = (t: TokenData) => t.type === 'nft' || t.type === 'NFT' || (t.decimals === 0 && String(t.total) === '1');
+            const fungibleTokens = tokens.filter(t => !isNft(t));
+          const nftTokens = tokens.filter(isNft);
           const displayTokens = activeAssetTab === 'assets' ? fungibleTokens : nftTokens;
           const emptyLabel = activeAssetTab === 'assets' ? 'No Custom Tokens' : 'No NFTs';
 
@@ -403,6 +405,7 @@ export function BrutalistHome({ onNavigate, onSelectToken, activeAccountAddress 
                   sendable={token.sendable}
                   unconfirmed={token.unconfirmed}
                   coins={token.coins}
+                  decimals={token.decimals}
                   type={token.type}
                   icon={token.icon}
                   webvalidate={token.webvalidate}

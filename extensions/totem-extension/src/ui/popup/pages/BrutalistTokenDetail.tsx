@@ -73,12 +73,12 @@ export function BrutalistTokenDetail({ token, onNavigate, onSendToken, onBack }:
   const [copiedOwner, setCopiedOwner] = useState(false);
 
   const isMinima = token.tokenId === '0x00';
-  const isNFT = !isMinima && (token.decimals === 0 || token.type === 'NFT');
+  const isNFT = !isMinima && (token.type === 'NFT' || token.type === 'nft' || (token.decimals === 0 && token.total === '1'));
   const isVerified = !!token.webvalidate;
   const displayName = token.ticker || token.tokenName;
   const hasUnconfirmed = token.unconfirmed && token.unconfirmed !== '0';
-  const formattedBalance = formatAmount(token.balance, 8);
-  const formattedSendable = token.sendable ? formatAmount(token.sendable, 8) : formattedBalance;
+  const formattedBalance = formatAmount(token.balance, Math.min(token.decimals ?? 4, 8));
+  const formattedSendable = token.sendable ? formatAmount(token.sendable, Math.min(token.decimals ?? 4, 8)) : formattedBalance;
   const formattedUnconfirmed = hasUnconfirmed ? formatAmount(token.unconfirmed!, 4) : null;
 
   const initialArtworkUrl = parseTokenImageUrl(token.icon) || parseTokenImageUrl(token.url) || parseTokenImageUrl(token.artimage);

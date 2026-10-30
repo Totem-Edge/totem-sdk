@@ -36,6 +36,7 @@ interface WalletToken {
   unconfirmed?: string;
   icon?: string;
   type?: string;
+  decimals?: number;
 }
 
 type SendScreen = 'form' | 'review' | 'receipt';
@@ -126,8 +127,9 @@ export function BrutalistSend({ initialToken, onTokenConsumed, activeAccountInde
           balance:     t.total ?? t.confirmed ?? '0',
           sendable:    t.confirmed ?? '0',
           unconfirmed: t.unconfirmed ?? '0',
-          icon:        parseTokenImageUrl(t.url) || parseTokenImageUrl(t.icon),
-          type:        t.kind,
+          icon:        parseTokenImageUrl(t.url) || parseTokenImageUrl(t.icon) || parseTokenImageUrl(t.artimage),
+          type:        t.decimals === 0 ? 'nft' : (t.kind ?? 'token'),
+          decimals:    t.decimals,
         })),
     ];
     setWalletTokens(newTokens);
@@ -612,7 +614,7 @@ export function BrutalistSend({ initialToken, onTokenConsumed, activeAccountInde
             Available
           </Typography>
           <Typography variant="body" color="accent" mono style={{ fontWeight: 700 }}>
-            {formatAmount(balance, 4)} {selectedAsset}
+            {formatAmount(balance, Math.min(walletTokens.find(t => t.tokenId === selectedTokenId)?.decimals ?? 4, 8))} {selectedAsset}
           </Typography>
         </div>
         {(() => {
@@ -625,7 +627,7 @@ export function BrutalistSend({ initialToken, onTokenConsumed, activeAccountInde
                 Pending
               </Typography>
               <Typography variant="caption" color="muted" mono style={{ fontSize: '10px' }}>
-                +{formatAmount(selToken!.unconfirmed!, 4)} {selectedAsset} (confirming…)
+                +{formatAmount(selToken!.unconfirmed!, Math.min(selToken!.decimals ?? 4, 8))} {selectedAsset} (confirming…)
               </Typography>
             </div>
           );
@@ -981,14 +983,14 @@ export function BrutalistSend({ initialToken, onTokenConsumed, activeAccountInde
                           {displayName}
                           {isSelected && <span style={{ color: 'var(--axia-aqua)', marginLeft: '4px' }}>✓</span>}
                         </div>
-                        {token.type === 'NFT' && (
+                        {(token.type === 'NFT' || token.type === 'nft') && (
                           <span style={{ fontSize: '9px', color: 'var(--text-muted)', border: '1px solid var(--border-subtle)', padding: '0 3px', borderRadius: '2px' }}>NFT</span>
                         )}
                       </div>
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
                       <div style={{ fontSize: 'var(--text-xs)', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
-                        {formatAmount(token.sendable || token.balance, 4)}
+                        {formatAmount(token.sendable || token.balance, Math.min(token.decimals ?? 4, 8))}
                       </div>
                     </div>
                   </button>

@@ -34,9 +34,9 @@ export function TokenRow({
   description,
   onClick 
 }: TokenRowProps) {
-  const formatted = formatAmount(balance, 4);
+  const formatted = formatAmount(balance, Math.min(decimals ?? 4, 8));
   const isClickable = !!onClick;
-  const isNFT = type === 'NFT';
+  const isNFT = type === 'NFT' || type === 'nft';
   const isVerified = !!webvalidate;
   const isMinima = tokenId === '0x00';
   const displayName = ticker || tokenName;
