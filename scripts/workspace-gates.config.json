@@ -374,7 +374,9 @@
       "custody": {
         "classification": "non-custodial",
         "reason": "library \u2014 holds no on-chain value"
-      }
+      },
+      "storageRole": "adapter",
+      "storageReason": "Node-specific SQLite datastore implements the lookup node persistence boundary; uses better-sqlite3 deliberately behind its own adapter."
     },
     "packages/lookup-protocol": {
       "status": "publishable",
@@ -621,7 +623,9 @@
       "custody": {
         "classification": "non-custodial",
         "reason": "statechain operator service; holds no value (owner reclaim path is on-chain)"
-      }
+      },
+      "storageRole": "application",
+      "storageReason": "PostgreSQL is the se-server application database, not a reusable device/storage contract; direct pg access is the server persistence boundary."
     },
     "packages/server": {
       "status": "publishable",

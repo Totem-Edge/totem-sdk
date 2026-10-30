@@ -92,6 +92,10 @@ packages fail on runtime direct DB drivers, forked storage contracts,
 undeclared `@totemsdk/storage` imports, or raw device transports in `edge-*`
 connectors. RC/Alpha findings are reported as migration debt. Tests may inject
 concrete SQLite backends; connector runtime code must use the SDK abstraction.
+A package whose role is explicitly declared as `storageRole: "adapter"` or
+`"application"` (with an owner/reason) may own its database boundary; undeclared
+direct drivers still fail. This keeps genuine node/server datastores visible
+without letting connectors fork the SDK storage layer.
 
 ## CI and current boundary
 

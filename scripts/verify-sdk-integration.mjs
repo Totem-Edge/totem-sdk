@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const config = JSON.parse(readFileSync(join(ROOT, 'scripts/workspace-gates.config.json'), 'utf8'));
 const STORAGE_CONTRACT_OWNERS = new Set(['packages/core', 'packages/storage']);
-const FORBIDDEN_DRIVERS = /better-sqlite3|node:sqlite|from ['"]sqlite3['"]|from ['"](level|levelup|classic-level|lmdb|ioredis|mongodb)['"]/;
+const FORBIDDEN_DRIVERS = /(?:from\s+['"](?:better-sqlite3|sqlite3|level|levelup|classic-level|lmdb|ioredis|mongodb|pg|duckdb)['"]|require\(['"](?:better-sqlite3|sqlite3|level|levelup|classic-level|lmdb|ioredis|mongodb|pg|duckdb)['"]\)|from\s+['"]node:sqlite['"])/;
 const STORAGE_CONTRACT = /^(?:export\s+)?interface\s+(StorageAdapter|CasStore|TransactionalStore|StoreCapabilities)\b|^export\s+type\s+(WriteAckMode)\b/;
 const EDGE_RAW_TRANSPORT = /from ['"](mqtt|serialport|modbus-serial|ws|node:net|net|node:tls|tls)['"]/;
 const SKIP_DIRS = new Set(['node_modules', 'dist', 'build', 'coverage', 'rust', 'target', 'pkg', 'pkg-node', 'pkg-web', '__tests__', 'test', 'tests']);
@@ -41,10 +41,11 @@ for (const [dir, meta] of Object.entries(config.packages)) {
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
   const deps = { ...(manifest.dependencies ?? {}), ...(manifest.devDependencies ?? {}) };
   const isEdgeConnector = dir === 'packages/edge' || dir.startsWith('packages/edge-');
+  const declaredStorageRole = meta.storageRole === 'adapter' || meta.storageRole === 'application';
   for (const file of sourceFiles(join(ROOT, dir))) {
     const source = readFileSync(file, 'utf8');
     const relative = file.slice(ROOT.length + 1);
-    if (!STORAGE_CONTRACT_OWNERS.has(dir) && FORBIDDEN_DRIVERS.test(source)) {
+    if (!declaredStorageRole && !STORAGE_CONTRACT_OWNERS.has(dir) && FORBIDDEN_DRIVERS.test(source)) {
       findings.push({ dir, level: meta.maturity ?? 'unclassified', rule: 'direct-db-driver', detail: relative });
     }
     if (!STORAGE_CONTRACT_OWNERS.has(dir) && source.split('\n').some((line) => STORAGE_CONTRACT.test(line.trim()))) {
@@ -57,7 +58,7 @@ for (const [dir, meta] of Object.entries(config.packages)) {
       findings.push({ dir, level: meta.maturity ?? 'unclassified', rule: 'undeclared-sdk-storage', detail: relative });
     }
   }
-  if (FORBIDDEN_DRIVERS.test(Object.keys(manifest.dependencies ?? {}).join(' ')) && !STORAGE_CONTRACT_OWNERS.has(dir)) {
+  if (!declaredStorageRole && FORBIDDEN_DRIVERS.test(Object.keys(manifest.dependencies ?? {}).join(' ')) && !STORAGE_CONTRACT_OWNERS.has(dir)) {
     findings.push({ dir, level: meta.maturity ?? 'unclassified', rule: 'direct-db-dependency', detail: 'package.json' });
   }
 }
