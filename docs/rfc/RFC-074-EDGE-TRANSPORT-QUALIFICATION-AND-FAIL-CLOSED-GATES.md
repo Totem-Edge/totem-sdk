@@ -406,7 +406,9 @@ MQTT now has runnable `test:recovery`, `test:consumer` and `test:conformance`
 evidence for this limited profile; it remains RC. Verification comprises 184
 package unit tests, five process-recovery checks, one packed ESM/CJS/type
 consumer and four real Aedes-broker checks (QoS 1, QoS 2, persistent-session
-offline redelivery plus durable replay, authentication rejection). Production
-issuer/WOTS storage, Mosquitto/EMQX/TLS/ACL matrices, hostile reconnect,
-execution-status journaling/reconciliation and the remaining Phase 2 lifecycle
-requirements are still open.
+offline redelivery plus durable replay, authentication rejection) and one
+durable WOTS lease-signing suite (concurrent + restart key separation). The
+issuer/command verifier remains application-owned. Mosquitto/EMQX/TLS/ACL
+matrices, hostile reconnect, real wallet/HSM issuer verification,
+multi-device lease quorum, execution-status journaling/reconciliation and the
+remaining Phase 2 lifecycle requirements are still open.

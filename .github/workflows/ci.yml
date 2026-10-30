@@ -136,6 +136,8 @@ jobs:
         run: pnpm --filter @totemsdk/edge-mqtt test:consumer
       - name: MQTT real broker QoS/session/auth conformance (RFC-074)
         run: pnpm --filter @totemsdk/edge-mqtt test:conformance
+      - name: MQTT durable WOTS lease signing conformance (RFC-074)
+        run: pnpm --filter @totemsdk/edge-mqtt test:signing
       - name: Setup Go for Modbus cross-language contract
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:

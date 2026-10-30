@@ -105,6 +105,7 @@ pnpm --filter @totemsdk/edge-mqtt test --runInBand
 pnpm --filter @totemsdk/edge-mqtt test:recovery
 pnpm --filter @totemsdk/edge-mqtt test:consumer
 pnpm --filter @totemsdk/edge-mqtt test:conformance
+pnpm --filter @totemsdk/edge-mqtt test:signing
 ```
 
 The consumer test installs real local MQTT and Edge tarballs, with other
@@ -121,6 +122,13 @@ queueing QoS 1 while offline, durable replay after handler/store restart, and
 authentication rejection. This is an in-process broker profile, not a Mosquitto/
 EMQX matrix, TLS, broker ACLs, hostile-network reconnect, or physical-device
 evidence.
+
+The signing-conformance suite composes the real durable `LocalLeaseProvider`
+from `@totemsdk/wots-lease` over SQLite with MQTT `proof-package` signing. It
+checks three concurrent proofs and one after provider/database restart use four
+distinct WOTS public keys and verify cryptographically. Issuer/command signature
+authentication is still application-owned; a real wallet/HSM verifier,
+multi-device lease quorum and key-lifecycle operations remain unqualified.
 
 `@totemsdk/edge-mqtt` wraps an `EdgeRuntime` (from `@totemsdk/edge`) with an MQTT-aware dispatch layer. You supply the transport client; the package handles rule routing, sensor bridging, proof publication, command gating, MachinePay credit enforcement, offline queuing, and service manifests.
 

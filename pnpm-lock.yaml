@@ -937,6 +937,9 @@ importers:
         specifier: workspace:^
         version: link:../storage
     devDependencies:
+      '@totemsdk/wots-lease':
+        specifier: workspace:^
+        version: link:../wots-lease
       '@types/jest':
         specifier: ^30.0.0
         version: 30.0.0

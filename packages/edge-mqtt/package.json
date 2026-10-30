@@ -42,7 +42,8 @@
     "test": "jest",
     "test:recovery": "node --test test/replay-recovery.test.mjs",
     "test:consumer": "node --test test/packed-consumer.test.mjs",
-    "test:conformance": "node --test test/broker-conformance.test.mjs"
+    "test:conformance": "node --test test/broker-conformance.test.mjs",
+    "test:signing": "node --test test/signing-conformance.test.mjs"
   },
   "files": [
     "dist",
@@ -63,6 +64,7 @@
     "@totemsdk/storage": "workspace:^"
   },
   "devDependencies": {
+    "@totemsdk/wots-lease": "workspace:^",
     "@types/jest": "^30.0.0",
     "@types/node": "^20.0.0",
     "aedes": "1.2.0",
