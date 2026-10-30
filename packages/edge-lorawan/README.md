@@ -93,3 +93,16 @@ await bridge.start();
 ## License
 
 Apache-2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
+
+
+## Testing
+
+Tests live outside the published package:
+
+- Unit/recovery: `tests/unit/edge-lorawan/`
+- Simulator conformance, gateway+bridge integration, packed consumer:
+  `tests/qualification/edge-lorawan/`
+- Qualification profile and limitations: `qualification/registry.json`
+
+Package `test:*` scripts are thin repository delegates. No tests are shipped in
+the npm tarball.
