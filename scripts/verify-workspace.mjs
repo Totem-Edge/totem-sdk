@@ -278,7 +278,10 @@ function ensurePrerequisiteBuilds(labelPrefix) {
 
 function packageHasTestFiles(pkgDir, workspaceDir = '') {
   const candidates = ['src/__tests__', 'test', '__tests__', 'src/test'];
-  if (workspaceDir) candidates.push(`../../tests/unit/${workspaceDir.split('/').pop()}`);
+  if (workspaceDir) {
+    const external = join(ROOT, 'tests', 'unit', workspaceDir.split('/').pop());
+    if (existsSync(external)) return true;
+  }
   for (const c of candidates) {
     const full = join(pkgDir, c);
     if (existsSync(full)) {
