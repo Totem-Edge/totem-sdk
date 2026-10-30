@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/qvac",
   "version": "0.2.0",
-  "description": "QVAC intelligence adapter — wraps @qvac/sdk into @totemsdk/intelligence's provider-neutral contracts",
+  "description": "QVAC intelligence adapter \u2014 wraps @qvac/sdk into @totemsdk/intelligence's provider-neutral contracts",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "exports": {
@@ -210,7 +210,7 @@
     "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist",
-    "test": "jest"
+    "test": "jest --config ../../tests/jest/qvac.cjs"
   },
   "files": [
     "dist",

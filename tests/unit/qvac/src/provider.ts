@@ -1,0 +1,1 @@
+../../../../packages/qvac/src/provider.ts

@@ -1,0 +1,1 @@
+../../../../packages/qvac/src/edge-adapter.ts

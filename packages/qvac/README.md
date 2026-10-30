@@ -125,3 +125,7 @@ types.
 ## License
 
 Apache-2.0 — Totem SDK Contributors. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
+
+## Testing
+
+Tests live outside the published package in `tests/unit/qvac/`. Package `test` delegates to the central runner.
