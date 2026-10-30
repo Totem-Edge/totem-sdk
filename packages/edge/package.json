@@ -52,7 +52,7 @@
     "@totemsdk/authority": "workspace:^",
     "@totemsdk/connect": "workspace:^",
     "@totemsdk/proof": "workspace:^",
-    "@types/node": "^20.0.0",
+    "@types/node": "^26.6.5",
     "typescript": "^7.0.2"
   },
   "engines": {
