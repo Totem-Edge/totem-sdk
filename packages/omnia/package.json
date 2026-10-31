@@ -53,7 +53,7 @@
     "@totemsdk/tx-builder": "workspace:^",
     "@totemsdk/txpow": "workspace:^",
     "@totemsdk/wots-lease": "workspace:^",
-    "hyperswarm": ">=4.0.0",
+    "hyperswarm": ">=4.17.2",
     "hyperdht": "^6.0.0"
   },
   "devDependencies": {
