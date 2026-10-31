@@ -47,7 +47,7 @@
     "ws": "^8.21.1"
   },
   "devDependencies": {
-    "@types/node": "^20.19.43",
+    "@types/node": "^26.6.5",
     "@types/ws": "^8.5.0",
     "@totemsdk/txpow": "workspace:^",
     "typescript": "5.9.3"

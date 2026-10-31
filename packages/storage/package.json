@@ -248,7 +248,7 @@
   "devDependencies": {
     "@jest/globals": "^30.4.2",
     "@types/better-sqlite3": "^7.6.13",
-    "@types/node": "^20.0.0",
+    "@types/node": "^26.6.5",
     "fake-indexeddb": "^6.2.5",
     "typescript": "^7.0.2"
   },

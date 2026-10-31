@@ -50,7 +50,7 @@
   },
   "devDependencies": {
     "@totemsdk/wots-lease": "workspace:^",
-    "@types/node": "^20.0.0",
+    "@types/node": "^26.6.5",
     "aedes": "1.2.0",
     "mqtt": "5.16.1",
     "typescript": "^7.0.2"
