@@ -5,6 +5,7 @@ use crate::commitment;
 use crate::persistence;
 use crate::program;
 use crate::script;
+use crate::serialize;
 use crate::state_vars;
 use crate::transition;
 use crate::types::*;
@@ -18,10 +19,49 @@ pub fn init() {
 // ─── script ──────────────────────────────────────────────────────────────────
 
 #[wasm_bindgen]
-pub fn build_eltoo_script_wasm(parties_js: JsValue) -> Result<String, JsValue> {
+pub fn build_eltoo_script_wasm(
+    parties_js: JsValue,
+    contest_delay_blocks: Option<u32>,
+) -> Result<String, JsValue> {
     let parties: Vec<ChannelParticipant> = serde_wasm_bindgen::from_value(parties_js)
         .map_err(|e| JsValue::from_str(&format!("Failed to parse parties: {}", e)))?;
-    script::build_eltoo_script(&parties).map_err(|e| JsValue::from_str(&e))
+    let delay = contest_delay_blocks
+        .map(u64::from)
+        .unwrap_or(script::ELTOO_CONTEST_DELAY_BLOCKS);
+    script::build_eltoo_script(&parties, delay).map_err(|e| JsValue::from_str(&e))
+}
+
+#[wasm_bindgen]
+pub fn compute_state_commitment_v2_wasm(
+    channel_js: JsValue,
+    sequence: u32,
+    balances_js: JsValue,
+    pending_htlcs_js: JsValue,
+    settlement: bool,
+    program_state_variables_js: JsValue,
+) -> Result<String, JsValue> {
+    let channel: OmniaChannel = serde_wasm_bindgen::from_value(channel_js)
+        .map_err(|e| JsValue::from_str(&format!("Failed to parse channel: {}", e)))?;
+    let balances: std::collections::HashMap<String, String> = serde_wasm_bindgen::from_value(balances_js)
+        .map_err(|e| JsValue::from_str(&format!("Failed to parse balances: {}", e)))?;
+    let pending_htlcs: Vec<HTLCRecord> = serde_wasm_bindgen::from_value(pending_htlcs_js)
+        .map_err(|e| JsValue::from_str(&format!("Failed to parse HTLCs: {}", e)))?;
+    let state_variables: Vec<crate::types::StateValue> = serde_wasm_bindgen::from_value(program_state_variables_js)
+        .map_err(|e| JsValue::from_str(&format!("Failed to parse state variables: {}", e)))?;
+    let digest = commitment::compute_state_commitment_v2(
+        &channel,
+        sequence,
+        &balances,
+        &pending_htlcs,
+        settlement,
+        &state_variables,
+    );
+    Ok(hex::encode(digest))
+}
+
+#[wasm_bindgen]
+pub fn state_commitment_v2_payload_wasm() -> String {
+    commitment::last_state_commitment_v2_input()
 }
 
 #[wasm_bindgen]
@@ -509,14 +549,20 @@ pub fn validate_balance_conservation_wasm(
         .map_err(|e| JsValue::from_str(&format!("Failed to serialize: {}", e)))
 }
 
+/// Fail-closed result for mirror entry points that cannot yet verify a state.
+///
+/// Returning `{ valid: true }` without signature, port-102 commitment and
+/// close-package verification is a false assurance, so the mirror reports the
+/// capability as unavailable instead. The TypeScript validator is authoritative
+/// until the Rust mirror reaches parity.
 #[wasm_bindgen]
 pub fn validate_complete_channel_state_wasm(
-    channel_js: JsValue,
-    state_js: JsValue,
+    channel_json: &str,
+    state_json: &str,
 ) -> Result<JsValue, JsValue> {
-    let channel: OmniaChannel = serde_wasm_bindgen::from_value(channel_js)
+    let channel: OmniaChannel = serde_json::from_str(channel_json)
         .map_err(|e| JsValue::from_str(&format!("Failed to parse channel: {}", e)))?;
-    let state: SignedChannelState = serde_wasm_bindgen::from_value(state_js)
+    let state: SignedChannelState = serde_json::from_str(state_json)
         .map_err(|e| JsValue::from_str(&format!("Failed to parse state: {}", e)))?;
     let result = validation::validate_complete_channel_state(&channel, &state);
     serde_wasm_bindgen::to_value(&result)
@@ -524,32 +570,20 @@ pub fn validate_complete_channel_state_wasm(
 }
 
 #[wasm_bindgen]
-pub fn verify_state_wasm(
-    channel_js: JsValue,
-    state_js: JsValue,
-    verify_sig_js: JsValue,
-) -> Result<JsValue, JsValue> {
-    let channel: OmniaChannel = serde_wasm_bindgen::from_value(channel_js)
+pub fn verify_state_wasm(channel_json: &str, state_json: &str) -> Result<JsValue, JsValue> {
+    let channel: OmniaChannel = serde_json::from_str(channel_json)
         .map_err(|e| JsValue::from_str(&format!("Failed to parse channel: {}", e)))?;
-    let state: SignedChannelState = serde_wasm_bindgen::from_value(state_js)
+    let state: SignedChannelState = serde_json::from_str(state_json)
         .map_err(|e| JsValue::from_str(&format!("Failed to parse state: {}", e)))?;
-
-    let verify_fn = js_sys::Function::from(verify_sig_js);
-    let sig_verifier = move |sig: &str, commitment: &[u8], pkd: &str| -> bool {
-        let this = JsValue::NULL;
-        let args = js_sys::Array::new();
-        args.push(&JsValue::from_str(sig));
-        args.push(&JsValue::from_str(&hex::encode(commitment)));
-        args.push(&JsValue::from_str(pkd));
-        match verify_fn.call1(&this, &args) {
-            Ok(result) => result.as_bool().unwrap_or(false),
-            Err(_) => false,
-        }
-    };
-
-    let result = validation::verify_state(&channel, &state, &sig_verifier);
+    let result = validation::verify_state(&channel, &state);
     serde_wasm_bindgen::to_value(&result)
         .map_err(|e| JsValue::from_str(&format!("Failed to serialize: {}", e)))
+}
+
+#[wasm_bindgen]
+pub fn compute_tx_digest_wasm(tx_hex: &str) -> Result<String, JsValue> {
+    let digest = serialize::digest_from_hex(tx_hex).map_err(|e| JsValue::from_str(&e))?;
+    Ok(serialize::bytes_to_hex(&digest))
 }
 
 #[wasm_bindgen]

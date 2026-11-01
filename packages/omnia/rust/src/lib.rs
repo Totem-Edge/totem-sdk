@@ -4,6 +4,8 @@ pub mod capacity;
 pub mod commitment;
 pub mod persistence;
 pub mod program;
+pub mod serialize;
+pub mod signature;
 pub mod script;
 pub mod state_vars;
 pub mod transition;

@@ -3,7 +3,10 @@ use serde_json::{Map, Value};
 use std::collections::HashSet;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::program::{COUNTER_PROGRAM_ID, ELTOO_PAYMENT_PROGRAM_ID, METER_PROGRAM_ID};
+use crate::program::{
+    ASSET_PROGRAM_ID, COUNTER_PROGRAM_ID, ELTOO_PAYMENT_PROGRAM_ID, HTLC_PROGRAM_ID,
+    MEMBERSHIP_PROGRAM_ID, METER_PROGRAM_ID, TREASURY_PROGRAM_ID, VAULT_PROGRAM_ID,
+};
 use crate::types::{ChannelStatus, ClosePackageArtifact, OmniaChannel, SignedChannelState};
 
 pub const SNAPSHOT_VERSION: u32 = 1;
@@ -154,7 +157,14 @@ fn assert_known_program(channel: &OmniaChannel) -> Result<(), String> {
         ));
     }
     match channel.program_id.as_str() {
-        ELTOO_PAYMENT_PROGRAM_ID | COUNTER_PROGRAM_ID | METER_PROGRAM_ID => Ok(()),
+        ELTOO_PAYMENT_PROGRAM_ID
+        | COUNTER_PROGRAM_ID
+        | METER_PROGRAM_ID
+        | HTLC_PROGRAM_ID
+        | VAULT_PROGRAM_ID
+        | TREASURY_PROGRAM_ID
+        | MEMBERSHIP_PROGRAM_ID
+        | ASSET_PROGRAM_ID => Ok(()),
         _ => Err(format!(
             "Unknown ChannelProgram: {}@{}",
             channel.program_id, channel.program_version
