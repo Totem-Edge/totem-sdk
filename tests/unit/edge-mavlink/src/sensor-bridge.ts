@@ -1,0 +1,1 @@
+../../../../packages/edge-mavlink/src/sensor-bridge.ts
