@@ -19,6 +19,7 @@
 
 import { addHTLC, fulfillHTLC } from '@totemsdk/omnia';
 import type { OmniaChannel, ChannelSigner, OmniaSwarm } from '@totemsdk/omnia';
+import type { ChainStateProvider } from '@totemsdk/chain-provider';
 import {
   createCleartextRoutingCodec,
   type RoutingEnvelopeCodec,
@@ -30,6 +31,8 @@ export interface MultiHopForwarderOptions {
   channels: Map<string, OmniaChannel>;
   leaseProvider: WotsLeaseProvider;
   signer: ChannelSigner;
+  /** Chain view used to refuse fulfilling an expired HTLC. */
+  chainProvider: ChainStateProvider;
   swarm: OmniaSwarm;
   /** Envelope codec; defaults to the cleartext codec. */
   codec?: RoutingEnvelopeCodec;
@@ -145,7 +148,7 @@ export function createMultiHopForwarder(options: MultiHopForwarderOptions): Mult
     const channel = options.channels.get(link.inChannelId);
     if (!channel) return { status: 'unknown' };
 
-    const result = await fulfillHTLC(channel, link.inHtlcId, preimage, options.leaseProvider, options.signer);
+    const result = await fulfillHTLC(channel, link.inHtlcId, preimage, options.leaseProvider, options.chainProvider, options.signer);
     options.channels.set(result.channel.channelId, result.channel);
     links.delete(hashlock);
 

@@ -7,7 +7,101 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **RFC-054 Gate 0 proof scripts:** `npm run test:swap:vm` runs the on-chain HTLC
+  claim/refund cases and `npm run test:channel:vm` runs the Eltoo channel
+  update/settlement cases, each through the Rust/WASM KISSVM and the TypeScript
+  evaluator with real TreeKey signatures, requiring both to agree. The HTLC gate
+  includes a negative control proving the legacy template accepted a claim after
+  the timeout.
+
+### Changed
+
+- **`@totemsdk/omnia` API:** `fulfillHTLC` now requires a `ChainStateProvider` (it
+  refuses to fulfil an expired HTLC); `replaceUnilateralCloseState` is async and
+  takes a chain provider plus broadcast proofs; `buildHtlcFulfillmentReceipt` takes
+  the signed state and `verifyHtlcFulfillmentReceipt` was added. The omnia relay and
+  pool ports pass the provider through, and the host injects it.
+
 ### Fixed
+
+- **`@totemsdk/omnia` HTLC semantics:** `addHTLC` binds the HTLC to the channel
+  counterparty and validates direction, hashlock, timeout and token-scale
+  divisibility. `fulfillHTLC` rejects a fulfil after the timeout (chain tip) and
+  accepts either preimage form. HTLC claim descriptors store the preimage as a
+  `hex` state value. Fulfilment receipts are bound to a signed state and verified
+  against the recipient's signature instead of being an unauthenticated self-hash.
+- **`@totemsdk/omnia` encoding/accounting:** commitments sort by UTF-16 code units
+  (not ICU-dependent `localeCompare`); `getStateBool` parses representations
+  explicitly; settlement requires the exact participant balance set and rejects
+  negative balances; capacity counts two WOTS leaves per state and the receipt no
+  longer clamps; close-package/settlement witnesses follow `MULTISIG` key order;
+  a counterparty close package is kept when the local partial state has none.
+- **`@totemsdk/omnia` Rust mirror parity:** canonical Minima transaction
+  serialisation, the signed digest, state-commitment v2, close-package
+  verification and WOTS tree-signature verification are ported to Rust and
+  cross-checked against TypeScript. `verify_state_wasm` and
+  `validate_complete_channel_state_wasm` are re-enabled over the serialized JSON
+  form, and `verifyStateWithRustMirror()` exposes the mirror with a fail-closed
+  fallback. Malformed amounts fail closed, `pending_htlc_delta` may be negative,
+  the preimage check hex-decodes, and the recovery allowlist covers all eight
+  programs.
+
+- **`@totemsdk/omnia` chain truth:** confirmation depth uses the coin's `created`
+  block instead of `mmrentry` (an MMR index), and a missing/invalid height counts
+  as unconfirmed rather than height 0. `confirmUpdateBroadcast` records
+  `onChainSequence`/`latestCoinId` only from a coin that carries the latest signed
+  state's sequence and port-102 commitment.
+- **`@totemsdk/omnia` unilateral close lifecycle:** finalisation requires the close
+  package to belong to the latest signed state, re-verifies it, and broadcasts the
+  verified settlement bytes; the contest window uses the channel's own
+  `contestDelayBlocks`, and `recordUnilateralUpdateCoin` restarts it from the update
+  output's real inclusion height. Finalisation refuses to run until that coin is
+  recorded. `replaceUnilateralCloseState` is now async, verifies the newer package,
+  rebroadcasts its update and restarts the contest window.
+- **`@totemsdk/omnia` state authentication:** the signed payload now covers the
+  carried `stateVariables` and `transactionHex` — `verifyStateSignature` rebuilds
+  the update transaction and rejects any state whose copies do not match.
+  `attachCounterpartySignature` validates the entire merged state (sequence,
+  conservation, port-102 commitment, program hooks, partial close package, every
+  present signature) instead of only the counterparty signature.
+- **`@totemsdk/omnia` signing guards:** `signState` enforces the sequence/double-sign
+  watermark itself, so the peer co-sign path is guarded like `updateState`. The
+  watermark is sealed on the first produced signature and can no longer be released
+  into a different payload at the same sequence. Guards moved to `guards.ts` to
+  avoid an import cycle.
+- **`@totemsdk/omnia` settlement signing boundary:** `signSettlementRequest` no
+  longer signs counterparty-supplied bytes. The settlement draft is rebuilt from
+  channel state, and the supplied transaction, digest, sequence and addresses must
+  match it before anything is signed. `proposeSettlement` verifies supplied local
+  and counterparty signatures before they can enter the broadcast witness.
+- **`@totemsdk/omnia` settlement addresses:** settlement outputs use the channel's
+  agreed `settlementAddress`, or the address derived from the party key
+  (`wotsAddressData`), never the raw public-key digest — which is a `SIGNEDBY`
+  identity and burned funds on unilateral close. Peer-supplied address overrides are
+  rejected.
+- **`@totemsdk/omnia` channel open:** `acceptChannel` rejects a counterparty contest
+  delay below the 256-block floor (explicit opt-in for test/dev) and binds the
+  funding coin and `fundingAddress` to the eltoo script address.
+- **`@totemsdk/omnia` eltoo script builder:** rejects duplicate party keys
+  (`MULTISIG(2 A A)` is satisfiable by one signature), malformed `parties`
+  arguments and unsafe delays; accepts `number | bigint` for the delay.
+- **`@totemsdk/omnia` Rust mirror:** the script builder validates 64-hex digests,
+  rejects duplicate keys, honours the contest delay and emits node-canonical text
+  byte-identical to TS. `validate_complete_channel_state_wasm` and
+  `verify_state_wasm` fail closed instead of returning `valid: true` without
+  signature, commitment-v2 or close-package verification.
+- **`@totemsdk/core` HTLC template (RFC-069 §6 invariant 5):** the claim branch is
+  now time-bounded. After `timeoutBlock` only the owner refund path is valid; at or
+  before it only the recipient preimage path is valid. Previously a recipient could
+  claim after the refund path became valid, so claim and refund raced. The script
+  builder is now shared (`buildHTLCScript`) by `createHTLCDescriptor` and
+  `HTLCHelper.createHTLC`, in `@totemsdk/core` and the extension copy.
+- **`@totemsdk/kissvm` Rust lexer parity:** node-canonicality no longer rejects
+  function names containing digits (`SHA3`, `SHA2`) as non-canonical user
+  variables. Any script using `SHA3` was rejected by the Rust/WASM VM while the
+  TypeScript evaluator and the node accepted it.
 
 - **Extension version display:** Settings and the splash screen now read the
   live extension manifest version instead of hard-coding `v1.0.0`. The

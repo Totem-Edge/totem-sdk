@@ -2458,7 +2458,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
     return withOperation(context, params, async () => {
       const channel = context.channels.get(channelId);
       if (!channel) throw new Error(`Channel ${channelId} not found`);
-      const fulfilled = await fulfillHTLC(channel, requiredString(params, 'htlcId'), requiredString(params, 'preimage'), context.leaseProvider!, context.signer);
+      const fulfilled = await fulfillHTLC(channel, requiredString(params, 'htlcId'), requiredString(params, 'preimage'), context.leaseProvider!, context.chainProvider, context.signer);
       if (fulfilled.error) throw new Error(fulfilled.error);
       context.channels.set(channelId, fulfilled.channel);
       await context.observe?.emit({
@@ -3197,6 +3197,7 @@ export function createHostMethods(context: HostApiContext): Map<string, JsonRpcH
         htlcId,
         preimage,
         leaseProvider as WotsLeaseProvider,
+        context.chainProvider,
         context.signer,
       ),
       timeoutHTLC: (channel, htlcId, leaseProvider) => timeoutHTLC(

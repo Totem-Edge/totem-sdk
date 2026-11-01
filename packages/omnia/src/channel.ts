@@ -15,19 +15,23 @@ import type {
   SignedClosePackage,
   ApplyProgramTransitionParams,
 } from './types.js';
-import { buildAndHashEltooScript, scriptAddress } from './script.js';
+import { buildAndHashEltooScript, scriptAddress, ELTOO_CONTEST_DELAY_BLOCKS } from './script.js';
 import {
   buildFundingTx,
   computeOmniaTxDigest,
   minimaOutputCoinIdsForDraft,
   omniaDraftToCanonicalMinimaBytes,
+  STATE_SEQUENCE_PORT,
+  STATE_COMMITMENT_V2_PORT,
 } from './transactions.js';
 import { serializeOmniaWitness } from './witness.js';
 import { assessCapacity, WOTS_CAPACITY_TOTAL, flatSigningIndex } from './capacity.js';
-import { signState, verifyStateSignature } from './sign.js';
-import { ChannelStatusError, SigningIndexMonotonicityError, DoubleSignError, SequenceError } from './errors.js';
+import { signState, validateStateForCoSign, verifyStateSignature } from './sign.js';
+import { ChannelStatusError, SigningIndexMonotonicityError } from './errors.js';
 import { mergeClosePackages, verifyClosePackage } from './close-package.js';
 import { computeProgramUpdateDigestHex, resolveChannelProgram } from './program.js';
+import { enforceUpdateGuards, releaseUpdateGuard } from './guards.js';
+import { confirmationsAt } from './chain-truth.js';
 import { canonicalizeProgramTransition } from './transition.js';
 
 /**
@@ -37,102 +41,12 @@ import { canonicalizeProgramTransition } from './transition.js';
  */
 const FUNDING_COIN_WAIT_MS = 60_000;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Module-level sequence watermarks
-//
-// Persist the most-recently-signed (sequence, payloadHash) per channel ID.
-// Because JavaScript is single-threaded, this map is always consistent within
-// one process. It provides authoritative enforcement that is independent of
-// the mutable channel object: stale copies can never sign a different payload
-// at a sequence that has already been committed, and the sequence number can
-// never go backwards regardless of which channel object a caller holds.
-// ─────────────────────────────────────────────────────────────────────────────
-const _channelWatermarks = new Map<string, { sequence: number; payloadHash: string }>();
-
-/**
- * Enforce all per-update invariants that must hold for every state transition
- * regardless of whether the caller is `updateState`, `addHTLC`, `fulfillHTLC`,
- * or `timeoutHTLC`.
- *
- * Specifically:
- *   1. WOTS capacity check: throws `ChannelCapacityError` at 100%, returns
- *      `'CAPACITY_NEAR_EXHAUSTION'` at 95% (caller must NOT advance watermark).
- *   2. Stale-sequence guard (SequenceError): rejects any attempt to sign a
- *      sequence that is behind the module-level watermark.
- *   3. Double-sign guard (DoubleSignError): rejects a different payload at a
- *      sequence already committed by this process.
- *   4. Watermark advance: after all guards pass, records `(newSequence,
- *      payloadHash)` synchronously — before any async work — so no concurrent
- *      call can slip in between the guard and the WOTS reservation.
- *
- * @param channelId   - Channel identifier for the watermark map key.
- * @param newSequence - Proposed next sequence number.
- * @param payloadHash - Hex-encoded SHA3-256 of the full off-chain state
- *                     commitment (sequence + balances + pending HTLCs).
- * @returns `'CAPACITY_NEAR_EXHAUSTION'` when signing is blocked at the 95%
- *          threshold; `null` when signing may proceed.
- */
-export function enforceUpdateGuards(
-  channelId: string,
-  newSequence: number,
-  payloadHash: string,
-  pendingProposal?: { sequence: number; payloadHash: string },
-): 'CAPACITY_NEAR_EXHAUSTION' | null {
-  // 1. Capacity — throws ChannelCapacityError at 100%, nearExhaustion at 95%.
-  const { nearExhaustion } = assessCapacity(newSequence);
-
-  // 2/3. Watermark: stale-sequence and double-sign protection.
-  // Check both the module-level map (in-process) and the channel's persisted
-  // pendingProposal (cross-restart). The module-level map provides the stronger
-  // guarantee within one process; the channel watermark covers crash/restart.
-  const watermark = _channelWatermarks.get(channelId);
-  if (watermark) {
-    if (watermark.sequence > newSequence) {
-      throw new SequenceError(watermark.sequence, newSequence);
-    }
-    if (watermark.sequence === newSequence && watermark.payloadHash !== payloadHash) {
-      throw new DoubleSignError(newSequence);
-    }
-  }
-  if (pendingProposal) {
-    if (pendingProposal.sequence > newSequence) {
-      throw new SequenceError(pendingProposal.sequence, newSequence);
-    }
-    if (pendingProposal.sequence === newSequence && pendingProposal.payloadHash !== payloadHash) {
-      throw new DoubleSignError(newSequence);
-    }
-  }
-
-  // Block without consuming the watermark slot — caller retries or settles.
-  if (nearExhaustion) {
-    return 'CAPACITY_NEAR_EXHAUSTION';
-  }
-
-  // 4. Advance watermark synchronously before any async signing work.
-  _channelWatermarks.set(channelId, { sequence: newSequence, payloadHash });
-  return null;
-}
-
-/**
- * Reset all channel sequence watermarks.
- * Intended only for test isolation — call in `beforeEach` to prevent watermarks
- * from bleeding between tests that share a fixed `channelId`.
- */
-export function _resetChannelWatermarks(): void {
-  _channelWatermarks.clear();
-}
-
-/**
- * Release a watermark advance when signing failed before a state was committed.
- * A failed wallet/lease round must not poison the next attempt at the same
- * sequence with a stale, different payload.
- */
-export function releaseUpdateGuard(channelId: string, sequence: number, payloadHash: string): void {
-  const watermark = _channelWatermarks.get(channelId);
-  if (watermark && watermark.sequence === sequence && watermark.payloadHash === payloadHash) {
-    _channelWatermarks.delete(channelId);
-  }
-}
+export {
+  enforceUpdateGuards,
+  releaseUpdateGuard,
+  sealUpdateGuard,
+  _resetChannelWatermarks,
+} from './guards.js';
 
 const TOKENID_MINIMA = '0x00';
 
@@ -418,18 +332,42 @@ export async function createChannel(
  * @param provider  - Optional chain provider for on-chain funding TX validation.
  * @param minConfirmations - Minimum confirmations required (default 1).
  */
+export interface AcceptChannelOptions {
+  /**
+   * Accept a contest delay below the default floor. Test/dev channels only: a
+   * short window weakens unilateral-close protection.
+   */
+  allowShortContestDelay?: boolean;
+  /** Minimum accepted contest delay. Default: `ELTOO_CONTEST_DELAY_BLOCKS` (256). */
+  minContestDelayBlocks?: number;
+}
+
 export async function acceptChannel(
   proposal: ChannelProposal,
   provider?: ChainStateProvider,
   minConfirmations: number = 1,
+  options?: AcceptChannelOptions,
 ): Promise<OmniaChannel> {
   const parties = [proposal.localParty, proposal.remoteParty];
+  const proposedDelay = proposal.contestDelayBlocks;
+  if (!options?.allowShortContestDelay && proposedDelay !== undefined) {
+    const floor = options?.minContestDelayBlocks ?? ELTOO_CONTEST_DELAY_BLOCKS;
+    if (proposedDelay < floor) {
+      throw new Error(
+        `Contest delay ${proposedDelay} is below the ${floor}-block minimum; a shorter window weakens ` +
+        `unilateral-close protection. Pass { allowShortContestDelay: true } only for test/dev channels.`,
+      );
+    }
+  }
   const program = resolveChannelProgram({ id: proposal.programId, version: proposal.programVersion });
   const script = program.buildScript(parties, { contestDelayBlocks: proposal.contestDelayBlocks });
   const address = scriptAddress(script);
 
   if (script !== proposal.fundingScript) {
     throw new Error('Script mismatch: recomputed script does not match proposal');
+  }
+  if (proposal.fundingAddress && proposal.fundingAddress !== address) {
+    throw new Error('Proposal fundingAddress does not match the eltoo script address');
   }
 
   let fundingConfirmed = false;
@@ -451,6 +389,11 @@ export async function acceptChannel(
     if (coin.spent) {
       throw new Error(`Funding coin ${proposal.fundingCoinId} is already spent`);
     }
+    if (coin.address !== address) {
+      throw new Error(
+        `Funding coin address ${coin.address} is not the channel script address ${address}`,
+      );
+    }
     const expectedAmount = proposal.localAmount + proposal.remoteAmount;
     if (BigInt(coin.amount) !== expectedAmount) {
       throw new Error(`Funding coin amount ${coin.amount} does not match proposal total ${expectedAmount}`);
@@ -458,15 +401,13 @@ export async function acceptChannel(
     if (coin.tokenid !== (proposal.tokenId ?? '0x00')) {
       throw new Error(`Funding coin token ${coin.tokenid} does not match proposal token ${proposal.tokenId}`);
     }
-    // Check confirmation depth
+    // Confirmation depth: `mmrentry` is an MMR leaf index, not a block height.
+    // `created` is the block the coin was mined in; a missing/invalid value is
+    // treated as unconfirmed rather than as height 0.
     if (minConfirmations > 0) {
       const tip = await provider.getTip();
-      if (coin.mmrentry) {
-        const coinBlock = typeof coin.mmrentry === 'number' ? coin.mmrentry : 0;
-        if (tip.block - coinBlock >= minConfirmations) {
-          fundingConfirmed = true;
-        }
-      }
+      const confirmations = confirmationsAt(coin, tip.block);
+      fundingConfirmed = confirmations !== null && confirmations >= minConfirmations;
     } else {
       fundingConfirmed = true;
     }
@@ -485,7 +426,7 @@ export async function acceptChannel(
     fundingScript: proposal.fundingScript,
     programId: program.id,
     programVersion: program.version,
-    fundingAddress: proposal.fundingAddress ?? address,
+    fundingAddress: address,
     tokenId: proposal.tokenId,
     tokenScale: proposal.tokenScale ?? 0,
     totalValue,
@@ -647,14 +588,17 @@ export function attachCounterpartySignature(
     throw new Error('Partial state is incomplete');
   }
 
-  const counterParty = channel.parties.find(p => p.partyId === counterPartyId);
-  if (!counterParty) {
+  if (!channel.parties.some(p => p.partyId === counterPartyId)) {
     throw new Error(`Counterparty ${counterPartyId} not found in channel parties`);
   }
 
   let closePackage = partialState.closePackage;
-  if (closePackage && counterClosePackage) {
-    closePackage = mergeClosePackages(closePackage, counterClosePackage);
+  if (counterClosePackage) {
+    // A counterparty package is authoritative even when the local partial state
+    // has none yet; dropping it would lose the only close artifacts for the state.
+    closePackage = closePackage
+      ? mergeClosePackages(closePackage, counterClosePackage)
+      : counterClosePackage;
   }
 
   const signedState: SignedChannelState = {
@@ -675,10 +619,12 @@ export function attachCounterpartySignature(
     programTransition: partialState.programTransition,
   };
 
-  // Verify the counterparty's WOTS signature before accepting the state.
-  const valid = verifyStateSignature(channel, signedState, counterPartyId, counterParty.publicKeyDigest);
-  if (!valid) {
-    throw new Error(`Invalid WOTS signature for counterparty ${counterPartyId}`);
+  // Validate the merged state exactly as the co-sign path does: sequence,
+  // conservation, port-102 commitment, program rules, partial close package and
+  // every signature present — including the local one already in partialState.
+  const check = validateStateForCoSign(channel, signedState, { requireSequenceAdvance: false });
+  if (!check.valid) {
+    throw new Error(`Invalid state for counterparty signature: ${check.errors.join('; ')}`);
   }
 
   const updatedChannel: OmniaChannel = {
@@ -696,8 +642,9 @@ export function getChannelReceipt(
   channel: OmniaChannel,
   state: SignedChannelState,
 ): ChannelReceipt {
-  const capacityUsed = state.sequence;
-  const { warning } = assessCapacity(Math.min(capacityUsed, WOTS_CAPACITY_TOTAL - 1));
+  // Update + pre-signed settlement: two leaves per state.
+  const capacityUsed = state.sequence * 2;
+  const { warning } = assessCapacity(capacityUsed);
 
   return {
     channelId: channel.channelId,
@@ -715,6 +662,83 @@ export function activateChannel(channel: OmniaChannel): OmniaChannel {
     throw new Error(`Cannot activate channel with status '${channel.status}' — must be 'funding_pending' or 'opening'`);
   }
   return { ...channel, status: 'active', updatedAt: Date.now() };
+}
+
+export interface ConfirmUpdateOptions {
+  /** Coin id of the confirmed update output. */
+  coinId: string;
+}
+
+function coinStateValue(coin: { state?: unknown[] }, port: number): string | null {
+  const value = coin.state?.[port];
+  if (value === undefined || value === null) return null;
+  return String(value);
+}
+
+/**
+ * Record that the latest signed update is confirmed on chain.
+ *
+ * Eltoo settlement spends the channel coin at its *on-chain* state, so
+ * `onChainSequence` and `latestCoinId` must track the last confirmed update. They
+ * are read from the coin itself — not from the off-chain sequence, and not from a
+ * caller-supplied transaction — so a signed-but-unbroadcast state cannot move them.
+ *
+ * The coin must be under the channel script address, have the requested
+ * confirmation depth, and carry the sequence and port-102 commitment of
+ * `latestState`.
+ */
+export async function confirmUpdateBroadcast(
+  channel: OmniaChannel,
+  opts: ConfirmUpdateOptions,
+  chainProvider: ChainStateProvider,
+  minConfirmations: number = 1,
+): Promise<OmniaChannel> {
+  const latest = channel.latestState;
+  if (!latest) throw new Error('Cannot confirm an update without a latest signed state');
+  if (!channel.fundingAddress) throw new Error('Channel fundingAddress is required to confirm an update');
+
+  const coin = await chainProvider.getCoin(opts.coinId);
+  if (!coin) throw new Error(`Update output coin ${opts.coinId} not found on chain`);
+  if (coin.spent) throw new Error(`Update output coin ${opts.coinId} is already spent`);
+  if (coin.address !== channel.fundingAddress) {
+    throw new Error(`Update output address ${coin.address} is not the channel script address ${channel.fundingAddress}`);
+  }
+  if (minConfirmations > 0) {
+    const tip = await chainProvider.getTip();
+    const confirmations = confirmationsAt(coin, tip.block);
+    if (confirmations === null || confirmations < minConfirmations) {
+      throw new Error(
+        `Update output coin ${opts.coinId} has ${confirmations ?? 'unknown'} confirmations; ${minConfirmations} required`,
+      );
+    }
+  }
+
+  const onChainSequence = coinStateValue(coin, STATE_SEQUENCE_PORT);
+  if (onChainSequence === null) {
+    throw new Error('Channel coin has no sequence state; cannot confirm the update');
+  }
+  if (Number(onChainSequence) !== latest.sequence) {
+    throw new Error(
+      `On-chain sequence ${onChainSequence} does not match the latest signed state ${latest.sequence}`,
+    );
+  }
+
+  const committed = coinStateValue(coin, STATE_COMMITMENT_V2_PORT);
+  const expectedCommitment = latest.stateVariables.find(sv => sv.port === STATE_COMMITMENT_V2_PORT);
+  if (committed === null || !expectedCommitment) {
+    throw new Error('Channel coin has no state commitment; cannot confirm the update');
+  }
+  const normalize = (value: unknown) => String(value).replace(/^0x/i, '').toLowerCase();
+  if (normalize(committed) !== normalize(expectedCommitment.value)) {
+    throw new Error('On-chain state commitment does not match the latest signed state');
+  }
+
+  return {
+    ...channel,
+    onChainSequence: latest.sequence,
+    latestCoinId: opts.coinId,
+    updatedAt: Date.now(),
+  };
 }
 
 /**

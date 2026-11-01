@@ -360,10 +360,11 @@ export async function fulfillMultiHop(params: {
   preimage: string;
   leaseProvider: WotsLeaseProvider;
   signer: ChannelSigner;
+  chainProvider: ChainStateProvider;
   swarm: OmniaSwarm;
 }): Promise<{ success: boolean; channel: OmniaChannel; htlcId: string }> {
-  const { channel, htlcId, preimage, leaseProvider, signer, swarm } = params;
-  const result = await fulfillHTLC(channel, htlcId, preimage, leaseProvider, signer);
+  const { channel, htlcId, preimage, leaseProvider, signer, chainProvider, swarm } = params;
+  const result = await fulfillHTLC(channel, htlcId, preimage, leaseProvider, chainProvider, signer);
   const remote = channel.parties.find((p) => p.publicKeyDigest !== signer.publicKeyDigest);
   if (remote) {
     const peer = await swarm.connectToPeer(remote.publicKeyDigest, channel.channelId);

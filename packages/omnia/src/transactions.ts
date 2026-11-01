@@ -37,6 +37,16 @@ export interface EnhancedBuildParams {
 
 const TOKENID_MINIMA = '0x00';
 export const COINID_OUTPUT = '0x00';
+/**
+ * Deterministic string ordering by UTF-16 code unit.
+ *
+ * `localeCompare` depends on the ICU build; two peers on different runtimes can
+ * order the same map differently and compute different commitments.
+ */
+function compareCodeUnits(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
 export const STATE_SETTLEMENT_PORT = 100;
 export const STATE_SEQUENCE_PORT = 101;
 export const STATE_COMMITMENT_V2_PORT = 102;
@@ -201,7 +211,7 @@ export function computeStateCommitmentV2(
     settlement: opts?.settlement ?? false,
     balances: Object.fromEntries(
       Object.entries(balances)
-        .sort(([a], [b]) => a.localeCompare(b))
+        .sort(([a], [b]) => compareCodeUnits(a, b))
         .map(([party, balance]) => [party, balance.toString()]),
     ),
     htlcs: pendingHTLCs
@@ -216,7 +226,7 @@ export function computeStateCommitmentV2(
         senderPublicKeyDigest: h.senderPublicKeyDigest,
         recipientPublicKeyDigest: h.recipientPublicKeyDigest,
       }))
-      .sort((a, b) => a.htlcId.localeCompare(b.htlcId)),
+      .sort((a, b) => compareCodeUnits(a.htlcId, b.htlcId)),
     programStateVariables,
   };
 
@@ -251,6 +261,33 @@ export function stateCommitmentV2Matches(channel: OmniaChannel, state: SignedCha
     programStateVariables: state.stateVariables,
   })).toLowerCase();
   return String(sv.value).toLowerCase() === expected;
+}
+
+/**
+ * Compare two state-variable sets in the canonical form used by the commitment.
+ *
+ * The signed payload is the update transaction, whose state variables are derived
+ * deterministically from the state fields. A `SignedChannelState` also carries a
+ * copy of them; if that copy is not compared, a validly signed state can be
+ * re-labelled with arbitrary state variables (and arbitrary `transactionHex`)
+ * while its signature still verifies.
+ */
+export function stateVariablesEqual(
+  actual: StateValue[] | undefined,
+  expected: StateValue[] | undefined,
+): boolean {
+  const norm = (list: StateValue[] | undefined) =>
+    (list ?? []).map((sv) => ({
+      port: sv.port,
+      type: sv.type,
+      value: typeof sv.value === 'bigint' ? sv.value.toString() : String(sv.value),
+    }));
+  const a = norm(actual);
+  const b = norm(expected);
+  if (a.length !== b.length) return false;
+  return a.every((sv, i) =>
+    sv.port === b[i].port && sv.type === b[i].type && sv.value === b[i].value,
+  );
 }
 
 /**
@@ -378,8 +415,19 @@ export function buildSettlementTx(
 
   const outputs: TxOutputDraft[] = [];
 
+  // A settlement must distribute exactly the channel participant set. A missing
+  // key previously produced no output (funds burned); an extra key was ignored.
+  const partyIds = new Set(channel.parties.map(p => p.partyId));
+  const balanceKeys = Object.keys(state.balances);
+  if (balanceKeys.length !== partyIds.size || balanceKeys.some(k => !partyIds.has(k))) {
+    throw new Error('Settlement balances must match the channel participant set exactly');
+  }
+  for (const [partyId, balance] of Object.entries(state.balances)) {
+    if (balance < 0n) throw new Error(`Negative balance for party ${partyId}: ${balance}`);
+  }
+
   for (const party of channel.parties) {
-    const scaledBalance = state.balances[party.partyId] ?? 0n;
+    const scaledBalance = state.balances[party.partyId];
     const rawBalance = toRawMinima(scaledBalance, channel.tokenScale ?? 0);
     const addr = partyAddresses[party.partyId];
     if (!addr) throw new Error(`Missing settlement address for party ${party.partyId}`);
@@ -473,7 +521,7 @@ export function computeStateCommitment(
     sequence,
     balances: Object.fromEntries(
       Object.entries(balances)
-        .sort(([a], [b]) => a.localeCompare(b))
+        .sort(([a], [b]) => compareCodeUnits(a, b))
         .map(([k, v]) => [k, v.toString()]),
     ),
     htlcs: pendingHTLCs
@@ -485,7 +533,7 @@ export function computeStateCommitment(
         timeoutBlock: h.timeoutBlock.toString(),
         direction: h.direction,
       }))
-      .sort((a, b) => a.htlcId.localeCompare(b.htlcId)),
+      .sort((a, b) => compareCodeUnits(a.htlcId, b.htlcId)),
   };
   return sha3_256(new TextEncoder().encode(JSON.stringify(canonical)));
 }

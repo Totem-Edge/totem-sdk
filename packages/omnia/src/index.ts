@@ -104,6 +104,7 @@ export {
   validateStateTransition,
   verifyState,
   verifyStateForCoSign,
+  validateStateForCoSign,
 } from './sign.js';
 
 export { verifyChannelSignature } from './wots.js';
@@ -196,7 +197,22 @@ export {
   serializeOmniaWitness,
 } from './witness.js';
 export type { OmniaWitnessOptions, OmniaWitnessProofs } from './witness.js';
-export type { ChannelOpeningPlan, FinalizeChannelOpeningOptions } from './channel.js';
+export type { ChannelOpeningPlan, FinalizeChannelOpeningOptions, AcceptChannelOptions, ConfirmUpdateOptions } from './channel.js';
+
+export {
+  canonicalSettlementAddress,
+  resolveSettlementAddresses,
+} from './addresses.js';
+
+export { coinCreatedBlock, confirmationsAt, channelContestDelay } from './chain-truth.js';
+
+export {
+  verifyStateWithRustMirror,
+  serializeChannelForMirror,
+  serializeStateForMirror,
+  isRustMirrorAvailable,
+  configureRustMirror,
+} from './rust-mirror.js';
 
 export {
   addClosePackageSignature,
@@ -218,6 +234,7 @@ export {
   attachCounterpartySignature,
   getChannelReceipt,
   activateChannel,
+  confirmUpdateBroadcast,
 } from './channel.js';
 
 export {
@@ -257,6 +274,7 @@ export {
   buildDisputePayload,
   markChannelClosing,
   markChannelClosed,
+  recordUnilateralUpdateCoin,
 } from './settlement.js';
 export type { SettlementSigningRequest } from './settlement.js';
 
