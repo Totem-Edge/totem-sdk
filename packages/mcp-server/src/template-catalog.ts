@@ -41,12 +41,12 @@ export const TEMPLATE_CATALOG: TemplateEntry[] = [
     description: 'Proposal lifecycle 7-status state machine, vote submission with nonce/weight/window, on-chain vote tally with batch delta ports, execution mandate with timelock+multisig+commitments, and treasury fund release',
   },
   {
-    template: 'industrial-action',
+    template: 'act-core',
     functions: ['buildCommitScript', 'buildRevealScript', 'buildActionStateMachineScript', 'buildEscrowEnforcementScript'],
     configTypes: ['CommitConfig', 'RevealConfig', 'ActionStateMachineConfig', 'EscrowEnforcementConfig'],
-    package: 'industrial-action',
-    keywords: ['industrial action', 'strike', 'commit reveal', 'hash commit', 'preimage reveal', 'state machine', 'notice period', 'max duration', 'escrow', 'condition enforcement'],
-    description: 'Industrial action scripts: hash-commit and preimage reveal, 6-status action FSM (proposed/noticed/active/resolved/escalated/expired) with notice period and max duration, and condition-based escrow enforcement',
+    package: 'act-core',
+    keywords: ['act-core', 'industrial action', 'strike', 'commit reveal', 'hash commit', 'preimage reveal', 'state machine', 'notice period', 'max duration', 'escrow', 'condition enforcement'],
+    description: 'Act-core action scripts (industrial action): hash-commit and preimage reveal, 6-status action FSM (proposed/noticed/active/resolved/escalated/expired) with notice period and max duration, and condition-based escrow enforcement',
   },
   {
     template: 'identity',
