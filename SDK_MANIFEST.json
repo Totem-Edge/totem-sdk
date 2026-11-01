@@ -4,7 +4,7 @@
   "description": "Machine-readable index of all @totemsdk packages — for AI agents, tooling, and developers. Updated 2026-10-20.",
   "license": "Apache-2.0",
   "org": "@totemsdk",
-  "total": 69,
+  "total": 72,
   "domains": {
     "cryptographic-foundation": {
       "description": "WOTS signatures, TreeKey hierarchy, MMR proofs, KISSVM, MAST, TxPoW",
@@ -56,10 +56,13 @@
         "@totemsdk/edge-can",
         "@totemsdk/edge-coap",
         "@totemsdk/edge-grpc",
+        "@totemsdk/edge-gnss",
         "@totemsdk/edge-lorawan",
+        "@totemsdk/edge-mavlink",
         "@totemsdk/edge-matter",
         "@totemsdk/edge-modbus",
         "@totemsdk/edge-nfc",
+        "@totemsdk/edge-ocpp",
         "@totemsdk/edge-opcua",
         "@totemsdk/edge-ros2",
         "@totemsdk/pear",
@@ -69,7 +72,7 @@
         "@totemsdk/p2p-hub",
         "@totemsdk/wallet-adapter",
         "@totemsdk/edge-email",
-        "@totemsdk/industrial-action",
+        "@totemsdk/act-core",
         "@totemsdk/connect"
       ]
     },
@@ -506,6 +509,30 @@
       }
     },
     {
+      "name": "@totemsdk/edge-gnss",
+      "version": "0.1.0",
+      "description": "Edge runtime adapter for GNSS — GPS/RTK fixes, NMEA 0183 parsing, location proofs",
+      "domain": "edge-computing",
+      "keywords": [
+        "gnss",
+        "gps",
+        "rtk",
+        "nmea",
+        "location"
+      ],
+      "dependencies": {
+        "@totemsdk/edge": "^1.5.1"
+      },
+      "exports": {
+        ".": "dist/index.{js,d.ts}"
+      },
+      "exportsDescription": "createGnssGateway, createGnssSensorBridge, parseNmeaFix, GnssTransportPort",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
+    },
+    {
       "name": "@totemsdk/edge-lorawan",
       "version": "0.2.3",
       "description": "Edge runtime adapter for LoRaWAN — agriculture, asset tracking, long-range sensors",
@@ -524,6 +551,30 @@
         ".": "dist/index.{js,d.ts}"
       },
       "exportsDescription": "createLorawanGateway, createLorawanSensorBridge, LorawanGatewayConfig, LorawanTransportPort",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
+    },
+    {
+      "name": "@totemsdk/edge-mavlink",
+      "version": "0.1.0",
+      "description": "Edge runtime adapter for MAVLink — drone telemetry, heartbeat, commands, wire framing",
+      "domain": "edge-computing",
+      "keywords": [
+        "mavlink",
+        "drone",
+        "uav",
+        "telemetry",
+        "commands"
+      ],
+      "dependencies": {
+        "@totemsdk/edge": "^1.5.1"
+      },
+      "exports": {
+        ".": "dist/index.{js,d.ts}"
+      },
+      "exportsDescription": "createMavlinkGateway, createMavlinkSensorBridge, encodeFrame, decodeFrames, MavlinkTransportPort",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -627,6 +678,30 @@
         ".": "dist/index.{js,d.ts}"
       },
       "exportsDescription": "createNfcGateway, NfcGatewayConfig, NfcTransportPort, encodeNdefMessage, decodeNdefMessage",
+      "custody": {
+        "classification": "non-custodial",
+        "reason": "library — holds no on-chain value"
+      }
+    },
+    {
+      "name": "@totemsdk/edge-ocpp",
+      "version": "0.1.0",
+      "description": "Edge runtime adapter for OCPP — EV charging wire protocol and meter proofs",
+      "domain": "edge-computing",
+      "keywords": [
+        "ocpp",
+        "ev-charging",
+        "ocpp16j",
+        "ocpp201",
+        "metering"
+      ],
+      "dependencies": {
+        "@totemsdk/edge": "^1.5.1"
+      },
+      "exports": {
+        ".": "dist/index.{js,d.ts}"
+      },
+      "exportsDescription": "createOcppGateway, createOcppSensorBridge, parseOcppFrame, OcppTransportPort",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
@@ -1587,7 +1662,7 @@
       }
     },
     {
-      "name": "@totemsdk/industrial-action",
+      "name": "@totemsdk/act-core",
       "version": "0.5.0",
       "description": "Deterministic industrial action lifecycle for Totem Edge — converts governed intent into context-aware, bounded, verifiably executed operations on field devices and protocols",
       "domain": "edge-computing",
@@ -1611,7 +1686,7 @@
       "exports": {
         ".": "dist/index.{js,d.ts}"
       },
-      "exportsDescription": "IndustrialActionDefinition, toEdgeActionDefinition, ExecutionPolicy, FailureMode, createDurableDeviceOperationStore, createIndustrialReceipt, createProposal, evaluateConditions",
+      "exportsDescription": "ActCoreDefinition, toEdgeActionDefinition, ExecutionPolicy, FailureMode, createDurableDeviceOperationStore, createIndustrialReceipt, createProposal, evaluateConditions",
       "custody": {
         "classification": "non-custodial",
         "reason": "library — holds no on-chain value"
