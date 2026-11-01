@@ -95,12 +95,12 @@ jobs:
       # a brand-new dist-tag.
       - name: Verify maturity dist-tags
         run: |
-          for attempt in 1 2 3 4 5; do
+          for attempt in $(seq 1 12); do
             if node scripts/report-dist-tags.mjs --check --package "${{ matrix.npm_name }}"; then
               exit 0
             fi
-            echo "::warning::dist-tag for ${{ matrix.npm_name }} not visible yet (attempt ${attempt}/5)"
-            sleep 10
+            echo "::warning::dist-tag for ${{ matrix.npm_name }} not visible yet (attempt ${attempt}/12)"
+            sleep 15
           done
           exit 1
 

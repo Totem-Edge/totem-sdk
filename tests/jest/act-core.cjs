@@ -7,11 +7,21 @@ module.exports = {
     'node_modules/',
   ],
   transform: {
-    '^.+\\.(ts|js)$': ['@swc/jest', {
-      module: {
-        type: 'commonjs',
+    '^.+\\.ts$': ['ts-jest', {
+      tsconfig: {
+        module: 'CommonJS',
+        moduleResolution: 'node',
+        allowJs: true,
+        baseUrl: '.',
+        paths: {
+          '@totemsdk/storage/sqlite': ['../storage/src/adapters/sqlite-store.ts'],
+          '@totemsdk/storage/fs': ['../storage/src/adapters/file-store.ts'],
+          '@totemsdk/storage/memory': ['../storage/src/adapters/memory-store.ts'],
+          '@totemsdk/storage/journal': ['../storage/src/journal.ts'],
+          '@totemsdk/storage': ['../storage/src/index.ts'],
+        },
       },
-      sourceMaps: 'inline',
+      diagnostics: { ignoreCodes: [2307] },
     }],
   },
   moduleNameMapper: {

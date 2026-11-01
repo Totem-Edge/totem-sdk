@@ -30,6 +30,7 @@ module.exports = {
     '^@totemsdk/agent-policy$': '<rootDir>/packages/agent-policy/src/index.ts',
     '^@totemsdk/storage$': '<rootDir>/packages/storage/src/index.ts',
     '^@totemsdk/storage/journal$': '<rootDir>/packages/storage/src/journal.ts',
+    '^@totemsdk/storage/fs$': '<rootDir>/packages/storage/src/adapters/file-store.ts',
     '^@totemsdk/storage/sqlite$': '<rootDir>/packages/storage/src/adapters/sqlite-store.ts',
     '^@totemsdk/storage/snapshot$': '<rootDir>/packages/storage/src/snapshot.ts',
     '^@totemsdk/storage/types$': '<rootDir>/packages/storage/src/index.ts',
