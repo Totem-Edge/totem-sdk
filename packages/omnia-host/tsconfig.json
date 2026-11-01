@@ -4,7 +4,8 @@
     "module": "node16",
     "lib": [
       "ES2022",
-      "DOM"
+      "DOM",
+      "ESNext.Disposable"
     ],
     "types": [
       "node"
