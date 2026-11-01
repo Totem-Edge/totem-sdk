@@ -181,7 +181,10 @@ first; capital allocation follows.**
 
 **Gate 0 — bilateral script proof.** Exercise the channel and HTLC scripts used
 by v1 in the real VM: honest swap, refund before/after timelock, wrong preimage,
-wrong amount/asset, and counterparty withholding.
+wrong amount/asset, and counterparty withholding. Evidence:
+[`omnia-gate0-bilateral-scripts-2026-10`](../audits/omnia-gate0-bilateral-scripts-2026-10.md)
+proves both v1 legs (channel update/settlement and HTLC claim/refund) on both SDK
+VMs; real-node inclusion remains open.
 
 **Gate 1 — custody (blocking for pooled paths only).** Re-run the static
 findings against **current `main`** (the assessment examined `661d5ad`):
@@ -226,11 +229,17 @@ pooled-capital gate in RFC-050 §7.1.
    NOT be presented or implemented as the first Gen-1 deliverable.
 3. The RFC-050 §8 ordering that places Private RFQ at #3 is **superseded for
    sequencing** by this RFC.
-4. Pooled liquidity, VTXO, credit, derivatives and structured products require
+4. **Track relationship.** This section orders the Eefi Gen-1 track only. The
+   Omnia OEX track (RFC-064 §6.2: RFC-065 basic MPP, then RFC-066 bounded
+   rebalancing) is ordered independently; neither track gates the other.
+   Shared prerequisites — the reviewed on-chain HTLC template and
+   confirmation-depth handling — are built once and used by both, which is not
+   an ordering dependency.
+5. Pooled liquidity, VTXO, credit, derivatives and structured products require
    later RFCs and the gates above. **Pooled liquidity is additionally blocked by
    RFC-050 §7.1** (L4 exit proof, state continuity, settlement-aware accounting,
    adversarial routing) regardless of RFC-054 status.
-5. Multi-hop spot exchange is a v1.1 extension behind Gate 3; v1 is bilateral.
+6. Multi-hop spot exchange is a v1.1 extension behind Gate 3; v1 is bilateral.
 
 ## 13. Open questions
 
