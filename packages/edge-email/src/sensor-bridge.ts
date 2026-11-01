@@ -1,5 +1,5 @@
 import type { EdgeRuntime } from '@totemsdk/edge'
-import type { EmailTransportPort, EmailMessage } from './transport.js'
+import type { EmailTransportPort } from './transport.js'
 
 export interface EmailPollBinding {
   sensorId: string

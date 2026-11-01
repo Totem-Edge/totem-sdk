@@ -109,3 +109,5 @@ Apache-2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
 ## Testing
 
 Tests live outside the published package in `tests/unit/edge-matter/`. Package `test:*` scripts are repository delegates; tests are not shipped.
+
+Matter simulator integration: `npm run test:integration` exercises commissioning, attribute read/write, commands, subscriptions, proofs and teardown against an injected transport. A Matter SDK/fabric binding is not claimed.

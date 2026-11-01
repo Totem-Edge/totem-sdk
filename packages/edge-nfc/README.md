@@ -99,3 +99,5 @@ Apache-2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
 ## Testing
 
 Tests live outside the published package in `tests/unit/edge-nfc/`. Package `test:*` scripts are repository delegates; tests are not shipped.
+
+NFC simulator integration: `npm run test:integration` exercises reader polling, NDEF read/write/erase, APDU exchange, P2P, HCE registration and teardown against an injected transport. Platform readers and secure elements are not claimed.

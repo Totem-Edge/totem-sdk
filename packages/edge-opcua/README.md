@@ -102,3 +102,5 @@ Apache-2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
 ## Testing
 
 Tests live outside the published package in `tests/unit/edge-opcua/`. Package `test:*` scripts are repository delegates; tests are not shipped.
+
+OPC-UA simulator integration: `npm run test:integration` exercises browse, read/write, method calls, subscriptions, proofs and teardown against an injected transport. Secure-channel and Rust sidecar binding evidence is not claimed.

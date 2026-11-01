@@ -99,3 +99,5 @@ Apache-2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
 ## Testing
 
 Tests live outside the published package in `tests/unit/edge-ble/`. Package `test:*` scripts are repository delegates; tests are not shipped.
+
+BLE simulator integration: `npm run test:integration` exercises scanning, GATT read/write, notifications, bridge proofs and teardown against an injected transport. Platform adapters (noble, Web Bluetooth, native) are not claimed.

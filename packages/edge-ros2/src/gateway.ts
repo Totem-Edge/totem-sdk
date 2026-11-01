@@ -82,14 +82,20 @@ export function createRos2Gateway(config: Ros2GatewayConfig): Ros2Gateway {
     },
 
     async callService(service, serviceType, request, timeoutMs = 10_000) {
+      let client: Awaited<ReturnType<Ros2TransportPort['createClient']>> | undefined;
+      let timer: ReturnType<typeof setTimeout> | undefined;
       try {
-        const client = await config.transport.createClient(service, serviceType);
-        const timer = new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Service call timed out')), timeoutMs));
-        const response = await Promise.race([client.call(request), timer]);
-        await client.destroy();
+        client = await config.transport.createClient(service, serviceType);
+        const timeout = new Promise<never>((_, reject) => {
+          timer = setTimeout(() => reject(new Error('Service call timed out')), timeoutMs);
+        });
+        const response = await Promise.race([client.call(request), timeout]);
         return { ok: true, data: { response } };
       } catch (e) {
         return { ok: false, error: String(e) };
+      } finally {
+        if (timer) clearTimeout(timer);
+        await client?.destroy().catch(() => {});
       }
     },
   };

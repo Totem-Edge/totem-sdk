@@ -59,3 +59,5 @@ Apache-2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
 ## Testing
 
 Tests live outside the published package in `tests/unit/edge-adapters/`. Package `test:*` scripts are repository delegates; tests are not shipped.
+
+Integration: `npm run test:integration` runs the two-runtime machine-to-machine commerce E2E suite and the durable CommerceStore conformance suite.
