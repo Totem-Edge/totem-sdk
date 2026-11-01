@@ -6,7 +6,7 @@
  * security review against a Minima node.
  *
  * The stable templates (eltoo, governance, statechain, wots-lease, temporal,
- * txpow, identity, manifest, authority, agent-policy, industrial-action,
+ * txpow, identity, manifest, authority, agent-policy, act-core,
  * liquidity-bond, provider-bond, lookup-protocol, proof) remain on the
  * package root export.
  */

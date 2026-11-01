@@ -1,0 +1,1 @@
+../../../../packages/act-core/src/edge-adapter.ts

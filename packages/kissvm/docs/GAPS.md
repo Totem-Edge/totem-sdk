@@ -27,7 +27,7 @@ The following packages define off-chain business logic (TypeScript state machine
 | governance | `draft→active→passed→failed→executed→cancelled→expired` | State machine with block-height windows |
 | liquidity-bond | 13 position statuses (7 never assigned) | Position lifecycle + lock-term enforcement |
 | provider-bond | 7 bond statuses | Bond lifecycle enforce at UTXO level |
-| industrial-action | `draft→committed→executed→failed→expired` | Commit-reveal integrity |
+| act-core | `draft→committed→executed→failed→expired` | Commit-reveal integrity |
 | wots-lease | `pending→active→expired→finalized→cancelled` | Block-based lease expiry |
 | authority | `issued→active→revoked→expired` | Epoch-boundary mandate revocation |
 
@@ -38,7 +38,7 @@ The following packages define off-chain business logic (TypeScript state machine
 | governance | Proposal status transition authorization | Multi-sig threshold for passed→executed |
 | liquidity-bond | Position transitions by role | Role-gated SIGNEDBY |
 | provider-bond | Bond transitions by operator | Operator-gated transitions |
-| industrial-action | Action authorization by participants | Participant MULTISIG |
+| act-core | Action authorization by participants | Participant MULTISIG |
 
 ### 3. Timelock enforcement (`@BLOCK`/`@COINAGE`)
 
@@ -63,7 +63,7 @@ The following packages define off-chain business logic (TypeScript state machine
 | Package | Off-chain | Script needed |
 |---------|-----------|---------------|
 | governance | Sequential proposal IDs | `ASSERT STATE(0) EQ INC(PREVSTATE(0))` |
-| industrial-action | Action nonce | Same pattern |
+| act-core | Action nonce | Same pattern |
 | authority | Mandate version | Same pattern |
 
 ### 6. MAST policy trees

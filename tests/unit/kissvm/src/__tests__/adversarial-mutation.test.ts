@@ -13,7 +13,7 @@ import { buildStatechainScript } from '../templates/statechain';
 import { buildPaymentIntentScript } from '../templates/agent-policy';
 import { buildActionAuthorizationScript } from '../templates/authority';
 import { buildMultiSigTreasuryScript } from '../templates/treasury';
-import { buildEscrowEnforcementScript } from '../templates/industrial-action';
+import { buildEscrowEnforcementScript } from '../templates/act-core';
 import { buildCapabilityScript } from '../templates/manifest';
 
 const pkAA = 'aa'.repeat(32);

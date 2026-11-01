@@ -1,0 +1,84 @@
+{
+  "name": "@totemsdk/act-core",
+  "version": "0.5.0",
+  "description": "Deterministic industrial action lifecycle for Totem Edge \u2014 converts governed intent into context-aware, bounded, verifiably executed operations on field devices and protocols",
+  "main": "dist/cjs/index.js",
+  "types": "dist/cjs/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
+    "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
+    "clean": "rm -rf dist",
+    "test": "jest --config ../../tests/jest/act-core.cjs",
+    "test:integration": "jest --config jest.integration.config.cjs",
+    "lint": "eslint src test --max-warnings 0"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "dependencies": {
+    "@totemsdk/core": "workspace:^",
+    "@totemsdk/proof": "workspace:^",
+    "@totemsdk/authority": "workspace:^",
+    "@totemsdk/edge": "workspace:^",
+    "@totemsdk/agent-policy": "workspace:^",
+    "@totemsdk/storage": "workspace:^",
+    "@totemsdk/replication": "workspace:^"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20.0.0",
+    "jest": "^30.4.2",
+    "jest-environment-node": "^30.0.0",
+    "jest-runtime": "^30.5.2",
+    "@swc/core": "^1.15.46",
+    "@swc/jest": "^0.2.39",
+    "ts-jest": "^29.0.0",
+    "typescript": "^7.0.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "Apache-2.0",
+  "author": "Totem SDK",
+  "homepage": "https://docs.totem.ing",
+  "bugs": {
+    "url": "https://github.com/Totem-Edge/totem-sdk/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Totem-Edge/totem-sdk.git",
+    "directory": "packages/act-core"
+  },
+  "keywords": [
+    "totem",
+    "totemsdk",
+    "industrial",
+    "iot",
+    "edge",
+    "action",
+    "operational",
+    "opcua",
+    "modbus",
+    "bacnet",
+    "guardrails"
+  ],
+  "type": "module"
+}

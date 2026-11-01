@@ -236,13 +236,13 @@ export {
   buildActionStateMachineScript,
   buildEscrowEnforcementScript,
   IA_STATUS,
-} from './templates/industrial-action.js';
+} from './templates/act-core.js';
 export type {
   CommitConfig,
   RevealConfig,
   ActionStateMachineConfig,
   EscrowEnforcementConfig,
-} from './templates/industrial-action.js';
+} from './templates/act-core.js';
 
 export {
   buildLiquidityLockScript,

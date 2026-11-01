@@ -1,1 +1,0 @@
-../../../../packages/industrial-action/src/condition.ts

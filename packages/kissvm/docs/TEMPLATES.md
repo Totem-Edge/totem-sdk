@@ -39,7 +39,7 @@ The 24 canonical `.kiss` examples from the Minima repository are verified agains
 | `statechain` | `buildStatechainScript`, `buildStatechainOwnerRotationScript` | — |
 | `governance` | `buildProposalStateMachineScript`, `buildVoteSubmissionScript`, `buildVoteTallyScript`, `buildExecutionMandateScript`, `buildTreasuryExecutionScript`, `computeScriptHash` | — |
 | `eltoo` | `buildEltooChannelScript`, `buildEltooFundingScript`, `buildEltooSettlementScript`, `buildFactoryFundingScript` | — |
-| `industrial-action` | `buildCommitScript`, `buildRevealScript`, `buildActionStateMachineScript`, `buildEscrowEnforcementScript` | — |
+| `act-core` | `buildCommitScript`, `buildRevealScript`, `buildActionStateMachineScript`, `buildEscrowEnforcementScript` | — |
 
 ## 24 canonical examples
 
