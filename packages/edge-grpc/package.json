@@ -21,10 +21,16 @@
     "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist bin",
     "test": "jest --config ../../tests/jest/edge-grpc.cjs",
-    "build:go": "cd go && go build -o ../bin/edge-grpc ."
+    "build:go": "cd go && go build -o ../bin/edge-grpc .",
+    "test:go": "cd go && go test -race ./... && go vet ./...",
+    "test:conformance": "node --test ../../tests/qualification/edge-grpc/conformance.test.mjs",
+    "test:integration": "node --test ../../tests/qualification/edge-grpc/integration.test.mjs",
+    "test:recovery": "node --test ../../tests/qualification/edge-grpc/recovery.test.mjs",
+    "test:consumer": "node --test ../../tests/qualification/edge-grpc/packed-consumer.test.mjs"
   },
   "files": [
     "dist",
+    "sidecar.json",
     "README.md",
     "LICENSE",
     "NOTICE"

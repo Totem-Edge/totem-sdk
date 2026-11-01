@@ -26,7 +26,24 @@ export interface GrpcStreamHandle {
   onError(handler: (err: Error) => void): () => void;
 }
 
+export interface GrpcTlsConfig {
+  /** PEM-encoded CA bundle. Defaults to the system roots. */
+  caCert?: string;
+  /** PEM-encoded client certificate for mutual TLS. */
+  cert?: string;
+  /** PEM-encoded client private key. */
+  key?: string;
+  /** TLS server name (SNI) when the dial address is an IP. */
+  serverName?: string;
+  /** Disable certificate verification (test/profile use only). */
+  insecureSkipVerify?: boolean;
+}
+
 export interface GrpcClient {
+  /** Dial the gRPC server; optional for already-connected clients. */
+  connect?(address: string): Promise<void>;
+  /** Close the connection and cancel streams. */
+  close?(): Promise<void>;
   unaryCall(path: string, payload: Uint8Array, deadlineMs?: number): Promise<Uint8Array>;
   serverStream(path: string, payload: Uint8Array, deadlineMs?: number): Promise<GrpcStreamHandle>;
   clientStream(path: string, deadlineMs?: number): Promise<GrpcStreamHandle>;

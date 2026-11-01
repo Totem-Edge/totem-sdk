@@ -1,5 +1,8 @@
 import { createGrpcGateway } from '../gateway.js';
 import { createGrpcSensorBridge } from '../sensor-bridge.js';
+import { NativeGrpcTransport } from '../native-transport.js';
+import { createServer } from 'node:net';
+import type { AddressInfo, Socket } from 'node:net';
 import type { GrpcClient, GrpcStreamHandle } from '../transport.js';
 import type { EdgeRuntime } from '@totemsdk/edge';
 
@@ -19,11 +22,15 @@ function makeStreamHandle(streamId: string): GrpcStreamHandle {
 }
 
 class MockGrpcClient implements GrpcClient {
+  connectMock: jest.Mock = jest.fn(async () => {});
+  closeMock: jest.Mock = jest.fn(async () => {});
   unaryMock: jest.Mock = jest.fn(async () => new Uint8Array([1, 2]));
   serverStreamMock: jest.Mock = jest.fn(async () => makeStreamHandle('s1'));
   clientStreamMock: jest.Mock = jest.fn(async () => makeStreamHandle('s2'));
   bidiStreamMock: jest.Mock = jest.fn(async () => makeStreamHandle('s3'));
 
+  async connect(address: string) { return this.connectMock(address); }
+  async close() { return this.closeMock(); }
   async unaryCall(path: string, payload: Uint8Array, deadlineMs?: number) { return this.unaryMock(path, payload, deadlineMs); }
   async serverStream(path: string, payload: Uint8Array, deadlineMs?: number) { return this.serverStreamMock(path, payload, deadlineMs); }
   async clientStream(path: string, deadlineMs?: number) { return this.clientStreamMock(path, deadlineMs); }
@@ -47,6 +54,26 @@ describe('edge-grpc gateway', () => {
     await gw.start();
     await gw.stop();
     expect(gw.status).toBe('stopped');
+  });
+
+  it('start connects to the configured address and stop closes the client', async () => {
+    const client = new MockGrpcClient();
+    const gw = createGrpcGateway({ runtime: makeRuntime(), client, address: '127.0.0.1:50051' });
+    await gw.start();
+    expect(client.connectMock).toHaveBeenCalledWith('127.0.0.1:50051');
+    await gw.stop();
+    expect(client.closeMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects invalid method paths without calling the client', async () => {
+    const client = new MockGrpcClient();
+    const gw = createGrpcGateway({ runtime: makeRuntime(), client });
+    for (const path of ['', 'pkg.Service/Method', '/a/b/c', '/only']) {
+      const result = await gw.call(path, new Uint8Array(0));
+      expect(result.ok).toBe(false);
+      expect(result.error).toMatch(/Invalid gRPC method path/);
+    }
+    expect(client.unaryMock).not.toHaveBeenCalled();
   });
 
   it('call invokes the client and returns the payload', async () => {
@@ -166,5 +193,71 @@ describe('edge-grpc sensor bridge', () => {
     expect(gateway.call).toHaveBeenCalledTimes(2);
     await bridge.stop();
     jest.useRealTimers();
+  });
+});
+
+describe('native gRPC transport', () => {
+  it('maps sidecar responses, delivers client-stream results and surfaces stream errors', async () => {
+    let peer: Socket | undefined;
+    let resolvePeer: (socket: Socket) => void = () => {};
+    const peerReady = new Promise<Socket>((resolve) => { resolvePeer = resolve; });
+    const server = createServer((socket) => {
+      peer = socket;
+      resolvePeer(socket);
+      let buffer = '';
+      socket.on('data', (chunk) => {
+        buffer += chunk.toString('utf8');
+        let newline: number;
+        while ((newline = buffer.indexOf('\n')) >= 0) {
+          const line = buffer.slice(0, newline);
+          buffer = buffer.slice(newline + 1);
+          const request = JSON.parse(line) as { id: string; type: string };
+          if (request.type === 'connect') socket.write(JSON.stringify({ id: request.id, ok: true }) + '\n');
+          if (request.type === 'disconnect') socket.write(JSON.stringify({ id: request.id, ok: true }) + '\n');
+          if (request.type === 'unary') socket.write(JSON.stringify({ id: request.id, ok: true, data: Buffer.from([1, 2]).toString('base64') }) + '\n');
+          if (request.type === 'client_stream') socket.write(JSON.stringify({ id: request.id, ok: true, stream_id: 's1' }) + '\n');
+          if (request.type === 'stream_send') socket.write(JSON.stringify({ id: request.id, ok: true }) + '\n');
+          if (request.type === 'stream_close') {
+            socket.write(JSON.stringify({ id: request.id, ok: true }) + '\n');
+            socket.write(JSON.stringify({ type: 'stream_end', stream_id: 's1', payload: Buffer.from([9]).toString('base64') }) + '\n');
+          }
+          if (request.type === 'server_stream') {
+            socket.write(JSON.stringify({ id: request.id, ok: true, stream_id: 's2' }) + '\n');
+            socket.write(JSON.stringify({ type: 'stream_data', stream_id: 's2', payload: Buffer.from([7]).toString('base64') }) + '\n');
+            socket.write(JSON.stringify({ type: 'stream_error', stream_id: 's2', error: 'internal', code: 13 }) + '\n');
+          }
+        }
+      });
+    });
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const port = (server.address() as AddressInfo).port;
+
+    const transport = new NativeGrpcTransport({ port, connectTimeoutMs: 1000, requestTimeoutMs: 1000 });
+    await transport.connect('127.0.0.1:50051');
+    peer = await peerReady;
+    expect(transport.state).toBe('open');
+
+    expect([...await transport.unaryCall('/pkg.S/M', Uint8Array.of(1))]).toEqual([1, 2]);
+
+    const clientStream = await transport.clientStream('/pkg.S/Upload');
+    const streamData: number[][] = [];
+    const streamEnded = new Promise<void>((resolve) => clientStream.onEnd(resolve));
+    clientStream.onData((payload) => streamData.push([...payload]));
+    await clientStream.send(Uint8Array.of(1));
+    await clientStream.close();
+    await streamEnded;
+    expect(streamData).toEqual([[9]]);
+
+    const serverStream = await transport.serverStream('/pkg.S/Subscribe', new Uint8Array(0));
+    const serverData: number[][] = [];
+    const streamError = new Promise<Error>((resolve) => serverStream.onError(resolve));
+    serverStream.onData((payload) => serverData.push([...payload]));
+    const error = await streamError;
+    expect((error as Error & { code?: number }).code).toBe(13);
+    expect(serverData).toEqual([[7]]);
+
+    await transport.close();
+    expect(transport.state).toBe('closed');
+    await new Promise<void>((resolve) => server.close(() => resolve()));
   });
 });

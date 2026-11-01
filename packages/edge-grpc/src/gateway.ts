@@ -12,6 +12,8 @@ import type { GrpcClient, GrpcStreamHandle } from './transport.js';
 export interface GrpcGatewayConfig {
   runtime: EdgeRuntime;
   client: GrpcClient;
+  /** gRPC server address to dial on start (host:port). */
+  address?: string;
 }
 
 export interface GrpcGateway {
@@ -32,14 +34,25 @@ export function createGrpcGateway(config: GrpcGatewayConfig): GrpcGateway {
 
     async start(): Promise<void> {
       if (status === 'running') return;
+      try {
+        if (config.address && config.client.connect) await config.client.connect(config.address);
+      } catch (error) {
+        status = 'error';
+        throw error;
+      }
       status = 'running';
     },
 
     async stop(): Promise<void> {
-      status = 'stopped';
+      try {
+        if (config.client.close) await config.client.close();
+      } finally {
+        status = 'stopped';
+      }
     },
 
     async call(path, payload, timeoutMs) {
+      if (!isValidPath(path)) return { ok: false, error: `Invalid gRPC method path: ${path}` };
       try {
         const response = await config.client.unaryCall(path, payload, timeoutMs);
         return { ok: true, data: { payload: response } };
@@ -49,6 +62,7 @@ export function createGrpcGateway(config: GrpcGatewayConfig): GrpcGateway {
     },
 
     async openServerStream(path, payload, timeoutMs) {
+      if (!isValidPath(path)) return { ok: false, error: `Invalid gRPC method path: ${path}` };
       try {
         const stream = await config.client.serverStream(path, payload, timeoutMs);
         return { ok: true, data: stream };
@@ -58,6 +72,7 @@ export function createGrpcGateway(config: GrpcGatewayConfig): GrpcGateway {
     },
 
     async openClientStream(path, timeoutMs) {
+      if (!isValidPath(path)) return { ok: false, error: `Invalid gRPC method path: ${path}` };
       try {
         const stream = await config.client.clientStream(path, timeoutMs);
         return { ok: true, data: stream };
@@ -67,6 +82,7 @@ export function createGrpcGateway(config: GrpcGatewayConfig): GrpcGateway {
     },
 
     async openBidiStream(path, timeoutMs) {
+      if (!isValidPath(path)) return { ok: false, error: `Invalid gRPC method path: ${path}` };
       try {
         const stream = await config.client.bidiStream(path, timeoutMs);
         return { ok: true, data: stream };
@@ -75,4 +91,9 @@ export function createGrpcGateway(config: GrpcGatewayConfig): GrpcGateway {
       }
     },
   };
+}
+
+
+function isValidPath(path: string): boolean {
+  return /^\/[^/]+\/[^/]+$/.test(path);
 }
