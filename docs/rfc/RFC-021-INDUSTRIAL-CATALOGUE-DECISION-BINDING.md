@@ -5,17 +5,17 @@
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]
 **Depends on:** RFC-011 (Industrial Action Domain Model), RFC-012 (Decision Runtime), RFC-017 (Decision Receipt Graph)
-**Touches:** `@totemsdk/industrial-action`, `@totemsdk/decision`, `@totemsdk/edge`, `@totemsdk/agent-policy`
+**Touches:** `@totemsdk/act-core`, `@totemsdk/decision`, `@totemsdk/edge`, `@totemsdk/agent-policy`
 
 ---
 
 ## 1. Summary
 
-RFC-012 lets an application ask the Decision runtime to select an **operation** (and optionally a **target**) from a dynamic candidate space. RFC-011 (and its RFC-010 companion) makes `@totemsdk/industrial-action` a governed profile over the same edge runtime, with registered `IndustrialActionDefinition`s, a `ResourceRegistry`, versioning and schema hashes.
+RFC-012 lets an application ask the Decision runtime to select an **operation** (and optionally a **target**) from a dynamic candidate space. RFC-011 (and its RFC-010 companion) makes `@totemsdk/act-core` a governed profile over the same edge runtime, with registered `IndustrialActionDefinition`s, a `ResourceRegistry`, versioning and schema hashes.
 
 Those two packages do not meet. Today an application that wants "the best action for this plant state" must hand-write the Decision request, then separately translate the selected `operation`/`target` string back into an industrial definition and resource — with no defined mapping. This is the exact seam where a model can select one resource while application code addresses another, or select a stale definition version.
 
-This RFC defines the **industrial action catalogue**: a registered, versioned, hash-pinned projection of industrial definitions and resources into Decision candidates, plus an explicit **parameter-selection** model. Decision keeps its generic contract; the integration is a small, formally exported `industrial-action/decision` module. All bindings are advisory candidate metadata — nothing here grants authority, satisfies an interlock, or makes a Decision result an execution token (RFC-017 §5.6).
+This RFC defines the **industrial action catalogue**: a registered, versioned, hash-pinned projection of industrial definitions and resources into Decision candidates, plus an explicit **parameter-selection** model. Decision keeps its generic contract; the integration is a small, formally exported `act-core/decision` module. All bindings are advisory candidate metadata — nothing here grants authority, satisfies an interlock, or makes a Decision result an execution token (RFC-017 §5.6).
 
 ## 2. Motivation
 
@@ -33,7 +33,7 @@ This RFC defines the **industrial action catalogue**: a registered, versioned, h
   so the *evidence linkage* is specified — but nothing populates the Decision
   side from the industrial registry.
 - The industrial profile mechanism (`IndustrialProfile`,
-  `packages/industrial-action/src/profiles.ts:22`) already bundles definitions,
+  `packages/act-core/src/profiles.ts:22`) already bundles definitions,
   resources, capabilities and recipes. That bundle is the natural source of
   candidates.
 
@@ -55,7 +55,7 @@ divergent action vocabulary.
 3. Make parameter selection explicit: a candidate may carry either trusted
    parameters or a bounded set of named alternatives, each with a payload digest.
 4. Keep Decision generic: no `@totemsdk/decision` dependency on
-   `@totemsdk/industrial-action`.
+   `@totemsdk/act-core`.
 5. Preserve the RFC-017 trust boundary: catalogue metadata is advisory and inert.
 
 ## 4. Non-goals
@@ -71,11 +71,11 @@ divergent action vocabulary.
 ### 5.1 Package boundary
 
 ```
-@totemsdk/industrial-action        (owns definitions, resources, profiles)
+@totemsdk/act-core        (owns definitions, resources, profiles)
         ▲
         │  compiles to
         │
-@totemsdk/industrial-action/decision   ← NEW subpath/entry
+@totemsdk/act-core/decision   ← NEW subpath/entry
         │  produces
         ▼
 @totemsdk/decision  DecisionRequest / DecisionOperation / DecisionTarget
@@ -223,7 +223,7 @@ At handoff the application:
 3. invokes `runtime.executeAction(input)`.
 
 The selected target is passed via the same `resolveResourceId` option the
-adapter already consumes (`packages/industrial-action/src/edge-adapter.ts:172`),
+adapter already consumes (`packages/act-core/src/edge-adapter.ts:172`),
 so the resource resolved at preparation is exactly the one the catalogue pinned.
 
 ```mermaid
@@ -268,7 +268,7 @@ flowchart TD
 
 ## 9. Open questions
 
-- **Q1** Should the compiler live in `@totemsdk/industrial-action` (proposed) or a
+- **Q1** Should the compiler live in `@totemsdk/act-core` (proposed) or a
   neutral bridge package to keep Decision/industrial decoupled at build time?
 - **Q2** Should `ParameterAlternative.payloadDigest` use the commitment domain
   (`TOTEM_INDUSTRIAL_ACTION_COMMITMENT_V2`) so it participates in authority
@@ -285,5 +285,5 @@ flowchart TD
 - `docs/rfc/RFC-012-DECISION-RUNTIME.md` — Decision request/result contract
 - `docs/rfc/RFC-017-DECISION-RECEIPT-GRAPH.md` — `DecisionRef` handoff and trust boundary
 - `packages/decision/src/types.ts` — `DecisionOperation`, `DecisionTarget`, `ActionAnswer`
-- `packages/industrial-action/src/{profiles,resources,versioning,edge-adapter}.ts`
+- `packages/act-core/src/{profiles,resources,versioning,edge-adapter}.ts`
 - `packages/edge/src/action-registry.ts` — `EdgeActionInput`, `decisionRef`

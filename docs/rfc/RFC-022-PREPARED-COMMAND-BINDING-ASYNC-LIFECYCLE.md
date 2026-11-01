@@ -5,7 +5,7 @@
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]
 **Depends on:** RFC-010 (Industrial Action RC), RFC-011 (Industrial Action Domain Model), RFC-017 (Decision Receipt Graph), RFC-019 (Governed Agent Commerce — reconciliation primitives)
-**Touches:** `@totemsdk/industrial-action`, `@totemsdk/edge`, `@totemsdk/agent-policy`
+**Touches:** `@totemsdk/act-core`, `@totemsdk/edge`, `@totemsdk/agent-policy`
 
 ---
 
@@ -15,7 +15,7 @@ Two correctness gaps sit immediately downstream of RFC-010/011:
 
 1. **The commitment does not cover the prepared command.** `computeCommitmentHash`
    binds `kind`, `parameters`, `context` and `mandateProofId`
-   (`packages/industrial-action/src/ids.ts:23`) — not the `DeviceOpBase` that
+   (`packages/act-core/src/ids.ts:23`) — not the `DeviceOpBase` that
    `prepare` returns (`edge-adapter.ts:68`). Nothing enforces that `prepare` is
    deterministic, so a non-pure `prepare` (or a resource resolved off-schema by
    `resolveResourceId`, `edge-adapter.ts:172`) can produce a command that no
@@ -394,6 +394,6 @@ does not promote the package's maturity or support tier.
 - `docs/rfc/RFC-011-INDUSTRIAL-ACTION-DOMAIN-MODEL.md` — resources, failure semantics
 - `docs/rfc/RFC-017-DECISION-RECEIPT-GRAPH.md` — `DecisionRef` carry-through
 - `docs/rfc/RFC-019-GOVERNED-AGENT-COMMERCE.md` — `classifyFailure`, reservation hold/reconcile
-- `packages/industrial-action/src/{ids,edge-adapter,operation-store,industrial-receipt}.ts`
+- `packages/act-core/src/{ids,edge-adapter,operation-store,industrial-receipt}.ts`
 - `packages/edge/src/agent-runtime.ts` — reservation hold path
 - `packages/agent-policy/src/grant-bound-autonomy.ts` — `reconcileReservation`

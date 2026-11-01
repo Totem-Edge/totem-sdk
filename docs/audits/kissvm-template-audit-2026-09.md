@@ -129,9 +129,9 @@ Both keys come from mutable current state, so an attacker chooses
 
 **Severity: CRITICAL.**
 
-## 6. Critical: industrial-action escrow doesn't enforce escrow
+## 6. Critical: act-core escrow doesn't enforce escrow
 
-`templates/industrial-action.ts::buildEscrowEnforcementScript()` checks condition
+`templates/act-core.ts::buildEscrowEnforcementScript()` checks condition
 and amount equality and `SAMESTATE`, but has no signature, no beneficiary, no
 payout, no `VERIFYOUT`, and no release condition tied to the real economic
 output. It is an escrow *metadata check*. The companion `buildRevealScript()`
@@ -369,7 +369,7 @@ independently verified on-chain spend evidence.
 | `statechain` | 🔴 Critical fixes |
 | `temporal` | 🔴 Critical/high fixes |
 | `txpow` | 🔴 Redesign |
-| `industrial-action` | 🔴 Critical fixes |
+| `act-core` | 🔴 Critical fixes |
 | `provider-bond` | 🔴 Critical/high fixes |
 | `liquidity-bond` | 🟠 High fixes |
 | `governance` | 🟠 High fixes |

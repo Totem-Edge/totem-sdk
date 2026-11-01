@@ -4,7 +4,7 @@ Status: Draft for architectural review — proposed, not merged for implementati
 Created: 2026-10-18
 Authors: Totem SDK Contributors
 Depends on: RFC-012 (Decision Runtime), RFC-014 (Wallet/Connect), RFC-017 (Decision Receipt Graph), RFC-019 (Governed Commerce), RFC-021 (Industrial Catalogue Decision Binding), RFC-023 (Physical Effect ), RFC-047 (Experience), RFC-048 (Omnia Primitive Completeness), RFC-049 (MASH × Omnia × Eefi), RFC-050 (Eefi Product Architecture)
-Touches (proposed): `decision`, `intelligence`, `qvac`, `authority`, `agent-policy`, `manifest`/`identity`, `proof`/`proofgraph`, `edge`/`industrial-action`; consumed by `omnia*`, Eefi, and Experience
+Touches (proposed): `decision`, `intelligence`, `qvac`, `authority`, `agent-policy`, `manifest`/`identity`, `proof`/`proofgraph`, `edge`/`act-core`; consumed by `omnia*`, Eefi, and Experience
 
 > **Positioning.** RFC-051 is the SDK-wide contract for **how non-deterministic AI output binds
 > into deterministic, committed state** — broader than Eefi. It is the "AI proposes" half of
@@ -74,7 +74,7 @@ a semantic selection is not an authority decision. Generalise it to any committe
 ```ts
 interface CommittedDecisionBinding {
   version: 'totem:decision-binding/v1';
-  scope: 'omnia-operation' | 'eefi-position' | 'industrial-action';
+  scope: 'omnia-operation' | 'eefi-position' | 'act-core';
   decisionReceiptId: string;        // DecisionReceipt.receiptId (RFC-017)
   operationId: string;              // Omnia operation / Eefi position / IA operation
   targetId?: string;                // operation-scoped (NOT global)
@@ -191,4 +191,4 @@ committed and referenced**.
 
 **Bottom line.** Decision, Inference and Memory **propose**; mandates + covenants **authorize**;
 committed state carries only **digest-bound** facts with **producer receipts**. Establish this once,
-SDK-wide, so Omnia/Eefi/industrial-action/Experience all bind AI output the same way.
+SDK-wide, so Omnia/Eefi/act-core/Experience all bind AI output the same way.

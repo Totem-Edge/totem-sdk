@@ -29,7 +29,7 @@ The platform is organised into five systems that map onto the loop:
 1. **Edge** — the runtime and connectors that sense, and the port-injected execution boundary where action happens.
 2. **Trust** — identity, signatures, proofs, and the cryptographic foundation everything else anchors to.
 3. **Policy** — recursive MAST, delegated authority, governance, and agent-policy scopes that decide.
-4. **Action** — the industrial-action lifecycle that turns governed intent into verifiably bounded operations.
+4. **Action** — the act-core lifecycle that turns governed intent into verifiably bounded operations.
 5. **Settlement** — Omnia channels and the payment network that moves value when the loop completes.
 
 > **Port injection is the moat.** The edge runtime has no network or protocol code baked in. Every transport — MQTT, Modbus, BLE, CAN, e-mail, a proprietary vendor SDK — plugs into a port. One runtime, provably identical logic, protocol adapters supplied by whoever needs them. The core is small, auditable, and identical everywhere; the surface extends forever.

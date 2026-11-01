@@ -44,7 +44,7 @@ Parent: [`RFC-057-DISTRIBUTED-STORAGE-AND-REPLICATION.md`](./RFC-057-DISTRIBUTED
 
 - `proofgraph` replicated evidence adapter (digest re-verified on read).
 - `pear` `@totemsdk/pear/replication` factories for Hypercore/Hyperbee/Hyperdrive.
-- `edge` replicated device event history and `industrial-action` replicated event sink.
+- `edge` replicated device event history and `act-core` replicated event sink.
 - `manifest` replicated announcement store (signature/sequence verified on replay).
 - `identity` replicated claim index (signature verified on write and read).
 - `agent-policy`, `decision`, `governance` replicated audit/receipt logs.

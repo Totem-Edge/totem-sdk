@@ -329,7 +329,7 @@ A Decision-backed negotiation strategy is a possible application integration: it
 
 # 17. Industrial Action Prepares the Real Operation
 
-`@totemsdk/industrial-action` provides the lifecycle for context-aware physical operations. Its `toEdgeActionDefinition()` adapter plugs an industrial definition into the governed Edge action registry.
+`@totemsdk/act-core` provides the lifecycle for context-aware physical operations. Its `toEdgeActionDefinition()` adapter plugs an industrial definition into the governed Edge action registry.
 
 Preparation validates parameters and context, evaluates configured guardrails and interlocks, applies relevant scheduling and rate limits, checks required approvals, and constructs the prepared device operation with commitment and operation identity.
 
@@ -575,7 +575,7 @@ A model should receive only the interfaces needed for its role. Exposing raw pri
 | `@totemsdk/intelligence` | Provider-neutral inference contracts. |
 | `@totemsdk/qvac` | QVAC implementation of Intelligence contracts. |
 | `@totemsdk/edge` | Port hosting and the separate governed action runtime. |
-| `@totemsdk/industrial-action` | Physical operation preparation, configured checks, execution policy and industrial receipts. |
+| `@totemsdk/act-core` | Physical operation preparation, configured checks, execution policy and industrial receipts. |
 | `@totemsdk/agent-policy` | Policy and autonomy controls, including the grant-bound authorization/reservation integration. |
 | `@totemsdk/authority` | Mandate-based delegated permission evaluation. |
 | Proof and graph integrations | Evidence representation, verification and correlation where wired by the application. |
@@ -661,8 +661,8 @@ Implementation-specific statements were checked against the following repository
 - Intelligence contracts and domains — `packages/intelligence/src/constants.ts`, `packages/intelligence/src/types.ts`
 - Ordinary Edge runtime dispatch — `packages/edge/src/runtime.ts`
 - Governed Agent Edge runtime — `packages/edge/src/agent-runtime.ts`
-- Industrial Action Edge adapter — `packages/industrial-action/src/edge-adapter.ts`
-- Industrial receipt construction — `packages/industrial-action/src/industrial-receipt.ts`
+- Industrial Action Edge adapter — `packages/act-core/src/edge-adapter.ts`
+- Industrial receipt construction — `packages/act-core/src/industrial-receipt.ts`
 - Built-in Edge action definitions — `packages/edge/src/actions.ts`
 - Transaction effect derivation — `packages/edge/src/prepared-effects.ts`
 - Edge port contracts — `packages/edge/src/ports.ts`

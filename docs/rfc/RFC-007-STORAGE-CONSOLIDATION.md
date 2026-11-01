@@ -42,7 +42,7 @@ the storage layer depends on core one-way, never the reverse.
 
 ### 1.1 Status re-triage (2026-09-28)
 
-The earlier "Phase 0 only" reading was wrong: `@totemsdk/storage` is now declared by **20 consumer packages** (21 including `@totemsdk/storage` itself) — `agent-policy`, `edge`, `edge-adapters`, `edge-mqtt`, `industrial-action`, `liquidity-bond`, the `omnia-*` family (`factory`/`host`/`pool`/`router`/`splice`/`vtxo`), `pear`, `proofgraph`, `provider-bond`, `se-server`, `server`, `statechain`, `tx-builder`, `wots-lease`. Source inspection (not an acceptance-gate run); a 2026-09 gate audit corrected the earlier count (`qvac` references storage only in comments).
+The earlier "Phase 0 only" reading was wrong: `@totemsdk/storage` is now declared by **20 consumer packages** (21 including `@totemsdk/storage` itself) — `agent-policy`, `edge`, `edge-adapters`, `edge-mqtt`, `act-core`, `liquidity-bond`, the `omnia-*` family (`factory`/`host`/`pool`/`router`/`splice`/`vtxo`), `pear`, `proofgraph`, `provider-bond`, `se-server`, `server`, `statechain`, `tx-builder`, `wots-lease`. Source inspection (not an acceptance-gate run); a 2026-09 gate audit corrected the earlier count (`qvac` references storage only in comments).
 
 | Phase | Status | Evidence |
 |-------|--------|----------|
@@ -179,7 +179,7 @@ critical and **stays in core**; core must **never** import a storage package.
 | G3 | WOTS journal appends whole array, O(n²), SHA-256 chain | `packages/wots-lease/src/journal.ts` |
 | G4 | MQTT: in-memory queue, dequeue-then-publish crash window, process-local replay Set | `packages/edge-mqtt/src/queue.ts`, `packages/edge-mqtt/src/command-handler.ts` |
 | G5 | Purchase-payment cache is not an atomic claim | `packages/edge-adapters/src/purchase-payment.ts` |
-| G6 | Memory-only domain registries (bonds), `ActionStorage` that is interface-only, VTXO/pool snapshot ports with in-memory impls | `packages/provider-bond`, `packages/liquidity-bond`, `packages/industrial-action`, `packages/omnia-pool`, `packages/omnia-vtxo` |
+| G6 | Memory-only domain registries (bonds), `ActionStorage` that is interface-only, VTXO/pool snapshot ports with in-memory impls | `packages/provider-bond`, `packages/liquidity-bond`, `packages/act-core`, `packages/omnia-pool`, `packages/omnia-vtxo` |
 | G7 | Conformance suites run `:memory:` — no disk-survival gate, and native-SQLite suites may *skip* when bindings are absent | `packages/edge-adapters/src/__tests__/commerce-store.conformance.test.ts`, agent-policy SQLite suite |
 | G8 | `ProofGraphStoragePort` (`save`/`load`/`findByNodeId`) is **interface-only** — no adapter exists anywhere in the workspace, so proof/evidence graphs default to lost on restart; proof/location/spatial/raster/integritas packages persist nothing of their own | `packages/proofgraph/src/types.ts:97-101` |
 | G9 | Factory signing state (pending commitment, `pendingSignatures`, `stateLog`) is memory-only; router/splice fulfilments and committed reservations live in process-local `Set`s | `packages/omnia-factory/src/types.ts:84-128`, `packages/omnia-router/src/*`, `packages/omnia-splice/src/*` |
@@ -298,7 +298,7 @@ phase plan (§6) reference the row labels (G6–G10, phases).
 | @totemsdk/server | `FileStorageAdapter` | **Migrate** | server | Corrupt ≠ absent; prefix-scoped `clear`/`keys`; bigint/bytes codec (G1/G2) | G1/G2 tests on hardened `FileStore` (Phase 2) |
 | @totemsdk/wallet-adapter | Vaults, permissions, leases | **Delegate** | concrete wallet impl | Abstract base; vault/permission/lease ownership is the wallet's, per-wallet policy | Per-wallet conformance (Phase 6) |
 | @totemsdk/connect | Wallet discovery; provider connections; **reconnectable app state** | **Delegate + Defer+consequence** | browser extension / app | Live connections + discovery caches ephemeral; reconnectable state owned by extension (`extensions/totem-*`) | **Defer+consequence:** SDK does not persist app state; consequence = re-connect/re-auth on reload; gate = extension migration (Phase 6) |
-| @totemsdk/industrial-action | `ActionStorage` (interface-only) | **Migrate** | industrial-action | Durable action-lifecycle records (G6) | `ActionStorage` reopen test (Phase 3) |
+| @totemsdk/act-core | `ActionStorage` (interface-only) | **Migrate** | act-core | Durable action-lifecycle records (G6) | `ActionStorage` reopen test (Phase 3) |
 | **verifiable-claims** | | | | | |
 | @totemsdk/proof, proof-integritas | — (envelopes; anchors on-chain) | **Ephemeral** | — | Deterministic verification; no local durable store | — |
 | @totemsdk/proofgraph | `ProofGraphStoragePort` (`save`/`load`/`findByNodeId`), graph + index | **Migrate** | proofgraph | **Evidence-graph durability (G8):** consistent graph/index updates, restart recovery, concurrent-update safety; durable owner for evidence from proof/location/spatial/raster/integritas — the drone-flight provenance chain; evidence *bytes* persist via the minimal artifact adapter (§4.3) | Shared durable adapter + concurrency + reopen tests (Phase 3); evidence-chain test raster→spatial→location→integritas **over a concrete artifact adapter or named external store with a tested contract** — graph references alone do not satisfy the gate (Phase 3) |

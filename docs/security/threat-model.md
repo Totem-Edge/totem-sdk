@@ -15,7 +15,7 @@ claim:
 
 - **Tier 0:** `core`, `core-wasm`, `kissvm`
 - **Tier 1:** `wots-lease`, `omnia`, `omnia-host`, `storage`, `lookup-protocol`,
-  `lookup-client`, `lookup-node`, `industrial-action`, `edge-mqtt`, `edge-modbus`
+  `lookup-client`, `lookup-node`, `act-core`, `edge-mqtt`, `edge-modbus`
 - **Tier 2 on the supported path:** the transaction, identity, transport and
   Omnia composition packages listed in RFC-063 §4.4, plus `edge`
 - **Cross-cutting:** build, release, distribution and operator configuration
@@ -80,7 +80,7 @@ global availability or economic security.
 | Operation journal | Idempotency and crash recovery | `omnia-host`, `storage` |
 | Session tickets | Authentication without per-message WOTS | `lookup-node` |
 | Manifests and identity bindings | Author/operator authenticity | `manifest`, `identity` |
-| Policy, authority and receipts | Governed action and auditability | `agent-policy`, `authority`, `industrial-action`, `edge` |
+| Policy, authority and receipts | Governed action and auditability | `agent-policy`, `authority`, `act-core`, `edge` |
 | Node RPC credentials | Chain read/broadcast authority | Node operator |
 | Build/release artifacts | Supply-chain trust | Maintainers/CI |
 
@@ -198,10 +198,10 @@ Severity is the potential impact if the threat is realized without a control.
 
 | ID | Threat | Impact | Affected | Current controls | Residual |
 |---|---|---|---|---|---|
-| T21 | Agent bypasses policy/approval and executes a consequential action | High — unauthorized spend/physical effect | `edge`, `agent-policy`, `industrial-action` | Governed edge runtime, approval/reservation, authority binding, two-phase execution | Post-authorization negotiation residual; no independent audit |
-| T22 | Prepared command is altered between approval and execution | High — different effect than approved | `edge`, `industrial-action` | Prepared-command binding, idempotency, receipts, decision refs | RFC-021/022/023 still draft; enforcement completeness not proven |
-| T23 | Interlock/safe-state bypass or stale physical state | Critical in HIL contexts | `industrial-action`, `edge-modbus`, `edge-mqtt` | Interlocks, safe-state, authority policies, failure semantics | HIL evidence incomplete; no physical deployment claim |
-| T24 | Reconnect/duplicate delivery causes repeated physical action | High | `edge-mqtt`, `industrial-action` | Idempotency, durable at-most-once storage, replay protections | Broker/PLC HIL and power-loss evidence pending |
+| T21 | Agent bypasses policy/approval and executes a consequential action | High — unauthorized spend/physical effect | `edge`, `agent-policy`, `act-core` | Governed edge runtime, approval/reservation, authority binding, two-phase execution | Post-authorization negotiation residual; no independent audit |
+| T22 | Prepared command is altered between approval and execution | High — different effect than approved | `edge`, `act-core` | Prepared-command binding, idempotency, receipts, decision refs | RFC-021/022/023 still draft; enforcement completeness not proven |
+| T23 | Interlock/safe-state bypass or stale physical state | Critical in HIL contexts | `act-core`, `edge-modbus`, `edge-mqtt` | Interlocks, safe-state, authority policies, failure semantics | HIL evidence incomplete; no physical deployment claim |
+| T24 | Reconnect/duplicate delivery causes repeated physical action | High | `edge-mqtt`, `act-core` | Idempotency, durable at-most-once storage, replay protections | Broker/PLC HIL and power-loss evidence pending |
 
 ### 7.7 Release, supply chain and evidence
 

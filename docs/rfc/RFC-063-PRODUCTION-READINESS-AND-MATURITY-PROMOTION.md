@@ -166,10 +166,10 @@ in Tier 1 even though its package version and API are stable.
 - `omnia-host` — rc; durable host state and factory-registry recovery must pass
   before any production claim.
 - `storage` — alpha; promotion is a prerequisite for `wots-lease`,
-  `omnia-host`, `industrial-action` and `edge-mqtt`.
+  `omnia-host`, `act-core` and `edge-mqtt`.
 - `lookup-protocol`, `lookup-client`, `lookup-node` — rc; TypeScript/Go ticket
   parity is landed, but durable multi-peer and restart evidence remains.
-- `industrial-action` — rc; needs HIL and conformance evidence.
+- `act-core` — rc; needs HIL and conformance evidence.
 - `edge-mqtt`, `edge-modbus` — rc; need HIL and conformance evidence.
 
 Tier 1 packages may be published and used, but they must not carry a production
@@ -238,9 +238,9 @@ they enter Tier 1 with a named evidence plan.
 | `wots-lease` | Tier 1 (v1 API) | `storage` is alpha; `txpow` must meet Tier 2 bar |
 | `omnia` | Tier 1 | AWS 8-node/7-hop evidence is strong; dependency closure and P7 ownership remain |
 | `omnia-host` | Tier 1 (rc) | 2026-10-22 7-hop teardown blocked: factory registry lost on restart; durable host storage required |
-| `storage` | Tier 1 (alpha) | Must be promoted before `wots-lease`, `omnia-host`, `industrial-action` or `edge-mqtt` can claim Tier 0 |
+| `storage` | Tier 1 (alpha) | Must be promoted before `wots-lease`, `omnia-host`, `act-core` or `edge-mqtt` can claim Tier 0 |
 | `lookup-*` | Tier 1 (rc) | Real multi-peer durability, restart and teardown evidence |
-| `industrial-action` | Tier 1 (rc) | HIL and conformance evidence |
+| `act-core` | Tier 1 (rc) | HIL and conformance evidence |
 | `edge-mqtt`, `edge-modbus` | Tier 1 (rc) | HIL and conformance evidence |
 
 The current `scripts/workspace-gates.config.json` and `docs/maturity.md` predate

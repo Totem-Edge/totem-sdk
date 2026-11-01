@@ -124,7 +124,7 @@ The code has landed; the audit’s “pending” markers for P0-E are stale.
 | P0-A explicit resolution time (`asOf`) | landed (`ff41de95`) | `packages/identity/src/resolver.ts`, `manifest-binding.ts` |
 | P0-B root-binding verifier | landed (`ff41de95`) | `packages/root-identity/src/verifier.ts` |
 | P0-C governance → authority principal | landed (`e75fe7f7`) | `packages/governance`, `packages/authority` |
-| P0-D industrial context freshness | landed (`e75fe7f7`) | `packages/industrial-action` |
+| P0-D industrial context freshness | landed (`e75fe7f7`) | `packages/act-core` |
 | P0-E content-addressed manifest revisions | landed (`561239c5`) | `packages/manifest/src/id.ts`, `packages/proofgraph` |
 
 These are prerequisites, not part of the entity package. `@totemsdk/entity`
@@ -301,7 +301,7 @@ rather than assumed.
 | Consumer | Use | Priority |
 |---|---|---|
 | `edge` + `connect` + `wallet-adapter` | minimum counterparty identity before an action; origin/approval context | High |
-| `industrial-action` + `edge-*` connectors (`edge-adapters`, `edge-bacnet`, `edge-ble`, `edge-can`, `edge-coap`, `edge-email`, `edge-grpc`, `edge-lorawan`, `edge-matter`, `edge-modbus`, `edge-nfc`, `edge-opcua`, `edge-ros2`) | purpose-bound device identity and capability disclosure; connectors remain producers | High |
+| `act-core` + `edge-*` connectors (`edge-adapters`, `edge-bacnet`, `edge-ble`, `edge-can`, `edge-coap`, `edge-email`, `edge-grpc`, `edge-lorawan`, `edge-matter`, `edge-modbus`, `edge-nfc`, `edge-opcua`, `edge-ros2`) | purpose-bound device identity and capability disclosure; connectors remain producers | High |
 | `authority` + `governance` | resolve the principal and attached grants at an explicit `asOf` | High |
 | `identity` + `root-identity` + `manifest` | source layers: resolve claims, verify root proofs, bind manifests | High (sources) |
 | `lookup-client` + `lookup-node` + `lookup-protocol` + `manifest` | disclose a service’s root + capabilities without its claims; carry `entityRef` in announcements | High |
@@ -329,12 +329,12 @@ package:
   runtime/transport/indirect consumers. They may carry projections but do not
   resolve entities themselves.
 - **`edge-mqtt`**: transport metadata only; device identity belongs to
-  `industrial-action`/`edge`.
+  `act-core`/`edge`.
 - **`mcp-server`**: documentation/index metadata only.
 
 No existing package MUST change for P1. The first integration should be a
 consumer that already handles a counterparty at an explicit time (lookup,
-authority/governance, or industrial-action), not the payment or custody layers.
+authority/governance, or act-core), not the payment or custody layers.
 
 ---
 

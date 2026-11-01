@@ -5,7 +5,7 @@
 **Revised:** 2026-10-01
 **Authors:** Totem SDK Contributors
 **Depends on:** RFC-012 (Decision runtime), RFC-010 (Industrial Action RC), RFC-004 (Edge SDK v1)
-**Touches:** `@totemsdk/edge` (governed action input + receipts), `@totemsdk/agent-policy` (run receipt graph), `@totemsdk/industrial-action` (receipt binding), `@totemsdk/decision` (reference type), `@totemsdk/proofgraph` (optional persistence)
+**Touches:** `@totemsdk/edge` (governed action input + receipts), `@totemsdk/agent-policy` (run receipt graph), `@totemsdk/act-core` (receipt binding), `@totemsdk/decision` (reference type), `@totemsdk/proofgraph` (optional persistence)
 
 ---
 

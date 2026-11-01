@@ -5,7 +5,7 @@
 **Authors:** Totem SDK Contributors
 **Reviewers:** [Pending stakeholder assignment]
 **Depends on:** RFC-026 (ROS 2 Action Semantics & Nav2), RFC-021, RFC-022, RFC-023, RFC-011
-**Touches:** `@totemsdk/industrial-autoware` (or `@totemsdk/edge-ros2/autoware` subpath); `@totemsdk/industrial-action`
+**Touches:** `@totemsdk/industrial-autoware` (or `@totemsdk/edge-ros2/autoware` subpath); `@totemsdk/act-core`
 
 ---
 
@@ -217,7 +217,7 @@ overrides the safety monitor.
 - **Q1** Should this be its own package or a subpath of `@totemsdk/edge-ros2`
   (`@totemsdk/edge-ros2/autoware`), given it shares the transport?
 - **Q2** Are route and mission envelopes (RFC-025) the same core abstraction?
-  Should there be one `Envelope` concept in `industrial-action`?
+  Should there be one `Envelope` concept in `act-core`?
 - **Q3** What position/timing tolerance defines route completion per vehicle?
 - **Q4** How is operator confirmation of a locked-out mode change modelled —
   RFC-011 approvals, or an out-of-band safety procedure?

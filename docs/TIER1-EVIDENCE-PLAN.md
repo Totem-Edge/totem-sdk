@@ -137,7 +137,7 @@ landed; production evidence is still being gathered.
 
 - Crash/power-loss and corruption recovery evidence across backends.
 - Backend parity under sustained contention and reopen.
-- Adoption by `wots-lease`, `industrial-action` and `edge-mqtt` without
+- Adoption by `wots-lease`, `act-core` and `edge-mqtt` without
   helper-only wiring.
 - Channel tag `next` is required for rc; `latest` remains npm's required default
   until a stable v1 exists.
@@ -218,7 +218,7 @@ landed; production evidence is still being gathered.
 - Multi-peer lookup and revocation pass on real transports.
 - Dist-tag and docs agree with `rc`.
 
-### industrial-action
+### act-core
 
 **Current:** `rc`, Tier 1.
 

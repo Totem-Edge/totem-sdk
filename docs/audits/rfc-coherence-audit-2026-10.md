@@ -275,7 +275,7 @@ and the first honest slice for each:
   industrial adapter) but is advisory. First slice: extend it with enforceable
   physical limits and rejection tests at the industrial adapter.
 - RFC-021: no catalogue→decision-candidate registration is present in `decision`
-  or `industrial-action`. First slice: register catalogue definitions as bounded
+  or `act-core`. First slice: register catalogue definitions as bounded
   decision candidates with a decision-to-catalogue binding test.
 
 **B8 — RFC-031 P5 and RFC-007 Phase 5**

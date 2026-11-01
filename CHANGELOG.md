@@ -208,7 +208,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   KISSVM, mutation fuzzing for proof verification, ticket seq/budget property
   tests, storage CAS/reopen properties, Omnia channel-transition boundaries and
   industrial policy-boundary properties. `@totemsdk/proof` 1.0.2 now rejects
-  malformed proof objects, and `@totemsdk/industrial-action` 0.2.2 fails closed
+  malformed proof objects, and `@totemsdk/act-core` 0.2.2 fails closed
   when a custom condition evaluator throws.
 
 - **Framing and manifest hardening (Phase 1 B3):** `@totemsdk/lookup-protocol`

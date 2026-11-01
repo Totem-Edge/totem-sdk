@@ -30,7 +30,7 @@ Physical systems don't work in "transactions". They work in loops:
 | **Sense** | A device reads the world — temperature, pressure, energy, motion. | `edge-*` protocol adapters (MQTT, Modbus, BACnet, CAN, BLE, LoRaWAN, OPC-UA, ROS 2, Matter, CoAP, gRPC, SMTP/IMAP) |
 | **Prove** | The reading becomes a signed, anchored, verifiable fact. | `core` (WOTS signatures), `root-identity`, `proof`, `proofgraph`, `manifest` |
 | **Decide** | Policy evaluates whether the fact is acceptable. | `recursive-mast`, `authority`, `governance`, `agent-policy`, `kissvm` |
-| **Act** | Bounded operational action against a real device. | `edge`, `industrial-action`, `edge-adapters` |
+| **Act** | Bounded operational action against a real device. | `edge`, `act-core`, `edge-adapters` |
 | **Settle** | Value moves — micropayments, balances, dividends. | `omnia`, `omnia-router`, `omnia-factory`, `statechain`, `liquidity-bond` |
 
 Each stage produces evidence consumed by the next, and the evidence is produced by open-source code you can run yourself.
@@ -44,8 +44,8 @@ The SDK is organised into five systems that map onto the loop — plus a cryptog
 | **Settlement** | Payment channels and value movement | `omnia`, `omnia-router`, `omnia-splice`, `omnia-factory`, `omnia-vtxo`, `omnia-host`, `statechain`, `se-server`, `tx-builder`, `txpow`, `liquidity-bond`, `provider-bond` |
 | **Trust** | Identity, signatures, proofs, anchoring | `core`, `core-wasm`, `wots-lease`, `root-identity`, `proof`, `proof-integritas`, `proofgraph`, `location-proof`, `spatial-proof`, `raster-proof`, `identity`, `manifest`, `connect` |
 | **Policy** | Decisions, delegation, governance, agent seams | `recursive-mast`, `authority`, `governance`, `agent-policy` |
-| **Action** | Bounded operational execution on devices | `edge`, `industrial-action`, `edge-adapters` |
-| **Edge** | Protocol connectors for sensing | `edge-mqtt`, `edge-modbus`, `edge-bacnet`, `edge-ble`, `edge-can`, `edge-coap`, `edge-grpc`, `edge-lorawan`, `edge-matter`, `edge-opcua`, `edge-ros2`, `edge-email`, `pear` |
+| **Action** | Bounded operational execution on devices | `edge`, `act-core`, `edge-adapters` |
+| **Edge** | Protocol connectors for sensing | `edge-mqtt`, `edge-modbus`, `edge-bacnet`, `edge-ble`, `edge-can`, `edge-coap`, `edge-grpc`, `edge-gnss`, `edge-lorawan`, `edge-matter`, `edge-mavlink`, `edge-nfc`, `edge-ocpp`, `edge-opcua`, `edge-ros2`, `edge-email`, `pear` |
 | **Foundation** | KISSVM, serialization, crypto primitives | `core`, `kissvm`, `core-wasm` |
 
 Sovereignty infrastructure (`lookup-node`, `lookup-client`, `lookup-protocol`, `chain-provider`, `minima-rpc`, `realtime`, `server`, `stream-transport`, `pubsub-transport`, `mcp-server`, `wallet-adapter`) is shared plumbing used by every system.
@@ -63,7 +63,7 @@ Totem is built for systems where machines act autonomously — on a verifiable l
 
 **AI proposes. Policy evaluates. Keys remain outside the agent.**
 
-Agents never hold keys. An agent proposes a payment or an action; a policy engine evaluates it against scope, delegation, and budget; governed keys produce the signature. `agent-policy` defines the contract; `authority` and `recursive-mast` evaluate it; `industrial-action` bounds what acting on it can do.
+Agents never hold keys. An agent proposes a payment or an action; a policy engine evaluates it against scope, delegation, and budget; governed keys produce the signature. `agent-policy` defines the contract; `authority` and `recursive-mast` evaluate it; `act-core` bounds what acting on it can do.
 
 ## Why Minima?
 
@@ -103,7 +103,7 @@ The five systems sit on a shared foundation. Each package is independently usabl
 │  Quadratic voting. PREVSTATE state machines.                  │
 ├──────────────────────────────────────────────────────────────┤
 │                  ACTION SYSTEM                                 │
-│  edge  industrial-action  edge-adapters                       │
+│  edge  act-core  edge-adapters                       │
 │  Port-injected runtime. Guardrailed operational actions.      │
 ├──────────────────────────────────────────────────────────────┤
 │                  EDGE SYSTEM                                   │
@@ -129,7 +129,7 @@ A refrigerated shipment of vaccines crosses a border. Nobody can run a central s
 1. **Sense** — an `edge-ble` or `edge-modbus` adapter reads temperature and door-open events from the reefer controller.
 2. **Prove** — `edge` signs each reading with a WOTS TreeKey; `proof` wraps it in a WOTS-signed envelope; `proofgraph` links it to the shipment manifest.
 3. **Decide** — `recursive-mast` evaluates the readings against the shipper's cold-chain policy (issuer → depot → carrier → auditor); `authority` checks the carrier's mandate covers this lane; `kissvm` enforces the temperature-range contract as a script.
-4. **Act** — when a reading violates the range (or the manifest needs a proof-of-delivery push to the regulator), `industrial-action` runs the bounded, guardrailed operation on the edge.
+4. **Act** — when a reading violates the range (or the manifest needs a proof-of-delivery push to the regulator), `act-core` runs the bounded, guardrailed operation on the edge.
 5. **Settle** — `omnia` settles payment against the delivery event: full rate on verified cold-chain compliance, penalty rate on a proven breach, held in a channel balance until the proof audit completes.
 
 Every stage produces evidence the next stage consumes — and every stage can be verified by any party who holds the public evidence.
@@ -188,7 +188,7 @@ Every stage produces evidence the next stage consumes — and every stage can be
 | Package | Description |
 |---------|-------------|
 | [`@totemsdk/edge`](packages/edge) | Unified edge runtime — port injection, capability model, device identity |
-| [`@totemsdk/industrial-action`](packages/industrial-action) | Industrial action lifecycle — governed intent → guarded, verifiable operations on field devices |
+| [`@totemsdk/act-core`](packages/act-core) | Industrial action lifecycle — governed intent → guarded, verifiable operations on field devices |
 | [`@totemsdk/edge-adapters`](packages/edge-adapters) | Reference adapters bridging SDK packages to Edge port interfaces |
 
 ### Edge system
@@ -208,6 +208,9 @@ Every stage produces evidence the next stage consumes — and every stage can be
 | [`@totemsdk/edge-opcua`](packages/edge-opcua) | OPC-UA | SCADA, factory floors — secure channel, node browsing, monitored items |
 | [`@totemsdk/edge-ros2`](packages/edge-ros2) | ROS 2 | Robotics — DDS middleware, typed topics, service calls |
 | [`@totemsdk/edge-email`](packages/edge-email) | SMTP/IMAP | Email-triggered actions — send proofs, receive commands, sensor ingestion |
+| [`@totemsdk/edge-gnss`](packages/edge-gnss) | GNSS | GPS/RTK positioning — NMEA 0183 GGA/RMC/GSA parsing, fix proofs, location sensor bridge |
+| [`@totemsdk/edge-ocpp`](packages/edge-ocpp) | OCPP | EV charging wire protocol — OCPP-J framing, boot/heartbeat, calls, meter proofs |
+| [`@totemsdk/edge-mavlink`](packages/edge-mavlink) | MAVLink | Drone telemetry — MAVLink 1/2 framing, heartbeat, commands, sensor proofs |
 | [`@totemsdk/pear`](packages/pear) | — | Run Totem SDK apps inside Holepunch's Pear/Bare runtime |
 
 ### Intelligence system
@@ -248,7 +251,7 @@ Every stage produces evidence the next stage consumes — and every stage can be
 | [`@totemsdk/mcp-server`](packages/mcp-server) | MCP server for AI agent tooling — expose SDK capabilities to LLM agents |
 | [`@totemsdk/wallet-adapter`](packages/wallet-adapter) | Wallet adapter interfaces for multi-provider chain access |
 
-The authoritative machine-readable catalog is [`SDK_MANIFEST.json`](SDK_MANIFEST.json) — currently **69 packages across 9 domains**, plus the private `@totem/sdk-tests`.
+The authoritative machine-readable catalog is [`SDK_MANIFEST.json`](SDK_MANIFEST.json) — currently **72 packages across 9 domains**, plus the private `@totem/sdk-tests`.
 
 ---
 
@@ -266,7 +269,7 @@ We are honest about where things stand. The core cryptographic layer and the Omn
 
 Support tiers: **Tier 0** (3) first-line production core, **Tier 1** (10) production candidates, **Tier 2** (20) required support dependencies, **outside** (36), **excluded** (6). The generated per-package matrix is [`docs/maturity.md`](docs/maturity.md). It is checked in CI against `scripts/workspace-gates.config.json`; do not edit it by hand.
 
-**Production surface (RFC-063 §4):** Tier 0 is `core`, `core-wasm` and `kissvm`. Tier 1 candidates are `wots-lease`, `omnia`, `omnia-host`, `storage`, `lookup-*`, `industrial-action`, `edge-mqtt` and `edge-modbus`; they remain RC/alpha until their named evidence and dependency closure pass. Other packages keep their measured maturity and are outside the first-line production core; they are not automatically “preview”.
+**Production surface (RFC-063 §4):** Tier 0 is `core`, `core-wasm` and `kissvm`. Tier 1 candidates are `wots-lease`, `omnia`, `omnia-host`, `storage`, `lookup-*`, `act-core`, `edge-mqtt` and `edge-modbus`; they remain RC/alpha until their named evidence and dependency closure pass. Other packages keep their measured maturity and are outside the first-line production core; they are not automatically “preview”.
 
 ---
 
@@ -470,10 +473,13 @@ packages/                   # 62 workspace packages, 61 publishable @totemsdk sc
 ├── edge-modbus/            # Modbus protocol adapter
 ├── edge-mqtt/              # MQTT sensor bridge + MachinePay
 ├── edge-nfc/               # NFC adapter (NDEF, APDU, P2P, HCE)
+├── edge-gnss/              # GNSS adapter (NMEA, fixes, location proofs)
+├── edge-ocpp/              # OCPP-J wire adapter (EV charging)
+├── edge-mavlink/           # MAVLink wire adapter (drones)
 ├── mcp-server/             # MCP server for AI agent tooling
 ├── governance/             # On-chain governance (voting, DAO)
 ├── recursive-mast/         # Nested MAST policy trees + PREVSTATE
-├── industrial-action/      # Industrial action lifecycle
+├── act-core/      # Industrial action lifecycle
 ├── sdk-tests/              # Private integration + parity test package
 └── ... (43 more packages)
 
@@ -554,7 +560,7 @@ docs/                       # SDK documentation
 | [RFC-070](docs/rfc/RFC-070-TOTEM-NAMESPACE-AND-NAME-RESOLUTION.md) | Totem namespace and name resolution — on-chain registry root, P2P records, privacy profiles and Entity integration (proposed; design only) |
 | [Off-chain research profiles](docs/research/OMNIA-OFFCHAIN-RESEARCH-PROFILES.md) | Deferred OEX-04/05/06/08/09/10/11/12 research notes; no implementation authority |
 | [SDK Audit (archived)](docs/archive/SDK_AUDIT-2026-02-ARCHIVED.md) | Historical Feb 2026 audit; current maturity lives in the table above |
-| [SDK Manifest](SDK_MANIFEST.json) | Machine-readable package index — 69 packages, for AI agents and tooling |
+| [SDK Manifest](SDK_MANIFEST.json) | Machine-readable package index — 72 packages, for AI agents and tooling |
 | [API Reference](https://totem.ing) | Full TypeDoc-generated API reference |
 
 ---

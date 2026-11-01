@@ -376,7 +376,7 @@ Current omnia channels use `STATE(100) = settlement, STATE(101) = sequence`. Por
 
 `core/src/canonical.ts` (`toHex`, `canonicalJson`, `hashCanonical`) is already used by:
 - governance (proposal/vote/outcome IDs)
-- industrial-action (proposal/execution IDs)
+- act-core (proposal/execution IDs)
 - edge-mqtt (event IDs)
 - omnia (state commitment via `computeStateCommitment`)
 
@@ -534,7 +534,7 @@ LET value       = DIV(MUL(total numerator) denominator)
 ### Phase 7: Governance & Industrial-Action
 1. Map governance state machine (draft→active→passed→executed) to temporal primitives
 2. Add on-chain temporal locking for proposal execution delays
-3. Add on-chain temporal for action expiry in industrial-action
+3. Add on-chain temporal for action expiry in act-core
 4. Bridge governance mandate receipts to temporal proofs
 
 ### Phase 8: MAST Policy Layer
@@ -575,7 +575,7 @@ A future `mcp-server` tool like `simulate-temporal-spend(curve, block, state)` w
 | Omnia-splice quiesce         | omnia-splice/src/quiesce.ts                   | Add cooldown window  |
 | Governance proposal          | governance/src/proposal.ts                    | Map to cliff+window  |
 | Governance execution         | governance/src/execution.ts                   | Map to deadline      |
-| Industrial-action expiry     | industrial-action/src/proposal.ts             | Add deadline script  |
+| Industrial-action expiry     | act-core/src/proposal.ts             | Add deadline script  |
 | Liquidity-bond lock terms    | liquidity-bond/src/types.ts                   | Activate dead `unlockAfterBlock`, `until-block`, `until-epoch` → temporal cliff  |
 | Liquidity-bond fee accrual   | liquidity-bond/src/fees.ts                    | `record-only` → time-pro-rated linear via temporal                              |
 | Liquidity-bond risk TTE      | liquidity-bond/src/risk.ts                    | Wall-clock TTE → chain-block deadline expiration                                 |

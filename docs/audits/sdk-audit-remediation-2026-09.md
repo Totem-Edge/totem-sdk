@@ -125,8 +125,8 @@ tests**. It is fixed here.
 | AUD-020 | P1 | Grant quota checks and reservation are not atomic | FIXED | `packages/agent-policy/src/grant-bound.ts`. |
 | AUD-021 | P2 | Reservation IDs collide across unrelated actions/runs | FIXED | `packages/agent-policy/src/grant-usage.ts`. |
 | AUD-022 | P2 | Expired reservations permanently block new work | FIXED | `packages/agent-policy/src/grant-usage.ts`. |
-| AUD-023 | P1 | Industrial execution accepts a different context/executor kind | FIXED | `packages/industrial-action/src/executor.ts`. |
-| AUD-024 | P2 | Industrial receipt integrity does not protect outcome/contents | FIXED | `packages/industrial-action/src/receipt.ts`. |
+| AUD-023 | P1 | Industrial execution accepts a different context/executor kind | FIXED | `packages/act-core/src/executor.ts`. |
+| AUD-024 | P2 | Industrial receipt integrity does not protect outcome/contents | FIXED | `packages/act-core/src/receipt.ts`. |
 | AUD-025 | P1 | SE advertises a public key unrelated to its real WOTS signer | FIXED | `packages/se-server/src/seKey.ts`. |
 | AUD-026 | P1 | SE owner authentication does not bind operation/request body | FIXED | `packages/se-server/src/router.ts`. |
 | AUD-027 | P1 | SE ownership changes race against stale database snapshots | FIXED | `packages/se-server/src/router.ts`. |

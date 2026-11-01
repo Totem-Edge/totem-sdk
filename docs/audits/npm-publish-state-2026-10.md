@@ -52,7 +52,7 @@ date. These will not update until bumped and republished.
 | `@totemsdk/edge-mqtt` | 0.2.4 | 2026-08-19 | 2026-09-30 |
 | `@totemsdk/governance` | 0.2.0 | 2026-08-31 | 2026-09-30 |
 | `@totemsdk/identity` | 1.0.0 | 2026-08-31 | 2026-09-29 |
-| `@totemsdk/industrial-action` | 0.2.0 | 2026-08-31 | 2026-10-01 |
+| `@totemsdk/act-core` | 0.2.0 | 2026-08-31 | 2026-10-01 |
 | `@totemsdk/intelligence` | 0.1.0 | 2026-09-14 | 2026-09-19 |
 | `@totemsdk/kissvm` | 1.2.0 | 2026-09-08 | 2026-10-01 |
 | `@totemsdk/liquidity-bond` | 0.3.0 | 2026-09-08 | 2026-09-30 |

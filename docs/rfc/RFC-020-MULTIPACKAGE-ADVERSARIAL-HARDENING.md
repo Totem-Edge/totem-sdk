@@ -157,7 +157,7 @@ API**; string-presence assertions are not accepted as proof.
 | **P2-11** | `TXB-FUND-001` funding-intent replay/no expiry | `tx-builder/src/fund-tx.ts:26-188` | Add `expiresAt`; require a nonce store / on-chain verifier at acceptance |
 | **P2-12** | `TXB-COIN-001` no spent/expiry; case-sensitive dedup | `tx-builder/src/coin-selection.ts:148-209` | Filter spent/expired; normalize `coinId` before dedup |
 | **P2-13** | `TXB-MULTISIG-008/009` live-object aliasing; `getAllPending` terminal clobber | `multisig-manager.ts:401-408,552-567` | Return copies/frozen read models; skip expiry rewrite for terminal statuses |
-| **P2-14** | `STABLE-010` dead `RETURN` after terminal `MAST`; unused security params (STABLE-011, EXP-16) | `identity.ts`, `authority.ts`, `industrial-action.ts`, `provider-bond.ts`, `wots-lease.ts`, `voting.ts`, `recovery.ts` | Remove dead code; wire or reject unused security parameters |
+| **P2-14** | `STABLE-010` dead `RETURN` after terminal `MAST`; unused security params (STABLE-011, EXP-16) | `identity.ts`, `authority.ts`, `act-core.ts`, `provider-bond.ts`, `wots-lease.ts`, `voting.ts`, `recovery.ts` | Remove dead code; wire or reject unused security parameters |
 
 ---
 

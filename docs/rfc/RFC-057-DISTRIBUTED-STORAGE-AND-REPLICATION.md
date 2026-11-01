@@ -403,7 +403,7 @@ incompatibility, relay replication round-trip, and ARM64 resource measurements.
 | Consumer | Integration | Priority |
 |---|---|---|
 | `proofgraph` + `proof` + `proof-integritas` | Hypercore event history, Hyperbee indexes, Hyperdrive evidence, optional checkpoint anchors | High |
-| `edge` + `industrial-action` + `edge-*` connectors (`edge-adapters`, `edge-bacnet`, `edge-ble`, `edge-can`, `edge-coap`, `edge-email`, `edge-grpc`, `edge-lorawan`, `edge-matter`, `edge-modbus`, `edge-nfc`, `edge-opcua`, `edge-ros2`) | offline telemetry, device registries, operational logs (connectors are producers only) | High |
+| `edge` + `act-core` + `edge-*` connectors (`edge-adapters`, `edge-bacnet`, `edge-ble`, `edge-can`, `edge-coap`, `edge-email`, `edge-grpc`, `edge-lorawan`, `edge-matter`, `edge-modbus`, `edge-nfc`, `edge-opcua`, `edge-ros2`) | offline telemetry, device registries, operational logs (connectors are producers only) | High |
 | `identity` + `manifest` + `entity` + `root-identity` | replicated discovery indexes and manifests; entity views and root proofs as artifacts | High |
 | `pear` + Android starter | reference adapters, runtime lifecycle, compatibility fixture | High |
 | `lookup-node` + `lookup-client` + `chain-provider` + `realtime` | secondary read replicas, portable caches, freshness reporting | High/Medium |
