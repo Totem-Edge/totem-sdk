@@ -1,6 +1,6 @@
 {
   "name": "@totemsdk/edge-nfc",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Edge runtime adapter for NFC \u2014 reader polling, NDEF, secure-element APDU, P2P, HCE",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",

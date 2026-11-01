@@ -16,10 +16,10 @@
 
 | Level | Packages |
 |---|---:|
-| v1 | 5 |
-| rc | 55 |
+| v1 | 7 |
+| rc | 57 |
 | beta | 3 |
-| alpha | 6 |
+| alpha | 5 |
 | excluded | 6 |
 
 | Support tier | Packages |
@@ -27,10 +27,10 @@
 | Tier 0 | 3 |
 | Tier 1 | 10 |
 | Tier 2 | 20 |
-| Outside production surface | 36 |
+| Outside production surface | 39 |
 | Excluded | 6 |
 
-Total: **69** publishable packages + **6** excluded entries = **75** workspace entries.
+Total: **72** publishable packages + **6** excluded entries = **78** workspace entries.
 
 ## Matrix
 
@@ -41,7 +41,7 @@ Total: **69** publishable packages + **6** excluded entries = **75** workspace e
 | `@totemsdk/kissvm` | 1.3.1 | rc | 0 | `packages/kissvm` |
 | `@totemsdk/edge-modbus` | 0.2.2 | v1 | 1 | `packages/edge-modbus` |
 | `@totemsdk/edge-mqtt` | 0.3.1 | v1 | 1 | `packages/edge-mqtt` |
-| `@totemsdk/industrial-action` | 0.5.0 | rc | 1 | `packages/industrial-action` |
+| `@totemsdk/act-core` | 0.5.0 | rc | 1 | `packages/act-core` |
 | `@totemsdk/lookup-client` | 0.4.0 | rc | 1 | `packages/lookup-client` |
 | `@totemsdk/lookup-node` | 0.4.0 | rc | 1 | `packages/lookup-node` |
 | `@totemsdk/lookup-protocol` | 0.3.0 | rc | 1 | `packages/lookup-protocol` |
@@ -69,22 +69,26 @@ Total: **69** publishable packages + **6** excluded entries = **75** workspace e
 | `@totemsdk/tx-builder` | 0.2.2 | rc | 2 | `packages/tx-builder` |
 | `@totemsdk/txpow` | 1.1.1 | rc | 2 | `packages/txpow` |
 | `@totemsdk/p2p-hub` | 0.1.1 | alpha | 2 | `packages/p2p-hub` |
+| `@totemsdk/edge-can` | 0.3.0 | v1 | outside | `packages/edge-can` |
+| `@totemsdk/edge-coap` | 0.3.0 | v1 | outside | `packages/edge-coap` |
 | `@totemsdk/edge-lorawan` | 0.2.3 | v1 | outside | `packages/edge-lorawan` |
 | `@totemsdk/connect` | 3.1.2 | rc | outside | `packages/connect` |
-| `@totemsdk/edge-adapters` | 0.3.1 | rc | outside | `packages/edge-adapters` |
-| `@totemsdk/edge-bacnet` | 0.2.1 | rc | outside | `packages/edge-bacnet` |
-| `@totemsdk/edge-ble` | 0.2.1 | rc | outside | `packages/edge-ble` |
-| `@totemsdk/edge-can` | 0.2.1 | rc | outside | `packages/edge-can` |
-| `@totemsdk/edge-coap` | 0.2.1 | rc | outside | `packages/edge-coap` |
-| `@totemsdk/edge-email` | 0.2.1 | rc | outside | `packages/edge-email` |
-| `@totemsdk/edge-grpc` | 0.2.1 | rc | outside | `packages/edge-grpc` |
-| `@totemsdk/edge-matter` | 0.2.1 | rc | outside | `packages/edge-matter` |
-| `@totemsdk/edge-opcua` | 0.2.1 | rc | outside | `packages/edge-opcua` |
-| `@totemsdk/edge-ros2` | 0.2.1 | rc | outside | `packages/edge-ros2` |
+| `@totemsdk/edge-adapters` | 0.3.2 | rc | outside | `packages/edge-adapters` |
+| `@totemsdk/edge-bacnet` | 0.2.2 | rc | outside | `packages/edge-bacnet` |
+| `@totemsdk/edge-ble` | 0.2.2 | rc | outside | `packages/edge-ble` |
+| `@totemsdk/edge-email` | 0.2.2 | rc | outside | `packages/edge-email` |
+| `@totemsdk/edge-gnss` | 0.1.0 | rc | outside | `packages/edge-gnss` |
+| `@totemsdk/edge-grpc` | 0.3.0 | rc | outside | `packages/edge-grpc` |
+| `@totemsdk/edge-matter` | 0.2.2 | rc | outside | `packages/edge-matter` |
+| `@totemsdk/edge-mavlink` | 0.1.0 | rc | outside | `packages/edge-mavlink` |
+| `@totemsdk/edge-nfc` | 0.2.0 | rc | outside | `packages/edge-nfc` |
+| `@totemsdk/edge-ocpp` | 0.1.0 | rc | outside | `packages/edge-ocpp` |
+| `@totemsdk/edge-opcua` | 0.2.2 | rc | outside | `packages/edge-opcua` |
+| `@totemsdk/edge-ros2` | 0.2.2 | rc | outside | `packages/edge-ros2` |
 | `@totemsdk/eefi` | 0.1.1 | rc | outside | `packages/eefi` |
 | `@totemsdk/governance` | 0.3.0 | rc | outside | `packages/governance` |
 | `@totemsdk/location-proof` | 1.0.1 | rc | outside | `packages/location-proof` |
-| `@totemsdk/mcp-server` | 0.5.0 | rc | outside | `packages/mcp-server` |
+| `@totemsdk/mcp-server` | 0.5.1 | rc | outside | `packages/mcp-server` |
 | `@totemsdk/pear` | 0.3.0 | rc | outside | `packages/pear` |
 | `@totemsdk/proof-integritas` | 1.0.1 | rc | outside | `packages/proof-integritas` |
 | `@totemsdk/proofgraph` | 1.1.0 | rc | outside | `packages/proofgraph` |
@@ -100,7 +104,6 @@ Total: **69** publishable packages + **6** excluded entries = **75** workspace e
 | `@totemsdk/decision` | 0.3.0 | beta | outside | `packages/decision` |
 | `@totemsdk/intelligence` | 0.1.2 | beta | outside | `packages/intelligence` |
 | `@totemsdk/qvac` | 0.2.0 | beta | outside | `packages/qvac` |
-| `@totemsdk/edge-nfc` | 0.1.1 | alpha | outside | `packages/edge-nfc` |
 | `@totemsdk/entity` | 0.2.0 | alpha | outside | `packages/entity` |
 | `@totemsdk/omnia-relay` | 0.7.0 | alpha | outside | `packages/omnia-relay` |
 | `@totemsdk/replication` | 0.2.0 | alpha | outside | `packages/replication` |
@@ -108,6 +111,6 @@ Total: **69** publishable packages + **6** excluded entries = **75** workspace e
 | `@totem/sdk-tests` | 1.0.0 | excluded | excluded | `packages/sdk-tests` |
 | `@totemsdk/observability` | 0.1.0 | excluded | excluded | `extensions/observability` |
 | `totem-dapp-starter` | 0.1.0 | excluded | excluded | `extensions/totem-dapp-starter` |
-| `totem-extension` | 1.0.7 | excluded | excluded | `extensions/totem-extension` |
+| `totem-extension` | 1.0.13 | excluded | excluded | `extensions/totem-extension` |
 | `totem-pear-android-starter` | 0.1.0 | excluded | excluded | `extensions/totem-pear-android-starter` |
 | `totem-pwa-wallet` | 1.0.0 | excluded | excluded | `extensions/totem-pwa-wallet` |

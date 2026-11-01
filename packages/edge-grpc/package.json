@@ -1,7 +1,7 @@
 {
   "name": "@totemsdk/edge-grpc",
-  "version": "0.2.1",
-  "description": "Edge runtime adapter for gRPC — service-to-service, cloud-to-edge control planes",
+  "version": "0.3.0",
+  "description": "Edge runtime adapter for gRPC \u2014 service-to-service, cloud-to-edge control planes",
   "main": "dist/cjs/index.js",
   "types": "dist/cjs/index.d.ts",
   "exports": {
