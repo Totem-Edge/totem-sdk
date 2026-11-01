@@ -8387,40 +8387,44 @@
           "doc": "MMR membership covenant (RFC-048 §12.4) — prove, on-chain, that a runtime leaf\nis included in a committed MMR root, using the canonical `PROOF` opcode.\n\nThis is the per-leaf primitive behind **committed-set-root scaling**: rather\nthan emitting one escape branch per party (an O(N) script), the spender commits\nits leaf and MMR proof to state and the script verifies inclusion against the\ncommitted root. The leaf is the signer's own WOTS public-key digest (`0x…`), so\n`SIGNEDBY(leaf)` binds the identity and `VERIFYOUT(0 leaf …)` pays exactly it.\n\nRuntime typing (matches a Minima node): the `data` operand is a HEX leaf when\nits evaluated value starts with `0x` (hashed from raw bytes) and a SCRIPT leaf\notherwise. Here the leaf is supplied via `STATE(leafPort)` as `0x<pubkey>`, so\nit types as HEX and matches an `MMRTree.fromPublicKeys(...)` root."
         },
         "buildCommitScript": {
-          "kind": "const",
-          "signature": "buildCommitScript"
+          "kind": "function",
+          "signature": "buildCommitScript(config: CommitConfig): string",
+          "doc": "Build a commit script that verifies:\n  1. The commitment hash matches the config\n  2. Nonce increases monotonically\n\nPort layout:\n  commitmentPort — pre-computed SHA3 commit\n  noncePort — monotonic counter"
         },
         "buildRevealScript": {
-          "kind": "const",
-          "signature": "buildRevealScript"
+          "kind": "function",
+          "signature": "buildRevealScript(config: RevealConfig): string",
+          "doc": "Build a reveal script that verifies:\n  SHA3(preimage) == PREVSTATE(commitmentPort)"
         },
         "buildActionStateMachineScript": {
-          "kind": "const",
-          "signature": "buildActionStateMachineScript"
+          "kind": "function",
+          "signature": "buildActionStateMachineScript(config: ActionStateMachineConfig): string",
+          "doc": "Build an industrial action state machine script that enforces:\n  proposed → noticed (require >= minNoticeBlocks from noticePort)\n  noticed → active (require >= minNotice and <= maxDuration from noticePort)\n  noticed → resolved (authority sig)\n  active → resolved (authority sig)\n  active → escalated (authority sig)\n  noticed → expired (block > expiry)"
         },
         "buildEscrowEnforcementScript": {
-          "kind": "const",
-          "signature": "buildEscrowEnforcementScript"
+          "kind": "function",
+          "signature": "buildEscrowEnforcementScript(config: EscrowEnforcementConfig): string",
+          "doc": "Build an escrow enforcement script that checks:\n  1. Condition hash matches committed condition\n  2. Amount matches committed amount\n  3. Escrow state is unchanged"
         },
         "IA_STATUS": {
           "kind": "const",
-          "signature": "IA_STATUS"
+          "signature": "IA_STATUS = { PROPOSED: 0, NOTICED: 1, ACTIVE: 2, RESOLVED: 3, ESCALATED: 4, EXPIRED: 5, } as const"
         },
         "CommitConfig": {
-          "kind": "const",
-          "signature": "CommitConfig"
+          "kind": "interface",
+          "signature": "export interface CommitConfig"
         },
         "RevealConfig": {
-          "kind": "const",
-          "signature": "RevealConfig"
+          "kind": "interface",
+          "signature": "export interface RevealConfig"
         },
         "ActionStateMachineConfig": {
-          "kind": "const",
-          "signature": "ActionStateMachineConfig"
+          "kind": "interface",
+          "signature": "export interface ActionStateMachineConfig"
         },
         "EscrowEnforcementConfig": {
-          "kind": "const",
-          "signature": "EscrowEnforcementConfig"
+          "kind": "interface",
+          "signature": "export interface EscrowEnforcementConfig"
         },
         "buildLiquidityLockScript": {
           "kind": "function",
