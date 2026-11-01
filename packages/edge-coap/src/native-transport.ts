@@ -1,9 +1,9 @@
 /**
  * NativeCoapTransport — connects to the edge-coap Go binary over TCP.
  *
- * The Go binary listens on a local TCP socket (default 127.0.0.1:15003)
- * and accepts newline-delimited JSON requests. This class implements
- * CoapTransportPort by forwarding all calls to the Go process.
+ * The Go binary listens on a local TCP socket (default 127.0.0.1:15003) and
+ * accepts newline-delimited JSON send requests. Inbound datagrams are pushed
+ * back as `message` events; token correlation stays in the gateway.
  */
 
 import type { CoapTransportPort } from './transport.js';
@@ -22,18 +22,13 @@ interface Request {
   data: string;
 }
 
-interface Response {
-  id: string;
-  ok: boolean;
-  data?: string;
-  error?: string;
-}
-
 interface PushMessage {
   type: string;
-  host: string;
-  port: number;
-  data: string;
+  host?: string;
+  port?: number;
+  data?: string;
+  code?: string;
+  error?: string;
 }
 
 let requestCounter = 0;
@@ -45,6 +40,7 @@ export class NativeCoapTransport implements CoapTransportPort {
   private messageHandlers: Array<(message: Uint8Array, remote: { host: string; port: number }) => void> = [];
   private errorHandlers: Array<(err: Error) => void> = [];
   private readonly config: Required<NativeCoapConfig>;
+  private closedByUser = false;
 
   constructor(config: NativeCoapConfig = {}) {
     this.config = {
@@ -55,16 +51,26 @@ export class NativeCoapTransport implements CoapTransportPort {
     };
   }
 
+  private emitError(error: Error): void {
+    for (const handler of this.errorHandlers) {
+      try { handler(error); } catch {}
+    }
+  }
+
   async bind(_port: number): Promise<void> {
     const net = await import('net');
+    this.closedByUser = false;
+    this.buffer = '';
     return new Promise((resolve, reject) => {
+      let connected = false;
       const timer = setTimeout(() => {
         this.socket?.destroy();
-        reject(new Error(`NativeCoapTransport: connect timeout`));
+        reject(new Error('NativeCoapTransport: connect timeout'));
       }, this.config.connectTimeoutMs);
 
       this.socket = net.createConnection({ host: this.config.host, port: this.config.port }, () => {
         clearTimeout(timer);
+        connected = true;
         resolve();
       });
 
@@ -76,13 +82,15 @@ export class NativeCoapTransport implements CoapTransportPort {
         for (const line of lines) {
           if (!line.trim()) continue;
           try {
-            const msg = JSON.parse(line);
+            const msg = JSON.parse(line) as PushMessage & { id?: string; ok?: boolean };
             if (msg.type === 'message') {
-              const push = msg as PushMessage;
-              const data = hexToBytes(push.data);
+              if (typeof msg.host !== 'string' || typeof msg.port !== 'number' || typeof msg.data !== 'string') continue;
+              const data = hexToBytes(msg.data);
               for (const handler of this.messageHandlers) {
-                try { handler(data, { host: push.host, port: push.port }); } catch {}
+                try { handler(data, { host: msg.host, port: msg.port }); } catch {}
               }
+            } else if (msg.type === 'error') {
+              this.emitError(new Error(`NativeCoapTransport: ${msg.code ?? 'error'}: ${msg.error ?? 'unknown error'}`));
             } else if (msg.id && this.pending.has(msg.id)) {
               const { resolve: res, reject: rej } = this.pending.get(msg.id)!;
               this.pending.delete(msg.id);
@@ -94,24 +102,34 @@ export class NativeCoapTransport implements CoapTransportPort {
       });
 
       this.socket.on('error', (err: Error) => {
-        for (const handler of this.errorHandlers) {
-          try { handler(err); } catch {}
+        if (!connected) {
+          clearTimeout(timer);
+          this.socket?.destroy();
+          reject(err);
         }
+        this.emitError(err);
       });
 
       this.socket.on('close', () => {
         for (const [, p] of this.pending) p.reject(new Error('connection closed'));
         this.pending.clear();
+        if (!this.closedByUser) this.emitError(new Error('NativeCoapTransport: connection closed'));
       });
     });
   }
 
   async close(): Promise<void> {
-    if (this.socket) { this.socket.destroy(); this.socket = null; }
+    this.closedByUser = true;
+    if (this.socket) {
+      this.socket.destroy();
+      this.socket = null;
+    }
+    for (const [, p] of this.pending) p.reject(new Error('connection closed'));
+    this.pending.clear();
   }
 
   async send(host: string, port: number, message: Uint8Array): Promise<void> {
-    if (!this.socket) throw new Error('NativeCoapTransport: not connected');
+    if (!this.socket || this.socket.destroyed) throw new Error('NativeCoapTransport: not connected');
     const id = `coap-${++requestCounter}`;
     const req: Request = { id, host, port, data: bytesToHex(message) };
 

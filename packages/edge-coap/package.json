@@ -21,10 +21,17 @@
     "prepare": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', JSON.stringify({type:'commonjs'})+'\\n')\"",
     "clean": "rm -rf dist bin",
     "test": "jest --config ../../tests/jest/edge-coap.cjs",
-    "build:go": "cd go && go build -o ../bin/edge-coap ."
+    "build:go": "cd go && go build -o ../bin/edge-coap .",
+    "test:go": "cd go && go test -race ./... && go vet ./...",
+    "test:conformance": "node --test ../../tests/qualification/edge-coap/coap-conformance.test.mjs",
+    "test:integration": "node --test ../../tests/qualification/edge-coap/integration.test.mjs",
+    "test:recovery": "node --test ../../tests/qualification/edge-coap/recovery.test.mjs",
+    "test:consumer": "node --test ../../tests/qualification/edge-coap/packed-consumer.test.mjs",
+    "test:oscore": "node --test ../../tests/qualification/edge-coap/oscore.test.mjs"
   },
   "files": [
     "dist",
+    "sidecar.json",
     "README.md",
     "LICENSE",
     "NOTICE"
