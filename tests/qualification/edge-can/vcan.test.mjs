@@ -17,16 +17,24 @@ function run(command, args, options = {}) {
 }
 function canRun(command) { try { run('sh', ['-c', `command -v ${command}`]); return true; } catch { return false; } }
 
-test('vcan sidecar sends/receives standard and extended frames', { timeout: 60_000, skip: !linux && 'Linux vcan required' }, async (t) => {
+function unavailable(t, reason) {
+  // Local machines may lack vcan/can-utils; CI must fail closed instead of
+  // reporting a skipped suite as qualification evidence.
+  if (process.env.CI) assert.fail(`required CAN qualification environment unavailable: ${reason}`);
+  t.skip(reason);
+}
+
+test('vcan sidecar sends/receives standard and extended frames', { timeout: 60_000 }, async (t) => {
+  if (!linux) { unavailable(t, 'Linux vcan required'); return; }
   if (!canRun('ip') || !canRun('cansend') || !canRun('candump') || !canRun('go')) {
-    t.skip('ip/cansend/candump/go unavailable'); return;
+    unavailable(t, 'ip/cansend/candump/go unavailable'); return;
   }
   sudo = process.getuid?.() === 0 ? '' : 'sudo';
   try {
     run('sh', ['-c', `${sudo} modprobe vcan 2>/dev/null || true`]);
     run('sh', ['-c', `${sudo} ip link add dev ${name} type vcan && ${sudo} ip link set ${name} up`]);
   } catch (error) {
-    t.skip(`vcan unavailable: ${error.message}`); return;
+    unavailable(t, `vcan unavailable: ${error.message}`); return;
   }
   const work = mkdtempSync(join(tmpdir(), 'edge-can-vcan-'));
   const binary = join(work, 'edge-can');

@@ -1,0 +1,32 @@
+{
+  "name": "edge-can-sidecar",
+  "protocolVersion": 1,
+  "distribution": {
+    "mode": "source-build",
+    "bundledInNpmPackage": false,
+    "binary": "bin/edge-can",
+    "build": "pnpm --filter @totemsdk/edge-can build:go",
+    "autoDownload": false
+  },
+  "compatibility": {
+    "protocolMajor": 1,
+    "healthCheck": "edge-can --version",
+    "rule": "Rebuild the sidecar from the matching package source. The npm package does not bundle platform binaries."
+  },
+  "configuration": {
+    "listen": "CAN_LISTEN_ADDR=127.0.0.1:15004",
+    "interface": "CAN_INTERFACE=can0"
+  },
+  "qualified": [
+    "Linux SocketCAN/vcan with classic CAN 2.0A/B frames",
+    "11-bit and 29-bit arbitration IDs, 0-8 byte payloads",
+    "source build on the target platform"
+  ],
+  "unqualified": [
+    "CAN FD (FDF/BRS/ESI) and payloads over 8 bytes",
+    "physical CAN controllers and injected bus-off on hardware",
+    "Windows/macOS prebuilt binaries",
+    "hot upgrade or rolling sidecar replacement",
+    "multiple clients owning one interface concurrently"
+  ]
+}

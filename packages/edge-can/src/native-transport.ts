@@ -24,12 +24,6 @@ interface Request {
   data?: string;
 }
 
-interface Response {
-  id: string;
-  ok: boolean;
-  error?: string;
-}
-
 interface PushFrame {
   type: string;
   id: number;
@@ -37,6 +31,13 @@ interface PushFrame {
   isRtr: boolean;
   dlc: number;
   data: string;
+  timestamp: number;
+}
+
+interface PushError {
+  type: 'error';
+  code: string;
+  error: string;
   timestamp: number;
 }
 
@@ -49,6 +50,7 @@ export class NativeCanTransport implements CanTransportPort {
   private frameHandlers: Array<(frame: CanFrame) => void> = [];
   private errorHandlers: Array<(err: Error) => void> = [];
   private readonly config: Required<NativeCanConfig>;
+  private closedByUser = false;
 
   constructor(config: NativeCanConfig = {}) {
     this.config = {
@@ -59,9 +61,18 @@ export class NativeCanTransport implements CanTransportPort {
     };
   }
 
+  private emitError(error: Error): void {
+    for (const handler of this.errorHandlers) {
+      try { handler(error); } catch {}
+    }
+  }
+
   async open(interfaceName: string): Promise<void> {
     const net = await import('net');
+    this.closedByUser = false;
+    this.buffer = '';
     return new Promise((resolve, reject) => {
+      let connected = false;
       const timer = setTimeout(() => {
         this.socket?.destroy();
         reject(new Error(`NativeCanTransport: connect timeout`));
@@ -69,7 +80,11 @@ export class NativeCanTransport implements CanTransportPort {
 
       this.socket = net.createConnection({ host: this.config.host, port: this.config.port }, () => {
         clearTimeout(timer);
-        this.sendRequest('open', { interface: interfaceName }).then(resolve).catch(reject);
+        connected = true;
+        this.sendRequest('open', { interface: interfaceName }).then(resolve).catch((error) => {
+          this.socket?.destroy();
+          reject(error);
+        });
       });
 
       this.socket.on('data', (chunk: Buffer) => {
@@ -94,6 +109,9 @@ export class NativeCanTransport implements CanTransportPort {
               for (const handler of this.frameHandlers) {
                 try { handler(frame); } catch {}
               }
+            } else if (msg.type === 'error') {
+              const push = msg as PushError;
+              this.emitError(new Error(`NativeCanTransport: ${push.code}: ${push.error}`));
             } else if (msg.id && this.pending.has(msg.id)) {
               const { resolve: res, reject: rej } = this.pending.get(msg.id)!;
               this.pending.delete(msg.id);
@@ -105,23 +123,30 @@ export class NativeCanTransport implements CanTransportPort {
       });
 
       this.socket.on('error', (err: Error) => {
-        for (const handler of this.errorHandlers) {
-          try { handler(err); } catch {}
+        if (!connected) {
+          clearTimeout(timer);
+          this.socket?.destroy();
+          reject(err);
         }
+        this.emitError(err);
       });
 
       this.socket.on('close', () => {
         for (const [, p] of this.pending) p.reject(new Error('connection closed'));
         this.pending.clear();
+        if (!this.closedByUser) this.emitError(new Error('NativeCanTransport: connection closed'));
       });
     });
   }
 
   async close(): Promise<void> {
+    this.closedByUser = true;
     if (this.socket) {
-      await this.sendRequest('close', {});
+      try { await this.sendRequest('close', {}); } catch { /* already disconnected */ }
       this.socket.destroy();
       this.socket = null;
+      for (const [, p] of this.pending) p.reject(new Error('connection closed'));
+      this.pending.clear();
     }
   }
 
@@ -140,7 +165,7 @@ export class NativeCanTransport implements CanTransportPort {
   }
 
   private sendRequest(type: string, extra: Record<string, unknown>): Promise<void> {
-    if (!this.socket) throw new Error('NativeCanTransport: not connected');
+    if (!this.socket || this.socket.destroyed) throw new Error('NativeCanTransport: not connected');
     const id = `can-${++requestCounter}`;
     const req: Request = { id, type, ...extra } as Request;
 
