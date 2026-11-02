@@ -137,11 +137,7 @@ func (s *Server) openCAN(ifname string) error {
 		return fmt.Errorf("get ifindex for %s: %w", ifname, err)
 	}
 
-	addr := &syscall.SockaddrLinklayer{
-		Protocol: syscall.ETH_P_CAN,
-		Ifindex:  ifIndex,
-	}
-	if err := syscall.Bind(fd, addr); err != nil {
+	if err := bindCAN(fd, ifIndex); err != nil {
 		syscall.Close(fd)
 		return fmt.Errorf("bind: %w", err)
 	}
@@ -399,6 +395,33 @@ func (s *Server) writeResponse(conn net.Conn, resp Response) {
 	}
 	data = append(data, '\n')
 	_, _ = conn.Write(data)
+}
+
+// sockaddrCAN is Linux's struct sockaddr_can. Go's SockaddrLinklayer cannot be
+// used for AF_CAN: syscall.Bind fills sa_family from the Go type, and
+// SockaddrLinklayer sets AF_PACKET, so the kernel rejects the bind with EINVAL.
+type sockaddrCAN struct {
+	Family   uint16
+	_        uint16
+	Ifindex  int32
+	RxID     uint32
+	TxID     uint32
+	RxIDMask uint32
+	TxIDMask uint32
+}
+
+func bindCAN(fd int, ifIndex int) error {
+	addr := sockaddrCAN{Family: syscall.AF_CAN, Ifindex: int32(ifIndex)}
+	_, _, errno := syscall.Syscall(
+		syscall.SYS_BIND,
+		uintptr(fd),
+		uintptr(unsafe.Pointer(&addr)),
+		unsafe.Sizeof(addr),
+	)
+	if errno != 0 {
+		return errno
+	}
+	return nil
 }
 
 func getIfIndex(fd int, ifname string) (int, error) {
