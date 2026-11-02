@@ -1,0 +1,1 @@
+../../../../packages/act-ocpp/src/adapter.ts
