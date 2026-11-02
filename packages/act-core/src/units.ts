@@ -16,6 +16,9 @@ export type Dimension =
   | 'ratio'
   | 'time'
   | 'speed'
+  | 'power'
+  | 'energy'
+  | 'linearSpeed'
   | 'dimensionless';
 
 /** Unit symbol (a registry string, not a closed union — profiles add units). */
@@ -117,6 +120,18 @@ export function createDefaultUnitRegistry(): UnitRegistry {
   // speed (canonical rpm)
   r.register('rpm', 'speed', (v) => v, (v) => v);
   r.register('rpm/s', 'speed', (v) => v * 60, (v) => v / 60);
+
+  // power (canonical W) — RFC-023 physical effects
+  r.register('W', 'power', (v) => v, (v) => v);
+  r.register('kW', 'power', (v) => v * 1000, (v) => v / 1000);
+
+  // energy (canonical Wh) — RFC-023 physical effects
+  r.register('Wh', 'energy', (v) => v, (v) => v);
+  r.register('kWh', 'energy', (v) => v * 1000, (v) => v / 1000);
+
+  // linear speed (canonical m/s) — RFC-023 physical effects
+  r.register('m/s', 'linearSpeed', (v) => v, (v) => v);
+  r.register('km/h', 'linearSpeed', (v) => v / 3.6, (v) => v * 3.6);
 
   // dimensionless
   r.register('1', 'dimensionless', (v) => v, (v) => v);

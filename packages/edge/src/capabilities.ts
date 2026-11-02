@@ -86,6 +86,8 @@ export type EdgeCapability =
   | 'transport:opcua'
   | 'transport:bacnet'
   | 'transport:matter'
+  | 'transport:ocpp'
+  | 'transport:mavlink'
   | 'industrial:action'
   | 'industrial:read';
 
