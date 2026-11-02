@@ -97,7 +97,7 @@ Total: **74** publishable packages + **6** excluded entries = **80** workspace e
 | `@totemsdk/provider-bond` | 0.2.2 | rc | outside | `packages/provider-bond` |
 | `@totemsdk/raster-proof` | 1.0.1 | rc | outside | `packages/raster-proof` |
 | `@totemsdk/realtime` | 0.2.1 | rc | outside | `packages/realtime` |
-| `@totemsdk/recursive-mast` | 0.3.1 | rc | outside | `packages/recursive-mast` |
+| `@totemsdk/recursive-mast` | 0.3.2 | rc | outside | `packages/recursive-mast` |
 | `@totemsdk/se-server` | 0.5.2 | rc | outside | `packages/se-server` |
 | `@totemsdk/server` | 1.0.4 | rc | outside | `packages/server` |
 | `@totemsdk/spatial-proof` | 1.0.1 | rc | outside | `packages/spatial-proof` |
