@@ -7,15 +7,17 @@ on:
       - 'extensions/totem-extension/**'
       - '.github/workflows/build-extension.yml'
   # Publishing a Release tagged `extension-v*` is the approval gate: it builds,
-  # signs, and attaches the fixed-name assets. The default branch also keeps a
-  # rolling `extension-latest` release updated for direct download. Mirrors the
-  # packages' model in publish-totemsdk.yml (release: types: [published]).
+  # signs, and attaches the fixed-name assets. The rolling `extension-latest`
+  # release is updated ONLY here — a push to main builds and validates, but must
+  # not republish the rolling download under an unchanged version.
   release:
     types: [published]
   workflow_dispatch:
 
 jobs:
   build:
+    # package releases publish many tags; only extension-v* releases build here
+    if: github.event_name != 'release' || startsWith(github.event.release.tag_name, 'extension-v')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -25,6 +27,79 @@ jobs:
 
       - name: Setup workspace
         uses: ./.github/actions/setup-pnpm
+
+      # Release discipline:
+      #  - manifest.json and package.json versions must agree
+      #  - a published extension release tag must match the manifest version
+      #  - a push that changes manifest.json must also increase the version
+      - name: Verify extension version
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          EXT="extensions/totem-extension"
+
+          MANIFEST_VERSION=$(node -p "JSON.parse(require('fs').readFileSync('$EXT/manifest.json','utf8')).version")
+          PACKAGE_VERSION=$(node -p "JSON.parse(require('fs').readFileSync('$EXT/package.json','utf8')).version")
+          echo "event=$EVENT_NAME manifest=$MANIFEST_VERSION package=$PACKAGE_VERSION"
+
+          if [ "$MANIFEST_VERSION" != "$PACKAGE_VERSION" ]; then
+            echo "::error::manifest.json ($MANIFEST_VERSION) and package.json ($PACKAGE_VERSION) versions differ; bump both"
+            exit 1
+          fi
+
+          if [ "$EVENT_NAME" = "release" ]; then
+            TAG_VERSION="${RELEASE_TAG#extension-v}"
+            if [ "$TAG_VERSION" != "$MANIFEST_VERSION" ]; then
+              echo "::error::release tag $RELEASE_TAG does not match manifest version $MANIFEST_VERSION"
+              exit 1
+            fi
+            echo "release tag matches manifest version"
+            exit 0
+          fi
+
+          if [ "$EVENT_NAME" != "push" ]; then
+            echo "workflow_dispatch: skipping version-bump check"
+            exit 0
+          fi
+
+          if [ -z "${BEFORE_SHA:-}" ] || [ "$BEFORE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            echo "no previous commit (new branch); skipping version-bump check"
+            exit 0
+          fi
+
+          OLD_MANIFEST="/tmp/extension-manifest-before.json"
+          HTTP=$(curl -sS -o "$OLD_MANIFEST" -w "%{http_code}" \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github.raw" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${EXT}/manifest.json?ref=${BEFORE_SHA}")
+          case "$HTTP" in
+            200) ;;
+            404) echo "previous manifest not found (new extension?); skipping version-bump check"; exit 0 ;;
+            *) echo "::error::could not read previous manifest (HTTP $HTTP)"; exit 1 ;;
+          esac
+
+          if cmp -s "$OLD_MANIFEST" "$EXT/manifest.json"; then
+            echo "manifest.json unchanged; no bump required"
+            exit 0
+          fi
+
+          OLD_VERSION=$(node -p "JSON.parse(require('fs').readFileSync('$OLD_MANIFEST','utf8')).version")
+          node -e '
+            const parse = (v) => v.split("-")[0].split(".").map(Number);
+            const [oldV, newV] = process.argv.slice(1);
+            const a = parse(oldV);
+            const b = parse(newV);
+            const cmp = (b[0] - a[0]) || (b[1] - a[1]) || (b[2] - a[2]);
+            if (!(cmp > 0)) {
+              console.error(`::error::manifest.json changed but the extension version did not increase (${oldV} -> ${newV}); bump manifest.json and package.json`);
+              process.exit(1);
+            }
+            console.log(`ok: extension version ${oldV} -> ${newV}`);
+          ' "$OLD_VERSION" "$MANIFEST_VERSION"
 
       # The extension consumes @totemsdk/* workspace packages (workspace:^),
       # whose compiled dist/ is gitignored and so must be built here (webpack
@@ -157,7 +232,12 @@ jobs:
       # fixed-name assets under a dedicated, extension-owned tag instead; the
       # site links to releases/download/extension-latest/... which can never be
       # hijacked by an npm release. Marked prerelease so it stays out of "latest".
+      #
+      # Only a published extension release updates this channel. A push to main
+      # validates the build but must not republish a rolling artifact under an
+      # unchanged version.
       - name: Publish rolling extension-latest release
+        if: github.event_name == 'release' && startsWith(github.event.release.tag_name, 'extension-v')
         uses: softprops/action-gh-release@c12583777ecdfd3be55c69cf75464299dc01057e # v3
         with:
           tag_name: extension-latest
@@ -174,7 +254,7 @@ jobs:
       # release attaches the stable artifacts under that tag.
       - name: Create versioned release
         uses: softprops/action-gh-release@c12583777ecdfd3be55c69cf75464299dc01057e # v3
-        if: startsWith(github.event.release.tag_name, 'extension-v') || startsWith(github.ref, 'refs/tags/extension-v')
+        if: github.event_name == 'release' && startsWith(github.event.release.tag_name, 'extension-v')
         with:
           files: |
             totem-extension.zip
