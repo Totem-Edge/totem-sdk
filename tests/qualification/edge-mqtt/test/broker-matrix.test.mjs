@@ -118,7 +118,12 @@ function mosquitto(t, certs, directory) {
   const config = join(directory, 'mosquitto.conf');
   const acl = join(directory, 'acl');
   const passwd = join(directory, 'passwd');
-  run('docker', ['run', '--rm', '-v', `${directory}:/work`, 'eclipse-mosquitto:2',
+  // Run as the invoking user: Docker creates the bind-mounted passwd file as
+  // root otherwise, and the host cannot chmod or clean it up (EPERM on Linux CI).
+  const userArgs = typeof process.getuid === 'function'
+    ? ['--user', `${process.getuid()}:${process.getgid()}`]
+    : [];
+  run('docker', ['run', '--rm', '-v', `${directory}:/work`, ...userArgs, 'eclipse-mosquitto:2',
     'mosquitto_passwd', '-b', '-c', '/work/passwd', 'operator', 'secret']);
   writeFileSync(config, [
     'listener 8883',

@@ -47,6 +47,12 @@ function collect(name) {
   closure.set(name, directory);
   const pkg = JSON.parse(readFileSync(join(directory, 'package.json'), 'utf8'));
   for (const dependency of Object.keys({ ...pkg.dependencies, ...pkg.optionalDependencies })) collect(dependency);
+  // Optional peers are not installed by npm, but the package's public .d.ts may
+  // reference their types (type-only imports). Pack them too so declaration
+  // checking sees the complete type graph instead of failing on a missing peer.
+  for (const [peer, meta] of Object.entries(pkg.peerDependenciesMeta ?? {})) {
+    if (meta?.optional && pkg.peerDependencies?.[peer]) collect(peer);
+  }
 }
 collect(manifest.name);
 
