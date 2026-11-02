@@ -147,10 +147,10 @@ npm deprecate @totemsdk/industrial-action "Renamed to @totemsdk/act-core (prerel
 `edge-adapters@0.3.2`, the RC patch connectors, `edge-gnss@0.1.0`,
 `edge-ocpp@0.1.0`, `edge-mavlink@0.1.0` and `mcp-server@0.5.1` are on `next`.
 
-The deprecation is **pending**: `npm deprecate` needs an npm token, and GitHub
-only dispatches a workflow that already exists on the default branch.
-`.github/workflows/npm-deprecate.yml` is ready; run it once this branch reaches
-`main`, or run `npm login` and the command above locally.
+Every published version (0.1.0 through 0.3.0) is **deprecated** with the message
+above, using the existing token-backed `deprecate-totemsdk.yml` workflow. The
+whole-package form still needs `npm login` locally or the workflow to accept a
+range.
 
 ### Stage 3 — v1 packages (`latest`)
 
