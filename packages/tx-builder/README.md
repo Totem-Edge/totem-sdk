@@ -2,13 +2,46 @@
 
 **Construct Minima transactions in pure TypeScript.**
 
-Provides coin selection, multi-signature transaction management, and the `EnhancedBuildParams` type used across the SDK. Depends only on `@noble/hashes`.
+Provides local transaction/witness assembly, coin selection, fee/change funding,
+HTLC builders, signing helpers, submission and TxPoW mining. Depends on
+`@totemsdk/core` (WASM crypto) and `@totemsdk/txpow` (mining).
 
 ## Install
 
 ```bash
-npm install @totemsdk/tx-builder @noble/hashes
+npm install @totemsdk/tx-builder
 ```
+
+## Runtime initialization
+
+`@totemsdk/core` ships WASM crypto, and its entry points differ by module
+system:
+
+- **CommonJS (Node):** no setup. The CJS entry initializes the node WASM build
+  at import time.
+- **ESM (Node):** the ESM entry targets the browser/web WASM build, so
+  initialize it once before building transactions:
+
+  ```ts
+  import { readFileSync } from 'node:fs';
+  import { createRequire } from 'node:module';
+  import { dirname, join } from 'node:path';
+  import { initSync } from '@totemsdk/core';
+
+  const require = createRequire(import.meta.url);
+  const wasmDir = dirname(require.resolve('@totemsdk/core-wasm'));
+  initSync({
+    module: readFileSync(join(wasmDir, 'totemsdk_core_wasm_bg.wasm')),
+  });
+  ```
+
+  `await init({ module_or_path: ... })` is equivalent.
+
+- **Bundlers/browsers:** `await init()` from `@totemsdk/core` with the normal
+  web loader.
+
+Without initialization, `buildTransaction` throws
+`Cannot read properties of undefined (reading '__wbindgen_malloc')`.
 
 ## What's inside
 
