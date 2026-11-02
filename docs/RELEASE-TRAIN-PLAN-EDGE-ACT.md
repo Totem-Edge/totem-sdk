@@ -196,8 +196,12 @@ pnpm --filter @totemsdk/edge-ocpp test:integration
 pnpm --filter @totemsdk/edge-mavlink test:integration
 ```
 
-**Done 2026-11-02.** Strict family install: 72 packages, no deferrals.
-Upstream guard: 256 first-party refs resolve to published versions. Every
+**Done 2026-11-02.** Strict family install: 74 packages, no deferrals.
+Upstream guard: 263 first-party refs resolve to published versions. The family
+install briefly failed on an unrelated peer conflict: published
+`recursive-mast@0.3.1` still carried `@totemsdk/tx-builder ^0.2.2` after
+tx-builder 0.3.0 shipped. `recursive-mast@0.3.2` re-pins it to `^0.3.0` and the
+strict install is green. Every
 edge/act/MCP package's `latest` or `next` tag now points at the released
 version (v1 -> `latest`, rc -> `next`). v1 packages still carry an older `next`
 tag from before promotion; it is unused by the maturity model and left as-is.
