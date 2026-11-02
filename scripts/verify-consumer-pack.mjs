@@ -54,7 +54,14 @@ function collect(name) {
     if (meta?.optional && pkg.peerDependencies?.[peer]) collect(peer);
   }
 }
-collect(manifest.name);
+// A workspace package is packed through its directory mapping; a standalone
+// package (a caller-supplied fixture, or any package outside the workspace)
+// must still be packed as the root of the consumer closure.
+if (workspacePackages.has(manifest.name)) {
+  collect(manifest.name);
+} else {
+  closure.set(manifest.name, packageDir);
+}
 
 function run(command, args, cwd, env = process.env) {
   const result = spawnSync(command, args, { cwd, env, encoding: 'utf8', stdio: 'inherit' });
