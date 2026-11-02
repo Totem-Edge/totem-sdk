@@ -11,6 +11,10 @@ module.exports = {
   } }] },
   moduleNameMapper: {
     '^@totemsdk/edge-lorawan$': '<rootDir>/packages/edge-lorawan/src/index.ts',
+    '^@totemsdk/edge$': '<rootDir>/packages/edge/src/index.ts',
+    '^@totemsdk/storage/sqlite$': '<rootDir>/packages/storage/src/adapters/sqlite-store.ts',
+    '^@totemsdk/storage$': '<rootDir>/packages/storage/src/index.ts',
+    '^@totemsdk/([a-z0-9-]+)$': '<rootDir>/packages/$1/src/index.ts',
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
 };

@@ -44,7 +44,11 @@ module.exports = {
     '^@totemsdk/lookup-client$': '<rootDir>/packages/lookup-client/src/index.ts',
     '^@totemsdk/location-proof$': '<rootDir>/packages/location-proof/src/index.ts',
     '^@totemsdk/root-identity$': '<rootDir>/packages/root-identity/src/index.ts',
+    '^@totemsdk/core-wasm$': '<rootDir>/packages/core-wasm/pkg-node/totemsdk_core_wasm.js',
     '^better-sqlite3$': '<rootDir>/packages/edge-adapters/src/better-sqlite3.mock.cjs',
+    // Fallback for workspace packages that are only devDependencies of this
+    // package: a filtered publish install does not hoist them to the repo root.
+    '^@totemsdk/([a-z0-9-]+)$': '<rootDir>/packages/$1/src/index.ts',
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
 };

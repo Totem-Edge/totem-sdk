@@ -38,6 +38,22 @@ runs:
           pnpm install --frozen-lockfile --prefer-offline --ignore-scripts
         fi
 
+    # Root-level qualification tests import workspace packages by name (the MQTT
+    # recovery gate forks a worker that does `import('@totemsdk/edge-mqtt')`).
+    # A filtered install only links a package into its dependents, so link every
+    # workspace package into the repo root as well.
+    - name: Link workspace packages at the repo root
+      shell: bash
+      run: |
+        mkdir -p node_modules/@totemsdk
+        for manifest in packages/*/package.json; do
+          dir=$(dirname "$manifest")
+          name=$(node -p "require('./$manifest').name")
+          case "$name" in
+            @totemsdk/*) ln -sfn "$PWD/$dir" "node_modules/$name" ;;
+          esac
+        done
+
     # `--ignore-scripts` skips lifecycle scripts for ALL packages, including the
     # native deps that need compiling. Without this, better-sqlite3 ships no
     # prebuilt binding on the runner and every sqlite-backed package (storage,
