@@ -1,0 +1,43 @@
+name: Deprecate npm package
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: Package to deprecate (for example @totemsdk/industrial-action)
+        required: true
+        type: string
+      message:
+        description: Deprecation message shown on the npm package page
+        required: true
+        type: string
+
+jobs:
+  deprecate:
+    name: Deprecate ${{ inputs.package }}
+    runs-on: ubuntu-latest
+    environment:
+      name: npm-production
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '22'
+          registry-url: https://registry.npmjs.org
+
+      # npm deprecate needs an npm token; the OIDC trusted-publisher flow used
+      # by publish-totemsdk only works for `npm publish`.
+      - name: Deprecate
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          PACKAGE: ${{ inputs.package }}
+          MESSAGE: ${{ inputs.message }}
+        run: |
+          case "$PACKAGE" in
+            @totemsdk/*) ;;
+            *) echo "::error::only @totemsdk/* packages can be deprecated here"; exit 1 ;;
+          esac
+          npm deprecate "$PACKAGE" "$MESSAGE"
