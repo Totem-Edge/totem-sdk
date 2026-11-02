@@ -216,7 +216,10 @@ governed profiles, not wire-only substitutes:
   `startMission`, telemetry reconciliation for arrival, hold/RTL/land
   confirmation, an autopilot conformance harness and a MAVLink error taxonomy.
 
-Both ship at `0.1.0` on `next`. The remaining open items are vendor bindings
+**Done 2026-11-02.** Both are published at `0.1.0` on `next` (tags
+`totemsdk/act-ocpp-v0.1.0`, `totemsdk/act-mavlink-v0.1.0`) with green publish
+runs, 12 + 11 unit tests, 4 + 5 simulator integration tests and packed-consumer
+declaration checks. The remaining open items are vendor bindings
 documented in RFC-024 §9 / RFC-025 §9 (a CSMS/charger stack and an
 autopilot/SITL target), plus OCPP 2.1 bidirectional support; these are integration
 decisions, not missing governed semantics.
